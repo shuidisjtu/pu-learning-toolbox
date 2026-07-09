@@ -32,5 +32,8 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
+# Project-specific Claude Code config (not for distribution)
+CLAUDE.md
+
 # UV
 uv.lock
