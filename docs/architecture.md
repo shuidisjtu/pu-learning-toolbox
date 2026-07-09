@@ -146,7 +146,7 @@ class BasePriorEstimator(BaseEstimator):
     def estimate(self):
         raise NotImplementedError
 
-    def confidence_interval(self):
+    def confidence_interval(self, alpha=0.05):
         return None
 ```
 
@@ -170,7 +170,7 @@ class BasePropensityEstimator(BaseEstimator):
 class BasePULoss:
     requires_class_prior = True
 
-    def __call__(self, positive_logits, unlabeled_logits, *, class_prior):
+    def __call__(self, positive_scores, unlabeled_scores, *, class_prior):
         raise NotImplementedError
 ```
 

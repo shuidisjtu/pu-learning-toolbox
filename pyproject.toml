@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pu-toolbox"
+version = "0.1.0.dev0"
+description = "Positive-Unlabeled Learning Python Toolbox — sklearn-compatible"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+authors = [
+    {name = "shuidisjtu"},
+]
+keywords = ["pu-learning", "positive-unlabeled", "machine-learning", "scikit-learn"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.3",
+]
+torch = [
+    "torch>=2.0",
+]
+research = [
+    "torchvision>=0.15",
+    "lightning>=2.0",
+    "tqdm>=4.0",
+]
+all = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.3",
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "lightning>=2.0",
+    "tqdm>=4.0",
+]
+
+[project.urls]
+Repository = "https://github.com/shuidisjtu/pu-learning-toolbox"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["external/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+ignore = ["D"]  # pydocstyle: enable once docstring conventions are settled
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = ["-v", "--tb=short", "--strict-markers"]
+
+[tool.coverage.run]
+source = ["pu_toolbox"]
+omit = ["tests/*"]
