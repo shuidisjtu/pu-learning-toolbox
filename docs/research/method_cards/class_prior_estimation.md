@@ -10,7 +10,7 @@
 - **输入标准化**：Gaussian kernel 对特征尺度敏感，计算前做标准化。
 - **single-training-set 适配**：论文假设 positive set 直接从 $p(x\mid y=1)$ 抽样。若项目输入是 single-training-set `y_pu`，需保证已标注正样本能无偏代表 $p(x\mid y=1)$。
 - **`confidence_interval()`**：返回 `NotImplemented`。论文未给出 CI / bootstrap / asymptotic normality。
-- **写测试**：`tests/test_pen_l1.py`，覆盖§8 测试参考和边界条件。
+- **写测试**：`tests/test_pen_l1.py`，覆盖 §8 测试参考（合成 overlap、MNIST one-vs-rest、收敛性）和边界条件。
 
 ### 1.2 注意
 
@@ -201,7 +201,7 @@ $$
 |---|---|
 | Source status | `official_related` |
 | Upstream URL | http://www.mcduplessis.com/index.php/software/ |
-| License | `needs_review` |
+| License | `unknown` |
 | Framework | MATLAB |
 | 实际对应论文 | ICML 2012 (du Plessis & Sugiyama)，不是 2017 MLJ 论文 |
 | 包含方法 | `LSDDPriorEstMedian.m`（L₂-distance）、`pe_prior_est_grid.m`（Pearson divergence） |
