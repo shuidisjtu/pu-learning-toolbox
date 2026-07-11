@@ -65,9 +65,7 @@ class AlgorithmMetadata:
     complexity: Literal["low", "medium", "high"] = "medium"
     """Approximate training complexity."""
 
-    recommended_data_size: Literal["small", "medium", "medium_to_large", "large"] = (
-        "medium"
-    )
+    recommended_data_size: Literal["small", "medium", "medium_to_large", "large"] = "medium"
     """Rough data-size regime where the method performs well."""
 
     implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
@@ -89,9 +87,7 @@ class AlgorithmMetadata:
         Derived from :attr:`implementation_status` — safe to query after
         mutating ``implementation_status`` in-place.
         """
-        return self.implementation_status not in (
-            ImplementationStatus.API_ONLY,
-        )
+        return self.implementation_status not in (ImplementationStatus.API_ONLY,)
 
     def __post_init__(self) -> None:
         _validate_metadata(self)
@@ -102,9 +98,7 @@ class AlgorithmMetadata:
         for f in fields(self):
             value = getattr(self, f.name)
             if isinstance(value, (list, tuple)):
-                result[f.name] = [
-                    v.value if isinstance(v, Enum) else v for v in value
-                ]
+                result[f.name] = [v.value if isinstance(v, Enum) else v for v in value]
             elif isinstance(value, Enum):
                 result[f.name] = value.value
             else:
@@ -119,6 +113,4 @@ def _validate_metadata(meta: AlgorithmMetadata) -> None:
     if not meta.name or not meta.name.strip():
         raise ValueError("AlgorithmMetadata.name must be a non-empty string")
     if not meta.paper:
-        raise ValueError(
-            f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})"
-        )
+        raise ValueError(f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})")

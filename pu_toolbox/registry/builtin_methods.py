@@ -13,11 +13,21 @@ from __future__ import annotations
 
 from ..core.tags import (
     AlgorithmFamily as Fam,
+)
+from ..core.tags import (
     Assumption as Asm,
+)
+from ..core.tags import (
     Backend,
-    ImplementationStatus as Impl,
     Maturity,
+)
+from ..core.tags import (
+    ImplementationStatus as Impl,
+)
+from ..core.tags import (
     Scenario as Scn,
+)
+from ..core.tags import (
     SourceStatus as Src,
 )
 from .metadata import AlgorithmMetadata
@@ -133,7 +143,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         name="pnu",
         aliases=["pnu_classifier", "pn-pu-nu"],
         family=Fam.RISK_ESTIMATION,
-        paper="Semi-supervised Classification Based on Classification from Positive and Unlabeled Data",
+        paper=(
+            "Semi-supervised Classification Based on Classification "
+            "from Positive and Unlabeled Data"
+        ),
         scenario=[Scn.CASE_CONTROL],
         assumption=[Asm.SCAR],
         requires_class_prior=True,
@@ -173,7 +186,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         name="llsvm",
         aliases=["large_margin_svm", "label_calibrated_svm"],
         family=Fam.RISK_ESTIMATION,
-        paper="Large-Margin Label-Calibrated Support Vector Machines for Positive and Unlabeled Learning",
+        paper=(
+            "Large-Margin Label-Calibrated Support Vector Machines "
+            "for Positive and Unlabeled Learning"
+        ),
         scenario=[Scn.CASE_CONTROL],
         assumption=[Asm.SCAR, Asm.SAR],
         requires_class_prior=False,
@@ -293,7 +309,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         name="weighted_contrastive_pu",
         aliases=["wcon_pu", "wconpu", "contrastive_pu"],
         family=Fam.DEEP_PU,
-        paper="Weighted Contrastive Learning with Hard Negative Mining for Positive and Unlabeled Learning",
+        paper=(
+            "Weighted Contrastive Learning with Hard Negative Mining "
+            "for Positive and Unlabeled Learning"
+        ),
         scenario=[Scn.CASE_CONTROL],
         assumption=[Asm.SCAR],
         requires_class_prior=False,

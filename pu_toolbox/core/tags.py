@@ -7,11 +7,10 @@ on raw strings.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from enum import Enum
 
-
 # ── Scenario ───────────────────────────────────────────────────────
+
 
 class Scenario(str, Enum):
     """Data collection scenario for PU learning."""
@@ -24,6 +23,7 @@ class Scenario(str, Enum):
 
 # ── Assumption ─────────────────────────────────────────────────────
 
+
 class Assumption(str, Enum):
     """Labeling mechanism assumption.
 
@@ -33,18 +33,19 @@ class Assumption(str, Enum):
     before comparison.
     """
 
-    SCAR = "SCAR"                      # P(s=1|y=1, x) = constant
-    SAR = "SAR"                        # P(s=1|y=1, x) = c(x)
+    SCAR = "SCAR"  # P(s=1|y=1, x) = constant
+    SAR = "SAR"  # P(s=1|y=1, x) = c(x)
     UNKNOWN = "unknown"
 
 
 # ── Implementation status ──────────────────────────────────────────
 
+
 class ImplementationStatus(str, Enum):
     """How an algorithm is implemented in the toolbox."""
 
-    API_ONLY = "api_only"                # placeholder, no training logic
-    NATIVE = "native"                    # clean-room implementation
+    API_ONLY = "api_only"  # placeholder, no training logic
+    NATIVE = "native"  # clean-room implementation
     OFFICIAL_ADAPTER = "official_adapter"  # wraps author source
     OFFICIAL_ALIGNED_NATIVE = "official_aligned_native"  # native impl + alignment tests
     THIRD_PARTY_REFERENCE = "third_party_reference_only"
@@ -52,6 +53,7 @@ class ImplementationStatus(str, Enum):
 
 
 # ── Source status ──────────────────────────────────────────────────
+
 
 class SourceStatus(str, Enum):
     """Availability of author/official source code."""
@@ -66,6 +68,7 @@ class SourceStatus(str, Enum):
 
 # ── Algorithm family ───────────────────────────────────────────────
 
+
 class AlgorithmFamily(str, Enum):
     """Algorithm family for grouping and recommendation."""
 
@@ -79,6 +82,7 @@ class AlgorithmFamily(str, Enum):
 
 # ── Backend ────────────────────────────────────────────────────────
 
+
 class Backend(str, Enum):
     """Computational backend used by an algorithm."""
 
@@ -89,6 +93,7 @@ class Backend(str, Enum):
 
 
 # ── Maturity ───────────────────────────────────────────────────────
+
 
 class Maturity(str, Enum):
     """Maturity level of an implementation."""

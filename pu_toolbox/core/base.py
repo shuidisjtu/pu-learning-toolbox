@@ -9,6 +9,8 @@ API Contracts
 See ``docs/architecture.md`` §5 for the full specification.
 """
 
+# ruff: noqa: N803
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -86,7 +88,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         *,
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
-    ) -> "BasePUClassifier":
+    ) -> BasePUClassifier:
         """Fit the PU classifier.
 
         Parameters
@@ -128,9 +130,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         """
         ...
 
-    def decision_function(
-        self, X: np.ndarray | sparse.spmatrix
-    ) -> np.ndarray:
+    def decision_function(self, X: np.ndarray | sparse.spmatrix) -> np.ndarray:
         """Raw decision scores (higher → more likely positive).
 
         Enforces ``fit``-before-``predict`` via :meth:`_check_is_fitted`,
@@ -143,15 +143,11 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         return self._decision_function(X)
 
     @abstractmethod
-    def _decision_function(
-        self, X: np.ndarray | sparse.spmatrix
-    ) -> np.ndarray:
+    def _decision_function(self, X: np.ndarray | sparse.spmatrix) -> np.ndarray:
         """Core decision-function logic (subclasses override this)."""
         ...
 
-    def score_samples(
-        self, X: np.ndarray | sparse.spmatrix
-    ) -> np.ndarray:
+    def score_samples(self, X: np.ndarray | sparse.spmatrix) -> np.ndarray:
         """Anomaly / outlier scores (can be an alias for decision_function).
 
         Some PU methods (e.g. biased SVM) use score convention where
@@ -160,9 +156,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         self._check_is_fitted()
         return self._decision_function(X)
 
-    def predict_proba(
-        self, X: np.ndarray | sparse.spmatrix
-    ) -> np.ndarray:
+    def predict_proba(self, X: np.ndarray | sparse.spmatrix) -> np.ndarray:
         """Estimate P(y=1 | x).
 
         Returns
@@ -182,9 +176,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
             "Use decision_function() or score_samples() instead."
         )
 
-    def predict_label_proba(
-        self, X: np.ndarray | sparse.spmatrix
-    ) -> np.ndarray | None:
+    def predict_label_proba(self, X: np.ndarray | sparse.spmatrix) -> np.ndarray | None:
         """Estimate P(s=1 | x) — the labeling probability.
 
         Returns
@@ -220,9 +212,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
 
     def _check_is_fitted(self) -> None:
         if not self._is_fitted:
-            raise NotFittedError(
-                f"{self.__class__.__name__} is not fitted. Call fit() first."
-            )
+            raise NotFittedError(f"{self.__class__.__name__} is not fitted. Call fit() first.")
 
     # NOTE: Do NOT override __sklearn_tags__.  The parent classes
     # (BaseEstimator, ClassifierMixin) return a Tags namedtuple that
@@ -251,9 +241,7 @@ class BasePriorEstimator(BaseEstimator, ABC):
     implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
 
     @abstractmethod
-    def fit(
-        self, X: np.ndarray | sparse.spmatrix, y_pu: np.ndarray
-    ) -> "BasePriorEstimator":
+    def fit(self, X: np.ndarray | sparse.spmatrix, y_pu: np.ndarray) -> BasePriorEstimator:
         """Estimate class prior π from PU data.
 
         Returns
@@ -267,9 +255,7 @@ class BasePriorEstimator(BaseEstimator, ABC):
         """Return estimated class prior π ∈ (0, 1)."""
         ...
 
-    def confidence_interval(
-        self, alpha: float = 0.05
-    ) -> tuple[float, float] | None:
+    def confidence_interval(self, alpha: float = 0.05) -> tuple[float, float] | None:
         """Return (lower, upper) confidence bounds for π.
 
         Parameters
@@ -303,9 +289,7 @@ class BasePropensityEstimator(BaseEstimator, ABC):
     implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
 
     @abstractmethod
-    def fit(
-        self, X: np.ndarray | sparse.spmatrix, y_pu: np.ndarray
-    ) -> "BasePropensityEstimator":
+    def fit(self, X: np.ndarray | sparse.spmatrix, y_pu: np.ndarray) -> BasePropensityEstimator:
         """Fit the propensity model.
 
         Returns

@@ -5,6 +5,8 @@ beginning of ``fit`` and ``fit_predict`` to ensure consistent input
 early detection of data problems.
 """
 
+# ruff: noqa: N802, N803
+
 from __future__ import annotations
 
 import warnings
@@ -70,8 +72,7 @@ def validate_pu_X_y(
 
     if n_positive < MIN_POSITIVE_SAMPLES:
         raise ValidationError(
-            f"{prefix}Need at least {MIN_POSITIVE_SAMPLES} labeled positives; "
-            f"got {n_positive}."
+            f"{prefix}Need at least {MIN_POSITIVE_SAMPLES} labeled positives; got {n_positive}."
         )
 
     # ── X checks ───────────────────────────────────────────────────
@@ -88,14 +89,10 @@ def validate_pu_X_y(
     n_samples_x = X.shape[0]
 
     if n_samples_x != n_samples_y:
-        raise ValidationError(
-            f"{prefix}X has {n_samples_x} samples but y_pu has {n_samples_y}."
-        )
+        raise ValidationError(f"{prefix}X has {n_samples_x} samples but y_pu has {n_samples_y}.")
 
     if not accept_sparse and sparse.issparse(X):
-        raise ValidationError(
-            f"{prefix}Sparse input is not supported for this estimator."
-        )
+        raise ValidationError(f"{prefix}Sparse input is not supported for this estimator.")
 
     # ── Ratio warning ──────────────────────────────────────────────
     n_unlabeled = n_samples_y - n_positive

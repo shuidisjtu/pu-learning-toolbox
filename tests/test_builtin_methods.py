@@ -47,9 +47,7 @@ class TestBuiltinRegistration:
             by_source[key] = by_source.get(key, 0) + 1
 
         assert by_source.get("official_exact", 0) == 8
-        assert by_source.get("official_bundle", 0) + by_source.get(
-            "official_related", 0
-        ) == 3
+        assert by_source.get("official_bundle", 0) + by_source.get("official_related", 0) == 3
         assert by_source.get("third_party_only", 0) == 1
         assert by_source.get("not_found", 0) == 3
 
@@ -60,11 +58,11 @@ class TestBuiltinRegistration:
             key = meta.family.value
             families[key] = families.get(key, 0) + 1
 
-        assert families.get("class_prior_estimation", 0) == 2   # CPE + ReCPE
-        assert families.get("classic_calibration", 0) == 1      # Elkan-Noto
-        assert families.get("risk_estimation", 0) == 6          # uPU, nnPU, PNU, Centroid, LLSVM, Dist-PU
-        assert families.get("bias_aware", 0) == 2               # PUSB, LBE
-        assert families.get("deep_pu", 0) == 4                  # Self-PU, InfoMax, WConPU, DGPU
+        assert families.get("class_prior_estimation", 0) == 2  # CPE + ReCPE
+        assert families.get("classic_calibration", 0) == 1  # Elkan-Noto
+        assert families.get("risk_estimation", 0) == 6  # uPU, nnPU, PNU, Centroid, LLSVM, Dist-PU
+        assert families.get("bias_aware", 0) == 2  # PUSB, LBE
+        assert families.get("deep_pu", 0) == 4  # Self-PU, InfoMax, WConPU, DGPU
 
     @pytest.mark.parametrize(
         "name, expected_scar, expected_sar",
@@ -74,12 +72,13 @@ class TestBuiltinRegistration:
             ("pusb", False, True),
             ("lbe", False, True),
             ("centroid_pu", True, True),  # supports both
-            ("llsvm", True, True),         # supports both
+            ("llsvm", True, True),  # supports both
         ],
     )
     def test_assumption_flags(self, name, expected_scar, expected_sar):
         register_all_builtin_methods()
         from pu_toolbox.registry import get_metadata
+
         meta = get_metadata(name)
         scar = any(a.value == "SCAR" for a in meta.assumption)
         sar = any(a.value in ("SAR", "instance_dependent") for a in meta.assumption)
@@ -89,6 +88,7 @@ class TestBuiltinRegistration:
     def test_lookup_by_alias(self):
         register_all_builtin_methods()
         from pu_toolbox.registry import get_metadata
+
         # Test common aliases
         assert get_metadata("nnPU").name == "nnpu"
         assert get_metadata("en").name == "elkan_noto"

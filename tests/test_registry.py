@@ -2,15 +2,14 @@
 
 import pytest
 
+from pu_toolbox.core.exceptions import RegistryError
 from pu_toolbox.core.tags import (
     AlgorithmFamily,
     Assumption,
     ImplementationStatus,
-    SourceStatus,
 )
 from pu_toolbox.registry import (
     AlgorithmMetadata,
-    SourcePolicy,
     clear_registry,
     get_algorithm,
     get_algorithm_registry,
@@ -19,7 +18,6 @@ from pu_toolbox.registry import (
     register_method,
     unregister_method,
 )
-from pu_toolbox.core.exceptions import RegistryError
 
 
 @pytest.fixture(autouse=True)
@@ -98,9 +96,7 @@ class TestListAlgorithms:
         assert len(results) == 2
 
     def test_trainable_only_filters_api_only(self):
-        register_method(
-            _make_meta("trainable", implementation_status=ImplementationStatus.NATIVE)
-        )
+        register_method(_make_meta("trainable", implementation_status=ImplementationStatus.NATIVE))
         register_method(
             _make_meta("placeholder", implementation_status=ImplementationStatus.API_ONLY)
         )
@@ -116,12 +112,8 @@ class TestListAlgorithms:
         assert results[0].name == "a"
 
     def test_assumption_filter(self):
-        register_method(
-            _make_meta("scar_method", assumption=[Assumption.SCAR])
-        )
-        register_method(
-            _make_meta("sar_method", assumption=[Assumption.SAR])
-        )
+        register_method(_make_meta("scar_method", assumption=[Assumption.SCAR]))
+        register_method(_make_meta("sar_method", assumption=[Assumption.SAR]))
         results = list_algorithms(assumption="SAR")
         assert len(results) == 1
         assert results[0].name == "sar_method"
@@ -137,11 +129,7 @@ class TestMetadataSerialization:
         assert "trainable" in d
 
     def test_trainable_derived_from_status(self):
-        meta = _make_meta(
-            "x", implementation_status=ImplementationStatus.API_ONLY
-        )
+        meta = _make_meta("x", implementation_status=ImplementationStatus.API_ONLY)
         assert not meta.trainable
-        meta2 = _make_meta(
-            "y", implementation_status=ImplementationStatus.NATIVE
-        )
+        meta2 = _make_meta("y", implementation_status=ImplementationStatus.NATIVE)
         assert meta2.trainable

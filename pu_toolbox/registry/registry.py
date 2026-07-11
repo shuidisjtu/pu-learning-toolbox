@@ -8,7 +8,6 @@ powers discovery, recommendation, and source-aware algorithm selection.
 from __future__ import annotations
 
 import threading
-from typing import Type
 
 from ..core.base import BasePUClassifier
 from ..core.exceptions import RegistryError
@@ -22,13 +21,13 @@ from .metadata import AlgorithmMetadata
 
 # ── Canonical registry ─────────────────────────────────────────────
 _REGISTRY: dict[str, AlgorithmMetadata] = {}
-_CLASSES: dict[str, Type[BasePUClassifier]] = {}
+_CLASSES: dict[str, type[BasePUClassifier]] = {}
 _lock: threading.RLock = threading.RLock()
 
 
 def register_method(
     metadata: AlgorithmMetadata,
-    estimator_cls: Type[BasePUClassifier] | None = None,
+    estimator_cls: type[BasePUClassifier] | None = None,
 ) -> None:
     """Register an algorithm in the toolbox.
 
@@ -91,14 +90,12 @@ def unregister_method(name: str) -> None:
 def _resolve_name(name: str | None) -> str:
     """Resolve alias to canonical name, with None guard."""
     if not isinstance(name, str):
-        raise RegistryError(
-            f"Algorithm name must be a string, got {type(name).__name__}"
-        )
+        raise RegistryError(f"Algorithm name must be a string, got {type(name).__name__}")
     canonical = resolve_alias(name)
     return name if canonical is None else canonical
 
 
-def get_algorithm(name: str) -> Type[BasePUClassifier]:
+def get_algorithm(name: str) -> type[BasePUClassifier]:
     """Look up an algorithm class by name or alias.
 
     Parameters
@@ -132,8 +129,7 @@ def get_algorithm(name: str) -> Type[BasePUClassifier]:
         )
 
     raise RegistryError(
-        f"Unknown algorithm '{name}'. "
-        "Use get_algorithm_registry() to list available algorithms."
+        f"Unknown algorithm '{name}'. Use get_algorithm_registry() to list available algorithms."
     )
 
 
@@ -183,9 +179,7 @@ def list_algorithms(
             continue
         if family is not None and meta.family.value != family:
             continue
-        if assumption is not None and not any(
-            a.value == assumption for a in meta.assumption
-        ):
+        if assumption is not None and not any(a.value == assumption for a in meta.assumption):
             continue
         results.append(meta)
     return results

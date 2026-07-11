@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random as _random
+
 import numpy as np
 
 
@@ -40,6 +41,4 @@ def check_random_state(seed: int | np.random.RandomState | None) -> np.random.Ra
         return np.random.RandomState(seed)
     if isinstance(seed, np.random.RandomState):
         return seed
-    raise TypeError(
-        f"seed must be int, RandomState, or None; got {type(seed).__name__}"
-    )
+    raise TypeError(f"seed must be int, RandomState, or None; got {type(seed).__name__}")

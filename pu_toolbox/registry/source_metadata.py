@@ -7,3 +7,5 @@ user-facing alias that matches the documented registry schema.
 """
 
 from .source_policy import SourcePolicy as SourceMetadata
+
+__all__ = ["SourceMetadata"]

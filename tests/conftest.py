@@ -19,16 +19,16 @@ def rng():
 
 
 @pytest.fixture
-def simple_X_y_pu(rng):
+def simple_x_y_pu(rng):
     """Small 2D Gaussian dataset with PU labels.
 
     Positive class (center=+2) and negative class (center=-2), each with
     100 samples.  50 % of positives are labeled (SCAR c=0.5).
     """
     n = 100
-    X_pos = rng.randn(n, 5) + 2.0
-    X_neg = rng.randn(n, 5) - 2.0
-    X = np.vstack([X_pos, X_neg])
+    x_pos = rng.randn(n, 5) + 2.0
+    x_neg = rng.randn(n, 5) - 2.0
+    x = np.vstack([x_pos, x_neg])
     y_true = np.hstack([np.ones(n), np.zeros(n)])
 
     # SCAR labeling: 50 % of positives get label +1
@@ -45,4 +45,4 @@ def simple_X_y_pu(rng):
     # negatives: always 0
     y_pu[n:] = 0
 
-    return X, y_pu, y_true
+    return x, y_pu, y_true
