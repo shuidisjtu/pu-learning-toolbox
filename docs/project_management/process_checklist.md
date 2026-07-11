@@ -10,9 +10,27 @@
 
 ## Phase 1 — 经典 PU MVP (v0.1)
 
-- [ ] penL1 类先验估计 — HENG958
+### shuidisjtu
+
+- [ ] Elkan-Noto
+- [ ] uPU / Convex PU
+- [ ] nnPU
+- [ ] PNU
+- [ ] Centroid (LDCE)
+- [ ] LLSVM
+
+### HENG958
+
+- [ ] penL1 类先验估计
 - [ ] L1 类先验估计 (optional)
-- [ ] Elkan-Noto 类先验估计
+- [ ] ReCPE
+- [ ] Dist-PU
+- [ ] PUSB
+- [ ] LBE
+- [ ] Self-PU
+
+### 未分配
+
 - [ ] PU Bagging 分类器
 - [ ] Biased SVM 分类器
 - [ ] Weighted Logistic Regression 分类器

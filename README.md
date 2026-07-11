@@ -23,6 +23,8 @@ uv pip install -e ".[dev]"
 
 # 4. Verify
 pytest tests/ -v
+ruff check pu_toolbox/ tests/
+ruff format pu_toolbox/ tests/
 ```
 
 ### 使用 pip / conda？
