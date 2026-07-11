@@ -2,7 +2,7 @@
 
 > 15 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-07-08。
 
-`source_status` 与 `implementation_status` 枚举定义见 [`architecture.md`](architecture.md) §6。
+`implementation_status` 语义见 [`architecture.md`](architecture.md) 的“算法注册表”部分；`source_status` 的当前枚举以 `pu_toolbox/core/tags.py` 为准，本文档给出论文源码状态统计。
 
 ## 总体统计
 

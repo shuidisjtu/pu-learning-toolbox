@@ -40,7 +40,7 @@ pu_toolbox/
   prior/
     __init__.py
     base.py
-    pen_l.py                 (planned)
+    pen_l1.py                (planned)
     tice.py                  (planned)
     alphamax.py              (planned)
     wrappers.py              (planned)
@@ -110,7 +110,7 @@ tests/
   test_validation.py
   test_registry.py
   test_builtin_methods.py
-  test_pen_l.py             (planned)
+  test_pen_l1.py            (planned)
   test_losses.py             (planned)
   test_estimators_classic.py (planned)
 ```

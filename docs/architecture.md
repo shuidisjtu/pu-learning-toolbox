@@ -152,6 +152,8 @@ class BaseSourceAdapter:
 
 `implementation_status` 枚举：
 
+`source_status` 表示论文源码可获得性，当前代码枚举以 `pu_toolbox/core/tags.py` 为准，常见值包括 `official_exact`、`official_bundle`、`official_related`、`third_party_only`、`not_found`、`unknown`。
+
 | 状态 | 含义 |
 |---|---|
 | `api_only` | 仅 API 占位，无训练逻辑 |
@@ -173,7 +175,7 @@ class BaseSourceAdapter:
 
 | 方法 | 主要模块 |
 |---|---|
-| Class-Prior Estimation | `prior/pen_l.py`, `prior/wrappers.py` |
+| Class-Prior Estimation | `prior/pen_l1.py`, `prior/wrappers.py` |
 | Elkan-Noto | `estimators/classic/elkan_noto.py` |
 | uPU / nnPU / PNU | `losses/upu.py`, `losses/nnpu.py`, `losses/pnu.py` |
 | PUSB / LBE | `estimators/bias_aware/pusb.py`, `estimators/bias_aware/lbe.py` |

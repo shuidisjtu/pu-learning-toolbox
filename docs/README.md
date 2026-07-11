@@ -38,7 +38,7 @@ pip install pu-toolbox[all]
 
 ## 4. 论文覆盖
 
-覆盖 15 篇 PU Learning 论文，按 8 个算法族组织。算法选型、场景/假设匹配见 [`method_selection.md`](method_selection.md)，论文→模块映射见 [`architecture.md`](architecture.md) §9，源码状态见 [`resources_optimized.md`](resources_optimized.md)。
+覆盖 15 篇 PU Learning 论文，按 5 个算法族组织。算法选型、场景/假设匹配见 [`method_selection.md`](method_selection.md)，论文→模块映射见 [`architecture.md`](architecture.md) 的“论文方法到模块的映射”部分，源码状态见 [`resources_optimized.md`](resources_optimized.md)。
 
 ## 5. 文档索引
 

@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: Phase 1 — 算法实现。** 包骨架、core 基类、registry 已完成（67 tests passing）。15 篇论文方法当前为 `api_only` 占位，逐个集成中。
+**Status: Phase 1 — 算法实现准备中。** 包骨架、core 基类、registry 已完成，测试套件通过。15 篇论文方法当前为 `api_only` 占位，逐个集成中；当前没有可训练内置算法。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -22,9 +22,9 @@ uv venv              # reads .python-version, uses Python 3.11
 uv pip install -e ".[dev]"
 
 # 4. Verify
-pytest tests/ -v
-ruff check pu_toolbox/ tests/
-ruff format pu_toolbox/ tests/
+uv run pytest tests/ -v
+uv run ruff check pu_toolbox tests
+uv run ruff format --check pu_toolbox tests
 ```
 
 ### 使用 pip / conda？

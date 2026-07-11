@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from pu_toolbox.core.labels import normalize_pu_labels
 from pu_toolbox.core.exceptions import ValidationError
+from pu_toolbox.core.labels import normalize_pu_labels
 
 
 class TestNormalizePuLabels:
