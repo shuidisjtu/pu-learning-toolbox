@@ -122,10 +122,11 @@ class BaseSourceAdapter:
 | 方法 | 是否必须 | 含义 |
 |---|---|---|
 | `fit(X, y_pu)` | 必须 | 训练模型 |
-| `predict(X)` | 必须 | 输出离散标签 |
-| `decision_function(X)` 或 `score_samples(X)` | 必须至少一个 | 输出连续分数 |
+| `predict(X)` | 必须 | 输出离散标签；公共方法调用子类 `_predict(X)` |
+| `decision_function(X)` | 必须 | 输出连续分数；公共方法调用子类 `_decision_function(X)` |
+| `score_samples(X)` | 可选覆盖 | 默认复用 `decision_function` 分数；仅当分数约定不同才覆盖 |
 | `predict_proba(X)` | 可选 | 输出 $P(y=1\mid x)$ |
-| `get_params()` / `set_params()` | 必须 | 兼容 sklearn Pipeline / GridSearchCV |
+| `get_params()` / `set_params()` | 必须 | 由 sklearn `BaseEstimator` 提供，兼容 Pipeline / GridSearchCV |
 
 ## 6. 算法注册表
 

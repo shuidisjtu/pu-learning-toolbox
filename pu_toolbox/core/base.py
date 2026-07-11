@@ -41,11 +41,14 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     Every PU classifier **must** implement:
 
     * ``fit(X, y_pu, *, class_prior=None, sample_weight=None)``
-    * ``predict(X)``
-    * ``decision_function(X)`` **or** ``score_samples(X)``
+    * ``_predict(X)`` — called by the public ``predict(X)`` wrapper
+    * ``_decision_function(X)`` — called by ``decision_function(X)`` and
+      the default ``score_samples(X)``
 
     The following are optional but recommended:
 
+    * ``score_samples(X)`` — override only when the score convention differs
+      from ``decision_function(X)``
     * ``predict_proba(X)`` — calibrated P(y=1 | x)
     * ``predict_label_proba(X)`` — P(s=1 | x) for propensity-aware models
     * ``get_pu_metadata()`` — dict of assumption / scenario / diagnostics
@@ -136,8 +139,8 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         Enforces ``fit``-before-``predict`` via :meth:`_check_is_fitted`,
         then delegates to :meth:`_decision_function`.
 
-        At least one of :meth:`_decision_function` or
-        :meth:`score_samples` must be implemented.
+        Subclasses implement :meth:`_decision_function`. Override
+        :meth:`score_samples` only when a different score convention is needed.
         """
         self._check_is_fitted()
         return self._decision_function(X)
