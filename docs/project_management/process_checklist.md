@@ -10,7 +10,7 @@
 
 ## Phase 1 — 经典 PU MVP (v0.1)
 
-- [ ] penL1 类先验估计 — LOST_TREE
+- [ ] penL1 类先验估计 — HENG958
 - [ ] L1 类先验估计 (optional)
 - [ ] Elkan-Noto 类先验估计
 - [ ] PU Bagging 分类器

@@ -154,7 +154,6 @@ docs/
 
   project_management/
     decision_log.md
-    handoff_tracker.md
     process_checklist.md
 ```
 

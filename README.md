@@ -6,6 +6,8 @@ Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensibl
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
+项目管理文档: [`docs/project_management/`](docs/project_management/) — 决策日志、进度清单
+
 ## Quick Start
 
 ```bash
