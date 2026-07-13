@@ -73,6 +73,38 @@ def register_method(
                 raise RegistryError(str(exc)) from exc
 
 
+def bind_estimator_class(name: str, estimator_cls: type[BasePUClassifier]) -> None:
+    """Bind a native estimator class to an already-registered method.
+
+    Use this when upgrading an ``api_only`` entry to a runnable
+    implementation without re-registering the entire metadata.
+
+    Parameters
+    ----------
+    name : str
+        Canonical method name (must already be registered).
+    estimator_cls : type[BasePUClassifier]
+        Estimator class to associate.
+
+    Raises
+    ------
+    RegistryError
+        If ``name`` is not registered or ``estimator_cls`` is invalid.
+    """
+    if estimator_cls is not None and not issubclass(estimator_cls, BasePUClassifier):
+        raise RegistryError(
+            f"estimator_cls must be a subclass of BasePUClassifier, "
+            f"got {getattr(estimator_cls, '__name__', estimator_cls)}"
+        )
+    canonical = _resolve_name(name)
+    if canonical not in _REGISTRY:
+        raise RegistryError(
+            f"Unknown algorithm '{name}'. Register it first with register_method()."
+        )
+    with _lock:
+        _CLASSES[canonical] = estimator_cls
+
+
 def unregister_method(name: str) -> None:
     """Remove an algorithm from the registry (mainly for testing).
 

@@ -93,10 +93,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         maturity=Maturity.STABLE,
         complexity="low",
         recommended_data_size="small",
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.THIRD_PARTY_ONLY,
-        upstream_url="https://github.com/aldro61/pu-learning",
-        license="unknown",
+        upstream_url="https://github.com/pulearn/pulearn",
+        license="BSD-3-Clause",
     ),
     # ── 4. Convex PU / uPU ─────────────────────────────────────────
     AlgorithmMetadata(
@@ -351,14 +351,47 @@ _BUILTIN: list[AlgorithmMetadata] = [
 
 
 def register_all_builtin_methods() -> int:
-    """Register all 15 paper methods as ``api_only`` placeholders.
+    """Register all 15 paper methods and bind native implementations.
 
     Returns the number of methods registered.  Idempotent — calling
     this repeatedly will raise :class:`RegistryError` on duplicates,
     so tests should call :func:`clear_registry` first if needed.
+
+    Native implementations (those with ``implementation_status=NATIVE``)
+    are automatically bound to their registry entries.
     """
     count = 0
     for meta in _BUILTIN:
         register_method(meta)
         count += 1
+
+    # Bind native estimator classes to their registry entries.
+    _bind_native_classes()
     return count
+
+
+def _bind_native_classes() -> None:
+    """Lazy-import and bind native estimator classes.
+
+    Called automatically by :func:`register_all_builtin_methods`.
+    Safe to call repeatedly — each method checks individually
+    whether it is already bound.
+
+    When adding a new NATIVE method, add an entry to
+    ``_NATIVE_IMPORTS`` below.
+    """
+    from .registry import _CLASSES, bind_estimator_class
+
+    _native_imports: list[tuple[str, str, str]] = [
+        # (canonical_name, module_path, class_name)
+        ("elkan_noto", "..estimators.classic.elkan_noto", "ElkanNotoClassifier"),
+    ]
+
+    for canonical_name, module_path, class_name in _native_imports:
+        if canonical_name in _CLASSES:
+            continue  # Already bound
+        import importlib
+
+        mod = importlib.import_module(module_path, __package__)
+        cls = getattr(mod, class_name)
+        bind_estimator_class(canonical_name, cls)
