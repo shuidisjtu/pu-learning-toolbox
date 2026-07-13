@@ -11,7 +11,7 @@
 ## Phase 1 — 经典 PU MVP (v0.1)
 
 - [ ] penL1 / L1 类先验估计
-- [ ] Elkan-Noto
+- [x] Elkan-Noto
 - [ ] PU Bagging 分类器
 - [ ] Biased SVM 分类器
 - [ ] Weighted Logistic Regression 分类器

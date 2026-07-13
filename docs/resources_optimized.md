@@ -1,6 +1,6 @@
 # 论文源码资源统计
 
-> 15 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-07-08。
+> 15 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-07-13。
 
 `implementation_status` 语义见 [`architecture.md`](architecture.md) 的“算法注册表”部分；`source_status` 的当前枚举以 `pu_toolbox/core/tags.py` 为准，本文档给出论文源码状态统计。
 
@@ -19,7 +19,7 @@
 |---|---|---|---|
 | 1 | Class-Prior Estimation (penL1) | `official_related` | http://www.mcduplessis.com/index.php/software/ |
 | 2 | ReCPE | `official_exact` | https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning |
-| 3 | Elkan-Noto | `third_party_only` | https://github.com/aldro61/pu-learning |
+| 3 | Elkan-Noto | `third_party_only` (native implemented) | https://github.com/pulearn/pulearn |
 | 4 | Convex PU / uPU | `official_bundle` | https://github.com/t-sakai-kure/pywsl |
 | 5 | nnPU | `official_exact` | https://github.com/kiryor/nnPUlearning |
 | 6 | PNU | `official_exact` | https://github.com/t-sakai-kure/pywsl |
@@ -42,7 +42,8 @@
 | PUSB / Self-PU / Dist-PU | PyTorch adapter |
 | LBE / LLSVM | legacy adapter + sklearn wrapper |
 | Centroid / InfoMax / WConPU / DGPU | clean-room，方法卡先行 |
-| Elkan-Noto / Class-Prior Estimation | clean-room（源码不可用或不对应） |
+| Elkan-Noto | clean-room（已实现 native，以 pulearn 为算法验证参考） |
+| Class-Prior Estimation (penL1) | clean-room（论文公式直译，MATLAB 源码不对应论文） |
 
 ## 待复核
 

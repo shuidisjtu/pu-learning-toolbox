@@ -4,7 +4,6 @@ import pytest
 
 from pu_toolbox.core.tags import (
     AlgorithmFamily,
-    ImplementationStatus,
     SourceStatus,
 )
 from pu_toolbox.registry import (
@@ -30,13 +29,16 @@ class TestBuiltinRegistration:
         assert n == 15
         assert len(get_algorithm_registry()) == 15
 
-    def test_all_are_api_only(self):
+    def test_implementation_status_distribution(self):
         register_all_builtin_methods()
+        by_status: dict[str, int] = {}
         for meta in get_algorithm_registry().values():
-            assert meta.implementation_status == ImplementationStatus.API_ONLY, (
-                f"{meta.name} should be api_only, got {meta.implementation_status}"
-            )
-            assert not meta.trainable, f"{meta.name} should not be trainable"
+            key = meta.implementation_status.value
+            by_status[key] = by_status.get(key, 0) + 1
+
+        # 1 native (elkan_noto), 14 api_only
+        assert by_status.get("native", 0) == 1
+        assert by_status.get("api_only", 0) == 14
 
     def test_source_status_distribution(self):
         """Verify counts match docs/resources_optimized.md §2."""
@@ -95,11 +97,12 @@ class TestBuiltinRegistration:
         assert get_metadata("distpu").name == "dist_pu"
         assert get_metadata("wcon_pu").name == "weighted_contrastive_pu"
 
-    def test_list_trainable_only_returns_empty(self):
-        """None of the built-ins are trainable yet."""
+    def test_list_trainable_only(self):
+        """Only elkan_noto is trainable (NATIVE) at this point."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 0
+        assert len(trainable) == 1
+        assert trainable[0].name == "elkan_noto"
 
     def test_list_by_family(self):
         register_all_builtin_methods()
