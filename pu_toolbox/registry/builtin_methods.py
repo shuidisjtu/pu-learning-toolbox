@@ -108,12 +108,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
         assumption=[Asm.SCAR],
         requires_class_prior=True,
         supports_sparse=False,
-        supports_gpu=True,
-        backend=Backend.TORCH,
+        supports_gpu=False,
+        backend=Backend.NUMPY,
         maturity=Maturity.STABLE,
         complexity="medium",
         recommended_data_size="medium_to_large",
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_BUNDLE,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
         license="MIT",
@@ -385,6 +385,7 @@ def _bind_native_classes() -> None:
     _native_imports: list[tuple[str, str, str]] = [
         # (canonical_name, module_path, class_name)
         ("elkan_noto", "..estimators.classic.elkan_noto", "ElkanNotoClassifier"),
+        ("upu", "..estimators.risk.upu", "UPUClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:

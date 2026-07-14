@@ -24,7 +24,7 @@
 ## 后续阶段 / 并行预研（不计入 Phase 1 完成标准）
 
 - [ ] ReCPE (Phase 2)
-- [ ] uPU / Convex PU (Phase 2)
+- [x] uPU / Convex PU (Phase 2)
 - [ ] nnPU (Phase 2)
 - [ ] PNU (Phase 2)
 - [ ] Dist-PU (Phase 6)

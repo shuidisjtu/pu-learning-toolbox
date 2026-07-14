@@ -20,7 +20,7 @@ pu_toolbox/
 
   core/
     __init__.py
-    base.py                  (planned)
+    base.py
     validation.py
     labels.py
     config.py
@@ -49,10 +49,10 @@ pu_toolbox/
     __init__.py
     base.py                  (planned)
 
-  losses/                    (planned)
+  losses/
     __init__.py
     base.py                  (planned)
-    upu.py                   (planned)
+    upu.py
     nnpu.py                  (planned)
     pnu.py                   (planned)
 
@@ -63,8 +63,9 @@ pu_toolbox/
       pu_bagging.py
       biased_svm.py
       weighted_lr.py
-    risk/                    (planned)
-      upu.py
+    risk/
+      __init__.py
+      upu.py                  (native)
       nnpu.py
       pnu.py
     bias_aware/              (planned)
@@ -110,7 +111,9 @@ tests/
   test_validation.py
   test_registry.py
   test_builtin_methods.py
-  test_elkan_noto.py        (tests/estimators/)
+  estimators/
+    test_elkan_noto.py
+    test_upu.py
   test_pen_l1.py            (planned)
   test_losses.py             (planned)
   test_estimators_classic.py (planned)
@@ -152,7 +155,8 @@ docs/
     METHOD_CARD_TEMPLATE.md
     method_cards/
       class_prior_estimation.md
-	      Elkan_Noto.md
+      Elkan_Noto.md
+      Convex_Formulation_for_PU_DATA_Learning.md
 
   project_management/
     decision_log.md

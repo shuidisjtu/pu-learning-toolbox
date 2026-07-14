@@ -36,9 +36,9 @@ class TestBuiltinRegistration:
             key = meta.implementation_status.value
             by_status[key] = by_status.get(key, 0) + 1
 
-        # 1 native (elkan_noto), 14 api_only
-        assert by_status.get("native", 0) == 1
-        assert by_status.get("api_only", 0) == 14
+        # 2 native (elkan_noto, upu), 13 api_only
+        assert by_status.get("native", 0) == 2
+        assert by_status.get("api_only", 0) == 13
 
     def test_source_status_distribution(self):
         """Verify counts match docs/resources_optimized.md §2."""
@@ -98,11 +98,12 @@ class TestBuiltinRegistration:
         assert get_metadata("wcon_pu").name == "weighted_contrastive_pu"
 
     def test_list_trainable_only(self):
-        """Only elkan_noto is trainable (NATIVE) at this point."""
+        """elkan_noto and upu are trainable (NATIVE) at this point."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 1
-        assert trainable[0].name == "elkan_noto"
+        assert len(trainable) == 2
+        names = {m.name for m in trainable}
+        assert names == {"elkan_noto", "upu"}
 
     def test_list_by_family(self):
         register_all_builtin_methods()

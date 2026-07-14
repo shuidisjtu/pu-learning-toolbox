@@ -24,8 +24,8 @@
 
 | 层级 | 依赖 | 内容 |
 |---|---|---|
-| Core | numpy, scipy, pandas, scikit-learn | 标签处理、校验、经典算法、类先验、指标、CV、registry |
-| Torch Extension | torch | uPU, nnPU, Dist-PU, 深度表征学习 |
+| Core | numpy, scipy, pandas, scikit-learn | 标签处理、校验、经典算法（含 uPU）、类先验、指标、CV、registry |
+| Torch Extension | torch | nnPU, Dist-PU, 深度表征学习 |
 | Research Extension | torchvision, lightning | 图像 benchmark, 复杂论文复现 |
 | External Adapters | 视作者源码而定 | 包装官方/第三方代码 |
 

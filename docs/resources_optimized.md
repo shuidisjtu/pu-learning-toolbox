@@ -20,7 +20,7 @@
 | 1 | Class-Prior Estimation (penL1) | `official_related` | http://www.mcduplessis.com/index.php/software/ |
 | 2 | ReCPE | `official_exact` | https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning |
 | 3 | Elkan-Noto | `third_party_only` (native implemented) | https://github.com/pulearn/pulearn |
-| 4 | Convex PU / uPU | `official_bundle` | https://github.com/t-sakai-kure/pywsl |
+| 4 | Convex PU / uPU | `official_bundle` (native implemented) | https://github.com/t-sakai-kure/pywsl |
 | 5 | nnPU | `official_exact` | https://github.com/kiryor/nnPUlearning |
 | 6 | PNU | `official_exact` | https://github.com/t-sakai-kure/pywsl |
 | 7 | Centroid (LDCE) | `official_related` | https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar |
@@ -37,7 +37,8 @@
 
 | 方法 | 方式 |
 |---|---|
-| uPU / nnPU / PNU | adapter (`pywsl`/`nnPUlearning`) + native PyTorch |
+| uPU | native NumPy（C-DH SLSQP / C-LL L-BFGS / Squared 闭式解，pywsl 算法参考） |
+| nnPU / PNU | adapter (`pywsl`/`nnPUlearning`) + native PyTorch |
 | ReCPE | wrapper + base CPE interface |
 | PUSB / Self-PU / Dist-PU | PyTorch adapter |
 | LBE / LLSVM | legacy adapter + sklearn wrapper |

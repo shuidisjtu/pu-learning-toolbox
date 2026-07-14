@@ -7,6 +7,7 @@ Coverage follows method card §8.
 
 import numpy as np
 import pytest
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
@@ -319,7 +320,7 @@ class TestCompatibility:
     def test_with_svm_base_estimator(self, rng):
         X, y_pu, _ = _make_scar_data(rng, n=100, c=0.5)
         clf = ElkanNotoClassifier(
-            base_estimator=SVC(probability=True, random_state=42),
+            base_estimator=CalibratedClassifierCV(SVC(random_state=42), ensemble=False),
             n_cv_folds=3,
             random_state=42,
         )
