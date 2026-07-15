@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import threading
 
-from ..core.base import BasePUClassifier
+from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import RegistryError
 from .aliases import (
     clear_aliases,
@@ -21,13 +21,13 @@ from .metadata import AlgorithmMetadata
 
 # ── Canonical registry ─────────────────────────────────────────────
 _REGISTRY: dict[str, AlgorithmMetadata] = {}
-_CLASSES: dict[str, type[BasePUClassifier]] = {}
+_CLASSES: dict[str, type[BasePUClassifier] | type[BasePriorEstimator]] = {}
 _lock: threading.RLock = threading.RLock()
 
 
 def register_method(
     metadata: AlgorithmMetadata,
-    estimator_cls: type[BasePUClassifier] | None = None,
+    estimator_cls: type[BasePUClassifier] | type[BasePriorEstimator] | None = None,
 ) -> None:
     """Register an algorithm in the toolbox.
 
@@ -45,7 +45,9 @@ def register_method(
         or if ``estimator_cls`` is not a subclass of
         :class:`~pu_toolbox.core.base.BasePUClassifier`.
     """
-    if estimator_cls is not None and not issubclass(estimator_cls, BasePUClassifier):
+    if estimator_cls is not None and not issubclass(
+        estimator_cls, BasePUClassifier | BasePriorEstimator
+    ):
         raise RegistryError(
             f"estimator_cls must be a subclass of BasePUClassifier, "
             f"got {getattr(estimator_cls, '__name__', estimator_cls)}"
@@ -73,7 +75,9 @@ def register_method(
                 raise RegistryError(str(exc)) from exc
 
 
-def bind_estimator_class(name: str, estimator_cls: type[BasePUClassifier]) -> None:
+def bind_estimator_class(
+    name: str, estimator_cls: type[BasePUClassifier] | type[BasePriorEstimator]
+) -> None:
     """Bind a native estimator class to an already-registered method.
 
     Use this when upgrading an ``api_only`` entry to a runnable
@@ -91,7 +95,9 @@ def bind_estimator_class(name: str, estimator_cls: type[BasePUClassifier]) -> No
     RegistryError
         If ``name`` is not registered or ``estimator_cls`` is invalid.
     """
-    if estimator_cls is not None and not issubclass(estimator_cls, BasePUClassifier):
+    if estimator_cls is not None and not issubclass(
+        estimator_cls, BasePUClassifier | BasePriorEstimator
+    ):
         raise RegistryError(
             f"estimator_cls must be a subclass of BasePUClassifier, "
             f"got {getattr(estimator_cls, '__name__', estimator_cls)}"
@@ -127,7 +133,7 @@ def _resolve_name(name: str | None) -> str:
     return name if canonical is None else canonical
 
 
-def get_algorithm(name: str) -> type[BasePUClassifier]:
+def get_algorithm(name: str) -> type[BasePUClassifier] | type[BasePriorEstimator]:
     """Look up an algorithm class by name or alias.
 
     Parameters

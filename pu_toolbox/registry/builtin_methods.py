@@ -73,7 +73,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         maturity=Maturity.STABLE,
         complexity="medium",
         recommended_data_size="medium",
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning",
         license="MIT",
@@ -386,6 +386,7 @@ def _bind_native_classes() -> None:
         # (canonical_name, module_path, class_name)
         ("elkan_noto", "..estimators.classic.elkan_noto", "ElkanNotoClassifier"),
         ("upu", "..estimators.risk.upu", "UPUClassifier"),
+        ("recpe", "..prior.recpe", "ReCPEEstimator"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:

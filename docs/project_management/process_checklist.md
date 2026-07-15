@@ -23,7 +23,7 @@
 
 ## 后续阶段 / 并行预研（不计入 Phase 1 完成标准）
 
-- [ ] ReCPE (Phase 2)
+- [x] ReCPE (Phase 2)
 - [x] uPU / Convex PU (Phase 2)
 - [ ] nnPU (Phase 2)
 - [ ] PNU (Phase 2)
@@ -33,3 +33,9 @@
 - [ ] Self-PU (Phase 6)
 - [ ] Centroid (LDCE) (Phase 5)
 - [ ] LLSVM (Phase 5)
+
+## 最近完成记录
+
+| 日期 | 方法 | 状态 | 代码与文档 | 验证 |
+|---|---|---|---|---|
+| 2026-07-16 | ReCPE / Regrouping CPE | 已完成 native 实现 | `pu_toolbox/prior/recpe.py`；`docs/research/method_cards/ReCPE.md` | `133 passed`；ruff 检查通过 |
