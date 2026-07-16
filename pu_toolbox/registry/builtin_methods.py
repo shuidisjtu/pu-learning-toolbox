@@ -133,10 +133,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         maturity=Maturity.STABLE,
         complexity="medium",
         recommended_data_size="medium_to_large",
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/kiryor/nnPUlearning",
-        license="unknown",
+        license="MIT",
     ),
     # ── 6. PNU ─────────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -386,6 +386,7 @@ def _bind_native_classes() -> None:
         # (canonical_name, module_path, class_name)
         ("elkan_noto", "..estimators.classic.elkan_noto", "ElkanNotoClassifier"),
         ("upu", "..estimators.risk.upu", "UPUClassifier"),
+        ("nnpu", "..estimators.risk.nnpu", "NonNegativePUClassifier"),
         ("recpe", "..prior.recpe", "ReCPEEstimator"),
     ]
 

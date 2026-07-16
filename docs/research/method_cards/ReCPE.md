@@ -185,7 +185,7 @@ $$
 | Upstream URL | https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning |
 | License | registry 中记录为 MIT；重新分发前应核验上游许可证 |
 | Framework | 论文实验使用 Python 神经网络；本项目默认使用 NumPy + scikit-learn |
-| Integration mode | `official_aligned_native` |
+| Integration mode | `native` |
 | 当前实现范围 | ReCPE regrouping 核心流程 + 可注入底层 CPE + 默认 baseline |
 | 尚未完全复现 | 论文中的神经网络结构、验证集选择、UCI 全量实验和所有基线方法 |
 

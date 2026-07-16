@@ -263,20 +263,19 @@ class TestErrorHandling:
             clf.predict_proba(X)
 
     @pytest.mark.parametrize(
-        "kwargs,match",
+        "clf, match",
         [
-            ({"class_prior": 0.0}, "class_prior"),
-            ({"class_prior": 1.0}, "class_prior"),
-            ({"reg_lambda": 0.0}, "reg_lambda"),
-            ({"loss": "hinge"}, "Unknown loss"),  # type: ignore[arg-type]
+            # class_prior=0.0 / 1.0 stored in constructor, rejected by fit()
+            (UPUClassifier(class_prior=0.0, reg_lambda=1.0), "class_prior"),
+            (UPUClassifier(class_prior=1.0, reg_lambda=1.0), "class_prior"),
+            # reg_lambda must be > 0
+            (UPUClassifier(class_prior=0.5, reg_lambda=0.0), "reg_lambda"),
+            # Unknown loss string
+            (UPUClassifier(class_prior=0.5, loss="hinge", reg_lambda=1.0), "Unknown loss"),
         ],
     )
-    def test_invalid_params_raise(self, rng, kwargs, match):
+    def test_invalid_params_raise(self, rng, clf, match):
         X, y_pu = _make_separable_data(rng)
-        # Build constructor kwargs, handling class_prior specially
-        ctor_kwargs = {k: v for k, v in kwargs.items() if k != "class_prior"}
-        ctor_kwargs["class_prior"] = kwargs.get("class_prior", 0.5)
-        clf = UPUClassifier(**ctor_kwargs)
         with pytest.raises(ValueError, match=match):
             clf.fit(X, y_pu)
 

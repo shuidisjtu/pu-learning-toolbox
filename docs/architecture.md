@@ -37,27 +37,47 @@ Advisor → Registry → 候选算法 → 实现解析 (native / adapter / torch
 ### 4.1 BasePUClassifier
 
 ```python
-class BasePUClassifier(BaseEstimator, ClassifierMixin):
-    family = "unknown"
-    assumption = ("unknown",)
-    scenario = ("unknown",)
-    requires_class_prior = False
-    implementation_status = "api_only"
+class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
+    family: AlgorithmFamily = AlgorithmFamily.UNKNOWN
+    assumption = (Assumption.UNKNOWN,)
+    scenario = (Scenario.UNKNOWN,)
+    requires_class_prior: bool = False
+    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
+    source_status: SourceStatus = SourceStatus.UNKNOWN
+    backend: Backend = Backend.NUMPY
+    maturity: Maturity = Maturity.EXPERIMENTAL
 
+    @abstractmethod
     def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
-        raise NotImplementedError
+        ...
 
-    def predict(self, X):
-        raise NotImplementedError
+    def predict(self, X):                        # public: check → _predict
+        self._check_is_fitted()
+        return self._predict(X)
 
-    def decision_function(self, X):
-        raise NotImplementedError
+    @abstractmethod
+    def _predict(self, X):                       # subclass implements
+        ...
 
-    def predict_proba(self, X):
-        raise NotImplementedError
+    def decision_function(self, X):              # public: check → _decision_function
+        self._check_is_fitted()
+        return self._decision_function(X)
 
-    def get_pu_metadata(self):
-        return {}
+    @abstractmethod
+    def _decision_function(self, X):             # subclass implements
+        ...
+
+    def score_samples(self, X):                  # default = _decision_function
+        ...
+
+    def predict_proba(self, X):                  # raises NotImplementedError
+        ...
+
+    def predict_label_proba(self, X):            # returns None by default
+        ...
+
+    def get_pu_metadata(self) -> dict:
+        ...
 ```
 
 ### 4.2 BasePriorEstimator
@@ -146,7 +166,7 @@ class BaseSourceAdapter:
     "maturity": "stable",
     "complexity": "medium",
     "source_status": "official_exact",
-    "implementation_status": "official_adapter",
+    "implementation_status": "native",
 }
 ```
 
@@ -176,8 +196,11 @@ class BaseSourceAdapter:
 | 方法 | 主要模块 |
 |---|---|
 | Class-Prior Estimation | `prior/pen_l1.py`, `prior/wrappers.py` |
+| ReCPE | `prior/recpe.py` |
 | Elkan-Noto | `estimators/classic/elkan_noto.py` |
 | uPU / nnPU / PNU | `losses/upu.py`, `losses/nnpu.py`, `losses/pnu.py` |
+| uPU 分类器 | `estimators/risk/upu.py` |
+| nnPU 分类器 | `estimators/risk/nnpu.py` |
 | PUSB / LBE | `estimators/bias_aware/pusb.py`, `estimators/bias_aware/lbe.py` |
 | Self-PU / Dist-PU | `estimators/deep/self_pu.py`, `estimators/deep/dist_pu.py` |
 
