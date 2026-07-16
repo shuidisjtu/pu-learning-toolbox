@@ -1,6 +1,6 @@
 # 论文源码资源统计
 
-> 15 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-07-13。
+> 15 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-07-16。
 
 `implementation_status` 语义见 [`architecture.md`](architecture.md) 的“算法注册表”部分；`source_status` 的当前枚举以 `pu_toolbox/core/tags.py` 为准，本文档给出论文源码状态统计。
 
@@ -38,7 +38,8 @@
 | 方法 | 方式 |
 |---|---|
 | uPU | native NumPy（C-DH SLSQP / C-LL L-BFGS / Squared 闭式解，pywsl 算法参考） |
-| nnPU / PNU | adapter (`pywsl`/`nnPUlearning`) + native PyTorch |
+| nnPU | native PyTorch（clean-room，Algorithm 1 参考 kiryor/nnPUlearning） |
+| PNU | adapter (`pywsl`) + native PyTorch |
 | ReCPE | wrapper + base CPE interface |
 | PUSB / Self-PU / Dist-PU | PyTorch adapter |
 | LBE / LLSVM | legacy adapter + sklearn wrapper |

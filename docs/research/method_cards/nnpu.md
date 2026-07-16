@@ -359,6 +359,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         optimizer=None,
         batch_size=256,
         max_epochs=200,
+        patience=20,
         random_state=None,
     ):
 ```
@@ -373,13 +374,14 @@ class NonNegativePUClassifier(BasePUClassifier):
 | `gamma` | `[0,1]` |
 | `optimizer` | SGD-like；论文使用 Adam/AdaGrad |
 | `batch_size` | 应能为 P、U 分别产生非空批次 |
+| `patience` | 早停耐心轮数（正整数）；仅传入 `validation_data` 时生效 |
 | `max_epochs` | 正整数 |
 
 ### 7.2 方法映射
 
 | 方法 | 约定 |
 |---|---|
-| `fit(X, y_pu, *, class_prior, sample_weight=None)` | `class_prior` 必填；拆分 P/U 后执行 Algorithm 1 |
+| `fit(X, y_pu, *, class_prior, sample_weight=None, validation_data=None)` | `class_prior` 必填；拆分 P/U 后执行 Algorithm 1；`validation_data` 为 `(X_val, y_pu_val)` 时启用早停 |
 | `_decision_function(X)` | 返回原始 $g(x)$，shape `(n_samples,)` |
 | `_predict(X)` | 返回 `(g(x) >= 0).astype(int)` |
 | `predict_proba(X)` | 不实现或明确抛出 `NotImplementedError`；论文不提供后验概率 |

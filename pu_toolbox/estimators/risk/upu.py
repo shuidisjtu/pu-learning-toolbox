@@ -262,6 +262,7 @@ class UPUClassifier(BasePUClassifier):
         if not (0.0 < pi < 1.0):
             raise ValueError(f"class_prior must be in (0, 1); got {pi}.")
         self._class_prior = pi
+        self.class_prior_ = pi
 
         # ── Parameter validation ─────────────────────────────────────
         if self.reg_lambda <= 0:

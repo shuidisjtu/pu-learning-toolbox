@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: Phase 1 — 算法实现准备中。** 包骨架、core 基类、registry 已完成，测试套件通过。15 篇论文方法当前为 `api_only` 占位，逐个集成中；当前没有可训练内置算法。
+**Status: Phase 1 — 核心 PU 风险估计进行中。** 包骨架、core 基类、registry 已完成，4/8 算法已实现 NATIVE（Elkan-Noto、uPU、nnPU、ReCPE），测试套件通过（241 tests）。15 篇论文方法中 11 个为 `api_only` 占位，逐个集成中。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -54,6 +54,18 @@ pip install -e ".[dev]"
 - **Docker**：Python 版本不兼容（如老旧 TF 1.x 代码），容器化运行，adapter 负责对接
 
 工具箱只保证 `pu_toolbox` 自身 API 稳定，不替你管理论文源码的环境。
+
+## 测试
+
+```bash
+uv run pytest tests/ -v                    # 全部测试
+uv run pytest tests/ -v -m "not slow"      # 快速反馈（跳过慢速）
+uv run pytest tests/ -v -m math            # MATH golden tests（失败 = 代码 bug）
+uv run pytest tests/ -v -m property        # PROPERTY 不变量测试（失败 = 代码 bug）
+uv run pytest tests/ -v -m contract        # 跨分类器 API 契约
+```
+
+测试分层：`contract/`（写一次、所有分类器复用）→ `unit/`（算法特有逻辑）→ `integration/`（跨模块）→ `regression/`（慢速/论文复现）。详见 `CLAUDE.md`。
 
 ## 开发流程
 

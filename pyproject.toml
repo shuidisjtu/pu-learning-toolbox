@@ -77,6 +77,14 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = ["-v", "--tb=short", "--strict-markers"]
+markers = [
+    "slow: slow tests (integration / overfitting behaviour)",
+    "contract: shared API contract tests — applied to every NATIVE classifier",
+    "unit: fast algorithm-specific unit tests",
+    "math: golden tests with hand-computed expected values — failure = code bug",
+    "property: mathematical invariant tests — failure = code bug",
+    "paper: paper-like reproduction benchmarks (requires official source)",
+]
 
 [tool.coverage.run]
 source = ["pu_toolbox"]

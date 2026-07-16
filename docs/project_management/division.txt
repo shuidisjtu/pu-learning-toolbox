@@ -1,0 +1,18 @@
+shuidisjtu 负责：
+Elkan-Noto — Learning Classifiers from Only Positive and Unlabeled Data
+Convex PU / uPU — Convex Formulation for Learning from Positive and Unlabeled Data
+nnPU — Positive-Unlabeled Learning with Non-Negative Risk Estimator
+PNU — Semi-supervised Classification Based on Classification from Positive and Unlabeled Data
+Centroid (LDCE) — Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning
+LLSVM — Large-Margin Label-Calibrated Support Vector Machines for Positive and Unlabeled Learning
+
+HENG958 负责：
+Class-Prior Estimation — Class-Prior Estimation for Learning from Positive and Unlabeled Data (penL1/L1)
+ReCPE — Rethinking Class-Prior Estimation for Positive-Unlabeled Learning
+Dist-PU — Positive-Unlabeled Learning from a Label Distribution Perspective
+PUSB — Learning from Positive and Unlabeled Data with a Selection Bias
+LBE — Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation
+Self-PU — Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training
+
+剩下3篇论文由HENG958 负责。
+

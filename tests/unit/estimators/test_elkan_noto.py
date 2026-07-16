@@ -24,18 +24,18 @@ from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 
 
 def _make_scar_data(rng, n=100, c=0.5, n_features=5):
-    """Generate synthetic data under SCAR with known labeling propensity ``c``.
+    """Generate synthetic SCAR data with known labeling propensity ``c``.
 
     Returns (X, y_pu, y_true).
     """
     X_pos = rng.randn(n, n_features) + 2.0
     X_neg = rng.randn(n, n_features) - 2.0
     X = np.vstack([X_pos, X_neg])
-    y_true = np.hstack([np.ones(n), np.zeros(n)])
+    y_true = np.hstack([np.ones(n, dtype=int), np.zeros(n, dtype=int)])
 
     y_pu = np.zeros(2 * n, dtype=int)
     pos_idx = np.where(y_true == 1)[0]
-    n_labeled = int(n * c)
+    n_labeled = max(1, int(n * c))
     labeled = rng.choice(pos_idx, size=n_labeled, replace=False)
     y_pu[labeled] = 1
 

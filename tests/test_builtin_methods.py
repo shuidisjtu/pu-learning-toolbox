@@ -36,9 +36,9 @@ class TestBuiltinRegistration:
             key = meta.implementation_status.value
             by_status[key] = by_status.get(key, 0) + 1
 
-        # 3 native (elkan_noto, upu, recpe), 12 api_only
-        assert by_status.get("native", 0) == 3
-        assert by_status.get("api_only", 0) == 12
+        # 4 native (elkan_noto, upu, nnpu, recpe), 11 api_only
+        assert by_status.get("native", 0) == 4
+        assert by_status.get("api_only", 0) == 11
 
     def test_source_status_distribution(self):
         """Verify counts match docs/resources_optimized.md §2."""
@@ -83,7 +83,7 @@ class TestBuiltinRegistration:
 
         meta = get_metadata(name)
         scar = any(a.value == "SCAR" for a in meta.assumption)
-        sar = any(a.value in ("SAR", "instance_dependent") for a in meta.assumption)
+        sar = any(a.value == "SAR" for a in meta.assumption)
         assert scar == expected_scar, f"{name}: SCAR expected {expected_scar}"
         assert sar == expected_sar, f"{name}: SAR expected {expected_sar}"
 
@@ -101,9 +101,9 @@ class TestBuiltinRegistration:
         """Native implementations are trainable."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 3
+        assert len(trainable) == 4
         names = {m.name for m in trainable}
-        assert names == {"elkan_noto", "upu", "recpe"}
+        assert names == {"elkan_noto", "upu", "nnpu", "recpe"}
 
     def test_list_by_family(self):
         register_all_builtin_methods()

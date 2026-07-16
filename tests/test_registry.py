@@ -66,11 +66,22 @@ class TestAliasResolution:
             m = get_metadata(alias)
             assert m.name == "elkan_noto"
 
-    def test_alias_conflict_raises_on_registration(self):
-        # Registering an alias that already maps elsewhere should fail
-        # if using register_alias directly — but register_method just
-        # adds aliases which may overwrite (fine for existing behaviour).
-        pass  # current impl registers canonical name as alias harmlessly
+    def test_alias_lookup_is_case_insensitive(self):
+        """Alias resolution normalises case for lookup."""
+        meta = _make_meta("elkan_noto", aliases=["en", "Elkan-Noto"])
+        register_method(meta)
+        # All-caps, lowercase, and mixed-case should all resolve
+        for alias in ["EN", "en", "Elkan-Noto", "elkan-noto", "ELKAN_NOTO"]:
+            m = get_metadata(alias)
+            assert m.name == "elkan_noto", f"alias {alias!r} failed"
+
+    def test_registering_same_alias_for_different_method_raises(self):
+        """Registering the same alias for a different method raises RegistryError."""
+        meta1 = _make_meta("method_a", aliases=["shared_alias"])
+        meta2 = _make_meta("method_b", aliases=["shared_alias"])
+        register_method(meta1)
+        with pytest.raises(RegistryError, match="shared_alias"):
+            register_method(meta2)
 
 
 class TestGetAlgorithm:
