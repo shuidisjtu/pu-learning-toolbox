@@ -14,7 +14,7 @@
 ### 1.2 注意
 
 - ReCPE 是一个**外层 regrouping 方法**，论文并未限定唯一的底层 CPE；最终效果依赖底层估计器和正类/未标记分类器。
-- 论文中的 `S_p` 应来自 $P_p=p(x\mid y=1)$，`S_u` 应来自边缘分布 $P_u=p(x)$。如果项目的 `y_pu` 来自 single-training-set，已标记正例需要能够代表完整正类分布。
+- 论文中的 `S_p` 应来自 $`P_p=p(x\mid y=1)`$，`S_u` 应来自边缘分布 $`P_u=p(x)`$。如果项目的 `y_pu` 来自 single-training-set，已标记正例需要能够代表完整正类分布。
 - 论文希望缓解 irreducibility 失效导致的正向偏差，但不等于对任意数据分布都能无偏估计类别先验。
 - 复制比例 `copy_fraction` 太小会使底层 CPE 对 regrouping 不敏感；太大则会显著改变辅助正类分布。论文实验统一使用 `p=10%`，本实现默认 `0.1`。
 - 当前默认排序器为 sklearn `LogisticRegression`，不是论文实验中的两层神经网络；因此当前实现是算法逻辑对齐，而不是完整实验数值复现。
@@ -39,39 +39,39 @@
 
 给定正类样本和未标记样本，传统的 distributional-assumption-free CPE 方法通常估计未标记分布中正类分布的最大混合比例。它们隐含依赖 irreducibility assumption：正类分布的 support 不能被负类分布完全包含。
 
-当该假设不成立时，传统方法会系统性高估类别先验。ReCPE 不直接估计原始 $P_p$ 在 $P_u$ 中的最大比例，而是从 $P_u$ 中找出最像正类的一小部分样本，构造辅助正类分布 $P_p'$，再调用已有 CPE 方法。
+当该假设不成立时，传统方法会系统性高估类别先验。ReCPE 不直接估计原始 $`P_p`$ 在 $`P_u`$ 中的最大比例，而是从 $`P_u`$ 中找出最像正类的一小部分样本，构造辅助正类分布 $`P_p'`$，再调用已有 CPE 方法。
 
 ### 2.2 数据假设
 
-$$
+```math
 S_p=\{x_i^p\}_{i=1}^{n_p}\overset{i.i.d.}{\sim}P_p,
 \qquad
 S_u=\{x_j^u\}_{j=1}^{n_u}\overset{i.i.d.}{\sim}P_u
-$$
+```
 
-$$
+```math
 P_u=(1-\pi)P_n+\pi P_p,
 \qquad 0<\pi<1
-$$
+```
 
-其中 $P_p$ 是正类条件分布，$P_n$ 是负类条件分布，$P_u$ 是未标记边缘分布。
+其中 $`P_p`$ 是正类条件分布，$`P_n`$ 是负类条件分布，$`P_u`$ 是未标记边缘分布。
 
 ## 3. 符号与记号
 
 | 论文符号 | 含义 | 开发侧对应 |
 |---|---|---|
-| $P_p$ | 正类条件分布 | `X[y_pu == 1]` |
-| $P_n$ | 负类条件分布 | 不可直接观测 |
-| $P_u$ | 未标记边缘分布 | `X[y_pu == 0]` |
-| $\pi$ | 真实类别先验 $P(y=1)$ | 未知目标 |
-| $S_p$ | 正类样本集 | `positive_samples` |
-| $S_u$ | 未标记样本集 | `unlabeled_samples` |
-| $A$ | 被 regrouping 的小样本集合 | 从 `S_u` 中选择的样本 |
-| $p$ | 复制比例 | `copy_fraction` |
-| $P_p'$ | regrouping 后的辅助正类分布 | 复制样本后的 positive set |
-| $\pi'$ | 辅助问题中的新类别先验 | `base_estimator_.estimate()` |
-| $q(C=1\mid x)$ | 样本属于正类样本来源的后验 | 排序器的 positive probability |
-| $q(C=0\mid x)$ | 样本属于未标记来源的后验 | `1 - positive_probability` |
+| $`P_p`$ | 正类条件分布 | `X[y_pu == 1]` |
+| $`P_n`$ | 负类条件分布 | 不可直接观测 |
+| $`P_u`$ | 未标记边缘分布 | `X[y_pu == 0]` |
+| $`\pi`$ | 真实类别先验 $`P(y=1)`$ | 未知目标 |
+| $`S_p`$ | 正类样本集 | `positive_samples` |
+| $`S_u`$ | 未标记样本集 | `unlabeled_samples` |
+| $`A`$ | 被 regrouping 的小样本集合 | 从 `S_u` 中选择的样本 |
+| $`p`$ | 复制比例 | `copy_fraction` |
+| $`P_p'`$ | regrouping 后的辅助正类分布 | 复制样本后的 positive set |
+| $`\pi'`$ | 辅助问题中的新类别先验 | `base_estimator_.estimate()` |
+| $`q(C=1\mid x)`$ | 样本属于正类样本来源的后验 | 排序器的 positive probability |
+| $`q(C=0\mid x)`$ | 样本属于未标记来源的后验 | `1 - positive_probability` |
 
 ## 4. 核心公式
 
@@ -79,80 +79,80 @@ $$
 
 传统 distributional-assumption-free CPE 方法通常估计：
 
-$$
+```math
 \kappa^*=\sup\{\kappa:P_u=\kappa P_p+(1-\kappa)Q\}
-$$
+```
 
-当 $P_n$ 对 $P_p$ 可约（reducible）时，令：
+当 $`P_n`$ 对 $`P_p`$ 可约（reducible）时，令：
 
-$$
+```math
 \beta^*=\inf_{S:P_p(S)>0}\frac{P_n(S)}{P_p(S)}>0
-$$
+```
 
 则：
 
-$$
+```math
 \kappa^*=\pi+(1-\pi)\beta^*>\pi
-$$
+```
 
-因此直接估计 $\kappa^*$ 会产生正向偏差。
+因此直接估计 $`\kappa^*`$ 会产生正向偏差。
 
 ### 4.2 Regrouping 后的分布
 
-选取集合 $A$，将负类分布在 $A$ 上的概率质量转移到正类中：
+选取集合 $`A`$，将负类分布在 $`A`$ 上的概率质量转移到正类中：
 
-$$
+```math
 \pi'=\pi+(1-\pi)P_n(A)
-$$
+```
 
-$$
+```math
 P_n'=\frac{P_n^{A^c}}{P_n(A^c)}
-$$
+```
 
-$$
+```math
 P_p'=\frac{(1-\pi)P_n^A+\pi P_p}{(1-\pi)P_n(A)+\pi}
-$$
+```
 
 于是：
 
-$$
+```math
 P_u=(1-\pi')P_n'+\pi'P_p'
-$$
+```
 
-论文证明 regrouping 后的 $P_n'$ 和 $P_p'$ 满足 anchor set assumption，$\pi'$ 可以被已有 MPE/CPE 方法识别。当 $P_n(A)$ 很小时，$\pi'$ 接近原始 $\pi$。
+论文证明 regrouping 后的 $`P_n'`$ 和 $`P_p'`$ 满足 anchor set assumption，$`\pi'`$ 可以被已有 MPE/CPE 方法识别。当 $`P_n(A)`$ 很小时，$`\pi'`$ 接近原始 $`\pi`$。
 
 ### 4.3 实际 regrouping 过程
 
-由于 $P_n$ 不可观测，工程实现用 $P_u$ 中最像正类的样本近似集合 $A$：
+由于 $`P_n`$ 不可观测，工程实现用 $`P_u`$ 中最像正类的样本近似集合 $`A`$：
 
-1. 将 $S_p$ 标为来源类别 1，将 $S_u$ 标为来源类别 0，训练二分类器。
-2. 对 $x\in S_u$ 计算 $q(C=1\mid x)$。
-3. 选取 positive probability 最大的前 $p|S_u|$ 个未标记样本。
-4. 将这些样本复制到 $S_p$，形成辅助正类样本集 $S_p'$。
-5. 用 $S_p'$ 和原始 $S_u$ 调用底层 CPE，得到 $\hat\pi'$。
+1. 将 $`S_p`$ 标为来源类别 1，将 $`S_u`$ 标为来源类别 0，训练二分类器。
+2. 对 $`x\in S_u`$ 计算 $`q(C=1\mid x)`$。
+3. 选取 positive probability 最大的前 $`p|S_u|`$ 个未标记样本。
+4. 将这些样本复制到 $`S_p`$，形成辅助正类样本集 $`S_p'`$。
+5. 用 $`S_p'`$ 和原始 $`S_u`$ 调用底层 CPE，得到 $`\hat\pi'`$。
 
-### 4.4 选择集合 $A$
+### 4.4 选择集合 $`A`$
 
 论文给出的理想目标是最小化集合中“像负类”的质量与“像正类”的质量之比：
 
-$$
+```math
 A^*=\arg\min_{A\in\mathcal S}
 \frac{\mathbb E_q[\mathbf 1_A(X)q(C=0\mid X)]}
 {\mathbb E_q[\mathbf 1_A(X)q(C=1\mid X)]}
-$$
+```
 
-实际使用分类器后验进行近似，因此选择 $q(C=1\mid x)$ 最大的样本。
+实际使用分类器后验进行近似，因此选择 $`q(C=1\mid x)`$ 最大的样本。
 
 ### 4.5 辅助分布的样本近似
 
-论文实际使用复制样本近似 $P_p'$：
+论文实际使用复制样本近似 $`P_p'`$：
 
-$$
+```math
 \widetilde P_p'
 =\frac{P_u^A+P_p}{P_u(A)+1}
-$$
+```
 
-当 $P_u(A)$ 较小时，$\widetilde P_p'$ 与理论上的 $P_p'$ 接近。`copy_fraction` 控制 $A$ 的大小。
+当 $`P_u(A)`$ 较小时，$`\widetilde P_p'`$ 与理论上的 $`P_p'`$ 接近。`copy_fraction` 控制 $`A`$ 的大小。
 
 ## 5. 算法概要
 
@@ -217,7 +217,7 @@ class ReCPEEstimator(BasePriorEstimator):
 | API / 属性 | 约定 |
 |---|---|
 | `fit(X, y_pu)` | `y_pu=1` 表示 positive，`y_pu=0` 表示 unlabeled；返回 `self` |
-| `estimate()` | 返回标量 `float`，即 $\hat\pi'$ |
+| `estimate()` | 返回标量 `float`，即 $`\hat\pi'`$ |
 | `confidence_interval(alpha)` | 返回 `None`；论文未给出置信区间方法 |
 | `get_params()` / `set_params()` | 由 sklearn `BaseEstimator` 提供 |
 | `class_prior_` | `fit()` 后的类别先验估计 |

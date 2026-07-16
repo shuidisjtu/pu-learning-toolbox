@@ -71,3 +71,12 @@ uv run pytest tests/ -v -m contract        # 跨分类器 API 契约
 
 - `main` 分支保持稳定可运行，不直接提交代码。
 - 每个功能/修复开独立分支：`feature/<name>` 或 `fix/<name>`，完成后提 PR 合并。
+
+## 文档约定
+
+方法卡等 Markdown 文件中的数学公式使用 **GitHub 保护定界符**（避免 `_` 被 Markdown 误解析为斜体）：
+
+- 行内公式：`` $`...`$ ``（而非 `$...$`）
+- 块公式：```` ```math ... ``` ````（而非 `$$...$$`）
+
+详见 [GitHub 官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)。
