@@ -21,11 +21,11 @@
 - `【项目适配】` 若输入为 single-training-set `y_pu`，已标注正样本需能代表完整正类分布；这相当于项目侧需要满足 SCAR-like 的抽样条件。论文未使用 SCAR 术语，也未分析该条件失效时的偏差。
 - **普通 Hinge 不能直接用于本文凸框架**：其 composite loss 不是线性函数，会使目标非凸。
 - **普通加权 LogReg/Hinge 不是本文方法**：直接把 unlabeled 当作 negative 会引入 superfluous penalty；它们在论文中仅作为有偏基线。
-- **zero-one loss 疑似排版符号错误**：论文式 (1) 写成 $`\frac12\operatorname{sign}(z)+\frac12`$，但该式对应“分类正确指示量”而非待最小化的误分类损失。实现和 CV 应使用
+- **zero-one loss 疑似排版符号错误**：论文式 (1) 写成 $`\frac12\mathrm{sign}(z)+\frac12`$，但该式对应“分类正确指示量”而非待最小化的误分类损失。实现和 CV 应使用
 ```math
   \ell_{0\text{-}1}(z)=\mathbf{1}[z\le 0]
 ```
-  或忽略 $`z=0`$ 约定时等价的 $`\frac12-\frac12\operatorname{sign}(z)`$。
+  或忽略 $`z=0`$ 约定时等价的 $`\frac12-\frac12\mathrm{sign}(z)`$。
 - 论文只笼统提出在退化情形下可增加非负约束以避免数值问题，没有给出完整的稳定化算法。不要将后续 nnPU 的 non-negative risk correction 直接视为本文目标。
 - `【项目适配】` 官方关联代码库 [pywsl](https://github.com/t-sakai-kure/pywsl)（Sugiyama Lab，MIT）包含 uPU 实现，应作为算法参考；本卡公式以论文原文为权威来源。
 
@@ -49,7 +49,7 @@
 | Requires negative samples | `False` |
 | Optimization | Convex；C-DH 为 QP，C-LL 为光滑凸优化 |
 | GPU required | `False` |
-| Output | Binary classifier；论文 $`\hat y=\operatorname{sign}(g(x))\in\{+1,-1\}`$，`【项目适配】` predict 输出 $`\{0,1\}`$ |
+| Output | Binary classifier；论文 $`\hat y=\mathrm{sign}(g(x))\in\{+1,-1\}`$，`【项目适配】` predict 输出 $`\{0,1\}`$ |
 
 ### 2.1 适用场景标签
 
@@ -78,7 +78,7 @@ p(x)=\pi p(x\mid y=1)+(1-\pi)p(x\mid y=-1),
 ```math
 g:\mathbb{R}^d\rightarrow\mathbb{R},
 \qquad
-\hat y=\operatorname{sign}(g(x))
+\hat y=\mathrm{sign}(g(x))
 ```
 
 ---
@@ -535,7 +535,7 @@ Input:
 |---|---|
 | `fit(X, y_pu, *, class_prior=None, sample_weight=None)` | `【项目适配】` 签名匹配 `BasePUClassifier`；`y_pu=+1` 表示 labeled positive，`y_pu=0` 表示 unlabeled；`class_prior` 可覆盖构造参数；`sample_weight` 被接受但忽略（本方法不支持逐样本权重） |
 | `_decision_function(X)` | 返回 $`g(x)`$，shape `(n_samples,)`；公共 `decision_function(X)` 由基类包装，自动检查 fitted 状态 |
-| `_predict(X)` | `【项目适配】` 返回 `{0, 1}`：`(g(x) >= 0).astype(int)`；与论文的 $`\operatorname{sign}(g(x))`$ 等价但编码不同，遵循 `BasePUClassifier` 契约 |
+| `_predict(X)` | `【项目适配】` 返回 `{0, 1}`：`(g(x) >= 0).astype(int)`；与论文的 $`\mathrm{sign}(g(x))`$ 等价但编码不同，遵循 `BasePUClassifier` 契约 |
 | `predict_proba(X)` | 抛出 `NotImplementedError`；$`g(x)`$ 不是天然校准概率 |
 | `pu_validation_risk(X, y_pu)` | 返回式 (2) 的 PU zero-one 风险，用于调参；`【项目适配】` 此为本分类器扩展方法，不在 `BasePUClassifier` 契约中 |
 | `score_samples(X)` | 复用 `_decision_function`，无需覆盖 |
