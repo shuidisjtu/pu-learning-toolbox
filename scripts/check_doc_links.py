@@ -173,8 +173,169 @@ def check_path_references(md_files: list[Path]) -> list[Issue]:
 
 
 def check_planned_consistency(structure_md: Path) -> list[Issue]:
-    """Rule 2: project_structure.md (planned) tags match filesystem."""
-    return []
+    """Rule 2: project_structure.md (planned) tags must match filesystem.
+
+    Parses the ASCII directory tree in project_structure.md and verifies
+    that every .py file listed has a (planned) marker iff it does NOT exist
+    on disk.  ``__init__.py`` files and directory entries are exempt.
+    """
+    issues: list[Issue] = []
+    text = structure_md.read_text(encoding="utf-8")
+
+    # Find code-block sections (the directory trees)
+    blocks = _extract_code_blocks(text, language="text")
+    if not blocks:
+        issues.append(Issue(
+            rule="rule-2",
+            file=_relative(structure_md),
+            line=None,
+            message="no ```text code blocks found in project_structure.md",
+            severity="warning",
+        ))
+        return issues
+
+    # Lines in the doc that hold the tree blocks, with global line numbers.
+    # We work with the full text so line numbers are accurate.
+    for block_start, block_end in blocks:
+        block_issues = _check_tree_block(
+            text, block_start, block_end, structure_md,
+        )
+        issues.extend(block_issues)
+
+    return issues
+
+
+def _extract_code_blocks(
+    text: str, language: str = "text",
+) -> list[tuple[int, int]]:
+    """Return (start_line, end_line) 1-indexed for each ```<language> block."""
+    blocks: list[tuple[int, int]] = []
+    pattern = re.compile(rf"^```{language}\s*$", re.MULTILINE)
+    end_pattern = re.compile(r"^```\s*$", re.MULTILINE)
+
+    for match in pattern.finditer(text):
+        start = match.end()  # position after ```text\n
+        # Find closing ```
+        end_match = end_pattern.search(text, start)
+        if end_match:
+            end = end_match.start()
+            start_line = text[:match.start()].count("\n") + 2  # first content line
+            end_line = text[:end].count("\n") + 1
+            blocks.append((start_line, end_line))
+
+    return blocks
+
+
+def _check_tree_block(
+    text: str, start_line: int, end_line: int, source_file: Path,
+) -> list[Issue]:
+    """Parse one ASCII tree block and check (planned) consistency."""
+    issues: list[Issue] = []
+    lines = text.split("\n")
+
+    # State: stack of (indent, dir_name_or_prefix)
+    # We track the "prefix" that builds up the module path.
+    path_stack: list[tuple[int, str]] = []  # (indent, component)
+
+    for i in range(start_line - 1, end_line):
+        raw = lines[i]
+        line_no = i + 1
+
+        # Determine indent and extract name
+        indent, name, annotation = _parse_tree_line(raw)
+        if name is None:
+            continue
+
+        # Pop stack to find parent
+        while path_stack and path_stack[-1][0] >= indent:
+            path_stack.pop()
+
+        is_dir = name.endswith("/")
+        clean_name = name.rstrip("/")
+        has_planned = "(planned)" in annotation
+
+        if is_dir:
+            path_stack.append((indent, clean_name))
+        elif name.endswith(".py"):
+            # Build full relative path
+            prefix = "/".join(c for _, c in path_stack)
+            rel_path = f"{prefix}/{clean_name}" if prefix else clean_name
+
+            # Exempt __init__.py
+            if clean_name == "__init__.py":
+                continue
+
+            exists = (PROJECT_ROOT / rel_path).exists()
+
+            if exists and has_planned:
+                issues.append(Issue(
+                    rule="rule-2",
+                    file=_relative(source_file),
+                    line=line_no,
+                    message=(
+                        f"`{rel_path}` exists on disk but is marked "
+                        f"`(planned)` — remove the annotation"
+                    ),
+                    severity="error",
+                ))
+            elif not exists and not has_planned:
+                issues.append(Issue(
+                    rule="rule-2",
+                    file=_relative(source_file),
+                    line=line_no,
+                    message=(
+                        f"`{rel_path}` does not exist on disk but is "
+                        f"NOT marked `(planned)` — add the annotation"
+                    ),
+                    severity="error",
+                ))
+
+    return issues
+
+
+def _parse_tree_line(line: str) -> tuple[int, str | None, str]:
+    """Parse one line of an ASCII directory tree.
+
+    Returns (indent_level, entry_name, annotation) where *entry_name*
+    is None for non-file/dir lines.
+    """
+    # Strip leading tree-drawing characters to get the actual content.
+    # Common patterns: "  ├── file.py", "  └── dir/", "  │   subdir/"
+    # Tree chars: ├ └ ─ │ │ (box drawing)
+    stripped = line.lstrip()
+    indent = (len(line) - len(stripped))
+
+    # Remove tree-drawing prefix
+    content = stripped
+    for prefix in ("├── ", "└── ", "├─ ", "└─ "):
+        if content.startswith(prefix):
+            content = content[len(prefix):]
+            break
+    else:
+        # Might be a continuation line like "  │   subfile.py"
+        if content.startswith("│   "):
+            content = content[4:]
+        elif content.startswith("│  "):
+            content = content[3:]
+        elif content.startswith("  "):
+            content = content[2:]
+
+    content = content.strip()
+    if not content:
+        return indent, None, ""
+
+    # Separate annotation: everything after the filename/dirname
+    # e.g., "datasets/                  (planned)" → name="datasets/", annotation="(planned)"
+    # e.g., "recpe.py                  (native)" → name="recpe.py", annotation="(native)"
+    parts = content.split()
+    name = parts[0]
+    annotation = " ".join(parts[1:]) if len(parts) > 1 else ""
+
+    # Only interested in .py files and dirs ending with /
+    if name.endswith(".py") or name.endswith("/"):
+        return indent, name, annotation
+
+    return indent, None, ""
 
 
 def check_architecture_mapping(arch_md: Path) -> list[Issue]:

@@ -30,8 +30,8 @@ pu_toolbox/
 
   datasets/                  (planned)
     __init__.py
-    synthetic.py
-    loaders.py
+    synthetic.py            (planned)
+    loaders.py              (planned)
 
   preprocessing/
     __init__.py
