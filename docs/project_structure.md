@@ -204,5 +204,5 @@ scripts/
 ```text
 .github/
   workflows/
-    tests.yml                (planned)
+    tests.yml                (push/PR: 测试 + lint + 质量门禁 + 文档检查)
 ```
