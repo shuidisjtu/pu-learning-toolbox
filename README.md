@@ -67,6 +67,13 @@ uv run pytest tests/ -v -m contract        # 跨分类器 API 契约
 
 测试分层：`contract/`（写一次、所有分类器复用）→ `unit/`（算法特有逻辑）→ `integration/`（跨模块）→ `regression/`（慢速/论文复现）。详见 `CLAUDE.md`。
 
+### 辅助脚本
+
+```bash
+uv run python scripts/check_test_quality.py        # 测试质量门禁（方法数、标记、覆盖类别）
+uv run python scripts/check_doc_links.py            # 文档一致性检查（路径、索引、架构映射）
+```
+
 ## 开发流程
 
 - `main` 分支保持稳定可运行，不直接提交代码。

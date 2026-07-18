@@ -493,10 +493,104 @@ def _parse_arch_section8_table(text: str) -> dict[str, int | None]:
 
 
 def check_index_completeness(
-    docs_readme: Path, root_readme: Path, claude_md: Path | None
+    docs_readme: Path, root_readme: Path, claude_md: Path | None,
 ) -> list[Issue]:
-    """Rule 4: docs/README.md lists all docs, scripts mentioned in README/CLAUDE."""
-    return []
+    """Rule 4: docs/README.md lists all doc files; scripts mentioned somewhere.
+
+    Two sub-checks:
+    a) Every .md file directly under docs/ (excluding subdirs and method_cards)
+       should appear in docs/README.md §5.
+    b) Every .py script in scripts/ should be mentioned by basename
+       in README.md or CLAUDE.md.
+    """
+    issues: list[Issue] = []
+
+    # --- 4a: docs/README.md §5 lists all doc files ---
+    if docs_readme.exists():
+        issues.extend(_check_docs_index(docs_readme))
+    else:
+        issues.append(Issue(
+            rule="rule-4", file="docs/README.md", line=None,
+            message="docs/README.md not found",
+            severity="error",
+        ))
+
+    # --- 4b: scripts/ mentioned in README.md or CLAUDE.md ---
+    if SCRIPTS_DIR.exists():
+        script_names = [
+            p.stem for p in SCRIPTS_DIR.glob("*.py")
+            if p.stem != "__init__"
+        ]
+        readme_text = root_readme.read_text(encoding="utf-8") if root_readme.exists() else ""
+        claude_text = claude_md.read_text(encoding="utf-8") if claude_md else ""
+        combined = readme_text + "\n" + claude_text
+
+        for name in script_names:
+            if name not in combined:
+                issues.append(Issue(
+                    rule="rule-4",
+                    file="README.md / CLAUDE.md",
+                    line=None,
+                    message=(
+                        f"script `scripts/{name}.py` is not mentioned "
+                        f"in README.md or CLAUDE.md"
+                    ),
+                    severity="warning",
+                ))
+
+    return issues
+
+
+def _check_docs_index(docs_readme: Path) -> list[Issue]:
+    """Check that docs/README.md §5 lists all top-level .md files and
+    project_management/ files."""
+    issues: list[Issue] = []
+    text = docs_readme.read_text(encoding="utf-8")
+
+    # Collect actual docs
+    top_level_md: set[str] = set()
+    for p in DOCS_DIR.iterdir():
+        if p.is_file() and p.suffix == ".md":
+            top_level_md.add(p.name)
+
+    # Collect project_management files
+    pm_dir = DOCS_DIR / "project_management"
+    pm_files: set[str] = set()
+    if pm_dir.exists():
+        for p in pm_dir.iterdir():
+            pm_files.add(p.name)
+
+    # Check each top-level .md is listed in docs/README.md §5
+    for name in sorted(top_level_md):
+        if name in DOC_INDEX_EXCLUDED:
+            continue
+        if name not in text:
+            issues.append(Issue(
+                rule="rule-4",
+                file=_relative(docs_readme),
+                line=None,
+                message=(
+                    f"`{name}` exists under docs/ but is not listed "
+                    f"in docs/README.md §5 (文档索引)"
+                ),
+                severity="error",
+            ))
+
+    # Check each expected project_management file is listed
+    for name in sorted(pm_files):
+        if name in PM_FILES_EXPECTED and name not in text:
+            issues.append(Issue(
+                rule="rule-4",
+                file=_relative(docs_readme),
+                line=None,
+                message=(
+                    f"`project_management/{name}` exists but is not "
+                    f"listed in docs/README.md"
+                ),
+                severity="warning",
+            ))
+
+    return issues
 
 
 def check_claude_freshness(
