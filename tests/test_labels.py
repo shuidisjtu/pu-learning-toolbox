@@ -7,26 +7,21 @@ from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.core.labels import normalize_pnu_labels, normalize_pu_labels
 
 
+@pytest.mark.unit
 class TestNormalizePuLabels:
-    """Unit tests for label normalisation."""
+    """Unit tests for PU label normalisation — passthrough, remap, errors, edge."""
 
-    # ── Canonical / passthrough ────────────────────────────────────
-    def test_canonical_passthrough(self):
-        y = np.array([1, 0, 1, 1, 0])
-        result = normalize_pu_labels(y)
-        np.testing.assert_array_equal(result, y)
+    def test_basic_and_passthrough(self):
+        """Canonical {+1, 0} passes through; dtype is always int."""
+        for y in [
+            np.array([1, 0, 1, 1, 0]),
+            np.array([1, 1, 1]),
+            np.array([0, 0, 0]),
+        ]:
+            result = normalize_pu_labels(y)
+            np.testing.assert_array_equal(result, y)
+            assert result.dtype.kind == "i"
 
-    def test_all_positive(self):
-        y = np.array([1, 1, 1])
-        result = normalize_pu_labels(y)
-        np.testing.assert_array_equal(result, y)
-
-    def test_all_unlabeled(self):
-        y = np.array([0, 0, 0])
-        result = normalize_pu_labels(y)
-        np.testing.assert_array_equal(result, y)
-
-    # ── Remapping conventions ──────────────────────────────────────
     @pytest.mark.parametrize(
         "input_labels, expected",
         [
@@ -39,105 +34,74 @@ class TestNormalizePuLabels:
         result = normalize_pu_labels(input_labels)
         np.testing.assert_array_equal(result, expected)
 
-    # ── Errors ─────────────────────────────────────────────────────
-    def test_2d_array_raises(self):
-        y = np.array([[1, 0], [0, 1]])
-        with pytest.raises(ValidationError, match="must be 1-D"):
+    @pytest.mark.parametrize(
+        "y, match",
+        [
+            (np.array([[1, 0], [0, 1]]), "must be 1-D"),
+            (np.array([2, 3, 4]), "Unrecognised label values"),
+            (np.array([1, 5, 0]), "Unrecognised label values"),
+        ],
+    )
+    def test_invalid_inputs_raises(self, y, match):
+        with pytest.raises(ValidationError, match=match):
             normalize_pu_labels(y)
 
-    def test_unrecognised_values_raises(self):
-        y = np.array([2, 3, 4])
-        with pytest.raises(ValidationError, match="Unrecognised label values"):
-            normalize_pu_labels(y)
-
-    def test_mixed_invalid_values_raises(self):
-        y = np.array([1, 5, 0])
-        with pytest.raises(ValidationError, match="Unrecognised label values"):
-            normalize_pu_labels(y)
-
-    # ── Edge cases ─────────────────────────────────────────────────
-    def test_empty_array(self):
+    def test_edge_empty_array(self):
         y = np.array([], dtype=float)
         result = normalize_pu_labels(y)
         assert result.shape == (0,)
         assert result.dtype.kind == "i"
 
-    def test_dtype_int_output(self):
-        y = np.array([1.0, 0.0, 1.0])
-        result = normalize_pu_labels(y)
-        assert result.dtype.kind == "i"
 
-
+@pytest.mark.unit
 class TestNormalizePnuLabels:
-    """Unit tests for P/N/U label normalisation."""
+    """Unit tests for PNU label normalisation — passthrough, missing classes, errors, edge."""
 
-    # ── Canonical / passthrough ────────────────────────────────────
-    def test_canonical_passthrough(self):
+    def test_basic_and_passthrough(self):
+        """Canonical {+1,-1,0} passes through, dtype is int, large arrays work."""
+        # Canonical passthrough
         y = np.array([1, -1, 0, 1, -1, 0])
         result = normalize_pnu_labels(y)
         np.testing.assert_array_equal(result, y)
-
-    def test_remap_one_to_positive(self):
-        """Standard binary {1, -1, 0} → canonical {+1, -1, 0}."""
-        y = np.array([1, -1, 0, 1, 0])
-        result = normalize_pnu_labels(y)
-        expected = np.array([1, -1, 0, 1, 0])
-        np.testing.assert_array_equal(result, expected)
-
-    # ── Require all three classes ──────────────────────────────────
-    def test_missing_negative_raises(self):
-        y = np.array([1, 0, 1, 0])
-        with pytest.raises(ValidationError, match="must contain all"):
-            normalize_pnu_labels(y)
-
-    def test_missing_positive_raises(self):
-        y = np.array([-1, 0, -1, 0])
-        with pytest.raises(ValidationError, match="must contain all"):
-            normalize_pnu_labels(y)
-
-    def test_missing_unlabeled_raises(self):
-        y = np.array([1, -1, 1, -1])
-        with pytest.raises(ValidationError, match="must contain all"):
-            normalize_pnu_labels(y)
-
-    def test_only_two_classes_raises(self):
-        """{+1, -1} without 0 must be rejected (not treated as P/U)."""
-        y = np.array([1, -1, 1, -1])
-        with pytest.raises(ValidationError, match="must contain all"):
-            normalize_pnu_labels(y)
-
-    # ── Errors ─────────────────────────────────────────────────────
-    def test_2d_array_raises(self):
-        y = np.array([[1, -1, 0], [1, -1, 0]])
-        with pytest.raises(ValidationError, match="must be 1-D"):
-            normalize_pnu_labels(y)
-
-    def test_unrecognised_values_raises(self):
-        y = np.array([1, -1, 0, 2])
-        with pytest.raises(ValidationError, match="Unrecognised label values"):
-            normalize_pnu_labels(y)
-
-    def test_four_value_labels_raises(self):
-        y = np.array([1, -1, 0, 3])
-        with pytest.raises(ValidationError, match="Unrecognised label values"):
-            normalize_pnu_labels(y)
-
-    # ── Edge cases ─────────────────────────────────────────────────
-    def test_minimal_three_samples(self):
-        """Smallest valid PNU input: exactly one P, N, U each."""
-        y = np.array([1, -1, 0])
-        result = normalize_pnu_labels(y)
-        np.testing.assert_array_equal(result, y)
-
-    def test_dtype_int_output(self):
-        y = np.array([1.0, -1.0, 0.0])
-        result = normalize_pnu_labels(y)
         assert result.dtype.kind == "i"
-
-    def test_large_arrays(self):
-        """Smoke test with many samples."""
+        # Minimal three samples
+        y_min = np.array([1, -1, 0])
+        np.testing.assert_array_equal(normalize_pnu_labels(y_min), y_min)
+        # Large arrays smoke test
         rng = np.random.RandomState(42)
-        y = rng.choice([1, -1, 0], size=1000)
-        result = normalize_pnu_labels(y)
-        assert result.shape == (1000,)
-        assert set(np.unique(result)) == {-1, 0, 1}
+        y_large = rng.choice([1, -1, 0], size=1000)
+        result_l = normalize_pnu_labels(y_large)
+        assert result_l.shape == (1000,)
+        assert set(np.unique(result_l)) == {-1, 0, 1}
+
+    @pytest.mark.parametrize(
+        "y, match",
+        [
+            (np.array([1, 0, 1, 0]), "must contain all"),        # missing negative
+            (np.array([-1, 0, -1, 0]), "must contain all"),       # missing positive
+            (np.array([1, -1, 1, -1]), "must contain all"),       # missing unlabeled
+        ],
+    )
+    def test_missing_class_raises(self, y, match):
+        with pytest.raises(ValidationError, match=match):
+            normalize_pnu_labels(y)
+
+    @pytest.mark.parametrize(
+        "y, match",
+        [
+            (np.array([[1, -1, 0], [1, -1, 0]]), "must be 1-D"),
+            (np.array([1, -1, 0, 2]), "Unrecognised label values"),
+            (np.array([1, -1, 0, 3]), "Unrecognised label values"),
+        ],
+    )
+    def test_invalid_inputs_raises(self, y, match):
+        with pytest.raises(ValidationError, match=match):
+            normalize_pnu_labels(y)
+
+    def test_edge_minimal_and_determinism(self):
+        """Smallest valid input and deterministic output."""
+        y = np.array([1, -1, 0])
+        r1 = normalize_pnu_labels(y)
+        r2 = normalize_pnu_labels(y)
+        np.testing.assert_array_equal(r1, r2)
+        assert r1.dtype.kind == "i"

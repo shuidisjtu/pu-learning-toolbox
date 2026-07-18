@@ -77,7 +77,7 @@ class TestGoldenRiskValues:
         assert risk == pytest.approx(0.25)
 
     @pytest.mark.math
-    def test_golden_squared_risk_separated(self):
+    def test_deterministic_squared_risk_separated(self):
         """Squared loss: P=+1, U=−1 → minimum risk."""
         loss = UPULoss("squared")
         p = np.array([1.0, 1.0, 1.0])
@@ -92,7 +92,7 @@ class TestGoldenRiskValues:
         assert risk == pytest.approx(-0.5)
 
     @pytest.mark.math
-    def test_golden_logistic_gradient(self):
+    def test_validation_logistic_gradient(self):
         """Analytical gradient for logistic loss with known scores."""
         loss = UPULoss("logistic")
         p = np.array([1.0, -2.0])

@@ -147,7 +147,7 @@ class TestRiskInvariants:
             )
 
     @pytest.mark.property
-    def test_nnpu_risk_never_negative(self):
+    def test_validation_nnpu_risk_never_negative(self):
         """Theorem: R̃_pu(g) = π·R_p^+(g) + max(0, r) ≥ 0 always."""
         loss = NonNegativePULoss()
         rng = np.random.RandomState(42)
@@ -199,7 +199,7 @@ class TestRiskInvariants:
         assert r0 >= 0.0
 
     @pytest.mark.property
-    def test_sigmoid_stable_is_symmetric(self):
+    def test_deterministic_sigmoid_stable_symmetric(self):
         """σ(−z) = 1 − σ(z) (sigmoid symmetry)."""
         for z in [-10.0, -1.0, 0.0, 1.0, 10.0]:
             s_neg = _sigmoid_stable(np.array([-z]))

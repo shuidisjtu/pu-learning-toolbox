@@ -23,7 +23,15 @@ SUBPACKAGES = [
 ]
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize("pkg", SUBPACKAGES)
-def test_import_all_subpackages(pkg: str) -> None:
+def test_basic_import_all_subpackages(pkg: str) -> None:
     """Every subpackage should import without errors."""
     __import__(pkg)
+
+
+@pytest.mark.unit
+def test_invalid_import_raises() -> None:
+    """Importing a non-existent module raises ImportError."""
+    with pytest.raises(ImportError):
+        __import__("pu_toolbox.nonexistent_module")

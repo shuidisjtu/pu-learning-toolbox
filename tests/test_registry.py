@@ -38,35 +38,37 @@ def _make_meta(name: str, **kwargs) -> AlgorithmMetadata:
     return AlgorithmMetadata(**defaults)
 
 
+@pytest.mark.unit
 class TestRegistration:
-    def test_register_and_retrieve_metadata(self):
+    def test_basic_register_and_retrieve_metadata(self):
         meta = _make_meta("test_algo", aliases=["ta"])
         register_method(meta)
         retrieved = get_metadata("test_algo")
         assert retrieved.name == "test_algo"
         assert retrieved.family == AlgorithmFamily.CLASSIC_CALIBRATION
 
-    def test_register_duplicate_raises(self):
+    def test_param_register_duplicate_raises(self):
         register_method(_make_meta("algo_a"))
         with pytest.raises(RegistryError, match="already registered"):
             register_method(_make_meta("algo_a"))
 
-    def test_unregister_removes(self):
+    def test_basic_unregister_removes(self):
         register_method(_make_meta("algo_b"))
         assert "algo_b" in get_algorithm_registry()
         unregister_method("algo_b")
         assert "algo_b" not in get_algorithm_registry()
 
 
+@pytest.mark.unit
 class TestAliasResolution:
-    def test_alias_resolves_to_canonical(self):
+    def test_basic_alias_resolves_to_canonical(self):
         meta = _make_meta("elkan_noto", aliases=["en", "Elkan-Noto"])
         register_method(meta)
         for alias in ["en", "elkan-noto", "ELKAN_NOTO"]:
             m = get_metadata(alias)
             assert m.name == "elkan_noto"
 
-    def test_alias_lookup_is_case_insensitive(self):
+    def test_deterministic_alias_lookup_is_case_insensitive(self):
         """Alias resolution normalises case for lookup."""
         meta = _make_meta("elkan_noto", aliases=["en", "Elkan-Noto"])
         register_method(meta)
@@ -75,7 +77,7 @@ class TestAliasResolution:
             m = get_metadata(alias)
             assert m.name == "elkan_noto", f"alias {alias!r} failed"
 
-    def test_registering_same_alias_for_different_method_raises(self):
+    def test_param_registering_same_alias_for_different_method_raises(self):
         """Registering the same alias for a different method raises RegistryError."""
         meta1 = _make_meta("method_a", aliases=["shared_alias"])
         meta2 = _make_meta("method_b", aliases=["shared_alias"])
@@ -84,8 +86,9 @@ class TestAliasResolution:
             register_method(meta2)
 
 
+@pytest.mark.unit
 class TestGetAlgorithm:
-    def test_api_only_without_class_raises(self):
+    def test_param_api_only_without_class_raises(self):
         meta = _make_meta(
             "future_algo",
             implementation_status=ImplementationStatus.API_ONLY,
@@ -94,19 +97,20 @@ class TestGetAlgorithm:
         with pytest.raises(RegistryError, match="not yet implemented"):
             get_algorithm("future_algo")
 
-    def test_unknown_name_raises(self):
+    def test_param_unknown_name_raises(self):
         with pytest.raises(RegistryError, match="Unknown algorithm"):
             get_algorithm("nonexistent")
 
 
+@pytest.mark.unit
 class TestListAlgorithms:
-    def test_list_all(self):
+    def test_basic_list_all_counts(self):
         register_method(_make_meta("a"))
         register_method(_make_meta("b"))
         results = list_algorithms()
         assert len(results) == 2
 
-    def test_trainable_only_filters_api_only(self):
+    def test_edge_trainable_only_filters_api_only(self):
         register_method(_make_meta("trainable", implementation_status=ImplementationStatus.NATIVE))
         register_method(
             _make_meta("placeholder", implementation_status=ImplementationStatus.API_ONLY)
@@ -115,14 +119,14 @@ class TestListAlgorithms:
         assert len(results) == 1
         assert results[0].name == "trainable"
 
-    def test_family_filter(self):
+    def test_basic_family_filter(self):
         register_method(_make_meta("a", family=AlgorithmFamily.RISK_ESTIMATION))
         register_method(_make_meta("b", family=AlgorithmFamily.BIAS_AWARE))
         results = list_algorithms(family="risk_estimation")
         assert len(results) == 1
         assert results[0].name == "a"
 
-    def test_assumption_filter(self):
+    def test_basic_assumption_filter(self):
         register_method(_make_meta("scar_method", assumption=[Assumption.SCAR]))
         register_method(_make_meta("sar_method", assumption=[Assumption.SAR]))
         results = list_algorithms(assumption="SAR")
@@ -130,8 +134,9 @@ class TestListAlgorithms:
         assert results[0].name == "sar_method"
 
 
+@pytest.mark.unit
 class TestMetadataSerialization:
-    def test_to_dict_includes_all_fields(self):
+    def test_basic_to_dict_includes_all_fields(self):
         meta = _make_meta("test", aliases=["t"])
         d = meta.to_dict()
         assert d["name"] == "test"
@@ -139,7 +144,7 @@ class TestMetadataSerialization:
         assert "family" in d
         assert "trainable" in d
 
-    def test_trainable_derived_from_status(self):
+    def test_edge_trainable_derived_from_status(self):
         meta = _make_meta("x", implementation_status=ImplementationStatus.API_ONLY)
         assert not meta.trainable
         meta2 = _make_meta("y", implementation_status=ImplementationStatus.NATIVE)

@@ -21,15 +21,16 @@ def _clean_registry():
     clear_registry()
 
 
+@pytest.mark.unit
 class TestBuiltinRegistration:
     """Smoke tests for the 15 built-in api_only method entries."""
 
-    def test_registers_exactly_15_methods(self):
+    def test_basic_registers_exactly_15_methods(self):
         n = register_all_builtin_methods()
         assert n == 15
         assert len(get_algorithm_registry()) == 15
 
-    def test_implementation_status_distribution(self):
+    def test_basic_implementation_status_distribution(self):
         register_all_builtin_methods()
         by_status: dict[str, int] = {}
         for meta in get_algorithm_registry().values():
@@ -40,7 +41,7 @@ class TestBuiltinRegistration:
         assert by_status.get("native", 0) == 5
         assert by_status.get("api_only", 0) == 10
 
-    def test_source_status_distribution(self):
+    def test_basic_source_status_distribution(self):
         """Verify counts match docs/resources_optimized.md §2."""
         register_all_builtin_methods()
         by_source: dict[str, int] = {}
@@ -53,7 +54,7 @@ class TestBuiltinRegistration:
         assert by_source.get("third_party_only", 0) == 1
         assert by_source.get("not_found", 0) == 3
 
-    def test_family_distribution(self):
+    def test_basic_family_distribution(self):
         register_all_builtin_methods()
         families: dict[str, int] = {}
         for meta in get_algorithm_registry().values():
@@ -77,7 +78,7 @@ class TestBuiltinRegistration:
             ("llsvm", True, True),  # supports both
         ],
     )
-    def test_assumption_flags(self, name, expected_scar, expected_sar):
+    def test_param_assumption_flags(self, name, expected_scar, expected_sar):
         register_all_builtin_methods()
         from pu_toolbox.registry import get_metadata
 
@@ -87,7 +88,7 @@ class TestBuiltinRegistration:
         assert scar == expected_scar, f"{name}: SCAR expected {expected_scar}"
         assert sar == expected_sar, f"{name}: SAR expected {expected_sar}"
 
-    def test_lookup_by_alias(self):
+    def test_deterministic_alias_lookup(self):
         register_all_builtin_methods()
         from pu_toolbox.registry import get_metadata
 
@@ -97,7 +98,7 @@ class TestBuiltinRegistration:
         assert get_metadata("distpu").name == "dist_pu"
         assert get_metadata("wcon_pu").name == "weighted_contrastive_pu"
 
-    def test_list_trainable_only(self):
+    def test_edge_list_trainable_only(self):
         """Native implementations are trainable."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
@@ -105,13 +106,13 @@ class TestBuiltinRegistration:
         names = {m.name for m in trainable}
         assert names == {"elkan_noto", "upu", "nnpu", "pnu", "recpe"}
 
-    def test_list_by_family(self):
+    def test_basic_list_by_family(self):
         register_all_builtin_methods()
         deep = list_algorithms(family="deep_pu")
         assert len(deep) == 4
         assert all(m.family == AlgorithmFamily.DEEP_PU for m in deep)
 
-    def test_list_by_assumption(self):
+    def test_param_list_by_assumption(self):
         register_all_builtin_methods()
         sar_methods = list_algorithms(assumption="SAR")
         # At least PUSB, LBE should match
@@ -119,13 +120,13 @@ class TestBuiltinRegistration:
         assert "pusb" in names
         assert "lbe" in names
 
-    def test_every_method_has_paper_title(self):
+    def test_basic_every_method_has_paper_title(self):
         register_all_builtin_methods()
         for meta in get_algorithm_registry().values():
             assert meta.paper, f"{meta.name} is missing paper title"
             assert len(meta.paper) > 10, f"{meta.name} paper title too short"
 
-    def test_official_exact_have_upstream_url(self):
+    def test_edge_official_exact_have_upstream_url(self):
         """Every official_exact method must have an upstream URL."""
         register_all_builtin_methods()
         for meta in get_algorithm_registry().values():
