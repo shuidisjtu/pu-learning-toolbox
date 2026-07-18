@@ -9,7 +9,6 @@ pu-learning-toolbox/
   pyproject.toml
   README.md
   .gitignore
-  CLAUDE.md
 ```
 
 ## 2. Python 包（`pu_toolbox/`）
@@ -197,21 +196,15 @@ docs/
     division.txt
 ```
 
-## 7. 外部资源（`external/`）
+## 7. 脚本（`scripts/`）
 
 ```text
-external/                    (骨架就位，目录已创建)
-  official_sources/
-  legacy_adapters/
+scripts/
+  check_test_quality.py      (测试质量门禁：方法数/marker/覆盖率)
+  check_doc_links.py          (文档一致性检查：6 条规则)
 ```
 
-## 8. 脚本（`scripts/`）
-
-```text
-scripts/                     (骨架就位，待添加脚本)
-```
-
-## 9. CI/CD（`.github/`）
+## 8. CI/CD（`.github/`）
 
 ```text
 .github/
