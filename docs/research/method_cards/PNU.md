@@ -186,8 +186,8 @@ family = AlgorithmFamily.RISK_ESTIMATION
 scenario = (Scenario.CASE_CONTROL,)
 assumption = (Assumption.SCAR,)
 requires_class_prior = True
-backend = Backend.TORCH
-implementation_status = ImplementationStatus.API_ONLY
+backend = Backend.NUMPY                                # v1: squared loss closed-form
+implementation_status = ImplementationStatus.NATIVE    # updated 2026-07-18
 source_status = SourceStatus.OFFICIAL_EXACT
 upstream_url = "https://github.com/t-sakai-kure/pywsl"
 license = "MIT"
@@ -197,7 +197,7 @@ license = "MIT"
 
 ## 7. API 接口与项目落点
 
-以下为项目适配建议，不是论文原始 API。当前 registry 将 PNU 注册为 `API_ONLY`，表示元数据存在但训练逻辑尚未落地；本卡的目标是让后续实现任务无需重新判断源码状态、数学公式和测试边界。
+以下为项目适配建议，不是论文原始 API。PNU 已实现为 native NumPy（squared loss 闭式解），`implementation_status=NATIVE`。本卡的目标是让后续实现任务无需重新判断源码状态、数学公式和测试边界。
 
 ### 7.1 公共 API 与 P/N/U 数据协议
 

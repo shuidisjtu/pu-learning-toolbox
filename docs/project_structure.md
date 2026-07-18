@@ -50,12 +50,16 @@ pu_toolbox/
     __init__.py
     base.py                  (planned)
 
+  utils/
+    __init__.py
+    basis.py                  (shared)
+
   losses/
     __init__.py
     base.py                  (planned)
     upu.py                    (native)
     nnpu.py                  (native)
-    pnu.py                   (planned)
+    pnu.py                   (native)
 
   estimators/
     __init__.py
@@ -68,7 +72,7 @@ pu_toolbox/
       __init__.py
       upu.py                  (native)
       nnpu.py                  (native)
-      pnu.py                   (planned)
+      pnu.py                   (native)
     bias_aware/              (planned)
       pusb.py
       lbe.py

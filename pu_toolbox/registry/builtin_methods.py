@@ -151,12 +151,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
         assumption=[Asm.SCAR],
         requires_class_prior=True,
         supports_sparse=False,
-        supports_gpu=True,
-        backend=Backend.TORCH,
+        supports_gpu=False,
+        backend=Backend.NUMPY,
         maturity=Maturity.RESEARCH,
         complexity="medium",
         recommended_data_size="medium_to_large",
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
         license="MIT",
@@ -387,6 +387,7 @@ def _bind_native_classes() -> None:
         ("elkan_noto", "..estimators.classic.elkan_noto", "ElkanNotoClassifier"),
         ("upu", "..estimators.risk.upu", "UPUClassifier"),
         ("nnpu", "..estimators.risk.nnpu", "NonNegativePUClassifier"),
+        ("pnu", "..estimators.risk.pnu", "PNUClassifier"),
         ("recpe", "..prior.recpe", "ReCPEEstimator"),
     ]
 

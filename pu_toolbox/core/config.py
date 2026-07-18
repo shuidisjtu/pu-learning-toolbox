@@ -8,6 +8,7 @@ from __future__ import annotations
 # These are public constants — third-party estimators may reference them.
 POSITIVE_LABEL: int = 1
 UNLABELED_LABEL: int = 0
+NEGATIVE_LABEL: int = -1
 
 # ── Numeric defaults ───────────────────────────────────────────────
 DEFAULT_RANDOM_SEED: int = 42

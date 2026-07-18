@@ -20,7 +20,7 @@
 - [x] **uPU / Convex PU** — 无偏 PU 风险估计 (du Plessis et al., 2015)
 - [x] **nnPU** — 非负 PU 风险估计 (Kiryo et al., 2017)
 - [x] **ReCPE** — 类先验估计 (Yao et al., 2022)
-- [ ] **PNU** — 半监督 PU 扩展 (Sakai et al., 2017)
+- [x] **PNU** — 半监督 PU 扩展 (Sakai et al., 2017)
 - [ ] PU splitters（`PUStratifiedKFold` 等）
 - [ ] 基础 metrics（AUC, F1, PU estimated risk）
 - [ ] minimal examples（`examples/minimal/`）

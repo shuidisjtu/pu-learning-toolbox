@@ -37,40 +37,16 @@ from ...core.tags import (
 )
 from ...core.validation import validate_pu_X_y
 from ...losses.upu import _sigmoid, _softplus_stable
+from ...utils.basis import (
+    build_linear_basis,
+    build_rbf_basis,
+    subsample_centers,
+)
 
-# ═════════════════════════════════════════════════════════════════════
-# Basis builders
-# ═════════════════════════════════════════════════════════════════════
-
-
-def _build_linear_basis(X: np.ndarray) -> np.ndarray:
-    """Linear basis: φ(x) = x."""
-    return X
-
-
-def _build_rbf_basis(
-    X: np.ndarray,
-    centers: np.ndarray,
-    kernel_width: float,
-) -> np.ndarray:
-    """Gaussian / RBF basis: φ_j(x) = exp(−||x − c_j||² / (2σ²))."""
-    # squared_dist: ||X||² − 2 X·C^T + ||C||²
-    sq_X = np.sum(X**2, axis=1, keepdims=True)  # (n, 1)
-    sq_C = np.sum(centers**2, axis=1, keepdims=True).T  # (1, m)
-    dist2 = sq_X - 2.0 * X.dot(centers.T) + sq_C  # (n, m)
-    return np.exp(-dist2 / (2.0 * kernel_width**2))
-
-
-def _subsample_centers(
-    X_pool: np.ndarray,
-    n_centers: int,
-    rng: np.random.RandomState,
-) -> np.ndarray:
-    """Randomly subsample *n_centers* rows from *X_pool*."""
-    n = X_pool.shape[0]
-    n_centers = min(n_centers, n)
-    idx = rng.choice(n, size=n_centers, replace=False)
-    return X_pool[idx]
+# ── Backwards-compatible private aliases (used internally) ──────────
+_build_linear_basis = build_linear_basis
+_build_rbf_basis = build_rbf_basis
+_subsample_centers = subsample_centers
 
 
 # ═════════════════════════════════════════════════════════════════════
