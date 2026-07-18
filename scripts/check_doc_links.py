@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Documentation-code consistency gate.
+
+Rules (aligned with ``docs/project_structure.md`` and the spec at
+``docs/superpowers/specs/2026-07-18-doc-check-script-design.md``):
+
+TIER 1 (default):
+1. **Path references** — every `` `path/file.py` `` in docs must exist on disk.
+2. **``(planned)`` consistency** — ``project_structure.md`` tree must match
+   actual file existence.
+3. **Architecture §8 mapping** — ``architecture.md`` §8 table must agree with
+   registry NATIVE methods.
+4. **Index completeness** — ``docs/README.md`` must list all doc files;
+   ``scripts/`` must be mentioned in README/CLAUDE.md.
+
+TIER 2 (--strict):
+5. **CLAUDE.md freshness** — markers, script mentions, existence.
+6. **Stale numbers** — test counts and NATIVE counts in docs vs reality.
+
+Usage::
+
+    uv run python scripts/check_doc_links.py [--strict]
+
+Exit 0 when all checks pass, 1 otherwise.
+"""
+
+from __future__ import annotations
+
+import ast
+import re
+import sys
+from pathlib import Path
+from typing import NamedTuple
+
+# ═════════════════════════════════════════════════════════════════════
+# Configuration
+# ═════════════════════════════════════════════════════════════════════
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DOCS_DIR = PROJECT_ROOT / "docs"
+SCRIPTS_DIR = PROJECT_ROOT / "scripts"
+METHOD_CARDS_DIR = DOCS_DIR / "research" / "method_cards"
+
+# Directories whose backtick-quoted paths we check in Rule 1.
+VALID_PATH_ROOTS: tuple[str, ...] = (
+    "pu_toolbox", "tests", "scripts", "examples", "docs", "external",
+)
+
+# Regex: backtick-wrapped paths like `pu_toolbox/core/base.py`
+_PATH_ROOT_ALTERNATION = "|".join(VALID_PATH_ROOTS)
+PATH_PATTERN = re.compile(
+    rf"`((?:{_PATH_ROOT_ALTERNATION})/[^`]+\.py)`"
+)
+
+# Registered pytest markers from pyproject.toml (must stay in sync).
+REGISTERED_MARKERS: set[str] = {
+    "unit", "math", "property", "contract", "slow", "paper",
+}
+
+# Files in docs/ that are NOT expected to appear in docs/README.md §5.
+DOC_INDEX_EXCLUDED: set[str] = {
+    "README.md",  # the index itself
+}
+# Subdirectories of docs/ excluded from index completeness check.
+DOC_INDEX_SKIP_DIRS: set[str] = {
+    "research",       # method_cards excluded per spec
+    "superpowers",    # specs/plans are internal
+    "project_management",  # listed as a separate group
+    "figures",        # images, not docs
+}
+
+# Files in docs/project_management/ that are expected to be listed.
+PM_FILES_EXPECTED: set[str] = {
+    "decision_log.md", "process_checklist.md", "division.txt",
+}
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Data types
+# ═════════════════════════════════════════════════════════════════════
+
+class Issue(NamedTuple):
+    rule: str       # e.g. "rule-1", "rule-2"
+    file: str       # relative path to the doc file
+    line: int | None  # line number, if known
+    message: str    # human-readable description
+    severity: str   # "error" or "warning"
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Helpers
+# ═════════════════════════════════════════════════════════════════════
+
+def _relative(path: Path) -> str:
+    """Return *path* relative to PROJECT_ROOT, using forward slashes."""
+    try:
+        return path.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _find_md_files(exclude_method_cards: bool = True) -> list[Path]:
+    """Return all .md files in scope, sorted by path."""
+    files: list[Path] = []
+
+    # Project root markdown files
+    for name in ["README.md", "CLAUDE.md"]:
+        p = PROJECT_ROOT / name
+        if p.exists():
+            files.append(p)
+
+    # docs/ tree
+    for p in DOCS_DIR.rglob("*.md"):
+        if exclude_method_cards and _is_under(p, METHOD_CARDS_DIR):
+            continue
+        files.append(p)
+
+    files.sort()
+    return files
+
+
+def _is_under(path: Path, parent: Path) -> bool:
+    """Return True if *path* is under *parent* directory."""
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def _extract_backtick_paths(text: str) -> list[tuple[str, int]]:
+    """Return (path, line_number) for every `root/.../file.py` in *text*.
+
+    Line numbers are 1-indexed.
+    """
+    results: list[tuple[str, int]] = []
+    for match in PATH_PATTERN.finditer(text):
+        quoted_path = match.group(1)
+        # Skip things that look like loss names, not paths
+        if quoted_path.count("/") == 0:
+            continue
+        line_no = text[:match.start()].count("\n") + 1
+        results.append((quoted_path, line_no))
+    return results
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Rule functions — each returns list[Issue]
+# ═════════════════════════════════════════════════════════════════════
+
+def check_path_references(md_files: list[Path]) -> list[Issue]:
+    """Rule 1: every `path/file.py` in docs must exist on disk."""
+    ...
+
+
+def check_planned_consistency(structure_md: Path) -> list[Issue]:
+    """Rule 2: project_structure.md (planned) tags match filesystem."""
+    ...
+
+
+def check_architecture_mapping(arch_md: Path) -> list[Issue]:
+    """Rule 3: architecture.md §8 (planned) tags vs registry NATIVE methods."""
+    ...
+
+
+def check_index_completeness(
+    docs_readme: Path, root_readme: Path, claude_md: Path | None
+) -> list[Issue]:
+    """Rule 4: docs/README.md lists all docs, scripts mentioned in README/CLAUDE."""
+    ...
+
+
+def check_claude_freshness(
+    claude_md: Path | None, scripts_dir: Path
+) -> list[Issue]:
+    """Rule 5: CLAUDE.md exists, mentions scripts, markers match pyproject.toml."""
+    ...
+
+
+def check_stale_numbers(md_files: list[Path]) -> list[Issue]:
+    """Rule 6: numeric claims in docs (test counts, NATIVE counts) vs reality."""
+    ...
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Report & main
+# ═════════════════════════════════════════════════════════════════════
+
+def main(strict: bool = False) -> int:
+    """Run all checks and return exit code (0 = clean, 1 = issues found)."""
+    sys.stdout.reconfigure(encoding="utf-8")
+
+    md_files = _find_md_files()
+    all_issues: list[Issue] = []
+
+    # TIER 1 (always)
+    print("=" * 62)
+    print(" Documentation-Code Consistency Check")
+    print("=" * 62)
+
+    issues = check_path_references(md_files)
+    all_issues.extend(issues)
+    _print_rule_report("Rule 1: Path references", issues)
+
+    structure_md = DOCS_DIR / "project_structure.md"
+    issues = check_planned_consistency(structure_md)
+    all_issues.extend(issues)
+    _print_rule_report("Rule 2: (planned) consistency", issues)
+
+    arch_md = DOCS_DIR / "architecture.md"
+    issues = check_architecture_mapping(arch_md)
+    all_issues.extend(issues)
+    _print_rule_report("Rule 3: Architecture §8 mapping", issues)
+
+    docs_readme = DOCS_DIR / "README.md"
+    root_readme = PROJECT_ROOT / "README.md"
+    claude_md = PROJECT_ROOT / "CLAUDE.md"
+    if not claude_md.exists():
+        claude_md = None
+    issues = check_index_completeness(docs_readme, root_readme, claude_md)
+    all_issues.extend(issues)
+    _print_rule_report("Rule 4: Index completeness", issues)
+
+    # TIER 2 (--strict)
+    if strict:
+        issues = check_claude_freshness(claude_md, SCRIPTS_DIR)
+        all_issues.extend(issues)
+        _print_rule_report("Rule 5: CLAUDE.md freshness", issues)
+
+        issues = check_stale_numbers(md_files)
+        all_issues.extend(issues)
+        _print_rule_report("Rule 6: Stale numbers", issues)
+
+    # Final verdict
+    print()
+    errors = [i for i in all_issues if i.severity == "error"]
+    warnings = [i for i in all_issues if i.severity == "warning"]
+    if not errors:
+        if warnings:
+            print(f"✓ All checks passed ({len(warnings)} warning(s)).")
+        else:
+            print("✓ All checks passed.")
+        return 0
+    else:
+        print(
+            f"✗ {len(errors)} error(s), {len(warnings)} warning(s) found."
+        )
+        return 1
+
+
+def _print_rule_report(title: str, issues: list[Issue]) -> None:
+    """Print a grouped rule report with ✓ or per-issue ✗ lines."""
+    print(f"\n─ {title} ─")
+    if not issues:
+        print("  ✓ ok")
+        return
+    for issue in issues:
+        loc = f"{issue.file}:{issue.line}" if issue.line else issue.file
+        tag = "ERROR" if issue.severity == "error" else "WARN"
+        print(f"  ✗ [{tag}] {loc} — {issue.message}")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Documentation-code consistency gate for PU Learning Toolbox",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Enable TIER 2 heuristic checks (Rules 5-6)",
+    )
+    args = parser.parse_args()
+    sys.exit(main(strict=args.strict))
