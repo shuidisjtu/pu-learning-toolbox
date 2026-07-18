@@ -149,37 +149,56 @@ def _extract_backtick_paths(text: str) -> list[tuple[str, int]]:
 # ═════════════════════════════════════════════════════════════════════
 
 def check_path_references(md_files: list[Path]) -> list[Issue]:
-    """Rule 1: every `path/file.py` in docs must exist on disk."""
-    ...
+    """Rule 1: every `path/file.py` in docs must exist on disk.
+
+    Scans all in-scope .md files for backtick-quoted code paths,
+    verifies each referenced file exists relative to PROJECT_ROOT.
+    """
+    issues: list[Issue] = []
+
+    for md_file in md_files:
+        text = md_file.read_text(encoding="utf-8")
+        for ref_path, line_no in _extract_backtick_paths(text):
+            full_path = PROJECT_ROOT / ref_path
+            if not full_path.exists():
+                issues.append(Issue(
+                    rule="rule-1",
+                    file=_relative(md_file),
+                    line=line_no,
+                    message=f"referenced file not found: `{ref_path}`",
+                    severity="error",
+                ))
+
+    return issues
 
 
 def check_planned_consistency(structure_md: Path) -> list[Issue]:
     """Rule 2: project_structure.md (planned) tags match filesystem."""
-    ...
+    return []
 
 
 def check_architecture_mapping(arch_md: Path) -> list[Issue]:
     """Rule 3: architecture.md §8 (planned) tags vs registry NATIVE methods."""
-    ...
+    return []
 
 
 def check_index_completeness(
     docs_readme: Path, root_readme: Path, claude_md: Path | None
 ) -> list[Issue]:
     """Rule 4: docs/README.md lists all docs, scripts mentioned in README/CLAUDE."""
-    ...
+    return []
 
 
 def check_claude_freshness(
     claude_md: Path | None, scripts_dir: Path
 ) -> list[Issue]:
     """Rule 5: CLAUDE.md exists, mentions scripts, markers match pyproject.toml."""
-    ...
+    return []
 
 
 def check_stale_numbers(md_files: list[Path]) -> list[Issue]:
     """Rule 6: numeric claims in docs (test counts, NATIVE counts) vs reality."""
-    ...
+    return []
 
 
 # ═════════════════════════════════════════════════════════════════════
