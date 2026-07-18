@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Literal
 
 import numpy as np
-from scipy.linalg import solve
+from scipy.linalg import LinAlgError, solve
 
 from ...core.base import BasePUClassifier
 from ...core.tags import (
@@ -34,10 +34,10 @@ from ...core.validation import validate_pnu_X_y
 from ...losses.pnu import (
     _compute_nu_risk_squared,
     _compute_pn_risk,
-    _compute_pnu_risk,
     _compute_pu_risk_squared,
+    _eta_to_gamma,
 )
-from ...utils.basis import build_linear_basis, build_rbf_basis, subsample_centers
+from ...utils.basis import resolve_basis_fn
 
 # ═════════════════════════════════════════════════════════════════════
 # PNUClassifier
@@ -162,7 +162,7 @@ class PNUClassifier(BasePUClassifier):
         """
         # ── Validate ────────────────────────────────────────────────
         X, y = validate_pnu_X_y(
-            X, y, estimator_name="PNUClassifier"
+            X, y, estimator_name="PNUClassifier", accept_sparse=False
         )
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
@@ -190,7 +190,6 @@ class PNUClassifier(BasePUClassifier):
         X_N = X[mask_N]
         X_U = X[mask_U]
         n_P, n_N, n_U = X_P.shape[0], X_N.shape[0], X_U.shape[0]
-        d = X.shape[1]
 
         self._class_prior = pi
         self.class_prior_ = pi
@@ -202,29 +201,14 @@ class PNUClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
 
         # ── Build basis ─────────────────────────────────────────────
-        if self.basis == "linear":
-            _phi = build_linear_basis
-            n_basis = d
-            centers = None
-        elif self.basis == "rbf":
-            if self.kernel_width is None or self.kernel_width <= 0:
-                raise ValueError(
-                    f"kernel_width must be > 0 for basis='rbf'; "
-                    f"got {self.kernel_width}."
-                )
-            n_centers_val = (
-                self.n_centers
-                if self.n_centers is not None
-                else min(200, n_U)
-            )
-            centers = subsample_centers(X_U, n_centers_val, rng)
-            n_basis = centers.shape[0]
-            kw = self.kernel_width
-
-            def _phi(X_in: np.ndarray) -> np.ndarray:
-                return build_rbf_basis(X_in, centers, kw)
-        else:
-            raise ValueError(f"Unknown basis {self.basis!r}.")
+        _phi, n_basis, centers = resolve_basis_fn(
+            self.basis,
+            X_U,
+            kernel_width=self.kernel_width,
+            n_centers=self.n_centers,
+            rng=rng,
+        )
+        self._kw_ = self.kernel_width
 
         Phi_P = _phi(X_P)  # (n_P, n_basis)
         Phi_N = _phi(X_N)  # (n_N, n_basis)
@@ -241,6 +225,7 @@ class PNUClassifier(BasePUClassifier):
         self._n_basis_ = n_basis
         self._centers_ = centers
         self._kw_ = self.kernel_width
+        self._basis_fn_ = _phi
 
         # ── Build linear system (matching pywsl PNU_SL math) ───────
         theta_P = pi
@@ -264,18 +249,21 @@ class PNUClassifier(BasePUClassifier):
             Reg[-1, -1] = 0.0
 
         # Branch on eta
-        if self.eta >= 0.0:
-            gamma = self.eta
-            h_xu = 2.0 * h_p - h_u  # PN+PU branch
-        else:
-            gamma = -self.eta
-            h_xu = h_u - 2.0 * h_n  # PN+NU branch
+        gamma, branch = _eta_to_gamma(self.eta)
+        h_xu = 2.0 * h_p - h_u if branch == "pu" else h_u - 2.0 * h_n
 
         H_total = (1.0 - gamma) * H_pn + gamma * H_u + Reg
         h_total = (1.0 - gamma) * h_pn + gamma * h_xu
 
         # ── Solve ───────────────────────────────────────────────────
-        theta_vec = solve(H_total, h_total, assume_a="pos")
+        try:
+            theta_vec = solve(H_total, h_total, assume_a="pos")
+        except LinAlgError as exc:
+            raise LinAlgError(
+                f"Linear system is not positive definite. "
+                f"Try increasing reg_lambda (currently {self.reg_lambda}) "
+                f"or check for collinear features."
+            ) from exc
 
         if has_b:
             self.coef_ = theta_vec[:-1]
@@ -289,13 +277,17 @@ class PNUClassifier(BasePUClassifier):
         scores_N = Phi_N @ theta_vec
         scores_U = Phi_U @ theta_vec
 
+        pn_risk = _compute_pn_risk(scores_P, scores_N, pi)
+        pu_risk = _compute_pu_risk_squared(scores_P, scores_U, pi)
+        nu_risk = _compute_nu_risk_squared(scores_N, scores_U, pi)
+        gamma_r, branch_r = _eta_to_gamma(self.eta)
+        r_component = pu_risk if branch_r == "pu" else nu_risk
+        pnu_risk = float((1.0 - gamma_r) * pn_risk + gamma_r * r_component)
         self.risk_components_ = {
-            "pn_risk": _compute_pn_risk(scores_P, scores_N, pi),
-            "pu_risk": _compute_pu_risk_squared(scores_P, scores_U, pi),
-            "nu_risk": _compute_nu_risk_squared(scores_N, scores_U, pi),
-            "pnu_risk": _compute_pnu_risk(
-                scores_P, scores_N, scores_U, class_prior=pi, eta=self.eta
-            ),
+            "pn_risk": pn_risk,
+            "pu_risk": pu_risk,
+            "nu_risk": nu_risk,
+            "pnu_risk": pnu_risk,
         }
 
         # ── Finalise ────────────────────────────────────────────────
@@ -309,12 +301,7 @@ class PNUClassifier(BasePUClassifier):
     def _decision_function(self, X: np.ndarray) -> np.ndarray:
         """g(x) = alpha^T phi(x) + b."""
         self._check_is_fitted()
-
-        if self.basis == "linear":
-            Phi = build_linear_basis(X)
-        else:
-            Phi = build_rbf_basis(X, self._centers_, self._kw_)
-
+        Phi = self._basis_fn_(X)
         return Phi @ self.coef_ + self.intercept_
 
     def _predict(self, X: np.ndarray) -> np.ndarray:

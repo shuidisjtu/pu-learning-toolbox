@@ -22,6 +22,21 @@ from __future__ import annotations
 
 import numpy as np
 
+
+def _eta_to_gamma(eta: float) -> tuple[float, str]:
+    """Convert PNU eta to non-negative gamma and branch label.
+
+    R_PNU^eta = (1-gamma)*R_PN + gamma*R_PU   (eta >= 0)
+                (1-gamma)*R_PN + gamma*R_NU   (eta < 0)
+
+    Returns (gamma, branch) where gamma = |eta| and branch is "pu" or "nu".
+    """
+    if eta >= 0.0:
+        return eta, "pu"
+    else:
+        return -eta, "nu"
+
+
 # ═════════════════════════════════════════════════════════════════════
 # Component risk helpers (squared loss — convex formulation)
 # ═════════════════════════════════════════════════════════════════════
@@ -87,18 +102,17 @@ def _compute_pnu_risk(
                    (1+eta)*R_PN - eta*R_C-NU   (eta < 0)
     """
     r_pn = _compute_pn_risk(positive_scores, negative_scores, class_prior)
+    gamma, branch = _eta_to_gamma(eta)
 
-    if eta >= 0.0:
-        r_pu = _compute_pu_risk_squared(
+    if branch == "pu":
+        r_component = _compute_pu_risk_squared(
             positive_scores, unlabeled_scores, class_prior
         )
-        return float((1.0 - eta) * r_pn + eta * r_pu)
     else:
-        gamma = -eta
-        r_nu = _compute_nu_risk_squared(
+        r_component = _compute_nu_risk_squared(
             negative_scores, unlabeled_scores, class_prior
         )
-        return float((1.0 - gamma) * r_pn + gamma * r_nu)
+    return float((1.0 - gamma) * r_pn + gamma * r_component)
 
 
 # ═════════════════════════════════════════════════════════════════════

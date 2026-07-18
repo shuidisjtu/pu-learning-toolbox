@@ -136,8 +136,7 @@ def check_positive(value: float, name: str, *, allow_zero: bool = False) -> None
     ------
     ValueError
     """
-    lo = 0.0 if allow_zero else 0.0
-    cmp = value >= lo if allow_zero else value > lo
+    cmp = value >= 0.0 if allow_zero else value > 0.0
     if not cmp:
         qual = ">= 0" if allow_zero else "> 0"
         raise ValueError(f"{name} must be {qual}; got {value}.")
@@ -244,7 +243,6 @@ def validate_pnu_X_y(
     2. ``X`` and ``y_pnu`` have the same number of rows.
     3. ``X`` is a dense ``ndarray`` (or sparse matrix when
        ``accept_sparse=True``).
-    4. ``X`` is finite (no NaN / Inf).
 
     Parameters
     ----------
@@ -296,5 +294,16 @@ def validate_pnu_X_y(
         X, y_pnu.shape[0], accept_sparse=accept_sparse, allow_nd=allow_nd,
         estimator_name=est, label_name="y_pnu",
     )
+
+    # ── Imbalance warning ───────────────────────────────────────
+    min_labeled = min(max(n_P, 1), max(n_N, 1))
+    if n_U / min_labeled > MAX_PU_RATIO:
+        warnings.warn(
+            f"[{est}] Unlabeled-to-labeled ratio "
+            f"({n_U / min_labeled:.1f}:1) exceeds {MAX_PU_RATIO}:1. "
+            "Results may be unstable with such few labeled samples.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     return X, y_pnu

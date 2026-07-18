@@ -26,9 +26,9 @@ def build_linear_basis(X: np.ndarray) -> np.ndarray:
     Returns
     -------
     np.ndarray of shape (n_samples, n_features)
-        Linear basis expansion (identity).
+        Linear basis expansion (identity — returns a copy).
     """
-    return X
+    return X.copy()
 
 
 def build_rbf_basis(
@@ -83,3 +83,76 @@ def subsample_centers(
     n_centers = min(n_centers, n)
     idx = rng.choice(n, size=n_centers, replace=False)
     return X_pool[idx]
+
+
+def resolve_basis_fn(
+    basis: str,
+    X_pool: np.ndarray,
+    *,
+    kernel_width: float | None = None,
+    n_centers: int | None = None,
+    rng: np.random.RandomState,
+) -> tuple[callable, int, np.ndarray | None]:
+    """Resolve basis-function callable and metadata from config.
+
+    Single source of truth for the ``basis=`` dispatch logic shared by
+    ``UPUClassifier``, ``PNUClassifier``, and future risk-estimation
+    classifiers.
+
+    Parameters
+    ----------
+    basis : {"linear", "rbf"}
+        Basis type.
+    X_pool : np.ndarray of shape (n_samples, n_features)
+        Pool for RBF centre subsampling (typically U samples).  Ignored
+        for ``basis="linear"``.
+    kernel_width : float or None
+        Required when ``basis="rbf"``; must be > 0.
+    n_centers : int or None
+        Number of RBF centres.  Default: ``min(200, len(X_pool))``.
+        Ignored for ``basis="linear"``.  Must be > 0 if given.
+    rng : np.random.RandomState
+        Seeded random state for centre subsampling.
+
+    Returns
+    -------
+    phi_fn : callable
+        ``phi_fn(X) -> np.ndarray`` — basis expansion.
+    n_basis : int
+        Dimensionality of the basis expansion.
+    centers : np.ndarray or None
+        RBF centres (``None`` for linear).
+
+    Raises
+    ------
+    ValueError
+        If *basis* is unrecognised, *kernel_width* is missing/invalid for
+        RBF, or *n_centers* <= 0.
+    """
+    n_samples = X_pool.shape[0]
+
+    if basis == "linear":
+        return build_linear_basis, X_pool.shape[1], None
+
+    if basis == "rbf":
+        if kernel_width is None or kernel_width <= 0:
+            raise ValueError(
+                f"kernel_width must be > 0 for basis='rbf'; "
+                f"got {kernel_width}."
+            )
+        if n_centers is not None and n_centers <= 0:
+            raise ValueError(
+                f"n_centers must be > 0; got {n_centers}."
+            )
+        n_centers_val = (
+            n_centers if n_centers is not None else min(200, n_samples)
+        )
+        centers = subsample_centers(X_pool, n_centers_val, rng)
+        n_basis = centers.shape[0]
+
+        def _rbf_fn(X_in: np.ndarray) -> np.ndarray:
+            return build_rbf_basis(X_in, centers, kernel_width)
+
+        return _rbf_fn, n_basis, centers
+
+    raise ValueError(f"Unknown basis {basis!r}.")

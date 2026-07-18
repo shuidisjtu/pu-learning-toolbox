@@ -123,9 +123,7 @@ def normalize_pu_labels(y: np.ndarray) -> np.ndarray:
         {float(POSITIVE_LABEL), float(UNLABELED_LABEL)},  # {+1, 0}
         {1.0, -1.0},  # {1, -1} → remap below
     ]
-    _check_label_values(y, pu_valid_sets)
-
-    unique_vals = set(np.unique(y))
+    unique_vals = _check_label_values(y, pu_valid_sets)
 
     # Already canonical
     if unique_vals <= {float(POSITIVE_LABEL), float(UNLABELED_LABEL)}:
@@ -137,11 +135,8 @@ def normalize_pu_labels(y: np.ndarray) -> np.ndarray:
 
     # {1, 0} is numerically identical to canonical {+1, 0}; the first
     # branch above already handles both.  No separate remap needed.
-
-    raise ValidationError(
-        f"Unrecognised label values {sorted(unique_vals)}. "
-        f"Expected one of: {{+1, 0}}, {{+1, -1}}, {{1, 0}}, or {{1, -1}}."
-    )
+    # Unreachable — _check_label_values already rejects all bad sets.
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 # ═════════════════════════════════════════════════════════════════════

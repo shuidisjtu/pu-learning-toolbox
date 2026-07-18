@@ -1,3 +1,5 @@
+# ruff: noqa: N806
+
 """Tests for pu_toolbox.core.validation (validate_pu_X_y, validate_pnu_X_y)."""
 
 import numpy as np
