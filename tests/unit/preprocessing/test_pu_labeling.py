@@ -21,6 +21,7 @@ from pu_toolbox.preprocessing.pu_labeling import (
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestMakeScarLabels:
     """Tests for :func:`make_scar_labels`."""
 
@@ -98,6 +99,7 @@ class TestMakeScarLabels:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestMakeCaseControlLabels:
     """Tests for :func:`make_case_control_labels`."""
 
@@ -151,6 +153,7 @@ class TestMakeCaseControlLabels:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestMakePuLabels:
     """Tests for :func:`make_pu_labels` dispatcher."""
 
@@ -192,6 +195,7 @@ class TestMakePuLabels:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestMakePnuLabels:
     """Tests for :func:`make_pnu_labels`."""
 
@@ -237,6 +241,7 @@ class TestMakePnuLabels:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestMakeGaussianPuData:
     """Tests for :func:`make_gaussian_pu_data`."""
 
@@ -280,6 +285,7 @@ class TestMakeGaussianPuData:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestMakeScarDataset:
     """Tests for :func:`make_scar_dataset`."""
 

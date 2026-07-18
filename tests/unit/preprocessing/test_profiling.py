@@ -18,6 +18,7 @@ from pu_toolbox.preprocessing.profiling import (
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestPuDataSummary:
     """Tests for :func:`pu_data_summary`."""
 
@@ -117,6 +118,7 @@ class TestPuDataSummary:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.unit
 class TestPnuDataSummary:
     """Tests for :func:`pnu_data_summary`."""
 
