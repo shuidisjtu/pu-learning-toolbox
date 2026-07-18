@@ -21,9 +21,9 @@
 - [x] **nnPU** — 非负 PU 风险估计 (Kiryo et al., 2017)
 - [x] **ReCPE** — 类先验估计 (Yao et al., 2022)
 - [x] **PNU** — 半监督 PU 扩展 (Sakai et al., 2017)
-- [ ] PU splitters（`PUStratifiedKFold` 等）
-- [ ] 基础 metrics（AUC, F1, PU estimated risk）
-- [ ] minimal examples（`examples/minimal/`）
+- [x] PU splitters（`PUStratifiedKFold` 等）
+- [x] 基础 metrics（AUC, F1, PU estimated risk）
+- [x] minimal examples（`examples/minimal/`）
 
 ## Phase 2 — 经典包装器与补充估计 (v0.2)
 
