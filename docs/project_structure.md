@@ -73,9 +73,11 @@ pu_toolbox/
       nnpu.py                  (native)
       pnu.py                   (native)
     bias_aware/              (planned)
+      __init__.py
       pusb.py                (planned)
       lbe.py                 (planned)
     deep/                    (planned)
+      __init__.py
       self_pu.py             (planned)
       dist_pu.py             (planned)
 
@@ -84,14 +86,13 @@ pu_toolbox/
     base.py
     registry.py              (planned)
 
-  metrics/                   (planned)
+  metrics/
     __init__.py
-    supervised.py
-    pu_estimated.py
+    classification.py          (已实现: PU risk + supervised wrappers)
 
-  model_selection/           (planned)
+  model_selection/
     __init__.py
-    split.py
+    split.py                   (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
 
   advisor/                   (planned)
     __init__.py
@@ -101,6 +102,7 @@ pu_toolbox/
     registry.py
     metadata.py
     aliases.py
+    builtin_methods.py         (15 论文方法元数据 + native 绑定)
     source_metadata.py
     source_policy.py
 ```
@@ -127,6 +129,10 @@ tests/
     losses/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py               # uPU golden tests (MATH + PROPERTY)
+    metrics/
+      test_classification.py          # PU 指标测试
+    model_selection/
+      test_split.py                   # PU 切分器测试
     prior/
       test_recpe.py                   # ReCPE 特有逻辑
 
@@ -139,22 +145,26 @@ tests/
 ## 4. 示例（`examples/`）
 
 ```text
-examples/                    (planned)
+examples/
   minimal/
-    run_elkan_noto.py
-    run_prior_estimation.py
+    01_elkan_noto.py          (Elkan-Noto 概率校正 + 加权重训)
+    02_upu.py                 (uPU 凸风险最小化)
+    03_nnpu.py                (nnPU 非负风险估计)
+    04_pnu.py                 (PNU 半监督扩展)
+    05_recpe_pipeline.py      (ReCPE 类先验估计 + uPU 联合流程)
 ```
 
 ## 5. Benchmark（`benchmarks/`）
 
 ```text
-benchmarks/                  (planned)
+benchmarks/                  (骨架就位，目录已创建)
   configs/
     smoke/
-      classic_pu.yaml
+    synthetic/
   runners/
-    run_smoke.py
   paper_like/
+  regression_tests/
+  reports/
 ```
 
 ## 6. 文档（`docs/`）
@@ -186,16 +196,15 @@ docs/
 ## 7. 外部资源（`external/`）
 
 ```text
-external/                    (planned)
-  README.md
+external/                    (骨架就位，目录已创建)
   official_sources/
+  legacy_adapters/
 ```
 
 ## 8. 脚本（`scripts/`）
 
 ```text
-scripts/                     (planned)
-  check_method_cards.py
+scripts/                     (骨架就位，待添加脚本)
 ```
 
 ## 9. CI/CD（`.github/`）

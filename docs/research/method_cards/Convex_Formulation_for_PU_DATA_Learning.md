@@ -623,7 +623,7 @@ maturity = Maturity.STABLE
 
 ### 8.5 后端决策
 
-`【项目适配】` 注册表当前声明 `Backend.TORCH`，但需分情况处理：
+uPU 注册表声明 `Backend.NUMPY`，覆盖所有 loss 变体：
 
 | Loss 变体 | 后端 | 理由 |
 |---|---|---|
@@ -631,10 +631,8 @@ maturity = Maturity.STABLE
 | C-LL (logistic) | `Backend.NUMPY` 或 `Backend.TORCH` | 光滑凸，L-BFGS（numpy）或 SGD/Adam（torch）均可 |
 | Squared | `Backend.NUMPY` | 闭式解 |
 
-建议：
 - `UPUClassifier` 默认 `Backend.NUMPY`（覆盖所有 loss 变体）
 - `UPULoss` 可选 PyTorch 实现，供深度模型 estimator（如 `estimators/risk/nnpu.py`）使用
-- 注册表的 `backend` 字段在实现时根据实际决策更新
 
 ### 8.6 参考实现
 
@@ -656,7 +654,7 @@ maturity = Maturity.STABLE
 | nnPU (Kiryo 2017) | 在 uPU 基础上对 $`\hat R_U^{-} - \pi \hat R_P^{-}`$ 加非负约束 | `UPULoss` 的计算逻辑 |
 | PNU | 在 uPU 基础上加入 PN 和 NU 风险的凸组合 | 风险分解函数 |
 
-建议在 `losses/base.py` 或 `losses/upu.py` 中提取共用的风险分解工具函数，供 `nnpu.py` 和 `pnu.py` 调用，而非各自独立实现相同的分解逻辑。
+建议在 `core/base.py`（`BasePULoss`）或 `losses/upu.py` 中提取共用的风险分解工具函数，供 `nnpu.py` 和 `pnu.py` 调用，而非各自独立实现相同的分解逻辑。
 
 ---
 

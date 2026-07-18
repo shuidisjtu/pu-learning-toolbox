@@ -21,7 +21,15 @@ from sklearn.preprocessing import StandardScaler
 
 from ..core.base import BasePriorEstimator
 from ..core.exceptions import NotFittedError
-from ..core.tags import Backend, ImplementationStatus
+from ..core.tags import (
+    AlgorithmFamily,
+    Assumption,
+    Backend,
+    ImplementationStatus,
+    Maturity,
+    Scenario,
+    SourceStatus,
+)
 from ..core.validation import validate_pu_X_y
 
 
@@ -78,8 +86,14 @@ class ReCPEEstimator(BasePriorEstimator):
         Maximum iterations for the default logistic classifier.
     """
 
-    implementation_status = ImplementationStatus.NATIVE
-    backend = Backend.NUMPY
+    family: AlgorithmFamily = AlgorithmFamily.CLASS_PRIOR_ESTIMATION
+    assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
+    scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL)
+    requires_class_prior: bool = False
+    implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
+    source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
+    backend: Backend = Backend.NUMPY
+    maturity: Maturity = Maturity.STABLE
 
     def __init__(
         self,

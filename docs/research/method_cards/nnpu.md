@@ -344,7 +344,7 @@ L_{\mathrm{opt}}=
 
 ## 7. API 接口
 
-> **[项目适配，待仓库核验]** 以下接口按参考资料卡中的 `BasePUClassifier` 契约设计；类名、参数位置和 backend 需与项目现有抽象对齐。
+> **[项目适配]** 以下接口按 `BasePUClassifier` 契约实现，类名、参数和 backend 已与项目现有抽象对齐（代码文件: `pu_toolbox/estimators/risk/nnpu.py`）。
 
 ### 7.1 构造函数
 
@@ -420,7 +420,7 @@ correction_fraction
 
 ## 8. Toolbox 集成映射
 
-> **[项目适配，待仓库核验]** 本节依据参考资料卡结构及阅读批注推定，不是论文规定。
+> **[项目适配]** 本节依据方法的项目落点，已与仓库实际代码对齐，不是论文规定。
 
 ### 文件与注册
 
@@ -435,7 +435,7 @@ correction_fraction
 
 ### 模块拆分建议
 
-- `NonNegativePURisk`：只负责部分风险、uPU/nnPU 报告值和 Algorithm 1 优化量；
+- `NonNegativePULoss`：只负责部分风险、uPU/nnPU 报告值和 Algorithm 1 优化量；
 - `NonNegativePUClassifier`：负责数据拆分、batch、优化器、预测和元数据；
 - 公共测试夹具：与 Convex PU 共用 P/U 数据构造和手工风险计算。
 

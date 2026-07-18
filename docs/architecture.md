@@ -17,7 +17,7 @@
 | Estimation | `prior`, `propensity`, `losses` | 类先验估计、标记倾向估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现或包装具体 PU 分类器 |
 | Source Integration | `source_adapters` | 管理作者源码、外部仓库和论文复现脚本 |
-| Evaluation | `metrics`, `model_selection`, `benchmarks` (均为 planned) | 评估、诊断、切分、benchmark regression |
+| Evaluation | `metrics`, `model_selection`, `benchmarks` (planned) | 评估、诊断、切分、benchmark regression。其中 `metrics`（PU 风险 + 监督指标包装）和 `model_selection`（PU 分层切分）已实现 |
 | User Layer | `advisor`, `examples`, `docs` | 推荐算法、生成报告、教程 |
 
 ## 3. 数据流
@@ -83,12 +83,12 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
 ### 4.2 BasePriorEstimator
 
 ```python
-class BasePriorEstimator(BaseEstimator):
+class BasePriorEstimator(BaseEstimator, ABC):
     def fit(self, X, y_pu):
-        raise NotImplementedError
+        ...
 
     def estimate(self):
-        raise NotImplementedError
+        ...
 
     def confidence_interval(self, alpha=0.05):
         return None
@@ -97,41 +97,42 @@ class BasePriorEstimator(BaseEstimator):
 ### 4.3 BasePropensityEstimator
 
 ```python
-class BasePropensityEstimator(BaseEstimator):
+class BasePropensityEstimator(BaseEstimator, ABC):
     def fit(self, X, y_pu):
-        raise NotImplementedError
+        ...
 
     def estimate(self):
-        raise NotImplementedError
+        ...
 
     def predict_propensity(self, X):
-        raise NotImplementedError
+        ...
 ```
 
 ### 4.4 BasePULoss
 
 ```python
-class BasePULoss:
+class BasePULoss(ABC):
     requires_class_prior = True
 
     def __call__(self, positive_scores, unlabeled_scores, *, class_prior):
-        raise NotImplementedError
+        ...
 ```
 
 ### 4.5 BaseSourceAdapter
 
 ```python
-class BaseSourceAdapter:
-    source_status = "unknown"
+class BaseSourceAdapter(ABC):
+    source_status = SourceStatus.UNKNOWN
     upstream_url = None
     license = "unknown"
-    backend = "unknown"
+    backend = Backend.UNKNOWN
+    implementation_status = ImplementationStatus.OFFICIAL_ADAPTER
 
     def is_available(self):
-        raise NotImplementedError
+        ...
 
     def build_estimator(self, **kwargs):
-        raise NotImplementedError
+        ...
 
     def run_reproduction_test(self, config):
         raise NotImplementedError
@@ -154,7 +155,7 @@ class BaseSourceAdapter:
 
 ```python
 {
-    "name": "nnPU",
+    "name": "nnpu",
     "aliases": ["non_negative_pu", "nn-pu", "nnPU"],
     "family": "risk_estimation",
     "scenario": ["case_control"],
@@ -180,16 +181,17 @@ class BaseSourceAdapter:
 | `native` | clean-room 实现 |
 | `official_adapter` | 通过 adapter 调用官方源码 |
 | `official_aligned_native` | 参考官方逻辑的原生实现 + 对齐测试 |
+| `third_party_reference_only` | 仅有第三方参考实现，无官方源码 |
 | `experimental` | 研究版，API 可能变动 |
 
 ## 7. 类先验、标记倾向与损失函数
 
-| 概念 | 相关方法 |
+| 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |
 |---|---|
-| 类先验 $\pi$ | TIcE, AlphaMax, ReCPE, penL1 |
-| 标记倾向 $c$ (SCAR) | Elkan-Noto |
-| 标记倾向 $c(x)$ (SAR) | LBE, PUSB |
-| PU 风险/损失 | uPU, nnPU, PNU, Dist-PU |
+| 类先验 $\pi$ | ✅ ReCPE, ⏳ TIcE, ⏳ AlphaMax, ⏳ penL1 |
+| 标记倾向 $c$ (SCAR) | ✅ Elkan-Noto |
+| 标记倾向 $c(x)$ (SAR) | ⏳ LBE, ⏳ PUSB |
+| PU 风险/损失 | ✅ uPU, ✅ nnPU, ✅ PNU, ⏳ Dist-PU |
 
 ## 8. 论文方法到模块的映射
 
@@ -222,6 +224,6 @@ adapter 统一包装外部源码，不改变 Toolbox 核心 API。每个 adapter
 
 ## 10. 评价与切分
 
-- `PUStratifiedKFold`、`PUStratifiedShuffleSplit` (planned)：保证每个训练折含 labeled positive。
-- 有真实 $y$ 时使用标准监督指标（AUC, F1, Average Precision）；仅 PU 标签时使用 PU 估计指标。
+- `PUStratifiedKFold`、`PUStratifiedShuffleSplit`（已实现）：保证每个训练折含 labeled positive，保留 P/U 比例。
+- 有真实 $y$ 时使用标准监督指标（AUC, F1, Average Precision）；仅 PU 标签时使用 PU 估计指标（`pu_zero_one_risk`）。
 - benchmark 分为 smoke / synthetic / paper-like 三级（planned），论文算法对应 `benchmarks/paper_like/<name>/`。

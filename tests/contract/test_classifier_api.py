@@ -105,6 +105,7 @@ def _get_fit_kwargs(clf, y) -> dict:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.contract
 class TestAPIContract:
     """Every NATIVE classifier obeys the same public API."""
 
@@ -196,6 +197,7 @@ class TestAPIContract:
 # ═════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.contract
 class TestRegistryClassBinding:
     """Every NATIVE registry entry has a valid bound class."""
 

@@ -245,15 +245,13 @@ class ElkanNotoClassifier(BasePUClassifier):
 |---|---|
 | 目标文件 | `pu_toolbox/estimators/classic/elkan_noto.py` |
 | 类名 | `ElkanNotoClassifier(BasePUClassifier)` |
-| 注册名称 | `"elkan_noto"`（已注册为 `api_only`，实现后更新为 `NATIVE`） |
+| 注册名称 | `"elkan_noto"`（`implementation_status=NATIVE`） |
 | 别名 | `["en", "elkan-noto", "elkan_noto_calibration"]` |
 | 导出 | `estimators/classic/__init__.py` 添加 `from .elkan_noto import ElkanNotoClassifier` |
 
 ### 注册表更新
 
-实现完成后，更新 `pu_toolbox/registry/builtin_methods.py` 中 `elkan_noto` 条目：
-- `implementation_status`：`API_ONLY` → `NATIVE`
-- 调用 `register_method(meta, estimator_cls=ElkanNotoClassifier)` 关联实现类
+> ✅ 已完成。`elkan_noto` 条目 `implementation_status=NATIVE`，已绑定 `ElkanNotoClassifier`。
 
 ### 类级元数据
 
