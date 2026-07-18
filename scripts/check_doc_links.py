@@ -43,18 +43,26 @@ METHOD_CARDS_DIR = DOCS_DIR / "research" / "method_cards"
 
 # Directories whose backtick-quoted paths we check in Rule 1.
 VALID_PATH_ROOTS: tuple[str, ...] = (
-    "pu_toolbox", "tests", "scripts", "examples", "docs", "external",
+    "pu_toolbox",
+    "tests",
+    "scripts",
+    "examples",
+    "docs",
+    "external",
 )
 
 # Regex: backtick-wrapped paths like `pu_toolbox/core/base.py`
 _PATH_ROOT_ALTERNATION = "|".join(VALID_PATH_ROOTS)
-PATH_PATTERN = re.compile(
-    rf"`((?:{_PATH_ROOT_ALTERNATION})/[^`]+\.py)`"
-)
+PATH_PATTERN = re.compile(rf"`((?:{_PATH_ROOT_ALTERNATION})/[^`]+\.py)`")
 
 # Registered pytest markers from pyproject.toml (must stay in sync).
 REGISTERED_MARKERS: set[str] = {
-    "unit", "math", "property", "contract", "slow", "paper",
+    "unit",
+    "math",
+    "property",
+    "contract",
+    "slow",
+    "paper",
 }
 
 # Files in docs/ that are NOT expected to appear in docs/README.md §5.
@@ -63,15 +71,17 @@ DOC_INDEX_EXCLUDED: set[str] = {
 }
 # Subdirectories of docs/ excluded from index completeness check.
 DOC_INDEX_SKIP_DIRS: set[str] = {
-    "research",       # method_cards excluded per spec
-    "superpowers",    # specs/plans are internal
+    "research",  # method_cards excluded per spec
+    "superpowers",  # specs/plans are internal
     "project_management",  # listed as a separate group
-    "figures",        # images, not docs
+    "figures",  # images, not docs
 }
 
 # Files in docs/project_management/ that are expected to be listed.
 PM_FILES_EXPECTED: set[str] = {
-    "decision_log.md", "process_checklist.md", "division.txt",
+    "decision_log.md",
+    "process_checklist.md",
+    "division.txt",
 }
 
 
@@ -79,17 +89,19 @@ PM_FILES_EXPECTED: set[str] = {
 # Data types
 # ═════════════════════════════════════════════════════════════════════
 
+
 class Issue(NamedTuple):
-    rule: str       # e.g. "rule-1", "rule-2"
-    file: str       # relative path to the doc file
+    rule: str  # e.g. "rule-1", "rule-2"
+    file: str  # relative path to the doc file
     line: int | None  # line number, if known
-    message: str    # human-readable description
-    severity: str   # "error" or "warning"
+    message: str  # human-readable description
+    severity: str  # "error" or "warning"
 
 
 # ═════════════════════════════════════════════════════════════════════
 # Helpers
 # ═════════════════════════════════════════════════════════════════════
+
 
 def _relative(path: Path) -> str:
     """Return *path* relative to PROJECT_ROOT, using forward slashes."""
@@ -139,7 +151,7 @@ def _extract_backtick_paths(text: str) -> list[tuple[str, int]]:
         # Skip things that look like loss names, not paths
         if quoted_path.count("/") == 0:
             continue
-        line_no = text[:match.start()].count("\n") + 1
+        line_no = text[: match.start()].count("\n") + 1
         results.append((quoted_path, line_no))
     return results
 
@@ -147,6 +159,7 @@ def _extract_backtick_paths(text: str) -> list[tuple[str, int]]:
 # ═════════════════════════════════════════════════════════════════════
 # Rule functions — each returns list[Issue]
 # ═════════════════════════════════════════════════════════════════════
+
 
 def check_path_references(md_files: list[Path]) -> list[Issue]:
     """Rule 1: every `path/file.py` in docs must exist on disk.
@@ -161,13 +174,15 @@ def check_path_references(md_files: list[Path]) -> list[Issue]:
         for ref_path, line_no in _extract_backtick_paths(text):
             full_path = PROJECT_ROOT / ref_path
             if not full_path.exists():
-                issues.append(Issue(
-                    rule="rule-1",
-                    file=_relative(md_file),
-                    line=line_no,
-                    message=f"referenced file not found: `{ref_path}`",
-                    severity="error",
-                ))
+                issues.append(
+                    Issue(
+                        rule="rule-1",
+                        file=_relative(md_file),
+                        line=line_no,
+                        message=f"referenced file not found: `{ref_path}`",
+                        severity="error",
+                    )
+                )
 
     return issues
 
@@ -185,20 +200,25 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
     # Find code-block sections (the directory trees)
     blocks = _extract_code_blocks(text, language="text")
     if not blocks:
-        issues.append(Issue(
-            rule="rule-2",
-            file=_relative(structure_md),
-            line=None,
-            message="no ```text code blocks found in project_structure.md",
-            severity="warning",
-        ))
+        issues.append(
+            Issue(
+                rule="rule-2",
+                file=_relative(structure_md),
+                line=None,
+                message="no ```text code blocks found in project_structure.md",
+                severity="warning",
+            )
+        )
         return issues
 
     # Lines in the doc that hold the tree blocks, with global line numbers.
     # We work with the full text so line numbers are accurate.
     for block_start, block_end in blocks:
         block_issues = _check_tree_block(
-            text, block_start, block_end, structure_md,
+            text,
+            block_start,
+            block_end,
+            structure_md,
         )
         issues.extend(block_issues)
 
@@ -206,7 +226,8 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
 
 
 def _extract_code_blocks(
-    text: str, language: str = "text",
+    text: str,
+    language: str = "text",
 ) -> list[tuple[int, int]]:
     """Return (start_line, end_line) 1-indexed for each ```<language> block."""
     blocks: list[tuple[int, int]] = []
@@ -219,7 +240,7 @@ def _extract_code_blocks(
         end_match = end_pattern.search(text, start)
         if end_match:
             end = end_match.start()
-            start_line = text[:match.start()].count("\n") + 2  # first content line
+            start_line = text[: match.start()].count("\n") + 2  # first content line
             end_line = text[:end].count("\n") + 1
             blocks.append((start_line, end_line))
 
@@ -227,7 +248,10 @@ def _extract_code_blocks(
 
 
 def _check_tree_block(
-    text: str, start_line: int, end_line: int, source_file: Path,
+    text: str,
+    start_line: int,
+    end_line: int,
+    source_file: Path,
 ) -> list[Issue]:
     """Parse one ASCII tree block and check (planned) consistency."""
     issues: list[Issue] = []
@@ -268,27 +292,31 @@ def _check_tree_block(
             exists = (PROJECT_ROOT / rel_path).exists()
 
             if exists and has_planned:
-                issues.append(Issue(
-                    rule="rule-2",
-                    file=_relative(source_file),
-                    line=line_no,
-                    message=(
-                        f"`{rel_path}` exists on disk but is marked "
-                        f"`(planned)` — remove the annotation"
-                    ),
-                    severity="error",
-                ))
+                issues.append(
+                    Issue(
+                        rule="rule-2",
+                        file=_relative(source_file),
+                        line=line_no,
+                        message=(
+                            f"`{rel_path}` exists on disk but is marked "
+                            f"`(planned)` — remove the annotation"
+                        ),
+                        severity="error",
+                    )
+                )
             elif not exists and not has_planned:
-                issues.append(Issue(
-                    rule="rule-2",
-                    file=_relative(source_file),
-                    line=line_no,
-                    message=(
-                        f"`{rel_path}` does not exist on disk but is "
-                        f"NOT marked `(planned)` — add the annotation"
-                    ),
-                    severity="error",
-                ))
+                issues.append(
+                    Issue(
+                        rule="rule-2",
+                        file=_relative(source_file),
+                        line=line_no,
+                        message=(
+                            f"`{rel_path}` does not exist on disk but is "
+                            f"NOT marked `(planned)` — add the annotation"
+                        ),
+                        severity="error",
+                    )
+                )
 
     return issues
 
@@ -303,13 +331,13 @@ def _parse_tree_line(line: str) -> tuple[int, str | None, str]:
     # Common patterns: "  ├── file.py", "  └── dir/", "  │   subdir/"
     # Tree chars: ├ └ ─ │ │ (box drawing)
     stripped = line.lstrip()
-    indent = (len(line) - len(stripped))
+    indent = len(line) - len(stripped)
 
     # Remove tree-drawing prefix
     content = stripped
     for prefix in ("├── ", "└── ", "├─ ", "└─ "):
         if content.startswith(prefix):
-            content = content[len(prefix):]
+            content = content[len(prefix) :]
             break
     else:
         # Might be a continuation line like "  │   subfile.py"
@@ -349,13 +377,15 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
     # 1. Get NATIVE file paths from registry
     native_paths = _get_native_module_paths()
     if not native_paths:
-        issues.append(Issue(
-            rule="rule-3",
-            file=_relative(arch_md),
-            line=None,
-            message="could not extract NATIVE paths from builtin_methods.py",
-            severity="warning",
-        ))
+        issues.append(
+            Issue(
+                rule="rule-3",
+                file=_relative(arch_md),
+                line=None,
+                message="could not extract NATIVE paths from builtin_methods.py",
+                severity="warning",
+            )
+        )
         return issues
 
     # 2. Parse architecture.md §8 table
@@ -366,16 +396,18 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
     for native_path in native_paths:
         if native_path in table_entries and table_entries[native_path]:
             # path exists in §8 table and IS marked (planned)
-            issues.append(Issue(
-                rule="rule-3",
-                file=_relative(arch_md),
-                line=table_entries[native_path],
-                message=(
-                    f"`{native_path}` is NATIVE in registry but marked "
-                    f"`(planned)` in architecture.md §8"
-                ),
-                severity="error",
-            ))
+            issues.append(
+                Issue(
+                    rule="rule-3",
+                    file=_relative(arch_md),
+                    line=table_entries[native_path],
+                    message=(
+                        f"`{native_path}` is NATIVE in registry but marked "
+                        f"`(planned)` in architecture.md §8"
+                    ),
+                    severity="error",
+                )
+            )
 
     if not issues:
         return issues
@@ -399,10 +431,12 @@ def _get_native_module_paths() -> set[str]:
     for node in ast.walk(tree):
         # Find _native_imports = [(name, module_path, class_name), ...]
         # The variable has a type annotation, so it is an ast.AnnAssign node.
-        if (isinstance(node, ast.AnnAssign)
-                and isinstance(node.target, ast.Name)
-                and node.target.id == "_native_imports"
-                and isinstance(node.value, ast.List)):
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "_native_imports"
+            and isinstance(node.value, ast.List)
+        ):
             for elt in node.value.elts:
                 if isinstance(elt, ast.Tuple) and len(elt.elts) >= 2:
                     # Second element is module_path like
@@ -411,7 +445,8 @@ def _get_native_module_paths() -> set[str]:
                     if isinstance(mod_path_node, ast.Constant):
                         mod_path = mod_path_node.value
                         file_path = _resolve_relative_import(
-                            mod_path, registry_file.parent,
+                            mod_path,
+                            registry_file.parent,
                         )
                         if file_path:
                             native_paths.add(file_path)
@@ -446,7 +481,7 @@ def _resolve_relative_import(rel_import: str, base_dir: Path) -> str | None:
         # Strip pu_toolbox/ prefix so the result is like
         # "estimators/classic/elkan_noto.py"
         if rel.startswith("pu_toolbox/"):
-            rel = rel[len("pu_toolbox/"):]
+            rel = rel[len("pu_toolbox/") :]
         return rel
     except ValueError:
         return None
@@ -470,11 +505,7 @@ def _parse_arch_section8_table(text: str) -> dict[str, int | None]:
 
     # Find next section (## 9.) or end of file
     next_section = text.find("\n## 9.", section_start)
-    section_text = (
-        text[section_start:next_section]
-        if next_section != -1
-        else text[section_start:]
-    )
+    section_text = text[section_start:next_section] if next_section != -1 else text[section_start:]
 
     entries: dict[str, int | None] = {}
     base_line = text[:section_start].count("\n") + 1
@@ -493,7 +524,9 @@ def _parse_arch_section8_table(text: str) -> dict[str, int | None]:
 
 
 def check_index_completeness(
-    docs_readme: Path, root_readme: Path, claude_md: Path | None,
+    docs_readme: Path,
+    root_readme: Path,
+    claude_md: Path | None,
 ) -> list[Issue]:
     """Rule 4: docs/README.md lists all doc files; scripts mentioned somewhere.
 
@@ -509,34 +542,36 @@ def check_index_completeness(
     if docs_readme.exists():
         issues.extend(_check_docs_index(docs_readme))
     else:
-        issues.append(Issue(
-            rule="rule-4", file="docs/README.md", line=None,
-            message="docs/README.md not found",
-            severity="error",
-        ))
+        issues.append(
+            Issue(
+                rule="rule-4",
+                file="docs/README.md",
+                line=None,
+                message="docs/README.md not found",
+                severity="error",
+            )
+        )
 
     # --- 4b: scripts/ mentioned in README.md or CLAUDE.md ---
     if SCRIPTS_DIR.exists():
-        script_names = [
-            p.stem for p in SCRIPTS_DIR.glob("*.py")
-            if p.stem != "__init__"
-        ]
+        script_names = [p.stem for p in SCRIPTS_DIR.glob("*.py") if p.stem != "__init__"]
         readme_text = root_readme.read_text(encoding="utf-8") if root_readme.exists() else ""
         claude_text = claude_md.read_text(encoding="utf-8") if claude_md else ""
         combined = readme_text + "\n" + claude_text
 
         for name in script_names:
             if name not in combined:
-                issues.append(Issue(
-                    rule="rule-4",
-                    file="README.md / CLAUDE.md",
-                    line=None,
-                    message=(
-                        f"script `scripts/{name}.py` is not mentioned "
-                        f"in README.md or CLAUDE.md"
-                    ),
-                    severity="warning",
-                ))
+                issues.append(
+                    Issue(
+                        rule="rule-4",
+                        file="README.md / CLAUDE.md",
+                        line=None,
+                        message=(
+                            f"script `scripts/{name}.py` is not mentioned in README.md or CLAUDE.md"
+                        ),
+                        severity="warning",
+                    )
+                )
 
     return issues
 
@@ -565,49 +600,195 @@ def _check_docs_index(docs_readme: Path) -> list[Issue]:
         if name in DOC_INDEX_EXCLUDED:
             continue
         if name not in text:
-            issues.append(Issue(
-                rule="rule-4",
-                file=_relative(docs_readme),
-                line=None,
-                message=(
-                    f"`{name}` exists under docs/ but is not listed "
-                    f"in docs/README.md §5 (文档索引)"
-                ),
-                severity="error",
-            ))
+            issues.append(
+                Issue(
+                    rule="rule-4",
+                    file=_relative(docs_readme),
+                    line=None,
+                    message=(
+                        f"`{name}` exists under docs/ but is not listed "
+                        f"in docs/README.md §5 (文档索引)"
+                    ),
+                    severity="error",
+                )
+            )
 
     # Check each expected project_management file is listed
     for name in sorted(pm_files):
         if name in PM_FILES_EXPECTED and name not in text:
-            issues.append(Issue(
-                rule="rule-4",
-                file=_relative(docs_readme),
-                line=None,
-                message=(
-                    f"`project_management/{name}` exists but is not "
-                    f"listed in docs/README.md"
-                ),
-                severity="warning",
-            ))
+            issues.append(
+                Issue(
+                    rule="rule-4",
+                    file=_relative(docs_readme),
+                    line=None,
+                    message=(
+                        f"`project_management/{name}` exists but is not listed in docs/README.md"
+                    ),
+                    severity="warning",
+                )
+            )
 
     return issues
 
 
 def check_claude_freshness(
-    claude_md: Path | None, scripts_dir: Path
+    claude_md: Path | None,
+    scripts_dir: Path,
 ) -> list[Issue]:
-    """Rule 5: CLAUDE.md exists, mentions scripts, markers match pyproject.toml."""
-    return []
+    """Rule 5: CLAUDE.md exists, markers match pyproject.toml, scripts mentioned.
+
+    All issues are warnings since CLAUDE.md is not in git.
+    """
+    issues: list[Issue] = []
+
+    if claude_md is None:
+        issues.append(
+            Issue(
+                rule="rule-5",
+                file="CLAUDE.md",
+                line=None,
+                message="CLAUDE.md not found (not in git, but important for local dev)",
+                severity="warning",
+            )
+        )
+        return issues
+
+    text = claude_md.read_text(encoding="utf-8")
+
+    # 5a: Check pytest markers are consistent
+    for marker in sorted(REGISTERED_MARKERS):
+        # Look for `-m {marker}` in test commands
+        if marker not in text:
+            issues.append(
+                Issue(
+                    rule="rule-5",
+                    file=_relative(claude_md),
+                    line=None,
+                    message=(
+                        f"pytest marker `{marker}` is registered in pyproject.toml "
+                        f"but not mentioned in CLAUDE.md test commands"
+                    ),
+                    severity="warning",
+                )
+            )
+
+    # 5b: Check scripts are mentioned
+    if scripts_dir.exists():
+        for script in sorted(scripts_dir.glob("*.py")):
+            if script.stem == "__init__":
+                continue
+            if script.stem not in text:
+                issues.append(
+                    Issue(
+                        rule="rule-5",
+                        file=_relative(claude_md),
+                        line=None,
+                        message=(f"script `scripts/{script.name}` not mentioned in CLAUDE.md"),
+                        severity="warning",
+                    )
+                )
+
+    return issues
 
 
 def check_stale_numbers(md_files: list[Path]) -> list[Issue]:
-    """Rule 6: numeric claims in docs (test counts, NATIVE counts) vs reality."""
-    return []
+    """Rule 6: numeric claims in docs that look outdated.
+
+    Scans for patterns like "292 tests", "320 passed" and compares
+    with actual test-method count from AST.  Also checks NATIVE count
+    claims.
+    """
+    issues: list[Issue] = []
+
+    # ── Actual counts ──────────────────────────────────────────────
+    actual_test_count = _count_test_methods()
+    actual_native_count = _count_native_methods()
+
+    # Patterns: "N tests", "N passed", "N passing", "N collected"
+    test_num_pattern = re.compile(
+        r"(?<!\w)(\d{2,4})\s*(?:tests|passed|passing|collected)(?!\w)",
+    )
+    # Patterns: "N/N 核心算法", "N NATIVE"
+    native_count_pattern = re.compile(
+        r"(?<!\w)(\d+)/(\d+)\s*(?:核心算法|Phase \d+ 核心)",
+    )
+
+    for md_file in md_files:
+        text = md_file.read_text(encoding="utf-8")
+        rel = _relative(md_file)
+
+        for match in test_num_pattern.finditer(text):
+            claimed = int(match.group(1))
+            line_no = text[: match.start()].count("\n") + 1
+            if _is_stale(claimed, actual_test_count):
+                issues.append(
+                    Issue(
+                        rule="rule-6",
+                        file=rel,
+                        line=line_no,
+                        message=(f"claims {claimed} tests but actual count is {actual_test_count}"),
+                        severity="warning",
+                    )
+                )
+
+        for match in native_count_pattern.finditer(text):
+            claimed_current = int(match.group(1))
+            line_no = text[: match.start()].count("\n") + 1
+            if _is_stale(claimed_current, actual_native_count):
+                issues.append(
+                    Issue(
+                        rule="rule-6",
+                        file=rel,
+                        line=line_no,
+                        message=(
+                            f"claims {claimed_current}/{match.group(2)} "
+                            f"core algorithms but actual NATIVE count is "
+                            f"{actual_native_count}"
+                        ),
+                        severity="warning",
+                    )
+                )
+
+    return issues
+
+
+def _count_test_methods() -> int:
+    """Count test methods across all test files using AST (fast, no pytest)."""
+    count = 0
+    tests_dir = PROJECT_ROOT / "tests"
+    if not tests_dir.exists():
+        return 0
+    for fp in tests_dir.rglob("test_*.py"):
+        tree = ast.parse(fp.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
+                count += 1
+    return count
+
+
+def _count_native_methods() -> int:
+    """Count NATIVE methods in the registry."""
+    registry_file = PROJECT_ROOT / "pu_toolbox" / "registry" / "builtin_methods.py"
+    if not registry_file.exists():
+        return 0
+    # Quick grep approach — count Impl.NATIVE occurrences in metadata entries
+    text = registry_file.read_text(encoding="utf-8")
+    return text.count("implementation_status=Impl.NATIVE")
+
+
+def _is_stale(claimed: int, actual: int) -> bool:
+    """Return True if *claimed* is significantly different from *actual*."""
+    if actual == 0:
+        return claimed != 0
+    rel_diff = abs(claimed - actual) / actual
+    abs_diff = abs(claimed - actual)
+    return rel_diff > 0.20 or abs_diff > 10
 
 
 # ═════════════════════════════════════════════════════════════════════
 # Report & main
 # ═════════════════════════════════════════════════════════════════════
+
 
 def main(strict: bool = False) -> int:
     """Run all checks and return exit code (0 = clean, 1 = issues found)."""
@@ -665,9 +846,7 @@ def main(strict: bool = False) -> int:
             print("✓ All checks passed.")
         return 0
     else:
-        print(
-            f"✗ {len(errors)} error(s), {len(warnings)} warning(s) found."
-        )
+        print(f"✗ {len(errors)} error(s), {len(warnings)} warning(s) found.")
         return 1
 
 
