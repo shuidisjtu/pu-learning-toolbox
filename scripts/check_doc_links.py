@@ -69,12 +69,12 @@ REGISTERED_MARKERS: set[str] = {
 DOC_INDEX_EXCLUDED: set[str] = {
     "README.md",  # the index itself
 }
-# Subdirectories of docs/ excluded from index completeness check.
-DOC_INDEX_SKIP_DIRS: set[str] = {
-    "research",  # method_cards excluded per spec
-    "superpowers",  # specs/plans are internal
-    "project_management",  # listed as a separate group
+# Docs subdirectories excluded from ALL checks (internal / non-project docs).
+_EXCLUDED_DOC_DIRS: set[str] = {
+    "research",  # method_cards — synced manually via dev-workflow
+    "superpowers",  # internal specs/plans — temporary artifacts
     "figures",  # images, not docs
+    "project_management",  # historical records, not current state
 }
 
 # Files in docs/project_management/ that are expected to be listed.
@@ -121,11 +121,10 @@ def _find_md_files(exclude_method_cards: bool = True) -> list[Path]:
         if p.exists():
             files.append(p)
 
-    # docs/ tree (exclude method_cards, superpowers, figures)
-    _EXCLUDED_DOC_DIRS = {METHOD_CARDS_DIR, DOCS_DIR / "superpowers", DOCS_DIR / "figures"}
+    # docs/ tree (exclude internal/non-project directories)
     for p in DOCS_DIR.rglob("*.md"):
         if exclude_method_cards and any(
-            _is_under(p, d) for d in _EXCLUDED_DOC_DIRS if d.exists()
+            _is_under(p, DOCS_DIR / d) for d in _EXCLUDED_DOC_DIRS
         ):
             continue
         files.append(p)
@@ -198,6 +197,12 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
     on disk.  ``__init__.py`` files and directory entries are exempt.
     """
     issues: list[Issue] = []
+    if not structure_md.exists():
+        return [Issue(
+            rule="rule-2", file=_relative(structure_md), line=None,
+            message="project_structure.md not found",
+            severity="error",
+        )]
     text = structure_md.read_text(encoding="utf-8")
 
     # Find code-block sections (the directory trees)
@@ -377,6 +382,13 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
     """
     issues: list[Issue] = []
 
+    if not arch_md.exists():
+        return [Issue(
+            rule="rule-3", file=_relative(arch_md), line=None,
+            message="architecture.md not found",
+            severity="error",
+        )]
+
     # 1. Get NATIVE file paths from registry
     native_paths = _get_native_module_paths()
     if not native_paths:
@@ -411,9 +423,6 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
                     severity="error",
                 )
             )
-
-    if not issues:
-        return issues
 
     return issues
 
