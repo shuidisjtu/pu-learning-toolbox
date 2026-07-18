@@ -175,6 +175,7 @@ docs/
       Elkan_Noto.md
       Convex_Formulation_for_PU_DATA_Learning.md
       nnpu.md
+      PNU.md
       ReCPE.md
 
   project_management/

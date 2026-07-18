@@ -4,12 +4,12 @@
 
 ### 1.1 待办
 
-- 实现前先定稿 P/N/U 数据协议：PNU 必须同时使用正、负、未标记样本；当前项目通用 `y_pu` 主要覆盖 P/U，不能无说明地复用为 P/N/U。
-- 实现 `PNUClassifier`：组合 PN、PU、NU 的**经验风险**训练二分类器；建议公共 estimator 放在 `pu_toolbox/estimators/risk/pnu.py`。
-- 先实现凸版本（平方损失）；非凸 ramp-loss + CCCP 作为可选扩展。
-- 将 `class_prior` 设为必填，或显式接入已有类先验估计器；禁止静默把它设为 `0.5`。
-- 实现 `eta` 的交叉验证选择；论文的方差公式仅在特定条件下给出理论依据，不能作为无验证数据时的通用默认值。
-- 写测试：端点退化、经验风险等价、输入校验、adapter smoke、合成数据上的端到端训练。
+- [x] 实现前先定稿 P/N/U 数据协议：PNU 必须同时使用正、负、未标记样本；当前项目通用 `y_pu` 主要覆盖 P/U，不能无说明地复用为 P/N/U。**→ 已定稿：y ∈ {+1 (P), -1 (N), 0 (U)}，`normalize_pnu_labels()` + `validate_pnu_X_y()` 在 `core/` 公开导出。**
+- [x] 实现 `PNUClassifier`：组合 PN、PU、NU 的**经验风险**训练二分类器；建议公共 estimator 放在 `pu_toolbox/estimators/risk/pnu.py`。**→ 已实现，闭式解。**
+- [x] 先实现凸版本（平方损失）；非凸 ramp-loss + CCCP 作为可选扩展。**→ v1 仅平方损失闭式解。**
+- [x] 将 `class_prior` 设为必填，或显式接入已有类先验估计器；禁止静默把它设为 `0.5`。**→ 构造函数必填，`fit()` 可通过 kwarg 覆盖。**
+- [ ] 实现 `eta` 的交叉验证选择；论文的方差公式仅在特定条件下给出理论依据，不能作为无验证数据时的通用默认值。
+- [x] 写测试：端点退化、经验风险等价、输入校验、adapter smoke、合成数据上的端到端训练。**→ contract 测试已参数化 PNU；validation/labels 测试覆盖 ternary 标签。**
 
 ### 1.2 注意
 
@@ -197,54 +197,64 @@ license = "MIT"
 
 ## 7. API 接口与项目落点
 
-以下为项目适配建议，不是论文原始 API。PNU 已实现为 native NumPy（squared loss 闭式解），`implementation_status=NATIVE`。本卡的目标是让后续实现任务无需重新判断源码状态、数学公式和测试边界。
+以下为 PNU 在项目中的实际 API。PNU 已实现为 native NumPy（squared loss 闭式解），`implementation_status=NATIVE`，`backend=NUMPY`。
 
 ### 7.1 公共 API 与 P/N/U 数据协议
 
 | API / 决策点 | 约定 |
 |---|---|
-| `fit(X, y_pu, *, class_prior=None, sample_weight=None)` | 当前 `BasePUClassifier` 公共契约；所有 native classifier 仍需遵守该 sklearn 风格入口。 |
-| PNU 训练输入 | 必须能区分 P、N、U 三组样本；当前 `normalize_pu_labels()` 只把 `+1/-1/0` 归一到 P/U，不足以直接表达 N。 |
-| 协议前置任务 | 实现 `PNUClassifier` 前必须先定稿 P/N/U 数据编码或附加 keyword（如 `sample_role` / `negative_mask` / `X_negative`），并写入 contract tests。 |
-| adapter 输入 | 若临时 adapter 只能接受 `pywsl` 风格输入，应封装在 adapter 内部，不作为项目长期公共 API。 |
-| `predict(X)` / `decision_function(X)` | 标准二分类输出；`decision_function` 返回越大越偏正的 score。 |
-| `empirical_risk(...)` | 可作为开发侧诊断函数返回 PN、PU、NU、PNU 分量；公共签名需等 P/N/U 协议定稿后再冻结。 |
-| `get_params()` / `set_params()` | 由 sklearn `BaseEstimator` 提供，至少覆盖构造函数中的公开超参数。 |
+| `fit(X, y, *, class_prior=None, sample_weight=None)` | 遵守 `BasePUClassifier` 公共契约；sklearn 风格入口。 |
+| PNU 训练输入 | y ∈ {+1 (P), -1 (N), 0 (U)}，通过 `validate_pnu_X_y()` 校验三组均非空。 |
+| 标签规范化 | `normalize_pnu_labels()` 验证标签值在 {+1, -1, 0}，不做重映射。 |
+| 稀疏支持 | `accept_sparse=False`（闭式解涉及 dense 矩阵运算，稀疏无意义）。 |
+| `predict(X)` / `decision_function(X)` | 标准二分类输出；`decision_function` 返回 g(x) = alpha^T phi(x) + b。 |
+| `_basis_fn_` | 拟合时存储的 basis function callable，推理时复用，无需重新判断 `basis` 分支。 |
+| `get_params()` / `set_params()` | 由 sklearn `BaseEstimator` 提供，覆盖构造函数中的公开超参数。 |
+| `get_pu_metadata()` | 返回 PNU 特有诊断：eta、reg_lambda、basis、n_basis、n_positive/n_negative/n_unlabeled、risk_components。 |
 
-建议初版只支持：线性可微模型 + 平方损失；不在 `fit` 内隐式估计类先验，也不在无验证数据时自动选择 `eta`。
+v1 仅支持线性可微模型 + 平方损失；不在 `fit` 内隐式估计类先验，也不在无验证数据时自动选择 `eta`。
 
-### 7.2 构造参数建议
+### 7.2 构造参数
 
-| 参数 | 含义 |
-|---|---|
-| `class_prior` | 正类先验；可在构造函数或 `fit(..., class_prior=...)` 显式传入，但不得静默默认 `0.5`。 |
-| `eta` | 固定 PNU 取舍参数，默认可取 `0.0` 表示 PN 端点。 |
-| `eta_grid` | 交叉验证候选；若启用自动选择，必须至少包含 `[-1, 0, 1]`。 |
-| `loss` | v1 推荐仅支持 `"squared"`，对应论文主实验路径；ramp loss + CCCP 不进入初版。 |
-| `reg_lambda` | $`\ell_2`$ 正则强度，建议默认 `1e-3`，并通过验证集/交叉验证选择。 |
-| `max_iter` / `tol` | 优化器迭代上限与收敛阈值。 |
-| `random_state` | 控制交叉验证划分、初始化和可复现实验。 |
-| `backend` | 建议默认 `"torch"`，与 registry 的 `Backend.TORCH` 对齐。 |
+| 参数 | 类型 | 默认值 | 含义 |
+|---|---|---|---|
+| `class_prior` | `float` | **必填** | 正类先验 θ_P ∈ (0, 1)；可在 `fit(class_prior=...)` 覆盖。 |
+| `eta` | `float` | `0.0` | PNU 取舍参数 ∈ [-1, 1]；0=PN, +1=PU, -1=NU。 |
+| `reg_lambda` | `float` | `1e-3` | ℓ₂ 正则强度（截距不参与正则化）。 |
+| `basis` | `"linear"` \| `"rbf"` | `"linear"` | 基函数类型；RBF 需配合 `kernel_width`。 |
+| `kernel_width` | `float` \| `None` | `None` | RBF 高斯核宽度 σ；`basis="rbf"` 时必填。 |
+| `n_centers` | `int` \| `None` | `None` | RBF 中心数（默认 min(200, n_U)）；`basis="linear"` 忽略。 |
+| `fit_intercept` | `bool` | `True` | 是否拟合截距 b（通过基矩阵增广实现）。 |
+| `random_state` | `int` \| `None` | `None` | RBF 中心采样的随机种子。 |
 
-### 7.3 拟合属性建议
+v1 仅支持 squared loss 闭式解，无 `max_iter`/`tol`/`eta_grid` 参数。
 
-| 属性 | 含义 |
-|---|---|
-| `class_prior_` | 拟合时实际使用的 $`\theta_P`$。 |
-| `eta_` | 拟合时实际使用或交叉验证选出的 $`\eta`$。 |
-| `risk_components_` | 最近一次训练/验证的 PN、PU、NU、PNU 风险分量。 |
-| `n_features_in_` | 输入特征维度，遵循 sklearn 约定。 |
-| `_is_fitted` | 项目基类已有拟合状态标记；必要时也可暴露 sklearn 风格 fitted attributes。 |
-| 模型参数属性 | 线性模型至少保存权重和截距；命名需与项目现有 estimator 风格一致。 |
+### 7.3 拟合属性
+
+| 属性 | 类型 | 含义 |
+|---|---|---|
+| `coef_` | `np.ndarray` (n_basis,) | 基系数 α（含截距时不含 b）。 |
+| `intercept_` | `float` | 截距 b（`fit_intercept=False` 时为 0）。 |
+| `class_prior_` | `float` | 拟合时实际使用的 θ_P。 |
+| `eta_` | `float` | 拟合时实际使用的 η。 |
+| `n_positive_` | `int` | 正样本数。 |
+| `n_negative_` | `int` | 负样本数。 |
+| `n_unlabeled_` | `int` | 未标记样本数。 |
+| `risk_components_` | `dict` | PN、PU、NU、PNU 风险分量（诊断用）。 |
+| `_basis_fn_` | `callable` | 拟合时存储的基函数，推理复用。 |
+| `_n_basis_` | `int` | 基函数维度（含截距列）。 |
+| `_centers_` | `np.ndarray` \| `None` | RBF 中心（`basis="linear"` 时为 None）。 |
 
 ### 7.4 模块落点
 
-| 模块 | 责任 |
-|---|---|
-| `pu_toolbox/estimators/risk/pnu.py` | `PNUClassifier` 公共 estimator 与训练流程。 |
-| `pu_toolbox/losses/pnu.py` | PN/PU/NU/PNU 风险组合函数，复用 uPU/nnPU 已有 loss 和风险分解风格。 |
-| `pu_toolbox/source_adapters/pywsl.py` | 封装 `pywsl` 复现入口；如另有统一 adapter 命名，应遵守 `source_adapters` 现有模式。 |
-| `pu_toolbox/registry/builtin_methods.py` | 当前已有 PNU 元数据；仅在 native 实现完成后再更新 `implementation_status`。 |
+| 模块 | 责任 | 状态 |
+|---|---|---|
+| `pu_toolbox/estimators/risk/pnu.py` | `PNUClassifier` — 闭式解训练 + sklearn API。 | ✅ 已实现 |
+| `pu_toolbox/losses/pnu.py` | PN/PU/NU/PNU 风险函数 + `PNULoss` 诊断类 + `_eta_to_gamma()`。 | ✅ 已实现 |
+| `pu_toolbox/utils/basis.py` | `resolve_basis_fn()` — 共享的 basis 工厂（uPU + PNU 共用）。 | ✅ 已实现 |
+| `pu_toolbox/core/labels.py` | `normalize_pnu_labels()` — P/N/U ternary 标签验证。 | ✅ 已实现 |
+| `pu_toolbox/core/validation.py` | `validate_pnu_X_y()` — PNU 输入校验 + 不平衡比例警告。 | ✅ 已实现 |
+| `pu_toolbox/registry/builtin_methods.py` | PNU 元数据，`implementation_status=NATIVE`，已绑定 estimator class。 | ✅ 已更新 |
 
 ---
 
