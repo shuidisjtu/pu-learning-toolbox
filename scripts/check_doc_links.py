@@ -121,9 +121,12 @@ def _find_md_files(exclude_method_cards: bool = True) -> list[Path]:
         if p.exists():
             files.append(p)
 
-    # docs/ tree
+    # docs/ tree (exclude method_cards, superpowers, figures)
+    _EXCLUDED_DOC_DIRS = {METHOD_CARDS_DIR, DOCS_DIR / "superpowers", DOCS_DIR / "figures"}
     for p in DOCS_DIR.rglob("*.md"):
-        if exclude_method_cards and _is_under(p, METHOD_CARDS_DIR):
+        if exclude_method_cards and any(
+            _is_under(p, d) for d in _EXCLUDED_DOC_DIRS if d.exists()
+        ):
             continue
         files.append(p)
 
@@ -713,7 +716,11 @@ def check_stale_numbers(md_files: list[Path]) -> list[Issue]:
         r"(?<!\w)(\d+)/(\d+)\s*(?:核心算法|Phase \d+ 核心)",
     )
 
+    pm_dir = DOCS_DIR / "project_management"
     for md_file in md_files:
+        # Skip project_management: historical records, not current state
+        if _is_under(md_file, pm_dir):
+            continue
         text = md_file.read_text(encoding="utf-8")
         rel = _relative(md_file)
 

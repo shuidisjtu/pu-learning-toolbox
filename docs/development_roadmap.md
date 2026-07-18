@@ -12,7 +12,7 @@
 
 ## Phase 0 — 项目骨架 (已完成)
 
-pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统、15 api_only 占位、67 tests（Phase 0 完成时）。
+pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统、15 api_only 占位、67 条测试（Phase 0 完成时）。
 
 ## Phase 1 — 核心 PU 风险估计 (v0.1) 🔄
 
