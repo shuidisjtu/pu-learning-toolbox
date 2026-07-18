@@ -339,8 +339,157 @@ def _parse_tree_line(line: str) -> tuple[int, str | None, str]:
 
 
 def check_architecture_mapping(arch_md: Path) -> list[Issue]:
-    """Rule 3: architecture.md §8 (planned) tags vs registry NATIVE methods."""
-    return []
+    """Rule 3: architecture.md §8 (planned) tags vs registry NATIVE methods.
+
+    Extracts the module paths of all NATIVE methods from the registry,
+    then checks that architecture.md §8 does NOT mark them as (planned).
+    """
+    issues: list[Issue] = []
+
+    # 1. Get NATIVE file paths from registry
+    native_paths = _get_native_module_paths()
+    if not native_paths:
+        issues.append(Issue(
+            rule="rule-3",
+            file=_relative(arch_md),
+            line=None,
+            message="could not extract NATIVE paths from builtin_methods.py",
+            severity="warning",
+        ))
+        return issues
+
+    # 2. Parse architecture.md §8 table
+    text = arch_md.read_text(encoding="utf-8")
+    table_entries = _parse_arch_section8_table(text)
+
+    # 3. Cross-check: NATIVE paths should NOT have (planned) in §8
+    for native_path in native_paths:
+        if native_path in table_entries and table_entries[native_path]:
+            # path exists in §8 table and IS marked (planned)
+            issues.append(Issue(
+                rule="rule-3",
+                file=_relative(arch_md),
+                line=table_entries[native_path],
+                message=(
+                    f"`{native_path}` is NATIVE in registry but marked "
+                    f"`(planned)` in architecture.md §8"
+                ),
+                severity="error",
+            ))
+
+    if not issues:
+        return issues
+
+    return issues
+
+
+def _get_native_module_paths() -> set[str]:
+    """Parse builtin_methods.py to extract file paths of NATIVE methods.
+
+    Reads the ``_native_imports`` list and resolves the relative import
+    paths to module paths (e.g. ``estimators/classic/elkan_noto.py``).
+    """
+    registry_file = PROJECT_ROOT / "pu_toolbox" / "registry" / "builtin_methods.py"
+    if not registry_file.exists():
+        return set()
+
+    tree = ast.parse(registry_file.read_text(encoding="utf-8"))
+    native_paths: set[str] = set()
+
+    for node in ast.walk(tree):
+        # Find _native_imports = [(name, module_path, class_name), ...]
+        # The variable has a type annotation, so it is an ast.AnnAssign node.
+        if (isinstance(node, ast.AnnAssign)
+                and isinstance(node.target, ast.Name)
+                and node.target.id == "_native_imports"
+                and isinstance(node.value, ast.List)):
+            for elt in node.value.elts:
+                if isinstance(elt, ast.Tuple) and len(elt.elts) >= 2:
+                    # Second element is module_path like
+                    # "..estimators.classic.elkan_noto"
+                    mod_path_node = elt.elts[1]
+                    if isinstance(mod_path_node, ast.Constant):
+                        mod_path = mod_path_node.value
+                        file_path = _resolve_relative_import(
+                            mod_path, registry_file.parent,
+                        )
+                        if file_path:
+                            native_paths.add(file_path)
+    return native_paths
+
+
+def _resolve_relative_import(rel_import: str, base_dir: Path) -> str | None:
+    """Resolve a relative import like ``..estimators.classic.elkan_noto``
+    to a module path like ``estimators/classic/elkan_noto.py``.
+
+    *base_dir* is the directory containing the file that has the import
+    (i.e. ``pu_toolbox/registry/``).
+
+    The returned path is relative to ``pu_toolbox/`` so it matches the
+    format used in architecture.md §8 table entries.
+    """
+    dots = 0
+    rest = rel_import
+    while rest.startswith("."):
+        dots += 1
+        rest = rest[1:]
+
+    # Walk up from base_dir
+    current = base_dir
+    for _ in range(dots - 1):
+        current = current.parent
+
+    module_path = rest.replace(".", "/") + ".py"
+    full = (current / module_path).resolve()
+    try:
+        rel = full.relative_to(PROJECT_ROOT).as_posix()
+        # Strip pu_toolbox/ prefix so the result is like
+        # "estimators/classic/elkan_noto.py"
+        if rel.startswith("pu_toolbox/"):
+            rel = rel[len("pu_toolbox/"):]
+        return rel
+    except ValueError:
+        return None
+
+
+def _parse_arch_section8_table(text: str) -> dict[str, int | None]:
+    """Parse architecture.md §8 table.
+
+    Returns ``{file_path: line_number_if_planned_or_None}``.
+    Only entries with ``(planned)`` get a line number value;
+    entries without ``(planned)`` map to ``None``.
+
+    File paths are relative to ``pu_toolbox/`` (e.g.
+    ``estimators/classic/elkan_noto.py``) to match the format
+    returned by :func:`_resolve_relative_import`.
+    """
+    # Find the section: "## 8. 论文方法到模块的映射"
+    section_start = text.find("## 8. 论文方法到模块的映射")
+    if section_start == -1:
+        return {}
+
+    # Find next section (## 9.) or end of file
+    next_section = text.find("\n## 9.", section_start)
+    section_text = (
+        text[section_start:next_section]
+        if next_section != -1
+        else text[section_start:]
+    )
+
+    entries: dict[str, int | None] = {}
+    base_line = text[:section_start].count("\n") + 1
+
+    # Architecture §8 paths are like `estimators/classic/elkan_noto.py`
+    # — relative to pu_toolbox/, no pu_toolbox/ prefix.
+    arch_path_pat = re.compile(r"`([\w/]+\.py)`")
+
+    for i, line in enumerate(section_text.split("\n")):
+        for match in arch_path_pat.finditer(line):
+            path = match.group(1)
+            has_planned = "(planned)" in line
+            entries[path] = (base_line + i) if has_planned else None
+
+    return entries
 
 
 def check_index_completeness(
