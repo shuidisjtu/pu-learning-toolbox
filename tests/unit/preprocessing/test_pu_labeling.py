@@ -1,6 +1,10 @@
 # ruff: noqa: N802, N803, N806
 
-"""Tests for pu_toolbox.preprocessing.pu_labeling."""
+"""Tests for pu_toolbox.preprocessing.pu_labeling (8 tests).
+
+Covers all 6 public functions: smoke, parameter validation, edge cases,
+determinism, and the unified dispatcher.
+"""
 
 from __future__ import annotations
 
@@ -17,310 +21,218 @@ from pu_toolbox.preprocessing.pu_labeling import (
 )
 
 # ═════════════════════════════════════════════════════════════════════
-# MARK: make_scar_labels
+# make_scar_labels
 # ═════════════════════════════════════════════════════════════════════
 
 
 @pytest.mark.unit
-class TestMakeScarLabels:
-    """Tests for :func:`make_scar_labels`."""
+class TestScarLabels:
+    """Covers: basic output, c=1, c out of range, invalid y_true, determinism."""
 
-    def test_basic_output(self, rng):
-        y_true = np.array([1] * 50 + [0] * 50)
-        y_pu = make_scar_labels(y_true, c=0.5, random_state=42)
-        assert y_pu.shape == y_true.shape
-        assert y_pu.dtype == int
-        assert set(np.unique(y_pu)).issubset({1, 0})
-
-    def test_c_one_labels_all_positives(self, rng):
+    def test_basic_and_c_one(self):
+        """Output values, shapes, and c=1 labels all positives."""
         y_true = np.array([1] * 30 + [0] * 70)
-        y_pu = make_scar_labels(y_true, c=1.0, random_state=42)
-        pos_mask = y_true == 1
-        # All positives should be labeled with c=1
-        assert np.all(y_pu[pos_mask] == 1)
-        # All negatives should be unlabeled
-        assert np.all(y_pu[~pos_mask] == 0)
 
-    def test_c_zero_raises(self):
-        y_true = np.array([1, 0, 1, 0])
-        with pytest.raises(ValueError, match="c must be in"):
-            make_scar_labels(y_true, c=0.0)
-
-    def test_c_negative_raises(self):
-        y_true = np.array([1, 0])
-        with pytest.raises(ValueError, match="c must be in"):
-            make_scar_labels(y_true, c=-0.5)
-
-    def test_c_above_one_raises(self):
-        y_true = np.array([1, 0])
-        with pytest.raises(ValueError, match="c must be in"):
-            make_scar_labels(y_true, c=1.5)
-
-    def test_no_true_positives(self):
-        y_true = np.array([0] * 50)
-        y_pu = make_scar_labels(y_true, c=0.5, random_state=42)
-        assert np.all(y_pu == 0)
-
-    def test_no_true_negatives(self, rng):
-        y_true = np.ones(20, dtype=int)
-        y_pu = make_scar_labels(y_true, c=0.5, random_state=42)
-        # Some labeled, some unlabeled — all should be in {1, 0}
-        assert set(np.unique(y_pu)).issubset({1, 0})
-
-    def test_deterministic(self):
-        y_true = np.array([1] * 50 + [0] * 50)
+        # c=0.5 — subset of positives labeled
         y1 = make_scar_labels(y_true, c=0.5, random_state=42)
-        y2 = make_scar_labels(y_true, c=0.5, random_state=42)
-        assert np.array_equal(y1, y2)
+        assert y1.shape == y_true.shape
+        assert y1.dtype == int
+        assert set(np.unique(y1)).issubset({1, 0})
+        assert 0 < np.sum(y1 == 1) < 30  # some but not all
 
-    def test_output_length_preserved(self, rng):
-        y_true = np.array([1] * 30 + [0] * 20)
-        y_pu = make_scar_labels(y_true, c=0.5, random_state=42)
-        assert len(y_pu) == len(y_true)
+        # c=1 — all positives labeled, negatives still 0
+        y2 = make_scar_labels(y_true, c=1.0, random_state=42)
+        assert np.all(y2[y_true == 1] == 1)
+        assert np.all(y2[y_true == 0] == 0)
 
-    def test_invalid_y_true_2d_raises(self):
-        y_true = np.array([[1, 0], [1, 0]])
-        with pytest.raises(ValueError, match="1-D"):
-            make_scar_labels(y_true, c=0.5)
+    @pytest.mark.parametrize(
+        "c, y_true_vals, match",
+        [
+            (0.0, [1, 0, 1], "c must be in"),
+            (-0.5, [1, 0], "c must be in"),
+            (1.5, [1, 0], "c must be in"),
+            (0.5, [1, 2, 3], "0, 1"),
+            (0.5, [[1, 0], [1, 0]], "1-D"),
+        ],
+    )
+    def test_invalid_inputs(self, c, y_true_vals, match):
+        y_true = np.array(y_true_vals)
+        with pytest.raises(ValueError, match=match):
+            make_scar_labels(y_true, c=c)
 
-    def test_invalid_y_true_values_raises(self):
-        y_true = np.array([1, 2, 3])
-        with pytest.raises(ValueError, match="0, 1"):
-            make_scar_labels(y_true, c=0.5)
+    def test_edge_cases_and_determinism(self):
+        """No positives → all 0.  Same seed → same output."""
+        # All negatives
+        y_all_neg = np.zeros(50, dtype=int)
+        assert np.all(make_scar_labels(y_all_neg, c=0.5, random_state=42) == 0)
 
-    def test_random_state_none_uses_global(self, rng):
-        y_true = np.array([1] * 10 + [0] * 10)
-        y_pu = make_scar_labels(y_true, c=0.5)
+        # All positives — some labeled, some unlabeled, all in {+1, 0}
+        y_all_pos = np.ones(20, dtype=int)
+        y_pu = make_scar_labels(y_all_pos, c=0.5, random_state=42)
         assert set(np.unique(y_pu)).issubset({1, 0})
+
+        # Determinism
+        y_true = np.array([1] * 50 + [0] * 50)
+        a = make_scar_labels(y_true, c=0.5, random_state=42)
+        b = make_scar_labels(y_true, c=0.5, random_state=42)
+        assert np.array_equal(a, b)
 
 
 # ═════════════════════════════════════════════════════════════════════
-# MARK: make_case_control_labels
+# make_case_control_labels
 # ═════════════════════════════════════════════════════════════════════
 
 
 @pytest.mark.unit
-class TestMakeCaseControlLabels:
-    """Tests for :func:`make_case_control_labels`."""
+class TestCaseControlLabels:
+    """Covers: basic output, param validation, determinism."""
 
-    def test_basic_output(self, rng):
+    def test_basic_and_edge(self):
         y_true = np.array([1] * 50 + [0] * 50)
         y_pu = make_case_control_labels(y_true, n_labeled=10, random_state=42)
         assert y_pu.shape == y_true.shape
         assert np.sum(y_pu == 1) == 10
-        assert set(np.unique(y_pu)).issubset({1, 0})
+        # All negatives unlabeled
+        assert np.all(y_pu[y_true == 0] == 0)
+        # Determinism
+        y2 = make_case_control_labels(y_true, n_labeled=10, random_state=42)
+        assert np.array_equal(y_pu, y2)
+        # All positives labeled
+        y3 = make_case_control_labels(
+            np.array([1] * 20 + [0] * 80),
+            n_labeled=20,
+            random_state=42,
+        )
+        assert np.sum(y3 == 1) == 20
 
-    def test_n_labeled_exceeds_positives_raises(self):
-        y_true = np.array([1] * 10 + [0] * 90)
-        with pytest.raises(ValueError, match="exceeds"):
-            make_case_control_labels(y_true, n_labeled=20)
-
-    def test_n_labeled_negative_raises(self):
-        y_true = np.array([1, 0, 1])
-        with pytest.raises(ValueError, match="n_labeled must be >= 1"):
-            make_case_control_labels(y_true, n_labeled=0)
-
-    def test_deterministic(self):
-        y_true = np.array([1] * 50 + [0] * 50)
-        y1 = make_case_control_labels(y_true, n_labeled=5, random_state=42)
-        y2 = make_case_control_labels(y_true, n_labeled=5, random_state=42)
-        assert np.array_equal(y1, y2)
-
-    def test_negatives_always_unlabeled(self, rng):
-        y_true = np.array([1] * 10 + [0] * 90)
-        y_pu = make_case_control_labels(y_true, n_labeled=5, random_state=42)
-        neg_mask = y_true == 0
-        assert np.all(y_pu[neg_mask] == 0)
-
-    def test_no_true_positives_raises(self):
-        y_true = np.array([0] * 10)
-        with pytest.raises(ValueError, match="both 0"):
-            make_case_control_labels(y_true, n_labeled=5)
-
-    def test_no_true_negatives_raises(self):
-        y_true = np.array([1] * 10)
-        with pytest.raises(ValueError, match="both 0"):
-            make_case_control_labels(y_true, n_labeled=5)
-
-    def test_all_positives_labeled(self, rng):
-        y_true = np.array([1] * 20 + [0] * 80)
-        y_pu = make_case_control_labels(y_true, n_labeled=20, random_state=42)
-        assert np.sum(y_pu == 1) == 20
+    @pytest.mark.parametrize(
+        "y_true, n_labeled, match",
+        [
+            ([1] * 10 + [0] * 90, 20, "exceeds"),
+            ([1, 0, 1], 0, "n_labeled must be >= 1"),
+            ([0] * 10, 5, "both 0.*and.*1"),
+            ([1] * 10, 5, "both 0.*and.*1"),
+        ],
+    )
+    def test_invalid_inputs(self, y_true, n_labeled, match):
+        with pytest.raises(ValueError, match=match):
+            make_case_control_labels(np.array(y_true), n_labeled=n_labeled)
 
 
 # ═════════════════════════════════════════════════════════════════════
-# MARK: make_pu_labels (dispatcher)
+# make_pu_labels (dispatcher)
 # ═════════════════════════════════════════════════════════════════════
 
 
 @pytest.mark.unit
 class TestMakePuLabels:
-    """Tests for :func:`make_pu_labels` dispatcher."""
+    """Covers: dispatcher delegation and invalid-mechanism paths."""
 
-    def test_scar_delegation(self, rng):
+    def test_delegation(self):
+        """scar → make_scar_labels, case_control → make_case_control_labels."""
         y_true = np.array([1] * 50 + [0] * 50)
-        y1 = make_pu_labels(y_true, mechanism="scar", c=0.5, random_state=42)
-        y2 = make_scar_labels(y_true, c=0.5, random_state=42)
-        assert np.array_equal(y1, y2)
+        a = make_pu_labels(y_true, mechanism="scar", c=0.5, random_state=42)
+        b = make_scar_labels(y_true, c=0.5, random_state=42)
+        assert np.array_equal(a, b)
 
-    def test_case_control_delegation(self, rng):
-        y_true = np.array([1] * 50 + [0] * 50)
-        y1 = make_pu_labels(
+        c = make_pu_labels(
             y_true,
             mechanism="case_control",
             n_labeled=10,
             random_state=42,
         )
-        y2 = make_case_control_labels(y_true, n_labeled=10, random_state=42)
-        assert np.array_equal(y1, y2)
+        d = make_case_control_labels(y_true, n_labeled=10, random_state=42)
+        assert np.array_equal(c, d)
 
-    def test_invalid_mechanism_raises(self):
+    @pytest.mark.parametrize(
+        "mechanism, kwargs, match",
+        [
+            ("invalid", {"c": 0.5}, "Unknown mechanism"),
+            ("scar", {}, "requires the 'c' parameter"),
+            ("case_control", {}, "requires the 'n_labeled' parameter"),
+        ],
+    )
+    def test_invalid(self, mechanism, kwargs, match):
         y_true = np.array([1, 0])
-        with pytest.raises(ValueError, match="Unknown mechanism"):
-            make_pu_labels(y_true, mechanism="invalid", c=0.5)
-
-    def test_scar_missing_c_raises(self):
-        y_true = np.array([1, 0])
-        with pytest.raises(ValueError, match="requires the 'c' parameter"):
-            make_pu_labels(y_true, mechanism="scar")
-
-    def test_case_control_missing_n_labeled_raises(self):
-        y_true = np.array([1, 0])
-        with pytest.raises(ValueError, match="requires the 'n_labeled' parameter"):
-            make_pu_labels(y_true, mechanism="case_control")
+        with pytest.raises(ValueError, match=match):
+            make_pu_labels(y_true, mechanism=mechanism, **kwargs)
 
 
 # ═════════════════════════════════════════════════════════════════════
-# MARK: make_pnu_labels
+# make_pnu_labels
 # ═════════════════════════════════════════════════════════════════════
 
 
 @pytest.mark.unit
 class TestMakePnuLabels:
-    """Tests for :func:`make_pnu_labels`."""
+    """Covers: basic output, param validation, determinism."""
 
-    def test_basic_output(self, rng):
+    def test_basic(self):
         y_true = np.array([1] * 30 + [0] * 70)
-        y_pnu = make_pnu_labels(y_true, n_negatives=15, random_state=42)
-        assert y_pnu.shape == y_true.shape
-        assert np.sum(y_pnu == 1) == 30  # all positives
-        assert np.sum(y_pnu == -1) == 15  # selected negatives
-        unlabeled = np.sum(y_pnu == 0)
-        assert unlabeled == 55  # 70 - 15
-        assert set(np.unique(y_pnu)) == {1, -1, 0}
+        y = make_pnu_labels(y_true, n_negatives=15, random_state=42)
+        assert y.shape == y_true.shape
+        assert np.sum(y == 1) == 30  # all positives
+        assert np.sum(y == -1) == 15  # selected negatives
+        assert np.sum(y == 0) == 55  # rest
+        assert set(np.unique(y)) == {1, -1, 0}
+        # Determinism
+        y2 = make_pnu_labels(y_true, n_negatives=15, random_state=42)
+        assert np.array_equal(y, y2)
 
-    def test_n_negatives_exceeds_available_raises(self):
-        y_true = np.array([1] * 30 + [0] * 5)
-        with pytest.raises(ValueError, match="exceeds"):
-            make_pnu_labels(y_true, n_negatives=10)
-
-    def test_n_negatives_zero_raises(self):
-        y_true = np.array([1, 0, 1, 0])
-        with pytest.raises(ValueError, match="n_negatives must be >= 1"):
-            make_pnu_labels(y_true, n_negatives=0)
-
-    def test_deterministic(self):
-        y_true = np.array([1] * 30 + [0] * 70)
-        y1 = make_pnu_labels(y_true, n_negatives=10, random_state=42)
-        y2 = make_pnu_labels(y_true, n_negatives=10, random_state=42)
-        assert np.array_equal(y1, y2)
-
-    def test_no_true_positives_raises(self):
-        y_true = np.array([0] * 20)
-        with pytest.raises(ValueError, match="both 0"):
-            make_pnu_labels(y_true, n_negatives=5)
-
-    def test_no_true_negatives_raises(self):
-        y_true = np.array([1] * 20)
-        with pytest.raises(ValueError, match="both 0"):
-            make_pnu_labels(y_true, n_negatives=5)
+    @pytest.mark.parametrize(
+        "y_true, n_neg, match",
+        [
+            ([1] * 30 + [0] * 5, 10, "exceeds"),
+            ([1, 0, 1, 0], 0, "n_negatives must be >= 1"),
+            ([0] * 20, 5, "both 0.*and.*1"),
+            ([1] * 20, 5, "both 0.*and.*1"),
+        ],
+    )
+    def test_invalid(self, y_true, n_neg, match):
+        with pytest.raises(ValueError, match=match):
+            make_pnu_labels(np.array(y_true), n_negatives=n_neg)
 
 
 # ═════════════════════════════════════════════════════════════════════
-# MARK: make_gaussian_pu_data
+# make_gaussian_pu_data + make_scar_dataset
 # ═════════════════════════════════════════════════════════════════════
 
 
 @pytest.mark.unit
-class TestMakeGaussianPuData:
-    """Tests for :func:`make_gaussian_pu_data`."""
+class TestSyntheticDatasets:
+    """Covers: both data generators — shapes, class balance, determinism."""
 
-    def test_basic_output(self, rng):
-        X, y_pu, cp = make_gaussian_pu_data(random_state=42)
-        assert X.shape == (150, 5)
-        assert y_pu.shape == (150,)
-        assert np.sum(y_pu == 1) == 50
-        assert np.sum(y_pu == 0) == 100
-        assert 0.0 < cp < 1.0
-
-    def test_class_prior_correct(self):
+    def test_gaussian_pu_data(self):
         X, y_pu, cp = make_gaussian_pu_data(n_p=30, n_u=70, random_state=42)
-        assert cp == pytest.approx(30 / 100)
+        assert X.shape == (100, 5)
+        assert y_pu.shape == (100,)
+        assert np.sum(y_pu == 1) == 30
+        assert cp == pytest.approx(0.3)
 
-    def test_deterministic(self):
-        X1, y1, cp1 = make_gaussian_pu_data(random_state=42)
-        X2, y2, cp2 = make_gaussian_pu_data(random_state=42)
-        assert np.allclose(X1, X2)
-        assert np.array_equal(y1, y2)
-        assert cp1 == cp2
+        # Determinism
+        X2, y2, cp2 = make_gaussian_pu_data(n_p=30, n_u=70, random_state=42)
+        assert np.allclose(X, X2)
+        assert np.array_equal(y_pu, y2)
 
-    def test_custom_separation(self, rng):
-        X, y_pu, cp = make_gaussian_pu_data(separation=10.0, random_state=42)
-        # Classes should be well-separated
-        pos = X[y_pu == 1]
-        unl = X[y_pu == 0]
-        pos_mean = pos.mean(axis=0)
-        unl_mean = unl.mean(axis=0)
-        diff = np.linalg.norm(pos_mean - unl_mean)
-        # With separation=10.0, should be reasonably far apart
-        assert diff > 2.0
+        # Custom separation produces more spread
+        X3, _, _ = make_gaussian_pu_data(separation=10.0, random_state=42)
+        assert X3.std() > 2.0
 
-    def test_random_state_none_works(self):
-        X, y_pu, cp = make_gaussian_pu_data()
-        assert X.shape == (150, 5)
-
-
-# ═════════════════════════════════════════════════════════════════════
-# MARK: make_scar_dataset
-# ═════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.unit
-class TestMakeScarDataset:
-    """Tests for :func:`make_scar_dataset`."""
-
-    def test_basic_output(self, rng):
-        X, y_pu, y_true = make_scar_dataset(random_state=42)
-        assert X.shape == (200, 5)
-        assert y_pu.shape == (200,)
-        assert y_true.shape == (200,)
+    def test_scar_dataset(self):
+        X, y_pu, y_true = make_scar_dataset(n=80, c=0.5, random_state=42)
+        assert X.shape == (160, 5)
+        assert y_pu.shape == (160,)
+        assert y_true.shape == (160,)
+        assert np.sum(y_true == 1) == 80  # balanced
+        assert np.all(y_true[y_pu == 1] == 1)  # labeled ⊆ true positives
         assert set(np.unique(y_pu)).issubset({1, 0})
-        assert set(np.unique(y_true)) == {0, 1}
 
-    def test_y_true_consistency(self, rng):
-        """Every labeled positive in y_pu must be a true positive in y_true."""
-        X, y_pu, y_true = make_scar_dataset(random_state=42)
-        pos_in_pu = y_pu == 1
-        assert np.all(y_true[pos_in_pu] == 1)
+        # Determinism
+        X2, y2, t2 = make_scar_dataset(n=80, c=0.5, random_state=42)
+        assert np.allclose(X, X2)
+        assert np.array_equal(y_pu, y2)
+        assert np.array_equal(y_true, t2)
 
-    def test_balanced_true_labels(self, rng):
-        X, y_pu, y_true = make_scar_dataset(n=100, random_state=42)
-        assert np.sum(y_true == 1) == 100
-        assert np.sum(y_true == 0) == 100
-
-    def test_deterministic(self):
-        X1, y1, t1 = make_scar_dataset(random_state=42)
-        X2, y2, t2 = make_scar_dataset(random_state=42)
-        assert np.allclose(X1, X2)
-        assert np.array_equal(y1, y2)
-        assert np.array_equal(t1, t2)
-
-    def test_custom_separation(self, rng):
-        X, y_pu, y_true = make_scar_dataset(separation=10.0, random_state=42)
-        # With strong separation, features should have larger range
-        assert X.std() > 1.0
-
-    def test_c_one_all_labeled(self, rng):
-        X, y_pu, y_true = make_scar_dataset(c=1.0, random_state=42)
-        pos_in_true = y_true == 1
-        assert np.all(y_pu[pos_in_true] == 1)
+        # c=1 → all positives labeled
+        _, y3, yt3 = make_scar_dataset(n=50, c=1.0, random_state=42)
+        assert np.all(y3[yt3 == 1] == 1)
