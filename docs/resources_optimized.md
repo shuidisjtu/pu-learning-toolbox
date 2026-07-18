@@ -39,7 +39,7 @@
 |---|---|
 | uPU | native NumPy（C-DH SLSQP / C-LL L-BFGS / Squared 闭式解，pywsl 算法参考） |
 | nnPU | native PyTorch（clean-room，Algorithm 1 参考 kiryor/nnPUlearning） |
-| PNU | adapter (`pywsl`) + native PyTorch |
+| PNU | native NumPy（squared loss 闭式解，pywsl 算法参考） |
 | ReCPE | wrapper + base CPE interface |
 | PUSB / Self-PU / Dist-PU | PyTorch adapter |
 | LBE / LLSVM | legacy adapter + sklearn wrapper |

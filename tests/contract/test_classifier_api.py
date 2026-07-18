@@ -14,6 +14,7 @@ import pytest
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
+from pu_toolbox.estimators.risk.pnu import PNUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.registry import (
     clear_registry,
@@ -44,27 +45,58 @@ def _make_nnpu():
     )
 
 
+def _make_pnu():
+    return PNUClassifier(
+        class_prior=0.4, eta=0.5, reg_lambda=1.0, random_state=42,
+    )
+
+
 _CLASSIFIER_FACTORIES = [
     pytest.param(_make_elkan_noto, id="ElkanNotoClassifier"),
     pytest.param(_make_upu, id="UPUClassifier"),
     pytest.param(_make_nnpu, id="NonNegativePUClassifier"),
+    pytest.param(_make_pnu, id="PNUClassifier"),
 ]
 
 
 def _make_X_y(rng):
-    """Minimal (X, y_pu) for smoke-fitting all classifiers."""
+    """Minimal (X, y) for smoke-fitting PU classifiers."""
     X_pos = rng.randn(30, 5) + 2.0
     X_neg = rng.randn(60, 5) - 2.0
     X = np.vstack([X_pos, X_neg])
-    y_pu = np.concatenate([np.ones(30, dtype=int), np.zeros(60, dtype=int)])
-    return X, y_pu
+    y = np.concatenate([np.ones(30, dtype=int), np.zeros(60, dtype=int)])
+    return X, y
 
 
-def _get_fit_kwargs(clf, y_pu) -> dict:
+def _make_pnu_X_y(rng):
+    """Minimal (X, y) for smoke-fitting PNU classifiers.
+
+    Creates three groups: positive, negative, and unlabeled.
+    """
+    X_pos = rng.randn(20, 5) + 2.0
+    X_neg = rng.randn(30, 5) - 2.0
+    X_unl = rng.randn(50, 5)
+    X = np.vstack([X_pos, X_neg, X_unl])
+    y = np.concatenate([
+        np.full(20, 1, dtype=int),
+        np.full(30, -1, dtype=int),
+        np.zeros(50, dtype=int),
+    ])
+    return X, y
+
+
+def _get_data_factory(clf) -> callable:
+    """Return the appropriate data factory for a classifier."""
+    if isinstance(clf, PNUClassifier):
+        return _make_pnu_X_y
+    return _make_X_y
+
+
+def _get_fit_kwargs(clf, y) -> dict:
     """Return extra kwargs needed by fit()."""
     if isinstance(clf, NonNegativePUClassifier):
-        n_p = int(np.sum(y_pu == 1))
-        return {"class_prior": n_p / len(y_pu)}
+        n_p = int(np.sum(y == 1))
+        return {"class_prior": n_p / len(y)}
     return {}
 
 
@@ -79,30 +111,34 @@ class TestAPIContract:
     @pytest.mark.parametrize("factory", _CLASSIFIER_FACTORIES)
     def test_not_fitted_predict_raises(self, factory, rng):
         clf = factory()
-        X, _ = _make_X_y(rng)
+        data_factory = _get_data_factory(clf)
+        X, _ = data_factory(rng)
         with pytest.raises(NotFittedError):
             clf.predict(X)
 
     @pytest.mark.parametrize("factory", _CLASSIFIER_FACTORIES)
     def test_not_fitted_decision_function_raises(self, factory, rng):
         clf = factory()
-        X, _ = _make_X_y(rng)
+        data_factory = _get_data_factory(clf)
+        X, _ = data_factory(rng)
         with pytest.raises(NotFittedError):
             clf.decision_function(X)
 
     @pytest.mark.parametrize("factory", _CLASSIFIER_FACTORIES)
     def test_classes_set_after_fit(self, factory, rng):
         clf = factory()
-        X, y_pu = _make_X_y(rng)
-        clf.fit(X, y_pu, **_get_fit_kwargs(clf, y_pu))
+        data_factory = _get_data_factory(clf)
+        X, y = data_factory(rng)
+        clf.fit(X, y, **_get_fit_kwargs(clf, y))
         assert hasattr(clf, "classes_")
         np.testing.assert_array_equal(clf.classes_, np.array([0, 1]))
 
     @pytest.mark.parametrize("factory", _CLASSIFIER_FACTORIES)
     def test_predict_returns_binary(self, factory, rng):
         clf = factory()
-        X, y_pu = _make_X_y(rng)
-        clf.fit(X, y_pu, **_get_fit_kwargs(clf, y_pu))
+        data_factory = _get_data_factory(clf)
+        X, y = data_factory(rng)
+        clf.fit(X, y, **_get_fit_kwargs(clf, y))
         pred = clf.predict(X)
         assert pred.dtype == int
         assert set(np.unique(pred)) <= {0, 1}
@@ -110,8 +146,9 @@ class TestAPIContract:
     @pytest.mark.parametrize("factory", _CLASSIFIER_FACTORIES)
     def test_decision_function_shape(self, factory, rng):
         clf = factory()
-        X, y_pu = _make_X_y(rng)
-        clf.fit(X, y_pu, **_get_fit_kwargs(clf, y_pu))
+        data_factory = _get_data_factory(clf)
+        X, y = data_factory(rng)
+        clf.fit(X, y, **_get_fit_kwargs(clf, y))
         scores = clf.decision_function(X)
         assert scores.shape == (X.shape[0],)
         assert np.isfinite(scores).all()
@@ -135,8 +172,9 @@ class TestAPIContract:
     @pytest.mark.parametrize("factory", _CLASSIFIER_FACTORIES)
     def test_metadata_after_fit(self, factory, rng):
         clf = factory()
-        X, y_pu = _make_X_y(rng)
-        clf.fit(X, y_pu, **_get_fit_kwargs(clf, y_pu))
+        data_factory = _get_data_factory(clf)
+        X, y = data_factory(rng)
+        clf.fit(X, y, **_get_fit_kwargs(clf, y))
         meta = clf.get_pu_metadata()
         assert meta["is_fitted"] is True
         assert "family" in meta
@@ -145,8 +183,9 @@ class TestAPIContract:
     @pytest.mark.parametrize("factory", _CLASSIFIER_FACTORIES)
     def test_score_samples_delegates_to_decision_function(self, factory, rng):
         clf = factory()
-        X, y_pu = _make_X_y(rng)
-        clf.fit(X, y_pu, **_get_fit_kwargs(clf, y_pu))
+        data_factory = _get_data_factory(clf)
+        X, y = data_factory(rng)
+        clf.fit(X, y, **_get_fit_kwargs(clf, y))
         np.testing.assert_array_equal(
             clf.score_samples(X), clf.decision_function(X),
         )
@@ -182,10 +221,10 @@ class TestRegistryClassBinding:
                 f"NATIVE method {meta.name} class has no fit()"
             )
 
-    def test_four_native_methods_bound(self):
-        """Exactly 4 native methods are trainable."""
+    def test_five_native_methods_bound(self):
+        """Exactly 5 native methods are trainable."""
         from pu_toolbox.registry import list_algorithms
 
         trainable = list_algorithms(trainable_only=True)
         names = {m.name for m in trainable}
-        assert names == {"elkan_noto", "upu", "nnpu", "recpe"}
+        assert names == {"elkan_noto", "upu", "nnpu", "pnu", "recpe"}

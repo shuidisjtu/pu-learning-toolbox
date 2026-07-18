@@ -861,18 +861,20 @@ class TestEarlyStopping:
 
     def test_best_model_restored_after_early_stopping(self, rng):
         """After early stopping, model_ is best (not last-epoch) state."""
-        X, y_pu, pi = _make_synthetic_data(rng, n_p=30, n_u=60)
+        X, y_pu, pi = _make_synthetic_data(rng, n_p=15, n_u=30)
+        # Separate validation set with different seed → overfitting triggers
+        # early stop when training loss improves but validation loss stalls.
+        X_val, y_pu_val, _ = _make_synthetic_data(rng, n_p=10, n_u=20, seed=99999)
         model = torch.nn.Linear(5, 1)
 
         clf = NonNegativePUClassifier(
             model=model,
             max_epochs=100,
             patience=2,
-            batch_size=8,
+            batch_size=4,
             random_state=42,
         )
-        # Use training data as validation → overfitting risk triggers early stop
-        clf.fit(X, y_pu, class_prior=pi, validation_data=(X, y_pu))
+        clf.fit(X, y_pu, class_prior=pi, validation_data=(X_val, y_pu_val))
 
         n_epochs = len(clf.history_["epoch"])
         assert n_epochs < 100, (

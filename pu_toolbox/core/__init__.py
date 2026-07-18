@@ -35,7 +35,9 @@ from .exceptions import (
 from .exceptions import (
     ValidationError as ValidationError,
 )
+from .labels import normalize_pnu_labels as normalize_pnu_labels
 from .labels import normalize_pu_labels as normalize_pu_labels
+from .validation import validate_pnu_X_y as validate_pnu_X_y
 from .validation import validate_pu_X_y as validate_pu_X_y
 
 __all__ = [
@@ -49,6 +51,8 @@ __all__ = [
     "RegistryError",
     "SourceAdapterError",
     "ValidationError",
+    "normalize_pnu_labels",
     "normalize_pu_labels",
+    "validate_pnu_X_y",
     "validate_pu_X_y",
 ]

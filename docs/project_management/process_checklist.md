@@ -20,7 +20,7 @@
 - [x] **uPU / Convex PU** — 无偏 PU 风险估计 (du Plessis et al., 2015)
 - [x] **nnPU** — 非负 PU 风险估计 (Kiryo et al., 2017)
 - [x] **ReCPE** — 类先验估计 (Yao et al., 2022)
-- [ ] **PNU** — 半监督 PU 扩展 (Sakai et al., 2017)
+- [x] **PNU** — 半监督 PU 扩展 (Sakai et al., 2017)
 - [ ] PU splitters（`PUStratifiedKFold` 等）
 - [ ] 基础 metrics（AUC, F1, PU estimated risk）
 - [ ] minimal examples（`examples/minimal/`）
@@ -68,4 +68,5 @@
 | 2026-07-16 | nnPU / Non-Negative PU | 已完成 native 实现 | `pu_toolbox/losses/nnpu.py`；`pu_toolbox/estimators/risk/nnpu.py`；`docs/research/method_cards/nnpu.md` | `149 passed`；ruff 检查通过 |
 | 2026-07-16 | ReCPE / Regrouping CPE | 已完成 native 实现 | `pu_toolbox/prior/recpe.py`；`docs/research/method_cards/ReCPE.md` | `133 passed`；ruff 检查通过 |
 | 2026-07-13 | uPU / Convex PU | 已完成 native 实现 | `pu_toolbox/losses/upu.py`；`pu_toolbox/estimators/risk/upu.py`；`docs/research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md` | `130 passed`；ruff 检查通过 |
+| 2026-07-18 | PNU | 已完成 native 实现 | `pu_toolbox/losses/pnu.py`；`pu_toolbox/estimators/risk/pnu.py`；`pu_toolbox/utils/basis.py`；`docs/research/method_cards/PNU.md` | `270 passed`；ruff 检查通过 |
 | 2026-07-10 | Elkan-Noto | 已完成 native 实现 | `pu_toolbox/estimators/classic/elkan_noto.py`；`docs/research/method_cards/Elkan_Noto.md` | `102 passed`；ruff 检查通过 |
