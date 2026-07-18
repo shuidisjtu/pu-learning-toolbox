@@ -12,6 +12,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from pu_toolbox.core.config import POSITIVE_LABEL, UNLABELED_LABEL
 from pu_toolbox.core.exceptions import NotFittedError, ValidationError
 from pu_toolbox.losses.nnpu import NonNegativePULoss, _nnpu_train_step
 
@@ -31,12 +32,18 @@ def _make_synthetic_data(
     n_features: int = 5,
     seed: int = 42,
 ) -> tuple[np.ndarray, np.ndarray, float]:
-    """2-class Gaussian: pos ~ N(+1, 1), neg ~ N(−1, 1)."""
+    """2-class Gaussian: pos ~ N(+1, 1), neg ~ N(−1, 1).
+
+    Labels use canonical constants from ``pu_toolbox.core.config``.
+    """
     rng.seed(seed)
     X_p = rng.randn(n_p, n_features) + 1.0
     X_n = rng.randn(n_u, n_features) - 1.0
     X = np.vstack([X_p, X_n])
-    y_pu = np.concatenate([np.ones(n_p), np.zeros(n_u)])
+    y_pu = np.concatenate(
+        [np.full(n_p, POSITIVE_LABEL, dtype=int),
+         np.full(n_u, UNLABELED_LABEL, dtype=int)],
+    )
     class_prior = n_p / (n_p + n_u)
     return X, y_pu, class_prior
 

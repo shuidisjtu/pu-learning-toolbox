@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 
 from pu_toolbox.core.random import set_global_seed
+from pu_toolbox.preprocessing import make_gaussian_pu_data as _pp_make_gaussian
+from pu_toolbox.preprocessing import make_scar_dataset as _pp_make_scar_dataset
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -37,19 +39,10 @@ def make_scar_data(rng, n=100, c=0.5, n_features=5, separation=4.0):
     y_pu : np.ndarray of shape (2*n,)  — {1, 0}
     y_true : np.ndarray of shape (2*n,) — {1, 0}
     """
-    delta = separation / 2.0
-    X_pos = rng.randn(n, n_features) + delta
-    X_neg = rng.randn(n, n_features) - delta
-    X = np.vstack([X_pos, X_neg])
-    y_true = np.hstack([np.ones(n, dtype=int), np.zeros(n, dtype=int)])
-
-    y_pu = np.zeros(2 * n, dtype=int)
-    pos_idx = np.where(y_true == 1)[0]
-    n_labeled = max(1, int(n * c))
-    labeled = rng.choice(pos_idx, size=n_labeled, replace=False)
-    y_pu[labeled] = 1
-
-    return X, y_pu, y_true
+    return _pp_make_scar_dataset(
+        n=n, c=c, n_features=n_features,
+        separation=separation, random_state=rng,
+    )
 
 
 def make_gaussian_pu_data(rng, n_p=50, n_u=100, n_features=5, separation=2.0):
@@ -64,13 +57,10 @@ def make_gaussian_pu_data(rng, n_p=50, n_u=100, n_features=5, separation=2.0):
     y_pu : np.ndarray of shape (n_p + n_u,) — {1, 0}
     class_prior : float
     """
-    delta = separation / 2.0
-    X_p = rng.randn(n_p, n_features) + delta
-    X_n = rng.randn(n_u, n_features) - delta
-    X = np.vstack([X_p, X_n])
-    y_pu = np.concatenate([np.ones(n_p, dtype=int), np.zeros(n_u, dtype=int)])
-    class_prior = n_p / (n_p + n_u)
-    return X, y_pu, class_prior
+    return _pp_make_gaussian(
+        n_p=n_p, n_u=n_u, n_features=n_features,
+        separation=separation, random_state=rng,
+    )
 
 
 # ═════════════════════════════════════════════════════════════════════

@@ -13,7 +13,7 @@
 
 | 层 | 模块 | 作用 |
 |---|---|---|
-| Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、算法注册、元数据、共享工具 |
+| Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、PU 标签生成、数据画像、算法注册、元数据、共享工具 |
 | Estimation | `prior`, `propensity`, `losses` | 类先验估计、标记倾向估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现或包装具体 PU 分类器 |
 | Source Integration | `source_adapters` | 管理作者源码、外部仓库和论文复现脚本 |

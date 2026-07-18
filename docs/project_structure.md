@@ -33,9 +33,10 @@ pu_toolbox/
     synthetic.py
     loaders.py
 
-  preprocessing/             (planned)
+  preprocessing/
     __init__.py
-    input_adapter.py
+    pu_labeling.py
+    profiling.py
 
   prior/
     __init__.py
@@ -135,6 +136,9 @@ tests/
       test_split.py                   # PU 切分器测试
     prior/
       test_recpe.py                   # ReCPE 特有逻辑
+    preprocessing/
+      test_pu_labeling.py             # PU/PNU 标签生成
+      test_profiling.py               # 数据画像统计
 
   integration/                        # 跨模块集成（待扩展）
   regression/                         # 慢速/论文复现（待扩展）
