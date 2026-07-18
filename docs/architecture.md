@@ -14,7 +14,7 @@
 | 层 | 模块 | 作用 |
 |---|---|---|
 | Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、PU 标签生成、数据画像、算法注册、元数据、共享工具 |
-| Estimation | `prior`, `propensity`, `losses` | 类先验估计、标记倾向估计、PU 损失函数 |
+| Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现或包装具体 PU 分类器 |
 | Source Integration | `source_adapters` | 管理作者源码、外部仓库和论文复现脚本 |
 | Evaluation | `metrics`, `model_selection`, `benchmarks` (planned) | 评估、诊断、切分、benchmark regression。其中 `metrics`（PU 风险 + 监督指标包装）和 `model_selection`（PU 分层切分）已实现 |

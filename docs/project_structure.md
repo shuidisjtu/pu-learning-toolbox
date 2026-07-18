@@ -27,11 +27,6 @@ pu_toolbox/
     random.py
     tags.py
 
-  datasets/                  (planned)
-    __init__.py
-    synthetic.py            (planned)
-    loaders.py              (planned)
-
   preprocessing/
     __init__.py
     pu_labeling.py
@@ -45,10 +40,6 @@ pu_toolbox/
     tice.py                  (planned)
     alphamax.py              (planned)
     wrappers.py              (planned)
-
-  propensity/                (planned)
-    __init__.py
-    base.py                  (planned)
 
   utils/
     __init__.py
@@ -155,6 +146,9 @@ examples/
     03_nnpu.py                (nnPU 非负风险估计)
     04_pnu.py                 (PNU 半监督扩展)
     05_recpe_pipeline.py      (ReCPE 类先验估计 + uPU 联合流程)
+  paper_like/               (planned)
+  sar_cases/                (planned)
+  source_adapter_demo/      (planned)
 ```
 
 ## 5. Benchmark（`benchmarks/`）
@@ -189,11 +183,12 @@ docs/
       nnpu.md
       PNU.md
       ReCPE.md
-
   project_management/
     decision_log.md
     process_checklist.md
     division.txt
+
+  user/                       (planned)
 ```
 
 ## 7. 脚本（`scripts/`）

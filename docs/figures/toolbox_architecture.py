@@ -41,9 +41,8 @@ LAYERS = [
     {
         "label": "Estimation",
         "modules": [
-            {"name": "prior/", "sub": "Class-prior estimation", "impl": "partial", "w": 3.6},
-            {"name": "losses/", "sub": "PU risk functions", "impl": True, "w": 3.0},
-            {"name": "propensity/", "sub": "(planned)", "impl": False, "w": 2.2},
+            {"name": "prior/", "sub": "Class-prior estimation", "impl": "partial", "w": 4.2},
+            {"name": "losses/", "sub": "PU risk functions", "impl": True, "w": 4.2},
         ],
     },
     {
