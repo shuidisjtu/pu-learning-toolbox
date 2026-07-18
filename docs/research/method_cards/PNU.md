@@ -166,7 +166,7 @@ R_N^L(g)=\mathbb E_N[g(x)].
 | Source status | `official_exact` |
 | Official code | `pywsl` (`https://github.com/t-sakai-kure/pywsl`) |
 | License | `MIT` |
-| Registry status | `implementation_status=API_ONLY`, `backend=TORCH`, `source_status=OFFICIAL_EXACT` |
+| Registry status | `implementation_status=NATIVE`, `backend=NUMPY`, `source_status=OFFICIAL_EXACT` |
 | Integration basis | adapter (`pywsl`) + native PyTorch；论文 §2–§5 的风险定义、优化目标与实验 protocol 仍是数学权威 |
 
 ### 6.1 集成边界

@@ -539,7 +539,7 @@ Input:
 | `predict_proba(X)` | 抛出 `NotImplementedError`；$`g(x)`$ 不是天然校准概率 |
 | `pu_validation_risk(X, y_pu)` | 返回式 (2) 的 PU zero-one 风险，用于调参；`【项目适配】` 此为本分类器扩展方法，不在 `BasePUClassifier` 契约中 |
 | `score_samples(X)` | 复用 `_decision_function`，无需覆盖 |
-| `get_params()` / `set_params()` | 由 sklearn `BaseEstimator` 提供；暴露 loss、$`\pi`$、$`\lambda`$、basis、kernel width、centers、solver 参数 |
+| `get_params()` / `set_params()` | 由 sklearn `BaseEstimator` 提供；暴露 loss、$`\pi`$、$`\lambda`$、basis、kernel width、centers 参数 |
 
 ### 7.2 建议构造参数
 
@@ -550,11 +550,10 @@ class UPUClassifier(BasePUClassifier):
         class_prior: float,
     loss: Literal["double_hinge", "logistic", "squared"] = "double_hinge",
     reg_lambda: float = 1e-3,
-    basis: Literal["linear", "rbf", "polynomial"] = "linear",
+    basis: Literal["linear", "rbf"] = "linear",
     kernel_width: float | None = None,
     n_centers: int | None = None,
     fit_intercept: bool = True,
-    solver: str = "auto",
     max_iter: int = 1000,
     tol: float = 1e-6,
         random_state: int | None = None,

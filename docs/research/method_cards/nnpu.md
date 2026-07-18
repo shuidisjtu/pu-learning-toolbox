@@ -428,7 +428,7 @@ correction_fraction
 |---|---|
 | 类名 | `NonNegativePUClassifier` |
 | 注册名称 | `"nnpu"` |
-| 别名 | `["non_negative_pu", "non-negative-pu", "kiryo_nnpu"]` |
+| 别名 | `["non_negative_pu", "nn-pu", "nnPU"]` |
 | Family | 使用项目已有的 risk-estimation / deep-PU 类别；不要新建重复枚举 |
 | 依赖 | 优先复用 Convex PU 的风险分解、先验校验和标签转换 |
 | Backend | 以项目当前可训练柔性模型的 backend 为准 |

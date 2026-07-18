@@ -56,7 +56,6 @@ pu_toolbox/
 
   losses/
     __init__.py
-    base.py                  (planned)
     upu.py                    (native)
     nnpu.py                  (native)
     pnu.py                   (native)
@@ -74,11 +73,11 @@ pu_toolbox/
       nnpu.py                  (native)
       pnu.py                   (native)
     bias_aware/              (planned)
-      pusb.py
-      lbe.py
+      pusb.py                (planned)
+      lbe.py                 (planned)
     deep/                    (planned)
-      self_pu.py
-      dist_pu.py
+      self_pu.py             (planned)
+      dist_pu.py             (planned)
 
   source_adapters/
     __init__.py
