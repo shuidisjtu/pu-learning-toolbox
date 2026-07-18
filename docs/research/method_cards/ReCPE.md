@@ -315,7 +315,7 @@ recpe.fit(X, y_pu)
 - 复制比例扫描：比较 `p∈{0.05, 0.10, 0.15, 0.20}` 的估计误差。
 - UCI 二分类数据：按论文的正例比例、样本量和重复实验协议评估。
 
-当前自动化验证：`pytest -q`，133 项测试通过；针对 ReCPE 的测试位于 `tests/estimators/test_recpe.py`。
+当前自动化验证：`pytest -q`，133 项测试通过；针对 ReCPE 的测试位于 `tests/unit/prior/test_recpe.py`。
 
 ## 10. 开放问题
 

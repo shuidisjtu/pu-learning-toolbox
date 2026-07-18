@@ -17,7 +17,7 @@
 | Estimation | `prior`, `propensity`, `losses` | 类先验估计、标记倾向估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现或包装具体 PU 分类器 |
 | Source Integration | `source_adapters` | 管理作者源码、外部仓库和论文复现脚本 |
-| Evaluation | `metrics`, `model_selection`, `benchmarks` | 评估、诊断、切分、benchmark regression |
+| Evaluation | `metrics`, `model_selection`, `benchmarks` (均为 planned) | 评估、诊断、切分、benchmark regression |
 | User Layer | `advisor`, `examples`, `docs` | 推荐算法、生成报告、教程 |
 
 ## 3. 数据流
@@ -155,7 +155,7 @@ class BaseSourceAdapter:
 ```python
 {
     "name": "nnPU",
-    "aliases": ["non_negative_pu", "nnpu"],
+    "aliases": ["non_negative_pu", "nn-pu", "nnPU"],
     "family": "risk_estimation",
     "scenario": ["case_control"],
     "assumption": ["SCAR"],
@@ -195,7 +195,7 @@ class BaseSourceAdapter:
 
 | 方法 | 主要模块 |
 |---|---|
-| Class-Prior Estimation | `prior/pen_l1.py`, `prior/wrappers.py` |
+| Class-Prior Estimation | `prior/pen_l1.py` (planned), `prior/wrappers.py` (planned) |
 | ReCPE | `prior/recpe.py` |
 | Elkan-Noto | `estimators/classic/elkan_noto.py` |
 | uPU / nnPU / PNU | `losses/upu.py`, `losses/nnpu.py`, `losses/pnu.py` |
@@ -203,8 +203,8 @@ class BaseSourceAdapter:
 | nnPU 分类器 | `estimators/risk/nnpu.py` |
 | PNU 分类器 | `estimators/risk/pnu.py` |
 | 共享 basis 工具 | `utils/basis.py` |
-| PUSB / LBE | `estimators/bias_aware/pusb.py`, `estimators/bias_aware/lbe.py` |
-| Self-PU / Dist-PU | `estimators/deep/self_pu.py`, `estimators/deep/dist_pu.py` |
+| PUSB / LBE | `estimators/bias_aware/pusb.py` (planned), `estimators/bias_aware/lbe.py` (planned) |
+| Self-PU / Dist-PU | `estimators/deep/self_pu.py` (planned), `estimators/deep/dist_pu.py` (planned) |
 
 完整映射及实现策略见 [`development_roadmap.md`](development_roadmap.md)。
 
@@ -222,6 +222,6 @@ adapter 统一包装外部源码，不改变 Toolbox 核心 API。每个 adapter
 
 ## 10. 评价与切分
 
-- `PUStratifiedKFold`、`PUStratifiedShuffleSplit`：保证每个训练折含 labeled positive。
+- `PUStratifiedKFold`、`PUStratifiedShuffleSplit` (planned)：保证每个训练折含 labeled positive。
 - 有真实 $y$ 时使用标准监督指标（AUC, F1, Average Precision）；仅 PU 标签时使用 PU 估计指标。
-- benchmark 分为 smoke / synthetic / paper-like 三级，论文算法对应 `benchmarks/paper_like/<name>/`。
+- benchmark 分为 smoke / synthetic / paper-like 三级（planned），论文算法对应 `benchmarks/paper_like/<name>/`。
