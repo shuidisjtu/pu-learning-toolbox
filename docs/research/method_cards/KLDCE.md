@@ -1,7 +1,14 @@
 # KLDCE 求解器设计说明：ACS + 广义 SMO
 
+> **论文:** Gong, C., Shi, H., Liu, T., Zhang, C., Yang, J., & Tao, D.
+> "Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning."
+> IEEE TPAMI, 2021.
+>
 > **Implementation status (2026-07-21):** QP oracle 版本已实现。
 > 类: `pu_toolbox.estimators.risk.kldce.KLDCEClassifier`
+> 模块: `pu_toolbox/estimators/risk/kldce.py`；
+> 共享原语: `pu_toolbox/utils/centroid.py`
+> 线性版 LDCE 见 [`LDCE.md`](LDCE.md)。
 > 首版仅支持 RBF kernel (参数 `sigma`)，使用 scipy SLSQP 作为 QP oracle。
 > 附录原生 SMO 留待后续 PR。
 

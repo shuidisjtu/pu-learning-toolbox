@@ -1,16 +1,15 @@
-# Method Card: LDCE / KLDCE PU Learning
+# Method Card: LDCE PU Learning
 
 ## 1. 待办与注意
 
 ### 1.1 待办
 
-- 实现线性 **LDCE**：以无标签集为观测负类（含假负例），通过 hinge-loss 分解和质心估计构造鲁棒经验风险。
-- 实现 **KLDCE**（已完成 QP oracle 版，RBF kernel）：ACS 外循环 + scipy SLSQP QP oracle；附录原生 SMO 留待后续 PR。论文未给出可直接复用的工程代码，不能把线性 LDCE 的梯度下降直接套到核模型。
+- **[已实现]** 线性 LDCE：以无标签集为观测负类（含假负例），通过 hinge-loss 分解和质心估计构造鲁棒经验风险。类: `pu_toolbox.estimators.risk.ldce.LDCEClassifier`。
 - `h`（真实正例被翻为观测负例的概率）和椭球半径 `b` 都应作为显式超参数；`b` 用交叉验证选择。`h` 可交叉验证或由外部类先验估计器提供。
 - 用广义 median-of-means（MoM）初始化观测负集质心，并按式 (10) 计算其经验协方差；协方差求逆必须使用带正则化的稳定求解，不能显式裸求逆。
 - 在交替优化中同时更新参数 `w` 与受椭球约束的真实无标签质心 `m`；记录收敛轮数、目标值和数值失败原因。
-- **[项目现状]** Phase 1 全部完成（Elkan-Noto、uPU、nnPU、ReCPE、PNU、LDCE、KLDCE）。KLDCE 首版使用 QP oracle (scipy SLSQP) + RBF kernel，附录 SMO 待后续 PR。
-- **[Registry 已修正]** `builtin_methods.py` 中 `scenario=SINGLE_TRAINING_SET`、`assumption=[SCAR]`、`implementation_status=NATIVE`。
+- **[项目现状]** LDCE 已实现 (NATIVE)。核化版 KLDCE 见 [`KLDCE.md`](KLDCE.md)。
+- **[Registry]** `builtin_methods.py` 中 `scenario=SINGLE_TRAINING_SET`、`assumption=[SCAR]`、`implementation_status=NATIVE`。
 
 ### 1.2 注意
 
@@ -178,37 +177,9 @@ m\leftarrow\hat m+\hat S^{-1}w\sqrt{\frac{b}{w^\top\hat S^{-1}w}}.
 
 **工程化替换**：上述 `Ŝ⁻¹` 应实现为解线性方程 `(Ŝ + ridge·I)v=w`；当 $`w^\top v`$ 近零时令 `m=m̂` 或停止并报告退化，不能直接除零。
 
-### 5.2 KLDCE
+### 5.2 KLDCE（核化版）
 
-以核展开 $`f(x)=\sum_i\alpha_i K(x_i,x)+b_0`$ 替代线性函数。论文将带松弛变量的核化问题分解为两个凸子问题，以 **ACS** 交替更新，并用 **SMO** 解核 SVM 型子问题。
-
-#### KLDCE ACS/SMO 求解流程
-
-> 论文正文给出了 KLDCE 的原始问题、对偶问题和"ACS + SMO"求解说明，但没有像 LDCE Algorithm 2 那样列出独立编号的完整 KLDCE 伪代码；以下是依据式 (23)–(25) 整理的实现流程，不能视为论文逐字伪代码。
-
-```text
-输入：污染样本 Ṡ，核函数 K，h，λ，b
-1. 用 Algorithm 1 初始化 m̂，并由式 (10) 得 Ŝ；初始化可行 m←m̂。
-2. 重复直至 ACS 收敛：
-   a. 固定 m：构造式 (24) 的二次规划对偶。
-      使用 SMO 迭代更新 α、γ，满足：
-      - 盒约束：0 ≤ α_i ≤ C₁，0 ≤ γ_i ≤ C₂
-      - 等式约束：C₁Σ_i α_i ỹ_i + C₂Σ_{i∈U}γ_i ỹ_i = 0
-      得到当前 α、γ 和偏置 b₀。
-   b. 固定 α、γ（等价于固定当前判别函数）：
-      按与 LDCE 相同的椭球约束子问题更新 m，
-      并验证 (m-m̂)ᵀŜ(m-m̂) ≤ b。
-   c. 计算原始/对偶目标及约束残差；若相对变化小于 tol 则停止。
-3. 用式 (25) 组装决策函数：
-   f(x) = (1/(2λ))Σ_i α_i ỹ_i K(x,x_i)
-        - (1/(2λ))Σ_{i∈U} γ_i ỹ_i K(x,x_i)
-        - (C/(2λ))K(x,m*) + b₀。
-输出：α、γ、m*、b₀ 与 f(x)
-```
-
-实现前须从论文补充材料或可信实现核对式 (24) 的 `C/C₁/C₂` 定义、SMO 工作集选择、偏置恢复和停止准则；正文未充分规定这些工程细节。
-
-**开发边界**：KLDCE 的时间/内存均受 Gram 矩阵约束，适合中小样本；大样本需明确不支持、使用近似核，或另行实现预算策略。论文未提供将其转成通用 sklearn 核分类器的等价接口。
+核化版 KLDCE 详见 [`KLDCE.md`](KLDCE.md) — ACS 外循环 + QP oracle + RBF kernel，类 `KLDCEClassifier`。
 
 ---
 
@@ -363,8 +334,8 @@ class LDCEClassifier(BasePUClassifier):
 | 模块 | 责任 | 状态 |
 |---|---|---|
 | `pu_toolbox/estimators/risk/ldce.py` | `LDCEClassifier` — 线性 LDCE 交替优化 + sklearn API | ✅ 已实现 (NATIVE) |
-| `pu_toolbox/estimators/risk/kldce.py` | `KLDCEClassifier` — KLDCE 核化实现（ACS + QP oracle + RBF kernel） | ✅ 已实现 (2026-07-21) |
-| `pu_toolbox/registry/builtin_methods.py` | `centroid_pu` 元数据，`implementation_status=NATIVE` | ✅ 已修正 scenario/assumption |
+| `pu_toolbox/utils/centroid.py` | 共享质心原语 (`_mom_centroid`, `_centroid_covariance`) | ✅ LDCE/KLDCE 共用 |
+| `pu_toolbox/registry/builtin_methods.py` | `centroid_pu` 元数据，`implementation_status=NATIVE` | ✅ |
 
 ---
 
@@ -405,7 +376,7 @@ class LDCEClassifier(BasePUClassifier):
 ### 8.4 PAPER-like regression
 
 - **线性可分合成数据**：复现论文图 2 的精神：先生成正负两类，再随机隐藏部分正例；LDCE 应优于"把 U 全当负类"的朴素线性分类器，且边界可视化/准确率可回归。
-- **交叉实现对照**：在线性核、小样本、固定 `h` 下，KLDCE 的预测应与 LDCE 同方向高度一致；这只是 smoke test，不等价于证明 ACS/SMO 正确。
+- **交叉实现对照**：在线性核、小样本、固定 `h` 下，KLDCE（见 [`KLDCE.md`](KLDCE.md)）的预测应与 LDCE 同方向高度一致。
 - 每个配置至少多随机种子重复，报告均值和标准差。
 
 ### 8.5 测试数据与指标

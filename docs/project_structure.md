@@ -193,7 +193,7 @@ docs/
       Elkan_Noto.md
       Convex_Formulation_for_PU_DATA_Learning.md
       KLDCE.md
-      LDCE_KLDCE.md
+      LDCE.md
       nnpu.md
       PNU.md
       ReCPE.md
