@@ -167,8 +167,8 @@ _BUILTIN: list[AlgorithmMetadata] = [
         aliases=["ldce", "kldce", "centroid_estimation"],
         family=Fam.RISK_ESTIMATION,
         paper="Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR, Asm.SAR],
+        scenario=[Scn.SINGLE_TRAINING_SET],
+        assumption=[Asm.SCAR],
         requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
@@ -176,7 +176,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         maturity=Maturity.RESEARCH,
         complexity="medium",
         recommended_data_size="medium",
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
         license="needs_review",
@@ -389,6 +389,7 @@ def _bind_native_classes() -> None:
         ("nnpu", "..estimators.risk.nnpu", "NonNegativePUClassifier"),
         ("pnu", "..estimators.risk.pnu", "PNUClassifier"),
         ("recpe", "..prior.recpe", "ReCPEEstimator"),
+        ("centroid_pu", "..estimators.risk.ldce", "LDCEClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:

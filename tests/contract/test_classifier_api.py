@@ -13,6 +13,7 @@ import pytest
 
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
+from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.pnu import PNUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
@@ -51,11 +52,18 @@ def _make_pnu():
     )
 
 
+def _make_ldce():
+    return LDCEClassifier(
+        flip_probability=0.3, max_iter=10, tol=1e-4, random_state=42,
+    )
+
+
 _CLASSIFIER_FACTORIES = [
     pytest.param(_make_elkan_noto, id="ElkanNotoClassifier"),
     pytest.param(_make_upu, id="UPUClassifier"),
     pytest.param(_make_nnpu, id="NonNegativePUClassifier"),
     pytest.param(_make_pnu, id="PNUClassifier"),
+    pytest.param(_make_ldce, id="LDCEClassifier"),
 ]
 
 
@@ -223,10 +231,12 @@ class TestRegistryClassBinding:
                 f"NATIVE method {meta.name} class has no fit()"
             )
 
-    def test_five_native_methods_bound(self):
-        """Exactly 5 native methods are trainable."""
+    def test_six_native_methods_bound(self):
+        """Exactly 6 native methods are trainable."""
         from pu_toolbox.registry import list_algorithms
 
         trainable = list_algorithms(trainable_only=True)
         names = {m.name for m in trainable}
-        assert names == {"elkan_noto", "upu", "nnpu", "pnu", "recpe"}
+        assert names == {
+            "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
+        }
