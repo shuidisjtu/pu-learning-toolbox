@@ -1,93 +1,113 @@
-# Method Card: Class-Prior Estimation for PU Learning
+# Method Card: Class-Prior Estimation（penL1 / L1）
 
 ## 1. 待办与注意
 
 ### 1.1 待办
 
-- **实现 penL1**：`PenL1Estimator(BasePriorEstimator)`，放入 `pu_toolbox/prior/pen_l1.py`。
-- **实现 L1**：`L1PriorEstimator(BasePriorEstimator)`，optional。QP 求解使用开源替代（如 `scipy.optimize`），论文用 Gurobi。
-- **设计 CV protocol**：$``\sigma``$、$``\lambda``$ 无默认值，论文只说通过 CV 选择，需自行设计具体 CV 流程。
-- **输入标准化**：Gaussian kernel 对特征尺度敏感，计算前做标准化。
-- **single-training-set 适配**：论文假设 positive set 直接从 $``p(x\mid y=1)``$ 抽样。若项目输入是 single-training-set `y_pu`，需保证已标注正样本能无偏代表 $``p(x\mid y=1)``$。
-- **`confidence_interval()`**：返回 `NotImplemented`。论文未给出 CI / bootstrap / asymptotic normality。
-- **写测试**：`tests/unit/prior/test_pen_l1.py`，覆盖 §8 测试参考（合成 overlap、MNIST one-vs-rest、收敛性）和边界条件。
+- [x] 定义 class-prior estimation 的输入为可靠正类集合 `P` 与边缘未标记集合 `U`。
+- [x] 按论文 penL1 闭式公式实现 Gaussian basis、`beta_l(theta)` 和先验网格搜索。
+- [x] 接入 `BasePriorEstimator`，注册为 `class_prior_estimation`，别名包含 `pen_l1`。
+- [x] 编写边界、确定性和 `[0,1]` 范围测试。
+- [ ] 实现论文 L1 变体的带约束 QP。
+- [ ] 按论文 protocol 增加 `sigma/lambda` 的 nested CV，而不是依赖用户手工选择。
+- [ ] 增加 confidence interval/bootstrap 和 paper-like benchmark。
 
 ### 1.2 注意
 
-- 必须同时有 positive set 和 unlabeled set，缺任一无法计算 $``\beta_\ell``$。
-- **MATLAB 源码 ≠ 2017 论文**：MATLAB 是 L₂-RKHS + 矩阵求逆，论文是 penalized L₁ + 闭式解 thresholding。penL1 核心机制（$``c=\infty``$ → 闭式解）在 MATLAB 中不存在，必须从论文公式直接翻译。
-- L1 每个候选 $``\theta``$ 都要求解 QP，计算代价远高于 penL1，不适合大规模数据或密集 $``\theta``$ 网格。
-- PE、EN、SB 是本文对比基线，来自其他论文，不在此实现。
-- 论文未使用 SCAR 术语，未分析 SCAR 违反时的偏差方向。
-
----
+- 论文研究的是先验估计 `pi=P(Y=1)`，不是分类器训练，也不直接输出 posterior probability。
+- 输入的 `P` 应代表 `p(x|y=1)`；若已标记正例存在 selection bias，直接使用 penL1 会把 labeling bias 混入类先验估计。
+- `U` 必须来自边缘分布 `p(x)`。如果 U 是经过筛选的子集，论文的 mixture decomposition 不再直接成立。
+- Gaussian basis 对特征尺度很敏感。当前实现默认标准化；正式复现必须记录标准化方式及是否在训练 fold 内计算统计量。
+- `theta_grid`、`sigma` 和 `reg_lambda` 是工程参数。论文要求通过交叉验证选择，但没有为项目提供唯一默认网格。
+- 论文源码页面中的 MATLAB 文件与 2017 MLJ 论文的 penL1 公式并不完全对应；实现以论文公式为数学权威。
 
 ## 2. 论文信息
 
 | 字段 | 内容 |
 |---|---|
-| Paper | Class-prior Estimation for Learning from Positive and Unlabeled Data |
+| Paper | Class-Prior Estimation for Learning from Positive and Unlabeled Data |
 | Authors | Marthinus C. du Plessis, Gang Niu, Masashi Sugiyama |
-| Venue | MLJ |
+| Venue | Machine Learning |
 | Year | 2017 |
 | Family | `class_prior_estimation` |
-| Setting | Two datasets: positive set $``X \sim p(x\mid y=1)``$，unlabeled set $``X' \sim p(x)``$ |
-| Requires class prior | `False`，该方法输出 $``\hat{\pi}``$ |
+| Scenario | `single_training_set`、`case_control`（取决于 P/U 抽样方式） |
+| Requires class prior | `False`；输出 `pi_hat` |
 | Requires propensity | `False` |
 | Requires negative samples | `False` |
-| GPU required | `False` |
+| Backend | NumPy + SciPy/sklearn preprocessing |
+| Source record | [作者软件页面](http://www.mcduplessis.com/index.php/software/) |
+| Registry | `class_prior_estimation` / `pen_l1`，`NATIVE` |
 
-### Assumptions
+## 3. 问题设定与目标
+
+令：
 
 ```math
-X=\{x_i\}_{i=1}^{n} \overset{i.i.d.}{\sim} p(x\mid y=1),
+p_P(x)=p(x\mid Y=1),
 \qquad
-X'=\{x'_j\}_{j=1}^{n'} \overset{i.i.d.}{\sim} p(x)
+p_N(x)=p(x\mid Y=-1),
 ```
+
+未标记边缘分布为：
 
 ```math
-p(x)=\pi p(x\mid y=1)+(1-\pi)p(x\mid y=-1)
+p_U(x)=p(x)=\pi p_P(x)+(1-\pi)p_N(x),
+\qquad
+\pi=P(Y=1).
 ```
 
----
+观察到两个独立样本集：
 
-## 3. 符号与记号
+```math
+X_P=\{x_i^P\}_{i=1}^{n_P}\sim p_P(x),
+\qquad
+X_U=\{x_j^U\}_{j=1}^{n_U}\sim p_U(x).
+```
+
+目标是从 `X_P` 和 `X_U` 中估计 `pi`，不需要观测 `p_N` 或真实负标签。
+
+### 3.1 关键分布条件
+
+| 条件 | 含义 | 项目检查 |
+|---|---|---|
+| P 可靠 | `P` 中样本真实为正 | 由数据生成机制保证，代码无法验证 |
+| U 为 mixture | `U ~ p(x)` | 由任务采样协议保证 |
+| `0 < pi < 1` | 非退化 mixture | 输出网格默认避开端点 |
+| 可计算密度 ratio | basis/regularization 足够表达 | 通过合成实验诊断 |
+
+## 4. 符号与记号
 
 | 论文符号 | 含义 | 开发侧对应 |
 |---|---|---|
-| $``\pi=p(y=1)``$ | 真实类别先验 | `class_prior` |
-| $``\hat{\pi}``$ | 估计出的类别先验 | estimator output |
-| $``\theta``$ | 候选类别先验 | candidate prior |
-| $``X=\{x_i\}_{i=1}^n``$ | positive samples | `P` |
-| $``X'=\{x'_j\}_{j=1}^{n'}``$ | unlabeled samples | `U` |
-| $``p(x\mid y=1)``$ | 正类条件分布 | positive density |
-| $``p(x\mid y=-1)``$ | 负类条件分布 | negative density |
-| $``p(x)``$ | unlabeled marginal density | unlabeled density |
-| $``f(t)``$ | divergence generator | divergence function |
-| $``\tilde f(t)``$ | penalized $``f``$-divergence generator | penalized divergence |
-| $``f^*(z)``$ | Fenchel conjugate | conjugate |
-| $``r(x)``$ | Fenchel dual function | scoring function (linear model) |
-| $``\phi_\ell(x)``$ | non-negative basis function | Gaussian kernel basis |
-| $``\alpha_\ell``$ | basis coefficient | coefficient |
-| $``\beta_\ell``$ | empirical coefficient used in objective | precomputed statistic |
-| $``\lambda``$ | $``\ell_2``$ regularization coefficient for $``\alpha``$ | regularization |
-| $``c``$ | penalty parameter ($``\infty``$ for penL1, $``1``$ for L1) | penalty control |
+| `pi` | 真实正类先验 | 目标未知量 |
+| `theta` | 候选先验 | `theta_grid` 中的值 |
+| `P` | 正类条件样本 | `X[y_pu == 1]` |
+| `U` | 边缘未标记样本 | `X[y_pu == 0]` |
+| `f` | divergence generator | penL1 框架中的目标函数 |
+| `r(x)` | Fenchel dual scoring function | Gaussian basis linear model |
+| `phi_l(x)` | 第 `l` 个非负 basis | `exp(-distance/(2*sigma^2))` |
+| `alpha_l` | basis 系数 | penL1 闭式系数 |
+| `beta_l(theta)` | 经验 basis 差异 | 代码循环中的 `beta` |
+| `lambda` | coefficient L2 regularization | `reg_lambda` |
+| `sigma` | Gaussian width | `sigma` |
+| `b` | basis 数 | `n_centers_` |
 
----
+## 5. 核心推导
 
-## 4. 核心公式
+### 5.1 Partial distribution matching
 
-### 4.1 Penalized $``f``$-divergence 框架
-
-Partial distribution matching:
+对于候选比例 `theta`，考虑将 `theta p_P` 与 `p_U` 匹配。用 f-divergence 表示：
 
 ```math
-\theta=\arg\min_{0\le\theta\le1} \mathrm{Div}_f(\theta),
-\qquad
-\mathrm{Div}_f(\theta) = \int f\left(\frac{\theta p(x\mid y=1)}{p(x)}\right)p(x)\,dx
+D_f(\theta)=
+\int f\left(\frac{\theta p_P(x)}{p_U(x)}\right)p_U(x)dx.
 ```
 
-Penalized $``f``$-divergence（惩罚 $``\theta p(x\mid y=1)>p(x)``$ 的区域）：
+当 `theta` 不超过真实 mixture proportion 时，`theta p_P` 可以被 `p_U` 包含；估计过程通过最小化 divergence 找到可行的最大比例。
+
+### 5.2 Penalized f-divergence
+
+为了惩罚 `theta p_P(x) > p_U(x)` 的区域，论文引入：
 
 ```math
 \tilde f(t)=
@@ -97,150 +117,192 @@ f(t), & 0\le t\le 1,\\
 \end{cases}
 ```
 
-Fenchel dual 样本均值形式（用 $``\tilde f^*``$ 替代 $``f^*``$ 即得 penalized 版本）：
+这使得违反 mixture 包含关系的候选比例代价变大。Fenchel dual 后，对固定 `theta` 求解一个关于 `r` 的上界/经验目标，再在 `theta` 上搜索。
+
+### 5.3 Gaussian basis
+
+项目使用非负 Gaussian basis：
 
 ```math
-\widehat{\mathrm{Div}}_f(\theta) \ge \sup_r \left[
-\frac{\theta}{n}\sum_{i=1}^{n}r(x_i)
-- \frac{1}{n'}\sum_{j=1}^{n'}f^*(r(x'_j))
-\right]
-```
-
-### 4.2 共享模型
-
-线性模型 + Gaussian kernel basis：
-
-```math
-r(x)=\sum_{\ell=1}^{b}\alpha_\ell\phi_\ell(x)-1
+\phi_l(x)=
+\exp\left(-\frac{\|x-c_l\|^2}{2\sigma^2}\right),
+\qquad 0<\phi_l(x)\le1.
 ```
 
 ```math
-\phi_\ell(x) = \exp\left(-\frac{\|x-c_\ell\|^2}{2\sigma^2}\right),
-\qquad 0<\phi_\ell(x)\le 1
+r_\alpha(x)=\sum_{l=1}^{b}\alpha_l\phi_l(x)-1.
 ```
 
-实验中 Gaussian centers 取全部训练样本，$``b=n+n'``$。
+当前实现将训练数据的前 `n_centers` 个样本作为 centers；`n_centers=None` 时使用全部样本。论文实验可使用全部训练样本作为 centers，但大规模数据下会带来二次内存和计算开销。
 
-对每个候选 $``\theta``$，先计算：
+### 5.4 经验 basis 差异
+
+对每个 `theta` 和 basis `l`：
 
 ```math
-\beta_\ell(\theta) = \frac{\theta}{n}\sum_{i=1}^{n}\phi_\ell(x_i) - \frac{1}{n'}\sum_{j=1}^{n'}\phi_\ell(x'_j)
+\beta_l(\theta)=
+\theta\frac{1}{n_P}\sum_{i=1}^{n_P}\phi_l(x_i^P)
+-\frac{1}{n_U}\sum_{j=1}^{n_U}\phi_l(x_j^U).
 ```
 
-### 4.3 penL1（$``c=\infty``$）
+注意 P 与 U 的分母必须分别是 `n_P` 和 `n_U`；不能把两个集合拼接后统一平均。
 
-内层闭式解：
+## 6. penL1 算法
+
+### 6.1 闭式内层解
+
+penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 
 ```math
-\hat{\alpha}_\ell(\theta) = \frac{1}{\lambda}\max(0,\beta_\ell(\theta))
+\hat\alpha_l(\theta)=
+\frac{1}{\lambda}\max(0,\beta_l(\theta)).
 ```
 
-经验目标：
+### 6.2 外层目标
+
+代入闭式解后，项目使用：
 
 ```math
-\widehat{\mathrm{penL}}_1(\theta) = \frac{1}{\lambda}\sum_{\ell=1}^{b}\max(0,\beta_\ell(\theta))\beta_\ell(\theta) - \theta + 1
+\widehat J_{penL1}(\theta)=
+\frac{1}{\lambda}
+\sum_{l=1}^{b}\max(0,\beta_l(\theta))\beta_l(\theta)
+-\theta+1.
 ```
 
-最终估计：
+最终估计为：
 
 ```math
-\hat{\pi} = \arg\min_{0\le\theta\le1} \widehat{\mathrm{penL}}_1(\theta)
+\hat\pi=\arg\min_{\theta\in\Theta}\widehat J_{penL1}(\theta),
 ```
 
-### 4.4 L1（$``c=1``$）
+其中 `Theta` 是 `[0,1]` 内候选网格。当前代码默认 `0.01` 到 `0.99` 的 99 点网格，正式实验应显式传入网格或实现连续搜索敏感性分析。
 
-内层为带约束二次规划：
+## 7. L1 变体
+
+论文还讨论 `c=1` 的 L1 版本。其固定 `theta` 的内层问题需要解带约束 QP：
 
 ```math
-\hat{\alpha}(\theta) = \arg\min_{\alpha} \left[ \frac{\lambda}{2}\sum_{\ell=1}^{b}\alpha_\ell^2 - \sum_{\ell=1}^{b}\alpha_\ell\beta_\ell(\theta) \right]
+\min_{\alpha\ge0}
+\frac{\lambda}{2}\|\alpha\|_2^2
+-\alpha^T\beta(\theta),
 ```
 
-subject to:
+并满足每个 U 样本上的非负函数约束，例如：
 
 ```math
-\sum_{\ell=1}^{b}\alpha_\ell\phi_\ell(x'_j) \le 2 \quad (j=1,\ldots,n'),\qquad
-\alpha_\ell \ge 0 \quad (\ell=1,\ldots,b)
+\sum_l\alpha_l\phi_l(x_j^U)\le 2,
+\qquad j=1,\ldots,n_U.
 ```
 
-经验目标：
+当前项目只实现 penL1。L1 不能通过把 `max(0,beta)/lambda` 改名得到；每个候选 `theta` 都需要一次 QP，复杂度和 solver 容差必须在方法卡和 benchmark 中单独记录。
 
-```math
-\widehat L_1(\theta) = \hat{\alpha}(\theta)^\top\hat{\beta}(\theta) - \theta + 1
+## 8. 算法概要
+
+```text
+输入：X、y_pu、sigma、lambda、theta_grid、n_centers
+
+1. 校验 P/U 均非空，转换为 P=X[y_pu==1]、U=X[y_pu==0]。
+2. 对 X 做训练集标准化（可关闭）。
+3. 选择 Gaussian centers，计算 Phi_P 和 Phi_U。
+4. 对 theta_grid 中每个 theta：
+   a. 计算 beta(theta)=theta*mean(Phi_P)-mean(Phi_U)；
+   b. 计算 penL1 经验目标 J(theta)。
+5. 选择 J 最小的 theta，保存 class_prior_ 和 objective_values_。
+6. estimate() 返回 class_prior_。
 ```
 
-最终估计：
+## 9. 超参数与复杂度
 
-```math
-\hat{\pi} = \arg\min_{0\le\theta\le1} \widehat L_1(\theta)
+| 参数 | 当前默认值 | 含义 | 选择建议 |
+|---|---:|---|---|
+| `sigma` | 1.0 | Gaussian width | 应在训练 fold 内 CV；对标准化尺度敏感 |
+| `reg_lambda` | `1e-2` | alpha 的 L2 正则 | 应与 sigma 联合搜索 |
+| `theta_grid` | 99 点 | 候选先验 | 数据量大时可先粗网格再局部细化 |
+| `n_centers` | 200 | basis 中心数 | 小数据可设 `None`；大数据需限制 |
+| `standardize` | True | 是否特征标准化 | 必须记录并避免验证/测试泄漏 |
+
+若 `b` 为 centers 数量，构造 `Phi_P/Phi_U` 的时间和内存约为 `O((n_P+n_U)b d)`；当 `b=n_P+n_U` 时接近二次规模。theta 搜索额外为 `O(|Theta|b)`，penL1 内层不需要逐 theta 求解 QP。
+
+## 10. API 接口与项目落点
+
+### 10.1 构造函数
+
+```python
+class ClassPriorEstimator(BasePriorEstimator):
+    def __init__(
+        self,
+        *,
+        sigma=1.0,
+        reg_lambda=1e-2,
+        theta_grid=None,
+        n_centers=200,
+        standardize=True,
+    ):
+        ...
 ```
 
-### 4.5 超参数
+### 10.2 API 语义
 
-| 参数 | 含义 | 论文设置 |
+| API / 属性 | 约定 |
+|---|---|
+| `fit(X, y_pu)` | `1` 为可靠正样本，`0` 为 U；返回 self |
+| `estimate()` | 返回 `[0,1]` 内的 `float` |
+| `confidence_interval(alpha)` | 当前返回 `None`，论文未提供项目可直接使用的 CI |
+| `class_prior_` | 选中的 `theta` |
+| `theta_grid_` | 实际使用的候选网格 |
+| `objective_values_` | 每个候选 `theta` 的 penL1 目标 |
+| `mean_`, `scale_` | 标准化统计量（standardize=True 时） |
+| `n_centers_` | 实际 basis 数 |
+| `get_params/set_params` | sklearn `BaseEstimator` 参数协议 |
+
+### 10.3 模块落点
+
+| 模块 | 责任 | 状态 |
 |---|---|---|
-| $``\lambda``$ | $``\frac{\lambda}{2}\sum_\ell\alpha_\ell^2``$ 正则化系数 | 无默认值；CV 选择 |
-| $``\sigma``$ | Gaussian kernel width | 无默认值；CV 选择 |
-| $``b``$ | basis functions 数量 | $``b=n+n'``$（全部训练样本为中心） |
-| $``c``$ | penalty parameter | penL1: $``\infty``$，L1: $``1``$ |
-| $``\theta``$ | candidate class prior | grid search $``[0,1]``$；论文未指定搜索方式 |
+| `pu_toolbox/prior/pen_l1.py` | `ClassPriorEstimator` / `PenL1Estimator` | ✅ penL1 |
+| `pu_toolbox/prior/__init__.py` | 公开导出 | ✅ |
+| `pu_toolbox/registry/builtin_methods.py` | class-prior metadata 和 binding | ✅ |
+| `tests/unit/prior/test_pen_l1.py` | 闭式目标 smoke、确定性、边界测试 | ✅ |
+| `benchmarks/paper_like/class_prior_estimation/` | 合成 overlap、MNIST one-vs-rest | ⏳ |
 
----
+## 11. 测试与验收标准
 
-## 5. 算法概要
+### 11.1 API 与边界
 
-两种方法共享框架：对 $``\theta``$ 做 grid search，内层用 Gaussian kernel basis 计算 $``\beta_\ell(\theta)``$，以对应目标函数选最优 $``\theta``$。$``\sigma``$ 和 $``\lambda``$ 按论文要求通过 CV 选择（论文未给出具体 protocol）。
+- 没有正样本或没有 U 时拒绝。
+- `sigma <= 0`、`reg_lambda <= 0` 时拒绝。
+- `theta_grid` 必须是一维、非空且落在 `[0,1]`。
+- `estimate()` 在 fit 前抛出 `NotFittedError`。
+- 相同输入和参数时输出确定。
+- 输出先验和目标数组均为有限值。
 
-- **penL1**：内层闭式解 $``\hat{\alpha}_\ell = \max(0, \beta_\ell) / \lambda``$，$``O(b)``$。
-- **L1**：内层每个候选 $``\theta``$ 解一次带 $``n'``$ 个线性约束的 QP，计算代价远高于 penL1。
+### 11.2 数学测试
 
----
+使用人工 Gaussian basis 验证：
 
-## 6. 源码状态
+```text
+beta(theta) = theta * mean(Phi_P, axis=0) - mean(Phi_U, axis=0)
+alpha(theta) = maximum(beta(theta), 0) / lambda
+J(theta) = dot(alpha(theta), beta(theta)) - theta + 1
+```
+
+测试必须分别验证 P/U 分母，不能只验证最终 `argmin`。
+
+### 11.3 统计/论文复现测试
+
+- 在已知 `pi` 的合成 mixture 上报告 bias、MAE 和标准差；
+- 改变 overlap、P/U 样本量和 `pi`，画出估计误差曲线；
+- 对 `sigma` 和 `lambda` 做 nested CV，避免用真实 `pi` 选择参数；
+- 与 ReCPE、Elkan-Noto/其他 CPE baseline 对比时，明确不同方法的输入假设；
+- 报告失败比例和估计落在边界的比例，不只报告均值。
+
+## 12. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|
-| Source status | `official_related` |
-| Upstream URL | http://www.mcduplessis.com/index.php/software/ |
-| License | `unknown` |
-| Framework | MATLAB |
-| 实际对应论文 | ICML 2012 (du Plessis & Sugiyama)，不是 2017 MLJ 论文 |
-| 包含方法 | `LSDDPriorEstMedian.m`（L₂-distance）、`pe_prior_est_grid.m`（Pearson divergence） |
-
----
-
-## 7. API 接口
-
-| API | 约定 |
-|---|---|
-| `fit(X, y_pu)` | `y_pu` 中 `+1` 为 positive、`0` 为 unlabeled（项目约定，非论文符号） |
-| `estimate()` | 返回标量 `float`，即 $``\hat{\pi}``$ |
-| `confidence_interval(alpha)` | 返回 `NotImplemented` |
-| `get_params()` / `set_params()` | 暴露 `theta_grid`（或一维搜索策略）、`sigma_candidates`、`lambda_candidates`、basis-center 策略 |
-
----
-
-## 8. 测试参考
-
-### 8.1 Synthetic overlap test
-
-论文 1D 实验设置：
-
-```text
-p(x | y = 1)  = U(0, 1)
-p(x | y = -1) = U(1 - gamma, 2 - gamma)
-pi_true = 0.7
-gamma in {0.25, 0.75}
-```
-
-### 8.2 MNIST one-vs-rest test
-
-```text
-For digit k:
-    positive = digit k, negative = all others
-    PCA to 4 dimensions
-    evaluate class-prior squared error
-```
-
-### 8.3 Convergence sanity test
-
-增大 $``n``$ 和 $``n'``$（保持数据分布不变），预期平均估计误差下降。tolerance 根据项目数据规模和随机种子单独设定。
+| Source status | `official_related`；作者页面源码与本文 penL1 公式需分开核对 |
+| Implementation status | `NATIVE`，当前为 penL1 clean-room |
+| 已实现 | Gaussian basis、penL1 闭式系数、先验网格搜索、统一 prior API |
+| 未实现 | L1-QP、论文完整 CV protocol、CI/bootstrap、paper-like benchmark |
+| 主要风险 | basis 尺度、先验搜索网格、P/U 抽样偏差和有限样本误差都会显著影响 `pi_hat` |
+| 解释边界 | `estimate()` 是 mixture proportion/class prior estimate，不是分类器概率，也不是置信区间 |

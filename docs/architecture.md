@@ -188,16 +188,16 @@ class BaseSourceAdapter(ABC):
 
 | 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |
 |---|---|
-| 类先验 $\pi$ | ✅ ReCPE, ⏳ TIcE, ⏳ AlphaMax, ⏳ penL1 |
+| 类先验 $\pi$ | ✅ ReCPE, ✅ penL1, ⏳ TIcE, ⏳ AlphaMax |
 | 标记倾向 $c$ (SCAR) | ✅ Elkan-Noto |
-| 标记倾向 $c(x)$ (SAR) | ⏳ LBE, ⏳ PUSB |
-| PU 风险/损失 | ✅ uPU, ✅ nnPU, ✅ PNU, ⏳ Dist-PU |
+| 标记倾向 $c(x)$ (SAR) | ✅ LBE, ✅ PUSB |
+| PU 风险/损失 | ✅ uPU, ✅ nnPU, ✅ PNU, ✅ Dist-PU |
 
 ## 8. 论文方法到模块的映射
 
 | 方法 | 主要模块 |
 |---|---|
-| Class-Prior Estimation | `prior/pen_l1.py` (planned), `prior/wrappers.py` (planned) |
+| Class-Prior Estimation | `prior/pen_l1.py`, `prior/recpe.py` |
 | ReCPE | `prior/recpe.py` |
 | Elkan-Noto | `estimators/classic/elkan_noto.py` |
 | uPU / nnPU / PNU | `losses/upu.py`, `losses/nnpu.py`, `losses/pnu.py` |
@@ -205,8 +205,8 @@ class BaseSourceAdapter(ABC):
 | nnPU 分类器 | `estimators/risk/nnpu.py` |
 | PNU 分类器 | `estimators/risk/pnu.py` |
 | 共享 basis 工具 | `utils/basis.py` |
-| PUSB / LBE | `estimators/bias_aware/pusb.py` (planned), `estimators/bias_aware/lbe.py` (planned) |
-| Self-PU / Dist-PU | `estimators/deep/self_pu.py` (planned), `estimators/deep/dist_pu.py` (planned) |
+| PUSB / LBE | `estimators/bias_aware/pusb.py`, `estimators/bias_aware/lbe.py` |
+| Self-PU / Dist-PU | `estimators/deep/self_pu.py` (planned), `estimators/risk/dist_pu.py` |
 | LDCE / Centroid PU | `estimators/risk/ldce.py` |
 | KLDCE (核化 LDCE) | `estimators/risk/kldce.py` (QP oracle + RBF kernel) |
 | 共享质心原语 | `utils/centroid.py` (MoM + 协方差) |
