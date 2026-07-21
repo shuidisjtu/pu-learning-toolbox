@@ -562,7 +562,11 @@ class LDCEClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
 
         # ── Algorithm 1: MoM centroid of corrupted negative set ───────
-        m_hat = _mom_centroid(X_U, self.mom_groups, rng)
+        # Paper: corrupted set is {ỹ_i · x_i | ỹ_i = -1} = {-x_i}.
+        # MoM operates on -X_U so that m̂ ≈ mean({-x_i}).
+        # Covariance (Eq. 10) uses X_U directly — the sign cancels in
+        # the quadratic form.
+        m_hat = _mom_centroid(-X_U, self.mom_groups, rng)
         self.corrupted_centroid_ = m_hat.copy()
 
         # ── Eq. 10: centroid covariance ───────────────────────────────
