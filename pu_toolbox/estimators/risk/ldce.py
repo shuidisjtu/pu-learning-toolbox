@@ -39,106 +39,7 @@ from ...core.tags import (
     SourceStatus,
 )
 from ...core.validation import validate_pu_X_y
-
-# ═════════════════════════════════════════════════════════════════════
-# Private algorithm helpers
-# ═════════════════════════════════════════════════════════════════════
-
-
-def _mom_centroid(
-    X_U: np.ndarray,
-    g: int,
-    rng: np.random.RandomState,
-) -> np.ndarray:
-    """Median-of-means centroid estimate (Algorithm 1).
-
-    Parameters
-    ----------
-    X_U : np.ndarray of shape (n_U, d)
-        Unlabeled samples (corrupted negative set S̃_N).
-    g : int
-        Number of groups.  ``g=1`` degenerates to the ordinary mean.
-    rng : np.random.RandomState
-        Seeded random state for reproducible shuffling.
-
-    Returns
-    -------
-    m_hat : np.ndarray of shape (d,)
-        MoM centroid estimate.
-
-    Raises
-    ------
-    ValueError
-        If *g* exceeds the number of unlabeled samples.
-    """
-    n_U = X_U.shape[0]
-
-    if g == 1:
-        return X_U.mean(axis=0)
-
-    if g > n_U:
-        raise ValueError(
-            f"mom_groups ({g}) cannot exceed the number of unlabeled "
-            f"samples ({n_U})."
-        )
-
-    # Shuffle and split into g approximately equal groups
-    indices = rng.permutation(n_U)
-    groups = np.array_split(indices, g)
-    means = np.array([X_U[grp].mean(axis=0) for grp in groups])  # (g, d)
-
-    # Pairwise L2 distances between group means
-    diffs = np.linalg.norm(
-        means[:, None, :] - means[None, :, :], axis=-1
-    )  # (g, g)
-
-    # r_i = median_{j != i} ||m_i - m_j||
-    r = np.array([
-        np.median(np.delete(diffs[i], i)) for i in range(g)
-    ])
-
-    i_star = int(np.argmin(r))
-    return means[i_star]
-
-
-def _centroid_covariance(
-    X_U: np.ndarray,
-    ridge: float,
-) -> np.ndarray:
-    """Empirical covariance of the corrupted centroid (Eq. 10).
-
-    .. math::
-
-        \\hat{S} = \\frac{X_U^\\top X_U}{|U|^2}
-                 - \\frac{(\\sum X_U)(\\sum X_U)^\\top}{|U|^2}
-                 + \\rho I
-
-    where :math:`\\rho` is the ridge penalty.
-
-    Note: because all unlabeled samples have corrupted label
-    :math:`\\tilde{y}_i = -1`, the term :math:`(\\sum x_i \\tilde{y}_i)`
-    equals :math:`-\\sum x_i`, and its outer product is identical to
-    :math:`(\\sum x_i)(\\sum x_i)^\\top`.
-
-    Parameters
-    ----------
-    X_U : np.ndarray of shape (n_U, d)
-        Unlabeled samples.
-    ridge : float
-        Ridge penalty added to the diagonal for numerical stability.
-
-    Returns
-    -------
-    S_hat : np.ndarray of shape (d, d)
-        Regularised centroid covariance matrix.
-    """
-    n_U = X_U.shape[0]
-    d = X_U.shape[1]
-    sum_X = X_U.sum(axis=0)  # (d,)
-
-    S = (X_U.T @ X_U) / (n_U ** 2) - np.outer(sum_X, sum_X) / (n_U ** 2)
-    S += ridge * np.eye(d)
-    return S
+from ...utils.centroid import _centroid_covariance, _mom_centroid
 
 
 def _update_m(
@@ -570,7 +471,8 @@ class LDCEClassifier(BasePUClassifier):
         self.corrupted_centroid_ = m_hat.copy()
 
         # ── Eq. 10: centroid covariance ───────────────────────────────
-        S_hat = _centroid_covariance(X_U, self.covariance_ridge)
+        S_hat_raw = _centroid_covariance(X_U)
+        S_hat = S_hat_raw + self.covariance_ridge * np.eye(d)
         self.centroid_covariance_ = S_hat
 
         # ── Initialise w ──────────────────────────────────────────────

@@ -13,6 +13,7 @@ import pytest
 
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
+from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.pnu import PNUClassifier
@@ -58,12 +59,20 @@ def _make_ldce():
     )
 
 
+def _make_kldce():
+    return KLDCEClassifier(
+        flip_probability=0.3, sigma=2.0, max_acs_iter=5,
+        tol=1e-4, random_state=42,
+    )
+
+
 _CLASSIFIER_FACTORIES = [
     pytest.param(_make_elkan_noto, id="ElkanNotoClassifier"),
     pytest.param(_make_upu, id="UPUClassifier"),
     pytest.param(_make_nnpu, id="NonNegativePUClassifier"),
     pytest.param(_make_pnu, id="PNUClassifier"),
     pytest.param(_make_ldce, id="LDCEClassifier"),
+    pytest.param(_make_kldce, id="KLDCEClassifier"),
 ]
 
 

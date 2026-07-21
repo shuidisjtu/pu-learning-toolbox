@@ -1,5 +1,10 @@
 # KLDCE 求解器设计说明：ACS + 广义 SMO
 
+> **Implementation status (2026-07-21):** QP oracle 版本已实现。
+> 类: `pu_toolbox.estimators.risk.kldce.KLDCEClassifier`
+> 首版仅支持 RBF kernel (参数 `sigma`)，使用 scipy SLSQP 作为 QP oracle。
+> 附录原生 SMO 留待后续 PR。
+
 ## 1. 结论与实施建议
 
 KLDCE（Kernelized LDCE）不是“给线性 LDCE 换一个核函数”即可完成的模型。其训练问题是由以下两个子问题交替构成的非联合凸优化：

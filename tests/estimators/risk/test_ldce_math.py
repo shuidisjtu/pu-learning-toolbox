@@ -12,12 +12,11 @@ import numpy as np
 import pytest
 
 from pu_toolbox.estimators.risk.ldce import (
-    _centroid_covariance,
     _ldce_objective,
     _ldce_subgradient,
-    _mom_centroid,
     _update_m,
 )
+from pu_toolbox.utils.centroid import _centroid_covariance, _mom_centroid
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -65,27 +64,30 @@ class TestCentroidCovariance:
 
     def test_shape_and_symmetry(self, rng):
         X_U = rng.randn(30, 4)
-        S = _centroid_covariance(X_U, ridge=1e-8)
+        S_raw = _centroid_covariance(X_U)
+        S = S_raw + 1e-8 * np.eye(4)
         assert S.shape == (4, 4)
         np.testing.assert_allclose(S, S.T, atol=1e-10)
 
     def test_ridge_makes_positive_definite(self, rng):
         X_U = rng.randn(50, 3)
-        S = _centroid_covariance(X_U, ridge=1.0)
+        S_raw = _centroid_covariance(X_U)
+        S = S_raw + 1.0 * np.eye(3)
         eigvals = np.linalg.eigvalsh(S)
         assert (eigvals > 0).all()
 
     def test_singular_input_no_nan(self):
         X_U = np.ones((10, 3))
-        S = _centroid_covariance(X_U, ridge=1e-8)
+        S_raw = _centroid_covariance(X_U)
+        S = S_raw + 1e-8 * np.eye(3)
         assert not np.isnan(S).any()
         assert not np.isinf(S).any()
 
     def test_identity_data(self):
         X_U = np.eye(5)
-        S = _centroid_covariance(X_U, ridge=0.0)
+        S_raw = _centroid_covariance(X_U)
         expected = np.eye(5) / 25.0 - np.ones((5, 5)) / 25.0
-        np.testing.assert_allclose(S, expected, atol=1e-14)
+        np.testing.assert_allclose(S_raw, expected, atol=1e-14)
 
 
 # ═════════════════════════════════════════════════════════════════════

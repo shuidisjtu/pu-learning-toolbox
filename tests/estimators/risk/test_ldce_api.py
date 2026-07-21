@@ -124,7 +124,8 @@ class TestHSensitivity:
 class TestConvergenceDiagnostics:
     """Diagnostic attributes are recorded correctly."""
 
-    def test_diagnostics_consistent(self, rng):
+    def test_diagnostics_consistent_and_metadata(self, rng):
+        """Diagnostic attributes recorded correctly, including metadata."""
         rng2 = np.random.RandomState(23)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
         clf = LDCEClassifier(
@@ -137,11 +138,7 @@ class TestConvergenceDiagnostics:
         if clf.converged_:
             assert clf.n_iter_ < clf.max_iter
 
-    def test_metadata_includes_diagnostics(self, rng):
-        rng2 = np.random.RandomState(24)
-        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
-        clf = LDCEClassifier(flip_probability=0.3, max_iter=10, random_state=42)
-        clf.fit(X, y_pu)
+        # Also verify get_pu_metadata()
         meta = clf.get_pu_metadata()
         assert meta["is_fitted"] is True
         assert meta["flip_probability"] == 0.3
