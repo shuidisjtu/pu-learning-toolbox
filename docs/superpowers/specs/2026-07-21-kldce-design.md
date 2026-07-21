@@ -2,7 +2,7 @@
 
 > 2026-07-21 | 基于 `docs/research/method_cards/KLDCE.md` + 线上补充附录
 > 修订 2: 纳入 problems.md 论文对照审查 — 盒约束、等式常数 C、Taylor 展开点、RBF 参数、ridge 语义、MoM 符号 等 7 项修正
-> 修订 3: problems.md 剩余 4 项 — ridge 默认值、约束缩放基准、bias 接口、QP 逐块公式
+> 修订 3: problems.md 第三轮 — d(μ) 符号、bounded_interval 公式、pinv 回退、输入校验
 
 ## 1. 背景与前置条件
 
@@ -114,7 +114,10 @@ if sigma == "scale":
 ```text
 fit(X, y_pu, *, class_prior=None):
   1. validate_pu_X_y → {+1, 0}, split P (k samples) / U (n_U = n-k samples)
-  2. 校验 flip_probability ∈ (0,1), n_dual = n + n_U ≤ max_dual_variables
+  2. 校验 flip_probability ∈ (0,1)
+     校验 k > 0 (至少一个正例), n_U > 0 (至少一个无标签样本)
+     校验 mom_groups ≥ 1 且 mom_groups ≤ n_U
+     校验 n_dual = n + n_U ≤ max_dual_variables
   3. p = k/[n(1-h)], 检查 |1-2ph| 近零 (≤ 1e-12)
   4. ỹ = +1 (P), -1 (U)
   5. MoM: m̂ = _mom_centroid(-X_U, g, rng)   (论文: {ỹ_i · x_i | ỹ=-1} = {-x_i})
@@ -198,8 +201,8 @@ Q_γγ[i][j] = ỹ_{k+i} ỹ_{k+j} K(x_{k+i}, x_{k+j})  (i,j = 1…n_U)
 **线性项 d(μ)**（`N` 维）：
 
 ```text
-d(μ)_i = 1 - C_eq·ỹᵢ·K(xᵢ, μ)/(2λ)               (i=1…n, 对应 α)
-d(μ)_{n+i} = 1 + C_eq·ỹ_{k+i}·K(x_{k+i}, μ)/(2λ)   (i=1…n_U, 对应 γ)
+d(μ)_i = 1 + C_eq·ỹᵢ·K(xᵢ, μ)/(2λ)               (i=1…n, 对应 α)
+d(μ)_{n+i} = 1 - C_eq·ỹ_{k+i}·K(x_{k+i}, μ)/(2λ)   (i=1…n_U, 对应 γ)
 ```
 
 **约束**：
@@ -212,6 +215,9 @@ ub  = [1/n]×n + [1/(2n)]×n_U
 ```
 
 验收：MATH 测试用 4 样本手工计算每个块，与独立实现的期望值比较（atol=1e-14）。
+另增单样本交叉项测试：从 §5 的 RKHS 系数 `r = αỹ - γỹ_U - C_eq·φ(μ)` 展开
+`λ‖r‖²`，逐项核对 Q_αα/Q_αγ/Q_γγ 的符号和 d(μ) 的符号——确保 QP 公式
+不是用同一错误公式互相验证。
 
 ### 6.3 `_solve_qp_oracle(Q, d, Aeq, beq, lb, ub, z0)` → (z, diagnostics)
 
@@ -233,7 +239,10 @@ K(x, μ) = exp(-||x-μ||²/(2σ²))
 
 ### 6.5 `_update_centroid(m_hat, S_raw, S_solve, delta, centroid_radius, tol)`
 
-- 解 `u = S_solve⁻¹ · Δᵀ`（用 `scipy.linalg.solve`；当 ridge=0 且奇异时回退 `np.linalg.pinv`）
+- 解 `u = S_solve⁻¹ · Δᵀ`（用 `scipy.linalg.solve`）
+- **ridge=0 严格模式**：先检查 `S_raw` 条件数；若 `cond(S_raw) > 1e12` 或 Cholesky 失败，
+  报 `LinAlgError("S_raw is near-singular; use covariance_ridge > 0 for numerical stabilization")`
+- **ridge>0 变体模式**：`S_solve = S_raw + ridge·I` 保证可逆，运行后标记 `centroid_solver="ridge_stabilized"`
 - **约束缩放基准始终为 `S_raw`**：`q = u @ S_raw @ u`
 - 若 `q ≤ tol`: `μ = m_hat`，标记 `degenerate_centroid_step`
 - 否则: `μ = m_hat - u · √(centroid_radius / q)`（**保证 `(μ-m̂)ᵀS_raw(μ-m̂) = b`**）
@@ -251,11 +260,20 @@ bᵢ = ỹᵢ - f(xᵢ)   (f 取未加 b₀ 的原始分数)
 b₀ = median(bᵢ)
 ```
 
-无自由 α 变量时由 `[L_bound, U_bound]` 的可行区间取中点：
-- L_bound = max{ -f(xᵢ) | αᵢ = C_alpha, ỹᵢ = +1 } ∪ { -f(xᵢ) | αᵢ = 0, ỹᵢ = -1 }
-- U_bound = min{ -f(xᵢ) | αᵢ = 0, ỹᵢ = +1 } ∪ { -f(xᵢ) | αᵢ = C_alpha, ỹᵢ = -1 }
-- 若 L_bound ≤ U_bound: b₀ = (L_bound + U_bound)/2，标记 `bias_recovery="bounded_interval"`
-- 否则标记 `bias_recovery="indeterminate"`，b₀ = 0
+无自由 α 变量时，令 `gᵢ = f(xᵢ) - b₀`（不含 bias 的决策分数）。
+由 KKT margin 条件 `ỹᵢ(gᵢ+b₀) ≥ 1`（α=0）和 `≤ 1`（α=C_alpha）：
+
+```text
+L = max({1 - gᵢ  | αᵢ=0,      ỹᵢ=+1} ∪
+        {-1 - gᵢ | αᵢ=C_alpha, ỹᵢ=-1})
+U = min({1 - gᵢ  | αᵢ=C_alpha, ỹᵢ=+1} ∪
+        {-1 - gᵢ | αᵢ=0,      ỹᵢ=-1})
+```
+
+若 `L ≤ U`: b₀ = (L+U)/2，标记 `bias_recovery="bounded_interval"`
+否则标记 `bias_recovery="indeterminate"`，b₀ = 0
+
+验收：为四种 KKT 情况（α=0/C × ỹ=+1/-1）各写一个单测。
 
 附录式 (37)–(40) 的四项平均增量更新留给 `_recover_bias_smo_incremental`（SMO 版 PR）。
 
@@ -328,14 +346,14 @@ def _rbf_kernel(X, Z, sigma):
 | 6 | 高 | MoM 输入符号 | `_mom_centroid(-X_U)` — 同时修复 LDCE |
 | 7 | 中 | QP oracle ≠ 论文 SMO | 标注为等价求解器替代；SMO 后续 PR |
 
-## 11. v3 修正摘要（problems.md 剩余 4 项）
+## 11. v3 修正摘要（problems.md 第三轮）
 
 | # | 优先级 | 问题 | 修正 |
 |---|--------|------|------|
-| 1 | 高 | `covariance_ridge=1e-4` 非论文原式 | 默认 `0.0`（论文原式）；>0 为 opt-in 变体 |
-| 2 | 高 | 约束缩放基准用 `Δ@u` 不保证满足 | 改为 `q = uᵀ·S_raw·u`，`μ = m̂ - u·√(b/q)`；违反时椭球投影 |
-| 3 | 高 | `_recover_bias_from_kkt` 缺 `C_eq/C_gamma` | 接口补全；KKT bias 公式 + 边界区间公式写入 spec |
-| 4 | 中 | `_build_dual_qp` 缺逐块公式 | Q 三块 + d(μ) 分量 + 约束完整数学规格写入 §6.2 |
+| 1 | 严重 | d(μ) 符号与 §5 决策函数不一致 | α: `1+C_eq·ỹK/(2λ)`, γ: `1-C_eq·ỹK/(2λ)`；增单样本交叉项测试 |
+| 2 | 高 | bounded_interval L/U 公式缺 margin 常数 1 | 用 `gᵢ=f(xᵢ)-b₀` 重写；四种 KKT 情况各写单测 |
+| 3 | 高 | ridge=0 时 pinv 回退不等价 | 严格模式报 `LinAlgError` 提示加 ridge；>0 标记变体状态 |
+| 4 | 中 | 输入校验缺 k>0/n_U>0/p≤1/mom_groups≤n_U | 在步骤 2 添加显式校验，说明违反的统计前提 |
 
 ## 12. 不纳入本 PR
 
