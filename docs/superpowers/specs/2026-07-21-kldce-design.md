@@ -118,7 +118,8 @@ fit(X, y_pu, *, class_prior=None):
      校验 k > 0 (至少一个正例), n_U > 0 (至少一个无标签样本)
      校验 mom_groups ≥ 1 且 mom_groups ≤ n_U
      校验 n_dual = n + n_U ≤ max_dual_variables
-  3. p = k/[n(1-h)], 检查 |1-2ph| 近零 (≤ 1e-12)
+  3. p = k/[n(1-h)], **显式检查 0 < p ≤ 1**（p 是类别先验，违反时拒绝）
+     检查 |1-2ph| 近零 (≤ 1e-12)
   4. ỹ = +1 (P), -1 (U)
   5. MoM: m̂ = _mom_centroid(-X_U, g, rng)   (论文: {ỹ_i · x_i | ỹ=-1} = {-x_i})
      协方差: Ŝ_raw = _centroid_covariance(X_U)  (符号相消)
@@ -139,6 +140,8 @@ fit(X, y_pu, *, class_prior=None):
   ACS 外循环 (t=1..max_acs_iter):
     a. 固定 μ: _build_dual_qp(μ, K, ỹ, λ, n, k) → Q, d(μ), Aeq, beq, lb, ub
        _solve_qp_oracle(Q, d, Aeq, beq, lb, ub, z₀) → z=[α;γ], diagnostics
+       **注**: 论文 Algorithm 1 先更新 μ 再 SMO α/γ；QP oracle 版先固定 μ 解联合 QP 再更新 μ。
+       两者均为 ACS 的合理块坐标顺序变化，但 QP oracle 版不是论文 Algorithm 1 的逐行实现。
     b. 记录 fixed_mu_dual_objective, eq_residual, box_violation
     c. 固定 z: 按附录式(33) 从 α,γ 计算 Δ
        (Taylor 展开点 μ=0, 非 μ=m̂ — 论文原式)
@@ -251,29 +254,33 @@ K(x, μ) = exp(-||x-μ||²/(2σ²))
 
 ### 6.6 `_recover_bias_from_kkt(alpha, gamma, K, y_tilde, mu, lambda, C_eq, C_alpha, C_gamma)` → b₀
 
-QP oracle 版：收集 `0 < αᵢ < C_alpha` 的自由支持向量。
+QP oracle 版：收集 `0 < αᵢ < C_alpha` **或** `0 < γᵢ < C_gamma` 的自由支持向量。
 
-决策函数 `f(xᵢ)` 由 §5 公式计算（含 `-C_eq·K(x,μ)/(2λ)` 项）。对每个自由 αᵢ，由 KKT margin 条件反推：
+决策函数 `f(xᵢ)` 由 §5 公式计算（含 `-C_eq·K(x,μ)/(2λ)` 项）。对每个自由变量由 KKT margin 条件反推：
 
 ```text
-bᵢ = ỹᵢ - f(xᵢ)   (f 取未加 b₀ 的原始分数)
-b₀ = median(bᵢ)
+自由 αᵢ (ỹᵢ=+1): bᵢ = 1 - gᵢ
+自由 γᵢ (ỹᵢ=-1): bᵢ = 1 - gᵢ  (ỹ=-1, KKT: -(g+b)≥1, 自由时取等号)
+其中 gᵢ = f(xᵢ) - b₀ (不含 bias 的决策分数)
+b₀ = median({bᵢ})
 ```
 
-无自由 α 变量时，令 `gᵢ = f(xᵢ) - b₀`（不含 bias 的决策分数）。
-由 KKT margin 条件 `ỹᵢ(gᵢ+b₀) ≥ 1`（α=0）和 `≤ 1`（α=C_alpha）：
+无自由变量时（α 和 γ 全部在边界），令 `gᵢ = f(xᵢ) - b₀`。
+由 KKT margin 条件：
 
 ```text
-L = max({1 - gᵢ  | αᵢ=0,      ỹᵢ=+1} ∪
-        {-1 - gᵢ | αᵢ=C_alpha, ỹᵢ=-1})
+L = max({1 - gᵢ  | αᵢ=0, ỹᵢ=+1} ∪
+        {-1 - gᵢ | αᵢ=C_alpha, ỹᵢ=-1} ∪
+        {1 - gᵢ  | γᵢ=0, ỹᵢ=-1})
 U = min({1 - gᵢ  | αᵢ=C_alpha, ỹᵢ=+1} ∪
-        {-1 - gᵢ | αᵢ=0,      ỹᵢ=-1})
+        {-1 - gᵢ | αᵢ=0, ỹᵢ=-1} ∪
+        {1 - gᵢ  | γᵢ=C_gamma, ỹᵢ=-1})
 ```
 
 若 `L ≤ U`: b₀ = (L+U)/2，标记 `bias_recovery="bounded_interval"`
 否则标记 `bias_recovery="indeterminate"`，b₀ = 0
 
-验收：为四种 KKT 情况（α=0/C × ỹ=+1/-1）各写一个单测。
+验收：为 α=0/C、γ=0/C 各组合写单测（覆盖全部六种边界情况）。
 
 附录式 (37)–(40) 的四项平均增量更新留给 `_recover_bias_smo_incremental`（SMO 版 PR）。
 

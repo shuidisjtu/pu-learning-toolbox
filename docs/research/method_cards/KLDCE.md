@@ -133,7 +133,9 @@ $`C_\text{eq}=-(n-k)/[2n(1-2ph)]`$。
 
 ```text
 输入：X、y_pu、RBF 带宽 σ、h、λ、b、MoM 分组数 g
-1. 验证 censoring PU 输入 (k>0, n_U>0)；转换为 ỹ∈{-1,+1}；计算 p=k/[n(1-h)]。
+1. 验证 censoring PU 输入 (k>0, n_U>0, mom_groups≤n_U)；转换为 ỹ∈{-1,+1}；
+   计算 p=k/[n(1-h)]，**显式检查 0<p≤1**（p 是类别先验，违反时拒绝而非静默继续）；
+   检查 |1-2ph| 近零（等价于 |1-2k/n| 近零，病态时拒绝）。
 2. 对污染负集运行 MoM：**论文对象是 {ỹ_i·x_i | ỹ=-1} = {-x_i}**，因此传入 `-X_U` 得到 m̂。
    按论文式 (10) 计算协方差 Ŝ_raw = _centroid_covariance(X_U)（符号相消，可用 X_U 直接计算）。
 3. ridge 默认为 0（论文原式）；若 Ŝ_raw 奇异，严格模式报错，变体模式加 ridge>0。
@@ -143,6 +145,8 @@ $`C_\text{eq}=-(n-k)/[2n(1-2ph)]`$。
 5. 对 outer_iter=1..max_outer_iter：
    a. 固定 μ：构造 Q、d(μ)（详见 §6.2 逐块公式）、A_eq、lb、ub（C_alpha=1/n, C_gamma=1/(2n)）；
       调用 QP oracle 得 z=[α;γ]；记录 dual_obj、eq_residual、box_violation。
+      **注**：论文 Algorithm 1 是先更新 μ 再 SMO 更新 α/γ；QP oracle 版先固定 μ 解联合 QP 再更新 μ。
+      两者均为 ACS 的合理块坐标顺序变化，但 QP oracle 版不是论文 Algorithm 1 的逐行实现。
    b. 从 α、γ 按附录式 (33) 计算 Δ（**μ=0 Taylor 展开**）。
    c. 固定 α、γ：解 Ŝ_solve·u=Δᵀ；令 q=uᵀ·Ŝ_raw·u（**缩放基准始终为 Ŝ_raw**）；
       若 q≤ε：保持 μ=m̂；否则 μ=m̂-u·√(b/q)。验证 (μ-m̂)ᵀŜ_raw(μ-m̂)≤b。
@@ -310,12 +314,19 @@ and box_violation <= feasibility_tol
 论文式 (25) 含偏置 $`b_0`$，恢复策略因求解器而异：
 
 **QP oracle 版（首版交付）**：
-1. 收集 $`0<\alpha_i<C_1`$ 的自由支持向量。
-2. 由 KKT margin 条件：$`b_i=\tilde y_i-g_i`$，其中 $`g_i=f(x_i)-b_0`$（决策分数不含 bias），$`f(x_i)`$ 按式 (25) 计算（含 $`-C_\text{eq}K(x_i,\mu)/(2\lambda)`$ 项）。取中位数。
-3. **无自由变量时**：由四种 KKT 边界构造可行区间：
+1. 收集**自由 α 和自由 γ**：$`0<\alpha_i<C_1`$ 或 $`0<\gamma_i<C_2`$。
+2. 由 KKT margin 条件：
+   - 对自由 α（$`\tilde y_i=+1`$）：$`b_i=1-g_i`$
+   - 对自由 γ（$`\tilde y_i=-1`$）：$`b_i=1-g_i`$（无标签样本标签为 -1，KKT 条件为 $`-1\cdot(g_i+b)\ge 1`$，自由时取等号得 $`b=1-g_i`$）
+   其中 $`g_i=f(x_i)-b_0`$（决策分数不含 bias），$`f(x_i)`$ 按式 (25) 计算。对所有自由变量得到的 $`b_i`$ 取中位数。
+3. **无自由变量时**（α 和 γ 全部在边界）：由六种 KKT 边界构造可行区间：
 ```math
-L=\max(\{1-g_i\mid\alpha_i=0,\tilde y_i=+1\}\cup\{-1-g_i\mid\alpha_i=C_1,\tilde y_i=-1\})
-U=\min(\{1-g_i\mid\alpha_i=C_1,\tilde y_i=+1\}\cup\{-1-g_i\mid\alpha_i=0,\tilde y_i=-1\})
+\begin{aligned}
+L=\max(&\{1-g_i\mid\alpha_i=0,\tilde y_i=+1\}\cup\{-1-g_i\mid\alpha_i=C_1,\tilde y_i=-1\}\;\cup\\
+       &\{1-g_i\mid\gamma_i=0,\tilde y_i=-1\}\\
+U=\min(&\{1-g_i\mid\alpha_i=C_1,\tilde y_i=+1\}\cup\{-1-g_i\mid\alpha_i=0,\tilde y_i=-1\}\;\cup\\
+       &\{1-g_i\mid\gamma_i=C_2,\tilde y_i=-1\}
+\end{aligned}
 ```
 若 $`L\le U`$ 取中点；否则标记 `indeterminate`，$`b_0=0`$。
 
