@@ -240,12 +240,13 @@ class TestRegistryClassBinding:
                 f"NATIVE method {meta.name} class has no fit()"
             )
 
-    def test_six_native_methods_bound(self):
-        """Exactly 6 native methods are trainable."""
+    def test_native_methods_bound(self):
+        """All native methods are trainable or prior estimators are bound."""
         from pu_toolbox.registry import list_algorithms
 
         trainable = list_algorithms(trainable_only=True)
         names = {m.name for m in trainable}
         assert names == {
             "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
+            "class_prior_estimation", "dist_pu", "pusb", "lbe",
         }

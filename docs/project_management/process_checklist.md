@@ -32,13 +32,13 @@
 - [ ] PU Bagging 分类器
 - [ ] Biased SVM 分类器
 - [ ] Weighted Logistic Regression 分类器
-- [ ] penL1 类先验估计
+- [x] penL1 类先验估计
 - [ ] TIcE / AlphaMax 类先验估计
 - [ ] Advisor 规则版
 
 ## Phase 3 — 源码 Adapter (v0.3)
 
-- [ ] PNU、PUSB、LBE、LLSVM adapter
+- [x] PUSB、LBE、Dist-PU native interfaces；LLSVM adapter remains pending
 - [ ] adapter smoke test
 - [ ] paper-like benchmark 配置
 
@@ -52,12 +52,12 @@
 ## Phase 5 — SAR / Selection-Biased PU (v0.5)
 
 - [ ] SAR / selection bias 数据模拟器
-- [ ] PUSB、LBE、Centroid Estimation、LLSVM
+- [x] PUSB、LBE；Centroid Estimation 已完成；LLSVM pending
 - [ ] SCAR vs SAR 对比 benchmark
 
 ## Phase 6 — 深度 PU (v0.6)
 
-- [ ] Self-PU、Dist-PU
+- [ ] Self-PU；~~Dist-PU~~ ✅
 - [ ] InfoMax PU、Contrastive PU、DGPU（research extension）
 
 ## 最近完成记录
@@ -72,3 +72,5 @@
 | 2026-07-10 | Elkan-Noto | 已完成 native 实现 | `pu_toolbox/estimators/classic/elkan_noto.py`；`docs/research/method_cards/Elkan_Noto.md` | `102 passed`；ruff 检查通过 |
 | 2026-07-21 | LDCE | 已完成 native 实现 | `pu_toolbox/estimators/risk/ldce.py`；`docs/research/method_cards/LDCE.md` | `311 passed`；ruff + 质量门禁通过 |
 | 2026-07-21 | KLDCE | 已完成 native 实现（QP oracle 版，RBF kernel） | `pu_toolbox/estimators/risk/kldce.py`；`pu_toolbox/utils/centroid.py`；`docs/research/method_cards/KLDCE.md` | `357 passed`；ruff + 质量门禁通过 |
+| 2026-07-21 | penL1 / Dist-PU / PUSB / LBE | 已完成统一接口与核心实现 | `pu_toolbox/prior/pen_l1.py`；`pu_toolbox/estimators/risk/dist_pu.py`；`pu_toolbox/estimators/bias_aware/{pusb,lbe}.py`；对应 Method Cards | 新增方法测试与 registry/contract 测试通过；ruff 新增文件通过 |
+| 2026-07-21 | 前五篇 Method Card 深化 | 按 KLDCE/PNU/nnPU 结构补齐论文信息、假设、符号、公式、算法、API、测试与复现风险 | `class_prior_estimation.md`、`ReCPE.md`、`Dist-PU.md`、`PUSB.md`、`LBE.md` | 文档结构和代码落点已核对；PUSB/LBE/Dist-PU 的完整 paper-like benchmark 仍待完成 |

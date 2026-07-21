@@ -41,8 +41,9 @@
 | nnPU | native PyTorch（clean-room，Algorithm 1 参考 kiryor/nnPUlearning） |
 | PNU | native NumPy（squared loss 闭式解，pywsl 算法参考） |
 | ReCPE | wrapper + base CPE interface |
-| PUSB / Self-PU / Dist-PU | PyTorch adapter |
-| LBE / LLSVM | legacy adapter + sklearn wrapper |
+| PUSB / LBE | native sklearn-compatible clean-room implementation |
+| Dist-PU | native PyTorch implementation |
+| Self-PU / LLSVM | adapter / wrapper (planned) |
 | Centroid (LDCE) ✅ | native NumPy（clean-room，PAMI 2021 论文公式直译） |
 | InfoMax / WConPU / DGPU | clean-room，方法卡先行 |
 | Elkan-Noto | clean-room（已实现 native，以 pulearn 为算法验证参考） |
