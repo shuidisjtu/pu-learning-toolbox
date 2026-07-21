@@ -9,8 +9,8 @@
 - `h`（真实正例被翻为观测负例的概率）和椭球半径 `b` 都应作为显式超参数；`b` 用交叉验证选择。`h` 可交叉验证或由外部类先验估计器提供。
 - 用广义 median-of-means（MoM）初始化观测负集质心，并按式 (10) 计算其经验协方差；协方差求逆必须使用带正则化的稳定求解，不能显式裸求逆。
 - 在交替优化中同时更新参数 `w` 与受椭球约束的真实无标签质心 `m`；记录收敛轮数、目标值和数值失败原因。
-- **[项目现状]** Phase 1 全部完成（Elkan-Noto、uPU、nnPU、ReCPE、PNU），LDCE/KLDCE 位于 Phase 5 待实现；建议先交付 native 线性 LDCE，再决定 KLDCE 是否作为 adapter 或 native SMO 实现。
-- **[Registry 待修正]** 当前 registry（`builtin_methods.py:164-183`）中 `scenario=[CASE_CONTROL]` 和 `assumption=[SCAR, SAR]` 与论文假设不符，实现时应修正为 `scenario=[SINGLE_TRAINING_SET]`、`assumption=[SCAR]`。
+- **[项目现状]** Phase 1 全部完成（Elkan-Noto、uPU、nnPU、ReCPE、PNU、LDCE），KLDCE 待实现（需先确认 ACS/SMO 求解器设计）。
+- **[Registry 已修正]** `builtin_methods.py` 中 `scenario=SINGLE_TRAINING_SET`、`assumption=[SCAR]`、`implementation_status=NATIVE`。
 
 ### 1.2 注意
 
@@ -38,7 +38,7 @@
 | Requires negative samples | `False` |
 | GPU required | `False` |
 
-> **Registry 差异**：当前 `builtin_methods.py:173` 注册为 `scenario=[CASE_CONTROL]`、`assumption=[SCAR, SAR]`，与论文假设不符，实现时需修正。
+> **Registry 状态**：已修正为 `scenario=[SINGLE_TRAINING_SET]`、`assumption=[SCAR]`、`implementation_status=NATIVE`。
 
 ### Assumptions
 
@@ -278,16 +278,16 @@ end
 ### 6.4 Registry 元数据
 
 ```python
-# builtin_methods.py:164-183 — 当前注册状态
+# builtin_methods.py:164-183 — 已修正的注册状态
 name = "centroid_pu"
 aliases = ["ldce", "kldce", "centroid_estimation"]
 family = AlgorithmFamily.RISK_ESTIMATION
-scenario = (Scenario.CASE_CONTROL,)          # ⚠ 应为 SINGLE_TRAINING_SET
-assumption = (Assumption.SCAR, Assumption.SAR)  # ⚠ 应为 (Assumption.SCAR,)
+scenario = (Scenario.SINGLE_TRAINING_SET,)       # ✅ 已修正
+assumption = (Assumption.SCAR,)                   # ✅ 已修正
 requires_class_prior = False
 backend = Backend.NUMPY
 maturity = Maturity.RESEARCH
-implementation_status = ImplementationStatus.API_ONLY
+implementation_status = ImplementationStatus.NATIVE  # ✅ 已实现
 source_status = SourceStatus.OFFICIAL_RELATED
 upstream_url = "https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar"
 license = "needs_review"
@@ -362,9 +362,9 @@ class LDCEClassifier(BasePUClassifier):
 
 | 模块 | 责任 | 状态 |
 |---|---|---|
-| `pu_toolbox/estimators/risk/ldce.py` | `LDCEClassifier` — 线性 LDCE 交替优化 + sklearn API | 待实现 |
+| `pu_toolbox/estimators/risk/ldce.py` | `LDCEClassifier` — 线性 LDCE 交替优化 + sklearn API | ✅ 已实现 (NATIVE) |
 | `pu_toolbox/estimators/risk/kldce.py` | `KLDCEClassifier` — 核化 KLDCE（ACS + SMO） | 待设计 |
-| `pu_toolbox/registry/builtin_methods.py` | `centroid_pu` 元数据，`implementation_status=API_ONLY` | 已注册，需修正 scenario/assumption |
+| `pu_toolbox/registry/builtin_methods.py` | `centroid_pu` 元数据，`implementation_status=NATIVE` | ✅ 已修正 scenario/assumption |
 
 ---
 

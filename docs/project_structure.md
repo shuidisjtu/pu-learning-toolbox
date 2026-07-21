@@ -60,6 +60,7 @@ pu_toolbox/
       weighted_lr.py          (planned)
     risk/
       __init__.py
+      ldce.py                   (native)
       upu.py                  (native)
       nnpu.py                  (native)
       pnu.py                   (native)
@@ -111,6 +112,12 @@ tests/
 
   contract/                           # 契约测试 — 写一次，所有 NATIVE 分类器复用
     test_classifier_api.py            # fit/predict/decision_function/get_params 等
+
+  estimators/                          # 按方法的测试（MATH/PROPERTY/API）
+    risk/
+      test_ldce_math.py               # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
+      test_ldce_core.py               # LDCE fit/predict/属性/标签 (unit)
+      test_ldce_api.py                # LDCE 收敛/约束/API/错误/回归 (unit)
 
   unit/                               # 算法特有逻辑测试
     estimators/
@@ -180,6 +187,7 @@ docs/
       class_prior_estimation.md
       Elkan_Noto.md
       Convex_Formulation_for_PU_DATA_Learning.md
+      LDCE_KLDCE.md
       nnpu.md
       PNU.md
       ReCPE.md

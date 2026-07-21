@@ -207,6 +207,11 @@ class BaseSourceAdapter(ABC):
 | 共享 basis 工具 | `utils/basis.py` |
 | PUSB / LBE | `estimators/bias_aware/pusb.py` (planned), `estimators/bias_aware/lbe.py` (planned) |
 | Self-PU / Dist-PU | `estimators/deep/self_pu.py` (planned), `estimators/deep/dist_pu.py` (planned) |
+| LDCE / Centroid PU | `estimators/risk/ldce.py` |
+| LLSVM | `estimators/risk/llsvm.py` (planned) |
+| InfoMax PU | `estimators/deep/infomax_pu.py` (planned) |
+| Weighted Contrastive PU | `estimators/deep/weighted_contrastive_pu.py` (planned) |
+| DGPU | `estimators/deep/dgpu.py` (planned) |
 
 完整映射及实现策略见 [`development_roadmap.md`](development_roadmap.md)。
 

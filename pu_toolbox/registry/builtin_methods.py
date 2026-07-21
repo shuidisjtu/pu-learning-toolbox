@@ -1,4 +1,4 @@
-"""Built-in algorithm registry — 15 paper methods as ``api_only`` placeholders.
+"""Built-in algorithm registry — 15 paper methods (6 native + 9 api_only).
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the

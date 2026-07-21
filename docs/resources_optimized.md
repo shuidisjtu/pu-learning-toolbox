@@ -43,7 +43,8 @@
 | ReCPE | wrapper + base CPE interface |
 | PUSB / Self-PU / Dist-PU | PyTorch adapter |
 | LBE / LLSVM | legacy adapter + sklearn wrapper |
-| Centroid / InfoMax / WConPU / DGPU | clean-room，方法卡先行 |
+| Centroid (LDCE) ✅ | native NumPy（clean-room，PAMI 2021 论文公式直译） |
+| InfoMax / WConPU / DGPU | clean-room，方法卡先行 |
 | Elkan-Noto | clean-room（已实现 native，以 pulearn 为算法验证参考） |
 | Class-Prior Estimation (penL1) | clean-room（论文公式直译，MATLAB 源码不对应论文） |
 
