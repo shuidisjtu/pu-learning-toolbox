@@ -44,6 +44,7 @@ pu_toolbox/
   utils/
     __init__.py
     basis.py                  (shared)
+    centroid.py               (shared: MoM + 协方差原语, LDCE/KLDCE 共用)
 
   losses/
     __init__.py
@@ -61,6 +62,7 @@ pu_toolbox/
     risk/
       __init__.py
       ldce.py                   (native)
+      kldce.py                  (native: ACS + QP oracle + RBF kernel)
       upu.py                  (native)
       nnpu.py                  (native)
       pnu.py                   (native)
@@ -118,6 +120,9 @@ tests/
       test_ldce_math.py               # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
       test_ldce_core.py               # LDCE fit/predict/属性/标签 (unit)
       test_ldce_api.py                # LDCE 收敛/约束/API/错误/回归 (unit)
+      test_kldce_math.py              # KLDCE 公式验证 (MATH: Q/d/Aeq/bias/delta)
+      test_kldce_oracle.py            # KLDCE QP oracle + bias 恢复 (MATH)
+      test_kldce_property.py          # KLDCE 约束/鲁棒性/可复现性 (PROPERTY)
 
   unit/                               # 算法特有逻辑测试
     estimators/
@@ -187,6 +192,7 @@ docs/
       class_prior_estimation.md
       Elkan_Noto.md
       Convex_Formulation_for_PU_DATA_Learning.md
+      KLDCE.md
       LDCE_KLDCE.md
       nnpu.md
       PNU.md

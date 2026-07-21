@@ -5,11 +5,11 @@
 ### 1.1 待办
 
 - 实现线性 **LDCE**：以无标签集为观测负类（含假负例），通过 hinge-loss 分解和质心估计构造鲁棒经验风险。
-- 实现 **KLDCE** 前先确认核化优化所需的 ACS + SMO 求解器设计；论文未给出可直接复用的工程代码，不能把线性 LDCE 的梯度下降直接套到核模型。
+- 实现 **KLDCE**（已完成 QP oracle 版，RBF kernel）：ACS 外循环 + scipy SLSQP QP oracle；附录原生 SMO 留待后续 PR。论文未给出可直接复用的工程代码，不能把线性 LDCE 的梯度下降直接套到核模型。
 - `h`（真实正例被翻为观测负例的概率）和椭球半径 `b` 都应作为显式超参数；`b` 用交叉验证选择。`h` 可交叉验证或由外部类先验估计器提供。
 - 用广义 median-of-means（MoM）初始化观测负集质心，并按式 (10) 计算其经验协方差；协方差求逆必须使用带正则化的稳定求解，不能显式裸求逆。
 - 在交替优化中同时更新参数 `w` 与受椭球约束的真实无标签质心 `m`；记录收敛轮数、目标值和数值失败原因。
-- **[项目现状]** Phase 1 全部完成（Elkan-Noto、uPU、nnPU、ReCPE、PNU、LDCE），KLDCE 待实现（需先确认 ACS/SMO 求解器设计）。
+- **[项目现状]** Phase 1 全部完成（Elkan-Noto、uPU、nnPU、ReCPE、PNU、LDCE、KLDCE）。KLDCE 首版使用 QP oracle (scipy SLSQP) + RBF kernel，附录 SMO 待后续 PR。
 - **[Registry 已修正]** `builtin_methods.py` 中 `scenario=SINGLE_TRAINING_SET`、`assumption=[SCAR]`、`implementation_status=NATIVE`。
 
 ### 1.2 注意
@@ -363,7 +363,7 @@ class LDCEClassifier(BasePUClassifier):
 | 模块 | 责任 | 状态 |
 |---|---|---|
 | `pu_toolbox/estimators/risk/ldce.py` | `LDCEClassifier` — 线性 LDCE 交替优化 + sklearn API | ✅ 已实现 (NATIVE) |
-| `pu_toolbox/estimators/risk/kldce.py` | `KLDCEClassifier` — 核化 KLDCE（ACS + SMO） | 待设计 |
+| `pu_toolbox/estimators/risk/kldce.py` | `KLDCEClassifier` — KLDCE 核化实现（ACS + QP oracle + RBF kernel） | ✅ 已实现 (2026-07-21) |
 | `pu_toolbox/registry/builtin_methods.py` | `centroid_pu` 元数据，`implementation_status=NATIVE` | ✅ 已修正 scenario/assumption |
 
 ---

@@ -208,6 +208,8 @@ class BaseSourceAdapter(ABC):
 | PUSB / LBE | `estimators/bias_aware/pusb.py` (planned), `estimators/bias_aware/lbe.py` (planned) |
 | Self-PU / Dist-PU | `estimators/deep/self_pu.py` (planned), `estimators/deep/dist_pu.py` (planned) |
 | LDCE / Centroid PU | `estimators/risk/ldce.py` |
+| KLDCE (核化 LDCE) | `estimators/risk/kldce.py` (QP oracle + RBF kernel) |
+| 共享质心原语 | `utils/centroid.py` (MoM + 协方差) |
 | LLSVM | `estimators/risk/llsvm.py` (planned) |
 | InfoMax PU | `estimators/deep/infomax_pu.py` (planned) |
 | Weighted Contrastive PU | `estimators/deep/weighted_contrastive_pu.py` (planned) |
