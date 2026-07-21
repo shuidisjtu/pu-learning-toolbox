@@ -2,6 +2,7 @@
 
 > 2026-07-21 | 基于 `docs/research/method_cards/KLDCE.md` + 线上补充附录
 > 修订 2: 纳入 problems.md 论文对照审查 — 盒约束、等式常数 C、Taylor 展开点、RBF 参数、ridge 语义、MoM 符号 等 7 项修正
+> 修订 3: problems.md 剩余 4 项 — ridge 默认值、约束缩放基准、bias 接口、QP 逐块公式
 
 ## 1. 背景与前置条件
 
@@ -16,13 +17,16 @@
 
 `_mom_centroid` 和 `_centroid_covariance` 从 `ldce.py` 移至新文件。
 
-**协方差 ridge 语义**（v2 修正）：
+**协方差 ridge 语义**（v3 修正）：
 
 ```python
 S_hat_raw = _centroid_covariance(X_U)           # 论文椭球约束用（无 ridge）
-S_solve   = S_hat_raw + covariance_ridge * I     # 线性求解用
-# 约束检查始终使用 S_hat_raw；Eq.35 求解使用 S_solve
-# 在文档中注明 ridge 为数值稳定化变体，非论文原式
+# 默认 ridge=0.0 — 论文原式。对 S_raw 使用稳定的线性求解/伪逆。
+# ridge > 0 为显式 opt-in 数值变体，运行时标注在结果中。
+if covariance_ridge > 0:
+    S_solve = S_hat_raw + covariance_ridge * I
+else:
+    S_solve = S_hat_raw
 ```
 
 **MoM 符号**（v2 修正 — 同时适用于 LDCE 和 KLDCE）：
@@ -83,7 +87,7 @@ class KLDCEClassifier(BasePUClassifier):
         reg_strength: float = 1.0,          # λ
         centroid_radius: float = 1.0,       # b (椭球半径)
         mom_groups: int = 10,
-        covariance_ridge: float = 1e-4,     # 仅求解用，不改变约束；标注为数值变体
+        covariance_ridge: float = 0.0,     # 默认论文原式; >0 时标记为数值变体
         max_acs_iter: int = 50,
         max_dual_variables: int = 1000,     # 规模保护: max |z| = n + n_U
         tol: float = 1e-6,
@@ -136,12 +140,14 @@ fit(X, y_pu, *, class_prior=None):
     c. 固定 z: 按附录式(33) 从 α,γ 计算 Δ
        (Taylor 展开点 μ=0, 非 μ=m̂ — 论文原式)
     d. 按附录式(35) 更新 μ:
-       解 S_solve · u = Δᵀ, d = Δ@u
-       若 d ≤ ε: μ=m̂, 标记 degenerate_centroid_step
-       否则: μ = m̂ - u · √(b/d)
+       解 S_solve · u = Δᵀ         (S_solve = S_raw + ridge·I)
+       计算 q = uᵀ · S_raw · u      (缩放基准始终用 S_raw)
+       若 q ≤ ε: μ=m̂, 标记 degenerate_centroid_step
+       否则: μ = m̂ - u · √(b/q)     (保证 (μ-m̂)ᵀS_raw(μ-m̂) = b)
     e. 验证: (μ-m̂)ᵀ Ŝ_raw (μ-m̂) ≤ b + tol
+       若违反且 ridge>0: 标记 constraint_violated, 触发椭球投影回退
        记录 centroid_constraint_residual
-    f. _recover_bias_from_kkt(α, γ, K, ỹ, μ, λ, C_alpha) → b₀
+    f. _recover_bias_from_kkt(α, γ, K, ỹ, μ, λ, C_eq, C_alpha, C_gamma) → b₀
     g. 收敛判断: max(相对目标变化, ||Δμ||, max_kkt_violation) < tol → break
     h. z₀ ← z (warm start)
 
@@ -174,14 +180,38 @@ min 0  s.t.  Aeq @ z = beq,  lb ≤ z ≤ ub
 
 ### 6.2 `_build_dual_qp(mu, K, y_tilde, lambda, n, k)` → (Q, d, Aeq, beq, lb, ub)
 
-以附录式 (24) 为权威。
+以附录式 (24) 为权威。令 `N = n + n_U`（总对偶变量数）。
 
-- **Q**: `(n+n_U) × (n+n_U)`，仅来自 Gram 矩阵 + 标签 + λ。**固定 μ 时 Q 不含 μ**。
-- **d(μ)**: 线性项，μ 进入此处——含 `K(xᵢ, μ)` 和标签的组合。
-- **Aeq**: `1 × (n+n_U)`，元素为 `[ỹ₁,...,ỹₙ, -ỹ_{k+1},...,-ỹₙ]`。
-- **beq**: `C_eq = -(n-k)/(2*n*(1-2*p*h))`（显式计算）。
-- **lb**: `[0] * (n+n_U)`
-- **ub**: `[1/n]*n + [1/(2n)]*n_U`
+**Q 的逐块结构**（`N × N`，对称）：
+
+```text
+z = [α₁…αₙ | γ_{k+1}…γₙ]
+Q = 1/(2λ) · [  Q_αα    Q_αγ  ]
+              [  Q_γα    Q_γγ  ]
+
+Q_αα[i][j] = ỹᵢ ỹⱼ K(xᵢ, xⱼ)           (i,j = 1…n)
+Q_αγ[i][j] = -ỹᵢ ỹ_{k+j} K(xᵢ, x_{k+j})  (i=1…n, j=1…n_U)
+Q_γα = Q_αγᵀ
+Q_γγ[i][j] = ỹ_{k+i} ỹ_{k+j} K(x_{k+i}, x_{k+j})  (i,j = 1…n_U)
+```
+
+**线性项 d(μ)**（`N` 维）：
+
+```text
+d(μ)_i = 1 - C_eq·ỹᵢ·K(xᵢ, μ)/(2λ)               (i=1…n, 对应 α)
+d(μ)_{n+i} = 1 + C_eq·ỹ_{k+i}·K(x_{k+i}, μ)/(2λ)   (i=1…n_U, 对应 γ)
+```
+
+**约束**：
+
+```text
+Aeq = [ỹ₁…ỹₙ | -ỹ_{k+1}…-ỹₙ]     (1 × N)
+beq = C_eq = -(n-k) / (2·n·(1-2·p·h))
+lb  = [0] × N
+ub  = [1/n]×n + [1/(2n)]×n_U
+```
+
+验收：MATH 测试用 4 样本手工计算每个块，与独立实现的期望值比较（atol=1e-14）。
 
 ### 6.3 `_solve_qp_oracle(Q, d, Aeq, beq, lb, ub, z0)` → (z, diagnostics)
 
@@ -201,17 +231,31 @@ K(x, μ) = exp(-||x-μ||²/(2σ²))
     + 1/(2λσ²) · Σ_{i=k+1}ⁿ γᵢ ỹᵢ exp(-||xᵢ||²/(2σ²)) xᵢ
 ```
 
-### 6.5 `_update_centroid(m_hat, S_solve, delta, centroid_radius, tol)`
+### 6.5 `_update_centroid(m_hat, S_raw, S_solve, delta, centroid_radius, tol)`
 
-- 解 `u = S_solve⁻¹ · Δᵀ`（用 `scipy.linalg.solve`，设 `assume_a="sym"`）
-- `d = Δ @ u`
-- 若 `d ≤ tol`: `μ = m_hat`，标记 `degenerate_centroid_step`
-- 否则: `μ = m_hat - u · √(centroid_radius / d)`
-- 验证 `(μ-m̂)ᵀ Ŝ_raw (μ-m̂) ≤ centroid_radius + tol`
+- 解 `u = S_solve⁻¹ · Δᵀ`（用 `scipy.linalg.solve`；当 ridge=0 且奇异时回退 `np.linalg.pinv`）
+- **约束缩放基准始终为 `S_raw`**：`q = u @ S_raw @ u`
+- 若 `q ≤ tol`: `μ = m_hat`，标记 `degenerate_centroid_step`
+- 否则: `μ = m_hat - u · √(centroid_radius / q)`（**保证 `(μ-m̂)ᵀS_raw(μ-m̂) = b`**）
+- 验证 `(μ-m̂)ᵀ S_raw (μ-m̂) ≤ centroid_radius + tol`
+  若违反且 ridge > 0: 标记 `constraint_violated`，触发显式椭球投影 `μ ← m̂ + (μ-m̂)·√(b/constraint)`
 
-### 6.6 `_recover_bias_from_kkt(alpha, gamma, K, y_tilde, mu, lambda, C_alpha)`
+### 6.6 `_recover_bias_from_kkt(alpha, gamma, K, y_tilde, mu, lambda, C_eq, C_alpha, C_gamma)` → b₀
 
-QP oracle 版：收集 `0 < αᵢ < C_alpha` 的自由支持向量，由 KKT margin 条件逐个反推 bᵢ，取中位数。无自由变量时从上下界构成的可行区间取中点，标记 `bias_recovery="bounded_interval"`。
+QP oracle 版：收集 `0 < αᵢ < C_alpha` 的自由支持向量。
+
+决策函数 `f(xᵢ)` 由 §5 公式计算（含 `-C_eq·K(x,μ)/(2λ)` 项）。对每个自由 αᵢ，由 KKT margin 条件反推：
+
+```text
+bᵢ = ỹᵢ - f(xᵢ)   (f 取未加 b₀ 的原始分数)
+b₀ = median(bᵢ)
+```
+
+无自由 α 变量时由 `[L_bound, U_bound]` 的可行区间取中点：
+- L_bound = max{ -f(xᵢ) | αᵢ = C_alpha, ỹᵢ = +1 } ∪ { -f(xᵢ) | αᵢ = 0, ỹᵢ = -1 }
+- U_bound = min{ -f(xᵢ) | αᵢ = 0, ỹᵢ = +1 } ∪ { -f(xᵢ) | αᵢ = C_alpha, ỹᵢ = -1 }
+- 若 L_bound ≤ U_bound: b₀ = (L_bound + U_bound)/2，标记 `bias_recovery="bounded_interval"`
+- 否则标记 `bias_recovery="indeterminate"`，b₀ = 0
 
 附录式 (37)–(40) 的四项平均增量更新留给 `_recover_bias_smo_incremental`（SMO 版 PR）。
 
@@ -272,7 +316,7 @@ def _rbf_kernel(X, Z, sigma):
 | API | `test_classifier_api.py` | sklearn fit/predict/clone/pipeline 全契约 |
 | Registry | `test_builtin_methods.py` | native 计数 + metadata 断言 |
 
-## 10. v2 修正摘要（problems.md 对照）
+## 10. v2 修正摘要（problems.md 第一轮对照）
 
 | # | 优先级 | 问题 | 修正 |
 |---|--------|------|------|
@@ -284,7 +328,16 @@ def _rbf_kernel(X, Z, sigma):
 | 6 | 高 | MoM 输入符号 | `_mom_centroid(-X_U)` — 同时修复 LDCE |
 | 7 | 中 | QP oracle ≠ 论文 SMO | 标注为等价求解器替代；SMO 后续 PR |
 
-## 11. 不纳入本 PR
+## 11. v3 修正摘要（problems.md 剩余 4 项）
+
+| # | 优先级 | 问题 | 修正 |
+|---|--------|------|------|
+| 1 | 高 | `covariance_ridge=1e-4` 非论文原式 | 默认 `0.0`（论文原式）；>0 为 opt-in 变体 |
+| 2 | 高 | 约束缩放基准用 `Δ@u` 不保证满足 | 改为 `q = uᵀ·S_raw·u`，`μ = m̂ - u·√(b/q)`；违反时椭球投影 |
+| 3 | 高 | `_recover_bias_from_kkt` 缺 `C_eq/C_gamma` | 接口补全；KKT bias 公式 + 边界区间公式写入 spec |
+| 4 | 中 | `_build_dual_qp` 缺逐块公式 | Q 三块 + d(μ) 分量 + 约束完整数学规格写入 §6.2 |
+
+## 12. 不纳入本 PR
 
 - 附录原生 SMO（`_smo_*` 占位，后续 PR 替换 QP oracle）
 - 非 RBF 核（附录 μ 更新是 RBF Taylor 专用）
