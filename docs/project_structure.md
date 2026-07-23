@@ -47,12 +47,14 @@ pu_toolbox/
     upu.py                    (native)
     nnpu.py                  (native)
     pnu.py                   (native)
+    llsvm.py                 (native)
 
   estimators/
     __init__.py
-    classic/                 (1/1 native)
+    classic/                 (2/2 native)
       __init__.py
       elkan_noto.py          (native)
+      llsvm.py               (native)
     risk/
       __init__.py
       ldce.py                   (native)
@@ -111,9 +113,11 @@ tests/
       test_nnpu.py                    # nnPU 特有逻辑（含训练动态/早停）
       test_bias_aware.py              # PUSB / LBE 特有逻辑
       test_dist_pu.py                 # Dist-PU 特有逻辑
+      test_llsvm.py                   # LLSVM 特有逻辑
     losses/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py               # uPU golden tests (MATH + PROPERTY)
+      test_llsvm_loss.py             # LLSVM loss golden tests (MATH)
     metrics/
       test_classification.py          # PU 指标测试
     model_selection/
@@ -162,6 +166,7 @@ docs/
       nnpu.md
       PNU.md
       ReCPE.md
+      LLSVM.md
   project_management/
     decision_log.md
     process_checklist.md

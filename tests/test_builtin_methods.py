@@ -37,9 +37,9 @@ class TestBuiltinRegistration:
             key = meta.implementation_status.value
             by_status[key] = by_status.get(key, 0) + 1
 
-        # 10 native plus 5 api_only methods.
-        assert by_status.get("native", 0) == 10
-        assert by_status.get("api_only", 0) == 5
+        # 11 native plus 4 api_only methods.
+        assert by_status.get("native", 0) == 11
+        assert by_status.get("api_only", 0) == 4
 
     def test_basic_source_status_distribution(self):
         """Verify counts match docs/resources_optimized.md §2."""
@@ -102,11 +102,11 @@ class TestBuiltinRegistration:
         """Native implementations are trainable."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 10
+        assert len(trainable) == 11
         names = {m.name for m in trainable}
         assert names == {
             "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
-            "class_prior_estimation", "dist_pu", "pusb", "lbe",
+            "class_prior_estimation", "dist_pu", "pusb", "lbe", "llsvm",
         }
 
     def test_basic_list_by_family(self):

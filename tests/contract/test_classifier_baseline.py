@@ -306,5 +306,5 @@ class TestRegistryClassBinding:
         names = {m.name for m in trainable}
         assert names == {
             "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
-            "class_prior_estimation", "dist_pu", "pusb", "lbe",
+            "class_prior_estimation", "dist_pu", "pusb", "lbe", "llsvm",
         }
