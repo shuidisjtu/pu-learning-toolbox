@@ -17,7 +17,7 @@
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
 | Evaluation | `metrics`, `model_selection` | PU 评估指标、PU 分层切分 |
-| User Layer | `examples`, `docs` | 教程、文档 |
+| User Layer | `examples` | 教程 |
 
 ## 3. 数据流
 
