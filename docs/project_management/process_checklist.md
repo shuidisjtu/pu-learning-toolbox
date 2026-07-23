@@ -39,7 +39,7 @@
 
 ## Phase 3 — Benchmark + 集成 (v0.3)
 
-- [x] PUSB、LBE、Dist-PU native interfaces；LLSVM remains pending
+- [x] PUSB、LBE、Dist-PU、LLSVM native interfaces
 - [ ] paper-like benchmark 配置
 
 ## Phase 4 — 推荐与诊断 (v0.4)
@@ -52,7 +52,7 @@
 ## Phase 5 — SAR / Selection-Biased PU (v0.5)
 
 - [ ] SAR / selection bias 数据模拟器
-- [x] PUSB、LBE；Centroid Estimation 已完成；LLSVM pending
+- [x] PUSB、LBE；Centroid Estimation 已完成；LLSVM 已完成
 - [ ] SCAR vs SAR 对比 benchmark
 
 ## Phase 6 — 深度 PU (v0.6)
@@ -74,3 +74,4 @@
 | 2026-07-21 | KLDCE | 已完成 native 实现（QP oracle 版，RBF kernel） | `pu_toolbox/estimators/risk/kldce.py`；`pu_toolbox/utils/centroid.py`；`docs/research/method_cards/KLDCE.md` | `357 passed`；ruff + 质量门禁通过 |
 | 2026-07-21 | penL1 / Dist-PU / PUSB / LBE | 已完成统一接口与核心实现 | `pu_toolbox/prior/pen_l1.py`；`pu_toolbox/estimators/risk/dist_pu.py`；`pu_toolbox/estimators/bias_aware/{pusb,lbe}.py`；对应 Method Cards | 新增方法测试与 registry/contract 测试通过；ruff 新增文件通过 |
 | 2026-07-21 | 前五篇 Method Card 深化 | 按 KLDCE/PNU/nnPU 结构补齐论文信息、假设、符号、公式、算法、API、测试与复现风险 | `class_prior_estimation.md`、`ReCPE.md`、`Dist-PU.md`、`PUSB.md`、`LBE.md` | 文档结构和代码落点已核对；PUSB/LBE/Dist-PU 的完整 paper-like benchmark 仍待完成 |
+| 2026-07-23 | LLSVM | 已完成 native 实现 | `pu_toolbox/losses/llsvm.py`；`pu_toolbox/estimators/classic/llsvm.py`；`docs/research/method_cards/LLSVM.md` | 新增 loss + estimator 测试通过；ruff + 质量门禁通过 |
