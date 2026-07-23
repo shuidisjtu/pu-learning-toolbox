@@ -50,7 +50,7 @@ LAYERS = [
         "modules": [
             {"name": "classic/", "sub": "Calibration-based PU", "impl": True, "w": 2.8},
             {"name": "risk/", "sub": "Risk-based PU classifiers", "impl": True, "w": 3.4},
-            {"name": "bias_aware/", "sub": "Selection-bias PU (planned)", "impl": False, "w": 2.6},
+            {"name": "bias_aware/", "sub": "Selection-bias PU", "impl": True, "w": 2.6},
             {"name": "deep/", "sub": "Deep PU methods (planned)", "impl": False, "w": 2.6},
         ],
     },

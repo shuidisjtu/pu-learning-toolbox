@@ -129,6 +129,8 @@ tests/
       test_elkan_noto.py              # Elkan-Noto 特有逻辑
       test_upu.py                     # uPU 特有逻辑
       test_nnpu.py                    # nnPU 特有逻辑（含训练动态/早停）
+      test_bias_aware.py              # PUSB / LBE 特有逻辑
+      test_dist_pu.py                 # Dist-PU 特有逻辑
     losses/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py               # uPU golden tests (MATH + PROPERTY)
@@ -138,6 +140,7 @@ tests/
       test_split.py                   # PU 切分器测试
     prior/
       test_recpe.py                   # ReCPE 特有逻辑
+      test_pen_l1.py                  # penL1 特有逻辑
     preprocessing/
       test_pu_labeling.py             # PU/PNU 标签生成
       test_profiling.py               # 数据画像统计
