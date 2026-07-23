@@ -10,13 +10,9 @@ from .registry import get_metadata as get_metadata
 from .registry import list_algorithms as list_algorithms
 from .registry import register_method as register_method
 from .registry import unregister_method as unregister_method
-from .source_metadata import SourceMetadata as SourceMetadata
-from .source_policy import SourcePolicy as SourcePolicy
 
 __all__ = [
     "AlgorithmMetadata",
-    "SourceMetadata",
-    "SourcePolicy",
     "bind_estimator_class",
     "clear_registry",
     "get_algorithm",

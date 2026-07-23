@@ -12,7 +12,11 @@ import numpy as np
 import pytest
 from scipy import sparse
 
-from pu_toolbox.preprocessing.profiling import pnu_data_summary, pu_data_summary
+from pu_toolbox.preprocessing.profiling import (
+    pnu_data_summary,
+    pu_data_summary,
+    scar_diagnostic,
+)
 
 # ═════════════════════════════════════════════════════════════════════
 # pu_data_summary
@@ -111,3 +115,43 @@ class TestPnuDataSummary:
         X2[1, 1] = np.inf
         s2 = pnu_data_summary(X2, y_pnu)
         assert s2["has_nan"] and s2["has_inf"]
+
+
+# ═════════════════════════════════════════════════════════════════════
+# scar_diagnostic
+# ═════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.unit
+class TestScarDiagnostic:
+    """Covers: SCAR plausibility check and return structure."""
+
+    def test_scar_diagnostic_scar_data(self):
+        """SCAR-generated labels should yield is_scar_plausible=True."""
+        rng = np.random.RandomState(42)
+        n = 300
+        # Features are pure noise — independent of class and label.
+        # Under SCAR, labeling probability does not depend on features,
+        # so labeled-P and U should be inseparable in feature space.
+        X = rng.randn(n, 5)
+        # Assign labels uniformly at random (no feature dependence)
+        y_pu = (rng.rand(n) < 0.3).astype(int)
+
+        result = scar_diagnostic(X, y_pu)
+        assert result["is_scar_plausible"] is True
+
+    def test_scar_diagnostic_returns_dict(self):
+        """Return value contains all required keys with correct types."""
+        rng = np.random.RandomState(0)
+        X = rng.randn(100, 3)
+        y_pu = np.array([1] * 30 + [0] * 70)
+
+        result = scar_diagnostic(X, y_pu)
+        assert isinstance(result, dict)
+        assert "separability_auc" in result
+        assert "is_scar_plausible" in result
+        assert "message" in result
+        assert isinstance(result["separability_auc"], float)
+        assert isinstance(result["is_scar_plausible"], bool)
+        assert isinstance(result["message"], str)
+        assert 0.0 <= result["separability_auc"] <= 1.0

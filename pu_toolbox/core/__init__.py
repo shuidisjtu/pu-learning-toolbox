@@ -9,9 +9,6 @@ from .base import (
     BasePriorEstimator as BasePriorEstimator,
 )
 from .base import (
-    BasePropensityEstimator as BasePropensityEstimator,
-)
-from .base import (
     BasePUClassifier as BasePUClassifier,
 )
 from .base import (
@@ -42,7 +39,6 @@ from .validation import validate_pu_X_y as validate_pu_X_y
 
 __all__ = [
     "BasePriorEstimator",
-    "BasePropensityEstimator",
     "BasePUClassifier",
     "BasePULoss",
     "ClassPriorError",

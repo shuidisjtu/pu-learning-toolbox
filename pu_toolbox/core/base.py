@@ -275,57 +275,6 @@ class BasePriorEstimator(BaseEstimator, ABC):
 
 
 # ═════════════════════════════════════════════════════════════════════
-# Propensity Estimator
-# ═════════════════════════════════════════════════════════════════════
-
-
-class BasePropensityEstimator(BaseEstimator, ABC):
-    """Abstract base class for labeling-propensity estimators c = P(s=1 | y=1).
-
-    Subclasses **must** implement:
-
-    * ``fit(X, y_pu)``
-    * ``estimate()``
-    * ``predict_propensity(X)``
-    """
-
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
-
-    @abstractmethod
-    def fit(self, X: np.ndarray | sparse.spmatrix, y_pu: np.ndarray) -> BasePropensityEstimator:
-        """Fit the propensity model.
-
-        Returns
-        -------
-        self
-        """
-        ...
-
-    @abstractmethod
-    def estimate(self) -> float | np.ndarray:
-        """Return estimated labeling propensity.
-
-        Returns
-        -------
-        float or np.ndarray
-            SCAR constant ``c`` (float) or SAR instance-dependent
-            ``c(x)`` (ndarray of shape ``(n_train_samples,)``).
-        """
-        ...
-
-    @abstractmethod
-    def predict_propensity(self, X: np.ndarray | sparse.spmatrix) -> np.ndarray:
-        """Estimate c(x) for new samples.
-
-        Returns
-        -------
-        np.ndarray of shape (n_samples,)
-            Propensity values ∈ (0, 1].
-        """
-        ...
-
-
-# ═════════════════════════════════════════════════════════════════════
 # PU Loss
 # ═════════════════════════════════════════════════════════════════════
 

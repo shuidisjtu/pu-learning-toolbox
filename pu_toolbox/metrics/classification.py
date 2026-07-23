@@ -15,6 +15,9 @@ from pu_toolbox.core.labels import normalize_pu_labels
 
 __all__ = [
     "pu_zero_one_risk",
+    "pu_recall",
+    "pu_estimated_precision",
+    "pu_negative_rate",
     "pu_accuracy",
     "pu_f1",
     "pu_auc_roc",
@@ -68,6 +71,120 @@ def pu_zero_one_risk(
     fnr_p = float(np.mean(scores_p <= 0.0))
     fpr_u = float(np.mean(scores_u > 0.0))
     return 2.0 * class_prior * fnr_p + fpr_u - class_prior
+
+
+def pu_recall(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
+    """Recall estimated from labeled positives only.
+
+    Computes the fraction of labeled positive samples that were correctly
+    predicted as positive.  This quantity is directly observable in PU
+    settings (no ground-truth labels needed).
+
+    Parameters
+    ----------
+    y_pu : array-like of shape (n_samples,)
+        PU labels in {+1, 0}.
+    y_pred : array-like of shape (n_samples,)
+        Predicted binary labels (positive vs. non-positive).
+
+    Returns
+    -------
+    float
+        Recall on the labeled positives, in [0, 1].
+    """
+    y_pu = normalize_pu_labels(np.asarray(y_pu))
+    y_pred = np.asarray(y_pred)
+    if len(y_pu) != len(y_pred):
+        raise ValueError(
+            f"y_pu and y_pred must have the same length, "
+            f"got {len(y_pu)} and {len(y_pred)}"
+        )
+
+    mask_p = y_pu == POSITIVE_LABEL
+    if mask_p.sum() == 0:
+        return 0.0
+
+    return float(np.mean(y_pred[mask_p] == POSITIVE_LABEL))
+
+
+def pu_estimated_precision(
+    y_pu: np.ndarray,
+    y_pred: np.ndarray,
+    class_prior: float,
+) -> float:
+    """Estimate precision using the class prior.
+
+    Uses the identity ``precision ≈ (π * recall) / predicted_positive_rate``
+    where *recall* is estimated from labeled positives and
+    *predicted_positive_rate* is the fraction of samples predicted positive.
+
+    Parameters
+    ----------
+    y_pu : array-like of shape (n_samples,)
+        PU labels in {+1, 0}.
+    y_pred : array-like of shape (n_samples,)
+        Predicted binary labels (positive vs. non-positive).
+    class_prior : float
+        True class prior π = P(y=1), in (0, 1).
+
+    Returns
+    -------
+    float
+        Estimated precision, in [0, 1].  Returns 0.0 when no sample is
+        predicted positive.
+    """
+    y_pu = normalize_pu_labels(np.asarray(y_pu))
+    y_pred = np.asarray(y_pred)
+    if len(y_pu) != len(y_pred):
+        raise ValueError(
+            f"y_pu and y_pred must have the same length, "
+            f"got {len(y_pu)} and {len(y_pred)}"
+        )
+    if not 0.0 < class_prior < 1.0:
+        raise ValueError(f"class_prior must be in (0, 1), got {class_prior}")
+
+    recall = pu_recall(y_pu, y_pred)
+    predicted_positive_rate = float(np.mean(y_pred == POSITIVE_LABEL))
+    if predicted_positive_rate == 0.0:
+        return 0.0
+
+    return float(
+        min(class_prior * recall / predicted_positive_rate, 1.0)
+    )
+
+
+def pu_negative_rate(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
+    """Fraction of unlabeled samples predicted as negative.
+
+    Useful for PU model diagnostics: this rate should be higher than
+    ``1 - class_prior`` when the model is working properly.
+
+    Parameters
+    ----------
+    y_pu : array-like of shape (n_samples,)
+        PU labels in {+1, 0}.
+    y_pred : array-like of shape (n_samples,)
+        Predicted binary labels (positive vs. non-positive).
+
+    Returns
+    -------
+    float
+        Negative prediction rate among unlabeled samples, in [0, 1].
+        Returns 0.0 when there are no unlabeled samples.
+    """
+    y_pu = normalize_pu_labels(np.asarray(y_pu))
+    y_pred = np.asarray(y_pred)
+    if len(y_pu) != len(y_pred):
+        raise ValueError(
+            f"y_pu and y_pred must have the same length, "
+            f"got {len(y_pu)} and {len(y_pred)}"
+        )
+
+    mask_u = y_pu == UNLABELED_LABEL
+    if mask_u.sum() == 0:
+        return 0.0
+
+    return float(np.mean(y_pred[mask_u] != POSITIVE_LABEL))
 
 
 def pu_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:

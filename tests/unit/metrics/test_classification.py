@@ -3,7 +3,15 @@
 import numpy as np
 import pytest
 
-from pu_toolbox.metrics import pu_accuracy, pu_auc_roc, pu_f1, pu_zero_one_risk
+from pu_toolbox.metrics import (
+    pu_accuracy,
+    pu_auc_roc,
+    pu_estimated_precision,
+    pu_f1,
+    pu_negative_rate,
+    pu_recall,
+    pu_zero_one_risk,
+)
 
 # ── fixtures ────────────────────────────────────────────────────────────
 
@@ -119,3 +127,39 @@ class TestSupervisedMetrics:
         assert pu_accuracy(y_true, y_pred) == accuracy_score(y_true, y_pred)
         assert pu_f1(y_true, y_pred) == f1_score(y_true, y_pred)
         assert pu_auc_roc(y_true, scores) == roc_auc_score(y_true, scores)
+
+
+# ── PU-specific observable metrics ─────────────────────────────────────
+
+
+@pytest.mark.unit
+class TestPUObservableMetrics:
+    def test_basic_pu_recall(self):
+        """PU recall from labeled positives (partial and perfect)."""
+        y_pu = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0])
+        y_pred = np.array([1, 1, 1, 0, 0, 0, 1, 0, 0, 0])
+        assert pu_recall(y_pu, y_pred) == pytest.approx(0.75)
+
+        y_pu2 = np.array([1, 1, 1, 0, 0, 0, 0])
+        y_pred2 = np.array([1, 1, 1, 0, 1, 0, 0])
+        assert pu_recall(y_pu2, y_pred2) == pytest.approx(1.0)
+
+    def test_basic_pu_estimated_precision(self):
+        """Estimated precision with known class prior."""
+        y_pu = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0])
+        y_pred = np.array([1, 1, 1, 0, 0, 1, 1, 0, 0, 0])
+        prec = pu_estimated_precision(y_pu, y_pred, class_prior=0.5)
+        assert prec == pytest.approx(1.0)
+
+    def test_param_pu_estimated_precision_low_prior(self):
+        """Lower class prior yields lower estimated precision."""
+        y_pu = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+        y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+        prec = pu_estimated_precision(y_pu, y_pred, class_prior=0.3)
+        assert prec == pytest.approx(0.6)
+
+    def test_basic_pu_negative_rate(self):
+        """Basic negative prediction rate among unlabeled samples."""
+        y_pu = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0])
+        y_pred = np.array([1, 1, 1, 0, 0, 1, 1, 0, 0, 0])
+        assert pu_negative_rate(y_pu, y_pred) == pytest.approx(5.0 / 7.0)

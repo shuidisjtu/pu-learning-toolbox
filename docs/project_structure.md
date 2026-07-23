@@ -35,11 +35,7 @@ pu_toolbox/
   prior/
     __init__.py
     recpe.py                  (native)
-    base.py                  (planned)
     pen_l1.py                (native)
-    tice.py                  (planned)
-    alphamax.py              (planned)
-    wrappers.py              (planned)
 
   utils/
     __init__.py
@@ -54,11 +50,8 @@ pu_toolbox/
 
   estimators/
     __init__.py
-    classic/                 (1/4 native)
+    classic/                 (1/1 native)
       elkan_noto.py          (native)
-      pu_bagging.py           (planned)
-      biased_svm.py           (planned)
-      weighted_lr.py          (planned)
     risk/
       __init__.py
       ldce.py                   (native)
@@ -82,23 +75,17 @@ pu_toolbox/
 
   metrics/
     __init__.py
-    classification.py          (已实现: PU risk + supervised wrappers)
+    classification.py          (已实现: PU risk/recall/precision + supervised wrappers)
 
   model_selection/
     __init__.py
     split.py                   (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
 
-  advisor/                   (planned)
-    __init__.py
-
   registry/
     __init__.py
-    registry.py
+    registry.py                (含别名解析逻辑)
     metadata.py
-    aliases.py
     builtin_methods.py         (15 论文方法元数据 + native 绑定)
-    source_metadata.py
-    source_policy.py
 ```
 
 ## 3. 测试（`tests/`）
@@ -145,8 +132,6 @@ tests/
       test_pu_labeling.py             # PU/PNU 标签生成
       test_profiling.py               # 数据画像统计
 
-  integration/                        # 跨模块集成（待扩展）
-  regression/                         # 慢速/论文复现（待扩展）
 ```
 
 测试权威级别（pytest markers）：`math`（手工计算 → 失败=代码bug）、`property`（数学不变量 → 失败=代码bug）、`contract`（API 契约）、`slow`（慢速）、`paper`（论文复现）。
@@ -161,25 +146,9 @@ examples/
     03_nnpu.py                (nnPU 非负风险估计)
     04_pnu.py                 (PNU 半监督扩展)
     05_recpe_pipeline.py      (ReCPE 类先验估计 + uPU 联合流程)
-  paper_like/               (planned)
-  sar_cases/                (planned)
-  source_adapter_demo/      (planned)
 ```
 
-## 5. Benchmark（`benchmarks/`）
-
-```text
-benchmarks/                  (骨架就位，目录已创建)
-  configs/
-    smoke/
-    synthetic/
-  runners/
-  paper_like/
-  regression_tests/
-  reports/
-```
-
-## 6. 文档（`docs/`）
+## 5. 文档（`docs/`）
 
 ```text
 docs/
@@ -208,15 +177,15 @@ docs/
   user/                       (planned)
 ```
 
-## 7. 脚本（`scripts/`）
+## 6. 脚本（`scripts/`）
 
 ```text
 scripts/
   check_test_quality.py      (测试质量门禁：方法数/marker/覆盖率)
-  check_doc_links.py          (文档一致性检查：6 条规则)
+  check_doc_links.py          (文档一致性检查：4 条规则)
 ```
 
-## 8. CI/CD（`.github/`）
+## 7. CI/CD（`.github/`）
 
 ```text
 .github/

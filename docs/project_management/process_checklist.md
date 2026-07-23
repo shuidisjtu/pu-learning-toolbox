@@ -2,6 +2,7 @@
 
 > 实际执行顺序与原始路线图有调整：优先实现 PU 特有的风险估计方法（工具箱核心差异化能力），经典分类器包装器后移。
 > 阶段定义以本文档为准，`development_roadmap.md` 为高层路线图。
+> **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## Phase 0 — 项目骨架 ✅
 
@@ -29,12 +30,12 @@
 
 > 原 Phase 1 剩余部分。经典分类器的 PU 包装 (Bagging, SVM, LR) 和额外的类先验估计器。
 
-- [ ] PU Bagging 分类器
-- [ ] Biased SVM 分类器
-- [ ] Weighted Logistic Regression 分类器
+- [ ] PU Bagging 分类器 ⚠️ v1 范围外
+- [ ] Biased SVM 分类器 ⚠️ v1 范围外
+- [ ] Weighted Logistic Regression 分类器 ⚠️ v1 范围外
 - [x] penL1 类先验估计
-- [ ] TIcE / AlphaMax 类先验估计
-- [ ] Advisor 规则版
+- [ ] TIcE / AlphaMax 类先验估计 ⚠️ v1 范围外
+- [ ] Advisor 规则版 ⚠️ v1 范围外
 
 ## Phase 3 — 源码 Adapter (v0.3)
 

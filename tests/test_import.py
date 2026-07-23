@@ -7,9 +7,9 @@ SUBPACKAGES = [
     "pu_toolbox.core",
     "pu_toolbox.registry",
     "pu_toolbox.source_adapters",
-"pu_toolbox.preprocessing",
+    "pu_toolbox.preprocessing",
     "pu_toolbox.prior",
-"pu_toolbox.losses",
+    "pu_toolbox.losses",
     "pu_toolbox.estimators",
     "pu_toolbox.estimators.classic",
     "pu_toolbox.estimators.risk",
@@ -17,7 +17,6 @@ SUBPACKAGES = [
     "pu_toolbox.estimators.deep",
     "pu_toolbox.metrics",
     "pu_toolbox.model_selection",
-    "pu_toolbox.advisor",
 ]
 
 

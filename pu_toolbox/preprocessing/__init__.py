@@ -14,6 +14,9 @@ from pu_toolbox.preprocessing.profiling import (
 from pu_toolbox.preprocessing.profiling import (
     pu_data_summary as pu_data_summary,
 )
+from pu_toolbox.preprocessing.profiling import (
+    scar_diagnostic as scar_diagnostic,
+)
 from pu_toolbox.preprocessing.pu_labeling import (
     make_case_control_labels as make_case_control_labels,
 )
@@ -42,4 +45,5 @@ __all__ = [
     "make_scar_labels",
     "pnu_data_summary",
     "pu_data_summary",
+    "scar_diagnostic",
 ]

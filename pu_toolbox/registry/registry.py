@@ -11,13 +11,39 @@ import threading
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import RegistryError
-from .aliases import (
-    clear_aliases,
-    register_alias,
-    resolve_alias,
-    unregister_alias,
-)
 from .metadata import AlgorithmMetadata
+
+# ── Alias → canonical name ─────────────────────────────────────────
+_ALIAS_MAP: dict[str, str] = {}
+
+
+def register_alias(alias: str, canonical_name: str) -> None:
+    """Register a case-insensitive alias for a canonical algorithm name."""
+    key = alias.lower()
+    if key in _ALIAS_MAP and _ALIAS_MAP[key] != canonical_name:
+        raise ValueError(
+            f"Alias '{alias}' already maps to '{_ALIAS_MAP[key]}'; "
+            f"cannot remap to '{canonical_name}'."
+        )
+    _ALIAS_MAP[key] = canonical_name
+
+
+def unregister_alias(alias: str) -> None:
+    """Remove an alias entry (safe to call if not registered)."""
+    _ALIAS_MAP.pop(alias.lower(), None)
+
+
+def clear_aliases() -> None:
+    """Remove all alias mappings."""
+    _ALIAS_MAP.clear()
+
+
+def resolve_alias(name: str) -> str | None:
+    """Resolve a possibly-aliased name to its canonical form."""
+    if not isinstance(name, str):
+        return None
+    return _ALIAS_MAP.get(name.lower())
+
 
 # ── Canonical registry ─────────────────────────────────────────────
 _REGISTRY: dict[str, AlgorithmMetadata] = {}
@@ -97,12 +123,12 @@ def _sync_class_metadata_to_registry(canonical: str, cls: type) -> None:
     treated as authoritative overrides.
     """
     meta = _REGISTRY[canonical]
-    _BASES = (BasePUClassifier, BasePriorEstimator)
+    _bases = (BasePUClassifier, BasePriorEstimator)
     for field_name in _SYNC_FIELDS:
         declared = any(
             field_name in klass.__dict__
             for klass in cls.__mro__
-            if klass not in _BASES and not issubclass(klass, type)
+            if klass not in _bases and not issubclass(klass, type)
         )
         if not declared:
             continue
@@ -263,8 +289,6 @@ def list_algorithms(
 
 def alias_map_items():
     """Return a copy of all (alias, canonical) pairs (for safe iteration)."""
-    from .aliases import _ALIAS_MAP
-
     yield from list(_ALIAS_MAP.items())
 
 

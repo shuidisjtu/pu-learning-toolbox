@@ -94,21 +94,7 @@ class BasePriorEstimator(BaseEstimator, ABC):
         return None
 ```
 
-### 4.3 BasePropensityEstimator
-
-```python
-class BasePropensityEstimator(BaseEstimator, ABC):
-    def fit(self, X, y_pu):
-        ...
-
-    def estimate(self):
-        ...
-
-    def predict_propensity(self, X):
-        ...
-```
-
-### 4.4 BasePULoss
+### 4.3 BasePULoss
 
 ```python
 class BasePULoss(ABC):
@@ -118,7 +104,7 @@ class BasePULoss(ABC):
         ...
 ```
 
-### 4.5 BaseSourceAdapter
+### 4.4 BaseSourceAdapter
 
 ```python
 class BaseSourceAdapter(ABC):
@@ -188,10 +174,12 @@ class BaseSourceAdapter(ABC):
 
 | 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |
 |---|---|
-| 类先验 $\pi$ | ✅ ReCPE, ✅ penL1, ⏳ TIcE, ⏳ AlphaMax |
+| 类先验 $\pi$ | ✅ ReCPE, ✅ penL1, † TIcE, † AlphaMax |
 | 标记倾向 $c$ (SCAR) | ✅ Elkan-Noto |
 | 标记倾向 $c(x)$ (SAR) | ✅ LBE, ✅ PUSB |
 | PU 风险/损失 | ✅ uPU, ✅ nnPU, ✅ PNU, ✅ Dist-PU |
+
+> † 扩展参考（不在 v1 范围内），非 15 篇核心论文方法。
 
 ## 8. 论文方法到模块的映射
 
@@ -233,5 +221,6 @@ adapter 统一包装外部源码，不改变 Toolbox 核心 API。每个 adapter
 ## 10. 评价与切分
 
 - `PUStratifiedKFold`、`PUStratifiedShuffleSplit`（已实现）：保证每个训练折含 labeled positive，保留 P/U 比例。
-- 有真实 $y$ 时使用标准监督指标（AUC, F1, Average Precision）；仅 PU 标签时使用 PU 估计指标（`pu_zero_one_risk`）。
-- benchmark 分为 smoke / synthetic / paper-like 三级（planned），论文算法对应 `benchmarks/paper_like/<name>/`。
+- PU-only 指标（不需要真实标签）：`pu_zero_one_risk`（PU 零一验证风险）、`pu_recall`（从已标记正样本估计召回率）、`pu_estimated_precision`（利用类先验估计精确率）、`pu_negative_rate`（无标记样本负预测率）。
+- 有真实 $y$ 时使用标准监督指标包装（AUC, F1, Accuracy）。
+- SCAR 假设诊断：`scar_diagnostic` 通过 P/U 可分性检测标记机制是否满足 SCAR。

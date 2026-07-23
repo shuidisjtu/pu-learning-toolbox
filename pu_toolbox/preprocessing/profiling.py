@@ -24,6 +24,7 @@ from pu_toolbox.core.labels import normalize_pnu_labels, normalize_pu_labels
 __all__ = [
     "pnu_data_summary",
     "pu_data_summary",
+    "scar_diagnostic",
 ]
 
 # ═════════════════════════════════════════════════════════════════════
@@ -188,4 +189,77 @@ def pnu_data_summary(
         "is_sparse": _is_sparse(X),
         "has_nan": has_nan,
         "has_inf": has_inf,
+    }
+
+
+# ═════════════════════════════════════════════════════════════════════
+# SCAR assumption diagnostic
+# ═════════════════════════════════════════════════════════════════════
+
+_SCAR_AUC_THRESHOLD: float = 0.65
+
+
+def scar_diagnostic(
+    X: np.ndarray | sparse.spmatrix,
+    y_pu: np.ndarray,
+) -> dict:
+    """Quick diagnostic for the SCAR (Selected Completely At Random) assumption.
+
+    Trains a lightweight logistic regression to separate labeled positives
+    (``y_pu == 1``) from unlabeled samples (``y_pu == 0``) using 3-fold
+    cross-validation.  If these two groups are easily separable
+    (AUC >> 0.5), the labeling mechanism likely depends on features,
+    violating the SCAR assumption.
+
+    Parameters
+    ----------
+    X : np.ndarray or sparse matrix of shape (n_samples, n_features)
+        Feature matrix.
+    y_pu : np.ndarray of shape (n_samples,)
+        PU labels (any format accepted by
+        :func:`~pu_toolbox.core.labels.normalize_pu_labels`).
+
+    Returns
+    -------
+    dict
+        Diagnostic result with the following keys:
+
+        - ``"separability_auc"`` (float): mean ROC AUC from 3-fold CV.
+        - ``"is_scar_plausible"`` (bool): ``True`` when AUC ≤ threshold.
+        - ``"message"`` (str): human-readable interpretation.
+
+    Notes
+    -----
+    The default threshold is 0.65.  An AUC above this value suggests
+    that the labeling mechanism is feature-dependent and SCAR may not
+    hold.
+    """
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_score
+
+    y = normalize_pu_labels(np.asarray(y_pu))
+    _validate_same_length(X, y, label="y_pu")
+
+    # Binary target: labeled-P = 1, U = 0 (already canonical)
+    clf = LogisticRegression(max_iter=500, solver="lbfgs", random_state=42)
+    auc_scores = cross_val_score(clf, X, y, cv=3, scoring="roc_auc")
+    mean_auc = float(np.mean(auc_scores))
+
+    is_plausible = mean_auc <= _SCAR_AUC_THRESHOLD
+    if is_plausible:
+        message = (
+            f"SCAR assumption is plausible (AUC = {mean_auc:.3f} "
+            f"<= {_SCAR_AUC_THRESHOLD})."
+        )
+    else:
+        message = (
+            f"SCAR assumption may NOT hold (AUC = {mean_auc:.3f} "
+            f"> {_SCAR_AUC_THRESHOLD}). The labeling mechanism appears "
+            f"feature-dependent."
+        )
+
+    return {
+        "separability_auc": mean_auc,
+        "is_scar_plausible": is_plausible,
+        "message": message,
     }
