@@ -2,7 +2,7 @@
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the
-advisor, registry browser, and documentation generators have complete
+registry browser and documentation generators have complete
 information even before training logic is implemented.
 
 See ``docs/resources_optimized.md`` for the full source inventory and
@@ -51,8 +51,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.STABLE,
-        complexity="medium",
-        recommended_data_size="medium",
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="http://www.mcduplessis.com/index.php/software/",
@@ -71,8 +69,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.STABLE,
-        complexity="medium",
-        recommended_data_size="medium",
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning",
@@ -91,8 +87,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.SKLEARN,
         maturity=Maturity.STABLE,
-        complexity="low",
-        recommended_data_size="small",
         implementation_status=Impl.NATIVE,
         source_status=Src.THIRD_PARTY_ONLY,
         upstream_url="https://github.com/pulearn/pulearn",
@@ -111,8 +105,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.STABLE,
-        complexity="medium",
-        recommended_data_size="medium_to_large",
+
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_BUNDLE,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
@@ -131,8 +124,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.STABLE,
-        complexity="medium",
-        recommended_data_size="medium_to_large",
+
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/kiryor/nnPUlearning",
@@ -154,8 +146,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.RESEARCH,
-        complexity="medium",
-        recommended_data_size="medium_to_large",
+
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
@@ -174,8 +165,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.RESEARCH,
-        complexity="medium",
-        recommended_data_size="medium",
+
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
@@ -197,8 +187,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.STABLE,
-        complexity="high",
-        recommended_data_size="medium",
+
         implementation_status=Impl.API_ONLY,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LLSVM_TNNLS19.rar",
@@ -217,8 +206,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-        complexity="high",
-        recommended_data_size="medium_to_large",
+
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
@@ -237,8 +225,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.SKLEARN,
         maturity=Maturity.RESEARCH,
-        complexity="high",
-        recommended_data_size="medium",
+
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/MasaKat0/PUlearning",
@@ -257,8 +244,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.SKLEARN,
         maturity=Maturity.RESEARCH,
-        complexity="high",
-        recommended_data_size="medium",
+
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
@@ -277,8 +263,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-        complexity="high",
-        recommended_data_size="large",
+
         implementation_status=Impl.API_ONLY,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/VITA-Group/Self-PU",
@@ -297,8 +282,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-        complexity="high",
-        recommended_data_size="large",
+
         implementation_status=Impl.API_ONLY,
         source_status=Src.NOT_FOUND,
         upstream_url=None,
@@ -320,8 +304,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-        complexity="high",
-        recommended_data_size="large",
+
         implementation_status=Impl.API_ONLY,
         source_status=Src.NOT_FOUND,
         upstream_url=None,
@@ -340,8 +323,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.EXPERIMENTAL,
-        complexity="high",
-        recommended_data_size="large",
+
         implementation_status=Impl.API_ONLY,
         source_status=Src.NOT_FOUND,
         upstream_url=None,

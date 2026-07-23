@@ -268,20 +268,28 @@ class TestValidationAndBatches:
     """Method card §9.6-§9.7 — class_prior required/validated, P/U batch edges."""
 
     def test_param_class_prior_validation(self, rng):
-        """class_prior required in fit(), stored in metadata and as attribute."""
+        """class_prior required via __init__ or fit(); stored in metadata."""
         X, y_pu, pi = _make_synthetic_data(rng, n_p=20, n_u=40)
         model = torch.nn.Linear(5, 1)
 
-        # Missing class_prior → TypeError
+        # Missing class_prior in both __init__ and fit() → ValueError
         clf = NonNegativePUClassifier(model=model, max_epochs=1)
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError, match="class_prior must be provided"):
             clf.fit(X, y_pu)
 
-        # Valid class_prior stored
+        # class_prior via fit() kwarg
         clf2 = NonNegativePUClassifier(model=model, max_epochs=1, batch_size=10)
         clf2.fit(X, y_pu, class_prior=pi)
         assert clf2.class_prior_ == pytest.approx(pi)
         assert clf2.get_pu_metadata()["class_prior"] == pytest.approx(pi)
+
+        # class_prior via __init__ (sklearn-compatible pattern)
+        model3 = torch.nn.Linear(5, 1)
+        clf3 = NonNegativePUClassifier(
+            model=model3, class_prior=pi, max_epochs=1, batch_size=10
+        )
+        clf3.fit(X, y_pu)
+        assert clf3.class_prior_ == pytest.approx(pi)
 
     def test_edge_pu_batch_edges(self, rng):
         """No-P, no-U, single-P, unequal loader lengths, NaN in X."""

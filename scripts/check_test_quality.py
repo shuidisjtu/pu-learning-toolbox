@@ -95,6 +95,15 @@ UNLIMITED_FILES: set[str] = {
     "test_import.py",  # smoke imports
 }
 
+# Files whose algorithms are fully covered by contract tests
+# (test_classifier_baseline.py), so they do not need to independently
+# cover all 4 categories (basic / param / edge / determ).
+CONTRACT_COVERED_FILES: set[str] = {
+    "test_bias_aware.py",
+    "test_dist_pu.py",
+    "test_pen_l1.py",
+}
+
 
 # ═════════════════════════════════════════════════════════════════════
 # Data types
@@ -246,6 +255,8 @@ def main(max_tests: int = 15, strict: bool = False) -> int:
     print("\n─ Coverage categories (basic / param / edge / determ) ─")
     coverage_ok = True
     for r in reports:
+        if r.path.name in CONTRACT_COVERED_FILES:
+            continue  # covered by contract tests
         if r.categories_missing and (strict or len(r.categories_missing) > 1):
             coverage_ok = False
             n_issues += 1

@@ -2,11 +2,10 @@
 
 """Lightweight data profiling for PU / PNU datasets.
 
-These functions provide summary statistics that feed the Advisor
-(algoirthm recommender) and help users diagnose their data before
-selecting an estimator.  Only basic counts and ratios are computed —
-heavy feature-level analysis is deferred to the full Data Profiler
-planned for Phase 4.
+These functions provide summary statistics that help users diagnose
+their data before selecting an estimator.  Only basic counts and ratios
+are computed — heavy feature-level analysis is deferred to the full
+Data Profiler planned for Phase 4.
 """
 
 from __future__ import annotations

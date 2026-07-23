@@ -28,21 +28,6 @@ class NotFittedError(PULearningError, _SklearnNotFittedError):
     """
 
 
-class ClassPriorError(PULearningError):
-    """Raised when a class prior estimate is invalid or unavailable.
-
-    This includes out-of-range values, negative estimates, and attempts to
-    train a prior-dependent model without providing or estimating the prior.
-    """
-
-
-class SourceAdapterError(PULearningError):
-    """Raised when an external source adapter cannot be loaded or executed.
-
-    Typical causes: missing dependency, license restriction, broken external
-    repo, or incompatible framework version.
-    """
-
 
 class RegistryError(PULearningError):
     """Raised when registry operations fail (duplicate name, missing alias, etc.)."""

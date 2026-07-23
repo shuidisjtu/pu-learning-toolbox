@@ -3,8 +3,8 @@
 ## 1. 核心原则
 
 - Core 包轻量，深度学习依赖放入 optional extension。
-- 类先验、标记倾向、损失函数、分类器、源码 adapter 解耦。
-- 所有算法通过 registry 管理，advisor 基于元数据推荐，不直接依赖具体实现。
+- 类先验、标记倾向、损失函数、分类器解耦。
+- 所有算法通过 registry 管理，元数据驱动发现和推荐。
 - 有官方源码的论文优先走 adapter，无源码的 clean-room 实现。SAR / Instance-Dependent PU 是中长期差异化重点。
 
 完整目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
@@ -15,17 +15,16 @@
 |---|---|---|
 | Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、PU 标签生成、数据画像、算法注册、元数据、共享工具 |
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
-| Algorithms | `estimators` | 实现或包装具体 PU 分类器 |
-| Source Integration | `source_adapters` | 管理作者源码、外部仓库和论文复现脚本 |
-| Evaluation | `metrics`, `model_selection`, `benchmarks` (planned) | 评估、诊断、切分、benchmark regression。其中 `metrics`（PU 风险 + 监督指标包装）和 `model_selection`（PU 分层切分）已实现 |
-| User Layer | `advisor`, `examples`, `docs` | 推荐算法、生成报告、教程 |
+| Algorithms | `estimators` | 实现具体 PU 分类器 |
+| Evaluation | `metrics`, `model_selection` | PU 评估指标、PU 分层切分 |
+| User Layer | `examples`, `docs` | 教程、文档 |
 
 ## 3. 数据流
 
 ```
 用户输入 (X, y_pu) → 标签规范化 + 校验 → Data Profiler
     ↓
-Advisor → Registry → 候选算法 → 实现解析 (native / adapter / torch)
+Registry → 候选算法 → 实现解析 (native / torch)
     ↓
 类先验估计 + 标记倾向估计 → 模型训练 → 输出 (predict / decision_function / predict_proba)
     ↓
@@ -104,26 +103,6 @@ class BasePULoss(ABC):
         ...
 ```
 
-### 4.4 BaseSourceAdapter
-
-```python
-class BaseSourceAdapter(ABC):
-    source_status = SourceStatus.UNKNOWN
-    upstream_url = None
-    license = "unknown"
-    backend = Backend.UNKNOWN
-    implementation_status = ImplementationStatus.OFFICIAL_ADAPTER
-
-    def is_available(self):
-        ...
-
-    def build_estimator(self, **kwargs):
-        ...
-
-    def run_reproduction_test(self, config):
-        raise NotImplementedError
-```
-
 ## 5. 输出接口规范
 
 | 方法 | 是否必须 | 含义 |
@@ -137,7 +116,7 @@ class BaseSourceAdapter(ABC):
 
 ## 6. 算法注册表
 
-每个算法注册元信息，advisor 据此推荐，不直接依赖具体实现。
+每个算法注册元信息，registry 据此管理发现和推荐。
 
 ```python
 {
@@ -151,7 +130,6 @@ class BaseSourceAdapter(ABC):
     "supports_gpu": True,
     "backend": "torch",
     "maturity": "stable",
-    "complexity": "medium",
     "source_status": "official_exact",
     "implementation_status": "native",
 }
@@ -165,10 +143,6 @@ class BaseSourceAdapter(ABC):
 |---|---|
 | `api_only` | 仅 API 占位，无训练逻辑 |
 | `native` | clean-room 实现 |
-| `official_adapter` | 通过 adapter 调用官方源码 |
-| `official_aligned_native` | 参考官方逻辑的原生实现 + 对齐测试 |
-| `third_party_reference_only` | 仅有第三方参考实现，无官方源码 |
-| `experimental` | 研究版，API 可能变动 |
 
 ## 7. 类先验、标记倾向与损失函数
 
@@ -206,19 +180,7 @@ class BaseSourceAdapter(ABC):
 
 完整映射及实现策略见 [`development_roadmap.md`](development_roadmap.md)。
 
-## 9. 源码 Adapter 设计
-
-adapter 统一包装外部源码，不改变 Toolbox 核心 API。每个 adapter 需处理：
-
-1. 依赖检查与可用性判断
-2. 输入格式转换
-3. 随机种子传递
-4. 训练日志捕获
-5. 输出转换为 Toolbox 统一格式
-6. 许可证与引用提示
-7. 与 paper-like benchmark 结果对齐
-
-## 10. 评价与切分
+## 9. 评价与切分
 
 - `PUStratifiedKFold`、`PUStratifiedShuffleSplit`（已实现）：保证每个训练折含 labeled positive，保留 P/U 比例。
 - PU-only 指标（不需要真实标签）：`pu_zero_one_risk`（PU 零一验证风险）、`pu_recall`（从已标记正样本估计召回率）、`pu_estimated_precision`（利用类先验估计精确率）、`pu_negative_rate`（无标记样本负预测率）。

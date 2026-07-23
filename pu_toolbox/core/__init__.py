@@ -15,9 +15,6 @@ from .base import (
     BasePULoss as BasePULoss,
 )
 from .exceptions import (
-    ClassPriorError as ClassPriorError,
-)
-from .exceptions import (
     NotFittedError as NotFittedError,
 )
 from .exceptions import (
@@ -25,9 +22,6 @@ from .exceptions import (
 )
 from .exceptions import (
     RegistryError as RegistryError,
-)
-from .exceptions import (
-    SourceAdapterError as SourceAdapterError,
 )
 from .exceptions import (
     ValidationError as ValidationError,
@@ -41,11 +35,9 @@ __all__ = [
     "BasePriorEstimator",
     "BasePUClassifier",
     "BasePULoss",
-    "ClassPriorError",
     "NotFittedError",
     "PULearningError",
     "RegistryError",
-    "SourceAdapterError",
     "ValidationError",
     "normalize_pnu_labels",
     "normalize_pu_labels",

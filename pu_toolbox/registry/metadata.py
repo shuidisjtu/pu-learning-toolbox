@@ -1,14 +1,13 @@
 """Algorithm metadata dataclass and validation.
 
-Defines the canonical :class:`AlgorithmMetadata` used by the registry,
-advisor, and documentation generators.
+Defines the canonical :class:`AlgorithmMetadata` used by the registry
+and documentation generators.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
 from enum import Enum
-from typing import Literal
 
 from ..core.tags import (
     AlgorithmFamily,
@@ -61,12 +60,6 @@ class AlgorithmMetadata:
 
     maturity: Maturity = Maturity.STABLE
     """Implementation stability level."""
-
-    complexity: Literal["low", "medium", "high"] = "medium"
-    """Approximate training complexity."""
-
-    recommended_data_size: Literal["small", "medium", "medium_to_large", "large"] = "medium"
-    """Rough data-size regime where the method performs well."""
 
     implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
     """How the algorithm is implemented in the toolbox."""

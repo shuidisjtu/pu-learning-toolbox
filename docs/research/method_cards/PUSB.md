@@ -164,7 +164,7 @@ q_{logistic}(x)=\operatorname{sigmoid}(f_{logistic}(x)).
 这个流程的定位是：
 
 - 提供 selection-biased PU 的公共 API 和 baseline；
-- 让 advisor、registry、benchmark 可以先调用 PUSB；
+- 让 registry、benchmark 可以先调用 PUSB；
 - 为后续官方算法替换保留相同的 estimator contract。
 
 它不能用于声称“已经完成 PUSB 论文复现”。

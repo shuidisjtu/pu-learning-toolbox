@@ -1,6 +1,6 @@
 """Typed tags for PU scenarios, assumptions, and algorithm metadata.
 
-These lightweight value objects are used by the registry, advisor, and
+These lightweight value objects are used by the registry and
 validation layers to communicate PU-specific attributes without relying
 on raw strings.
 """
@@ -46,10 +46,6 @@ class ImplementationStatus(str, Enum):
 
     API_ONLY = "api_only"  # placeholder, no training logic
     NATIVE = "native"  # clean-room implementation
-    OFFICIAL_ADAPTER = "official_adapter"  # wraps author source
-    OFFICIAL_ALIGNED_NATIVE = "official_aligned_native"  # native impl + alignment tests
-    THIRD_PARTY_REFERENCE = "third_party_reference_only"
-    EXPERIMENTAL = "experimental"
 
 
 # ── Source status ──────────────────────────────────────────────────

@@ -51,6 +51,7 @@ pu_toolbox/
   estimators/
     __init__.py
     classic/                 (1/1 native)
+      __init__.py
       elkan_noto.py          (native)
     risk/
       __init__.py
@@ -64,14 +65,6 @@ pu_toolbox/
       __init__.py
       pusb.py                (native)
       lbe.py                 (native)
-    deep/                    (planned)
-      __init__.py
-      self_pu.py             (planned)
-
-  source_adapters/
-    __init__.py
-    base.py
-    registry.py              (planned)
 
   metrics/
     __init__.py

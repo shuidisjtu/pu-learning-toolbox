@@ -41,7 +41,7 @@ LAYERS = [
     {
         "label": "Estimation",
         "modules": [
-            {"name": "prior/", "sub": "Class-prior estimation", "impl": "partial", "w": 4.2},
+            {"name": "prior/", "sub": "Class-prior estimation", "impl": True, "w": 4.2},
             {"name": "losses/", "sub": "PU risk functions", "impl": True, "w": 4.2},
         ],
     },
@@ -51,13 +51,6 @@ LAYERS = [
             {"name": "classic/", "sub": "Calibration-based PU", "impl": True, "w": 2.8},
             {"name": "risk/", "sub": "Risk-based PU classifiers", "impl": True, "w": 3.4},
             {"name": "bias_aware/", "sub": "Selection-bias PU", "impl": True, "w": 2.6},
-            {"name": "deep/", "sub": "Deep PU methods (planned)", "impl": False, "w": 2.6},
-        ],
-    },
-    {
-        "label": "Source Integration",
-        "modules": [
-            {"name": "source_adapters/", "sub": "Third-party code wrappers", "impl": "partial", "w": 4.2},
         ],
     },
     {
@@ -65,13 +58,11 @@ LAYERS = [
         "modules": [
             {"name": "metrics/", "sub": "PU classification metrics", "impl": True, "w": 2.8},
             {"name": "model_selection/", "sub": "PU cross-validation", "impl": True, "w": 3.4},
-            {"name": "benchmarks/", "sub": "(planned)", "impl": False, "w": 2.8},
         ],
     },
     {
         "label": "User Layer",
         "modules": [
-            {"name": "advisor/", "sub": "Algorithm recommender (planned)", "impl": False, "w": 3.2},
             {"name": "examples/", "sub": "Minimal usage demos", "impl": True, "w": 2.8},
         ],
     },

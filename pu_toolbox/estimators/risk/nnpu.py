@@ -54,6 +54,9 @@ class NonNegativePUClassifier(BasePUClassifier):
     model : torch.nn.Module or None, default None
         PyTorch model that outputs raw scores g(x).
         If None, a default ``nn.Linear(n_features, 1)`` is created.
+    class_prior : float or None, default None
+        Class prior π = P(y=1).  Must be in (0, 1).  Can also be
+        supplied (or overridden) via :meth:`fit`.
     loss : {"sigmoid"}, default "sigmoid"
         Surrogate loss.  MVP only supports sigmoid.
     beta : float, default 0.0
@@ -105,6 +108,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         self,
         model: torch.nn.Module | None = None,  # noqa: F821
         *,
+        class_prior: float | None = None,
         loss: Literal["sigmoid"] = "sigmoid",
         beta: float = 0.0,
         gamma: float = 1.0,
@@ -116,6 +120,7 @@ class NonNegativePUClassifier(BasePUClassifier):
     ) -> None:
         super().__init__()
         self.model = model
+        self.class_prior = class_prior
         self.loss = loss
         self.beta = beta
         self.gamma = gamma
@@ -132,7 +137,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float,
+        class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
     ) -> NonNegativePUClassifier:
@@ -144,8 +149,8 @@ class NonNegativePUClassifier(BasePUClassifier):
             Feature matrix.
         y_pu : np.ndarray of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
-        class_prior : float
-            Class prior π = P(y=1).  **Required.** Must be in (0, 1).
+        class_prior : float, optional
+            Override the constructor's ``class_prior``.  Must be in (0, 1).
         sample_weight : np.ndarray of shape (n_samples,), optional
             Per-sample weights.  Normalised independently within the
             P and U groups.
@@ -159,6 +164,14 @@ class NonNegativePUClassifier(BasePUClassifier):
         self : NonNegativePUClassifier
         """
         import torch
+
+        # ── Resolve class prior ───────────────────────────────────
+        if class_prior is None:
+            class_prior = self.class_prior
+        if class_prior is None:
+            raise ValueError(
+                "class_prior must be provided either in __init__() or fit()."
+            )
 
         # ── Validate inputs ───────────────────────────────────────
         X, y_pu = validate_pu_X_y(
