@@ -203,3 +203,29 @@ class TestLLSVMObjective:
 
         total, _ = llsvm_objective(w, X_p, X_u, alpha, beta, gamma, t, A, reg_lambda)
         assert total == pytest.approx(l1 + l2 + l3 + reg)
+
+    @pytest.mark.math
+    def test_param_alpha_scales_p_loss(self):
+        """Doubling alpha doubles the positive hinge contribution."""
+        X_p = np.array([[1.0, 0.5], [0.3, -0.2]])
+        X_u = np.array([[0.5, -0.3], [0.1, 0.7]])
+        w = np.array([0.3, 0.5])
+        kwargs = dict(beta=1.0, gamma=10.0, t=-2.5, A=10.0, reg_lambda=0.0)
+
+        l1, _ = llsvm_objective(w, X_p, X_u, alpha=1.0, **kwargs)
+        l2, _ = llsvm_objective(w, X_p, X_u, alpha=2.0, **kwargs)
+        p1, _ = positive_hinge_loss(X_p, w, 1.0)
+        p2, _ = positive_hinge_loss(X_p, w, 2.0)
+        assert (l2 - l1) == pytest.approx(p2 - p1)
+
+    @pytest.mark.math
+    def test_deterministic_same_input(self):
+        """Same inputs always produce identical outputs."""
+        X_p = np.array([[1.0, 0.5], [0.3, -0.2]])
+        X_u = np.array([[0.5, -0.3], [0.1, 0.7]])
+        w = np.array([0.3, 0.5])
+        kwargs = dict(alpha=2.0, beta=1.0, gamma=10.0, t=-2.5, A=10.0, reg_lambda=1.0)
+        l1, g1 = llsvm_objective(w, X_p, X_u, **kwargs)
+        l2, g2 = llsvm_objective(w, X_p, X_u, **kwargs)
+        assert l1 == l2
+        np.testing.assert_array_equal(g1, g2)
