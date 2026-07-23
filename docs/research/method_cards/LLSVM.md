@@ -4,10 +4,10 @@
 
 ### 1.1 待办
 
-- [ ] 实现 `LLSVMClassifier`：只接受正样本与未标记样本（P/U），以式（9）的平滑非凸目标训练线性判别函数。
-- [ ] 将类先验 $`\pi=P(y=+1\mid x\in U)`$ 显式作为 `class_prior` 输入，或接入现有 `penL1` 估计器；禁止静默设为 `0.5`。$`t=2\pi-1`$。
-- [ ] 实现 minibatch SGD、训练历史及数值稳定的损失计算；优化器、学习率、epoch 和 batch size 必须可配置。
-- [ ] 完成 P/U 标签协议、输入校验、目标/梯度单元测试，以及合成双高斯数据端到端测试。
+- [x] 实现 `LLSVMClassifier`：只接受正样本与未标记样本（P/U），以式（9）的平滑非凸目标训练线性判别函数。
+- [x] 将类先验 $`\pi=P(y=+1\mid x\in U)`$ 显式作为 `class_prior` 输入，或接入现有 `penL1` 估计器；禁止静默设为 `0.5`。$`t=2\pi-1`$。
+- [x] 实现 minibatch SGD、训练历史及数值稳定的损失计算；优化器、学习率、epoch 和 batch size 必须可配置。
+- [x] 完成 P/U 标签协议、输入校验、目标/梯度单元测试，以及合成双高斯数据端到端测试。
 - [ ] 建立 paper-like benchmark；论文的 OpenML/CIFAR/GermanCredit 比较不能直接视为本项目复现结果。
 
 ### 1.2 注意
@@ -17,7 +17,7 @@
 - 仅使用正样本 hinge 项和未标记 hat 项会把所有训练点推向正类；标签校准项是防止该退化的必要部分，不能省略。
 - 训练目标非凸；SGD 只保证得到局部解。需要固定随机种子、保存最优验证 checkpoint，并报告多随机种子方差。
 - 论文用 $`\operatorname{penL1}`$ 估计类先验；先验误差会直接影响 $`t`$ 和边界位置，论文的泛化界不覆盖该估计误差。
-- **[项目适配]** 进度清单显示 LLSVM 仍为 `pending`，同时 `penL1` 已实现。官方代码已审阅，实现以代码为准（见 §4.3）。下文的模块路径、API 与测试要求是集成建议，落地前须以当前公共基类与 registry 契约复核。
+- **[项目适配]** LLSVM 已完成 native 实现（2026-07-23）。`penL1` 已实现并作为默认类先验估计器。官方代码已审阅，实现以代码为准（见 §4.3）。
 
 ---
 
@@ -30,7 +30,7 @@
 | Venue | IEEE Transactions on Neural Networks and Learning Systems, 30(11), 3471-3482 |
 | Year | 2019 |
 | DOI | `10.1109/TNNLS.2019.2892403` |
-| Family | `margin_based` / label-calibrated PU classifier |
+| Family | `risk_estimation` / label-calibrated PU classifier |
 | Setting | 二分类 P/U；线性实值判别函数 $`f_\omega(x)=\omega^\top \bar{x}`$ |
 | Requires class prior | `True`：未标记集中的正类先验 $`\pi`$，用于 $`t=2\pi-1`$ |
 | Requires propensity | `False` |
@@ -207,7 +207,7 @@ J_{\text{code}}(\omega)
 | 拟合属性 | `coef_`, `intercept_`, `class_prior_`, `calibration_target_`, `n_positive_`, `n_unlabeled_`, `loss_history_`, `objective_components_`。 |
 | estimator | `pu_toolbox/estimators/classic/llsvm.py`：`LLSVMClassifier`。**[项目适配：建议路径]** |
 | loss | `pu_toolbox/losses/llsvm.py`：可测试的 objective components 与 stable `atan`/`exp` 计算。**[项目适配：建议路径]** |
-| registry | 添加 `llsvm`、family=`MARGIN_BASED`、scenario=`CASE_CONTROL`、`requires_class_prior=True`。枚举名以当前 registry 为准。**[项目适配]** |
+| registry | `llsvm`、family=`RISK_ESTIMATION`、scenario=`CASE_CONTROL`、`requires_class_prior=True` |
 | 状态 | `implementation_status=NATIVE` / `source_status=OFFICIAL_EXACT` |
 
 ---

@@ -1,4 +1,4 @@
-"""Built-in algorithm registry — 15 paper methods (10 native + 5 api_only).
+"""Built-in algorithm registry — 15 paper methods (11 native + 4 api_only).
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the
@@ -183,10 +183,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         scenario=[Scn.CASE_CONTROL],
         assumption=[Asm.SCAR, Asm.SAR],
         requires_class_prior=True,
-        supports_sparse=True,
+        supports_sparse=False,
         supports_gpu=False,
         backend=Backend.NUMPY,
-        maturity=Maturity.STABLE,
+        maturity=Maturity.RESEARCH,
 
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
