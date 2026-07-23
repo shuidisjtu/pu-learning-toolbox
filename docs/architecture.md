@@ -206,7 +206,8 @@ class BaseSourceAdapter(ABC):
 | PNU 分类器 | `estimators/risk/pnu.py` |
 | 共享 basis 工具 | `utils/basis.py` |
 | PUSB / LBE | `estimators/bias_aware/pusb.py`, `estimators/bias_aware/lbe.py` |
-| Self-PU / Dist-PU | `estimators/deep/self_pu.py` (planned), `estimators/risk/dist_pu.py` |
+| Dist-PU | `estimators/risk/dist_pu.py` |
+| Self-PU | `estimators/deep/self_pu.py` (planned) |
 | LDCE / Centroid PU | `estimators/risk/ldce.py` |
 | KLDCE (核化 LDCE) | `estimators/risk/kldce.py` (QP oracle + RBF kernel) |
 | 共享质心原语 | `utils/centroid.py` (MoM + 协方差) |
