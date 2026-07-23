@@ -78,6 +78,7 @@ class LBEClassifier(BasePUClassifier):
             q = q_new
         self._latent_positive_probability_ = q
         self._class_prior = float(np.mean(p))
+        self.classes_ = np.array([0, 1])
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self

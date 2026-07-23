@@ -90,6 +90,7 @@ class DistPUClassifier(BasePUClassifier):
             loss.backward()
             optimizer.step()
             self.loss_history_.append(float(loss.detach().cpu()))
+        self.classes_ = np.array([0, 1])
         self._class_prior, self._X_shape_, self._is_fitted = pi, X.shape, True
         self.device_ = device
         return self

@@ -59,6 +59,7 @@ class PUSBClassifier(BasePUClassifier):
         weights = None if sample_weight is None else np.asarray(sample_weight, dtype=float)
         fit_params = {} if weights is None else {"logisticregression__sample_weight": weights}
         self.model_.fit(X, y_pu, **fit_params)
+        self.classes_ = np.array([0, 1])
         self._class_prior = class_prior
         self._X_shape_ = X.shape
         self._is_fitted = True

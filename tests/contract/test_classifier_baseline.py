@@ -238,8 +238,7 @@ class TestAPIContract:
         clf = _FACTORY_MAP[algo_name]()
         X, y = _get_data_factory(clf)(rng)
         _fit(clf, X, y)
-        if not hasattr(clf, "classes_"):
-            pytest.skip(f"{type(clf).__name__} does not set classes_ yet")
+        assert hasattr(clf, "classes_")
         np.testing.assert_array_equal(clf.classes_, np.array([0, 1]))
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
