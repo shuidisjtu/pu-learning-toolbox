@@ -64,6 +64,7 @@ def register_method(
         _REGISTRY[name] = metadata
         if estimator_cls is not None:
             _CLASSES[name] = estimator_cls
+            _sync_class_metadata_to_registry(name, estimator_cls)
 
         # Register the canonical name itself as an alias (for case-insensitive lookup)
         register_alias(name, name)
@@ -73,6 +74,42 @@ def register_method(
                 register_alias(alias, name)
             except ValueError as exc:
                 raise RegistryError(str(exc)) from exc
+
+
+_SYNC_FIELDS = (
+    "family",
+    "assumption",
+    "scenario",
+    "requires_class_prior",
+    "implementation_status",
+    "source_status",
+    "backend",
+    "maturity",
+)
+
+
+def _sync_class_metadata_to_registry(canonical: str, cls: type) -> None:
+    """Copy overlapping metadata fields from the estimator class to the registry entry.
+
+    Only syncs fields explicitly declared on the class itself (present in
+    its MRO ``__dict__`` chain excluding the abstract bases), so inherited
+    defaults from ``BasePUClassifier`` / ``BasePriorEstimator`` are not
+    treated as authoritative overrides.
+    """
+    meta = _REGISTRY[canonical]
+    _BASES = (BasePUClassifier, BasePriorEstimator)
+    for field_name in _SYNC_FIELDS:
+        declared = any(
+            field_name in klass.__dict__
+            for klass in cls.__mro__
+            if klass not in _BASES and not issubclass(klass, type)
+        )
+        if not declared:
+            continue
+        value = getattr(cls, field_name)
+        if isinstance(value, tuple):
+            value = list(value)
+        setattr(meta, field_name, value)
 
 
 def bind_estimator_class(
@@ -109,6 +146,7 @@ def bind_estimator_class(
         )
     with _lock:
         _CLASSES[canonical] = estimator_cls
+        _sync_class_metadata_to_registry(canonical, estimator_cls)
 
 
 def unregister_method(name: str) -> None:

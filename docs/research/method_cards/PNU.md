@@ -278,7 +278,7 @@ v1 仅支持 squared loss 闭式解，无 `max_iter`/`tol`/`eta_grid` 参数。
 
 ### 8.3 CONTRACT tests
 
-- 与 `tests/contract/test_classifier_api.py` 对齐：`fit` 返回 `self`，`predict(X)` 输出 `{0, 1}`，`decision_function(X)` 返回一维 score，`get_params()` / `set_params()` 可用。
+- 与 `tests/contract/test_classifier_baseline.py` 对齐：`fit` 返回 `self`，`predict(X)` 输出 `{0, 1}`，`decision_function(X)` 返回一维 score，`get_params()` / `set_params()` 可用。
 - PNU 专用 P/N/U 数据协议定稿后，必须把协议加入 contract tests；在定稿前不要把 `fit(X, y, unlabeled_X)` 宣称为最终公共 API。
 - 拟合后应暴露 `class_prior_`、`eta_`、`risk_components_` 和特征维度属性。
 

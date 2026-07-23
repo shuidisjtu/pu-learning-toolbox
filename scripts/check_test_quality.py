@@ -89,7 +89,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
 
 # Files exempt from the ≤15 limit (cross-cutting contract / registry).
 UNLIMITED_FILES: set[str] = {
-    "test_classifier_api.py",  # contract: applies to all NATIVE classifiers
+    "test_classifier_baseline.py",  # contract: unified API + baseline for all NATIVE
     "test_builtin_methods.py",  # registry metadata completeness
     "test_registry.py",  # registry mechanics
     "test_import.py",  # smoke imports

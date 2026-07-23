@@ -113,7 +113,7 @@ tests/
   test_builtin_methods.py             # 注册表元数据
 
   contract/                           # 契约测试 — 写一次，所有 NATIVE 分类器复用
-    test_classifier_api.py            # fit/predict/decision_function/get_params 等
+    test_classifier_baseline.py            # fit/predict/decision_function/get_params 等
 
   estimators/                          # 按方法的测试（MATH/PROPERTY/API）
     risk/

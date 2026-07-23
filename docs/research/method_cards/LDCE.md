@@ -363,7 +363,7 @@ class LDCEClassifier(BasePUClassifier):
 
 ### 8.3 CONTRACT tests
 
-与 `tests/contract/test_classifier_api.py` 对齐：
+与 `tests/contract/test_classifier_baseline.py` 对齐：
 
 - `fit` 返回 `self`
 - `predict(X)` 输出 `{0, 1}`，shape `(n_samples,)`，dtype `int`

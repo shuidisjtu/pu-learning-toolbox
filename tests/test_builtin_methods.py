@@ -137,3 +137,46 @@ class TestBuiltinRegistration:
                 assert meta.upstream_url is not None, (
                     f"{meta.name} is official_exact but missing upstream_url"
                 )
+
+    def test_metadata_synced_from_class_attributes(self):
+        """After binding, registry metadata matches class-level attributes.
+
+        Only checks fields explicitly declared on the class itself (not
+        inherited defaults from the abstract bases).
+        """
+        from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
+        from pu_toolbox.registry import get_algorithm, get_metadata
+
+        _BASES = (BasePUClassifier, BasePriorEstimator)
+
+        def _declared_on_class(cls, field_name):
+            return any(
+                field_name in klass.__dict__
+                for klass in cls.__mro__
+                if klass not in _BASES and not issubclass(klass, type)
+            )
+
+        register_all_builtin_methods()
+        for meta in get_algorithm_registry().values():
+            if not meta.trainable:
+                continue
+            cls = get_algorithm(meta.name)
+            synced = get_metadata(meta.name)
+            for field_name in (
+                "family", "implementation_status", "source_status",
+                "backend", "maturity", "requires_class_prior",
+            ):
+                if not _declared_on_class(cls, field_name):
+                    continue
+                assert getattr(synced, field_name) == getattr(cls, field_name), (
+                    f"{meta.name}.{field_name}: registry={getattr(synced, field_name)} "
+                    f"!= class={getattr(cls, field_name)}"
+                )
+            if _declared_on_class(cls, "assumption"):
+                assert synced.assumption == list(cls.assumption), (
+                    f"{meta.name}.assumption mismatch"
+                )
+            if _declared_on_class(cls, "scenario"):
+                assert synced.scenario == list(cls.scenario), (
+                    f"{meta.name}.scenario mismatch"
+                )
