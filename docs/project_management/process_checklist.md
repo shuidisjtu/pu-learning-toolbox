@@ -57,7 +57,7 @@
 
 ## Phase 6 — 深度 PU (v0.6)
 
-- [ ] Self-PU；~~Dist-PU~~ ✅
+- [x] Self-PU Method Card；[ ] Self-PU 接口与实现；~~Dist-PU~~ ✅
 - [ ] InfoMax PU、Contrastive PU、DGPU（research extension）
 
 ## 最近完成记录
@@ -75,3 +75,4 @@
 | 2026-07-21 | penL1 / Dist-PU / PUSB / LBE | 已完成统一接口与核心实现 | `pu_toolbox/prior/pen_l1.py`；`pu_toolbox/estimators/risk/dist_pu.py`；`pu_toolbox/estimators/bias_aware/{pusb,lbe}.py`；对应 Method Cards | 新增方法测试与 registry/contract 测试通过；ruff 新增文件通过 |
 | 2026-07-21 | 前五篇 Method Card 深化 | 按 KLDCE/PNU/nnPU 结构补齐论文信息、假设、符号、公式、算法、API、测试与复现风险 | `class_prior_estimation.md`、`ReCPE.md`、`Dist-PU.md`、`PUSB.md`、`LBE.md` | 文档结构和代码落点已核对；PUSB/LBE/Dist-PU 的完整 paper-like benchmark 仍待完成 |
 | 2026-07-23 | LLSVM | 已完成 native 实现 | `pu_toolbox/losses/llsvm.py`；`pu_toolbox/estimators/classic/llsvm.py`；`docs/research/method_cards/LLSVM.md` | 新增 loss + estimator 测试通过；ruff + 质量门禁通过 |
+| 2026-07-27 | Self-PU Method Card | 已完成严谨 Method Card，接口与实现待开始 | `docs/research/method_cards/Self-PU.md` | 已记录论文公式、三阶段流程、API 规格、测试验收标准与复现风险 |
