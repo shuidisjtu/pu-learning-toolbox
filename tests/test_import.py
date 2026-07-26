@@ -13,6 +13,7 @@ SUBPACKAGES = [
     "pu_toolbox.estimators.classic",
     "pu_toolbox.estimators.risk",
     "pu_toolbox.estimators.bias_aware",
+    "pu_toolbox.estimators.deep",
     "pu_toolbox.metrics",
     "pu_toolbox.model_selection",
 ]

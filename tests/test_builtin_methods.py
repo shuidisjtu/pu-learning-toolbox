@@ -23,7 +23,7 @@ def _clean_registry():
 
 @pytest.mark.unit
 class TestBuiltinRegistration:
-    """Smoke tests for the 15 built-in api_only method entries."""
+    """Smoke tests for the 15 built-in method entries."""
 
     def test_basic_registers_exactly_15_methods(self):
         n = register_all_builtin_methods()
@@ -37,9 +37,9 @@ class TestBuiltinRegistration:
             key = meta.implementation_status.value
             by_status[key] = by_status.get(key, 0) + 1
 
-        # 11 native plus 4 api_only methods.
-        assert by_status.get("native", 0) == 11
-        assert by_status.get("api_only", 0) == 4
+        # 14 native methods plus the Self-PU API placeholder.
+        assert by_status.get("native", 0) == 14
+        assert by_status.get("api_only", 0) == 1
 
     def test_basic_source_status_distribution(self):
         """Verify counts match docs/resources_optimized.md §2."""
@@ -102,11 +102,12 @@ class TestBuiltinRegistration:
         """Native implementations are trainable."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 11
+        assert len(trainable) == 14
         names = {m.name for m in trainable}
         assert names == {
             "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
             "class_prior_estimation", "dist_pu", "pusb", "lbe", "llsvm",
+            "infomax_pu", "weighted_contrastive_pu", "dgpu",
         }
 
     def test_basic_list_by_family(self):
@@ -147,13 +148,13 @@ class TestBuiltinRegistration:
         from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
         from pu_toolbox.registry import get_algorithm, get_metadata
 
-        _BASES = (BasePUClassifier, BasePriorEstimator)
+        _bases = (BasePUClassifier, BasePriorEstimator)
 
         def _declared_on_class(cls, field_name):
             return any(
                 field_name in klass.__dict__
                 for klass in cls.__mro__
-                if klass not in _BASES and not issubclass(klass, type)
+                if klass not in _bases and not issubclass(klass, type)
             )
 
         register_all_builtin_methods()

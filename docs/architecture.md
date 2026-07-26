@@ -174,9 +174,9 @@ class BasePULoss(ABC):
 | KLDCE (核化 LDCE) | `estimators/risk/kldce.py` (QP oracle + RBF kernel) |
 | 共享质心原语 | `utils/centroid.py` (MoM + 协方差) |
 | LLSVM | `estimators/classic/llsvm.py` |
-| InfoMax PU | `estimators/deep/infomax_pu.py` (planned) |
-| Weighted Contrastive PU | `estimators/deep/weighted_contrastive_pu.py` (planned) |
-| DGPU | `estimators/deep/dgpu.py` (planned) |
+| InfoMax PU | `estimators/deep/infomax_pu.py` (PURL + nnPU pipeline) |
+| Weighted Contrastive PU | `estimators/deep/weighted_contrastive_pu.py` (native core) |
+| DGPU | `estimators/deep/dgpu.py` (native orchestration + generator protocol) |
 
 完整映射及实现策略见 [`development_roadmap.md`](development_roadmap.md)。
 

@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，11 个论文方法已实现 NATIVE（包括 penL1、ReCPE、Dist-PU、PUSB、LBE、LLSVM），PU splitters、基础 metrics、minimal examples 已就位。其余 4 个方法仍为 `api_only` 占位，逐个集成中；当前测试套件为 464 项。
+**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 501 项。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -47,7 +47,7 @@ pip install -e ".[dev]"
 
 工具箱核心要求 **Python >= 3.10**，开发基线为 **Python 3.11**。
 
-所有 11 个 NATIVE 算法均为 clean-room 实现，无外部源码依赖。
+所有 14 个 NATIVE 算法均为 clean-room 实现；DGPU 的论文级运行需由用户接入条件扩散生成器。
 
 ## 测试
 

@@ -67,6 +67,11 @@ pu_toolbox/
       __init__.py
       pusb.py                (native)
       lbe.py                 (native)
+    deep/
+      __init__.py
+      infomax_pu.py          (native: PURL + nnPU pipeline)
+      weighted_contrastive_pu.py (native core)
+      dgpu.py                (native orchestration + generator protocol)
 
   metrics/
     __init__.py

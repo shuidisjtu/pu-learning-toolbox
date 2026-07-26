@@ -2,7 +2,7 @@
 
 ## 总体策略
 
-**framework-first**：先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。允许先不实现全部方法，但不允许没有清晰接口和元数据占位。当前 11 个方法为 clean-room 实现（NATIVE），4 个为 API 占位。
+**framework-first**：先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。允许先不实现全部方法，但不允许没有清晰接口和元数据占位。当前 14 个方法为 clean-room 实现（NATIVE），Self-PU 为 API 占位。
 
 ```
 框架与 API 契约 → Registry + metadata → 核心 PU 风险估计
@@ -57,7 +57,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 ## Phase 6 — 深度 PU (v0.6)
 
 - Self-PU、~~Dist-PU~~ ✅
-- InfoMax PU、Contrastive PU、DGPU（research extension）
+- ~~InfoMax PU、WConPU、DGPU 核心接口~~ ✅（paper-like 视觉 benchmark 待完成）
 
 ## 工作包分解
 
@@ -78,7 +78,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 | WP12 | SAR 抽象、selection bias 模拟器 | P2 | WP1, WP8 |
 | WP13 | PUSB ✅ / LBE ✅ / LLSVM ✅ | P2 | WP11, WP12 |
 | WP14 | Self-PU / Dist-PU ✅ | P2 | WP6, WP11 |
-| WP15 | InfoMax / Contrastive / DGPU | P3 | WP14 |
+| WP15 | InfoMax / WConPU / DGPU 核心接口 ✅；paper-like benchmark 待完成 | P3 | WP14 |
 
 ## 版本路线
 

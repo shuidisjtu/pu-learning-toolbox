@@ -1,4 +1,4 @@
-"""Built-in algorithm registry — 15 paper methods (11 native + 4 api_only).
+"""Built-in algorithm registry — 15 paper methods (14 native + 1 api_only).
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the
@@ -100,7 +100,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         paper="Convex Formulation for Learning from Positive and Unlabeled Data",
         scenario=[Scn.CASE_CONTROL],
         assumption=[Asm.SCAR],
-        requires_class_prior=True,
+        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
         backend=Backend.NUMPY,
@@ -283,7 +283,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
 
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
@@ -299,13 +299,13 @@ _BUILTIN: list[AlgorithmMetadata] = [
         ),
         scenario=[Scn.CASE_CONTROL],
         assumption=[Asm.SCAR],
-        requires_class_prior=False,
+        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
 
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
@@ -316,15 +316,15 @@ _BUILTIN: list[AlgorithmMetadata] = [
         aliases=["discriminative_generative_pu"],
         family=Fam.DEEP_PU,
         paper="Discriminative-Generative Positive and Unlabeled Learning",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
+        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
+        assumption=[Asm.SCAR, Asm.SAR],
+        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.EXPERIMENTAL,
 
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
@@ -377,6 +377,13 @@ def _bind_native_classes() -> None:
         ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),
         ("centroid_pu", "..estimators.risk.ldce", "LDCEClassifier"),
         ("llsvm", "..estimators.classic.llsvm", "LLSVMClassifier"),
+        ("infomax_pu", "..estimators.deep.infomax_pu", "InfoMaxPUClassifier"),
+        (
+            "weighted_contrastive_pu",
+            "..estimators.deep.weighted_contrastive_pu",
+            "WeightedContrastivePUClassifier",
+        ),
+        ("dgpu", "..estimators.deep.dgpu", "DGPUClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:

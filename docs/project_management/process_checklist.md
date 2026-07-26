@@ -58,7 +58,8 @@
 ## Phase 6 — 深度 PU (v0.6)
 
 - [x] Self-PU Method Card；[ ] Self-PU 接口与实现；~~Dist-PU~~ ✅
-- [ ] InfoMax PU、Contrastive PU、DGPU（research extension）
+- [x] InfoMax PU、WConPU、DGPU Method Card、核心接口与 registry
+- [ ] InfoMax PU、WConPU、DGPU paper-like benchmark
 
 ## 最近完成记录
 
@@ -76,3 +77,4 @@
 | 2026-07-21 | 前五篇 Method Card 深化 | 按 KLDCE/PNU/nnPU 结构补齐论文信息、假设、符号、公式、算法、API、测试与复现风险 | `class_prior_estimation.md`、`ReCPE.md`、`Dist-PU.md`、`PUSB.md`、`LBE.md` | 文档结构和代码落点已核对；PUSB/LBE/Dist-PU 的完整 paper-like benchmark 仍待完成 |
 | 2026-07-23 | LLSVM | 已完成 native 实现 | `pu_toolbox/losses/llsvm.py`；`pu_toolbox/estimators/classic/llsvm.py`；`docs/research/method_cards/LLSVM.md` | 新增 loss + estimator 测试通过；ruff + 质量门禁通过 |
 | 2026-07-27 | Self-PU Method Card | 已完成严谨 Method Card，接口与实现待开始 | `docs/research/method_cards/Self-PU.md` | 已记录论文公式、三阶段流程、API 规格、测试验收标准与复现风险 |
+| 2026-07-27 | InfoMax PU / WConPU / DGPU | 已完成严谨 Method Card、clean-room 核心接口与 registry 集成 | `estimators/deep/`；对应 Method Cards | `501 passed`；新增文件 ruff 与格式检查通过；DGPU paper-like 运行需 EDM backend |

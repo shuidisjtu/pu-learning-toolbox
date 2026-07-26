@@ -1,4 +1,4 @@
-# ruff: noqa: N802, N806
+# ruff: noqa: B017, N802, N803, N806
 """Unified contract tests for ALL registered NATIVE algorithms.
 
 Covers API contract compliance (architecture.md §5) plus baseline
@@ -38,6 +38,7 @@ def _make_upu():
 
 
 def _make_nnpu():
+    torch.manual_seed(42)
     return NonNegativePUClassifier(
         model=torch.nn.Linear(5, 1), max_epochs=1, batch_size=8, random_state=42)
 
@@ -82,6 +83,63 @@ def _make_recpe():
     return ReCPEEstimator(copy_fraction=0.1)
 
 
+def _make_infomax_pu():
+    from pu_toolbox.estimators.deep import InfoMaxPUClassifier
+
+    return InfoMaxPUClassifier(
+        class_prior=0.33,
+        representation_dim=3,
+        hidden_dim=8,
+        representation_epochs=1,
+        classifier_epochs=1,
+        random_state=42,
+    )
+
+
+def _make_weighted_contrastive_pu():
+    from pu_toolbox.estimators.deep import WeightedContrastivePUClassifier
+
+    return WeightedContrastivePUClassifier(
+        0.33,
+        hidden_dim=8,
+        embedding_dim=4,
+        queue_size=16,
+        batch_size=32,
+        max_epochs=1,
+        random_state=42,
+    )
+
+
+class _MockConditionalGenerator:
+    def fit(self, X, y, *, warm_start=True):
+        self.means_ = {
+            label: X[y == label].mean(axis=0)
+            for label in np.unique(y)
+        }
+        self.n_features_in_ = X.shape[1]
+        return self
+
+    def sample(self, n_samples, *, class_label, random_state=None):
+        rng = np.random.RandomState(random_state)
+        mean = self.means_.get(class_label, np.zeros(self.n_features_in_))
+        return mean + 0.01 * rng.randn(n_samples, self.n_features_in_)
+
+
+def _make_dgpu():
+    from pu_toolbox.estimators.deep import DGPUClassifier
+
+    return DGPUClassifier(
+        0.33,
+        _MockConditionalGenerator(),
+        hidden_dim=8,
+        rounds=1,
+        initialization_epochs=1,
+        annotation_epochs=1,
+        generated_samples=6,
+        random_state=42,
+    )
+
+
 _FACTORY_MAP: dict[str, callable] = {
     "elkan_noto": _make_elkan_noto,
     "upu": _make_upu,
@@ -94,6 +152,9 @@ _FACTORY_MAP: dict[str, callable] = {
     "lbe": _make_lbe,
     "class_prior_estimation": _make_class_prior_estimation,
     "recpe": _make_recpe,
+    "infomax_pu": _make_infomax_pu,
+    "weighted_contrastive_pu": _make_weighted_contrastive_pu,
+    "dgpu": _make_dgpu,
 }
 
 _CLASSIFIER_NAMES = [
@@ -307,4 +368,5 @@ class TestRegistryClassBinding:
         assert names == {
             "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
             "class_prior_estimation", "dist_pu", "pusb", "lbe", "llsvm",
+            "infomax_pu", "weighted_contrastive_pu", "dgpu",
         }

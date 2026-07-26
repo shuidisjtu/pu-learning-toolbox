@@ -1,6 +1,6 @@
 # 论文源码资源统计
 
-> 15 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-07-23。
+> 15 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-07-27。
 
 `implementation_status` 语义见 [`architecture.md`](architecture.md) 的“算法注册表”部分；`source_status` 的当前枚举以 `pu_toolbox/core/tags.py` 为准，本文档给出论文源码状态统计。
 
@@ -46,7 +46,9 @@
 | Self-PU | adapter / wrapper (planned) |
 | LLSVM | native NumPy（官方 MATLAB 代码为准实现） |
 | Centroid (LDCE) ✅ | native NumPy（clean-room，PAMI 2021 论文公式直译） |
-| InfoMax / WConPU / DGPU | clean-room，方法卡先行 |
+| InfoMax PU | native PyTorch PURL + class-prior/nnPU pipeline（clean-room） |
+| WConPU | native PyTorch core（SAT、prototype、momentum queue、weighted contrastive） |
+| DGPU | native training orchestration + conditional generator protocol；论文级运行需 EDM backend |
 | Elkan-Noto | clean-room（已实现 native，以 pulearn 为算法验证参考） |
 | Class-Prior Estimation (penL1) | clean-room（论文公式直译，MATLAB 源码不对应论文） |
 
