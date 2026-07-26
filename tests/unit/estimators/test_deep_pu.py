@@ -75,7 +75,7 @@ def test_infomax_representation_fit_transform_is_deterministic():
 
 
 @pytest.mark.unit
-def test_wconpu_preserves_pseudo_label_and_queue_invariants():
+def test_edge_wconpu_preserves_pseudo_label_and_queue_invariants():
     X, y_pu = _data()
     estimator = WeightedContrastivePUClassifier(
         0.3,
@@ -124,7 +124,7 @@ def test_dgpu_generator_protocol_and_class_prior_counts():
 
 
 @pytest.mark.unit
-def test_dgpu_rejects_missing_generator():
+def test_param_dgpu_missing_generator_raises():
     X, y_pu = _data()
     with pytest.raises(ValueError, match="generator is required"):
         DGPUClassifier(
