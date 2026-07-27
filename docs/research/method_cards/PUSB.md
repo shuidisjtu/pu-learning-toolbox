@@ -8,6 +8,7 @@
 - [x] 在 registry 中标记为 `BIAS_AWARE`、`SAR`、`SELECTION_BIASED`。
 - [x] 提供统一的 sklearn-compatible `PUSBClassifier`，支持 `fit/predict/decision_function/predict_proba`。
 - [x] 在方法卡中区分论文的 partial-identification/ranking 结论与当前工程实现。
+- [x] 补充 SCAR/SAR 生成、排序与决策评估、官方对齐和统计汇总协议。
 - [ ] 将官方 PUSB 的 partial-identification 目标和非参数 scoring procedure 逐式移植。
 - [ ] 在 SAR 合成数据上验证 ranking preservation，而不是只验证分类准确率。
 - [ ] 复现官方仓库的实验和与 uPU、nnPU、Dist-PU 的比较。
@@ -240,7 +241,72 @@ class PUSBClassifier(BasePUClassifier):
 - 多随机种子报告均值、标准差和置信区间；
 - 明确报告当前实现是 baseline 还是 official-aligned 版本。
 
-## 10. 源码状态与复现风险
+## 10. 复现实验协议
+
+### 10.1 前置门槛
+
+PUSB 的论文级实验必须在 official-aligned scoring/partial-identification 实现完成后运行。
+当前 `StandardScaler + LogisticRegression` 只能作为 `P/U source classifier` 基线。
+实验报告必须用 `implementation_variant` 区分二者，禁止把 baseline 重命名为 PUSB。
+
+### 10.2 可控 SAR 数据生成
+
+先生成带真实标签的数据，再只暴露 PU 标签：
+
+```text
+Y ~ Bernoulli(pi)
+X | Y 由可分离程度 delta 控制
+S | X,Y=1 ~ Bernoulli(e(X))
+S=0 when Y=0
+observed y_pu = S
+```
+
+至少包含以下 selection mechanism：
+
+```text
+SCAR:       e(x) = c
+linear SAR: e(x) = sigmoid(a^T x + b)
+nonlinear:  e(x) = sigmoid(a1*x1 + a2*x2^2 + b)
+```
+
+扫描 `pi in {0.1, 0.3, 0.5}`、平均标记率 `{0.1, 0.3, 0.5}`、偏置强度
+`{weak, medium, strong}` 和至少 20 个 seed。通过调节截距使不同机制具有相近平均标记率，
+避免把“标记样本更多”误判为 selection-bias 方法更好。
+
+### 10.3 对照与评估对象
+
+同一 split 上运行 P/U logistic、uPU、nnPU、Dist-PU 和 official-aligned PUSB；后面三种
+方法若依赖 SCAR 或已知先验，必须在表头明确。另加入使用隐藏真实标签训练的 PN classifier
+作为诊断上界，不作为可部署基线。
+
+评估分为两层：
+
+- 排序：ROC-AUC、PR-AUC、Spearman/Kendall 相关性、pairwise ranking accuracy；
+- 决策：在独立验证集选择阈值后报告 balanced accuracy、F1 和风险。
+
+`predict_proba` 的 Brier score/校准曲线只作诊断；除非完成额外校准与识别假设验证，否则
+不能将其解释为真实 posterior。阈值不得在测试集上根据真实标签选择。
+
+### 10.4 真实数据与官方对齐
+
+官方数据集、selection-bias 构造、预处理、超参数和 split 必须从论文附录与官方仓库生成
+版本化 manifest。每个数据集同时运行 SCAR 控制组和论文 SAR 设置，保证性能差异可归因
+于选择机制。官方仓库 commit、运行环境和任何修复补丁必须随结果保存。
+
+### 10.5 统计、产物与验收
+
+- 每个配置至少 20 个合成 seed；真实数据使用论文重复次数，缺失时项目默认 10；
+- 方法共享 split/seed，报告均值、标准差和 paired bootstrap 95% CI；
+- 保存 `Y/S/e(X)` 的生成参数，但训练入口只能接收 `X/S`；
+- 保存逐样本 score，便于独立复算排序指标和阈值；
+- 验收时应看到 SCAR 与 SAR 强度变化的完整曲线，而不是只挑选有利设置；
+- 只有 official-aligned 实现通过公式级测试、排序性质测试并跑完官方 manifest 后，结果才可
+  标为 `paper_like`。
+
+建议落点为 `benchmarks/sar/pusb/`，至少包含 `synthetic.yaml`、
+`official.yaml`、`dataset_manifest.json`、`trials.csv` 和可重建汇总表的脚本。
+
+## 11. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|

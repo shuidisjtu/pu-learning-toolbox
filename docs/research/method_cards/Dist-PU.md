@@ -9,6 +9,7 @@
 - [x] 实现未标记集熵最小化和 Mixup 正则项。
 - [x] 接入 `BasePUClassifier`、registry 和可选 PyTorch 依赖。
 - [x] 编写小型合成数据上的 fit/predict、有限值和 sklearn-style 参数测试。
+- [x] 补充三档运行、官方数据 manifest、消融、先验敏感性和资源记录协议。
 - [ ] 按官方仓库复现 Fashion-MNIST、CIFAR-10 和 Alzheimer benchmark。
 - [ ] 补充真正的 mini-batch、数据增强和论文 backbone 配置。
 
@@ -289,7 +290,70 @@ class DistPUClassifier(BasePUClassifier):
 - 做 `alignment only`、`alignment+entropy`、`alignment+entropy+Mixup` 三组消融。
 - 多随机种子报告均值和标准差，不把单次结果写成论文复现结论。
 
-## 10. 源码状态与复现风险
+## 10. 复现实验执行规范
+
+### 10.1 三档运行
+
+| 档位 | 模型/数据 | 用途 |
+|---|---|---|
+| `smoke` | 当前 MLP + 小型合成 P/U | 检查 loss、梯度、保存与加载 |
+| `clean_room` | 当前 MLP + 表格化/展平数据 | 验证损失项和先验敏感性 |
+| `paper_like` | 官方 backbone、mini-batch、增强与数据 split | 复现 Fashion-MNIST、CIFAR-10、Alzheimer |
+
+当前代码只满足前两档。使用当前 MLP 得到的 Fashion-MNIST/CIFAR-10 数字仍应标为
+`clean_room`，不能因数据集名称相同而标为论文复现。
+
+### 10.2 数据构造与防泄漏
+
+对每个数据集先按官方脚本固定类别映射和 train/validation/test split，再只在训练部分
+生成 PU 标签。需要记录真实 `pi`、标记正例数、U 数量、P 是否从 U 中移除、图像归一化
+统计量和增强流水线。验证集可用于选 epoch/权重，但测试集真实标签不得用于选择
+`class_prior` 或 loss 权重。
+
+Fashion-MNIST、CIFAR-10 和 Alzheimer 的下载版本、文件校验和、类别合并规则必须写入
+`dataset_manifest.json`。Alzheimer 数据涉及外部许可或人工下载时，只提交 manifest 和
+预处理脚本，不提交原始数据。
+
+### 10.3 训练与消融
+
+论文级配置必须从官方仓库锁定以下字段：backbone、batch size、optimizer、learning-rate
+schedule、epoch、weight decay、数据增强、Mixup Beta 参数、`mu/nu` 和模型选择准则。
+项目预跑可使用当前默认值，但结果需携带 `protocol=clean_room`。
+
+每个数据 split 上至少运行：
+
+```text
+alignment only
+alignment + entropy
+alignment + entropy + Mixup
+full method with pi * {0.8, 0.9, 1.0, 1.1, 1.2}
+```
+
+最后一组用于先验敏感性，扰动值需裁剪到 `(0,1)`。基线至少包含同 backbone、同 split
+下的 uPU、nnPU 和官方仓库列出的比较方法；不能拿不同 backbone 的公开数字直接并表。
+
+### 10.4 指标与统计
+
+- 分类：accuracy、ROC-AUC、PR-AUC、precision、recall、F1；
+- 分布：U 集预测正比例及其与 `pi` 的绝对偏差；
+- 优化：各 loss 分量、总 loss、学习率和最佳 epoch；
+- 可靠性：每个配置至少 5 个 seed，报告均值、标准差和 95% CI；
+- 资源：GPU 型号、显存峰值、训练时长、PyTorch/CUDA/cuDNN 版本。
+
+类别不平衡时以 PR-AUC、balanced accuracy 或论文指定指标为主，不允许只报告 accuracy。
+
+### 10.5 产物与验收
+
+建议落点为 `benchmarks/paper_like/dist_pu/`，配置按数据集拆分，逐 epoch 日志和逐 seed
+预测单独保存。验收要求：
+
+- mini-batch 确实生效，`batch_size` 改变会改变迭代步数；
+- 固定 seed 的 CPU smoke 可重复，GPU 非确定项被显式记录；
+- 三项消融和先验敏感性结果完整；
+- 与论文比较前，官方 commit、数据 manifest 和 backbone 均已锁定；
+- 结论以多 seed 聚合为准，单次最优 run 不进入主表。
+
+## 11. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|
@@ -298,4 +362,3 @@ class DistPUClassifier(BasePUClassifier):
 | 当前实现 | 论文核心损失的 clean-room 小型 MLP 版本 |
 | 尚未对齐 | 官方 backbone、mini-batch、图像增强、数据 split、完整超参数搜索 |
 | 主要风险 | `pi` 错误会直接改变 U 集分布约束；熵权重过大可能强化确认偏差；全量训练与官方 batch 训练结果不可直接比较 |
-

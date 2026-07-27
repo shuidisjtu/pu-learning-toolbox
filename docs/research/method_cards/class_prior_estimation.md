@@ -8,6 +8,7 @@
 - [x] 按论文 penL1 闭式公式实现 Gaussian basis、`beta_l(theta)` 和先验网格搜索。
 - [x] 接入 `BasePriorEstimator`，注册为 `class_prior_estimation`，别名包含 `pen_l1`。
 - [x] 编写边界、确定性和 `[0,1]` 范围测试。
+- [x] 补充合成数据、MNIST、调参、统计汇总和产物留存的复现实验协议。
 - [ ] 实现论文 L1 变体的带约束 QP。
 - [ ] 按论文 protocol 增加 `sigma/lambda` 的 nested CV，而不是依赖用户手工选择。
 - [ ] 增加 confidence interval/bootstrap 和 paper-like benchmark。
@@ -296,7 +297,79 @@ J(theta) = dot(alpha(theta), beta(theta)) - theta + 1
 - 与 ReCPE、Elkan-Noto/其他 CPE baseline 对比时，明确不同方法的输入假设；
 - 报告失败比例和估计落在边界的比例，不只报告均值。
 
-## 12. 源码状态与复现风险
+## 12. 复现实验协议
+
+### 12.1 实验层级
+
+| 层级 | 目的 | 数据 | 当前实现能否执行 |
+|---|---|---|---|
+| `smoke` | 验证接口、确定性和输出范围 | 二维 Gaussian mixture | 是 |
+| `algorithmic` | 检查 overlap、样本量和先验变化下的估计误差 | 可控合成 mixture | 是 |
+| `paper_like` | 对齐论文数据处理、L1/penL1、CV 和基线 | 论文合成数据与 MNIST one-vs-rest | 否，缺 L1-QP 和 benchmark runner |
+
+`algorithmic` 结果只能说明当前 clean-room penL1 的统计行为；只有 `paper_like`
+层级完成且配置、数据版本和源码版本均被记录后，才可与论文表格比较。
+
+### 12.2 合成数据协议
+
+每个设置先生成独立的正类样本和边缘未标记样本：
+
+```text
+P: X ~ N(mu_p, I)
+N: X ~ N(mu_n, I)
+U: 先以概率 pi 采样 Y，再从对应的 P/N 分布采样 X
+```
+
+- 扫描 `pi in {0.1, 0.3, 0.5}`、均值距离 `delta in {0.5, 1.0, 2.0}`；
+- 扫描 `(n_P, n_U) in {(100, 500), (500, 1000), (1000, 5000)}`；
+- P 与 U 必须独立采样，不能把 P 从 U 中删除后继续把剩余样本称为边缘分布；
+- 每个组合运行至少 20 个随机种子；调试阶段可用 3 个种子，但不得进入正式汇总；
+- 额外构造一个 reducible/高重叠设置，记录估计落在搜索边界的频率。
+
+### 12.3 真实数据与 PU 构造
+
+MNIST one-vs-rest 的具体正类数字、训练/测试划分和样本数必须由论文或官方源码清单
+锁定。项目执行时先保留真实标签，仅用训练折构造 P/U：
+
+1. 训练集中真实正类形成候选正类池，以固定标记率抽取 P；
+2. U 从训练边缘分布独立抽取，保持目标 `pi`；
+3. 标准化、Gaussian centers 和所有超参数只在训练折拟合；
+4. 测试标签只用于报告估计误差或下游分类效果，不参与选择 `sigma/lambda`。
+
+若采用 single-training-set 构造，必须在结果元数据中记录 P 是否仍包含在 U 中；该选择
+不能与 case-control 结果混合汇总。
+
+### 12.4 调参与对照
+
+项目预设搜索空间（不是论文原始参数表）为：
+
+```text
+sigma: median_pairwise_distance * {0.25, 0.5, 1, 2}
+reg_lambda: {1e-4, 1e-3, 1e-2, 1e-1}
+n_centers: {100, 200, 500, all}
+theta_grid: 0.01, 0.02, ..., 0.99
+```
+
+调参必须使用不访问真实 `pi` 的训练侧准则；若实现论文 CV 准则，则同时保存每个
+候选的 CV objective。用真实 `pi` 选择最优参数只能标为 `oracle sensitivity`，不能作为
+主结果。对照至少包括 penL1、完成后的 L1-QP、ReCPE+相同底层 penL1，以及一个明确
+标注假设差异的 CPE baseline。
+
+### 12.5 指标、产物与通过标准
+
+- 主指标：`abs(pi_hat-pi)`、signed bias、RMSE；
+- 稳定性：标准差、边界命中率、失败率和运行时间；
+- 报告：每个设置的均值、标准差及 bootstrap 95% CI；
+- 产物：冻结配置、数据 split 索引、seed、依赖版本、逐次估计和汇总表；
+- algorithmic 验收：所有输出有限且在 `[0,1]`，重复运行可追溯；随着 P/U 样本量增加，
+  MAE 的总体趋势不得系统性恶化；
+- paper-like 验收：L1 与 penL1 均可运行，论文级数据/参数来源有引用，关键趋势与论文
+  一致；数值不一致时保留差异并给出实现或数据协议解释，不以调参掩盖。
+
+建议落点为 `benchmarks/paper_like/class_prior_estimation/`，配置至少拆为
+`synthetic.yaml` 和 `mnist.yaml`，原始逐种子结果写入独立文件，汇总脚本不得覆盖原始结果。
+
+## 13. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|

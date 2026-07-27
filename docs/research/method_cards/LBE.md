@@ -9,6 +9,7 @@
 - [x] 对未标记样本计算 EM latent positive posterior。
 - [x] 接入 `BasePUClassifier`、`predict_label_proba` 和 registry。
 - [x] 增加 synthetic SAR 数据上的 API、有限值和 propensity 范围测试。
+- [x] 补充线性/神经变体、SAR 数据、初始化敏感性和 propensity 评估协议。
 - [ ] 将当前线性 soft-label EM 与论文的完整 likelihood/Adam 实现逐项对齐。
 - [ ] 增加神经网络版本、正则项、初始化策略和 official benchmark。
 - [ ] 对多随机初始化报告 identifiability 和局部最优敏感性。
@@ -287,7 +288,72 @@ S\sim Bernoulli(Y\cdot c(X)),
 - 报告类别模型和 labeling model 两套指标；
 - 不能只报告分类 accuracy 而忽略 propensity estimation 误差。
 
-## 10. 源码状态与复现风险
+## 10. 复现实验协议
+
+### 10.1 实现变体
+
+实验结果必须明确区分：
+
+| 变体 | 分类模型/propensity 模型 | 优化 | 定位 |
+|---|---|---|---|
+| `linear_em` | 两个线性 logistic | 当前 soft-label 交替更新 | 项目 baseline |
+| `neural_lbe` | 论文网络 | EM + Adam/官方优化流程 | 论文级复现 |
+| `oracle_propensity` | 分类模型 + 真实 `e(x)` | 诊断路径 | 分解误差上界 |
+
+`linear_em` 可以验证接口和机制，但不能替代论文中的 `neural_lbe`。
+
+### 10.2 SAR 合成协议
+
+使用与 PUSB 可共享的生成器产生 `(X,Y,S,e(X))`，训练时只传入 `(X,S)`。至少覆盖 SCAR、
+线性 SAR、非线性 SAR，并扫描类别先验、平均标记率、偏置强度和类别 overlap。每个正式
+设置至少运行 20 个数据 seed；每个数据 seed 再运行 5 个模型初始化，以分离采样方差与
+局部最优敏感性。
+
+拆分必须按真实 `Y` 和观测 `S` 联合分层；验证/测试中保留 `Y` 仅用于评估。归一化统计量、
+初始化先验和 early stopping 均只使用训练/验证部分。
+
+### 10.3 训练记录与模型选择
+
+论文级配置需从官方代码锁定网络层、激活、Adam 学习率、batch size、E/M 更新频率、
+正则项、最大 epoch、初始化和停止条件。每次运行保存：
+
+- observed log-likelihood 与各组成项；
+- `q` 的均值、范围和最大迭代变化；
+- `r_hat(X)`、`c_hat(X)`、`r_hat(X)c_hat(X)`；
+- 最佳 epoch、停止原因和数值 warning。
+
+主模型选择指标应是验证集 observed likelihood 或论文指定的无真实标签准则。使用隐藏
+`Y/e(X)` 选超参数只能进入 `oracle` 消融。
+
+### 10.4 对照、指标与消融
+
+对照至少包括 P/U logistic、SCAR baseline、PUSB、`linear_em`、`neural_lbe` 和
+`oracle_propensity`。在相同 split 上报告：
+
+- 类别后验 `r_hat`：ROC-AUC、PR-AUC、log-loss、Brier score；
+- propensity `c_hat`：在真实正类子集上的 MAE、Brier score 和 rank correlation；
+- 观测标签概率 `r_hat*c_hat`：对 `S` 的 log-loss/Brier score；
+- 分类：独立验证阈值下的 balanced accuracy 和 F1；
+- 可辨识性：不同初始化间预测方差、失败率和 likelihood 差异。
+
+消融至少包含固定常数 propensity、移除正则、不同 `q` 初始化和不同 E/M 更新频率。
+
+### 10.5 真实数据、产物与验收
+
+真实数据的类别映射、selection mechanism、split 和预处理以论文/官方代码 manifest 为准。
+若真实 propensity 不可观测，只报告类别与观测标签指标，并明确 propensity 无 ground truth，
+不得用训练拟合优度冒充 propensity 恢复精度。
+
+建议落点为 `benchmarks/sar/lbe/`。每个结果目录保存配置、代码 commit、数据 manifest、
+逐 seed/初始化日志、预测和聚合表。验收要求：
+
+- 恒等式 `predict_label_proba = r_hat*c_hat` 在保存预测上成立；
+- 已标记正例的 latent `q=1`，所有概率有限且在 `[0,1]`；
+- 同时有 SCAR/SAR、线性/神经网络和初始化敏感性结果；
+- 论文级结果使用官方优化流程，且多初始化汇总不只选取最好一次；
+- 与论文数字不一致时报告差异来源，不根据测试标签反向修改 protocol。
+
+## 11. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|
@@ -297,4 +363,3 @@ S\sim Bernoulli(Y\cdot c(X)),
 | 当前实现不可声称 | 已复现论文的完整 Adam/深度网络实验、理论收敛条件或表格结果 |
 | 主要风险 | 潜变量模型可能存在局部最优；正类过少时两个 logistic 模型会互相补偿；propensity 与 class posterior 的分解需要数据机制支持 |
 | 下一步 | 逐式核对官方源码、补充 likelihood regression tests 和 paper-like SAR benchmark |
-

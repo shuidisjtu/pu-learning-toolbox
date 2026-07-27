@@ -9,6 +9,7 @@
 - [x] 提供默认的 classifier-based mixture-proportion baseline，保证没有其他 CPE 实现时仍可运行。
 - [x] 接入 `BasePriorEstimator` 和 registry，注册名为 `recpe`，别名为 `re_cpe`、`rethinking_cpe`。
 - [x] 编写合成数据、底层估计器注入、边界条件测试。
+- [x] 补充可约/不可约、UCI、配对对照和集合质量诊断的复现实验协议。
 - [ ] 增加与论文神经网络分类器、KM1/KM2/AlphaMax 的 paper-like benchmark。
 
 ### 1.2 注意
@@ -317,7 +318,70 @@ recpe.fit(X, y_pu)
 
 当前自动化验证：`pytest -q`，133 项测试通过；针对 ReCPE 的测试位于 `tests/unit/prior/test_recpe.py`。
 
-## 10. 开放问题
+## 10. 复现实验协议
+
+### 10.1 实验问题
+
+复现必须分别回答以下问题，不能只给出一次 UCI 平均误差：
+
+1. irreducibility 失效时，regrouping 是否降低底层 CPE 的正向偏差；
+2. irreducibility 近似成立时，regrouping 是否不会显著破坏原估计；
+3. 改善来自 regrouping 本身，还是来自更强的来源分类器或底层 CPE；
+4. 复制比例 `p`、排序质量和样本量对结果有多敏感。
+
+### 10.2 合成实验
+
+构造可约与不可约两组正负分布，并独立采样 `S_p ~ P_p`、`S_u ~ P_u`。每组扫描：
+
+```text
+pi: {0.1, 0.3, 0.5}
+n_p: {100, 500}
+n_u: {500, 2000}
+copy_fraction: {0, 0.05, 0.10, 0.15, 0.20}
+seed: 20 个正式重复
+```
+
+`copy_fraction=0` 表示只运行相同底层 CPE，是必要对照。除 `abs(pi_hat-pi)` 外，还要保存
+理论可计算时的 `P_n(A)`、被选集合中真实正类比例和来源分类器 AUC，用于判断误差变化
+是否确实由选择集合质量引起。
+
+### 10.3 论文级真实数据协议
+
+- UCI 数据集名称、类别映射、样本数和预处理必须从论文附录/官方仓库生成 manifest，
+  不凭 sklearn 同名数据集猜测版本；
+- 每个 split 先保留真实标签，再只在训练数据上构造 `S_p/S_u`；
+- 来源分类器采用论文的两层神经网络路径；层宽、激活、优化器、epoch 和验证策略从
+  官方配置逐项抄录并固定；
+- `p=0.10` 作为论文主设置，其他比例只进入敏感性分析；
+- KM1、KM2、AlphaMax 等底层方法必须在原始与 regrouped 输入上成对运行，使用相同 split。
+
+当前 Logistic Regression 排序器和默认 classifier-based CPE 只进入
+`clean_room_baseline` 组，不得命名为论文结果。
+
+### 10.4 对照、指标与统计
+
+主对照矩阵为“底层 CPE × 是否 regrouping”；附加消融替换来源分类器，并加入
+`oracle ranking`（使用隐藏真实标签排序）作为诊断上界。主指标是 prior MAE 和 signed
+bias，附加报告 RMSE、边界命中率、选择集合 precision、训练时间。
+
+正式结果至少运行论文规定的重复次数；若官方配置未明确，则项目默认 20 个 seed，并报告
+均值、标准差和 paired bootstrap 95% CI。ReCPE 与 base CPE 必须共享同一 seed/split，
+显著性比较使用逐 split 的配对误差，不能比较两组独立随机运行的均值。
+
+### 10.5 产物与验收
+
+建议落点为 `benchmarks/paper_like/recpe/`，保存：
+
+- `dataset_manifest.json`：数据来源、校验和、类别映射和 split；
+- `config.yaml`：排序器、底层 CPE、复制比例和所有随机种子；
+- `trials.csv`：逐数据集、逐 seed 的原始估计和集合诊断；
+- `summary.csv`：聚合统计，不替代 `trials.csv`。
+
+验收要求：`p=0` 与直接底层 CPE 在相同输入上等价；固定配置可重复；不可约/可约两种
+设置均有结果；主要结论以配对统计支持。论文数值只有在官方网络、底层方法和数据 manifest
+全部对齐后才能标记为 `paper_like`。
+
+## 11. 开放问题
 
 - 增加 KM1、KM2、AlphaMax、DEDPUL 等底层 CPE 后端，并建立统一 benchmark。
 - 增加论文中的两层神经网络来源分类器和验证集选择流程。
