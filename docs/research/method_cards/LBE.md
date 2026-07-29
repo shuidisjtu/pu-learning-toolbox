@@ -251,7 +251,7 @@ class LBEClassifier(BasePUClassifier):
 | `pu_toolbox/estimators/bias_aware/__init__.py` | 导出 `LBEClassifier` | ✅ |
 | `pu_toolbox/registry/builtin_methods.py` | LBE 元数据、SAR 标记和 lazy binding | ✅ |
 | `tests/unit/estimators/test_bias_aware.py` | API 和 propensity 范围测试 | ✅ |
-| `benchmarks/sar/lbe/` | SAR 合成数据和论文数据集 benchmark | ⏳ |
+| `benchmarks/assigned_methods/` | SAR 合成 runner、官方归档锁和结果 | ✅ linear EM；⏳ official MLP |
 
 ## 9. 测试与验收标准
 
@@ -352,6 +352,12 @@ S\sim Bernoulli(Y\cdot c(X)),
 - 同时有 SCAR/SAR、线性/神经网络和初始化敏感性结果；
 - 论文级结果使用官方优化流程，且多初始化汇总不只选取最好一次；
 - 与论文数字不一致时报告差异来源，不根据测试标签反向修改 protocol。
+
+当前 linear-EM clean-room 运行使用 seed `0..4`，得到 ROC-AUC
+`0.8762 ± 0.0207`，正类 propensity rank Spearman 为 `0.9139 ± 0.0333`。官方
+`LBE_TPAMI21.rar` 已锁定 SHA-256
+`79cc2c3635a6bcefef1d12832cc9e29be4c0c42a6c31ce6e7b44c6aeac504c6a`，
+但其 CUDA MLP + Adam 实验尚未执行。
 
 ## 11. 源码状态与复现风险
 

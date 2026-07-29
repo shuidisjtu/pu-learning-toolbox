@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "lbe",
+  "source_lock": "../official_sources.lock.json#sources/lbe",
+  "status": "locked_not_executed",
+  "environment": {
+    "device": "CUDA hard-coded by official archive",
+    "framework": "PyTorch"
+  },
+  "runner": {
+    "entrypoint": "LBE_MLP/train.py",
+    "cli_arguments": ["sampling_type", "noise_rate"],
+    "datasets_in_archive": ["Australian", "breast"],
+    "default_reader": "Australian",
+    "train_fraction": 0.8,
+    "repetitions": 5,
+    "learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "pretrain_steps_per_model": 100,
+    "e_steps": 20,
+    "m_steps_per_e_step": 40,
+    "mini_batch_fraction": 0.1,
+    "small_loss_keep_fraction": 0.8
+  },
+  "model": {
+    "class_posterior": "MLP(input, 100, 1) with tanh",
+    "propensity": "MLP(input, 100, 1) with tanh",
+    "optimizer": "Adam"
+  },
+  "dataset_sha256": {
+    "Australian.mat": "51ff9a18c818065aafc073c926263fddfb070cea0a84183234a1380a108f6a95",
+    "breast.mat": "57dae4b0153798e004d6df60fdbc691bc55b1ba54d2c01bafaf2b56b663825ee"
+  },
+  "official_command_template": "python train.py SAMPLING_TYPE NOISE_RATE"
+}

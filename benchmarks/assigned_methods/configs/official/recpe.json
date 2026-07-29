@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "recpe",
+  "source_lock": "../official_sources.lock.json#sources/recpe",
+  "status": "locked_not_executed",
+  "environment": {
+    "os": "Ubuntu 20.04",
+    "python": "3.6.9",
+    "pytorch": "1.2.0",
+    "matlab_required_for": ["AM", "RAM", "EN", "REN", "ROC", "RROC"]
+  },
+  "runner": {
+    "entrypoint": "run_experiments.py",
+    "sample_sizes_from_source_comment": [800, 1600, 3200],
+    "sample_sizes_in_run_all": [800],
+    "relabel_frac": 0.1,
+    "validation_fraction": 0.2,
+    "epochs": 200,
+    "batch_size": 100,
+    "base_lr": 0.01,
+    "weight_decay": 0.00001,
+    "momentum": 0.0,
+    "repetitions": 10,
+    "component_fractions": [0.25, 0.5, 0.75],
+    "positive_labels": [0, 1]
+  },
+  "model": {
+    "type": "FCNet",
+    "hidden_layers": [50, 50],
+    "activation": "ReLU",
+    "batch_norm": true
+  },
+  "datasets_in_run_all": [
+    "adult",
+    "avila_binary",
+    "bank_full_binary",
+    "card_clients",
+    "covtype_binary",
+    "egg_eye",
+    "magic04",
+    "robot_nav_binary",
+    "shuttle_binary",
+    "irreducible_synthetic",
+    "reducible_synthetic"
+  ],
+  "official_command_template": "python3 run_experiments.py --dataset DATASET --sample_size 800 --relabel_frac 0.1"
+}

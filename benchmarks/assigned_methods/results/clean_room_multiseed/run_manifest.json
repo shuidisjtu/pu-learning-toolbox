@@ -1,0 +1,34 @@
+{
+  "config_sha256": "bd9ea54e98b8081556bea138d36aa37a84dee193cea644ae36701a05be081c95",
+  "created_at_utc": "2026-07-27T12:44:48.476918+00:00",
+  "environment": {
+    "numpy": "1.26.4",
+    "pandas": "2.2.3",
+    "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
+    "python": "3.12.2",
+    "scikit_learn": "1.7.1",
+    "scipy": "1.15.1",
+    "torch": "2.6.0+cu124"
+  },
+  "git_commit": "803330b21d998d0bf01fdfa5cf64be91ef21546f",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "Synthetic data only.",
+    "No result in this configuration is an official paper reproduction.",
+    "Dist-PU uses the toolbox full-batch MLP rather than the official image backbones.",
+    "PUSB uses the toolbox source-classification baseline rather than the official kernel objective.",
+    "LBE uses linear alternating logistic models rather than the official MLP and Adam implementation."
+  ],
+  "n_trials": 25,
+  "paper_claim": false,
+  "protocol": "clean_room",
+  "runner_sha256": "a65a005797db98168c294cc4443b02fa78742beee3752cc8dda4133abcd835a4",
+  "schema_version": 1,
+  "selected_methods": [
+    "class_prior_estimation",
+    "recpe",
+    "dist_pu",
+    "pusb",
+    "lbe"
+  ]
+}

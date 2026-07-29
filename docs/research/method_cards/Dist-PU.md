@@ -265,7 +265,7 @@ class DistPUClassifier(BasePUClassifier):
 | `pu_toolbox/estimators/risk/__init__.py` | 导出分类器 | ✅ |
 | `pu_toolbox/registry/builtin_methods.py` | `dist_pu` 元数据和 lazy binding | ✅ |
 | `tests/unit/estimators/test_dist_pu.py` | fit/predict/有限值 smoke test | ✅ |
-| `benchmarks/paper_like/dist_pu/` | 官方数据集和 backbone 复现 | ⏳ |
+| `benchmarks/assigned_methods/` | 合成 runner、官方 Dist-PU 参数锁和结果 | ✅ clean-room；⏳ image paper-like |
 
 ## 9. 测试与验收标准
 
@@ -352,6 +352,11 @@ full method with pi * {0.8, 0.9, 1.0, 1.1, 1.2}
 - 三项消融和先验敏感性结果完整；
 - 与论文比较前，官方 commit、数据 manifest 和 backbone 均已锁定；
 - 结论以多 seed 聚合为准，单次最优 run 不进入主表。
+
+当前 clean-room 运行使用 seed `0..4`、CPU、25 epoch 全量 MLP，得到 ROC-AUC
+`0.9595 ± 0.0856`。官方配置已锁到 commit
+`cb74be1a87176fd38270873c06374e53905b7354`，但 CIFAR-10/Fashion-MNIST/Alzheimer
+数据、官方 backbone 和两阶段各 60 epoch 尚未执行。
 
 ## 11. 源码状态与复现风险
 

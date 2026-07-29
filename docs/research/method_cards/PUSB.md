@@ -211,7 +211,7 @@ class PUSBClassifier(BasePUClassifier):
 | `pu_toolbox/estimators/bias_aware/__init__.py` | 导出 `PUSBClassifier` | ✅ |
 | `pu_toolbox/registry/builtin_methods.py` | `pusb` 元数据和 lazy binding | ✅ |
 | `tests/unit/estimators/test_bias_aware.py` | API smoke test | ✅ |
-| `benchmarks/sar/pusb/` | SAR ranking benchmark | ⏳ |
+| `benchmarks/assigned_methods/` | SAR 合成 runner、官方参数锁和结果 | ✅ baseline；⏳ official PUSB |
 | `pu_toolbox/estimators/bias_aware/pusb_official.py` | 论文算法逐式移植 | ⏳ |
 
 ## 9. 测试与验收标准
@@ -305,6 +305,11 @@ nonlinear:  e(x) = sigmoid(a1*x1 + a2*x2^2 + b)
 
 建议落点为 `benchmarks/sar/pusb/`，至少包含 `synthetic.yaml`、
 `official.yaml`、`dataset_manifest.json`、`trials.csv` 和可重建汇总表的脚本。
+
+当前 clean-room SAR 运行使用 seed `0..4`，来源 Logistic Regression 得到 ROC-AUC
+`0.9128 ± 0.0097`。官方 PUSB 配置已锁到 commit
+`3401b77ccdd653d39f4f3a6258a42c7938fa9ede`，包括 100 次重复、四个先验、三种 U
+样本量和 kernel CV 网格；当前结果仍只能称为 PUSB family baseline。
 
 ## 11. 源码状态与复现风险
 

@@ -264,7 +264,7 @@ class ClassPriorEstimator(BasePriorEstimator):
 | `pu_toolbox/prior/__init__.py` | 公开导出 | ✅ |
 | `pu_toolbox/registry/builtin_methods.py` | class-prior metadata 和 binding | ✅ |
 | `tests/unit/prior/test_pen_l1.py` | 闭式目标 smoke、确定性、边界测试 | ✅ |
-| `benchmarks/paper_like/class_prior_estimation/` | 合成 overlap、MNIST one-vs-rest | ⏳ |
+| `benchmarks/assigned_methods/` | 合成多 seed runner、官方配置与来源锁 | ✅ clean-room；⏳ paper-like |
 
 ## 11. 测试与验收标准
 
@@ -368,6 +368,10 @@ theta_grid: 0.01, 0.02, ..., 0.99
 
 建议落点为 `benchmarks/paper_like/class_prior_estimation/`，配置至少拆为
 `synthetic.yaml` 和 `mnist.yaml`，原始逐种子结果写入独立文件，汇总脚本不得覆盖原始结果。
+
+当前仓库已在 `benchmarks/assigned_methods/` 落地统一 JSON runner，并完成 seed `0..4` 的
+clean-room 合成实验；penL1 prior MAE 为 `0.0380 ± 0.0192`。该数字不包含 L1-QP、
+MNIST 和论文 CV，因此不是论文表格复现。
 
 ## 13. 源码状态与复现风险
 

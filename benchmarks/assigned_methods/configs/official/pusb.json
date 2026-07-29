@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "pusb",
+  "source_lock": "../official_sources.lock.json#sources/pusb",
+  "status": "locked_not_executed",
+  "runner": {
+    "entrypoint": "BiasedPUlearning/PUSB/main_linear_kernel.py",
+    "default_dataset": "ijcnn1",
+    "supported_dataset_loader_names": [
+      "mushroom",
+      "waveform",
+      "shuttle",
+      "page-blocks",
+      "mnist",
+      "spambase",
+      "usps",
+      "connect-4",
+      "protein",
+      "ijcnn1",
+      "w1a"
+    ],
+    "class_priors": [0.2, 0.4, 0.6, 0.8],
+    "unlabeled_sizes": [800, 1600, 3200],
+    "positive_size": 400,
+    "test_size": 1000,
+    "num_basis": 300,
+    "repetitions": 100,
+    "initial_seed": 2018,
+    "selection_probability_power": 20
+  },
+  "cross_validation": {
+    "folds": 5,
+    "sigma": [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
+    "lambda": [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]
+  },
+  "claim_policy": "The current toolbox logistic scorer is not the official kernel PUSB optimizer."
+}

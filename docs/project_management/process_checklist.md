@@ -41,7 +41,8 @@
 
 - [x] PUSB、LBE、Dist-PU、LLSVM native interfaces
 - [x] 前五篇负责论文的 paper-like 复现实验规格
-- [ ] paper-like benchmark 配置
+- [x] 前五篇统一 benchmark runner、官方来源/配置锁和 clean-room 多 seed 结果
+- [ ] 官方数据、历史环境和 paper-like 全量运行
 
 ## Phase 4 — 推荐与诊断 (v0.4)
 
@@ -80,3 +81,4 @@
 | 2026-07-27 | Self-PU Method Card | 已完成严谨 Method Card，接口与实现待开始 | `docs/research/method_cards/Self-PU.md` | 已记录论文公式、三阶段流程、API 规格、测试验收标准与复现风险 |
 | 2026-07-27 | InfoMax PU / WConPU / DGPU | 已完成严谨 Method Card、clean-room 核心接口与 registry 集成 | `estimators/deep/`；对应 Method Cards | `501 passed`；新增文件 ruff 与格式检查通过；DGPU paper-like 运行需 EDM backend |
 | 2026-07-27 | 前五篇复现实验规格 | 已补充 CPE、ReCPE、Dist-PU、PUSB、LBE 的数据、调参、对照、统计和验收协议 | 五份对应 Method Card | 文档规格完成；benchmark runner、官方配置锁定和实际多 seed 实验仍待完成 |
+| 2026-07-27 | 前五篇 benchmark 落地 | 统一 JSON runner、5 份官方配置、4 个不可变来源锁；完成 5 方法 × 5 seeds | `benchmarks/assigned_methods/` | 25 trials；新增 runner tests 通过；完整官方数据/GPU/历史环境运行仍待完成 |

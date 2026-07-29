@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "class_prior_estimation",
+  "source_lock": "../official_sources.lock.json#sources/class_prior_estimation",
+  "status": "blocked",
+  "implementation": {
+    "variants": ["penL1", "L1"],
+    "available_in_toolbox": ["penL1"],
+    "missing_in_toolbox": ["L1 constrained QP", "paper cross-validation criterion"]
+  },
+  "datasets": {
+    "synthetic": "Paper-defined mixture experiments; exact table settings require source recovery.",
+    "mnist": "One-vs-rest protocol must be checked against the paper/source before execution."
+  },
+  "project_parameter_grid": {
+    "sigma_multiplier": [0.25, 0.5, 1.0, 2.0],
+    "reg_lambda": [0.0001, 0.001, 0.01, 0.1],
+    "theta_start": 0.01,
+    "theta_stop": 0.99,
+    "theta_step": 0.01
+  },
+  "claim_policy": "Do not label results paper_like until L1, paper CV, and an immutable source/data manifest are available."
+}

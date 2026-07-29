@@ -381,6 +381,11 @@ bias，附加报告 RMSE、边界命中率、选择集合 precision、训练时�
 设置均有结果；主要结论以配对统计支持。论文数值只有在官方网络、底层方法和数据 manifest
 全部对齐后才能标记为 `paper_like`。
 
+当前 `benchmarks/assigned_methods/` 已完成 seed `0..4` 的 clean-room 合成运行。默认
+Logistic Regression 排序器和 density-ratio CPE 后端得到 prior MAE
+`0.2715 ± 0.0227`，明显差于同组 penL1。该负结果被保留为替换底层 CPE 和接入官方
+FCNet/KM1/KM2 的回归基线，不代表论文 ReCPE 的数值表现。
+
 ## 11. 开放问题
 
 - 增加 KM1、KM2、AlphaMax、DEDPUL 等底层 CPE 后端，并建立统一 benchmark。

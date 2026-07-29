@@ -1,0 +1,77 @@
+{
+  "data": {
+    "class_prior": 0.3,
+    "label_rate": 0.4,
+    "n_features": 8,
+    "n_positive": 120,
+    "n_test": 500,
+    "n_train": 600,
+    "n_unlabeled": 480,
+    "sar_strength": 1.25,
+    "separation": 2.0
+  },
+  "description": "Fast synthetic multi-seed coverage for the first five assigned methods.",
+  "limitations": [
+    "Synthetic data only.",
+    "No result in this configuration is an official paper reproduction.",
+    "Dist-PU uses the toolbox full-batch MLP rather than the official image backbones.",
+    "PUSB uses the toolbox source-classification baseline rather than the official kernel objective.",
+    "LBE uses linear alternating logistic models rather than the official MLP and Adam implementation."
+  ],
+  "methods": {
+    "class_prior_estimation": {
+      "parameters": {
+        "n_centers": 120,
+        "reg_lambda": 0.01,
+        "sigma": 1.0,
+        "standardize": true
+      },
+      "variant": "clean_room_penl1"
+    },
+    "dist_pu": {
+      "parameters": {
+        "alignment_weight": 1.0,
+        "batch_size": 128,
+        "device": "cpu",
+        "entropy_weight": 0.05,
+        "epochs": 25,
+        "hidden_dim": 32,
+        "learning_rate": 0.001,
+        "mixup_weight": 0.1
+      },
+      "variant": "clean_room_full_batch_mlp"
+    },
+    "lbe": {
+      "parameters": {
+        "C": 1.0,
+        "max_iter": 1000,
+        "n_em_iter": 20
+      },
+      "variant": "clean_room_linear_em"
+    },
+    "pusb": {
+      "parameters": {
+        "C": 1.0,
+        "max_iter": 1000,
+        "threshold": 0.5
+      },
+      "variant": "clean_room_source_logistic"
+    },
+    "recpe": {
+      "parameters": {
+        "classifier_max_iter": 1000,
+        "copy_fraction": 0.1
+      },
+      "variant": "clean_room_logistic_default_cpe"
+    }
+  },
+  "protocol": "clean_room",
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ]
+}

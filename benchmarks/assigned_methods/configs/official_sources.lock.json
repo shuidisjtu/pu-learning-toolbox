@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "locked_at": "2026-07-27",
+  "sources": {
+    "class_prior_estimation": {
+      "kind": "paper_and_author_software_page",
+      "paper_doi": "10.1007/s10994-016-5647-0",
+      "url": "http://www.mcduplessis.com/index.php/software/",
+      "immutable_id": null,
+      "status": "partial",
+      "note": "The author software page was unavailable during locking; no immutable official archive was recorded."
+    },
+    "recpe": {
+      "kind": "git",
+      "url": "https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning",
+      "commit": "8ea9324fda4afc1c860b211602d1137b8eb1e55e",
+      "commit_date": "2023-07-29T20:02:58+04:00",
+      "status": "locked"
+    },
+    "dist_pu": {
+      "kind": "git",
+      "url": "https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
+      "commit": "cb74be1a87176fd38270873c06374e53905b7354",
+      "commit_date": "2022-06-19T10:29:18+08:00",
+      "status": "locked"
+    },
+    "pusb": {
+      "kind": "git",
+      "url": "https://github.com/MasaKat0/PUlearning",
+      "commit": "3401b77ccdd653d39f4f3a6258a42c7938fa9ede",
+      "commit_date": "2019-05-28T21:10:55+09:00",
+      "status": "locked"
+    },
+    "lbe": {
+      "kind": "archive",
+      "url": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
+      "sha256": "79cc2c3635a6bcefef1d12832cc9e29be4c0c42a6c31ce6e7b44c6aeac504c6a",
+      "status": "locked",
+      "included_dataset_hashes": {
+        "Australian.mat": "51ff9a18c818065aafc073c926263fddfb070cea0a84183234a1380a108f6a95",
+        "breast.mat": "57dae4b0153798e004d6df60fdbc691bc55b1ba54d2c01bafaf2b56b663825ee"
+      }
+    }
+  }
+}

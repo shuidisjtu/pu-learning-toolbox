@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "dist_pu",
+  "source_lock": "../official_sources.lock.json#sources/dist_pu",
+  "status": "locked_not_executed",
+  "environment": {
+    "os": "Ubuntu 18.04.5",
+    "gpu": "GeForce RTX 3090",
+    "cuda": "11.1",
+    "python": "3.7",
+    "pytorch": "1.8.1",
+    "torchvision": "0.9.1",
+    "numpy": "1.19.2",
+    "scikit_learn": "0.24.1"
+  },
+  "runner": {
+    "entrypoint": "train.py",
+    "datasets": ["cifar-10", "fmnist", "alzheimer"],
+    "class_priors": {
+      "cifar-10": 0.4,
+      "fmnist": 0.4,
+      "alzheimer": 0.5
+    },
+    "num_labeled": 1000,
+    "batch_size": 256,
+    "test_batch_size": 128,
+    "optimizer": "adam",
+    "scheduler": "cosine_annealing",
+    "warm_up_lr": 0.0005,
+    "learning_rate": 0.00005,
+    "warm_up_weight_decay": 0.005,
+    "weight_decay": 0.001,
+    "co_mu": 0.002,
+    "co_entropy": 0.004,
+    "mixup_alpha": 6.0,
+    "co_mix_entropy": 0.04,
+    "co_mixup": 5.0,
+    "warm_up_epochs": 60,
+    "pu_epochs": 60,
+    "random_seed": 0
+  },
+  "models": {
+    "cifar-10": "official CNN",
+    "fmnist": "official MLP",
+    "alzheimer": "torchvision ResNet-50 with one-logit head"
+  },
+  "official_command_template": "python train.py --device GPU_ID --dataset DATASET --datapath DATA_PATH --random-seed SEED"
+}
