@@ -19,7 +19,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from scipy.special import expit, logit
-from scipy.stats import spearmanr
+from scipy.stats import kendalltau, spearmanr
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
@@ -31,6 +31,7 @@ from sklearn.metrics import (
 
 from pu_toolbox.estimators.bias_aware import LBEClassifier, PUSBClassifier
 from pu_toolbox.estimators.risk import DistPUClassifier
+from pu_toolbox.preprocessing import make_sar_dataset
 from pu_toolbox.prior import ClassPriorEstimator, ReCPEEstimator
 
 SUPPORTED_METHODS = (
@@ -102,55 +103,57 @@ def _case_control_data(
     return X_train, y_pu, X_test, y_test
 
 
-def _calibrate_propensity_intercept(scores: np.ndarray, target: float) -> float:
-    low, high = -30.0, 30.0
-    for _ in range(80):
-        midpoint = (low + high) / 2
-        if expit(scores + midpoint).mean() < target:
-            low = midpoint
-        else:
-            high = midpoint
-    return (low + high) / 2
-
-
 def _sar_data(
-    rng: np.random.Generator,
+    seed: int,
     data: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    n_train = int(data["n_train"])
-    n_test = int(data["n_test"])
-    n_features = int(data["n_features"])
-    prior = float(data["class_prior"])
-    separation = float(data["separation"])
-    label_rate = float(data["label_rate"])
-    strength = float(data["sar_strength"])
-    if min(n_train, n_test, n_features) < 1 or not 0 < prior < 1 or not 0 < label_rate < 1:
-        raise ValueError("SAR sizes must be positive and rates must be in (0, 1)")
+    mechanism: str,
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    common = {
+        "n_features": int(data["n_features"]),
+        "class_prior": float(data["class_prior"]),
+        "separation": float(data["separation"]),
+        "mechanism": mechanism,
+        "label_frequency": float(data["label_frequency"]),
+        "strength": float(data["sar_strength"]),
+    }
+    X_train, y_pu, y_train, propensity_train = make_sar_dataset(
+        n_samples=int(data["n_train"]),
+        random_state=seed,
+        **common,
+    )
+    X_test, _, y_test, propensity_test = make_sar_dataset(
+        n_samples=int(data["n_test"]),
+        random_state=seed + 1_000_003,
+        **common,
+    )
+    return (
+        X_train,
+        y_pu,
+        y_train,
+        X_test,
+        y_test,
+        propensity_train,
+        propensity_test,
+    )
 
-    def sample(n_samples: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        y_true = rng.binomial(1, prior, size=n_samples)
-        direction = np.zeros(n_features)
-        direction[0] = separation / 2
-        X = rng.normal(loc=np.where(y_true[:, None] == 1, direction, -direction))
-        raw = strength * X[:, 0]
-        positive_raw = raw[y_true == 1]
-        intercept = (
-            _calibrate_propensity_intercept(positive_raw, label_rate)
-            if len(positive_raw)
-            else logit(label_rate)
-        )
-        propensity = expit(raw + intercept)
-        return X, y_true, propensity
 
-    X_train, y_train, propensity_train = sample(n_train)
-    observed = (y_train * rng.binomial(1, propensity_train)).astype(int)
-    if observed.sum() == 0:
-        positive_indices = np.flatnonzero(y_train == 1)
-        if not len(positive_indices):
-            raise ValueError("SAR sample contains no positive examples")
-        observed[positive_indices[np.argmax(propensity_train[positive_indices])]] = 1
-    X_test, y_test, propensity_test = sample(n_test)
-    return X_train, observed, X_test, y_test, propensity_test
+def _labeling_mechanisms(method: str, data: dict[str, Any]) -> list[str]:
+    if method not in {"pusb", "lbe"}:
+        return ["case_control"]
+    configured = data.get("sar_mechanisms")
+    if configured is None:
+        return [str(data.get("sar_mechanism", "linear"))]
+    if not isinstance(configured, list) or not configured:
+        raise ValueError("sar_mechanisms must be a non-empty list")
+    return [str(mechanism) for mechanism in configured]
 
 
 def _classification_metrics(y_true: np.ndarray, scores: np.ndarray) -> dict[str, float]:
@@ -163,6 +166,16 @@ def _classification_metrics(y_true: np.ndarray, scores: np.ndarray) -> dict[str,
         "average_precision": float(average_precision_score(y_true, scores)),
         "predicted_positive_rate": float(predictions.mean()),
     }
+
+
+def _gaussian_bayes_posterior(
+    X: np.ndarray,
+    class_prior: float,
+    separation: float,
+) -> np.ndarray:
+    """Return Bayes posterior for the shared equal-covariance generator."""
+    posterior_logit = logit(class_prior) + separation * np.asarray(X).sum(axis=1)
+    return expit(posterior_logit)
 
 
 def _run_prior_method(
@@ -194,6 +207,7 @@ def _run_classifier(
     y_test: np.ndarray,
     true_prior: float,
     propensity_test: np.ndarray | None,
+    true_posterior: np.ndarray,
 ) -> dict[str, float]:
     if method == "dist_pu":
         estimator = DistPUClassifier(
@@ -214,6 +228,11 @@ def _run_classifier(
     scores = np.asarray(estimator.predict_proba(X_test)[:, 1], dtype=float)
     metrics = _classification_metrics(y_test, scores)
     metrics["score_brier"] = float(brier_score_loss(y_test, scores))
+    posterior_spearman = float(spearmanr(true_posterior, scores).statistic)
+    posterior_kendall = float(kendalltau(true_posterior, scores).statistic)
+    metrics["posterior_spearman"] = posterior_spearman
+    metrics["posterior_kendall"] = posterior_kendall
+    metrics["pairwise_ranking_accuracy"] = (posterior_kendall + 1.0) / 2.0
     if method == "lbe" and propensity_test is not None:
         estimated_propensity = estimator.propensity_model_.predict_proba(X_test)[:, 1]
         positive = y_test == 1
@@ -221,12 +240,20 @@ def _run_classifier(
             metrics["propensity_mse_positive"] = float(
                 np.mean((propensity_test[positive] - estimated_propensity[positive]) ** 2)
             )
-            metrics["propensity_spearman_positive"] = float(
-                spearmanr(
-                    propensity_test[positive],
-                    estimated_propensity[positive],
-                ).statistic
-            )
+            true_positive_propensity = propensity_test[positive]
+            estimated_positive_propensity = estimated_propensity[positive]
+            if (
+                true_positive_propensity.std() <= 1e-12
+                or estimated_positive_propensity.std() <= 1e-12
+            ):
+                metrics["propensity_spearman_positive"] = float("nan")
+            else:
+                metrics["propensity_spearman_positive"] = float(
+                    spearmanr(
+                        true_positive_propensity,
+                        estimated_positive_propensity,
+                    ).statistic
+                )
     return metrics
 
 
@@ -245,46 +272,70 @@ def run_trials(
     true_prior = float(config["data"]["class_prior"])
     for seed in config["seeds"]:
         for method in methods:
-            rng = np.random.default_rng(seed)
-            started = time.perf_counter()
-            if method in {"class_prior_estimation", "recpe", "dist_pu"}:
-                X_train, y_pu, X_test, y_test = _case_control_data(rng, config["data"])
-                propensity_test = None
-            else:
-                X_train, y_pu, X_test, y_test, propensity_test = _sar_data(
-                    rng,
-                    config["data"],
-                )
-            parameters = config["methods"][method].get("parameters", {})
-            if method in {"class_prior_estimation", "recpe"}:
-                metrics = _run_prior_method(method, parameters, X_train, y_pu, true_prior)
-            else:
-                metrics = _run_classifier(
-                    method,
-                    parameters,
-                    seed,
-                    X_train,
-                    y_pu,
+            for mechanism in _labeling_mechanisms(method, config["data"]):
+                rng = np.random.default_rng(seed)
+                started = time.perf_counter()
+                labeling_diagnostics: dict[str, float] = {}
+                if method in {"class_prior_estimation", "recpe", "dist_pu"}:
+                    X_train, y_pu, X_test, y_test = _case_control_data(rng, config["data"])
+                    propensity_test = None
+                else:
+                    (
+                        X_train,
+                        y_pu,
+                        y_train,
+                        X_test,
+                        y_test,
+                        propensity_train,
+                        propensity_test,
+                    ) = _sar_data(seed, config["data"], mechanism)
+                    positive = y_train == 1
+                    labeling_diagnostics = {
+                        "realized_label_frequency": float(y_pu.sum() / positive.sum()),
+                        "propensity_std_positive": float(propensity_train[positive].std()),
+                    }
+                true_posterior = _gaussian_bayes_posterior(
                     X_test,
-                    y_test,
                     true_prior,
-                    propensity_test,
+                    float(config["data"]["separation"]),
                 )
-            rows.append(
-                {
-                    "protocol": config["protocol"],
-                    "method": method,
-                    "implementation_variant": config["methods"][method]["variant"],
-                    "seed": seed,
-                    "n_train": len(X_train),
-                    "n_test": len(X_test),
-                    "true_class_prior": true_prior,
-                    "observed_positive_rate": float(y_pu.mean()),
-                    "elapsed_seconds": time.perf_counter() - started,
-                    **metrics,
-                }
-            )
-    return pd.DataFrame(rows).sort_values(["method", "seed"]).reset_index(drop=True)
+                parameters = config["methods"][method].get("parameters", {})
+                if method in {"class_prior_estimation", "recpe"}:
+                    metrics = _run_prior_method(method, parameters, X_train, y_pu, true_prior)
+                else:
+                    metrics = _run_classifier(
+                        method,
+                        parameters,
+                        seed,
+                        X_train,
+                        y_pu,
+                        X_test,
+                        y_test,
+                        true_prior,
+                        propensity_test,
+                        true_posterior,
+                    )
+                rows.append(
+                    {
+                        "protocol": config["protocol"],
+                        "method": method,
+                        "implementation_variant": config["methods"][method]["variant"],
+                        "labeling_mechanism": mechanism,
+                        "seed": seed,
+                        "n_train": len(X_train),
+                        "n_test": len(X_test),
+                        "true_class_prior": true_prior,
+                        "observed_positive_rate": float(y_pu.mean()),
+                        "elapsed_seconds": time.perf_counter() - started,
+                        **labeling_diagnostics,
+                        **metrics,
+                    }
+                )
+    return (
+        pd.DataFrame(rows)
+        .sort_values(["method", "labeling_mechanism", "seed"])
+        .reset_index(drop=True)
+    )
 
 
 def summarize_trials(trials: pd.DataFrame) -> pd.DataFrame:
@@ -301,7 +352,10 @@ def summarize_trials(trials: pd.DataFrame) -> pd.DataFrame:
         if column not in identifiers
     ]
     rows = []
-    for method, group in trials.groupby("method", sort=True):
+    for (method, mechanism), group in trials.groupby(
+        ["method", "labeling_mechanism"],
+        sort=True,
+    ):
         for metric in numeric:
             values = group[metric].dropna()
             if values.empty:
@@ -309,6 +363,7 @@ def summarize_trials(trials: pd.DataFrame) -> pd.DataFrame:
             rows.append(
                 {
                     "method": method,
+                    "labeling_mechanism": mechanism,
                     "metric": metric,
                     "mean": float(values.mean()),
                     "std": float(values.std(ddof=1)) if len(values) > 1 else 0.0,

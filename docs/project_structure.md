@@ -30,6 +30,7 @@ pu_toolbox/
   preprocessing/
     __init__.py
     pu_labeling.py
+    selection_bias.py         (SCAR/SAR propensity、标签与合成数据)
     profiling.py
 
   prior/
@@ -132,6 +133,7 @@ tests/
       test_pen_l1.py                  # penL1 特有逻辑
     preprocessing/
       test_pu_labeling.py             # PU/PNU 标签生成
+      test_selection_bias.py          # SCAR/SAR propensity、标记率校准与合成数据
       test_profiling.py               # 数据画像统计
 
 ```
@@ -148,6 +150,7 @@ examples/
     03_nnpu.py                (nnPU 非负风险估计)
     04_pnu.py                 (PNU 半监督扩展)
     05_recpe_pipeline.py      (ReCPE 类先验估计 + uPU 联合流程)
+    06_sar_simulation.py      (SCAR/SAR 标记机制与 propensity)
 ```
 
 ## 5. 文档（`docs/`）
@@ -160,6 +163,9 @@ docs/
   method_selection.md
   development_roadmap.md
   resources_optimized.md
+
+  user/
+    sar_simulation.md             # SCAR/SAR 数据模拟与 benchmark 指南
 
   research/
     method_cards/

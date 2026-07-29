@@ -22,6 +22,18 @@ python -m benchmarks.assigned_methods.run \
   --methods class_prior_estimation recpe
 ```
 
+运行配对的 SCAR/SAR 对比：
+
+```bash
+python -m benchmarks.assigned_methods.run \
+  --config benchmarks/assigned_methods/configs/scar_sar_comparison.json \
+  --output benchmarks/assigned_methods/results/scar_sar_comparison
+```
+
+该配置在相同 seed 和目标平均标记率下展开 `scar`、`linear`、`nonlinear`，报告分类指标、
+propensity 诊断，以及相对于已知 Bayes posterior 的 Spearman、Kendall 和 pairwise
+ranking accuracy。
+
 每次运行生成：
 
 - `trials.csv`：逐方法、逐 seed 的原始结果；
@@ -48,11 +60,26 @@ paper-like 复现仍需要对应历史环境、数据、GPU，以及 ReCPE 的�
 | Class-Prior Estimation | prior MAE | 0.0380 | 0.0192 |
 | ReCPE | prior MAE | 0.2715 | 0.0227 |
 | Dist-PU | ROC-AUC | 0.9595 | 0.0856 |
-| PUSB baseline | ROC-AUC | 0.9128 | 0.0097 |
-| LBE linear EM | ROC-AUC | 0.8762 | 0.0207 |
+| PUSB baseline | ROC-AUC | 1.0000 | 0.0001 |
+| LBE linear EM | ROC-AUC | 0.9887 | 0.0108 |
 
 ReCPE 在该设置中的低估是当前默认 density-ratio CPE 后端的实际结果，不应删除或解释为
 论文 ReCPE 的表现。完整指标和运行环境分别见 `summary.csv` 与 `run_manifest.json`。
+
+`results/scar_sar_comparison/` 另外完成了 2 个 bias-aware 方法、3 种机制和 10 个 seed，
+共 60 个配对 trial：
+
+| 方法 | 机制 | ROC-AUC | Pairwise ranking accuracy |
+|---|---|---:|---:|
+| PUSB baseline | SCAR | 0.9998 | 0.9148 |
+| PUSB baseline | linear SAR | 1.0000 | 0.9590 |
+| PUSB baseline | nonlinear SAR | 1.0000 | 0.9537 |
+| LBE linear EM | SCAR | 0.7284 | 0.6283 |
+| LBE linear EM | linear SAR | 0.9968 | 0.8694 |
+| LBE linear EM | nonlinear SAR | 0.9990 | 0.9061 |
+
+这组高斯数据可分性较强，接近 1 的 AUC 不能外推为真实数据表现；结果的主要用途是验证
+机制展开、配对 seed、排序指标和 propensity 诊断链路。
 
 ## 结论边界
 

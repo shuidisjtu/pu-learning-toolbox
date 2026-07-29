@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 501 项。
+**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 536 项。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -48,6 +48,27 @@ pip install -e ".[dev]"
 工具箱核心要求 **Python >= 3.10**，开发基线为 **Python 3.11**。
 
 所有 14 个 NATIVE 算法均为 clean-room 实现；DGPU 的论文级运行需由用户接入条件扩散生成器。
+
+## SCAR / SAR 数据模拟
+
+公共 preprocessing API 可以生成带隐藏真实标签和真实标记倾向的 PU 数据：
+
+```python
+from pu_toolbox.preprocessing import make_sar_dataset
+
+X, y_pu, y_true, propensity = make_sar_dataset(
+    n_samples=1000,
+    class_prior=0.3,
+    mechanism="linear",       # "scar", "linear", "nonlinear"
+    label_frequency=0.4,      # 正类中的目标平均标记概率
+    strength=1.5,             # 特征依赖强度；0 退化为常数 propensity
+    random_state=42,
+)
+```
+
+训练算法时只传入 `X, y_pu`。`y_true` 和 `propensity` 仅用于合成 benchmark 评估，
+不能作为训练特征或调参标签。完整示例见
+[`examples/minimal/06_sar_simulation.py`](examples/minimal/06_sar_simulation.py)。
 
 ## 测试
 

@@ -11,8 +11,9 @@
     "n_features": 8,
     "class_prior": 0.3,
     "separation": 2.0,
-    "label_rate": 0.4,
-    "sar_strength": 1.25
+    "label_frequency": 0.4,
+    "sar_strength": 1.25,
+    "sar_mechanism": "linear"
   },
   "methods": {
     "class_prior_estimation": {

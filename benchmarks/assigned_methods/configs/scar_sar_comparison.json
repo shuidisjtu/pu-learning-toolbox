@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "protocol": "clean_room",
+  "description": "Paired SCAR, linear-SAR, and nonlinear-SAR comparison for bias-aware methods.",
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "data": {
+    "n_positive": 200,
+    "n_unlabeled": 800,
+    "n_train": 1000,
+    "n_test": 1000,
+    "n_features": 8,
+    "class_prior": 0.3,
+    "separation": 2.0,
+    "label_frequency": 0.4,
+    "sar_strength": 1.5,
+    "sar_mechanisms": ["scar", "linear", "nonlinear"]
+  },
+  "methods": {
+    "pusb": {
+      "variant": "clean_room_source_logistic",
+      "parameters": {
+        "threshold": 0.5,
+        "C": 1.0,
+        "max_iter": 1000
+      }
+    },
+    "lbe": {
+      "variant": "clean_room_linear_em",
+      "parameters": {
+        "max_iter": 1000,
+        "n_em_iter": 20,
+        "C": 1.0
+      }
+    }
+  },
+  "limitations": [
+    "Synthetic Gaussian data only.",
+    "Mechanisms share data seeds and target labeling frequency for paired comparison.",
+    "PUSB is the toolbox source-logistic baseline, not the official kernel optimizer.",
+    "LBE is the toolbox linear-EM implementation, not the official MLP implementation."
+  ]
+}

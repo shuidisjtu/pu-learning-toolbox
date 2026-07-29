@@ -10,7 +10,7 @@
 - [x] 在方法卡中区分论文的 partial-identification/ranking 结论与当前工程实现。
 - [x] 补充 SCAR/SAR 生成、排序与决策评估、官方对齐和统计汇总协议。
 - [ ] 将官方 PUSB 的 partial-identification 目标和非参数 scoring procedure 逐式移植。
-- [ ] 在 SAR 合成数据上验证 ranking preservation，而不是只验证分类准确率。
+- [x] 在配对 SCAR/线性 SAR/非线性 SAR 合成数据上验证 posterior ranking preservation。
 - [ ] 复现官方仓库的实验和与 uPU、nnPU、Dist-PU 的比较。
 
 ### 1.2 注意
@@ -307,7 +307,10 @@ nonlinear:  e(x) = sigmoid(a1*x1 + a2*x2^2 + b)
 `official.yaml`、`dataset_manifest.json`、`trials.csv` 和可重建汇总表的脚本。
 
 当前 clean-room SAR 运行使用 seed `0..4`，来源 Logistic Regression 得到 ROC-AUC
-`0.9128 ± 0.0097`。官方 PUSB 配置已锁到 commit
+`1.0000 ± 0.0001`。额外的 10-seed 配对 benchmark 在 SCAR、线性 SAR、非线性 SAR
+下得到 posterior pairwise ranking accuracy `0.9148`、`0.9590`、`0.9537`。该合成数据
+可分性较强，因此这些数字用于验证 ranking 链路，不作为真实数据性能结论。官方 PUSB
+配置已锁到 commit
 `3401b77ccdd653d39f4f3a6258a42c7938fa9ede`，包括 100 次重复、四个先验、三种 U
 样本量和 kernel CV 网格；当前结果仍只能称为 PUSB family baseline。
 

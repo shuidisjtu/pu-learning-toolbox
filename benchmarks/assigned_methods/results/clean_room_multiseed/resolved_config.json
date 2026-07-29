@@ -1,12 +1,13 @@
 {
   "data": {
     "class_prior": 0.3,
-    "label_rate": 0.4,
+    "label_frequency": 0.4,
     "n_features": 8,
     "n_positive": 120,
     "n_test": 500,
     "n_train": 600,
     "n_unlabeled": 480,
+    "sar_mechanism": "linear",
     "sar_strength": 1.25,
     "separation": 2.0
   },

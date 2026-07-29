@@ -1,0 +1,30 @@
+{
+  "config_sha256": "bb3d79eb4dea6cca95b1af436ea1f28432c752fa781090bae352cc8c5bac0687",
+  "created_at_utc": "2026-07-29T17:03:28.963301+00:00",
+  "environment": {
+    "numpy": "1.26.4",
+    "pandas": "2.2.3",
+    "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
+    "python": "3.12.2",
+    "scikit_learn": "1.7.1",
+    "scipy": "1.15.1",
+    "torch": "2.6.0+cu124"
+  },
+  "git_commit": "8504962bdc078dd843971a5143732844c4cc016e",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "Synthetic Gaussian data only.",
+    "Mechanisms share data seeds and target labeling frequency for paired comparison.",
+    "PUSB is the toolbox source-logistic baseline, not the official kernel optimizer.",
+    "LBE is the toolbox linear-EM implementation, not the official MLP implementation."
+  ],
+  "n_trials": 60,
+  "paper_claim": false,
+  "protocol": "clean_room",
+  "runner_sha256": "4a573b5eb01e3d7e1eb6f1f4679d4e7a42020559912c3a4ea44a3230d7b48d34",
+  "schema_version": 1,
+  "selected_methods": [
+    "pusb",
+    "lbe"
+  ]
+}

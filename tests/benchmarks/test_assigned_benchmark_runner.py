@@ -37,8 +37,9 @@ def benchmark_config():
             "n_features": 3,
             "class_prior": 0.3,
             "separation": 2.0,
-            "label_rate": 0.4,
+            "label_frequency": 0.4,
             "sar_strength": 1.0,
+            "sar_mechanism": "linear",
         },
         "methods": {
             "class_prior_estimation": {
@@ -100,8 +101,8 @@ def test_case_control_output_shapes_and_positive_counts(benchmark_config):
 
 @pytest.mark.unit
 def test_sar_extreme_seed_reproducibility(benchmark_config):
-    first = _sar_data(np.random.default_rng(11), benchmark_config["data"])
-    second = _sar_data(np.random.default_rng(11), benchmark_config["data"])
+    first = _sar_data(11, benchmark_config["data"], "linear")
+    second = _sar_data(11, benchmark_config["data"], "linear")
     for left, right in zip(first, second, strict=True):
         np.testing.assert_allclose(left, right)
     assert first[1].sum() > 0
@@ -114,6 +115,24 @@ def test_multiseed_trials_are_deterministic(benchmark_config):
     metric_columns = sorted(set(first.columns) - {"elapsed_seconds"})
     assert first[metric_columns].equals(second[metric_columns])
     assert len(first) == 4
+
+
+@pytest.mark.unit
+def test_scar_sar_mechanism_expansion_outputs_paired_rows(benchmark_config):
+    benchmark_config["seeds"] = [5]
+    benchmark_config["methods"] = {
+        "pusb": {
+            "variant": "test_logistic",
+            "parameters": {},
+        }
+    }
+    benchmark_config["data"]["sar_mechanisms"] = ["scar", "linear", "nonlinear"]
+    trials = run_trials(benchmark_config)
+    assert len(trials) == 3
+    assert set(trials["labeling_mechanism"]) == {"scar", "linear", "nonlinear"}
+    assert trials["seed"].nunique() == 1
+    assert np.isfinite(trials["posterior_spearman"]).all()
+    assert trials["pairwise_ranking_accuracy"].between(0, 1).all()
 
 
 @pytest.mark.unit
@@ -166,7 +185,7 @@ def test_official_lock_and_all_config_outputs_are_valid_json():
     documents = {
         path: json.loads(path.read_text(encoding="utf-8")) for path in config_root.rglob("*.json")
     }
-    assert len(documents) == 7
+    assert len(documents) == 8
     source_lock = documents[config_root / "official_sources.lock.json"]
     assert source_lock["sources"]["recpe"]["commit"]
     assert source_lock["sources"]["lbe"]["sha256"]

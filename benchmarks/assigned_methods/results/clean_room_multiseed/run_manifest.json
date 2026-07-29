@@ -1,6 +1,6 @@
 {
-  "config_sha256": "bd9ea54e98b8081556bea138d36aa37a84dee193cea644ae36701a05be081c95",
-  "created_at_utc": "2026-07-27T12:44:48.476918+00:00",
+  "config_sha256": "11c85b93d3c1c072421c69abc85ae158629dec10a8c90b385365e220aca413fc",
+  "created_at_utc": "2026-07-29T17:03:20.693238+00:00",
   "environment": {
     "numpy": "1.26.4",
     "pandas": "2.2.3",
@@ -10,7 +10,7 @@
     "scipy": "1.15.1",
     "torch": "2.6.0+cu124"
   },
-  "git_commit": "803330b21d998d0bf01fdfa5cf64be91ef21546f",
+  "git_commit": "8504962bdc078dd843971a5143732844c4cc016e",
   "git_worktree_dirty": true,
   "limitations": [
     "Synthetic data only.",
@@ -22,7 +22,7 @@
   "n_trials": 25,
   "paper_claim": false,
   "protocol": "clean_room",
-  "runner_sha256": "a65a005797db98168c294cc4443b02fa78742beee3752cc8dda4133abcd835a4",
+  "runner_sha256": "4a573b5eb01e3d7e1eb6f1f4679d4e7a42020559912c3a4ea44a3230d7b48d34",
   "schema_version": 1,
   "selected_methods": [
     "class_prior_estimation",

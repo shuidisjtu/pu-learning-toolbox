@@ -13,7 +13,7 @@
 
 | 层 | 模块 | 作用 |
 |---|---|---|
-| Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、PU 标签生成、数据画像、算法注册、元数据、共享工具 |
+| Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、数据画像、算法注册、元数据、共享工具 |
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
 | Evaluation | `metrics`, `model_selection` | PU 评估指标、PU 分层切分 |
@@ -186,3 +186,5 @@ class BasePULoss(ABC):
 - PU-only 指标（不需要真实标签）：`pu_zero_one_risk`（PU 零一验证风险）、`pu_recall`（从已标记正样本估计召回率）、`pu_estimated_precision`（利用类先验估计精确率）、`pu_negative_rate`（无标记样本负预测率）。
 - 有真实 $y$ 时使用标准监督指标包装（AUC, F1, Accuracy）。
 - SCAR 假设诊断：`scar_diagnostic` 通过 P/U 可分性检测标记机制是否满足 SCAR。
+- Selection-bias 模拟：`make_sar_propensity`、`make_sar_labels` 和 `make_sar_dataset`
+  支持常数、线性与非线性 propensity；隐藏 `y_true/propensity` 仅供 benchmark 使用。
