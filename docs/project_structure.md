@@ -79,6 +79,10 @@ pu_toolbox/
     __init__.py
     classification.py          (已实现: PU risk/recall/precision + supervised wrappers)
 
+  diagnostics/
+    __init__.py
+    report.py                  (数据/模型/指标诊断，JSON/Markdown 报告)
+
   model_selection/
     __init__.py
     split.py                   (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
@@ -114,6 +118,8 @@ tests/
       test_kldce_property.py          # KLDCE 约束/鲁棒性/可复现性 (PROPERTY)
 
   unit/                               # 算法特有逻辑测试
+    diagnostics/
+      test_report.py                  # 诊断报告指标、输入契约与序列化
     estimators/
       test_elkan_noto.py              # Elkan-Noto 特有逻辑
       test_upu.py                     # uPU 特有逻辑
@@ -154,6 +160,7 @@ examples/
     05_recpe_pipeline.py      (ReCPE 类先验估计 + uPU 联合流程)
     06_sar_simulation.py      (SCAR/SAR 标记机制与 propensity)
     07_data_profiling.py      (PU 数据画像与 SCAR/SAR 审计提示)
+    08_diagnostic_report.py   (已拟合 PUSB 的结构化诊断报告)
 ```
 
 ## 5. 文档（`docs/`）
@@ -170,6 +177,7 @@ docs/
   user/
     sar_simulation.md             # SCAR/SAR 数据模拟与 benchmark 指南
     data_profiling.md             # 数据画像、可识别性边界与行动建议
+    diagnostic_reports.md         # 模型输出、证据级别与可审计报告
 
   research/
     method_cards/

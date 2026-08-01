@@ -16,7 +16,7 @@
 | Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、结构化数据画像、算法注册、元数据、共享工具 |
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
-| Evaluation | `metrics`, `model_selection` | PU 评估指标、PU 分层切分 |
+| Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化诊断报告 |
 | User Layer | `examples` | 教程 |
 
 ## 3. 数据流
@@ -34,6 +34,10 @@ Registry → 候选算法 → 实现解析 (native / torch)
 Data Profiler 输出 `PUDataProfile`：包含基础统计、特征质量、问题级别、行动建议和
 标记机制证据。无审计真值时，SCAR/SAR 提示明确标记为非识别性筛查；提供 `y_true`
 时仅在真实正例内部评估 selection dependence，避免把类别可分性误认为 SAR。
+
+`build_diagnostic_report` 位于 `diagnostics`，只读取 Data Profiler、已拟合 estimator
+和指标接口。它不训练模型，并将观测 PU、类先验依赖、监督 oracle 和
+不可用指标分别标记，输出稳定 schema 的 JSON/Markdown 报告。
 
 ## 4. 核心 API
 
@@ -189,6 +193,9 @@ class BasePULoss(ABC):
 - `PUStratifiedKFold`、`PUStratifiedShuffleSplit`（已实现）：保证每个训练折含 labeled positive，保留 P/U 比例。
 - PU-only 指标（不需要真实标签）：`pu_zero_one_risk`（PU 零一验证风险）、`pu_recall`（从已标记正样本估计召回率）、`pu_estimated_precision`（利用类先验估计精确率）、`pu_negative_rate`（无标记样本负预测率）。
 - 有真实 $y$ 时使用标准监督指标包装（AUC, F1, Accuracy）。
-- SCAR 假设诊断：`scar_diagnostic` 通过 P/U 可分性检测标记机制是否满足 SCAR。
+- SCAR/SAR 证据：`scar_diagnostic` 在无真值时仅报告非识别性 P/U 筛查信号；
+  提供审计 `y_true` 时，在真实正例内检查 selection dependence。
 - Selection-bias 模拟：`make_sar_propensity`、`make_sar_labels` 和 `make_sar_dataset`
   支持常数、线性与非线性 propensity；隐藏 `y_true/propensity` 仅供 benchmark 使用。
+- 结构化报告：`build_diagnostic_report` 组合数据画像、模型 metadata、PU 指标和
+  可选监督指标，支持严格 JSON 与 Markdown 输出。

@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 548 项。
+**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 561 项。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -85,6 +85,26 @@ print(report.format_text())
 若有独立审计的真实标签，可传入 `y_true`，在真实正例内部直接检查标记是否依赖特征。
 没有审计标签时，报告会明确标记结果为非识别性筛查信号，不会把可分性误报为 SAR 证明。
 详见 [`docs/user/data_profiling.md`](docs/user/data_profiling.md)。
+
+## 模型诊断报告
+
+`build_diagnostic_report` 将数据画像、已拟合模型输出、PU-only 指标、类先验依赖指标
+和可选监督 oracle 指标组合为可审计报告：
+
+```python
+from pu_toolbox.diagnostics import build_diagnostic_report
+
+report = build_diagnostic_report(
+    X_valid,
+    y_valid,
+    estimator=fitted_classifier,
+    class_prior=0.3,
+)
+print(report.to_markdown())
+```
+
+报告生成器不会训练模型；每个指标都标注证据级别和不可用原因。支持严格 JSON
+和 Markdown 输出，详见 [`docs/user/diagnostic_reports.md`](docs/user/diagnostic_reports.md)。
 
 ## 测试
 
