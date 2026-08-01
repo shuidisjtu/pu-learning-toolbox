@@ -8,6 +8,8 @@
 pu-learning-toolbox/
   pyproject.toml
   README.md
+  CONTRIBUTING.md
+  LICENSE
   .gitignore
 ```
 
@@ -172,6 +174,7 @@ docs/
   project_structure.md
   method_selection.md
   development_roadmap.md
+  development_compatibility.md
   resources_optimized.md
 
   user/
@@ -203,12 +206,14 @@ docs/
 scripts/
   check_test_quality.py      (测试质量门禁：方法数/marker/覆盖率)
   check_doc_links.py          (文档一致性检查：4 条规则)
+  check_project_metadata.py   (Python/CI/extras/Hatchling 跨文件一致性)
 ```
 
 ## 7. CI/CD（`.github/`）
 
 ```text
 .github/
+  pull_request_template.md
   workflows/
-    tests.yml                (push/PR: 测试 + lint + 质量门禁 + 文档检查)
+    tests.yml                (Python matrix + 静态门禁 + wheel 安装冒烟)
 ```

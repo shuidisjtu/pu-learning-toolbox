@@ -32,11 +32,14 @@ def test_basic_fit_predict_output_shapes(rng):
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("kwargs", [
-    {"class_prior": 0.0},
-    {"class_prior": 1.0},
-    {"class_prior": -0.5},
-])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"class_prior": 0.0},
+        {"class_prior": 1.0},
+        {"class_prior": -0.5},
+    ],
+)
 def test_invalid_class_prior_raises(rng, kwargs):
     X, y = _data(rng)
     pi = kwargs["class_prior"]
@@ -64,7 +67,13 @@ def test_edge_single_epoch(rng):
 @pytest.mark.unit
 def test_edge_zero_mixup_weight(rng):
     X, y = _data(rng)
-    model = DistPUClassifier(0.3, hidden_dim=4, epochs=2, mixup_weight=0.0, random_state=0).fit(X, y)
+    model = DistPUClassifier(
+        0.3,
+        hidden_dim=4,
+        epochs=2,
+        mixup_weight=0.0,
+        random_state=0,
+    ).fit(X, y)
     assert model.predict(X).shape == (len(X),)
 
 

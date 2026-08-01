@@ -23,7 +23,6 @@ from pu_toolbox.estimators.risk.kldce import (
     _rbf_kernel,
 )
 
-
 # ═════════════════════════════════════════════════════════════════════
 # Hand-computed test data (4 samples, 2 P + 2 U)
 # ═════════════════════════════════════════════════════════════════════
@@ -34,15 +33,18 @@ from pu_toolbox.estimators.risk.kldce import (
 # n=4, k=2, n_U=2
 # λ=1.0, σ=1.0, h=0.3
 
+
 @pytest.fixture
 def tiny_data():
     """4-sample dataset for hand computation."""
-    X = np.array([
-        [0.0, 0.0],  # P
-        [1.0, 0.0],  # P
-        [0.0, 1.0],  # U
-        [1.0, 1.0],  # U
-    ])
+    X = np.array(
+        [
+            [0.0, 0.0],  # P
+            [1.0, 0.0],  # P
+            [0.0, 1.0],  # U
+            [1.0, 1.0],  # U
+        ]
+    )
     y_tilde = np.array([1.0, 1.0, -1.0, -1.0])
     return X, y_tilde
 
@@ -95,8 +97,15 @@ class TestBuildDualQP:
         C_eq = -0.5  # arbitrary for shape test
 
         Q, d_vec, Aeq, beq, lb, ub = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=1.0,
-            n=n, k=k, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=1.0,
+            n=n,
+            k=k,
+            C_eq=C_eq,
         )
 
         N = n + (n - k)  # 4 + 2 = 6
@@ -114,8 +123,15 @@ class TestBuildDualQP:
         C_eq = -0.5
 
         Q, _, _, _, _, _ = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=1.0,
-            n=n, k=k, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=1.0,
+            n=n,
+            k=k,
+            C_eq=C_eq,
         )
         np.testing.assert_allclose(Q, Q.T, atol=1e-14)
 
@@ -129,8 +145,15 @@ class TestBuildDualQP:
         C_eq = -0.5
 
         Q, _, _, _, _, _ = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=sigma_val,
-            n=n, k=k, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=sigma_val,
+            n=n,
+            k=k,
+            C_eq=C_eq,
         )
 
         # Q_αα[0,1] = ỹ₀·ỹ₁·K(x₀,x₁) / (2λ)
@@ -148,8 +171,15 @@ class TestBuildDualQP:
         C_eq = -0.5
 
         Q, _, _, _, _, _ = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=sigma_val,
-            n=n, k=k, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=sigma_val,
+            n=n,
+            k=k,
+            C_eq=C_eq,
         )
 
         # Q_αγ[0,0]: i=0 (P, ỹ=+1), j=0 (U, ỹ_{2}=-1)
@@ -162,7 +192,7 @@ class TestBuildDualQP:
 
     def test_linear_term_d_mu_structure(self, tiny_data):
         """d(μ)_i = 1 + C_eq·ỹᵢ·K(xᵢ,μ)/(2λ) for α,
-           d(μ)_{n+i} = 1 - C_eq·ỹ_{k+i}·K(x_{k+i},μ)/(2λ) for γ."""
+        d(μ)_{n+i} = 1 - C_eq·ỹ_{k+i}·K(x_{k+i},μ)/(2λ) for γ."""
         X, y_tilde = tiny_data
         n, k = 4, 2
         sigma_val = 1.0
@@ -171,8 +201,15 @@ class TestBuildDualQP:
         C_eq = -0.5
 
         _, d_vec, _, _, _, _ = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=sigma_val,
-            n=n, k=k, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=sigma_val,
+            n=n,
+            k=k,
+            C_eq=C_eq,
         )
 
         # d(μ)[0]: α, P sample x₀=[0,0], ỹ₀=+1
@@ -195,8 +232,15 @@ class TestBuildDualQP:
         C_eq = -0.5
 
         _, _, Aeq, _, _, _ = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=1.0,
-            n=n, k=k, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=1.0,
+            n=n,
+            k=k,
+            C_eq=C_eq,
         )
 
         # First n entries = ỹ: [+1, +1, -1, -1]
@@ -213,8 +257,15 @@ class TestBuildDualQP:
         C_eq = -0.5
 
         _, _, _, _, lb, ub = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=1.0,
-            n=n, k=k, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=1.0,
+            n=n,
+            k=k,
+            C_eq=C_eq,
         )
 
         np.testing.assert_array_equal(lb, np.zeros(6))
@@ -229,8 +280,15 @@ class TestBuildDualQP:
         C_eq = -0.5
 
         _, _, _, beq, _, _ = _build_dual_qp(
-            mu, X, K, y_tilde, lambda_=1.0, sigma=1.0,
-            n=4, k=2, C_eq=C_eq,
+            mu,
+            X,
+            K,
+            y_tilde,
+            lambda_=1.0,
+            sigma=1.0,
+            n=4,
+            k=2,
+            C_eq=C_eq,
         )
         assert abs(beq - C_eq) < 1e-14
 
@@ -246,7 +304,6 @@ class TestFeasibleInit:
 
     def test_feasible_when_ceq_nonzero(self):
         """When C_eq ≠ 0, z=0 is infeasible; Phase-I LP must find a point."""
-        n = 4
         N = 6
         y_tilde = np.array([1.0, 1.0, -1.0, -1.0])
         Aeq = np.zeros((1, N))
@@ -293,8 +350,7 @@ class TestRBFCentroidDelta:
         alpha = np.zeros(10)
         gamma = np.zeros(5)
 
-        delta = _rbf_centroid_delta(alpha, gamma, X, y_tilde,
-                                     lambda_=1.0, sigma=1.0, k=5)
+        delta = _rbf_centroid_delta(alpha, gamma, X, y_tilde, lambda_=1.0, sigma=1.0, k=5)
         np.testing.assert_allclose(delta, np.zeros(3), atol=1e-14)
 
     def test_delta_shape_and_finite(self):
@@ -304,8 +360,7 @@ class TestRBFCentroidDelta:
         alpha = rng.uniform(0, 0.1, 10)
         gamma = rng.uniform(0, 0.05, 5)
 
-        delta = _rbf_centroid_delta(alpha, gamma, X, y_tilde,
-                                     lambda_=1.0, sigma=2.0, k=5)
+        delta = _rbf_centroid_delta(alpha, gamma, X, y_tilde, lambda_=1.0, sigma=2.0, k=5)
         assert delta.shape == (3,)
         assert np.isfinite(delta).all()
 
@@ -322,8 +377,7 @@ class TestRBFCentroidDelta:
         lambda_ = 1.0
         sigma = 1.0
 
-        delta = _rbf_centroid_delta(alpha, gamma, X, y_tilde,
-                                     lambda_, sigma, k)
+        delta = _rbf_centroid_delta(alpha, gamma, X, y_tilde, lambda_, sigma, k)
 
         # scale = 1/(2*1*1²) = 0.5
         # α contribution (all samples, neg):
@@ -336,12 +390,10 @@ class TestRBFCentroidDelta:
         #   scale * sum = 0.5 * (-0.00541) = -0.00271
         # Total delta = -0.02356 + (-0.00271) = -0.02627
 
-        w0 = np.exp(-1.0 ** 2 / 2.0)  # exp(-0.5)
-        w1 = np.exp(-2.0 ** 2 / 2.0)  # exp(-2)
+        w0 = np.exp(-(1.0**2) / 2.0)  # exp(-0.5)
+        w1 = np.exp(-(2.0**2) / 2.0)  # exp(-2)
         alpha_sum = alpha[0] * y_tilde[0] * w0 * X[0] + alpha[1] * y_tilde[1] * w1 * X[1]
         gamma_sum = gamma[0] * y_tilde[1] * w1 * X[1]
         expected = -0.5 * alpha_sum + 0.5 * gamma_sum
 
         np.testing.assert_allclose(delta, expected, rtol=1e-12)
-
-

@@ -35,7 +35,7 @@ def positive_hinge_loss(
 
     scores = X_p @ w  # (n_p,)
     residuals = np.maximum(1.0 - scores, 0.0)  # (n_p,)
-    loss = alpha * float(np.sum(residuals ** 2))
+    loss = alpha * float(np.sum(residuals**2))
 
     # Gradient: d/dw [max(1-f,0)]^2 = 2*min(f-1, 0) * x  (when f < 1)
     coeffs = 2.0 * alpha * np.minimum(scores - 1.0, 0.0)  # (n_p,)
@@ -58,7 +58,7 @@ def unlabeled_hat_loss(
         return 0.0, np.zeros_like(w)
 
     scores = X_u @ w  # (n_u,)
-    exp_terms = np.exp(-5.0 * scores ** 2)  # (n_u,)
+    exp_terms = np.exp(-5.0 * scores**2)  # (n_u,)
     loss = beta * float(np.sum(exp_terms))
 
     coeffs = beta * (-10.0 * scores * exp_terms)  # (n_u,)
@@ -88,14 +88,11 @@ def calibration_loss(
     phi = A / np.pi * np.arctan(scores)  # (n_u,)
     violations = np.maximum(phi - t, 0.0)  # (n_u,)
 
-    loss = gamma / n_unlabeled * float(np.sum(violations ** 2))
+    loss = gamma / n_unlabeled * float(np.sum(violations**2))
 
     # d/dw phi = A / (pi * (1 + f^2)) * x
     # d/dw [max(phi-t,0)]^2 = 2 * max(phi-t,0) * A / (pi*(1+f^2)) * x
-    coeffs = (
-        2.0 * A * gamma / (np.pi * n_unlabeled)
-        * violations / (1.0 + scores ** 2)
-    )  # (n_u,)
+    coeffs = 2.0 * A * gamma / (np.pi * n_unlabeled) * violations / (1.0 + scores**2)  # (n_u,)
     grad = X_u.T @ coeffs  # (d,)
 
     return loss, grad

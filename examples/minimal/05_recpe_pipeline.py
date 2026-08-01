@@ -3,8 +3,8 @@
 import numpy as np
 from sklearn.metrics import accuracy_score
 
-from pu_toolbox.prior import ReCPEEstimator
 from pu_toolbox.estimators.risk import UPUClassifier
+from pu_toolbox.prior import ReCPEEstimator
 
 # -- Generate SCAR PU data --
 rng = np.random.RandomState(42)

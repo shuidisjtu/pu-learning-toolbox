@@ -89,18 +89,18 @@ class TestPUStratifiedShuffleSplit:
     @pytest.mark.unit
     def test_every_split_has_positives(self, pu_data):
         X, y = pu_data
-        for train_idx, test_idx in PUStratifiedShuffleSplit(
-            n_splits=5, random_state=42
-        ).split(X, y):
+        for train_idx, test_idx in PUStratifiedShuffleSplit(n_splits=5, random_state=42).split(
+            X, y
+        ):
             assert np.sum(y[train_idx] == 1) >= MIN_POSITIVE_SAMPLES
             assert np.sum(y[test_idx] == 1) >= 1
 
     @pytest.mark.unit
     def test_no_overlap(self, pu_data):
         X, y = pu_data
-        for train_idx, test_idx in PUStratifiedShuffleSplit(
-            n_splits=3, random_state=42
-        ).split(X, y):
+        for train_idx, test_idx in PUStratifiedShuffleSplit(n_splits=3, random_state=42).split(
+            X, y
+        ):
             assert len(set(train_idx) & set(test_idx)) == 0
 
     @pytest.mark.unit

@@ -69,14 +69,12 @@ def _validate_X_common(
     n_samples_x = X.shape[0]
     if n_samples_x != n_samples_y:
         raise ValidationError(
-            f"[{estimator_name}] X has {n_samples_x} samples "
-            f"but {label_name} has {n_samples_y}."
+            f"[{estimator_name}] X has {n_samples_x} samples but {label_name} has {n_samples_y}."
         )
 
     if not accept_sparse and sparse.issparse(X):
         raise ValidationError(
-            f"[{estimator_name}] Sparse input is not supported "
-            "for this estimator."
+            f"[{estimator_name}] Sparse input is not supported for this estimator."
         )
 
 
@@ -116,10 +114,7 @@ def check_scalar_in_range(
     valid = low <= value <= high if inclusive else low < value < high
     if not valid:
         brack = ("[", "]") if inclusive else ("(", ")")
-        raise ValueError(
-            f"{name} must be in {brack[0]}{low}, {high}{brack[1]}; "
-            f"got {value}."
-        )
+        raise ValueError(f"{name} must be in {brack[0]}{low}, {high}{brack[1]}; got {value}.")
 
 
 def check_positive(value: float, name: str, *, allow_zero: bool = False) -> None:
@@ -198,13 +193,16 @@ def validate_pu_X_y(
 
     if n_positive < MIN_POSITIVE_SAMPLES:
         raise ValidationError(
-            f"[{est}] Need at least {MIN_POSITIVE_SAMPLES} labeled "
-            f"positives; got {n_positive}."
+            f"[{est}] Need at least {MIN_POSITIVE_SAMPLES} labeled positives; got {n_positive}."
         )
 
     _validate_X_common(
-        X, y_pu.shape[0], accept_sparse=accept_sparse, allow_nd=allow_nd,
-        estimator_name=est, label_name="y_pu",
+        X,
+        y_pu.shape[0],
+        accept_sparse=accept_sparse,
+        allow_nd=allow_nd,
+        estimator_name=est,
+        label_name="y_pu",
     )
 
     # ── Ratio warning ──────────────────────────────────────────────
@@ -278,21 +276,19 @@ def validate_pnu_X_y(
     # Each group must be non-empty (enforced by normalize_pnu_labels'
     # require_all=True, but we double-check for extra safety).
     if n_P == 0:
-        raise ValidationError(
-            f"[{est}] Need at least 1 positive sample (label = +1)."
-        )
+        raise ValidationError(f"[{est}] Need at least 1 positive sample (label = +1).")
     if n_N == 0:
-        raise ValidationError(
-            f"[{est}] Need at least 1 negative sample (label = -1)."
-        )
+        raise ValidationError(f"[{est}] Need at least 1 negative sample (label = -1).")
     if n_U == 0:
-        raise ValidationError(
-            f"[{est}] Need at least 1 unlabeled sample (label = 0)."
-        )
+        raise ValidationError(f"[{est}] Need at least 1 unlabeled sample (label = 0).")
 
     _validate_X_common(
-        X, y_pnu.shape[0], accept_sparse=accept_sparse, allow_nd=allow_nd,
-        estimator_name=est, label_name="y_pnu",
+        X,
+        y_pnu.shape[0],
+        accept_sparse=accept_sparse,
+        allow_nd=allow_nd,
+        estimator_name=est,
+        label_name="y_pnu",
     )
 
     # ── Imbalance warning ───────────────────────────────────────

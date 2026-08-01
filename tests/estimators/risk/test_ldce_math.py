@@ -18,7 +18,6 @@ from pu_toolbox.estimators.risk.ldce import (
 )
 from pu_toolbox.utils.centroid import _centroid_covariance, _mom_centroid
 
-
 # ═════════════════════════════════════════════════════════════════════
 # MATH tests — Algorithm 1: MoM centroid
 # ═════════════════════════════════════════════════════════════════════
@@ -155,20 +154,14 @@ class TestObjectiveAndGradient:
         m = rng2.randn(3)
         eps = 1e-6
 
-        g_analytic = _ldce_subgradient(
-            w, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1
-        )
+        g_analytic = _ldce_subgradient(w, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1)
 
         g_numeric = np.zeros(3)
         for i in range(3):
             e = np.zeros(3)
             e[i] = eps
-            obj_plus = _ldce_objective(
-                w + e, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1
-            )
-            obj_minus = _ldce_objective(
-                w - e, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1
-            )
+            obj_plus = _ldce_objective(w + e, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1)
+            obj_minus = _ldce_objective(w - e, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1)
             g_numeric[i] = (obj_plus - obj_minus) / (2.0 * eps)
 
         np.testing.assert_allclose(g_analytic, g_numeric, rtol=0.05, atol=0.05)
@@ -179,8 +172,6 @@ class TestObjectiveAndGradient:
         X_U = rng2.randn(6, 5)
         w = rng2.randn(5)
         m = rng2.randn(5)
-        g = _ldce_subgradient(
-            w, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1
-        )
+        g = _ldce_subgradient(w, X_P, X_U, m, n=9, k=3, h=0.3, p=0.5, reg=0.1)
         assert g.shape == (5,)
         assert np.isfinite(g).all()

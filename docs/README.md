@@ -48,6 +48,7 @@ pip install pu-toolbox[all]
 | `project_structure.md` | 完整目录结构（权威来源） |
 | `method_selection.md` | 算法分类、选型逻辑、推荐器设计 |
 | `development_roadmap.md` | Phase 0–6 任务拆分、版本规划、实施优先级 |
+| `development_compatibility.md` | Python/依赖支持矩阵、CI 职责和构建策略 |
 | `resources_optimized.md` | 论文源码状态、URL、集成策略 |
 | `user/sar_simulation.md` | SCAR/SAR propensity、PU 标签和合成 benchmark 使用指南 |
 | `user/data_profiling.md` | PU 数据质量画像、SCAR/SAR 证据边界与行动建议 |
@@ -55,3 +56,6 @@ pip install pu-toolbox[all]
 | `project_management/decision_log.md` | 项目决策日志 |
 | `project_management/process_checklist.md` | 开发流程检查清单 |
 | `project_management/division.txt` | 任务分工说明 |
+
+代码贡献、分支、测试、论文复现状态和 benchmark 产物管理见项目根目录
+[`CONTRIBUTING.md`](../CONTRIBUTING.md)。

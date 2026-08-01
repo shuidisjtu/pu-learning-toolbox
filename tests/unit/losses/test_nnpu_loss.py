@@ -82,8 +82,8 @@ class TestGoldenRiskValues:
         # R_p^- = σ(+8) ≈ 0.999665
         # R_u^- = σ(−8) ≈ 0.000335   (U score = −8, σ(+g) = σ(−8))
         # r = 0.000335 − 0.3·0.999665 ≈ −0.29956
-        sig8 = float(1.0 / (1.0 + np.exp(-8.0)))   # σ(8) ≈ 0.999665
-        sigm8 = float(1.0 / (1.0 + np.exp(8.0)))    # σ(−8) ≈ 0.000335
+        sig8 = float(1.0 / (1.0 + np.exp(-8.0)))  # σ(8) ≈ 0.999665
+        sigm8 = float(1.0 / (1.0 + np.exp(8.0)))  # σ(−8) ≈ 0.000335
         r_hand = sigm8 - pi * sig8
         upu_hand = pi * sigm8 + r_hand
         nnpu_hand = pi * sigm8 + max(0.0, r_hand)
@@ -169,9 +169,7 @@ class TestRiskInvariants:
             pi = rng.uniform(0.05, 0.95)
             r_nn = loss(p, u, class_prior=pi, non_negative=True)
             r_upu = loss(p, u, class_prior=pi, non_negative=False)
-            assert r_nn >= r_upu - 1e-12, (
-                f"nnPU ({r_nn}) < uPU ({r_upu})"
-            )
+            assert r_nn >= r_upu - 1e-12, f"nnPU ({r_nn}) < uPU ({r_upu})"
 
     @pytest.mark.property
     def test_risk_monotonic_in_class_prior(self):

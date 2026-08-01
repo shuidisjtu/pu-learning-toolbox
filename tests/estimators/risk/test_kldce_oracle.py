@@ -15,7 +15,6 @@ from pu_toolbox.estimators.risk.kldce import (
     _recover_bias_from_kkt,
 )
 
-
 # ═════════════════════════════════════════════════════════════════════
 # Bias recovery from KKT conditions (§6.6)
 # ═════════════════════════════════════════════════════════════════════
@@ -28,7 +27,7 @@ class TestBiasRecovery:
     def test_basic_free_alpha_gives_correct_bias(self):
         """When α is free, b = 1 - g."""
         rng = np.random.RandomState(42)
-        n, n_U, d = 6, 3, 2
+        n, d = 6, 2
         X = rng.randn(n, d)
         y_tilde = np.array([1.0, 1.0, 1.0, -1.0, -1.0, -1.0])
         K = _rbf_kernel(X, X, sigma=1.0)
@@ -42,9 +41,18 @@ class TestBiasRecovery:
         C_eq = -0.3
 
         b0, info = _recover_bias_from_kkt(
-            alpha, gamma, X, K, y_tilde, mu,
-            lambda_=1.0, sigma=1.0, C_eq=C_eq,
-            C_alpha=C_alpha, C_gamma=C_gamma, k=k,
+            alpha,
+            gamma,
+            X,
+            K,
+            y_tilde,
+            mu,
+            lambda_=1.0,
+            sigma=1.0,
+            C_eq=C_eq,
+            C_alpha=C_alpha,
+            C_gamma=C_gamma,
+            k=k,
         )
 
         assert "n_free" in info
@@ -55,7 +63,7 @@ class TestBiasRecovery:
     def test_validation_all_at_bounds_fallback(self):
         """When all α,γ are at bounds, fall back to bounded interval."""
         rng = np.random.RandomState(42)
-        n, n_U, d = 6, 3, 2
+        n, d = 6, 2
         X = rng.randn(n, d)
         y_tilde = np.array([1.0, 1.0, 1.0, -1.0, -1.0, -1.0])
         K = _rbf_kernel(X, X, sigma=1.0)
@@ -69,9 +77,18 @@ class TestBiasRecovery:
         C_eq = -0.3
 
         b0, info = _recover_bias_from_kkt(
-            alpha, gamma, X, K, y_tilde, mu,
-            lambda_=1.0, sigma=1.0, C_eq=C_eq,
-            C_alpha=C_alpha, C_gamma=C_gamma, k=k,
+            alpha,
+            gamma,
+            X,
+            K,
+            y_tilde,
+            mu,
+            lambda_=1.0,
+            sigma=1.0,
+            C_eq=C_eq,
+            C_alpha=C_alpha,
+            C_gamma=C_gamma,
+            k=k,
         )
 
         assert info["bias_recovery"] in ("bounded_interval", "indeterminate")
@@ -94,9 +111,18 @@ class TestBiasRecovery:
         gamma = np.array([C_gamma * 0.5, C_gamma, 0.0, C_gamma])
 
         b0, info = _recover_bias_from_kkt(
-            alpha, gamma, X, K, y_tilde, mu,
-            lambda_=1.0, sigma=1.0, C_eq=C_eq,
-            C_alpha=C_alpha, C_gamma=C_gamma, k=k,
+            alpha,
+            gamma,
+            X,
+            K,
+            y_tilde,
+            mu,
+            lambda_=1.0,
+            sigma=1.0,
+            C_eq=C_eq,
+            C_alpha=C_alpha,
+            C_gamma=C_gamma,
+            k=k,
         )
 
         assert info["n_free"] >= 2

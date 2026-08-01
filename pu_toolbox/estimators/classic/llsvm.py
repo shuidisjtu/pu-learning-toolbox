@@ -135,7 +135,10 @@ class LLSVMClassifier(BasePUClassifier):
         sample_weight: np.ndarray | None = None,
     ) -> LLSVMClassifier:
         X, y_pu = validate_pu_X_y(
-            X, y_pu, accept_sparse=False, estimator_name="LLSVMClassifier",
+            X,
+            y_pu,
+            accept_sparse=False,
+            estimator_name="LLSVMClassifier",
         )
         self._validate_hyperparams()
         self._X_shape_ = X.shape
@@ -150,12 +153,11 @@ class LLSVMClassifier(BasePUClassifier):
         # Class prior
         if class_prior is not None:
             if not (0.0 < class_prior < 1.0):
-                raise ValueError(
-                    f"class_prior must be in (0, 1), got {class_prior}"
-                )
+                raise ValueError(f"class_prior must be in (0, 1), got {class_prior}")
             self.class_prior_ = float(class_prior)
         else:
             from ...prior.pen_l1 import ClassPriorEstimator
+
             estimator = ClassPriorEstimator()
             estimator.fit(X, y_pu)
             self.class_prior_ = estimator.estimate()
@@ -181,10 +183,12 @@ class LLSVMClassifier(BasePUClassifier):
         # Build training set with P/U labels for batching
         n_train = len(X_p_aug) + len(X_u_aug)
         X_train = np.vstack([X_p_aug, X_u_aug])
-        is_positive = np.concatenate([
-            np.ones(len(X_p_aug), dtype=bool),
-            np.zeros(len(X_u_aug), dtype=bool),
-        ])
+        is_positive = np.concatenate(
+            [
+                np.ones(len(X_p_aug), dtype=bool),
+                np.zeros(len(X_u_aug), dtype=bool),
+            ]
+        )
 
         # SGD loop
         self.loss_history_ = []
@@ -211,7 +215,9 @@ class LLSVMClassifier(BasePUClassifier):
                 X_u_batch = X_batch[~labels_batch]
 
                 _, grad = llsvm_objective(
-                    w, X_p_batch, X_u_batch,
+                    w,
+                    X_p_batch,
+                    X_u_batch,
                     alpha=self.alpha,
                     beta=self.beta,
                     gamma=self.gamma,
@@ -223,7 +229,9 @@ class LLSVMClassifier(BasePUClassifier):
 
             # Record full-data loss
             loss, _ = llsvm_objective(
-                w, X_p_aug, X_u_aug,
+                w,
+                X_p_aug,
+                X_u_aug,
                 alpha=self.alpha,
                 beta=self.beta,
                 gamma=self.gamma,
@@ -255,13 +263,15 @@ class LLSVMClassifier(BasePUClassifier):
     def get_pu_metadata(self) -> dict:
         meta = super().get_pu_metadata()
         if self._is_fitted:
-            meta.update({
-                "class_prior": self.class_prior_,
-                "calibration_target": self.calibration_target_,
-                "n_positive": self.n_positive_,
-                "n_unlabeled": self.n_unlabeled_,
-                "n_epochs": len(self.loss_history_),
-            })
+            meta.update(
+                {
+                    "class_prior": self.class_prior_,
+                    "calibration_target": self.calibration_target_,
+                    "n_positive": self.n_positive_,
+                    "n_unlabeled": self.n_unlabeled_,
+                    "n_epochs": len(self.loss_history_),
+                }
+            )
         return meta
 
     def _validate_hyperparams(self) -> None:
@@ -282,6 +292,4 @@ class LLSVMClassifier(BasePUClassifier):
         if self.n_batches < 1:
             raise ValueError(f"n_batches must be >= 1, got {self.n_batches}")
         if self.intercept_scale <= 0:
-            raise ValueError(
-                f"intercept_scale must be > 0, got {self.intercept_scale}"
-            )
+            raise ValueError(f"intercept_scale must be > 0, got {self.intercept_scale}")

@@ -9,7 +9,7 @@
 - [x] pyproject.toml + 包骨架 + 分层依赖
 - [x] Core 基类
 - [x] labels.py, validation.py, exceptions.py, config.py, tags.py, random.py
-- [x] Registry 系统（15 api_only 占位）
+- [x] Registry 系统（Phase 0 初始建立 15 个 api_only 占位，现已按实现状态升级）
 - [x] 测试框架（测试套件通过）
 
 ## Phase 1 — 核心 PU 风险估计 (v0.1)
@@ -54,12 +54,14 @@
 ## Phase 5 — SAR / Selection-Biased PU (v0.5)
 
 - [x] SAR / selection bias 数据模拟器
-- [x] PUSB、LBE；Centroid Estimation 已完成；LLSVM 已完成
+- [x] PUSB、LBE、Centroid Estimation 和 LLSVM 接口/实现
 - [x] SCAR vs SAR 对比 benchmark（PUSB/LBE，3 mechanisms × 10 seeds）
 
 ## Phase 6 — 深度 PU (v0.6)
 
-- [x] Self-PU Method Card；[ ] Self-PU 接口与实现；~~Dist-PU~~ ✅
+- [x] Self-PU Method Card
+- [ ] Self-PU 接口与实现
+- [x] Dist-PU
 - [x] InfoMax PU、WConPU、DGPU Method Card、核心接口与 registry
 - [ ] InfoMax PU、WConPU、DGPU paper-like benchmark
 
@@ -85,3 +87,4 @@
 | 2026-07-30 | SAR 模拟与对比 | 公共 propensity/labels/dataset API；SCAR、线性 SAR、非线性 SAR 配对 benchmark | `preprocessing/selection_bias.py`；`benchmarks/assigned_methods/` | 22 个 simulator cases；60 个实际 trials；`536 passed`；ruff、文档链接与测试质量检查通过 |
 | 2026-07-31 | Data Profiler | 结构化质量报告、问题级别/行动建议、SCAR/SAR 可识别性提示与审计模式 | `preprocessing/data_profiler.py`；`docs/user/data_profiling.md` | 12 个 profiler cases；`548 passed`；ruff、文档与测试质量门禁通过 |
 | 2026-08-01 | 诊断报告 | 数据/模型/指标组合报告；证据级别；严格 JSON/Markdown 输出 | `diagnostics/report.py`；`docs/user/diagnostic_reports.md` | 13 个 report cases；`561 passed`；ruff、文档与测试质量门禁通过 |
+| 2026-08-01 | 兼容性与项目治理 | 真实 Python matrix、全目录质量门禁、Hatchling 边界、wheel 安装冒烟、贡献/PR 规范与状态对齐 | `pyproject.toml`；`.github/`；`CONTRIBUTING.md`；`docs/development_compatibility.md` | `562 passed`；104 个 Python 文件 lint/format 通过；wheel/sdist 构建及隔离安装通过 |

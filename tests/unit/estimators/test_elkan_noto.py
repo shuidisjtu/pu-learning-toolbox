@@ -219,7 +219,8 @@ class TestCompatibility:
         # RandomForest base estimator
         clf_rf = ElkanNotoClassifier(
             base_estimator=RandomForestClassifier(n_estimators=10, random_state=42),
-            n_cv_folds=3, random_state=42,
+            n_cv_folds=3,
+            random_state=42,
         )
         clf_rf.fit(X, y_pu)
         assert clf_rf.predict(X).shape == (X.shape[0],)

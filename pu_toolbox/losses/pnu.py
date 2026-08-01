@@ -52,10 +52,7 @@ def _compute_pn_risk(
     R_PN(g) = theta_P * mean_P[-g] + theta_N * mean_N[g]
     """
     theta_N = 1.0 - class_prior
-    return float(
-        class_prior * np.mean(-positive_scores)
-        + theta_N * np.mean(negative_scores)
-    )
+    return float(class_prior * np.mean(-positive_scores) + theta_N * np.mean(negative_scores))
 
 
 def _compute_pu_risk_squared(
@@ -67,10 +64,7 @@ def _compute_pu_risk_squared(
 
     R_C-PU(g) = theta_P * mean_P[-g] + mean_U[g]
     """
-    return float(
-        class_prior * np.mean(-positive_scores)
-        + np.mean(unlabeled_scores)
-    )
+    return float(class_prior * np.mean(-positive_scores) + np.mean(unlabeled_scores))
 
 
 def _compute_nu_risk_squared(
@@ -83,10 +77,7 @@ def _compute_nu_risk_squared(
     R_C-NU(g) = theta_N * mean_N[g] + mean_U[-g]
     """
     theta_N = 1.0 - class_prior
-    return float(
-        theta_N * np.mean(negative_scores)
-        + np.mean(-unlabeled_scores)
-    )
+    return float(theta_N * np.mean(negative_scores) + np.mean(-unlabeled_scores))
 
 
 def _compute_pnu_risk(
@@ -105,13 +96,9 @@ def _compute_pnu_risk(
     gamma, branch = _eta_to_gamma(eta)
 
     if branch == "pu":
-        r_component = _compute_pu_risk_squared(
-            positive_scores, unlabeled_scores, class_prior
-        )
+        r_component = _compute_pu_risk_squared(positive_scores, unlabeled_scores, class_prior)
     else:
-        r_component = _compute_nu_risk_squared(
-            negative_scores, unlabeled_scores, class_prior
-        )
+        r_component = _compute_nu_risk_squared(negative_scores, unlabeled_scores, class_prior)
     return float((1.0 - gamma) * r_pn + gamma * r_component)
 
 
@@ -143,9 +130,7 @@ class PNULoss:
 
     def __init__(self, loss: str = "squared") -> None:
         if loss != "squared":
-            raise ValueError(
-                f"loss must be 'squared' in v1; got {loss!r}."
-            )
+            raise ValueError(f"loss must be 'squared' in v1; got {loss!r}.")
         self.loss = loss
 
     def __call__(
@@ -178,8 +163,11 @@ class PNULoss:
             Scalar PNU risk value.
         """
         info = self.evaluate(
-            positive_scores, negative_scores, unlabeled_scores,
-            class_prior=class_prior, eta=eta,
+            positive_scores,
+            negative_scores,
+            unlabeled_scores,
+            class_prior=class_prior,
+            eta=eta,
         )
         return info["pnu_risk"]
 
@@ -208,13 +196,9 @@ class PNULoss:
             pn_risk, pu_risk, nu_risk, pnu_risk
         """
         if not (0.0 < class_prior < 1.0):
-            raise ValueError(
-                f"class_prior must be in (0, 1); got {class_prior}."
-            )
+            raise ValueError(f"class_prior must be in (0, 1); got {class_prior}.")
         if not (-1.0 <= eta <= 1.0):
-            raise ValueError(
-                f"eta must be in [-1, 1]; got {eta}."
-            )
+            raise ValueError(f"eta must be in [-1, 1]; got {eta}.")
         if len(positive_scores) == 0:
             raise ValueError("positive_scores must not be empty.")
         if len(negative_scores) == 0:
@@ -222,18 +206,15 @@ class PNULoss:
         if len(unlabeled_scores) == 0:
             raise ValueError("unlabeled_scores must not be empty.")
 
-        pn_risk = _compute_pn_risk(
-            positive_scores, negative_scores, class_prior
-        )
-        pu_risk = _compute_pu_risk_squared(
-            positive_scores, unlabeled_scores, class_prior
-        )
-        nu_risk = _compute_nu_risk_squared(
-            negative_scores, unlabeled_scores, class_prior
-        )
+        pn_risk = _compute_pn_risk(positive_scores, negative_scores, class_prior)
+        pu_risk = _compute_pu_risk_squared(positive_scores, unlabeled_scores, class_prior)
+        nu_risk = _compute_nu_risk_squared(negative_scores, unlabeled_scores, class_prior)
         pnu_risk = _compute_pnu_risk(
-            positive_scores, negative_scores, unlabeled_scores,
-            class_prior=class_prior, eta=eta,
+            positive_scores,
+            negative_scores,
+            unlabeled_scores,
+            class_prior=class_prior,
+            eta=eta,
         )
 
         return {

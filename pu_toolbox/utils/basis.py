@@ -136,17 +136,10 @@ def resolve_basis_fn(
 
     if basis == "rbf":
         if kernel_width is None or kernel_width <= 0:
-            raise ValueError(
-                f"kernel_width must be > 0 for basis='rbf'; "
-                f"got {kernel_width}."
-            )
+            raise ValueError(f"kernel_width must be > 0 for basis='rbf'; got {kernel_width}.")
         if n_centers is not None and n_centers <= 0:
-            raise ValueError(
-                f"n_centers must be > 0; got {n_centers}."
-            )
-        n_centers_val = (
-            n_centers if n_centers is not None else min(200, n_samples)
-        )
+            raise ValueError(f"n_centers must be > 0; got {n_centers}.")
+        n_centers_val = n_centers if n_centers is not None else min(200, n_samples)
         centers = subsample_centers(X_pool, n_centers_val, rng)
         n_basis = centers.shape[0]
 

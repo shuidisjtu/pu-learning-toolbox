@@ -16,8 +16,8 @@ class_prior = 0.5
 
 # Label 40% of positives as +1, 40% of negatives as -1, rest unlabeled (0)
 y_pnu = np.zeros(2 * n, dtype=int)
-y_pnu[:n][rng.rand(n) < 0.4] = 1    # labeled positive
-y_pnu[n:][rng.rand(n) < 0.4] = -1   # labeled negative
+y_pnu[:n][rng.rand(n) < 0.4] = 1  # labeled positive
+y_pnu[n:][rng.rand(n) < 0.4] = -1  # labeled negative
 
 # -- Train and evaluate --
 clf = PNUClassifier(class_prior=class_prior, eta=0.0, random_state=42)

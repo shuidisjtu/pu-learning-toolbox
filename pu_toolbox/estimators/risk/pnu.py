@@ -161,26 +161,18 @@ class PNUClassifier(BasePUClassifier):
         self : PNUClassifier
         """
         # ── Validate ────────────────────────────────────────────────
-        X, y = validate_pnu_X_y(
-            X, y, estimator_name="PNUClassifier", accept_sparse=False
-        )
+        X, y = validate_pnu_X_y(X, y, estimator_name="PNUClassifier", accept_sparse=False)
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
 
         # ── Resolve parameters ──────────────────────────────────────
         pi = class_prior if class_prior is not None else self.class_prior
         if not (0.0 < pi < 1.0):
-            raise ValueError(
-                f"class_prior must be in (0, 1); got {pi}."
-            )
+            raise ValueError(f"class_prior must be in (0, 1); got {pi}.")
         if not (-1.0 <= self.eta <= 1.0):
-            raise ValueError(
-                f"eta must be in [-1, 1]; got {self.eta}."
-            )
+            raise ValueError(f"eta must be in [-1, 1]; got {self.eta}.")
         if self.reg_lambda <= 0:
-            raise ValueError(
-                f"reg_lambda must be > 0; got {self.reg_lambda}."
-            )
+            raise ValueError(f"reg_lambda must be > 0; got {self.reg_lambda}.")
 
         # ── Split P / N / U ─────────────────────────────────────────
         mask_P = y == 1
@@ -323,9 +315,7 @@ class PNUClassifier(BasePUClassifier):
                 "n_positive": getattr(self, "n_positive_", None),
                 "n_negative": getattr(self, "n_negative_", None),
                 "n_unlabeled": getattr(self, "n_unlabeled_", None),
-                "risk_components": getattr(
-                    self, "risk_components_", None
-                ),
+                "risk_components": getattr(self, "risk_components_", None),
             }
         )
         return meta

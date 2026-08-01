@@ -37,9 +37,20 @@ class DistPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
 
-    def __init__(self, class_prior: float, *, hidden_dim: int = 64, epochs: int = 100, batch_size: int = 128,
-                 learning_rate: float = 1e-3, alignment_weight: float = 1.0, entropy_weight: float = 0.05,
-                 mixup_weight: float = 0.1, random_state: int | None = 0, device: str = "cpu") -> None:
+    def __init__(
+        self,
+        class_prior: float,
+        *,
+        hidden_dim: int = 64,
+        epochs: int = 100,
+        batch_size: int = 128,
+        learning_rate: float = 1e-3,
+        alignment_weight: float = 1.0,
+        entropy_weight: float = 0.05,
+        mixup_weight: float = 0.1,
+        random_state: int | None = 0,
+        device: str = "cpu",
+    ) -> None:
         super().__init__()
         self.class_prior = class_prior
         self.hidden_dim = hidden_dim
@@ -66,7 +77,9 @@ class DistPUClassifier(BasePUClassifier):
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
         device = torch.device(self.device)
-        self.model_ = nn.Sequential(nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)).to(device)
+        self.model_ = nn.Sequential(
+            nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
+        ).to(device)
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         tx = torch.as_tensor(X, device=device)
         ty = torch.as_tensor(y_pu, device=device)
@@ -79,7 +92,10 @@ class DistPUClassifier(BasePUClassifier):
             probs = torch.sigmoid(logits)
             positive_loss = bce(logits[p_mask], torch.ones_like(logits[p_mask]))
             alignment = (probs[u_mask].mean() - pi).pow(2)
-            entropy = -(probs[u_mask] * torch.log(probs[u_mask] + 1e-6) + (1 - probs[u_mask]) * torch.log(1 - probs[u_mask] + 1e-6)).mean()
+            entropy = -(
+                probs[u_mask] * torch.log(probs[u_mask] + 1e-6)
+                + (1 - probs[u_mask]) * torch.log(1 - probs[u_mask] + 1e-6)
+            ).mean()
             loss = positive_loss + self.alignment_weight * alignment + self.entropy_weight * entropy
             if self.mixup_weight > 0 and len(X) > 1:
                 perm = torch.randperm(len(X), device=device)
@@ -97,8 +113,14 @@ class DistPUClassifier(BasePUClassifier):
 
     def _decision_function(self, X):
         import torch
+
         with torch.no_grad():
-            return self.model_(torch.as_tensor(np.asarray(X, dtype=np.float32), device=self.device_)).squeeze(1).cpu().numpy()
+            return (
+                self.model_(torch.as_tensor(np.asarray(X, dtype=np.float32), device=self.device_))
+                .squeeze(1)
+                .cpu()
+                .numpy()
+            )
 
     def _predict(self, X):
         return (self._decision_function(X) >= 0).astype(int)

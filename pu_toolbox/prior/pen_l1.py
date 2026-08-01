@@ -37,7 +37,9 @@ class ClassPriorEstimator(BasePriorEstimator):
         self.standardize = standardize
 
     def fit(self, X: np.ndarray, y_pu: np.ndarray) -> ClassPriorEstimator:
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="ClassPriorEstimator")
+        X, y_pu = validate_pu_X_y(
+            X, y_pu, accept_sparse=False, estimator_name="ClassPriorEstimator"
+        )
         if self.sigma <= 0 or self.reg_lambda <= 0:
             raise ValueError("sigma and reg_lambda must be positive")
         X = np.asarray(X, dtype=float)
@@ -52,13 +54,21 @@ class ClassPriorEstimator(BasePriorEstimator):
             X, P, U = (X - mean) / scale, (P - mean) / scale, (U - mean) / scale
             self.mean_, self.scale_ = mean, scale
         centers = X if self.n_centers is None else X[: min(self.n_centers, len(X))]
-        phi_p = np.exp(-pairwise_distances(P, centers, metric="sqeuclidean") / (2.0 * self.sigma**2))
-        phi_u = np.exp(-pairwise_distances(U, centers, metric="sqeuclidean") / (2.0 * self.sigma**2))
+        phi_p = np.exp(
+            -pairwise_distances(P, centers, metric="sqeuclidean") / (2.0 * self.sigma**2)
+        )
+        phi_u = np.exp(
+            -pairwise_distances(U, centers, metric="sqeuclidean") / (2.0 * self.sigma**2)
+        )
         theta_grid = np.asarray(
             np.linspace(0.01, 0.99, 99) if self.theta_grid is None else self.theta_grid,
             dtype=float,
         )
-        if theta_grid.ndim != 1 or len(theta_grid) == 0 or np.any((theta_grid < 0) | (theta_grid > 1)):
+        if (
+            theta_grid.ndim != 1
+            or len(theta_grid) == 0
+            or np.any((theta_grid < 0) | (theta_grid > 1))
+        ):
             raise ValueError("theta_grid must be a non-empty one-dimensional grid in [0, 1]")
         beta_u = phi_u.mean(axis=0)
         objectives = []

@@ -105,9 +105,20 @@ class TestBuiltinRegistration:
         assert len(trainable) == 14
         names = {m.name for m in trainable}
         assert names == {
-            "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
-            "class_prior_estimation", "dist_pu", "pusb", "lbe", "llsvm",
-            "infomax_pu", "weighted_contrastive_pu", "dgpu",
+            "elkan_noto",
+            "upu",
+            "nnpu",
+            "pnu",
+            "recpe",
+            "centroid_pu",
+            "class_prior_estimation",
+            "dist_pu",
+            "pusb",
+            "lbe",
+            "llsvm",
+            "infomax_pu",
+            "weighted_contrastive_pu",
+            "dgpu",
         }
 
     def test_basic_list_by_family(self):
@@ -164,8 +175,12 @@ class TestBuiltinRegistration:
             cls = get_algorithm(meta.name)
             synced = get_metadata(meta.name)
             for field_name in (
-                "family", "implementation_status", "source_status",
-                "backend", "maturity", "requires_class_prior",
+                "family",
+                "implementation_status",
+                "source_status",
+                "backend",
+                "maturity",
+                "requires_class_prior",
             ):
                 if not _declared_on_class(cls, field_name):
                     continue
@@ -174,10 +189,6 @@ class TestBuiltinRegistration:
                     f"!= class={getattr(cls, field_name)}"
                 )
             if _declared_on_class(cls, "assumption"):
-                assert synced.assumption == list(cls.assumption), (
-                    f"{meta.name}.assumption mismatch"
-                )
+                assert synced.assumption == list(cls.assumption), f"{meta.name}.assumption mismatch"
             if _declared_on_class(cls, "scenario"):
-                assert synced.scenario == list(cls.scenario), (
-                    f"{meta.name}.scenario mismatch"
-                )
+                assert synced.scenario == list(cls.scenario), f"{meta.name}.scenario mismatch"

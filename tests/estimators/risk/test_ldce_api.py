@@ -12,7 +12,6 @@ from sklearn.preprocessing import StandardScaler
 
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 
-
 # ═════════════════════════════════════════════════════════════════════
 # Test helpers
 # ═════════════════════════════════════════════════════════════════════
@@ -51,7 +50,9 @@ class TestConvergence:
         rng2 = np.random.RandomState(16)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=50, n_neg=100, d=3)
         clf = LDCEClassifier(
-            flip_probability=0.3, max_iter=100, tol=1e-4,
+            flip_probability=0.3,
+            max_iter=100,
+            tol=1e-4,
             random_state=42,
         )
         clf.fit(X, y_pu)
@@ -60,8 +61,7 @@ class TestConvergence:
         mid = min(5, len(history) // 3)
         for i in range(mid + 1, len(history)):
             assert history[i] <= history[i - 1] + 1e-10, (
-                f"Objective increased at iter {i}: "
-                f"{history[i-1]} → {history[i]}"
+                f"Objective increased at iter {i}: {history[i - 1]} → {history[i]}"
             )
         # converged_ flag is consistent
 
@@ -81,7 +81,9 @@ class TestEllipsoidConstraint:
         rng2 = np.random.RandomState(18)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=40, n_neg=80, d=5)
         clf = LDCEClassifier(
-            flip_probability=0.3, max_iter=10, centroid_radius=1.0,
+            flip_probability=0.3,
+            max_iter=10,
+            centroid_radius=1.0,
             random_state=42,
         )
         clf.fit(X, y_pu)
@@ -106,10 +108,16 @@ class TestHSensitivity:
     def test_mild_h_error_does_not_crash(self, rng, h_hat):
         rng2 = np.random.RandomState(19)
         X, y_pu, _ = _make_censoring_pu_data(
-            rng2, n_pos=40, n_neg=80, h=0.3, d=4,
+            rng2,
+            n_pos=40,
+            n_neg=80,
+            h=0.3,
+            d=4,
         )
         clf = LDCEClassifier(
-            flip_probability=h_hat, max_iter=15, random_state=42,
+            flip_probability=h_hat,
+            max_iter=15,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         assert np.isfinite(clf.coef_).all()
@@ -129,7 +137,9 @@ class TestConvergenceDiagnostics:
         rng2 = np.random.RandomState(23)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
         clf = LDCEClassifier(
-            flip_probability=0.3, max_iter=20, random_state=42,
+            flip_probability=0.3,
+            max_iter=20,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         assert clf.n_iter_ == len(clf.objective_history_)
@@ -176,12 +186,19 @@ class TestLDCEAPI:
     def test_pipeline_compatible(self, rng):
         rng2 = np.random.RandomState(26)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
-        pipe = Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf", LDCEClassifier(
-                flip_probability=0.3, max_iter=10, random_state=42,
-            )),
-        ])
+        pipe = Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                (
+                    "clf",
+                    LDCEClassifier(
+                        flip_probability=0.3,
+                        max_iter=10,
+                        random_state=42,
+                    ),
+                ),
+            ]
+        )
         pipe.fit(X, y_pu)
         pred = pipe.predict(X)
         assert set(np.unique(pred)) <= {0, 1}
@@ -192,7 +209,8 @@ class TestLDCEAPI:
         clf = LDCEClassifier(flip_probability=0.3, max_iter=10, random_state=42)
         clf.fit(X, y_pu)
         np.testing.assert_array_equal(
-            clf.score_samples(X), clf.decision_function(X),
+            clf.score_samples(X),
+            clf.decision_function(X),
         )
 
 
@@ -262,10 +280,16 @@ class TestLDCERegression:
         """LDCE runs end-to-end on synthetic data without errors."""
         rng2 = np.random.RandomState(32)
         X, y_pu, _ = _make_censoring_pu_data(
-            rng2, n_pos=80, n_neg=160, h=0.3, d=5,
+            rng2,
+            n_pos=80,
+            n_neg=160,
+            h=0.3,
+            d=5,
         )
         clf = LDCEClassifier(
-            flip_probability=0.3, max_iter=50, random_state=42,
+            flip_probability=0.3,
+            max_iter=50,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         pred = clf.predict(X)
@@ -293,7 +317,9 @@ class TestLDCERegression:
         y_pu[hide] = 0
 
         clf = LDCEClassifier(
-            flip_probability=0.3, max_iter=50, random_state=42,
+            flip_probability=0.3,
+            max_iter=50,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         pred = clf.predict(X)

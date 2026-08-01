@@ -1,4 +1,0 @@
-include LICENSE README.md
-recursive-include pu_toolbox *.py
-recursive-include tests *.py
-recursive-include docs *.md

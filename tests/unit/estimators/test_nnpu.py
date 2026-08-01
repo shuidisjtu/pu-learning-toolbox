@@ -40,8 +40,7 @@ def _make_synthetic_data(
     X_n = rng.randn(n_u, n_features) - 1.0
     X = np.vstack([X_p, X_n])
     y_pu = np.concatenate(
-        [np.full(n_p, POSITIVE_LABEL, dtype=int),
-         np.full(n_u, UNLABELED_LABEL, dtype=int)],
+        [np.full(n_p, POSITIVE_LABEL, dtype=int), np.full(n_u, UNLABELED_LABEL, dtype=int)],
     )
     class_prior = n_p / (n_p + n_u)
     return X, y_pu, class_prior
@@ -92,7 +91,12 @@ class TestRiskFormulas:
         loss = NonNegativePULoss()
         s = np.array([1.0])
 
-        for bad_prior, expected_match in ((0.0, "class_prior"), (1.0, "class_prior"), (-0.5, "class_prior"), (None, "")):
+        for bad_prior, expected_match in (
+            (0.0, "class_prior"),
+            (1.0, "class_prior"),
+            (-0.5, "class_prior"),
+            (None, ""),
+        ):
             with pytest.raises((ValueError, TypeError), match=expected_match or None):
                 loss(s, s, class_prior=bad_prior)
 
@@ -148,7 +152,9 @@ class TestGradientBehavior:
         R_pp_c = torch.sigmoid(-p_c).mean()
         R_pm_c = torch.sigmoid(p_c).mean()
         R_um_c = torch.sigmoid(u_c).mean()
-        opt_c, info_c = _nnpu_train_step(R_pp_c, R_pm_c, R_um_c, class_prior=0.3, beta=0.0, gamma=1.0)
+        opt_c, info_c = _nnpu_train_step(
+            R_pp_c, R_pm_c, R_um_c, class_prior=0.3, beta=0.0, gamma=1.0
+        )
         assert info_c["correction"]
         opt_c.backward()
 
@@ -158,7 +164,9 @@ class TestGradientBehavior:
         R_pp2 = torch.sigmoid(-p_n2).mean()
         R_pm2 = torch.sigmoid(p_n2).mean()
         R_um2 = torch.sigmoid(u_n2).mean()
-        opt_n2, _ = _nnpu_train_step(R_pp2, R_pm2, R_um2, class_prior=0.3, beta=float("inf"), gamma=1.0)
+        opt_n2, _ = _nnpu_train_step(
+            R_pp2, R_pm2, R_um2, class_prior=0.3, beta=float("inf"), gamma=1.0
+        )
         opt_n2.backward()
         assert not torch.allclose(p_c.grad, p_n2.grad, atol=1e-5)
 
@@ -181,7 +189,9 @@ class TestGradientBehavior:
         R_pp_a = torch.sigmoid(-p_a).mean()
         R_pm_a = torch.sigmoid(p_a).mean()
         R_um_a = torch.sigmoid(u_a).mean()
-        opt_alg1, info = _nnpu_train_step(R_pp_a, R_pm_a, R_um_a, class_prior=pi, beta=0.0, gamma=1.0)
+        opt_alg1, info = _nnpu_train_step(
+            R_pp_a, R_pm_a, R_um_a, class_prior=pi, beta=0.0, gamma=1.0
+        )
         assert info["correction"]
         opt_alg1.backward()
         alg1_grad_p = p_a.grad.clone()
@@ -234,8 +244,12 @@ class TestBetaAndValidation:
 
         # beta=0: correction when r < 0
         loss0 = NonNegativePULoss(beta=0.0)
-        r_nn = loss0(np.array([5.0, 4.0]), np.array([-3.0, -2.0]), class_prior=0.3, non_negative=True)
-        r_upu = loss0(np.array([5.0, 4.0]), np.array([-3.0, -2.0]), class_prior=0.3, non_negative=False)
+        r_nn = loss0(
+            np.array([5.0, 4.0]), np.array([-3.0, -2.0]), class_prior=0.3, non_negative=True
+        )
+        r_upu = loss0(
+            np.array([5.0, 4.0]), np.array([-3.0, -2.0]), class_prior=0.3, non_negative=False
+        )
         assert r_nn >= 0 and r_nn > r_upu
 
         # beta huge → correction never triggers
@@ -285,9 +299,7 @@ class TestValidationAndBatches:
 
         # class_prior via __init__ (sklearn-compatible pattern)
         model3 = torch.nn.Linear(5, 1)
-        clf3 = NonNegativePUClassifier(
-            model=model3, class_prior=pi, max_epochs=1, batch_size=10
-        )
+        clf3 = NonNegativePUClassifier(model=model3, class_prior=pi, max_epochs=1, batch_size=10)
         clf3.fit(X, y_pu)
         assert clf3.class_prior_ == pytest.approx(pi)
 
@@ -297,11 +309,15 @@ class TestValidationAndBatches:
         X0 = rng.randn(20, 3)
         model0 = torch.nn.Linear(3, 1)
         with pytest.raises((ValidationError, ValueError)):
-            NonNegativePUClassifier(model=model0, max_epochs=1).fit(X0, np.zeros(20), class_prior=0.5)
+            NonNegativePUClassifier(model=model0, max_epochs=1).fit(
+                X0, np.zeros(20), class_prior=0.5
+            )
 
         # No unlabeled
         with pytest.raises(ValueError):
-            NonNegativePUClassifier(model=model0, max_epochs=1).fit(X0, np.ones(20), class_prior=0.5)
+            NonNegativePUClassifier(model=model0, max_epochs=1).fit(
+                X0, np.ones(20), class_prior=0.5
+            )
 
         # Single positive (2 total)
         Xp, Xu = rng.randn(2, 3), rng.randn(20, 3)
@@ -327,7 +343,9 @@ class TestValidationAndBatches:
         X_nan, y_nan, pi_n = _make_synthetic_data(rng, n_p=20, n_u=40)
         X_nan[0, 0] = np.nan
         with pytest.raises(ValueError, match="NaN"):
-            NonNegativePUClassifier(model=torch.nn.Linear(5, 1), max_epochs=1).fit(X_nan, y_nan, class_prior=pi_n)
+            NonNegativePUClassifier(model=torch.nn.Linear(5, 1), max_epochs=1).fit(
+                X_nan, y_nan, class_prior=pi_n
+            )
 
     def test_edge_sample_weight_and_validation(self, rng):
         """Sample weight normalization works; validation_data triggers early stop."""
@@ -399,7 +417,15 @@ class TestAPIContract:
         clf2.fit(X, y_pu, class_prior=pi)
 
         hist = clf2.get_training_history()
-        required = {"epoch", "positive_risk", "negative_risk", "upu_risk", "nnpu_risk", "optimization_loss", "correction_fraction"}
+        required = {
+            "epoch",
+            "positive_risk",
+            "negative_risk",
+            "upu_risk",
+            "nnpu_risk",
+            "optimization_loss",
+            "correction_fraction",
+        }
         assert required <= set(hist.keys())
         for k in required:
             assert len(hist[k]) == 3
@@ -450,7 +476,9 @@ class TestAPIContract:
         X2, y2, pi2 = _make_synthetic_data(rng, n_p=15, n_u=30)
         X_val, y_val, _ = _make_synthetic_data(rng, n_p=10, n_u=20, seed=99999)
         model2 = torch.nn.Linear(5, 1)
-        clf2 = NonNegativePUClassifier(model=model2, max_epochs=100, patience=2, batch_size=4, random_state=42)
+        clf2 = NonNegativePUClassifier(
+            model=model2, max_epochs=100, patience=2, batch_size=4, random_state=42
+        )
         clf2.fit(X2, y2, class_prior=pi2, validation_data=(X_val, y_val))
         assert len(clf2.history_["epoch"]) < 100
 
@@ -486,8 +514,12 @@ class TestOverfittingBehavior:
             torch.nn.Linear(32, 1),
         )
         clf_nnpu = NonNegativePUClassifier(
-            model=model_nnpu, beta=0.0, gamma=1.0,
-            max_epochs=50, batch_size=32, random_state=42,
+            model=model_nnpu,
+            beta=0.0,
+            gamma=1.0,
+            max_epochs=50,
+            batch_size=32,
+            random_state=42,
         )
         clf_nnpu.fit(X, y_pu, class_prior=pi)
         history_nnpu = clf_nnpu.get_training_history()
@@ -499,8 +531,12 @@ class TestOverfittingBehavior:
             torch.nn.Linear(32, 1),
         )
         clf_upu = NonNegativePUClassifier(
-            model=model_upu, beta=1e9, gamma=1.0,
-            max_epochs=50, batch_size=32, random_state=42,
+            model=model_upu,
+            beta=1e9,
+            gamma=1.0,
+            max_epochs=50,
+            batch_size=32,
+            random_state=42,
         )
         clf_upu.fit(X, y_pu, class_prior=pi)
         history_upu = clf_upu.get_training_history()

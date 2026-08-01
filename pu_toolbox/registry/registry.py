@@ -69,7 +69,8 @@ def register_method(
     RegistryError
         If a method with the same canonical name is already registered,
         or if ``estimator_cls`` is not a subclass of
-        :class:`~pu_toolbox.core.base.BasePUClassifier`.
+        :class:`~pu_toolbox.core.base.BasePUClassifier` or
+        :class:`~pu_toolbox.core.base.BasePriorEstimator`.
     """
     if estimator_cls is not None and not issubclass(
         estimator_cls, BasePUClassifier | BasePriorEstimator

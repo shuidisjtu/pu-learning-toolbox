@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.bias_aware import LBEClassifier, PUSBClassifier
 
 
@@ -77,7 +78,7 @@ def test_edge_single_em_iteration(rng):
 def test_edge_pusb_all_positive_raises(rng):
     X = rng.normal(size=(30, 3))
     y = np.ones(30, dtype=int)
-    with pytest.raises(Exception):
+    with pytest.raises((ValidationError, ValueError)):
         PUSBClassifier().fit(X, y)
 
 

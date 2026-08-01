@@ -49,14 +49,15 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 
 ## Phase 5 — SAR / Selection-Biased PU (v0.5)
 
-- SAR / selection bias 数据模拟器
+- SAR / selection bias 数据模拟器 ✅
 - ~~PUSB~~ ✅、~~LBE~~ ✅、~~LLSVM~~ ✅
-- SCAR vs SAR 对比 benchmark
+- SCAR vs SAR 对比 benchmark ✅
 - [x] Centroid Estimation (LDCE) — 提前完成，已移入 Phase 1
 
 ## Phase 6 — 深度 PU (v0.6)
 
-- Self-PU、~~Dist-PU~~ ✅
+- Self-PU Method Card ✅；接口与实现待完成
+- ~~Dist-PU~~ ✅
 - ~~InfoMax PU、WConPU、DGPU 核心接口~~ ✅（paper-like 视觉 benchmark 待完成）
 
 ## 工作包分解

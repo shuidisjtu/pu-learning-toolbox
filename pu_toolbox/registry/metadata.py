@@ -25,7 +25,7 @@ class AlgorithmMetadata:
     """Canonical metadata for a single PU algorithm registered in the toolbox.
 
     Every field maps directly to the registry schema defined in
-    ``docs/architecture.md`` §8 and ``docs/method_selection.md`` §9.
+    ``docs/architecture.md`` §6 and ``docs/method_selection.md`` §4.
     """
 
     name: str
@@ -90,7 +90,7 @@ class AlgorithmMetadata:
         result: dict = {}
         for f in fields(self):
             value = getattr(self, f.name)
-            if isinstance(value, (list, tuple)):
+            if isinstance(value, list | tuple):
                 result[f.name] = [v.value if isinstance(v, Enum) else v for v in value]
             elif isinstance(value, Enum):
                 result[f.name] = value.value

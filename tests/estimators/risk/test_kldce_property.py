@@ -15,6 +15,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 
 
@@ -49,8 +50,11 @@ class TestEllipsoidConstraint:
     def test_constraint_satisfied_after_fit(self, rng):
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         clf = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, max_acs_iter=10,
-            tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            max_acs_iter=10,
+            tol=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu)
 
@@ -64,8 +68,12 @@ class TestEllipsoidConstraint:
         """With b>0, centroid should move from m_hat."""
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         clf = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, centroid_radius=0.5,
-            max_acs_iter=10, tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            centroid_radius=0.5,
+            max_acs_iter=10,
+            tol=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu)
 
@@ -90,8 +98,11 @@ class TestHMismatchRobustness:
         h_mismatch = max(0.05, min(0.95, 0.3 * h_factor))
 
         clf = KLDCEClassifier(
-            flip_probability=h_mismatch, sigma=2.0, max_acs_iter=8,
-            tol=1e-4, random_state=42,
+            flip_probability=h_mismatch,
+            sigma=2.0,
+            max_acs_iter=8,
+            tol=1e-4,
+            random_state=42,
         )
         try:
             clf.fit(X, y_pu)
@@ -118,14 +129,20 @@ class TestReproducibility:
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=15, n_neg=30, h=0.3, d=3)
 
         clf1 = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, max_acs_iter=10,
-            tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            max_acs_iter=10,
+            tol=1e-4,
+            random_state=42,
         )
         clf1.fit(X, y_pu)
 
         clf2 = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, max_acs_iter=10,
-            tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            max_acs_iter=10,
+            tol=1e-4,
+            random_state=42,
         )
         clf2.fit(X, y_pu)
 
@@ -146,8 +163,11 @@ class TestACSHistory:
     def test_history_recorded(self, rng):
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         clf = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, max_acs_iter=10,
-            tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            max_acs_iter=10,
+            tol=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu)
 
@@ -164,8 +184,11 @@ class TestACSHistory:
     def test_eq_residual_small(self, rng):
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         clf = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, max_acs_iter=10,
-            tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            max_acs_iter=10,
+            tol=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu)
 
@@ -190,7 +213,7 @@ class TestInputValidation:
         X = rng.randn(10, 3)
         y_pu = np.zeros(10, dtype=int)
         clf = KLDCEClassifier(flip_probability=0.3)
-        with pytest.raises(Exception):  # ValidationError or ValueError
+        with pytest.raises((ValidationError, ValueError)):
             clf.fit(X, y_pu)
 
     def test_n_U_gt_zero_enforced(self, rng):
@@ -198,7 +221,7 @@ class TestInputValidation:
         X = rng.randn(10, 3)
         y_pu = np.ones(10, dtype=int)
         clf = KLDCEClassifier(flip_probability=0.3)
-        with pytest.raises(Exception):
+        with pytest.raises((ValidationError, ValueError)):
             clf.fit(X, y_pu)
 
     def test_p_leq_one_enforced(self, rng):
@@ -243,17 +266,30 @@ class TestFittedAttributes:
     def test_required_attributes_present(self, rng):
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         clf = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, max_acs_iter=5,
-            tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            max_acs_iter=5,
+            tol=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu)
 
         required = [
-            "alpha_full_", "gamma_unlabeled_", "unlabeled_indices_",
-            "support_indices_", "bias_", "class_prior_",
-            "flip_probability_", "centroid_hat_", "centroid_opt_",
-            "centroid_covariance_raw_", "C_eq_",
-            "n_acs_iter_", "acs_history_", "converged_", "classes_",
+            "alpha_full_",
+            "gamma_unlabeled_",
+            "unlabeled_indices_",
+            "support_indices_",
+            "bias_",
+            "class_prior_",
+            "flip_probability_",
+            "centroid_hat_",
+            "centroid_opt_",
+            "centroid_covariance_raw_",
+            "C_eq_",
+            "n_acs_iter_",
+            "acs_history_",
+            "converged_",
+            "classes_",
         ]
         for attr in required:
             assert hasattr(clf, attr), f"Missing attribute: {attr}"
@@ -261,8 +297,11 @@ class TestFittedAttributes:
     def test_classes_are_0_1(self, rng):
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         clf = KLDCEClassifier(
-            flip_probability=0.3, sigma=2.0, max_acs_iter=5,
-            tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            sigma=2.0,
+            max_acs_iter=5,
+            tol=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         np.testing.assert_array_equal(clf.classes_, np.array([0, 1]))

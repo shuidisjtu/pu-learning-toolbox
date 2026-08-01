@@ -62,8 +62,12 @@ class LBEClassifier(BasePUClassifier):
         p0 = float(class_prior) if class_prior is not None else max(0.05, min(0.95, s.mean() * 2.0))
         if not 0.0 < p0 < 1.0:
             raise ValueError("class_prior must be in (0, 1)")
-        self.classifier_ = make_pipeline(StandardScaler(), LogisticRegression(C=self.C, max_iter=self.max_iter, random_state=0))
-        self.propensity_model_ = make_pipeline(StandardScaler(), LogisticRegression(C=self.C, max_iter=self.max_iter, random_state=0))
+        self.classifier_ = make_pipeline(
+            StandardScaler(), LogisticRegression(C=self.C, max_iter=self.max_iter, random_state=0)
+        )
+        self.propensity_model_ = make_pipeline(
+            StandardScaler(), LogisticRegression(C=self.C, max_iter=self.max_iter, random_state=0)
+        )
         q = np.where(s == 1, 1.0, p0)
         for _ in range(self.n_em_iter):
             self._weighted_binary_fit(self.classifier_, X, q)

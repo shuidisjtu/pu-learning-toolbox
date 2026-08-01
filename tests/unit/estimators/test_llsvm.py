@@ -14,7 +14,6 @@ import pytest
 from pu_toolbox.core.exceptions import NotFittedError, ValidationError
 from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
 
-
 # ═════════════════════════════════════════════════════════════════════
 # Helpers
 # ═════════════════════════════════════════════════════════════════════
@@ -27,10 +26,12 @@ def _make_two_gaussian_pu(rng, n_p=50, n_u=150, d=2, separation=3.0):
     X_p = rng.randn(n_p, d) + mu_p
     n_pos_in_u = n_u // 3
     n_neg_in_u = n_u - n_pos_in_u
-    X_u = np.vstack([
-        rng.randn(n_pos_in_u, d) + mu_p,
-        rng.randn(n_neg_in_u, d) + mu_n,
-    ])
+    X_u = np.vstack(
+        [
+            rng.randn(n_pos_in_u, d) + mu_p,
+            rng.randn(n_neg_in_u, d) + mu_n,
+        ]
+    )
     X = np.vstack([X_p, X_u])
     y_pu = np.concatenate([np.ones(n_p), np.zeros(n_u)])
     class_prior = n_pos_in_u / n_u
@@ -136,7 +137,9 @@ class TestLLSVMTraining:
         """Well-separated data → positive samples get positive scores."""
         X, y_pu, pi = _make_two_gaussian_pu(rng, n_p=80, n_u=200, separation=4.0)
         clf = LLSVMClassifier(
-            max_epochs=500, learning_rate=1e-4, random_state=42,
+            max_epochs=500,
+            learning_rate=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu, class_prior=pi)
         scores = clf.decision_function(X)
@@ -161,7 +164,9 @@ class TestLLSVMTraining:
         """With calibration (gamma>0), not all predictions should be +1."""
         X, y_pu, pi = _make_two_gaussian_pu(rng, n_p=50, n_u=200)
         clf = LLSVMClassifier(
-            gamma=10.0, max_epochs=300, random_state=42,
+            gamma=10.0,
+            max_epochs=300,
+            random_state=42,
         )
         clf.fit(X, y_pu, class_prior=pi)
         preds = clf.predict(X)

@@ -110,9 +110,9 @@ class TestValidatePnuXY:
     @pytest.mark.parametrize(
         "y, match",
         [
-            (np.array([-1, -1, 0, 0], dtype=int), "must contain all"),   # no positive
-            (np.array([1, 1, 0, 0], dtype=int), "must contain all"),     # no negative
-            (np.array([1, -1, 1, -1], dtype=int), "must contain all"),   # no unlabeled
+            (np.array([-1, -1, 0, 0], dtype=int), "must contain all"),  # no positive
+            (np.array([1, 1, 0, 0], dtype=int), "must contain all"),  # no negative
+            (np.array([1, -1, 1, -1], dtype=int), "must contain all"),  # no unlabeled
         ],
     )
     def test_missing_class_raises(self, y, match):
@@ -125,7 +125,12 @@ class TestValidatePnuXY:
         "x, y, kwargs, match",
         [
             (np.random.randn(10, 3), np.array([1, -1, 0, 1, -1, 0]), {}, "has 10 samples"),
-            (np.random.randn(10, 4, 4), np.array([1, 1, 1, -1, -1, -1, 0, 0, 0, 0]), {}, "Expected X to be 2-D"),
+            (
+                np.random.randn(10, 4, 4),
+                np.array([1, 1, 1, -1, -1, -1, 0, 0, 0, 0]),
+                {},
+                "Expected X to be 2-D",
+            ),
             (
                 np.random.randn(10, 3),
                 np.array([1, 1, 1, -1, -1, -1, 0, 0, 0, 2]),

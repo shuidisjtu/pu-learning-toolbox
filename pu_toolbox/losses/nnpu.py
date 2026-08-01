@@ -78,9 +78,7 @@ class NonNegativePULoss(BasePULoss):
         gamma: float = 1.0,
     ) -> None:
         if loss != "sigmoid":
-            raise ValueError(
-                f"loss must be 'sigmoid' in MVP; got {loss!r}."
-            )
+            raise ValueError(f"loss must be 'sigmoid' in MVP; got {loss!r}.")
         if beta < 0:
             raise ValueError(f"beta must be >= 0; got {beta}.")
         if not 0.0 <= gamma <= 1.0:
@@ -116,9 +114,7 @@ class NonNegativePULoss(BasePULoss):
         float
             Scalar risk value.
         """
-        info = self.evaluate(
-            positive_scores, unlabeled_scores, class_prior=class_prior
-        )
+        info = self.evaluate(positive_scores, unlabeled_scores, class_prior=class_prior)
         return info["nnpu_risk"] if non_negative else info["upu_risk"]
 
     def evaluate(
@@ -142,9 +138,7 @@ class NonNegativePULoss(BasePULoss):
             positive_risk, negative_risk, upu_risk, nnpu_risk
         """
         if not (0.0 < class_prior < 1.0):
-            raise ValueError(
-                f"class_prior must be in (0, 1); got {class_prior}."
-            )
+            raise ValueError(f"class_prior must be in (0, 1); got {class_prior}.")
         if len(positive_scores) == 0:
             raise ValueError("positive_scores must not be empty.")
         if len(unlabeled_scores) == 0:
@@ -157,7 +151,7 @@ class NonNegativePULoss(BasePULoss):
 
         pi = class_prior
         r = R_u_minus - pi * R_p_minus  # negative-risk term
-        upu_risk = pi * R_p_plus + r     # unbiased risk
+        upu_risk = pi * R_p_plus + r  # unbiased risk
 
         # nnPU risk (Eq. 6)
         nnpu_risk = pi * R_p_plus + max(0.0, r)
@@ -229,7 +223,7 @@ def _nnpu_train_step(
 
     pi = class_prior
     r = R_u_minus - pi * R_p_minus  # negative-risk term
-    upu_risk = pi * R_p_plus + r     # unbiased uPU risk
+    upu_risk = pi * R_p_plus + r  # unbiased uPU risk
 
     # ── Branch decision (per mini-batch, per Algorithm 1) ─────────
     # Using Python if/else on a float (.item()) means autograd builds
@@ -256,9 +250,7 @@ def _nnpu_train_step(
         "positive_risk": R_p_plus.item(),
         "negative_risk": r.item(),
         "upu_risk": upu_risk.item(),
-        "nnpu_risk": nnpu_report.item()
-        if isinstance(nnpu_report, torch.Tensor)
-        else nnpu_report,
+        "nnpu_risk": nnpu_report.item() if isinstance(nnpu_report, torch.Tensor) else nnpu_report,
         "optimization_loss": opt_loss.item(),
         "correction": in_correction,
     }

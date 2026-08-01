@@ -373,7 +373,8 @@ class LDCEClassifier(BasePUClassifier):
             Fitted estimator.
         """
         X, y_pu = validate_pu_X_y(
-            X, y_pu,
+            X,
+            y_pu,
             accept_sparse=False,
             estimator_name="LDCEClassifier",
         )
@@ -387,9 +388,7 @@ class LDCEClassifier(BasePUClassifier):
         # ── Validate flip_probability ─────────────────────────────────
         h = float(self.flip_probability)
         if not (0.0 < h < 1.0):
-            raise ValueError(
-                f"flip_probability must be in (0, 1); got {h}."
-            )
+            raise ValueError(f"flip_probability must be in (0, 1); got {h}.")
         self.flip_probability_ = h
 
         # ── Split P / U ──────────────────────────────────────────────
@@ -410,9 +409,7 @@ class LDCEClassifier(BasePUClassifier):
         if class_prior is not None:
             p = float(class_prior)
             if not (0.0 < p <= 1.0):
-                raise ValueError(
-                    f"class_prior must be in (0, 1]; got {p}."
-                )
+                raise ValueError(f"class_prior must be in (0, 1]; got {p}.")
         else:
             p = n_P / (n * (1.0 - h))
             if not (0.0 < p <= 1.0):
@@ -435,25 +432,15 @@ class LDCEClassifier(BasePUClassifier):
 
         # ── Validate other hyper-parameters ───────────────────────────
         if self.reg_strength <= 0:
-            raise ValueError(
-                f"reg_strength must be > 0; got {self.reg_strength}."
-            )
+            raise ValueError(f"reg_strength must be > 0; got {self.reg_strength}.")
         if self.centroid_radius <= 0:
-            raise ValueError(
-                f"centroid_radius must be > 0; got {self.centroid_radius}."
-            )
+            raise ValueError(f"centroid_radius must be > 0; got {self.centroid_radius}.")
         if self.mom_groups < 1:
-            raise ValueError(
-                f"mom_groups must be >= 1; got {self.mom_groups}."
-            )
+            raise ValueError(f"mom_groups must be >= 1; got {self.mom_groups}.")
         if self.learning_rate <= 0:
-            raise ValueError(
-                f"learning_rate must be > 0; got {self.learning_rate}."
-            )
+            raise ValueError(f"learning_rate must be > 0; got {self.learning_rate}.")
         if self.n_inner_iter < 1:
-            raise ValueError(
-                f"n_inner_iter must be >= 1; got {self.n_inner_iter}."
-            )
+            raise ValueError(f"n_inner_iter must be >= 1; got {self.n_inner_iter}.")
         if self.max_iter < 2:
             raise ValueError(
                 f"max_iter must be >= 2; got {self.max_iter}. "
@@ -489,8 +476,15 @@ class LDCEClassifier(BasePUClassifier):
 
             # (b) Fix m, update w via subgradient descent
             w = _solve_w_subproblem(
-                w, X_P, X_U, m,
-                n=n, k=n_P, h=h, p=p, reg=self.reg_strength,
+                w,
+                X_P,
+                X_U,
+                m,
+                n=n,
+                k=n_P,
+                h=h,
+                p=p,
+                reg=self.reg_strength,
                 outer_iter=t,
                 learning_rate=self.learning_rate,
                 n_inner_iter=self.n_inner_iter,
@@ -498,8 +492,15 @@ class LDCEClassifier(BasePUClassifier):
 
             # (c) Compute objective and check convergence
             obj = _ldce_objective(
-                w, X_P, X_U, m,
-                n=n, k=n_P, h=h, p=p, reg=self.reg_strength,
+                w,
+                X_P,
+                X_U,
+                m,
+                n=n,
+                k=n_P,
+                h=h,
+                p=p,
+                reg=self.reg_strength,
             )
             objective_history.append(obj)
 
@@ -520,9 +521,9 @@ class LDCEClassifier(BasePUClassifier):
         self.converged_ = converged
 
         if not converged and len(objective_history) >= 2:
-            rel_change = abs(
-                objective_history[-1] - objective_history[-2]
-            ) / max(1.0, abs(objective_history[-2]))
+            rel_change = abs(objective_history[-1] - objective_history[-2]) / max(
+                1.0, abs(objective_history[-2])
+            )
             warnings.warn(
                 f"LDCE did not converge within {self.max_iter} "
                 f"iterations (last relative change = {rel_change:.2e} "
@@ -553,14 +554,16 @@ class LDCEClassifier(BasePUClassifier):
     def get_pu_metadata(self) -> dict:
         """Return PU metadata including LDCE-specific diagnostics."""
         meta = super().get_pu_metadata()
-        meta.update({
-            "flip_probability": getattr(self, "flip_probability_", None),
-            "class_prior": getattr(self, "class_prior_", None),
-            "centroid_radius": self.centroid_radius,
-            "reg_strength": self.reg_strength,
-            "n_iter": getattr(self, "n_iter_", None),
-            "converged": getattr(self, "converged_", False),
-            "n_labeled": getattr(self, "n_labeled_", None),
-            "n_unlabeled": getattr(self, "n_unlabeled_", None),
-        })
+        meta.update(
+            {
+                "flip_probability": getattr(self, "flip_probability_", None),
+                "class_prior": getattr(self, "class_prior_", None),
+                "centroid_radius": self.centroid_radius,
+                "reg_strength": self.reg_strength,
+                "n_iter": getattr(self, "n_iter_", None),
+                "converged": getattr(self, "converged_", False),
+                "n_labeled": getattr(self, "n_labeled_", None),
+                "n_unlabeled": getattr(self, "n_unlabeled_", None),
+            }
+        )
         return meta

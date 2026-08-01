@@ -140,8 +140,11 @@ class TestSeparableBoundary:
         """Squared loss closed-form: boundary ∈ [-0.15, 0.15]."""
         X, y_pu = _make_separable_data(rng, n_p=200, n_u=400)
         clf = UPUClassifier(
-            class_prior=0.5, loss="squared", fit_intercept=False,
-            reg_lambda=1.0, random_state=42,
+            class_prior=0.5,
+            loss="squared",
+            fit_intercept=False,
+            reg_lambda=1.0,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         boundary = -clf.intercept_ / clf.coef_[0]
@@ -170,21 +173,28 @@ class TestSeparableBoundary:
                 X_tr = np.vstack([X[tr_P], X[tr_U]])
                 y_tr = np.concatenate([np.ones(len(tr_P)), np.zeros(len(tr_U))])
                 clf = UPUClassifier(
-                    class_prior=pi, loss=loss_name, reg_lambda=lam,
-                    max_iter=500, random_state=42,
+                    class_prior=pi,
+                    loss=loss_name,
+                    reg_lambda=lam,
+                    max_iter=500,
+                    random_state=42,
                 )
                 clf.fit(X_tr, y_tr)
                 r = _pu_validation_risk(
                     clf.decision_function(X[fP[k]]),
-                    clf.decision_function(X[fU[k]]), pi,
+                    clf.decision_function(X[fU[k]]),
+                    pi,
                 )
                 fold_risks.append(r)
             if (m := float(np.mean(fold_risks))) < best_risk:
                 best_risk, best_lam = m, lam
 
         clf = UPUClassifier(
-            class_prior=pi, loss=loss_name, reg_lambda=best_lam,
-            max_iter=1000, random_state=42,
+            class_prior=pi,
+            loss=loss_name,
+            reg_lambda=best_lam,
+            max_iter=1000,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         acc_P = np.mean(clf.predict(X)[y_pu == 1] == 1)
@@ -238,7 +248,9 @@ class TestErrorHandling:
         with pytest.raises(ValidationError):
             UPUClassifier(class_prior=0.5).fit(np.array([[0.5], [0.6]]), np.array([0, 0]))
         # predict_proba not implemented
-        clf = UPUClassifier(class_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=500, random_state=42)
+        clf = UPUClassifier(
+            class_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=500, random_state=42
+        )
         clf.fit(X, y_pu)
         with pytest.raises(NotImplementedError):
             clf.predict_proba(X)
@@ -254,8 +266,13 @@ class TestRBFBasis:
     def test_basic_rbf_fit_and_coef_shape(self, rng):
         X, y_pu = _make_separable_data(rng, n_p=100, n_u=200)
         clf = UPUClassifier(
-            class_prior=0.5, loss="squared", fit_intercept=False, basis="rbf",
-            kernel_width=0.5, n_centers=50, random_state=42,
+            class_prior=0.5,
+            loss="squared",
+            fit_intercept=False,
+            basis="rbf",
+            kernel_width=0.5,
+            n_centers=50,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         assert clf._is_fitted and clf.coef_.shape == (50,)
@@ -277,8 +294,11 @@ class TestConvergenceAndSensitivity:
         for n in (100, 200):
             X, y_pu = _make_separable_data(rng, n_p=n // 2, n_u=n // 2)
             clf = UPUClassifier(
-                class_prior=0.5, loss="squared", fit_intercept=False,
-                reg_lambda=1.0, random_state=42,
+                class_prior=0.5,
+                loss="squared",
+                fit_intercept=False,
+                reg_lambda=1.0,
+                random_state=42,
             )
             clf.fit(X, y_pu)
             risks.append(clf.pu_validation_risk(X, y_pu))
@@ -294,8 +314,11 @@ class TestConvergenceAndSensitivity:
             if not (0.0 < pi < 1.0):
                 continue
             clf = UPUClassifier(
-                class_prior=pi, loss="squared", fit_intercept=False,
-                reg_lambda=1.0, random_state=42,
+                class_prior=pi,
+                loss="squared",
+                fit_intercept=False,
+                reg_lambda=1.0,
+                random_state=42,
             )
             clf.fit(X, y_pu)
             accs[delta] = float(np.mean(clf.predict(X) == y_true))
@@ -316,6 +339,8 @@ class TestValidationRisk:
         # Perfect: all P>0, all U≤0 → f_n=0, f_pu=0 → R = −π
         assert _pu_validation_risk(np.array([1.0, 2.0]), np.array([-1.0, -2.0]), 0.5) == -0.5
         # Random: f_n=0.5, f_pu=0.5 → R = 2·0.5·0.5 + 0.5 − 0.5 = 0.5
-        assert abs(_pu_validation_risk(np.array([1.0, -1.0]), np.array([1.0, -1.0]), 0.5) - 0.5) < 1e-9
+        assert (
+            abs(_pu_validation_risk(np.array([1.0, -1.0]), np.array([1.0, -1.0]), 0.5) - 0.5) < 1e-9
+        )
         # Empty → inf
         assert _pu_validation_risk(np.array([]), np.array([0.0]), 0.5) == np.inf

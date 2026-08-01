@@ -54,8 +54,7 @@ def pu_zero_one_risk(
     scores = np.asarray(scores, dtype=float)
     if len(y_pu) != len(scores):
         raise ValueError(
-            f"y_pu and scores must have the same length, "
-            f"got {len(y_pu)} and {len(scores)}"
+            f"y_pu and scores must have the same length, got {len(y_pu)} and {len(scores)}"
         )
     if not 0.0 < class_prior < 1.0:
         raise ValueError(f"class_prior must be in (0, 1), got {class_prior}")
@@ -96,8 +95,7 @@ def pu_recall(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
     y_pred = np.asarray(y_pred)
     if len(y_pu) != len(y_pred):
         raise ValueError(
-            f"y_pu and y_pred must have the same length, "
-            f"got {len(y_pu)} and {len(y_pred)}"
+            f"y_pu and y_pred must have the same length, got {len(y_pu)} and {len(y_pred)}"
         )
 
     mask_p = y_pu == POSITIVE_LABEL
@@ -137,8 +135,7 @@ def pu_estimated_precision(
     y_pred = np.asarray(y_pred)
     if len(y_pu) != len(y_pred):
         raise ValueError(
-            f"y_pu and y_pred must have the same length, "
-            f"got {len(y_pu)} and {len(y_pred)}"
+            f"y_pu and y_pred must have the same length, got {len(y_pu)} and {len(y_pred)}"
         )
     if not 0.0 < class_prior < 1.0:
         raise ValueError(f"class_prior must be in (0, 1), got {class_prior}")
@@ -148,9 +145,7 @@ def pu_estimated_precision(
     if predicted_positive_rate == 0.0:
         return 0.0
 
-    return float(
-        min(class_prior * recall / predicted_positive_rate, 1.0)
-    )
+    return float(min(class_prior * recall / predicted_positive_rate, 1.0))
 
 
 def pu_negative_rate(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
@@ -176,8 +171,7 @@ def pu_negative_rate(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
     y_pred = np.asarray(y_pred)
     if len(y_pu) != len(y_pred):
         raise ValueError(
-            f"y_pu and y_pred must have the same length, "
-            f"got {len(y_pu)} and {len(y_pred)}"
+            f"y_pu and y_pred must have the same length, got {len(y_pu)} and {len(y_pred)}"
         )
 
     mask_u = y_pu == UNLABELED_LABEL

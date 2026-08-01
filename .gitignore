@@ -10,7 +10,19 @@ build/
 
 # Virtual environments
 .venv/
+.wheel-venv/
 venv/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key
 
 # IDE
 .idea/

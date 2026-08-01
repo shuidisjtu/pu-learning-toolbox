@@ -5,6 +5,7 @@ import pytest
 SUBPACKAGES = [
     "pu_toolbox",
     "pu_toolbox.core",
+    "pu_toolbox.diagnostics",
     "pu_toolbox.registry",
     "pu_toolbox.preprocessing",
     "pu_toolbox.prior",

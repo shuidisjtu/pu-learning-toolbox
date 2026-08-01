@@ -2,11 +2,14 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 561 项。
+**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像和诊断报告已可用；15 个核心 registry 方法中 14 个为 NATIVE，Self-PU 仍为 `api_only`。完整官方数据复现、深度方法 paper-like benchmark 和敏感性分析尚未完成；当前测试套件为 562 项。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
 项目管理文档: [`docs/project_management/`](docs/project_management/) — 决策日志、进度清单
+
+贡献与兼容性：[`CONTRIBUTING.md`](CONTRIBUTING.md) 和
+[`docs/development_compatibility.md`](docs/development_compatibility.md)
 
 ## Quick Start
 
@@ -23,8 +26,8 @@ uv pip install -e ".[dev]"
 
 # 4. Verify
 uv run pytest tests/ -v
-uv run ruff check pu_toolbox tests
-uv run ruff format --check pu_toolbox tests
+uv run ruff check pu_toolbox tests benchmarks examples scripts
+uv run ruff format --check pu_toolbox tests benchmarks examples scripts
 ```
 
 ### 使用 pip / conda？
@@ -123,12 +126,14 @@ uv run pytest tests/ -v -m contract        # 跨分类器 API 契约
 ```bash
 uv run python scripts/check_test_quality.py        # 测试质量门禁（方法数、标记、覆盖类别）
 uv run python scripts/check_doc_links.py            # 文档一致性检查（路径、索引、架构映射）
+uv run python scripts/check_project_metadata.py     # Python/CI/extras/Hatchling 跨文件一致性
 ```
 
 ## 开发流程
 
 - `main` 分支保持稳定可运行，不直接提交代码。
 - 每个功能/修复开独立分支：`feature/<name>` 或 `fix/<name>`，完成后提 PR 合并。
+- 完整分支、测试、benchmark 和文档规则见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
 ## 文档约定
 

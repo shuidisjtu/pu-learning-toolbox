@@ -31,9 +31,7 @@ from .exceptions import ValidationError
 def _check_y_1d(y: np.ndarray) -> None:
     """Raise :class:`ValidationError` if *y* is not 1-D."""
     if y.ndim != 1:
-        raise ValidationError(
-            f"y must be 1-D, got ndim={y.ndim}."
-        )
+        raise ValidationError(f"y must be 1-D, got ndim={y.ndim}.")
 
 
 def _check_label_values(

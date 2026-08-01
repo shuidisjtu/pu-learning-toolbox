@@ -77,9 +77,9 @@ class TestNormalizePnuLabels:
     @pytest.mark.parametrize(
         "y, match",
         [
-            (np.array([1, 0, 1, 0]), "must contain all"),        # missing negative
-            (np.array([-1, 0, -1, 0]), "must contain all"),       # missing positive
-            (np.array([1, -1, 1, -1]), "must contain all"),       # missing unlabeled
+            (np.array([1, 0, 1, 0]), "must contain all"),  # missing negative
+            (np.array([-1, 0, -1, 0]), "must contain all"),  # missing positive
+            (np.array([1, -1, 1, -1]), "must contain all"),  # missing unlabeled
         ],
     )
     def test_missing_class_raises(self, y, match):

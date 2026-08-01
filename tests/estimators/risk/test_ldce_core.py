@@ -10,7 +10,6 @@ import pytest
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 
-
 # ═════════════════════════════════════════════════════════════════════
 # Test helpers
 # ═════════════════════════════════════════════════════════════════════
@@ -178,7 +177,6 @@ class TestFittedAttributes:
         assert clf._is_fitted
 
     def test_attribute_shapes(self, rng):
-        rng2 = np.random.RandomState(15)
         rng2_data = np.random.RandomState(150)
         X, y_pu, _ = _make_censoring_pu_data(rng2_data, n_pos=30, n_neg=60)
         d = X.shape[1]
@@ -221,7 +219,10 @@ class TestLabelHandling:
         rng2 = np.random.RandomState(22)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=50, n_neg=100)
         clf = LDCEClassifier(
-            flip_probability=0.3, max_iter=30, tol=1e-4, random_state=42,
+            flip_probability=0.3,
+            max_iter=30,
+            tol=1e-4,
+            random_state=42,
         )
         clf.fit(X, y_pu)
         mask_P = y_pu == 1

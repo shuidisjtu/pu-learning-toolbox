@@ -169,38 +169,24 @@ class NonNegativePUClassifier(BasePUClassifier):
         if class_prior is None:
             class_prior = self.class_prior
         if class_prior is None:
-            raise ValueError(
-                "class_prior must be provided either in __init__() or fit()."
-            )
+            raise ValueError("class_prior must be provided either in __init__() or fit().")
 
         # ── Validate inputs ───────────────────────────────────────
-        X, y_pu = validate_pu_X_y(
-            X, y_pu, estimator_name="NonNegativePUClassifier"
-        )
+        X, y_pu = validate_pu_X_y(X, y_pu, estimator_name="NonNegativePUClassifier")
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
         if not (0.0 < class_prior < 1.0):
-            raise ValueError(
-                f"class_prior must be in (0, 1); got {class_prior}."
-            )
+            raise ValueError(f"class_prior must be in (0, 1); got {class_prior}.")
         if self.beta < 0:
             raise ValueError(f"beta must be >= 0; got {self.beta}.")
         if not 0.0 <= self.gamma <= 1.0:
-            raise ValueError(
-                f"gamma must be in [0, 1]; got {self.gamma}."
-            )
+            raise ValueError(f"gamma must be in [0, 1]; got {self.gamma}.")
         if self.loss != "sigmoid":
-            raise ValueError(
-                f"loss must be 'sigmoid' in MVP; got {self.loss!r}."
-            )
+            raise ValueError(f"loss must be 'sigmoid' in MVP; got {self.loss!r}.")
         if self.max_epochs <= 0:
-            raise ValueError(
-                f"max_epochs must be > 0; got {self.max_epochs}."
-            )
+            raise ValueError(f"max_epochs must be > 0; got {self.max_epochs}.")
         if self.batch_size <= 0:
-            raise ValueError(
-                f"batch_size must be > 0; got {self.batch_size}."
-            )
+            raise ValueError(f"batch_size must be > 0; got {self.batch_size}.")
 
         # Warn if beta exceeds sigmoid upper bound
         if self.beta > class_prior:
@@ -249,9 +235,7 @@ class NonNegativePUClassifier(BasePUClassifier):
             self.model_ = torch.nn.Linear(d, 1)
 
         # ── Device ────────────────────────────────────────────────
-        device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_.to(device)
 
         # ── Build optimiser ───────────────────────────────────────
@@ -260,9 +244,7 @@ class NonNegativePUClassifier(BasePUClassifier):
             # Re-bind to current model parameters if optimiser was
             # created with a (now-stale) param group.
             if hasattr(opt, "param_groups"):
-                opt.param_groups[0]["params"] = list(
-                    self.model_.parameters()
-                )
+                opt.param_groups[0]["params"] = list(self.model_.parameters())
         else:
             opt = torch.optim.Adam(self.model_.parameters(), lr=1e-3)
 
@@ -327,16 +309,8 @@ class NonNegativePUClassifier(BasePUClassifier):
 
             # Cycle the shorter loader
             n_batches = max(len(p_loader), len(u_loader))
-            p_iter = (
-                iter(cycle(p_loader))
-                if len(p_loader) < n_batches
-                else iter(p_loader)
-            )
-            u_iter = (
-                iter(cycle(u_loader))
-                if len(u_loader) < n_batches
-                else iter(u_loader)
-            )
+            p_iter = iter(cycle(p_loader)) if len(p_loader) < n_batches else iter(p_loader)
+            u_iter = iter(cycle(u_loader)) if len(u_loader) < n_batches else iter(u_loader)
 
             epoch_sum = defaultdict(float)
             n_corrections = 0
@@ -372,21 +346,15 @@ class NonNegativePUClassifier(BasePUClassifier):
                     # Weighted mean: Σ(w·ℓ) / Σw
                     loss_pos_p = torch.sigmoid(-scores_P)
                     loss_pos_n = torch.sigmoid(scores_P)
-                    R_p_plus = (
-                        (batch_P_w * loss_pos_p).sum() / batch_P_w.sum()
-                    )
-                    R_p_minus = (
-                        (batch_P_w * loss_pos_n).sum() / batch_P_w.sum()
-                    )
+                    R_p_plus = (batch_P_w * loss_pos_p).sum() / batch_P_w.sum()
+                    R_p_minus = (batch_P_w * loss_pos_n).sum() / batch_P_w.sum()
                 else:
                     R_p_plus = torch.sigmoid(-scores_P).mean()
                     R_p_minus = torch.sigmoid(scores_P).mean()
 
                 if batch_U_w is not None:
                     loss_unl_n = torch.sigmoid(scores_U)
-                    R_u_minus = (
-                        (batch_U_w * loss_unl_n).sum() / batch_U_w.sum()
-                    )
+                    R_u_minus = (batch_U_w * loss_unl_n).sum() / batch_U_w.sum()
                 else:
                     R_u_minus = torch.sigmoid(scores_U).mean()
 
@@ -407,48 +375,27 @@ class NonNegativePUClassifier(BasePUClassifier):
                 epoch_sum["negative_risk"] += step_info["negative_risk"]
                 epoch_sum["upu_risk"] += step_info["upu_risk"]
                 epoch_sum["nnpu_risk"] += step_info["nnpu_risk"]
-                epoch_sum["optimization_loss"] += step_info[
-                    "optimization_loss"
-                ]
+                epoch_sum["optimization_loss"] += step_info["optimization_loss"]
                 if step_info["correction"]:
                     n_corrections += 1
 
             # ── End of epoch ──────────────────────────────────────
             n_steps = n_batches
             self.history_["epoch"].append(epoch)
-            self.history_["positive_risk"].append(
-                epoch_sum["positive_risk"] / n_steps
-            )
-            self.history_["negative_risk"].append(
-                epoch_sum["negative_risk"] / n_steps
-            )
-            self.history_["upu_risk"].append(
-                epoch_sum["upu_risk"] / n_steps
-            )
-            self.history_["nnpu_risk"].append(
-                epoch_sum["nnpu_risk"] / n_steps
-            )
-            self.history_["optimization_loss"].append(
-                epoch_sum["optimization_loss"] / n_steps
-            )
-            self.history_["correction_fraction"].append(
-                n_corrections / n_steps
-            )
+            self.history_["positive_risk"].append(epoch_sum["positive_risk"] / n_steps)
+            self.history_["negative_risk"].append(epoch_sum["negative_risk"] / n_steps)
+            self.history_["upu_risk"].append(epoch_sum["upu_risk"] / n_steps)
+            self.history_["nnpu_risk"].append(epoch_sum["nnpu_risk"] / n_steps)
+            self.history_["optimization_loss"].append(epoch_sum["optimization_loss"] / n_steps)
+            self.history_["correction_fraction"].append(n_corrections / n_steps)
 
             # ── Early stopping (on validation nnPU risk) ──────────
             if validation_data is not None and X_val_t is not None:
                 self.model_.eval()
                 with torch.no_grad():
-                    val_scores = (
-                        self.model_(X_val_t.to(device))
-                        .squeeze(-1)
-                        .cpu()
-                        .numpy()
-                    )
+                    val_scores = self.model_(X_val_t.to(device)).squeeze(-1).cpu().numpy()
                 mask_val_P = y_val_pu == 1
-                evaluator = NonNegativePULoss(
-                    loss=self.loss, beta=self.beta, gamma=self.gamma
-                )
+                evaluator = NonNegativePULoss(loss=self.loss, beta=self.beta, gamma=self.gamma)
                 val_risk = evaluator(
                     val_scores[mask_val_P],
                     val_scores[~mask_val_P],
@@ -539,23 +486,15 @@ class NonNegativePUClassifier(BasePUClassifier):
         from ...core.labels import normalize_pu_labels
 
         self._check_is_fitted()
-        pi = (
-            class_prior
-            if class_prior is not None
-            else self._class_prior
-        )
+        pi = class_prior if class_prior is not None else self._class_prior
         if pi is None:
-            raise ValueError(
-                "class_prior must be provided (was not stored during fit)."
-            )
+            raise ValueError("class_prior must be provided (was not stored during fit).")
 
         y_pu = normalize_pu_labels(y_pu)
         scores = self._decision_function(X)
         mask_P = y_pu == 1
 
-        evaluator = NonNegativePULoss(
-            loss=self.loss, beta=self.beta, gamma=self.gamma
-        )
+        evaluator = NonNegativePULoss(loss=self.loss, beta=self.beta, gamma=self.gamma)
         return evaluator(
             scores[mask_P],
             scores[~mask_P],
@@ -594,8 +533,7 @@ class NonNegativePUClassifier(BasePUClassifier):
                 "n_unlabeled": getattr(self, "n_unlabeled_", None),
                 "final_correction_fraction": (
                     self.history_["correction_fraction"][-1]
-                    if getattr(self, "history_", None)
-                    and self.history_["correction_fraction"]
+                    if getattr(self, "history_", None) and self.history_["correction_fraction"]
                     else None
                 ),
             }

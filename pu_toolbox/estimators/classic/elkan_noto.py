@@ -118,9 +118,7 @@ class ElkanNotoClassifier(BasePUClassifier):
 
         # ── Parameter validation ──────────────────────────────────
         if n_cv_folds < 2:
-            raise ValueError(
-                f"n_cv_folds must be >= 2 for stratified K-fold; got {n_cv_folds}."
-            )
+            raise ValueError(f"n_cv_folds must be >= 2 for stratified K-fold; got {n_cv_folds}.")
         self.n_cv_folds = n_cv_folds
 
         if eps <= 0:
@@ -166,9 +164,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         if sample_weight is not None:
             sw = np.asarray(sample_weight, dtype=float)
             if sw.shape != (n_samples,):
-                raise ValueError(
-                    f"sample_weight must have shape ({n_samples},); got {sw.shape}."
-                )
+                raise ValueError(f"sample_weight must have shape ({n_samples},); got {sw.shape}.")
 
         mask_pos = y_pu == 1
         mask_unl = y_pu == 0

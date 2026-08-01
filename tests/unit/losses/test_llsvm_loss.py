@@ -21,17 +21,19 @@ from pu_toolbox.losses.llsvm import (
     unlabeled_hat_loss,
 )
 
-
 # ═════════════════════════════════════════════════════════════════════
 # Helpers
 # ═════════════════════════════════════════════════════════════════════
+
 
 def _numerical_gradient(func, w, eps=1e-7):
     """Central finite-difference gradient."""
     grad = np.zeros_like(w)
     for i in range(len(w)):
-        w_plus = w.copy(); w_plus[i] += eps
-        w_minus = w.copy(); w_minus[i] -= eps
+        w_plus = w.copy()
+        w_plus[i] += eps
+        w_minus = w.copy()
+        w_minus[i] -= eps
         grad[i] = (func(w_plus) - func(w_minus)) / (2 * eps)
     return grad
 
@@ -48,7 +50,7 @@ class TestPositiveHingeLoss:
     def test_golden_all_active(self):
         """All scores < 1 → all hinge terms active."""
         X_p = np.array([[1.0, 0.5]])  # 1 sample, 2 features
-        w = np.array([0.0, 0.0])      # f = 0 for all
+        w = np.array([0.0, 0.0])  # f = 0 for all
         alpha = 2.0
         loss, grad = positive_hinge_loss(X_p, w, alpha)
         # f = 0, max(1-0, 0)^2 = 1, loss = 2.0 * 1 = 2.0
@@ -71,9 +73,7 @@ class TestPositiveHingeLoss:
         w = np.array([0.5, -0.3])
         alpha = 2.0
         _, grad = positive_hinge_loss(X_p, w, alpha)
-        num_grad = _numerical_gradient(
-            lambda ww: positive_hinge_loss(X_p, ww, alpha)[0], w
-        )
+        num_grad = _numerical_gradient(lambda ww: positive_hinge_loss(X_p, ww, alpha)[0], w)
         np.testing.assert_allclose(grad, num_grad, rtol=1e-5)
 
 
@@ -105,9 +105,7 @@ class TestUnlabeledHatLoss:
         w = np.array([0.3, 0.5])
         beta = 1.0
         _, grad = unlabeled_hat_loss(X_u, w, beta)
-        num_grad = _numerical_gradient(
-            lambda ww: unlabeled_hat_loss(X_u, ww, beta)[0], w
-        )
+        num_grad = _numerical_gradient(lambda ww: unlabeled_hat_loss(X_u, ww, beta)[0], w)
         np.testing.assert_allclose(grad, num_grad, rtol=1e-5)
 
 
@@ -145,9 +143,7 @@ class TestCalibrationLoss:
         gamma, t, A = 10.0, -2.5, 10.0
         n_u = len(X_u)
         _, grad = calibration_loss(X_u, w, gamma, t, A, n_unlabeled=n_u)
-        num_grad = _numerical_gradient(
-            lambda ww: calibration_loss(X_u, ww, gamma, t, A, n_u)[0], w
-        )
+        num_grad = _numerical_gradient(lambda ww: calibration_loss(X_u, ww, gamma, t, A, n_u)[0], w)
         np.testing.assert_allclose(grad, num_grad, rtol=1e-5)
 
 
@@ -162,9 +158,15 @@ class TestLLSVMObjective:
         X_u = np.zeros((0, d))
         w = np.array([1.0, 2.0, 3.0])
         loss, grad = llsvm_objective(
-            w, X_p, X_u,
-            alpha=2.0, beta=1.0, gamma=10.0,
-            t=-2.5, A=10.0, reg_lambda=1.0,
+            w,
+            X_p,
+            X_u,
+            alpha=2.0,
+            beta=1.0,
+            gamma=10.0,
+            t=-2.5,
+            A=10.0,
+            reg_lambda=1.0,
         )
         expected_loss = 0.5 * np.dot(w, w)
         assert loss == pytest.approx(expected_loss)
@@ -177,13 +179,15 @@ class TestLLSVMObjective:
         X_u = np.array([[0.5, -0.3], [0.1, 0.7], [-0.2, 0.4]])
         w = np.array([0.3, 0.5])
         kwargs = dict(
-            alpha=2.0, beta=1.0, gamma=10.0,
-            t=-2.5, A=10.0, reg_lambda=1.0,
+            alpha=2.0,
+            beta=1.0,
+            gamma=10.0,
+            t=-2.5,
+            A=10.0,
+            reg_lambda=1.0,
         )
         _, grad = llsvm_objective(w, X_p, X_u, **kwargs)
-        num_grad = _numerical_gradient(
-            lambda ww: llsvm_objective(ww, X_p, X_u, **kwargs)[0], w
-        )
+        num_grad = _numerical_gradient(lambda ww: llsvm_objective(ww, X_p, X_u, **kwargs)[0], w)
         np.testing.assert_allclose(grad, num_grad, rtol=1e-5)
 
     @pytest.mark.math

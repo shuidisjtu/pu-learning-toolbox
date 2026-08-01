@@ -368,11 +368,7 @@ class UPUClassifier(BasePUClassifier):
             g_U = Phi_U @ alpha + b
             sigma_U = _sigmoid(g_U)  # (n_U,)
 
-            grad_alpha = (
-                -(pi / n_P) * sum_Phi_P
-                + (1.0 / n_U) * (Phi_U.T @ sigma_U)
-                + lam * alpha
-            )
+            grad_alpha = -(pi / n_P) * sum_Phi_P + (1.0 / n_U) * (Phi_U.T @ sigma_U) + lam * alpha
             grad_b = -pi + float(np.mean(sigma_U))
 
             return _pack_theta(grad_alpha, grad_b, has_b)

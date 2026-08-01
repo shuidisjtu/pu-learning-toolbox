@@ -28,19 +28,23 @@ torch = pytest.importorskip("torch", reason="PyTorch not installed")
 
 def _make_elkan_noto():
     from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
+
     return ElkanNotoClassifier(n_cv_folds=3, random_state=42)
 
 
 def _make_upu():
     from pu_toolbox.estimators.risk.upu import UPUClassifier
-    return UPUClassifier(class_prior=0.5, loss="logistic", reg_lambda=1.0,
-                         max_iter=200, random_state=42)
+
+    return UPUClassifier(
+        class_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=200, random_state=42
+    )
 
 
 def _make_nnpu():
     torch.manual_seed(42)
     return NonNegativePUClassifier(
-        model=torch.nn.Linear(5, 1), max_epochs=1, batch_size=8, random_state=42)
+        model=torch.nn.Linear(5, 1), max_epochs=1, batch_size=8, random_state=42
+    )
 
 
 def _make_pnu():
@@ -49,37 +53,45 @@ def _make_pnu():
 
 def _make_ldce():
     from pu_toolbox.estimators.risk.ldce import LDCEClassifier
+
     return LDCEClassifier(flip_probability=0.3, max_iter=10, tol=1e-4, random_state=42)
 
 
 def _make_kldce():
     from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
-    return KLDCEClassifier(flip_probability=0.3, sigma=2.0, max_acs_iter=5,
-                           tol=1e-4, random_state=42)
+
+    return KLDCEClassifier(
+        flip_probability=0.3, sigma=2.0, max_acs_iter=5, tol=1e-4, random_state=42
+    )
 
 
 def _make_dist_pu():
     from pu_toolbox.estimators.risk.dist_pu import DistPUClassifier
+
     return DistPUClassifier(0.3, hidden_dim=8, epochs=2, random_state=42)
 
 
 def _make_pusb():
     from pu_toolbox.estimators.bias_aware.pusb import PUSBClassifier
+
     return PUSBClassifier(threshold=0.5)
 
 
 def _make_lbe():
     from pu_toolbox.estimators.bias_aware.lbe import LBEClassifier
+
     return LBEClassifier(n_em_iter=3)
 
 
 def _make_class_prior_estimation():
     from pu_toolbox.prior.pen_l1 import ClassPriorEstimator
+
     return ClassPriorEstimator(n_centers=50)
 
 
 def _make_recpe():
     from pu_toolbox.prior.recpe import ReCPEEstimator
+
     return ReCPEEstimator(copy_fraction=0.1)
 
 
@@ -112,10 +124,7 @@ def _make_weighted_contrastive_pu():
 
 class _MockConditionalGenerator:
     def fit(self, X, y, *, warm_start=True):
-        self.means_ = {
-            label: X[y == label].mean(axis=0)
-            for label in np.unique(y)
-        }
+        self.means_ = {label: X[y == label].mean(axis=0) for label in np.unique(y)}
         self.n_features_in_ = X.shape[1]
         return self
 
@@ -158,8 +167,7 @@ _FACTORY_MAP: dict[str, callable] = {
 }
 
 _CLASSIFIER_NAMES = [
-    name for name, fn in _FACTORY_MAP.items()
-    if not isinstance(fn(), BasePriorEstimator)
+    name for name, fn in _FACTORY_MAP.items() if not isinstance(fn(), BasePriorEstimator)
 ]
 _ALL_PARAMS = [pytest.param(name, id=name) for name in _FACTORY_MAP]
 _CLF_PARAMS = [pytest.param(name, id=name) for name in _CLASSIFIER_NAMES]
@@ -181,11 +189,13 @@ def _make_pnu_X_y(rng):
     X_neg = rng.randn(30, 5) - 2.0
     X_unl = rng.randn(50, 5)
     X = np.vstack([X_pos, X_neg, X_unl])
-    y = np.concatenate([
-        np.full(20, 1, dtype=int),
-        np.full(30, -1, dtype=int),
-        np.zeros(50, dtype=int),
-    ])
+    y = np.concatenate(
+        [
+            np.full(20, 1, dtype=int),
+            np.full(30, -1, dtype=int),
+            np.zeros(50, dtype=int),
+        ]
+    )
     return X, y
 
 
@@ -330,7 +340,8 @@ class TestAPIContract:
         X, y = _get_data_factory(clf)(rng)
         _fit(clf, X, y)
         np.testing.assert_array_equal(
-            clf.score_samples(X), clf.decision_function(X),
+            clf.score_samples(X),
+            clf.decision_function(X),
         )
 
 
@@ -366,7 +377,18 @@ class TestRegistryClassBinding:
         trainable = list_algorithms(trainable_only=True)
         names = {m.name for m in trainable}
         assert names == {
-            "elkan_noto", "upu", "nnpu", "pnu", "recpe", "centroid_pu",
-            "class_prior_estimation", "dist_pu", "pusb", "lbe", "llsvm",
-            "infomax_pu", "weighted_contrastive_pu", "dgpu",
+            "elkan_noto",
+            "upu",
+            "nnpu",
+            "pnu",
+            "recpe",
+            "centroid_pu",
+            "class_prior_estimation",
+            "dist_pu",
+            "pusb",
+            "lbe",
+            "llsvm",
+            "infomax_pu",
+            "weighted_contrastive_pu",
+            "dgpu",
         }

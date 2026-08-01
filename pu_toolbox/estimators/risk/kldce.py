@@ -80,7 +80,7 @@ def _rbf_kernel(
     K : np.ndarray of shape (n, m)
     """
     sqdist = scipy.spatial.distance.cdist(X, Z, "sqeuclidean")
-    return np.exp(-sqdist / (2.0 * sigma ** 2))
+    return np.exp(-sqdist / (2.0 * sigma**2))
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -126,9 +126,7 @@ def _find_feasible_init(
             f"Phase-I LP returned point with equality residual {eq_res:.2e} > 1e-10."
         )
     if (z0 < lb - 1e-12).any() or (z0 > ub + 1e-12).any():
-        raise RuntimeError(
-            "Phase-I LP returned point violating box constraints."
-        )
+        raise RuntimeError("Phase-I LP returned point violating box constraints.")
 
     return z0
 
@@ -229,10 +227,12 @@ def _build_dual_qp(
     beq = C_eq
 
     lb = np.zeros(N_total, dtype=float)
-    ub = np.concatenate([
-        np.full(n, C_alpha),
-        np.full(n_U, C_gamma),
-    ])
+    ub = np.concatenate(
+        [
+            np.full(n, C_alpha),
+            np.full(n_U, C_gamma),
+        ]
+    )
 
     return Q, d_vec, Aeq, beq, lb, ub
 
@@ -289,8 +289,7 @@ def _solve_qp_oracle(
         return Q @ z - d_vec
 
     constraints = [
-        {"type": "eq", "fun": lambda z: Aeq @ z - beq,
-         "jac": lambda z: Aeq[0]},
+        {"type": "eq", "fun": lambda z: Aeq @ z - beq, "jac": lambda z: Aeq[0]},
     ]
     bounds = scipy.optimize.Bounds(lb, ub)
 
@@ -307,13 +306,11 @@ def _solve_qp_oracle(
     z = result.x
     dual_obj = float(d_vec @ z - 0.5 * z @ Q @ z)
     eq_residual = float(np.abs(Aeq @ z - beq).max())
-    box_violation = float(
-        max(np.maximum(lb - z, 0.0).max(), np.maximum(z - ub, 0.0).max())
-    )
+    box_violation = float(max(np.maximum(lb - z, 0.0).max(), np.maximum(z - ub, 0.0).max()))
 
     # Approximate KKT residual: ‖Qz − d + Aeqᵀν + λ_upper − λ_lower‖
     # We approximate via the gradient of the Lagrangian at the solution.
-    kkt_residual = float(np.linalg.norm(result.jac if hasattr(result, 'jac') else np.zeros(N)))
+    kkt_residual = float(np.linalg.norm(result.jac if hasattr(result, "jac") else np.zeros(N)))
 
     diagnostics = {
         "dual_obj": dual_obj,
@@ -385,11 +382,11 @@ def _rbf_centroid_delta(
         Update direction (row vector).
     """
     n, d = X.shape
-    scale = 1.0 / (2.0 * lambda_ * sigma ** 2)
+    scale = 1.0 / (2.0 * lambda_ * sigma**2)
 
     # exp(-||x_i||^2 / (2σ^2)) for all samples
-    sq_norms = np.sum(X ** 2, axis=1)  # (n,)
-    weights = np.exp(-sq_norms / (2.0 * sigma ** 2))  # (n,)
+    sq_norms = np.sum(X**2, axis=1)  # (n,)
+    weights = np.exp(-sq_norms / (2.0 * sigma**2))  # (n,)
 
     # α contribution (all samples, negative sign)
     alpha_weighted = alpha * y_tilde * weights  # (n,)
@@ -799,7 +796,8 @@ class KLDCEClassifier(BasePUClassifier):
         self : KLDCEClassifier
         """
         X, y_pu = validate_pu_X_y(
-            X, y_pu,
+            X,
+            y_pu,
             accept_sparse=False,
             estimator_name="KLDCEClassifier",
         )
@@ -813,9 +811,7 @@ class KLDCEClassifier(BasePUClassifier):
         # ── Validate flip_probability ─────────────────────────────────
         h = float(self.flip_probability)
         if not (0.0 < h < 1.0):
-            raise ValueError(
-                f"flip_probability must be in (0, 1); got {h}."
-            )
+            raise ValueError(f"flip_probability must be in (0, 1); got {h}.")
         self.flip_probability_ = h
 
         # ── Split P / U ──────────────────────────────────────────────
@@ -834,13 +830,9 @@ class KLDCEClassifier(BasePUClassifier):
 
         # ── Input validation (§4 step 2) ─────────────────────────────
         if self.mom_groups < 1:
-            raise ValueError(
-                f"mom_groups must be >= 1; got {self.mom_groups}."
-            )
+            raise ValueError(f"mom_groups must be >= 1; got {self.mom_groups}.")
         if self.mom_groups > n_U:
-            raise ValueError(
-                f"mom_groups ({self.mom_groups}) cannot exceed n_U ({n_U})."
-            )
+            raise ValueError(f"mom_groups ({self.mom_groups}) cannot exceed n_U ({n_U}).")
         n_dual = n + n_U
         if n_dual > self.max_dual_variables:
             raise ValueError(
@@ -852,9 +844,7 @@ class KLDCEClassifier(BasePUClassifier):
         if class_prior is not None:
             p = float(class_prior)
             if not (0.0 < p <= 1.0):
-                raise ValueError(
-                    f"class_prior must be in (0, 1]; got {p}."
-                )
+                raise ValueError(f"class_prior must be in (0, 1]; got {p}.")
         else:
             p = k / (n * (1.0 - h))
             if not (0.0 < p <= 1.0):
@@ -875,22 +865,20 @@ class KLDCEClassifier(BasePUClassifier):
 
         # ── Validate other hyper-parameters ───────────────────────────
         if self.reg_strength <= 0:
-            raise ValueError(
-                f"reg_strength must be > 0; got {self.reg_strength}."
-            )
+            raise ValueError(f"reg_strength must be > 0; got {self.reg_strength}.")
         if self.centroid_radius <= 0:
-            raise ValueError(
-                f"centroid_radius must be > 0; got {self.centroid_radius}."
-            )
+            raise ValueError(f"centroid_radius must be > 0; got {self.centroid_radius}.")
 
         # ── Random state ──────────────────────────────────────────────
         rng = np.random.RandomState(self.random_state)
 
         # ── ỹ construction (§4 step 4) ────────────────────────────────
-        y_tilde = np.concatenate([
-            np.ones(k, dtype=float),    # P: +1
-            -np.ones(n_U, dtype=float),  # U: -1
-        ])
+        y_tilde = np.concatenate(
+            [
+                np.ones(k, dtype=float),  # P: +1
+                -np.ones(n_U, dtype=float),  # U: -1
+            ]
+        )
 
         # ── MoM centroid (§4 step 5) ─────────────────────────────────
         # Paper: corrupted set = {ỹ_i · x_i | ỹ_i = -1} = {-x_i}
@@ -901,11 +889,7 @@ class KLDCEClassifier(BasePUClassifier):
         S_raw = _centroid_covariance(X_U)
         self.centroid_covariance_raw_ = S_raw
 
-        S_solve = (
-            S_raw + self.covariance_ridge * np.eye(d)
-            if self.covariance_ridge > 0
-            else S_raw
-        )
+        S_solve = S_raw + self.covariance_ridge * np.eye(d) if self.covariance_ridge > 0 else S_raw
 
         # ── Kernel (§4 step 6) ───────────────────────────────────────
         sigma_val = self.sigma
@@ -928,10 +912,12 @@ class KLDCEClassifier(BasePUClassifier):
         Aeq_init[0, :n] = y_tilde
         Aeq_init[0, n:] = -y_tilde[k:]
         lb_init = np.zeros(N_total, dtype=float)
-        ub_init = np.concatenate([
-            np.full(n, C_alpha),
-            np.full(n_U, C_gamma),
-        ])
+        ub_init = np.concatenate(
+            [
+                np.full(n, C_alpha),
+                np.full(n_U, C_gamma),
+            ]
+        )
 
         z0 = _find_feasible_init(Aeq_init, C_eq, lb_init, ub_init)
         mu = m_hat.copy()
@@ -945,12 +931,25 @@ class KLDCEClassifier(BasePUClassifier):
         for t in range(self.max_acs_iter):
             # (a) Fixed μ: build and solve QP
             Q, d_vec, Aeq, beq, lb, ub = _build_dual_qp(
-                mu, X, K, y_tilde, self.reg_strength, sigma_val,
-                n, k, C_eq,
+                mu,
+                X,
+                K,
+                y_tilde,
+                self.reg_strength,
+                sigma_val,
+                n,
+                k,
+                C_eq,
             )
 
             z, qp_diag = _solve_qp_oracle(
-                Q, d_vec, Aeq, beq, lb, ub, z,
+                Q,
+                d_vec,
+                Aeq,
+                beq,
+                lb,
+                ub,
+                z,
                 tol=self.tol,
             )
             dual_obj = qp_diag["dual_obj"]
@@ -971,14 +970,23 @@ class KLDCEClassifier(BasePUClassifier):
 
             # (d) Compute Δ from α, γ
             delta = _rbf_centroid_delta(
-                alpha, gamma, X, y_tilde,
-                self.reg_strength, sigma_val, k,
+                alpha,
+                gamma,
+                X,
+                y_tilde,
+                self.reg_strength,
+                sigma_val,
+                k,
             )
 
             # (e) Update μ via Appendix Eq. 35
             mu_new, cent_info = _update_centroid(
-                m_hat, S_raw, S_solve, delta,
-                self.centroid_radius, self.tol,
+                m_hat,
+                S_raw,
+                S_solve,
+                delta,
+                self.centroid_radius,
+                self.tol,
             )
 
             iter_info["centroid_constraint_residual"] = cent_info["constraint_residual"]
@@ -986,9 +994,18 @@ class KLDCEClassifier(BasePUClassifier):
 
             # (f) Bias recovery
             b0, bias_info = _recover_bias_from_kkt(
-                alpha, gamma, X, K, y_tilde, mu_new,
-                self.reg_strength, sigma_val, C_eq,
-                C_alpha, C_gamma, k,
+                alpha,
+                gamma,
+                X,
+                K,
+                y_tilde,
+                mu_new,
+                self.reg_strength,
+                sigma_val,
+                C_eq,
+                C_alpha,
+                C_gamma,
+                k,
             )
 
             # ── Convergence check ────────────────────────────────────
@@ -1012,9 +1029,7 @@ class KLDCEClassifier(BasePUClassifier):
         self.gamma_unlabeled_ = gamma
         self.unlabeled_indices_ = np.where(~mask_P)[0]
         self.support_indices_ = np.where(
-            (abs(alpha) > 1e-12) | (
-                np.concatenate([np.zeros(k), abs(gamma)]) > 1e-12
-            )
+            (abs(alpha) > 1e-12) | (np.concatenate([np.zeros(k), abs(gamma)]) > 1e-12)
         )[0]
         self.bias_ = b0
         self.centroid_opt_ = mu
@@ -1078,13 +1093,15 @@ class KLDCEClassifier(BasePUClassifier):
     def get_pu_metadata(self) -> dict:
         """Return PU metadata including KLDCE-specific diagnostics."""
         meta = super().get_pu_metadata()
-        meta.update({
-            "flip_probability": getattr(self, "flip_probability_", None),
-            "class_prior": getattr(self, "class_prior_", None),
-            "centroid_radius": self.centroid_radius,
-            "reg_strength": self.reg_strength,
-            "n_acs_iter": getattr(self, "n_acs_iter_", None),
-            "converged": getattr(self, "converged_", False),
-            "bias": getattr(self, "bias_", None),
-        })
+        meta.update(
+            {
+                "flip_probability": getattr(self, "flip_probability_", None),
+                "class_prior": getattr(self, "class_prior_", None),
+                "centroid_radius": self.centroid_radius,
+                "reg_strength": self.reg_strength,
+                "n_acs_iter": getattr(self, "n_acs_iter_", None),
+                "converged": getattr(self, "converged_", False),
+                "bias": getattr(self, "bias_", None),
+            }
+        )
         return meta

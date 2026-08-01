@@ -34,7 +34,12 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 # Directories whose backtick-quoted paths we check in Rule 1.
 VALID_PATH_ROOTS: tuple[str, ...] = (
-    "pu_toolbox", "tests", "scripts", "examples", "docs", "external",
+    "pu_toolbox",
+    "tests",
+    "scripts",
+    "examples",
+    "docs",
+    "external",
 )
 
 # Regex: backtick-wrapped paths like `pu_toolbox/core/base.py`
@@ -46,12 +51,17 @@ DOC_INDEX_EXCLUDED: set[str] = {"README.md"}
 
 # Docs subdirectories excluded from ALL checks.
 _EXCLUDED_DOC_DIRS: set[str] = {
-    "research", "superpowers", "figures", "project_management",
+    "research",
+    "superpowers",
+    "figures",
+    "project_management",
 }
 
 # Files in docs/project_management/ expected to be listed.
 PM_FILES_EXPECTED: set[str] = {
-    "decision_log.md", "process_checklist.md", "division.txt",
+    "decision_log.md",
+    "process_checklist.md",
+    "division.txt",
 }
 
 
@@ -61,11 +71,11 @@ PM_FILES_EXPECTED: set[str] = {
 
 
 class Issue(NamedTuple):
-    rule: str       # e.g. "rule-1"
-    file: str       # relative path to the doc file
+    rule: str  # e.g. "rule-1"
+    file: str  # relative path to the doc file
     line: int | None
     message: str
-    severity: str   # "error" or "warning"
+    severity: str  # "error" or "warning"
 
 
 # ====================================================================
@@ -120,10 +130,15 @@ def check_path_references(md_files: list[Path]) -> list[Issue]:
         text = md_file.read_text(encoding="utf-8")
         for ref_path, line_no in _extract_backtick_paths(text):
             if not (PROJECT_ROOT / ref_path).exists():
-                issues.append(Issue(
-                    "rule-1", _relative(md_file), line_no,
-                    f"referenced file not found: `{ref_path}`", "error",
-                ))
+                issues.append(
+                    Issue(
+                        "rule-1",
+                        _relative(md_file),
+                        line_no,
+                        f"referenced file not found: `{ref_path}`",
+                        "error",
+                    )
+                )
     return issues
 
 
@@ -135,8 +150,11 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
     the file does NOT exist on disk.
     """
     if not structure_md.exists():
-        return [Issue("rule-2", _relative(structure_md), None,
-                       "project_structure.md not found", "error")]
+        return [
+            Issue(
+                "rule-2", _relative(structure_md), None, "project_structure.md not found", "error"
+            )
+        ]
 
     text = structure_md.read_text(encoding="utf-8")
     lines = text.split("\n")
@@ -185,17 +203,26 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
         has_planned = "(planned)" in annotation
 
         if exists and has_planned:
-            issues.append(Issue(
-                "rule-2", _relative(structure_md), line_no,
-                f"`{rel_path}` exists on disk but marked `(planned)` "
-                f"-- remove the annotation", "error",
-            ))
+            issues.append(
+                Issue(
+                    "rule-2",
+                    _relative(structure_md),
+                    line_no,
+                    f"`{rel_path}` exists on disk but marked `(planned)` -- remove the annotation",
+                    "error",
+                )
+            )
         elif not exists and not has_planned:
-            issues.append(Issue(
-                "rule-2", _relative(structure_md), line_no,
-                f"`{rel_path}` does not exist on disk but is NOT marked "
-                f"`(planned)` -- add the annotation", "error",
-            ))
+            issues.append(
+                Issue(
+                    "rule-2",
+                    _relative(structure_md),
+                    line_no,
+                    f"`{rel_path}` does not exist on disk but is NOT marked "
+                    f"`(planned)` -- add the annotation",
+                    "error",
+                )
+            )
 
     return issues
 
@@ -207,14 +234,19 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
     that architecture.md S8 does NOT mark them as (planned).
     """
     if not arch_md.exists():
-        return [Issue("rule-3", _relative(arch_md), None,
-                       "architecture.md not found", "error")]
+        return [Issue("rule-3", _relative(arch_md), None, "architecture.md not found", "error")]
 
     native_paths = _get_native_module_paths()
     if not native_paths:
-        return [Issue("rule-3", _relative(arch_md), None,
-                       "could not extract NATIVE paths from builtin_methods.py",
-                       "warning")]
+        return [
+            Issue(
+                "rule-3",
+                _relative(arch_md),
+                None,
+                "could not extract NATIVE paths from builtin_methods.py",
+                "warning",
+            )
+        ]
 
     text = arch_md.read_text(encoding="utf-8")
     table_entries = _parse_arch_section8_table(text)
@@ -222,11 +254,16 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
 
     for native_path in native_paths:
         if native_path in table_entries and table_entries[native_path]:
-            issues.append(Issue(
-                "rule-3", _relative(arch_md), table_entries[native_path],
-                f"`{native_path}` is NATIVE in registry but marked "
-                f"`(planned)` in architecture.md S8", "error",
-            ))
+            issues.append(
+                Issue(
+                    "rule-3",
+                    _relative(arch_md),
+                    table_entries[native_path],
+                    f"`{native_path}` is NATIVE in registry but marked "
+                    f"`(planned)` in architecture.md S8",
+                    "error",
+                )
+            )
     return issues
 
 
@@ -269,10 +306,7 @@ def _parse_arch_section8_table(text: str) -> dict[str, int | None]:
         return {}
 
     next_section = text.find("\n## 9.", section_start)
-    section_text = (
-        text[section_start:next_section] if next_section != -1
-        else text[section_start:]
-    )
+    section_text = text[section_start:next_section] if next_section != -1 else text[section_start:]
     base_line = text[:section_start].count("\n") + 1
 
     entries: dict[str, int | None] = {}
@@ -304,46 +338,60 @@ def check_index_completeness(
 
     # -- 4a: docs/README.md lists all top-level doc files --
     if not docs_readme.exists():
-        issues.append(Issue("rule-4", "docs/README.md", None,
-                            "docs/README.md not found", "error"))
+        issues.append(Issue("rule-4", "docs/README.md", None, "docs/README.md not found", "error"))
     else:
         text = docs_readme.read_text(encoding="utf-8")
 
         for p in sorted(DOCS_DIR.iterdir()):
-            if p.is_file() and p.suffix == ".md" and p.name not in DOC_INDEX_EXCLUDED:
-                if p.name not in text:
-                    issues.append(Issue(
-                        "rule-4", _relative(docs_readme), None,
-                        f"`{p.name}` exists under docs/ but is not listed "
-                        f"in docs/README.md", "error",
-                    ))
+            if (
+                p.is_file()
+                and p.suffix == ".md"
+                and p.name not in DOC_INDEX_EXCLUDED
+                and p.name not in text
+            ):
+                issues.append(
+                    Issue(
+                        "rule-4",
+                        _relative(docs_readme),
+                        None,
+                        f"`{p.name}` exists under docs/ but is not listed in docs/README.md",
+                        "error",
+                    )
+                )
 
         # Check project_management files
         pm_dir = DOCS_DIR / "project_management"
         if pm_dir.exists():
             for p in sorted(pm_dir.iterdir()):
                 if p.name in PM_FILES_EXPECTED and p.name not in text:
-                    issues.append(Issue(
-                        "rule-4", _relative(docs_readme), None,
-                        f"`project_management/{p.name}` exists but is not "
-                        f"listed in docs/README.md", "warning",
-                    ))
+                    issues.append(
+                        Issue(
+                            "rule-4",
+                            _relative(docs_readme),
+                            None,
+                            f"`project_management/{p.name}` exists but is not "
+                            f"listed in docs/README.md",
+                            "warning",
+                        )
+                    )
 
     # -- 4b: scripts/ mentioned in README.md or CLAUDE.md --
     if SCRIPTS_DIR.exists():
-        readme_text = (
-            root_readme.read_text(encoding="utf-8") if root_readme.exists() else ""
-        )
+        readme_text = root_readme.read_text(encoding="utf-8") if root_readme.exists() else ""
         claude_text = claude_md.read_text(encoding="utf-8") if claude_md else ""
         combined = readme_text + "\n" + claude_text
 
         for p in sorted(SCRIPTS_DIR.glob("*.py")):
             if p.stem != "__init__" and p.stem not in combined:
-                issues.append(Issue(
-                    "rule-4", "README.md / CLAUDE.md", None,
-                    f"script `scripts/{p.name}` is not mentioned in "
-                    f"README.md or CLAUDE.md", "warning",
-                ))
+                issues.append(
+                    Issue(
+                        "rule-4",
+                        "README.md / CLAUDE.md",
+                        None,
+                        f"script `scripts/{p.name}` is not mentioned in README.md or CLAUDE.md",
+                        "warning",
+                    )
+                )
 
     return issues
 

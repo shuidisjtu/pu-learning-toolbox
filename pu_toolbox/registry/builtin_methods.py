@@ -105,7 +105,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.STABLE,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_BUNDLE,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
@@ -124,7 +123,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.STABLE,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/kiryor/nnPUlearning",
@@ -146,7 +144,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
@@ -165,7 +162,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
@@ -187,7 +183,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LLSVM_TNNLS19.rar",
@@ -206,7 +201,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
@@ -225,7 +219,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.SKLEARN,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/MasaKat0/PUlearning",
@@ -244,7 +237,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=False,
         backend=Backend.SKLEARN,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
@@ -263,7 +255,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.API_ONLY,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/VITA-Group/Self-PU",
@@ -282,7 +273,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.NOT_FOUND,
         upstream_url=None,
@@ -304,7 +294,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.NOT_FOUND,
         upstream_url=None,
@@ -323,7 +312,6 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.EXPERIMENTAL,
-
         implementation_status=Impl.NATIVE,
         source_status=Src.NOT_FOUND,
         upstream_url=None,

@@ -37,7 +37,7 @@ def check_random_state(seed: int | np.random.RandomState | None) -> np.random.Ra
     Mirrors ``sklearn.utils.check_random_state`` so sklearn-dependent code
     in the toolbox can use this function without importing sklearn directly.
     """
-    if seed is None or isinstance(seed, (int, np.integer)):
+    if seed is None or isinstance(seed, int | np.integer):
         return np.random.RandomState(seed)
     if isinstance(seed, np.random.RandomState):
         return seed

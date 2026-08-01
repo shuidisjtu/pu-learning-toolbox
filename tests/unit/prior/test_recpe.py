@@ -22,10 +22,12 @@ from pu_toolbox.prior import ReCPEEstimator
 def _make_recpe_data(rng, n_p=60, n_pos_u=50, n_neg_u=100):
     """Generate data suitable for ReCPE: overlapping positive class."""
     p = rng.normal(2.0, 0.5, size=(n_p, 2))
-    u = np.vstack([
-        rng.normal(2.0, 0.5, size=(n_pos_u, 2)),
-        rng.normal(-2.0, 0.5, size=(n_neg_u, 2)),
-    ])
+    u = np.vstack(
+        [
+            rng.normal(2.0, 0.5, size=(n_pos_u, 2)),
+            rng.normal(-2.0, 0.5, size=(n_neg_u, 2)),
+        ]
+    )
     X = np.vstack([p, u])
     y = np.concatenate([np.ones(n_p, dtype=int), np.zeros(len(u), dtype=int)])
     return X, y
@@ -88,7 +90,8 @@ class TestCustomBaseEstimator:
         X = rng.normal(size=(30, 3))
         y = np.concatenate([np.ones(10, dtype=int), np.zeros(20, dtype=int)])
         estimator = ReCPEEstimator(
-            copy_fraction=0.2, base_estimator=ConstantPrior(),
+            copy_fraction=0.2,
+            base_estimator=ConstantPrior(),
         ).fit(X, y)
 
         assert estimator.estimate() == pytest.approx(0.37)
@@ -101,7 +104,8 @@ class TestCustomBaseEstimator:
         estimator = ReCPEEstimator(
             copy_fraction=0.1,
             classifier=CalibratedClassifierCV(
-                SVC(random_state=42), ensemble=False,
+                SVC(random_state=42),
+                ensemble=False,
             ),
         ).fit(X, y)
         assert estimator.classifier_ is not None
@@ -132,8 +136,8 @@ class TestBoundaryConditions:
     @pytest.mark.parametrize(
         "y, match",
         [
-            (np.zeros(20, dtype=int), ""),        # no positives
-            (np.ones(10, dtype=int), ""),          # no unlabeled
+            (np.zeros(20, dtype=int), ""),  # no positives
+            (np.ones(10, dtype=int), ""),  # no unlabeled
         ],
     )
     def test_edge_extreme_label_raises(self, rng, y, match):

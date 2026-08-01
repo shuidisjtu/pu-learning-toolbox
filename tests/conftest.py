@@ -40,8 +40,11 @@ def make_scar_data(rng, n=100, c=0.5, n_features=5, separation=4.0):
     y_true : np.ndarray of shape (2*n,) — {1, 0}
     """
     return _pp_make_scar_dataset(
-        n=n, c=c, n_features=n_features,
-        separation=separation, random_state=rng,
+        n=n,
+        c=c,
+        n_features=n_features,
+        separation=separation,
+        random_state=rng,
     )
 
 
@@ -58,8 +61,11 @@ def make_gaussian_pu_data(rng, n_p=50, n_u=100, n_features=5, separation=2.0):
     class_prior : float
     """
     return _pp_make_gaussian(
-        n_p=n_p, n_u=n_u, n_features=n_features,
-        separation=separation, random_state=rng,
+        n_p=n_p,
+        n_u=n_u,
+        n_features=n_features,
+        separation=separation,
+        random_state=rng,
     )
 
 

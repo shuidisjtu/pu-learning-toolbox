@@ -51,10 +51,7 @@ def _mom_centroid(
         return X_U.mean(axis=0)
 
     if g > n_U:
-        raise ValueError(
-            f"mom_groups ({g}) cannot exceed the number of unlabeled "
-            f"samples ({n_U})."
-        )
+        raise ValueError(f"mom_groups ({g}) cannot exceed the number of unlabeled samples ({n_U}).")
 
     # Shuffle and split into g approximately equal groups
     indices = rng.permutation(n_U)
@@ -62,14 +59,10 @@ def _mom_centroid(
     means = np.array([X_U[grp].mean(axis=0) for grp in groups])  # (g, d)
 
     # Pairwise L2 distances between group means
-    diffs = np.linalg.norm(
-        means[:, None, :] - means[None, :, :], axis=-1
-    )  # (g, g)
+    diffs = np.linalg.norm(means[:, None, :] - means[None, :, :], axis=-1)  # (g, g)
 
     # r_i = median_{j != i} ||m_i - m_j||
-    r = np.array([
-        np.median(np.delete(diffs[i], i)) for i in range(g)
-    ])
+    r = np.array([np.median(np.delete(diffs[i], i)) for i in range(g)])
 
     i_star = int(np.argmin(r))
     return means[i_star]
@@ -107,5 +100,5 @@ def _centroid_covariance(
     n_U = X_U.shape[0]
     sum_X = X_U.sum(axis=0)  # (d,)
 
-    S = (X_U.T @ X_U) / (n_U ** 2) - np.outer(sum_X, sum_X) / (n_U ** 2)
+    S = (X_U.T @ X_U) / (n_U**2) - np.outer(sum_X, sum_X) / (n_U**2)
     return S
