@@ -5,9 +5,21 @@ This subpackage provides reusable utilities for:
 * PU / PNU data generation from fully-labeled data
   (:mod:`pu_toolbox.preprocessing.pu_labeling`)
 * Data profiling / summary statistics
-  (:mod:`pu_toolbox.preprocessing.profiling`)
+  (:mod:`pu_toolbox.preprocessing.data_profiler`)
 """
 
+from pu_toolbox.preprocessing.data_profiler import (
+    IssueSeverity as IssueSeverity,
+)
+from pu_toolbox.preprocessing.data_profiler import (
+    ProfileIssue as ProfileIssue,
+)
+from pu_toolbox.preprocessing.data_profiler import (
+    PUDataProfile as PUDataProfile,
+)
+from pu_toolbox.preprocessing.data_profiler import (
+    profile_pu_data as profile_pu_data,
+)
 from pu_toolbox.preprocessing.profiling import (
     pnu_data_summary as pnu_data_summary,
 )
@@ -52,6 +64,9 @@ from pu_toolbox.preprocessing.selection_bias import (
 )
 
 __all__ = [
+    "IssueSeverity",
+    "PUDataProfile",
+    "ProfileIssue",
     "SAR_MECHANISMS",
     "SARMechanism",
     "make_case_control_labels",
@@ -64,6 +79,7 @@ __all__ = [
     "make_scar_dataset",
     "make_scar_labels",
     "pnu_data_summary",
+    "profile_pu_data",
     "pu_data_summary",
     "scar_diagnostic",
 ]

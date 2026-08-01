@@ -50,6 +50,7 @@ pip install pu-toolbox[all]
 | `development_roadmap.md` | Phase 0–6 任务拆分、版本规划、实施优先级 |
 | `resources_optimized.md` | 论文源码状态、URL、集成策略 |
 | `user/sar_simulation.md` | SCAR/SAR propensity、PU 标签和合成 benchmark 使用指南 |
+| `user/data_profiling.md` | PU 数据质量画像、SCAR/SAR 证据边界与行动建议 |
 | `project_management/decision_log.md` | 项目决策日志 |
 | `project_management/process_checklist.md` | 开发流程检查清单 |
 | `project_management/division.txt` | 任务分工说明 |

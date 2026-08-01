@@ -2,10 +2,9 @@
 
 """Lightweight data profiling for PU / PNU datasets.
 
-These functions provide summary statistics that help users diagnose
-their data before selecting an estimator.  Only basic counts and ratios
-are computed — heavy feature-level analysis is deferred to the full
-Data Profiler planned for Phase 4.
+These functions provide summary statistics and a lightweight diagnostic for
+the labeling mechanism.  The structured Phase 4 profiler lives in
+``data_profiler.py`` and builds on these backward-compatible helpers.
 """
 
 from __future__ import annotations
@@ -100,7 +99,7 @@ def pu_data_summary(
 
     if _is_sparse(X):
         n_features = X.shape[1]
-        has_nan = False  # scipy sparse doesn't store explicit NaN
+        has_nan = bool(np.any(np.isnan(X.data))) if X.nnz > 0 else False
         has_inf = not np.isfinite(X.data).all() if X.nnz > 0 else False
     else:
         n_features = X.shape[1]
@@ -167,7 +166,7 @@ def pnu_data_summary(
 
     if _is_sparse(X):
         n_features = X.shape[1]
-        has_nan = False
+        has_nan = bool(np.any(np.isnan(X.data))) if X.nnz > 0 else False
         has_inf = not np.isfinite(X.data).all() if X.nnz > 0 else False
     else:
         n_features = X.shape[1]
@@ -201,14 +200,20 @@ _SCAR_AUC_THRESHOLD: float = 0.65
 def scar_diagnostic(
     X: np.ndarray | sparse.spmatrix,
     y_pu: np.ndarray,
+    *,
+    y_true: np.ndarray | None = None,
+    cv: int = 3,
+    threshold: float = _SCAR_AUC_THRESHOLD,
+    random_state: int | None = 42,
 ) -> dict:
-    """Quick diagnostic for the SCAR (Selected Completely At Random) assumption.
+    """Diagnose feature dependence in the positive-labeling mechanism.
 
-    Trains a lightweight logistic regression to separate labeled positives
-    (``y_pu == 1``) from unlabeled samples (``y_pu == 0``) using 3-fold
-    cross-validation.  If these two groups are easily separable
-    (AUC >> 0.5), the labeling mechanism likely depends on features,
-    violating the SCAR assumption.
+    When audited ``y_true`` is supplied, the classifier is evaluated only
+    among true positives.  It then directly tests whether selection ``S`` is
+    predictable from ``X`` conditional on ``Y=1``.  Without ``y_true``, the
+    function retains the historical labeled-vs-unlabeled heuristic, but marks
+    it as non-identifying: unlabeled data contain negatives, so high AUC alone
+    cannot distinguish SAR from ordinary class separation under SCAR.
 
     Parameters
     ----------
@@ -217,6 +222,17 @@ def scar_diagnostic(
     y_pu : np.ndarray of shape (n_samples,)
         PU labels (any format accepted by
         :func:`~pu_toolbox.core.labels.normalize_pu_labels`).
+    y_true : np.ndarray of shape (n_samples,), optional
+        Audited binary class labels in ``{0, 1}``.  Labeled positives must be
+        a subset of the audited positives.  Supplying this enables the direct
+        positive-only diagnostic.
+    cv : int, default=3
+        Maximum number of stratified cross-validation folds.  It is reduced
+        automatically to the size of the smaller selection class.
+    threshold : float, default=0.65
+        AUC above which feature dependence is flagged.
+    random_state : int or None, default=42
+        Controls shuffled stratified folds and logistic regression.
 
     Returns
     -------
@@ -224,41 +240,117 @@ def scar_diagnostic(
         Diagnostic result with the following keys:
 
         - ``"separability_auc"`` (float): mean ROC AUC from 3-fold CV.
-        - ``"is_scar_plausible"`` (bool): ``True`` when AUC ≤ threshold.
+        - ``"is_scar_plausible"`` (bool or None): ``True`` when AUC is at or
+          below the threshold; ``None`` when the check is inconclusive.
+        - ``"status"``: ``"plausible"``, ``"at_risk"``, or
+          ``"inconclusive"``.
+        - ``"evidence"``: ``"audited_positives"`` or
+          ``"observed_mixture"``.
+        - ``"is_identifying"``: whether the evidence directly conditions on
+          true positives.
         - ``"message"`` (str): human-readable interpretation.
 
     Notes
     -----
-    The default threshold is 0.65.  An AUC above this value suggests
-    that the labeling mechanism is feature-dependent and SCAR may not
-    hold.
+    SCAR is generally not identifiable from ``(X, S)`` alone.  Treat the
+    observed-mixture mode as a screening signal, not a hypothesis test.
     """
     from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import cross_val_score
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
 
     y = normalize_pu_labels(np.asarray(y_pu))
     _validate_same_length(X, y, label="y_pu")
+    if isinstance(cv, bool) or not isinstance(cv, int | np.integer) or cv < 2:
+        raise ValueError(f"cv must be an integer >= 2; got {cv!r}.")
+    if not np.isfinite(threshold) or not 0.5 < float(threshold) < 1.0:
+        raise ValueError(f"threshold must be in (0.5, 1.0); got {threshold!r}.")
 
-    # Binary target: labeled-P = 1, U = 0 (already canonical)
-    clf = LogisticRegression(max_iter=500, solver="lbfgs", random_state=42)
-    auc_scores = cross_val_score(clf, X, y, cv=3, scoring="roc_auc")
+    evidence = "observed_mixture"
+    is_identifying = False
+    X_diagnostic = X
+    target = y
+    if y_true is not None:
+        true = np.asarray(y_true)
+        if true.ndim != 1:
+            raise ValueError(f"y_true must be 1-D; got ndim={true.ndim}.")
+        _validate_same_length(X, true, label="y_true")
+        unique = set(np.unique(true))
+        if not unique <= {0, 1}:
+            raise ValueError(f"y_true must contain only {{0, 1}} values; got {sorted(unique)}.")
+        if np.any((y == POSITIVE_LABEL) & (true != POSITIVE_LABEL)):
+            raise ValueError("Every labeled positive in y_pu must be positive in y_true.")
+        positive_mask = true == POSITIVE_LABEL
+        X_diagnostic = X[positive_mask]
+        target = y[positive_mask]
+        evidence = "audited_positives"
+        is_identifying = True
+
+    counts = np.bincount(target.astype(int), minlength=2)
+    n_splits = min(int(cv), int(counts.min()))
+    common = {
+        "threshold": float(threshold),
+        "evidence": evidence,
+        "is_identifying": is_identifying,
+        "n_samples_evaluated": int(len(target)),
+        "n_splits": max(n_splits, 0),
+    }
+    if n_splits < 2:
+        message = (
+            "SCAR diagnostic is inconclusive: at least two labeled and two "
+            "unlabeled examples are required in the evaluated population."
+        )
+        return {
+            "separability_auc": float("nan"),
+            "is_scar_plausible": None,
+            "status": "inconclusive",
+            "message": message,
+            **common,
+        }
+
+    splitter = StratifiedKFold(
+        n_splits=n_splits,
+        shuffle=True,
+        random_state=random_state,
+    )
+    clf = make_pipeline(
+        StandardScaler(with_mean=False),
+        LogisticRegression(
+            max_iter=500,
+            solver="lbfgs",
+            random_state=random_state,
+        ),
+    )
+    auc_scores = cross_val_score(
+        clf,
+        X_diagnostic,
+        target,
+        cv=splitter,
+        scoring="roc_auc",
+    )
     mean_auc = float(np.mean(auc_scores))
 
-    is_plausible = mean_auc <= _SCAR_AUC_THRESHOLD
+    is_plausible = mean_auc <= float(threshold)
     if is_plausible:
         message = (
-            f"SCAR assumption is plausible (AUC = {mean_auc:.3f} "
-            f"<= {_SCAR_AUC_THRESHOLD})."
+            f"No strong feature dependence was detected (AUC = {mean_auc:.3f} "
+            f"<= {float(threshold):.3f})."
         )
     else:
         message = (
-            f"SCAR assumption may NOT hold (AUC = {mean_auc:.3f} "
-            f"> {_SCAR_AUC_THRESHOLD}). The labeling mechanism appears "
-            f"feature-dependent."
+            f"Feature dependence was detected (AUC = {mean_auc:.3f} > {float(threshold):.3f})."
+        )
+    if not is_identifying:
+        message += (
+            " This labeled-vs-unlabeled signal is non-identifying because "
+            "unlabeled data mix positives and negatives; it cannot establish SAR."
         )
 
     return {
         "separability_auc": mean_auc,
         "is_scar_plausible": is_plausible,
+        "status": "plausible" if is_plausible else "at_risk",
         "message": message,
+        **common,
     }

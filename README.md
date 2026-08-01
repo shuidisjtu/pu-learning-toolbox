@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 536 项。
+**Status: Phase 1 完成。** 包骨架、core 基类、registry 已完成，14 个论文方法已实现 NATIVE（包括 InfoMax PU、WConPU、DGPU 的 clean-room 核心），PU splitters、基础 metrics、minimal examples 已就位。Self-PU 仍为 `api_only` 占位；当前测试套件为 548 项。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -69,6 +69,22 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 训练算法时只传入 `X, y_pu`。`y_true` 和 `propensity` 仅用于合成 benchmark 评估，
 不能作为训练特征或调参标签。完整示例见
 [`examples/minimal/06_sar_simulation.py`](examples/minimal/06_sar_simulation.py)。
+
+## 训练前数据画像
+
+`profile_pu_data` 检查标签规模、PU 不平衡、非有限值、常数/低方差特征、
+类先验一致性和 SCAR/SAR 证据：
+
+```python
+from pu_toolbox.preprocessing import profile_pu_data
+
+report = profile_pu_data(X, y_pu, class_prior=0.3)
+print(report.format_text())
+```
+
+若有独立审计的真实标签，可传入 `y_true`，在真实正例内部直接检查标记是否依赖特征。
+没有审计标签时，报告会明确标记结果为非识别性筛查信号，不会把可分性误报为 SAR 证明。
+详见 [`docs/user/data_profiling.md`](docs/user/data_profiling.md)。
 
 ## 测试
 

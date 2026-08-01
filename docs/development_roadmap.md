@@ -42,7 +42,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 
 ## Phase 4 — 推荐与诊断 (v0.4)
 
-- Data Profiler、SCAR/SAR 假设提示
+- Data Profiler、SCAR/SAR 假设提示 ✅
 - 算法推荐器（规划中）
 - 诊断报告
 - 类先验与标记倾向敏感性分析

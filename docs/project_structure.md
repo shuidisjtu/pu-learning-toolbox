@@ -31,7 +31,8 @@ pu_toolbox/
     __init__.py
     pu_labeling.py
     selection_bias.py         (SCAR/SAR propensity、标签与合成数据)
-    profiling.py
+    profiling.py              (兼容 summary 与 SCAR 筛查接口)
+    data_profiler.py          (结构化 PU 画像、问题与假设提示)
 
   prior/
     __init__.py
@@ -135,6 +136,7 @@ tests/
       test_pu_labeling.py             # PU/PNU 标签生成
       test_selection_bias.py          # SCAR/SAR propensity、标记率校准与合成数据
       test_profiling.py               # 数据画像统计
+      test_data_profiler.py           # 结构化报告、质量规则与审计诊断
 
 ```
 
@@ -151,6 +153,7 @@ examples/
     04_pnu.py                 (PNU 半监督扩展)
     05_recpe_pipeline.py      (ReCPE 类先验估计 + uPU 联合流程)
     06_sar_simulation.py      (SCAR/SAR 标记机制与 propensity)
+    07_data_profiling.py      (PU 数据画像与 SCAR/SAR 审计提示)
 ```
 
 ## 5. 文档（`docs/`）
@@ -166,6 +169,7 @@ docs/
 
   user/
     sar_simulation.md             # SCAR/SAR 数据模拟与 benchmark 指南
+    data_profiling.md             # 数据画像、可识别性边界与行动建议
 
   research/
     method_cards/
@@ -183,7 +187,6 @@ docs/
     process_checklist.md
     division.txt
 
-  user/                       (planned)
 ```
 
 ## 6. 脚本（`scripts/`）

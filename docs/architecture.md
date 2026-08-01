@@ -13,7 +13,7 @@
 
 | 层 | 模块 | 作用 |
 |---|---|---|
-| Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、数据画像、算法注册、元数据、共享工具 |
+| Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、结构化数据画像、算法注册、元数据、共享工具 |
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
 | Evaluation | `metrics`, `model_selection` | PU 评估指标、PU 分层切分 |
@@ -30,6 +30,10 @@ Registry → 候选算法 → 实现解析 (native / torch)
     ↓
 评估 + 诊断 → 报告
 ```
+
+Data Profiler 输出 `PUDataProfile`：包含基础统计、特征质量、问题级别、行动建议和
+标记机制证据。无审计真值时，SCAR/SAR 提示明确标记为非识别性筛查；提供 `y_true`
+时仅在真实正例内部评估 selection dependence，避免把类别可分性误认为 SAR。
 
 ## 4. 核心 API
 

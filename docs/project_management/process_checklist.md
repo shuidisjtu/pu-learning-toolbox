@@ -46,7 +46,7 @@
 
 ## Phase 4 — 推荐与诊断 (v0.4)
 
-- [ ] Data Profiler、SCAR/SAR 假设提示
+- [x] Data Profiler、SCAR/SAR 假设提示
 - [ ] 算法推荐器（规划中）
 - [ ] 诊断报告
 - [ ] 类先验与标记倾向敏感性分析
@@ -83,3 +83,4 @@
 | 2026-07-27 | 前五篇复现实验规格 | 已补充 CPE、ReCPE、Dist-PU、PUSB、LBE 的数据、调参、对照、统计和验收协议 | 五份对应 Method Card | 文档规格完成；benchmark runner、官方配置锁定和实际多 seed 实验仍待完成 |
 | 2026-07-27 | 前五篇 benchmark 落地 | 统一 JSON runner、5 份官方配置、4 个不可变来源锁；完成 5 方法 × 5 seeds | `benchmarks/assigned_methods/` | 25 trials；新增 runner tests 通过；完整官方数据/GPU/历史环境运行仍待完成 |
 | 2026-07-30 | SAR 模拟与对比 | 公共 propensity/labels/dataset API；SCAR、线性 SAR、非线性 SAR 配对 benchmark | `preprocessing/selection_bias.py`；`benchmarks/assigned_methods/` | 22 个 simulator cases；60 个实际 trials；`536 passed`；ruff、文档链接与测试质量检查通过 |
+| 2026-07-31 | Data Profiler | 结构化质量报告、问题级别/行动建议、SCAR/SAR 可识别性提示与审计模式 | `preprocessing/data_profiler.py`；`docs/user/data_profiling.md` | 12 个 profiler cases；`548 passed`；ruff、文档与测试质量门禁通过 |
