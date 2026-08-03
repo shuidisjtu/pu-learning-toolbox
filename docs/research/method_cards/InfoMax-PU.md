@@ -314,6 +314,10 @@ InfoMaxPUClassifier(
 - 图像/普通数据训练 200 epoch，文本训练 300 epoch；
 - 结果报告 20 次试验的均值与标准误。
 
+项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置和 3-seed 合成
+clean-room 结果。该结果使用短周期 MLP，不满足本节网络、epoch、数据和 20 次试验协议，
+因此 `run_manifest.json` 固定为 `paper_claim=false`。
+
 ## 13. 测试与验收
 
 ### 13.1 数学测试

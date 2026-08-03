@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "dgpu",
+  "source_lock": "../official_sources.lock.json#sources/dgpu",
+  "status": "locked_not_executed",
+  "datasets": {
+    "Fashion-MNIST": "tops positive",
+    "CIFAR-10": "vehicles positive",
+    "CelebA": "male positive"
+  },
+  "training": {
+    "class_prior": "dataset-specific known pi_P",
+    "weak_augmentation": "random crop + horizontal flip",
+    "strong_augmentation": "RandAugment",
+    "debias_strength": 0.8,
+    "confidence_threshold": 0.95,
+    "pseudo_label_fraction_per_class": 0.1,
+    "classifier_optimizer": "Adam",
+    "classifier_learning_rate": 0.0001,
+    "classifier_batch_size": 256,
+    "edm_batch_size": 512,
+    "edm_learning_rate": 0.001,
+    "repetitions": 3,
+    "reported_metric": "test accuracy mean/std"
+  },
+  "external_requirements": [
+    "EDM conditional diffusion training backend",
+    "dataset-specific image pipeline",
+    "GPU resources for iterative generator retraining"
+  ],
+  "claim_policy": "The Gaussian mock/benchmark generator validates orchestration only and is never paper_like."
+}

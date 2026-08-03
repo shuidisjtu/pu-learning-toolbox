@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "locked_at": "2026-08-03",
+  "sources": {
+    "infomax_pu": {
+      "kind": "paper",
+      "doi": "10.1162/neco_a_01337",
+      "arxiv": "1710.05359",
+      "official_code": null,
+      "status": "paper_locked_code_not_found"
+    },
+    "weighted_contrastive_pu": {
+      "kind": "paper",
+      "doi": "10.1109/TNNLS.2025.3530427",
+      "author_pdf": "https://gcatnjust.github.io/ChenGong/paper/yuan_tnnls25.pdf",
+      "official_code": null,
+      "status": "paper_locked_code_not_found"
+    },
+    "dgpu": {
+      "kind": "paper",
+      "doi": "10.1109/TIP.2026.3672381",
+      "author_pdf": "https://gcatnjust.github.io/ChenGong/paper/yuan_tip26.pdf",
+      "official_code": null,
+      "status": "paper_locked_code_not_found"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "data": {
+    "class_prior": 0.4,
+    "n_features": 8,
+    "n_positive": 60,
+    "n_test": 300,
+    "n_unlabeled": 180,
+    "separation": 1.5
+  },
+  "description": "Fast paired synthetic multi-seed benchmark for three native deep PU methods.",
+  "limitations": [
+    "Synthetic Gaussian case-control data only.",
+    "No result in this configuration is an official paper reproduction.",
+    "InfoMax PU uses the toolbox MLP and linear nnPU head, not the paper image/text networks.",
+    "WConPU uses tabular noise augmentation, not SimAugment/RandAugment or visual backbones.",
+    "DGPU uses a benchmark-only Gaussian generator, not an EDM diffusion backend."
+  ],
+  "methods": {
+    "dgpu": {
+      "generator": {
+        "noise_scale": 0.2,
+        "type": "gaussian_conditional"
+      },
+      "parameters": {
+        "annotation_epochs": 4,
+        "batch_size": 64,
+        "confidence_threshold": 0.8,
+        "debias_strength": 0.8,
+        "device": "cpu",
+        "distribution_momentum": 0.99,
+        "generated_samples": 120,
+        "hidden_dim": 24,
+        "initialization_epochs": 8,
+        "learning_rate": 0.001,
+        "pseudo_label_fraction": 0.1,
+        "rounds": 2
+      },
+      "variant": "clean_room_gaussian_generator"
+    },
+    "infomax_pu": {
+      "parameters": {
+        "classifier_epochs": 8,
+        "device": "cpu",
+        "hidden_dim": 24,
+        "learning_rate": 0.001,
+        "representation_dim": 8,
+        "representation_epochs": 8
+      },
+      "variant": "clean_room_purl_linear_nnpu"
+    },
+    "weighted_contrastive_pu": {
+      "parameters": {
+        "batch_size": 64,
+        "contrastive_weight": 0.1,
+        "device": "cpu",
+        "distribution_weight": 0.1,
+        "embedding_dim": 12,
+        "hard_negative_quantile": 0.25,
+        "hidden_dim": 24,
+        "learning_rate": 0.01,
+        "max_epochs": 8,
+        "momentum": 0.99,
+        "pseudo_label_momentum": 0.9,
+        "queue_size": 128,
+        "temperature": 0.07
+      },
+      "variant": "clean_room_tabular_wconpu"
+    }
+  },
+  "protocol": "clean_room",
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2
+  ]
+}

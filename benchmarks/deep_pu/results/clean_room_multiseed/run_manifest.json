@@ -1,0 +1,32 @@
+{
+  "config_sha256": "106049cff57593522deff7807ec99cef22adb6b0525ef01f7ee6cab46aff3d20",
+  "created_at_utc": "2026-08-03T12:54:28.268488+00:00",
+  "environment": {
+    "numpy": "1.26.4",
+    "pandas": "2.2.3",
+    "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
+    "python": "3.12.2",
+    "scikit_learn": "1.7.1",
+    "scipy": "1.15.1",
+    "torch": "2.6.0+cu124"
+  },
+  "git_commit": "6af126071b8a6db2063157866d156b7898fcdf58",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "Synthetic Gaussian case-control data only.",
+    "No result in this configuration is an official paper reproduction.",
+    "InfoMax PU uses the toolbox MLP and linear nnPU head, not the paper image/text networks.",
+    "WConPU uses tabular noise augmentation, not SimAugment/RandAugment or visual backbones.",
+    "DGPU uses a benchmark-only Gaussian generator, not an EDM diffusion backend."
+  ],
+  "n_trials": 9,
+  "paper_claim": false,
+  "protocol": "clean_room",
+  "runner_sha256": "b8585e6ed4d92707cd2ad97e221a69466516d142b90761e8c9d028c2a0416178",
+  "schema_version": 1,
+  "selected_methods": [
+    "infomax_pu",
+    "weighted_contrastive_pu",
+    "dgpu"
+  ]
+}

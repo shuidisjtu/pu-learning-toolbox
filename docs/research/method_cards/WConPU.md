@@ -346,6 +346,10 @@ WeightedContrastivePUClassifier(
 - 训练 800 epoch，不使用 early stopping；
 - 每组独立运行 5 次并报告 6 项分类指标。
 
+项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置和 3-seed 表格合成
+clean-room 结果。当前 runner 验证 queue、prototype、loss 与跨 seed 输出，不包含视觉
+backbone、SimAugment/RandAugment 或 800 epoch，不能标记为本节 paper-like 结果。
+
 ## 15. 测试与验收
 
 - dissimilarity 范围为 `[0,1]`；

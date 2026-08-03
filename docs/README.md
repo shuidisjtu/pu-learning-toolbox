@@ -58,6 +58,7 @@ pip install pu-toolbox[all]
 | `project_management/decision_log.md` | 项目决策日志 |
 | `project_management/process_checklist.md` | 开发流程检查清单 |
 | `project_management/division.txt` | 任务分工说明 |
+| `../benchmarks/deep_pu/README.md` | InfoMax PU、WConPU、DGPU runner、配置锁与多 seed 结果 |
 
 代码贡献、分支、测试、论文复现状态和 benchmark 产物管理见项目根目录
 [`CONTRIBUTING.md`](../CONTRIBUTING.md)。

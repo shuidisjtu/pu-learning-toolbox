@@ -63,7 +63,8 @@
 - [x] Self-PU 接口与实现
 - [x] Dist-PU
 - [x] InfoMax PU、WConPU、DGPU Method Card、核心接口与 registry
-- [ ] InfoMax PU、WConPU、DGPU paper-like benchmark
+- [x] InfoMax PU、WConPU、DGPU 统一 runner、论文配置锁及 clean-room 多 seed benchmark
+- [ ] InfoMax PU、WConPU、DGPU 官方视觉/文本与 EDM paper-like 全量运行
 
 ## 最近完成记录
 
@@ -90,3 +91,4 @@
 | 2026-08-01 | 兼容性与项目治理 | 真实 Python matrix、全目录质量门禁、Hatchling 边界、wheel 安装冒烟、贡献/PR 规范与状态对齐 | `pyproject.toml`；`.github/`；`CONTRIBUTING.md`；`docs/development_compatibility.md` | `562 passed`；104 个 Python 文件 lint/format 通过；wheel/sdist 构建及隔离安装通过 |
 | 2026-08-03 | 类先验与标记倾向敏感性 | 固定输出假设扫描、观测恒等式相容性、指标区间及 JSON/Markdown/CSV 导出 | `diagnostics/sensitivity.py`；`docs/user/sensitivity_analysis.md` | 13 个 sensitivity cases；测试、ruff、文档与测试质量门禁通过 |
 | 2026-08-03 | Self-PU 核心实现 | 动态 trusted set、meta reweight、双 student/EMA teacher 蒸馏、checkpoint 与 registry | `estimators/deep/self_pu.py`；`docs/user/self_pu.md`；Self-PU Method Card | 13 个专项 cases + 统一 contract；完整 paper-like benchmark 待完成 |
+| 2026-08-03 | 深度 PU benchmark | InfoMax PU/WConPU/DGPU 统一 runner、三份论文配置锁、Gaussian generator 和实际多 seed 结果 | `benchmarks/deep_pu/` | 3 methods × 3 seeds = 9 trials；13 个 runner cases；官方视觉/EDM 运行待完成 |

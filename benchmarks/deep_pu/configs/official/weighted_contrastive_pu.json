@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "weighted_contrastive_pu",
+  "source_lock": "../official_sources.lock.json#sources/weighted_contrastive_pu",
+  "status": "locked_not_executed",
+  "datasets": ["CIFAR-10", "SVHN", "STL-10", "Alzheimer MRI"],
+  "models": {
+    "CIFAR-10": "13-layer CNN",
+    "SVHN": "13-layer CNN",
+    "STL-10": "ResNet-18",
+    "Alzheimer MRI": "ResNet-50"
+  },
+  "training": {
+    "projection_dim": 128,
+    "weak_augmentation": "SimAugment",
+    "strong_augmentation": "RandAugment",
+    "queue_size_default": 8192,
+    "queue_size_alzheimer": 4096,
+    "pseudo_label_momentum": 0.9,
+    "encoder_momentum": 0.999,
+    "temperature": 0.07,
+    "optimizer": "SGD",
+    "optimizer_momentum": 0.9,
+    "learning_rate": 0.01,
+    "scheduler": "cosine_annealing",
+    "batch_size_default": 256,
+    "batch_size_alzheimer": 8,
+    "epochs": 800,
+    "repetitions": 5,
+    "early_stopping": false,
+    "loss_weight_grid": [0.001, 0.01, 0.1, 1.0]
+  },
+  "claim_policy": "Execution requires visual backbones and paper augmentations; ordinary CI must not run 800-epoch jobs."
+}

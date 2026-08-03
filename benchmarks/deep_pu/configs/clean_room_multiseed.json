@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "protocol": "clean_room",
+  "description": "Fast paired synthetic multi-seed benchmark for three native deep PU methods.",
+  "seeds": [0, 1, 2],
+  "data": {
+    "n_positive": 60,
+    "n_unlabeled": 180,
+    "n_test": 300,
+    "n_features": 8,
+    "class_prior": 0.4,
+    "separation": 1.5
+  },
+  "methods": {
+    "infomax_pu": {
+      "variant": "clean_room_purl_linear_nnpu",
+      "parameters": {
+        "representation_dim": 8,
+        "hidden_dim": 24,
+        "representation_epochs": 8,
+        "classifier_epochs": 8,
+        "learning_rate": 0.001,
+        "device": "cpu"
+      }
+    },
+    "weighted_contrastive_pu": {
+      "variant": "clean_room_tabular_wconpu",
+      "parameters": {
+        "hidden_dim": 24,
+        "embedding_dim": 12,
+        "queue_size": 128,
+        "temperature": 0.07,
+        "momentum": 0.99,
+        "pseudo_label_momentum": 0.9,
+        "contrastive_weight": 0.1,
+        "distribution_weight": 0.1,
+        "hard_negative_quantile": 0.25,
+        "batch_size": 64,
+        "max_epochs": 8,
+        "learning_rate": 0.01,
+        "device": "cpu"
+      }
+    },
+    "dgpu": {
+      "variant": "clean_room_gaussian_generator",
+      "generator": {
+        "type": "gaussian_conditional",
+        "noise_scale": 0.2
+      },
+      "parameters": {
+        "hidden_dim": 24,
+        "rounds": 2,
+        "initialization_epochs": 8,
+        "annotation_epochs": 4,
+        "generated_samples": 120,
+        "pseudo_label_fraction": 0.1,
+        "confidence_threshold": 0.8,
+        "debias_strength": 0.8,
+        "distribution_momentum": 0.99,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "device": "cpu"
+      }
+    }
+  },
+  "limitations": [
+    "Synthetic Gaussian case-control data only.",
+    "No result in this configuration is an official paper reproduction.",
+    "InfoMax PU uses the toolbox MLP and linear nnPU head, not the paper image/text networks.",
+    "WConPU uses tabular noise augmentation, not SimAugment/RandAugment or visual backbones.",
+    "DGPU uses a benchmark-only Gaussian generator, not an EDM diffusion backend."
+  ]
+}

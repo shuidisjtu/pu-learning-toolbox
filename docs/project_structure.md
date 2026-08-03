@@ -171,6 +171,21 @@ examples/
     10_self_pu.py            (clean validation 下的 Self-PU 三阶段训练)
 ```
 
+## 4.1 Benchmark（`benchmarks/`）
+
+```text
+benchmarks/
+  assigned_methods/            (前五篇 + SCAR/SAR 已执行 benchmark)
+  deep_pu/
+    runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
+    run.py                     (CLI)
+    configs/
+      clean_room_multiseed.json
+      official_sources.lock.json
+      official/               (三份 locked_not_executed paper-like 配置)
+    results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
+```
+
 ## 5. 文档（`docs/`）
 
 ```text

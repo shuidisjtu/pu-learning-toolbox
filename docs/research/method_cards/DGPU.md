@@ -382,6 +382,10 @@ p(o=1\mid x,y=1)
 p(y=1\mid x)^{10}.
 ```
 
+项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置和 3-seed 合成
+clean-room 结果。runner 使用可复现 Gaussian conditional generator 验证 DGPU 编排，
+不使用 EDM，也不构成 Fashion-MNIST/CIFAR-10/CelebA paper-like 结果。
+
 ## 14. 测试与验收
 
 ### 14.1 核心损失

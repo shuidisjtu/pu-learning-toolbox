@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "protocol": "paper_like",
+  "method": "infomax_pu",
+  "source_lock": "../official_sources.lock.json#sources/infomax_pu",
+  "status": "locked_not_executed",
+  "datasets": ["MNIST", "Fashion-MNIST", "20 Newsgroups"],
+  "sampling": {
+    "n_positive": 1000,
+    "n_unlabeled": 2000,
+    "validation_positive": 50,
+    "validation_unlabeled": 200,
+    "repetitions": 20,
+    "reported_dispersion": "standard_error"
+  },
+  "representation": {
+    "ordinary_network": "d-60-20-1",
+    "text_network": "d-30-10-1",
+    "activation": "ReLU",
+    "batch_normalization": true,
+    "optimizer": "SGD",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0005,
+    "ratio_steps": 4,
+    "encoder_steps": 1,
+    "ordinary_epochs": 200,
+    "text_epochs": 300
+  },
+  "classifier": {
+    "network": "m-300-300-300-1"
+  },
+  "claim_policy": "Execution requires paper dataset splits and image/text networks; toolbox synthetic results are clean_room only."
+}
