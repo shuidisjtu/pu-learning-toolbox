@@ -29,5 +29,13 @@
     "dataset-specific image pipeline",
     "GPU resources for iterative generator retraining"
   ],
+  "execution_requirements": {
+    "cuda_required": true,
+    "external_backends": ["conditional_edm"],
+    "restricted_datasets": ["CelebA"],
+    "implementation_gaps": [
+      "Dataset-specific image classifier and weak/strong augmentation adapters are not integrated."
+    ]
+  },
   "claim_policy": "The Gaussian mock/benchmark generator validates orchestration only and is never paper_like."
 }

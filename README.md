@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像、诊断报告和假设敏感性分析已可用；15 个核心 registry 方法均为 NATIVE。深度方法统一 runner、配置锁和 clean-room 多 seed 结果已完成，官方数据与视觉 paper-like 全量运行尚未完成；当前测试套件为 611 项。
+**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像、诊断报告和假设敏感性分析已可用；15 个核心 registry 方法均为 NATIVE。深度方法统一 runner、配置锁、clean-room 多 seed、官方数据执行层与 Fashion-MNIST smoke 已完成；精确视觉 backbone 和 DGPU EDM 全量运行尚未完成。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 

@@ -59,7 +59,8 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 - ~~Self-PU Method Card、接口与核心实现~~ ✅（paper-like benchmark 待完成）
 - ~~Dist-PU~~ ✅
 - ~~InfoMax PU、WConPU、DGPU 核心接口、统一 runner、配置锁和 clean-room 多 seed~~ ✅
-- 官方视觉/文本数据与 DGPU EDM paper-like 全量运行待完成
+- 公开官方数据执行层、可重复 PU split、resume/provenance、Fashion-MNIST smoke 与资源审计 ✅
+- 精确视觉 backbone、历史 split、授权数据与 DGPU EDM paper-like 全量运行待完成
 
 ## 工作包分解
 
@@ -80,7 +81,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 | WP12 | SAR 抽象、selection bias 模拟器 | P2 | WP1, WP8 |
 | WP13 | PUSB ✅ / LBE ✅ / LLSVM ✅ | P2 | WP11, WP12 |
 | WP14 | Self-PU / Dist-PU ✅ | P2 | WP6, WP11 |
-| WP15 | InfoMax / WConPU / DGPU 核心接口、runner、配置锁、clean-room multi-seed ✅；官方视觉/EDM 运行待完成 | P3 | WP14 |
+| WP15 | InfoMax / WConPU / DGPU 核心接口、runner、配置锁、clean-room 与 Fashion-MNIST official-data smoke ✅；精确视觉/EDM 运行待完成 | P3 | WP14 |
 
 ## 版本路线
 

@@ -64,6 +64,8 @@
 - [x] Dist-PU
 - [x] InfoMax PU、WConPU、DGPU Method Card、核心接口与 registry
 - [x] InfoMax PU、WConPU、DGPU 统一 runner、论文配置锁及 clean-room 多 seed benchmark
+- [x] 公开官方数据加载、确定性 PU split、断点续跑、provenance 与 Fashion-MNIST 3-seed smoke
+- [x] 完整论文配置运行前审计（GPU、EDM、授权数据、实现差距分别报告）
 - [ ] InfoMax PU、WConPU、DGPU 官方视觉/文本与 EDM paper-like 全量运行
 
 ## 最近完成记录
@@ -92,3 +94,4 @@
 | 2026-08-03 | 类先验与标记倾向敏感性 | 固定输出假设扫描、观测恒等式相容性、指标区间及 JSON/Markdown/CSV 导出 | `diagnostics/sensitivity.py`；`docs/user/sensitivity_analysis.md` | 13 个 sensitivity cases；测试、ruff、文档与测试质量门禁通过 |
 | 2026-08-03 | Self-PU 核心实现 | 动态 trusted set、meta reweight、双 student/EMA teacher 蒸馏、checkpoint 与 registry | `estimators/deep/self_pu.py`；`docs/user/self_pu.md`；Self-PU Method Card | 13 个专项 cases + 统一 contract；完整 paper-like benchmark 待完成 |
 | 2026-08-03 | 深度 PU benchmark | InfoMax PU/WConPU/DGPU 统一 runner、三份论文配置锁、Gaussian generator 和实际多 seed 结果 | `benchmarks/deep_pu/` | 3 methods × 3 seeds = 9 trials；13 个 runner cases；官方视觉/EDM 运行待完成 |
+| 2026-08-04 | 深度 PU 官方数据执行层 | 公开数据加载、确定性 case-control split、resume 防混写、原始数据/split/配置/代码哈希与完整配置 preflight | `benchmarks/deep_pu/official_data.py`；`preflight_paper.py`；official-data 配置与结果 | Fashion-MNIST 3 seeds 已执行；ROC-AUC `0.4420 ± 0.0874`；`623 passed`；完整视觉/EDM 仍按 blocker 清单推进 |

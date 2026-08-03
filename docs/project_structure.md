@@ -179,11 +179,17 @@ benchmarks/
   deep_pu/
     runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
     run.py                     (CLI)
+    official_data.py           (公开数据、确定性 PU split、resume 与 provenance)
+    run_official_data.py       (official-data CLI)
+    preflight_paper.py         (GPU/EDM/授权数据/实现差距审计)
     configs/
       clean_room_multiseed.json
+      official_data_smoke_fashion_mnist.json
       official_sources.lock.json
       official/               (三份 locked_not_executed paper-like 配置)
     results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
+    results/official_data_smoke_fashion_mnist/ (真实数据 3-seed smoke)
+    results/official_preflight/ (当前节点完整配置 blocker 报告)
 ```
 
 ## 5. 文档（`docs/`）

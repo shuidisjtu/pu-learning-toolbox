@@ -1,0 +1,442 @@
+# ruff: noqa: N803, N806
+
+"""Official-data smoke runner and reproducible PU dataset construction."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import platform
+import sys
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from importlib import metadata
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score
+
+from .runner import SUPPORTED_METHODS, _build_estimator, _canonical_hash, _git_value
+
+PUBLIC_DATASETS = {
+    "mnist",
+    "fashion_mnist",
+    "cifar10",
+    "twenty_newsgroups",
+}
+RESTRICTED_DATASETS = {"alzheimer_mri", "celeba"}
+
+
+@dataclass(frozen=True)
+class PUDataset:
+    """Materialized, auditable train/test data for one PU trial."""
+
+    X_train: np.ndarray
+    y_pu: np.ndarray
+    X_test: np.ndarray
+    y_test: np.ndarray
+    manifest: dict[str, Any]
+
+
+def _require_int(config: dict[str, Any], name: str) -> int:
+    value = config.get(name)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(f"dataset.{name} must be a positive integer")
+    return value
+
+
+def load_official_data_config(path: str | Path) -> dict[str, Any]:
+    """Load a deliberately non-paper-claiming official-data run config."""
+    config = json.loads(Path(path).read_text(encoding="utf-8"))
+    if config.get("schema_version") != 1:
+        raise ValueError("official-data config schema_version must be 1")
+    if config.get("protocol") != "official_data":
+        raise ValueError("official-data runner requires protocol='official_data'")
+    if config.get("paper_claim") is not False:
+        raise ValueError("official-data smoke runs must set paper_claim=false")
+    if config.get("fidelity_level") not in {"smoke", "paper_protocol"}:
+        raise ValueError("fidelity_level must be 'smoke' or 'paper_protocol'")
+
+    seeds = config.get("seeds")
+    if (
+        not isinstance(seeds, list)
+        or not seeds
+        or any(isinstance(seed, bool) or not isinstance(seed, int) or seed < 0 for seed in seeds)
+    ):
+        raise ValueError("seeds must be a non-empty list of non-negative integers")
+
+    dataset = config.get("dataset", {})
+    name = dataset.get("name")
+    if name not in PUBLIC_DATASETS:
+        raise ValueError(f"dataset.name must be one of {sorted(PUBLIC_DATASETS)}")
+    positive_classes = dataset.get("positive_classes")
+    if not isinstance(positive_classes, list) or not positive_classes:
+        raise ValueError("dataset.positive_classes must be a non-empty list")
+    for field in ("n_labeled_positive", "n_unlabeled", "n_test"):
+        _require_int(dataset, field)
+
+    methods = config.get("methods")
+    if not isinstance(methods, dict) or not methods:
+        raise ValueError("methods must be a non-empty object")
+    unknown = sorted(set(methods) - set(SUPPORTED_METHODS))
+    if unknown:
+        raise ValueError(f"unsupported deep PU methods: {unknown}")
+    return config
+
+
+def make_pu_split(
+    X_train: np.ndarray,
+    labels_train: np.ndarray,
+    X_test: np.ndarray,
+    labels_test: np.ndarray,
+    *,
+    positive_classes: list[int | str],
+    n_labeled_positive: int,
+    n_unlabeled: int,
+    n_test: int,
+    seed: int,
+) -> PUDataset:
+    """Create a deterministic case-control split without train/test leakage."""
+    X_train = np.asarray(X_train)
+    labels_train = np.asarray(labels_train)
+    X_test = np.asarray(X_test)
+    labels_test = np.asarray(labels_test)
+    if len(X_train) != len(labels_train) or len(X_test) != len(labels_test):
+        raise ValueError("feature and label lengths do not align")
+    if X_train.ndim != 2 or X_test.ndim != 2 or X_train.shape[1] != X_test.shape[1]:
+        raise ValueError("train/test features must be aligned 2-D matrices")
+
+    train_binary = np.isin(labels_train, positive_classes).astype(int)
+    test_binary = np.isin(labels_test, positive_classes).astype(int)
+    positive_pool = np.flatnonzero(train_binary == 1)
+    if n_labeled_positive > len(positive_pool):
+        raise ValueError("not enough training positives for n_labeled_positive")
+    if n_labeled_positive + n_unlabeled > len(X_train):
+        raise ValueError("requested labeled and unlabeled samples exceed training data")
+    if n_test > len(X_test):
+        raise ValueError("requested n_test exceeds test data")
+
+    rng = np.random.default_rng(seed)
+    labeled = rng.choice(positive_pool, size=n_labeled_positive, replace=False)
+    remaining = np.setdiff1d(np.arange(len(X_train)), labeled, assume_unique=False)
+    unlabeled = rng.choice(remaining, size=n_unlabeled, replace=False)
+    selected_test = rng.choice(len(X_test), size=n_test, replace=False)
+    if np.unique(test_binary[selected_test]).size < 2:
+        raise ValueError("sampled test split contains only one true class")
+
+    train_indices = np.concatenate([labeled, unlabeled])
+    y_pu = np.concatenate(
+        [np.ones(n_labeled_positive, dtype=int), np.zeros(n_unlabeled, dtype=int)]
+    )
+    digest = hashlib.sha256(
+        np.concatenate([train_indices, selected_test]).astype("<i8").tobytes()
+    ).hexdigest()
+    manifest = {
+        "seed": seed,
+        "positive_classes": list(positive_classes),
+        "n_labeled_positive": n_labeled_positive,
+        "n_unlabeled": n_unlabeled,
+        "n_test": n_test,
+        "hidden_unlabeled_positive_rate": float(train_binary[unlabeled].mean()),
+        "test_positive_rate": float(test_binary[selected_test].mean()),
+        "split_indices_sha256": digest,
+        "labeled_unlabeled_overlap": int(np.intersect1d(labeled, unlabeled).size),
+    }
+    return PUDataset(
+        X_train=np.asarray(X_train[train_indices], dtype=np.float32),
+        y_pu=y_pu,
+        X_test=np.asarray(X_test[selected_test], dtype=np.float32),
+        y_test=test_binary[selected_test],
+        manifest=manifest,
+    )
+
+
+def _vision_arrays(name: str, root: Path, *, download: bool) -> tuple[np.ndarray, ...]:
+    try:
+        from torchvision import datasets
+    except ImportError as exc:
+        raise ImportError("vision datasets require the 'research' optional dependencies") from exc
+
+    classes = {
+        "mnist": datasets.MNIST,
+        "fashion_mnist": datasets.FashionMNIST,
+        "cifar10": datasets.CIFAR10,
+    }
+    dataset_class = classes[name]
+    train = dataset_class(root=str(root), train=True, download=download)
+    test = dataset_class(root=str(root), train=False, download=download)
+    train_data = np.asarray(train.data)
+    test_data = np.asarray(test.data)
+    train_labels = np.asarray(train.targets)
+    test_labels = np.asarray(test.targets)
+    scale = 255.0
+    return (
+        train_data.reshape(len(train_data), -1).astype(np.float32) / scale,
+        train_labels,
+        test_data.reshape(len(test_data), -1).astype(np.float32) / scale,
+        test_labels,
+    )
+
+
+def _newsgroups_arrays(
+    root: Path,
+    *,
+    download: bool,
+    max_features: int,
+) -> tuple[np.ndarray, ...]:
+    from sklearn.datasets import fetch_20newsgroups
+
+    kwargs = {
+        "data_home": root,
+        "download_if_missing": download,
+        "remove": ("headers", "footers", "quotes"),
+    }
+    train = fetch_20newsgroups(subset="train", **kwargs)
+    test = fetch_20newsgroups(subset="test", **kwargs)
+    vectorizer = TfidfVectorizer(max_features=max_features, dtype=np.float32)
+    X_train = vectorizer.fit_transform(train.data).toarray()
+    X_test = vectorizer.transform(test.data).toarray()
+    return X_train, np.asarray(train.target), X_test, np.asarray(test.target)
+
+
+def load_public_dataset(
+    config: dict[str, Any],
+    root: str | Path,
+    *,
+    download: bool,
+) -> tuple[np.ndarray, ...]:
+    """Load and flatten one supported public dataset using its canonical split."""
+    name = config["name"]
+    root = Path(root).expanduser().resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    if name == "twenty_newsgroups":
+        return _newsgroups_arrays(
+            root,
+            download=download,
+            max_features=int(config.get("max_features", 2000)),
+        )
+    return _vision_arrays(name, root, download=download)
+
+
+def build_dataset(
+    dataset_config: dict[str, Any],
+    root: str | Path,
+    *,
+    seed: int,
+    download: bool,
+    loader: Callable[..., tuple[np.ndarray, ...]] = load_public_dataset,
+) -> PUDataset:
+    """Load a public dataset and apply the configured deterministic PU split."""
+    arrays = loader(dataset_config, root, download=download)
+    return make_pu_split(
+        *arrays,
+        positive_classes=dataset_config["positive_classes"],
+        n_labeled_positive=int(dataset_config["n_labeled_positive"]),
+        n_unlabeled=int(dataset_config["n_unlabeled"]),
+        n_test=int(dataset_config["n_test"]),
+        seed=seed,
+    )
+
+
+def environment_preflight(
+    config: dict[str, Any],
+    *,
+    data_root: str | Path,
+    download: bool,
+) -> dict[str, Any]:
+    """Report execution readiness without interpreting blockers as results."""
+    try:
+        import torch
+
+        cuda_available = bool(torch.cuda.is_available())
+        cuda_devices = int(torch.cuda.device_count())
+    except ImportError:
+        cuda_available = False
+        cuda_devices = 0
+
+    requested_device = config.get("runtime", {}).get("device", "cpu")
+    dataset_name = config["dataset"]["name"]
+    blockers: list[str] = []
+    warnings: list[str] = []
+    if requested_device.startswith("cuda") and not cuda_available:
+        blockers.append("CUDA was requested but no usable CUDA device is available")
+    if "dgpu" in config["methods"] and not config["methods"]["dgpu"].get("generator_backend"):
+        blockers.append("DGPU requires a configured conditional EDM generator backend")
+    if dataset_name in RESTRICTED_DATASETS:
+        blockers.append(f"{dataset_name} requires separately authorized dataset access")
+    if config["fidelity_level"] == "paper_protocol":
+        warnings.append("paper_protocol validates orchestration but is not a paper result")
+    if config["dataset"].get("representation") == "flattened_pixels":
+        warnings.append("flattened pixels do not reproduce the paper visual backbone")
+
+    return {
+        "ready": not blockers,
+        "blockers": blockers,
+        "warnings": warnings,
+        "requested_device": requested_device,
+        "cuda_available": cuda_available,
+        "cuda_device_count": cuda_devices,
+        "dataset": dataset_name,
+        "data_root": str(Path(data_root).expanduser().resolve()),
+        "download_enabled": download,
+    }
+
+
+def _version(name: str) -> str | None:
+    try:
+        return metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return None
+
+
+def _write_json(path: Path, value: dict[str, Any]) -> None:
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _dataset_artifacts(data_root: str | Path, dataset_name: str) -> list[dict[str, Any]]:
+    """Hash canonical downloaded archives without copying data into the repository."""
+    folder_names = {
+        "mnist": "MNIST",
+        "fashion_mnist": "FashionMNIST",
+        "cifar10": "cifar-10-batches-py",
+    }
+    folder = folder_names.get(dataset_name)
+    if folder is None:
+        return []
+    root = Path(data_root).expanduser().resolve()
+    candidates = sorted((root / folder / "raw").glob("*.gz"))
+    if dataset_name == "cifar10":
+        candidates = sorted(root.glob("cifar-10-python.tar.gz"))
+    return [
+        {
+            "path": str(path.relative_to(root)),
+            "bytes": path.stat().st_size,
+            "sha256": _sha256_file(path),
+        }
+        for path in candidates
+    ]
+
+
+def run_official_data_benchmark(
+    config: dict[str, Any],
+    output_dir: str | Path,
+    *,
+    data_root: str | Path,
+    download: bool = False,
+    resume: bool = False,
+    loader: Callable[..., tuple[np.ndarray, ...]] = load_public_dataset,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Run public-data trials and persist every completed seed incrementally."""
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    resolved_path = output / "resolved_config.json"
+    if resume and resolved_path.exists():
+        previous_config = json.loads(resolved_path.read_text(encoding="utf-8"))
+        if _canonical_hash(previous_config) != _canonical_hash(config):
+            raise ValueError("cannot resume: current config differs from resolved_config.json")
+    preflight = environment_preflight(config, data_root=data_root, download=download)
+    _write_json(output / "preflight.json", preflight)
+    if not preflight["ready"]:
+        raise RuntimeError("preflight blocked execution: " + "; ".join(preflight["blockers"]))
+
+    trials_path = output / "trials.csv"
+    previous = pd.read_csv(trials_path) if resume and trials_path.exists() else pd.DataFrame()
+    completed = (
+        set(zip(previous["method"], previous["seed"], strict=False))
+        if not previous.empty
+        else set()
+    )
+    rows: list[dict[str, Any]] = previous.to_dict("records")
+    split_manifests: dict[str, Any] = {}
+    class_prior = float(config["dataset"]["class_prior"])
+    for seed in config["seeds"]:
+        dataset = build_dataset(
+            config["dataset"], data_root, seed=seed, download=download, loader=loader
+        )
+        split_manifests[str(seed)] = dataset.manifest
+        for method, method_config in config["methods"].items():
+            if (method, seed) in completed:
+                continue
+            started = time.perf_counter()
+            estimator = _build_estimator(
+                method, method_config, class_prior=class_prior, seed=seed
+            ).fit(dataset.X_train, dataset.y_pu)
+            scores = np.asarray(estimator.decision_function(dataset.X_test), dtype=float)
+            predictions = (scores >= 0.0).astype(int)
+            rows.append(
+                {
+                    "protocol": "official_data",
+                    "fidelity_level": config["fidelity_level"],
+                    "paper_claim": False,
+                    "dataset": config["dataset"]["name"],
+                    "method": method,
+                    "implementation_variant": method_config["variant"],
+                    "seed": seed,
+                    "n_train": len(dataset.X_train),
+                    "n_test": len(dataset.X_test),
+                    "class_prior_used": class_prior,
+                    "hidden_unlabeled_positive_rate": dataset.manifest[
+                        "hidden_unlabeled_positive_rate"
+                    ],
+                    "accuracy": float(accuracy_score(dataset.y_test, predictions)),
+                    "balanced_accuracy": float(
+                        balanced_accuracy_score(dataset.y_test, predictions)
+                    ),
+                    "roc_auc": float(roc_auc_score(dataset.y_test, scores)),
+                    "elapsed_seconds": time.perf_counter() - started,
+                }
+            )
+            pd.DataFrame(rows).sort_values(["method", "seed"]).to_csv(trials_path, index=False)
+
+    trials = pd.DataFrame(rows).sort_values(["method", "seed"]).reset_index(drop=True)
+    metrics = ["accuracy", "balanced_accuracy", "roc_auc", "elapsed_seconds"]
+    summary = (
+        trials.groupby(["dataset", "method"])[metrics].agg(["mean", "std", "count"]).reset_index()
+    )
+    summary.columns = ["_".join(filter(None, item)) for item in summary.columns.to_flat_index()]
+    summary.to_csv(output / "summary.csv", index=False)
+
+    project_root = Path(__file__).resolve().parents[2]
+    dirty = _git_value(project_root, ["git", "status", "--porcelain"])
+    manifest = {
+        "schema_version": 1,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "protocol": "official_data",
+        "fidelity_level": config["fidelity_level"],
+        "paper_claim": False,
+        "n_trials": len(trials),
+        "resume_enabled": resume,
+        "config_sha256": _canonical_hash(config),
+        "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "git_commit": _git_value(project_root, ["git", "rev-parse", "HEAD"]),
+        "git_worktree_dirty": None if dirty is None else bool(dirty),
+        "dataset_artifacts": _dataset_artifacts(data_root, config["dataset"]["name"]),
+        "dataset_splits": split_manifests,
+        "environment": {
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+            "numpy": _version("numpy"),
+            "pandas": _version("pandas"),
+            "scikit_learn": _version("scikit-learn"),
+            "torch": _version("torch"),
+            "torchvision": _version("torchvision"),
+        },
+        "claim_policy": config["claim_policy"],
+        "known_gaps": config.get("known_gaps", []),
+    }
+    _write_json(output / "run_manifest.json", manifest)
+    _write_json(resolved_path, config)
+    return trials, summary

@@ -31,5 +31,14 @@
     "early_stopping": false,
     "loss_weight_grid": [0.001, 0.01, 0.1, 1.0]
   },
+  "execution_requirements": {
+    "cuda_required": true,
+    "external_backends": [],
+    "restricted_datasets": ["Alzheimer MRI"],
+    "implementation_gaps": [
+      "13-layer CNN, ResNet-18, and ResNet-50 visual adapters are not integrated in the benchmark runner.",
+      "SimAugment and RandAugment image pipelines are not integrated with the native estimator."
+    ]
+  },
   "claim_policy": "Execution requires visual backbones and paper augmentations; ordinary CI must not run 800-epoch jobs."
 }

@@ -1,0 +1,47 @@
+{
+  "accepted_restricted_datasets": [],
+  "all_ready": false,
+  "capabilities": {
+    "cuda_available": false,
+    "cuda_device_count": 0,
+    "edm_backend": null
+  },
+  "created_at_utc": "2026-08-03T17:00:02.409123+00:00",
+  "methods": [
+    {
+      "blockers": [
+        "Dataset-specific image classifier and weak/strong augmentation adapters are not integrated.",
+        "No usable CUDA device is available",
+        "No conditional EDM backend was supplied",
+        "Dataset access has not been confirmed: CelebA"
+      ],
+      "config": "benchmarks/deep_pu/configs/official/dgpu.json",
+      "locked_status": "locked_not_executed",
+      "method": "dgpu",
+      "ready_for_full_run": false
+    },
+    {
+      "blockers": [
+        "Exact m-300-300-300-1 downstream classifier is not integrated in the native estimator.",
+        "Paper split identities and the exact image/text preprocessing pipeline are not archived."
+      ],
+      "config": "benchmarks/deep_pu/configs/official/infomax_pu.json",
+      "locked_status": "locked_not_executed",
+      "method": "infomax_pu",
+      "ready_for_full_run": false
+    },
+    {
+      "blockers": [
+        "13-layer CNN, ResNet-18, and ResNet-50 visual adapters are not integrated in the benchmark runner.",
+        "SimAugment and RandAugment image pipelines are not integrated with the native estimator.",
+        "No usable CUDA device is available",
+        "Dataset access has not been confirmed: Alzheimer MRI"
+      ],
+      "config": "benchmarks/deep_pu/configs/official/weighted_contrastive_pu.json",
+      "locked_status": "locked_not_executed",
+      "method": "weighted_contrastive_pu",
+      "ready_for_full_run": false
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,49 @@
+{
+  "claim_policy": "This run validates official Fashion-MNIST ingestion, deterministic PU splitting, native estimator execution, resume, and artifact provenance. It is not a paper result.",
+  "dataset": {
+    "class_prior": 0.5,
+    "n_labeled_positive": 100,
+    "n_test": 500,
+    "n_unlabeled": 300,
+    "name": "fashion_mnist",
+    "positive_classes": [
+      0,
+      2,
+      3,
+      4,
+      6
+    ],
+    "positive_definition": "tops",
+    "representation": "flattened_pixels"
+  },
+  "fidelity_level": "smoke",
+  "known_gaps": [
+    "Uses flattened pixels instead of a paper visual backbone.",
+    "Uses 5 training epochs instead of the paper-scale schedule.",
+    "Uses 3 seeds instead of the paper's 20 repetitions."
+  ],
+  "methods": {
+    "infomax_pu": {
+      "parameters": {
+        "classifier_epochs": 5,
+        "device": "cpu",
+        "hidden_dim": 60,
+        "learning_rate": 0.001,
+        "representation_dim": 20,
+        "representation_epochs": 5
+      },
+      "variant": "native_purl_flattened_fashion_mnist_smoke"
+    }
+  },
+  "paper_claim": false,
+  "protocol": "official_data",
+  "runtime": {
+    "device": "cpu"
+  },
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2
+  ]
+}

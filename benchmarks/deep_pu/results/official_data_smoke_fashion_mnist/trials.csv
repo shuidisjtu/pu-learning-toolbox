@@ -1,0 +1,4 @@
+protocol,fidelity_level,paper_claim,dataset,method,implementation_variant,seed,n_train,n_test,class_prior_used,hidden_unlabeled_positive_rate,accuracy,balanced_accuracy,roc_auc,elapsed_seconds
+official_data,smoke,False,fashion_mnist,infomax_pu,native_purl_flattened_fashion_mnist_smoke,0,400,500,0.5,0.53,0.39,0.3954059983026693,0.40228339017789944,0.09043121058493853
+official_data,smoke,False,fashion_mnist,infomax_pu,native_purl_flattened_fashion_mnist_smoke,1,400,500,0.5,0.5533333333333333,0.508,0.5061200979215668,0.38149410390566246,0.06815921142697334
+official_data,smoke,False,fashion_mnist,infomax_pu,native_purl_flattened_fashion_mnist_smoke,2,400,500,0.5,0.5066666666666667,0.504,0.48505105884993344,0.5421856714599464,0.06640263181179762

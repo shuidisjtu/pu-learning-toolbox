@@ -1,8 +1,9 @@
 # Deep PU Benchmarks
 
-本目录覆盖 InfoMax PU、Weighted Contrastive PU 和 DGPU。所有输出明确分为两层：
+本目录覆盖 InfoMax PU、Weighted Contrastive PU 和 DGPU。所有输出明确分为三层：
 
 - `clean_room`：可立即执行的合成 case-control 多 seed 实验；
+- `official_data`：使用公开官方数据验证下载、PU split、训练、resume 和 provenance；
 - `paper_like`：从论文锁定的视觉/文本配置，当前状态为 `locked_not_executed`。
 
 ## 运行 clean-room benchmark
@@ -24,6 +25,42 @@ python -m benchmarks.deep_pu.run \
 
 每次运行生成逐 seed `trials.csv`、均值/样本标准差 `summary.csv`、实际配置和包含代码、
 环境及哈希的 `run_manifest.json`。manifest 永远设置 `paper_claim=false`。
+
+## 运行 official-data smoke
+
+公开数据保存在仓库外，避免误提交大文件。首次运行会下载 Fashion-MNIST：
+
+```bash
+python -m benchmarks.deep_pu.run_official_data \
+  --config benchmarks/deep_pu/configs/official_data_smoke_fashion_mnist.json \
+  --output benchmarks/deep_pu/results/official_data_smoke_fashion_mnist \
+  --data-root /tmp/pu-toolbox-data \
+  --download \
+  --resume
+```
+
+下载完成后可去掉 `--download`。`--resume` 只跳过配置一致且已完成的
+`(method, seed)`；配置变化会直接报错，防止不同实验混写。runner 支持 MNIST、
+Fashion-MNIST、CIFAR-10 和 20 Newsgroups。视觉数据在当前 native 二维接口中使用
+flattened pixels，因此只能标记为 smoke。
+
+每次执行保存 `preflight.json`、逐 seed `trials.csv`、`summary.csv`、
+`resolved_config.json` 和 `run_manifest.json`。manifest 包含原始数据 SHA-256、split 哈希、
+配置/runner 哈希、Git 状态及依赖版本。
+
+## 审计完整论文配置
+
+在训练前检查 GPU、EDM backend、授权数据和未接入模块：
+
+```bash
+python -m benchmarks.deep_pu.preflight_paper \
+  --config-dir benchmarks/deep_pu/configs/official \
+  --output benchmarks/deep_pu/results/official_preflight/current_node.json
+```
+
+迁移到 GPU 节点后，可用 `--edm-backend <import-path>` 声明 DGPU backend，并用
+`--accept-dataset "CelebA"` 或 `--accept-dataset "Alzheimer MRI"` 明确确认授权数据。
+这些参数只消除资源阻塞，不会自动消除配置中记录的实现差距。
 
 ## 方法适配
 
@@ -49,8 +86,20 @@ InfoMax PU 的短周期 PURL/nnPU 结果高度依赖初始化；这是当前快�
 论文 200/300 epoch 网络。完整逐 seed 数据、环境和限制分别见 `trials.csv`、`summary.csv`
 和 `run_manifest.json`。
 
+Fashion-MNIST official-data smoke 已完成 seed `0,1,2`。四个官方压缩文件通过 MD5，
+逐文件 SHA-256 记录在 manifest 中；InfoMax PU 的 ROC-AUC 为
+`0.4420 ± 0.0874`，balanced accuracy 为 `0.4622 ± 0.0588`。该结果使用 400 个训练样本、
+500 个测试样本、flattened pixels 和 5 epoch，只证明真实数据执行链路，不用于性能比较。
+
+当前节点的完整配置审计结果为 `all_ready=false`：无可用 CUDA；WConPU 尚缺视觉 backbone
+与增强适配；DGPU 尚缺条件 EDM backend；CelebA 与 Alzheimer MRI 访问未确认；InfoMax
+尚缺论文精确下游网络和历史 split。详见 `results/official_preflight/current_node.json`。
+
 ## 结论边界
 
 clean-room 结果只回答以下问题：当前 native 接口能否在相同数据和 seed 下稳定执行，输出
 是否有限，跨 seed 波动如何，方法特有状态是否完整。它不回答论文视觉 backbone 是否达到
 原文精度，也不验证 DGPU 的扩散图像质量。
+
+同样，`official_data` 只比 clean-room 多验证真实数据来源和 PU split。只有消除 official
+配置的全部 blocker、执行完整重复次数并独立核对论文表格后，才能把结果升级为论文复现。

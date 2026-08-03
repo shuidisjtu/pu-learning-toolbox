@@ -1,0 +1,13 @@
+{
+  "blockers": [],
+  "cuda_available": false,
+  "cuda_device_count": 0,
+  "data_root": "/tmp/pu-toolbox-data",
+  "dataset": "fashion_mnist",
+  "download_enabled": false,
+  "ready": true,
+  "requested_device": "cpu",
+  "warnings": [
+    "flattened pixels do not reproduce the paper visual backbone"
+  ]
+}

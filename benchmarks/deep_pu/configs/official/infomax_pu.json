@@ -29,5 +29,14 @@
   "classifier": {
     "network": "m-300-300-300-1"
   },
+  "execution_requirements": {
+    "cuda_required": false,
+    "external_backends": [],
+    "restricted_datasets": [],
+    "implementation_gaps": [
+      "Exact m-300-300-300-1 downstream classifier is not integrated in the native estimator.",
+      "Paper split identities and the exact image/text preprocessing pipeline are not archived."
+    ]
+  },
   "claim_policy": "Execution requires paper dataset splits and image/text networks; toolbox synthetic results are clean_room only."
 }
