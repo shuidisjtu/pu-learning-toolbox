@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像、诊断报告和假设敏感性分析已可用；15 个核心 registry 方法中 14 个为 NATIVE，Self-PU 仍为 `api_only`。完整官方数据复现和深度方法 paper-like benchmark 尚未完成；当前测试套件为 575 项。
+**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像、诊断报告和假设敏感性分析已可用；15 个核心 registry 方法均为 NATIVE。完整官方数据复现和深度方法 paper-like benchmark 尚未完成；当前测试套件为 598 项。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -50,7 +50,25 @@ pip install -e ".[dev]"
 
 工具箱核心要求 **Python >= 3.10**，开发基线为 **Python 3.11**。
 
-所有 14 个 NATIVE 算法均为 clean-room 实现；DGPU 的论文级运行需由用户接入条件扩散生成器。
+所有 15 个 NATIVE 算法均为 clean-room 实现；DGPU 的论文级运行需由用户接入条件扩散生成器。
+
+## Self-PU
+
+`SelfPUClassifier` 提供动态 trusted set、clean-validation meta reweighting、双 student
+和 EMA teacher 蒸馏。完整模式必须使用独立 clean validation：
+
+```python
+from pu_toolbox.estimators.deep import SelfPUClassifier
+
+classifier = SelfPUClassifier(
+    class_prior=0.3,
+    require_validation=True,
+    random_state=42,
+).fit(X_train, y_pu_train, validation_data=(X_clean_val, y_clean_val))
+```
+
+缺少 clean validation 时会明确进入消融模式，不能宣称为完整论文复现。详见
+[`docs/user/self_pu.md`](docs/user/self_pu.md)。
 
 ## SCAR / SAR 数据模拟
 

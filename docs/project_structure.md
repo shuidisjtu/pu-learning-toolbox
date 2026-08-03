@@ -73,6 +73,7 @@ pu_toolbox/
       lbe.py                 (native)
     deep/
       __init__.py
+      self_pu.py             (native: self-paced + meta reweight + distillation)
       infomax_pu.py          (native: PURL + nnPU pipeline)
       weighted_contrastive_pu.py (native core)
       dgpu.py                (native orchestration + generator protocol)
@@ -130,6 +131,7 @@ tests/
       test_nnpu.py                    # nnPU 特有逻辑（含训练动态/早停）
       test_bias_aware.py              # PUSB / LBE 特有逻辑
       test_dist_pu.py                 # Dist-PU 特有逻辑
+      test_self_pu.py                 # Self-PU pace/meta/EMA/三阶段训练
       test_llsvm.py                   # LLSVM 特有逻辑
     losses/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
@@ -166,6 +168,7 @@ examples/
     07_data_profiling.py      (PU 数据画像与 SCAR/SAR 审计提示)
     08_diagnostic_report.py   (已拟合 PUSB 的结构化诊断报告)
     09_sensitivity_analysis.py (固定模型输出的假设敏感性审计)
+    10_self_pu.py            (clean validation 下的 Self-PU 三阶段训练)
 ```
 
 ## 5. 文档（`docs/`）
@@ -185,6 +188,7 @@ docs/
     data_profiling.md             # 数据画像、可识别性边界与行动建议
     diagnostic_reports.md         # 模型输出、证据级别与可审计报告
     sensitivity_analysis.md       # 类先验/标记倾向敏感性与解释边界
+    self_pu.md                    # Self-PU 数据协议、训练状态与消融边界
 
   research/
     method_cards/

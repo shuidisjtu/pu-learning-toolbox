@@ -37,9 +37,8 @@ class TestBuiltinRegistration:
             key = meta.implementation_status.value
             by_status[key] = by_status.get(key, 0) + 1
 
-        # 14 native methods plus the Self-PU API placeholder.
-        assert by_status.get("native", 0) == 14
-        assert by_status.get("api_only", 0) == 1
+        assert by_status.get("native", 0) == 15
+        assert by_status.get("api_only", 0) == 0
 
     def test_basic_source_status_distribution(self):
         """Verify counts match docs/resources_optimized.md §2."""
@@ -102,7 +101,7 @@ class TestBuiltinRegistration:
         """Native implementations are trainable."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 14
+        assert len(trainable) == 15
         names = {m.name for m in trainable}
         assert names == {
             "elkan_noto",
@@ -116,6 +115,7 @@ class TestBuiltinRegistration:
             "pusb",
             "lbe",
             "llsvm",
+            "self_pu",
             "infomax_pu",
             "weighted_contrastive_pu",
             "dgpu",

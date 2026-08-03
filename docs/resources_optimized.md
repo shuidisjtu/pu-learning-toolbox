@@ -43,7 +43,7 @@
 | ReCPE | native NumPy（clean-room 实现） |
 | PUSB / LBE | native sklearn-compatible clean-room implementation |
 | Dist-PU | native PyTorch implementation |
-| Self-PU | adapter / wrapper (planned) |
+| Self-PU | native PyTorch core（self-paced、meta reweight、双 student/EMA teacher） |
 | LLSVM | native NumPy（官方 MATLAB 代码为准实现） |
 | Centroid (LDCE) ✅ | native NumPy（clean-room，PAMI 2021 论文公式直译） |
 | InfoMax PU | native PyTorch PURL + class-prior/nnPU pipeline（clean-room） |

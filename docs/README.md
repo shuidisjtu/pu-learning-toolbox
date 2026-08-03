@@ -4,7 +4,7 @@
 
 在只有"已标记正样本 + 无标记样本"的条件下，提供数据校验、类先验估计、模型训练、评估、算法选择与论文方法复现。
 - **兼容 sklearn**，非 PU 专家也能快速训练基线模型。
-- **先搭框架再集成算法**，当前 14 个方法为 clean-room 实现（NATIVE），Self-PU 为 API 占位。
+- **先搭框架再集成算法**，当前 15 个方法均为 clean-room 实现（NATIVE）。
 - **差异化支持 SAR / Instance-Dependent PU**，不局限于 SCAR 假设。
 
 ## 2. 基本问题设定
@@ -54,6 +54,7 @@ pip install pu-toolbox[all]
 | `user/data_profiling.md` | PU 数据质量画像、SCAR/SAR 证据边界与行动建议 |
 | `user/diagnostic_reports.md` | 模型输出、指标证据级别及 JSON/Markdown 诊断报告 |
 | `user/sensitivity_analysis.md` | 类先验/平均标记倾向假设扫描、相容性与指标区间 |
+| `user/self_pu.md` | Self-PU clean validation、三阶段训练、审计状态与复现边界 |
 | `project_management/decision_log.md` | 项目决策日志 |
 | `project_management/process_checklist.md` | 开发流程检查清单 |
 | `project_management/division.txt` | 任务分工说明 |

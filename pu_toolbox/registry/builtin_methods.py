@@ -1,4 +1,4 @@
-"""Built-in algorithm registry — 15 paper methods (14 native + 1 api_only).
+"""Built-in algorithm registry — 15 native paper methods.
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the
@@ -255,7 +255,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         backend=Backend.TORCH,
         maturity=Maturity.RESEARCH,
-        implementation_status=Impl.API_ONLY,
+        implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/VITA-Group/Self-PU",
         license="MIT",
@@ -365,6 +365,7 @@ def _bind_native_classes() -> None:
         ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),
         ("centroid_pu", "..estimators.risk.ldce", "LDCEClassifier"),
         ("llsvm", "..estimators.classic.llsvm", "LLSVMClassifier"),
+        ("self_pu", "..estimators.deep.self_pu", "SelfPUClassifier"),
         ("infomax_pu", "..estimators.deep.infomax_pu", "InfoMaxPUClassifier"),
         (
             "weighted_contrastive_pu",

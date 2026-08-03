@@ -2,7 +2,7 @@
 
 ## 总体策略
 
-**framework-first**：先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。允许先不实现全部方法，但不允许没有清晰接口和元数据占位。当前 14 个方法为 clean-room 实现（NATIVE），Self-PU 为 API 占位。
+**framework-first**：先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 15 个方法均已完成 clean-room 核心实现（NATIVE），后续重点是官方数据、历史环境和 paper-like benchmark。
 
 ```
 框架与 API 契约 → Registry + metadata → 核心 PU 风险估计
@@ -56,7 +56,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 
 ## Phase 6 — 深度 PU (v0.6)
 
-- Self-PU Method Card ✅；接口与实现待完成
+- ~~Self-PU Method Card、接口与核心实现~~ ✅（paper-like benchmark 待完成）
 - ~~Dist-PU~~ ✅
 - ~~InfoMax PU、WConPU、DGPU 核心接口~~ ✅（paper-like 视觉 benchmark 待完成）
 

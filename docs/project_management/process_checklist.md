@@ -60,7 +60,7 @@
 ## Phase 6 — 深度 PU (v0.6)
 
 - [x] Self-PU Method Card
-- [ ] Self-PU 接口与实现
+- [x] Self-PU 接口与实现
 - [x] Dist-PU
 - [x] InfoMax PU、WConPU、DGPU Method Card、核心接口与 registry
 - [ ] InfoMax PU、WConPU、DGPU paper-like benchmark
@@ -89,3 +89,4 @@
 | 2026-08-01 | 诊断报告 | 数据/模型/指标组合报告；证据级别；严格 JSON/Markdown 输出 | `diagnostics/report.py`；`docs/user/diagnostic_reports.md` | 13 个 report cases；`561 passed`；ruff、文档与测试质量门禁通过 |
 | 2026-08-01 | 兼容性与项目治理 | 真实 Python matrix、全目录质量门禁、Hatchling 边界、wheel 安装冒烟、贡献/PR 规范与状态对齐 | `pyproject.toml`；`.github/`；`CONTRIBUTING.md`；`docs/development_compatibility.md` | `562 passed`；104 个 Python 文件 lint/format 通过；wheel/sdist 构建及隔离安装通过 |
 | 2026-08-03 | 类先验与标记倾向敏感性 | 固定输出假设扫描、观测恒等式相容性、指标区间及 JSON/Markdown/CSV 导出 | `diagnostics/sensitivity.py`；`docs/user/sensitivity_analysis.md` | 13 个 sensitivity cases；测试、ruff、文档与测试质量门禁通过 |
+| 2026-08-03 | Self-PU 核心实现 | 动态 trusted set、meta reweight、双 student/EMA teacher 蒸馏、checkpoint 与 registry | `estimators/deep/self_pu.py`；`docs/user/self_pu.md`；Self-PU Method Card | 13 个专项 cases + 统一 contract；完整 paper-like benchmark 待完成 |

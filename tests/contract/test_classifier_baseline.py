@@ -122,6 +122,22 @@ def _make_weighted_contrastive_pu():
     )
 
 
+def _make_self_pu():
+    from pu_toolbox.estimators.deep import SelfPUClassifier
+
+    return SelfPUClassifier(
+        0.33,
+        hidden_dim=8,
+        warmup_epochs=0,
+        self_paced_start=0,
+        self_paced_end=1,
+        distill_start=1,
+        max_epochs=1,
+        batch_size=32,
+        random_state=42,
+    )
+
+
 class _MockConditionalGenerator:
     def fit(self, X, y, *, warm_start=True):
         self.means_ = {label: X[y == label].mean(axis=0) for label in np.unique(y)}
@@ -161,6 +177,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "lbe": _make_lbe,
     "class_prior_estimation": _make_class_prior_estimation,
     "recpe": _make_recpe,
+    "self_pu": _make_self_pu,
     "infomax_pu": _make_infomax_pu,
     "weighted_contrastive_pu": _make_weighted_contrastive_pu,
     "dgpu": _make_dgpu,
@@ -388,6 +405,7 @@ class TestRegistryClassBinding:
             "pusb",
             "lbe",
             "llsvm",
+            "self_pu",
             "infomax_pu",
             "weighted_contrastive_pu",
             "dgpu",

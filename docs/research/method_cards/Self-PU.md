@@ -9,9 +9,9 @@
 - [x] 梳理 self-calibrated loss：用 clean validation batch 对未信任样本的 CE/nnPU 两种损失进行元梯度加权。
 - [x] 梳理 self-distillation：两种不同学习速度的 student 互相蒸馏，并分别与 EMA teacher 保持一致。
 - [x] 记录论文 benchmark、模型、训练阶段和消融实验协议。
-- [ ] 将三阶段训练流程实现为项目统一的 PyTorch estimator。
-- [ ] 设计 `clean_validation_data` 的公共 API，并明确它与普通 PU validation data 的区别。
-- [ ] 实现动态 trusted-set manager、meta reweighting 和 student/teacher checkpoint 管理。
+- [x] 将三阶段训练流程实现为项目统一的 PyTorch estimator。
+- [x] 设计 `validation_data=(X_val, y_val)` 公共 API，并明确它与普通 PU validation data 的区别。
+- [x] 实现动态 trusted-set manager、meta reweighting 和 student/teacher checkpoint 管理。
 - [ ] 复现 MNIST、CIFAR-10 与 ADNI paper-like benchmark。
 
 ### 1.2 注意
@@ -21,7 +21,7 @@
 - trusted set 的正负伪标签来自当前模型置信度，不能把被选样本当作永久正确标签；论文明确使用 in-and-out 机制重新审查历史选择。
 - 动态采样、soft labels、meta weights、student consistency、EMA teacher 是相互关联的组件，不能把 Self-PU 简化成单次 pseudo-labeling。
 - 论文的最终测试模型是验证集表现更好的 teacher；不能默认使用最后一个 student 或两个 teacher 的简单平均。
-- 当前仓库尚未实现 Self-PU；本卡是算法规格，不代表 registry 中已经存在可训练接口。
+- 当前仓库已提供 Self-PU clean-room 核心并注册为 `native`；官方图像 benchmark 仍未完成，不能把小型 smoke 结果写成论文复现。
 
 ## 2. 论文信息
 
@@ -551,12 +551,12 @@ fit(
 
 | 模块 | 责任 | 当前状态 |
 |---|---|---|
-| `pu_toolbox/estimators/deep/self_pu.py` | Self-PU estimator、三阶段训练循环 | ⏳ 待实现 |
+| `pu_toolbox/estimators/deep/self_pu.py` | Self-PU estimator、三阶段训练循环 | ✅ native core |
 | `pu_toolbox/losses/nnpu.py` | 复用 sigmoid nnPU 风险与非负校正 | ✅ 已有基础 |
 | `pu_toolbox/core/validation.py` | P/U 标签和 `class_prior` 校验 | ✅ 可复用 |
 | `pu_toolbox/model_selection/` | clean validation split、无测试泄漏协议 | ⏳ 需扩展 |
-| `pu_toolbox/registry/builtin_methods.py` | `self_pu` metadata 和 lazy binding | ⏳ 当前 api_only |
-| `tests/unit/estimators/test_self_pu.py` | trusted set、reweight、EMA、训练 smoke | ⏳ |
+| `pu_toolbox/registry/builtin_methods.py` | `self_pu` metadata 和 lazy binding | ✅ native |
+| `tests/unit/estimators/test_self_pu.py` | trusted set、reweight、EMA、训练 smoke | ✅ |
 | `benchmarks/paper_like/self_pu/` | MNIST/CIFAR/ADNI 配置 | ⏳ |
 
 建议把以下组件拆开测试，而不是只写一个端到端训练测试：
@@ -614,7 +614,7 @@ fit(
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_exact` |
-| Implementation status | 当前 `API_ONLY`，Method Card 已完成 |
+| Implementation status | `NATIVE` clean-room core；paper-like benchmark 待完成 |
 | Official code | `TAMU-VITA/Self-PU` |
 | 依赖 | PyTorch、数据增强/图像 backbone、clean validation protocol |
 | 最大风险 | self-calibration 依赖真实验证标签；trusted set 错误会造成确认偏差；meta gradient 增加显存和实现复杂度 |
@@ -627,4 +627,3 @@ fit(
 2. 官方论文页面：[PMLR](https://proceedings.mlr.press/v119/chen20b.html)。
 3. 官方代码：[TAMU-VITA/Self-PU](https://github.com/TAMU-VITA/Self-PU)。
 4. nnPU 风险实现与理论：[Kiryo et al., 2017](https://arxiv.org/abs/1703.00593)。
-
