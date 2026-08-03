@@ -16,7 +16,7 @@
 | Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、结构化数据画像、算法注册、元数据、共享工具 |
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
-| Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化诊断报告 |
+| Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化报告与假设敏感性 |
 | User Layer | `examples` | 教程 |
 
 ## 3. 数据流
@@ -199,3 +199,6 @@ class BasePULoss(ABC):
   支持常数、线性与非线性 propensity；隐藏 `y_true/propensity` 仅供 benchmark 使用。
 - 结构化报告：`build_diagnostic_report` 组合数据画像、模型 metadata、PU 指标和
   可选监督指标，支持严格 JSON 与 Markdown 输出。
+- 假设敏感性：`analyze_pu_sensitivity` 固定模型输出，以 $`P(S=1)=\pi\bar c`$
+  检查类先验/平均标记倾向网格的相容性，并导出指标区间、JSON、Markdown 与 CSV；
+  不承担 propensity 识别或逐假设模型重训。

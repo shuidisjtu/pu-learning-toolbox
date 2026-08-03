@@ -2,7 +2,7 @@
 
 Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
 
-**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像和诊断报告已可用；15 个核心 registry 方法中 14 个为 NATIVE，Self-PU 仍为 `api_only`。完整官方数据复现、深度方法 paper-like benchmark 和敏感性分析尚未完成；当前测试套件为 562 项。
+**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像、诊断报告和假设敏感性分析已可用；15 个核心 registry 方法中 14 个为 NATIVE，Self-PU 仍为 `api_only`。完整官方数据复现和深度方法 paper-like benchmark 尚未完成；当前测试套件为 575 项。
 
 Full documentation: [`docs/README.md`](docs/README.md)
 
@@ -108,6 +108,27 @@ print(report.to_markdown())
 
 报告生成器不会训练模型；每个指标都标注证据级别和不可用原因。支持严格 JSON
 和 Markdown 输出，详见 [`docs/user/diagnostic_reports.md`](docs/user/diagnostic_reports.md)。
+
+## 假设敏感性分析
+
+`analyze_pu_sensitivity` 固定模型输出，扫描类先验与平均标记倾向假设，检查
+`P(S=1) = class_prior * mean_label_propensity` 与观测标记率是否相容，并汇总依赖先验的
+PU estimated precision 和 zero-one risk：
+
+```python
+from pu_toolbox.diagnostics import analyze_pu_sensitivity
+
+analysis = analyze_pu_sensitivity(
+    y_valid,
+    fitted_classifier.predict(X_valid),
+    class_priors=[0.2, 0.3, 0.4],
+    label_propensities=[0.3, 0.5, 0.8],
+)
+print(analysis.to_frame())
+```
+
+该接口不会识别 propensity 或重新训练模型；统计边界、字段和 JSON/Markdown/CSV 导出
+见 [`docs/user/sensitivity_analysis.md`](docs/user/sensitivity_analysis.md)。
 
 ## 测试
 

@@ -49,7 +49,7 @@
 - [x] Data Profiler、SCAR/SAR 假设提示
 - [ ] 算法推荐器（规划中）
 - [x] 诊断报告
-- [ ] 类先验与标记倾向敏感性分析
+- [x] 类先验与标记倾向敏感性分析
 
 ## Phase 5 — SAR / Selection-Biased PU (v0.5)
 
@@ -88,3 +88,4 @@
 | 2026-07-31 | Data Profiler | 结构化质量报告、问题级别/行动建议、SCAR/SAR 可识别性提示与审计模式 | `preprocessing/data_profiler.py`；`docs/user/data_profiling.md` | 12 个 profiler cases；`548 passed`；ruff、文档与测试质量门禁通过 |
 | 2026-08-01 | 诊断报告 | 数据/模型/指标组合报告；证据级别；严格 JSON/Markdown 输出 | `diagnostics/report.py`；`docs/user/diagnostic_reports.md` | 13 个 report cases；`561 passed`；ruff、文档与测试质量门禁通过 |
 | 2026-08-01 | 兼容性与项目治理 | 真实 Python matrix、全目录质量门禁、Hatchling 边界、wheel 安装冒烟、贡献/PR 规范与状态对齐 | `pyproject.toml`；`.github/`；`CONTRIBUTING.md`；`docs/development_compatibility.md` | `562 passed`；104 个 Python 文件 lint/format 通过；wheel/sdist 构建及隔离安装通过 |
+| 2026-08-03 | 类先验与标记倾向敏感性 | 固定输出假设扫描、观测恒等式相容性、指标区间及 JSON/Markdown/CSV 导出 | `diagnostics/sensitivity.py`；`docs/user/sensitivity_analysis.md` | 13 个 sensitivity cases；测试、ruff、文档与测试质量门禁通过 |

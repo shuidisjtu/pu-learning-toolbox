@@ -1,6 +1,9 @@
+# ruff: noqa: E402, I001
+
 """Generate the PU Learning Toolbox architecture diagram (academic style)."""
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -35,7 +38,12 @@ LAYERS = [
             {"name": "core/", "sub": "Base classes & validation", "impl": True, "w": 3.5},
             {"name": "registry/", "sub": "Algorithm metadata & routing", "impl": True, "w": 3.0},
             {"name": "utils/", "sub": "Shared basis functions", "impl": True, "w": 1.8},
-            {"name": "preprocessing/", "sub": "PU label generation & profiling", "impl": True, "w": 3.8},
+            {
+                "name": "preprocessing/",
+                "sub": "PU label generation & profiling",
+                "impl": True,
+                "w": 3.8,
+            },
         ],
     },
     {
@@ -81,33 +89,63 @@ def _draw_module_box(ax, x, y, w, h, name, sub, impl):
         name_color, sub_color = "#444444", PLAN_TEXT
 
     box = FancyBboxPatch(
-        (x, y), w, h,
+        (x, y),
+        w,
+        h,
         boxstyle="round,pad=0.06",
-        facecolor=fc, edgecolor=ec, linewidth=lw, linestyle=ls,
+        facecolor=fc,
+        edgecolor=ec,
+        linewidth=lw,
+        linestyle=ls,
     )
     ax.add_patch(box)
-    ax.text(x + w / 2, y + h * 0.62, name,
-            ha="center", va="center", fontsize=FONT_BOX,
-            fontweight="bold", color=name_color, family="monospace")
+    ax.text(
+        x + w / 2,
+        y + h * 0.62,
+        name,
+        ha="center",
+        va="center",
+        fontsize=FONT_BOX,
+        fontweight="bold",
+        color=name_color,
+        family="monospace",
+    )
     if sub:
-        ax.text(x + w / 2, y + h * 0.28, sub,
-                ha="center", va="center", fontsize=FONT_SUB,
-                color=sub_color)
+        ax.text(
+            x + w / 2,
+            y + h * 0.28,
+            sub,
+            ha="center",
+            va="center",
+            fontsize=FONT_SUB,
+            color=sub_color,
+        )
 
 
 def _draw_layer(ax, idx, layer_def):
     y_base = 0.5
     y = y_base + idx * (LAYER_H + LAYER_GAP)
     layer_rect = FancyBboxPatch(
-        (LAYER_X, y), LAYER_W, LAYER_H,
+        (LAYER_X, y),
+        LAYER_W,
+        LAYER_H,
         boxstyle="round,pad=0.08",
-        facecolor=LAYER_BG, edgecolor=LAYER_EDGE, linewidth=0.9,
+        facecolor=LAYER_BG,
+        edgecolor=LAYER_EDGE,
+        linewidth=0.9,
     )
     ax.add_patch(layer_rect)
 
-    ax.text(LAYER_X + 0.3, y + LAYER_H - 0.12, layer_def["label"],
-            ha="left", va="top", fontsize=FONT_LAYER,
-            fontweight="bold", color=LAYER_LABEL_COLOR)
+    ax.text(
+        LAYER_X + 0.3,
+        y + LAYER_H - 0.12,
+        layer_def["label"],
+        ha="left",
+        va="top",
+        fontsize=FONT_LAYER,
+        fontweight="bold",
+        color=LAYER_LABEL_COLOR,
+    )
 
     modules = layer_def["modules"]
     total_w = sum(m["w"] for m in modules)
@@ -129,29 +167,45 @@ def _draw_dependency_arrow(ax):
     y_bottom = y_base + 0.1
     y_top = y_base + len(LAYERS) * LAYER_H + (len(LAYERS) - 1) * LAYER_GAP - 0.1
     ax.annotate(
-        "", xy=(arrow_x, y_top), xytext=(arrow_x, y_bottom),
+        "",
+        xy=(arrow_x, y_top),
+        xytext=(arrow_x, y_bottom),
         arrowprops=dict(
             arrowstyle="->,head_width=0.5,head_length=0.3",
-            color="#666666", lw=3.0,
+            color="#666666",
+            lw=3.0,
         ),
     )
     mid_y = (y_bottom + y_top) / 2
-    ax.text(arrow_x + 0.35, mid_y, "Dependency",
-            ha="left", va="center", fontsize=13, color="#666666",
-            fontweight="bold", rotation=90)
+    ax.text(
+        arrow_x + 0.35,
+        mid_y,
+        "Dependency",
+        ha="left",
+        va="center",
+        fontsize=13,
+        color="#666666",
+        fontweight="bold",
+        rotation=90,
+    )
 
 
 def _draw_legend(ax):
-    impl_patch = mpatches.Patch(facecolor=IMPL_COLOR, edgecolor=IMPL_COLOR,
-                                label="Implemented")
-    partial_patch = mpatches.Patch(facecolor="#666666", edgecolor="#444444",
-                                  label="Partially implemented")
-    plan_patch = mpatches.Patch(facecolor=PLAN_COLOR, edgecolor=PLAN_EDGE,
-                                linestyle="--", linewidth=1.2, label="Planned")
+    impl_patch = mpatches.Patch(facecolor=IMPL_COLOR, edgecolor=IMPL_COLOR, label="Implemented")
+    partial_patch = mpatches.Patch(
+        facecolor="#666666", edgecolor="#444444", label="Partially implemented"
+    )
+    plan_patch = mpatches.Patch(
+        facecolor=PLAN_COLOR, edgecolor=PLAN_EDGE, linestyle="--", linewidth=1.2, label="Planned"
+    )
     ax.legend(
         handles=[impl_patch, partial_patch, plan_patch],
-        loc="lower center", ncol=3, frameon=True,
-        fontsize=10, edgecolor="#BBBBBB", fancybox=True,
+        loc="lower center",
+        ncol=3,
+        frameon=True,
+        fontsize=10,
+        edgecolor="#BBBBBB",
+        fancybox=True,
         bbox_to_anchor=(0.5, -0.01),
     )
 
@@ -172,10 +226,19 @@ def main():
 
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
 
-    fig.savefig("docs/figures/toolbox_architecture.png", dpi=300,
-                bbox_inches="tight", facecolor="white", pad_inches=0.15)
-    fig.savefig("docs/figures/toolbox_architecture.svg",
-                bbox_inches="tight", facecolor="white", pad_inches=0.15)
+    fig.savefig(
+        "docs/figures/toolbox_architecture.png",
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        pad_inches=0.15,
+    )
+    fig.savefig(
+        "docs/figures/toolbox_architecture.svg",
+        bbox_inches="tight",
+        facecolor="white",
+        pad_inches=0.15,
+    )
     print("Saved: docs/figures/toolbox_architecture.png")
     print("Saved: docs/figures/toolbox_architecture.svg")
     plt.close(fig)
