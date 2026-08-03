@@ -175,24 +175,37 @@ def _build_estimator(
     method: str,
     method_config: dict[str, Any],
     *,
-    class_prior: float,
+    class_prior: float | None,
     seed: int,
 ):
     parameters = dict(method_config.get("parameters", {}))
     if "random_state" in parameters or "class_prior" in parameters:
         raise ValueError("random_state and class_prior are controlled by the runner")
     if method == "infomax_pu":
+        prior_config = parameters.get("prior_estimator")
+        if isinstance(prior_config, dict):
+            from pu_toolbox.prior import KernelMeanPriorEstimator
+
+            if prior_config.get("name") != "kernel_mean":
+                raise ValueError("only the kernel_mean structured prior estimator is supported")
+            parameters["prior_estimator"] = KernelMeanPriorEstimator(
+                **prior_config.get("parameters", {})
+            )
         return InfoMaxPUClassifier(
             class_prior=class_prior,
             random_state=seed,
             **parameters,
         )
     if method == "weighted_contrastive_pu":
+        if class_prior is None:
+            raise ValueError("weighted_contrastive_pu requires a known class_prior")
         return WeightedContrastivePUClassifier(
             class_prior,
             random_state=seed,
             **parameters,
         )
+    if class_prior is None:
+        raise ValueError("dgpu requires a known class_prior")
     generator_config = method_config.get("generator", {})
     generator = GaussianConditionalGenerator(
         noise_scale=float(generator_config.get("noise_scale", 0.2))

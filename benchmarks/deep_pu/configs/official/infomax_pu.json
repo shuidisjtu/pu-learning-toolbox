@@ -21,21 +21,35 @@
     "optimizer": "SGD",
     "learning_rate": 0.001,
     "weight_decay": 0.0005,
+    "gradient_noise": 0.01,
     "ratio_steps": 4,
     "encoder_steps": 1,
     "ordinary_epochs": 200,
     "text_epochs": 300
   },
   "classifier": {
-    "network": "m-300-300-300-1"
+    "network": "m-300-300-300-1",
+    "hidden_activation": "ReLU",
+    "batch_normalization": true,
+    "ordinary_optimizer": "Adam",
+    "text_optimizer": "AdaGrad",
+    "ordinary_epochs": 200,
+    "text_epochs": 300,
+    "nnpu_beta": 0,
+    "nnpu_gamma": 1
+  },
+  "class_prior_estimator": {
+    "method": "kernel mean embedding",
+    "paper_reference": "Ramaswamy et al. (2016)",
+    "variant": "not specified by the InfoMax paper"
   },
   "execution_requirements": {
     "cuda_required": false,
     "external_backends": [],
     "restricted_datasets": [],
     "implementation_gaps": [
-      "Exact m-300-300-300-1 downstream classifier is not integrated in the native estimator.",
-      "Paper split identities and the exact image/text preprocessing pipeline are not archived."
+      "The paper does not publish the MNIST/Fashion-MNIST class IDs assigned to its two groups or its mini-batch size.",
+      "The InfoMax paper does not specify whether KM1 or KM2 was used for class-prior estimation."
     ]
   },
   "claim_policy": "Execution requires paper dataset splits and image/text networks; toolbox synthetic results are clean_room only."

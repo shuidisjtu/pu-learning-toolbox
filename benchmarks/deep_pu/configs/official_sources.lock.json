@@ -7,6 +7,11 @@
       "doi": "10.1162/neco_a_01337",
       "arxiv": "1710.05359",
       "official_code": null,
+      "class_prior_backend": {
+        "paper": "https://proceedings.mlr.press/v48/ramaswamy16.html",
+        "official_code": "https://web.eecs.umich.edu/~cscott/code.html#kmpe",
+        "status": "paper_and_author_code_locked_clean_room_solver"
+      },
       "status": "paper_locked_code_not_found"
     },
     "weighted_contrastive_pu": {

@@ -9,8 +9,8 @@
 | 方法类型 | PU 表示学习 + 下游类先验估计/PU 分类 |
 | 核心原则 | 最大化输入表示与真实类别之间的 squared-loss mutual information |
 | 是否需要类先验 | 表示学习阶段不需要；下游 PU 分类器通常需要 |
-| 当前实现 | `InfoMaxPURepresentation` + `InfoMaxPUClassifier`，状态 `NATIVE` |
-| 复现级别 | clean-room core；论文完整 benchmark 待单独运行 |
+| 当前实现 | `InfoMaxPURepresentation` + paper-style nnPU MLP，状态 `NATIVE` |
+| 复现级别 | clean-room core + paper-protocol 网络；论文完整 benchmark 待运行 |
 
 注意：论文提出的核心对象是表示学习器，而不是单独的最终分类器。工具箱中的
 `InfoMaxPUClassifier` 将 PURL、类先验估计和下游 nnPU 分类器组合成统一接口，
@@ -253,6 +253,10 @@ InfoMaxPURepresentation(
     max_epochs=200,
     learning_rate=1e-3,
     weight_decay=5e-4,
+    batch_norm=False,
+    representation_activation=False,
+    batch_size=None,
+    gradient_noise=0.0,
     random_state=None,
     device="cpu",
 )
@@ -274,6 +278,19 @@ InfoMaxPUClassifier(
     representation_dim=20,
     representation_epochs=200,
     classifier_epochs=200,
+    representation_ratio_steps=4,
+    representation_encoder_steps=1,
+    representation_weight_decay=5e-4,
+    representation_batch_norm=False,
+    representation_activation=False,
+    representation_batch_size=None,
+    representation_gradient_noise=0.0,
+    classifier_hidden_dims=(),
+    classifier_batch_norm=False,
+    classifier_optimizer="adam",
+    classifier_learning_rate=1e-3,
+    classifier_weight_decay=0.0,
+    classifier_batch_size=256,
     prior_estimator=None,
     random_state=None,
     device="cpu",
@@ -281,6 +298,12 @@ InfoMaxPUClassifier(
 ```
 
 当 `class_prior=None` 时，分类器在表示空间调用项目 class-prior estimator。
+paper-protocol 通过结构化配置注入 `KernelMeanPriorEstimator(variant="km1")`；默认
+`prior_estimator=None` 仍保留 penL1，以维持现有 API 行为。`fit` 可接收独立
+`validation_data=(X_validation, y_validation_pu)`，并使用同一已拟合 PURL 转换验证集后传给 nnPU。
+默认值保持原有 clean-room 线性 head；论文网络需要显式设置
+`classifier_hidden_dims=(300, 300, 300)`、`classifier_batch_norm=True`。普通数据使用
+`classifier_optimizer="adam"`，文本数据使用 `"adagrad"`。
 
 ## 11. 参数与输入验证
 
@@ -307,16 +330,26 @@ InfoMaxPUClassifier(
 - hidden layer 使用 ReLU 和 batch normalization；
 - SGD，学习率 `0.001`；
 - weight decay `0.0005`；
+- gradient noise `0.01`；
 - density-ratio head 更新 4 个 mini-batch，表示映射更新 1 个 mini-batch；
 - `n_P=1000`，`n_U=2000`；
 - 验证集 `n_P=50`，`n_U=200`；
-- 下游分类器使用 `m-300-300-300-1`；
-- 图像/普通数据训练 200 epoch，文本训练 300 epoch；
+- 下游分类器使用 `m-300-300-300-1`，所有隐藏层使用 ReLU 和 batch normalization；
+- 下游图像/普通数据使用 Adam 训练 200 epoch，文本使用 AdaGrad 训练 300 epoch；
+- nnPU 参数 `beta=0`、`gamma=1`；
 - 结果报告 20 次试验的均值与标准误。
 
 项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置和 3-seed 合成
 clean-room 结果。该结果使用短周期 MLP，不满足本节网络、epoch、数据和 20 次试验协议，
 因此 `run_manifest.json` 固定为 `paper_claim=false`。
+
+`configs/official_data_infomax_fashion_protocol.json` 已锁定论文网络深度、BN、优化器、
+gradient noise、样本数、epoch 和 20 seeds，并通过 CPU preflight。论文只写明将
+MNIST/Fashion-MNIST 十类分成两组，没有给出类别编号，也没有报告 mini-batch size；当前
+配置把 `[0,1,2,3,4]` 和 batch size `256` 明确标记为临时工程选择。runner 已从训练集
+之外确定性划分 `50 P + 200 U` validation，并接入原生 KM1/KM2 class-prior estimator；
+论文未说明使用 KM1 还是 KM2，当前 KM1 是显式临时选择。固定 epoch 协议不使用验证集早停。
+这些未公开细节和尚未执行的 20-seed 全量实验使配置仍为 `paper_protocol`，不能标记为论文结果。
 
 ## 13. 测试与验收
 
@@ -333,6 +366,8 @@ clean-room 结果。该结果使用短周期 MLP，不满足本节网络、epoch
 - 固定 seed 时结果可复现；
 - `transform` 前调用抛出 NotFittedError；
 - classifier 能自动估计并记录 `class_prior_`；
+- structured runner config 能构造 KM estimator，并记录真实/估计先验与绝对误差；
+- train/validation 索引互斥，验证集经过同一 PURL 映射；
 - registry alias `information_theoretic_pu` 可解析。
 
 ### 13.3 行为测试
@@ -348,7 +383,8 @@ clean-room 结果。该结果使用短周期 MLP，不满足本节网络、epoch
 - 神经密度比模型存在尺度和局部最优问题；
 - 自动 class-prior 估计会把第二阶段误差传递给最终分类器；
 - 论文没有提供可确认的完整官方源码，工程实现属于 clean-room；
-- 工具箱默认 MLP 面向二维特征矩阵，论文图像复现应显式提供 CNN encoder；
+- 论文对 MNIST/Fashion-MNIST 使用全连接网络和展平输入，不需要额外假设 CNN；
+- 论文未公开图像类别分组编号、mini-batch size 或完整源码；
 - 只运行 PURL 不能直接得到最终类别预测。
 
 ## 15. 参考资料

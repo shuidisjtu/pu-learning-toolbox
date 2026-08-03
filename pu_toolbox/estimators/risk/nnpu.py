@@ -75,6 +75,8 @@ class NonNegativePUClassifier(BasePUClassifier):
         ``validation_data`` is passed to :meth:`fit`.
     random_state : int or None, default None
         Seed for PyTorch and NumPy RNGs (reproducibility).
+    device : str or None, default None
+        Explicit PyTorch device. If None, use CUDA when available and CPU otherwise.
 
     Attributes
     ----------
@@ -117,6 +119,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         max_epochs: int = 200,
         patience: int = 20,
         random_state: int | None = None,
+        device: str | None = None,
     ) -> None:
         super().__init__()
         self.model = model
@@ -129,6 +132,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         self.max_epochs = max_epochs
         self.patience = patience
         self.random_state = random_state
+        self.device = device
 
     # ── fit ──────────────────────────────────────────────────────────
 
@@ -235,16 +239,24 @@ class NonNegativePUClassifier(BasePUClassifier):
             self.model_ = torch.nn.Linear(d, 1)
 
         # ── Device ────────────────────────────────────────────────
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device(
+            self.device
+            if self.device is not None
+            else ("cuda" if torch.cuda.is_available() else "cpu")
+        )
         self.model_.to(device)
 
         # ── Build optimiser ───────────────────────────────────────
         if self.optimizer is not None:
-            opt = self.optimizer
-            # Re-bind to current model parameters if optimiser was
-            # created with a (now-stale) param group.
-            if hasattr(opt, "param_groups"):
-                opt.param_groups[0]["params"] = list(self.model_.parameters())
+            try:
+                opt = type(self.optimizer)(
+                    self.model_.parameters(),
+                    **self.optimizer.defaults,
+                )
+            except TypeError as exc:
+                raise ValueError(
+                    "optimizer must be reconstructable from its defaults for the copied model"
+                ) from exc
         else:
             opt = torch.optim.Adam(self.model_.parameters(), lr=1e-3)
 

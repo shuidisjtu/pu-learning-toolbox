@@ -60,6 +60,8 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 - ~~Dist-PU~~ ✅
 - ~~InfoMax PU、WConPU、DGPU 核心接口、统一 runner、配置锁和 clean-room 多 seed~~ ✅
 - 公开官方数据执行层、可重复 PU split、resume/provenance、Fashion-MNIST smoke 与资源审计 ✅
+- InfoMax PU 论文网络、优化器与 20-seed paper-protocol 配置 ✅
+- InfoMax PU 独立 validation split、KM1/KM2 类先验接口与 runner 集成 ✅
 - 精确视觉 backbone、历史 split、授权数据与 DGPU EDM paper-like 全量运行待完成
 
 ## 工作包分解

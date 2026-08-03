@@ -6,7 +6,7 @@
     "cuda_device_count": 0,
     "edm_backend": null
   },
-  "created_at_utc": "2026-08-03T17:00:02.409123+00:00",
+  "created_at_utc": "2026-08-03T18:57:18.218845+00:00",
   "methods": [
     {
       "blockers": [
@@ -22,8 +22,8 @@
     },
     {
       "blockers": [
-        "Exact m-300-300-300-1 downstream classifier is not integrated in the native estimator.",
-        "Paper split identities and the exact image/text preprocessing pipeline are not archived."
+        "The paper does not publish the MNIST/Fashion-MNIST class IDs assigned to its two groups or its mini-batch size.",
+        "The InfoMax paper does not specify whether KM1 or KM2 was used for class-prior estimation."
       ],
       "config": "benchmarks/deep_pu/configs/official/infomax_pu.json",
       "locked_status": "locked_not_executed",

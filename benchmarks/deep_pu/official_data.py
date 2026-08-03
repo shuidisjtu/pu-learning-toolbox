@@ -41,6 +41,8 @@ class PUDataset:
     X_test: np.ndarray
     y_test: np.ndarray
     manifest: dict[str, Any]
+    X_validation: np.ndarray | None = None
+    y_validation_pu: np.ndarray | None = None
 
 
 def _require_int(config: dict[str, Any], name: str) -> int:
@@ -79,6 +81,12 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
         raise ValueError("dataset.positive_classes must be a non-empty list")
     for field in ("n_labeled_positive", "n_unlabeled", "n_test"):
         _require_int(dataset, field)
+    validation_fields = {"validation_positive", "validation_unlabeled"}
+    configured_validation = validation_fields & set(dataset)
+    if configured_validation and configured_validation != validation_fields:
+        raise ValueError("validation_positive and validation_unlabeled must be set together")
+    for field in configured_validation:
+        _require_int(dataset, field)
 
     methods = config.get("methods")
     if not isinstance(methods, dict) or not methods:
@@ -86,6 +94,35 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
     unknown = sorted(set(methods) - set(SUPPORTED_METHODS))
     if unknown:
         raise ValueError(f"unsupported deep PU methods: {unknown}")
+    for method, method_config in methods.items():
+        if not isinstance(method_config, dict):
+            raise ValueError(f"methods.{method} must be an object")
+        class_prior_mode = method_config.get("class_prior_mode", "known")
+        if class_prior_mode not in {"known", "estimate"}:
+            raise ValueError(f"methods.{method}.class_prior_mode must be 'known' or 'estimate'")
+        if class_prior_mode == "estimate" and method != "infomax_pu":
+            raise ValueError("estimated class priors are currently supported for infomax_pu")
+        parameters = method_config.get("parameters", {})
+        if not isinstance(parameters, dict):
+            raise ValueError(f"methods.{method}.parameters must be an object")
+        prior_config = parameters.get("prior_estimator")
+        if prior_config is not None:
+            if method != "infomax_pu" or not isinstance(prior_config, dict):
+                raise ValueError("structured prior_estimator is only supported for infomax_pu")
+            if prior_config.get("name") != "kernel_mean":
+                raise ValueError("prior_estimator.name must be 'kernel_mean'")
+            if not isinstance(prior_config.get("parameters", {}), dict):
+                raise ValueError("prior_estimator.parameters must be an object")
+        fit_config = method_config.get("fit", {})
+        if not isinstance(fit_config, dict):
+            raise ValueError(f"methods.{method}.fit must be an object")
+        use_validation = fit_config.get("use_validation_for_early_stopping", False)
+        if not isinstance(use_validation, bool):
+            raise ValueError("use_validation_for_early_stopping must be boolean")
+        if use_validation and (method != "infomax_pu" or not configured_validation):
+            raise ValueError(
+                "validation forwarding requires infomax_pu and a configured validation split"
+            )
     return config
 
 
@@ -100,6 +137,8 @@ def make_pu_split(
     n_unlabeled: int,
     n_test: int,
     seed: int,
+    validation_positive: int = 0,
+    validation_unlabeled: int = 0,
 ) -> PUDataset:
     """Create a deterministic case-control split without train/test leakage."""
     X_train = np.asarray(X_train)
@@ -114,17 +153,27 @@ def make_pu_split(
     train_binary = np.isin(labels_train, positive_classes).astype(int)
     test_binary = np.isin(labels_test, positive_classes).astype(int)
     positive_pool = np.flatnonzero(train_binary == 1)
-    if n_labeled_positive > len(positive_pool):
+    if validation_positive < 0 or validation_unlabeled < 0:
+        raise ValueError("validation sample counts must be non-negative")
+    if (validation_positive == 0) != (validation_unlabeled == 0):
+        raise ValueError("validation positive and unlabeled counts must both be zero or positive")
+    total_labeled_positive = n_labeled_positive + validation_positive
+    if total_labeled_positive > len(positive_pool):
         raise ValueError("not enough training positives for n_labeled_positive")
-    if n_labeled_positive + n_unlabeled > len(X_train):
+    total_selected = total_labeled_positive + n_unlabeled + validation_unlabeled
+    if total_selected > len(X_train):
         raise ValueError("requested labeled and unlabeled samples exceed training data")
     if n_test > len(X_test):
         raise ValueError("requested n_test exceeds test data")
 
     rng = np.random.default_rng(seed)
-    labeled = rng.choice(positive_pool, size=n_labeled_positive, replace=False)
-    remaining = np.setdiff1d(np.arange(len(X_train)), labeled, assume_unique=False)
-    unlabeled = rng.choice(remaining, size=n_unlabeled, replace=False)
+    all_labeled = rng.choice(positive_pool, size=total_labeled_positive, replace=False)
+    labeled = all_labeled[:n_labeled_positive]
+    validation_labeled = all_labeled[n_labeled_positive:]
+    remaining = np.setdiff1d(np.arange(len(X_train)), all_labeled, assume_unique=False)
+    all_unlabeled = rng.choice(remaining, size=n_unlabeled + validation_unlabeled, replace=False)
+    unlabeled = all_unlabeled[:n_unlabeled]
+    validation_unlabeled_indices = all_unlabeled[n_unlabeled:]
     selected_test = rng.choice(len(X_test), size=n_test, replace=False)
     if np.unique(test_binary[selected_test]).size < 2:
         raise ValueError("sampled test split contains only one true class")
@@ -133,26 +182,41 @@ def make_pu_split(
     y_pu = np.concatenate(
         [np.ones(n_labeled_positive, dtype=int), np.zeros(n_unlabeled, dtype=int)]
     )
-    digest = hashlib.sha256(
-        np.concatenate([train_indices, selected_test]).astype("<i8").tobytes()
-    ).hexdigest()
+    validation_indices = np.concatenate([validation_labeled, validation_unlabeled_indices])
+    all_indices = np.concatenate([train_indices, validation_indices, selected_test])
+    digest = hashlib.sha256(all_indices.astype("<i8").tobytes()).hexdigest()
     manifest = {
         "seed": seed,
         "positive_classes": list(positive_classes),
         "n_labeled_positive": n_labeled_positive,
         "n_unlabeled": n_unlabeled,
         "n_test": n_test,
+        "validation_positive": validation_positive,
+        "validation_unlabeled": validation_unlabeled,
         "hidden_unlabeled_positive_rate": float(train_binary[unlabeled].mean()),
         "test_positive_rate": float(test_binary[selected_test].mean()),
         "split_indices_sha256": digest,
         "labeled_unlabeled_overlap": int(np.intersect1d(labeled, unlabeled).size),
+        "train_validation_overlap": int(np.intersect1d(train_indices, validation_indices).size),
     }
+    X_validation = None
+    y_validation_pu = None
+    if len(validation_indices):
+        X_validation = np.asarray(X_train[validation_indices], dtype=np.float32)
+        y_validation_pu = np.concatenate(
+            [
+                np.ones(validation_positive, dtype=int),
+                np.zeros(validation_unlabeled, dtype=int),
+            ]
+        )
     return PUDataset(
         X_train=np.asarray(X_train[train_indices], dtype=np.float32),
         y_pu=y_pu,
         X_test=np.asarray(X_test[selected_test], dtype=np.float32),
         y_test=test_binary[selected_test],
         manifest=manifest,
+        X_validation=X_validation,
+        y_validation_pu=y_validation_pu,
     )
 
 
@@ -240,6 +304,8 @@ def build_dataset(
         n_unlabeled=int(dataset_config["n_unlabeled"]),
         n_test=int(dataset_config["n_test"]),
         seed=seed,
+        validation_positive=int(dataset_config.get("validation_positive", 0)),
+        validation_unlabeled=int(dataset_config.get("validation_unlabeled", 0)),
     )
 
 
@@ -271,7 +337,10 @@ def environment_preflight(
         blockers.append(f"{dataset_name} requires separately authorized dataset access")
     if config["fidelity_level"] == "paper_protocol":
         warnings.append("paper_protocol validates orchestration but is not a paper result")
-    if config["dataset"].get("representation") == "flattened_pixels":
+    if (
+        config["dataset"].get("representation") == "flattened_pixels"
+        and config["dataset"].get("representation_fidelity") != "paper"
+    ):
         warnings.append("flattened pixels do not reproduce the paper visual backbone")
 
     return {
@@ -371,9 +440,32 @@ def run_official_data_benchmark(
             if (method, seed) in completed:
                 continue
             started = time.perf_counter()
+            class_prior_mode = method_config.get("class_prior_mode", "known")
+            if class_prior_mode not in {"known", "estimate"}:
+                raise ValueError("class_prior_mode must be 'known' or 'estimate'")
+            if class_prior_mode == "estimate" and method != "infomax_pu":
+                raise ValueError("estimated class priors are currently supported for infomax_pu")
             estimator = _build_estimator(
-                method, method_config, class_prior=class_prior, seed=seed
-            ).fit(dataset.X_train, dataset.y_pu)
+                method,
+                method_config,
+                class_prior=class_prior if class_prior_mode == "known" else None,
+                seed=seed,
+            )
+            fit_parameters: dict[str, Any] = {}
+            use_validation = method_config.get("fit", {}).get(
+                "use_validation_for_early_stopping", False
+            )
+            if use_validation:
+                if method != "infomax_pu":
+                    raise ValueError("validation forwarding is currently supported for infomax_pu")
+                if dataset.X_validation is None or dataset.y_validation_pu is None:
+                    raise ValueError("validation forwarding requires a configured validation split")
+                fit_parameters["validation_data"] = (
+                    dataset.X_validation,
+                    dataset.y_validation_pu,
+                )
+            estimator.fit(dataset.X_train, dataset.y_pu, **fit_parameters)
+            class_prior_used = float(estimator.class_prior_)
             scores = np.asarray(estimator.decision_function(dataset.X_test), dtype=float)
             predictions = (scores >= 0.0).astype(int)
             rows.append(
@@ -387,7 +479,10 @@ def run_official_data_benchmark(
                     "seed": seed,
                     "n_train": len(dataset.X_train),
                     "n_test": len(dataset.X_test),
-                    "class_prior_used": class_prior,
+                    "true_class_prior": class_prior,
+                    "class_prior_mode": class_prior_mode,
+                    "class_prior_used": class_prior_used,
+                    "class_prior_absolute_error": abs(class_prior_used - class_prior),
                     "hidden_unlabeled_positive_rate": dataset.manifest[
                         "hidden_unlabeled_positive_rate"
                     ],

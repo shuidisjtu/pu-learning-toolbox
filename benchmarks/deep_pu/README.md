@@ -62,6 +62,22 @@ python -m benchmarks.deep_pu.preflight_paper \
 `--accept-dataset "CelebA"` 或 `--accept-dataset "Alzheimer MRI"` 明确确认授权数据。
 这些参数只消除资源阻塞，不会自动消除配置中记录的实现差距。
 
+InfoMax PU 的论文网络协议可先做只读 preflight：
+
+```bash
+python -m benchmarks.deep_pu.run_official_data \
+  --config benchmarks/deep_pu/configs/official_data_infomax_fashion_protocol.json \
+  --output benchmarks/deep_pu/results/infomax_fashion_protocol_preflight \
+  --data-root /tmp/pu-toolbox-data \
+  --preflight-only
+```
+
+该配置锁定 `d-60-20-1` PURL、全隐藏层 BN/ReLU、gradient noise `0.01`、
+`m-300-300-300-1` nnPU head、Adam、200 epoch 和 20 seeds。论文未公开图像类别分组
+编号和 batch size。runner 已接入互斥的 `50 P + 200 U` validation split 与 KM1/KM2
+class-prior estimator；由于论文没有说明 KM 变体，配置暂锁 KM1。未公开细节和未执行的
+20-seed 全量实验意味着结果仍须保持 `paper_claim=false`。
+
 ## 方法适配
 
 - InfoMax PU：toolbox PURL MLP + 线性 nnPU head；

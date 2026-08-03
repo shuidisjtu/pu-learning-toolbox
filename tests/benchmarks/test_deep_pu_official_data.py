@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -19,6 +20,8 @@ from benchmarks.deep_pu.official_data import (
     run_official_data_benchmark,
 )
 from benchmarks.deep_pu.preflight_paper import audit_locked_configs
+from benchmarks.deep_pu.runner import _build_estimator
+from pu_toolbox.prior import KernelMeanPriorEstimator
 
 
 @pytest.fixture
@@ -75,6 +78,26 @@ class TestOfficialDataBenchmark:
         path.write_text(json.dumps(official_config), encoding="utf-8")
         assert load_official_data_config(path) == official_config
 
+    def test_edge_load_rejects_invalid_prior_and_validation_modes(self, tmp_path, official_config):
+        method = official_config["methods"]["infomax_pu"]
+        method["class_prior_mode"] = "guess"
+        path = tmp_path / "invalid-mode.json"
+        path.write_text(json.dumps(official_config), encoding="utf-8")
+        with pytest.raises(ValueError, match="class_prior_mode"):
+            load_official_data_config(path)
+
+        method["class_prior_mode"] = "estimate"
+        method["parameters"]["prior_estimator"] = {"name": "unknown"}
+        path.write_text(json.dumps(official_config), encoding="utf-8")
+        with pytest.raises(ValueError, match="kernel_mean"):
+            load_official_data_config(path)
+
+        method["parameters"].pop("prior_estimator")
+        method["fit"] = {"use_validation_for_early_stopping": True}
+        path.write_text(json.dumps(official_config), encoding="utf-8")
+        with pytest.raises(ValueError, match="validation forwarding"):
+            load_official_data_config(path)
+
     @pytest.mark.parametrize(
         ("field", "value", "message"),
         [
@@ -102,6 +125,8 @@ class TestOfficialDataBenchmark:
             n_unlabeled=12,
             n_test=12,
             seed=7,
+            validation_positive=3,
+            validation_unlabeled=4,
         )
         second = make_pu_split(
             *arrays,
@@ -110,10 +135,15 @@ class TestOfficialDataBenchmark:
             n_unlabeled=12,
             n_test=12,
             seed=7,
+            validation_positive=3,
+            validation_unlabeled=4,
         )
         np.testing.assert_allclose(first.X_train, second.X_train)
         assert first.manifest == second.manifest
         assert first.manifest["labeled_unlabeled_overlap"] == 0
+        assert first.manifest["train_validation_overlap"] == 0
+        assert first.X_validation.shape == (7, 4)
+        assert first.y_validation_pu.sum() == 3
         assert len(first.manifest["split_indices_sha256"]) == 64
 
     def test_edge_split_rejects_impossible_sizes(self):
@@ -150,6 +180,10 @@ class TestOfficialDataBenchmark:
             assert any("CUDA" in item for item in report["blockers"])
 
     def test_basic_run_writes_claim_safe_artifacts(self, tmp_path, official_config):
+        official_config["dataset"].update({"validation_positive": 3, "validation_unlabeled": 4})
+        official_config["methods"]["infomax_pu"]["fit"] = {
+            "use_validation_for_early_stopping": True
+        }
         trials, summary = run_official_data_benchmark(
             official_config,
             tmp_path / "output",
@@ -164,6 +198,8 @@ class TestOfficialDataBenchmark:
         assert manifest["paper_claim"] is False
         assert manifest["dataset_splits"]["3"]["labeled_unlabeled_overlap"] == 0
         assert (tmp_path / "output" / "preflight.json").is_file()
+        assert trials.loc[0, "class_prior_mode"] == "known"
+        assert trials.loc[0, "class_prior_absolute_error"] == pytest.approx(0.0)
 
     def test_determ_resume_does_not_duplicate_trials(self, tmp_path, official_config):
         output = tmp_path / "output"
@@ -206,3 +242,37 @@ class TestOfficialDataBenchmark:
         assert not report["all_ready"]
         assert len(blockers) == 3
         assert any("EDM" in item for item in blockers)
+
+    def test_basic_infomax_protocol_config_locks_paper_network(self):
+        root = Path(__file__).resolve().parents[2] / "benchmarks" / "deep_pu" / "configs"
+        config = load_official_data_config(root / "official_data_infomax_fashion_protocol.json")
+        parameters = config["methods"]["infomax_pu"]["parameters"]
+        assert len(config["seeds"]) == 20
+        assert config["dataset"]["validation_positive"] == 50
+        assert config["dataset"]["validation_unlabeled"] == 200
+        assert config["methods"]["infomax_pu"]["class_prior_mode"] == "estimate"
+        assert parameters["classifier_hidden_dims"] == [300, 300, 300]
+        assert parameters["representation_gradient_noise"] == pytest.approx(0.01)
+        assert parameters["prior_estimator"]["name"] == "kernel_mean"
+        assert parameters["prior_estimator"]["parameters"]["variant"] == "km1"
+        report = environment_preflight(config, data_root=".", download=False)
+        assert report["ready"]
+        assert not any("backbone" in item for item in report["warnings"])
+
+    def test_basic_runner_builds_structured_kernel_mean_prior(self):
+        estimator = _build_estimator(
+            "infomax_pu",
+            {
+                "parameters": {
+                    "prior_estimator": {
+                        "name": "kernel_mean",
+                        "parameters": {"variant": "km2", "max_qp_iter": 10},
+                    }
+                }
+            },
+            class_prior=None,
+            seed=7,
+        )
+        assert estimator.class_prior is None
+        assert isinstance(estimator.prior_estimator, KernelMeanPriorEstimator)
+        assert estimator.prior_estimator.variant == "km2"

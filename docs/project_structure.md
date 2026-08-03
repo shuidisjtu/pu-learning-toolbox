@@ -78,6 +78,9 @@ pu_toolbox/
       weighted_contrastive_pu.py (native core)
       dgpu.py                (native orchestration + generator protocol)
 
+  prior/
+    kernel_mean.py           (native: KM1/KM2 kernel-mean class-prior estimation)
+
   metrics/
     __init__.py
     classification.py          (已实现: PU risk/recall/precision + supervised wrappers)
@@ -185,6 +188,7 @@ benchmarks/
     configs/
       clean_room_multiseed.json
       official_data_smoke_fashion_mnist.json
+      official_data_infomax_fashion_protocol.json
       official_sources.lock.json
       official/               (三份 locked_not_executed paper-like 配置)
     results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
@@ -214,6 +218,7 @@ docs/
   research/
     method_cards/
       class_prior_estimation.md
+      Kernel_Mean_Class_Prior.md
       Elkan_Noto.md
       Convex_Formulation_for_PU_DATA_Learning.md
       KLDCE.md
