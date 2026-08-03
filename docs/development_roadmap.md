@@ -33,7 +33,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 - PU Bagging、Biased SVM、Weighted LR（v1 范围外）
 - ~~penL1~~ ✅、TIcE / AlphaMax 类先验估计（v1 范围外）
 - 算法推荐器（规划中，非当前范围）
-- class-prior sensitivity analysis
+- ~~class-prior sensitivity analysis~~ ✅
 
 ## Phase 3 — Benchmark + 集成 (v0.3)
 
@@ -45,7 +45,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 - Data Profiler、SCAR/SAR 假设提示 ✅
 - 算法推荐器（规划中）
 - 诊断报告 ✅
-- 类先验与标记倾向敏感性分析
+- 类先验与标记倾向敏感性分析 ✅
 
 ## Phase 5 — SAR / Selection-Biased PU (v0.5)
 

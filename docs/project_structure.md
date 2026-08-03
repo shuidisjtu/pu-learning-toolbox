@@ -84,6 +84,7 @@ pu_toolbox/
   diagnostics/
     __init__.py
     report.py                  (数据/模型/指标诊断，JSON/Markdown 报告)
+    sensitivity.py             (类先验/平均标记倾向假设敏感性)
 
   model_selection/
     __init__.py
@@ -122,6 +123,7 @@ tests/
   unit/                               # 算法特有逻辑测试
     diagnostics/
       test_report.py                  # 诊断报告指标、输入契约与序列化
+      test_sensitivity.py             # 假设扫描公式、边界与导出
     estimators/
       test_elkan_noto.py              # Elkan-Noto 特有逻辑
       test_upu.py                     # uPU 特有逻辑
@@ -163,6 +165,7 @@ examples/
     06_sar_simulation.py      (SCAR/SAR 标记机制与 propensity)
     07_data_profiling.py      (PU 数据画像与 SCAR/SAR 审计提示)
     08_diagnostic_report.py   (已拟合 PUSB 的结构化诊断报告)
+    09_sensitivity_analysis.py (固定模型输出的假设敏感性审计)
 ```
 
 ## 5. 文档（`docs/`）
@@ -181,6 +184,7 @@ docs/
     sar_simulation.md             # SCAR/SAR 数据模拟与 benchmark 指南
     data_profiling.md             # 数据画像、可识别性边界与行动建议
     diagnostic_reports.md         # 模型输出、证据级别与可审计报告
+    sensitivity_analysis.md       # 类先验/标记倾向敏感性与解释边界
 
   research/
     method_cards/
