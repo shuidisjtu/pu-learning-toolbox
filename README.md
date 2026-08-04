@@ -1,184 +1,172 @@
+[English](README.md) | [中文](README.zh-CN.md)
+
 # PU Learning Toolbox
 
-Positive-Unlabeled Learning Python Toolbox — sklearn-compatible API, extensible framework, 15 paper methods.
+**Positive-Unlabeled learning in Python** -- sklearn-compatible API, 15 research paper methods, SCAR & SAR support.
 
-**Status: active development (0.1.0.dev0).** 核心 PU 风险估计、SAR 模拟/对比、数据画像、诊断报告和假设敏感性分析已可用；15 个核心 registry 方法均为 NATIVE。深度方法统一 runner、配置锁、clean-room 多 seed、官方数据执行层与 Fashion-MNIST smoke 已完成；精确视觉 backbone 和 DGPU EDM 全量运行尚未完成。
+![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
+![Status](https://img.shields.io/badge/status-0.1.0--dev-orange)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-Full documentation: [`docs/README.md`](docs/README.md)
+## Features
 
-项目管理文档: [`docs/project_management/`](docs/project_management/) — 决策日志、进度清单
-
-贡献与兼容性：[`CONTRIBUTING.md`](CONTRIBUTING.md) 和
-[`docs/development_compatibility.md`](docs/development_compatibility.md)
+- **15 algorithms** from recent PU learning research, all with native implementations
+- **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
+- **SCAR & SAR support** -- both Selected Completely At Random and Selected At Random labeling mechanisms
+- **Data profiling** -- automatic data quality checks and labeling mechanism diagnostics
+- **Algorithm recommender** -- match your data profile to the best-suited methods with customizable scoring
+- **Diagnostics & sensitivity** -- structured reports, assumption sensitivity analysis, JSON/Markdown export
 
 ## Quick Start
 
+> **Note**: Not yet published on PyPI. Install from source.
+
 ```bash
-# 1. Clone
 git clone https://github.com/shuidisjtu/pu-learning-toolbox.git
 cd pu-learning-toolbox
-
-# 2. Create virtual environment
-uv venv              # reads .python-version, uses Python 3.11
-
-# 3. Install
-uv pip install -e ".[dev]"
-
-# 4. Verify
-uv run pytest tests/ -v
-uv run ruff check pu_toolbox tests benchmarks examples scripts
-uv run ruff format --check pu_toolbox tests benchmarks examples scripts
+pip install -e .          # core dependencies
+pip install -e ".[torch]" # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, etc.)
 ```
 
-### 使用 pip / conda？
-
-项目推荐 Python 3.11，最低要求 **Python >= 3.10**（`pyproject.toml` 声明）。`.python-version` 仅被 uv / pyenv 识别，对其他工具链无约束力，但可作为推荐版本的声明。
-
-```bash
-# pip
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -e ".[dev]"
-
-# conda
-conda create -n pu-toolbox python=3.11
-conda activate pu-toolbox
-pip install -e ".[dev]"
-```
-
-## Python Version & Compatibility
-
-工具箱核心要求 **Python >= 3.10**，开发基线为 **Python 3.11**。
-
-所有 15 个 NATIVE 算法均为 clean-room 实现；DGPU 的论文级运行需由用户接入条件扩散生成器。
-
-## Self-PU
-
-`SelfPUClassifier` 提供动态 trusted set、clean-validation meta reweighting、双 student
-和 EMA teacher 蒸馏。完整模式必须使用独立 clean validation：
+### Hello World
 
 ```python
-from pu_toolbox.estimators.deep import SelfPUClassifier
+import numpy as np
+from pu_toolbox.estimators.classic import ElkanNotoClassifier
 
-classifier = SelfPUClassifier(
-    class_prior=0.3,
-    require_validation=True,
-    random_state=42,
-).fit(X_train, y_pu_train, validation_data=(X_clean_val, y_clean_val))
+# Synthetic PU data: some positives are labeled (1), rest are unlabeled (0)
+rng = np.random.RandomState(42)
+X = rng.randn(500, 5)
+y_true = (X[:, 0] + X[:, 1] > 0).astype(int)
+y_pu = y_true * (rng.rand(500) < 0.5)  # SCAR labeling with c=0.5
+
+# Train and predict
+clf = ElkanNotoClassifier(random_state=42)
+clf.fit(X, y_pu)
+predictions = clf.predict(X)
+print(f"Accuracy: {np.mean(predictions == y_true):.3f}")
 ```
 
-缺少 clean validation 时会明确进入消融模式，不能宣称为完整论文复现。详见
-[`docs/user/self_pu.md`](docs/user/self_pu.md)。
+More examples: [`examples/minimal/`](examples/minimal/) (10 self-contained scripts).
 
-## SCAR / SAR 数据模拟
+## Supported Algorithms
 
-公共 preprocessing API 可以生成带隐藏真实标签和真实标记倾向的 PU 数据：
+### Class Prior Estimation
+
+| Method | Backend | Maturity | Requires class prior |
+|--------|---------|----------|---------------------|
+| penL1 / KM1 / KM2 | numpy | stable | No |
+| ReCPE | numpy | stable | No |
+
+### Classic & Calibration
+
+| Method | Backend | Maturity | Requires class prior |
+|--------|---------|----------|---------------------|
+| Elkan-Noto | sklearn | stable | No |
+
+### Risk Estimation
+
+| Method | Backend | Maturity | Requires class prior |
+|--------|---------|----------|---------------------|
+| uPU | numpy | stable | No |
+| nnPU | torch | stable | Yes |
+| PNU | numpy | research | Yes |
+| LDCE / KLDCE | numpy | research | No |
+| LLSVM | numpy | research | Yes |
+| Dist-PU | torch | research | Yes |
+
+### Bias-Aware (SAR)
+
+| Method | Backend | Maturity | Requires class prior |
+|--------|---------|----------|---------------------|
+| PUSB | sklearn | research | No |
+| LBE | sklearn | research | No |
+
+### Deep PU
+
+| Method | Backend | Maturity | Requires class prior |
+|--------|---------|----------|---------------------|
+| Self-PU | torch | research | Yes |
+| InfoMax PU | torch | research | No |
+| WConPU | torch | research | Yes |
+| DGPU | torch | experimental | Yes |
+
+## Key Modules
+
+### Algorithm Recommender
 
 ```python
-from pu_toolbox.preprocessing import make_sar_dataset
+from pu_toolbox.advisor import recommend_methods, ScoringConfig
 
-X, y_pu, y_true, propensity = make_sar_dataset(
-    n_samples=1000,
-    class_prior=0.3,
-    mechanism="linear",       # "scar", "linear", "nonlinear"
-    label_frequency=0.4,      # 正类中的目标平均标记概率
-    strength=1.5,             # 特征依赖强度；0 退化为常数 propensity
-    random_state=42,
-)
+result = recommend_methods(X, y_pu, class_prior=0.3, has_gpu=True)
+for c in result.candidates:
+    print(f"{c.rank}. {c.name} (score={c.score:.1f})")
+
+# Custom scoring weights
+config = ScoringConfig(assumption_max=40.0, maturity_max=10.0)
+result = recommend_methods(X, y_pu, config=config)
 ```
 
-训练算法时只传入 `X, y_pu`。`y_true` 和 `propensity` 仅用于合成 benchmark 评估，
-不能作为训练特征或调参标签。完整示例见
-[`examples/minimal/06_sar_simulation.py`](examples/minimal/06_sar_simulation.py)。
-
-## 训练前数据画像
-
-`profile_pu_data` 检查标签规模、PU 不平衡、非有限值、常数/低方差特征、
-类先验一致性和 SCAR/SAR 证据：
+### Data Profiling
 
 ```python
 from pu_toolbox.preprocessing import profile_pu_data
 
 report = profile_pu_data(X, y_pu, class_prior=0.3)
 print(report.format_text())
+# Checks: label balance, feature quality, SCAR/SAR evidence
 ```
 
-若有独立审计的真实标签，可传入 `y_true`，在真实正例内部直接检查标记是否依赖特征。
-没有审计标签时，报告会明确标记结果为非识别性筛查信号，不会把可分性误报为 SAR 证明。
-详见 [`docs/user/data_profiling.md`](docs/user/data_profiling.md)。
-
-## 模型诊断报告
-
-`build_diagnostic_report` 将数据画像、已拟合模型输出、PU-only 指标、类先验依赖指标
-和可选监督 oracle 指标组合为可审计报告：
+### Diagnostic Report
 
 ```python
 from pu_toolbox.diagnostics import build_diagnostic_report
 
-report = build_diagnostic_report(
-    X_valid,
-    y_valid,
-    estimator=fitted_classifier,
-    class_prior=0.3,
-)
-print(report.to_markdown())
+report = build_diagnostic_report(X, y_pu, estimator=clf, class_prior=0.3)
+print(report.to_markdown())  # or report.to_json()
 ```
 
-报告生成器不会训练模型；每个指标都标注证据级别和不可用原因。支持严格 JSON
-和 Markdown 输出，详见 [`docs/user/diagnostic_reports.md`](docs/user/diagnostic_reports.md)。
-
-## 假设敏感性分析
-
-`analyze_pu_sensitivity` 固定模型输出，扫描类先验与平均标记倾向假设，检查
-`P(S=1) = class_prior * mean_label_propensity` 与观测标记率是否相容，并汇总依赖先验的
-PU estimated precision 和 zero-one risk：
+### Sensitivity Analysis
 
 ```python
 from pu_toolbox.diagnostics import analyze_pu_sensitivity
 
 analysis = analyze_pu_sensitivity(
-    y_valid,
-    fitted_classifier.predict(X_valid),
+    y_pu, clf.predict(X),
     class_priors=[0.2, 0.3, 0.4],
     label_propensities=[0.3, 0.5, 0.8],
 )
-print(analysis.to_frame())
+print(analysis.to_frame())  # pandas DataFrame
 ```
 
-该接口不会识别 propensity 或重新训练模型；统计边界、字段和 JSON/Markdown/CSV 导出
-见 [`docs/user/sensitivity_analysis.md`](docs/user/sensitivity_analysis.md)。
+## Documentation
 
-## 测试
+| Document | Description |
+|----------|-------------|
+| [`docs/user/data_profiling.md`](docs/user/data_profiling.md) | Data profiling guide |
+| [`docs/user/diagnostic_reports.md`](docs/user/diagnostic_reports.md) | Diagnostic report guide |
+| [`docs/user/sensitivity_analysis.md`](docs/user/sensitivity_analysis.md) | Sensitivity analysis guide |
+| [`docs/user/sar_simulation.md`](docs/user/sar_simulation.md) | SCAR/SAR data simulation |
+| [`docs/user/self_pu.md`](docs/user/self_pu.md) | Self-PU usage guide |
+| [`docs/method_selection.md`](docs/method_selection.md) | Algorithm selection guide |
+| [`docs/research/method_cards/`](docs/research/method_cards/) | Per-method research cards |
+| [`docs/architecture.md`](docs/architecture.md) | Architecture design |
+
+## Development
 
 ```bash
-uv run pytest tests/ -v                    # 全部测试
-uv run pytest tests/ -v -m "not slow"      # 快速反馈（跳过慢速）
-uv run pytest tests/ -v -m math            # MATH golden tests（失败 = 代码 bug）
-uv run pytest tests/ -v -m property        # PROPERTY 不变量测试（失败 = 代码 bug）
-uv run pytest tests/ -v -m contract        # 跨分类器 API 契约
+uv run pytest tests/ -v -m "not slow"       # run tests
+uv run ruff check pu_toolbox/               # lint
+uv run ruff format --check pu_toolbox/      # format check
+
+# Quality gates
+uv run python scripts/check_test_quality.py
+uv run python scripts/check_doc_links.py
+uv run python scripts/check_project_metadata.py
 ```
 
-测试分层：`contract/`（写一次、所有分类器复用）→ `unit/`（算法特有逻辑）→ `integration/`（跨模块）→ `regression/`（慢速/论文复现）。详见 `CLAUDE.md`。
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.
 
-### 辅助脚本
+## License
 
-```bash
-uv run python scripts/check_test_quality.py        # 测试质量门禁（方法数、标记、覆盖类别）
-uv run python scripts/check_doc_links.py            # 文档一致性检查（路径、索引、架构映射）
-uv run python scripts/check_project_metadata.py     # Python/CI/extras/Hatchling 跨文件一致性
-```
-
-## 开发流程
-
-- `main` 分支保持稳定可运行，不直接提交代码。
-- 每个功能/修复开独立分支：`feature/<name>` 或 `fix/<name>`，完成后提 PR 合并。
-- 完整分支、测试、benchmark 和文档规则见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
-
-## 文档约定
-
-方法卡等 Markdown 文件中的数学公式使用 **GitHub 保护定界符**（避免 `_` 被 Markdown 误解析为斜体）：
-
-- 行内公式：`` $`...`$ ``（而非 `$...$`）
-- 块公式：```` ```math ... ``` ````（而非 `$$...$$`）
-
-详见 [GitHub 官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)。
+MIT
