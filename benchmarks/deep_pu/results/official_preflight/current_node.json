@@ -6,7 +6,7 @@
     "cuda_device_count": 0,
     "edm_backend": null
   },
-  "created_at_utc": "2026-08-04T10:42:09.457930+00:00",
+  "created_at_utc": "2026-08-04T16:26:43.628468+00:00",
   "methods": [
     {
       "blockers": [
@@ -34,7 +34,7 @@
       "blockers": [
         "The paper names a 13-layer CNN but does not publish its layer-by-layer topology; the integrated cnn13 adapter is clean-room.",
         "The paper does not publish exact SimAugment/RandAugment parameters or resolve CIFAR-10 nP/nU overlap accounting.",
-        "Clean 10% validation and the two-dimensional loss-weight grid search are not integrated in the official-data runner.",
+        "The paper does not identify the clean-validation selection metric; the integrated runner provisionally uses accuracy.",
         "No usable CUDA device is available",
         "Dataset access has not been confirmed: Alzheimer MRI"
       ],

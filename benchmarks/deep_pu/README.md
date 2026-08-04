@@ -89,8 +89,11 @@ python -m benchmarks.deep_pu.run_official_data \
 ```
 
 该链路支持 NCHW、clean-room 13-layer CNN、ResNet-18/50、SimAugment、RandAugment 和
-cosine annealing。论文未公开 CNN 逐层结构和增强参数，CIFAR-10 的 `nP/nU` 计数存在
-重叠语义歧义，clean 10% validation grid search 也尚未接入，因此仍为 `paper_claim=false`。
+cosine annealing。runner 会先隔离 clean 10% validation，再从剩余样本构造互斥的
+`1000 P + 44000 U` 训练集；每个 seed 对两项 loss weight 执行 `4 x 4` grid search，候选
+写入 `model_selection.csv`，最优参数从头 refit，且候选级支持断点续跑。论文未公开 CNN
+逐层结构、增强参数及 validation 指标，原文 `nP/nU` 计数也存在重叠语义歧义；当前 accuracy
+选择指标属于显式暂定协议，因此仍为 `paper_claim=false`。
 
 ## 方法适配
 
@@ -122,7 +125,7 @@ Fashion-MNIST official-data smoke 已完成 seed `0,1,2`。四个官方压缩文
 500 个测试样本、flattened pixels 和 5 epoch，只证明真实数据执行链路，不用于性能比较。
 
 当前节点的完整配置审计结果为 `all_ready=false`：无可用 CUDA；WConPU 仍缺论文未公开的
-CNN/增强细节及 clean validation 选参；DGPU 尚缺条件 EDM backend；CelebA 与 Alzheimer
+CNN/增强细节及 validation 指标，并且尚未执行长周期实验；DGPU 尚缺条件 EDM backend；CelebA 与 Alzheimer
 MRI 访问未确认；InfoMax 仍有未公开协议字段。详见
 `results/official_preflight/current_node.json`。
 

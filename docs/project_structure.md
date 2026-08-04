@@ -196,7 +196,7 @@ benchmarks/
   deep_pu/
     runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
     run.py                     (CLI)
-    official_data.py           (公开数据、确定性 PU split、resume 与 provenance)
+    official_data.py           (公开数据、确定性 PU split、clean validation/grid selection、resume 与 provenance)
     run_official_data.py       (official-data CLI)
     preflight_paper.py         (GPU/EDM/授权数据/实现差距审计)
     configs/
@@ -211,6 +211,9 @@ benchmarks/
     results/official_preflight/ (当前节点完整配置 blocker 报告)
     results/wconpu_cifar10_protocol_preflight/ (WConPU CIFAR-10 执行前审计)
 ```
+
+启用 clean-validation 模型选择的 official-data 运行还会生成 `model_selection.csv`，逐 seed
+记录每个参数候选、验证指标、分数与耗时；`trials.csv` 记录最终选中参数和 refit 结果。
 
 ## 5. 文档（`docs/`）
 

@@ -63,7 +63,8 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 - InfoMax PU 论文网络、优化器与 20-seed paper-protocol 配置 ✅
 - InfoMax PU 独立 validation split、KM1/KM2 类先验接口与 runner 集成 ✅
 - WConPU NCHW、13-layer CNN/ResNet、双增强与 cosine runner 适配 ✅
-- 未公开视觉细节、clean validation 选参、授权数据与 DGPU EDM paper-like 全量运行待完成
+- WConPU clean 10% validation、二维 loss-weight grid、候选级 resume 与最优参数 refit ✅
+- 未公开视觉/validation 指标细节、授权数据与 DGPU EDM paper-like 全量运行待完成
 
 ## 工作包分解
 
@@ -84,7 +85,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 | WP12 | SAR 抽象、selection bias 模拟器 | P2 | WP1, WP8 |
 | WP13 | PUSB ✅ / LBE ✅ / LLSVM ✅ | P2 | WP11, WP12 |
 | WP14 | Self-PU / Dist-PU ✅ | P2 | WP6, WP11 |
-| WP15 | InfoMax / WConPU / DGPU 核心接口、runner、配置锁、clean-room 与 Fashion-MNIST official-data smoke ✅；精确视觉/EDM 运行待完成 | P3 | WP14 |
+| WP15 | InfoMax / WConPU / DGPU 核心接口、runner、配置锁、clean-room、WConPU clean validation 选参与 Fashion-MNIST official-data smoke ✅；精确视觉/EDM 运行待完成 | P3 | WP14 |
 
 ## 版本路线
 

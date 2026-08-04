@@ -267,10 +267,15 @@ class TestOfficialDataBenchmark:
         vision = method["parameters"]["vision"]
         assert config["dataset"]["positive_classes"] == [0, 1, 8, 9]
         assert config["dataset"]["representation"] == "image_tensor"
+        assert config["dataset"]["clean_validation_fraction"] == pytest.approx(0.1)
+        assert config["dataset"]["n_unlabeled"] == 44000
         assert vision["backbone"]["name"] == "cnn13"
         assert vision["weak_augmentation"]["name"] == "simaugment"
         assert vision["strong_augmentation"]["name"] == "randaugment"
         assert method["parameters"]["scheduler"] == "cosine_annealing"
+        assert method["model_selection"]["metric"] == "accuracy"
+        assert len(method["model_selection"]["parameter_grid"]["contrastive_weight"]) == 4
+        assert len(method["model_selection"]["parameter_grid"]["distribution_weight"]) == 4
         report = environment_preflight(config, data_root=".", download=False)
         if not report["cuda_available"]:
             assert any("CUDA" in item for item in report["blockers"])

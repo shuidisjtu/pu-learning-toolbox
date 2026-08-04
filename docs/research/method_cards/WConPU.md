@@ -11,7 +11,7 @@
 | 类先验 | 必需 |
 | 核心模块 | SAT、momentum encoder/queue、prototype、weighted hard negatives、soft pseudo-label、distribution alignment |
 | 当前实现 | `WeightedContrastivePUClassifier` + 视觉适配层，状态 `NATIVE` |
-| 完整论文复现 | 视觉链路已接入；未公开参数、clean validation 选参与长周期 GPU 训练待完成 |
+| 完整论文复现 | 视觉链路与 clean validation 选参已接入；未公开参数及长周期 GPU 训练待完成 |
 
 ## 2. 论文信息
 
@@ -381,8 +381,17 @@ strong = build_wconpu_augmentation(
 项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置、3-seed 表格合成结果和
 CIFAR-10 visual paper-protocol。runner 已支持 NCHW 数据、13-layer CNN/ResNet-18/50、
 SimAugment/RandAugment、cosine annealing，并将 anchor-wise contrastive loss 向量化。
-`official_data_wconpu_cifar10_protocol.json` 尚未执行 5-seed × 800 epoch，也尚未实现 clean
-10% validation 上的二维 loss-weight grid search，不能标记为论文结果。
+`official_data_wconpu_cifar10_protocol.json` 还锁定了 clean validation 模型选择协议：每个
+seed 先从 CIFAR-10 canonical training split 隔离 10% 带真值验证集，再从其余样本构造
+`1000 P + 44000 U` 的训练集；验证样本不会传入 estimator 的 `fit`。runner 对
+`gamma_0`/`gamma_1` 的 `4 x 4` Cartesian grid 逐候选训练和评估，将中间结果写入
+`model_selection.csv`，采用稳定的候选顺序打破并列，并以最优参数从头 refit 最终模型。
+候选级结果支持断点续跑。
+
+论文没有说明 clean validation 的选择指标，当前配置明确、暂定使用 accuracy；论文报告的
+`nP=1000`、`nU=50000` 与额外保留 10% validation 在 50000 张训练图像上不能同时保持互斥，
+因此本协议采用可审计的互斥计数并记录差异。配置尚未执行 5-seed × 800 epoch，不能标记为
+论文结果。
 
 ## 15. 测试与验收
 
@@ -396,6 +405,9 @@ SimAugment/RandAugment、cosine annealing，并将 anchor-wise contrastive loss 
 - fixed seed 可复现；
 - 三种视觉 backbone 返回二维 feature，增强保持 NCHW shape 且固定 seed 可复现；
 - NCHW 图像可完成一轮 WConPU 训练，cosine scheduler 状态正确；
+- clean validation 与 PU 训练索引严格不重叠，并保留真实二分类标签；
+- 二维参数网格按确定顺序展开，候选逐项落盘、可恢复且最优参数会重新训练；
+- 模型选择期间及最终 refit 均不把 clean validation 传入 `fit`；
 - registry 元数据要求 class prior；
 - 合成 PU 数据上可完成 fit/predict。
 
@@ -403,6 +415,8 @@ SimAugment/RandAugment、cosine annealing，并将 anchor-wise contrastive loss 
 
 - 对比学习结果高度依赖 augmentation，论文没有公开 SimAugment/RandAugment 参数；
 - 论文只给出“13-layer CNN”名称，没有逐层 topology；当前适配器属于 clean-room；
+- 论文未公开 clean validation 的选择指标；accuracy 是显式、可替换的暂定选择；
+- 原文训练样本计数与 10% clean validation 存在互斥性歧义；当前协议优先保证无泄漏；
 - 默认 tabular augmentation 仅用于接口验证；
 - early-stage classifier 错误会污染 peer set 和 prototype；
 - hard-negative inverse distance 可能产生大梯度，必须做 `eps`/clamp；

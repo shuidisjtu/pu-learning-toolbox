@@ -9,8 +9,9 @@
     "positive_classes": [0, 1, 8, 9],
     "positive_definition": "vehicles: airplane, automobile, ship, truck",
     "n_labeled_positive": 1000,
-    "n_unlabeled": 49000,
+    "n_unlabeled": 44000,
     "n_test": 10000,
+    "clean_validation_fraction": 0.1,
     "class_prior": 0.4,
     "representation": "image_tensor",
     "representation_fidelity": "paper_family"
@@ -19,6 +20,15 @@
     "weighted_contrastive_pu": {
       "variant": "native_visual_clean_room_protocol",
       "class_prior_mode": "known",
+      "model_selection": {
+        "strategy": "clean_validation_grid",
+        "metric": "accuracy",
+        "parameter_grid": {
+          "contrastive_weight": [0.001, 0.01, 0.1, 1.0],
+          "distribution_weight": [0.001, 0.01, 0.1, 1.0]
+        },
+        "refit": true
+      },
       "parameters": {
         "hidden_dim": 128,
         "embedding_dim": 128,
@@ -66,12 +76,12 @@
     "device": "cuda",
     "resume_required": true
   },
-  "claim_policy": "This configuration exercises the paper's named visual architecture and augmentation families. It remains paper_protocol because the paper does not publish the 13-layer topology or augmentation parameters, the nU accounting is ambiguous, and validation-based loss-weight selection is not integrated.",
+  "claim_policy": "This configuration exercises the paper's named visual architecture and augmentation families and performs clean-validation loss-weight selection. It remains paper_protocol because the paper does not publish the 13-layer topology, augmentation parameters, validation metric, or unambiguous nU accounting.",
   "known_gaps": [
     "The paper names a 13-layer CNN but does not publish its layer-by-layer topology; cnn13 is a documented clean-room adapter.",
     "The paper names SimAugment and RandAugment but does not publish their parameters; crop, color, and RandAugment settings are explicit clean-room choices.",
-    "The paper reports nP=1000 and nU=50000 on a 50000-image CIFAR-10 training split. This disjoint runner uses 1000 P plus 49000 U and records the protocol difference.",
-    "The paper selects two loss weights on a separate clean 10% validation set. This fixed configuration uses 0.1 for both and does not claim paper-equivalent model selection.",
+    "The paper reports nP=1000 and nU=50000 on a 50000-image CIFAR-10 training split while also reserving 10% clean validation. This disjoint runner uses 5000 clean validation examples plus 1000 P and 44000 U and records the protocol difference.",
+    "The paper does not identify the validation selection metric; validation accuracy is an explicit provisional choice.",
     "The full 5-seed, 800-epoch CUDA experiment has not been executed."
   ]
 }

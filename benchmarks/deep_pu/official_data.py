@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import platform
 import sys
@@ -45,6 +46,7 @@ class PUDataset:
     manifest: dict[str, Any]
     X_validation: np.ndarray | None = None
     y_validation_pu: np.ndarray | None = None
+    y_validation_true: np.ndarray | None = None
 
 
 def _require_int(config: dict[str, Any], name: str) -> int:
@@ -89,6 +91,17 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
         raise ValueError("validation_positive and validation_unlabeled must be set together")
     for field in configured_validation:
         _require_int(dataset, field)
+    clean_validation_fraction = dataset.get("clean_validation_fraction", 0.0)
+    if isinstance(clean_validation_fraction, bool) or not isinstance(
+        clean_validation_fraction, int | float
+    ):
+        raise ValueError("dataset.clean_validation_fraction must be a number in [0, 1)")
+    if not 0.0 <= float(clean_validation_fraction) < 1.0:
+        raise ValueError("dataset.clean_validation_fraction must be in [0, 1)")
+    if configured_validation and clean_validation_fraction:
+        raise ValueError(
+            "PU validation counts and clean_validation_fraction are mutually exclusive"
+        )
 
     methods = config.get("methods")
     if not isinstance(methods, dict) or not methods:
@@ -139,6 +152,36 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
             raise ValueError(
                 "validation forwarding requires infomax_pu and a configured validation split"
             )
+        selection_config = method_config.get("model_selection")
+        if selection_config is not None:
+            if method != "weighted_contrastive_pu" or not isinstance(selection_config, dict):
+                raise ValueError(
+                    "clean validation model selection is only supported for weighted_contrastive_pu"
+                )
+            if selection_config.get("strategy") != "clean_validation_grid":
+                raise ValueError("model_selection.strategy must be 'clean_validation_grid'")
+            if not clean_validation_fraction:
+                raise ValueError(
+                    "clean validation model selection requires clean_validation_fraction"
+                )
+            if selection_config.get("metric", "accuracy") not in {
+                "accuracy",
+                "balanced_accuracy",
+                "roc_auc",
+            }:
+                raise ValueError("model_selection.metric is unsupported")
+            if selection_config.get("refit", True) is not True:
+                raise ValueError("model_selection.refit must be true")
+            parameter_grid = selection_config.get("parameter_grid")
+            if not isinstance(parameter_grid, dict) or not parameter_grid:
+                raise ValueError("model_selection.parameter_grid must be a non-empty object")
+            forbidden = {"class_prior", "random_state", "vision", "device"} & set(parameter_grid)
+            if forbidden:
+                raise ValueError(f"model-selection parameters are runner-controlled: {forbidden}")
+            if any(
+                not isinstance(values, list) or not values for values in parameter_grid.values()
+            ):
+                raise ValueError("every model-selection parameter must have a non-empty value list")
     if dataset.get("representation") == "image_tensor" and not any(
         "vision" in method.get("parameters", {}) for method in methods.values()
     ):
@@ -159,6 +202,7 @@ def make_pu_split(
     seed: int,
     validation_positive: int = 0,
     validation_unlabeled: int = 0,
+    clean_validation_fraction: float = 0.0,
 ) -> PUDataset:
     """Create a deterministic case-control split without train/test leakage."""
     X_train = np.asarray(X_train)
@@ -172,25 +216,41 @@ def make_pu_split(
 
     train_binary = np.isin(labels_train, positive_classes).astype(int)
     test_binary = np.isin(labels_test, positive_classes).astype(int)
-    positive_pool = np.flatnonzero(train_binary == 1)
+    if not 0.0 <= clean_validation_fraction < 1.0:
+        raise ValueError("clean_validation_fraction must be in [0, 1)")
+    if clean_validation_fraction and (validation_positive or validation_unlabeled):
+        raise ValueError("clean and PU validation protocols are mutually exclusive")
     if validation_positive < 0 or validation_unlabeled < 0:
         raise ValueError("validation sample counts must be non-negative")
     if (validation_positive == 0) != (validation_unlabeled == 0):
         raise ValueError("validation positive and unlabeled counts must both be zero or positive")
+    rng = np.random.default_rng(seed)
+    source_indices = np.arange(len(X_train))
+    clean_validation_size = int(round(clean_validation_fraction * len(X_train)))
+    clean_validation_indices = (
+        rng.choice(source_indices, size=clean_validation_size, replace=False)
+        if clean_validation_size
+        else np.empty(0, dtype=int)
+    )
+    training_source = np.setdiff1d(
+        source_indices,
+        clean_validation_indices,
+        assume_unique=False,
+    )
+    positive_pool = training_source[train_binary[training_source] == 1]
     total_labeled_positive = n_labeled_positive + validation_positive
     if total_labeled_positive > len(positive_pool):
         raise ValueError("not enough training positives for n_labeled_positive")
     total_selected = total_labeled_positive + n_unlabeled + validation_unlabeled
-    if total_selected > len(X_train):
+    if total_selected > len(training_source):
         raise ValueError("requested labeled and unlabeled samples exceed training data")
     if n_test > len(X_test):
         raise ValueError("requested n_test exceeds test data")
 
-    rng = np.random.default_rng(seed)
     all_labeled = rng.choice(positive_pool, size=total_labeled_positive, replace=False)
     labeled = all_labeled[:n_labeled_positive]
     validation_labeled = all_labeled[n_labeled_positive:]
-    remaining = np.setdiff1d(np.arange(len(X_train)), all_labeled, assume_unique=False)
+    remaining = np.setdiff1d(training_source, all_labeled, assume_unique=False)
     all_unlabeled = rng.choice(remaining, size=n_unlabeled + validation_unlabeled, replace=False)
     unlabeled = all_unlabeled[:n_unlabeled]
     validation_unlabeled_indices = all_unlabeled[n_unlabeled:]
@@ -202,7 +262,10 @@ def make_pu_split(
     y_pu = np.concatenate(
         [np.ones(n_labeled_positive, dtype=int), np.zeros(n_unlabeled, dtype=int)]
     )
-    validation_indices = np.concatenate([validation_labeled, validation_unlabeled_indices])
+    pu_validation_indices = np.concatenate([validation_labeled, validation_unlabeled_indices])
+    validation_indices = (
+        clean_validation_indices if clean_validation_size else pu_validation_indices
+    )
     all_indices = np.concatenate([train_indices, validation_indices, selected_test])
     digest = hashlib.sha256(all_indices.astype("<i8").tobytes()).hexdigest()
     manifest = {
@@ -213,6 +276,11 @@ def make_pu_split(
         "n_test": n_test,
         "validation_positive": validation_positive,
         "validation_unlabeled": validation_unlabeled,
+        "validation_kind": (
+            "clean" if clean_validation_size else "pu" if len(pu_validation_indices) else "none"
+        ),
+        "clean_validation_fraction": float(clean_validation_fraction),
+        "clean_validation_size": clean_validation_size,
         "hidden_unlabeled_positive_rate": float(train_binary[unlabeled].mean()),
         "test_positive_rate": float(test_binary[selected_test].mean()),
         "split_indices_sha256": digest,
@@ -221,14 +289,18 @@ def make_pu_split(
     }
     X_validation = None
     y_validation_pu = None
+    y_validation_true = None
     if len(validation_indices):
         X_validation = np.asarray(X_train[validation_indices], dtype=np.float32)
-        y_validation_pu = np.concatenate(
-            [
-                np.ones(validation_positive, dtype=int),
-                np.zeros(validation_unlabeled, dtype=int),
-            ]
-        )
+        y_validation_true = train_binary[validation_indices]
+        manifest["validation_true_positive_rate"] = float(y_validation_true.mean())
+        if not clean_validation_size:
+            y_validation_pu = np.concatenate(
+                [
+                    np.ones(validation_positive, dtype=int),
+                    np.zeros(validation_unlabeled, dtype=int),
+                ]
+            )
     return PUDataset(
         X_train=np.asarray(X_train[train_indices], dtype=np.float32),
         y_pu=y_pu,
@@ -237,6 +309,7 @@ def make_pu_split(
         manifest=manifest,
         X_validation=X_validation,
         y_validation_pu=y_validation_pu,
+        y_validation_true=y_validation_true,
     )
 
 
@@ -359,6 +432,7 @@ def build_dataset(
         seed=seed,
         validation_positive=int(dataset_config.get("validation_positive", 0)),
         validation_unlabeled=int(dataset_config.get("validation_unlabeled", 0)),
+        clean_validation_fraction=float(dataset_config.get("clean_validation_fraction", 0.0)),
     )
 
 
@@ -454,6 +528,103 @@ def _dataset_artifacts(data_root: str | Path, dataset_name: str) -> list[dict[st
     ]
 
 
+def _grid_candidates(parameter_grid: dict[str, list[Any]]) -> list[dict[str, Any]]:
+    """Expand a deterministic Cartesian parameter grid."""
+    names = list(parameter_grid)
+    return [
+        dict(zip(names, values, strict=True))
+        for values in itertools.product(*(parameter_grid[name] for name in names))
+    ]
+
+
+def _clean_validation_score(
+    estimator: Any,
+    X_validation: np.ndarray,
+    y_validation: np.ndarray,
+    metric: str,
+) -> float:
+    scores = np.asarray(estimator.decision_function(X_validation), dtype=float)
+    if not np.isfinite(scores).all():
+        raise ValueError("model-selection validation scores contain NaN or Inf")
+    predictions = (scores >= 0.0).astype(int)
+    if metric == "accuracy":
+        return float(accuracy_score(y_validation, predictions))
+    if metric == "balanced_accuracy":
+        return float(balanced_accuracy_score(y_validation, predictions))
+    if np.unique(y_validation).size < 2:
+        raise ValueError("roc_auc model selection requires both validation classes")
+    return float(roc_auc_score(y_validation, scores))
+
+
+def _select_wconpu_parameters(
+    method: str,
+    method_config: dict[str, Any],
+    dataset: PUDataset,
+    *,
+    class_prior: float,
+    seed: int,
+    selection_rows: list[dict[str, Any]],
+    selection_path: Path,
+) -> tuple[dict[str, Any], float, int]:
+    """Evaluate a clean-validation grid and persist each completed candidate."""
+    if dataset.X_validation is None or dataset.y_validation_true is None:
+        raise ValueError("clean validation model selection requires true validation labels")
+    if dataset.manifest.get("validation_kind") != "clean":
+        raise ValueError("model selection cannot consume a PU-labeled validation split")
+
+    selection_config = method_config["model_selection"]
+    metric = selection_config.get("metric", "accuracy")
+    candidates = _grid_candidates(selection_config["parameter_grid"])
+    existing = {
+        (str(row["method"]), int(row["seed"]), str(row["parameter_json"])): row
+        for row in selection_rows
+    }
+    scored: list[tuple[float, int, dict[str, Any]]] = []
+    for candidate_index, candidate in enumerate(candidates):
+        parameter_json = json.dumps(candidate, sort_keys=True, separators=(",", ":"))
+        key = (method, seed, parameter_json)
+        if key in existing:
+            score = float(existing[key]["validation_score"])
+        else:
+            candidate_config = dict(method_config)
+            candidate_config["parameters"] = {
+                **method_config.get("parameters", {}),
+                **candidate,
+            }
+            started = time.perf_counter()
+            estimator = _build_estimator(
+                method,
+                candidate_config,
+                class_prior=class_prior,
+                seed=seed,
+            ).fit(dataset.X_train, dataset.y_pu)
+            score = _clean_validation_score(
+                estimator,
+                dataset.X_validation,
+                dataset.y_validation_true,
+                metric,
+            )
+            row = {
+                "method": method,
+                "seed": seed,
+                "candidate_index": candidate_index,
+                "parameter_json": parameter_json,
+                "validation_metric": metric,
+                "validation_score": score,
+                "elapsed_seconds": time.perf_counter() - started,
+                **{f"parameter_{name}": value for name, value in candidate.items()},
+            }
+            selection_rows.append(row)
+            existing[key] = row
+            pd.DataFrame(selection_rows).sort_values(["method", "seed", "candidate_index"]).to_csv(
+                selection_path, index=False
+            )
+        scored.append((score, candidate_index, candidate))
+
+    best_score, _, best_parameters = max(scored, key=lambda item: (item[0], -item[1]))
+    return best_parameters, float(best_score), len(candidates)
+
+
 def run_official_data_benchmark(
     config: dict[str, Any],
     output_dir: str | Path,
@@ -484,6 +655,11 @@ def run_official_data_benchmark(
         else set()
     )
     rows: list[dict[str, Any]] = previous.to_dict("records")
+    selection_path = output / "model_selection.csv"
+    previous_selection = (
+        pd.read_csv(selection_path) if resume and selection_path.exists() else pd.DataFrame()
+    )
+    selection_rows: list[dict[str, Any]] = previous_selection.to_dict("records")
     split_manifests: dict[str, Any] = {}
     class_prior = float(config["dataset"]["class_prior"])
     for seed in config["seeds"]:
@@ -500,9 +676,30 @@ def run_official_data_benchmark(
                 raise ValueError("class_prior_mode must be 'known' or 'estimate'")
             if class_prior_mode == "estimate" and method != "infomax_pu":
                 raise ValueError("estimated class priors are currently supported for infomax_pu")
+            selected_parameters: dict[str, Any] = {}
+            selection_score: float | None = None
+            selection_candidates = 0
+            final_method_config = method_config
+            if method_config.get("model_selection") is not None:
+                selected_parameters, selection_score, selection_candidates = (
+                    _select_wconpu_parameters(
+                        method,
+                        method_config,
+                        dataset,
+                        class_prior=class_prior,
+                        seed=seed,
+                        selection_rows=selection_rows,
+                        selection_path=selection_path,
+                    )
+                )
+                final_method_config = dict(method_config)
+                final_method_config["parameters"] = {
+                    **method_config.get("parameters", {}),
+                    **selected_parameters,
+                }
             estimator = _build_estimator(
                 method,
-                method_config,
+                final_method_config,
                 class_prior=class_prior if class_prior_mode == "known" else None,
                 seed=seed,
             )
@@ -538,6 +735,18 @@ def run_official_data_benchmark(
                     "class_prior_mode": class_prior_mode,
                     "class_prior_used": class_prior_used,
                     "class_prior_absolute_error": abs(class_prior_used - class_prior),
+                    "selected_parameters": json.dumps(
+                        selected_parameters,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    "selection_metric": (
+                        method_config.get("model_selection", {}).get("metric")
+                        if selection_candidates
+                        else None
+                    ),
+                    "selection_score": selection_score,
+                    "selection_candidates": selection_candidates,
                     "hidden_unlabeled_positive_rate": dataset.manifest[
                         "hidden_unlabeled_positive_rate"
                     ],
@@ -568,6 +777,7 @@ def run_official_data_benchmark(
         "fidelity_level": config["fidelity_level"],
         "paper_claim": False,
         "n_trials": len(trials),
+        "n_model_selection_candidates": len(selection_rows),
         "resume_enabled": resume,
         "config_sha256": _canonical_hash(config),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
