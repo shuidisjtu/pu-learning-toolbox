@@ -36,9 +36,10 @@
     "external_backends": [],
     "restricted_datasets": ["Alzheimer MRI"],
     "implementation_gaps": [
-      "13-layer CNN, ResNet-18, and ResNet-50 visual adapters are not integrated in the benchmark runner.",
-      "SimAugment and RandAugment image pipelines are not integrated with the native estimator."
+      "The paper names a 13-layer CNN but does not publish its layer-by-layer topology; the integrated cnn13 adapter is clean-room.",
+      "The paper does not publish exact SimAugment/RandAugment parameters or resolve CIFAR-10 nP/nU overlap accounting.",
+      "Clean 10% validation and the two-dimensional loss-weight grid search are not integrated in the official-data runner."
     ]
   },
-  "claim_policy": "Execution requires visual backbones and paper augmentations; ordinary CI must not run 800-epoch jobs."
+  "claim_policy": "Visual adapters and augmentation families are integrated, but unpublished details, clean validation selection, and 800-epoch CUDA execution still block a paper-result claim."
 }

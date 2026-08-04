@@ -77,6 +77,7 @@ pu_toolbox/
       self_pu.py             (native: self-paced + meta reweight + distillation)
       infomax_pu.py          (native: PURL + nnPU pipeline)
       weighted_contrastive_pu.py (native core)
+      vision.py               (WConPU CNN13/ResNet 与 tensor augmentation adapters)
       dgpu.py                (native orchestration + generator protocol)
 
   metrics/
@@ -202,11 +203,13 @@ benchmarks/
       clean_room_multiseed.json
       official_data_smoke_fashion_mnist.json
       official_data_infomax_fashion_protocol.json
+      official_data_wconpu_cifar10_protocol.json
       official_sources.lock.json
       official/               (三份 locked_not_executed paper-like 配置)
     results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
     results/official_data_smoke_fashion_mnist/ (真实数据 3-seed smoke)
     results/official_preflight/ (当前节点完整配置 blocker 报告)
+    results/wconpu_cifar10_protocol_preflight/ (WConPU CIFAR-10 执行前审计)
 ```
 
 ## 5. 文档（`docs/`）

@@ -199,6 +199,37 @@ def _build_estimator(
     if method == "weighted_contrastive_pu":
         if class_prior is None:
             raise ValueError("weighted_contrastive_pu requires a known class_prior")
+        vision_config = parameters.pop("vision", None)
+        if vision_config is not None:
+            from pu_toolbox.estimators.deep import (
+                build_wconpu_augmentation,
+                build_wconpu_backbone,
+            )
+
+            if not isinstance(vision_config, dict):
+                raise ValueError("weighted_contrastive_pu vision config must be an object")
+            backbone_config = dict(vision_config.get("backbone", {}))
+            backbone_name = backbone_config.pop("name", None)
+            if backbone_name is None:
+                raise ValueError("weighted_contrastive_pu vision.backbone.name is required")
+            parameters["encoder"] = build_wconpu_backbone(
+                backbone_name,
+                **backbone_config,
+            )
+            for config_name, parameter_name in (
+                ("weak_augmentation", "weak_augmentation"),
+                ("strong_augmentation", "strong_augmentation"),
+            ):
+                augmentation_config = dict(vision_config.get(config_name, {}))
+                augmentation_name = augmentation_config.pop("name", None)
+                if augmentation_name is None:
+                    raise ValueError(
+                        f"weighted_contrastive_pu vision.{config_name}.name is required"
+                    )
+                parameters[parameter_name] = build_wconpu_augmentation(
+                    augmentation_name,
+                    **augmentation_config,
+                )
         return WeightedContrastivePUClassifier(
             class_prior,
             random_state=seed,

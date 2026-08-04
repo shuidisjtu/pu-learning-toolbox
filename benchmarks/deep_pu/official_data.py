@@ -27,6 +27,8 @@ PUBLIC_DATASETS = {
     "mnist",
     "fashion_mnist",
     "cifar10",
+    "svhn",
+    "stl10",
     "twenty_newsgroups",
 }
 RESTRICTED_DATASETS = {"alzheimer_mri", "celeba"}
@@ -113,6 +115,20 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
                 raise ValueError("prior_estimator.name must be 'kernel_mean'")
             if not isinstance(prior_config.get("parameters", {}), dict):
                 raise ValueError("prior_estimator.parameters must be an object")
+        vision_config = parameters.get("vision")
+        if vision_config is not None:
+            if method != "weighted_contrastive_pu" or not isinstance(vision_config, dict):
+                raise ValueError(
+                    "structured vision config is only supported for weighted_contrastive_pu"
+                )
+            required_vision = {"backbone", "weak_augmentation", "strong_augmentation"}
+            missing_vision = required_vision - set(vision_config)
+            if missing_vision:
+                raise ValueError(f"vision config is missing: {sorted(missing_vision)}")
+            for section in required_vision:
+                value = vision_config[section]
+                if not isinstance(value, dict) or not isinstance(value.get("name"), str):
+                    raise ValueError(f"vision.{section}.name must be configured")
         fit_config = method_config.get("fit", {})
         if not isinstance(fit_config, dict):
             raise ValueError(f"methods.{method}.fit must be an object")
@@ -123,6 +139,10 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
             raise ValueError(
                 "validation forwarding requires infomax_pu and a configured validation split"
             )
+    if dataset.get("representation") == "image_tensor" and not any(
+        "vision" in method.get("parameters", {}) for method in methods.values()
+    ):
+        raise ValueError("image_tensor representation requires a configured vision pipeline")
     return config
 
 
@@ -147,8 +167,8 @@ def make_pu_split(
     labels_test = np.asarray(labels_test)
     if len(X_train) != len(labels_train) or len(X_test) != len(labels_test):
         raise ValueError("feature and label lengths do not align")
-    if X_train.ndim != 2 or X_test.ndim != 2 or X_train.shape[1] != X_test.shape[1]:
-        raise ValueError("train/test features must be aligned 2-D matrices")
+    if X_train.ndim < 2 or X_test.ndim < 2 or X_train.shape[1:] != X_test.shape[1:]:
+        raise ValueError("train/test features must be aligned batch-first arrays")
 
     train_binary = np.isin(labels_train, positive_classes).astype(int)
     test_binary = np.isin(labels_test, positive_classes).astype(int)
@@ -220,25 +240,53 @@ def make_pu_split(
     )
 
 
-def _vision_arrays(name: str, root: Path, *, download: bool) -> tuple[np.ndarray, ...]:
+def _vision_arrays(
+    name: str,
+    root: Path,
+    *,
+    download: bool,
+    representation: str,
+) -> tuple[np.ndarray, ...]:
     try:
         from torchvision import datasets
     except ImportError as exc:
         raise ImportError("vision datasets require the 'research' optional dependencies") from exc
 
-    classes = {
-        "mnist": datasets.MNIST,
-        "fashion_mnist": datasets.FashionMNIST,
-        "cifar10": datasets.CIFAR10,
-    }
-    dataset_class = classes[name]
-    train = dataset_class(root=str(root), train=True, download=download)
-    test = dataset_class(root=str(root), train=False, download=download)
+    if name == "svhn":
+        train = datasets.SVHN(root=str(root), split="train", download=download)
+        test = datasets.SVHN(root=str(root), split="test", download=download)
+    elif name == "stl10":
+        train = datasets.STL10(root=str(root), split="train", download=download)
+        test = datasets.STL10(root=str(root), split="test", download=download)
+    else:
+        classes = {
+            "mnist": datasets.MNIST,
+            "fashion_mnist": datasets.FashionMNIST,
+            "cifar10": datasets.CIFAR10,
+        }
+        dataset_class = classes[name]
+        train = dataset_class(root=str(root), train=True, download=download)
+        test = dataset_class(root=str(root), train=False, download=download)
     train_data = np.asarray(train.data)
     test_data = np.asarray(test.data)
-    train_labels = np.asarray(train.targets)
-    test_labels = np.asarray(test.targets)
+    train_labels = np.asarray(getattr(train, "targets", getattr(train, "labels", None)))
+    test_labels = np.asarray(getattr(test, "targets", getattr(test, "labels", None)))
     scale = 255.0
+    if representation == "image_tensor":
+        if train_data.ndim == 3:
+            train_data = train_data[:, None, :, :]
+            test_data = test_data[:, None, :, :]
+        elif train_data.shape[-1] in {1, 3}:
+            train_data = np.moveaxis(train_data, -1, 1)
+            test_data = np.moveaxis(test_data, -1, 1)
+        return (
+            train_data.astype(np.float32) / scale,
+            train_labels,
+            test_data.astype(np.float32) / scale,
+            test_labels,
+        )
+    if representation != "flattened_pixels":
+        raise ValueError("vision representation must be 'flattened_pixels' or 'image_tensor'")
     return (
         train_data.reshape(len(train_data), -1).astype(np.float32) / scale,
         train_labels,
@@ -284,7 +332,12 @@ def load_public_dataset(
             download=download,
             max_features=int(config.get("max_features", 2000)),
         )
-    return _vision_arrays(name, root, download=download)
+    return _vision_arrays(
+        name,
+        root,
+        download=download,
+        representation=config.get("representation", "flattened_pixels"),
+    )
 
 
 def build_dataset(
@@ -382,13 +435,15 @@ def _dataset_artifacts(data_root: str | Path, dataset_name: str) -> list[dict[st
         "fashion_mnist": "FashionMNIST",
         "cifar10": "cifar-10-batches-py",
     }
-    folder = folder_names.get(dataset_name)
-    if folder is None:
-        return []
     root = Path(data_root).expanduser().resolve()
-    candidates = sorted((root / folder / "raw").glob("*.gz"))
+    folder = folder_names.get(dataset_name)
+    candidates = sorted((root / folder / "raw").glob("*.gz")) if folder else []
     if dataset_name == "cifar10":
         candidates = sorted(root.glob("cifar-10-python.tar.gz"))
+    elif dataset_name == "svhn":
+        candidates = sorted(root.glob("*_32x32.mat"))
+    elif dataset_name == "stl10":
+        candidates = sorted(root.glob("stl10_binary.tar.gz"))
     return [
         {
             "path": str(path.relative_to(root)),

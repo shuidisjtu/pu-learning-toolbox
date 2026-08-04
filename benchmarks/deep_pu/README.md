@@ -78,10 +78,24 @@ python -m benchmarks.deep_pu.run_official_data \
 class-prior estimator；由于论文没有说明 KM 变体，配置暂锁 KM1。未公开细节和未执行的
 20-seed 全量实验意味着结果仍须保持 `paper_claim=false`。
 
+WConPU 的 CIFAR-10 视觉协议可做只读 preflight：
+
+```bash
+python -m benchmarks.deep_pu.run_official_data \
+  --config benchmarks/deep_pu/configs/official_data_wconpu_cifar10_protocol.json \
+  --output benchmarks/deep_pu/results/wconpu_cifar10_protocol_preflight \
+  --data-root /tmp/pu-toolbox-data \
+  --preflight-only
+```
+
+该链路支持 NCHW、clean-room 13-layer CNN、ResNet-18/50、SimAugment、RandAugment 和
+cosine annealing。论文未公开 CNN 逐层结构和增强参数，CIFAR-10 的 `nP/nU` 计数存在
+重叠语义歧义，clean 10% validation grid search 也尚未接入，因此仍为 `paper_claim=false`。
+
 ## 方法适配
 
 - InfoMax PU：toolbox PURL MLP + 线性 nnPU head；
-- WConPU：表格 MLP、默认噪声 augmentation、prototype 和 momentum queue；
+- WConPU：表格 MLP 或 NCHW 视觉 encoder、双增强、prototype 和 momentum queue；
 - DGPU：`GaussianConditionalGenerator` 只实现条件 generator 协议，用于验证多轮编排。
 
 这三项都不是论文图像结果。`configs/official/` 锁定论文的数据集、网络、增强、epoch、
@@ -107,9 +121,10 @@ Fashion-MNIST official-data smoke 已完成 seed `0,1,2`。四个官方压缩文
 `0.4420 ± 0.0874`，balanced accuracy 为 `0.4622 ± 0.0588`。该结果使用 400 个训练样本、
 500 个测试样本、flattened pixels 和 5 epoch，只证明真实数据执行链路，不用于性能比较。
 
-当前节点的完整配置审计结果为 `all_ready=false`：无可用 CUDA；WConPU 尚缺视觉 backbone
-与增强适配；DGPU 尚缺条件 EDM backend；CelebA 与 Alzheimer MRI 访问未确认；InfoMax
-尚缺论文精确下游网络和历史 split。详见 `results/official_preflight/current_node.json`。
+当前节点的完整配置审计结果为 `all_ready=false`：无可用 CUDA；WConPU 仍缺论文未公开的
+CNN/增强细节及 clean validation 选参；DGPU 尚缺条件 EDM backend；CelebA 与 Alzheimer
+MRI 访问未确认；InfoMax 仍有未公开协议字段。详见
+`results/official_preflight/current_node.json`。
 
 ## 结论边界
 

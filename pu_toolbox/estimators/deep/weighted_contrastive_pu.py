@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import copy
+from typing import Literal
 
 import numpy as np
 
@@ -28,6 +29,12 @@ def embedding_dissimilarity(query, keys):
     query = F.normalize(query, dim=-1)
     keys = F.normalize(keys, dim=-1)
     return 0.25 * (query.unsqueeze(0) - keys).square().sum(dim=-1)
+
+
+def _flatten_features(features):
+    if features.ndim < 2:
+        raise ValueError("encoder must return a batch-first feature tensor")
+    return features.flatten(start_dim=1) if features.ndim > 2 else features
 
 
 class WeightedContrastivePUClassifier(BasePUClassifier):
@@ -61,6 +68,8 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         batch_size: int = 256,
         max_epochs: int = 800,
         learning_rate: float = 1e-2,
+        optimizer_momentum: float = 0.9,
+        scheduler: Literal["none", "cosine_annealing"] = "none",
         random_state: int | None = None,
         device: str = "cpu",
     ) -> None:
@@ -81,6 +90,8 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         self.batch_size = batch_size
         self.max_epochs = max_epochs
         self.learning_rate = learning_rate
+        self.optimizer_momentum = optimizer_momentum
+        self.scheduler = scheduler
         self.random_state = random_state
         self.device = device
 
@@ -98,6 +109,10 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
                 raise ValueError(f"{name} must be >= 1")
         if self.temperature <= 0 or self.learning_rate <= 0:
             raise ValueError("temperature and learning_rate must be positive")
+        if not 0.0 <= self.optimizer_momentum < 1.0:
+            raise ValueError("optimizer_momentum must be in [0, 1)")
+        if self.scheduler not in {"none", "cosine_annealing"}:
+            raise ValueError("scheduler must be 'none' or 'cosine_annealing'")
         if not 0.0 <= self.momentum < 1.0:
             raise ValueError("momentum must be in [0, 1)")
         if not 0.0 <= self.pseudo_label_momentum < 1.0:
@@ -127,6 +142,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
             X,
             y_pu,
             accept_sparse=False,
+            allow_nd=self.encoder is not None,
             estimator_name="WeightedContrastivePUClassifier",
         )
         X = np.asarray(X, dtype=np.float32)
@@ -148,8 +164,10 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
             if self.encoder is None
             else copy.deepcopy(self.encoder)
         ).to(device)
+        self.encoder_.eval()
         with torch.no_grad():
-            probe = self.encoder_(torch.as_tensor(X[:1], device=device))
+            probe = _flatten_features(self.encoder_(torch.as_tensor(X[:1], device=device)))
+        self.encoder_.train()
         feature_dim = int(probe.shape[-1])
         self.projector_ = nn.Sequential(
             nn.Linear(feature_dim, self.hidden_dim),
@@ -169,7 +187,12 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
             + list(self.projector_.parameters())
             + list(self.classifier_head_.parameters()),
             lr=self.learning_rate,
-            momentum=0.9,
+            momentum=self.optimizer_momentum,
+        )
+        scheduler = (
+            torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=self.max_epochs)
+            if self.scheduler == "cosine_annealing"
+            else None
         )
         tx = torch.as_tensor(X, dtype=torch.float32, device=device)
         ty = torch.as_tensor(y_pu, dtype=torch.long, device=device)
@@ -215,13 +238,13 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
                 weak = augment(batch, strong=False)
                 strong = augment(batch, strong=True)
 
-                features = self.encoder_(weak)
+                features = _flatten_features(self.encoder_(weak))
                 query = F.normalize(self.projector_(features), dim=1)
                 logits = self.classifier_head_(features)
                 probabilities = torch.softmax(logits, dim=1)
                 with torch.no_grad():
                     key = F.normalize(
-                        self.key_projector_(self.key_encoder_(strong)),
+                        self.key_projector_(_flatten_features(self.key_encoder_(strong))),
                         dim=1,
                     )
                     sat_global.mul_(self.momentum).add_(
@@ -262,41 +285,41 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
                     dim=0,
                 )
                 pool_observed = torch.cat([batch_labels, queue_observed], dim=0)
-                contrastive_terms = []
-                for row in range(len(indices)):
-                    anchor_label = int(probabilities[row].argmax())
-                    if int(batch_labels[row]) == 1:
-                        positive_mask = (pool_observed == 1) | (
-                            (pool_labels == 1) & (pool_confidence >= thresholds[1])
-                        )
-                    else:
-                        positive_mask = (pool_labels == anchor_label) & (
-                            pool_confidence >= thresholds[anchor_label]
-                        )
-                    positive_mask[row] = True
-                    similarity = (query[row] @ pool_embeddings.T) / self.temperature
-                    dissimilarity = embedding_dissimilarity(
-                        query[row],
-                        pool_embeddings,
+                predicted_labels = probabilities.detach().argmax(dim=1)
+                confidence_thresholds = thresholds[predicted_labels]
+                positive_mask = (pool_labels.unsqueeze(0) == predicted_labels.unsqueeze(1)) & (
+                    pool_confidence.unsqueeze(0) >= confidence_thresholds.unsqueeze(1)
+                )
+                labeled_rows = batch_labels == 1
+                if labeled_rows.any():
+                    labeled_positive_pool = (pool_observed == 1) | (
+                        (pool_labels == 1) & (pool_confidence >= thresholds[1])
                     )
-                    prototype_labels = (pool_embeddings @ prototypes.T).argmax(dim=1)
-                    candidate_negative = prototype_labels != nearest[row]
-                    weights = torch.ones_like(similarity)
-                    if candidate_negative.any():
-                        cutoff = torch.quantile(
-                            dissimilarity,
-                            self.hard_negative_quantile,
-                        )
-                        hard_negative = candidate_negative & (dissimilarity <= cutoff)
-                        weights[hard_negative] = (
-                            dissimilarity[hard_negative].clamp_min(1e-4).reciprocal()
-                        )
-                    denominator = torch.logsumexp(
-                        similarity + torch.log(weights),
-                        dim=0,
-                    )
-                    contrastive_terms.append(-(similarity[positive_mask] - denominator).mean())
-                contrastive_loss = torch.stack(contrastive_terms).mean()
+                    positive_mask[labeled_rows] = labeled_positive_pool
+                batch_rows = torch.arange(len(indices), device=device)
+                positive_mask[batch_rows, batch_rows] = True
+
+                cosine_similarity = query @ pool_embeddings.T
+                similarity = cosine_similarity / self.temperature
+                dissimilarity = 0.5 * (1.0 - cosine_similarity).clamp(0.0, 2.0)
+                prototype_labels = (pool_embeddings @ prototypes.T).argmax(dim=1)
+                candidate_negative = prototype_labels.unsqueeze(0) != nearest.unsqueeze(1)
+                cutoffs = torch.quantile(
+                    dissimilarity,
+                    self.hard_negative_quantile,
+                    dim=1,
+                    keepdim=True,
+                )
+                hard_negative = candidate_negative & (dissimilarity <= cutoffs)
+                weights = torch.where(
+                    hard_negative,
+                    dissimilarity.clamp_min(1e-4).reciprocal(),
+                    torch.ones_like(dissimilarity),
+                )
+                denominator = torch.logsumexp(similarity + torch.log(weights), dim=1)
+                positive_counts = positive_mask.sum(dim=1).clamp_min(1)
+                positive_similarity = (similarity * positive_mask).sum(dim=1) / positive_counts
+                contrastive_loss = (denominator - positive_similarity).mean()
 
                 classification_terms = -(pseudo[indices] * torch.log_softmax(logits, dim=1)).sum(
                     dim=1
@@ -377,6 +400,8 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
 
             for key, value in zip(self.history_, epoch_values / steps, strict=True):
                 self.history_[key].append(float(value))
+            if scheduler is not None:
+                scheduler.step()
 
         self.prototypes_ = prototypes.detach().cpu().numpy()
         self.pseudo_labels_ = pseudo.detach().cpu().numpy()
@@ -387,6 +412,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         self.class_prior_ = float(pi)
         self.classes_ = np.array([0, 1])
         self.device_ = device
+        self.final_learning_rate_ = float(optimizer.param_groups[0]["lr"])
         self._class_prior = self.class_prior_
         self._X_shape_ = X.shape
         self._is_fitted = True
@@ -399,7 +425,9 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         self.encoder_.eval()
         self.classifier_head_.eval()
         with torch.no_grad():
-            features = self.encoder_(torch.as_tensor(X, dtype=torch.float32, device=self.device_))
+            features = _flatten_features(
+                self.encoder_(torch.as_tensor(X, dtype=torch.float32, device=self.device_))
+            )
             return self.classifier_head_(features).cpu().numpy()
 
     def _decision_function(self, X: np.ndarray) -> np.ndarray:

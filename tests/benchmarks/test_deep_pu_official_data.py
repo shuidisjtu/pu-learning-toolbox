@@ -13,6 +13,7 @@ import pytest
 pytest.importorskip("torch")
 
 from benchmarks.deep_pu.official_data import (
+    _dataset_artifacts,
     build_dataset,
     environment_preflight,
     load_official_data_config,
@@ -258,6 +259,50 @@ class TestOfficialDataBenchmark:
         report = environment_preflight(config, data_root=".", download=False)
         assert report["ready"]
         assert not any("backbone" in item for item in report["warnings"])
+
+    def test_basic_wconpu_protocol_config_locks_visual_pipeline(self):
+        root = Path(__file__).resolve().parents[2] / "benchmarks" / "deep_pu" / "configs"
+        config = load_official_data_config(root / "official_data_wconpu_cifar10_protocol.json")
+        method = config["methods"]["weighted_contrastive_pu"]
+        vision = method["parameters"]["vision"]
+        assert config["dataset"]["positive_classes"] == [0, 1, 8, 9]
+        assert config["dataset"]["representation"] == "image_tensor"
+        assert vision["backbone"]["name"] == "cnn13"
+        assert vision["weak_augmentation"]["name"] == "simaugment"
+        assert vision["strong_augmentation"]["name"] == "randaugment"
+        assert method["parameters"]["scheduler"] == "cosine_annealing"
+        report = environment_preflight(config, data_root=".", download=False)
+        if not report["cuda_available"]:
+            assert any("CUDA" in item for item in report["blockers"])
+
+    def test_basic_image_split_preserves_nchw_shape(self):
+        rng = np.random.default_rng(2)
+        arrays = (
+            rng.random((30, 3, 8, 8), dtype=np.float32),
+            np.tile([0, 1], 15),
+            rng.random((20, 3, 8, 8), dtype=np.float32),
+            np.tile([0, 1], 10),
+        )
+        dataset = make_pu_split(
+            *arrays,
+            positive_classes=[1],
+            n_labeled_positive=5,
+            n_unlabeled=10,
+            n_test=10,
+            seed=4,
+        )
+        assert dataset.X_train.shape == (15, 3, 8, 8)
+        assert dataset.X_test.shape == (10, 3, 8, 8)
+
+    @pytest.mark.parametrize(
+        ("dataset_name", "filename"),
+        [("svhn", "train_32x32.mat"), ("stl10", "stl10_binary.tar.gz")],
+    )
+    def test_param_visual_archives_are_hashed(self, tmp_path, dataset_name, filename):
+        (tmp_path / filename).write_bytes(b"paper-protocol-fixture")
+        artifacts = _dataset_artifacts(tmp_path, dataset_name)
+        assert artifacts[0]["path"] == filename
+        assert len(artifacts[0]["sha256"]) == 64
 
     def test_basic_runner_builds_structured_kernel_mean_prior(self):
         estimator = _build_estimator(

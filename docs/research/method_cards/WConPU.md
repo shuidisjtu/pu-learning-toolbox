@@ -10,8 +10,8 @@
 | 场景 | case-control PU |
 | 类先验 | 必需 |
 | 核心模块 | SAT、momentum encoder/queue、prototype、weighted hard negatives、soft pseudo-label、distribution alignment |
-| 当前实现 | `WeightedContrastivePUClassifier` clean-room 核心，状态 `NATIVE` |
-| 完整论文复现 | 需要视觉 backbone、SimAugment、RandAugment 与长周期 GPU 训练 |
+| 当前实现 | `WeightedContrastivePUClassifier` + 视觉适配层，状态 `NATIVE` |
+| 完整论文复现 | 视觉链路已接入；未公开参数、clean validation 选参与长周期 GPU 训练待完成 |
 
 ## 2. 论文信息
 
@@ -306,6 +306,8 @@ WeightedContrastivePUClassifier(
     batch_size=256,
     max_epochs=800,
     learning_rate=1e-2,
+    optimizer_momentum=0.9,
+    scheduler="none",
     random_state=None,
     device="cpu",
 )
@@ -314,12 +316,42 @@ WeightedContrastivePUClassifier(
 ### 13.1 数据协议
 
 - `fit(X, y_pu, class_prior=None)`；
-- `X` 默认是二维 feature matrix；
-- 图像级复现由调用方传入 encoder 和 augmentation；
+- `X` 默认是二维 feature matrix；传入 encoder 时也接受 NCHW 图像；
+- 图像级协议可由调用方传入 encoder/augmentation，或由 runner 的结构化 `vision` 配置构造；
 - 默认增强只用于 tabular smoke test，不等价于论文 SimAugment/RandAugment；
 - `predict`、`decision_function`、`predict_proba` 使用 query classifier。
 
-### 13.2 拟合属性
+### 13.2 视觉构建器
+
+```python
+from pu_toolbox.estimators.deep import (
+    build_wconpu_augmentation,
+    build_wconpu_backbone,
+)
+
+encoder = build_wconpu_backbone(
+    "cnn13",  # 也支持 resnet18 / resnet50
+    normalization_mean=(0.4914, 0.4822, 0.4465),
+    normalization_std=(0.2470, 0.2435, 0.2616),
+)
+weak = build_wconpu_augmentation("simaugment", image_size=32)
+strong = build_wconpu_augmentation(
+    "randaugment",
+    image_size=32,
+    randaugment_num_ops=2,
+    randaugment_magnitude=10,
+)
+```
+
+- `cnn13` 是 13 个 convolution layer、三次 max-pooling 和 global average pooling 的
+  clean-room adapter；论文没有公开逐层结构，不能称为精确官方网络。
+- ResNet-18/50 使用 torchvision topology、随机初始化和无分类头 feature 输出；
+  `small_input_stem=True` 可用于小图像。
+- SimAugment 采用 supervised contrastive 常用的 random resized crop、flip、color jitter、
+  grayscale 组合；RandAugment 使用 crop/flip 后的 torchvision RandAugment。
+- 每张图像独立采样增强；channel normalization 位于 encoder 内，因此训练和推理一致。
+
+### 13.3 拟合属性
 
 - `model_`、`key_encoder_`；
 - `prototypes_`；
@@ -346,9 +378,11 @@ WeightedContrastivePUClassifier(
 - 训练 800 epoch，不使用 early stopping；
 - 每组独立运行 5 次并报告 6 项分类指标。
 
-项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置和 3-seed 表格合成
-clean-room 结果。当前 runner 验证 queue、prototype、loss 与跨 seed 输出，不包含视觉
-backbone、SimAugment/RandAugment 或 800 epoch，不能标记为本节 paper-like 结果。
+项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置、3-seed 表格合成结果和
+CIFAR-10 visual paper-protocol。runner 已支持 NCHW 数据、13-layer CNN/ResNet-18/50、
+SimAugment/RandAugment、cosine annealing，并将 anchor-wise contrastive loss 向量化。
+`official_data_wconpu_cifar10_protocol.json` 尚未执行 5-seed × 800 epoch，也尚未实现 clean
+10% validation 上的二维 loss-weight grid search，不能标记为论文结果。
 
 ## 15. 测试与验收
 
@@ -360,12 +394,15 @@ backbone、SimAugment/RandAugment 或 800 epoch，不能标记为本节 paper-li
 - SAT 状态在 `[0,1]`；
 - 三项 loss 均为有限标量；
 - fixed seed 可复现；
+- 三种视觉 backbone 返回二维 feature，增强保持 NCHW shape 且固定 seed 可复现；
+- NCHW 图像可完成一轮 WConPU 训练，cosine scheduler 状态正确；
 - registry 元数据要求 class prior；
 - 合成 PU 数据上可完成 fit/predict。
 
 ## 16. 局限与复现风险
 
-- 对比学习结果高度依赖 augmentation；
+- 对比学习结果高度依赖 augmentation，论文没有公开 SimAugment/RandAugment 参数；
+- 论文只给出“13-layer CNN”名称，没有逐层 topology；当前适配器属于 clean-room；
 - 默认 tabular augmentation 仅用于接口验证；
 - early-stage classifier 错误会污染 peer set 和 prototype；
 - hard-negative inverse distance 可能产生大梯度，必须做 `eps`/clamp；

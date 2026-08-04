@@ -68,6 +68,7 @@
 - [x] 完整论文配置运行前审计（GPU、EDM、授权数据、实现差距分别报告）
 - [x] InfoMax PU 论文网络协议（mini-batch PURL、BN/ReLU、gradient noise、300×3 nnPU、Adam/AdaGrad）
 - [x] InfoMax PU 独立 validation split、KM1/KM2 类先验估计与结果误差记录
+- [x] WConPU NCHW、13-layer CNN/ResNet、SimAugment/RandAugment 与 cosine scheduler 接入
 - [ ] InfoMax PU、WConPU、DGPU 官方视觉/文本与 EDM paper-like 全量运行
 
 ## 最近完成记录
@@ -98,3 +99,4 @@
 | 2026-08-03 | 深度 PU benchmark | InfoMax PU/WConPU/DGPU 统一 runner、三份论文配置锁、Gaussian generator 和实际多 seed 结果 | `benchmarks/deep_pu/` | 3 methods × 3 seeds = 9 trials；13 个 runner cases；官方视觉/EDM 运行待完成 |
 | 2026-08-04 | 深度 PU 官方数据执行层 | 公开数据加载、确定性 case-control split、resume 防混写、原始数据/split/配置/代码哈希与完整配置 preflight | `benchmarks/deep_pu/official_data.py`；`preflight_paper.py`；official-data 配置与结果 | Fashion-MNIST 3 seeds 已执行；ROC-AUC `0.4420 ± 0.0874`；`623 passed`；完整视觉/EDM 仍按 blocker 清单推进 |
 | 2026-08-04 | InfoMax PU 论文网络与先验链路 | PURL mini-batch、BN/ReLU、gradient noise；300×3 nnPU；独立 validation；KM1/KM2 与先验误差审计 | `estimators/deep/infomax_pu.py`；`prior/kernel_mean.py`；InfoMax official-data protocol 配置 | 定向 `29 passed`；20-seed 配置待 preflight；未公开 class split、batch size 和 KM 变体仍待核对 |
+| 2026-08-04 | WConPU 视觉执行链路 | NCHW、clean-room CNN13、torchvision ResNet-18/50、SimAugment/RandAugment、cosine scheduler、向量化 contrastive loss | `estimators/deep/vision.py`；WConPU estimator 与 CIFAR-10 protocol 配置 | 视觉/runner 定向 `29 passed`；5-seed × 800 epoch CUDA 与 clean validation 选参待执行 |
