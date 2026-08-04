@@ -58,25 +58,17 @@ class TestRecommenderBasic:
 @pytest.mark.unit
 class TestRecommenderFiltering:
     def test_param_scenario_filters_methods(self, profile):
-        result = recommend_from_profile(
-            profile, scenario="selection_biased", top_k=15
-        )
+        result = recommend_from_profile(profile, scenario="selection_biased", top_k=15)
         for c in result.candidates:
-            assert "selection_biased" in [
-                s.value for s in c.metadata.scenario
-            ]
+            assert "selection_biased" in [s.value for s in c.metadata.scenario]
 
     def test_param_class_prior_none_excludes(self, profile):
-        result = recommend_from_profile(
-            profile, class_prior=None, top_k=15
-        )
+        result = recommend_from_profile(profile, class_prior=None, top_k=15)
         for c in result.candidates:
             assert not c.metadata.requires_class_prior
 
     def test_param_assumption_explicit_filters(self, profile):
-        result = recommend_from_profile(
-            profile, assumption="SAR", top_k=15
-        )
+        result = recommend_from_profile(profile, assumption="SAR", top_k=15)
         for c in result.candidates:
             from pu_toolbox.core.tags import Assumption
 
@@ -101,9 +93,7 @@ class TestRecommenderScoring:
             c.score for c in result.candidates if c.metadata.maturity.value == "stable"
         ]
         experimental_scores = [
-            c.score
-            for c in result.candidates
-            if c.metadata.maturity.value == "experimental"
+            c.score for c in result.candidates if c.metadata.maturity.value == "experimental"
         ]
         if stable_scores and experimental_scores:
             assert max(stable_scores) > min(experimental_scores)
@@ -111,9 +101,7 @@ class TestRecommenderScoring:
     def test_basic_sar_diagnostic_boosts_sar(self, pu_data):
         X, y_pu = pu_data
         profile_normal = profile_pu_data(X, y_pu, random_state=42)
-        result = recommend_from_profile(
-            profile_normal, class_prior=0.5, top_k=15
-        )
+        result = recommend_from_profile(profile_normal, class_prior=0.5, top_k=15)
         sar_names = {"pusb", "lbe", "llsvm", "dgpu"}
         sar_candidates = [c for c in result.candidates if c.name in sar_names]
         assert len(sar_candidates) > 0
@@ -124,13 +112,9 @@ class TestRecommenderScoring:
         y_small = np.array([1] * 10 + [0] * 40)
         profile = profile_pu_data(X_small, y_small, random_state=0)
         result = recommend_from_profile(profile, top_k=15)
-        deep_scores = [
-            c.score for c in result.candidates if c.metadata.family.value == "deep_pu"
-        ]
+        deep_scores = [c.score for c in result.candidates if c.metadata.family.value == "deep_pu"]
         non_deep_scores = [
-            c.score
-            for c in result.candidates
-            if c.metadata.family.value != "deep_pu"
+            c.score for c in result.candidates if c.metadata.family.value != "deep_pu"
         ]
         if deep_scores and non_deep_scores:
             assert max(non_deep_scores) >= min(deep_scores)

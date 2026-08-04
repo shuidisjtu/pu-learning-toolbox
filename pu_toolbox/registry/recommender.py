@@ -309,9 +309,7 @@ def _resolve_enum(value: str | Any, enum_cls: type) -> Any:
     if isinstance(value, enum_cls):
         return value
     if isinstance(value, Enum):
-        raise ValueError(
-            f"Expected {enum_cls.__name__}, got {type(value).__name__}: {value!r}"
-        )
+        raise ValueError(f"Expected {enum_cls.__name__}, got {type(value).__name__}: {value!r}")
     for member in enum_cls:
         if member.value.lower() == str(value).lower():
             return member
