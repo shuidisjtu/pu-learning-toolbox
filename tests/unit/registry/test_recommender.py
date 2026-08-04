@@ -1,3 +1,4 @@
+# ruff: noqa: N806
 """Tests for the algorithm recommender."""
 
 import json
