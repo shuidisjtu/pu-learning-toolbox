@@ -81,7 +81,7 @@
 
 ## 4. 推荐器
 
-`pu_toolbox.registry.recommend_methods` 实现自动化算法推荐，流程：
+`pu_toolbox.advisor.recommend_methods` 实现自动化算法推荐，流程：
 
 ```
 数据画像 (规模/稀疏性/PU比例) + 用户输入 (scenario/assumption/π)
@@ -94,8 +94,7 @@
 ### 基本用法
 
 ```python
-from pu_toolbox.registry import recommend_methods, recommend_from_profile
-from pu_toolbox.preprocessing import profile_pu_data
+from pu_toolbox import recommend_methods, recommend_from_profile, profile_pu_data
 
 # 数据驱动（自动 profiling）
 result = recommend_methods(X, y_pu, class_prior=0.3, has_gpu=True)
