@@ -5,7 +5,7 @@ import json
 import numpy as np
 import pytest
 
-from pu_toolbox.preprocessing import PUDataProfile, profile_pu_data
+from pu_toolbox.preprocessing import profile_pu_data
 from pu_toolbox.registry import (
     MethodCandidate,
     RecommendationResult,

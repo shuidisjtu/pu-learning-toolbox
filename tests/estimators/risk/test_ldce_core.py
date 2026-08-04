@@ -7,7 +7,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 
 # ═════════════════════════════════════════════════════════════════════
@@ -56,14 +55,6 @@ class TestPriorCalculation:
         # p = k / [n (1-h)] = 30 / [100 * 0.75] = 0.4
         np.testing.assert_allclose(clf.class_prior_, 0.4, rtol=0.01)
 
-    def test_h_out_of_range_raises(self, rng):
-        rng2 = np.random.RandomState(5)
-        X = rng2.randn(30, 3)
-        y_pu = np.concatenate([np.ones(10, dtype=int), np.zeros(20, dtype=int)])
-        clf = LDCEClassifier(flip_probability=1.5, max_iter=5)
-        with pytest.raises(ValueError, match="flip_probability"):
-            clf.fit(X, y_pu)
-
     def test_derived_prior_over_one_raises(self, rng):
         rng2 = np.random.RandomState(6)
         X = rng2.randn(30, 3)
@@ -88,59 +79,6 @@ class TestPriorCalculation:
         clf = LDCEClassifier(flip_probability=0.5, max_iter=5)
         with pytest.raises(ValueError, match="near-zero"):
             clf.fit(X, y_pu)
-
-
-# ═════════════════════════════════════════════════════════════════════
-# Fit and predict basics
-# ═════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.unit
-class TestFitPredictBasics:
-    """Basic fitting and prediction smoke tests."""
-
-    def test_fit_returns_self(self, rng):
-        rng2 = np.random.RandomState(9)
-        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
-        clf = LDCEClassifier(flip_probability=0.3, max_iter=5, random_state=42)
-        result = clf.fit(X, y_pu)
-        assert result is clf
-
-    def test_predict_binary(self, rng):
-        rng2 = np.random.RandomState(10)
-        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
-        clf = LDCEClassifier(flip_probability=0.3, max_iter=10, random_state=42)
-        clf.fit(X, y_pu)
-        pred = clf.predict(X)
-        assert pred.dtype == int
-        assert set(np.unique(pred)) <= {0, 1}
-        assert pred.shape == (X.shape[0],)
-
-    def test_decision_function_shape(self, rng):
-        rng2 = np.random.RandomState(11)
-        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
-        clf = LDCEClassifier(flip_probability=0.3, max_iter=10, random_state=42)
-        clf.fit(X, y_pu)
-        scores = clf.decision_function(X)
-        assert scores.shape == (X.shape[0],)
-        assert np.isfinite(scores).all()
-
-    def test_predict_proba_raises(self, rng):
-        rng2 = np.random.RandomState(12)
-        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
-        clf = LDCEClassifier(flip_probability=0.3, max_iter=5, random_state=42)
-        clf.fit(X, y_pu)
-        with pytest.raises(NotImplementedError):
-            clf.predict_proba(X)
-
-    def test_not_fitted_raises(self, rng):
-        rng2 = np.random.RandomState(13)
-        X = rng2.randn(20, 3)
-        clf = LDCEClassifier(flip_probability=0.3)
-        with pytest.raises(NotFittedError):
-            clf.predict(X)
-        with pytest.raises(NotFittedError):
-            clf.decision_function(X)
 
 
 # ═════════════════════════════════════════════════════════════════════

@@ -119,9 +119,8 @@ tests/
       test_ldce_math.py               # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
       test_ldce_core.py               # LDCE fit/predict/属性/标签 (unit)
       test_ldce_api.py                # LDCE 收敛/约束/API/错误/回归 (unit)
-      test_kldce_math.py              # KLDCE 公式验证 (MATH: Q/d/Aeq/bias/delta)
-      test_kldce_oracle.py            # KLDCE QP oracle + bias 恢复 (MATH)
-      test_kldce_property.py          # KLDCE 约束/鲁棒性/可复现性 (PROPERTY)
+      test_kldce_math.py              # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
+      test_kldce_property.py          # KLDCE 约束/鲁棒性 (PROPERTY)
 
   unit/                               # 算法特有逻辑测试
     diagnostics/

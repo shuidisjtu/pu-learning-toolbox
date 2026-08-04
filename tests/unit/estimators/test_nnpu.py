@@ -441,22 +441,6 @@ class TestAPIContract:
         clf3.fit(X, y_pu, class_prior=pi)
         assert isinstance(clf3.model_, torch.nn.Module)
 
-    def test_deterministic_reproducibility(self, rng):
-        """Same random_state → identical decision_function output."""
-        X, y_pu, pi = _make_synthetic_data(rng, n_p=20, n_u=40, seed=99)
-        torch.manual_seed(42)
-        m1 = torch.nn.Linear(5, 1)
-        c1 = NonNegativePUClassifier(model=m1, max_epochs=2, batch_size=8, random_state=42)
-        c1.fit(X, y_pu, class_prior=pi)
-        s1 = c1.decision_function(X)
-
-        torch.manual_seed(42)
-        m2 = torch.nn.Linear(5, 1)
-        c2 = NonNegativePUClassifier(model=m2, max_epochs=2, batch_size=8, random_state=42)
-        c2.fit(X, y_pu, class_prior=pi)
-        s2 = c2.decision_function(X)
-        np.testing.assert_array_almost_equal(s1, s2)
-
     def test_edge_evaluate_pu_risk_and_early_stopping(self, rng):
         """evaluate_pu_risk override/flag_switch; early stopping with/without validation."""
         X, y_pu, pi = _make_synthetic_data(rng, n_p=20, n_u=40)

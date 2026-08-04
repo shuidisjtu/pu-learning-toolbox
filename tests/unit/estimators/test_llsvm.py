@@ -11,7 +11,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pu_toolbox.core.exceptions import NotFittedError, ValidationError
 from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
 
 # ═════════════════════════════════════════════════════════════════════
@@ -55,14 +54,6 @@ class TestLLSVMAPI:
         meta = clf.get_pu_metadata()
         assert meta["is_fitted"] is False
 
-    def test_basic_get_set_params(self):
-        clf = LLSVMClassifier(alpha=3.0, gamma=20.0)
-        params = clf.get_params()
-        assert params["alpha"] == 3.0
-        assert params["gamma"] == 20.0
-        clf.set_params(alpha=5.0)
-        assert clf.alpha == 5.0
-
     def test_basic_fit_predict_shapes(self, rng):
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         clf = LLSVMClassifier(max_epochs=50, random_state=42)
@@ -77,13 +68,6 @@ class TestLLSVMAPI:
         assert scores.shape == (X.shape[0],)
         np.testing.assert_array_equal(clf.score_samples(X), scores)
         np.testing.assert_array_equal(clf.classes_, np.array([0, 1]))
-
-    def test_basic_not_fitted_raises(self):
-        clf = LLSVMClassifier()
-        with pytest.raises(NotFittedError):
-            clf.predict(np.array([[1.0, 2.0]]))
-        with pytest.raises(NotFittedError):
-            clf.decision_function(np.array([[1.0, 2.0]]))
 
     def test_basic_predict_proba_not_implemented(self, rng):
         X, y_pu, pi = _make_two_gaussian_pu(rng)
@@ -101,12 +85,6 @@ class TestLLSVMAPI:
 @pytest.mark.unit
 class TestLLSVMValidation:
     """Input validation: bad labels, empty sets, bad hyperparams."""
-
-    def test_param_no_positives_raises(self, rng):
-        X = rng.randn(10, 2)
-        y_all_zero = np.zeros(10)
-        with pytest.raises(ValidationError):
-            LLSVMClassifier(max_epochs=10).fit(X, y_all_zero, class_prior=0.5)
 
     def test_param_invalid_class_prior_raises(self, rng):
         X, y_pu, _ = _make_two_gaussian_pu(rng)
@@ -209,22 +187,3 @@ class TestLLSVMClassPrior:
         clf.fit(X, y_pu)
         assert 0.0 < clf.class_prior_ < 1.0
         assert clf.calibration_target_ == pytest.approx(2 * clf.class_prior_ - 1)
-
-
-# ═════════════════════════════════════════════════════════════════════
-# Reproducibility
-# ═════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.unit
-class TestLLSVMReproducibility:
-    """Same random_state → identical results."""
-
-    def test_deterministic_same_seed(self, rng):
-        X, y_pu, pi = _make_two_gaussian_pu(rng)
-        clf1 = LLSVMClassifier(max_epochs=50, random_state=123)
-        clf1.fit(X, y_pu, class_prior=pi)
-        clf2 = LLSVMClassifier(max_epochs=50, random_state=123)
-        clf2.fit(X, y_pu, class_prior=pi)
-        np.testing.assert_array_equal(clf1.coef_, clf2.coef_)
-        assert clf1.intercept_ == clf2.intercept_

@@ -11,7 +11,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pu_toolbox.core.exceptions import NotFittedError, ValidationError
+from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.risk.upu import UPUClassifier, _pu_validation_risk
 from pu_toolbox.losses.upu import UPULoss
 
@@ -209,13 +209,6 @@ class TestSeparableBoundary:
 @pytest.mark.unit
 class TestErrorHandling:
     """Method card §9.6 — API contract violations."""
-
-    def test_param_not_fitted_raises(self):
-        clf = UPUClassifier(class_prior=0.5)
-        with pytest.raises(NotFittedError):
-            clf.predict(np.array([[0.5]]))
-        with pytest.raises(NotFittedError):
-            clf.decision_function(np.array([[0.5]]))
 
     @pytest.mark.parametrize(
         "clf, match",

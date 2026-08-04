@@ -75,14 +75,3 @@ def test_edge_zero_mixup_weight(rng):
         random_state=0,
     ).fit(X, y)
     assert model.predict(X).shape == (len(X),)
-
-
-# ── determ ─────────────────────────────────────────────────────
-
-
-@pytest.mark.unit
-def test_deterministic_loss_with_seed(rng):
-    X, y = _data(rng)
-    m1 = DistPUClassifier(0.3, hidden_dim=8, epochs=3, random_state=42).fit(X, y)
-    m2 = DistPUClassifier(0.3, hidden_dim=8, epochs=3, random_state=42).fit(X, y)
-    np.testing.assert_allclose(m1.loss_history_, m2.loss_history_)

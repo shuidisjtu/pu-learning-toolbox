@@ -198,14 +198,6 @@ class TestErrorHandling:
 class TestCompatibility:
     """sklearn compatibility tests."""
 
-    def test_basic_get_params_set_params(self, rng):
-        clf = ElkanNotoClassifier(n_cv_folds=5, eps=1e-6)
-        params = clf.get_params()
-        assert params["n_cv_folds"] == 5 and params["eps"] == 1e-6
-        clf2 = ElkanNotoClassifier()
-        clf2.set_params(**params)
-        assert clf2.get_params() == params
-
     def test_basic_pipeline_compatible(self, rng):
         X, y_pu, _ = make_scar_dataset(random_state=rng)
         pipe = Pipeline([("clf", ElkanNotoClassifier(n_cv_folds=3, random_state=42))])

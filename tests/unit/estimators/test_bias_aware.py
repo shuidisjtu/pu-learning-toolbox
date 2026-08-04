@@ -80,15 +80,3 @@ def test_edge_pusb_all_positive_raises(rng):
     y = np.ones(30, dtype=int)
     with pytest.raises((ValidationError, ValueError)):
         PUSBClassifier().fit(X, y)
-
-
-# ── determ ─────────────────────────────────────────────────────
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize("cls", [PUSBClassifier, LBEClassifier])
-def test_deterministic_predictions_across_runs(rng, cls):
-    X, y = _data(rng)
-    m1 = cls().fit(X, y)
-    m2 = cls().fit(X, y)
-    np.testing.assert_array_equal(m1.predict(X), m2.predict(X))

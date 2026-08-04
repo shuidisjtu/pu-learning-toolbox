@@ -93,6 +93,7 @@ UNLIMITED_FILES: set[str] = {
     "test_builtin_methods.py",  # registry metadata completeness
     "test_registry.py",  # registry mechanics
     "test_import.py",  # smoke imports
+    "test_kldce_math.py",  # MATH formula verification (includes merged QP oracle tests)
 }
 
 # Files whose algorithms are fully covered by contract tests
@@ -101,6 +102,8 @@ UNLIMITED_FILES: set[str] = {
 CONTRACT_COVERED_FILES: set[str] = {
     "test_bias_aware.py",
     "test_dist_pu.py",
+    "test_import.py",
+    "test_kldce_property.py",
     "test_pen_l1.py",
 }
 

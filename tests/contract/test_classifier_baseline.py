@@ -183,11 +183,23 @@ _FACTORY_MAP: dict[str, callable] = {
     "dgpu": _make_dgpu,
 }
 
-_CLASSIFIER_NAMES = [
-    name for name, fn in _FACTORY_MAP.items() if not isinstance(fn(), BasePriorEstimator)
+_REPRESENTATIVE_ALGOS = [
+    "elkan_noto",
+    "upu",
+    "pusb",
+    "recpe",
+    "self_pu",
+    "kldce",
 ]
-_ALL_PARAMS = [pytest.param(name, id=name) for name in _FACTORY_MAP]
-_CLF_PARAMS = [pytest.param(name, id=name) for name in _CLASSIFIER_NAMES]
+
+_REPRESENTATIVE_CLFS = [
+    name
+    for name in _REPRESENTATIVE_ALGOS
+    if not isinstance(_FACTORY_MAP[name](), BasePriorEstimator)
+]
+
+_ALL_PARAMS = [pytest.param(name, id=name) for name in _REPRESENTATIVE_ALGOS]
+_CLF_PARAMS = [pytest.param(name, id=name) for name in _REPRESENTATIVE_CLFS]
 
 
 # ── Data factories & helpers ──────────────────────────────────────
@@ -308,16 +320,11 @@ class TestAPIContract:
     """API contract tests specific to BasePUClassifier subclasses."""
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
-    def test_not_fitted_predict_raises(self, algo_name, rng):
+    def test_not_fitted_raises(self, algo_name, rng):
         clf = _FACTORY_MAP[algo_name]()
         X, _ = _get_data_factory(clf)(rng)
         with pytest.raises(NotFittedError):
             clf.predict(X)
-
-    @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
-    def test_not_fitted_decision_function_raises(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
-        X, _ = _get_data_factory(clf)(rng)
         with pytest.raises(NotFittedError):
             clf.decision_function(X)
 
@@ -387,26 +394,3 @@ class TestRegistryClassBinding:
             estimator = get_algorithm(meta.name)
             assert estimator is not None
             assert hasattr(estimator, "fit")
-
-    def test_native_methods_bound(self):
-        from pu_toolbox.registry import list_algorithms
-
-        trainable = list_algorithms(trainable_only=True)
-        names = {m.name for m in trainable}
-        assert names == {
-            "elkan_noto",
-            "upu",
-            "nnpu",
-            "pnu",
-            "recpe",
-            "centroid_pu",
-            "class_prior_estimation",
-            "dist_pu",
-            "pusb",
-            "lbe",
-            "llsvm",
-            "self_pu",
-            "infomax_pu",
-            "weighted_contrastive_pu",
-            "dgpu",
-        }

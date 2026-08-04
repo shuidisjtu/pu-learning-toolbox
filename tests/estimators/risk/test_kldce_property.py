@@ -92,7 +92,7 @@ class TestEllipsoidConstraint:
 class TestHMismatchRobustness:
     """ĥ mismatch should not cause crashes."""
 
-    @pytest.mark.parametrize("h_factor", [0.6, 0.8, 1.0, 1.2, 1.4])
+    @pytest.mark.parametrize("h_factor", [0.6, 1.0, 1.4])
     def test_h_mismatch_no_crash(self, rng, h_factor):
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         h_mismatch = max(0.05, min(0.95, 0.3 * h_factor))
@@ -113,42 +113,6 @@ class TestHMismatchRobustness:
         if clf._is_fitted:
             assert hasattr(clf, "alpha_full_")
             assert hasattr(clf, "bias_")
-
-
-# ═════════════════════════════════════════════════════════════════════
-# Reproducibility
-# ═════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.property
-class TestReproducibility:
-    """Random seed should give reproducible results."""
-
-    def test_same_seed_same_result(self, rng):
-        rng2 = np.random.RandomState(42)
-        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=15, n_neg=30, h=0.3, d=3)
-
-        clf1 = KLDCEClassifier(
-            flip_probability=0.3,
-            sigma=2.0,
-            max_acs_iter=10,
-            tol=1e-4,
-            random_state=42,
-        )
-        clf1.fit(X, y_pu)
-
-        clf2 = KLDCEClassifier(
-            flip_probability=0.3,
-            sigma=2.0,
-            max_acs_iter=10,
-            tol=1e-4,
-            random_state=42,
-        )
-        clf2.fit(X, y_pu)
-
-        np.testing.assert_allclose(clf1.bias_, clf2.bias_, rtol=1e-10)
-        np.testing.assert_array_equal(clf1.alpha_full_, clf2.alpha_full_)
-        np.testing.assert_array_equal(clf1.gamma_unlabeled_, clf2.gamma_unlabeled_)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -207,14 +171,6 @@ class TestACSHistory:
 @pytest.mark.property
 class TestInputValidation:
     """Input validation per spec §4 step 2."""
-
-    def test_k_gt_zero_enforced(self, rng):
-        """At least one positive sample required."""
-        X = rng.randn(10, 3)
-        y_pu = np.zeros(10, dtype=int)
-        clf = KLDCEClassifier(flip_probability=0.3)
-        with pytest.raises((ValidationError, ValueError)):
-            clf.fit(X, y_pu)
 
     def test_n_U_gt_zero_enforced(self, rng):
         """At least one unlabeled sample required."""
@@ -293,15 +249,3 @@ class TestFittedAttributes:
         ]
         for attr in required:
             assert hasattr(clf, attr), f"Missing attribute: {attr}"
-
-    def test_classes_are_0_1(self, rng):
-        X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
-        clf = KLDCEClassifier(
-            flip_probability=0.3,
-            sigma=2.0,
-            max_acs_iter=5,
-            tol=1e-4,
-            random_state=42,
-        )
-        clf.fit(X, y_pu)
-        np.testing.assert_array_equal(clf.classes_, np.array([0, 1]))

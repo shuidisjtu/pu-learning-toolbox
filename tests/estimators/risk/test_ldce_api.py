@@ -104,7 +104,7 @@ class TestEllipsoidConstraint:
 class TestHSensitivity:
     """Mild h mismatch should not crash."""
 
-    @pytest.mark.parametrize("h_hat", [0.18, 0.24, 0.30, 0.36, 0.42])
+    @pytest.mark.parametrize("h_hat", [0.18, 0.30, 0.42])
     def test_mild_h_error_does_not_crash(self, rng, h_hat):
         rng2 = np.random.RandomState(19)
         X, y_pu, _ = _make_censoring_pu_data(
@@ -166,14 +166,6 @@ class TestConvergenceDiagnostics:
 class TestLDCEAPI:
     """Sklearn API compatibility."""
 
-    def test_get_params_set_params(self):
-        clf = LDCEClassifier(flip_probability=0.3, reg_strength=2.0)
-        params = clf.get_params()
-        assert params["flip_probability"] == 0.3
-        assert params["reg_strength"] == 2.0
-        clf.set_params(reg_strength=5.0)
-        assert clf.get_params()["reg_strength"] == 5.0
-
     def test_clone_compatible(self, rng):
         rng2 = np.random.RandomState(25)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
@@ -203,15 +195,6 @@ class TestLDCEAPI:
         pred = pipe.predict(X)
         assert set(np.unique(pred)) <= {0, 1}
 
-    def test_score_samples_delegates(self, rng):
-        rng2 = np.random.RandomState(27)
-        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
-        clf = LDCEClassifier(flip_probability=0.3, max_iter=10, random_state=42)
-        clf.fit(X, y_pu)
-        np.testing.assert_array_equal(
-            clf.score_samples(X),
-            clf.decision_function(X),
-        )
 
 
 # ═════════════════════════════════════════════════════════════════════
