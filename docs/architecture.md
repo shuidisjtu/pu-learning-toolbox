@@ -13,7 +13,7 @@
 
 | 层 | 模块 | 作用 |
 |---|---|---|
-| Core | `core`, `preprocessing`, `registry`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、结构化数据画像、算法注册、元数据、共享工具 |
+| Core | `core`, `preprocessing`, `registry`, `advisor`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、结构化数据画像、算法注册、元数据、算法推荐、共享工具 |
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
 | Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化报告与假设敏感性 |
@@ -154,13 +154,22 @@ class BasePULoss(ABC):
 
 ### 算法推荐器
 
-`registry/recommender.py` 提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配：
+`advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配：
 
 1. **硬过滤**：trainable、scenario、sparse 支持、class_prior 可用性
-2. **软评分**：assumption 匹配(30) + maturity(20) + source_status(15) + 数据规模(20) + GPU(5) + 标记充足度(10)
+2. **软评分**：assumption 匹配 + maturity + source_status + 数据规模 + GPU + 标记充足度
 3. **风险提示**：自动生成全局和每方法的警告
 
+评分权重通过 `ScoringConfig` dataclass 外化，开发者和用户可自定义维度权重、
+枚举分数映射和数据规模阈值。缺省使用 `DEFAULT_CONFIG`。
+
+模块结构：
+- `_types.py` — 数据类（`MethodCandidate`、`RecommendationResult`）
+- `rules.py` — 评分规则引擎（`ScoringConfig`、评分/警告函数）
+- `recommender.py` — 管线编排（过滤 → 评分 → 排序 → 组装）
+
 返回 `RecommendationResult`，支持 `to_json()` / `to_markdown()` / `save()`。
+向后兼容：`from pu_toolbox.registry import recommend_methods` 仍可用。
 
 ## 7. 类先验、标记倾向与损失函数
 

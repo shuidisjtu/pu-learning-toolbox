@@ -97,7 +97,12 @@ pu_toolbox/
     registry.py                (含别名解析逻辑)
     metadata.py
     builtin_methods.py         (15 论文方法元数据 + native 绑定)
-    recommender.py             (算法推荐器: recommend_methods / recommend_from_profile)
+
+  advisor/
+    __init__.py
+    recommender.py             (算法推荐管线: recommend_methods / recommend_from_profile)
+    rules.py                   (评分规则引擎: ScoringConfig + 评分/警告函数)
+    _types.py                  (数据类: MethodCandidate / RecommendationResult)
 ```
 
 ## 3. 测试（`tests/`）
@@ -153,6 +158,7 @@ tests/
       test_profiling.py               # 数据画像统计
       test_data_profiler.py           # 结构化报告、质量规则与审计诊断
     registry/
+    advisor/
       test_recommender.py             # 算法推荐器过滤、评分与输出
 
   benchmarks/                        # Benchmark runner 测试
