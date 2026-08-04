@@ -54,7 +54,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="http://www.mcduplessis.com/index.php/software/",
-        license="needs_review",
+        license="unknown",
     ),
     # ── 2. ReCPE ───────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -165,7 +165,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
-        license="needs_review",
+        license="unknown",
     ),
     # ── 8. LLSVM ───────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -186,7 +186,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LLSVM_TNNLS19.rar",
-        license="needs_review",
+        license="unknown",
     ),
     # ── 9. Dist-PU ─────────────────────────────────────────────────
     AlgorithmMetadata(
