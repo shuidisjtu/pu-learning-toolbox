@@ -40,6 +40,7 @@ pu_toolbox/
     __init__.py
     recpe.py                  (native)
     pen_l1.py                (native)
+    kernel_mean.py           (native: KM1/KM2 kernel-mean class-prior estimation)
 
   utils/
     __init__.py
@@ -77,9 +78,6 @@ pu_toolbox/
       infomax_pu.py          (native: PURL + nnPU pipeline)
       weighted_contrastive_pu.py (native core)
       dgpu.py                (native orchestration + generator protocol)
-
-  prior/
-    kernel_mean.py           (native: KM1/KM2 kernel-mean class-prior estimation)
 
   metrics/
     __init__.py
@@ -136,6 +134,7 @@ tests/
       test_bias_aware.py              # PUSB / LBE 特有逻辑
       test_dist_pu.py                 # Dist-PU 特有逻辑
       test_self_pu.py                 # Self-PU pace/meta/EMA/三阶段训练
+      test_deep_pu.py                 # InfoMax PU/WConPU/DGPU 接口与 registry
       test_llsvm.py                   # LLSVM 特有逻辑
     losses/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
@@ -148,6 +147,7 @@ tests/
     prior/
       test_recpe.py                   # ReCPE 特有逻辑
       test_pen_l1.py                  # penL1 特有逻辑
+      test_kernel_mean.py             # KM1/KM2 kernel-mean 类先验估计
     preprocessing/
       test_pu_labeling.py             # PU/PNU 标签生成
       test_selection_bias.py          # SCAR/SAR propensity、标记率校准与合成数据
@@ -155,6 +155,11 @@ tests/
       test_data_profiler.py           # 结构化报告、质量规则与审计诊断
     registry/
       test_recommender.py             # 算法推荐器过滤、评分与输出
+
+  benchmarks/                        # Benchmark runner 测试
+    test_assigned_benchmark_runner.py     # 前五篇 benchmark runner 测试
+    test_deep_pu_benchmark_runner.py      # 深度 PU runner 测试
+    test_deep_pu_official_data.py         # 官方数据加载与 split 测试
 
 ```
 
@@ -230,6 +235,13 @@ docs/
       PNU.md
       ReCPE.md
       LLSVM.md
+      Dist-PU.md
+      PUSB.md
+      LBE.md
+      Self-PU.md
+      InfoMax-PU.md
+      WConPU.md
+      DGPU.md
   project_management/
     decision_log.md
     process_checklist.md

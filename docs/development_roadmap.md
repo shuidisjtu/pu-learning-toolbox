@@ -75,8 +75,8 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 | WP4 | PU 数据切分与 CV ✅ | P0 | WP1 |
 | WP5 | Elkan-Noto ✅、uPU ✅、nnPU ✅、ReCPE ✅ | P0 | WP1 |
 | WP6 | PNU ✅、LDCE ✅ | P0 | WP5 |
-| WP7 | PU Bagging、Biased SVM、Weighted LR（v1 范围外） | P0 | WP1 |
-| WP8 | penL1 ✅ / TIcE / AlphaMax 类先验估计（v1 范围外） | P0 | WP1 |
+| WP7 | PU Bagging、Biased SVM、Weighted LR（v1 范围外） | P3 | WP1 |
+| WP8 | penL1 ✅ / KM1/KM2 ✅ / TIcE / AlphaMax 类先验估计（TIcE/AlphaMax v1 范围外） | P1 | WP1 |
 | WP9 | Metrics 与 diagnostics | P1 | WP1, WP8 |
 | WP10 | 算法推荐器 ✅ | P1 | WP2, WP9 |
 | WP11 | paper-like benchmark | P1 | WP6 |
@@ -88,11 +88,11 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 ## 版本路线
 
 ```
-0.1.0  核心 PU 风险估计（Elkan-Noto, uPU, nnPU, ReCPE, PNU, LDCE, penL1, Dist-PU, PUSB, LBE）
-0.2.0  经典包装器 + 补充类先验估计
-0.3.0  Benchmark + LLSVM 集成
-0.4.0  推荐器 + 诊断报告
+0.1.0  核心 PU 风险估计（Elkan-Noto, uPU, nnPU, ReCPE, PNU, LDCE, penL1）
+0.2.0  经典包装器 + 补充类先验估计（KM1/KM2）
+0.3.0  Benchmark + LLSVM + PUSB + LBE + Dist-PU
+0.4.0  推荐器 + 诊断报告 + 敏感性分析
 0.5.0  SAR / selection-biased PU
-0.6.0  Self-PU, Dist-PU
+0.6.0  Self-PU, Dist-PU, InfoMax PU, WConPU, DGPU
 1.0.0  API 稳定
 ```

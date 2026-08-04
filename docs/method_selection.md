@@ -1,16 +1,16 @@
 # Method Selection Guide
 
-本指南根据数据场景、假设、硬件、实现状态整理候选算法，供人工选型参考。自动化推荐器为后续规划。
+本指南根据数据场景、假设、硬件、实现状态整理候选算法，供人工选型参考。自动化推荐器见 §4。
 
 算法族总览：
 
 | 算法族 | 方法 |
 |---|---|
-| Class Prior Estimation | penL1, TIcE †, AlphaMax †, ReCPE |
+| Class Prior Estimation | penL1, KM1/KM2, TIcE †, AlphaMax †, ReCPE |
 | Classic & Calibration | Elkan-Noto, PU Bagging †, Biased SVM †, Weighted LR † |
-| Risk Estimation | uPU, nnPU, PNU, Dist-PU, Centroid/LDCE, LLSVM |
+| Risk Estimation | uPU, nnPU, PNU, Dist-PU, LDCE, KLDCE, LLSVM |
 | Bias-Aware PU | PUSB, LBE |
-| Deep PU | Self-PU, InfoMax PU, Contrastive PU, DGPU |
+| Deep PU | Self-PU, InfoMax PU, WConPU, DGPU |
 
 > † 扩展参考方法，不在 v1 版本（15 篇核心论文）范围内。详见文末「扩展参考」章节。
 
@@ -31,6 +31,10 @@
 | uPU | 无偏风险估计，理论清晰 |
 | nnPU | 缓解 uPU 负风险，适合深度模型 |
 | PNU | 有部分负样本时组合 PN/PU/NU 风险 |
+| Dist-PU | 标签分布视角的 PU 风险估计，深度模型 |
+| Self-PU | 自训练 + meta reweight + 蒸馏，需 clean validation |
+| InfoMax PU | 信息论表征学习 + nnPU，无需 π |
+| WConPU | 加权对比学习 + 难负样本挖掘 |
 
 ### Selection-biased / SAR
 
@@ -38,6 +42,7 @@
 |---|---|
 | PUSB | 直接面向 selection bias |
 | LBE | 显式估计 labeling bias |
+| DGPU | 判别-生成联合建模，支持 SCAR 与 SAR |
 
 ## 2. 按标记机制选择
 
@@ -49,6 +54,10 @@
 | PU Bagging † | 否 | 启发式 baseline（扩展参考） |
 | Weighted LR † | 是 | 适合工程部署（扩展参考） |
 | uPU / nnPU / PNU | 是 | case-control 下更自然 |
+| Dist-PU | 是 | 标签分布视角，深度模型 |
+| Self-PU | 是 | 自训练 + 蒸馏，需 clean validation |
+| InfoMax PU | 否 | 信息论表征 + nnPU，自动估计 π |
+| WConPU | 是 | 加权对比学习 + 难负样本挖掘 |
 
 ### SAR（$P(s=1 \mid y=1, x) = c(x)$）
 
@@ -56,6 +65,7 @@
 |---|---|
 | PUSB | selection bias 基线 |
 | LBE | 显式建模 labeling bias |
+| DGPU | 判别-生成联合建模，同时支持 SCAR 与 SAR |
 
 ## 3. 按数据规模选择
 
@@ -64,9 +74,10 @@
 | 小数据、低维 | Elkan-Noto, Weighted LR † |
 | 小数据、高维文本 | Biased SVM †, PU Bagging † |
 | 中等数据 | PU Bagging †, Biased SVM † |
-| 大数据、有 GPU、$\pi$ 已知 | nnPU, Dist-PU |
+| 大数据、有 GPU、$\pi$ 已知 | nnPU, Dist-PU, Self-PU, WConPU |
+| 大数据、有 GPU、$\pi$ 未知 | InfoMax PU (自动估计 π)，或 TIcE † / AlphaMax † 估计 → 风险估计方法 |
 | 大数据、$\pi$ 未知 | TIcE † / AlphaMax † 估计 $\pi$ → 风险估计方法 |
-| 怀疑标记有偏 | PUSB, LBE |
+| 怀疑标记有偏 | PUSB, LBE, DGPU |
 
 ## 4. 推荐器
 
@@ -74,7 +85,7 @@
 
 ```
 数据画像 (规模/稀疏性/PU比例) + 用户输入 (scenario/assumption/π)
-    → registry 过滤 (trainable_only + scenario + sparse + class_prior)
+    → registry 过滤 (trainable_only + scenario + sparse + class_prior + assumption)
     → 六维评分 (assumption匹配 + maturity + source_status + 数据规模 + GPU + 标记充足度)
     → 按综合分排序
     → 返回 top-k

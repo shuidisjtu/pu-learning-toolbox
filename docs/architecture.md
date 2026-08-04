@@ -166,7 +166,7 @@ class BasePULoss(ABC):
 
 | 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |
 |---|---|
-| 类先验 $\pi$ | ✅ ReCPE, ✅ penL1, † TIcE, † AlphaMax |
+| 类先验 $\pi$ | ✅ ReCPE, ✅ penL1, ✅ KM1/KM2, † TIcE, † AlphaMax |
 | 标记倾向 $c$ (SCAR) | ✅ Elkan-Noto |
 | 标记倾向 $c(x)$ (SAR) | ✅ LBE, ✅ PUSB |
 | PU 风险/损失 | ✅ uPU, ✅ nnPU, ✅ PNU, ✅ Dist-PU |
@@ -177,7 +177,7 @@ class BasePULoss(ABC):
 
 | 方法 | 主要模块 |
 |---|---|
-| Class-Prior Estimation | `prior/pen_l1.py`, `prior/recpe.py` |
+| Class-Prior Estimation | `prior/pen_l1.py`, `prior/recpe.py`, `prior/kernel_mean.py` |
 | ReCPE | `prior/recpe.py` |
 | Elkan-Noto | `estimators/classic/elkan_noto.py` |
 | uPU / nnPU / PNU | `losses/upu.py`, `losses/nnpu.py`, `losses/pnu.py` |

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
@@ -21,7 +22,7 @@ from ..core.tags import (
 )
 from ..preprocessing import PUDataProfile, profile_pu_data
 from .metadata import AlgorithmMetadata
-from .registry import _REGISTRY, list_algorithms
+from .registry import list_algorithms
 
 __all__ = [
     "MethodCandidate",
@@ -46,7 +47,17 @@ _SOURCE_SCORE: dict[SourceStatus, float] = {
     SourceStatus.UNKNOWN: 1.0,
 }
 
-_MAX_RAW_SCORE = 30.0 + 20.0 + 15.0 + 20.0 + 5.0 + 10.0  # 100
+_ASSUMPTION_MAX = 30.0
+_MATURITY_MAX = 20.0
+_SOURCE_MAX = 15.0
+_SCALE_MAX = 20.0
+_GPU_MAX = 5.0
+_LABELED_POS_MAX = 10.0
+_MAX_RAW_SCORE = (
+    _ASSUMPTION_MAX + _MATURITY_MAX + _SOURCE_MAX + _SCALE_MAX + _GPU_MAX + _LABELED_POS_MAX
+)
+
+_BUILTINS_REGISTERED = False
 
 
 @dataclass(frozen=True)
@@ -211,34 +222,41 @@ def recommend_from_profile(
 
     Skips data profiling when a ``PUDataProfile`` is already available.
     See :func:`recommend_methods` for parameter descriptions.
+
+    .. note::
+
+       ``class_prior`` controls hard filtering (excluding methods that
+       require π when it is unavailable).  It must be consistent with
+       the value used to build *profile*; passing a different value
+       produces contradictory results.
     """
-    if not _REGISTRY:
+    if top_k < 1:
+        raise ValueError(f"top_k must be >= 1, got {top_k}")
+    global _BUILTINS_REGISTERED  # noqa: PLW0603
+    if not _BUILTINS_REGISTERED:
         from .builtin_methods import register_all_builtin_methods
 
         register_all_builtin_methods()
-    scenario_enum = _resolve_enum(scenario, Scenario) if scenario else None
-    assumption_enum = _resolve_enum(assumption, Assumption) if assumption else None
+        _BUILTINS_REGISTERED = True
+    scenario_enum = _resolve_enum(scenario, Scenario) if scenario is not None else None
+    assumption_enum = _resolve_enum(assumption, Assumption) if assumption is not None else None
 
     all_methods = list_algorithms(trainable_only=True)
 
     filters_applied: dict[str, Any] = {}
-    filtered = all_methods
+    filtered = [m for m in all_methods if m.maturity != Maturity.DEPRECATED]
 
     if scenario_enum is not None:
         filtered = [m for m in filtered if scenario_enum in m.scenario]
         filters_applied["scenario"] = scenario_enum.value
 
     if profile.summary.get("is_sparse", False):
-        before = len(filtered)
         filtered = [m for m in filtered if m.supports_sparse]
-        if len(filtered) < before:
-            filters_applied["sparse_support"] = True
+        filters_applied["sparse_support"] = True
 
     if class_prior is None:
-        before = len(filtered)
         filtered = [m for m in filtered if not m.requires_class_prior]
-        if len(filtered) < before:
-            filters_applied["class_prior_required"] = "excluded (not provided)"
+        filters_applied["class_prior_required"] = "excluded (not provided)"
 
     if assumption_enum is not None:
         filtered = [m for m in filtered if assumption_enum in m.assumption]
@@ -290,6 +308,10 @@ def recommend_from_profile(
 def _resolve_enum(value: str | Any, enum_cls: type) -> Any:
     if isinstance(value, enum_cls):
         return value
+    if isinstance(value, Enum):
+        raise ValueError(
+            f"Expected {enum_cls.__name__}, got {type(value).__name__}: {value!r}"
+        )
     for member in enum_cls:
         if member.value.lower() == str(value).lower():
             return member
@@ -314,13 +336,13 @@ def _score_method(
         reasons.append("Strong assumption match")
 
     # 2. Maturity (max 20)
-    mat_score = _MATURITY_SCORE.get(meta.maturity, 5.0)
+    mat_score = _MATURITY_SCORE[meta.maturity]
     raw += mat_score
     if meta.maturity == Maturity.STABLE:
         reasons.append("Stable, well-tested implementation")
 
     # 3. Source status (max 15)
-    src_score = _SOURCE_SCORE.get(meta.source_status, 1.0)
+    src_score = _SOURCE_SCORE[meta.source_status]
     raw += src_score
     if meta.source_status == SourceStatus.OFFICIAL_EXACT:
         reasons.append("Verified against official source code")
@@ -376,14 +398,14 @@ def _score_assumption(
         if has_scar or has_sar:
             return 22.0
 
-    return 15.0
+    return 5.0
 
 
 def _score_data_scale(
     meta: AlgorithmMetadata,
     profile: PUDataProfile,
 ) -> tuple[float, str]:
-    n_samples = profile.summary.get("n_samples", 0)
+    n_samples = profile.summary.get("n_samples") or 0
 
     if n_samples < 1000:
         if meta.backend in {Backend.NUMPY, Backend.SKLEARN}:
@@ -415,7 +437,7 @@ def _method_warnings(
     warnings: list[str] = []
 
     diag_status = profile.selection_diagnostic.get("status", "inconclusive")
-    is_scar_only = Assumption.SAR not in meta.assumption
+    is_scar_only = Assumption.SCAR in meta.assumption and Assumption.SAR not in meta.assumption
     if assumption_enum is None and diag_status == "at_risk" and is_scar_only:
         warnings.append(
             "SCAR assumption may not hold for this data; "

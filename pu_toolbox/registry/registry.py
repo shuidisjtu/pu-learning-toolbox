@@ -277,7 +277,7 @@ def list_algorithms(
     list[AlgorithmMetadata]
     """
     results = []
-    for meta in _REGISTRY.values():
+    for meta in list(_REGISTRY.values()):
         if trainable_only and not meta.trainable:
             continue
         if family is not None and meta.family.value != family:
