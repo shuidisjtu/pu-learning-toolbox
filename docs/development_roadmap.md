@@ -32,7 +32,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 
 - PU Bagging、Biased SVM、Weighted LR（v1 范围外）
 - ~~penL1~~ ✅、TIcE / AlphaMax 类先验估计（v1 范围外）
-- 算法推荐器（规划中，非当前范围）
+- ~~算法推荐器~~ ✅
 - ~~class-prior sensitivity analysis~~ ✅
 
 ## Phase 3 — Benchmark + 集成 (v0.3)
@@ -43,7 +43,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 ## Phase 4 — 推荐与诊断 (v0.4)
 
 - Data Profiler、SCAR/SAR 假设提示 ✅
-- 算法推荐器（规划中）
+- ~~算法推荐器~~ ✅
 - 诊断报告 ✅
 - 类先验与标记倾向敏感性分析 ✅
 
@@ -78,7 +78,7 @@ pyproject.toml、包骨架、Core 基类、labels/validation、Registry 系统�
 | WP7 | PU Bagging、Biased SVM、Weighted LR（v1 范围外） | P0 | WP1 |
 | WP8 | penL1 ✅ / TIcE / AlphaMax 类先验估计（v1 范围外） | P0 | WP1 |
 | WP9 | Metrics 与 diagnostics | P1 | WP1, WP8 |
-| WP10 | 算法推荐器（规划中） | P1 | WP2, WP9 |
+| WP10 | 算法推荐器 ✅ | P1 | WP2, WP9 |
 | WP11 | paper-like benchmark | P1 | WP6 |
 | WP12 | SAR 抽象、selection bias 模拟器 | P2 | WP1, WP8 |
 | WP13 | PUSB ✅ / LBE ✅ / LLSVM ✅ | P2 | WP11, WP12 |

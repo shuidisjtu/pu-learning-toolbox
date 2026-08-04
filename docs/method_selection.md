@@ -68,14 +68,39 @@
 | 大数据、$\pi$ 未知 | TIcE † / AlphaMax † 估计 $\pi$ → 风险估计方法 |
 | 怀疑标记有偏 | PUSB, LBE |
 
-## 4. 推荐器过滤逻辑（规划中）
+## 4. 推荐器
+
+`pu_toolbox.registry.recommend_methods` 实现自动化算法推荐，流程：
 
 ```
 数据画像 (规模/稀疏性/PU比例) + 用户输入 (scenario/assumption/π)
-    → registry 过滤 (排除 api_only 若要求可用)
-    → 按 official_source 加权
-    → 按硬件/假设匹配度排序
+    → registry 过滤 (trainable_only + scenario + sparse + class_prior)
+    → 六维评分 (assumption匹配 + maturity + source_status + 数据规模 + GPU + 标记充足度)
+    → 按综合分排序
     → 返回 top-k
+```
+
+### 基本用法
+
+```python
+from pu_toolbox.registry import recommend_methods, recommend_from_profile
+from pu_toolbox.preprocessing import profile_pu_data
+
+# 数据驱动（自动 profiling）
+result = recommend_methods(X, y_pu, class_prior=0.3, has_gpu=True)
+
+# Profile 驱动（跳过重复 profiling）
+profile = profile_pu_data(X, y_pu)
+result = recommend_from_profile(profile, scenario="case_control")
+
+# 查看结果
+for c in result.candidates:
+    print(f"{c.rank}. {c.name} (score={c.score:.1f})")
+
+# 导出
+result.to_json()       # JSON 字符串
+result.to_markdown()   # Markdown 报告
+result.save("recommendations.json")
 ```
 
 推荐器元数据 schema 见 [`architecture.md`](architecture.md) §6。

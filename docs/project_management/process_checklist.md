@@ -35,7 +35,7 @@
 - [ ] Weighted Logistic Regression 分类器 ⚠️ v1 范围外
 - [x] penL1 类先验估计
 - [ ] TIcE / AlphaMax 类先验估计 ⚠️ v1 范围外
-- [ ] 算法推荐器（规划中，非当前范围） ⚠️ v1 范围外
+- [x] 算法推荐器（recommend_methods / recommend_from_profile）
 
 ## Phase 3 — Benchmark + 集成 (v0.3)
 
@@ -47,7 +47,7 @@
 ## Phase 4 — 推荐与诊断 (v0.4)
 
 - [x] Data Profiler、SCAR/SAR 假设提示
-- [ ] 算法推荐器（规划中）
+- [x] 算法推荐器（recommend_methods / recommend_from_profile）
 - [x] 诊断报告
 - [x] 类先验与标记倾向敏感性分析
 

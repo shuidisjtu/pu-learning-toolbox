@@ -99,6 +99,7 @@ pu_toolbox/
     registry.py                (含别名解析逻辑)
     metadata.py
     builtin_methods.py         (15 论文方法元数据 + native 绑定)
+    recommender.py             (算法推荐器: recommend_methods / recommend_from_profile)
 ```
 
 ## 3. 测试（`tests/`）
@@ -152,6 +153,8 @@ tests/
       test_selection_bias.py          # SCAR/SAR propensity、标记率校准与合成数据
       test_profiling.py               # 数据画像统计
       test_data_profiler.py           # 结构化报告、质量规则与审计诊断
+    registry/
+      test_recommender.py             # 算法推荐器过滤、评分与输出
 
 ```
 

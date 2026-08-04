@@ -152,6 +152,16 @@ class BasePULoss(ABC):
 | `api_only` | 仅 API 占位，无训练逻辑 |
 | `native` | clean-room 实现 |
 
+### 算法推荐器
+
+`registry/recommender.py` 提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配：
+
+1. **硬过滤**：trainable、scenario、sparse 支持、class_prior 可用性
+2. **软评分**：assumption 匹配(30) + maturity(20) + source_status(15) + 数据规模(20) + GPU(5) + 标记充足度(10)
+3. **风险提示**：自动生成全局和每方法的警告
+
+返回 `RecommendationResult`，支持 `to_json()` / `to_markdown()` / `save()`。
+
 ## 7. 类先验、标记倾向与损失函数
 
 | 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |
