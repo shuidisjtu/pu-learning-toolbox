@@ -1,10 +1,5 @@
 """Algorithm registry — discovery, metadata, and source-aware selection."""
 
-from ..advisor import MethodCandidate as MethodCandidate
-from ..advisor import RecommendationResult as RecommendationResult
-from ..advisor import ScoringConfig as ScoringConfig
-from ..advisor import recommend_from_profile as recommend_from_profile
-from ..advisor import recommend_methods as recommend_methods
 from .builtin_methods import register_all_builtin_methods as register_all_builtin_methods
 from .metadata import AlgorithmMetadata as AlgorithmMetadata
 from .registry import bind_estimator_class as bind_estimator_class
@@ -15,6 +10,23 @@ from .registry import get_metadata as get_metadata
 from .registry import list_algorithms as list_algorithms
 from .registry import register_method as register_method
 from .registry import unregister_method as unregister_method
+
+_ADVISOR_SYMBOLS = {
+    "MethodCandidate",
+    "RecommendationResult",
+    "ScoringConfig",
+    "recommend_from_profile",
+    "recommend_methods",
+}
+
+
+def __getattr__(name: str):
+    if name in _ADVISOR_SYMBOLS:
+        from .. import advisor  # noqa: F811
+
+        return getattr(advisor, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "AlgorithmMetadata",
