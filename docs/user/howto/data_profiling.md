@@ -42,47 +42,14 @@ audited_report = profile_pu_data(
 
 ## 2. 返回对象
 
-`PUDataProfile` 包含以下字段：
+`PUDataProfile` 的字段表、`selection_diagnostic["status"]` 取值与全部问题代码
+（`no_labeled_positives` 等 10 个稳定 code）见 [API 参考](../reference/api.md)。要点：
 
-| 字段 | 内容 |
-|---|---|
-| `summary` | 样本数、特征数、已标正例数、未标记数、PU 比例、稀疏性、类先验及隐含标记频率 |
-| `feature_statistics` | 缺失/无穷值数量、常数列和低方差列索引 |
-| `selection_diagnostic` | AUC、状态、证据来源、可识别性、实际折数和评估样本数 |
-| `issues` | 带稳定 `code`、严重级别、解释和行动建议的问题列表 |
-| `assumption_hints` | 对 SCAR/SAR、类先验依赖和结果边界的说明 |
+- `report.has_errors`：存在会阻止可靠训练的数据错误；`report.has_warnings`：训练前应复核的问题。
+- `report.format_text()` 生成终端可读报告；`report.to_dict()` 生成可写入 JSON 的普通容器。
+- 错误不会被自动修复。静默插补、删除列或改写标签会改变实验数据流，并可能造成训练/验证泄漏。
 
-辅助接口：
-
-- `report.has_errors`：存在会阻止可靠训练的数据错误。
-- `report.has_warnings`：存在训练前应复核的问题。
-- `report.format_text()`：生成适合终端和日志的报告。
-- `report.to_dict()`：生成可写入 JSON 的普通容器。
-
-`selection_diagnostic["status"]` 有三个稳定取值：
-
-- `plausible`：交叉验证 AUC 不高于阈值。
-- `at_risk`：AUC 高于阈值，检测到特征依赖信号。
-- `inconclusive`：某一组少于两个样本，或存在非有限特征值。
-
-## 3. 问题代码与处理
-
-| Code | 级别 | 建议 |
-|---|---|---|
-| `no_labeled_positives` | error | 检查标签编码或收集可信正例 |
-| `no_unlabeled_samples` | error | 改用监督学习流程或补充未标记总体 |
-| `missing_features` / `infinite_features` | error | 在仅由训练折拟合的 pipeline 中清理或插补 |
-| `few_labeled_positives` | warning | 使用重复验证、置信区间并尽量补充正例 |
-| `extreme_pu_imbalance` | warning | 使用 PU 分层切分和抗不平衡指标 |
-| `constant_features` | warning | 在训练 pipeline 内删除常数列 |
-| `high_dimensional_data` | warning | 使用正则化模型，避免在全数据上预处理 |
-| `inconsistent_class_prior` | warning | 复核类先验、采样总体和标签定义 |
-| `sar_signal` | warning | 审计正例支持 SAR；优先评估 PUSB/LBE 并做敏感性分析 |
-| `observed_selection_signal` | info | 只有非识别性信号；补充审计或标记策略信息 |
-
-错误不会被自动修复。静默插补、删除列或改写标签会改变实验数据流，并可能造成训练/验证泄漏。
-
-## 4. 类先验一致性
+## 3. 类先验一致性
 
 若提供 `class_prior=pi`，报告计算：
 
@@ -94,7 +61,7 @@ audited_report = profile_pu_data(
 
 类先验应来自独立知识、训练数据内部估计或嵌套验证。不得利用测试集真实标签回填，否则会产生信息泄漏。
 
-## 5. 阈值与复现
+## 4. 阈值与复现
 
 默认配置：
 
@@ -113,13 +80,13 @@ profile_pu_data(
 
 交叉验证折数会自动缩小到较少标记组的样本数。若最小组少于两个样本，状态为 `inconclusive`。生产报告应保存完整参数、软件版本和随机种子；不要只保存最终布尔判断。
 
-## 6. 稀疏输入与数据泄漏
+## 5. 稀疏输入与数据泄漏
 
 接口支持 scipy 稀疏矩阵，并在计算方差时保留隐式零。稀疏矩阵显式存储的 `NaN` 和 `inf` 也会被检测。
 
 Profiler 可以在划分前用于只读质量检查，但任何会学习统计量的修复操作，例如插补、标准化、降维和低方差筛选，都必须在每个训练折内部拟合。审计用 `y_true` 只用于假设诊断，不得作为分类器训练特征或超参数选择捷径。
 
-## 7. 完整示例
+## 6. 完整示例
 
 运行：
 
@@ -128,3 +95,8 @@ python examples/minimal/07_data_profiling.py
 ```
 
 示例并排生成 SCAR 与线性 SAR 数据，并展示观测模式为什么是非识别性的，以及审计模式如何提供更直接的标记机制证据。
+
+## 下一步
+
+- 端到端训练评估：[pipeline.md](pipeline.md)
+- 精确参数契约：[API 参考](../reference/api.md)

@@ -1,4 +1,8 @@
-# Self-PU 使用指南
+# 训练 Self-PU 分类器
+
+> 前置条件：先完成 [快速开始](../quickstart.md)。
+> 概念：π 的角色与 clean validation 的需求见 [concepts/pu_problem.md](../concepts/pu_problem.md)。
+> 完整论文方法卡：[Self-PU method card](../../research/method_cards/Self-PU.md)。
 
 `SelfPUClassifier` 是 sklearn 风格的 PyTorch PU 分类器，实现 Self-PU 的三个核心阶段：
 动态 self-paced trusted set、clean-validation meta reweighting，以及双 student/EMA teacher
@@ -107,3 +111,8 @@ backbone 自动恢复实例，恢复时应使用相同构造配置和模型结�
 ```bash
 python examples/minimal/10_self_pu.py
 ```
+
+## 下一步
+
+- 在完整实验流程中使用该分类器：[pipeline.md](pipeline.md)（传 `SelfPUClassifier` 实例）
+- 生成诊断报告：[diagnostic_reports.md](diagnostic_reports.md)

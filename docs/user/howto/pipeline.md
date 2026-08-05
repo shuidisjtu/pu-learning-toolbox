@@ -1,4 +1,8 @@
-# 端到端 PU 工作流（PUPipeline）
+# PUPipeline 端到端训练评估
+
+> 前置条件：先完成 [快速开始](../quickstart.md)。
+> 概念：PU 问题设定与 π 的角色见 [concepts/pu_problem.md](../concepts/pu_problem.md)，
+> SCAR/SAR 见 [concepts/scar_sar.md](../concepts/scar_sar.md)。
 
 `PUPipeline` 把 **数据画像 → 类先验估计 → 模型训练 → PU 分层交叉验证 → 评估诊断**
 封装为一次调用：非专家用户只需要 `(X, y_pu)` 和一个方法名（或 `"auto"`），
@@ -30,14 +34,10 @@ report.save("results/pipeline.json")
 5. **最终模型 + 诊断**：全量 refit 后调用 `build_diagnostic_report`，指标与
    画像问题汇总进 `PipelineReport`。
 
-## 类先验解析优先级
+## 类先验解析
 
-| 优先级 | 来源 | 报告中的 source |
-|---|---|---|
-| 1 | `fit_evaluate(class_prior=...)` 显式传入 | `user` |
-| 2 | 分类器实例构造参数 `class_prior=...` | `constructor` |
-| 3 | `prior_estimator` 自动估计（默认 `"recpe"`） | `estimated` |
-| 4 | 方法不需要先验 | `none` |
+先验按「显式传入 → 构造参数 → 自动估计 → 不需要」四级解析（完整优先级表见
+[API 参考](../reference/api.md)）。要点：
 
 - `prior_estimator="recpe"`（默认）/ `"pen_l1"` / `"km1"` / `"km2"`（后两者映射到
   `KernelMeanPriorEstimator`）或传入估计器实例。
@@ -68,13 +68,8 @@ report.save("results/pipeline.json")
 ## 指标与可用性
 
 默认指标 `DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`。
-别名：`pu_risk`、`auc`/`roc_auc`、`recall`、`precision`、`accuracy`、`f1`、`negative_rate`。
-
-| 指标 | 需要 | basis |
-|---|---|---|
-| `pu_recall` / `pu_negative_rate` | 仅 `y_pu` + 预测 | `pu_observed` |
-| `pu_zero_one_risk` / `pu_estimated_precision` | 预测 + 类先验 | `class_prior_dependent` |
-| `pu_auc_roc` / `pu_accuracy` / `pu_f1` | `y_true` | `supervised_oracle` |
+各指标的依赖与证据级别（`pu_observed` / `class_prior_dependent` / `supervised_oracle`）见
+[API 参考](../reference/api.md)。
 
 缺失输入（无 `y_true`、无 `decision_function`、无先验）时对应指标**跳过并记录原因**
 （`CVMetric.available=False`、`reason` 说明），不中断流程。单折内异常（如 AUC 折内
@@ -82,16 +77,9 @@ report.save("results/pipeline.json")
 
 ## 错误场景
 
-| 场景 | 异常 |
-|---|---|
-| 无效 classifier / prior 名 | 构造时 `PipelineError`（fail-fast） |
-| `"ldce"` 等不可自动实例化 | 构造时 `PipelineError`（提示传实例） |
-| 无正样本 / 正样本 < `MIN_POSITIVE_SAMPLES` | `ValidationError` |
-| 正样本 < CV 折数 | `ValidationError`（提示减折数） |
-| 需要先验且最终缺失 | `PipelineError` |
-| 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
-| 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
-| 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
+设计原则是 **fail-fast**：无效 classifier / prior 名、不可自动实例化方法在构造时即抛
+`PipelineError`；数据问题（无正样本、正样本 < CV 折数）抛 `ValidationError`。完整异常
+表与降级语义见 [API 参考](../reference/api.md)。
 
 ## 与手动流程对比
 
@@ -99,3 +87,9 @@ report.save("results/pipeline.json")
 画像 → 先验估计 → 网格调参 → CV → 评估。`PUPipeline` 一行等价，且报告
 `provenance` 完整记录每步决策（classifier 解析、先验来源、跳过候选、随机种子），
 满足可审计要求。
+
+## 下一步
+
+- 生成诊断报告：[diagnostic_reports.md](diagnostic_reports.md)
+- 类先验与标记倾向敏感性分析：[sensitivity_analysis.md](sensitivity_analysis.md)
+- 精确参数契约：[API 参考](../reference/api.md)

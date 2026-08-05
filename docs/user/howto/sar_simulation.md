@@ -109,3 +109,8 @@ SCAR 的真实 propensity 是常数，因此 propensity rank correlation 在数�
 - **忽略特征尺度**：模拟器在真实正类内标准化后构造 propensity，外部自定义机制也应
   明确尺度处理。
 - **只报告 accuracy**：selection-bias 方法还应报告排序和 propensity 恢复质量。
+
+## 下一步
+
+- 检查生成数据的质量与假设证据：[data_profiling.md](data_profiling.md)
+- 精确参数契约：[API 参考](../reference/api.md)
