@@ -1,4 +1,4 @@
-"""Check method-card markdown for GitHub MathJax rendering pitfalls.
+r"""Check method-card markdown for GitHub MathJax rendering pitfalls.
 
 GitHub renders ``$...$`` / ``$$...$$`` / ``$`...`$`` with MathJax 3 in
 strict mode.  Common failures that produce user-visible errors on the
@@ -11,6 +11,7 @@ rendered page:
 
 Run:  uv run python scripts/check_math_rendering.py
 """
+
 from __future__ import annotations
 
 import glob
@@ -61,7 +62,7 @@ def check_braces(chunk: str, kind: str, line: int) -> list[str]:
         elif ch == "}":
             depth -= 1
             if depth < 0:
-                errors.append(f"{kind}:{line} extra '}}' ...{flat[max(0, i - 15):i + 15]}...")
+                errors.append(f"{kind}:{line} extra '}}' ...{flat[max(0, i - 15) : i + 15]}...")
                 depth = 0
     if depth > 0:
         errors.append(f"{kind}:{line} unbalanced braces (depth={depth})")
@@ -83,7 +84,8 @@ def main() -> int:
     files = sorted(glob.glob("docs/research/method_cards/*.md"))
     total = 0
     for f in files:
-        text = open(f, encoding="utf-8").read()
+        with open(f, encoding="utf-8") as fh:
+            text = fh.read()
         errors: list[str] = []
         for chunk, kind, line in extract_math(text):
             errors += check_missing_args(chunk, kind, line)
