@@ -381,17 +381,23 @@ def build_diagnostic_report(
     exclusive. A data-only report is valid. Metrics that need unavailable
     inputs remain present with ``basis='unavailable'`` and an explicit reason.
     ``y_true`` is used only for audited selection evidence and oracle metrics.
+
+    Higher-order tensor inputs (``X.ndim > 2``, e.g. 4-D NCHW images) are
+    profiled on a flattened ``(n_samples, -1)`` view; estimator scoring
+    still receives the raw ``X`` so deep vision encoders keep NCHW tensors.
     """
     if estimator is not None and (y_pred is not None or scores is not None):
         raise ValueError("estimator cannot be combined with explicit y_pred or scores.")
     if sparse.issparse(X):
         n_samples = X.shape[0]
+        profile_X = X
     else:
         X_array = np.asarray(X)
         n_samples = X_array.shape[0] if X_array.ndim >= 1 else 0
+        profile_X = X_array.reshape(n_samples, -1) if X_array.ndim > 2 else X_array
 
     profile = profile_pu_data(
-        X,
+        profile_X,
         y_pu,
         y_true=y_true,
         class_prior=class_prior,

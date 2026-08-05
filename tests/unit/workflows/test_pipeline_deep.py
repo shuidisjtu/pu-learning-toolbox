@@ -86,6 +86,29 @@ class TestPipelineDeepInstantiation:
         clf.fit(X, y_pu, class_prior=0.3)
         assert clf.predict(X).shape == (len(X),)
 
+    def test_full_fit_evaluate_completes_on_4d_images(self, monkeypatch):
+        # Regression: 4-D + deep + cnn used to crash at the final
+        # diagnostic stage (profiling requires a 2-D view).  The full
+        # workflow must now complete end to end; training is shortened
+        # by forcing max_epochs=1 at construction time.
+        from pu_toolbox.estimators.deep.weighted_contrastive_pu import (
+            WeightedContrastivePUClassifier,
+        )
+
+        original_init = WeightedContrastivePUClassifier.__init__
+
+        # NOTE: no **kwargs here -- pipeline._missing_required_params would
+        # misread a VAR_KEYWORD parameter as a required constructor arg.
+        def fast_init(self, class_prior, *, encoder=None, device="cpu", max_epochs=1):
+            original_init(self, class_prior, encoder=encoder, device=device, max_epochs=max_epochs)
+
+        monkeypatch.setattr(WeightedContrastivePUClassifier, "__init__", fast_init)
+        X, y_pu = _image_data()
+        pipe = PUPipeline(classifier="wconpu", architecture="cnn", cv=2)
+        report = pipe.fit_evaluate(X, y_pu, class_prior=0.3)
+        assert report.final_model.predict(X).shape == (len(X),)
+        assert report.diagnostic is not None
+
 
 @pytest.mark.unit
 class TestPipelineDeepAutoUnchanged:

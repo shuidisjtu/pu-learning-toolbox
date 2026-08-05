@@ -175,6 +175,32 @@ class TestReportValidation:
         report = build_diagnostic_report(sparse.csr_matrix(X), y_pu)
         assert report.data_profile.summary["is_sparse"] is True
 
+    def test_edge_4d_image_input_is_profiled_on_flattened_view(self):
+        # Deep-PU image tensors (NCHW) must not crash the report builder:
+        # profiling runs on a flattened (n_samples, -1) view.
+        rng = np.random.RandomState(0)
+        X = rng.normal(0.5, 0.3, size=(20, 3, 8, 8)).astype(np.float32)
+        y_pu = np.r_[np.ones(5, dtype=int), np.zeros(15, dtype=int)]
+        report = build_diagnostic_report(X, y_pu, class_prior=0.4)
+        assert report.provenance["n_samples"] == 20
+
+    def test_estimator_mode_on_4d_scores_raw_tensor_input(self):
+        # Estimator scoring keeps the raw 4-D tensor (deep encoders need
+        # NCHW) while the data profile runs on the flattened view.
+        rng = np.random.RandomState(0)
+        X = rng.normal(0.5, 0.3, size=(20, 3, 8, 8)).astype(np.float32)
+        y_pu = np.r_[np.ones(5, dtype=int), np.zeros(15, dtype=int)]
+        seen: dict[str, int] = {}
+
+        class _TinyImageEstimator:
+            def predict(self, X):
+                seen["ndim"] = np.asarray(X).ndim
+                return np.zeros(len(X), dtype=int)
+
+        report = build_diagnostic_report(X, y_pu, estimator=_TinyImageEstimator(), class_prior=0.4)
+        assert report.provenance["n_samples"] == 20
+        assert seen["ndim"] == 4
+
 
 @pytest.mark.unit
 class TestReportRendering:
