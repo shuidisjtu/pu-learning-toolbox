@@ -8,8 +8,10 @@ maps errors to exit codes.  All learning logic lives in the pipeline.
 from __future__ import annotations
 
 import argparse
+import sys
 from collections.abc import Sequence
 
+from ..core.exceptions import PULearningError
 from .demo import build_demo_parser
 from .info import build_info_parser
 from .run import build_run_parser
@@ -31,10 +33,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    """CLI entry point (console script)."""
+    """CLI entry point (console script).
+
+    User errors map to ``error: <msg>`` on stderr + exit 1 (no traceback)
+    for every subcommand; ``run`` additionally wraps its own flow the same
+    way.  Unknown exceptions keep their traceback for debugging.
+    """
     parser = build_parser()
     args = parser.parse_args(argv)
-    args.func(args)
+    try:
+        args.func(args)
+    except (PULearningError, ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

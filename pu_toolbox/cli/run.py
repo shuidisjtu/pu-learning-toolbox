@@ -43,7 +43,10 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
         "--class-prior", type=float, default=None, help="explicit class prior (0, 1)"
     )
     parser.add_argument(
-        "--prior-estimator", type=str, default="recpe", help="recpe | pen_l1 | km1 | km2 | none"
+        "--prior-estimator",
+        type=str,
+        default="recpe",
+        help="prior-estimator name or alias (see 'list-priors'); 'none' disables estimation",
     )
     parser.add_argument(
         "--classifier", type=str, default="auto", help="registered method name or 'auto'"
@@ -74,10 +77,14 @@ def _run(args: argparse.Namespace) -> None:
 
     X = _load_features(data_path)
     y_pu = _load_label_column(labels_path, "labels")
-    y_true = _load_label_column(Path(args.true_labels), "true-labels") if args.true_labels else None
+    y_true = (
+        _load_label_column(Path(args.true_labels), "true-labels")
+        if args.true_labels is not None
+        else None
+    )
 
     prior_estimator: str | None = None if args.prior_estimator == "none" else args.prior_estimator
-    metrics = args.metrics.split(",") if args.metrics else None
+    metrics = [m.strip() for m in args.metrics.split(",") if m.strip()] if args.metrics else None
 
     pipe = PUPipeline(
         classifier=args.classifier,
@@ -88,6 +95,14 @@ def _run(args: argparse.Namespace) -> None:
     )
     report = pipe.fit_evaluate(X, y_pu, y_true=y_true, class_prior=args.class_prior)
 
+    if out_dir.exists():
+        print(f"note: {out_dir} already exists; files will be overwritten", file=sys.stderr)
+        if (out_dir / "model.pkl").exists() and not args.save_model:
+            print(
+                f"note: stale {out_dir / 'model.pkl'} from a previous run remains "
+                "and does not match this run",
+                file=sys.stderr,
+            )
     out_dir.mkdir(parents=True, exist_ok=True)
     report.save(out_dir / "report.json")
     report.save(out_dir / "report.md")
@@ -98,23 +113,40 @@ def _run(args: argparse.Namespace) -> None:
         print(report.summary())
 
 
-def _load_features(path: Path) -> np.ndarray:
-    """Read a feature-matrix CSV into a float ndarray."""
-    if not path.exists():
-        raise FileNotFoundError(f"data file not found: {path}")
-    try:
-        df = pd.read_csv(path)
-    except pd.errors.ParserError as exc:
-        raise ValueError(f"cannot parse CSV {path}: {exc}") from exc
-    return df.to_numpy(dtype=float)
+def _read_csv(path: Path, what: str) -> pd.DataFrame:
+    """Read a CSV, rejecting headerless files instead of dropping a row.
 
-
-def _load_label_column(path: Path, what: str) -> np.ndarray:
-    """Read a single-column labels CSV; header (if any) is ignored."""
+    ``pd.read_csv(header=0)`` treats the first row as column names, so a
+    headerless numeric CSV silently loses its first sample.  A genuine
+    header row (column names) is non-numeric; when the first row is all
+    numeric we cannot tell it apart from data and fail with a clear error.
+    """
     if not path.exists():
         raise FileNotFoundError(f"{what} file not found: {path}")
     try:
-        df = pd.read_csv(path)
+        raw = pd.read_csv(path, header=None)
     except pd.errors.ParserError as exc:
         raise ValueError(f"cannot parse CSV {path}: {exc}") from exc
+    try:
+        raw.iloc[0].astype(float)
+    except (ValueError, TypeError):
+        # Non-numeric first row -> a real header; read with header=0.
+        return pd.read_csv(path, header=0)
+    raise ValueError(
+        f"{what} CSV {path}: the first row is numeric, so it cannot be "
+        "distinguished from data. Add a header row (non-numeric column "
+        "names) -- otherwise the first sample is consumed as column names."
+    )
+
+
+def _load_features(path: Path) -> np.ndarray:
+    """Read a feature-matrix CSV into a float ndarray."""
+    return _read_csv(path, "data").to_numpy(dtype=float)
+
+
+def _load_label_column(path: Path, what: str) -> np.ndarray:
+    """Read a single-column labels CSV; header (if any) is tolerated."""
+    df = _read_csv(path, what)
+    if df.shape[1] != 1:
+        raise ValueError(f"{what} CSV {path} must be a single column; got {df.shape[1]} columns.")
     return df.iloc[:, 0].to_numpy(dtype=float)

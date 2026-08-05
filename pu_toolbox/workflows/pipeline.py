@@ -257,7 +257,7 @@ class PUPipeline:
             except RegistryError as exc:
                 raise PipelineError(
                     f"Unknown prior estimator {prior_estimator!r}. "
-                    "Use one of 'recpe', 'pen_l1'/'penl1', 'km1', 'km2', "
+                    "Use one of 'recpe', 'pen_l1', 'km1', 'km2', "
                     "or a BasePriorEstimator instance."
                 ) from exc
             if not isinstance(cls, type) or not issubclass(cls, BasePriorEstimator):
@@ -523,6 +523,19 @@ class PUPipeline:
         if not needs_prior:
             return None, PriorInfo(value=None, source="none", method_requires_prior=False)
         if prior_spec is None:
+            if allow_degradation:
+                # Auto mode with estimation disabled: fall back to a
+                # no-prior run; the recommender excludes prior-requiring
+                # methods (recommend_from_profile accepts class_prior=None).
+                return None, PriorInfo(
+                    value=None,
+                    source="none",
+                    method_requires_prior=needs_prior,
+                    degraded=(
+                        "class-prior estimation disabled (prior_estimator=None); "
+                        "auto mode will only consider methods that need no prior"
+                    ),
+                )
             raise PipelineError(
                 "The selected method requires a class prior, but none was "
                 "provided or estimated (prior_estimator=None). Pass "

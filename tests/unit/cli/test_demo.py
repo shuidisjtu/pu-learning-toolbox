@@ -24,19 +24,28 @@ def test_demo_writes_three_files(tmp_path):
 
 
 @pytest.mark.unit
-def test_edge_minimal_n_writes_two_rows(tmp_path):
-    """--n 1 (smallest valid) still produces all three files with 2 rows."""
+def test_edge_minimal_n_writes_six_rows(tmp_path):
+    """--n 3 (smallest runnable) still produces all three files with 6 rows."""
     args = build_parser().parse_args(
-        ["make-demo-data", "--out-dir", str(tmp_path), "--n", "1", "--seed", "1"]
+        ["make-demo-data", "--out-dir", str(tmp_path), "--n", "3", "--seed", "1"]
     )
     args.func(args)
     for name in ("X.csv", "y_pu.csv", "y_true.csv"):
         assert (tmp_path / name).exists()
-    assert len(pd.read_csv(tmp_path / "X.csv")) == 2
+    assert len(pd.read_csv(tmp_path / "X.csv")) == 6
 
 
 @pytest.mark.unit
-def test_demo_output_consumable_by_run(tmp_path):
+def test_param_n_below_minimum_reports_error(tmp_path, capsys):
+    """--n < 3 fails with a clear error instead of writing unusable CSVs."""
+    with pytest.raises(SystemExit) as exc:
+        main(["make-demo-data", "--out-dir", str(tmp_path / "d"), "--n", "1"])
+    assert exc.value.code == 1
+    assert "error:" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_basic_demo_output_consumable_by_run(tmp_path):
     """Demo output feeds straight into `run` (self-contained loop)."""
     demo_dir = tmp_path / "demo"
     out = tmp_path / "out"
@@ -57,6 +66,8 @@ def test_demo_output_consumable_by_run(tmp_path):
             "3",
             "--seed",
             "42",
+            "--classifier",
+            "upu",
             "--quiet",
         ]
     )

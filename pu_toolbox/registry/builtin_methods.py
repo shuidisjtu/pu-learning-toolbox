@@ -41,8 +41,12 @@ from .registry import register_method
 _BUILTIN: list[AlgorithmMetadata] = [
     # ── 1. Class-Prior Estimation ──────────────────────────────────
     AlgorithmMetadata(
+        # NOTE: km1/km2 are NOT aliases here -- they denote
+        # KernelMeanPriorEstimator(variant=...) in PUPipeline (a different
+        # algorithm), so binding them to ClassPriorEstimator would repeat
+        # the kldce alias bug.
         name="class_prior_estimation",
-        aliases=["cpe", "pen_l1", "pe", "km1", "km2"],
+        aliases=["cpe", "pen_l1", "pe"],
         family=Fam.CLASS_PRIOR_ESTIMATION,
         paper="Class-Prior Estimation for Learning from Positive and Unlabeled Data",
         scenario=[Scn.SINGLE_TRAINING_SET, Scn.CASE_CONTROL],

@@ -12,8 +12,9 @@ from ..workflows.pipeline import _missing_required_params
 
 __all__ = ["build_info_parser", "run_list_methods", "run_list_priors"]
 
-# Canonical names always shown; km1/km2 are registry aliases for penL1, so
-# they are listed explicitly (matching PUPipeline's prior-estimator names).
+# Common names listed first; km1/km2 map to KernelMeanPriorEstimator
+# variants in PUPipeline (not registry aliases), so they are listed
+# explicitly.  Registry names and aliases are appended by run_list_priors.
 _PRIOR_NAMES = ("recpe", "pen_l1", "km1", "km2")
 
 
@@ -47,6 +48,11 @@ def run_list_methods(args: argparse.Namespace) -> None:
                 )
             )
     rows.sort(key=lambda row: row[0])
+    if not rows:
+        # Defensive: no registered classifier (e.g. a future api_only-only
+        # registry) should print an empty table, not crash on max().
+        print("No registered classifiers.")
+        return
     # Dynamic Name width so long canonical names and aliases stay aligned.
     name_width = max(len(row[0]) for row in rows) + 2
     print(f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}{'Status':<8}{'Auto-inst':<10}")
@@ -63,8 +69,11 @@ def run_list_priors(args: argparse.Namespace) -> None:
         cls = _resolve_class(meta.name)
         if cls is None or not issubclass(cls, BasePriorEstimator):
             continue
-        if meta.name not in names:
-            names.append(meta.name)
+        # Canonical name plus its aliases (e.g. "cpe" for
+        # class_prior_estimation): every one is accepted by --prior-estimator.
+        for name in (meta.name, *meta.aliases):
+            if name not in names:
+                names.append(name)
     print("Pass one of these to --prior-estimator ('none' disables estimation):")
     for name in names:
         print(f"  {name}")

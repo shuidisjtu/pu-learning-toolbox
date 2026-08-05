@@ -49,6 +49,16 @@ def test_basic_list_priors_lists_estimators(capsys):
 
 
 @pytest.mark.unit
+def test_param_list_priors_includes_aliases(capsys):
+    """Registry aliases accepted by --prior-estimator appear in the listing."""
+    args = build_parser().parse_args(["list-priors"])
+    args.func(args)
+    out = capsys.readouterr().out
+    for alias in ("cpe", "pe", "re_cpe", "rethinking_cpe"):
+        assert alias in out, f"{alias!r} accepted by --prior-estimator but not listed"
+
+
+@pytest.mark.unit
 def test_deterministic_list_methods_output_stable(capsys):
     """Two invocations produce byte-identical output (deterministic table)."""
     args = build_parser().parse_args(["list-methods"])

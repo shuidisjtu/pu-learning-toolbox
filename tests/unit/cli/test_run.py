@@ -17,20 +17,27 @@ from pu_toolbox.preprocessing.pu_labeling import make_scar_dataset
 
 def _write_demo(tmp_path, rng):
     """Write SCAR demo CSVs into tmp_path; return (data, labels, truth) paths."""
-    X, y_pu, y_true = make_scar_dataset(
-        n=30, c=0.5, n_features=5, separation=4.0, random_state=rng
-    )
+    X, y_pu, y_true = make_scar_dataset(n=30, c=0.5, n_features=5, separation=4.0, random_state=rng)
     data = tmp_path / "X.csv"
     labels = tmp_path / "y_pu.csv"
     truth = tmp_path / "y_true.csv"
-    pd.DataFrame(X).to_csv(data, index=False)
+    # String feature names: numeric headers are indistinguishable from data
+    # rows when run checks for a missing header (see cli/run.py).
+    pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])]).to_csv(data, index=False)
     pd.DataFrame({"label": y_pu}).to_csv(labels, index=False)
     pd.DataFrame({"label": y_true}).to_csv(truth, index=False)
     return data, labels, truth
 
 
 def _run(tmp_path, rng, *extra):
-    """Run the CLI against demo data; return the parsed report payload."""
+    """Run the CLI against demo data; return the parsed report payload.
+
+    ``--classifier upu`` keeps the suite fast: auto mode selects LLSVM
+    (3000 fixed epochs, ~15s/run); uPU finishes in ~0.2s and exercises the
+    same CSV-IO / report / exit-code surface.  Auto mode is covered by
+    test_basic_auto_mode_without_prior_estimator and
+    test_demo_output_consumable_by_run.
+    """
     data, labels, truth = _write_demo(tmp_path, rng)
     out = tmp_path / "out"
     main(
@@ -46,6 +53,8 @@ def _run(tmp_path, rng, *extra):
             "3",
             "--seed",
             "42",
+            "--classifier",
+            "upu",
             *extra,
         ]
     )
@@ -65,7 +74,10 @@ def test_run_end_to_end(tmp_path, rng, capsys):
         "pu_estimated_precision",
         "pu_auc_roc",
     }
-    assert payload["provenance"]["classifier_mode"] in {"auto", "name", "instance"}
+    # The _run helper passes an explicit --classifier upu, so the mode is
+    # pinned to "name" (a vacuous set-membership assertion would not catch
+    # a mode-selection regression).
+    assert payload["provenance"]["classifier_mode"] == "name"
     assert "PU Pipeline Report" in (tmp_path / "out" / "report.md").read_text(encoding="utf-8")
     assert "Class prior" in capsys.readouterr().out
 
@@ -104,7 +116,8 @@ def test_run_quiet_suppresses_summary(tmp_path, rng, capsys):
 
 @pytest.mark.unit
 def test_run_metrics_comma_separated(tmp_path, rng):
-    out, payload = _run(tmp_path, rng, "--metrics", "pu_risk,recall")
+    """Comma-separated metrics work with stray whitespace after commas."""
+    out, payload = _run(tmp_path, rng, "--metrics", "pu_risk, recall")
     assert set(payload["cv_metrics"]) == {"pu_zero_one_risk", "pu_recall"}
 
 
@@ -131,6 +144,8 @@ def test_run_deterministic_same_seed(tmp_path, rng):
             "3",
             "--seed",
             "42",
+            "--classifier",
+            "upu",
         ]
     )
     second = json.loads((out2 / "report.json").read_text(encoding="utf-8"))
@@ -198,3 +213,80 @@ def test_param_prior_estimator_none_missing_prior_exits_one(tmp_path, rng, capsy
         _run(tmp_path, rng, "--classifier", "nnpu", "--prior-estimator", "none")
     assert exc.value.code == 1
     assert "error:" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_basic_auto_mode_without_prior_estimator(tmp_path, rng):
+    """auto + --prior-estimator none degrades to a no-prior recommendation.
+
+    Regression guard: auto mode used to hardcode needs_prior=True, so the
+    documented 'none disables estimation' option always exited 1 with the
+    default classifier.
+    """
+    data, labels, _ = _write_demo(tmp_path, rng)
+    out = tmp_path / "out"
+    main(
+        [
+            "run",
+            "--data",
+            str(data),
+            "--labels",
+            str(labels),
+            "--out-dir",
+            str(out),
+            "--cv",
+            "3",
+            "--seed",
+            "42",
+            "--prior-estimator",
+            "none",
+            "--quiet",
+        ]
+    )
+    payload = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert payload["prior"]["source"] == "none"
+
+
+@pytest.mark.unit
+def test_edge_headerless_csv_reports_error(tmp_path, capsys):
+    """A headerless numeric CSV is rejected, not silently truncated."""
+    rng = np.random.RandomState(42)
+    X, y_pu, _ = make_scar_dataset(n=10, c=0.5, n_features=5, separation=4.0, random_state=rng)
+    np.savetxt(tmp_path / "x.csv", X, delimiter=",")
+    np.savetxt(tmp_path / "y.csv", y_pu, delimiter=",", fmt="%d")
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "run",
+                "--data",
+                str(tmp_path / "x.csv"),
+                "--labels",
+                str(tmp_path / "y.csv"),
+                "--out-dir",
+                str(tmp_path / "out"),
+            ]
+        )
+    assert exc.value.code == 1
+    assert "header" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_edge_multi_column_labels_reports_error(tmp_path, rng, capsys):
+    """A multi-column labels CSV is rejected instead of silently using col 0."""
+    data, _, _ = _write_demo(tmp_path, rng)
+    wide = tmp_path / "wide.csv"
+    pd.DataFrame({"label": [1, 0, 1, 0, 1], "extra": [0, 0, 1, 1, 0]}).to_csv(wide, index=False)
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "run",
+                "--data",
+                str(data),
+                "--labels",
+                str(wide),
+                "--out-dir",
+                str(tmp_path / "out"),
+            ]
+        )
+    assert exc.value.code == 1
+    assert "single column" in capsys.readouterr().err
