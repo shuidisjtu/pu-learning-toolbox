@@ -1,4 +1,4 @@
-"""Built-in algorithm registry — 15 native paper methods.
+"""Built-in algorithm registry — 16 native paper methods.
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the
@@ -150,12 +150,32 @@ _BUILTIN: list[AlgorithmMetadata] = [
         upstream_url="https://github.com/t-sakai-kure/pywsl",
         license="MIT",
     ),
-    # ── 7. Centroid Estimation / LDCE ──────────────────────────────
+    # ── 7. Centroid Estimation / LDCE / KLDCE ──────────────────────
     AlgorithmMetadata(
         name="centroid_pu",
-        aliases=["ldce", "kldce", "centroid_estimation"],
+        aliases=["ldce", "centroid_estimation"],
         family=Fam.RISK_ESTIMATION,
         paper="Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning",
+        scenario=[Scn.SINGLE_TRAINING_SET],
+        assumption=[Asm.SCAR],
+        requires_class_prior=False,
+        supports_sparse=False,
+        supports_gpu=False,
+        backend=Backend.NUMPY,
+        maturity=Maturity.RESEARCH,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_RELATED,
+        upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
+        license="unknown",
+    ),
+    AlgorithmMetadata(
+        name="kldce",
+        aliases=["kernelized_ldce"],
+        family=Fam.RISK_ESTIMATION,
+        paper=(
+            "Loss Decomposition and Centroid Estimation for Positive and "
+            "Unlabeled Learning (kernelized version, RBF)"
+        ),
         scenario=[Scn.SINGLE_TRAINING_SET],
         assumption=[Asm.SCAR],
         requires_class_prior=False,
@@ -322,7 +342,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
 
 
 def register_all_builtin_methods() -> int:
-    """Register all 15 paper methods and bind native implementations.
+    """Register all 16 paper methods and bind native implementations.
 
     Returns the number of methods newly registered.  Idempotent —
     methods already present in the registry are skipped, so calling
@@ -370,6 +390,7 @@ def _bind_native_classes() -> None:
         ("pusb", "..estimators.bias_aware.pusb", "PUSBClassifier"),
         ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),
         ("centroid_pu", "..estimators.risk.ldce", "LDCEClassifier"),
+        ("kldce", "..estimators.risk.kldce", "KLDCEClassifier"),
         ("llsvm", "..estimators.classic.llsvm", "LLSVMClassifier"),
         ("self_pu", "..estimators.deep.self_pu", "SelfPUClassifier"),
         ("infomax_pu", "..estimators.deep.infomax_pu", "InfoMaxPUClassifier"),

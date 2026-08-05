@@ -249,9 +249,9 @@ end
 ### 6.4 Registry 元数据
 
 ```python
-# builtin_methods.py:164-183 — 已修正的注册状态
+# builtin_methods.py — 已修正的注册状态
 name = "centroid_pu"
-aliases = ["ldce", "kldce", "centroid_estimation"]
+aliases = ["ldce", "centroid_estimation"]  # kldce 已独立注册（核化版，见 KLDCE.md）
 family = AlgorithmFamily.RISK_ESTIMATION
 scenario = (Scenario.SINGLE_TRAINING_SET,)       # ✅ 已修正
 assumption = (Assumption.SCAR,)                   # ✅ 已修正

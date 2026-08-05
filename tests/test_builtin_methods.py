@@ -1,4 +1,4 @@
-"""Tests for the 15 built-in paper-method registrations."""
+"""Tests for the 16 built-in paper-method registrations."""
 
 import pytest
 
@@ -23,12 +23,12 @@ def _clean_registry():
 
 @pytest.mark.unit
 class TestBuiltinRegistration:
-    """Smoke tests for the 15 built-in method entries."""
+    """Smoke tests for the 16 built-in method entries."""
 
-    def test_basic_registers_exactly_15_methods(self):
+    def test_basic_registers_exactly_16_methods(self):
         n = register_all_builtin_methods()
-        assert n == 15
-        assert len(get_algorithm_registry()) == 15
+        assert n == 16
+        assert len(get_algorithm_registry()) == 16
 
     def test_basic_implementation_status_distribution(self):
         register_all_builtin_methods()
@@ -37,7 +37,7 @@ class TestBuiltinRegistration:
             key = meta.implementation_status.value
             by_status[key] = by_status.get(key, 0) + 1
 
-        assert by_status.get("native", 0) == 15
+        assert by_status.get("native", 0) == 16
         assert by_status.get("api_only", 0) == 0
 
     def test_basic_source_status_distribution(self):
@@ -49,7 +49,7 @@ class TestBuiltinRegistration:
             by_source[key] = by_source.get(key, 0) + 1
 
         assert by_source.get("official_exact", 0) == 8
-        assert by_source.get("official_bundle", 0) + by_source.get("official_related", 0) == 3
+        assert by_source.get("official_bundle", 0) + by_source.get("official_related", 0) == 4
         assert by_source.get("third_party_only", 0) == 1
         assert by_source.get("not_found", 0) == 3
 
@@ -62,7 +62,8 @@ class TestBuiltinRegistration:
 
         assert families.get("class_prior_estimation", 0) == 2  # CPE + ReCPE
         assert families.get("classic_calibration", 0) == 1  # Elkan-Noto
-        assert families.get("risk_estimation", 0) == 6  # uPU, nnPU, PNU, Centroid, LLSVM, Dist-PU
+        # uPU, nnPU, PNU, Centroid, KLDCE, LLSVM, Dist-PU
+        assert families.get("risk_estimation", 0) == 7
         assert families.get("bias_aware", 0) == 2  # PUSB, LBE
         assert families.get("deep_pu", 0) == 4  # Self-PU, InfoMax, WConPU, DGPU
 
@@ -101,7 +102,7 @@ class TestBuiltinRegistration:
         """Native implementations are trainable."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 15
+        assert len(trainable) == 16
         names = {m.name for m in trainable}
         assert names == {
             "elkan_noto",
@@ -110,6 +111,7 @@ class TestBuiltinRegistration:
             "pnu",
             "recpe",
             "centroid_pu",
+            "kldce",
             "class_prior_estimation",
             "dist_pu",
             "pusb",
@@ -120,6 +122,24 @@ class TestBuiltinRegistration:
             "weighted_contrastive_pu",
             "dgpu",
         }
+
+    def test_basic_ldce_kldce_resolve_to_distinct_classes(self):
+        """kldce must resolve to the kernelized class, not the linear LDCE.
+
+        Regression guard: kldce used to be aliased to ``centroid_pu``,
+        silently resolving ``get_algorithm("kldce")`` to LDCEClassifier.
+        """
+        from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
+        from pu_toolbox.estimators.risk.ldce import LDCEClassifier
+        from pu_toolbox.registry import get_algorithm, get_metadata
+
+        register_all_builtin_methods()
+        assert get_algorithm("kldce") is KLDCEClassifier
+        assert get_algorithm("ldce") is LDCEClassifier
+        assert get_algorithm("centroid_pu") is LDCEClassifier
+        assert get_algorithm("kernelized_ldce") is KLDCEClassifier
+        assert get_metadata("kldce").name == "kldce"
+        assert "kldce" not in get_metadata("centroid_pu").aliases
 
     def test_basic_list_by_family(self):
         register_all_builtin_methods()
