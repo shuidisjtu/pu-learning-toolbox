@@ -154,7 +154,7 @@ report.save("results/pipeline.json")       # 严格 JSON / Markdown 导出
 
 ### CLI 快速上手
 
-`pu-toolbox` 命令是 PUPipeline（画像 → 先验 → 训练 → PU 分层 CV → 评估）的薄封装，完整指南见 [`docs/user/cli.md`](docs/user/cli.md)。
+`pu-toolbox` 命令是 PUPipeline（画像 → 先验 → 训练 → PU 分层 CV → 评估）的薄封装，完整指南见 [`docs/user/howto/cli.md`](docs/user/howto/cli.md)。
 
 ```bash
 # 1. 生成 SCAR 演示数据（X.csv / y_pu.csv / y_true.csv）
@@ -172,14 +172,14 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 | 文档 | 说明 |
 |------|------|
-| [`docs/user/data_profiling.md`](docs/user/data_profiling.md) | 数据画像指南 |
-| [`docs/user/diagnostic_reports.md`](docs/user/diagnostic_reports.md) | 诊断报告指南 |
-| [`docs/user/sensitivity_analysis.md`](docs/user/sensitivity_analysis.md) | 敏感性分析指南 |
-| [`docs/user/sar_simulation.md`](docs/user/sar_simulation.md) | SCAR/SAR 数据模拟 |
-| [`docs/user/self_pu.md`](docs/user/self_pu.md) | Self-PU 使用指南 |
-| [`docs/method_selection.md`](docs/method_selection.md) | 算法选择指南 |
+| [`docs/user/howto/data_profiling.md`](docs/user/howto/data_profiling.md) | 数据画像指南 |
+| [`docs/user/howto/diagnostic_reports.md`](docs/user/howto/diagnostic_reports.md) | 诊断报告指南 |
+| [`docs/user/howto/sensitivity_analysis.md`](docs/user/howto/sensitivity_analysis.md) | 敏感性分析指南 |
+| [`docs/user/howto/sar_simulation.md`](docs/user/howto/sar_simulation.md) | SCAR/SAR 数据模拟 |
+| [`docs/user/howto/self_pu.md`](docs/user/howto/self_pu.md) | Self-PU 使用指南 |
+| [`docs/user/concepts/method_selection.md`](docs/user/concepts/method_selection.md) | 算法选择指南 |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | 各方法研究卡片 |
-| [`docs/architecture.md`](docs/architecture.md) | 架构设计 |
+| [`docs/dev/architecture.md`](docs/dev/architecture.md) | 架构设计 |
 
 ## 开发
 

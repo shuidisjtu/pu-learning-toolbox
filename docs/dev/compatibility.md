@@ -1,4 +1,4 @@
-# Development and Compatibility Policy
+# 开发与兼容性政策
 
 ## 1. 支持范围
 

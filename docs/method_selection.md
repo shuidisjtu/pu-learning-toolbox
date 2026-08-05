@@ -113,7 +113,7 @@ result.to_markdown()   # Markdown 报告
 result.save("recommendations.json")
 ```
 
-推荐器元数据 schema 见 [`architecture.md`](architecture.md) §6。
+推荐器元数据 schema 见 [`dev/architecture.md`](dev/architecture.md) §6。
 
 ## 5. 风险提示
 

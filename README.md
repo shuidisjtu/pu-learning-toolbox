@@ -154,7 +154,7 @@ report.save("results/pipeline.json")       # strict JSON / Markdown export
 
 ### CLI Quick Start
 
-The `pu-toolbox` console command wraps the PUPipeline flow (profile -> prior -> train -> PU-stratified CV -> evaluate) into a terminal command. Full guide: [`docs/user/cli.md`](docs/user/cli.md).
+The `pu-toolbox` console command wraps the PUPipeline flow (profile -> prior -> train -> PU-stratified CV -> evaluate) into a terminal command. Full guide: [`docs/user/howto/cli.md`](docs/user/howto/cli.md).
 
 ```bash
 # 1. Generate SCAR demo data (X.csv / y_pu.csv / y_true.csv)
@@ -172,14 +172,14 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 | Document | Description |
 |----------|-------------|
-| [`docs/user/data_profiling.md`](docs/user/data_profiling.md) | Data profiling guide |
-| [`docs/user/diagnostic_reports.md`](docs/user/diagnostic_reports.md) | Diagnostic report guide |
-| [`docs/user/sensitivity_analysis.md`](docs/user/sensitivity_analysis.md) | Sensitivity analysis guide |
-| [`docs/user/sar_simulation.md`](docs/user/sar_simulation.md) | SCAR/SAR data simulation |
-| [`docs/user/self_pu.md`](docs/user/self_pu.md) | Self-PU usage guide |
-| [`docs/method_selection.md`](docs/method_selection.md) | Algorithm selection guide |
+| [`docs/user/howto/data_profiling.md`](docs/user/howto/data_profiling.md) | Data profiling guide |
+| [`docs/user/howto/diagnostic_reports.md`](docs/user/howto/diagnostic_reports.md) | Diagnostic report guide |
+| [`docs/user/howto/sensitivity_analysis.md`](docs/user/howto/sensitivity_analysis.md) | Sensitivity analysis guide |
+| [`docs/user/howto/sar_simulation.md`](docs/user/howto/sar_simulation.md) | SCAR/SAR data simulation |
+| [`docs/user/howto/self_pu.md`](docs/user/howto/self_pu.md) | Self-PU usage guide |
+| [`docs/user/concepts/method_selection.md`](docs/user/concepts/method_selection.md) | Algorithm selection guide |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | Per-method research cards |
-| [`docs/architecture.md`](docs/architecture.md) | Architecture design |
+| [`docs/dev/architecture.md`](docs/dev/architecture.md) | Architecture design |
 
 ## Development
 

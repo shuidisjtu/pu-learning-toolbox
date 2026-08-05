@@ -54,3 +54,6 @@ uv.lock
 # CLI demo / run artifacts (intermediate outputs)
 demo_data/
 results*/
+
+# Local one-off plans (never for distribution)
+.superpowers/

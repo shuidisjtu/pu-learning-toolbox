@@ -18,7 +18,7 @@
 | $c = P(s=1 \mid y=1)$ | SCAR 下正类被标记的常数概率 |
 | $c(x) = P(s=1 \mid y=1, x)$ | SAR 下实例相关的标记倾向 |
 
-数据场景与假设的详细分类见 [`method_selection.md`](method_selection.md)。
+数据场景与假设的详细分类见 [`user/concepts/method_selection.md`](user/concepts/method_selection.md)。
 
 ## 3. 分层依赖
 
@@ -37,26 +37,26 @@ pip install pu-toolbox[all]
 
 ## 4. 论文覆盖
 
-覆盖 16 篇 PU Learning 论文，按 5 个算法族组织。算法选型、场景/假设匹配见 [`method_selection.md`](method_selection.md)，论文→模块映射见 [`architecture.md`](architecture.md) 的“论文方法到模块的映射”部分，源码状态见 [`resources_optimized.md`](resources_optimized.md)。
+覆盖 16 篇 PU Learning 论文，按 5 个算法族组织。算法选型、场景/假设匹配见 [`user/concepts/method_selection.md`](user/concepts/method_selection.md)，论文→模块映射见 [`dev/architecture.md`](dev/architecture.md) 的“论文方法到模块的映射”部分，源码状态见 [`dev/resources.md`](dev/resources.md)。
 
 ## 5. 文档索引
 
 | 文件 | 作用 |
 |---|---|
 | `README.md` | 项目总览、定位、分层依赖、文档索引 |
-| `architecture.md` | 包结构、基类 API、数据流、注册表设计 |
-| `project_structure.md` | 完整目录结构（权威来源） |
-| `method_selection.md` | 算法分类、选型逻辑、推荐器设计 |
-| `development_roadmap.md` | Phase 0–6 任务拆分、版本规划、实施优先级 |
-| `development_compatibility.md` | Python/依赖支持矩阵、CI 职责和构建策略 |
-| `resources_optimized.md` | 论文源码状态、URL、集成策略 |
-| `user/sar_simulation.md` | SCAR/SAR propensity、PU 标签和合成 benchmark 使用指南 |
-| `user/data_profiling.md` | PU 数据质量画像、SCAR/SAR 证据边界与行动建议 |
-| `user/diagnostic_reports.md` | 模型输出、指标证据级别及 JSON/Markdown 诊断报告 |
-| `user/sensitivity_analysis.md` | 类先验/平均标记倾向假设扫描、相容性与指标区间 |
-| `user/self_pu.md` | Self-PU clean validation、三阶段训练、审计状态与复现边界 |
-| `user/pipeline.md` | PUPipeline 端到端工作流：画像→先验→训练→CV→评估 |
-| `user/cli.md` | pu-toolbox 命令行接口：run / list-methods / list-priors / make-demo-data |
+| `dev/architecture.md` | 包结构、基类 API、数据流、注册表设计 |
+| `dev/project_structure.md` | 完整目录结构（权威来源） |
+| `user/concepts/method_selection.md` | 算法分类、选型逻辑、推荐器设计 |
+| `dev/roadmap.md` | Phase 0–6 任务拆分、版本规划、实施优先级 |
+| `dev/compatibility.md` | Python/依赖支持矩阵、CI 职责和构建策略 |
+| `dev/resources.md` | 论文源码状态、URL、集成策略 |
+| `user/howto/sar_simulation.md` | SCAR/SAR propensity、PU 标签和合成 benchmark 使用指南 |
+| `user/howto/data_profiling.md` | PU 数据质量画像、SCAR/SAR 证据边界与行动建议 |
+| `user/howto/diagnostic_reports.md` | 模型输出、指标证据级别及 JSON/Markdown 诊断报告 |
+| `user/howto/sensitivity_analysis.md` | 类先验/平均标记倾向假设扫描、相容性与指标区间 |
+| `user/howto/self_pu.md` | Self-PU clean validation、三阶段训练、审计状态与复现边界 |
+| `user/howto/pipeline.md` | PUPipeline 端到端工作流：画像→先验→训练→CV→评估 |
+| `user/howto/cli.md` | pu-toolbox 命令行接口：run / list-methods / list-priors / make-demo-data |
 | `project_management/decision_log.md` | 项目决策日志 |
 | `project_management/cli_design.md` | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
 | `project_management/process_checklist.md` | 开发流程检查清单 |
