@@ -11,6 +11,7 @@ See ``docs/resources_optimized.md`` for the full source inventory and
 
 from __future__ import annotations
 
+from ..core.exceptions import RegistryError
 from ..core.tags import (
     AlgorithmFamily as Fam,
 )
@@ -323,17 +324,22 @@ _BUILTIN: list[AlgorithmMetadata] = [
 def register_all_builtin_methods() -> int:
     """Register all 15 paper methods and bind native implementations.
 
-    Returns the number of methods registered.  Idempotent — calling
-    this repeatedly will raise :class:`RegistryError` on duplicates,
-    so tests should call :func:`clear_registry` first if needed.
+    Returns the number of methods newly registered.  Idempotent —
+    methods already present in the registry are skipped, so calling
+    this repeatedly (e.g. from the recommender and the workflow
+    pipeline entry points) is safe without clearing the registry.
 
     Native implementations (those with ``implementation_status=NATIVE``)
     are automatically bound to their registry entries.
     """
     count = 0
     for meta in _BUILTIN:
-        register_method(meta)
-        count += 1
+        try:
+            register_method(meta)
+            count += 1
+        except RegistryError:
+            # Already registered by an earlier caller; skip.
+            continue
 
     # Bind native estimator classes to their registry entries.
     _bind_native_classes()
