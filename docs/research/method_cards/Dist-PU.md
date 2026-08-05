@@ -54,7 +54,7 @@ X_U \sim p(x)=\pi p_P(x)+(1-\pi)p_N(x).
 模型输出 logit `f_theta(x)` 和 soft prediction：
 
 ```math
-q_\theta(x)=\operatorname{sigmoid}(f_\theta(x)).
+q_\theta(x)=\mathrm{sigmoid}(f_\theta(x)).
 ```
 
 论文的分布对齐直觉为：
@@ -154,7 +154,7 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 ```math
 \widehat R_{mix}(\theta)
-=\operatorname{BCE}
+=\mathrm{BCE}
 \left(f_\theta(\tilde x),\tilde q\right).
 ```
 

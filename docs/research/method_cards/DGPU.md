@@ -78,7 +78,7 @@ Dist-PU 初始化 classifier
 弱增强记为 `A_w`，分类器 softmax 输出：
 
 ```math
-z_i=\operatorname{softmax}(f(A_w(x_i))).
+z_i=\mathrm{softmax}(f(A_w(x_i))).
 ```
 
 初始化目标：
@@ -188,7 +188,7 @@ K_0=n_G(1-\pi_P).
 =
 \left[
 \max
-\operatorname{softmax}
+\mathrm{softmax}
 (\widehat f(A_w(x_i)))
 \right]^{1/2}.
 ```
@@ -237,7 +237,7 @@ f(A_w(x_i))-\lambda\log\eta.
 强增强输出记为：
 
 ```math
-Z_i=\operatorname{softmax}(f(A_s(x_i))).
+Z_i=\mathrm{softmax}(f(A_s(x_i))).
 ```
 
 论文定义：

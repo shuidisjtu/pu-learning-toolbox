@@ -64,9 +64,9 @@ contrastive representation 更新近似 M-step，但这不意味着非凸训练�
 对样本 `x_i`：
 
 ```math
-q_i=g_q(\operatorname{Aug}_q(x_i)),
+q_i=g_q(\mathrm{Aug}_q(x_i)),
 \qquad
-k_i=g_k(\operatorname{Aug}_k(x_i)),
+k_i=g_k(\mathrm{Aug}_k(x_i)),
 ```
 
 两者均进行 L2 归一化。key encoder 参数按 EMA 更新：
@@ -129,7 +129,7 @@ class prototype 按预测类别更新：
 ```math
 \mu_c
 \leftarrow
-\operatorname{Normalize}
+\mathrm{Normalize}
 \left(
 \lambda\mu_c+(1-\lambda)q_i
 \right).
@@ -169,7 +169,7 @@ labeled positive 的 pseudo-label 固定，不参与该更新。
 论文定义归一化 dissimilarity：
 
 ```math
-\operatorname{DisSim}(q_i,k_j)
+\mathrm{DisSim}(q_i,k_j)
 =
 \frac14
 \left\|
@@ -199,7 +199,7 @@ hard negative 同时满足：
 \{
 k_j\in\mathcal Q:
 \widetilde y_i\ne\widetilde y_j,\,
-\operatorname{DisSim}(q_i,k_j)\le Q_{1/4}(x_i)
+\mathrm{DisSim}(q_i,k_j)\le Q_{1/4}(x_i)
 \}.
 ```
 
@@ -209,7 +209,7 @@ k_j\in\mathcal Q:
 \omega_j
 =
 \frac{1}
-{\operatorname{DisSim}(q_i,k_j)}.
+{\mathrm{DisSim}(q_i,k_j)}.
 ```
 
 实现必须设置数值下界 `eps`，防止 embedding 极近时除零。

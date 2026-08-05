@@ -63,7 +63,7 @@ p(x)=\theta_{\mathrm P}p(x\mid y=+1)
 平方损失互信息定义为：
 
 ```math
-\operatorname{SMI}(X,Y)
+\mathrm{SMI}(X,Y)
 =\sum_{y\in\{-1,+1\}}\frac{p(y)}{2}
 \int
 \left(
@@ -82,7 +82,7 @@ SMI 是联合分布 `p(x,y)` 与独立分布 `p(x)p(y)` 之间的 Pearson diverg
 论文 Theorem 1 将 SMI 改写为只涉及正类条件分布和边缘分布的形式：
 
 ```math
-\operatorname{PU\text{-}SMI}
+\mathrm{PU\text{-}SMI}
 =\frac{\theta_{\mathrm P}}{2\theta_{\mathrm N}}
 \int
 \left(
@@ -93,7 +93,7 @@ SMI 是联合分布 `p(x,y)` 与独立分布 `p(x)p(y)` 之间的 Pearson diverg
 并证明：
 
 ```math
-\operatorname{PU\text{-}SMI}=\operatorname{SMI}.
+\mathrm{PU\text{-}SMI}=\mathrm{SMI}.
 ```
 
 令真实密度比为：
@@ -109,7 +109,7 @@ r^*(x)=\frac{p(x\mid y=+1)}{p(x)}.
 对任意函数 `w(x)`，论文 Theorem 2 给出：
 
 ```math
-\operatorname{PU\text{-}SMI}
+\mathrm{PU\text{-}SMI}
 \ge
 \frac{\theta_{\mathrm P}}{\theta_{\mathrm N}}
 \left(-J_{\mathrm{PU}}(w)-\frac12\right),

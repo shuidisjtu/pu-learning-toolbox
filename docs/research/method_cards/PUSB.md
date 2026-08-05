@@ -139,13 +139,13 @@ PUSB 的可计算对象可以写成观察到的正例与 U 的密度比：
 当前代码输出：
 
 ```math
-f_{logistic}(x)=w^T\operatorname{scale}(x)+b,
+f_{logistic}(x)=w^T\mathrm{scale}(x)+b,
 ```
 
 以及：
 
 ```math
-q_{logistic}(x)=\operatorname{sigmoid}(f_{logistic}(x)).
+q_{logistic}(x)=\mathrm{sigmoid}(f_{logistic}(x)).
 ```
 
 它是 PUSB family 的可运行接口 baseline，不等价于论文完整 partial-identification solver。该边界必须在实验报告中保留。

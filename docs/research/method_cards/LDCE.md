@@ -141,7 +141,7 @@ m\leftarrow\hat m+\hat S^{-1}w\sqrt{\frac{b}{w^\top\hat S^{-1}w}}.
 2. 将 `\tilde S_N` 随机近等分为 `g` 组；求各组均值，选取到其余组均值距离中位数最小者，得到 MoM 质心 `\hat m`。
 3. 按式 (10) 得 `\hat S`，加 ridge，初始化 `w`。
 4. 交替执行闭式 `m` 更新和 `w` 的凸优化，直到目标相对变化/参数变化满足容差或达到 `max_iter`。
-5. 输出 $`\operatorname{sign}(w^\top x)`$；同时暴露先验、`h`、质心及收敛诊断。
+5. 输出 $`\mathrm{sign}(w^\top x)`$；同时暴露先验、`h`、质心及收敛诊断。
 
 #### 论文 Algorithm 1：污染负集 MoM 质心
 
