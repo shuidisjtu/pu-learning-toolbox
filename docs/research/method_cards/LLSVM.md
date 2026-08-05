@@ -153,7 +153,7 @@ J_{\text{code}}(\omega)
 
 论文以 $`\mathrm{penL1}`$（du Plessis, Niu, Sugiyama, 2015）在网格 $`\{0.05,0.10,\ldots,0.95\}`$ 上估计 $`\pi`$，随后设 $`t=2\pi-1`$。
 
-**[项目适配]** 若当前 `penL1` 支持连续优化或不同候选网格，应复用其 API；LLSVM 只消费最终 $`class_prior_`$，不复制一套先验估计实现。允许用户传入可信先验以跳过估计。
+**[项目适配]** 若当前 `penL1` 支持连续优化或不同候选网格，应复用其 API；LLSVM 只消费最终 `class_prior_`，不复制一套先验估计实现。允许用户传入可信先验以跳过估计。
 
 ---
 
@@ -164,7 +164,7 @@ J_{\text{code}}(\omega)
 3. 初始化线性参数（含或不含截距）；固定随机种子后打乱训练索引。
 4. 对每个 epoch 和 minibatch，按式（9）计算 P 与 U 项的批量估计、反向传播并更新参数。
 5. 在验证集按任务指标（首选 AUC；有可靠阈值标注时可用 F1/accuracy）选择 $`\alpha,\beta,\gamma`$、学习率和早停 checkpoint。
-6. 保存 $`class_prior_`$、$`calibration_target_`$、最终目标分量和训练历史，提供可诊断输出。
+6. 保存 `class_prior_`、`calibration_target_`、最终目标分量和训练历史，提供可诊断输出。
 
 论文固定步长 $`\tau=0.01`$、$`N=40`$ 个 minibatch；官方代码实际使用步长 $`5\times10^{-6}`$、$`N=20`$ 个 minibatch、$`3000`$ epochs。**实现以代码参数为默认值**，论文值仅作参考。论文仅在训练开始时 shuffle 一次；工程实现应默认每 epoch shuffle，并使其可配置。**[项目适配]**
 
