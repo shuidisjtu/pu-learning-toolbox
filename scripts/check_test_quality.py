@@ -162,18 +162,27 @@ def analyse_file(filepath: Path) -> ModuleReport:
     tree = ast.parse(filepath.read_text(encoding="utf-8"))
 
     methods: list[TestMethod] = []
-    current_class_marker = False
 
-    for node in ast.walk(tree):
-        # Track class-level markers
-        if isinstance(node, ast.ClassDef):
-            current_class_marker = _has_marker(node.decorator_list)
-
-        # Collect test methods
+    # Module-level test functions.
+    for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
-            # A method inside a class inherits the class marker
-            owns_marker = _has_marker(node.decorator_list) or current_class_marker
-            methods.append(TestMethod(node.name, node.lineno, owns_marker))
+            methods.append(TestMethod(node.name, node.lineno, _has_marker(node.decorator_list)))
+
+    # Methods inside classes: inherit the *owning* class marker.
+    # (ast.walk order cannot be relied on, so the marker must be
+    # resolved per class rather than through a shared variable.)
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            class_marker = _has_marker(node.decorator_list)
+            for child in ast.walk(node):
+                if isinstance(child, ast.FunctionDef) and child.name.startswith("test_"):
+                    methods.append(
+                        TestMethod(
+                            child.name,
+                            child.lineno,
+                            _has_marker(child.decorator_list) or class_marker,
+                        )
+                    )
 
     # Marker violations
     violations = [m for m in methods if not m.has_marker]
