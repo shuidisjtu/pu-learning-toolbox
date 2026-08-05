@@ -15,6 +15,9 @@ pipe = PUPipeline(
     cv=5,                       # PU 分层 CV 折数，或自定义 splitter
     metrics=DEFAULT_METRICS,    # 指标名元组，见下方指标表
     random_state=42,
+    architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu）
+    backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
+    device="cpu",               # 深度分类器 torch 设备（如 "cuda"）
 )
 report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 ```
@@ -58,6 +61,25 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 不能从名字自动实例化——`"auto"` 会跳过它们并在 `report.provenance["skipped_candidates"]`
 记录原因；显式指定名字则构造时即报错，请改传实例。
 
+### 深度算法与架构选择
+
+`architecture` / `backbone` / `device` 参数契约：
+
+| 参数 | 默认 | 取值 | 语义 |
+|---|---|---|---|
+| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式 `wconpu` / `infomax_pu`；`auto` 或浅层算法配 cnn 抛 `PipelineError` |
+| `backbone` | `"cnn13"` | `"cnn13"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
+| `device` | `"cpu"` | torch 设备字符串 | 透传给深度分类器（`_fresh_estimator` 按签名注入） |
+
+- 显式 `wconpu` / `infomax_pu`：放行必填参数检查，`class_prior` 按「显式 >
+  估计」顺序注入；`architecture="cnn"` 时 encoder 由 pipeline 在 `fit_evaluate`
+  内懒构建（`build_encoder("cnn", backbone=..., in_channels=...)`）并注入
+- 输入维度：4-D NCHW + 显式深度分类器 + cnn → 正常（prior 估计与数据画像在
+  展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
+  `PipelineError`；2-D + cnn → `PipelineError`
+- deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议 `cv=1`
+- `auto` 行为不变：推荐器候选中的深度算法仍被跳过
+
 ### 错误场景
 
 | 场景 | 异常 |
@@ -70,6 +92,45 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 | 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
 | 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
 | 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
+
+## build_encoder
+
+深度分类器的统一编码器构建入口（`pu_toolbox/estimators/deep/vision.py`），
+PUPipeline 在 `architecture="cnn"` 时内部调用；也可手动传给分类器。
+
+```python
+encoder = build_encoder(
+    architecture,             # "mlp" | "cnn"
+    *,
+    backbone="cnn13",         # "cnn13" / "resnet18" / "resnet50"（仅 cnn）
+    in_channels,              # 图像通道数（如 RGB=3）
+    normalization_mean=None,  # 每通道均值；默认 0.5
+    normalization_std=None,   # 每通道标准差；默认 0.5
+)
+```
+
+- `"mlp"` → 返回 `None`（分类器内置 MLP 路径，表格数据）
+- `"cnn"` → 返回 `build_wconpu_backbone(...)` 图像骨干（4-D NCHW 输入，
+  内嵌通道标准化）
+- 非法 `architecture` → `ValueError`
+
+## InfoMaxPUClassifier
+
+深度 PU 分类器（PURL 表示学习 → 类先验估计 → nnPU 分类），构造参数多
+（`representation_*` / `classifier_*` 系列）；需要细粒度控制时直接传实例给
+`PUPipeline`。`encoder` 参数：
+
+```python
+clf = InfoMaxPUClassifier(
+    encoder=None,     # 外置编码器（如 build_encoder("cnn", ...)）；None → 内置 MLP
+    device="cpu",     # torch 设备
+    ...
+)
+```
+
+- `encoder=None`（默认）：内置 MLP 编码器，向后兼容（表格数据）
+- 传入外置编码器：替代内部 `nn.Sequential(Linear...)` 编码部分，`ratio_head_`
+  接在编码器特征之后；`fit` 放行 4-D NCHW 图像输入
 
 ## profile_pu_data
 

@@ -65,6 +65,26 @@ report.save("results/pipeline.json")
 估计先验被画像审计警告（`inconsistent_class_prior`）时，
 `report.provenance["prior_audit_flagged"]=True`，提示自动选出的需先验方法需谨慎。
 
+### 深度算法与架构选择
+
+`PUPipeline` 支持两个深度算法（`wconpu` / `infomax_pu`），需先安装可选依赖
+`pip install pu-learning-toolbox[torch]`。深度算法须**显式指定**，`auto`
+推荐器仍会跳过它们。
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `architecture` | `"mlp"` | `"mlp"`（表格数据）或 `"cnn"`（4-D NCHW 图像） |
+| `backbone` | `"cnn13"` | CNN 骨架：`"cnn13"` / `"resnet18"` / `"resnet50"`（仅 `architecture="cnn"` 时有效） |
+| `device` | `"cpu"` | 传给深度分类器的 torch 设备（如 `"cuda"`） |
+
+- 显式指定 `wconpu` / `infomax_pu` 时放行，`class_prior` 仍按「显式 > 估计」
+  顺序注入；`architecture="cnn"` 时 pipeline 用 `build_encoder` 构建并注入
+  CNN 编码器
+- `architecture="cnn"` 要求 4-D NCHW 图像输入（`.npy` 数组）；2-D 表格配
+  `cnn` 或 4-D 图像配 `mlp` 都会报错
+- 深度训练较慢（WConPU 默认 800 epoch），`cv>1` 时 pipeline 会打印训练成本
+  提示，可改用 `cv=1` 单次训练
+
 ## 指标与可用性
 
 默认指标 `DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`。

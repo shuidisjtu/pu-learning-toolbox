@@ -24,13 +24,16 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 | 参数 | 必填 | 默认 | 说明 |
 |---|---|---|---|
-| `--data X.csv` | ✅ | — | 特征矩阵（行 = 样本；首行必须是表头） |
+| `--data X.csv` | ✅ | — | 特征矩阵（行 = 样本；首行必须是表头）。也接受 `.npy` 4-D NCHW 图像数组（配 `--architecture cnn`） |
 | `--labels y_pu.csv` | ✅ | — | PU 标签单列 {1, 0}（首行必须是表头） |
 | `--out-dir results/` | ✅ | — | 输出目录（report.json + report.md） |
 | `--true-labels` | — | — | 真值单列 {0, 1}，启用 oracle 指标（auc 等） |
 | `--class-prior` | — | — | 显式类先验 (0, 1)，跳过估计 |
 | `--prior-estimator` | — | `recpe` | `recpe`/`pen_l1`/`km1`/`km2`/`none`，也接受注册表名如 `class_prior_estimation`（别名 `cpe`/`pe`） |
 | `--classifier` | — | `auto` | 注册方法名或 `auto`（推荐器选算法） |
+| `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu`） |
+| `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
+| `--device` | — | `cpu` | 深度算法 torch 设备（如 `cuda`） |
 | `--cv` | — | `5` | CV 折数 |
 | `--metrics` | — | 默认四件套 | 逗号分隔（`pu_risk,recall,auc`） |
 | `--seed` | — | `42` | 随机种子（同种子输出可复现） |
@@ -48,6 +51,19 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 4.0] [--seed 42]`：
   用 `make_scar_dataset` 生成演示 CSV（`--n` 为每类样本数，总 2n；`--c` 为
   SCAR 标注概率）。
+
+## 深度算法与图像数据
+
+`run` 支持两个深度算法（WConPU、InfoMax PU），需先安装可选依赖
+`pip install pu-learning-toolbox[torch]`。
+
+- **表格数据**（默认）：`--classifier wconpu --architecture mlp`，MLP 骨架
+- **图像数据**：`--data` 传 4-D NCHW float 数组（.npy 文件，如
+  `benchmarks/deep_pu` 数据加载器导出的数组），配合
+  `--architecture cnn --backbone cnn13|resnet18|resnet50`
+- `--architecture cnn` 仅对 `wconpu` / `infomax_pu` 有效；`auto` 与浅层
+  算法配合 `--architecture cnn` 会报错
+- 深度训练较慢（WConPU 默认 800 epoch），可用 `--cv 1` 单次训练
 
 ## 退出码
 
