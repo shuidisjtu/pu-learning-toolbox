@@ -435,13 +435,17 @@ class PUPipeline:
             warnings.warn(
                 f"{classifier_name} will be trained {n_splits + 1} times "
                 "(CV folds + full refit); deep training can be slow. "
-                "Use cv=1 for a single training pass.",
+                "Reduce the number of folds for quicker runs.",
                 stacklevel=2,
             )
 
         # -- Build the shared encoder for CNN architecture ----------------
         self._encoder = None
         if self._is_deep and self.architecture == "cnn":
+            if self.random_state is not None:
+                import torch
+
+                torch.manual_seed(self.random_state)
             from ..estimators.deep.vision import build_encoder
 
             self._encoder = build_encoder(

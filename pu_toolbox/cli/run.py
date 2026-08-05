@@ -25,7 +25,8 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
         "--data",
         type=str,
         required=True,
-        help="feature matrix CSV (rows = samples; first row must be a header)",
+        help="feature matrix: CSV table (rows = samples; first row must be a header) "
+        "or .npy 4-D NCHW image array",
     )
     parser.add_argument(
         "--labels",

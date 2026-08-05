@@ -77,7 +77,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 - 输入维度：4-D NCHW + 显式深度分类器 + cnn → 正常（prior 估计与数据画像在
   展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
   `PipelineError`；2-D + cnn → `PipelineError`
-- deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议 `cv=1`
+- deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议减少折数（`cv` 最小为 2）
 - `auto` 行为不变：推荐器候选中的深度算法仍被跳过
 
 ### 错误场景

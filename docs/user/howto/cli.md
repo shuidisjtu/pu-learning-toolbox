@@ -63,7 +63,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
   `--architecture cnn --backbone cnn13|resnet18|resnet50`
 - `--architecture cnn` 仅对 `wconpu` / `infomax_pu` 有效；`auto` 与浅层
   算法配合 `--architecture cnn` 会报错
-- 深度训练较慢（WConPU 默认 800 epoch），可用 `--cv 1` 单次训练
+- 深度训练较慢（WConPU 默认 800 epoch），可减少 `--cv` 折数
 
 ## 退出码
 

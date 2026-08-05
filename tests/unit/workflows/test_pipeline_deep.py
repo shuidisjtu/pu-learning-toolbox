@@ -119,3 +119,60 @@ class TestPipelineDeepAutoUnchanged:
         report = pipe.fit_evaluate(X, y_pu)
         assert report.provenance["classifier_mode"] == "auto"
         assert report.final_model.backend.value != "torch"
+
+
+class _StubClf:
+    """Minimal classifier satisfying the pipeline contract (no training)."""
+
+    def fit(self, X, y, **kwargs):
+        return self
+
+    def predict(self, X):
+        return np.zeros(len(X), dtype=int)
+
+    def decision_function(self, X):
+        return np.zeros(len(X))
+
+
+@pytest.mark.unit
+class TestPipelineDeepSeedReproducibility:
+    def test_cnn_encoder_weights_follow_random_state(self, monkeypatch):
+        """Same random_state -> identical encoder init; different -> different.
+
+        The encoder is built inside fit_evaluate, so torch must be seeded
+        from the pipeline's random_state there (regression for the
+        same-seed reproducibility promise). Training is stubbed out so only
+        the encoder initialization is exercised.
+        """
+        import pu_toolbox.estimators.deep.vision as vision
+
+        real_build = vision.build_encoder
+        captured = {}
+
+        def capturing_build(*args, **kwargs):
+            encoder = real_build(*args, **kwargs)
+            captured["params"] = [p.detach().clone() for p in encoder.parameters()]
+            return encoder
+
+        monkeypatch.setattr(vision, "build_encoder", capturing_build)
+
+        def stub_fresh(cls, instance, prior):
+            return _StubClf()
+
+        X, y_pu = _image_data()
+
+        def run_pipe(seed):
+            captured.clear()
+            pipe = PUPipeline(classifier="wconpu", architecture="cnn", cv=2, random_state=seed)
+            monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
+            pipe.fit_evaluate(X, y_pu, class_prior=0.3)
+            return captured["params"]
+
+        first_42 = run_pipe(42)
+        second_42 = run_pipe(42)
+        seed_43 = run_pipe(43)
+
+        assert len(first_42) > 0
+        for p42, p42_again in zip(first_42, second_42):
+            assert torch.allclose(p42, p42_again)
+        assert not all(torch.allclose(a, b) for a, b in zip(first_42, seed_43))

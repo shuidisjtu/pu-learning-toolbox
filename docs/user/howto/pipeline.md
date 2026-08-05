@@ -83,7 +83,7 @@ report.save("results/pipeline.json")
 - `architecture="cnn"` 要求 4-D NCHW 图像输入（`.npy` 数组）；2-D 表格配
   `cnn` 或 4-D 图像配 `mlp` 都会报错
 - 深度训练较慢（WConPU 默认 800 epoch），`cv>1` 时 pipeline 会打印训练成本
-  提示，可改用 `cv=1` 单次训练
+  提示，可减少折数（`cv` 最小为 2）
 
 ## 指标与可用性
 
