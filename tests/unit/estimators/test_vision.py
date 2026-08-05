@@ -54,10 +54,14 @@ class TestBuildEncoderEdge:
 @pytest.mark.unit
 class TestBuildEncoderDeterministic:
     def test_determ_same_arguments_same_forward(self):
-        a = build_encoder("cnn", backbone="cnn13", in_channels=3)
-        b = build_encoder("cnn", backbone="cnn13", in_channels=3)
+        # 同 seed 构建 → 相同权重 → 相同前向；随机输入避免 zero 输入的
+        # 平台相关数值噪声（BN 训练模式对常数 batch 输出的 subnormal 差异）
+        inputs = torch.randn(2, 3, 8, 8)
         torch.manual_seed(0)
-        xa = a(torch.zeros(2, 3, 8, 8))
+        a = build_encoder("cnn", backbone="cnn13", in_channels=3).eval()
         torch.manual_seed(0)
-        xb = b(torch.zeros(2, 3, 8, 8))
-        np.testing.assert_allclose(xa.detach().numpy(), xb.detach().numpy())
+        b = build_encoder("cnn", backbone="cnn13", in_channels=3).eval()
+        with torch.no_grad():
+            xa = a(inputs)
+            xb = b(inputs)
+        np.testing.assert_allclose(xa.numpy(), xb.numpy(), rtol=1e-6, atol=1e-6)
