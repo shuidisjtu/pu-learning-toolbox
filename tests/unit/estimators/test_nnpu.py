@@ -477,7 +477,11 @@ class TestAPIContract:
         model2 = torch.nn.Linear(5, 1)
         opt2 = torch.optim.Adam(model2.parameters(), lr=5e-3)
         clf2 = NonNegativePUClassifier(
-            model=model2, max_epochs=100, patience=2, batch_size=4, random_state=42,
+            model=model2,
+            max_epochs=100,
+            patience=2,
+            batch_size=4,
+            random_state=42,
             optimizer=opt2,
         )
         clf2.fit(X2, y2, class_prior=pi2, validation_data=(X_val, y_val))
