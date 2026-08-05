@@ -163,6 +163,7 @@ uv run ruff format --check pu_toolbox/      # 格式检查
 uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
 uv run python scripts/check_project_metadata.py
+uv run python scripts/check_math_rendering.py
 ```
 
 贡献指南见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。

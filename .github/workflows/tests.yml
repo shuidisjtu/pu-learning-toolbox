@@ -80,6 +80,9 @@ jobs:
       - name: Project metadata consistency check
         run: uv run --python "3.11" python scripts/check_project_metadata.py
 
+      - name: Method card MathJax rendering check
+        run: uv run --python "3.11" python scripts/check_math_rendering.py
+
   package:
     name: Build and install wheel
     runs-on: ubuntu-latest

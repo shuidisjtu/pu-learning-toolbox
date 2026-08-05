@@ -73,6 +73,7 @@ ruff format --check pu_toolbox tests benchmarks examples scripts
 python scripts/check_test_quality.py
 python scripts/check_doc_links.py
 python scripts/check_project_metadata.py
+python scripts/check_math_rendering.py
 uv build
 git diff --check
 ```

@@ -267,6 +267,7 @@ scripts/
   check_test_quality.py      (测试质量门禁：方法数/marker/覆盖率)
   check_doc_links.py          (文档一致性检查：4 条规则)
   check_project_metadata.py   (Python/CI/extras/Hatchling 跨文件一致性)
+  check_math_rendering.py     (方法卡 MathJax 渲染检查：缺上下标参数/括号配对/$ 配对)
 ```
 
 ## 7. CI/CD（`.github/`）

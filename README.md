@@ -163,6 +163,7 @@ uv run ruff format --check pu_toolbox/      # format check
 uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
 uv run python scripts/check_project_metadata.py
+uv run python scripts/check_math_rendering.py
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.
