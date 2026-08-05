@@ -12,6 +12,7 @@ from ..core.tags import (
     Backend,
     Maturity,
     SourceStatus,
+    TrainingCost,
 )
 from ..preprocessing import PUDataProfile
 from ..registry.metadata import AlgorithmMetadata
@@ -40,6 +41,7 @@ class ScoringConfig:
     scale_max: float = 20.0
     gpu_max: float = 5.0
     labeled_pos_max: float = 10.0
+    cost_max: float = 10.0
 
     maturity_scores: dict[str, float] = field(
         default_factory=lambda: {
@@ -72,6 +74,7 @@ class ScoringConfig:
             + self.scale_max
             + self.gpu_max
             + self.labeled_pos_max
+            + self.cost_max
         )
 
 
@@ -114,6 +117,11 @@ def score_method(
     raw += scale_score
     if scale_reason:
         reasons.append(scale_reason)
+
+    cost_score, cost_reason = _score_training_cost(meta, profile, config)
+    raw += cost_score
+    if cost_reason:
+        reasons.append(cost_reason)
 
     if has_gpu and meta.supports_gpu:
         raw += config.gpu_max
@@ -181,6 +189,52 @@ def _score_data_scale(
         return cap * 0.6, ""
     else:
         return cap * 0.8, ""
+
+
+def _score_training_cost(
+    meta: AlgorithmMetadata,
+    profile: PUDataProfile,
+    config: ScoringConfig,
+) -> tuple[float, str]:
+    """Score the relative training cost of a method.
+
+    Heavy fixed-epoch iterative solvers (e.g. LLSVM's 3000-epoch SGD)
+    dominate runtime on small data, so HIGH cost scores a small fraction
+    of the cap there; the penalty shrinks as data grows (runtime
+    perception fades) by reusing the same size bands as
+    :func:`_score_data_scale`.
+    """
+    n_samples = profile.summary.get("n_samples") or 0
+    cap = config.cost_max
+    if n_samples > config.large_data_threshold:
+        fraction = {
+            TrainingCost.LOW: 1.0,
+            TrainingCost.MEDIUM: 0.85,
+            TrainingCost.HIGH: 0.7,
+            TrainingCost.UNKNOWN: 0.6,
+        }
+    elif n_samples >= config.small_data_threshold:
+        fraction = {
+            TrainingCost.LOW: 1.0,
+            TrainingCost.MEDIUM: 0.8,
+            TrainingCost.HIGH: 0.5,
+            TrainingCost.UNKNOWN: 0.6,
+        }
+    else:
+        fraction = {
+            TrainingCost.LOW: 1.0,
+            TrainingCost.MEDIUM: 0.7,
+            TrainingCost.HIGH: 0.2,
+            TrainingCost.UNKNOWN: 0.6,
+        }
+    score = cap * fraction[meta.training_cost]
+    reason = ""
+    if n_samples < config.small_data_threshold:
+        if meta.training_cost == TrainingCost.LOW:
+            reason = "Fast on small datasets"
+        elif meta.training_cost == TrainingCost.HIGH:
+            reason = "High training cost on small datasets"
+    return score, reason
 
 
 def _score_labeled_positives(

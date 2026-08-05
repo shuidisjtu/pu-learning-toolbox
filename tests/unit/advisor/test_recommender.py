@@ -125,6 +125,33 @@ class TestRecommenderScoring:
         assert [c.name for c in r1.candidates] == [c.name for c in r2.candidates]
         assert [c.score for c in r1.candidates] == [c.score for c in r2.candidates]
 
+    def test_basic_small_data_high_cost_ranks_below_low_cost(self):
+        """On small SCAR data, the 3000-epoch LLSVM must rank below fast methods.
+
+        Regression guard for the training-cost dimension: auto mode used to
+        pick LLSVM (rank 1, ~30s per run); uPU / Elkan-Noto are closed-form
+        and must now outrank it on a SCAR/plausible profile.
+        """
+        from pu_toolbox.preprocessing import make_scar_dataset
+
+        X, y_pu, y_true = make_scar_dataset(
+            n=100, c=0.5, n_features=5, separation=4.0, random_state=42
+        )
+        # y_true makes the SCAR diagnostic plausible (without it the
+        # profile is at_risk and SCAR-only methods like uPU are penalized
+        # by the assumption dimension, masking the cost effect).
+        result = recommend_from_profile(
+            profile_pu_data(X, y_pu, y_true=y_true, random_state=42),
+            class_prior=0.5,
+            top_k=15,
+        )
+        scores = {c.name: c.score for c in result.candidates}
+        reasons = {c.name: c.reasons for c in result.candidates}
+        assert scores["llsvm"] < scores["upu"]
+        assert scores["llsvm"] < scores["elkan_noto"]
+        assert "Fast on small datasets" in reasons["upu"]
+        assert "High training cost on small datasets" in reasons["llsvm"]
+
 
 @pytest.mark.unit
 class TestRecommenderOutput:

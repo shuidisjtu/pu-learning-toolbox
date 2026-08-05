@@ -212,3 +212,25 @@ class TestBuiltinRegistration:
                 assert synced.assumption == list(cls.assumption), f"{meta.name}.assumption mismatch"
             if _declared_on_class(cls, "scenario"):
                 assert synced.scenario == list(cls.scenario), f"{meta.name}.scenario mismatch"
+
+    def test_basic_every_method_has_explicit_training_cost(self):
+        """All 16 entries carry an explicit training-cost level (no UNKNOWN)."""
+        from pu_toolbox.core.tags import TrainingCost
+
+        register_all_builtin_methods()
+        for meta in get_algorithm_registry().values():
+            assert meta.training_cost != TrainingCost.UNKNOWN, (
+                f"{meta.name} is missing an explicit training_cost"
+            )
+
+    def test_basic_only_llsvm_is_high_cost(self):
+        """LLSVM's fixed 3000-epoch SGD is the only HIGH-cost method."""
+        from pu_toolbox.core.tags import TrainingCost
+
+        register_all_builtin_methods()
+        high = {
+            m.name
+            for m in get_algorithm_registry().values()
+            if m.training_cost == TrainingCost.HIGH
+        }
+        assert high == {"llsvm"}

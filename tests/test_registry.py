@@ -143,6 +143,8 @@ class TestMetadataSerialization:
         assert "t" in d["aliases"]
         assert "family" in d
         assert "trainable" in d
+        assert "training_cost" in d
+        assert d["training_cost"] == "unknown"  # enum serialized to .value
 
     def test_edge_trainable_derived_from_status(self):
         meta = _make_meta("x", implementation_status=ImplementationStatus.API_ONLY)

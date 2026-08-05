@@ -86,7 +86,7 @@
 ```
 数据画像 (规模/稀疏性/PU比例) + 用户输入 (scenario/assumption/π)
     → registry 过滤 (trainable_only + scenario + sparse + class_prior + assumption)
-    → 六维评分 (assumption匹配 + maturity + source_status + 数据规模 + GPU + 标记充足度)
+    → 七维评分 (assumption匹配 + maturity + source_status + 数据规模 + 训练成本 + GPU + 标记充足度)
     → 按综合分排序
     → 返回 top-k
 ```

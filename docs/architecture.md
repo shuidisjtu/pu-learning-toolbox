@@ -140,6 +140,7 @@ class BasePULoss(ABC):
     "maturity": "stable",
     "source_status": "official_exact",
     "implementation_status": "native",
+    "training_cost": "medium",
 }
 ```
 
@@ -157,11 +158,11 @@ class BasePULoss(ABC):
 `advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配：
 
 1. **硬过滤**：trainable、scenario、sparse 支持、class_prior 可用性
-2. **软评分**：assumption 匹配 + maturity + source_status + 数据规模 + GPU + 标记充足度
+2. **软评分**：assumption 匹配 + maturity + source_status + 数据规模 + 训练成本 + GPU + 标记充足度
 3. **风险提示**：自动生成全局和每方法的警告
 
-评分权重通过 `ScoringConfig` dataclass 外化，开发者和用户可自定义维度权重、
-枚举分数映射和数据规模阈值。缺省使用 `DEFAULT_CONFIG`。
+评分权重通过 `ScoringConfig` dataclass 外化，开发者和用户可自定义维度权重
+（含训练成本权重 `cost_max`）、枚举分数映射和数据规模阈值。缺省使用 `DEFAULT_CONFIG`。
 
 模块结构：
 - `_types.py` — 数据类（`MethodCandidate`、`RecommendationResult`）
