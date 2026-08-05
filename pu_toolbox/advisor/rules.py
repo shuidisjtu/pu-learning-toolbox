@@ -281,8 +281,15 @@ def method_warnings(
 def global_warnings(
     profile: PUDataProfile,
     class_prior: float | None,
+    class_prior_source: str | None = None,
 ) -> list[str]:
-    """Generate global risk warnings based on data profile."""
+    """Generate global risk warnings based on data profile.
+
+    ``class_prior_source`` distinguishes an explicitly supplied prior
+    ("user" / "constructor" / None → warning) from an auto-estimated one
+    ("estimated" → no warning; profile checks like ``inconsistent_class_prior``
+    already cover a suspect estimate).
+    """
     warnings: list[str] = []
 
     diag_status = profile.selection_diagnostic.get("status", "inconclusive")
@@ -293,7 +300,7 @@ def global_warnings(
             "verifying with sensitivity analysis."
         )
 
-    if class_prior is not None:
+    if class_prior is not None and class_prior_source != "estimated":
         warnings.append(
             "Class prior was user-supplied. Incorrect class prior "
             "estimation significantly affects risk estimation methods."

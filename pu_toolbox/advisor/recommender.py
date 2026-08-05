@@ -79,6 +79,7 @@ def recommend_from_profile(
     scenario: Scenario | str | None = None,
     assumption: Assumption | str | None = None,
     class_prior: float | None = None,
+    class_prior_source: str | None = None,
     has_gpu: bool = False,
     top_k: int = 5,
     config: ScoringConfig | None = None,
@@ -94,6 +95,10 @@ def recommend_from_profile(
        require π when it is unavailable).  It must be consistent with
        the value used to build *profile*; passing a different value
        produces contradictory results.
+
+    ``class_prior_source`` records where *class_prior* came from
+    ("user" / "estimated" / ...); it only affects the global-warning
+    wording, never filtering or scoring.
     """
     if top_k < 1:
         raise ValueError(f"top_k must be >= 1, got {top_k}")
@@ -152,7 +157,7 @@ def recommend_from_profile(
         for i, (meta, sc, reasons, warns) in enumerate(scored)
     )
 
-    gw = global_warnings(profile, class_prior)
+    gw = global_warnings(profile, class_prior, class_prior_source)
 
     provenance = {
         "n_samples": profile.summary.get("n_samples"),

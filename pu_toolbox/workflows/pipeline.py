@@ -351,6 +351,7 @@ class PUPipeline:
             recommendation = recommend_from_profile(
                 profile,
                 class_prior=prior,
+                class_prior_source=prior_info.source,
                 top_k=10,
             )
             classifier_cls, skipped_candidates = _pick_first_instantiable(recommendation.candidates)

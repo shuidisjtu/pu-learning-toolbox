@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from pu_toolbox.advisor.rules import DEFAULT_CONFIG, _score_training_cost
+from pu_toolbox.advisor.rules import DEFAULT_CONFIG, _score_training_cost, global_warnings
 from pu_toolbox.core.tags import TrainingCost
 from pu_toolbox.registry.metadata import AlgorithmMetadata
 
@@ -20,6 +20,15 @@ def _stub_meta(cost: TrainingCost) -> AlgorithmMetadata:
 def _stub_profile(n_samples: int | None) -> SimpleNamespace:
     summary = {} if n_samples is None else {"n_samples": n_samples}
     return SimpleNamespace(summary=summary)
+
+
+def _stub_warning_profile() -> SimpleNamespace:
+    """Profile shape global_warnings touches (selection diagnostic + issues)."""
+    return SimpleNamespace(
+        summary={"n_samples": 100},
+        selection_diagnostic={"status": "inconclusive"},
+        issues=[],
+    )
 
 
 @pytest.mark.unit
@@ -81,3 +90,21 @@ def test_deterministic_cost_score_stable():
     s2, r2 = _score_training_cost(meta, profile, DEFAULT_CONFIG)
     assert s1 == s2
     assert r1 == r2
+
+
+@pytest.mark.unit
+def test_basic_prior_warning_only_for_user_supplied():
+    """'user-supplied' warning must fire only for explicitly provided priors.
+
+    Regression guard: pipeline passes the auto-estimated prior through the
+    recommender, which used to mislabel it as user-supplied.
+    """
+    profile = _stub_warning_profile()
+    estimated = global_warnings(profile, 0.5, class_prior_source="estimated")
+    assert not any("user-supplied" in w for w in estimated)
+
+    user = global_warnings(profile, 0.5, class_prior_source="user")
+    assert any("user-supplied" in w for w in user)
+
+    default = global_warnings(profile, 0.5)
+    assert any("user-supplied" in w for w in default)
