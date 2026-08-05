@@ -69,13 +69,17 @@ pu-toolbox
 - `list-methods`：从 registry 实时读取（`register_all_builtin_methods` +
   `registry.list_algorithms(trainable_only=True)`，官方遍历 API），
   输出表格：名称、family、实现状态（native/api_only）、requires_class_prior、
-  能否自动实例化。「能否自动实例化」复用 `pipeline._check_auto_instantiable`
+  能否自动实例化。「能否自动实例化」复用 `pipeline._missing_required_params`
   的检查逻辑（同包内部导入，避免两处逻辑漂移——CLI 判定与 auto 模式实例化判定
   必须一致）。新算法注册后自动出现，无需改 CLI。
 - `list-priors`：输出可用先验估计器名（含 `none` 与实例不可用说明）。
-- `make-demo-data --out-dir demo/ --n 500 --n-positive 100 --n-features 5 --seed 42`：
-  用 `make_scar_data` 生成 `X.csv` / `y_pu.csv` / `y_true.csv` 三个文件，
+- `make-demo-data --out-dir demo/ --n 200 --c 0.5 --n-features 5 --separation 4.0 --seed 42`：
+  用 `make_scar_dataset(n, c, ...)`（`preprocessing/pu_labeling.py`）生成
+  `X.csv` / `y_pu.csv` / `y_true.csv` 三个文件，
   产出可直接被 `run` 消费（自洽闭环，同时是 CLI 端到端测试的天然 fixture）。
+  参数与底层 `make_scar_dataset` 对齐：`--n` 为每类样本数（总 2n），`--c` 为
+  SCAR 标注概率（设计早期草稿的 `--n-positive` 被替换，因底层 API 以
+  `(n, c)` 建模而非 `n_positive`）。
 
 ## 数据流与错误处理
 
