@@ -15,10 +15,11 @@ concurrency:
 
 jobs:
   tests:
-    name: Tests (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
@@ -36,12 +37,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        shell: bash
         run: uv sync --python "${{ matrix.python-version }}" --extra dev --extra torch
 
       - name: Verify matrix interpreter
+        shell: bash
         run: uv run --python "${{ matrix.python-version }}" python -c "import sys; assert sys.version_info[:2] == tuple(map(int, '${{ matrix.python-version }}'.split('.')))"
 
       - name: Run fast tests
+        shell: bash
         run: uv run --python "${{ matrix.python-version }}" pytest tests/ -m "not slow"
 
   quality:

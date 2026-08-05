@@ -9,7 +9,7 @@
 | 核心依赖 | numpy、scipy、pandas、scikit-learn |
 | 深度学习 | `torch` extra |
 | 研究扩展 | `research` extra，包含 torch/torchvision/lightning/tqdm |
-| CI 平台 | GitHub Actions `ubuntu-latest` |
+| CI 平台 | GitHub Actions `ubuntu-latest` / `windows-latest` / `macos-latest` |
 | 构建后端 | Hatchling |
 
 Python classifier、ruff target、CI matrix 和本文档必须保持一致。新增 Python 版本前，需要完成完整测试和 wheel 安装冒烟；删除版本支持时必须在发布说明中记录。
@@ -36,7 +36,7 @@ pip install -e ".[dev]"         # 测试、lint 和构建工具
 
 CI 分为三个独立职责：
 
-1. **Tests**：显式使用 Python 3.10/3.11/3.12，安装 dev + torch，运行非 slow 测试。
+1. **Tests**：在 Ubuntu / Windows / macOS 三平台（3 × 3 矩阵）显式使用 Python 3.10/3.11/3.12，安装 dev + torch，运行非 slow 测试。
 2. **Static quality gates**：在 Python 3.11 运行全目录 ruff、格式、测试质量、文档一致性、项目 metadata 一致性和方法卡 MathJax 渲染检查。
 3. **Build and install wheel**：构建 sdist/wheel，在隔离环境安装 wheel，并从仓库目录外验证版本、diagnostics 和 15 个 registry 条目。
 
@@ -60,7 +60,6 @@ uv build
 
 ## 6. 已知边界
 
-- CI 当前只覆盖 Linux；Windows/macOS 需在正式稳定版前补充。
 - 深度方法的基础接口由普通 torch 环境验证，论文级 GPU、CUDA 和历史依赖环境另行锁定。
 - DGPU 的完整实验需要外部 EDM/扩散生成器后端。
 - clean-room 和 paper-like 结果不等同于官方历史环境复现。
