@@ -58,6 +58,7 @@ pip install pu-toolbox[all]
 | `user/pipeline.md` | PUPipeline 端到端工作流：画像→先验→训练→CV→评估 |
 | `user/cli.md` | pu-toolbox 命令行接口：run / list-methods / list-priors / make-demo-data |
 | `project_management/decision_log.md` | 项目决策日志 |
+| `project_management/cli_design.md` | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
 | `project_management/process_checklist.md` | 开发流程检查清单 |
 | `project_management/division.txt` | 任务分工说明 |
 | `../benchmarks/deep_pu/README.md` | InfoMax PU、WConPU、DGPU runner、配置锁与多 seed 结果 |

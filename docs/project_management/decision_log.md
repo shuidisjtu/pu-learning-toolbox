@@ -7,3 +7,5 @@
 | 2026-07-11 | 论文按基础/扩展分工：shuidisjtu 负责 Elkan-Noto/uPU/nnPU/PNU/Centroid/LLSVM（6篇），HENG958 负责 penL1/ReCPE/Dist-PU/PUSB/LBE/Self-PU（6篇），剩余3篇（InfoMax/WConPU/DGPU）由 HENG958 负责。详见 `division.txt`。 | 基础方法先做能为扩展方法提供参考，无前置依赖，可并行 | shuidisjtu |
 | 2026-08-01 | Python 支持收敛为 3.10–3.12；CI 显式锁定 matrix interpreter，分离测试、静态门禁和 wheel 安装冒烟 | 避免 `.python-version` 覆盖 CI matrix、未验证却声明 3.13，以及源码可用但发布包缺文件 | Codex / HENG958 |
 | 2026-08-01 | `pyproject.toml` 作为依赖权威来源；`uv.lock` 不入库；`requirements.txt` 仅作开发环境快照 | library 需在 CI 持续验证声明范围内的可解析依赖，同时保留特定环境问题的复查依据 | Codex / HENG958 |
+| 2026-08-05 | CLI 采用 argparse 单命令薄封装（run / list-methods / list-priors / make-demo-data），所有逻辑在 PUPipeline，CLI 只做参数解析/CSV IO/错误映射；辅助命令从 registry 实时读取 | 零新增依赖；与项目既有 argparse 惯例一致；新算法注册后 CLI 自动可见，无需维护 | shuidisjtu |
+| 2026-08-05 | `run` 默认 auto 模式引入推荐器训练成本维度（第 7 维）+ LLSVM 收敛早停（默认开），默认 run 实测 30s → 2s | auto 推荐器原本选中固定 3000 epoch 的 LLSVM 导致默认路径 ~30s；成本维度使其 rank 6，早停使其显式调用也降至 ~7s | shuidisjtu |
