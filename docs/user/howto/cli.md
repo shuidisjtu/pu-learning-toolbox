@@ -1,9 +1,8 @@
-# 命令行接口（pu-toolbox CLI）
+# 使用命令行接口
 
-`pip install pu-toolbox` 后即可使用 `pu-toolbox` 命令：把 PUPipeline 的
-「画像 → 先验 → 训练 → PU 分层 CV → 评估」流程变成一条终端命令。
-CLI 是 PUPipeline 的薄封装：所有学习逻辑在库内，CLI 只负责参数解析、
-CSV 读写与错误映射。
+> 前置条件：先完成 [快速开始](../quickstart.md)（3 条命令的完整流程）。
+> 概念：CLI 是 [PUPipeline](../howto/pipeline.md) 的薄封装——所有学习逻辑在库内，
+> CLI 只负责参数解析、CSV 读写与错误映射。
 
 ## 快速上手（3 条命令）
 
@@ -62,3 +61,8 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 `pu-toolbox run` 等价于 `PUPipeline(classifier=..., prior_estimator=..., cv=..., metrics=..., random_state=...).fit_evaluate(X, y_pu, y_true=..., class_prior=...)`。
 需要更细控制（传入分类器实例、自定义 CV splitter）时直接用 Python API。
+
+## 下一步
+
+- Python 版完整流程（参数解析、降级语义、指标证据）：[pipeline.md](pipeline.md)
+- 精确参数契约：[API 参考](../reference/api.md)

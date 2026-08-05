@@ -321,5 +321,5 @@ maturity = Maturity.STABLE
 | Source status | `third_party_only`（无官方代码，有第三方实现） |
 | 主参考实现 | [`pulearn/pulearn`](https://github.com/pulearn/pulearn) — sklearn 兼容、活跃维护（v0.2.0, 2026-03）、BSD-3-Clause、含概率校正与加权重训两种方法 |
 | 历史参考 | [`aldro61/pu-learning`](https://github.com/aldro61/pu-learning) — Python 2、2013 年废弃、仅有概率校正、不兼容 sklearn、不可直接复用 |
-| 实现策略 | **Native clean-room**（`docs/resources_optimized.md` 已裁决）：以论文 §2–3 公式为权威依据，以 pulearn 为算法验证参考，API 严格对齐本项目 `BasePUClassifier` 契约 |
+| 实现策略 | **Native clean-room**（`docs/dev/resources.md` 已裁决）：以论文 §2–3 公式为权威依据，以 pulearn 为算法验证参考，API 严格对齐本项目 `BasePUClassifier` 契约 |
 | License | BSD-3-Clause（第三方代码）；本项目实现为独立 Native 代码 |

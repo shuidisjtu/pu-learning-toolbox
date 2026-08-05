@@ -1,19 +1,11 @@
-# SCAR / SAR 数据模拟指南
+# 生成 SCAR/SAR 数据
 
-## 1. 适用范围
+> 前置条件：先完成 [快速开始](../quickstart.md)。
+> 概念：SCAR/SAR 的数学定义与三种生成机制见 [concepts/scar_sar.md](../concepts/scar_sar.md)。
 
-该模块用于构造可控的 PU benchmark。设真实类别为 `Y`，是否观察到正标签为 `S`：
+本模块用于构造可控的 PU benchmark。真实标签和 propensity 在现实 PU 训练中通常不可见，模拟器保留它们只是为了评估算法。
 
-```math
-S=1 \Longrightarrow Y=1,
-\qquad
-P(S=1\mid Y=0,X)=0.
-```
-
-SCAR 使用常数 `P(S=1|Y=1,X)=c`；SAR 允许该概率随特征变化。真实标签和 propensity
-在现实 PU 训练中通常不可见，模拟器保留它们只是为了评估算法。
-
-## 2. 公共接口
+## 1. 公共接口
 
 ### 2.1 只计算 propensity
 
@@ -71,18 +63,7 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 训练模型时只能传入 `X, y_pu`。`y_true` 用于分类评估，`propensity` 用于标记机制恢复
 评估；将二者用于模型训练或超参数选择会造成真值泄漏。
 
-## 3. 机制定义
-
-| 机制 | 定义 | 用途 |
-|---|---|---|
-| `scar` | 正类 propensity 为常数 | SCAR 控制组 |
-| `linear` | 标准化特征投影经过 sigmoid | 单调 instance-dependent bias |
-| `nonlinear` | 在线性投影上加入中心化二次项 | 非线性 selection bias |
-
-`feature_weights` 控制投影方向，默认所有特征等权并进行 L2 归一化。`strength=0` 时，
-线性和非线性机制退化为常数 propensity，可作为实现正确性的边界检查。
-
-## 4. 标记率语义
+## 2. 标记率语义
 
 `label_frequency` 是正类 propensity 的目标均值，不是每次随机抽样后必须精确达到的比例：
 
@@ -100,7 +81,7 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 
 仅比较实际标记数明显不同的实验，可能把样本量收益误判为 SAR 方法收益。
 
-## 5. SCAR/SAR 对比 benchmark
+## 3. SCAR/SAR 对比 benchmark
 
 ```bash
 python -m benchmarks.assigned_methods.run \
@@ -120,7 +101,7 @@ python -m benchmarks.assigned_methods.run \
 SCAR 的真实 propensity 是常数，因此 propensity rank correlation 在数学上未定义，
 结果中记录为空值，而不是伪造为零。
 
-## 6. 常见错误
+## 4. 常见错误
 
 - **负类出现 `y_pu=1`**：违反 PU 单边标记机制，应视为数据生成错误。
 - **用全数据真实标签调参**：只允许在合成诊断中使用，不能冒充 PU-only 模型选择。
@@ -128,3 +109,8 @@ SCAR 的真实 propensity 是常数，因此 propensity rank correlation 在数�
 - **忽略特征尺度**：模拟器在真实正类内标准化后构造 propensity，外部自定义机制也应
   明确尺度处理。
 - **只报告 accuracy**：selection-bias 方法还应报告排序和 propensity 恢复质量。
+
+## 下一步
+
+- 检查生成数据的质量与假设证据：[data_profiling.md](data_profiling.md)
+- 精确参数契约：[API 参考](../reference/api.md)

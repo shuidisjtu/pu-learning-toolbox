@@ -1,13 +1,16 @@
-# Architecture Design
+# 架构设计
 
-## 1. 核心原则
+## 1. 设计决策与代价
 
-- Core 包轻量，深度学习依赖放入 optional extension。
-- 类先验、标记倾向、损失函数、分类器解耦。
-- 所有算法通过 registry 管理，元数据驱动发现和推荐。
-- 有官方源码的论文优先走 adapter，无源码的 clean-room 实现。SAR / Instance-Dependent PU 是中长期差异化重点。
+| 决策 | 理由 | 代价 |
+|---|---|---|
+| Core 包轻量，深度学习依赖放入 optional extension | torch 方法不污染基础安装，`pip install pu-toolbox` 保持轻量 | 深度方法需要额外安装 `[torch]` / `[research]` |
+| 类先验、标记倾向、损失函数、分类器解耦 | 各概念可独立替换与测试；先验估计器可被任意分类器复用 | 分类器组装需要显式注入 |
+| 所有算法通过 registry 管理，元数据驱动发现和推荐 | 新算法注册即被推荐器与 CLI 感知，无需改调用方 | 元数据与实现必须保持同步（`_SYNC_FIELDS` 之外的字段由 registry 权威维护） |
+| 有官方源码的论文优先走 adapter，无源码的 clean-room 实现 | 复现可信度分级（`source_status`），官方源码是最高可信度 | adapter 依赖外部仓库，需要锁定版本 |
+| SAR / Instance-Dependent PU 是中长期差异化重点 | 通用 PU 工具多数只支持 SCAR | SAR 方法实现成本高 |
 
-完整目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
+**与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（决策、依赖方向、数据流）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
 
 ## 2. 模块分层
 
@@ -155,7 +158,7 @@ class BasePULoss(ABC):
 
 ### 算法推荐器
 
-`advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配：
+`advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配（用户侧的选型决策原理见 [`../../user/concepts/method_selection.md`](../../user/concepts/method_selection.md)）：
 
 1. **硬过滤**：trainable、scenario、sparse 支持、class_prior 可用性
 2. **软评分**：assumption 匹配 + maturity + source_status + 数据规模 + 训练成本 + GPU + 标记充足度
@@ -206,7 +209,7 @@ class BasePULoss(ABC):
 | Weighted Contrastive PU | `estimators/deep/weighted_contrastive_pu.py` (native core) |
 | DGPU | `estimators/deep/dgpu.py` (native orchestration + generator protocol) |
 
-完整映射及实现策略见 [`development_roadmap.md`](development_roadmap.md)。
+完整映射及实现策略见 [`roadmap.md`](roadmap.md)。
 
 ## 9. 评价与切分
 

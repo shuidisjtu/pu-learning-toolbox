@@ -10,12 +10,12 @@
 
 ## Features
 
-- **16 algorithms** from recent PU learning research, all with native implementations
+- **16 algorithms** from recent PU learning research, all native clean-room implementations ([method cards](docs/research/method_cards/))
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
-- **SCAR & SAR support** -- both Selected Completely At Random and Selected At Random labeling mechanisms
-- **Data profiling** -- automatic data quality checks and labeling mechanism diagnostics
-- **Algorithm recommender** -- match your data profile to the best-suited methods with customizable scoring
-- **Diagnostics & sensitivity** -- structured reports, assumption sensitivity analysis, JSON/Markdown export
+- **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
+- **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data
+- **Auditable pipeline** -- one-call `PUPipeline` (profile -> prior -> train -> PU-stratified CV -> evaluate) plus structured diagnostic reports and prior/propensity sensitivity analysis
+- **CLI** -- `pu-toolbox` turns the whole pipeline into terminal commands
 
 ## Quick Start
 
@@ -25,136 +25,31 @@
 git clone https://github.com/shuidisjtu/pu-learning-toolbox.git
 cd pu-learning-toolbox
 pip install -e .          # core dependencies
-pip install -e ".[torch]" # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, etc.)
+pip install -e ".[torch]" # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, ...)
 ```
 
 ### Hello World
 
 ```python
 import numpy as np
-from pu_toolbox.estimators.classic import ElkanNotoClassifier
-
-# Synthetic PU data: some positives are labeled (1), rest are unlabeled (0)
-rng = np.random.RandomState(42)
-X = rng.randn(500, 5)
-y_true = (X[:, 0] + X[:, 1] > 0).astype(int)
-y_pu = y_true * (rng.rand(500) < 0.5)  # SCAR labeling with c=0.5
-
-# Train and predict
-clf = ElkanNotoClassifier(random_state=42)
-clf.fit(X, y_pu)
-predictions = clf.predict(X)
-print(f"Accuracy: {np.mean(predictions == y_true):.3f}")
-```
-
-More examples: [`examples/minimal/`](examples/minimal/) (10 self-contained scripts).
-
-## Supported Algorithms
-
-### Class Prior Estimation
-
-| Method | Backend | Maturity | Requires class prior |
-|--------|---------|----------|---------------------|
-| penL1 / KM1 / KM2 | numpy | stable | No |
-| ReCPE | numpy | stable | No |
-
-### Classic & Calibration
-
-| Method | Backend | Maturity | Requires class prior |
-|--------|---------|----------|---------------------|
-| Elkan-Noto | sklearn | stable | No |
-
-### Risk Estimation
-
-| Method | Backend | Maturity | Requires class prior |
-|--------|---------|----------|---------------------|
-| uPU | numpy | stable | No |
-| nnPU | torch | stable | Yes |
-| PNU | numpy | research | Yes |
-| LDCE / KLDCE | numpy | research | No |
-| LLSVM | numpy | research | Yes |
-| Dist-PU | torch | research | Yes |
-
-### Bias-Aware (SAR)
-
-| Method | Backend | Maturity | Requires class prior |
-|--------|---------|----------|---------------------|
-| PUSB | sklearn | research | No |
-| LBE | sklearn | research | No |
-
-### Deep PU
-
-| Method | Backend | Maturity | Requires class prior |
-|--------|---------|----------|---------------------|
-| Self-PU | torch | research | Yes |
-| InfoMax PU | torch | research | No |
-| WConPU | torch | research | Yes |
-| DGPU | torch | experimental | Yes |
-
-## Key Modules
-
-### Algorithm Recommender
-
-```python
-from pu_toolbox.advisor import recommend_methods, ScoringConfig
-
-result = recommend_methods(X, y_pu, class_prior=0.3, has_gpu=True)
-for c in result.candidates:
-    print(f"{c.rank}. {c.name} (score={c.score:.1f})")
-
-# Custom scoring weights
-config = ScoringConfig(assumption_max=40.0, maturity_max=10.0)
-result = recommend_methods(X, y_pu, config=config)
-```
-
-### Data Profiling
-
-```python
-from pu_toolbox.preprocessing import profile_pu_data
-
-report = profile_pu_data(X, y_pu, class_prior=0.3)
-print(report.format_text())
-# Checks: label balance, feature quality, SCAR/SAR evidence
-```
-
-### Diagnostic Report
-
-```python
-from pu_toolbox.diagnostics import build_diagnostic_report
-
-report = build_diagnostic_report(X, y_pu, estimator=clf, class_prior=0.3)
-print(report.to_markdown())  # or report.to_json()
-```
-
-### Sensitivity Analysis
-
-```python
-from pu_toolbox.diagnostics import analyze_pu_sensitivity
-
-analysis = analyze_pu_sensitivity(
-    y_pu, clf.predict(X),
-    class_priors=[0.2, 0.3, 0.4],
-    label_propensities=[0.3, 0.5, 0.8],
-)
-print(analysis.to_frame())  # pandas DataFrame
-```
-
-### End-to-End Pipeline
-
-```python
+from pu_toolbox.preprocessing import make_sar_dataset
 from pu_toolbox import PUPipeline
 
-# One call: profile -> class prior -> train -> PU-stratified CV -> evaluate
-pipe = PUPipeline()                        # classifier="auto" picks the method
-report = pipe.fit_evaluate(X, y_pu)        # y_pu: {1, 0} PU labels
+# Synthetic PU data: some positives are labeled (1), rest are unlabeled (0)
+X, y_pu, y_true, _ = make_sar_dataset(
+    n_samples=1000, n_features=8, class_prior=0.3, random_state=42,
+)
 
-print(report.summary())                    # metric table + issues
-report.save("results/pipeline.json")       # strict JSON / Markdown export
+# One call: profile -> class prior -> train -> PU-stratified CV -> evaluate
+report = PUPipeline().fit_evaluate(X, y_pu, y_true=y_true)
+print(report.summary())
 ```
 
-### CLI Quick Start
+Full docs (Chinese): [docs/README.md](docs/README.md). More runnable examples: [`examples/minimal/`](examples/minimal/).
 
-The `pu-toolbox` console command wraps the PUPipeline flow (profile -> prior -> train -> PU-stratified CV -> evaluate) into a terminal command. Full guide: [`docs/user/cli.md`](docs/user/cli.md).
+## Command Line
+
+The `pu-toolbox` console command wraps the full pipeline. Full guide: [`docs/user/howto/cli.md`](docs/user/howto/cli.md).
 
 ```bash
 # 1. Generate SCAR demo data (X.csv / y_pu.csv / y_true.csv)
@@ -170,16 +65,16 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [`docs/user/data_profiling.md`](docs/user/data_profiling.md) | Data profiling guide |
-| [`docs/user/diagnostic_reports.md`](docs/user/diagnostic_reports.md) | Diagnostic report guide |
-| [`docs/user/sensitivity_analysis.md`](docs/user/sensitivity_analysis.md) | Sensitivity analysis guide |
-| [`docs/user/sar_simulation.md`](docs/user/sar_simulation.md) | SCAR/SAR data simulation |
-| [`docs/user/self_pu.md`](docs/user/self_pu.md) | Self-PU usage guide |
-| [`docs/method_selection.md`](docs/method_selection.md) | Algorithm selection guide |
-| [`docs/research/method_cards/`](docs/research/method_cards/) | Per-method research cards |
-| [`docs/architecture.md`](docs/architecture.md) | Architecture design |
+Docs are split by audience; the full index is [`docs/README.md`](docs/README.md).
+
+| Entry | Content |
+|----------|---------|
+| [`docs/user/quickstart.md`](docs/user/quickstart.md) | 5-minute start (CLI + Python) |
+| [`docs/user/concepts/`](docs/user/concepts/) | PU problem, SCAR/SAR, method selection |
+| [`docs/user/howto/`](docs/user/howto/) | Task guides: simulation, profiling, pipeline, CLI, reports, sensitivity |
+| [`docs/user/reference/api.md`](docs/user/reference/api.md) | Precise API contract |
+| [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, roadmap, compatibility |
+| [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards |
 
 ## Development
 

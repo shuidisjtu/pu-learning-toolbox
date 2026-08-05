@@ -428,11 +428,11 @@ def main() -> int:
     all_issues.extend(issues)
     _print_rule_report("Rule 1: Path references", issues)
 
-    issues = check_planned_consistency(DOCS_DIR / "project_structure.md")
+    issues = check_planned_consistency(DOCS_DIR / "dev" / "project_structure.md")
     all_issues.extend(issues)
     _print_rule_report("Rule 2: (planned) consistency", issues)
 
-    issues = check_architecture_mapping(DOCS_DIR / "architecture.md")
+    issues = check_architecture_mapping(DOCS_DIR / "dev" / "architecture.md")
     all_issues.extend(issues)
     _print_rule_report("Rule 3: Architecture S8 mapping", issues)
 

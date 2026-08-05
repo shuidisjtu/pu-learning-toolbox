@@ -522,7 +522,7 @@ Input:
 | Framework | uPU 部分：Python (NumPy + scipy + scikit-learn)；nnPU 部分：Chainer |
 | 包含方法 | `pywsl` 由 Sugiyama Lab 维护；uPU 仅提供 Squared Loss 闭式解（NumPy + scipy），不含 double hinge（C-DH）和 logistic（C-LL）；nnPU / PNU / PU-SKC / PNU-AUC 等其他方法见仓库 README |
 | Implementation basis | 论文式 (8)、式 (9)、Table 1、式 (2) CV |
-| 实现策略 | `【项目适配】` adapter (pywsl) + native 实现（见 `docs/resources_optimized.md`） |
+| 实现策略 | `【项目适配】` adapter (pywsl) + native 实现（见 `docs/dev/resources.md`） |
 | Reproduction risk | solver 选择、CV 网格、预处理、basis-center 策略均未由论文完整规定 |
 
 ---

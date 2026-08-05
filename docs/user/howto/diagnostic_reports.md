@@ -1,4 +1,7 @@
-# PU 诊断报告
+# 生成诊断报告
+
+> 前置条件：先完成 [快速开始](../quickstart.md) 与 [PUPipeline 端到端训练评估](pipeline.md)。
+> 概念：PU 指标与 π 的关系见 [concepts/pu_problem.md](../concepts/pu_problem.md)。
 
 `build_diagnostic_report` 将数据画像、模型输出、PU 指标、可选监督指标和行动建议组合为一个可保存、可审计的报告。报告生成过程不会训练或修改 estimator，也不会自动修复数据。
 
@@ -73,25 +76,9 @@ report = build_diagnostic_report(
 
 ## 3. 指标证据级别
 
-每个 `DiagnosticMetric` 都包含 `value`、`basis`、`available` 和 `reason`：
-
-| `basis` | 指标来源 | 是否需要额外假设 |
-|---|---|---|
-| `pu_observed` | PU 标签和模型预测 | 不需要真实标签 |
-| `class_prior_dependent` | PU 标签、预测和类先验 | 数值随类先验改变 |
-| `supervised_oracle` | 真实标签和预测/分数 | 仅用于有真值评价 |
-| `unavailable` | 输入不足或数值无效 | `reason` 解释缺失原因 |
-
-固定指标如下：
-
-| 指标 | 证据级别 | 含义 |
-|---|---|---|
-| `labeled_positive_recall` | `pu_observed` | 已标正例中被预测为正的比例 |
-| `unlabeled_negative_rate` | `pu_observed` | 未标记样本中被预测为负的比例 |
-| `predicted_positive_rate` | `pu_observed` | 全体样本的预测正类比例 |
-| `pu_estimated_precision` | `class_prior_dependent` | 使用类先验校正的精确率估计 |
-| `pu_zero_one_risk` | `class_prior_dependent` | 基于离散预测的 PU 零一风险 |
-| `accuracy` / `f1` / `roc_auc` | `supervised_oracle` | 仅在提供 `y_true` 时计算 |
+每个 `DiagnosticMetric` 都包含 `value`、`basis`、`available` 和 `reason`。四种 `basis`
+（`pu_observed` / `class_prior_dependent` / `supervised_oracle` / `unavailable`）与固定
+指标清单见 [API 参考](../reference/api.md)。
 
 PU-only 不等于无假设。例如，在 SAR 下，已标正例可能并不代表全部真实正例，因此 `labeled_positive_recall` 只能描述观测标记子集。
 
@@ -125,13 +112,8 @@ JSON 使用严格编码：未定义的 AUC、无穷 PU 比例等值会转成 `nu
 
 ## 6. 问题代码
 
-报告继承 Data Profiler 的全部问题，并增加模型输出检查：
-
-| Code | 级别 | 说明 |
-|---|---|---|
-| `constant_predictions` | warning | 全部样本被预测为同一类；复核阈值、先验和收敛状态 |
-| `nonfinite_scores` | error | 分数包含 `NaN/inf`；监督 AUC 被标为不可用 |
-| `constant_scores` | warning | 模型没有提供排序信息；检查训练和特征变化 |
+报告继承 Data Profiler 的全部问题，并增加模型输出检查（`constant_predictions` /
+`nonfinite_scores` / `constant_scores`，完整表见 [API 参考](../reference/api.md)）。
 
 缺少预测、类先验或真实标签属于指标不可用状态，而不是数据错误，所以记录在对应 metric 的 `reason` 中，不会制造大量重复 issue。
 
@@ -147,10 +129,15 @@ JSON 使用严格编码：未定义的 AUC、无穷 PU 比例等值会转成 `nu
 诊断报告不会替代统计显著性检验、类先验敏感性分析或算法推荐。敏感性分析已作为
 独立接口实现，详见 [`sensitivity_analysis.md`](sensitivity_analysis.md)；算法推荐仍是独立工作包。
 
-## 8. 示例
+## 7. 示例
 
 ```bash
 python examples/minimal/08_diagnostic_report.py
 ```
 
 示例在 SAR 合成数据上划分训练/测试集，拟合 PUSB，并生成同时包含 PU 指标、审计指标和 selection evidence 的 Markdown 报告。
+
+## 下一步
+
+- 类先验与标记倾向敏感性分析：[sensitivity_analysis.md](sensitivity_analysis.md)
+- 精确参数契约：[API 参考](../reference/api.md)
