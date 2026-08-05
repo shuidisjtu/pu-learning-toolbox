@@ -261,3 +261,17 @@ class TestInfoMaxEncoder:
                 np.zeros((8, 3, 4, 4), dtype=np.float32),
                 np.array([1, 1, 0, 0, 0, 0, 0, 0]),
             )
+
+    def test_edge_standardize_false_without_encoder_keeps_identity_transform(self):
+        # standardize=False + MLP 路径：mean_/scale_ 保持 zeros/ones，
+        # transform 仍可运行（回归：曾因 None 触发 X - None 崩溃）
+        X, y_pu = _data()
+        rep = InfoMaxPURepresentation(
+            representation_dim=2,
+            hidden_dim=6,
+            max_epochs=2,
+            standardize=False,
+            random_state=3,
+        ).fit(X, y_pu)
+        out = rep.transform(X)
+        assert out.shape == (len(X), 2)

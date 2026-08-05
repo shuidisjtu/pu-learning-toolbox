@@ -136,14 +136,18 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
         if self.gradient_noise < 0:
             raise ValueError("gradient_noise must be non-negative")
 
-        if self.standardize and self.encoder is None:
+        if self.encoder is not None:
+            self.mean_ = None
+            self.scale_ = None
+            X_train = X
+        elif self.standardize:
             self.mean_ = X.mean(axis=0)
             self.scale_ = X.std(axis=0)
             self.scale_ = np.where(self.scale_ > 1e-12, self.scale_, 1.0)
             X_train = (X - self.mean_) / self.scale_
         else:
-            self.mean_ = None
-            self.scale_ = None
+            self.mean_ = np.zeros(X.shape[1], dtype=np.float32)
+            self.scale_ = np.ones(X.shape[1], dtype=np.float32)
             X_train = X
 
         if self.random_state is not None:
