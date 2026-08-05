@@ -16,7 +16,7 @@ import json
 import numpy as np
 import pytest
 
-from pu_toolbox.core.base import BasePUClassifier
+from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
 from pu_toolbox.core.config import POSITIVE_LABEL
 from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.risk.upu import UPUClassifier
@@ -153,6 +153,22 @@ class TestPipelineEdgeCases:
         assert "decision" in risk.reason
         assert report.cv_metrics["pu_recall"].available is True
 
+    def test_prior_estimation_failure_degrades_in_auto_but_raises_explicit(self, rng):
+        """Auto mode degrades on estimator failure; explicit mode raises."""
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
+        failing = _FailingPriorEstimator()
+        report = PUPipeline(prior_estimator=failing).fit_evaluate(X, y_pu)
+        assert report.prior.degraded is not None
+        assert report.prior.source == "none"
+        assert any(i.code == "prior_estimation_failed" for i in report.issues)
+        assert report.recommendation is not None
+        # No-prior recommendation excludes prior-requiring methods.
+        assert not any(c.metadata.requires_class_prior for c in report.recommendation.candidates)
+        # Explicit classifier with a real prior requirement still raises.
+        pipe = PUPipeline(classifier="upu", prior_estimator=_FailingPriorEstimator())
+        with pytest.raises(PipelineError, match="failed"):
+            pipe.fit_evaluate(X, y_pu)
+
 
 @pytest.mark.unit
 class TestPipelineDeterminism:
@@ -182,3 +198,13 @@ class _NoScoresClassifier(BasePUClassifier):
 
     def _decision_function(self, X):
         raise NotImplementedError("no scores available")
+
+
+class _FailingPriorEstimator(BasePriorEstimator):
+    """Prior estimator whose fit always fails."""
+
+    def fit(self, X, y_pu):
+        raise RuntimeError("boom")
+
+    def estimate(self):
+        raise AssertionError("unreachable")

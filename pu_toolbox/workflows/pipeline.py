@@ -332,6 +332,7 @@ class PUPipeline:
             class_prior=class_prior,
             classifier_instance=classifier_instance,
             needs_prior=needs_prior,
+            allow_degradation=auto_mode,
         )
 
         # -- Data profile (once, reused by recommender and report) -------
@@ -423,6 +424,16 @@ class PUPipeline:
         # NOTE: the profile itself flags a class prior below the labeled
         # positive fraction (inconsistent_class_prior) when supplied.
         issues: list[ProfileIssue] = list(profile.issues)
+        if prior_info.degraded:
+            issues.append(
+                ProfileIssue(
+                    "prior_estimation_failed",
+                    "warning",
+                    prior_info.degraded,
+                    "Auto mode degraded to a no-prior run: methods that "
+                    "require a class prior were excluded from the candidates.",
+                )
+            )
         if recommendation is not None:
             issues.extend(
                 ProfileIssue(
@@ -445,12 +456,16 @@ class PUPipeline:
         )
 
         cv_provenance = _cv_provenance(splitter, n_splits)
+        prior_audit_flagged = prior_info.source == "estimated" and any(
+            issue.code == "inconsistent_class_prior" for issue in profile.issues
+        )
         provenance = {
             "classifier": classifier_name,
             "classifier_mode": (
                 "auto" if auto_mode else "name" if classifier_cls is not None else "instance"
             ),
             "prior_source": prior_info.source,
+            "prior_audit_flagged": prior_audit_flagged,
             "random_state": self.random_state,
             "y_true_supplied": y_true is not None,
             "skipped_candidates": skipped_candidates,
@@ -477,11 +492,16 @@ class PUPipeline:
         class_prior: float | None,
         classifier_instance: BasePUClassifier | None,
         needs_prior: bool,
+        allow_degradation: bool = False,
     ) -> tuple[float | None, PriorInfo]:
         """Resolve the class prior: explicit > constructor > estimation.
 
         ``y_true`` is deliberately not a parameter: class priors are never
         estimated from ground-truth labels.
+
+        With ``allow_degradation`` (auto mode), a failed or invalid
+        estimation degrades to a no-prior run instead of raising: the
+        recommender then simply excludes prior-requiring methods.
         """
         if class_prior is not None:
             _validate_prior_value(class_prior, "class_prior")
@@ -522,11 +542,22 @@ class PUPipeline:
         try:
             estimator.fit(X, y_pu)
             value = float(estimator.estimate())
+            _validate_prior_value(value, f"prior estimate from {estimator_name}")
         except Exception as exc:
+            if allow_degradation:
+                # Auto mode: fall back to a no-prior run; the recommender
+                # will exclude prior-requiring methods and the report
+                # records the degradation.
+                return None, PriorInfo(
+                    value=None,
+                    source="none",
+                    method_requires_prior=needs_prior,
+                    estimator=estimator_name,
+                    degraded=f"estimation with {estimator_name!r} failed: {exc}",
+                )
             raise PipelineError(
                 f"Class-prior estimation with {estimator_name!r} failed: {exc}"
             ) from exc
-        _validate_prior_value(value, f"prior estimate from {estimator_name}")
         return value, PriorInfo(
             value=value,
             source="estimated",

@@ -30,13 +30,18 @@ __all__ = ["CVMetric", "PipelineReport", "PriorInfo", "PriorSource"]
 
 @dataclass(frozen=True)
 class PriorInfo:
-    """The resolved class prior and where it came from."""
+    """The resolved class prior and where it came from.
+
+    ``degraded`` is set when automatic estimation failed and the
+    pipeline degraded to a no-prior run (auto mode only).
+    """
 
     value: float | None
     source: PriorSource
     method_requires_prior: bool
     estimator: str | None = None
     auto_selected: bool = False
+    degraded: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return a strict JSON-compatible representation."""
@@ -46,6 +51,7 @@ class PriorInfo:
             "method_requires_prior": self.method_requires_prior,
             "estimator": self.estimator,
             "auto_selected": self.auto_selected,
+            "degraded": self.degraded,
         }
 
 

@@ -59,6 +59,12 @@ report.save("results/pipeline.json")
 跳过它们并在 `report.provenance["skipped_candidates"]` 记录原因；显式指定名字则
 在构造时即报错，请改传实例。
 
+**降级语义**：auto 模式下先验估计失败（估计器异常或估计值越界）不中断流程——
+降级为无先验推荐（需先验方法被排除），`report.prior.degraded` 与 issues 中的
+`prior_estimation_failed` 记录原因。显式指定 classifier 时估计失败仍报错。
+估计先验被画像审计警告（`inconsistent_class_prior`）时，
+`report.provenance["prior_audit_flagged"]=True`，提示自动选出的需先验方法需谨慎。
+
 ## 指标与可用性
 
 默认指标 `DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`。
@@ -83,7 +89,8 @@ report.save("results/pipeline.json")
 | 无正样本 / 正样本 < `MIN_POSITIVE_SAMPLES` | `ValidationError` |
 | 正样本 < CV 折数 | `ValidationError`（提示减折数） |
 | 需要先验且最终缺失 | `PipelineError` |
-| 先验估计值 ∉ (0, 1) | `PipelineError` |
+| 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
+| 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
 | 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
 
 ## 与手动流程对比
