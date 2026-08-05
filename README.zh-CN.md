@@ -152,6 +152,22 @@ print(report.summary())                    # 指标表 + 问题清单
 report.save("results/pipeline.json")       # 严格 JSON / Markdown 导出
 ```
 
+### CLI 快速上手
+
+`pu-toolbox` 命令是 PUPipeline（画像 → 先验 → 训练 → PU 分层 CV → 评估）的薄封装，完整指南见 [`docs/user/cli.md`](docs/user/cli.md)。
+
+```bash
+# 1. 生成 SCAR 演示数据（X.csv / y_pu.csv / y_true.csv）
+pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
+
+# 2. 一键式全流程训练评估（auto 模式自动选算法）
+pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
+
+# 3. 查看结果
+#    results/report.md    完整 Markdown 报告
+#    results/report.json  严格 JSON（无 NaN），可程序化消费
+```
+
 ## 文档
 
 | 文档 | 说明 |

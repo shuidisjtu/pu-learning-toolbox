@@ -152,6 +152,22 @@ print(report.summary())                    # metric table + issues
 report.save("results/pipeline.json")       # strict JSON / Markdown export
 ```
 
+### CLI Quick Start
+
+The `pu-toolbox` console command wraps the PUPipeline flow (profile -> prior -> train -> PU-stratified CV -> evaluate) into a terminal command. Full guide: [`docs/user/cli.md`](docs/user/cli.md).
+
+```bash
+# 1. Generate SCAR demo data (X.csv / y_pu.csv / y_true.csv)
+pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
+
+# 2. One-shot full pipeline run (auto mode picks the algorithm)
+pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
+
+# 3. Inspect results
+#    results/report.md     full Markdown report
+#    results/report.json   strict JSON (no NaN), machine-readable
+```
+
 ## Documentation
 
 | Document | Description |

@@ -109,6 +109,12 @@ pu_toolbox/
     __init__.py
     pipeline.py                (PUPipeline 编排: 画像→先验→训练→CV→评估)
     report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
+
+  cli/                         (CLI 入口: argparse 子命令 run / list-methods / list-priors / make-demo-data, PUPipeline 的薄封装)
+    __init__.py
+    run.py                     (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
+    info.py                    (list-methods / list-priors 子命令, registry 实时读取)
+    demo.py                    (make-demo-data 子命令: SCAR 演示数据)
 ```
 
 ## 3. 测试（`tests/`）
@@ -168,6 +174,11 @@ tests/
       test_recommender.py             # 算法推荐器过滤、评分与输出
     workflows/
       test_pipeline.py                # PUPipeline 全流程/先验解析/错误/可用性/确定性
+    cli/
+      test_cli_main.py                # CLI 入口冒烟
+      test_run.py                     # run 子命令
+      test_info.py                    # list-methods / list-priors 子命令
+      test_demo.py                    # make-demo-data 子命令
 
   benchmarks/                        # Benchmark runner 测试
     test_assigned_benchmark_runner.py     # 前五篇 benchmark runner 测试

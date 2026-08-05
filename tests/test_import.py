@@ -12,6 +12,7 @@ SUBPACKAGES = [
     "pu_toolbox.metrics",
     "pu_toolbox.model_selection",
     "pu_toolbox.workflows",
+    "pu_toolbox.cli",
 ]
 
 

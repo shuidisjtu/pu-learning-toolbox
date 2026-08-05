@@ -57,6 +57,9 @@ all = [
 [project.urls]
 Repository = "https://github.com/shuidisjtu/pu-learning-toolbox"
 
+[project.scripts]
+pu-toolbox = "pu_toolbox.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["pu_toolbox"]
 
