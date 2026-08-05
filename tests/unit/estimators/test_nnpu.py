@@ -456,12 +456,33 @@ class TestAPIContract:
         r_upu = clf.evaluate_pu_risk(X, y_pu, non_negative=False)
         assert r_nn >= 0 and r_nn >= r_upu
 
-        # Early stopping with validation
-        X2, y2, pi2 = _make_synthetic_data(rng, n_p=15, n_u=30)
-        X_val, y_val, _ = _make_synthetic_data(rng, n_p=10, n_u=20, seed=99999)
+        # Early stopping with validation.
+        # Use strongly separable data + a fast optimizer so convergence
+        # (and the resulting plateau) is guaranteed well before max_epochs.
+        # A tight bound is fragile here: torch CPU reduction order is
+        # nondeterministic across platforms/threads, so the same config
+        # fires early stopping anywhere from ~40 to ~90 epochs (observed).
+        rng2 = np.random.RandomState(123)
+        X_p = rng2.randn(15, 5) + 3.0
+        X_n = rng2.randn(30, 5) - 3.0
+        X2 = np.vstack([X_p, X_n])
+        y2 = np.concatenate(
+            [np.full(15, POSITIVE_LABEL, dtype=int), np.full(30, UNLABELED_LABEL, dtype=int)]
+        )
+        pi2 = 15 / 45
+        X_val = np.vstack([rng2.randn(10, 5) + 3.0, rng2.randn(20, 5) - 3.0])
+        y_val = np.concatenate(
+            [np.full(10, POSITIVE_LABEL, dtype=int), np.full(20, UNLABELED_LABEL, dtype=int)]
+        )
         model2 = torch.nn.Linear(5, 1)
+        opt2 = torch.optim.Adam(model2.parameters(), lr=5e-3)
         clf2 = NonNegativePUClassifier(
-            model=model2, max_epochs=100, patience=2, batch_size=4, random_state=42
+            model=model2,
+            max_epochs=100,
+            patience=2,
+            batch_size=4,
+            random_state=42,
+            optimizer=opt2,
         )
         clf2.fit(X2, y2, class_prior=pi2, validation_data=(X_val, y_val))
         assert len(clf2.history_["epoch"]) < 100
