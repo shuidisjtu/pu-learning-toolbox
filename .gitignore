@@ -50,3 +50,7 @@ CLAUDE.md
 # UV
 uv.lock
 .claude/
+
+# CLI demo / run artifacts (intermediate outputs)
+demo_data/
+results*/
