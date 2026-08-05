@@ -38,9 +38,8 @@
 | 文档 | 用途 |
 |---|---|
 | [project_management/process_checklist.md](project_management/process_checklist.md) | 进度清单（权威来源） |
-| [project_management/decision_log.md](project_management/decision_log.md) | 项目决策日志 |
+| [project_management/decision_log.md](project_management/decision_log.md) | 项目决策日志（含文档体系重构决策） |
 | [project_management/cli_design.md](project_management/cli_design.md) | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
-| [project_management/docs_architecture_design.md](project_management/docs_architecture_design.md) | 本文档体系重构的设计依据 |
 
 ## 其他
 
