@@ -98,3 +98,21 @@ class Maturity(str, Enum):
     RESEARCH = "research"
     EXPERIMENTAL = "experimental"
     DEPRECATED = "deprecated"
+
+
+# ── Training cost ──────────────────────────────────────────────────
+
+
+class TrainingCost(str, Enum):
+    """Relative training cost of an algorithm (used by the recommender).
+
+    A registry-only field: estimators do not declare it as a class
+    attribute.  HIGH is reserved for heavy fixed-epoch iterative
+    solvers that dominate runtime on small data (e.g. LLSVM's 3000
+    non-convex SGD epochs).
+    """
+
+    LOW = "low"  # closed-form or convex solver, effectively instant
+    MEDIUM = "medium"  # bounded iterative training (<= ~1000 epochs)
+    HIGH = "high"  # heavy fixed-epoch non-convex training
+    UNKNOWN = "unknown"  # not classified; scored neutrally

@@ -31,6 +31,9 @@ from ..core.tags import (
 from ..core.tags import (
     SourceStatus as Src,
 )
+from ..core.tags import (
+    TrainingCost as Cost,
+)
 from .metadata import AlgorithmMetadata
 from .registry import register_method
 
@@ -60,6 +63,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="http://www.mcduplessis.com/index.php/software/",
         license="unknown",
+        training_cost=Cost.LOW,  # convex scipy solve over a coarse grid
     ),
     # ── 2. ReCPE ───────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -78,6 +82,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning",
         license="MIT",
+        training_cost=Cost.LOW,  # convex scipy solve
     ),
     # ── 3. Elkan-Noto ──────────────────────────────────────────────
     AlgorithmMetadata(
@@ -96,6 +101,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.THIRD_PARTY_ONLY,
         upstream_url="https://github.com/pulearn/pulearn",
         license="BSD-3-Clause",
+        training_cost=Cost.LOW,  # sklearn LogisticRegression wrapper
     ),
     # ── 4. Convex PU / uPU ─────────────────────────────────────────
     AlgorithmMetadata(
@@ -114,6 +120,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_BUNDLE,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
         license="MIT",
+        training_cost=Cost.LOW,  # convex objective, scipy minimize
     ),
     # ── 5. nnPU ────────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -132,6 +139,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/kiryor/nnPUlearning",
         license="MIT",
+        training_cost=Cost.MEDIUM,  # torch, fixed 200 epochs
     ),
     # ── 6. PNU ─────────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -153,6 +161,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
         license="MIT",
+        training_cost=Cost.LOW,  # closed-form linear solve
     ),
     # ── 7. Centroid Estimation / LDCE / KLDCE ──────────────────────
     AlgorithmMetadata(
@@ -171,6 +180,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
         license="unknown",
+        training_cost=Cost.MEDIUM,  # fixed 100-iteration alternating scheme
     ),
     AlgorithmMetadata(
         name="kldce",
@@ -191,6 +201,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
         license="unknown",
+        training_cost=Cost.MEDIUM,  # 100 iterations, QP oracle on RBF
     ),
     # ── 8. LLSVM ───────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -212,6 +223,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LLSVM_TNNLS19.rar",
         license="unknown",
+        training_cost=Cost.HIGH,  # fixed 3000-epoch non-convex SGD
     ),
     # ── 9. Dist-PU ─────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -230,6 +242,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
         license="MIT",
+        training_cost=Cost.MEDIUM,  # torch, 100 epochs
     ),
     # ── 10. PUSB ───────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -248,6 +261,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/MasaKat0/PUlearning",
         license="MIT",
+        training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000
     ),
     # ── 11. LBE ────────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -266,6 +280,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
         license="needs_review",
+        training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000 + EM loop
     ),
     # ── 12. Self-PU ────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -284,6 +299,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/VITA-Group/Self-PU",
         license="MIT",
+        training_cost=Cost.MEDIUM,  # torch, 200 epochs
     ),
     # ── 13. InfoMax PU ─────────────────────────────────────────────
     AlgorithmMetadata(
@@ -302,6 +318,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
+        training_cost=Cost.MEDIUM,  # torch, ~600 epochs (two-stage)
     ),
     # ── 14. Weighted Contrastive PU ────────────────────────────────
     AlgorithmMetadata(
@@ -323,6 +340,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
+        training_cost=Cost.MEDIUM,  # torch, 800 epochs
     ),
     # ── 15. DGPU ───────────────────────────────────────────────────
     AlgorithmMetadata(
@@ -341,6 +359,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
+        training_cost=Cost.MEDIUM,  # torch, 200 epochs + generative sampling
     ),
 ]
 

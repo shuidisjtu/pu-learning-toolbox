@@ -17,6 +17,7 @@ from ..core.tags import (
     Maturity,
     Scenario,
     SourceStatus,
+    TrainingCost,
 )
 
 
@@ -72,6 +73,13 @@ class AlgorithmMetadata:
 
     license: str | None = None
     """SPDX license identifier (if known) or ``"needs_review"``."""
+
+    training_cost: TrainingCost = TrainingCost.UNKNOWN
+    """Relative training cost for recommendation (registry-authoritative).
+
+    Deliberately NOT synced from estimator class attributes -- estimators
+    do not declare it; the registry entry is the single source of truth.
+    """
 
     @property
     def trainable(self) -> bool:
