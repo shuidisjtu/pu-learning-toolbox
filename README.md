@@ -2,7 +2,7 @@
 
 # PU Learning Toolbox
 
-**Positive-Unlabeled learning in Python** -- sklearn-compatible API, 15 research paper methods, SCAR & SAR support.
+**Positive-Unlabeled learning in Python** -- sklearn-compatible API, 16 research paper methods, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
 ![Status](https://img.shields.io/badge/status-0.1.0--dev-orange)
@@ -10,7 +10,7 @@
 
 ## Features
 
-- **15 algorithms** from recent PU learning research, all with native implementations
+- **16 algorithms** from recent PU learning research, all with native implementations
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
 - **SCAR & SAR support** -- both Selected Completely At Random and Selected At Random labeling mechanisms
 - **Data profiling** -- automatic data quality checks and labeling mechanism diagnostics

@@ -2,7 +2,7 @@
 
 ## 总体策略
 
-**framework-first**：先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 15 个方法均已完成 clean-room 核心实现（NATIVE），后续重点是官方数据、历史环境和 paper-like benchmark。
+**framework-first**：先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 16 个方法均已完成 clean-room 核心实现（NATIVE），后续重点是官方数据、历史环境和 paper-like benchmark。
 
 ```
 框架与 API 契约 → Registry + metadata → 核心 PU 风险估计

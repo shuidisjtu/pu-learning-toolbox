@@ -97,7 +97,7 @@ pu_toolbox/
     __init__.py
     registry.py                (含别名解析逻辑)
     metadata.py
-    builtin_methods.py         (15 论文方法元数据 + native 绑定)
+    builtin_methods.py         (16 论文方法元数据 + native 绑定)
 
   advisor/
     __init__.py

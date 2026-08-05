@@ -467,4 +467,4 @@ RBF 采用 $`K(x,z)=\exp(-\|x-z\|^2/(2\sigma^2))`$（论文原生参数 $`\sigma
 - [ ] 实现 ACS，先通过 oracle 端到端验证。
 - [ ] 实现统一变量的广义 SMO，并完成 oracle 回归测试。
 - [ ] 加入核缓存、warm start、失败诊断与规模保护。
-- [x] 已注册为独立原生实现（registry `kldce`，2026-08-05）。数据条件（censoring PU 且 `h` 可用）由推荐器按 SCAR/SINGLE_TRAINING_SET 元数据在推荐时匹配，不满足时不会推荐；`get_algorithm("kldce")` 解析到 `KLDCEClassifier`（此前被误注册为 `centroid_pu` 的别名，会静默解析到线性 `LDCEClassifier`，已修复）。
+- [x] 已注册为独立原生实现（registry `kldce`，2026-08-05）。`get_algorithm("kldce")` 解析到 `KLDCEClassifier`（此前被误注册为 `centroid_pu` 的别名，会静默解析到线性 `LDCEClassifier`，已修复）。注意：`KLDCEClassifier` 构造要求 `flip_probability`（与 `ldce` 相同），因此 `--classifier kldce` / auto 模式无法自动实例化——推荐器会将其列入候选（与 `centroid_pu` 同 metadata），但 auto 模式跳过它，需显式传实例（Python API）。censoring-PU/`h` 可用等数据条件的专门匹配规则暂未实现，推荐器仅按 SCAR/SINGLE_TRAINING_SET 元数据做包含性匹配。

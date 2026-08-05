@@ -2,7 +2,7 @@
 
 # PU Learning Toolbox
 
-**正例-无标记学习 Python 工具箱** -- 兼容 sklearn API，15 篇论文方法，支持 SCAR 与 SAR。
+**正例-无标记学习 Python 工具箱** -- 兼容 sklearn API，16 篇论文方法，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
 ![Status](https://img.shields.io/badge/status-0.1.0--dev-orange)
@@ -10,7 +10,7 @@
 
 ## 特性
 
-- **15 个算法**，来自近年 PU 学习研究论文，全部为 native 实现
+- **16 个算法**，来自近年 PU 学习研究论文，全部为 native 实现
 - **兼容 sklearn API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`，支持 Pipeline 和交叉验证
 - **SCAR & SAR 支持** -- 同时支持完全随机标记（SCAR）和随机标记（SAR）机制
 - **数据画像** -- 自动检查数据质量，诊断标记机制

@@ -4,7 +4,7 @@
 
 在只有"已标记正样本 + 无标记样本"的条件下，提供数据校验、类先验估计、模型训练、评估、算法选择与论文方法复现。
 - **兼容 sklearn**，非 PU 专家也能快速训练基线模型。
-- **先搭框架再集成算法**，当前 15 个方法均为 clean-room 实现（NATIVE）。
+- **先搭框架再集成算法**，当前 16 个方法均为 clean-room 实现（NATIVE）。
 - **差异化支持 SAR / Instance-Dependent PU**，不局限于 SCAR 假设。
 
 ## 2. 基本问题设定
@@ -37,7 +37,7 @@ pip install pu-toolbox[all]
 
 ## 4. 论文覆盖
 
-覆盖 15 篇 PU Learning 论文，按 5 个算法族组织。算法选型、场景/假设匹配见 [`method_selection.md`](method_selection.md)，论文→模块映射见 [`architecture.md`](architecture.md) 的“论文方法到模块的映射”部分，源码状态见 [`resources_optimized.md`](resources_optimized.md)。
+覆盖 16 篇 PU Learning 论文，按 5 个算法族组织。算法选型、场景/假设匹配见 [`method_selection.md`](method_selection.md)，论文→模块映射见 [`architecture.md`](architecture.md) 的“论文方法到模块的映射”部分，源码状态见 [`resources_optimized.md`](resources_optimized.md)。
 
 ## 5. 文档索引
 
