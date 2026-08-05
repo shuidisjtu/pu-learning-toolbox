@@ -1,67 +1,50 @@
-# PU Learning Toolbox
+# PU Learning Toolbox 文档
 
-## 1. 项目定位
+## 用户文档（docs/user/）
 
-在只有"已标记正样本 + 无标记样本"的条件下，提供数据校验、类先验估计、模型训练、评估、算法选择与论文方法复现。
-- **兼容 sklearn**，非 PU 专家也能快速训练基线模型。
-- **先搭框架再集成算法**，当前 16 个方法均为 clean-room 实现（NATIVE）。
-- **差异化支持 SAR / Instance-Dependent PU**，不局限于 SCAR 假设。
+从 [快速开始](user/quickstart.md) 开始，5 分钟跑通首个实验。
 
-## 2. 基本问题设定
-
-| 符号 | 含义 |
-|---|---|
-| $x$ | 样本特征 |
-| $y \in \{0,1\}$ | 真实类别标签（训练时不可完全观测） |
-| $s \in \{0,1\}$ | 是否被标记为正类 |
-| $\pi = P(y=1)$ | 类先验 |
-| $c = P(s=1 \mid y=1)$ | SCAR 下正类被标记的常数概率 |
-| $c(x) = P(s=1 \mid y=1, x)$ | SAR 下实例相关的标记倾向 |
-
-数据场景与假设的详细分类见 [`user/concepts/method_selection.md`](user/concepts/method_selection.md)。
-
-## 3. 分层依赖
-
-| 层级 | 依赖 | 内容 |
+| 类别 | 文档 | 用途 |
 |---|---|---|
-| Core | numpy, scipy, pandas, scikit-learn | 标签处理、校验、经典算法（含 uPU）、类先验、指标、CV、registry |
-| Torch Extension | torch | nnPU, Dist-PU, 深度表征学习 |
-| Research Extension | torchvision, lightning | 图像 benchmark, 复杂论文复现 |
+| 入口 | [user/README.md](user/README.md) | 用户旅程图（从哪篇开始、按什么顺序读） |
+| 快速开始 | [user/quickstart.md](user/quickstart.md) | 安装 + CLI 三命令 + Python 最小片段 |
+| 概念 | [user/concepts/pu_problem.md](user/concepts/pu_problem.md) | PU 问题设定、符号表、π 的角色 |
+| 概念 | [user/concepts/scar_sar.md](user/concepts/scar_sar.md) | SCAR/SAR 机制与识别边界 |
+| 概念 | [user/concepts/method_selection.md](user/concepts/method_selection.md) | 选型决策原理（推荐器 + 决策表） |
+| 操作 | [user/howto/pipeline.md](user/howto/pipeline.md) | PUPipeline 端到端训练评估 |
+| 操作 | [user/howto/cli.md](user/howto/cli.md) | 命令行接口 |
+| 操作 | [user/howto/data_profiling.md](user/howto/data_profiling.md) | 数据画像与假设提示 |
+| 操作 | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | 生成诊断报告 |
+| 操作 | [user/howto/sensitivity_analysis.md](user/howto/sensitivity_analysis.md) | 类先验与标记倾向敏感性分析 |
+| 操作 | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | 生成 SCAR/SAR 数据 |
+| 操作 | [user/howto/self_pu.md](user/howto/self_pu.md) | 训练 Self-PU 分类器 |
+| 参考 | [user/reference/api.md](user/reference/api.md) | 核心 API 精确契约 |
 
-```bash
-pip install pu-toolbox
-pip install pu-toolbox[torch]
-pip install pu-toolbox[research]
-pip install pu-toolbox[all]
-```
+## 开发者文档（docs/dev/）
 
-## 4. 论文覆盖
+贡献前必读；文档间的权威顺序见 [CONTRIBUTING.md](../CONTRIBUTING.md) 第 1 节。
 
-覆盖 16 篇 PU Learning 论文，按 5 个算法族组织。算法选型、场景/假设匹配见 [`user/concepts/method_selection.md`](user/concepts/method_selection.md)，论文→模块映射见 [`dev/architecture.md`](dev/architecture.md) 的“论文方法到模块的映射”部分，源码状态见 [`dev/resources.md`](dev/resources.md)。
-
-## 5. 文档索引
-
-| 文件 | 作用 |
+| 文档 | 用途 |
 |---|---|
-| `README.md` | 项目总览、定位、分层依赖、文档索引 |
-| `dev/architecture.md` | 包结构、基类 API、数据流、注册表设计 |
-| `dev/project_structure.md` | 完整目录结构（权威来源） |
-| `user/concepts/method_selection.md` | 算法分类、选型逻辑、推荐器设计 |
-| `dev/roadmap.md` | Phase 0–6 任务拆分、版本规划、实施优先级 |
-| `dev/compatibility.md` | Python/依赖支持矩阵、CI 职责和构建策略 |
-| `dev/resources.md` | 论文源码状态、URL、集成策略 |
-| `user/howto/sar_simulation.md` | SCAR/SAR propensity、PU 标签和合成 benchmark 使用指南 |
-| `user/howto/data_profiling.md` | PU 数据质量画像、SCAR/SAR 证据边界与行动建议 |
-| `user/howto/diagnostic_reports.md` | 模型输出、指标证据级别及 JSON/Markdown 诊断报告 |
-| `user/howto/sensitivity_analysis.md` | 类先验/平均标记倾向假设扫描、相容性与指标区间 |
-| `user/howto/self_pu.md` | Self-PU clean validation、三阶段训练、审计状态与复现边界 |
-| `user/howto/pipeline.md` | PUPipeline 端到端工作流：画像→先验→训练→CV→评估 |
-| `user/howto/cli.md` | pu-toolbox 命令行接口：run / list-methods / list-priors / make-demo-data |
-| `project_management/decision_log.md` | 项目决策日志 |
-| `project_management/cli_design.md` | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
-| `project_management/process_checklist.md` | 开发流程检查清单 |
-| `project_management/division.txt` | 任务分工说明 |
-| `../benchmarks/deep_pu/README.md` | InfoMax PU、WConPU、DGPU runner、配置锁与多 seed 结果 |
+| [dev/architecture.md](dev/architecture.md) | 设计决策与代价、模块分层、数据流、注册表 |
+| [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
+| [dev/roadmap.md](dev/roadmap.md) | 版本路线与阶段叙事 |
+| [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
+| [dev/resources.md](dev/resources.md) | 论文源码状态与集成策略 |
+| [research/method_cards/](research/method_cards/) | 16 篇论文方法卡（公式、复现状态、实现边界） |
 
-代码贡献、分支、测试、论文复现状态和 benchmark 产物管理见项目根目录
-[`CONTRIBUTING.md`](../CONTRIBUTING.md)。
+## 项目过程（docs/project_management/）
+
+| 文档 | 用途 |
+|---|---|
+| [project_management/process_checklist.md](project_management/process_checklist.md) | 进度清单（权威来源） |
+| [project_management/decision_log.md](project_management/decision_log.md) | 项目决策日志 |
+| [project_management/cli_design.md](project_management/cli_design.md) | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
+| [project_management/docs_architecture_design.md](project_management/docs_architecture_design.md) | 本文档体系重构的设计依据 |
+
+## 其他
+
+- [../README.md](../README.md)：项目门面（英文）；[../README.zh-CN.md](../README.zh-CN.md)：中文版
+- [../CONTRIBUTING.md](../CONTRIBUTING.md)：代码贡献、论文复现状态与 benchmark 产物管理
+- [../examples/minimal/](../examples/minimal/)：10 个最小可运行示例脚本
+- [../benchmarks/deep_pu/README.md](../benchmarks/deep_pu/README.md)：深度 PU benchmark（InfoMax PU、WConPU、DGPU runner 与多 seed 结果）
