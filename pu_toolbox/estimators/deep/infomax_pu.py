@@ -273,6 +273,8 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
         self.encoder_.eval()
         with torch.no_grad():
             result = self.encoder_(torch.as_tensor(X, dtype=torch.float32, device=self.device_))
+        if self.encoder is not None:
+            result = result.flatten(start_dim=1)
         return result.cpu().numpy()
 
     def density_ratio(self, X: np.ndarray) -> np.ndarray:

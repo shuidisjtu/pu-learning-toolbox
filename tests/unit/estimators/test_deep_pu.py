@@ -275,3 +275,22 @@ class TestInfoMaxEncoder:
         ).fit(X, y_pu)
         out = rep.transform(X)
         assert out.shape == (len(X), 2)
+
+    def test_edge_nonflattening_encoder_transform_is_2d(self):
+        # 自定义 encoder 不内置展平（输出 4D）时，transform 必须展平为 2D
+        rng = np.random.RandomState(5)
+        X = rng.normal(0.5, 0.3, size=(14, 3, 8, 8)).astype(np.float32)
+        y_pu = np.concatenate([np.ones(5, dtype=int), np.zeros(9, dtype=int)])
+
+        class NoFlattenEncoder(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.conv = torch.nn.Conv2d(3, 4, kernel_size=3, padding=1)
+
+            def forward(self, inputs):
+                return torch.nn.functional.adaptive_avg_pool2d(self.conv(inputs), 1)
+
+        rep = InfoMaxPURepresentation(encoder=NoFlattenEncoder(), max_epochs=2, random_state=7)
+        rep.fit(X, y_pu)
+        out = rep.transform(X)
+        assert out.ndim == 2 and out.shape == (14, 4)
