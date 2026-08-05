@@ -173,6 +173,6 @@ class TestPipelineDeepSeedReproducibility:
         seed_43 = run_pipe(43)
 
         assert len(first_42) > 0
-        for p42, p42_again in zip(first_42, second_42):
+        for p42, p42_again in zip(first_42, second_42, strict=False):
             assert torch.allclose(p42, p42_again)
-        assert not all(torch.allclose(a, b) for a, b in zip(first_42, seed_43))
+        assert not all(torch.allclose(a, b) for a, b in zip(first_42, seed_43, strict=False))
