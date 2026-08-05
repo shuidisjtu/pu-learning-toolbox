@@ -10,12 +10,12 @@
 
 ## 特性
 
-- **16 个算法**，来自近年 PU 学习研究论文，全部为 native 实现
-- **兼容 sklearn API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`，支持 Pipeline 和交叉验证
-- **SCAR & SAR 支持** -- 同时支持完全随机标记（SCAR）和随机标记（SAR）机制
-- **数据画像** -- 自动检查数据质量，诊断标记机制
-- **算法推荐** -- 根据数据特征自动匹配最适合的方法，支持自定义评分权重
-- **诊断与敏感性分析** -- 结构化报告、假设敏感性分析、JSON/Markdown 导出
+- **16 个算法**，来自近年 PU 学习研究论文，全部为 native clean-room 实现（[方法卡](docs/research/method_cards/)）
+- **兼容 sklearn API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`，支持 Pipeline 与交叉验证
+- **SCAR & SAR** -- 常数与实例相关两种标记机制，附数据模拟器
+- **数据画像 + 算法推荐** -- 自动质量检查、SCAR/SAR 证据，以及七维评分推荐器为你的数据选方法
+- **可审计流水线** -- 一次调用的 `PUPipeline`（画像 → 先验 → 训练 → PU 分层 CV → 评估），加结构化诊断报告与先验/标记倾向敏感性分析
+- **CLI** -- `pu-toolbox` 把整条流水线变成终端命令
 
 ## 快速开始
 
@@ -32,129 +32,24 @@ pip install -e ".[torch]" # + 基于 PyTorch 的方法（nnPU、Dist-PU、Self-P
 
 ```python
 import numpy as np
-from pu_toolbox.estimators.classic import ElkanNotoClassifier
-
-# 合成 PU 数据：部分正例被标记（1），其余为无标记（0）
-rng = np.random.RandomState(42)
-X = rng.randn(500, 5)
-y_true = (X[:, 0] + X[:, 1] > 0).astype(int)
-y_pu = y_true * (rng.rand(500) < 0.5)  # SCAR 标记，c=0.5
-
-# 训练与预测
-clf = ElkanNotoClassifier(random_state=42)
-clf.fit(X, y_pu)
-predictions = clf.predict(X)
-print(f"准确率: {np.mean(predictions == y_true):.3f}")
-```
-
-更多示例：[`examples/minimal/`](examples/minimal/)（10 个独立可运行脚本）。
-
-## 支持的算法
-
-### 类先验估计
-
-| 方法 | 后端 | 成熟度 | 需要类先验 |
-|------|------|--------|-----------|
-| penL1 / KM1 / KM2 | numpy | stable | 否 |
-| ReCPE | numpy | stable | 否 |
-
-### 经典校准
-
-| 方法 | 后端 | 成熟度 | 需要类先验 |
-|------|------|--------|-----------|
-| Elkan-Noto | sklearn | stable | 否 |
-
-### 风险估计
-
-| 方法 | 后端 | 成熟度 | 需要类先验 |
-|------|------|--------|-----------|
-| uPU | numpy | stable | 否 |
-| nnPU | torch | stable | 是 |
-| PNU | numpy | research | 是 |
-| LDCE / KLDCE | numpy | research | 否 |
-| LLSVM | numpy | research | 是 |
-| Dist-PU | torch | research | 是 |
-
-### 偏差感知（SAR）
-
-| 方法 | 后端 | 成熟度 | 需要类先验 |
-|------|------|--------|-----------|
-| PUSB | sklearn | research | 否 |
-| LBE | sklearn | research | 否 |
-
-### 深度 PU
-
-| 方法 | 后端 | 成熟度 | 需要类先验 |
-|------|------|--------|-----------|
-| Self-PU | torch | research | 是 |
-| InfoMax PU | torch | research | 否 |
-| WConPU | torch | research | 是 |
-| DGPU | torch | experimental | 是 |
-
-## 核心模块
-
-### 算法推荐
-
-```python
-from pu_toolbox.advisor import recommend_methods, ScoringConfig
-
-result = recommend_methods(X, y_pu, class_prior=0.3, has_gpu=True)
-for c in result.candidates:
-    print(f"{c.rank}. {c.name} (score={c.score:.1f})")
-
-# 自定义评分权重
-config = ScoringConfig(assumption_max=40.0, maturity_max=10.0)
-result = recommend_methods(X, y_pu, config=config)
-```
-
-### 数据画像
-
-```python
-from pu_toolbox.preprocessing import profile_pu_data
-
-report = profile_pu_data(X, y_pu, class_prior=0.3)
-print(report.format_text())
-# 检查：标签平衡、特征质量、SCAR/SAR 证据
-```
-
-### 诊断报告
-
-```python
-from pu_toolbox.diagnostics import build_diagnostic_report
-
-report = build_diagnostic_report(X, y_pu, estimator=clf, class_prior=0.3)
-print(report.to_markdown())  # 或 report.to_json()
-```
-
-### 敏感性分析
-
-```python
-from pu_toolbox.diagnostics import analyze_pu_sensitivity
-
-analysis = analyze_pu_sensitivity(
-    y_pu, clf.predict(X),
-    class_priors=[0.2, 0.3, 0.4],
-    label_propensities=[0.3, 0.5, 0.8],
-)
-print(analysis.to_frame())  # pandas DataFrame
-```
-
-### 端到端流水线
-
-```python
+from pu_toolbox.preprocessing import make_sar_dataset
 from pu_toolbox import PUPipeline
 
-# 一次调用：数据画像 → 类先验 → 训练 → PU 分层交叉验证 → 评估
-pipe = PUPipeline()                        # classifier="auto" 自动选算法
-report = pipe.fit_evaluate(X, y_pu)        # y_pu: {1, 0} PU 标签
+# 合成 PU 数据：部分正例被标记（1），其余为无标记（0）
+X, y_pu, y_true, _ = make_sar_dataset(
+    n_samples=1000, n_features=8, class_prior=0.3, random_state=42,
+)
 
-print(report.summary())                    # 指标表 + 问题清单
-report.save("results/pipeline.json")       # 严格 JSON / Markdown 导出
+# 一次调用：画像 → 先验 → 训练 → PU 分层 CV → 评估
+report = PUPipeline().fit_evaluate(X, y_pu, y_true=y_true)
+print(report.summary())
 ```
 
-### CLI 快速上手
+完整文档（中文）：[docs/README.md](docs/README.md)。更多可运行示例：[`examples/minimal/`](examples/minimal/)。
 
-`pu-toolbox` 命令是 PUPipeline（画像 → 先验 → 训练 → PU 分层 CV → 评估）的薄封装，完整指南见 [`docs/user/howto/cli.md`](docs/user/howto/cli.md)。
+## 命令行
+
+`pu-toolbox` 命令把整条流水线封装为终端命令。完整指南：[`docs/user/howto/cli.md`](docs/user/howto/cli.md)。
 
 ```bash
 # 1. 生成 SCAR 演示数据（X.csv / y_pu.csv / y_true.csv）
@@ -170,16 +65,16 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 ## 文档
 
-| 文档 | 说明 |
+文档按受众分层，完整索引见 [`docs/README.md`](docs/README.md)。
+
+| 入口 | 内容 |
 |------|------|
-| [`docs/user/howto/data_profiling.md`](docs/user/howto/data_profiling.md) | 数据画像指南 |
-| [`docs/user/howto/diagnostic_reports.md`](docs/user/howto/diagnostic_reports.md) | 诊断报告指南 |
-| [`docs/user/howto/sensitivity_analysis.md`](docs/user/howto/sensitivity_analysis.md) | 敏感性分析指南 |
-| [`docs/user/howto/sar_simulation.md`](docs/user/howto/sar_simulation.md) | SCAR/SAR 数据模拟 |
-| [`docs/user/howto/self_pu.md`](docs/user/howto/self_pu.md) | Self-PU 使用指南 |
-| [`docs/user/concepts/method_selection.md`](docs/user/concepts/method_selection.md) | 算法选择指南 |
-| [`docs/research/method_cards/`](docs/research/method_cards/) | 各方法研究卡片 |
-| [`docs/dev/architecture.md`](docs/dev/architecture.md) | 架构设计 |
+| [`docs/user/quickstart.md`](docs/user/quickstart.md) | 5 分钟快速开始（CLI + Python） |
+| [`docs/user/concepts/`](docs/user/concepts/) | PU 问题设定、SCAR/SAR、方法选择 |
+| [`docs/user/howto/`](docs/user/howto/) | 任务指南：模拟、画像、流水线、CLI、报告、敏感性 |
+| [`docs/user/reference/api.md`](docs/user/reference/api.md) | 精确 API 契约 |
+| [`docs/dev/`](docs/dev/) | 贡献者文档：架构、结构、路线图、兼容性 |
+| [`docs/research/method_cards/`](docs/research/method_cards/) | 各论文方法卡 |
 
 ## 开发
 
@@ -197,6 +92,6 @@ uv run python scripts/check_math_rendering.py
 
 贡献指南见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
-## 许可证
+## License
 
 MIT
