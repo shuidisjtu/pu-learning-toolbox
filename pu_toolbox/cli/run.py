@@ -51,6 +51,27 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
     parser.add_argument(
         "--classifier", type=str, default="auto", help="registered method name or 'auto'"
     )
+    parser.add_argument(
+        "--architecture",
+        type=str,
+        default="mlp",
+        choices=["mlp", "cnn"],
+        help="network architecture for deep classifiers: 'mlp' (table data) "
+        "or 'cnn' (4-D NCHW images; requires --classifier wconpu/infomax_pu)",
+    )
+    parser.add_argument(
+        "--backbone",
+        type=str,
+        default=None,
+        choices=["cnn13", "resnet18", "resnet50"],
+        help="CNN backbone when --architecture cnn (default: cnn13)",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cpu",
+        help="torch device for deep classifiers (default: cpu)",
+    )
     parser.add_argument("--cv", type=int, default=5, help="number of CV folds (default: 5)")
     parser.add_argument("--metrics", type=str, default=None, help="comma-separated metric names")
     parser.add_argument("--seed", type=int, default=42, help="random seed (default: 42)")
@@ -86,12 +107,18 @@ def _run(args: argparse.Namespace) -> None:
     prior_estimator: str | None = None if args.prior_estimator == "none" else args.prior_estimator
     metrics = [m.strip() for m in args.metrics.split(",") if m.strip()] if args.metrics else None
 
+    if args.architecture == "mlp" and args.backbone is not None:
+        raise ValueError("--backbone is only valid with --architecture cnn")
+
     pipe = PUPipeline(
         classifier=args.classifier,
         prior_estimator=prior_estimator,
         cv=args.cv,
         metrics=metrics,
         random_state=args.seed,
+        architecture=args.architecture,
+        backbone=args.backbone or "cnn13",
+        device=args.device,
     )
     report = pipe.fit_evaluate(X, y_pu, y_true=y_true, class_prior=args.class_prior)
 
@@ -140,7 +167,18 @@ def _read_csv(path: Path, what: str) -> pd.DataFrame:
 
 
 def _load_features(path: Path) -> np.ndarray:
-    """Read a feature-matrix CSV into a float ndarray."""
+    """Read a feature matrix: CSV table (2-D) or .npy image array (4-D NCHW)."""
+    if path.suffix.lower() == ".npy":
+        array = np.load(path)
+        if array.ndim != 4:
+            raise ValueError(
+                f"image data file {path} must be a 4-D NCHW float array; "
+                f"got ndim={array.ndim}. Table data must use CSV."
+            )
+        array = array.astype(np.float32, copy=False)
+        if not np.isfinite(array).all():
+            raise ValueError(f"image data file {path} contains NaN or Inf values.")
+        return array
     return _read_csv(path, "data").to_numpy(dtype=float)
 
 
