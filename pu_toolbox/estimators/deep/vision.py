@@ -176,3 +176,34 @@ def build_wconpu_augmentation(
             return torch.stack([transform(image) for image in inputs])
 
     return IndependentBatchAugmentation()
+
+
+def build_encoder(
+    architecture: Literal["mlp", "cnn"],
+    *,
+    backbone: str = "cnn13",
+    in_channels: int,
+    normalization_mean: Sequence[float] | None = None,
+    normalization_std: Sequence[float] | None = None,
+):
+    """Build the encoder for a deep PU classifier.
+
+    ``"mlp"`` returns ``None`` -- the classifier's built-in MLP path is
+    used (table data).  ``"cnn"`` returns an image backbone from
+    :func:`build_wconpu_backbone` (4-D NCHW inputs); normalization
+    statistics default to ``0.5`` per channel when not supplied.
+    """
+    if architecture not in {"mlp", "cnn"}:
+        raise ValueError("architecture must be 'mlp' or 'cnn'")
+    if architecture == "mlp":
+        return None
+    if normalization_mean is None:
+        normalization_mean = (0.5,) * in_channels
+    if normalization_std is None:
+        normalization_std = (0.5,) * in_channels
+    return build_wconpu_backbone(
+        backbone,
+        in_channels=in_channels,
+        normalization_mean=normalization_mean,
+        normalization_std=normalization_std,
+    )
