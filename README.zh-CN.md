@@ -139,6 +139,19 @@ analysis = analyze_pu_sensitivity(
 print(analysis.to_frame())  # pandas DataFrame
 ```
 
+### 端到端流水线
+
+```python
+from pu_toolbox import PUPipeline
+
+# 一次调用：数据画像 → 类先验 → 训练 → PU 分层交叉验证 → 评估
+pipe = PUPipeline()                        # classifier="auto" 自动选算法
+report = pipe.fit_evaluate(X, y_pu)        # y_pu: {1, 0} PU 标签
+
+print(report.summary())                    # 指标表 + 问题清单
+report.save("results/pipeline.json")       # 严格 JSON / Markdown 导出
+```
+
 ## 文档
 
 | 文档 | 说明 |

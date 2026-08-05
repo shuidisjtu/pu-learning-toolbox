@@ -55,6 +55,7 @@ pip install pu-toolbox[all]
 | `user/diagnostic_reports.md` | 模型输出、指标证据级别及 JSON/Markdown 诊断报告 |
 | `user/sensitivity_analysis.md` | 类先验/平均标记倾向假设扫描、相容性与指标区间 |
 | `user/self_pu.md` | Self-PU clean validation、三阶段训练、审计状态与复现边界 |
+| `user/pipeline.md` | PUPipeline 端到端工作流：画像→先验→训练→CV→评估 |
 | `project_management/decision_log.md` | 项目决策日志 |
 | `project_management/process_checklist.md` | 开发流程检查清单 |
 | `project_management/division.txt` | 任务分工说明 |

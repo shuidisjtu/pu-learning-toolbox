@@ -22,6 +22,7 @@ from .preprocessing import make_sar_dataset, profile_pu_data
 from .prior.kernel_mean import KernelMeanPriorEstimator
 from .prior.pen_l1 import ClassPriorEstimator
 from .prior.recpe import ReCPEEstimator
+from .workflows import PipelineReport, PUPipeline
 
 __all__ = [
     "ClassPriorEstimator",
@@ -37,6 +38,8 @@ __all__ = [
     "NonNegativePUClassifier",
     "PNUClassifier",
     "PUSBClassifier",
+    "PipelineReport",
+    "PUPipeline",
     "ReCPEEstimator",
     "ScoringConfig",
     "SelfPUClassifier",

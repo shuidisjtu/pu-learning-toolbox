@@ -104,6 +104,11 @@ pu_toolbox/
     recommender.py             (算法推荐管线: recommend_methods / recommend_from_profile)
     rules.py                   (评分规则引擎: ScoringConfig + 评分/警告函数)
     _types.py                  (数据类: MethodCandidate / RecommendationResult)
+
+  workflows/
+    __init__.py
+    pipeline.py                (PUPipeline 编排: 画像→先验→训练→CV→评估)
+    report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
 ```
 
 ## 3. 测试（`tests/`）
@@ -161,6 +166,8 @@ tests/
     registry/
     advisor/
       test_recommender.py             # 算法推荐器过滤、评分与输出
+    workflows/
+      test_pipeline.py                # PUPipeline 全流程/先验解析/错误/可用性/确定性
 
   benchmarks/                        # Benchmark runner 测试
     test_assigned_benchmark_runner.py     # 前五篇 benchmark runner 测试
