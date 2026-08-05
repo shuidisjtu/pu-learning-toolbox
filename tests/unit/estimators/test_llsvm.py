@@ -63,7 +63,7 @@ class TestLLSVMAPI:
         assert isinstance(clf.intercept_, float)
         pred = clf.predict(X)
         assert pred.shape == (X.shape[0],)
-        assert set(np.unique(pred)).issubset({-1, 1})
+        assert set(np.unique(pred)).issubset({0, 1})
         scores = clf.decision_function(X)
         assert scores.shape == (X.shape[0],)
         np.testing.assert_array_equal(clf.score_samples(X), scores)
@@ -148,7 +148,7 @@ class TestLLSVMTraining:
         )
         clf.fit(X, y_pu, class_prior=pi)
         preds = clf.predict(X)
-        # Should have both +1 and -1 predictions
+        # Should have both 0 and 1 predictions
         assert len(np.unique(preds)) == 2, "All predictions are the same class"
 
     def test_basic_fitted_attributes(self, rng):

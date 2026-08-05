@@ -258,7 +258,7 @@ class LLSVMClassifier(BasePUClassifier):
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         scores = self._decision_function(X)
-        return np.where(scores >= 0, 1, -1)
+        return np.where(scores >= 0, 1, 0)
 
     def get_pu_metadata(self) -> dict:
         meta = super().get_pu_metadata()
