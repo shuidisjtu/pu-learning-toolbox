@@ -237,20 +237,32 @@ benchmarks/
 
 ```text
 docs/
-  README.md
-  architecture.md
-  project_structure.md
-  method_selection.md
-  development_roadmap.md
-  development_compatibility.md
-  resources_optimized.md
+  README.md                    # 导航首页（用户 / 开发者 / 项目过程分栏）
 
-  user/
-    sar_simulation.md             # SCAR/SAR 数据模拟与 benchmark 指南
-    data_profiling.md             # 数据画像、可识别性边界与行动建议
-    diagnostic_reports.md         # 模型输出、证据级别与可审计报告
-    sensitivity_analysis.md       # 类先验/标记倾向敏感性与解释边界
-    self_pu.md                    # Self-PU 数据协议、训练状态与消融边界
+  user/                        # 用户文档：旅程式（快速开始 → 概念 → 操作 → 参考）
+    README.md                  # 用户旅程图
+    quickstart.md              # 5 分钟快速开始
+    concepts/
+      pu_problem.md            # PU 问题设定、符号表与 π 的角色
+      scar_sar.md              # SCAR/SAR 机制与识别边界
+      method_selection.md      # 选型决策原理（推荐器 + 决策表）
+    howto/
+      pipeline.md              # PUPipeline 端到端工作流
+      cli.md                   # 命令行接口
+      data_profiling.md        # 数据画像与假设提示
+      diagnostic_reports.md    # 生成诊断报告
+      sensitivity_analysis.md  # 类先验/标记倾向敏感性分析
+      sar_simulation.md        # SCAR/SAR 数据模拟
+      self_pu.md               # Self-PU 训练
+    reference/
+      api.md                   # 核心 API 精确契约
+
+  dev/                         # 开发者文档（贡献前必读）
+    architecture.md            # 设计决策与代价、模块分层、数据流、注册表
+    project_structure.md       # 目录结构（本文档，权威来源）
+    roadmap.md                 # 版本路线与阶段叙事
+    compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
+    resources.md               # 论文源码状态与集成策略
 
   research/
     method_cards/
@@ -274,7 +286,7 @@ docs/
   project_management/
     decision_log.md
     process_checklist.md
-    division.txt
+    cli_design.md
 
 ```
 

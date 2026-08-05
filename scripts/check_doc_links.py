@@ -61,7 +61,7 @@ _EXCLUDED_DOC_DIRS: set[str] = {
 PM_FILES_EXPECTED: set[str] = {
     "decision_log.md",
     "process_checklist.md",
-    "division.txt",
+    "cli_design.md",
 }
 
 
