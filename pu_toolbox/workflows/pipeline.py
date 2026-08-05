@@ -11,6 +11,7 @@ a method name (or ``"auto"`` for recommender-driven selection).
 from __future__ import annotations
 
 import inspect
+import warnings
 from collections.abc import Sequence
 from typing import Any
 
@@ -20,6 +21,7 @@ from sklearn.base import clone
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.config import POSITIVE_LABEL
 from ..core.exceptions import PULearningError, RegistryError, ValidationError
+from ..core.tags import Backend
 from ..core.validation import validate_pu_X_y
 from ..diagnostics.report import build_diagnostic_report
 from ..metrics.classification import (
@@ -180,11 +182,25 @@ class PUPipeline:
         Seed propagated to profiling, the default CV splitter, and
         auto-instantiated estimators.  User-supplied instances keep their
         own randomness.
+    architecture : str, default "mlp"
+        Network architecture for deep classifiers: ``"mlp"`` (table data,
+        default) or ``"cnn"`` (4-D NCHW images).  Requires an explicit
+        ``classifier`` of ``"wconpu"`` or ``"infomax_pu"``.
+    backbone : str, default "cnn13"
+        CNN backbone when ``architecture="cnn"``: ``"cnn13"``,
+        ``"resnet18"``, or ``"resnet50"``.
+    device : str, default "cpu"
+        Torch device passed to deep classifiers (e.g. ``"cuda"``).
 
     Notes
     -----
     ``y_true`` is only ever used for oracle metrics and selection
     evidence; it is **never** used for class-prior estimation.
+
+    Deep classifiers (``"wconpu"``, ``"infomax_pu"``) with
+    ``architecture="cnn"`` expect 4-D NCHW image tensors; class-prior
+    estimation and data profiling then run on the flattened view.
+    ``"auto"`` mode never selects a deep method.
     """
 
     def __init__(
@@ -195,6 +211,9 @@ class PUPipeline:
         cv: int | Any | None = None,
         metrics: Sequence[str] | None = None,
         random_state: int | None = 42,
+        architecture: str = "mlp",
+        backbone: str = "cnn13",
+        device: str = "cpu",
     ) -> None:
         _ensure_registered()
         self.classifier = classifier
@@ -216,6 +235,29 @@ class PUPipeline:
                 "classifier must be 'auto', a registry name, or a BasePUClassifier "
                 f"instance; got {type(classifier).__name__}."
             )
+
+        # -- Deep architecture selection --------------------------------
+        if architecture not in {"mlp", "cnn"}:
+            raise ValueError("architecture must be 'mlp' or 'cnn'")
+        if backbone not in {"cnn13", "resnet18", "resnet50"}:
+            raise ValueError("backbone must be 'cnn13', 'resnet18', or 'resnet50'")
+        if self._classifier_cls is not None:
+            self._is_deep = getattr(self._classifier_cls, "backend", None) == Backend.TORCH
+        elif isinstance(classifier, BasePUClassifier):
+            self._is_deep = getattr(classifier, "backend", None) == Backend.TORCH
+        else:  # auto
+            self._is_deep = False
+        if architecture == "cnn" and not self._is_deep:
+            raise PipelineError(
+                "architecture='cnn' requires an explicit deep classifier "
+                "(wconpu or infomax_pu); got classifier="
+                f"{self._classifier_name!r}. For table data use "
+                "architecture='mlp' (default)."
+            )
+        self.architecture = architecture
+        self.backbone = backbone
+        self.device = device
+        self._encoder = None  # built lazily per fit_evaluate for CNN
 
         # -- prior estimator ---------------------------------------------
         if prior_estimator is _UNSET:
@@ -293,7 +335,26 @@ class PUPipeline:
             Explicit class prior ``(0, 1)``.  Takes precedence over the
             classifier's constructor value and over estimation.
         """
-        X, y_pu = validate_pu_X_y(X, y_pu, estimator_name="PUPipeline")
+        X, y_pu = validate_pu_X_y(
+            X,
+            y_pu,
+            allow_nd=True,
+            estimator_name="PUPipeline",
+        )
+        if X.ndim not in (2, 4):
+            raise ValidationError(f"X must be 2-D (table) or 4-D (NCHW images); got ndim={X.ndim}.")
+        if X.ndim == 4 and not (self._is_deep and self.architecture == "cnn"):
+            raise PipelineError(
+                "4-D image inputs require an explicit deep classifier "
+                "(wconpu or infomax_pu) with architecture='cnn'."
+            )
+        if X.ndim == 2 and self.architecture == "cnn":
+            raise PipelineError(
+                "architecture='cnn' requires 4-D NCHW image inputs; "
+                "got 2-D data. Use architecture='mlp' for tables."
+            )
+        # 4-D 图像：prior 估计与数据画像在展平视图上进行（标签层面的量）
+        analysis_X = X.reshape(X.shape[0], -1) if X.ndim == 4 else X
         n_samples = X.shape[0]
         if y_true is not None:
             y_true = _validate_y_true(y_true, n_samples)
@@ -327,7 +388,7 @@ class PUPipeline:
         else:
             needs_prior = bool(classifier_instance.requires_class_prior)
         prior, prior_info = self._resolve_prior(
-            X=X,
+            X=analysis_X,
             y_pu=y_pu,
             class_prior=class_prior,
             classifier_instance=classifier_instance,
@@ -337,7 +398,7 @@ class PUPipeline:
 
         # -- Data profile (once, reused by recommender and report) -------
         profile = profile_pu_data(
-            X,
+            analysis_X,
             y_pu,
             y_true=y_true,
             class_prior=prior,
@@ -368,6 +429,24 @@ class PUPipeline:
             classifier_name = self._classifier_name
         else:
             classifier_name = type(classifier_instance).__name__
+
+        # -- Deep training-cost hint --------------------------------------
+        if self._is_deep and n_splits > 1:
+            warnings.warn(
+                f"{classifier_name} will be trained {n_splits + 1} times "
+                "(CV folds + full refit); deep training can be slow. "
+                "Use cv=1 for a single training pass.",
+                stacklevel=2,
+            )
+
+        # -- Build the shared encoder for CNN architecture ----------------
+        self._encoder = None
+        if self._is_deep and self.architecture == "cnn":
+            from ..estimators.deep.vision import build_encoder
+
+            self._encoder = build_encoder(
+                "cnn", backbone=self.backbone, in_channels=int(X.shape[1])
+            )
 
         # -- Cross-validation ---------------------------------------------
         per_fold: dict[str, list[float | None]] = {name: [] for name in self.metrics}
@@ -607,6 +686,10 @@ class PUPipeline:
             kwargs["class_prior"] = prior
         if "random_state" in signature.parameters and self.random_state is not None:
             kwargs["random_state"] = self.random_state
+        if "encoder" in signature.parameters and self._encoder is not None:
+            kwargs["encoder"] = self._encoder
+        if "device" in signature.parameters and self.device is not None:
+            kwargs["device"] = self.device
         return cls(**kwargs)
 
     def _resolved_splitter(self, X: Any, y_pu: np.ndarray) -> Any:
