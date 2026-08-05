@@ -139,6 +139,19 @@ analysis = analyze_pu_sensitivity(
 print(analysis.to_frame())  # pandas DataFrame
 ```
 
+### End-to-End Pipeline
+
+```python
+from pu_toolbox import PUPipeline
+
+# One call: profile -> class prior -> train -> PU-stratified CV -> evaluate
+pipe = PUPipeline()                        # classifier="auto" picks the method
+report = pipe.fit_evaluate(X, y_pu)        # y_pu: {1, 0} PU labels
+
+print(report.summary())                    # metric table + issues
+report.save("results/pipeline.json")       # strict JSON / Markdown export
+```
+
 ## Documentation
 
 | Document | Description |

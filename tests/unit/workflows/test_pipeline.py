@@ -1,0 +1,184 @@
+# ruff: noqa: N802, N803, N806, S101, S113, E501
+
+"""Tests for PUPipeline — the end-to-end PU workflow.
+
+Covers: full-run report contents and serialization, class-prior
+resolution precedence (user > constructor > estimation), auto mode via
+the recommender, registry-name parsing and fail-fast errors, metric
+availability semantics (missing y_true / scores / prior), CV fold
+prechecks, and run-to-run determinism.
+"""
+
+from __future__ import annotations
+
+import json
+
+import numpy as np
+import pytest
+
+from pu_toolbox.core.base import BasePUClassifier
+from pu_toolbox.core.config import POSITIVE_LABEL
+from pu_toolbox.core.exceptions import ValidationError
+from pu_toolbox.estimators.risk.upu import UPUClassifier
+from pu_toolbox.registry.registry import get_algorithm
+from pu_toolbox.workflows import DEFAULT_METRICS, PipelineError, PipelineReport, PUPipeline
+from tests.conftest import make_scar_data
+
+
+@pytest.mark.unit
+class TestPipelineBasic:
+    """End-to-end runs and prior resolution."""
+
+    def test_full_run_returns_complete_report(self, rng):
+        """A full run produces a report with all expected sections."""
+        X, y_pu, y_true = make_scar_data(rng, n=150, separation=4.0)
+        report = PUPipeline(classifier="upu", prior_estimator="recpe").fit_evaluate(
+            X, y_pu, y_true=y_true
+        )
+        assert isinstance(report, PipelineReport)
+        assert set(report.cv_metrics) == set(DEFAULT_METRICS)
+        assert report.prior.source == "estimated"
+        assert report.prior.auto_selected is False
+        assert report.final_model is not None
+        report.final_model.predict(X[:5])
+        assert report.diagnostic is not None
+        assert report.cv_scores is report.cv_metrics
+
+        # Strict JSON serialization: parseable, no NaN literals.
+        payload = json.loads(report.to_json())
+        assert payload["schema_version"] == "1.0"
+        assert set(payload["cv_metrics"]) == set(DEFAULT_METRICS)
+        assert payload["prior"]["source"] == "estimated"
+
+    def test_explicit_class_prior_wins(self, rng):
+        """fit_evaluate(class_prior=...) takes precedence and skips estimation."""
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
+        report = PUPipeline(classifier="upu", prior_estimator="recpe").fit_evaluate(
+            X, y_pu, class_prior=0.4
+        )
+        assert report.prior.source == "user"
+        assert report.prior.value == pytest.approx(0.4)
+        assert report.prior.estimator is None
+
+    def test_auto_mode_uses_recommendation(self, rng):
+        """auto selects a classifier via the recommender and estimates a prior."""
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
+        report = PUPipeline().fit_evaluate(X, y_pu)
+        assert report.recommendation is not None
+        assert report.provenance["classifier_mode"] == "auto"
+        assert report.prior.source == "estimated"
+        assert report.prior.auto_selected is True
+        assert report.final_model is not None
+        candidate_classes = {
+            get_algorithm(c.name).__name__ for c in report.recommendation.candidates
+        }
+        assert report.provenance["classifier"] in candidate_classes
+
+    def test_classifier_instance_uses_constructor_prior(self, rng):
+        """A user-supplied instance carries its own constructor prior."""
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
+        pipe = PUPipeline(classifier=UPUClassifier(class_prior=0.4))
+        report = pipe.fit_evaluate(X, y_pu)
+        assert report.prior.source == "constructor"
+        assert report.prior.value == pytest.approx(0.4)
+        assert report.provenance["classifier_mode"] == "instance"
+
+
+@pytest.mark.unit
+class TestPipelineParameterErrors:
+    """Fail-fast validation of constructor arguments."""
+
+    def test_invalid_classifier_name_raises(self):
+        with pytest.raises(PipelineError, match="Unknown classifier"):
+            PUPipeline(classifier="nope")
+
+    def test_non_instantiable_classifier_raises(self):
+        with pytest.raises(PipelineError, match="flip_probability"):
+            PUPipeline(classifier="ldce")
+
+    def test_missing_prior_raises(self, rng):
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
+        pipe = PUPipeline(classifier="upu", prior_estimator=None)
+        with pytest.raises(PipelineError, match="class_prior") as excinfo:
+            pipe.fit_evaluate(X, y_pu)
+        assert "y_true" in str(excinfo.value)
+
+    def test_invalid_metric_raises(self):
+        with pytest.raises(ValueError, match="Unknown metric"):
+            PUPipeline(metrics=["nope"])
+        pipe = PUPipeline(metrics=["auc"])
+        assert pipe.metrics == ["pu_auc_roc"]
+
+    def test_invalid_cv_raises(self):
+        with pytest.raises(ValueError, match=">= 2"):
+            PUPipeline(cv=1)
+        with pytest.raises(TypeError, match="split"):
+            PUPipeline(cv=object())
+
+
+@pytest.mark.unit
+class TestPipelineEdgeCases:
+    """Availability semantics and boundary validation."""
+
+    def test_no_y_true_skips_oracle_metric(self, rng):
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
+        report = PUPipeline(classifier="upu").fit_evaluate(X, y_pu, class_prior=0.4)
+        auc = report.cv_metrics["pu_auc_roc"]
+        assert auc.available is False
+        assert auc.reason is not None and "y_true" in auc.reason
+        assert report.cv_metrics["pu_recall"].available is True
+
+    def test_too_few_positives_raises(self):
+        rng = np.random.RandomState(0)
+        X = rng.randn(50, 3)
+        y_pu = np.zeros(50, dtype=int)
+        y_pu[:3] = POSITIVE_LABEL
+        pipe = PUPipeline(classifier="upu")
+        with pytest.raises(ValidationError, match="n_splits"):
+            pipe.fit_evaluate(X, y_pu, class_prior=0.4)
+
+    def test_zero_positives_raises(self):
+        rng = np.random.RandomState(0)
+        X = rng.randn(50, 3)
+        y_pu = np.zeros(50, dtype=int)
+        with pytest.raises(ValidationError):
+            PUPipeline(classifier="upu").fit_evaluate(X, y_pu, class_prior=0.4)
+
+    def test_no_decision_function_skips_score_metrics(self, rng):
+        X, y_pu, y_true = make_scar_data(rng, n=150, separation=4.0)
+        pipe = PUPipeline(classifier=_NoScoresClassifier())
+        report = pipe.fit_evaluate(X, y_pu, y_true=y_true, class_prior=0.4)
+        risk = report.cv_metrics["pu_zero_one_risk"]
+        assert risk.available is False
+        assert "decision" in risk.reason
+        assert report.cv_metrics["pu_recall"].available is True
+
+
+@pytest.mark.unit
+class TestPipelineDeterminism:
+    """Same configuration produces identical results."""
+
+    def test_repeated_runs_match(self, rng):
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
+        first = PUPipeline(classifier="upu").fit_evaluate(X, y_pu, class_prior=0.4)
+        second = PUPipeline(classifier="upu").fit_evaluate(X, y_pu, class_prior=0.4)
+        for name in DEFAULT_METRICS:
+            assert first.cv_metrics[name].mean == pytest.approx(second.cv_metrics[name].mean)
+            assert first.cv_metrics[name].std == pytest.approx(second.cv_metrics[name].std)
+        assert first.prior.value == second.prior.value
+
+
+class _NoScoresClassifier(BasePUClassifier):
+    """Minimal classifier without a usable decision function."""
+
+    requires_class_prior = False
+
+    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+        self._is_fitted = True
+        return self
+
+    def _predict(self, X):
+        return np.zeros(X.shape[0], dtype=int)
+
+    def _decision_function(self, X):
+        raise NotImplementedError("no scores available")
