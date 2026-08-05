@@ -8,6 +8,7 @@
 - [x] 将类先验 $`\pi=P(y=+1\mid x\in U)`$ 显式作为 `class_prior` 输入，或接入现有 `penL1` 估计器；禁止静默设为 `0.5`。$`t=2\pi-1`$。
 - [x] 实现 minibatch SGD、训练历史及数值稳定的损失计算；优化器、学习率、epoch 和 batch size 必须可配置。
 - [x] 完成 P/U 标签协议、输入校验、目标/梯度单元测试，以及合成双高斯数据端到端测试。
+- [x] 实现基于收敛的早停（2026-08-05）：trailing-window 相对损失变化 + `min_epochs` 下限，`early_stopping` 默认开启；论文未固定 epoch（仅官方代码用 3000），默认值校准于双高斯 PU 数据（`tol=5e-4`，60×5 实测停 440–1979 epoch，120×5 停 ~1271）。
 - [ ] 建立 paper-like benchmark；论文的 OpenML/CIFAR/GermanCredit 比较不能直接视为本项目复现结果。
 
 ### 1.2 注意
@@ -163,10 +164,10 @@ J_{\text{code}}(\omega)
 2. 若未提供 `class_prior`，调用先验估计器在 P/U 上估计 $`\pi`$；令 $`t=2\pi-1`$。
 3. 初始化线性参数（含或不含截距）；固定随机种子后打乱训练索引。
 4. 对每个 epoch 和 minibatch，按式（9）计算 P 与 U 项的批量估计、反向传播并更新参数。
-5. 在验证集按任务指标（首选 AUC；有可靠阈值标注时可用 F1/accuracy）选择 $`\alpha,\beta,\gamma`$、学习率和早停 checkpoint。
+5. 收敛早停：全数据目标值在 trailing-window（`patience` epoch）内的相对变化低于 `tol` 且已训练满 `min_epochs` 时停止（无验证集；损失前期非单调，禁用逐 epoch 比较）。**[已实现，2026-08-05]** 超参数选择（$`\alpha,\beta,\gamma`$、学习率、早停 checkpoint）在验证集按任务指标（首选 AUC；有可靠阈值标注时可用 F1/accuracy）进行，属 benchmark 阶段工作。
 6. 保存 `class_prior_`、`calibration_target_`、最终目标分量和训练历史，提供可诊断输出。
 
-论文固定步长 $`\tau=0.01`$、$`N=40`$ 个 minibatch；官方代码实际使用步长 $`5\times10^{-6}`$、$`N=20`$ 个 minibatch、$`3000`$ epochs。**实现以代码参数为默认值**，论文值仅作参考。论文仅在训练开始时 shuffle 一次；工程实现应默认每 epoch shuffle，并使其可配置。**[项目适配]**
+论文固定步长 $`\tau=0.01`$、$`N=40`$ 个 minibatch；官方代码实际使用步长 $`5\times10^{-6}`$、$`N=20`$ 个 minibatch、$`3000`$ epochs。**实现以代码参数为默认值**，论文值仅作参考；论文未固定 epoch 数（3000 仅官方代码设定），故 `early_stopping` 默认开启。论文仅在训练开始时 shuffle 一次；工程实现应默认每 epoch shuffle，并使其可配置。**[项目适配]**
 
 ---
 
@@ -195,6 +196,10 @@ J_{\text{code}}(\omega)
 | `learning_rate` | `5e-6` | SGD 初始步长。（论文称 0.01，代码用 5e-6） |
 | `max_epochs` | `3000` | 最大训练 epoch。（论文未明确，代码用 3000） |
 | `batch_size` | `None` | 批量大小；`None` 时分为 20 批（代码默认）。 |
+| `early_stopping` | `True` | 收敛早停开关（trailing-window 相对损失变化）。**[项目适配，2026-08-05]** |
+| `patience` | `100` | 早停 trailing-window 长度（epoch）。**[项目适配]** |
+| `tol` | `5e-4` | 相对损失变化阈值，低于即早停；校准于双高斯 PU 数据。**[项目适配]** |
+| `min_epochs` | `200` | 早停前的最小训练 epoch 下限（覆盖损失上升区）。**[项目适配]** |
 | `fit_intercept` | `True` | 是否拟合截距。 |
 | `shuffle` | `True` | 每 epoch 是否打乱。 |
 | `random_state` | `None` | 初始化与 shuffle 随机种子。 |

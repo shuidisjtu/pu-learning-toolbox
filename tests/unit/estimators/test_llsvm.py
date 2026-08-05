@@ -127,9 +127,14 @@ class TestLLSVMTraining:
         assert pos_accuracy >= 0.6, f"P-accuracy={pos_accuracy:.3f}"
 
     def test_basic_loss_decreases(self, rng):
-        """Loss history should generally decrease over training."""
+        """Loss history should generally decrease over training.
+
+        early_stopping=False pins the full max_epochs run (explicit
+        opt-out contract); the early-stopping behavior is covered by
+        TestLLSVMEarlyStopping.
+        """
         X, y_pu, pi = _make_two_gaussian_pu(rng)
-        clf = LLSVMClassifier(max_epochs=200, random_state=42)
+        clf = LLSVMClassifier(max_epochs=200, early_stopping=False, random_state=42)
         clf.fit(X, y_pu, class_prior=pi)
         history = clf.loss_history_
         assert len(history) == 200
@@ -161,6 +166,62 @@ class TestLLSVMTraining:
         assert clf.n_positive_ == int(np.sum(y_pu == 1))
         assert clf.n_unlabeled_ == int(np.sum(y_pu == 0))
         assert hasattr(clf, "loss_history_")
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Early stopping
+# ═════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.unit
+class TestLLSVMEarlyStopping:
+    """Convergence-based early stopping on the trailing loss window."""
+
+    def test_basic_early_stopping_stops_before_max_epochs(self, rng):
+        """A loose tol stops well before max_epochs; n_epochs reflects it."""
+        X, y_pu, pi = _make_two_gaussian_pu(rng)
+        clf = LLSVMClassifier(
+            max_epochs=3000,
+            tol=1e-2,
+            patience=100,
+            min_epochs=200,
+            random_state=42,
+        )
+        clf.fit(X, y_pu, class_prior=pi)
+        assert 200 <= len(clf.loss_history_) < 3000
+        assert clf.get_pu_metadata()["n_epochs"] == len(clf.loss_history_)
+
+    def test_param_invalid_early_stopping_params_raise(self, rng):
+        X, y_pu, pi = _make_two_gaussian_pu(rng)
+        with pytest.raises(ValueError, match="patience"):
+            LLSVMClassifier(patience=0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+        with pytest.raises(ValueError, match="tol"):
+            LLSVMClassifier(tol=0.0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+        with pytest.raises(ValueError, match="min_epochs"):
+            LLSVMClassifier(min_epochs=0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+
+    def test_edge_min_epochs_floor_respected(self, rng):
+        """tol=10.0 always fires, but min_epochs keeps training to the floor."""
+        X, y_pu, pi = _make_two_gaussian_pu(rng)
+        clf = LLSVMClassifier(
+            max_epochs=1000,
+            tol=10.0,
+            patience=100,
+            min_epochs=150,
+            random_state=42,
+        )
+        clf.fit(X, y_pu, class_prior=pi)
+        assert len(clf.loss_history_) == 150
+
+    def test_deterministic_early_stopping_same_seed(self, rng):
+        """Same seed twice → identical stopping epoch and coefficients."""
+        X, y_pu, pi = _make_two_gaussian_pu(rng)
+        clf1 = LLSVMClassifier(max_epochs=3000, tol=1e-3, random_state=42)
+        clf2 = LLSVMClassifier(max_epochs=3000, tol=1e-3, random_state=42)
+        clf1.fit(X, y_pu, class_prior=pi)
+        clf2.fit(X, y_pu, class_prior=pi)
+        assert len(clf1.loss_history_) == len(clf2.loss_history_)
+        np.testing.assert_allclose(clf1.coef_, clf2.coef_)
 
 
 # ═════════════════════════════════════════════════════════════════════

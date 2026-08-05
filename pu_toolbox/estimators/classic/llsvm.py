@@ -66,6 +66,22 @@ class LLSVMClassifier(BasePUClassifier):
         Whether to shuffle training data each epoch.
     random_state : int or None, default None
         Random seed for initialisation and shuffling.
+    early_stopping : bool, default True
+        Stop training when the full-data objective has plateaued
+        (see patience / tol / min_epochs).  When True the final model is
+        the convergence snapshot at the stopping epoch; ``n_epochs`` in
+        :meth:`get_pu_metadata` reflects the actual stopping epoch.
+        The paper does not fix an epoch count -- only the official
+        MATLAB code uses 3000 -- so early stopping defaults to on.
+    patience : int, default 100
+        Trailing window (in epochs) used to measure objective change.
+    tol : float, default 5e-4
+        Stop when the relative change of the objective over the
+        trailing window falls below *tol*.  Calibrated on two-Gaussian
+        PU data (see commit message for measured stopping epochs).
+    min_epochs : int, default 200
+        Floor on training epochs before early stopping may fire,
+        guarding the early loss-rise region of SGD initialisation.
 
     Attributes
     ----------
@@ -111,6 +127,10 @@ class LLSVMClassifier(BasePUClassifier):
         intercept_scale: float = 10.0,
         shuffle: bool = True,
         random_state: int | None = None,
+        early_stopping: bool = True,
+        patience: int = 100,
+        tol: float = 5e-4,
+        min_epochs: int = 200,
     ) -> None:
         super().__init__()
         self.alpha = alpha
@@ -125,6 +145,10 @@ class LLSVMClassifier(BasePUClassifier):
         self.intercept_scale = intercept_scale
         self.shuffle = shuffle
         self.random_state = random_state
+        self.early_stopping = early_stopping
+        self.patience = patience
+        self.tol = tol
+        self.min_epochs = min_epochs
 
     def fit(
         self,
@@ -241,6 +265,17 @@ class LLSVMClassifier(BasePUClassifier):
             )
             self.loss_history_.append(float(loss))
 
+            # Convergence-based early stopping: the full-data objective is
+            # non-monotonic in the first ~50 epochs (randn init), so compare
+            # a trailing window against the current value instead of
+            # neighbouring epochs, and only once min_epochs is reached.
+            if self.early_stopping and epoch >= max(self.min_epochs, self.patience) - 1:
+                prev = self.loss_history_[-self.patience - 1]
+                cur = self.loss_history_[-1]
+                rel_change = abs(prev - cur) / max(abs(cur), 1e-12)
+                if rel_change < self.tol:
+                    break
+
         # Extract coef and intercept
         if self.fit_intercept:
             self.coef_ = w[:-1].copy()
@@ -293,3 +328,9 @@ class LLSVMClassifier(BasePUClassifier):
             raise ValueError(f"n_batches must be >= 1, got {self.n_batches}")
         if self.intercept_scale <= 0:
             raise ValueError(f"intercept_scale must be > 0, got {self.intercept_scale}")
+        if self.patience < 1:
+            raise ValueError(f"patience must be >= 1, got {self.patience}")
+        if self.tol <= 0:
+            raise ValueError(f"tol must be > 0, got {self.tol}")
+        if self.min_epochs < 1:
+            raise ValueError(f"min_epochs must be >= 1, got {self.min_epochs}")
