@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Literal
 
 import numpy as np
@@ -67,6 +68,7 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
     def __init__(
         self,
         *,
+        encoder=None,
         representation_dim: int = 20,
         hidden_dim: int = 60,
         ratio_steps: int = 4,
@@ -82,6 +84,7 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
         random_state: int | None = None,
         device: str = "cpu",
     ) -> None:
+        self.encoder = encoder
         self.representation_dim = representation_dim
         self.hidden_dim = hidden_dim
         self.ratio_steps = ratio_steps
@@ -111,6 +114,7 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
             X,
             y_pu,
             accept_sparse=False,
+            allow_nd=self.encoder is not None,
             estimator_name="InfoMaxPURepresentation",
         )
         X = np.asarray(X, dtype=np.float32)
@@ -132,29 +136,39 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
         if self.gradient_noise < 0:
             raise ValueError("gradient_noise must be non-negative")
 
-        if self.standardize:
+        if self.standardize and self.encoder is None:
             self.mean_ = X.mean(axis=0)
             self.scale_ = X.std(axis=0)
             self.scale_ = np.where(self.scale_ > 1e-12, self.scale_, 1.0)
             X_train = (X - self.mean_) / self.scale_
         else:
-            self.mean_ = np.zeros(X.shape[1], dtype=np.float32)
-            self.scale_ = np.ones(X.shape[1], dtype=np.float32)
+            self.mean_ = None
+            self.scale_ = None
             X_train = X
 
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
         device = torch.device(self.device)
-        encoder_layers: list[nn.Module] = [nn.Linear(X.shape[1], self.hidden_dim)]
-        if self.batch_norm:
-            encoder_layers.append(nn.BatchNorm1d(self.hidden_dim))
-        encoder_layers.extend([nn.ReLU(), nn.Linear(self.hidden_dim, self.representation_dim)])
-        if self.batch_norm:
-            encoder_layers.append(nn.BatchNorm1d(self.representation_dim))
-        if self.representation_activation:
-            encoder_layers.append(nn.ReLU())
-        self.encoder_ = nn.Sequential(*encoder_layers).to(device)
-        self.ratio_head_ = nn.Linear(self.representation_dim, 1).to(device)
+        if self.encoder is not None:
+            self.encoder_ = copy.deepcopy(self.encoder).to(device)
+            # Probe in eval mode: fresh BatchNorm layers reject 1-sample batches
+            # in training mode and must not accumulate stats from the probe.
+            self.encoder_.eval()
+            with torch.no_grad():
+                probe = self.encoder_(torch.as_tensor(X[:1], dtype=torch.float32, device=device))
+            representation_dim = int(probe.flatten(start_dim=1).shape[-1])
+        else:
+            representation_dim = self.representation_dim
+            encoder_layers: list[nn.Module] = [nn.Linear(X.shape[1], self.hidden_dim)]
+            if self.batch_norm:
+                encoder_layers.append(nn.BatchNorm1d(self.hidden_dim))
+            encoder_layers.extend([nn.ReLU(), nn.Linear(self.hidden_dim, self.representation_dim)])
+            if self.batch_norm:
+                encoder_layers.append(nn.BatchNorm1d(self.representation_dim))
+            if self.representation_activation:
+                encoder_layers.append(nn.ReLU())
+            self.encoder_ = nn.Sequential(*encoder_layers).to(device)
+        self.ratio_head_ = nn.Linear(representation_dim, 1).to(device)
 
         encoder_optimizer = torch.optim.SGD(
             self.encoder_.parameters(),
@@ -187,6 +201,8 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
             u_indices = unlabeled_indices if unlabeled_batch is None else unlabeled_batch
             inputs = torch.cat([tx[p_indices], tx[u_indices]], dim=0)
             representation = self.encoder_(inputs)
+            if self.encoder is not None:
+                representation = representation.flatten(start_dim=1)
             if detach_encoder:
                 representation = representation.detach()
             ratio = self.ratio_head_(representation).squeeze(1)
@@ -246,9 +262,10 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
         import torch
 
         X = np.asarray(X, dtype=np.float32)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X must have shape (n_samples, {self.n_features_in_})")
-        X = (X - self.mean_) / self.scale_
+        if self.encoder is None:
+            if X.ndim != 2 or X.shape[1] != self.n_features_in_:
+                raise ValueError(f"X must have shape (n_samples, {self.n_features_in_})")
+            X = (X - self.mean_) / self.scale_
         self.encoder_.eval()
         with torch.no_grad():
             result = self.encoder_(torch.as_tensor(X, dtype=torch.float32, device=self.device_))
@@ -315,6 +332,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
         classifier_batch_size: int = 256,
         prior_estimator: BaseEstimator | None = None,
         random_state: int | None = None,
+        encoder=None,
         device: str = "cpu",
     ) -> None:
         super().__init__()
@@ -339,6 +357,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
         self.classifier_batch_size = classifier_batch_size
         self.prior_estimator = prior_estimator
         self.random_state = random_state
+        self.encoder = encoder
         self.device = device
 
     def fit(
@@ -359,6 +378,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
             X,
             y_pu,
             accept_sparse=False,
+            allow_nd=self.encoder is not None,
             estimator_name="InfoMaxPUClassifier",
         )
         X = np.asarray(X, dtype=np.float32)
@@ -371,6 +391,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
         if self.classifier_batch_size < 1:
             raise ValueError("classifier_batch_size must be >= 1")
         self.representation_ = InfoMaxPURepresentation(
+            encoder=self.encoder,
             representation_dim=self.representation_dim,
             hidden_dim=self.hidden_dim,
             ratio_steps=self.representation_ratio_steps,
@@ -393,6 +414,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
                 X_validation,
                 y_validation_pu,
                 accept_sparse=False,
+                allow_nd=self.encoder is not None,
                 estimator_name="InfoMaxPUClassifier[validation]",
             )
             representation_validation = (
@@ -410,8 +432,13 @@ class InfoMaxPUClassifier(BasePUClassifier):
         if not 0.0 < resolved_prior < 1.0:
             raise ValueError("class_prior must be in (0, 1)")
 
+        # With an external encoder the classifier consumes its flattened
+        # feature vector (dimension known only after fitting the encoder).
+        classifier_input_dim = (
+            representation.shape[1] if self.encoder is not None else self.representation_dim
+        )
         model = build_purl_mlp(
-            self.representation_dim,
+            classifier_input_dim,
             tuple(self.classifier_hidden_dims),
             batch_norm=self.classifier_batch_norm,
         ).to(self.device)

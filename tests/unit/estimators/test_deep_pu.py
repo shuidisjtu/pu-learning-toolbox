@@ -7,6 +7,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.deep import (
     DGPUClassifier,
     InfoMaxPUClassifier,
@@ -209,3 +210,54 @@ def test_param_dgpu_missing_generator_raises():
             annotation_epochs=1,
             generated_samples=2,
         ).fit(X, y_pu)
+
+
+@pytest.mark.unit
+class TestInfoMaxEncoder:
+    def test_basic_cnn_encoder_fits_4d_data(self):
+        from pu_toolbox.estimators.deep.vision import build_encoder
+
+        rng = np.random.RandomState(3)
+        X = rng.normal(0.5, 0.3, size=(16, 3, 8, 8)).astype(np.float32)
+        y_pu = np.concatenate([np.ones(6, dtype=int), np.zeros(10, dtype=int)])
+        encoder = build_encoder("cnn", backbone="cnn13", in_channels=3)
+        clf = InfoMaxPUClassifier(
+            encoder=encoder,
+            representation_epochs=2,
+            classifier_epochs=2,
+            representation_ratio_steps=2,
+            representation_encoder_steps=1,
+            classifier_batch_size=16,
+            random_state=11,
+        )
+        clf.fit(X, y_pu)
+        pred = clf.predict(X)
+        assert pred.shape == (16,) and set(pred).issubset({0, 1})
+
+    def test_basic_cnn_encoder_accepts_4d_transform(self):
+        from pu_toolbox.estimators.deep.vision import build_encoder
+
+        rng = np.random.RandomState(5)
+        X = rng.normal(0.5, 0.3, size=(14, 3, 8, 8)).astype(np.float32)
+        y_pu = np.concatenate([np.ones(5, dtype=int), np.zeros(9, dtype=int)])
+        encoder = build_encoder("cnn", backbone="cnn13", in_channels=3)
+        rep = InfoMaxPURepresentation(encoder=encoder, max_epochs=2, random_state=7)
+        rep.fit(X, y_pu)
+        out = rep.transform(X)
+        assert out.ndim == 2 and out.shape[0] == 14
+
+    def test_param_encoder_without_torch_module_raises(self):
+        # 需要 >=2 个 labeled positives 才能到达 encoder 校验（MIN_POSITIVE_SAMPLES=2）
+        with pytest.raises((AttributeError, ValueError)):
+            InfoMaxPURepresentation(encoder="not-a-module").fit(
+                np.zeros((8, 4), dtype=np.float32),
+                np.array([1, 1, 0, 0, 0, 0, 0, 0]),
+            )
+
+    def test_edge_encoder_none_keeps_2d_mlp_path(self):
+        # None 路径（默认）仍拒绝 4D：与现有 2D-only 行为一致
+        with pytest.raises((ValidationError, ValueError), match="ndim"):
+            InfoMaxPUClassifier(representation_epochs=2, classifier_epochs=2).fit(
+                np.zeros((8, 3, 4, 4), dtype=np.float32),
+                np.array([1, 1, 0, 0, 0, 0, 0, 0]),
+            )
