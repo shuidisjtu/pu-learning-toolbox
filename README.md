@@ -76,6 +76,14 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 | [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, roadmap, compatibility |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards |
 
+## AI workflow skill
+
+`pu-workflow` (Agent Skills open standard) drives the full PU analysis
+workflow — profiling, assumption diagnosis, method recommendation,
+training, and result interpretation — from natural language. Loaded
+natively by Claude Code / Cursor (`.claude/skills/`) and Codex / Gemini
+CLI / Windsurf (`.agents/skills/`).
+
 ## Development
 
 ```bash

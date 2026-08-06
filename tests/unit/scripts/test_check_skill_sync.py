@@ -93,3 +93,19 @@ def test_edge_empty_value_key_does_not_swallow_next_line(tmp_path):
     )
     issues = check_sync(a, b)
     assert any("user-invocable" in i for i in issues)
+
+
+@pytest.mark.unit
+def test_param_invalid_missing_skill_reported(tmp_path):
+    """A missing SKILL.md copy is invalid input and must be reported."""
+    a, b = _write_pair(tmp_path, _GOOD_FRONTMATTER + "# pu-workflow\n\nbody\n")
+    b.unlink()
+    issues = check_sync(a, b)
+    assert any("missing SKILL.md" in i for i in issues)
+
+
+@pytest.mark.unit
+def test_determ_results_reproducible(tmp_path):
+    """check_sync must be deterministic: repeated calls give identical issues."""
+    a, b = _write_pair(tmp_path, "line1\nline2\n", "line1\nline2 CHANGED\n")
+    assert check_sync(a, b) == check_sync(a, b)

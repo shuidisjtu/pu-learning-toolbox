@@ -76,6 +76,13 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | [`docs/dev/`](docs/dev/) | 贡献者文档：架构、结构、路线图、兼容性 |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | 各论文方法卡 |
 
+## AI 工作流 Skill
+
+`pu-workflow`（Agent Skills 开放标准）以自然语言驱动完整 PU 分析流程：
+数据画像、假设诊断、算法推荐、训练评估与结果解读。Claude Code / Cursor
+（`.claude/skills/`）与 Codex / Gemini CLI / Windsurf（`.agents/skills/`）
+原生加载。
+
 ## 开发
 
 ```bash

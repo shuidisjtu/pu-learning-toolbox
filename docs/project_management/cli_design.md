@@ -110,6 +110,9 @@ make-demo-data 闭环、determinism）。
 
 ## 范围边界（后续工作，不在 v1）
 
-- skill 集成（`pu-workflow` skill 自然语言驱动，内部调 PUPipeline 或 CLI）
+- ~~skill 集成~~（已完成 2026-08-06：`pu-workflow` 通用 skill，开放 Agent Skills
+  规范，双目录 `.claude/skills/` + `.agents/skills/`，自然语言驱动，内部调
+  `scripts/pu_workflow/*.py` 环节脚本与 PUPipeline/CLI；profile/recommend/
+  sensitivity 以脚本而非 CLI 子命令提供——多命令全面版仍未做）
 - 模型导出格式（ONNX 等，v1 仅 pickle 可选保存）
 - 多命令全面版（profile / sensitivity 独立命令）
