@@ -124,7 +124,7 @@ dimensions.
 Use the existing CLI (stable, structured output):
 
 ```bash
-pu-toolbox run \
+uv run pu-toolbox run \
   --data <X.csv> --labels <y_pu.csv> \
   [--true-labels <y_true.csv>] [--class-prior <value>] \
   [--classifier <name>|auto] [--prior-estimator <name>|none] \
