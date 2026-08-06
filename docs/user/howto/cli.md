@@ -40,7 +40,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--save-model` | — | 关 | 额外保存 `model.pkl`（最终模型，pickle） |
 | `--quiet` | — | 关 | 只打印错误，不打印 summary |
 
-`--data` 与 `--labels` 的 CSV 首行都必须是表头（列名），否则首行数据会被当作表头解析。
+`--data` 与 `--labels` 的 CSV 首行必须是表头（列名）；首行若为数字会被拒绝并报错（防静默丢失首样本）。
 
 ### 辅助命令
 
@@ -55,14 +55,14 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 ## 深度算法与图像数据
 
 `run` 支持两个深度算法（WConPU、InfoMax PU），需先安装可选依赖
-`pip install pu-learning-toolbox[torch]`。
+`pip install pu-toolbox[torch]`。
 
 - **表格数据**（默认）：`--classifier wconpu --architecture mlp`，MLP 骨架
 - **图像数据**：`--data` 传 4-D NCHW float 数组（.npy 文件，如
   `benchmarks/deep_pu` 数据加载器导出的数组），配合
   `--architecture cnn --backbone cnn13|resnet18|resnet50`
-- `--architecture cnn` 仅对 `wconpu` / `infomax_pu` 有效；`auto` 与浅层
-  算法配合 `--architecture cnn` 会报错
+- `--architecture cnn` 仅对 TORCH backend 深度方法（`wconpu` / `infomax_pu` /
+  `self_pu`）有效；`auto` 与非深度算法配合 `--architecture cnn` 会报错
 - 深度训练较慢（WConPU 默认 800 epoch），可减少 `--cv` 折数
 
 ## 退出码

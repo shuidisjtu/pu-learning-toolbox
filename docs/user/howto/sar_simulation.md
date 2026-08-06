@@ -7,7 +7,7 @@
 
 ## 1. 公共接口
 
-### 2.1 只计算 propensity
+### 1.1 只计算 propensity
 
 ```python
 from pu_toolbox.preprocessing import make_sar_propensity
@@ -24,7 +24,7 @@ propensity = make_sar_propensity(
 返回值表示 `P(S=1|Y,X)`，所以真实负类位置固定为零。函数会校准截距，使正类中的
 propensity 均值等于 `label_frequency`。
 
-### 2.2 从完整标签生成 PU 标签
+### 1.2 从完整标签生成 PU 标签
 
 ```python
 from pu_toolbox.preprocessing import make_sar_labels
@@ -43,7 +43,7 @@ y_pu, propensity = make_sar_labels(
 `ensure_labeled=True`，当小样本 Bernoulli 抽样没有选中任何正类时，会选择 propensity
 最高的真实正类，以保证下游估计器可以训练。研究纯采样分布时可显式关闭该保护。
 
-### 2.3 直接生成合成数据
+### 1.3 直接生成合成数据
 
 ```python
 from pu_toolbox.preprocessing import make_sar_dataset

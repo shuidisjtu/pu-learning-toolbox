@@ -43,7 +43,7 @@ audited_report = profile_pu_data(
 ## 2. 返回对象
 
 `PUDataProfile` 的字段表、`selection_diagnostic["status"]` 取值与全部问题代码
-（`no_labeled_positives` 等 10 个稳定 code）见 [API 参考](../reference/api.md)。要点：
+（`no_labeled_positives` 等 13 个稳定 code）见 [API 参考](../reference/api.md)。要点：
 
 - `report.has_errors`：存在会阻止可靠训练的数据错误；`report.has_warnings`：训练前应复核的问题。
 - `report.format_text()` 生成终端可读报告；`report.to_dict()` 生成可写入 JSON 的普通容器。

@@ -41,8 +41,9 @@ report.save("results/pipeline.json")
 
 - `prior_estimator="recpe"`（默认）/ `"pen_l1"` / `"km1"` / `"km2"`（后两者映射到
   `KernelMeanPriorEstimator`）或传入估计器实例。
-- `prior_estimator=None` 且方法需要先验且未提供 → 抛出 `PipelineError`
-  （消息给出三条出路，并注明 `y_true` 从不用于先验估计）。
+- 显式指定 classifier 时，`prior_estimator=None` 且方法需要先验且未提供 →
+  抛出 `PipelineError`（消息给出三条出路，并注明 `y_true` 从不用于先验估计）；
+  auto 模式下同样输入降级为无先验推荐（见下）。
 - 画像模块会审计"先验 < 标注正样本比例"的不一致并给出警告
   （`inconsistent_class_prior`）。
 
@@ -50,7 +51,7 @@ report.save("results/pipeline.json")
 
 | `classifier=` | 行为 |
 |---|---|
-| `"auto"`（默认） | 先估先验 → `recommend_methods` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
+| `"auto"`（默认） | 先估先验 → `recommend_from_profile` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
 | `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），构造时自动注入 `class_prior` 与 `random_state` |
 | `UPUClassifier(...)` 实例 | 原样使用（`clone` 到每折），不注入任何参数 |
 
@@ -67,9 +68,10 @@ report.save("results/pipeline.json")
 
 ### 深度算法与架构选择
 
-`PUPipeline` 支持两个深度算法（`wconpu` / `infomax_pu`），需先安装可选依赖
-`pip install pu-learning-toolbox[torch]`。深度算法须**显式指定**，`auto`
-推荐器仍会跳过它们。
+`PUPipeline` 已为深度算法显式接入架构选择（`wconpu` / `infomax_pu`；`self_pu`
+亦可按名实例化），需先安装可选依赖 `pip install pu-toolbox[torch]`。深度算法
+须**显式指定**——`auto` 模式下深度方法虽在推荐器候选内，但因 GPU/数据规模/
+训练成本评分低，实际不会被选中。
 
 | 参数 | 默认 | 说明 |
 |---|---|---|
@@ -77,7 +79,7 @@ report.save("results/pipeline.json")
 | `backbone` | `"cnn13"` | CNN 骨架：`"cnn13"` / `"resnet18"` / `"resnet50"`（仅 `architecture="cnn"` 时有效） |
 | `device` | `"cpu"` | 传给深度分类器的 torch 设备（如 `"cuda"`） |
 
-- 显式指定 `wconpu` / `infomax_pu` 时放行，`class_prior` 仍按「显式 > 估计」
+- 显式指定 TORCH backend 深度分类器时放行，`class_prior` 仍按「显式 > 估计」
   顺序注入；`architecture="cnn"` 时 pipeline 用 `build_encoder` 构建并注入
   CNN 编码器
 - `architecture="cnn"` 要求 4-D NCHW 图像输入（`.npy` 数组）；2-D 表格配
@@ -91,9 +93,9 @@ report.save("results/pipeline.json")
 各指标的依赖与证据级别（`pu_observed` / `class_prior_dependent` / `supervised_oracle`）见
 [API 参考](../reference/api.md)。
 
-缺失输入（无 `y_true`、无 `decision_function`、无先验）时对应指标**跳过并记录原因**
-（`CVMetric.available=False`、`reason` 说明），不中断流程。单折内异常（如 AUC 折内
-单类）只跳过该折，`mean`/`std` 在已计算折上聚合。
+缺失输入（无 `y_true`、无 `decision_function`、无先验）时对应指标**跳过**并记录
+（`CVMetric.available=False`；仅当全部折都被跳过时才由 `reason` 说明原因），
+不中断流程。单折内异常（如 AUC 折内单类）只跳过该折，`mean`/`std` 在已计算折上聚合。
 
 ## 错误场景
 

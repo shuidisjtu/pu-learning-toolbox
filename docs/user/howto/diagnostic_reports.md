@@ -129,7 +129,7 @@ JSON 使用严格编码：未定义的 AUC、无穷 PU 比例等值会转成 `nu
 诊断报告不会替代统计显著性检验、类先验敏感性分析或算法推荐。敏感性分析已作为
 独立接口实现，详见 [`sensitivity_analysis.md`](sensitivity_analysis.md)；算法推荐仍是独立工作包。
 
-## 7. 示例
+## 8. 示例
 
 ```bash
 python examples/minimal/08_diagnostic_report.py

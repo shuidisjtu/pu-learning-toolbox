@@ -13,7 +13,9 @@ pipe = PUPipeline(
     prior_estimator="recpe",    # "recpe"/"pen_l1"/"km1"/"km2"（后两者映射到
                                 # KernelMeanPriorEstimator）/ 估计器实例 / None
     cv=5,                       # PU 分层 CV 折数，或自定义 splitter
+                                # （默认 cv=None → 解析为 5 折 PUStratifiedKFold）
     metrics=DEFAULT_METRICS,    # 指标名元组，见下方指标表
+                                # （默认 metrics=None → DEFAULT_METRICS）
     random_state=42,
     architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu）
     backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
@@ -53,7 +55,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 
 | `classifier=` | 行为 |
 |---|---|
-| `"auto"`（默认） | 先估先验 → `recommend_methods` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
+| `"auto"`（默认） | 先估先验 → `recommend_from_profile` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
 | `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），构造时自动注入 `class_prior` 与 `random_state` |
 | `UPUClassifier(...)` 实例 | 原样使用（`clone` 到每折），不注入任何参数 |
 
@@ -67,7 +69,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 
 | 参数 | 默认 | 取值 | 语义 |
 |---|---|---|---|
-| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式 `wconpu` / `infomax_pu`；`auto` 或浅层算法配 cnn 抛 `PipelineError` |
+| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式 TORCH backend 深度分类器（`wconpu` / `infomax_pu` / `self_pu`）；`auto` 或非深度方法配 cnn 抛 `PipelineError` |
 | `backbone` | `"cnn13"` | `"cnn13"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
 | `device` | `"cpu"` | torch 设备字符串 | 透传给深度分类器（`_fresh_estimator` 按签名注入） |
 
@@ -78,7 +80,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
   展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
   `PipelineError`；2-D + cnn → `PipelineError`
 - deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议减少折数（`cv` 最小为 2）
-- `auto` 行为不变：推荐器候选中的深度算法仍被跳过
+- `auto` 行为不变：深度方法虽在推荐器候选内，但因 GPU/数据规模/训练成本评分低，实际不会被选中
 
 ### 错误场景
 
@@ -182,6 +184,8 @@ report = profile_pu_data(
 | `inconsistent_class_prior` | warning | 复核类先验、采样总体和标签定义 |
 | `sar_signal` | warning | 审计正例支持 SAR；优先评估 PUSB/LBE 并做敏感性分析 |
 | `observed_selection_signal` | info | 只有非识别性信号；补充审计或标记策略信息 |
+| `low_variance_features` | info | 复核特征缩放；低方差列可能不携带信号 |
+| `selection_diagnostic_inconclusive` | info | 评估组样本不足或特征非有限；补充审计或可信正例标签 |
 
 ## recommend_methods / recommend_from_profile
 
@@ -202,6 +206,7 @@ result = recommend_methods(
 result = recommend_from_profile(
     profile,             # 已有 PUDataProfile，跳过重复 profiling
     scenario=None, assumption=None, class_prior=None,
+    class_prior_source=None,  # 先验来源说明（如 "user"/"estimated"），写入 provenance
     has_gpu=False, top_k=5, config=None,
 )
 ```
@@ -229,8 +234,9 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 - `make_sar_labels` 默认 `ensure_labeled=True`：小样本抽样未选中任何正类时选择
   propensity 最高的真实正类，保证下游可训练。
 - 返回值 `propensity` 表示 `P(S=1|Y,X)`，真实负类位置固定为零。
-- CLI 演示数据 `make-scar-dataset`（`--n` 每类样本数、`--c` 标注概率）内部使用
-  `make_scar_dataset`，签名同 `make_sar_dataset`（机制固定为 SCAR）。
+- CLI 演示数据 `make-demo-data`（`--n` 每类样本数、`--c` 标注概率）内部使用
+  `make_scar_dataset`（`make_scar_dataset(n, c, n_features=5, separation=4.0,
+  random_state=None)` → `(X, y_pu, class_prior)`，机制固定为 SCAR）。
 
 ## analyze_pu_sensitivity
 
