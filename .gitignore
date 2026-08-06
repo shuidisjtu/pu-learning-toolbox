@@ -49,7 +49,10 @@ CLAUDE.md
 
 # UV
 uv.lock
-.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/pu-workflow/
+.claude/skills/dev-workflow/
 
 # CLI demo / run artifacts (intermediate outputs)
 demo_data/
