@@ -13,6 +13,7 @@ from sklearn.utils.sparsefuncs import mean_variance_axis
 
 from pu_toolbox.core.labels import normalize_pu_labels
 from pu_toolbox.preprocessing.profiling import pu_data_summary, scar_diagnostic
+from pu_toolbox.utils.serialization import json_safe
 
 IssueSeverity = Literal["info", "warning", "error"]
 
@@ -76,7 +77,7 @@ class PUDataProfile:
             "issues": [issue.to_dict() for issue in self.issues],
             "assumption_hints": list(self.assumption_hints),
         }
-        return _json_safe(payload)
+        return json_safe(payload)
 
     def format_text(self) -> str:
         """Render a compact report suitable for terminals and logs."""
@@ -174,18 +175,6 @@ def _validate_audit_labels(
     if np.any((y_pu == 1) & (true != 1)):
         raise ValueError("Every labeled positive in y_pu must be positive in y_true.")
     return true.astype(int, copy=False)
-
-
-def _json_safe(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {key: _json_safe(item) for key, item in value.items()}
-    if isinstance(value, list | tuple):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, np.generic):
-        value = value.item()
-    if isinstance(value, float) and not np.isfinite(value):
-        return None
-    return value
 
 
 def _feature_statistics(

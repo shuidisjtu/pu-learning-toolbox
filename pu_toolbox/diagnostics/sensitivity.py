@@ -15,6 +15,7 @@ import pandas as pd
 
 from pu_toolbox.core.labels import normalize_pu_labels
 from pu_toolbox.metrics import pu_estimated_precision, pu_zero_one_risk
+from pu_toolbox.utils.serialization import format_from_suffix, format_value
 
 SensitivityAxis = Literal["class_prior", "label_propensity"]
 
@@ -118,8 +119,8 @@ class PUSensitivityAnalysis:
                 f"| `{point.axis}` | {point.value:.6f} | "
                 f"{point.class_prior:.6f} | {point.label_propensity:.6f} | "
                 f"`{point.is_consistent}` | "
-                f"{_format_value(point.pu_estimated_precision)} | "
-                f"{_format_value(point.pu_zero_one_risk)} | "
+                f"{format_value(point.pu_estimated_precision)} | "
+                f"{format_value(point.pu_zero_one_risk)} | "
                 f"{point.consistency_reason or ''} |"
             )
         lines.extend(
@@ -142,7 +143,7 @@ class PUSensitivityAnalysis:
     ) -> Path:
         """Save JSON, Markdown, or CSV, inferring format from the suffix."""
         destination = Path(path)
-        output_format = format or _format_from_suffix(destination)
+        output_format = format or format_from_suffix(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
         if output_format == "json":
             destination.write_text(self.to_json() + "\n", encoding="utf-8")
@@ -334,18 +335,3 @@ def analyze_pu_sensitivity(
         metric_ranges=_build_metric_ranges(frozen_points),
         provenance=provenance,
     )
-
-
-def _format_value(value: float | None) -> str:
-    return "unavailable" if value is None else f"{value:.6f}"
-
-
-def _format_from_suffix(path: Path) -> Literal["json", "markdown", "csv"]:
-    suffix = path.suffix.lower()
-    if suffix == ".json":
-        return "json"
-    if suffix in {".md", ".markdown"}:
-        return "markdown"
-    if suffix == ".csv":
-        return "csv"
-    raise ValueError(f"Cannot infer output format from suffix {suffix!r}; use .json, .md, or .csv.")

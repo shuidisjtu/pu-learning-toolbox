@@ -516,6 +516,10 @@ class PUPipeline:
                 y_true=y_true,
                 class_prior=prior,
                 random_state=self.random_state,
+                # Reuse the profile computed above: profiling twice with
+                # identical inputs (including the CV selection diagnostic)
+                # wasted one full pass per fit_evaluate.
+                profile=profile,
             )
         else:
             # Models without a decision function cannot drive estimator-mode
@@ -527,6 +531,7 @@ class PUPipeline:
                 y_true=y_true,
                 class_prior=prior,
                 random_state=self.random_state,
+                profile=profile,
             )
 
         # -- Assemble report ----------------------------------------------

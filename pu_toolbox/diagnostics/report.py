@@ -24,6 +24,12 @@ from pu_toolbox.metrics import (
     pu_zero_one_risk,
 )
 from pu_toolbox.preprocessing import ProfileIssue, PUDataProfile, profile_pu_data
+from pu_toolbox.utils.serialization import (
+    escape_markdown,
+    format_from_suffix,
+    format_value,
+    json_safe,
+)
 
 MetricBasis = Literal[
     "pu_observed",
@@ -95,7 +101,7 @@ class PUDiagnosticReport:
             "issues": [issue.to_dict() for issue in self.issues],
             "provenance": self.provenance,
         }
-        return _json_safe(payload)
+        return json_safe(payload)
 
     def to_json(self, *, indent: int = 2) -> str:
         """Render strict JSON without non-standard NaN/Infinity values."""
@@ -128,8 +134,8 @@ class PUDiagnosticReport:
             f"- Status: `{selection['status']}`",
             f"- Evidence: `{selection['evidence']}`",
             f"- Identifying: `{selection['is_identifying']}`",
-            f"- AUC: {_format_value(selection['separability_auc'])}",
-            f"- Interpretation: {_escape_markdown(selection['message'])}",
+            f"- AUC: {format_value(selection['separability_auc'])}",
+            f"- Interpretation: {escape_markdown(selection['message'])}",
             "",
             "## Model",
             "",
@@ -144,21 +150,21 @@ class PUDiagnosticReport:
         ]
         for name, metric in self.metrics.items():
             lines.append(
-                f"| `{name}` | {_format_value(metric.value)} | `{metric.basis}` | "
-                f"{_escape_markdown(metric.reason or '')} |"
+                f"| `{name}` | {format_value(metric.value)} | `{metric.basis}` | "
+                f"{escape_markdown(metric.reason or '')} |"
             )
         lines.extend(["", "## Issues", ""])
         if self.issues:
             lines.extend(
                 f"- **{issue.severity.upper()} `{issue.code}`**: "
-                f"{_escape_markdown(issue.message)} "
-                f"Action: {_escape_markdown(issue.action)}"
+                f"{escape_markdown(issue.message)} "
+                f"Action: {escape_markdown(issue.action)}"
                 for issue in self.issues
             )
         else:
             lines.append("No issues detected by the configured checks.")
         lines.extend(["", "## Interpretation Boundaries", ""])
-        lines.extend(f"- {_escape_markdown(hint)}" for hint in self.data_profile.assumption_hints)
+        lines.extend(f"- {escape_markdown(hint)}" for hint in self.data_profile.assumption_hints)
         return "\n".join(lines) + "\n"
 
     def save(
@@ -169,7 +175,7 @@ class PUDiagnosticReport:
     ) -> Path:
         """Write JSON or Markdown, inferring the format from the suffix."""
         destination = Path(path)
-        output_format = format or _format_from_suffix(destination)
+        output_format = format or format_from_suffix(destination)
         if output_format == "json":
             content = self.to_json() + "\n"
         elif output_format == "markdown":
@@ -373,6 +379,7 @@ def build_diagnostic_report(
     y_true: np.ndarray | None = None,
     class_prior: float | None = None,
     random_state: int | None = 42,
+    profile: PUDataProfile | None = None,
     **profile_kwargs: Any,
 ) -> PUDiagnosticReport:
     """Build a diagnostic report without fitting or mutating an estimator.
@@ -396,14 +403,18 @@ def build_diagnostic_report(
         n_samples = X_array.shape[0] if X_array.ndim >= 1 else 0
         profile_X = X_array.reshape(n_samples, -1) if X_array.ndim > 2 else X_array
 
-    profile = profile_pu_data(
-        profile_X,
-        y_pu,
-        y_true=y_true,
-        class_prior=class_prior,
-        random_state=random_state,
-        **profile_kwargs,
-    )
+    if profile is None:
+        profile = profile_pu_data(
+            profile_X,
+            y_pu,
+            y_true=y_true,
+            class_prior=class_prior,
+            random_state=random_state,
+            **profile_kwargs,
+        )
+    elif profile_kwargs:
+        # A reused profile makes profiling kwargs contradictory.
+        raise ValueError("profile= cannot be combined with profiling keyword arguments.")
     canonical_y = normalize_pu_labels(np.asarray(y_pu))
     audited_truth = None
     if y_true is not None:
@@ -509,41 +520,3 @@ def build_diagnostic_report(
         issues=tuple(issues),
         provenance=provenance,
     )
-
-
-def _json_safe(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, list | tuple):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, np.generic):
-        value = value.item()
-    if isinstance(value, float) and not np.isfinite(value):
-        return None
-    if isinstance(value, Path):
-        return str(value)
-    return value
-
-
-def _format_value(value: Any) -> str:
-    if value is None:
-        return "unavailable"
-    try:
-        if not np.isfinite(value):
-            return "unavailable"
-    except TypeError:
-        return _escape_markdown(str(value))
-    return f"{float(value):.6f}"
-
-
-def _escape_markdown(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")
-
-
-def _format_from_suffix(path: Path) -> Literal["json", "markdown"]:
-    suffix = path.suffix.lower()
-    if suffix == ".json":
-        return "json"
-    if suffix in {".md", ".markdown"}:
-        return "markdown"
-    raise ValueError("Cannot infer report format. Use a .json/.md suffix or pass format=.")

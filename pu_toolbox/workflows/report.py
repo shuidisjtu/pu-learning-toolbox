@@ -22,6 +22,7 @@ import numpy as np
 from ..diagnostics.report import MetricBasis, PUDiagnosticReport
 from ..preprocessing.data_profiler import ProfileIssue, PUDataProfile
 from ..registry import RecommendationResult
+from ..utils.serialization import escape_markdown, format_from_suffix, format_value, json_safe
 
 PriorSource = Literal["user", "constructor", "estimated", "none"]
 
@@ -141,7 +142,7 @@ class PipelineReport:
             "==================",
             "",
             f"Classifier: {self.provenance.get('classifier', 'unknown')}",
-            f"Class prior: {_format_value(self.prior.value)} (source: {prior_src})",
+            f"Class prior: {format_value(self.prior.value)} (source: {prior_src})",
             f"CV folds: {self.cv_provenance.get('n_splits', 'unknown')}",
             "",
             "## CV Metrics (mean +/- std)",
@@ -151,13 +152,13 @@ class PipelineReport:
         ]
         for name, metric in self.cv_metrics.items():
             lines.append(
-                f"| `{name}` | {_format_value(metric.mean)} | "
-                f"{_format_value(metric.std)} | `{metric.basis}` |"
+                f"| `{name}` | {format_value(metric.mean)} | "
+                f"{format_value(metric.std)} | `{metric.basis}` |"
             )
         lines.extend(["", "## Issues", ""])
         if self.issues:
             lines.extend(
-                f"- **{issue.severity.upper()} `{issue.code}`**: {_escape_markdown(issue.message)}"
+                f"- **{issue.severity.upper()} `{issue.code}`**: {escape_markdown(issue.message)}"
                 for issue in self.issues
             )
             n_errors = sum(issue.severity == "error" for issue in self.issues)
@@ -196,7 +197,7 @@ class PipelineReport:
             "issues": [issue.to_dict() for issue in self.issues],
             "provenance": self.provenance,
         }
-        return _json_safe(payload)
+        return json_safe(payload)
 
     def to_json(self, *, indent: int = 2) -> str:
         """Render strict JSON without non-standard NaN/Infinity values."""
@@ -207,7 +208,7 @@ class PipelineReport:
         lines = ["# PU Pipeline Report", "", "## Workflow", ""]
         lines.append(f"- Classifier: `{self.provenance.get('classifier')}`")
         lines.append(
-            f"- Class prior: {_format_value(self.prior.value)} (source: `{self.prior.source}`)"
+            f"- Class prior: {format_value(self.prior.value)} (source: `{self.prior.source}`)"
         )
         lines.append(f"- Prior estimator: `{self.prior.estimator or 'not used'}`")
         lines.append(f"- CV folds: {self.cv_provenance.get('n_splits')}")
@@ -222,14 +223,14 @@ class PipelineReport:
         )
         for name, metric in self.cv_metrics.items():
             lines.append(
-                f"| `{name}` | {_format_value(metric.mean)} | {_format_value(metric.std)} | "
+                f"| `{name}` | {format_value(metric.mean)} | {format_value(metric.std)} | "
                 f"`{metric.basis}` | {metric.available} |"
             )
         lines.extend(["", "## Issues", ""])
         if self.issues:
             lines.extend(
                 f"- **{issue.severity.upper()} `{issue.code}`**: "
-                f"{_escape_markdown(issue.message)} Action: {_escape_markdown(issue.action)}"
+                f"{escape_markdown(issue.message)} Action: {escape_markdown(issue.action)}"
                 for issue in self.issues
             )
         else:
@@ -251,49 +252,9 @@ class PipelineReport:
         target = Path(path)
         fmt = format
         if fmt is None:
-            fmt = _format_from_suffix(target)
+            fmt = format_from_suffix(target)
         if fmt not in {"json", "markdown"}:
             raise ValueError(f"Unknown format {fmt!r}; expected 'json' or 'markdown'.")
         text = self.to_json() if fmt == "json" else self.to_markdown()
         target.write_text(text, encoding="utf-8")
         return target
-
-
-def _json_safe(value: Any) -> Any:
-    """Recursively convert values to strict JSON-safe types (NaN/Inf -> None)."""
-    if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, list | tuple):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, np.generic):
-        value = value.item()
-    if isinstance(value, float) and not np.isfinite(value):
-        return None
-    if isinstance(value, Path):
-        return str(value)
-    return value
-
-
-def _format_value(value: Any) -> str:
-    """Format a value for Markdown tables, ``unavailable`` for missing/non-finite."""
-    if value is None:
-        return "unavailable"
-    try:
-        if not np.isfinite(value):
-            return "unavailable"
-    except TypeError:
-        return _escape_markdown(str(value))
-    return f"{float(value):.6f}"
-
-
-def _escape_markdown(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")
-
-
-def _format_from_suffix(path: Path) -> Literal["json", "markdown"]:
-    suffix = path.suffix.lower()
-    if suffix == ".json":
-        return "json"
-    if suffix in {".md", ".markdown"}:
-        return "markdown"
-    raise ValueError("Cannot infer report format. Use a .json/.md suffix or pass format=.")
