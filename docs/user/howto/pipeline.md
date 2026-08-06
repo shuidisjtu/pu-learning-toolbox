@@ -68,10 +68,10 @@ report.save("results/pipeline.json")
 
 ### 深度算法与架构选择
 
-`PUPipeline` 已为深度算法显式接入架构选择（`wconpu` / `infomax_pu`；`self_pu`
-亦可按名实例化），需先安装可选依赖 `pip install pu-toolbox[torch]`。深度算法
-须**显式指定**——`auto` 模式下深度方法虽在推荐器候选内，但因 GPU/数据规模/
-训练成本评分低，实际不会被选中。
+`PUPipeline` 已为深度算法显式接入架构选择（`wconpu` / `infomax_pu` 支持
+`encoder` 骨架注入；`self_pu` 亦可按名实例化但尚未适配 cnn），需先安装可选
+依赖 `pip install pu-toolbox[torch]`。深度算法须**显式指定**——`auto` 模式下
+深度方法虽在推荐器候选内，但因 GPU/数据规模/训练成本评分低，实际不会被选中。
 
 | 参数 | 默认 | 说明 |
 |---|---|---|
@@ -79,9 +79,10 @@ report.save("results/pipeline.json")
 | `backbone` | `"cnn13"` | CNN 骨架：`"cnn13"` / `"resnet18"` / `"resnet50"`（仅 `architecture="cnn"` 时有效） |
 | `device` | `"cpu"` | 传给深度分类器的 torch 设备（如 `"cuda"`） |
 
-- 显式指定 TORCH backend 深度分类器时放行，`class_prior` 仍按「显式 > 估计」
-  顺序注入；`architecture="cnn"` 时 pipeline 用 `build_encoder` 构建并注入
-  CNN 编码器
+- 显式指定深度分类器且其构造签名声明 `encoder` 参数时放行（当前为 `wconpu` /
+  `infomax_pu`），`class_prior` 仍按「显式 > 估计」顺序注入；
+  `architecture="cnn"` 时 pipeline 用 `build_encoder` 构建并注入 CNN 编码器；
+  未声明 `encoder` 的深度分类器（如 `self_pu`）配 cnn 在构造期报 `PipelineError`
 - `architecture="cnn"` 要求 4-D NCHW 图像输入（`.npy` 数组）；2-D 表格配
   `cnn` 或 4-D 图像配 `mlp` 都会报错
 - 深度训练较慢（WConPU 默认 800 epoch），`cv>1` 时 pipeline 会打印训练成本

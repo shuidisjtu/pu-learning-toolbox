@@ -69,10 +69,13 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 
 | 参数 | 默认 | 取值 | 语义 |
 |---|---|---|---|
-| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式 TORCH backend 深度分类器（`wconpu` / `infomax_pu` / `self_pu`）；`auto` 或非深度方法配 cnn 抛 `PipelineError` |
+| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数（当前 `wconpu` / `infomax_pu`）；未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError` |
 | `backbone` | `"cnn13"` | `"cnn13"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
 | `device` | `"cpu"` | torch 设备字符串 | 透传给深度分类器（`_fresh_estimator` 按签名注入） |
 
+- 深度算法接入契约：要获得 `architecture="cnn"` 支持，分类器构造签名必须声明
+  `encoder` 参数（特征提取器形态，pipeline 注入 `build_encoder` 产物，
+  `_fresh_estimator` 按签名守卫注入）；未声明时配 cnn 在构造期即被拒绝
 - 显式 `wconpu` / `infomax_pu`：放行必填参数检查，`class_prior` 按「显式 >
   估计」顺序注入；`architecture="cnn"` 时 encoder 由 pipeline 在 `fit_evaluate`
   内懒构建（`build_encoder("cnn", backbone=..., in_channels=...)`）并注入
