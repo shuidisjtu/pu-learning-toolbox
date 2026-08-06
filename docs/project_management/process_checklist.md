@@ -76,7 +76,8 @@
 
 | 日期 | 方法 | 状态 | 代码与文档 | 验证 |
 |---|---|---|---|---|
-| 2026-08-06 | Deep PU 接入 Pipeline/CLI | MLP/CNN 架构选择（两级 architecture+backbone）、.npy 4D NCHW 图像输入、WConPU/InfoMax 显式接入（prior 注入、维度/架构校验、训练成本提示）、InfoMax encoder 插拔、build_encoder 统一入口 | `pu_toolbox/workflows/pipeline.py`；`pu_toolbox/cli/run.py`；`pu_toolbox/estimators/deep/{infomax_pu,vision}.py`；`docs/user/{howto/cli,howto/pipeline,reference/api}.md` | `629 passed`；4 项质量门禁 + ruff（check+format）全通过 |
+| 2026-08-06 | Deep PU 接入 Pipeline/CLI | MLP/CNN 架构选择（两级 architecture+backbone）、.npy 4D NCHW 图像输入、WConPU/InfoMax 显式接入（prior 注入、维度/架构校验、训练成本提示）、InfoMax encoder 插拔、build_encoder 统一入口 | `pu_toolbox/workflows/pipeline.py`；`pu_toolbox/cli/run.py`；`pu_toolbox/estimators/deep/{infomax_pu,vision}.py`；`docs/user/{howto/cli,howto/pipeline,reference/api}.md` | `630 passed`；4 项质量门禁 + ruff（check+format）全通过 |
+| 2026-08-06 | CI 稳定性修复 | B905：test_pipeline_deep.py 两处 `zip` 补 `strict=False`（本地 lint 此前只查 `pu_toolbox/` 漏 `tests/`）；encoder determinism 测试改构建前 seed + 随机输入 + eval 模式 + 显式容差（消除 BN 对常数 batch 的 subnormal 平台噪声） | `tests/unit/workflows/test_pipeline_deep.py`；`tests/unit/estimators/test_vision.py` | CI 13 job 全绿（3 平台 × 3 Python + quality + wheel）；本地 `630 passed` |
 | 2026-07-16 | 测试架构重构 | 分层架构 + 权威级别 | `tests/contract/`；`tests/unit/losses/`；pytest markers | `241 passed`；ruff 检查通过 |
 | 2026-07-16 | nnPU / Non-Negative PU | 已完成 native 实现 | `pu_toolbox/losses/nnpu.py`；`pu_toolbox/estimators/risk/nnpu.py`；`docs/research/method_cards/nnpu.md` | `149 passed`；ruff 检查通过 |
 | 2026-07-16 | ReCPE / Regrouping CPE | 已完成 native 实现 | `pu_toolbox/prior/recpe.py`；`docs/research/method_cards/ReCPE.md` | `133 passed`；ruff 检查通过 |
