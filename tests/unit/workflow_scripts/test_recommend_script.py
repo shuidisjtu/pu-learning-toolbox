@@ -105,6 +105,19 @@ def test_edge_prior_estimator_without_data_errors(tmp_path, rng):
 
 
 @pytest.mark.unit
+def test_edge_unknown_prior_estimator_reports_error(tmp_path, rng):
+    """Unknown --prior-estimator -> exit 1 with error: message, no traceback."""
+    X, y_pu = _write_inputs(tmp_path, rng)
+    profile = _make_profile(tmp_path, rng)
+    code, stderr, out = _run_script(
+        tmp_path, profile, "--prior-estimator", "nope", "--data", str(X), "--labels", str(y_pu)
+    )
+    assert code == 1
+    assert "error:" in stderr
+    assert "Traceback" not in stderr
+
+
+@pytest.mark.unit
 def test_deterministic_recommend_same_input(tmp_path, rng):
     """Same profile twice -> identical recommendation.json bytes."""
     profile = _make_profile(tmp_path, rng)

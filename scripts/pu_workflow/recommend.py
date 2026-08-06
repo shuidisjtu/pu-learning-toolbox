@@ -41,11 +41,25 @@ def _estimate_prior(name: str, X, y_pu) -> float:
 
         est = KernelMeanPriorEstimator(variant=name)
     else:
+        from pu_toolbox.core.base import BasePriorEstimator
+        from pu_toolbox.core.exceptions import PULearningError
         from pu_toolbox.registry import get_algorithm
         from pu_toolbox.registry.builtin_methods import register_all_builtin_methods
 
         register_all_builtin_methods()
-        est = get_algorithm(name)()
+        try:
+            est_cls = get_algorithm(name)
+        except PULearningError as exc:
+            raise ValueError(
+                f"Unknown prior estimator '{name}'. Use 'recpe', 'pen_l1', 'km1', 'km2', "
+                "or a registered prior estimator."
+            ) from exc
+        if not issubclass(est_cls, BasePriorEstimator):
+            raise ValueError(
+                f"Algorithm '{name}' is not a prior estimator. "
+                "Use 'recpe', 'pen_l1', 'km1', 'km2', or a registered prior estimator."
+            )
+        est = est_cls()
     est.fit(X, y_pu)
     return est.estimate()
 
