@@ -318,7 +318,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
-        training_cost=Cost.MEDIUM,  # torch, ~600 epochs (two-stage)
+        training_cost=Cost.HIGH,  # torch, ~600 epochs (two-stage)
     ),
     # ── 14. Weighted Contrastive PU ────────────────────────────────
     AlgorithmMetadata(
@@ -340,7 +340,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
-        training_cost=Cost.MEDIUM,  # torch, 800 epochs
+        training_cost=Cost.HIGH,  # torch, 800 epochs
     ),
     # ── 15. DGPU ───────────────────────────────────────────────────
     AlgorithmMetadata(

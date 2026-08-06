@@ -83,7 +83,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
   展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
   `PipelineError`；2-D + cnn → `PipelineError`
 - deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议减少折数（`cv` 最小为 2）
-- `auto` 行为不变：深度方法虽在推荐器候选内，但因 GPU/数据规模/训练成本评分低，实际不会被选中
+- `auto` 行为：深度方法无 GPU 或小数据时评分低，不会被实际选中；有 GPU 且数据量大时可能被推荐（其适用场景）
 
 ### 错误场景
 

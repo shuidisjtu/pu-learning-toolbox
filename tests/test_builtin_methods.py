@@ -223,8 +223,9 @@ class TestBuiltinRegistration:
                 f"{meta.name} is missing an explicit training_cost"
             )
 
-    def test_basic_only_llsvm_is_high_cost(self):
-        """LLSVM's fixed 3000-epoch SGD is the only HIGH-cost method."""
+    def test_basic_heavy_fixed_epoch_methods_are_high_cost(self):
+        """Fixed long-epoch solvers are HIGH cost: LLSVM SGD, WConPU and
+        InfoMax PU deep training; short-epoch deep methods stay MEDIUM."""
         from pu_toolbox.core.tags import TrainingCost
 
         register_all_builtin_methods()
@@ -233,4 +234,4 @@ class TestBuiltinRegistration:
             for m in get_algorithm_registry().values()
             if m.training_cost == TrainingCost.HIGH
         }
-        assert high == {"llsvm"}
+        assert high == {"llsvm", "infomax_pu", "weighted_contrastive_pu"}
