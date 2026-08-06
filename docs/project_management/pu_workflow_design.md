@@ -21,6 +21,7 @@
 | 执行层 | 混合：CLI 能干的用 CLI（训练/评估），CLI 缺的写仓库级环节脚本（画像/推荐/敏感性） |
 | 覆盖范围 | 四环节全流程：画像诊断 → 推荐先验 → 训练评估 → 结果解读 |
 | 发布形态 | 随仓库发布（目录进 git，clone 即得） |
+| git 发布范围 | 仅发布 `pu-workflow`；`.claude/` 其余内容（CLAUDE.md、settings.local.json、dev-workflow）保持不发布 |
 | 自动化程度 | 自适应检查点（无异常连续跑完，需用户输入/有警告时停下） |
 | 语言 | SKILL.md 英文主体 + 中文解读指南（references） |
 
@@ -118,6 +119,19 @@ metadata:
 - 复用 `utils/serialization.py` 严格 JSON 序列化
 - 退出码沿用 CLI 约定：0 成功；1 用户/运行错误（stderr 清晰消息、无 traceback）
 - pytest 覆盖输出契约（新测试目录 `tests/unit/workflow_scripts/`）
+
+## git 发布策略
+
+`.gitignore` 当前整目录忽略 `.claude/`（含 CLAUDE.md、dev-workflow skill，均不发布）。发布 pu-workflow 需逐级白名单：
+
+```
+.claude/
+!.claude/skills/
+!.claude/skills/pu-workflow/
+```
+
+- 仅 `pu-workflow` 进 git（clone 即得）；`dev-workflow` 保持不发布（含代理地址/团队内部信息，且为 Claude Code 专属、不通用）
+- `.agents/skills/pu-workflow/` 正常进 git（无 ignore 冲突）
 
 ## 一致性门禁（第 5 道）
 
