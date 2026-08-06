@@ -15,18 +15,29 @@ from pu_toolbox.cli import main
 from pu_toolbox.preprocessing.pu_labeling import make_scar_dataset
 
 
-def _write_demo(tmp_path, rng):
-    """Write SCAR demo CSVs into tmp_path; return (data, labels, truth) paths."""
-    X, y_pu, y_true = make_scar_dataset(n=30, c=0.5, n_features=5, separation=4.0, random_state=rng)
-    data = tmp_path / "X.csv"
-    labels = tmp_path / "y_pu.csv"
-    truth = tmp_path / "y_true.csv"
-    # String feature names: numeric headers are indistinguishable from data
-    # rows when run checks for a missing header (see cli/run.py).
-    pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])]).to_csv(data, index=False)
-    pd.DataFrame({"label": y_pu}).to_csv(labels, index=False)
-    pd.DataFrame({"label": y_true}).to_csv(truth, index=False)
-    return data, labels, truth
+def _write_demo(tmp_path, rng=None):
+    """Write SCAR demo CSVs via the real make-demo-data implementation.
+
+    The CSV contract (string feature names, three files, row counts) has a
+    single source of truth in cli/demo.py; this helper calls it instead of
+    replicating the generation logic.  *rng* is accepted for compatibility
+    with call sites (the demo uses a fixed seed).
+    """
+    import argparse
+
+    from pu_toolbox.cli.demo import run_demo
+
+    run_demo(
+        argparse.Namespace(
+            out_dir=str(tmp_path),
+            n=30,
+            c=0.5,
+            n_features=5,
+            separation=4.0,
+            seed=42,
+        )
+    )
+    return tmp_path / "X.csv", tmp_path / "y_pu.csv", tmp_path / "y_true.csv"
 
 
 def _run(tmp_path, rng, *extra):

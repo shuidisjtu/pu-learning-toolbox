@@ -12,10 +12,11 @@ from ..workflows.pipeline import _missing_required_params
 
 __all__ = ["build_info_parser", "run_list_methods", "run_list_priors"]
 
-# Common names listed first; km1/km2 map to KernelMeanPriorEstimator
-# variants in PUPipeline (not registry aliases), so they are listed
-# explicitly.  Registry names and aliases are appended by run_list_priors.
-_PRIOR_NAMES = ("recpe", "pen_l1", "km1", "km2")
+# km1/km2 map to KernelMeanPriorEstimator variants in PUPipeline (not
+# registry aliases), so they are the only names listed explicitly here.
+# Registry names and aliases (recpe, pen_l1, cpe, ...) are collected by
+# run_list_priors, keeping the accepted set in sync with the registry.
+_PRIOR_NAMES = ("km1", "km2")
 
 
 def build_info_parser(sub: argparse._SubParsersAction) -> None:

@@ -12,7 +12,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ..core.exceptions import PULearningError
 from ..workflows import PUPipeline
 
 __all__ = ["build_run_parser", "run_run"]
@@ -84,12 +83,12 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
 
 
 def run_run(args: argparse.Namespace) -> None:
-    """Execute the ``run`` subcommand; maps user errors to exit code 1."""
-    try:
-        _run(args)
-    except (PULearningError, ValueError, OSError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        sys.exit(1)
+    """Execute the ``run`` subcommand.
+
+    Error mapping (``error: <msg>`` + exit 1) happens once in the top-level
+    :func:`pu_toolbox.cli.main`; this subcommand no longer duplicates it.
+    """
+    _run(args)
 
 
 def _run(args: argparse.Namespace) -> None:
@@ -171,6 +170,14 @@ def _load_features(path: Path) -> np.ndarray:
     """Read a feature matrix: CSV table (2-D) or .npy image array (4-D NCHW)."""
     if path.suffix.lower() == ".npy":
         array = np.load(path)
+        if not isinstance(array, np.ndarray):
+            # np.load on a .npz archive returns an NpzFile (no .ndim),
+            # which would surface as a bare AttributeError outside the
+            # CLI's error mapping.
+            raise ValueError(
+                f"image data file {path} must be a .npy array; got "
+                f"{type(array).__name__}. Only .npy (not .npz) archives are supported."
+            )
         if array.ndim != 4:
             raise ValueError(
                 f"image data file {path} must be a 4-D NCHW float array; "

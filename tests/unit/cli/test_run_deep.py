@@ -7,8 +7,6 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox.cli.run import build_run_parser, run_run
-
 
 def _write_image(tmp_path, n=16, channels=3, size=8, seed=4):
     rng = np.random.RandomState(seed)
@@ -21,19 +19,17 @@ def _write_image(tmp_path, n=16, channels=3, size=8, seed=4):
     return data_path, labels_path
 
 
-def _make_parser():
-    from argparse import ArgumentParser
+def _run_cli(argv):
+    """Run the CLI through the top-level entry point.
 
-    parser = ArgumentParser()
-    sub = parser.add_subparsers(dest="subcommand")
-    build_run_parser(sub)
-    return parser
+    Error mapping (``error: <msg>`` + exit 1) lives in ``cli.main`` for
+    every subcommand; going through it keeps this helper's contract
+    aligned with the real entry point instead of run_run.
+    """
+    from pu_toolbox.cli import main
 
-
-def _run_cli(parser, argv):
-    args = parser.parse_args(argv)
     try:
-        run_run(args)
+        main(argv)
         return 0
     except SystemExit as exc:
         return exc.code
@@ -56,9 +52,7 @@ class TestRunDeepInput:
                 return type("R", (), {"save": lambda *a: None, "summary": lambda *a: ""})()
 
         monkeypatch.setattr(cli_run, "PUPipeline", FakePipe)
-        parser = _make_parser()
         code = _run_cli(
-            parser,
             [
                 "run",
                 "--data",
@@ -84,9 +78,7 @@ class TestRunDeepInput:
 
     def test_param_cnn_with_shallow_classifier_exits_one(self, tmp_path, capsys):
         data_path, labels_path = _write_image(tmp_path)
-        parser = _make_parser()
         code = _run_cli(
-            parser,
             [
                 "run",
                 "--data",
@@ -105,9 +97,7 @@ class TestRunDeepInput:
 
     def test_param_backbone_with_mlp_exits_one(self, tmp_path, capsys):
         data_path, labels_path = _write_image(tmp_path)
-        parser = _make_parser()
         code = _run_cli(
-            parser,
             [
                 "run",
                 "--data",
@@ -128,9 +118,7 @@ class TestRunDeepInput:
 
     def test_edge_4d_npy_with_mlp_exits_one(self, tmp_path, capsys):
         data_path, labels_path = _write_image(tmp_path)
-        parser = _make_parser()
         code = _run_cli(
-            parser,
             [
                 "run",
                 "--data",
@@ -153,9 +141,7 @@ class TestRunDeepInput:
         np.save(path, rng.rand(10, 5).astype(np.float32))
         labels_path = tmp_path / "labels.csv"
         labels_path.write_text("labels\n1\n0\n0\n0\n0\n0\n0\n0\n0\n0\n")
-        parser = _make_parser()
         code = _run_cli(
-            parser,
             [
                 "run",
                 "--data",

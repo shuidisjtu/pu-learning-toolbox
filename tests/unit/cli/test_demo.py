@@ -24,15 +24,16 @@ def test_demo_writes_three_files(tmp_path):
 
 
 @pytest.mark.unit
-def test_edge_minimal_n_writes_six_rows(tmp_path):
-    """--n 3 (smallest runnable) still produces all three files with 6 rows."""
-    args = build_parser().parse_args(
-        ["make-demo-data", "--out-dir", str(tmp_path), "--n", "3", "--seed", "1"]
-    )
-    args.func(args)
-    for name in ("X.csv", "y_pu.csv", "y_true.csv"):
-        assert (tmp_path / name).exists()
-    assert len(pd.read_csv(tmp_path / "X.csv")) == 6
+def test_param_too_few_labeled_positives_reports_error(tmp_path, capsys):
+    """n=3 at c=0.5 labels only 2 positives -- fewer than the default 5-fold
+    CV demands -- so the guard must refuse instead of writing CSVs that
+    `run` cannot consume (regression: the old --n>=3 guard passed but the
+    demo still failed under the default 5-fold CV)."""
+    with pytest.raises(SystemExit) as exc:
+        main(["make-demo-data", "--out-dir", str(tmp_path / "d"), "--n", "3"])
+    assert exc.value.code == 1
+    assert "error:" in capsys.readouterr().err
+    assert not (tmp_path / "d" / "X.csv").exists()
 
 
 @pytest.mark.unit

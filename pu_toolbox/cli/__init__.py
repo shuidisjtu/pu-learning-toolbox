@@ -36,8 +36,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     """CLI entry point (console script).
 
     User errors map to ``error: <msg>`` on stderr + exit 1 (no traceback)
-    for every subcommand; ``run`` additionally wraps its own flow the same
-    way.  Unknown exceptions keep their traceback for debugging.
+    for every subcommand.  Unknown exceptions keep their traceback for
+    debugging.
     """
     parser = build_parser()
     args = parser.parse_args(argv)
