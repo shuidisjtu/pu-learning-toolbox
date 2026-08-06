@@ -68,8 +68,8 @@ uv run python scripts/pu_workflow/profile.py \
 
 Read `<work_dir>/profile.json`:
 
-- `selection_diagnostic.status`: `plausible` / `inconclusive` /
-  `at_risk` / `error` — SCAR/SAR plausibility evidence.
+- `selection_diagnostic.status`: `plausible` / `at_risk` /
+  `inconclusive` — SCAR/SAR plausibility evidence.
 - `issues[]`: each has `code`, `severity` (`info`/`warning`/`error`),
   `message`, `action`. The `action` field tells the user what to do.
 
@@ -92,7 +92,9 @@ prior, STOP and offer exactly two options:
 1. Auto-estimate (`recpe`, `km1`, or `km2`; pass `--prior-estimator`).
 2. Supply a domain value (`--class-prior 0.3`).
 
-Wait for the user's choice. If the user gives a value, keep it verbatim.
+Wait for the user's choice. If the user explicitly declines a prior,
+run with `--prior-estimator none`; if the user gives a value, keep it
+verbatim.
 
 Run with the chosen prior (or `--prior-estimator none` if none is
 needed):
@@ -136,9 +138,10 @@ explicit name only when the user asks for a specific method. Let the
 user's prior decision flow through: pass `--class-prior <value>` or
 `--prior-estimator` exactly as chosen in Step 2.
 
-Read `<work_dir>/run/report.json`: `cv_metrics[]` (each with
-`available`, `mean`, `std`, `reason`), `prior`, `provenance`, `issues[]`
-(`has_errors` / `has_warnings` summarized in `report.md`).
+Read `<work_dir>/run/report.json`: `cv_metrics` (a dict keyed by metric
+name; each entry has `available`, `mean`, `std`, `n_computed`,
+`reason`), `prior`, `provenance`, `issues[]` (`has_errors` /
+`has_warnings` summarized in `report.md`).
 
 **Checkpoint 3 (mandatory):** if `report.json` carries any error or
 warning entries (or the run failed with exit 1), STOP and walk the
@@ -172,7 +175,7 @@ Do not invent numbers: cite only values present in the JSON outputs.
 | Symptom | Action |
 |---|---|
 | Script exit 1 | Read the stderr `error:` message; fix the input and re-run, or ask the user how to proceed |
-| `profile.json` diagnostic `error` | Data cannot be reliably modeled; present the issues and stop |
+| Diagnostic `at_risk` / `inconclusive` | Explain what it means and stop at Checkpoint 1, waiting for the user's decision |
 | Empty candidate list | Explain `filters_applied`; suggest relaxing filters (e.g. supply a prior, densify sparse data) |
 | `pu-toolbox run` exit 1 | Show the `error:` message; three options for the user: fix data and re-run / pick another method / get the full traceback |
 | Unknown classifier/prior name | Run `pu-toolbox list-methods` / `pu-toolbox list-priors` for the accepted set |

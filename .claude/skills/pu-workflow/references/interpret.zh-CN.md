@@ -8,9 +8,8 @@
 - `summary`：样本数、特征数、标注正样本数、观测正样本率 P(S=1) 等。
 - `selection_diagnostic.status`：
   - `plausible` — 数据与 SCAR 假设无明显冲突，可以按 SCAR 方法继续；
-  - `inconclusive` — 证据不足，无法判定（常见于正样本过少）；
   - `at_risk` — 存在 selection-bias 迹象，SCAR 方法可能偏置；
-  - `error` — 数据本身无法支撑可靠建模。
+  - `inconclusive` — 证据不足，无法判定（常见于正样本过少）。
 - `issues[]`：每条含 `code` / `severity` / `message` / `action`。
   向用户转述 `message` 并给出 `action` 建议。
 
@@ -28,14 +27,15 @@
 - `cv_metrics`：每个指标的 `available` / `mean` / `std` /
   `n_computed`。`available=false` 时转述 `reason`（如缺 y_true）。
 - `provenance`：`classifier`、`classifier_mode`（auto 时说明是推荐器
-  选中的）、`prior_estimator`。
+  选中的）、`prior_source`、`prior_audit_flagged`、`random_state`、
+  `y_true_supplied`、`skipped_candidates`。估计器名在 `prior.estimator`。
 - `issues[]`：`has_errors` 为 true 时先处理错误再下结论。
 
 ## sensitivity.json 关键字段
 
 - `observed_label_rate`：观测正样本率，是先验的可识别性下限。
 - `points[]`：每点的 `class_prior` / `label_propensity` / `is_consistent`
-  / `estimated_precision` / `pu_zero_one_risk`。
+  / `pu_estimated_precision` / `pu_zero_one_risk`。
 - `has_inconsistent_assumptions`：存在与观测不符的假设组合——转述
   具体是哪几组，说明结果对这些假设的敏感性。
 
