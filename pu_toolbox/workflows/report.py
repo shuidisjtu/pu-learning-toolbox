@@ -104,6 +104,7 @@ class CVMetric:
             "basis": self.basis,
             "available": self.available,
             "reason": self.reason,
+            "n_computed": self.n_computed,
             "per_fold": list(self.per_fold),
         }
 
@@ -121,11 +122,6 @@ class PipelineReport:
     diagnostic: PUDiagnosticReport | None
     issues: tuple[ProfileIssue, ...]
     provenance: dict[str, Any]
-
-    @property
-    def cv_scores(self) -> dict[str, CVMetric]:
-        """Design-doc-compatible alias for :attr:`cv_metrics`."""
-        return self.cv_metrics
 
     @property
     def has_errors(self) -> bool:
@@ -164,6 +160,10 @@ class PipelineReport:
                 f"- **{issue.severity.upper()} `{issue.code}`**: {_escape_markdown(issue.message)}"
                 for issue in self.issues
             )
+            n_errors = sum(issue.severity == "error" for issue in self.issues)
+            n_warnings = sum(issue.severity == "warning" for issue in self.issues)
+            lines.append("")
+            lines.append(f"Summary: {n_errors} error(s), {n_warnings} warning(s).")
         else:
             lines.append("No issues detected.")
         return "\n".join(lines)
@@ -242,9 +242,18 @@ class PipelineReport:
         *,
         format: Literal["json", "markdown"] | None = None,
     ) -> Path:
-        """Write the report to ``path``, inferring the format from the suffix."""
+        """Write the report to ``path``, inferring the format from the suffix.
+
+        An unknown ``format`` raises ``ValueError`` instead of silently
+        writing a markdown report (matching ``PUDiagnosticReport.save``
+        and ``RecommendationResult.save``).
+        """
         target = Path(path)
-        fmt = format or _format_from_suffix(target)
+        fmt = format
+        if fmt is None:
+            fmt = _format_from_suffix(target)
+        if fmt not in {"json", "markdown"}:
+            raise ValueError(f"Unknown format {fmt!r}; expected 'json' or 'markdown'.")
         text = self.to_json() if fmt == "json" else self.to_markdown()
         target.write_text(text, encoding="utf-8")
         return target

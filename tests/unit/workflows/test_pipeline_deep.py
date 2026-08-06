@@ -2,6 +2,8 @@
 
 """PUPipeline deep-algorithm integration tests (architecture selection)."""
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -28,13 +30,10 @@ def _table_data(n=40, seed=2):
 
 @pytest.mark.unit
 class TestPipelineDeepValidation:
-    def test_param_cnn_with_shallow_classifier_raises(self):
+    @pytest.mark.parametrize("classifier", ["upu", "auto"])
+    def test_param_cnn_with_non_deep_classifier_raises(self, classifier):
         with pytest.raises(PipelineError, match="cnn"):
-            PUPipeline(classifier="upu", architecture="cnn")
-
-    def test_param_cnn_with_auto_raises(self):
-        with pytest.raises(PipelineError, match="cnn"):
-            PUPipeline(classifier="auto", architecture="cnn")
+            PUPipeline(classifier=classifier, architecture="cnn")
 
     def test_param_2d_with_cnn_raises(self):
         X, y_pu = _table_data()
@@ -68,6 +67,21 @@ class TestPipelineDeepValidation:
         dgpu = DGPUClassifier(0.3, generator=object())
         with pytest.raises(PipelineError, match="encoder"):
             PUPipeline(classifier=dgpu, architecture="cnn")
+
+    def test_edge_kwargs_constructor_not_misread_as_required(self):
+        """A **kwargs parameter must not block auto-instantiation.
+
+        Regression guard: VAR_KEYWORD's default is also ``empty``, so
+        ``_missing_required_params`` used to report ``kwargs`` as a
+        required constructor arg and skip such classes in auto mode.
+        """
+        from pu_toolbox.workflows.pipeline import _missing_required_params
+
+        def fake_init(self, *, class_prior=None, random_state=42, **kwargs):
+            pass
+
+        cls = type("KwargsClf", (), {"__init__": fake_init})
+        assert _missing_required_params(cls) == set()
 
 
 @pytest.mark.unit
@@ -110,8 +124,6 @@ class TestPipelineDeepInstantiation:
 
         original_init = WeightedContrastivePUClassifier.__init__
 
-        # NOTE: no **kwargs here -- pipeline._missing_required_params would
-        # misread a VAR_KEYWORD parameter as a required constructor arg.
         def fast_init(self, class_prior, *, encoder=None, device="cpu", max_epochs=1):
             original_init(self, class_prior, encoder=encoder, device=device, max_epochs=max_epochs)
 
@@ -132,6 +144,50 @@ class TestPipelineDeepAutoUnchanged:
         report = pipe.fit_evaluate(X, y_pu)
         assert report.provenance["classifier_mode"] == "auto"
         assert report.final_model.backend.value != "torch"
+
+    def test_basic_auto_torch_candidate_gets_deep_seeding(self, monkeypatch):
+        """auto 选中 TORCH 方法后必须重算 _is_deep：torch.manual_seed 从
+        random_state 播种、训练成本警告触发、has_gpu 如实传给推荐器。
+
+        Regression guard: _is_deep used to be hard-coded False for auto,
+        so an auto-selected torch method silently skipped torch seeding
+        (breaking the reproducibility promise) and the cost warning; the
+        recommender's GPU dimension was also unreachable.
+        """
+        import torch
+
+        from pu_toolbox.advisor._types import MethodCandidate, RecommendationResult
+        from pu_toolbox.registry.metadata import AlgorithmMetadata
+
+        X, y_pu = _table_data(n=40)
+
+        def fake_recommend(profile, **kwargs):
+            assert kwargs["has_gpu"] is False  # device="cpu" 如实声明
+            meta = AlgorithmMetadata(name="nnpu", paper="fake")
+            cand = MethodCandidate(
+                name="nnpu", score=90.0, rank=1, reasons=(), warnings=(), metadata=meta
+            )
+            return RecommendationResult(
+                candidates=(cand,), filters_applied={}, global_warnings=(), provenance={}
+            )
+
+        monkeypatch.setattr("pu_toolbox.workflows.pipeline.recommend_from_profile", fake_recommend)
+        seeded: list[int] = []
+        monkeypatch.setattr(torch, "manual_seed", lambda s: seeded.append(s))
+
+        def stub_fresh(cls, instance, prior):
+            return _StubClf()
+
+        pipe = PUPipeline(classifier="auto", cv=2, random_state=7)
+        monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            report = pipe.fit_evaluate(X, y_pu, class_prior=0.3)
+
+        assert seeded == [7]
+        assert any("trained 3 times" in str(w.message) for w in caught)
+        assert report.provenance["classifier_mode"] == "auto"
+        assert report.provenance["classifier"] == "NonNegativePUClassifier"
 
 
 class _StubClf:

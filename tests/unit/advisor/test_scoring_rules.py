@@ -38,6 +38,8 @@ def _assumption_stub(
     assumption: Assumption,
     family: AlgorithmFamily = AlgorithmFamily.RISK_ESTIMATION,
     cost: TrainingCost = TrainingCost.LOW,
+    backend: Backend = Backend.NUMPY,
+    supports_gpu: bool = False,
 ) -> AlgorithmMetadata:
     """Metadata identical except for the assumption claim (isolates the
     assumption dimension when scoring)."""
@@ -46,7 +48,8 @@ def _assumption_stub(
         paper="stub",
         assumption=[assumption],
         family=family,
-        backend=Backend.NUMPY,
+        backend=backend,
+        supports_gpu=supports_gpu,
         maturity=Maturity.RESEARCH,
         source_status=SourceStatus.OFFICIAL_EXACT,
         requires_class_prior=False,
@@ -54,9 +57,9 @@ def _assumption_stub(
     )
 
 
-def _diagnostic_profile(status: str) -> SimpleNamespace:
+def _diagnostic_profile(status: str, n_samples: int = 100) -> SimpleNamespace:
     return SimpleNamespace(
-        summary={"n_samples": 100},
+        summary={"n_samples": n_samples},
         selection_diagnostic={"status": status},
         issues=[],
     )
@@ -194,6 +197,26 @@ def test_basic_at_risk_boosts_sar_over_scar():
         _assumption_stub(Assumption.SCAR), plausible, None, False, DEFAULT_CONFIG
     )
     assert p_scar > p_sar
+
+
+@pytest.mark.unit
+def test_basic_gpu_dimension_activates_for_torch_methods():
+    """The GPU dimension must have a real effect on large data: a TORCH
+    method scores higher with has_gpu=True and reports the reason.
+
+    On small data the scale dimension's TORCH penalty outweighs the GPU
+    bonus by design (no point in GPU-accelerating tiny datasets), so the
+    activation is asserted in the large-data band.
+
+    Regression guard: gpu_max used to have no reachable activation path
+    (nothing ever passed has_gpu=True), so the dimension was dead.
+    """
+    meta = _assumption_stub(Assumption.SCAR, backend=Backend.TORCH, supports_gpu=True)
+    profile = _diagnostic_profile("plausible", n_samples=20000)
+    with_gpu, reasons_gpu = score_method(meta, profile, None, True, DEFAULT_CONFIG)
+    without_gpu, _ = score_method(meta, profile, None, False, DEFAULT_CONFIG)
+    assert with_gpu > without_gpu
+    assert "GPU-accelerated" in reasons_gpu
 
 
 @pytest.mark.unit

@@ -50,17 +50,18 @@ _ALWAYS_PROVIDED = {"class_prior", "random_state"}
 # explicit user choice (affects ``PriorInfo.auto_selected``).
 _UNSET = object()
 
-_BUILTINS_REGISTERED = False
-
 
 def _ensure_registered() -> None:
-    """Lazily register builtin methods (same pattern as the recommender)."""
-    global _BUILTINS_REGISTERED  # noqa: PLW0603
-    if not _BUILTINS_REGISTERED:
-        from ..registry.builtin_methods import register_all_builtin_methods
+    """Register builtin methods.
 
-        register_all_builtin_methods()
-        _BUILTINS_REGISTERED = True
+    ``register_all_builtin_methods`` is idempotent (registry-level dedup),
+    so calling it repeatedly is safe and never goes stale -- unlike the
+    old module-level ``_BUILTINS_REGISTERED`` flag, which made the
+    pipeline silently run an empty registry after ``clear_registry()``.
+    """
+    from ..registry.builtin_methods import register_all_builtin_methods
+
+    register_all_builtin_methods()
 
 
 class PipelineError(PULearningError):
@@ -200,7 +201,10 @@ class PUPipeline:
     Deep classifiers (``"wconpu"``, ``"infomax_pu"``) with
     ``architecture="cnn"`` expect 4-D NCHW image tensors; class-prior
     estimation and data profiling then run on the flattened view.
-    ``"auto"`` mode never selects a deep method.
+    ``"auto"`` mode can select a deep method when the data is large and
+    a GPU is available (``device != "cpu"``); the selected classifier
+    then gets torch seeding and training-cost warnings like an explicit
+    one.
     """
 
     def __init__(
@@ -424,6 +428,11 @@ class PUPipeline:
                 profile,
                 class_prior=prior,
                 class_prior_source=prior_info.source,
+                # A non-default device declares GPU availability to the
+                # recommender's GPU dimension; otherwise the GPU bonus
+                # (gpu_max) is unreachable and deep methods are never
+                # considered on large data.
+                has_gpu=self.device != "cpu",
                 top_k=10,
             )
             classifier_cls, skipped_candidates = _pick_first_instantiable(recommendation.candidates)
@@ -435,6 +444,10 @@ class PUPipeline:
                     + "; ".join(f"{s['name']} ({s['reason']})" for s in skipped_candidates)
                 )
             classifier_name = classifier_cls.__name__
+            # Recompute the deep flag for the selected method: the
+            # recommender can pick a TORCH method on large data, and the
+            # training-cost warning / torch seeding below must see it.
+            self._is_deep = getattr(classifier_cls, "backend", None) == Backend.TORCH
 
         elif classifier_cls is not None:
             classifier_name = self._classifier_name
@@ -450,18 +463,19 @@ class PUPipeline:
                 stacklevel=2,
             )
 
-        # -- Build the shared encoder for CNN architecture ----------------
+        # -- Seed torch + build the shared CNN encoder (deep only) --------
         self._encoder = None
-        if self._is_deep and self.architecture == "cnn":
+        if self._is_deep:
             if self.random_state is not None:
                 import torch
 
                 torch.manual_seed(self.random_state)
-            from ..estimators.deep.vision import build_encoder
+            if self.architecture == "cnn":
+                from ..estimators.deep.vision import build_encoder
 
-            self._encoder = build_encoder(
-                "cnn", backbone=self.backbone, in_channels=int(X.shape[1])
-            )
+                self._encoder = build_encoder(
+                    "cnn", backbone=self.backbone, in_channels=int(X.shape[1])
+                )
 
         # -- Cross-validation ---------------------------------------------
         per_fold: dict[str, list[float | None]] = {name: [] for name in self.metrics}
@@ -693,7 +707,16 @@ class PUPipeline:
     ) -> BasePUClassifier:
         """Clone an instance, or instantiate a class with injected params."""
         if instance is not None:
-            return clone(instance)
+            clf = clone(instance)
+            # The pipeline builds the CNN encoder even for instance paths
+            # (architecture='cnn' + a declared encoder parameter); inject
+            # it so the built encoder is consumed instead of discarded.
+            if (
+                self._encoder is not None
+                and "encoder" in inspect.signature(type(instance).__init__).parameters
+            ):
+                clf.set_params(encoder=self._encoder)
+            return clf
         assert cls is not None
         kwargs: dict[str, Any] = {}
         signature = inspect.signature(cls.__init__)
@@ -756,6 +779,10 @@ def _missing_required_params(cls: type) -> set[str]:
         param
         for param, p in signature.parameters.items()
         if param != "self"
+        # *args / **kwargs are never required: their default is also
+        # ``empty``, which used to misread them as mandatory and block
+        # auto-instantiation of any **kwargs constructor.
+        and p.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         and p.default is inspect.Parameter.empty
         and param not in _ALWAYS_PROVIDED
     }
@@ -839,7 +866,10 @@ def _compute_metric(
             return pu_negative_rate(y_pu_fold, pred), None
     except ValueError as exc:
         return None, f"fold metric failed: {exc}"
-    raise PipelineError(f"Unreachable metric {name!r}.")
+    # Defensive: _METRIC_SPECS and the if-chain above stay in lockstep;
+    # an unhandled name is an internal invariant violation, not a
+    # pipeline orchestration failure.
+    raise AssertionError(f"Unreachable metric {name!r}.")
 
 
 def _aggregate_reason(reasons: list[str], all_skipped: bool) -> str | None:
@@ -861,14 +891,27 @@ def _validate_y_true(y_true: np.ndarray, n_samples: int) -> np.ndarray:
 
 
 def _validate_prior_value(value: float, name: str) -> None:
+    """Validate a user-supplied class prior (caller error -> ValueError).
+
+    ``PipelineError`` is reserved for orchestration failures (unresolvable
+    classifier/prior, failed estimation); a bad user input is a plain
+    ``ValueError`` like every other constructor-argument check in the
+    pipeline (cv, metrics, architecture).
+    """
     if not 0.0 < value < 1.0:
-        raise PipelineError(f"{name} must be in (0, 1); got {value!r}.")
+        raise ValueError(f"{name} must be in (0, 1); got {value!r}.")
 
 
 def _resolved_n_splits(splitter: Any, X: Any, y_pu: np.ndarray) -> int:
     if hasattr(splitter, "get_n_splits"):
         return int(splitter.get_n_splits(X, y_pu))
-    return 5
+    # Fail fast instead of silently assuming 5 folds: the fold-count
+    # guard, provenance, and the deep training-cost warning all depend
+    # on the real number of splits.
+    raise ValueError(
+        f"cv splitter {type(splitter).__name__} must implement "
+        "get_n_splits(X, y) so the pipeline can validate fold counts."
+    )
 
 
 def _cv_provenance(splitter: Any, n_splits: int) -> dict[str, Any]:

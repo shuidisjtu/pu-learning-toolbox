@@ -42,13 +42,15 @@ class TestPipelineBasic:
         assert report.final_model is not None
         report.final_model.predict(X[:5])
         assert report.diagnostic is not None
-        assert report.cv_scores is report.cv_metrics
+        assert report.has_errors is False
+        assert "Summary:" in report.summary()
 
         # Strict JSON serialization: parseable, no NaN literals.
         payload = json.loads(report.to_json())
         assert payload["schema_version"] == "1.0"
         assert set(payload["cv_metrics"]) == set(DEFAULT_METRICS)
         assert payload["prior"]["source"] == "estimated"
+        assert payload["cv_metrics"]["pu_recall"]["n_computed"] == 5
 
     def test_explicit_class_prior_wins(self, rng):
         """fit_evaluate(class_prior=...) takes precedence and skips estimation."""
