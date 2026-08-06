@@ -36,14 +36,16 @@ def main(argv: list[str] | None = None) -> int:
             else None
         )
         profile = profile_pu_data(X, y_pu, y_true=y_true, random_state=args.seed)
+        out_dir = Path(args.out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        payload = (
+            json.dumps(profile.to_dict(), ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+        )
+        (out_dir / "profile.json").write_text(payload, encoding="utf-8")
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(profile.to_dict(), ensure_ascii=False, indent=2, allow_nan=False) + "\n"
-    (out_dir / "profile.json").write_text(payload, encoding="utf-8")
     return 0
 
 

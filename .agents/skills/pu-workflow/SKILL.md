@@ -42,6 +42,9 @@ classification with full labels.
   single-column CSV of {1, 0} with a header row. Headerless or
   multi-column files are rejected with a clear error - report it to the
   user, do not work around it.
+- The profile/recommend scripts operate on table data (2-D CSV). For
+  4-D NCHW image data, go directly to Step 3 and pass
+  `--architecture cnn` (plus `--backbone`/`--device` as needed).
 
 ## Workflow overview
 
@@ -187,4 +190,5 @@ Do not invent numbers: cite only values present in the JSON outputs.
 - `docs/user/howto/data_profiling.md`, `docs/user/howto/pipeline.md`,
   `docs/user/howto/cli.md`, `docs/user/howto/sensitivity_analysis.md`
 - `docs/user/reference/api.md`
-- `references/interpret.zh-CN.md` (this skill directory)
+- `.claude/skills/pu-workflow/references/interpret.zh-CN.md` (repo-root
+  relative; this file only exists on the .claude side)

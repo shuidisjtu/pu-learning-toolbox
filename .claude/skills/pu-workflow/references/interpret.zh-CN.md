@@ -29,15 +29,15 @@
 - `provenance`：`classifier`、`classifier_mode`（auto 时说明是推荐器
   选中的）、`prior_source`、`prior_audit_flagged`、`random_state`、
   `y_true_supplied`、`skipped_candidates`。估计器名在 `prior.estimator`。
-- `issues[]`：`has_errors` 为 true 时先处理错误再下结论。
+- `issues[]`：存在 `severity="error"` 的条目时先处理错误再下结论。
 
 ## sensitivity.json 关键字段
 
 - `observed_label_rate`：观测正样本率，是先验的可识别性下限。
 - `points[]`：每点的 `class_prior` / `label_propensity` / `is_consistent`
   / `pu_estimated_precision` / `pu_zero_one_risk`。
-- `has_inconsistent_assumptions`：存在与观测不符的假设组合——转述
-  具体是哪几组，说明结果对这些假设的敏感性。
+- `points[]` 中存在 `is_consistent=false` 的点（与观测不符的假设组
+  合）——转述具体是哪几组，说明结果对这些假设的敏感性。
 
 ## 行动建议模板（结论结构）
 

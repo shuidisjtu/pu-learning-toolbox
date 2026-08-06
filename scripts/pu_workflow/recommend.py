@@ -110,13 +110,13 @@ def main(argv: list[str] | None = None) -> int:
             has_gpu=args.has_gpu,
             top_k=args.top_k,
         )
+        out_dir = Path(args.out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "recommendation.json").write_text(result.to_json() + "\n", encoding="utf-8")
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "recommendation.json").write_text(result.to_json() + "\n", encoding="utf-8")
     return 0
 
 

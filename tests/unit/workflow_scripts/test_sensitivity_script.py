@@ -26,8 +26,8 @@ def _write_inputs(tmp_path, rng):
     return tmp_path / "X.csv", tmp_path / "y_pu.csv"
 
 
-def _run_script(tmp_path, *extra):
-    out = tmp_path / "out"
+def _run_script(tmp_path, *extra, out_dir=None):
+    out = tmp_path / "out" if out_dir is None else Path(out_dir)
     proc = subprocess.run(
         [sys.executable, "scripts/pu_workflow/sensitivity.py", *extra, "--out-dir", str(out)],
         capture_output=True,
@@ -92,6 +92,20 @@ def test_edge_unknown_classifier_reports_error(tmp_path, rng):
     assert "error:" in stderr
     assert "Traceback" not in stderr
     assert not (out / "sensitivity.json").exists()
+
+
+@pytest.mark.unit
+def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
+    """--out-dir pointing at an existing file -> exit 1, clean error, no traceback."""
+    X, y_pu = _write_inputs(tmp_path, rng)
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory", encoding="utf-8")
+    code, stderr, _ = _run_script(
+        tmp_path, "--data", str(X), "--labels", str(y_pu), out_dir=blocker
+    )
+    assert code == 1
+    assert "error:" in stderr
+    assert "Traceback" not in stderr
 
 
 @pytest.mark.unit

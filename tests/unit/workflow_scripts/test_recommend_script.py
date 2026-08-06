@@ -47,8 +47,8 @@ def _make_profile(tmp_path, rng):
     return tmp_path / "profile.json"
 
 
-def _run_script(tmp_path, profile, *extra):
-    out = tmp_path / "out"
+def _run_script(tmp_path, profile, *extra, out_dir=None):
+    out = tmp_path / "out" if out_dir is None else Path(out_dir)
     proc = subprocess.run(
         [
             sys.executable,
@@ -112,6 +112,18 @@ def test_edge_unknown_prior_estimator_reports_error(tmp_path, rng):
     code, stderr, out = _run_script(
         tmp_path, profile, "--prior-estimator", "nope", "--data", str(X), "--labels", str(y_pu)
     )
+    assert code == 1
+    assert "error:" in stderr
+    assert "Traceback" not in stderr
+
+
+@pytest.mark.unit
+def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
+    """--out-dir pointing at an existing file -> exit 1, clean error, no traceback."""
+    profile = _make_profile(tmp_path, rng)
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory", encoding="utf-8")
+    code, stderr, _ = _run_script(tmp_path, profile, out_dir=blocker)
     assert code == 1
     assert "error:" in stderr
     assert "Traceback" not in stderr

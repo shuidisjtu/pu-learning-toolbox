@@ -65,13 +65,13 @@ def main(argv: list[str] | None = None) -> int:
         analysis = analyze_pu_sensitivity(
             y_pu, y_pred, class_priors=priors, label_propensities=propensities
         )
+        out_dir = Path(args.out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "sensitivity.json").write_text(analysis.to_json() + "\n", encoding="utf-8")
     except (OSError, ValueError, PULearningError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "sensitivity.json").write_text(analysis.to_json() + "\n", encoding="utf-8")
     return 0
 
 
