@@ -68,3 +68,22 @@ def test_deterministic_list_methods_output_stable(capsys):
     args.func(args)
     second = capsys.readouterr().out
     assert first == second
+
+
+@pytest.mark.unit
+def test_edge_list_priors_names_all_accepted_by_pipeline(capsys):
+    """Every listed name must construct a PUPipeline prior estimator.
+
+    Regression guard: _PRIOR_NAMES used to hard-code registry aliases
+    (recpe/pen_l1); if the registry drops an alias, list-priors would
+    list a name PUPipeline rejects.  The listing must never outrun the
+    accepted set.
+    """
+    from pu_toolbox.workflows import PUPipeline
+
+    args = build_parser().parse_args(["list-priors"])
+    args.func(args)
+    names = [line.strip() for line in capsys.readouterr().out.splitlines()[1:] if line.strip()]
+    assert names, "list-priors printed nothing"
+    for name in names:
+        PUPipeline(prior_estimator=name)  # unknown names raise at construction
