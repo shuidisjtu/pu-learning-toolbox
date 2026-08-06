@@ -178,7 +178,7 @@ Do not invent numbers: cite only values present in the JSON outputs.
 | Diagnostic `at_risk` / `inconclusive` | Explain what it means and stop at Checkpoint 1, waiting for the user's decision |
 | Empty candidate list | Explain `filters_applied`; suggest relaxing filters (e.g. supply a prior, densify sparse data) |
 | `pu-toolbox run` exit 1 | Show the `error:` message; three options for the user: fix data and re-run / pick another method / get the full traceback |
-| Unknown classifier/prior name | Run `pu-toolbox list-methods` / `pu-toolbox list-priors` for the accepted set |
+| Unknown classifier/prior name | Run `uv run pu-toolbox list-methods` / `uv run pu-toolbox list-priors` for the accepted set |
 
 ## References
 
