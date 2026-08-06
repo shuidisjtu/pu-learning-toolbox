@@ -82,3 +82,14 @@ def test_edge_missing_description_reported(tmp_path):
     a, b = _write_pair(tmp_path, "---\nname: pu-workflow\n---\n")
     issues = check_sync(a, b)
     assert any("description" in i for i in issues)
+
+
+@pytest.mark.unit
+def test_edge_empty_value_key_does_not_swallow_next_line(tmp_path):
+    """An empty-value key must not swallow the next line into its value."""
+    a, b = _write_pair(
+        tmp_path,
+        "---\nname: pu-workflow\ndescription: x\nmetadata:\nuser-invocable: true\n---\n",
+    )
+    issues = check_sync(a, b)
+    assert any("user-invocable" in i for i in issues)

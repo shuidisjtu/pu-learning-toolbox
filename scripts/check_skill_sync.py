@@ -42,7 +42,7 @@ def _frontmatter_keys(text: str) -> dict[str, str]:
         return {}
     end = text.find("\n---", 3)
     block = text[3:end] if end != -1 else text[3:]
-    return dict(re.findall(r"^([a-z-]+):\s*(.*)$", block, flags=re.M))
+    return dict(re.findall(r"^([a-z-]+):[^\S\n]*(.*)$", block, flags=re.M))
 
 
 def check_sync(a: Path, b: Path) -> list[str]:
