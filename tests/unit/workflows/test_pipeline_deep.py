@@ -56,6 +56,19 @@ class TestPipelineDeepValidation:
         with pytest.raises(ValueError, match="backbone"):
             PUPipeline(classifier="wconpu", architecture="cnn", backbone="vgg16")
 
+    def test_param_cnn_self_pu_raises_without_encoder_param(self):
+        # Self-PU declares ``backbone`` (full model), not ``encoder``: the
+        # pipeline would silently skip encoder injection, so cnn must fail fast.
+        with pytest.raises(PipelineError, match="encoder"):
+            PUPipeline(classifier="self_pu", architecture="cnn")
+
+    def test_param_cnn_dgpu_instance_raises_without_encoder_param(self):
+        from pu_toolbox.estimators.deep import DGPUClassifier
+
+        dgpu = DGPUClassifier(0.3, generator=object())
+        with pytest.raises(PipelineError, match="encoder"):
+            PUPipeline(classifier=dgpu, architecture="cnn")
+
 
 @pytest.mark.unit
 class TestPipelineDeepInstantiation:

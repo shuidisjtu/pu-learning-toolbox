@@ -247,13 +247,24 @@ class PUPipeline:
             self._is_deep = getattr(classifier, "backend", None) == Backend.TORCH
         else:  # auto
             self._is_deep = False
-        if architecture == "cnn" and not self._is_deep:
-            raise PipelineError(
-                "architecture='cnn' requires an explicit deep classifier "
-                "(wconpu or infomax_pu); got classifier="
-                f"{self._classifier_name!r}. For table data use "
-                "architecture='mlp' (default)."
-            )
+        if architecture == "cnn":
+            if not self._is_deep:
+                raise PipelineError(
+                    "architecture='cnn' requires an explicit deep classifier "
+                    "with encoder support (e.g. wconpu or infomax_pu); got "
+                    f"classifier={self._classifier_name!r}. For table data use "
+                    "architecture='mlp' (default)."
+                )
+            encoder_cls = self._classifier_cls or type(classifier)
+            if not _declares_encoder_parameter(encoder_cls):
+                raise PipelineError(
+                    f"architecture='cnn' requires classifier "
+                    f"{self._classifier_name!r} to declare an 'encoder' "
+                    "constructor parameter (encoder injection); this "
+                    "algorithm is not yet adapted for CNN architectures. "
+                    "Use architecture='mlp' (default) or choose wconpu / "
+                    "infomax_pu."
+                )
         self.architecture = architecture
         self.backbone = backbone
         self.device = device
@@ -725,6 +736,17 @@ def _resolve_classifier_name(name: str) -> type[BasePUClassifier]:
             f"requires {sorted(missing)}. Pass an instance instead."
         )
     return cls
+
+
+def _declares_encoder_parameter(cls: type) -> bool:
+    """True if *cls* constructor declares an ``encoder`` parameter.
+
+    The pipeline injects the CNN encoder only into classifiers whose
+    signature accepts it (see ``_fresh_estimator``); ``architecture="cnn"``
+    must fail fast for deep classifiers that would silently ignore the
+    backbone choice (e.g. Self-PU declares ``backbone`` instead).
+    """
+    return "encoder" in inspect.signature(cls.__init__).parameters
 
 
 def _missing_required_params(cls: type) -> set[str]:
