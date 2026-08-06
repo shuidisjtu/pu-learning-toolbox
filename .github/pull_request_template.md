@@ -15,6 +15,7 @@
 - [ ] `python scripts/check_doc_links.py`
 - [ ] `python scripts/check_project_metadata.py`
 - [ ] `python scripts/check_math_rendering.py`
+- [ ] `python scripts/check_skill_sync.py`
 - [ ] `uv build`
 - [ ] `git diff --check`
 

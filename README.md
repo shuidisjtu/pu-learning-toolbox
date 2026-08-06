@@ -88,6 +88,7 @@ uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
+uv run python scripts/check_skill_sync.py
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.

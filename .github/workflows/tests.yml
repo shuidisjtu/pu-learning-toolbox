@@ -87,6 +87,9 @@ jobs:
       - name: Method card MathJax rendering check
         run: uv run --python "3.11" python scripts/check_math_rendering.py
 
+      - name: Skill sync check
+        run: uv run --python "3.11" python scripts/check_skill_sync.py
+
   package:
     name: Build and install wheel
     runs-on: ubuntu-latest

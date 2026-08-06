@@ -37,7 +37,7 @@ pip install -e ".[dev]"         # 测试、lint 和构建工具
 CI 分为三个独立职责：
 
 1. **Tests**：在 Ubuntu / Windows / macOS 三平台（3 × 3 矩阵）显式使用 Python 3.10/3.11/3.12，安装 dev + torch，运行非 slow 测试。
-2. **Static quality gates**：在 Python 3.11 运行全目录 ruff、格式、测试质量、文档一致性、项目 metadata 一致性和方法卡 MathJax 渲染检查。
+2. **Static quality gates**：在 Python 3.11 运行全目录 ruff、格式、测试质量、文档一致性、项目 metadata 一致性、方法卡 MathJax 渲染检查和 Skill 同步检查。
 3. **Build and install wheel**：构建 sdist/wheel，在隔离环境安装 wheel，并从仓库目录外验证版本、diagnostics 和 16 个 registry 条目。
 
 显式解释器断言用于防止 `.python-version` 意外覆盖 CI matrix。
