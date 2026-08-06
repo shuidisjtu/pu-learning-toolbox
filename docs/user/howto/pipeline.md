@@ -70,9 +70,10 @@ report.save("results/pipeline.json")
 
 `PUPipeline` 已为深度算法显式接入架构选择（`wconpu` / `infomax_pu` 支持
 `encoder` 骨架注入；`self_pu` 亦可按名实例化但尚未适配 cnn），需先安装可选
-依赖 `pip install pu-toolbox[torch]`。深度算法须**显式指定**——`auto` 模式下
-深度方法虽在推荐器候选内，但无 GPU 或小数据时评分低，不会被实际选中；有 GPU
-且数据量大时可能被推荐（深度方法的适用场景）。
+依赖 `pip install pu-toolbox[torch]`。`auto` 模式下深度方法无 GPU
+（`device="cpu"`）或小数据时评分低，不会被实际选中；`device != "cpu"` 且
+数据量大时可能被推荐（深度方法的适用场景），选中后 torch 播种与训练成本警告
+照常生效。
 
 | 参数 | 默认 | 说明 |
 |---|---|---|

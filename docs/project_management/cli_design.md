@@ -44,7 +44,7 @@ pu-toolbox
 | `--metrics` | — | 默认四件套 | 逗号分隔（`pu_risk,recall,auc`） |
 | `--seed` | — | `42` | 随机种子 |
 | `--save-model` | — | 关 | 额外保存 `model.pkl`（final_model，pickle） |
-| `--quiet` | — | 关 | 只打印错误，不打印 summary |
+| `--quiet` | — | 关 | 不打印 summary（`note:` 覆盖/陈旧 model.pkl 提示仍无条件打到 stderr） |
 
 `--prior-estimator=none` 等价于 `PUPipeline(prior_estimator=None)`（禁用自动估计）。
 `--class-prior` 与 `--prior-estimator` 同给时以显式先验为准（与 PUPipeline 优先级一致）。
@@ -52,9 +52,10 @@ pu-toolbox
 ### 辅助命令设计要点
 
 - `list-methods`：从 registry 实时读取（`register_all_builtin_methods` +
-  `registry.list_algorithms(trainable_only=True)`，官方遍历 API），新算法注册后自动出现，
-  无需改 CLI。「能否自动实例化」复用 `pipeline._missing_required_params` 的检查逻辑
-  （同包内部导入）——CLI 判定与 auto 模式实例化判定必须一致。
+  `registry.list_algorithms()` 遍历全部注册方法；非分类器与 api_only 条目被
+  `_resolve_class` 跳过），新算法注册后自动出现，无需改 CLI。「能否自动实例化」
+  复用 `pipeline._missing_required_params` 的检查逻辑（同包内部导入）——CLI 判定
+  与 auto 模式实例化判定必须一致。
 - `make-demo-data`：用 `make_scar_dataset(n, c, ...)` 生成 `X.csv` / `y_pu.csv` / `y_true.csv`
   三文件，产出可直接被 `run` 消费（自洽闭环，同时是 CLI 端到端测试的天然 fixture）。
   `--n` 为每类样本数（总 2n），`--c` 为 SCAR 标注概率——与底层 API `(n, c)` 建模对齐

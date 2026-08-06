@@ -49,7 +49,8 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 | `pu_auc_roc` / `pu_accuracy` / `pu_f1` | `y_true` | `supervised_oracle` |
 
 缺失输入（无 `y_true`、无 `decision_function`、无先验）时对应指标跳过并记录原因
-（`CVMetric.available=False`），不中断流程。
+（`CVMetric.available=False`），不中断流程；`CVMetric.n_computed` 给出已计算折数
+（序列化进 `to_json()`）。
 
 ### classifier 选择语义
 
@@ -83,7 +84,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
   展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
   `PipelineError`；2-D + cnn → `PipelineError`
 - deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议减少折数（`cv` 最小为 2）
-- `auto` 行为：深度方法无 GPU 或小数据时评分低，不会被实际选中；有 GPU 且数据量大时可能被推荐（其适用场景）
+- `auto` 行为：深度方法无 GPU（`device="cpu"`）或小数据时评分低，不会被实际选中；`device != "cpu"` 且数据量大时可能被推荐（其适用场景），选中后 torch 播种与训练成本警告照常生效
 
 ### 错误场景
 
@@ -94,6 +95,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 | 无正样本 / 正样本 < `MIN_POSITIVE_SAMPLES` | `ValidationError` |
 | 正样本 < CV 折数 | `ValidationError`（提示减折数） |
 | 需要先验且最终缺失 | `PipelineError` |
+| 用户传入 `class_prior` ∉ (0, 1) | `ValueError`（与 cv/metrics/architecture 等构造参数一致） |
 | 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
 | 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
 | 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
@@ -203,13 +205,13 @@ result = recommend_methods(
     has_gpu=False,
     top_k=5,
     random_state=42,
-    config=None,         # ScoringConfig；默认 DEFAULT_CONFIG
+    config=None,         # ScoringConfig；默认 DEFAULT_CONFIG（从 pu_toolbox.advisor 导出）
 )
 
 result = recommend_from_profile(
     profile,             # 已有 PUDataProfile，跳过重复 profiling
     scenario=None, assumption=None, class_prior=None,
-    class_prior_source=None,  # 先验来源说明（如 "user"/"estimated"），写入 provenance
+    class_prior_source=None,  # 先验来源说明（如 "user"/"estimated"），只影响 global-warning 措辞，不写入 provenance
     has_gpu=False, top_k=5, config=None,
 )
 ```
