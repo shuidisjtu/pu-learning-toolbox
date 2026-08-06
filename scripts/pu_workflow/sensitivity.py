@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from pu_toolbox.cli.run import _load_features, _load_label_column
+from pu_toolbox.core.exceptions import PULearningError
 from pu_toolbox.diagnostics.sensitivity import analyze_pu_sensitivity
 from pu_toolbox.registry import get_algorithm
 from pu_toolbox.registry.builtin_methods import register_all_builtin_methods
@@ -64,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         analysis = analyze_pu_sensitivity(
             y_pu, y_pred, class_priors=priors, label_propensities=propensities
         )
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, PULearningError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

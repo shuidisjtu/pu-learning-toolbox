@@ -82,6 +82,19 @@ def test_edge_invalid_grid_reports_error(tmp_path, rng):
 
 
 @pytest.mark.unit
+def test_edge_unknown_classifier_reports_error(tmp_path, rng):
+    """Unknown --classifier -> exit 1 with a clean error, no traceback."""
+    X, y_pu = _write_inputs(tmp_path, rng)
+    code, stderr, out = _run_script(
+        tmp_path, "--data", str(X), "--labels", str(y_pu), "--classifier", "does_not_exist"
+    )
+    assert code == 1
+    assert "error:" in stderr
+    assert "Traceback" not in stderr
+    assert not (out / "sensitivity.json").exists()
+
+
+@pytest.mark.unit
 def test_deterministic_sensitivity_same_input(tmp_path, rng):
     """Same inputs -> identical sensitivity.json bytes."""
     X, y_pu = _write_inputs(tmp_path, rng)
