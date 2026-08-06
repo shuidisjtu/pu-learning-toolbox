@@ -156,8 +156,9 @@ parameter details.
 ## Step 4 — Interpret & advise
 
 Translate the results into plain language. Follow the Chinese
-interpretation guide in `references/interpret.zh-CN.md` (in this skill
-directory) for field-by-field meaning and advice templates; write your
+interpretation guide in
+`.claude/skills/pu-workflow/references/interpret.zh-CN.md` (repo-root
+relative) for field-by-field meaning and advice templates; write your
 final summary in the language the user speaks. Cover:
 
 1. **Assumption verdict**: what the SCAR/SAR diagnostic said and what
