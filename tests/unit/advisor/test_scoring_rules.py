@@ -1,20 +1,65 @@
 # ruff: noqa: N802, N803, N806, E501
 
-"""Unit tests for the training-cost scoring dimension (rules._score_training_cost)."""
+"""Unit tests for recommendation scoring rules and recommender edge
+behaviors (training cost, assumption bands, sparse input, prior warnings)."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
-from pu_toolbox.advisor.rules import DEFAULT_CONFIG, _score_training_cost, global_warnings
-from pu_toolbox.core.tags import TrainingCost
+from pu_toolbox.advisor.rules import (
+    DEFAULT_CONFIG,
+    ScoringConfig,
+    _score_training_cost,
+    global_warnings,
+    score_method,
+)
+from pu_toolbox.core.tags import (
+    AlgorithmFamily,
+    Assumption,
+    Backend,
+    Maturity,
+    SourceStatus,
+    TrainingCost,
+)
+from pu_toolbox.preprocessing import profile_pu_data
+from pu_toolbox.registry import recommend_from_profile
 from pu_toolbox.registry.metadata import AlgorithmMetadata
 
 
 def _stub_meta(cost: TrainingCost) -> AlgorithmMetadata:
     return AlgorithmMetadata(name="stub", paper="stub", training_cost=cost)
+
+
+def _assumption_stub(
+    assumption: Assumption,
+    family: AlgorithmFamily = AlgorithmFamily.RISK_ESTIMATION,
+    cost: TrainingCost = TrainingCost.LOW,
+) -> AlgorithmMetadata:
+    """Metadata identical except for the assumption claim (isolates the
+    assumption dimension when scoring)."""
+    return AlgorithmMetadata(
+        name="stub",
+        paper="stub",
+        assumption=[assumption],
+        family=family,
+        backend=Backend.NUMPY,
+        maturity=Maturity.RESEARCH,
+        source_status=SourceStatus.OFFICIAL_EXACT,
+        requires_class_prior=False,
+        training_cost=cost,
+    )
+
+
+def _diagnostic_profile(status: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        summary={"n_samples": 100},
+        selection_diagnostic={"status": status},
+        issues=[],
+    )
 
 
 def _stub_profile(n_samples: int | None) -> SimpleNamespace:
@@ -108,3 +153,60 @@ def test_basic_prior_warning_only_for_user_supplied():
 
     default = global_warnings(profile, 0.5)
     assert any("user-supplied" in w for w in default)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"maturity_scores": {"stable": 100.0}},
+        {"source_scores": {"official_exact": 50.0}},
+    ],
+)
+def test_param_score_tables_capped_by_anchors(kwargs):
+    """Table values above their dimension anchor break the 0-100 output
+    contract (raw can exceed max_raw_score, e.g. a 170.9 score).
+
+    Regression guard: the ``*_max`` anchors used to be inert knobs with
+    no validation linking them to the ``*_scores`` tables.
+    """
+    with pytest.raises(ValueError, match="must not exceed"):
+        ScoringConfig(**kwargs)
+
+
+@pytest.mark.unit
+def test_basic_at_risk_boosts_sar_over_scar():
+    """The assumption dimension must actually reorder methods: under an
+    at-risk diagnostic a SAR-aware method outscores an identical SCAR-only
+    one, and the reverse under a plausible diagnostic."""
+    at_risk = _diagnostic_profile("at_risk")
+    s_sar, _ = score_method(_assumption_stub(Assumption.SAR), at_risk, None, False, DEFAULT_CONFIG)
+    s_scar, _ = score_method(
+        _assumption_stub(Assumption.SCAR), at_risk, None, False, DEFAULT_CONFIG
+    )
+    assert s_sar > s_scar
+
+    plausible = _diagnostic_profile("plausible")
+    p_sar, _ = score_method(
+        _assumption_stub(Assumption.SAR), plausible, None, False, DEFAULT_CONFIG
+    )
+    p_scar, _ = score_method(
+        _assumption_stub(Assumption.SCAR), plausible, None, False, DEFAULT_CONFIG
+    )
+    assert p_scar > p_sar
+
+
+@pytest.mark.unit
+def test_edge_sparse_input_warns_explicitly():
+    """No registered method supports sparse input, so a sparse profile
+    must yield an explicit global warning instead of silently returning
+    zero candidates."""
+    from scipy.sparse import csr_matrix
+
+    rng = np.random.RandomState(42)
+    X = rng.randn(100, 5)
+    y_pu = np.array([1] * 20 + [0] * 80)
+    profile = profile_pu_data(csr_matrix(X), y_pu, random_state=42)
+    result = recommend_from_profile(profile, top_k=15)
+    assert len(result.candidates) == 0
+    assert any("sparse" in w for w in result.global_warnings)

@@ -20,8 +20,6 @@ __all__ = [
     "recommend_methods",
 ]
 
-_BUILTINS_REGISTERED = False
-
 
 def recommend_methods(
     X: Any,
@@ -105,12 +103,11 @@ def recommend_from_profile(
 
     cfg = config or DEFAULT_CONFIG
 
-    global _BUILTINS_REGISTERED  # noqa: PLW0603
-    if not _BUILTINS_REGISTERED:
-        from ..registry.builtin_methods import register_all_builtin_methods
+    # register_all_builtin_methods is idempotent (registry-level dedup),
+    # so calling it per recommendation is safe and never goes stale.
+    from ..registry.builtin_methods import register_all_builtin_methods
 
-        register_all_builtin_methods()
-        _BUILTINS_REGISTERED = True
+    register_all_builtin_methods()
 
     scenario_enum = _resolve_enum(scenario, Scenario) if scenario is not None else None
     assumption_enum = _resolve_enum(assumption, Assumption) if assumption is not None else None
@@ -119,6 +116,8 @@ def recommend_from_profile(
 
     filters_applied: dict[str, Any] = {}
     filtered = [m for m in all_methods if m.maturity != Maturity.DEPRECATED]
+    if len(filtered) != len(all_methods):
+        filters_applied["maturity"] = "excluded deprecated"
 
     if scenario_enum is not None:
         filtered = [m for m in filtered if scenario_enum in m.scenario]
@@ -157,7 +156,14 @@ def recommend_from_profile(
         for i, (meta, sc, reasons, warns) in enumerate(scored)
     )
 
-    gw = global_warnings(profile, class_prior, class_prior_source)
+    gw = list(global_warnings(profile, class_prior, class_prior_source))
+    if profile.summary.get("is_sparse", False) and not filtered:
+        # No registered method accepts sparse input; say so instead of
+        # silently returning zero candidates.
+        gw.append(
+            "Sparse data: no registered method supports sparse input. "
+            "Densify the matrix (e.g. X.toarray()) or profile dense data."
+        )
 
     provenance = {
         "n_samples": profile.summary.get("n_samples"),

@@ -30,9 +30,10 @@ __all__ = [
 class ScoringConfig:
     """Scoring weights for the recommendation engine.
 
-    All dimension weights and thresholds are configurable. The total raw
-    score is the sum of all ``*_max`` fields; each method's final score
-    is ``raw / total_max * 100``.
+    Each ``*_max`` field is the normalization anchor of its dimension
+    (the denominator in ``raw / total_max * 100``); the ``*_scores``
+    tables map discrete levels to their contribution and must not exceed
+    their dimension's anchor (enforced in ``__post_init__``).
     """
 
     assumption_max: float = 30.0
@@ -43,12 +44,14 @@ class ScoringConfig:
     labeled_pos_max: float = 10.0
     cost_max: float = 10.0
 
+    # NOTE: no "deprecated" level here -- the recommender filters
+    # DEPRECATED methods before scoring (see recommend_from_profile), so
+    # a dead table entry would never be consumed.
     maturity_scores: dict[str, float] = field(
         default_factory=lambda: {
             "stable": 20.0,
             "research": 12.0,
             "experimental": 5.0,
-            "deprecated": 0.0,
         }
     )
     source_scores: dict[str, float] = field(
@@ -65,6 +68,21 @@ class ScoringConfig:
     small_data_threshold: int = 1000
     large_data_threshold: int = 10000
 
+    def __post_init__(self) -> None:
+        """Reject score tables whose entries exceed their dimension anchor.
+
+        Without this, a table value above its ``*_max`` silently inflates
+        the raw score past ``max_raw_score`` and breaks the documented
+        0-100 output contract of :func:`score_method`.
+        """
+        for table_name, max_field in (
+            ("maturity_scores", "maturity_max"),
+            ("source_scores", "source_max"),
+        ):
+            cap = getattr(self, max_field)
+            if any(value > cap for value in getattr(self, table_name).values()):
+                raise ValueError(f"{table_name} values must not exceed {max_field}={cap}")
+
     @property
     def max_raw_score(self) -> float:
         return (
@@ -79,6 +97,15 @@ class ScoringConfig:
 
 
 DEFAULT_CONFIG = ScoringConfig()
+
+# Fractional constants anchoring the assumption scoring to its cap
+# (kept as named constants so the threshold and the branch coefficients
+# stay in sync when the assumption bands change).
+_STRONG_ASSUMPTION_FRACTION = 0.83  # "Strong assumption match" reason threshold
+_ASSUMPTION_AT_RISK_SCAR = 1.0 / 3.0  # SCAR-only method under an at-risk diagnostic
+_ASSUMPTION_INCONCLUSIVE_BOTH = 28.0 / 30.0  # both SCAR and SAR claimed
+_ASSUMPTION_INCONCLUSIVE_ONE = 22.0 / 30.0  # exactly one claim
+_ASSUMPTION_NO_MATCH = 1.0 / 6.0  # no claim matches the diagnostic
 
 
 # ── Scoring ─────────────────────────────────────────────────────
@@ -100,7 +127,7 @@ def score_method(
 
     assumption_score = _score_assumption(meta, profile, assumption_enum, config)
     raw += assumption_score
-    if assumption_score >= config.assumption_max * 0.83:
+    if assumption_score >= config.assumption_max * _STRONG_ASSUMPTION_FRACTION:
         reasons.append("Strong assumption match")
 
     mat_score = config.maturity_scores[meta.maturity.value]
@@ -161,14 +188,14 @@ def _score_assumption(
         if has_sar:
             return cap
         if has_scar:
-            return cap / 3.0
+            return cap * _ASSUMPTION_AT_RISK_SCAR
     else:
         if has_scar and has_sar:
-            return cap * 28.0 / 30.0
+            return cap * _ASSUMPTION_INCONCLUSIVE_BOTH
         if has_scar or has_sar:
-            return cap * 22.0 / 30.0
+            return cap * _ASSUMPTION_INCONCLUSIVE_ONE
 
-    return cap / 6.0
+    return cap * _ASSUMPTION_NO_MATCH
 
 
 def _score_data_scale(

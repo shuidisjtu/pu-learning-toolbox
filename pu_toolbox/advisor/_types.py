@@ -111,7 +111,19 @@ class RecommendationResult:
         format: Literal["json", "markdown"] | None = None,
     ) -> Path:
         destination = Path(path)
-        fmt = format or ("markdown" if destination.suffix in {".md", ".markdown"} else "json")
+        fmt = format
+        if fmt is None:
+            suffix = destination.suffix.lower()
+            if suffix == ".json":
+                fmt = "json"
+            elif suffix in {".md", ".markdown"}:
+                fmt = "markdown"
+            else:
+                raise ValueError(
+                    "Cannot infer report format. Use a .json/.md suffix or pass format=."
+                )
+        if fmt not in {"json", "markdown"}:
+            raise ValueError(f"Unknown format {fmt!r}; expected 'json' or 'markdown'.")
         content = self.to_markdown() if fmt == "markdown" else self.to_json() + "\n"
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
