@@ -6,6 +6,7 @@ from .advisor import ScoringConfig, recommend_from_profile, recommend_methods
 from .diagnostics import analyze_pu_sensitivity, build_diagnostic_report
 from .estimators.bias_aware.lbe import LBEClassifier
 from .estimators.bias_aware.pusb import PUSBClassifier
+from .estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
 from .estimators.classic.elkan_noto import ElkanNotoClassifier
 from .estimators.classic.llsvm import LLSVMClassifier
 from .estimators.deep.dgpu import DGPUClassifier
@@ -38,6 +39,7 @@ __all__ = [
     "NonNegativePUClassifier",
     "PNUClassifier",
     "PUSBClassifier",
+    "PUSBKernelClassifier",
     "PipelineReport",
     "PUPipeline",
     "ReCPEEstimator",

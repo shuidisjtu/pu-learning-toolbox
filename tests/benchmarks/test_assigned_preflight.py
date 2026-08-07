@@ -20,6 +20,8 @@ def _capabilities():
         "python_version": "3.7.0",
         "platform": "test",
         "packages": {
+            "chainer": "7.8.1",
+            "densratio": "0.3.0",
             "numpy": "1.19.2",
             "scikit-learn": "0.24.1",
             "torch": "1.8.1",

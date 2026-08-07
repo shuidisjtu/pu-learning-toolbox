@@ -17,7 +17,7 @@ from typing import Any
 def runtime_capabilities() -> dict[str, Any]:
     """Collect runtime facts used by the locked official configurations."""
     packages = {}
-    for name in ("numpy", "scikit-learn", "torch", "torchvision"):
+    for name in ("chainer", "densratio", "numpy", "scikit-learn", "torch", "torchvision"):
         try:
             packages[name] = metadata.version(name)
         except metadata.PackageNotFoundError:
@@ -115,6 +115,20 @@ def _resource_blockers(
             blockers.append("Official dataset root was not supplied")
         elif not data_root.is_dir():
             blockers.append(f"Official dataset root is not a directory: {data_root}")
+        else:
+            for item in requirements.get("required_data_files", []):
+                data_file = data_root / item["path"]
+                if not data_file.is_file():
+                    blockers.append(f"Official dataset file is missing: {item['path']}")
+                    continue
+                expected_hash = item.get("sha256")
+                if expected_hash:
+                    actual_hash = hashlib.sha256(data_file.read_bytes()).hexdigest()
+                    if actual_hash != expected_hash:
+                        blockers.append(
+                            f"Official dataset hash differs: {item['path']} "
+                            f"(expected {expected_hash}, found {actual_hash})"
+                        )
     return blockers
 
 
@@ -125,6 +139,9 @@ def _runtime_blockers(requirements: dict[str, Any], capabilities: dict[str, Any]
     for command in requirements.get("required_commands", []):
         if not capabilities["commands"].get(command):
             blockers.append(f"Required command is unavailable: {command}")
+    for package in requirements.get("required_packages", []):
+        if capabilities["packages"].get(package) is None:
+            blockers.append(f"Required Python package is unavailable: {package}")
     runtime = requirements.get("historical_runtime", {})
     required_python = runtime.get("python")
     if required_python and not _version_matches(capabilities["python_version"], required_python):

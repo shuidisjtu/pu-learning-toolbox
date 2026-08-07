@@ -21,3 +21,10 @@ SUBPACKAGES = [
 def test_basic_import_all_subpackages(pkg: str) -> None:
     """Every subpackage should import without errors."""
     __import__(pkg)
+
+
+@pytest.mark.unit
+def test_basic_public_pusb_kernel_export() -> None:
+    from pu_toolbox import PUSBKernelClassifier
+
+    assert PUSBKernelClassifier.__name__ == "PUSBKernelClassifier"

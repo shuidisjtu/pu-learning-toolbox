@@ -70,7 +70,8 @@ pu_toolbox/
       pnu.py                   (native)
     bias_aware/
       __init__.py
-      pusb.py                (native)
+      pusb.py                (native: linear source-classifier baseline)
+      pusb_kernel.py         (native: official-aligned RBF PUSB adapter)
       lbe.py                 (native)
     deep/
       __init__.py
@@ -148,6 +149,7 @@ tests/
       test_upu.py                     # uPU 特有逻辑
       test_nnpu.py                    # nnPU 特有逻辑（含训练动态/早停）
       test_bias_aware.py              # PUSB / LBE 特有逻辑
+      test_pusb_kernel.py             # official-aligned PUSB 公式、CV 与确定性
       test_dist_pu.py                 # Dist-PU 特有逻辑
       test_self_pu.py                 # Self-PU pace/meta/EMA/三阶段训练
       test_deep_pu.py                 # InfoMax PU/WConPU/DGPU 接口与 registry
@@ -182,6 +184,7 @@ tests/
 
   benchmarks/                        # Benchmark runner 测试
     test_assigned_benchmark_runner.py     # 前五篇 benchmark runner 测试
+    test_pusb_official_data.py             # PUSB 官方数据构造、runner 与 provenance
     test_deep_pu_benchmark_runner.py      # 深度 PU runner 测试
     test_deep_pu_official_data.py         # 官方数据加载与 split 测试
 
@@ -212,8 +215,10 @@ examples/
 benchmarks/
   assigned_methods/            (前五篇 + SCAR/SAR 已执行 benchmark)
     preflight_paper.py         (源码/数据/历史环境与 toolbox 差距分轴审计)
+    pusb_official_data.py      (IJCNN1 校验、官方抽样、kernel smoke 与 provenance)
     configs/official/          (五份 locked_not_executed paper-like 配置)
     results/official_preflight/ (当前节点前五篇 blocker 报告)
+    results/pusb_official_data_smoke/ (PUSB 官方数据缩小网格 smoke)
   deep_pu/
     runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
     run.py                     (CLI)

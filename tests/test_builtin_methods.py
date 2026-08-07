@@ -41,7 +41,7 @@ class TestBuiltinRegistration:
         assert by_status.get("api_only", 0) == 0
 
     def test_basic_source_status_distribution(self):
-        """Verify counts match docs/resources_optimized.md §2."""
+        """Verify counts match docs/dev/resources.md."""
         register_all_builtin_methods()
         by_source: dict[str, int] = {}
         for meta in get_algorithm_registry().values():

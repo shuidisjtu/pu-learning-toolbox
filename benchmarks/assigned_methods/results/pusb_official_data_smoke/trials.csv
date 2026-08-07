@@ -1,0 +1,2 @@
+protocol,fidelity_level,paper_claim,implementation_variant,seed,class_prior,positive_size,unlabeled_size,test_size,sigma,reg_lambda,optimizer_success,quantile_threshold,quantile_accuracy,quantile_balanced_accuracy,zero_threshold_accuracy,roc_auc,elapsed_seconds
+pusb_official_data,smoke,False,official_aligned_rbf_smoke,2018,0.2,400,800,1000,1.0,0.01,True,-0.3657580134723506,0.747,0.60375,0.78,0.66635625,0.2438110625371337

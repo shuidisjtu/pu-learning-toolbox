@@ -34,14 +34,37 @@
     "sigma": [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
     "lambda": [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0]
   },
+  "known_protocol_issues": [
+    {
+      "issue": "The complete IJCNN1 file has 4,853 positive rows out of 49,990. With seed 2018, the released 3,000-row holdout has 315 positives. A 1,000-row test set is feasible for prior 0.2 but not for priors 0.4, 0.6, or 0.8.",
+      "policy": "Do not enlarge or resample the holdout silently. Treat the affected official configurations as infeasible until an author-provided data variant or protocol correction is identified."
+    },
+    {
+      "issue": "The released objective adds lambda * ||b||^2 while its supplied gradient adds lambda * b, differing by a factor of two.",
+      "policy": "The clean-room adapter uses 0.5 * lambda * ||b||^2 so the objective and released gradient are consistent, and records this as a compatibility correction."
+    }
+  ],
   "execution_requirements": {
     "source_checkout_required": true,
     "data_root_required": true,
+    "required_data_files": [
+      {
+        "path": "ijcnn1",
+        "sha256": "16506cad788cf7c9607454150ed1994788204bac2ff4c9cb3b320036b6950d3f",
+        "source_url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/ijcnn1.bz2",
+        "compressed_sha256": "450dee8470b168e47b9fae1fc160396b8a809c675737837fce3acd51dcdc0481",
+        "n_samples": 49990,
+        "n_features": 22
+      }
+    ],
     "cuda_required": false,
     "required_commands": [],
+    "required_packages": ["chainer", "densratio"],
     "toolbox_implementation_gaps": [
-      "The toolbox PUSB classifier is a source-function logistic baseline, not the official kernel optimizer with basis and hyperparameter search."
+      "The official-aligned kernel adapter has formula and smoke coverage, but the complete 9 x 8 x 5 search, all feasible seeds, and 100 repetitions have not been executed.",
+      "The official densratio comparison is not integrated into the toolbox runner.",
+      "The released IJCNN1 holdout protocol is infeasible for configured priors 0.4, 0.6, and 0.8 and requires authoritative clarification rather than a silent protocol change."
     ]
   },
-  "claim_policy": "The current toolbox logistic scorer is not the official kernel PUSB optimizer."
+  "claim_policy": "The logistic scorer remains a baseline. The kernel adapter may be called official-aligned only; results remain paper_claim=false until the protocol inconsistency and full comparison matrix are resolved."
 }

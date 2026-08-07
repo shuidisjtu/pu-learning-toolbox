@@ -60,6 +60,9 @@ results*/
 !benchmarks/assigned_methods/results/
 !benchmarks/assigned_methods/results/official_preflight/
 !benchmarks/assigned_methods/results/official_preflight/current_node.json
+!benchmarks/assigned_methods/results/pusb_official_data_smoke/
+!benchmarks/assigned_methods/results/pusb_official_data_smoke/*.csv
+!benchmarks/assigned_methods/results/pusb_official_data_smoke/*.json
 
 # Local one-off plans (never for distribution)
 .superpowers/

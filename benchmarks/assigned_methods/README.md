@@ -72,6 +72,25 @@ python -m benchmarks.assigned_methods.preflight_paper \
 锁定官方代码所需的源码、数据、CUDA、MATLAB 和历史版本；后者还加入 clean-room toolbox
 与论文算法/实验协议之间的实现差距，不能用“官方代码可启动”替代“toolbox 已精确复现”。
 
+## PUSB 官方数据执行层
+
+PUSB 已提供独立的 official-aligned RBF 适配器和 IJCNN1 runner。先运行缩小网格 smoke：
+
+```bash
+python -m benchmarks.assigned_methods.pusb_official_data \
+  --config benchmarks/assigned_methods/configs/pusb_official_data_smoke.json \
+  --data-root /path/to/pusb-data \
+  --output benchmarks/assigned_methods/results/pusb_official_data_smoke
+```
+
+runner 会核验解压后 IJCNN1 的 SHA-256 和 `(49990, 22)` 形状，复刻官方 selected-positive
+抽样，并保存 trial、summary、解析后配置和 provenance manifest。smoke 使用 30 个 RBF 基、
+3 折 CV 和缩小网格，因此强制 `paper_claim=false`。
+
+官方协议本身存在两个已验证的问题：源码的正则目标与梯度相差系数 2；完整 IJCNN1 在 seed
+2018 的 3,000 条 holdout 中仅有 315 个正例，只能构造 `pi=0.2` 的 1,000 条测试集，无法
+构造配置中的 `pi=0.4/0.6/0.8`。runner 不会静默扩大 holdout；相关组合须等待权威协议修正。
+
 ## 已执行结果
 
 `results/clean_room_multiseed/` 已在 2026-07-27 使用 seed `0..4` 完成 25 个 trial。
@@ -103,12 +122,17 @@ ReCPE 在该设置中的低估是当前默认 density-ratio CPE 后端的实际�
 这组高斯数据可分性较强，接近 1 的 AUC 不能外推为真实数据表现；结果的主要用途是验证
 机制展开、配对 seed、排序指标和 propensity 诊断链路。
 
+`results/pusb_official_data_smoke/` 已使用官方 IJCNN1、seed 2018、`pi=0.2`、400 P、
+800 U 和 1,000 条测试样本完成 1 次端到端运行。缩小搜索选中 `sigma=1.0`、
+`lambda=0.01`；分位数 accuracy 为 `0.7470`、balanced accuracy 为 `0.6038`、
+ROC-AUC 为 `0.6664`。该结果只证明执行链路可用，不是论文表格复现。
+
 ## 结论边界
 
 当前结果必须标为 `clean_room`：
 
 - Dist-PU 使用 toolbox 全量 MLP，不是官方图像 backbone/mini-batch 两阶段训练；
-- PUSB 使用来源 Logistic Regression，不是官方 kernel PUSB；
+- PUSB 的旧结果使用来源 Logistic Regression；新增 kernel adapter 仅完成官方数据 smoke；
 - LBE 使用线性交替 Logistic Regression，不是官方 MLP + Adam；
 - CPE 的 penL1 解析解已对齐论文；尚缺逐 `theta` CV 的精确实现证据和 MNIST/PCA 执行层；
 - ReCPE 尚缺官方 FCNet 和全部 CPE baseline。
