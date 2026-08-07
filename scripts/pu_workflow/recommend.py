@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ruff: noqa: N802, N803, N806, E501
+# ruff: noqa: N802, N803, N806, E402, E501
 """pu-workflow step 2: recommend PU methods and estimate the class prior.
 
 Reads the ``profile.json`` written by the profile step (Task 2) and writes
@@ -12,6 +12,9 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pu_toolbox.advisor.recommender import recommend_from_profile
 from pu_toolbox.cli.run import _load_features, _load_label_column

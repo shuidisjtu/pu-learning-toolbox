@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ruff: noqa: N802, N803, N806, E501
+# ruff: noqa: N802, N803, N806, E402, E501
 """pu-workflow step 4: assumption sensitivity analysis on fitted predictions.
 
 Fits a fast classifier (default elkan_noto), then audits the fixed model
@@ -12,6 +12,9 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pu_toolbox.cli.run import _load_features, _load_label_column
 from pu_toolbox.core.exceptions import PULearningError

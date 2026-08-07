@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from tests.conftest import make_scar_data
+from tests.helpers import make_scar_data
 
 
 def _write_inputs(tmp_path, rng, n=60):

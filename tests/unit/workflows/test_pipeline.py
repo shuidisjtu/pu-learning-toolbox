@@ -22,7 +22,7 @@ from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.registry.registry import get_algorithm
 from pu_toolbox.workflows import DEFAULT_METRICS, PipelineError, PipelineReport, PUPipeline
-from tests.conftest import make_scar_data
+from tests.helpers import make_scar_data
 
 
 @pytest.mark.unit

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ruff: noqa: N802, N803, N806, E501
+# ruff: noqa: N802, N803, N806, E402, E501
 """pu-workflow step 1: profile data and diagnose SCAR/SAR assumptions.
 
 Reads X/y_pu CSV (or .npy images) and writes a strict-JSON profile
@@ -13,6 +13,9 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pu_toolbox.cli.run import _load_features, _load_label_column
 from pu_toolbox.preprocessing.data_profiler import profile_pu_data
