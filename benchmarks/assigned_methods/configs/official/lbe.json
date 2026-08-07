@@ -32,5 +32,19 @@
     "Australian.mat": "51ff9a18c818065aafc073c926263fddfb070cea0a84183234a1380a108f6a95",
     "breast.mat": "57dae4b0153798e004d6df60fdbc691bc55b1ba54d2c01bafaf2b56b663825ee"
   },
+  "execution_requirements": {
+    "source_checkout_required": true,
+    "required_source_files": [
+      "LBE_MLP/train.py",
+      "LBE_MLP/dataset/Australian.mat",
+      "LBE_MLP/dataset/breast.mat"
+    ],
+    "data_root_required": false,
+    "cuda_required": true,
+    "required_commands": [],
+    "toolbox_implementation_gaps": [
+      "The toolbox implementation is a linear alternating logistic model, not the official two-network CUDA MLP with Adam and small-loss selection."
+    ]
+  },
   "official_command_template": "python train.py SAMPLING_TYPE NOISE_RATE"
 }

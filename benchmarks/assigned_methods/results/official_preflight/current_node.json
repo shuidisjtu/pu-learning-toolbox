@@ -1,0 +1,149 @@
+{
+  "all_ready_for_official_execution": false,
+  "all_ready_for_toolbox_replication": false,
+  "capabilities": {
+    "commands": {
+      "matlab": null
+    },
+    "cuda_available": false,
+    "cuda_device_count": 0,
+    "packages": {
+      "numpy": "1.26.4",
+      "scikit-learn": "1.7.1",
+      "torch": "2.6.0+cu124",
+      "torchvision": "0.21.0+cu124"
+    },
+    "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
+    "python_version": "3.12.2"
+  },
+  "created_at_utc": "2026-08-07T16:18:36.209152+00:00",
+  "data_roots": {},
+  "methods": [
+    {
+      "config": "benchmarks/assigned_methods/configs/official/class_prior_estimation.json",
+      "locked_status": "locked_not_executed",
+      "method": "class_prior_estimation",
+      "official_execution_blockers": [
+        "Immutable official source is not locked: status=partial",
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied"
+      ],
+      "ready_for_official_execution": false,
+      "ready_for_toolbox_replication": false,
+      "source_lock_status": "partial",
+      "toolbox_implementation_gaps": [
+        "The paper says sigma and lambda are selected by cross-validation for each theta, but the immutable author implementation and exact fold/scoring protocol are not locked.",
+        "The MNIST experiment uses one-vs-rest classes, four-dimensional PCA, and all samples as Gaussian centers; the executable data protocol is not integrated."
+      ],
+      "toolbox_replication_blockers": [
+        "Immutable official source is not locked: status=partial",
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
+        "The paper says sigma and lambda are selected by cross-validation for each theta, but the immutable author implementation and exact fold/scoring protocol are not locked.",
+        "The MNIST experiment uses one-vs-rest classes, four-dimensional PCA, and all samples as Gaussian centers; the executable data protocol is not integrated."
+      ]
+    },
+    {
+      "config": "benchmarks/assigned_methods/configs/official/dist_pu.json",
+      "locked_status": "locked_not_executed",
+      "method": "dist_pu",
+      "official_execution_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
+        "No usable CUDA device is available",
+        "Python version differs from lock: required 3.7, found 3.12.2",
+        "Package version differs from lock: numpy requires 1.19.2, found 1.26.4",
+        "Package version differs from lock: scikit-learn requires 0.24.1, found 1.7.1",
+        "Package version differs from lock: torch requires 1.8.1, found 2.6.0+cu124",
+        "Package version differs from lock: torchvision requires 0.9.1, found 0.21.0+cu124"
+      ],
+      "ready_for_official_execution": false,
+      "ready_for_toolbox_replication": false,
+      "source_lock_status": "locked",
+      "toolbox_implementation_gaps": [
+        "The toolbox implementation uses full-tensor MLP training rather than the official image backbones, mini-batches, augmentation, and two-stage schedule."
+      ],
+      "toolbox_replication_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
+        "No usable CUDA device is available",
+        "Python version differs from lock: required 3.7, found 3.12.2",
+        "Package version differs from lock: numpy requires 1.19.2, found 1.26.4",
+        "Package version differs from lock: scikit-learn requires 0.24.1, found 1.7.1",
+        "Package version differs from lock: torch requires 1.8.1, found 2.6.0+cu124",
+        "Package version differs from lock: torchvision requires 0.9.1, found 0.21.0+cu124",
+        "The toolbox implementation uses full-tensor MLP training rather than the official image backbones, mini-batches, augmentation, and two-stage schedule."
+      ]
+    },
+    {
+      "config": "benchmarks/assigned_methods/configs/official/lbe.json",
+      "locked_status": "locked_not_executed",
+      "method": "lbe",
+      "official_execution_blockers": [
+        "Official source checkout was not supplied",
+        "No usable CUDA device is available"
+      ],
+      "ready_for_official_execution": false,
+      "ready_for_toolbox_replication": false,
+      "source_lock_status": "locked",
+      "toolbox_implementation_gaps": [
+        "The toolbox implementation is a linear alternating logistic model, not the official two-network CUDA MLP with Adam and small-loss selection."
+      ],
+      "toolbox_replication_blockers": [
+        "Official source checkout was not supplied",
+        "No usable CUDA device is available",
+        "The toolbox implementation is a linear alternating logistic model, not the official two-network CUDA MLP with Adam and small-loss selection."
+      ]
+    },
+    {
+      "config": "benchmarks/assigned_methods/configs/official/pusb.json",
+      "locked_status": "locked_not_executed",
+      "method": "pusb",
+      "official_execution_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied"
+      ],
+      "ready_for_official_execution": false,
+      "ready_for_toolbox_replication": false,
+      "source_lock_status": "locked",
+      "toolbox_implementation_gaps": [
+        "The toolbox PUSB classifier is a source-function logistic baseline, not the official kernel optimizer with basis and hyperparameter search."
+      ],
+      "toolbox_replication_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
+        "The toolbox PUSB classifier is a source-function logistic baseline, not the official kernel optimizer with basis and hyperparameter search."
+      ]
+    },
+    {
+      "config": "benchmarks/assigned_methods/configs/official/recpe.json",
+      "locked_status": "locked_not_executed",
+      "method": "recpe",
+      "official_execution_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
+        "Required command is unavailable: matlab",
+        "Python version differs from lock: required 3.6.9, found 3.12.2",
+        "Package version differs from lock: torch requires 1.2.0, found 2.6.0+cu124"
+      ],
+      "ready_for_official_execution": false,
+      "ready_for_toolbox_replication": false,
+      "source_lock_status": "locked",
+      "toolbox_implementation_gaps": [
+        "The toolbox estimator does not reproduce the official FCNet training and validation protocol.",
+        "The AM, RAM, EN, REN, ROC, and RROC MATLAB baselines are not integrated."
+      ],
+      "toolbox_replication_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
+        "Required command is unavailable: matlab",
+        "Python version differs from lock: required 3.6.9, found 3.12.2",
+        "Package version differs from lock: torch requires 1.2.0, found 2.6.0+cu124",
+        "The toolbox estimator does not reproduce the official FCNet training and validation protocol.",
+        "The AM, RAM, EN, REN, ROC, and RROC MATLAB baselines are not integrated."
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "source_roots": {}
+}

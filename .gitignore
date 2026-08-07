@@ -57,6 +57,9 @@ uv.lock
 # CLI demo / run artifacts (intermediate outputs)
 demo_data/
 results*/
+!benchmarks/assigned_methods/results/
+!benchmarks/assigned_methods/results/official_preflight/
+!benchmarks/assigned_methods/results/official_preflight/current_node.json
 
 # Local one-off plans (never for distribution)
 .superpowers/

@@ -50,6 +50,28 @@ ranking accuracy。
 官方配置的 `locked_not_executed` 只表示参数已经核对，不表示论文实验已经运行。完整
 paper-like 复现仍需要对应历史环境、数据、GPU，以及 ReCPE 的部分 MATLAB baseline。
 
+在准备源码、数据或历史环境前，可先执行只读预检：
+
+```bash
+python -m benchmarks.assigned_methods.preflight_paper \
+  --config-dir benchmarks/assigned_methods/configs/official \
+  --output benchmarks/assigned_methods/results/official_preflight/current_node.json
+```
+
+迁移到实验节点后，以 `METHOD=PATH` 显式提供资源；预检会验证目录和官方入口文件：
+
+```bash
+python -m benchmarks.assigned_methods.preflight_paper \
+  --config-dir benchmarks/assigned_methods/configs/official \
+  --output /tmp/assigned-official-preflight.json \
+  --source-root recpe=/path/to/recpe \
+  --data-root recpe=/path/to/recpe-data
+```
+
+报告分别给出 `ready_for_official_execution` 和 `ready_for_toolbox_replication`。前者只检查
+锁定官方代码所需的源码、数据、CUDA、MATLAB 和历史版本；后者还加入 clean-room toolbox
+与论文算法/实验协议之间的实现差距，不能用“官方代码可启动”替代“toolbox 已精确复现”。
+
 ## 已执行结果
 
 `results/clean_room_multiseed/` 已在 2026-07-27 使用 seed `0..4` 完成 25 个 trial。
@@ -88,5 +110,5 @@ ReCPE 在该设置中的低估是当前默认 density-ratio CPE 后端的实际�
 - Dist-PU 使用 toolbox 全量 MLP，不是官方图像 backbone/mini-batch 两阶段训练；
 - PUSB 使用来源 Logistic Regression，不是官方 kernel PUSB；
 - LBE 使用线性交替 Logistic Regression，不是官方 MLP + Adam；
-- CPE 尚缺 L1-QP 和论文 CV；
+- CPE 的 penL1 解析解已对齐论文；尚缺逐 `theta` CV 的精确实现证据和 MNIST/PCA 执行层；
 - ReCPE 尚缺官方 FCNet 和全部 CPE baseline。

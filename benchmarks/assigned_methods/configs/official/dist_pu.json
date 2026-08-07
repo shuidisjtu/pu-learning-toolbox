@@ -45,5 +45,23 @@
     "fmnist": "official MLP",
     "alzheimer": "torchvision ResNet-50 with one-logit head"
   },
+  "execution_requirements": {
+    "source_checkout_required": true,
+    "data_root_required": true,
+    "cuda_required": true,
+    "required_commands": [],
+    "historical_runtime": {
+      "python": "3.7",
+      "packages": {
+        "numpy": "1.19.2",
+        "scikit-learn": "0.24.1",
+        "torch": "1.8.1",
+        "torchvision": "0.9.1"
+      }
+    },
+    "toolbox_implementation_gaps": [
+      "The toolbox implementation uses full-tensor MLP training rather than the official image backbones, mini-batches, augmentation, and two-stage schedule."
+    ]
+  },
   "official_command_template": "python train.py --device GPU_ID --dataset DATASET --datapath DATA_PATH --random-seed SEED"
 }

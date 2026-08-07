@@ -211,6 +211,9 @@ examples/
 ```text
 benchmarks/
   assigned_methods/            (前五篇 + SCAR/SAR 已执行 benchmark)
+    preflight_paper.py         (源码/数据/历史环境与 toolbox 差距分轴审计)
+    configs/official/          (五份 locked_not_executed paper-like 配置)
+    results/official_preflight/ (当前节点前五篇 blocker 报告)
   deep_pu/
     runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
     run.py                     (CLI)

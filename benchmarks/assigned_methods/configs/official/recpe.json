@@ -44,5 +44,19 @@
     "irreducible_synthetic",
     "reducible_synthetic"
   ],
+  "execution_requirements": {
+    "source_checkout_required": true,
+    "data_root_required": true,
+    "cuda_required": false,
+    "required_commands": ["matlab"],
+    "historical_runtime": {
+      "python": "3.6.9",
+      "packages": {"torch": "1.2.0"}
+    },
+    "toolbox_implementation_gaps": [
+      "The toolbox estimator does not reproduce the official FCNet training and validation protocol.",
+      "The AM, RAM, EN, REN, ROC, and RROC MATLAB baselines are not integrated."
+    ]
+  },
   "official_command_template": "python3 run_experiments.py --dataset DATASET --sample_size 800 --relabel_frac 0.1"
 }

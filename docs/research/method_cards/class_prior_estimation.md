@@ -9,8 +9,8 @@
 - [x] 接入 `BasePriorEstimator`，注册为 `class_prior_estimation`，别名包含 `pen_l1`。
 - [x] 编写边界、确定性和 `[0,1]` 范围测试。
 - [x] 补充合成数据、MNIST、调参、统计汇总和产物留存的复现实验协议。
-- [ ] 实现论文 L1 变体的带约束 QP。
-- [ ] 按论文 protocol 增加 `sigma/lambda` 的 nested CV，而不是依赖用户手工选择。
+- [x] 复核论文 penL1 内层约束问题：非负 Gaussian basis 下按坐标解耦，当前解析解即论文算法，不存在另一个必须实现的 U 样本约束 L1-QP。
+- [ ] 按论文 protocol 增加每个 `theta` 上的 `sigma/lambda` CV；论文只写明 “straightforward cross-validation”，精确 fold/scoring 仍需作者实现证据。
 - [ ] 增加 confidence interval/bootstrap 和 paper-like benchmark。
 
 ### 1.2 注意
@@ -37,6 +37,7 @@
 | Requires negative samples | `False` |
 | Backend | NumPy + SciPy/sklearn preprocessing |
 | Source record | [作者软件页面](http://www.mcduplessis.com/index.php/software/) |
+| DOI | [10.1007/s10994-016-5604-6](https://doi.org/10.1007/s10994-016-5604-6) |
 | Registry | `class_prior_estimation` / `pen_l1`，`NATIVE` |
 
 ## 3. 问题设定与目标
@@ -178,9 +179,10 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 
 其中 `Theta` 是 `[0,1]` 内候选网格。当前代码默认 `0.01` 到 `0.99` 的 99 点网格，正式实验应显式传入网格或实现连续搜索敏感性分析。
 
-## 7. L1 变体
+## 7. penL1 约束问题与解析解边界
 
-论文还讨论 `c=1` 的 L1 版本。其固定 `theta` 的内层问题需要解带约束 QP：
+论文由 penalized f-divergence 推导 penalized L1-distance。固定 `theta` 时，式 (11) 在
+非负 Gaussian basis 下化为：
 
 ```math
 \min_{\alpha\ge0}
@@ -188,14 +190,17 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 -\alpha^T\beta(\theta),
 ```
 
-并满足每个 U 样本上的非负函数约束，例如：
+唯一显式约束是逐坐标非负：
 
 ```math
-\sum_l\alpha_l\phi_l(x_j^U)\le 2,
-\qquad j=1,\ldots,n_U.
+\alpha_l\ge 0,\qquad l=1,\ldots,b.
 ```
 
-当前项目只实现 penL1。L1 不能通过把 `max(0,beta)/lambda` 改名得到；每个候选 `theta` 都需要一次 QP，复杂度和 solver 容差必须在方法卡和 benchmark 中单独记录。
+由于目标对不同 `alpha_l` 完全解耦，其解正是
+`alpha_l=max(0,beta_l)/lambda`。因此当前实现已经覆盖论文提出的 penL1 内层算法；此前
+文档中“每个 U 样本还需满足上界约束、每个 theta 都需通用 QP solver”的描述不属于该论文，
+现已撤销。仍未对齐的是论文实验中的逐 `theta` 超参数 CV、全样本 centers、MNIST PCA
+协议与不可变作者源码，而不是另一个 L1-QP 变体。
 
 ## 8. 算法概要
 
@@ -293,7 +298,7 @@ J(theta) = dot(alpha(theta), beta(theta)) - theta + 1
 
 - 在已知 `pi` 的合成 mixture 上报告 bias、MAE 和标准差；
 - 改变 overlap、P/U 样本量和 `pi`，画出估计误差曲线；
-- 对 `sigma` 和 `lambda` 做 nested CV，避免用真实 `pi` 选择参数；
+- 对每个 `theta` 使用训练侧 CV 选择 `sigma` 和 `lambda`，避免用真实 `pi` 选择参数；
 - 与 ReCPE、Elkan-Noto/其他 CPE baseline 对比时，明确不同方法的输入假设；
 - 报告失败比例和估计落在边界的比例，不只报告均值。
 
@@ -305,7 +310,7 @@ J(theta) = dot(alpha(theta), beta(theta)) - theta + 1
 |---|---|---|---|
 | `smoke` | 验证接口、确定性和输出范围 | 二维 Gaussian mixture | 是 |
 | `algorithmic` | 检查 overlap、样本量和先验变化下的估计误差 | 可控合成 mixture | 是 |
-| `paper_like` | 对齐论文数据处理、L1/penL1、CV 和基线 | 论文合成数据与 MNIST one-vs-rest | 否，缺 L1-QP 和 benchmark runner |
+| `paper_like` | 对齐论文数据处理、penL1、CV 和基线 | 论文合成数据与 MNIST one-vs-rest | 否，缺精确 CV、官方数据执行层和完整基线 |
 
 `algorithmic` 结果只能说明当前 clean-room penL1 的统计行为；只有 `paper_like`
 层级完成且配置、数据版本和源码版本均被记录后，才可与论文表格比较。
@@ -352,7 +357,7 @@ theta_grid: 0.01, 0.02, ..., 0.99
 
 调参必须使用不访问真实 `pi` 的训练侧准则；若实现论文 CV 准则，则同时保存每个
 候选的 CV objective。用真实 `pi` 选择最优参数只能标为 `oracle sensitivity`，不能作为
-主结果。对照至少包括 penL1、完成后的 L1-QP、ReCPE+相同底层 penL1，以及一个明确
+主结果。对照至少包括 penL1、ReCPE+相同底层 penL1，以及一个明确
 标注假设差异的 CPE baseline。
 
 ### 12.5 指标、产物与通过标准
@@ -363,15 +368,16 @@ theta_grid: 0.01, 0.02, ..., 0.99
 - 产物：冻结配置、数据 split 索引、seed、依赖版本、逐次估计和汇总表；
 - algorithmic 验收：所有输出有限且在 `[0,1]`，重复运行可追溯；随着 P/U 样本量增加，
   MAE 的总体趋势不得系统性恶化；
-- paper-like 验收：L1 与 penL1 均可运行，论文级数据/参数来源有引用，关键趋势与论文
+- paper-like 验收：penL1 的论文级数据/参数来源有引用，关键趋势与论文
   一致；数值不一致时保留差异并给出实现或数据协议解释，不以调参掩盖。
 
 建议落点为 `benchmarks/paper_like/class_prior_estimation/`，配置至少拆为
 `synthetic.yaml` 和 `mnist.yaml`，原始逐种子结果写入独立文件，汇总脚本不得覆盖原始结果。
 
 当前仓库已在 `benchmarks/assigned_methods/` 落地统一 JSON runner，并完成 seed `0..4` 的
-clean-room 合成实验；penL1 prior MAE 为 `0.0380 ± 0.0192`。该数字不包含 L1-QP、
-MNIST 和论文 CV，因此不是论文表格复现。
+clean-room 合成实验；penL1 prior MAE 为 `0.0380 ± 0.0192`。该数字不包含 MNIST、论文
+逐 `theta` CV 和完整基线，因此不是论文表格复现。`preflight_paper.py` 已将不可变源码、
+数据目录和 toolbox 协议差距分开审计。
 
 ## 13. 源码状态与复现风险
 
@@ -380,6 +386,6 @@ MNIST 和论文 CV，因此不是论文表格复现。
 | Source status | `official_related`；作者页面源码与本文 penL1 公式需分开核对 |
 | Implementation status | `NATIVE`，当前为 penL1 clean-room |
 | 已实现 | Gaussian basis、penL1 闭式系数、先验网格搜索、统一 prior API |
-| 未实现 | L1-QP、论文完整 CV protocol、CI/bootstrap、paper-like benchmark |
+| 未实现 | 论文逐 `theta` CV 的精确 protocol、MNIST/PCA 执行层、CI/bootstrap、paper-like benchmark |
 | 主要风险 | basis 尺度、先验搜索网格、P/U 抽样偏差和有限样本误差都会显著影响 `pi_hat` |
 | 解释边界 | `estimate()` 是 mixture proportion/class prior estimate，不是分类器概率，也不是置信区间 |

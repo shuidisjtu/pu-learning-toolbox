@@ -42,6 +42,7 @@
 - [x] PUSB、LBE、Dist-PU、LLSVM native interfaces
 - [x] 前五篇负责论文的 paper-like 复现实验规格
 - [x] 前五篇统一 benchmark runner、官方来源/配置锁和 clean-room 多 seed 结果
+- [x] 前五篇 official preflight（源码、数据、历史环境、CUDA/MATLAB 与 toolbox 实现差距分轴审计）
 - [ ] 官方数据、历史环境和 paper-like 全量运行
 
 ## Phase 4 — 推荐与诊断 (v0.4)
@@ -76,6 +77,7 @@
 
 | 日期 | 方法 | 状态 | 代码与文档 | 验证 |
 |---|---|---|---|---|
+| 2026-08-08 | 前五篇 official preflight 与 CPE 证据修正 | 新增官方执行/toolbox 复现双 readiness 审计，检查 source lock、入口、数据、CUDA、MATLAB 和历史版本；依据论文原文撤销错误的额外 L1-QP 待办，确认当前解析解即 penL1 | `benchmarks/assigned_methods/preflight_paper.py`；五份 official 配置；CPE Method Card；当前节点报告 | 定向 `17 passed`、全量 `678 passed`；ruff 与 5 道质量门禁通过；当前五方法均按具体 blocker 保持 not ready |
 | 2026-08-07 | 测试与 workflow 脚本导入兼容性 | 测试数据工厂从 `conftest.py` 移至显式 helper，仓库 `tests` 包不再被环境中的同名包覆盖；三个 pu-workflow 脚本从源码 checkout 直接启动时显式解析仓库根目录 | `tests/{__init__,helpers,conftest}.py`；workflow/pipeline 测试；`scripts/pu_workflow/{profile,recommend,sensitivity}.py` | 普通系统 Python 全量 `674 passed`；ruff、5 道质量门禁与 `git diff --check` 通过 |
 | 2026-08-06 | pu-workflow 通用 skill | 开放 Agent Skills 规范（仅可移植 frontmatter）；双目录 SKILL.md（.claude/skills/ 供 Claude Code+Cursor，.agents/skills/ 供 Codex/Gemini 等）；3 个环节脚本（profile/recommend/sensitivity，profile.json/recommendation.json/sensitivity.json 契约）；check_skill_sync 第 5 道门禁（双份一致性 + frontmatter 白名单）；.gitignore 白名单（dev-workflow 不发布） | `.claude/skills/pu-workflow/`；`.agents/skills/pu-workflow/`；`scripts/pu_workflow/`；`scripts/check_skill_sync.py` | 全量测试全绿；5 道门禁 + ruff 通过；demo 数据 4 环节实战演练 | 
 | 2026-08-06 | 推荐器成本维度校准 | WConPU（800 epoch CNN）/InfoMax PU（~600 two-stage）提为 `TrainingCost.HIGH`（与 LLSVM 同档），短 epoch 深度方法（Self-PU/DGPU）留 MEDIUM；文档修正 auto 表述（无 GPU/小数据不选中，有 GPU+大数据可能推荐，实测验证） | `pu_toolbox/registry/builtin_methods.py`；`tests/test_builtin_methods.py`；`docs/user/{howto/pipeline,reference/api}.md` | `632 passed`；门禁 + ruff 全通过；评分实测（小数据 GPU 下 upu 仍领先 30 分） |

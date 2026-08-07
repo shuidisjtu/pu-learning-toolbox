@@ -3,11 +3,11 @@
   "protocol": "paper_like",
   "method": "class_prior_estimation",
   "source_lock": "../official_sources.lock.json#sources/class_prior_estimation",
-  "status": "blocked",
+  "status": "locked_not_executed",
   "implementation": {
-    "variants": ["penL1", "L1"],
+    "variants": ["penL1"],
     "available_in_toolbox": ["penL1"],
-    "missing_in_toolbox": ["L1 constrained QP", "paper cross-validation criterion"]
+    "missing_in_toolbox": ["paper cross-validation protocol"]
   },
   "datasets": {
     "synthetic": "Paper-defined mixture experiments; exact table settings require source recovery.",
@@ -20,5 +20,15 @@
     "theta_stop": 0.99,
     "theta_step": 0.01
   },
-  "claim_policy": "Do not label results paper_like until L1, paper CV, and an immutable source/data manifest are available."
+  "execution_requirements": {
+    "source_checkout_required": true,
+    "data_root_required": true,
+    "cuda_required": false,
+    "required_commands": [],
+    "toolbox_implementation_gaps": [
+      "The paper says sigma and lambda are selected by cross-validation for each theta, but the immutable author implementation and exact fold/scoring protocol are not locked.",
+      "The MNIST experiment uses one-vs-rest classes, four-dimensional PCA, and all samples as Gaussian centers; the executable data protocol is not integrated."
+    ]
+  },
+  "claim_policy": "Do not label results paper_like until the paper cross-validation protocol and an immutable source/data manifest are available."
 }

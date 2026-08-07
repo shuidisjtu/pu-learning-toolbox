@@ -187,5 +187,8 @@ def test_official_lock_and_all_config_outputs_are_valid_json():
     }
     assert len(documents) == 8
     source_lock = documents[config_root / "official_sources.lock.json"]
+    assert source_lock["sources"]["class_prior_estimation"]["paper_doi"] == (
+        "10.1007/s10994-016-5604-6"
+    )
     assert source_lock["sources"]["recpe"]["commit"]
     assert source_lock["sources"]["lbe"]["sha256"]
