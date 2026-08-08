@@ -120,7 +120,7 @@ def load_table2_dataset(
     return X, y, provenance
 
 
-def audit_sampling_schedule(
+def build_sampling_trial_plan(
     y: np.ndarray,
     *,
     initial_seed: int = 2018,
@@ -131,18 +131,14 @@ def audit_sampling_schedule(
     test_size: int = 1000,
     holdout_size: int = 3000,
 ) -> list[dict[str, Any]]:
-    """Audit exact official-loop seeds without fitting models or changing sample semantics."""
+    """Build the exact official-loop seed and split-feasibility plan."""
     if len(y) <= holdout_size:
         raise ValueError("dataset must contain more rows than the official holdout")
     rows = []
     seed = initial_seed
     for unlabeled_size in unlabeled_sizes:
         for class_prior in class_priors:
-            feasible = 0
-            min_released_test = test_size
-            min_released_unlabeled = unlabeled_size
-            failure_reasons: set[str] = set()
-            for _ in range(repetitions):
+            for repetition in range(repetitions):
                 permutation = np.random.RandomState(seed).permutation(len(y))
                 train_y = y[permutation[:-holdout_size]]
                 holdout_y = y[permutation[-holdout_size:]]
@@ -161,29 +157,77 @@ def audit_sampling_schedule(
                 released_test = min(holdout_positive, required_test_positive) + min(
                     holdout_negative, required_test_negative
                 )
-                min_released_unlabeled = min(min_released_unlabeled, released_unlabeled)
-                min_released_test = min(min_released_test, released_test)
                 trial_reasons = []
-                if train_positive < positive_size:
+                if train_positive < 1:
                     trial_reasons.append("selected_positive_pool")
                 if released_unlabeled < unlabeled_size:
                     trial_reasons.append("unlabeled_pool")
                 if released_test < test_size:
                     trial_reasons.append("holdout_pool")
-                if trial_reasons:
-                    failure_reasons.update(trial_reasons)
-                else:
-                    feasible += 1
+                rows.append(
+                    {
+                        "seed": seed,
+                        "repetition": repetition,
+                        "unlabeled_size": unlabeled_size,
+                        "class_prior": class_prior,
+                        "strictly_feasible": not trial_reasons,
+                        "actual_unlabeled_size": released_unlabeled,
+                        "actual_test_size": released_test,
+                        "failure_reasons": trial_reasons,
+                    }
+                )
                 seed += 1
+    return rows
+
+
+def audit_sampling_schedule(
+    y: np.ndarray,
+    *,
+    initial_seed: int = 2018,
+    repetitions: int = 100,
+    class_priors: tuple[float, ...] = (0.2, 0.4, 0.6, 0.8),
+    unlabeled_sizes: tuple[int, ...] = (800, 1600, 3200),
+    positive_size: int = 400,
+    test_size: int = 1000,
+    holdout_size: int = 3000,
+) -> list[dict[str, Any]]:
+    """Aggregate exact official-loop feasibility without fitting models."""
+    plan = build_sampling_trial_plan(
+        y,
+        initial_seed=initial_seed,
+        repetitions=repetitions,
+        class_priors=class_priors,
+        unlabeled_sizes=unlabeled_sizes,
+        positive_size=positive_size,
+        test_size=test_size,
+        holdout_size=holdout_size,
+    )
+    rows = []
+    for unlabeled_size in unlabeled_sizes:
+        for class_prior in class_priors:
+            trials = [
+                trial
+                for trial in plan
+                if trial["unlabeled_size"] == unlabeled_size and trial["class_prior"] == class_prior
+            ]
+            failure_reasons = sorted(
+                {reason for trial in trials for reason in trial["failure_reasons"]}
+            )
             rows.append(
                 {
                     "unlabeled_size": unlabeled_size,
                     "class_prior": class_prior,
                     "repetitions": repetitions,
-                    "strictly_feasible_repetitions": feasible,
-                    "minimum_released_unlabeled_size": min_released_unlabeled,
-                    "minimum_released_test_size": min_released_test,
-                    "failure_reasons": sorted(failure_reasons),
+                    "strictly_feasible_repetitions": sum(
+                        trial["strictly_feasible"] for trial in trials
+                    ),
+                    "minimum_released_unlabeled_size": min(
+                        trial["actual_unlabeled_size"] for trial in trials
+                    ),
+                    "minimum_released_test_size": min(
+                        trial["actual_test_size"] for trial in trials
+                    ),
+                    "failure_reasons": failure_reasons,
                 }
             )
     return rows

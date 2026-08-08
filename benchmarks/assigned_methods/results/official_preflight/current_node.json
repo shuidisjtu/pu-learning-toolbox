@@ -18,7 +18,7 @@
     "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
     "python_version": "3.12.2"
   },
-  "created_at_utc": "2026-08-08T12:15:41.736137+00:00",
+  "created_at_utc": "2026-08-08T12:41:37.310833+00:00",
   "data_roots": {
     "pusb": "/data2/user/zihenglin/official-data/pusb-table2"
   },
@@ -112,13 +112,13 @@
       "toolbox_implementation_gaps": [
         "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
         "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
-        "No policy-changing resampling protocol has been approved, and the complete model matrix has not been executed."
+        "Strict-complete-cell and released-compatibility policies are implemented with exact plans, checkpointing, and separate fidelity labels, but neither long-running model matrix has been executed."
       ],
       "toolbox_replication_blockers": [
         "Required Python package is unavailable: chainer",
         "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
         "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
-        "No policy-changing resampling protocol has been approved, and the complete model matrix has not been executed."
+        "Strict-complete-cell and released-compatibility policies are implemented with exact plans, checkpointing, and separate fidelity labels, but neither long-running model matrix has been executed."
       ]
     },
     {

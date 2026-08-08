@@ -217,11 +217,13 @@ benchmarks/
     preflight_paper.py         (源码/数据/历史环境与 toolbox 差距分轴审计)
     pusb_official_data.py      (IJCNN1 仓库扩展校验、官方抽样、kernel/uLSIF 与 provenance)
     pusb_table2_data.py        (Table 2 六数据集锁定 loader 与官方采样可行性审计)
+    pusb_table2_benchmark.py   (Table 2 严格/兼容计划、checkpoint/resume 与 provenance)
     configs/official/          (五份 locked_not_executed paper-like 配置)
     results/official_preflight/ (当前节点前五篇 blocker 报告)
     results/pusb_official_data_smoke/ (PUSB 官方数据缩小网格 smoke)
     results/pusb_official_data_feasible_multiseed/ (IJCNN1 仓库扩展：完整网格 3 seeds × 3 U + uLSIF)
     results/pusb_table2_data_audit/ (Table 2 数据完整性与官方采样可行性报告)
+    results/pusb_table2_strict_plan/ (45 单元/4500 trials 的 claim-safe dry-run 计划)
   deep_pu/
     runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
     run.py                     (CLI)

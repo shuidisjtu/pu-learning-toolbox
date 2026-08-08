@@ -46,7 +46,8 @@
 - [x] PUSB official-aligned RBF 适配器、IJCNN1 数据校验与缩小网格 smoke
 - [x] PUSB IJCNN1 仓库扩展：`pi=0.2` 完整网格 3 seeds × 3 U、uLSIF 与断点续跑
 - [x] PUSB 论文 Table 2 六数据集来源/hash/loader 锁定与官方采样可行性审计
-- [ ] PUSB 确认严格/兼容采样政策，执行 45 个全重复可行单元并单列其余单元
+- [x] PUSB 严格完整单元/官方兼容策略、精确计划、checkpoint/resume 与 provenance runner
+- [ ] PUSB 执行 strict plan 的 45 个单元/4500 trials；27 个排除单元保持单列
 - [ ] 官方数据、历史环境和 paper-like 全量运行
 
 ## Phase 4 — 推荐与诊断 (v0.4)
@@ -83,6 +84,7 @@
 |---|---|---|---|---|
 | 2026-08-08 | PUSB Table 2 协议核查 | 论文 Table 2 使用 mushrooms/shuttle/pageblocks/usps/connect-4/spambase；仓库入口默认 IJCNN1，README 与入口不一致；现有结果降级为 `official_repo_extension` | PUSB official 配置、runner fidelity、README 与 Method Card | 核对论文第 5.2 节/Table 2 和官方仓库全部相关历史提交；IJCNN1 高先验限制不再误记为论文 blocker |
 | 2026-08-08 | PUSB Table 2 数据锁与采样审计 | 六数据集来源/hash/形状/标签/类别计数锁定；统一 loader；按官方连续 seed 审计 7200 trials | `pusb_table2_datasets.json`、`pusb_table2_data.py`、审计报告与测试 | 72 个单元仅 45 个在全部重复中满足声明样本量；严格模式不得接受静默截断 |
+| 2026-08-08 | PUSB Table 2 执行策略与 runner | strict 完整单元和 released compatibility 分离；跨单元连续 seed；逐 trial checkpoint/resume；真实数据 dry-run | `pusb_table2_benchmark.py`、两份锁定配置、strict plan 与测试 | strict 选择 45 单元/4500 trials、排除 27 单元、0 个 undersized selected trial；尚未启动长训练 |
 | 2026-08-08 | PUSB 完整网格可行批次 | 接入 `densratio 0.3.0` uLSIF；逐 trial 原子 checkpoint、配置一致性校验和 `--resume`；执行 300 bases、5 folds、9×8 网格、3 seeds × 3 U | PUSB runner；feasible multiseed 配置与结果；README/Method Card | 9/9 trials；全部 CV/最终优化收敛；PUSB accuracy `0.7657–0.7730`，uLSIF `0.7543`；全量 `705 passed`；保持 `paper_claim=false` |
 | 2026-08-08 | PUSB official-aligned 执行层 | 新增 RBF 基、PU 风险、官方随机 CV 与先验分位数规则；修正官方正则目标/梯度系数冲突；完成 IJCNN1 hash 校验和 smoke，并识别高先验测试集不可构造问题 | `pusb_kernel.py`；`pusb_official_data.py`；PUSB official/smoke 配置、Method Card 与结果 manifest | 全量 `702 passed`；IJCNN1 smoke: quantile accuracy `0.7470`、ROC-AUC `0.6664`；保持 `paper_claim=false` |
 | 2026-08-08 | 前五篇 official preflight 与 CPE 证据修正 | 新增官方执行/toolbox 复现双 readiness 审计，检查 source lock、入口、数据、CUDA、MATLAB 和历史版本；依据论文原文撤销错误的额外 L1-QP 待办，确认当前解析解即 penL1 | `benchmarks/assigned_methods/preflight_paper.py`；五份 official 配置；CPE Method Card；当前节点报告 | 定向 `17 passed`、全量 `678 passed`；ruff 与 5 道质量门禁通过；当前五方法均按具体 blocker 保持 not ready |

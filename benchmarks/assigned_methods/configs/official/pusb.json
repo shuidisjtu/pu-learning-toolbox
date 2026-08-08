@@ -79,7 +79,7 @@
     "toolbox_implementation_gaps": [
       "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
       "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
-      "No policy-changing resampling protocol has been approved, and the complete model matrix has not been executed."
+      "Strict-complete-cell and released-compatibility policies are implemented with exact plans, checkpointing, and separate fidelity labels, but neither long-running model matrix has been executed."
     ]
   },
   "claim_policy": "The IJCNN1 results are an official-repository extension, not Table 2. A paper-level claim requires the six datasets explicitly reported in Table 2 and the full comparison matrix."

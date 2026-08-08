@@ -91,6 +91,7 @@ def construct_official_split(
     test_size: int = 1000,
     holdout_size: int = 3000,
     selection_probability_power: float = 20.0,
+    allow_undersized: bool = False,
 ) -> dict[str, np.ndarray]:
     """Reproduce the released PUSB script's selected-positive data construction."""
     if not 0.0 < class_prior < 1.0:
@@ -136,8 +137,9 @@ def construct_official_split(
     n_unlabeled_negative = unlabeled_size - n_unlabeled_positive
     unlabeled_positive_pool = X_train[y_train == 1]
     unlabeled_negative_pool = X_train[y_train == 0]
-    if n_unlabeled_positive > len(unlabeled_positive_pool) or n_unlabeled_negative > len(
-        unlabeled_negative_pool
+    if not allow_undersized and (
+        n_unlabeled_positive > len(unlabeled_positive_pool)
+        or n_unlabeled_negative > len(unlabeled_negative_pool)
     ):
         raise ValueError("requested unlabeled mixture exceeds the available class pools")
     unlabeled_positive = unlabeled_positive_pool[
@@ -150,14 +152,16 @@ def construct_official_split(
     X_pu = np.concatenate((selected_positive, unlabeled), axis=0)
     y_pu = np.r_[
         np.ones(positive_size, dtype=int),
-        np.zeros(unlabeled_size, dtype=int),
+        np.zeros(len(unlabeled), dtype=int),
     ]
 
     n_test_positive = int(test_size * class_prior)
     n_test_negative = test_size - n_test_positive
     test_positive_pool = X_holdout[y_holdout == 1]
     test_negative_pool = X_holdout[y_holdout == 0]
-    if n_test_positive > len(test_positive_pool) or n_test_negative > len(test_negative_pool):
+    if not allow_undersized and (
+        n_test_positive > len(test_positive_pool) or n_test_negative > len(test_negative_pool)
+    ):
         raise ValueError("holdout split does not contain enough examples for the requested prior")
     test_positive = test_positive_pool[rng.permutation(len(test_positive_pool))[:n_test_positive]]
     test_negative = test_negative_pool[rng.permutation(len(test_negative_pool))[:n_test_negative]]
@@ -267,6 +271,7 @@ def run_trials(
                     test_size=int(experiment["test_size"]),
                     holdout_size=int(experiment["holdout_size"]),
                     selection_probability_power=float(experiment["selection_probability_power"]),
+                    allow_undersized=bool(experiment.get("allow_undersized", False)),
                 )
                 model = PUSBKernelClassifier(
                     random_state=int(seed),
@@ -294,6 +299,8 @@ def run_trials(
                     "class_prior": float(class_prior),
                     "positive_size": int(experiment["positive_size"]),
                     "unlabeled_size": int(unlabeled_size),
+                    "actual_unlabeled_size": int(np.sum(split["y_pu"] == 0)),
+                    "requested_test_size": int(experiment["test_size"]),
                     "test_size": len(split["y_test"]),
                     "sigma": model.sigma_,
                     "reg_lambda": model.reg_lambda_,

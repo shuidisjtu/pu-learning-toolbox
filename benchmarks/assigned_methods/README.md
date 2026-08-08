@@ -176,6 +176,30 @@ python -m benchmarks.assigned_methods.pusb_table2_data \
 spambase 为 3/12。官方脚本不会检查无放回切片长度，其余单元会静默得到少于声明值的
 测试集或未标记集；严格论文协议不得把这些运行标为相应的 `1000 test` 或 `U` 规模。
 
+### PUSB Table 2 benchmark runner
+
+`pusb_table2_benchmark.py` 提供两种不可混用的执行策略：
+
+- `strict_complete_cells`：一个单元的 100 个 seed 只要有一个无法满足声明样本量，就排除
+  整个单元；锁定计划选择 45 个单元、4500 个 trial，且没有 undersized split。
+- `released_compatibility`：执行官方代码会产生的全部 7200 个 trial，同时逐行保存
+  `actual_unlabeled_size`、`test_size`、`strictly_feasible_split` 和失败原因；该模式不能标为
+  论文协议。
+
+先生成或复核严格模式计划，不训练模型：
+
+```bash
+python -m benchmarks.assigned_methods.pusb_table2_benchmark \
+  --config benchmarks/assigned_methods/configs/pusb_table2_strict.json \
+  --data-root /data2/user/zihenglin/official-data/pusb-table2 \
+  --output benchmarks/assigned_methods/results/pusb_table2_strict_plan \
+  --plan-only
+```
+
+执行长任务时去掉 `--plan-only` 并使用新的结果目录；中断后对同一目录追加 `--resume`。
+runner 会逐 trial 原子写入 checkpoint，并拒绝用不同配置续写。兼容模式必须改用
+`pusb_table2_released_compatibility.json` 和独立输出目录。
+
 ## 结论边界
 
 当前结果必须按实际 fidelity 分别标为 `clean_room` 或 `official_repo_extension`：

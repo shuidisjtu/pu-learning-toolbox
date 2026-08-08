@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "protocol": "pusb_table2_benchmark",
+  "fidelity_level": "paper_protocol_strict_feasible_subset",
+  "paper_claim": false,
+  "sampling_policy": "strict_complete_cells",
+  "datasets": ["mushrooms", "shuttle", "pageblocks", "usps", "connect-4", "spambase"],
+  "experiment": {
+    "initial_seed": 2018,
+    "repetitions": 100,
+    "class_priors": [0.2, 0.4, 0.6, 0.8],
+    "unlabeled_sizes": [800, 1600, 3200],
+    "positive_size": 400,
+    "test_size": 1000,
+    "holdout_size": 3000,
+    "selection_probability_power": 20
+  },
+  "model": {
+    "variant": "official_aligned_rbf_full_grid",
+    "parameters": {
+      "n_basis": 300,
+      "cv": 5,
+      "sigma_grid": [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
+      "reg_grid": [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0],
+      "max_iter": 200,
+      "tol": 0.00001
+    }
+  },
+  "density_ratio": {
+    "enabled": true,
+    "variant": "densratio_0.3.0_rulsif_official_defaults",
+    "parameters": {
+      "kernel_num": 100,
+      "sigma_range": "auto",
+      "lambda_range": "auto",
+      "verbose": false
+    }
+  },
+  "limitations": [
+    "Only cells whose 100 official seeds all satisfy the declared P/U/test sizes are selected.",
+    "Twenty-seven undersized cells are excluded as complete cells rather than cherry-picking their feasible repetitions.",
+    "The selected 4,500 trials are a strict feasible subset, not a complete reproduction of Table 2.",
+    "Results remain paper_claim=false."
+  ]
+}

@@ -15,7 +15,8 @@
 - [x] 对 IJCNN1 可行 `pi=0.2` 完成 3 seeds × 3 U sizes 的完整网格与 densratio 对照。
 - [x] 核对论文 Table 2，确认 IJCNN1 是仓库扩展而非论文表格数据集。
 - [x] 锁定并接入 mushrooms、shuttle、pageblocks、usps、connect-4、spambase，审计采样可行性。
-- [ ] 明确不可行单元政策，执行严格可行单元并单独报告官方静默截断单元。
+- [x] 实现严格完整单元/官方兼容两套策略、精确 trial plan、断点续跑和 provenance。
+- [ ] 执行严格模式 4500 个 trial；兼容模式如需执行，必须使用独立结果目录和标签。
 
 ### 1.2 注意
 
@@ -285,6 +286,7 @@ class PUSBKernelClassifier(BasePUClassifier):
 | `benchmarks/assigned_methods/` | SAR 合成 runner、官方参数锁和结果 | ✅ baseline + official-data smoke |
 | `benchmarks/assigned_methods/pusb_official_data.py` | IJCNN1 扩展校验、官方抽样、uLSIF、checkpoint 与 provenance | ✅ repository extension |
 | `benchmarks/assigned_methods/pusb_table2_data.py` | Table 2 六数据集锁定加载与官方 seed/采样可行性审计 | ✅ |
+| `benchmarks/assigned_methods/pusb_table2_benchmark.py` | 严格/兼容计划、逐 trial checkpoint、resume、summary 与 provenance | ✅ planned |
 
 ## 9. 测试与验收标准
 
@@ -450,4 +452,4 @@ spambase 为 3/12。根因是官方脚本对训练池和固定 3000 行 holdout 
 | 当前实现可声称 | 统一接口、核 PU 目标/CV/分位数规则、IJCNN1 仓库扩展完整网格与 uLSIF 对照 |
 | 当前实现不可声称 | 已复现论文 Table 2 六数据集比较表 |
 | 主要风险 | 观察到的 P 受到 `e(x)` 加权；直接来源分类会把 selection preference 与 class posterior 混合 |
-| 下一步 | 明确严格/兼容采样政策；先运行 45 个全重复可行单元，单列其余 27 个单元 |
+| 下一步 | 按锁定 strict plan 可恢复地执行 45 个单元/4500 trials；27 个排除单元保持单列 |

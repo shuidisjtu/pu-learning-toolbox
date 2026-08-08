@@ -829,7 +829,7 @@
       "total_cells": 12
     }
   ],
-  "generated_at": "2026-08-08T12:15:38.795353+00:00",
+  "generated_at": "2026-08-08T12:41:34.197689+00:00",
   "manifest": "/data2/user/zihenglin/pu-learning-toolbox/benchmarks/assigned_methods/configs/pusb_table2_datasets.json",
   "official_schedule": {
     "class_priors": [

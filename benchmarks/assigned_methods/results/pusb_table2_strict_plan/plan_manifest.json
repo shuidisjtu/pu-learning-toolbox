@@ -1,0 +1,133 @@
+{
+  "config_sha256": "662d70bc1c336ff02ea851acca352e4375d4db07e756f02f8bdeaec067b83f03",
+  "created_at_utc": "2026-08-08T12:39:48.126166+00:00",
+  "datasets": {
+    "connect-4": {
+      "class_counts": {
+        "negative": 23084,
+        "positive": 44473
+      },
+      "dataset": "connect-4",
+      "positive_fraction": 0.6583033586452921,
+      "shape": [
+        67557,
+        126
+      ],
+      "target_sha256": {
+        "connect-4.txt": "6fd5ca7fb3d027ab19412a3ee4af7f9198a699064bc478cfc915b208a7addcac"
+      }
+    },
+    "mushrooms": {
+      "class_counts": {
+        "negative": 3916,
+        "positive": 4208
+      },
+      "dataset": "mushrooms",
+      "positive_fraction": 0.517971442639094,
+      "shape": [
+        8124,
+        112
+      ],
+      "target_sha256": {
+        "mushrooms.txt": "f39a4eb628dc61a7d43760815b061c9e497aa728ce1ad8bde57a09ef6043b538"
+      }
+    },
+    "pageblocks": {
+      "class_counts": {
+        "negative": 560,
+        "positive": 4913
+      },
+      "dataset": "pageblocks",
+      "positive_fraction": 0.8976795176320117,
+      "shape": [
+        5473,
+        10
+      ],
+      "target_sha256": {
+        "page-blocks.txt": "52058b6e19ba797b5e80ae6454ebb3b7a25016787e668dd3203393c236d22c78"
+      }
+    },
+    "shuttle": {
+      "class_counts": {
+        "negative": 12414,
+        "positive": 45586
+      },
+      "dataset": "shuttle",
+      "positive_fraction": 0.7859655172413793,
+      "shape": [
+        58000,
+        9
+      ],
+      "target_sha256": {
+        "shuttle.scale.t.txt": "a26557facbc5ba52aa147c5477b4b099cab2c08f3f59fd120a47de46887fa58d",
+        "shuttle.scale.txt": "f9f8ba4159949a451d11f625085c92065e72cce657e7df0633de3aa45ecbc9ba"
+      }
+    },
+    "spambase": {
+      "class_counts": {
+        "negative": 2788,
+        "positive": 1813
+      },
+      "dataset": "spambase",
+      "positive_fraction": 0.39404477287546186,
+      "shape": [
+        4601,
+        57
+      ],
+      "target_sha256": {
+        "spambase.data.txt": "b1ef93de71f97714d3d7d4f58fc9f718da7bbc8ac8a150eff2778616a8097b12"
+      }
+    },
+    "usps": {
+      "class_counts": {
+        "negative": 4422,
+        "positive": 4876
+      },
+      "dataset": "usps",
+      "positive_fraction": 0.5244138524413853,
+      "shape": [
+        9298,
+        256
+      ],
+      "target_sha256": {
+        "usps": "f887a33d18f08b03d7e3e33a36aa73c01429a057351d22de9439786666e2fec0",
+        "usps.t": "3839faa29aa5f6bfa0516cdd599fae8ad59b7a3777d09f7ca971d9f1cd8b6c6b"
+      }
+    }
+  },
+  "environment": {
+    "densratio": "0.3.0",
+    "numpy": "1.26.4",
+    "pandas": "2.2.3",
+    "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
+    "python": "3.12.2",
+    "scikit_learn": "1.7.1",
+    "scipy": "1.15.1"
+  },
+  "fidelity_level": "paper_protocol_strict_feasible_subset",
+  "git_commit": "6d76ec24f88f7ed1e4fb00b06876af412b88e08a",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "Only cells whose 100 official seeds all satisfy the declared P/U/test sizes are selected.",
+    "Twenty-seven undersized cells are excluded as complete cells rather than cherry-picking their feasible repetitions.",
+    "The selected 4,500 trials are a strict feasible subset, not a complete reproduction of Table 2.",
+    "Results remain paper_claim=false."
+  ],
+  "n_completed_trials": 0,
+  "paper_claim": false,
+  "plan_summary": {
+    "datasets": 6,
+    "excluded_cells": 27,
+    "fully_feasible_cells": 45,
+    "selected_cells": 45,
+    "selected_trials": 4500,
+    "total_cells": 72,
+    "total_trials": 7200,
+    "undersized_selected_trials": 0
+  },
+  "protocol": "pusb_table2_benchmark",
+  "runner_sha256": "8a0ce4459dfd6377cd59bde2fe4424b422f54c56847934989e2ff8ecb6981778",
+  "sampling_policy": "strict_complete_cells",
+  "schema_version": 1,
+  "status": "planned_not_executed"
+}
