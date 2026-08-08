@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "protocol": "pusb_table2_dataset_lock",
+  "status": "locked",
+  "paper": {
+    "title": "Learning from Positive and Unlabeled Data with a Selection Bias",
+    "canonical_url": "https://openreview.net/forum?id=rJzLciCqKm",
+    "evidence": "Section 5.2 and Table 2"
+  },
+  "official_loader": {
+    "source_lock": "official_sources.lock.json#sources/pusb",
+    "path": "BiasedPUlearning/PUSB/dataset_linear.py"
+  },
+  "datasets": {
+    "mushrooms": {
+      "official_loader_key": "mushroom",
+      "format": "svmlight",
+      "source_page": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html",
+      "downloads": [
+        {
+          "url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/mushrooms",
+          "target": "mushrooms.txt",
+          "sha256": "f39a4eb628dc61a7d43760815b061c9e497aa728ce1ad8bde57a09ef6043b538"
+        }
+      ],
+      "expected_samples": 8124,
+      "expected_features": 112,
+      "label_rule": "positive iff original label == 2",
+      "class_counts": {"negative": 3916, "positive": 4208},
+      "status": "locked"
+    },
+    "shuttle": {
+      "official_loader_key": "shuttle",
+      "format": "svmlight_concat",
+      "source_page": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html",
+      "downloads": [
+        {
+          "url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/shuttle.scale",
+          "target": "shuttle.scale.txt",
+          "sha256": "f9f8ba4159949a451d11f625085c92065e72cce657e7df0633de3aa45ecbc9ba"
+        },
+        {
+          "url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/shuttle.scale.t",
+          "target": "shuttle.scale.t.txt",
+          "sha256": "a26557facbc5ba52aa147c5477b4b099cab2c08f3f59fd120a47de46887fa58d"
+        }
+      ],
+      "expected_samples": 58000,
+      "expected_features": 9,
+      "label_rule": "positive iff original label == 1",
+      "class_counts": {"negative": 12414, "positive": 45586},
+      "status": "locked"
+    },
+    "pageblocks": {
+      "official_loader_key": "pageblocks",
+      "format": "dense_whitespace_last_label",
+      "source_page": "https://archive.ics.uci.edu/dataset/78/page+blocks+classification",
+      "downloads": [
+        {
+          "url": "https://archive.ics.uci.edu/static/public/78/page+blocks+classification.zip",
+          "archive_member": "page-blocks.data.Z",
+          "target": "page-blocks.txt",
+          "archive_sha256": "b766faf029e05afd8c3969376fbdd01e377c7580eb88262772aa9c9e02fe28bf",
+          "member_sha256": "399ece75ff0f97cfb8ae536448448a9e7d1836b63980690284cb2fc3c02b1dc6",
+          "sha256": "52058b6e19ba797b5e80ae6454ebb3b7a25016787e668dd3203393c236d22c78"
+        }
+      ],
+      "expected_samples": 5473,
+      "expected_features": 10,
+      "label_rule": "positive iff original label == 1",
+      "class_counts": {"negative": 560, "positive": 4913},
+      "license": "CC BY 4.0",
+      "status": "locked"
+    },
+    "usps": {
+      "official_loader_key": "usps",
+      "format": "svmlight_concat_bzip2",
+      "source_page": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html",
+      "downloads": [
+        {
+          "url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/usps.bz2",
+          "target": "usps",
+          "compressed_sha256": "3771e9dd6ba685185f89867b6e249233dd74652389f263963b3b741e994b034f",
+          "sha256": "f887a33d18f08b03d7e3e33a36aa73c01429a057351d22de9439786666e2fec0"
+        },
+        {
+          "url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/usps.t.bz2",
+          "target": "usps.t",
+          "compressed_sha256": "a9c0164e797d60142a50604917f0baa604f326e9a689698763793fa5d12ffc4e",
+          "sha256": "3839faa29aa5f6bfa0516cdd599fae8ad59b7a3777d09f7ca971d9f1cd8b6c6b"
+        }
+      ],
+      "expected_samples": 9298,
+      "expected_features": 256,
+      "label_rule": "positive iff integer label is odd",
+      "class_counts": {"negative": 4422, "positive": 4876},
+      "status": "locked"
+    },
+    "connect-4": {
+      "official_loader_key": "connect-4",
+      "format": "svmlight",
+      "source_page": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html",
+      "downloads": [
+        {
+          "url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/connect-4",
+          "target": "connect-4.txt",
+          "sha256": "6fd5ca7fb3d027ab19412a3ee4af7f9198a699064bc478cfc915b208a7addcac"
+        }
+      ],
+      "expected_samples": 67557,
+      "expected_features": 126,
+      "label_rule": "positive iff original label == 1",
+      "class_counts": {"negative": 23084, "positive": 44473},
+      "status": "locked"
+    },
+    "spambase": {
+      "official_loader_key": "spambase",
+      "format": "dense_csv_last_label",
+      "source_page": "https://archive.ics.uci.edu/dataset/94/spambase",
+      "downloads": [
+        {
+          "url": "https://archive.ics.uci.edu/static/public/94/spambase.zip",
+          "archive_member": "spambase.data",
+          "target": "spambase.data.txt",
+          "archive_sha256": "813ac1df8effac70463c09c9c4b11e8803eefcab54771af66150852bcdcd1636",
+          "sha256": "b1ef93de71f97714d3d7d4f58fc9f718da7bbc8ac8a150eff2778616a8097b12"
+        }
+      ],
+      "expected_samples": 4601,
+      "expected_features": 57,
+      "label_rule": "positive iff original label == 1",
+      "class_counts": {"negative": 2788, "positive": 1813},
+      "license": "CC BY 4.0",
+      "status": "locked"
+    }
+  },
+  "lock_policy": "Set a dataset to locked only after every download and extracted target hash, shape, label set, and class count have been verified."
+}

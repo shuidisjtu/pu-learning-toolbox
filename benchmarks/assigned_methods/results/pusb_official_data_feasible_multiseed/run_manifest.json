@@ -1,6 +1,6 @@
 {
-  "config_sha256": "e28e9e34e9b2f9604c69c5f07437292a359f2b2e9e577c89e72a9395dfde7029",
-  "created_at_utc": "2026-08-08T11:33:24.710086+00:00",
+  "config_sha256": "ce587d248e50f634ceaef4733e9888b804b4ee32d3dbd87635cbf1b8b22a31e1",
+  "created_at_utc": "2026-08-08T12:12:27.311885+00:00",
   "dataset": {
     "path": "ijcnn1",
     "sha256": "16506cad788cf7c9607454150ed1994788204bac2ff4c9cb3b320036b6950d3f",
@@ -18,19 +18,20 @@
     "scikit_learn": "1.7.1",
     "scipy": "1.15.1"
   },
-  "fidelity_level": "paper_protocol",
-  "git_commit": "62f30f5ab934bbb997887745576f9fa9e2bb683a",
+  "fidelity_level": "official_repo_extension",
+  "git_commit": "70a9d6a61b2f1e2667f0bc361eef1c3528d1db05",
   "git_worktree_dirty": true,
   "limitations": [
+    "IJCNN1 is the released repository entrypoint default but is not one of the six datasets reported in the paper's Table 2.",
     "Only prior 0.2 is executable under the released 3,000-row holdout protocol for the verified complete IJCNN1 file.",
     "The clean-room optimizer uses 0.5 * lambda * ||b||^2 to make the released objective consistent with its supplied gradient.",
     "densratio center selection is deterministically seeded per trial instead of inheriting the released script's process-global RNG state after PUSB fitting.",
     "Three feasible seeds are configured as an execution tranche; the paper's 100 repetitions remain incomplete.",
-    "Results remain paper_claim=false until the infeasible high-prior protocol is authoritatively resolved and all repetitions are executed."
+    "Results remain paper_claim=false; they audit the repository's IJCNN1 extension rather than reproduce Table 2."
   ],
   "n_trials": 9,
   "paper_claim": false,
   "protocol": "pusb_official_data",
-  "runner_sha256": "b71a7254e0a715874c56668248330fdf1814e386879afd4b16d505165203fd8e",
+  "runner_sha256": "21fdc848e09102acbc93a6a72938fb7b1eac17ddf9a9e99fe31ef1415a63da9a",
   "schema_version": 1
 }

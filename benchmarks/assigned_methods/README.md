@@ -72,9 +72,11 @@ python -m benchmarks.assigned_methods.preflight_paper \
 锁定官方代码所需的源码、数据、CUDA、MATLAB 和历史版本；后者还加入 clean-room toolbox
 与论文算法/实验协议之间的实现差距，不能用“官方代码可启动”替代“toolbox 已精确复现”。
 
-## PUSB 官方数据执行层
+## PUSB 官方仓库 IJCNN1 扩展
 
-PUSB 已提供独立的 official-aligned RBF 适配器和 IJCNN1 runner。先运行缩小网格 smoke：
+PUSB 已提供独立的 official-aligned RBF 适配器和 IJCNN1 runner。IJCNN1 是发布仓库入口
+的默认数据集，但不在论文 Table 2 的六个数据集中，因此这些运行属于
+`official_repo_extension`，不是 `paper_protocol`。先运行缩小网格 smoke：
 
 ```bash
 python -m benchmarks.assigned_methods.pusb_official_data \
@@ -87,7 +89,7 @@ runner 会核验解压后 IJCNN1 的 SHA-256 和 `(49990, 22)` 形状，复刻�
 抽样，并保存 trial、summary、解析后配置和 provenance manifest。smoke 使用 30 个 RBF 基、
 3 折 CV 和缩小网格，因此强制 `paper_claim=false`。
 
-可行协议的完整网格分批配置为：
+IJCNN1 可行子集的完整网格分批配置为：
 
 ```bash
 python -m benchmarks.assigned_methods.pusb_official_data \
@@ -99,9 +101,10 @@ python -m benchmarks.assigned_methods.pusb_official_data \
 长任务会逐 trial 原子写入 `trials.csv`。中断后使用同一命令并追加 `--resume`；runner 会
 核验 `resolved_config.json`，拒绝使用不同配置续写同一结果目录。
 
-官方协议本身存在两个已验证的问题：源码的正则目标与梯度相差系数 2；完整 IJCNN1 在 seed
-2018 的 3,000 条 holdout 中仅有 315 个正例，只能构造 `pi=0.2` 的 1,000 条测试集，无法
-构造配置中的 `pi=0.4/0.6/0.8`。runner 不会静默扩大 holdout；相关组合须等待权威协议修正。
+现有证据确认三项差异：源码的正则目标与梯度相差系数 2；仓库 README 声称入口复现
+Table 2，但入口默认 `ijcnn1`，而论文 Table 2 使用 mushrooms、shuttle、pageblocks、usps、
+connect-4 和 spambase；IJCNN1 在 seed 2018 的 3,000 条 holdout 中只有 315 个正例，只能
+构造 `pi=0.2` 的 1,000 条测试集。runner 不会静默改变该仓库扩展的采样协议。
 
 ## 已执行结果
 
@@ -140,7 +143,8 @@ ReCPE 在该设置中的低估是当前默认 density-ratio CPE 后端的实际�
 ROC-AUC 为 `0.6664`。缩小 uLSIF 对照 accuracy 为 `0.7270`、ROC-AUC 为 `0.6640`。
 该结果只证明执行链路可用，不是论文表格复现。
 
-`results/pusb_official_data_feasible_multiseed/` 已完成 3 seeds × 3 U sizes 共 9 个 trial，
+`results/pusb_official_data_feasible_multiseed/` 已完成 IJCNN1 仓库扩展的
+3 seeds × 3 U sizes 共 9 个 trial，
 使用 300 个基、5 折、完整 PUSB 9×8 网格及 `densratio 0.3.0` 默认 100 kernels/13×13
 搜索。全部 CV 候选和最终重训均收敛，三 seed 均选中 `sigma=1.0`、`lambda=0.001`：
 
@@ -150,14 +154,34 @@ ROC-AUC 为 `0.6664`。缩小 uLSIF 对照 accuracy 为 `0.7270`、ROC-AUC 为 `
 | 1600 | 0.7683 ± 0.0170 | 0.6982 ± 0.0280 | 0.7543 ± 0.0050 | 0.6519 ± 0.0326 |
 | 3200 | 0.7657 ± 0.0114 | 0.6983 ± 0.0210 | 0.7543 ± 0.0061 | 0.6520 ± 0.0326 |
 
-这仍是 3-seed 可行子协议，不是论文要求的 100 repetitions。
+这些结果验证仓库扩展的完整计算链路，但数据集不属于论文 Table 2，不能与论文表格直接
+对照。论文六数据集现已完成数据锁与采样审计；下一阶段需先确认不可行单元的报告政策，
+再执行可恢复的 `4 priors × 3 U sizes × 100 repetitions` 训练任务。
+
+### PUSB Table 2 数据锁与采样审计
+
+论文 Table 2 的 mushrooms、shuttle、pageblocks、usps、connect-4、spambase
+已在 `configs/pusb_table2_datasets.json` 中锁定来源、目标文件 SHA-256、形状、标签映射
+和类别计数。原始数据保存在仓库外，统一加载器会复现官方逐特征最大值归一化：
+
+```bash
+python -m benchmarks.assigned_methods.pusb_table2_data \
+  --data-root /data2/user/zihenglin/official-data/pusb-table2 \
+  --output benchmarks/assigned_methods/results/pusb_table2_data_audit/current_node.json
+```
+
+审计严格复现官方 `U -> prior -> repetition` 循环及从 2018 连续递增的 seed。72 个
+`dataset × U × prior` 单元中，只有 45 个在全部 100 次重复中都能构造足量样本：USPS
+与 connect-4 为 12/12，mushrooms 为 11/12，shuttle 为 6/12，pageblocks 为 1/12，
+spambase 为 3/12。官方脚本不会检查无放回切片长度，其余单元会静默得到少于声明值的
+测试集或未标记集；严格论文协议不得把这些运行标为相应的 `1000 test` 或 `U` 规模。
 
 ## 结论边界
 
-当前结果必须标为 `clean_room`：
+当前结果必须按实际 fidelity 分别标为 `clean_room` 或 `official_repo_extension`：
 
 - Dist-PU 使用 toolbox 全量 MLP，不是官方图像 backbone/mini-batch 两阶段训练；
-- PUSB 的旧结果使用来源 Logistic Regression；新增 kernel adapter 仅完成官方数据 smoke；
+- PUSB 的 IJCNN1 kernel 结果是官方仓库扩展，不是论文 Table 2；
 - LBE 使用线性交替 Logistic Regression，不是官方 MLP + Adam；
 - CPE 的 penL1 解析解已对齐论文；尚缺逐 `theta` CV 的精确实现证据和 MNIST/PCA 执行层；
 - ReCPE 尚缺官方 FCNet 和全部 CPE baseline。

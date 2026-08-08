@@ -11,9 +11,11 @@
 - [x] 补充 SCAR/SAR 生成、排序与决策评估、官方对齐和统计汇总协议。
 - [x] 移植官方 RBF scoring、PU 风险、随机 CV 和先验分位数决策，并补公式级测试。
 - [x] 在配对 SCAR/线性 SAR/非线性 SAR 合成数据上验证 posterior ranking preservation。
-- [x] 使用官方 IJCNN1 完成缩小网格端到端 smoke，并保存配置、hash 和 manifest。
-- [x] 对可行 `pi=0.2` 完成 3 seeds × 3 U sizes 的完整网格与 densratio 对照。
-- [ ] 解决官方 IJCNN1 高先验测试集不可构造问题，并扩展到 100 repetitions。
+- [x] 使用官方仓库默认 IJCNN1 完成缩小网格 smoke，并保存配置、hash 和 manifest。
+- [x] 对 IJCNN1 可行 `pi=0.2` 完成 3 seeds × 3 U sizes 的完整网格与 densratio 对照。
+- [x] 核对论文 Table 2，确认 IJCNN1 是仓库扩展而非论文表格数据集。
+- [x] 锁定并接入 mushrooms、shuttle、pageblocks、usps、connect-4、spambase，审计采样可行性。
+- [ ] 明确不可行单元政策，执行严格可行单元并单独报告官方静默截断单元。
 
 ### 1.2 注意
 
@@ -281,7 +283,8 @@ class PUSBKernelClassifier(BasePUClassifier):
 | `pu_toolbox/registry/builtin_methods.py` | `pusb` 元数据和 lazy binding | ✅ |
 | `tests/unit/estimators/test_bias_aware.py` | API smoke test | ✅ |
 | `benchmarks/assigned_methods/` | SAR 合成 runner、官方参数锁和结果 | ✅ baseline + official-data smoke |
-| `benchmarks/assigned_methods/pusb_official_data.py` | IJCNN1 校验、官方抽样、uLSIF、checkpoint 与 provenance | ✅ feasible full-grid tranche |
+| `benchmarks/assigned_methods/pusb_official_data.py` | IJCNN1 扩展校验、官方抽样、uLSIF、checkpoint 与 provenance | ✅ repository extension |
+| `benchmarks/assigned_methods/pusb_table2_data.py` | Table 2 六数据集锁定加载与官方 seed/采样可行性审计 | ✅ |
 
 ## 9. 测试与验收标准
 
@@ -316,9 +319,9 @@ class PUSBKernelClassifier(BasePUClassifier):
 
 ### 10.1 前置门槛
 
-PUSB 的 official-aligned scoring 已有独立实现，但论文级实验仍需解决第 10.6 节的官方协议
-不可行性，并跑完完整网格和对照。实验报告必须用 `implementation_variant` 区分 linear
-baseline 与 kernel adapter，禁止把 smoke 重命名为论文复现。
+PUSB 的 official-aligned scoring 已有独立实现，但论文级实验必须使用第 10.7 节列出的
+Table 2 六数据集。实验报告必须用 `implementation_variant` 区分 linear baseline 与
+kernel adapter，并用 `fidelity_level` 区分仓库扩展和论文协议。
 
 ### 10.2 可控 SAR 数据生成
 
@@ -385,13 +388,14 @@ nonlinear:  e(x) = sigmoid(a1*x1 + a2*x2^2 + b)
 `3401b77ccdd653d39f4f3a6258a42c7938fa9ede`，包括 100 次重复、四个先验、三种 U
 样本量和 kernel CV 网格。
 
-### 10.6 IJCNN1 官方数据 smoke 与阻塞项
+### 10.6 IJCNN1 官方仓库扩展
 
 解压后的完整 LIBSVM IJCNN1 文件 SHA-256 为
 `16506cad788cf7c9607454150ed1994788204bac2ff4c9cb3b320036b6950d3f`，形状为
 `(49990, 22)`，其中 `+1` 为 4,853 条。seed 2018 的官方 3,000 条 holdout 只有 315 条
 正例，因此 1,000 条测试集仅能满足 `pi=0.2` 所需的 200 条正例，不能满足
 `pi=0.4/0.6/0.8` 所需的 400/600/800 条。runner 对这些组合直接报错，不实施替换采样。
+这一限制属于仓库 IJCNN1 扩展，不是论文 Table 2 的协议阻塞项。
 
 已执行 smoke 使用 `pi=0.2`、400 P、800 U、1,000 test、30 个基、3 折以及
 `sigma={0.5,1.0}`、`lambda={0.01,0.1}`。选中 `sigma=1.0`、`lambda=0.01`，官方
@@ -408,8 +412,34 @@ batch-quantile accuracy 为 `0.7470`，balanced accuracy 为 `0.6038`，ROC-AUC 
 | 1600 | `0.7683 ± 0.0170` | `0.6982 ± 0.0280` | `0.7543 ± 0.0050` | `0.6519 ± 0.0326` |
 | 3200 | `0.7657 ± 0.0114` | `0.6983 ± 0.0210` | `0.7543 ± 0.0061` | `0.6520 ± 0.0326` |
 
-该批次验证了完整计算链路，但只有 3 seeds，且没有解决高先验协议缺陷，仍固定
+该批次验证了仓库扩展的完整计算链路，固定为 `fidelity_level=official_repo_extension` 和
 `paper_claim=false`。runner 已支持逐 trial 原子 checkpoint、配置一致性检查和 `--resume`。
+
+### 10.7 论文 Table 2 数据协议
+
+论文第 5.2 节和 Table 2 明确使用六个线性模型数据集：mushrooms、shuttle、pageblocks、
+usps、connect-4 和 spambase。每个数据集构造：
+
+```text
+class_prior in {0.2, 0.4, 0.6, 0.8}
+unlabeled_size in {800, 1600, 3200}
+positive_size = 400
+test_size = 1000
+repetitions = 100
+```
+
+仓库 README 仍称 `main_linear_kernel.py` 复现 Table 2，但该入口当前默认 `ijcnn1`；最早
+可见提交中也已如此，后续提交只修改 README/删除文件，没有修正入口。项目因此以论文正文
+作为 Table 2 数据集权威，以仓库代码作为算法、采样和超参数实现证据。六个数据集的来源、
+hash、形状、标签映射和类别计数现已锁定，统一 loader 已接入。
+
+按官方循环从 seed 2018 连续执行 100 次重复的静态审计发现，72 个
+`dataset × U × prior` 单元中只有 45 个在所有重复中严格满足声明样本量：USPS 与
+connect-4 为 12/12，mushrooms 为 11/12，shuttle 为 6/12，pageblocks 为 1/12，
+spambase 为 3/12。根因是官方脚本对训练池和固定 3000 行 holdout 进行无放回切片，却未
+校验切片结果长度。例如 pageblocks 划出 holdout 后训练池仅 2473 行，任何 `U=3200`
+单元都不可能得到 3200 个未标记样本。兼容模式可记录官方实际长度，严格论文模式则必须
+阻止该 trial；批准重采样政策前不能声称完整复现 Table 2。
 
 ## 11. 源码状态与复现风险
 
@@ -417,7 +447,7 @@ batch-quantile accuracy 为 `0.7470`，balanced accuracy 为 `0.6038`，ROC-AUC 
 |---|---|
 | Source status | `official_exact`：作者源码已锁定；该字段表示源码可获得性，不表示 toolbox 逐行复制 |
 | Implementation status | `NATIVE`；linear baseline 与 official-aligned kernel 双实现 |
-| 当前实现可声称 | 统一接口、核 PU 目标/CV/分位数规则、3-seed 完整网格与 uLSIF 对照 |
-| 当前实现不可声称 | 已复现论文完整比较表或解决官方高先验协议缺陷 |
+| 当前实现可声称 | 统一接口、核 PU 目标/CV/分位数规则、IJCNN1 仓库扩展完整网格与 uLSIF 对照 |
+| 当前实现不可声称 | 已复现论文 Table 2 六数据集比较表 |
 | 主要风险 | 观察到的 P 受到 `e(x)` 加权；直接来源分类会把 selection preference 与 class posterior 混合 |
-| 下一步 | 获取高先验测试构造的权威说明；把可行 `pi=0.2` 从 3 seeds 扩展到 100 repetitions |
+| 下一步 | 明确严格/兼容采样政策；先运行 45 个全重复可行单元，单列其余 27 个单元 |

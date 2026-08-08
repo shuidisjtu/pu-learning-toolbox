@@ -3,10 +3,18 @@
   "protocol": "paper_like",
   "method": "pusb",
   "source_lock": "../official_sources.lock.json#sources/pusb",
-  "status": "locked_not_executed",
+  "status": "data_locked_sampling_audited",
   "runner": {
     "entrypoint": "BiasedPUlearning/PUSB/main_linear_kernel.py",
-    "default_dataset": "ijcnn1",
+    "repository_default_dataset": "ijcnn1",
+    "paper_table2_datasets": [
+      "mushrooms",
+      "shuttle",
+      "pageblocks",
+      "usps",
+      "connect-4",
+      "spambase"
+    ],
     "supported_dataset_loader_names": [
       "mushroom",
       "waveform",
@@ -36,34 +44,43 @@
   },
   "known_protocol_issues": [
     {
-      "issue": "The complete IJCNN1 file has 4,853 positive rows out of 49,990. With seed 2018, the released 3,000-row holdout has 315 positives. A 1,000-row test set is feasible for prior 0.2 but not for priors 0.4, 0.6, or 0.8.",
-      "policy": "Do not enlarge or resample the holdout silently. Treat the affected official configurations as infeasible until an author-provided data variant or protocol correction is identified."
+      "issue": "The repository README says main_linear_kernel.py reproduces Table 2, but that entrypoint defaults to IJCNN1. The paper's Table 2 reports mushrooms, shuttle, pageblocks, usps, connect-4, and spambase, not IJCNN1.",
+      "policy": "Classify IJCNN1 runs as an official-repository extension, not paper_protocol. Reproduce Table 2 only with the six datasets named in the paper."
+    },
+    {
+      "issue": "The complete IJCNN1 file has 4,853 positive rows out of 49,990. With seed 2018, the released 3,000-row holdout has 315 positives, so the repository extension cannot construct a 1,000-row test set for priors 0.4, 0.6, or 0.8.",
+      "policy": "Do not silently alter the IJCNN1 extension. This limitation does not block Table 2 replication because IJCNN1 is absent from Table 2."
     },
     {
       "issue": "The released objective adds lambda * ||b||^2 while its supplied gradient adds lambda * b, differing by a factor of two.",
       "policy": "The clean-room adapter uses 0.5 * lambda * ||b||^2 so the objective and released gradient are consistent, and records this as a compatibility correction."
+    },
+    {
+      "issue": "The released script slices class pools without replacement and does not verify the resulting length. The locked-data audit found only 45 of 72 dataset/prior/U cells feasible for all 100 repetitions; affected runs silently use fewer than the declared 1,000 test or U examples.",
+      "policy": "Preserve the released behavior only as a separately labeled compatibility run. A strict paper-protocol runner must fail undersized splits and may not report them as the declared Table 2 sample size."
     }
   ],
   "execution_requirements": {
     "source_checkout_required": true,
     "data_root_required": true,
     "required_data_files": [
-      {
-        "path": "ijcnn1",
-        "sha256": "16506cad788cf7c9607454150ed1994788204bac2ff4c9cb3b320036b6950d3f",
-        "source_url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/ijcnn1.bz2",
-        "compressed_sha256": "450dee8470b168e47b9fae1fc160396b8a809c675737837fce3acd51dcdc0481",
-        "n_samples": 49990,
-        "n_features": 22
-      }
+      {"path": "mushrooms.txt", "sha256": "f39a4eb628dc61a7d43760815b061c9e497aa728ce1ad8bde57a09ef6043b538"},
+      {"path": "shuttle.scale.txt", "sha256": "f9f8ba4159949a451d11f625085c92065e72cce657e7df0633de3aa45ecbc9ba"},
+      {"path": "shuttle.scale.t.txt", "sha256": "a26557facbc5ba52aa147c5477b4b099cab2c08f3f59fd120a47de46887fa58d"},
+      {"path": "page-blocks.txt", "sha256": "52058b6e19ba797b5e80ae6454ebb3b7a25016787e668dd3203393c236d22c78"},
+      {"path": "usps", "sha256": "f887a33d18f08b03d7e3e33a36aa73c01429a057351d22de9439786666e2fec0"},
+      {"path": "usps.t", "sha256": "3839faa29aa5f6bfa0516cdd599fae8ad59b7a3777d09f7ca971d9f1cd8b6c6b"},
+      {"path": "connect-4.txt", "sha256": "6fd5ca7fb3d027ab19412a3ee4af7f9198a699064bc478cfc915b208a7addcac"},
+      {"path": "spambase.data.txt", "sha256": "b1ef93de71f97714d3d7d4f58fc9f718da7bbc8ac8a150eff2778616a8097b12"}
     ],
     "cuda_required": false,
     "required_commands": [],
     "required_packages": ["chainer", "densratio"],
     "toolbox_implementation_gaps": [
-      "The official-aligned kernel adapter and densratio comparator have completed a three-seed feasible tranche with the complete 9 x 8 x 5 search, but the paper's 100 repetitions have not been executed.",
-      "The released IJCNN1 holdout protocol is infeasible for configured priors 0.4, 0.6, and 0.8 and requires authoritative clarification rather than a silent protocol change."
+      "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
+      "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
+      "No policy-changing resampling protocol has been approved, and the complete model matrix has not been executed."
     ]
   },
-  "claim_policy": "The logistic scorer remains a baseline. The kernel adapter may be called official-aligned only; results remain paper_claim=false until the protocol inconsistency and 100-repetition comparison matrix are resolved."
+  "claim_policy": "The IJCNN1 results are an official-repository extension, not Table 2. A paper-level claim requires the six datasets explicitly reported in Table 2 and the full comparison matrix."
 }

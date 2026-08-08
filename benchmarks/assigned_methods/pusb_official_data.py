@@ -41,8 +41,11 @@ def load_config(path: str | Path) -> dict[str, Any]:
         raise ValueError("config protocol must be 'pusb_official_data'")
     if config.get("paper_claim") is not False:
         raise ValueError("PUSB adapter runs must explicitly set paper_claim=false")
-    if config.get("fidelity_level") not in {"smoke", "paper_protocol"}:
-        raise ValueError("fidelity_level must be 'smoke' or 'paper_protocol'")
+    fidelity_levels = {"smoke", "official_repo_extension", "paper_protocol"}
+    if config.get("fidelity_level") not in fidelity_levels:
+        raise ValueError(
+            "fidelity_level must be 'smoke', 'official_repo_extension', or 'paper_protocol'"
+        )
     experiment = config.get("experiment", {})
     if not experiment.get("seeds") or not experiment.get("class_priors"):
         raise ValueError("experiment seeds and class_priors must be non-empty")

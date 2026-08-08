@@ -185,10 +185,30 @@ def test_official_lock_and_all_config_outputs_are_valid_json():
     documents = {
         path: json.loads(path.read_text(encoding="utf-8")) for path in config_root.rglob("*.json")
     }
-    assert len(documents) == 10
+    assert len(documents) == 11
     source_lock = documents[config_root / "official_sources.lock.json"]
     assert source_lock["sources"]["class_prior_estimation"]["paper_doi"] == (
         "10.1007/s10994-016-5604-6"
     )
     assert source_lock["sources"]["recpe"]["commit"]
     assert source_lock["sources"]["lbe"]["sha256"]
+    pusb = documents[config_root / "official" / "pusb.json"]
+    assert pusb["runner"]["repository_default_dataset"] == "ijcnn1"
+    assert pusb["runner"]["paper_table2_datasets"] == [
+        "mushrooms",
+        "shuttle",
+        "pageblocks",
+        "usps",
+        "connect-4",
+        "spambase",
+    ]
+    assert "ijcnn1" not in pusb["runner"]["paper_table2_datasets"]
+    table2 = documents[config_root / "pusb_table2_datasets.json"]
+    assert list(table2["datasets"]) == pusb["runner"]["paper_table2_datasets"]
+    assert table2["status"] == "locked"
+    assert all(dataset["status"] == "locked" for dataset in table2["datasets"].values())
+    assert all(
+        len(download["sha256"]) == 64
+        for dataset in table2["datasets"].values()
+        for download in dataset["downloads"]
+    )

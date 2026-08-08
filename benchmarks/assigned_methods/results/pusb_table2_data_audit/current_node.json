@@ -1,0 +1,861 @@
+{
+  "data_root": "/data2/user/zihenglin/official-data/pusb-table2",
+  "datasets": [
+    {
+      "class_counts": {
+        "negative": 3916,
+        "positive": 4208
+      },
+      "dataset": "mushrooms",
+      "positive_fraction": 0.517971442639094,
+      "sampling_schedule": [
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3051,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        }
+      ],
+      "shape": [
+        8124,
+        112
+      ],
+      "strictly_feasible_cells": 11,
+      "target_sha256": {
+        "mushrooms.txt": "f39a4eb628dc61a7d43760815b061c9e497aa728ce1ad8bde57a09ef6043b538"
+      },
+      "total_cells": 12
+    },
+    {
+      "class_counts": {
+        "negative": 12414,
+        "positive": 45586
+      },
+      "dataset": "shuttle",
+      "positive_fraction": 0.7859655172413793,
+      "sampling_schedule": [
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "holdout_pool"
+          ],
+          "minimum_released_test_size": 794,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "holdout_pool"
+          ],
+          "minimum_released_test_size": 989,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 99,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "holdout_pool"
+          ],
+          "minimum_released_test_size": 798,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "holdout_pool"
+          ],
+          "minimum_released_test_size": 984,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 99,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "holdout_pool"
+          ],
+          "minimum_released_test_size": 789,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "holdout_pool"
+          ],
+          "minimum_released_test_size": 991,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 97,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        }
+      ],
+      "shape": [
+        58000,
+        9
+      ],
+      "strictly_feasible_cells": 6,
+      "target_sha256": {
+        "shuttle.scale.t.txt": "a26557facbc5ba52aa147c5477b4b099cab2c08f3f59fd120a47de46887fa58d",
+        "shuttle.scale.txt": "f9f8ba4159949a451d11f625085c92065e72cce657e7df0633de3aa45ecbc9ba"
+      },
+      "total_cells": 12
+    },
+    {
+      "class_counts": {
+        "negative": 560,
+        "positive": 4913
+      },
+      "dataset": "pageblocks",
+      "positive_fraction": 0.8976795176320117,
+      "sampling_schedule": [
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 479,
+          "minimum_released_unlabeled_size": 392,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 669,
+          "minimum_released_unlabeled_size": 544,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 879,
+          "minimum_released_unlabeled_size": 703,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 473,
+          "minimum_released_unlabeled_size": 541,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 659,
+          "minimum_released_unlabeled_size": 858,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 881,
+          "minimum_released_unlabeled_size": 1183,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1513,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 479,
+          "minimum_released_unlabeled_size": 874,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 687,
+          "minimum_released_unlabeled_size": 1513,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [
+            "holdout_pool",
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 883,
+          "minimum_released_unlabeled_size": 2140,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 2473,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        }
+      ],
+      "shape": [
+        5473,
+        10
+      ],
+      "strictly_feasible_cells": 1,
+      "target_sha256": {
+        "page-blocks.txt": "52058b6e19ba797b5e80ae6454ebb3b7a25016787e668dd3203393c236d22c78"
+      },
+      "total_cells": 12
+    },
+    {
+      "class_counts": {
+        "negative": 4422,
+        "positive": 4876
+      },
+      "dataset": "usps",
+      "positive_fraction": 0.5244138524413853,
+      "sampling_schedule": [
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        }
+      ],
+      "shape": [
+        9298,
+        256
+      ],
+      "strictly_feasible_cells": 12,
+      "target_sha256": {
+        "usps": "f887a33d18f08b03d7e3e33a36aa73c01429a057351d22de9439786666e2fec0",
+        "usps.t": "3839faa29aa5f6bfa0516cdd599fae8ad59b7a3777d09f7ca971d9f1cd8b6c6b"
+      },
+      "total_cells": 12
+    },
+    {
+      "class_counts": {
+        "negative": 23084,
+        "positive": 44473
+      },
+      "dataset": "connect-4",
+      "positive_fraction": 0.6583033586452921,
+      "sampling_schedule": [
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1600,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 3200,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 3200
+        }
+      ],
+      "shape": [
+        67557,
+        126
+      ],
+      "strictly_feasible_cells": 12,
+      "target_sha256": {
+        "connect-4.txt": "6fd5ca7fb3d027ab19412a3ee4af7f9198a699064bc478cfc915b208a7addcac"
+      },
+      "total_cells": 12
+    },
+    {
+      "class_counts": {
+        "negative": 2788,
+        "positive": 1813
+      },
+      "dataset": "spambase",
+      "positive_fraction": 0.39404477287546186,
+      "sampling_schedule": [
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 800,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 100,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 755,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 29,
+          "unlabeled_size": 800
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1254,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1549,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 4,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1231,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 914,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 1600
+        },
+        {
+          "class_prior": 0.2,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1569,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.4,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1601,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.6,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1601,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        },
+        {
+          "class_prior": 0.8,
+          "failure_reasons": [
+            "unlabeled_pool"
+          ],
+          "minimum_released_test_size": 1000,
+          "minimum_released_unlabeled_size": 1226,
+          "repetitions": 100,
+          "strictly_feasible_repetitions": 0,
+          "unlabeled_size": 3200
+        }
+      ],
+      "shape": [
+        4601,
+        57
+      ],
+      "strictly_feasible_cells": 3,
+      "target_sha256": {
+        "spambase.data.txt": "b1ef93de71f97714d3d7d4f58fc9f718da7bbc8ac8a150eff2778616a8097b12"
+      },
+      "total_cells": 12
+    }
+  ],
+  "generated_at": "2026-08-08T12:15:38.795353+00:00",
+  "manifest": "/data2/user/zihenglin/pu-learning-toolbox/benchmarks/assigned_methods/configs/pusb_table2_datasets.json",
+  "official_schedule": {
+    "class_priors": [
+      0.2,
+      0.4,
+      0.6,
+      0.8
+    ],
+    "holdout_size": 3000,
+    "initial_seed": 2018,
+    "positive_size": 400,
+    "repetitions_per_cell": 100,
+    "seed_policy": "increment once after every trial across U, prior, repetition",
+    "test_size": 1000,
+    "unlabeled_sizes": [
+      800,
+      1600,
+      3200
+    ]
+  },
+  "protocol": "pusb_table2_data_audit",
+  "schema_version": 1,
+  "summary": {
+    "audited_trials": 7200,
+    "cells_with_at_least_one_undersized_split": 27,
+    "fully_feasible_cells": 45,
+    "total_cells": 72
+  }
+}

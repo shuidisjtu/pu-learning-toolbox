@@ -18,8 +18,10 @@
     "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
     "python_version": "3.12.2"
   },
-  "created_at_utc": "2026-08-08T11:33:27.606719+00:00",
-  "data_roots": {},
+  "created_at_utc": "2026-08-08T12:15:41.736137+00:00",
+  "data_roots": {
+    "pusb": "/data2/user/zihenglin/official-data/pusb-table2"
+  },
   "methods": [
     {
       "config": "benchmarks/assigned_methods/configs/official/class_prior_estimation.json",
@@ -99,26 +101,24 @@
     },
     {
       "config": "benchmarks/assigned_methods/configs/official/pusb.json",
-      "locked_status": "locked_not_executed",
+      "locked_status": "data_locked_sampling_audited",
       "method": "pusb",
       "official_execution_blockers": [
-        "Official source checkout was not supplied",
-        "Official dataset root was not supplied",
         "Required Python package is unavailable: chainer"
       ],
       "ready_for_official_execution": false,
       "ready_for_toolbox_replication": false,
       "source_lock_status": "locked",
       "toolbox_implementation_gaps": [
-        "The official-aligned kernel adapter and densratio comparator have completed a three-seed feasible tranche with the complete 9 x 8 x 5 search, but the paper's 100 repetitions have not been executed.",
-        "The released IJCNN1 holdout protocol is infeasible for configured priors 0.4, 0.6, and 0.8 and requires authoritative clarification rather than a silent protocol change."
+        "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
+        "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
+        "No policy-changing resampling protocol has been approved, and the complete model matrix has not been executed."
       ],
       "toolbox_replication_blockers": [
-        "Official source checkout was not supplied",
-        "Official dataset root was not supplied",
         "Required Python package is unavailable: chainer",
-        "The official-aligned kernel adapter and densratio comparator have completed a three-seed feasible tranche with the complete 9 x 8 x 5 search, but the paper's 100 repetitions have not been executed.",
-        "The released IJCNN1 holdout protocol is infeasible for configured priors 0.4, 0.6, and 0.8 and requires authoritative clarification rather than a silent protocol change."
+        "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
+        "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
+        "No policy-changing resampling protocol has been approved, and the complete model matrix has not been executed."
       ]
     },
     {
@@ -151,5 +151,7 @@
     }
   ],
   "schema_version": 1,
-  "source_roots": {}
+  "source_roots": {
+    "pusb": "/data2/user/zihenglin/official-sources/pusb"
+  }
 }
