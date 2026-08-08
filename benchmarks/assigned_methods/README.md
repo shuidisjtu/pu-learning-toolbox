@@ -200,6 +200,25 @@ python -m benchmarks.assigned_methods.pusb_table2_benchmark \
 runner 会逐 trial 原子写入 checkpoint，并拒绝用不同配置续写。兼容模式必须改用
 `pusb_table2_released_compatibility.json` 和独立输出目录。
 
+正式 strict 计划可使用受控并行入口。下面的 45 个 shard 各负责 100 个 trial；每个子进程
+会固定为单线程 BLAS，失败 shard 自动按 checkpoint 重试，只有 4500 个计划 key 完整且
+无重复时才生成最终聚合结果：
+
+```bash
+python -m benchmarks.assigned_methods.pusb_table2_parallel \
+  --config benchmarks/assigned_methods/configs/pusb_table2_strict.json \
+  --data-root /data2/user/zihenglin/official-data/pusb-table2 \
+  --shard-root /data2/user/zihenglin/benchmark-runs/pusb-table2-strict \
+  --plan benchmarks/assigned_methods/results/pusb_table2_strict_plan/trial_plan.csv \
+  --aggregate-output benchmarks/assigned_methods/results/pusb_table2_strict_full \
+  --shard-count 45 \
+  --workers 45 \
+  --retries 2
+```
+
+单个 shard 的 `run.log`、`last_failure.json`、checkpoint 和 manifest 保存在仓库外的
+`shard-root`；仓库只保存经过 key 完整性校验的聚合结果。
+
 ## 结论边界
 
 当前结果必须按实际 fidelity 分别标为 `clean_room` 或 `official_repo_extension`：

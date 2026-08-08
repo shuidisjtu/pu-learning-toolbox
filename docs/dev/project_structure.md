@@ -218,6 +218,8 @@ benchmarks/
     pusb_official_data.py      (IJCNN1 仓库扩展校验、官方抽样、kernel/uLSIF 与 provenance)
     pusb_table2_data.py        (Table 2 六数据集锁定 loader 与官方采样可行性审计)
     pusb_table2_benchmark.py   (Table 2 严格/兼容计划、checkpoint/resume 与 provenance)
+    pusb_table2_parallel.py    (Table 2 有界并行、失败重试和自动聚合)
+    pusb_table2_aggregate.py   (跨 shard 完整 key、配置和 provenance 验收)
     configs/official/          (五份 locked_not_executed paper-like 配置)
     results/official_preflight/ (当前节点前五篇 blocker 报告)
     results/pusb_official_data_smoke/ (PUSB 官方数据缩小网格 smoke)

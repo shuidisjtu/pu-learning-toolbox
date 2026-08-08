@@ -12,6 +12,7 @@ import json
 import platform
 import subprocess
 import sys
+import traceback
 from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
@@ -181,6 +182,7 @@ def _manifest_payload(
     *,
     status: str,
     n_completed_trials: int,
+    execution_scope: dict[str, int],
 ) -> dict[str, Any]:
     project_root = Path(__file__).resolve().parents[2]
     git_status = _git_value(project_root, "status", "--porcelain")
@@ -194,6 +196,8 @@ def _manifest_payload(
         "paper_claim": False,
         "config_sha256": _canonical_hash(config),
         "plan_summary": summarize_plan(plan),
+        "execution_scope": execution_scope,
+        "shard_selected_trials": int(plan["selected_for_shard"].sum()),
         "n_completed_trials": n_completed_trials,
         "datasets": provenance,
         "git_commit": _git_value(project_root, "rev-parse", "HEAD"),
@@ -220,18 +224,31 @@ def run_benchmark(
     manifest_path: str | Path = DEFAULT_MANIFEST,
     resume: bool = False,
     plan_only: bool = False,
+    shard_count: int = 1,
+    shard_index: int = 0,
 ) -> pd.DataFrame:
     """Write the exact plan and optionally execute it with per-trial checkpoints."""
+    if shard_count <= 0:
+        raise ValueError("shard_count must be positive")
+    if not 0 <= shard_index < shard_count:
+        raise ValueError("shard_index must be in [0, shard_count)")
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     resolved_config_path = output / "resolved_config.json"
+    execution_scope_path = output / "execution_scope.json"
     trials_path = output / "trials.csv"
+    execution_scope = {"shard_count": shard_count, "shard_index": shard_index}
     if resume:
         if not resolved_config_path.is_file():
             raise ValueError("cannot resume without resolved_config.json")
         existing_config = json.loads(resolved_config_path.read_text(encoding="utf-8"))
         if existing_config != config:
             raise ValueError("resume config differs from the existing resolved_config.json")
+        if not execution_scope_path.is_file():
+            raise ValueError("cannot resume without execution_scope.json")
+        existing_scope = json.loads(execution_scope_path.read_text(encoding="utf-8"))
+        if existing_scope != execution_scope:
+            raise ValueError("resume shard scope differs from the existing execution_scope.json")
         existing_trials = pd.read_csv(trials_path) if trials_path.is_file() else pd.DataFrame()
     else:
         existing_trials = pd.DataFrame()
@@ -243,10 +260,19 @@ def run_benchmark(
         resolved_config_path.write_text(
             json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
+        execution_scope_path.write_text(
+            json.dumps(execution_scope, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
 
     plan, provenance = build_benchmark_plan(
         config, data_root=data_root, manifest_path=manifest_path
     )
+    _write_csv_atomic(plan, output / "trial_plan.csv")
+    plan["selected_for_shard"] = False
+    selected_indices = plan.index[plan["selected_for_execution"]]
+    selected_ordinals = pd.Series(range(len(selected_indices)), index=selected_indices)
+    shard_indices = selected_ordinals.index[selected_ordinals % shard_count == shard_index]
+    plan.loc[shard_indices, "selected_for_shard"] = True
     _write_csv_atomic(plan, output / "trial_plan.csv")
     excluded_cells = plan.loc[
         ~plan["selected_for_execution"],
@@ -266,6 +292,7 @@ def run_benchmark(
             provenance,
             status="planned_not_executed",
             n_completed_trials=len(existing_trials),
+            execution_scope=execution_scope,
         )
         (output / "plan_manifest.json").write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -273,7 +300,7 @@ def run_benchmark(
         return existing_trials
 
     completed = _completed_keys(existing_trials) if not existing_trials.empty else set()
-    selected_plan = plan[plan["selected_for_execution"]]
+    selected_plan = plan[plan["selected_for_shard"]]
     for dataset in config["datasets"]:
         X, y, _ = load_table2_dataset(dataset, data_root, manifest_path=manifest_path)
         dataset_plan = selected_plan[selected_plan["dataset"] == dataset]
@@ -289,7 +316,26 @@ def run_benchmark(
             trial_config["experiment"]["allow_undersized"] = (
                 config["sampling_policy"] == COMPATIBILITY_POLICY
             )
-            row = run_trials(trial_config, X, y).iloc[0].to_dict()
+            try:
+                row = run_trials(trial_config, X, y).iloc[0].to_dict()
+            except Exception as error:
+                failure = {
+                    "schema_version": 1,
+                    "created_at_utc": datetime.now(timezone.utc).isoformat(),
+                    "dataset": dataset,
+                    "seed": int(spec.seed),
+                    "class_prior": float(spec.class_prior),
+                    "unlabeled_size": int(spec.unlabeled_size),
+                    "shard_count": shard_count,
+                    "shard_index": shard_index,
+                    "error_type": type(error).__name__,
+                    "error": str(error),
+                    "traceback": traceback.format_exc(),
+                }
+                (output / "last_failure.json").write_text(
+                    json.dumps(failure, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+                )
+                raise
             row.update(
                 {
                     "dataset": dataset,
@@ -305,6 +351,7 @@ def run_benchmark(
             )
             _write_csv_atomic(existing_trials, trials_path)
             completed.add(key)
+            (output / "last_failure.json").unlink(missing_ok=True)
 
     if existing_trials.empty:
         raise ValueError("benchmark plan selected no trials")
@@ -342,6 +389,7 @@ def run_benchmark(
             else "partial_checkpoint"
         ),
         n_completed_trials=len(existing_trials),
+        execution_scope=execution_scope,
     )
     (output / "run_manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -357,6 +405,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument("--shard-count", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
     return parser.parse_args()
 
 
@@ -370,6 +420,8 @@ def main() -> None:
         manifest_path=args.manifest,
         resume=args.resume,
         plan_only=args.plan_only,
+        shard_count=args.shard_count,
+        shard_index=args.shard_index,
     )
     action = "Planned" if args.plan_only else "Wrote"
     print(f"{action} PUSB Table 2 benchmark; completed trials: {len(trials)}")

@@ -287,6 +287,8 @@ class PUSBKernelClassifier(BasePUClassifier):
 | `benchmarks/assigned_methods/pusb_official_data.py` | IJCNN1 扩展校验、官方抽样、uLSIF、checkpoint 与 provenance | ✅ repository extension |
 | `benchmarks/assigned_methods/pusb_table2_data.py` | Table 2 六数据集锁定加载与官方 seed/采样可行性审计 | ✅ |
 | `benchmarks/assigned_methods/pusb_table2_benchmark.py` | 严格/兼容计划、逐 trial checkpoint、resume、summary 与 provenance | ✅ planned |
+| `benchmarks/assigned_methods/pusb_table2_parallel.py` | 受控并行、单线程 BLAS、失败 shard 重试 | ✅ |
+| `benchmarks/assigned_methods/pusb_table2_aggregate.py` | shard scope/config/fidelity/hash 与 4500 个计划 key 精确验收 | ✅ |
 
 ## 9. 测试与验收标准
 

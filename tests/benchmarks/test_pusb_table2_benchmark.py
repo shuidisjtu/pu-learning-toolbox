@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from benchmarks.assigned_methods import pusb_table2_benchmark
+from benchmarks.assigned_methods import pusb_table2_benchmark, pusb_table2_parallel
+from benchmarks.assigned_methods.pusb_table2_aggregate import aggregate_shards
 from benchmarks.assigned_methods.pusb_table2_benchmark import (
     COMPATIBILITY_POLICY,
     STRICT_POLICY,
@@ -17,6 +18,7 @@ from benchmarks.assigned_methods.pusb_table2_benchmark import (
     run_benchmark,
     summarize_plan,
 )
+from benchmarks.assigned_methods.pusb_table2_parallel import _shard_command, run_parallel
 
 pytestmark = pytest.mark.unit
 
@@ -195,3 +197,151 @@ def test_determ_execution_checkpoints_and_resume_skips_completed_trial(tmp_path,
     assert len(first) == len(second) == 1
     assert calls == [10]
     assert json.loads((output / "run_manifest.json").read_text())["status"] == "completed"
+
+
+@pytest.mark.unit
+def test_determ_shards_partition_selected_trials_without_overlap(tmp_path, monkeypatch):
+    plan = pd.concat([_single_trial_plan() for _ in range(4)], ignore_index=True)
+    plan["seed"] = [10, 11, 12, 13]
+    monkeypatch.setattr(
+        pusb_table2_benchmark,
+        "build_benchmark_plan",
+        lambda *args, **kwargs: (plan, {"mushrooms": {"shape": [40, 2]}}),
+    )
+    output = tmp_path / "output"
+    run_benchmark(
+        _config(),
+        data_root=tmp_path,
+        output_dir=output,
+        plan_only=True,
+        shard_count=2,
+        shard_index=1,
+    )
+    written = pd.read_csv(output / "trial_plan.csv")
+    assert written.loc[written["selected_for_shard"], "seed"].tolist() == [11, 13]
+    manifest = json.loads((output / "plan_manifest.json").read_text())
+    assert manifest["shard_selected_trials"] == 2
+
+
+@pytest.mark.unit
+def test_edge_resume_rejects_different_shard_scope(tmp_path, monkeypatch):
+    plan = _single_trial_plan()
+    monkeypatch.setattr(
+        pusb_table2_benchmark,
+        "build_benchmark_plan",
+        lambda *args, **kwargs: (plan, {"mushrooms": {"shape": [40, 2]}}),
+    )
+    output = tmp_path / "output"
+    run_benchmark(
+        _config(),
+        data_root=tmp_path,
+        output_dir=output,
+        plan_only=True,
+        shard_count=2,
+        shard_index=0,
+    )
+    with pytest.raises(ValueError, match="shard scope differs"):
+        run_benchmark(
+            _config(),
+            data_root=tmp_path,
+            output_dir=output,
+            resume=True,
+            plan_only=True,
+            shard_count=2,
+            shard_index=1,
+        )
+
+
+@pytest.mark.unit
+def test_basic_aggregate_shards_requires_exact_plan_keys(tmp_path):
+    plan = pd.concat([_single_trial_plan() for _ in range(2)], ignore_index=True)
+    plan["seed"] = [10, 11]
+    plan_path = tmp_path / "plan.csv"
+    plan.to_csv(plan_path, index=False)
+    shard_root = tmp_path / "shards"
+    for index, seed in enumerate((10, 11)):
+        shard = shard_root / f"shard-{index:02d}"
+        shard.mkdir(parents=True)
+        trials = pd.DataFrame(
+            [
+                {
+                    "dataset": "mushrooms",
+                    "seed": seed,
+                    "class_prior": 0.5,
+                    "unlabeled_size": 10,
+                    "quantile_accuracy": 0.8,
+                    "roc_auc": 0.9,
+                    "elapsed_seconds": 0.1,
+                }
+            ]
+        )
+        trials.to_csv(shard / "trials.csv", index=False)
+        manifest = {
+            "status": "completed",
+            "execution_scope": {"shard_count": 2, "shard_index": index},
+            "paper_claim": False,
+            "n_completed_trials": 1,
+            "config_sha256": "locked-config",
+            "fidelity_level": "paper_protocol_strict_feasible_subset",
+        }
+        (shard / "run_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    trials = aggregate_shards(
+        shard_root,
+        plan_path=plan_path,
+        output_dir=tmp_path / "aggregate",
+        shard_count=2,
+    )
+
+    assert len(trials) == 2
+    manifest = json.loads((tmp_path / "aggregate" / "aggregation_manifest.json").read_text())
+    assert manifest["status"] == "completed"
+    assert manifest["n_trials"] == manifest["n_expected_trials"] == 2
+
+
+@pytest.mark.unit
+def test_basic_shard_command_adds_resume_only_for_existing_scope(tmp_path):
+    arguments = {
+        "config": tmp_path / "config.json",
+        "data_root": tmp_path / "data",
+        "shard_dir": tmp_path / "shard",
+        "shard_count": 4,
+        "shard_index": 2,
+    }
+    arguments["shard_dir"].mkdir()
+    assert "--resume" not in _shard_command(**arguments)
+    (arguments["shard_dir"] / "resolved_config.json").write_text("{}", encoding="utf-8")
+    command = _shard_command(**arguments)
+    assert command[-1] == "--resume"
+    assert command[command.index("--shard-index") + 1] == "2"
+
+
+@pytest.mark.unit
+def test_determ_parallel_runner_retries_only_failed_shards_then_aggregates(tmp_path, monkeypatch):
+    calls = []
+    aggregated = []
+
+    def fake_run_shard(**kwargs):
+        index = kwargs["shard_index"]
+        calls.append(index)
+        return index, int(index == 1 and calls.count(1) == 1)
+
+    monkeypatch.setattr(pusb_table2_parallel, "_run_shard", fake_run_shard)
+    monkeypatch.setattr(
+        pusb_table2_parallel,
+        "aggregate_shards",
+        lambda *args, **kwargs: aggregated.append(kwargs["shard_count"]),
+    )
+    run_parallel(
+        config=tmp_path / "config.json",
+        data_root=tmp_path / "data",
+        shard_root=tmp_path / "shards",
+        plan_path=tmp_path / "plan.csv",
+        aggregate_output=tmp_path / "aggregate",
+        shard_count=3,
+        workers=2,
+        retries=1,
+    )
+
+    assert sorted(calls) == [0, 1, 1, 2]
+    assert aggregated == [3]
