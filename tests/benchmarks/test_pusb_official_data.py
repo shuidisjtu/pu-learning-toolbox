@@ -4,6 +4,7 @@
 # ruff: noqa: N803, N806
 
 import json
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -52,6 +53,17 @@ def _config():
         },
         "limitations": ["test"],
     }
+
+
+def _fake_density_ratio_fitter(x, y, **parameters):
+    assert len(x) > 0 and len(y) > 0
+    assert parameters["alpha"] == 0
+    np.random.random()
+    return SimpleNamespace(
+        kernel_info=SimpleNamespace(sigma=0.5),
+        lambda_=0.1,
+        compute_density_ratio=lambda coordinates: np.asarray(coordinates)[:, 0],
+    )
 
 
 @pytest.mark.unit
@@ -123,6 +135,33 @@ def test_determ_official_data_trial_is_reproducible():
 
 
 @pytest.mark.unit
+def test_determ_density_ratio_comparator_is_routed_and_restores_numpy_rng():
+    X, y = _classification_data()
+    config = _config()
+    config["density_ratio"] = {
+        "enabled": True,
+        "parameters": {
+            "kernel_num": 5,
+            "sigma_range": [0.5],
+            "lambda_range": [0.1],
+        },
+    }
+    np.random.seed(99)
+    state_before = np.random.get_state()
+
+    trials = run_trials(config, X, y, density_ratio_fitter=_fake_density_ratio_fitter)
+    state_after = np.random.get_state()
+
+    assert state_before[0] == state_after[0]
+    assert np.array_equal(state_before[1], state_after[1])
+    assert state_before[2:] == state_after[2:]
+    assert trials.loc[0, "density_ratio_sigma"] == 0.5
+    assert trials.loc[0, "density_ratio_reg_lambda"] == 0.1
+    assert 0.0 <= trials.loc[0, "density_ratio_accuracy"] <= 1.0
+    assert 0.0 <= trials.loc[0, "density_ratio_roc_auc"] <= 1.0
+
+
+@pytest.mark.unit
 def test_basic_official_data_benchmark_writes_provenance_artifacts(tmp_path, monkeypatch):
     X, y = _classification_data()
     monkeypatch.setattr(
@@ -140,3 +179,31 @@ def test_basic_official_data_benchmark_writes_provenance_artifacts(tmp_path, mon
     assert manifest["paper_claim"] is False
     assert manifest["dataset"]["sha256"] == "verified-test-hash"
     assert manifest["n_trials"] == 1
+
+
+@pytest.mark.unit
+def test_determ_resume_skips_completed_trial_without_duplication(tmp_path, monkeypatch):
+    X, y = _classification_data()
+    monkeypatch.setattr(
+        pusb_official_data,
+        "load_ijcnn1",
+        lambda path, expected_sha256=None: (X, y, "verified-test-hash"),
+    )
+    output = tmp_path / "results"
+    first = run_benchmark(_config(), data_root=tmp_path, output_dir=output)
+    second = run_benchmark(_config(), data_root=tmp_path, output_dir=output, resume=True)
+
+    assert len(first) == len(second) == 1
+    assert len(pusb_official_data.pd.read_csv(output / "trials.csv")) == 1
+
+
+@pytest.mark.unit
+def test_edge_resume_rejects_changed_config(tmp_path):
+    output = tmp_path / "results"
+    output.mkdir()
+    (output / "resolved_config.json").write_text(json.dumps(_config()), encoding="utf-8")
+    changed = _config()
+    changed["experiment"]["seeds"] = [99]
+
+    with pytest.raises(ValueError, match="resume config differs"):
+        run_benchmark(changed, data_root=tmp_path, output_dir=output, resume=True)

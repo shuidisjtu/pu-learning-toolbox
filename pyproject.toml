@@ -42,12 +42,14 @@ torch = [
     "torch>=2.0",
 ]
 research = [
+    "densratio==0.3.0",
     "torch>=2.0",
     "torchvision>=0.15",
     "lightning>=2.0",
     "tqdm>=4.0",
 ]
 all = [
+    "densratio==0.3.0",
     "torch>=2.0",
     "torchvision>=0.15",
     "lightning>=2.0",

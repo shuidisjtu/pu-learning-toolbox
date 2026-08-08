@@ -29,10 +29,20 @@
       "tol": 0.00001
     }
   },
+  "density_ratio": {
+    "enabled": true,
+    "variant": "densratio_0.3.0_rulsif_smoke",
+    "parameters": {
+      "kernel_num": 20,
+      "sigma_range": [0.5, 1.0],
+      "lambda_range": [0.01, 0.1],
+      "verbose": false
+    }
+  },
   "limitations": [
     "Official IJCNN1 data and selected-positive construction are used, but the RBF basis count, CV folds, and hyperparameter grids are reduced for smoke execution.",
     "The clean-room optimizer corrects the official objective-gradient regularization mismatch by using 0.5 * lambda * ||b||^2.",
-    "The official densratio comparison is not run, and this result is not a paper reproduction claim.",
+    "The densratio comparator uses 20 kernels and a reduced 2 x 2 grid for smoke execution.",
     "The released 3,000-row holdout has only 315 positives at seed 2018, so priors 0.4, 0.6, and 0.8 cannot construct the requested 1,000-row test set without changing the protocol."
   ]
 }

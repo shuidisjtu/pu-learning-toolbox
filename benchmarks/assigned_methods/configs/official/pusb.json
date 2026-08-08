@@ -61,10 +61,9 @@
     "required_commands": [],
     "required_packages": ["chainer", "densratio"],
     "toolbox_implementation_gaps": [
-      "The official-aligned kernel adapter has formula and smoke coverage, but the complete 9 x 8 x 5 search, all feasible seeds, and 100 repetitions have not been executed.",
-      "The official densratio comparison is not integrated into the toolbox runner.",
+      "The official-aligned kernel adapter and densratio comparator have completed a three-seed feasible tranche with the complete 9 x 8 x 5 search, but the paper's 100 repetitions have not been executed.",
       "The released IJCNN1 holdout protocol is infeasible for configured priors 0.4, 0.6, and 0.8 and requires authoritative clarification rather than a silent protocol change."
     ]
   },
-  "claim_policy": "The logistic scorer remains a baseline. The kernel adapter may be called official-aligned only; results remain paper_claim=false until the protocol inconsistency and full comparison matrix are resolved."
+  "claim_policy": "The logistic scorer remains a baseline. The kernel adapter may be called official-aligned only; results remain paper_claim=false until the protocol inconsistency and 100-repetition comparison matrix are resolved."
 }

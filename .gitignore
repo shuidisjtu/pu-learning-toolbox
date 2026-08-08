@@ -63,6 +63,9 @@ results*/
 !benchmarks/assigned_methods/results/pusb_official_data_smoke/
 !benchmarks/assigned_methods/results/pusb_official_data_smoke/*.csv
 !benchmarks/assigned_methods/results/pusb_official_data_smoke/*.json
+!benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed/
+!benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed/*.csv
+!benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed/*.json
 
 # Local one-off plans (never for distribution)
 .superpowers/

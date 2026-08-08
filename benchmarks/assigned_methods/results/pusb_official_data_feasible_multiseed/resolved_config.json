@@ -1,0 +1,78 @@
+{
+  "dataset": {
+    "name": "ijcnn1",
+    "path": "ijcnn1",
+    "sha256": "16506cad788cf7c9607454150ed1994788204bac2ff4c9cb3b320036b6950d3f",
+    "source_url": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/ijcnn1.bz2"
+  },
+  "density_ratio": {
+    "enabled": true,
+    "parameters": {
+      "kernel_num": 100,
+      "lambda_range": "auto",
+      "sigma_range": "auto",
+      "verbose": false
+    },
+    "variant": "densratio_0.3.0_rulsif_official_defaults"
+  },
+  "experiment": {
+    "class_priors": [
+      0.2
+    ],
+    "holdout_size": 3000,
+    "positive_size": 400,
+    "seeds": [
+      2018,
+      2019,
+      2020
+    ],
+    "selection_probability_power": 20,
+    "test_size": 1000,
+    "unlabeled_sizes": [
+      800,
+      1600,
+      3200
+    ]
+  },
+  "fidelity_level": "paper_protocol",
+  "limitations": [
+    "Only prior 0.2 is executable under the released 3,000-row holdout protocol for the verified complete IJCNN1 file.",
+    "The clean-room optimizer uses 0.5 * lambda * ||b||^2 to make the released objective consistent with its supplied gradient.",
+    "densratio center selection is deterministically seeded per trial instead of inheriting the released script's process-global RNG state after PUSB fitting.",
+    "Three feasible seeds are configured as an execution tranche; the paper's 100 repetitions remain incomplete.",
+    "Results remain paper_claim=false until the infeasible high-prior protocol is authoritatively resolved and all repetitions are executed."
+  ],
+  "model": {
+    "parameters": {
+      "cv": 5,
+      "max_iter": 200,
+      "n_basis": 300,
+      "reg_grid": [
+        0.001,
+        0.005,
+        0.01,
+        0.05,
+        0.1,
+        0.5,
+        1.0,
+        5.0
+      ],
+      "sigma_grid": [
+        0.01,
+        0.05,
+        0.1,
+        0.5,
+        1.0,
+        2.0,
+        5.0,
+        10.0,
+        20.0
+      ],
+      "tol": 1e-05
+    },
+    "variant": "official_aligned_rbf_full_grid"
+  },
+  "paper_claim": false,
+  "protocol": "pusb_official_data",
+  "schema_version": 1
+}

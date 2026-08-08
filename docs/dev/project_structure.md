@@ -219,6 +219,7 @@ benchmarks/
     configs/official/          (五份 locked_not_executed paper-like 配置)
     results/official_preflight/ (当前节点前五篇 blocker 报告)
     results/pusb_official_data_smoke/ (PUSB 官方数据缩小网格 smoke)
+    results/pusb_official_data_feasible_multiseed/ (完整网格 3 seeds × 3 U + uLSIF)
   deep_pu/
     runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
     run.py                     (CLI)

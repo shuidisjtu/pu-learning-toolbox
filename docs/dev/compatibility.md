@@ -8,7 +8,7 @@
 | 推荐开发版本 | 3.11（`.python-version`） |
 | 核心依赖 | numpy、scipy、pandas、scikit-learn |
 | 深度学习 | `torch` extra |
-| 研究扩展 | `research` extra，包含 torch/torchvision/lightning/tqdm |
+| 研究扩展 | `research` extra，包含 densratio/torch/torchvision/lightning/tqdm |
 | CI 平台 | GitHub Actions `ubuntu-latest` / `windows-latest` / `macos-latest` |
 | 构建后端 | Hatchling |
 
@@ -19,12 +19,13 @@ Python classifier、ruff target、CI matrix 和本文档必须保持一致。新
 ```bash
 pip install -e .                 # 核心 numpy/sklearn 功能
 pip install -e ".[torch]"       # nnPU、Dist-PU 和深度方法
-pip install -e ".[research]"    # 图像/Lightning 研究环境
+pip install -e ".[research]"    # uLSIF、图像与 Lightning 研究环境
 pip install -e ".[all]"         # 全部运行时功能，不含开发工具
 pip install -e ".[dev]"         # 测试、lint 和构建工具
 ```
 
-可选依赖采用延迟导入。只安装核心依赖时，`import pu_toolbox` 和不依赖 torch 的子包必须正常工作；调用需要 torch 的训练路径时再提供明确安装提示。
+可选依赖采用延迟导入。只安装核心依赖时，`import pu_toolbox` 必须正常工作；调用需要
+torch 的训练路径或 PUSB benchmark 的 uLSIF 对照时，再提供明确安装提示。
 
 ## 3. 依赖来源
 

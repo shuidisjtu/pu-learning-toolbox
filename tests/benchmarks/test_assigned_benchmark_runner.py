@@ -185,7 +185,7 @@ def test_official_lock_and_all_config_outputs_are_valid_json():
     documents = {
         path: json.loads(path.read_text(encoding="utf-8")) for path in config_root.rglob("*.json")
     }
-    assert len(documents) == 9
+    assert len(documents) == 10
     source_lock = documents[config_root / "official_sources.lock.json"]
     assert source_lock["sources"]["class_prior_estimation"]["paper_doi"] == (
         "10.1007/s10994-016-5604-6"

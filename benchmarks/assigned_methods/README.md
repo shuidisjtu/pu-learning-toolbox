@@ -87,6 +87,18 @@ runner 会核验解压后 IJCNN1 的 SHA-256 和 `(49990, 22)` 形状，复刻�
 抽样，并保存 trial、summary、解析后配置和 provenance manifest。smoke 使用 30 个 RBF 基、
 3 折 CV 和缩小网格，因此强制 `paper_claim=false`。
 
+可行协议的完整网格分批配置为：
+
+```bash
+python -m benchmarks.assigned_methods.pusb_official_data \
+  --config benchmarks/assigned_methods/configs/pusb_official_data_feasible_multiseed.json \
+  --data-root /path/to/pusb-data \
+  --output benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed
+```
+
+长任务会逐 trial 原子写入 `trials.csv`。中断后使用同一命令并追加 `--resume`；runner 会
+核验 `resolved_config.json`，拒绝使用不同配置续写同一结果目录。
+
 官方协议本身存在两个已验证的问题：源码的正则目标与梯度相差系数 2；完整 IJCNN1 在 seed
 2018 的 3,000 条 holdout 中仅有 315 个正例，只能构造 `pi=0.2` 的 1,000 条测试集，无法
 构造配置中的 `pi=0.4/0.6/0.8`。runner 不会静默扩大 holdout；相关组合须等待权威协议修正。
@@ -125,7 +137,20 @@ ReCPE 在该设置中的低估是当前默认 density-ratio CPE 后端的实际�
 `results/pusb_official_data_smoke/` 已使用官方 IJCNN1、seed 2018、`pi=0.2`、400 P、
 800 U 和 1,000 条测试样本完成 1 次端到端运行。缩小搜索选中 `sigma=1.0`、
 `lambda=0.01`；分位数 accuracy 为 `0.7470`、balanced accuracy 为 `0.6038`、
-ROC-AUC 为 `0.6664`。该结果只证明执行链路可用，不是论文表格复现。
+ROC-AUC 为 `0.6664`。缩小 uLSIF 对照 accuracy 为 `0.7270`、ROC-AUC 为 `0.6640`。
+该结果只证明执行链路可用，不是论文表格复现。
+
+`results/pusb_official_data_feasible_multiseed/` 已完成 3 seeds × 3 U sizes 共 9 个 trial，
+使用 300 个基、5 折、完整 PUSB 9×8 网格及 `densratio 0.3.0` 默认 100 kernels/13×13
+搜索。全部 CV 候选和最终重训均收敛，三 seed 均选中 `sigma=1.0`、`lambda=0.001`：
+
+| U | PUSB accuracy | PUSB ROC-AUC | uLSIF accuracy | uLSIF ROC-AUC |
+|---:|---:|---:|---:|---:|
+| 800 | 0.7730 ± 0.0151 | 0.7061 ± 0.0093 | 0.7543 ± 0.0050 | 0.6519 ± 0.0325 |
+| 1600 | 0.7683 ± 0.0170 | 0.6982 ± 0.0280 | 0.7543 ± 0.0050 | 0.6519 ± 0.0326 |
+| 3200 | 0.7657 ± 0.0114 | 0.6983 ± 0.0210 | 0.7543 ± 0.0061 | 0.6520 ± 0.0326 |
+
+这仍是 3-seed 可行子协议，不是论文要求的 100 repetitions。
 
 ## 结论边界
 

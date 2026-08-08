@@ -12,6 +12,7 @@ import platform
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
@@ -47,6 +48,11 @@ def load_config(path: str | Path) -> dict[str, Any]:
         raise ValueError("experiment seeds and class_priors must be non-empty")
     if not experiment.get("unlabeled_sizes"):
         raise ValueError("experiment unlabeled_sizes must be non-empty")
+    density_ratio = config.get("density_ratio", {"enabled": False})
+    if not isinstance(density_ratio.get("enabled"), bool):
+        raise ValueError("density_ratio.enabled must be boolean")
+    if density_ratio.get("enabled") and not isinstance(density_ratio.get("parameters", {}), dict):
+        raise ValueError("density_ratio.parameters must be an object")
     return config
 
 
@@ -166,14 +172,87 @@ def construct_official_split(
     }
 
 
-def run_trials(config: dict[str, Any], X: np.ndarray, y: np.ndarray) -> pd.DataFrame:
+def _density_ratio_metrics(
+    split: dict[str, np.ndarray],
+    *,
+    class_prior: float,
+    seed: int,
+    parameters: dict[str, Any],
+    fitter=None,
+) -> dict[str, Any]:
+    """Fit the released uLSIF comparator and evaluate its quantile decision."""
+    if fitter is None:
+        try:
+            from densratio import densratio as fitter
+        except ImportError as error:
+            raise RuntimeError(
+                "density-ratio comparison requires densratio==0.3.0; "
+                "install the project's research extra"
+            ) from error
+
+    positive = split["X_pu"][split["y_pu"] == 1]
+    unlabeled = split["X_pu"][split["y_pu"] == 0]
+    sigma_range = parameters.get("sigma_range", "auto")
+    lambda_range = parameters.get("lambda_range", "auto")
+    if isinstance(sigma_range, list):
+        sigma_range = np.asarray(sigma_range, dtype=float)
+    if isinstance(lambda_range, list):
+        lambda_range = np.asarray(lambda_range, dtype=float)
+
+    # densratio 0.3.0 draws centers from NumPy's module-level RNG.
+    random_state = np.random.get_state()
+    started = time.perf_counter()
+    try:
+        np.random.seed(seed)
+        result = fitter(
+            positive,
+            unlabeled,
+            alpha=0,
+            sigma_range=sigma_range,
+            lambda_range=lambda_range,
+            kernel_num=int(parameters.get("kernel_num", 100)),
+            verbose=bool(parameters.get("verbose", False)),
+        )
+    finally:
+        np.random.set_state(random_state)
+
+    scores = np.asarray(result.compute_density_ratio(split["X_test"]), dtype=float)
+    if scores.shape != (len(split["X_test"]),) or not np.isfinite(scores).all():
+        raise RuntimeError("densratio produced invalid test scores")
+    predictions, threshold = prior_quantile_predict(scores, class_prior)
+    return {
+        "density_ratio_sigma": float(result.kernel_info.sigma),
+        "density_ratio_reg_lambda": float(result.lambda_),
+        "density_ratio_threshold": threshold,
+        "density_ratio_accuracy": float(accuracy_score(split["y_test"], predictions)),
+        "density_ratio_balanced_accuracy": float(
+            balanced_accuracy_score(split["y_test"], predictions)
+        ),
+        "density_ratio_roc_auc": float(roc_auc_score(split["y_test"], scores)),
+        "density_ratio_elapsed_seconds": time.perf_counter() - started,
+    }
+
+
+def run_trials(
+    config: dict[str, Any],
+    X: np.ndarray,
+    y: np.ndarray,
+    *,
+    density_ratio_fitter=None,
+    completed_keys: set[tuple[int, float, int]] | None = None,
+    on_trial: Callable[[dict[str, Any]], None] | None = None,
+) -> pd.DataFrame:
     """Run every configured prior, U size, and seed."""
     experiment = config["experiment"]
     model_parameters = config["model"]["parameters"]
     rows = []
+    completed_keys = completed_keys or set()
     for unlabeled_size in experiment["unlabeled_sizes"]:
         for class_prior in experiment["class_priors"]:
             for seed in experiment["seeds"]:
+                trial_key = (int(seed), float(class_prior), int(unlabeled_size))
+                if trial_key in completed_keys:
+                    continue
                 started = time.perf_counter()
                 split = construct_official_split(
                     X,
@@ -193,34 +272,48 @@ def run_trials(config: dict[str, Any], X: np.ndarray, y: np.ndarray) -> pd.DataF
                 scores = model.decision_function(split["X_test"])
                 quantile_predictions, threshold = prior_quantile_predict(scores, float(class_prior))
                 zero_predictions = (scores > 0.0).astype(int)
-                rows.append(
-                    {
-                        "protocol": config["protocol"],
-                        "fidelity_level": config["fidelity_level"],
-                        "paper_claim": False,
-                        "implementation_variant": config["model"]["variant"],
-                        "seed": int(seed),
-                        "class_prior": float(class_prior),
-                        "positive_size": int(experiment["positive_size"]),
-                        "unlabeled_size": int(unlabeled_size),
-                        "test_size": len(split["y_test"]),
-                        "sigma": model.sigma_,
-                        "reg_lambda": model.reg_lambda_,
-                        "optimizer_success": bool(model.optimization_result_.success),
-                        "quantile_threshold": threshold,
-                        "quantile_accuracy": float(
-                            accuracy_score(split["y_test"], quantile_predictions)
-                        ),
-                        "quantile_balanced_accuracy": float(
-                            balanced_accuracy_score(split["y_test"], quantile_predictions)
-                        ),
-                        "zero_threshold_accuracy": float(
-                            accuracy_score(split["y_test"], zero_predictions)
-                        ),
-                        "roc_auc": float(roc_auc_score(split["y_test"], scores)),
-                        "elapsed_seconds": time.perf_counter() - started,
-                    }
-                )
+                density_ratio_metrics = {}
+                density_ratio_config = config.get("density_ratio", {"enabled": False})
+                if density_ratio_config.get("enabled"):
+                    density_ratio_metrics = _density_ratio_metrics(
+                        split,
+                        class_prior=float(class_prior),
+                        seed=int(seed),
+                        parameters=density_ratio_config.get("parameters", {}),
+                        fitter=density_ratio_fitter,
+                    )
+                row = {
+                    "protocol": config["protocol"],
+                    "fidelity_level": config["fidelity_level"],
+                    "paper_claim": False,
+                    "implementation_variant": config["model"]["variant"],
+                    "seed": int(seed),
+                    "class_prior": float(class_prior),
+                    "positive_size": int(experiment["positive_size"]),
+                    "unlabeled_size": int(unlabeled_size),
+                    "test_size": len(split["y_test"]),
+                    "sigma": model.sigma_,
+                    "reg_lambda": model.reg_lambda_,
+                    "cv_all_converged": bool(model.cv_convergence_.all()),
+                    "cv_converged_fraction": float(model.cv_convergence_.mean()),
+                    "optimizer_success": bool(model.optimization_result_.success),
+                    "quantile_threshold": threshold,
+                    "quantile_accuracy": float(
+                        accuracy_score(split["y_test"], quantile_predictions)
+                    ),
+                    "quantile_balanced_accuracy": float(
+                        balanced_accuracy_score(split["y_test"], quantile_predictions)
+                    ),
+                    "zero_threshold_accuracy": float(
+                        accuracy_score(split["y_test"], zero_predictions)
+                    ),
+                    "roc_auc": float(roc_auc_score(split["y_test"], scores)),
+                    "elapsed_seconds": time.perf_counter() - started,
+                    **density_ratio_metrics,
+                }
+                rows.append(row)
+                if on_trial is not None:
+                    on_trial(row)
     return pd.DataFrame(rows)
 
 
@@ -244,29 +337,97 @@ def _package_version(name: str) -> str | None:
         return None
 
 
+def _write_csv_atomic(frame: pd.DataFrame, path: Path) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    frame.to_csv(temporary, index=False)
+    temporary.replace(path)
+
+
+def _completed_trial_keys(trials: pd.DataFrame) -> set[tuple[int, float, int]]:
+    required = {"seed", "class_prior", "unlabeled_size"}
+    if not required.issubset(trials.columns):
+        raise ValueError("existing trials.csv is missing resume key columns")
+    if trials.duplicated(list(required)).any():
+        raise ValueError("existing trials.csv contains duplicate trial keys")
+    return {
+        (int(row.seed), float(row.class_prior), int(row.unlabeled_size))
+        for row in trials.itertuples(index=False)
+    }
+
+
 def run_benchmark(
     config: dict[str, Any],
     *,
     data_root: str | Path,
     output_dir: str | Path,
+    resume: bool = False,
 ) -> pd.DataFrame:
     """Load verified data, execute trials, and write reproducibility artifacts."""
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    resolved_config_path = output / "resolved_config.json"
+    trials_path = output / "trials.csv"
+    if resume:
+        if not resolved_config_path.is_file():
+            raise ValueError("cannot resume without resolved_config.json")
+        existing_config = json.loads(resolved_config_path.read_text(encoding="utf-8"))
+        if existing_config != config:
+            raise ValueError("resume config differs from the existing resolved_config.json")
+        existing_trials = pd.read_csv(trials_path) if trials_path.is_file() else pd.DataFrame()
+    else:
+        existing_trials = pd.DataFrame()
+        for stale_name in ("trials.csv", "summary.csv", "run_manifest.json"):
+            stale_path = output / stale_name
+            if stale_path.exists():
+                stale_path.unlink()
+        resolved_config_path.write_text(
+            json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+
+    completed_keys = _completed_trial_keys(existing_trials) if not existing_trials.empty else set()
+
+    def checkpoint(row: dict[str, Any]) -> None:
+        nonlocal existing_trials
+        existing_trials = pd.concat(
+            [existing_trials, pd.DataFrame([row])], ignore_index=True, sort=False
+        )
+        _write_csv_atomic(existing_trials, trials_path)
+
     dataset_path = Path(data_root) / config["dataset"]["path"]
     X, y, dataset_hash = load_ijcnn1(
         dataset_path,
         expected_sha256=config["dataset"].get("sha256"),
     )
-    trials = run_trials(config, X, y)
-    output = Path(output_dir)
-    output.mkdir(parents=True, exist_ok=True)
-    trials.to_csv(output / "trials.csv", index=False)
+    new_trials = run_trials(
+        config,
+        X,
+        y,
+        completed_keys=completed_keys,
+        on_trial=checkpoint,
+    )
+    if existing_trials.empty and new_trials.empty:
+        raise ValueError("benchmark configuration produced no trials")
+    trials = existing_trials if not existing_trials.empty else new_trials
+    _write_csv_atomic(trials, trials_path)
     metric_columns = [
+        "cv_converged_fraction",
+        "optimizer_success",
         "quantile_accuracy",
         "quantile_balanced_accuracy",
         "zero_threshold_accuracy",
         "roc_auc",
         "elapsed_seconds",
     ]
+    metric_columns.extend(
+        column
+        for column in (
+            "density_ratio_accuracy",
+            "density_ratio_balanced_accuracy",
+            "density_ratio_roc_auc",
+            "density_ratio_elapsed_seconds",
+        )
+        if column in trials
+    )
     summary = (
         trials.groupby(["class_prior", "unlabeled_size"])[metric_columns]
         .agg(["mean", "std"])
@@ -308,14 +469,12 @@ def run_benchmark(
             "pandas": _package_version("pandas"),
             "scikit_learn": _package_version("scikit-learn"),
             "scipy": _package_version("scipy"),
+            "densratio": _package_version("densratio"),
         },
         "limitations": config.get("limitations", []),
     }
     (output / "run_manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-    (output / "resolved_config.json").write_text(
-        json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     return trials
 
@@ -325,13 +484,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--data-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--resume", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    trials = run_benchmark(config, data_root=args.data_root, output_dir=args.output)
+    trials = run_benchmark(
+        config,
+        data_root=args.data_root,
+        output_dir=args.output,
+        resume=args.resume,
+    )
     print(f"Wrote {len(trials)} PUSB official-data trial(s) to {args.output}")
 
 

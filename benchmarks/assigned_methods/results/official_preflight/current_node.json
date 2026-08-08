@@ -9,7 +9,7 @@
     "cuda_device_count": 0,
     "packages": {
       "chainer": null,
-      "densratio": null,
+      "densratio": "0.3.0",
       "numpy": "1.26.4",
       "scikit-learn": "1.7.1",
       "torch": "2.6.0+cu124",
@@ -18,7 +18,7 @@
     "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
     "python_version": "3.12.2"
   },
-  "created_at_utc": "2026-08-07T18:11:05.611247+00:00",
+  "created_at_utc": "2026-08-08T11:33:27.606719+00:00",
   "data_roots": {},
   "methods": [
     {
@@ -104,24 +104,20 @@
       "official_execution_blockers": [
         "Official source checkout was not supplied",
         "Official dataset root was not supplied",
-        "Required Python package is unavailable: chainer",
-        "Required Python package is unavailable: densratio"
+        "Required Python package is unavailable: chainer"
       ],
       "ready_for_official_execution": false,
       "ready_for_toolbox_replication": false,
       "source_lock_status": "locked",
       "toolbox_implementation_gaps": [
-        "The official-aligned kernel adapter has formula and smoke coverage, but the complete 9 x 8 x 5 search, all feasible seeds, and 100 repetitions have not been executed.",
-        "The official densratio comparison is not integrated into the toolbox runner.",
+        "The official-aligned kernel adapter and densratio comparator have completed a three-seed feasible tranche with the complete 9 x 8 x 5 search, but the paper's 100 repetitions have not been executed.",
         "The released IJCNN1 holdout protocol is infeasible for configured priors 0.4, 0.6, and 0.8 and requires authoritative clarification rather than a silent protocol change."
       ],
       "toolbox_replication_blockers": [
         "Official source checkout was not supplied",
         "Official dataset root was not supplied",
         "Required Python package is unavailable: chainer",
-        "Required Python package is unavailable: densratio",
-        "The official-aligned kernel adapter has formula and smoke coverage, but the complete 9 x 8 x 5 search, all feasible seeds, and 100 repetitions have not been executed.",
-        "The official densratio comparison is not integrated into the toolbox runner.",
+        "The official-aligned kernel adapter and densratio comparator have completed a three-seed feasible tranche with the complete 9 x 8 x 5 search, but the paper's 100 repetitions have not been executed.",
         "The released IJCNN1 holdout protocol is infeasible for configured priors 0.4, 0.6, and 0.8 and requires authoritative clarification rather than a silent protocol change."
       ]
     },

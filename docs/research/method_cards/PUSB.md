@@ -12,7 +12,8 @@
 - [x] 移植官方 RBF scoring、PU 风险、随机 CV 和先验分位数决策，并补公式级测试。
 - [x] 在配对 SCAR/线性 SAR/非线性 SAR 合成数据上验证 posterior ranking preservation。
 - [x] 使用官方 IJCNN1 完成缩小网格端到端 smoke，并保存配置、hash 和 manifest。
-- [ ] 解决官方 IJCNN1 高先验测试集不可构造问题，执行完整网格、100 repetitions 和 densratio 对照。
+- [x] 对可行 `pi=0.2` 完成 3 seeds × 3 U sizes 的完整网格与 densratio 对照。
+- [ ] 解决官方 IJCNN1 高先验测试集不可构造问题，并扩展到 100 repetitions。
 
 ### 1.2 注意
 
@@ -280,7 +281,7 @@ class PUSBKernelClassifier(BasePUClassifier):
 | `pu_toolbox/registry/builtin_methods.py` | `pusb` 元数据和 lazy binding | ✅ |
 | `tests/unit/estimators/test_bias_aware.py` | API smoke test | ✅ |
 | `benchmarks/assigned_methods/` | SAR 合成 runner、官方参数锁和结果 | ✅ baseline + official-data smoke |
-| `benchmarks/assigned_methods/pusb_official_data.py` | IJCNN1 校验、官方抽样与 provenance | ✅ smoke |
+| `benchmarks/assigned_methods/pusb_official_data.py` | IJCNN1 校验、官方抽样、uLSIF、checkpoint 与 provenance | ✅ feasible full-grid tranche |
 
 ## 9. 测试与验收标准
 
@@ -397,13 +398,26 @@ nonlinear:  e(x) = sigmoid(a1*x1 + a2*x2^2 + b)
 batch-quantile accuracy 为 `0.7470`，balanced accuracy 为 `0.6038`，ROC-AUC 为
 `0.6664`。结果 manifest 固定为 `paper_claim=false`。
 
+进一步完成 seed `2018..2020` 与 U `{800,1600,3200}` 共 9 个完整 trial：300 个 RBF 基、
+5 折、9×8 PUSB 网格，以及 `densratio 0.3.0` 默认 100 kernels 与 13×13 uLSIF 搜索。
+所有 CV 候选和最终 BFGS 重训均成功，全部 trial 选择 `sigma=1.0`、`lambda=0.001`。
+
+| U | PUSB quantile accuracy | PUSB ROC-AUC | uLSIF quantile accuracy | uLSIF ROC-AUC |
+|---:|---:|---:|---:|---:|
+| 800 | `0.7730 ± 0.0151` | `0.7061 ± 0.0093` | `0.7543 ± 0.0050` | `0.6519 ± 0.0325` |
+| 1600 | `0.7683 ± 0.0170` | `0.6982 ± 0.0280` | `0.7543 ± 0.0050` | `0.6519 ± 0.0326` |
+| 3200 | `0.7657 ± 0.0114` | `0.6983 ± 0.0210` | `0.7543 ± 0.0061` | `0.6520 ± 0.0326` |
+
+该批次验证了完整计算链路，但只有 3 seeds，且没有解决高先验协议缺陷，仍固定
+`paper_claim=false`。runner 已支持逐 trial 原子 checkpoint、配置一致性检查和 `--resume`。
+
 ## 11. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_exact`：作者源码已锁定；该字段表示源码可获得性，不表示 toolbox 逐行复制 |
 | Implementation status | `NATIVE`；linear baseline 与 official-aligned kernel 双实现 |
-| 当前实现可声称 | 统一接口、SAR 元数据、核 PU 目标/CV/分位数规则、官方数据 smoke |
+| 当前实现可声称 | 统一接口、核 PU 目标/CV/分位数规则、3-seed 完整网格与 uLSIF 对照 |
 | 当前实现不可声称 | 已复现论文完整比较表或解决官方高先验协议缺陷 |
 | 主要风险 | 观察到的 P 受到 `e(x)` 加权；直接来源分类会把 selection preference 与 class posterior 混合 |
-| 下一步 | 获取高先验测试构造的权威说明；再运行完整网格、可行 seed 与 densratio 对照 |
+| 下一步 | 获取高先验测试构造的权威说明；把可行 `pi=0.2` 从 3 seeds 扩展到 100 repetitions |

@@ -27,7 +27,7 @@
 | 7a | KLDCE（核化版 LDCE） | `official_related` | 同上（clean-room：论文 TPAMI 2021 + Appendix） |
 | 8 | LLSVM | `official_exact` | https://gcatnjust.github.io/ChenGong/code/LLSVM_TNNLS19.rar |
 | 9 | Dist-PU | `official_exact` | https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective |
-| 10 | PUSB | `official_exact` | https://github.com/MasaKat0/PUlearning（状态表示作者源码可获得；toolbox 另含 clean-room kernel adapter） |
+| 10 | PUSB | `official_exact` | https://github.com/MasaKat0/PUlearning（toolbox 含 clean-room kernel adapter、uLSIF 与可恢复官方数据 runner） |
 | 11 | LBE | `official_exact` | https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar |
 | 12 | Self-PU | `official_exact` | https://github.com/VITA-Group/Self-PU |
 | 13 | InfoMax PU | `not_found` | — |
