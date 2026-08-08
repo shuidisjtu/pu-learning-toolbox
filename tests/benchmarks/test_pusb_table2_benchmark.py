@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 
 import numpy as np
@@ -19,6 +20,11 @@ from benchmarks.assigned_methods.pusb_table2_benchmark import (
     summarize_plan,
 )
 from benchmarks.assigned_methods.pusb_table2_parallel import _shard_command, run_parallel
+from benchmarks.assigned_methods.pusb_table2_report import (
+    build_statistical_summary,
+    validate_strict_trials,
+    write_report,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -259,6 +265,7 @@ def test_basic_aggregate_shards_requires_exact_plan_keys(tmp_path):
     plan_path = tmp_path / "plan.csv"
     plan.to_csv(plan_path, index=False)
     shard_root = tmp_path / "shards"
+    config_hash = hashlib.sha256(b"{}").hexdigest()
     for index, seed in enumerate((10, 11)):
         shard = shard_root / f"shard-{index:02d}"
         shard.mkdir(parents=True)
@@ -276,12 +283,13 @@ def test_basic_aggregate_shards_requires_exact_plan_keys(tmp_path):
             ]
         )
         trials.to_csv(shard / "trials.csv", index=False)
+        (shard / "resolved_config.json").write_text("{}", encoding="utf-8")
         manifest = {
             "status": "completed",
             "execution_scope": {"shard_count": 2, "shard_index": index},
             "paper_claim": False,
             "n_completed_trials": 1,
-            "config_sha256": "locked-config",
+            "config_sha256": config_hash,
             "fidelity_level": "paper_protocol_strict_feasible_subset",
         }
         (shard / "run_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
@@ -345,3 +353,67 @@ def test_determ_parallel_runner_retries_only_failed_shards_then_aggregates(tmp_p
 
     assert sorted(calls) == [0, 1, 1, 2]
     assert aggregated == [3]
+
+
+@pytest.mark.unit
+def test_basic_statistical_report_uses_paired_differences():
+    trials = _report_trials()
+    summary = build_statistical_summary(trials)
+    assert len(summary) == 1
+    assert summary.loc[0, "quantile_accuracy_mean"] == pytest.approx(0.75)
+    assert summary.loc[0, "paired_accuracy_difference_mean"] == pytest.approx(0.1)
+    assert summary.loc[0, "paired_accuracy_difference_win_rate"] == 1.0
+
+
+@pytest.mark.unit
+def test_edge_strict_report_rejects_undersized_samples():
+    trials = _report_trials()
+    trials.loc[0, "actual_unlabeled_size"] = 9
+    with pytest.raises(ValueError, match="undersized unlabeled"):
+        validate_strict_trials(trials, expected_trials=2, expected_repetitions=2)
+
+
+@pytest.mark.unit
+def test_determ_report_writes_csv_json_and_markdown(tmp_path):
+    trials_path = tmp_path / "trials.csv"
+    _report_trials().to_csv(trials_path, index=False)
+    summary, report = write_report(
+        trials_path,
+        output_dir=tmp_path / "report",
+        expected_trials=2,
+        expected_repetitions=2,
+    )
+    assert len(summary) == 1
+    assert report["paper_claim"] is False
+    for name in ("statistical_summary.csv", "benchmark_report.json", "REPORT.md"):
+        assert (tmp_path / "report" / name).is_file()
+
+
+def _report_trials():
+    return pd.DataFrame(
+        {
+            "dataset": ["mushrooms", "mushrooms"],
+            "seed": [10, 11],
+            "class_prior": [0.5, 0.5],
+            "unlabeled_size": [10, 10],
+            "actual_unlabeled_size": [10, 10],
+            "requested_test_size": [10, 10],
+            "test_size": [10, 10],
+            "paper_claim": [False, False],
+            "sampling_policy": [STRICT_POLICY, STRICT_POLICY],
+            "strictly_feasible_split": [True, True],
+            "cell_all_repetitions_feasible": [True, True],
+            "quantile_accuracy": [0.7, 0.8],
+            "quantile_balanced_accuracy": [0.7, 0.8],
+            "roc_auc": [0.8, 0.9],
+            "density_ratio_accuracy": [0.6, 0.7],
+            "density_ratio_balanced_accuracy": [0.6, 0.7],
+            "density_ratio_roc_auc": [0.7, 0.8],
+            "cv_all_converged": [True, True],
+            "optimizer_success": [True, True],
+            "elapsed_seconds": [1.0, 1.1],
+            "density_ratio_elapsed_seconds": [0.5, 0.6],
+            "sigma": [1.0, 1.0],
+            "reg_lambda": [0.1, 0.1],
+        }
+    )

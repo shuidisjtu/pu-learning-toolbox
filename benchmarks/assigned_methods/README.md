@@ -219,9 +219,23 @@ python -m benchmarks.assigned_methods.pusb_table2_parallel \
 单个 shard 的 `run.log`、`last_failure.json`、checkpoint 和 manifest 保存在仓库外的
 `shard-root`；仓库只保存经过 key 完整性校验的聚合结果。
 
+### PUSB Table 2 strict 结果
+
+`results/pusb_table2_strict_full/` 已完成 45 个严格可行单元、每单元 100 次重复，共
+4500 个 trial。45/45 shards 完整，所有计划 key 唯一且无缺失；实际 U/test 数量全部等于
+声明值，4500 次 CV 网格和最终优化全部收敛。聚合微平均仅描述选中子集：PUSB accuracy
+为 `0.7963`、uLSIF 为 `0.7597`；PUSB ROC-AUC 为 `0.8386`、uLSIF 为 `0.7623`。
+
+表现具有明显数据集异质性：PUSB 在 connect-4、spambase、USPS 的微平均上占优，uLSIF
+在 mushrooms、shuttle 上占优；pageblocks 只有 1 个严格可行单元。逐单元配对 95% CI
+显示，accuracy 差值有 28 个单元倾向 PUSB、17 个倾向 uLSIF、0 个跨 0；ROC-AUC 为
+28/15/2。完整均值、标准差、置信区间和声明边界见
+`results/pusb_table2_strict_full/REPORT.md`，结果始终保持 `paper_claim=false`。
+
 ## 结论边界
 
-当前结果必须按实际 fidelity 分别标为 `clean_room` 或 `official_repo_extension`：
+当前结果必须按实际 fidelity 分别标为 `clean_room`、`official_repo_extension` 或
+`paper_protocol_strict_feasible_subset`：
 
 - Dist-PU 使用 toolbox 全量 MLP，不是官方图像 backbone/mini-batch 两阶段训练；
 - PUSB 的 IJCNN1 kernel 结果是官方仓库扩展，不是论文 Table 2；

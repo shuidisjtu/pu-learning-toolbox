@@ -16,7 +16,7 @@
 - [x] 核对论文 Table 2，确认 IJCNN1 是仓库扩展而非论文表格数据集。
 - [x] 锁定并接入 mushrooms、shuttle、pageblocks、usps、connect-4、spambase，审计采样可行性。
 - [x] 实现严格完整单元/官方兼容两套策略、精确 trial plan、断点续跑和 provenance。
-- [ ] 执行严格模式 4500 个 trial；兼容模式如需执行，必须使用独立结果目录和标签。
+- [x] 执行严格模式 45 单元/4500 trials，完成精确聚合、配对置信区间和结果报告。
 
 ### 1.2 注意
 
@@ -289,6 +289,7 @@ class PUSBKernelClassifier(BasePUClassifier):
 | `benchmarks/assigned_methods/pusb_table2_benchmark.py` | 严格/兼容计划、逐 trial checkpoint、resume、summary 与 provenance | ✅ planned |
 | `benchmarks/assigned_methods/pusb_table2_parallel.py` | 受控并行、单线程 BLAS、失败 shard 重试 | ✅ |
 | `benchmarks/assigned_methods/pusb_table2_aggregate.py` | shard scope/config/fidelity/hash 与 4500 个计划 key 精确验收 | ✅ |
+| `benchmarks/assigned_methods/pusb_table2_report.py` | 严格样本量复核、配对 Student-t 区间和声明安全报告 | ✅ |
 
 ## 9. 测试与验收标准
 
@@ -445,13 +446,29 @@ spambase 为 3/12。根因是官方脚本对训练池和固定 3000 行 holdout 
 单元都不可能得到 3200 个未标记样本。兼容模式可记录官方实际长度，严格论文模式则必须
 阻止该 trial；批准重采样政策前不能声称完整复现 Table 2。
 
+### 10.8 Table 2 严格可行子集结果
+
+锁定 strict plan 已通过 45 个并行 shard 完成 4500 个 trial，覆盖 45 个严格可行单元，
+每单元 100 次重复。聚合器验证了全部 key 与计划精确相等、无重复和无额外 trial；实际
+U/test 数量均等于声明值。全部 CV 候选网格与最终优化成功收敛。
+
+在选中 trial 上，PUSB/uLSIF accuracy 微平均为 `0.7963/0.7597`，ROC-AUC 微平均为
+`0.8386/0.7623`。该总平均不能外推到 27 个排除单元。逐单元配对 95% Student-t CI
+显示，accuracy 差值方向为 PUSB 正向 28、uLSIF 负向 17、跨 0 为 0；ROC-AUC 对应
+28/15/2。结果具有明显数据集异质性，完整 45 行统计见
+`benchmarks/assigned_methods/results/pusb_table2_strict_full/REPORT.md`。
+
+该结果固定为 `fidelity_level=paper_protocol_strict_feasible_subset` 和
+`paper_claim=false`。除非获得权威采样修订，不能将其写成完整 Table 2 复现；兼容模式如需
+执行，必须在独立目录保留实际样本量与 `official_released_compatibility` 标签。
+
 ## 11. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_exact`：作者源码已锁定；该字段表示源码可获得性，不表示 toolbox 逐行复制 |
 | Implementation status | `NATIVE`；linear baseline 与 official-aligned kernel 双实现 |
-| 当前实现可声称 | 统一接口、核 PU 目标/CV/分位数规则、IJCNN1 仓库扩展完整网格与 uLSIF 对照 |
+| 当前实现可声称 | 统一接口、核 PU 目标/CV/分位数规则、IJCNN1 仓库扩展，以及 Table 2 的 45 单元/4500-trial 严格可行子集 |
 | 当前实现不可声称 | 已复现论文 Table 2 六数据集比较表 |
 | 主要风险 | 观察到的 P 受到 `e(x)` 加权；直接来源分类会把 selection preference 与 class posterior 混合 |
-| 下一步 | 按锁定 strict plan 可恢复地执行 45 个单元/4500 trials；27 个排除单元保持单列 |
+| 下一步 | 27 个不可行单元保持单列；只在明确需要审计官方静默截断时执行独立兼容矩阵 |

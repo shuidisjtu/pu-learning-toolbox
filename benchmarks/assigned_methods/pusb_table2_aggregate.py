@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,11 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _canonical_hash(document: dict[str, Any]) -> str:
+    payload = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _key_set(frame: pd.DataFrame) -> set[tuple[str, int, float, int]]:
@@ -87,7 +93,8 @@ def aggregate_shards(
         shard = shard_root / f"shard-{shard_index:02d}"
         manifest_path = shard / "run_manifest.json"
         trials_path = shard / "trials.csv"
-        if not manifest_path.is_file() or not trials_path.is_file():
+        config_path = shard / "resolved_config.json"
+        if not manifest_path.is_file() or not trials_path.is_file() or not config_path.is_file():
             raise ValueError(f"shard {shard_index} is missing completed artifacts")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         expected_scope = {"shard_count": shard_count, "shard_index": shard_index}
@@ -97,6 +104,9 @@ def aggregate_shards(
             raise ValueError(f"shard {shard_index} execution scope mismatch")
         if manifest.get("paper_claim") is not False:
             raise ValueError(f"shard {shard_index} has unsafe paper_claim metadata")
+        resolved_config = json.loads(config_path.read_text(encoding="utf-8"))
+        if _canonical_hash(resolved_config) != manifest.get("config_sha256"):
+            raise ValueError(f"shard {shard_index} resolved config hash mismatch")
         frame = pd.read_csv(trials_path)
         if len(frame) != manifest.get("n_completed_trials"):
             raise ValueError(f"shard {shard_index} manifest trial count mismatch")
@@ -109,6 +119,7 @@ def aggregate_shards(
                 "n_trials": len(frame),
                 "trials_sha256": _sha256(trials_path),
                 "manifest_sha256": _sha256(manifest_path),
+                "resolved_config_sha256": _sha256(config_path),
             }
         )
     if len(config_hashes) != 1 or None in config_hashes:
@@ -129,6 +140,10 @@ def aggregate_shards(
     output.mkdir(parents=True, exist_ok=True)
     trials.to_csv(output / "trials.csv", index=False)
     _summary(trials).to_csv(output / "summary.csv", index=False)
+    shutil.copyfile(
+        shard_root / "shard-00" / "resolved_config.json",
+        output / "resolved_config.json",
+    )
     manifest: dict[str, Any] = {
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -139,6 +154,7 @@ def aggregate_shards(
         "config_sha256": config_hashes.pop(),
         "plan_path": str(plan_path),
         "plan_sha256": _sha256(plan_path),
+        "aggregator_sha256": _sha256(Path(__file__)),
         "shard_count": shard_count,
         "n_trials": len(trials),
         "n_expected_trials": len(expected),

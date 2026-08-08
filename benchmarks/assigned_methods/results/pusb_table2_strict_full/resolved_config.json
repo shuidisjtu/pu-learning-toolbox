@@ -1,0 +1,80 @@
+{
+  "datasets": [
+    "mushrooms",
+    "shuttle",
+    "pageblocks",
+    "usps",
+    "connect-4",
+    "spambase"
+  ],
+  "density_ratio": {
+    "enabled": true,
+    "parameters": {
+      "kernel_num": 100,
+      "lambda_range": "auto",
+      "sigma_range": "auto",
+      "verbose": false
+    },
+    "variant": "densratio_0.3.0_rulsif_official_defaults"
+  },
+  "experiment": {
+    "class_priors": [
+      0.2,
+      0.4,
+      0.6,
+      0.8
+    ],
+    "holdout_size": 3000,
+    "initial_seed": 2018,
+    "positive_size": 400,
+    "repetitions": 100,
+    "selection_probability_power": 20,
+    "test_size": 1000,
+    "unlabeled_sizes": [
+      800,
+      1600,
+      3200
+    ]
+  },
+  "fidelity_level": "paper_protocol_strict_feasible_subset",
+  "limitations": [
+    "Only cells whose 100 official seeds all satisfy the declared P/U/test sizes are selected.",
+    "Twenty-seven undersized cells are excluded as complete cells rather than cherry-picking their feasible repetitions.",
+    "The selected 4,500 trials are a strict feasible subset, not a complete reproduction of Table 2.",
+    "Results remain paper_claim=false."
+  ],
+  "model": {
+    "parameters": {
+      "cv": 5,
+      "max_iter": 200,
+      "n_basis": 300,
+      "reg_grid": [
+        0.001,
+        0.005,
+        0.01,
+        0.05,
+        0.1,
+        0.5,
+        1.0,
+        5.0
+      ],
+      "sigma_grid": [
+        0.01,
+        0.05,
+        0.1,
+        0.5,
+        1.0,
+        2.0,
+        5.0,
+        10.0,
+        20.0
+      ],
+      "tol": 1e-05
+    },
+    "variant": "official_aligned_rbf_full_grid"
+  },
+  "paper_claim": false,
+  "protocol": "pusb_table2_benchmark",
+  "sampling_policy": "strict_complete_cells",
+  "schema_version": 1
+}

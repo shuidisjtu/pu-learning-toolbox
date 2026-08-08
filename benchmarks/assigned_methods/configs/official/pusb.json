@@ -3,7 +3,7 @@
   "protocol": "paper_like",
   "method": "pusb",
   "source_lock": "../official_sources.lock.json#sources/pusb",
-  "status": "data_locked_sampling_audited",
+  "status": "strict_feasible_subset_executed",
   "runner": {
     "entrypoint": "BiasedPUlearning/PUSB/main_linear_kernel.py",
     "repository_default_dataset": "ijcnn1",
@@ -79,8 +79,8 @@
     "toolbox_implementation_gaps": [
       "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
       "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
-      "Strict-complete-cell and released-compatibility policies are implemented with exact plans, checkpointing, and separate fidelity labels, but neither long-running model matrix has been executed."
+      "The strict-complete-cell matrix has completed 4,500 trials with exact key aggregation and statistical reporting. The 27 infeasible cells remain excluded, and released-compatibility execution is intentionally separate."
     ]
   },
-  "claim_policy": "The IJCNN1 results are an official-repository extension, not Table 2. A paper-level claim requires the six datasets explicitly reported in Table 2 and the full comparison matrix."
+  "claim_policy": "The IJCNN1 results are an official-repository extension. The 4,500 Table 2 trials are a strict feasible subset with paper_claim=false; the 27 infeasible cells prevent a complete Table 2 reproduction under the released sampling code."
 }
