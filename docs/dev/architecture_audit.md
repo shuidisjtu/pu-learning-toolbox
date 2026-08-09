@@ -127,7 +127,7 @@
 ### P2 — 文档与流程
 
 8. decision_log 补齐 6 条决策(08-06 至 08-09),并按先例将 `pu_workflow_design.md` 蒸馏后删除
-9. 修复 CLAUDE.md:29 死链(`docs/project_structure.md` → `docs/dev/project_structure.md`)
+9. 修复 CLAUDE.md:29 死链(CLAUDE.md 误写的旧路径 docs/project_structure.md 已迁移为 `docs/dev/project_structure.md`)
 10. 修正 `project_structure.md` §3 测试树(补 tests/unit/scripts、workflow_scripts,删 unit/registry 空目录)
 11. dev-workflow skill 状态速查更新(705 → 738,2026-08-09)
 12. 死代码清理 6 项(PNULoss、check_scalar_in_range/check_positive 启用或移除、PenL1Estimator、upu 假别名、DEFAULT_RANDOM_SEED、set_global_seed 定位)
@@ -149,7 +149,7 @@
 | check_math_rendering 假绿(黄→红) | ✅ 确认:84 行裸 glob 相对 cwd;B/D 双代理独立发现 |
 | KLDCE γ 分支矛盾 | ✅ 确认:推导注释 604-606 与执行代码 629-637 矛盾,差 +2;数学结论待对照论文 |
 | paper marker 空转 | ✅ 确认:tests/ 0 个 `pytest.mark.paper` |
-| CLAUDE.md:29 死链 | ✅ 确认:`docs/project_structure.md` 已迁移为 `docs/dev/project_structure.md` |
+| CLAUDE.md:29 死链 | ✅ 确认:CLAUDE.md 误写的旧路径 docs/project_structure.md 已迁移为 `docs/dev/project_structure.md` |
 | project_structure.md 测试树漂移 | ✅ 确认:tests/unit/ 实际 12 目录,文档未收录 scripts/workflow_scripts |
 | dev-workflow skill 数字过时 | ✅ 确认:SKILL.md:65 "705 passed(2026-08-08)" |
 | nnpu.md §7.1 签名漂移 | ✅ 确认:卡签名缺 `class_prior`/`device` |
