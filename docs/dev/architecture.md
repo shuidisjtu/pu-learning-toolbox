@@ -20,7 +20,88 @@
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
 | Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化报告与假设敏感性 |
-| User Layer | `examples` | 教程 |
+| Orchestration | `workflows`, `cli` | PUPipeline 端到端编排（画像→先验→训练→CV→评估→报告）与命令行薄封装 |
+| User Layer | `examples`, `scripts/pu_workflow/`, pu-workflow skill | 教程、三步工作流脚本与 agent 流程 |
+
+### 2.1 系统上下文
+
+```mermaid
+flowchart LR
+    U["PU 研究者 / 数据科学家"]
+    SYS["pu-learning-toolbox"]
+    DEPS["numpy · scipy · scikit-learn"]
+    EXT["论文官方源码与官方数据*"]
+
+    U -- "CLI / Python API / agent skill" --> SYS
+    SYS -- "运行时依赖" --> DEPS
+    SYS -. "benchmarks 复现引用" .-> EXT
+```
+
+> \* 官方数据与历史环境由执行方提供，不内置工具箱（Dist-PU 需 Py3.7/numpy1.19 等）。
+
+### 2.2 模块组件图
+
+```mermaid
+flowchart TB
+    subgraph UL["User Layer"]
+        EX["examples/ 教程"]
+        WFS["scripts/pu_workflow/ 三步工作流"]
+    end
+    subgraph OR["Orchestration"]
+        CLI["cli/ 命令行入口"]
+        PPL["workflows/ PUPipeline 编排"]
+    end
+    subgraph EV["Evaluation"]
+        MET["metrics/ PU 指标"]
+        MS["model_selection/ PU 切分"]
+        DG["diagnostics/ 报告与敏感性"]
+    end
+    subgraph AL["Algorithms · estimators/"]
+        CLC["classic/"]
+        RSK["risk/"]
+        BIA["bias_aware/"]
+        DEE["deep/"]
+    end
+    subgraph ES["Estimation"]
+        PR["prior/ 类先验"]
+        LS["losses/ PU 风险"]
+    end
+    subgraph CR["Core"]
+        CORE["core/ 基类与校验"]
+        PRE["preprocessing/ 标签与画像"]
+        REG["registry/ 注册表"]
+        ADV["advisor/ 推荐器"]
+        UTL["utils/ 共享工具"]
+    end
+
+    WFS --> PPL
+    EX --> PPL
+    CLI --> PPL
+    PPL --> MS
+    PPL --> MET
+    PPL --> DG
+    PPL --> ADV
+    PPL --> PRE
+    PPL --> CORE
+    ADV --> REG
+    PPL --> CLC
+    PPL --> RSK
+    PPL --> BIA
+    PPL --> DEE
+    CLC --> LS
+    RSK --> LS
+    BIA --> LS
+    DEE --> LS
+    RSK --> PR
+    BIA --> PR
+    CLC --> UTL
+    RSK --> UTL
+    BIA --> UTL
+    DEE --> UTL
+```
+
+> 依赖箭头表示调用方向（指向被依赖方）；分层与边为代表性概览，细粒度依赖以
+> [`project_structure.md`](project_structure.md) 目录树为准。
 
 ## 3. 数据流
 
