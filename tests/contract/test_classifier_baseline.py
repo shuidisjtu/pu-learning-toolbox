@@ -13,11 +13,13 @@ import pytest
 
 from pu_toolbox.core.base import BasePriorEstimator
 from pu_toolbox.core.exceptions import NotFittedError
+from pu_toolbox.estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.pnu import PNUClassifier
 from pu_toolbox.registry import (
     clear_registry,
     get_algorithm_registry,
+    list_algorithms,
     register_all_builtin_methods,
 )
 
@@ -30,6 +32,13 @@ def _make_elkan_noto():
     from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 
     return ElkanNotoClassifier(n_cv_folds=3, random_state=42)
+
+
+def _make_llsvm():
+    from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
+
+    # Defaults run 3000 SGD epochs; shrink for the 90-sample contract data.
+    return LLSVMClassifier(max_epochs=10, min_epochs=1, random_state=42)
 
 
 def _make_upu():
@@ -75,6 +84,23 @@ def _make_pusb():
     from pu_toolbox.estimators.bias_aware.pusb import PUSBClassifier
 
     return PUSBClassifier(threshold=0.5)
+
+
+def _make_pusb_kernel():
+    from pu_toolbox.estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
+
+    # Small grid / low basis keep the full CV + refit affordable in tests.
+    # sigma grid matches the ±2-separated 90-sample data (pairwise d2 ~ 80):
+    # sigma=2 -> exp(-10) ~ 4.5e-5, sigma=4 -> exp(-2.5) ~ 0.08, both alive.
+    # cv=2 relies on the 30-positive balance for the per-fold P/U guard.
+    return PUSBKernelClassifier(
+        n_basis=10,
+        sigma_grid=[2.0, 4.0],
+        reg_grid=[0.01, 0.1],
+        cv=2,
+        max_iter=50,
+        random_state=42,
+    )
 
 
 def _make_lbe():
@@ -167,6 +193,7 @@ def _make_dgpu():
 
 _FACTORY_MAP: dict[str, callable] = {
     "elkan_noto": _make_elkan_noto,
+    "llsvm": _make_llsvm,
     "upu": _make_upu,
     "nnpu": _make_nnpu,
     "pnu": _make_pnu,
@@ -174,6 +201,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "kldce": _make_kldce,
     "dist_pu": _make_dist_pu,
     "pusb": _make_pusb,
+    "pusb_kernel": _make_pusb_kernel,
     "lbe": _make_lbe,
     "class_prior_estimation": _make_class_prior_estimation,
     "recpe": _make_recpe,
@@ -187,6 +215,7 @@ _REPRESENTATIVE_ALGOS = [
     "elkan_noto",
     "upu",
     "pusb",
+    "pusb_kernel",
     "recpe",
     "self_pu",
     "kldce",
@@ -235,8 +264,17 @@ def _get_data_factory(clf):
 
 
 def _get_fit_kwargs(clf, y):
-    if isinstance(clf, NonNegativePUClassifier):
-        n_p = int(np.sum(y == 1))
+    """Class-prior kwargs for the estimators that need them at fit time.
+
+    Narrowly scoped to the classes whose fit *requires* an explicit prior
+    (or overrides the constructor value by design): nnPU and
+    PUSBKernelClassifier.  Deliberately NOT keyed off the
+    ``requires_class_prior`` class attribute — many estimators (uPU, PNU,
+    Dist-PU, Self-PU, ...) declare it but train with their
+    constructor-chosen prior; injecting here would silently override it.
+    """
+    n_p = int(np.sum(y == 1))
+    if isinstance(clf, (NonNegativePUClassifier, PUSBKernelClassifier)):
         return {"class_prior": n_p / len(y)}
     return {}
 
@@ -260,6 +298,32 @@ def _fit(clf, X, y):
 @pytest.mark.contract
 class TestBaseline:
     """Baseline coverage for every NATIVE algorithm."""
+
+    def test_pusb_kernel_contract_fit_converges(self, rng):
+        """The contract factory's BFGS solves must converge.
+
+        Without this guard, a non-converging fit (max_iter too low for the
+        data/grid) would pass the shape/determinism assertions below and fix
+        a bad fit into the suite as baseline behavior.
+        """
+        clf = _make_pusb_kernel()
+        X, y = _make_X_y(rng)
+        clf.fit(X, y, class_prior=0.5)
+        assert np.all(clf.cv_convergence_), "pusb_kernel contract fit did not converge"
+
+    def test_every_trainable_method_has_factory(self):
+        """Every registered trainable method must have a contract factory.
+
+        Guards against silent zero-coverage drift (e.g. llsvm was registered
+        NATIVE but missing from _FACTORY_MAP). New methods only need the
+        factory entry; _REPRESENTATIVE_ALGOS is a performance pick.
+        """
+        register_all_builtin_methods()
+        trainable = {m.name for m in list_algorithms(trainable_only=True)}
+        assert set(_FACTORY_MAP) == trainable, (
+            f"factory map mismatch: missing={trainable - set(_FACTORY_MAP)}, "
+            f"extra={set(_FACTORY_MAP) - trainable}"
+        )
 
     @pytest.mark.parametrize("algo_name", _ALL_PARAMS)
     def test_basic_fit_and_output_shape(self, algo_name, rng):

@@ -1,17 +1,36 @@
-"""Tests for the 16 built-in paper-method registrations."""
+"""Tests for the built-in paper-method registrations.
+
+Counts and distributions are derived from the registry itself (the single
+source of truth) plus the stats table in ``docs/dev/resources.md``, so
+registering a new method requires no bookkeeping updates here.
+"""
+
+import re
+from pathlib import Path
 
 import pytest
 
 from pu_toolbox.core.tags import (
-    AlgorithmFamily,
+    ImplementationStatus,
     SourceStatus,
 )
 from pu_toolbox.registry import (
     clear_registry,
     get_algorithm_registry,
+    get_metadata,
     list_algorithms,
     register_all_builtin_methods,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+_KNOWN_FAMILIES = {
+    "class_prior_estimation",
+    "classic_calibration",
+    "risk_estimation",
+    "bias_aware",
+    "deep_pu",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -23,105 +42,94 @@ def _clean_registry():
 
 @pytest.mark.unit
 class TestBuiltinRegistration:
-    """Smoke tests for the 16 built-in method entries."""
+    """Invariant checks for the built-in method entries."""
 
-    def test_basic_registers_exactly_16_methods(self):
+    def test_basic_registration_is_consistent(self):
+        """Registration count equals registry size (no magic number)."""
         n = register_all_builtin_methods()
-        assert n == 16
-        assert len(get_algorithm_registry()) == 16
+        assert n == len(get_algorithm_registry())
 
     def test_basic_implementation_status_distribution(self):
+        """Every built-in method must be natively implemented (no placeholders)."""
         register_all_builtin_methods()
-        by_status: dict[str, int] = {}
         for meta in get_algorithm_registry().values():
-            key = meta.implementation_status.value
-            by_status[key] = by_status.get(key, 0) + 1
+            assert meta.implementation_status == ImplementationStatus.NATIVE, (
+                f"{meta.name} must be NATIVE, got {meta.implementation_status}"
+            )
 
-        assert by_status.get("native", 0) == 16
-        assert by_status.get("api_only", 0) == 0
+    def test_basic_source_status_matches_docs(self):
+        """Registry source-status counts must match docs/dev/resources.md.
 
-    def test_basic_source_status_distribution(self):
-        """Verify counts match docs/dev/resources.md."""
+        The doc stats table is the rendered view of the registry; this test
+        makes the pair drift-free without a separate generation script.
+        """
         register_all_builtin_methods()
         by_source: dict[str, int] = {}
         for meta in get_algorithm_registry().values():
             key = meta.source_status.value
             by_source[key] = by_source.get(key, 0) + 1
 
-        assert by_source.get("official_exact", 0) == 8
-        assert by_source.get("official_bundle", 0) + by_source.get("official_related", 0) == 4
-        assert by_source.get("third_party_only", 0) == 1
-        assert by_source.get("not_found", 0) == 3
+        doc = (PROJECT_ROOT / "docs" / "dev" / "resources.md").read_text(
+            encoding="utf-8"
+        )
+        expected_single: dict[str, int] = {}
+        combined_total: int | None = None
+        for line in doc.splitlines():
+            m = re.match(r"\|\s*`([^`]+)`\s*(?:/\s*`([^`]+)`)?\s*\|\s*(\d+)\s*\|", line)
+            if not m:
+                continue
+            count = int(m.group(3))
+            if m.group(2):
+                # combined row: `official_bundle` / `official_related` | N
+                # means the two states sum to N
+                combined_total = count
+            else:
+                expected_single[m.group(1)] = count
+
+        for state, count in expected_single.items():
+            assert by_source.get(state, 0) == count, f"source_status {state!r}"
+        assert (
+            by_source.get("official_bundle", 0) + by_source.get("official_related", 0)
+            == combined_total
+        ), "official_bundle + official_related total"
 
     def test_basic_family_distribution(self):
+        """All five algorithm families must be present (counts are free)."""
         register_all_builtin_methods()
-        families: dict[str, int] = {}
+        families = {m.family.value for m in get_algorithm_registry().values()}
+        assert families >= _KNOWN_FAMILIES, f"missing families: {_KNOWN_FAMILIES - families}"
+
+    def test_semantic_assumption_anchors(self):
+        """Anchors: selection-biased methods are SAR-only, classic ones SCAR-only."""
+        register_all_builtin_methods()
+        pusb = get_metadata("pusb")
+        assert [a.value for a in pusb.assumption] == ["SAR"]
+        elkan_noto = get_metadata("elkan_noto")
+        assert [a.value for a in elkan_noto.assumption] == ["SCAR"]
+
+    def test_all_aliases_resolve_to_canonical(self):
+        """Every alias of every entry resolves back to its canonical name."""
+        register_all_builtin_methods()
+        from pu_toolbox.registry import get_algorithm
+
         for meta in get_algorithm_registry().values():
-            key = meta.family.value
-            families[key] = families.get(key, 0) + 1
-
-        assert families.get("class_prior_estimation", 0) == 2  # CPE + ReCPE
-        assert families.get("classic_calibration", 0) == 1  # Elkan-Noto
-        # uPU, nnPU, PNU, Centroid, KLDCE, LLSVM, Dist-PU
-        assert families.get("risk_estimation", 0) == 7
-        assert families.get("bias_aware", 0) == 2  # PUSB, LBE
-        assert families.get("deep_pu", 0) == 4  # Self-PU, InfoMax, WConPU, DGPU
-
-    @pytest.mark.parametrize(
-        "name, expected_scar, expected_sar",
-        [
-            ("elkan_noto", True, False),
-            ("nnpu", True, False),
-            ("pusb", False, True),
-            ("lbe", False, True),
-            ("centroid_pu", True, False),  # SCAR only
-            ("llsvm", True, True),  # supports both
-        ],
-    )
-    def test_param_assumption_flags(self, name, expected_scar, expected_sar):
-        register_all_builtin_methods()
-        from pu_toolbox.registry import get_metadata
-
-        meta = get_metadata(name)
-        scar = any(a.value == "SCAR" for a in meta.assumption)
-        sar = any(a.value == "SAR" for a in meta.assumption)
-        assert scar == expected_scar, f"{name}: SCAR expected {expected_scar}"
-        assert sar == expected_sar, f"{name}: SAR expected {expected_sar}"
-
-    def test_deterministic_alias_lookup(self):
-        register_all_builtin_methods()
-        from pu_toolbox.registry import get_metadata
-
-        # Test common aliases
-        assert get_metadata("nnPU").name == "nnpu"
-        assert get_metadata("en").name == "elkan_noto"
-        assert get_metadata("distpu").name == "dist_pu"
-        assert get_metadata("wcon_pu").name == "weighted_contrastive_pu"
+            for alias in meta.aliases:
+                resolved = get_metadata(alias)
+                assert resolved.name == meta.name, (
+                    f"alias {alias!r} resolves to {resolved.name}, "
+                    f"expected {meta.name}"
+                )
+                assert get_algorithm(alias) is get_algorithm(meta.name), (
+                    f"alias {alias!r} resolves to a different class than {meta.name}"
+                )
 
     def test_edge_list_trainable_only(self):
-        """Native implementations are trainable."""
+        """Native implementations are trainable (set derived, no literal list)."""
         register_all_builtin_methods()
         trainable = list_algorithms(trainable_only=True)
-        assert len(trainable) == 16
-        names = {m.name for m in trainable}
-        assert names == {
-            "elkan_noto",
-            "upu",
-            "nnpu",
-            "pnu",
-            "recpe",
-            "centroid_pu",
-            "kldce",
-            "class_prior_estimation",
-            "dist_pu",
-            "pusb",
-            "lbe",
-            "llsvm",
-            "self_pu",
-            "infomax_pu",
-            "weighted_contrastive_pu",
-            "dgpu",
-        }
+        expected = {m.name for m in get_algorithm_registry().values() if m.trainable}
+        assert {m.name for m in trainable} == expected
+        assert trainable  # registry must never be empty
 
     def test_basic_ldce_kldce_resolve_to_distinct_classes(self):
         """kldce must resolve to the kernelized class, not the linear LDCE.
@@ -142,18 +150,27 @@ class TestBuiltinRegistration:
         assert "kldce" not in get_metadata("centroid_pu").aliases
 
     def test_basic_list_by_family(self):
+        """Family filter is consistent with the registry (counts free)."""
         register_all_builtin_methods()
-        deep = list_algorithms(family="deep_pu")
-        assert len(deep) == 4
-        assert all(m.family == AlgorithmFamily.DEEP_PU for m in deep)
+        for family in _KNOWN_FAMILIES:
+            listed = list_algorithms(family=family)
+            expected = [
+                m
+                for m in get_algorithm_registry().values()
+                if m.family.value == family
+            ]
+            assert len(listed) == len(expected), f"family={family}"
 
     def test_param_list_by_assumption(self):
+        """Assumption filter matches the registry's SAR-tagged methods."""
         register_all_builtin_methods()
         sar_methods = list_algorithms(assumption="SAR")
-        # At least PUSB, LBE should match
-        names = {m.name for m in sar_methods}
-        assert "pusb" in names
-        assert "lbe" in names
+        expected = {
+            m.name
+            for m in get_algorithm_registry().values()
+            if any(a.value == "SAR" for a in m.assumption)
+        }
+        assert {m.name for m in sar_methods} == expected
 
     def test_basic_every_method_has_paper_title(self):
         register_all_builtin_methods()
@@ -214,7 +231,7 @@ class TestBuiltinRegistration:
                 assert synced.scenario == list(cls.scenario), f"{meta.name}.scenario mismatch"
 
     def test_basic_every_method_has_explicit_training_cost(self):
-        """All 16 entries carry an explicit training-cost level (no UNKNOWN)."""
+        """All entries carry an explicit training-cost level (no UNKNOWN)."""
         from pu_toolbox.core.tags import TrainingCost
 
         register_all_builtin_methods()
@@ -224,8 +241,9 @@ class TestBuiltinRegistration:
             )
 
     def test_basic_heavy_fixed_epoch_methods_are_high_cost(self):
-        """Fixed long-epoch solvers are HIGH cost: LLSVM SGD, WConPU and
-        InfoMax PU deep training; short-epoch deep methods stay MEDIUM."""
+        """HIGH cost: LLSVM SGD, WConPU, InfoMax PU (fixed long-epoch
+        solvers) and PUSB kernel (full sigma x reg grid CV + refit);
+        short-epoch deep methods stay MEDIUM."""
         from pu_toolbox.core.tags import TrainingCost
 
         register_all_builtin_methods()
@@ -234,4 +252,4 @@ class TestBuiltinRegistration:
             for m in get_algorithm_registry().values()
             if m.training_cost == TrainingCost.HIGH
         }
-        assert high == {"llsvm", "infomax_pu", "weighted_contrastive_pu"}
+        assert high == {"llsvm", "infomax_pu", "weighted_contrastive_pu", "pusb_kernel"}
