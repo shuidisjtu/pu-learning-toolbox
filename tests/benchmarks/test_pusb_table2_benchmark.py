@@ -78,14 +78,12 @@ def _single_trial_plan():
     )
 
 
-@pytest.mark.unit
 def test_basic_load_config_accepts_matching_strict_policy(tmp_path):
     path = tmp_path / "config.json"
     path.write_text(json.dumps(_config()), encoding="utf-8")
     assert load_config(path)["sampling_policy"] == STRICT_POLICY
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
@@ -103,7 +101,6 @@ def test_param_load_config_rejects_claim_unsafe_combinations(tmp_path, field, va
         load_config(path)
 
 
-@pytest.mark.unit
 def test_edge_strict_policy_excludes_whole_cell_when_one_split_is_undersized():
     y = np.r_[np.ones(4, dtype=int), np.zeros(36, dtype=int)]
     config = _config()
@@ -115,7 +112,6 @@ def test_edge_strict_policy_excludes_whole_cell_when_one_split_is_undersized():
     assert summarize_plan(plan)["excluded_cells"] == 1
 
 
-@pytest.mark.unit
 def test_basic_compatibility_policy_selects_and_labels_undersized_trials():
     y = np.r_[np.ones(4, dtype=int), np.zeros(36, dtype=int)]
     config = _config(COMPATIBILITY_POLICY)
@@ -128,7 +124,6 @@ def test_basic_compatibility_policy_selects_and_labels_undersized_trials():
     assert summary["undersized_selected_trials"] > 0
 
 
-@pytest.mark.unit
 def test_determ_plan_preserves_cross_cell_continuous_seed_order():
     config = _config()
     config["experiment"]["unlabeled_sizes"] = [10, 20]
@@ -137,7 +132,6 @@ def test_determ_plan_preserves_cross_cell_continuous_seed_order():
     assert plan["seed"].tolist() == [10, 11, 12, 13]
 
 
-@pytest.mark.unit
 def test_basic_plan_only_writes_claim_safe_artifacts(tmp_path, monkeypatch):
     plan = _single_trial_plan()
     monkeypatch.setattr(
@@ -158,7 +152,6 @@ def test_basic_plan_only_writes_claim_safe_artifacts(tmp_path, monkeypatch):
     assert manifest["paper_claim"] is False
 
 
-@pytest.mark.unit
 def test_determ_execution_checkpoints_and_resume_skips_completed_trial(tmp_path, monkeypatch):
     plan = _single_trial_plan()
     monkeypatch.setattr(
@@ -205,7 +198,6 @@ def test_determ_execution_checkpoints_and_resume_skips_completed_trial(tmp_path,
     assert json.loads((output / "run_manifest.json").read_text())["status"] == "completed"
 
 
-@pytest.mark.unit
 def test_determ_shards_partition_selected_trials_without_overlap(tmp_path, monkeypatch):
     plan = pd.concat([_single_trial_plan() for _ in range(4)], ignore_index=True)
     plan["seed"] = [10, 11, 12, 13]
@@ -229,7 +221,6 @@ def test_determ_shards_partition_selected_trials_without_overlap(tmp_path, monke
     assert manifest["shard_selected_trials"] == 2
 
 
-@pytest.mark.unit
 def test_edge_resume_rejects_different_shard_scope(tmp_path, monkeypatch):
     plan = _single_trial_plan()
     monkeypatch.setattr(
@@ -258,7 +249,6 @@ def test_edge_resume_rejects_different_shard_scope(tmp_path, monkeypatch):
         )
 
 
-@pytest.mark.unit
 def test_basic_aggregate_shards_requires_exact_plan_keys(tmp_path):
     plan = pd.concat([_single_trial_plan() for _ in range(2)], ignore_index=True)
     plan["seed"] = [10, 11]
@@ -307,7 +297,6 @@ def test_basic_aggregate_shards_requires_exact_plan_keys(tmp_path):
     assert manifest["n_trials"] == manifest["n_expected_trials"] == 2
 
 
-@pytest.mark.unit
 def test_basic_shard_command_adds_resume_only_for_existing_scope(tmp_path):
     arguments = {
         "config": tmp_path / "config.json",
@@ -324,7 +313,6 @@ def test_basic_shard_command_adds_resume_only_for_existing_scope(tmp_path):
     assert command[command.index("--shard-index") + 1] == "2"
 
 
-@pytest.mark.unit
 def test_determ_parallel_runner_retries_only_failed_shards_then_aggregates(tmp_path, monkeypatch):
     calls = []
     aggregated = []
@@ -355,7 +343,6 @@ def test_determ_parallel_runner_retries_only_failed_shards_then_aggregates(tmp_p
     assert aggregated == [3]
 
 
-@pytest.mark.unit
 def test_basic_statistical_report_uses_paired_differences():
     trials = _report_trials()
     summary = build_statistical_summary(trials)
@@ -365,7 +352,6 @@ def test_basic_statistical_report_uses_paired_differences():
     assert summary.loc[0, "paired_accuracy_difference_win_rate"] == 1.0
 
 
-@pytest.mark.unit
 def test_edge_strict_report_rejects_undersized_samples():
     trials = _report_trials()
     trials.loc[0, "actual_unlabeled_size"] = 9
@@ -373,7 +359,6 @@ def test_edge_strict_report_rejects_undersized_samples():
         validate_strict_trials(trials, expected_trials=2, expected_repetitions=2)
 
 
-@pytest.mark.unit
 def test_determ_report_writes_csv_json_and_markdown(tmp_path):
     trials_path = tmp_path / "trials.csv"
     _report_trials().to_csv(trials_path, index=False)

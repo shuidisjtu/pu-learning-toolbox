@@ -17,6 +17,8 @@ from benchmarks.assigned_methods.pusb_official_data import (
     run_trials,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.paper]
+
 
 def _classification_data(seed=4):
     rng = np.random.RandomState(seed)
@@ -66,7 +68,6 @@ def _fake_density_ratio_fitter(x, y, **parameters):
     )
 
 
-@pytest.mark.unit
 def test_basic_official_split_has_locked_group_sizes_and_prior():
     X, y = _classification_data()
     split = construct_official_split(
@@ -88,7 +89,6 @@ def test_basic_official_split_has_locked_group_sizes_and_prior():
     assert np.all((split["selection_probability"] >= 0) & (split["selection_probability"] <= 1))
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
@@ -108,7 +108,6 @@ def test_param_invalid_official_data_config_is_rejected(tmp_path, field, value, 
         load_config(path)
 
 
-@pytest.mark.unit
 def test_edge_official_split_rejects_impossible_holdout():
     X, y = _classification_data()
     with pytest.raises(ValueError, match="holdout_size"):
@@ -122,7 +121,6 @@ def test_edge_official_split_rejects_impossible_holdout():
         )
 
 
-@pytest.mark.unit
 def test_determ_official_data_trial_is_reproducible():
     X, y = _classification_data()
     first = run_trials(_config(), X, y)
@@ -134,7 +132,6 @@ def test_determ_official_data_trial_is_reproducible():
     assert 0.0 <= first.loc[0, "roc_auc"] <= 1.0
 
 
-@pytest.mark.unit
 def test_determ_density_ratio_comparator_is_routed_and_restores_numpy_rng():
     X, y = _classification_data()
     config = _config()
@@ -161,7 +158,6 @@ def test_determ_density_ratio_comparator_is_routed_and_restores_numpy_rng():
     assert 0.0 <= trials.loc[0, "density_ratio_roc_auc"] <= 1.0
 
 
-@pytest.mark.unit
 def test_basic_official_data_benchmark_writes_provenance_artifacts(tmp_path, monkeypatch):
     X, y = _classification_data()
     monkeypatch.setattr(
@@ -181,7 +177,6 @@ def test_basic_official_data_benchmark_writes_provenance_artifacts(tmp_path, mon
     assert manifest["n_trials"] == 1
 
 
-@pytest.mark.unit
 def test_determ_resume_skips_completed_trial_without_duplication(tmp_path, monkeypatch):
     X, y = _classification_data()
     monkeypatch.setattr(
@@ -197,7 +192,6 @@ def test_determ_resume_skips_completed_trial_without_duplication(tmp_path, monke
     assert len(pusb_official_data.pd.read_csv(output / "trials.csv")) == 1
 
 
-@pytest.mark.unit
 def test_edge_resume_rejects_changed_config(tmp_path):
     output = tmp_path / "results"
     output.mkdir()

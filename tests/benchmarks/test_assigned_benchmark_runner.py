@@ -54,7 +54,6 @@ def benchmark_config():
     }
 
 
-@pytest.mark.unit
 def test_basic_load_config_runs(tmp_path, benchmark_config):
     path = tmp_path / "config.json"
     path.write_text(json.dumps(benchmark_config), encoding="utf-8")
@@ -69,7 +68,6 @@ def test_basic_load_config_runs(tmp_path, benchmark_config):
         ("seeds", [], "seeds"),
     ],
 )
-@pytest.mark.unit
 def test_invalid_config_raises_error(tmp_path, benchmark_config, field, value, message):
     benchmark_config[field] = value
     path = tmp_path / "invalid.json"
@@ -78,7 +76,6 @@ def test_invalid_config_raises_error(tmp_path, benchmark_config, field, value, m
         load_config(path)
 
 
-@pytest.mark.unit
 def test_unknown_method_validation_error(tmp_path, benchmark_config):
     benchmark_config["methods"]["unknown"] = {"variant": "bad", "parameters": {}}
     path = tmp_path / "unknown.json"
@@ -87,7 +84,6 @@ def test_unknown_method_validation_error(tmp_path, benchmark_config):
         load_config(path)
 
 
-@pytest.mark.unit
 def test_case_control_output_shapes_and_positive_counts(benchmark_config):
     X_train, y_pu, X_test, y_test = _case_control_data(
         np.random.default_rng(4),
@@ -99,7 +95,6 @@ def test_case_control_output_shapes_and_positive_counts(benchmark_config):
     assert set(np.unique(y_test)) == {0, 1}
 
 
-@pytest.mark.unit
 def test_sar_extreme_seed_reproducibility(benchmark_config):
     first = _sar_data(11, benchmark_config["data"], "linear")
     second = _sar_data(11, benchmark_config["data"], "linear")
@@ -108,7 +103,6 @@ def test_sar_extreme_seed_reproducibility(benchmark_config):
     assert first[1].sum() > 0
 
 
-@pytest.mark.unit
 def test_multiseed_trials_are_deterministic(benchmark_config):
     first = run_trials(benchmark_config)
     second = run_trials(benchmark_config)
@@ -117,7 +111,6 @@ def test_multiseed_trials_are_deterministic(benchmark_config):
     assert len(first) == 4
 
 
-@pytest.mark.unit
 def test_scar_sar_mechanism_expansion_outputs_paired_rows(benchmark_config):
     benchmark_config["seeds"] = [5]
     benchmark_config["methods"] = {
@@ -135,7 +128,6 @@ def test_scar_sar_mechanism_expansion_outputs_paired_rows(benchmark_config):
     assert trials["pairwise_ranking_accuracy"].between(0, 1).all()
 
 
-@pytest.mark.unit
 def test_summary_counts_all_seed_outputs(benchmark_config):
     summary = summarize_trials(run_trials(benchmark_config))
     assert not summary.empty
@@ -143,7 +135,6 @@ def test_summary_counts_all_seed_outputs(benchmark_config):
     assert set(summary["n"]) == {2}
 
 
-@pytest.mark.unit
 def test_benchmark_writes_all_output_artifacts(tmp_path, benchmark_config):
     trials, summary = run_benchmark(benchmark_config, tmp_path)
     assert len(trials) == 4
@@ -157,7 +148,6 @@ def test_benchmark_writes_all_output_artifacts(tmp_path, benchmark_config):
     assert manifest["git_worktree_dirty"] in {True, False, None}
 
 
-@pytest.mark.unit
 def test_dist_pu_optional_backend_basic_fit(benchmark_config):
     pytest.importorskip("torch")
     benchmark_config["seeds"] = [0]
@@ -177,7 +167,6 @@ def test_dist_pu_optional_backend_basic_fit(benchmark_config):
     assert np.isfinite(trials.loc[0, "roc_auc"])
 
 
-@pytest.mark.unit
 def test_official_lock_and_all_config_outputs_are_valid_json():
     config_root = (
         Path(__file__).resolve().parents[2] / "benchmarks" / "assigned_methods" / "configs"

@@ -87,7 +87,6 @@ class _FakeWConPU:
         return orientation * (np.asarray(X)[:, 0] - 0.5)
 
 
-@pytest.mark.unit
 def test_basic_clean_validation_split_is_disjoint_and_supervised():
     dataset = make_pu_split(
         *_loader({}, ".", download=False),
@@ -105,7 +104,6 @@ def test_basic_clean_validation_split_is_disjoint_and_supervised():
     assert dataset.manifest["train_validation_overlap"] == 0
 
 
-@pytest.mark.unit
 def test_determ_grid_selects_refits_persists_and_resumes(tmp_path, monkeypatch):
     config = _config()
     fit_sizes = []
@@ -140,7 +138,6 @@ def test_determ_grid_selects_refits_persists_and_resumes(tmp_path, monkeypatch):
     assert len(fit_sizes) == 5
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize("metric", ["accuracy", "balanced_accuracy", "roc_auc"])
 def test_param_supported_selection_metrics_load(tmp_path, metric):
     config = _config()
@@ -155,7 +152,6 @@ def test_param_supported_selection_metrics_load(tmp_path, metric):
     )
 
 
-@pytest.mark.unit
 def test_edge_selection_requires_clean_validation_and_valid_grid(tmp_path):
     config = _config()
     config["dataset"].pop("clean_validation_fraction")

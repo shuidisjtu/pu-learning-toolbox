@@ -21,6 +21,8 @@ from benchmarks.deep_pu.runner import (
     summarize_trials,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.paper]
+
 
 @pytest.fixture
 def deep_config():
@@ -73,7 +75,6 @@ def deep_config():
     }
 
 
-@pytest.mark.unit
 class TestDeepPUBenchmarkRunner:
     def test_basic_load_config(self, tmp_path, deep_config):
         path = tmp_path / "config.json"

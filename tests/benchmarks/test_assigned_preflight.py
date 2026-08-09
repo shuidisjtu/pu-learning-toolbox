@@ -58,7 +58,6 @@ def _write_demo_config(tmp_path: Path, *, gaps=None):
     return config_dir
 
 
-@pytest.mark.unit
 def test_basic_repository_configs_report_separate_readiness_axes():
     config_dir = (
         Path(__file__).resolve().parents[2]
@@ -76,7 +75,6 @@ def test_basic_repository_configs_report_separate_readiness_axes():
     assert any("Immutable official source" in item for item in cpe["official_execution_blockers"])
 
 
-@pytest.mark.unit
 def test_param_supplied_resources_can_clear_official_but_not_toolbox_blockers(tmp_path):
     config_dir = _write_demo_config(tmp_path, gaps=["clean-room implementation differs"])
     source = tmp_path / "source"
@@ -97,7 +95,6 @@ def test_param_supplied_resources_can_clear_official_but_not_toolbox_blockers(tm
     assert method["toolbox_replication_blockers"] == ["clean-room implementation differs"]
 
 
-@pytest.mark.unit
 def test_edge_invalid_mapping_and_missing_source_file_are_reported(tmp_path):
     with pytest.raises(ValueError, match="METHOD=PATH"):
         _parse_method_paths(["demo"], "--source-root")
@@ -126,7 +123,6 @@ def test_edge_invalid_mapping_and_missing_source_file_are_reported(tmp_path):
         )
 
 
-@pytest.mark.unit
 def test_determ_method_reports_are_stable_for_identical_inputs(tmp_path):
     config_dir = _write_demo_config(tmp_path)
     first = audit_locked_configs(config_dir, capabilities=_capabilities())

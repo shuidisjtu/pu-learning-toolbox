@@ -24,6 +24,8 @@ from benchmarks.deep_pu.preflight_paper import audit_locked_configs
 from benchmarks.deep_pu.runner import _build_estimator
 from pu_toolbox.prior import KernelMeanPriorEstimator
 
+pytestmark = [pytest.mark.unit, pytest.mark.paper]
+
 
 @pytest.fixture
 def official_config():
@@ -72,7 +74,6 @@ def fake_loader(config, root, *, download):
     )
 
 
-@pytest.mark.unit
 class TestOfficialDataBenchmark:
     def test_basic_load_config(self, tmp_path, official_config):
         path = tmp_path / "config.json"
