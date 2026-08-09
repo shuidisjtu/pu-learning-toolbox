@@ -113,26 +113,26 @@
 
 ### P0 — 正确性风险,优先处理
 
-1. **KLDCE 偏置恢复数学复核**(`kldce.py:581-637`):对照论文/官方源码判定 `1−g` vs `−1−g` 哪个正确;修代码或修注释,并补数值断言测试
-2. **check_doc_links 补洞**(`check_doc_links.py:47,53-58,61-65`):.md 链接与 markdown 语法链接纳入 Rule 1;research 目录改为规则检查而非整体豁免;索引完备性扩展到全部子目录
-3. **check_math_rendering 锚定 PROJECT_ROOT**(`check_math_rendering.py:84`),误目录运行必须报错而非假绿
+1. ✅ 已治理(2026-08-09,commit 046af07):KLDCE 偏置恢复复核确认 `−1−g` 正确(互补松弛:free 乘子 → ỹ·f=1),代码四处分支 + docstring + 推导注释统一;新增数值断言测试(`test_edge_gamma_free_bias_uses_neg_one_minus_g`,锁定 b₀=−1.25)。**后续发现**:KLDCE 方法卡 §6.5 同含 `1−g` 错误,已随 Task 14 一并修正(commit 870f437)
+2. ✅ 已治理(2026-08-09,commit 7cb73b3):check_doc_links 三洞补全——PATH_PATTERN 支持 .py+.md、新增 rule-5 markdown 链接存在性检查、索引完备性扩展全树;`_EXCLUDED_DOC_DIRS` 缩小为 {superpowers, figures}。门禁随即捕获审计事件本身(orphan 报错),测试 9 个
+3. ✅ 已治理(2026-08-09,commit 5c3ffb2):check_math_rendering 锚定 PROJECT_ROOT,空扫描拒绝 exit 1;跨目录运行验证不假绿
 
 ### P1 — 真相分裂与治理盲区
 
-4. RBF 核公式单源化到 `utils/basis.py`(5 份 → 1 份调用)
-5. `paper` marker 落地(PUSB Table 2 / deep_pu 官方协议测试挂 marker)或移除二选一
-6. class_prior 校验统一走 `check_scalar_in_range`(9 处内联 → 1 处)
-7. check_test_quality 豁免名单加退出机制(新算法加入时复核旧豁免)
+4. ✅ 已治理(2026-08-09,commit f358630):RBF 单源化到 `utils/basis.py`(kldce/pen_l1/kernel_mean 三处委托;pusb_kernel 保留并注释);KLDCE MATH golden 数值 bit-identical。**后续发现**:kldce.py:375 零中心高斯为第 6 处同公式(输入形态不同,暂未合并,待 triage)
+5. ✅ 已治理(2026-08-09,commit 85db12f):`paper` marker 落地——PUSB Table 2 两文件 + deep_pu_model_selection(纯本地验证),`-m paper` 收集 28 用例(原 0);pyproject 描述同步更新(commit 870f437)
+6. ✅ 已治理(2026-08-09,commit ffdb6c1):class_prior 校验统一走 `check_scalar_in_range`(9 处);LDCE/KLDCE 由闭区间收紧为开区间(无调用方依赖)。**后续发现**:范围外仍有 ~11 处内联校验(metrics/losses/diagnostics/preprocessing 等),待 triage
+7. ✅ 已治理(2026-08-09,commit 82718a4):check_test_quality 新增豁免复核段——每次运行打印豁免清单与理由,覆盖 ≥3/4 分类的文件提示可移出(真实运行:9 个豁免文件 7 个被标记可移出);exit-code 语义不变
 
 ### P2 — 文档与流程
 
-8. ✅ 已治理:decision_log 补齐 5 条决策(08-06 至 08-09,审计当日估 ≥6,蒸馏定稿 5 条),并按先例将 `pu_workflow_design.md` 蒸馏后删除
-9. 修复 CLAUDE.md:29 死链(CLAUDE.md 误写的旧路径 docs/project_structure.md 已迁移为 `docs/dev/project_structure.md`)
-10. 修正 `project_structure.md` §3 测试树(补 tests/unit/scripts、workflow_scripts,删 unit/registry 空目录)
-11. dev-workflow skill 状态速查更新(705 → 738,2026-08-09)
-12. 死代码清理 6 项(PNULoss、check_scalar_in_range/check_positive 启用或移除、PenL1Estimator、upu 假别名、DEFAULT_RANDOM_SEED、set_global_seed 定位)
-13. `sample_weight` 语义统一文档化(支持/文档化忽略/静默忽略 → 显式)
-14. 杂项漂移:nnpu.md §7.1 签名补 `class_prior`/`device`;architecture.md "15"→"17";LDCE.md:410 Connect-4 形状 67557×42 vs manifest 67557×126 交叉说明;DGPU 族归属统一
+8. ✅ 已治理(2026-08-09,commit 9c2283a):decision_log 补齐 5 条决策(08-06 至 08-09,审计当日估 ≥6,蒸馏定稿 5 条),并按先例将 `pu_workflow_design.md` 蒸馏后删除;check_doc_links 随即转绿
+9. ✅ 已治理(本地,gitignored 不提交):CLAUDE.md:29 死链修复(旧路径 → `docs/dev/project_structure.md`)
+10. ✅ 已治理(2026-08-09,commit 021e4b3):`project_structure.md` §3 测试树与实际 1:1 双向对齐(补 unit/scripts、workflow_scripts、benchmarks 8 文件,删空目录 registry,另补 6 处既有漂移)
+11. ✅ 已治理(本地,gitignored 不提交):dev-workflow skill 状态速查更新(705 → 760,2026-08-09)
+12. ✅ 已治理(2026-08-09,commit 13312dc):死代码清理 5 项删除(PNULoss、PenL1Estimator 别名、upu 假别名、DEFAULT_RANDOM_SEED、check_positive),set_global_seed 保留(conftest 真实使用);两处 method card 引用同 commit 修复
+13. ✅ 已治理(2026-08-09,commit 3fc348b):`sample_weight` 语义文档化——DistPU/LBE 补"ignored"声明、SelfPU 补 NotImplementedError 说明(纯文档,无行为变更)
+14. ✅ 已治理(2026-08-09,commit 870f437):nnpu.md §7.1 签名补 `class_prior`/`device`(与 nnpu.py 逐字符一致);architecture.md "15"→"17"+脚注;LDCE.md Connect-4 形状交叉说明(manifest 验证 67557×126);DGPU 族归属按 registry `Fam.DEEP_PU` 权威标注
 
 ## 6. 复跑指南
 
