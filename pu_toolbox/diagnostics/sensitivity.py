@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from pu_toolbox.core.labels import normalize_pu_labels
+from pu_toolbox.core.validation import check_scalar_in_range
 from pu_toolbox.metrics import pu_estimated_precision, pu_zero_one_risk
 from pu_toolbox.utils.serialization import format_from_suffix, format_value
 
@@ -203,7 +204,9 @@ def _metrics_for_prior(
     risk_scores: np.ndarray,
     class_prior: float,
 ) -> tuple[float | None, float | None]:
-    if not 0.0 < class_prior < 1.0:
+    try:
+        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+    except ValueError:
         return None, None
     return (
         pu_estimated_precision(y_pu, y_pred, class_prior),

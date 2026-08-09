@@ -23,6 +23,7 @@ from scipy.special import expit
 
 from pu_toolbox.core.config import POSITIVE_LABEL, UNLABELED_LABEL
 from pu_toolbox.core.random import check_random_state
+from pu_toolbox.core.validation import check_scalar_in_range
 
 SARMechanism = Literal["scar", "linear", "nonlinear"]
 SAR_MECHANISMS: tuple[SARMechanism, ...] = ("scar", "linear", "nonlinear")
@@ -298,8 +299,7 @@ def make_sar_dataset(
         raise ValueError(f"n_features must be >= 1; got {n_features}.")
     if isinstance(class_prior, bool) or not np.isscalar(class_prior):
         raise TypeError("class_prior must be a real scalar.")
-    if not np.isfinite(class_prior) or not 0.0 < float(class_prior) < 1.0:
-        raise ValueError(f"class_prior must be in (0, 1); got {class_prior}.")
+    check_scalar_in_range(float(class_prior), 0.0, 1.0, "class_prior", inclusive=False)
     if isinstance(separation, bool) or not np.isscalar(separation):
         raise TypeError("separation must be a real scalar.")
     if not np.isfinite(separation) or float(separation) < 0:

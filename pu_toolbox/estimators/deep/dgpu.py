@@ -18,7 +18,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 
 
 class DGPUClassifier(BasePUClassifier):
@@ -76,8 +76,7 @@ class DGPUClassifier(BasePUClassifier):
         self.device = device
 
     def _validate_parameters(self, class_prior: float) -> None:
-        if not 0.0 < class_prior < 1.0:
-            raise ValueError("class_prior must be in (0, 1)")
+        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
         if self.generator is None:
             raise ValueError(
                 "generator is required and must implement fit(X, y, warm_start=...) "

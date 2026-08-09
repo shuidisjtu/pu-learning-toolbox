@@ -22,6 +22,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..core.base import BasePULoss
+from ..core.validation import check_scalar_in_range
 from ..utils.activations import sigmoid_stable
 
 # ═════════════════════════════════════════════════════════════════════
@@ -98,8 +99,7 @@ class UPULoss(BasePULoss):
         float
             Scalar risk value.
         """
-        if not (0.0 < class_prior < 1.0):
-            raise ValueError(f"class_prior must be in (0, 1); got {class_prior}.")
+        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
         if len(positive_scores) == 0:
             raise ValueError("positive_scores must not be empty.")
         if len(unlabeled_scores) == 0:

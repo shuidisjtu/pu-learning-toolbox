@@ -12,6 +12,7 @@ from scipy import sparse
 from sklearn.utils.sparsefuncs import mean_variance_axis
 
 from pu_toolbox.core.labels import normalize_pu_labels
+from pu_toolbox.core.validation import check_scalar_in_range
 from pu_toolbox.preprocessing.profiling import pu_data_summary, scar_diagnostic
 from pu_toolbox.utils.serialization import json_safe
 
@@ -153,8 +154,7 @@ def _validate_class_prior(class_prior: float | None) -> float | None:
     if isinstance(class_prior, bool) or not np.isscalar(class_prior):
         raise TypeError("class_prior must be a real scalar or None.")
     value = float(class_prior)
-    if not np.isfinite(value) or not 0.0 < value < 1.0:
-        raise ValueError(f"class_prior must be in (0, 1); got {class_prior!r}.")
+    check_scalar_in_range(value, 0.0, 1.0, "class_prior", inclusive=False)
     return value
 
 
