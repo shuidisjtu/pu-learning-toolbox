@@ -34,6 +34,8 @@ from pu_toolbox.estimators.deep import (
     WeightedContrastivePUClassifier,
 )
 
+from .._common import canonical_hash
+
 SUPPORTED_METHODS = ("infomax_pu", "weighted_contrastive_pu", "dgpu")
 
 
@@ -343,11 +345,6 @@ def summarize_trials(trials: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _canonical_hash(config: dict[str, Any]) -> str:
-    payload = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
-
-
 def _git_value(project_root: Path, command: list[str]) -> str | None:
     try:
         return subprocess.run(
@@ -389,7 +386,7 @@ def run_benchmark(
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "protocol": "clean_room",
         "paper_claim": False,
-        "config_sha256": _canonical_hash(config),
+        "config_sha256": canonical_hash(config),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "git_commit": _git_value(project_root, ["git", "rev-parse", "HEAD"]),
         "git_worktree_dirty": None if dirty is None else bool(dirty),

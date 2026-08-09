@@ -12,6 +12,8 @@ from typing import Any
 
 import pandas as pd
 
+from .._common import canonical_hash
+
 KEY_COLUMNS = ["dataset", "seed", "class_prior", "unlabeled_size"]
 
 
@@ -21,11 +23,6 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def _canonical_hash(document: dict[str, Any]) -> str:
-    payload = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
 
 
 def _key_set(frame: pd.DataFrame) -> set[tuple[str, int, float, int]]:
@@ -105,7 +102,7 @@ def aggregate_shards(
         if manifest.get("paper_claim") is not False:
             raise ValueError(f"shard {shard_index} has unsafe paper_claim metadata")
         resolved_config = json.loads(config_path.read_text(encoding="utf-8"))
-        if _canonical_hash(resolved_config) != manifest.get("config_sha256"):
+        if canonical_hash(resolved_config) != manifest.get("config_sha256"):
             raise ValueError(f"shard {shard_index} resolved config hash mismatch")
         frame = pd.read_csv(trials_path)
         if len(frame) != manifest.get("n_completed_trials"):

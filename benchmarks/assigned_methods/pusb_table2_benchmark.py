@@ -28,6 +28,8 @@ from benchmarks.assigned_methods.pusb_table2_data import (
     load_table2_dataset,
 )
 
+from .._common import canonical_hash
+
 STRICT_POLICY = "strict_complete_cells"
 COMPATIBILITY_POLICY = "released_compatibility"
 
@@ -132,11 +134,6 @@ def summarize_plan(plan: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def _canonical_hash(document: dict[str, Any]) -> str:
-    payload = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
-
-
 def _write_csv_atomic(frame: pd.DataFrame, path: Path) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     frame.to_csv(temporary, index=False)
@@ -194,7 +191,7 @@ def _manifest_payload(
         "sampling_policy": config["sampling_policy"],
         "fidelity_level": config["fidelity_level"],
         "paper_claim": False,
-        "config_sha256": _canonical_hash(config),
+        "config_sha256": canonical_hash(config),
         "plan_summary": summarize_plan(plan),
         "execution_scope": execution_scope,
         "shard_selected_trials": int(plan["selected_for_shard"].sum()),

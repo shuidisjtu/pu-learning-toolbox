@@ -34,6 +34,8 @@ from pu_toolbox.estimators.risk import DistPUClassifier
 from pu_toolbox.preprocessing import make_sar_dataset
 from pu_toolbox.prior import ClassPriorEstimator, ReCPEEstimator
 
+from .._common import canonical_hash
+
 SUPPORTED_METHODS = (
     "class_prior_estimation",
     "recpe",
@@ -64,11 +66,6 @@ def load_config(path: str | Path) -> dict[str, Any]:
     if unknown:
         raise ValueError(f"unsupported benchmark methods: {unknown}")
     return config
-
-
-def _canonical_hash(config: dict[str, Any]) -> str:
-    payload = json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
 
 
 def _case_control_data(
@@ -432,7 +429,7 @@ def run_benchmark(
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "protocol": config["protocol"],
         "paper_claim": False,
-        "config_sha256": _canonical_hash(config),
+        "config_sha256": canonical_hash(config),
         "git_commit": _git_commit(project_root),
         "git_worktree_dirty": _git_worktree_dirty(project_root),
         "runner_sha256": _file_sha256(Path(__file__)),
