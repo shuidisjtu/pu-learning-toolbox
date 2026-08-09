@@ -85,6 +85,3 @@ class ClassPriorEstimator(BasePriorEstimator):
         if not getattr(self, "_is_fitted", False):
             raise NotFittedError("ClassPriorEstimator is not fitted. Call fit() first.")
         return self.class_prior_
-
-
-PenL1Estimator = ClassPriorEstimator
