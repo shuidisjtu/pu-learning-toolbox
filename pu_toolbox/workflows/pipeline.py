@@ -23,7 +23,7 @@ from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.config import POSITIVE_LABEL
 from ..core.exceptions import PULearningError, RegistryError, ValidationError
 from ..core.tags import Backend, TrainingCost
-from ..core.validation import validate_pu_X_y
+from ..core.validation import check_scalar_in_range, validate_pu_X_y
 from ..diagnostics.report import build_diagnostic_report
 from ..metrics.classification import (
     pu_accuracy,
@@ -911,8 +911,7 @@ def _validate_prior_value(value: float, name: str) -> None:
     ``ValueError`` like every other constructor-argument check in the
     pipeline (cv, metrics, architecture).
     """
-    if not 0.0 < value < 1.0:
-        raise ValueError(f"{name} must be in (0, 1); got {value!r}.")
+    check_scalar_in_range(value, 0.0, 1.0, name, inclusive=False)
 
 
 def _resolved_n_splits(splitter: Any, X: Any, y_pu: np.ndarray) -> int:
