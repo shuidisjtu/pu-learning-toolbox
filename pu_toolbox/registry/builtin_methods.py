@@ -1,12 +1,12 @@
-"""Built-in algorithm registry — 16 native paper methods.
+"""Built-in algorithm registry — 17 native paper methods.
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the
 registry browser and documentation generators have complete
 information even before training logic is implemented.
 
-See ``docs/resources_optimized.md`` for the full source inventory and
-``docs/method_selection.md`` §§2–5 for the algorithm family taxonomy.
+See ``docs/dev/resources.md`` for the full source inventory and
+``docs/user/concepts/method_selection.md`` §§2–5 for the algorithm family taxonomy.
 """
 
 from __future__ import annotations
@@ -263,6 +263,28 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="MIT",
         training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000
     ),
+    # ── 10a. PUSB kernel (official-aligned RBF adapter) ─────────────
+    AlgorithmMetadata(
+        name="pusb_kernel",
+        aliases=["kernelized_pusb"],
+        family=Fam.BIAS_AWARE,
+        paper=(
+            "Learning from Positive and Unlabeled Data with a Selection "
+            "Bias (kernelized version, RBF)"
+        ),
+        scenario=[Scn.SELECTION_BIASED],
+        assumption=[Asm.SAR],
+        requires_class_prior=True,  # official RBF scoring needs pi (Method Card §6.2)
+        supports_sparse=False,
+        supports_gpu=False,
+        backend=Backend.NUMPY,  # scipy BFGS + numpy RBF design matrix
+        maturity=Maturity.RESEARCH,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_RELATED,  # clean-room, mirrors KLDCE convention
+        upstream_url="https://github.com/MasaKat0/PUlearning",
+        license="MIT",
+        training_cost=Cost.HIGH,  # full (sigma x reg) grid CV + refit
+    ),
     # ── 11. LBE ────────────────────────────────────────────────────
     AlgorithmMetadata(
         name="lbe",
@@ -365,7 +387,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
 
 
 def register_all_builtin_methods() -> int:
-    """Register all 16 paper methods and bind native implementations.
+    """Register all paper methods and bind native implementations.
 
     Returns the number of methods newly registered.  Idempotent —
     methods already present in the registry are skipped, so calling
@@ -411,6 +433,7 @@ def _bind_native_classes() -> None:
         ("class_prior_estimation", "..prior.pen_l1", "ClassPriorEstimator"),
         ("dist_pu", "..estimators.risk.dist_pu", "DistPUClassifier"),
         ("pusb", "..estimators.bias_aware.pusb", "PUSBClassifier"),
+        ("pusb_kernel", "..estimators.bias_aware.pusb_kernel", "PUSBKernelClassifier"),
         ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),
         ("centroid_pu", "..estimators.risk.ldce", "LDCEClassifier"),
         ("kldce", "..estimators.risk.kldce", "KLDCEClassifier"),

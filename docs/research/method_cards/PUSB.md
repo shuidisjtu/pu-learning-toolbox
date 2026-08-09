@@ -17,6 +17,7 @@
 - [x] 锁定并接入 mushrooms、shuttle、pageblocks、usps、connect-4、spambase，审计采样可行性。
 - [x] 实现严格完整单元/官方兼容两套策略、精确 trial plan、断点续跑和 provenance。
 - [x] 执行严格模式 45 单元/4500 trials，完成精确聚合、配对置信区间和结果报告。
+- [x] 注册 `pusb_kernel` 独立方法（clean-room official-aligned RBF），`--classifier pusb_kernel` 可用；`pusb` 保持不变。
 
 ### 1.2 注意
 

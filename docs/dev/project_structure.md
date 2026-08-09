@@ -98,7 +98,7 @@ pu_toolbox/
     __init__.py
     registry.py                (含别名解析逻辑)
     metadata.py
-    builtin_methods.py         (16 论文方法元数据 + native 绑定)
+    builtin_methods.py         (17 论文方法元数据 + native 绑定)
 
   advisor/
     __init__.py
@@ -122,7 +122,9 @@ pu_toolbox/
 
 ```text
 tests/
-  conftest.py                         # 共享 fixtures + PU 数据工厂函数
+  __init__.py                         # tests 包声明(支持 tests.helpers 导入)
+  conftest.py                         # 共享 pytest fixtures(种子/rng/数据 fixture)
+  helpers.py                          # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
   test_import.py                      # 导入冒烟
   test_labels.py                      # 标签规范化
   test_validation.py                  # 输入校验
