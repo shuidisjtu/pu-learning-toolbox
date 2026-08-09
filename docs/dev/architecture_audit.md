@@ -140,20 +140,20 @@
 
 > 范围:第一批未列入行动项的全部 14 项发现(§3/§4 剩余黄项与两处"后续发现"),按"批次 A 单源化 → 批次 B 工程整洁 → 批次 C 局部性"14 任务实施,全部由既有测试锁定行为。commit 范围 9837cf5..3e629a0,共 17 个提交(2 计划文档 + 14 任务 + 1 修正 bf9fa10)。编号对应本报告 §3/§4 表格行。
 
-1. ✅ 已治理(2026-08-09,commit 3ecdee9):`list_algorithms` docstring 与代码一致——`trainable_only` 说明改为仅排除 `api_only`,移除已不存在的 `EXPERIMENTAL` 措辞(§3 S3 行 2)
-2. ✅ 已治理(2026-08-09,commit aceaeb8):PU 零一风险单源化——`upu._pu_validation_risk` 删除,`pu_validation_risk` 委托 `metrics.pu_zero_one_risk`;`_sigmoid`/`_sigmoid_stable` 逐字双份提取为新 `utils/activations.py::sigmoid_stable`(行为逐位一致)(§4 T1 行 4)
-3. ✅ 已治理(2026-08-09,commit 3e629a0):`fit_evaluate`(275 行)按内聚段拆为私有 helper,`fit_evaluate` 缩短为编排层,行为零变化(§3 S2 行 1)
-4. ✅ 已治理(2026-08-09,commit a9564cc):新增 `tests/unit/losses/test_pnu_loss.py`——五个模块级函数数值锁定 + basic/param/edge/determ 四分类(§3 S2 行 3)
-5. ✅ 已治理(2026-08-09,commit 295b143):`_canonical_hash` 5 份定义(4 个命名 def + pusb_official_data.py 内联 1 处)收敛到新 `benchmarks/_common.py::canonical_hash`,7 处调用点统一(§3 S2 行 4)
-6. ✅ 已治理(2026-08-09,commit a057f75):kldce/ldce 类先验推导与分母检查提取为 `estimators/risk/_class_prior.py::solve_prior_from_positive_fraction`(§3 S2 行 2 / §4 T1 行 3)
-7. ✅ 已治理(2026-08-09,commit e330132):y_true 值域校验内联实现收敛到 `core/validation.py::validate_true_binary_labels`,6 处调用点统一(§4 T1 行 4)
-8. ✅ 已治理(2026-08-09,commit 8d762e2):`.gitignore` benchmark 结果白名单 18 行压缩为 2 行(`!benchmarks/assigned_methods/results/` + `!benchmarks/assigned_methods/results/**`),忽略语义不变(§3 S4 行 2)
-9. ✅ 已治理(2026-08-09,commit 122dd6e):8 个 benchmark 测试文件 marker 单一来源——5 文件删逐函数 `unit`、3 文件补模块级 `pytestmark = [unit, paper]`,paper 覆盖完整(§3 S4 行 4)
-10. ✅ 已治理(2026-08-09,commit 1432eb5):`n_features_out` 别名键删除,`pu_data_summary`/`pnu_data_summary` 仅 `n_features` 单键,v1.0.0 发布前完成避免破坏性变更(§4 T2 行 3)
-11. ✅ 已治理(2026-08-09,commit 7c156b2):check_test_quality 默认严格(`strict=True`,`--lenient` 显式退出),本地与 CI 行为对齐,摸底分类缺口文件补齐(§4 T3 行 4)
-12. ✅ 已治理(2026-08-09,commit 097458a):新增 `.github/workflows/nightly.yml`——slow 套件接入每周定时 CI(周一 03:23 UTC)+ workflow_dispatch(§4 T3 行 6)
-13. ✅ 已治理(2026-08-09,commit 56c7673):RBF 第 6 处(上文 P1-4 后续发现的 kldce.py:375 零中心高斯)提取为 `utils/basis.py::rbf_weights`,6/6 处全数单源(§4 T1 行 1 后续)
-14. ✅ 已治理(2026-08-09,commit b89ae78 + bf9fa10):class_prior 范围校验剩余 ~11 处内联收敛到 `check_scalar_in_range`(metrics/losses/diagnostics/preprocessing/deep 等 10 文件,b89ae78;pipeline `_validate_prior_value` 另以独立提交 bf9fa10 收敛)(§4 T1 行 2 后续)
+1. ✅ 已治理(2026-08-09,commit 8e42b37):`list_algorithms` docstring 与代码一致——`trainable_only` 说明改为仅排除 `api_only`,移除已不存在的 `EXPERIMENTAL` 措辞(§3 S3 行 2)
+2. ✅ 已治理(2026-08-09,commit 93a86e6):PU 零一风险单源化——`upu._pu_validation_risk` 删除,`pu_validation_risk` 委托 `metrics.pu_zero_one_risk`;`_sigmoid`/`_sigmoid_stable` 逐字双份提取为新 `utils/activations.py::sigmoid_stable`(行为逐位一致)(§4 T1 行 4)
+3. ✅ 已治理(2026-08-09,commit 5c4bc27):`fit_evaluate`(275 行)按内聚段拆为私有 helper,`fit_evaluate` 缩短为编排层,行为零变化(§3 S2 行 1)
+4. ✅ 已治理(2026-08-09,commit c9b0d18):新增 `tests/unit/losses/test_pnu_loss.py`——五个模块级函数数值锁定 + basic/param/edge/determ 四分类(§3 S2 行 3)
+5. ✅ 已治理(2026-08-09,commit 40746af):`_canonical_hash` 5 份定义(4 个命名 def + pusb_official_data.py 内联 1 处)收敛到新 `benchmarks/_common.py::canonical_hash`,7 处调用点统一(§3 S2 行 4)
+6. ✅ 已治理(2026-08-09,commit 1b13850):kldce/ldce 类先验推导与分母检查提取为 `estimators/risk/_class_prior.py::solve_prior_from_positive_fraction`(§3 S2 行 2 / §4 T1 行 3)
+7. ✅ 已治理(2026-08-09,commit a6971d1):y_true 值域校验内联实现收敛到 `core/validation.py::validate_true_binary_labels`,6 处调用点统一(§4 T1 行 4)
+8. ✅ 已治理(2026-08-09,commit da0a1b8):`.gitignore` benchmark 结果白名单 18 行压缩为 2 行(`!benchmarks/assigned_methods/results/` + `!benchmarks/assigned_methods/results/**`),忽略语义不变(§3 S4 行 2)
+9. ✅ 已治理(2026-08-09,commit 1db1527):8 个 benchmark 测试文件 marker 单一来源——5 文件删逐函数 `unit`、3 文件补模块级 `pytestmark = [unit, paper]`,paper 覆盖完整(§3 S4 行 4)
+10. ✅ 已治理(2026-08-09,commit 0699cc8):`n_features_out` 别名键删除,`pu_data_summary`/`pnu_data_summary` 仅 `n_features` 单键,v1.0.0 发布前完成避免破坏性变更(§4 T2 行 3)
+11. ✅ 已治理(2026-08-09,commit 791ed73):check_test_quality 默认严格(`strict=True`,`--lenient` 显式退出),本地与 CI 行为对齐,摸底分类缺口文件补齐(§4 T3 行 4)
+12. ✅ 已治理(2026-08-09,commit c2368bb):新增 `.github/workflows/nightly.yml`——slow 套件接入每周定时 CI(周一 03:23 UTC)+ workflow_dispatch(§4 T3 行 6)
+13. ✅ 已治理(2026-08-09,commit c121cb6):RBF 第 6 处(上文 P1-4 后续发现的 kldce.py:375 零中心高斯)提取为 `utils/basis.py::rbf_weights`,6/6 处全数单源(§4 T1 行 1 后续)
+14. ✅ 已治理(2026-08-09,commit 5059bd6 + bf9fa10):class_prior 范围校验剩余 ~11 处内联收敛到 `check_scalar_in_range`(metrics/losses/diagnostics/preprocessing/deep 等 10 文件,b89ae78;pipeline `_validate_prior_value` 另以独立提交 bf9fa10 收敛)(§4 T1 行 2 后续)
 
 **保留说明(2 项,有意不改):**
 
