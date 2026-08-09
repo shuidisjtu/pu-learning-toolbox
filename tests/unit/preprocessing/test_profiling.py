@@ -114,3 +114,20 @@ class TestPnuDataSummary:
         X2[1, 1] = np.inf
         s2 = pnu_data_summary(X2, y_pnu)
         assert s2["has_nan"] and s2["has_inf"]
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Determinism
+# ═════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.unit
+class TestDeterminism:
+    """Determ: summaries are pure functions of their inputs."""
+
+    def test_deterministic_repeated_calls_identical_output(self):
+        X = np.zeros((100, 5))
+        y_pu = np.array([1] * 30 + [0] * 70)
+        y_pnu = np.array([1] * 20 + [-1] * 30 + [0] * 50)
+        assert pu_data_summary(X, y_pu) == pu_data_summary(X, y_pu)
+        assert pnu_data_summary(X, y_pnu) == pnu_data_summary(X, y_pnu)

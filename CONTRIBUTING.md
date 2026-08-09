@@ -87,7 +87,7 @@ git diff --check
 - `paper`：依赖论文数据、源码或配置的复现实验。
 - `slow`：不适合每次本地反馈的测试。
 
-每个普通测试文件最多 15 个测试方法，并覆盖 basic、parameterized、edge、deterministic 中至少三类；具体规则由 `scripts/check_test_quality.py` 执行。
+每个普通测试文件最多 15 个测试方法，并覆盖 basic、param、edge、deterministic 全部四类（缺任一分类即门禁失败，严格模式为本地与 CI 共同默认）；具体规则由 `scripts/check_test_quality.py` 执行。
 
 ## 6. 论文方法和 benchmark
 

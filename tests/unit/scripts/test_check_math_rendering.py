@@ -18,7 +18,7 @@ import check_math_rendering as m  # noqa: E402
 
 
 @pytest.mark.unit
-def test_scans_method_cards_from_any_cwd(tmp_path, monkeypatch):
+def test_basic_scans_method_cards_from_any_cwd(tmp_path, monkeypatch):
     """Run from a temp cwd: still scans the real method_cards dir."""
     monkeypatch.chdir(tmp_path)
     rc = m.main([])

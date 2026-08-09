@@ -63,7 +63,7 @@ def test_basic_loads_hashes_maps_labels_and_applies_official_scaling(tmp_path):
     assert provenance["class_counts"] == {"negative": 2, "positive": 2}
 
 
-def test_edge_hash_mismatch_is_rejected(tmp_path):
+def test_param_hash_mismatch_is_rejected(tmp_path):
     target = tmp_path / "data.svm"
     dump_svmlight_file(np.ones((4, 2)), np.array([1, 2, 1, 2]), str(target))
     manifest = _manifest(tmp_path / "manifest.json", target.name, sha256="0" * 64)

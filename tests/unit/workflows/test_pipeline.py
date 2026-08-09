@@ -176,7 +176,7 @@ class TestPipelineEdgeCases:
 class TestPipelineDeterminism:
     """Same configuration produces identical results."""
 
-    def test_repeated_runs_match(self, rng):
+    def test_deterministic_repeated_runs_match(self, rng):
         X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
         first = PUPipeline(classifier="upu").fit_evaluate(X, y_pu, class_prior=0.4)
         second = PUPipeline(classifier="upu").fit_evaluate(X, y_pu, class_prior=0.4)

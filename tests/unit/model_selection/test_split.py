@@ -51,7 +51,7 @@ class TestPUStratifiedKFold:
             assert abs(fold_ratio - overall_ratio) < 0.05
 
     @pytest.mark.unit
-    def test_too_few_positives_raises(self):
+    def test_edge_too_few_positives_raises(self):
         X = np.zeros((10, 2))
         y = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
         with pytest.raises(ValueError, match="positive samples"):
