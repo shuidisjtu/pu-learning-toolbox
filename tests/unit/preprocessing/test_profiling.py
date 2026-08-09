@@ -31,7 +31,7 @@ class TestPuDataSummary:
         y_pu = np.array([1] * 30 + [0] * 70)
         s = pu_data_summary(X, y_pu)
         assert s["n_samples"] == 100
-        assert s["n_features"] == s["n_features_out"] == 5
+        assert s["n_features"] == 5
         assert s["n_positives"] == 30
         assert s["n_unlabeled"] == 70
         assert s["pu_ratio"] == pytest.approx(70 / 30)

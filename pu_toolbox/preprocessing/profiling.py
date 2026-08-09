@@ -81,8 +81,6 @@ def pu_data_summary(
         - ``"is_sparse"`` (bool): whether *X* is a scipy sparse matrix.
         - ``"has_nan"`` (bool): whether *X* contains any NaN values.
         - ``"has_inf"`` (bool): whether *X* contains any infinite values.
-        - ``"n_features_out"`` (int): ``X.shape[1]`` (alias for
-          ``n_features``; both keys are present for discoverability).
 
     Raises
     ------
@@ -110,7 +108,6 @@ def pu_data_summary(
     return {
         "n_samples": n_samples,
         "n_features": n_features,
-        "n_features_out": n_features,
         "n_positives": n_pos,
         "n_unlabeled": n_unl,
         "pu_ratio": pu_ratio,
@@ -177,7 +174,6 @@ def pnu_data_summary(
     return {
         "n_samples": n_samples,
         "n_features": n_features,
-        "n_features_out": n_features,
         "n_positives": n_pos,
         "n_unlabeled": n_unl,
         "n_negatives": n_neg,
