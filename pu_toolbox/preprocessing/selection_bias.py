@@ -23,7 +23,7 @@ from scipy.special import expit
 
 from pu_toolbox.core.config import POSITIVE_LABEL, UNLABELED_LABEL
 from pu_toolbox.core.random import check_random_state
-from pu_toolbox.core.validation import check_scalar_in_range
+from pu_toolbox.core.validation import check_scalar_in_range, validate_true_binary_labels
 
 SARMechanism = Literal["scar", "linear", "nonlinear"]
 SAR_MECHANISMS: tuple[SARMechanism, ...] = ("scar", "linear", "nonlinear")
@@ -52,9 +52,7 @@ def _validate_x_y(X: np.ndarray, y_true: np.ndarray) -> tuple[np.ndarray, np.nda
         raise ValueError(
             f"X and y_true have inconsistent lengths: {len(X_array)} != {len(y_array)}."
         )
-    unique = set(np.unique(y_array))
-    if not unique <= {0, 1}:
-        raise ValueError(f"y_true must contain only {{0, 1}} values; got {sorted(unique)}.")
+    validate_true_binary_labels(y_array, estimator_name="y_true")
     return X_array, y_array.astype(int, copy=False)
 
 

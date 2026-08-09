@@ -21,6 +21,7 @@ from pu_toolbox.core.config import (
     UNLABELED_LABEL,
 )
 from pu_toolbox.core.random import check_random_state
+from pu_toolbox.core.validation import validate_true_binary_labels
 
 __all__ = [
     "make_case_control_labels",
@@ -54,10 +55,8 @@ def _validate_binary_labels(y_true: np.ndarray, *, require_both: bool = True) ->
     y = np.asarray(y_true, dtype=float)
     if y.ndim != 1:
         raise ValueError(f"y_true must be 1-D; got ndim={y.ndim}.")
-    unique = set(np.unique(y))
-    if not unique <= {0.0, 1.0}:
-        raise ValueError(f"y_true must contain only {{0, 1}} values; got {sorted(unique)}.")
-    if require_both and len(unique) < 2:
+    validate_true_binary_labels(y, estimator_name="y_true")
+    if require_both and len(np.unique(y)) < 2:
         raise ValueError("y_true must contain both 0 (negative) and 1 (positive) samples.")
 
 

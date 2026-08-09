@@ -18,6 +18,7 @@ from pu_toolbox.core.config import (
     UNLABELED_LABEL,
 )
 from pu_toolbox.core.labels import normalize_pnu_labels, normalize_pu_labels
+from pu_toolbox.core.validation import validate_true_binary_labels
 
 __all__ = [
     "pnu_data_summary",
@@ -276,9 +277,7 @@ def scar_diagnostic(
         if true.ndim != 1:
             raise ValueError(f"y_true must be 1-D; got ndim={true.ndim}.")
         _validate_same_length(X, true, label="y_true")
-        unique = set(np.unique(true))
-        if not unique <= {0, 1}:
-            raise ValueError(f"y_true must contain only {{0, 1}} values; got {sorted(unique)}.")
+        validate_true_binary_labels(true, estimator_name="y_true")
         if np.any((y == POSITIVE_LABEL) & (true != POSITIVE_LABEL)):
             raise ValueError("Every labeled positive in y_pu must be positive in y_true.")
         positive_mask = true == POSITIVE_LABEL

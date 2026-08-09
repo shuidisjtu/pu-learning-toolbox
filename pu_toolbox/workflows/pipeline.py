@@ -23,7 +23,11 @@ from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.config import POSITIVE_LABEL
 from ..core.exceptions import PULearningError, RegistryError, ValidationError
 from ..core.tags import Backend, TrainingCost
-from ..core.validation import check_scalar_in_range, validate_pu_X_y
+from ..core.validation import (
+    check_scalar_in_range,
+    validate_pu_X_y,
+    validate_true_binary_labels,
+)
 from ..diagnostics.report import build_diagnostic_report
 from ..metrics.classification import (
     pu_accuracy,
@@ -897,9 +901,7 @@ def _validate_y_true(y_true: np.ndarray, n_samples: int) -> np.ndarray:
         raise ValidationError(
             f"y_true must be 1-D with length {n_samples}; got shape {y_true.shape}."
         )
-    unique = set(np.unique(y_true))
-    if not unique <= {0, 1}:
-        raise ValidationError(f"y_true must contain only {{0, 1}}; got {sorted(unique)}.")
+    validate_true_binary_labels(y_true, estimator_name="y_true")
     return y_true.astype(int, copy=False)
 
 

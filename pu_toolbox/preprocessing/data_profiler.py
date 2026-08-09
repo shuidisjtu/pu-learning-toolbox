@@ -12,7 +12,7 @@ from scipy import sparse
 from sklearn.utils.sparsefuncs import mean_variance_axis
 
 from pu_toolbox.core.labels import normalize_pu_labels
-from pu_toolbox.core.validation import check_scalar_in_range
+from pu_toolbox.core.validation import check_scalar_in_range, validate_true_binary_labels
 from pu_toolbox.preprocessing.profiling import pu_data_summary, scar_diagnostic
 from pu_toolbox.utils.serialization import json_safe
 
@@ -169,9 +169,7 @@ def _validate_audit_labels(
         raise ValueError(f"y_true must be 1-D; got ndim={true.ndim}.")
     if len(true) != len(y_pu):
         raise ValueError(f"X has {len(y_pu)} samples but y_true has {len(true)}.")
-    unique = set(np.unique(true))
-    if not unique <= {0, 1}:
-        raise ValueError(f"y_true must contain only {{0, 1}} values; got {sorted(unique)}.")
+    validate_true_binary_labels(true, estimator_name="y_true")
     if np.any((y_pu == 1) & (true != 1)):
         raise ValueError("Every labeled positive in y_pu must be positive in y_true.")
     return true.astype(int, copy=False)
