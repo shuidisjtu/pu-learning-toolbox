@@ -19,7 +19,7 @@ if __package__ in {None, ""}:
 from pu_toolbox.cli.run import _load_features, _load_label_column
 from pu_toolbox.core.exceptions import PULearningError
 from pu_toolbox.diagnostics.sensitivity import analyze_pu_sensitivity
-from pu_toolbox.registry import get_algorithm
+from pu_toolbox.registry import get_algorithm, get_metadata
 from pu_toolbox.registry.builtin_methods import register_all_builtin_methods
 
 _DEFAULT_CLASS_PRIORS = "0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9"
@@ -56,6 +56,13 @@ def main(argv: list[str] | None = None) -> int:
         X = _load_features(Path(args.data))
         y_pu = _load_label_column(Path(args.labels), "labels")
         register_all_builtin_methods()
+        meta = get_metadata(args.classifier)
+        if meta.requires_class_prior:
+            raise ValueError(
+                f"classifier {args.classifier!r} requires a class prior at fit "
+                "time, but sensitivity analysis fits without one; choose a "
+                "prior-free classifier (e.g. elkan_noto, nnpu, pusb)"
+            )
         clf = get_algorithm(args.classifier)()
         clf.fit(X, y_pu)
         y_pred = clf.predict(X)
