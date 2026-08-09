@@ -190,7 +190,7 @@ m\leftarrow\hat m+\hat S^{-1}w\sqrt{\frac{b}{w^\top\hat S^{-1}w}}.
 | Source status | `official_related` |
 | Official code | `https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar` |
 | License | `needs_review` |
-| Registry status | `implementation_status=API_ONLY`, `backend=NUMPY`, `source_status=OFFICIAL_RELATED` |
+| Registry status | `implementation_status=NATIVE`, `backend=NUMPY`, `source_status=OFFICIAL_RELATED` |
 | Integration basis | clean-room（方法卡先行），官方源码仅作算法参考 |
 
 ### 6.1 源码内容（已审计 2026-07-21）

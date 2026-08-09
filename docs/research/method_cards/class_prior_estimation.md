@@ -386,6 +386,6 @@ clean-room 合成实验；penL1 prior MAE 为 `0.0380 ± 0.0192`。该数字不�
 | Source status | `official_related`；作者页面源码与本文 penL1 公式需分开核对 |
 | Implementation status | `NATIVE`，当前为 penL1 clean-room |
 | 已实现 | Gaussian basis、penL1 闭式系数、先验网格搜索、统一 prior API |
-| 未实现 | 论文逐 `theta` CV 的精确 protocol、MNIST/PCA 执行层、CI/bootstrap、paper-like benchmark |
+| 未实现 | 论文逐 `theta` CV 的精确 protocol、MNIST/PCA 执行层、CI/bootstrap、paper-like benchmark（工具箱侧机制已就绪——preflight 审计、执行层、数据/源码锁定与 blocker 诊断；全量运行依赖外部官方数据与历史环境，官方数据不内置工具箱，由执行方提供，非工具箱缺口） |
 | 主要风险 | basis 尺度、先验搜索网格、P/U 抽样偏差和有限样本误差都会显著影响 `pi_hat` |
 | 解释边界 | `estimate()` 是 mixture proportion/class prior estimate，不是分类器概率，也不是置信区间 |
