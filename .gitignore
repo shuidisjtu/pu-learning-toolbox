@@ -58,23 +58,7 @@ uv.lock
 demo_data/
 results*/
 !benchmarks/assigned_methods/results/
-!benchmarks/assigned_methods/results/official_preflight/
-!benchmarks/assigned_methods/results/official_preflight/current_node.json
-!benchmarks/assigned_methods/results/pusb_official_data_smoke/
-!benchmarks/assigned_methods/results/pusb_official_data_smoke/*.csv
-!benchmarks/assigned_methods/results/pusb_official_data_smoke/*.json
-!benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed/
-!benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed/*.csv
-!benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed/*.json
-!benchmarks/assigned_methods/results/pusb_table2_data_audit/
-!benchmarks/assigned_methods/results/pusb_table2_data_audit/current_node.json
-!benchmarks/assigned_methods/results/pusb_table2_strict_plan/
-!benchmarks/assigned_methods/results/pusb_table2_strict_plan/*.csv
-!benchmarks/assigned_methods/results/pusb_table2_strict_plan/*.json
-!benchmarks/assigned_methods/results/pusb_table2_strict_full/
-!benchmarks/assigned_methods/results/pusb_table2_strict_full/*.csv
-!benchmarks/assigned_methods/results/pusb_table2_strict_full/*.json
-!benchmarks/assigned_methods/results/pusb_table2_strict_full/*.md
+!benchmarks/assigned_methods/results/**
 
 # Local one-off plans (never for distribution)
 .superpowers/
