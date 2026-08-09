@@ -69,9 +69,7 @@ class TestBuiltinRegistration:
             key = meta.source_status.value
             by_source[key] = by_source.get(key, 0) + 1
 
-        doc = (PROJECT_ROOT / "docs" / "dev" / "resources.md").read_text(
-            encoding="utf-8"
-        )
+        doc = (PROJECT_ROOT / "docs" / "dev" / "resources.md").read_text(encoding="utf-8")
         expected_single: dict[str, int] = {}
         combined_total: int | None = None
         for line in doc.splitlines():
@@ -116,8 +114,7 @@ class TestBuiltinRegistration:
             for alias in meta.aliases:
                 resolved = get_metadata(alias)
                 assert resolved.name == meta.name, (
-                    f"alias {alias!r} resolves to {resolved.name}, "
-                    f"expected {meta.name}"
+                    f"alias {alias!r} resolves to {resolved.name}, expected {meta.name}"
                 )
                 assert get_algorithm(alias) is get_algorithm(meta.name), (
                     f"alias {alias!r} resolves to a different class than {meta.name}"
@@ -154,11 +151,7 @@ class TestBuiltinRegistration:
         register_all_builtin_methods()
         for family in _KNOWN_FAMILIES:
             listed = list_algorithms(family=family)
-            expected = [
-                m
-                for m in get_algorithm_registry().values()
-                if m.family.value == family
-            ]
+            expected = [m for m in get_algorithm_registry().values() if m.family.value == family]
             assert len(listed) == len(expected), f"family={family}"
 
     def test_param_list_by_assumption(self):

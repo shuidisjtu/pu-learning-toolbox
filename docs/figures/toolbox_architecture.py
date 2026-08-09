@@ -69,7 +69,12 @@ LAYERS = [
         "modules": [
             {"name": "advisor/", "sub": "Method recommendation & scoring", "impl": True, "w": 3.0},
             {"name": "workflows/", "sub": "PUPipeline orchestration", "impl": True, "w": 3.2},
-            {"name": "diagnostics/", "sub": "Data/model/sensitivity reports", "impl": True, "w": 3.0},
+            {
+                "name": "diagnostics/",
+                "sub": "Data/model/sensitivity reports",
+                "impl": True,
+                "w": 3.0,
+            },
             {"name": "cli/", "sub": "pu-toolbox CLI (run/list)", "impl": True, "w": 2.8},
         ],
     },
