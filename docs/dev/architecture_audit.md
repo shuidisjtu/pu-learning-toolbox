@@ -21,6 +21,8 @@
 - **做得好的**:17 个算法全部 NATIVE(0 个 api_only 假实现);registry 有防漂移测试锁死;PUSB benchmark 有 manifest sha256 锁定(真相分裂的最小化范例);文档-实现抽查 4 篇方法卡全部一致;双语 README 逐行同步(但源于近期人工治理而非结构性保障)。
 - **要警惕的**:① 提取公共逻辑的机制健全(校验助手存在)但新代码不遵循——"机制存在"与"机制被执行"之间出现裂缝;② check_doc_links 声称覆盖实则排除最多引用密集的目录,漏检已实际发生(孤儿文档入库无人发现);③ 一处与自身推导注释矛盾的数学实现未被测试锁定。
 
+> **第二批治理后更新(2026-08-09,分支 fix/architecture-decay-batch2)**:§3/§4 全部黄/红项已闭环(14/14,2 项有意保留,见 §5 第二批治理);"机制存在但未被执行"的裂缝由 check_test_quality 严格默认与 nightly CI 转为结构性约束。判定维持黄——整体健康,残余风险集中在代谢率(新代码是否持续复用单源助手)与保留项。
+
 ## 3. 四信号逐条
 
 ### S1 删除风险 — 黄
@@ -134,11 +136,38 @@
 13. ✅ 已治理(2026-08-09,commit 3fc348b):`sample_weight` 语义文档化——DistPU/LBE 补"ignored"声明、SelfPU 补 NotImplementedError 说明(纯文档,无行为变更)
 14. ✅ 已治理(2026-08-09,commit 870f437):nnpu.md §7.1 签名补 `class_prior`/`device`(与 nnpu.py 逐字符一致);architecture.md "15"→"17"+脚注;LDCE.md Connect-4 形状交叉说明(manifest 验证 67557×126);DGPU 族归属按 registry `Fam.DEEP_PU` 权威标注
 
+### 第二批治理(2026-08-09,分支 fix/architecture-decay-batch2,14/14 闭环 + 2 项保留)
+
+> 范围:第一批未列入行动项的全部 14 项发现(§3/§4 剩余黄项与两处"后续发现"),按"批次 A 单源化 → 批次 B 工程整洁 → 批次 C 局部性"14 任务实施,全部由既有测试锁定行为。commit 范围 9837cf5..3e629a0,共 17 个提交(2 计划文档 + 14 任务 + 1 修正 bf9fa10)。编号对应本报告 §3/§4 表格行。
+
+1. ✅ 已治理(2026-08-09,commit 3ecdee9):`list_algorithms` docstring 与代码一致——`trainable_only` 说明改为仅排除 `api_only`,移除已不存在的 `EXPERIMENTAL` 措辞(§3 S3 行 2)
+2. ✅ 已治理(2026-08-09,commit aceaeb8):PU 零一风险单源化——`upu._pu_validation_risk` 删除,`pu_validation_risk` 委托 `metrics.pu_zero_one_risk`;`_sigmoid`/`_sigmoid_stable` 逐字双份提取为新 `utils/activations.py::sigmoid_stable`(行为逐位一致)(§4 T1 行 4)
+3. ✅ 已治理(2026-08-09,commit 3e629a0):`fit_evaluate`(275 行)按内聚段拆为私有 helper,`fit_evaluate` 缩短为编排层,行为零变化(§3 S2 行 1)
+4. ✅ 已治理(2026-08-09,commit a9564cc):新增 `tests/unit/losses/test_pnu_loss.py`——五个模块级函数数值锁定 + basic/param/edge/determ 四分类(§3 S2 行 3)
+5. ✅ 已治理(2026-08-09,commit 295b143):`_canonical_hash` 双份收敛到新 `benchmarks/_common.py::canonical_hash`,4 处调用点统一(§3 S2 行 4)
+6. ✅ 已治理(2026-08-09,commit a057f75):kldce/ldce 类先验推导与分母检查提取为 `estimators/risk/_class_prior.py::solve_prior_from_positive_fraction`(§3 S2 行 2 / §4 T1 行 3)
+7. ✅ 已治理(2026-08-09,commit e330132):y_true 值域校验内联实现收敛到 `core/validation.py::validate_true_binary_labels`,6 处调用点统一(§4 T1 行 4)
+8. ✅ 已治理(2026-08-09,commit 8d762e2):`.gitignore` benchmark 结果白名单 18 行压缩为 2 行(`!benchmarks/assigned_methods/results/` + `!benchmarks/assigned_methods/results/**`),忽略语义不变(§3 S4 行 2)
+9. ✅ 已治理(2026-08-09,commit 122dd6e):8 个 benchmark 测试文件 marker 单一来源——5 文件删逐函数 `unit`、3 文件补模块级 `pytestmark = [unit, paper]`,paper 覆盖完整(§3 S4 行 4)
+10. ✅ 已治理(2026-08-09,commit 1432eb5):`n_features_out` 别名键删除,`pu_data_summary`/`pnu_data_summary` 仅 `n_features` 单键,v1.0.0 发布前完成避免破坏性变更(§4 T2 行 3)
+11. ✅ 已治理(2026-08-09,commit 7c156b2):check_test_quality 默认严格(`strict=True`,`--lenient` 显式退出),本地与 CI 行为对齐,摸底分类缺口文件补齐(§4 T3 行 4)
+12. ✅ 已治理(2026-08-09,commit 097458a):新增 `.github/workflows/nightly.yml`——slow 套件接入每周定时 CI(周一 03:23 UTC)+ workflow_dispatch(§4 T3 行 6)
+13. ✅ 已治理(2026-08-09,commit 56c7673):RBF 第 6 处(上文 P1-4 后续发现的 kldce.py:375 零中心高斯)提取为 `utils/basis.py::rbf_weights`,6/6 处全数单源(§4 T1 行 1 后续)
+14. ✅ 已治理(2026-08-09,commit b89ae78 + bf9fa10):class_prior 范围校验剩余 ~11 处内联收敛到 `check_scalar_in_range`(metrics/losses/diagnostics/preprocessing/deep 等 10 文件,b89ae78;pipeline `_validate_prior_value` 另以独立提交 bf9fa10 收敛)(§4 T1 行 2 后续)
+
+**保留说明(2 项,有意不改):**
+
+- **pusb_kernel 存在性校验**:复核确认 `_validate_parameters` 已用 `check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)`,与单源化目标一致,保持不动(§4 T1 行 2 的确认项)
+- **losses/pnu.py 不内联校验**:纯函数公式模块(五个模块级函数),输入校验由 PNUClassifier 边界负责,模块 docstring 声明契约;本批只补测试(test_pnu_loss.py),不改校验位置
+
+**提交清单**:`git log --oneline main..HEAD` —— 9837cf5(计划)、60cde85(任务重编号)、3ecdee9..3e629a0(14 任务 + bf9fa10 修正)。全部 17 个提交在分支 fix/architecture-decay-batch2。
+
 ## 6. 复跑指南
 
 - **触发时机**:每发布一个 minor 版本后;或每引入 >5 个新文件时
 - **复跑方法**:按本报告 §1 的四代理契约重新派发(代码/工程/文档/治理),重点复核本报告所有红项是否已治理、是否有新信号出现
-- **代谢率检查**:治理腐朽的根本解是让"提取的机制被新代码遵循"——P1-6/7 落地后,检查新代码是否用共享助手而非再次内联
+- **代谢率检查**:治理腐朽的根本解是让"提取的机制被新代码遵循"——P1-6/7 与第二批单源化落地后,检查新代码是否用共享助手而非再次内联
+- **第二批单源助手清单(2026-08-09)**:`canonical_hash`(benchmarks/_common.py)、`sigmoid_stable`(utils/activations.py)、`rbf_weights`(utils/basis.py)、`validate_true_binary_labels`(core/validation.py)、`solve_prior_from_positive_fraction`(estimators/risk/_class_prior.py)、`check_scalar_in_range`(core/validation.py);复跑时核对新代码是否复用、check_test_quality 是否保持严格默认、slow 套件是否随 nightly 自动执行
 
 ## 7. 复核记录(主上下文抽样)
 
