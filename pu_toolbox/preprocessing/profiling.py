@@ -18,6 +18,7 @@ from pu_toolbox.core.config import (
     UNLABELED_LABEL,
 )
 from pu_toolbox.core.labels import normalize_pnu_labels, normalize_pu_labels
+from pu_toolbox.core.validation import validate_true_binary_labels
 
 __all__ = [
     "pnu_data_summary",
@@ -80,8 +81,6 @@ def pu_data_summary(
         - ``"is_sparse"`` (bool): whether *X* is a scipy sparse matrix.
         - ``"has_nan"`` (bool): whether *X* contains any NaN values.
         - ``"has_inf"`` (bool): whether *X* contains any infinite values.
-        - ``"n_features_out"`` (int): ``X.shape[1]`` (alias for
-          ``n_features``; both keys are present for discoverability).
 
     Raises
     ------
@@ -109,7 +108,6 @@ def pu_data_summary(
     return {
         "n_samples": n_samples,
         "n_features": n_features,
-        "n_features_out": n_features,
         "n_positives": n_pos,
         "n_unlabeled": n_unl,
         "pu_ratio": pu_ratio,
@@ -176,7 +174,6 @@ def pnu_data_summary(
     return {
         "n_samples": n_samples,
         "n_features": n_features,
-        "n_features_out": n_features,
         "n_positives": n_pos,
         "n_unlabeled": n_unl,
         "n_negatives": n_neg,
@@ -276,9 +273,7 @@ def scar_diagnostic(
         if true.ndim != 1:
             raise ValueError(f"y_true must be 1-D; got ndim={true.ndim}.")
         _validate_same_length(X, true, label="y_true")
-        unique = set(np.unique(true))
-        if not unique <= {0, 1}:
-            raise ValueError(f"y_true must contain only {{0, 1}} values; got {sorted(unique)}.")
+        validate_true_binary_labels(true, estimator_name="y_true")
         if np.any((y == POSITIVE_LABEL) & (true != POSITIVE_LABEL)):
             raise ValueError("Every labeled positive in y_pu must be positive in y_true.")
         positive_mask = true == POSITIVE_LABEL

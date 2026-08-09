@@ -175,3 +175,24 @@ class TestLabelHandling:
         mask_P = y_pu == 1
         pred_P = clf.predict(X[mask_P])
         assert np.mean(pred_P == 1) > 0.5
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Determinism
+# ═════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.unit
+class TestDeterminism:
+    """Determ: same seed and data fit an identical model."""
+
+    def test_deterministic_same_seed_identical_results(self, rng):
+        rng2 = np.random.RandomState(31)
+        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=30, n_neg=60)
+        first = LDCEClassifier(flip_probability=0.3, max_iter=10, random_state=7)
+        second = LDCEClassifier(flip_probability=0.3, max_iter=10, random_state=7)
+        first.fit(X, y_pu)
+        second.fit(X, y_pu)
+        np.testing.assert_allclose(first.coef_, second.coef_)
+        assert first.class_prior_ == second.class_prior_
+        np.testing.assert_array_equal(first.predict(X), second.predict(X))

@@ -6,7 +6,8 @@ Rules (aligned with ``docs/project_structure.md`` §3):
 2. **Markers**: every test class or method must carry a registered pytest
    marker (``unit``, ``math``, ``property``, ``contract``, ``slow``,
    ``paper``).
-3. **Coverage**: each file should touch all four categories:
+3. **Coverage**: each file must touch all four categories (strict by
+   default; ``--lenient`` allows at most one missing):
    - *basic* — smoke / functional correctness
    - *param*  — parameter validation / error paths
    - *edge*   — boundary conditions / empty inputs / extremes
@@ -17,9 +18,11 @@ Rules (aligned with ``docs/project_structure.md`` §3):
 
 Usage::
 
-    uv run python scripts/check_test_quality.py [--max 15] [--strict]
+    uv run python scripts/check_test_quality.py [--max 15] [--lenient]
 
-Exit 0 when all checks pass, 1 otherwise.
+Exit 0 when all checks pass, 1 otherwise.  Strict (all four coverage
+categories required) is the default for both local runs and CI, so the
+two can never drift apart; ``--lenient`` is the explicit opt-out.
 """
 
 from __future__ import annotations
@@ -48,6 +51,10 @@ REGISTERED_MARKERS: set[str] = {
 
 # Keywords used to classify test intent.  A test name match counts
 # toward that category.  One test can satisfy multiple categories.
+# The repo naming convention prefixes tests with ``test_basic_`` /
+# ``test_param_`` / ``test_edge_`` / ``test_determ_``, so the ``param``
+# and ``determ`` families also carry their literal prefixes as keywords
+# (``basic`` / ``edge`` already did).
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "basic": [
         "basic",
@@ -67,6 +74,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
         "generate",
     ],
     "param": [
+        "param",
         "invalid",
         "raises",
         "error",
@@ -83,6 +91,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
         "all_",
     ],
     "determ": [
+        "determ",
         "determin",
         "seed",
         "reproduc",
@@ -122,7 +131,7 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 class TestMethod(NamedTuple):
     name: str
     lineno: int
-    has_marker: bool  # decorated directly or inherits from class
+    has_marker: bool  # decorated directly, or inherits from class/module
 
 
 class ModuleReport(NamedTuple):
@@ -138,18 +147,44 @@ class ModuleReport(NamedTuple):
 # ═════════════════════════════════════════════════════════════════════
 
 
+def _is_registered_marker(node: ast.expr) -> bool:
+    """Return True if *node* is ``pytest.mark.<registered>``."""
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Attribute):
+        # pytest.mark.xxx
+        outer = node.value
+        return (
+            isinstance(outer.value, ast.Name)
+            and outer.value.id == "pytest"
+            and outer.attr == "mark"
+            and node.attr in REGISTERED_MARKERS
+        )
+    return False
+
+
 def _has_marker(decorator_list: list[ast.expr]) -> bool:
-    """Return True if any decorator is ``@pytest.mark.<name>``."""
-    for dec in decorator_list:
-        if isinstance(dec, ast.Attribute) and isinstance(dec.value, ast.Attribute):
-            # @pytest.mark.xxx
-            outer = dec.value
-            if (
-                isinstance(outer.value, ast.Name)
-                and outer.value.id == "pytest"
-                and outer.attr == "mark"
-            ):
-                return dec.attr in REGISTERED_MARKERS
+    """Return True if any decorator is ``@pytest.mark.<registered>``."""
+    return any(_is_registered_marker(dec) for dec in decorator_list)
+
+
+def _module_pytestmark(tree: ast.Module) -> bool:
+    """Return True if the module assigns a registered marker to ``pytestmark``.
+
+    Module-level ``pytestmark = pytest.mark.unit`` (or a list/tuple of
+    them, e.g. ``pytestmark = [pytest.mark.unit, pytest.mark.paper]``)
+    applies the marker to every test in the module, so those tests count
+    as marked even though they carry no per-function decorator.
+    """
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in node.targets):
+            continue
+        if _is_registered_marker(node.value):
+            return True
+        if isinstance(node.value, (ast.List, ast.Tuple)) and any(
+            _is_registered_marker(el) for el in node.value.elts
+        ):
+            return True
     return False
 
 
@@ -168,11 +203,18 @@ def analyse_file(filepath: Path) -> ModuleReport:
     tree = ast.parse(filepath.read_text(encoding="utf-8"))
 
     methods: list[TestMethod] = []
+    module_marked = _module_pytestmark(tree)
 
     # Module-level test functions.
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
-            methods.append(TestMethod(node.name, node.lineno, _has_marker(node.decorator_list)))
+            methods.append(
+                TestMethod(
+                    node.name,
+                    node.lineno,
+                    _has_marker(node.decorator_list) or module_marked,
+                )
+            )
 
     # Methods inside classes: inherit the *owning* class marker.
     # (ast.walk order cannot be relied on, so the marker must be
@@ -186,7 +228,7 @@ def analyse_file(filepath: Path) -> ModuleReport:
                         TestMethod(
                             child.name,
                             child.lineno,
-                            _has_marker(child.decorator_list) or class_marker,
+                            _has_marker(child.decorator_list) or class_marker or module_marked,
                         )
                     )
 
@@ -257,7 +299,7 @@ def review_exemptions(reports: list[ModuleReport], max_tests: int = 15) -> None:
             )
 
 
-def main(max_tests: int = 15, strict: bool = False) -> int:
+def main(max_tests: int = 15, strict: bool = True) -> int:
     """Run all checks and return exit code (0 = clean, 1 = issues found)."""
     # Ensure UTF-8 output on Windows terminals.
     sys.stdout.reconfigure(encoding="utf-8")
@@ -318,7 +360,10 @@ def main(max_tests: int = 15, strict: bool = False) -> int:
             rel = _relative(r.path)
             print(f"  {rel}: missing {sorted(r.categories_missing)}")
     if coverage_ok:
-        print("  ✓ all files cover required categories (or missing ≤1 in relaxed mode)")
+        if strict:
+            print("  ✓ all files cover all four required categories")
+        else:
+            print("  ✓ all files cover required categories (missing ≤1 allowed in lenient mode)")
 
     # ── 4. Exemption review (informational, never affects exit code) ─
     review_exemptions(reports, max_tests)
@@ -346,9 +391,11 @@ if __name__ == "__main__":
         help="Maximum test methods per module file (default: 15)",
     )
     parser.add_argument(
-        "--strict",
+        "--lenient",
         action="store_true",
-        help="Require ALL four coverage categories in every file",
+        help=(
+            "Allow a file to miss at most one coverage category (default: ALL four are required)"
+        ),
     )
     args = parser.parse_args()
-    sys.exit(main(max_tests=args.max, strict=args.strict))
+    sys.exit(main(max_tests=args.max, strict=not args.lenient))

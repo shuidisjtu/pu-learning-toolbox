@@ -105,3 +105,58 @@ def test_deterministic_list_printout_with_reasons(tmp_path, capsys):
     assert "CONTRACT_COVERED_FILES" in out
     assert "test_kldce_math.py — MATH formula verification" in out
     assert "test_pen_l1.py — algorithm covered by contract tests" in out
+
+
+@pytest.mark.unit
+def test_basic_module_level_pytestmark_detected(tmp_path):
+    """Module-level ``pytestmark = pytest.mark.unit`` marks every test."""
+    source = "import pytest\npytestmark = pytest.mark.unit\n\ndef test_smoke():\n    pass\n"
+    fp = tmp_path / "test_module_marked.py"
+    fp.write_text(source, encoding="utf-8")
+    report = analyse_file(fp)
+    assert report.has_marker_violations == []
+
+
+@pytest.mark.unit
+def test_param_pytestmark_list_form_detected(tmp_path):
+    """List-form module-level pytestmark marks every test too."""
+    source = (
+        "import pytest\n"
+        "pytestmark = [pytest.mark.unit, pytest.mark.paper]\n"
+        "\n"
+        "def test_smoke():\n"
+        "    pass\n"
+    )
+    fp = tmp_path / "test_module_list_marked.py"
+    fp.write_text(source, encoding="utf-8")
+    report = analyse_file(fp)
+    assert report.has_marker_violations == []
+
+
+@pytest.mark.unit
+def test_edge_unregistered_module_marker_still_flags(tmp_path):
+    """A module-level marker outside REGISTERED_MARKERS still flags."""
+    source = (
+        "import pytest\npytestmark = pytest.mark.not_registered\n\ndef test_smoke():\n    pass\n"
+    )
+    fp = tmp_path / "test_module_unregistered.py"
+    fp.write_text(source, encoding="utf-8")
+    report = analyse_file(fp)
+    assert [m.name for m in report.has_marker_violations] == ["test_smoke"]
+
+
+@pytest.mark.unit
+def test_edge_class_methods_inherit_module_marker(tmp_path):
+    """Class methods inherit the module-level pytestmark as well."""
+    source = (
+        "import pytest\n"
+        "pytestmark = pytest.mark.unit\n"
+        "\n"
+        "class TestFoo:\n"
+        "    def test_smoke(self):\n"
+        "        pass\n"
+    )
+    fp = tmp_path / "test_module_class_marked.py"
+    fp.write_text(source, encoding="utf-8")
+    report = analyse_file(fp)
+    assert report.has_marker_violations == []

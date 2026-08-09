@@ -23,8 +23,12 @@ from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.config import POSITIVE_LABEL
 from ..core.exceptions import PULearningError, RegistryError, ValidationError
 from ..core.tags import Backend, TrainingCost
-from ..core.validation import validate_pu_X_y
-from ..diagnostics.report import build_diagnostic_report
+from ..core.validation import (
+    check_scalar_in_range,
+    validate_pu_X_y,
+    validate_true_binary_labels,
+)
+from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
 from ..metrics.classification import (
     pu_accuracy,
     pu_auc_roc,
@@ -35,7 +39,7 @@ from ..metrics.classification import (
     pu_zero_one_risk,
 )
 from ..model_selection.split import PUStratifiedKFold
-from ..preprocessing.data_profiler import ProfileIssue, profile_pu_data
+from ..preprocessing.data_profiler import ProfileIssue, PUDataProfile, profile_pu_data
 from ..registry import RecommendationResult, recommend_from_profile
 from ..registry.registry import get_algorithm, get_metadata
 from .report import CVMetric, PipelineReport, PriorInfo
@@ -351,38 +355,7 @@ class PUPipeline:
             Explicit class prior ``(0, 1)``.  Takes precedence over the
             classifier's constructor value and over estimation.
         """
-        X, y_pu = validate_pu_X_y(
-            X,
-            y_pu,
-            allow_nd=True,
-            estimator_name="PUPipeline",
-        )
-        if X.ndim not in (2, 4):
-            raise ValidationError(f"X must be 2-D (table) or 4-D (NCHW images); got ndim={X.ndim}.")
-        if X.ndim == 4 and not (self._is_deep and self.architecture == "cnn"):
-            raise PipelineError(
-                "4-D image inputs require an explicit deep classifier "
-                "(wconpu or infomax_pu) with architecture='cnn'."
-            )
-        if X.ndim == 2 and self.architecture == "cnn":
-            raise PipelineError(
-                "architecture='cnn' requires 4-D NCHW image inputs; "
-                "got 2-D data. Use architecture='mlp' for tables."
-            )
-        # 4-D 图像：prior 估计与数据画像在展平视图上进行（标签层面的量）
-        analysis_X = X.reshape(X.shape[0], -1) if X.ndim == 4 else X
-        n_samples = X.shape[0]
-        if y_true is not None:
-            y_true = _validate_y_true(y_true, n_samples)
-
-        splitter = self._resolved_splitter(X, y_pu)
-        n_splits = _resolved_n_splits(splitter, X, y_pu)
-        n_pos = int((y_pu == POSITIVE_LABEL).sum())
-        if n_pos < n_splits:
-            raise ValidationError(
-                f"n_labeled_positives ({n_pos}) < n_splits ({n_splits}). "
-                "Reduce the number of CV folds or provide more labeled positives."
-            )
+        X, y_pu, y_true, analysis_X, splitter, n_splits = self._prepare_inputs(X, y_pu, y_true)
 
         # -- Resolve classifier ------------------------------------------
         auto_mode = self._classifier_name == "auto"
@@ -490,13 +463,17 @@ class PUPipeline:
         fold_reasons: dict[str, list[str]] = {name: [] for name in self.metrics}
         for train_idx, test_idx in splitter.split(X, y_pu):
             clf = self._fresh_estimator(classifier_cls, classifier_instance, prior)
-            clf.fit(X[train_idx], y_pu[train_idx], class_prior=prior)
-            y_pu_fold = y_pu[test_idx]
-            pred = clf.predict(X[test_idx])
-            scores = _extract_scores(clf, X[test_idx])
-            y_true_fold = y_true[test_idx] if y_true is not None else None
+            outcomes = self._fit_and_evaluate_one(
+                clf,
+                X[train_idx],
+                y_pu[train_idx],
+                X[test_idx],
+                y_pu[test_idx],
+                y_true[test_idx] if y_true is not None else None,
+                prior,
+            )
             for name in self.metrics:
-                value, reason = _compute_metric(name, y_pu_fold, pred, scores, y_true_fold, prior)
+                value, reason = outcomes[name]
                 per_fold[name].append(value)
                 if reason is not None:
                     fold_reasons[name].append(reason)
@@ -543,65 +520,20 @@ class PUPipeline:
             )
 
         # -- Assemble report ----------------------------------------------
-        # NOTE: the profile itself flags a class prior below the labeled
-        # positive fraction (inconsistent_class_prior) when supplied.
-        issues: list[ProfileIssue] = list(profile.issues)
-        if prior_info.degraded:
-            issues.append(
-                ProfileIssue(
-                    "prior_estimation_failed",
-                    "warning",
-                    prior_info.degraded,
-                    "Auto mode degraded to a no-prior run: methods that "
-                    "require a class prior were excluded from the candidates.",
-                )
-            )
-        if recommendation is not None:
-            issues.extend(
-                ProfileIssue(
-                    "recommender_warning",
-                    "warning",
-                    message,
-                    "Review the method choice or pass an explicit classifier=.",
-                )
-                for message in recommendation.global_warnings
-            )
-        issues.extend(
-            ProfileIssue(
-                f"metric_{name}_unavailable",
-                "info",
-                metric.reason,
-                "Supply the missing input or remove the metric from metrics=.",
-            )
-            for name, metric in cv_metrics.items()
-            if not metric.available and metric.reason
-        )
-
-        cv_provenance = _cv_provenance(splitter, n_splits)
-        prior_audit_flagged = prior_info.source == "estimated" and any(
-            issue.code == "inconsistent_class_prior" for issue in profile.issues
-        )
-        provenance = {
-            "classifier": classifier_name,
-            "classifier_mode": (
-                "auto" if auto_mode else "name" if classifier_cls is not None else "instance"
-            ),
-            "prior_source": prior_info.source,
-            "prior_audit_flagged": prior_audit_flagged,
-            "random_state": self.random_state,
-            "y_true_supplied": y_true is not None,
-            "skipped_candidates": skipped_candidates,
-        }
-        return PipelineReport(
+        return self._build_report(
             profile=profile,
+            prior_info=prior_info,
             recommendation=recommendation,
-            prior=prior_info,
             cv_metrics=cv_metrics,
-            cv_provenance=cv_provenance,
+            classifier_name=classifier_name,
+            auto_mode=auto_mode,
+            classifier_cls=classifier_cls,
+            skipped_candidates=skipped_candidates,
+            y_true=y_true,
+            splitter=splitter,
+            n_splits=n_splits,
             final_model=final_model,
             diagnostic=diagnostic,
-            issues=tuple(issues),
-            provenance=provenance,
         )
 
     # ── Internal helpers ────────────────────────────────────────────────
@@ -750,6 +682,145 @@ class PUPipeline:
             return PUStratifiedKFold(n_splits=5, shuffle=True, random_state=self.random_state)
         return self.cv
 
+    def _prepare_inputs(
+        self,
+        X: Any,
+        y_pu: np.ndarray,
+        y_true: np.ndarray | None,
+    ) -> tuple[Any, np.ndarray, np.ndarray | None, Any, Any, int]:
+        """Validate inputs and resolve the CV splitter for the workflow."""
+        X, y_pu = validate_pu_X_y(
+            X,
+            y_pu,
+            allow_nd=True,
+            estimator_name="PUPipeline",
+        )
+        if X.ndim not in (2, 4):
+            raise ValidationError(f"X must be 2-D (table) or 4-D (NCHW images); got ndim={X.ndim}.")
+        if X.ndim == 4 and not (self._is_deep and self.architecture == "cnn"):
+            raise PipelineError(
+                "4-D image inputs require an explicit deep classifier "
+                "(wconpu or infomax_pu) with architecture='cnn'."
+            )
+        if X.ndim == 2 and self.architecture == "cnn":
+            raise PipelineError(
+                "architecture='cnn' requires 4-D NCHW image inputs; "
+                "got 2-D data. Use architecture='mlp' for tables."
+            )
+        # 4-D 图像：prior 估计与数据画像在展平视图上进行（标签层面的量）
+        analysis_X = X.reshape(X.shape[0], -1) if X.ndim == 4 else X
+        n_samples = X.shape[0]
+        if y_true is not None:
+            y_true = _validate_y_true(y_true, n_samples)
+
+        splitter = self._resolved_splitter(X, y_pu)
+        n_splits = _resolved_n_splits(splitter, X, y_pu)
+        n_pos = int((y_pu == POSITIVE_LABEL).sum())
+        if n_pos < n_splits:
+            raise ValidationError(
+                f"n_labeled_positives ({n_pos}) < n_splits ({n_splits}). "
+                "Reduce the number of CV folds or provide more labeled positives."
+            )
+        return X, y_pu, y_true, analysis_X, splitter, n_splits
+
+    def _fit_and_evaluate_one(
+        self,
+        estimator: BasePUClassifier,
+        X_train: Any,
+        y_pu_train: np.ndarray,
+        X_test: Any,
+        y_pu_test: np.ndarray,
+        y_true_test: np.ndarray | None,
+        prior: float | None,
+    ) -> dict[str, tuple[float | None, str | None]]:
+        """Fit one fold's estimator and compute every metric on its test fold."""
+        estimator.fit(X_train, y_pu_train, class_prior=prior)
+        pred = estimator.predict(X_test)
+        scores = _extract_scores(estimator, X_test)
+        return {
+            name: _compute_metric(name, y_pu_test, pred, scores, y_true_test, prior)
+            for name in self.metrics
+        }
+
+    def _build_report(
+        self,
+        *,
+        profile: PUDataProfile,
+        prior_info: PriorInfo,
+        recommendation: RecommendationResult | None,
+        cv_metrics: dict[str, CVMetric],
+        classifier_name: str,
+        auto_mode: bool,
+        classifier_cls: type[BasePUClassifier] | None,
+        skipped_candidates: list[dict[str, str]],
+        y_true: np.ndarray | None,
+        splitter: Any,
+        n_splits: int,
+        final_model: BasePUClassifier,
+        diagnostic: PUDiagnosticReport,
+    ) -> PipelineReport:
+        """Assemble the final :class:`PipelineReport` (issues + provenance)."""
+        # NOTE: the profile itself flags a class prior below the labeled
+        # positive fraction (inconsistent_class_prior) when supplied.
+        issues: list[ProfileIssue] = list(profile.issues)
+        if prior_info.degraded:
+            issues.append(
+                ProfileIssue(
+                    "prior_estimation_failed",
+                    "warning",
+                    prior_info.degraded,
+                    "Auto mode degraded to a no-prior run: methods that "
+                    "require a class prior were excluded from the candidates.",
+                )
+            )
+        if recommendation is not None:
+            issues.extend(
+                ProfileIssue(
+                    "recommender_warning",
+                    "warning",
+                    message,
+                    "Review the method choice or pass an explicit classifier=.",
+                )
+                for message in recommendation.global_warnings
+            )
+        issues.extend(
+            ProfileIssue(
+                f"metric_{name}_unavailable",
+                "info",
+                metric.reason,
+                "Supply the missing input or remove the metric from metrics=.",
+            )
+            for name, metric in cv_metrics.items()
+            if not metric.available and metric.reason
+        )
+
+        cv_provenance = _cv_provenance(splitter, n_splits)
+        prior_audit_flagged = prior_info.source == "estimated" and any(
+            issue.code == "inconsistent_class_prior" for issue in profile.issues
+        )
+        provenance = {
+            "classifier": classifier_name,
+            "classifier_mode": (
+                "auto" if auto_mode else "name" if classifier_cls is not None else "instance"
+            ),
+            "prior_source": prior_info.source,
+            "prior_audit_flagged": prior_audit_flagged,
+            "random_state": self.random_state,
+            "y_true_supplied": y_true is not None,
+            "skipped_candidates": skipped_candidates,
+        }
+        return PipelineReport(
+            profile=profile,
+            recommendation=recommendation,
+            prior=prior_info,
+            cv_metrics=cv_metrics,
+            cv_provenance=cv_provenance,
+            final_model=final_model,
+            diagnostic=diagnostic,
+            issues=tuple(issues),
+            provenance=provenance,
+        )
+
 
 # ── Module-level helpers ────────────────────────────────────────────────
 
@@ -897,9 +968,7 @@ def _validate_y_true(y_true: np.ndarray, n_samples: int) -> np.ndarray:
         raise ValidationError(
             f"y_true must be 1-D with length {n_samples}; got shape {y_true.shape}."
         )
-    unique = set(np.unique(y_true))
-    if not unique <= {0, 1}:
-        raise ValidationError(f"y_true must contain only {{0, 1}}; got {sorted(unique)}.")
+    validate_true_binary_labels(y_true, estimator_name="y_true")
     return y_true.astype(int, copy=False)
 
 
@@ -911,8 +980,7 @@ def _validate_prior_value(value: float, name: str) -> None:
     ``ValueError`` like every other constructor-argument check in the
     pipeline (cv, metrics, architecture).
     """
-    if not 0.0 < value < 1.0:
-        raise ValueError(f"{name} must be in (0, 1); got {value!r}.")
+    check_scalar_in_range(value, 0.0, 1.0, name, inclusive=False)
 
 
 def _resolved_n_splits(splitter: Any, X: Any, y_pu: np.ndarray) -> int:

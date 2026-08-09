@@ -266,7 +266,9 @@ def list_algorithms(
     Parameters
     ----------
     trainable_only : bool
-        If True, exclude ``api_only`` and ``experimental`` entries.
+        If True, exclude ``api_only`` entries (methods without a native
+        implementation). Experimental-maturity entries are NOT filtered
+        here; use ``Maturity`` if needed.
     family : str or None
         Filter by :attr:`AlgorithmMetadata.family` value.
     assumption : str or None

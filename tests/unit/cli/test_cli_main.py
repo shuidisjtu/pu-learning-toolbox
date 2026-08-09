@@ -68,3 +68,16 @@ def test_param_invalid_cv_value_exits_two():
             ]
         )
     assert exc.value.code == 2
+
+
+@pytest.mark.unit
+def test_deterministic_help_output_stable(capsys):
+    """Same argv produces byte-identical stdout and exit code."""
+    with pytest.raises(SystemExit) as first_exit:
+        main(["--help"])
+    first_out = capsys.readouterr().out
+    with pytest.raises(SystemExit) as second_exit:
+        main(["--help"])
+    second_out = capsys.readouterr().out
+    assert first_exit.value.code == second_exit.value.code == 0
+    assert first_out == second_out

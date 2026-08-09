@@ -155,3 +155,41 @@ class TestRunDeepInput:
             ],
         )
         assert code == 1
+
+    def test_deterministic_same_argv_same_pipeline_config(self, tmp_path, monkeypatch):
+        """Identical argv resolves an identical pipeline configuration."""
+        from pu_toolbox.cli import run as cli_run
+
+        data_path, labels_path = _write_image(tmp_path)
+        captured: list = []
+
+        class FakePipe:
+            def __init__(self, **kwargs):
+                captured.append(kwargs)
+
+            def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None):
+                assert X.ndim == 4 and X.shape[0] == 16
+                return type("R", (), {"save": lambda *a: None, "summary": lambda *a: ""})()
+
+        monkeypatch.setattr(cli_run, "PUPipeline", FakePipe)
+        argv = [
+            "run",
+            "--data",
+            str(data_path),
+            "--labels",
+            str(labels_path),
+            "--out-dir",
+            str(tmp_path / "out"),
+            "--architecture",
+            "cnn",
+            "--backbone",
+            "resnet18",
+            "--device",
+            "cpu",
+            "--classifier",
+            "wconpu",
+        ]
+        assert _run_cli(argv) == 0
+        assert _run_cli(argv) == 0
+        assert len(captured) == 2
+        assert captured[0] == captured[1]

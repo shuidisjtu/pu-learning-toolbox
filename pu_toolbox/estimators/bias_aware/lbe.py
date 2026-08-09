@@ -25,7 +25,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 
 
 class LBEClassifier(BasePUClassifier):
@@ -76,8 +76,7 @@ class LBEClassifier(BasePUClassifier):
             raise ValueError("n_em_iter must be >= 1 and C must be positive")
         s = (y_pu == 1).astype(float)
         p0 = float(class_prior) if class_prior is not None else max(0.05, min(0.95, s.mean() * 2.0))
-        if not 0.0 < p0 < 1.0:
-            raise ValueError("class_prior must be in (0, 1)")
+        check_scalar_in_range(p0, 0.0, 1.0, "class_prior", inclusive=False)
         self.classifier_ = make_pipeline(
             StandardScaler(), LogisticRegression(C=self.C, max_iter=self.max_iter, random_state=0)
         )

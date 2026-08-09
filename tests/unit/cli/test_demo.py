@@ -37,7 +37,7 @@ def test_param_too_few_labeled_positives_reports_error(tmp_path, capsys):
 
 
 @pytest.mark.unit
-def test_param_n_below_minimum_reports_error(tmp_path, capsys):
+def test_edge_n_below_minimum_reports_error(tmp_path, capsys):
     """--n < 3 fails with a clear error instead of writing unusable CSVs."""
     with pytest.raises(SystemExit) as exc:
         main(["make-demo-data", "--out-dir", str(tmp_path / "d"), "--n", "1"])

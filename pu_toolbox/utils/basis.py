@@ -59,6 +59,18 @@ def build_rbf_basis(
     return np.exp(-dist2 / (2.0 * kernel_width**2))
 
 
+def rbf_weights(X, kernel_width: float) -> np.ndarray:
+    """Zero-centered Gaussian RBF weights, one scalar per row of ``X``.
+
+    Equivalent to ``build_rbf_basis(X, zeros((1, d)), kernel_width)[:, 0]``
+    but returned as a flat ``(n,)`` vector; single-source counterpart used
+    by estimators that need per-sample weights (e.g. KLDCE).
+    """
+    X = np.asarray(X, dtype=float)
+    centers = np.zeros((1, X.shape[1]), dtype=float)
+    return build_rbf_basis(X, centers, kernel_width)[:, 0]
+
+
 def subsample_centers(
     X_pool: np.ndarray,
     n_centers: int,

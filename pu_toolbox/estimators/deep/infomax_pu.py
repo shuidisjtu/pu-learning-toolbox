@@ -21,7 +21,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...prior.pen_l1 import ClassPriorEstimator
 
 
@@ -435,8 +435,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
             )
             self.prior_estimator_ = estimator.fit(representation, y_pu)
             resolved_prior = float(self.prior_estimator_.estimate())
-        if not 0.0 < resolved_prior < 1.0:
-            raise ValueError("class_prior must be in (0, 1)")
+        check_scalar_in_range(resolved_prior, 0.0, 1.0, "class_prior", inclusive=False)
 
         # With an external encoder the classifier consumes its flattened
         # feature vector (dimension known only after fitting the encoder).

@@ -29,16 +29,12 @@ from __future__ import annotations
 import numpy as np
 
 from ..core.base import BasePULoss
+from ..core.validation import check_scalar_in_range
+from ..utils.activations import sigmoid_stable
 
 # ═════════════════════════════════════════════════════════════════════
 # Numerical helpers
 # ═════════════════════════════════════════════════════════════════════
-
-
-def _sigmoid_stable(z: np.ndarray) -> np.ndarray:
-    """Stable sigmoid: 1 / (1 + exp(−z))."""
-    z_clipped = np.clip(z, -500.0, 500.0)
-    return 1.0 / (1.0 + np.exp(-z_clipped))
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -137,17 +133,16 @@ class NonNegativePULoss(BasePULoss):
         dict with keys:
             positive_risk, negative_risk, upu_risk, nnpu_risk
         """
-        if not (0.0 < class_prior < 1.0):
-            raise ValueError(f"class_prior must be in (0, 1); got {class_prior}.")
+        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
         if len(positive_scores) == 0:
             raise ValueError("positive_scores must not be empty.")
         if len(unlabeled_scores) == 0:
             raise ValueError("unlabeled_scores must not be empty.")
 
         # Component risks (Eqs. 4.1–4.3)
-        R_p_plus = float(np.mean(_sigmoid_stable(-positive_scores)))
-        R_p_minus = float(np.mean(_sigmoid_stable(positive_scores)))
-        R_u_minus = float(np.mean(_sigmoid_stable(unlabeled_scores)))
+        R_p_plus = float(np.mean(sigmoid_stable(-positive_scores)))
+        R_p_minus = float(np.mean(sigmoid_stable(positive_scores)))
+        R_u_minus = float(np.mean(sigmoid_stable(unlabeled_scores)))
 
         pi = class_prior
         r = R_u_minus - pi * R_p_minus  # negative-risk term

@@ -49,7 +49,6 @@ def _manifest(path, target, *, sha256, samples=4, features=2, status="locked"):
     return path
 
 
-@pytest.mark.unit
 def test_basic_loads_hashes_maps_labels_and_applies_official_scaling(tmp_path):
     target = tmp_path / "data.svm"
     X = np.array([[1.0, 2.0], [2.0, 4.0], [3.0, 1.0], [4.0, 3.0]])
@@ -64,8 +63,7 @@ def test_basic_loads_hashes_maps_labels_and_applies_official_scaling(tmp_path):
     assert provenance["class_counts"] == {"negative": 2, "positive": 2}
 
 
-@pytest.mark.unit
-def test_edge_hash_mismatch_is_rejected(tmp_path):
+def test_param_hash_mismatch_is_rejected(tmp_path):
     target = tmp_path / "data.svm"
     dump_svmlight_file(np.ones((4, 2)), np.array([1, 2, 1, 2]), str(target))
     manifest = _manifest(tmp_path / "manifest.json", target.name, sha256="0" * 64)
@@ -74,7 +72,6 @@ def test_edge_hash_mismatch_is_rejected(tmp_path):
         load_table2_dataset("mushrooms", tmp_path, manifest_path=manifest)
 
 
-@pytest.mark.unit
 def test_edge_unlocked_manifest_is_rejected(tmp_path):
     manifest = _manifest(
         tmp_path / "manifest.json", "missing", sha256="0" * 64, status="pending_download"
@@ -83,7 +80,6 @@ def test_edge_unlocked_manifest_is_rejected(tmp_path):
         load_manifest(manifest)
 
 
-@pytest.mark.unit
 def test_determ_sampling_schedule_uses_cross_cell_seed_sequence():
     y = np.tile([0, 1], 2500)
     first = audit_sampling_schedule(
@@ -110,7 +106,6 @@ def test_determ_sampling_schedule_uses_cross_cell_seed_sequence():
     assert all(row["strictly_feasible_repetitions"] == 3 for row in first)
 
 
-@pytest.mark.unit
 def test_edge_sampling_audit_reports_official_silent_truncation():
     y = np.r_[np.ones(450, dtype=int), np.zeros(3550, dtype=int)]
     rows = audit_sampling_schedule(

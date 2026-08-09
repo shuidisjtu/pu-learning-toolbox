@@ -64,14 +64,14 @@ class TestPUZeroOneRisk:
         assert risk == pytest.approx(0.5, abs=1e-10)
 
     @pytest.mark.unit
-    def test_matches_upu_private_helper(self, rng):
-        from pu_toolbox.estimators.risk.upu import _pu_validation_risk
-
+    def test_matches_hand_computed_formula(self, rng):
+        # R = 2π·mean(s_P ≤ 0) + mean(s_U > 0) − π
         n = 200
         y_pu = np.array([1] * 60 + [0] * 140)
         scores = rng.randn(n)
         pi = 0.3
-        expected = _pu_validation_risk(scores[:60], scores[60:], pi)
+        scores_p, scores_u = scores[:60], scores[60:]
+        expected = 2.0 * pi * float(np.mean(scores_p <= 0.0)) + float(np.mean(scores_u > 0.0)) - pi
         actual = pu_zero_one_risk(y_pu, scores, class_prior=pi)
         assert actual == pytest.approx(expected, abs=1e-12)
 
@@ -100,21 +100,12 @@ class TestPUZeroOneRisk:
 
 class TestSupervisedMetrics:
     @pytest.mark.unit
-    def test_perfect_accuracy(self):
+    def test_perfect_predictions(self):
         y_true = np.array([1, 1, 0, 0])
         y_pred = np.array([1, 1, 0, 0])
-        assert pu_accuracy(y_true, y_pred) == 1.0
-
-    @pytest.mark.unit
-    def test_perfect_f1(self):
-        y_true = np.array([1, 1, 0, 0])
-        y_pred = np.array([1, 1, 0, 0])
-        assert pu_f1(y_true, y_pred) == 1.0
-
-    @pytest.mark.unit
-    def test_perfect_auc(self):
-        y_true = np.array([1, 1, 0, 0])
         scores = np.array([0.9, 0.8, 0.1, 0.2])
+        assert pu_accuracy(y_true, y_pred) == 1.0
+        assert pu_f1(y_true, y_pred) == 1.0
         assert pu_auc_roc(y_true, scores) == 1.0
 
     @pytest.mark.unit
@@ -163,3 +154,35 @@ class TestPUObservableMetrics:
         y_pu = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0])
         y_pred = np.array([1, 1, 1, 0, 0, 1, 1, 0, 0, 0])
         assert pu_negative_rate(y_pu, y_pred) == pytest.approx(5.0 / 7.0)
+
+
+# ── determinism ────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+class TestDeterminism:
+    """Determ: metrics are pure functions of their inputs."""
+
+    def test_deterministic_repeated_calls_identical_output(self, rng):
+        """The same inputs give bit-identical values on repeat calls."""
+        y_pu = np.array([1] * 30 + [0] * 70)
+        y_true = np.array([1] * 50 + [0] * 50)
+        scores = rng.rand(100)
+        y_pred = np.where(scores > 0.5, 1, 0)
+        first = (
+            pu_recall(y_pu, y_pred),
+            pu_estimated_precision(y_pu, y_pred, class_prior=0.3),
+            pu_negative_rate(y_pu, y_pred),
+            pu_accuracy(y_true, y_pred),
+            pu_f1(y_true, y_pred),
+            pu_auc_roc(y_true, scores),
+        )
+        second = (
+            pu_recall(y_pu, y_pred),
+            pu_estimated_precision(y_pu, y_pred, class_prior=0.3),
+            pu_negative_rate(y_pu, y_pred),
+            pu_accuracy(y_true, y_pred),
+            pu_f1(y_true, y_pred),
+            pu_auc_roc(y_true, scores),
+        )
+        assert first == second

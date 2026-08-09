@@ -22,7 +22,11 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import check_scalar_in_range, validate_pu_X_y
+from ...core.validation import (
+    check_scalar_in_range,
+    validate_pu_X_y,
+    validate_true_binary_labels,
+)
 
 __all__ = [
     "SelfPUClassifier",
@@ -358,9 +362,10 @@ class SelfPUClassifier(BasePUClassifier):
         unique = set(np.unique(y_val))
         if unique == {-1, 1}:
             y_val = (y_val == 1).astype(np.float32)
-        elif unique == {0, 1}:
-            y_val = y_val.astype(np.float32)
         else:
+            validate_true_binary_labels(y_val, estimator_name="y_val")
+            y_val = y_val.astype(np.float32)
+        if len(np.unique(y_val)) < 2:
             raise ValueError("y_val must contain both classes encoded as {-1, 1} or {0, 1}.")
         return X_val, y_val
 

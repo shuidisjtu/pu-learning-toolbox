@@ -7,7 +7,11 @@ import pytest
 from scipy import sparse
 
 from pu_toolbox.core.exceptions import ValidationError
-from pu_toolbox.core.validation import validate_pnu_X_y, validate_pu_X_y
+from pu_toolbox.core.validation import (
+    validate_pnu_X_y,
+    validate_pu_X_y,
+    validate_true_binary_labels,
+)
 
 
 @pytest.mark.unit
@@ -158,3 +162,53 @@ class TestValidatePnuXY:
         x2, y2 = validate_pnu_X_y(X, y)
         np.testing.assert_array_equal(x1, x2)
         np.testing.assert_array_equal(y1, y2)
+
+
+@pytest.mark.unit
+class TestValidateTrueBinaryLabels:
+    """Unit tests for validate_true_binary_labels — basic, errors, edge."""
+
+    # ── Basic / happy path ────────────────────────────────────────────
+    def test_basic_accepts_binary_labels(self):
+        """int, float, list, and single-class inputs with values in {0, 1} pass.
+
+        Repeated validation is deterministic and side-effect free: the
+        input array is never mutated.
+        """
+        validate_true_binary_labels(np.array([1, 0, 1, 0]))
+        validate_true_binary_labels(np.array([0.0, 1.0]))
+        validate_true_binary_labels([1, 0, 0])
+        validate_true_binary_labels(np.array([0.0, 1.0], dtype=np.float32))
+        validate_true_binary_labels(np.zeros(5, dtype=int))
+        validate_true_binary_labels(np.ones(3, dtype=int))
+        y_true = np.array([1, 0, 1, 0, 1])
+        validate_true_binary_labels(y_true)
+        validate_true_binary_labels(y_true)
+        np.testing.assert_array_equal(y_true, np.array([1, 0, 1, 0, 1]))
+
+    # ── Error cases ───────────────────────────────────────────────────
+    @pytest.mark.parametrize(
+        "y_true, match",
+        [
+            (np.array([1, 0, 2]), "only binary labels"),
+            (np.array([1, 0, -1]), "got unique values"),
+            (np.array([0.0, 1.0, np.nan]), "only binary labels"),
+            (np.array(["0", "1"]), "only binary labels"),
+        ],
+    )
+    def test_invalid_values_raise(self, y_true, match):
+        with pytest.raises(ValueError, match=match):
+            validate_true_binary_labels(y_true)
+
+    def test_invalid_estimator_name_in_message(self):
+        with pytest.raises(ValueError, match="my_labels must contain only binary labels"):
+            validate_true_binary_labels(np.array([0, 2]), estimator_name="my_labels")
+
+    def test_invalid_non_1d_raises(self):
+        with pytest.raises(ValidationError, match="1-D"):
+            validate_true_binary_labels(np.array([[1, 0], [0, 1]]))
+
+    # ── Edge cases ────────────────────────────────────────────────────
+    def test_edge_empty_array_passes(self):
+        """An empty 1-D array has no out-of-domain values."""
+        validate_true_binary_labels(np.array([]))

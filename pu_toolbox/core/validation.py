@@ -20,7 +20,7 @@ from scipy import sparse
 
 from .config import MAX_PU_RATIO, MIN_POSITIVE_SAMPLES, NEGATIVE_LABEL
 from .exceptions import ValidationError
-from .labels import normalize_pnu_labels, normalize_pu_labels
+from .labels import _check_y_1d, normalize_pnu_labels, normalize_pu_labels
 
 # ═════════════════════════════════════════════════════════════════════
 # Shared X-validation helpers
@@ -115,6 +115,48 @@ def check_scalar_in_range(
     if not valid:
         brack = ("[", "]") if inclusive else ("(", ")")
         raise ValueError(f"{name} must be in {brack[0]}{low}, {high}{brack[1]}; got {value}.")
+
+
+# ═════════════════════════════════════════════════════════════════════
+# Ground-truth label validation ({0, 1})
+# ═════════════════════════════════════════════════════════════════════
+
+
+def validate_true_binary_labels(
+    y_true: np.ndarray,
+    *,
+    estimator_name: str = "y_true",
+) -> None:
+    """Validate that *y_true* holds binary ground-truth labels ``{0, 1}``.
+
+    Accepts 1-D array-like whose unique values are a subset of
+    ``{0, 1}``.  Mirrors the ground-truth convention used by profiling /
+    diagnostics and supervised oracle metrics (as opposed to PU labels
+    ``{+1, 0}``, which have their own validators).
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        True binary labels.
+    estimator_name : str
+        Name included in error messages for traceability.
+
+    Raises
+    ------
+    ValueError
+        If any unique value is outside ``{0, 1}``.
+    ValidationError
+        If *y_true* is not 1-D (via :func:`~pu_toolbox.core.labels._check_y_1d`).
+    """
+    y_true_arr = np.asarray(y_true)
+    _check_y_1d(y_true_arr)
+    unique = set(np.unique(y_true_arr))
+    if not unique <= {0, 1}:
+        raise ValueError(
+            f"{estimator_name} must contain only binary labels {{0, 1}}, "
+            f"got unique values {sorted(unique)}."
+        )
+    return None
 
 
 # ═════════════════════════════════════════════════════════════════════

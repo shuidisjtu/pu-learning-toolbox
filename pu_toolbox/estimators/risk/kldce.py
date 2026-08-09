@@ -49,6 +49,7 @@ from ...core.tags import (
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...utils.centroid import _centroid_covariance, _mom_centroid
+from ._class_prior import solve_prior_from_positive_fraction
 
 # ═════════════════════════════════════════════════════════════════════
 # Kernel
@@ -367,14 +368,12 @@ def _rbf_centroid_delta(
     delta : np.ndarray of shape (d,)
         Update direction (row vector).
     """
+    from pu_toolbox.utils.basis import rbf_weights
+
     n, d = X.shape
     scale = 1.0 / (2.0 * lambda_ * sigma**2)
 
-    # exp(-||x_i||^2 / (2σ^2)) for all samples
-    sq_norms = np.sum(X**2, axis=1)  # (n,)
-    # Same Gaussian formula as utils.basis.build_rbf_basis (centers=0),
-    # but as a per-sample weight vector here, not an (n, m) basis matrix.
-    weights = np.exp(-sq_norms / (2.0 * sigma**2))  # (n,)
+    weights = rbf_weights(X, sigma)  # (n,) zero-centered Gaussian weights
 
     # α contribution (all samples, negative sign)
     alpha_weighted = alpha * y_tilde * weights  # (n,)
@@ -838,13 +837,8 @@ class KLDCEClassifier(BasePUClassifier):
             p = float(class_prior)
             check_scalar_in_range(p, 0.0, 1.0, "class_prior", inclusive=False)
         else:
-            p = k / (n * (1.0 - h))
-            if not (0.0 < p <= 1.0):
-                raise ValueError(
-                    f"Derived class prior p = {p} is out of (0, 1]. "
-                    f"Check flip_probability (h={h}) and data: "
-                    f"k={k}, n={n}. Formula: p = k / [n·(1−h)]."
-                )
+            # Derived via shared helper: p = k / [n·(1−h)] with (0, 1] check.
+            p = solve_prior_from_positive_fraction(k, n, h)
         self.class_prior_ = p
 
         # ── Check near-singular denominator (§4 step 3) ──────────────

@@ -1,0 +1,44 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "23 3 * * 1" # every Monday 03:23 UTC (off-round minute)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  slow-tests:
+    name: Slow tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v5.1.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        shell: bash
+        run: uv sync --python "${{ matrix.python-version }}" --extra dev --extra torch
+
+      - name: Verify matrix interpreter
+        shell: bash
+        run: uv run --python "${{ matrix.python-version }}" python -c "import sys; assert sys.version_info[:2] == tuple(map(int, '${{ matrix.python-version }}'.split('.')))"
+
+      - name: Run slow tests
+        shell: bash
+        run: uv run --python "${{ matrix.python-version }}" pytest tests/ -m "slow" -v

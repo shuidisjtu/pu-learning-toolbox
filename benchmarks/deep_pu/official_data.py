@@ -22,7 +22,8 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score
 
-from .runner import SUPPORTED_METHODS, _build_estimator, _canonical_hash, _git_value
+from .._common import canonical_hash
+from .runner import SUPPORTED_METHODS, _build_estimator, _git_value
 
 PUBLIC_DATASETS = {
     "mnist",
@@ -640,7 +641,7 @@ def run_official_data_benchmark(
     resolved_path = output / "resolved_config.json"
     if resume and resolved_path.exists():
         previous_config = json.loads(resolved_path.read_text(encoding="utf-8"))
-        if _canonical_hash(previous_config) != _canonical_hash(config):
+        if canonical_hash(previous_config) != canonical_hash(config):
             raise ValueError("cannot resume: current config differs from resolved_config.json")
     preflight = environment_preflight(config, data_root=data_root, download=download)
     _write_json(output / "preflight.json", preflight)
@@ -779,7 +780,7 @@ def run_official_data_benchmark(
         "n_trials": len(trials),
         "n_model_selection_candidates": len(selection_rows),
         "resume_enabled": resume,
-        "config_sha256": _canonical_hash(config),
+        "config_sha256": canonical_hash(config),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "git_commit": _git_value(project_root, ["git", "rev-parse", "HEAD"]),
         "git_worktree_dirty": None if dirty is None else bool(dirty),

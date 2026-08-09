@@ -12,6 +12,7 @@ from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 from pu_toolbox.core.config import POSITIVE_LABEL, UNLABELED_LABEL
 from pu_toolbox.core.labels import normalize_pu_labels
+from pu_toolbox.core.validation import check_scalar_in_range
 
 __all__ = [
     "pu_zero_one_risk",
@@ -56,8 +57,7 @@ def pu_zero_one_risk(
         raise ValueError(
             f"y_pu and scores must have the same length, got {len(y_pu)} and {len(scores)}"
         )
-    if not 0.0 < class_prior < 1.0:
-        raise ValueError(f"class_prior must be in (0, 1), got {class_prior}")
+    check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
 
     mask_p = y_pu == POSITIVE_LABEL
     mask_u = y_pu == UNLABELED_LABEL
@@ -137,8 +137,7 @@ def pu_estimated_precision(
         raise ValueError(
             f"y_pu and y_pred must have the same length, got {len(y_pu)} and {len(y_pred)}"
         )
-    if not 0.0 < class_prior < 1.0:
-        raise ValueError(f"class_prior must be in (0, 1), got {class_prior}")
+    check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
 
     recall = pu_recall(y_pu, y_pred)
     predicted_positive_rate = float(np.mean(y_pred == POSITIVE_LABEL))

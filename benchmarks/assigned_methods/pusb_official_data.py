@@ -27,6 +27,8 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_sco
 from pu_toolbox.estimators.bias_aware import PUSBKernelClassifier
 from pu_toolbox.estimators.bias_aware.pusb_kernel import prior_quantile_predict
 
+from .._common import canonical_hash
+
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -452,9 +454,7 @@ def run_benchmark(
     summary.to_csv(output / "summary.csv", index=False)
 
     project_root = Path(__file__).resolve().parents[2]
-    config_hash = hashlib.sha256(
-        json.dumps(config, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
+    config_hash = canonical_hash(config)
     status = _git_value(project_root, "status", "--porcelain")
     manifest = {
         "schema_version": 1,
