@@ -49,6 +49,7 @@ from ...core.tags import (
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...utils.centroid import _centroid_covariance, _mom_centroid
+from ._class_prior import solve_prior_from_positive_fraction
 
 # ═════════════════════════════════════════════════════════════════════
 # Kernel
@@ -838,13 +839,8 @@ class KLDCEClassifier(BasePUClassifier):
             p = float(class_prior)
             check_scalar_in_range(p, 0.0, 1.0, "class_prior", inclusive=False)
         else:
-            p = k / (n * (1.0 - h))
-            if not (0.0 < p <= 1.0):
-                raise ValueError(
-                    f"Derived class prior p = {p} is out of (0, 1]. "
-                    f"Check flip_probability (h={h}) and data: "
-                    f"k={k}, n={n}. Formula: p = k / [n·(1−h)]."
-                )
+            # Derived via shared helper: p = k / [n·(1−h)] with (0, 1] check.
+            p = solve_prior_from_positive_fraction(k, n, h)
         self.class_prior_ = p
 
         # ── Check near-singular denominator (§4 step 3) ──────────────
