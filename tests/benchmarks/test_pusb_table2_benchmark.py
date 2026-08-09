@@ -26,7 +26,7 @@ from benchmarks.assigned_methods.pusb_table2_report import (
     write_report,
 )
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.unit, pytest.mark.paper]
 
 
 def _config(policy=STRICT_POLICY):

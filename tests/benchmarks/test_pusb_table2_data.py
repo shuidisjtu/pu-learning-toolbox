@@ -18,7 +18,7 @@ from benchmarks.assigned_methods.pusb_table2_data import (
     load_table2_dataset,
 )
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.unit, pytest.mark.paper]
 
 
 def _manifest(path, target, *, sha256, samples=4, features=2, status="locked"):

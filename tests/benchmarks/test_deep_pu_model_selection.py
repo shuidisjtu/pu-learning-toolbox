@@ -18,6 +18,8 @@ from benchmarks.deep_pu.official_data import (
     run_official_data_benchmark,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.paper]
+
 
 def _loader(config, root, *, download):
     del config, root, download
