@@ -230,6 +230,71 @@ class TestBuiltinRegistration:
             if _declared_on_class(cls, "scenario"):
                 assert synced.scenario == list(cls.scenario), f"{meta.name}.scenario mismatch"
 
+    def test_static_entries_match_class_attributes(self):
+        """_BUILTIN entry literals must match class metadata BEFORE sync.
+
+        The test above reads the registry AFTER binding, where
+        _sync_class_metadata_to_registry has already overwritten entry
+        fields with class values — so static drift in the literals is
+        invisible to it (upu was False in the entry while the class
+        says True, silently papered over for months).  This test
+        snapshots the entry literals first, then registers, then
+        compares against the bound classes.
+        """
+        from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
+        from pu_toolbox.registry import get_algorithm
+        from pu_toolbox.registry.builtin_methods import _BUILTIN
+
+        _bases = (BasePUClassifier, BasePriorEstimator)
+        sync_fields = (
+            "family",
+            "assumption",
+            "scenario",
+            "requires_class_prior",
+            "implementation_status",
+            "source_status",
+            "backend",
+            "maturity",
+        )
+
+        def _declared_on_class(cls, field_name):
+            return any(
+                field_name in klass.__dict__
+                for klass in cls.__mro__
+                if klass not in _bases and not issubclass(klass, type)
+            )
+
+        # Snapshot BEFORE registering: register_method + the sync step
+        # overwrite the metadata objects in place, so reading them after
+        # registration would see the synced values, not the literals.
+        snapshots = {
+            meta.name: {
+                field: (
+                    list(getattr(meta, field))
+                    if isinstance(getattr(meta, field), (tuple, list))
+                    else getattr(meta, field)
+                )
+                for field in sync_fields
+            }
+            for meta in _BUILTIN
+        }
+
+        register_all_builtin_methods()
+        for name, snapshot in snapshots.items():
+            cls = get_algorithm(name)  # api_only entries would fail here loudly
+            for field, entry_value in snapshot.items():
+                if not _declared_on_class(cls, field):
+                    continue  # not synced from class; the literal is authoritative
+                cls_value = getattr(cls, field)
+                if isinstance(cls_value, (tuple, list)):
+                    assert list(cls_value) == entry_value, (
+                        f"{name}.{field}: entry={entry_value} != class={list(cls_value)}"
+                    )
+                else:
+                    assert cls_value == entry_value, (
+                        f"{name}.{field}: entry={entry_value} != class={cls_value}"
+                    )
+
     def test_basic_every_method_has_explicit_training_cost(self):
         """All entries carry an explicit training-cost level (no UNKNOWN)."""
         from pu_toolbox.core.tags import TrainingCost
