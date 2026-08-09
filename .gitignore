@@ -62,3 +62,6 @@ results*/
 
 # Local one-off plans (never for distribution)
 .superpowers/
+
+# 本地开发参考(不共享远程)
+docs/superpowers/
