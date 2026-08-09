@@ -48,7 +48,7 @@
 - [x] PUSB 论文 Table 2 六数据集来源/hash/loader 锁定与官方采样可行性审计
 - [x] PUSB 严格完整单元/官方兼容策略、精确计划、checkpoint/resume 与 provenance runner
 - [x] PUSB strict plan：45 单元/4500 trials、45 shards、精确聚合与配对 95% CI 报告
-- [ ] 官方数据、历史环境和 paper-like 全量运行
+- [ ] 官方数据、历史环境和 paper-like 全量运行（工具箱侧机制已就绪：preflight 审计、执行层、数据/源码锁定与 blocker 诊断；全量运行依赖外部官方数据与历史环境（Dist-PU 需 Py3.7/numpy1.19/MATLAB 等），官方数据不内置工具箱，由执行方提供 —— 非工具箱缺口）
 
 ## Phase 4 — 推荐与诊断 (v0.4)
 
