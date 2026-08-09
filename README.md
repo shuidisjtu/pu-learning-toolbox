@@ -2,15 +2,15 @@
 
 # PU Learning Toolbox
 
-**Positive-Unlabeled learning in Python** -- sklearn-compatible API, 16 research paper methods, SCAR & SAR support.
+**Positive-Unlabeled learning in Python** -- sklearn-compatible API, 17 research paper methods, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-0.1.0--dev-orange)
+![Status](https://img.shields.io/badge/status-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
 
-- **16 algorithms** from recent PU learning research, all native clean-room implementations ([method cards](docs/research/method_cards/))
+- **17 algorithms** from recent PU learning research, all native clean-room implementations ([method cards](docs/research/method_cards/))
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
 - **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
 - **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data
@@ -97,6 +97,7 @@ uv run python scripts/check_doc_links.py
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
+uv run python scripts/check_format.py        # ruff check + format --check (full scope)
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.

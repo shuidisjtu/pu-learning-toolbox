@@ -318,6 +318,7 @@ scripts/
   check_project_metadata.py   (Python/CI/extras/Hatchling 跨文件一致性)
   check_math_rendering.py     (方法卡 MathJax 渲染检查：缺上下标参数/括号配对/$ 配对)
   check_skill_sync.py         (Skill 同步检查：skills/ 定义与脚本枚举一致，第 5 道门禁)
+  check_format.py             (格式门禁：ruff check + format --check 全目录，第 6 道门禁)
 ```
 
 ## 7. CI/CD（`.github/`）

@@ -9,8 +9,7 @@
 ## 验证
 
 - [ ] `python -m pytest -q`
-- [ ] `ruff check pu_toolbox tests benchmarks examples scripts`
-- [ ] `ruff format --check pu_toolbox tests benchmarks examples scripts`
+- [ ] `python scripts/check_format.py`（ruff check + format --check）
 - [ ] `python scripts/check_test_quality.py`
 - [ ] `python scripts/check_doc_links.py`
 - [ ] `python scripts/check_project_metadata.py`

@@ -82,6 +82,7 @@
 
 | 日期 | 方法 | 状态 | 代码与文档 | 验证 |
 |---|---|---|---|---|
+| 2026-08-09 | 第 6 道格式门禁 + v1.0.0 版本升级 | 新增 `check_format.py`（ruff check + format --check 全目录，与 CI 同一入口，根治 08-09 CI 漏 format 问题）；CI quality job 两步合并为脚本一步；CLAUDE.md/CONTRIBUTING/README 双语/PR 模板/project_structure/compatibility/dev-workflow skill/pu_workflow_design 同步；`__version__` 0.1.0.dev0 → 1.0.0（功能已完成 roadmap 0.1→0.6 全部路线）；api.md 新增 17 方法分类器/估计器总览表（链接 method cards）；README 双语 16→17 算法与 badge 修复 | `scripts/check_format.py`；`tests/unit/scripts/test_check_format.py`；`pyproject.toml`；`pu_toolbox/__init__.py`；`docs/user/reference/api.md`；`README{.md,.zh-CN.md}` 等 | `738 passed`；6 道门禁全绿；wheel/sdist 构建成功；`__version__ == 1.0.0` |
 | 2026-08-09 | 注册 `pusb_kernel` 进 registry | PUSB official-aligned RBF 适配器注册为独立方法（`pusb` 保留 linear baseline 不变，避免行为突变）；推荐器/CLI/Pipeline 自动感知，`--classifier pusb_kernel` 可用；contract 测试加小网格 factory 与 class_prior 注入 | `builtin_methods.py`、`test_builtin_methods.py`、contract 测试、resources/project_structure/Method Card/checklist 同步 | 注册断言 21/21；contract + 单元全量通过；`paper_claim=false` 不变 |
 | 2026-08-08 | PUSB Table 2 协议核查 | 论文 Table 2 使用 mushrooms/shuttle/pageblocks/usps/connect-4/spambase；仓库入口默认 IJCNN1，README 与入口不一致；现有结果降级为 `official_repo_extension` | PUSB official 配置、runner fidelity、README 与 Method Card | 核对论文第 5.2 节/Table 2 和官方仓库全部相关历史提交；IJCNN1 高先验限制不再误记为论文 blocker |
 | 2026-08-08 | PUSB Table 2 数据锁与采样审计 | 六数据集来源/hash/形状/标签/类别计数锁定；统一 loader；按官方连续 seed 审计 7200 trials | `pusb_table2_datasets.json`、`pusb_table2_data.py`、审计报告与测试 | 72 个单元仅 45 个在全部重复中满足声明样本量；严格模式不得接受静默截断 |

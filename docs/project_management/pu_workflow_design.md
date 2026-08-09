@@ -154,7 +154,7 @@ metadata:
 
 ## 验证流程
 
-1. 全量测试 + 5 道门禁 + ruff（check + format）
+1. 全量测试 + 6 道门禁（第 6 道 `check_format.py` 已含 ruff check + format --check）
 2. **实战演练**：按 SKILL.md 指令对 demo 数据完整跑一遍 4 环节，确认每一步指令与脚本实现一致（skill 类工作核心验收，防"文档写得好但 agent 照做会失败"）
 3. process_checklist 记录
 

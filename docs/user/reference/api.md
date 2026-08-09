@@ -3,6 +3,37 @@
 > 这不是入门读物：先读 [快速开始](../quickstart.md) 或对应的操作指南。
 > 本文档只给精确契约；参数含义与使用示例在对应 howto 中。
 
+## 分类器与估计器总览
+
+所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
+`get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。
+标签语义由分类器决定（PU 为 `{+1, 0}`，PNU 为 `{+1, -1, 0}`）。
+下表为注册表索引；每个方法的完整参数契约见对应 Method Card。
+
+| 注册名（别名） | 类 | 族 | 核心构造参数摘要 | Method Card |
+|---|---|---|---|---|
+| `class_prior_estimation`（`cpe`, `pen_l1`） | `ClassPriorEstimator` | class-prior | `sigma` / `reg_lambda` / `theta_grid` / `n_centers` | [class_prior_estimation](../../research/method_cards/class_prior_estimation.md) |
+| `recpe`（`re_cpe`） | `ReCPEEstimator` | class-prior | `copy_fraction` / `base_estimator` | [ReCPE](../../research/method_cards/ReCPE.md) |
+| `elkan_noto`（`en`） | `ElkanNotoClassifier` | classic | `base_estimator` / `calibration_method` / `n_cv_folds` / `eps` | [Elkan_Noto](../../research/method_cards/Elkan_Noto.md) |
+| `upu`（`convex_pu`） | `UPUClassifier` | risk | `class_prior` / `loss` / `reg_lambda` | [Convex uPU](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) |
+| `nnpu`（`nn-pu`） | `NonNegativePUClassifier` | risk | `model` / `class_prior` / `loss` / `optimizer` | [nnPU](../../research/method_cards/nnpu.md) |
+| `pnu` | `PNUClassifier` | risk | `class_prior` / `eta` / `reg_lambda` | [PNU](../../research/method_cards/PNU.md) |
+| `centroid_pu`（`ldce`） | `LDCEClassifier` | risk | `flip_probability` / `reg_strength` / `centroid_radius` | [LDCE](../../research/method_cards/LDCE.md) |
+| `kldce`（`kernelized_ldce`） | `KLDCEClassifier` | risk | `flip_probability` / `sigma` / `reg_strength` | [KLDCE](../../research/method_cards/KLDCE.md) |
+| `llsvm` | `LLSVMClassifier` | risk | `alpha` / `beta` / `gamma` / `reg_lambda` / `max_epochs` | [LLSVM](../../research/method_cards/LLSVM.md) |
+| `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
+| `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
+| `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §6.2](../../research/method_cards/PUSB.md) |
+| `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
+| `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
+| `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见本文档 InfoMaxPUClassifier 节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
+| `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
+| `dgpu` | `DGPUClassifier` | deep | `class_prior` / `generator` / `model` / `hidden_dim` | [DGPU](../../research/method_cards/DGPU.md) |
+| —（`km1` / `km2` variant） | `KernelMeanPriorEstimator` | class-prior | `variant="km1"/"km2"` 等（Kernel-mean 类先验，`PUPipeline` 的 `prior_estimator` 支持） | [Kernel_Mean](../../research/method_cards/Kernel_Mean_Class_Prior.md) |
+
+> 注册名可直接用于 `PUPipeline(classifier="...")` 与 CLI `--classifier`；别名大小写不敏感。
+> 构造器有必填非 `class_prior` 参数的方法（如 `ldce` 需 `flip_probability`）不能按名字自动实例化，显式指定时请传实例（见下文 PUPipeline 节）。
+
 ## PUPipeline
 
 用法见 [howto/pipeline.md](../howto/pipeline.md)。
