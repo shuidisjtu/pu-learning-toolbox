@@ -1,6 +1,6 @@
 # 论文源码资源统计
 
-> 16 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-08-08。
+> 17 篇 PU Learning 论文的官方源码状态与集成依据。更新时间：2026-08-09。
 
 `implementation_status` 语义见 [`architecture.md`](architecture.md) 的“算法注册表”部分；`source_status` 的当前枚举以 `pu_toolbox/core/tags.py` 为准，本文档给出论文源码状态统计。
 
@@ -9,7 +9,7 @@
 | 状态 | 数量 |
 |---|---|
 | `official_exact` | 8 |
-| `official_bundle` / `official_related` | 4 |
+| `official_bundle` / `official_related` | 5 |
 | `third_party_only` | 1 |
 | `not_found` | 3 |
 
@@ -28,6 +28,7 @@
 | 8 | LLSVM | `official_exact` | https://gcatnjust.github.io/ChenGong/code/LLSVM_TNNLS19.rar |
 | 9 | Dist-PU | `official_exact` | https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective |
 | 10 | PUSB | `official_exact` | https://github.com/MasaKat0/PUlearning（toolbox 含 clean-room kernel adapter、uLSIF 与可恢复官方数据 runner） |
+| 10a | PUSBKernel（核化版 PUSB） | `official_related` | 同上（clean-room：RBF 基 + 官方梯度修正 `0.5·λ·‖b‖²`） |
 | 11 | LBE | `official_exact` | https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar |
 | 12 | Self-PU | `official_exact` | https://github.com/VITA-Group/Self-PU |
 | 13 | InfoMax PU | `not_found` | — |

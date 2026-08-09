@@ -35,43 +35,56 @@ LAYERS = [
     {
         "label": "Core Infrastructure",
         "modules": [
-            {"name": "core/", "sub": "Base classes & validation", "impl": True, "w": 3.5},
-            {"name": "registry/", "sub": "Algorithm metadata & routing", "impl": True, "w": 3.0},
+            {"name": "core/", "sub": "Base classes & validation", "impl": True, "w": 3.4},
+            {"name": "registry/", "sub": "17-method metadata & routing", "impl": True, "w": 3.0},
             {"name": "utils/", "sub": "Shared basis functions", "impl": True, "w": 1.8},
             {
                 "name": "preprocessing/",
                 "sub": "PU label generation & profiling",
                 "impl": True,
-                "w": 3.8,
+                "w": 3.6,
             },
         ],
     },
     {
-        "label": "Estimation",
+        "label": "Estimation & Evaluation",
         "modules": [
-            {"name": "prior/", "sub": "Class-prior estimation", "impl": True, "w": 4.2},
-            {"name": "losses/", "sub": "PU risk functions", "impl": True, "w": 4.2},
+            {"name": "prior/", "sub": "Class-prior estimation", "impl": True, "w": 3.2},
+            {"name": "losses/", "sub": "PU risk functions", "impl": True, "w": 3.0},
+            {"name": "metrics/", "sub": "PU classification metrics", "impl": True, "w": 3.0},
+            {"name": "model_selection/", "sub": "PU cross-validation", "impl": True, "w": 3.2},
         ],
     },
     {
         "label": "Algorithms  (estimators/)",
         "modules": [
-            {"name": "classic/", "sub": "Calibration-based PU", "impl": True, "w": 2.8},
+            {"name": "classic/", "sub": "Calibration & SVM-based PU", "impl": True, "w": 2.8},
             {"name": "risk/", "sub": "Risk-based PU classifiers", "impl": True, "w": 3.4},
-            {"name": "bias_aware/", "sub": "Selection-bias PU", "impl": True, "w": 2.6},
+            {"name": "bias_aware/", "sub": "Selection-bias PU", "impl": True, "w": 3.0},
+            {"name": "deep/", "sub": "Deep PU (Self-PU/DGPU/...)", "impl": True, "w": 3.0},
         ],
     },
     {
-        "label": "Evaluation",
+        "label": "Orchestration",
         "modules": [
-            {"name": "metrics/", "sub": "PU classification metrics", "impl": True, "w": 2.8},
-            {"name": "model_selection/", "sub": "PU cross-validation", "impl": True, "w": 3.4},
+            {"name": "advisor/", "sub": "Method recommendation & scoring", "impl": True, "w": 3.0},
+            {"name": "workflows/", "sub": "PUPipeline orchestration", "impl": True, "w": 3.2},
+            {"name": "diagnostics/", "sub": "Data/model/sensitivity reports", "impl": True, "w": 3.0},
+            {"name": "cli/", "sub": "pu-toolbox CLI (run/list)", "impl": True, "w": 2.8},
         ],
     },
     {
-        "label": "User Layer",
+        "label": "User & Assets",
         "modules": [
+            {
+                "name": "scripts/pu_workflow/",
+                "sub": "3-step workflow scripts",
+                "impl": True,
+                "w": 3.6,
+            },
+            {"name": "skills/", "sub": "pu-workflow agent skill", "impl": True, "w": 2.4},
             {"name": "examples/", "sub": "Minimal usage demos", "impl": True, "w": 2.8},
+            {"name": "benchmarks/", "sub": "Paper reproduction", "impl": True, "w": 3.0},
         ],
     },
 ]

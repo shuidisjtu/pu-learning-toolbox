@@ -10,6 +10,7 @@ a method name (or ``"auto"`` for recommender-driven selection).
 
 from __future__ import annotations
 
+import contextlib
 import inspect
 import warnings
 from collections.abc import Sequence
@@ -21,7 +22,7 @@ from sklearn.base import clone
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.config import POSITIVE_LABEL
 from ..core.exceptions import PULearningError, RegistryError, ValidationError
-from ..core.tags import Backend
+from ..core.tags import Backend, TrainingCost
 from ..core.validation import validate_pu_X_y
 from ..diagnostics.report import build_diagnostic_report
 from ..metrics.classification import (
@@ -454,12 +455,19 @@ class PUPipeline:
         else:
             classifier_name = type(classifier_instance).__name__
 
-        # -- Deep training-cost hint --------------------------------------
-        if self._is_deep and n_splits > 1:
+        # -- Training-cost hint ------------------------------------------
+        # Deep (TORCH) methods and registry HIGH-cost solvers (e.g. LLSVM
+        # SGD, PUSB kernel grid CV) are refit n_splits+1 times; say so
+        # instead of silently running for minutes to hours.
+        heavy = self._is_deep
+        with contextlib.suppress(Exception):  # instance mode: not a registry name
+            heavy = heavy or get_metadata(classifier_name).training_cost == TrainingCost.HIGH
+        if heavy and n_splits > 1:
             warnings.warn(
                 f"{classifier_name} will be trained {n_splits + 1} times "
-                "(CV folds + full refit); deep training can be slow. "
-                "Reduce the number of folds for quicker runs.",
+                "(CV folds + full refit); this method is HIGH-cost "
+                "(deep training or heavy grid search). Reduce the number "
+                "of folds for quicker runs.",
                 stacklevel=2,
             )
 

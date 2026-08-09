@@ -82,6 +82,7 @@
 
 | 日期 | 方法 | 状态 | 代码与文档 | 验证 |
 |---|---|---|---|---|
+| 2026-08-09 | 注册 `pusb_kernel` 进 registry | PUSB official-aligned RBF 适配器注册为独立方法（`pusb` 保留 linear baseline 不变，避免行为突变）；推荐器/CLI/Pipeline 自动感知，`--classifier pusb_kernel` 可用；contract 测试加小网格 factory 与 class_prior 注入 | `builtin_methods.py`、`test_builtin_methods.py`、contract 测试、resources/project_structure/Method Card/checklist 同步 | 注册断言 21/21；contract + 单元全量通过；`paper_claim=false` 不变 |
 | 2026-08-08 | PUSB Table 2 协议核查 | 论文 Table 2 使用 mushrooms/shuttle/pageblocks/usps/connect-4/spambase；仓库入口默认 IJCNN1，README 与入口不一致；现有结果降级为 `official_repo_extension` | PUSB official 配置、runner fidelity、README 与 Method Card | 核对论文第 5.2 节/Table 2 和官方仓库全部相关历史提交；IJCNN1 高先验限制不再误记为论文 blocker |
 | 2026-08-08 | PUSB Table 2 数据锁与采样审计 | 六数据集来源/hash/形状/标签/类别计数锁定；统一 loader；按官方连续 seed 审计 7200 trials | `pusb_table2_datasets.json`、`pusb_table2_data.py`、审计报告与测试 | 72 个单元仅 45 个在全部重复中满足声明样本量；严格模式不得接受静默截断 |
 | 2026-08-08 | PUSB Table 2 执行策略与 runner | strict 完整单元和 released compatibility 分离；跨单元连续 seed；逐 trial checkpoint/resume；真实数据 dry-run | `pusb_table2_benchmark.py`、两份锁定配置、strict plan 与测试 | strict 选择 45 单元/4500 trials、排除 27 单元、0 个 undersized selected trial；尚未启动长训练 |
