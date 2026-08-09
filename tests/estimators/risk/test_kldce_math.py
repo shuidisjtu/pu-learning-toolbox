@@ -514,6 +514,7 @@ class TestBiasRecovery:
         assert np.isfinite(b0)
 
 
+@pytest.mark.math
 def test_edge_gamma_free_bias_uses_neg_one_minus_g():
     """自由 γ(U 样本,ỹ=−1)恢复 b₀ 必须用 −1−g 而非 1−g.
 
@@ -524,19 +525,22 @@ def test_edge_gamma_free_bias_uses_neg_one_minus_g():
       free γ → b₀ = −1 − g[1] = −1.25
     修复前代码返回 1 − g[1] = 0.75(差 2)。
     """
-    import numpy as np
-    from pu_toolbox.estimators.risk.kldce import _rbf_kernel, _recover_bias_from_kkt
-
     X = np.array([[0.0], [1.0]])
     sigma = 1.0
     K = _rbf_kernel(X, X, sigma)  # [[1, exp(-0.5)], [exp(-0.5), 1]]
     b0, info = _recover_bias_from_kkt(
-        alpha=np.array([1e-13]),          # 下界,非 free
-        gamma=np.array([0.5]),            # free γ
-        X=X, K=K,
+        alpha=np.array([1e-13]),  # 下界,非 free
+        gamma=np.array([0.5]),  # free γ
+        X=X,
+        K=K,
         y_tilde=np.array([1.0, -1.0]),
-        mu=np.array([0.0]), lambda_=1.0, sigma=sigma,
-        C_eq=0.0, C_alpha=1.0, C_gamma=1.0, k=1,
+        mu=np.array([0.0]),
+        lambda_=1.0,
+        sigma=sigma,
+        C_eq=0.0,
+        C_alpha=1.0,
+        C_gamma=1.0,
+        k=1,
     )
     assert info["bias_recovery"] == "free_median"
     assert abs(b0 - (-1.25)) < 1e-9  # 修复前返回 0.75
