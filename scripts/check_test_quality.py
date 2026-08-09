@@ -220,14 +220,18 @@ def _relative(path: Path) -> str:
         return str(path)
 
 
-def review_exemptions(reports: list[ModuleReport]) -> None:
+def review_exemptions(reports: list[ModuleReport], max_tests: int = 15) -> None:
     """Print the exemption lists and flag entries that no longer need them.
 
     Governance aid for the two hand-maintained exemption lists: they are
     reprinted (with reasons) every run, and any listed file whose current
     category coverage satisfies the rules (≥ 3 of 4) is reported as
-    removable so the lists can shrink.  Informational only — this never
-    contributes to the exit code.
+    removable so the lists can shrink.  For UNLIMITED_FILES the hint is
+    only emitted when the file's test count is within the ≤ max_tests
+    limit — the count exemption is genuinely no longer needed.  A file
+    kept exempt for the count rule (e.g. a 20-test file) would break the
+    gate if de-listed despite full coverage, so it must not be flagged.
+    Informational only — this never contributes to the exit code.
     """
     print("\n─ Exemption review ─")
     print("  UNLIMITED_FILES (exempt from the ≤15 test limit):")
@@ -241,7 +245,7 @@ def review_exemptions(reports: list[ModuleReport]) -> None:
         if covered < 3:
             continue
         rel = _relative(r.path)
-        if r.path.name in UNLIMITED_FILES:
+        if r.path.name in UNLIMITED_FILES and r.n_tests <= max_tests:
             print(
                 f"  INFO: {rel} may be removable from UNLIMITED_FILES "
                 f"(covers {covered}/4 categories)"
@@ -317,7 +321,7 @@ def main(max_tests: int = 15, strict: bool = False) -> int:
         print("  ✓ all files cover required categories (or missing ≤1 in relaxed mode)")
 
     # ── 4. Exemption review (informational, never affects exit code) ─
-    review_exemptions(reports)
+    review_exemptions(reports, max_tests)
 
     # ── Final verdict ───────────────────────────────────────────────
     print()

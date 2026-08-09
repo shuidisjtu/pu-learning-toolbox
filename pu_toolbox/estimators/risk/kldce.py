@@ -372,6 +372,8 @@ def _rbf_centroid_delta(
 
     # exp(-||x_i||^2 / (2σ^2)) for all samples
     sq_norms = np.sum(X**2, axis=1)  # (n,)
+    # Same Gaussian formula as utils.basis.build_rbf_basis (centers=0),
+    # but as a per-sample weight vector here, not an (n, m) basis matrix.
     weights = np.exp(-sq_norms / (2.0 * sigma**2))  # (n,)
 
     # α contribution (all samples, negative sign)

@@ -67,6 +67,21 @@ def test_edge_missing_one_category_still_flagged(tmp_path, capsys):
 
 
 @pytest.mark.unit
+def test_edge_high_test_count_keeps_unlimited_hint_quiet(tmp_path, capsys):
+    """A UNLIMITED_FILES member is only flagged when within the count limit.
+
+    Full coverage alone must not suggest de-listing a file that still
+    needs the exemption for the ≤15-test rule (e.g. a 20-test file would
+    immediately break the gate if removed from UNLIMITED_FILES).
+    """
+    names = ["test_basic_fit", "test_param_invalid", "test_edge_empty", "test_determ_seed"]
+    report = _exempt_report(tmp_path, "test_builtin_methods.py", names * 5)  # 20 tests
+    review_exemptions([report])
+    out = capsys.readouterr().out
+    assert "may be removable from UNLIMITED_FILES" not in out
+
+
+@pytest.mark.unit
 def test_param_low_coverage_raises_no_removal_hint(tmp_path, capsys):
     """Covering fewer than three categories keeps the exemption quiet."""
     report = _exempt_report(

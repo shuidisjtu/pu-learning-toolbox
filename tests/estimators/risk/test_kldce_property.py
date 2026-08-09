@@ -188,6 +188,14 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="class prior"):
             clf.fit(X, y_pu)
 
+    def test_class_prior_one_raises(self, rng):
+        """Explicit class_prior=1.0 is excluded by the open (0, 1) bound."""
+        X = rng.randn(30, 3)
+        y_pu = np.concatenate([np.ones(10, dtype=int), np.zeros(20, dtype=int)])
+        clf = KLDCEClassifier(flip_probability=0.3)
+        with pytest.raises(ValueError, match="class_prior"):
+            clf.fit(X, y_pu, class_prior=1.0)
+
     def test_mom_groups_leq_n_U_enforced(self, rng):
         X = rng.randn(20, 3)
         y_pu = np.concatenate([np.ones(15, dtype=int), np.zeros(5, dtype=int)])
