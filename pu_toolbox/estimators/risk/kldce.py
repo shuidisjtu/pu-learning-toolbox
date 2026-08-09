@@ -47,7 +47,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...utils.centroid import _centroid_covariance, _mom_centroid
 
 # ═════════════════════════════════════════════════════════════════════
@@ -834,8 +834,7 @@ class KLDCEClassifier(BasePUClassifier):
         # ── Class prior (§4 step 3) ──────────────────────────────────
         if class_prior is not None:
             p = float(class_prior)
-            if not (0.0 < p <= 1.0):
-                raise ValueError(f"class_prior must be in (0, 1]; got {p}.")
+            check_scalar_in_range(p, 0.0, 1.0, "class_prior", inclusive=False)
         else:
             p = k / (n * (1.0 - h))
             if not (0.0 < p <= 1.0):

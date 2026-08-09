@@ -35,7 +35,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...losses.nnpu import NonNegativePULoss, _nnpu_train_step
 
 # ═════════════════════════════════════════════════════════════════════
@@ -179,8 +179,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         X, y_pu = validate_pu_X_y(X, y_pu, estimator_name="NonNegativePUClassifier")
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
-        if not (0.0 < class_prior < 1.0):
-            raise ValueError(f"class_prior must be in (0, 1); got {class_prior}.")
+        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
         if self.beta < 0:
             raise ValueError(f"beta must be >= 0; got {self.beta}.")
         if not 0.0 <= self.gamma <= 1.0:

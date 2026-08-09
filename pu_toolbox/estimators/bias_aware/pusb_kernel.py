@@ -26,7 +26,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 
 _OFFICIAL_SIGMA_GRID = (0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 _OFFICIAL_REG_GRID = (0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0)
@@ -86,8 +86,7 @@ def prior_quantile_predict(scores: np.ndarray, class_prior: float) -> tuple[np.n
         raise ValueError("scores must be a non-empty one-dimensional array")
     if not np.isfinite(scores).all():
         raise ValueError("scores must contain only finite values")
-    if not 0.0 < class_prior < 1.0:
-        raise ValueError("class_prior must be in (0, 1)")
+    check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
     index = int(np.floor(scores.size * (1.0 - class_prior)))
     threshold = float(np.sort(scores)[index])
     return (scores > threshold).astype(int), threshold
@@ -159,8 +158,9 @@ class PUSBKernelClassifier(BasePUClassifier):
     def _validate_parameters(
         self, X: np.ndarray, class_prior: float | None
     ) -> tuple[np.ndarray, np.ndarray]:
-        if class_prior is None or not 0.0 < class_prior < 1.0:
+        if class_prior is None:
             raise ValueError("PUSBKernelClassifier requires class_prior in (0, 1)")
+        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
         if not isinstance(self.n_basis, int) or self.n_basis <= 0:
             raise ValueError("n_basis must be a positive integer")
         if not isinstance(self.cv, int) or self.cv < 2 or self.cv > len(X):

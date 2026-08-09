@@ -35,7 +35,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...losses.upu import _sigmoid, _softplus_stable
 from ...utils.basis import (
     build_linear_basis,
@@ -235,8 +235,7 @@ class UPUClassifier(BasePUClassifier):
 
         # ── Resolve class_prior ───────────────────────────────────────
         pi = class_prior if class_prior is not None else self.class_prior
-        if not (0.0 < pi < 1.0):
-            raise ValueError(f"class_prior must be in (0, 1); got {pi}.")
+        check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
         self._class_prior = pi
         self.class_prior_ = pi
 
