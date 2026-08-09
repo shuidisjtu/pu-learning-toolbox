@@ -521,9 +521,11 @@ def _recover_bias_from_kkt(
     """Recover bias b₀ from KKT margin conditions (QP oracle version).
 
     For free support vectors (0 < αᵢ < C_alpha or 0 < γⱼ < C_gamma),
-    the KKT conditions imply a margin of exactly 1:
+    KKT implies the margin condition ỹᵢ·f(xᵢ) = 1:
 
-        bᵢ = 1 − gᵢ   where gᵢ = f(xᵢ) − b₀
+        ỹ=+1 → b = 1 − g;ỹ=−1 → b = −1 − g
+
+    where gᵢ = f(xᵢ) − b₀.
 
     We compute the bias-free decision scores gᵢ for all samples, then
     take the median of {bᵢ} from free variables.
@@ -578,16 +580,19 @@ def _recover_bias_from_kkt(
 
     b_estimates = []
 
-    # Free α (all samples): 0 < αᵢ < C_alpha, ỹᵢ = +1
+    # Free α (all samples): 0 < αᵢ < C_alpha;ỹᵢ = +1 → f=1,ỹᵢ = −1 → f=−1
     free_alpha_mask = (alpha > 1e-12) & (alpha < C_alpha - 1e-12)
     for i in np.where(free_alpha_mask)[0]:
-        b_estimates.append(1.0 - g[i])
+        if y_tilde[i] > 0:
+            b_estimates.append(1.0 - g[i])  # ỹ=+1: b = 1−g
+        else:
+            b_estimates.append(-1.0 - g[i])  # ỹ=−1: b = −1−g
 
-    # Free γ (U samples): 0 < γⱼ < C_gamma
+    # Free γ (U samples): 0 < γⱼ < C_gamma → f = −1 → b = −1−g
     free_gamma_mask = (gamma > 1e-12) & (gamma < C_gamma - 1e-12)
     for j in np.where(free_gamma_mask)[0]:
-        # ỹ_{k+j} = -1
-        b_estimates.append(1.0 - g[k + j])
+        # ỹ_{k+j} = −1
+        b_estimates.append(-1.0 - g[k + j])
 
     if len(b_estimates) > 0:
         b0 = float(np.median(b_estimates))
@@ -597,7 +602,7 @@ def _recover_bias_from_kkt(
 
     # ── Fallback: bounded interval from KKT inequalities ───────────
     # L = lower bound on b₀, U = upper bound
-    # margin = 1 − gᵢ for ỹ=+1, margin = y·(g+b) ≥ 1 → free: b ≥ 1−g
+    # margin: ỹ=+1 → b ≥ 1−g;ỹ=−1 → b ≤ −1−g
     # ỹ=+1: KKT condition αᵢ(f(xᵢ)−1)≥0
     #   αᵢ=0: f(xᵢ) ≥ 1 → b₀ ≥ 1 − gᵢ  (lower bound)
     #   αᵢ=C: f(xᵢ) ≤ 1 → b₀ ≤ 1 − gᵢ  (upper bound)
@@ -628,13 +633,13 @@ def _recover_bias_from_kkt(
     gamma_lo = gamma <= 1e-12
     for j in np.where(gamma_lo)[0]:
         # ỹ_{k+j} = −1 (always for U samples)
-        U_parts.append(1.0 - g[k + j])  # γ=0, ỹ=−1 → b ≤ 1−g
+        U_parts.append(-1.0 - g[k + j])  # γ=0, ỹ=−1 → b ≤ −1−g
 
     # γ at upper bound (γ=C_gamma, U samples only)
     gamma_hi = gamma >= C_gamma - 1e-12
     for j in np.where(gamma_hi)[0]:
         # ỹ_{k+j} = −1 (always for U samples)
-        L_parts.append(1.0 - g[k + j])  # γ=C, ỹ=−1 → b ≥ 1−g
+        L_parts.append(-1.0 - g[k + j])  # γ=C, ỹ=−1 → b ≥ −1−g
 
     if L_parts and U_parts:
         L_val = max(L_parts)
