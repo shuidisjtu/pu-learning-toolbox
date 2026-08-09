@@ -126,7 +126,7 @@
 
 ### P2 — 文档与流程
 
-8. decision_log 补齐 6 条决策(08-06 至 08-09),并按先例将 `pu_workflow_design.md` 蒸馏后删除
+8. ✅ 已治理:decision_log 补齐 5 条决策(08-06 至 08-09,审计当日估 ≥6,蒸馏定稿 5 条),并按先例将 `pu_workflow_design.md` 蒸馏后删除
 9. 修复 CLAUDE.md:29 死链(CLAUDE.md 误写的旧路径 docs/project_structure.md 已迁移为 `docs/dev/project_structure.md`)
 10. 修正 `project_structure.md` §3 测试树(补 tests/unit/scripts、workflow_scripts,删 unit/registry 空目录)
 11. dev-workflow skill 状态速查更新(705 → 738,2026-08-09)
