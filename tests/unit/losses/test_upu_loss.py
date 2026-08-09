@@ -10,7 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pu_toolbox.losses.upu import UPULoss, _sigmoid, _softplus_stable
+from pu_toolbox.losses.upu import UPULoss, _softplus_stable
+from pu_toolbox.utils.activations import sigmoid_stable
 
 # ═════════════════════════════════════════════════════════════════════
 # Helper
@@ -107,7 +108,7 @@ class TestGoldenRiskValues:
         np.testing.assert_array_almost_equal(dP, np.full(n_P, -pi / n_P))
 
         # dU = sigmoid(u) / n_U
-        expected_dU = _sigmoid(u) / n_U
+        expected_dU = sigmoid_stable(u) / n_U
         np.testing.assert_array_almost_equal(dU, expected_dU)
 
 

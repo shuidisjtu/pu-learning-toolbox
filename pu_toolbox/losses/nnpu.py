@@ -29,16 +29,11 @@ from __future__ import annotations
 import numpy as np
 
 from ..core.base import BasePULoss
+from ..utils.activations import sigmoid_stable
 
 # ═════════════════════════════════════════════════════════════════════
 # Numerical helpers
 # ═════════════════════════════════════════════════════════════════════
-
-
-def _sigmoid_stable(z: np.ndarray) -> np.ndarray:
-    """Stable sigmoid: 1 / (1 + exp(−z))."""
-    z_clipped = np.clip(z, -500.0, 500.0)
-    return 1.0 / (1.0 + np.exp(-z_clipped))
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -145,9 +140,9 @@ class NonNegativePULoss(BasePULoss):
             raise ValueError("unlabeled_scores must not be empty.")
 
         # Component risks (Eqs. 4.1–4.3)
-        R_p_plus = float(np.mean(_sigmoid_stable(-positive_scores)))
-        R_p_minus = float(np.mean(_sigmoid_stable(positive_scores)))
-        R_u_minus = float(np.mean(_sigmoid_stable(unlabeled_scores)))
+        R_p_plus = float(np.mean(sigmoid_stable(-positive_scores)))
+        R_p_minus = float(np.mean(sigmoid_stable(positive_scores)))
+        R_u_minus = float(np.mean(sigmoid_stable(unlabeled_scores)))
 
         pi = class_prior
         r = R_u_minus - pi * R_p_minus  # negative-risk term

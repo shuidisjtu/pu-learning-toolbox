@@ -36,38 +36,13 @@ from ...core.tags import (
     SourceStatus,
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
-from ...losses.upu import _sigmoid, _softplus_stable
+from ...losses.upu import _softplus_stable
+from ...utils.activations import sigmoid_stable
 from ...utils.basis import (
     build_linear_basis,
     build_rbf_basis,
     subsample_centers,
 )
-
-# ═════════════════════════════════════════════════════════════════════
-# PU risk / score helpers
-# ═════════════════════════════════════════════════════════════════════
-
-
-def _pu_validation_risk(
-    scores_P: np.ndarray,
-    scores_U: np.ndarray,
-    class_prior: float,
-) -> float:
-    """Compute PU zero-one validation risk (paper Eq. 2 / method card §4.6).
-
-    R = 2π · frac(g(x_P) ≤ 0) + frac(g(x_U) > 0) − π
-
-    Note: this can be *negative* in finite samples; do NOT clip before
-    comparing across hyper-parameter candidates.
-    """
-    n_P = len(scores_P)
-    n_U = len(scores_U)
-    if n_P == 0 or n_U == 0:
-        return np.inf
-    f_n = float(np.mean(scores_P <= 0.0))  # P classified as negative
-    f_pu = float(np.mean(scores_U > 0.0))  # U classified as positive
-    return 2.0 * class_prior * f_n + f_pu - class_prior
-
 
 # ═════════════════════════════════════════════════════════════════════
 # Optimisation helpers
@@ -359,7 +334,7 @@ class UPUClassifier(BasePUClassifier):
         def gradient(theta: np.ndarray) -> np.ndarray:
             alpha, b = _unpack_theta(theta, n_basis, has_b)
             g_U = Phi_U @ alpha + b
-            sigma_U = _sigmoid(g_U)  # (n_U,)
+            sigma_U = sigmoid_stable(g_U)  # (n_U,)
 
             grad_alpha = -(pi / n_P) * sum_Phi_P + (1.0 / n_U) * (Phi_U.T @ sigma_U) + lam * alpha
             grad_b = -pi + float(np.mean(sigma_U))
@@ -483,6 +458,8 @@ class UPUClassifier(BasePUClassifier):
         Used for hyper-parameter selection (PU-CV).  Low values
         (possibly negative) indicate better models.
 
+        Delegates to :func:`pu_toolbox.metrics.pu_zero_one_risk`.
+
         Parameters
         ----------
         X : np.ndarray of shape (n_samples, n_features)
@@ -493,12 +470,10 @@ class UPUClassifier(BasePUClassifier):
         -------
         float
         """
-        from ...core.labels import normalize_pu_labels
+        from pu_toolbox.metrics.classification import pu_zero_one_risk
 
-        y_pu = normalize_pu_labels(y_pu)
-        scores = self._decision_function(X)
-        mask_P = y_pu == 1
-        return _pu_validation_risk(scores[mask_P], scores[~mask_P], self._class_prior)
+        scores = self.decision_function(X)
+        return pu_zero_one_risk(y_pu, scores, class_prior=self.class_prior_)
 
     # ── Metadata ─────────────────────────────────────────────────────
 

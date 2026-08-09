@@ -64,14 +64,14 @@ class TestPUZeroOneRisk:
         assert risk == pytest.approx(0.5, abs=1e-10)
 
     @pytest.mark.unit
-    def test_matches_upu_private_helper(self, rng):
-        from pu_toolbox.estimators.risk.upu import _pu_validation_risk
-
+    def test_matches_hand_computed_formula(self, rng):
+        # R = 2π·mean(s_P ≤ 0) + mean(s_U > 0) − π
         n = 200
         y_pu = np.array([1] * 60 + [0] * 140)
         scores = rng.randn(n)
         pi = 0.3
-        expected = _pu_validation_risk(scores[:60], scores[60:], pi)
+        scores_p, scores_u = scores[:60], scores[60:]
+        expected = 2.0 * pi * float(np.mean(scores_p <= 0.0)) + float(np.mean(scores_u > 0.0)) - pi
         actual = pu_zero_one_risk(y_pu, scores, class_prior=pi)
         assert actual == pytest.approx(expected, abs=1e-12)
 

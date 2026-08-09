@@ -12,8 +12,9 @@ import numpy as np
 import pytest
 
 from pu_toolbox.core.exceptions import ValidationError
-from pu_toolbox.estimators.risk.upu import UPUClassifier, _pu_validation_risk
+from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.losses.upu import UPULoss
+from pu_toolbox.metrics.classification import pu_zero_one_risk
 
 # ═════════════════════════════════════════════════════════════════════
 # Helpers
@@ -180,11 +181,9 @@ class TestSeparableBoundary:
                     random_state=42,
                 )
                 clf.fit(X_tr, y_tr)
-                r = _pu_validation_risk(
-                    clf.decision_function(X[fP[k]]),
-                    clf.decision_function(X[fU[k]]),
-                    pi,
-                )
+                fold_idx = np.concatenate([fP[k], fU[k]])
+                fold_y_pu = np.concatenate([np.ones(len(fP[k])), np.zeros(len(fU[k]))])
+                r = pu_zero_one_risk(fold_y_pu, clf.decision_function(X[fold_idx]), class_prior=pi)
                 fold_risks.append(r)
             if (m := float(np.mean(fold_risks))) < best_risk:
                 best_risk, best_lam = m, lam
@@ -319,7 +318,7 @@ class TestConvergenceAndSensitivity:
 
 
 # ═════════════════════════════════════════════════════════════════════
-# _pu_validation_risk unit tests
+# PU zero-one validation risk unit tests (via pu_zero_one_risk)
 # ═════════════════════════════════════════════════════════════════════
 
 
@@ -330,10 +329,12 @@ class TestValidationRisk:
     def test_basic_validation_risk_formula(self):
         """Hand-computed expected values."""
         # Perfect: all P>0, all U≤0 → f_n=0, f_pu=0 → R = −π
-        assert _pu_validation_risk(np.array([1.0, 2.0]), np.array([-1.0, -2.0]), 0.5) == -0.5
+        y_perfect = np.array([1, 1, 0, 0])
+        scores_perfect = np.array([1.0, 2.0, -1.0, -2.0])
+        assert pu_zero_one_risk(y_perfect, scores_perfect, class_prior=0.5) == -0.5
         # Random: f_n=0.5, f_pu=0.5 → R = 2·0.5·0.5 + 0.5 − 0.5 = 0.5
-        assert (
-            abs(_pu_validation_risk(np.array([1.0, -1.0]), np.array([1.0, -1.0]), 0.5) - 0.5) < 1e-9
-        )
+        y_random = np.array([1, 1, 0, 0])
+        scores_random = np.array([1.0, -1.0, 1.0, -1.0])
+        assert abs(pu_zero_one_risk(y_random, scores_random, class_prior=0.5) - 0.5) < 1e-9
         # Empty → inf
-        assert _pu_validation_risk(np.array([]), np.array([0.0]), 0.5) == np.inf
+        assert pu_zero_one_risk(np.array([0]), np.array([0.0]), class_prior=0.5) == np.inf

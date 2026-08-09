@@ -18,7 +18,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pu_toolbox.losses.nnpu import NonNegativePULoss, _sigmoid_stable
+from pu_toolbox.losses.nnpu import NonNegativePULoss
+from pu_toolbox.utils.activations import sigmoid_stable
 
 # ═════════════════════════════════════════════════════════════════════
 # Helper: reference sigmoid for hand-computation
@@ -200,6 +201,6 @@ class TestRiskInvariants:
     def test_deterministic_sigmoid_stable_symmetric(self):
         """σ(−z) = 1 − σ(z) (sigmoid symmetry)."""
         for z in [-10.0, -1.0, 0.0, 1.0, 10.0]:
-            s_neg = _sigmoid_stable(np.array([-z]))
-            s_pos = _sigmoid_stable(np.array([z]))
+            s_neg = sigmoid_stable(np.array([-z]))
+            s_pos = sigmoid_stable(np.array([z]))
             assert s_neg[0] == pytest.approx(1.0 - s_pos[0])

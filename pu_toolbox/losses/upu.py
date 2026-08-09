@@ -22,6 +22,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..core.base import BasePULoss
+from ..utils.activations import sigmoid_stable
 
 # ═════════════════════════════════════════════════════════════════════
 # Numerical helpers
@@ -31,13 +32,6 @@ from ..core.base import BasePULoss
 def _softplus_stable(z: np.ndarray) -> np.ndarray:
     """Compute log(1 + exp(z)) stably via logaddexp."""
     return np.logaddexp(0.0, z)
-
-
-def _sigmoid(z: np.ndarray) -> np.ndarray:
-    """Stable sigmoid: 1 / (1 + exp(−z))."""
-    # Clip to avoid overflow in exp.
-    z_clipped = np.clip(z, -500.0, 500.0)
-    return 1.0 / (1.0 + np.exp(-z_clipped))
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -149,7 +143,7 @@ class UPULoss(BasePULoss):
         dpos = np.full(n_P, -class_prior / n_P)
 
         if self.loss == "logistic":
-            dunl = _sigmoid(unlabeled_scores) / n_U
+            dunl = sigmoid_stable(unlabeled_scores) / n_U
         else:  # squared
             dunl = 0.5 * (unlabeled_scores + 1.0) / n_U
 

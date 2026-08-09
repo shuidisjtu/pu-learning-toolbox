@@ -8,6 +8,7 @@ change between minor releases.
 See ``docs/architecture.md`` for the package layering rationale.
 """
 
+from pu_toolbox.utils.activations import sigmoid_stable
 from pu_toolbox.utils.basis import (
     build_linear_basis,
     build_rbf_basis,
@@ -17,5 +18,6 @@ from pu_toolbox.utils.basis import (
 __all__ = [
     "build_linear_basis",
     "build_rbf_basis",
+    "sigmoid_stable",
     "subsample_centers",
 ]
