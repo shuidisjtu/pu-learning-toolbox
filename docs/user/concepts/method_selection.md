@@ -72,7 +72,8 @@ for c in result.candidates:
 - **Classic & Calibration**（Elkan-Noto）：经典校准路线，估计标记概率并校正输出，
   实现简单、SCAR 下的可靠基线。
 - **Bias-Aware / SAR**（PUSB / LBE / DGPU）：显式建模标记倾向。PUSB 面向 selection
-  bias、LBE 显式估计 labeling bias、DGPU 判别-生成联合建模。
+  bias、LBE 显式估计 labeling bias、DGPU 判别-生成联合建模（DGPU 同时见于 Deep PU
+  条目，族归属以 registry `Fam.DEEP_PU` 为准）。
 - **Deep PU**（Self-PU / InfoMax PU / WConPU / DGPU）：表征学习 + PU 风险修正。
   InfoMax PU 信息论表征 + 自动估计 π；WConPU 加权对比学习 + 难负样本挖掘；
   Self-PU 自训练 + meta reweight + 蒸馏（需要 clean validation）。

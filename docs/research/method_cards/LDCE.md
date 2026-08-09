@@ -406,7 +406,7 @@ class LDCEClassifier(BasePUClassifier):
 
 | 类别 | 数据集 / 规模 | 任务转换 |
 |---|---|---|
-| UCI | Vote (435×16)、Balance (625×4)、Breast (683×10)、Australian (690×14)、Banknote (1372×4)、Mushroom (8124×112)、PhishingWebsites (11055×30)、Connect-4 (67557×42)、Skin (245057×3) | 二分类；Connect-4 的第一类为正，其余为负 |
+| UCI | Vote (435×16)、Balance (625×4)、Breast (683×10)、Australian (690×14)、Banknote (1372×4)、Mushroom (8124×112)、PhishingWebsites (11055×30)、Connect-4 (67557×42；PUSB Table 2 manifest 锁定为 67557×126：不同预处理口径，见 benchmarks/assigned_methods/configs/pusb_table2_datasets.json)、Skin (245057×3) | 二分类；Connect-4 的第一类为正，其余为负 |
 | USPS | 9298 个 16×16 图像，256 维；"0"为正（1553 正、7745 负） | 手写数字 PU |
 | HockeyFight | 1000 视频（500 fight / 500 non-fight），100 维 BoW 特征 | 暴力行为 PU |
 | NBA | 1340 名新秀，22 属性 | 生涯超过 5 年为正 |
