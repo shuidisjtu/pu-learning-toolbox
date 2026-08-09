@@ -35,7 +35,6 @@ import warnings
 
 import numpy as np
 import scipy.optimize
-import scipy.spatial.distance
 from scipy.linalg import solve
 
 from ...core.base import BasePUClassifier
@@ -56,31 +55,18 @@ from ...utils.centroid import _centroid_covariance, _mom_centroid
 # ═════════════════════════════════════════════════════════════════════
 
 
-def _rbf_kernel(
-    X: np.ndarray,
-    Z: np.ndarray,
-    sigma: float,
-) -> np.ndarray:
-    """RBF / Gaussian kernel.
+def _rbf_kernel(X: np.ndarray, Z: np.ndarray, sigma: float) -> np.ndarray:
+    """RBF / Gaussian kernel (single-sourced in ``utils.basis``).
 
     .. math::
 
         K(x,z) = \\exp\\left(-\\frac{\\|x-z\\|^2}{2\\sigma^2}\\right)
 
-    Parameters
-    ----------
-    X : np.ndarray of shape (n, d)
-    Z : np.ndarray of shape (m, d)
-    sigma : float
-        Bandwidth.  Relation to sklearn gamma:
-        :math:`\\gamma = 1 / (2\\sigma^2)`.
-
-    Returns
-    -------
-    K : np.ndarray of shape (n, m)
+    Relation to sklearn gamma: ``gamma = 1 / (2 * sigma**2)``.
     """
-    sqdist = scipy.spatial.distance.cdist(X, Z, "sqeuclidean")
-    return np.exp(-sqdist / (2.0 * sigma**2))
+    from pu_toolbox.utils.basis import build_rbf_basis
+
+    return build_rbf_basis(X, Z, sigma)
 
 
 # ═════════════════════════════════════════════════════════════════════

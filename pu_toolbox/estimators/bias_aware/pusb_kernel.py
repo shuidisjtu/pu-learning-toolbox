@@ -43,7 +43,12 @@ def _squared_distances(X: np.ndarray, centers: np.ndarray) -> np.ndarray:
 
 
 def _rbf_design(distances: np.ndarray, sigma: float) -> np.ndarray:
-    """Build the official RBF design matrix and append an intercept column."""
+    """Build the official RBF design matrix and append an intercept column.
+
+    Formula identical to ``utils.basis.build_rbf_basis``, but the input is
+    a precomputed squared-distance matrix (plus an appended intercept
+    column), so the two are intentionally not merged.
+    """
     kernel = np.exp(-distances / (2.0 * sigma**2))
     return np.column_stack((kernel, np.ones(kernel.shape[0], dtype=float)))
 
