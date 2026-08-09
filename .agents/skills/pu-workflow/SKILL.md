@@ -92,7 +92,7 @@ The recommender needs a class prior only for methods that require one
 **Checkpoint 2 (mandatory):** if the user has not supplied a class
 prior, STOP and offer exactly two options:
 
-1. Auto-estimate (`recpe`, `km1`, or `km2`; pass `--prior-estimator`).
+1. Auto-estimate (`recpe`, `pen_l1`, `km1`, or `km2`; pass `--prior-estimator`).
 2. Supply a domain value (`--class-prior 0.3`).
 
 Wait for the user's choice. If the user explicitly declines a prior,
@@ -106,7 +106,7 @@ needed):
 uv run python scripts/pu_workflow/recommend.py \
   --profile <work_dir>/profile.json \
   [--data <X.csv> --labels <y_pu.csv>] \
-  [--class-prior <value> | --prior-estimator recpe|km1|km2] \
+  [--class-prior <value> | --prior-estimator recpe|pen_l1|km1|km2] \
   [--top-k 5] [--has-gpu] \
   --out-dir <work_dir>
 ```
