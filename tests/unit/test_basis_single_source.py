@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from pu_toolbox.estimators.risk.kldce import _rbf_kernel
-from pu_toolbox.utils.basis import build_rbf_basis
+from pu_toolbox.utils.basis import build_rbf_basis, rbf_weights
 
 
 @pytest.mark.unit
@@ -61,3 +61,13 @@ def test_determ_rbf_reproducible():
     first = build_rbf_basis(X, Z, 0.9)
     second = build_rbf_basis(X, Z, 0.9)
     assert np.array_equal(first, second)
+
+
+@pytest.mark.unit
+def test_param_rbf_weights_matches_basis_matrix_column():
+    """rbf_weights(X, w) == build_rbf_basis(X, zeros((1, d)), w)[:, 0]."""
+    rng = np.random.default_rng(0)
+    X = rng.standard_normal((7, 3))
+    w = 1.7
+    expected = build_rbf_basis(X, np.zeros((1, 3)), w)[:, 0]
+    np.testing.assert_allclose(rbf_weights(X, w), expected, atol=1e-12)

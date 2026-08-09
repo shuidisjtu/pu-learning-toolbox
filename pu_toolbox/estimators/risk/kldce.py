@@ -368,14 +368,12 @@ def _rbf_centroid_delta(
     delta : np.ndarray of shape (d,)
         Update direction (row vector).
     """
+    from pu_toolbox.utils.basis import rbf_weights
+
     n, d = X.shape
     scale = 1.0 / (2.0 * lambda_ * sigma**2)
 
-    # exp(-||x_i||^2 / (2σ^2)) for all samples
-    sq_norms = np.sum(X**2, axis=1)  # (n,)
-    # Same Gaussian formula as utils.basis.build_rbf_basis (centers=0),
-    # but as a per-sample weight vector here, not an (n, m) basis matrix.
-    weights = np.exp(-sq_norms / (2.0 * sigma**2))  # (n,)
+    weights = rbf_weights(X, sigma)  # (n,) zero-centered Gaussian weights
 
     # α contribution (all samples, negative sign)
     alpha_weighted = alpha * y_tilde * weights  # (n,)

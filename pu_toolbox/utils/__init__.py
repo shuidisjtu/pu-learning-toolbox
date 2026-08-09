@@ -12,12 +12,14 @@ from pu_toolbox.utils.activations import sigmoid_stable
 from pu_toolbox.utils.basis import (
     build_linear_basis,
     build_rbf_basis,
+    rbf_weights,
     subsample_centers,
 )
 
 __all__ = [
     "build_linear_basis",
     "build_rbf_basis",
+    "rbf_weights",
     "sigmoid_stable",
     "subsample_centers",
 ]
