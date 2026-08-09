@@ -30,7 +30,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pnu_X_y
+from ...core.validation import check_scalar_in_range, validate_pnu_X_y
 from ...losses.pnu import (
     _compute_nu_risk_squared,
     _compute_pn_risk,
@@ -167,8 +167,7 @@ class PNUClassifier(BasePUClassifier):
 
         # ── Resolve parameters ──────────────────────────────────────
         pi = class_prior if class_prior is not None else self.class_prior
-        if not (0.0 < pi < 1.0):
-            raise ValueError(f"class_prior must be in (0, 1); got {pi}.")
+        check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
         if not (-1.0 <= self.eta <= 1.0):
             raise ValueError(f"eta must be in [-1, 1]; got {self.eta}.")
         if self.reg_lambda <= 0:

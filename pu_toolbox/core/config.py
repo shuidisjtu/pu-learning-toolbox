@@ -11,7 +11,6 @@ UNLABELED_LABEL: int = 0
 NEGATIVE_LABEL: int = -1
 
 # ── Numeric defaults ───────────────────────────────────────────────
-DEFAULT_RANDOM_SEED: int = 42
 CLASS_PRIOR_CLIP_EPS: float = 1e-12    # floor / ceil for π ∈ (0, 1)
 PROPENSITY_CLIP_EPS: float = 1e-12     # floor / ceil for c ∈ (0, 1]
 

@@ -117,26 +117,6 @@ def check_scalar_in_range(
         raise ValueError(f"{name} must be in {brack[0]}{low}, {high}{brack[1]}; got {value}.")
 
 
-def check_positive(value: float, name: str, *, allow_zero: bool = False) -> None:
-    """Raise ``ValueError`` if *value* is not strictly positive.
-
-    Parameters
-    ----------
-    value : float
-    name : str
-    allow_zero : bool
-        If ``True``, accept ``value >= 0``.
-
-    Raises
-    ------
-    ValueError
-    """
-    cmp = value >= 0.0 if allow_zero else value > 0.0
-    if not cmp:
-        qual = ">= 0" if allow_zero else "> 0"
-        raise ValueError(f"{name} must be {qual}; got {value}.")
-
-
 # ═════════════════════════════════════════════════════════════════════
 # PU data validation (P/U only)
 # ═════════════════════════════════════════════════════════════════════

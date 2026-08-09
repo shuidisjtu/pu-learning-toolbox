@@ -35,19 +35,13 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...losses.upu import _sigmoid, _softplus_stable
 from ...utils.basis import (
     build_linear_basis,
     build_rbf_basis,
     subsample_centers,
 )
-
-# ── Backwards-compatible private aliases (used internally) ──────────
-_build_linear_basis = build_linear_basis
-_build_rbf_basis = build_rbf_basis
-_subsample_centers = subsample_centers
-
 
 # ═════════════════════════════════════════════════════════════════════
 # PU risk / score helpers
@@ -235,8 +229,7 @@ class UPUClassifier(BasePUClassifier):
 
         # ── Resolve class_prior ───────────────────────────────────────
         pi = class_prior if class_prior is not None else self.class_prior
-        if not (0.0 < pi < 1.0):
-            raise ValueError(f"class_prior must be in (0, 1); got {pi}.")
+        check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
         self._class_prior = pi
         self.class_prior_ = pi
 
@@ -263,7 +256,7 @@ class UPUClassifier(BasePUClassifier):
 
         # ── Build basis ───────────────────────────────────────────────
         if self.basis == "linear":
-            _phi = _build_linear_basis
+            _phi = build_linear_basis
             n_basis = d
             centers = None
         elif self.basis == "rbf":
@@ -272,12 +265,12 @@ class UPUClassifier(BasePUClassifier):
                     f"kernel_width must be > 0 for basis='rbf'; got {self.kernel_width}."
                 )
             n_centers_val = self.n_centers if self.n_centers is not None else min(200, n_U)
-            centers = _subsample_centers(X_U, n_centers_val, rng)
+            centers = subsample_centers(X_U, n_centers_val, rng)
             n_basis = centers.shape[0]
             kw = self.kernel_width
 
             def _phi(X_in: np.ndarray) -> np.ndarray:
-                return _build_rbf_basis(X_in, centers, kw)
+                return build_rbf_basis(X_in, centers, kw)
         else:
             raise ValueError(f"Unknown basis {self.basis!r}.")
 
@@ -468,9 +461,9 @@ class UPUClassifier(BasePUClassifier):
         """g(x) = αᵀ φ(x) + b."""
         self._check_is_fitted()
         Phi = (
-            _build_linear_basis(X)
+            build_linear_basis(X)
             if self.basis == "linear"
-            else _build_rbf_basis(X, self._centers_, self._kw_)
+            else build_rbf_basis(X, self._centers_, self._kw_)
         )
         return Phi @ self.coef_ + self.intercept_
 

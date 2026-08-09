@@ -143,6 +143,7 @@ tests/
       test_kldce_property.py          # KLDCE 约束/鲁棒性 (PROPERTY)
 
   unit/                               # 算法特有逻辑测试
+    test_basis_single_source.py       # 单一数据源 RBF kernel 公式一致性
     diagnostics/
       test_report.py                  # 诊断报告指标、输入契约与序列化
       test_sensitivity.py             # 假设扫描公式、边界与导出
@@ -155,6 +156,8 @@ tests/
       test_dist_pu.py                 # Dist-PU 特有逻辑
       test_self_pu.py                 # Self-PU pace/meta/EMA/三阶段训练
       test_deep_pu.py                 # InfoMax PU/WConPU/DGPU 接口与 registry
+      test_deep_pu_vision.py          # WConPU 视觉骨干与张量增强
+      test_vision.py                  # 统一深度编码器入口 build_encoder
       test_llsvm.py                   # LLSVM 特有逻辑
     losses/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
@@ -173,22 +176,38 @@ tests/
       test_selection_bias.py          # SCAR/SAR propensity、标记率校准与合成数据
       test_profiling.py               # 数据画像统计
       test_data_profiler.py           # 结构化报告、质量规则与审计诊断
-    registry/
+    scripts/
+      test_check_doc_links.py         # 文档链接门禁(orphan/md-link)脚本测试
+      test_check_format.py            # 格式门禁(ruff lint+format)脚本测试
+      test_check_math_rendering.py    # MathJax 渲染门禁脚本测试
+      test_check_skill_sync.py        # skill 双份一致性门禁脚本测试
+      test_check_test_quality_exemptions.py  # 测试质量门禁豁免审查测试
+    workflow_scripts/
+      test_profile_script.py          # pu-workflow profile 步骤脚本测试
+      test_recommend_script.py        # pu-workflow recommend 步骤脚本测试
+      test_sensitivity_script.py      # pu-workflow sensitivity 步骤脚本测试
     advisor/
       test_recommender.py             # 算法推荐器过滤、评分与输出
+      test_scoring_rules.py           # 推荐评分规则与推荐器边界
     workflows/
       test_pipeline.py                # PUPipeline 全流程/先验解析/错误/可用性/确定性
+      test_pipeline_deep.py           # PUPipeline 深度算法集成（架构选择）
     cli/
       test_cli_main.py                # CLI 入口冒烟
       test_run.py                     # run 子命令
+      test_run_deep.py                # run 子命令深度架构路径（.npy 输入 + 参数）
       test_info.py                    # list-methods / list-priors 子命令
       test_demo.py                    # make-demo-data 子命令
 
   benchmarks/                        # Benchmark runner 测试
     test_assigned_benchmark_runner.py     # 前五篇 benchmark runner 测试
-    test_pusb_official_data.py             # PUSB 官方数据构造、runner 与 provenance
+    test_assigned_preflight.py            # 前五篇 paper-run 就绪审计测试
     test_deep_pu_benchmark_runner.py      # 深度 PU runner 测试
+    test_deep_pu_model_selection.py       # 深度 PU runner 的 clean-validation 模型选择测试
     test_deep_pu_official_data.py         # 官方数据加载与 split 测试
+    test_pusb_official_data.py             # PUSB 官方数据构造、runner 与 provenance
+    test_pusb_table2_benchmark.py         # claim-safe PUSB Table 2 benchmark runner 测试
+    test_pusb_table2_data.py              # 锁定 PUSB Table 2 数据集 loader 与采样审计测试
 
 ```
 

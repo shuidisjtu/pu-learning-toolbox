@@ -250,7 +250,7 @@ v1 仅支持 squared loss 闭式解，无 `max_iter`/`tol`/`eta_grid` 参数。
 | 模块 | 责任 | 状态 |
 |---|---|---|
 | `pu_toolbox/estimators/risk/pnu.py` | `PNUClassifier` — 闭式解训练 + sklearn API。 | ✅ 已实现 |
-| `pu_toolbox/losses/pnu.py` | PN/PU/NU/PNU 风险函数 + `PNULoss` 诊断类 + `_eta_to_gamma()`。 | ✅ 已实现 |
+| `pu_toolbox/losses/pnu.py` | PN/PU/NU/PNU 风险函数 + `_eta_to_gamma()`。 | ✅ 已实现 |
 | `pu_toolbox/utils/basis.py` | `resolve_basis_fn()` — 共享的 basis 工厂（uPU + PNU 共用）。 | ✅ 已实现 |
 | `pu_toolbox/core/labels.py` | `normalize_pnu_labels()` — P/N/U ternary 标签验证。 | ✅ 已实现 |
 | `pu_toolbox/core/validation.py` | `validate_pnu_X_y()` — PNU 输入校验 + 不平衡比例警告。 | ✅ 已实现 |

@@ -265,7 +265,7 @@ class ClassPriorEstimator(BasePriorEstimator):
 
 | 模块 | 责任 | 状态 |
 |---|---|---|
-| `pu_toolbox/prior/pen_l1.py` | `ClassPriorEstimator` / `PenL1Estimator` | ✅ penL1 |
+| `pu_toolbox/prior/pen_l1.py` | `ClassPriorEstimator` | ✅ penL1 |
 | `pu_toolbox/prior/__init__.py` | 公开导出 | ✅ |
 | `pu_toolbox/registry/builtin_methods.py` | class-prior metadata 和 binding | ✅ |
 | `tests/unit/prior/test_pen_l1.py` | 闭式目标 smoke、确定性、边界测试 | ✅ |

@@ -31,6 +31,7 @@
 | [dev/roadmap.md](dev/roadmap.md) | 版本路线与阶段叙事 |
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/resources.md](dev/resources.md) | 论文源码状态与集成策略 |
+| [dev/architecture_audit.md](dev/architecture_audit.md) | 架构健康度审计报告（信号清单、行动项与治理状态） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
 
 ## 项目过程（docs/project_management/）

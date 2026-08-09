@@ -26,7 +26,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...losses.llsvm import llsvm_objective
 
 
@@ -176,8 +176,7 @@ class LLSVMClassifier(BasePUClassifier):
 
         # Class prior
         if class_prior is not None:
-            if not (0.0 < class_prior < 1.0):
-                raise ValueError(f"class_prior must be in (0, 1), got {class_prior}")
+            check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
             self.class_prior_ = float(class_prior)
         else:
             from ...prior.pen_l1 import ClassPriorEstimator

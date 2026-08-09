@@ -353,6 +353,8 @@ class NonNegativePUClassifier(BasePUClassifier):
     def __init__(
         self,
         model=None,
+        *,
+        class_prior=None,
         loss="sigmoid",
         beta=0.0,
         gamma=1.0,
@@ -361,6 +363,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         max_epochs=200,
         patience=20,
         random_state=None,
+        device=None,
     ):
 ```
 
@@ -369,6 +372,7 @@ class NonNegativePUClassifier(BasePUClassifier):
 | 参数 | 约束 |
 |---|---|
 | `model` | 输出 shape `(n_samples,)` 或 `(n_samples, 1)` 的实值分数 |
+| `class_prior` | 正类先验 π，`(0,1)`；fit 时可用同名参数覆盖 |
 | `loss` | 初始版本仅 `"sigmoid"`；自定义 loss 需满足第 5.3 节协议 |
 | `beta` | `>= 0`；sigmoid 下建议同时校验 `beta <= class_prior` |
 | `gamma` | `[0,1]` |
@@ -376,6 +380,7 @@ class NonNegativePUClassifier(BasePUClassifier):
 | `batch_size` | 应能为 P、U 分别产生非空批次 |
 | `patience` | 早停耐心轮数（正整数）；仅传入 `validation_data` 时生效 |
 | `max_epochs` | 正整数 |
+| `device` | torch 设备（如 `"cpu"`/`"cuda"`）；为 `None` 时 CUDA 可用则用 CUDA，否则 CPU |
 
 ### 7.2 方法映射
 

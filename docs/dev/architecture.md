@@ -158,7 +158,7 @@ class BasePULoss(ABC):
 
 ### 算法推荐器
 
-`advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配（用户侧的选型决策原理见 [`../../user/concepts/method_selection.md`](../../user/concepts/method_selection.md)）：
+`advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配（用户侧的选型决策原理见 [`../user/concepts/method_selection.md`](../user/concepts/method_selection.md)）：
 
 1. **硬过滤**：trainable、scenario、sparse 支持、class_prior 可用性
 2. **软评分**：assumption 匹配 + maturity + source_status + 数据规模 + 训练成本 + GPU + 标记充足度
@@ -184,7 +184,7 @@ class BasePULoss(ABC):
 | 标记倾向 $c(x)$ (SAR) | ✅ LBE, ✅ PUSB |
 | PU 风险/损失 | ✅ uPU, ✅ nnPU, ✅ PNU, ✅ Dist-PU |
 
-> † 扩展参考（不在 v1 范围内），非 15 篇核心论文方法。
+> † 扩展参考（不在 v1 范围内），非 17 篇核心论文方法（"17 篇"含 KLDCE 核化变体与 PUSBKernel，非严格论文数）。
 
 ## 8. 论文方法到模块的映射
 

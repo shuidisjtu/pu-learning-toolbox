@@ -2,13 +2,16 @@
 """Documentation-code consistency gate.
 
 Rules:
-1. **Path references** -- every ``path/file.py`` in docs must exist on disk.
+1. **Path references** -- every ``path/file.{py,md}`` in docs must exist on disk.
 2. **(planned) consistency** -- ``project_structure.md`` tree must match
    actual file existence.
 3. **Architecture S8 mapping** -- ``architecture.md`` S8 table must agree
    with registry NATIVE methods.
-4. **Index completeness** -- ``docs/README.md`` must list all doc files;
+4. **Index completeness** -- ``docs/README.md`` must list all doc files
+   (whole docs tree; directory entries cover their subtree);
    ``scripts/`` must be mentioned in README/CLAUDE.md.
+5. **Markdown links** -- every md link target must exist on disk
+   (external URLs and ``#`` anchors are skipped).
 
 Usage::
 
@@ -42,27 +45,22 @@ VALID_PATH_ROOTS: tuple[str, ...] = (
     "external",
 )
 
-# Regex: backtick-wrapped paths like `pu_toolbox/core/base.py`
+# Regex: backtick-wrapped paths like `pu_toolbox/core/base.py` or
+# `docs/dev/project_structure.md`.
 _PATH_ROOT_ALT = "|".join(VALID_PATH_ROOTS)
-PATH_PATTERN = re.compile(rf"`((?:{_PATH_ROOT_ALT})/[^`]+\.py)`")
+PATH_PATTERN = re.compile(rf"`((?:{_PATH_ROOT_ALT})/[^`]+\.(?:py|md))`")
+
+# Regex: markdown links `[label](target)`; the target may be an external
+# URL, an in-file anchor, or a relative path (see _extract_md_link_targets).
+MD_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 # Files in docs/ that are NOT expected to appear in docs/README.md.
 DOC_INDEX_EXCLUDED: set[str] = {"README.md"}
 
-# Docs subdirectories excluded from ALL checks.
-_EXCLUDED_DOC_DIRS: set[str] = {
-    "research",
-    "superpowers",
-    "figures",
-    "project_management",
-}
-
-# Files in docs/project_management/ expected to be listed.
-PM_FILES_EXPECTED: set[str] = {
-    "decision_log.md",
-    "process_checklist.md",
-    "cli_design.md",
-}
+# Docs subdirectories excluded from ALL checks. research/ (method cards)
+# and project_management/ are in scope: they are the densest citation
+# sources and must not be wholesale-exempted.
+_EXCLUDED_DOC_DIRS: set[str] = {"superpowers", "figures"}
 
 
 # ====================================================================
@@ -107,14 +105,49 @@ def _find_md_files() -> list[Path]:
 
 
 def _extract_backtick_paths(text: str) -> list[tuple[str, int]]:
-    """Return (path, 1-indexed line_number) for every `root/.../file.py`."""
+    """Return (path, 1-indexed line_number) for every `root/.../file.{py,md}`.
+
+    Tokens containing glob characters (``{``, ``*``, ``?``) are list-style
+    shorthand (e.g. ``pu_toolbox/estimators/deep/{infomax_pu,vision}.py``),
+    not claims about a single file, so they are skipped.
+    """
     results: list[tuple[str, int]] = []
     for match in PATH_PATTERN.finditer(text):
         path = match.group(1)
         if "/" not in path:
             continue
+        if any(c in path for c in ("{", "}", "*", "?")):
+            continue
         line_no = text[: match.start()].count("\n") + 1
         results.append((path, line_no))
+    return results
+
+
+def _normalize_md_target(raw: str) -> str | None:
+    """Return the file part of a markdown link target, or None if it is
+    not a file reference (empty, external URL, or pure ``#`` anchor).
+
+    The fragment of a relative target (``doc.md#sec``) is stripped.
+    """
+    target = raw.strip().split("#", 1)[0].strip()
+    if not target or target.startswith(("http://", "https://", "mailto:")):
+        return None
+    return target
+
+
+def _extract_md_link_targets(text: str) -> list[tuple[str, int]]:
+    """Return (target, 1-indexed line_number) for every markdown link.
+
+    External URLs (``http://``, ``https://``, ``mailto:``) and in-file
+    anchors (``#section``) are not file references and are skipped.
+    """
+    results: list[tuple[str, int]] = []
+    for match in MD_LINK_PATTERN.finditer(text):
+        target = _normalize_md_target(match.group(1))
+        if target is None:
+            continue
+        line_no = text[: match.start()].count("\n") + 1
+        results.append((target, line_no))
     return results
 
 
@@ -124,7 +157,7 @@ def _extract_backtick_paths(text: str) -> list[tuple[str, int]]:
 
 
 def check_path_references(md_files: list[Path]) -> list[Issue]:
-    """Rule 1: every `path/file.py` in docs must exist on disk."""
+    """Rule 1: every `path/file.{py,md}` in docs must exist on disk."""
     issues: list[Issue] = []
     for md_file in md_files:
         text = md_file.read_text(encoding="utf-8")
@@ -136,6 +169,30 @@ def check_path_references(md_files: list[Path]) -> list[Issue]:
                         _relative(md_file),
                         line_no,
                         f"referenced file not found: `{ref_path}`",
+                        "error",
+                    )
+                )
+    return issues
+
+
+def check_md_links(md_files: list[Path]) -> list[Issue]:
+    """Rule 5: every markdown link target (file or dir) must exist on disk.
+
+    Targets are resolved relative to the source document. External URLs
+    (http/https/mailto) and in-file anchors (#section) are skipped by
+    ``_extract_md_link_targets``.
+    """
+    issues: list[Issue] = []
+    for md_file in md_files:
+        text = md_file.read_text(encoding="utf-8")
+        for target, line_no in _extract_md_link_targets(text):
+            if not (md_file.parent / target).exists():
+                issues.append(
+                    Issue(
+                        "rule-5",
+                        _relative(md_file),
+                        line_no,
+                        f"markdown link target not found: `{target}`",
                         "error",
                     )
                 )
@@ -321,6 +378,29 @@ def _parse_arch_section8_table(text: str) -> dict[str, int | None]:
     return entries
 
 
+def _index_link_targets(index_text: str) -> set[str]:
+    """Link targets used by an index file, e.g. ``user/quickstart.md``."""
+    targets: set[str] = set()
+    for match in MD_LINK_PATTERN.finditer(index_text):
+        target = _normalize_md_target(match.group(1))
+        if target is not None:
+            targets.add(target)
+    return targets
+
+
+def _is_indexed(rel: str, index_targets: set[str]) -> bool:
+    """True if *rel* (e.g. ``user/quickstart.md``) is listed by the index.
+
+    An exact entry (``research/method_cards/PUSB.md``) or an ancestor
+    directory entry (``research/method_cards/`` covers every card below
+    it) both count.
+    """
+    if rel in index_targets:
+        return True
+    parts = rel.split("/")
+    return any("/".join(parts[:i]) + "/" in index_targets for i in range(1, len(parts)))
+
+
 def check_index_completeness(
     docs_readme: Path,
     root_readme: Path,
@@ -329,51 +409,37 @@ def check_index_completeness(
     """Rule 4: docs/README.md lists all doc files; scripts mentioned somewhere.
 
     Two sub-checks:
-    a) Every .md file directly under docs/ (excluding subdirs) should
-       appear in docs/README.md.
+    a) Every .md file under docs/ (whole tree, excluding superpowers/
+       figures and README.md) should be listed in docs/README.md, either
+       directly or via a listed ancestor directory.
     b) Every .py script in scripts/ should be mentioned by basename
        in README.md or CLAUDE.md.
     """
     issues: list[Issue] = []
 
-    # -- 4a: docs/README.md lists all top-level doc files --
+    # -- 4a: docs/README.md lists all in-scope doc files (whole tree) --
     if not docs_readme.exists():
         issues.append(Issue("rule-4", "docs/README.md", None, "docs/README.md not found", "error"))
     else:
-        text = docs_readme.read_text(encoding="utf-8")
+        index_targets = _index_link_targets(docs_readme.read_text(encoding="utf-8"))
+        docs_dir = docs_readme.parent
 
-        for p in sorted(DOCS_DIR.iterdir()):
-            if (
-                p.is_file()
-                and p.suffix == ".md"
-                and p.name not in DOC_INDEX_EXCLUDED
-                and p.name not in text
-            ):
+        for p in sorted(docs_dir.rglob("*.md")):
+            if any(p.is_relative_to(docs_dir / d) for d in _EXCLUDED_DOC_DIRS):
+                continue
+            if p.name in DOC_INDEX_EXCLUDED:
+                continue
+            rel = p.relative_to(docs_dir).as_posix()
+            if not _is_indexed(rel, index_targets):
                 issues.append(
                     Issue(
                         "rule-4",
                         _relative(docs_readme),
                         None,
-                        f"`{p.name}` exists under docs/ but is not listed in docs/README.md",
+                        f"`{rel}` exists under docs/ but is not listed in docs/README.md",
                         "error",
                     )
                 )
-
-        # Check project_management files
-        pm_dir = DOCS_DIR / "project_management"
-        if pm_dir.exists():
-            for p in sorted(pm_dir.iterdir()):
-                if p.name in PM_FILES_EXPECTED and p.name not in text:
-                    issues.append(
-                        Issue(
-                            "rule-4",
-                            _relative(docs_readme),
-                            None,
-                            f"`project_management/{p.name}` exists but is not "
-                            f"listed in docs/README.md",
-                            "warning",
-                        )
-                    )
 
     # -- 4b: scripts/ mentioned in README.md or CLAUDE.md --
     if SCRIPTS_DIR.exists():
@@ -444,6 +510,10 @@ def main() -> int:
     issues = check_index_completeness(docs_readme, root_readme, claude_md)
     all_issues.extend(issues)
     _print_rule_report("Rule 4: Index completeness", issues)
+
+    issues = check_md_links(md_files)
+    all_issues.extend(issues)
+    _print_rule_report("Rule 5: Markdown link targets", issues)
 
     # Final verdict
     print()

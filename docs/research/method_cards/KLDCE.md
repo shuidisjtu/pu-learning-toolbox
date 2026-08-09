@@ -329,15 +329,16 @@ and box_violation <= feasibility_tol
 1. 收集**自由 α 和自由 γ**：$`0<\alpha_i<C_1`$ 或 $`0<\gamma_i<C_2`$。
 2. 由 KKT margin 条件：
    - 对自由 α（$`\tilde y_i=+1`$）：$`b_i=1-g_i`$
-   - 对自由 γ（$`\tilde y_i=-1`$）：$`b_i=1-g_i`$（无标签样本标签为 -1，KKT 条件为 $`-1\cdot(g_i+b)\ge 1`$，自由时取等号得 $`b=1-g_i`$）
+   - 对自由 α（$`\tilde y_i=-1`$）：$`b_i=-1-g_i`$
+   - 对自由 γ（无标签样本，$`\tilde y_{k+j}=-1`$）：$`b_i=-1-g_i`$（KKT 条件为 $`-1\cdot(g_i+b)\ge 1`$，自由时取等号得 $`b=-1-g_i`$）
    其中 $`g_i=f(x_i)-b_0`$（决策分数不含 bias），$`f(x_i)`$ 按式 (25) 计算。对所有自由变量得到的 $`b_i`$ 取中位数。
 3. **无自由变量时**（α 和 γ 全部在边界）：由六种 KKT 边界构造可行区间：
 ```math
 \begin{aligned}
 L=\max(&\{1-g_i\mid\alpha_i=0,\tilde y_i=+1\}\cup\{-1-g_i\mid\alpha_i=C_1,\tilde y_i=-1\}\;\cup\\
-       &\{1-g_i\mid\gamma_i=0,\tilde y_i=-1\}\\
+       &\{-1-g_i\mid\gamma_i=C_2,\tilde y_i=-1\}\\
 U=\min(&\{1-g_i\mid\alpha_i=C_1,\tilde y_i=+1\}\cup\{-1-g_i\mid\alpha_i=0,\tilde y_i=-1\}\;\cup\\
-       &\{1-g_i\mid\gamma_i=C_2,\tilde y_i=-1\}
+       &\{-1-g_i\mid\gamma_i=0,\tilde y_i=-1\}
 \end{aligned}
 ```
 若 $`L\le U`$ 取中点；否则标记 `indeterminate`，$`b_0=0`$。

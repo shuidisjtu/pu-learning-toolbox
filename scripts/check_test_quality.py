@@ -11,6 +11,9 @@ Rules (aligned with ``docs/project_structure.md`` §3):
    - *param*  — parameter validation / error paths
    - *edge*   — boundary conditions / empty inputs / extremes
    - *determ* — determinism / seed reproducibility
+4. **Exemptions**: the two exemption lists are reprinted (with reasons)
+   every run, and any listed file whose coverage now satisfies the rules
+   is flagged as removable — informational only, never affects exit code.
 
 Usage::
 
@@ -87,24 +90,27 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     ],
 }
 
-# Files exempt from the ≤15 limit (cross-cutting contract / registry).
-UNLIMITED_FILES: set[str] = {
-    "test_classifier_baseline.py",  # contract: unified API + baseline for all NATIVE
-    "test_builtin_methods.py",  # registry metadata completeness
-    "test_registry.py",  # registry mechanics
-    "test_import.py",  # smoke imports
-    "test_kldce_math.py",  # MATH formula verification (includes merged QP oracle tests)
+# Files exempt from the ≤15 limit (cross-cutting contract / registry),
+# keyed by file name with the reason each exemption was granted.  The
+# exemption review (``review_exemptions``) flags entries whose coverage
+# no longer needs the exemption, so the lists can shrink.
+UNLIMITED_FILES: dict[str, str] = {
+    "test_classifier_baseline.py": "contract: unified API + baseline for all NATIVE",
+    "test_builtin_methods.py": "registry metadata completeness",
+    "test_registry.py": "registry mechanics",
+    "test_import.py": "smoke imports",
+    "test_kldce_math.py": "MATH formula verification (includes merged QP oracle tests)",
 }
 
 # Files whose algorithms are fully covered by contract tests
 # (test_classifier_baseline.py), so they do not need to independently
 # cover all 4 categories (basic / param / edge / determ).
-CONTRACT_COVERED_FILES: set[str] = {
-    "test_bias_aware.py",
-    "test_dist_pu.py",
-    "test_import.py",
-    "test_kldce_property.py",
-    "test_pen_l1.py",
+CONTRACT_COVERED_FILES: dict[str, str] = {
+    "test_bias_aware.py": "algorithm covered by contract tests",
+    "test_dist_pu.py": "algorithm covered by contract tests",
+    "test_import.py": "smoke imports",
+    "test_kldce_property.py": "algorithm covered by contract tests",
+    "test_pen_l1.py": "algorithm covered by contract tests",
 }
 
 
@@ -214,6 +220,43 @@ def _relative(path: Path) -> str:
         return str(path)
 
 
+def review_exemptions(reports: list[ModuleReport], max_tests: int = 15) -> None:
+    """Print the exemption lists and flag entries that no longer need them.
+
+    Governance aid for the two hand-maintained exemption lists: they are
+    reprinted (with reasons) every run, and any listed file whose current
+    category coverage satisfies the rules (≥ 3 of 4) is reported as
+    removable so the lists can shrink.  For UNLIMITED_FILES the hint is
+    only emitted when the file's test count is within the ≤ max_tests
+    limit — the count exemption is genuinely no longer needed.  A file
+    kept exempt for the count rule (e.g. a 20-test file) would break the
+    gate if de-listed despite full coverage, so it must not be flagged.
+    Informational only — this never contributes to the exit code.
+    """
+    print("\n─ Exemption review ─")
+    print("  UNLIMITED_FILES (exempt from the ≤15 test limit):")
+    for name, reason in sorted(UNLIMITED_FILES.items()):
+        print(f"    {name} — {reason}")
+    print("  CONTRACT_COVERED_FILES (covered by contract tests):")
+    for name, reason in sorted(CONTRACT_COVERED_FILES.items()):
+        print(f"    {name} — {reason}")
+    for r in reports:
+        covered = len(r.categories_found)
+        if covered < 3:
+            continue
+        rel = _relative(r.path)
+        if r.path.name in UNLIMITED_FILES and r.n_tests <= max_tests:
+            print(
+                f"  INFO: {rel} may be removable from UNLIMITED_FILES "
+                f"(covers {covered}/4 categories)"
+            )
+        if r.path.name in CONTRACT_COVERED_FILES:
+            print(
+                f"  INFO: {rel} may be removable from CONTRACT_COVERED_FILES "
+                f"(covers {covered}/4 categories)"
+            )
+
+
 def main(max_tests: int = 15, strict: bool = False) -> int:
     """Run all checks and return exit code (0 = clean, 1 = issues found)."""
     # Ensure UTF-8 output on Windows terminals.
@@ -276,6 +319,9 @@ def main(max_tests: int = 15, strict: bool = False) -> int:
             print(f"  {rel}: missing {sorted(r.categories_missing)}")
     if coverage_ok:
         print("  ✓ all files cover required categories (or missing ≤1 in relaxed mode)")
+
+    # ── 4. Exemption review (informational, never affects exit code) ─
+    review_exemptions(reports, max_tests)
 
     # ── Final verdict ───────────────────────────────────────────────
     print()

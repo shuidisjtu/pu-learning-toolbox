@@ -63,6 +63,15 @@ class TestPriorCalculation:
         with pytest.raises(ValueError, match="class prior"):
             clf.fit(X, y_pu)
 
+    def test_class_prior_one_raises(self, rng):
+        """class_prior=1.0 is excluded by the open (0, 1) bound."""
+        rng2 = np.random.RandomState(9)
+        X = rng2.randn(30, 3)
+        y_pu = np.concatenate([np.ones(10, dtype=int), np.zeros(20, dtype=int)])
+        clf = LDCEClassifier(flip_probability=0.3, max_iter=5)
+        with pytest.raises(ValueError, match="class_prior"):
+            clf.fit(X, y_pu, class_prior=1.0)
+
     def test_class_prior_override(self, rng):
         rng2 = np.random.RandomState(7)
         X = rng2.randn(100, 3)

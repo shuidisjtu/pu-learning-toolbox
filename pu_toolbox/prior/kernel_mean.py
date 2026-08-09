@@ -12,6 +12,7 @@ from sklearn.metrics import pairwise_distances
 from ..core.base import BasePriorEstimator
 from ..core.exceptions import NotFittedError
 from ..core.validation import validate_pu_X_y
+from ..utils.basis import build_rbf_basis
 
 
 def _nearest_simplex_distance(
@@ -137,7 +138,7 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
 
         best: tuple[float, np.ndarray, float] | None = None
         for width in widths:
-            kernel = np.exp(-distances_squared / (2.0 * width**2))
+            kernel = build_rbf_basis(values, values, width)
             distance = np.sqrt(max(0.0, float(weights @ (kernel @ weights))))
             if best is None or distance > best[2]:
                 best = (float(width), kernel, distance)

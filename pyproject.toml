@@ -107,7 +107,7 @@ markers = [
     "unit: fast algorithm-specific unit tests",
     "math: golden tests with hand-computed expected values — failure = code bug",
     "property: mathematical invariant tests — failure = code bug",
-    "paper: paper-like reproduction benchmarks (requires official source)",
+    "paper: paper-like reproduction benchmarks (locked datasets / official protocol; runs locally)",
 ]
 
 [tool.coverage.run]

@@ -22,7 +22,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import check_scalar_in_range, validate_pu_X_y
 
 
 class DistPUClassifier(BasePUClassifier):
@@ -64,6 +64,22 @@ class DistPUClassifier(BasePUClassifier):
         self.device = device
 
     def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+        """Fit the Dist-PU label-distribution classifier.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Feature matrix.  Must be dense.
+        y_pu : array-like of shape (n_samples,)
+            PU labels.  +1 = labeled positive, 0 = unlabeled.
+        class_prior : float, optional
+            Override the constructor's ``class_prior``.  Must be in (0, 1).
+        sample_weight : ignored (present for sklearn compatibility; PU risk estimators do not use instance weights)
+
+        Returns
+        -------
+        self : DistPUClassifier
+        """
         try:
             import torch
             from torch import nn
@@ -71,8 +87,9 @@ class DistPUClassifier(BasePUClassifier):
             raise ImportError("DistPUClassifier requires the optional 'torch' dependency") from exc
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="DistPUClassifier")
         pi = self.class_prior if class_prior is None else class_prior
-        if not 0.0 < pi < 1.0 or self.epochs < 1 or self.hidden_dim < 1:
-            raise ValueError("class_prior must be in (0, 1), epochs >= 1, hidden_dim >= 1")
+        check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
+        if self.epochs < 1 or self.hidden_dim < 1:
+            raise ValueError("epochs must be >= 1 and hidden_dim must be >= 1")
         X = np.asarray(X, dtype=np.float32)
         if self.random_state is not None:
             torch.manual_seed(self.random_state)

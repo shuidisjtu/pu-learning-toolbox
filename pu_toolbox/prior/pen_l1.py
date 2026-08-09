@@ -11,11 +11,11 @@ inside ``fit``.
 from __future__ import annotations
 
 import numpy as np
-from sklearn.metrics import pairwise_distances
 
 from ..core.base import BasePriorEstimator
 from ..core.exceptions import NotFittedError
 from ..core.validation import validate_pu_X_y
+from ..utils.basis import build_rbf_basis
 
 
 class ClassPriorEstimator(BasePriorEstimator):
@@ -54,12 +54,8 @@ class ClassPriorEstimator(BasePriorEstimator):
             X, P, U = (X - mean) / scale, (P - mean) / scale, (U - mean) / scale
             self.mean_, self.scale_ = mean, scale
         centers = X if self.n_centers is None else X[: min(self.n_centers, len(X))]
-        phi_p = np.exp(
-            -pairwise_distances(P, centers, metric="sqeuclidean") / (2.0 * self.sigma**2)
-        )
-        phi_u = np.exp(
-            -pairwise_distances(U, centers, metric="sqeuclidean") / (2.0 * self.sigma**2)
-        )
+        phi_p = build_rbf_basis(P, centers, self.sigma)
+        phi_u = build_rbf_basis(U, centers, self.sigma)
         theta_grid = np.asarray(
             np.linspace(0.01, 0.99, 99) if self.theta_grid is None else self.theta_grid,
             dtype=float,
@@ -89,6 +85,3 @@ class ClassPriorEstimator(BasePriorEstimator):
         if not getattr(self, "_is_fitted", False):
             raise NotFittedError("ClassPriorEstimator is not fitted. Call fit() first.")
         return self.class_prior_
-
-
-PenL1Estimator = ClassPriorEstimator
