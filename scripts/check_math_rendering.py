@@ -14,9 +14,11 @@ Run:  uv run python scripts/check_math_rendering.py
 
 from __future__ import annotations
 
-import glob
 import re
 import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 BLOCK_PAT = re.compile(r"```math\n(.*?)```", re.S)
 INLINE_PAT = re.compile(r"\$`(.*?)`\$|(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)", re.S)
@@ -80,8 +82,11 @@ def check_braces(chunk: str, kind: str, line: int) -> list[str]:
     return errors
 
 
-def main() -> int:
-    files = sorted(glob.glob("docs/research/method_cards/*.md"))
+def main(argv: list[str] | None = None) -> int:
+    files = sorted((PROJECT_ROOT / "docs" / "research" / "method_cards").glob("*.md"))
+    if not files:
+        print("No method cards found; refusing to pass empty scan.", file=sys.stderr)
+        return 1
     total = 0
     for f in files:
         with open(f, encoding="utf-8") as fh:
