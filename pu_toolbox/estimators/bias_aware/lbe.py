@@ -54,6 +54,22 @@ class LBEClassifier(BasePUClassifier):
         model.fit(X2, y2, logisticregression__sample_weight=w2)
 
     def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+        """Fit the LBE instance-dependent labeling-bias model.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Feature matrix.  Must be dense.
+        y_pu : array-like of shape (n_samples,)
+            PU labels.  +1 = labeled positive, 0 = unlabeled.
+        class_prior : float, optional
+            Override the default prior derived from the labeled fraction.
+        sample_weight : ignored (present for sklearn compatibility; PU risk estimators do not use instance weights)
+
+        Returns
+        -------
+        self : LBEClassifier
+        """
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="LBEClassifier")
         X = np.asarray(X, dtype=float)
         if self.n_em_iter < 1 or self.C <= 0:

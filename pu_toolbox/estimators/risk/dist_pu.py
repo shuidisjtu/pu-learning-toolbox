@@ -64,6 +64,22 @@ class DistPUClassifier(BasePUClassifier):
         self.device = device
 
     def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+        """Fit the Dist-PU label-distribution classifier.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Feature matrix.  Must be dense.
+        y_pu : array-like of shape (n_samples,)
+            PU labels.  +1 = labeled positive, 0 = unlabeled.
+        class_prior : float, optional
+            Override the constructor's ``class_prior``.  Must be in (0, 1).
+        sample_weight : ignored (present for sklearn compatibility; PU risk estimators do not use instance weights)
+
+        Returns
+        -------
+        self : DistPUClassifier
+        """
         try:
             import torch
             from torch import nn

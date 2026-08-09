@@ -429,7 +429,10 @@ class SelfPUClassifier(BasePUClassifier):
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> SelfPUClassifier:
-        """Fit Self-PU; clean validation enables calibration and teacher choice."""
+        """Fit Self-PU; clean validation enables calibration and teacher choice.
+
+        sample_weight : NotImplementedError (deep estimators do not accept instance weights)
+        """
         try:
             import torch
             from torch.nn import functional as F
