@@ -69,11 +69,8 @@ jobs:
       - name: Install development dependencies
         run: uv sync --python "3.11" --extra dev
 
-      - name: Lint (ruff)
-        run: uv run --python "3.11" ruff check pu_toolbox tests benchmarks examples scripts
-
-      - name: Format check (ruff)
-        run: uv run --python "3.11" ruff format --check pu_toolbox tests benchmarks examples scripts
+      - name: Format gate (ruff check + format --check)
+        run: uv run --python "3.11" python scripts/check_format.py
 
       - name: Test quality gate
         run: uv run --python "3.11" python scripts/check_test_quality.py

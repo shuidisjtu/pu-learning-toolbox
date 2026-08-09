@@ -68,8 +68,7 @@ git switch -c feature/<short-name>
 
 ```bash
 python -m pytest -q
-ruff check pu_toolbox tests benchmarks examples scripts
-ruff format --check pu_toolbox tests benchmarks examples scripts
+python scripts/check_format.py       # ruff check + ruff format --check（全目录）
 python scripts/check_test_quality.py
 python scripts/check_doc_links.py
 python scripts/check_project_metadata.py

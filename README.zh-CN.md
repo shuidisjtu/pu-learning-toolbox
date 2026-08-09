@@ -5,7 +5,7 @@
 **正例-无标记学习 Python 工具箱** -- 兼容 sklearn API，17 篇论文方法，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-0.1.0--dev-orange)
+![Status](https://img.shields.io/badge/status-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 特性
@@ -96,6 +96,7 @@ uv run python scripts/check_doc_links.py
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
+uv run python scripts/check_format.py        # 格式门禁（ruff check + format --check，全目录）
 ```
 
 贡献指南见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
