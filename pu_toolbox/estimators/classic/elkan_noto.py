@@ -347,11 +347,20 @@ class ElkanNotoClassifier(BasePUClassifier):
             X_train = np.vstack([X_unl, X_pos_train])
             s_train = np.hstack([np.zeros(n_unl, dtype=int), np.ones(len(train_idx), dtype=int)])
 
-            # Forward sample_weight when provided
-            fit_kwargs = {}
+            # Sqrt-balanced fold weights: a fold's labeled-positive share
+            # (~n_pos/n_cv_folds of the training stack) is far below the
+            # full-data share, which shifts LR probabilities down and
+            # under-estimates c.  Scale labeled positives by
+            # sqrt(n_unl / n_pos_fold), the geometric midpoint between
+            # unweighted and fully balanced.  Weights multiply any
+            # user-supplied sample_weight.
+            scale = np.sqrt(n_unl / len(train_idx))
+            sw_pos_train = np.full(len(train_idx), scale)
             if sw is not None:
-                sw_pos_train = sw_pos[train_idx]
-                fit_kwargs["sample_weight"] = np.hstack([sw_unl, sw_pos_train])
+                sw_pos_train = sw_pos[train_idx] * scale
+                fit_kwargs = {"sample_weight": np.hstack([sw_unl, sw_pos_train])}
+            else:
+                fit_kwargs = {"sample_weight": np.hstack([np.ones(n_unl), sw_pos_train])}
 
             g_model = clone(base)
             g_model = self._wrap_with_calibration(g_model)

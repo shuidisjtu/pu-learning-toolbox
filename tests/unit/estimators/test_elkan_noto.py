@@ -75,6 +75,20 @@ class TestScarCalibration:
         acc = np.mean(clf.predict(X) == y_true)
         assert acc > 0.85, f"Accuracy {acc:.3f} below 0.85"
 
+    @pytest.mark.math
+    def test_math_balanced_oof_propensity_lands_in_band(self):
+        """sqrt-balanced OOF keeps c_hat close to the true c=0.5.
+
+        Before the fix the unweighted OOF under-estimated c (0.40 on this
+        dataset) and inflated class_prior_ (0.62); the sqrt-balance rule
+        must land both in the acceptance bands.
+        """
+        X, y_pu, _ = make_scar_dataset(n=200, c=0.5, random_state=42)
+        clf = ElkanNotoClassifier(n_cv_folds=3, random_state=42)
+        clf.fit(X, y_pu)
+        assert 0.50 <= clf.propensity_ <= 0.68, f"c_hat={clf.propensity_}"
+        assert 0.40 <= clf.class_prior_ <= 0.58, f"prior={clf.class_prior_}"
+
 
 # ═════════════════════════════════════════════════════════════════════
 # Ranking invariance (§8.2)
