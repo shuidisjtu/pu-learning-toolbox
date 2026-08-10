@@ -1,6 +1,6 @@
 # ruff: noqa: N803, N806
 
-"""PUPipeline / deep-estimator device default & auto-detection wiring."""
+"""PUPipeline / deep-estimator defaults (device auto-detection, epochs)."""
 
 from __future__ import annotations
 
@@ -34,6 +34,22 @@ def test_basic_wconpu_device_default_none():
 
     estimator = WeightedContrastivePUClassifier(0.3, max_epochs=2)
     assert estimator.device is None
+
+
+def test_basic_wconpu_max_epochs_default_100():
+    # Default max_epochs contract: 800 was unusable (no early stopping, ~1.5h
+    # on 20k samples); 50 epochs already converged in practice, 100 is the
+    # new default. Guarded by both the instance value and the signature.
+    import inspect
+
+    from pu_toolbox.estimators.deep.weighted_contrastive_pu import (
+        WeightedContrastivePUClassifier,
+    )
+
+    estimator = WeightedContrastivePUClassifier(0.3)
+    assert estimator.max_epochs == 100
+    params = inspect.signature(WeightedContrastivePUClassifier.__init__).parameters
+    assert params["max_epochs"].default == 100
 
 
 def test_basic_fresh_estimator_skips_device_injection_when_default():

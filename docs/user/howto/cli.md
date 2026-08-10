@@ -65,7 +65,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `--architecture cnn` 仅对声明了 `encoder` 参数、支持骨架注入的深度算法
   （`wconpu` / `infomax_pu`）有效；`auto`、非深度算法、或未适配的深度算法
   （如 `self_pu`）配合 `--architecture cnn` 会报错
-- 深度训练较慢（WConPU 默认 800 epoch），可减少 `--cv` 折数
+- 深度训练较慢（WConPU 默认 100 epoch，可用 `--max-epochs` 调整），可减少 `--cv` 折数
 
 ## 退出码
 

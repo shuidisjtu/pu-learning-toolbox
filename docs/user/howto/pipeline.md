@@ -87,8 +87,8 @@ report.save("results/pipeline.json")
   未声明 `encoder` 的深度分类器（如 `self_pu`）配 cnn 在构造期报 `PipelineError`
 - `architecture="cnn"` 要求 4-D NCHW 图像输入（`.npy` 数组）；2-D 表格配
   `cnn` 或 4-D 图像配 `mlp` 都会报错
-- 深度训练较慢（WConPU 默认 800 epoch），`cv>1` 时 pipeline 会打印训练成本
-  提示，可减少折数（`cv` 最小为 2）
+- 深度训练较慢（WConPU 默认 100 epoch，可用 `max_epochs` 调整），`cv>1`
+  时 pipeline 会打印训练成本提示，可减少折数（`cv` 最小为 2）
 
 ## 指标与可用性
 

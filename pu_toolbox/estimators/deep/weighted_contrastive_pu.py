@@ -67,7 +67,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         weak_augmentation=None,
         strong_augmentation=None,
         batch_size: int = 256,
-        max_epochs: int = 800,
+        max_epochs: int = 100,
         learning_rate: float = 1e-2,
         optimizer_momentum: float = 0.9,
         scheduler: Literal["none", "cosine_annealing"] = "none",
