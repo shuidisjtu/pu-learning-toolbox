@@ -1,3 +1,5 @@
+# ruff: noqa: N803, N806
+
 """Reusable data factories for tests.
 
 Keep ordinary helpers outside ``conftest.py`` so tests do not import pytest's
@@ -33,9 +35,7 @@ def make_scar_data_unbalanced(
     n_p = max(1, int(round(n * prior)))
     n_u = n - n_p
     delta = separation / 2.0
-    X = np.vstack(
-        [rng.randn(n_p, n_features) + delta, rng.randn(n_u, n_features) - delta]
-    )
+    X = np.vstack([rng.randn(n_p, n_features) + delta, rng.randn(n_u, n_features) - delta])
     y_true = np.hstack([np.ones(n_p, dtype=int), np.zeros(n_u, dtype=int)])
     y_pu = _make_scar_labels(y_true, c=c, random_state=rng)
     return X, y_pu, y_true

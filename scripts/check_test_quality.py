@@ -121,7 +121,6 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
     "test_dist_pu.py": "algorithm covered by contract tests",
     "test_import.py": "smoke imports",
     "test_kldce_property.py": "algorithm covered by contract tests",
-    "test_pen_l1.py": "algorithm covered by contract tests",
 }
 
 

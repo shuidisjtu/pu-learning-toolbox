@@ -665,9 +665,7 @@ class PUPipeline:
         try:
             return cls(**kwargs)
         except TypeError as exc:
-            raise PipelineError(
-                f"invalid prior parameters for '{name}': {exc}"
-            ) from exc
+            raise PipelineError(f"invalid prior parameters for '{name}': {exc}") from exc
 
     def _fresh_estimator(
         self,

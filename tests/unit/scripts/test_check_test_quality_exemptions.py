@@ -104,7 +104,7 @@ def test_deterministic_list_printout_with_reasons(tmp_path, capsys):
     assert "UNLIMITED_FILES" in out
     assert "CONTRACT_COVERED_FILES" in out
     assert "test_kldce_math.py — MATH formula verification" in out
-    assert "test_pen_l1.py — algorithm covered by contract tests" in out
+    assert "test_import.py — smoke imports" in out
 
 
 @pytest.mark.unit

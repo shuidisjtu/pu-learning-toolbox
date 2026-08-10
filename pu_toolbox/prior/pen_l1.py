@@ -18,7 +18,6 @@ from ..core.exceptions import NotFittedError
 from ..core.validation import validate_pu_X_y
 from ..utils.basis import build_rbf_basis
 
-
 _AUTO_SIGMA_FACTOR = 0.6
 
 

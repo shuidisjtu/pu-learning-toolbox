@@ -1,4 +1,4 @@
-# ruff: noqa: N806
+# ruff: noqa: N803, N806
 
 import numpy as np
 import pytest
@@ -6,7 +6,6 @@ from sklearn.metrics import pairwise_distances
 
 from pu_toolbox.prior import ClassPriorEstimator
 from tests.helpers import make_scar_data, make_scar_data_unbalanced
-
 
 AUTO_SIGMA_FACTOR = 0.6  # must match pu_toolbox.prior.pen_l1._AUTO_SIGMA_FACTOR
 
