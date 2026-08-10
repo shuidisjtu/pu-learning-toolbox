@@ -26,6 +26,16 @@ from ..utils.serialization import escape_markdown, format_from_suffix, format_va
 
 PriorSource = Literal["user", "constructor", "estimated", "none"]
 
+# Shown after an estimated class prior so users can interpret the value
+# instead of reading it as ground truth.  Kept in one place so the
+# summary, tests, and any future surface stay in sync.
+_PRIOR_ESTIMATION_NOTE = (
+    "Note: class-prior estimates carry known bias that depends on data "
+    "separation — pen_l1 under-estimates on strong separation and over-"
+    "estimates on heavy overlap; km1/km2/recpe behave inversely. Treat the "
+    "value as approximate; run sensitivity analysis when it matters."
+)
+
 __all__ = ["CVMetric", "PipelineReport", "PriorInfo", "PriorSource"]
 
 
@@ -134,15 +144,42 @@ class PipelineReport:
         """Whether any issue merits review."""
         return any(issue.severity == "warning" for issue in self.issues)
 
+    def _assumption_notes(self) -> list[str]:
+        """Screening notes about labeling assumptions (from the data profile).
+
+        Only rendered when the profile carries a separability AUC; the
+        identifiability caveat appears only for the non-identifying
+        (observed-mixture) evidence mode.
+        """
+        diag = self.profile.selection_diagnostic
+        auc = diag.get("separability_auc")
+        if auc is None:
+            return []
+        notes = [f"Labeled-vs-unlabeled separability AUC: {auc:.3f}"]
+        if not diag.get("is_identifying", False):
+            notes.append(
+                "SCAR vs SAR is not identifiable from PU labels alone; "
+                "rerun with --true-labels for a definitive diagnostic."
+            )
+        return notes
+
     def summary(self) -> str:
         """Render a compact human-readable summary (metrics + issues)."""
-        prior_src = self.prior.source
+        prior = self.prior
+        prior_src = prior.source
+        if prior_src == "estimated" and prior.estimator:
+            context = (
+                f", estimator: {prior.estimator}, auto-selected: "
+                f"{'yes' if prior.auto_selected else 'no'}"
+            )
+        else:
+            context = ""
         lines = [
             "PU Pipeline Report",
             "==================",
             "",
             f"Classifier: {self.provenance.get('classifier', 'unknown')}",
-            f"Class prior: {format_value(self.prior.value)} (source: {prior_src})",
+            f"Class prior: {format_value(prior.value)} (source: {prior_src}{context})",
             f"CV folds: {self.cv_provenance.get('n_splits', 'unknown')}",
             "",
             "## CV Metrics (mean +/- std)",
@@ -155,6 +192,8 @@ class PipelineReport:
                 f"| `{name}` | {format_value(metric.mean)} | "
                 f"{format_value(metric.std)} | `{metric.basis}` |"
             )
+        if prior_src == "estimated" and prior.estimator:
+            lines.extend(["", _PRIOR_ESTIMATION_NOTE])
         lines.extend(["", "## Issues", ""])
         if self.issues:
             lines.extend(
@@ -167,6 +206,10 @@ class PipelineReport:
             lines.append(f"Summary: {n_errors} error(s), {n_warnings} warning(s).")
         else:
             lines.append("No issues detected.")
+        notes = self._assumption_notes()
+        if notes:
+            lines.extend(["", "## Assumption Notes", ""])
+            lines.extend(f"- {escape_markdown(note)}" for note in notes)
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, Any]:
