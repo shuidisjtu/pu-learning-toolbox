@@ -31,6 +31,7 @@ from ..core.tags import (
     SourceStatus,
 )
 from ..core.validation import validate_pu_X_y
+from .kernel_mean import KernelMeanPriorEstimator
 
 
 class _DensityRatioCPE(BasePriorEstimator):
@@ -41,7 +42,7 @@ class _DensityRatioCPE(BasePriorEstimator):
     positive samples is a practical estimate of the mixture proportion.
     """
 
-    def __init__(self, quantile: float = 0.01, max_iter: int = 1000) -> None:
+    def __init__(self, quantile: float = 0.25, max_iter: int = 1000) -> None:
         self.quantile = quantile
         self.max_iter = max_iter
 
@@ -102,6 +103,10 @@ class ReCPEEstimator(BasePriorEstimator):
         classifier: Any = None,
         classifier_max_iter: int = 1000,
     ) -> None:
+        # v1.2.1: the default base CPE is the official-style kernel-mean KM2
+        # (the paper's reference base); the previous density-ratio + 1%
+        # quantile baseline collapsed on regular SCAR data.  KM2 keeps the
+        # estimate from collapsing while staying conservative.
         self.copy_fraction = copy_fraction
         self.base_estimator = base_estimator
         self.classifier = classifier
@@ -134,7 +139,7 @@ class ReCPEEstimator(BasePriorEstimator):
         regrouped_y[len(p) + selected] = 1
 
         if self.base_estimator is None:
-            base = _DensityRatioCPE()
+            base = KernelMeanPriorEstimator(variant="km2")
         else:
             try:
                 base = clone(self.base_estimator)

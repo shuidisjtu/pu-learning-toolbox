@@ -12,7 +12,9 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.svm import SVC
 
 from pu_toolbox.core.exceptions import NotFittedError
-from pu_toolbox.prior import ReCPEEstimator
+from pu_toolbox.prior import KernelMeanPriorEstimator, ReCPEEstimator
+from pu_toolbox.prior.recpe import _DensityRatioCPE
+from tests.helpers import make_scar_data
 
 # ═════════════════════════════════════════════════════════════════════
 # Helpers
@@ -175,3 +177,35 @@ class TestSklearnCompatibility:
         e2 = ReCPEEstimator()
         e2.set_params(**e1.get_params())
         assert e2.get_params() == e1.get_params()
+
+
+# ═════════════════════════════════════════════════════════════════════
+# §9.4 — No-collapse guard (v1.2.1 fix)
+# ═════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.unit
+class TestNoCollapse:
+    """Default ReCPE must not collapse on regular SCAR data."""
+
+    @pytest.mark.math
+    def test_math_default_no_collapse(self, rng):
+        """Default base (kernel-mean KM2) keeps the estimate above 0.1."""
+        X, y_pu, _ = make_scar_data(rng, n=200, separation=2.0)
+        est = ReCPEEstimator().fit(X, y_pu).estimate()
+        assert est >= 0.1
+
+    @pytest.mark.unit
+    def test_basic_default_base_is_kernel_mean_km2(self, rng):
+        """The default base CPE is the official-style kernel-mean KM2."""
+        X, y_pu, _ = make_scar_data(rng, n=200, separation=2.0)
+        est = ReCPEEstimator().fit(X, y_pu)
+        assert isinstance(est.base_estimator_, KernelMeanPriorEstimator)
+        assert est.base_estimator_.variant == "km2"
+
+    @pytest.mark.unit
+    def test_edge_density_ratio_quantile_default_not_collapsing(self, rng):
+        """Explicit _DensityRatioCPE with the new quantile no longer collapses."""
+        X, y_pu, _ = make_scar_data(rng, n=200, separation=2.0)
+        est = ReCPEEstimator(base_estimator=_DensityRatioCPE()).fit(X, y_pu)
+        assert est.estimate() >= 0.05

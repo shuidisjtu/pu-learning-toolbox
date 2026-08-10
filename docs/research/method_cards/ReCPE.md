@@ -20,6 +20,8 @@
 - 复制比例 `copy_fraction` 太小会使底层 CPE 对 regrouping 不敏感；太大则会显著改变辅助正类分布。论文实验统一使用 `p=10%`，本实现默认 `0.1`。
 - 当前默认排序器为 sklearn `LogisticRegression`，不是论文实验中的两层神经网络；因此当前实现是算法逻辑对齐，而不是完整实验数值复现。
 - 当前默认 base CPE 是工程侧提供的 classifier-based baseline，不应与论文对比的 KM、AlphaMax 等方法混同。
+- **2026-08-10 变更**：默认 base CPE 改为 `KernelMeanPriorEstimator(variant="km2")`（论文官方参考基线）；工程侧 classifier-based baseline（`_DensityRatioCPE`，分位数默认 `0.25`）保留为显式可选。原 1% 分位数 + 未校准 LR 概率路径在常规 SCAR 数据上坍缩（估计 0.036 vs 真 0.5），换 KM2 后升至 ~0.40。
+- **边界声明（v1.2.1）**：探针证实 ReCPE 的全部 base 变体（裸 LR + 分位数 0.01/0.25、校准 LR、KM1/KM2）在常规 SCAR 数据上均系统性低估（0.08–0.19 区间），这是 regrouping 构造与 irreducibility 折中的文献固有偏差；修复目标仅为"不坍缩"（≥0.1）与默认 base 正确化，不承诺 ±50% 带。常规 SCAR 场景优先选择 pen_l1/km2，ReCPE 保留其设计用途（irreducibility 失效时防正向偏差）。
 
 ## 2. 论文信息
 
@@ -175,7 +177,7 @@ A^*=\arg\min_{A\in\mathcal S}
 | 排序分类器 | `StandardScaler + LogisticRegression` |
 | 复制比例 | `copy_fraction=0.1` |
 | 复制数量 | `max(1, ceil(copy_fraction * n_unlabeled))` |
-| 底层 CPE | classifier-based density-ratio baseline |
+| 底层 CPE | `KernelMeanPriorEstimator(variant="km2")`（2026-08-10 起）；显式 `base_estimator` 可注入任意 `fit/estimate` CPE |
 | 自定义底层方法 | `base_estimator`，要求支持 `fit(X, y_pu)` 和 `estimate()` |
 
 ## 6. 源码状态
