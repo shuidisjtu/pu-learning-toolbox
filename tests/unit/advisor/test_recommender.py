@@ -147,46 +147,6 @@ class TestRecommenderScoring:
         assert sar_scores["pusb"] > sar_scores["upu"]  # at_risk: SAR boosted
         assert scar_scores["pusb"] < scar_scores["upu"]  # plausible: SCAR ahead
 
-    def test_at_risk_observed_mixture_does_not_boost_sar(self):
-        """Without y_true the at-risk signal is non-identifying: strong
-        class separation on SCAR data must not steer users to SAR methods.
-
-        Regression guard: PUSB/LBE used to top the list on plain SCAR
-        demo data (observed-mixture AUC ~1.0 > 0.65 -> at_risk -> SAR cap),
-        so a SCAR user's first recommendation was a SAR-only method.
-        """
-        from pu_toolbox.preprocessing import make_sar_dataset
-
-        scar_X, scar_y, _, _ = make_sar_dataset(
-            n_samples=2000,
-            n_features=5,
-            class_prior=0.5,
-            separation=2.0,
-            mechanism="scar",
-            label_frequency=0.5,
-            random_state=7,
-        )
-        # No y_true: the pipeline cannot audit positives, so the diagnostic
-        # stays in the non-identifying observed-mixture evidence mode.
-        scores = {
-            c.name: c.score
-            for c in recommend_from_profile(
-                profile_pu_data(scar_X, scar_y, random_state=42),
-                class_prior=0.5,
-                top_k=15,
-            ).candidates
-        }
-        assert scores["pusb"] <= scores["upu"]  # non-identifying at_risk: no SAR boost
-        pusb = next(
-            c for c in recommend_from_profile(
-                profile_pu_data(scar_X, scar_y, random_state=42),
-                class_prior=0.5,
-                top_k=15,
-            ).candidates
-            if c.name == "pusb"
-        )
-        assert not any("Strong assumption match" in r for r in pusb.reasons)
-
     def test_edge_small_data_penalizes_deep(self):
         rng = np.random.RandomState(0)
         X_small = rng.randn(50, 3)

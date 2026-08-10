@@ -248,9 +248,7 @@ def test_at_risk_identifying_still_boosts_sar():
     """With an audited (identifying) at-risk diagnostic the SAR boost stays:
     true positives audited against y_true are real evidence of SAR."""
     at_risk = _diagnostic_profile("at_risk", identifying=True)
-    s_sar, _ = score_method(
-        _assumption_stub(Assumption.SAR), at_risk, None, False, DEFAULT_CONFIG
-    )
+    s_sar, _ = score_method(_assumption_stub(Assumption.SAR), at_risk, None, False, DEFAULT_CONFIG)
     s_scar, _ = score_method(
         _assumption_stub(Assumption.SCAR), at_risk, None, False, DEFAULT_CONFIG
     )
@@ -291,3 +289,36 @@ def test_edge_sparse_input_warns_explicitly():
     result = recommend_from_profile(profile, top_k=15)
     assert len(result.candidates) == 0
     assert any("sparse" in w for w in result.global_warnings)
+
+
+@pytest.mark.unit
+def test_basic_at_risk_observed_mixture_no_sar_boost_end_to_end():
+    """Without y_true the at-risk signal is non-identifying: strong
+    class separation on SCAR data must not steer users to SAR methods.
+
+    End-to-end counterpart of test_at_risk_observed_mixture_does_not_boost_sar
+    (unit level): drives real data through profile_pu_data and
+    recommend_from_profile, the exact path a CLI user exercises.
+    """
+    from pu_toolbox.preprocessing import make_sar_dataset
+
+    scar_X, scar_y, _, _ = make_sar_dataset(
+        n_samples=2000,
+        n_features=5,
+        class_prior=0.5,
+        separation=2.0,
+        mechanism="scar",
+        label_frequency=0.5,
+        random_state=7,
+    )
+    # No y_true: the pipeline cannot audit positives, so the diagnostic
+    # stays in the non-identifying observed-mixture evidence mode.
+    candidates = recommend_from_profile(
+        profile_pu_data(scar_X, scar_y, random_state=42),
+        class_prior=0.5,
+        top_k=15,
+    ).candidates
+    scores = {c.name: c.score for c in candidates}
+    assert scores["pusb"] <= scores["upu"]  # non-identifying at_risk: no SAR boost
+    pusb = next(c for c in candidates if c.name == "pusb")
+    assert not any("Strong assumption match" in r for r in pusb.reasons)

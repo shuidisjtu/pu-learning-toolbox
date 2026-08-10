@@ -60,12 +60,42 @@ def test_summary_estimated_prior_carries_estimator_and_boundary_note():
 @pytest.mark.unit
 def test_summary_user_prior_has_no_estimator_note():
     """Explicit user priors skip the estimation boundary note."""
-    report = _report(
-        prior=PriorInfo(value=0.5, source="user", method_requires_prior=True)
-    )
+    report = _report(prior=PriorInfo(value=0.5, source="user", method_requires_prior=True))
     out = report.summary()
     assert "(source: user)" in out
     assert _PRIOR_ESTIMATION_NOTE not in out
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("source", ["user", "constructor", "none"])
+def test_param_non_estimated_sources_omit_estimator_context(source):
+    """Only estimated priors carry the estimator/auto-selected context."""
+    report = _report(
+        prior=PriorInfo(
+            value=0.5 if source != "none" else None,
+            source=source,
+            method_requires_prior=True,
+            estimator="ClassPriorEstimator",
+        )
+    )
+    out = report.summary()
+    assert "estimator:" not in out
+    assert _PRIOR_ESTIMATION_NOTE not in out
+
+
+@pytest.mark.unit
+def test_determ_summary_output_stable():
+    """Two summaries of the same report are byte-identical."""
+    report = _report(
+        prior=PriorInfo(
+            value=0.44,
+            source="estimated",
+            method_requires_prior=True,
+            estimator="ClassPriorEstimator",
+        ),
+        diagnostic={"separability_auc": 0.859, "is_identifying": False, "status": "at_risk"},
+    )
+    assert report.summary() == report.summary()
 
 
 @pytest.mark.unit
