@@ -74,7 +74,7 @@ def _run(tmp_path, rng, *extra):
     return out, json.loads((out / "report.json").read_text(encoding="utf-8"))
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_end_to_end(tmp_path, rng, capsys):
     """Full run produces a parseable strict-JSON report and prints a summary."""
     _, payload = _run(tmp_path, rng)
@@ -93,7 +93,7 @@ def test_run_end_to_end(tmp_path, rng, capsys):
     assert "Class prior" in capsys.readouterr().out
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_with_true_labels_enables_oracle_metrics(tmp_path, rng):
     out, payload = _run(tmp_path, rng, "--true-labels", str(tmp_path / "y_true.csv"))
     auc = payload["cv_metrics"]["pu_auc_roc"]
@@ -101,14 +101,14 @@ def test_run_with_true_labels_enables_oracle_metrics(tmp_path, rng):
     assert auc["mean"] is not None
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_explicit_class_prior_source_user(tmp_path, rng):
     out, payload = _run(tmp_path, rng, "--class-prior", "0.3")
     assert payload["prior"]["source"] == "user"
     assert payload["prior"]["value"] == 0.3
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_save_model_writes_picklable_model(tmp_path, rng):
     out, _ = _run(tmp_path, rng, "--save-model")
     model_path = out / "model.pkl"
@@ -119,20 +119,20 @@ def test_run_save_model_writes_picklable_model(tmp_path, rng):
     assert preds.shape == (3,)
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_quiet_suppresses_summary(tmp_path, rng, capsys):
     _run(tmp_path, rng, "--quiet")
     assert "PU Pipeline Report" not in capsys.readouterr().out
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_metrics_comma_separated(tmp_path, rng):
     """Comma-separated metrics work with stray whitespace after commas."""
     out, payload = _run(tmp_path, rng, "--metrics", "pu_risk, recall")
     assert set(payload["cv_metrics"]) == {"pu_zero_one_risk", "pu_recall"}
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_deterministic_same_seed(tmp_path, rng):
     """Same seed twice → identical metrics and prior in both reports."""
     _, first = _run(tmp_path, rng)
@@ -164,7 +164,7 @@ def test_run_deterministic_same_seed(tmp_path, rng):
     assert first["prior"] == second["prior"]
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_missing_input_file_exits_one(tmp_path):
     with pytest.raises(SystemExit) as exc:
         main(
@@ -181,7 +181,7 @@ def test_run_missing_input_file_exits_one(tmp_path):
     assert exc.value.code == 1
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_invalid_labels_exits_one(tmp_path, rng, capsys):
     data, _, _ = _write_demo(tmp_path, rng)
     bad = tmp_path / "bad.csv"
@@ -202,7 +202,7 @@ def test_run_invalid_labels_exits_one(tmp_path, rng, capsys):
     assert "error:" in capsys.readouterr().err
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_invalid_classifier_exits_one(tmp_path, rng, capsys):
     with pytest.raises(SystemExit) as exc:
         _run(tmp_path, rng, "--classifier", "not_a_method")
@@ -210,14 +210,14 @@ def test_run_invalid_classifier_exits_one(tmp_path, rng, capsys):
     assert "error:" in capsys.readouterr().err
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_basic_prior_estimator_none_allowed(tmp_path, rng):
     """--prior-estimator none works for methods that need no class prior."""
     _, payload = _run(tmp_path, rng, "--classifier", "elkan_noto", "--prior-estimator", "none")
     assert payload["prior"]["source"] == "none"
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_param_prior_estimator_none_missing_prior_exits_one(tmp_path, rng, capsys):
     """--prior-estimator none with a prior-requiring method and no prior → exit 1."""
     with pytest.raises(SystemExit) as exc:
@@ -226,7 +226,7 @@ def test_param_prior_estimator_none_missing_prior_exits_one(tmp_path, rng, capsy
     assert "error:" in capsys.readouterr().err
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_basic_auto_mode_without_prior_estimator(tmp_path, rng):
     """auto + --prior-estimator none degrades to a no-prior recommendation.
 
@@ -258,7 +258,7 @@ def test_basic_auto_mode_without_prior_estimator(tmp_path, rng):
     assert payload["prior"]["source"] == "none"
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_edge_headerless_csv_reports_error(tmp_path, capsys):
     """A headerless numeric CSV is rejected, not silently truncated."""
     rng = np.random.RandomState(42)
@@ -281,7 +281,7 @@ def test_edge_headerless_csv_reports_error(tmp_path, capsys):
     assert "header" in capsys.readouterr().err
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_edge_multi_column_labels_reports_error(tmp_path, rng, capsys):
     """A multi-column labels CSV is rejected instead of silently using col 0."""
     data, _, _ = _write_demo(tmp_path, rng)

@@ -28,7 +28,7 @@ def _table_data(n=40, seed=2):
     return X, y_pu
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineDeepValidation:
     @pytest.mark.parametrize("classifier", ["upu", "auto"])
     def test_param_cnn_with_non_deep_classifier_raises(self, classifier):
@@ -84,7 +84,7 @@ class TestPipelineDeepValidation:
         assert _missing_required_params(cls) == set()
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineDeepInstantiation:
     def test_basic_fresh_estimator_injects_encoder_and_prior(self):
         X, y_pu = _image_data()
@@ -135,7 +135,7 @@ class TestPipelineDeepInstantiation:
         assert report.diagnostic is not None
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineDeepAutoUnchanged:
     def test_basic_auto_on_table_never_selects_deep(self, rng):
         # 小数据 has_few 规则排除 DEEP_PU；auto 行为与重构前一致
@@ -203,7 +203,7 @@ class _StubClf:
         return np.zeros(len(X))
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineDeepSeedReproducibility:
     def test_cnn_encoder_weights_follow_random_state(self, monkeypatch):
         """Same random_state -> identical encoder init; different -> different.

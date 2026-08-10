@@ -25,7 +25,7 @@ from pu_toolbox.workflows import DEFAULT_METRICS, PipelineError, PipelineReport,
 from tests.helpers import make_scar_data
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineBasic:
     """End-to-end runs and prior resolution."""
 
@@ -86,7 +86,7 @@ class TestPipelineBasic:
         assert report.provenance["classifier_mode"] == "instance"
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineParameterErrors:
     """Fail-fast validation of constructor arguments."""
 
@@ -118,7 +118,7 @@ class TestPipelineParameterErrors:
             PUPipeline(cv=object())
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineEdgeCases:
     """Availability semantics and boundary validation."""
 
@@ -172,7 +172,7 @@ class TestPipelineEdgeCases:
             pipe.fit_evaluate(X, y_pu)
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestPipelineDeterminism:
     """Same configuration produces identical results."""
 
