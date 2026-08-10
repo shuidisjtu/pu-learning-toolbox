@@ -58,8 +58,11 @@ def _assumption_stub(
 
 
 def _diagnostic_profile(
-    status: str, n_samples: int = 100, *, identifying: bool = True
+    status: str, n_samples: int = 100, *, identifying: bool = False
 ) -> SimpleNamespace:
+    # Default identifying=False mirrors the production fallback
+    # (selection_diagnostic.get("is_identifying", False)): the observed
+    # mixture is the normal, non-identifying evidence mode.
     return SimpleNamespace(
         summary={"n_samples": n_samples},
         selection_diagnostic={"status": status, "is_identifying": identifying},
@@ -208,9 +211,10 @@ def test_param_score_tables_capped_by_anchors(kwargs):
 @pytest.mark.unit
 def test_basic_at_risk_boosts_sar_over_scar():
     """The assumption dimension must actually reorder methods: under an
-    at-risk diagnostic a SAR-aware method outscores an identical SCAR-only
-    one, and the reverse under a plausible diagnostic."""
-    at_risk = _diagnostic_profile("at_risk")
+    audited (identifying) at-risk diagnostic a SAR-aware method outscores
+    an identical SCAR-only one, and the reverse under a plausible
+    diagnostic."""
+    at_risk = _diagnostic_profile("at_risk", identifying=True)
     s_sar, _ = score_method(_assumption_stub(Assumption.SAR), at_risk, None, False, DEFAULT_CONFIG)
     s_scar, _ = score_method(
         _assumption_stub(Assumption.SCAR), at_risk, None, False, DEFAULT_CONFIG
@@ -312,7 +316,12 @@ def test_basic_at_risk_observed_mixture_no_sar_boost_end_to_end():
         random_state=7,
     )
     # No y_true: the pipeline cannot audit positives, so the diagnostic
-    # stays in the non-identifying observed-mixture evidence mode.
+    # stays in the non-identifying observed-mixture evidence mode. Pin
+    # the diagnostic state so the assertion cannot go vacuous (an
+    # 'inconclusive' status would pass the score checks too).
+    diag = profile_pu_data(scar_X, scar_y, random_state=42).selection_diagnostic
+    assert diag["status"] == "at_risk"
+    assert diag["is_identifying"] is False
     candidates = recommend_from_profile(
         profile_pu_data(scar_X, scar_y, random_state=42),
         class_prior=0.5,

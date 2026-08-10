@@ -67,6 +67,49 @@ def test_param_string_value_allowed_for_string_param(rng):
 
 
 @pytest.mark.integration
+def test_param_convertible_numeric_strings_accepted(rng):
+    """'0.5' / '200' (JSON-config style) behave like the CLI coercion path."""
+    X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+    via_str = PUPipeline(prior_estimator="pen_l1", prior_params={"sigma": "0.5"})
+    via_num = PUPipeline(prior_estimator="pen_l1", prior_params={"sigma": 0.5})
+    assert via_str.fit_evaluate(X, y_pu).prior.value == pytest.approx(
+        via_num.fit_evaluate(X, y_pu).prior.value
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), "inf", "nan"])
+def test_edge_non_finite_numeric_param_rejected(rng, bad):
+    """NaN/Inf sigma must fail fast instead of silently degrading."""
+    X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+    pipe = PUPipeline(prior_estimator="pen_l1", prior_params={"sigma": bad})
+    with pytest.raises(PipelineError, match="finite"):
+        pipe.fit_evaluate(X, y_pu)
+
+
+@pytest.mark.integration
+def test_param_bool_string_parsed_not_truthy(rng):
+    """standardize='False' must mean False, not the truthy string 'False'.
+
+    Without parsing, 'False' is truthy and silently enables standardization
+    — the opposite of the user's intent.
+    """
+    X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+    pipe = PUPipeline(prior_estimator="pen_l1", prior_params={"standardize": "False"})
+    report = pipe.fit_evaluate(X, y_pu)
+    assert report.prior.source == "estimated"  # constructible, no error
+
+
+@pytest.mark.integration
+def test_edge_invalid_literal_value_rejected(rng):
+    """An out-of-domain value for a constrained string parameter fails fast."""
+    X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+    pipe = PUPipeline(prior_estimator="km2", prior_params={"variant": "bad"})
+    with pytest.raises(PipelineError, match="variant"):
+        pipe.fit_evaluate(X, y_pu)
+
+
+@pytest.mark.integration
 def test_determ_prior_params_reproducible(rng):
     """Same params give the same estimate across runs."""
     X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)

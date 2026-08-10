@@ -14,7 +14,7 @@ import contextlib
 import inspect
 import warnings
 from collections.abc import Sequence
-from typing import Any, get_args, get_origin, get_type_hints
+from typing import Any, Literal, get_args, get_origin, get_type_hints
 
 import numpy as np
 from sklearn.base import clone
@@ -625,6 +625,12 @@ class PUPipeline:
         else:
             estimator = self._instantiate_prior(prior_spec)
             estimator_name = str(prior_spec)
+            # A prior_params variant override (e.g. --prior-estimator km2
+            # --prior-param variant=km1) changes what actually ran; the
+            # report must not claim the original name.
+            variant = getattr(estimator, "variant", None)
+            if variant and variant != estimator_name:
+                estimator_name = f"{estimator_name} (variant={variant})"
         try:
             estimator.fit(X, y_pu)
             value = float(estimator.estimate())
@@ -1003,31 +1009,80 @@ def _validate_prior_param_types(
     kwargs: dict[str, Any],
     name: str,
 ) -> None:
-    """Reject non-numeric strings passed to numeric estimator parameters.
+    """Type-check prior_params against the estimator constructor annotations.
 
-    Without this check a bad CLI value (e.g. ``sigma=abc``) reaches the
-    estimator constructor, only fails inside ``fit``, and is then swallowed
-    by the auto-mode degradation path — the user gets a no-prior report
-    instead of a clear error. String-typed parameters (e.g. ``variant``)
-    keep accepting strings. Unknown parameter names fall through to the
-    constructor's ``TypeError`` and its existing PipelineError wrapper.
+    Without this check bad values (e.g. ``sigma=abc``, ``sigma=nan``, or a
+    truthy string ``standardize='False'``) reach the estimator constructor,
+    only fail inside ``fit``, and are swallowed by the auto-mode degradation
+    path — the user gets a no-prior report instead of a clear error.
+
+    Rules per annotation:
+    * numeric (int/float): convertible strings are parsed (matching the CLI
+      coercion path); unconvertible strings and non-finite values (nan/inf)
+      are rejected.
+    * bool: ``true/false/1/0/yes/no/on/off`` strings are parsed; anything
+      else is rejected (a raw ``'False'`` string is truthy and would
+      silently invert the intent).
+    * ``Literal``: the value must be one of the allowed constants.
+    * unannotated / other (e.g. ``np.ndarray | None``): left to the
+      constructor (unknown names keep the TypeError -> PipelineError path).
+
+    Raises PipelineError with a message naming the parameter and the
+    expected type; conversions mutate ``kwargs`` in place (a copy owned by
+    the caller).
     """
     try:
         hints = get_type_hints(cls.__init__)
     except (TypeError, NameError):
         # Unresolvable annotations (e.g. forward references): skip typing
-        # checks and let the constructor / fit-time errors surface as before.
+        # checks but say so — silently skipping would resurrect the exact
+        # swallowed-failure mode this guard removes.
+        warnings.warn(
+            f"cannot resolve prior-parameter types for {cls.__name__}; "
+            "skipping prior-param validation",
+            UserWarning,
+            stacklevel=3,
+        )
         return
-    for key, value in kwargs.items():
+    for key, value in list(kwargs.items()):
         annotation = hints.get(key)
         if annotation is None:
             continue
         types = get_args(annotation) if get_origin(annotation) is not None else (annotation,)
-        if isinstance(value, str) and any(t in (int, float) for t in types):
-            raise PipelineError(
-                f"invalid prior parameter '{key}': value {value!r} is not a number "
-                f"(expected {annotation})"
-            )
+        if bool in types and isinstance(value, str):
+            low = value.strip().lower()
+            if low in ("true", "1", "yes", "on"):
+                kwargs[key] = True
+            elif low in ("false", "0", "no", "off"):
+                kwargs[key] = False
+            else:
+                raise PipelineError(
+                    f"invalid prior parameter '{key}': value {value!r} is not a boolean "
+                    f"(expected true/false)"
+                )
+            continue
+        if any(t in (int, float) for t in types):
+            converted = value
+            if isinstance(value, str):
+                try:
+                    converted = int(value) if int in types else float(value)
+                except ValueError as exc:
+                    raise PipelineError(
+                        f"invalid prior parameter '{key}': value {value!r} is not a number "
+                        f"(expected {annotation})"
+                    ) from exc
+            if isinstance(converted, (int, float)) and not np.isfinite(converted):
+                raise PipelineError(
+                    f"invalid prior parameter '{key}': value {value!r} must be finite"
+                )
+            kwargs[key] = converted
+            continue
+        if get_origin(annotation) is Literal:
+            allowed = get_args(annotation)
+            if value not in allowed:
+                raise PipelineError(
+                    f"invalid prior parameter '{key}': value {value!r} is not one of {allowed}"
+                )
 
 
 def _validate_prior_value(value: float, name: str) -> None:

@@ -153,7 +153,9 @@ class PipelineReport:
         """
         diag = self.profile.selection_diagnostic
         auc = diag.get("separability_auc")
-        if auc is None:
+        if auc is None or not np.isfinite(auc):
+            # The profiler uses NaN (not None) for inconclusive
+            # diagnostics; a raw f-string would render 'AUC: nan'.
             return []
         notes = [f"Labeled-vs-unlabeled separability AUC: {auc:.3f}"]
         if not diag.get("is_identifying", False):

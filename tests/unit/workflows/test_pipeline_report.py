@@ -111,6 +111,24 @@ def test_summary_shows_separability_auc_when_present():
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize("bad_auc", [float("nan")])
+def test_edge_inconclusive_auc_not_rendered(bad_auc):
+    """The profiler emits NaN (not None) for inconclusive diagnostics; the
+    summary must skip the section instead of printing 'AUC: nan'."""
+    report = _report(
+        prior=PriorInfo(value=0.44, source="estimated", method_requires_prior=True),
+        diagnostic={
+            "separability_auc": bad_auc,
+            "is_identifying": False,
+            "status": "inconclusive",
+        },
+    )
+    out = report.summary()
+    assert "separability AUC" not in out
+    assert "nan" not in out
+
+
+@pytest.mark.unit
 def test_summary_identifying_diagnostic_omits_identifiability_caveat():
     """With true labels (identifying diagnostic) the note drops the
     'not identifiable' caveat."""
