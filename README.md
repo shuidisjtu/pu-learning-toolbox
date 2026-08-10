@@ -94,7 +94,9 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 workflow — profiling, assumption diagnosis, method recommendation,
 training, and result interpretation — from natural language. Loaded
 natively by Claude Code / Cursor (`.claude/skills/`) and Codex / Gemini
-CLI / Windsurf (`.agents/skills/`).
+CLI / Windsurf (`.agents/skills/`). The skill file is not shipped in the
+PyPI wheel; see [How to enable and use the skill](docs/user/howto/using_skill.md)
+(pip users: `pip install "pu-toolbox>=1.1"` + copy the skill folder).
 
 ## Development
 

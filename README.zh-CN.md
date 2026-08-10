@@ -91,7 +91,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 `pu-workflow`（Agent Skills 开放标准）以自然语言驱动完整 PU 分析流程：
 数据画像、假设诊断、算法推荐、训练评估与结果解读。Claude Code / Cursor
 （`.claude/skills/`）与 Codex / Gemini CLI / Windsurf（`.agents/skills/`）
-原生加载。
+原生加载。技能文件不在 PyPI wheel 内；启用与使用见
+[启用与使用 pu-workflow Skill](docs/user/howto/using_skill.md)
+（pip 用户：`pip install "pu-toolbox>=1.1"` + 复制技能目录）。
 
 ## 开发
 
