@@ -18,6 +18,7 @@ from .profile import build_profile_parser
 from .recommend import build_recommend_parser
 from .run import build_run_parser
 from .sensitivity import build_sensitivity_parser
+from .skill import build_skill_parser
 
 __all__ = ["build_parser", "main"]
 
@@ -35,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     build_profile_parser(sub)
     build_recommend_parser(sub)
     build_sensitivity_parser(sub)
+    build_skill_parser(sub)
     return parser
 
 

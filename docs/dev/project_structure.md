@@ -115,7 +115,7 @@ pu_toolbox/
     pipeline.py                (PUPipeline 编排: 画像→先验→训练→CV→评估)
     report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
 
-  cli/                         (CLI 入口: argparse 子命令 run / list-methods / list-priors / make-demo-data / profile / recommend / sensitivity, PUPipeline 与工作流环节的薄封装)
+  cli/                         (CLI 入口: argparse 子命令 run / list-methods / list-priors / make-demo-data / profile / recommend / sensitivity / skill, PUPipeline 与工作流环节的薄封装)
     __init__.py
     run.py                     (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
     info.py                    (list-methods / list-priors 子命令, registry 实时读取)
@@ -123,6 +123,7 @@ pu_toolbox/
     profile.py                 (profile 子命令: 数据画像 + SCAR/SAR 诊断, 写 profile.json)
     recommend.py               (recommend 子命令: 算法推荐 + 类先验估计, 写 recommendation.json)
     sensitivity.py             (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
+    skill.py                   (skill 子命令: 安装内置 pu-workflow 技能到用户级 agent 目录)
 ```
 
 ## 3. 测试（`tests/`）
@@ -199,6 +200,7 @@ tests/
       test_run_deep.py                # run 子命令深度架构路径（.npy 输入 + 参数）
       test_info.py                    # list-methods / list-priors 子命令
       test_demo.py                    # make-demo-data 子命令
+      test_skill.py                   # skill install 子命令（内置技能安装）
 
   integration/                       # 跨组件集成（CLI + PUPipeline + registry + estimators）
     test_pipeline.py                 # PUPipeline 全流程/先验解析/错误/可用性/确定性

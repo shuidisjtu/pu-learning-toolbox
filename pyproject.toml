@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pu-toolbox"
-version = "1.1.1"
+version = "1.2.0"
 description = "Positive-Unlabeled Learning Python Toolbox — sklearn-compatible"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -64,6 +64,7 @@ pu-toolbox = "pu_toolbox.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pu_toolbox"]
+force-include = {".claude/skills/pu-workflow" = ".claude/skills/pu-workflow"}
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -74,6 +75,7 @@ include = [
     "/examples",
     "/scripts",
     "/.github",
+    "/.claude/skills/pu-workflow",
     "/.python-version",
     "/CONTRIBUTING.md",
     "/LICENSE",
