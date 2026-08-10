@@ -108,6 +108,8 @@ markers = [
     "math: golden tests with hand-computed expected values — failure = code bug",
     "property: mathematical invariant tests — failure = code bug",
     "paper: paper-like reproduction benchmarks (locked datasets / official protocol; runs locally)",
+    "integration: cross-component tests (CLI + pipeline + registry + estimators)",
+    "e2e: real end-to-end user journeys via real subprocess",
 ]
 
 [tool.coverage.run]

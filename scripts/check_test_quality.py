@@ -47,6 +47,8 @@ REGISTERED_MARKERS: set[str] = {
     "contract",
     "slow",
     "paper",
+    "integration",
+    "e2e",
 }
 
 # Keywords used to classify test intent.  A test name match counts
