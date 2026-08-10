@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from ...core.base import BasePUClassifier
+from ...core.device import resolve_device
 from ...core.exceptions import NotFittedError
 from ...core.tags import (
     AlgorithmFamily,
@@ -82,7 +83,7 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
         batch_size: int | None = None,
         gradient_noise: float = 0.0,
         random_state: int | None = None,
-        device: str = "cpu",
+        device: str | None = None,
     ) -> None:
         self.encoder = encoder
         self.representation_dim = representation_dim
@@ -152,7 +153,7 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
 
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
-        device = torch.device(self.device)
+        device = resolve_device(self.device)
         if self.encoder is not None:
             self.encoder_ = copy.deepcopy(self.encoder).to(device)
             # Probe in eval mode: fresh BatchNorm layers reject 1-sample batches
@@ -339,7 +340,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
         prior_estimator: BaseEstimator | None = None,
         random_state: int | None = None,
         encoder=None,
-        device: str = "cpu",
+        device: str | None = None,
     ) -> None:
         super().__init__()
         self.class_prior = class_prior
@@ -446,7 +447,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
             classifier_input_dim,
             tuple(self.classifier_hidden_dims),
             batch_norm=self.classifier_batch_norm,
-        ).to(self.device)
+        ).to(resolve_device(self.device))
         optimizer_class = (
             torch.optim.Adam if self.classifier_optimizer == "adam" else torch.optim.Adagrad
         )

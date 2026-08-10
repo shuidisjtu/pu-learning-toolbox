@@ -494,6 +494,18 @@ class TestAPIContract:
         clf3.fit(X3, y3, class_prior=pi3)
         assert len(clf3.history_["epoch"]) == 5
 
+    def test_basic_device_default_none_and_resolves_cpu(self, rng, monkeypatch):
+        """Default device is None ("auto"); fit resolves to cpu without CUDA."""
+        import torch
+
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+        X, y_pu, pi = _make_synthetic_data(rng, n_p=20, n_u=40)
+        model = torch.nn.Linear(5, 1)
+        clf = NonNegativePUClassifier(model=model, max_epochs=2, batch_size=8)
+        assert clf.device is None
+        clf.fit(X, y_pu, class_prior=pi)
+        assert next(clf.model_.parameters()).device.type == "cpu"
+
 
 # ═════════════════════════════════════════════════════════════════════
 # MARK: §9.9 — Overfitting behaviour test (slow)

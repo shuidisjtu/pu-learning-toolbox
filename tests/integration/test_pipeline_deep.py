@@ -162,7 +162,7 @@ class TestPipelineDeepAutoUnchanged:
         X, y_pu = _table_data(n=40)
 
         def fake_recommend(profile, **kwargs):
-            assert kwargs["has_gpu"] is False  # device="cpu" 如实声明
+            assert kwargs["has_gpu"] is False  # 显式 device="cpu" 如实声明
             meta = AlgorithmMetadata(name="nnpu", paper="fake")
             cand = MethodCandidate(
                 name="nnpu", score=90.0, rank=1, reasons=(), warnings=(), metadata=meta
@@ -178,7 +178,8 @@ class TestPipelineDeepAutoUnchanged:
         def stub_fresh(cls, instance, prior):
             return _StubClf()
 
-        pipe = PUPipeline(classifier="auto", cv=2, random_state=7)
+        # 显式钉 device="cpu"：默认 auto 在本机有 GPU 时会谎报 has_gpu=True
+        pipe = PUPipeline(classifier="auto", cv=2, random_state=7, device="cpu")
         monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")

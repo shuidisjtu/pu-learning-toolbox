@@ -340,7 +340,7 @@ DGPUClassifier(
     weak_augmentation=None,
     strong_augmentation=None,
     random_state=None,
-    device="cpu",
+    device=None,
 )
 ```
 

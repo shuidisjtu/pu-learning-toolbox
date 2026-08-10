@@ -14,7 +14,10 @@ from collections.abc import Sequence
 from ..core.exceptions import PULearningError
 from .demo import build_demo_parser
 from .info import build_info_parser
+from .profile import build_profile_parser
+from .recommend import build_recommend_parser
 from .run import build_run_parser
+from .sensitivity import build_sensitivity_parser
 
 __all__ = ["build_parser", "main"]
 
@@ -29,6 +32,9 @@ def build_parser() -> argparse.ArgumentParser:
     build_run_parser(sub)
     build_info_parser(sub)
     build_demo_parser(sub)
+    build_profile_parser(sub)
+    build_recommend_parser(sub)
+    build_sensitivity_parser(sub)
     return parser
 
 

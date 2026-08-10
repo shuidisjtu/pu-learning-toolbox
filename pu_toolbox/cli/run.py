@@ -69,8 +69,15 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
     parser.add_argument(
         "--device",
         type=str,
-        default="cpu",
-        help="torch device for deep classifiers (default: cpu)",
+        default="auto",
+        help="torch device for deep classifiers: auto/cpu/cuda (default: auto)",
+    )
+    parser.add_argument(
+        "--max-epochs",
+        type=int,
+        default=None,
+        help="max epochs for deep estimators whose signature accepts it "
+        "(e.g. wconpu, self_pu, nnpu)",
     )
     parser.add_argument("--cv", type=int, default=5, help="number of CV folds (default: 5)")
     parser.add_argument("--metrics", type=str, default=None, help="comma-separated metric names")
@@ -119,6 +126,7 @@ def _run(args: argparse.Namespace) -> None:
         architecture=args.architecture,
         backbone=args.backbone or "cnn13",
         device=args.device,
+        max_epochs=args.max_epochs,
     )
     report = pipe.fit_evaluate(X, y_pu, y_true=y_true, class_prior=args.class_prior)
 

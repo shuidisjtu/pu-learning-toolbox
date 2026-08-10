@@ -10,6 +10,7 @@ from typing import Literal
 import numpy as np
 
 from ...core.base import BasePUClassifier
+from ...core.device import resolve_device
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -66,12 +67,12 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         weak_augmentation=None,
         strong_augmentation=None,
         batch_size: int = 256,
-        max_epochs: int = 800,
+        max_epochs: int = 100,
         learning_rate: float = 1e-2,
         optimizer_momentum: float = 0.9,
         scheduler: Literal["none", "cosine_annealing"] = "none",
         random_state: int | None = None,
-        device: str = "cpu",
+        device: str | None = None,
     ) -> None:
         super().__init__()
         self.class_prior = class_prior
@@ -157,7 +158,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
         rng = np.random.RandomState(self.random_state)
-        device = torch.device(self.device)
+        device = resolve_device(self.device)
         self.encoder_ = (
             nn.Sequential(nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU())
             if self.encoder is None

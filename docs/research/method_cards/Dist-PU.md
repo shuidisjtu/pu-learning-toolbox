@@ -239,7 +239,7 @@ class DistPUClassifier(BasePUClassifier):
         entropy_weight=0.05,
         mixup_weight=0.1,
         random_state=0,
-        device="cpu",
+        device=None,
     ):
         ...
 ```

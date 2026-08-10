@@ -498,7 +498,7 @@ class SelfPUClassifier(BasePUClassifier):
         batch_size=256,
         learning_rate=1e-3,
         random_state=None,
-        device="cpu",
+        device=None,
     ):
         ...
 ```

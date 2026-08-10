@@ -13,6 +13,7 @@ from __future__ import annotations
 import numpy as np
 
 from ...core.base import BasePUClassifier
+from ...core.device import resolve_device
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -49,7 +50,7 @@ class DistPUClassifier(BasePUClassifier):
         entropy_weight: float = 0.05,
         mixup_weight: float = 0.1,
         random_state: int | None = 0,
-        device: str = "cpu",
+        device: str | None = None,
     ) -> None:
         super().__init__()
         self.class_prior = class_prior
@@ -93,7 +94,7 @@ class DistPUClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=np.float32)
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
-        device = torch.device(self.device)
+        device = resolve_device(self.device)
         self.model_ = nn.Sequential(
             nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
         ).to(device)

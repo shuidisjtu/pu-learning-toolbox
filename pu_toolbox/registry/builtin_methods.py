@@ -362,7 +362,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
-        training_cost=Cost.HIGH,  # torch, 800 epochs
+        training_cost=Cost.HIGH,  # torch, 100 epochs
     ),
     # ── 15. DGPU ───────────────────────────────────────────────────
     AlgorithmMetadata(

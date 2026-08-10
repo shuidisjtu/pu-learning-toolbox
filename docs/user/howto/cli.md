@@ -33,7 +33,8 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--classifier` | — | `auto` | 注册方法名或 `auto`（推荐器选算法） |
 | `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu`） |
 | `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
-| `--device` | — | `cpu` | 深度算法 torch 设备（如 `cuda`） |
+| `--device` | — | `auto` | 深度算法 torch 设备：`auto`/`cpu`/`cuda`（`auto` 在有 GPU 时自动用 CUDA） |
+| `--max-epochs` | — | 估计器默认 | 深度算法训练轮数上限（仅对构造签名含 `max_epochs` 的算法生效，如 `wconpu`/`self_pu`/`nnpu`） |
 | `--cv` | — | `5` | CV 折数 |
 | `--metrics` | — | 默认四件套 | 逗号分隔（`pu_risk,recall,auc`） |
 | `--seed` | — | `42` | 随机种子（同种子输出可复现） |
@@ -51,6 +52,13 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 4.0] [--seed 42]`：
   用 `make_scar_dataset` 生成演示 CSV（`--n` 为每类样本数，总 2n；`--c` 为
   SCAR 标注概率）。
+- `profile --data X.csv --labels y_pu.csv [--true-labels y_true.csv] [--out-dir .]`：
+  数据画像 + SCAR/SAR 假设诊断，写 `profile.json`（pu-workflow 环节 1）。
+- `recommend --profile profile.json [--data X.csv --labels y_pu.csv] [--class-prior 0.3 | --prior-estimator recpe] [--top-k 5] [--has-gpu] [--out-dir .]`：
+  算法推荐 + 类先验估计（估计需 `--data/--labels`），写 `recommendation.json`
+  （pu-workflow 环节 2）。
+- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--out-dir .]`：
+  假设敏感性分析（先验/标记倾向扫描），写 `sensitivity.json`（pu-workflow 环节 4）。
 
 ## 深度算法与图像数据
 
@@ -64,7 +72,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `--architecture cnn` 仅对声明了 `encoder` 参数、支持骨架注入的深度算法
   （`wconpu` / `infomax_pu`）有效；`auto`、非深度算法、或未适配的深度算法
   （如 `self_pu`）配合 `--architecture cnn` 会报错
-- 深度训练较慢（WConPU 默认 800 epoch），可减少 `--cv` 折数
+- 深度训练较慢（WConPU 默认 100 epoch，可用 `--max-epochs` 调整），可减少 `--cv` 折数
 
 ## 退出码
 
