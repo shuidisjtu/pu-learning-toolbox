@@ -44,6 +44,29 @@ def test_edge_invalid_prior_param_raises(rng):
 
 
 @pytest.mark.integration
+def test_edge_non_numeric_value_for_numeric_param_raises(rng):
+    """A string like 'abc' for a numeric parameter is rejected upfront.
+
+    Without this check the value only fails inside the estimator at fit time
+    and is swallowed by the auto-mode degradation path, leaving the user a
+    no-prior report instead of a clear error.
+    """
+    X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+    pipe = PUPipeline(prior_estimator="pen_l1", prior_params={"sigma": "abc"})
+    with pytest.raises(PipelineError, match="not a number"):
+        pipe.fit_evaluate(X, y_pu)
+
+
+@pytest.mark.integration
+def test_param_string_value_allowed_for_string_param(rng):
+    """String values remain valid for string-typed parameters (e.g. variant)."""
+    X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+    pipe = PUPipeline(prior_estimator="km2", prior_params={"variant": "km1"})
+    report = pipe.fit_evaluate(X, y_pu)
+    assert report.prior.source == "estimated"
+
+
+@pytest.mark.integration
 def test_determ_prior_params_reproducible(rng):
     """Same params give the same estimate across runs."""
     X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)

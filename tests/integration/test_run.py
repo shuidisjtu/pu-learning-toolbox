@@ -211,6 +211,33 @@ def test_run_invalid_classifier_exits_one(tmp_path, rng, capsys):
 
 
 @pytest.mark.integration
+def test_run_invalid_prior_param_value_exits_one(tmp_path, rng, capsys):
+    """A non-numeric --prior-param value exits 1 instead of silently degrading."""
+    data, labels, _ = _write_demo(tmp_path, rng)
+    out = tmp_path / "out"
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "run",
+                "--data",
+                str(data),
+                "--labels",
+                str(labels),
+                "--out-dir",
+                str(out),
+                "--classifier",
+                "upu",
+                "--prior-param",
+                "sigma=abc",
+            ]
+        )
+    assert exc.value.code == 1
+    err = capsys.readouterr().err
+    assert "not a number" in err
+    assert not (out / "report.json").exists()
+
+
+@pytest.mark.integration
 def test_basic_prior_estimator_none_allowed(tmp_path, rng):
     """--prior-estimator none works for methods that need no class prior."""
     _, payload = _run(tmp_path, rng, "--classifier", "elkan_noto", "--prior-estimator", "none")

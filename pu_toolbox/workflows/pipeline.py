@@ -14,7 +14,7 @@ import contextlib
 import inspect
 import warnings
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, get_args, get_origin, get_type_hints
 
 import numpy as np
 from sklearn.base import clone
@@ -662,6 +662,7 @@ class PUPipeline:
 
             if cls is KernelMeanPriorEstimator:
                 kwargs.setdefault("variant", name)
+            _validate_prior_param_types(cls, kwargs, name)
         try:
             return cls(**kwargs)
         except TypeError as exc:
@@ -995,6 +996,38 @@ def _validate_y_true(y_true: np.ndarray, n_samples: int) -> np.ndarray:
         )
     validate_true_binary_labels(y_true, estimator_name="y_true")
     return y_true.astype(int, copy=False)
+
+
+def _validate_prior_param_types(
+    cls: type[BasePriorEstimator],
+    kwargs: dict[str, Any],
+    name: str,
+) -> None:
+    """Reject non-numeric strings passed to numeric estimator parameters.
+
+    Without this check a bad CLI value (e.g. ``sigma=abc``) reaches the
+    estimator constructor, only fails inside ``fit``, and is then swallowed
+    by the auto-mode degradation path — the user gets a no-prior report
+    instead of a clear error. String-typed parameters (e.g. ``variant``)
+    keep accepting strings. Unknown parameter names fall through to the
+    constructor's ``TypeError`` and its existing PipelineError wrapper.
+    """
+    try:
+        hints = get_type_hints(cls.__init__)
+    except (TypeError, NameError):
+        # Unresolvable annotations (e.g. forward references): skip typing
+        # checks and let the constructor / fit-time errors surface as before.
+        return
+    for key, value in kwargs.items():
+        annotation = hints.get(key)
+        if annotation is None:
+            continue
+        types = get_args(annotation) if get_origin(annotation) is not None else (annotation,)
+        if isinstance(value, str) and any(t in (int, float) for t in types):
+            raise PipelineError(
+                f"invalid prior parameter '{key}': value {value!r} is not a number "
+                f"(expected {annotation})"
+            )
 
 
 def _validate_prior_value(value: float, name: str) -> None:
