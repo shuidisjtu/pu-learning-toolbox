@@ -86,7 +86,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 ## 开发
 
 ```bash
-uv run pytest tests/ -v -m "not slow"       # 运行测试
+uv run pytest tests/ -v -m "not slow and not e2e"   # 快速测试（e2e 由 nightly 跑）
 uv run ruff check pu_toolbox/               # Lint 检查
 uv run ruff format --check pu_toolbox/      # 格式检查
 

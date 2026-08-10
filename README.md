@@ -87,7 +87,7 @@ CLI / Windsurf (`.agents/skills/`).
 ## Development
 
 ```bash
-uv run pytest tests/ -v -m "not slow"       # run tests
+uv run pytest tests/ -v -m "not slow and not e2e"   # fast tests (e2e runs nightly)
 uv run ruff check pu_toolbox/               # lint
 uv run ruff format --check pu_toolbox/      # format check
 

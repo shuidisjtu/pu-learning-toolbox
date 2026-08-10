@@ -16,7 +16,7 @@ pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
 
 ```bash
 pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
-# auto 模式自动画像 → 估先验 → 推荐算法 → 训练 → PU 分层 CV → 评估
+# auto 模式自动估先验 → 画像 → 推荐算法 → 训练 → PU 分层 CV → 评估
 ```
 
 ## 步骤 3：查看结果

@@ -35,7 +35,7 @@
 |---|---|---:|---|
 | `observed_mixture` | 全部已标正例 vs 未标记混合样本 | `False` | 仅作为筛查信号，不能证明 SAR |
 | `audited_positives` | 已知真实正例内部的已标 vs 未标 | `True` | 可直接检查 $`S`$ 是否依赖正例特征 |
-| `not_evaluated` | 数据质量或样本量不满足要求 | `False` | 先修复报告中的问题 |
+| `not_evaluated` | 特征含非有限值（数据质量不满足要求；样本量不足时为 `inconclusive`，不改变 evidence） | `False` | 先修复报告中的问题 |
 
 即便审计模式返回 `plausible`，含义也只是"没有检测到强特征依赖"，而不是证明 SCAR 成立。有限样本、模型表达能力和未观测特征仍可能造成漏检。
 

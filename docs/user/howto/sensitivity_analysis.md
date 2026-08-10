@@ -25,8 +25,8 @@ print(analysis.metric_ranges)
 ```
 
 `y_pu` 必须使用可规范化为 `{1, 0}` 的 PU 标签，`y_pred` 必须为 `{1, 0}`。
-两者都必须同时包含 labeled-positive 和 unlabeled 组。`class_priors` 与
-`label_propensities` 至少提供一个；参数合法范围与每个 `SensitivityPoint` 的字段含义
+`y_pu` 必须同时包含 labeled-positive 和 unlabeled 组（`y_pred` 为单类不报错）。
+`class_priors` 与 `label_propensities` 至少提供一个；参数合法范围与每个 `SensitivityPoint` 的字段含义
 见 [API 参考](../reference/api.md)。要点：
 
 - 未提供 `scores` 时，risk 使用 `y_pred` 映射出的 `+1/-1` 分数；precision 始终使用

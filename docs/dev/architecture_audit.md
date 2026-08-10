@@ -22,6 +22,8 @@
 - **要警惕的**:① 提取公共逻辑的机制健全(校验助手存在)但新代码不遵循——"机制存在"与"机制被执行"之间出现裂缝;② check_doc_links 声称覆盖实则排除最多引用密集的目录,漏检已实际发生(孤儿文档入库无人发现);③ 一处与自身推导注释矛盾的数学实现未被测试锁定。
 
 > **第二批治理后更新(2026-08-09,分支 fix/architecture-decay-batch2)**:§3/§4 全部黄/红项已闭环(14/14,2 项有意保留,见 §5 第二批治理);"机制存在但未被执行"的裂缝由 check_test_quality 严格默认与 nightly CI 转为结构性约束。判定维持黄——整体健康,残余风险集中在代谢率(新代码是否持续复用单源助手)与保留项。
+>
+> **文档对齐更新(2026-08-10)**:§1 中"project_structure.md §3 测试树与实际 1:1 双向对齐(commit 021e4b3)"的承诺再次失效——第二批治理新增的 `test_class_prior.py`/`test_pnu_loss.py` 与后续文件(utils/activations.py、utils/serialization.py、estimators/risk/_class_prior.py、benchmarks/_common.py、scripts/pu_workflow/、nightly.yml)共 8 处目录树漂移,已随 2026-08-10 文档检查全部修复。§4 T3 表格为审计时点快照(nightly.yml 由第二批第 12 条治理落地);复跑指南 §6 不变。
 
 ## 3. 四信号逐条
 

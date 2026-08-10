@@ -19,7 +19,7 @@
 0.4.0  推荐器 + 诊断报告 + 敏感性分析
 0.5.0  SAR / selection-biased PU
 0.6.0  Self-PU, Dist-PU, InfoMax PU, WConPU, DGPU
-1.0.0  API 稳定
+1.0.0  API 稳定（已发布首版，2026-08-09）
 ```
 
 ## 阶段叙事
@@ -36,7 +36,7 @@
 
 **Phase 5 — SAR / Selection-Biased PU (v0.5) ✅**：SAR/selection-bias 数据模拟器、PUSB、LBE、LLSVM 与 SCAR vs SAR 对比 benchmark 完成。
 
-**Phase 6 — 深度 PU (v0.6) 进行中**：Self-PU 核心、Dist-PU、InfoMax PU、WConPU、DGPU 核心接口与统一 runner 完成（含 clean-room 多 seed、Fashion-MNIST official-data smoke）。剩余：未公开视觉/validation 指标细节、授权数据与 DGPU EDM paper-like 全量运行。
+**Phase 6 — 深度 PU (v0.6) ✅**：Self-PU 核心、Dist-PU、InfoMax PU、WConPU、DGPU 核心接口与统一 runner 完成（含 clean-room 多 seed、Fashion-MNIST official-data smoke）。剩余：未公开视觉/validation 指标细节、授权数据与 DGPU EDM paper-like 全量运行（依赖外部数据与环境，非工具箱缺口）。
 
 ## 进度明细
 

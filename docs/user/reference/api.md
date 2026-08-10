@@ -32,6 +32,7 @@
 | —（`km1` / `km2` variant） | `KernelMeanPriorEstimator` | class-prior | `variant="km1"/"km2"` 等（Kernel-mean 类先验，`PUPipeline` 的 `prior_estimator` 支持） | [Kernel_Mean](../../research/method_cards/Kernel_Mean_Class_Prior.md) |
 
 > 注册名可直接用于 `PUPipeline(classifier="...")` 与 CLI `--classifier`；别名大小写不敏感。
+> 族列为友好简称；CLI 与 JSON 输出使用枚举值：`class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` / `deep_pu`。
 > 构造器有必填非 `class_prior` 参数的方法（如 `ldce` 需 `flip_probability`）不能按名字自动实例化，显式指定时请传实例（见下文 PUPipeline 节）。
 
 ## PUPipeline

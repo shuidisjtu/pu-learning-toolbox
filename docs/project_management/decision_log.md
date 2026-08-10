@@ -2,6 +2,7 @@
 
 | 日期 | 决策 | 理由 | 决策人 |
 |---|---|---|---|
+| 2026-08-10 | 测试金字塔分层：新建 `tests/integration/`（test_pipeline/test_pipeline_deep/test_run 迁移）与 `tests/e2e/`（workflow_scripts 3 文件迁移 + 8 个真实子进程旅程）；注册 integration/e2e marker；CI 分层——PR 快层 `-m "not slow and not e2e"`，nightly 顶层 `-m "slow or e2e"` | 全量 811 测试按执行速度与稳定性分层：单元+集成在 PR 反馈，E2E 子进程旅程与慢速套件进 nightly，避免 PR 反馈周期被顶层测试拖长 | shuidisjtu |
 | 2026-08-09 | 第二批架构腐朽治理(分支 fix/architecture-decay-batch2):公式/校验单源化(canonical_hash、sigmoid_stable、rbf_weights、validate_true_binary_labels、solve_prior_from_positive_fraction、check_scalar_in_range)、check_test_quality 默认严格(--lenient 显式退出)、slow 套件接入 nightly CI、fit_evaluate 拆分为私有 helper、n_features_out 别名键删除 | 审计遗留 14 项发现(重复实现/门禁宽松/无自动执行环境)在 v1.0.0 发布前一次性收敛,消除"机制存在但未被执行"的裂缝;严格默认与定时 CI 使治理结果可被持续执行而非依赖人工记忆 | shuidisjtu |
 | 2026-08-09 | v1.0.0 版本升级(0.1.0.dev0→1.0.0) | roadmap 0.1→0.6 功能全部完成(17 算法、6 门禁、738 测试);从未发布正式版,直接 1.0.0 首版 | shuidisjtu |
 | 2026-08-09 | 新增第 6 道质量门禁 check_format.py(ruff check + format --check,CI 与本地单一入口) | 2026-08-09 CI 曾因本地漏跑 `ruff format --check` 失败,软约束需转硬门禁 | shuidisjtu |

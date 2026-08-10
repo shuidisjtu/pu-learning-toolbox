@@ -110,7 +110,7 @@ Benchmark runner、配置、来源锁和结果应一起更新。提交结果 CSV
 - `docs/README.md` 的文档索引。
 - `docs/dev/architecture.md` 的 API 和依赖方向。
 - `docs/dev/project_structure.md` 的真实文件结构。
-- `docs/project_management/process_checklist.md` 的勾选与最近完成记录。
+- `docs/project_management/process_checklist.md` 的勾选与发布状态。
 
 不要一次性把所有待办标记完成。只有代码、测试、文档和要求的实际实验都完成后才能勾选对应任务。
 

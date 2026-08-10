@@ -46,6 +46,8 @@ pu_toolbox/
     __init__.py
     basis.py                  (shared)
     centroid.py               (shared: MoM + 协方差原语, LDCE/KLDCE 共用)
+    activations.py            (shared: sigmoid_stable 数值稳定实现单源)
+    serialization.py          (shared: JSON 严格模式/Markdown 序列化助手单源)
 
   losses/
     __init__.py
@@ -62,6 +64,7 @@ pu_toolbox/
       llsvm.py               (native)
     risk/
       __init__.py
+      _class_prior.py           (shared: solve_prior_from_positive_fraction 单源, KLDCE/LDCE 共用)
       ldce.py                   (native)
       kldce.py                  (native: ACS + QP oracle + RBF kernel)
       dist_pu.py                (native)
@@ -141,6 +144,7 @@ tests/
       test_ldce_api.py                # LDCE 收敛/约束/API/错误/回归 (unit)
       test_kldce_math.py              # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
       test_kldce_property.py          # KLDCE 约束/鲁棒性 (PROPERTY)
+      test_class_prior.py             # solve_prior_from_positive_fraction 共享助手 (unit)
 
   unit/                               # 算法特有逻辑测试
     test_basis_single_source.py       # 单一数据源 RBF kernel 公式一致性
@@ -163,6 +167,7 @@ tests/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py               # uPU golden tests (MATH + PROPERTY)
       test_llsvm_loss.py             # LLSVM loss golden tests (MATH)
+      test_pnu_loss.py               # PNU loss golden tests (MATH)
     metrics/
       test_classification.py          # PU 指标测试
     model_selection/
@@ -240,7 +245,13 @@ examples/
 
 ```text
 benchmarks/
+  _common.py                   (共享原语: canonical_hash 等单源)
+  __init__.py
   assigned_methods/            (前五篇 + SCAR/SAR 已执行 benchmark)
+    __init__.py
+    runner.py                  (统一 JSON benchmark runner)
+    run.py                     (CLI)
+    README.md
     preflight_paper.py         (源码/数据/历史环境与 toolbox 差距分轴审计)
     pusb_official_data.py      (IJCNN1 仓库扩展校验、官方抽样、kernel/uLSIF 与 provenance)
     pusb_table2_data.py        (Table 2 六数据集锁定 loader 与官方采样可行性审计)
@@ -249,12 +260,14 @@ benchmarks/
     pusb_table2_aggregate.py   (跨 shard 完整 key、配置和 provenance 验收)
     pusb_table2_report.py      (严格结果验收、配对置信区间与 Markdown/JSON 报告)
     configs/official/          (五份 locked_not_executed paper-like 配置)
+    results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
     results/official_preflight/ (当前节点前五篇 blocker 报告)
     results/pusb_official_data_smoke/ (PUSB 官方数据缩小网格 smoke)
     results/pusb_official_data_feasible_multiseed/ (IJCNN1 仓库扩展：完整网格 3 seeds × 3 U + uLSIF)
     results/pusb_table2_data_audit/ (Table 2 数据完整性与官方采样可行性报告)
     results/pusb_table2_strict_plan/ (45 单元/4500 trials 的 claim-safe dry-run 计划)
     results/pusb_table2_strict_full/ (4500 trials 聚合结果、统计摘要与声明安全报告)
+    results/scar_sar_comparison/ (SCAR vs SAR 对比 benchmark: 3 mechanisms × 10 seeds)
   deep_pu/
     runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
     run.py                     (CLI)
@@ -270,6 +283,7 @@ benchmarks/
       official/               (三份 locked_not_executed paper-like 配置)
     results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
     results/official_data_smoke_fashion_mnist/ (真实数据 3-seed smoke)
+    results/infomax_fashion_protocol_preflight/ (InfoMax Fashion-MNIST 完整协议执行前审计)
     results/official_preflight/ (当前节点完整配置 blocker 报告)
     results/wconpu_cifar10_protocol_preflight/ (WConPU CIFAR-10 执行前审计)
 ```
@@ -344,6 +358,10 @@ scripts/
   check_math_rendering.py     (方法卡 MathJax 渲染检查：缺上下标参数/括号配对/$ 配对)
   check_skill_sync.py         (Skill 同步检查：skills/ 定义与脚本枚举一致，第 5 道门禁)
   check_format.py             (格式门禁：ruff check + format --check 全目录，第 6 道门禁)
+  pu_workflow/                (pu-workflow skill 环节脚本，与 .claude/skills/pu-workflow 双份同步)
+    profile.py                (数据画像: profile.json 契约)
+    recommend.py              (算法推荐: recommendation.json 契约)
+    sensitivity.py            (敏感性分析: sensitivity.json 契约)
 ```
 
 ## 7. CI/CD（`.github/`）
@@ -352,5 +370,6 @@ scripts/
 .github/
   pull_request_template.md
   workflows/
-    tests.yml                (Python matrix + 静态门禁 + wheel 安装冒烟)
+    tests.yml                (PR 快层: Python matrix unit+integration + 静态门禁 + wheel 安装冒烟)
+    nightly.yml              (每周一 03:23 UTC: slow + e2e 顶层全量, 3 × 3 matrix)
 ```
