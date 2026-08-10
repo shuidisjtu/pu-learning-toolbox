@@ -77,31 +77,26 @@ flowchart TB
     WFS --> PPL
     EX --> PPL
     CLI --> PPL
-    PPL --> MS
-    PPL --> MET
-    PPL --> DG
-    PPL --> ADV
-    PPL --> PRE
-    PPL --> CORE
-    ADV --> REG
-    PPL --> CLC
-    PPL --> RSK
-    PPL --> BIA
-    PPL --> DEE
-    CLC --> LS
-    RSK --> LS
-    BIA --> LS
-    DEE --> LS
-    RSK --> PR
-    BIA --> PR
-    CLC --> UTL
-    RSK --> UTL
-    BIA --> UTL
-    DEE --> UTL
+    PPL --> EV
+    PPL --> AL
+    PPL --> ES
+    PPL --> CR
+    AL --> ES
+    AL --> CR
+    ES --> CR
+
+    style UL fill:#E8F0FE,stroke:#4A6FA5,color:#1B2A4A
+    style OR fill:#FDEBD0,stroke:#C08000,color:#5C3D00
+    style EV fill:#E6F4EA,stroke:#3C8C5C,color:#14532D
+    style AL fill:#F3E8FF,stroke:#7C3AED,color:#3B0764
+    style ES fill:#FEE2E2,stroke:#C2410C,color:#7C2D12
+    style CR fill:#F1F5F9,stroke:#64748B,color:#1E293B
 ```
 
-> 依赖箭头表示调用方向（指向被依赖方）；分层与边为代表性概览，细粒度依赖以
-> [`project_structure.md`](project_structure.md) 目录树为准。
+> 箭头表示调用方向（指向被依赖方）：编排层调用 Evaluation / Algorithms /
+> Estimation / Core，Algorithms 使用 Estimation 与 Core，Estimation 依赖 Core。
+> 分层与层间边为代表性概览，细粒度依赖以 [`project_structure.md`](project_structure.md)
+> 目录树为准。
 
 ## 3. 数据流
 
