@@ -5,7 +5,7 @@
 **Positive-Unlabeled learning in Python** -- sklearn-compatible API, 17 research paper methods, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.1.1-blue)
+![Status](https://img.shields.io/badge/status-1.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
@@ -94,9 +94,9 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 workflow — profiling, assumption diagnosis, method recommendation,
 training, and result interpretation — from natural language. Loaded
 natively by Claude Code / Cursor (`.claude/skills/`) and Codex / Gemini
-CLI / Windsurf (`.agents/skills/`). The skill file is not shipped in the
-PyPI wheel; see [How to enable and use the skill](docs/user/howto/using_skill.md)
-(pip users: `pip install "pu-toolbox>=1.1"` + copy the skill folder).
+CLI / Windsurf (`.agents/skills/`). The skill ships inside the PyPI
+wheel: `pip install "pu-toolbox>=1.2" && pu-toolbox skill install` —
+see [How to enable and use the skill](docs/user/howto/using_skill.md).
 
 ## Development
 

@@ -5,7 +5,7 @@
 **正例-无标记学习 Python 工具箱** -- 兼容 sklearn API，17 篇论文方法，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.1.1-blue)
+![Status](https://img.shields.io/badge/status-1.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 特性
@@ -91,9 +91,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 `pu-workflow`（Agent Skills 开放标准）以自然语言驱动完整 PU 分析流程：
 数据画像、假设诊断、算法推荐、训练评估与结果解读。Claude Code / Cursor
 （`.claude/skills/`）与 Codex / Gemini CLI / Windsurf（`.agents/skills/`）
-原生加载。技能文件不在 PyPI wheel 内；启用与使用见
-[启用与使用 pu-workflow Skill](docs/user/howto/using_skill.md)
-（pip 用户：`pip install "pu-toolbox>=1.1"` + 复制技能目录）。
+原生加载。技能随 PyPI wheel 分发：`pip install "pu-toolbox>=1.2" && pu-toolbox
+skill install` 一键启用；详见
+[启用与使用 pu-workflow Skill](docs/user/howto/using_skill.md)。
 
 ## 开发
 
