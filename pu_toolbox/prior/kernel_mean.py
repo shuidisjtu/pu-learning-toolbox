@@ -70,6 +70,8 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
         *,
         variant: Literal["km1", "km2"] = "km1",
         kernel_width: float | None = None,
+        width_selection: Literal["relative", "mmd_grid"] = "relative",
+        kernel_width_scale: float = 0.1,
         width_factors: tuple[float, ...] = (0.1, 0.316227766, 1.0, 3.16227766, 10.0),
         epsilon: float = 0.04,
         lambda_upper_bound: float = 8.0,
@@ -82,6 +84,8 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
     ) -> None:
         self.variant = variant
         self.kernel_width = kernel_width
+        self.width_selection = width_selection
+        self.kernel_width_scale = kernel_width_scale
         self.width_factors = width_factors
         self.epsilon = epsilon
         self.lambda_upper_bound = lambda_upper_bound
@@ -97,6 +101,10 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
             raise ValueError("variant must be 'km1' or 'km2'")
         if self.kernel_width is not None and self.kernel_width <= 0:
             raise ValueError("kernel_width must be positive or None")
+        if self.width_selection not in {"relative", "mmd_grid"}:
+            raise ValueError("width_selection must be 'relative' or 'mmd_grid'")
+        if self.kernel_width_scale <= 0:
+            raise ValueError("kernel_width_scale must be positive")
         if not self.width_factors or any(value <= 0 for value in self.width_factors):
             raise ValueError("width_factors must contain positive values")
         if self.epsilon <= 0 or self.lambda_upper_bound <= 1 + self.epsilon:
@@ -132,7 +140,13 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
                     raise ValueError("kernel width is undefined because all samples are identical")
                 median_squared = float(np.median(positive))
             median_width = np.sqrt(median_squared)
-            widths = [median_width * factor for factor in self.width_factors]
+            if self.width_selection == "relative":
+                # Fixed fraction of the median distance: scale-invariant and
+                # data-adaptive; the max-MMD grid systematically picks wider
+                # bandwidths that under-estimate the prior on SCAR data.
+                widths = [self.kernel_width_scale * median_width]
+            else:  # "mmd_grid": author's width search preserved
+                widths = [median_width * factor for factor in self.width_factors]
         else:
             widths = [self.kernel_width]
 

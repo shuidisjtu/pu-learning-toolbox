@@ -123,9 +123,12 @@ KM2 使用启发式阈值。与作者代码一致，默认由初始斜率和经�
 k(x,x')=\exp\left(-\frac{\|x-x'\|^2}{2\sigma^2}\right).
 ```
 
-未显式指定 `kernel_width` 时，按照作者代码，以 pooled sample 的 median pairwise distance
-为基准，测试约 `0.1` 到 `10` 倍的 5 个对数尺度，并选择使经验
-`||mu_F-mu_H||` 最大的宽度。
+未显式指定 `kernel_width` 时，默认（`width_selection="relative"`，2026-08-10 起）取
+`kernel_width_scale × sqrt(median pairwise squared distance)`（`kernel_width_scale=0.1`）。
+该固定相对比例是尺度不变、数据自适应的；作者代码的 max-MMD 5 档宽度搜索
+（`width_selection="mmd_grid"`）保留为可选路径 —— 探针显示 max-MMD 准则在常规 SCAR
+数据上系统性偏选宽带宽、低估类先验（默认 km1 0.30→0.59、km2 0.31→0.46，真值 0.5），
+论文协议复现（如 InfoMax-PU）需显式 pin `width_selection="mmd_grid"`。
 
 `standardize=False` 与作者 kernel routine 的直接输入行为一致。若上游没有稳定尺度，应在
 训练数据内标准化并记录统计量；InfoMax-PU 在已学习表示空间中调用该估计器。
@@ -154,6 +157,8 @@ pi_hat = estimator.estimate()
 |---|---:|---|
 | `variant` | `"km1"` | 选择公开估计值 |
 | `kernel_width` | `None` | 固定 RBF 宽度；空值时执行候选选择 |
+| `width_selection` | `"relative"` | `"relative"`（0.1×中位距离，默认）/ `"mmd_grid"`（作者 5 档搜索） |
+| `kernel_width_scale` | `0.1` | `relative` 模式下宽度与中位距离的比值 |
 | `epsilon` | `0.04` | 有限差分步长与二分停止尺度 |
 | `lambda_upper_bound` | `8.0` | 作者代码的搜索上界 |
 | `km2_final_slope_weight` | `0.2` | KM2 阈值中的最终斜率权重 |

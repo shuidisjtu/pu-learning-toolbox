@@ -4,10 +4,12 @@
 
 import numpy as np
 import pytest
+from sklearn.metrics import pairwise_distances
 
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.prior import KernelMeanPriorEstimator
 from pu_toolbox.prior.kernel_mean import _nearest_simplex_distance
+from tests.helpers import make_scar_data
 
 
 def _mixture(seed=4):
@@ -60,6 +62,54 @@ def test_param_selected_variant_matches_named_estimate(variant):
     ).fit(X, y_pu)
     expected = estimator.km1_estimate_ if variant == "km1" else estimator.km2_estimate_
     assert estimator.estimate() == expected
+
+
+# ── math (relative width golden) ───────────────────────────────
+
+
+@pytest.mark.math
+def test_math_auto_width_formula(rng):
+    """Relative selection: kernel_width_ == scale x median pairwise distance."""
+    X, y_pu, _ = make_scar_data(rng, n=200, separation=2.0)
+    est = KernelMeanPriorEstimator(variant="km2").fit(X, y_pu)
+    # Implementation takes the median over the full squared-distance matrix
+    # (diagonal zeros included); replicate exactly.
+    d2 = pairwise_distances(X, metric="sqeuclidean")
+    expected = 0.1 * float(np.sqrt(np.median(d2)))
+    assert est.kernel_width_ == pytest.approx(expected, rel=1e-6)
+
+
+@pytest.mark.math
+@pytest.mark.parametrize("variant", ["km1", "km2"])
+def test_math_variants_land_in_band(rng, variant):
+    """Default relative width lands both variants in the acceptance band."""
+    X, y_pu, _ = make_scar_data(rng, n=200, separation=2.0)
+    est = KernelMeanPriorEstimator(variant=variant).fit(X, y_pu).estimate()
+    assert 0.35 <= est <= 0.75
+
+
+# ── param (selection modes) ────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_param_mmd_grid_selection_preserved(rng):
+    """mmd_grid keeps the author width search and differs from relative."""
+    X, y_pu, _ = make_scar_data(rng, n=200, separation=2.0)
+    rel = KernelMeanPriorEstimator(variant="km2").fit(X, y_pu)
+    grid = KernelMeanPriorEstimator(variant="km2", width_selection="mmd_grid").fit(X, y_pu)
+    assert grid.kernel_width_ > 0
+    assert grid.kernel_width_ != pytest.approx(rel.kernel_width_)
+
+
+@pytest.mark.unit
+def test_param_explicit_width_beats_selection(rng):
+    """Explicit kernel_width overrides any width_selection mode."""
+    X, y_pu, _ = make_scar_data(rng, n=200, separation=2.0)
+    est = KernelMeanPriorEstimator(kernel_width=0.5, width_selection="relative").fit(X, y_pu)
+    assert est.kernel_width_ == pytest.approx(0.5)
+
+
+# ── edge ───────────────────────────────────────────────────────
 
 
 @pytest.mark.unit
