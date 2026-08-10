@@ -80,6 +80,15 @@ def test_basic_sensitivity_smoke(tmp_path, rng):
     assert len(payload["points"]) == 9
 
 
+def test_basic_skill_install_writes_both_targets(tmp_path):
+    """pu-toolbox skill install copies SKILL.md into both agent dirs."""
+    proc = _cli("skill", "install", "--dest", str(tmp_path))
+    assert proc.returncode == 0, proc.stderr
+    assert "installed pu-workflow skill" in proc.stdout
+    for target in (".claude/skills/pu-workflow", ".agents/skills/pu-workflow"):
+        assert (tmp_path / target / "SKILL.md").is_file()
+
+
 def test_param_missing_profile_reports_error(tmp_path, rng):
     """Missing profile.json -> exit 1, error: on stderr, no traceback."""
     X, y_pu = _write_inputs(tmp_path, rng)
