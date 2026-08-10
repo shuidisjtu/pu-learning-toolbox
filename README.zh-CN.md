@@ -28,6 +28,20 @@ pip install -e .          # 核心依赖
 pip install -e ".[torch]" # + 基于 PyTorch 的方法（nnPU、Dist-PU、Self-PU 等）
 ```
 
+### 安装环境
+
+任何 Python ≥ 3.10 的解释器均可使用：本包是纯 Python 通用 wheel（无编译扩展），
+解释器来源不影响。各环境注意事项：
+
+- **venv / uv**（推荐）：标准隔离环境，无需特殊处理。
+- **系统 Python**（python.org / Ubuntu / Homebrew）：版本必须 ≥ 3.10。
+  Ubuntu 22.04+ 与 Debian 12+ 会阻止向系统环境 `pip install`（PEP 668）——
+  请改用 venv。
+- **Anaconda / Miniconda**：在 conda 环境内 `pip install pu-toolbox`（本包只在
+  PyPI 发布，`conda install` 找不到）。若已通过 conda 安装 torch，普通
+  `pip install pu-toolbox`（不带 `[torch]` extra）仍可启用基于 PyTorch 的方法——
+  torch 是延迟导入的可选依赖。
+
 ### Hello World
 
 ```python

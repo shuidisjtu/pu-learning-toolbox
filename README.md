@@ -28,6 +28,22 @@ pip install -e .          # core dependencies
 pip install -e ".[torch]" # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, ...)
 ```
 
+### Installation environments
+
+Any Python interpreter >= 3.10 works: the package is a pure-Python universal
+wheel with no compiled extensions, so the interpreter source does not matter.
+Notes per environment:
+
+- **venv / uv** (recommended): standard isolated environments, nothing special.
+- **System Python** (python.org / Ubuntu / Homebrew): must be >= 3.10.
+  Ubuntu 22.04+ and Debian 12+ block `pip install` into the system environment
+  (PEP 668) -- create a venv instead.
+- **Anaconda / Miniconda**: `pip install pu-toolbox` inside a conda env
+  (the package is PyPI-only; `conda install` will not find it). If you already
+  installed torch via conda, a plain `pip install pu-toolbox` (without the
+  `[torch]` extra) still enables the PyTorch-based methods -- torch is an
+  optional dependency loaded lazily.
+
 ### Hello World
 
 ```python
