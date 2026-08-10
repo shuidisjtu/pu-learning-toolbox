@@ -345,6 +345,7 @@ docs/
     decision_log.md
     process_checklist.md
     cli_design.md
+    release_process.md          # 发布流程：版本策略、预检清单、上传、回滚与维护
 
 ```
 
