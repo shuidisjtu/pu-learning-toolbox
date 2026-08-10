@@ -26,7 +26,14 @@ def build_demo_parser(sub: argparse._SubParsersAction) -> None:
     )
     parser.add_argument("--c", type=float, default=0.5, help="SCAR labeling propensity (0, 1]")
     parser.add_argument("--n-features", type=int, default=5)
-    parser.add_argument("--separation", type=float, default=4.0)
+    parser.add_argument(
+        "--separation",
+        type=float,
+        default=1.0,
+        help="distance between the two class centres; 1.0 keeps the demo in "
+        "the overlap regime where prior estimation stays reasonably unbiased "
+        "(pen_l1 ~0.44 at sep=1.0 vs ~0.33 at sep=4.0 on n=200 data)",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.set_defaults(func=run_demo)
 

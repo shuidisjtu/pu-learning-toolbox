@@ -50,9 +50,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
   能否自动实例化）。新算法注册后自动出现。
 - `list-priors`：列出 `--prior-estimator` 可用的估计器（`km1`/`km2` 映射到
   `KernelMeanPriorEstimator(variant=...)`）。
-- `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 4.0] [--seed 42]`：
+- `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 1.0] [--seed 42]`：
   用 `make_scar_dataset` 生成演示 CSV（`--n` 为每类样本数，总 2n；`--c` 为
-  SCAR 标注概率）。
+  SCAR 标注概率；`--separation` 默认 1.0，避免强分离度下类先验估计系统性低估）。
 - `profile --data X.csv --labels y_pu.csv [--true-labels y_true.csv] [--out-dir .]`：
   数据画像 + SCAR/SAR 假设诊断，写 `profile.json`（pu-workflow 环节 1）。
 - `recommend --profile profile.json [--data X.csv --labels y_pu.csv] [--class-prior 0.3 | --prior-estimator recpe] [--top-k 5] [--has-gpu] [--out-dir .]`：

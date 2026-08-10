@@ -24,6 +24,16 @@ def test_demo_writes_three_files(tmp_path):
 
 
 @pytest.mark.unit
+def test_demo_default_separation_is_one():
+    """The default separation (1.0) avoids the strong-separation regime where
+    pen_l1 systematically under-estimates the prior (0.33 at sep=4.0 vs 0.44
+    at sep=1.0 on n=200 SCAR data); the demo's first impression must not be
+    a wildly off prior estimate."""
+    args = build_parser().parse_args(["make-demo-data", "--out-dir", "d", "--n", "50"])
+    assert args.separation == 1.0
+
+
+@pytest.mark.unit
 def test_param_too_few_labeled_positives_reports_error(tmp_path, capsys):
     """n=3 at c=0.5 labels only 2 positives -- fewer than the default 5-fold
     CV demands -- so the guard must refuse instead of writing CSVs that
