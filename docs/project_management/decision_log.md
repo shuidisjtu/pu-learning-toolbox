@@ -2,6 +2,8 @@
 
 | 日期 | 决策 | 理由 | 决策人 |
 |---|---|---|---|
+| 2026-08-10 | v1.2.0 新增 `skill install` 子命令：SKILL.md 随 wheel 分发（hatch wheel include），一键安装 `pu-workflow` 技能到 `~/.claude/skills/` 与 `~/.agents/skills/`（默认跳过已存在，`--force` 覆盖） | 用户反馈 skill 使用与维护繁琐：pip 用户拿技能需克隆/手动复制；插件市场化会引入第三份副本加重维护。包内命令方案零维护增量（仍双份 + check_skill_sync），且不依赖 Claude Code 插件生态（Codex 用户同样可用） | shuidisjtu |
+| 2026-08-10 | v1.1.1 修正 `__version__` 漂移：`pu_toolbox/__init__.py` 硬编码 1.0.0 未随 pyproject 同步；`check_project_metadata` 新增 `__version__` 与 `project.version` 一致性检查（负向验证通过） | v1.1.0 发布的 wheel 中 `import pu_toolbox` 返回错误版本号；无门禁拦截同类漂移 | shuidisjtu |
 | 2026-08-10 | v1.1.0 体验修复：① 深度估计器默认 `device=None` 自动检测 CUDA（共享 `core/device.py`，CLI `--device` 默认 `auto`）② CLI `--max-epochs` 透传 ③ WConPU 默认 `max_epochs` 800→100 ④ profile/recommend/sensitivity 收为 CLI 子命令（scripts 改兼容包装） | 用户以真实 PyPI 安装 + GPU 实测发现：GPU 机器默认吃 CPU、WConPU 默认 800 epoch 无早停需 ~1.5h、skill 环节脚本在包外导致 pip 用户无法使用；修复后三项补齐发布体验 | shuidisjtu |
 | 2026-08-10 | 测试金字塔分层：新建 `tests/integration/`（test_pipeline/test_pipeline_deep/test_run 迁移）与 `tests/e2e/`（workflow_scripts 3 文件迁移 + 8 个真实子进程旅程）；注册 integration/e2e marker；CI 分层——PR 快层 `-m "not slow and not e2e"`，nightly 顶层 `-m "slow or e2e"` | 全量 811 测试按执行速度与稳定性分层：单元+集成在 PR 反馈，E2E 子进程旅程与慢速套件进 nightly，避免 PR 反馈周期被顶层测试拖长 | shuidisjtu |
 | 2026-08-09 | 第二批架构腐朽治理(分支 fix/architecture-decay-batch2):公式/校验单源化(canonical_hash、sigmoid_stable、rbf_weights、validate_true_binary_labels、solve_prior_from_positive_fraction、check_scalar_in_range)、check_test_quality 默认严格(--lenient 显式退出)、slow 套件接入 nightly CI、fit_evaluate 拆分为私有 helper、n_features_out 别名键删除 | 审计遗留 14 项发现(重复实现/门禁宽松/无自动执行环境)在 v1.0.0 发布前一次性收敛,消除"机制存在但未被执行"的裂缝;严格默认与定时 CI 使治理结果可被持续执行而非依赖人工记忆 | shuidisjtu |
