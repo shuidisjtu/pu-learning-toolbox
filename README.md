@@ -44,12 +44,14 @@ Notes per environment:
 
 ```python
 import numpy as np
-from pu_toolbox.preprocessing import make_sar_dataset
+from pu_toolbox.preprocessing import make_scar_dataset
 from pu_toolbox import PUPipeline
 
-# Synthetic PU data: some positives are labeled (1), rest are unlabeled (0)
-X, y_pu, y_true, _ = make_sar_dataset(
-    n_samples=1000, n_features=8, class_prior=0.3, random_state=42,
+# Synthetic SCAR data (labeling independent of features — the premise of
+# every class-prior estimator): some positives are labeled (1), the rest
+# are unlabeled (0). For SAR data use make_sar_dataset(mechanism="linear").
+X, y_pu, y_true = make_scar_dataset(
+    n=500, c=0.5, n_features=8, separation=1.0, random_state=42,
 )
 
 # One call: profile -> class prior -> train -> PU-stratified CV -> evaluate

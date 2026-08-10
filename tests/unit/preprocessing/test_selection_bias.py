@@ -161,6 +161,7 @@ class TestSARDataset:
             n_samples=500,
             n_features=4,
             class_prior=0.3,
+            mechanism="linear",
             label_frequency=0.4,
             random_state=3,
         )
@@ -189,9 +190,27 @@ class TestSARDataset:
         assert not np.allclose(linear_propensity, nonlinear_propensity)
 
     def test_dataset_determinism_and_invalid_size(self):
-        first = make_sar_dataset(random_state=21)
-        second = make_sar_dataset(random_state=21)
+        first = make_sar_dataset(mechanism="linear", random_state=21)
+        second = make_sar_dataset(mechanism="linear", random_state=21)
         for left, right in zip(first, second, strict=True):
             np.testing.assert_allclose(left, right)
         with pytest.raises(ValueError, match="n_samples must be >= 2"):
             make_sar_dataset(n_samples=1)
+
+    def test_dataset_default_mechanism_warns_sar(self):
+        """The default mechanism is SAR; omitting it warns loudly.
+
+        Class-prior estimators assume SCAR; a user calling
+        make_sar_dataset without mechanism gets SAR data by default and
+        must be told so.
+        """
+        with pytest.warns(UserWarning, match="mechanism"):
+            make_sar_dataset(n_samples=100, random_state=1)
+
+    def test_dataset_explicit_mechanism_does_not_warn(self):
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            make_sar_dataset(n_samples=100, mechanism="scar", random_state=1)
+            make_sar_dataset(n_samples=100, mechanism="linear", random_state=1)

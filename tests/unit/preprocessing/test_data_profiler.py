@@ -32,6 +32,10 @@ class TestProfileStructure:
         assert report.summary["implied_label_frequency"] == pytest.approx(2 / 3)
         assert report.selection_diagnostic["evidence"] == "observed_mixture"
         assert report.selection_diagnostic["is_identifying"] is False
+        # v1.3.0: the old "is_scar_plausible" name suggested SCAR was tested;
+        # the renamed key is a pure screening flag for observed dependence.
+        assert "is_observed_dependence_absent" in report.selection_diagnostic
+        assert "is_scar_plausible" not in report.selection_diagnostic
         assert "PU data profile" in report.format_text()
         json.dumps(report.to_dict(), allow_nan=False)
 

@@ -209,7 +209,7 @@ def _feature_statistics(
 def _inconclusive_selection(message: str, threshold: float) -> dict[str, Any]:
     return {
         "separability_auc": float("nan"),
-        "is_scar_plausible": None,
+        "is_observed_dependence_absent": None,
         "status": "inconclusive",
         "message": message,
         "threshold": float(threshold),

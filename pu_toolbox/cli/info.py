@@ -63,21 +63,26 @@ def run_list_methods(args: argparse.Namespace) -> None:
 
 
 def run_list_priors(args: argparse.Namespace) -> None:
-    """Print the class-prior estimators accepted by ``--prior-estimator``."""
+    """Print the class-prior estimators accepted by ``--prior-estimator``.
+
+    Each line shows one estimator: the canonical name followed by its
+    aliases (e.g. ``class_prior_estimation (aliases: cpe, pe, pen_l1)``)
+    so users can tell estimators apart instead of seeing 8 flat names.
+    """
     register_all_builtin_methods()
-    names = list(_PRIOR_NAMES)
+    entries: dict[str, list[str]] = {name: [] for name in _PRIOR_NAMES}
     for meta in list_algorithms():
         cls = _resolve_class(meta.name)
         if cls is None or not issubclass(cls, BasePriorEstimator):
             continue
-        # Canonical name plus its aliases (e.g. "cpe" for
-        # class_prior_estimation): every one is accepted by --prior-estimator.
-        for name in (meta.name, *meta.aliases):
-            if name not in names:
-                names.append(name)
+        entries[meta.name] = list(meta.aliases)
     print("Pass one of these to --prior-estimator ('none' disables estimation):")
-    for name in names:
-        print(f"  {name}")
+    for name in sorted(entries):
+        aliases = entries[name]
+        if aliases:
+            print(f"  {name} (aliases: {', '.join(aliases)})")
+        else:
+            print(f"  {name}")
 
 
 def _resolve_class(name: str) -> type | None:

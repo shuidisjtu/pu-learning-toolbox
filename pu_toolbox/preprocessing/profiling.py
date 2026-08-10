@@ -237,8 +237,10 @@ def scar_diagnostic(
         Diagnostic result with the following keys:
 
         - ``"separability_auc"`` (float): mean ROC AUC from 3-fold CV.
-        - ``"is_scar_plausible"`` (bool or None): ``True`` when AUC is at or
-          below the threshold; ``None`` when the check is inconclusive.
+        - ``"is_observed_dependence_absent"`` (bool or None): ``True`` when
+          AUC is at or below the threshold. This is a screening signal only —
+          it does not establish SCAR (see ``"is_identifying"``); ``None``
+          when the check is inconclusive.
         - ``"status"``: ``"plausible"``, ``"at_risk"``, or
           ``"inconclusive"``.
         - ``"evidence"``: ``"audited_positives"`` or
@@ -298,7 +300,7 @@ def scar_diagnostic(
         )
         return {
             "separability_auc": float("nan"),
-            "is_scar_plausible": None,
+            "is_observed_dependence_absent": None,
             "status": "inconclusive",
             "message": message,
             **common,
@@ -344,7 +346,7 @@ def scar_diagnostic(
 
     return {
         "separability_auc": mean_auc,
-        "is_scar_plausible": is_plausible,
+        "is_observed_dependence_absent": is_plausible,
         "status": "plausible" if is_plausible else "at_risk",
         "message": message,
         **common,

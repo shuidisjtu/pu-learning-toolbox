@@ -267,13 +267,16 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 ```
 
 - `mechanism`：`"scar"` / `"linear"` / `"nonlinear"`（定义见 [concepts/scar_sar.md](../concepts/scar_sar.md)）。
+  不传时默认 `"linear"`（SAR，标记依赖特征）并发出 `UserWarning`；类先验估计器假设 SCAR，
+  SCAR 场景需显式传 `mechanism="scar"`。
 - `label_frequency`：正类 propensity 的目标均值（校准），不是抽样后的精确比例。
 - `make_sar_labels` 默认 `ensure_labeled=True`：小样本抽样未选中任何正类时选择
   propensity 最高的真实正类，保证下游可训练。
 - 返回值 `propensity` 表示 `P(S=1|Y,X)`，真实负类位置固定为零。
-- CLI 演示数据 `make-demo-data`（`--n` 每类样本数、`--c` 标注概率）内部使用
-  `make_scar_dataset`（`make_scar_dataset(n, c, n_features=5, separation=4.0,
-  random_state=None)` → `(X, y_pu, class_prior)`，机制固定为 SCAR）。
+- CLI 演示数据 `make-demo-data`（`--n` 每类样本数、`--c` 标注概率、`--separation`
+  默认 1.0）内部使用 `make_scar_dataset`（`make_scar_dataset(n, c, n_features=5,
+  separation=1.0, random_state=None)` → `(X, y_pu, class_prior)`，机制固定为
+  SCAR；默认分离度避免强分离下类先验估计系统性低估）。
 
 ## analyze_pu_sensitivity
 

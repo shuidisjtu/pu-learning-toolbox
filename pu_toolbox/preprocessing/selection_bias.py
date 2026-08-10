@@ -16,6 +16,7 @@ zero for true negatives, which can never receive a positive label.
 
 from __future__ import annotations
 
+import warnings
 from typing import Literal
 
 import numpy as np
@@ -262,7 +263,7 @@ def make_sar_dataset(
     n_features: int = 5,
     class_prior: float = 0.3,
     separation: float = 2.0,
-    mechanism: str = "linear",
+    mechanism: str | None = None,
     label_frequency: float = 0.5,
     strength: float = 1.0,
     feature_weights: np.ndarray | None = None,
@@ -275,6 +276,34 @@ def make_sar_dataset(
     positives are generated and the rows are shuffled. Positive and negative
     features have means ``+separation/2`` and ``-separation/2`` respectively
     in every feature, with identity covariance.
+
+    Parameters
+    ----------
+    n_samples : int, default 1000
+        Total number of samples.
+    n_features : int, default 5
+        Dimensionality of the feature space.
+    class_prior : float, default 0.3
+        Positive-class proportion, ``0 < class_prior < 1``.
+    separation : float, default 2.0
+        Distance between the two class centres (``2 * delta``).
+    mechanism : {"scar", "linear", "nonlinear"} or None, default None
+        Labeling mechanism. ``None`` resolves to ``"linear"`` — **SAR**,
+        where the labeling propensity depends on the features, and a
+        :class:`UserWarning` is emitted. Class-prior estimators and PU
+        classifiers assume **SCAR** (``mechanism="scar"``, labeling
+        independent of features); check
+        ``docs/user/concepts/scar_sar.md`` before choosing.
+    label_frequency : float, default 0.5
+        Mean labeling propensity for true positives.
+    strength : float, default 1.0
+        How strongly the propensity varies across features in SAR modes.
+    feature_weights : np.ndarray or None, default None
+        Per-feature propensity weights for SAR modes.
+    ensure_labeled : bool, default True
+        Guarantee at least one labeled positive.
+    random_state : int, np.random.RandomState or None, default None
+        Random seed or RandomState for reproducibility.
 
     Returns
     -------
@@ -302,6 +331,16 @@ def make_sar_dataset(
         raise TypeError("separation must be a real scalar.")
     if not np.isfinite(separation) or float(separation) < 0:
         raise ValueError(f"separation must be finite and >= 0; got {separation}.")
+    if mechanism is None:
+        mechanism = "linear"
+        warnings.warn(
+            "make_sar_dataset defaults to mechanism='linear' (SAR: labeling "
+            "depends on features). Class-prior estimators assume SCAR; pass "
+            "mechanism='scar' for SCAR data. See "
+            "docs/user/concepts/scar_sar.md for the difference.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     rng = check_random_state(random_state)
     n_positive = int(np.clip(round(n_samples * float(class_prior)), 1, n_samples - 1))

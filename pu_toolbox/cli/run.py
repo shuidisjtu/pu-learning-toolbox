@@ -230,7 +230,12 @@ def _load_features(path: Path) -> np.ndarray:
         if not np.isfinite(array).all():
             raise ValueError(f"image data file {path} contains NaN or Inf values.")
         return array
-    return _read_csv(path, "data").to_numpy(dtype=float)
+    array = _read_csv(path, "data").to_numpy(dtype=float)
+    if not np.isfinite(array).all():
+        raise ValueError(
+            f"data CSV {path} contains NaN or Inf values. Impute or remove them before running."
+        )
+    return array
 
 
 def _load_label_column(path: Path, what: str) -> np.ndarray:

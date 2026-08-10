@@ -59,6 +59,21 @@ def test_param_list_priors_includes_aliases(capsys):
 
 
 @pytest.mark.unit
+def test_param_list_priors_groups_aliases_with_canonical(capsys):
+    """Aliases appear on the same line as their canonical estimator name."""
+    args = build_parser().parse_args(["list-priors"])
+    args.func(args)
+    lines = [line for line in capsys.readouterr().out.splitlines()[1:] if line.strip()]
+    by_line = {line.split()[0]: line for line in lines}
+    assert "cpe" in by_line["class_prior_estimation"]
+    assert "pen_l1" in by_line["class_prior_estimation"]
+    assert "re_cpe" in by_line["recpe"]
+    # km1/km2 are standalone pipeline names, not registry aliases.
+    assert "aliases" not in by_line["km1"]
+    assert "aliases" not in by_line["km2"]
+
+
+@pytest.mark.unit
 def test_deterministic_list_methods_output_stable(capsys):
     """Two invocations produce byte-identical output (deterministic table)."""
     args = build_parser().parse_args(["list-methods"])
@@ -83,7 +98,9 @@ def test_edge_list_priors_names_all_accepted_by_pipeline(capsys):
 
     args = build_parser().parse_args(["list-priors"])
     args.func(args)
-    names = [line.strip() for line in capsys.readouterr().out.splitlines()[1:] if line.strip()]
-    assert names, "list-priors printed nothing"
-    for name in names:
-        PUPipeline(prior_estimator=name)  # unknown names raise at construction
+    lines = [line for line in capsys.readouterr().out.splitlines()[1:] if line.strip()]
+    assert lines, "list-priors printed nothing"
+    # The first token of each line is the estimator name; alias groups
+    # ("canonical (aliases: ...)") render in the same line.
+    for line in lines:
+        PUPipeline(prior_estimator=line.split()[0])  # unknown names raise at construction

@@ -42,12 +42,14 @@ pip install "pu-toolbox[torch]"       # + 基于 PyTorch 的方法（nnPU、Dist
 
 ```python
 import numpy as np
-from pu_toolbox.preprocessing import make_sar_dataset
+from pu_toolbox.preprocessing import make_scar_dataset
 from pu_toolbox import PUPipeline
 
-# 合成 PU 数据：部分正例被标记（1），其余为无标记（0）
-X, y_pu, y_true, _ = make_sar_dataset(
-    n_samples=1000, n_features=8, class_prior=0.3, random_state=42,
+# 合成 SCAR 数据（标记与特征无关——所有类先验估计器的前提）：
+# 部分正例被标记（1），其余为无标记（0）。SAR 数据用
+# make_sar_dataset(mechanism="linear")。
+X, y_pu, y_true = make_scar_dataset(
+    n=500, c=0.5, n_features=8, separation=1.0, random_state=42,
 )
 
 # 一次调用：画像 → 先验 → 训练 → PU 分层 CV → 评估
