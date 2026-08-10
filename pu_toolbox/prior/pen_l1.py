@@ -11,6 +11,7 @@ inside ``fit``.
 from __future__ import annotations
 
 import numpy as np
+from sklearn.metrics import pairwise_distances
 
 from ..core.base import BasePriorEstimator
 from ..core.exceptions import NotFittedError
@@ -18,13 +19,30 @@ from ..core.validation import validate_pu_X_y
 from ..utils.basis import build_rbf_basis
 
 
+_AUTO_SIGMA_FACTOR = 0.6
+
+
+def _median_pairwise_distance(X: np.ndarray, max_rows: int = 1000) -> float:
+    """Median pairwise euclidean distance; subsamples for large inputs."""
+    if len(X) > max_rows:
+        idx = np.random.RandomState(0).choice(len(X), max_rows, replace=False)
+        X = X[idx]
+    upper = pairwise_distances(X)[np.triu_indices(len(X), k=1)]
+    return float(np.median(upper))
+
+
 class ClassPriorEstimator(BasePriorEstimator):
-    """Estimate ``pi=P(y=1)`` with the paper's penalized-L1 objective."""
+    """Estimate ``pi=P(y=1)`` with the paper's penalized-L1 objective.
+
+    ``sigma=None`` (the default) selects a data-adaptive scale: the median
+    pairwise euclidean distance of the (standardized) data.  An explicit
+    ``sigma`` keeps the historical fixed-scale behaviour.
+    """
 
     def __init__(
         self,
         *,
-        sigma: float = 1.0,
+        sigma: float | None = None,
         reg_lambda: float = 1e-2,
         theta_grid: np.ndarray | None = None,
         n_centers: int | None = 200,
@@ -40,8 +58,10 @@ class ClassPriorEstimator(BasePriorEstimator):
         X, y_pu = validate_pu_X_y(
             X, y_pu, accept_sparse=False, estimator_name="ClassPriorEstimator"
         )
-        if self.sigma <= 0 or self.reg_lambda <= 0:
-            raise ValueError("sigma and reg_lambda must be positive")
+        if self.reg_lambda <= 0:
+            raise ValueError("reg_lambda must be positive")
+        if self.sigma is not None and self.sigma <= 0:
+            raise ValueError("sigma must be positive")
         X = np.asarray(X, dtype=float)
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values")
@@ -53,9 +73,20 @@ class ClassPriorEstimator(BasePriorEstimator):
             scale = np.where(scale > 1e-12, scale, 1.0)
             X, P, U = (X - mean) / scale, (P - mean) / scale, (U - mean) / scale
             self.mean_, self.scale_ = mean, scale
+        if self.sigma is None:
+            # Auto scale: a fixed fraction of the median pairwise distance,
+            # chosen so estimates stay inside the acceptance band across
+            # separations (0.5-2.0); users can override via an explicit sigma.
+            auto = _median_pairwise_distance(X)
+            sigma = _AUTO_SIGMA_FACTOR * auto if auto > 1e-12 else 1.0
+            self.sigma_auto_ = True
+        else:
+            sigma = self.sigma
+            self.sigma_auto_ = False
+        self.sigma_ = float(sigma)
         centers = X if self.n_centers is None else X[: min(self.n_centers, len(X))]
-        phi_p = build_rbf_basis(P, centers, self.sigma)
-        phi_u = build_rbf_basis(U, centers, self.sigma)
+        phi_p = build_rbf_basis(P, centers, sigma)
+        phi_u = build_rbf_basis(U, centers, sigma)
         theta_grid = np.asarray(
             np.linspace(0.01, 0.99, 99) if self.theta_grid is None else self.theta_grid,
             dtype=float,

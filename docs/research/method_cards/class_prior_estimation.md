@@ -20,6 +20,7 @@
 - `U` 必须来自边缘分布 `p(x)`。如果 U 是经过筛选的子集，论文的 mixture decomposition 不再直接成立。
 - Gaussian basis 对特征尺度很敏感。当前实现默认标准化；正式复现必须记录标准化方式及是否在训练 fold 内计算统计量。
 - `theta_grid`、`sigma` 和 `reg_lambda` 是工程参数。论文要求通过交叉验证选择，但没有为项目提供唯一默认网格。
+- 2026-08-10 起默认 `sigma=None` 改为数据自适应：`0.6 × 标准化后数据的中位 pairwise 欧氏距离`（确定性、无真值泄漏）；跨分离度/先验回归已验证其落在验收带内，但对 `prior<0.5 + 低分离度` 有高估倾向，用户可用显式 `sigma` 或 CLI `--prior-param sigma=...` 覆盖。
 - 论文源码页面中的 MATLAB 文件与 2017 MLJ 论文的 penL1 公式并不完全对应；实现以论文公式为数学权威。
 
 ## 2. 论文信息
@@ -221,7 +222,7 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 
 | 参数 | 当前默认值 | 含义 | 选择建议 |
 |---|---:|---|---|
-| `sigma` | 1.0 | Gaussian width | 应在训练 fold 内 CV；对标准化尺度敏感 |
+| `sigma` | `None`（自动：0.6×中位 pairwise 距离） | Gaussian width | 自动值跨分离度回归验证入带；显式值应训练 fold 内 CV，对标准化尺度敏感 |
 | `reg_lambda` | `1e-2` | alpha 的 L2 正则 | 应与 sigma 联合搜索 |
 | `theta_grid` | 99 点 | 候选先验 | 数据量大时可先粗网格再局部细化 |
 | `n_centers` | 200 | basis 中心数 | 小数据可设 `None`；大数据需限制 |
@@ -238,7 +239,7 @@ class ClassPriorEstimator(BasePriorEstimator):
     def __init__(
         self,
         *,
-        sigma=1.0,
+        sigma=None,  # None = auto (0.6 x median pairwise distance)
         reg_lambda=1e-2,
         theta_grid=None,
         n_centers=200,
@@ -378,6 +379,8 @@ theta_grid: 0.01, 0.02, ..., 0.99
 clean-room 合成实验；penL1 prior MAE 为 `0.0380 ± 0.0192`。该数字不包含 MNIST、论文
 逐 `theta` CV 和完整基线，因此不是论文表格复现。`preflight_paper.py` 已将不可变源码、
 数据目录和 toolbox 协议差距分开审计。
+
+> 注意：上述 MAE 是默认 `sigma=1.0` 时代的数字；2026-08-10 默认改为数据自适应 `sigma` 后该数值不再代表当前默认行为，benchmark 复现需在配置中显式 pin `sigma`。
 
 ## 13. 源码状态与复现风险
 
