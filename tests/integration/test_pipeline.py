@@ -20,6 +20,7 @@ from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
 from pu_toolbox.core.config import POSITIVE_LABEL
 from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.risk.upu import UPUClassifier
+from pu_toolbox.prior import ClassPriorEstimator
 from pu_toolbox.registry.registry import get_algorithm
 from pu_toolbox.workflows import DEFAULT_METRICS, PipelineError, PipelineReport, PUPipeline
 from tests.helpers import make_scar_data
@@ -99,6 +100,25 @@ class TestPipelineParameterErrors:
     def test_invalid_classifier_name_raises(self):
         with pytest.raises(PipelineError, match="Unknown classifier"):
             PUPipeline(classifier="nope")
+
+    def test_param_prior_params_forwarded_to_estimator(self, rng):
+        """prior_params reach the estimator constructor (string name path)."""
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+        via_params = PUPipeline(prior_estimator="pen_l1", prior_params={"sigma": 3.0})
+        via_instance = PUPipeline(prior_estimator=ClassPriorEstimator(sigma=3.0))
+        report_a = via_params.fit_evaluate(X, y_pu)
+        report_b = via_instance.fit_evaluate(X, y_pu)
+        assert report_a.prior.value == pytest.approx(report_b.prior.value)
+
+    def test_param_prior_params_with_instance_raises(self):
+        with pytest.raises(TypeError, match="prior_params cannot be combined"):
+            PUPipeline(prior_estimator=ClassPriorEstimator(sigma=1.0), prior_params={"sigma": 2.0})
+
+    def test_param_invalid_prior_param_raises(self, rng):
+        X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
+        pipe = PUPipeline(prior_estimator="pen_l1", prior_params={"not_a_param": 1})
+        with pytest.raises(PipelineError, match="invalid prior parameters"):
+            pipe.fit_evaluate(X, y_pu)
 
     def test_non_instantiable_classifier_raises(self):
         with pytest.raises(PipelineError, match="flip_probability"):

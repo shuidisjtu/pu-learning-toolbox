@@ -89,6 +89,30 @@ def test_basic_skill_install_writes_both_targets(tmp_path):
         assert (tmp_path / target / "SKILL.md").is_file()
 
 
+def test_param_run_accepts_prior_param(tmp_path, rng):
+    """--prior-param KEY=VALUE is accepted by the real CLI end-to-end."""
+    X, y_pu, _ = make_scar_data(rng, n=120, separation=4.0)
+    pd.DataFrame(X, columns=[f"f{i}" for i in range(X.shape[1])]).to_csv(
+        tmp_path / "X.csv", index=False
+    )
+    pd.DataFrame({"label": y_pu}).to_csv(tmp_path / "y_pu.csv", index=False)
+    proc = _cli(
+        "run",
+        "--data",
+        str(tmp_path / "X.csv"),
+        "--labels",
+        str(tmp_path / "y_pu.csv"),
+        "--out-dir",
+        str(tmp_path / "out"),
+        "--prior-estimator",
+        "pen_l1",
+        "--prior-param",
+        "sigma=3.0",
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert (tmp_path / "out" / "report.json").is_file()
+
+
 def test_param_missing_profile_reports_error(tmp_path, rng):
     """Missing profile.json -> exit 1, error: on stderr, no traceback."""
     X, y_pu = _write_inputs(tmp_path, rng)

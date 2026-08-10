@@ -7,6 +7,7 @@ from __future__ import annotations
 import pytest
 
 from pu_toolbox.cli import build_parser, main
+from pu_toolbox.cli.run import _parse_prior_params
 
 
 @pytest.mark.unit
@@ -43,7 +44,7 @@ def test_basic_run_subcommand_registered_with_defaults():
     )
     assert args.command == "run"
     assert args.classifier == "auto"
-    assert args.prior_estimator == "recpe"
+    assert args.prior_estimator == "pen_l1"
     assert args.cv == 5
     assert args.seed == 42
     assert args.save_model is False
@@ -68,6 +69,39 @@ def test_param_invalid_cv_value_exits_two():
             ]
         )
     assert exc.value.code == 2
+
+
+@pytest.mark.unit
+def test_param_prior_param_parsing_and_coercion():
+    """--prior-param KEY=VALUE parses, coerces types, and rejects bad input."""
+    params = _parse_prior_params(["sigma=3.0", "n_centers=200", "theta_grid=x"])
+    assert params == {"sigma": 3.0, "n_centers": 200, "theta_grid": "x"}
+    assert _parse_prior_params(None) == {}
+    with pytest.raises(ValueError, match="KEY=VALUE"):
+        _parse_prior_params(["sigma"])
+    with pytest.raises(ValueError, match="non-empty key"):
+        _parse_prior_params(["=3.0"])
+
+
+@pytest.mark.unit
+def test_param_run_parser_accepts_repeated_prior_params():
+    """parse_args collects repeated --prior-param into a list."""
+    args = build_parser().parse_args(
+        [
+            "run",
+            "--data",
+            "x.csv",
+            "--labels",
+            "y.csv",
+            "--out-dir",
+            "out",
+            "--prior-param",
+            "sigma=3.0",
+            "--prior-param",
+            "reg_lambda=1e-2",
+        ]
+    )
+    assert args.prior_param == ["sigma=3.0", "reg_lambda=1e-2"]
 
 
 @pytest.mark.unit

@@ -227,6 +227,7 @@ class PUPipeline:
         *,
         classifier: str | BasePUClassifier = "auto",
         prior_estimator: str | BasePriorEstimator | None | object = _UNSET,
+        prior_params: dict[str, Any] | None = None,
         cv: int | Any | None = None,
         metrics: Sequence[str] | None = None,
         random_state: int | None = 42,
@@ -298,6 +299,12 @@ class PUPipeline:
         else:
             self._prior_estimator = prior_estimator
             self._prior_auto_selected = False
+        self.prior_params = dict(prior_params or {})
+        if self.prior_params and isinstance(self._prior_estimator, BasePriorEstimator):
+            raise TypeError(
+                "prior_params cannot be combined with a prior-estimator instance; "
+                "pass an already-configured instance instead"
+            )
         self._prior_cls = self._resolve_prior_estimator_class(self._prior_estimator)
 
         # -- CV ----------------------------------------------------------
@@ -647,14 +654,20 @@ class PUPipeline:
 
     def _instantiate_prior(self, name: str) -> BasePriorEstimator:
         cls = self._prior_cls
-        kwargs: dict[str, Any] = {}
+        kwargs: dict[str, Any] = dict(self.prior_params)
         if cls is not None and issubclass(cls, BasePriorEstimator):
-            # KernelMeanPriorEstimator requires variant selection.
+            # KernelMeanPriorEstimator requires variant selection; a user
+            # prior_params entry for "variant" takes precedence.
             from ..prior.kernel_mean import KernelMeanPriorEstimator
 
             if cls is KernelMeanPriorEstimator:
-                kwargs["variant"] = name
-        return cls(**kwargs)
+                kwargs.setdefault("variant", name)
+        try:
+            return cls(**kwargs)
+        except TypeError as exc:
+            raise PipelineError(
+                f"invalid prior parameters for '{name}': {exc}"
+            ) from exc
 
     def _fresh_estimator(
         self,

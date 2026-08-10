@@ -17,6 +17,31 @@ from ..workflows import PUPipeline
 __all__ = ["build_run_parser", "run_run"]
 
 
+def _coerce_value(value: str) -> int | float | str:
+    """Coerce a CLI value to int, then float, falling back to str."""
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        return value
+
+
+def _parse_prior_params(items: list[str] | None) -> dict[str, int | float | str]:
+    """Parse repeated ``--prior-param KEY=VALUE`` into a dict."""
+    params: dict[str, int | float | str] = {}
+    for item in items or []:
+        if "=" not in item:
+            raise ValueError(f"--prior-param expects KEY=VALUE, got {item!r}")
+        key, value = item.split("=", 1)
+        if not key:
+            raise ValueError(f"--prior-param expects a non-empty key, got {item!r}")
+        params[key] = _coerce_value(value)
+    return params
+
+
 def build_run_parser(sub: argparse._SubParsersAction) -> None:
     """Attach the ``run`` subcommand to *sub* (side-effect only)."""
     parser = sub.add_parser("run", help="run the full PU workflow on CSV data")
@@ -47,6 +72,14 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
         type=str,
         default="pen_l1",
         help="prior-estimator name or alias (see 'list-priors'); 'none' disables estimation",
+    )
+    parser.add_argument(
+        "--prior-param",
+        action="append",
+        default=None,
+        metavar="KEY=VALUE",
+        help="prior-estimator parameter, repeatable (e.g. --prior-param sigma=3.0); "
+        "values are coerced to int/float when possible",
     )
     parser.add_argument(
         "--classifier", type=str, default="auto", help="registered method name or 'auto'"
@@ -112,6 +145,7 @@ def _run(args: argparse.Namespace) -> None:
     )
 
     prior_estimator: str | None = None if args.prior_estimator == "none" else args.prior_estimator
+    prior_params = _parse_prior_params(args.prior_param)
     metrics = [m.strip() for m in args.metrics.split(",") if m.strip()] if args.metrics else None
 
     if args.architecture == "mlp" and args.backbone is not None:
@@ -120,6 +154,7 @@ def _run(args: argparse.Namespace) -> None:
     pipe = PUPipeline(
         classifier=args.classifier,
         prior_estimator=prior_estimator,
+        prior_params=prior_params,
         cv=args.cv,
         metrics=metrics,
         random_state=args.seed,
