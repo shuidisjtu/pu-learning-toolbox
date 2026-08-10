@@ -117,6 +117,14 @@ def main() -> int:
         issues,
     )
 
+    init_file = (ROOT / "pu_toolbox/__init__.py").read_text(encoding="utf-8")
+    init_version = re.search(r'__version__ = "([^"]+)"', init_file)
+    _check(
+        init_version is not None and init_version.group(1) == project["version"],
+        "pu_toolbox/__init__.py __version__ must match pyproject.toml project.version.",
+        issues,
+    )
+
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
     _check("uv.lock" in gitignore, "uv.lock policy must be explicit in .gitignore.", issues)
     requirements_header = (ROOT / "requirements.txt").read_text(encoding="utf-8")[:500]
