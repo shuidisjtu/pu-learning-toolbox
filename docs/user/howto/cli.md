@@ -59,6 +59,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
   （pu-workflow 环节 2）。
 - `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--out-dir .]`：
   假设敏感性分析（先验/标记倾向扫描），写 `sensitivity.json`（pu-workflow 环节 4）。
+- `skill install [--force] [--dest 目录]`：安装内置 `pu-workflow` 技能到用户级
+  `~/.claude/skills/` 与 `~/.agents/skills/`（默认跳过已存在安装，`--force` 覆盖；
+  详见 [启用与使用 pu-workflow Skill](using_skill.md)）。
 
 ## 深度算法与图像数据
 
