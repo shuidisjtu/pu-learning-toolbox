@@ -35,12 +35,12 @@ def _run_script(tmp_path, *extra, out_dir=None):
         [sys.executable, "scripts/pu_workflow/profile.py", *extra, "--out-dir", str(out)],
         capture_output=True,
         text=True,
-        cwd=str(Path(__file__).resolve().parents[3]),
+        cwd=str(Path(__file__).resolve().parents[2]),
     )
     return proc.returncode, proc.stderr, out
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_basic_profile_writes_contract_json(tmp_path, rng):
     """Output profile.json parses, carries the SCAR/SAR diagnostic and issues."""
     X, y_pu, y_true = _write_inputs(tmp_path, rng)
@@ -52,7 +52,7 @@ def test_basic_profile_writes_contract_json(tmp_path, rng):
     assert isinstance(payload["issues"], list)
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_param_true_labels_optional(tmp_path, rng):
     """Without --true-labels the profile still completes (oracle hints absent)."""
     X, y_pu, _ = _write_inputs(tmp_path, rng)
@@ -61,7 +61,7 @@ def test_param_true_labels_optional(tmp_path, rng):
     assert (out / "profile.json").exists()
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_missing_file_reports_error(tmp_path):
     """Missing input file -> exit 1 with a clear stderr message."""
     code, stderr, out = _run_script(
@@ -72,7 +72,7 @@ def test_edge_missing_file_reports_error(tmp_path):
     assert not (out / "profile.json").exists()
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
     """--out-dir pointing at an existing file -> exit 1, clean error, no traceback."""
     X, y_pu, _ = _write_inputs(tmp_path, rng)
@@ -86,7 +86,7 @@ def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
     assert "Traceback" not in stderr
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_deterministic_profile_same_seed(tmp_path, rng):
     """Same seed -> identical profile.json bytes."""
     X, y_pu, _ = _write_inputs(tmp_path, rng)

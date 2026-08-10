@@ -32,12 +32,12 @@ def _run_script(tmp_path, *extra, out_dir=None):
         [sys.executable, "scripts/pu_workflow/sensitivity.py", *extra, "--out-dir", str(out)],
         capture_output=True,
         text=True,
-        cwd=str(Path(__file__).resolve().parents[3]),
+        cwd=str(Path(__file__).resolve().parents[2]),
     )
     return proc.returncode, proc.stderr, out
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_basic_sensitivity_writes_contract_json(tmp_path, rng):
     """Output sensitivity.json parses, with points and metric_ranges."""
     X, y_pu = _write_inputs(tmp_path, rng)
@@ -49,7 +49,7 @@ def test_basic_sensitivity_writes_contract_json(tmp_path, rng):
     assert "metric_ranges" in payload
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_param_custom_grids(tmp_path, rng):
     """Explicit --class-priors and --label-propensities override defaults."""
     X, y_pu = _write_inputs(tmp_path, rng)
@@ -69,7 +69,7 @@ def test_param_custom_grids(tmp_path, rng):
     assert len(payload["points"]) == 4
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_invalid_grid_reports_error(tmp_path, rng):
     """A non-numeric grid value -> exit 1 with a clear stderr message."""
     X, y_pu = _write_inputs(tmp_path, rng)
@@ -81,7 +81,7 @@ def test_edge_invalid_grid_reports_error(tmp_path, rng):
     assert not (out / "sensitivity.json").exists()
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_unknown_classifier_reports_error(tmp_path, rng):
     """Unknown --classifier -> exit 1 with a clean error, no traceback."""
     X, y_pu = _write_inputs(tmp_path, rng)
@@ -94,7 +94,7 @@ def test_edge_unknown_classifier_reports_error(tmp_path, rng):
     assert not (out / "sensitivity.json").exists()
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
     """--out-dir pointing at an existing file -> exit 1, clean error, no traceback."""
     X, y_pu = _write_inputs(tmp_path, rng)
@@ -108,7 +108,7 @@ def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
     assert "Traceback" not in stderr
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_deterministic_sensitivity_same_input(tmp_path, rng):
     """Same inputs -> identical sensitivity.json bytes."""
     X, y_pu = _write_inputs(tmp_path, rng)

@@ -41,7 +41,7 @@ def _make_profile(tmp_path, rng):
             str(tmp_path),
         ],
         capture_output=True,
-        cwd=str(Path(__file__).resolve().parents[3]),
+        cwd=str(Path(__file__).resolve().parents[2]),
         check=True,
     )
     return tmp_path / "profile.json"
@@ -61,12 +61,12 @@ def _run_script(tmp_path, profile, *extra, out_dir=None):
         ],
         capture_output=True,
         text=True,
-        cwd=str(Path(__file__).resolve().parents[3]),
+        cwd=str(Path(__file__).resolve().parents[2]),
     )
     return proc.returncode, proc.stderr, out
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_basic_recommend_writes_contract_json(tmp_path, rng):
     """Output recommendation.json parses, with ranked candidates."""
     profile = _make_profile(tmp_path, rng)
@@ -77,7 +77,7 @@ def test_basic_recommend_writes_contract_json(tmp_path, rng):
     assert payload["candidates"], "at least one candidate on SCAR data"
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_param_class_prior_user_and_estimated(tmp_path, rng):
     """--class-prior records source 'user'; km1 estimation records 'estimated'."""
     X, y_pu = _write_inputs(tmp_path, rng)
@@ -95,7 +95,7 @@ def test_param_class_prior_user_and_estimated(tmp_path, rng):
     assert code == 0, stderr
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_prior_estimator_without_data_errors(tmp_path, rng):
     """--prior-estimator != none without --data/--labels -> exit 1."""
     profile = _make_profile(tmp_path, rng)
@@ -104,7 +104,7 @@ def test_edge_prior_estimator_without_data_errors(tmp_path, rng):
     assert "error:" in stderr
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_unknown_prior_estimator_reports_error(tmp_path, rng):
     """Unknown --prior-estimator -> exit 1 with error: message, no traceback."""
     X, y_pu = _write_inputs(tmp_path, rng)
@@ -117,7 +117,7 @@ def test_edge_unknown_prior_estimator_reports_error(tmp_path, rng):
     assert "Traceback" not in stderr
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
     """--out-dir pointing at an existing file -> exit 1, clean error, no traceback."""
     profile = _make_profile(tmp_path, rng)
@@ -129,7 +129,7 @@ def test_edge_unwritable_out_dir_reports_error(tmp_path, rng):
     assert "Traceback" not in stderr
 
 
-@pytest.mark.unit
+@pytest.mark.e2e
 def test_deterministic_recommend_same_input(tmp_path, rng):
     """Same profile twice -> identical recommendation.json bytes."""
     profile = _make_profile(tmp_path, rng)
