@@ -107,6 +107,39 @@ class TestRunDeepInput:
         assert code == 0
         assert captured["device"] == "auto"
 
+    def test_basic_max_epochs_passthrough(self, tmp_path, monkeypatch):
+        """--max-epochs 透传进 PUPipeline 构造。"""
+        from pu_toolbox.cli import run as cli_run
+
+        data_path, labels_path = _write_image(tmp_path)
+        captured: dict = {}
+
+        class FakePipe:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+            def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None):
+                return type("R", (), {"save": lambda *a: None, "summary": lambda *a: ""})()
+
+        monkeypatch.setattr(cli_run, "PUPipeline", FakePipe)
+        code = _run_cli(
+            [
+                "run",
+                "--data",
+                str(data_path),
+                "--labels",
+                str(labels_path),
+                "--out-dir",
+                str(tmp_path / "out"),
+                "--classifier",
+                "wconpu",
+                "--max-epochs",
+                "50",
+            ],
+        )
+        assert code == 0
+        assert captured["max_epochs"] == 50
+
     def test_param_cnn_with_shallow_classifier_exits_one(self, tmp_path, capsys):
         data_path, labels_path = _write_image(tmp_path)
         code = _run_cli(

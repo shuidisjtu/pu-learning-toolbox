@@ -34,6 +34,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu`） |
 | `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
 | `--device` | — | `auto` | 深度算法 torch 设备：`auto`/`cpu`/`cuda`（`auto` 在有 GPU 时自动用 CUDA） |
+| `--max-epochs` | — | 估计器默认 | 深度算法训练轮数上限（仅对构造签名含 `max_epochs` 的算法生效，如 `wconpu`/`self_pu`/`nnpu`） |
 | `--cv` | — | `5` | CV 折数 |
 | `--metrics` | — | 默认四件套 | 逗号分隔（`pu_risk,recall,auc`） |
 | `--seed` | — | `42` | 随机种子（同种子输出可复现） |

@@ -107,3 +107,23 @@ def test_determ_repeated_default_construction_stable():
     pipe2 = PUPipeline(classifier="wconpu", cv=2)
     assert pipe1.device is None
     assert pipe2.device is None
+
+
+def test_param_fresh_estimator_injects_max_epochs():
+    # max_epochs 按签名注入：nnpu 构造签名含 max_epochs → 注入
+    from pu_toolbox import PUPipeline
+
+    X, y_pu = _table_data()
+    pipe = PUPipeline(classifier="nnpu", cv=2, max_epochs=5)
+    clf = pipe._fresh_estimator(pipe._classifier_cls, None, 0.3)
+    assert clf.max_epochs == 5
+
+
+def test_edge_fresh_estimator_skips_max_epochs_without_signature():
+    # upu 构造签名不含 max_epochs → 不注入、不崩溃
+    from pu_toolbox import PUPipeline
+
+    X, y_pu = _table_data()
+    pipe = PUPipeline(classifier="upu", cv=2, max_epochs=5)
+    clf = pipe._fresh_estimator(pipe._classifier_cls, None, 0.3)
+    assert not hasattr(clf, "max_epochs")

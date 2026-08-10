@@ -200,6 +200,10 @@ class PUPipeline:
         Torch device passed to deep classifiers (e.g. ``"cuda"``).
         ``None`` / ``"auto"`` auto-detects: CUDA when torch and a GPU
         are available, otherwise CPU.
+    max_epochs : int | None, default None
+        Max training epochs injected into estimators whose constructor
+        signature accepts ``max_epochs`` (wconpu, self_pu, nnpu);
+        estimators with other epoch parameter names are left untouched.
 
     Notes
     -----
@@ -226,6 +230,7 @@ class PUPipeline:
         architecture: str = "mlp",
         backbone: str = "cnn13",
         device: str | None = None,
+        max_epochs: int | None = None,
     ) -> None:
         _ensure_registered()
         self.classifier = classifier
@@ -280,6 +285,7 @@ class PUPipeline:
         self.architecture = architecture
         self.backbone = backbone
         self.device = device
+        self.max_epochs = max_epochs
         self._encoder = None  # built lazily per fit_evaluate for CNN
 
         # -- prior estimator ---------------------------------------------
@@ -676,6 +682,8 @@ class PUPipeline:
             kwargs["encoder"] = self._encoder
         if "device" in signature.parameters and self.device is not None:
             kwargs["device"] = self.device
+        if "max_epochs" in signature.parameters and self.max_epochs is not None:
+            kwargs["max_epochs"] = self.max_epochs
         return cls(**kwargs)
 
     def _resolved_splitter(self, X: Any, y_pu: np.ndarray) -> Any:
