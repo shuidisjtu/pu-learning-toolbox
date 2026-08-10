@@ -78,11 +78,10 @@
 - [x] WConPU clean 10% validation、二维 loss-weight grid、候选级 resume 与最优参数 refit
 - [ ] InfoMax PU、WConPU、DGPU 官方视觉/文本与 EDM paper-like 全量运行
 
-## 发布状态 (v1.1.0)
+## 发布状态 (v1.3.0)
 
-- **版本**: `1.1.0`（2026-08-10：深度估计器 CUDA 自动检测、`--max-epochs` 透传、WConPU 默认 100 epoch、profile/recommend/sensitivity CLI 子命令）
+- **版本**: `1.3.0`（2026-08-10：类先验估计用户角度体验修复——`make_sar_dataset` 默认 SAR 警示、CLI 报告估计可靠性上下文（估计器名/边界注/Assumption Notes）、demo 分离度 1.0、list-priors 别名分组、`--prior-param` 非法值前置拦截、NaN 友好报错、推荐器不再对非识别 at_risk 信号提升 SAR 方法、`is_scar_plausible` 改名 `is_observed_dependence_absent`）
 - **算法**: 17 个已注册方法，全部 native 实现
-- **测试**: 822 passed（unit + integration = PR 快层；e2e + slow = nightly 顶层）
 - **质量门禁**: 6 道（test_quality / doc_links / project_metadata / math_rendering / skill_sync / format）
 - **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
 - **依赖外部**: Phase 3/6 官方数据与历史环境全量运行（非工具箱缺口，由执行方提供）
