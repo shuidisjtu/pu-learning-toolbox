@@ -233,8 +233,7 @@ def _load_features(path: Path) -> np.ndarray:
     array = _read_csv(path, "data").to_numpy(dtype=float)
     if not np.isfinite(array).all():
         raise ValueError(
-            f"data CSV {path} contains NaN or Inf values. "
-            "Impute or remove them before running."
+            f"data CSV {path} contains NaN or Inf values. Impute or remove them before running."
         )
     return array
 
