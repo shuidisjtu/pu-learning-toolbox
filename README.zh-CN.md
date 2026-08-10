@@ -5,7 +5,7 @@
 **正例-无标记学习 Python 工具箱** -- 兼容 sklearn API，17 篇论文方法，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.1.0-blue)
+![Status](https://img.shields.io/badge/status-1.1.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 特性
