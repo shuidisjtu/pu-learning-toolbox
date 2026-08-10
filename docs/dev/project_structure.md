@@ -28,6 +28,7 @@ pu_toolbox/
     exceptions.py
     random.py
     tags.py
+    device.py                  (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
 
   preprocessing/
     __init__.py
@@ -114,11 +115,14 @@ pu_toolbox/
     pipeline.py                (PUPipeline 编排: 画像→先验→训练→CV→评估)
     report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
 
-  cli/                         (CLI 入口: argparse 子命令 run / list-methods / list-priors / make-demo-data, PUPipeline 的薄封装)
+  cli/                         (CLI 入口: argparse 子命令 run / list-methods / list-priors / make-demo-data / profile / recommend / sensitivity, PUPipeline 与工作流环节的薄封装)
     __init__.py
     run.py                     (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
     info.py                    (list-methods / list-priors 子命令, registry 实时读取)
     demo.py                    (make-demo-data 子命令: SCAR 演示数据)
+    profile.py                 (profile 子命令: 数据画像 + SCAR/SAR 诊断, 写 profile.json)
+    recommend.py               (recommend 子命令: 算法推荐 + 类先验估计, 写 recommendation.json)
+    sensitivity.py             (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
 ```
 
 ## 3. 测试（`tests/`）
@@ -359,10 +363,10 @@ scripts/
   check_math_rendering.py     (方法卡 MathJax 渲染检查：缺上下标参数/括号配对/$ 配对)
   check_skill_sync.py         (Skill 同步检查：skills/ 定义与脚本枚举一致，第 5 道门禁)
   check_format.py             (格式门禁：ruff check + format --check 全目录，第 6 道门禁)
-  pu_workflow/                (pu-workflow skill 环节脚本，与 .claude/skills/pu-workflow 双份同步)
-    profile.py                (数据画像: profile.json 契约)
-    recommend.py              (算法推荐: recommendation.json 契约)
-    sensitivity.py            (敏感性分析: sensitivity.json 契约)
+  pu_workflow/                (pu-workflow skill 环节脚本——兼容薄包装, 委托给 CLI 子命令)
+    profile.py                (委托 `pu-toolbox profile`: profile.json 契约)
+    recommend.py              (委托 `pu-toolbox recommend`: recommendation.json 契约)
+    sensitivity.py            (委托 `pu-toolbox sensitivity`: sensitivity.json 契约)
 ```
 
 ## 7. CI/CD（`.github/`）

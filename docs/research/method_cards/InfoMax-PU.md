@@ -258,7 +258,7 @@ InfoMaxPURepresentation(
     batch_size=None,
     gradient_noise=0.0,
     random_state=None,
-    device="cpu",
+    device=None,
 )
 ```
 
@@ -293,7 +293,7 @@ InfoMaxPUClassifier(
     classifier_batch_size=256,
     prior_estimator=None,
     random_state=None,
-    device="cpu",
+    device=None,
 )
 ```
 

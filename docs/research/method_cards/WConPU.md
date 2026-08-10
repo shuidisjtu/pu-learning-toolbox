@@ -304,12 +304,12 @@ WeightedContrastivePUClassifier(
     weak_augmentation=None,
     strong_augmentation=None,
     batch_size=256,
-    max_epochs=800,
+    max_epochs=100,
     learning_rate=1e-2,
     optimizer_momentum=0.9,
     scheduler="none",
     random_state=None,
-    device="cpu",
+    device=None,
 )
 ```
 
@@ -375,7 +375,8 @@ strong = build_wconpu_augmentation(
 - SGD momentum 0.9，初始学习率 `1e-2`，cosine annealing；
 - batch size：Alzheimer 8，其余 256；
 - `gamma_0`、`gamma_1` 从 `{1e-3,1e-2,1e-1,1}` 网格选择；
-- 训练 800 epoch，不使用 early stopping；
+- 训练 800 epoch，不使用 early stopping（论文协议；工具箱默认 100 epoch，
+  已实测 50 epoch 即收敛，可用 `--max-epochs` 调整）；
 - 每组独立运行 5 次并报告 6 项分类指标。
 
 项目已在 `benchmarks/deep_pu/` 提供统一 runner、锁定论文配置、3-seed 表格合成结果和

@@ -50,12 +50,12 @@ classification with full labels.
 
 | Step | What | Executes | Output |
 |---|---|---|---|
-| 1. Profile & diagnose | Data quality + SCAR/SAR assumption evidence | `scripts/pu_workflow/profile.py` | `profile.json` |
-| 2. Recommend & prior | Method ranking + class-prior estimation | `scripts/pu_workflow/recommend.py` | `recommendation.json` |
+| 1. Profile & diagnose | Data quality + SCAR/SAR assumption evidence | `pu-toolbox profile` | `profile.json` |
+| 2. Recommend & prior | Method ranking + class-prior estimation | `pu-toolbox recommend` | `recommendation.json` |
 | 3. Train & evaluate | Full PU pipeline under stratified CV | `pu-toolbox run` (CLI) | `report.json` + `report.md` |
 | 4. Interpret & advise | Human-readable conclusions + next actions | you (see below) | summary to the user |
 
-All scripts exit 0 on success and 1 on user/input errors (clear stderr
+All commands exit 0 on success and 1 on user/input errors (clear stderr
 message, no traceback). Outputs are strict JSON (no NaN/Infinity).
 
 ## Step 1 — Profile & diagnose
@@ -63,7 +63,7 @@ message, no traceback). Outputs are strict JSON (no NaN/Infinity).
 Run:
 
 ```bash
-uv run python scripts/pu_workflow/profile.py \
+uv run pu-toolbox profile \
   --data <X.csv> --labels <y_pu.csv> \
   [--true-labels <y_true.csv>] \
   --out-dir <work_dir>
@@ -103,7 +103,7 @@ Run with the chosen prior (or `--prior-estimator none` if none is
 needed):
 
 ```bash
-uv run python scripts/pu_workflow/recommend.py \
+uv run pu-toolbox recommend \
   --profile <work_dir>/profile.json \
   [--data <X.csv> --labels <y_pu.csv>] \
   [--class-prior <value> | --prior-estimator recpe|pen_l1|km1|km2] \
@@ -164,9 +164,8 @@ final summary in the language the user speaks. Cover:
 1. **Assumption verdict**: what the SCAR/SAR diagnostic said and what
    it implies for the chosen method.
 2. **Prior estimate**: value, estimator, and sensitivity implications
-   (run `scripts/pu_workflow/sensitivity.py` if the user wants an
-   assumption sweep:
-   `uv run python scripts/pu_workflow/sensitivity.py --data <X.csv> --labels <y_pu.csv> --out-dir <work_dir>`).
+   (run `pu-toolbox sensitivity` if the user wants an assumption sweep:
+   `uv run pu-toolbox sensitivity --data <X.csv> --labels <y_pu.csv> --out-dir <work_dir>`).
 3. **Chosen method**: name, why it won, and its caveats (`warnings[]`).
 4. **Metric highlights**: the `available` metrics with `mean ± std`.
 5. **Next actions**: at most 3 concrete suggestions (fix a data issue,
@@ -178,7 +177,7 @@ Do not invent numbers: cite only values present in the JSON outputs.
 
 | Symptom | Action |
 |---|---|
-| Script exit 1 | Read the stderr `error:` message; fix the input and re-run, or ask the user how to proceed |
+| Command exit 1 | Read the stderr `error:` message; fix the input and re-run, or ask the user how to proceed |
 | Diagnostic `at_risk` / `inconclusive` | Explain what it means and stop at Checkpoint 1, waiting for the user's decision |
 | Empty candidate list | Explain `filters_applied`; suggest relaxing filters (e.g. supply a prior, densify sparse data) |
 | `pu-toolbox run` exit 1 | Show the `error:` message; three options for the user: fix data and re-run / pick another method / get the full traceback |

@@ -52,6 +52,13 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 4.0] [--seed 42]`：
   用 `make_scar_dataset` 生成演示 CSV（`--n` 为每类样本数，总 2n；`--c` 为
   SCAR 标注概率）。
+- `profile --data X.csv --labels y_pu.csv [--true-labels y_true.csv] [--out-dir .]`：
+  数据画像 + SCAR/SAR 假设诊断，写 `profile.json`（pu-workflow 环节 1）。
+- `recommend --profile profile.json [--data X.csv --labels y_pu.csv] [--class-prior 0.3 | --prior-estimator recpe] [--top-k 5] [--has-gpu] [--out-dir .]`：
+  算法推荐 + 类先验估计（估计需 `--data/--labels`），写 `recommendation.json`
+  （pu-workflow 环节 2）。
+- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--out-dir .]`：
+  假设敏感性分析（先验/标记倾向扫描），写 `sensitivity.json`（pu-workflow 环节 4）。
 
 ## 深度算法与图像数据
 

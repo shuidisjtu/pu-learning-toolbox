@@ -21,7 +21,7 @@
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
 | Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化报告与假设敏感性 |
 | Orchestration | `workflows`, `cli` | PUPipeline 端到端编排（画像→先验→训练→CV→评估→报告）与命令行薄封装 |
-| User Layer | `examples`, `scripts/pu_workflow/`, pu-workflow skill | 教程、三步工作流脚本与 agent 流程 |
+| User Layer | `examples`, `scripts/pu_workflow/`, pu-workflow skill | 教程、工作流兼容包装（委托 CLI 子命令）与 agent 流程 |
 
 ### 2.1 系统上下文
 
@@ -45,7 +45,7 @@ flowchart LR
 flowchart TB
     subgraph UL["User Layer"]
         EX["examples/ 教程"]
-        WFS["scripts/pu_workflow/ 三步工作流"]
+        WFS["scripts/pu_workflow/ 兼容包装"]
     end
     subgraph OR["Orchestration"]
         CLI["cli/ 命令行入口"]
