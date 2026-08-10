@@ -39,6 +39,6 @@ jobs:
         shell: bash
         run: uv run --python "${{ matrix.python-version }}" python -c "import sys; assert sys.version_info[:2] == tuple(map(int, '${{ matrix.python-version }}'.split('.')))"
 
-      - name: Run slow tests
+      - name: Run slow + e2e tests
         shell: bash
-        run: uv run --python "${{ matrix.python-version }}" pytest tests/ -m "slow" -v
+        run: uv run --python "${{ matrix.python-version }}" pytest tests/ -m "slow or e2e" -v

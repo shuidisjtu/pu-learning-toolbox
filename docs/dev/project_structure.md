@@ -182,22 +182,26 @@ tests/
       test_check_math_rendering.py    # MathJax 渲染门禁脚本测试
       test_check_skill_sync.py        # skill 双份一致性门禁脚本测试
       test_check_test_quality_exemptions.py  # 测试质量门禁豁免审查测试
-    workflow_scripts/
-      test_profile_script.py          # pu-workflow profile 步骤脚本测试
-      test_recommend_script.py        # pu-workflow recommend 步骤脚本测试
-      test_sensitivity_script.py      # pu-workflow sensitivity 步骤脚本测试
     advisor/
       test_recommender.py             # 算法推荐器过滤、评分与输出
       test_scoring_rules.py           # 推荐评分规则与推荐器边界
-    workflows/
-      test_pipeline.py                # PUPipeline 全流程/先验解析/错误/可用性/确定性
-      test_pipeline_deep.py           # PUPipeline 深度算法集成（架构选择）
     cli/
       test_cli_main.py                # CLI 入口冒烟
-      test_run.py                     # run 子命令
       test_run_deep.py                # run 子命令深度架构路径（.npy 输入 + 参数）
       test_info.py                    # list-methods / list-priors 子命令
       test_demo.py                    # make-demo-data 子命令
+
+  integration/                       # 跨组件集成（CLI + PUPipeline + registry + estimators）
+    test_pipeline.py                 # PUPipeline 全流程/先验解析/错误/可用性/确定性
+    test_pipeline_deep.py            # PUPipeline 深度算法集成（架构选择;importorskip torch）
+    test_run.py                      # run 子命令进程内端到端（真实 CSV IO + 真实训练）
+
+  e2e/                               # 真实子进程端到端用户旅程（CI nightly 运行）
+    test_profile_script.py           # pu-workflow profile 步骤脚本（子进程）
+    test_recommend_script.py         # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
+    test_sensitivity_script.py       # pu-workflow sensitivity 步骤脚本（子进程）
+    test_e2e_quickstart.py           # quickstart 旅程（demo→auto run→report）+ CLI 错误旅程
+    test_e2e_workflow_journey.py     # profile→recommend 链 + demo→profile→recommend→run 全链
 
   benchmarks/                        # Benchmark runner 测试
     test_assigned_benchmark_runner.py     # 前五篇 benchmark runner 测试
@@ -211,7 +215,9 @@ tests/
 
 ```
 
-测试权威级别（pytest markers）：`math`（手工计算 → 失败=代码bug）、`property`（数学不变量 → 失败=代码bug）、`contract`（API 契约）、`slow`（慢速）、`paper`（论文复现）。
+测试权威级别（pytest markers）：`unit`（算法特有逻辑）、`math`（手工计算 → 失败=代码bug）、`property`（数学不变量 → 失败=代码bug）、`contract`（API 契约）、`integration`（跨组件集成）、`e2e`（真实子进程用户旅程）、`slow`（慢速）、`paper`（论文复现）。
+
+测试金字塔分层与 CI 映射：`unit` + `integration` 为 PR 快层（`-m "not slow and not e2e"`）；`e2e` + `slow` 为 nightly 顶层（`-m "slow or e2e"`）。
 
 ## 4. 示例（`examples/`）
 

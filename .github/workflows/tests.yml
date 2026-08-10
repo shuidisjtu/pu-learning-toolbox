@@ -44,9 +44,9 @@ jobs:
         shell: bash
         run: uv run --python "${{ matrix.python-version }}" python -c "import sys; assert sys.version_info[:2] == tuple(map(int, '${{ matrix.python-version }}'.split('.')))"
 
-      - name: Run fast tests
+      - name: Run fast tests (unit + integration; e2e runs nightly)
         shell: bash
-        run: uv run --python "${{ matrix.python-version }}" pytest tests/ -m "not slow"
+        run: uv run --python "${{ matrix.python-version }}" pytest tests/ -m "not slow and not e2e"
 
   quality:
     name: Static quality gates
