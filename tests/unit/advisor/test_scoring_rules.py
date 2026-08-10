@@ -57,10 +57,12 @@ def _assumption_stub(
     )
 
 
-def _diagnostic_profile(status: str, n_samples: int = 100) -> SimpleNamespace:
+def _diagnostic_profile(
+    status: str, n_samples: int = 100, *, identifying: bool = True
+) -> SimpleNamespace:
     return SimpleNamespace(
         summary={"n_samples": n_samples},
-        selection_diagnostic={"status": status},
+        selection_diagnostic={"status": status, "is_identifying": identifying},
         issues=[],
     )
 
@@ -159,6 +161,32 @@ def test_basic_prior_warning_only_for_user_supplied():
 
 
 @pytest.mark.unit
+def test_at_risk_non_identifying_warning_is_neutral():
+    """A non-identifying at-risk signal must not push users to SAR methods:
+    the observed-mixture AUC may just reflect class separation on SCAR data."""
+    profile = SimpleNamespace(
+        summary={"n_samples": 100},
+        selection_diagnostic={"status": "at_risk", "is_identifying": False},
+        issues=[],
+    )
+    warnings = global_warnings(profile, None)
+    assert not any("PUSB, LBE" in w for w in warnings)
+    assert any("not identifiable" in w for w in warnings)
+
+
+@pytest.mark.unit
+def test_at_risk_identifying_warning_keeps_sar_pointer():
+    """An audited at-risk diagnostic keeps the explicit SAR-aware pointer."""
+    profile = SimpleNamespace(
+        summary={"n_samples": 100},
+        selection_diagnostic={"status": "at_risk", "is_identifying": True},
+        issues=[],
+    )
+    warnings = global_warnings(profile, None)
+    assert any("PUSB, LBE" in w for w in warnings)
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -197,6 +225,36 @@ def test_basic_at_risk_boosts_sar_over_scar():
         _assumption_stub(Assumption.SCAR), plausible, None, False, DEFAULT_CONFIG
     )
     assert p_scar > p_sar
+
+
+@pytest.mark.unit
+def test_at_risk_observed_mixture_does_not_boost_sar():
+    """A non-identifying at-risk signal must not hand SAR methods the full
+    assumption cap: the labeled-vs-unlabeled AUC may just reflect class
+    separation (SCAR data), so SAR and SCAR-only methods score alike."""
+    at_risk = _diagnostic_profile("at_risk", identifying=False)
+    s_sar, reasons = score_method(
+        _assumption_stub(Assumption.SAR), at_risk, None, False, DEFAULT_CONFIG
+    )
+    s_scar, _ = score_method(
+        _assumption_stub(Assumption.SCAR), at_risk, None, False, DEFAULT_CONFIG
+    )
+    assert s_sar == pytest.approx(s_scar)
+    assert "Strong assumption match" not in reasons
+
+
+@pytest.mark.unit
+def test_at_risk_identifying_still_boosts_sar():
+    """With an audited (identifying) at-risk diagnostic the SAR boost stays:
+    true positives audited against y_true are real evidence of SAR."""
+    at_risk = _diagnostic_profile("at_risk", identifying=True)
+    s_sar, _ = score_method(
+        _assumption_stub(Assumption.SAR), at_risk, None, False, DEFAULT_CONFIG
+    )
+    s_scar, _ = score_method(
+        _assumption_stub(Assumption.SCAR), at_risk, None, False, DEFAULT_CONFIG
+    )
+    assert s_sar > s_scar
 
 
 @pytest.mark.unit

@@ -185,9 +185,15 @@ def _score_assumption(
         if has_sar:
             return cap * 0.5
     elif diag_status == "at_risk":
-        if has_sar:
+        # Only an identifying diagnostic (positives audited against y_true)
+        # is real evidence of SAR.  The non-identifying observed-mixture
+        # signal may just reflect class separation on SCAR data (labeled-vs-
+        # unlabeled AUC scales with separability), so it must not hand SAR
+        # methods the full cap over SCAR ones.
+        identifying = profile.selection_diagnostic.get("is_identifying", False)
+        if has_sar and identifying:
             return cap
-        if has_scar:
+        if has_scar or has_sar:
             return cap * _ASSUMPTION_AT_RISK_SCAR
     else:
         if has_scar and has_sar:
@@ -320,11 +326,19 @@ def global_warnings(
     warnings: list[str] = []
 
     diag_status = profile.selection_diagnostic.get("status", "inconclusive")
-    if diag_status == "at_risk":
+    identifying = profile.selection_diagnostic.get("is_identifying", False)
+    if diag_status == "at_risk" and identifying:
         warnings.append(
             "SCAR assumption may not hold for this data. "
             "Consider SAR-aware methods (PUSB, LBE) or "
             "verifying with sensitivity analysis."
+        )
+    elif diag_status == "at_risk":
+        warnings.append(
+            "Feature-dependent labeling detected (screening signal); SCAR "
+            "assumption may not hold. SAR vs SCAR is not identifiable "
+            "without true labels — rerun with --true-labels or run "
+            "sensitivity analysis."
         )
 
     if class_prior is not None and class_prior_source != "estimated":
