@@ -9,10 +9,10 @@ description: >-
   labeling bias or SCAR assumptions, choose a PU method, or estimate a
   class prior.
 license: MIT
-compatibility: Python >=3.10, uv, pu-toolbox (>= 1.0)
+compatibility: Python >=3.10, uv, pu-toolbox (>= 1.1)
 metadata:
   author: shuidisjtu
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # pu-workflow
