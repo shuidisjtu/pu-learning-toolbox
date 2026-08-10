@@ -43,7 +43,9 @@ class TestPipelineBasic:
         report.final_model.predict(X[:5])
         assert report.diagnostic is not None
         assert report.has_errors is False
-        assert "Summary:" in report.summary()
+        summary = report.summary()
+        # Either issues were found (Summary: N error(s)...) or none were.
+        assert "Summary:" in summary or "No issues detected" in summary
 
         # Strict JSON serialization: parseable, no NaN literals.
         payload = json.loads(report.to_json())
@@ -71,6 +73,10 @@ class TestPipelineBasic:
         assert report.prior.source == "estimated"
         assert report.prior.auto_selected is True
         assert report.final_model is not None
+        # v1.2.1 guard: the auto prior must land in the acceptance band so the
+        # selected risk-method classifier does not degenerate (recall=0) as
+        # it did with the collapsed recpe estimate (0.036 on probe data).
+        assert 0.25 <= report.prior.value <= 0.75, f"prior={report.prior.value}"
         candidate_classes = {
             get_algorithm(c.name).__name__ for c in report.recommendation.candidates
         }

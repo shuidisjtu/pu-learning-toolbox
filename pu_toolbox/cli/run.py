@@ -45,7 +45,7 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
     parser.add_argument(
         "--prior-estimator",
         type=str,
-        default="recpe",
+        default="pen_l1",
         help="prior-estimator name or alias (see 'list-priors'); 'none' disables estimation",
     )
     parser.add_argument(

@@ -42,7 +42,7 @@
 ```python
 pipe = PUPipeline(
     classifier="auto",          # 注册方法名 / "auto"（推荐器选算法）/ 分类器实例
-    prior_estimator="recpe",    # "recpe"/"pen_l1"/"km1"/"km2"（后两者映射到
+    prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2"（后两者映射到
                                 # KernelMeanPriorEstimator）/ 估计器实例 / None
     cv=5,                       # PU 分层 CV 折数，或自定义 splitter
                                 # （默认 cv=None → 解析为 5 折 PUStratifiedKFold）
@@ -62,7 +62,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 |---|---|---|
 | 1 | `fit_evaluate(class_prior=...)` 显式传入 | `user` |
 | 2 | 分类器实例构造参数 `class_prior=...` | `constructor` |
-| 3 | `prior_estimator` 自动估计（默认 `"recpe"`） | `estimated` |
+| 3 | `prior_estimator` 自动估计（默认 `"pen_l1"`） | `estimated` |
 | 4 | 方法不需要先验 | `none` |
 
 - `prior_estimator=None` 且方法需要先验且未提供 → 抛出 `PipelineError`。

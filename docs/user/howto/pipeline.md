@@ -39,7 +39,7 @@ report.save("results/pipeline.json")
 先验按「显式传入 → 构造参数 → 自动估计 → 不需要」四级解析（完整优先级表见
 [API 参考](../reference/api.md)）。要点：
 
-- `prior_estimator="recpe"`（默认）/ `"pen_l1"` / `"km1"` / `"km2"`（后两者映射到
+- `prior_estimator="pen_l1"`（默认）/ `"recpe"` / `"km1"` / `"km2"`（后两者映射到
   `KernelMeanPriorEstimator`）或传入估计器实例。
 - 显式指定 classifier 时，`prior_estimator=None` 且方法需要先验且未提供 →
   抛出 `PipelineError`（消息给出三条出路，并注明 `y_true` 从不用于先验估计）；

@@ -52,7 +52,7 @@ __all__ = ["DEFAULT_METRICS", "PipelineError", "PUPipeline"]
 # constructor blocks auto-instantiation.
 _ALWAYS_PROVIDED = {"class_prior", "random_state"}
 
-# Sentinel distinguishing the documented default ``"recpe"`` from an
+# Sentinel distinguishing the documented default ``"pen_l1"`` from an
 # explicit user choice (affects ``PriorInfo.auto_selected``).
 _UNSET = object()
 
@@ -171,12 +171,15 @@ class PUPipeline:
         whose constructor requires parameters other than ``class_prior`` /
         ``random_state`` (e.g. ``"ldce"`` needs ``flip_probability``)
         cannot be auto-instantiated from a name; pass an instance instead.
-    prior_estimator : str, BasePriorEstimator, or None (default "recpe")
+    prior_estimator : str, BasePriorEstimator, or None (default "pen_l1")
         Class-prior estimator used when the selected method needs a prior
         and none is supplied.  ``"km1"`` / ``"km2"`` map to
         :class:`~pu_toolbox.prior.kernel_mean.KernelMeanPriorEstimator`;
         other strings resolve through the registry.  ``None`` disables
         automatic estimation (missing priors then raise an error).
+        Since 1.2.1 the default is ``"pen_l1"`` (auto-sigma); ``"recpe"``
+        remains available but is best kept for irreducibility-failure
+        scenarios.
     cv : int or PU-stratified splitter or None (default None)
         Number of folds (``>= 2``) or a splitter instance with a ``split``
         method (e.g. :class:`~pu_toolbox.model_selection.PUStratifiedKFold`).
@@ -290,7 +293,7 @@ class PUPipeline:
 
         # -- prior estimator ---------------------------------------------
         if prior_estimator is _UNSET:
-            self._prior_estimator = "recpe"
+            self._prior_estimator = "pen_l1"
             self._prior_auto_selected = True
         else:
             self._prior_estimator = prior_estimator

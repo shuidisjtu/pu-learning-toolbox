@@ -38,7 +38,7 @@ pu-toolbox
 | `--out-dir results/` | ✅ | — | 输出目录（report.json + report.md + 控制台 summary） |
 | `--true-labels` | — | — | 可选 oracle 评估（映射 `fit_evaluate(y_true=...)`） |
 | `--class-prior` | — | — | 显式先验（优先级最高，跳过估计） |
-| `--prior-estimator` | — | `recpe` | `recpe`/`pen_l1`/`km1`/`km2`/`none` |
+| `--prior-estimator` | — | `pen_l1` | `pen_l1`/`recpe`/`km1`/`km2`/`none` |
 | `--classifier` | — | `auto` | 方法名（`nnpu` 等）或 `auto`（推荐器选型） |
 | `--cv` | — | `5` | 折数 |
 | `--metrics` | — | 默认四件套 | 逗号分隔（`pu_risk,recall,auc`） |
