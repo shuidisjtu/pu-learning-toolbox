@@ -19,13 +19,9 @@
 
 ## Quick Start
 
-> **Note**: Not yet published on PyPI. Install from source.
-
 ```bash
-git clone https://github.com/shuidisjtu/pu-learning-toolbox.git
-cd pu-learning-toolbox
-pip install -e .          # core dependencies
-pip install -e ".[torch]" # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, ...)
+pip install pu-toolbox                # core dependencies (Python >= 3.10)
+pip install "pu-toolbox[torch]"       # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, ...)
 ```
 
 ### Installation environments
@@ -103,6 +99,9 @@ CLI / Windsurf (`.agents/skills/`).
 ## Development
 
 ```bash
+git clone https://github.com/shuidisjtu/pu-learning-toolbox.git
+cd pu-learning-toolbox
+pip install -e ".[dev,torch]"   # development install
 uv run pytest tests/ -v -m "not slow and not e2e"   # fast tests (e2e runs nightly)
 uv run ruff check pu_toolbox/               # lint
 uv run ruff format --check pu_toolbox/      # format check

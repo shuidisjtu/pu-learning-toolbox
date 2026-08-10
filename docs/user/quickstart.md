@@ -1,7 +1,6 @@
 # 快速开始
 
-> 前置条件：Python 3.10+。PyPI 发布后 `pip install pu-toolbox` 即可；
-> 当前从源码安装：`git clone https://github.com/shuidisjtu/pu-learning-toolbox.git && cd pu-learning-toolbox && pip install -e .`（torch 方法另加 `pip install -e ".[torch]"`）。
+> 前置条件：Python 3.10+。`pip install pu-toolbox`（torch 方法另加 `pip install "pu-toolbox[torch]"`）。
 
 ## 步骤 1：生成演示数据
 

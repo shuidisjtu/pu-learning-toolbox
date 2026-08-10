@@ -19,13 +19,9 @@
 
 ## 快速开始
 
-> **注意**：尚未发布到 PyPI，需要从源码安装。
-
 ```bash
-git clone https://github.com/shuidisjtu/pu-learning-toolbox.git
-cd pu-learning-toolbox
-pip install -e .          # 核心依赖
-pip install -e ".[torch]" # + 基于 PyTorch 的方法（nnPU、Dist-PU、Self-PU 等）
+pip install pu-toolbox                # 核心依赖（Python ≥ 3.10）
+pip install "pu-toolbox[torch]"       # + 基于 PyTorch 的方法（nnPU、Dist-PU、Self-PU 等）
 ```
 
 ### 安装环境
@@ -100,6 +96,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 ## 开发
 
 ```bash
+git clone https://github.com/shuidisjtu/pu-learning-toolbox.git
+cd pu-learning-toolbox
+pip install -e ".[dev,torch]"   # 开发安装
 uv run pytest tests/ -v -m "not slow and not e2e"   # 快速测试（e2e 由 nightly 跑）
 uv run ruff check pu_toolbox/               # Lint 检查
 uv run ruff format --check pu_toolbox/      # 格式检查
