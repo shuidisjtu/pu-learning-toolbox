@@ -25,6 +25,10 @@
 
 `feature_weights` 控制投影方向，默认所有特征等权并进行 L2 归一化。`strength=0` 时，线性和非线性机制退化为常数 propensity，可作为实现正确性的边界检查。生成方法见 [howto/sar_simulation.md](../howto/sar_simulation.md)。
 
+> **默认机制是 SAR**：`make_sar_dataset` 不传 `mechanism` 时解析为 `"linear"` 并发出 `UserWarning`。
+> 类先验估计器与多数 PU 分类器假设 SCAR；用该函数生成的数据检验 SCAR 方法前，请显式
+> 确认机制（SCAR 场景传 `mechanism="scar"`）。
+
 ## 3. 识别边界：为什么 SCAR/SAR 通常无法从数据中识别
 
 仅观察到特征 $`X`$ 和 PU 标记 $`S`$ 时，通常无法识别 SCAR 与 SAR。未标记集合同时包含真实正类和真实负类，因此即使分类器能很好地区分"已标正例"和"未标记样本"，也可能只是因为 $`X`$ 能预测真实类别 $`Y`$——不能据此断言标记策略依赖 $`X`$。

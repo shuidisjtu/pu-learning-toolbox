@@ -63,6 +63,10 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 训练模型时只能传入 `X, y_pu`。`y_true` 用于分类评估，`propensity` 用于标记机制恢复
 评估；将二者用于模型训练或超参数选择会造成真值泄漏。
 
+> **默认机制是 SAR**：`make_sar_dataset` 不传 `mechanism` 时解析为 `"linear"`（标记依赖特征）
+> 并发出 `UserWarning`。类先验估计器与多数 PU 分类器假设 SCAR；SCAR 场景请显式传
+> `mechanism="scar"`（区别见 [concepts/scar_sar.md](../concepts/scar_sar.md)）。
+
 ## 2. 标记率语义
 
 `label_frequency` 是正类 propensity 的目标均值，不是每次随机抽样后必须精确达到的比例：
