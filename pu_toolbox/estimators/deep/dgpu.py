@@ -9,6 +9,7 @@ import copy
 import numpy as np
 
 from ...core.base import BasePUClassifier
+from ...core.device import resolve_device
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -53,7 +54,7 @@ class DGPUClassifier(BasePUClassifier):
         weak_augmentation=None,
         strong_augmentation=None,
         random_state: int | None = None,
-        device: str = "cpu",
+        device: str | None = None,
     ) -> None:
         super().__init__()
         self.class_prior = class_prior
@@ -144,7 +145,7 @@ class DGPUClassifier(BasePUClassifier):
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
         rng = np.random.RandomState(self.random_state)
-        device = torch.device(self.device)
+        device = resolve_device(self.device)
         self.model_ = (
             nn.Sequential(
                 nn.Linear(X.shape[1], self.hidden_dim),

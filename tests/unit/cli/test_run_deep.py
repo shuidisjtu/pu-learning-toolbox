@@ -76,6 +76,37 @@ class TestRunDeepInput:
         assert captured["backbone"] == "resnet18"
         assert captured["device"] == "cpu"
 
+    def test_basic_default_device_auto(self, tmp_path, monkeypatch):
+        """不带 --device 时默认 "auto"(不再默认强制 cpu)。"""
+        from pu_toolbox.cli import run as cli_run
+
+        data_path, labels_path = _write_image(tmp_path)
+        captured: dict = {}
+
+        class FakePipe:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+            def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None):
+                return type("R", (), {"save": lambda *a: None, "summary": lambda *a: ""})()
+
+        monkeypatch.setattr(cli_run, "PUPipeline", FakePipe)
+        code = _run_cli(
+            [
+                "run",
+                "--data",
+                str(data_path),
+                "--labels",
+                str(labels_path),
+                "--out-dir",
+                str(tmp_path / "out"),
+                "--classifier",
+                "wconpu",
+            ],
+        )
+        assert code == 0
+        assert captured["device"] == "auto"
+
     def test_param_cnn_with_shallow_classifier_exits_one(self, tmp_path, capsys):
         data_path, labels_path = _write_image(tmp_path)
         code = _run_cli(

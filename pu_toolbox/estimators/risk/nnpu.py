@@ -26,6 +26,7 @@ from typing import Literal
 import numpy as np
 
 from ...core.base import BasePUClassifier
+from ...core.device import resolve_device
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -238,11 +239,7 @@ class NonNegativePUClassifier(BasePUClassifier):
             self.model_ = torch.nn.Linear(d, 1)
 
         # ── Device ────────────────────────────────────────────────
-        device = torch.device(
-            self.device
-            if self.device is not None
-            else ("cuda" if torch.cuda.is_available() else "cpu")
-        )
+        device = resolve_device(self.device)
         self.model_.to(device)
 
         # ── Build optimiser ───────────────────────────────────────

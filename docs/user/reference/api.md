@@ -51,7 +51,7 @@ pipe = PUPipeline(
     random_state=42,
     architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu）
     backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
-    device="cpu",               # 深度分类器 torch 设备（如 "cuda"）
+    device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
 )
 report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 ```
@@ -104,7 +104,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 |---|---|---|---|
 | `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数（当前 `wconpu` / `infomax_pu`）；未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError` |
 | `backbone` | `"cnn13"` | `"cnn13"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
-| `device` | `"cpu"` | torch 设备字符串 | 透传给深度分类器（`_fresh_estimator` 按签名注入） |
+| `device` | `None`（auto） | `None`/`"auto"`/`"cpu"`/`"cuda"` 等 | 透传给深度分类器（`_fresh_estimator` 按签名注入）；`None`/`"auto"` 自动检测：torch + CUDA 可用则 `"cuda"`，否则 `"cpu"` |
 
 - 深度算法接入契约：要获得 `architecture="cnn"` 支持，分类器构造签名必须声明
   `encoder` 参数（特征提取器形态，pipeline 注入 `build_encoder` 产物，
@@ -116,7 +116,7 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
   展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
   `PipelineError`；2-D + cnn → `PipelineError`
 - deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议减少折数（`cv` 最小为 2）
-- `auto` 行为：深度方法无 GPU（`device="cpu"`）或小数据时评分低，不会被实际选中；`device != "cpu"` 且数据量大时可能被推荐（其适用场景），选中后 torch 播种与训练成本警告照常生效
+- `auto` 行为：深度方法无 GPU（`device=None`/`"auto"` 解析为 CPU）或小数据时评分低，不会被实际选中；解析为 CUDA 且数据量大时可能被推荐（其适用场景），选中后 torch 播种与训练成本警告照常生效
 
 ### 错误场景
 
@@ -162,7 +162,7 @@ encoder = build_encoder(
 ```python
 clf = InfoMaxPUClassifier(
     encoder=None,     # 外置编码器（如 build_encoder("cnn", ...)）；None → 内置 MLP
-    device="cpu",     # torch 设备
+    device=None,      # torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
     ...
 )
 ```

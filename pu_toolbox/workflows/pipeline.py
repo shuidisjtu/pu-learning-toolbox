@@ -21,6 +21,7 @@ from sklearn.base import clone
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.config import POSITIVE_LABEL
+from ..core.device import resolve_device_name
 from ..core.exceptions import PULearningError, RegistryError, ValidationError
 from ..core.tags import Backend, TrainingCost
 from ..core.validation import (
@@ -195,8 +196,10 @@ class PUPipeline:
     backbone : str, default "cnn13"
         CNN backbone when ``architecture="cnn"``: ``"cnn13"``,
         ``"resnet18"``, or ``"resnet50"``.
-    device : str, default "cpu"
+    device : str | None, default None
         Torch device passed to deep classifiers (e.g. ``"cuda"``).
+        ``None`` / ``"auto"`` auto-detects: CUDA when torch and a GPU
+        are available, otherwise CPU.
 
     Notes
     -----
@@ -207,9 +210,9 @@ class PUPipeline:
     ``architecture="cnn"`` expect 4-D NCHW image tensors; class-prior
     estimation and data profiling then run on the flattened view.
     ``"auto"`` mode can select a deep method when the data is large and
-    a GPU is available (``device != "cpu"``); the selected classifier
-    then gets torch seeding and training-cost warnings like an explicit
-    one.
+    a GPU is available (``device=None``/``"auto"`` resolves to CUDA on
+    GPU machines); the selected classifier then gets torch seeding and
+    training-cost warnings like an explicit one.
     """
 
     def __init__(
@@ -222,7 +225,7 @@ class PUPipeline:
         random_state: int | None = 42,
         architecture: str = "mlp",
         backbone: str = "cnn13",
-        device: str = "cpu",
+        device: str | None = None,
     ) -> None:
         _ensure_registered()
         self.classifier = classifier
@@ -402,11 +405,11 @@ class PUPipeline:
                 profile,
                 class_prior=prior,
                 class_prior_source=prior_info.source,
-                # A non-default device declares GPU availability to the
+                # A resolved CUDA device declares GPU availability to the
                 # recommender's GPU dimension; otherwise the GPU bonus
                 # (gpu_max) is unreachable and deep methods are never
                 # considered on large data.
-                has_gpu=self.device != "cpu",
+                has_gpu=resolve_device_name(self.device) == "cuda",
                 top_k=10,
             )
             classifier_cls, skipped_candidates = _pick_first_instantiable(recommendation.candidates)
