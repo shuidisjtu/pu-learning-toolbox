@@ -14,8 +14,8 @@
     "validation_positive": 50,
     "validation_unlabeled": 200,
     "n_test": 10000,
-    "class_prior": 0.5,
-    "unlabeled_class_prior": 0.5,
+    "class_prior": 0.7,
+    "unlabeled_class_prior": 0.7,
     "representation": "flattened_pixels",
     "representation_fidelity": "paper"
   },
@@ -72,7 +72,7 @@
     "The paper does not identify the MNIST/Fashion-MNIST class IDs assigned to its two groups; [0,1,2,3,4] is an explicit provisional choice.",
     "The paper says mini-batch training but does not report batch size; 256 is an explicit implementation choice.",
     "The paper does not fully specify image scaling/standardization; the runner scales pixels to [0,1] and the native representation standardizes each feature.",
-    "This execution config covers class prior 0.5; the other paper priors use separate locked configs and result directories.",
+    "This execution config covers class prior 0.7; the other paper priors use separate locked configs and result directories.",
     "The InfoMax paper says kernel-mean estimation but does not identify KM1 versus KM2; KM1 is an explicit provisional choice.",
     "The validation split is materialized for provenance but is not used for early stopping because the paper reports fixed epoch counts."
   ]

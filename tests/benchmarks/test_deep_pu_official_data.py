@@ -278,6 +278,15 @@ class TestOfficialDataBenchmark:
         report = environment_preflight(config, data_root=".", download=False)
         assert report["ready"]
         assert not any("backbone" in item for item in report["warnings"])
+        prior_configs = {
+            0.3: "official_data_infomax_fashion_protocol_pi03.json",
+            0.5: "official_data_infomax_fashion_protocol.json",
+            0.7: "official_data_infomax_fashion_protocol_pi07.json",
+        }
+        for prior, filename in prior_configs.items():
+            prior_config = load_official_data_config(root / filename)
+            assert prior_config["dataset"]["class_prior"] == pytest.approx(prior)
+            assert prior_config["dataset"]["unlabeled_class_prior"] == pytest.approx(prior)
 
     def test_basic_wconpu_protocol_config_locks_visual_pipeline(self):
         root = Path(__file__).resolve().parents[2] / "benchmarks" / "deep_pu" / "configs"
