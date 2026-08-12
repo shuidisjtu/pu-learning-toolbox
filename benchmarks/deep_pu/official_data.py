@@ -103,6 +103,13 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
         raise ValueError(
             "PU validation counts and clean_validation_fraction are mutually exclusive"
         )
+    unlabeled_class_prior = dataset.get("unlabeled_class_prior")
+    if unlabeled_class_prior is not None and (
+        isinstance(unlabeled_class_prior, bool)
+        or not isinstance(unlabeled_class_prior, int | float)
+        or not 0.0 < float(unlabeled_class_prior) < 1.0
+    ):
+        raise ValueError("dataset.unlabeled_class_prior must be a number in (0, 1)")
 
     methods = config.get("methods")
     if not isinstance(methods, dict) or not methods:
@@ -204,6 +211,7 @@ def make_pu_split(
     validation_positive: int = 0,
     validation_unlabeled: int = 0,
     clean_validation_fraction: float = 0.0,
+    unlabeled_class_prior: float | None = None,
 ) -> PUDataset:
     """Create a deterministic case-control split without train/test leakage."""
     X_train = np.asarray(X_train)
@@ -225,6 +233,8 @@ def make_pu_split(
         raise ValueError("validation sample counts must be non-negative")
     if (validation_positive == 0) != (validation_unlabeled == 0):
         raise ValueError("validation positive and unlabeled counts must both be zero or positive")
+    if unlabeled_class_prior is not None and not 0.0 < unlabeled_class_prior < 1.0:
+        raise ValueError("unlabeled_class_prior must be in (0, 1)")
     rng = np.random.default_rng(seed)
     source_indices = np.arange(len(X_train))
     clean_validation_size = int(round(clean_validation_fraction * len(X_train)))
@@ -252,9 +262,38 @@ def make_pu_split(
     labeled = all_labeled[:n_labeled_positive]
     validation_labeled = all_labeled[n_labeled_positive:]
     remaining = np.setdiff1d(training_source, all_labeled, assume_unique=False)
-    all_unlabeled = rng.choice(remaining, size=n_unlabeled + validation_unlabeled, replace=False)
-    unlabeled = all_unlabeled[:n_unlabeled]
-    validation_unlabeled_indices = all_unlabeled[n_unlabeled:]
+    if unlabeled_class_prior is None:
+        all_unlabeled = rng.choice(
+            remaining, size=n_unlabeled + validation_unlabeled, replace=False
+        )
+        unlabeled = all_unlabeled[:n_unlabeled]
+        validation_unlabeled_indices = all_unlabeled[n_unlabeled:]
+    else:
+        remaining_positive = remaining[train_binary[remaining] == 1]
+        remaining_negative = remaining[train_binary[remaining] == 0]
+
+        def sample_unlabeled(size: int) -> np.ndarray:
+            nonlocal remaining_positive, remaining_negative
+            n_positive = int(round(size * unlabeled_class_prior))
+            n_negative = size - n_positive
+            if n_positive > len(remaining_positive) or n_negative > len(remaining_negative):
+                raise ValueError(
+                    "not enough class-specific samples for requested unlabeled_class_prior"
+                )
+            selected_positive = rng.choice(remaining_positive, size=n_positive, replace=False)
+            selected_negative = rng.choice(remaining_negative, size=n_negative, replace=False)
+            remaining_positive = np.setdiff1d(
+                remaining_positive, selected_positive, assume_unique=False
+            )
+            remaining_negative = np.setdiff1d(
+                remaining_negative, selected_negative, assume_unique=False
+            )
+            selected = np.concatenate([selected_positive, selected_negative])
+            rng.shuffle(selected)
+            return selected
+
+        unlabeled = sample_unlabeled(n_unlabeled)
+        validation_unlabeled_indices = sample_unlabeled(validation_unlabeled)
     selected_test = rng.choice(len(X_test), size=n_test, replace=False)
     if np.unique(test_binary[selected_test]).size < 2:
         raise ValueError("sampled test split contains only one true class")
@@ -283,6 +322,7 @@ def make_pu_split(
         "clean_validation_fraction": float(clean_validation_fraction),
         "clean_validation_size": clean_validation_size,
         "hidden_unlabeled_positive_rate": float(train_binary[unlabeled].mean()),
+        "target_unlabeled_class_prior": unlabeled_class_prior,
         "test_positive_rate": float(test_binary[selected_test].mean()),
         "split_indices_sha256": digest,
         "labeled_unlabeled_overlap": int(np.intersect1d(labeled, unlabeled).size),
@@ -434,6 +474,11 @@ def build_dataset(
         validation_positive=int(dataset_config.get("validation_positive", 0)),
         validation_unlabeled=int(dataset_config.get("validation_unlabeled", 0)),
         clean_validation_fraction=float(dataset_config.get("clean_validation_fraction", 0.0)),
+        unlabeled_class_prior=(
+            None
+            if dataset_config.get("unlabeled_class_prior") is None
+            else float(dataset_config["unlabeled_class_prior"])
+        ),
     )
 
 

@@ -130,6 +130,7 @@ class TestOfficialDataBenchmark:
             seed=7,
             validation_positive=3,
             validation_unlabeled=4,
+            unlabeled_class_prior=0.25,
         )
         second = make_pu_split(
             *arrays,
@@ -140,11 +141,14 @@ class TestOfficialDataBenchmark:
             seed=7,
             validation_positive=3,
             validation_unlabeled=4,
+            unlabeled_class_prior=0.25,
         )
         np.testing.assert_allclose(first.X_train, second.X_train)
         assert first.manifest == second.manifest
         assert first.manifest["labeled_unlabeled_overlap"] == 0
         assert first.manifest["train_validation_overlap"] == 0
+        assert first.manifest["hidden_unlabeled_positive_rate"] == pytest.approx(0.25)
+        assert first.manifest["target_unlabeled_class_prior"] == pytest.approx(0.25)
         assert first.X_validation.shape == (7, 4)
         assert first.y_validation_pu.sum() == 3
         assert len(first.manifest["split_indices_sha256"]) == 64

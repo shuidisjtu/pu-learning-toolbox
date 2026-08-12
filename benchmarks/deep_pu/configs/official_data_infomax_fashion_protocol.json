@@ -15,6 +15,7 @@
     "validation_unlabeled": 200,
     "n_test": 10000,
     "class_prior": 0.5,
+    "unlabeled_class_prior": 0.5,
     "representation": "flattened_pixels",
     "representation_fidelity": "paper"
   },
