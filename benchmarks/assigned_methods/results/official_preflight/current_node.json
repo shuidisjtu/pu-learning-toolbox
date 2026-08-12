@@ -18,10 +18,8 @@
     "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
     "python_version": "3.12.2"
   },
-  "created_at_utc": "2026-08-08T15:59:52.779682+00:00",
-  "data_roots": {
-    "pusb": "/data2/user/zihenglin/official-data/pusb-table2"
-  },
+  "created_at_utc": "2026-08-12T08:31:10.656293+00:00",
+  "data_roots": {},
   "methods": [
     {
       "config": "benchmarks/assigned_methods/configs/official/class_prior_estimation.json",
@@ -104,6 +102,8 @@
       "locked_status": "strict_feasible_subset_executed",
       "method": "pusb",
       "official_execution_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
         "Required Python package is unavailable: chainer"
       ],
       "ready_for_official_execution": false,
@@ -115,6 +115,8 @@
         "The strict-complete-cell matrix has completed 4,500 trials with exact key aggregation and statistical reporting. The 27 infeasible cells remain excluded, and released-compatibility execution is intentionally separate."
       ],
       "toolbox_replication_blockers": [
+        "Official source checkout was not supplied",
+        "Official dataset root was not supplied",
         "Required Python package is unavailable: chainer",
         "The official-aligned kernel adapter and densratio comparator have completed a three-seed IJCNN1 repository-extension tranche, but IJCNN1 is absent from the paper's Table 2.",
         "The six Table 2 datasets are hash-locked and loadable, but the released sampling procedure is strictly feasible for only 45 of 72 dataset/prior/U cells across all 100 repetitions.",
@@ -151,7 +153,5 @@
     }
   ],
   "schema_version": 1,
-  "source_roots": {
-    "pusb": "/data2/user/zihenglin/official-sources/pusb"
-  }
+  "source_roots": {}
 }

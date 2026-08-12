@@ -74,9 +74,12 @@
 - [x] 完整论文配置运行前审计（GPU、EDM、授权数据、实现差距分别报告）
 - [x] InfoMax PU 论文网络协议（mini-batch PURL、BN/ReLU、gradient noise、300×3 nnPU、Adam/AdaGrad）
 - [x] InfoMax PU 独立 validation split、KM1/KM2 类先验估计与结果误差记录
+- [x] InfoMax PU Fashion-MNIST 暂定论文网络协议三先验 × 20 seeds（60 trials）
+  完整执行、受控 U 采样与稳定性审计
 - [x] WConPU NCHW、13-layer CNN/ResNet、SimAugment/RandAugment 与 cosine scheduler 接入
 - [x] WConPU clean 10% validation、二维 loss-weight grid、候选级 resume 与最优参数 refit
-- [ ] InfoMax PU、WConPU、DGPU 官方视觉/文本与 EDM paper-like 全量运行
+- [ ] WConPU 官方视觉与 DGPU EDM paper-like 全量运行；InfoMax 未公开类别分组、batch size
+  和 KM 变体仍待核对
 
 ## 发布状态 (v1.3.0)
 
@@ -84,6 +87,7 @@
 - **算法**: 17 个已注册方法，全部 native 实现
 - **质量门禁**: 6 道（test_quality / doc_links / project_metadata / math_rendering / skill_sync / format）
 - **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
-- **依赖外部**: Phase 3/6 官方数据与历史环境全量运行（非工具箱缺口，由执行方提供）
+- **依赖外部**: Phase 3 官方历史环境，以及 WConPU CUDA/授权数据和 DGPU EDM/CelebA
+  全量运行；InfoMax 暂定 Fashion-MNIST 20-seed 协议已执行
 
 历史执行记录见 git log；关键决策见 `docs/project_management/decision_log.md`。

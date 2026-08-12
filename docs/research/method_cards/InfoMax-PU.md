@@ -349,7 +349,14 @@ MNIST/Fashion-MNIST 十类分成两组，没有给出类别编号，也没有报
 配置把 `[0,1,2,3,4]` 和 batch size `256` 明确标记为临时工程选择。runner 已从训练集
 之外确定性划分 `50 P + 200 U` validation，并接入原生 KM1/KM2 class-prior estimator；
 论文未说明使用 KM1 还是 KM2，当前 KM1 是显式临时选择。固定 epoch 协议不使用验证集早停。
-这些未公开细节和尚未执行的 20-seed 全量实验使配置仍为 `paper_protocol`，不能标记为论文结果。
+该暂定协议已在 Fashion-MNIST 完成 `pi=0.3/0.5/0.7` 各 20 seeds，共 60/60 trials。
+ROC-AUC（均值 ± 样本标准差）依次为 `0.8547 ± 0.0819`、
+`0.6313 ± 0.3077` 和 `0.3340 ± 0.2873`；AUC 小于 `0.5` 的 seed 数依次为
+`0/20`、`7/20` 和 `15/20`。KM1 类先验估计在三组均约为 `0.875`，未跟随
+受控 U 先验变化。完整结果位于
+`benchmarks/deep_pu/results/infomax_fashion_protocol_pi{03,05,07}_full/`。测试集保持
+Fashion-MNIST canonical 正率 0.5；类别分组、batch size、KM 变体和 test-prior 规则仍是
+临时选择，因此结果保持 `paper_claim=false`，不能标记为论文结果。
 
 ## 13. 测试与验收
 

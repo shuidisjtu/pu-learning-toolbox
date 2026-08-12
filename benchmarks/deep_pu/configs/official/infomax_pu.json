@@ -3,7 +3,7 @@
   "protocol": "paper_like",
   "method": "infomax_pu",
   "source_lock": "../official_sources.lock.json#sources/infomax_pu",
-  "status": "locked_not_executed",
+  "status": "provisional_fashion_prior_matrix_executed",
   "datasets": ["MNIST", "Fashion-MNIST", "20 Newsgroups"],
   "sampling": {
     "n_positive": 1000,
@@ -52,5 +52,5 @@
       "The InfoMax paper does not specify whether KM1 or KM2 was used for class-prior estimation."
     ]
   },
-  "claim_policy": "Execution requires paper dataset splits and image/text networks; toolbox synthetic results are clean_room only."
+  "claim_policy": "A provisional Fashion-MNIST 0.3/0.5/0.7 prior matrix has completed 60 trials with the paper network schedule. Unpublished class groups, batch size, KM variant, and test-prior protocol keep paper_claim=false."
 }

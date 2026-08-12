@@ -36,7 +36,7 @@
 
 **Phase 5 — SAR / Selection-Biased PU (v0.5) ✅**：SAR/selection-bias 数据模拟器、PUSB、LBE、LLSVM 与 SCAR vs SAR 对比 benchmark 完成。
 
-**Phase 6 — 深度 PU (v0.6) ✅**：Self-PU 核心、Dist-PU、InfoMax PU、WConPU、DGPU 核心接口与统一 runner 完成（含 clean-room 多 seed、Fashion-MNIST official-data smoke）。剩余：未公开视觉/validation 指标细节、授权数据与 DGPU EDM paper-like 全量运行（依赖外部数据与环境，非工具箱缺口）。
+**Phase 6 — 深度 PU (v0.6) ✅**：Self-PU 核心、Dist-PU、InfoMax PU、WConPU、DGPU 核心接口与统一 runner 完成（含 clean-room 多 seed、Fashion-MNIST official-data smoke，以及 InfoMax 暂定论文网络协议 20-seed 完整执行）。剩余：InfoMax 未公开类别分组、batch size 与 KM 变体核对，WConPU 的未公开视觉/validation 细节、CUDA/授权数据运行，以及 DGPU 条件 EDM/CelebA 全量运行。
 
 ## 进度明细
 

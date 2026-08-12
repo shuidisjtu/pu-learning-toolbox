@@ -1,0 +1,110 @@
+{
+  "claim_policy": "This configuration implements the published network depths, normalization, optimizers, epoch count, sample counts, and repetition count. It remains paper_protocol, not a paper result, until the unpublished image class partition and batch size are verified and all trials are executed.",
+  "dataset": {
+    "class_prior": 0.3,
+    "n_labeled_positive": 1000,
+    "n_test": 10000,
+    "n_unlabeled": 2000,
+    "name": "fashion_mnist",
+    "partition_status": "paper states two class groups but does not publish their class IDs",
+    "positive_classes": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "positive_definition": "provisional first-five class partition",
+    "representation": "flattened_pixels",
+    "representation_fidelity": "paper",
+    "unlabeled_class_prior": 0.3,
+    "validation_positive": 50,
+    "validation_unlabeled": 200
+  },
+  "fidelity_level": "paper_protocol",
+  "known_gaps": [
+    "The paper does not identify the MNIST/Fashion-MNIST class IDs assigned to its two groups; [0,1,2,3,4] is an explicit provisional choice.",
+    "The paper says mini-batch training but does not report batch size; 256 is an explicit implementation choice.",
+    "The paper does not fully specify image scaling/standardization; the runner scales pixels to [0,1] and the native representation standardizes each feature.",
+    "This execution config covers class prior 0.3; the other paper priors use separate locked configs and result directories.",
+    "The InfoMax paper says kernel-mean estimation but does not identify KM1 versus KM2; KM1 is an explicit provisional choice.",
+    "The validation split is materialized for provenance but is not used for early stopping because the paper reports fixed epoch counts."
+  ],
+  "methods": {
+    "infomax_pu": {
+      "class_prior_mode": "estimate",
+      "fit": {
+        "use_validation_for_early_stopping": false
+      },
+      "parameters": {
+        "classifier_batch_norm": true,
+        "classifier_batch_size": 256,
+        "classifier_epochs": 200,
+        "classifier_hidden_dims": [
+          300,
+          300,
+          300
+        ],
+        "classifier_learning_rate": 0.001,
+        "classifier_optimizer": "adam",
+        "classifier_weight_decay": 0.0,
+        "device": "cpu",
+        "hidden_dim": 60,
+        "learning_rate": 0.001,
+        "prior_estimator": {
+          "name": "kernel_mean",
+          "parameters": {
+            "epsilon": 0.04,
+            "km2_final_slope_weight": 0.2,
+            "lambda_upper_bound": 8.0,
+            "max_qp_iter": 2000,
+            "max_samples_per_group": null,
+            "qp_tolerance": 1e-07,
+            "random_state": 0,
+            "standardize": false,
+            "variant": "km1"
+          }
+        },
+        "representation_activation": true,
+        "representation_batch_norm": true,
+        "representation_batch_size": 256,
+        "representation_dim": 20,
+        "representation_encoder_steps": 1,
+        "representation_epochs": 200,
+        "representation_gradient_noise": 0.01,
+        "representation_ratio_steps": 4,
+        "representation_weight_decay": 0.0005
+      },
+      "variant": "native_purl_paper_network_protocol"
+    }
+  },
+  "paper_claim": false,
+  "protocol": "official_data",
+  "runtime": {
+    "device": "cpu",
+    "resume_required": true
+  },
+  "schema_version": 1,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ]
+}

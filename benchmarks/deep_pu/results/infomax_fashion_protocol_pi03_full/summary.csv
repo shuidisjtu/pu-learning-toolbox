@@ -1,0 +1,2 @@
+dataset,method,accuracy_mean,accuracy_std,accuracy_count,balanced_accuracy_mean,balanced_accuracy_std,balanced_accuracy_count,roc_auc_mean,roc_auc_std,roc_auc_count,elapsed_seconds_mean,elapsed_seconds_std,elapsed_seconds_count
+fashion_mnist,infomax_pu,0.636915,0.025791660728962277,20,0.636915,0.025791660728962284,20,0.8547264739999999,0.08191478063008424,20,19.57208280544728,0.26728436250518905,20

@@ -4,7 +4,8 @@
 
 - `clean_room`：可立即执行的合成 case-control 多 seed 实验；
 - `official_data`：使用公开官方数据验证下载、PU split、训练、resume 和 provenance；
-- `paper_like`：从论文锁定的视觉/文本配置，当前状态为 `locked_not_executed`。
+- `paper_like`：从论文锁定的视觉/文本配置；InfoMax PU 的暂定 Fashion-MNIST
+  20-seed 协议已执行，WConPU 与 DGPU 仍受下文资源和协议 blocker 限制。
 
 ## 运行 clean-room benchmark
 
@@ -62,7 +63,7 @@ python -m benchmarks.deep_pu.preflight_paper \
 `--accept-dataset "CelebA"` 或 `--accept-dataset "Alzheimer MRI"` 明确确认授权数据。
 这些参数只消除资源阻塞，不会自动消除配置中记录的实现差距。
 
-InfoMax PU 的论文网络协议可先做只读 preflight：
+InfoMax PU 的论文网络协议可做只读 preflight：
 
 ```bash
 python -m benchmarks.deep_pu.run_official_data \
@@ -75,8 +76,9 @@ python -m benchmarks.deep_pu.run_official_data \
 该配置锁定 `d-60-20-1` PURL、全隐藏层 BN/ReLU、gradient noise `0.01`、
 `m-300-300-300-1` nnPU head、Adam、200 epoch 和 20 seeds。论文未公开图像类别分组
 编号和 batch size。runner 已接入互斥的 `50 P + 200 U` validation split 与 KM1/KM2
-class-prior estimator；由于论文没有说明 KM 变体，配置暂锁 KM1。未公开细节和未执行的
-20-seed 全量实验意味着结果仍须保持 `paper_claim=false`。
+class-prior estimator；由于论文没有说明 KM 变体，配置暂锁 KM1。论文列出的
+`pi=0.3/0.5/0.7` 三组、每组 20 seeds 已完整执行；未公开细节仍意味着结果必须保持
+`paper_claim=false`。
 
 WConPU 的 CIFAR-10 视觉协议可做只读 preflight：
 
@@ -124,9 +126,25 @@ Fashion-MNIST official-data smoke 已完成 seed `0,1,2`。四个官方压缩文
 `0.4420 ± 0.0874`，balanced accuracy 为 `0.4622 ± 0.0588`。该结果使用 400 个训练样本、
 500 个测试样本、flattened pixels 和 5 epoch，只证明真实数据执行链路，不用于性能比较。
 
+`results/infomax_fashion_protocol_pi{03,05,07}_full/` 已完成暂定 Fashion-MNIST
+论文网络协议的 60/60 trials。每个先验运行 20 seeds，每个 trial 使用 1000 P、2000 U、
+10000 test、PURL 200 epoch 和 nnPU 200 epoch。聚合结果如下：
+
+| U 类先验 | ROC-AUC | Balanced accuracy | KM1 估计 | AUC < 0.5 |
+|---:|---:|---:|---:|---:|
+| 0.3 | 0.8547 ± 0.0819 | 0.6369 ± 0.0258 | 0.8747 | 0/20 |
+| 0.5 | 0.6313 ± 0.3077 | 0.6394 ± 0.1115 | 0.8748 | 7/20 |
+| 0.7 | 0.3340 ± 0.2873 | 0.5707 ± 0.1200 | 0.8748 | 15/20 |
+
+结果显示 KM1 在三种 U 分布上均饱和到约 `0.875`；随着真实 U 先验升高，模型从稳定
+正确排序转为多数 seed 反向排序。测试集使用完整 Fashion-MNIST，正率固定为 0.5，因此
+跨组重点比较 ROC-AUC 与 balanced accuracy。完整审计见
+`results/infomax_fashion_protocol_matrix/REPORT.md`。
+
 当前节点的完整配置审计结果为 `all_ready=false`：无可用 CUDA；WConPU 仍缺论文未公开的
-CNN/增强细节及 validation 指标，并且尚未执行长周期实验；DGPU 尚缺条件 EDM backend；CelebA 与 Alzheimer
-MRI 访问未确认；InfoMax 仍有未公开协议字段。详见
+CNN/增强细节及 validation 指标，并且尚未执行长周期实验；DGPU 尚缺条件 EDM backend；
+CelebA 与 Alzheimer MRI 访问未确认；InfoMax 20-seed 暂定协议已执行，但仍有未公开协议
+字段。详见
 `results/official_preflight/current_node.json`。
 
 ## 结论边界

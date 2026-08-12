@@ -1,0 +1,13 @@
+{
+  "blockers": [],
+  "cuda_available": false,
+  "cuda_device_count": 0,
+  "data_root": "/data2/user/zihenglin/official-data/deep-pu",
+  "dataset": "fashion_mnist",
+  "download_enabled": false,
+  "ready": true,
+  "requested_device": "cpu",
+  "warnings": [
+    "paper_protocol validates orchestration but is not a paper result"
+  ]
+}
