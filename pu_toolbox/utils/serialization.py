@@ -11,14 +11,28 @@ See ``docs/architecture.md`` §6 for the report serialization contract.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
 
-__all__ = ["escape_markdown", "format_from_suffix", "format_value", "json_safe"]
+__all__ = [
+    "canonical_hash",
+    "escape_markdown",
+    "format_from_suffix",
+    "format_value",
+    "json_safe",
+]
 
 ReportFormat = Literal["json", "markdown", "csv"]
+
+
+def canonical_hash(document: dict[str, Any]) -> str:
+    """Return a stable SHA-256 hash for a JSON-serializable mapping."""
+    payload = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
 
 
 def json_safe(value: Any) -> Any:

@@ -72,6 +72,7 @@
 - [x] InfoMax PU、WConPU、DGPU 统一 runner、论文配置锁及 clean-room 多 seed benchmark
 - [x] 公开官方数据加载、确定性 PU split、断点续跑、provenance 与 Fashion-MNIST 3-seed smoke
 - [x] 完整论文配置运行前审计（GPU、EDM、授权数据、实现差距分别报告）
+- [x] 通用 benchmark 结果审计器与 CLI（产物、哈希、trial/seed、指标、PU split）
 - [x] InfoMax PU 论文网络协议（mini-batch PURL、BN/ReLU、gradient noise、300×3 nnPU、Adam/AdaGrad）
 - [x] InfoMax PU 独立 validation split、KM1/KM2 类先验估计与结果误差记录
 - [x] InfoMax PU Fashion-MNIST 暂定论文网络协议三先验 × 20 seeds（60 trials）

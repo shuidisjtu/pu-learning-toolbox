@@ -1,5 +1,7 @@
 """Diagnostic reports for PU datasets and fitted models."""
 
+from pu_toolbox.diagnostics.benchmark import BenchmarkAuditReport as BenchmarkAuditReport
+from pu_toolbox.diagnostics.benchmark import audit_benchmark_results as audit_benchmark_results
 from pu_toolbox.diagnostics.report import (
     DiagnosticMetric as DiagnosticMetric,
 )
@@ -21,9 +23,11 @@ from pu_toolbox.diagnostics.sensitivity import (
 
 __all__ = [
     "DiagnosticMetric",
+    "BenchmarkAuditReport",
     "PUDiagnosticReport",
     "PUSensitivityAnalysis",
     "SensitivityPoint",
     "analyze_pu_sensitivity",
+    "audit_benchmark_results",
     "build_diagnostic_report",
 ]

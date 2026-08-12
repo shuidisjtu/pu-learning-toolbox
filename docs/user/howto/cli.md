@@ -60,6 +60,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
   （pu-workflow 环节 2）。
 - `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--out-dir .]`：
   假设敏感性分析（先验/标记倾向扫描），写 `sensitivity.json`（pu-workflow 环节 4）。
+- `audit-benchmark --result-dir 结果目录 [--output audit.json]`：检查 benchmark 的必需产物、
+  配置哈希、trial/seed 完整性、重复行、指标有限值，以及 official-data PU split 的样本重叠
+  和目标先验一致性。失败时退出码为 1；`paper_claim=false` 与脏工作区作为警告保留。
 - `skill install [--force] [--dest 目录]`：安装内置 `pu-workflow` 技能到用户级
   `~/.claude/skills/` 与 `~/.agents/skills/`（默认跳过已存在安装，`--force` 覆盖；
   详见 [启用与使用 pu-workflow Skill](using_skill.md)）。
@@ -85,6 +88,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | 0 | 成功 |
 | 1 | 用户/运行错误（文件缺失、标签非法、方法名无效等；stderr 输出 `error: ...`） |
 | 2 | 参数语法错误（argparse） |
+
+`audit-benchmark` 只验证产物自洽性和可追溯性，不证明实现等同于官方源码，也不替代论文
+协议核对、数据授权确认或统计结论审阅。只有这些外部证据也完成后，才能升级论文复现声明。
 
 ## 类先验解析顺序
 

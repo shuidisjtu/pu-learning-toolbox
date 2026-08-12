@@ -1,16 +1,7 @@
-"""Shared helpers for benchmark runners."""
+"""Backward-compatible benchmark helper imports."""
 
 from __future__ import annotations
 
-import hashlib
-import json
+from pu_toolbox.utils.serialization import canonical_hash as canonical_hash
 
-
-def canonical_hash(document: dict) -> str:
-    """Stable sha256 hash of a JSON-serializable document.
-
-    Uses sorted keys and compact separators so identical documents hash
-    identically regardless of key insertion order.
-    """
-    payload = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
+__all__ = ["canonical_hash"]
