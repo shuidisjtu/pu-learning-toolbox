@@ -491,6 +491,26 @@ def _version(name: str) -> str | None:
         return None
 
 
+def _git_worktree_dirty(project_root: Path, output: Path) -> bool | None:
+    """Check pre-run source state without counting this runner's output."""
+    command = ["git", "status", "--porcelain", "--untracked-files=all"]
+    try:
+        relative_output = output.resolve().relative_to(project_root.resolve()).as_posix()
+    except ValueError:
+        pass
+    else:
+        command.extend(
+            [
+                "--",
+                ".",
+                f":(exclude){relative_output}",
+                f":(exclude){relative_output}/**",
+            ]
+        )
+    status = _git_value(project_root, command)
+    return None if status is None else bool(status)
+
+
 def _write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -637,6 +657,8 @@ def run_official_data_benchmark(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run public-data trials and persist every completed seed incrementally."""
     output = Path(output_dir)
+    project_root = Path(__file__).resolve().parents[2]
+    worktree_dirty_before_run = _git_worktree_dirty(project_root, output)
     output.mkdir(parents=True, exist_ok=True)
     resolved_path = output / "resolved_config.json"
     if resume and resolved_path.exists():
@@ -769,8 +791,6 @@ def run_official_data_benchmark(
     summary.columns = ["_".join(filter(None, item)) for item in summary.columns.to_flat_index()]
     summary.to_csv(output / "summary.csv", index=False)
 
-    project_root = Path(__file__).resolve().parents[2]
-    dirty = _git_value(project_root, ["git", "status", "--porcelain"])
     manifest = {
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -783,7 +803,7 @@ def run_official_data_benchmark(
         "config_sha256": canonical_hash(config),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "git_commit": _git_value(project_root, ["git", "rev-parse", "HEAD"]),
-        "git_worktree_dirty": None if dirty is None else bool(dirty),
+        "git_worktree_dirty": worktree_dirty_before_run,
         "dataset_artifacts": _dataset_artifacts(data_root, config["dataset"]["name"]),
         "dataset_splits": split_manifests,
         "environment": {

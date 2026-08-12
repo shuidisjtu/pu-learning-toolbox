@@ -14,6 +14,7 @@ pytest.importorskip("torch")
 
 from benchmarks.deep_pu.official_data import (
     _dataset_artifacts,
+    _git_worktree_dirty,
     build_dataset,
     environment_preflight,
     load_official_data_config,
@@ -181,7 +182,7 @@ class TestOfficialDataBenchmark:
         if not report["cuda_available"]:
             assert any("CUDA" in item for item in report["blockers"])
 
-    def test_basic_run_writes_claim_safe_artifacts(self, tmp_path, official_config):
+    def test_basic_run_writes_claim_safe_artifacts(self, tmp_path, official_config, monkeypatch):
         official_config["dataset"].update({"validation_positive": 3, "validation_unlabeled": 4})
         official_config["methods"]["infomax_pu"]["fit"] = {
             "use_validation_for_early_stopping": True
@@ -202,6 +203,19 @@ class TestOfficialDataBenchmark:
         assert (tmp_path / "output" / "preflight.json").is_file()
         assert trials.loc[0, "class_prior_mode"] == "known"
         assert trials.loc[0, "class_prior_absolute_error"] == pytest.approx(0.0)
+
+        project_root = Path(__file__).resolve().parents[2]
+        tracked_output = project_root / "benchmarks" / "deep_pu" / "results" / "test-output"
+        commands = []
+
+        def fake_git_value(root, command):
+            assert root == project_root
+            commands.append(command)
+            return ""
+
+        monkeypatch.setattr("benchmarks.deep_pu.official_data._git_value", fake_git_value)
+        assert _git_worktree_dirty(project_root, tracked_output) is False
+        assert ":(exclude)benchmarks/deep_pu/results/test-output/**" in commands[0]
 
     def test_determ_resume_does_not_duplicate_trials(self, tmp_path, official_config):
         output = tmp_path / "output"
