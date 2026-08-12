@@ -286,7 +286,7 @@ benchmarks/
       official_data_infomax_fashion_protocol.json
       official_data_wconpu_cifar10_protocol.json
       official_sources.lock.json
-      official/               (三份 locked_not_executed paper-like 配置)
+      official/               (三份 paper-like 配置；InfoMax provisional matrix 已执行，其余待执行)
     results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
     results/official_data_smoke_fashion_mnist/ (真实数据 3-seed smoke)
     results/infomax_fashion_protocol_preflight/ (InfoMax Fashion-MNIST 完整协议执行前审计)

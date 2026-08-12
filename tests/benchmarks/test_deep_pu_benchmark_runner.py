@@ -171,7 +171,7 @@ class TestDeepPUBenchmarkRunner:
         assert manifest["n_trials"] == 1
         assert len(manifest["runner_sha256"]) == 64
 
-    def test_edge_official_configs_are_locked_and_not_executed(self):
+    def test_edge_official_configs_have_auditable_execution_status(self):
         root = Path(__file__).resolve().parents[2] / "benchmarks" / "deep_pu" / "configs"
         source_lock = json.loads((root / "official_sources.lock.json").read_text(encoding="utf-8"))
         official = [
@@ -186,5 +186,10 @@ class TestDeepPUBenchmarkRunner:
         }
         assert len(official) == 3
         assert all(item["protocol"] == "paper_like" for item in official)
-        assert all(item["status"] == "locked_not_executed" for item in official)
+        statuses = {item["method"]: item["status"] for item in official}
+        assert statuses == {
+            "dgpu": "locked_not_executed",
+            "infomax_pu": "provisional_fashion_prior_matrix_executed",
+            "weighted_contrastive_pu": "locked_not_executed",
+        }
         assert all("claim_policy" in item for item in official)

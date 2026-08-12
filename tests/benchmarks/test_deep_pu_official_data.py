@@ -12,6 +12,7 @@ import pytest
 
 pytest.importorskip("torch")
 
+from benchmarks._common import canonical_hash
 from benchmarks.deep_pu.official_data import (
     _dataset_artifacts,
     _git_worktree_dirty,
@@ -279,14 +280,26 @@ class TestOfficialDataBenchmark:
         assert report["ready"]
         assert not any("backbone" in item for item in report["warnings"])
         prior_configs = {
-            0.3: "official_data_infomax_fashion_protocol_pi03.json",
-            0.5: "official_data_infomax_fashion_protocol.json",
-            0.7: "official_data_infomax_fashion_protocol_pi07.json",
+            0.3: ("03", "official_data_infomax_fashion_protocol_pi03.json"),
+            0.5: ("05", "official_data_infomax_fashion_protocol.json"),
+            0.7: ("07", "official_data_infomax_fashion_protocol_pi07.json"),
         }
-        for prior, filename in prior_configs.items():
-            prior_config = load_official_data_config(root / filename)
+        results_root = root.parent / "results"
+        for prior, (suffix, filename) in prior_configs.items():
+            config_path = root / filename
+            prior_config = load_official_data_config(config_path)
             assert prior_config["dataset"]["class_prior"] == pytest.approx(prior)
             assert prior_config["dataset"]["unlabeled_class_prior"] == pytest.approx(prior)
+
+            result_dir = results_root / f"infomax_fashion_protocol_pi{suffix}_full"
+            resolved = json.loads((result_dir / "resolved_config.json").read_text("utf-8"))
+            manifest = json.loads((result_dir / "run_manifest.json").read_text("utf-8"))
+            trials = (result_dir / "trials.csv").read_text("utf-8").splitlines()
+            assert resolved == prior_config
+            assert manifest["config_sha256"] == canonical_hash(prior_config)
+            assert manifest["paper_claim"] is False
+            assert len(set(prior_config["seeds"])) == 20
+            assert len(trials) == 21
 
     def test_basic_wconpu_protocol_config_locks_visual_pipeline(self):
         root = Path(__file__).resolve().parents[2] / "benchmarks" / "deep_pu" / "configs"

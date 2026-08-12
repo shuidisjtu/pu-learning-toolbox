@@ -67,13 +67,12 @@
     "device": "cpu",
     "resume_required": true
   },
-  "claim_policy": "This configuration implements the published network depths, normalization, optimizers, epoch count, sample counts, and repetition count. The unpublished image class partition, batch size, kernel-mean variant, and test-prior protocol keep it paper_protocol rather than a paper result.",
+  "claim_policy": "This configuration implements the published network depths, normalization, optimizers, epoch count, sample counts, and repetition count. It remains paper_protocol, not a paper result, until the unpublished image class partition and batch size are verified and all trials are executed.",
   "known_gaps": [
     "The paper does not identify the MNIST/Fashion-MNIST class IDs assigned to its two groups; [0,1,2,3,4] is an explicit provisional choice.",
     "The paper says mini-batch training but does not report batch size; 256 is an explicit implementation choice.",
     "The paper does not fully specify image scaling/standardization; the runner scales pixels to [0,1] and the native representation standardizes each feature.",
     "This execution config covers class prior 0.3; the other paper priors use separate locked configs and result directories.",
-    "The full canonical Fashion-MNIST test set is class-balanced (test positive rate 0.5); the configured prior controls the training unlabeled set because the paper does not publish a separate test-prior sampling rule.",
     "The InfoMax paper says kernel-mean estimation but does not identify KM1 versus KM2; KM1 is an explicit provisional choice.",
     "The validation split is materialized for provenance but is not used for early stopping because the paper reports fixed epoch counts."
   ]
