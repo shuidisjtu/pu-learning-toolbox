@@ -1071,7 +1071,7 @@ def _validate_prior_param_types(
                         f"invalid prior parameter '{key}': value {value!r} is not a number "
                         f"(expected {annotation})"
                     ) from exc
-            if isinstance(converted, (int, float)) and not np.isfinite(converted):
+            if isinstance(converted, int | float) and not np.isfinite(converted):
                 raise PipelineError(
                     f"invalid prior parameter '{key}': value {value!r} must be finite"
                 )

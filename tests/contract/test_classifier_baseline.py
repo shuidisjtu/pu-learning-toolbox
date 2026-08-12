@@ -274,7 +274,7 @@ def _get_fit_kwargs(clf, y):
     constructor-chosen prior; injecting here would silently override it.
     """
     n_p = int(np.sum(y == 1))
-    if isinstance(clf, (NonNegativePUClassifier, PUSBKernelClassifier)):
+    if isinstance(clf, NonNegativePUClassifier | PUSBKernelClassifier):
         return {"class_prior": n_p / len(y)}
     return {}
 

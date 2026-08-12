@@ -182,7 +182,7 @@ def _module_pytestmark(tree: ast.Module) -> bool:
             continue
         if _is_registered_marker(node.value):
             return True
-        if isinstance(node.value, (ast.List, ast.Tuple)) and any(
+        if isinstance(node.value, ast.List | ast.Tuple) and any(
             _is_registered_marker(el) for el in node.value.elts
         ):
             return True

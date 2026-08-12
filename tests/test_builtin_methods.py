@@ -264,7 +264,7 @@ class TestBuiltinRegistration:
             meta.name: {
                 field: (
                     list(getattr(meta, field))
-                    if isinstance(getattr(meta, field), (tuple, list))
+                    if isinstance(getattr(meta, field), tuple | list)
                     else getattr(meta, field)
                 )
                 for field in sync_fields
@@ -279,7 +279,7 @@ class TestBuiltinRegistration:
                 if not _declared_on_class(cls, field):
                     continue  # not synced from class; the literal is authoritative
                 cls_value = getattr(cls, field)
-                if isinstance(cls_value, (tuple, list)):
+                if isinstance(cls_value, tuple | list):
                     assert list(cls_value) == entry_value, (
                         f"{name}.{field}: entry={entry_value} != class={list(cls_value)}"
                     )
