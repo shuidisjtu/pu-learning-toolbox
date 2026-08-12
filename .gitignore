@@ -59,6 +59,8 @@ demo_data/
 results*/
 !benchmarks/assigned_methods/results/
 !benchmarks/assigned_methods/results/**
+!benchmarks/deep_pu/results/
+!benchmarks/deep_pu/results/**
 
 # Local one-off plans (never for distribution)
 .superpowers/
