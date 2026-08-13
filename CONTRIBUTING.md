@@ -89,6 +89,23 @@ git diff --check
 
 每个普通测试文件最多 15 个测试方法，并覆盖 basic、param、edge、deterministic 全部四类（缺任一分类即门禁失败，严格模式为本地与 CI 共同默认）；具体规则由 `scripts/check_test_quality.py` 执行。
 
+### 5.1 单源助手（必须复用）
+
+以下助手是跨模块的单一实现，新代码必须复用而非内联重写：
+
+| 助手 | 位置 | 用途 |
+|---|---|---|
+| `canonical_hash` | `pu_toolbox/utils/serialization.py`（`benchmarks/_common.py` 为兼容 re-export） | 严格 JSON 规范化哈希 |
+| `json_safe` | `pu_toolbox/utils/serialization.py` | 严格 JSON 兼容转换 |
+| `sigmoid_stable` | `pu_toolbox/utils/activations.py` | 数值稳定 sigmoid |
+| `rbf_weights` | `pu_toolbox/utils/basis.py` | RBF 核权重（六处收敛单源） |
+| `validate_true_binary_labels` | `pu_toolbox/core/validation.py` | y_true 值域校验 |
+| `check_scalar_in_range` | `pu_toolbox/core/validation.py` | 标量范围校验（`inclusive=False` 为开区间） |
+| `solve_prior_from_positive_fraction` | `pu_toolbox/estimators/risk/_class_prior.py` | 类先验推导与 1−2ph 分母检查 |
+| `git_worktree_dirty` | `benchmarks/_common.py` | git 脏状态检测（`exclude` 参数排除 runner 自身输出） |
+
+**代谢率红线**：PR 评审时对增量代码做单源检查——发现 **>1 处单源违规为黄线**（该 PR 必须包含收敛治理）；**≥3 处或同一概念第 3 次分裂为红线**，触发该区域的结构性重构评估。历史治理记录见 `docs/dev/architecture_audit.md`。
+
 ## 6. 论文方法和 benchmark
 
 状态必须严格区分：
