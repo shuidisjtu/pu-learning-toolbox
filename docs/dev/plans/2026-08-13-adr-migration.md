@@ -580,7 +580,7 @@ git commit -m "docs: delete decision_log.md, superseded by docs/adr/"
 在「| 复跑方法 | ...」行后加:
 
 ```markdown
-| 决策迁移 | 2026-08-13 治理批次与行动项流水账已迁移至 [ADR-0001](../../adr/0001-architecture-governance.md);本文档只保留发现快照 |
+| 决策迁移 | 2026-08-13 治理批次与行动项流水账已迁移至 [ADR-0001](../adr/0001-architecture-governance.md);本文档只保留发现快照 |
 ```
 
 - [ ] **Step 3: §2 总评替换三块批次流水账**
@@ -589,7 +589,7 @@ git commit -m "docs: delete decision_log.md, superseded by docs/adr/"
 
 ```markdown
 > 批次治理记录(行动项、commit、闭环状态)已迁移至
-> [ADR-0001](../../adr/0001-architecture-governance.md);总评判定与
+> [ADR-0001](../adr/0001-architecture-governance.md);总评判定与
 > 信号清单保留于此,作为下次复跑审计的对照基线。
 ```
 
@@ -602,7 +602,7 @@ git commit -m "docs: delete decision_log.md, superseded by docs/adr/"
 ```markdown
 ## 5. 行动项清单
 
-已迁移至 [ADR-0001](../../adr/0001-architecture-governance.md)(架构治理机制:
+已迁移至 [ADR-0001](../adr/0001-architecture-governance.md)(架构治理机制:
 审计框架、单源助手、代谢率红线、复跑条件)。第一批 14 项与第二批 14 项均
 已闭环,第三批 3 项已闭环(2026-08-13)。
 ```
@@ -620,7 +620,7 @@ git commit -m "docs: delete decision_log.md, superseded by docs/adr/"
 - [ ] **Step 6: 运行文档门禁 + 确认行数**
 
 Run: `uv run python scripts/check_doc_links.py && wc -l docs/dev/architecture_audit.md`
-Expected: `All checks passed.` 且行数 ≤ 120(原 190)
+Expected: 门禁按分阶段口径;行数 ≤ 150(原 190;spec 的「~120」为估算,保留段 §3/§4/§6/§7 的实际合计为 ~146,不得为凑数砍保留段)
 
 - [ ] **Step 7: Commit**
 
@@ -649,7 +649,7 @@ git commit -m "docs: slim architecture audit to findings snapshot, batch records
 ```markdown
 ## 1. 设计决策
 
-设计决策与代价已迁移至 [docs/adr/](../../adr/README.md)(ADR-0002 核心包
+设计决策与代价已迁移至 [docs/adr/](../adr/README.md)(ADR-0002 核心包
 轻量化、ADR-0003 概念解耦、ADR-0004 registry 元数据驱动、ADR-0005 复现
 可信度分级、ADR-0006 SAR 定位)。本文档只描述当前架构。
 
