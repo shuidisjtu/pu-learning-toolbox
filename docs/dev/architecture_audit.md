@@ -13,6 +13,7 @@
 | 覆盖 | 四代理共读取:代码面全量 47 文件通读、工程面 58 测试文件 + 16 benchmark 脚本 + 6 门禁脚本全文、文档面 docs/README 索引 + method cards 全量 + README 双语逐行 diff、治理面 CI/双份 skill/git 历史(206 commits) |
 | 门禁基线 | 6 道门禁全绿,738 passed(收集 739,1 个环境性 skip) |
 | 复跑方法 | 按 §6 重派四代理,或按行动项进度局部复核 |
+| 决策迁移 | 2026-08-13 治理批次与行动项流水账已迁移至 [ADR-0001](../adr/0001-architecture-governance.md);本文档只保留发现快照 |
 
 ## 2. 总评
 
@@ -21,11 +22,9 @@
 - **做得好的**:17 个算法全部 NATIVE(0 个 api_only 假实现);registry 有防漂移测试锁死;PUSB benchmark 有 manifest sha256 锁定(真相分裂的最小化范例);文档-实现抽查 4 篇方法卡全部一致;双语 README 逐行同步(但源于近期人工治理而非结构性保障)。
 - **要警惕的**:① 提取公共逻辑的机制健全(校验助手存在)但新代码不遵循——"机制存在"与"机制被执行"之间出现裂缝;② check_doc_links 声称覆盖实则排除最多引用密集的目录,漏检已实际发生(孤儿文档入库无人发现);③ 一处与自身推导注释矛盾的数学实现未被测试锁定。
 
-> **第二批治理后更新(2026-08-09,分支 fix/architecture-decay-batch2)**:§3/§4 全部黄/红项已闭环(14/14,2 项有意保留,见 §5 第二批治理);"机制存在但未被执行"的裂缝由 check_test_quality 严格默认与 nightly CI 转为结构性约束。判定维持黄——整体健康,残余风险集中在代谢率(新代码是否持续复用单源助手)与保留项。
->
-> **文档对齐更新(2026-08-10)**:§1 中"project_structure.md §3 测试树与实际 1:1 双向对齐(commit 021e4b3)"的承诺再次失效——第二批治理新增的 `test_class_prior.py`/`test_pnu_loss.py` 与后续文件(utils/activations.py、utils/serialization.py、estimators/risk/_class_prior.py、benchmarks/_common.py、scripts/pu_workflow/、nightly.yml)共 8 处目录树漂移,已随 2026-08-10 文档检查全部修复。§4 T3 表格为审计时点快照(nightly.yml 由第二批第 12 条治理落地);复跑指南 §6 不变。
->
-> **第三批治理后更新(2026-08-13,分支 fix/architecture-decay-batch3)**:对 6492e45..c4754e7(8 提交,benchmark 审计器 + InfoMax 先验矩阵)做增量代谢率检查,判定维持黄——canonical_hash 迁入 serialization.py 是正确收敛,但新代码出现 3 处信号,已闭环:① `_git_worktree_dirty` 第 5 份实现收敛到 `benchmarks/_common.py::git_worktree_dirty`(含 output-exclude 语义,4 调用点统一);② `unlabeled_class_prior` 两处内联校验改走 `check_scalar_in_range(inclusive=False)`;③ 审计器 `_check_splits` 对畸形 `dataset_splits`(非 dict)由静默放行改为报错,并补齐 6 个未测错误分支。两项经权衡不改:`_METRIC_COLUMNS` 确认为跨 runner 指标并集(裁剪会制造盲区),补维护注释;`runtime.resume_required` 保留——provenance 锁测试(config == resolved == manifest hash)不允许无代价删除,已在 runner 文档化为「记录意图、未强制」。单源清单与代谢率红线已写入 CONTRIBUTING.md §5.1。
+> 批次治理记录(行动项、commit、闭环状态)已迁移至
+> [ADR-0001](../adr/0001-architecture-governance.md);总评判定与
+> 信号清单保留于此,作为下次复跑审计的对照基线。
 
 ## 3. 四信号逐条
 
@@ -117,61 +116,18 @@
 
 ## 5. 行动项清单
 
-### P0 — 正确性风险,优先处理
-
-1. ✅ 已治理(2026-08-09,commit 046af07):KLDCE 偏置恢复复核确认 `−1−g` 正确(互补松弛:free 乘子 → ỹ·f=1),代码四处分支 + docstring + 推导注释统一;新增数值断言测试(`test_edge_gamma_free_bias_uses_neg_one_minus_g`,锁定 b₀=−1.25)。**后续发现**:KLDCE 方法卡 §6.5 同含 `1−g` 错误,已随 Task 14 一并修正(commit 870f437)
-2. ✅ 已治理(2026-08-09,commit 7cb73b3):check_doc_links 三洞补全——PATH_PATTERN 支持 .py+.md、新增 rule-5 markdown 链接存在性检查、索引完备性扩展全树;`_EXCLUDED_DOC_DIRS` 缩小为 {superpowers, figures}。门禁随即捕获审计事件本身(orphan 报错),测试 9 个
-3. ✅ 已治理(2026-08-09,commit 5c3ffb2):check_math_rendering 锚定 PROJECT_ROOT,空扫描拒绝 exit 1;跨目录运行验证不假绿
-
-### P1 — 真相分裂与治理盲区
-
-4. ✅ 已治理(2026-08-09,commit f358630):RBF 单源化到 `utils/basis.py`(kldce/pen_l1/kernel_mean 三处委托;pusb_kernel 保留并注释);KLDCE MATH golden 数值 bit-identical。**后续发现**:kldce.py:375 零中心高斯为第 6 处同公式(输入形态不同,暂未合并,待 triage)
-5. ✅ 已治理(2026-08-09,commit 85db12f):`paper` marker 落地——PUSB Table 2 两文件 + deep_pu_model_selection(纯本地验证),`-m paper` 收集 28 用例(原 0);pyproject 描述同步更新(commit 870f437)
-6. ✅ 已治理(2026-08-09,commit ffdb6c1):class_prior 校验统一走 `check_scalar_in_range`(9 处);LDCE/KLDCE 由闭区间收紧为开区间(无调用方依赖)。**后续发现**:范围外仍有 ~11 处内联校验(metrics/losses/diagnostics/preprocessing 等),待 triage
-7. ✅ 已治理(2026-08-09,commit 82718a4):check_test_quality 新增豁免复核段——每次运行打印豁免清单与理由,覆盖 ≥3/4 分类的文件提示可移出(真实运行:9 个豁免文件 7 个被标记可移出);exit-code 语义不变
-
-### P2 — 文档与流程
-
-8. ✅ 已治理(2026-08-09,commit 9c2283a):decision_log 补齐 5 条决策(08-06 至 08-09,审计当日估 ≥6,蒸馏定稿 5 条),并按先例将 `pu_workflow_design.md` 蒸馏后删除;check_doc_links 随即转绿
-9. ✅ 已治理(本地,gitignored 不提交):CLAUDE.md:29 死链修复(旧路径 → `docs/dev/project_structure.md`)
-10. ✅ 已治理(2026-08-09,commit 021e4b3):`project_structure.md` §3 测试树与实际 1:1 双向对齐(补 unit/scripts、workflow_scripts、benchmarks 8 文件,删空目录 registry,另补 6 处既有漂移)
-11. ✅ 已治理(本地,gitignored 不提交):dev-workflow skill 状态速查更新(705 → 760,2026-08-09)
-12. ✅ 已治理(2026-08-09,commit 13312dc):死代码清理 5 项删除(PNULoss、PenL1Estimator 别名、upu 假别名、DEFAULT_RANDOM_SEED、check_positive),set_global_seed 保留(conftest 真实使用);两处 method card 引用同 commit 修复
-13. ✅ 已治理(2026-08-09,commit 3fc348b):`sample_weight` 语义文档化——DistPU/LBE 补"ignored"声明、SelfPU 补 NotImplementedError 说明(纯文档,无行为变更)
-14. ✅ 已治理(2026-08-09,commit 870f437):nnpu.md §7.1 签名补 `class_prior`/`device`(与 nnpu.py 逐字符一致);architecture.md "15"→"17"+脚注;LDCE.md Connect-4 形状交叉说明(manifest 验证 67557×126);DGPU 族归属按 registry `Fam.DEEP_PU` 权威标注
-
-### 第二批治理(2026-08-09,分支 fix/architecture-decay-batch2,14/14 闭环 + 2 项保留)
-
-> 范围:第一批未列入行动项的全部 14 项发现(§3/§4 剩余黄项与两处"后续发现"),按"批次 A 单源化 → 批次 B 工程整洁 → 批次 C 局部性"14 任务实施,全部由既有测试锁定行为。commit 范围 9837cf5..3e629a0,共 17 个提交(2 计划文档 + 14 任务 + 1 修正 bf9fa10)。编号对应本报告 §3/§4 表格行。
-
-1. ✅ 已治理(2026-08-09,commit 8e42b37):`list_algorithms` docstring 与代码一致——`trainable_only` 说明改为仅排除 `api_only`,移除已不存在的 `EXPERIMENTAL` 措辞(§3 S3 行 2)
-2. ✅ 已治理(2026-08-09,commit 93a86e6):PU 零一风险单源化——`upu._pu_validation_risk` 删除,`pu_validation_risk` 委托 `metrics.pu_zero_one_risk`;`_sigmoid`/`_sigmoid_stable` 逐字双份提取为新 `utils/activations.py::sigmoid_stable`(行为逐位一致)(§4 T1 行 4)
-3. ✅ 已治理(2026-08-09,commit 5c4bc27):`fit_evaluate`(275 行)按内聚段拆为私有 helper,`fit_evaluate` 缩短为编排层,行为零变化(§3 S2 行 1)
-4. ✅ 已治理(2026-08-09,commit c9b0d18):新增 `tests/unit/losses/test_pnu_loss.py`——五个模块级函数数值锁定 + basic/param/edge/determ 四分类(§3 S2 行 3)
-5. ✅ 已治理(2026-08-09,commit 40746af):`_canonical_hash` 5 份定义(4 个命名 def + pusb_official_data.py 内联 1 处)收敛到新 `benchmarks/_common.py::canonical_hash`,7 处调用点统一(§3 S2 行 4)
-6. ✅ 已治理(2026-08-09,commit 1b13850):kldce/ldce 类先验推导与分母检查提取为 `estimators/risk/_class_prior.py::solve_prior_from_positive_fraction`(§3 S2 行 2 / §4 T1 行 3)
-7. ✅ 已治理(2026-08-09,commit a6971d1):y_true 值域校验内联实现收敛到 `core/validation.py::validate_true_binary_labels`,6 处调用点统一(§4 T1 行 4)
-8. ✅ 已治理(2026-08-09,commit da0a1b8):`.gitignore` benchmark 结果白名单 18 行压缩为 2 行(`!benchmarks/assigned_methods/results/` + `!benchmarks/assigned_methods/results/**`),忽略语义不变(§3 S4 行 2)
-9. ✅ 已治理(2026-08-09,commit 1db1527):8 个 benchmark 测试文件 marker 单一来源——5 文件删逐函数 `unit`、3 文件补模块级 `pytestmark = [unit, paper]`,paper 覆盖完整(§3 S4 行 4)
-10. ✅ 已治理(2026-08-09,commit 0699cc8):`n_features_out` 别名键删除,`pu_data_summary`/`pnu_data_summary` 仅 `n_features` 单键,v1.0.0 发布前完成避免破坏性变更(§4 T2 行 3)
-11. ✅ 已治理(2026-08-09,commit 791ed73):check_test_quality 默认严格(`strict=True`,`--lenient` 显式退出),本地与 CI 行为对齐,摸底分类缺口文件补齐(§4 T3 行 4)
-12. ✅ 已治理(2026-08-09,commit c2368bb):新增 `.github/workflows/nightly.yml`——slow 套件接入每周定时 CI(周一 03:23 UTC)+ workflow_dispatch(§4 T3 行 6)
-13. ✅ 已治理(2026-08-09,commit c121cb6):RBF 第 6 处(上文 P1-4 后续发现的 kldce.py:375 零中心高斯)提取为 `utils/basis.py::rbf_weights`,6/6 处全数单源(§4 T1 行 1 后续)
-14. ✅ 已治理(2026-08-09,commit 5059bd6 + bf9fa10):class_prior 范围校验剩余 ~11 处内联收敛到 `check_scalar_in_range`(metrics/losses/diagnostics/preprocessing/deep 等 10 文件,b89ae78;pipeline `_validate_prior_value` 另以独立提交 bf9fa10 收敛)(§4 T1 行 2 后续)
-
-**保留说明(2 项,有意不改):**
-
-- **pusb_kernel 存在性校验**:复核确认 `_validate_parameters` 已用 `check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)`,与单源化目标一致,保持不动(§4 T1 行 2 的确认项)
-- **losses/pnu.py 不内联校验**:纯函数公式模块(五个模块级函数),输入校验由 PNUClassifier 边界负责,模块 docstring 声明契约;本批只补测试(test_pnu_loss.py),不改校验位置
-
-**提交清单**:`git log --oneline main..HEAD` —— 9837cf5(计划)、60cde85(任务重编号)、3ecdee9..3e629a0(14 任务 + bf9fa10 修正)。全部 17 个提交在分支 fix/architecture-decay-batch2。
+已迁移至 [ADR-0001](../adr/0001-architecture-governance.md)(架构治理机制:
+审计框架、单源助手、代谢率红线、复跑条件)。第一批 14 项与第二批 14 项均
+已闭环,第三批 3 项已闭环(2026-08-13)。
 
 ## 6. 复跑指南
 
 - **触发时机**:每发布一个 minor 版本后;或每引入 >5 个新文件时
 - **复跑方法**:按本报告 §1 的四代理契约重新派发(代码/工程/文档/治理),重点复核本报告所有红项是否已治理、是否有新信号出现
 - **代谢率检查**:治理腐朽的根本解是让"提取的机制被新代码遵循"——P1-6/7 与第二批单源化落地后,检查新代码是否用共享助手而非再次内联
-- **第二批单源助手清单(2026-08-09,2026-08-13 更新)**:`canonical_hash`(utils/serialization.py,benchmarks/_common.py re-export)、`sigmoid_stable`(utils/activations.py)、`rbf_weights`(utils/basis.py)、`validate_true_binary_labels`(core/validation.py)、`solve_prior_from_positive_fraction`(estimators/risk/_class_prior.py)、`check_scalar_in_range`(core/validation.py)、`git_worktree_dirty`(benchmarks/_common.py);复跑时核对新代码是否复用、check_test_quality 是否保持严格默认、slow 套件是否随 nightly 自动执行
+- **单源助手清单**:以 `CONTRIBUTING.md` §5.1 为权威(消除清单第三份副本);
+  复跑时核对新代码是否复用、check_test_quality 是否保持严格默认、
+  slow 套件是否随 nightly 自动执行
 
 ## 7. 复核记录(主上下文抽样)
 
