@@ -34,7 +34,7 @@ from pu_toolbox.estimators.risk import DistPUClassifier
 from pu_toolbox.preprocessing import make_sar_dataset
 from pu_toolbox.prior import ClassPriorEstimator, ReCPEEstimator
 
-from .._common import canonical_hash
+from .._common import canonical_hash, git_worktree_dirty
 
 SUPPORTED_METHODS = (
     "class_prior_estimation",
@@ -383,21 +383,6 @@ def _git_commit(project_root: Path) -> str | None:
         return None
 
 
-def _git_worktree_dirty(project_root: Path) -> bool | None:
-    try:
-        return bool(
-            subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=project_root,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return None
-
-
 def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -431,7 +416,7 @@ def run_benchmark(
         "paper_claim": False,
         "config_sha256": canonical_hash(config),
         "git_commit": _git_commit(project_root),
-        "git_worktree_dirty": _git_worktree_dirty(project_root),
+        "git_worktree_dirty": git_worktree_dirty(project_root),
         "runner_sha256": _file_sha256(Path(__file__)),
         "selected_methods": selected_methods or list(config["methods"]),
         "n_trials": len(trials),
