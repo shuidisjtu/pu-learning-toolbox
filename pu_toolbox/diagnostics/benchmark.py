@@ -146,9 +146,18 @@ def _check_finite_metrics(
 
 
 def _check_splits(manifest: dict[str, Any], errors: list[str]) -> bool:
+    """Validate declared PU splits when the manifest carries ``dataset_splits``.
+
+    Manifests without the key (e.g. synthetic clean-room runners that record
+    no per-seed splits) are not subject to this check; a present-but-malformed
+    value is an integrity error.
+    """
     splits = manifest.get("dataset_splits")
-    if not isinstance(splits, dict):
+    if splits is None:
         return True
+    if not isinstance(splits, dict):
+        errors.append("dataset_splits must be an object")
+        return False
     valid = True
     for seed, split in splits.items():
         if not isinstance(split, dict):
