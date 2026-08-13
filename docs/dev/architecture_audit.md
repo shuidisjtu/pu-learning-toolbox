@@ -24,6 +24,8 @@
 > **第二批治理后更新(2026-08-09,分支 fix/architecture-decay-batch2)**:§3/§4 全部黄/红项已闭环(14/14,2 项有意保留,见 §5 第二批治理);"机制存在但未被执行"的裂缝由 check_test_quality 严格默认与 nightly CI 转为结构性约束。判定维持黄——整体健康,残余风险集中在代谢率(新代码是否持续复用单源助手)与保留项。
 >
 > **文档对齐更新(2026-08-10)**:§1 中"project_structure.md §3 测试树与实际 1:1 双向对齐(commit 021e4b3)"的承诺再次失效——第二批治理新增的 `test_class_prior.py`/`test_pnu_loss.py` 与后续文件(utils/activations.py、utils/serialization.py、estimators/risk/_class_prior.py、benchmarks/_common.py、scripts/pu_workflow/、nightly.yml)共 8 处目录树漂移,已随 2026-08-10 文档检查全部修复。§4 T3 表格为审计时点快照(nightly.yml 由第二批第 12 条治理落地);复跑指南 §6 不变。
+>
+> **第三批治理后更新(2026-08-13,分支 fix/architecture-decay-batch3)**:对 6492e45..c4754e7(8 提交,benchmark 审计器 + InfoMax 先验矩阵)做增量代谢率检查,判定维持黄——canonical_hash 迁入 serialization.py 是正确收敛,但新代码出现 3 处信号,已闭环:① `_git_worktree_dirty` 第 5 份实现收敛到 `benchmarks/_common.py::git_worktree_dirty`(含 output-exclude 语义,4 调用点统一);② `unlabeled_class_prior` 两处内联校验改走 `check_scalar_in_range(inclusive=False)`;③ 审计器 `_check_splits` 对畸形 `dataset_splits`(非 dict)由静默放行改为报错,并补齐 6 个未测错误分支。两项经权衡不改:`_METRIC_COLUMNS` 确认为跨 runner 指标并集(裁剪会制造盲区),补维护注释;`runtime.resume_required` 保留——provenance 锁测试(config == resolved == manifest hash)不允许无代价删除,已在 runner 文档化为「记录意图、未强制」。单源清单与代谢率红线已写入 CONTRIBUTING.md §5.1。
 
 ## 3. 四信号逐条
 
@@ -169,7 +171,7 @@
 - **触发时机**:每发布一个 minor 版本后;或每引入 >5 个新文件时
 - **复跑方法**:按本报告 §1 的四代理契约重新派发(代码/工程/文档/治理),重点复核本报告所有红项是否已治理、是否有新信号出现
 - **代谢率检查**:治理腐朽的根本解是让"提取的机制被新代码遵循"——P1-6/7 与第二批单源化落地后,检查新代码是否用共享助手而非再次内联
-- **第二批单源助手清单(2026-08-09)**:`canonical_hash`(benchmarks/_common.py)、`sigmoid_stable`(utils/activations.py)、`rbf_weights`(utils/basis.py)、`validate_true_binary_labels`(core/validation.py)、`solve_prior_from_positive_fraction`(estimators/risk/_class_prior.py)、`check_scalar_in_range`(core/validation.py);复跑时核对新代码是否复用、check_test_quality 是否保持严格默认、slow 套件是否随 nightly 自动执行
+- **第二批单源助手清单(2026-08-09,2026-08-13 更新)**:`canonical_hash`(utils/serialization.py,benchmarks/_common.py re-export)、`sigmoid_stable`(utils/activations.py)、`rbf_weights`(utils/basis.py)、`validate_true_binary_labels`(core/validation.py)、`solve_prior_from_positive_fraction`(estimators/risk/_class_prior.py)、`check_scalar_in_range`(core/validation.py)、`git_worktree_dirty`(benchmarks/_common.py);复跑时核对新代码是否复用、check_test_quality 是否保持严格默认、slow 套件是否随 nightly 自动执行
 
 ## 7. 复核记录(主上下文抽样)
 

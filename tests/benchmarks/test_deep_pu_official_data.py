@@ -6,16 +6,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
 pytest.importorskip("torch")
 
-from benchmarks._common import canonical_hash
+from benchmarks._common import canonical_hash, git_worktree_dirty
 from benchmarks.deep_pu.official_data import (
     _dataset_artifacts,
-    _git_worktree_dirty,
     build_dataset,
     environment_preflight,
     load_official_data_config,
@@ -213,13 +213,13 @@ class TestOfficialDataBenchmark:
         tracked_output = project_root / "benchmarks" / "deep_pu" / "results" / "test-output"
         commands = []
 
-        def fake_git_value(root, command):
-            assert root == project_root
+        def fake_run(command, **kwargs):
+            assert kwargs["cwd"] == project_root
             commands.append(command)
-            return ""
+            return SimpleNamespace(stdout="")
 
-        monkeypatch.setattr("benchmarks.deep_pu.official_data._git_value", fake_git_value)
-        assert _git_worktree_dirty(project_root, tracked_output) is False
+        monkeypatch.setattr("benchmarks._common.subprocess.run", fake_run)
+        assert git_worktree_dirty(project_root, exclude=tracked_output) is False
         assert ":(exclude)benchmarks/deep_pu/results/test-output/**" in commands[0]
 
     def test_determ_resume_does_not_duplicate_trials(self, tmp_path, official_config):

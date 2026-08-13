@@ -27,7 +27,7 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_sco
 from pu_toolbox.estimators.bias_aware import PUSBKernelClassifier
 from pu_toolbox.estimators.bias_aware.pusb_kernel import prior_quantile_predict
 
-from .._common import canonical_hash
+from .._common import canonical_hash, git_worktree_dirty
 
 
 def _sha256(path: Path) -> str:
@@ -455,7 +455,6 @@ def run_benchmark(
 
     project_root = Path(__file__).resolve().parents[2]
     config_hash = canonical_hash(config)
-    status = _git_value(project_root, "status", "--porcelain")
     manifest = {
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -469,7 +468,7 @@ def run_benchmark(
             "shape": list(X.shape),
         },
         "git_commit": _git_value(project_root, "rev-parse", "HEAD"),
-        "git_worktree_dirty": bool(status) if status is not None else None,
+        "git_worktree_dirty": git_worktree_dirty(project_root),
         "runner_sha256": _sha256(Path(__file__)),
         "n_trials": len(trials),
         "environment": {

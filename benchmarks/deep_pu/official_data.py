@@ -22,7 +22,9 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score
 
-from .._common import canonical_hash
+from pu_toolbox.core.validation import check_scalar_in_range
+
+from .._common import canonical_hash, git_worktree_dirty
 from .runner import SUPPORTED_METHODS, _build_estimator, _git_value
 
 PUBLIC_DATASETS = {
@@ -107,9 +109,16 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
     if unlabeled_class_prior is not None and (
         isinstance(unlabeled_class_prior, bool)
         or not isinstance(unlabeled_class_prior, int | float)
-        or not 0.0 < float(unlabeled_class_prior) < 1.0
     ):
         raise ValueError("dataset.unlabeled_class_prior must be a number in (0, 1)")
+    if unlabeled_class_prior is not None:
+        check_scalar_in_range(
+            float(unlabeled_class_prior),
+            0.0,
+            1.0,
+            "dataset.unlabeled_class_prior",
+            inclusive=False,
+        )
 
     methods = config.get("methods")
     if not isinstance(methods, dict) or not methods:
@@ -233,8 +242,10 @@ def make_pu_split(
         raise ValueError("validation sample counts must be non-negative")
     if (validation_positive == 0) != (validation_unlabeled == 0):
         raise ValueError("validation positive and unlabeled counts must both be zero or positive")
-    if unlabeled_class_prior is not None and not 0.0 < unlabeled_class_prior < 1.0:
-        raise ValueError("unlabeled_class_prior must be in (0, 1)")
+    if unlabeled_class_prior is not None:
+        check_scalar_in_range(
+            unlabeled_class_prior, 0.0, 1.0, "unlabeled_class_prior", inclusive=False
+        )
     rng = np.random.default_rng(seed)
     source_indices = np.arange(len(X_train))
     clean_validation_size = int(round(clean_validation_fraction * len(X_train)))
@@ -498,6 +509,10 @@ def environment_preflight(
         cuda_available = False
         cuda_devices = 0
 
+    # runtime.resume_required in the locked protocol configs records the
+    # intent that a full run must be resumed, not restarted; the runner does
+    # not enforce it yet. Keep the field in configs until enforcement lands
+    # (the provenance lock tests compare configs against executed records).
     requested_device = config.get("runtime", {}).get("device", "cpu")
     dataset_name = config["dataset"]["name"]
     blockers: list[str] = []
@@ -534,26 +549,6 @@ def _version(name: str) -> str | None:
         return metadata.version(name)
     except metadata.PackageNotFoundError:
         return None
-
-
-def _git_worktree_dirty(project_root: Path, output: Path) -> bool | None:
-    """Check pre-run source state without counting this runner's output."""
-    command = ["git", "status", "--porcelain", "--untracked-files=all"]
-    try:
-        relative_output = output.resolve().relative_to(project_root.resolve()).as_posix()
-    except ValueError:
-        pass
-    else:
-        command.extend(
-            [
-                "--",
-                ".",
-                f":(exclude){relative_output}",
-                f":(exclude){relative_output}/**",
-            ]
-        )
-    status = _git_value(project_root, command)
-    return None if status is None else bool(status)
 
 
 def _write_json(path: Path, value: dict[str, Any]) -> None:
@@ -703,7 +698,7 @@ def run_official_data_benchmark(
     """Run public-data trials and persist every completed seed incrementally."""
     output = Path(output_dir)
     project_root = Path(__file__).resolve().parents[2]
-    worktree_dirty_before_run = _git_worktree_dirty(project_root, output)
+    worktree_dirty_before_run = git_worktree_dirty(project_root, exclude=output)
     output.mkdir(parents=True, exist_ok=True)
     resolved_path = output / "resolved_config.json"
     if resume and resolved_path.exists():

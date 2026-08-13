@@ -123,6 +123,61 @@ def test_edge_split_overlap_and_prior_mismatch_fail(result_dir):
     assert any("does not match target" in item for item in report.errors)
 
 
+def test_edge_dataset_splits_present_but_not_object_fails(result_dir):
+    _update_json(result_dir / "run_manifest.json", lambda value: value.update(dataset_splits=[]))
+    report = audit_benchmark_results(result_dir)
+    assert not report.checks["pu_split_integrity"]
+    assert any("dataset_splits must be an object" in item for item in report.errors)
+    assert not report.passed
+
+
+def test_edge_missing_dataset_splits_key_is_not_applicable(result_dir):
+    _update_json(result_dir / "run_manifest.json", lambda value: value.pop("dataset_splits"))
+    report = audit_benchmark_results(result_dir)
+    assert report.checks["pu_split_integrity"]
+    assert report.passed
+
+
+@pytest.mark.parametrize(
+    ("filename", "content", "expected"),
+    [
+        ("resolved_config.json", "{not json", "cannot read resolved_config.json"),
+        ("run_manifest.json", "[1, 2]", "run_manifest.json must contain a JSON object"),
+    ],
+)
+def test_param_malformed_artifact_json_fails(result_dir, filename, content, expected):
+    (result_dir / filename).write_text(content, encoding="utf-8")
+    report = audit_benchmark_results(result_dir)
+    assert not report.checks["parseable_artifacts"]
+    assert not report.checks["config_hash"]
+    assert report.checks["seed_coverage"]
+    assert any(expected in item for item in report.errors)
+    assert not report.passed
+
+
+def test_edge_trials_without_header_or_rows_fail(result_dir):
+    (result_dir / "trials.csv").write_text("", encoding="utf-8")
+    report = audit_benchmark_results(result_dir)
+    assert not report.checks["parseable_artifacts"]
+    assert any("trials.csv has no header" in item for item in report.errors)
+    assert any("trials.csv has no trial rows" in item for item in report.errors)
+
+    (result_dir / "trials.csv").write_text("method,seed\n", encoding="utf-8")
+    report = audit_benchmark_results(result_dir)
+    assert any("trials.csv has no trial rows" in item for item in report.errors)
+    assert not report.passed
+
+
+def test_edge_trials_directory_counts_as_missing_and_empty_summary_fails(result_dir):
+    (result_dir / "trials.csv").unlink()
+    (result_dir / "trials.csv").mkdir()
+    (result_dir / "summary.csv").write_text("", encoding="utf-8")
+    report = audit_benchmark_results(result_dir)
+    assert not report.checks["required_artifacts"]
+    assert any("missing required artifacts" in item for item in report.errors)
+    assert any("summary.csv must contain a header" in item for item in report.errors)
+
+
 def test_determ_json_output_is_stable_and_dirty_worktree_warns(result_dir):
     _update_json(
         result_dir / "run_manifest.json",

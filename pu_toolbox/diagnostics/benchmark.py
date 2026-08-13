@@ -15,6 +15,11 @@ from pu_toolbox.utils.serialization import canonical_hash, json_safe
 __all__ = ["BenchmarkAuditReport", "audit_benchmark_results"]
 
 _REQUIRED_FILES = ("resolved_config.json", "run_manifest.json", "trials.csv", "summary.csv")
+# Union of metric columns emitted by the synthetic (assigned_methods/runner.py)
+# and deep-PU (deep_pu/runner.py) benchmark runners. Only the intersection with
+# the audited trials.csv columns is checked, so entries outside the current
+# runner family are inert until a result dir from the other family is audited.
+# Keep in sync when a runner emits a new metric column.
 _METRIC_COLUMNS = {
     "accuracy",
     "average_precision",
@@ -146,9 +151,18 @@ def _check_finite_metrics(
 
 
 def _check_splits(manifest: dict[str, Any], errors: list[str]) -> bool:
+    """Validate declared PU splits when the manifest carries ``dataset_splits``.
+
+    Manifests without the key (e.g. synthetic clean-room runners that record
+    no per-seed splits) are not subject to this check; a present-but-malformed
+    value is an integrity error.
+    """
     splits = manifest.get("dataset_splits")
-    if not isinstance(splits, dict):
+    if splits is None:
         return True
+    if not isinstance(splits, dict):
+        errors.append("dataset_splits must be an object")
+        return False
     valid = True
     for seed, split in splits.items():
         if not isinstance(split, dict):

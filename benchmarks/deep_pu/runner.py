@@ -34,7 +34,7 @@ from pu_toolbox.estimators.deep import (
     WeightedContrastivePUClassifier,
 )
 
-from .._common import canonical_hash
+from .._common import canonical_hash, git_worktree_dirty
 
 SUPPORTED_METHODS = ("infomax_pu", "weighted_contrastive_pu", "dgpu")
 
@@ -380,7 +380,6 @@ def run_benchmark(
     summary.to_csv(output / "summary.csv", index=False)
 
     project_root = Path(__file__).resolve().parents[2]
-    dirty = _git_value(project_root, ["git", "status", "--porcelain"])
     manifest = {
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -389,7 +388,7 @@ def run_benchmark(
         "config_sha256": canonical_hash(config),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "git_commit": _git_value(project_root, ["git", "rev-parse", "HEAD"]),
-        "git_worktree_dirty": None if dirty is None else bool(dirty),
+        "git_worktree_dirty": git_worktree_dirty(project_root),
         "selected_methods": selected_methods or list(config["methods"]),
         "n_trials": len(trials),
         "environment": {

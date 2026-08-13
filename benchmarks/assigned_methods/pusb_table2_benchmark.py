@@ -28,7 +28,7 @@ from benchmarks.assigned_methods.pusb_table2_data import (
     load_table2_dataset,
 )
 
-from .._common import canonical_hash
+from .._common import canonical_hash, git_worktree_dirty
 
 STRICT_POLICY = "strict_complete_cells"
 COMPATIBILITY_POLICY = "released_compatibility"
@@ -182,7 +182,6 @@ def _manifest_payload(
     execution_scope: dict[str, int],
 ) -> dict[str, Any]:
     project_root = Path(__file__).resolve().parents[2]
-    git_status = _git_value(project_root, "status", "--porcelain")
     return {
         "schema_version": 1,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -198,7 +197,7 @@ def _manifest_payload(
         "n_completed_trials": n_completed_trials,
         "datasets": provenance,
         "git_commit": _git_value(project_root, "rev-parse", "HEAD"),
-        "git_worktree_dirty": bool(git_status) if git_status is not None else None,
+        "git_worktree_dirty": git_worktree_dirty(project_root),
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "environment": {
             "python": sys.version.split()[0],
