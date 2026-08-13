@@ -36,6 +36,14 @@
 | [dev/specs/2026-08-13-adr-migration-design.md](dev/specs/2026-08-13-adr-migration-design.md) | ADR 迁移设计 spec（实现后按先例蒸馏删除） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
 
+## 架构决策(docs/adr/)
+
+| 文档 | 用途 |
+|---|---|
+| [adr/README.md](adr/README.md) | ADR 索引(12 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略等) |
+
+> ADR 记决策,版本/进度状态见 process_checklist.md 与 release_process.md。
+
 ## 项目过程（docs/project_management/）
 
 | 文档 | 用途 |
