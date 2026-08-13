@@ -12,6 +12,8 @@
 4. `docs/dev/architecture.md`：公共 API、依赖方向和数据流。
 5. `docs/dev/roadmap.md`：高层版本路线，不覆盖进度清单。
 6. `requirements.txt`：开发环境快照，仅用于问题复查，不是安装规范。
+7. `docs/adr/`：架构与流程决策记录（决策的权威来源；版本/进度状态见
+   process_checklist.md 与 release_process.md）。
 
 Method Card 描述论文、公式、实现边界和复现规格，但不能单独证明算法或论文复现已经完成。
 

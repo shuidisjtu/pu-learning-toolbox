@@ -330,6 +330,8 @@ docs/
     compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
     resources.md               # 论文源码状态与集成策略
 
+  adr/                          (架构与流程决策记录:12 篇 ADR + README 索引)
+
   research/
     method_cards/
       class_prior_estimation.md
@@ -350,7 +352,6 @@ docs/
       WConPU.md
       DGPU.md
   project_management/
-    decision_log.md
     process_checklist.md
     cli_design.md
     release_process.md          # 发布流程：版本策略、预检清单、上传、回滚与维护
