@@ -27,6 +27,6 @@
 
 ## 后果
 
-- 版本演进/发布状态记录于 `docs/project_management/release_process.md`
-  与 `process_checklist.md` 发布状态节;本 ADR 不承载版本状态。
+- 版本演进/发布状态记录于 `docs/dev/release_process.md`
+  与 `docs/dev/process_checklist.md` 发布状态节;本 ADR 不承载版本状态。
 - CI matrix 与 extras 的一致性由 check_project_metadata 门禁维护。

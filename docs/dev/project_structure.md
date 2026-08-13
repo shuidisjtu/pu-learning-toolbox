@@ -330,6 +330,9 @@ docs/
     roadmap.md                 # 版本路线与阶段叙事
     compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
     resources.md               # 论文源码状态与集成策略
+    architecture_audit.md       # 审计发现快照、复跑指南与治理机制（ADR-0001）
+    process_checklist.md        # 进度清单与发布状态（权威来源）
+    release_process.md          # 发布流程：版本策略、预检清单、上传、回滚与维护
 
   research/
     method_cards/
@@ -350,10 +353,6 @@ docs/
       InfoMax-PU.md
       WConPU.md
       DGPU.md
-  project_management/
-    process_checklist.md
-    cli_design.md
-    release_process.md          # 发布流程：版本策略、预检清单、上传、回滚与维护
 
 ```
 

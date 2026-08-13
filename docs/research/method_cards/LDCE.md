@@ -268,7 +268,7 @@ license = "needs_review"
 
 ## 7. API 接口与项目落点
 
-> 以下为基于 `BasePUClassifier` 契约（`core/base.py`）和 `docs/project_management/process_checklist.md` 的项目建议，非论文原文。
+> 以下为基于 `BasePUClassifier` 契约（`core/base.py`）和 `docs/dev/process_checklist.md` 的项目建议，非论文原文。
 
 ### 7.1 公共 API
 

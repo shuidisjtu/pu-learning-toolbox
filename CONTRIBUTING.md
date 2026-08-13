@@ -7,13 +7,13 @@
 发生冲突时按以下顺序处理：
 
 1. `pyproject.toml`：Python、运行依赖、可选依赖和工具配置。
-2. `docs/project_management/process_checklist.md`：当前任务完成状态。
+2. `docs/dev/process_checklist.md`：当前任务完成状态。
 3. `docs/dev/project_structure.md`：目录结构。
 4. `docs/dev/architecture.md`：公共 API、依赖方向和数据流。
 5. `docs/dev/roadmap.md`：高层版本路线，不覆盖进度清单。
 6. `requirements.txt`：开发环境快照，仅用于问题复查，不是安装规范。
 7. `docs/adr/`：架构与流程决策记录（决策的权威来源；版本/进度状态见
-   `docs/project_management/process_checklist.md` 与 `docs/project_management/release_process.md`）。
+   `docs/dev/process_checklist.md` 与 `docs/dev/release_process.md`）。
 
 Method Card 描述论文、公式、实现边界和复现规格，但不能单独证明算法或论文复现已经完成。
 
@@ -129,7 +129,7 @@ Benchmark runner、配置、来源锁和结果应一起更新。提交结果 CSV
 - `docs/README.md` 的文档索引。
 - `docs/dev/architecture.md` 的 API 和依赖方向。
 - `docs/dev/project_structure.md` 的真实文件结构。
-- `docs/project_management/process_checklist.md` 的勾选与发布状态。
+- `docs/dev/process_checklist.md` 的勾选与发布状态。
 
 不要一次性把所有待办标记完成。只有代码、测试、文档和要求的实际实验都完成后才能勾选对应任务。
 

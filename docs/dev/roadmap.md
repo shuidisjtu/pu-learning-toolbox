@@ -40,4 +40,4 @@
 
 ## 进度明细
 
-任务粒度的完成状态以 [process_checklist.md](../project_management/process_checklist.md) 为权威来源，本文档只保留阶段叙事与版本路线，不再逐条重复。
+任务粒度的完成状态以 [process_checklist.md](process_checklist.md) 为权威来源，本文档只保留阶段叙事与版本路线，不再逐条重复。
