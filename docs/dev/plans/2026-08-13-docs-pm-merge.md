@@ -15,7 +15,8 @@
 - 所有 Python 命令前缀 `uv run`(唯一包管理器)。
 - 修改文件前必须先 Read(hook 要求);删除文件逐个删。
 - Git 提交不加 `Co-Authored-By`;分支 `feature/docs-pm-merge`,PR 合并 main。
-- 中间态门禁预期:Task 1 结束后 rule-1/4/5 红(9 处,清单见 Task 1 Step 5);Task 2 结束后必须全绿,此后每个任务结束都必须全绿。
+- 中间态门禁预期:Task 1 结束后 rule-1/4/5 红(9 处生产文档错误,清单见 Task 1 Step 5);Task 2 结束后生产文档必须零错误,此后每个任务结束以「生产文档零错误」为验收基线。
+- **spec/plan 噪声豁免**:spec/plan 文档自身会持续产生 rule-1/4/5 噪声(计划内的示例链接按相对路径解析、旧路径叙述等,约 18-21 处,随任务推进递减),这是临时文档的固有现象,不计入任务验收;Task 5 Step 4 蒸馏删除后必须归零。
 - architecture_audit.md:107 的 T3 历史发现是审计快照,不改写。
 - 文档中文、代码注释英文;Windows 路径在 Python 代码中禁止裸反斜杠(本批次无 Python 代码改动)。
 - 最终基线:6 道门禁全绿 + pytest 快层全绿 + CI 通过。
@@ -235,13 +236,13 @@ git commit -m "docs: move pm docs into dev/ and compress checklist history"
 # wholesale-exempted.
 ```
 
-- [ ] **Step 10: 运行 check_doc_links,必须全绿**
+- [ ] **Step 10: 运行 check_doc_links,生产文档必须零错误**
 
 ```bash
 uv run python scripts/check_doc_links.py
 ```
 
-Expected: `All checks passed.`
+Expected: 生产文档零错误(无 rule-1/4/5 指向生产文档);spec/plan 自身噪声按 Global Constraints 豁免(约 19 处)。
 
 - [ ] **Step 11: 提交**
 
@@ -327,14 +328,15 @@ project_management 四层分层在实际演进中收敛为三层。
 | 0013 | docs 目录合并 | 已接受 | 2026-08-13 |
 ```
 
-- [ ] **Step 5: 运行 check_doc_links,必须全绿**
+- [ ] **Step 5: 运行 check_doc_links,生产文档必须零错误**
 
 ```bash
 uv run python scripts/check_doc_links.py
 ```
 
-Expected: `All checks passed.`(0013 文中不出现指向不存在文件的
-`docs/...\.md` 反引号路径;若有,改为不指向文件的形式。)
+Expected: 生产文档零错误;spec/plan 噪声按 Global Constraints 豁免
+(0013 创建后 plan:258 处 rule-1 应转绿,噪声约 18 处)。0013 文中不得出现
+指向不存在文件的反引号路径(若有,改为不指向文件的形式)。
 
 - [ ] **Step 6: 提交**
 
@@ -394,7 +396,7 @@ uv run python scripts/check_skill_sync.py
 uv run python scripts/check_doc_links.py
 ```
 
-Expected: 均 `All checks passed.` / `ok`(check_skill_sync 只查 pu-workflow 双份,dev-workflow 单份改动不影响)。
+Expected: check_skill_sync 通过;check_doc_links 生产文档零错误(spec/plan 噪声豁免)。(check_skill_sync 只查 pu-workflow 双份,dev-workflow 单份改动不影响)。
 
 - [ ] **Step 6: 提交**
 
@@ -434,7 +436,9 @@ uv run python scripts/check_skill_sync.py
 uv run python scripts/check_format.py
 ```
 
-Expected: 全部通过(本批次无 Python 代码改动,test_quality/format 预期不变)。
+Expected: 全部通过;check_doc_links 允许仅剩 spec/plan 噪声(约 18 处,
+Step 4 删除后重跑必须 `All checks passed.`)。本批次无 Python 代码改动,
+test_quality/format 预期不变。
 
 - [ ] **Step 3: pytest 快层**
 
@@ -444,14 +448,13 @@ uv run pytest tests/ -q -m "not slow and not e2e"
 
 Expected: 全绿(通过数约等于 Task 4 Step 4 的收集数,允许环境性 skip 差异)。
 
-- [ ] **Step 4: 询问用户是否按 ADR 迁移先例蒸馏删除 spec/plan**
+- [ ] **Step 4: 蒸馏删除 spec/plan(用户已预决定:按先例删除)**
 
-向用户提问:实施已完成,是否按先例删除 `docs/dev/specs/2026-08-13-docs-pm-merge-design.md`
-与 `docs/dev/plans/2026-08-13-docs-pm-merge.md`(决策已蒸馏进 ADR-0013)?
-- 若删:逐个 `git rm` 两文件,从 docs/README.md 删除 `[dev/specs/]` 与
-  `[dev/plans/]` 两行,若目录已空则 `rmdir docs/dev/specs docs/dev/plans`,
-  重跑 `uv run python scripts/check_doc_links.py` 必须仍全绿。
-- 若留:跳过。
+逐个 `git rm` 两文件(`docs/dev/specs/2026-08-13-docs-pm-merge-design.md`、
+`docs/dev/plans/2026-08-13-docs-pm-merge.md`),从 docs/README.md 删除
+`[dev/specs/]` 与 `[dev/plans/]` 两行,若目录已空则
+`rmdir docs/dev/specs docs/dev/plans`,重跑
+`uv run python scripts/check_doc_links.py` 必须 `All checks passed.`
 
 - [ ] **Step 5: 提交收尾**
 
