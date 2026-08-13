@@ -687,7 +687,9 @@ git commit -m "docs: extract design-decision section from architecture.md into A
 - [ ] **Step 1: grep 全库残留引用**
 
 Run: `grep -rn "decision_log" docs/ CONTRIBUTING.md README.md .claude/ 2>/dev/null`
-Expected: 无输出(若 .claude/ 有引用一并处理)
+Expected: 仅剩 docs/dev/plans/ 与 docs/dev/specs/ 两个过程文档(Task 6 删除);其余一律改指向 docs/adr/,包括:
+- `docs/project_management/release_process.md:13,55` 的 prose 提及 → 改为「关键决策见 docs/adr/」
+- architecture_audit.md 内的提及由 Task 3 处理,project_structure.md 文档树由本任务 Step 2 处理
 
 - [ ] **Step 2: Read project_structure.md §5,更新文档树**
 
