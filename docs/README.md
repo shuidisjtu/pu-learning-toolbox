@@ -35,8 +35,6 @@
 | [dev/architecture_audit.md](dev/architecture_audit.md) | 审计发现快照、复跑指南与治理机制（ADR-0001） |
 | [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
-| [dev/specs/](dev/specs/) | 设计规格（实施后蒸馏进 ADR 并删除） |
-| [dev/plans/](dev/plans/) | 实施计划（实施后蒸馏进 ADR 并删除） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
 
 ## 架构决策(docs/adr/)
