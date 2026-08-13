@@ -15,6 +15,11 @@ from pu_toolbox.utils.serialization import canonical_hash, json_safe
 __all__ = ["BenchmarkAuditReport", "audit_benchmark_results"]
 
 _REQUIRED_FILES = ("resolved_config.json", "run_manifest.json", "trials.csv", "summary.csv")
+# Union of metric columns emitted by the synthetic (assigned_methods/runner.py)
+# and deep-PU (deep_pu/runner.py) benchmark runners. Only the intersection with
+# the audited trials.csv columns is checked, so entries outside the current
+# runner family are inert until a result dir from the other family is audited.
+# Keep in sync when a runner emits a new metric column.
 _METRIC_COLUMNS = {
     "accuracy",
     "average_precision",

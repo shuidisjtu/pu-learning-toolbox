@@ -509,6 +509,10 @@ def environment_preflight(
         cuda_available = False
         cuda_devices = 0
 
+    # runtime.resume_required in the locked protocol configs records the
+    # intent that a full run must be resumed, not restarted; the runner does
+    # not enforce it yet. Keep the field in configs until enforcement lands
+    # (the provenance lock tests compare configs against executed records).
     requested_device = config.get("runtime", {}).get("device", "cpu")
     dataset_name = config["dataset"]["name"]
     blockers: list[str] = []
