@@ -108,7 +108,7 @@
 | **红(黄升级)** | **check_math_rendering 静默假绿**:唯一不锚定 PROJECT_ROOT 的门禁,`glob.glob("docs/research/method_cards/*.md")` 相对 cwd,误目录运行输出 "Total issues: 0" exit 0 空扫放行(B、D 两代理独立发现) | `scripts/check_math_rendering.py:84` | 高(复核通过) |
 | 黄(交叉) | `paper` marker 空转:pyproject 注册 + CLAUDE.md/CONTRIBUTING 文档化,全仓库 0 个测试使用(B、D 独立发现);文档化命令 `uv run pytest -m paper` 恒收集 0 用例 | `pyproject.toml:110`、`scripts/check_test_quality.py:37-44` | 高(复核通过) |
 | 黄 | check_test_quality 默认宽松:缺 1 类覆盖放行、依赖测试名关键词启发式可绕过、CI 非 strict | `scripts/check_test_quality.py:272`、`.github/workflows/tests.yml:76` | 中 |
-| 黄(已闭环) | 决策日志停更 2026-08-06,其后 ≥6 条治理级决策只有"做了什么"无"为什么";自身排序非时间序;2026-08-13 已由 [ADR 迁移](../adr/README.md) 闭环 | `docs/adr/` | 高 |
+| 黄(已闭环) | 决策日志停更 2026-08-06,其后 ≥6 条治理级决策只有"做了什么"无"为什么";自身排序非时间序;2026-08-13 已由 [ADR 迁移](../adr/README.md) 闭环 | `docs/adr/README.md` | 高 |
 | 黄 | `slow` 测试无自动执行环境:CI 跑 `not slow`,无 nightly workflow,唯一 slow 套件只能靠人工记得跑 | `.github/workflows/tests.yml:63`、`tests/unit/estimators/test_nnpu.py:503` | 中 |
 | 绿 | 6 门禁全部接入 CI、均有失败路径测试;marker 注册集与门禁集合精确一致;CI 无永远成功/冗余步骤;roadmap 如实反映阻塞项 | — | 高 |
 

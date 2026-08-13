@@ -27,12 +27,12 @@
 
 | 文档 | 用途 |
 |---|---|
-| [dev/architecture.md](dev/architecture.md) | 设计决策与代价、模块分层、数据流、注册表 |
+| [dev/architecture.md](dev/architecture.md) | 当前架构:模块分层、数据流、注册表 |
 | [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
 | [dev/roadmap.md](dev/roadmap.md) | 版本路线与阶段叙事 |
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/resources.md](dev/resources.md) | 论文源码状态与集成策略 |
-| [dev/architecture_audit.md](dev/architecture_audit.md) | 架构健康度审计报告（信号清单、行动项与治理状态） |
+| [dev/architecture_audit.md](dev/architecture_audit.md) | 审计发现快照、复跑指南与治理机制（ADR-0001） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
 
 ## 架构决策(docs/adr/)

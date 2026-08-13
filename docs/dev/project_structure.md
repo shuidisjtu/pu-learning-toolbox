@@ -304,6 +304,7 @@ benchmarks/
 ```text
 docs/
   README.md                    # 导航首页（用户 / 开发者 / 项目过程分栏）
+  adr/                         # 架构与流程决策记录(ADR 索引 + 编号决策)
 
   user/                        # 用户文档：旅程式（快速开始 → 概念 → 操作 → 参考）
     README.md                  # 用户旅程图
@@ -324,13 +325,11 @@ docs/
       api.md                   # 核心 API 精确契约
 
   dev/                         # 开发者文档（贡献前必读）
-    architecture.md            # 设计决策与代价、模块分层、数据流、注册表
+    architecture.md            # 当前架构:模块分层、数据流、注册表
     project_structure.md       # 目录结构（本文档，权威来源）
     roadmap.md                 # 版本路线与阶段叙事
     compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
     resources.md               # 论文源码状态与集成策略
-
-  adr/                          (架构与流程决策记录:12 篇 ADR + README 索引)
 
   research/
     method_cards/
