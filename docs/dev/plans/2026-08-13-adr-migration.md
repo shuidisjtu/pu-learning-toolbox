@@ -16,7 +16,8 @@
 - `docs/superpowers/` 被 .gitignore,计划/规格文件放 `docs/dev/specs/` 与 `docs/dev/plans/`。
 - 分支 `feature/adr-migration`(已存在,含 spec 提交 fbe4bd9);每个任务一个提交。
 - 修改文件前必须先 Read(hook 强制)。
-- 每个任务结束运行 `uv run python scripts/check_doc_links.py`,必须 "All checks passed."。
+- 每个任务结束运行 `uv run python scripts/check_doc_links.py`。**分阶段验收口径**(计划文件自身在 Tasks 1-5 期间会让门禁保持红色:计划文件未登记索引 + 计划正文内链接指向尚未创建的文档,均为已知预期错误):Tasks 1-5 要求「本任务触及的文件不新增门禁错误」;Task 6 删除计划与 spec 后,门禁必须 "All checks passed."。
+- 门禁的 `_is_indexed` 规则要求目录链接形式(如 `research/method_cards/`),指向目录内单文件(如 `adr/README.md`)不满足索引完备性。
 
 ---
 
@@ -506,7 +507,7 @@ Read `docs/README.md` 后,在「## 项目过程(docs/project_management/)」标�
 - [ ] **Step 16: 运行文档门禁**
 
 Run: `uv run python scripts/check_doc_links.py`
-Expected: `All checks passed.`(adr/ 内有 README.md 索引,满足索引完备性)
+Expected: 存在 12 条 `docs/adr/NNNN-*.md 未索引` 类错误(因 docs/README.md 暂用单文件链接形式,Task 5 改为目录链接形式后消除);无本任务之外的新增错误(已知计划文件自身的 6 条错误属预期,Task 6 消除)。
 
 - [ ] **Step 17: Commit**
 
@@ -697,7 +698,17 @@ Expected: 无输出(若 .claude/ 有引用一并处理)
 
 (spec 与 plan 两个临时文件只存在于本分支,不进权威目录树,Task 6 删除)
 
-- [ ] **Step 3: CONTRIBUTING.md §1 权威来源加一条**
+- [ ] **Step 3: docs/README.md「架构决策」行改为目录链接形式**
+
+将 `| [adr/README.md](adr/README.md) | ADR 索引(12 篇:…` 行改为:
+
+```markdown
+| [adr/](adr/) | ADR 索引(12 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略等) |
+```
+
+(门禁 `_is_indexed` 要求目录链接形式,与 `research/method_cards/` 行一致)
+
+- [ ] **Step 4: CONTRIBUTING.md §1 权威来源加一条**
 
 在「6. `requirements.txt`…」后加:
 
@@ -706,7 +717,7 @@ Expected: 无输出(若 .claude/ 有引用一并处理)
    process_checklist.md 与 release_process.md）。
 ```
 
-- [ ] **Step 4: 六道门禁全跑**
+- [ ] **Step 5: 六道门禁全跑**
 
 Run:
 
@@ -721,12 +732,12 @@ uv run python scripts/check_format.py
 
 Expected: 全部通过(check_doc_links "All checks passed."、test_quality "✓ All checks passed."、metadata "aligned"、math_rendering "Total issues: 0"、skill_sync "identical"、format "clean")
 
-- [ ] **Step 5: 快速测试确认无意外**
+- [ ] **Step 6: 快速测试确认无意外**
 
 Run: `uv run pytest tests/ -q -m "not slow and not e2e" 2>&1 | tail -2`
 Expected: 全部通过(纯文档改动,907 passed 基线)
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add docs/dev/project_structure.md CONTRIBUTING.md docs/README.md
