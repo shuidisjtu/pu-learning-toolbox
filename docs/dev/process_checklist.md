@@ -14,7 +14,7 @@
 - Phase 5 ✅ SAR：数据模拟器、PUSB/LBE/Centroid/LLSVM 接口与 SCAR vs SAR 对比 benchmark
 - Phase 6 ✅ 深度 PU 大部分：Self-PU / Dist-PU / InfoMax PU / WConPU / DGPU 全链路（clean-room 多 seed、Fashion-MNIST 3-seed smoke、InfoMax 暂定协议 20 seeds）；剩余见下
 
-> 逐条明细与批次历史见 git log。
+> 逐条明细与批次历史见 git log(压缩前旧路径:git log --all -- docs/project_management/process_checklist.md)。
 
 ## 未完成项
 

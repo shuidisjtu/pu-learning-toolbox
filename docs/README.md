@@ -41,9 +41,9 @@
 
 | 文档 | 用途 |
 |---|---|
-| [adr/](adr/) | ADR 索引(12 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略等) |
+| [adr/](adr/) | ADR 索引(13 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略/目录合并等) |
 
-> ADR 记决策,版本/进度状态见 process_checklist.md 与 release_process.md。
+> ADR 记决策,版本/进度状态见 dev/process_checklist.md 与 dev/release_process.md。
 
 ## 其他
 
