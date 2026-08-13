@@ -49,7 +49,6 @@
 | 文档 | 用途 |
 |---|---|
 | [project_management/process_checklist.md](project_management/process_checklist.md) | 进度清单（权威来源） |
-| [project_management/decision_log.md](project_management/decision_log.md) | 项目决策日志（含文档体系重构决策） |
 | [project_management/cli_design.md](project_management/cli_design.md) | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
 | [project_management/release_process.md](project_management/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 
