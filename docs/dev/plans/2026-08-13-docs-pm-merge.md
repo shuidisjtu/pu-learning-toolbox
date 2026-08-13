@@ -420,8 +420,9 @@ Expected: check_skill_sync 通过;check_doc_links 生产文档零错误(spec/pla
 grep -rn "project_management" --include="*.md" --include="*.py" --exclude-dir=.git --exclude-dir=.venv . 2>/dev/null
 ```
 
-Expected: 仅允许 `docs/dev/architecture_audit.md:107`(历史快照)与
-`docs/dev/specs/`、`docs/dev/plans/`(本批次的规格与计划自身,描述旧路径)。
+Expected: 仅允许 `docs/dev/architecture_audit.md:107`(历史快照)、
+`docs/adr/0008`(修订注)与 `docs/adr/0013`(决策记录)中的历史叙述、
+以及 `docs/dev/specs/`、`docs/dev/plans/`(本批次的规格与计划自身,Step 4 删除)。
 出现其他命中 → 停下修复。
 
 - [ ] **Step 2: 六道门禁全跑**
