@@ -22,6 +22,12 @@ CLI 需零新增依赖、可扩展;agent 工作流(pu-workflow skill)需可复�
    check_skill_sync 门禁保证一致。
 5. **skill install 子命令**:SKILL.md 随 wheel 分发,一键安装到
    `~/.claude/skills/` 与 `~/.agents/skills/`(默认跳过已存在,--force 覆盖)。
+6. **list-methods 可实例化判定与 auto 模式一致**:复用
+   `pipeline._missing_required_params`(同包内部导入),CLI 判定与 auto
+   实例化判定必须同一逻辑。
+7. **make-demo-data 对齐底层 (n, c) 建模**:`--n` 为每类样本数(总 2n),
+   `--c` 为 SCAR 标注概率;废弃早期草稿的 `--n-positive`(底层不是
+   n_positive 建模)。
 
 ## 备选方案
 

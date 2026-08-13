@@ -15,6 +15,7 @@
 2. **docs 受众分层**:docs/ 按 user/(旅程化)/dev/(开发者)/research/(方法卡)/
    project_management/(过程)分层,参考 scikit-learn 受众分离;docs 全中文、
    根 README 双语。
+   > 2026-08-13 修订:project_management/ 层解散并入 dev/,见 ADR-0013。
 3. **论文分工**:shuidisjtu 负责基础 6 篇(Elkan-Noto/uPU/nnPU/PNU/Centroid/
    LLSVM),HENG958 负责扩展 6+3 篇(penL1/ReCPE/Dist-PU/PUSB/LBE/Self-PU
    + InfoMax/WConPU/DGPU)。
