@@ -398,12 +398,11 @@ uv run python scripts/check_doc_links.py
 
 Expected: check_skill_sync 通过;check_doc_links 生产文档零错误(spec/plan 噪声豁免)。(check_skill_sync 只查 pu-workflow 双份,dev-workflow 单份改动不影响)。
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 6: 不提交(用户已裁决)**
 
-```bash
-git add .claude/skills/dev-workflow/SKILL.md
-git commit -m "docs: de-hardcode test count in dev-workflow skill quickref"
-```
+`.claude/skills/dev-workflow/` 被 `.gitignore:55` 显式忽略(commit d3af7f3
+「local dev tooling only」为既定决策);用户裁决保持 local-only:改动留工作树
+(对本地 Claude 立即生效),不进 git、不进 PR。报告记录该裁决。
 
 ---
 
