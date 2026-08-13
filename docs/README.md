@@ -33,6 +33,10 @@
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/resources.md](dev/resources.md) | 论文源码状态与集成策略 |
 | [dev/architecture_audit.md](dev/architecture_audit.md) | 审计发现快照、复跑指南与治理机制（ADR-0001） |
+| [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
+| [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
+| [dev/specs/](dev/specs/) | 设计规格（实施后蒸馏进 ADR 并删除） |
+| [dev/plans/](dev/plans/) | 实施计划（实施后蒸馏进 ADR 并删除） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
 
 ## 架构决策(docs/adr/)
@@ -42,14 +46,6 @@
 | [adr/](adr/) | ADR 索引(12 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略等) |
 
 > ADR 记决策,版本/进度状态见 process_checklist.md 与 release_process.md。
-
-## 项目过程（docs/project_management/）
-
-| 文档 | 用途 |
-|---|---|
-| [project_management/process_checklist.md](project_management/process_checklist.md) | 进度清单（权威来源） |
-| [project_management/cli_design.md](project_management/cli_design.md) | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
-| [project_management/release_process.md](project_management/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 
 ## 其他
 

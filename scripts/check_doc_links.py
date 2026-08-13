@@ -58,8 +58,8 @@ MD_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 DOC_INDEX_EXCLUDED: set[str] = {"README.md"}
 
 # Docs subdirectories excluded from ALL checks. research/ (method cards)
-# and project_management/ are in scope: they are the densest citation
-# sources and must not be wholesale-exempted.
+# is in scope: it is the densest citation source and must not be
+# wholesale-exempted.
 _EXCLUDED_DOC_DIRS: set[str] = {"superpowers", "figures"}
 
 

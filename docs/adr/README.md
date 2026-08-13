@@ -18,7 +18,7 @@
 ## 规则
 
 - ADR 记决策(背景/决策/备选方案/后果),**不承载版本状态**;版本/发布状态权威在
-  `docs/project_management/release_process.md` 与 `process_checklist.md` 发布状态节。
+  `docs/dev/release_process.md` 与 `docs/dev/process_checklist.md` 发布状态节。
 - 琐碎流程惯例写 `CONTRIBUTING.md`,不立 ADR。
 - 新决策发生时即写 ADR,不事后批量补记。
 - 治理批次流水账(commit 号级别)不记入 ADR 正文;审计发现快照见
