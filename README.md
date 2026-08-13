@@ -5,7 +5,7 @@
 **Positive-Unlabeled learning in Python** -- sklearn-compatible API, 17 research paper methods, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.3.0-blue)
+![Status](https://img.shields.io/badge/status-1.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features

@@ -23,9 +23,12 @@
 - [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
-## 发布状态 (v1.3.0)
+## 发布状态 (v1.4.0)
 
-- **版本**: `1.3.0`（2026-08-10：类先验估计用户角度体验修复——`make_sar_dataset` 默认 SAR 警示、CLI 报告估计可靠性上下文（估计器名/边界注/Assumption Notes）、demo 分离度 1.0、list-priors 别名分组、`--prior-param` 非法值前置拦截、NaN 友好报错、推荐器不再对非识别 at_risk 信号提升 SAR 方法、`is_scar_plausible` 改名 `is_observed_dependence_absent`）
+- **版本**: `1.4.0`（2026-08-14：新增通用 benchmark 产物审计 API 与
+  `audit-benchmark` CLI；完成 InfoMax Fashion-MNIST 三先验 × 20 seeds 实验矩阵及
+  provenance 锁定；加固 PU split、配置哈希、trial/seed 和指标完整性检查；完成第三轮
+  架构治理、ADR 迁移与开发文档目录收敛）
 - **算法**: 17 个已注册方法，全部 native 实现
 - **质量门禁**: 6 道（test_quality / doc_links / project_metadata / math_rendering / skill_sync / format）
 - **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
