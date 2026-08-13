@@ -27,20 +27,27 @@
 
 | 文档 | 用途 |
 |---|---|
-| [dev/architecture.md](dev/architecture.md) | 设计决策与代价、模块分层、数据流、注册表 |
+| [dev/architecture.md](dev/architecture.md) | 当前架构:模块分层、数据流、注册表 |
 | [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
 | [dev/roadmap.md](dev/roadmap.md) | 版本路线与阶段叙事 |
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/resources.md](dev/resources.md) | 论文源码状态与集成策略 |
-| [dev/architecture_audit.md](dev/architecture_audit.md) | 架构健康度审计报告（信号清单、行动项与治理状态） |
+| [dev/architecture_audit.md](dev/architecture_audit.md) | 审计发现快照、复跑指南与治理机制（ADR-0001） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
+
+## 架构决策(docs/adr/)
+
+| 文档 | 用途 |
+|---|---|
+| [adr/](adr/) | ADR 索引(12 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略等) |
+
+> ADR 记决策,版本/进度状态见 process_checklist.md 与 release_process.md。
 
 ## 项目过程（docs/project_management/）
 
 | 文档 | 用途 |
 |---|---|
 | [project_management/process_checklist.md](project_management/process_checklist.md) | 进度清单（权威来源） |
-| [project_management/decision_log.md](project_management/decision_log.md) | 项目决策日志（含文档体系重构决策） |
 | [project_management/cli_design.md](project_management/cli_design.md) | CLI 设计文档：命令结构、参数契约、错误处理与模块边界 |
 | [project_management/release_process.md](project_management/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 

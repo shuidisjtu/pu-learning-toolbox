@@ -10,7 +10,7 @@
 | `1.x.0` | 新功能,向后兼容 | 新算法、新 CLI 子命令 |
 | `2.0.0` | 破坏性变更 | 标签语义、参数删除、契约变更 |
 
-版本号在 `pyproject.toml` 维护,并同步 `README` 徽章与 `decision_log.md` 记录。
+版本号在 `pyproject.toml` 维护,并同步 `README` 徽章与 `process_checklist.md` 发布状态节。
 
 ## 2. 发布前检查(我侧,本地可完成)
 
@@ -52,7 +52,7 @@
    # 跑 quickstart 三步 + list-methods
    ```
 2. **更新安装说明**:README.md / README.zh-CN.md / docs/user/quickstart.md 中的安装命令与"尚未发布"表述
-3. **GitHub Release**:main 打 tag(如 `v1.0.0`)+ 创建 Release(功能摘要见 `decision_log.md`/commit log)
+3. **GitHub Release**:main 打 tag(如 `v1.0.0`)+ 创建 Release(功能摘要见 `process_checklist.md` 发布状态节与 commit log)
 4. 跑 6 道门禁,提交文档改动
 
 ## 5. 回滚与纠错

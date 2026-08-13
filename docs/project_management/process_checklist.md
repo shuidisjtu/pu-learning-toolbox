@@ -91,4 +91,4 @@
 - **依赖外部**: Phase 3 官方历史环境，以及 WConPU CUDA/授权数据和 DGPU EDM/CelebA
   全量运行；InfoMax 暂定 Fashion-MNIST 20-seed 协议已执行
 
-历史执行记录见 git log；关键决策见 `docs/project_management/decision_log.md`。
+历史执行记录见 git log；关键决策见 [`docs/adr/`](../adr/)。

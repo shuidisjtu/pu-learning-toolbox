@@ -1,16 +1,13 @@
 # 架构设计
 
-## 1. 设计决策与代价
+## 1. 设计决策
 
-| 决策 | 理由 | 代价 |
-|---|---|---|
-| Core 包轻量，深度学习依赖放入 optional extension | torch 方法不污染基础安装，`pip install pu-toolbox` 保持轻量 | 深度方法需要额外安装 `[torch]` / `[research]` |
-| 类先验、标记倾向、损失函数、分类器解耦 | 各概念可独立替换与测试；先验估计器可被任意分类器复用 | 分类器组装需要显式注入 |
-| 所有算法通过 registry 管理，元数据驱动发现和推荐 | 新算法注册即被推荐器与 CLI 感知，无需改调用方 | 元数据与实现必须保持同步（`_SYNC_FIELDS` 之外的字段由 registry 权威维护） |
-| 有官方源码的论文优先走 adapter，无源码的 clean-room 实现 | 复现可信度分级（`source_status`），官方源码是最高可信度 | adapter 依赖外部仓库，需要锁定版本 |
-| SAR / Instance-Dependent PU 是中长期差异化重点 | 通用 PU 工具多数只支持 SCAR | SAR 方法实现成本高 |
+设计决策与代价已迁移至 [docs/adr/](../adr/README.md)(ADR-0002 核心包
+轻量化、ADR-0003 概念解耦、ADR-0004 registry 元数据驱动、ADR-0005 复现
+可信度分级、ADR-0006 SAR 定位)。本文档只描述当前架构。
 
-**与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（决策、依赖方向、数据流）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
+**与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（决策、
+依赖方向、数据流）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
 
 ## 2. 模块分层
 
