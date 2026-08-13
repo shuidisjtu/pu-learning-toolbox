@@ -33,6 +33,7 @@
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/resources.md](dev/resources.md) | 论文源码状态与集成策略 |
 | [dev/architecture_audit.md](dev/architecture_audit.md) | 架构健康度审计报告（信号清单、行动项与治理状态） |
+| [dev/specs/2026-08-13-adr-migration-design.md](dev/specs/2026-08-13-adr-migration-design.md) | ADR 迁移设计 spec（实现后按先例蒸馏删除） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
 
 ## 项目过程（docs/project_management/）
