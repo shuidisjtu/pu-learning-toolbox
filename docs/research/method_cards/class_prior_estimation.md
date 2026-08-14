@@ -1,29 +1,6 @@
 # Method Card: Class-Prior Estimation（penL1 / L1）
 
-## 1. 待办与注意
-
-### 1.1 待办
-
-- [x] 定义 class-prior estimation 的输入为可靠正类集合 `P` 与边缘未标记集合 `U`。
-- [x] 按论文 penL1 闭式公式实现 Gaussian basis、`beta_l(theta)` 和先验网格搜索。
-- [x] 接入 `BasePriorEstimator`，注册为 `class_prior_estimation`，别名包含 `pen_l1`。
-- [x] 编写边界、确定性和 `[0,1]` 范围测试。
-- [x] 补充合成数据、MNIST、调参、统计汇总和产物留存的复现实验协议。
-- [x] 复核论文 penL1 内层约束问题：非负 Gaussian basis 下按坐标解耦，当前解析解即论文算法，不存在另一个必须实现的 U 样本约束 L1-QP。
-- [ ] 按论文 protocol 增加每个 `theta` 上的 `sigma/lambda` CV；论文只写明 “straightforward cross-validation”，精确 fold/scoring 仍需作者实现证据。
-- [ ] 增加 confidence interval/bootstrap 和 paper-like benchmark。
-
-### 1.2 注意
-
-- 论文研究的是先验估计 `pi=P(Y=1)`，不是分类器训练，也不直接输出 posterior probability。
-- 输入的 `P` 应代表 `p(x|y=1)`；若已标记正例存在 selection bias，直接使用 penL1 会把 labeling bias 混入类先验估计。
-- `U` 必须来自边缘分布 `p(x)`。如果 U 是经过筛选的子集，论文的 mixture decomposition 不再直接成立。
-- Gaussian basis 对特征尺度很敏感。当前实现默认标准化；正式复现必须记录标准化方式及是否在训练 fold 内计算统计量。
-- `theta_grid`、`sigma` 和 `reg_lambda` 是工程参数。论文要求通过交叉验证选择，但没有为项目提供唯一默认网格。
-- 2026-08-10 起默认 `sigma=None` 改为数据自适应：`0.6 × 标准化后数据的中位 pairwise 欧氏距离`（确定性、无真值泄漏）；跨分离度/先验回归已验证其落在验收带内，但对 `prior<0.5 + 低分离度` 有高估倾向，用户可用显式 `sigma` 或 CLI `--prior-param sigma=...` 覆盖。
-- 论文源码页面中的 MATLAB 文件与 2017 MLJ 论文的 penL1 公式并不完全对应；实现以论文公式为数学权威。
-
-## 2. 论文信息
+## 1. 论文信息
 
 | 字段 | 内容 |
 |---|---|
@@ -31,27 +8,18 @@
 | Authors | Marthinus C. du Plessis, Gang Niu, Masashi Sugiyama |
 | Venue | Machine Learning |
 | Year | 2017 |
-| Family | `class_prior_estimation` |
-| Scenario | `single_training_set`、`case_control`（取决于 P/U 抽样方式） |
+| Setting | `single_training_set`、`case_control`（取决于 P/U 抽样方式） |
 | Requires class prior | `False`；输出 `pi_hat` |
 | Requires propensity | `False` |
 | Requires negative samples | `False` |
-| Backend | NumPy + SciPy/sklearn preprocessing |
 | Source record | [作者软件页面](http://www.mcduplessis.com/index.php/software/) |
 | DOI | [10.1007/s10994-016-5604-6](https://doi.org/10.1007/s10994-016-5604-6) |
-| Registry | `class_prior_estimation` / `pen_l1`，`NATIVE` |
 
-## 3. 问题设定与目标
+---
 
-令：
+## 2. 问题设定与符号
 
-```math
-p_P(x)=p(x\mid Y=1),
-\qquad
-p_N(x)=p(x\mid Y=-1),
-```
-
-未标记边缘分布为：
+令 $`p_P(x)=p(x\mid Y=1)`$、$`p_N(x)=p(x\mid Y=-1)`$，未标记边缘分布为：
 
 ```math
 p_U(x)=p(x)=\pi p_P(x)+(1-\pi)p_N(x),
@@ -67,50 +35,41 @@ X_P=\{x_i^P\}_{i=1}^{n_P}\sim p_P(x),
 X_U=\{x_j^U\}_{j=1}^{n_U}\sim p_U(x).
 ```
 
-目标是从 `X_P` 和 `X_U` 中估计 `pi`，不需要观测 `p_N` 或真实负标签。
+目标是从 $`X_P`$ 和 $`X_U`$ 中估计 `pi`，不需要观测 $`p_N`$ 或真实负标签。论文研究的是先验估计本身，不直接训练分类器。
 
-### 3.1 关键分布条件
+| 论文符号 | 含义 |
+|---|---|
+| $`\pi`$ | 真实正类先验 |
+| $`\theta`$ | 候选先验 |
+| $`P`$ | 正类条件样本 |
+| $`U`$ | 边缘未标记样本 |
+| $`f`$ | divergence generator |
+| $`r(x)`$ | Fenchel dual scoring function |
+| $`\phi_l(x)`$ | 第 $`l`$ 个非负 basis |
+| $`\alpha_l`$ | basis 系数 |
+| $`\beta_l(\theta)`$ | 经验 basis 差异 |
+| $`\lambda`$ | coefficient L2 regularization |
+| $`\sigma`$ | Gaussian width |
+| $`b`$ | basis 数 |
 
-| 条件 | 含义 | 项目检查 |
-|---|---|---|
-| P 可靠 | `P` 中样本真实为正 | 由数据生成机制保证，代码无法验证 |
-| U 为 mixture | `U ~ p(x)` | 由任务采样协议保证 |
-| `0 < pi < 1` | 非退化 mixture | 输出网格默认避开端点 |
-| 可计算密度 ratio | basis/regularization 足够表达 | 通过合成实验诊断 |
+---
 
-## 4. 符号与记号
+## 3. 核心公式
 
-| 论文符号 | 含义 | 开发侧对应 |
-|---|---|---|
-| `pi` | 真实正类先验 | 目标未知量 |
-| `theta` | 候选先验 | `theta_grid` 中的值 |
-| `P` | 正类条件样本 | `X[y_pu == 1]` |
-| `U` | 边缘未标记样本 | `X[y_pu == 0]` |
-| `f` | divergence generator | penL1 框架中的目标函数 |
-| `r(x)` | Fenchel dual scoring function | Gaussian basis linear model |
-| `phi_l(x)` | 第 `l` 个非负 basis | `exp(-distance/(2*sigma^2))` |
-| `alpha_l` | basis 系数 | penL1 闭式系数 |
-| `beta_l(theta)` | 经验 basis 差异 | 代码循环中的 `beta` |
-| `lambda` | coefficient L2 regularization | `reg_lambda` |
-| `sigma` | Gaussian width | `sigma` |
-| `b` | basis 数 | `n_centers_` |
+### 3.1 Partial distribution matching
 
-## 5. 核心推导
-
-### 5.1 Partial distribution matching
-
-对于候选比例 `theta`，考虑将 `theta p_P` 与 `p_U` 匹配。用 f-divergence 表示：
+对于候选比例 $`\theta`$，考虑将 $`\theta p_P`$ 与 $`p_U`$ 匹配。用 f-divergence 表示：
 
 ```math
 D_f(\theta)=
 \int f\left(\frac{\theta p_P(x)}{p_U(x)}\right)p_U(x)dx.
 ```
 
-当 `theta` 不超过真实 mixture proportion 时，`theta p_P` 可以被 `p_U` 包含；估计过程通过最小化 divergence 找到可行的最大比例。
+当 `theta` 不超过真实 mixture proportion 时，$`\theta p_P`$ 可以被 $`p_U`$ 包含；估计过程通过最小化 divergence 找到可行的最大比例。
 
-### 5.2 Penalized f-divergence
+### 3.2 Penalized f-divergence
 
-为了惩罚 `theta p_P(x) > p_U(x)` 的区域，论文引入：
+为了惩罚 $`\theta p_P(x) > p_U(x)`$ 的区域，论文引入：
 
 ```math
 \tilde f(t)=
@@ -120,11 +79,11 @@ f(t), & 0\le t\le 1,\\
 \end{cases}
 ```
 
-这使得违反 mixture 包含关系的候选比例代价变大。Fenchel dual 后，对固定 `theta` 求解一个关于 `r` 的上界/经验目标，再在 `theta` 上搜索。
+这使得违反 mixture 包含关系的候选比例代价变大。Fenchel dual 后，对固定 `theta` 求解一个关于 $`r`$ 的上界/经验目标，再在 `theta` 上搜索。
 
-### 5.3 Gaussian basis
+### 3.3 Gaussian basis
 
-项目使用非负 Gaussian basis：
+论文使用非负 Gaussian basis：
 
 ```math
 \phi_l(x)=
@@ -136,11 +95,11 @@ f(t), & 0\le t\le 1,\\
 r_\alpha(x)=\sum_{l=1}^{b}\alpha_l\phi_l(x)-1.
 ```
 
-当前实现将训练数据的前 `n_centers` 个样本作为 centers；`n_centers=None` 时使用全部样本。论文实验可使用全部训练样本作为 centers，但大规模数据下会带来二次内存和计算开销。
+论文实验可使用全部训练样本作为 centers，但大规模数据下会带来二次内存和计算开销。
 
-### 5.4 经验 basis 差异
+### 3.4 经验 basis 差异
 
-对每个 `theta` 和 basis `l`：
+对每个 `theta` 和 basis $`l`$：
 
 ```math
 \beta_l(\theta)=
@@ -148,11 +107,9 @@ r_\alpha(x)=\sum_{l=1}^{b}\alpha_l\phi_l(x)-1.
 -\frac{1}{n_U}\sum_{j=1}^{n_U}\phi_l(x_j^U).
 ```
 
-注意 P 与 U 的分母必须分别是 `n_P` 和 `n_U`；不能把两个集合拼接后统一平均。
+注意 P 与 U 的分母必须分别是 $`n_P`$ 和 $`n_U`$；不能把两个集合拼接后统一平均。
 
-## 6. penL1 算法
-
-### 6.1 闭式内层解
+### 3.5 penL1 闭式内层解
 
 penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 
@@ -161,9 +118,9 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 \frac{1}{\lambda}\max(0,\beta_l(\theta)).
 ```
 
-### 6.2 外层目标
+### 3.6 外层目标
 
-代入闭式解后，项目使用：
+代入闭式解后，penL1 经验目标为：
 
 ```math
 \widehat J_{penL1}(\theta)=
@@ -178,12 +135,11 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 \hat\pi=\arg\min_{\theta\in\Theta}\widehat J_{penL1}(\theta),
 ```
 
-其中 `Theta` 是 `[0,1]` 内候选网格。当前代码默认 `0.01` 到 `0.99` 的 99 点网格，正式实验应显式传入网格或实现连续搜索敏感性分析。
+其中 $`\Theta`$ 是 $`[0,1]`$ 内候选网格。
 
-## 7. penL1 约束问题与解析解边界
+### 3.7 解析解边界
 
-论文由 penalized f-divergence 推导 penalized L1-distance。固定 `theta` 时，式 (11) 在
-非负 Gaussian basis 下化为：
+论文由 penalized f-divergence 推导 penalized L1-distance。固定 `theta` 时，式 (11) 在非负 Gaussian basis 下化为：
 
 ```math
 \min_{\alpha\ge0}
@@ -197,13 +153,11 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 \alpha_l\ge 0,\qquad l=1,\ldots,b.
 ```
 
-由于目标对不同 `alpha_l` 完全解耦，其解正是
-`alpha_l=max(0,beta_l)/lambda`。因此当前实现已经覆盖论文提出的 penL1 内层算法；此前
-文档中“每个 U 样本还需满足上界约束、每个 theta 都需通用 QP solver”的描述不属于该论文，
-现已撤销。仍未对齐的是论文实验中的逐 `theta` 超参数 CV、全样本 centers、MNIST PCA
-协议与不可变作者源码，而不是另一个 L1-QP 变体。
+由于目标对不同 $`\alpha_l`$ 完全解耦，其解正是 $`\alpha_l=\max(0,\beta_l)/\lambda`$——penL1 内层无需通用 QP solver，闭式解即论文算法。
 
-## 8. 算法概要
+---
+
+## 4. 算法概要
 
 ```text
 输入：X、y_pu、sigma、lambda、theta_grid、n_centers
@@ -214,181 +168,57 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 4. 对 theta_grid 中每个 theta：
    a. 计算 beta(theta)=theta*mean(Phi_P)-mean(Phi_U)；
    b. 计算 penL1 经验目标 J(theta)。
-5. 选择 J 最小的 theta，保存 class_prior_ 和 objective_values_。
-6. estimate() 返回 class_prior_。
+5. 选择 J 最小的 theta，作为 pi_hat 估计输出。
 ```
 
-## 9. 超参数与复杂度
+---
 
-| 参数 | 当前默认值 | 含义 | 选择建议 |
-|---|---:|---|---|
-| `sigma` | `None`（自动：0.6×中位 pairwise 距离） | Gaussian width | 自动值跨分离度回归验证入带；显式值应训练 fold 内 CV，对标准化尺度敏感 |
-| `reg_lambda` | `1e-2` | alpha 的 L2 正则 | 应与 sigma 联合搜索 |
-| `theta_grid` | 99 点 | 候选先验 | 数据量大时可先粗网格再局部细化 |
-| `n_centers` | 200 | basis 中心数 | 小数据可设 `None`；大数据需限制 |
-| `standardize` | True | 是否特征标准化 | 必须记录并避免验证/测试泄漏 |
+## 5. 论文边界
 
-若 `b` 为 centers 数量，构造 `Phi_P/Phi_U` 的时间和内存约为 `O((n_P+n_U)b d)`；当 `b=n_P+n_U` 时接近二次规模。theta 搜索额外为 `O(|Theta|b)`，penL1 内层不需要逐 theta 求解 QP。
+- 论文研究的是先验估计 $`\pi=P(Y=1)`$，不是分类器训练，也不直接输出 posterior probability；`estimate()` 的输出不是分类器概率，也不是置信区间。
+- 输入的 $`P`$ 应代表 $`p(x\mid y=1)`$；若已标记正例存在 selection bias，直接使用 penL1 会把 labeling bias 混入类先验估计。
+- $`U`$ 必须来自边缘分布 $`p(x)`$。如果 U 是经过筛选的子集，论文的 mixture decomposition 不再直接成立。
+- Gaussian basis 对特征尺度很敏感，正式复现必须记录标准化方式及是否在训练 fold 内计算统计量。
+- $`\theta\_grid`$、$`\sigma`$ 和 $`\lambda`$ 是工程参数；论文要求通过交叉验证选择，但没有提供唯一默认网格。
+- 关键分布条件：
 
-## 10. API 接口与项目落点
-
-### 10.1 构造函数
-
-```python
-class ClassPriorEstimator(BasePriorEstimator):
-    def __init__(
-        self,
-        *,
-        sigma=None,  # None = auto (0.6 x median pairwise distance)
-        reg_lambda=1e-2,
-        theta_grid=None,
-        n_centers=200,
-        standardize=True,
-    ):
-        ...
-```
-
-### 10.2 API 语义
-
-| API / 属性 | 约定 |
+| 条件 | 含义 |
 |---|---|
-| `fit(X, y_pu)` | `1` 为可靠正样本，`0` 为 U；返回 self |
-| `estimate()` | 返回 `[0,1]` 内的 `float` |
-| `confidence_interval(alpha)` | 当前返回 `None`，论文未提供项目可直接使用的 CI |
-| `class_prior_` | 选中的 `theta` |
-| `theta_grid_` | 实际使用的候选网格 |
-| `objective_values_` | 每个候选 `theta` 的 penL1 目标 |
-| `mean_`, `scale_` | 标准化统计量（standardize=True 时） |
-| `n_centers_` | 实际 basis 数 |
-| `get_params/set_params` | sklearn `BaseEstimator` 参数协议 |
+| P 可靠 | `P` 中样本真实为正（由数据生成机制保证，代码无法验证） |
+| U 为 mixture | `U ~ p(x)`（由任务采样协议保证） |
+| `0 < pi < 1` | 非退化 mixture |
+| 可计算密度 ratio | basis/regularization 足够表达 |
 
-### 10.3 模块落点
+---
 
-| 模块 | 责任 | 状态 |
-|---|---|---|
-| `pu_toolbox/prior/pen_l1.py` | `ClassPriorEstimator` | ✅ penL1 |
-| `pu_toolbox/prior/__init__.py` | 公开导出 | ✅ |
-| `pu_toolbox/registry/builtin_methods.py` | class-prior metadata 和 binding | ✅ |
-| `tests/unit/prior/test_pen_l1.py` | 闭式目标 smoke、确定性、边界测试 | ✅ |
-| `benchmarks/assigned_methods/` | 合成多 seed runner、官方配置与来源锁 | ✅ clean-room；⏳ paper-like |
+## 6. 实现注记
 
-## 11. 测试与验收标准
+> 见 ADR-0014 #1（0.0380 MAE 为默认 `sigma=1.0` 时代的数字；2026-08-10 默认改为数据自适应 `sigma` 后 benchmark 复现须显式 pin `sigma`）
 
-### 11.1 API 与边界
+- **2026-08-10 变更**：默认 `sigma=None` 改为数据自适应——`0.6 × 标准化后数据的中位 pairwise 欧氏距离`（确定性、无真值泄漏）。跨分离度/先验回归已验证其落在验收带内，但对 `prior<0.5 + 低分离度` 有高估倾向，用户可用显式 `sigma` 覆盖。
+- 论文源码页面中的 MATLAB 文件与 2017 MLJ 论文的 penL1 公式并不完全对应；实现以论文公式为数学权威。
+- **文档纠错**：此前文档中“每个 U 样本还需满足上界约束、每个 theta 都需通用 QP solver”的描述不属于该论文，现已撤销。仍未对齐的是论文实验中的逐 `theta` 超参数 CV、全样本 centers、MNIST PCA 协议与不可变作者源码，而不是另一个 L1-QP 变体。
+- clean-room 合成结果已归档于 `benchmarks/assigned_methods/results/clean_room_multiseed/`（以 benchmarks 产物为准）。seed `0..4` 的 penL1 prior MAE `0.0380 ± 0.0192` 不含 MNIST、论文逐 `theta` CV 和完整基线，不是论文表格复现；该数字为默认 `sigma=1.0` 时代的产物，当前默认下无意义（见 ADR-0014 #1）。
 
-- 没有正样本或没有 U 时拒绝。
-- `sigma <= 0`、`reg_lambda <= 0` 时拒绝。
-- `theta_grid` 必须是一维、非空且落在 `[0,1]`。
-- `estimate()` 在 fit 前抛出 `NotFittedError`。
-- 相同输入和参数时输出确定。
-- 输出先验和目标数组均为有限值。
+---
 
-### 11.2 数学测试
+## 7. 论文实验参考
 
-使用人工 Gaussian basis 验证：
+| 项目 | 论文设置 |
+|---|---|
+| 合成数据 | Gaussian mixture：$`P\sim N(\mu_p, I)`$、$`N\sim N(\mu_n, I)`$、U 先以概率 `pi` 采样 Y 再从对应的 P/N 分布采样 X；P 与 U 必须独立采样 |
+| 真实数据 | MNIST one-vs-rest；具体正类数字、训练/测试划分和样本数必须由论文或官方源码清单锁定 |
+| 参数选择 | 论文对每个 `theta` 做 “straightforward cross-validation” 选择 `sigma`/`lambda`；精确 fold/scoring 仍需作者实现证据 |
+| PU 构造 | 先保留真实标签，仅用训练折构造 P/U；标准化、Gaussian centers 和所有超参数只在训练折拟合，测试标签不参与选择 `sigma`/`lambda` |
 
-```text
-beta(theta) = theta * mean(Phi_P, axis=0) - mean(Phi_U, axis=0)
-alpha(theta) = maximum(beta(theta), 0) / lambda
-J(theta) = dot(alpha(theta), beta(theta)) - theta + 1
-```
+---
 
-测试必须分别验证 P/U 分母，不能只验证最终 `argmin`。
-
-### 11.3 统计/论文复现测试
-
-- 在已知 `pi` 的合成 mixture 上报告 bias、MAE 和标准差；
-- 改变 overlap、P/U 样本量和 `pi`，画出估计误差曲线；
-- 对每个 `theta` 使用训练侧 CV 选择 `sigma` 和 `lambda`，避免用真实 `pi` 选择参数；
-- 与 ReCPE、Elkan-Noto/其他 CPE baseline 对比时，明确不同方法的输入假设；
-- 报告失败比例和估计落在边界的比例，不只报告均值。
-
-## 12. 复现实验协议
-
-### 12.1 实验层级
-
-| 层级 | 目的 | 数据 | 当前实现能否执行 |
-|---|---|---|---|
-| `smoke` | 验证接口、确定性和输出范围 | 二维 Gaussian mixture | 是 |
-| `algorithmic` | 检查 overlap、样本量和先验变化下的估计误差 | 可控合成 mixture | 是 |
-| `paper_like` | 对齐论文数据处理、penL1、CV 和基线 | 论文合成数据与 MNIST one-vs-rest | 否，缺精确 CV、官方数据执行层和完整基线 |
-
-`algorithmic` 结果只能说明当前 clean-room penL1 的统计行为；只有 `paper_like`
-层级完成且配置、数据版本和源码版本均被记录后，才可与论文表格比较。
-
-### 12.2 合成数据协议
-
-每个设置先生成独立的正类样本和边缘未标记样本：
-
-```text
-P: X ~ N(mu_p, I)
-N: X ~ N(mu_n, I)
-U: 先以概率 pi 采样 Y，再从对应的 P/N 分布采样 X
-```
-
-- 扫描 `pi in {0.1, 0.3, 0.5}`、均值距离 `delta in {0.5, 1.0, 2.0}`；
-- 扫描 `(n_P, n_U) in {(100, 500), (500, 1000), (1000, 5000)}`；
-- P 与 U 必须独立采样，不能把 P 从 U 中删除后继续把剩余样本称为边缘分布；
-- 每个组合运行至少 20 个随机种子；调试阶段可用 3 个种子，但不得进入正式汇总；
-- 额外构造一个 reducible/高重叠设置，记录估计落在搜索边界的频率。
-
-### 12.3 真实数据与 PU 构造
-
-MNIST one-vs-rest 的具体正类数字、训练/测试划分和样本数必须由论文或官方源码清单
-锁定。项目执行时先保留真实标签，仅用训练折构造 P/U：
-
-1. 训练集中真实正类形成候选正类池，以固定标记率抽取 P；
-2. U 从训练边缘分布独立抽取，保持目标 `pi`；
-3. 标准化、Gaussian centers 和所有超参数只在训练折拟合；
-4. 测试标签只用于报告估计误差或下游分类效果，不参与选择 `sigma/lambda`。
-
-若采用 single-training-set 构造，必须在结果元数据中记录 P 是否仍包含在 U 中；该选择
-不能与 case-control 结果混合汇总。
-
-### 12.4 调参与对照
-
-项目预设搜索空间（不是论文原始参数表）为：
-
-```text
-sigma: median_pairwise_distance * {0.25, 0.5, 1, 2}
-reg_lambda: {1e-4, 1e-3, 1e-2, 1e-1}
-n_centers: {100, 200, 500, all}
-theta_grid: 0.01, 0.02, ..., 0.99
-```
-
-调参必须使用不访问真实 `pi` 的训练侧准则；若实现论文 CV 准则，则同时保存每个
-候选的 CV objective。用真实 `pi` 选择最优参数只能标为 `oracle sensitivity`，不能作为
-主结果。对照至少包括 penL1、ReCPE+相同底层 penL1，以及一个明确
-标注假设差异的 CPE baseline。
-
-### 12.5 指标、产物与通过标准
-
-- 主指标：`abs(pi_hat-pi)`、signed bias、RMSE；
-- 稳定性：标准差、边界命中率、失败率和运行时间；
-- 报告：每个设置的均值、标准差及 bootstrap 95% CI；
-- 产物：冻结配置、数据 split 索引、seed、依赖版本、逐次估计和汇总表；
-- algorithmic 验收：所有输出有限且在 `[0,1]`，重复运行可追溯；随着 P/U 样本量增加，
-  MAE 的总体趋势不得系统性恶化；
-- paper-like 验收：penL1 的论文级数据/参数来源有引用，关键趋势与论文
-  一致；数值不一致时保留差异并给出实现或数据协议解释，不以调参掩盖。
-
-建议落点为 `benchmarks/paper_like/class_prior_estimation/`，配置至少拆为
-`synthetic.yaml` 和 `mnist.yaml`，原始逐种子结果写入独立文件，汇总脚本不得覆盖原始结果。
-
-当前仓库已在 `benchmarks/assigned_methods/` 落地统一 JSON runner，并完成 seed `0..4` 的
-clean-room 合成实验；penL1 prior MAE 为 `0.0380 ± 0.0192`。该数字不包含 MNIST、论文
-逐 `theta` CV 和完整基线，因此不是论文表格复现。`preflight_paper.py` 已将不可变源码、
-数据目录和 toolbox 协议差距分开审计。
-
-> 注意：上述 MAE 是默认 `sigma=1.0` 时代的数字；2026-08-10 默认改为数据自适应 `sigma` 后该数值不再代表当前默认行为，benchmark 复现需在配置中显式 pin `sigma`。
-
-## 13. 源码状态与复现风险
+## 8. 源码状态与复现风险
 
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_related`；作者页面源码与本文 penL1 公式需分开核对 |
-| Implementation status | `NATIVE`，当前为 penL1 clean-room |
-| 已实现 | Gaussian basis、penL1 闭式系数、先验网格搜索、统一 prior API |
+| 已实现 | Gaussian basis、penL1 闭式系数、先验网格搜索、统一 prior API（当前为 penL1 clean-room） |
 | 未实现 | 论文逐 `theta` CV 的精确 protocol、MNIST/PCA 执行层、CI/bootstrap、paper-like benchmark（工具箱侧机制已就绪——preflight 审计、执行层、数据/源码锁定与 blocker 诊断；全量运行依赖外部官方数据与历史环境，官方数据不内置工具箱，由执行方提供，非工具箱缺口） |
 | 主要风险 | basis 尺度、先验搜索网格、P/U 抽样偏差和有限样本误差都会显著影响 `pi_hat` |
-| 解释边界 | `estimate()` 是 mixture proportion/class prior estimate，不是分类器概率，也不是置信区间 |
+| 解释边界 | 输出是 mixture proportion/class prior estimate，不是分类器概率，也不是置信区间 |
