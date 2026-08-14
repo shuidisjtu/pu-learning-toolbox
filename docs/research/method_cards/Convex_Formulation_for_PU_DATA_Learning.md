@@ -21,7 +21,7 @@
 | GPU required | `False` |
 | Output | Binary classifier；论文 $`\hat y=\mathrm{sign}(g(x))\in\{+1,-1\}`$ |
 
-### 1.1 适用场景标签
+### 适用场景标签
 
 | 场景 | 论文中的含义 |
 |---|---|
@@ -488,6 +488,7 @@ Input:
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_bundle` |
+| 实现状态 | native 实现（backend NUMPY，C-DH SLSQP / C-LL L-BFGS / Squared 闭式解） |
 | Upstream URL | https://github.com/t-sakai-kure/pywsl |
 | License | MIT |
 | 包含方法 | `pywsl` 由 Sugiyama Lab 维护；uPU 仅提供 Squared Loss 闭式解（NumPy + scipy），不含 double hinge（C-DH）和 logistic（C-LL）；nnPU / PNU / PU-SKC / PNU-AUC 等其他方法见仓库 README |
