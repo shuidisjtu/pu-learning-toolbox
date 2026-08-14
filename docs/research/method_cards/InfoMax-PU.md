@@ -283,8 +283,7 @@ P/U 输入
 
 > 结果见 `benchmarks/deep_pu/results/infomax_fashion_protocol_matrix/REPORT.md`
 > （Fashion-MNIST 60/60 trials 协议矩阵）；preflight 记录见
-> `benchmarks/deep_pu/results/infomax_fashion_protocol_preflight/` 与
-> `benchmarks/deep_pu/official_preflight/preflight.json`
+> `benchmarks/deep_pu/results/infomax_fashion_protocol_preflight/`
 
 ---
 
