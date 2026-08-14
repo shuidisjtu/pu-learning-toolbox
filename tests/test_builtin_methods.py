@@ -1,11 +1,12 @@
 """Tests for the built-in paper-method registrations.
 
 Counts and distributions are derived from the registry itself (the single
-source of truth) plus the stats table in ``docs/dev/resources.md``, so
-registering a new method requires no bookkeeping updates here.
+source of truth), so registering a new method requires no bookkeeping
+updates here. Per-method source status is recorded in each method card's
+"源码状态与复现风险" section (docs/research/method_cards/), which is
+reviewed manually rather than parsed here.
 """
 
-import re
 from pathlib import Path
 
 import pytest
@@ -56,40 +57,6 @@ class TestBuiltinRegistration:
             assert meta.implementation_status == ImplementationStatus.NATIVE, (
                 f"{meta.name} must be NATIVE, got {meta.implementation_status}"
             )
-
-    def test_basic_source_status_matches_docs(self):
-        """Registry source-status counts must match docs/dev/resources.md.
-
-        The doc stats table is the rendered view of the registry; this test
-        makes the pair drift-free without a separate generation script.
-        """
-        register_all_builtin_methods()
-        by_source: dict[str, int] = {}
-        for meta in get_algorithm_registry().values():
-            key = meta.source_status.value
-            by_source[key] = by_source.get(key, 0) + 1
-
-        doc = (PROJECT_ROOT / "docs" / "dev" / "resources.md").read_text(encoding="utf-8")
-        expected_single: dict[str, int] = {}
-        combined_total: int | None = None
-        for line in doc.splitlines():
-            m = re.match(r"\|\s*`([^`]+)`\s*(?:/\s*`([^`]+)`)?\s*\|\s*(\d+)\s*\|", line)
-            if not m:
-                continue
-            count = int(m.group(3))
-            if m.group(2):
-                # combined row: `official_bundle` / `official_related` | N
-                # means the two states sum to N
-                combined_total = count
-            else:
-                expected_single[m.group(1)] = count
-
-        for state, count in expected_single.items():
-            assert by_source.get(state, 0) == count, f"source_status {state!r}"
-        assert (
-            by_source.get("official_bundle", 0) + by_source.get("official_related", 0)
-            == combined_total
-        ), "official_bundle + official_related total"
 
     def test_basic_family_distribution(self):
         """All five algorithm families must be present (counts are free)."""

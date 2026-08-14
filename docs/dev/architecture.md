@@ -8,6 +8,7 @@
 
 **与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（决策、
 依赖方向、数据流）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
+**API 契约**：类的精确签名与方法语义以 [`user/reference/api.md`](../user/reference/api.md) 为权威来源，本文档不重复。
 
 ## 2. 模块分层
 
@@ -115,121 +116,12 @@ Data Profiler 输出 `PUDataProfile`：包含基础统计、特征质量、问�
 和指标接口。它不训练模型，并将观测 PU、类先验依赖、监督 oracle 和
 不可用指标分别标记，输出稳定 schema 的 JSON/Markdown 报告。
 
-## 4. 核心 API
+## 4. 算法注册与推荐
 
-### 4.1 BasePUClassifier
-
-```python
-class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
-    family: AlgorithmFamily = AlgorithmFamily.UNKNOWN
-    assumption = (Assumption.UNKNOWN,)
-    scenario = (Scenario.UNKNOWN,)
-    requires_class_prior: bool = False
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
-    source_status: SourceStatus = SourceStatus.UNKNOWN
-    backend: Backend = Backend.NUMPY
-    maturity: Maturity = Maturity.EXPERIMENTAL
-
-    @abstractmethod
-    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
-        ...
-
-    def predict(self, X):                        # public: check → _predict
-        self._check_is_fitted()
-        return self._predict(X)
-
-    @abstractmethod
-    def _predict(self, X):                       # subclass implements
-        ...
-
-    def decision_function(self, X):              # public: check → _decision_function
-        self._check_is_fitted()
-        return self._decision_function(X)
-
-    @abstractmethod
-    def _decision_function(self, X):             # subclass implements
-        ...
-
-    def score_samples(self, X):                  # default = _decision_function
-        ...
-
-    def predict_proba(self, X):                  # raises NotImplementedError
-        ...
-
-    def predict_label_proba(self, X):            # returns None by default
-        ...
-
-    def get_pu_metadata(self) -> dict:
-        ...
-```
-
-### 4.2 BasePriorEstimator
-
-```python
-class BasePriorEstimator(BaseEstimator, ABC):
-    def fit(self, X, y_pu):
-        ...
-
-    def estimate(self):
-        ...
-
-    def confidence_interval(self, alpha=0.05):
-        return None
-```
-
-### 4.3 BasePULoss
-
-```python
-class BasePULoss(ABC):
-    requires_class_prior = True
-
-    def __call__(self, positive_scores, unlabeled_scores, *, class_prior):
-        ...
-```
-
-## 5. 输出接口规范
-
-| 方法 | 是否必须 | 含义 |
-|---|---|---|
-| `fit(X, y_pu)` | 必须 | 训练模型 |
-| `predict(X)` | 必须 | 输出离散标签；公共方法调用子类 `_predict(X)` |
-| `decision_function(X)` | 必须 | 输出连续分数；公共方法调用子类 `_decision_function(X)` |
-| `score_samples(X)` | 可选覆盖 | 默认复用 `decision_function` 分数；仅当分数约定不同才覆盖 |
-| `predict_proba(X)` | 可选 | 输出 $P(y=1\mid x)$ |
-| `get_params()` / `set_params()` | 必须 | 由 sklearn `BaseEstimator` 提供，兼容 Pipeline / GridSearchCV |
-
-## 6. 算法注册表
-
-每个算法注册元信息，registry 据此管理发现和推荐。
-
-```python
-{
-    "name": "nnpu",
-    "aliases": ["non_negative_pu", "nn-pu", "nnPU"],
-    "family": "risk_estimation",
-    "scenario": ["case_control"],
-    "assumption": ["SCAR"],
-    "requires_class_prior": True,
-    "supports_sparse": False,
-    "supports_gpu": True,
-    "backend": "torch",
-    "maturity": "stable",
-    "source_status": "official_exact",
-    "implementation_status": "native",
-    "training_cost": "medium",
-}
-```
-
-`implementation_status` 枚举：
-
-`source_status` 表示论文源码可获得性，当前代码枚举以 `pu_toolbox/core/tags.py` 为准，常见值包括 `official_exact`、`official_bundle`、`official_related`、`third_party_only`、`not_found`、`unknown`。
-
-| 状态 | 含义 |
-|---|---|
-| `api_only` | 仅 API 占位，无训练逻辑 |
-| `native` | clean-room 实现 |
-
-### 算法推荐器
+每个算法在 `registry` 注册元信息（name/aliases/family/scenario/assumption/
+requires_class_prior/backend/maturity/source_status/implementation_status 等），
+registry 据此管理发现和推荐。字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威；
+注册表实例见 `pu_toolbox/registry/builtin_methods.py`。
 
 `advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配（用户侧的选型决策原理见 [`../user/concepts/method_selection.md`](../user/concepts/method_selection.md)）：
 
@@ -248,7 +140,7 @@ class BasePULoss(ABC):
 返回 `RecommendationResult`，支持 `to_json()` / `to_markdown()` / `save()`。
 向后兼容：`from pu_toolbox.registry import recommend_methods` 仍可用。
 
-## 7. 类先验、标记倾向与损失函数
+## 5. 类先验、标记倾向与损失函数
 
 | 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |
 |---|---|
@@ -259,32 +151,7 @@ class BasePULoss(ABC):
 
 > † 扩展参考（不在 v1 范围内），非 17 篇核心论文方法（"17 篇"含 KLDCE 核化变体与 PUSBKernel，非严格论文数）。
 
-## 8. 论文方法到模块的映射
-
-| 方法 | 主要模块 |
-|---|---|
-| Class-Prior Estimation | `prior/pen_l1.py`, `prior/recpe.py`, `prior/kernel_mean.py` |
-| ReCPE | `prior/recpe.py` |
-| Elkan-Noto | `estimators/classic/elkan_noto.py` |
-| uPU / nnPU / PNU | `losses/upu.py`, `losses/nnpu.py`, `losses/pnu.py` |
-| uPU 分类器 | `estimators/risk/upu.py` |
-| nnPU 分类器 | `estimators/risk/nnpu.py` |
-| PNU 分类器 | `estimators/risk/pnu.py` |
-| 共享 basis 工具 | `utils/basis.py` |
-| PUSB / LBE | `estimators/bias_aware/pusb.py`, `estimators/bias_aware/lbe.py` |
-| Dist-PU | `estimators/risk/dist_pu.py` |
-| Self-PU | `estimators/deep/self_pu.py` (native core) |
-| LDCE / Centroid PU | `estimators/risk/ldce.py` |
-| KLDCE (核化 LDCE) | `estimators/risk/kldce.py` (QP oracle + RBF kernel) |
-| 共享质心原语 | `utils/centroid.py` (MoM + 协方差) |
-| LLSVM | `estimators/classic/llsvm.py` |
-| InfoMax PU | `estimators/deep/infomax_pu.py` (PURL + nnPU pipeline) |
-| Weighted Contrastive PU | `estimators/deep/weighted_contrastive_pu.py` (native core) |
-| DGPU | `estimators/deep/dgpu.py` (native orchestration + generator protocol) |
-
-完整映射及实现策略见 [`roadmap.md`](roadmap.md)。
-
-## 9. 评价与切分
+## 6. 评价与切分
 
 - `PUStratifiedKFold`、`PUStratifiedShuffleSplit`（已实现）：保证每个训练折含 labeled positive，保留 P/U 比例。
 - PU-only 指标（不需要真实标签）：`pu_zero_one_risk`（PU 零一验证风险）、`pu_recall`（从已标记正样本估计召回率）、`pu_estimated_precision`（利用类先验估计精确率）、`pu_negative_rate`（无标记样本负预测率）。
@@ -298,3 +165,9 @@ class BasePULoss(ABC):
 - 假设敏感性：`analyze_pu_sensitivity` 固定模型输出，以 $`P(S=1)=\pi\bar c`$
   检查类先验/平均标记倾向网格的相容性，并导出指标区间、JSON、Markdown 与 CSV；
   不承担 propensity 识别或逐假设模型重训。
+
+## 7. 论文方法到实现的索引
+
+每个方法的模块落点见 `project_structure.md` 目录树；论文公式、源码状态与
+复现风险见各方法卡 [`../research/method_cards/`](../research/method_cards/)
+（§8 源码状态与复现风险）。
