@@ -29,7 +29,6 @@
 |---|---|
 | [dev/architecture.md](dev/architecture.md) | 当前架构:模块分层、数据流、注册表 |
 | [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
-| [dev/roadmap.md](dev/roadmap.md) | 版本路线与阶段叙事 |
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/architecture_audit.md](dev/architecture_audit.md) | 审计发现快照、复跑指南与治理机制（ADR-0001） |
 | [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |

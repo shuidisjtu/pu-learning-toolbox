@@ -87,7 +87,7 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 | [`docs/user/concepts/`](docs/user/concepts/) | PU problem, SCAR/SAR, method selection |
 | [`docs/user/howto/`](docs/user/howto/) | Task guides: simulation, profiling, pipeline, CLI, reports, sensitivity |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | Precise API contract |
-| [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, roadmap, compatibility |
+| [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, compatibility |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards |
 
 ## AI workflow skill
