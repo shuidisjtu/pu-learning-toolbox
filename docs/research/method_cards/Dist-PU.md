@@ -190,7 +190,7 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 结果记录（benchmark 数字与官方配置 commit 锁以 benchmarks 产物为准）：
 
-> 结果见 `benchmarks/assigned_methods/results/clean_room_multiseed/`（当前 clean-room 运行结果与官方配置 commit 锁）
+> 结果见 `benchmarks/assigned_methods/results/clean_room_multiseed/`（当前 clean-room 运行结果）；官方配置 commit 锁见 `benchmarks/assigned_methods/configs/official_sources.lock.json`
 
 ---
 

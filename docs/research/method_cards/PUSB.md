@@ -174,7 +174,7 @@ g(x)=\tilde\phi(x)^T b,
 
 结果记录（benchmark 数字、SHA/commit 锁与试次统计以 benchmarks 产物为准）：
 
-> 结果见 `benchmarks/assigned_methods/results/clean_room_multiseed/`（clean-room SAR 与 10-seed 配对 ranking；官方配置 commit 锁）
+> 结果见 `benchmarks/assigned_methods/results/clean_room_multiseed/`（clean-room SAR）；10-seed 配对 ranking 见 `benchmarks/assigned_methods/results/scar_sar_comparison/`；官方配置 commit 锁见 `benchmarks/assigned_methods/configs/official_sources.lock.json`
 >
 > 结果见 `benchmarks/assigned_methods/results/pusb_official_data_smoke/` 与 `benchmarks/assigned_methods/results/pusb_official_data_feasible_multiseed/`（IJCNN1 仓库扩展 smoke 与完整网格）
 >

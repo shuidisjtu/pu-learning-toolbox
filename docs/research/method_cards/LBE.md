@@ -194,7 +194,7 @@ propensity 只对真实正类有意义。固定 `q_i` 后，正类相关样本�
 
 结果记录（benchmark 数字与官方源码 SHA-256 锁以 benchmarks 产物为准）：
 
-> 结果见 `benchmarks/assigned_methods/results/clean_room_multiseed/`（当前 linear-EM clean-room 结果与官方 `LBE_TPAMI21.rar` SHA-256 锁）
+> 结果见 `benchmarks/assigned_methods/results/clean_room_multiseed/`（当前 linear-EM clean-room 结果）；官方 `LBE_TPAMI21.rar` SHA-256 锁见 `benchmarks/assigned_methods/configs/official_sources.lock.json`
 
 ---
 
