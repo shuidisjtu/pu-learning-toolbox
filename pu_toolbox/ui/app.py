@@ -79,9 +79,17 @@ def load_label_data(content: bytes, *, what: str = "labels") -> np.ndarray:
     if frame.shape[1] != 1:
         raise ValueError(f"{what} CSV must have exactly one column; got {frame.shape[1]}.")
     try:
-        values = frame.iloc[:, 0].to_numpy(dtype=int)
+        numeric = frame.iloc[:, 0].to_numpy(dtype=float)
     except (TypeError, ValueError) as exc:
-        raise ValueError(f"{what} must contain integer labels.") from exc
+        raise ValueError(f"{what} must contain numeric labels in {{0, 1}}.") from exc
+    if not np.isfinite(numeric).all():
+        raise ValueError(f"{what} contains NaN or Inf values.")
+    if not np.equal(numeric, np.floor(numeric)).all():
+        raise ValueError(f"{what} must contain integer labels in {{0, 1}}; decimals are invalid.")
+    values = numeric.astype(int)
+    invalid = sorted(set(np.unique(values)) - {0, 1})
+    if invalid:
+        raise ValueError(f"{what} must contain only labels {{0, 1}}; got invalid values {invalid}.")
     return values
 
 

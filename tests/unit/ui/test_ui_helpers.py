@@ -45,6 +45,10 @@ def test_edge_reject_invalid_uploads_and_json():
         load_label_data(_csv_bytes(pd.DataFrame({"a": [1], "b": [0]})))
     with pytest.raises(ValueError, match="JSON object"):
         parse_json_mapping("[1, 2]", field_name="params")
+    with pytest.raises(ValueError, match="decimals are invalid"):
+        load_label_data(_csv_bytes(pd.DataFrame({"label": [1.0, 0.5]})))
+    with pytest.raises(ValueError, match="invalid values"):
+        load_label_data(_csv_bytes(pd.DataFrame({"label": [1, -1]})))
 
 
 def test_deterministic_json_mapping_and_catalog():
