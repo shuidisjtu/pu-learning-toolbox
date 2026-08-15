@@ -220,7 +220,9 @@ class PipelineReport:
         The fitted model itself cannot be serialized; it is represented
         by its class name and PU metadata instead.
         """
-        model_info: dict[str, Any] = {"class": type(self.final_model).__name__}
+        model_info: dict[str, Any] = {
+            "class": type(self.final_model).__name__ if self.final_model is not None else None
+        }
         if self.final_model is not None:
             model_info["is_fitted"] = bool(getattr(self.final_model, "_is_fitted", False))
             try:

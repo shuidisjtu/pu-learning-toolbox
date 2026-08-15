@@ -23,6 +23,10 @@ def test_basic_named_classifier_parameters_are_applied(rng):
         "reg_lambda": 0.25,
         "max_iter": 50,
     }
+    cv_only = PUPipeline(classifier="upu", cv=2).fit_evaluate(X, y_pu, class_prior=0.4, refit=False)
+    assert cv_only.final_model is None
+    assert cv_only.diagnostic is None
+    assert cv_only.to_dict()["final_model"]["class"] is None
 
 
 def test_param_required_constructor_value_can_be_supplied():

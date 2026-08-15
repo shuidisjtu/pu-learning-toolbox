@@ -59,7 +59,7 @@ def test_edge_tuner_rejects_unavailable_scoring_and_isolates_runtime_failure(rng
             self.params = classifier_params
             self.metrics = ["pu_zero_one_risk"]
 
-        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None):
+        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None, refit=True):
             if self.params["backend_fails"]:
                 raise RuntimeError("simulated backend failure")
             metric = SimpleNamespace(available=True, mean=0.25, reason=None)
@@ -74,9 +74,32 @@ def test_edge_tuner_rejects_unavailable_scoring_and_isolates_runtime_failure(rng
     assert "simulated backend failure" in result.trials[0].error
 
 
-def test_deterministic_parameter_grid_order():
+def test_deterministic_parameter_grid_order_and_refits_only_best(monkeypatch):
     kwargs = {
         "classifier": "upu",
         "param_grid": {"reg_lambda": [0.1, 0.01], "max_iter": [50, 100]},
     }
     assert PUTuner(**kwargs).param_grid == PUTuner(**kwargs).param_grid
+
+    from pu_toolbox.model_selection import tuning as tuning_module
+
+    calls = []
+
+    class FakePipeline:
+        def __init__(self, *, classifier_params, metrics, **pipeline_params):
+            self.params = classifier_params
+            self.metrics = ["pu_zero_one_risk"]
+
+        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None, refit=True):
+            calls.append((dict(self.params), refit))
+            score = self.params["reg_lambda"] + self.params["max_iter"] / 10_000
+            metric = SimpleNamespace(available=True, mean=score, reason=None)
+            return SimpleNamespace(
+                cv_metrics={"pu_zero_one_risk": metric},
+                final_model="fitted" if refit else None,
+            )
+
+    monkeypatch.setattr(tuning_module, "PUPipeline", FakePipeline)
+    result = PUTuner(**kwargs).fit([[0]], [1], class_prior=0.4)
+    assert [refit for _, refit in calls] == [False, False, False, False, True]
+    assert result.best_report.final_model == "fitted"

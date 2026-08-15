@@ -123,7 +123,7 @@ class PUTuner:
     ) -> TuningResult:
         """Evaluate the parameter grid and return its best valid trial."""
         trials: list[TuningTrial] = []
-        successful: list[tuple[float, dict[str, Any], PipelineReport]] = []
+        successful: list[tuple[float, dict[str, Any]]] = []
         for index, params in enumerate(self.param_grid):
             try:
                 report = PUPipeline(
@@ -131,7 +131,13 @@ class PUTuner:
                     classifier_params=params,
                     metrics=self.metrics,
                     **self.pipeline_params,
-                ).fit_evaluate(X, y_pu, y_true=y_true, class_prior=class_prior)
+                ).fit_evaluate(
+                    X,
+                    y_pu,
+                    y_true=y_true,
+                    class_prior=class_prior,
+                    refit=False,
+                )
                 metric = report.cv_metrics[self.scoring]
                 if not metric.available or metric.mean is None or not np.isfinite(metric.mean):
                     reason = metric.reason or "metric produced no finite fold values"
@@ -139,7 +145,7 @@ class PUTuner:
                     continue
                 score = float(metric.mean)
                 trials.append(TuningTrial(index, dict(params), score, "ok"))
-                successful.append((score, dict(params), report))
+                successful.append((score, dict(params)))
             # A single model/optimizer/backend failure must not discard the
             # rest of the search.  Exception deliberately excludes
             # KeyboardInterrupt and SystemExit, so users can still cancel.
@@ -153,11 +159,19 @@ class PUTuner:
             raise PipelineError(
                 f"No tuning candidate produced scoring metric {self.scoring!r}. {details}"
             )
-        best_score, best_params, best_report = (
+        best_score, best_params = (
             max(successful, key=lambda item: item[0])
             if self.higher_is_better
             else min(successful, key=lambda item: item[0])
         )
+        # Only the selected configuration pays for a full-data fit and model
+        # diagnostics. Search trials above perform CV only.
+        best_report = PUPipeline(
+            classifier=self.classifier,
+            classifier_params=best_params,
+            metrics=self.metrics,
+            **self.pipeline_params,
+        ).fit_evaluate(X, y_pu, y_true=y_true, class_prior=class_prior)
         return TuningResult(
             classifier=self.classifier,
             scoring=self.scoring,

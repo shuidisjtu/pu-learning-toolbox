@@ -394,6 +394,7 @@ class PUPipeline:
         *,
         y_true: np.ndarray | None = None,
         class_prior: float | None = None,
+        refit: bool = True,
     ) -> PipelineReport:
         """Run the full workflow and return a :class:`PipelineReport`.
 
@@ -409,6 +410,11 @@ class PUPipeline:
         class_prior : float, optional
             Explicit class prior ``(0, 1)``.  Takes precedence over the
             classifier's constructor value and over estimation.
+        refit : bool, default True
+            Fit a final model on all samples and build model diagnostics.
+            Set to ``False`` for parameter-search trials that only need CV
+            metrics; the returned report then has ``final_model=None`` and
+            ``diagnostic=None``.
         """
         X, y_pu, y_true, analysis_X, splitter, n_splits = self._prepare_inputs(X, y_pu, y_true)
 
@@ -545,34 +551,37 @@ class PUPipeline:
             for name in self.metrics
         }
 
-        # -- Final model (full refit) + final diagnostic ------------------
-        final_model = self._fresh_estimator(classifier_cls, classifier_instance, prior)
-        final_model.fit(X, y_pu, class_prior=prior)
-        if _extract_scores(final_model, X) is not None:
-            diagnostic = build_diagnostic_report(
-                X,
-                y_pu,
-                estimator=final_model,
-                y_true=y_true,
-                class_prior=prior,
-                random_state=self.random_state,
-                # Reuse the profile computed above: profiling twice with
-                # identical inputs (including the CV selection diagnostic)
-                # wasted one full pass per fit_evaluate.
-                profile=profile,
-            )
-        else:
-            # Models without a decision function cannot drive estimator-mode
-            # diagnostics; fall back to explicit-output mode.
-            diagnostic = build_diagnostic_report(
-                X,
-                y_pu,
-                y_pred=final_model.predict(X),
-                y_true=y_true,
-                class_prior=prior,
-                random_state=self.random_state,
-                profile=profile,
-            )
+        # -- Optional final model (full refit) + final diagnostic ----------
+        final_model: BasePUClassifier | None = None
+        diagnostic: PUDiagnosticReport | None = None
+        if refit:
+            final_model = self._fresh_estimator(classifier_cls, classifier_instance, prior)
+            final_model.fit(X, y_pu, class_prior=prior)
+            if _extract_scores(final_model, X) is not None:
+                diagnostic = build_diagnostic_report(
+                    X,
+                    y_pu,
+                    estimator=final_model,
+                    y_true=y_true,
+                    class_prior=prior,
+                    random_state=self.random_state,
+                    # Reuse the profile computed above: profiling twice with
+                    # identical inputs (including the CV selection diagnostic)
+                    # wasted one full pass per fit_evaluate.
+                    profile=profile,
+                )
+            else:
+                # Models without a decision function cannot drive estimator-mode
+                # diagnostics; fall back to explicit-output mode.
+                diagnostic = build_diagnostic_report(
+                    X,
+                    y_pu,
+                    y_pred=final_model.predict(X),
+                    y_true=y_true,
+                    class_prior=prior,
+                    random_state=self.random_state,
+                    profile=profile,
+                )
 
         # -- Assemble report ----------------------------------------------
         return self._build_report(
@@ -829,8 +838,8 @@ class PUPipeline:
         y_true: np.ndarray | None,
         splitter: Any,
         n_splits: int,
-        final_model: BasePUClassifier,
-        diagnostic: PUDiagnosticReport,
+        final_model: BasePUClassifier | None,
+        diagnostic: PUDiagnosticReport | None,
     ) -> PipelineReport:
         """Assemble the final :class:`PipelineReport` (issues + provenance)."""
         # NOTE: the profile itself flags a class prior below the labeled

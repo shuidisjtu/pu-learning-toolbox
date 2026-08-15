@@ -70,6 +70,10 @@ best_model = result.best_report.final_model
 `higher_is_better=` 显式覆盖。每个失败或指标不可用的组合会保留在
 `result.trials` 中，只有所有组合都不可用时才抛出 `PipelineError`。
 
+搜索阶段的每个 trial 只计算 PU 分层 CV；选出最佳组合后才执行一次全量重训和模型
+诊断。因此 `result.best_report.final_model` 仍是可直接预测的最终模型，同时避免为每个
+候选重复生成最终模型。
+
 如果选择 `pu_auc_roc`、`pu_accuracy` 或 `pu_f1`，必须向 `fit` 提供
 `y_true`。没有真实标签时优先使用 `pu_zero_one_risk`，并检查类先验估计是否可靠。
 

@@ -54,8 +54,11 @@ pipe = PUPipeline(
     backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
 )
-report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
+report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None, refit=True)
 ```
+
+`refit=False` 只计算交叉验证指标，跳过全量模型重训与模型诊断；此时
+`report.final_model` 和 `report.diagnostic` 为 `None`。该模式主要供参数搜索使用。
 
 ### 类先验解析优先级
 
