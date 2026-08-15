@@ -16,9 +16,10 @@ import pandas as pd
 from pu_toolbox.core.base import BasePUClassifier
 from pu_toolbox.model_selection.tuning import PUTuner, TuningResult
 from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
+from pu_toolbox.ui.parameters import parameter_schema, render_parameter_form
 from pu_toolbox.workflows import DEFAULT_METRICS, PUPipeline
 
-_MANAGED_PARAMS = {"class_prior", "random_state", "encoder"}
+_MANAGED_PARAMS = {"class_prior", "random_state", "encoder", "device"}
 
 
 def parse_json_mapping(text: str, *, field_name: str) -> dict[str, Any]:
@@ -93,12 +94,6 @@ def load_label_data(content: bytes, *, what: str = "labels") -> np.ndarray:
     return values
 
 
-def _annotation_text(annotation: Any) -> str:
-    if annotation is inspect.Parameter.empty:
-        return "unspecified"
-    return str(annotation).replace("typing.", "")
-
-
 def classifier_catalog() -> list[dict[str, Any]]:
     """Return trainable classifier metadata and constructor fields for the UI."""
     register_all_builtin_methods()
@@ -119,15 +114,7 @@ def classifier_catalog() -> list[dict[str, Any]]:
                 inspect.Parameter.VAR_KEYWORD,
             ):
                 continue
-            required = parameter.default is inspect.Parameter.empty
-            parameters.append(
-                {
-                    "name": name,
-                    "type": _annotation_text(parameter.annotation),
-                    "default": None if required else repr(parameter.default),
-                    "required": required,
-                }
-            )
+            parameters.append(parameter_schema(name, parameter))
         ui_ready = all(
             not parameter["required"] or parameter["type"] in {"bool", "float", "int", "str"}
             for parameter in parameters
@@ -305,11 +292,24 @@ def main() -> None:
         with st.expander("模型参数与调参", expanded=True):
             parameter_rows = catalog_by_name[classifier]["parameters"]
             if parameter_rows:
-                st.dataframe(parameter_rows, hide_index=True, use_container_width=True)
+                st.dataframe(
+                    [
+                        {
+                            "参数": item["name"],
+                            "类型": item["type"],
+                            "默认值": item["default"],
+                            "必填": item["required"],
+                        }
+                        for item in parameter_rows
+                    ],
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            classifier_params = render_parameter_form(st, classifier, parameter_rows)
             parameter_text = st.text_area(
-                "固定参数（JSON 对象）",
+                "额外固定参数（高级 JSON）",
                 "{}",
-                help='例如：{"reg_lambda": 0.01, "max_iter": 1000}',
+                help="用于复杂对象或批量粘贴；不能与上方已选择的参数重名。",
             )
             tuning_enabled = st.toggle("比较多组超参数")
             if tuning_enabled:
@@ -320,9 +320,13 @@ def main() -> None:
                 )
                 scoring = st.selectbox("选择最佳模型的指标", metrics or metric_options)
             try:
-                classifier_params = parse_json_mapping(
-                    parameter_text, field_name="fixed parameters"
-                )
+                advanced_params = parse_json_mapping(parameter_text, field_name="fixed parameters")
+                overlap = classifier_params.keys() & advanced_params.keys()
+                if overlap:
+                    raise ValueError(
+                        f"parameters cannot be set in both typed fields and JSON: {sorted(overlap)}"
+                    )
+                classifier_params = {**classifier_params, **advanced_params}
                 if tuning_enabled:
                     tuning_grid = parse_json_mapping(tuning_text, field_name="parameter grid")
                     if not tuning_grid:

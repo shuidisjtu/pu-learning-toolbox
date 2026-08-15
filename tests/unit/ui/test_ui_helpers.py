@@ -2,6 +2,7 @@
 
 """Dependency-light tests for UI data and configuration helpers."""
 
+import inspect
 import io
 
 import numpy as np
@@ -12,6 +13,7 @@ from pu_toolbox.ui import (
     classifier_catalog,
     load_feature_data,
     load_label_data,
+    parameter_schema,
     parse_json_mapping,
 )
 
@@ -57,3 +59,29 @@ def test_deterministic_json_mapping_and_catalog():
     assert catalog == classifier_catalog()
     upu = next(item for item in catalog if item["name"] == "upu")
     assert any(parameter["name"] == "reg_lambda" for parameter in upu["parameters"])
+    loss = next(parameter for parameter in upu["parameters"] if parameter["name"] == "loss")
+    assert loss["kind"] == "choice"
+    assert loss["choices"] == ["double_hinge", "logistic", "squared"]
+
+
+@pytest.mark.parametrize(
+    ("annotation", "default", "kind", "nullable"),
+    [
+        (bool, True, "bool", False),
+        (int, 5, "int", False),
+        (float, 0.5, "float", False),
+        ("float | None", None, "float", True),
+        ("Literal['a', 'b']", "a", "choice", False),
+        (object, None, "json", True),
+    ],
+)
+def test_parameter_schema_selects_typed_editor(annotation, default, kind, nullable):
+    parameter = inspect.Parameter(
+        "value",
+        inspect.Parameter.KEYWORD_ONLY,
+        annotation=annotation,
+        default=default,
+    )
+    schema = parameter_schema("value", parameter)
+    assert schema["kind"] == kind
+    assert schema["nullable"] is nullable
