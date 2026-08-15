@@ -4,12 +4,15 @@
 
 import inspect
 import io
+import json
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pu_toolbox.run_config import RunConfiguration
 from pu_toolbox.ui import (
+    apply_run_configuration,
     classifier_catalog,
     load_feature_data,
     load_label_data,
@@ -85,3 +88,24 @@ def test_parameter_schema_selects_typed_editor(annotation, default, kind, nullab
     schema = parameter_schema("value", parameter)
     assert schema["kind"] == kind
     assert schema["nullable"] is nullable
+
+
+def test_basic_run_configuration_populates_widget_state():
+    catalog = classifier_catalog()
+    catalog_by_name = {item["name"]: item for item in catalog}
+    config = RunConfiguration(
+        classifier="upu",
+        classifier_params={"loss": "logistic", "max_iter": 50},
+        class_prior=0.4,
+        cv=3,
+        metrics=("pu_zero_one_risk",),
+        tuning_grid={"reg_lambda": [0.01, 0.1]},
+    )
+    state = {}
+    apply_run_configuration(state, config, catalog_by_name)
+    assert state["selection_mode"] == "手动选择"
+    assert state["classifier"] == "upu"
+    assert state["params_selected_upu"] == ["loss", "max_iter"]
+    assert state["param_upu_loss"] == "logistic"
+    assert state["prior_method"] == "手动输入"
+    assert json.loads(state["tuning_text"]) == {"reg_lambda": [0.01, 0.1]}

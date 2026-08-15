@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..model_selection import PUTuner
+from ..run_config import RunConfiguration
 from ..workflows import PUPipeline
 
 __all__ = ["build_run_parser", "run_run"]
@@ -67,6 +69,12 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
     )
     parser.add_argument(
         "--out-dir", type=str, required=True, help="output directory (report.json + report.md)"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="portable JSON run configuration exported by the graphical UI",
     )
     parser.add_argument(
         "--true-labels", type=str, default=None, help="true labels CSV {0, 1} for oracle metrics"
@@ -159,28 +167,73 @@ def _run(args: argparse.Namespace) -> None:
         else None
     )
 
-    prior_estimator: str | None = None if args.prior_estimator == "none" else args.prior_estimator
+    config_path = getattr(args, "config", None)
+    config = RunConfiguration.load(config_path) if config_path is not None else None
+    classifier = _configured_value(args.classifier, "auto", config, "classifier")
+    prior_name = _configured_value(args.prior_estimator, "pen_l1", config, "prior_estimator")
+    prior_estimator: str | None = None if prior_name == "none" else prior_name
     prior_params = _parse_prior_params(args.prior_param)
-    classifier_params = _parse_classifier_params(args.classifier_param)
-    metrics = [m.strip() for m in args.metrics.split(",") if m.strip()] if args.metrics else None
+    explicit_classifier_params = _parse_classifier_params(args.classifier_param)
+    classifier_params = {
+        **(config.classifier_params if config is not None else {}),
+        **explicit_classifier_params,
+    }
+    metrics = (
+        [m.strip() for m in args.metrics.split(",") if m.strip()]
+        if args.metrics
+        else list(config.metrics)
+        if config is not None
+        else None
+    )
+    class_prior = args.class_prior
+    if class_prior is None and config is not None:
+        class_prior = config.class_prior
+    cv = _configured_value(args.cv, 5, config, "cv")
+    seed = _configured_value(args.seed, 42, config, "random_state")
+    architecture = _configured_value(args.architecture, "mlp", config, "architecture")
+    backbone = args.backbone or (config.backbone if config is not None else "cnn13")
+    device = _configured_value(args.device, "auto", config, "device")
 
-    if args.architecture == "mlp" and args.backbone is not None:
+    if architecture == "mlp" and args.backbone is not None:
         raise ValueError("--backbone is only valid with --architecture cnn")
 
-    pipe = PUPipeline(
-        classifier=args.classifier,
-        classifier_params=classifier_params,
-        prior_estimator=prior_estimator,
-        prior_params=prior_params,
-        cv=args.cv,
-        metrics=metrics,
-        random_state=args.seed,
-        architecture=args.architecture,
-        backbone=args.backbone or "cnn13",
-        device=args.device,
-        max_epochs=args.max_epochs,
-    )
-    report = pipe.fit_evaluate(X, y_pu, y_true=y_true, class_prior=args.class_prior)
+    common = {
+        "prior_estimator": prior_estimator,
+        "prior_params": prior_params,
+        "cv": cv,
+        "metrics": metrics,
+        "random_state": seed,
+        "architecture": architecture,
+        "backbone": backbone,
+        "device": device,
+        "max_epochs": args.max_epochs,
+    }
+    tuning = None
+    if config is not None and config.tuning_grid:
+        if classifier == "auto":
+            raise ValueError("a tuning configuration requires an explicit classifier.")
+        varied_grid = {
+            key: values
+            for key, values in config.tuning_grid.items()
+            if key not in explicit_classifier_params
+        }
+        param_grid = {
+            **{key: [value] for key, value in classifier_params.items()},
+            **varied_grid,
+        }
+        tuning = PUTuner(
+            classifier=classifier,
+            param_grid=param_grid,
+            scoring=config.scoring,
+            **common,
+        ).fit(X, y_pu, y_true=y_true, class_prior=class_prior)
+        report = tuning.best_report
+    else:
+        report = PUPipeline(
+            classifier=classifier,
+            classifier_params=classifier_params,
+            **common,
+        ).fit_evaluate(X, y_pu, y_true=y_true, class_prior=class_prior)
 
     if out_dir.exists():
         print(f"note: {out_dir} already exists; files will be overwritten", file=sys.stderr)
@@ -193,11 +246,27 @@ def _run(args: argparse.Namespace) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     report.save(out_dir / "report.json")
     report.save(out_dir / "report.md")
+    if tuning is not None:
+        (out_dir / "tuning.json").write_text(
+            json.dumps(tuning.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
+        )
     if args.save_model:
         with open(out_dir / "model.pkl", "wb") as f:
             pickle.dump(report.final_model, f)
     if not args.quiet:
         print(report.summary())
+
+
+def _configured_value(
+    cli_value: object,
+    cli_default: object,
+    config: RunConfiguration | None,
+    field: str,
+) -> object:
+    """Use a config value when the corresponding CLI option kept its default."""
+    if config is not None and cli_value == cli_default:
+        return getattr(config, field)
+    return cli_value
 
 
 def _read_csv(path: Path, what: str) -> pd.DataFrame:

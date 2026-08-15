@@ -22,7 +22,7 @@ def test_basic_ui_renders_upload_workflow():
     app = _run_app()
     assert not app.exception
     assert app.title[0].value == "PU Learning Toolbox"
-    assert len(app.get("file_uploader")) == 3
+    assert len(app.get("file_uploader")) == 4
 
 
 def test_param_ui_exposes_expected_upload_types():
@@ -32,6 +32,7 @@ def test_param_ui_exposes_expected_upload_types():
         "特征数据",
         "PU 标签（1/0 单列 CSV）",
         "真实标签（可选，1/0 单列 CSV）",
+        "导入配置（可选）",
     ]
 
 

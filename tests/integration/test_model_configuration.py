@@ -2,8 +2,12 @@
 
 """Integration coverage for named classifier configuration and tuning."""
 
+import json
+
+import pandas as pd
 import pytest
 
+from pu_toolbox.cli import main
 from pu_toolbox.model_selection import PUTuner
 from pu_toolbox.workflows import PipelineError, PUPipeline
 from tests.helpers import make_scar_data
@@ -27,6 +31,58 @@ def test_basic_named_classifier_parameters_are_applied(rng):
     assert cv_only.final_model is None
     assert cv_only.diagnostic is None
     assert cv_only.to_dict()["final_model"]["class"] is None
+
+
+@pytest.mark.parametrize(
+    ("tuning_grid", "has_tuning"),
+    [({}, False), ({"reg_lambda": [0.001, 0.1]}, True)],
+)
+def test_basic_cli_imports_ui_configuration(tmp_path, rng, tuning_grid, has_tuning):
+    X, y_pu, _ = make_scar_data(rng, n=40, separation=4.0)
+    data = tmp_path / "X.csv"
+    labels = tmp_path / "y.csv"
+    pd.DataFrame(X, columns=[f"x{index}" for index in range(X.shape[1])]).to_csv(data, index=False)
+    pd.DataFrame({"label": y_pu}).to_csv(labels, index=False)
+    config = tmp_path / "run.json"
+    config.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "classifier": "upu",
+                "classifier_params": {"max_iter": 30},
+                "prior_estimator": "pen_l1",
+                "class_prior": 0.4,
+                "cv": 2,
+                "metrics": ["pu_zero_one_risk"],
+                "random_state": 9,
+                "architecture": "mlp",
+                "backbone": "cnn13",
+                "device": "auto",
+                "tuning_grid": tuning_grid,
+                "scoring": "pu_zero_one_risk",
+            }
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "out"
+    main(
+        [
+            "run",
+            "--data",
+            str(data),
+            "--labels",
+            str(labels),
+            "--out-dir",
+            str(out),
+            "--config",
+            str(config),
+            "--quiet",
+        ]
+    )
+    payload = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert set(payload["cv_metrics"]) == {"pu_zero_one_risk"}
+    assert payload["provenance"]["classifier_params"]["max_iter"] == 30
+    assert (out / "tuning.json").exists() is has_tuning
 
 
 def test_param_required_constructor_value_can_be_supplied():

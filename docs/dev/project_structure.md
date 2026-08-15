@@ -117,6 +117,8 @@ pu_toolbox/
     pipeline.py                (PUPipeline 编排: 画像→先验→训练→CV→评估)
     report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
 
+  run_config.py                (UI/CLI 共用的可移植 JSON 运行配置契约)
+
   cli/                         (CLI 入口: argparse 子命令与工作流薄封装)
     __init__.py
     run.py                     (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
@@ -131,6 +133,8 @@ pu_toolbox/
   ui/                          (可选 Streamlit 图形界面，核心安装不导入 streamlit)
     __init__.py                (数据/配置辅助函数导出)
     app.py                     (上传→配置/调参→训练→诊断/下载页面)
+    configuration.py           (运行配置与 Streamlit session state 适配)
+    parameters.py              (构造器参数元数据与类型化控件)
     launcher.py                (pu-toolbox-ui 启动入口)
 ```
 
@@ -161,6 +165,7 @@ tests/
 
   unit/                               # 算法特有逻辑测试
     test_basis_single_source.py       # 单一数据源 RBF kernel 公式一致性
+    test_run_config.py                # UI/CLI 可移植运行配置 schema 与序列化
     diagnostics/
       test_report.py                  # 诊断报告指标、输入契约与序列化
       test_sensitivity.py             # 假设扫描公式、边界与导出
@@ -187,7 +192,7 @@ tests/
       test_split.py                   # PU 切分器测试
       test_tuning.py                  # PUTuner 网格、选择方向与不可用指标
     ui/
-      test_ui_helpers.py              # 上传解析、JSON 参数与模型目录（无需 streamlit）
+      test_ui_helpers.py              # 上传解析、类型化参数、配置状态与模型目录
     prior/
       test_recpe.py                   # ReCPE 特有逻辑
       test_pen_l1.py                  # penL1 特有逻辑

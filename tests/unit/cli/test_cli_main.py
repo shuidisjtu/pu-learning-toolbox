@@ -43,12 +43,31 @@ def test_basic_run_subcommand_registered_with_defaults():
         ["run", "--data", "x.csv", "--labels", "y.csv", "--out-dir", "out"]
     )
     assert args.command == "run"
+    assert args.config is None
     assert args.classifier == "auto"
     assert args.prior_estimator == "pen_l1"
     assert args.cv == 5
     assert args.seed == 42
     assert args.save_model is False
     assert args.quiet is False
+
+
+@pytest.mark.unit
+def test_param_run_parser_accepts_portable_config():
+    args = build_parser().parse_args(
+        [
+            "run",
+            "--data",
+            "x.csv",
+            "--labels",
+            "y.csv",
+            "--out-dir",
+            "out",
+            "--config",
+            "run.json",
+        ]
+    )
+    assert args.config == "run.json"
 
 
 @pytest.mark.unit

@@ -8,6 +8,7 @@ import inspect
 import io
 import json
 import pickle
+from hashlib import sha256
 from typing import Any
 
 import numpy as np
@@ -16,6 +17,8 @@ import pandas as pd
 from pu_toolbox.core.base import BasePUClassifier
 from pu_toolbox.model_selection.tuning import PUTuner, TuningResult
 from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
+from pu_toolbox.run_config import RunConfiguration
+from pu_toolbox.ui.configuration import apply_run_configuration
 from pu_toolbox.ui.parameters import parameter_schema, render_parameter_form
 from pu_toolbox.workflows import DEFAULT_METRICS, PUPipeline
 
@@ -202,6 +205,19 @@ def main() -> None:
     st.title("PU Learning Toolbox")
     st.caption("上传数据、选择或调整模型，并在一个页面内完成 PU 训练、诊断与结果下载。")
 
+    with st.sidebar:
+        st.subheader("运行配置")
+        config_file = st.file_uploader("导入配置（可选）", type=["json"], key="run_config_file")
+        imported_config = None
+        imported_digest = None
+        if config_file is not None:
+            try:
+                config_bytes = config_file.getvalue()
+                imported_config = RunConfiguration.from_json(config_bytes.decode("utf-8"))
+                imported_digest = sha256(config_bytes).hexdigest()
+            except (UnicodeDecodeError, ValueError) as exc:
+                st.error(f"配置导入失败：{exc}")
+
     st.subheader("1 · 上传数据")
     upload_columns = st.columns(3)
     feature_file = upload_columns[0].file_uploader("特征数据", type=["csv", "npy"])
@@ -241,10 +257,36 @@ def main() -> None:
     st.subheader("2 · 配置模型")
     catalog = classifier_catalog()
     catalog_by_name = {item["name"]: item for item in catalog}
+    metric_options = list(DEFAULT_METRICS) + ["pu_accuracy", "pu_f1", "pu_negative_rate"]
+    if imported_config is not None and imported_digest != st.session_state.get(
+        "applied_config_digest"
+    ):
+        try:
+            if (
+                imported_config.classifier != "auto"
+                and imported_config.classifier not in catalog_by_name
+            ):
+                raise ValueError(
+                    f"classifier {imported_config.classifier!r} is not available in this install."
+                )
+            unknown_metrics = sorted(set(imported_config.metrics) - set(metric_options))
+            if unknown_metrics:
+                raise ValueError(f"unsupported UI metrics: {unknown_metrics}.")
+            if imported_config.architecture != ("cnn" if X.ndim == 4 else "mlp"):
+                raise ValueError(
+                    "configuration architecture does not match the uploaded feature data."
+                )
+            apply_run_configuration(st.session_state, imported_config, catalog_by_name)
+            st.session_state["applied_config_digest"] = imported_digest
+            st.sidebar.success("配置已应用。")
+        except ValueError as exc:
+            st.sidebar.error(f"配置无法应用：{exc}")
     config_columns = st.columns(3)
     image_mode = X.ndim == 4
     selection_options = ["手动选择"] if image_mode else ["自动推荐", "手动选择"]
-    selection_mode = config_columns[0].radio("选择方式", selection_options, horizontal=True)
+    selection_mode = config_columns[0].radio(
+        "选择方式", selection_options, horizontal=True, key="selection_mode"
+    )
     classifier = "auto"
     if selection_mode == "手动选择":
         choices = sorted(
@@ -253,7 +295,7 @@ def main() -> None:
             if item["ui_ready"]
             and (not image_mode or name in {"infomax_pu", "weighted_contrastive_pu"})
         )
-        classifier = config_columns[1].selectbox("分类器", choices)
+        classifier = config_columns[1].selectbox("分类器", choices, key="classifier")
         selected = catalog_by_name[classifier]
         config_columns[2].markdown(
             f"族：`{selected['family']}`  \n"
@@ -264,30 +306,37 @@ def main() -> None:
         st.info("图像输入使用 CNN 模式，目前支持 InfoMax PU 与 WConPU。")
 
     settings = st.columns(4)
-    cv = settings[0].number_input("交叉验证折数", min_value=2, max_value=20, value=5)
-    seed = settings[1].number_input("随机种子", min_value=0, value=42)
-    prior_method = settings[2].selectbox("类先验", ["自动估计", "手动输入", "不使用"])
+    cv = settings[0].number_input("交叉验证折数", min_value=2, max_value=20, value=5, key="cv")
+    seed = settings[1].number_input("随机种子", min_value=0, value=42, key="seed")
+    prior_method = settings[2].selectbox(
+        "类先验", ["自动估计", "手动输入", "不使用"], key="prior_method"
+    )
     prior_estimator = settings[3].selectbox(
-        "先验估计器", ["pen_l1", "recpe", "km1", "km2"], disabled=prior_method != "自动估计"
+        "先验估计器",
+        ["pen_l1", "recpe", "km1", "km2"],
+        disabled=prior_method != "自动估计",
+        key="prior_estimator",
     )
     class_prior = None
     if prior_method == "手动输入":
-        class_prior = st.slider("正类比例 π", 0.01, 0.99, 0.50, 0.01)
+        class_prior = st.slider("正类比例 π", 0.01, 0.99, 0.50, 0.01, key="class_prior")
     elif prior_method == "不使用":
         prior_estimator = None
 
-    metric_options = list(DEFAULT_METRICS) + ["pu_accuracy", "pu_f1", "pu_negative_rate"]
-    metrics = st.multiselect("评估指标", metric_options, default=list(DEFAULT_METRICS))
+    metrics = st.multiselect(
+        "评估指标", metric_options, default=list(DEFAULT_METRICS), key="metrics"
+    )
     if not metrics:
         st.warning("至少选择一个评估指标。")
 
     classifier_params: dict[str, Any] = {}
     tuning_enabled = False
     tuning_grid: dict[str, Any] = {}
+    configuration_grid: dict[str, Any] = {}
     scoring = "pu_zero_one_risk"
     backbone = "cnn13"
     if image_mode:
-        backbone = st.selectbox("CNN 骨架", ["cnn13", "resnet18", "resnet50"])
+        backbone = st.selectbox("CNN 骨架", ["cnn13", "resnet18", "resnet50"], key="backbone")
     if classifier != "auto":
         with st.expander("模型参数与调参", expanded=True):
             parameter_rows = catalog_by_name[classifier]["parameters"]
@@ -310,15 +359,19 @@ def main() -> None:
                 "额外固定参数（高级 JSON）",
                 "{}",
                 help="用于复杂对象或批量粘贴；不能与上方已选择的参数重名。",
+                key="parameter_text",
             )
-            tuning_enabled = st.toggle("比较多组超参数")
+            tuning_enabled = st.toggle("比较多组超参数", key="tuning_enabled")
             if tuning_enabled:
                 tuning_text = st.text_area(
                     "参数网格（每个值必须是列表）",
                     "{}",
                     help='例如：{"reg_lambda": [0.001, 0.01, 0.1]}',
+                    key="tuning_text",
                 )
-                scoring = st.selectbox("选择最佳模型的指标", metrics or metric_options)
+                scoring = st.selectbox(
+                    "选择最佳模型的指标", metrics or metric_options, key="scoring"
+                )
             try:
                 advanced_params = parse_json_mapping(parameter_text, field_name="fixed parameters")
                 overlap = classifier_params.keys() & advanced_params.keys()
@@ -328,25 +381,49 @@ def main() -> None:
                     )
                 classifier_params = {**classifier_params, **advanced_params}
                 if tuning_enabled:
-                    tuning_grid = parse_json_mapping(tuning_text, field_name="parameter grid")
-                    if not tuning_grid:
+                    configuration_grid = parse_json_mapping(
+                        tuning_text, field_name="parameter grid"
+                    )
+                    if not configuration_grid:
                         raise ValueError("parameter grid cannot be empty when tuning is enabled.")
-                    tuning_grid = {
+                    configuration_grid = {
                         key: value if isinstance(value, list) else [value]
-                        for key, value in tuning_grid.items()
+                        for key, value in configuration_grid.items()
                     }
-                    overlap = classifier_params.keys() & tuning_grid.keys()
+                    overlap = classifier_params.keys() & configuration_grid.keys()
                     if overlap:
                         raise ValueError(
                             f"parameters cannot be both fixed and tuned: {sorted(overlap)}"
                         )
                     tuning_grid = {
                         **{key: [value] for key, value in classifier_params.items()},
-                        **tuning_grid,
+                        **configuration_grid,
                     }
             except ValueError as exc:
                 st.error(str(exc))
                 return
+
+    run_configuration = RunConfiguration(
+        classifier=classifier,
+        classifier_params=classifier_params,
+        prior_estimator=prior_estimator,
+        class_prior=class_prior,
+        cv=int(cv),
+        metrics=tuple(metrics),
+        random_state=int(seed),
+        architecture="cnn" if X.ndim == 4 else "mlp",
+        backbone=backbone,
+        device="auto",
+        tuning_grid=configuration_grid,
+        scoring=scoring,
+    )
+    st.download_button(
+        "导出运行配置",
+        run_configuration.to_json(),
+        "pu-run-config.json",
+        "application/json",
+        disabled=not metrics,
+    )
 
     st.subheader("3 · 训练与结果")
     if not st.button("开始分析", type="primary", use_container_width=True, disabled=not metrics):

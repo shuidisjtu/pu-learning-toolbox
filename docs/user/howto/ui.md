@@ -24,6 +24,17 @@ pu-toolbox-ui
 6. 启动分析，查看指标图表、诊断提示和全部调参 trial。
 7. 下载 JSON/Markdown 报告、预测 CSV、模型以及调参记录。
 
+侧栏可导入或导出 `pu-run-config.json`。配置包含模型、固定参数、参数网格、先验、CV、
+指标和随机种子，但不包含上传的数据。相同配置也能交给命令行复跑：
+
+```bash
+pu-toolbox run --data X.csv --labels y_pu.csv --out-dir results/ \
+  --config pu-run-config.json
+```
+
+命令行中显式提供的非默认选项和 `--classifier-param` 会覆盖配置文件对应值；若配置包含
+参数网格，命令行也会执行同样的搜索并额外生成 `tuning.json`。
+
 CSV 第一行必须是非数字列名，特征必须全部为有限数值。图像模式目前支持
 InfoMax PU 和 WConPU，可选择 CNN13、ResNet-18 或 ResNet-50；需同时安装 torch：
 
