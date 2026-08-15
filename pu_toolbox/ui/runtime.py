@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from threading import Lock
 from typing import Any
 
@@ -28,7 +28,7 @@ class BackgroundRun:
 
     def __init__(self, task: Callable[[CancellationToken, Callable[[ProgressUpdate], None]], Any]):
         self.token = CancellationToken()
-        self.started_at = datetime.now(UTC).isoformat()
+        self.started_at = datetime.now(timezone.utc).isoformat()
         self._lock = Lock()
         self._progress = ProgressUpdate("queued", 0, 1, "等待执行")
         self.future: Future[Any] = _EXECUTOR.submit(task, self.token, self._update)

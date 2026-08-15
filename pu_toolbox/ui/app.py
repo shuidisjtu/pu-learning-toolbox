@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 from typing import Any
 
@@ -368,7 +368,7 @@ def main() -> None:
             mode = st.session_state.pop("active_run_mode", "pipeline")
             history_entry = {
                 "开始时间": snapshot.started_at,
-                "结束时间": datetime.now(UTC).isoformat(),
+                "结束时间": datetime.now(timezone.utc).isoformat(),
                 "模式": mode,
             }
             try:
