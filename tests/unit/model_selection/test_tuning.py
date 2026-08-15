@@ -2,6 +2,8 @@
 
 """Tests for the PU-aware hyperparameter search."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from pu_toolbox.model_selection import PUTuner
@@ -39,7 +41,7 @@ def test_param_tuner_rejects_auto_classifier_and_empty_grid():
         PUTuner(classifier="upu", param_grid={"reg_lambda": []})
 
 
-def test_edge_tuner_rejects_unavailable_scoring(rng):
+def test_edge_tuner_rejects_unavailable_scoring_and_isolates_runtime_failure(rng, monkeypatch):
     X, y_pu, _ = make_scar_data(rng, n=80, separation=4.0)
     tuner = PUTuner(
         classifier="upu",
@@ -49,6 +51,27 @@ def test_edge_tuner_rejects_unavailable_scoring(rng):
     )
     with pytest.raises(PipelineError, match="No tuning candidate"):
         tuner.fit(X, y_pu, class_prior=0.4)
+
+    from pu_toolbox.model_selection import tuning as tuning_module
+
+    class FakePipeline:
+        def __init__(self, *, classifier_params, metrics, **kwargs):
+            self.params = classifier_params
+            self.metrics = ["pu_zero_one_risk"]
+
+        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None):
+            if self.params["backend_fails"]:
+                raise RuntimeError("simulated backend failure")
+            metric = SimpleNamespace(available=True, mean=0.25, reason=None)
+            return SimpleNamespace(cv_metrics={"pu_zero_one_risk": metric})
+
+    monkeypatch.setattr(tuning_module, "PUPipeline", FakePipeline)
+    result = PUTuner(
+        classifier="upu",
+        param_grid={"backend_fails": [True, False]},
+    ).fit(X, y_pu, class_prior=0.4)
+    assert [trial.status for trial in result.trials] == ["failed", "ok"]
+    assert "simulated backend failure" in result.trials[0].error
 
 
 def test_deterministic_parameter_grid_order():

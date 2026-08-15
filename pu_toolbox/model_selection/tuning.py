@@ -11,7 +11,6 @@ from typing import Any
 import numpy as np
 from sklearn.model_selection import ParameterGrid
 
-from ..core.exceptions import PULearningError
 from ..workflows.pipeline import DEFAULT_METRICS, PipelineError, PUPipeline
 from ..workflows.report import PipelineReport
 
@@ -141,7 +140,10 @@ class PUTuner:
                 score = float(metric.mean)
                 trials.append(TuningTrial(index, dict(params), score, "ok"))
                 successful.append((score, dict(params), report))
-            except (PULearningError, TypeError, ValueError) as exc:
+            # A single model/optimizer/backend failure must not discard the
+            # rest of the search.  Exception deliberately excludes
+            # KeyboardInterrupt and SystemExit, so users can still cancel.
+            except Exception as exc:  # noqa: BLE001 - trial isolation is the API contract
                 trials.append(TuningTrial(index, dict(params), None, "failed", str(exc)))
 
         if not successful:
