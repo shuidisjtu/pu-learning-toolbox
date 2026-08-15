@@ -157,6 +157,14 @@ metrics=None, **pipeline_params)` 对 `sklearn.model_selection.ParameterGrid` �
 所有 trial 都无法计算选择指标时抛 `PipelineError`。完整示例见
 [模型调整指南](../howto/model_tuning.md)。
 
+## PUModelComparator
+
+`PUModelComparator(classifiers=..., classifier_params=None, scoring=...,
+higher_is_better=None, metrics=None, **pipeline_params)` 在相同的 PU-aware CV 设置下比较
+至少两个显式注册名。`fit(X, y_pu, y_true=None, class_prior=None)` 返回
+`ModelComparisonResult`，包含 `best_classifier`、`best_score`、逐模型 `trials` 和已全量
+拟合的 `best_report`。失败模型被隔离记录，非最佳模型只执行 CV。
+
 ## build_encoder
 
 深度分类器的统一编码器构建入口（`pu_toolbox/estimators/deep/vision.py`），

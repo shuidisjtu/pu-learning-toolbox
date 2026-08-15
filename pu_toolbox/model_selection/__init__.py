@@ -10,12 +10,19 @@ def __getattr__(name: str):
         from pu_toolbox.model_selection import tuning
 
         return getattr(tuning, name)
+    if name in {"ModelComparisonResult", "ModelComparisonTrial", "PUModelComparator"}:
+        from pu_toolbox.model_selection import comparison
+
+        return getattr(comparison, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __all__ = [
     "PUStratifiedKFold",
     "PUStratifiedShuffleSplit",
+    "ModelComparisonResult",
+    "ModelComparisonTrial",
+    "PUModelComparator",
     "PUTuner",
     "TuningResult",
     "TuningTrial",

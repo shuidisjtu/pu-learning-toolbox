@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from ..model_selection import PUTuner
+from ..model_selection import PUModelComparator, PUTuner
 from ..run_config import RunConfiguration
 from ..workflows import PUPipeline
 
@@ -209,7 +209,15 @@ def _run(args: argparse.Namespace) -> None:
         "max_epochs": args.max_epochs,
     }
     tuning = None
-    if config is not None and config.tuning_grid:
+    comparison = None
+    if config is not None and config.comparison_classifiers:
+        comparison = PUModelComparator(
+            classifiers=config.comparison_classifiers,
+            scoring=config.scoring,
+            **common,
+        ).fit(X, y_pu, y_true=y_true, class_prior=class_prior)
+        report = comparison.best_report
+    elif config is not None and config.tuning_grid:
         if classifier == "auto":
             raise ValueError("a tuning configuration requires an explicit classifier.")
         varied_grid = {
@@ -249,6 +257,10 @@ def _run(args: argparse.Namespace) -> None:
     if tuning is not None:
         (out_dir / "tuning.json").write_text(
             json.dumps(tuning.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    if comparison is not None:
+        (out_dir / "comparison.json").write_text(
+            json.dumps(comparison.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
         )
     if args.save_model:
         with open(out_dir / "model.pkl", "wb") as f:

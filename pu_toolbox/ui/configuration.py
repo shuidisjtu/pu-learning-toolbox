@@ -15,7 +15,14 @@ def apply_run_configuration(
     catalog_by_name: dict[str, dict[str, Any]],
 ) -> None:
     """Populate widget state from a validated portable configuration."""
-    state["selection_mode"] = "自动推荐" if config.classifier == "auto" else "手动选择"
+    state["selection_mode"] = (
+        "比较模型"
+        if config.comparison_classifiers
+        else "自动推荐"
+        if config.classifier == "auto"
+        else "手动选择"
+    )
+    state["comparison_classifiers"] = list(config.comparison_classifiers)
     if config.classifier != "auto":
         state["classifier"] = config.classifier
     state["cv"] = config.cv

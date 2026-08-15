@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from pu_toolbox.cli import main
-from pu_toolbox.model_selection import PUTuner
+from pu_toolbox.model_selection import PUModelComparator, PUTuner
 from pu_toolbox.workflows import PipelineError, PUPipeline
 from tests.helpers import make_scar_data
 
@@ -34,10 +34,16 @@ def test_basic_named_classifier_parameters_are_applied(rng):
 
 
 @pytest.mark.parametrize(
-    ("tuning_grid", "has_tuning"),
-    [({}, False), ({"reg_lambda": [0.001, 0.1]}, True)],
+    ("tuning_grid", "comparison_classifiers", "classifier_params", "artifact"),
+    [
+        ({}, [], {"max_iter": 30}, None),
+        ({"reg_lambda": [0.001, 0.1]}, [], {"max_iter": 30}, "tuning.json"),
+        ({}, ["upu", "pusb"], {}, "comparison.json"),
+    ],
 )
-def test_basic_cli_imports_ui_configuration(tmp_path, rng, tuning_grid, has_tuning):
+def test_basic_cli_imports_ui_configuration(
+    tmp_path, rng, tuning_grid, comparison_classifiers, classifier_params, artifact
+):
     X, y_pu, _ = make_scar_data(rng, n=40, separation=4.0)
     data = tmp_path / "X.csv"
     labels = tmp_path / "y.csv"
@@ -49,7 +55,7 @@ def test_basic_cli_imports_ui_configuration(tmp_path, rng, tuning_grid, has_tuni
             {
                 "schema_version": 1,
                 "classifier": "upu",
-                "classifier_params": {"max_iter": 30},
+                "classifier_params": classifier_params,
                 "prior_estimator": "pen_l1",
                 "class_prior": 0.4,
                 "cv": 2,
@@ -60,6 +66,7 @@ def test_basic_cli_imports_ui_configuration(tmp_path, rng, tuning_grid, has_tuni
                 "device": "auto",
                 "tuning_grid": tuning_grid,
                 "scoring": "pu_zero_one_risk",
+                "comparison_classifiers": comparison_classifiers,
             }
         ),
         encoding="utf-8",
@@ -81,8 +88,12 @@ def test_basic_cli_imports_ui_configuration(tmp_path, rng, tuning_grid, has_tuni
     )
     payload = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert set(payload["cv_metrics"]) == {"pu_zero_one_risk"}
-    assert payload["provenance"]["classifier_params"]["max_iter"] == 30
-    assert (out / "tuning.json").exists() is has_tuning
+    if classifier_params:
+        assert payload["provenance"]["classifier_params"]["max_iter"] == 30
+    expected = {artifact} if artifact else set()
+    assert {
+        name for name in ("tuning.json", "comparison.json") if (out / name).exists()
+    } == expected
 
 
 def test_param_required_constructor_value_can_be_supplied():
@@ -114,3 +125,13 @@ def test_deterministic_tuning_grid_selects_same_result(rng):
     second = PUTuner(**kwargs).fit(X, y_pu, class_prior=0.4)
     assert first.best_params == second.best_params
     assert first.best_score == pytest.approx(second.best_score)
+
+
+def test_deterministic_model_comparison_returns_fitted_best_report(rng):
+    X, y_pu, _ = make_scar_data(rng, n=60, separation=4.0)
+    comparison = PUModelComparator(classifiers=["upu", "pusb"], cv=2, random_state=42).fit(
+        X, y_pu, class_prior=0.4
+    )
+    assert comparison.best_classifier in {"upu", "pusb"}
+    assert all(trial.status == "ok" for trial in comparison.trials)
+    assert comparison.best_report.final_model is not None

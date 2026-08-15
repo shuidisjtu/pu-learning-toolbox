@@ -97,6 +97,7 @@ pu_toolbox/
 
   model_selection/
     __init__.py
+    comparison.py              (PUModelComparator 多模型 CV 与最佳模型重训)
     split.py                   (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
     tuning.py                  (PUTuner: PU-aware 参数网格、trial 与最佳报告)
 
@@ -189,6 +190,7 @@ tests/
     metrics/
       test_classification.py          # PU 指标测试
     model_selection/
+      test_comparison.py              # 多模型比较、失败隔离与选择方向
       test_split.py                   # PU 切分器测试
       test_tuning.py                  # PUTuner 网格、选择方向与不可用指标
     ui/

@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from pu_toolbox.core.base import BasePUClassifier
+from pu_toolbox.model_selection.comparison import ModelComparisonResult, PUModelComparator
 from pu_toolbox.model_selection.tuning import PUTuner, TuningResult
 from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
 from pu_toolbox.run_config import RunConfiguration
@@ -148,7 +149,13 @@ def _metric_rows(report: Any) -> list[dict[str, Any]]:
     ]
 
 
-def _downloads(st: Any, report: Any, tuning: TuningResult | None, X: np.ndarray) -> None:
+def _downloads(
+    st: Any,
+    report: Any,
+    tuning: TuningResult | None,
+    comparison: ModelComparisonResult | None,
+    X: np.ndarray,
+) -> None:
     predictions = report.final_model.predict(X)
     prediction_csv = pd.DataFrame({"prediction": predictions}).to_csv(index=False)
     columns = st.columns(4)
@@ -190,6 +197,13 @@ def _downloads(st: Any, report: Any, tuning: TuningResult | None, X: np.ndarray)
             "下载调参记录",
             json.dumps(tuning.to_dict(), ensure_ascii=False, indent=2),
             "tuning.json",
+            "application/json",
+        )
+    if comparison is not None:
+        st.download_button(
+            "下载模型比较记录",
+            json.dumps(comparison.to_dict(), ensure_ascii=False, indent=2),
+            "comparison.json",
             "application/json",
         )
 
@@ -269,6 +283,24 @@ def main() -> None:
                 raise ValueError(
                     f"classifier {imported_config.classifier!r} is not available in this install."
                 )
+            unavailable_comparisons = sorted(
+                set(imported_config.comparison_classifiers) - set(catalog_by_name)
+            )
+            if unavailable_comparisons:
+                raise ValueError(
+                    f"comparison classifiers are not available: {unavailable_comparisons}."
+                )
+            ineligible_comparisons = [
+                name
+                for name in imported_config.comparison_classifiers
+                if any(parameter["required"] for parameter in catalog_by_name[name]["parameters"])
+                or (X.ndim == 4 and name not in {"infomax_pu", "weighted_contrastive_pu"})
+            ]
+            if ineligible_comparisons:
+                raise ValueError(
+                    "comparison classifiers need unsupported required parameters or input mode: "
+                    f"{ineligible_comparisons}."
+                )
             unknown_metrics = sorted(set(imported_config.metrics) - set(metric_options))
             if unknown_metrics:
                 raise ValueError(f"unsupported UI metrics: {unknown_metrics}.")
@@ -283,11 +315,14 @@ def main() -> None:
             st.sidebar.error(f"配置无法应用：{exc}")
     config_columns = st.columns(3)
     image_mode = X.ndim == 4
-    selection_options = ["手动选择"] if image_mode else ["自动推荐", "手动选择"]
+    selection_options = (
+        ["手动选择", "比较模型"] if image_mode else ["自动推荐", "手动选择", "比较模型"]
+    )
     selection_mode = config_columns[0].radio(
         "选择方式", selection_options, horizontal=True, key="selection_mode"
     )
     classifier = "auto"
+    comparison_classifiers: list[str] = []
     if selection_mode == "手动选择":
         choices = sorted(
             name
@@ -302,6 +337,21 @@ def main() -> None:
             f"需要类先验：`{selected['requires_class_prior']}`  \n"
             f"GPU：`{selected['supports_gpu']}`"
         )
+    elif selection_mode == "比较模型":
+        choices = sorted(
+            name
+            for name, item in catalog_by_name.items()
+            if item["ui_ready"]
+            and not any(parameter["required"] for parameter in item["parameters"])
+            and (not image_mode or name in {"infomax_pu", "weighted_contrastive_pu"})
+        )
+        comparison_classifiers = config_columns[1].multiselect(
+            "待比较模型",
+            choices,
+            default=choices[:2],
+            key="comparison_classifiers",
+        )
+        config_columns[2].caption("所有模型使用相同的先验、CV、指标和随机种子。")
     if image_mode:
         st.info("图像输入使用 CNN 模式，目前支持 InfoMax PU 与 WConPU。")
 
@@ -328,12 +378,17 @@ def main() -> None:
     )
     if not metrics:
         st.warning("至少选择一个评估指标。")
+    if comparison_classifiers:
+        scoring = st.selectbox(
+            "选择最佳模型的指标", metrics or metric_options, key="comparison_scoring"
+        )
+    else:
+        scoring = "pu_zero_one_risk"
 
     classifier_params: dict[str, Any] = {}
     tuning_enabled = False
     tuning_grid: dict[str, Any] = {}
     configuration_grid: dict[str, Any] = {}
-    scoring = "pu_zero_one_risk"
     backbone = "cnn13"
     if image_mode:
         backbone = st.selectbox("CNN 骨架", ["cnn13", "resnet18", "resnet50"], key="backbone")
@@ -416,6 +471,7 @@ def main() -> None:
         device="auto",
         tuning_grid=configuration_grid,
         scoring=scoring,
+        comparison_classifiers=tuple(comparison_classifiers),
     )
     st.download_button(
         "导出运行配置",
@@ -426,7 +482,15 @@ def main() -> None:
     )
 
     st.subheader("3 · 训练与结果")
-    if not st.button("开始分析", type="primary", use_container_width=True, disabled=not metrics):
+    invalid_comparison = selection_mode == "比较模型" and len(comparison_classifiers) < 2
+    if invalid_comparison:
+        st.warning("模型比较至少需要选择两个模型。")
+    if not st.button(
+        "开始分析",
+        type="primary",
+        use_container_width=True,
+        disabled=not metrics or invalid_comparison,
+    ):
         return
 
     common = {
@@ -441,7 +505,15 @@ def main() -> None:
     try:
         with st.spinner("正在执行数据画像、PU 分层验证和模型训练……"):
             tuning = None
-            if tuning_enabled:
+            comparison = None
+            if comparison_classifiers:
+                comparison = PUModelComparator(
+                    classifiers=comparison_classifiers,
+                    scoring=scoring,
+                    **common,
+                ).fit(X, y_pu, y_true=y_true, class_prior=class_prior)
+                report = comparison.best_report
+            elif tuning_enabled:
                 tuner = PUTuner(
                     classifier=classifier,
                     param_grid=tuning_grid,
@@ -461,6 +533,10 @@ def main() -> None:
         return
 
     st.success("分析完成。")
+    if comparison is not None:
+        st.write("最佳模型", comparison.best_classifier)
+        st.metric(f"最佳 {comparison.scoring}", f"{comparison.best_score:.6f}")
+        st.dataframe([trial.to_dict() for trial in comparison.trials], use_container_width=True)
     if tuning is not None:
         st.write("最佳参数", tuning.best_params)
         st.metric(f"最佳 {tuning.scoring}", f"{tuning.best_score:.6f}")
@@ -483,7 +559,7 @@ def main() -> None:
             st.warning(message)
         else:
             st.info(message)
-    _downloads(st, report, tuning, X)
+    _downloads(st, report, tuning, comparison, X)
 
 
 if __name__ == "__main__":

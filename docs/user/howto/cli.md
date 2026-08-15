@@ -108,7 +108,8 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 `pu-toolbox run` 等价于 `PUPipeline(classifier=..., prior_estimator=..., cv=..., metrics=..., random_state=...).fit_evaluate(X, y_pu, y_true=..., class_prior=...)`。
 图形界面导出的配置可直接传给 `run --config`；配置内含参数网格时会运行 `PUTuner` 并
-生成 `tuning.json`。手写搜索或自定义 CV splitter 仍可使用 Python API 的 `PUTuner` /
+生成 `tuning.json`，包含多模型设置时会运行 `PUModelComparator` 并生成
+`comparison.json`。手写搜索或自定义 CV splitter 仍可使用 Python API 的 `PUTuner` /
 `PUPipeline`，详见[模型调整指南](model_tuning.md)。不想使用命令行可启动
 [图形界面](ui.md)。
 

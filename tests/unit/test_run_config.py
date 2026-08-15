@@ -50,3 +50,22 @@ def test_deterministic_configuration_serialization():
     config = RunConfiguration(classifier="upu", classifier_params={"z": 1, "a": 2})
     assert config.to_json() == config.to_json()
     assert config.to_json().index('"a"') < config.to_json().index('"z"')
+
+
+def test_param_comparison_configuration_round_trip():
+    config = RunConfiguration.from_mapping(
+        {
+            "classifier": "auto",
+            "comparison_classifiers": ["upu", "pnu"],
+            "metrics": ["pu_zero_one_risk"],
+        }
+    )
+    assert config.comparison_classifiers == ("upu", "pnu")
+    assert RunConfiguration.from_json(config.to_json()) == config
+    with pytest.raises(ValueError, match="cannot run together"):
+        RunConfiguration.from_mapping(
+            {
+                "comparison_classifiers": ["upu", "pnu"],
+                "tuning_grid": {"reg_lambda": [0.1]},
+            }
+        )

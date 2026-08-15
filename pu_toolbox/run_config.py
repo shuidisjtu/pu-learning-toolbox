@@ -29,6 +29,7 @@ class RunConfiguration:
     device: str = "auto"
     tuning_grid: dict[str, list[Any]] = field(default_factory=dict)
     scoring: str = "pu_zero_one_risk"
+    comparison_classifiers: tuple[str, ...] = ()
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> RunConfiguration:
@@ -58,6 +59,7 @@ class RunConfiguration:
         device = value.get("device", "auto")
         tuning_grid = value.get("tuning_grid", {})
         scoring = value.get("scoring", "pu_zero_one_risk")
+        comparison_classifiers = value.get("comparison_classifiers", [])
 
         if not isinstance(classifier, str) or not classifier:
             raise ValueError("classifier must be a non-empty string.")
@@ -96,6 +98,19 @@ class RunConfiguration:
             normalized_grid[key] = list(candidates)
         if not isinstance(scoring, str) or not scoring:
             raise ValueError("scoring must be a non-empty string.")
+        if not isinstance(comparison_classifiers, list) or any(
+            not isinstance(name, str) or not name or name == "auto"
+            for name in comparison_classifiers
+        ):
+            raise ValueError("comparison_classifiers must be a list of explicit names.")
+        if comparison_classifiers and len(comparison_classifiers) < 2:
+            raise ValueError("comparison_classifiers must contain at least two names.")
+        if len(set(comparison_classifiers)) != len(comparison_classifiers):
+            raise ValueError("comparison_classifiers must be unique.")
+        if comparison_classifiers and tuning_grid:
+            raise ValueError("model comparison and parameter tuning cannot run together.")
+        if comparison_classifiers and classifier_params:
+            raise ValueError("classifier_params are not supported for a model comparison.")
         config = cls(
             classifier=classifier,
             classifier_params=dict(classifier_params),
@@ -109,6 +124,7 @@ class RunConfiguration:
             device=device,
             tuning_grid=normalized_grid,
             scoring=scoring,
+            comparison_classifiers=tuple(comparison_classifiers),
         )
         # Fail here with a readable message instead of later at download time.
         try:
@@ -149,6 +165,7 @@ class RunConfiguration:
             "device": self.device,
             "tuning_grid": {key: list(values) for key, values in self.tuning_grid.items()},
             "scoring": self.scoring,
+            "comparison_classifiers": list(self.comparison_classifiers),
         }
 
     def to_json(self) -> str:

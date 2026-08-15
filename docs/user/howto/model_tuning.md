@@ -81,3 +81,25 @@ best_model = result.best_report.final_model
 
 图形界面包含固定参数编辑器和网格搜索面板，不需要编写 Python。安装与操作见
 [图形界面](ui.md)。
+
+## 比较多个模型
+
+`PUModelComparator` 用完全相同的先验、PU 分层 CV 和指标比较多个注册模型，并只对最佳
+模型执行最终全量重训：
+
+```python
+from pu_toolbox.model_selection import PUModelComparator
+
+comparison = PUModelComparator(
+    classifiers=["upu", "pnu", "pusb"],
+    scoring="pu_zero_one_risk",
+    cv=5,
+    random_state=42,
+).fit(X, y_pu, class_prior=0.4)
+
+print(comparison.best_classifier, comparison.best_score)
+best_model = comparison.best_report.final_model
+```
+
+单个方法失败时会记为 `failed` 并继续；只有全部方法都失败或评分不可用时才抛出
+`PipelineError`。
