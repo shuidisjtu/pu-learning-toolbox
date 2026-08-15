@@ -23,12 +23,12 @@
 - [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
-## 发布状态 (v1.4.0)
+## 发布状态 (v1.5.0)
 
-- **版本**: `1.4.0`（2026-08-14：新增通用 benchmark 产物审计 API 与
-  `audit-benchmark` CLI；完成 InfoMax Fashion-MNIST 三先验 × 20 seeds 实验矩阵及
-  provenance 锁定；加固 PU split、配置哈希、trial/seed 和指标完整性检查；完成第三轮
-  架构治理、ADR 迁移与开发文档目录收敛）
+- **版本**: `1.5.0`（2026-08-15：新增 `classifier_params` 与 CLI
+  `--classifier-param`，支持按注册名调整模型；新增 PU-aware `PUTuner`，搜索阶段仅做
+  CV 并只重训最佳候选；新增 Streamlit 图形界面，支持数据上传、模型配置、参数搜索、
+  指标与诊断展示，以及报告、预测和模型下载）
 - **算法**: 17 个已注册方法，全部 native 实现
 - **质量门禁**: 6 道（test_quality / doc_links / project_metadata / math_rendering / skill_sync / format）
 - **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
