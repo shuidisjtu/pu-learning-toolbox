@@ -1,13 +1,9 @@
 # ruff: noqa: N803, N806
 
-"""Streamlit application and dependency-light UI helpers."""
+"""Streamlit page coordinator for PU Learning Toolbox."""
 
 from __future__ import annotations
 
-import inspect
-import io
-import json
-import pickle
 import time
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -16,200 +12,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from pu_toolbox.core.base import BasePUClassifier
-from pu_toolbox.model_selection.comparison import ModelComparisonResult
-from pu_toolbox.model_selection.tuning import TuningResult
-from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
 from pu_toolbox.run_config import RunConfiguration
-from pu_toolbox.ui.configuration import apply_run_configuration
+from pu_toolbox.ui.configuration import apply_run_configuration, parse_json_mapping
+from pu_toolbox.ui.data import load_feature_data, load_label_data
 from pu_toolbox.ui.execution import AnalysisResult, execute_analysis
-from pu_toolbox.ui.parameters import parameter_schema, render_parameter_form
+from pu_toolbox.ui.parameters import classifier_catalog, render_parameter_form
+from pu_toolbox.ui.results import render_results
 from pu_toolbox.ui.runtime import BackgroundRun, submit_background
 from pu_toolbox.workflows import DEFAULT_METRICS
-
-_MANAGED_PARAMS = {"class_prior", "random_state", "encoder", "device"}
-
-
-def parse_json_mapping(text: str, *, field_name: str) -> dict[str, Any]:
-    """Parse a JSON object used by the advanced parameter editors."""
-    try:
-        value = json.loads(text or "{}")
-    except json.JSONDecodeError as exc:
-        raise ValueError(
-            f"{field_name} is not valid JSON: line {exc.lineno}, column {exc.colno}."
-        ) from exc
-    if not isinstance(value, dict):
-        raise ValueError(f"{field_name} must be a JSON object.")
-    if any(not isinstance(key, str) or not key for key in value):
-        raise ValueError(f"{field_name} keys must be non-empty strings.")
-    return value
-
-
-def _read_csv_bytes(content: bytes, *, what: str) -> pd.DataFrame:
-    if not content:
-        raise ValueError(f"{what} file is empty.")
-    frame = pd.read_csv(io.BytesIO(content))
-    if frame.empty:
-        raise ValueError(f"{what} file has no data rows.")
-    # A fully numeric first row is consumed as column names by pandas. Keep
-    # the CLI's safety contract and reject this ambiguous, headerless input.
-    try:
-        [float(column) for column in frame.columns]
-    except (TypeError, ValueError):
-        pass
-    else:
-        raise ValueError(f"{what} CSV needs a non-numeric header row.")
-    return frame
-
-
-def load_feature_data(content: bytes, filename: str) -> tuple[np.ndarray, list[str]]:
-    """Load a UI upload as numeric CSV table or 4-D NCHW ``.npy`` data."""
-    if filename.lower().endswith(".npy"):
-        array = np.load(io.BytesIO(content), allow_pickle=False)
-        if array.ndim != 4:
-            raise ValueError(f"image data must be 4-D NCHW; got shape {array.shape}.")
-        array = array.astype(np.float32, copy=False)
-        columns = [f"channel_{index}" for index in range(array.shape[1])]
-    else:
-        frame = _read_csv_bytes(content, what="feature")
-        try:
-            array = frame.to_numpy(dtype=float)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("feature CSV must contain only numeric values.") from exc
-        columns = [str(column) for column in frame.columns]
-    if not np.isfinite(array).all():
-        raise ValueError("feature data contains NaN or Inf values; clean or impute it first.")
-    return array, columns
-
-
-def load_label_data(content: bytes, *, what: str = "labels") -> np.ndarray:
-    """Load a single-column CSV label upload."""
-    frame = _read_csv_bytes(content, what=what)
-    if frame.shape[1] != 1:
-        raise ValueError(f"{what} CSV must have exactly one column; got {frame.shape[1]}.")
-    try:
-        numeric = frame.iloc[:, 0].to_numpy(dtype=float)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{what} must contain numeric labels in {{0, 1}}.") from exc
-    if not np.isfinite(numeric).all():
-        raise ValueError(f"{what} contains NaN or Inf values.")
-    if not np.equal(numeric, np.floor(numeric)).all():
-        raise ValueError(f"{what} must contain integer labels in {{0, 1}}; decimals are invalid.")
-    values = numeric.astype(int)
-    invalid = sorted(set(np.unique(values)) - {0, 1})
-    if invalid:
-        raise ValueError(f"{what} must contain only labels {{0, 1}}; got invalid values {invalid}.")
-    return values
-
-
-def classifier_catalog() -> list[dict[str, Any]]:
-    """Return trainable classifier metadata and constructor fields for the UI."""
-    register_all_builtin_methods()
-    catalog: list[dict[str, Any]] = []
-    for metadata in sorted(list_algorithms(trainable_only=True), key=lambda item: item.name):
-        try:
-            cls = get_algorithm(metadata.name)
-        except Exception:  # noqa: BLE001 - registry may hold unavailable optional implementations
-            continue
-        if not isinstance(cls, type) or not issubclass(cls, BasePUClassifier):
-            continue
-        parameters = []
-        for name, parameter in inspect.signature(cls.__init__).parameters.items():
-            if name == "self" or name in _MANAGED_PARAMS:
-                continue
-            if parameter.kind in (
-                inspect.Parameter.VAR_POSITIONAL,
-                inspect.Parameter.VAR_KEYWORD,
-            ):
-                continue
-            parameters.append(parameter_schema(name, parameter))
-        ui_ready = all(
-            not parameter["required"] or parameter["type"] in {"bool", "float", "int", "str"}
-            for parameter in parameters
-        )
-        catalog.append(
-            {
-                "name": metadata.name,
-                "family": metadata.family.value,
-                "requires_class_prior": metadata.requires_class_prior,
-                "supports_gpu": metadata.supports_gpu,
-                "ui_ready": ui_ready,
-                "parameters": parameters,
-            }
-        )
-    return catalog
-
-
-def _metric_rows(report: Any) -> list[dict[str, Any]]:
-    return [
-        {
-            "metric": name,
-            "mean": metric.mean,
-            "std": metric.std,
-            "basis": metric.basis,
-            "available": metric.available,
-        }
-        for name, metric in report.cv_metrics.items()
-    ]
-
-
-def _downloads(
-    st: Any,
-    report: Any,
-    tuning: TuningResult | None,
-    comparison: ModelComparisonResult | None,
-    X: np.ndarray,
-) -> None:
-    predictions = report.final_model.predict(X)
-    prediction_csv = pd.DataFrame({"prediction": predictions}).to_csv(index=False)
-    columns = st.columns(4)
-    columns[0].download_button(
-        "下载 JSON 报告",
-        report.to_json(),
-        "report.json",
-        "application/json",
-        use_container_width=True,
-    )
-    columns[1].download_button(
-        "下载 Markdown",
-        report.to_markdown(),
-        "report.md",
-        "text/markdown",
-        use_container_width=True,
-    )
-    columns[2].download_button(
-        "下载预测结果",
-        prediction_csv,
-        "predictions.csv",
-        "text/csv",
-        use_container_width=True,
-    )
-    try:
-        model_bytes = pickle.dumps(report.final_model)
-    except Exception:  # noqa: BLE001 - some user-injected torch modules are not picklable
-        columns[3].button("模型不可序列化", disabled=True, use_container_width=True)
-    else:
-        columns[3].download_button(
-            "下载训练模型",
-            model_bytes,
-            "model.pkl",
-            "application/octet-stream",
-            use_container_width=True,
-        )
-    if tuning is not None:
-        st.download_button(
-            "下载调参记录",
-            json.dumps(tuning.to_dict(), ensure_ascii=False, indent=2),
-            "tuning.json",
-            "application/json",
-        )
-    if comparison is not None:
-        st.download_button(
-            "下载模型比较记录",
-            json.dumps(comparison.to_dict(), ensure_ascii=False, indent=2),
-            "comparison.json",
-            "application/json",
-        )
 
 
 def main() -> None:
@@ -587,37 +397,7 @@ def main() -> None:
     analysis: AnalysisResult | None = st.session_state.get("analysis_result")
     if analysis is None:
         return
-    report = analysis.report
-    tuning = analysis.tuning
-    comparison = analysis.comparison
-    st.success("分析完成。")
-    if comparison is not None:
-        st.write("最佳模型", comparison.best_classifier)
-        st.metric(f"最佳 {comparison.scoring}", f"{comparison.best_score:.6f}")
-        st.dataframe([trial.to_dict() for trial in comparison.trials], use_container_width=True)
-    if tuning is not None:
-        st.write("最佳参数", tuning.best_params)
-        st.metric(f"最佳 {tuning.scoring}", f"{tuning.best_score:.6f}")
-        st.dataframe([trial.to_dict() for trial in tuning.trials], use_container_width=True)
-
-    metric_frame = pd.DataFrame(_metric_rows(report))
-    st.dataframe(metric_frame, hide_index=True, use_container_width=True)
-    chart = metric_frame.loc[metric_frame["available"], ["metric", "mean"]].set_index("metric")
-    if not chart.empty:
-        st.bar_chart(chart)
-
-    st.markdown("#### 诊断提示")
-    if not report.issues:
-        st.success("当前检查未发现问题。")
-    for issue in report.issues:
-        message = f"**{issue.code}**：{issue.message}  \n建议：{issue.action}"
-        if issue.severity == "error":
-            st.error(message)
-        elif issue.severity == "warning":
-            st.warning(message)
-        else:
-            st.info(message)
-    _downloads(st, report, tuning, comparison, X)
+    render_results(st, analysis, X)
 
 
 if __name__ == "__main__":

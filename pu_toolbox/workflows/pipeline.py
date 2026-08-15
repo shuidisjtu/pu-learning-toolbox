@@ -11,47 +11,45 @@ a method name (or ``"auto"`` for recommender-driven selection).
 from __future__ import annotations
 
 import contextlib
-import inspect
 import warnings
 from collections.abc import Sequence
-from typing import Any, Literal, get_args, get_origin, get_type_hints
+from typing import Any
 
 import numpy as np
-from sklearn.base import clone
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
-from ..core.config import POSITIVE_LABEL
 from ..core.device import resolve_device_name
-from ..core.exceptions import PULearningError, RegistryError, ValidationError
+from ..core.exceptions import RegistryError
 from ..core.tags import Backend, TrainingCost
-from ..core.validation import (
-    check_scalar_in_range,
-    validate_pu_X_y,
-    validate_true_binary_labels,
-)
+from ..core.validation import check_scalar_in_range
 from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
-from ..metrics.classification import (
-    pu_accuracy,
-    pu_auc_roc,
-    pu_estimated_precision,
-    pu_f1,
-    pu_negative_rate,
-    pu_recall,
-    pu_zero_one_risk,
-)
 from ..model_selection.split import PUStratifiedKFold
-from ..preprocessing.data_profiler import ProfileIssue, PUDataProfile, profile_pu_data
+from ..preprocessing.data_profiler import profile_pu_data
 from ..progress import CancellationToken, ProgressCallback, emit_progress
 from ..registry import RecommendationResult, recommend_from_profile
 from ..registry.registry import get_algorithm, get_metadata
-from .report import CVMetric, PipelineReport, PriorInfo
+from ._errors import PipelineError
+from ._evaluation import (
+    DEFAULT_METRICS,
+    compute_metric,
+    extract_scores,
+    resolve_metric_names,
+    run_cross_validation,
+)
+from ._inputs import prepare_pipeline_inputs
+from ._models import (
+    declares_encoder_parameter,
+    fresh_estimator,
+    missing_required_params,
+    pick_first_instantiable,
+    resolve_classifier_name,
+    validate_classifier_params,
+    validate_prior_param_types,
+)
+from ._reporting import build_pipeline_report
+from .report import PipelineReport, PriorInfo
 
 __all__ = ["DEFAULT_METRICS", "PipelineError", "PUPipeline"]
-
-# Parameters the pipeline itself can always supply when instantiating a
-# classifier from a registry name.  Anything else required by the
-# constructor blocks auto-instantiation.
-_ALWAYS_PROVIDED = {"class_prior", "random_state"}
 
 # Parameters owned by workflow orchestration.  Letting classifier_params
 # override these would make CV folds disagree with report provenance (or, for
@@ -74,95 +72,6 @@ def _ensure_registered() -> None:
     from ..registry.builtin_methods import register_all_builtin_methods
 
     register_all_builtin_methods()
-
-
-class PipelineError(PULearningError):
-    """Workflow orchestration failed (unresolvable classifier/prior, etc.)."""
-
-
-DEFAULT_METRICS: tuple[str, ...] = (
-    "pu_zero_one_risk",
-    "pu_recall",
-    "pu_estimated_precision",
-    "pu_auc_roc",
-)
-
-_METRIC_ALIASES = {
-    "pu_risk": "pu_zero_one_risk",
-    "risk": "pu_zero_one_risk",
-    "auc": "pu_auc_roc",
-    "roc_auc": "pu_auc_roc",
-    "recall": "pu_recall",
-    "precision": "pu_estimated_precision",
-    "accuracy": "pu_accuracy",
-    "f1": "pu_f1",
-    "negative_rate": "pu_negative_rate",
-}
-
-_METRIC_SPECS = {
-    "pu_zero_one_risk": {
-        "needs_scores": True,
-        "needs_prior": True,
-        "needs_y_true": False,
-        "basis": "class_prior_dependent",
-    },
-    "pu_recall": {
-        "needs_scores": False,
-        "needs_prior": False,
-        "needs_y_true": False,
-        "basis": "pu_observed",
-    },
-    "pu_estimated_precision": {
-        "needs_scores": False,
-        "needs_prior": True,
-        "needs_y_true": False,
-        "basis": "class_prior_dependent",
-    },
-    "pu_auc_roc": {
-        "needs_scores": True,
-        "needs_prior": False,
-        "needs_y_true": True,
-        "basis": "supervised_oracle",
-    },
-    "pu_accuracy": {
-        "needs_scores": False,
-        "needs_prior": False,
-        "needs_y_true": True,
-        "basis": "supervised_oracle",
-    },
-    "pu_f1": {
-        "needs_scores": False,
-        "needs_prior": False,
-        "needs_y_true": True,
-        "basis": "supervised_oracle",
-    },
-    "pu_negative_rate": {
-        "needs_scores": False,
-        "needs_prior": False,
-        "needs_y_true": False,
-        "basis": "pu_observed",
-    },
-}
-
-
-def _resolve_metric_names(metrics: Sequence[str] | None) -> list[str]:
-    """Normalize user-supplied metric names through the alias table."""
-    if metrics is None:
-        return list(DEFAULT_METRICS)
-    resolved: list[str] = []
-    for name in metrics:
-        canonical = _METRIC_ALIASES.get(name, name)
-        if canonical not in _METRIC_SPECS:
-            raise ValueError(
-                f"Unknown metric {name!r}. Available: "
-                + ", ".join(sorted(_METRIC_SPECS))
-                + f" (aliases: {sorted(_METRIC_ALIASES)})"
-            )
-        if canonical not in resolved:
-            resolved.append(canonical)
-    if not resolved:
-        raise ValueError("metrics must contain at least one metric name.")
-    return resolved
 
 
 class PUPipeline:
@@ -273,14 +182,14 @@ class PUPipeline:
                 "configure the instance directly instead."
             )
         self.random_state = random_state
-        self.metrics = _resolve_metric_names(metrics)
+        self.metrics = resolve_metric_names(metrics)
 
         # -- classifier: fail fast on unresolvable names -----------------
         if isinstance(classifier, str) and classifier != "auto":
-            self._classifier_cls = _resolve_classifier_name(
+            self._classifier_cls = resolve_classifier_name(
                 classifier, provided_params=set(self.classifier_params)
             )
-            _validate_classifier_params(self._classifier_cls, self.classifier_params, classifier)
+            validate_classifier_params(self._classifier_cls, self.classifier_params, classifier)
             self._classifier_name = classifier
         elif isinstance(classifier, BasePUClassifier):
             self._classifier_cls = None
@@ -314,7 +223,7 @@ class PUPipeline:
                     "architecture='mlp' (default)."
                 )
             encoder_cls = self._classifier_cls or type(classifier)
-            if not _declares_encoder_parameter(encoder_cls):
+            if not declares_encoder_parameter(encoder_cls):
                 raise PipelineError(
                     f"architecture='cnn' requires classifier "
                     f"{self._classifier_name!r} to declare an 'encoder' "
@@ -508,7 +417,7 @@ class PUPipeline:
                 has_gpu=resolve_device_name(self.device) == "cuda",
                 top_k=10,
             )
-            classifier_cls, skipped_candidates = _pick_first_instantiable(recommendation.candidates)
+            classifier_cls, skipped_candidates = pick_first_instantiable(recommendation.candidates)
             if classifier_cls is None:
                 raise PipelineError(
                     "auto mode found no candidate that can be auto-instantiated. "
@@ -558,13 +467,9 @@ class PUPipeline:
                 )
 
         # -- Cross-validation ---------------------------------------------
-        per_fold: dict[str, list[float | None]] = {name: [] for name in self.metrics}
-        fold_reasons: dict[str, list[str]] = {name: [] for name in self.metrics}
-        for fold_index, (train_idx, test_idx) in enumerate(splitter.split(X, y_pu), start=1):
-            if cancellation_token is not None:
-                cancellation_token.raise_if_cancelled()
+        def evaluate_fold(train_idx: np.ndarray, test_idx: np.ndarray):
             clf = self._fresh_estimator(classifier_cls, classifier_instance, prior)
-            outcomes = self._fit_and_evaluate_one(
+            return self._fit_and_evaluate_one(
                 clf,
                 X[train_idx],
                 y_pu[train_idx],
@@ -573,30 +478,18 @@ class PUPipeline:
                 y_true[test_idx] if y_true is not None else None,
                 prior,
             )
-            for name in self.metrics:
-                value, reason = outcomes[name]
-                per_fold[name].append(value)
-                if reason is not None:
-                    fold_reasons[name].append(reason)
-            emit_progress(
-                progress_callback,
-                stage="cross_validation",
-                completed=2 + fold_index,
-                total=total_steps,
-                message=f"交叉验证 {fold_index}/{n_splits}",
-            )
 
-        cv_metrics = {
-            name: CVMetric(
-                name=name,
-                per_fold=tuple(per_fold[name]),
-                basis=_METRIC_SPECS[name]["basis"],
-                reason=_aggregate_reason(
-                    fold_reasons[name], all(value is None for value in per_fold[name])
-                ),
-            )
-            for name in self.metrics
-        }
+        cv_metrics = run_cross_validation(
+            X=X,
+            y_pu=y_pu,
+            splitter=splitter,
+            n_splits=n_splits,
+            metrics=self.metrics,
+            evaluate_fold=evaluate_fold,
+            total_steps=total_steps,
+            progress_callback=progress_callback,
+            cancellation_token=cancellation_token,
+        )
 
         # -- Optional final model (full refit) + final diagnostic ----------
         final_model: BasePUClassifier | None = None
@@ -615,7 +508,7 @@ class PUPipeline:
             final_model.fit(X, y_pu, class_prior=prior)
             if cancellation_token is not None:
                 cancellation_token.raise_if_cancelled()
-            if _extract_scores(final_model, X) is not None:
+            if extract_scores(final_model, X) is not None:
                 diagnostic = build_diagnostic_report(
                     X,
                     y_pu,
@@ -642,7 +535,7 @@ class PUPipeline:
                 )
 
         # -- Assemble report ----------------------------------------------
-        report = self._build_report(
+        report = build_pipeline_report(
             profile=profile,
             prior_info=prior_info,
             recommendation=recommendation,
@@ -656,6 +549,8 @@ class PUPipeline:
             n_splits=n_splits,
             final_model=final_model,
             diagnostic=diagnostic,
+            random_state=self.random_state,
+            classifier_params=self.classifier_params,
         )
         emit_progress(
             progress_callback,
@@ -779,7 +674,7 @@ class PUPipeline:
 
             if cls is KernelMeanPriorEstimator:
                 kwargs.setdefault("variant", name)
-            _validate_prior_param_types(cls, kwargs, name)
+            validate_prior_param_types(cls, kwargs, name)
         try:
             return cls(**kwargs)
         except TypeError as exc:
@@ -792,36 +687,17 @@ class PUPipeline:
         prior: float | None,
     ) -> BasePUClassifier:
         """Clone an instance, or instantiate a class with injected params."""
-        if instance is not None:
-            clf = clone(instance)
-            # The pipeline builds the CNN encoder even for instance paths
-            # (architecture='cnn' + a declared encoder parameter); inject
-            # it so the built encoder is consumed instead of discarded.
-            if (
-                self._encoder is not None
-                and "encoder" in inspect.signature(type(instance).__init__).parameters
-            ):
-                clf.set_params(encoder=self._encoder)
-            return clf
-        assert cls is not None
-        kwargs: dict[str, Any] = dict(self.classifier_params)
-        signature = inspect.signature(cls.__init__)
-        if prior is not None and "class_prior" in signature.parameters:
-            kwargs["class_prior"] = prior
-        if "random_state" in signature.parameters and self.random_state is not None:
-            kwargs["random_state"] = self.random_state
-        if "encoder" in signature.parameters and self._encoder is not None:
-            kwargs["encoder"] = self._encoder
-        if "device" in signature.parameters and self.device is not None:
-            kwargs["device"] = self.device
-        if "max_epochs" in signature.parameters and self.max_epochs is not None:
-            kwargs["max_epochs"] = self.max_epochs
-        try:
-            return cls(**kwargs)
-        except (TypeError, ValueError) as exc:
-            raise PipelineError(
-                f"invalid classifier parameters for '{self._classifier_name}': {exc}"
-            ) from exc
+        return fresh_estimator(
+            cls=cls,
+            instance=instance,
+            prior=prior,
+            classifier_params=self.classifier_params,
+            random_state=self.random_state,
+            encoder=self._encoder,
+            device=self.device,
+            max_epochs=self.max_epochs,
+            classifier_name=self._classifier_name,
+        )
 
     def _resolved_splitter(self, X: Any, y_pu: np.ndarray) -> Any:
         if isinstance(self.cv, int):
@@ -837,39 +713,14 @@ class PUPipeline:
         y_true: np.ndarray | None,
     ) -> tuple[Any, np.ndarray, np.ndarray | None, Any, Any, int]:
         """Validate inputs and resolve the CV splitter for the workflow."""
-        X, y_pu = validate_pu_X_y(
+        return prepare_pipeline_inputs(
             X,
             y_pu,
-            allow_nd=True,
-            estimator_name="PUPipeline",
+            y_true,
+            is_deep=self._is_deep,
+            architecture=self.architecture,
+            resolve_splitter=self._resolved_splitter,
         )
-        if X.ndim not in (2, 4):
-            raise ValidationError(f"X must be 2-D (table) or 4-D (NCHW images); got ndim={X.ndim}.")
-        if X.ndim == 4 and not (self._is_deep and self.architecture == "cnn"):
-            raise PipelineError(
-                "4-D image inputs require an explicit deep classifier "
-                "(wconpu or infomax_pu) with architecture='cnn'."
-            )
-        if X.ndim == 2 and self.architecture == "cnn":
-            raise PipelineError(
-                "architecture='cnn' requires 4-D NCHW image inputs; "
-                "got 2-D data. Use architecture='mlp' for tables."
-            )
-        # 4-D 图像：prior 估计与数据画像在展平视图上进行（标签层面的量）
-        analysis_X = X.reshape(X.shape[0], -1) if X.ndim == 4 else X
-        n_samples = X.shape[0]
-        if y_true is not None:
-            y_true = _validate_y_true(y_true, n_samples)
-
-        splitter = self._resolved_splitter(X, y_pu)
-        n_splits = _resolved_n_splits(splitter, X, y_pu)
-        n_pos = int((y_pu == POSITIVE_LABEL).sum())
-        if n_pos < n_splits:
-            raise ValidationError(
-                f"n_labeled_positives ({n_pos}) < n_splits ({n_splits}). "
-                "Reduce the number of CV folds or provide more labeled positives."
-            )
-        return X, y_pu, y_true, analysis_X, splitter, n_splits
 
     def _fit_and_evaluate_one(
         self,
@@ -884,431 +735,19 @@ class PUPipeline:
         """Fit one fold's estimator and compute every metric on its test fold."""
         estimator.fit(X_train, y_pu_train, class_prior=prior)
         pred = estimator.predict(X_test)
-        scores = _extract_scores(estimator, X_test)
+        scores = extract_scores(estimator, X_test)
         return {
-            name: _compute_metric(name, y_pu_test, pred, scores, y_true_test, prior)
+            name: compute_metric(name, y_pu_test, pred, scores, y_true_test, prior)
             for name in self.metrics
         }
-
-    def _build_report(
-        self,
-        *,
-        profile: PUDataProfile,
-        prior_info: PriorInfo,
-        recommendation: RecommendationResult | None,
-        cv_metrics: dict[str, CVMetric],
-        classifier_name: str,
-        auto_mode: bool,
-        classifier_cls: type[BasePUClassifier] | None,
-        skipped_candidates: list[dict[str, str]],
-        y_true: np.ndarray | None,
-        splitter: Any,
-        n_splits: int,
-        final_model: BasePUClassifier | None,
-        diagnostic: PUDiagnosticReport | None,
-    ) -> PipelineReport:
-        """Assemble the final :class:`PipelineReport` (issues + provenance)."""
-        # NOTE: the profile itself flags a class prior below the labeled
-        # positive fraction (inconsistent_class_prior) when supplied.
-        issues: list[ProfileIssue] = list(profile.issues)
-        if prior_info.degraded:
-            issues.append(
-                ProfileIssue(
-                    "prior_estimation_failed",
-                    "warning",
-                    prior_info.degraded,
-                    "Auto mode degraded to a no-prior run: methods that "
-                    "require a class prior were excluded from the candidates.",
-                )
-            )
-        if recommendation is not None:
-            issues.extend(
-                ProfileIssue(
-                    "recommender_warning",
-                    "warning",
-                    message,
-                    "Review the method choice or pass an explicit classifier=.",
-                )
-                for message in recommendation.global_warnings
-            )
-        issues.extend(
-            ProfileIssue(
-                f"metric_{name}_unavailable",
-                "info",
-                metric.reason,
-                "Supply the missing input or remove the metric from metrics=.",
-            )
-            for name, metric in cv_metrics.items()
-            if not metric.available and metric.reason
-        )
-
-        cv_provenance = _cv_provenance(splitter, n_splits)
-        prior_audit_flagged = prior_info.source == "estimated" and any(
-            issue.code == "inconsistent_class_prior" for issue in profile.issues
-        )
-        provenance = {
-            "classifier": classifier_name,
-            "classifier_mode": (
-                "auto" if auto_mode else "name" if classifier_cls is not None else "instance"
-            ),
-            "prior_source": prior_info.source,
-            "prior_audit_flagged": prior_audit_flagged,
-            "random_state": self.random_state,
-            "classifier_params": _parameter_provenance(self.classifier_params),
-            "y_true_supplied": y_true is not None,
-            "skipped_candidates": skipped_candidates,
-        }
-        return PipelineReport(
-            profile=profile,
-            recommendation=recommendation,
-            prior=prior_info,
-            cv_metrics=cv_metrics,
-            cv_provenance=cv_provenance,
-            final_model=final_model,
-            diagnostic=diagnostic,
-            issues=tuple(issues),
-            provenance=provenance,
-        )
 
 
 # ── Module-level helpers ────────────────────────────────────────────────
 
 
-def _resolve_classifier_name(
-    name: str, *, provided_params: set[str] | None = None
-) -> type[BasePUClassifier]:
-    """Resolve a registry name, rejecting classes we cannot instantiate."""
-    try:
-        cls = get_algorithm(name)
-    except RegistryError as exc:
-        raise PipelineError(
-            f"Unknown classifier {name!r}. Use 'auto' or a registered method "
-            "name (see list_algorithms())."
-        ) from exc
-    if not isinstance(cls, type) or not issubclass(cls, BasePUClassifier):
-        raise PipelineError(f"{name!r} does not resolve to a PU classifier.")
-    missing = _missing_required_params(cls, provided_params=provided_params)
-    if missing:
-        raise PipelineError(
-            f"Classifier {name!r} cannot be auto-instantiated: constructor "
-            f"requires {sorted(missing)}. Supply them with classifier_params "
-            "or pass a configured instance instead."
-        )
-    return cls
-
-
-def _declares_encoder_parameter(cls: type) -> bool:
-    """True if *cls* constructor declares an ``encoder`` parameter.
-
-    The pipeline injects the CNN encoder only into classifiers whose
-    signature accepts it (see ``_fresh_estimator``); ``architecture="cnn"``
-    must fail fast for deep classifiers that would silently ignore the
-    backbone choice (e.g. Self-PU declares ``backbone`` instead).
-    """
-    return "encoder" in inspect.signature(cls.__init__).parameters
-
-
 def _missing_required_params(cls: type, *, provided_params: set[str] | None = None) -> set[str]:
-    """Required constructor params the pipeline cannot supply."""
-    signature = inspect.signature(cls.__init__)
-    provided = provided_params or set()
-    return {
-        param
-        for param, p in signature.parameters.items()
-        if param != "self"
-        # *args / **kwargs are never required: their default is also
-        # ``empty``, which used to misread them as mandatory and block
-        # auto-instantiation of any **kwargs constructor.
-        and p.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-        and p.default is inspect.Parameter.empty
-        and param not in _ALWAYS_PROVIDED
-        and param not in provided
-    }
-
-
-def _pick_first_instantiable(
-    candidates: Sequence[Any],
-) -> tuple[type[BasePUClassifier] | None, list[dict[str, str]]]:
-    """Pick the top-ranked candidate we can instantiate; record skips."""
-    skipped: list[dict[str, str]] = []
-    for candidate in candidates:
-        try:
-            cls = get_algorithm(candidate.name)
-        except RegistryError:
-            skipped.append({"name": candidate.name, "reason": "not registered"})
-            continue
-        if not (isinstance(cls, type) and issubclass(cls, BasePUClassifier)):
-            # Registry also holds prior estimators; the pipeline needs a classifier.
-            skipped.append({"name": candidate.name, "reason": "not a PU classifier"})
-            continue
-        missing = _missing_required_params(cls)
-        if missing:
-            skipped.append(
-                {
-                    "name": candidate.name,
-                    "reason": f"constructor requires {sorted(missing)}",
-                }
-            )
-            continue
-        return cls, skipped
-    return None, skipped
-
-
-def _extract_scores(clf: BasePUClassifier, X: Any) -> np.ndarray | None:
-    """Best-effort score extraction: decision_function, then predict_proba."""
-    if hasattr(clf, "decision_function"):
-        try:
-            return np.asarray(clf.decision_function(X), dtype=float)
-        except Exception:  # noqa: BLE001 - scores are best-effort
-            pass
-    if hasattr(clf, "predict_proba"):
-        try:
-            proba = np.asarray(clf.predict_proba(X), dtype=float)
-            if proba.ndim == 2 and proba.shape[1] == 2:
-                return proba[:, 1]
-        except Exception:  # noqa: BLE001 - scores are best-effort
-            pass
-    return None
-
-
-def _compute_metric(
-    name: str,
-    y_pu_fold: np.ndarray,
-    pred: np.ndarray,
-    scores: np.ndarray | None,
-    y_true_fold: np.ndarray | None,
-    prior: float | None,
-) -> tuple[float | None, str | None]:
-    """Compute one metric for one fold; return (value, skip reason)."""
-    spec = _METRIC_SPECS[name]
-    if spec["needs_scores"] and scores is None:
-        return None, "score-based metric requires a decision function"
-    if spec["needs_prior"] and prior is None:
-        return None, "class-prior-dependent metric requires a class prior"
-    if spec["needs_y_true"] and y_true_fold is None:
-        return None, "supervised-oracle metric requires y_true"
-    try:
-        if name == "pu_zero_one_risk":
-            return pu_zero_one_risk(y_pu_fold, scores, prior), None
-        if name == "pu_recall":
-            return pu_recall(y_pu_fold, pred), None
-        if name == "pu_estimated_precision":
-            return pu_estimated_precision(y_pu_fold, pred, prior), None
-        if name == "pu_auc_roc":
-            return pu_auc_roc(y_true_fold, scores), None
-        if name == "pu_accuracy":
-            return pu_accuracy(y_true_fold, pred), None
-        if name == "pu_f1":
-            return pu_f1(y_true_fold, pred), None
-        if name == "pu_negative_rate":
-            return pu_negative_rate(y_pu_fold, pred), None
-    except ValueError as exc:
-        return None, f"fold metric failed: {exc}"
-    # Defensive: _METRIC_SPECS and the if-chain above stay in lockstep;
-    # an unhandled name is an internal invariant violation, not a
-    # pipeline orchestration failure.
-    raise AssertionError(f"Unreachable metric {name!r}.")
-
-
-def _aggregate_reason(reasons: list[str], all_skipped: bool) -> str | None:
-    """First reason when every fold was skipped, else None."""
-    return reasons[0] if all_skipped and reasons else None
-
-
-def _validate_y_true(y_true: np.ndarray, n_samples: int) -> np.ndarray:
-    """Validate true labels: 1-D, matching length, values in {0, 1}."""
-    y_true = np.asarray(y_true)
-    if y_true.ndim != 1 or len(y_true) != n_samples:
-        raise ValidationError(
-            f"y_true must be 1-D with length {n_samples}; got shape {y_true.shape}."
-        )
-    validate_true_binary_labels(y_true, estimator_name="y_true")
-    return y_true.astype(int, copy=False)
-
-
-def _validate_prior_param_types(
-    cls: type[BasePriorEstimator],
-    kwargs: dict[str, Any],
-    name: str,
-) -> None:
-    """Type-check prior_params against the estimator constructor annotations.
-
-    Without this check bad values (e.g. ``sigma=abc``, ``sigma=nan``, or a
-    truthy string ``standardize='False'``) reach the estimator constructor,
-    only fail inside ``fit``, and are swallowed by the auto-mode degradation
-    path — the user gets a no-prior report instead of a clear error.
-
-    Rules per annotation:
-    * numeric (int/float): convertible strings are parsed (matching the CLI
-      coercion path); unconvertible strings and non-finite values (nan/inf)
-      are rejected.
-    * bool: ``true/false/1/0/yes/no/on/off`` strings are parsed; anything
-      else is rejected (a raw ``'False'`` string is truthy and would
-      silently invert the intent).
-    * ``Literal``: the value must be one of the allowed constants.
-    * unannotated / other (e.g. ``np.ndarray | None``): left to the
-      constructor (unknown names keep the TypeError -> PipelineError path).
-
-    Raises PipelineError with a message naming the parameter and the
-    expected type; conversions mutate ``kwargs`` in place (a copy owned by
-    the caller).
-    """
-    try:
-        hints = get_type_hints(cls.__init__)
-    except (TypeError, NameError):
-        # Unresolvable annotations (e.g. forward references): skip typing
-        # checks but say so — silently skipping would resurrect the exact
-        # swallowed-failure mode this guard removes.
-        warnings.warn(
-            f"cannot resolve prior-parameter types for {cls.__name__}; "
-            "skipping prior-param validation",
-            UserWarning,
-            stacklevel=3,
-        )
-        return
-    for key, value in list(kwargs.items()):
-        annotation = hints.get(key)
-        if annotation is None:
-            continue
-        types = get_args(annotation) if get_origin(annotation) is not None else (annotation,)
-        if bool in types and isinstance(value, str):
-            low = value.strip().lower()
-            if low in ("true", "1", "yes", "on"):
-                kwargs[key] = True
-            elif low in ("false", "0", "no", "off"):
-                kwargs[key] = False
-            else:
-                raise PipelineError(
-                    f"invalid prior parameter '{key}': value {value!r} is not a boolean "
-                    f"(expected true/false)"
-                )
-            continue
-        if any(t in (int, float) for t in types):
-            converted = value
-            if isinstance(value, str):
-                try:
-                    converted = int(value) if int in types else float(value)
-                except ValueError as exc:
-                    raise PipelineError(
-                        f"invalid prior parameter '{key}': value {value!r} is not a number "
-                        f"(expected {annotation})"
-                    ) from exc
-            if isinstance(converted, int | float) and not np.isfinite(converted):
-                raise PipelineError(
-                    f"invalid prior parameter '{key}': value {value!r} must be finite"
-                )
-            kwargs[key] = converted
-            continue
-        if get_origin(annotation) is Literal:
-            allowed = get_args(annotation)
-            if value not in allowed:
-                raise PipelineError(
-                    f"invalid prior parameter '{key}': value {value!r} is not one of {allowed}"
-                )
-
-
-def _validate_classifier_params(
-    cls: type[BasePUClassifier], kwargs: dict[str, Any], name: str
-) -> None:
-    """Validate and normalize registry-name classifier constructor params."""
-    if not kwargs:
-        return
-    signature = inspect.signature(cls.__init__)
-    accepts_kwargs = any(
-        parameter.kind is inspect.Parameter.VAR_KEYWORD
-        for parameter in signature.parameters.values()
-    )
-    unknown = sorted(
-        key for key in kwargs if key not in signature.parameters and not accepts_kwargs
-    )
-    if unknown:
-        available = sorted(
-            key
-            for key, parameter in signature.parameters.items()
-            if key != "self"
-            and parameter.kind
-            not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
-        )
-        raise PipelineError(
-            f"invalid classifier parameters for '{name}': unknown {unknown}. "
-            f"Available constructor parameters: {available}"
-        )
-    _validate_parameter_types(cls, kwargs, name, kind="classifier")
-
-
-def _validate_parameter_types(
-    cls: type,
-    kwargs: dict[str, Any],
-    name: str,
-    *,
-    kind: str,
-) -> None:
-    """Apply safe scalar annotation coercion to constructor parameters."""
-    try:
-        hints = get_type_hints(cls.__init__)
-    except (TypeError, NameError):
-        warnings.warn(
-            f"cannot resolve {kind}-parameter types for {cls.__name__}; "
-            f"skipping {kind}-param validation",
-            UserWarning,
-            stacklevel=3,
-        )
-        return
-    for key, value in list(kwargs.items()):
-        annotation = hints.get(key)
-        if annotation is None:
-            continue
-        types = get_args(annotation) if get_origin(annotation) is not None else (annotation,)
-        if bool in types and isinstance(value, str):
-            low = value.strip().lower()
-            if low in ("true", "1", "yes", "on"):
-                kwargs[key] = True
-            elif low in ("false", "0", "no", "off"):
-                kwargs[key] = False
-            else:
-                raise PipelineError(
-                    f"invalid {kind} parameter '{key}' for '{name}': "
-                    f"value {value!r} is not a boolean (expected true/false)"
-                )
-            continue
-        if any(item in (int, float) for item in types):
-            converted = value
-            if isinstance(value, str):
-                try:
-                    converted = int(value) if int in types else float(value)
-                except ValueError as exc:
-                    raise PipelineError(
-                        f"invalid {kind} parameter '{key}' for '{name}': "
-                        f"value {value!r} is not a number (expected {annotation})"
-                    ) from exc
-            if isinstance(converted, int | float) and not np.isfinite(converted):
-                raise PipelineError(
-                    f"invalid {kind} parameter '{key}' for '{name}': value {value!r} must be finite"
-                )
-            kwargs[key] = converted
-            continue
-        if get_origin(annotation) is Literal:
-            allowed = get_args(annotation)
-            if value not in allowed:
-                raise PipelineError(
-                    f"invalid {kind} parameter '{key}' for '{name}': "
-                    f"value {value!r} is not one of {allowed}"
-                )
-
-
-def _parameter_provenance(params: dict[str, Any]) -> dict[str, Any]:
-    """Represent classifier parameters without making reports unserializable."""
-    import json
-
-    recorded: dict[str, Any] = {}
-    for key, value in params.items():
-        try:
-            json.dumps(value, allow_nan=False)
-        except (TypeError, ValueError):
-            recorded[key] = repr(value)
-        else:
-            recorded[key] = value
-    return recorded
+    """Compatibility wrapper for the CLI and existing private consumers."""
+    return missing_required_params(cls, provided_params=provided_params)
 
 
 def _validate_prior_value(value: float, name: str) -> None:
@@ -1320,26 +759,3 @@ def _validate_prior_value(value: float, name: str) -> None:
     pipeline (cv, metrics, architecture).
     """
     check_scalar_in_range(value, 0.0, 1.0, name, inclusive=False)
-
-
-def _resolved_n_splits(splitter: Any, X: Any, y_pu: np.ndarray) -> int:
-    if hasattr(splitter, "get_n_splits"):
-        return int(splitter.get_n_splits(X, y_pu))
-    # Fail fast instead of silently assuming 5 folds: the fold-count
-    # guard, provenance, and the deep training-cost warning all depend
-    # on the real number of splits.
-    raise ValueError(
-        f"cv splitter {type(splitter).__name__} must implement "
-        "get_n_splits(X, y) so the pipeline can validate fold counts."
-    )
-
-
-def _cv_provenance(splitter: Any, n_splits: int) -> dict[str, Any]:
-    info: dict[str, Any] = {"n_splits": n_splits, "splitter": type(splitter).__name__}
-    try:
-        params = splitter.get_params()
-        info["shuffle"] = params.get("shuffle")
-        info["random_state"] = params.get("random_state")
-    except Exception:  # noqa: BLE001 - provenance is best-effort
-        pass
-    return info

@@ -9,6 +9,21 @@ from typing import Any
 from pu_toolbox.run_config import RunConfiguration
 
 
+def parse_json_mapping(text: str, *, field_name: str) -> dict[str, Any]:
+    """Parse a JSON object used by the advanced parameter editors."""
+    try:
+        value = json.loads(text or "{}")
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"{field_name} is not valid JSON: line {exc.lineno}, column {exc.colno}."
+        ) from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{field_name} must be a JSON object.")
+    if any(not isinstance(key, str) or not key for key in value):
+        raise ValueError(f"{field_name} keys must be non-empty strings.")
+    return value
+
+
 def apply_run_configuration(
     state: MutableMapping[str, Any],
     config: RunConfiguration,

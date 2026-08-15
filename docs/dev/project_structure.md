@@ -115,7 +115,12 @@ pu_toolbox/
 
   workflows/
     __init__.py
-    pipeline.py                (PUPipeline 编排: 画像→先验→训练→CV→评估)
+    pipeline.py                (PUPipeline 顶层编排与类先验处理)
+    _errors.py                 (工作流共享异常类型)
+    _evaluation.py             (指标解析、PU-aware CV 执行与聚合)
+    _inputs.py                 (输入校验、splitter 准备与 CV provenance)
+    _models.py                 (模型解析、参数校验与 estimator 构造)
+    _reporting.py              (报告组装与参数 provenance)
     report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
 
   run_config.py                (UI/CLI 共用的可移植 JSON 运行配置契约)
@@ -134,10 +139,12 @@ pu_toolbox/
 
   ui/                          (可选 Streamlit 图形界面，核心安装不导入 streamlit)
     __init__.py                (数据/配置辅助函数导出)
-    app.py                     (上传→配置/调参→训练→诊断/下载页面)
+    app.py                     (Streamlit 页面流程协调)
     configuration.py           (运行配置与 Streamlit session state 适配)
+    data.py                    (CSV/NPY 上传解析与校验)
     execution.py               (普通/调参/比较三种运行模式调度)
     parameters.py              (构造器参数元数据与类型化控件)
+    results.py                 (指标、诊断与下载结果渲染)
     runtime.py                 (后台线程、进度状态与取消控制)
     launcher.py                (pu-toolbox-ui 启动入口)
 ```

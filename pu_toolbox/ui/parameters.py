@@ -6,6 +6,49 @@ import ast
 import inspect
 from typing import Any
 
+from pu_toolbox.core.base import BasePUClassifier
+from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
+
+_MANAGED_PARAMS = {"class_prior", "random_state", "encoder", "device"}
+
+
+def classifier_catalog() -> list[dict[str, Any]]:
+    """Return trainable classifier metadata and constructor fields for the UI."""
+    register_all_builtin_methods()
+    catalog: list[dict[str, Any]] = []
+    for metadata in sorted(list_algorithms(trainable_only=True), key=lambda item: item.name):
+        try:
+            cls = get_algorithm(metadata.name)
+        except Exception:  # noqa: BLE001 - unavailable optional implementations
+            continue
+        if not isinstance(cls, type) or not issubclass(cls, BasePUClassifier):
+            continue
+        parameters = []
+        for name, parameter in inspect.signature(cls.__init__).parameters.items():
+            if name == "self" or name in _MANAGED_PARAMS:
+                continue
+            if parameter.kind in (
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            ):
+                continue
+            parameters.append(parameter_schema(name, parameter))
+        ui_ready = all(
+            not parameter["required"] or parameter["type"] in {"bool", "float", "int", "str"}
+            for parameter in parameters
+        )
+        catalog.append(
+            {
+                "name": metadata.name,
+                "family": metadata.family.value,
+                "requires_class_prior": metadata.requires_class_prior,
+                "supports_gpu": metadata.supports_gpu,
+                "ui_ready": ui_ready,
+                "parameters": parameters,
+            }
+        )
+    return catalog
+
 
 def _literal_choices(annotation: str) -> list[Any]:
     """Return literal values from a postponed ``Literal[...]`` annotation."""
