@@ -42,6 +42,7 @@ def apply_run_configuration(
         config.tuning_grid, ensure_ascii=False, indent=2, sort_keys=True
     )
     state["scoring"] = config.scoring
+    state["comparison_scoring"] = config.scoring
 
     typed_names: set[str] = set()
     if config.classifier in catalog_by_name:

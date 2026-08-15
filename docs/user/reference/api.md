@@ -165,6 +165,14 @@ higher_is_better=None, metrics=None, **pipeline_params)` 在相同的 PU-aware C
 `ModelComparisonResult`，包含 `best_classifier`、`best_score`、逐模型 `trials` 和已全量
 拟合的 `best_report`。失败模型被隔离记录，非最佳模型只执行 CV。
 
+## 进度与取消
+
+`PUPipeline.fit_evaluate`、`PUTuner.fit` 和 `PUModelComparator.fit` 均接受
+`progress_callback=` 与 `cancellation_token=`。回调收到 `ProgressUpdate`（`stage`、
+`completed`、`total`、`message`、`fraction`）；`CancellationToken.cancel()` 发出线程
+安全的协作式取消信号，并在下一个安全边界抛出 `RunCancelledError`。正在执行的单次模型
+`fit` 不会被强制终止。
+
 ## build_encoder
 
 深度分类器的统一编码器构建入口（`pu_toolbox/estimators/deep/vision.py`），

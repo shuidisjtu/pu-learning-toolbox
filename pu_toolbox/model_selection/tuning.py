@@ -11,6 +11,12 @@ from typing import Any
 import numpy as np
 from sklearn.model_selection import ParameterGrid
 
+from ..progress import (
+    CancellationToken,
+    ProgressCallback,
+    RunCancelledError,
+    emit_progress,
+)
 from ..workflows.pipeline import DEFAULT_METRICS, PipelineError, PUPipeline
 from ..workflows.report import PipelineReport
 
@@ -120,11 +126,23 @@ class PUTuner:
         *,
         y_true: np.ndarray | None = None,
         class_prior: float | None = None,
+        progress_callback: ProgressCallback | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> TuningResult:
         """Evaluate the parameter grid and return its best valid trial."""
         trials: list[TuningTrial] = []
         successful: list[tuple[float, dict[str, Any]]] = []
+        total_steps = len(self.param_grid) + 1
+        emit_progress(
+            progress_callback,
+            stage="tuning",
+            completed=0,
+            total=total_steps,
+            message=f"准备比较 {len(self.param_grid)} 组参数",
+        )
         for index, params in enumerate(self.param_grid):
+            if cancellation_token is not None:
+                cancellation_token.raise_if_cancelled()
             try:
                 report = PUPipeline(
                     classifier=self.classifier,
@@ -137,6 +155,7 @@ class PUTuner:
                     y_true=y_true,
                     class_prior=class_prior,
                     refit=False,
+                    cancellation_token=cancellation_token,
                 )
                 metric = report.cv_metrics[self.scoring]
                 if not metric.available or metric.mean is None or not np.isfinite(metric.mean):
@@ -146,11 +165,20 @@ class PUTuner:
                 score = float(metric.mean)
                 trials.append(TuningTrial(index, dict(params), score, "ok"))
                 successful.append((score, dict(params)))
+            except RunCancelledError:
+                raise
             # A single model/optimizer/backend failure must not discard the
             # rest of the search.  Exception deliberately excludes
             # KeyboardInterrupt and SystemExit, so users can still cancel.
             except Exception as exc:  # noqa: BLE001 - trial isolation is the API contract
                 trials.append(TuningTrial(index, dict(params), None, "failed", str(exc)))
+            emit_progress(
+                progress_callback,
+                stage="tuning",
+                completed=index + 1,
+                total=total_steps,
+                message=f"参数组合 {index + 1}/{len(self.param_grid)} 完成",
+            )
 
         if not successful:
             details = "; ".join(
@@ -166,13 +194,28 @@ class PUTuner:
         )
         # Only the selected configuration pays for a full-data fit and model
         # diagnostics. Search trials above perform CV only.
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
+        emit_progress(
+            progress_callback,
+            stage="refit",
+            completed=total_steps - 1,
+            total=total_steps,
+            message="正在全量重训最佳参数组合",
+        )
         best_report = PUPipeline(
             classifier=self.classifier,
             classifier_params=best_params,
             metrics=self.metrics,
             **self.pipeline_params,
-        ).fit_evaluate(X, y_pu, y_true=y_true, class_prior=class_prior)
-        return TuningResult(
+        ).fit_evaluate(
+            X,
+            y_pu,
+            y_true=y_true,
+            class_prior=class_prior,
+            cancellation_token=cancellation_token,
+        )
+        result = TuningResult(
             classifier=self.classifier,
             scoring=self.scoring,
             higher_is_better=self.higher_is_better,
@@ -181,3 +224,11 @@ class PUTuner:
             trials=tuple(trials),
             best_report=best_report,
         )
+        emit_progress(
+            progress_callback,
+            stage="complete",
+            completed=total_steps,
+            total=total_steps,
+            message="参数搜索完成",
+        )
+        return result

@@ -36,12 +36,14 @@ def _fake_pipeline(monkeypatch, scores):
 
 def test_basic_comparison_refits_only_best_classifier(monkeypatch):
     calls = _fake_pipeline(monkeypatch, {"upu": 0.3, "pnu": 0.2})
+    updates = []
     result = PUModelComparator(classifiers=["upu", "pnu"], metrics=["pu_zero_one_risk"]).fit(
-        [[0]], [1], class_prior=0.4
+        [[0]], [1], class_prior=0.4, progress_callback=updates.append
     )
     assert result.best_classifier == "pnu"
     assert result.best_score == pytest.approx(0.2)
     assert calls == [("upu", False), ("pnu", False), ("pnu", True)]
+    assert updates[-1].stage == "complete"
 
 
 def test_param_comparison_can_maximize_score(monkeypatch):

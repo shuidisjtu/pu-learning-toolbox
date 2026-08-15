@@ -10,6 +10,12 @@ from typing import Any
 
 import numpy as np
 
+from ..progress import (
+    CancellationToken,
+    ProgressCallback,
+    RunCancelledError,
+    emit_progress,
+)
 from ..workflows.pipeline import DEFAULT_METRICS, PipelineError, PUPipeline
 from ..workflows.report import PipelineReport
 
@@ -119,14 +125,31 @@ class PUModelComparator:
         *,
         y_true: np.ndarray | None = None,
         class_prior: float | None = None,
+        progress_callback: ProgressCallback | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> ModelComparisonResult:
         """Evaluate all classifiers and fully refit only the best one."""
         trials: list[ModelComparisonTrial] = []
         successful: list[tuple[float, str]] = []
-        for name in self.classifiers:
+        total_steps = len(self.classifiers) + 1
+        emit_progress(
+            progress_callback,
+            stage="comparison",
+            completed=0,
+            total=total_steps,
+            message=f"准备比较 {len(self.classifiers)} 个模型",
+        )
+        for index, name in enumerate(self.classifiers):
+            if cancellation_token is not None:
+                cancellation_token.raise_if_cancelled()
             try:
                 report = self._pipeline(name).fit_evaluate(
-                    X, y_pu, y_true=y_true, class_prior=class_prior, refit=False
+                    X,
+                    y_pu,
+                    y_true=y_true,
+                    class_prior=class_prior,
+                    refit=False,
+                    cancellation_token=cancellation_token,
                 )
                 metric = report.cv_metrics[self.scoring]
                 if not metric.available or metric.mean is None or not np.isfinite(metric.mean):
@@ -136,8 +159,17 @@ class PUModelComparator:
                 score = float(metric.mean)
                 trials.append(ModelComparisonTrial(name, score, "ok"))
                 successful.append((score, name))
+            except RunCancelledError:
+                raise
             except Exception as exc:  # noqa: BLE001 - isolate one unavailable backend/model
                 trials.append(ModelComparisonTrial(name, None, "failed", str(exc)))
+            emit_progress(
+                progress_callback,
+                stage="comparison",
+                completed=index + 1,
+                total=total_steps,
+                message=f"模型 {name} 比较完成（{index + 1}/{len(self.classifiers)}）",
+            )
         if not successful:
             details = "; ".join(
                 f"{trial.classifier}: {trial.error}" for trial in trials if trial.error
@@ -150,10 +182,23 @@ class PUModelComparator:
             if self.higher_is_better
             else min(successful, key=lambda item: item[0])
         )
-        best_report = self._pipeline(best_classifier).fit_evaluate(
-            X, y_pu, y_true=y_true, class_prior=class_prior
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
+        emit_progress(
+            progress_callback,
+            stage="refit",
+            completed=total_steps - 1,
+            total=total_steps,
+            message=f"正在全量重训最佳模型 {best_classifier}",
         )
-        return ModelComparisonResult(
+        best_report = self._pipeline(best_classifier).fit_evaluate(
+            X,
+            y_pu,
+            y_true=y_true,
+            class_prior=class_prior,
+            cancellation_token=cancellation_token,
+        )
+        result = ModelComparisonResult(
             scoring=self.scoring,
             higher_is_better=self.higher_is_better,
             best_classifier=best_classifier,
@@ -161,6 +206,14 @@ class PUModelComparator:
             trials=tuple(trials),
             best_report=best_report,
         )
+        emit_progress(
+            progress_callback,
+            stage="complete",
+            completed=total_steps,
+            total=total_steps,
+            message="模型比较完成",
+        )
+        return result
 
     def _pipeline(self, classifier: str) -> PUPipeline:
         return PUPipeline(

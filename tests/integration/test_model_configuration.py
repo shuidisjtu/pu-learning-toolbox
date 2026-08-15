@@ -9,6 +9,7 @@ import pytest
 
 from pu_toolbox.cli import main
 from pu_toolbox.model_selection import PUModelComparator, PUTuner
+from pu_toolbox.progress import CancellationToken, RunCancelledError
 from pu_toolbox.workflows import PipelineError, PUPipeline
 from tests.helpers import make_scar_data
 
@@ -135,3 +136,21 @@ def test_deterministic_model_comparison_returns_fitted_best_report(rng):
     assert comparison.best_classifier in {"upu", "pusb"}
     assert all(trial.status == "ok" for trial in comparison.trials)
     assert comparison.best_report.final_model is not None
+
+
+def test_param_pipeline_reports_progress_and_honours_cancellation(rng):
+    X, y_pu, _ = make_scar_data(rng, n=60, separation=4.0)
+    updates = []
+    report = PUPipeline(classifier="upu", cv=2).fit_evaluate(
+        X, y_pu, class_prior=0.4, progress_callback=updates.append
+    )
+    assert report.final_model is not None
+    assert updates[-1].stage == "complete"
+    assert updates[-1].fraction == 1.0
+
+    token = CancellationToken()
+    token.cancel()
+    with pytest.raises(RunCancelledError):
+        PUPipeline(classifier="upu", cv=2).fit_evaluate(
+            X, y_pu, class_prior=0.4, cancellation_token=token
+        )

@@ -59,7 +59,7 @@ def test_edge_tuner_rejects_unavailable_scoring_and_isolates_runtime_failure(rng
             self.params = classifier_params
             self.metrics = ["pu_zero_one_risk"]
 
-        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None, refit=True):
+        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None, refit=True, **kwargs):
             if self.params["backend_fails"]:
                 raise RuntimeError("simulated backend failure")
             metric = SimpleNamespace(available=True, mean=0.25, reason=None)
@@ -90,7 +90,7 @@ def test_deterministic_parameter_grid_order_and_refits_only_best(monkeypatch):
             self.params = classifier_params
             self.metrics = ["pu_zero_one_risk"]
 
-        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None, refit=True):
+        def fit_evaluate(self, X, y_pu, *, y_true=None, class_prior=None, refit=True, **kwargs):
             calls.append((dict(self.params), refit))
             score = self.params["reg_lambda"] + self.params["max_iter"] / 10_000
             metric = SimpleNamespace(available=True, mean=score, reason=None)
@@ -100,6 +100,9 @@ def test_deterministic_parameter_grid_order_and_refits_only_best(monkeypatch):
             )
 
     monkeypatch.setattr(tuning_module, "PUPipeline", FakePipeline)
-    result = PUTuner(**kwargs).fit([[0]], [1], class_prior=0.4)
+    updates = []
+    result = PUTuner(**kwargs).fit([[0]], [1], class_prior=0.4, progress_callback=updates.append)
     assert [refit for _, refit in calls] == [False, False, False, False, True]
     assert result.best_report.final_model == "fitted"
+    assert updates[-1].stage == "complete"
+    assert updates[-1].fraction == 1.0

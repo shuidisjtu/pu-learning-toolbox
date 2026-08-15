@@ -41,6 +41,7 @@ from ..metrics.classification import (
 )
 from ..model_selection.split import PUStratifiedKFold
 from ..preprocessing.data_profiler import ProfileIssue, PUDataProfile, profile_pu_data
+from ..progress import CancellationToken, ProgressCallback, emit_progress
 from ..registry import RecommendationResult, recommend_from_profile
 from ..registry.registry import get_algorithm, get_metadata
 from .report import CVMetric, PipelineReport, PriorInfo
@@ -395,6 +396,8 @@ class PUPipeline:
         y_true: np.ndarray | None = None,
         class_prior: float | None = None,
         refit: bool = True,
+        progress_callback: ProgressCallback | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> PipelineReport:
         """Run the full workflow and return a :class:`PipelineReport`.
 
@@ -415,8 +418,25 @@ class PUPipeline:
             Set to ``False`` for parameter-search trials that only need CV
             metrics; the returned report then has ``final_model=None`` and
             ``diagnostic=None``.
+        progress_callback : callable, optional
+            Receives immutable progress snapshots at workflow phase and CV-fold
+            boundaries. The callback runs synchronously in the caller's thread.
+        cancellation_token : CancellationToken, optional
+            Cooperative cancellation checked between workflow phases, CV folds,
+            and before/after final refit. An estimator already inside ``fit``
+            finishes its current call before cancellation is observed.
         """
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
+        emit_progress(
+            progress_callback,
+            stage="prepare",
+            completed=0,
+            total=1,
+            message="校验输入并准备交叉验证",
+        )
         X, y_pu, y_true, analysis_X, splitter, n_splits = self._prepare_inputs(X, y_pu, y_true)
+        total_steps = n_splits + (4 if refit else 3)
 
         # -- Resolve classifier ------------------------------------------
         auto_mode = self._classifier_name == "auto"
@@ -437,6 +457,8 @@ class PUPipeline:
             needs_prior = bool(get_metadata(self._classifier_name).requires_class_prior)
         else:
             needs_prior = bool(classifier_instance.requires_class_prior)
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
         prior, prior_info = self._resolve_prior(
             X=analysis_X,
             y_pu=y_pu,
@@ -445,14 +467,30 @@ class PUPipeline:
             needs_prior=needs_prior,
             allow_degradation=auto_mode,
         )
+        emit_progress(
+            progress_callback,
+            stage="prior",
+            completed=1,
+            total=total_steps,
+            message="类先验处理完成",
+        )
 
         # -- Data profile (once, reused by recommender and report) -------
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
         profile = profile_pu_data(
             analysis_X,
             y_pu,
             y_true=y_true,
             class_prior=prior,
             random_state=self.random_state,
+        )
+        emit_progress(
+            progress_callback,
+            stage="profile",
+            completed=2,
+            total=total_steps,
+            message="数据画像与模型准备完成",
         )
 
         # -- Auto mode: recommend first, then instantiate ---------------
@@ -522,7 +560,9 @@ class PUPipeline:
         # -- Cross-validation ---------------------------------------------
         per_fold: dict[str, list[float | None]] = {name: [] for name in self.metrics}
         fold_reasons: dict[str, list[str]] = {name: [] for name in self.metrics}
-        for train_idx, test_idx in splitter.split(X, y_pu):
+        for fold_index, (train_idx, test_idx) in enumerate(splitter.split(X, y_pu), start=1):
+            if cancellation_token is not None:
+                cancellation_token.raise_if_cancelled()
             clf = self._fresh_estimator(classifier_cls, classifier_instance, prior)
             outcomes = self._fit_and_evaluate_one(
                 clf,
@@ -538,6 +578,13 @@ class PUPipeline:
                 per_fold[name].append(value)
                 if reason is not None:
                     fold_reasons[name].append(reason)
+            emit_progress(
+                progress_callback,
+                stage="cross_validation",
+                completed=2 + fold_index,
+                total=total_steps,
+                message=f"交叉验证 {fold_index}/{n_splits}",
+            )
 
         cv_metrics = {
             name: CVMetric(
@@ -555,8 +602,19 @@ class PUPipeline:
         final_model: BasePUClassifier | None = None
         diagnostic: PUDiagnosticReport | None = None
         if refit:
+            if cancellation_token is not None:
+                cancellation_token.raise_if_cancelled()
+            emit_progress(
+                progress_callback,
+                stage="refit",
+                completed=total_steps - 1,
+                total=total_steps,
+                message="正在全量重训最佳模型",
+            )
             final_model = self._fresh_estimator(classifier_cls, classifier_instance, prior)
             final_model.fit(X, y_pu, class_prior=prior)
+            if cancellation_token is not None:
+                cancellation_token.raise_if_cancelled()
             if _extract_scores(final_model, X) is not None:
                 diagnostic = build_diagnostic_report(
                     X,
@@ -584,7 +642,7 @@ class PUPipeline:
                 )
 
         # -- Assemble report ----------------------------------------------
-        return self._build_report(
+        report = self._build_report(
             profile=profile,
             prior_info=prior_info,
             recommendation=recommendation,
@@ -599,6 +657,14 @@ class PUPipeline:
             final_model=final_model,
             diagnostic=diagnostic,
         )
+        emit_progress(
+            progress_callback,
+            stage="complete",
+            completed=total_steps,
+            total=total_steps,
+            message="分析完成",
+        )
+        return report
 
     # ── Internal helpers ────────────────────────────────────────────────
 

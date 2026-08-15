@@ -119,6 +119,7 @@ pu_toolbox/
     report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
 
   run_config.py                (UI/CLI 共用的可移植 JSON 运行配置契约)
+  progress.py                  (线程安全进度快照、协作式取消 token)
 
   cli/                         (CLI 入口: argparse 子命令与工作流薄封装)
     __init__.py
@@ -135,7 +136,9 @@ pu_toolbox/
     __init__.py                (数据/配置辅助函数导出)
     app.py                     (上传→配置/调参→训练→诊断/下载页面)
     configuration.py           (运行配置与 Streamlit session state 适配)
+    execution.py               (普通/调参/比较三种运行模式调度)
     parameters.py              (构造器参数元数据与类型化控件)
+    runtime.py                 (后台线程、进度状态与取消控制)
     launcher.py                (pu-toolbox-ui 启动入口)
 ```
 
@@ -195,6 +198,7 @@ tests/
       test_tuning.py                  # PUTuner 网格、选择方向与不可用指标
     ui/
       test_ui_helpers.py              # 上传解析、类型化参数、配置状态与模型目录
+      test_runtime.py                 # 后台运行、进度快照与协作式取消
     prior/
       test_recpe.py                   # ReCPE 特有逻辑
       test_pen_l1.py                  # penL1 特有逻辑

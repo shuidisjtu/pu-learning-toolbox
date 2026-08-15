@@ -8,6 +8,8 @@ import inspect
 import io
 import json
 import pickle
+import time
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
 
@@ -15,13 +17,15 @@ import numpy as np
 import pandas as pd
 
 from pu_toolbox.core.base import BasePUClassifier
-from pu_toolbox.model_selection.comparison import ModelComparisonResult, PUModelComparator
-from pu_toolbox.model_selection.tuning import PUTuner, TuningResult
+from pu_toolbox.model_selection.comparison import ModelComparisonResult
+from pu_toolbox.model_selection.tuning import TuningResult
 from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
 from pu_toolbox.run_config import RunConfiguration
 from pu_toolbox.ui.configuration import apply_run_configuration
+from pu_toolbox.ui.execution import AnalysisResult, execute_analysis
 from pu_toolbox.ui.parameters import parameter_schema, render_parameter_form
-from pu_toolbox.workflows import DEFAULT_METRICS, PUPipeline
+from pu_toolbox.ui.runtime import BackgroundRun, submit_background
+from pu_toolbox.workflows import DEFAULT_METRICS
 
 _MANAGED_PARAMS = {"class_prior", "random_state", "encoder", "device"}
 
@@ -231,6 +235,12 @@ def main() -> None:
                 imported_digest = sha256(config_bytes).hexdigest()
             except (UnicodeDecodeError, ValueError) as exc:
                 st.error(f"配置导入失败：{exc}")
+        history = st.session_state.get("run_history", [])
+        with st.expander(f"运行历史（{len(history)}）", expanded=False):
+            if history:
+                st.dataframe(history, hide_index=True, use_container_width=True)
+            else:
+                st.caption("当前浏览器会话还没有运行记录。")
 
     st.subheader("1 · 上传数据")
     upload_columns = st.columns(3)
@@ -485,13 +495,13 @@ def main() -> None:
     invalid_comparison = selection_mode == "比较模型" and len(comparison_classifiers) < 2
     if invalid_comparison:
         st.warning("模型比较至少需要选择两个模型。")
-    if not st.button(
+    active_run: BackgroundRun | None = st.session_state.get("active_run")
+    start_clicked = st.button(
         "开始分析",
         type="primary",
         use_container_width=True,
-        disabled=not metrics or invalid_comparison,
-    ):
-        return
+        disabled=not metrics or invalid_comparison or active_run is not None,
+    )
 
     common = {
         "prior_estimator": prior_estimator,
@@ -502,36 +512,84 @@ def main() -> None:
         "backbone": backbone,
         "device": "auto",
     }
-    try:
-        with st.spinner("正在执行数据画像、PU 分层验证和模型训练……"):
-            tuning = None
-            comparison = None
-            if comparison_classifiers:
-                comparison = PUModelComparator(
-                    classifiers=comparison_classifiers,
-                    scoring=scoring,
-                    **common,
-                ).fit(X, y_pu, y_true=y_true, class_prior=class_prior)
-                report = comparison.best_report
-            elif tuning_enabled:
-                tuner = PUTuner(
-                    classifier=classifier,
-                    param_grid=tuning_grid,
-                    scoring=scoring,
-                    **common,
-                )
-                tuning = tuner.fit(X, y_pu, y_true=y_true, class_prior=class_prior)
-                report = tuning.best_report
+    if start_clicked:
+        run_mode = (
+            "comparison" if comparison_classifiers else "tuning" if tuning_enabled else "pipeline"
+        )
+
+        def task(token, callback):
+            return execute_analysis(
+                X=X,
+                y_pu=y_pu,
+                y_true=y_true,
+                class_prior=class_prior,
+                classifier=classifier,
+                classifier_params=classifier_params,
+                tuning_grid=tuning_grid,
+                comparison_classifiers=comparison_classifiers,
+                scoring=scoring,
+                pipeline_params=common,
+                cancellation_token=token,
+                progress_callback=callback,
+            )
+
+        active_run = submit_background(task)
+        st.session_state["active_run"] = active_run
+        st.session_state["active_run_mode"] = run_mode
+        st.session_state.pop("analysis_result", None)
+        st.session_state.pop("analysis_error", None)
+
+    if active_run is not None:
+        snapshot = active_run.snapshot()
+        st.progress(snapshot.progress.fraction, text=snapshot.progress.message)
+        status_columns = st.columns([3, 1])
+        status_columns[0].caption(
+            f"阶段：{snapshot.progress.stage} · 状态：{snapshot.status} · "
+            f"开始：{snapshot.started_at}"
+        )
+        if status_columns[1].button(
+            "取消运行",
+            disabled=snapshot.status in {"cancelled", "completed", "failed"},
+            use_container_width=True,
+        ):
+            active_run.cancel()
+
+        if active_run.future.done():
+            mode = st.session_state.pop("active_run_mode", "pipeline")
+            history_entry = {
+                "开始时间": snapshot.started_at,
+                "结束时间": datetime.now(UTC).isoformat(),
+                "模式": mode,
+            }
+            try:
+                analysis = active_run.future.result()
+            except Exception as exc:  # noqa: BLE001 - UI error boundary
+                status = "cancelled" if active_run.token.is_cancelled else "failed"
+                history_entry["状态"] = status
+                history_entry["结果"] = str(exc) or "run cancelled by user"
+                st.session_state["analysis_error"] = history_entry["结果"]
             else:
-                report = PUPipeline(
-                    classifier=classifier,
-                    classifier_params=classifier_params,
-                    **common,
-                ).fit_evaluate(X, y_pu, y_true=y_true, class_prior=class_prior)
-    except Exception as exc:  # noqa: BLE001 - UI must turn backend failures into readable feedback
-        st.error(f"分析失败：{exc}")
+                history_entry["状态"] = "completed"
+                history_entry["结果"] = analysis.report.provenance.get("classifier", "unknown")
+                st.session_state["analysis_result"] = analysis
+            history = [history_entry, *st.session_state.get("run_history", [])][:20]
+            st.session_state["run_history"] = history
+            st.session_state.pop("active_run", None)
+            st.rerun()
+        time.sleep(0.4)
+        st.rerun()
         return
 
+    error = st.session_state.get("analysis_error")
+    if error:
+        st.error(f"分析失败：{error}")
+        return
+    analysis: AnalysisResult | None = st.session_state.get("analysis_result")
+    if analysis is None:
+        return
+    report = analysis.report
+    tuning = analysis.tuning
+    comparison = analysis.comparison
     st.success("分析完成。")
     if comparison is not None:
         st.write("最佳模型", comparison.best_classifier)
