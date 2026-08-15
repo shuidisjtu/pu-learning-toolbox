@@ -87,6 +87,33 @@ jobs:
       - name: Skill sync check
         run: uv run --python "3.11" python scripts/check_skill_sync.py
 
+  ui:
+    name: Streamlit UI smoke tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5.1.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install UI test dependencies
+        run: uv sync --python "3.11" --extra dev --extra ui
+
+      - name: Run UI helper and page tests
+        run: >-
+          uv run --python "3.11" pytest
+          tests/unit/ui/test_ui_helpers.py
+          tests/integration/test_ui_app.py -v
+
   package:
     name: Build and install wheel
     runs-on: ubuntu-latest
@@ -123,3 +150,11 @@ jobs:
           cd /tmp
           "$GITHUB_WORKSPACE/.wheel-venv/bin/pu-toolbox" list-methods >/dev/null
           "$GITHUB_WORKSPACE/.wheel-venv/bin/pu-toolbox" list-priors >/dev/null
+
+      - name: Install optional UI dependency into wheel environment
+        run: uv pip install --python .wheel-venv/bin/python "streamlit>=1.38"
+
+      - name: Smoke-test installed UI page and console entry point
+        run: |
+          cd /tmp
+          "$GITHUB_WORKSPACE/.wheel-venv/bin/python" -c "import inspect; from importlib.metadata import entry_points; import pu_toolbox.ui.app as ui_app; from streamlit.testing.v1 import AppTest; eps = entry_points(group='console_scripts', name='pu-toolbox-ui'); assert len(eps) == 1 and callable(eps[0].load()); app = AppTest.from_file(inspect.getfile(ui_app)).run(timeout=20); assert not app.exception and app.title[0].value == 'PU Learning Toolbox'"

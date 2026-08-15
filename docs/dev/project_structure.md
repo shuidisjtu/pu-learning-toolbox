@@ -219,6 +219,7 @@ tests/
     test_pipeline.py                 # PUPipeline 全流程/先验解析/错误/可用性/确定性
     test_pipeline_deep.py            # PUPipeline 深度算法集成（架构选择;importorskip torch）
     test_run.py                      # run 子命令进程内端到端（真实 CSV IO + 真实训练）
+    test_ui_app.py                   # Streamlit 页面渲染（ui extra；无依赖时 skip）
 
   e2e/                               # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py           # pu-workflow profile 步骤脚本（子进程）
