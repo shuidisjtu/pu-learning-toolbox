@@ -157,4 +157,4 @@ jobs:
       - name: Smoke-test installed UI page and console entry point
         run: |
           cd /tmp
-          "$GITHUB_WORKSPACE/.wheel-venv/bin/python" -c "import inspect; from importlib.metadata import entry_points; import pu_toolbox.ui.app as ui_app; from streamlit.testing.v1 import AppTest; eps = entry_points(group='console_scripts', name='pu-toolbox-ui'); assert len(eps) == 1 and callable(eps[0].load()); app = AppTest.from_file(inspect.getfile(ui_app)).run(timeout=20); assert not app.exception and app.title[0].value == 'PU Learning Toolbox'"
+          "$GITHUB_WORKSPACE/.wheel-venv/bin/python" -c "import inspect; from importlib.metadata import entry_points; import pu_toolbox.ui.app as ui_app; from streamlit.testing.v1 import AppTest; eps = list(entry_points(group='console_scripts', name='pu-toolbox-ui')); assert len(eps) == 1 and callable(eps[0].load()); app = AppTest.from_file(inspect.getfile(ui_app)).run(timeout=20); assert not app.exception and app.title[0].value == 'PU Learning Toolbox'"
