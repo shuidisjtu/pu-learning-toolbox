@@ -33,7 +33,7 @@
 
 > 注册名可直接用于 `PUPipeline(classifier="...")` 与 CLI `--classifier`；别名大小写不敏感。
 > 族列为友好简称；CLI 与 JSON 输出使用枚举值：`class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` / `deep_pu`。
-> 构造器有必填非 `class_prior` 参数的方法（如 `ldce` 需 `flip_probability`）不能按名字自动实例化，显式指定时请传实例（见下文 PUPipeline 节）。
+> 构造器有必填非 `class_prior` 参数的方法可用 `classifier_params` 补齐；需要 Python 对象协议的参数也可直接传配置好的实例。
 
 ## PUPipeline
 
@@ -42,6 +42,7 @@
 ```python
 pipe = PUPipeline(
     classifier="auto",          # 注册方法名 / "auto"（推荐器选算法）/ 分类器实例
+    classifier_params=None,      # 显式注册名的构造参数；auto/实例模式不可用
     prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2"（后两者映射到
                                 # KernelMeanPriorEstimator）/ 估计器实例 / None
     cv=5,                       # PU 分层 CV 折数，或自定义 splitter
@@ -89,12 +90,13 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 | `classifier=` | 行为 |
 |---|---|
 | `"auto"`（默认） | 先估先验 → `recommend_from_profile` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
-| `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），构造时自动注入 `class_prior` 与 `random_state` |
+| `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），使用 `classifier_params` 配置构造参数，并自动注入 `class_prior` 与 `random_state` |
 | `UPUClassifier(...)` 实例 | 原样使用（`clone` 到每折），不注入任何参数 |
 
-构造器有必填非 `class_prior` 参数的方法（如 `"ldce"` 需要 `flip_probability`）
-不能从名字自动实例化——`"auto"` 会跳过它们并在 `report.provenance["skipped_candidates"]`
-记录原因；显式指定名字则构造时即报错，请改传实例。
+构造器有必填非 `class_prior` 参数的方法（如 `"ldce"` 需要 `flip_probability`）可在
+显式名称模式下用 `classifier_params` 补齐；`"auto"` 会跳过它们并在
+`report.provenance["skipped_candidates"]` 记录原因。`class_prior`、`random_state`、
+`encoder` 为流水线管理参数，不能通过 `classifier_params` 覆盖。
 
 ### 深度算法与架构选择
 
@@ -131,6 +133,26 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None)
 | 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
 | 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
 | 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
+
+## PUTuner
+
+`PUTuner(classifier=..., param_grid=..., scoring=..., higher_is_better=None,
+metrics=None, **pipeline_params)` 对 `sklearn.model_selection.ParameterGrid` 展开的每个组合
+运行完整 `PUPipeline`。`classifier` 必须是显式注册名；`pipeline_params` 可包含 `cv`、
+`prior_estimator`、`random_state`、`architecture` 等流水线参数。
+
+`fit(X, y_pu, y_true=None, class_prior=None)` 返回 `TuningResult`：
+
+| 字段 | 含义 |
+|---|---|
+| `best_params` / `best_score` | 最佳有效组合与 CV 均值 |
+| `best_report` | 最佳组合的完整 `PipelineReport`，含全量重训模型 |
+| `trials` | 全部 `TuningTrial`；状态为 `ok` / `unavailable` / `failed` |
+| `scoring` | 规范化后的指标名 |
+| `higher_is_better` | 选择方向；默认仅 `pu_zero_one_risk` 取最小 |
+
+所有 trial 都无法计算选择指标时抛 `PipelineError`。完整示例见
+[模型调整指南](../howto/model_tuning.md)。
 
 ## build_encoder
 

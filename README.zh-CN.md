@@ -16,12 +16,15 @@
 - **数据画像 + 算法推荐** -- 自动质量检查、SCAR/SAR 证据，以及七维评分推荐器为你的数据选方法
 - **可审计流水线** -- 一次调用的 `PUPipeline`（画像 → 先验 → 训练 → PU 分层 CV → 评估），加结构化诊断报告与先验/标记倾向敏感性分析
 - **CLI** -- `pu-toolbox` 把整条流水线变成终端命令
+- **模型调整** -- 统一 `classifier_params`、命令行参数入口与 PU-aware 网格搜索
+- **图形界面** -- 上传数据、配置/比较模型、查看诊断并下载报告与模型
 
 ## 快速开始
 
 ```bash
 pip install pu-toolbox                # 核心依赖（Python ≥ 3.10）
 pip install "pu-toolbox[torch]"       # + 基于 PyTorch 的方法（nnPU、Dist-PU、Self-PU 等）
+pip install "pu-toolbox[ui]"          # + Streamlit 图形界面
 ```
 
 ### 安装环境
@@ -74,6 +77,18 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 #    results/report.md    完整 Markdown 报告
 #    results/report.json  严格 JSON（无 NaN），可程序化消费
 ```
+
+## 图形界面与模型调整
+
+```bash
+pip install "pu-toolbox[ui]"
+pu-toolbox-ui
+```
+
+界面支持自动推荐、手动模型参数、PU 分层网格搜索、指标图表、诊断提示，以及报告、
+预测和模型下载。Python 与 CLI 调参方法见
+[模型调整指南](docs/user/howto/model_tuning.md)，界面说明见
+[图形界面指南](docs/user/howto/ui.md)。
 
 ## 文档
 

@@ -52,13 +52,13 @@ report.save("results/pipeline.json")
 | `classifier=` | 行为 |
 |---|---|
 | `"auto"`（默认） | 先估先验 → `recommend_from_profile` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
-| `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），构造时自动注入 `class_prior` 与 `random_state` |
+| `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），通过 `classifier_params` 配置模型，构造时自动注入 `class_prior` 与 `random_state` |
 | `UPUClassifier(...)` 实例 | 原样使用（`clone` 到每折），不注入任何参数 |
 
-注意：构造器有必填非 `class_prior` 参数的方法（如 `"ldce"` 需要
-`flip_probability`、`"dgpu"` 需要生成器）**不能从名字自动实例化**——`"auto"` 会
-跳过它们并在 `report.provenance["skipped_candidates"]` 记录原因；显式指定名字则
-在构造时即报错，请改传实例。
+构造器有额外必填参数的方法可通过 `classifier_params` 补齐，例如
+`PUPipeline(classifier="ldce", classifier_params={"flip_probability": 0.2})`。
+`"auto"` 没有确定的参数目标，仍会跳过这些方法；需要 Python 对象协议的参数（如
+DGPU generator）建议传入已配置实例。
 
 **降级语义**：auto 模式下先验估计失败（估计器异常或估计值越界）不中断流程——
 降级为无先验推荐（需先验方法被排除），`report.prior.degraded` 与 issues 中的
@@ -109,9 +109,11 @@ report.save("results/pipeline.json")
 ## 与手动流程对比
 
 手动流程（`examples/minimal/05_recpe_pipeline.py`）需要 ~30 行样板：
-画像 → 先验估计 → 网格调参 → CV → 评估。`PUPipeline` 一行等价，且报告
+画像 → 先验估计 → CV → 评估。`PUPipeline` 一行等价，且报告
 `provenance` 完整记录每步决策（classifier 解析、先验来源、跳过候选、随机种子），
 满足可审计要求。
+
+搜索多组超参数使用 `PUTuner`，详见[模型调整指南](model_tuning.md)。
 
 ## 下一步
 

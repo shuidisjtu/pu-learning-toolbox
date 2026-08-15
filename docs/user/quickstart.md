@@ -1,6 +1,6 @@
 # 快速开始
 
-> 前置条件：Python 3.10+。`pip install pu-toolbox`（torch 方法另加 `pip install "pu-toolbox[torch]"`）。
+> 前置条件：Python 3.10+。`pip install pu-toolbox`（torch 方法另加 `pip install "pu-toolbox[torch]"`；图形界面使用 `pip install "pu-toolbox[ui]"`）。
 
 ## 步骤 1：生成演示数据
 
@@ -39,6 +39,8 @@ report.save("results/pipeline.json")
 
 ## 接下来呢？
 
+- 不想使用命令行：安装后运行 `pu-toolbox-ui`，见 [howto/ui.md](howto/ui.md)
+- 调整模型或搜索参数：[howto/model_tuning.md](howto/model_tuning.md)
 - 完整实验的每一步怎么调：见 [howto/pipeline.md](howto/pipeline.md)
 - 想理解 PU 问题与标记机制：见 [concepts/pu_problem.md](concepts/pu_problem.md)
 - 全部命令与参数：见 [howto/cli.md](howto/cli.md) 与 [reference/api.md](reference/api.md)

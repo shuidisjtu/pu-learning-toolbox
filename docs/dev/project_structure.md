@@ -98,6 +98,7 @@ pu_toolbox/
   model_selection/
     __init__.py
     split.py                   (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
+    tuning.py                  (PUTuner: PU-aware 参数网格、trial 与最佳报告)
 
   registry/
     __init__.py
@@ -126,6 +127,11 @@ pu_toolbox/
     sensitivity.py             (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
     audit_benchmark.py         (audit-benchmark 子命令: 实验产物与 provenance 审计)
     skill.py                   (skill 子命令: 安装内置 pu-workflow 技能到用户级 agent 目录)
+
+  ui/                          (可选 Streamlit 图形界面，核心安装不导入 streamlit)
+    __init__.py                (数据/配置辅助函数导出)
+    app.py                     (上传→配置/调参→训练→诊断/下载页面)
+    launcher.py                (pu-toolbox-ui 启动入口)
 ```
 
 ## 3. 测试（`tests/`）
@@ -179,6 +185,9 @@ tests/
       test_classification.py          # PU 指标测试
     model_selection/
       test_split.py                   # PU 切分器测试
+      test_tuning.py                  # PUTuner 网格、选择方向与不可用指标
+    ui/
+      test_ui_helpers.py              # 上传解析、JSON 参数与模型目录（无需 streamlit）
     prior/
       test_recpe.py                   # ReCPE 特有逻辑
       test_pen_l1.py                  # penL1 特有逻辑
@@ -198,6 +207,7 @@ tests/
       test_recommender.py             # 算法推荐器过滤、评分与输出
       test_scoring_rules.py           # 推荐评分规则与推荐器边界
     cli/
+      test_classifier_params.py       # classifier-param JSON 解析与错误路径
       test_cli_main.py                # CLI 入口冒烟
       test_run_deep.py                # run 子命令深度架构路径（.npy 输入 + 参数）
       test_info.py                    # list-methods / list-priors 子命令
@@ -205,6 +215,7 @@ tests/
       test_skill.py                   # skill install 子命令（内置技能安装）
 
   integration/                       # 跨组件集成（CLI + PUPipeline + registry + estimators）
+    test_model_configuration.py       # 命名参数、必填参数与 PUTuner 确定性
     test_pipeline.py                 # PUPipeline 全流程/先验解析/错误/可用性/确定性
     test_pipeline_deep.py            # PUPipeline 深度算法集成（架构选择;importorskip torch）
     test_run.py                      # run 子命令进程内端到端（真实 CSV IO + 真实训练）

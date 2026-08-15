@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import pickle
 import sys
 from pathlib import Path
@@ -17,29 +18,35 @@ from ..workflows import PUPipeline
 __all__ = ["build_run_parser", "run_run"]
 
 
-def _coerce_value(value: str) -> int | float | str:
-    """Coerce a CLI value to int, then float, falling back to str."""
+def _coerce_value(value: str) -> object:
+    """Parse JSON literals while keeping unquoted text convenient."""
     try:
-        return int(value)
-    except ValueError:
-        pass
-    try:
-        return float(value)
-    except ValueError:
+        return json.loads(value)
+    except json.JSONDecodeError:
         return value
 
 
-def _parse_prior_params(items: list[str] | None) -> dict[str, int | float | str]:
-    """Parse repeated ``--prior-param KEY=VALUE`` into a dict."""
-    params: dict[str, int | float | str] = {}
+def _parse_params(items: list[str] | None, option: str) -> dict[str, object]:
+    """Parse repeated ``KEY=VALUE`` arguments into a parameter mapping."""
+    params: dict[str, object] = {}
     for item in items or []:
         if "=" not in item:
-            raise ValueError(f"--prior-param expects KEY=VALUE, got {item!r}")
+            raise ValueError(f"{option} expects KEY=VALUE, got {item!r}")
         key, value = item.split("=", 1)
         if not key:
-            raise ValueError(f"--prior-param expects a non-empty key, got {item!r}")
+            raise ValueError(f"{option} expects a non-empty key, got {item!r}")
         params[key] = _coerce_value(value)
     return params
+
+
+def _parse_prior_params(items: list[str] | None) -> dict[str, object]:
+    """Parse repeated ``--prior-param KEY=VALUE`` into a dict."""
+    return _parse_params(items, "--prior-param")
+
+
+def _parse_classifier_params(items: list[str] | None) -> dict[str, object]:
+    """Parse repeated ``--classifier-param KEY=VALUE`` into a dict."""
+    return _parse_params(items, "--classifier-param")
 
 
 def build_run_parser(sub: argparse._SubParsersAction) -> None:
@@ -83,6 +90,14 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
     )
     parser.add_argument(
         "--classifier", type=str, default="auto", help="registered method name or 'auto'"
+    )
+    parser.add_argument(
+        "--classifier-param",
+        action="append",
+        default=None,
+        metavar="KEY=VALUE",
+        help="classifier constructor parameter, repeatable; values accept JSON literals "
+        "(e.g. --classifier-param reg_lambda=0.01 --classifier-param hidden_dims='[64,32]')",
     )
     parser.add_argument(
         "--architecture",
@@ -146,6 +161,7 @@ def _run(args: argparse.Namespace) -> None:
 
     prior_estimator: str | None = None if args.prior_estimator == "none" else args.prior_estimator
     prior_params = _parse_prior_params(args.prior_param)
+    classifier_params = _parse_classifier_params(args.classifier_param)
     metrics = [m.strip() for m in args.metrics.split(",") if m.strip()] if args.metrics else None
 
     if args.architecture == "mlp" and args.backbone is not None:
@@ -153,6 +169,7 @@ def _run(args: argparse.Namespace) -> None:
 
     pipe = PUPipeline(
         classifier=args.classifier,
+        classifier_params=classifier_params,
         prior_estimator=prior_estimator,
         prior_params=prior_params,
         cv=args.cv,

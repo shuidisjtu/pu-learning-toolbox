@@ -15,6 +15,8 @@
    | 数据画像与假设提示 | [howto/data_profiling.md](howto/data_profiling.md) |
    | PUPipeline 端到端训练评估 | [howto/pipeline.md](howto/pipeline.md) |
    | 使用命令行接口 | [howto/cli.md](howto/cli.md) |
+   | 调整模型与搜索超参数 | [howto/model_tuning.md](howto/model_tuning.md) |
+   | 使用图形界面 | [howto/ui.md](howto/ui.md) |
    | 生成诊断报告 | [howto/diagnostic_reports.md](howto/diagnostic_reports.md) |
    | 类先验与标记倾向敏感性分析 | [howto/sensitivity_analysis.md](howto/sensitivity_analysis.md) |
    | 训练 Self-PU 分类器 | [howto/self_pu.md](howto/self_pu.md) |

@@ -16,12 +16,15 @@
 - **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data
 - **Auditable pipeline** -- one-call `PUPipeline` (profile -> prior -> train -> PU-stratified CV -> evaluate) plus structured diagnostic reports and prior/propensity sensitivity analysis
 - **CLI** -- `pu-toolbox` turns the whole pipeline into terminal commands
+- **Model tuning** -- unified classifier parameters plus PU-aware grid search
+- **Graphical UI** -- upload data, configure/compare models, inspect diagnostics, and download results
 
 ## Quick Start
 
 ```bash
 pip install pu-toolbox                # core dependencies (Python >= 3.10)
 pip install "pu-toolbox[torch]"       # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, ...)
+pip install "pu-toolbox[ui]"          # + Streamlit graphical interface
 ```
 
 ### Installation environments
@@ -76,6 +79,18 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 #    results/report.md     full Markdown report
 #    results/report.json   strict JSON (no NaN), machine-readable
 ```
+
+## Graphical UI and model tuning
+
+```bash
+pip install "pu-toolbox[ui]"
+pu-toolbox-ui
+```
+
+The UI supports automatic recommendations, manual model parameters,
+PU-stratified grid search, metric charts, diagnostics, and report/model
+downloads. See the [model tuning guide](docs/user/howto/model_tuning.md) and
+[UI guide](docs/user/howto/ui.md).
 
 ## Documentation
 

@@ -32,6 +32,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--prior-estimator` | — | `pen_l1` | `pen_l1`/`recpe`/`km1`/`km2`/`none`，也接受注册表名如 `class_prior_estimation`（别名 `cpe`/`pe`） |
 | `--prior-param` | — | — | 估计器超参数，可重复（如 `--prior-param sigma=3.0 --prior-param n_centers=100`）；值自动转为 int/float/str；与估计器实例方式互斥 |
 | `--classifier` | — | `auto` | 注册方法名或 `auto`（推荐器选算法） |
+| `--classifier-param` | — | — | 分类器构造参数，可重复；支持 JSON 数字/布尔值/列表/对象（如 `--classifier-param reg_lambda=0.01`） |
 | `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu`） |
 | `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
 | `--device` | — | `auto` | 深度算法 torch 设备：`auto`/`cpu`/`cuda`（`auto` 在有 GPU 时自动用 CUDA） |
@@ -105,7 +106,8 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 ## 与 Python API 的关系
 
 `pu-toolbox run` 等价于 `PUPipeline(classifier=..., prior_estimator=..., cv=..., metrics=..., random_state=...).fit_evaluate(X, y_pu, y_true=..., class_prior=...)`。
-需要更细控制（传入分类器实例、自定义 CV splitter）时直接用 Python API。
+需要搜索多组参数或自定义 CV splitter 时使用 Python API 的 `PUTuner` / `PUPipeline`，
+详见 [模型调整指南](model_tuning.md)。不想使用命令行可启动[图形界面](ui.md)。
 
 ## 下一步
 

@@ -48,12 +48,16 @@ research = [
     "lightning>=2.0",
     "tqdm>=4.0",
 ]
+ui = [
+    "streamlit>=1.38",
+]
 all = [
     "densratio==0.3.0",
     "torch>=2.0",
     "torchvision>=0.15",
     "lightning>=2.0",
     "tqdm>=4.0",
+    "streamlit>=1.38",
 ]
 
 [project.urls]
@@ -61,6 +65,7 @@ Repository = "https://github.com/shuidisjtu/pu-learning-toolbox"
 
 [project.scripts]
 pu-toolbox = "pu_toolbox.cli:main"
+pu-toolbox-ui = "pu_toolbox.ui.launcher:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pu_toolbox"]

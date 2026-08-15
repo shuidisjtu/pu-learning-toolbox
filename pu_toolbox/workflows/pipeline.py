@@ -52,6 +52,11 @@ __all__ = ["DEFAULT_METRICS", "PipelineError", "PUPipeline"]
 # constructor blocks auto-instantiation.
 _ALWAYS_PROVIDED = {"class_prior", "random_state"}
 
+# Parameters owned by workflow orchestration.  Letting classifier_params
+# override these would make CV folds disagree with report provenance (or, for
+# encoders, reuse a fitted torch module across folds).
+_MANAGED_CLASSIFIER_PARAMS = {"class_prior", "random_state", "encoder"}
+
 # Sentinel distinguishing the documented default ``"pen_l1"`` from an
 # explicit user choice (affects ``PriorInfo.auto_selected``).
 _UNSET = object()
@@ -167,10 +172,18 @@ class PUPipeline:
     classifier : str, BasePUClassifier, or "auto" (default "auto")
         Registry name of a PU classifier, a ready-to-use instance, or
         ``"auto"`` to select the best match via the recommender.  Registry
-        names are resolved case-insensitively through aliases.  Classes
-        whose constructor requires parameters other than ``class_prior`` /
-        ``random_state`` (e.g. ``"ldce"`` needs ``flip_probability``)
-        cannot be auto-instantiated from a name; pass an instance instead.
+        names are resolved case-insensitively through aliases. Classes with
+        extra required constructor parameters can receive them through
+        ``classifier_params``; auto mode still skips such classes because it
+        has no method-specific parameter target.
+    classifier_params : mapping or None (default None)
+        Constructor parameters for a classifier selected by registry name.
+        This also makes methods with additional required parameters usable by
+        name (for example ``classifier="ldce"`` with
+        ``classifier_params={"flip_probability": 0.2}``).  It cannot be
+        combined with ``classifier="auto"`` or a classifier instance.
+        ``class_prior``, ``random_state``, and ``encoder`` remain managed by
+        the pipeline and must use their dedicated workflow arguments.
     prior_estimator : str, BasePriorEstimator, or None (default "pen_l1")
         Class-prior estimator used when the selected method needs a prior
         and none is supplied.  ``"km1"`` / ``"km2"`` map to
@@ -226,6 +239,7 @@ class PUPipeline:
         self,
         *,
         classifier: str | BasePUClassifier = "auto",
+        classifier_params: dict[str, Any] | None = None,
         prior_estimator: str | BasePriorEstimator | None | object = _UNSET,
         prior_params: dict[str, Any] | None = None,
         cv: int | Any | None = None,
@@ -238,12 +252,34 @@ class PUPipeline:
     ) -> None:
         _ensure_registered()
         self.classifier = classifier
+        self.classifier_params = dict(classifier_params or {})
+        if any(not isinstance(key, str) or not key for key in self.classifier_params):
+            raise TypeError("classifier_params keys must be non-empty strings.")
+        managed = sorted(_MANAGED_CLASSIFIER_PARAMS.intersection(self.classifier_params))
+        if managed:
+            raise ValueError(
+                "classifier_params cannot override pipeline-managed parameters "
+                f"{managed}; use the dedicated PUPipeline arguments instead."
+            )
+        if self.classifier_params and classifier == "auto":
+            raise ValueError(
+                "classifier_params requires an explicit classifier name; "
+                "parameters cannot be applied before auto selects a method."
+            )
+        if self.classifier_params and isinstance(classifier, BasePUClassifier):
+            raise TypeError(
+                "classifier_params cannot be combined with a classifier instance; "
+                "configure the instance directly instead."
+            )
         self.random_state = random_state
         self.metrics = _resolve_metric_names(metrics)
 
         # -- classifier: fail fast on unresolvable names -----------------
         if isinstance(classifier, str) and classifier != "auto":
-            self._classifier_cls = _resolve_classifier_name(classifier)
+            self._classifier_cls = _resolve_classifier_name(
+                classifier, provided_params=set(self.classifier_params)
+            )
+            _validate_classifier_params(self._classifier_cls, self.classifier_params, classifier)
             self._classifier_name = classifier
         elif isinstance(classifier, BasePUClassifier):
             self._classifier_cls = None
@@ -693,7 +729,7 @@ class PUPipeline:
                 clf.set_params(encoder=self._encoder)
             return clf
         assert cls is not None
-        kwargs: dict[str, Any] = {}
+        kwargs: dict[str, Any] = dict(self.classifier_params)
         signature = inspect.signature(cls.__init__)
         if prior is not None and "class_prior" in signature.parameters:
             kwargs["class_prior"] = prior
@@ -705,7 +741,12 @@ class PUPipeline:
             kwargs["device"] = self.device
         if "max_epochs" in signature.parameters and self.max_epochs is not None:
             kwargs["max_epochs"] = self.max_epochs
-        return cls(**kwargs)
+        try:
+            return cls(**kwargs)
+        except (TypeError, ValueError) as exc:
+            raise PipelineError(
+                f"invalid classifier parameters for '{self._classifier_name}': {exc}"
+            ) from exc
 
     def _resolved_splitter(self, X: Any, y_pu: np.ndarray) -> Any:
         if isinstance(self.cv, int):
@@ -838,6 +879,7 @@ class PUPipeline:
             "prior_source": prior_info.source,
             "prior_audit_flagged": prior_audit_flagged,
             "random_state": self.random_state,
+            "classifier_params": _parameter_provenance(self.classifier_params),
             "y_true_supplied": y_true is not None,
             "skipped_candidates": skipped_candidates,
         }
@@ -857,7 +899,9 @@ class PUPipeline:
 # ── Module-level helpers ────────────────────────────────────────────────
 
 
-def _resolve_classifier_name(name: str) -> type[BasePUClassifier]:
+def _resolve_classifier_name(
+    name: str, *, provided_params: set[str] | None = None
+) -> type[BasePUClassifier]:
     """Resolve a registry name, rejecting classes we cannot instantiate."""
     try:
         cls = get_algorithm(name)
@@ -868,11 +912,12 @@ def _resolve_classifier_name(name: str) -> type[BasePUClassifier]:
         ) from exc
     if not isinstance(cls, type) or not issubclass(cls, BasePUClassifier):
         raise PipelineError(f"{name!r} does not resolve to a PU classifier.")
-    missing = _missing_required_params(cls)
+    missing = _missing_required_params(cls, provided_params=provided_params)
     if missing:
         raise PipelineError(
             f"Classifier {name!r} cannot be auto-instantiated: constructor "
-            f"requires {sorted(missing)}. Pass an instance instead."
+            f"requires {sorted(missing)}. Supply them with classifier_params "
+            "or pass a configured instance instead."
         )
     return cls
 
@@ -888,9 +933,10 @@ def _declares_encoder_parameter(cls: type) -> bool:
     return "encoder" in inspect.signature(cls.__init__).parameters
 
 
-def _missing_required_params(cls: type) -> set[str]:
+def _missing_required_params(cls: type, *, provided_params: set[str] | None = None) -> set[str]:
     """Required constructor params the pipeline cannot supply."""
     signature = inspect.signature(cls.__init__)
+    provided = provided_params or set()
     return {
         param
         for param, p in signature.parameters.items()
@@ -901,6 +947,7 @@ def _missing_required_params(cls: type) -> set[str]:
         and p.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         and p.default is inspect.Parameter.empty
         and param not in _ALWAYS_PROVIDED
+        and param not in provided
     }
 
 
@@ -1083,6 +1130,110 @@ def _validate_prior_param_types(
                 raise PipelineError(
                     f"invalid prior parameter '{key}': value {value!r} is not one of {allowed}"
                 )
+
+
+def _validate_classifier_params(
+    cls: type[BasePUClassifier], kwargs: dict[str, Any], name: str
+) -> None:
+    """Validate and normalize registry-name classifier constructor params."""
+    if not kwargs:
+        return
+    signature = inspect.signature(cls.__init__)
+    accepts_kwargs = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in signature.parameters.values()
+    )
+    unknown = sorted(
+        key for key in kwargs if key not in signature.parameters and not accepts_kwargs
+    )
+    if unknown:
+        available = sorted(
+            key
+            for key, parameter in signature.parameters.items()
+            if key != "self"
+            and parameter.kind
+            not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        )
+        raise PipelineError(
+            f"invalid classifier parameters for '{name}': unknown {unknown}. "
+            f"Available constructor parameters: {available}"
+        )
+    _validate_parameter_types(cls, kwargs, name, kind="classifier")
+
+
+def _validate_parameter_types(
+    cls: type,
+    kwargs: dict[str, Any],
+    name: str,
+    *,
+    kind: str,
+) -> None:
+    """Apply safe scalar annotation coercion to constructor parameters."""
+    try:
+        hints = get_type_hints(cls.__init__)
+    except (TypeError, NameError):
+        warnings.warn(
+            f"cannot resolve {kind}-parameter types for {cls.__name__}; "
+            f"skipping {kind}-param validation",
+            UserWarning,
+            stacklevel=3,
+        )
+        return
+    for key, value in list(kwargs.items()):
+        annotation = hints.get(key)
+        if annotation is None:
+            continue
+        types = get_args(annotation) if get_origin(annotation) is not None else (annotation,)
+        if bool in types and isinstance(value, str):
+            low = value.strip().lower()
+            if low in ("true", "1", "yes", "on"):
+                kwargs[key] = True
+            elif low in ("false", "0", "no", "off"):
+                kwargs[key] = False
+            else:
+                raise PipelineError(
+                    f"invalid {kind} parameter '{key}' for '{name}': "
+                    f"value {value!r} is not a boolean (expected true/false)"
+                )
+            continue
+        if any(item in (int, float) for item in types):
+            converted = value
+            if isinstance(value, str):
+                try:
+                    converted = int(value) if int in types else float(value)
+                except ValueError as exc:
+                    raise PipelineError(
+                        f"invalid {kind} parameter '{key}' for '{name}': "
+                        f"value {value!r} is not a number (expected {annotation})"
+                    ) from exc
+            if isinstance(converted, int | float) and not np.isfinite(converted):
+                raise PipelineError(
+                    f"invalid {kind} parameter '{key}' for '{name}': value {value!r} must be finite"
+                )
+            kwargs[key] = converted
+            continue
+        if get_origin(annotation) is Literal:
+            allowed = get_args(annotation)
+            if value not in allowed:
+                raise PipelineError(
+                    f"invalid {kind} parameter '{key}' for '{name}': "
+                    f"value {value!r} is not one of {allowed}"
+                )
+
+
+def _parameter_provenance(params: dict[str, Any]) -> dict[str, Any]:
+    """Represent classifier parameters without making reports unserializable."""
+    import json
+
+    recorded: dict[str, Any] = {}
+    for key, value in params.items():
+        try:
+            json.dumps(value, allow_nan=False)
+        except (TypeError, ValueError):
+            recorded[key] = repr(value)
+        else:
+            recorded[key] = value
+    return recorded
 
 
 def _validate_prior_value(value: float, name: str) -> None:
