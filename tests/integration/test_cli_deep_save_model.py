@@ -17,8 +17,15 @@ pytestmark = [pytest.mark.integration, pytest.mark.slow]
 # (classifier, extra CLI args for short training)
 _DEEP_CASES = [
     ("wconpu", ["--max-epochs", "1"]),
-    ("infomax_pu", ["--classifier-param", "representation_epochs=2",
-                    "--classifier-param", "classifier_epochs=2"]),
+    (
+        "infomax_pu",
+        [
+            "--classifier-param",
+            "representation_epochs=2",
+            "--classifier-param",
+            "classifier_epochs=2",
+        ],
+    ),
 ]
 
 
@@ -39,11 +46,31 @@ def test_cli_save_model_cnn_roundtrip(tmp_path: Path, classifier: str, extra_arg
 
     # main() returns None on success; user/runtime errors raise SystemExit
     # (sys.exit(1)) or argparse SystemExit(2), which fail the test itself.
-    main(["run", "--data", str(data), "--labels", str(labels),
-          "--out-dir", str(out), "--classifier", classifier,
-          "--architecture", "cnn", "--backbone", "cnn13",
-          "--device", "cpu", "--cv", "2",
-          "--class-prior", "0.3", "--save-model", *extra_args])
+    main(
+        [
+            "run",
+            "--data",
+            str(data),
+            "--labels",
+            str(labels),
+            "--out-dir",
+            str(out),
+            "--classifier",
+            classifier,
+            "--architecture",
+            "cnn",
+            "--backbone",
+            "cnn13",
+            "--device",
+            "cpu",
+            "--cv",
+            "2",
+            "--class-prior",
+            "0.3",
+            "--save-model",
+            *extra_args,
+        ]
+    )
     model_file = out / "model.pkl"
     assert model_file.exists()
     model = pickle.loads(model_file.read_bytes())
