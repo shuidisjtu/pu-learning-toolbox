@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 
+from ..core.exceptions import ValidationError
 from ..progress import (
     CancellationToken,
     ProgressCallback,
@@ -162,7 +163,17 @@ class PUModelComparator:
             except RunCancelledError:
                 raise
             except Exception as exc:  # noqa: BLE001 - isolate one unavailable backend/model
-                trials.append(ModelComparisonTrial(name, None, "failed", str(exc)))
+                message = str(exc)
+                # require_all label checks exist only for the P/N/U convention
+                # (core/labels.py normalize_pnu_labels), so this match cannot
+                # misfire on unrelated failures.
+                if isinstance(exc, ValidationError) and "must contain all of" in message:
+                    message += (
+                        " This classifier requires the {+1, -1, 0} P/N/U label "
+                        "convention; it cannot be compared on {+1, 0} PU data "
+                        "alone (see docs/research/method_cards/PNU.md)."
+                    )
+                trials.append(ModelComparisonTrial(name, None, "failed", message))
             emit_progress(
                 progress_callback,
                 stage="comparison",

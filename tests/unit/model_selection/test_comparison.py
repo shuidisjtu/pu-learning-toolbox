@@ -1,4 +1,4 @@
-# ruff: noqa: N803, S101
+# ruff: noqa: N803, N806, S101
 
 """Tests for PU-aware multi-model comparison."""
 
@@ -8,6 +8,7 @@ import pytest
 
 from pu_toolbox.model_selection import PUModelComparator
 from pu_toolbox.workflows import PipelineError
+from tests.helpers import make_scar_data
 
 pytestmark = pytest.mark.unit
 
@@ -75,3 +76,49 @@ def test_deterministic_comparison_preserves_input_order(monkeypatch):
     assert [trial.classifier for trial in result.trials] == ["upu", "pnu"]
     assert result.best_classifier == "upu"
     assert result.to_dict() == result.to_dict()
+
+
+def test_pnu_trial_reports_ternary_label_hint(rng):
+    X, y_pu, _ = make_scar_data(rng, n=100, separation=4.0)
+    result = PUModelComparator(classifiers=["upu", "pnu"], cv=2, random_state=42).fit(
+        X, y_pu, class_prior=0.4
+    )
+
+    pnu_trial = next(trial for trial in result.trials if trial.classifier == "pnu")
+    assert pnu_trial.status == "failed"
+    assert "{+1, -1, 0}" in pnu_trial.error
+    assert "Label vector must contain all of" in pnu_trial.error
+    assert next(trial for trial in result.trials if trial.classifier == "upu").status == "ok"
+
+
+def test_non_label_error_is_not_rewritten(rng, monkeypatch):
+    """A non-PNU failure must keep its original error text (no false labeling)."""
+    from pu_toolbox.model_selection import PUModelComparator
+
+    comparator = PUModelComparator(classifiers=["upu", "pnu"], cv=2, random_state=42)
+
+    def broken_pipeline(name):
+        if name == "pnu":
+
+            def fit_evaluate(*args, **kwargs):
+                raise ValueError("some unrelated optimizer failure")
+        else:
+
+            def fit_evaluate(*args, **kwargs):
+                metric = SimpleNamespace(available=True, mean=0.5, reason=None)
+                return SimpleNamespace(
+                    cv_metrics={"pu_zero_one_risk": metric},
+                    final_model=None,
+                )
+
+        return SimpleNamespace(fit_evaluate=fit_evaluate)
+
+    comparator._pipeline = broken_pipeline  # type: ignore[method-assign]
+    result = comparator.fit(*make_scar_data(rng, n=100, separation=4.0)[:2], class_prior=0.4)
+
+    pnu_trial = next(trial for trial in result.trials if trial.classifier == "pnu")
+    assert pnu_trial.status == "failed"
+    assert pnu_trial.error == "some unrelated optimizer failure"
+    assert "{+1, -1, 0}" not in pnu_trial.error
+    upu_trial = next(trial for trial in result.trials if trial.classifier == "upu")
+    assert upu_trial.status == "ok"
