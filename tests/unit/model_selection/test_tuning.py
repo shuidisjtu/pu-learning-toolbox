@@ -106,3 +106,55 @@ def test_deterministic_parameter_grid_order_and_refits_only_best(monkeypatch):
     assert result.best_report.final_model == "fitted"
     assert updates[-1].stage == "complete"
     assert updates[-1].fraction == 1.0
+
+
+def test_edge_tuner_isolates_invalid_first_candidate(rng):
+    X, y_pu, _ = make_scar_data(rng, n=80, separation=4.0)
+    tuner = PUTuner(
+        classifier="upu",
+        param_grid={"loss": ["not_a_loss", "logistic"], "reg_lambda": [0.01]},
+        cv=2,
+        random_state=42,
+    )
+    result = tuner.fit(X, y_pu, class_prior=0.4)
+
+    assert len(result.trials) == 2
+    assert result.trials[0].status == "failed"
+    assert "invalid classifier parameter" in result.trials[0].error
+    assert result.trials[1].status == "ok"
+    assert result.best_params == {"loss": "logistic", "reg_lambda": 0.01}
+    assert result.best_score is not None
+
+
+def test_edge_tuner_required_params_may_come_from_grid(rng):
+    """ldce has a mandatory constructor param; it must be satisfiable via the grid."""
+    X, y_pu, _ = make_scar_data(rng, n=80, separation=4.0)
+    tuner = PUTuner(
+        classifier="ldce",
+        param_grid={"flip_probability": [0.2, 0.3]},
+        cv=2,
+        random_state=42,
+    )
+    result = tuner.fit(X, y_pu, class_prior=0.4)
+
+    assert len(result.trials) == 2
+    assert all(trial.status == "ok" for trial in result.trials)
+    assert result.best_params["flip_probability"] in (0.2, 0.3)
+
+
+def test_tuner_honors_custom_scoring(rng):
+    """scoring is resolved independently of the default metrics list (P0)."""
+    X, y_pu, y_true = make_scar_data(rng, n=80, separation=4.0)
+    tuner = PUTuner(
+        classifier="upu",
+        param_grid={"reg_lambda": [0.01]},
+        scoring="pu_recall",
+        cv=2,
+        random_state=42,
+    )
+
+    assert tuner.scoring == "pu_recall"
+    assert tuner.higher_is_better is True  # not pu_zero_one_risk -> maximize
+    assert "pu_recall" in tuner.metrics
+    result = tuner.fit(X, y_pu, y_true=y_true, class_prior=0.4)
+    assert result.scoring == "pu_recall"

@@ -99,18 +99,22 @@ class PUTuner:
         if not candidates:
             raise ValueError("param_grid must produce at least one candidate.")
 
-        metric_names = list(metrics or DEFAULT_METRICS)
-        if scoring not in metric_names:
-            metric_names.append(scoring)
-        validator = PUPipeline(
-            classifier=classifier,
-            classifier_params=candidates[0],
-            metrics=[scoring],
-            **pipeline_params,
-        )
+        from ..workflows._evaluation import resolve_metric_names
+
+        # scoring 与 metrics 必须分别规范化：用户指定 scoring="pu_recall" 而未传
+        # metrics 时，metric_names[0] 是默认指标（pu_zero_one_risk），若用其作为
+        # self.scoring 会按错误指标选最优参数（P0，不得再犯）。
+        scoring_name = resolve_metric_names([scoring])[0]
+        metric_names = resolve_metric_names(metrics or DEFAULT_METRICS)
+        if scoring_name not in metric_names:
+            metric_names.append(scoring_name)
+        # Candidate parameter values (including required constructor params
+        # such as ldce's flip_probability) must surface as failed trials in
+        # fit(), not abort construction: do NOT pre-validate candidates[0]
+        # here, and do NOT construct a bare pipeline for scoring resolution.
         self.classifier = classifier
         self.param_grid = candidates
-        self.scoring = validator.metrics[0]
+        self.scoring = scoring_name
         self.metrics = metric_names
         self.higher_is_better = (
             self.scoring != "pu_zero_one_risk"
