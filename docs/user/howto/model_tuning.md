@@ -87,11 +87,13 @@ best_model = result.best_report.final_model
 `PUModelComparator` 用完全相同的先验、PU 分层 CV 和指标比较多个注册模型，并只对最佳
 模型执行最终全量重训：
 
+**示例 A：全部成功比较（标签语义兼容）**
+
 ```python
 from pu_toolbox.model_selection import PUModelComparator
 
 comparison = PUModelComparator(
-    classifiers=["upu", "pnu", "pusb"],
+    classifiers=["upu", "pusb"],
     scoring="pu_zero_one_risk",
     cv=5,
     random_state=42,
@@ -101,5 +103,22 @@ print(comparison.best_classifier, comparison.best_score)
 best_model = comparison.best_report.final_model
 ```
 
-单个方法失败时会记为 `failed` 并继续；只有全部方法都失败或评分不可用时才抛出
-`PipelineError`。
+**示例 B：失败隔离（pnu 需要三元标签，预期失败）**
+
+```python
+# y_pu 为 {1, 0} PU 标签；pnu 需要 {+1, -1, 0} 三元标签（P/N/U），
+# 在此输入下预期失败（status == "failed"），且不中断其余模型。
+comparison = PUModelComparator(
+    classifiers=["upu", "pnu", "pusb"],
+    scoring="pu_zero_one_risk",
+    cv=5,
+    random_state=42,
+).fit(X, y_pu, class_prior=0.4)
+
+print(comparison.best_classifier, comparison.best_score)  # 仅从成功的方法中选择
+```
+
+PNU 分类器需要 `{+1, -1, 0}` 三元标签（P/N/U），不能直接用于仅有 `{1, 0}` PU 标签的
+数据（见 [PNU 方法卡](../../research/method_cards/PNU.md)）。比较器遵循失败隔离：
+单个方法失败会记为 `failed` 并继续，只有全部方法都失败或评分不可用时才抛出
+`PipelineError`；`best_classifier` 仅从成功的方法中选择。
