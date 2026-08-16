@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
 from hashlib import sha256
 from typing import Any
 
@@ -15,7 +14,8 @@ import pandas as pd
 from pu_toolbox.run_config import RunConfiguration
 from pu_toolbox.ui.configuration import apply_run_configuration, parse_json_mapping
 from pu_toolbox.ui.data import load_feature_data, load_label_data
-from pu_toolbox.ui.execution import AnalysisResult, execute_analysis
+from pu_toolbox.ui.execution import AnalysisResult, execute_analysis, finalize_run
+from pu_toolbox.ui.history import snapshot as history_snapshot
 from pu_toolbox.ui.parameters import classifier_catalog, render_parameter_form
 from pu_toolbox.ui.results import render_results
 from pu_toolbox.ui.runtime import BackgroundRun, submit_background
@@ -45,12 +45,12 @@ def main() -> None:
                 imported_digest = sha256(config_bytes).hexdigest()
             except (UnicodeDecodeError, ValueError) as exc:
                 st.error(f"配置导入失败：{exc}")
-        history = st.session_state.get("run_history", [])
+        history = history_snapshot()
         with st.expander(f"运行历史（{len(history)}）", expanded=False):
             if history:
                 st.dataframe(history, hide_index=True, use_container_width=True)
             else:
-                st.caption("当前浏览器会话还没有运行记录。")
+                st.caption("当前服务进程还没有运行记录。")
 
     st.subheader("1 · 上传数据")
     upload_columns = st.columns(3)
@@ -366,24 +366,11 @@ def main() -> None:
 
         if active_run.future.done():
             mode = st.session_state.pop("active_run_mode", "pipeline")
-            history_entry = {
-                "开始时间": snapshot.started_at,
-                "结束时间": datetime.now(timezone.utc).isoformat(),
-                "模式": mode,
-            }
-            try:
-                analysis = active_run.future.result()
-            except Exception as exc:  # noqa: BLE001 - UI error boundary
-                status = "cancelled" if active_run.token.is_cancelled else "failed"
-                history_entry["状态"] = status
-                history_entry["结果"] = str(exc) or "run cancelled by user"
-                st.session_state["analysis_error"] = history_entry["结果"]
+            _entry, analysis, error_message = finalize_run(active_run, mode)
+            if error_message is not None:
+                st.session_state["analysis_error"] = error_message
             else:
-                history_entry["状态"] = "completed"
-                history_entry["结果"] = analysis.report.provenance.get("classifier", "unknown")
                 st.session_state["analysis_result"] = analysis
-            history = [history_entry, *st.session_state.get("run_history", [])][:20]
-            st.session_state["run_history"] = history
             st.session_state.pop("active_run", None)
             st.rerun()
         time.sleep(0.4)
