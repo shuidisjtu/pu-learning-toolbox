@@ -16,7 +16,7 @@ from pu_toolbox.estimators.deep.vision import (  # noqa: E402
 pytestmark = pytest.mark.unit
 
 
-def test_channel_normalize_pickle_roundtrip():
+def test_basic_channel_normalize_pickle_roundtrip():
     model = build_wconpu_backbone("cnn13", in_channels=3)
     restored = pickle.loads(pickle.dumps(model))
     model.eval()
@@ -25,7 +25,7 @@ def test_channel_normalize_pickle_roundtrip():
     torch.testing.assert_close(model(x), restored(x))
 
 
-def test_augmentation_pickle_roundtrip():
+def test_basic_augmentation_pickle_roundtrip():
     transform = build_wconpu_augmentation("simaugment", image_size=32)
     restored = pickle.loads(pickle.dumps(transform))
     x = torch.randn(2, 3, 32, 32)

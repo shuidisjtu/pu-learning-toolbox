@@ -30,7 +30,7 @@ _DEEP_CASES = [
 
 
 @pytest.mark.parametrize("classifier, extra_args", _DEEP_CASES)
-def test_cli_save_model_cnn_roundtrip(tmp_path: Path, classifier: str, extra_args: list[str]):
+def test_basic_cli_save_model_cnn_roundtrip(tmp_path: Path, classifier: str, extra_args: list[str]):
     # 4-D NCHW image array (header-less .npy, the CLI CNN path).
     rng = np.random.RandomState(42)
     x = rng.randn(32, 3, 16, 16).astype("float32")

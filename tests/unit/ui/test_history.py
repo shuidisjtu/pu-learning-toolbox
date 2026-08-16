@@ -12,7 +12,7 @@ from pu_toolbox.ui.execution import finalize_run
 pytestmark = pytest.mark.unit
 
 
-def test_history_append_and_snapshot_newest_first():
+def test_basic_history_append_and_snapshot_newest_first():
     history.clear_for_tests()
     history.append({"模式": "pipeline", "状态": "completed"})
     history.append({"模式": "tuning", "状态": "cancelled"})
@@ -20,7 +20,7 @@ def test_history_append_and_snapshot_newest_first():
     assert [entry["模式"] for entry in snap] == ["tuning", "pipeline"]
 
 
-def test_history_snapshot_is_a_copy():
+def test_edge_history_snapshot_is_a_copy():
     history.clear_for_tests()
     history.append({"模式": "pipeline"})
     snap = history.snapshot()
@@ -28,7 +28,7 @@ def test_history_snapshot_is_a_copy():
     assert len(history.snapshot()) == 1
 
 
-def test_history_keeps_at_most_20_entries():
+def test_edge_history_keeps_at_most_20_entries():
     history.clear_for_tests()
     for index in range(25):
         history.append({"index": index})
@@ -70,7 +70,7 @@ class _FakeRun:
 _ERROR = object()
 
 
-def test_finalize_run_completed_writes_history():
+def test_basic_finalize_run_completed_writes_history():
     history.clear_for_tests()
     run = _FakeRun(result=SimpleNamespace(report=SimpleNamespace(provenance={"classifier": "upu"})))
     entry, analysis, error_message = finalize_run(run, "pipeline")
@@ -81,7 +81,7 @@ def test_finalize_run_completed_writes_history():
     assert history.snapshot()[0]["状态"] == "completed"
 
 
-def test_finalize_run_cancelled_writes_history():
+def test_edge_finalize_run_cancelled_writes_history():
     history.clear_for_tests()
     run = _FakeRun(result=_ERROR, cancelled=True)
     entry, _, error_message = finalize_run(run, "tuning")
@@ -91,7 +91,7 @@ def test_finalize_run_cancelled_writes_history():
     assert history.snapshot()[0]["状态"] == "cancelled"
 
 
-def test_finalize_run_failed_writes_history():
+def test_edge_finalize_run_failed_writes_history():
     history.clear_for_tests()
     run = _FakeRun(result=_ERROR, cancelled=False)
     entry, _, error_message = finalize_run(run, "pipeline")

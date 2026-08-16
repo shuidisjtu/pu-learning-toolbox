@@ -26,7 +26,7 @@ def _csv_bytes(values: np.ndarray, header: str) -> bytes:
     return buffer.getvalue().encode("utf-8")
 
 
-def test_ui_run_writes_history_entry(tmp_path: Path):
+def test_basic_ui_run_writes_history_entry(tmp_path: Path):
     rng = np.random.RandomState(42)
     x = rng.randn(40, 5)
     y_pu = np.zeros(40, dtype=int)
