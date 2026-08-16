@@ -16,7 +16,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
-from check_test_quality import analyse_file, review_exemptions  # noqa: E402
+from check_test_quality import (  # noqa: E402
+    _effective_missing,
+    analyse_file,
+    review_exemptions,
+)
 
 
 def _exempt_report(tmp_path, name: str, test_names: list[str]):
@@ -105,6 +109,43 @@ def test_deterministic_list_printout_with_reasons(tmp_path, capsys):
     assert "CONTRACT_COVERED_FILES" in out
     assert "test_kldce_math.py — MATH formula verification" in out
     assert "test_import.py — smoke imports" in out
+
+
+@pytest.mark.unit
+def test_basic_partial_coverage_deducts_declared_categories(tmp_path):
+    """Declared PARTIAL_COVERAGE categories are deducted from the missing set."""
+    # test_history.py declares param + determ, so a basic+edge-only report
+    # must have an empty effective missing set.
+    report = _exempt_report(
+        tmp_path,
+        "test_history.py",
+        ["test_basic_fit", "test_edge_empty"],
+    )
+    assert report.categories_missing == {"param", "determ"}
+    assert _effective_missing(report) == set()
+
+
+@pytest.mark.unit
+def test_param_partial_coverage_printout_with_reasons(capsys):
+    """Every run prints PARTIAL_COVERAGE with file, category, and reason."""
+    review_exemptions([])
+    out = capsys.readouterr().out
+    assert "PARTIAL_COVERAGE (declared missing categories with reasons)" in out
+    assert "test_history.py [param]" in out
+    assert "no input validation path" in out
+
+
+@pytest.mark.unit
+def test_edge_declared_category_now_covered_hints_removal(tmp_path, capsys):
+    """A declared category that is now covered is flagged as removable."""
+    report = _exempt_report(
+        tmp_path,
+        "test_history.py",
+        ["test_basic_fit", "test_edge_empty", "test_param_invalid"],
+    )
+    review_exemptions([report])
+    out = capsys.readouterr().out
+    assert "may drop declared ['param'] from PARTIAL_COVERAGE (now covered)" in out
 
 
 @pytest.mark.unit
