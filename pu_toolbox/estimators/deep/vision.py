@@ -7,26 +7,61 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Literal
 
-
-def _normalization_module(mean: Sequence[float], std: Sequence[float]):
-    import torch
+try:  # keep this module importable in the base wheel without torch
     from torch import nn
+except ImportError:  # pragma: no cover - exercised only in torch-free installs
+    nn = None  # type: ignore[assignment]
 
-    if len(mean) != len(std) or not mean or any(value <= 0 for value in std):
-        raise ValueError("normalization mean/std must have equal non-zero length and positive std")
+
+if nn is not None:
 
     class ChannelNormalize(nn.Module):
-        def __init__(self) -> None:
+        def __init__(self, mean, std):
+            import torch
+
             super().__init__()
             self.register_buffer("mean", torch.tensor(mean).view(1, -1, 1, 1))
             self.register_buffer("std", torch.tensor(std).view(1, -1, 1, 1))
 
         def forward(self, inputs):
-            if inputs.ndim != 4 or inputs.shape[1] != len(mean):
-                raise ValueError(f"vision backbone expects NCHW inputs with {len(mean)} channels")
+            if inputs.ndim != 4 or inputs.shape[1] != self.mean.shape[1]:
+                raise ValueError(
+                    f"vision backbone expects NCHW inputs with {self.mean.shape[1]} channels"
+                )
             return (inputs - self.mean) / self.std
 
-    return ChannelNormalize()
+else:  # pragma: no cover - placeholder for torch-free imports
+
+    class ChannelNormalize:  # type: ignore[no-redef]
+        def __init__(self, *args, **kwargs):
+            raise ImportError("torch is required to build vision modules")
+
+
+def _normalization_module(mean: Sequence[float], std: Sequence[float]):
+    if len(mean) != len(std) or not mean or any(value <= 0 for value in std):
+        raise ValueError("normalization mean/std must have equal non-zero length and positive std")
+    return ChannelNormalize(mean, std)
+
+
+if nn is not None:
+
+    class IndependentBatchAugmentation(nn.Module):  # type: ignore[no-redef]
+        def __init__(self, transform):
+            super().__init__()
+            self.transform = transform
+
+        def forward(self, inputs):
+            import torch  # torch is not imported at module top (lazy design)
+
+            if inputs.ndim != 4:
+                raise ValueError("vision augmentation expects NCHW inputs")
+            return torch.stack([self.transform(image) for image in inputs])
+
+else:  # pragma: no cover - placeholder for torch-free imports
+
+    class IndependentBatchAugmentation:  # type: ignore[no-redef]
+        def __init__(self, *args, **kwargs):
+            raise ImportError("torch is required to build vision modules")
 
 
 def _conv_block(in_channels: int, out_channels: int):
@@ -140,8 +175,6 @@ def build_wconpu_augmentation(
         raise ValueError("RandAugment num_ops must be positive and magnitude in [0, 30]")
 
     try:
-        import torch
-        from torch import nn
         from torchvision.transforms import v2
     except ImportError as exc:
         raise ImportError("vision augmentation requires torch and torchvision") from exc
@@ -168,14 +201,7 @@ def build_wconpu_augmentation(
             )
         )
     transform = v2.Compose(operations)
-
-    class IndependentBatchAugmentation(nn.Module):
-        def forward(self, inputs):
-            if inputs.ndim != 4:
-                raise ValueError("vision augmentation expects NCHW inputs")
-            return torch.stack([transform(image) for image in inputs])
-
-    return IndependentBatchAugmentation()
+    return IndependentBatchAugmentation(transform)
 
 
 def build_encoder(
