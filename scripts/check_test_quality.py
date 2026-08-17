@@ -112,6 +112,9 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
 # no longer needs the exemption, so the lists can shrink.
 UNLIMITED_FILES: dict[str, str] = {
     "test_classifier_baseline.py": "contract: unified API + baseline for all NATIVE",
+    "test_generate_structure.py": (
+        "structure generator unit tests (find_blocks/parse_tree/build/merge/generate/CLI)"
+    ),
     "test_builtin_methods.py": "registry metadata completeness",
     "test_registry.py": "registry mechanics",
     "test_import.py": "smoke imports",
