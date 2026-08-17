@@ -17,6 +17,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
 import check_doc_links as d  # noqa: E402
+import generate_structure as g  # noqa: E402
 
 
 def _make_tree(tmp_path: Path, files: dict[str, str]) -> Path:
@@ -187,3 +188,79 @@ def test_determ_results_reproducible(tmp_path, monkeypatch):
         )
 
     assert run() == run()
+
+
+# --------------------------------------------------------------------
+# Rule 2: bidirectional tree consistency (generator-backed)
+# --------------------------------------------------------------------
+
+
+STRUCTURE_SYNCED = """\
+```text
+pu_toolbox/
+  core/
+    base.py                  (core base)
+```
+"""
+
+
+def _run_rule2(tmp_path, monkeypatch, doc_text: str, tracked: list[str]) -> list:
+    """Run check_planned_consistency with a scratch structure_md + tracked files."""
+    md = tmp_path / "project_structure.md"
+    md.write_text(doc_text, encoding="utf-8")
+    monkeypatch.setattr(d, "PROJECT_ROOT", tmp_path)  # legacy planned checks
+    monkeypatch.setattr(g, "tracked_py_files", lambda: tracked)
+    return d.check_planned_consistency(md)
+
+
+@pytest.mark.unit
+def test_rule2_missing_file_reports_error(tmp_path, monkeypatch):
+    issues = _run_rule2(
+        tmp_path,
+        monkeypatch,
+        STRUCTURE_SYNCED,
+        tracked=["pu_toolbox/core/base.py", "pu_toolbox/core/new.py"],
+    )
+    messages = [i.message for i in issues]
+    assert any("missing from project_structure.md" in m and "core/new.py" in m for m in messages)
+
+
+@pytest.mark.unit
+def test_rule2_stale_file_reports_error(tmp_path, monkeypatch):
+    doc = """\
+```text
+pu_toolbox/
+  core/
+    base.py                  (core base)
+    gone.py
+```
+"""
+    issues = _run_rule2(tmp_path, monkeypatch, doc, tracked=["pu_toolbox/core/base.py"])
+    messages = [i.message for i in issues]
+    assert any("does not exist on disk" in m and "core/gone.py" in m for m in messages)
+
+
+@pytest.mark.unit
+def test_rule2_planned_missing_file_ok(tmp_path, monkeypatch):
+    doc = """\
+```text
+pu_toolbox/
+  core/
+    base.py                  (core base)
+    future.py                (planned)
+```
+"""
+    issues = _run_rule2(tmp_path, monkeypatch, doc, tracked=["pu_toolbox/core/base.py"])
+    messages = [i.message for i in issues]
+    assert not any("future.py" in m for m in messages)
+
+
+@pytest.mark.unit
+def test_rule2_synced_document_passes(tmp_path, monkeypatch):
+    issues = _run_rule2(
+        tmp_path,
+        monkeypatch,
+        STRUCTURE_SYNCED,
+        tracked=["pu_toolbox/core/base.py"],
+    )
+    assert issues == []

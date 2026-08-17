@@ -27,6 +27,8 @@ import sys
 from pathlib import Path
 from typing import NamedTuple
 
+import generate_structure as _gen  # scripts/ dir is on sys.path[0]
+
 # ====================================================================
 # Configuration
 # ====================================================================
@@ -200,11 +202,14 @@ def check_md_links(md_files: list[Path]) -> list[Issue]:
 
 
 def check_planned_consistency(structure_md: Path) -> list[Issue]:
-    """Rule 2: project_structure.md (planned) tags must match filesystem.
+    """Rule 2: project_structure.md tree must match git-tracked .py files.
 
-    Parses ``text`` code blocks, tracks directory nesting via indentation,
-    and checks every .py entry (except __init__.py) has ``(planned)`` iff
-    the file does NOT exist on disk.
+    Bidirectional check sharing the tree logic with generate_structure.py:
+    every git-tracked ``.py`` under ``pu_toolbox/``/``tests/`` must appear
+    in the document, and every documented entry must exist on disk or be
+    marked ``(planned)``. Entries that exist on disk while marked
+    ``(planned)`` are errors too; for tree blocks the generator does not
+    manage (e.g. ``examples/``), the legacy existence check still applies.
     """
     if not structure_md.exists():
         return [
@@ -269,7 +274,10 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
                     "error",
                 )
             )
-        elif not exists and not has_planned:
+        elif not exists and not has_planned and not rel_path.startswith(("pu_toolbox/", "tests/")):
+            # Generator-managed roots are covered by the bidirectional
+            # check below; keep the legacy existence check for blocks
+            # that generate_structure.py does not manage (examples/, ...).
             issues.append(
                 Issue(
                     "rule-2",
@@ -281,6 +289,33 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
                 )
             )
 
+    # Bidirectional check, sharing the tree logic with generate_structure.py:
+    # every git-tracked .py under pu_toolbox/tests must appear in the
+    # document, and every documented entry must exist on disk or be marked
+    # (planned).
+    tracked = [f for f in _gen.tracked_py_files() if f.startswith(("pu_toolbox/", "tests/"))]
+    _new_text, missing, stale = _gen.generate(text, tracked)
+    for rel in missing:
+        issues.append(
+            Issue(
+                "rule-2",
+                _relative(structure_md),
+                None,
+                f"`{rel}` exists on disk but is missing from project_structure.md",
+                "error",
+            )
+        )
+    for rel in stale:
+        issues.append(
+            Issue(
+                "rule-2",
+                _relative(structure_md),
+                None,
+                f"`{rel}` is listed in project_structure.md but does not exist "
+                f"on disk -- remove it or mark `(planned)`",
+                "error",
+            )
+        )
     return issues
 
 
