@@ -17,8 +17,6 @@ pu-learning-toolbox/
 
 ```text
 pu_toolbox/
-  __init__.py
-
   core/
     __init__.py
     base.py
@@ -28,239 +26,237 @@ pu_toolbox/
     exceptions.py
     random.py
     tags.py
-    device.py                  (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
-
+    device.py                             (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
   preprocessing/
     __init__.py
     pu_labeling.py
-    selection_bias.py         (SCAR/SAR propensity、标签与合成数据)
-    profiling.py              (兼容 summary 与 SCAR 筛查接口)
-    data_profiler.py          (结构化 PU 画像、问题与假设提示)
-
+    selection_bias.py                     (SCAR/SAR propensity、标签与合成数据)
+    profiling.py                          (兼容 summary 与 SCAR 筛查接口)
+    data_profiler.py                      (结构化 PU 画像、问题与假设提示)
   prior/
     __init__.py
-    recpe.py                  (native)
-    pen_l1.py                (native)
-    kernel_mean.py           (native: KM1/KM2 kernel-mean class-prior estimation)
-
+    recpe.py                              (native)
+    pen_l1.py                             (native)
+    kernel_mean.py                        (native: KM1/KM2 kernel-mean class-prior estimation)
   utils/
     __init__.py
-    basis.py                  (shared)
-    centroid.py               (shared: MoM + 协方差原语, LDCE/KLDCE 共用)
-    activations.py            (shared: sigmoid_stable 数值稳定实现单源)
-    serialization.py          (shared: JSON 严格模式/Markdown 序列化助手单源)
-
+    basis.py                              (shared)
+    centroid.py                           (shared: MoM + 协方差原语, LDCE/KLDCE 共用)
+    activations.py                        (shared: sigmoid_stable 数值稳定实现单源)
+    serialization.py                      (shared: JSON 严格模式/Markdown 序列化助手单源)
   losses/
     __init__.py
-    upu.py                    (native)
-    nnpu.py                  (native)
-    pnu.py                   (native)
-    llsvm.py                 (native)
-
+    upu.py                                (native)
+    nnpu.py                               (native)
+    pnu.py                                (native)
+    llsvm.py                              (native)
   estimators/
-    __init__.py
-    classic/                 (2/2 native)
+    classic/                              (2/2 native)
       __init__.py
-      elkan_noto.py          (native)
-      llsvm.py               (native)
+      elkan_noto.py                       (native)
+      llsvm.py                            (native)
     risk/
       __init__.py
-      _class_prior.py           (shared: solve_prior_from_positive_fraction 单源, KLDCE/LDCE 共用)
-      ldce.py                   (native)
-      kldce.py                  (native: ACS + QP oracle + RBF kernel)
-      dist_pu.py                (native)
-      upu.py                  (native)
-      nnpu.py                  (native)
-      pnu.py                   (native)
+      _class_prior.py                     (shared: solve_prior_from_positive_fraction 单源, KLDCE/LDCE 共用)
+      ldce.py                             (native)
+      kldce.py                            (native: ACS + QP oracle + RBF kernel)
+      dist_pu.py                          (native)
+      upu.py                              (native)
+      nnpu.py                             (native)
+      pnu.py                              (native)
     bias_aware/
       __init__.py
-      pusb.py                (native: linear source-classifier baseline)
-      pusb_kernel.py         (native: official-aligned RBF PUSB adapter)
-      lbe.py                 (native)
+      pusb.py                             (native: linear source-classifier baseline)
+      pusb_kernel.py                      (native: official-aligned RBF PUSB adapter)
+      lbe.py                              (native)
     deep/
       __init__.py
-      self_pu.py             (native: self-paced + meta reweight + distillation)
-      infomax_pu.py          (native: PURL + nnPU pipeline)
-      weighted_contrastive_pu.py (native core)
-      vision.py               (WConPU CNN13/ResNet 与 tensor augmentation adapters)
-      dgpu.py                (native orchestration + generator protocol)
-
+      self_pu.py                          (native: self-paced + meta reweight + distillation)
+      infomax_pu.py                       (native: PURL + nnPU pipeline)
+      weighted_contrastive_pu.py          (native core)
+      vision.py                           (WConPU CNN13/ResNet 与 tensor augmentation adapters)
+      dgpu.py                             (native orchestration + generator protocol)
+    __init__.py
   metrics/
     __init__.py
-    classification.py          (已实现: PU risk/recall/precision + supervised wrappers)
-
+    classification.py                     (已实现: PU risk/recall/precision + supervised wrappers)
   diagnostics/
     __init__.py
-    benchmark.py               (benchmark 产物、provenance 与 PU split 审计)
-    report.py                  (数据/模型/指标诊断，JSON/Markdown 报告)
-    sensitivity.py             (类先验/平均标记倾向假设敏感性)
-
+    benchmark.py                          (benchmark 产物、provenance 与 PU split 审计)
+    report.py                             (数据/模型/指标诊断，JSON/Markdown 报告)
+    sensitivity.py                        (类先验/平均标记倾向假设敏感性)
   model_selection/
     __init__.py
-    comparison.py              (PUModelComparator 多模型 CV 与最佳模型重训)
-    split.py                   (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
-    tuning.py                  (PUTuner: PU-aware 参数网格、trial 与最佳报告)
-
+    comparison.py                         (PUModelComparator 多模型 CV 与最佳模型重训)
+    split.py                              (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
+    tuning.py                             (PUTuner: PU-aware 参数网格、trial 与最佳报告)
   registry/
     __init__.py
-    registry.py                (含别名解析逻辑)
+    registry.py                           (含别名解析逻辑)
     metadata.py
-    builtin_methods.py         (17 论文方法元数据 + native 绑定)
-
+    builtin_methods.py                    (17 论文方法元数据 + native 绑定)
   advisor/
     __init__.py
-    recommender.py             (算法推荐管线: recommend_methods / recommend_from_profile)
-    rules.py                   (评分规则引擎: ScoringConfig + 评分/警告函数)
-    _types.py                  (数据类: MethodCandidate / RecommendationResult)
-
+    recommender.py                        (算法推荐管线: recommend_methods / recommend_from_profile)
+    rules.py                              (评分规则引擎: ScoringConfig + 评分/警告函数)
+    _types.py                             (数据类: MethodCandidate / RecommendationResult)
   workflows/
     __init__.py
-    pipeline.py                (PUPipeline 顶层编排与类先验处理)
-    _errors.py                 (工作流共享异常类型)
-    _evaluation.py             (指标解析、PU-aware CV 执行与聚合)
-    _inputs.py                 (输入校验、splitter 准备与 CV provenance)
-    _models.py                 (模型解析、参数校验与 estimator 构造)
-    _reporting.py              (报告组装与参数 provenance)
-    report.py                  (报告数据类: PriorInfo/CVMetric/PipelineReport)
-
-  run_config.py                (UI/CLI 共用的可移植 JSON 运行配置契约)
-  progress.py                  (线程安全进度快照、协作式取消 token)
-
-  cli/                         (CLI 入口: argparse 子命令与工作流薄封装)
+    pipeline.py                           (PUPipeline 顶层编排与类先验处理)
+    _errors.py                            (工作流共享异常类型)
+    _evaluation.py                        (指标解析、PU-aware CV 执行与聚合)
+    _inputs.py                            (输入校验、splitter 准备与 CV provenance)
+    _models.py                            (模型解析、参数校验与 estimator 构造)
+    _reporting.py                         (报告组装与参数 provenance)
+    report.py                             (报告数据类: PriorInfo/CVMetric/PipelineReport)
+  cli/                                    (CLI 入口: argparse 子命令与工作流薄封装)
     __init__.py
-    run.py                     (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
-    info.py                    (list-methods / list-priors 子命令, registry 实时读取)
-    demo.py                    (make-demo-data 子命令: SCAR 演示数据)
-    profile.py                 (profile 子命令: 数据画像 + SCAR/SAR 诊断, 写 profile.json)
-    recommend.py               (recommend 子命令: 算法推荐 + 类先验估计, 写 recommendation.json)
-    sensitivity.py             (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
-    audit_benchmark.py         (audit-benchmark 子命令: 实验产物与 provenance 审计)
-    skill.py                   (skill 子命令: 安装内置 pu-workflow 技能到用户级 agent 目录)
-
-  ui/                          (可选 Streamlit 图形界面，核心安装不导入 streamlit)
-    __init__.py                (数据/配置辅助函数导出)
-    app.py                     (Streamlit 页面流程协调)
-    configuration.py           (运行配置与 Streamlit session state 适配)
-    data.py                    (CSV/NPY 上传解析与校验)
-    execution.py               (普通/调参/比较三种运行模式调度)
-    history.py                 (进程级运行历史:刷新保留、重启清空)
-    parameters.py              (构造器参数元数据与类型化控件)
-    results.py                 (指标、诊断与下载结果渲染)
-    runtime.py                 (后台线程、进度状态与取消控制)
-    launcher.py                (pu-toolbox-ui 启动入口)
+    run.py                                (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
+    info.py                               (list-methods / list-priors 子命令, registry 实时读取)
+    demo.py                               (make-demo-data 子命令: SCAR 演示数据)
+    profile.py                            (profile 子命令: 数据画像 + SCAR/SAR 诊断, 写 profile.json)
+    recommend.py                          (recommend 子命令: 算法推荐 + 类先验估计, 写 recommendation.json)
+    sensitivity.py                        (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
+    audit_benchmark.py                    (audit-benchmark 子命令: 实验产物与 provenance 审计)
+    skill.py                              (skill 子命令: 安装内置 pu-workflow 技能到用户级 agent 目录)
+  ui/                                     (可选 Streamlit 图形界面，核心安装不导入 streamlit)
+    __init__.py                           (数据/配置辅助函数导出)
+    app.py                                (Streamlit 页面流程协调)
+    configuration.py                      (运行配置与 Streamlit session state 适配)
+    data.py                               (CSV/NPY 上传解析与校验)
+    execution.py                          (普通/调参/比较三种运行模式调度)
+    history.py                            (进程级运行历史:刷新保留、重启清空)
+    parameters.py                         (构造器参数元数据与类型化控件)
+    results.py                            (指标、诊断与下载结果渲染)
+    runtime.py                            (后台线程、进度状态与取消控制)
+    launcher.py                           (pu-toolbox-ui 启动入口)
+  __init__.py
+  run_config.py                           (UI/CLI 共用的可移植 JSON 运行配置契约)
+  progress.py                             (线程安全进度快照、协作式取消 token)
 ```
 
 ## 3. 测试（`tests/`）
 
 ```text
 tests/
-  __init__.py                         # tests 包声明(支持 tests.helpers 导入)
-  conftest.py                         # 共享 pytest fixtures(种子/rng/数据 fixture)
-  helpers.py                          # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
-  test_import.py                      # 导入冒烟
-  test_labels.py                      # 标签规范化
-  test_validation.py                  # 输入校验
-  test_registry.py                    # 注册机制
-  test_builtin_methods.py             # 注册表元数据
-
-  contract/                           # 契约测试 — 写一次，所有 NATIVE 分类器复用
-    test_classifier_baseline.py            # fit/predict/decision_function/get_params 等
-
-  estimators/                          # 按方法的测试（MATH/PROPERTY/API）
+  contract/                             # 契约测试 — 写一次，所有 NATIVE 分类器复用
+    test_classifier_baseline.py         # fit/predict/decision_function/get_params 等
+  estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
-      test_ldce_math.py               # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
-      test_ldce_core.py               # LDCE fit/predict/属性/标签 (unit)
-      test_ldce_api.py                # LDCE 收敛/约束/API/错误/回归 (unit)
-      test_kldce_math.py              # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
-      test_kldce_property.py          # KLDCE 约束/鲁棒性 (PROPERTY)
-      test_class_prior.py             # solve_prior_from_positive_fraction 共享助手 (unit)
-
-  unit/                               # 算法特有逻辑测试
-    test_basis_single_source.py       # 单一数据源 RBF kernel 公式一致性
-    test_run_config.py                # UI/CLI 可移植运行配置 schema 与序列化
+      test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
+      test_ldce_core.py                 # LDCE fit/predict/属性/标签 (unit)
+      test_ldce_api.py                  # LDCE 收敛/约束/API/错误/回归 (unit)
+      test_kldce_math.py                # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
+      test_kldce_property.py            # KLDCE 约束/鲁棒性 (PROPERTY)
+      test_class_prior.py               # solve_prior_from_positive_fraction 共享助手 (unit)
+      __init__.py
+    __init__.py
+  unit/                                 # 算法特有逻辑测试
     diagnostics/
-      test_report.py                  # 诊断报告指标、输入契约与序列化
-      test_sensitivity.py             # 假设扫描公式、边界与导出
+      test_report.py                    # 诊断报告指标、输入契约与序列化
+      test_sensitivity.py               # 假设扫描公式、边界与导出
+      test_benchmark_audit.py           # 持久化 benchmark 产物审计测试
     estimators/
-      test_elkan_noto.py              # Elkan-Noto 特有逻辑
-      test_upu.py                     # uPU 特有逻辑
-      test_nnpu.py                    # nnPU 特有逻辑（含训练动态/早停）
-      test_bias_aware.py              # PUSB / LBE 特有逻辑
-      test_pusb_kernel.py             # official-aligned PUSB 公式、CV 与确定性
-      test_dist_pu.py                 # Dist-PU 特有逻辑
-      test_self_pu.py                 # Self-PU pace/meta/EMA/三阶段训练
-      test_deep_pu.py                 # InfoMax PU/WConPU/DGPU 接口与 registry
-      test_deep_pu_vision.py          # WConPU 视觉骨干与张量增强
-      test_vision.py                  # 统一深度编码器入口 build_encoder
-      test_deep_vision_pickle.py      # 深度视觉模块 pickle 往返(E2/E3 回归;importorskip torch)
-      test_llsvm.py                   # LLSVM 特有逻辑
+      test_elkan_noto.py                # Elkan-Noto 特有逻辑
+      test_upu.py                       # uPU 特有逻辑
+      test_nnpu.py                      # nnPU 特有逻辑（含训练动态/早停）
+      test_bias_aware.py                # PUSB / LBE 特有逻辑
+      test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
+      test_dist_pu.py                   # Dist-PU 特有逻辑
+      test_self_pu.py                   # Self-PU pace/meta/EMA/三阶段训练
+      test_deep_pu.py                   # InfoMax PU/WConPU/DGPU 接口与 registry
+      test_deep_pu_vision.py            # WConPU 视觉骨干与张量增强
+      test_vision.py                    # 统一深度编码器入口 build_encoder
+      test_deep_vision_pickle.py        # 深度视觉模块 pickle 往返(E2/E3 回归;importorskip torch)
+      test_llsvm.py                     # LLSVM 特有逻辑
     losses/
-      test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
-      test_upu_loss.py               # uPU golden tests (MATH + PROPERTY)
-      test_llsvm_loss.py             # LLSVM loss golden tests (MATH)
-      test_pnu_loss.py               # PNU loss golden tests (MATH)
+      test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
+      test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
+      test_llsvm_loss.py                # LLSVM loss golden tests (MATH)
+      test_pnu_loss.py                  # PNU loss golden tests (MATH)
     metrics/
-      test_classification.py          # PU 指标测试
+      test_classification.py            # PU 指标测试
     model_selection/
-      test_comparison.py              # 多模型比较、失败隔离与选择方向
-      test_split.py                   # PU 切分器测试
-      test_tuning.py                  # PUTuner 网格、选择方向与不可用指标
+      test_comparison.py                # 多模型比较、失败隔离与选择方向
+      test_split.py                     # PU 切分器测试
+      test_tuning.py                    # PUTuner 网格、选择方向与不可用指标
     ui/
-      test_history.py                 # 进程级运行历史与收尾条目写入(D9 回归)
-      test_ui_helpers.py              # 上传解析、类型化参数、配置状态与模型目录
-      test_runtime.py                 # 后台运行、进度快照与协作式取消
+      test_history.py                   # 进程级运行历史与收尾条目写入(D9 回归)
+      test_ui_helpers.py                # 上传解析、类型化参数、配置状态与模型目录
+      test_runtime.py                   # 后台运行、进度快照与协作式取消
     prior/
-      test_recpe.py                   # ReCPE 特有逻辑
-      test_pen_l1.py                  # penL1 特有逻辑
-      test_kernel_mean.py             # KM1/KM2 kernel-mean 类先验估计
+      test_recpe.py                     # ReCPE 特有逻辑
+      test_pen_l1.py                    # penL1 特有逻辑
+      test_kernel_mean.py               # KM1/KM2 kernel-mean 类先验估计
     preprocessing/
-      test_pu_labeling.py             # PU/PNU 标签生成
-      test_selection_bias.py          # SCAR/SAR propensity、标记率校准与合成数据
-      test_profiling.py               # 数据画像统计
-      test_data_profiler.py           # 结构化报告、质量规则与审计诊断
+      test_pu_labeling.py               # PU/PNU 标签生成
+      test_selection_bias.py            # SCAR/SAR propensity、标记率校准与合成数据
+      test_profiling.py                 # 数据画像统计
+      test_data_profiler.py             # 结构化报告、质量规则与审计诊断
+      __init__.py
     scripts/
-      test_check_doc_links.py         # 文档链接门禁(orphan/md-link)脚本测试
-      test_check_format.py            # 格式门禁(ruff lint+format)脚本测试
-      test_check_math_rendering.py    # MathJax 渲染门禁脚本测试
-      test_check_skill_sync.py        # skill 双份一致性门禁脚本测试
-      test_check_test_quality_exemptions.py  # 测试质量门禁豁免审查测试
+      test_check_doc_links.py           # 文档链接门禁(orphan/md-link)脚本测试
+      test_check_format.py              # 格式门禁(ruff lint+format)脚本测试
+      test_check_math_rendering.py      # MathJax 渲染门禁脚本测试
+      test_check_skill_sync.py          # skill 双份一致性门禁脚本测试
+      test_check_test_quality_exemptions.py # 测试质量门禁豁免审查测试
+      test_generate_structure.py        # 结构文档生成器(--check/--update)单元测试
     advisor/
-      test_recommender.py             # 算法推荐器过滤、评分与输出
-      test_scoring_rules.py           # 推荐评分规则与推荐器边界
+      test_recommender.py               # 算法推荐器过滤、评分与输出
+      test_scoring_rules.py             # 推荐评分规则与推荐器边界
+      __init__.py
     cli/
-      test_classifier_params.py       # classifier-param JSON 解析与错误路径
-      test_cli_main.py                # CLI 入口冒烟
-      test_run_deep.py                # run 子命令深度架构路径（.npy 输入 + 参数）
-      test_info.py                    # list-methods / list-priors 子命令
-      test_demo.py                    # make-demo-data 子命令
-      test_skill.py                   # skill install 子命令（内置技能安装）
-
-  integration/                       # 跨组件集成（CLI + PUPipeline + registry + estimators）
-    test_model_configuration.py       # 命名参数、必填参数与 PUTuner 确定性
-    test_pipeline.py                 # PUPipeline 全流程/先验解析/错误/可用性/确定性
-    test_pipeline_deep.py            # PUPipeline 深度算法集成（架构选择;importorskip torch）
-    test_run.py                      # run 子命令进程内端到端（真实 CSV IO + 真实训练）
-    test_cli_deep_save_model.py      # run --save-model CNN 保存回归（E2/E3;importorskip torch）
-    test_ui_app.py                   # Streamlit 页面渲染（ui extra；无依赖时 skip）
-    test_ui_history_flow.py          # UI 运行写入进程级历史（D9 接线;importorskip streamlit）
-
-  e2e/                               # 真实子进程端到端用户旅程（CI nightly 运行）
-    test_profile_script.py           # pu-workflow profile 步骤脚本（子进程）
-    test_recommend_script.py         # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
-    test_sensitivity_script.py       # pu-workflow sensitivity 步骤脚本（子进程）
-    test_e2e_quickstart.py           # quickstart 旅程（demo→auto run→report）+ CLI 错误旅程
-    test_e2e_workflow_journey.py     # profile→recommend 链 + demo→profile→recommend→run 全链
-
-  benchmarks/                        # Benchmark runner 测试
-    test_assigned_benchmark_runner.py     # 前五篇 benchmark runner 测试
-    test_assigned_preflight.py            # 前五篇 paper-run 就绪审计测试
-    test_deep_pu_benchmark_runner.py      # 深度 PU runner 测试
-    test_deep_pu_model_selection.py       # 深度 PU runner 的 clean-validation 模型选择测试
-    test_deep_pu_official_data.py         # 官方数据加载与 split 测试
-    test_pusb_official_data.py             # PUSB 官方数据构造、runner 与 provenance
-    test_pusb_table2_benchmark.py         # claim-safe PUSB Table 2 benchmark runner 测试
-    test_pusb_table2_data.py              # 锁定 PUSB Table 2 数据集 loader 与采样审计测试
-
+      test_classifier_params.py         # classifier-param JSON 解析与错误路径
+      test_cli_main.py                  # CLI 入口冒烟
+      test_run_deep.py                  # run 子命令深度架构路径（.npy 输入 + 参数）
+      test_info.py                      # list-methods / list-priors 子命令
+      test_demo.py                      # make-demo-data 子命令
+      test_skill.py                     # skill install 子命令（内置技能安装）
+      test_audit_benchmark.py           # audit-benchmark 子命令单元测试
+      test_profile.py                   # profile 子命令测试(pu-workflow 步骤 1)
+      test_recommend.py                 # recommend 子命令测试(pu-workflow 步骤 2)
+      test_sensitivity_cmd.py           # sensitivity 子命令测试(pu-workflow 步骤 4)
+    core/
+      test_device.py                    # resolve_device 设备解析共享助手测试
+    workflows/
+      test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
+    test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
+    test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
+  integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
+    test_model_configuration.py         # 命名参数、必填参数与 PUTuner 确定性
+    test_pipeline.py                    # PUPipeline 全流程/先验解析/错误/可用性/确定性
+    test_pipeline_deep.py               # PUPipeline 深度算法集成（架构选择;importorskip torch）
+    test_run.py                         # run 子命令进程内端到端（真实 CSV IO + 真实训练）
+    test_cli_deep_save_model.py         # run --save-model CNN 保存回归（E2/E3;importorskip torch）
+    test_ui_app.py                      # Streamlit 页面渲染（ui extra；无依赖时 skip）
+    test_ui_history_flow.py             # UI 运行写入进程级历史（D9 接线;importorskip streamlit）
+    test_pipeline_device.py             # PUPipeline/深度估计器默认值(设备自动检测、epochs)
+    test_prior_params.py                # prior_params 转发集成测试(CLI --prior-param 后端)
+    test_run_errors.py                  # run 子命令错误路径集成测试(用户输入友好失败)
+  e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
+    test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
+    test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
+    test_sensitivity_script.py          # pu-workflow sensitivity 步骤脚本（子进程）
+    test_e2e_quickstart.py              # quickstart 旅程（demo→auto run→report）+ CLI 错误旅程
+    test_e2e_workflow_journey.py        # profile→recommend 链 + demo→profile→recommend→run 全链
+    test_e2e_subcommands.py             # 真实子进程 e2e: profile/recommend/sensitivity
+  benchmarks/                           # Benchmark runner 测试
+    test_assigned_benchmark_runner.py   # 前五篇 benchmark runner 测试
+    test_assigned_preflight.py          # 前五篇 paper-run 就绪审计测试
+    test_deep_pu_benchmark_runner.py    # 深度 PU runner 测试
+    test_deep_pu_model_selection.py     # 深度 PU runner 的 clean-validation 模型选择测试
+    test_deep_pu_official_data.py       # 官方数据加载与 split 测试
+    test_pusb_official_data.py          # PUSB 官方数据构造、runner 与 provenance
+    test_pusb_table2_benchmark.py       # claim-safe PUSB Table 2 benchmark runner 测试
+    test_pusb_table2_data.py            # 锁定 PUSB Table 2 数据集 loader 与采样审计测试
+  __init__.py                           # tests 包声明(支持 tests.helpers 导入)
+  conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
+  helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
+  test_import.py                        # 导入冒烟
+  test_labels.py                        # 标签规范化
+  test_validation.py                    # 输入校验
+  test_registry.py                      # 注册机制
+  test_builtin_methods.py               # 注册表元数据
 ```
 
 测试权威级别（pytest markers）：`unit`（算法特有逻辑）、`math`（手工计算 → 失败=代码bug）、`property`（数学不变量 → 失败=代码bug）、`contract`（API 契约）、`integration`（跨组件集成）、`e2e`（真实子进程用户旅程）、`slow`（慢速）、`paper`（论文复现）。
