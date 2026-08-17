@@ -26,6 +26,7 @@ def test_basic_channel_normalize_pickle_roundtrip():
 
 
 def test_basic_augmentation_pickle_roundtrip():
+    pytest.importorskip("torchvision")  # SimAugment needs torchvision v2
     transform = build_wconpu_augmentation("simaugment", image_size=32)
     restored = pickle.loads(pickle.dumps(transform))
     x = torch.randn(2, 3, 32, 32)
