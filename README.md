@@ -132,6 +132,7 @@ uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_format.py        # ruff check + format --check (full scope)
+uv run python scripts/generate_structure.py --check    # structure document consistency (--update to regenerate)
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.

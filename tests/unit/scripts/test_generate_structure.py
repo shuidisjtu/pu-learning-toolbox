@@ -144,6 +144,14 @@ pu_toolbox/
     assert stale == []  # planned 条目不算 stale
 
 
+def test_edge_missing_root_block_reports_all_files():
+    doc = "# 只有标题,没有树块\n"
+    disk = ["pu_toolbox/core/base.py", "pu_toolbox/ui/app.py"]
+    _, missing, stale = g.generate(doc, disk)
+    assert missing == ["pu_toolbox/core/base.py", "pu_toolbox/ui/app.py"]
+    assert stale == []
+
+
 def test_basic_generate_preserves_non_generatable_blocks():
     disk = ["pu_toolbox/ui/app.py"]
     new_text, _, _ = g.generate(DOC, disk)

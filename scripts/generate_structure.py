@@ -72,6 +72,8 @@ def parse_tree(content: list[str], root: str) -> tuple[dict[str, Any], dict[str,
     key ``__files__`` holding ``{file_name: annotation}``. Directory
     annotations map a repo-relative directory path (e.g.
     ``pu_toolbox/estimators/risk``) to its trailing annotation text.
+    An indent-0 bare file entry (a block-leading line that is not the
+    root directory) is ignored: it is never reported as missing or stale.
     """
     tree: dict[str, Any] = {}
     dir_ann: dict[str, str] = {}
@@ -130,7 +132,9 @@ def merge_tree(
     new directories and files are appended alphabetically. Files on disk
     but absent from the old document are appended with PLACEHOLDER and
     recorded in *missing* (repo-relative). ``(planned)`` entries that do
-    not exist on disk are kept verbatim.
+    not exist on disk are kept verbatim. Directory-level ``(planned)``
+    markers are not preserved: only file entries are kept or excluded
+    per ``"(planned)" in ann`` -- real documents do not use this form.
     """
     new_dirs = {k for k in new if k != FILES_KEY}
     new_files = set(new.get(FILES_KEY, {}))
@@ -227,6 +231,12 @@ def generate(text: str, disk_files: list[str]) -> tuple[str, list[str], list[str
     out_lines: list[str] = []
     missing: list[str] = []
     stale: list[str] = []
+    # A root whose whole tree block is missing must still fail: otherwise
+    # deleting an entire block would pass both gates with empty lists.
+    found_roots = {r for _, _, r in blocks if r is not None}
+    for root in GENERATABLE_ROOTS:
+        if root not in found_roots:
+            missing.extend(sorted(f for f in disk_set if f.startswith(root + "/")))
     i = 0
     while i < len(lines):
         if blocks and blocks[0][0] == i:
@@ -284,7 +294,17 @@ def tracked_py_files() -> list[str]:
             return files
     except (subprocess.SubprocessError, FileNotFoundError):
         pass
-    skip = {".venv", ".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
+    skip = {
+        ".venv",
+        ".git",
+        "__pycache__",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".tox",
+        "dist",
+        "build",
+        "htmlcov",
+    }
     return sorted(
         str(p.relative_to(PROJECT_ROOT)).replace("\\", "/")
         for p in PROJECT_ROOT.rglob("*.py")

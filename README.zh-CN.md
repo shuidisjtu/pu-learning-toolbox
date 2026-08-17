@@ -129,6 +129,7 @@ uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_format.py        # 格式门禁（ruff check + format --check，全目录）
+uv run python scripts/generate_structure.py --check    # 结构文档一致性(--update 重新生成)
 ```
 
 贡献指南见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
