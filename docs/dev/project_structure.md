@@ -143,6 +143,7 @@ pu_toolbox/
     configuration.py           (运行配置与 Streamlit session state 适配)
     data.py                    (CSV/NPY 上传解析与校验)
     execution.py               (普通/调参/比较三种运行模式调度)
+    history.py                 (进程级运行历史:刷新保留、重启清空)
     parameters.py              (构造器参数元数据与类型化控件)
     results.py                 (指标、诊断与下载结果渲染)
     runtime.py                 (后台线程、进度状态与取消控制)
@@ -191,6 +192,7 @@ tests/
       test_deep_pu.py                 # InfoMax PU/WConPU/DGPU 接口与 registry
       test_deep_pu_vision.py          # WConPU 视觉骨干与张量增强
       test_vision.py                  # 统一深度编码器入口 build_encoder
+      test_deep_vision_pickle.py      # 深度视觉模块 pickle 往返(E2/E3 回归;importorskip torch)
       test_llsvm.py                   # LLSVM 特有逻辑
     losses/
       test_nnpu_loss.py              # nnPU golden tests (MATH + PROPERTY)
@@ -204,6 +206,7 @@ tests/
       test_split.py                   # PU 切分器测试
       test_tuning.py                  # PUTuner 网格、选择方向与不可用指标
     ui/
+      test_history.py                 # 进程级运行历史与收尾条目写入(D9 回归)
       test_ui_helpers.py              # 上传解析、类型化参数、配置状态与模型目录
       test_runtime.py                 # 后台运行、进度快照与协作式取消
     prior/
@@ -237,7 +240,9 @@ tests/
     test_pipeline.py                 # PUPipeline 全流程/先验解析/错误/可用性/确定性
     test_pipeline_deep.py            # PUPipeline 深度算法集成（架构选择;importorskip torch）
     test_run.py                      # run 子命令进程内端到端（真实 CSV IO + 真实训练）
+    test_cli_deep_save_model.py      # run --save-model CNN 保存回归（E2/E3;importorskip torch）
     test_ui_app.py                   # Streamlit 页面渲染（ui extra；无依赖时 skip）
+    test_ui_history_flow.py          # UI 运行写入进程级历史（D9 接线;importorskip streamlit）
 
   e2e/                               # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py           # pu-workflow profile 步骤脚本（子进程）
