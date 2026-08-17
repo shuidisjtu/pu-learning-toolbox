@@ -129,6 +129,21 @@ def test_generate_reports_stale_entry():
     assert stale == ["pu_toolbox/core/base.py"]
 
 
+def test_generate_excludes_planned_from_stale():
+    doc = """\
+```text
+pu_toolbox/
+  core/
+    base.py                  (core base)
+    future.py                (planned)
+```
+"""
+    disk = ["pu_toolbox/core/base.py"]
+    _, missing, stale = g.generate(doc, disk)
+    assert missing == []
+    assert stale == []  # planned 条目不算 stale
+
+
 def test_generate_preserves_non_generatable_blocks():
     disk = ["pu_toolbox/ui/app.py"]
     new_text, _, _ = g.generate(DOC, disk)

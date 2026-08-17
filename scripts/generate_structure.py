@@ -197,6 +197,23 @@ def collect_entries(trees: dict[str, Any]) -> set[str]:
     return entries
 
 
+def _planned_entries(tree: dict[str, Any], path: str) -> set[str]:
+    """Documented file paths whose annotation contains the ``(planned)`` marker."""
+
+    def walk(node: dict[str, Any], cur: str, acc: set[str]) -> None:
+        for k, v in node.items():
+            if k == FILES_KEY:
+                for name, ann in v.items():
+                    if "(planned)" in ann:
+                        acc.add(f"{cur}/{name}" if cur else name)
+            else:
+                walk(v, f"{cur}/{k}" if cur else k, acc)
+
+    entries: set[str] = set()
+    walk(tree, path, entries)
+    return entries
+
+
 def generate(text: str, disk_files: list[str]) -> tuple[str, list[str], list[str]]:
     """Rebuild the document tree blocks.
 
@@ -235,7 +252,8 @@ def generate(text: str, disk_files: list[str]) -> tuple[str, list[str], list[str
                 )
                 doc_entries = collect_entries({root: old_tree.get(root, {})})
                 disk_root = {f for f in disk_set if f.startswith(root + "/")}
-                stale.extend(sorted(doc_entries - disk_root))
+                planned = _planned_entries(old_tree.get(root, {}), root)
+                stale.extend(sorted((doc_entries - disk_root) - planned))
                 out_lines.append("```text")
                 out_lines.extend(block_lines)
                 out_lines.append("```")
