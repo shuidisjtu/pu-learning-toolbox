@@ -67,7 +67,7 @@ InfoMax PU 的论文网络协议可做只读 preflight：
 
 ```bash
 python -m benchmarks.deep_pu.run_official_data \
-  --config benchmarks/deep_pu/configs/official_data_infomax_fashion_protocol.json \
+  --config benchmarks/deep_pu/configs/official_data_infomax_fashion_protocol_pi05.json \
   --output benchmarks/deep_pu/results/infomax_fashion_protocol_preflight \
   --data-root /tmp/pu-toolbox-data \
   --preflight-only
@@ -79,6 +79,10 @@ python -m benchmarks.deep_pu.run_official_data \
 class-prior estimator；由于论文没有说明 KM 变体，配置暂锁 KM1。论文列出的
 `pi=0.3/0.5/0.7` 三组、每组 20 seeds 已完整执行；未公开细节仍意味着结果必须保持
 `paper_claim=false`。
+
+这些锁定协议配置设置了 `runtime.resume_required=true`。执行真实训练时必须传入
+`--resume`，确保中断后继续写入同一组经过配置哈希校验的结果；`--preflight-only`
+仍可单独运行。
 
 WConPU 的 CIFAR-10 视觉协议可做只读 preflight：
 

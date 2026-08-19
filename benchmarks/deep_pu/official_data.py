@@ -79,6 +79,12 @@ def load_official_data_config(path: str | Path) -> dict[str, Any]:
     ):
         raise ValueError("seeds must be a non-empty list of non-negative integers")
 
+    runtime = config.get("runtime", {})
+    if not isinstance(runtime, dict):
+        raise ValueError("runtime must be an object")
+    if not isinstance(runtime.get("resume_required", False), bool):
+        raise ValueError("runtime.resume_required must be boolean")
+
     dataset = config.get("dataset", {})
     name = dataset.get("name")
     if name not in PUBLIC_DATASETS:
@@ -509,10 +515,6 @@ def environment_preflight(
         cuda_available = False
         cuda_devices = 0
 
-    # runtime.resume_required in the locked protocol configs records the
-    # intent that a full run must be resumed, not restarted; the runner does
-    # not enforce it yet. Keep the field in configs until enforcement lands
-    # (the provenance lock tests compare configs against executed records).
     requested_device = config.get("runtime", {}).get("device", "cpu")
     dataset_name = config["dataset"]["name"]
     blockers: list[str] = []
@@ -697,6 +699,8 @@ def run_official_data_benchmark(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run public-data trials and persist every completed seed incrementally."""
     output = Path(output_dir)
+    if config.get("runtime", {}).get("resume_required", False) and not resume:
+        raise ValueError("runtime.resume_required=true requires resume=True (--resume in the CLI)")
     project_root = Path(__file__).resolve().parents[2]
     worktree_dirty_before_run = git_worktree_dirty(project_root, exclude=output)
     output.mkdir(parents=True, exist_ok=True)

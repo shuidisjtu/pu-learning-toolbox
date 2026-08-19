@@ -316,7 +316,7 @@ benchmarks/
     configs/
       clean_room_multiseed.json
       official_data_smoke_fashion_mnist.json
-      official_data_infomax_fashion_protocol.json
+      official_data_infomax_fashion_protocol_pi05.json
       official_data_wconpu_cifar10_protocol.json
       official_sources.lock.json
       official/               (三份 paper-like 配置；InfoMax provisional matrix 已执行，其余待执行)

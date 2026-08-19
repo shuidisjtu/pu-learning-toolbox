@@ -102,6 +102,12 @@ class TestOfficialDataBenchmark:
         with pytest.raises(ValueError, match="validation forwarding"):
             load_official_data_config(path)
 
+        method["fit"] = {"use_validation_for_early_stopping": False}
+        official_config["runtime"]["resume_required"] = "yes"
+        path.write_text(json.dumps(official_config), encoding="utf-8")
+        with pytest.raises(ValueError, match="resume_required must be boolean"):
+            load_official_data_config(path)
+
     @pytest.mark.parametrize(
         ("field", "value", "message"),
         [
@@ -246,6 +252,26 @@ class TestOfficialDataBenchmark:
                 loader=fake_loader,
             )
 
+        official_config["dataset"]["n_test"] = 12
+        official_config["runtime"]["resume_required"] = True
+        required_output = tmp_path / "required-output"
+        with pytest.raises(ValueError, match="requires resume=True"):
+            run_official_data_benchmark(
+                official_config,
+                required_output,
+                data_root=tmp_path / "data",
+                loader=fake_loader,
+            )
+        assert not required_output.exists()
+        trials, _ = run_official_data_benchmark(
+            official_config,
+            required_output,
+            data_root=tmp_path / "data",
+            resume=True,
+            loader=fake_loader,
+        )
+        assert len(trials) == 1
+
     def test_basic_locked_config_audit_separates_blockers(self, tmp_path):
         config = {
             "method": "dgpu",
@@ -266,7 +292,9 @@ class TestOfficialDataBenchmark:
 
     def test_basic_infomax_protocol_config_locks_paper_network(self):
         root = Path(__file__).resolve().parents[2] / "benchmarks" / "deep_pu" / "configs"
-        config = load_official_data_config(root / "official_data_infomax_fashion_protocol.json")
+        config = load_official_data_config(
+            root / "official_data_infomax_fashion_protocol_pi05.json"
+        )
         parameters = config["methods"]["infomax_pu"]["parameters"]
         assert len(config["seeds"]) == 20
         assert config["dataset"]["validation_positive"] == 50
@@ -281,7 +309,7 @@ class TestOfficialDataBenchmark:
         assert not any("backbone" in item for item in report["warnings"])
         prior_configs = {
             0.3: ("03", "official_data_infomax_fashion_protocol_pi03.json"),
-            0.5: ("05", "official_data_infomax_fashion_protocol.json"),
+            0.5: ("05", "official_data_infomax_fashion_protocol_pi05.json"),
             0.7: ("07", "official_data_infomax_fashion_protocol_pi07.json"),
         }
         results_root = root.parent / "results"
