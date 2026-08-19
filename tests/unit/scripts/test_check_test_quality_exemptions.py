@@ -1,10 +1,8 @@
 """Tests for the test-quality gate's exemption-review (exit mechanism).
 
-The gate maintains two hand-grown exemption lists (``UNLIMITED_FILES``,
-``CONTRACT_COVERED_FILES``).  Every run, the exemption-review section
-reprints the lists with their reasons and flags any listed file whose
-current category coverage no longer needs the exemption, so the lists
-can be audited and shrunk instead of growing forever.
+The gate maintains three hand-grown exemption lists. Every run, the
+exemption-review section reprints them with reasons and fails any entry
+whose exemption is no longer necessary, so the lists cannot grow forever.
 """
 
 from __future__ import annotations
@@ -16,6 +14,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
+import check_test_quality as gate  # noqa: E402
 from check_test_quality import (  # noqa: E402
     _effective_missing,
     analyse_file,
@@ -33,15 +32,16 @@ def _exempt_report(tmp_path, name: str, test_names: list[str]):
 
 @pytest.mark.unit
 def test_exemption_reporting(tmp_path, capsys):
-    """豁免名单文件若已满足覆盖规则,输出中应出现可移出名单的提示."""
+    """A count exemption fails once the file is within the normal limit."""
     report = _exempt_report(
         tmp_path,
-        "test_builtin_methods.py",  # member of UNLIMITED_FILES
+        "test_generate_structure.py",  # member of UNLIMITED_FILES
         ["test_basic_fit", "test_param_invalid", "test_edge_empty", "test_determ_seed"],
     )
-    review_exemptions([report])
+    stale = review_exemptions([report])
     out = capsys.readouterr().out
-    assert "may be removable from UNLIMITED_FILES (covers 4/4 categories)" in out
+    assert "must be removed from UNLIMITED_FILES (4 tests <= limit 15)" in out
+    assert len(stale) == 1
 
 
 @pytest.mark.unit
@@ -52,22 +52,24 @@ def test_basic_contract_list_member_flagged(tmp_path, capsys):
         "test_bias_aware.py",  # member of CONTRACT_COVERED_FILES
         ["test_basic_fit", "test_param_invalid", "test_edge_empty", "test_determ_seed"],
     )
-    review_exemptions([report])
+    stale = review_exemptions([report])
     out = capsys.readouterr().out
-    assert "may be removable from CONTRACT_COVERED_FILES (covers 4/4 categories)" in out
+    assert "must be removed from CONTRACT_COVERED_FILES" in out
+    assert len(stale) == 1
 
 
 @pytest.mark.unit
-def test_edge_missing_one_category_still_flagged(tmp_path, capsys):
-    """Missing only one of four categories (covers 3/4) still hints removal."""
+def test_edge_missing_one_category_keeps_contract_exemption(tmp_path, capsys):
+    """A contract exemption remains valid while one category is missing."""
     report = _exempt_report(
         tmp_path,
-        "test_builtin_methods.py",
+        "test_bias_aware.py",
         ["test_basic_fit", "test_param_invalid", "test_edge_empty"],
     )
-    review_exemptions([report])
+    stale = review_exemptions([report])
     out = capsys.readouterr().out
-    assert "may be removable from UNLIMITED_FILES (covers 3/4 categories)" in out
+    assert "must be removed from CONTRACT_COVERED_FILES" not in out
+    assert stale == []
 
 
 @pytest.mark.unit
@@ -80,22 +82,43 @@ def test_edge_high_test_count_keeps_unlimited_hint_quiet(tmp_path, capsys):
     """
     names = ["test_basic_fit", "test_param_invalid", "test_edge_empty", "test_determ_seed"]
     report = _exempt_report(tmp_path, "test_builtin_methods.py", names * 5)  # 20 tests
-    review_exemptions([report])
+    stale = review_exemptions([report])
     out = capsys.readouterr().out
-    assert "may be removable from UNLIMITED_FILES" not in out
+    assert "must be removed from UNLIMITED_FILES" not in out
+    assert stale == []
 
 
 @pytest.mark.unit
-def test_param_low_coverage_raises_no_removal_hint(tmp_path, capsys):
-    """Covering fewer than three categories keeps the exemption quiet."""
+def test_param_count_exemption_exit_is_independent_of_coverage(tmp_path, capsys):
+    """UNLIMITED_FILES governs count only, so low coverage does not retain it."""
     report = _exempt_report(
         tmp_path,
-        "test_builtin_methods.py",
+        "test_generate_structure.py",
         ["test_basic_fit", "test_param_invalid"],
     )
-    review_exemptions([report])
+    stale = review_exemptions([report])
     out = capsys.readouterr().out
-    assert "may be removable" not in out
+    assert "must be removed from UNLIMITED_FILES" in out
+    assert len(stale) == 1
+
+
+@pytest.mark.unit
+def test_param_stale_exemption_makes_main_fail(tmp_path, monkeypatch):
+    """A stale exemption is part of the gate verdict, not just its report."""
+    source = (
+        "import pytest\n"
+        "pytestmark = pytest.mark.unit\n"
+        "def test_basic_fit(): pass\n"
+        "def test_param_invalid(): pass\n"
+        "def test_edge_empty(): pass\n"
+        "def test_determ_seed(): pass\n"
+    )
+    (tmp_path / "test_ready.py").write_text(source, encoding="utf-8")
+    monkeypatch.setattr(gate, "TESTS_DIR", tmp_path)
+    monkeypatch.setattr(gate, "UNLIMITED_FILES", {"test_ready.py": "temporary exemption"})
+    monkeypatch.setattr(gate, "CONTRACT_COVERED_FILES", {})
+    monkeypatch.setattr(gate, "PARTIAL_COVERAGE", {})
+    assert gate.main() == 1
 
 
 @pytest.mark.unit
@@ -143,9 +166,10 @@ def test_edge_declared_category_now_covered_hints_removal(tmp_path, capsys):
         "test_history.py",
         ["test_basic_fit", "test_edge_empty", "test_param_invalid"],
     )
-    review_exemptions([report])
+    stale = review_exemptions([report])
     out = capsys.readouterr().out
-    assert "may drop declared ['param'] from PARTIAL_COVERAGE (now covered)" in out
+    assert "must drop declared ['param'] from PARTIAL_COVERAGE (now covered)" in out
+    assert len(stale) == 1
 
 
 @pytest.mark.unit
