@@ -35,7 +35,7 @@
 | KLDCE γ 分支代码-推导矛盾(差 +2) | 黄优先(S3) | 代码改为 `-1.0 - g` 单分支,与推导注释一致 |
 | 决策日志停更(2026-08-06 后) | 黄(T3) | ADR 体系迁移闭环(ADR-0013/0014 等) |
 
-### 3.2 黄项 — 治理闭环(16/17)✅
+### 3.2 黄项 — 治理闭环(17/17)✅
 
 | 原发现 | 闭环方式 |
 |---|---|
@@ -55,12 +55,11 @@
 | 注册名 4 名字 | 过宽的 `pe` 保留兼容解析但标记 `deprecated_aliases`，解析时发出 `FutureWarning`；推荐 `class_prior_estimation` / `cpe` |
 | .gitignore 逐目录例外 | 将本地运行产物规则锚定到仓库根目录 `/results*/`，删除 benchmark 两目录的 4 条逐目录反向例外 |
 | check_test_quality 豁免名单 | 过期的 count/contract/partial 豁免现计入非零退出码；同时移除 4 个已不需要的 unlimited 项 |
+| set_global_seed / pu_validation_risk 测试专属 | 全局播种移至 `tests/helpers.py:set_test_seed`；UPU 测试直接复用公开的 `metrics.pu_zero_one_risk`，删除测试专属包装 |
 
-### 3.3 剩余黄项 — 仍待治理(1 项)
+### 3.3 剩余黄项 — 已清零
 
-| 项 | 现状 | 证据 | 建议 |
-|---|---|---|---|
-| S1 set_global_seed / pu_validation_risk 测试专属 | 仍仅 conftest/测试使用 | `core/random.py:10`、`risk/upu.py` | 移至测试助手或标注测试专用 |
+本轮登记的 17 项黄项已全部闭环；后续复跑应把重点转向新增代码是否引入新的重复、死代码或测试豁免。
 
 > 注:class_prior 范围校验 9 处内联已统一走 check_scalar_in_range(PR #22 覆盖),故不在剩余清单。
 
