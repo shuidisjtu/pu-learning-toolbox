@@ -35,7 +35,7 @@
 | KLDCE γ 分支代码-推导矛盾(差 +2) | 黄优先(S3) | 代码改为 `-1.0 - g` 单分支,与推导注释一致 |
 | 决策日志停更(2026-08-06 后) | 黄(T3) | ADR 体系迁移闭环(ADR-0013/0014 等) |
 
-### 3.2 黄项 — 治理闭环(14/17)✅
+### 3.2 黄项 — 治理闭环(15/17)✅
 
 | 原发现 | 闭环方式 |
 |---|---|
@@ -53,12 +53,12 @@
 | kldce/ldce 1−2ph 分母检查重复 | 单源至 `risk/_class_prior.py` 的 `stable_centroid_denominator` |
 | sample_weight 七语义 | 15 个分类器统一显式声明 `SampleWeightSupport` 三档语义，metadata 与 API 参考可查询，契约测试防漂移 |
 | 注册名 4 名字 | 过宽的 `pe` 保留兼容解析但标记 `deprecated_aliases`，解析时发出 `FutureWarning`；推荐 `class_prior_estimation` / `cpe` |
+| .gitignore 逐目录例外 | 将本地运行产物规则锚定到仓库根目录 `/results*/`，删除 benchmark 两目录的 4 条逐目录反向例外 |
 
-### 3.3 剩余黄项 — 仍待治理(3 项)
+### 3.3 剩余黄项 — 仍待治理(2 项)
 
 | 项 | 现状 | 证据 | 建议 |
 |---|---|---|---|
-| S4 .gitignore 逐目录例外 | 18 行→4 行(2 目录),模式仍在 | `.gitignore:59-77` | 统一忽略规则 |
 | S4 check_test_quality 豁免名单 | 名单带理由 + review_exemptions() 提示,但仅 informational 不阻断 | `scripts/check_test_quality.py` | 明确退出机制 |
 | S1 set_global_seed / pu_validation_risk 测试专属 | 仍仅 conftest/测试使用 | `core/random.py:10`、`risk/upu.py` | 移至测试助手或标注测试专用 |
 
