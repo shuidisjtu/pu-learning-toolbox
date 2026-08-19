@@ -40,7 +40,10 @@ from ...core.tags import (
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...utils.centroid import _centroid_covariance, _mom_centroid
-from ._class_prior import solve_prior_from_positive_fraction
+from ._class_prior import (
+    solve_prior_from_positive_fraction,
+    stable_centroid_denominator,
+)
 
 
 def _update_m(
@@ -416,13 +419,7 @@ class LDCEClassifier(BasePUClassifier):
         self.class_prior_ = p
 
         # ── Check near-singular denominator ───────────────────────────
-        denom = 1.0 - 2.0 * p * h  # = 1 - 2k/n when h from data
-        if abs(denom) < 1e-12:
-            raise ValueError(
-                f"Denominator 1−2ph = {denom:.2e} is near-zero "
-                f"(h={h}, p={p}).  The centroid term is ill-conditioned "
-                f"for this data / flip_probability combination."
-            )
+        stable_centroid_denominator(p, h)  # 1 - 2k/n when h is derived from data
 
         # ── Validate other hyper-parameters ───────────────────────────
         if self.reg_strength <= 0:

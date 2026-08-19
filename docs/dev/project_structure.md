@@ -57,7 +57,7 @@ pu_toolbox/
       llsvm.py                            (native)
     risk/
       __init__.py
-      _class_prior.py                     (shared: solve_prior_from_positive_fraction 单源, KLDCE/LDCE 共用)
+      _class_prior.py                     (shared: 类先验推导与 1−2ph 稳定性检查, KLDCE/LDCE 共用)
       ldce.py                             (native)
       kldce.py                            (native: ACS + QP oracle + RBF kernel)
       dist_pu.py                          (native)
@@ -148,7 +148,7 @@ tests/
       test_ldce_api.py                  # LDCE 收敛/约束/API/错误/回归 (unit)
       test_kldce_math.py                # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
       test_kldce_property.py            # KLDCE 约束/鲁棒性 (PROPERTY)
-      test_class_prior.py               # solve_prior_from_positive_fraction 共享助手 (unit)
+      test_class_prior.py               # 类先验推导与质心分母共享助手 (unit)
       __init__.py
     __init__.py
   unit/                                 # 算法特有逻辑测试
