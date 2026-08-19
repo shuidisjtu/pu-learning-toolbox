@@ -93,6 +93,21 @@ def test_param_external_and_anchor_links_skipped(tmp_path, monkeypatch):
 
 
 @pytest.mark.unit
+def test_basic_root_markdown_files_are_in_scope(tmp_path, monkeypatch):
+    """Root governance docs such as CONTRIBUTING.md are checked too."""
+    (tmp_path / "CONTRIBUTING.md").write_text("See `docs/missing.md`.\n", encoding="utf-8")
+    docs = _make_tree(tmp_path, {"README.md": "# docs\n"})
+    monkeypatch.setattr(d, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(d, "DOCS_DIR", docs)
+
+    md_files = d._find_md_files()
+
+    assert tmp_path / "CONTRIBUTING.md" in md_files
+    issues = d.check_path_references(md_files)
+    assert any(issue.file == "CONTRIBUTING.md" for issue in issues)
+
+
+@pytest.mark.unit
 def test_basic_backtick_md_path_passes(tmp_path, monkeypatch):
     """A backtick-quoted .md path that exists yields no rule-1 issue."""
     root = _make_tree(tmp_path, {"index.md": "See `docs/index.md`.\n"})
