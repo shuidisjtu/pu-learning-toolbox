@@ -33,6 +33,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -106,6 +107,7 @@ class NonNegativePUClassifier(BasePUClassifier):
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.TORCH
     maturity: Maturity = Maturity.STABLE
+    sample_weight_support: SampleWeightSupport = SampleWeightSupport.SUPPORTED
 
     def __init__(
         self,

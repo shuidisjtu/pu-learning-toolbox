@@ -17,6 +17,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -49,6 +50,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
+    sample_weight_support = SampleWeightSupport.SUPPORTED
 
     def __init__(
         self,

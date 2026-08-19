@@ -20,6 +20,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -245,6 +246,7 @@ class SelfPUClassifier(BasePUClassifier):
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
+    sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
 
     def __init__(
         self,

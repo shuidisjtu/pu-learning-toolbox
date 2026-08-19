@@ -35,7 +35,7 @@
 | KLDCE γ 分支代码-推导矛盾(差 +2) | 黄优先(S3) | 代码改为 `-1.0 - g` 单分支,与推导注释一致 |
 | 决策日志停更(2026-08-06 后) | 黄(T3) | ADR 体系迁移闭环(ADR-0013/0014 等) |
 
-### 3.2 黄项 — 治理闭环(12/17)✅
+### 3.2 黄项 — 治理闭环(13/17)✅
 
 | 原发现 | 闭环方式 |
 |---|---|
@@ -51,12 +51,12 @@
 | n_features/n_features_out 双键别名 | n_features_out 全库 0 处 |
 | pipeline.py 单文件过大 | 输入、模型构造、CV/指标与报告组装拆入 5 个内部模块；主文件 1119→761 行，UI app 同步 624→404 行 |
 | kldce/ldce 1−2ph 分母检查重复 | 单源至 `risk/_class_prior.py` 的 `stable_centroid_denominator` |
+| sample_weight 七语义 | 15 个分类器统一显式声明 `SampleWeightSupport` 三档语义，metadata 与 API 参考可查询，契约测试防漂移 |
 
-### 3.3 剩余黄项 — 仍待治理(5 项)
+### 3.3 剩余黄项 — 仍待治理(4 项)
 
 | 项 | 现状 | 证据 | 建议 |
 |---|---|---|---|
-| S4 sample_weight 七语义 | 剩 3 类:文档化忽略 6 家 / NotImplementedError(SelfPU) / 真实支持 6 家 | DistPU/LBE 静默忽略已文档化 | 统一为三档语义(支持/文档化忽略/NotImplementedError) |
 | S4 .gitignore 逐目录例外 | 18 行→4 行(2 目录),模式仍在 | `.gitignore:59-77` | 统一忽略规则 |
 | S4 check_test_quality 豁免名单 | 名单带理由 + review_exemptions() 提示,但仅 informational 不阻断 | `scripts/check_test_quality.py` | 明确退出机制 |
 | T2 注册名 4 名字 | 类别名已删,registry 仍 4 名(注册名 + cpe/pen_l1/pe 别名) | `registry/builtin_methods.py:51` | 评估别名收敛或标注 deprecated |

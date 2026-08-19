@@ -88,6 +88,23 @@ class Backend(str, Enum):
     UNKNOWN = "unknown"
 
 
+# ── Sample-weight support ─────────────────────────────────────────
+
+
+class SampleWeightSupport(str, Enum):
+    """How a classifier handles a non-``None`` ``sample_weight`` value.
+
+    ``SUPPORTED`` means weights affect the fitted objective. ``IGNORED``
+    preserves the common sklearn-compatible signature but deliberately does
+    not use weights. ``NOT_IMPLEMENTED`` means passing weights raises
+    :class:`NotImplementedError`.
+    """
+
+    SUPPORTED = "supported"
+    IGNORED = "ignored"
+    NOT_IMPLEMENTED = "not_implemented"
+
+
 # ── Maturity ───────────────────────────────────────────────────────
 
 

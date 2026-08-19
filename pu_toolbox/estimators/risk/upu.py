@@ -32,6 +32,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -140,6 +141,7 @@ class UPUClassifier(BasePUClassifier):
     source_status: SourceStatus = SourceStatus.OFFICIAL_BUNDLE
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE
+    sample_weight_support: SampleWeightSupport = SampleWeightSupport.IGNORED
 
     def __init__(
         self,

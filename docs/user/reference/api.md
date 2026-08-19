@@ -35,6 +35,19 @@
 > 族列为友好简称；CLI 与 JSON 输出使用枚举值：`class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` / `deep_pu`。
 > 构造器有必填非 `class_prior` 参数的方法可用 `classifier_params` 补齐；需要 Python 对象协议的参数也可直接传配置好的实例。
 
+### `sample_weight` 三档语义
+
+所有分类器都保留统一的 `fit(..., sample_weight=None)` 签名，并通过
+`get_pu_metadata()["sample_weight_support"]` 明确声明行为：
+
+| 值 | 行为 | 当前分类器 |
+|---|---|---|
+| `supported` | 权重进入训练目标 | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
+| `ignored` | 为 sklearn API 兼容而接受，但不参与训练 | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
+| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu` |
+
+依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
+
 ## PUPipeline
 
 用法见 [howto/pipeline.md](../howto/pipeline.md)。

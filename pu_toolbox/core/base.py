@@ -26,6 +26,7 @@ from .tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -67,6 +68,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     source_status: SourceStatus = SourceStatus.UNKNOWN
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.EXPERIMENTAL
+    sample_weight_support: SampleWeightSupport = SampleWeightSupport.NOT_IMPLEMENTED
 
     # ── Internal state ─────────────────────────────────────────────
 
@@ -105,7 +107,9 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
             Known class prior π = P(y=1).  Required for risk-estimation
             methods; optional for SCAR-based calibration methods.
         sample_weight : array-like of shape (n_samples,), optional
-            Per-sample weights.
+            Per-sample weights. Concrete classifiers declare one of the
+            three behaviors in ``sample_weight_support``: use, ignore, or
+            reject with ``NotImplementedError``.
 
         Returns
         -------
@@ -207,6 +211,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
             "source_status": self.source_status.value,
             "backend": self.backend.value,
             "maturity": self.maturity.value,
+            "sample_weight_support": self.sample_weight_support.value,
             "is_fitted": self._is_fitted,
             "n_features": self._X_shape_[1] if self._X_shape_ else None,
         }

@@ -22,6 +22,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -38,6 +39,7 @@ class PUSBClassifier(BasePUClassifier):
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH
+    sample_weight_support = SampleWeightSupport.SUPPORTED
 
     def __init__(self, *, threshold: float = 0.5, C: float = 1.0, max_iter: int = 1000) -> None:
         super().__init__()

@@ -35,6 +35,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -318,6 +319,7 @@ class LDCEClassifier(BasePUClassifier):
     source_status: SourceStatus = SourceStatus.OFFICIAL_RELATED
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.RESEARCH
+    sample_weight_support: SampleWeightSupport = SampleWeightSupport.IGNORED
 
     def __init__(
         self,

@@ -28,6 +28,7 @@ from .exceptions import (
 )
 from .labels import normalize_pnu_labels as normalize_pnu_labels
 from .labels import normalize_pu_labels as normalize_pu_labels
+from .tags import SampleWeightSupport as SampleWeightSupport
 from .validation import validate_pnu_X_y as validate_pnu_X_y
 from .validation import validate_pu_X_y as validate_pu_X_y
 
@@ -38,6 +39,7 @@ __all__ = [
     "NotFittedError",
     "PULearningError",
     "RegistryError",
+    "SampleWeightSupport",
     "ValidationError",
     "normalize_pnu_labels",
     "normalize_pu_labels",
