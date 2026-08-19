@@ -35,6 +35,9 @@ class AlgorithmMetadata:
     aliases: list[str] = field(default_factory=list)
     """Alternative names users might type (e.g. ``["elkan-noto", "EN"]``)."""
 
+    deprecated_aliases: list[str] = field(default_factory=list)
+    """Aliases retained for compatibility but scheduled for removal."""
+
     family: AlgorithmFamily = AlgorithmFamily.CLASSIC_CALIBRATION
     """Algorithm family for grouping and recommendation."""
 
@@ -115,3 +118,9 @@ def _validate_metadata(meta: AlgorithmMetadata) -> None:
         raise ValueError("AlgorithmMetadata.name must be a non-empty string")
     if not meta.paper:
         raise ValueError(f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})")
+    unknown_deprecated = set(meta.deprecated_aliases) - set(meta.aliases)
+    if unknown_deprecated:
+        raise ValueError(
+            "AlgorithmMetadata.deprecated_aliases must be a subset of aliases "
+            f"(unknown: {sorted(unknown_deprecated)!r})"
+        )

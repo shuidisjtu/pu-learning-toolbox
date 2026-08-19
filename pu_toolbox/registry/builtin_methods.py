@@ -50,6 +50,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         # the kldce alias bug.
         name="class_prior_estimation",
         aliases=["cpe", "pen_l1", "pe"],
+        deprecated_aliases=["pe"],
         family=Fam.CLASS_PRIOR_ESTIMATION,
         paper="Class-Prior Estimation for Learning from Positive and Unlabeled Data",
         scenario=[Scn.SINGLE_TRAINING_SET, Scn.CASE_CONTROL],

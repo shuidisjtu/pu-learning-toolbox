@@ -8,6 +8,7 @@ powers discovery, recommendation, and source-aware algorithm selection.
 from __future__ import annotations
 
 import threading
+import warnings
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import RegistryError
@@ -15,9 +16,10 @@ from .metadata import AlgorithmMetadata
 
 # ── Alias → canonical name ─────────────────────────────────────────
 _ALIAS_MAP: dict[str, str] = {}
+_DEPRECATED_ALIASES: set[str] = set()
 
 
-def register_alias(alias: str, canonical_name: str) -> None:
+def register_alias(alias: str, canonical_name: str, *, deprecated: bool = False) -> None:
     """Register a case-insensitive alias for a canonical algorithm name."""
     key = alias.lower()
     if key in _ALIAS_MAP and _ALIAS_MAP[key] != canonical_name:
@@ -26,23 +28,39 @@ def register_alias(alias: str, canonical_name: str) -> None:
             f"cannot remap to '{canonical_name}'."
         )
     _ALIAS_MAP[key] = canonical_name
+    if deprecated:
+        _DEPRECATED_ALIASES.add(key)
+    else:
+        _DEPRECATED_ALIASES.discard(key)
 
 
 def unregister_alias(alias: str) -> None:
     """Remove an alias entry (safe to call if not registered)."""
-    _ALIAS_MAP.pop(alias.lower(), None)
+    key = alias.lower()
+    _ALIAS_MAP.pop(key, None)
+    _DEPRECATED_ALIASES.discard(key)
 
 
 def clear_aliases() -> None:
     """Remove all alias mappings."""
     _ALIAS_MAP.clear()
+    _DEPRECATED_ALIASES.clear()
 
 
 def resolve_alias(name: str) -> str | None:
     """Resolve a possibly-aliased name to its canonical form."""
     if not isinstance(name, str):
         return None
-    return _ALIAS_MAP.get(name.lower())
+    key = name.lower()
+    canonical = _ALIAS_MAP.get(key)
+    if canonical is not None and key in _DEPRECATED_ALIASES:
+        warnings.warn(
+            f"Algorithm alias {name!r} is deprecated and will be removed in a "
+            f"future release; use {canonical!r} instead.",
+            FutureWarning,
+            stacklevel=3,
+        )
+    return canonical
 
 
 # ── Canonical registry ─────────────────────────────────────────────
@@ -98,7 +116,7 @@ def register_method(
 
         for alias in metadata.aliases:
             try:
-                register_alias(alias, name)
+                register_alias(alias, name, deprecated=alias in metadata.deprecated_aliases)
             except ValueError as exc:
                 raise RegistryError(str(exc)) from exc
 

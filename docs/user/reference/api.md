@@ -34,6 +34,7 @@
 > 注册名可直接用于 `PUPipeline(classifier="...")` 与 CLI `--classifier`；别名大小写不敏感。
 > 族列为友好简称；CLI 与 JSON 输出使用枚举值：`class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` / `deep_pu`。
 > 构造器有必填非 `class_prior` 参数的方法可用 `classifier_params` 补齐；需要 Python 对象协议的参数也可直接传配置好的实例。
+> 旧类先验别名 `pe` 仍可解析，但会发出 `FutureWarning`；请迁移到 `class_prior_estimation` 或 `cpe`。
 
 ### `sample_weight` 三档语义
 

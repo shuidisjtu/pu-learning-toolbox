@@ -56,6 +56,7 @@ def test_param_list_priors_includes_aliases(capsys):
     out = capsys.readouterr().out
     for alias in ("cpe", "pe", "re_cpe", "rethinking_cpe"):
         assert alias in out, f"{alias!r} accepted by --prior-estimator but not listed"
+    assert "pe [deprecated]" in out
 
 
 @pytest.mark.unit

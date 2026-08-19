@@ -29,7 +29,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--out-dir results/` | ✅ | — | 输出目录（report.json + report.md） |
 | `--true-labels` | — | — | 真值单列 {0, 1}，启用 oracle 指标（auc 等） |
 | `--class-prior` | — | — | 显式类先验 (0, 1)，跳过估计 |
-| `--prior-estimator` | — | `pen_l1` | `pen_l1`/`recpe`/`km1`/`km2`/`none`，也接受注册表名如 `class_prior_estimation`（别名 `cpe`/`pe`） |
+| `--prior-estimator` | — | `pen_l1` | `pen_l1`/`recpe`/`km1`/`km2`/`none`，也接受注册表名如 `class_prior_estimation`（别名 `cpe`；`pe` 已弃用） |
 | `--prior-param` | — | — | 估计器超参数，可重复（如 `--prior-param sigma=3.0 --prior-param n_centers=100`）；值自动转为 int/float/str；与估计器实例方式互斥 |
 | `--classifier` | — | `auto` | 注册方法名或 `auto`（推荐器选算法） |
 | `--classifier-param` | — | — | 分类器构造参数，可重复；支持 JSON 数字/布尔值/列表/对象（如 `--classifier-param reg_lambda=0.01`） |

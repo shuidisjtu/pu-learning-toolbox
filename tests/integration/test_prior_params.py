@@ -36,6 +36,14 @@ def test_param_prior_params_with_instance_raises():
 
 
 @pytest.mark.integration
+def test_param_deprecated_prior_alias_warns_but_still_resolves():
+    """The legacy ``pe`` alias remains usable during its migration window."""
+    with pytest.warns(FutureWarning, match="class_prior_estimation"):
+        pipe = PUPipeline(prior_estimator="pe")
+    assert pipe._prior_cls is ClassPriorEstimator
+
+
+@pytest.mark.integration
 def test_edge_invalid_prior_param_raises(rng):
     X, y_pu, _ = make_scar_data(rng, n=150, separation=2.0)
     pipe = PUPipeline(prior_estimator="pen_l1", prior_params={"not_a_param": 1})
