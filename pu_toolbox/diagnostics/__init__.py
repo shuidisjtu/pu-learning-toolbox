@@ -30,6 +30,10 @@ from pu_toolbox.diagnostics.shift import PUShiftReport as PUShiftReport
 from pu_toolbox.diagnostics.shift import analyze_pu_shift as analyze_pu_shift
 from pu_toolbox.diagnostics.shift_monitor import PUShiftMonitor as PUShiftMonitor
 from pu_toolbox.diagnostics.shift_monitor import ShiftWindow as ShiftWindow
+from pu_toolbox.diagnostics.uncertainty import PUUncertaintyReport as PUUncertaintyReport
+from pu_toolbox.diagnostics.uncertainty import (
+    analyze_pu_uncertainty as analyze_pu_uncertainty,
+)
 
 __all__ = [
     "DiagnosticMetric",
@@ -39,10 +43,12 @@ __all__ = [
     "PUSensitivityAnalysis",
     "PUShiftReport",
     "PUShiftMonitor",
+    "PUUncertaintyReport",
     "ShiftWindow",
     "SensitivityPoint",
     "analyze_pu_sensitivity",
     "analyze_domain_assumptions",
+    "analyze_pu_uncertainty",
     "analyze_pu_shift",
     "audit_benchmark_results",
     "build_diagnostic_report",
