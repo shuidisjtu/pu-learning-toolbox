@@ -22,6 +22,8 @@ from pu_toolbox.diagnostics.sensitivity import (
 )
 from pu_toolbox.diagnostics.shift import PUShiftReport as PUShiftReport
 from pu_toolbox.diagnostics.shift import analyze_pu_shift as analyze_pu_shift
+from pu_toolbox.diagnostics.shift_monitor import PUShiftMonitor as PUShiftMonitor
+from pu_toolbox.diagnostics.shift_monitor import ShiftWindow as ShiftWindow
 
 __all__ = [
     "DiagnosticMetric",
@@ -29,6 +31,8 @@ __all__ = [
     "PUDiagnosticReport",
     "PUSensitivityAnalysis",
     "PUShiftReport",
+    "PUShiftMonitor",
+    "ShiftWindow",
     "SensitivityPoint",
     "analyze_pu_sensitivity",
     "analyze_pu_shift",
