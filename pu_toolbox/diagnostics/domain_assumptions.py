@@ -33,6 +33,7 @@ class DomainAssumptionReport:
     differences: dict[str, float | None]
     conclusion: MechanismConclusion
     sensitivity: tuple[dict[str, float | bool], ...]
+    uncertainty: dict[str, Any] | None
     issues: tuple[ProfileIssue, ...]
     provenance: dict[str, Any]
 
@@ -46,6 +47,7 @@ class DomainAssumptionReport:
                 "differences": self.differences,
                 "conclusion": self.conclusion,
                 "sensitivity": list(self.sensitivity),
+                "uncertainty": self.uncertainty,
                 "issues": [item.to_dict() for item in self.issues],
                 "provenance": self.provenance,
             }
@@ -69,13 +71,36 @@ class DomainAssumptionReport:
             f"- Class prior: `{self.differences['class_prior']:.6f}`",
             f"- Observed label rate: `{self.differences['observed_label_rate']:.6f}`",
             f"- Mean label propensity: `{self.differences['mean_label_propensity']:.6f}`",
-            "",
-            "## Interpretation Boundary",
-            "",
-            "- The mean propensity follows `P(S=1) / P(Y=1)`; it does not prove SCAR.",
-            "- Feature-dependent SAR is not identifiable from aggregate rates alone.",
-            "- Estimated class priors inherit the selected estimator's assumptions and bias.",
         ]
+        if self.uncertainty is not None:
+            lines.extend(
+                [
+                    "",
+                    "## Bootstrap Uncertainty",
+                    "",
+                    f"- Valid replicates: `{self.uncertainty['n_valid']}` / "
+                    f"`{self.uncertainty['n_requested']}`",
+                    f"- Confidence level: `{self.uncertainty['confidence']:.3f}`",
+                    f"- Class-prior difference CI: "
+                    f"`[{self.uncertainty['differences']['class_prior']['low']:.6f}, "
+                    f"{self.uncertainty['differences']['class_prior']['high']:.6f}]`",
+                    f"- Propensity difference CI: "
+                    f"`[{self.uncertainty['differences']['mean_label_propensity']['low']:.6f}, "
+                    f"{self.uncertainty['differences']['mean_label_propensity']['high']:.6f}]`",
+                ]
+            )
+        lines.extend(
+            [
+                "",
+                "## Interpretation Boundary",
+                "",
+                "- The mean propensity follows `P(S=1) / P(Y=1)`; it does not prove SCAR.",
+                "- Feature-dependent SAR is not identifiable from aggregate rates alone.",
+                "- Percentile bootstrap captures sampling/estimator variation, not "
+                "assumption bias.",
+                "- Estimated class priors inherit the selected estimator's assumptions and bias.",
+            ]
+        )
         return "\n".join(lines) + "\n"
 
     def save(self, path: str | Path, *, format: Literal["json", "markdown"] | None = None) -> Path:
@@ -138,6 +163,9 @@ def analyze_domain_assumptions(
     prior_shift_threshold: float = 0.05,
     propensity_shift_threshold: float = 0.05,
     sensitivity_radius: float = 0.05,
+    bootstrap_replicates: int = 0,
+    confidence: float = 0.95,
+    random_state: int | None = 42,
 ) -> DomainAssumptionReport:
     """Contrast prevalence and aggregate positive-labeling propensity by domain."""
     for name, value in {
@@ -147,6 +175,15 @@ def analyze_domain_assumptions(
     }.items():
         if not np.isfinite(value) or value < 0:
             raise ValueError(f"{name} must be a finite non-negative number.")
+    if (
+        isinstance(bootstrap_replicates, bool)
+        or not isinstance(bootstrap_replicates, int)
+        or bootstrap_replicates < 0
+        or 0 < bootstrap_replicates < 2
+    ):
+        raise ValueError("bootstrap_replicates must be 0 or an integer >= 2.")
+    if not np.isfinite(confidence) or not 0 < confidence < 1:
+        raise ValueError("confidence must lie in (0, 1).")
     source_labels = normalize_pu_labels(y_source_pu)
     target_labels = normalize_pu_labels(y_target_pu)
     if len(source_labels) != len(X_source) or len(target_labels) != len(X_target):
@@ -202,6 +239,29 @@ def analyze_domain_assumptions(
                     "is_feasible": source_c <= 1.0 and target_c <= 1.0,
                 }
             )
+    uncertainty = None
+    if bootstrap_replicates:
+        uncertainty = _bootstrap_domain_uncertainty(
+            X_source,
+            source_labels,
+            X_target,
+            target_labels,
+            source_class_prior=source_class_prior,
+            target_class_prior=target_class_prior,
+            prior_estimator=prior_estimator,
+            n_replicates=bootstrap_replicates,
+            confidence=confidence,
+            random_state=random_state,
+        )
+        if uncertainty["n_valid"] / uncertainty["n_requested"] < 0.8:
+            issues.append(
+                ProfileIssue(
+                    code="bootstrap_instability",
+                    severity="warning",
+                    message="More than 20% of bootstrap prior fits were infeasible or failed.",
+                    action="Increase domain sample sizes or use a more stable prior estimator.",
+                )
+            )
     return DomainAssumptionReport(
         source={
             "n_samples": len(source_labels),
@@ -224,6 +284,7 @@ def analyze_domain_assumptions(
         },
         conclusion=conclusion,
         sensitivity=tuple(sensitivity),
+        uncertainty=uncertainty,
         issues=tuple(issues),
         provenance={
             "identity": "P(S=1)=P(Y=1)*E[P(S=1|Y=1,X)|Y=1]",
@@ -233,9 +294,120 @@ def analyze_domain_assumptions(
                 else type(prior_estimator).__name__
             ),
             "aggregate_propensity_does_not_identify_scar": True,
+            "bootstrap_random_state": random_state if bootstrap_replicates else None,
         },
     )
 
 
 def _candidate_priors(center: float, radius: float) -> tuple[float, ...]:
     return tuple(sorted({max(1e-6, center - radius), center, min(1.0 - 1e-6, center + radius)}))
+
+
+def _take_rows(X: Any, indices: np.ndarray) -> Any:
+    if hasattr(X, "iloc"):
+        return X.iloc[indices]
+    try:
+        return X[indices]
+    except (TypeError, IndexError):
+        return np.asarray(X)[indices]
+
+
+def _interval(values: list[float], confidence: float) -> dict[str, float]:
+    lower = (1.0 - confidence) / 2.0
+    array = np.asarray(values, dtype=float)
+    return {
+        "estimate": float(np.mean(array)),
+        "low": float(np.quantile(array, lower)),
+        "high": float(np.quantile(array, 1.0 - lower)),
+    }
+
+
+def _bootstrap_domain_uncertainty(
+    X_source: Any,
+    source_labels: np.ndarray,
+    X_target: Any,
+    target_labels: np.ndarray,
+    *,
+    source_class_prior: float | None,
+    target_class_prior: float | None,
+    prior_estimator: str | BasePriorEstimator,
+    n_replicates: int,
+    confidence: float,
+    random_state: int | None,
+) -> dict[str, Any]:
+    rng = np.random.default_rng(random_state)
+    values: dict[str, list[float]] = {
+        "source_prior": [],
+        "target_prior": [],
+        "source_rate": [],
+        "target_rate": [],
+        "source_propensity": [],
+        "target_propensity": [],
+        "prior_difference": [],
+        "rate_difference": [],
+        "propensity_difference": [],
+    }
+    failed = 0
+    for _ in range(n_replicates):
+        source_indices = rng.integers(0, len(source_labels), size=len(source_labels))
+        target_indices = rng.integers(0, len(target_labels), size=len(target_labels))
+        source_boot_labels = source_labels[source_indices]
+        target_boot_labels = target_labels[target_indices]
+        try:
+            source_prior, _ = _resolve_prior(
+                _take_rows(X_source, source_indices),
+                source_boot_labels,
+                source_class_prior,
+                prior_estimator,
+            )
+            target_prior, _ = _resolve_prior(
+                _take_rows(X_target, target_indices),
+                target_boot_labels,
+                target_class_prior,
+                prior_estimator,
+            )
+            source_rate = float(np.mean(source_boot_labels == 1))
+            target_rate = float(np.mean(target_boot_labels == 1))
+            source_propensity = source_rate / source_prior
+            target_propensity = target_rate / target_prior
+            if source_propensity > 1.0 or target_propensity > 1.0:
+                raise ValueError("bootstrap prior is below the observed label rate")
+        except Exception:  # noqa: BLE001 - failures are counted in the uncertainty report
+            failed += 1
+            continue
+        values["source_prior"].append(source_prior)
+        values["target_prior"].append(target_prior)
+        values["source_rate"].append(source_rate)
+        values["target_rate"].append(target_rate)
+        values["source_propensity"].append(source_propensity)
+        values["target_propensity"].append(target_propensity)
+        values["prior_difference"].append(target_prior - source_prior)
+        values["rate_difference"].append(target_rate - source_rate)
+        values["propensity_difference"].append(target_propensity - source_propensity)
+    n_valid = len(values["source_prior"])
+    if n_valid < 2:
+        raise ValueError(
+            "Fewer than two valid bootstrap replicates remained after prior estimation."
+        )
+    return {
+        "method": "independent_nonparametric_percentile_bootstrap",
+        "confidence": float(confidence),
+        "n_requested": n_replicates,
+        "n_valid": n_valid,
+        "n_failed": failed,
+        "source": {
+            "class_prior": _interval(values["source_prior"], confidence),
+            "observed_label_rate": _interval(values["source_rate"], confidence),
+            "mean_label_propensity": _interval(values["source_propensity"], confidence),
+        },
+        "target": {
+            "class_prior": _interval(values["target_prior"], confidence),
+            "observed_label_rate": _interval(values["target_rate"], confidence),
+            "mean_label_propensity": _interval(values["target_propensity"], confidence),
+        },
+        "differences": {
+            "class_prior": _interval(values["prior_difference"], confidence),
+            "observed_label_rate": _interval(values["rate_difference"], confidence),
+            "mean_label_propensity": _interval(values["propensity_difference"], confidence),
+        },
+    }
