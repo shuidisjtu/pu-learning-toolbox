@@ -34,6 +34,8 @@
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/architecture_audit.md](dev/architecture_audit.md) | 审计发现快照、复跑指南与治理机制（ADR-0001） |
 | [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
+| [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | 分布漂移感知 PU 的假设、实现边界与验收标准 |
+| [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
 
