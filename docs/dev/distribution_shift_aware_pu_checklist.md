@@ -23,13 +23,13 @@
 
 ## C. 工作流接入
 
-- [ ] `PUPipeline.fit_evaluate` 接受并逐折切分 `sample_weight`
-- [ ] CV 训练折和最终 refit 传入权重，验证折不使用训练权重
-- [ ] 新增 `ShiftAwarePUPipeline` 与组合报告
-- [ ] 仅允许 `SampleWeightSupport.SUPPORTED` 分类器启动适配
-- [ ] 目标域无 PU 标签时保持审计可用但 `adaptation_ready=false`
-- [ ] 目标域有 `y_true` 时提供明确标为 oracle 的评估
-- [ ] 新增工作流集成测试和权重传递探针测试
+- [x] `PUPipeline.fit_evaluate` 接受并逐折切分 `sample_weight`
+- [x] CV 训练折和最终 refit 传入权重，验证折不使用训练权重
+- [x] 新增 `ShiftAwarePUPipeline` 与组合报告
+- [x] 仅允许 `SampleWeightSupport.SUPPORTED` 分类器启动适配
+- [x] 目标域无 PU 标签时保持审计可用但 `adaptation_ready=false`
+- [x] 目标域有 `y_true` 时提供明确标为 oracle 的评估
+- [x] 新增工作流集成测试和权重传递探针测试
 
 ## D. CLI 与用户体验
 

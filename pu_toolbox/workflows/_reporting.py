@@ -32,6 +32,7 @@ def build_pipeline_report(
     diagnostic: PUDiagnosticReport | None,
     random_state: int | None,
     classifier_params: dict[str, Any],
+    sample_weight: np.ndarray | None,
 ) -> PipelineReport:
     """Assemble issues, provenance, CV metadata, and fitted artifacts."""
     issues: list[ProfileIssue] = list(profile.issues)
@@ -77,6 +78,7 @@ def build_pipeline_report(
         "prior_audit_flagged": prior_audit_flagged,
         "random_state": random_state,
         "classifier_params": parameter_provenance(classifier_params),
+        "sample_weight": _sample_weight_provenance(sample_weight),
         "y_true_supplied": y_true is not None,
         "skipped_candidates": skipped_candidates,
     }
@@ -91,6 +93,20 @@ def build_pipeline_report(
         issues=tuple(issues),
         provenance=provenance,
     )
+
+
+def _sample_weight_provenance(sample_weight: np.ndarray | None) -> dict[str, Any]:
+    if sample_weight is None:
+        return {"supplied": False}
+    total = float(sample_weight.sum())
+    ess = total * total / float(np.square(sample_weight).sum())
+    return {
+        "supplied": True,
+        "minimum": float(sample_weight.min()),
+        "maximum": float(sample_weight.max()),
+        "mean": float(sample_weight.mean()),
+        "effective_sample_size": ess,
+    }
 
 
 def parameter_provenance(params: dict[str, Any]) -> dict[str, Any]:

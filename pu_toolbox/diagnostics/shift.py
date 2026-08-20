@@ -104,6 +104,7 @@ class PUShiftReport:
             f"- Effective sample size: `{weights['effective_sample_size']:.6f}` "
             f"(`{weights['effective_sample_fraction']:.6f}` of source)",
             f"- Weight range: `[{weights['minimum']:.6f}, {weights['maximum']:.6f}]`",
+            f"- Raw relative-weight mean: `{weights['raw_relative_mean']:.6f}`",
             f"- Probability clipping fraction: `{weights['probability_clip_fraction']:.6f}`",
             f"- Relative-boundary fraction: `{weights['relative_boundary_fraction']:.6f}`",
             "",
@@ -237,6 +238,7 @@ def _weight_statistics(
             )
         ),
         "relative_boundary_fraction": float(np.mean(raw_relative_weights >= 0.99 * boundary)),
+        "raw_relative_mean": float(raw_relative_weights.mean()),
         "raw_relative_upper_bound": boundary,
     }
 
@@ -250,6 +252,7 @@ def _audit_issues(
     target_label_rate: float | None,
     min_effective_sample_fraction: float,
     max_boundary_fraction: float,
+    min_relative_mass: float,
 ) -> tuple[ProfileIssue, ...]:
     issues: list[ProfileIssue] = []
     if severity == "high":
@@ -286,6 +289,17 @@ def _audit_issues(
                 severity="warning",
                 message="Many source weights reach the relative density-ratio boundary.",
                 action="Treat weighted estimates as high variance and inspect support overlap.",
+            )
+        )
+    if weight_summary["raw_relative_mean"] < min_relative_mass:
+        issues.append(
+            ProfileIssue(
+                code="low_source_target_overlap",
+                severity="warning",
+                message="Source rows carry almost no target-relative density mass.",
+                action=(
+                    "Do not normalize away the overlap failure; collect target-like source data."
+                ),
             )
         )
     if not target_labels_available:
@@ -327,6 +341,7 @@ def analyze_pu_shift(
     high_auc: float = 0.75,
     min_effective_sample_fraction: float = 0.50,
     max_boundary_fraction: float = 0.05,
+    min_relative_mass: float = 0.10,
 ) -> PUShiftReport:
     """Audit source-to-target drift and estimate bounded marginal weights.
 
@@ -356,6 +371,7 @@ def analyze_pu_shift(
         "high_auc": high_auc,
         "min_effective_sample_fraction": min_effective_sample_fraction,
         "max_boundary_fraction": max_boundary_fraction,
+        "min_relative_mass": min_relative_mass,
     }
     if any(isinstance(value, bool) or not np.isscalar(value) for value in numeric.values()):
         raise TypeError("shift-audit numeric parameters must be real scalars.")
@@ -365,6 +381,7 @@ def analyze_pu_shift(
     high_auc = float(high_auc)
     min_effective_sample_fraction = float(min_effective_sample_fraction)
     max_boundary_fraction = float(max_boundary_fraction)
+    min_relative_mass = float(min_relative_mass)
     if not 0.0 < alpha <= 1.0:
         raise ValueError("alpha must lie in (0, 1].")
     if not 0.0 < probability_clip < 0.5:
@@ -375,6 +392,8 @@ def analyze_pu_shift(
         raise ValueError("min_effective_sample_fraction must lie in (0, 1].")
     if not 0.0 <= max_boundary_fraction <= 1.0:
         raise ValueError("max_boundary_fraction must lie in [0, 1].")
+    if not 0.0 < min_relative_mass <= 1.0:
+        raise ValueError("min_relative_mass must lie in (0, 1].")
 
     n_source, n_target = source.shape[0], target.shape[0]
     n_splits = min(cv, n_source, n_target)
@@ -432,10 +451,12 @@ def analyze_pu_shift(
         target_label_rate=target_label_rate,
         min_effective_sample_fraction=min_effective_sample_fraction,
         max_boundary_fraction=max_boundary_fraction,
+        min_relative_mass=min_relative_mass,
     )
     coverage_ok = (
         weight_summary["effective_sample_fraction"] >= min_effective_sample_fraction
         and weight_summary["relative_boundary_fraction"] <= max_boundary_fraction
+        and weight_summary["raw_relative_mean"] >= min_relative_mass
     )
     return PUShiftReport(
         domain_auc=domain_auc,
@@ -465,6 +486,7 @@ def analyze_pu_shift(
             "high_auc": high_auc,
             "min_effective_sample_fraction": min_effective_sample_fraction,
             "max_boundary_fraction": max_boundary_fraction,
+            "min_relative_mass": min_relative_mass,
             "guarantee": "covariate_shift_only",
         },
     )
