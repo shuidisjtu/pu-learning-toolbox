@@ -1,6 +1,6 @@
 """PU Learning Toolbox -- Positive-Unlabeled Learning in Python."""
 
-__version__ = "1.7.0"
+__version__ = "1.8.0"
 
 from .advisor import ScoringConfig, recommend_from_profile, recommend_methods
 from .diagnostics import (

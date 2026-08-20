@@ -201,10 +201,14 @@ review.save("uncertainty_rows.csv")
 ## 研究级联合漂移
 
 AISTATS 2025 的联合漂移方法估计 `p_target(x,y) / p_source(x,y)`，并交替训练共享
-特征、分类头和类别条件权重模型。`pu_toolbox.estimators.research.JointShiftPUClassifier`
-提供一个明确标为 research 的 sklearn 近似：软类别条件域比、两域先验比、有界相对权重
-以及交替 PU 更新。它不是论文共享神经特征和精确 PU 风险目标的复现，也未进入注册表/`auto`。
-只有在公式金标准、退化情形和 paper-like benchmark 完成后才会升级声明；开发清单见
+特征、分类头和类别条件权重模型。研究包提供两条路径：
+
+- `JointShiftPUClassifier`：无需 Torch 的 sklearn 软类别条件近似；
+- `DynamicJointShiftPUClassifier`：Torch clean-room 实现论文式 (19)/(20) 目标、损失修正、
+  共享特征和 Algorithm 1 梯度隔离。
+
+作者论文明确说明源码为 proprietary，未公开实现，因此后者只能声明公式级 clean-room
+实现，不能声明官方源码等价或论文数值复现，也未进入注册表/`auto`。开发清单见
 [分布漂移感知 PU 补充清单](../../dev/distribution_shift_aware_pu_checklist.md)。
 
 ## 下一步

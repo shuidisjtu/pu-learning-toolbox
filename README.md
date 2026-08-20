@@ -2,20 +2,21 @@
 
 # PU Learning Toolbox
 
-**Positive-Unlabeled learning in Python** -- sklearn-compatible API, 17 research paper methods, SCAR & SAR support.
+**Positive-Unlabeled learning in Python** -- 17 registered algorithms, research joint-shift adaptation, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.7.0-blue)
+![Status](https://img.shields.io/badge/status-1.8.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
 
-- **17 algorithms** from recent PU learning research, all native clean-room implementations ([method cards](docs/research/method_cards/))
+- **17 registered algorithms** from recent PU learning research, all native clean-room implementations, plus an isolated research joint-shift solver ([method cards](docs/research/method_cards/))
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
 - **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
 - **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data
 - **Auditable pipeline** -- one-call `PUPipeline` (profile -> prior -> train -> PU-stratified CV -> evaluate) plus structured diagnostic reports and prior/propensity sensitivity analysis
 - **Distribution-shift guardrails** -- OOF source/target drift audit, bounded covariate weights, overlap diagnostics, and a guarded `ShiftAwarePUPipeline`
+- **Deployment monitoring** -- resumable window alerts, coverage/rejection controls, and active-review exports in CLI and UI
 - **CLI** -- `pu-toolbox` turns the whole pipeline into terminal commands
 - **Model tuning** -- unified classifier parameters plus PU-aware grid search
 - **Graphical UI** -- upload data, configure/compare models, inspect diagnostics, and download results

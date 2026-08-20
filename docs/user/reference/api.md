@@ -269,6 +269,9 @@ monitor.save_history("history.json")
 分别接收源/目标特征和 PU 标签，以及可选的两个域类先验。先验缺失时每个域独立估计。
 返回 `DomainAssumptionReport`，结论为 `stable`、`class_prior_shift`、
 `labeling_mechanism_shift`、`both_shift` 或 `inconclusive`。平均标记倾向不识别 SCAR/SAR。
+设置 `bootstrap_replicates>=2` 后，会分别对两个域做行级非参数重采样，每轮重新运行先验
+估计器，并把 percentile 区间传播到类先验、标记率、平均倾向及三类域差值。`uncertainty`
+记录请求、成功和失败 replicate；它反映采样和估计器变化，不覆盖识别假设偏差。
 
 ### `analyze_pu_uncertainty`
 
@@ -282,6 +285,17 @@ monitor.save_history("history.json")
 `X_target`、`y_target_pu`、`class_prior` 和 `target_class_prior`。它不在稳定注册表和
 `PUPipeline` 自动选型中；`get_pu_metadata()["guarantee"]` 固定为
 `research_joint_shift_approximation`。
+
+### `DynamicJointShiftPUClassifier`（research）
+
+从 `pu_toolbox.estimators.research` 导入。Torch clean-room 路径实现 Kumagai 等人 AISTATS
+2025 的式 (13)、(19)–(23) 和 Algorithm 1：权重步骤固定共享特征，仅更新有界权重头；
+分类步骤固定当前权重，更新共享特征和分类头。`training_mode="two_step"`、两个 correction
+开关用于论文式消融。作者未公开源码，因此元数据是 `clean_room_paper_objective`，不是
+`official_exact`；该方法不进入稳定注册表和 `auto`。
+
+`build_joint_shift_estimator(...)` 可构造 `dynamic`、`trpu`、`tepu`、`fine_tune`、`mmd`、
+`two_step` 及三种 correction 消融。所有神经对照共用特征/分类头规模和绝对值修正 PU risk。
 
 ## PUTuner
 

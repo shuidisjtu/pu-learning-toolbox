@@ -74,6 +74,13 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
   --target-labels target_labels.csv [--target-true-labels y_true.csv | --target-class-prior 0.3]
   --out-dir shift_results/`：在同一目标集配对比较未加权与加权模型；只有 oracle 或先验依赖
   指标参与自动推荐，输出比较报告、漂移报告、源权重与两臂目标预测。
+- `shift-monitor --reference-data source.csv --reference-labels source_labels.csv
+  --window-data current.csv [--window-labels current_labels.csv] --window-id 2026-08
+  [--history previous_history.json] --out-dir monitor/`：追加一个部署窗口并输出告警、窗口漂移
+  报告、源权重和可续接的 `shift_history.json`。
+- `review --model trusted_model.pkl --data current.csv [--labels current_labels.csv]
+  --query-budget 20 --query-strategy uncertainty --out-dir review/`：生成拒绝预测和主动人工
+  复核队列。pickle 仅可加载自己生成或可信来源的模型，不能加载未知文件。
 - `skill install [--force] [--dest 目录]`：安装内置 `pu-workflow` 技能到用户级
   `~/.claude/skills/` 与 `~/.agents/skills/`（默认跳过已存在安装，`--force` 覆盖；
   详见 [启用与使用 pu-workflow Skill](using_skill.md)）。

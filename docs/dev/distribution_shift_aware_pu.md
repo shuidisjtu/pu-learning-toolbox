@@ -10,10 +10,10 @@ PU 模型通常在源域（历史、训练环境）上训练，却在目标域�
 2. **源域对目标域是否有足够的覆盖，重要性加权是否稳定？**
 3. **在明确假设成立时，能否用目标域信息改进 PU 训练？**
 
-第一版提供可发布的漂移审计、相对密度比和协变量漂移加权工作流。第二批增加配对决策、
-连续监控、双域假设分析和人工复核工具。对于不能由现有
-`sample_weight` 契约正确表达的联合分布漂移，报告必须停止在“发现风险”，不得把它描述成
-已经完成适配。
+稳定 API 提供可发布的漂移审计、相对密度比和协变量漂移加权工作流。第二批增加配对决策、
+连续监控、双域假设分析和人工复核工具。对于不能由现有 `sample_weight` 契约正确表达的联合
+分布漂移，稳定报告必须停止在“发现风险”，不得把它描述成已经完成适配。另有明确隔离在
+`estimators.research` 下的联合漂移求解器，供研究验证使用，不进入注册表和 `auto` 推荐。
 
 ## 2. 问题设定
 
@@ -137,17 +137,27 @@ pu-toolbox shift-audit \
 的 oracle 指标或目标类先验依赖指标可参与自动推荐；`pu_recall` 等 PU 可观测指标只展示，
 不能单独触发换模。覆盖门禁失败时跳过加权臂并建议补充目标数据。
 
-## 6. 第二批扩展
+## 6. 后续扩展
 
 - `PUShiftMonitor`：相对固定参考域逐窗口保存域 AUC、ESS、标记率变化和告警；历史文件
   不保存原始样本，恢复时校验监控配置。
 - `analyze_domain_assumptions`：分别解析/估计两个域的类先验，再用
-  `P(S=1)=P(Y=1)·c̄` 分解平均标记倾向；`c̄` 不识别特征依赖 SAR。
+  `P(S=1)=P(Y=1)·c̄` 分解平均标记倾向；行级 bootstrap 在每次重采样中重新估计缺失先验，
+  并把不确定性传播到标记率、平均倾向及域间差值；`c̄` 不识别特征依赖 SAR。
 - `analyze_pu_uncertainty`：提供概率边际不确定性、拒绝预测、coverage 和三种主动人工
   复核排序。它不是贝叶斯或 conformal 置信区间。
 - `JointShiftPUClassifier`：研究级 sklearn 求解器。它按软类别成员分别估计类条件域比，
   乘类先验比并有界化，随后交替更新 PU 分类器。该实现受 Kumagai 等人的相对联合权重
   思想启发，但不是论文共享神经特征与 PU 风险目标的精确复现。
+- `DynamicJointShiftPUClassifier`：Torch clean-room 求解器，实现论文式 (13)、(19)--(23)
+  的目标、绝对值风险修正、共享特征和 Algorithm 1 的两阶段梯度隔离。实现采用确定性全批次
+  训练来核对公式与更新边界；作者源码未公开，因此不声明官方实现等价或论文数值复现。
+- `JointShiftPUBaseline` 与 `build_joint_shift_estimator`：在同一神经规模下提供 `trPU`、
+  `tePU`、fine-tune、五核 RBF-MMD、two-step 和损失修正消融。
+- `benchmarks/joint_shift`：用公开 Wisconsin 表格数据执行多 seed、Student-t 95% CI 和
+  集合重叠审计。它是工具箱自定义 concept-shift smoke，产物固定 `paper_claim=false`。
+- `shift-monitor` 与 `review` CLI，以及 UI 部署面板：把窗口漂移历史、覆盖门禁、拒绝预测
+  和主动复核导出接入实际部署旅程。`review` 只加载用户明确提供且信任的 pickle 模型。
 
 ## 7. 失败策略
 
@@ -170,7 +180,7 @@ pu-toolbox shift-audit \
 
 ## 9. 非目标
 
-稳定路径不声称：从 PU 观测唯一识别漂移类型；自动修复概念漂移；研究求解器精确复现论文的动态神经网络
-联合密度比算法；用源域 CV 证明目标域性能；在无支持重叠时可靠外推。相关工作记录在
-[补充清单](distribution_shift_aware_pu_checklist.md)，必须有独立论文公式测试和
-paper-like benchmark 后才能升级声明。
+稳定路径不声称：从 PU 观测唯一识别漂移类型；自动修复概念漂移；用源域 CV 证明目标域
+性能；在无支持重叠时可靠外推。研究路径只声称公开公式的 clean-room 实现，不声称与作者
+私有源码逐梯度等价，也不声称复现论文七个实验设置的数值。剩余证据见
+[补充清单](distribution_shift_aware_pu_checklist.md)。

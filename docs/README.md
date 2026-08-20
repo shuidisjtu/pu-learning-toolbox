@@ -38,7 +38,7 @@
 | [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | 分布漂移感知 PU 的假设、实现边界与验收标准 |
 | [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
-| [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
+| [research/method_cards/](research/method_cards/) | 18 篇论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
 
 ## 架构决策(docs/adr/)
 
@@ -52,5 +52,5 @@
 
 - [../README.md](../README.md)：项目门面（英文）；[../README.zh-CN.md](../README.zh-CN.md)：中文版
 - [../CONTRIBUTING.md](../CONTRIBUTING.md)：代码贡献、论文复现状态与 benchmark 产物管理
-- [../examples/minimal/](../examples/minimal/)：12 个最小可运行示例脚本
+- [../examples/minimal/](../examples/minimal/)：13 个最小可运行示例脚本
 - [../benchmarks/deep_pu/README.md](../benchmarks/deep_pu/README.md)：深度 PU benchmark（InfoMax PU、WConPU、DGPU runner 与多 seed 结果）

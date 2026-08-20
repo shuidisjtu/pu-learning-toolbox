@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 17 个方法均已完成 clean-room 核心实现（NATIVE），后续重点是官方数据、历史环境和 paper-like benchmark。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 17 个注册方法均已完成 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器，后续重点是官方数据、历史环境和 paper-like benchmark。
 > 实际执行顺序与原始路线图有调整：优先实现 PU 特有的风险估计方法（工具箱核心差异化能力），经典分类器包装器后移。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
@@ -17,6 +17,8 @@
   `ShiftAwarePUPipeline`、`shift-audit` CLI 与三类产物；联合漂移动态训练列后续研究
 - Phase 8 ✅ 分布漂移决策扩展：配对加权对照与 `shift-run`、窗口监控、双域先验/标记
   机制分解、不确定性拒绝/主动复核；新增研究级类别条件联合漂移近似求解器
+- Phase 9 ✅ 联合漂移研究执行层：论文式动态共享特征目标、四类对照与五类消融、公开表格
+  数据多 seed/CI 协议、双域先验 bootstrap，以及部署监控 CLI/UI
 
 > 逐条明细与批次历史见 git log(压缩前旧路径:git log --all -- docs/project_management/process_checklist.md)。
 
@@ -27,8 +29,11 @@
 - [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
-## 发布状态 (v1.7.0)
+## 发布状态 (v1.8.0)
 
+- **版本**: `1.8.0`（2026-08-21：新增 AISTATS 2025 联合漂移 PU clean-room 动态目标、
+  对照/消融与公开数据 benchmark、双域 bootstrap 区间，以及 `shift-monitor`/`review` CLI
+  和 UI 部署面板）
 - **版本**: `1.7.0`（2026-08-21：新增配对漂移适配比较、窗口告警历史、双域 PU
   假设分析、不确定性/主动复核，以及明确标为 research 的联合漂移近似求解器）
 - **版本**: `1.6.0`（2026-08-21：新增分布漂移审计、协变量加权 PU 工作流、
