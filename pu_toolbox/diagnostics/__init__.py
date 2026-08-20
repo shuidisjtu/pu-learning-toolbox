@@ -20,14 +20,18 @@ from pu_toolbox.diagnostics.sensitivity import (
 from pu_toolbox.diagnostics.sensitivity import (
     analyze_pu_sensitivity as analyze_pu_sensitivity,
 )
+from pu_toolbox.diagnostics.shift import PUShiftReport as PUShiftReport
+from pu_toolbox.diagnostics.shift import analyze_pu_shift as analyze_pu_shift
 
 __all__ = [
     "DiagnosticMetric",
     "BenchmarkAuditReport",
     "PUDiagnosticReport",
     "PUSensitivityAnalysis",
+    "PUShiftReport",
     "SensitivityPoint",
     "analyze_pu_sensitivity",
+    "analyze_pu_shift",
     "audit_benchmark_results",
     "build_diagnostic_report",
 ]
