@@ -42,10 +42,10 @@
 
 ## E. 发布门禁
 
-- [ ] 单元、数学、集成和 E2E 测试通过
-- [ ] `ruff check` 与 `ruff format --check` 通过
-- [ ] 文档链接、数学渲染、项目元数据、测试质量、skill 同步门禁通过
-- [ ] 构建 wheel/sdist 并执行包检查
+- [x] 单元、数学、集成和 E2E 测试通过
+- [x] `ruff check` 与 `ruff format --check` 通过
+- [x] 文档链接、数学渲染、项目元数据、测试质量、skill 同步门禁通过
+- [x] 构建 wheel/sdist 并执行包检查
 - [x] 更新目录结构权威文档
 - [ ] 核对本地 `main` 与 `origin/main` 差异并推送
 
