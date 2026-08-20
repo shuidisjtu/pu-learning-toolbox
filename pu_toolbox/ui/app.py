@@ -384,7 +384,7 @@ def main() -> None:
     analysis: AnalysisResult | None = st.session_state.get("analysis_result")
     if analysis is None:
         return
-    render_results(st, analysis, X)
+    render_results(st, analysis, X, y_pu)
 
 
 if __name__ == "__main__":

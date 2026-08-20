@@ -193,6 +193,12 @@ class PUShiftMonitor:
     def load_history(self, path: str | Path) -> PUShiftMonitor:
         """Restore summaries into this monitor after validating the schema/config."""
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        return self.load_history_payload(payload)
+
+    def load_history_payload(self, payload: dict[str, Any]) -> PUShiftMonitor:
+        """Restore an already-decoded history payload (useful for UI uploads)."""
+        if not isinstance(payload, dict):
+            raise ValueError("history payload must be a JSON object.")
         if payload.get("analysis_type") != "pu_shift_monitor_history":
             raise ValueError("history file is not a PU shift monitor history.")
         config = payload.get("configuration", {})
