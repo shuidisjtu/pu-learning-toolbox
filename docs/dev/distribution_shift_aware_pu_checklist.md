@@ -9,7 +9,7 @@
 - [x] 明确第一版只对边际 (p_t(x)/p_s(x)) 提供协变量漂移加权保证
 - [x] 定义域 AUC、ESS、裁剪率、严重度和 `adaptation_ready` 语义
 - [x] 定义 JSON、Markdown、CSV 三类固定产物
-- [ ] 为稳定公开 API 增加版本变更记录
+- [x] 为稳定公开 API 增加版本变更记录
 
 ## B. 漂移审计与权重
 
@@ -36,9 +36,9 @@
 - [x] 新增 `pu-toolbox shift-audit` 子命令
 - [x] 支持 CSV 表格和 `.npy` 特征，与现有 CLI 输入约定一致
 - [x] 输出 `shift_report.json`、`shift_report.md`、`source_importance_weights.csv`
-- [ ] 在 CLI 帮助和用户文档中解释“检测不等于适配”
+- [x] 在 CLI 帮助和用户文档中解释“检测不等于适配”
 - [x] 新增成功旅程、缺失文件、特征不一致和非法参数测试
-- [ ] 增加最小可运行示例
+- [x] 增加最小可运行示例
 
 ## E. 发布门禁
 
@@ -46,7 +46,7 @@
 - [ ] `ruff check` 与 `ruff format --check` 通过
 - [ ] 文档链接、数学渲染、项目元数据、测试质量、skill 同步门禁通过
 - [ ] 构建 wheel/sdist 并执行包检查
-- [ ] 更新目录结构权威文档
+- [x] 更新目录结构权威文档
 - [ ] 核对本地 `main` 与 `origin/main` 差异并推送
 
 ## F. 论文级联合漂移扩展（后续研究，不属于第一版）

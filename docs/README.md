@@ -18,6 +18,7 @@
 | 操作 | [user/howto/data_profiling.md](user/howto/data_profiling.md) | 数据画像与假设提示 |
 | 操作 | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | 生成诊断报告 |
 | 操作 | [user/howto/sensitivity_analysis.md](user/howto/sensitivity_analysis.md) | 类先验与标记倾向敏感性分析 |
+| 操作 | [user/howto/distribution_shift.md](user/howto/distribution_shift.md) | 分布漂移审计与协变量加权适配 |
 | 操作 | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | 生成 SCAR/SAR 数据 |
 | 操作 | [user/howto/self_pu.md](user/howto/self_pu.md) | 训练 Self-PU 分类器 |
 | 操作 | [user/howto/using_skill.md](user/howto/using_skill.md) | 启用与使用 pu-workflow Skill |
@@ -51,5 +52,5 @@
 
 - [../README.md](../README.md)：项目门面（英文）；[../README.zh-CN.md](../README.zh-CN.md)：中文版
 - [../CONTRIBUTING.md](../CONTRIBUTING.md)：代码贡献、论文复现状态与 benchmark 产物管理
-- [../examples/minimal/](../examples/minimal/)：10 个最小可运行示例脚本
+- [../examples/minimal/](../examples/minimal/)：11 个最小可运行示例脚本
 - [../benchmarks/deep_pu/README.md](../benchmarks/deep_pu/README.md)：深度 PU benchmark（InfoMax PU、WConPU、DGPU runner 与多 seed 结果）

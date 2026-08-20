@@ -80,6 +80,42 @@ def test_basic_sensitivity_smoke(tmp_path, rng):
     assert len(payload["points"]) == 9
 
 
+def test_basic_shift_audit_smoke(tmp_path, rng):
+    """shift-audit writes the report and row-aligned source weights."""
+    X_source, y_source, _ = make_scar_data(rng, n=80, separation=2.0)
+    X_target = X_source + rng.normal(loc=0.2, scale=0.05, size=X_source.shape)
+    source_path = tmp_path / "source.csv"
+    target_path = tmp_path / "target.csv"
+    source_labels_path = tmp_path / "source_labels.csv"
+    target_labels_path = tmp_path / "target_labels.csv"
+    columns = [f"f{i}" for i in range(X_source.shape[1])]
+    pd.DataFrame(X_source, columns=columns).to_csv(source_path, index=False)
+    pd.DataFrame(X_target, columns=columns).to_csv(target_path, index=False)
+    pd.DataFrame({"label": y_source}).to_csv(source_labels_path, index=False)
+    pd.DataFrame({"label": y_source}).to_csv(target_labels_path, index=False)
+
+    proc = _cli(
+        "shift-audit",
+        "--source-data",
+        str(source_path),
+        "--source-labels",
+        str(source_labels_path),
+        "--target-data",
+        str(target_path),
+        "--target-labels",
+        str(target_labels_path),
+        "--out-dir",
+        str(tmp_path / "shift"),
+        "--cv",
+        "2",
+    )
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads((tmp_path / "shift" / "shift_report.json").read_text())
+    weights = pd.read_csv(tmp_path / "shift" / "source_importance_weights.csv")
+    assert payload["analysis_type"] == "marginal_distribution_shift_audit"
+    assert len(weights) == len(X_source)
+
+
 def test_basic_skill_install_writes_both_targets(tmp_path):
     """pu-toolbox skill install copies SKILL.md into both agent dirs."""
     proc = _cli("skill", "install", "--dest", str(tmp_path))

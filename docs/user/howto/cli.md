@@ -65,6 +65,11 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `audit-benchmark --result-dir 结果目录 [--output audit.json]`：检查 benchmark 的必需产物、
   配置哈希、trial/seed 完整性、重复行、指标有限值，以及 official-data PU split 的样本重叠
   和目标先验一致性。失败时退出码为 1；`paper_claim=false` 与脏工作区作为警告保留。
+- `shift-audit --source-data source.csv --source-labels source_labels.csv --target-data target.csv
+  [--target-labels target_labels.csv] --out-dir shift_results/`：用 OOF 域分类器审计源/目标
+  分布差异，导出 `shift_report.json`、`shift_report.md` 和
+  `source_importance_weights.csv`。检测不等于适配；导出的边际权重只具有协变量漂移保证，
+  详见[分布漂移指南](distribution_shift.md)。
 - `skill install [--force] [--dest 目录]`：安装内置 `pu-workflow` 技能到用户级
   `~/.claude/skills/` 与 `~/.agents/skills/`（默认跳过已存在安装，`--force` 覆盖；
   详见 [启用与使用 pu-workflow Skill](using_skill.md)）。
@@ -93,6 +98,9 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 `audit-benchmark` 只验证产物自洽性和可追溯性，不证明实现等同于官方源码，也不替代论文
 协议核对、数据授权确认或统计结论审阅。只有这些外部证据也完成后，才能升级论文复现声明。
+
+`shift-audit` 的域 AUC 只检测可观测域差异，不能识别漂移类型；目标 PU 标签省略时只允许
+审计，报告中的 `adaptation_ready=false`。
 
 ## 类先验解析顺序
 

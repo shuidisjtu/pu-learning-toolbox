@@ -1,9 +1,14 @@
 """PU Learning Toolbox -- Positive-Unlabeled Learning in Python."""
 
-__version__ = "1.5.1"
+__version__ = "1.6.0"
 
 from .advisor import ScoringConfig, recommend_from_profile, recommend_methods
-from .diagnostics import analyze_pu_sensitivity, build_diagnostic_report
+from .diagnostics import (
+    PUShiftReport,
+    analyze_pu_sensitivity,
+    analyze_pu_shift,
+    build_diagnostic_report,
+)
 from .estimators.bias_aware.lbe import LBEClassifier
 from .estimators.bias_aware.pusb import PUSBClassifier
 from .estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
@@ -23,7 +28,7 @@ from .preprocessing import make_sar_dataset, profile_pu_data
 from .prior.kernel_mean import KernelMeanPriorEstimator
 from .prior.pen_l1 import ClassPriorEstimator
 from .prior.recpe import ReCPEEstimator
-from .workflows import PipelineReport, PUPipeline
+from .workflows import PipelineReport, PUPipeline, ShiftAwarePipelineReport, ShiftAwarePUPipeline
 
 __all__ = [
     "ClassPriorEstimator",
@@ -42,12 +47,16 @@ __all__ = [
     "PUSBKernelClassifier",
     "PipelineReport",
     "PUPipeline",
+    "PUShiftReport",
     "ReCPEEstimator",
     "ScoringConfig",
+    "ShiftAwarePUPipeline",
+    "ShiftAwarePipelineReport",
     "SelfPUClassifier",
     "UPUClassifier",
     "WeightedContrastivePUClassifier",
     "analyze_pu_sensitivity",
+    "analyze_pu_shift",
     "build_diagnostic_report",
     "make_sar_dataset",
     "profile_pu_data",

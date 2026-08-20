@@ -68,11 +68,23 @@ pipe = PUPipeline(
     backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
 )
-report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None, refit=True)
+report = pipe.fit_evaluate(
+    X,
+    y_pu,
+    y_true=None,
+    class_prior=None,
+    sample_weight=None,         # 可选；逐 CV 训练折切片并传给最终 refit
+    refit=True,
+)
 ```
 
 `refit=False` 只计算交叉验证指标，跳过全量模型重训与模型诊断；此时
 `report.final_model` 和 `report.diagnostic` 为 `None`。该模式主要供参数搜索使用。
+
+`sample_weight` 必须是一维、有限、非负且至少有一个正值。非 `None` 时，pipeline 在模型
+解析后检查 `SampleWeightSupport`：只有 `supported` 能继续，`ignored` 与
+`not_implemented` 均抛 `PipelineError`。报告的
+`provenance["sample_weight"]` 保存是否提供、范围、均值和 ESS，不保存整列权重。
 
 ### 类先验解析优先级
 
@@ -150,6 +162,80 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None, refit=True)
 | 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
 | 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
 | 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
+| `sample_weight` 形状/数值非法 | `ValueError` |
+| 分类器忽略或未实现 `sample_weight` | `PipelineError`（不会静默训练） |
+
+## 分布漂移 API
+
+用法与解释见[分布漂移指南](../howto/distribution_shift.md)。
+
+### `analyze_pu_shift`
+
+```python
+report = analyze_pu_shift(
+    X_source,
+    y_source_pu,
+    X_target,
+    y_target_pu=None,
+    alpha=0.1,
+    probability_clip=1e-6,
+    cv=5,
+    random_state=42,
+    moderate_auc=0.60,
+    high_auc=0.75,
+    min_effective_sample_fraction=0.50,
+    max_boundary_fraction=0.05,
+    min_relative_mass=0.10,
+)
+```
+
+返回 `PUShiftReport`：
+
+| 字段 | 契约 |
+|---|---|
+| `domain_auc` | 分层 OOF 域分类 ROC AUC，方向对称化到 `[0.5, 1]` |
+| `severity` | `low` / `moderate` / `high`，默认分界 0.60/0.75 |
+| `sample_summary` | 两域样本量、展平特征数、已标记正例率和目标 PU 可用性 |
+| `weight_summary` | 归一化权重分位数、ESS、概率裁剪率、边界率与归一化前相对质量 |
+| `adaptation_ready` | 目标 PU 已提供，且 ESS、边界率、相对质量均通过默认覆盖门槛 |
+| `source_importance_weights` | 与源域行对应、均值为 1 的边际相对权重 |
+| `issues` | `ProfileIssue` 元组，含问题码、级别、解释和行动建议 |
+
+`report.to_dict()` / `to_json()` 不内嵌全量权重；`save(.csv)` 单独导出权重。
+`save(.json/.md)` 保存结构化或人可读报告。权重估计范围固定为
+`marginal_covariate`，不代表 `p_target(x,y)/p_source(x,y)` 联合权重。
+
+### `ShiftAwarePUPipeline`
+
+```python
+workflow = ShiftAwarePUPipeline(
+    pipeline=None,               # 可传配置好的 PUPipeline
+    classifier="elkan_noto",    # pipeline=None 时生效
+    alpha=0.1,
+    shift_cv=5,
+    allow_unstable=False,
+    cv=5,                        # 其余关键字传给 PUPipeline
+    random_state=42,
+)
+result = workflow.fit_evaluate(
+    X_source,
+    y_source_pu,
+    X_target,
+    y_target_pu=y_target_pu,
+    y_true_source=None,
+    y_true_target=None,
+    class_prior=None,
+    target_class_prior=None,
+    adapt=True,
+    refit=True,
+)
+```
+
+`adapt=True` 必须提供目标 PU 标签，并把漂移报告的源域权重传给 `PUPipeline`；覆盖门禁
+失败时默认抛 `PipelineError`。`adapt=False` 执行审计和未加权源域基线。
+`ShiftAwarePipelineReport` 分开保存 `shift`、`source_pipeline` 与 `target_metrics`；目标
+真值指标仍标为 `supervised_oracle`。其 `guarantee` 固定为
+`covariate_shift_only`，目标 PU 标签当前作为适配安全门和目标评估输入，不参与边际域密度比。
 
 ## PUTuner
 

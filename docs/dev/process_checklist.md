@@ -13,6 +13,8 @@
 - Phase 4 ✅ 推荐与诊断：Data Profiler / SCAR-SAR 提示 / 推荐器 / 诊断报告 / 敏感性分析
 - Phase 5 ✅ SAR：数据模拟器、PUSB/LBE/Centroid/LLSVM 接口与 SCAR vs SAR 对比 benchmark
 - Phase 6 ✅ 深度 PU 大部分：Self-PU / Dist-PU / InfoMax PU / WConPU / DGPU 全链路（clean-room 多 seed、Fashion-MNIST 3-seed smoke、InfoMax 暂定协议 20 seeds）；剩余见下
+- Phase 7 ✅ 分布漂移感知 PU 第一版：OOF 域审计、有界边际相对权重、ESS/覆盖门禁、
+  `ShiftAwarePUPipeline`、`shift-audit` CLI 与三类产物；联合漂移动态训练列后续研究
 
 > 逐条明细与批次历史见 git log(压缩前旧路径:git log --all -- docs/project_management/process_checklist.md)。
 
@@ -23,8 +25,10 @@
 - [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
-## 发布状态 (v1.5.1)
+## 发布状态 (v1.6.0)
 
+- **版本**: `1.6.0`（2026-08-21：新增分布漂移审计、协变量加权 PU 工作流、
+  `PUPipeline.sample_weight` 严格传递契约和 `shift-audit` CLI）
 - **版本**: `1.5.1`（2026-08-16：验收修复——CNN 模型序列化、PUTuner 坏参数隔离、
   UI 运行历史持久化）
 - **版本**: `1.5.0`（2026-08-15：新增 `classifier_params` 与 CLI

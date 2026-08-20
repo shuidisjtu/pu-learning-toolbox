@@ -85,6 +85,7 @@ pu_toolbox/
     benchmark.py                          (benchmark 产物、provenance 与 PU split 审计)
     report.py                             (数据/模型/指标诊断，JSON/Markdown 报告)
     sensitivity.py                        (类先验/平均标记倾向假设敏感性)
+    shift.py                              (源/目标域 OOF 漂移审计、相对权重与 ESS 报告)
   model_selection/
     __init__.py
     comparison.py                         (PUModelComparator 多模型 CV 与最佳模型重训)
@@ -109,6 +110,7 @@ pu_toolbox/
     _models.py                            (模型解析、参数校验与 estimator 构造)
     _reporting.py                         (报告组装与参数 provenance)
     report.py                             (报告数据类: PriorInfo/CVMetric/PipelineReport)
+    shift.py                              (ShiftAwarePUPipeline 协变量加权编排与组合报告)
   cli/                                    (CLI 入口: argparse 子命令与工作流薄封装)
     __init__.py
     run.py                                (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
@@ -119,6 +121,7 @@ pu_toolbox/
     sensitivity.py                        (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
     audit_benchmark.py                    (audit-benchmark 子命令: 实验产物与 provenance 审计)
     skill.py                              (skill 子命令: 安装内置 pu-workflow 技能到用户级 agent 目录)
+    shift.py                              (shift-audit 子命令与三产物导出)
   ui/                                     (可选 Streamlit 图形界面，核心安装不导入 streamlit)
     __init__.py                           (数据/配置辅助函数导出)
     app.py                                (Streamlit 页面流程协调)
@@ -156,6 +159,7 @@ tests/
       test_report.py                    # 诊断报告指标、输入契约与序列化
       test_sensitivity.py               # 假设扫描公式、边界与导出
       test_benchmark_audit.py           # 持久化 benchmark 产物审计测试
+      test_shift.py                     # 漂移审计、相对权重、ESS 与序列化测试
     estimators/
       test_elkan_noto.py                # Elkan-Noto 特有逻辑
       test_upu.py                       # uPU 特有逻辑
@@ -216,6 +220,7 @@ tests/
       test_profile.py                   # profile 子命令测试(pu-workflow 步骤 1)
       test_recommend.py                 # recommend 子命令测试(pu-workflow 步骤 2)
       test_sensitivity_cmd.py           # sensitivity 子命令测试(pu-workflow 步骤 4)
+      test_shift_audit.py               # shift-audit 参数、错误与产物测试
     core/
       test_device.py                    # resolve_device 设备解析共享助手测试
     workflows/
@@ -233,6 +238,8 @@ tests/
     test_pipeline_device.py             # PUPipeline/深度估计器默认值(设备自动检测、epochs)
     test_prior_params.py                # prior_params 转发集成测试(CLI --prior-param 后端)
     test_run_errors.py                  # run 子命令错误路径集成测试(用户输入友好失败)
+    test_pipeline_sample_weight.py      # PUPipeline 逐折权重传递与语义拒绝测试
+    test_shift_workflow.py              # ShiftAwarePUPipeline 审计/适配/目标评估集成
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -278,6 +285,7 @@ examples/
     08_diagnostic_report.py   (已拟合 PUSB 的结构化诊断报告)
     09_sensitivity_analysis.py (固定模型输出的假设敏感性审计)
     10_self_pu.py            (clean validation 下的 Self-PU 三阶段训练)
+    11_distribution_shift.py (源/目标漂移审计与受保护的协变量加权适配)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）
