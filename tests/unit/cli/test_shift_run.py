@@ -83,3 +83,16 @@ def test_param_invalid_minimum_is_user_error(tmp_path, capsys):
         main(args)
     assert exc.value.code == 1
     assert "min_improvement" in capsys.readouterr().err
+
+
+def test_determ_same_seed_produces_identical_comparison(tmp_path):
+    arguments = _arguments(tmp_path)
+    out_index = arguments.index("--out-dir") + 1
+    payloads = []
+    for name in ("run_a", "run_b"):
+        current = list(arguments)
+        current[out_index] = str(tmp_path / name)
+        parsed = build_parser().parse_args(current)
+        parsed.func(parsed)
+        payloads.append((tmp_path / name / "shift_comparison.json").read_bytes())
+    assert payloads[0] == payloads[1]

@@ -57,7 +57,7 @@ class JointShiftPUClassifier(BasePUClassifier):
     scenario = (Scenario.SELECTION_BIASED,)
     requires_class_prior = True
     implementation_status = ImplementationStatus.NATIVE
-    source_status = SourceStatus.OFFICIAL_RELATED
+    source_status = SourceStatus.NOT_FOUND
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH
     sample_weight_support = SampleWeightSupport.SUPPORTED

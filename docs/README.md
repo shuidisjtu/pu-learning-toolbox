@@ -52,5 +52,5 @@
 
 - [../README.md](../README.md)：项目门面（英文）；[../README.zh-CN.md](../README.zh-CN.md)：中文版
 - [../CONTRIBUTING.md](../CONTRIBUTING.md)：代码贡献、论文复现状态与 benchmark 产物管理
-- [../examples/minimal/](../examples/minimal/)：11 个最小可运行示例脚本
+- [../examples/minimal/](../examples/minimal/)：12 个最小可运行示例脚本
 - [../benchmarks/deep_pu/README.md](../benchmarks/deep_pu/README.md)：深度 PU benchmark（InfoMax PU、WConPU、DGPU runner 与多 seed 结果）

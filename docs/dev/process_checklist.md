@@ -15,6 +15,8 @@
 - Phase 6 ✅ 深度 PU 大部分：Self-PU / Dist-PU / InfoMax PU / WConPU / DGPU 全链路（clean-room 多 seed、Fashion-MNIST 3-seed smoke、InfoMax 暂定协议 20 seeds）；剩余见下
 - Phase 7 ✅ 分布漂移感知 PU 第一版：OOF 域审计、有界边际相对权重、ESS/覆盖门禁、
   `ShiftAwarePUPipeline`、`shift-audit` CLI 与三类产物；联合漂移动态训练列后续研究
+- Phase 8 ✅ 分布漂移决策扩展：配对加权对照与 `shift-run`、窗口监控、双域先验/标记
+  机制分解、不确定性拒绝/主动复核；新增研究级类别条件联合漂移近似求解器
 
 > 逐条明细与批次历史见 git log(压缩前旧路径:git log --all -- docs/project_management/process_checklist.md)。
 
@@ -25,8 +27,10 @@
 - [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
-## 发布状态 (v1.6.0)
+## 发布状态 (v1.7.0)
 
+- **版本**: `1.7.0`（2026-08-21：新增配对漂移适配比较、窗口告警历史、双域 PU
+  假设分析、不确定性/主动复核，以及明确标为 research 的联合漂移近似求解器）
 - **版本**: `1.6.0`（2026-08-21：新增分布漂移审计、协变量加权 PU 工作流、
   `PUPipeline.sample_weight` 严格传递契约和 `shift-audit` CLI）
 - **版本**: `1.5.1`（2026-08-16：验收修复——CNN 模型序列化、PUTuner 坏参数隔离、

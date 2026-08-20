@@ -237,6 +237,52 @@ result = workflow.fit_evaluate(
 真值指标仍标为 `supervised_oracle`。其 `guarantee` 固定为
 `covariate_shift_only`，目标 PU 标签当前作为适配安全门和目标评估输入，不参与边际域密度比。
 
+### `ShiftAwarePUPipeline.compare`
+
+`compare(...)` 在同一目标集运行未加权和加权两臂并返回 `ShiftComparisonReport`。报告的
+`metric_deltas[*].improvement` 已统一方向：正数总表示加权臂更好（risk 会反号）。自动
+`recommendation` 只允许使用目标真值 oracle 指标或目标类先验依赖指标；仅有 PU-observed
+指标时为 `audit_only`，覆盖门禁失败且未 override 时为 `collect_target_data`。
+
+### `PUShiftMonitor`
+
+```python
+monitor = PUShiftMonitor(
+    X_reference,
+    y_reference_pu,
+    alpha=0.1,
+    cv=5,
+    auc_jump_threshold=0.10,
+    label_rate_jump_threshold=0.05,
+)
+window, shift = monitor.update(
+    X_window, y_window_pu=y_window_pu, window_id="2026-08", timestamp=None
+)
+monitor.save_history("history.json")
+```
+
+`ShiftWindow` 保存当前值、相邻窗口 delta、`alert_level` 和 `alert_codes`。窗口 ID 不允许
+重复；`load_history` 要求持久化配置与当前监控器完全一致。
+
+### `analyze_domain_assumptions`
+
+分别接收源/目标特征和 PU 标签，以及可选的两个域类先验。先验缺失时每个域独立估计。
+返回 `DomainAssumptionReport`，结论为 `stable`、`class_prior_shift`、
+`labeling_mechanism_shift`、`both_shift` 或 `inconclusive`。平均标记倾向不识别 SCAR/SAR。
+
+### `analyze_pu_uncertainty`
+
+对已拟合模型计算二分类概率边际、拒绝预测和主动人工复核列表。`query_strategy` 支持
+`uncertainty`、`shift_weighted`、`diverse_uncertainty`；第二种必须提供与行对齐的
+`importance_weight`。报告 JSON 只存摘要，CSV 保存逐行概率、不确定性、选择性预测和查询标记。
+
+### `JointShiftPUClassifier`（research）
+
+从 `pu_toolbox.estimators.research` 导入。`fit` 除源域 `X/y_pu` 外还必须显式传入
+`X_target`、`y_target_pu`、`class_prior` 和 `target_class_prior`。它不在稳定注册表和
+`PUPipeline` 自动选型中；`get_pu_metadata()["guarantee"]` 固定为
+`research_joint_shift_approximation`。
+
 ## PUTuner
 
 `PUTuner(classifier=..., param_grid=..., scoring=..., higher_is_better=None,

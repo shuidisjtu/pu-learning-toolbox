@@ -76,6 +76,9 @@ pu_toolbox/
       weighted_contrastive_pu.py          (native core)
       vision.py                           (WConPU CNN13/ResNet 与 tensor augmentation adapters)
       dgpu.py                             (native orchestration + generator protocol)
+    research/
+      __init__.py                         (研究级估计器公开入口)
+      joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
     __init__.py
   metrics/
     __init__.py
@@ -86,6 +89,9 @@ pu_toolbox/
     report.py                             (数据/模型/指标诊断，JSON/Markdown 报告)
     sensitivity.py                        (类先验/平均标记倾向假设敏感性)
     shift.py                              (源/目标域 OOF 漂移审计、相对权重与 ESS 报告)
+    domain_assumptions.py                 (双域类先验、平均标记倾向与敏感性差异报告)
+    shift_monitor.py                      (固定参考域的窗口历史、变化量与分级告警)
+    uncertainty.py                        (概率边际、拒绝预测与主动人工复核策略)
   model_selection/
     __init__.py
     comparison.py                         (PUModelComparator 多模型 CV 与最佳模型重训)
@@ -160,6 +166,9 @@ tests/
       test_sensitivity.py               # 假设扫描公式、边界与导出
       test_benchmark_audit.py           # 持久化 benchmark 产物审计测试
       test_shift.py                     # 漂移审计、相对权重、ESS 与序列化测试
+      test_domain_assumptions.py        # 双域先验/标记机制分解、可行性与序列化
+      test_shift_monitor.py             # 窗口 delta、告警、历史恢复与配置门禁
+      test_uncertainty.py               # 拒绝覆盖、三类查询策略与逐行产物
     estimators/
       test_elkan_noto.py                # Elkan-Noto 特有逻辑
       test_upu.py                       # uPU 特有逻辑
@@ -221,6 +230,7 @@ tests/
       test_recommend.py                 # recommend 子命令测试(pu-workflow 步骤 2)
       test_sensitivity_cmd.py           # sensitivity 子命令测试(pu-workflow 步骤 4)
       test_shift_audit.py               # shift-audit 参数、错误与产物测试
+      test_shift_run.py                 # shift-run 参数、错误与配对产物测试
     core/
       test_device.py                    # resolve_device 设备解析共享助手测试
     workflows/
@@ -240,6 +250,8 @@ tests/
     test_run_errors.py                  # run 子命令错误路径集成测试(用户输入友好失败)
     test_pipeline_sample_weight.py      # PUPipeline 逐折权重传递与语义拒绝测试
     test_shift_workflow.py              # ShiftAwarePUPipeline 审计/适配/目标评估集成
+    test_joint_shift_classifier.py      # 联合漂移合成协议、有界性与确定性
+    test_shift_comparison.py            # 配对加权对照、证据门禁与报告集成
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -286,6 +298,7 @@ examples/
     09_sensitivity_analysis.py (固定模型输出的假设敏感性审计)
     10_self_pu.py            (clean validation 下的 Self-PU 三阶段训练)
     11_distribution_shift.py (源/目标漂移审计与受保护的协变量加权适配)
+    12_shift_decision_tools.py (配对决策、窗口监控、双域假设与主动复核)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）

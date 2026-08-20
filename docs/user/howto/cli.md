@@ -70,6 +70,10 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
   分布差异，导出 `shift_report.json`、`shift_report.md` 和
   `source_importance_weights.csv`。检测不等于适配；导出的边际权重只具有协变量漂移保证，
   详见[分布漂移指南](distribution_shift.md)。
+- `shift-run --source-data source.csv --source-labels source_labels.csv --target-data target.csv
+  --target-labels target_labels.csv [--target-true-labels y_true.csv | --target-class-prior 0.3]
+  --out-dir shift_results/`：在同一目标集配对比较未加权与加权模型；只有 oracle 或先验依赖
+  指标参与自动推荐，输出比较报告、漂移报告、源权重与两臂目标预测。
 - `skill install [--force] [--dest 目录]`：安装内置 `pu-workflow` 技能到用户级
   `~/.claude/skills/` 与 `~/.agents/skills/`（默认跳过已存在安装，`--force` 覆盖；
   详见 [启用与使用 pu-workflow Skill](using_skill.md)）。

@@ -1,12 +1,17 @@
 """PU Learning Toolbox -- Positive-Unlabeled Learning in Python."""
 
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 
 from .advisor import ScoringConfig, recommend_from_profile, recommend_methods
 from .diagnostics import (
+    DomainAssumptionReport,
+    PUShiftMonitor,
     PUShiftReport,
+    PUUncertaintyReport,
+    analyze_domain_assumptions,
     analyze_pu_sensitivity,
     analyze_pu_shift,
+    analyze_pu_uncertainty,
     build_diagnostic_report,
 )
 from .estimators.bias_aware.lbe import LBEClassifier
@@ -28,12 +33,19 @@ from .preprocessing import make_sar_dataset, profile_pu_data
 from .prior.kernel_mean import KernelMeanPriorEstimator
 from .prior.pen_l1 import ClassPriorEstimator
 from .prior.recpe import ReCPEEstimator
-from .workflows import PipelineReport, PUPipeline, ShiftAwarePipelineReport, ShiftAwarePUPipeline
+from .workflows import (
+    PipelineReport,
+    PUPipeline,
+    ShiftAwarePipelineReport,
+    ShiftAwarePUPipeline,
+    ShiftComparisonReport,
+)
 
 __all__ = [
     "ClassPriorEstimator",
     "DGPUClassifier",
     "DistPUClassifier",
+    "DomainAssumptionReport",
     "ElkanNotoClassifier",
     "InfoMaxPUClassifier",
     "KLDCEClassifier",
@@ -48,15 +60,20 @@ __all__ = [
     "PipelineReport",
     "PUPipeline",
     "PUShiftReport",
+    "PUShiftMonitor",
+    "PUUncertaintyReport",
     "ReCPEEstimator",
     "ScoringConfig",
     "ShiftAwarePUPipeline",
     "ShiftAwarePipelineReport",
+    "ShiftComparisonReport",
     "SelfPUClassifier",
     "UPUClassifier",
     "WeightedContrastivePUClassifier",
+    "analyze_domain_assumptions",
     "analyze_pu_sensitivity",
     "analyze_pu_shift",
+    "analyze_pu_uncertainty",
     "build_diagnostic_report",
     "make_sar_dataset",
     "profile_pu_data",
