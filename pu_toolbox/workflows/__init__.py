@@ -2,7 +2,7 @@
 
 from .pipeline import DEFAULT_METRICS, PipelineError, PUPipeline
 from .report import CVMetric, PipelineReport, PriorInfo, PriorSource
-from .shift import ShiftAwarePipelineReport, ShiftAwarePUPipeline
+from .shift import ShiftAwarePipelineReport, ShiftAwarePUPipeline, ShiftComparisonReport
 
 __all__ = [
     "CVMetric",
@@ -14,4 +14,5 @@ __all__ = [
     "PUPipeline",
     "ShiftAwarePUPipeline",
     "ShiftAwarePipelineReport",
+    "ShiftComparisonReport",
 ]
