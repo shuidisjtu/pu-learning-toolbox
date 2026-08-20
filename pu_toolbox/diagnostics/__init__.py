@@ -2,6 +2,12 @@
 
 from pu_toolbox.diagnostics.benchmark import BenchmarkAuditReport as BenchmarkAuditReport
 from pu_toolbox.diagnostics.benchmark import audit_benchmark_results as audit_benchmark_results
+from pu_toolbox.diagnostics.domain_assumptions import (
+    DomainAssumptionReport as DomainAssumptionReport,
+)
+from pu_toolbox.diagnostics.domain_assumptions import (
+    analyze_domain_assumptions as analyze_domain_assumptions,
+)
 from pu_toolbox.diagnostics.report import (
     DiagnosticMetric as DiagnosticMetric,
 )
@@ -27,6 +33,7 @@ from pu_toolbox.diagnostics.shift_monitor import ShiftWindow as ShiftWindow
 
 __all__ = [
     "DiagnosticMetric",
+    "DomainAssumptionReport",
     "BenchmarkAuditReport",
     "PUDiagnosticReport",
     "PUSensitivityAnalysis",
@@ -35,6 +42,7 @@ __all__ = [
     "ShiftWindow",
     "SensitivityPoint",
     "analyze_pu_sensitivity",
+    "analyze_domain_assumptions",
     "analyze_pu_shift",
     "audit_benchmark_results",
     "build_diagnostic_report",
