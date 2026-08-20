@@ -33,11 +33,11 @@
 
 ## D. CLI 与用户体验
 
-- [ ] 新增 `pu-toolbox shift-audit` 子命令
-- [ ] 支持 CSV 表格和 `.npy` 特征，与现有 CLI 输入约定一致
-- [ ] 输出 `shift_report.json`、`shift_report.md`、`source_importance_weights.csv`
+- [x] 新增 `pu-toolbox shift-audit` 子命令
+- [x] 支持 CSV 表格和 `.npy` 特征，与现有 CLI 输入约定一致
+- [x] 输出 `shift_report.json`、`shift_report.md`、`source_importance_weights.csv`
 - [ ] 在 CLI 帮助和用户文档中解释“检测不等于适配”
-- [ ] 新增成功旅程、缺失文件、特征不一致和非法参数测试
+- [x] 新增成功旅程、缺失文件、特征不一致和非法参数测试
 - [ ] 增加最小可运行示例
 
 ## E. 发布门禁
