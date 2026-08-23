@@ -167,6 +167,12 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "param": "history.append accepts any mapping; there is no input validation path",
         "determ": "history module is deterministic by construction (no randomness)",
     },
+    "test_traditional_pu_protocol.py": {
+        "determ": (
+            "same-seed determinism across runs is asserted in the sibling "
+            "test_traditional_pu_benchmark_runner.py (TestDeterminism)"
+        ),
+    },
 }
 
 
