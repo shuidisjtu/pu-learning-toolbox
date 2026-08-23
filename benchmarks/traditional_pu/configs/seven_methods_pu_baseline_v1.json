@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "protocol": "traditional_pu_baseline",
-  "description": "SCAR main grid (pi x scale) + linear SAR diagnostic line for 7 traditional PU classifiers; default constructor parameters; contract v1",
+  "description": "SCAR main grid (pi x scale) + linear SAR diagnostic line for the 6 binary PU classifiers (PNU runs its own tri-label config, contract §2.2); default constructor parameters; contract v1",
   "seed_set_development": [0, 1, 2, 3, 4],
   "seed_set_confirmation": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119],
   "data": {
@@ -18,7 +18,6 @@
     "elkan_noto": 600,
     "upu": 600,
     "nnpu": 600,
-    "pnu": 600,
     "ldce": 600,
     "kldce": 600,
     "llsvm": 1800
@@ -27,7 +26,6 @@
     "elkan_noto": {},
     "upu": {},
     "nnpu": {},
-    "pnu": {},
     "ldce": {},
     "kldce": {},
     "llsvm": {}
