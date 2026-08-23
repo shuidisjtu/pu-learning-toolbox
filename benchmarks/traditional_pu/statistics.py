@@ -37,7 +37,9 @@ def summarize(
         }
         sliced = group.loc[success_mask]
         for col in metric_columns:
-            vals = sliced[col].astype(float)
+            # Sanitize once: Inf -> NaN (pandas mean/std skip NaN but propagate Inf),
+            # then drop so mean/std/CI all see the same finite values.
+            vals = sliced[col].astype(float).replace([np.inf, -np.inf], np.nan).dropna()
             row[f"mean_{col}"] = float(vals.mean()) if len(vals) else float("nan")
             row[f"std_{col}"] = float(vals.std(ddof=1)) if len(vals) > 1 else float("nan")
             lo, hi = _ci95(vals)
