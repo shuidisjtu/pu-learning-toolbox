@@ -6,6 +6,8 @@
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from benchmarks.traditional_pu.data import (
     is_ill_conditioned,
     make_pnu_data,
@@ -38,13 +40,13 @@ class TestScarData:
 
 
 class TestIllConditioned:
-    def test_known_cases(self):
+    def test_edge_known_cases(self):
         assert is_ill_conditioned(0.5, 1.0, tol=1e-6) is True
         assert is_ill_conditioned(0.3, 0.5, tol=1e-6) is False
 
 
 class TestPnuData:
-    def test_ratio_and_labels(self):
+    def test_param_ratio_and_labels(self):
         X, y_pnu, y_true = make_pnu_data(
             n_p=25, n_n=25, n_u=100, n_features=5, separation=2.0, random_state=1
         )
@@ -55,6 +57,6 @@ class TestPnuData:
 
 
 class TestSarLinearData:
-    def test_mechanism_recorded(self):
+    def test_basic_mechanism_recorded(self):
         _, _, _, meta = make_sar_linear_data(400, 5, 0.5, 2.0, 0.5, strength=1.0, random_state=2)
         assert meta["mechanism"] == "linear"
