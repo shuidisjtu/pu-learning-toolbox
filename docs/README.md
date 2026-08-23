@@ -39,7 +39,9 @@
 | [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 | [research/method_cards/](research/method_cards/) | 18 篇论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
-| [research/traditional_pu_metric_contract.md](research/traditional_pu_metric_contract.md) | 传统 PU 七算法的指标、基线与统计契约 |
+| [research/traditional_pu_metric_contract.md](research/traditional_pu_metric_contract.md) | 传统 PU 七算法的单域指标、基线与统计契约 |
+| [research/distribution_shift_metric_contract.md](research/distribution_shift_metric_contract.md) | 分布漂移审计、跨域目标评估与部署监控指标契约 |
+| [research/joint_shift_research_protocol.md](research/joint_shift_research_protocol.md) | JointShift 研究型算法评估协议与声明边界 |
 
 ## 架构决策(docs/adr/)
 

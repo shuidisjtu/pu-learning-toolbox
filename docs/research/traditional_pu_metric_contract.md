@@ -1,7 +1,8 @@
-# 传统 PU 分类器指标契约
+# 传统 PU 七类分类器单域指标契约
 
 ```yaml
 schema_version: 1
+status: design_contract
 scope:
   - elkan_noto
   - upu
@@ -11,6 +12,19 @@ scope:
   - kldce
   - llsvm
 purpose: toolbox_performance_improvement
+implemented_metrics:
+  - pu_zero_one_risk
+  - pu_recall
+  - pu_estimated_precision
+  - pu_auc_roc
+  - pu_accuracy
+  - pu_f1
+  - pu_negative_rate
+planned_metrics:
+  - average_precision
+  - balanced_accuracy
+  - brier_score
+  - expected_calibration_error
 ```
 
 ## 1. 目的与声明边界
@@ -19,8 +33,14 @@ purpose: toolbox_performance_improvement
 本工具箱当前实现的可靠性能；它**不是**论文复现协议，也不得据此声明论文结果
 已复现。
 
+`implemented_metrics` 表示当前统一 `PUPipeline` 评价入口已经支持的指标；
+`planned_metrics` 表示本契约要求、但尚未全部接入统一入口的后续能力。当前文档是
+设计契约，不应被解释为所有规划指标已经可调用。
+
 适用对象为 Elkan--Noto、uPU、nnPU、PNU、LDCE、KLDCE 和 LLSVM。类先验估计器、
-表征学习器及其他分类器不在本契约范围内。
+表征学习器及其他分类器不在本契约范围内。分布漂移审计、跨域适配、部署监控、
+拒绝预测、主动复核以及 JointShift/DynamicJointShift 研究模型分别由独立契约或
+研究协议规定，不得套用本单域契约。
 
 所有指标必须同时声明可用条件、统计方向和使用目的。缺少前提时，运行器必须将
 指标标记为不可用并保存原因，不能以替代值或静默降级掩盖该事实。
@@ -72,6 +92,10 @@ LDCE/KLDCE 的 `flip_probability=h` 定义为真阳性被翻转为观测负/未�
 | ECE | 越低越好 | `y_true`、真实概率 | 概率输出可用 | 最终校准评测 |
 | `elapsed_seconds` | 越低越好 | 计时数据 | 全部 | 计算成本 |
 | `success_rate` | 越高越好 | trial 状态 | 全部 | 数值可靠性 |
+
+上表中的 AP、balanced accuracy、Brier score 和 ECE 属于 `planned_metrics`；在它们
+尚未接入统一评价入口前，只能由明确声明的 benchmark 运行器单独计算，不能假定
+`PUPipeline` 或 `PUTuner` 已支持这些名称。
 
 连续 score 只能用于 ROC-AUC/AP 等排序指标。Brier/ECE 只能使用分类器真实的
 `predict_proba` 概率输出；不得将 `decision_function` 的任意分数转换为伪概率。
@@ -144,7 +168,7 @@ benchmarks/traditional_pu/
 
 ## 7. 实施顺序与兼容性
 
-1. 实现 AP、balanced accuracy、Brier、ECE，以及各指标的可用性原因；
+1. 实现 `planned_metrics`（AP、balanced accuracy、Brier、ECE），以及各指标的可用性原因；
 2. 保持现有 `PUPipeline` 默认指标和报告语义不变，新能力均为 additive 变更；
 3. 新建 `benchmarks/traditional_pu/`，不得将 PNU 特例塞入现有 `assigned_methods` runner；
 4. 为指标计算、不可用条件、数据隔离、失败统计和结果审计添加单元/集成测试；
