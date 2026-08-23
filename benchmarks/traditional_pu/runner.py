@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import warnings
+from collections.abc import Callable
 from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
@@ -37,6 +38,7 @@ from pu_toolbox.metrics.classification import (
     average_precision,
     balanced_accuracy,
     brier_score,
+    calibration_bucket_stats,
     expected_calibration_error,
     pu_accuracy,
     pu_auc_roc,
@@ -93,6 +95,66 @@ _PRIOR_BASED_METRICS = ("pu_zero_one_risk", "pu_estimated_precision")
 # Binary-PU-label metrics; unavailable in PNU tri-label cells (contract §2.2).
 _PU_BINARY_METRICS = (*_PRIOR_BASED_METRICS, "pu_recall", "pu_negative_rate")
 
+# Contract §4 "必须保存的诊断": per-algorithm diagnostic columns.  Every row
+# carries the full column set (NaN where the attribute does not exist), so
+# trials.csv shape is stable across configs.
+_DIAG_COLUMNS = (
+    "diag_converged",
+    "diag_n_iter",
+    "diag_c_estimate",
+    "diag_cond_number",
+    "diag_correction_fraction",
+    "diag_n_epochs",
+    "diag_n_acs_iter",
+)
+
+
+def _ldce_cond_number(estimator) -> float | None:
+    """Condition number of the regularised centroid covariance (LDCE Eq. 10)."""
+    covariance = getattr(estimator, "centroid_covariance_", None)
+    if covariance is None:
+        return None
+    return float(np.linalg.cond(covariance))
+
+
+def _nnpu_correction_fraction(estimator) -> float | None:
+    """Last-epoch nnPU correction fraction (fraction of corrected steps)."""
+    history = getattr(estimator, "history_", None)
+    values = history.get("correction_fraction") if history else None
+    return float(values[-1]) if values else None
+
+
+def _llsvm_n_epochs(estimator) -> int | None:
+    """LLSVM stopping epoch from get_pu_metadata (loss-history length)."""
+    metadata = getattr(estimator, "get_pu_metadata", lambda: {})()
+    return metadata.get("n_epochs")
+
+
+# Contract §4 diagnostics per algorithm; upu/pnu expose no diagnostic
+# attributes, so their rows keep NaN in every diag_* column.
+_DIAG_EXTRACTORS: dict[str, dict[str, Callable[[object], float | int | bool | None]]] = {
+    # ElkanNotoClassifier stores the c-estimate (Pr[y=1 | s=1] propensity)
+    # as ``propensity_`` after fit; there is no ``c_`` attribute.
+    "elkan_noto": {"diag_c_estimate": lambda e: getattr(e, "propensity_", None)},
+    "ldce": {
+        "diag_converged": lambda e: getattr(e, "converged_", None),
+        "diag_n_iter": lambda e: getattr(e, "n_iter_", None),
+        "diag_cond_number": _ldce_cond_number,
+    },
+    "kldce": {
+        "diag_converged": lambda e: getattr(e, "converged_", None),
+        "diag_n_acs_iter": lambda e: getattr(e, "n_acs_iter_", None),
+    },
+    "nnpu": {"diag_correction_fraction": _nnpu_correction_fraction},
+    "llsvm": {"diag_n_epochs": _llsvm_n_epochs},
+}
+
+
+def _extract_diagnostics(estimator, method_name: str) -> dict:
+    """Contract §4: per-trial diagnostic columns, NaN for absent attributes."""
+    extractors = _DIAG_EXTRACTORS.get(method_name, {})
+    return {col: extractors.get(col, lambda e: None)(estimator) for col in _DIAG_COLUMNS}
+
 
 def load_config(path: str | Path) -> dict:
     """Validate and load a runner config (schema_version/protocol/seeds/methods)."""
@@ -101,12 +163,22 @@ def load_config(path: str | Path) -> dict:
         raise ValueError(f"unsupported schema_version: {cfg.get('schema_version')!r}")
     if cfg.get("protocol") != PROTOCOL:
         raise ValueError(f"expected protocol={PROTOCOL!r}, got {cfg.get('protocol')!r}")
+    resolved_seeds: dict[str, list] = {}
     for key in ("seed_set_development", "seed_set_confirmation"):
         seeds = cfg.get(key) or cfg.get("seeds")
         if not isinstance(seeds, list) or not seeds:
             raise ValueError(f"{key!s} (or seeds) must be a non-empty integer list")
         if not all(isinstance(s, int) and s >= 0 for s in seeds):
             raise ValueError(f"{key} contains invalid seed: {seeds!r}")
+        resolved_seeds[key] = seeds
+    overlap = set(resolved_seeds["seed_set_development"]) & set(
+        resolved_seeds["seed_set_confirmation"]
+    )
+    if overlap:
+        raise ValueError(
+            "seed_set_development and seed_set_confirmation must not overlap; "
+            f"common seeds: {sorted(overlap)}"
+        )
     methods = cfg.get("methods", {})
     if not methods:
         raise ValueError("methods must not be empty")
@@ -117,6 +189,11 @@ def load_config(path: str | Path) -> dict:
             raise ValueError(f"method {name!r} parameters must be a JSON object")
     if "pnu" in methods and not (cfg.get("data") or {}).get("pn_ratios"):
         raise ValueError("data.pn_ratios must be a non-empty list when methods includes 'pnu'")
+    pn_ratios = (cfg.get("data") or {}).get("pn_ratios")
+    if pn_ratios is not None:
+        unknown = sorted(set(pn_ratios) - set(PNU_RATIOS))
+        if unknown:
+            raise ValueError(f"data.pn_ratios contains unknown ratios: {unknown}")
     return cfg
 
 
@@ -212,6 +289,7 @@ def _run_one_trial(method_name: str, scenario_spec: dict, seed: int, config: dic
 
 def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, config: dict):
     """Inner trial logic; multiple returns allowed (a single exit is not needed here)."""
+    row["params"] = json.dumps(config["methods"][method_name], sort_keys=True)
     data_cfg = config["data"]
     n_features = data_cfg["n_features"]
     separation = data_cfg["separation"]
@@ -277,6 +355,7 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
         warnings.simplefilter("always")
         estimator.fit(X, y_fit, class_prior=class_prior)
     row["warning_count"] = int(len(caught))
+    row.update(_extract_diagnostics(estimator, method_name))
     if getattr(estimator, "converged_", None) is not None and not estimator.converged_:
         return "nonconverged", "explicit non-convergence", empty_metrics()
     pred = estimator.predict(X)
@@ -289,6 +368,8 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
         if name in _PROBA_BASED_METRICS and proba is None:
             metrics[name] = np.nan
             metrics[f"{name}_unavailable_reason"] = "requires predict_proba"
+            if name == "expected_calibration_error":
+                metrics["ece_buckets_api"] = np.nan
             continue
         if name in _PRIOR_BASED_METRICS and class_prior is None:
             metrics[name] = np.nan
@@ -300,6 +381,11 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
             continue
         try:
             metrics[name] = _metric_value(name, y_fit, pred, scores, y_true, proba, class_prior)
+            if name == "expected_calibration_error":
+                # Contract §3: persist the full per-bin calibration
+                # diagnostics alongside the scalar ECE (loads-able JSON).
+                buckets = calibration_bucket_stats(y_true, proba, n_bins=10)
+                metrics["ece_buckets_api"] = json.dumps(buckets, sort_keys=True)
         except ValueError:
             if name not in _PROBA_BASED_METRICS:
                 # A ValueError from any other metric (e.g. pu_auc_roc on
@@ -310,6 +396,8 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
             # ElkanNotoClassifier.predict_proba is documented to exceed [0, 1].
             metrics[name] = np.nan
             metrics[f"{name}_unavailable_reason"] = "invalid probability output (not in [0,1])"
+            if name == "expected_calibration_error":
+                metrics["ece_buckets_api"] = np.nan
     row.update(metrics)
     non_finite = [
         name
@@ -386,9 +474,20 @@ def run_trials(
         else config["seed_set_confirmation"]
     )
     trials_file = results_dir / "trials.csv"
+    fingerprint_file = results_dir / ".config_sha256"
+    # Same digest as run_manifest.json's config_sha256, so the sidecar and
+    # the manifest agree on one config identity per results dir.
+    config_hash = canonical_hash(config)
     previous_rows: list[dict] = []
     done: set[tuple[str, str, int]] = set()
     if resume and trials_file.exists():
+        if (
+            fingerprint_file.exists()
+            and fingerprint_file.read_text(encoding="utf-8").strip() != config_hash
+        ):
+            raise ValueError(
+                "resume config mismatch (results dir was created with a different config)"
+            )
         previous = pd.read_csv(trials_file)
         previous_rows = previous.to_dict("records")
         done = {tuple(r) for r in previous[["algorithm", "scenario", "seed"]].to_numpy()}
@@ -429,6 +528,7 @@ def run_trials(
     all_rows = previous_rows + rows
     trials = pd.DataFrame(all_rows)
     trials.to_csv(trials_file, index=False)
+    fingerprint_file.write_text(config_hash + "\n", encoding="utf-8")
     summary = summarize(trials, METRIC_COLUMNS)
     return trials, summary
 
