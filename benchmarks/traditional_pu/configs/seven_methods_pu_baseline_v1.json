@@ -15,12 +15,12 @@
     "sar_mechanism": "linear"
   },
   "timeouts": {
-    "elkan_noto": 600,
-    "upu": 600,
-    "nnpu": 600,
-    "ldce": 600,
-    "kldce": 600,
-    "llsvm": 1800
+    "elkan_noto": 120,
+    "upu": 120,
+    "nnpu": 120,
+    "ldce": 120,
+    "kldce": 120,
+    "llsvm": 120
   },
   "methods": {
     "elkan_noto": {},

@@ -128,6 +128,24 @@ class TestDataIsolation:
         assert not any(str(col).startswith("y_") for col in trials.columns)
 
 
+class TestPnuRowRecords:
+    def test_basic_pnu_rows_carry_group_sizes(self, tmp_path, mini_config):
+        """Contract §2.2: P/N/U counts per cell are recorded on the row."""
+        cfg = dict(mini_config)
+        cfg["methods"] = {"pnu": {}}
+        trials, _ = run_trials(
+            cfg,
+            results_dir=tmp_path / "pnurow",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        assert len(trials) == 4  # 1 ratio × 2 scales × 2 seeds
+        # mini config: n_samples_small == n_samples_mid == 50, ratio 1:1:4
+        assert (trials["n_p"] + trials["n_n"] + trials["n_u"]).eq(50).all()
+        assert (trials["n_p"] == 8).all() and (trials["n_u"] == 34).all()
+
+
 class TestFailureStats:
     def test_param_failed_trials_carry_status_reason_and_zero_rate(
         self, tmp_path, mini_config, monkeypatch

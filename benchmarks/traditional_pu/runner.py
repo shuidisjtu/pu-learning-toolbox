@@ -21,10 +21,12 @@ import pandas as pd
 
 from benchmarks._common import canonical_hash, git_worktree_dirty
 from benchmarks.traditional_pu.data import (
+    PNU_RATIOS,
     is_ill_conditioned,
     make_pnu_data,
     make_sar_linear_data,
     make_scar_data,
+    pnu_counts,
 )
 from benchmarks.traditional_pu.statistics import summarize
 from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
@@ -51,7 +53,6 @@ from pu_toolbox.metrics.classification import (
 from pu_toolbox.workflows._evaluation import extract_proba, extract_scores
 
 PROTOCOL = "traditional_pu_baseline"
-PNU_RATIOS = {"1:1:4": (25, 25, 100), "1:2:4": (20, 40, 80), "1:1:8": (17, 17, 136)}
 METRIC_COLUMNS = [
     "pu_zero_one_risk",
     "pu_recall",
@@ -336,10 +337,18 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
         )
         y_fit = y_pu
     else:  # pnu
-        p, n, u = PNU_RATIOS[scenario_spec["ratio"]]
+        n_p, n_n, n_u = pnu_counts(scenario_spec["ratio"], scenario_spec["n_samples"])
         X, y_pnu, y_true = make_pnu_data(
-            n_p=p, n_n=n, n_u=u, n_features=n_features, separation=separation, random_state=seed
+            n_p=n_p,
+            n_n=n_n,
+            n_u=n_u,
+            n_features=n_features,
+            separation=separation,
+            random_state=seed,
         )
+        row["n_p"] = n_p
+        row["n_n"] = n_n
+        row["n_u"] = n_u
         y_fit = y_pnu
         # make_pnu_data's ground truth is {+1, -1}; oracle metrics expect
         # {0, 1} — normalize once here (PNU protocol, contract §4 metrics).

@@ -11,6 +11,7 @@ from benchmarks.traditional_pu.data import (
     make_pnu_data,
     make_sar_linear_data,
     make_scar_data,
+    pnu_counts,
 )
 
 pytestmark = pytest.mark.unit
@@ -67,6 +68,36 @@ class TestPnuData:
         assert labeled_pos.any() and labeled_neg.any()
         assert (y_true[labeled_pos] == 1).all()
         assert (y_true[labeled_neg] == -1).all()
+
+
+class TestPnuCounts:
+    def test_param_counts_track_scenario_size(self):
+        # Contract §2.1/§2.2: the small (400) and mid (2000) scales must
+        # produce different data — counts derive from ``n_samples``, so the
+        # two cells no longer share a single hard-coded (25, 25, 100) size.
+        small = pnu_counts("1:1:4", 400)
+        mid = pnu_counts("1:1:4", 2000)
+        assert small != mid
+        assert sum(small) == 400
+        assert sum(mid) == 2000
+        assert mid == (334, 333, 1333)
+
+    def test_param_counts_keep_ratio_layout(self):
+        # Golden counts (largest-fraction remainder attached to U on ties).
+        assert pnu_counts("1:1:4", 400) == (67, 66, 267)
+        assert pnu_counts("1:2:4", 400) == (57, 114, 229)
+        assert pnu_counts("1:1:8", 400) == (40, 40, 320)
+        assert pnu_counts("1:2:4", 2000) == (286, 571, 1143)
+        assert pnu_counts("1:1:8", 2000) == (200, 200, 1600)
+
+    def test_edge_tiny_size_keeps_groups_nonempty(self):
+        assert pnu_counts("1:1:4", 6) == (1, 1, 4)
+        # all groups at least 1 even when the ratio would otherwise starve one
+        assert min(pnu_counts("1:2:4", 4)) == 1
+
+    def test_edge_unknown_ratio_rejected(self):
+        with pytest.raises(ValueError, match="unknown PNU ratio"):
+            pnu_counts("9:9:9", 400)
 
 
 class TestSarLinearData:

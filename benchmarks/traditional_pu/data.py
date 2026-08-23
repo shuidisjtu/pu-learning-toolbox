@@ -9,6 +9,50 @@ import numpy as np
 
 from pu_toolbox.preprocessing.selection_bias import make_sar_dataset
 
+# Protocol P:N:U ratios (contract §2.2); absolute counts per scenario come
+# from ``pnu_counts`` so the small/mid scale actually changes the data.
+PNU_RATIOS: dict[str, tuple[int, int, int]] = {
+    "1:1:4": (1, 1, 4),
+    "1:2:4": (1, 2, 4),
+    "1:1:8": (1, 1, 8),
+}
+
+
+def pnu_counts(ratio_label: str, n_samples: int) -> tuple[int, int, int]:
+    """Derive exact P:N:U counts from a protocol ratio and a scenario size.
+
+    The old implementation used hard-coded 1:1:4/1:2:4/1:1:8 counts for
+    every cell, so the small (400) and mid (2000) scales produced identical
+    data.  Counts are proportional to ``n_samples`` with the largest-fraction
+    remainder distributed to the closest group; every group gets at least
+    one sample and the counts sum to at most ``n_samples`` (contract
+    §2.1/§2.2).
+    """
+    if ratio_label not in PNU_RATIOS:
+        raise ValueError(f"unknown PNU ratio: {ratio_label!r}")
+    r_p, r_n, r_u = PNU_RATIOS[ratio_label]
+    total = r_p + r_n + r_u
+    share = n_samples / total
+    n_p = int(share * r_p)
+    n_n = int(share * r_n)
+    n_u = int(share * r_u)
+    remainder = n_samples - (n_p + n_n + n_u)
+    fracs = {
+        "p": (share * r_p) - n_p,
+        "n": (share * r_n) - n_n,
+        "u": (share * r_u) - n_u,
+    }
+    for group in sorted(fracs, key=fracs.get, reverse=True)[:remainder]:
+        if group == "p":
+            n_p += 1
+        elif group == "n":
+            n_n += 1
+        else:
+            n_u += 1
+    # P and N need at least one labeled sample; U (mixed positives/negatives)
+    # may shrink to one under extreme tiny sizes but never to zero.
+    return max(n_p, 1), max(n_n, 1), max(n_u, 1)
+
 
 def is_ill_conditioned(class_prior: float, flip_probability: float, tol: float = 1e-6) -> bool:
     """Contract §2.3: |1 - 2πh| near zero ⇒ LDCE problem is ill-conditioned."""

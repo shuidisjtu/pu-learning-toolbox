@@ -20,6 +20,9 @@
   在该网格中标记为不可用并记录原因。契约 §2.2 不要求 PNU 协议提供 π，但
   PNUClassifier 必填 `class_prior`：runner 取 `data.class_priors` 首项（0.3）作为
   类先验传入每个 PNU 单元，0.3 为记录级选择（非数据真实先验）。
+- **PNU 计数派生**：每单元的 P/N/U 绝对数量由 `pnu_counts(ratio, n_samples)` 按
+  比例 × 场景规模推导（largest-remainder 取整），因此 small/mid 两档产生不同数据；
+  实际计数记为 tri-lab 行的 `n_p`/`n_n`/`n_u` 列（契约 §2.2"显式记录数量与比例"）。
 
 ## 命令
 
