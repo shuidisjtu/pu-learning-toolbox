@@ -58,8 +58,9 @@ uv run python -m benchmarks.traditional_pu.run \
   `_iter_scenario_specs` 触发 `KeyError`；现配置显式声明 `class_priors: [0.3]`，
   即该跟踪项关闭（先验来源见 PNU 三元网格节）。
 - 已解决(a7b9bc1)：`label_frequency` 改为 scar/sar 分支内惰性读取，pnu-only
-  配置不再 `KeyError`；`--timeout-profile` 对任意 config（含 pnu-only 与
-  `seven_methods_pu_baseline_v1.json` 中的 `pnu`）优雅降级，不再 `StopIteration`。
+  配置不再 `KeyError`；`--timeout-profile` 对任意 config（含 pnu-only）优雅降级，
+  不再 `StopIteration`。PNU 只在 `pnu_baseline_v1.json` 出现（契约 §2.2），
+  `seven_methods_pu_baseline_v1.json` 不再包含 `pnu`。
 
 ## 产物契约（契约 §5）
 
@@ -79,6 +80,12 @@ uv run python -m benchmarks.traditional_pu.run \
 当前 `configs/*.json` 中的 `timeouts` 是**未冻结的宽松保护上限**（统一 600s，
 LLSVM 1800s）：冻结前以此宽松上限保护运行，超时单元记录 `status="timeout"` 并
 完整保存超时原因，不静默丢弃。
+
+超时是**每单元的守卫**而非墙钟预算：超时单元的 worker 线程无法在 CPython 中
+终止，会被放弃（abandoned）并继续在后台运行完真实耗时，阻塞后续单元直到其
+真正结束。因此 `timeout` 行的 `elapsed_seconds` 记录的是守卫时刻，实际占用是
+该 trial 的真实运行时长。进程级隔离（把每个 trial 放进独立进程以便可终止）是
+已跟踪的后续改进项。
 
 冻结流程：
 
