@@ -12,6 +12,13 @@ from pu_toolbox.metrics import (
     pu_recall,
     pu_zero_one_risk,
 )
+from pu_toolbox.metrics.classification import (
+    average_precision,
+    balanced_accuracy,
+    brier_score,
+    calibration_bucket_stats,
+    expected_calibration_error,
+)
 
 # ── fixtures ────────────────────────────────────────────────────────────
 
@@ -191,15 +198,6 @@ class TestDeterminism:
 # ── planned supervised / calibration metrics ───────────────────────────
 
 
-from pu_toolbox.metrics.classification import (
-    average_precision,
-    balanced_accuracy,
-    brier_score,
-    calibration_bucket_stats,
-    expected_calibration_error,
-)
-
-
 class TestPlannedMetrics:
     @pytest.mark.math
     def test_hand_computed_average_precision(self):
@@ -247,3 +245,20 @@ class TestPlannedMetrics:
     def test_empty_proba_raises(self):
         with pytest.raises(ValueError, match="same length"):
             brier_score(np.array([1, 0]), np.array([0.5]))
+
+    @pytest.mark.unit
+    def test_edge_proba_boundaries_accepted(self):
+        # proba exactly at the [0, 1] bounds is valid calibration input.
+        y_true = np.array([0, 1, 1, 0])
+        proba = np.array([0.0, 1.0, 0.5, 0.0])
+        assert brier_score(y_true, proba) == pytest.approx(0.0625, abs=1e-10)
+        # bin0: proba 0.0,0.0 (y 0,0) → conf 0.0 acc 0.0; bin1: 1.0,0.5 (y 1,1)
+        # → conf 0.75 acc 1.0 → ECE = 0.5·|0.75-1.0| = 0.125
+        assert expected_calibration_error(y_true, proba, n_bins=2) == pytest.approx(
+            0.125, abs=1e-10
+        )
+        # just outside the bounds is rejected by both calibration metrics
+        with pytest.raises(ValueError, match=r"\[0, 1\]"):
+            brier_score(y_true, np.array([0.0, 1.0, 0.5, 1.0001]))
+        with pytest.raises(ValueError, match=r"\[0, 1\]"):
+            expected_calibration_error(y_true, np.array([-0.0001, 1.0, 0.5, 0.0]))

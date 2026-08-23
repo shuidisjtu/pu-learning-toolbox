@@ -5,6 +5,8 @@ tests (tests/benchmarks/test_traditional_pu_benchmark_runner.py,
 TestDeterminism) and is therefore not duplicated here.
 """
 
+# ruff: noqa: N803  # _Boom mirrors the sklearn X/y naming convention
+
 from __future__ import annotations
 
 import json
@@ -93,6 +95,7 @@ class TestDataIsolation:
                 "algorithm",
                 "scenario",
                 "seed",
+                "params",
                 "elapsed_seconds",
                 "warning_count",
                 "status",
@@ -102,11 +105,19 @@ class TestDataIsolation:
                 "label_frequency",
                 "real_h",
                 "pi_h_well_conditioned",
+                "ece_buckets_api",
             }
             | set(METRIC_COLUMNS)
             | {
                 "brier_score_unavailable_reason",
                 "expected_calibration_error_unavailable_reason",
+                "diag_converged",
+                "diag_n_iter",
+                "diag_c_estimate",
+                "diag_cond_number",
+                "diag_correction_fraction",
+                "diag_n_epochs",
+                "diag_n_acs_iter",
             }
         )
         assert set(trials.columns) == expected
@@ -156,3 +167,25 @@ class TestFailureStats:
         for name in METRIC_COLUMNS:
             assert summary[f"mean_{name}"].isna().all(), name
             assert summary[f"std_{name}"].isna().all(), name
+
+
+class TestDiagnostics:
+    def test_smoke_upu_run_emits_diag_columns(self, tmp_path, mini_config):
+        """Contract §4: every trial row carries diag_* columns.
+
+        uPU exposes no diagnostic attributes, so its rows record NaN in
+        each diag_* column — the column names must still exist so rows
+        stay comparable across algorithms.
+        """
+        trials, _ = run_trials(
+            mini_config,
+            results_dir=tmp_path / "diag",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        diag_cols = [str(col) for col in trials.columns if str(col).startswith("diag_")]
+        assert diag_cols
+        assert trials[diag_cols].isna().all().all()  # upu: no diagnostics → NaN
+        # params snapshot mirrors the config's method entry
+        assert (trials["params"] == "{}").all()

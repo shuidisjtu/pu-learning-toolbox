@@ -6,14 +6,14 @@
 import numpy as np
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from benchmarks.traditional_pu.data import (
     is_ill_conditioned,
     make_pnu_data,
     make_sar_linear_data,
     make_scar_data,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestScarData:
@@ -54,6 +54,19 @@ class TestPnuData:
         ratios = np.bincount(np.asarray(y_pnu) + 1, minlength=3)
         assert ratios[2] == 25 and ratios[0] == 25 and ratios[1] == 100
         assert set(np.unique(y_true)) == {-1, 1}
+
+    def test_basic_labeled_labels_consistent_with_ground_truth(self):
+        # Contract §2.2: trusted labels are ground truth — every labeled
+        # positive (y_pnu=+1) is a true positive (y_true=+1) and every
+        # trusted negative (y_pnu=-1) is a true negative (y_true=-1).
+        X, y_pnu, y_true = make_pnu_data(
+            n_p=25, n_n=25, n_u=100, n_features=5, separation=2.0, random_state=1
+        )
+        labeled_pos = y_pnu == 1
+        labeled_neg = y_pnu == -1
+        assert labeled_pos.any() and labeled_neg.any()
+        assert (y_true[labeled_pos] == 1).all()
+        assert (y_true[labeled_neg] == -1).all()
 
 
 class TestSarLinearData:
