@@ -5,14 +5,13 @@
 import numpy as np
 import pytest
 
-from pu_toolbox.core.random import set_global_seed
-from tests.helpers import make_scar_data
+from tests.helpers import make_scar_data, set_test_seed
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _fixed_seed():
     """Ensure deterministic tests via a fixed global seed."""
-    set_global_seed(42)
+    set_test_seed(42)
 
 
 @pytest.fixture

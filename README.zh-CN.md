@@ -2,19 +2,21 @@
 
 # PU Learning Toolbox
 
-**正例-无标记学习 Python 工具箱** -- 兼容 sklearn API，17 篇论文方法，支持 SCAR 与 SAR。
+**正例-无标记学习 Python 工具箱** -- 17 个注册算法、联合漂移研究适配，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.5.1-blue)
+![Status](https://img.shields.io/badge/status-1.8.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 特性
 
-- **17 个算法**，来自近年 PU 学习研究论文，全部为 native clean-room 实现（[方法卡](docs/research/method_cards/)）
+- **17 个注册算法**，来自近年 PU 学习研究论文，全部为 native clean-room 实现；另有隔离的联合漂移研究求解器（[方法卡](docs/research/method_cards/)）
 - **兼容 sklearn API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`，支持 Pipeline 与交叉验证
 - **SCAR & SAR** -- 常数与实例相关两种标记机制，附数据模拟器
 - **数据画像 + 算法推荐** -- 自动质量检查、SCAR/SAR 证据，以及七维评分推荐器为你的数据选方法
 - **可审计流水线** -- 一次调用的 `PUPipeline`（画像 → 先验 → 训练 → PU 分层 CV → 评估），加结构化诊断报告与先验/标记倾向敏感性分析
+- **分布漂移护栏** -- OOF 源/目标漂移审计、有界协变量权重、覆盖诊断与受保护的 `ShiftAwarePUPipeline`
+- **部署监控** -- 可恢复的窗口告警、coverage/拒绝预测控制，以及 CLI/UI 主动复核导出
 - **CLI** -- `pu-toolbox` 把整条流水线变成终端命令
 - **模型调整** -- 统一 `classifier_params`、命令行参数入口与 PU-aware 网格搜索
 - **图形界面** -- 上传数据、配置/比较模型、查看诊断并下载报告与模型
@@ -98,7 +100,7 @@ pu-toolbox-ui
 |------|------|
 | [`docs/user/quickstart.md`](docs/user/quickstart.md) | 5 分钟快速开始（CLI + Python） |
 | [`docs/user/concepts/`](docs/user/concepts/) | PU 问题设定、SCAR/SAR、方法选择 |
-| [`docs/user/howto/`](docs/user/howto/) | 任务指南：模拟、画像、流水线、CLI、报告、敏感性 |
+| [`docs/user/howto/`](docs/user/howto/) | 任务指南：模拟、画像、流水线、CLI、报告、敏感性、分布漂移 |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | 精确 API 契约 |
 | [`docs/dev/`](docs/dev/) | 贡献者文档：架构、结构、路线图、兼容性 |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | 各论文方法卡 |

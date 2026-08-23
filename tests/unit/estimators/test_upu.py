@@ -124,7 +124,7 @@ class TestUPUClassifier:
         clf = UPUClassifier(**kw)
         clf.fit(X, y_pu)
         assert clf.coef_ is not None
-        risk = clf.pu_validation_risk(X, y_pu)
+        risk = pu_zero_one_risk(y_pu, clf.decision_function(X), clf.class_prior_)
         assert np.isfinite(risk)
 
 
@@ -293,7 +293,7 @@ class TestConvergenceAndSensitivity:
                 random_state=42,
             )
             clf.fit(X, y_pu)
-            risks.append(clf.pu_validation_risk(X, y_pu))
+            risks.append(pu_zero_one_risk(y_pu, clf.decision_function(X), clf.class_prior_))
         assert risks[0] >= risks[1] - 0.1
 
     def test_deterministic_class_prior_sensitivity(self, rng):

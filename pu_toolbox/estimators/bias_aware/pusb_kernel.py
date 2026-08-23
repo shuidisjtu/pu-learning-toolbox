@@ -23,6 +23,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -133,6 +134,7 @@ class PUSBKernelClassifier(BasePUClassifier):
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.NUMPY
+    sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
     maturity = Maturity.RESEARCH
 
     def __init__(

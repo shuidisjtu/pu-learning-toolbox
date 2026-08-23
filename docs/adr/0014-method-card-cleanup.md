@@ -59,7 +59,7 @@ API 接口与构造签名、Toolbox 集成映射、测试与验收标准等工�
 - **出处**:`docs/research/method_cards/InfoMax-PU.md` L346-359
 - **摘要**:Fashion-MNIST 60/60 trials:AUC 0.8547/0.6313/0.3340,7/20、15/20 seeds<0.5;KM1≈0.875 不随受控先验变化(诊断性负结果)
 - **正文**:
-  `configs/official_data_infomax_fashion_protocol.json` 已锁定论文网络深度、BN、优化器、
+  `configs/official_data_infomax_fashion_protocol_pi05.json` 已锁定论文网络深度、BN、优化器、
   gradient noise、样本数、epoch 和 20 seeds，并通过 CPU preflight。论文只写明将
   MNIST/Fashion-MNIST 十类分成两组，没有给出类别编号，也没有报告 mini-batch size；当前
   配置把 `[0,1,2,3,4]` 和 batch size `256` 明确标记为临时工程选择。runner 已从训练集

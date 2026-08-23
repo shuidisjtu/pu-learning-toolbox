@@ -19,6 +19,7 @@
    | 使用图形界面 | [howto/ui.md](howto/ui.md) |
    | 生成诊断报告 | [howto/diagnostic_reports.md](howto/diagnostic_reports.md) |
    | 类先验与标记倾向敏感性分析 | [howto/sensitivity_analysis.md](howto/sensitivity_analysis.md) |
+   | 审计并处理源域到目标域的分布漂移 | [howto/distribution_shift.md](howto/distribution_shift.md) |
    | 训练 Self-PU 分类器 | [howto/self_pu.md](howto/self_pu.md) |
 
 4. **API 参考**（[reference/api.md](reference/api.md)，查精确参数时读）

@@ -32,12 +32,12 @@ def run_list_methods(args: argparse.Namespace) -> None:
     register_all_builtin_methods()
     rows: list[tuple[str, str, str, str, str]] = []
     for meta in list_algorithms():
+        cls = _resolve_class(meta.name)
+        if cls is None or not issubclass(cls, BasePUClassifier):
+            continue
         # Canonical name plus its aliases (e.g. "ldce" for "centroid_pu"):
         # all of them are accepted by --classifier, so list every one.
         for name in (meta.name, *meta.aliases):
-            cls = _resolve_class(name)
-            if cls is None or not issubclass(cls, BasePUClassifier):
-                continue
             auto_inst = "yes" if not _missing_required_params(cls) else "no"
             rows.append(
                 (
@@ -66,7 +66,7 @@ def run_list_priors(args: argparse.Namespace) -> None:
     """Print the class-prior estimators accepted by ``--prior-estimator``.
 
     Each line shows one estimator: the canonical name followed by its
-    aliases (e.g. ``class_prior_estimation (aliases: cpe, pe, pen_l1)``)
+    aliases (e.g. ``class_prior_estimation (aliases: cpe, pe [deprecated], pen_l1)``)
     so users can tell estimators apart instead of seeing 8 flat names.
     """
     register_all_builtin_methods()
@@ -75,7 +75,10 @@ def run_list_priors(args: argparse.Namespace) -> None:
         cls = _resolve_class(meta.name)
         if cls is None or not issubclass(cls, BasePriorEstimator):
             continue
-        entries[meta.name] = list(meta.aliases)
+        entries[meta.name] = [
+            f"{alias} [deprecated]" if alias in meta.deprecated_aliases else alias
+            for alias in meta.aliases
+        ]
     print("Pass one of these to --prior-estimator ('none' disables estimation):")
     for name in sorted(entries):
         aliases = entries[name]

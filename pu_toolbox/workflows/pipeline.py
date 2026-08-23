@@ -20,7 +20,7 @@ import numpy as np
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.device import resolve_device_name
 from ..core.exceptions import RegistryError
-from ..core.tags import Backend, TrainingCost
+from ..core.tags import Backend, SampleWeightSupport, TrainingCost
 from ..core.validation import check_scalar_in_range
 from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
 from ..model_selection.split import PUStratifiedKFold
@@ -304,6 +304,7 @@ class PUPipeline:
         *,
         y_true: np.ndarray | None = None,
         class_prior: float | None = None,
+        sample_weight: np.ndarray | None = None,
         refit: bool = True,
         progress_callback: ProgressCallback | None = None,
         cancellation_token: CancellationToken | None = None,
@@ -322,6 +323,11 @@ class PUPipeline:
         class_prior : float, optional
             Explicit class prior ``(0, 1)``.  Takes precedence over the
             classifier's constructor value and over estimation.
+        sample_weight : array-like of shape (n_samples,), optional
+            Per-source-sample training weights. They are sliced with every
+            CV training fold and passed to the final refit. The selected
+            classifier must declare ``sample_weight_support='supported'``;
+            ignored or unimplemented weight semantics fail explicitly.
         refit : bool, default True
             Fit a final model on all samples and build model diagnostics.
             Set to ``False`` for parameter-search trials that only need CV
@@ -345,6 +351,7 @@ class PUPipeline:
             message="校验输入并准备交叉验证",
         )
         X, y_pu, y_true, analysis_X, splitter, n_splits = self._prepare_inputs(X, y_pu, y_true)
+        sample_weight = _validate_sample_weight(sample_weight, X.shape[0])
         total_steps = n_splits + (4 if refit else 3)
 
         # -- Resolve classifier ------------------------------------------
@@ -436,6 +443,21 @@ class PUPipeline:
         else:
             classifier_name = type(classifier_instance).__name__
 
+        if sample_weight is not None:
+            support_owner = classifier_cls or type(classifier_instance)
+            support = getattr(
+                support_owner,
+                "sample_weight_support",
+                SampleWeightSupport.NOT_IMPLEMENTED,
+            )
+            if support != SampleWeightSupport.SUPPORTED:
+                value = support.value if isinstance(support, SampleWeightSupport) else str(support)
+                raise PipelineError(
+                    f"Classifier {classifier_name!r} cannot be used with sample_weight: "
+                    f"declared support is {value!r}. Choose a classifier whose metadata "
+                    "reports sample_weight_support='supported'."
+                )
+
         # -- Training-cost hint ------------------------------------------
         # Deep (TORCH) methods and registry HIGH-cost solvers (e.g. LLSVM
         # SGD, PUSB kernel grid CV) are refit n_splits+1 times; say so
@@ -477,6 +499,7 @@ class PUPipeline:
                 y_pu[test_idx],
                 y_true[test_idx] if y_true is not None else None,
                 prior,
+                sample_weight[train_idx] if sample_weight is not None else None,
             )
 
         cv_metrics = run_cross_validation(
@@ -505,7 +528,7 @@ class PUPipeline:
                 message="正在全量重训最佳模型",
             )
             final_model = self._fresh_estimator(classifier_cls, classifier_instance, prior)
-            final_model.fit(X, y_pu, class_prior=prior)
+            final_model.fit(X, y_pu, class_prior=prior, sample_weight=sample_weight)
             if cancellation_token is not None:
                 cancellation_token.raise_if_cancelled()
             if extract_scores(final_model, X) is not None:
@@ -551,6 +574,7 @@ class PUPipeline:
             diagnostic=diagnostic,
             random_state=self.random_state,
             classifier_params=self.classifier_params,
+            sample_weight=sample_weight,
         )
         emit_progress(
             progress_callback,
@@ -731,9 +755,15 @@ class PUPipeline:
         y_pu_test: np.ndarray,
         y_true_test: np.ndarray | None,
         prior: float | None,
+        sample_weight_train: np.ndarray | None,
     ) -> dict[str, tuple[float | None, str | None]]:
         """Fit one fold's estimator and compute every metric on its test fold."""
-        estimator.fit(X_train, y_pu_train, class_prior=prior)
+        estimator.fit(
+            X_train,
+            y_pu_train,
+            class_prior=prior,
+            sample_weight=sample_weight_train,
+        )
         pred = estimator.predict(X_test)
         scores = extract_scores(estimator, X_test)
         return {
@@ -759,3 +789,25 @@ def _validate_prior_value(value: float, name: str) -> None:
     pipeline (cv, metrics, architecture).
     """
     check_scalar_in_range(value, 0.0, 1.0, name, inclusive=False)
+
+
+def _validate_sample_weight(
+    sample_weight: np.ndarray | None,
+    n_samples: int,
+) -> np.ndarray | None:
+    """Validate and copy workflow-level sample weights."""
+    if sample_weight is None:
+        return None
+    try:
+        weights = np.asarray(sample_weight, dtype=float)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("sample_weight must contain numeric values.") from exc
+    if weights.shape != (n_samples,):
+        raise ValueError(f"sample_weight must have shape ({n_samples},); got {weights.shape}.")
+    if not np.isfinite(weights).all():
+        raise ValueError("sample_weight must contain only finite values.")
+    if np.any(weights < 0.0):
+        raise ValueError("sample_weight must be non-negative.")
+    if not np.any(weights > 0.0):
+        raise ValueError("sample_weight must contain at least one positive value.")
+    return weights.copy()

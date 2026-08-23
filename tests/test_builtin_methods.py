@@ -7,6 +7,7 @@ updates here. Per-method source status is recorded in each method card's
 reviewed manually rather than parsed here.
 """
 
+from contextlib import nullcontext
 from pathlib import Path
 
 import pytest
@@ -79,13 +80,16 @@ class TestBuiltinRegistration:
 
         for meta in get_algorithm_registry().values():
             for alias in meta.aliases:
-                resolved = get_metadata(alias)
+                warning = FutureWarning if alias in meta.deprecated_aliases else None
+                with pytest.warns(warning) if warning else nullcontext():
+                    resolved = get_metadata(alias)
                 assert resolved.name == meta.name, (
                     f"alias {alias!r} resolves to {resolved.name}, expected {meta.name}"
                 )
-                assert get_algorithm(alias) is get_algorithm(meta.name), (
-                    f"alias {alias!r} resolves to a different class than {meta.name}"
-                )
+                with pytest.warns(warning) if warning else nullcontext():
+                    assert get_algorithm(alias) is get_algorithm(meta.name), (
+                        f"alias {alias!r} resolves to a different class than {meta.name}"
+                    )
 
     def test_edge_list_trainable_only(self):
         """Native implementations are trainable (set derived, no literal list)."""

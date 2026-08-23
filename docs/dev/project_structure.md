@@ -57,7 +57,7 @@ pu_toolbox/
       llsvm.py                            (native)
     risk/
       __init__.py
-      _class_prior.py                     (shared: solve_prior_from_positive_fraction 单源, KLDCE/LDCE 共用)
+      _class_prior.py                     (shared: 类先验推导与 1−2ph 稳定性检查, KLDCE/LDCE 共用)
       ldce.py                             (native)
       kldce.py                            (native: ACS + QP oracle + RBF kernel)
       dist_pu.py                          (native)
@@ -76,6 +76,11 @@ pu_toolbox/
       weighted_contrastive_pu.py          (native core)
       vision.py                           (WConPU CNN13/ResNet 与 tensor augmentation adapters)
       dgpu.py                             (native orchestration + generator protocol)
+    research/
+      __init__.py                         (研究级估计器公开入口)
+      joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
+      dynamic_joint_shift.py              (论文式联合权重/分类目标与共享特征动态训练)
+      joint_shift_baselines.py            (trPU/tePU/fine-tune/MMD 对照与消融工厂)
     __init__.py
   metrics/
     __init__.py
@@ -85,6 +90,10 @@ pu_toolbox/
     benchmark.py                          (benchmark 产物、provenance 与 PU split 审计)
     report.py                             (数据/模型/指标诊断，JSON/Markdown 报告)
     sensitivity.py                        (类先验/平均标记倾向假设敏感性)
+    shift.py                              (源/目标域 OOF 漂移审计、相对权重与 ESS 报告)
+    domain_assumptions.py                 (双域类先验、平均标记倾向与敏感性差异报告)
+    shift_monitor.py                      (固定参考域的窗口历史、变化量与分级告警)
+    uncertainty.py                        (概率边际、拒绝预测与主动人工复核策略)
   model_selection/
     __init__.py
     comparison.py                         (PUModelComparator 多模型 CV 与最佳模型重训)
@@ -109,6 +118,7 @@ pu_toolbox/
     _models.py                            (模型解析、参数校验与 estimator 构造)
     _reporting.py                         (报告组装与参数 provenance)
     report.py                             (报告数据类: PriorInfo/CVMetric/PipelineReport)
+    shift.py                              (ShiftAwarePUPipeline 协变量加权编排与组合报告)
   cli/                                    (CLI 入口: argparse 子命令与工作流薄封装)
     __init__.py
     run.py                                (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
@@ -119,6 +129,8 @@ pu_toolbox/
     sensitivity.py                        (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
     audit_benchmark.py                    (audit-benchmark 子命令: 实验产物与 provenance 审计)
     skill.py                              (skill 子命令: 安装内置 pu-workflow 技能到用户级 agent 目录)
+    shift.py                              (shift-audit 子命令与三产物导出)
+    deployment.py                         (shift-monitor/review 部署子命令与产物导出)
   ui/                                     (可选 Streamlit 图形界面，核心安装不导入 streamlit)
     __init__.py                           (数据/配置辅助函数导出)
     app.py                                (Streamlit 页面流程协调)
@@ -130,6 +142,7 @@ pu_toolbox/
     results.py                            (指标、诊断与下载结果渲染)
     runtime.py                            (后台线程、进度状态与取消控制)
     launcher.py                           (pu-toolbox-ui 启动入口)
+    deployment.py                         (窗口漂移、coverage 与主动复核 Streamlit 面板)
   __init__.py
   run_config.py                           (UI/CLI 共用的可移植 JSON 运行配置契约)
   progress.py                             (线程安全进度快照、协作式取消 token)
@@ -148,14 +161,20 @@ tests/
       test_ldce_api.py                  # LDCE 收敛/约束/API/错误/回归 (unit)
       test_kldce_math.py                # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
       test_kldce_property.py            # KLDCE 约束/鲁棒性 (PROPERTY)
-      test_class_prior.py               # solve_prior_from_positive_fraction 共享助手 (unit)
+      test_class_prior.py               # 类先验推导与质心分母共享助手 (unit)
       __init__.py
+    research/
+      test_dynamic_joint_shift_math.py  # 论文目标手算金标准、修正边界与动态训练
     __init__.py
   unit/                                 # 算法特有逻辑测试
     diagnostics/
       test_report.py                    # 诊断报告指标、输入契约与序列化
       test_sensitivity.py               # 假设扫描公式、边界与导出
       test_benchmark_audit.py           # 持久化 benchmark 产物审计测试
+      test_shift.py                     # 漂移审计、相对权重、ESS 与序列化测试
+      test_domain_assumptions.py        # 双域先验/标记机制分解、可行性与序列化
+      test_shift_monitor.py             # 窗口 delta、告警、历史恢复与配置门禁
+      test_uncertainty.py               # 拒绝覆盖、三类查询策略与逐行产物
     estimators/
       test_elkan_noto.py                # Elkan-Noto 特有逻辑
       test_upu.py                       # uPU 特有逻辑
@@ -184,6 +203,7 @@ tests/
       test_history.py                   # 进程级运行历史与收尾条目写入(D9 回归)
       test_ui_helpers.py                # 上传解析、类型化参数、配置状态与模型目录
       test_runtime.py                   # 后台运行、进度快照与协作式取消
+      test_deployment.py                # UI 部署分析辅助函数与错误路径
     prior/
       test_recpe.py                     # ReCPE 特有逻辑
       test_pen_l1.py                    # penL1 特有逻辑
@@ -216,6 +236,9 @@ tests/
       test_profile.py                   # profile 子命令测试(pu-workflow 步骤 1)
       test_recommend.py                 # recommend 子命令测试(pu-workflow 步骤 2)
       test_sensitivity_cmd.py           # sensitivity 子命令测试(pu-workflow 步骤 4)
+      test_shift_audit.py               # shift-audit 参数、错误与产物测试
+      test_shift_run.py                 # shift-run 参数、错误与配对产物测试
+      test_deployment_commands.py       # shift-monitor/review CLI 参数与产物旅程
     core/
       test_device.py                    # resolve_device 设备解析共享助手测试
     workflows/
@@ -233,6 +256,11 @@ tests/
     test_pipeline_device.py             # PUPipeline/深度估计器默认值(设备自动检测、epochs)
     test_prior_params.py                # prior_params 转发集成测试(CLI --prior-param 后端)
     test_run_errors.py                  # run 子命令错误路径集成测试(用户输入友好失败)
+    test_pipeline_sample_weight.py      # PUPipeline 逐折权重传递与语义拒绝测试
+    test_shift_workflow.py              # ShiftAwarePUPipeline 审计/适配/目标评估集成
+    test_joint_shift_classifier.py      # 联合漂移合成协议、有界性与确定性
+    test_shift_comparison.py            # 配对加权对照、证据门禁与报告集成
+    test_joint_shift_baselines.py       # 联合漂移四基线、消融、边界与确定性
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -249,6 +277,7 @@ tests/
     test_pusb_official_data.py          # PUSB 官方数据构造、runner 与 provenance
     test_pusb_table2_benchmark.py       # claim-safe PUSB Table 2 benchmark runner 测试
     test_pusb_table2_data.py            # 锁定 PUSB Table 2 数据集 loader 与采样审计测试
+    test_joint_shift_public_benchmark.py # 公开数据多 seed/CI/样本重叠 benchmark
   __init__.py                           # tests 包声明(支持 tests.helpers 导入)
   conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
   helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
@@ -278,6 +307,9 @@ examples/
     08_diagnostic_report.py   (已拟合 PUSB 的结构化诊断报告)
     09_sensitivity_analysis.py (固定模型输出的假设敏感性审计)
     10_self_pu.py            (clean validation 下的 Self-PU 三阶段训练)
+    11_distribution_shift.py (源/目标漂移审计与受保护的协变量加权适配)
+    12_shift_decision_tools.py (配对决策、窗口监控、双域假设与主动复核)
+    13_dynamic_joint_shift.py (论文式动态联合漂移 research 求解器)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）
@@ -316,7 +348,7 @@ benchmarks/
     configs/
       clean_room_multiseed.json
       official_data_smoke_fashion_mnist.json
-      official_data_infomax_fashion_protocol.json
+      official_data_infomax_fashion_protocol_pi05.json
       official_data_wconpu_cifar10_protocol.json
       official_sources.lock.json
       official/               (三份 paper-like 配置；InfoMax provisional matrix 已执行，其余待执行)
@@ -325,6 +357,10 @@ benchmarks/
     results/infomax_fashion_protocol_preflight/ (InfoMax Fashion-MNIST 完整协议执行前审计)
     results/official_preflight/ (当前节点完整配置 blocker 报告)
     results/wconpu_cifar10_protocol_preflight/ (WConPU CIFAR-10 执行前审计)
+  joint_shift/
+    __init__.py
+    runner.py                  (公开 Wisconsin 多 seed/CI 联合漂移 smoke)
+    README.md                  (协议、运行命令、产物与声明边界)
 ```
 
 启用 clean-validation 模型选择的 official-data 运行还会生成 `model_selection.csv`，逐 seed
@@ -382,6 +418,7 @@ docs/
       InfoMax-PU.md
       WConPU.md
       DGPU.md
+      Importance_Weighted_PU_Shift.md
 
 ```
 

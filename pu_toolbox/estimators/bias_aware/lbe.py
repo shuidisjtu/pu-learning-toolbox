@@ -22,6 +22,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -38,6 +39,7 @@ class LBEClassifier(BasePUClassifier):
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH
+    sample_weight_support = SampleWeightSupport.IGNORED
 
     def __init__(self, *, max_iter: int = 1000, n_em_iter: int = 20, C: float = 1.0) -> None:
         super().__init__()

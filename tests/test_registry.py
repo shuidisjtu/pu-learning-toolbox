@@ -85,6 +85,16 @@ class TestAliasResolution:
         with pytest.raises(RegistryError, match="shared_alias"):
             register_method(meta2)
 
+    def test_edge_deprecated_alias_warns_and_must_be_registered(self):
+        """Deprecated aliases resolve compatibly while guiding migration."""
+        with pytest.raises(ValueError, match="subset of aliases"):
+            _make_meta("invalid", deprecated_aliases=["old"])
+
+        meta = _make_meta("current", aliases=["old"], deprecated_aliases=["old"])
+        register_method(meta)
+        with pytest.warns(FutureWarning, match="use 'current' instead"):
+            assert get_metadata("OLD").name == "current"
+
 
 @pytest.mark.unit
 class TestGetAlgorithm:

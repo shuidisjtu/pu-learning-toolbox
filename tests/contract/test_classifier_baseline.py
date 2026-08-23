@@ -11,8 +11,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pu_toolbox.core.base import BasePriorEstimator
+from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
 from pu_toolbox.core.exceptions import NotFittedError
+from pu_toolbox.core.tags import SampleWeightSupport
 from pu_toolbox.estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.pnu import PNUClassifier
@@ -421,6 +422,7 @@ class TestAPIContract:
         assert meta["is_fitted"] is True
         assert "family" in meta
         assert "implementation_status" in meta
+        assert "sample_weight_support" in meta
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
     def test_score_samples_delegates_to_decision_function(self, algo_name, rng):
@@ -431,6 +433,25 @@ class TestAPIContract:
             clf.score_samples(X),
             clf.decision_function(X),
         )
+
+    def test_sample_weight_semantics_are_explicit(self):
+        """Every classifier declares one of the three documented behaviors."""
+        for algo_name, factory in _FACTORY_MAP.items():
+            clf = factory()
+            if _is_prior_estimator(clf):
+                continue
+            assert "sample_weight_support" in type(clf).__dict__, (
+                f"{algo_name} must explicitly declare sample_weight_support"
+            )
+            support = clf.sample_weight_support
+            assert isinstance(support, SampleWeightSupport)
+            base_metadata = BasePUClassifier.get_pu_metadata(clf)
+            assert base_metadata["sample_weight_support"] == support.value
+            if support == SampleWeightSupport.IGNORED:
+                fit_doc = clf.fit.__doc__ or ""
+                assert "ignored" in fit_doc.lower(), (
+                    f"{algo_name} ignores sample_weight but does not document it"
+                )
 
 
 # ══════════════════════════════════════════════════════════════════

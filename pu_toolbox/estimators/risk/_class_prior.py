@@ -1,4 +1,4 @@
-"""Shared class-prior estimation helper for risk-based estimators."""
+"""Shared class-prior helpers for risk-based estimators."""
 
 from __future__ import annotations
 
@@ -39,3 +39,44 @@ def solve_prior_from_positive_fraction(k: int, n: int, h: float) -> float:
             f"k={k}, n={n}. Formula: p = k / [n·(1−h)]."
         )
     return p
+
+
+def stable_centroid_denominator(
+    p: float,
+    h: float,
+    *,
+    tolerance: float = 1e-12,
+) -> float:
+    """Return the LDCE centroid denominator after a stability check.
+
+    Both LDCE variants divide by ``1 - 2 * p * h`` when constructing the
+    centroid term. Values close to zero make that term ill-conditioned and
+    must be rejected consistently.
+
+    Parameters
+    ----------
+    p : float
+        Positive-class prior.
+    h : float
+        Positive-label flip probability.
+    tolerance : float, default=1e-12
+        Absolute denominator values below this threshold are rejected.
+
+    Returns
+    -------
+    float
+        The stable denominator ``1 - 2 * p * h``.
+
+    Raises
+    ------
+    ValueError
+        If the denominator's absolute value is below ``tolerance``.
+    """
+    denominator = 1.0 - 2.0 * p * h
+    if abs(denominator) < tolerance:
+        raise ValueError(
+            f"Denominator 1−2ph = {denominator:.2e} is near-zero "
+            f"(h={h}, p={p}). The centroid term is ill-conditioned "
+            "for this data / flip_probability combination."
+        )
+    return denominator

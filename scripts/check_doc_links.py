@@ -2,7 +2,7 @@
 """Documentation-code consistency gate.
 
 Rules:
-1. **Path references** -- every ``path/file.{py,md}`` in docs must exist on disk.
+1. **Path references** -- every ``path/file.{py,md}`` in project Markdown must exist on disk.
 2. **(planned) consistency** -- ``project_structure.md`` tree must match
    actual file existence.
 3. **Architecture S8 mapping** -- ``architecture.md`` S8 table must agree
@@ -92,12 +92,8 @@ def _relative(path: Path) -> str:
 
 
 def _find_md_files() -> list[Path]:
-    """Return all in-scope .md files, sorted by path."""
-    files: list[Path] = []
-    for name in ["README.md", "CLAUDE.md"]:
-        p = PROJECT_ROOT / name
-        if p.exists():
-            files.append(p)
+    """Return root-level and docs-tree Markdown files, sorted by path."""
+    files = list(PROJECT_ROOT.glob("*.md"))
     for p in DOCS_DIR.rglob("*.md"):
         if any(p.is_relative_to(DOCS_DIR / d) for d in _EXCLUDED_DOC_DIRS):
             continue

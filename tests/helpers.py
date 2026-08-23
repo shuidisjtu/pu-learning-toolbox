@@ -6,10 +6,26 @@ Keep ordinary helpers outside ``conftest.py`` so tests do not import pytest's
 fixture configuration module directly.
 """
 
+import random
+
 import numpy as np
 
 from pu_toolbox.preprocessing import make_scar_dataset as _make_scar_dataset
 from pu_toolbox.preprocessing import make_scar_labels as _make_scar_labels
+
+
+def set_test_seed(seed: int) -> None:
+    """Seed Python, NumPy, and optional torch for deterministic tests."""
+    random.seed(seed)
+    np.random.seed(seed)
+    try:
+        import torch
+
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+    except ImportError:
+        pass
 
 
 def make_scar_data(rng, n=100, c=0.5, n_features=5, separation=4.0):

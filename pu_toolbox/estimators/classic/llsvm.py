@@ -23,6 +23,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -111,6 +112,7 @@ class LLSVMClassifier(BasePUClassifier):
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.NUMPY
     maturity = Maturity.RESEARCH
+    sample_weight_support = SampleWeightSupport.IGNORED
 
     def __init__(
         self,
@@ -158,6 +160,7 @@ class LLSVMClassifier(BasePUClassifier):
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> LLSVMClassifier:
+        """Fit LLSVM; ``sample_weight`` is accepted but currently ignored."""
         X, y_pu = validate_pu_X_y(
             X,
             y_pu,

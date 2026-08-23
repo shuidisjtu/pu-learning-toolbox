@@ -17,9 +17,9 @@ Rules (aligned with ``docs/project_structure.md`` §3):
    filler tests.  Declarations are reprinted every run and flagged as
    removable once the category is actually covered, so the list stays
    honest and shrinkable.
-4. **Exemptions**: the three hand-maintained lists are reprinted (with reasons)
-   every run, and any listed file whose coverage now satisfies the rules
-   is flagged as removable — informational only, never affects exit code.
+4. **Exemptions**: the three hand-maintained lists are reprinted (with reasons).
+   Stale entries fail the gate once their exemption is no longer necessary,
+   providing an enforced exit path instead of an ever-growing allowlist.
 
 Usage::
 
@@ -108,16 +108,12 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
 
 # Files exempt from the ≤15 limit (cross-cutting contract / registry),
 # keyed by file name with the reason each exemption was granted.  The
-# exemption review (``review_exemptions``) flags entries whose coverage
-# no longer needs the exemption, so the lists can shrink.
+# exemption review (``review_exemptions``) fails entries that no longer
+# need the exemption, so the lists must shrink.
 UNLIMITED_FILES: dict[str, str] = {
-    "test_classifier_baseline.py": "contract: unified API + baseline for all NATIVE",
     "test_generate_structure.py": (
         "structure generator unit tests (find_blocks/parse_tree/build/merge/generate/CLI)"
     ),
-    "test_builtin_methods.py": "registry metadata completeness",
-    "test_registry.py": "registry mechanics",
-    "test_import.py": "smoke imports",
     "test_kldce_math.py": "MATH formula verification (includes merged QP oracle tests)",
 }
 
@@ -321,21 +317,17 @@ def _effective_missing(report: ModuleReport) -> set[str]:
     return report.categories_missing - declared
 
 
-def review_exemptions(reports: list[ModuleReport], max_tests: int = 15) -> None:
-    """Print the exemption lists and flag entries that no longer need them.
+def review_exemptions(reports: list[ModuleReport], max_tests: int = 15) -> list[str]:
+    """Print exemptions and return stale entries that must be removed.
 
     Governance aid for the three hand-maintained lists: they are
-    reprinted (with reasons) every run, and any listed file whose current
-    category coverage satisfies the rules is reported as removable so the
-    lists can shrink.  For UNLIMITED_FILES the hint is only emitted when
-    the file's test count is within the ≤ max_tests limit — the count
-    exemption is genuinely no longer needed.  A file kept exempt for the
-    count rule (e.g. a 20-test file) would break the gate if de-listed
-    despite full coverage, so it must not be flagged.  A PARTIAL_COVERAGE
-    category is flagged as removable once it appears in the file's
-    categories_found.  Informational only — this never contributes to
-    the exit code.
+    reprinted (with reasons) every run. An ``UNLIMITED_FILES`` entry is stale
+    once its count is within the normal limit. A ``CONTRACT_COVERED_FILES``
+    entry is stale once the file independently satisfies the coverage rule.
+    A ``PARTIAL_COVERAGE`` category is stale once the category appears in the
+    file. Every stale entry contributes to the gate's non-zero exit code.
     """
+    stale: list[str] = []
     print("\n─ Exemption review ─")
     print("  UNLIMITED_FILES (exempt from the ≤15 test limit):")
     for name, reason in sorted(UNLIMITED_FILES.items()):
@@ -352,24 +344,26 @@ def review_exemptions(reports: list[ModuleReport], max_tests: int = 15) -> None:
         now_covered = sorted(declared & r.categories_found)
         if now_covered:
             rel = _relative(r.path)
-            print(
-                f"  INFO: {rel} may drop declared {now_covered} from PARTIAL_COVERAGE (now covered)"
-            )
+            message = f"{rel} must drop declared {now_covered} from PARTIAL_COVERAGE (now covered)"
+            stale.append(message)
+            print(f"  ERROR: {message}")
     for r in reports:
-        covered = len(r.categories_found)
-        if covered < 3:
-            continue
         rel = _relative(r.path)
         if r.path.name in UNLIMITED_FILES and r.n_tests <= max_tests:
-            print(
-                f"  INFO: {rel} may be removable from UNLIMITED_FILES "
-                f"(covers {covered}/4 categories)"
+            message = (
+                f"{rel} must be removed from UNLIMITED_FILES "
+                f"({r.n_tests} tests <= limit {max_tests})"
             )
-        if r.path.name in CONTRACT_COVERED_FILES:
-            print(
-                f"  INFO: {rel} may be removable from CONTRACT_COVERED_FILES "
-                f"(covers {covered}/4 categories)"
+            stale.append(message)
+            print(f"  ERROR: {message}")
+        if r.path.name in CONTRACT_COVERED_FILES and not _effective_missing(r):
+            message = (
+                f"{rel} must be removed from CONTRACT_COVERED_FILES "
+                "(independent coverage is complete)"
             )
+            stale.append(message)
+            print(f"  ERROR: {message}")
+    return stale
 
 
 def main(max_tests: int = 15, strict: bool = True) -> int:
@@ -439,8 +433,8 @@ def main(max_tests: int = 15, strict: bool = True) -> int:
         else:
             print("  ✓ all files cover required categories (missing ≤1 allowed in lenient mode)")
 
-    # ── 4. Exemption review (informational, never affects exit code) ─
-    review_exemptions(reports, max_tests)
+    # ── 4. Exemption review (stale entries fail the gate) ───────────
+    n_issues += len(review_exemptions(reports, max_tests))
 
     # ── Final verdict ───────────────────────────────────────────────
     print()

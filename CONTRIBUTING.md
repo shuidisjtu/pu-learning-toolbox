@@ -10,9 +10,8 @@
 2. `docs/dev/process_checklist.md`：当前任务完成状态。
 3. `docs/dev/project_structure.md`：目录结构。
 4. `docs/dev/architecture.md`：公共 API、依赖方向和数据流。
-5. `docs/dev/roadmap.md`：高层版本路线，不覆盖进度清单。
-6. `requirements.txt`：开发环境快照，仅用于问题复查，不是安装规范。
-7. `docs/adr/`：架构与流程决策记录（决策的权威来源；版本/进度状态见
+5. `requirements.txt`：开发环境快照，仅用于问题复查，不是安装规范。
+6. `docs/adr/`：架构与流程决策记录（决策的权威来源；版本/进度状态见
    `docs/dev/process_checklist.md` 与 `docs/dev/release_process.md`）。
 
 Method Card 描述论文、公式、实现边界和复现规格，但不能单独证明算法或论文复现已经完成。
@@ -103,7 +102,7 @@ git diff --check
 | `rbf_weights` | `pu_toolbox/utils/basis.py` | RBF 核权重（六处收敛单源） |
 | `validate_true_binary_labels` | `pu_toolbox/core/validation.py` | y_true 值域校验 |
 | `check_scalar_in_range` | `pu_toolbox/core/validation.py` | 标量范围校验（`inclusive=False` 为开区间） |
-| `solve_prior_from_positive_fraction` | `pu_toolbox/estimators/risk/_class_prior.py` | 类先验推导与 1−2ph 分母检查 |
+| `solve_prior_from_positive_fraction` / `stable_centroid_denominator` | `pu_toolbox/estimators/risk/_class_prior.py` | 类先验推导与质心项 1−2ph 稳定性检查 |
 | `git_worktree_dirty` | `benchmarks/_common.py` | git 脏状态检测（`exclude` 参数排除 runner 自身输出） |
 
 **代谢率红线**：PR 评审时对增量代码做单源检查——发现 **>1 处单源违规为黄线**（该 PR 必须包含收敛治理）；**≥3 处或同一概念第 3 次分裂为红线**，触发该区域的结构性重构评估。历史治理记录见 `docs/dev/architecture_audit.md`。

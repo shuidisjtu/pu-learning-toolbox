@@ -14,11 +14,13 @@ from collections.abc import Sequence
 from ..core.exceptions import PULearningError
 from .audit_benchmark import build_audit_benchmark_parser
 from .demo import build_demo_parser
+from .deployment import build_deployment_parser
 from .info import build_info_parser
 from .profile import build_profile_parser
 from .recommend import build_recommend_parser
 from .run import build_run_parser
 from .sensitivity import build_sensitivity_parser
+from .shift import build_shift_parser
 from .skill import build_skill_parser
 
 __all__ = ["build_parser", "main"]
@@ -39,6 +41,8 @@ def build_parser() -> argparse.ArgumentParser:
     build_sensitivity_parser(sub)
     build_skill_parser(sub)
     build_audit_benchmark_parser(sub)
+    build_shift_parser(sub)
+    build_deployment_parser(sub)
     return parser
 
 

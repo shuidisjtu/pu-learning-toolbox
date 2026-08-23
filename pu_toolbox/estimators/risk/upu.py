@@ -32,6 +32,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -140,6 +141,7 @@ class UPUClassifier(BasePUClassifier):
     source_status: SourceStatus = SourceStatus.OFFICIAL_BUNDLE
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE
+    sample_weight_support: SampleWeightSupport = SampleWeightSupport.IGNORED
 
     def __init__(
         self,
@@ -445,35 +447,6 @@ class UPUClassifier(BasePUClassifier):
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """Binary labels: 1 if g(x) >= 0 else 0."""
         return (self._decision_function(X) >= 0.0).astype(int)
-
-    # ── PU validation risk ───────────────────────────────────────────
-
-    def pu_validation_risk(
-        self,
-        X: np.ndarray,
-        y_pu: np.ndarray,
-    ) -> float:
-        """Compute PU zero-one validation risk (paper Eq. 2).
-
-        Used for hyper-parameter selection (PU-CV).  Low values
-        (possibly negative) indicate better models.
-
-        Delegates to :func:`pu_toolbox.metrics.pu_zero_one_risk`.
-
-        Parameters
-        ----------
-        X : np.ndarray of shape (n_samples, n_features)
-        y_pu : np.ndarray of shape (n_samples,)
-            PU labels in {+1, 0} format.
-
-        Returns
-        -------
-        float
-        """
-        from pu_toolbox.metrics.classification import pu_zero_one_risk
-
-        scores = self.decision_function(X)
-        return pu_zero_one_risk(y_pu, scores, class_prior=self.class_prior_)
 
     # ── Metadata ─────────────────────────────────────────────────────
 

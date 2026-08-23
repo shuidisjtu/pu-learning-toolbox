@@ -17,8 +17,8 @@
 | Core | `core`, `preprocessing`, `registry`, `advisor`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、结构化数据画像、算法注册、元数据、算法推荐、共享工具 |
 | Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
 | Algorithms | `estimators` | 实现具体 PU 分类器 |
-| Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化报告与假设敏感性 |
-| Orchestration | `workflows`, `cli` | PUPipeline 端到端编排（画像→先验→训练→CV→评估→报告）与命令行薄封装 |
+| Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化报告、假设敏感性与源/目标漂移审计 |
+| Orchestration | `workflows`, `cli` | PUPipeline 端到端编排、协变量漂移加权工作流与命令行薄封装 |
 | User Layer | `examples`, `scripts/pu_workflow/`, pu-workflow skill | 教程、工作流兼容包装（委托 CLI 子命令）与 agent 流程 |
 
 ### 2.1 系统上下文
@@ -107,6 +107,11 @@ Registry → 候选算法 → 实现解析 (native / torch)
     ↓
 评估 + 诊断 → 报告
 ```
+
+源/目标双域路径独立于普通单域入口：`analyze_pu_shift` 用 OOF 域分类器估计可观测
+边际漂移和相对密度比；`ShiftAwarePUPipeline` 在覆盖门禁通过后把源域权重逐折传给
+`PUPipeline`。该路径的保证固定为 covariate-shift-only，不把边际权重描述为联合
+`p_target(x,y)/p_source(x,y)` 适配。
 
 Data Profiler 输出 `PUDataProfile`：包含基础统计、特征质量、问题级别、行动建议和
 标记机制证据。无审计真值时，SCAR/SAR 提示明确标记为非识别性筛查；提供 `y_true`

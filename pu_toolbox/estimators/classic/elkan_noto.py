@@ -32,6 +32,7 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
@@ -99,6 +100,7 @@ class ElkanNotoClassifier(BasePUClassifier):
     source_status: SourceStatus = SourceStatus.THIRD_PARTY_ONLY
     backend: Backend = Backend.SKLEARN
     maturity: Maturity = Maturity.STABLE
+    sample_weight_support: SampleWeightSupport = SampleWeightSupport.SUPPORTED
 
     def __init__(
         self,

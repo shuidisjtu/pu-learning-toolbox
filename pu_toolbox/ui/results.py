@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pu_toolbox.ui.deployment import render_deployment_tools
 from pu_toolbox.ui.execution import AnalysisResult
 
 
@@ -27,7 +28,7 @@ def _metric_rows(report: Any) -> list[dict[str, Any]]:
     ]
 
 
-def render_results(st: Any, analysis: AnalysisResult, X: np.ndarray) -> None:
+def render_results(st: Any, analysis: AnalysisResult, X: np.ndarray, y_pu: np.ndarray) -> None:
     """Render one completed analysis and all its downloadable artifacts."""
     report = analysis.report
     tuning = analysis.tuning
@@ -60,6 +61,12 @@ def render_results(st: Any, analysis: AnalysisResult, X: np.ndarray) -> None:
         else:
             st.info(message)
     _downloads(st, analysis, X)
+    render_deployment_tools(
+        st,
+        reference_X=X,
+        reference_y_pu=y_pu,
+        model=report.final_model,
+    )
 
 
 def _downloads(st: Any, analysis: AnalysisResult, X: np.ndarray) -> None:

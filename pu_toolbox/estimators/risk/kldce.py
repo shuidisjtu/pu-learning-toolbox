@@ -44,12 +44,16 @@ from ...core.tags import (
     Backend,
     ImplementationStatus,
     Maturity,
+    SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...utils.centroid import _centroid_covariance, _mom_centroid
-from ._class_prior import solve_prior_from_positive_fraction
+from ._class_prior import (
+    solve_prior_from_positive_fraction,
+    stable_centroid_denominator,
+)
 
 # ═════════════════════════════════════════════════════════════════════
 # Kernel
@@ -733,6 +737,7 @@ class KLDCEClassifier(BasePUClassifier):
     source_status: SourceStatus = SourceStatus.OFFICIAL_RELATED
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.RESEARCH
+    sample_weight_support: SampleWeightSupport = SampleWeightSupport.IGNORED
 
     def __init__(
         self,
@@ -842,12 +847,7 @@ class KLDCEClassifier(BasePUClassifier):
         self.class_prior_ = p
 
         # ── Check near-singular denominator (§4 step 3) ──────────────
-        denom = 1.0 - 2.0 * p * h
-        if abs(denom) < 1e-12:
-            raise ValueError(
-                f"Denominator 1−2ph = {denom:.2e} is near-zero "
-                f"(h={h}, p={p}). The centroid term is ill-conditioned."
-            )
+        denom = stable_centroid_denominator(p, h)
 
         # ── Validate other hyper-parameters ───────────────────────────
         if self.reg_strength <= 0:

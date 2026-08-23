@@ -1,11 +1,12 @@
 # ruff: noqa: S101
 
-"""Unit tests for the shared class-prior derivation helper.
+"""Unit tests for the shared class-prior helpers.
 
-Covers ``_class_prior.solve_prior_from_positive_fraction``:
+Covers ``_class_prior`` helpers:
 - basic: formula evaluation and the closed upper bound
 - param: invalid ``n`` / ``h`` rejections
 - edge: boundary values (``h = 1``, derived prior ``<= 0`` / ``> 1``)
+- error: near-singular centroid denominator rejection
 - determ: pure-function determinism
 """
 
@@ -13,7 +14,10 @@ from __future__ import annotations
 
 import pytest
 
-from pu_toolbox.estimators.risk._class_prior import solve_prior_from_positive_fraction
+from pu_toolbox.estimators.risk._class_prior import (
+    solve_prior_from_positive_fraction,
+    stable_centroid_denominator,
+)
 
 
 @pytest.mark.unit
@@ -58,3 +62,12 @@ class TestSolvePriorFromPositiveFraction:
         assert solve_prior_from_positive_fraction(7, 50, 0.4) == (
             solve_prior_from_positive_fraction(7, 50, 0.4)
         )
+
+    def test_basic_centroid_denominator(self):
+        """The shared denominator helper returns 1 - 2ph."""
+        assert stable_centroid_denominator(0.2, 0.5) == 0.8
+
+    def test_error_near_singular_centroid_denominator(self):
+        """Near-zero values are rejected with an actionable error."""
+        with pytest.raises(ValueError, match="near-zero.*ill-conditioned"):
+            stable_centroid_denominator(1.0, 0.5)

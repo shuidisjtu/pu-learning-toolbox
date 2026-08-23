@@ -34,6 +34,20 @@
 > 注册名可直接用于 `PUPipeline(classifier="...")` 与 CLI `--classifier`；别名大小写不敏感。
 > 族列为友好简称；CLI 与 JSON 输出使用枚举值：`class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` / `deep_pu`。
 > 构造器有必填非 `class_prior` 参数的方法可用 `classifier_params` 补齐；需要 Python 对象协议的参数也可直接传配置好的实例。
+> 旧类先验别名 `pe` 仍可解析，但会发出 `FutureWarning`；请迁移到 `class_prior_estimation` 或 `cpe`。
+
+### `sample_weight` 三档语义
+
+所有分类器都保留统一的 `fit(..., sample_weight=None)` 签名，并通过
+`get_pu_metadata()["sample_weight_support"]` 明确声明行为：
+
+| 值 | 行为 | 当前分类器 |
+|---|---|---|
+| `supported` | 权重进入训练目标 | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
+| `ignored` | 为 sklearn API 兼容而接受，但不参与训练 | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
+| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu` |
+
+依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
 
 ## PUPipeline
 
@@ -54,11 +68,23 @@ pipe = PUPipeline(
     backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
 )
-report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None, refit=True)
+report = pipe.fit_evaluate(
+    X,
+    y_pu,
+    y_true=None,
+    class_prior=None,
+    sample_weight=None,         # 可选；逐 CV 训练折切片并传给最终 refit
+    refit=True,
+)
 ```
 
 `refit=False` 只计算交叉验证指标，跳过全量模型重训与模型诊断；此时
 `report.final_model` 和 `report.diagnostic` 为 `None`。该模式主要供参数搜索使用。
+
+`sample_weight` 必须是一维、有限、非负且至少有一个正值。非 `None` 时，pipeline 在模型
+解析后检查 `SampleWeightSupport`：只有 `supported` 能继续，`ignored` 与
+`not_implemented` 均抛 `PipelineError`。报告的
+`provenance["sample_weight"]` 保存是否提供、范围、均值和 ESS，不保存整列权重。
 
 ### 类先验解析优先级
 
@@ -136,6 +162,140 @@ report = pipe.fit_evaluate(X, y_pu, y_true=None, class_prior=None, refit=True)
 | 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
 | 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
 | 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
+| `sample_weight` 形状/数值非法 | `ValueError` |
+| 分类器忽略或未实现 `sample_weight` | `PipelineError`（不会静默训练） |
+
+## 分布漂移 API
+
+用法与解释见[分布漂移指南](../howto/distribution_shift.md)。
+
+### `analyze_pu_shift`
+
+```python
+report = analyze_pu_shift(
+    X_source,
+    y_source_pu,
+    X_target,
+    y_target_pu=None,
+    alpha=0.1,
+    probability_clip=1e-6,
+    cv=5,
+    random_state=42,
+    moderate_auc=0.60,
+    high_auc=0.75,
+    min_effective_sample_fraction=0.50,
+    max_boundary_fraction=0.05,
+    min_relative_mass=0.10,
+)
+```
+
+返回 `PUShiftReport`：
+
+| 字段 | 契约 |
+|---|---|
+| `domain_auc` | 分层 OOF 域分类 ROC AUC，方向对称化到 `[0.5, 1]` |
+| `severity` | `low` / `moderate` / `high`，默认分界 0.60/0.75 |
+| `sample_summary` | 两域样本量、展平特征数、已标记正例率和目标 PU 可用性 |
+| `weight_summary` | 归一化权重分位数、ESS、概率裁剪率、边界率与归一化前相对质量 |
+| `adaptation_ready` | 目标 PU 已提供，且 ESS、边界率、相对质量均通过默认覆盖门槛 |
+| `source_importance_weights` | 与源域行对应、均值为 1 的边际相对权重 |
+| `issues` | `ProfileIssue` 元组，含问题码、级别、解释和行动建议 |
+
+`report.to_dict()` / `to_json()` 不内嵌全量权重；`save(.csv)` 单独导出权重。
+`save(.json/.md)` 保存结构化或人可读报告。权重估计范围固定为
+`marginal_covariate`，不代表 `p_target(x,y)/p_source(x,y)` 联合权重。
+
+### `ShiftAwarePUPipeline`
+
+```python
+workflow = ShiftAwarePUPipeline(
+    pipeline=None,               # 可传配置好的 PUPipeline
+    classifier="elkan_noto",    # pipeline=None 时生效
+    alpha=0.1,
+    shift_cv=5,
+    allow_unstable=False,
+    cv=5,                        # 其余关键字传给 PUPipeline
+    random_state=42,
+)
+result = workflow.fit_evaluate(
+    X_source,
+    y_source_pu,
+    X_target,
+    y_target_pu=y_target_pu,
+    y_true_source=None,
+    y_true_target=None,
+    class_prior=None,
+    target_class_prior=None,
+    adapt=True,
+    refit=True,
+)
+```
+
+`adapt=True` 必须提供目标 PU 标签，并把漂移报告的源域权重传给 `PUPipeline`；覆盖门禁
+失败时默认抛 `PipelineError`。`adapt=False` 执行审计和未加权源域基线。
+`ShiftAwarePipelineReport` 分开保存 `shift`、`source_pipeline` 与 `target_metrics`；目标
+真值指标仍标为 `supervised_oracle`。其 `guarantee` 固定为
+`covariate_shift_only`，目标 PU 标签当前作为适配安全门和目标评估输入，不参与边际域密度比。
+
+### `ShiftAwarePUPipeline.compare`
+
+`compare(...)` 在同一目标集运行未加权和加权两臂并返回 `ShiftComparisonReport`。报告的
+`metric_deltas[*].improvement` 已统一方向：正数总表示加权臂更好（risk 会反号）。自动
+`recommendation` 只允许使用目标真值 oracle 指标或目标类先验依赖指标；仅有 PU-observed
+指标时为 `audit_only`，覆盖门禁失败且未 override 时为 `collect_target_data`。
+
+### `PUShiftMonitor`
+
+```python
+monitor = PUShiftMonitor(
+    X_reference,
+    y_reference_pu,
+    alpha=0.1,
+    cv=5,
+    auc_jump_threshold=0.10,
+    label_rate_jump_threshold=0.05,
+)
+window, shift = monitor.update(
+    X_window, y_window_pu=y_window_pu, window_id="2026-08", timestamp=None
+)
+monitor.save_history("history.json")
+```
+
+`ShiftWindow` 保存当前值、相邻窗口 delta、`alert_level` 和 `alert_codes`。窗口 ID 不允许
+重复；`load_history` 要求持久化配置与当前监控器完全一致。
+
+### `analyze_domain_assumptions`
+
+分别接收源/目标特征和 PU 标签，以及可选的两个域类先验。先验缺失时每个域独立估计。
+返回 `DomainAssumptionReport`，结论为 `stable`、`class_prior_shift`、
+`labeling_mechanism_shift`、`both_shift` 或 `inconclusive`。平均标记倾向不识别 SCAR/SAR。
+设置 `bootstrap_replicates>=2` 后，会分别对两个域做行级非参数重采样，每轮重新运行先验
+估计器，并把 percentile 区间传播到类先验、标记率、平均倾向及三类域差值。`uncertainty`
+记录请求、成功和失败 replicate；它反映采样和估计器变化，不覆盖识别假设偏差。
+
+### `analyze_pu_uncertainty`
+
+对已拟合模型计算二分类概率边际、拒绝预测和主动人工复核列表。`query_strategy` 支持
+`uncertainty`、`shift_weighted`、`diverse_uncertainty`；第二种必须提供与行对齐的
+`importance_weight`。报告 JSON 只存摘要，CSV 保存逐行概率、不确定性、选择性预测和查询标记。
+
+### `JointShiftPUClassifier`（research）
+
+从 `pu_toolbox.estimators.research` 导入。`fit` 除源域 `X/y_pu` 外还必须显式传入
+`X_target`、`y_target_pu`、`class_prior` 和 `target_class_prior`。它不在稳定注册表和
+`PUPipeline` 自动选型中；`get_pu_metadata()["guarantee"]` 固定为
+`research_joint_shift_approximation`。
+
+### `DynamicJointShiftPUClassifier`（research）
+
+从 `pu_toolbox.estimators.research` 导入。Torch clean-room 路径实现 Kumagai 等人 AISTATS
+2025 的式 (13)、(19)–(23) 和 Algorithm 1：权重步骤固定共享特征，仅更新有界权重头；
+分类步骤固定当前权重，更新共享特征和分类头。`training_mode="two_step"`、两个 correction
+开关用于论文式消融。作者未公开源码，因此元数据是 `clean_room_paper_objective`，不是
+`official_exact`；该方法不进入稳定注册表和 `auto`。
+
+`build_joint_shift_estimator(...)` 可构造 `dynamic`、`trpu`、`tepu`、`fine_tune`、`mmd`、
+`two_step` 及三种 correction 消融。所有神经对照共用特征/分类头规模和绝对值修正 PU risk。
 
 ## PUTuner
 
