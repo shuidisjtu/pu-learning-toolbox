@@ -6,6 +6,7 @@
   "seed_set_confirmation": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119],
   "data": {
     "n_features": 5,
+    "class_priors": [0.3],
     "separation": 2.0,
     "n_samples_small": 400,
     "n_samples_mid": 2000,

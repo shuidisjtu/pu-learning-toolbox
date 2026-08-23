@@ -17,7 +17,9 @@
 - **PNU 三元网格**（`configs/pnu_baseline_v1.json`）：P:N:U 比例 1:1:4 / 1:2:4 /
   1:1:8 × scale，观测标签为 `{+1, -1, 0}`；PNU 不参与纯 PU 方法横向排名；二元 PU
   指标（`pu_zero_one_risk`/`pu_estimated_precision`/`pu_recall`/`pu_negative_rate`）
-  在该网格中标记为不可用并记录原因。
+  在该网格中标记为不可用并记录原因。契约 §2.2 不要求 PNU 协议提供 π，但
+  PNUClassifier 必填 `class_prior`：runner 取 `data.class_priors` 首项（0.3）作为
+  类先验传入每个 PNU 单元，0.3 为记录级选择（非数据真实先验）。
 
 ## 命令
 
@@ -52,11 +54,13 @@ uv run python -m benchmarks.traditional_pu.run \
 
 ## 已知限制（跟踪中）
 
-- `configs/pnu_baseline_v1.json` 不携带类先验字段（契约 §2.2：PNU 协议本身
-  不需要 π），但 PNUClassifier 需要 `class_prior`。runner 的 `_iter_scenario_specs`
-  当前假定配置一定声明 `class_priors` 或 `class_prior`，对该配置会触发
-  `KeyError: 'class_prior'`；该配置的完整网格执行需要先补齐 runner 侧的 PNU
-  先验接线（跟踪中，最终评审 triage）。
+- 已解决：`configs/pnu_baseline_v1.json` 曾缺类先验字段使 runner
+  `_iter_scenario_specs` 触发 `KeyError`；现配置显式声明 `class_priors: [0.3]`，
+  即该跟踪项关闭（先验来源见 PNU 三元网格节）。
+- 跟踪中：`_trial_body` 无条件读取 `data_cfg["label_frequency"]`
+  （runner.py:217），pnu-only 配置（契约 §2.2 不要求该字段）会触发
+  `KeyError: 'label_frequency'`；PNU 分支不使用该值。需 runner 侧对 pnu 单元
+  惰性读取（Task 7/8 处理）。
 - `--timeout-profile` 对没有 scar-small 单元的方法（pnu-only 配置；以及
   `seven_methods_pu_baseline_v1.json` 中的 `pnu`）会 `StopIteration`（跟踪项
   M5，最终评审 triage）；超时冻结（Task 8）在其修复后执行。
