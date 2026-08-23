@@ -36,6 +36,7 @@
 | [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 | [research/method_cards/](research/method_cards/) | 17 篇论文方法卡（公式、复现状态、实现边界） |
+| [research/traditional_pu_metric_contract.md](research/traditional_pu_metric_contract.md) | 传统 PU 七算法的指标、基线与统计契约 |
 
 ## 架构决策(docs/adr/)
 
