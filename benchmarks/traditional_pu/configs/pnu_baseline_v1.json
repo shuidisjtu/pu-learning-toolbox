@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "protocol": "traditional_pu_baseline",
+  "description": "PNU tri-label protocol: 1:1:4 / 1:2:4 / 1:1:8 P:N:U ratios, small+mid scale, default parameters; not ranked against pure PU methods",
+  "seed_set_development": [0, 1, 2, 3, 4],
+  "seed_set_confirmation": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119],
+  "data": {
+    "n_features": 5,
+    "separation": 2.0,
+    "n_samples_small": 400,
+    "n_samples_mid": 2000,
+    "pn_ratios": ["1:1:4", "1:2:4", "1:1:8"]
+  },
+  "timeouts": {"pnu": 600},
+  "methods": {"pnu": {}},
+  "limitations": ["synthetic tri-label protocol; y_true reserved for final evaluation"]
+}

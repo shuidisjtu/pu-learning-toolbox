@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "protocol": "traditional_pu_baseline",
+  "description": "SCAR main grid (pi x scale) + linear SAR diagnostic line for 7 traditional PU classifiers; default constructor parameters; contract v1",
+  "seed_set_development": [0, 1, 2, 3, 4],
+  "seed_set_confirmation": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119],
+  "data": {
+    "n_samples_small": 400,
+    "n_samples_mid": 2000,
+    "n_features": 5,
+    "class_priors": [0.1, 0.3, 0.5],
+    "separation": 2.0,
+    "label_frequency": 0.5,
+    "sar_strength": 1.0,
+    "sar_mechanism": "linear"
+  },
+  "timeouts": {
+    "elkan_noto": 600,
+    "upu": 600,
+    "nnpu": 600,
+    "pnu": 600,
+    "ldce": 600,
+    "kldce": 600,
+    "llsvm": 1800
+  },
+  "methods": {
+    "elkan_noto": {},
+    "upu": {},
+    "nnpu": {},
+    "pnu": {},
+    "ldce": {},
+    "kldce": {},
+    "llsvm": {}
+  },
+  "limitations": ["synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5"]
+}

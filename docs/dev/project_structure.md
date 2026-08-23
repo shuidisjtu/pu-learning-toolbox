@@ -243,6 +243,7 @@ tests/
       test_device.py                    # resolve_device 设备解析共享助手测试
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
+      test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
@@ -278,6 +279,9 @@ tests/
     test_pusb_table2_benchmark.py       # claim-safe PUSB Table 2 benchmark runner 测试
     test_pusb_table2_data.py            # 锁定 PUSB Table 2 数据集 loader 与采样审计测试
     test_joint_shift_public_benchmark.py # 公开数据多 seed/CI/样本重叠 benchmark
+    test_traditional_pu_benchmark_runner.py # 传统 PU runner 状态机/resume/产物/失败隔离
+    test_traditional_pu_data.py         # 数据协议: SCAR/SAR/PNU 形状、h、病态性
+    test_traditional_pu_statistics.py   # 统计原语: 成功率/CI/配对差值
   __init__.py                           # tests 包声明(支持 tests.helpers 导入)
   conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
   helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
@@ -361,6 +365,17 @@ benchmarks/
     __init__.py
     runner.py                  (公开 Wisconsin 多 seed/CI 联合漂移 smoke)
     README.md                  (协议、运行命令、产物与声明边界)
+  traditional_pu/
+    __init__.py
+    data.py                    (SCAR/SAR/PNU 合成数据、h 传递与病态性检查)
+    statistics.py              (汇总原语: 均值/CI/配对差值/成功率)
+    runner.py                  (统一 runner: SCAR 主网格 + SAR 诊断线 + PNU 三元网格、状态机/resume/超时)
+    run.py                     (CLI: --seed-set/--results-dir/--timeout-profile)
+    README.md                  (协议、命令、超时冻结流程与声明边界)
+    configs/
+      seven_methods_pu_baseline_v1.json
+      pnu_baseline_v1.json
+    results/                   (运行产物: <run-name>/ 下四件套 + report.md)
 ```
 
 启用 clean-validation 模型选择的 official-data 运行还会生成 `model_selection.csv`，逐 seed
