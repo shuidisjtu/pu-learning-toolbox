@@ -5,11 +5,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
+import benchmarks.traditional_pu.runner as runner
 from benchmarks.traditional_pu.runner import (
     METRIC_COLUMNS,
+    _iter_scenario_specs,
+    _run_one_trial,
     load_config,
     run_trials,
     write_artifacts,
@@ -172,3 +176,117 @@ class TestDeterminism:
         a = a.sort_values(["algorithm", "scenario", "seed"]).reset_index(drop=True)
         b = b.sort_values(["algorithm", "scenario", "seed"]).reset_index(drop=True)
         pd.testing.assert_frame_equal(a[cols], b[cols])
+
+
+class TestMetricFailureIsolation:
+    def test_param_non_proba_metric_valueerror_fails_trial(self, tmp_path, monkeypatch):
+        # A ValueError from a non-calibration metric (e.g. pu_auc_roc on
+        # degenerate labels) is a genuine trial failure — it must fail the
+        # row, not masquerade as an unavailable metric inside a success row.
+        config = load_config(_write_config(tmp_path))
+        original = runner._metric_value
+
+        def patched(name, *args, **kwargs):
+            if name == "pu_auc_roc":
+                raise ValueError("degenerate labels")
+            return original(name, *args, **kwargs)
+
+        monkeypatch.setattr(runner, "_metric_value", patched)
+        spec = next(s for _, _, s in _iter_scenario_specs(config) if s["kind"] == "scar")
+        row = _run_one_trial("upu", spec, 0, config)
+        assert row["status"] == "failed"
+        assert "ValueError('degenerate labels')" in row["failure_reason"]
+
+    def test_param_proba_metric_valueerror_marks_unavailable(self, tmp_path, monkeypatch):
+        # Calibration-metric ValueErrors keep the documented availability
+        # semantics: NaN + "invalid probability output (not in [0,1])",
+        # and the row stays a success.
+        config = load_config(_write_config(tmp_path, methods={"elkan_noto": {}}))
+        original = runner._metric_value
+
+        def patched(name, *args, **kwargs):
+            if name == "brier_score":
+                raise ValueError("proba out of range")
+            return original(name, *args, **kwargs)
+
+        monkeypatch.setattr(runner, "_metric_value", patched)
+        spec = next(s for _, _, s in _iter_scenario_specs(config) if s["kind"] == "scar")
+        row = _run_one_trial("elkan_noto", spec, 0, config)
+        assert row["status"] == "success"
+        assert np.isnan(row["brier_score"])
+        assert row["brier_score_unavailable_reason"] == "invalid probability output (not in [0,1])"
+
+
+class TestPnuProtocol:
+    def test_basic_pnu_protocol_cell_counts(self, tmp_path):
+        # PNU runs only its own tri-label cells: 1 ratio × 2 scales × 2 seeds.
+        config = load_config(_write_config(tmp_path, methods={"pnu": {}}))
+        trials, _ = run_trials(
+            config,
+            results_dir=tmp_path / "outpnu",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        assert len(trials) == 4
+        assert (trials["algorithm"] == "pnu").all()
+        assert trials["scenario"].str.startswith("pnu-").all()
+        assert (trials["status"] == "success").all()
+
+    def test_param_pnu_grid_emits_no_scar_sar_cells(self, tmp_path):
+        # Contract §2.2: PNU must never run under the SCAR/SAR binary-PU cells.
+        config = load_config(_write_config(tmp_path, methods={"pnu": {}}))
+        cells = list(_iter_scenario_specs(config))
+        assert len(cells) == 2  # 1 ratio × 2 scales
+        assert all(name == "pnu" for name, _, _ in cells)
+        assert all(not s.startswith("scar-") and not s.startswith("sar-") for _, s, _ in cells)
+
+    def test_edge_pnu_tri_label_metrics_unavailable(self, tmp_path):
+        # Binary-PU-label metrics are NaN + reason in PNU cells; the oracle
+        # metrics still compute on the {0, 1} ground truth.
+        config = load_config(_write_config(tmp_path, methods={"pnu": {}}))
+        trials, _ = run_trials(
+            config,
+            results_dir=tmp_path / "outpnu2",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        row = trials.iloc[0]
+        assert np.isnan(row["pu_recall"])
+        assert (
+            row["pu_recall_unavailable_reason"] == "requires binary PU labels (PNU tri-label cell)"
+        )
+        assert np.isnan(row["pu_zero_one_risk"])
+        assert (
+            row["pu_zero_one_risk_unavailable_reason"]
+            == "requires binary PU labels (PNU tri-label cell)"
+        )
+        assert np.isnan(row["brier_score"])
+        assert row["brier_score_unavailable_reason"] == "requires predict_proba"
+        assert not np.isnan(row["pu_auc_roc"])
+
+
+class TestSarGrid:
+    def test_param_sar_grid_skips_ldce_kldce(self, tmp_path):
+        # Contract §2.3: SAR is a propensity-mechanism diagnostic for the
+        # PU-family methods; the flip-model methods LDCE/KLDCE run on SCAR only.
+        config = load_config(_write_config(tmp_path, methods={"ldce": {}, "llsvm": {}}))
+        trials, _ = run_trials(
+            config,
+            results_dir=tmp_path / "outsar",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        ldce = trials[trials["algorithm"] == "ldce"]
+        assert len(ldce) == 4  # 2 scales × 2 seeds, SCAR only
+        assert not ldce["scenario"].str.startswith("sar-").any()
+        assert ldce["scenario"].str.startswith("scar-").all()
+        # llsvm keeps its SAR diagnostic line
+        assert trials["scenario"].str.startswith("sar-").any()
+        # grid-level: kldce is gated out of SAR too
+        kldce_cfg = load_config(_write_config(tmp_path, methods={"kldce": {}}))
+        cells = list(_iter_scenario_specs(kldce_cfg))
+        assert all(not s.startswith("sar-") for _, s, _ in cells)
+        assert any(s.startswith("scar-") for _, s, _ in cells)

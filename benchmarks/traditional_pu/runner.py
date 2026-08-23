@@ -91,7 +91,8 @@ ESTIMATOR_FACTORY = {
 
 _PROBA_BASED_METRICS = ("brier_score", "expected_calibration_error")
 _PRIOR_BASED_METRICS = ("pu_zero_one_risk", "pu_estimated_precision")
-_PU_BINARY_METRICS = ("pu_recall", "pu_negative_rate")
+# Binary-PU-label metrics; unavailable in PNU tri-label cells (contract §2.2).
+_PU_BINARY_METRICS = (*_PRIOR_BASED_METRICS, "pu_recall", "pu_negative_rate")
 
 
 def load_config(path: str | Path) -> dict:
@@ -126,7 +127,10 @@ def _iter_scenario_specs(config: dict):
         priors = [float(data["class_prior"])]
     scales = (("small", data["n_samples_small"]), ("mid", data["n_samples_mid"]))
     for method in config["methods"]:
-        # SCAR main grid
+        # SCAR main grid: the six binary PU methods only; PNU runs its own
+        # tri-label cells (contract §2.2) and must never see binary-PU labels.
+        if method == "pnu":
+            continue
         for pi in priors:
             for scale, n in scales:
                 yield (
@@ -140,7 +144,12 @@ def _iter_scenario_specs(config: dict):
                         "n_samples": n,
                     },
                 )
-        # linear SAR diagnostic line (never ranked, flagged in scenario name)
+        # linear SAR diagnostic line (never ranked, flagged in scenario name);
+        # SAR data has a propensity mechanism, so the flip-model methods
+        # LDCE/KLDCE (contract §2.3) are excluded — their h semantics is
+        # flipped-label, not propensity.
+        if method in ("ldce", "kldce"):
+            continue
         for pi in priors:
             for scale, n in scales:
                 yield (
@@ -154,8 +163,12 @@ def _iter_scenario_specs(config: dict):
                         "n_samples": n,
                     },
                 )
-    # PNU protocol: cells only in configs whose methods include "pnu"
+    # PNU protocol: cells only in configs whose methods include "pnu".
+    # The protocol itself needs no pi (contract §2.2), but the estimator
+    # requires one — thread the config data prior (first class_priors entry,
+    # else the scalar class_prior) into every PNU cell.
     if "pnu" in config["methods"]:
+        pnu_prior = float(priors[0]) if priors else float(data["class_prior"])
         for ratio_label in data.get("pn_ratios", []):
             for scale, n in scales:
                 yield (
@@ -167,6 +180,7 @@ def _iter_scenario_specs(config: dict):
                         "ratio": ratio_label,
                         "scale": scale,
                         "n_samples": n,
+                        "class_prior": pnu_prior,
                     },
                 )
 
@@ -244,6 +258,9 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
             n_p=p, n_n=n, n_u=u, n_features=n_features, separation=separation, random_state=seed
         )
         y_fit = y_pnu
+        # make_pnu_data's ground truth is {+1, -1}; oracle metrics expect
+        # {0, 1} — normalize once here (PNU protocol, contract §4 metrics).
+        y_true = np.where(y_true == 1, 1, 0)
         meta = {"real_h": float("nan"), "pi_h_well_conditioned": True}
     row.update(meta)
     if kind != "pnu" and not meta["pi_h_well_conditioned"]:
@@ -278,14 +295,16 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
             continue
         try:
             metrics[name] = _metric_value(name, y_fit, pred, scores, y_true, proba, class_prior)
-        except ValueError as exc:
-            if name in _PROBA_BASED_METRICS:
-                # ElkanNotoClassifier.predict_proba is documented to exceed [0, 1].
-                reason = "invalid probability output (not in [0,1])"
-            else:
-                reason = f"metric failed: {exc}"
+        except ValueError:
+            if name not in _PROBA_BASED_METRICS:
+                # A ValueError from any other metric (e.g. pu_auc_roc on
+                # degenerate labels) is a genuine trial failure, not an
+                # availability gap: propagate to _run_one_trial's
+                # failure-isolation backstop (contract §6).
+                raise
+            # ElkanNotoClassifier.predict_proba is documented to exceed [0, 1].
             metrics[name] = np.nan
-            metrics[f"{name}_unavailable_reason"] = reason
+            metrics[f"{name}_unavailable_reason"] = "invalid probability output (not in [0,1])"
     row.update(metrics)
     non_finite = [
         name
