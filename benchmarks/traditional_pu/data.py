@@ -79,7 +79,7 @@ def make_sar_linear_data(
     random_state: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, float | bool | str]]:
     """Linear SAR robustness line; diagnostic only, never main ranking."""
-    X, y_pu, y_true, raw = make_sar_dataset(
+    X, y_pu, y_true, _ = make_sar_dataset(
         n_samples=n_samples,
         n_features=n_features,
         class_prior=class_prior,

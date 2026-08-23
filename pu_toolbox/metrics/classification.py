@@ -252,7 +252,9 @@ def balanced_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return float(balanced_accuracy_score(y_true, y_pred, adjusted=False))
 
 
-def _check_probability_inputs(y_true: np.ndarray, proba: np.ndarray) -> np.ndarray:
+def _check_probability_inputs(
+    y_true: np.ndarray, proba: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     """Validate calibration metric inputs: equal length, proba in [0, 1]."""
     y_true = np.asarray(y_true)
     proba = np.asarray(proba, dtype=float)
@@ -285,7 +287,9 @@ def calibration_bucket_stats(
     Returns ``{"ece": float, "buckets": [{"bin_lo", "bin_hi", "n_samples",
     "confidence", "accuracy"}, ...]}``.  Bin edges follow
     ``np.linspace(0, 1, n_bins + 1)``; a sample with proba exactly at the
-    right edge falls into the last bin (digitize - 1, clipped).
+    right edge falls into the last bin (digitize - 1, clipped).  Empty
+    bins are still emitted with ``n_samples=0``, ``confidence=0.0`` and
+    ``accuracy=0.0``.
     """
     y_true, proba = _check_probability_inputs(y_true, proba)
     if n_bins < 1:
