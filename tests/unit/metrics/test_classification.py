@@ -186,3 +186,64 @@ class TestDeterminism:
             pu_auc_roc(y_true, scores),
         )
         assert first == second
+
+
+# ── planned supervised / calibration metrics ───────────────────────────
+
+
+from pu_toolbox.metrics.classification import (
+    average_precision,
+    balanced_accuracy,
+    brier_score,
+    calibration_bucket_stats,
+    expected_calibration_error,
+)
+
+
+class TestPlannedMetrics:
+    @pytest.mark.math
+    def test_hand_computed_average_precision(self):
+        # AP = Σ (precision_at_t * gain_at_t), 2 positives:
+        # scores 0.9, 0.7, 0.3, 0.1 → order: pos(0.9), pos(0.7), neg(0.3), neg(0.1)
+        # precision@1 = 1.0 → gain 1/2; precision@2 = 1.0 → gain 1/2
+        # AP = (1.0*0.5) + (1.0*0.5) = 1.0
+        y_true = np.array([1, 1, 0, 0])
+        scores = np.array([0.9, 0.7, 0.3, 0.1])
+        assert average_precision(y_true, scores) == pytest.approx(1.0, abs=1e-10)
+
+    @pytest.mark.math
+    def test_hand_computed_balanced_accuracy(self):
+        # y_true [1,1,0,0], y_pred [1,0,0,0]:
+        # recall_pos = 1/2, recall_neg = 1/1 = 1.0 → BA = 0.75
+        y_true = np.array([1, 1, 0, 0])
+        y_pred = np.array([1, 0, 0, 0])
+        assert balanced_accuracy(y_true, y_pred) == pytest.approx(0.75, abs=1e-10)
+
+    @pytest.mark.math
+    def test_hand_computed_brier_score(self):
+        # Brier = mean((proba - y_true)^2)
+        # y_true [1, 0, 1, 0]; proba [0.8, 0.2, 0.6, 0.4]
+        # = (0.04 + 0.04 + 0.16 + 0.16) / 4 = 0.1
+        y_true = np.array([1, 0, 1, 0])
+        proba = np.array([0.8, 0.2, 0.6, 0.4])
+        assert brier_score(y_true, proba) == pytest.approx(0.1, abs=1e-10)
+
+    @pytest.mark.math
+    def test_hand_computed_ece_two_bins(self):
+        # bins [0,0.5),[0.5,1]; bin0: proba 0.2,0.4 (y=0,1) conf=(0.2+0.4)/2=0.3 acc=0.5
+        # bin1: proba 0.7,0.9 (y=1,1) conf=0.8 acc=1.0
+        # ECE = 0.5*|0.3-0.5| + 0.5*|0.8-1.0| = 0.1+0.1 = 0.2
+        y_true = np.array([0, 1, 1, 1])
+        proba = np.array([0.2, 0.4, 0.7, 0.9])
+        stats = calibration_bucket_stats(y_true, proba, n_bins=2)
+        assert stats["ece"] == pytest.approx(0.2, abs=1e-10)
+        assert len(stats["buckets"]) == 2
+        assert stats["buckets"][0]["n_samples"] == 2
+        assert stats["buckets"][0]["confidence"] == pytest.approx(0.3, abs=1e-10)
+        assert stats["buckets"][0]["accuracy"] == pytest.approx(0.5, abs=1e-10)
+        assert expected_calibration_error(y_true, proba, n_bins=2) == pytest.approx(0.2, abs=1e-10)
+
+    @pytest.mark.unit
+    def test_empty_proba_raises(self):
+        with pytest.raises(ValueError, match="same length"):
+            brier_score(np.array([1, 0]), np.array([0.5]))

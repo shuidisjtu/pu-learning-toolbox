@@ -8,7 +8,14 @@ Two categories:
 from __future__ import annotations
 
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    balanced_accuracy_score,
+    brier_score_loss,
+    f1_score,
+    roc_auc_score,
+)
 
 from pu_toolbox.core.config import POSITIVE_LABEL, UNLABELED_LABEL
 from pu_toolbox.core.labels import normalize_pu_labels
@@ -22,6 +29,11 @@ __all__ = [
     "pu_accuracy",
     "pu_f1",
     "pu_auc_roc",
+    "average_precision",
+    "balanced_accuracy",
+    "brier_score",
+    "expected_calibration_error",
+    "calibration_bucket_stats",
 ]
 
 
@@ -217,3 +229,101 @@ def pu_auc_roc(y_true: np.ndarray, scores: np.ndarray) -> float:
         Decision function values or probabilities (higher = more positive).
     """
     return float(roc_auc_score(y_true, scores))
+
+
+# ── planned supervised / calibration metrics (contract §3) ────────────────
+
+
+def average_precision(y_true: np.ndarray, scores: np.ndarray) -> float:
+    """Average precision given true binary labels and continuous scores.
+
+    Positive-class ranking metric; requires ground truth (contract:
+    final ranking evaluation only).
+    """
+    return float(average_precision_score(y_true, scores))
+
+
+def balanced_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """Mean recall over both classes given true binary labels.
+
+    Requires ground truth (contract: final threshold classification
+    evaluation only).
+    """
+    return float(balanced_accuracy_score(y_true, y_pred, adjusted=False))
+
+
+def _check_probability_inputs(y_true: np.ndarray, proba: np.ndarray) -> np.ndarray:
+    """Validate calibration metric inputs: equal length, proba in [0, 1]."""
+    y_true = np.asarray(y_true)
+    proba = np.asarray(proba, dtype=float)
+    if len(y_true) != len(proba):
+        raise ValueError(
+            f"y_true and proba must have the same length, got {len(y_true)} and {len(proba)}"
+        )
+    if proba.min() < 0.0 or proba.max() > 1.0:
+        raise ValueError("proba must lie in [0, 1]")
+    return y_true, proba
+
+
+def brier_score(y_true: np.ndarray, proba: np.ndarray) -> float:
+    """Brier score = mean squared error of probability estimates.
+
+    Requires genuine probability output (contract §3: decision-function
+    scores must not be converted to pseudo-probabilities).
+    """
+    y_true, proba = _check_probability_inputs(y_true, proba)
+    return float(brier_score_loss(y_true, proba))
+
+
+def calibration_bucket_stats(
+    y_true: np.ndarray,
+    proba: np.ndarray,
+    n_bins: int = 10,
+) -> dict[str, float | list[dict[str, int | float]]]:
+    """ECE (10 equal-width bins by contract) plus per-bin diagnostics.
+
+    Returns ``{"ece": float, "buckets": [{"bin_lo", "bin_hi", "n_samples",
+    "confidence", "accuracy"}, ...]}``.  Bin edges follow
+    ``np.linspace(0, 1, n_bins + 1)``; a sample with proba exactly at the
+    right edge falls into the last bin (digitize - 1, clipped).
+    """
+    y_true, proba = _check_probability_inputs(y_true, proba)
+    if n_bins < 1:
+        raise ValueError("n_bins must be at least 1")
+    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    bin_idx = np.clip(np.digitize(proba, edges) - 1, 0, n_bins - 1)
+    buckets: list[dict[str, int | float]] = []
+    n_total = len(proba)
+    ece = 0.0
+    for i in range(n_bins):
+        mask = bin_idx == i
+        count = int(mask.sum())
+        if count == 0:
+            buckets.append(
+                {
+                    "bin_lo": float(edges[i]),
+                    "bin_hi": float(edges[i + 1]),
+                    "n_samples": 0,
+                    "confidence": 0.0,
+                    "accuracy": 0.0,
+                }
+            )
+            continue
+        confidence = float(proba[mask].mean())
+        accuracy = float(np.asarray(y_true)[mask].mean())
+        buckets.append(
+            {
+                "bin_lo": float(edges[i]),
+                "bin_hi": float(edges[i + 1]),
+                "n_samples": count,
+                "confidence": confidence,
+                "accuracy": accuracy,
+            }
+        )
+        ece += (count / n_total) * abs(float(confidence - accuracy))
+    return {"ece": float(ece), "buckets": buckets}
+
+
+def expected_calibration_error(y_true: np.ndarray, proba: np.ndarray, n_bins: int = 10) -> float:
+    """Expected calibration error with n_bins equal-width probability bins."""
+    return float(calibration_bucket_stats(y_true, proba, n_bins=n_bins)["ece"])
