@@ -21,11 +21,9 @@ def _write_timeout_profile(config: dict, out_csv: str) -> None:
     data_cfg = config["data"]
     rows = []
     for method in config["methods"]:
-        spec = next(
-            s
-            for m, _, s in _iter_scenario_specs(config)
-            if m == method and s["kind"] == "scar" and s["scale"] == "small"
-        )
+        # First cell of the method: scar-small when the SCAR grid applies,
+        # the first PNU cell for pnu-only configs (pnu has no scar cells).
+        spec = next(s for m, _, s in _iter_scenario_specs(config) if m == method)
         row = _run_one_trial(method, spec, seed=0, config=config)
         rows.append(
             {

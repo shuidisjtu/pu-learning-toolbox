@@ -49,7 +49,6 @@ from pu_toolbox.metrics.classification import (
 from pu_toolbox.workflows._evaluation import extract_proba, extract_scores
 
 PROTOCOL = "traditional_pu_baseline"
-SCAR_SCALES = {"small": 400, "mid": 2000}
 PNU_RATIOS = {"1:1:4": (25, 25, 100), "1:2:4": (20, 40, 80), "1:1:8": (17, 17, 136)}
 METRIC_COLUMNS = [
     "pu_zero_one_risk",
@@ -116,6 +115,8 @@ def load_config(path: str | Path) -> dict:
             raise ValueError(f"unknown method {name!r} in config")
         if not isinstance(params, dict):
             raise ValueError(f"method {name!r} parameters must be a JSON object")
+    if "pnu" in methods and not (cfg.get("data") or {}).get("pn_ratios"):
+        raise ValueError("data.pn_ratios must be a non-empty list when methods includes 'pnu'")
     return cfg
 
 
@@ -214,24 +215,27 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
     data_cfg = config["data"]
     n_features = data_cfg["n_features"]
     separation = data_cfg["separation"]
-    label_frequency = data_cfg["label_frequency"]
     kind = scenario_spec["kind"]
     class_prior = scenario_spec.get("class_prior")
-    # Ill-conditioning depends only on (pi, h) — known from config, before any
-    # data work: exclude the unit early (contract §2.3) and record the reason
-    # verbatim so ill-conditioned cells never look like generic failures.
-    if kind == "scar" and is_ill_conditioned(class_prior, 1.0 - label_frequency):
-        row.update(
-            {
-                "mechanism": "scar",
-                "class_prior": class_prior,
-                "label_frequency": label_frequency,
-                "real_h": 1.0 - label_frequency,
-                "pi_h_well_conditioned": False,
-            }
-        )
-        return "failed", "ill_conditioned_1_minus_2pih", empty_metrics()
     if kind == "scar":
+        # label_frequency is SCAR/SAR-only; PNU cells (contract §2.2) never
+        # carry it in config, so read it lazily inside these branches.
+        label_frequency = data_cfg["label_frequency"]
+        # Ill-conditioning depends only on (pi, h) — known from config, before
+        # any data work: exclude the unit early (contract §2.3) and record the
+        # reason verbatim so ill-conditioned cells never look like generic
+        # failures.
+        if is_ill_conditioned(class_prior, 1.0 - label_frequency):
+            row.update(
+                {
+                    "mechanism": "scar",
+                    "class_prior": class_prior,
+                    "label_frequency": label_frequency,
+                    "real_h": 1.0 - label_frequency,
+                    "pi_h_well_conditioned": False,
+                }
+            )
+            return "failed", "ill_conditioned_1_minus_2pih", empty_metrics()
         X, y_pu, y_true, meta = make_scar_data(
             n_samples=scenario_spec["n_samples"],
             n_features=n_features,
@@ -242,6 +246,7 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
         )
         y_fit = y_pu
     elif kind == "sar":
+        label_frequency = data_cfg["label_frequency"]
         X, y_pu, y_true, meta = make_sar_linear_data(
             n_samples=scenario_spec["n_samples"],
             n_features=n_features,
