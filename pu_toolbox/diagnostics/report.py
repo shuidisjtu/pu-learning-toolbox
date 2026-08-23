@@ -35,6 +35,7 @@ MetricBasis = Literal[
     "pu_observed",
     "class_prior_dependent",
     "supervised_oracle",
+    "probability_calibration",
     "unavailable",
 ]
 

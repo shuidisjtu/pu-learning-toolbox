@@ -11,6 +11,10 @@ import numpy as np
 
 from ..core.base import BasePUClassifier
 from ..metrics.classification import (
+    average_precision,
+    balanced_accuracy,
+    brier_score,
+    expected_calibration_error,
     pu_accuracy,
     pu_auc_roc,
     pu_estimated_precision,
@@ -39,16 +43,25 @@ _METRIC_ALIASES = {
     "accuracy": "pu_accuracy",
     "f1": "pu_f1",
     "negative_rate": "pu_negative_rate",
+    "ap": "average_precision",
+    "bacc": "balanced_accuracy",
+    "brier": "brier_score",
+    "ece": "expected_calibration_error",
 }
 
+# Spec tuples: (needs_scores, needs_prior, needs_y_true, needs_proba, basis)
 _METRIC_SPECS = {
-    "pu_zero_one_risk": (True, True, False, "class_prior_dependent"),
-    "pu_recall": (False, False, False, "pu_observed"),
-    "pu_estimated_precision": (False, True, False, "class_prior_dependent"),
-    "pu_auc_roc": (True, False, True, "supervised_oracle"),
-    "pu_accuracy": (False, False, True, "supervised_oracle"),
-    "pu_f1": (False, False, True, "supervised_oracle"),
-    "pu_negative_rate": (False, False, False, "pu_observed"),
+    "pu_zero_one_risk": (True, True, False, False, "class_prior_dependent"),
+    "pu_recall": (False, False, False, False, "pu_observed"),
+    "pu_estimated_precision": (False, True, False, False, "class_prior_dependent"),
+    "pu_auc_roc": (True, False, True, False, "supervised_oracle"),
+    "pu_accuracy": (False, False, True, False, "supervised_oracle"),
+    "pu_f1": (False, False, True, False, "supervised_oracle"),
+    "pu_negative_rate": (False, False, False, False, "pu_observed"),
+    "average_precision": (True, False, True, False, "supervised_oracle"),
+    "balanced_accuracy": (False, False, True, False, "supervised_oracle"),
+    "brier_score": (False, False, True, True, "probability_calibration"),
+    "expected_calibration_error": (False, False, True, True, "probability_calibration"),
 }
 
 
@@ -106,7 +119,7 @@ def run_cross_validation(
         name: CVMetric(
             name=name,
             per_fold=tuple(per_fold[name]),
-            basis=_METRIC_SPECS[name][3],
+            basis=_METRIC_SPECS[name][4],
             reason=_aggregate_reason(
                 fold_reasons[name], all(value is None for value in per_fold[name])
             ),
@@ -131,6 +144,24 @@ def extract_scores(clf: BasePUClassifier, X: Any) -> np.ndarray | None:
     return None
 
 
+def extract_proba(clf: BasePUClassifier, X: Any) -> np.ndarray | None:
+    """Positive-class probability from a genuine ``predict_proba``.
+
+    Never falls back to decision_function scores: calibration metrics
+    require true probabilities (contract §3).
+    """
+    proba_fn = getattr(clf, "predict_proba", None)
+    if proba_fn is None:
+        return None
+    try:
+        proba = np.asarray(proba_fn(X), dtype=float)
+        if proba.ndim == 2 and proba.shape[1] == 2:
+            return proba[:, 1]
+    except Exception:  # noqa: BLE001 - probability is best-effort
+        return None
+    return None
+
+
 def compute_metric(
     name: str,
     y_pu_fold: np.ndarray,
@@ -138,14 +169,17 @@ def compute_metric(
     scores: np.ndarray | None,
     y_true_fold: np.ndarray | None,
     prior: float | None,
+    proba: np.ndarray | None = None,
 ) -> tuple[float | None, str | None]:
-    needs_scores, needs_prior, needs_y_true, _ = _METRIC_SPECS[name]
+    needs_scores, needs_prior, needs_y_true, needs_proba, _ = _METRIC_SPECS[name]
     if needs_scores and scores is None:
         return None, "score-based metric requires a decision function"
     if needs_prior and prior is None:
         return None, "class-prior-dependent metric requires a class prior"
     if needs_y_true and y_true_fold is None:
         return None, "supervised-oracle metric requires y_true"
+    if needs_proba and proba is None:
+        return None, "probabilistic metric requires predict_proba"
     try:
         if name == "pu_zero_one_risk":
             return pu_zero_one_risk(y_pu_fold, scores, prior), None
@@ -161,6 +195,14 @@ def compute_metric(
             return pu_f1(y_true_fold, pred), None
         if name == "pu_negative_rate":
             return pu_negative_rate(y_pu_fold, pred), None
+        if name == "average_precision":
+            return average_precision(y_true_fold, scores), None
+        if name == "balanced_accuracy":
+            return balanced_accuracy(y_true_fold, pred), None
+        if name == "brier_score":
+            return brier_score(y_true_fold, proba), None
+        if name == "expected_calibration_error":
+            return expected_calibration_error(y_true_fold, proba), None
     except ValueError as exc:
         return None, f"fold metric failed: {exc}"
     raise AssertionError(f"Unreachable metric {name!r}.")

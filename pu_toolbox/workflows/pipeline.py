@@ -30,8 +30,10 @@ from ..registry import RecommendationResult, recommend_from_profile
 from ..registry.registry import get_algorithm, get_metadata
 from ._errors import PipelineError
 from ._evaluation import (
+    _METRIC_SPECS,
     DEFAULT_METRICS,
     compute_metric,
+    extract_proba,
     extract_scores,
     resolve_metric_names,
     run_cross_validation,
@@ -766,8 +768,13 @@ class PUPipeline:
         )
         pred = estimator.predict(X_test)
         scores = extract_scores(estimator, X_test)
+        proba = (
+            extract_proba(estimator, X_test)
+            if any(_METRIC_SPECS[name][3] for name in self.metrics)
+            else None
+        )
         return {
-            name: compute_metric(name, y_pu_test, pred, scores, y_true_test, prior)
+            name: compute_metric(name, y_pu_test, pred, scores, y_true_test, prior, proba)
             for name in self.metrics
         }
 
