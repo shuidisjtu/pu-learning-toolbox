@@ -115,6 +115,9 @@ UNLIMITED_FILES: dict[str, str] = {
         "structure generator unit tests (find_blocks/parse_tree/build/merge/generate/CLI)"
     ),
     "test_kldce_math.py": "MATH formula verification (includes merged QP oracle tests)",
+    "test_classification.py": (
+        "PU + planned supervised/calibration metrics with hand-computed MATH golden values"
+    ),
 }
 
 # Files whose algorithms are fully covered by contract tests
