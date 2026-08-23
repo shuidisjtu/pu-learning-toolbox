@@ -57,13 +57,9 @@ uv run python -m benchmarks.traditional_pu.run \
 - 已解决：`configs/pnu_baseline_v1.json` 曾缺类先验字段使 runner
   `_iter_scenario_specs` 触发 `KeyError`；现配置显式声明 `class_priors: [0.3]`，
   即该跟踪项关闭（先验来源见 PNU 三元网格节）。
-- 跟踪中：`_trial_body` 无条件读取 `data_cfg["label_frequency"]`
-  （runner.py:217），pnu-only 配置（契约 §2.2 不要求该字段）会触发
-  `KeyError: 'label_frequency'`；PNU 分支不使用该值。需 runner 侧对 pnu 单元
-  惰性读取（Task 7/8 处理）。
-- `--timeout-profile` 对没有 scar-small 单元的方法（pnu-only 配置；以及
-  `seven_methods_pu_baseline_v1.json` 中的 `pnu`）会 `StopIteration`（跟踪项
-  M5，最终评审 triage）；超时冻结（Task 8）在其修复后执行。
+- 已解决(a7b9bc1)：`label_frequency` 改为 scar/sar 分支内惰性读取，pnu-only
+  配置不再 `KeyError`；`--timeout-profile` 对任意 config（含 pnu-only 与
+  `seven_methods_pu_baseline_v1.json` 中的 `pnu`）优雅降级，不再 `StopIteration`。
 
 ## 产物契约（契约 §5）
 

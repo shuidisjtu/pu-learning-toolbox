@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 
 import benchmarks.traditional_pu.runner as runner
+from benchmarks.traditional_pu.run import _write_timeout_profile
 from benchmarks.traditional_pu.runner import (
     METRIC_COLUMNS,
     _iter_scenario_specs,
@@ -290,3 +291,18 @@ class TestSarGrid:
         cells = list(_iter_scenario_specs(kldce_cfg))
         assert all(not s.startswith("sar-") for _, s, _ in cells)
         assert any(s.startswith("scar-") for _, s, _ in cells)
+
+
+class TestTimeoutProfile:
+    def test_param_profile_falls_back_to_pnu_cell_for_pnu_only_config(self, tmp_path):
+        # --timeout-profile logs one minimal trial per algorithm; pnu-only
+        # configs have no scar-small cells (contract §2.2), so it must fall
+        # back to the first PNU cell instead of StopIteration.
+        config = load_config(_write_config(tmp_path, methods={"pnu": {}}))
+        out_csv = tmp_path / "timeout_profile.csv"
+        _write_timeout_profile(config, str(out_csv))
+        df = pd.read_csv(out_csv)
+        assert list(df["algorithm"]) == ["pnu"]
+        assert list(df["n_samples"]) == [50]  # first PNU cell = small scale
+        assert list(df["n_features"]) == [5]
+        assert not df["elapsed_seconds"].isna().any()
