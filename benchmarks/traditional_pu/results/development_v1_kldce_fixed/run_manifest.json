@@ -1,0 +1,31 @@
+{
+  "config_sha256": "f1edd7734729a910036af595438798684672df650d472a35101e8e00f65dbc29",
+  "created_at_utc": "2026-08-24T09:55:40.895992+00:00",
+  "environment": {
+    "dependencies": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.3",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.17.1"
+    },
+    "python": "3.11.15"
+  },
+  "git_commit": "58dc34d6e6b27a93f24ad64f480995263ca61d61",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5; KLDCE-only subset for criterion-fix verification"
+  ],
+  "n_trials": 30,
+  "paper_claim": false,
+  "protocol": "traditional_pu_baseline",
+  "runner_sha256": "10334991b9d0cc893096793c23b581981c3c9410ab24dc5a733f77da78cc6c09",
+  "schema_version": 1,
+  "seed_set": "development",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ]
+}

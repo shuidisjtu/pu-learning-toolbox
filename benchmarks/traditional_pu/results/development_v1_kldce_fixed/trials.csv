@@ -1,0 +1,31 @@
+algorithm,scenario,seed,params,mechanism,class_prior,label_frequency,real_h,pi_h_well_conditioned,warning_count,diag_converged,diag_n_iter,diag_c_estimate,diag_cond_number,diag_correction_fraction,diag_n_epochs,diag_n_acs_iter,pu_zero_one_risk,pu_recall,pu_estimated_precision,pu_auc_roc,pu_accuracy,pu_f1,pu_negative_rate,average_precision,balanced_accuracy,brier_score,brier_score_unavailable_reason,expected_calibration_error,expected_calibration_error_unavailable_reason,ece_buckets_api,elapsed_seconds,status,failure_reason
+kldce,scar-pi0.1-scalesmall,0,{},scar,0.1,0.5,0.5,True,0,True,,,,,,3.0,0.1,0.0,0.0,0.7272222222222222,0.9,0.0,1.0,0.2175756459234344,0.5,,requires predict_proba,,requires predict_proba,,5.530999999999949,success,
+kldce,scar-pi0.1-scalesmall,1,{},scar,0.1,0.5,0.5,True,0,True,,,,,,3.0,0.1,0.0,0.0,0.7185416666666666,0.9,0.0,1.0,0.22941184842193968,0.5,,requires predict_proba,,requires predict_proba,,5.95299999999952,success,
+kldce,scar-pi0.1-scalesmall,2,{},scar,0.1,0.5,0.5,True,0,True,,,,,,3.0,0.1,0.0,0.0,0.7740277777777778,0.9,0.0,1.0,0.2571976473098267,0.5,,requires predict_proba,,requires predict_proba,,4.921999999999571,success,
+kldce,scar-pi0.1-scalesmall,3,{},scar,0.1,0.5,0.5,True,0,True,,,,,,3.0,0.1,0.0,0.0,0.7019444444444445,0.9,0.0,1.0,0.19314012592591956,0.5,,requires predict_proba,,requires predict_proba,,8.967999999999847,success,
+kldce,scar-pi0.1-scalesmall,4,{},scar,0.1,0.5,0.5,True,0,True,,,,,,3.0,0.1,0.0,0.0,0.7226388888888889,0.9,0.0,1.0,0.18838284552919687,0.5,,requires predict_proba,,requires predict_proba,,8.140999999999622,success,
+kldce,scar-pi0.1-scalemid,0,{},scar,0.1,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3901) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.1-scalemid,1,{},scar,0.1,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3898) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.1-scalemid,2,{},scar,0.1,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3896) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.1-scalemid,3,{},scar,0.1,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3905) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.1-scalemid,4,{},scar,0.1,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.015000000000327418,failed,ValueError('Number of dual variables (3916) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.3-scalesmall,0,{},scar,0.3,0.5,0.5,True,0,True,,,,,,3.0,0.3,0.0,0.0,0.6268750000000001,0.7,0.0,1.0,0.40296302895896113,0.5,,requires predict_proba,,requires predict_proba,,5.3289999999997235,success,
+kldce,scar-pi0.3-scalesmall,1,{},scar,0.3,0.5,0.5,True,0,True,,,,,,3.0,0.3,0.0,0.0,0.502529761904762,0.7,0.0,1.0,0.29852887507846815,0.5,,requires predict_proba,,requires predict_proba,,4.265000000000327,success,
+kldce,scar-pi0.3-scalesmall,2,{},scar,0.3,0.5,0.5,True,0,True,,,,,,3.0,0.3,0.0,0.0,0.6378869047619048,0.7,0.0,1.0,0.3822064817625215,0.5,,requires predict_proba,,requires predict_proba,,4.734000000000378,success,
+kldce,scar-pi0.3-scalesmall,3,{},scar,0.3,0.5,0.5,True,0,True,,,,,,3.0,0.3,0.0,0.0,0.5888095238095239,0.7,0.0,1.0,0.4069948297100785,0.5,,requires predict_proba,,requires predict_proba,,3.905999999999949,success,
+kldce,scar-pi0.3-scalesmall,4,{},scar,0.3,0.5,0.5,True,0,True,,,,,,3.0,0.3,0.0,0.0,0.6083035714285714,0.7,0.0,1.0,0.38234482420028537,0.5,,requires predict_proba,,requires predict_proba,,4.188000000000102,success,
+kldce,scar-pi0.3-scalemid,0,{},scar,0.3,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3684) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.3-scalemid,1,{},scar,0.3,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3718) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.3-scalemid,2,{},scar,0.3,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3702) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.3-scalemid,3,{},scar,0.3,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3704) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.3-scalemid,4,{},scar,0.3,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3720) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.5-scalesmall,0,{},scar,0.5,0.5,0.5,True,0,True,,,,,,3.0,0.5,0.0,0.0,0.5430999999999999,0.5,0.0,1.0,0.5549738316369554,0.5,,requires predict_proba,,requires predict_proba,,2.094000000000051,success,
+kldce,scar-pi0.5-scalesmall,1,{},scar,0.5,0.5,0.5,True,0,True,,,,,,3.0,0.5,0.0,0.0,0.42095000000000005,0.5,0.0,1.0,0.4538422104889405,0.5,,requires predict_proba,,requires predict_proba,,2.0460000000002765,success,
+kldce,scar-pi0.5-scalesmall,2,{},scar,0.5,0.5,0.5,True,0,True,,,,,,3.0,0.5,0.0,0.0,0.47502500000000003,0.5,0.0,1.0,0.49642837946641605,0.5,,requires predict_proba,,requires predict_proba,,2.0469999999995707,success,
+kldce,scar-pi0.5-scalesmall,3,{},scar,0.5,0.5,0.5,True,0,True,,,,,,3.0,0.5,0.0,0.0,0.585075,0.5,0.0,1.0,0.5708402288651189,0.5,,requires predict_proba,,requires predict_proba,,8.407000000000153,success,
+kldce,scar-pi0.5-scalesmall,4,{},scar,0.5,0.5,0.5,True,0,True,,,,,,3.0,0.5,0.0,0.0,0.526875,0.5,0.0,1.0,0.5152524929825559,0.5,,requires predict_proba,,requires predict_proba,,2.686999999999898,success,
+kldce,scar-pi0.5-scalemid,0,{},scar,0.5,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3457) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.5-scalemid,1,{},scar,0.5,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3519) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.5-scalemid,2,{},scar,0.5,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3505) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.5-scalemid,3,{},scar,0.5,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.0,failed,ValueError('Number of dual variables (3481) exceeds max_dual_variables (1000).')
+kldce,scar-pi0.5-scalemid,4,{},scar,0.5,0.5,0.5,True,0,,,,,,,,,,,,,,,,,,,,,,0.014999999999417923,failed,ValueError('Number of dual variables (3520) exceeds max_dual_variables (1000).')

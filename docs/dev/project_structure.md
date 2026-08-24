@@ -161,6 +161,7 @@ tests/
       test_ldce_api.py                  # LDCE 收敛/约束/API/错误/回归 (unit)
       test_kldce_math.py                # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
       test_kldce_property.py            # KLDCE 约束/鲁棒性 (PROPERTY)
+      test_kldce_kkt.py                 # KLDCE 真 KKT 残差(乘子恢复)+ ACS 收敛 (unit)
       test_class_prior.py               # 类先验推导与质心分母共享助手 (unit)
       __init__.py
     research/

@@ -73,3 +73,18 @@ M6 曾按 F1/F2 设计 KLDCE 变体(`max_acs_iter=50→500`,
 
 KLDCE 已从 M6 候选网格移除(`configs/seven_methods_pu_candidates_v1.json`
 limitations 记录与此处证据一致)。
+
+### F5 修订(2026-08-24:修复,见 spec/plan)
+
+- 根因:`_solve_qp_oracle` 将 SLSQP 解处的目标梯度范数当作 `kkt_residual`;
+  约束 QP 最优解处梯度由乘子平衡、不为零,ACS 收敛判据
+  `max(rel_obj_change, mu_change, kkt) < tol` 永不满足——与"QP 最优但
+  300 轮不收敛"的现象完全吻合。
+- "centroid 约束残差恒 1.00"系记录语义误读:附录式 (35) 更新恰把 μ 放到
+  椭球边界,记录值恒等于 `centroid_radius`(约束值=1.0 满足),并非"不满足
+  约束"。诊断字段已拆分 `constraint_value`/`constraint_violation`。
+- 判据修正(方案 C):生产判据 = 目标相对变化 + μ 相对移动 + eq/box 可行性;
+  严格 KKT(乘子恢复)进入诊断与 property 测试。修复后 small 档验证见
+  `results/development_v1_kldce_fixed/`。
+- 遗留:mid 档单轮 QP >300s(效率,SMO 后续计划);ACS 与论文 Algorithm 1
+  块坐标顺序差异(方法卡 §6 可接受变体)。

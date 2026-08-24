@@ -184,6 +184,11 @@ $`C_\text{eq}=-(n-k)/[2n(1-2ph)]`$。
 - **禁止照搬 `sklearn.svm.SVC` 内部逻辑**：其偏置恢复基于标准 C-SVC 对偶，KLDCE 的决策函数和 KKT 条件不同。
 - **偏置恢复优先采用论文式 (37)–(40) 的四项平均**，并用 primal/KKT oracle 检查其可行性。
 - 对偶常数不要手工猜测：将论文公式逐项编码为可测试的 `dual_objective(z, m)`、`dual_gradient(z, m)` 与 `equality_coefficients`。
+- **收敛判据（2026-08-24 修正）**：QP oracle 版曾以 SLSQP 解处目标梯度范数
+  作为 `kkt_residual`；约束 QP 最优解处该梯度由乘子平衡、不为零，导致 ACS
+  停止判据永不触发（出现"QP 最优但 300 轮不收敛"）。判据现为"目标/μ 相对
+  变化 + eq/box 可行性"组合，严格 KKT（乘子恢复）经 `_true_kkt_residual`
+  进入诊断与测试（见实现注记与工具箱 benchmark findings）。
 
 ---
 
@@ -205,7 +210,7 @@ KLDCE 与 LDCE 共享同一论文实验协议与数据集（5 折、$`h\in\{0.2,
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_related`：无官方代码，论文正文 + 在线补充附录为唯一权威 |
-| 实现状态（2026-07-21） | QP oracle 版已实现（scipy SLSQP 作为 QP oracle、RBF-only、$`\sigma`$ 默认 `1/\sqrt{d}`）；附录原生 SMO 留待后续 PR |
+| 实现状态（2026-08-24） | QP oracle 版已实现（scipy SLSQP 作为 QP oracle、RBF-only、$`\sigma`$ 默认 `1/\sqrt{d}`）；2026-08-24 修正 ACS 收敛判据（生产判据=目标/μ 相对变化 + eq/box 可行性，严格 KKT 经 `_true_kkt_residual` 进入诊断与测试，见 §6 注记）；附录原生 SMO 留待后续 PR |
 | Registry | `kldce` 独立注册（2026-08-05），详见 ADR-0014 #6 |
 | 复现风险 | 正文未规定 KKT 违反度定义、可行区间展开式、缓存策略、容差与停止判据（见 §5），SMO 需从附录式 (21)–(26)、(37)–(40) 自行实现并用 QP oracle 对照验证；精确 Gram 矩阵 $`O(n^2)`$ 内存 |
 
