@@ -528,6 +528,11 @@ def run_trials(
                         **empty_metrics(),
                     }
                 rows.append(row)
+                # Incremental persist: an interrupted grid (ctrl+c, host kill)
+                # leaves every completed row on disk so a later resume
+                # continues from the interruption point instead of rerunning.
+                pd.DataFrame(previous_rows + rows).to_csv(trials_file, index=False)
+                fingerprint_file.write_text(config_hash + "\n", encoding="utf-8")
                 if progress:
                     print(
                         f"[{executed}/{total}] {method} {scenario} seed={seed}: {row['status']}",
