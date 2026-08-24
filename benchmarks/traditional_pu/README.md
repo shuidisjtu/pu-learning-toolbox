@@ -55,6 +55,10 @@ uv run python -m benchmarks.traditional_pu.run \
 `--seed-set` 默认 `development`；默认按 `(algorithm, scenario, seed)` 断点恢复
 （已有 `trials.csv` 时跳过已完成单元），`--no-resume` 强制重跑。
 
+`trials.csv` 在每个 trial 完成后**增量落盘**（而不是网格结束时一次性写入），
+因此运行中途被中断（ctrl+c / 主机 kill）只会丢失正在跑的单元，已完成部分全部
+保留，再次运行即可无缝续跑（保留 `trials.csv` 即是续跑依据）。
+
 ## 已知限制（跟踪中）
 
 - 已解决：`configs/pnu_baseline_v1.json` 曾缺类先验字段使 runner
@@ -104,6 +108,31 @@ uv run python -m benchmarks.traditional_pu.run \
   --results-dir /tmp/profile \
   --timeout-profile /tmp/timeout_profile.csv
 ```
+
+## 配对判定（契约 §6，M6 候选变体）
+
+候选变体与基线的比较基于**同一 seed 的配对差值及其 95% 置信区间**（`paired_diff_ci`，
+t 分布），而非仅比较两个均值：
+
+```bash
+uv run python -m benchmarks.traditional_pu.compare \
+  --baseline-dir benchmarks/traditional_pu/results/confirmation_v1 \
+  --candidate-dir benchmarks/traditional_pu/results/confirmation_v1_candidates \
+  --metric pu_zero_one_risk \
+  --budget-seconds 120 \
+  --out benchmarks/traditional_pu/results/m6_candidate_verdict.csv
+```
+
+输出按 `(algorithm, scenario)` 逐单元列 `n_paired`（双方 success 的配对种子数）、
+`diff_mean`/`diff_ci95_low`/`diff_ci95_high`（候选−基线）、两侧成功率与 P95 耗时，
+以及四条件判定（`cond1_improves`：配对 CI 在指标方向上支持改善；
+`cond2_success_ok`：成功率未恶化（5pp 容差，记录在列）；
+`cond3_budget_ok`：候选 P95 耗时 ≤ `/--budget-seconds`；
+`confirmed_improvement`：cond1∧cond2∧cond3 且配对 `n_paired>0`；契约条件 4
+"协议一致"由工具级校验保证——(scenario, seed) 键不同则拒绝配对并返回码 2）。
+
+基线侧无 success 值的单元（如开发基线中 LDCE/KLDCE 全域 nonconverged）无法配对，
+记录 `paired_available=false`：此时以成功率/未收敛率对比作为主证据，不构造 CI。
 
 ## 开发期与正式基线的差异
 

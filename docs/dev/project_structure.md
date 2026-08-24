@@ -282,6 +282,10 @@ tests/
     test_traditional_pu_benchmark_runner.py # 传统 PU runner 状态机/resume/产物/失败隔离
     test_traditional_pu_data.py         # 数据协议: SCAR/SAR/PNU 形状、h、病态性
     test_traditional_pu_statistics.py   # 统计原语: 成功率/CI/配对差值
+    test_traditional_pu_configs.py      # <<< 新文件,补注释
+    test_traditional_pu_protocol.py     # <<< 新文件,补注释
+    test_traditional_pu_compare.py      # <<< 新文件,补注释
+    test_traditional_pu_resume.py       # <<< 新文件,补注释
   __init__.py                           # tests 包声明(支持 tests.helpers 导入)
   conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
   helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)

@@ -156,6 +156,14 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "UI flow includes background-thread timing; history module determinism is unit-tested"
         ),
     },
+    "test_traditional_pu_resume.py": {
+        "param": ("no parameter validation surface here; runner config validation is "
+                  "covered by TestLoadConfig"),
+        "edge": ("interrupted-run semantics only; boundary inputs are covered by "
+                 "TestRunnerMini / TestPnuRowRecords"),
+        "determ": ("same-seed determinism is asserted in "
+                   "test_traditional_pu_benchmark_runner.py TestDeterminism"),
+    },
     "test_deep_vision_pickle.py": {
         "param": "factory parameter validation is covered by existing vision tests",
         "edge": "factory boundary validation is covered by existing vision tests",
