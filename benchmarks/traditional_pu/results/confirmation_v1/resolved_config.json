@@ -1,0 +1,68 @@
+{
+  "data": {
+    "class_priors": [
+      0.1,
+      0.3,
+      0.5
+    ],
+    "label_frequency": 0.5,
+    "n_features": 5,
+    "n_samples_mid": 2000,
+    "n_samples_small": 400,
+    "sar_mechanism": "linear",
+    "sar_strength": 1.0,
+    "separation": 2.0
+  },
+  "description": "SCAR main grid (pi x scale) + linear SAR diagnostic line for the 6 binary PU classifiers (PNU runs its own tri-label config, contract §2.2); default constructor parameters; contract v1",
+  "limitations": [
+    "synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5"
+  ],
+  "methods": {
+    "elkan_noto": {},
+    "kldce": {},
+    "ldce": {},
+    "llsvm": {},
+    "nnpu": {},
+    "upu": {}
+  },
+  "protocol": "traditional_pu_baseline",
+  "resolved_at": "2026-08-24T05:48:41Z",
+  "schema_version": 1,
+  "seed_set_confirmation": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119
+  ],
+  "seed_set_development": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "timeouts": {
+    "elkan_noto": 120,
+    "kldce": 120,
+    "ldce": 120,
+    "llsvm": 120,
+    "nnpu": 120,
+    "upu": 120
+  }
+}

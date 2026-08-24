@@ -1,0 +1,46 @@
+{
+  "config_sha256": "9b7589ede46e5d6bc667c80ce26923f6f248f064c27abbf3df4327fccfa82a96",
+  "created_at_utc": "2026-08-23T09:37:05.885328+00:00",
+  "environment": {
+    "dependencies": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.3",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.17.1"
+    },
+    "python": "3.11.15"
+  },
+  "git_commit": "d34fd3455f856071bd9a19daf23b4b932405eb47",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "synthetic tri-label protocol; y_true reserved for final evaluation"
+  ],
+  "n_trials": 120,
+  "paper_claim": false,
+  "protocol": "traditional_pu_baseline",
+  "runner_sha256": "ef87208d420c46120f39339923f31beb7c9ef81c818ed5c484d5b7d8d53f654d",
+  "schema_version": 1,
+  "seed_set": "confirmation",
+  "seeds": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119
+  ]
+}
