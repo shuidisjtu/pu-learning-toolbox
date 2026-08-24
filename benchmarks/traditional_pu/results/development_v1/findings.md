@@ -82,7 +82,7 @@ limitations 记录与此处证据一致)。
   300 轮不收敛"的现象完全吻合。
 - "centroid 约束残差恒 1.00"系记录语义误读:附录式 (35) 更新恰把 μ 放到
   椭球边界,记录值恒等于 `centroid_radius`(约束值=1.0 满足),并非"不满足
-  约束"。诊断字段已拆分 `constraint_value`/`constraint_violation`。
+  约束"。诊断字段已拆分 `constraint_residual`/`constraint_violation`。
 - 判据修正(方案 C):生产判据 = 目标相对变化 + μ 相对移动 + eq/box 可行性;
   严格 KKT(乘子恢复)进入诊断与 property 测试。修复后 small 档验证见
   `results/development_v1_kldce_fixed/`。

@@ -147,7 +147,7 @@ uv run python -m benchmarks.traditional_pu.compare \
 - **KLDCE**：参数放宽候选被证伪（F5：ACS 停滞 + mid 单轮 QP > 300s），
   不进入任何候选网格；修复需实现层工作，单独跟踪。
 - 后续（2026-08-24）：KLDCE 判据修复（见 `results/development_v1_kldce_fixed/`
-  与 `docs/superpowers/specs/2026-08-24-kldce-fix-design.md`），small 档
+  与 findings 修订段），small 档
   从"全域 nonconverged"变为全 success；mid 档 QP 效率仍超出预算（实现层
   后续）。
 
