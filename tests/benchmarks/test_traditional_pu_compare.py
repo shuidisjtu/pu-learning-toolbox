@@ -58,11 +58,13 @@ class TestPairing:
 
     def test_param_metric_direction_drives_cond1(self):
         # lower-is-better metric: negative paired CI ⇒ improvement
-        improved = pair_cells(_trials({100: 2.0, 101: 2.0}), _trials({100: 1.0, 101: 1.0}),
-                              "pu_zero_one_risk")
+        improved = pair_cells(
+            _trials({100: 2.0, 101: 2.0}), _trials({100: 1.0, 101: 1.0}), "pu_zero_one_risk"
+        )
         assert bool(improved.iloc[0]["cond1_improves"]) is True
-        worsened = pair_cells(_trials({100: 1.0, 101: 1.0}), _trials({100: 2.0, 101: 2.0}),
-                              "pu_zero_one_risk")
+        worsened = pair_cells(
+            _trials({100: 1.0, 101: 1.0}), _trials({100: 2.0, 101: 2.0}), "pu_zero_one_risk"
+        )
         assert bool(worsened.iloc[0]["cond1_improves"]) is False
 
 
@@ -120,8 +122,17 @@ class TestCli:
         _trials({100: 1.0, 101: 1.0}).to_csv(base_dir / "trials.csv", index=False)
         _trials({100: 0.5, 101: 0.5}).to_csv(cand_dir / "trials.csv", index=False)
         out = tmp_path / "verdict.csv"
-        assert compare_main(
-            ["--baseline-dir", str(base_dir), "--candidate-dir", str(cand_dir),
-             "--out", str(out)]
-        ) == 0
+        assert (
+            compare_main(
+                [
+                    "--baseline-dir",
+                    str(base_dir),
+                    "--candidate-dir",
+                    str(cand_dir),
+                    "--out",
+                    str(out),
+                ]
+            )
+            == 0
+        )
         assert out.exists()

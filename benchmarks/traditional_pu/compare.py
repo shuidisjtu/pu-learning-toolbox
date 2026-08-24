@@ -31,8 +31,12 @@ import pandas as pd
 from benchmarks.traditional_pu.statistics import paired_diff_ci
 
 # Metrics where a lower score is better; everything else is higher-is-better.
-LOWER_IS_BETTER = {"pu_zero_one_risk", "pu_negative_rate", "brier_score",
-                   "expected_calibration_error"}
+LOWER_IS_BETTER = {
+    "pu_zero_one_risk",
+    "pu_negative_rate",
+    "brier_score",
+    "expected_calibration_error",
+}
 
 
 def load_trials(results_dir: Path) -> pd.DataFrame:
@@ -117,12 +121,15 @@ def verdicts(table: pd.DataFrame, *, budget_seconds: float) -> pd.DataFrame:
     """Contract §6 verdict columns; cond2/cond3 are evaluated from raw columns."""
     table = table.copy()
     # Condition 2: success rate must not deteriorate (5pp tolerance, recorded).
-    table["cond2_success_ok"] = (table["candidate_success_rate"]
-                                 >= table["baseline_success_rate"] - 0.05)
+    table["cond2_success_ok"] = (
+        table["candidate_success_rate"] >= table["baseline_success_rate"] - 0.05
+    )
     # Condition 3: P95 runtime within the pre-declared budget.
     table["cond3_budget_ok"] = table["candidate_p95_elapsed_seconds"] <= budget_seconds
     table["confirmed_improvement"] = (
-        table["cond1_improves"] & table["cond2_success_ok"] & table["cond3_budget_ok"]
+        table["cond1_improves"]
+        & table["cond2_success_ok"]
+        & table["cond3_budget_ok"]
         & table["paired_available"]
     )
     return table
@@ -146,8 +153,9 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
-    table = verdicts(pair_cells(baseline, candidate, args.metric),
-                     budget_seconds=args.budget_seconds)
+    table = verdicts(
+        pair_cells(baseline, candidate, args.metric), budget_seconds=args.budget_seconds
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     table.to_csv(args.out, index=False)
     n_improved = int(table["confirmed_improvement"].sum())

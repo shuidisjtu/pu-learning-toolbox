@@ -157,12 +157,18 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
     },
     "test_traditional_pu_resume.py": {
-        "param": ("no parameter validation surface here; runner config validation is "
-                  "covered by TestLoadConfig"),
-        "edge": ("interrupted-run semantics only; boundary inputs are covered by "
-                 "TestRunnerMini / TestPnuRowRecords"),
-        "determ": ("same-seed determinism is asserted in "
-                   "test_traditional_pu_benchmark_runner.py TestDeterminism"),
+        "param": (
+            "no parameter validation surface here; runner config validation is "
+            "covered by TestLoadConfig"
+        ),
+        "edge": (
+            "interrupted-run semantics only; boundary inputs are covered by "
+            "TestRunnerMini / TestPnuRowRecords"
+        ),
+        "determ": (
+            "same-seed determinism is asserted in "
+            "test_traditional_pu_benchmark_runner.py TestDeterminism"
+        ),
     },
     "test_deep_vision_pickle.py": {
         "param": "factory parameter validation is covered by existing vision tests",
