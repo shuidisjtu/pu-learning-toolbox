@@ -12,9 +12,12 @@
   - LDCE 目标函数单调下降(rel_change 从 2.9 降到 7.5e-5),最后
     rel_change = 2.7e-6 仍 > tol=1e-6,只差一步;将 `max_iter` 提到 3000 后
     **146 轮收敛**(`n_iter_=146, converged=True`)。
-  - 结论:实现无 bug,默认 `max_iter=100` 对合成数据(400/2000 样本)偏紧。
-- 处理:M6 针对 LDCE(`max_iter > 100`)与 KLDCE(`max_acs_iter > 50`)的变体评估,
-  默认参数基线不动(契约 §5)。
+  - 结论:**LDCE 侧:实现无 bug,默认 `max_iter=100` 对合成数据(400/2000
+    样本)偏紧,为参数问题**(→ M6 变体,已确认修复,见
+    `results/confirmation_v1_candidates_ldce/findings.md`)。
+  - **KLDCE 侧已更正**:放大 `max_acs_iter` 无效果,升级为 F5 的诊断
+    (实现层停滞,非参数问题)。
+- 处理:M6 针对 LDCE(`max_iter > 100`)的变体评估,默认参数基线不动(契约 §5)。
 
 ## F2. KLDCE mid 档结构性失败(`max_dual_variables` 上限)
 
@@ -22,7 +25,8 @@
   `ValueError('Number of dual variables (~3900) exceeds max_dual_variables (1000).')`,
   与种子无关(构造器 fit 前硬校验)。
 - 原因:KLDCE 双变量数 = n + n_U;mid 档 n=2000 → ~3901 > 源码默认上限 1000。
-- 处理:M6 候选 `max_dual_variables` 放宽评估(1500+);基线记录为诊断列
+- 处理:**已证实放宽上限不可行**(放宽容许后单轮 QP > 300s,五轮未完成一
+  轮,超所有合理预算),与 F5 的停滞诊断一同归入实现层改进;基线记录为诊断列
   (`diag_n_acs_iter` 等),该单元在 SCAR mid 档无性能数据。
 
 ## F3. ElkanNoto Brier/ECE 不可用(`predict_proba` 越界 [0,1])
@@ -42,3 +46,30 @@
   largest-remainder 取整);runner 每单元记录 `n_p`/`n_n`/`n_u` 列;补 4 个测试。
   重跑后 30/30 success、两档数据不同(如 1:1:4: small 67/66/267, mid 334/333/1333)。
 - 说明:旧产物 `development_v1_pnu`(P1)已由修正后版本覆盖。
+
+## F5. KLDCE ACS 停滞:参数放宽无效(实现层问题,非参数问题)
+
+M6 曾按 F1/F2 设计 KLDCE 变体(`max_acs_iter=50→500`,
+`max_dual_variables=1000→5000`)。5-seed 网格中 small 档单元全部
+`timeout`(120s 预算内跑不完),单单元定向探针(seed=0, small, π=0.1)
+暴露根本原因:
+
+- **下层 QP 第 1 轮即最优**:`dual_obj` 自第 2 轮起恒定(1.384962),
+  `eq_residual≈1e-11`、`box_violation=0`;z 不动、QP KKT 已满足。
+- **上层 ACS 卡死**:centroid 约束残差(src `ACS history`)恒为 **1.00**
+  永不下降;`mu` 每轮更新但从不满足自己的约束,而收敛判据
+  `max(rel_obj_change, mu_change, kkt_residual) < tol` 盯住的是
+  `mu_change`/`kkt`,不含 centroid 残差 → 判据永不触发。
+- 量化:300 轮仍 `converged=False`(每轮 ~0.7s,共 208.5s);150 轮与
+  300 轮轨迹完全相同(停滞,而非慢收敛)。
+- mid 档另有限制:放宽 `max_dual_variables` 后首轮 QP > 300s(未完成),
+  单轮成本超过任何合理预算。
+
+指向两类实现级修复(独立跟踪,不属于本轮参数调优):
+1. 复核重心更新(附录 Eq. 35)实现与论文的一致性——mu 可能在投影边界
+   震荡,导致约束残差恒 1.0;
+2. 收敛判据应纳入(或替换为)centroid 约束残差/目标值结合判据;
+3. mid 档 QP 效率(双变量 ~3901 的稀疏化或预算内近似解)。
+
+KLDCE 已从 M6 候选网格移除(`configs/seven_methods_pu_candidates_v1.json`
+limitations 记录与此处证据一致)。

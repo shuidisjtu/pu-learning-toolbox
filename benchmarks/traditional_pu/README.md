@@ -134,6 +134,17 @@ uv run python -m benchmarks.traditional_pu.compare \
 基线侧无 success 值的单元（如开发基线中 LDCE/KLDCE 全域 nonconverged）无法配对，
 记录 `paired_available=false`：此时以成功率/未收敛率对比作为主证据，不构造 CI。
 
+## M6 当前结论（候选判定结果）
+
+- **LDCE**：`max_iter=100→10000` 为确认的收敛修复
+  （`results/confirmation_v1_candidates_ldce/findings.md`）。确认期 120/120
+  单元 success（基线 1/120）、最慢 28.9s（预算 120s）、可配对单元指标与基线
+  完全一致（diff=0,修复不改变解语义）。契约 §6 条件 1（配对 CI）在基线无
+  性能值的 5/6 cell 不可评估，故工具列 `confirmed_improvement=False`，
+  实质判定为"收敛修复推荐"（按契约字面条件 1 不标 confirmed）。
+- **KLDCE**：参数放宽候选被证伪（F5：ACS 停滞 + mid 单轮 QP > 300s），
+  不进入任何候选网格；修复需实现层工作，单独跟踪。
+
 ## 开发期与正式基线的差异
 
 - 开发期 5 seeds（0..4）：先运行并修复协议问题、验证网格可执行、暴露数据/指标

@@ -1,0 +1,47 @@
+{
+  "config_sha256": "61d70e0dda70b117c3a80ce00ab278bb5ea68fe5cb4b17c59955b01cdacf6e78",
+  "created_at_utc": "2026-08-24T06:53:48.815988+00:00",
+  "environment": {
+    "dependencies": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.3",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.17.1"
+    },
+    "python": "3.11.15"
+  },
+  "git_commit": "4a9c870e9cffb42112d0b3474042cc5443e85e5e",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5",
+    "KLDCE not in this grid: max_acs_iter/max_dual_variables relaxation was probed and found ineffective (QP converged at iter 1, centroid constraint residual stuck at 1.0, 300 ACS iters still nonconverged; mid-scale single QP > 300s) — implementation-level fix required, tracked separately"
+  ],
+  "n_trials": 1080,
+  "paper_claim": false,
+  "protocol": "traditional_pu_baseline",
+  "runner_sha256": "10334991b9d0cc893096793c23b581981c3c9410ab24dc5a733f77da78cc6c09",
+  "schema_version": 1,
+  "seed_set": "confirmation",
+  "seeds": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119
+  ]
+}

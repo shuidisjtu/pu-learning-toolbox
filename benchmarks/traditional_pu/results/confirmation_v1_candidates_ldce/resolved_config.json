@@ -1,0 +1,70 @@
+{
+  "data": {
+    "class_priors": [
+      0.1,
+      0.3,
+      0.5
+    ],
+    "label_frequency": 0.5,
+    "n_features": 5,
+    "n_samples_mid": 2000,
+    "n_samples_small": 400,
+    "sar_mechanism": "linear",
+    "sar_strength": 1.0,
+    "separation": 2.0
+  },
+  "description": "M6 candidate of the SCAR main grid + linear SAR diagnostic line: LDCE max_iter relaxed to 10000 (findings.md F1; the worst dev cell converged at 3160 iters, so 3000 was one iter-class short); KLDCE excluded — parameter relaxation is byte-for-byte ineffective (ACS stalls: QP optimal at iter 1, centroid residual frozen at 1.0) and mid-scale single-QP cost exceeds every budget (see findings.md F5); all other methods unchanged default parameters; contract v1",
+  "limitations": [
+    "synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5",
+    "KLDCE not in this grid: max_acs_iter/max_dual_variables relaxation was probed and found ineffective (QP converged at iter 1, centroid constraint residual stuck at 1.0, 300 ACS iters still nonconverged; mid-scale single QP > 300s) — implementation-level fix required, tracked separately"
+  ],
+  "methods": {
+    "elkan_noto": {},
+    "ldce": {
+      "max_iter": 10000
+    },
+    "llsvm": {},
+    "nnpu": {},
+    "upu": {}
+  },
+  "protocol": "traditional_pu_baseline",
+  "resolved_at": "2026-08-24T06:53:48Z",
+  "schema_version": 1,
+  "seed_set_confirmation": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119
+  ],
+  "seed_set_development": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "timeouts": {
+    "elkan_noto": 120,
+    "kldce": 120,
+    "ldce": 120,
+    "llsvm": 120,
+    "nnpu": 120,
+    "upu": 120
+  }
+}
