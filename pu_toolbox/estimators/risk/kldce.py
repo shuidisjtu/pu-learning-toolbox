@@ -316,6 +316,59 @@ def _solve_qp_oracle(
 
 
 # ═════════════════════════════════════════════════════════════════════
+# True KKT residual (Lagrangian KKT for the dual QP)
+# ═════════════════════════════════════════════════════════════════════
+
+
+def _true_kkt_residual(
+    z: np.ndarray,
+    Q: np.ndarray,
+    d_vec: np.ndarray,
+    Aeq: np.ndarray,
+    beq: float,
+    lb: np.ndarray,
+    ub: np.ndarray,
+    eps: float = 1e-8,
+) -> tuple[float, float | None, int, str]:
+    """True Lagrangian KKT residual for the dual QP.
+
+    Problem: min ½zᵀQz − dᵀz  s.t.  Aeq·z = beq,  lb ≤ z ≤ ub.
+
+    Stationarity: g + ν·Aeqᵀ − μ_lo + μ_hi = 0 with g = Qz − d_vec and
+    complementarity μ_lo·(z−lb)=0, μ_hi·(z−ub)=0.
+    ν is recovered from free variables where the KKT forces g_i + ν·Aeq_i = 0
+    (Aeq entries are ±1/0, so this is well conditioned).  Boundary directions
+    must keep the right sign (z=lb allows +, z=ub allows −).
+
+    Returns (kkt, nu_star, n_free, status); status is "indeterminate" when
+    no free variable exists (nu cannot be pinned).
+    """
+    g = Q @ z - d_vec  # (N,)
+    a = Aeq[0]  # (N,) flattened equality coefficients (±1/0)
+
+    free_mask = (z > lb + eps) & (z < ub - eps)
+    free_idx = np.where(free_mask)[0]
+    nu_candidates = [-g[i] / a[i] for i in free_idx if a[i] != 0.0]
+    if len(nu_candidates) == 0:
+        grad_norm = float(np.linalg.norm(g))
+        return grad_norm, None, 0, "indeterminate"
+
+    nu = float(np.median(nu_candidates))
+    lag = g + nu * a  # g_i + ν·Aeq_i
+
+    residual = 0.0
+    for i in range(z.shape[0]):
+        if free_mask[i]:
+            residual = max(residual, abs(lag[i]))
+        elif z[i] <= lb[i] + eps:
+            # μ_lo ≥ 0 absorbs positive lag; negative would violate
+            residual = max(residual, max(-lag[i], 0.0))
+        else:  # z_i at upper bound
+            residual = max(residual, max(lag[i], 0.0))
+    return float(residual), nu, int(free_mask.sum()), "ok"
+
+
+# ═════════════════════════════════════════════════════════════════════
 # RBF centroid delta (Appendix Eq. 33, Taylor expansion at μ=0)
 # ═════════════════════════════════════════════════════════════════════
 
