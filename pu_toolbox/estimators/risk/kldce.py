@@ -269,9 +269,9 @@ def _solve_qp_oracle(
     z : np.ndarray of shape (N,)
         Optimal dual variables [α; γ].
     diagnostics : dict
-        Keys: dual_obj, eq_residual, box_violation, kkt_residual, status, n_iter.
+        Keys: dual_obj, eq_residual, box_violation, kkt_residual,
+        gradient_norm, kkt_nu, kkt_n_free, kkt_status, status, n_iter.
     """
-    N = len(d_vec)
 
     def objective(z: np.ndarray) -> float:
         return float(0.5 * z @ Q @ z - d_vec @ z)
@@ -299,15 +299,24 @@ def _solve_qp_oracle(
     eq_residual = float(np.abs(Aeq @ z - beq).max())
     box_violation = float(max(np.maximum(lb - z, 0.0).max(), np.maximum(z - ub, 0.0).max()))
 
-    # Approximate KKT residual: ‖Qz − d + Aeqᵀν + λ_upper − λ_lower‖
-    # We approximate via the gradient of the Lagrangian at the solution.
-    kkt_residual = float(np.linalg.norm(result.jac if hasattr(result, "jac") else np.zeros(N)))
+    # Gradient norm (informational) and true Lagrangian KKT residual.
+    # The old code used result.jac (objective gradient) as kkt_residual:
+    # at a constrained optimum that gradient is balanced by multipliers
+    # and never zero, which permanently blocked the ACS convergence
+    # criterion (findings.md F5).  True KKT now comes from the multiplier
+    # recovery utility; gradient_norm stays as an informational field.
+    gradient_norm = float(np.linalg.norm(result.jac) if hasattr(result, "jac") else 0.0)
+    kkt, nu_star, n_free_kkt, kkt_status = _true_kkt_residual(z, Q, d_vec, Aeq, beq, lb, ub)
 
     diagnostics = {
         "dual_obj": dual_obj,
         "eq_residual": eq_residual,
         "box_violation": box_violation,
-        "kkt_residual": kkt_residual,
+        "kkt_residual": kkt,
+        "gradient_norm": gradient_norm,
+        "kkt_nu": nu_star,
+        "kkt_n_free": n_free_kkt,
+        "kkt_status": kkt_status,
         "status": result.status,
         "n_iter": getattr(result, "nit", 0),
     }
@@ -488,6 +497,7 @@ def _update_centroid(
         Updated centroid.
     info : dict
         Keys: degenerate_centroid_step, constraint_residual,
+        constraint_violation (constraint value minus centroid_radius),
         constraint_violated, centroid_solver.
 
     Raises
@@ -498,6 +508,7 @@ def _update_centroid(
     info: dict = {
         "degenerate_centroid_step": False,
         "constraint_residual": 0.0,
+        "constraint_violation": 0.0,  # value - centroid_radius
         "constraint_violated": False,
         "centroid_solver": "solve",
     }
@@ -519,6 +530,7 @@ def _update_centroid(
         # Degenerate step — fall back to m_hat
         info["degenerate_centroid_step"] = True
         info["constraint_residual"] = 0.0
+        info["constraint_violation"] = 0.0 - float(centroid_radius)
         return m_hat.copy(), info
 
     # ── μ = m_hat - u · √(b / q) ───────────────────────────────────
@@ -528,6 +540,7 @@ def _update_centroid(
     diff = mu - m_hat
     constraint = float(diff @ S_raw @ diff)
     info["constraint_residual"] = constraint
+    info["constraint_violation"] = constraint - float(centroid_radius)
 
     if constraint > centroid_radius + tol:
         info["constraint_violated"] = True
@@ -538,6 +551,7 @@ def _update_centroid(
             diff2 = mu - m_hat
             constraint = float(diff2 @ S_raw @ diff2)
             info["constraint_residual"] = constraint
+            info["constraint_violation"] = constraint - float(centroid_radius)
             info["centroid_solver"] = "projected"
 
     return mu, info
@@ -735,8 +749,10 @@ class KLDCEClassifier(BasePUClassifier):
     max_dual_variables : int, default 1000
         Hard limit on the number of dual variables ``n + n_U``.
     tol : float, default 1e-6
-        Convergence tolerance for the ACS loop (relative objective change,
-        centroid change, KKT violation).
+        Convergence tolerance for the ACS loop: the stopping metric
+        max(relative objective change, relative centroid move, equality
+        residual, box violation) must drop below ``tol``.  The strict KKT
+        residual is recorded in ``acs_history_`` for diagnostics only.
     random_state : int or None, default None
         Seed for MoM shuffling.
 
@@ -999,7 +1015,13 @@ class KLDCEClassifier(BasePUClassifier):
                 "dual_obj": dual_obj,
                 "eq_residual": qp_diag["eq_residual"],
                 "box_violation": qp_diag["box_violation"],
+                "kkt_residual": qp_diag["kkt_residual"],
+                "gradient_norm": qp_diag["gradient_norm"],
+                "kkt_nu": qp_diag["kkt_nu"],
+                "kkt_n_free": qp_diag["kkt_n_free"],
+                "kkt_status": qp_diag["kkt_status"],
                 "centroid_constraint_residual": 0.0,
+                "centroid_violation": 0.0,
                 "degenerate_centroid_step": False,
             }
 
@@ -1029,6 +1051,7 @@ class KLDCEClassifier(BasePUClassifier):
             )
 
             iter_info["centroid_constraint_residual"] = cent_info["constraint_residual"]
+            iter_info["centroid_violation"] = cent_info["constraint_violation"]
             iter_info["degenerate_centroid_step"] = cent_info["degenerate_centroid_step"]
 
             # (f) Bias recovery
@@ -1049,15 +1072,22 @@ class KLDCEClassifier(BasePUClassifier):
 
             # ── Convergence check ────────────────────────────────────
             mu_change = float(np.linalg.norm(mu_new - mu))
-            max_kkt = qp_diag["kkt_residual"]
+            rel_mu_change = mu_change / (1.0 + float(np.linalg.norm(m_hat)))
             rel_obj_change = 0.0
             if prev_obj is not None and abs(prev_obj) > 1e-15:
                 rel_obj_change = abs(dual_obj - prev_obj) / abs(prev_obj)
 
             mu = mu_new
+            iter_info["mu_change"] = mu_change
             acs_history.append(iter_info)
 
-            if max(rel_obj_change, mu_change, max_kkt) < self.tol:
+            # Production criterion: stationary (relative) + feasible.
+            # The strict KKT residual is recorded and test-verified but
+            # kept out of the stop rule (scheme C).
+            metric = max(
+                rel_obj_change, rel_mu_change, qp_diag["eq_residual"], qp_diag["box_violation"]
+            )
+            if metric < self.tol:
                 converged = True
                 break
 
