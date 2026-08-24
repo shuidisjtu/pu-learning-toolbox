@@ -195,6 +195,13 @@ class TestLDCEAPI:
         pred = pipe.predict(X)
         assert set(np.unique(pred)) <= {0, 1}
 
+    def test_param_default_max_iter_is_settled_ceiling(self):
+        """Default max_iter must stay at the benchmark-settled ceiling (10000):
+        the paper's 100-iteration default left typical SCAR data nonconverged."""
+        clf = LDCEClassifier(flip_probability=0.3)
+        assert clf.max_iter == 10000
+        assert clf.get_params()["max_iter"] == 10000
+
 
 # ═════════════════════════════════════════════════════════════════════
 # Error handling

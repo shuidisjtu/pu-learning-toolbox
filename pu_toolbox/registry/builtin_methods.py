@@ -181,7 +181,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
         license="unknown",
-        training_cost=Cost.MEDIUM,  # fixed 100-iteration alternating scheme
+        training_cost=Cost.MEDIUM,  # fixed 10000-iteration alternating scheme
     ),
     AlgorithmMetadata(
         name="kldce",

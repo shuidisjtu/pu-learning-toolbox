@@ -142,6 +142,8 @@ uv run python -m benchmarks.traditional_pu.compare \
   完全一致（diff=0,修复不改变解语义）。契约 §6 条件 1（配对 CI）在基线无
   性能值的 5/6 cell 不可评估，故工具列 `confirmed_improvement=False`，
   实质判定为"收敛修复推荐"（按契约字面条件 1 不标 confirmed）。
+  **已回写工具箱**：`LDCEClassifier` 默认 `max_iter` 已从 100 改为 10000
+  （v1 基线仍以 100 运行，见契约 §5 演进记录）。
 - **KLDCE**：参数放宽候选被证伪（F5：ACS 停滞 + mid 单轮 QP > 300s），
   不进入任何候选网格；修复需实现层工作，单独跟踪。
 

@@ -261,8 +261,12 @@ class LDCEClassifier(BasePUClassifier):
         Initial step size for subgradient descent on *w*.
     n_inner_iter : int, default 50
         Number of gradient descent steps per outer iteration.
-    max_iter : int, default 100
+    max_iter : int, default 10000
         Maximum number of outer alternating-optimisation iterations.
+        Raised from the paper implementation's 100-iteration ceiling:
+        100 outer iterations leave typical censoring PU datasets
+        non-converged (toolkit SCAR benchmark); the raised ceiling only
+        extends the convergence budget without changing the solution.
     tol : float, default 1e-6
         Relative change in objective below which convergence is declared.
     random_state : int or None, default None
@@ -331,7 +335,7 @@ class LDCEClassifier(BasePUClassifier):
         covariance_ridge: float = 1e-4,
         learning_rate: float = 0.01,
         n_inner_iter: int = 50,
-        max_iter: int = 100,
+        max_iter: int = 10000,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
