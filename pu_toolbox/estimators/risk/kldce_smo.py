@@ -75,3 +75,78 @@ def _smo_gamma_pair_update(
     analytic update.
     """
     return _smo_alpha_pair_update(z, i1, i2, Q, d, a, lb, ub)
+
+
+def kkt_violation_terms(
+    z: np.ndarray,
+    Q: np.ndarray,
+    d: np.ndarray,
+    a: np.ndarray,
+    lb: np.ndarray,
+    ub: np.ndarray,
+    eps: float = 1e-8,
+) -> tuple[np.ndarray, dict]:
+    """Per-variable KKT violation for min ½zᵀQz − dᵀz, Aeq·z = beq, lb ≤ z ≤ ub.
+
+    Signs follow the convention used by ``_true_kkt_residual`` (kldce.py):
+    with lag = g + ν·a, free variables must have lag ≈ 0; a variable at its
+    lower bound must have lag ≥ 0 (violation = max(0, −lag)); at its upper
+    bound lag ≤ 0 (violation = max(0, lag)).  ν is recovered as the median
+    over free variables where the KKT forces g_i + ν·a_i = 0.
+    """
+    g = Q @ z - d
+    a = np.asarray(a, dtype=float)
+    free_mask = (z > lb + eps) & (z < ub - eps)
+    free_idx = np.where(free_mask)[0]
+    nu = None
+    if free_idx.size:
+        nu_candidates = [-g[i] / a[i] for i in free_idx if a[i] != 0.0 and free_mask[i]]
+        if nu_candidates:
+            nu = float(np.median(nu_candidates))
+    lag = g.copy()
+    if nu is not None:
+        lag = g + nu * a
+    viol = np.zeros_like(g)
+    viol[free_mask] = np.abs(lag[free_mask])
+    at_lb = (z <= lb + eps) & ~free_mask
+    at_ub = (z >= ub - eps) & ~free_mask
+    viol[at_lb] = np.maximum(0.0, -lag[at_lb])
+    viol[at_ub] = np.maximum(0.0, lag[at_ub])
+    return viol, {"nu": nu, "free_mask": free_mask}
+
+
+def _smo_pair_select(
+    z: np.ndarray,
+    Q: np.ndarray,
+    d: np.ndarray,
+    a: np.ndarray,
+    lb: np.ndarray,
+    ub: np.ndarray,
+    eps: float = 1e-8,
+) -> tuple[int, int] | None:
+    """Select a violating pair (first = max violation, second = max |lag difference|).
+
+    If all violations are ≤ ``eps`` returns None (KKT satisfied).
+    """
+    viol, info = kkt_violation_terms(z, Q, d, a, lb, ub, eps)
+    i1 = int(np.argmax(viol))
+    if viol[i1] <= eps:
+        return None
+    lag = Q @ z - d + info["nu"] * a if info["nu"] is not None else Q @ z - d
+    best_j, best_diff = -1, -1.0
+    for j in range(z.shape[0]):
+        if j == i1:
+            continue
+        diff = abs(lag[j] - lag[i1])
+        if diff > best_diff:
+            best_j, best_diff = j, diff
+    if best_j < 0:
+        return None
+    return i1, best_j
+
+
+def _smo_bias_average(b_values: list[float]) -> float:
+    """Four-term bias average (appendix Eqs. 37-40)."""
+    if not b_values:
+        return 0.0
+    return float(np.mean(np.asarray(b_values, dtype=float)))
