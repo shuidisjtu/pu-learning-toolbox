@@ -3,11 +3,17 @@
 import numpy as np
 import pytest  # noqa: F401
 
+from pu_toolbox.estimators.risk.kldce import (
+    _build_dual_qp,
+    _solve_qp_oracle,
+    _true_kkt_residual,
+)
 from pu_toolbox.estimators.risk.kldce_smo import (
     _smo_alpha_pair_update,
     _smo_bias_average,
     _smo_gamma_pair_update,
     _smo_pair_select,
+    _solve_dual_smo,
     kkt_violation_terms,
 )
 
@@ -123,6 +129,24 @@ def test_basic_pair_select_picks_largest_violation():
     assert i2 == 2  # 第二变量取 |lag 差| 最大:|2−(−2.5)|=4.5 > |0−(−2.5)|=2.5
 
 
+def test_basic_pair_select_skips_box_blocked_pair():
+    """Regression (Task 3): a pair whose box admits no step must be skipped.
+
+    z = [0, 1, 0]: z0 at lb, z1 at ub, z2 at lb, all a=+1.  The |lag|
+    heuristic prefers pair (0, 2) — both at lb, so δ is forced to 0 and the
+    update would make no progress — and must fall through to (0, 1).
+    """
+    Q = np.eye(3) * 2.0
+    d = np.array([4.0, 4.5, 0.5])
+    z = np.array([0.0, 1.0, 0.0])
+    a = np.ones(3)
+    lb = np.zeros(3)
+    ub = np.ones(3)
+    i1, i2 = _smo_pair_select(z, Q, d, a, lb, ub)
+    assert i1 == 0  # max violation
+    assert i2 == 1  # (0, 2) box-blocked; (0, 1) admits a non-zero step
+
+
 def test_basic_pair_select_kkt_satisfied_returns_none():
     Q = np.eye(2) * 2.0
     a = np.array([1.0, 1.0])
@@ -136,3 +160,46 @@ def test_basic_pair_select_kkt_satisfied_returns_none():
 
 def test_basic_bias_average_four_terms():
     assert _smo_bias_average([1.0, 2.0, 3.0, 4.0]) == pytest.approx(2.5)
+
+
+def _random_kldce_qp(rng, n=15, k=5, min_len=30, seed=0):
+    """Build a fixed-μ dual QP from synthetic data (deterministic)."""
+    r = np.random.RandomState(seed)
+    X = r.normal(size=(n, 2))
+    y_tilde = np.concatenate([np.ones(k), -np.ones(n - k)])
+    sigma = 1.0
+    K = np.exp(-((X[:, None, :] - X[None, :, :]) ** 2).sum(-1) / (2 * sigma**2))
+    mu = r.normal(size=2) * 0.5
+    C_eq = -(n - k) / (2.0 * n)
+    Q, d_vec, Aeq, beq, lb, ub = _build_dual_qp(
+        mu, X, K, y_tilde, lambda_=1.0, sigma=sigma, n=n, k=k, C_eq=C_eq
+    )
+    return Q, d_vec, Aeq, beq, lb, ub
+
+
+def test_basic_smo_oracle_objective_agreement():
+    Q, d, Aeq, beq, lb, ub = _random_kldce_qp(np, seed=7)
+    z_smo, diag_smo = _solve_dual_smo(Q, d, Aeq, beq, lb, ub, None, tol=1e-9, max_iter=4000)
+    z_orc, diag_orc = _solve_qp_oracle(Q, d, Aeq, beq, lb, ub, z_smo, tol=1e-9)
+    assert diag_smo["dual_obj"] == pytest.approx(diag_orc["dual_obj"], abs=1e-6)
+    assert diag_smo["eq_residual"] < 1e-9
+    assert diag_smo["box_violation"] < 1e-9
+    _, _, _, kkt_smo = _true_kkt_residual(z_smo, Q, d, Aeq, beq, lb, ub)
+    # The rank-deficient Q makes the optimum set non-unique: a vertex optimum
+    # (0 free variables) reports "indeterminate" for both solvers alike, so
+    # the cross-check is status agreement with the oracle, not a fixed value.
+    assert kkt_smo == diag_orc["kkt_status"]
+
+
+def test_basic_smo_converges_to_kkt():
+    Q, d, Aeq, beq, lb, ub = _random_kldce_qp(np, seed=11)
+    z, diag = _solve_dual_smo(Q, d, Aeq, beq, lb, ub, None, tol=1e-8, max_iter=2000)
+    assert diag["inner_converged"] is True
+    assert diag["kkt_residual"] < 1e-6
+
+
+def test_basic_smo_warm_start_reduces_work():
+    Q, d, Aeq, beq, lb, ub = _random_kldce_qp(np, seed=13)
+    z1, diag1 = _solve_dual_smo(Q, d, Aeq, beq, lb, ub, None, tol=1e-8, max_iter=4000)
+    z2, diag2 = _solve_dual_smo(Q, d, Aeq, beq, lb, ub, z1, tol=1e-8, max_iter=4000)
+    assert diag2["n_iter"] <= diag1["n_iter"]
