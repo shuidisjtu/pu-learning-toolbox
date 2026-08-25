@@ -59,7 +59,8 @@ pu_toolbox/
       __init__.py
       _class_prior.py                     (shared: 类先验推导与 1−2ph 稳定性检查, KLDCE/LDCE 共用)
       ldce.py                             (native)
-      kldce.py                            (native: ACS + QP oracle + RBF kernel)
+      kldce.py                            (native: ACS + 原生 SMO + RBF kernel)
+      kldce_smo.py                        (原生配对 SMO 求解器: 解析更新 + KKT 选择)
       dist_pu.py                          (native)
       upu.py                              (native)
       nnpu.py                             (native)
@@ -162,6 +163,7 @@ tests/
       test_kldce_math.py                # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
       test_kldce_property.py            # KLDCE 约束/鲁棒性 (PROPERTY)
       test_kldce_kkt.py                 # KLDCE 真 KKT 残差(乘子恢复)+ ACS 收敛 (unit)
+      test_kldce_smo.py                 # KLDCE 原生 SMO 求解器/等价/增量梯度 (unit)
       test_class_prior.py               # 类先验推导与质心分母共享助手 (unit)
       __init__.py
     research/
