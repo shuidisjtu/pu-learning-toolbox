@@ -40,6 +40,8 @@
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 | [research/method_cards/](research/method_cards/) | 18 篇论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
 | [research/traditional_pu_metric_contract.md](research/traditional_pu_metric_contract.md) | 传统 PU 七算法的单域指标、基线与统计契约 |
+| [research/traditional_pu_optimization_plan.md](research/traditional_pu_optimization_plan.md) | 传统 PU 七算法调优顺序、参数簇、晋级规则与产物契约 |
+| [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
 | [research/distribution_shift_metric_contract.md](research/distribution_shift_metric_contract.md) | 分布漂移审计、跨域目标评估与部署监控指标契约 |
 | [research/joint_shift_research_protocol.md](research/joint_shift_research_protocol.md) | JointShift 研究型算法评估协议与声明边界 |
 

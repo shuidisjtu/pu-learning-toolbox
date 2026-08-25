@@ -20,11 +20,11 @@ implemented_metrics:
   - pu_accuracy
   - pu_f1
   - pu_negative_rate
-planned_metrics:
   - average_precision
   - balanced_accuracy
   - brier_score
   - expected_calibration_error
+planned_metrics: []
 ```
 
 ## 1. 目的与声明边界
@@ -44,6 +44,10 @@ planned_metrics:
 
 所有指标必须同时声明可用条件、统计方向和使用目的。缺少前提时，运行器必须将
 指标标记为不可用并保存原因，不能以替代值或静默降级掩盖该事实。
+
+数据泄露审计、特征列黑名单、重复样本检查、预处理折内拟合和 benchmark 启动阻断规则，
+由 [数据泄露审计门禁设计](../dev/data_leakage_audit_design.md) 规定。该设计文档当前为
+`design_only`，在独立审计脚本和 runner gate 实现前，不得把实验标记为已通过完整泄露门禁。
 
 ## 2. 数据协议与隔离
 
@@ -93,9 +97,8 @@ LDCE/KLDCE 的 `flip_probability=h` 定义为真阳性被翻转为观测负/未�
 | `elapsed_seconds` | 越低越好 | 计时数据 | 全部 | 计算成本 |
 | `success_rate` | 越高越好 | trial 状态 | 全部 | 数值可靠性 |
 
-上表中的 AP、balanced accuracy、Brier score 和 ECE 属于 `planned_metrics`；在它们
-尚未接入统一评价入口前，只能由明确声明的 benchmark 运行器单独计算，不能假定
-`PUPipeline` 或 `PUTuner` 已支持这些名称。
+上表中的 AP、balanced accuracy、Brier score 和 ECE 已接入统一评价入口，但其可用性仍受
+`y_true`、连续 score 和合法概率输出条件约束。缺少前提时必须记录不可用原因。
 
 连续 score 只能用于 ROC-AUC/AP 等排序指标。Brier/ECE 只能使用分类器真实的
 `predict_proba` 概率输出；不得将 `decision_function` 的任意分数转换为伪概率。
@@ -181,7 +184,9 @@ benchmarks/traditional_pu/
 
 ## 7. 实施顺序与兼容性
 
-1. 实现 `planned_metrics`（AP、balanced accuracy、Brier、ECE），以及各指标的可用性原因；
+1. `planned_metrics` 已清空（AP、balanced accuracy、Brier、ECE 已接入统一评价入口，
+   2026-08-25 同步）；后续新增指标必须先在此契约声明并接入统一入口，再移入
+   `implemented_metrics`；
 2. 保持现有 `PUPipeline` 默认指标和报告语义不变，新能力均为 additive 变更；
 3. 新建 `benchmarks/traditional_pu/`，不得将 PNU 特例塞入现有 `assigned_methods` runner；
 4. 为指标计算、不可用条件、数据隔离、失败统计和结果审计添加单元/集成测试；
