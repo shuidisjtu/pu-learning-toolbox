@@ -150,6 +150,12 @@ uv run python -m benchmarks.traditional_pu.compare \
   与 findings 修订段），small 档
   从"全域 nonconverged"变为全 success；mid 档 QP 效率仍超出预算（实现层
   后续）。
+- 后续（2026-08-25）：KLDCE 实现层修复完成（原生 SMO + 单调 ACS 回滚 +
+  `inner_tol=1e-6`，见 `results/confirmation_v1_candidates_kldce/findings.md`）：
+  修复后默认参数下 development 30/30、confirmation 120/120 success，
+  mid 档 P95 46.0s < 120s 预算。判定为**确认的收敛修复推荐**
+  （paired CI 不可评估，基线侧 0 success；compare.py 列如实为 False，
+  与 LDCE 同款路径）。
 
 ## 开发期与正式基线的差异
 
