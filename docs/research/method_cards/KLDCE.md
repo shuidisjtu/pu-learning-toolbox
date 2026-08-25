@@ -214,6 +214,19 @@ KLDCE 与 LDCE 共享同一论文实验协议与数据集（5 折、$`h\in\{0.2,
 | Registry | `kldce` 独立注册（2026-08-05），详见 ADR-0014 #6 |
 | 复现风险 | 正文未规定 KKT 违反度定义、可行区间展开式、缓存策略、容差与停止判据（见 §5），SMO 需从附录式 (21)–(26)、(37)–(40) 自行实现并用 QP oracle 对照验证；精确 Gram 矩阵 $`O(n^2)`$ 内存 |
 
+### SMO 内层性能探针与默认值定格（2026-08-25）
+
+探针网格：small（n=400）/ mid（n=2000）× π∈{0.1,0.3,0.5} × seeds 0..4，`h=0.1`、`sigma="scale"`、`reg_strength=1.0`、`class_prior=π`（SCAR 简化构造 `y[:int(n·π)]=1`）。
+
+| 档位 | 结果 |
+|---|---|
+| small（n=400）15 cells | **15/15 全部收敛**：`n_acs_iter ≤ 3`（≤ 10），内层全部 `inner_converged=True`，`max(inner_n_iter)=496`（< 2000）；耗时 2.9–38.2s/cell（π=0.1 最慢 ~35s，π=0.5 最快 ~10s） |
+| mid（n=2000）15 cells | **超预算，未完成**：首 cell（π=0.1，seed=0）运行 ≥ 400s（6m40s 后终止）仍未收敛，为设计 §4.2 预算 120s 的 3.3 倍以上 → 设计边界 |
+
+**默认值定格结论**：`max_inner_iter=2000` / `inner_tol=1e-8` 定稿（保持默认，未改代码）。依据：small 档 15 cells 全部满足定格判据（`n_acs_iter ≤ 10`、`max(inner_n_iter) < 2000`、inner 全收敛），且 small 档内层最大 496 距 2000 上限余量 4 倍——**mid 档慢不因撞迭代上限，提升 `max_inner_iter` 不解决问题**，根因是纯 Python SMO 热循环（KKT 扫描/成对更新/误差缓存）单次迭代 O(n) × 迭代数均随 n 增长（推算 n=2000 单 cell ~10–15 分钟）。
+
+**mid 档边界（设计 §4.2 超预算即设计边界，2026-08-25 接受）**：KLDCE 从 SCAR 主网格 mid 档（n=2000）排除，与论文自身"核方法大样本慢、建议线性 LDCE"一致；默认参数下 KLDCE 仅在 small 档（n=400）可评。
+
 ### 参考资料
 
 1. **Gong et al., TPAMI 2021 + Appendix** — KLDCE 的唯一原始数学与 SMO 规格；附录已取得，应与正文成对使用。[IEEE 记录](https://ieeexplore.ieee.org/document/8839365/)
