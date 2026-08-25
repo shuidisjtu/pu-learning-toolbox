@@ -211,6 +211,7 @@ class TestInputValidation:
             clf.fit(X, y_pu)
 
 
+@pytest.mark.property
 def test_edge_new_inner_params_in_get_params_roundtrip():
     clf = KLDCEClassifier(flip_probability=0.3, max_inner_iter=777, inner_tol=1e-7)
     params = clf.get_params()

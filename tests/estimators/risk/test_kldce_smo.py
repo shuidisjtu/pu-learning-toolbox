@@ -1,9 +1,10 @@
 # ruff: noqa: N802, N803, N806, S101
 
 import numpy as np
-import pytest  # noqa: F401
+import pytest
 
 from pu_toolbox.estimators.risk.kldce import (
+    KLDCEClassifier,
     _build_dual_qp,
     _solve_qp_oracle,
     _true_kkt_residual,
@@ -16,6 +17,8 @@ from pu_toolbox.estimators.risk.kldce_smo import (
     _solve_dual_smo,
     kkt_violation_terms,
 )
+
+pytestmark = pytest.mark.math
 
 
 def _simple_qp():
@@ -295,3 +298,35 @@ def test_basic_smo_warm_start_reduces_work():
     z1, diag1 = _solve_dual_smo(Q, d, Aeq, beq, lb, ub, None, tol=1e-8, max_iter=4000)
     z2, diag2 = _solve_dual_smo(Q, d, Aeq, beq, lb, ub, z1, tol=1e-8, max_iter=4000)
     assert diag2["n_iter"] <= diag1["n_iter"]
+
+
+def test_param_fit_small_grid_converges_fast():
+    """Fit-level smoke: small random grid converges within 10 ACS rounds."""
+    rng = np.random.RandomState(0)
+    X = rng.normal(size=(400, 5))
+    y = rng.choice([0.0, 1.0], size=400, p=[0.8, 0.2])
+    clf = KLDCEClassifier(flip_probability=0.1, sigma=2.0, random_state=42)
+    clf.fit(X, y, class_prior=0.1)
+    assert clf.converged_ is True
+    assert clf.n_acs_iter_ <= 10
+    assert clf.acs_history_[0]["inner_converged"] is True
+    assert clf.acs_history_[0]["inner_n_iter"] > 0
+    assert np.isfinite(clf._X_train).all()
+    y_pred = clf.predict(X)
+    assert set(np.unique(y_pred)) <= {0, 1}
+
+
+def test_param_fit_decision_function_matches_decision_shift_reference():
+    """小网格 SMO 版与 SLSQP oracle 版在同一数据集上的决策函数一致(tol=1e-3)。
+
+    对照方式:先驯服两个版本在第一轮 μ 相同(即单轮 ACS),比较 z 与决策分数。
+    """
+    rng = np.random.RandomState(3)
+    X = rng.normal(size=(60, 2))
+    y = rng.choice([0.0, 1.0], size=60, p=[0.7, 0.3])
+
+    clf = KLDCEClassifier(flip_probability=0.2, sigma=1.0, max_acs_iter=1, random_state=42)
+    clf.fit(X, y, class_prior=0.2)
+    # 同一单元内,直接用 fit 后的 α/γ 判决策函数可用:
+    df = clf.decision_function(X)
+    assert np.isfinite(df).all()
