@@ -66,6 +66,11 @@ METRIC_COLUMNS = [
     "brier_score",
     "expected_calibration_error",
 ]
+# Optimization plan §3.1/§3.3: per-trial prediction-side stats.  Kept
+# outside METRIC_COLUMNS (flags, not contract metrics — summarize() and the
+# non-finite check ignore them), but every row still carries them (NaN on
+# non-success paths) so the trials column set stays stable.
+_PREDICTION_COLUMNS = ("pred_positive_rate", "degenerate_prediction")
 
 # Factory call signature is uniform:
 #   ESTIMATOR_FACTORY[name](config["methods"][name], seed=seed, prior=prior, meta=meta)
@@ -368,6 +373,11 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
     if getattr(estimator, "converged_", None) is not None and not estimator.converged_:
         return "nonconverged", "explicit non-convergence", empty_metrics()
     pred = estimator.predict(X)
+    positive_rate = float(np.mean(pred == 1))
+    # Optimization plan §3.3: all-positive / all-negative predictions are
+    # degenerate — kept for diagnostics, excluded from promotion evidence.
+    row["pred_positive_rate"] = positive_rate
+    row["degenerate_prediction"] = bool(positive_rate in (0.0, 1.0))
     scores = extract_scores(estimator, X)
     proba = extract_proba(estimator, X)
     metrics: dict = {}
@@ -449,7 +459,9 @@ def _metric_value(name, y_fit, pred, scores, y_true, proba, prior):
 
 
 def empty_metrics() -> dict:
-    return {name: np.nan for name in METRIC_COLUMNS}
+    metrics = {name: np.nan for name in METRIC_COLUMNS}
+    metrics.update({name: np.nan for name in _PREDICTION_COLUMNS})
+    return metrics
 
 
 def run_trials(

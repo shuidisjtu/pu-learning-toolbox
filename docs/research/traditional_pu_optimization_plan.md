@@ -48,8 +48,9 @@ paper_claim: false
 - 预测阳性率及 `degenerate_prediction` 标记；
 - 平均耗时、P95 耗时和算法专属收敛诊断。
 
-`degenerate_prediction` 标记与预测阳性率列为 runner 前置扩展（当前 trials.csv 仅有
-`pu_negative_rate`，可推导阳性率但无退化标记），须在第 8 节第 4 步完成后方可作为晋级判据。
+`degenerate_prediction` 标记与预测阳性率列已实现（§8 第 4 步，2026-08-25）：trials 每行
+携带 `pred_positive_rate` 与 `degenerate_prediction`（非 success 行为 NaN），可直接作为
+晋级判据。
 
 ### 3.2 隐藏真值确认
 
@@ -140,7 +141,9 @@ data_leakage_audit.json
    移入 `implemented_metrics`）；
 3. 冻结并复核 baseline_v2（已完成：1200/1200 success）；
 4. 补齐 runner/compare 前置扩展：trials 增加 `degenerate_prediction` 与预测阳性率列；compare
-   增加 `oracle_only_improvement` 分类；
+   增加 `oracle_only_improvement` 分类（已完成：trials 新增 `pred_positive_rate` /
+   `degenerate_prediction` 列，非 success 行为 NaN；compare 新增 `--oracle-metric`
+   （默认 `pu_auc_roc`）与 `oracle_only_improvement` 列，trials 缺该指标列时跳过并警告）；
 5. 按 KLDCE → LDCE → nnPU → uPU → LLSVM → Elkan--Noto → PNU 顺序开展调优；
 6. 仅在候选通过晋级规则后，另行讨论是否写回源码默认值（写回必须同步重锁基线并重跑确认）。
 

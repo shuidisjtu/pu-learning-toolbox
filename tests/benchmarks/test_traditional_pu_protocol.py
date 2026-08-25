@@ -75,6 +75,26 @@ class _Boom:
         return np.zeros(len(X))
 
 
+class _FixedPred:
+    """Estimator with a constant prediction; injected via ESTIMATOR_FACTORY.
+
+    Scores use X[:, 0] so ranking metrics stay well-defined while
+    ``predict`` is degenerate (all-negative / all-positive).
+    """
+
+    def __init__(self, value: int):
+        self.value = value
+
+    def fit(self, X, y, **kwargs):
+        return self
+
+    def predict(self, X):
+        return np.full(len(X), self.value, dtype=int)
+
+    def decision_function(self, X):
+        return np.asarray(X[:, 0], dtype=float)
+
+
 class TestDataIsolation:
     def test_basic_trials_columns_carry_no_oracle_labels(self, tmp_path, mini_config):
         """Contract §2.1: the runner never persists raw labels into trial rows.
@@ -106,6 +126,8 @@ class TestDataIsolation:
                 "real_h",
                 "pi_h_well_conditioned",
                 "ece_buckets_api",
+                "pred_positive_rate",
+                "degenerate_prediction",
             }
             | set(METRIC_COLUMNS)
             | {
@@ -207,3 +229,95 @@ class TestDiagnostics:
         assert trials[diag_cols].isna().all().all()  # upu: no diagnostics → NaN
         # params snapshot mirrors the config's method entry
         assert (trials["params"] == "{}").all()
+
+
+class TestPredictionStats:
+    def test_basic_success_rows_carry_positive_rate_and_degenerate_flag(
+        self, tmp_path, mini_config
+    ):
+        """Optimization plan §3.1: every row records prediction-side stats.
+
+        Success rows carry a positive-prediction rate in [0, 1] and a
+        boolean degenerate_prediction flag (all-positive / all-negative).
+        """
+        trials, _ = run_trials(
+            mini_config,
+            results_dir=tmp_path / "ps",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        success = trials[trials["status"] == "success"]
+        assert not success.empty
+        assert success["pred_positive_rate"].between(0.0, 1.0).all()
+        assert success["degenerate_prediction"].isin([True, False]).all()
+
+    def test_param_all_negative_predictions_flag_degenerate(
+        self, tmp_path, mini_config, monkeypatch
+    ):
+        """Optimization plan §3.3: an all-negative prediction is degenerate."""
+        monkeypatch.setitem(ESTIMATOR_FACTORY, "upu", lambda params, **kwargs: _FixedPred(0))
+        trials, _ = run_trials(
+            mini_config,
+            results_dir=tmp_path / "psneg",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        assert (trials["status"] == "success").all()
+        assert (trials["pred_positive_rate"] == 0.0).all()
+        assert trials["degenerate_prediction"].astype(bool).all()
+
+    def test_edge_all_positive_predictions_flag_degenerate(
+        self, tmp_path, mini_config, monkeypatch
+    ):
+        """Optimization plan §3.3: an all-positive prediction is degenerate."""
+        monkeypatch.setitem(ESTIMATOR_FACTORY, "upu", lambda params, **kwargs: _FixedPred(1))
+        trials, _ = run_trials(
+            mini_config,
+            results_dir=tmp_path / "pspos",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        assert (trials["status"] == "success").all()
+        assert (trials["pred_positive_rate"] == 1.0).all()
+        assert trials["degenerate_prediction"].astype(bool).all()
+
+    def test_param_failed_rows_carry_nan_prediction_columns(
+        self, tmp_path, mini_config, monkeypatch
+    ):
+        """Non-success paths keep the column set stable with NaN values."""
+        monkeypatch.setitem(ESTIMATOR_FACTORY, "upu", lambda params, **kwargs: _Boom())
+        trials, _ = run_trials(
+            mini_config,
+            results_dir=tmp_path / "psfail",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        assert (trials["status"] == "failed").all()
+        assert trials["pred_positive_rate"].isna().all()
+        assert trials["degenerate_prediction"].isna().all()
+
+    def test_determ_identical_rerun_keeps_prediction_columns(
+        self, tmp_path, mini_config, monkeypatch
+    ):
+        """Prediction columns are deterministic across identical reruns."""
+        monkeypatch.setitem(ESTIMATOR_FACTORY, "upu", lambda params, **kwargs: _FixedPred(0))
+        first, _ = run_trials(
+            mini_config,
+            results_dir=tmp_path / "psdet1",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        second, _ = run_trials(
+            mini_config,
+            results_dir=tmp_path / "psdet2",
+            seed_set="development",
+            resume=False,
+            progress=False,
+        )
+        for col in ("pred_positive_rate", "degenerate_prediction"):
+            assert first[col].equals(second[col])

@@ -9,6 +9,12 @@ all four conditions:
 3. mean/P95 runtime stays within the declared budget;
 4. data protocol, evaluation threshold and metric semantics identical.
 
+``--oracle-metric`` (default ``pu_auc_roc``) additionally pairs the hidden-truth
+metric and classifies each cell as ``oracle_only_improvement`` when the oracle
+metric improves but the PU selection metric does not (optimization plan §5).
+When the trials carry no such column, the classification is skipped with a
+warning and every cell reads False.
+
 Usage::
 
     uv run python -m benchmarks.traditional_pu.compare \
@@ -16,6 +22,7 @@ Usage::
       --candidate-dir benchmarks/traditional_pu/results/confirmation_v1_candidates \
       --budget-seconds 120 \
       --metric pu_zero_one_risk \
+      --oracle-metric pu_auc_roc \
       --out benchmarks/traditional_pu/results/m6_candidate_verdict.csv
 """
 
@@ -118,7 +125,15 @@ def pair_cells(
 
 
 def verdicts(table: pd.DataFrame, *, budget_seconds: float) -> pd.DataFrame:
-    """Contract §6 verdict columns; cond2/cond3 are evaluated from raw columns."""
+    """Contract §6 verdict columns; cond2/cond3 are evaluated from raw columns.
+
+    When the merged table carries the oracle-metric columns
+    (``oracle_cond1_improves`` / ``oracle_paired_available``, merged in
+    ``main``), a cell whose oracle metric improves while the PU selection
+    metric does not is labelled ``oracle_only_improvement`` (optimization
+    plan §5) — it must never be reported as PU tuning success.  Tables
+    without the oracle columns (old runs) classify everything as False.
+    """
     table = table.copy()
     # Condition 2: success rate must not deteriorate (5pp tolerance, recorded).
     table["cond2_success_ok"] = (
@@ -132,6 +147,11 @@ def verdicts(table: pd.DataFrame, *, budget_seconds: float) -> pd.DataFrame:
         & table["cond3_budget_ok"]
         & table["paired_available"]
     )
+    oracle_improves = table.get("oracle_cond1_improves", pd.Series(False, index=table.index))
+    oracle_paired = table.get("oracle_paired_available", pd.Series(False, index=table.index))
+    table["oracle_only_improvement"] = (
+        oracle_paired.fillna(False) & oracle_improves.fillna(False) & ~table["cond1_improves"]
+    )
     return table
 
 
@@ -140,6 +160,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline-dir", type=Path, required=True)
     parser.add_argument("--candidate-dir", type=Path, required=True)
     parser.add_argument("--metric", default="pu_zero_one_risk")
+    parser.add_argument(
+        "--oracle-metric",
+        default="pu_auc_roc",
+        help="hidden-truth metric for oracle-only classification",
+    )
     parser.add_argument("--budget-seconds", type=float, default=120.0)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -153,13 +178,34 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
-    table = verdicts(
-        pair_cells(baseline, candidate, args.metric), budget_seconds=args.budget_seconds
-    )
+    table = pair_cells(baseline, candidate, args.metric)
+    if args.oracle_metric in baseline.columns and args.oracle_metric in candidate.columns:
+        oracle = pair_cells(baseline, candidate, args.oracle_metric)[
+            ["algorithm", "scenario", "cond1_improves", "paired_available"]
+        ].rename(
+            columns={
+                "cond1_improves": "oracle_cond1_improves",
+                "paired_available": "oracle_paired_available",
+            }
+        )
+        table = table.merge(oracle, on=["algorithm", "scenario"], how="left")
+    else:
+        table["oracle_cond1_improves"] = False
+        table["oracle_paired_available"] = False
+        print(
+            f"warning: {args.oracle_metric!r} missing from trials; "
+            "oracle-only classification skipped",
+            file=sys.stderr,
+        )
+    table = verdicts(table, budget_seconds=args.budget_seconds)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     table.to_csv(args.out, index=False)
     n_improved = int(table["confirmed_improvement"].sum())
-    print(f"wrote {args.out} ({len(table)} cells, {n_improved} confirmed_improvement)")
+    n_oracle_only = int(table["oracle_only_improvement"].sum())
+    print(
+        f"wrote {args.out} ({len(table)} cells, {n_improved} confirmed_improvement, "
+        f"{n_oracle_only} oracle_only_improvement)"
+    )
     return 0 if n_improved > 0 else 1
 
 

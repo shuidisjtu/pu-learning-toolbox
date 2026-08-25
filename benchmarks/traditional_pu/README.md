@@ -83,7 +83,9 @@ uv run python -m benchmarks.traditional_pu.run \
 每个 `results/<run-name>/` 下：
 
 - `trials.csv`：逐 trial 行——`algorithm`/`scenario`/`seed`/`status`/
-  `elapsed_seconds`/`warning_count`/`failure_reason` + 全量指标列；
+  `elapsed_seconds`/`warning_count`/`failure_reason` + 全量指标列 +
+  `pred_positive_rate`/`degenerate_prediction`（预测阳性率与全正/全负退化标记，
+  调优方案 §3.1/§3.3；非 success 行为 NaN）；
 - `summary.csv`：成功率与均值/样本标准差/95% 置信区间；
 - `resolved_config.json`：解析后配置（含 `resolved_at`）；
 - `run_manifest.json`：`schema_version`/`created_at_utc`/`protocol`/
@@ -128,6 +130,7 @@ uv run python -m benchmarks.traditional_pu.compare \
   --baseline-dir benchmarks/traditional_pu/results/confirmation_v1 \
   --candidate-dir benchmarks/traditional_pu/results/confirmation_v1_candidates \
   --metric pu_zero_one_risk \
+  --oracle-metric pu_auc_roc \
   --budget-seconds 120 \
   --out benchmarks/traditional_pu/results/m6_candidate_verdict.csv
 ```
@@ -139,6 +142,11 @@ uv run python -m benchmarks.traditional_pu.compare \
 `cond3_budget_ok`：候选 P95 耗时 ≤ `/--budget-seconds`；
 `confirmed_improvement`：cond1∧cond2∧cond3 且配对 `n_paired>0`；契约条件 4
 "协议一致"由工具级校验保证——(scenario, seed) 键不同则拒绝配对并返回码 2）。
+
+`--oracle-metric`（默认 `pu_auc_roc`）对隐藏真值指标再做一次同 seed 配对 CI，
+输出 `oracle_cond1_improves` 与 `oracle_only_improvement`（oracle 指标改善而 PU
+主指标未改善的单元，调优方案 §5——不得宣称 PU 调优成功）；trials 缺该指标列时
+跳过该分类并在 stderr 警告，列值如实为 False。
 
 基线侧无 success 值的单元（如开发基线中 LDCE/KLDCE 全域 nonconverged）无法配对，
 记录 `paired_available=false`：此时以成功率/未收敛率对比作为主证据，不构造 CI。
