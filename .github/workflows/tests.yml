@@ -89,6 +89,9 @@ jobs:
       - name: Skill sync check
         run: uv run --python "3.11" python scripts/check_skill_sync.py
 
+      - name: Baseline config consistency check
+        run: uv run --python "3.11" python scripts/check_baseline_configs.py
+
   ui:
     name: Streamlit UI smoke tests
     runs-on: ubuntu-latest

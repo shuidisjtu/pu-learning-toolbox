@@ -45,7 +45,7 @@
   CV 并只重训最佳候选；新增 Streamlit 图形界面，支持数据上传、模型配置、参数搜索、
   指标与诊断展示，以及报告、预测和模型下载）
 - **算法**: 17 个已注册方法，全部 native 实现
-- **质量门禁**: 6 道（test_quality / doc_links / project_metadata / math_rendering / skill_sync / format）
+- **质量门禁**: 7 道（test_quality / doc_links / project_metadata / math_rendering / skill_sync / baseline_configs / format）
 - **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
 - **依赖外部**: Phase 3 官方历史环境，以及 WConPU CUDA/授权数据和 DGPU EDM/CelebA
   全量运行；InfoMax 暂定 Fashion-MNIST 20-seed 协议已执行

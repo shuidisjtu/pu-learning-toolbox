@@ -38,7 +38,7 @@ torch 的训练路径或 PUSB benchmark 的 uLSIF 对照时，再提供明确安
 CI 分为四个独立职责：
 
 1. **Tests（PR 快层）**：在 Ubuntu / Windows / macOS 三平台（3 × 3 矩阵）显式使用 Python 3.10/3.11/3.12，安装 dev + torch + torchvision（视觉单元测试真实运行），运行非 slow 且非 e2e 测试（unit + integration）。
-2. **Static quality gates**：在 Python 3.11 运行格式门禁（`check_format.py`：ruff check + format --check 全目录）、测试质量、文档一致性、项目 metadata 一致性、方法卡 MathJax 渲染检查和 Skill 同步检查。
+2. **Static quality gates**：在 Python 3.11 运行格式门禁（`check_format.py`：ruff check + format --check 全目录）、测试质量、文档一致性、项目 metadata 一致性、方法卡 MathJax 渲染检查、Skill 同步检查和基线配置一致性检查（`check_baseline_configs.py`）。
 3. **Build and install wheel**：构建 sdist/wheel，在隔离环境安装 wheel，并从仓库目录外验证版本、diagnostics 导入与 registry 条目非空。
 4. **Nightly（顶层全量）**：每周一 03:23 UTC 在 3 × 3 矩阵运行 slow + e2e 测试（`-m "slow or e2e"`），依赖同快层（含 torchvision）。
 

@@ -14,7 +14,7 @@
 
 ## 2. 发布前检查(我侧,本地可完成)
 
-1. **质量基线**:`uv run pytest tests/ -m "not slow and not e2e"` 全绿;6 道质量门禁全绿
+1. **质量基线**:`uv run pytest tests/ -m "not slow and not e2e"` 全绿;7 道质量门禁全绿
 2. **元数据**:`pyproject.toml` 版本号、`Development Status` classifier 与版本匹配、`name` 未被占用(可选:`curl -s https://pypi.org/pypi/<name>/json` 返回 404 即可用)、LICENSE/readme/入口点齐全
 3. **构建预检**:
    ```bash
@@ -60,7 +60,7 @@
      - **不写**依赖外部环境的未完成项;未包含的功能(如 v1 范围外)单独列小节标注「未包含」,不得混入功能列表
      - **不写**本机路径等内部细节(如 `F:/lab` 这类验证目录)——路径对用户无意义
      - 语言:中文,保持简洁准确
-4. 跑 6 道门禁,提交文档改动
+4. 跑 7 道门禁,提交文档改动
 
 ## 5. 回滚与纠错
 

@@ -128,6 +128,16 @@ ECE 使用 10 个等宽概率桶，并额外保存每个桶的样本数、平均
 默认 `max_iter` 100 → 10000（100 轮在 SCAR 网格几乎全域不收敛，见 M6 判定；
 放宽容限不改变解语义），v1 基线（`confirmation_v1`）仍以 100 运行。
 
+后续演进记录（2026-08-25）：KLDCE 内层求解器重写（原生 SMO + 单调 ACS 回滚 +
+`inner_tol` 1e-8→1e-6，提交 `cd53c17`）；v1 基线仍以修复前默认参数运行
+（全域 0 success）。修复与 LDCE `max_iter` 写回均落入源码默认后，v2 基线
+（`configs/seven_methods_pu_baseline_v2.json`，`results/baseline_v2`）以**显式锁定
+参数**运行：`methods` 逐键钉住当前构造器默认值（runner 注入的
+`random_state`/`class_prior`/`flip_probability` 除外），配置带
+`locks_source_defaults: true` 标记，由 `scripts/check_baseline_configs.py` 门禁持续
+校验——源码默认参数再演进时门禁报警，基线不再静默漂移。v1 配置保持空 `{}` 的
+历史形态，仅作历史快照，不得在当前源码下重跑。
+
 正式结果按以下目录契约保存：
 
 ```text

@@ -35,13 +35,22 @@ uv run python -m benchmarks.traditional_pu.run \
   --results-dir benchmarks/traditional_pu/results/dev_baseline
 ```
 
-确认期（20 seeds 100..119，正式基线）：
+确认期（20 seeds 100..119，v1 正式基线——修复前默认参数的历史快照，勿在当前源码下重跑）：
 
 ```bash
 uv run python -m benchmarks.traditional_pu.run \
   --config benchmarks/traditional_pu/configs/seven_methods_pu_baseline_v1.json \
   --seed-set confirmation \
-  --results-dir benchmarks/traditional_pu/results/baseline_v1
+  --results-dir benchmarks/traditional_pu/results/confirmation_v1
+```
+
+当前工具箱基线（v2，显式锁定默认参数，契约 §5 演进记录）：
+
+```bash
+uv run python -m benchmarks.traditional_pu.run \
+  --config benchmarks/traditional_pu/configs/seven_methods_pu_baseline_v2.json \
+  --seed-set confirmation \
+  --results-dir benchmarks/traditional_pu/results/baseline_v2
 ```
 
 PNU 网格：
@@ -84,8 +93,8 @@ uv run python -m benchmarks.traditional_pu.run \
 
 ## 超时与冻结流程（契约 §6）
 
-当前 `configs/*.json` 中的 `timeouts` 是**未冻结的宽松保护上限**（统一 600s，
-LLSVM 1800s）：冻结前以此宽松上限保护运行，超时单元记录 `status="timeout"` 并
+当前 `configs/*.json` 中的 `timeouts` 是**未冻结的宽松保护上限**（统一 120s）：
+冻结前以此宽松上限保护运行，超时单元记录 `status="timeout"` 并
 完整保存超时原因，不静默丢弃。
 
 超时是**每单元的守卫**而非墙钟预算：超时单元的 worker 线程无法在 CPython 中
@@ -156,6 +165,12 @@ uv run python -m benchmarks.traditional_pu.compare \
   mid 档 P95 46.0s < 120s 预算。判定为**确认的收敛修复推荐**
   （paired CI 不可评估，基线侧 0 success；compare.py 列如实为 False，
   与 LDCE 同款路径）。
+- **v2 正式基线（2026-08-25，`results/baseline_v2`）**：LDCE/KLDCE 修复写回
+  工具箱默认参数后，以显式锁定参数的 v2 配置重跑 20-seed 确认期，7 方法
+  全量 success，成为代表当前工具箱的正式基线。v2 配置带
+  `locks_source_defaults` 标记，由 `scripts/check_baseline_configs.py` 门禁校验
+  与源码构造器默认值一致——未来默认参数演进在门禁报警，而非基线静默漂移
+  （契约 §5 演进记录）。`confirmation_v1` 保留为修复前历史快照。
 
 ## 开发期与正式基线的差异
 
@@ -164,6 +179,10 @@ uv run python -m benchmarks.traditional_pu.compare \
 - 确认期 20 seeds（100..119）：正式基线；两个集合不得重叠。
 - 正式基线只接受确认种子集产物，且 `run_manifest.json` 必须记录代码 commit、
   依赖版本、种子集合、配置哈希与数据来源；`trials.csv` 原始表与摘要一并提交。
+- v2 基线（`baseline_v2`）代表当前工具箱：7 方法显式锁定默认参数（LDCE
+  `max_iter=10000`、KLDCE 修复后默认），与 `confirmation_v1` 同种子、同网格。
+  v1 与 v2 的差异即 LDCE/KLDCE 的默认参数演进（契约 §5）；其余方法无演进，
+  两基线数字应一致。
 
 ## 声明边界
 
