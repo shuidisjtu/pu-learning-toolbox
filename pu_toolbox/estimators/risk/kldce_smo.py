@@ -275,7 +275,7 @@ def _solve_dual_smo(
     ub: np.ndarray,
     z0: np.ndarray | None,
     *,
-    tol: float = 1e-8,
+    tol: float = 1e-6,
     max_iter: int = 2000,
 ) -> tuple[np.ndarray, dict]:
     """Native paired-SMO solver for the KLDCE fixed-μ dual QP.

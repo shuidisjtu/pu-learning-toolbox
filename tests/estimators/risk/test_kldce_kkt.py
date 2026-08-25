@@ -102,6 +102,30 @@ class TestACSConvergence:
         assert clf.converged_ is True
         assert clf.n_acs_iter_ <= 10
 
+    def test_period2_limit_cycle_rolls_back_and_converges(self, rng):
+        """Period-2 limit cycle (seed 18) stops at the best-seen dual via rollback.
+
+        The degenerate/boundary centroid alternation used to keep rel_mu above
+        tol forever (test_edge_centroid_violation_semantics records the old
+        non-convergence).  With monotone acceptance the lowering mu update is
+        rolled back and mu frozen, so ACS converges at the best dual seen.
+        """
+        rng2 = np.random.RandomState(18)
+        X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=10, n_neg=20, h=0.3, d=3)
+        clf = KLDCEClassifier(
+            flip_probability=0.3,
+            sigma=1.0,
+            centroid_radius=1.0,
+            max_acs_iter=50,
+            tol=1e-4,
+            random_state=42,
+        )
+        clf.fit(X, y_pu)
+        assert clf.converged_ is True
+        duals = [h["dual_obj"] for h in clf.acs_history_]
+        assert clf.acs_history_[-1]["dual_obj"] == pytest.approx(max(duals))
+        assert clf.n_acs_iter_ < 50
+
     def test_param_final_kkt_residual_small(self, rng):
         rng2 = np.random.RandomState(17)
         X, y_pu, _ = _make_censoring_pu_data(rng2, n_pos=10, n_neg=20, h=0.3, d=3)
@@ -131,17 +155,18 @@ class TestACSConvergence:
             tol=1e-4,
             random_state=42,
         )
-        # seed 18 (n=30) is a known period-2 limit cycle: the alternating
-        # degenerate/boundary centroid steps keep rel_mu above tol; the criterion
-        # honestly reports non-convergence (expected, see plan Task 3 findings).
-        # Wrapping the warning makes this intentional signal explicit.
-        with pytest.warns(UserWarning):
-            clf.fit(X, y_pu)
+        # seed 18 (n=30) is a period-2 limit cycle: the alternating
+        # degenerate/boundary centroid steps used to keep rel_mu above tol
+        # forever.  With monotone rollback the lowering mu update is rolled
+        # back and mu frozen at m_hat, so ACS converges (see
+        # test_period2_limit_cycle_rolls_back_and_converges).
+        clf.fit(X, y_pu)
+        assert clf.converged_ is True
         for entry in clf.acs_history_:
-            # Degenerate steps fix mu = m_hat (strictly inside the
-            # ellipsoid): violation is exactly -centroid_radius by
-            # construction (constraint value 0 minus radius).
-            if entry.get("degenerate_centroid_step", False):
+            if entry["mu_change"] == 0.0:
+                # Locked rollback: mu = m_hat strictly inside the ellipsoid;
+                # violation is exactly -centroid_radius by construction
+                # (constraint value 0 minus radius).
                 assert entry["centroid_violation"] == pytest.approx(-clf.centroid_radius), entry
                 continue
             assert abs(entry["centroid_violation"]) <= 0.05 * entry.get(

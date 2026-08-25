@@ -751,8 +751,11 @@ class KLDCEClassifier(BasePUClassifier):
     max_inner_iter : int, default 2000
         Max KKT-violation pair updates per QP solve (pairwise updates are
         cheap at Gram scale; the default is pinned by the probe afterwards).
-    inner_tol : float, default 1e-8
-        KKT violation tolerance for the SMO inner loop.
+    inner_tol : float, default 1e-6
+        KKT violation tolerance for the SMO inner loop.  Aligned with the ACS
+        tol (1e-6) and the oracle agreement acceptance (dual_obj diff ≤ 1e-6);
+        tighter values add a sublinear-approach tail of O(n) pair updates per
+        solve with no consumer for the extra precision (probe 2026-08-25).
     tol : float, default 1e-6
         Convergence tolerance for the ACS loop: the stopping metric
         max(relative objective change, relative centroid move, equality
@@ -824,7 +827,7 @@ class KLDCEClassifier(BasePUClassifier):
         covariance_ridge: float = 0.0,
         max_acs_iter: int = 50,
         max_inner_iter: int = 2000,
-        inner_tol: float = 1e-8,
+        inner_tol: float = 1e-6,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
@@ -983,6 +986,9 @@ class KLDCEClassifier(BasePUClassifier):
         converged = False
         prev_obj: float | None = None
         z = z0.copy()
+        mu_locked = False
+        mu_rollback = mu.copy()
+        z_rollback = z.copy()
 
         for t in range(self.max_acs_iter):
             # (a) Fixed μ: build and solve QP
@@ -1010,6 +1016,37 @@ class KLDCEClassifier(BasePUClassifier):
                 max_iter=self.max_inner_iter,
             )
             dual_obj = qp_diag["dual_obj"]
+
+            # Monotone ACS: a mu update that lowers the dual objective is a
+            # Taylor-approximation artifact (Eq. 35 expands at mu=0); roll the
+            # mu move back and freeze it, so the convergence metric can fire
+            # at the best dual seen (period-2 limit cycle guard).
+            if prev_obj is not None and dual_obj < prev_obj:
+                mu = mu_rollback
+                mu_locked = True
+                Q, d_vec, Aeq, beq, lb, ub = _build_dual_qp(
+                    mu,
+                    X,
+                    K,
+                    y_tilde,
+                    self.reg_strength,
+                    sigma_val,
+                    n,
+                    k,
+                    C_eq,
+                )
+                z, qp_diag = _solve_dual_smo(
+                    Q,
+                    d_vec,
+                    Aeq,
+                    beq,
+                    lb,
+                    ub,
+                    z_rollback,
+                    tol=self.inner_tol,
+                    max_iter=self.max_inner_iter,
+                )
+                dual_obj = qp_diag["dual_obj"]
 
             # (b) Record diagnostics
             iter_info: dict = {
@@ -1045,14 +1082,30 @@ class KLDCEClassifier(BasePUClassifier):
             )
 
             # (e) Update μ via Appendix Eq. 35
-            mu_new, cent_info = _update_centroid(
-                m_hat,
-                S_raw,
-                S_solve,
-                delta,
-                self.centroid_radius,
-                self.tol,
-            )
+            if mu_locked:
+                mu_new = mu.copy()
+                diff = mu - m_hat
+                constraint = float(diff @ S_raw @ diff)
+                cent_info = {
+                    "degenerate_centroid_step": False,
+                    "constraint_residual": constraint,
+                    "constraint_violation": constraint - float(self.centroid_radius),
+                    "constraint_violated": constraint > self.centroid_radius + self.tol,
+                    "centroid_solver": "locked",
+                }
+            else:
+                # Rollback point for the monotone check next round: the state
+                # this QP was solved at (mu, z) before the mu move.
+                mu_rollback = mu.copy()
+                z_rollback = z.copy()
+                mu_new, cent_info = _update_centroid(
+                    m_hat,
+                    S_raw,
+                    S_solve,
+                    delta,
+                    self.centroid_radius,
+                    self.tol,
+                )
 
             iter_info["centroid_constraint_residual"] = cent_info["constraint_residual"]
             iter_info["centroid_violation"] = cent_info["constraint_violation"]
