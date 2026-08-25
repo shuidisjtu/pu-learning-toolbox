@@ -24,6 +24,7 @@ def _smo_pair_delta(
     a: np.ndarray,
     lb: np.ndarray,
     ub: np.ndarray,
+    g: np.ndarray | None = None,
 ) -> float | None:
     """Feasible step size for pair (i1, i2), or None if no move is possible.
 
@@ -31,9 +32,12 @@ def _smo_pair_delta(
     for pairs whose step would be zero (box-blocked at the current point) or
     that lie in a non-positive-curvature direction of Q, so callers can skip
     them instead of stalling on a no-progress update.
+
+    ``g`` (optional) is the maintained gradient Q·z − d at the current point
+    (see ``_solve_dual_smo``); when None it is recomputed in full here.
     """
     s = a[i1] * a[i2]
-    g = Q @ z - d
+    g = Q @ z - d if g is None else g
     h = Q[i1, i1] - 2.0 * s * Q[i1, i2] + Q[i2, i2]
     if h <= 0.0:
         return None  # non-positive curvature: degenerate, no descent guaranteed
@@ -68,19 +72,27 @@ def _smo_alpha_pair_update(
     a: np.ndarray,
     lb: np.ndarray,
     ub: np.ndarray,
+    g: np.ndarray | None = None,
 ) -> np.ndarray:
     """Analytic one-dimensional paired SMO step on variables (i1, i2).
 
     Returns the updated full variable vector (a new array).  If the pair
     admits no feasible step the input vector is returned unchanged.
+
+    When ``g`` (the maintained gradient Q·z − d at the current point) is
+    given, it is updated in place — only i1/i2 moved by ±δ, so exactly
+    g′ = g + δ·(Q[:,i1] − s·Q[:,i2]) (O(n); Platt/LIBSVM kernel-cache style).
+    When ``g`` is None the old full recompute path is used verbatim.
     """
     z = z.copy()
-    delta = _smo_pair_delta(z, i1, i2, Q, d, a, lb, ub)
+    delta = _smo_pair_delta(z, i1, i2, Q, d, a, lb, ub, g)
     if delta is None:
         return z
     s = a[i1] * a[i2]
     z[i1] += delta
     z[i2] -= s * delta
+    if g is not None:
+        g[:] += delta * (Q[:, i1] - s * Q[:, i2])
     return z
 
 
@@ -111,6 +123,7 @@ def kkt_violation_terms(
     lb: np.ndarray,
     ub: np.ndarray,
     eps: float = 1e-8,
+    g: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict]:
     """Per-variable KKT violation for min ½zᵀQz − dᵀz, Aeq·z = beq, lb ≤ z ≤ ub.
 
@@ -140,8 +153,11 @@ def kkt_violation_terms(
     per-variable signal matches the legacy behaviour, and
     ``nu_feasible_gap = max(0, lo − hi)`` / ``kkt_feasible`` report the
     infeasibility as a scalar.
+
+    ``g`` (optional) is the maintained gradient Q·z − d at the current point
+    (see ``_solve_dual_smo``); when None it is recomputed in full here.
     """
-    g = Q @ z - d
+    g = Q @ z - d if g is None else g
     a = np.asarray(a, dtype=float)
     free_mask = (z > lb + eps) & (z < ub - eps)
     at_lb = (z <= lb + eps) & ~free_mask
@@ -204,6 +220,7 @@ def _smo_pair_select(
     lb: np.ndarray,
     ub: np.ndarray,
     eps: float = 1e-8,
+    g: np.ndarray | None = None,
 ) -> tuple[int, int] | None:
     """Select a violating pair (first = max violation, second = max |lag difference|).
 
@@ -216,24 +233,27 @@ def _smo_pair_select(
     can move, returns None again — this second None means "stuck", NOT
     "KKT satisfied".  Callers must distinguish the two via
     ``kkt_violation_terms`` (viol.max() ≤ eps) rather than via None.
+
+    ``g`` (optional) is the maintained gradient Q·z − d at the current point
+    (see ``_solve_dual_smo``); when None every use recomputes it in full.
     """
-    viol, info = kkt_violation_terms(z, Q, d, a, lb, ub, eps)
+    viol, info = kkt_violation_terms(z, Q, d, a, lb, ub, eps, g)
     i1 = int(np.argmax(viol))
     if viol[i1] <= eps:
         return None
-    lag = Q @ z - d + info["nu"] * a
+    lag = (g if g is not None else (Q @ z - d)) + info["nu"] * a
     for j in sorted(
         (j for j in range(z.shape[0]) if j != i1),
         key=lambda j: abs(lag[j] - lag[i1]),
         reverse=True,
     ):
-        if _smo_pair_delta(z, i1, j, Q, d, a, lb, ub) is not None:
+        if _smo_pair_delta(z, i1, j, Q, d, a, lb, ub, g) is not None:
             return i1, j
     # No pair through i1 can move: scan the whole vector for the largest step.
     best_pair, best_mag = None, 0.0
     for i in range(z.shape[0]):
         for j in range(i + 1, z.shape[0]):
-            delta = _smo_pair_delta(z, i, j, Q, d, a, lb, ub)
+            delta = _smo_pair_delta(z, i, j, Q, d, a, lb, ub, g)
             if delta is not None and abs(delta) > best_mag:
                 best_mag, best_pair = abs(delta), (i, j)
     return best_pair
@@ -274,6 +294,12 @@ def _solve_dual_smo(
     semantics of ``kkt_violation_terms``: at a KKT-feasible vertex any
     ν in the non-empty allowed interval gives zero violations, so the
     recompute correctly reports convergence there.
+
+    Gradient maintenance: each pair update moves only two components, so the
+    gradient g = Q·z − d is maintained incrementally — g′ = g + δ·(Q[:,i1] −
+    s·Q[:,i2]), exact up to machine precision (Platt/LIBSVM kernel-cache
+    style).  g is fully recomputed once per solve and again every 256 pairs
+    as a drift guard; drift is O(pairs·ε) ≈ 1e-12 ≪ tol either way.
     """
     from pu_toolbox.estimators.risk.kldce import _find_feasible_init, _true_kkt_residual
 
@@ -283,13 +309,16 @@ def _solve_dual_smo(
     z = z0.astype(float).copy()
 
     n_iter = 0
+    g = Q @ z - d_vec  # full recompute per solve; incremental in the loop
     for _ in range(max_iter):
-        pair = _smo_pair_select(z, Q, d_vec, a, lb, ub, eps=tol)
+        pair = _smo_pair_select(z, Q, d_vec, a, lb, ub, eps=tol, g=g)
         if pair is None:
             break  # no movable pair: convergence decided by KKT below, not None
         i1, i2 = pair
-        z = _smo_alpha_pair_update(z, i1, i2, Q, d_vec, a, lb, ub)
+        z = _smo_alpha_pair_update(z, i1, i2, Q, d_vec, a, lb, ub, g=g)
         n_iter += 1
+        if n_iter % 256 == 0:
+            g = Q @ z - d_vec  # periodic full recompute: drift guard (≈1e-12)
 
     # KKT-based convergence: pair selection returns None both when the point
     # satisfies KKT and when every pair is stuck (box-blocked / null-curvature)

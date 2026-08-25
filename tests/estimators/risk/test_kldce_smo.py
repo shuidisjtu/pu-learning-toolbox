@@ -70,6 +70,20 @@ def test_basic_alpha_pair_no_feasible_step_returns_unchanged():
     assert np.allclose(z_new, z)
 
 
+def test_basic_incremental_gradient_matches_full_recompute():
+    """增量 g 与全量重算逐分量一致(两对更新后)。"""
+    Q = np.array([[2.0, 1.0, 0.0], [1.0, 4.0, 0.5], [0.0, 0.5, 3.0]])
+    d = np.array([0.5, 0.2, 0.7])
+    a = np.array([1.0, 1.0, -1.0])
+    lb = np.zeros(3)
+    ub = np.full(3, 1.0)
+    z = np.array([0.4, 0.3, 0.2])
+    g = Q @ z - d
+    z = _smo_alpha_pair_update(z.copy(), 0, 1, Q, d, a, lb, ub, g=g)
+    z = _smo_alpha_pair_update(z.copy(), 1, 2, Q, d, a, lb, ub, g=g)
+    assert np.allclose(g, Q @ z - d, atol=1e-12)
+
+
 def test_basic_gamma_pair_update_delegates_same_analytic_step():
     """γ 对与 α 对同一数学(符号差只来自 a);入口分派返回同解。"""
     Q = np.array([[2.0, 0.3], [0.3, 1.5]])
