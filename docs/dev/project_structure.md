@@ -218,6 +218,7 @@ tests/
       test_data_profiler.py             # 结构化报告、质量规则与审计诊断
       __init__.py
     scripts/
+      test_check_baseline_configs.py    # 基线配置一致性门禁脚本测试
       test_check_doc_links.py           # 文档链接门禁(orphan/md-link)脚本测试
       test_check_format.py              # 格式门禁(ruff lint+format)脚本测试
       test_check_math_rendering.py      # MathJax 渲染门禁脚本测试
