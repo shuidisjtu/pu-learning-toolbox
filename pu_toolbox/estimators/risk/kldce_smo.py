@@ -117,28 +117,83 @@ def kkt_violation_terms(
     Signs follow the convention used by ``_true_kkt_residual`` (kldce.py):
     with lag = g + ν·a, free variables must have lag ≈ 0; a variable at its
     lower bound must have lag ≥ 0 (violation = max(0, −lag)); at its upper
-    bound lag ≤ 0 (violation = max(0, lag)).  ν is recovered as the median
-    over free variables where the KKT forces g_i + ν·a_i = 0.
+    bound lag ≤ 0 (violation = max(0, lag)).
+
+    ν is recovered by intersecting the per-variable KKT obligations, each a
+    half-line (or single point) in ν.  With t_i = −g_i/a_i the identity
+    lag_i = g_i + ν·a_i = a_i·(ν − t_i) gives: a free variable forces ν = t_i;
+    at lb, a_i > 0 forces ν ≥ t_i while a_i < 0 forces ν ≤ t_i; at ub the
+    inequalities flip.  Collect lo = max of all "ν ≥ t" obligations and
+    hi = min of all "ν ≤ t" obligations (single points count as both): the
+    point is KKT-feasible iff lo ≤ hi, and any ν ∈ [lo, hi] is then a valid
+    multiplier.  This handles vertex optima (zero free variables), where a
+    multiplier exists but cannot be recovered from free-variable medians —
+    the old ν = None sign-check degeneracy reported spurious violations at
+    exactly such KKT-feasible vertices.
+
+    ν is chosen as the median of the free-variable candidates −g_i/a_i,
+    clamped into [lo, hi] when the intersection is non-empty (at a feasible
+    point all free t_i coincide, so the clamp is a no-op and the legacy
+    medians are preserved); when no free candidate exists, any ν ∈ [lo, hi]
+    works and the midpoint is used (the lower endpoint if hi = +∞, the upper
+    if lo = −∞).  When the intersection is empty the median is kept, so the
+    per-variable signal matches the legacy behaviour, and
+    ``nu_feasible_gap = max(0, lo − hi)`` / ``kkt_feasible`` report the
+    infeasibility as a scalar.
     """
     g = Q @ z - d
     a = np.asarray(a, dtype=float)
     free_mask = (z > lb + eps) & (z < ub - eps)
-    free_idx = np.where(free_mask)[0]
-    nu = None
-    if free_idx.size:
-        nu_candidates = [-g[i] / a[i] for i in free_idx if a[i] != 0.0 and free_mask[i]]
-        if nu_candidates:
-            nu = float(np.median(nu_candidates))
-    lag = g.copy()
-    if nu is not None:
-        lag = g + nu * a
-    viol = np.zeros_like(g)
-    viol[free_mask] = np.abs(lag[free_mask])
     at_lb = (z <= lb + eps) & ~free_mask
     at_ub = (z >= ub - eps) & ~free_mask
+
+    # Per-variable ν obligations via lag_i = a_i·(ν − t_i), t_i = −g_i/a_i.
+    lo = -np.inf
+    hi = np.inf
+    for i in range(z.shape[0]):
+        if a[i] == 0.0:
+            continue  # no ν dependence; the lag itself is checked below
+        t = -g[i] / a[i]
+        if free_mask[i]:
+            lo = max(lo, t)
+            hi = min(hi, t)
+        elif at_lb[i]:  # lag_i ≥ 0
+            if a[i] > 0.0:
+                lo = max(lo, t)
+            else:
+                hi = min(hi, t)
+        elif at_ub[i]:  # lag_i ≤ 0
+            if a[i] > 0.0:
+                hi = min(hi, t)
+            else:
+                lo = max(lo, t)
+
+    nu_candidates = [-g[i] / a[i] for i in np.where(free_mask)[0] if a[i] != 0.0]
+    if nu_candidates:
+        nu = float(np.median(nu_candidates))
+        if lo <= hi:  # feasible: project the median into the interval (no-op)
+            nu = float(min(max(nu, lo), hi))
+    elif np.isfinite(lo) and np.isfinite(hi):
+        nu = 0.5 * (lo + hi)
+    elif np.isfinite(lo):
+        nu = lo
+    elif np.isfinite(hi):
+        nu = hi
+    else:
+        nu = 0.0
+
+    lag = g + nu * a
+    viol = np.zeros_like(g)
+    viol[free_mask] = np.abs(lag[free_mask])
     viol[at_lb] = np.maximum(0.0, -lag[at_lb])
     viol[at_ub] = np.maximum(0.0, lag[at_ub])
-    return viol, {"nu": nu, "free_mask": free_mask}
+    return viol, {
+        "nu": nu,
+        "free_mask": free_mask,
+        "nu_interval": (lo, hi),
+        "kkt_feasible": bool(lo <= hi),
+        "nu_feasible_gap": float(max(0.0, lo - hi)),
+    }
 
 
 def _smo_pair_select(
@@ -166,7 +221,7 @@ def _smo_pair_select(
     i1 = int(np.argmax(viol))
     if viol[i1] <= eps:
         return None
-    lag = Q @ z - d + info["nu"] * a if info["nu"] is not None else Q @ z - d
+    lag = Q @ z - d + info["nu"] * a
     for j in sorted(
         (j for j in range(z.shape[0]) if j != i1),
         key=lambda j: abs(lag[j] - lag[i1]),
@@ -214,7 +269,11 @@ def _solve_dual_smo(
     pair is box-blocked / null-curvature while KKT violations remain (a
     stuck point).  ``inner_converged`` is therefore decided by recomputing
     ``kkt_violation_terms`` at the exit point (viol.max() ≤ tol); a stuck
-    non-KKT point reports status=1, not a spurious convergence.
+    non-KKT point reports status=1, not a spurious convergence.  Points with
+    no free variables (vertex optima) are handled via the ν-interval
+    semantics of ``kkt_violation_terms``: at a KKT-feasible vertex any
+    ν in the non-empty allowed interval gives zero violations, so the
+    recompute correctly reports convergence there.
     """
     from pu_toolbox.estimators.risk.kldce import _find_feasible_init, _true_kkt_residual
 
@@ -234,8 +293,10 @@ def _solve_dual_smo(
 
     # KKT-based convergence: pair selection returns None both when the point
     # satisfies KKT and when every pair is stuck (box-blocked / null-curvature)
-    # while KKT violations remain — only the former is convergence.
-    viol, _ = kkt_violation_terms(z, Q, d_vec, a, lb, ub, eps=tol)
+    # while KKT violations remain — only the former is convergence.  The ν
+    # interval semantics of kkt_violation_terms make viol ≈ 0 at KKT-feasible
+    # vertices (zero free variables), so those report convergence too.
+    viol, info = kkt_violation_terms(z, Q, d_vec, a, lb, ub, eps=tol)
     converged = bool(viol.max() <= tol)
 
     dual_obj = float(d_vec @ z - 0.5 * z @ Q @ z)
@@ -251,6 +312,8 @@ def _solve_dual_smo(
         "kkt_n_free": n_free,
         "kkt_status": kkt_status,
         "gradient_norm": float(np.linalg.norm(Q @ z - d_vec)),
+        "nu_feasible_gap": info["nu_feasible_gap"],
+        "kkt_feasible": info["kkt_feasible"],
         "status": 0 if converged else 1,
         "n_iter": n_iter,
         "inner_converged": converged,

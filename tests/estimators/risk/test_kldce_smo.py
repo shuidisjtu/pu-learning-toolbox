@@ -187,6 +187,69 @@ def test_basic_smo_stuck_pair_not_reported_converged():
     assert diag["n_iter"] == 0
 
 
+def test_vertex_feasible_kkt_zero_violation():
+    """Regression (interval KKT): a KKT-feasible vertex (no free vars) must
+    report viol ≈ 0 — the old nu=None sign-check on g reported spurious
+    violations at such points.
+
+    Hand-derived: Q = I2, d = [0.3, 0.7], a = [1, −1], z = [0, 1] (var0 at lb,
+    var1 at ub, zero free).  g = Qz − d = [−0.3, 0.3].  Obligations with
+    t_i = −g_i/a_i: var0 at lb (a>0) → ν ≥ t0 = 0.3; var1 at ub (a<0) →
+    lag1 = 0.3 − ν ≤ 0 → ν ≥ t1 = 0.3.  lo = 0.3, hi = +∞ → intersection
+    [0.3, ∞) non-empty → feasible; nu = lo = 0.3 → lag = [0, 0] → viol = [0, 0].
+    """
+    Q = np.eye(2)
+    d = np.array([0.3, 0.7])
+    a = np.array([1.0, -1.0])
+    z = np.array([0.0, 1.0])
+    lb = np.zeros(2)
+    ub = np.ones(2)
+    viol, info = kkt_violation_terms(z, Q, d, a, lb, ub)
+    assert info["nu"] == pytest.approx(0.3, abs=1e-9)
+    assert info["kkt_feasible"] is True
+    assert info["nu_feasible_gap"] == pytest.approx(0.0, abs=1e-12)
+    assert viol.max() <= 1e-9
+
+
+def test_vertex_infeasible_reports_gap():
+    """Regression (interval KKT): an infeasible vertex reports the ν gap.
+
+    Hand-derived: Q = I2, d = [2, 2], a = [1, 1], z = [0, 1] (var0 at lb,
+    var1 at ub, zero free).  g = Qz − d = [−2, −1].  var0 at lb (a>0) →
+    ν ≥ t0 = 2; var1 at ub (a>0) → ν ≤ t1 = 1.  lo = 2 > hi = 1 → empty
+    intersection → infeasible, gap = lo − hi = 1.0, viol > 0 with the
+    representative nu = 1.5 (lag = [−0.5, 0.5]).
+    (The brief's suggested d = [1, 2] was checked by hand: g = [−1, −1] gives
+    lo = hi = 1 — feasible.  d = [2, 2] is the genuinely infeasible one.)
+    """
+    Q = np.eye(2)
+    d = np.array([2.0, 2.0])
+    a = np.ones(2)
+    z = np.array([0.0, 1.0])
+    lb = np.zeros(2)
+    ub = np.ones(2)
+    viol, info = kkt_violation_terms(z, Q, d, a, lb, ub)
+    assert info["kkt_feasible"] is False
+    assert info["nu_feasible_gap"] == pytest.approx(1.0, abs=1e-12)
+    assert viol.max() > 0.0
+
+
+def test_vertex_optimum_inner_converged_seed7():
+    """Regression (interval KKT): rank-deficient vertex optimum must converge.
+
+    Seed 7 of ``_random_kldce_qp``: the RBF Gram is rank-deficient, the dual
+    optimum is a vertex (0 free variables) that SMO exits at; the old nu=None
+    sign-check reported viol ≈ 1.02 → inner_converged=False even though
+    dual_obj matches the SLSQP oracle to machine precision (0.0).
+    """
+    Q, d, Aeq, beq, lb, ub = _random_kldce_qp(np, seed=7)
+    z_smo, diag = _solve_dual_smo(Q, d, Aeq, beq, lb, ub, None, tol=1e-9, max_iter=4000)
+    z_orc, diag_orc = _solve_qp_oracle(Q, d, Aeq, beq, lb, ub, z_smo, tol=1e-9)
+    assert diag["inner_converged"] is True
+    assert diag["status"] == 0
+    assert diag["dual_obj"] == pytest.approx(diag_orc["dual_obj"], abs=1e-6)
+
+
 def test_basic_bias_average_four_terms():
     assert _smo_bias_average([1.0, 2.0, 3.0, 4.0]) == pytest.approx(2.5)
 
