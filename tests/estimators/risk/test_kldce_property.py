@@ -210,12 +210,16 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="flip_probability"):
             clf.fit(X, y_pu)
 
-    def test_max_dual_variables_enforced(self, rng):
-        X = rng.randn(600, 3)
-        y_pu = np.concatenate([np.ones(10, dtype=int), np.zeros(590, dtype=int)])
-        clf = KLDCEClassifier(flip_probability=0.3, max_dual_variables=500)
-        with pytest.raises(ValueError, match="max_dual_variables"):
-            clf.fit(X, y_pu)
+
+def test_edge_new_inner_params_in_get_params_roundtrip():
+    clf = KLDCEClassifier(flip_probability=0.3, max_inner_iter=777, inner_tol=1e-7)
+    params = clf.get_params()
+    assert params["max_inner_iter"] == 777
+    assert params["inner_tol"] == 1e-7
+    clf2 = KLDCEClassifier(flip_probability=0.3)
+    clf2.set_params(**params)
+    assert clf2.max_inner_iter == 777
+    assert "max_dual_variables" not in clf2.get_params()
 
 
 # ═════════════════════════════════════════════════════════════════════

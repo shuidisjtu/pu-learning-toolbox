@@ -95,7 +95,6 @@ class TestACSConvergence:
             sigma=1.0,
             reg_strength=0.1,
             max_acs_iter=50,
-            max_dual_variables=2000,
             tol=1e-4,
             random_state=42,
         )
@@ -110,7 +109,6 @@ class TestACSConvergence:
             flip_probability=0.3,
             sigma=1.0,
             max_acs_iter=50,
-            max_dual_variables=2000,
             tol=1e-4,
             random_state=42,
         )
@@ -130,7 +128,6 @@ class TestACSConvergence:
             sigma=1.0,
             centroid_radius=1.0,
             max_acs_iter=50,
-            max_dual_variables=2000,
             tol=1e-4,
             random_state=42,
         )
@@ -158,7 +155,6 @@ class TestACSConvergence:
             flip_probability=0.3,
             sigma=1.0,
             max_acs_iter=50,
-            max_dual_variables=2000,
             tol=1e-4,
             random_state=42,
         )

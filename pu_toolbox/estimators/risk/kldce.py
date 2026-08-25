@@ -37,6 +37,8 @@ import numpy as np
 import scipy.optimize
 from scipy.linalg import solve
 
+from pu_toolbox.estimators.risk.kldce_smo import _solve_dual_smo
+
 from ...core.base import BasePUClassifier
 from ...core.tags import (
     AlgorithmFamily,
@@ -746,8 +748,11 @@ class KLDCEClassifier(BasePUClassifier):
         numerical stabilisation variant.
     max_acs_iter : int, default 50
         Maximum number of ACS outer loop iterations.
-    max_dual_variables : int, default 1000
-        Hard limit on the number of dual variables ``n + n_U``.
+    max_inner_iter : int, default 2000
+        Max KKT-violation pair updates per QP solve (pairwise updates are
+        cheap at Gram scale; the default is pinned by the probe afterwards).
+    inner_tol : float, default 1e-8
+        KKT violation tolerance for the SMO inner loop.
     tol : float, default 1e-6
         Convergence tolerance for the ACS loop: the stopping metric
         max(relative objective change, relative centroid move, equality
@@ -818,7 +823,8 @@ class KLDCEClassifier(BasePUClassifier):
         mom_groups: int = 10,
         covariance_ridge: float = 0.0,
         max_acs_iter: int = 50,
-        max_dual_variables: int = 1000,
+        max_inner_iter: int = 2000,
+        inner_tol: float = 1e-8,
         tol: float = 1e-6,
         random_state: int | None = None,
     ) -> None:
@@ -830,7 +836,8 @@ class KLDCEClassifier(BasePUClassifier):
         self.mom_groups = mom_groups
         self.covariance_ridge = covariance_ridge
         self.max_acs_iter = max_acs_iter
-        self.max_dual_variables = max_dual_variables
+        self.max_inner_iter = max_inner_iter
+        self.inner_tol = inner_tol
         self.tol = tol
         self.random_state = random_state
 
@@ -899,12 +906,6 @@ class KLDCEClassifier(BasePUClassifier):
             raise ValueError(f"mom_groups must be >= 1; got {self.mom_groups}.")
         if self.mom_groups > n_U:
             raise ValueError(f"mom_groups ({self.mom_groups}) cannot exceed n_U ({n_U}).")
-        n_dual = n + n_U
-        if n_dual > self.max_dual_variables:
-            raise ValueError(
-                f"Number of dual variables ({n_dual}) exceeds "
-                f"max_dual_variables ({self.max_dual_variables})."
-            )
 
         # ── Class prior (§4 step 3) ──────────────────────────────────
         if class_prior is not None:
@@ -997,7 +998,7 @@ class KLDCEClassifier(BasePUClassifier):
                 C_eq,
             )
 
-            z, qp_diag = _solve_qp_oracle(
+            z, qp_diag = _solve_dual_smo(
                 Q,
                 d_vec,
                 Aeq,
@@ -1005,7 +1006,8 @@ class KLDCEClassifier(BasePUClassifier):
                 lb,
                 ub,
                 z,
-                tol=self.tol,
+                tol=self.inner_tol,
+                max_iter=self.max_inner_iter,
             )
             dual_obj = qp_diag["dual_obj"]
 
@@ -1020,6 +1022,8 @@ class KLDCEClassifier(BasePUClassifier):
                 "kkt_nu": qp_diag["kkt_nu"],
                 "kkt_n_free": qp_diag["kkt_n_free"],
                 "kkt_status": qp_diag["kkt_status"],
+                "inner_n_iter": qp_diag.get("n_iter", 0),
+                "inner_converged": qp_diag.get("inner_converged", False),
                 "centroid_constraint_residual": 0.0,
                 "centroid_violation": 0.0,
                 "degenerate_centroid_step": False,
