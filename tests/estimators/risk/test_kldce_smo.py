@@ -158,6 +158,35 @@ def test_basic_pair_select_kkt_satisfied_returns_none():
     assert _smo_pair_select(z_c, Q, d_c, a, lb, ub) is None
 
 
+def test_basic_smo_stuck_pair_not_reported_converged():
+    """Regression (Task 3): no movable pair != KKT convergence.
+
+    Rank-deficient Q = [[1,1],[1,1]] with d = [0.5, 0], constraint z0+z1=1:
+    the only pair (0, 1) has zero curvature along the restricted curve
+    (h = Q00 - 2*Q01 + Q11 = 0), so ``_smo_pair_delta`` returns None and
+    ``_smo_pair_select`` falls back to "no pair anywhere" -> None.  The point
+    is NOT KKT-satisfying (viol = [0.25, 0.25] > tol), so the solve loop must
+    report status=1 / inner_converged=False, not a spurious convergence.
+
+    Hand-derived: g = Qz - d = [0.5, 1.0]; both variables free, so
+    nu = median(-g/a) = -0.75; lag = g + nu*a = [-0.25, 0.25] -> viol 0.25.
+    """
+    Q = np.array([[1.0, 1.0], [1.0, 1.0]])
+    d = np.array([0.5, 0.0])
+    a = np.ones(2)
+    lb = np.zeros(2)
+    ub = np.ones(2)
+    z = np.array([0.5, 0.5])
+    viol, _ = kkt_violation_terms(z, Q, d, a, lb, ub)
+    assert viol.max() > 1e-8
+    assert _smo_pair_select(z, Q, d, a, lb, ub) is None  # stuck, not KKT
+    Aeq = np.ones((1, 2))
+    _, diag = _solve_dual_smo(Q, d, Aeq, 1.0, lb, ub, z, tol=1e-8, max_iter=100)
+    assert diag["inner_converged"] is False
+    assert diag["status"] == 1
+    assert diag["n_iter"] == 0
+
+
 def test_basic_bias_average_four_terms():
     assert _smo_bias_average([1.0, 2.0, 3.0, 4.0]) == pytest.approx(2.5)
 

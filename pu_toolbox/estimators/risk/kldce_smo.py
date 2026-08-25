@@ -157,7 +157,10 @@ def _smo_pair_select(
     admit a non-zero analytic step (``_smo_pair_delta``); box-blocked or
     null-curvature pairs are skipped — selecting them would stall the solve
     loop on a no-progress update.  If no pair through ``i1`` can move, falls
-    back to the largest-step pair anywhere in the vector.
+    back to the largest-step pair anywhere in the vector; if no pair anywhere
+    can move, returns None again — this second None means "stuck", NOT
+    "KKT satisfied".  Callers must distinguish the two via
+    ``kkt_violation_terms`` (viol.max() ≤ eps) rather than via None.
     """
     viol, info = kkt_violation_terms(z, Q, d, a, lb, ub, eps)
     i1 = int(np.argmax(viol))
@@ -205,25 +208,35 @@ def _solve_dual_smo(
     Interface-compatible with ``kldce._solve_qp_oracle`` (the SLSQP oracle —
     retained for cross-checking only).  When ``z0`` is None, a feasible
     start point is obtained via ``kldce._find_feasible_init``.
+
+    Convergence is KKT-based, not pair-availability-based: the loop stops
+    when ``_smo_pair_select`` returns None, but None also fires when every
+    pair is box-blocked / null-curvature while KKT violations remain (a
+    stuck point).  ``inner_converged`` is therefore decided by recomputing
+    ``kkt_violation_terms`` at the exit point (viol.max() ≤ tol); a stuck
+    non-KKT point reports status=1, not a spurious convergence.
     """
     from pu_toolbox.estimators.risk.kldce import _find_feasible_init, _true_kkt_residual
 
-    N = lb.shape[0]  # noqa: F841  (kept verbatim from plan; dimension documented by lb)
     a = Aeq[0].astype(float) if Aeq.ndim == 2 else Aeq.astype(float)
     if z0 is None:
         z0 = _find_feasible_init(Aeq, beq, lb, ub)
     z = z0.astype(float).copy()
 
     n_iter = 0
-    converged = False
     for _ in range(max_iter):
         pair = _smo_pair_select(z, Q, d_vec, a, lb, ub, eps=tol)
         if pair is None:
-            converged = True
-            break
+            break  # no movable pair: convergence decided by KKT below, not None
         i1, i2 = pair
         z = _smo_alpha_pair_update(z, i1, i2, Q, d_vec, a, lb, ub)
         n_iter += 1
+
+    # KKT-based convergence: pair selection returns None both when the point
+    # satisfies KKT and when every pair is stuck (box-blocked / null-curvature)
+    # while KKT violations remain — only the former is convergence.
+    viol, _ = kkt_violation_terms(z, Q, d_vec, a, lb, ub, eps=tol)
+    converged = bool(viol.max() <= tol)
 
     dual_obj = float(d_vec @ z - 0.5 * z @ Q @ z)
     eq_residual = float(np.abs(Aeq @ z - beq).max())
