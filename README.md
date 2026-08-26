@@ -5,7 +5,7 @@
 **Positive-Unlabeled learning in Python** -- 17 registered algorithms, research joint-shift adaptation, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.8.0-blue)
+![Status](https://img.shields.io/badge/status-1.9.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
@@ -19,6 +19,8 @@
 - **Deployment monitoring** -- resumable window alerts, coverage/rejection controls, and active-review exports in CLI and UI
 - **CLI** -- `pu-toolbox` turns the whole pipeline into terminal commands
 - **Model tuning** -- unified classifier parameters plus PU-aware grid search
+- **Evaluation metrics** -- PU-native risk plus supervised ranking, balanced-accuracy, and probability-calibration metrics with explicit availability contracts
+- **Reproducible traditional-PU benchmark** -- locked seven-method protocols, leakage preflight, resumable trials, paired comparisons, and tuning evidence
 - **Graphical UI** -- upload data, configure/compare models, inspect diagnostics, and download results
 
 ## Quick Start

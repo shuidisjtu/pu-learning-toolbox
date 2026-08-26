@@ -5,7 +5,7 @@
 **正例-无标记学习 Python 工具箱** -- 17 个注册算法、联合漂移研究适配，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.8.0-blue)
+![Status](https://img.shields.io/badge/status-1.9.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 特性
@@ -19,6 +19,8 @@
 - **部署监控** -- 可恢复的窗口告警、coverage/拒绝预测控制，以及 CLI/UI 主动复核导出
 - **CLI** -- `pu-toolbox` 把整条流水线变成终端命令
 - **模型调整** -- 统一 `classifier_params`、命令行参数入口与 PU-aware 网格搜索
+- **评估指标** -- PU 原生风险，以及带明确可用性契约的排序、平衡准确率与概率校准指标
+- **可复现传统 PU benchmark** -- 七方法锁定协议、数据泄露预检、断点续跑、配对比较与调优证据
 - **图形界面** -- 上传数据、配置/比较模型、查看诊断并下载报告与模型
 
 ## 快速开始
