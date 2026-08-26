@@ -147,6 +147,15 @@ data_leakage_audit.json
    增加 `oracle_only_improvement` 分类（已完成：trials 新增 `pred_positive_rate` /
    `degenerate_prediction` 列，非 success 行为 NaN；compare 新增 `--oracle-metric`
    （默认 `pu_auc_roc`）与 `oracle_only_improvement` 列，trials 缺该指标列时跳过并警告）；
-5. 按 KLDCE → LDCE → nnPU → uPU → LLSVM → Elkan--Noto → PNU 顺序开展调优；
-6. 仅在候选通过晋级规则后，另行讨论是否写回源码默认值（写回必须同步重锁基线并重跑确认）。
+5. 按 KLDCE → LDCE → nnPU → uPU → LLSVM → Elkan--Noto → PNU 顺序开展调优
+   （已完成，2026-08-26：七轮 verdict 为 KLDCE 否定（实现级跟进项）/ LDCE 正面 ×2
+   （centroid_radius=0.1、covariance_ridge=1e-2 均 6/6 confirmed）/ nnPU 部分改善
+   （β 方向零变差、无全单元）/ uPU 全单元晋级（loss='squared' 12/12 confirmed）/
+   LLSVM 部分改善（dev 乐观性偏差证伪）/ Elkan-Noto dev 中止（主指标阈值语义失配，
+   协议跟进项）/ PNU 饱和（默认参数已达上限）；逐轮证据见
+   `benchmarks/traditional_pu/results/<method>_tuning_r1/findings.md`）；
+6. 仅在候选通过晋级规则后，另行讨论是否写回源码默认值（写回必须同步重锁基线并重跑确认）
+   ——写回决策框架已立档 ADR-0016：三个候选（uPU loss='squared'、LDCE
+   centroid_radius=0.1、LDCE covariance_ridge=1e-2）+ LDCE 组合评估 + 基线重锁
+   前置条件 + 两个跟进项（Elkan-Noto 指标修复优先、KLDCE 实现诊断）定序。
 
