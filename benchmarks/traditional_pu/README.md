@@ -250,6 +250,8 @@ uv run python -m benchmarks.traditional_pu.compare \
   指标正常（AUC 0.997~1.0，分类质量极好），问题在协议指标阈值语义（0）与
   `_predict` 阈值（0.5）不匹配。已登记协议跟进项（指标修复须 TDD + 契约评审），
   参数簇本身未被证伪，详见 findings.md。
+  2026-08-27 已将统一工作流和 benchmark 的风险输入改为模型原生 `predict` 标签，契约升至
+  schema v2；本目录旧结果保留历史口径，后续重跑写入新目录，不覆盖旧产物。
 - **PNU 调优第 1 轮（2026-08-26，`results/pnu_tuning_r1`）**：参数簇
   `eta`/`reg_lambda`/`basis`/`kernel_width` 10 候选。**饱和 verdict**：三元
   网格基线 oracle 指标全 1.0（默认参数已完美），dev 7/10 候选精确 1.0、conf

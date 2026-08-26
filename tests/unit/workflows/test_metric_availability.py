@@ -103,6 +103,26 @@ class TestMetricAvailability:
             "expected_calibration_error",
         ]
 
+    def test_basic_pu_risk_uses_native_binary_predictions(self):
+        y_pu = np.array([1, 1, 0, 0])
+        pred = np.array([1, 0, 1, 0])
+        # Probability-scale scores are all positive, so a hard-coded zero
+        # threshold would incorrectly classify every row as positive.
+        scores = np.array([0.9, 0.1, 0.8, 0.2])
+        value, reason = compute_metric(
+            "pu_zero_one_risk", y_pu, pred, scores, None, 0.3, proba=None
+        )
+        # FNR_P=1/2, FPR_U=1/2 => 2*.3*.5 + .5 - .3 = .5.
+        assert reason is None
+        assert value == pytest.approx(0.5)
+
+        # The risk no longer declares a score prerequisite.
+        without_scores, reason = compute_metric(
+            "pu_zero_one_risk", y_pu, pred, None, None, 0.3, proba=None
+        )
+        assert reason is None
+        assert without_scores == pytest.approx(value)
+
     def test_determ_default_metrics_unchanged(self):
         # contract §7.2: default report semantics stay additive
         assert resolve_metric_names(None) == [

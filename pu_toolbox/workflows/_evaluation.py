@@ -51,7 +51,7 @@ _METRIC_ALIASES = {
 
 # Spec tuples: (needs_scores, needs_prior, needs_y_true, needs_proba, basis)
 _METRIC_SPECS = {
-    "pu_zero_one_risk": (True, True, False, False, "class_prior_dependent"),
+    "pu_zero_one_risk": (False, True, False, False, "class_prior_dependent"),
     "pu_recall": (False, False, False, False, "pu_observed"),
     "pu_estimated_precision": (False, True, False, False, "class_prior_dependent"),
     "pu_auc_roc": (True, False, True, False, "supervised_oracle"),
@@ -182,7 +182,10 @@ def compute_metric(
         return None, "probabilistic metric requires predict_proba"
     try:
         if name == "pu_zero_one_risk":
-            return pu_zero_one_risk(y_pu_fold, scores, prior), None
+            # Zero-one risk evaluates the classifier's actual binary decision.
+            # Raw decision scores are not guaranteed to use zero as their
+            # prediction threshold (Elkan-Noto returns probability-scale scores).
+            return pu_zero_one_risk(y_pu_fold, pred, prior), None
         if name == "pu_recall":
             return pu_recall(y_pu_fold, pred), None
         if name == "pu_estimated_precision":

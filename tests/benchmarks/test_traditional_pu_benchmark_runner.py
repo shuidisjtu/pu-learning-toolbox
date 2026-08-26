@@ -69,6 +69,22 @@ def _write_config(tmp_path: Path, **overrides) -> Path:
 
 class TestRunnerMini:
     def test_basic_run_and_artifacts(self, tmp_path):
+        # PU zero-one risk must follow the estimator's native decision rule.
+        # Probability-scale scores are all positive here, so thresholding them
+        # at zero would incorrectly predict every sample as positive.
+        y_pu = np.array([1, 1, 0, 0])
+        pred = np.array([1, 0, 1, 0])
+        scores = np.array([0.9, 0.1, 0.8, 0.2])
+        assert runner._metric_value(
+            "pu_zero_one_risk",
+            y_pu,
+            pred,
+            scores,
+            np.array([1, 1, 0, 0]),
+            None,
+            0.3,
+        ) == pytest.approx(0.5)
+
         config = load_config(_write_config(tmp_path))
         out = tmp_path / "out"
         trials, summary = run_trials(

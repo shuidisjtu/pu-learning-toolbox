@@ -1,7 +1,7 @@
 # 传统 PU 七类分类器单域指标契约
 
 ```yaml
-schema_version: 1
+schema_version: 2
 status: design_contract
 scope:
   - elkan_noto
@@ -85,7 +85,7 @@ LDCE/KLDCE 的 `flip_probability=h` 定义为真阳性被翻转为观测负/未�
 
 | 指标 | 方向 | 所需输入 | 可用场景 | 用途 |
 |---|---:|---|---|---|
-| `pu_zero_one_risk` | 越低越好 | PU 标签、连续 score、类先验 $\pi$ | SCAR，且 $\pi$ 可靠 | PU 算法的主选参指标 |
+| `pu_zero_one_risk` | 越低越好 | PU 标签、模型原生二元预测、类先验 $\pi$ | SCAR，且 $\pi$ 可靠 | PU 算法的主选参指标 |
 | `pu_recall` | 越高越好 | PU 标签、预测标签 | PU | 诊断观测正例覆盖率 |
 | `pu_estimated_precision` | 越高越好 | PU 标签、预测标签、$\pi$ | SCAR，且 $\pi$ 可靠 | 诊断；不单独决定优劣 |
 | ROC-AUC | 越高越好 | `y_true`、连续 score | 隐藏真值可用 | 最终排序评测 |
@@ -100,7 +100,8 @@ LDCE/KLDCE 的 `flip_probability=h` 定义为真阳性被翻转为观测负/未�
 上表中的 AP、balanced accuracy、Brier score 和 ECE 已接入统一评价入口，但其可用性仍受
 `y_true`、连续 score 和合法概率输出条件约束。缺少前提时必须记录不可用原因。
 
-连续 score 只能用于 ROC-AUC/AP 等排序指标。Brier/ECE 只能使用分类器真实的
+`pu_zero_one_risk` 必须使用分类器 `predict` 给出的原生二元决策，不能假定任意
+`decision_function` 都以零为阈值。连续 score 只能用于 ROC-AUC/AP 等排序指标。Brier/ECE 只能使用分类器真实的
 `predict_proba` 概率输出；不得将 `decision_function` 的任意分数转换为伪概率。
 ECE 使用 10 个等宽概率桶，并额外保存每个桶的样本数、平均置信度和经验准确率。
 
@@ -193,5 +194,7 @@ benchmarks/traditional_pu/
 5. 先运行 5-seed 开发基线并修复协议问题，再冻结配置并运行 20-seed 正式基线；
 6. 合成基线冻结后，另行锁定公开真实数据集、版本哈希及标签映射，作为外部确认线。
 
-本契约为版本 1。任何改变指标含义、可用条件、主指标、数据协议或统计规则的改动都必须
+本契约为版本 2。版本 2 将 `pu_zero_one_risk` 的决策输入从“连续 score 固定零阈值”改为
+“模型原生二元预测”，修复 Elkan--Noto 概率尺度与零阈值不相容的问题。任何改变指标含义、
+可用条件、主指标、数据协议或统计规则的改动都必须
 提升 `schema_version` 并重新生成受影响的基线。

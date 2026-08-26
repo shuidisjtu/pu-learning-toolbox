@@ -444,7 +444,9 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
 def _metric_value(name, y_fit, pred, scores, y_true, proba, prior):
     """Dispatch same metric family as workflows._evaluation.compute_metric."""
     if name == "pu_zero_one_risk":
-        value = pu_zero_one_risk(y_fit, scores, prior)
+        # Use the estimator's native prediction threshold.  A continuous
+        # score's numeric origin is estimator-specific and need not be zero.
+        value = pu_zero_one_risk(y_fit, pred, prior)
     elif name == "pu_recall":
         value = pu_recall(y_fit, pred)
     elif name == "pu_estimated_precision":

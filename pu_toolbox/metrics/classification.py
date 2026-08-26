@@ -54,7 +54,10 @@ def pu_zero_one_risk(
     y_pu : array-like of shape (n_samples,)
         PU labels in {+1, 0}.
     scores : array-like of shape (n_samples,)
-        Decision function values (higher = more positive).
+        Signed decision values whose positive threshold is zero, or binary
+        predictions in ``{0, 1}``.  Higher values mean more positive.  When
+        an estimator uses a non-zero native threshold, pass its binary
+        ``predict`` output rather than its raw decision values.
     class_prior : float
         True class prior π = P(y=1), in (0, 1).
 
