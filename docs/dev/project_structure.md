@@ -291,7 +291,9 @@ tests/
     test_traditional_pu_compare.py      # <<< 新文件,补注释
     test_traditional_pu_resume.py       # <<< 新文件,补注释
     test_traditional_pu_leakage_audit.py # 泄露审计: 黑名单/重复样本/guard/preflight 负向测试 + CLI 门禁
-    test_traditional_pu_tuning_round.py # 调优轮工具: 候选配置生成/筛选排名/退化率核对
+    test_traditional_pu_tuning_round.py # 调优轮工具: 候选配置生成/退化率核对
+    test_traditional_pu_tuning_rank.py  # 调优轮排名: §4 筛选链/scar-sar 混合网格
+    tuning_helpers.py                   # 调优轮测试共享构造器(非测试模块)
   __init__.py                           # tests 包声明(支持 tests.helpers 导入)
   conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
   helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
@@ -389,6 +391,7 @@ benchmarks/
       pnu_baseline_v1.json
       kldce_tuning_r1/         (KLDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       ldce_tuning_r1/          (LDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
+      nnpu_tuning_r1/          (nnPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
     results/                   (运行产物: <run-name>/ 下四件套 + report.md)
 ```
 

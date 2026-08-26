@@ -17,11 +17,22 @@ import pandas as pd
 
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
+from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 
 # method -> estimator class, mirrors check_baseline_configs.py's registry
 # (extended one entry per tuning round).
-_ESTIMATOR_CLASSES = {"kldce": KLDCEClassifier, "ldce": LDCEClassifier}
+_ESTIMATOR_CLASSES = {
+    "kldce": KLDCEClassifier,
+    "ldce": LDCEClassifier,
+    "nnpu": NonNegativePUClassifier,
+}
 _RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
+# Constructor params that a JSON config cannot meaningfully tune: torch
+# module/optimizer objects and the device string (plan §4: optimizer/lr
+# stay outside the round-1 cluster).  Their constructor defaults (None)
+# are the correct values, so they are also excluded from the
+# constructor-defaults coverage check.
+_NON_TUNABLE = {"model", "optimizer", "device"}
 
 
 def generate_round_configs(
@@ -55,6 +66,7 @@ def generate_round_configs(
         if name != "self"
         and param.default is not inspect.Parameter.empty
         and name not in _RUNNER_INJECTED
+        and name not in _NON_TUNABLE
     }
     names = [name for name, _ in candidates]
     if len(set(names)) != len(names):
@@ -63,6 +75,8 @@ def generate_round_configs(
         for key in overrides:
             if key in _RUNNER_INJECTED:
                 raise ValueError(f"{key!r} is runner-injected and cannot be tuned via config")
+            if key in _NON_TUNABLE:
+                raise ValueError(f"{key!r} is not tunable via JSON config")
             if key not in constructor_defaults:
                 raise ValueError(f"{key!r} is not a constructor parameter of {method!r}")
         merged = {**base["methods"][method], **overrides}
@@ -98,6 +112,12 @@ def rank_candidates(dev_root, names, *, metric="pu_zero_one_risk", n_select=3):
     pooled *metric* mean over the 30 success rows, ascending, ties broken
     by name.  ``selected`` marks the first *n_select* survivors.  The
     returned frame keeps the input *names* order.
+
+    Methods that enter the SAR diagnostic line (nnPU-class) carry 60 dev
+    rows: the elimination chain and the risk mean use the 30 ``scar-``
+    rows only (contract §2.3: SAR cells never participate in ranking);
+    the 30 ``sar-`` rows are reported as diagnostics
+    (``sar_n_total``/``sar_n_success``).
     """
     dev_root = Path(dev_root)
     rows = []
@@ -106,20 +126,30 @@ def rank_candidates(dev_root, names, *, metric="pu_zero_one_risk", n_select=3):
         if not trials_path.exists():
             raise FileNotFoundError(f"missing trials.csv for candidate {name!r}: {trials_path}")
         trials = pd.read_csv(trials_path)
-        if len(trials) != 30:
-            raise ValueError(f"candidate {name!r}: expected 30 dev trials, got {len(trials)}")
-        if not trials["scenario"].astype(str).str.startswith("scar-").all():
-            raise ValueError(f"candidate {name!r}: non-scar scenario in dev trials")
+        scenario_col = trials["scenario"].astype(str)
+        scar = trials[scenario_col.str.startswith("scar-")]
+        sar = trials[scenario_col.str.startswith("sar-")]
+        known = scenario_col.str.startswith("scar-") | scenario_col.str.startswith("sar-")
+        other = trials[~known]
+        if len(other):
+            prefixes = sorted({s.split("-", 1)[0] for s in scenario_col[other.index]})
+            raise ValueError(
+                f"candidate {name!r}: unknown scenario prefix in dev trials: {prefixes}"
+            )
+        if len(scar) != 30:
+            raise ValueError(f"candidate {name!r}: expected 30 scar dev rows, got {len(scar)}")
+        if len(sar) not in (0, 30):
+            raise ValueError(f"candidate {name!r}: expected 0 or 30 sar dev rows, got {len(sar)}")
         if "degenerate_prediction" not in trials.columns:
             raise ValueError(f"candidate {name!r}: trials lack the degenerate_prediction column")
-        success = trials[trials["status"] == "success"]
+        success = scar[scar["status"] == "success"]
         n_success = int(len(success))
         degenerate_mask = success["degenerate_prediction"].fillna(False).astype(bool)
         n_degenerate = int(degenerate_mask.sum())
         degenerate_cells = sorted(success.loc[degenerate_mask, "scenario"].astype(str).unique())
         risk_values = pd.to_numeric(success[metric], errors="coerce")
         elapsed = pd.to_numeric(trials["elapsed_seconds"], errors="coerce").dropna()
-        if n_success < len(trials):
+        if n_success < len(scar):
             reason = "success_rate < 100%"
         elif n_degenerate > 0:
             reason = "degenerate_prediction"
@@ -130,7 +160,9 @@ def rank_candidates(dev_root, names, *, metric="pu_zero_one_risk", n_select=3):
                 "name": name,
                 "n_total": int(len(trials)),
                 "n_success": n_success,
-                "success_rate": n_success / len(trials),
+                "success_rate": n_success / len(scar),
+                "sar_n_total": int(len(sar)),
+                "sar_n_success": int((sar["status"] == "success").sum()),
                 "n_degenerate": n_degenerate,
                 "degenerate_cells": degenerate_cells,
                 "n_nonconverged": int((trials["status"] == "nonconverged").sum()),

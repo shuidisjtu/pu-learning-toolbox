@@ -1,0 +1,112 @@
+{
+  "config_sha256": "509cdb069605179a3538f67e3e9b3dd5e28722285d290f57a9781cf208bd9261",
+  "created_at_utc": "2026-08-26T11:21:47.372854+00:00",
+  "data_leakage_audit": {
+    "checks": {
+      "duplicate_samples": {
+        "reason": "synthetic per-trial generation: no persistent train/test splits; takes effect in phase B",
+        "status": "not_applicable"
+      },
+      "feature_blacklist": {
+        "reason": "synthetic per-trial generation: no persistent feature-column set; takes effect in phase B when the official data line lands",
+        "status": "not_applicable"
+      },
+      "trial_label_columns": {
+        "enforcement": "runner_gate",
+        "status": "pass"
+      },
+      "y_true_path": {
+        "enforcement": "runner_gate",
+        "status": "pass"
+      }
+    },
+    "config_sha256": "509cdb069605179a3538f67e3e9b3dd5e28722285d290f57a9781cf208bd9261",
+    "created_at_utc": "2026-08-26T11:16:02.793904+00:00",
+    "generation_parameters": {
+      "class_priors": [
+        0.1,
+        0.3,
+        0.5
+      ],
+      "label_frequency": 0.5,
+      "n_features": 5,
+      "n_samples_mid": 2000,
+      "n_samples_small": 400,
+      "sar_mechanism": "linear",
+      "sar_strength": 1.0,
+      "separation": 2.0
+    },
+    "hits": [],
+    "protocol": "traditional_pu_baseline",
+    "rule_version": 1,
+    "scenario_hash": "d430f5fd8f534e899504c7cf43aef256c23fc69f9a6679149c0d960ea032a31b",
+    "schema_version": 1,
+    "scope": "synthetic_phase_a",
+    "seed_set": "confirmation",
+    "seeds": [
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119
+    ],
+    "status": "pass"
+  },
+  "environment": {
+    "dependencies": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.3",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.17.1"
+    },
+    "python": "3.11.15"
+  },
+  "git_commit": "381a061f9d6551119c4e2c6f42c4a8cad153a104",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5"
+  ],
+  "n_trials": 240,
+  "paper_claim": false,
+  "protocol": "traditional_pu_baseline",
+  "runner_sha256": "c5c77953b7b1f79b16ac6784a67e405ff7eb6bc0b64a23b0ad6ae04760ad49e0",
+  "schema_version": 1,
+  "seed_set": "confirmation",
+  "seeds": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119
+  ]
+}

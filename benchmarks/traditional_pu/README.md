@@ -72,6 +72,10 @@ tuning_round.generate_round_configs` 从基线派生并剥除
 `compare.py` verdict（`tuning_round.compare_degenerate_condition` 核对 §5
 条件 3）。每轮产物在 `configs/<method>_tuning_rN/` 与
 `results/<method>_tuning_rN/`（findings.md 记录轮级结论），不直接写回默认值。
+进 SAR 诊断线的方法（nnPU 等）dev 网格为 60 trials（6 SCAR + 6 SAR cells ×
+5 seeds），rank 筛选链只使用 30 个 SCAR 行，SAR 行作诊断统计（契约 §2.3：
+SAR 从不参与排名）；`generate_round_configs` 拒绝 JSON 不可表达的构造器参数
+（`model`/`optimizer`/`device`）作为候选 override。
 
 `trials.csv` 在每个 trial 完成后**增量落盘**（而不是网格结束时一次性写入），
 因此运行中途被中断（ctrl+c / 主机 kill）只会丢失正在跑的单元，已完成部分全部
@@ -219,6 +223,13 @@ uv run python -m benchmarks.traditional_pu.compare \
   均 6/6 单元 `confirmed_improvement`；`max_iter` 5000–20000 零影响；
   `reg_strength=0.1` 破坏稳定性（9 单元失败）。写回默认值属第 6 步另行
   决策（须重锁基线+重跑），本轮不写回，详见 findings.md。
+- **nnPU 调优第 1 轮（2026-08-26，`results/nnpu_tuning_r1`）**：参数簇
+  `beta`/`gamma`/`batch_size`/`max_epochs`/`patience` 10 候选（首个 60-trial
+  dev 网格，rank 按 SCAR 行筛选、SAR 行诊断）。无全单元晋级候选：β=0.25/0.1
+  在 3/6 SCAR + 4/6 SAR cells 严格改善且零变差（低先验 cells 机制性无响应
+  ——β ≥ π 时修正分支永不激活，pi0.1-small diff 精确为 0）；`ep500_pat50`
+  方向混杂（small 改善、mid 变差）；`bs_1024` 显著变差。部分改善 verdict，
+  不写回默认值，详见 findings.md。
 
 ## 开发期与正式基线的差异
 
