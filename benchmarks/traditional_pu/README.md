@@ -230,6 +230,13 @@ uv run python -m benchmarks.traditional_pu.compare \
   ——β ≥ π 时修正分支永不激活，pi0.1-small diff 精确为 0）；`ep500_pat50`
   方向混杂（small 改善、mid 变差）；`bs_1024` 显著变差。部分改善 verdict，
   不写回默认值，详见 findings.md。
+- **uPU 调优第 1 轮（2026-08-26，`results/upu_tuning_r1`）**：参数簇
+  `loss`/`reg_lambda`/`basis`/`kernel_width` 10 候选。`loss='squared'`
+  （r4_loss_squared）**12/12 单元（6 SCAR + 6 SAR）`confirmed_improvement`**，
+  七轮循环首个全单元晋级候选（配对 diff −0.035 至 −0.149，随先验递增）；
+  `rbf_w0p5` 因 5/30 退化被 §3.3 淘汰（七轮首个 dev 退化淘汰案例）；
+  `rbf_w1` 仅 pi0.1 改善、`reg_0p01` 零改善。写回默认值属第 6 步决策
+  （须重锁基线+重跑），本轮不写回，详见 findings.md。
 
 ## 开发期与正式基线的差异
 

@@ -18,6 +18,7 @@ import pandas as pd
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
+from pu_toolbox.estimators.risk.upu import UPUClassifier
 
 # method -> estimator class, mirrors check_baseline_configs.py's registry
 # (extended one entry per tuning round).
@@ -25,6 +26,7 @@ _ESTIMATOR_CLASSES = {
     "kldce": KLDCEClassifier,
     "ldce": LDCEClassifier,
     "nnpu": NonNegativePUClassifier,
+    "upu": UPUClassifier,
 }
 _RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
 # Constructor params that a JSON config cannot meaningfully tune: torch

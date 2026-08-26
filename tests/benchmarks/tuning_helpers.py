@@ -33,6 +33,17 @@ NNPU_BASE_PARAMS = {
     "device": None,
 }
 
+UPU_BASE_PARAMS = {
+    "loss": "double_hinge",
+    "reg_lambda": 0.001,
+    "basis": "linear",
+    "kernel_width": None,
+    "n_centers": None,
+    "fit_intercept": True,
+    "max_iter": 1000,
+    "tol": 1e-6,
+}
+
 
 def base_config_path(tmp_path, *, methods=None, timeouts=None):
     """Persist a baseline-like config (locked kldce defaults) and return its path."""

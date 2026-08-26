@@ -20,6 +20,7 @@ from benchmarks.traditional_pu.tuning_round import (
 from tests.benchmarks.tuning_helpers import (
     NNPU_BASE_PARAMS,
     SCENARIOS,
+    UPU_BASE_PARAMS,
     base_config_path,
     full_grid,
     make_row,
@@ -92,6 +93,25 @@ class TestGenerateConfigs:
         first_cfg = json.loads(first[0].read_text(encoding="utf-8"))
         second_cfg = json.loads(second[0].read_text(encoding="utf-8"))
         assert first_cfg == second_cfg
+
+    def test_basic_upu_generate_with_rbf_overrides(self, tmp_path):
+        base = base_config_path(
+            tmp_path,
+            methods={"upu": dict(UPU_BASE_PARAMS)},
+            timeouts={"upu": 120},
+        )
+        paths = generate_round_configs(
+            base,
+            tmp_path / "round",
+            [("c1", {"basis": "rbf", "kernel_width": 0.5})],
+            method="upu",
+        )
+        produced = json.loads(paths[0].read_text(encoding="utf-8"))
+        assert set(produced["methods"]) == {"upu"}
+        params = produced["methods"]["upu"]
+        assert params["basis"] == "rbf" and params["kernel_width"] == 0.5
+        assert params["loss"] == "double_hinge"  # untouched default kept
+        assert "locks_source_defaults" not in produced
 
     def test_basic_nnpu_generate_keeps_non_tunable_nulls(self, tmp_path):
         base = base_config_path(
