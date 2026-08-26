@@ -7,6 +7,10 @@ import sys
 
 import pandas as pd
 
+from benchmarks.traditional_pu.leakage_audit import (
+    LeakageAuditError,
+    run_leakage_preflight,
+)
 from benchmarks.traditional_pu.runner import (
     _iter_scenario_specs,
     _run_one_trial,
@@ -55,10 +59,27 @@ def main(argv=None) -> int:
     if args.timeout_profile is not None:
         _write_timeout_profile(config, args.timeout_profile)
         return 0
-    trials, summary = run_trials(
-        config, results_dir=args.results_dir, seed_set=args.seed_set, resume=not args.no_resume
+    # Leakage preflight gate (design §3.2): a blocked audit stops the run
+    # before any trial executes — no promotable artifacts are produced.
+    try:
+        audit = run_leakage_preflight(config, args.results_dir, seed_set=args.seed_set)
+        trials, summary = run_trials(
+            config,
+            results_dir=args.results_dir,
+            seed_set=args.seed_set,
+            resume=not args.no_resume,
+        )
+    except LeakageAuditError as exc:
+        print(f"leakage gate blocked: {exc}", file=sys.stderr)
+        return 1
+    write_artifacts(
+        trials,
+        summary,
+        config,
+        args.results_dir,
+        seed_set=args.seed_set,
+        leakage_audit=audit,
     )
-    write_artifacts(trials, summary, config, args.results_dir, seed_set=args.seed_set)
     n_success = int((trials["status"] == "success").sum())
     if len(trials) > 0 and n_success == 0:
         print("WARNING: no trial succeeded (all non-success)", file=sys.stderr)

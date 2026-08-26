@@ -290,6 +290,7 @@ tests/
     test_traditional_pu_protocol.py     # <<< 新文件,补注释
     test_traditional_pu_compare.py      # <<< 新文件,补注释
     test_traditional_pu_resume.py       # <<< 新文件,补注释
+    test_traditional_pu_leakage_audit.py # 泄露审计: 黑名单/重复样本/guard/preflight 负向测试 + CLI 门禁
   __init__.py                           # tests 包声明(支持 tests.helpers 导入)
   conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
   helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
@@ -376,6 +377,7 @@ benchmarks/
   traditional_pu/
     __init__.py
     data.py                    (SCAR/SAR/PNU 合成数据、h 传递与病态性检查)
+    leakage_audit.py           (泄露审计: 特征黑名单/重复样本/y_true 路径守卫/trial 列门禁/preflight 报告)
     statistics.py              (汇总原语: 均值/CI/配对差值/成功率)
     runner.py                  (统一 runner: SCAR 主网格 + SAR 诊断线 + PNU 三元网格、状态机/resume/超时)
     run.py                     (CLI: --seed-set/--results-dir/--timeout-profile)

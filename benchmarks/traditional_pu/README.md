@@ -90,8 +90,26 @@ uv run python -m benchmarks.traditional_pu.run \
 - `resolved_config.json`：解析后配置（含 `resolved_at`）；
 - `run_manifest.json`：`schema_version`/`created_at_utc`/`protocol`/
   `paper_claim=false`/`config_sha256`/`git_commit`/`git_worktree_dirty`/
-  `runner_sha256`/`seed_set`/`seeds`/`n_trials`/`environment`/`limitations`；
+  `runner_sha256`/`seed_set`/`seeds`/`n_trials`/`environment`/`limitations`/
+  `data_leakage_audit`（preflight 报告整段嵌入；未提供报告时为 `audit_only`）；
+- `data_leakage_audit.json`：泄露审计 preflight 产物（规则版本、状态、命中项、
+  场景哈希；见下方"泄露审计门禁"）；
 - `report.md`：人读摘要。
+
+## 泄露审计门禁（审计设计 §7 阶段 A）
+
+每次运行（含 resume）在网格执行前先跑 preflight，生成 `data_leakage_audit.json`：
+
+- **y_true 路径约束**：estimator `fit` 调用点守卫（identity + 内存共享检查，不做数值
+  相等——`label_frequency=1.0` 时 `y_pu == y_true` 是合法极端）；泄露命中即阻断整次运行。
+- **trial 列写入门禁**：任何 `y_*` 原始标签列在写入 `trials.csv` 前被阻断（新行与
+  resume 读取两处检查点）。
+- **特征黑名单 / 重复样本检测**：独立审计函数（全名、大小写不敏感匹配），合成流程无
+  持久特征集与切分，preflight 记录 `not_applicable` 及阶段 B 理由。
+- **阻断行为**：preflight 或 runner 门禁命中时，运行立即中止，CLI 返回码 **1**（与
+  0 成功 / 2 全失败区分），`data_leakage_audit.json` 保留可复现原因，不生成可晋级产物。
+- **边界**：切分索引/实体重复检查与折内预处理审计属阶段 B（官方数据集线进场时）。
+  `--timeout-profile` 是诊断工具，不产生晋级产物，不走 preflight。
 
 ## 超时与冻结流程（契约 §6）
 

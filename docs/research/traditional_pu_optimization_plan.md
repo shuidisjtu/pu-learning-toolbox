@@ -122,8 +122,9 @@ data_leakage_audit.json
 
 `run_manifest.json` 必须记录源码 commit、依赖环境、seed 集合、配置哈希和数据协议。trial 至少
 记录算法、场景、seed、参数快照、状态、失败原因、收敛诊断、全部可用指标和耗时。
-`data_leakage_audit.json` 由泄露审计 preflight 生成；preflight 实现前，实验报告必须标注
-`audit_design_only`（见审计设计 §6），不得声称已通过完整泄露门禁。
+`data_leakage_audit.json` 由泄露审计 preflight 生成（阶段 A 已实现，2026-08-26）；实验报告
+通过的是阶段 A 合成流门禁，官方数据线的切分/预处理检查属阶段 B（见审计设计 §6/§7），不得
+声称已通过完整泄露门禁。
 
 ## 7. 结果类型
 
@@ -135,8 +136,10 @@ data_leakage_audit.json
 
 ## 8. 第一阶段交付顺序
 
-1. 建立数据泄露审计门禁和故意泄露负向测试（实施范围按审计设计 §7 分阶段裁剪：先做
-   `y_true` 路径约束、trial 列写入门禁、manifest 审计状态与审计函数负向单测）；
+1. 建立数据泄露审计门禁和故意泄露负向测试（已完成，2026-08-26：`leakage_audit.py` 提供
+   `y_true` 路径守卫、trial 列写入门禁、特征黑名单/重复样本审计函数与 preflight 报告；
+   runner 挂载 guard/两处列门禁检查点，CLI 阻断返回码 1；负向测试见
+   `tests/benchmarks/test_traditional_pu_leakage_audit.py`）；
 2. 同步指标契约中 implemented/planned 状态（已完成：AP、balanced accuracy、Brier、ECE 已
    移入 `implemented_metrics`）；
 3. 冻结并复核 baseline_v2（已完成：1200/1200 success）；

@@ -2,7 +2,7 @@
 
 ```yaml
 schema_version: 1
-status: design_only
+status: partial_implemented
 scope: traditional_pu_benchmarks_and_tuning
 enforcement: benchmark_preflight_and_runner_gate
 ```
@@ -32,6 +32,9 @@ propensity, selection_probability, split, fold, is_train, is_test
 
 项目可在配置中增加特定字段。命中时报告列名、匹配规则和阻断原因；不能只删除列后继续运行，
 除非实验配置明确声明这是一个新的、可审计的数据版本。
+
+匹配语义：黑名单条目按**全名、大小写不敏感**匹配（非子串）——`split_ratio` 不命中
+`split`，`prioritized` 不命中 `prior`；同一列名只报告第一个命中的条目。
 
 ### 2.3 切分与重复样本审计
 
@@ -84,18 +87,23 @@ propensity, selection_probability, split, fold, is_train, is_test
 当前项目已经具备标签用途分离、PU-CV、oracle 指标标记、官方 split 重叠审计和 trial 标签隔离
 测试。本设计补充统一的特征级黑名单、重复样本门禁、预处理审计和 benchmark 启动阻断规则。
 
-本文件是设计文档，不代表上述独立脚本和 runner gate 已经实现。实现完成前，实验报告必须注明
-`audit_design_only`，不得声称已通过完整数据泄露门禁。
+阶段 A（§7）已实现（2026-08-26，`benchmarks/traditional_pu/leakage_audit.py` + runner/CLI
+挂载）：特征黑名单、重复样本检测、y_true 路径守卫、trial 列门禁与 preflight 报告均已落地，
+负向测试见 `tests/benchmarks/test_traditional_pu_leakage_audit.py` 与
+`test_traditional_pu_protocol.py::TestDataIsolation`。阶段 B（官方数据线的切分/预处理审计）
+实现前，实验报告必须注明所通过的仅为阶段 A 合成流门禁，不得声称已通过完整数据泄露门禁。
 
 ## 7. 实施顺序
 
 当前 traditional_pu benchmark 为纯合成流程：无 CSV 输入、无显式切分、无预处理管线。按 YAGNI
 分两阶段实施，不与尚未存在的数据流绑定：
 
-- **阶段 A（立即可做，覆盖合成 benchmark 全流程）**：§3.3 的 `y_true` 路径约束（estimator 与
-  tuning scorer 不得接收 `y_true`）、§2.1 的 trial 列写入门禁（trials.csv 禁止任何 `y_*` 原始
-  标签列）、§3.4 的 manifest 审计状态记录；特征黑名单（§2.2）与重复样本检测（§2.3）先实现
-  为独立审计函数，配合 §5 负向测试做单元测试。
+- **阶段 A（已完成，2026-08-26，覆盖合成 benchmark 全流程）**：§3.3 的 `y_true` 路径约束
+  （estimator 与 tuning scorer 不得接收 `y_true`；合成流程无 tuning scorer，守卫挂载在
+  estimator `fit` 调用点）、§2.1 的 trial 列写入门禁（trials.csv 禁止任何 `y_*` 原始标签列，
+  新行与 resume 两处检查点）、§3.4 的 manifest 审计状态记录（`data_leakage_audit` 段 +
+  独立 `data_leakage_audit.json` preflight 产物）；特征黑名单（§2.2）与重复样本检测（§2.3）
+  已实现为独立审计函数并配合 §5 负向测试做单元测试。CLI 被阻断时返回码 1，不生成可晋级产物。
 - **阶段 B（官方数据集线进场时，契约 §7 第 6 条）**：§2.3 的切分索引/实体重复检查与 §2.4 的
-  折内预处理审计挂载到真实数据流；§2.2 特征黑名单对 CSV 列名生效。
+  折内预处理审计（含 §5 第 4 类负向测试）挂载到真实数据流；§2.2 特征黑名单对 CSV 列名生效。
 

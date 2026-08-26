@@ -10,6 +10,10 @@ import pandas as pd
 import pytest
 
 import benchmarks.traditional_pu.runner as runner
+from benchmarks.traditional_pu.leakage_audit import (
+    AUDIT_RULE_VERSION,
+    run_leakage_preflight,
+)
 from benchmarks.traditional_pu.run import _write_timeout_profile
 from benchmarks.traditional_pu.runner import (
     METRIC_COLUMNS,
@@ -93,6 +97,22 @@ class TestRunnerMini:
         assert manifest["protocol"] == "traditional_pu_baseline"
         assert manifest["paper_claim"] is False
         assert manifest["n_trials"] == 16
+        # Leakage audit (design §3.4): without a preflight report the artifact
+        # set records audit_only — no audit proof, no performance claims.
+        assert manifest["data_leakage_audit"]["status"] == "audit_only"
+
+        # With a real preflight report the manifest embeds it verbatim…
+        audit = run_leakage_preflight(config, out, seed_set="development")
+        write_artifacts(trials, summary, config, out, leakage_audit=audit)
+        manifest = json.loads((out / "run_manifest.json").read_text(encoding="utf-8"))
+        assert manifest["data_leakage_audit"]["status"] == "pass"
+        assert manifest["data_leakage_audit"]["rule_version"] == AUDIT_RULE_VERSION
+
+        # …and a report from a different config must never vouch for this one.
+        other = load_config(_write_config(tmp_path, data={"label_frequency": 0.2}))
+        stale_audit = run_leakage_preflight(other, out, seed_set="development")
+        with pytest.raises(ValueError, match="stale"):
+            write_artifacts(trials, summary, config, out, leakage_audit=stale_audit)
 
     def test_basic_resume_skips_done_cells(self, tmp_path):
         config = load_config(_write_config(tmp_path))

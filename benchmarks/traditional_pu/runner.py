@@ -28,6 +28,11 @@ from benchmarks.traditional_pu.data import (
     make_scar_data,
     pnu_counts,
 )
+from benchmarks.traditional_pu.leakage_audit import (
+    LeakageAuditError,
+    check_trial_columns,
+    guard_fit_labels,
+)
 from benchmarks.traditional_pu.statistics import summarize
 from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
@@ -286,6 +291,10 @@ def _run_one_trial(method_name: str, scenario_spec: dict, seed: int, config: dic
         status, reason, metrics = _trial_body(row, method_name, scenario_spec, seed, config)
     except TimeoutError as exc:
         status, reason, metrics = "timeout", repr(exc), empty_metrics()
+    except LeakageAuditError:
+        # A leakage hit must block the run (design §4), not degrade into a
+        # "failed" row — re-raise so it propagates through run_trials to the CLI.
+        raise
     except Exception as exc:  # noqa: BLE001 - isolation per trial
         status, reason, metrics = "failed", repr(exc)[:500], empty_metrics()
     row["elapsed_seconds"] = float(time.monotonic() - start)
@@ -365,6 +374,9 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
     estimator = ESTIMATOR_FACTORY[method_name](
         config["methods"][method_name], seed=seed, prior=class_prior, meta=meta
     )
+    # Leakage gate (design §3.3): must stay directly above the fit call it
+    # guards — if fit ever changes arguments, this guard moves with it.
+    guard_fit_labels(y_fit, y_true)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         estimator.fit(X, y_fit, class_prior=class_prior)
@@ -510,6 +522,14 @@ def run_trials(
                 "resume config mismatch (results dir was created with a different config)"
             )
         previous = pd.read_csv(trials_file)
+        # Leakage gate (design §2.1): a pre-gate trials.csv carrying raw
+        # label columns must never be resumed into a promotable result set.
+        label_columns = check_trial_columns(previous.columns)
+        if label_columns:
+            raise LeakageAuditError(
+                f"trials.csv contains raw label columns {label_columns!r}; "
+                "the run is blocked (design §2.1)"
+            )
         previous_rows = previous.to_dict("records")
         done = {tuple(r) for r in previous[["algorithm", "scenario", "seed"]].to_numpy()}
     timeouts = config.get("timeouts", {})
@@ -539,6 +559,15 @@ def run_trials(
                         "warning_count": 0,
                         **empty_metrics(),
                     }
+                # Leakage gate (design §2.1): block before the row is
+                # appended or persisted, so trials.csv is never contaminated.
+                label_columns = check_trial_columns(row)
+                if label_columns:
+                    raise LeakageAuditError(
+                        f"trial row for ({method}, {scenario}, seed={seed}) "
+                        f"carries raw label columns {label_columns!r}; "
+                        "the run is blocked (design §2.1)"
+                    )
                 rows.append(row)
                 # Incremental persist: an interrupted grid (ctrl+c, host kill)
                 # leaves every completed row on disk so a later resume
@@ -566,12 +595,35 @@ def write_artifacts(
     results_dir: str | Path,
     *,
     seed_set: str | None = None,
+    leakage_audit: dict | None = None,
 ) -> None:
-    """Persist the four artifacts plus report.md (contract §5 directory layout)."""
+    """Persist the four artifacts plus report.md (contract §5 directory layout).
+
+    The manifest always records a ``data_leakage_audit`` section (design
+    §3.4): the preflight report is embedded verbatim when provided; without
+    one the artifact set is marked ``audit_only`` (no audit proof, must not
+    back performance claims).  A report whose ``config_sha256`` does not
+    match *config* is stale and rejected.
+    """
     results_dir = Path(results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
     trials.to_csv(results_dir / "trials.csv", index=False)
     summary.to_csv(results_dir / "summary.csv", index=False)
+    if leakage_audit is None:
+        audit_section = {
+            "status": "audit_only",
+            "reason": (
+                "write_artifacts called without a leakage preflight report; "
+                "artifact set lacks audit proof and must not back performance claims"
+            ),
+        }
+    else:
+        if leakage_audit.get("config_sha256") != canonical_hash(config):
+            raise ValueError(
+                "stale leakage audit report: report config_sha256 "
+                f"{leakage_audit.get('config_sha256')!r} does not match this config"
+            )
+        audit_section = leakage_audit
     project_root = Path(__file__).resolve().parents[2]
     resolved = {**config, "resolved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     manifest = {
@@ -591,6 +643,7 @@ def write_artifacts(
             "dependencies": _fingerprint_dependencies(),
         },
         "limitations": config.get("limitations", []),
+        "data_leakage_audit": audit_section,
     }
     (results_dir / "resolved_config.json").write_text(
         json.dumps(resolved, indent=2, sort_keys=True, ensure_ascii=False), encoding="utf-8"

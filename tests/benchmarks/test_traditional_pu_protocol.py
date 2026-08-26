@@ -5,15 +5,18 @@ tests (tests/benchmarks/test_traditional_pu_benchmark_runner.py,
 TestDeterminism) and is therefore not duplicated here.
 """
 
-# ruff: noqa: N803  # _Boom mirrors the sklearn X/y naming convention
+# ruff: noqa: N803, N806  # mirrors the sklearn X/y naming convention
 
 from __future__ import annotations
 
 import json
 
 import numpy as np
+import pandas as pd
 import pytest
 
+from benchmarks.traditional_pu import runner as runner_module
+from benchmarks.traditional_pu.leakage_audit import LeakageAuditError
 from benchmarks.traditional_pu.runner import (
     ESTIMATOR_FACTORY,
     METRIC_COLUMNS,
@@ -148,6 +151,88 @@ class TestDataIsolation:
         assert "y_pu_test" not in trials.columns
         assert "y_pnu" not in trials.columns
         assert not any(str(col).startswith("y_") for col in trials.columns)
+
+    def test_param_fit_label_guard_blocks_y_true_fit(self, tmp_path, mini_config, monkeypatch):
+        """Design §5.5 integration: y_true aliased into fit blocks the whole run."""
+        real_make = runner_module.make_scar_data
+
+        def fake_make_scar_data(
+            n_samples,
+            n_features,
+            class_prior,
+            separation,
+            label_frequency,
+            random_state,
+        ):
+            X, y_pu, y_true, meta = real_make(
+                n_samples=n_samples,
+                n_features=n_features,
+                class_prior=class_prior,
+                separation=separation,
+                label_frequency=label_frequency,
+                random_state=random_state,
+            )
+            return X, y_true, y_true, meta  # deliberate leak: y_pu aliases y_true
+
+        monkeypatch.setattr(runner_module, "make_scar_data", fake_make_scar_data)
+        with pytest.raises(LeakageAuditError):
+            run_trials(
+                mini_config,
+                results_dir=tmp_path / "guard",
+                seed_set="development",
+                resume=False,
+                progress=False,
+            )
+
+    def test_param_trial_gate_blocks_run_when_row_has_label_column(
+        self, tmp_path, mini_config, monkeypatch
+    ):
+        """Design §5.6 integration: a y_* column on a fresh trial row blocks the run."""
+
+        def fake_run_one_trial(method_name, scenario_spec, seed, config):
+            return {
+                "algorithm": method_name,
+                "scenario": scenario_spec["scenario"],
+                "seed": seed,
+                "status": "success",
+                "elapsed_seconds": 0.0,
+                "warning_count": 0,
+                "y_true": [1, 0],  # deliberate leak
+            }
+
+        monkeypatch.setattr(runner_module, "_run_one_trial", fake_run_one_trial)
+        with pytest.raises(LeakageAuditError):
+            run_trials(
+                mini_config,
+                results_dir=tmp_path / "gate",
+                seed_set="development",
+                resume=False,
+                progress=False,
+            )
+
+    def test_edge_trial_gate_blocks_resume_with_contaminated_trials(self, tmp_path, mini_config):
+        """A pre-gate trials.csv carrying a y_* column must not be resumed."""
+        results = tmp_path / "gate"
+        results.mkdir()
+        pd.DataFrame(
+            [
+                {
+                    "algorithm": "upu",
+                    "scenario": "scar-pi0.5-scalesmall",
+                    "seed": 0,
+                    "status": "success",
+                    "y_true": [1, 0],  # deliberate legacy leak
+                }
+            ]
+        ).to_csv(results / "trials.csv", index=False)
+        with pytest.raises(LeakageAuditError):
+            run_trials(
+                mini_config,
+                results_dir=results,
+                seed_set="development",
+                resume=True,
+                progress=False,
+            )
 
 
 class TestPnuRowRecords:
