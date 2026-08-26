@@ -157,8 +157,13 @@ class TestPipelineEdgeCases:
         pipe = PUPipeline(classifier=_NoScoresClassifier())
         report = pipe.fit_evaluate(X, y_pu, y_true=y_true, class_prior=0.4)
         risk = report.cv_metrics["pu_zero_one_risk"]
-        assert risk.available is False
-        assert "decision" in risk.reason
+        # Risk follows predict(), so it remains available without continuous
+        # decision scores.  Ranking metrics still require those scores.
+        assert risk.available is True
+        assert risk.reason is None
+        auc = report.cv_metrics["pu_auc_roc"]
+        assert auc.available is False
+        assert "decision" in auc.reason
         assert report.cv_metrics["pu_recall"].available is True
 
     def test_prior_estimation_failure_degrades_in_auto_but_raises_explicit(self, rng):
