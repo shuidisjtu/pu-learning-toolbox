@@ -93,10 +93,12 @@ DGPU generator）建议传入已配置实例。
 ## 指标与可用性
 
 默认指标 `DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`。
-各指标的依赖与证据级别（`pu_observed` / `class_prior_dependent` / `supervised_oracle`）见
+可选指标还包括 `average_precision`、`balanced_accuracy`、`brier_score` 与
+`expected_calibration_error`。各指标的依赖与证据级别（`pu_observed` /
+`class_prior_dependent` / `supervised_oracle` / `probability_calibration`）见
 [API 参考](../reference/api.md)。
 
-缺失输入（无 `y_true`、无 `decision_function`、无先验）时对应指标**跳过**并记录
+缺失输入（无 `y_true`、无连续分数、无 `predict_proba`、无先验）时对应指标**跳过**并记录
 （`CVMetric.available=False`；仅当全部折都被跳过时才由 `reason` 说明原因），
 不中断流程。单折内异常（如 AUC 折内单类）只跳过该折，`mean`/`std` 在已计算折上聚合。
 

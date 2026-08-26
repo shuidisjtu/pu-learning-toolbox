@@ -4,6 +4,11 @@ import numpy as np
 import pytest
 
 from pu_toolbox.metrics import (
+    average_precision,
+    balanced_accuracy,
+    brier_score,
+    calibration_bucket_stats,
+    expected_calibration_error,
     pu_accuracy,
     pu_auc_roc,
     pu_estimated_precision,
@@ -11,13 +16,6 @@ from pu_toolbox.metrics import (
     pu_negative_rate,
     pu_recall,
     pu_zero_one_risk,
-)
-from pu_toolbox.metrics.classification import (
-    average_precision,
-    balanced_accuracy,
-    brier_score,
-    calibration_bucket_stats,
-    expected_calibration_error,
 )
 
 # ── fixtures ────────────────────────────────────────────────────────────

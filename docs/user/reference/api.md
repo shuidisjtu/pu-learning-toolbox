@@ -102,15 +102,19 @@ report = pipe.fit_evaluate(
 ### 指标
 
 `DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`。
-别名：`pu_risk`、`auc`/`roc_auc`、`recall`、`precision`、`accuracy`、`f1`、`negative_rate`。
+别名：`pu_risk`、`auc`/`roc_auc`、`recall`、`precision`、`accuracy`、`f1`、
+`negative_rate`、`ap`、`bacc`、`brier`、`ece`。
 
 | 指标 | 需要 | basis |
 |---|---|---|
 | `pu_recall` / `pu_negative_rate` | 仅 `y_pu` + 预测 | `pu_observed` |
 | `pu_zero_one_risk` / `pu_estimated_precision` | 预测 + 类先验 | `class_prior_dependent` |
-| `pu_auc_roc` / `pu_accuracy` / `pu_f1` | `y_true` | `supervised_oracle` |
+| `pu_auc_roc` / `average_precision` | `y_true` + 连续分数 | `supervised_oracle` |
+| `pu_accuracy` / `pu_f1` / `balanced_accuracy` | `y_true` + 预测 | `supervised_oracle` |
+| `brier_score` / `expected_calibration_error` | `y_true` + 真实 `predict_proba` | `probability_calibration` |
 
-缺失输入（无 `y_true`、无 `decision_function`、无先验）时对应指标跳过并记录原因
+这些指标函数（含 `calibration_bucket_stats`）均可从 `pu_toolbox.metrics` 直接导入。
+缺失输入（无 `y_true`、无连续分数、无 `predict_proba`、无先验）时对应指标跳过并记录原因
 （`CVMetric.available=False`），不中断流程；`CVMetric.n_computed` 给出已计算折数
 （序列化进 `to_json()`）。
 
