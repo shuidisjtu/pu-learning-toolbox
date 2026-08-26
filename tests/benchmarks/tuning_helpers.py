@@ -44,6 +44,24 @@ UPU_BASE_PARAMS = {
     "tol": 1e-6,
 }
 
+LLSVM_BASE_PARAMS = {
+    "alpha": 2.0,
+    "beta": 1.0,
+    "gamma": 10.0,
+    "squash_scale": 10.0,
+    "reg_lambda": 1.0,
+    "learning_rate": 5e-6,
+    "max_epochs": 3000,
+    "n_batches": 20,
+    "fit_intercept": True,
+    "intercept_scale": 10.0,
+    "shuffle": True,
+    "early_stopping": True,
+    "patience": 100,
+    "tol": 0.0005,
+    "min_epochs": 200,
+}
+
 
 def base_config_path(tmp_path, *, methods=None, timeouts=None):
     """Persist a baseline-like config (locked kldce defaults) and return its path."""

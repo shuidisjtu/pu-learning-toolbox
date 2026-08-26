@@ -237,6 +237,12 @@ uv run python -m benchmarks.traditional_pu.compare \
   `rbf_w0p5` 因 5/30 退化被 §3.3 淘汰（七轮首个 dev 退化淘汰案例）；
   `rbf_w1` 仅 pi0.1 改善、`reg_0p01` 零改善。写回默认值属第 6 步决策
   （须重锁基线+重跑），本轮不写回，详见 findings.md。
+- **LLSVM 调优第 1 轮（2026-08-26，`results/llsvm_tuning_r1`）**：参数簇
+  `learning_rate`/`reg_lambda`/`gamma`/`patience`+`min_epochs` 10 候选。无
+  晋级候选：三个入选者最高 3/6 SCAR confirmed；`lr_2em5` dev 第 1 但 conf
+  中 pi0.1-mid 显著变差（+0.047，SGD 种子方差大）——dev 筛选的乐观性偏差
+  首次被 conf 证伪；`lr1em5_reg0p1` 最稳（3/6 confirmed、零变差）但幅度小；
+  γ 减小有害。部分改善 verdict，不写回，详见 findings.md。
 
 ## 开发期与正式基线的差异
 

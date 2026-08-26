@@ -18,6 +18,7 @@ from benchmarks.traditional_pu.tuning_round import (
     generate_round_configs,
 )
 from tests.benchmarks.tuning_helpers import (
+    LLSVM_BASE_PARAMS,
     NNPU_BASE_PARAMS,
     SCENARIOS,
     UPU_BASE_PARAMS,
@@ -111,6 +112,25 @@ class TestGenerateConfigs:
         params = produced["methods"]["upu"]
         assert params["basis"] == "rbf" and params["kernel_width"] == 0.5
         assert params["loss"] == "double_hinge"  # untouched default kept
+        assert "locks_source_defaults" not in produced
+
+    def test_basic_llsvm_generate_with_sgd_overrides(self, tmp_path):
+        base = base_config_path(
+            tmp_path,
+            methods={"llsvm": dict(LLSVM_BASE_PARAMS)},
+            timeouts={"llsvm": 120},
+        )
+        paths = generate_round_configs(
+            base,
+            tmp_path / "round",
+            [("c1", {"learning_rate": 1e-5, "reg_lambda": 0.1})],
+            method="llsvm",
+        )
+        produced = json.loads(paths[0].read_text(encoding="utf-8"))
+        assert set(produced["methods"]) == {"llsvm"}
+        params = produced["methods"]["llsvm"]
+        assert params["learning_rate"] == 1e-5 and params["reg_lambda"] == 0.1
+        assert params["gamma"] == 10.0  # untouched default kept
         assert "locks_source_defaults" not in produced
 
     def test_basic_nnpu_generate_keeps_non_tunable_nulls(self, tmp_path):

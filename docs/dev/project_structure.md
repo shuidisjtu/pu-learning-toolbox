@@ -393,6 +393,7 @@ benchmarks/
       ldce_tuning_r1/          (LDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       nnpu_tuning_r1/          (nnPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       upu_tuning_r1/           (uPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
+      llsvm_tuning_r1/         (LLSVM 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
     results/                   (运行产物: <run-name>/ 下四件套 + report.md)
 ```
 

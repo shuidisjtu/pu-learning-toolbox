@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
@@ -27,6 +28,7 @@ _ESTIMATOR_CLASSES = {
     "ldce": LDCEClassifier,
     "nnpu": NonNegativePUClassifier,
     "upu": UPUClassifier,
+    "llsvm": LLSVMClassifier,
 }
 _RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
 # Constructor params that a JSON config cannot meaningfully tune: torch
