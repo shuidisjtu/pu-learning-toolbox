@@ -64,6 +64,15 @@ uv run python -m benchmarks.traditional_pu.run \
 `--seed-set` 默认 `development`；默认按 `(algorithm, scenario, seed)` 断点恢复
 （已有 `trials.csv` 时跳过已完成单元），`--no-resume` 强制重跑。
 
+调优轮（调优方案 §8 第 5 步）：每候选一个 config（`benchmarks/traditional_pu/
+tuning_round.generate_round_configs` 从基线派生并剥除
+`locks_source_defaults`），dev 种子筛选（`tuning_round.rank_candidates`，
+§4 筛选链：success 100% → 无退化 → `pu_zero_one_risk` 均值升序取前 3），
+入选者 conf 种子确认后与 companion 基线（同种子同网格的冻结基线视图）做
+`compare.py` verdict（`tuning_round.compare_degenerate_condition` 核对 §5
+条件 3）。每轮产物在 `configs/<method>_tuning_rN/` 与
+`results/<method>_tuning_rN/`（findings.md 记录轮级结论），不直接写回默认值。
+
 `trials.csv` 在每个 trial 完成后**增量落盘**（而不是网格结束时一次性写入），
 因此运行中途被中断（ctrl+c / 主机 kill）只会丢失正在跑的单元，已完成部分全部
 保留，再次运行即可无缝续跑（保留 `trials.csv` 即是续跑依据）。
@@ -197,6 +206,12 @@ uv run python -m benchmarks.traditional_pu.compare \
   `locks_source_defaults` 标记，由 `scripts/check_baseline_configs.py` 门禁校验
   与源码构造器默认值一致——未来默认参数演进在门禁报警，而非基线静默漂移
   （契约 §5 演进记录）。`confirmation_v1` 保留为修复前历史快照。
+- **KLDCE 调优第 1 轮（2026-08-26，`results/kldce_tuning_r1`）**：参数簇
+  `covariance_ridge`/`reg_strength`/`centroid_radius` 10 候选全部 30/30
+  success 但零候选通过 §3.3 退化筛选（低先验全负预测），否定 verdict：
+  该参数簇无法清除低先验全负，问题归入实现级跟进；`reg_strength=0.1`
+  是唯一方向性信号（退化 20→12/30，recall 全 0→0.002–0.013），详见
+  findings.md。
 
 ## 开发期与正式基线的差异
 
