@@ -243,6 +243,13 @@ uv run python -m benchmarks.traditional_pu.compare \
   中 pi0.1-mid 显著变差（+0.047，SGD 种子方差大）——dev 筛选的乐观性偏差
   首次被 conf 证伪；`lr1em5_reg0p1` 最稳（3/6 confirmed、零变差）但幅度小；
   γ 减小有害。部分改善 verdict，不写回，详见 findings.md。
+- **Elkan-Noto 调优第 1 轮（2026-08-26，`results/elkan_noto_tuning_r1`）**：
+  参数簇 `calibration_method`/`n_cv_folds`/`eps`/`mode` 10 候选。**dev 阶段
+  终止——主指标 `pu_zero_one_risk` 对 elkan_noto 失真**：`_decision_function`
+  返回 g/c（scores 恒 >0），risk 恒等于 1−π 常数，§4 筛选链无判别力；oracle
+  指标正常（AUC 0.997~1.0，分类质量极好），问题在协议指标阈值语义（0）与
+  `_predict` 阈值（0.5）不匹配。已登记协议跟进项（指标修复须 TDD + 契约评审），
+  参数簇本身未被证伪，详见 findings.md。
 
 ## 开发期与正式基线的差异
 

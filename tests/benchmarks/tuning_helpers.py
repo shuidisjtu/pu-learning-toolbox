@@ -62,6 +62,14 @@ LLSVM_BASE_PARAMS = {
     "min_epochs": 200,
 }
 
+ELKAN_NOTO_BASE_PARAMS = {
+    "base_estimator": None,
+    "calibration_method": "sigmoid",
+    "n_cv_folds": 3,
+    "eps": 1e-12,
+    "mode": "probability_correction",
+}
+
 
 def base_config_path(tmp_path, *, methods=None, timeouts=None):
     """Persist a baseline-like config (locked kldce defaults) and return its path."""

@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
@@ -29,14 +30,15 @@ _ESTIMATOR_CLASSES = {
     "nnpu": NonNegativePUClassifier,
     "upu": UPUClassifier,
     "llsvm": LLSVMClassifier,
+    "elkan_noto": ElkanNotoClassifier,
 }
 _RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
 # Constructor params that a JSON config cannot meaningfully tune: torch
-# module/optimizer objects and the device string (plan §4: optimizer/lr
-# stay outside the round-1 cluster).  Their constructor defaults (None)
-# are the correct values, so they are also excluded from the
-# constructor-defaults coverage check.
-_NON_TUNABLE = {"model", "optimizer", "device"}
+# module/optimizer objects, the device string, and the Elkan-Noto base
+# estimator instance (plan §4: optimizer/lr stay outside the round-1
+# cluster).  Their constructor defaults (None) are the correct values, so
+# they are also excluded from the constructor-defaults coverage check.
+_NON_TUNABLE = {"model", "optimizer", "device", "base_estimator"}
 
 
 def generate_round_configs(

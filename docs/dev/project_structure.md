@@ -294,6 +294,7 @@ tests/
     test_traditional_pu_tuning_round.py # 调优轮工具: 候选配置生成/退化率核对
     test_traditional_pu_tuning_rank.py  # 调优轮排名: §4 筛选链/scar-sar 混合网格
     tuning_helpers.py                   # 调优轮测试共享构造器(非测试模块)
+    test_traditional_pu_tuning_round_methods.py # 调优轮逐方法注册 smoke 测试(nnPU/uPU/LLSVM/Elkan-Noto)
   __init__.py                           # tests 包声明(支持 tests.helpers 导入)
   conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
   helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
@@ -394,6 +395,7 @@ benchmarks/
       nnpu_tuning_r1/          (nnPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       upu_tuning_r1/           (uPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       llsvm_tuning_r1/         (LLSVM 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
+      elkan_noto_tuning_r1/    (Elkan-Noto 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
     results/                   (运行产物: <run-name>/ 下四件套 + report.md)
 ```
 
