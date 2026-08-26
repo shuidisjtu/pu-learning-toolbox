@@ -1,0 +1,51 @@
+{
+  "checks": {
+    "duplicate_samples": {
+      "reason": "synthetic per-trial generation: no persistent train/test splits; takes effect in phase B",
+      "status": "not_applicable"
+    },
+    "feature_blacklist": {
+      "reason": "synthetic per-trial generation: no persistent feature-column set; takes effect in phase B when the official data line lands",
+      "status": "not_applicable"
+    },
+    "trial_label_columns": {
+      "enforcement": "runner_gate",
+      "status": "pass"
+    },
+    "y_true_path": {
+      "enforcement": "runner_gate",
+      "status": "pass"
+    }
+  },
+  "config_sha256": "a009d1609eed1bb59a1819e6e53fa84bab762652bca4561a1bfa3d8bc2e137a6",
+  "created_at_utc": "2026-08-26T13:55:24.792040+00:00",
+  "generation_parameters": {
+    "class_priors": [
+      0.3
+    ],
+    "n_features": 5,
+    "n_samples_mid": 2000,
+    "n_samples_small": 400,
+    "pn_ratios": [
+      "1:1:4",
+      "1:2:4",
+      "1:1:8"
+    ],
+    "separation": 2.0
+  },
+  "hits": [],
+  "protocol": "traditional_pu_baseline",
+  "rule_version": 1,
+  "scenario_hash": "7031a10ca9b0d93d417d723bbdd88c538dc5bd9509941881f09ce0f20f0d702e",
+  "schema_version": 1,
+  "scope": "synthetic_phase_a",
+  "seed_set": "development",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "status": "pass"
+}

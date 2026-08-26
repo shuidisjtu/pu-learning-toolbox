@@ -70,6 +70,15 @@ ELKAN_NOTO_BASE_PARAMS = {
     "mode": "probability_correction",
 }
 
+PNU_BASE_PARAMS = {
+    "eta": 0.0,
+    "reg_lambda": 0.001,
+    "basis": "linear",
+    "kernel_width": None,
+    "n_centers": None,
+    "fit_intercept": True,
+}
+
 
 def base_config_path(tmp_path, *, methods=None, timeouts=None):
     """Persist a baseline-like config (locked kldce defaults) and return its path."""

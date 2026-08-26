@@ -20,6 +20,7 @@ from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
+from pu_toolbox.estimators.risk.pnu import PNUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 
 # method -> estimator class, mirrors check_baseline_configs.py's registry
@@ -31,6 +32,7 @@ _ESTIMATOR_CLASSES = {
     "upu": UPUClassifier,
     "llsvm": LLSVMClassifier,
     "elkan_noto": ElkanNotoClassifier,
+    "pnu": PNUClassifier,
 }
 _RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
 # Constructor params that a JSON config cannot meaningfully tune: torch
@@ -110,20 +112,24 @@ def generate_round_configs(
     return produced
 
 
-def rank_candidates(dev_root, names, *, metric="pu_zero_one_risk", n_select=3):
+def rank_candidates(
+    dev_root, names, *, metric="pu_zero_one_risk", n_select=3, higher_is_better=False
+):
     """Rank dev-stage candidates with the plan §4 elimination chain.
 
     Elimination order: success rate below 100% first, then any
     degenerate prediction (§3.3) among success rows; survivors rank by the
-    pooled *metric* mean over the 30 success rows, ascending, ties broken
-    by name.  ``selected`` marks the first *n_select* survivors.  The
-    returned frame keeps the input *names* order.
+    pooled *metric* mean over the 30 main-grid success rows (ascending by
+    default, descending when *higher_is_better*), ties broken by name.
+    ``selected`` marks the first *n_select* survivors.  The returned frame
+    keeps the input *names* order.
 
-    Methods that enter the SAR diagnostic line (nnPU-class) carry 60 dev
-    rows: the elimination chain and the risk mean use the 30 ``scar-``
-    rows only (contract §2.3: SAR cells never participate in ranking);
-    the 30 ``sar-`` rows are reported as diagnostics
-    (``sar_n_total``/``sar_n_success``).
+    The main grid rows (``scar-`` or ``pnu-``, never mixed) feed the
+    elimination chain and the risk mean; methods that enter the SAR
+    diagnostic line (nnPU-class) carry 30 extra ``sar-`` rows reported as
+    diagnostics (``sar_n_total``/``sar_n_success``).  For the PNU
+    tri-label grid the caller must pass an oracle metric (``pu_auc_roc``):
+    binary PU metrics are unavailable there (contract §2.2).
     """
     dev_root = Path(dev_root)
     rows = []
@@ -134,28 +140,33 @@ def rank_candidates(dev_root, names, *, metric="pu_zero_one_risk", n_select=3):
         trials = pd.read_csv(trials_path)
         scenario_col = trials["scenario"].astype(str)
         scar = trials[scenario_col.str.startswith("scar-")]
+        pnu = trials[scenario_col.str.startswith("pnu-")]
         sar = trials[scenario_col.str.startswith("sar-")]
         known = scenario_col.str.startswith("scar-") | scenario_col.str.startswith("sar-")
+        known = known | scenario_col.str.startswith("pnu-")
         other = trials[~known]
         if len(other):
             prefixes = sorted({s.split("-", 1)[0] for s in scenario_col[other.index]})
             raise ValueError(
                 f"candidate {name!r}: unknown scenario prefix in dev trials: {prefixes}"
             )
-        if len(scar) != 30:
-            raise ValueError(f"candidate {name!r}: expected 30 scar dev rows, got {len(scar)}")
+        if len(scar) and len(pnu):
+            raise ValueError(f"candidate {name!r}: mixed scar and pnu main-grid rows in dev trials")
+        main = pd.concat([scar, pnu])
+        if len(main) != 30:
+            raise ValueError(f"candidate {name!r}: expected 30 main-grid dev rows, got {len(main)}")
         if len(sar) not in (0, 30):
             raise ValueError(f"candidate {name!r}: expected 0 or 30 sar dev rows, got {len(sar)}")
         if "degenerate_prediction" not in trials.columns:
             raise ValueError(f"candidate {name!r}: trials lack the degenerate_prediction column")
-        success = scar[scar["status"] == "success"]
+        success = main[main["status"] == "success"]
         n_success = int(len(success))
         degenerate_mask = success["degenerate_prediction"].fillna(False).astype(bool)
         n_degenerate = int(degenerate_mask.sum())
         degenerate_cells = sorted(success.loc[degenerate_mask, "scenario"].astype(str).unique())
         risk_values = pd.to_numeric(success[metric], errors="coerce")
         elapsed = pd.to_numeric(trials["elapsed_seconds"], errors="coerce").dropna()
-        if n_success < len(scar):
+        if n_success < len(main):
             reason = "success_rate < 100%"
         elif n_degenerate > 0:
             reason = "degenerate_prediction"
@@ -166,7 +177,7 @@ def rank_candidates(dev_root, names, *, metric="pu_zero_one_risk", n_select=3):
                 "name": name,
                 "n_total": int(len(trials)),
                 "n_success": n_success,
-                "success_rate": n_success / len(scar),
+                "success_rate": n_success / len(main),
                 "sar_n_total": int(len(sar)),
                 "sar_n_success": int((sar["status"] == "success").sum()),
                 "n_degenerate": n_degenerate,
@@ -182,7 +193,7 @@ def rank_candidates(dev_root, names, *, metric="pu_zero_one_risk", n_select=3):
         )
     table = pd.DataFrame(rows)
     eligible = table[table["eliminated_reason"].isna()].sort_values(
-        ["risk_mean", "name"], na_position="last"
+        ["risk_mean", "name"], ascending=[not higher_is_better, True], na_position="last"
     )
     table["rank"] = np.nan
     table.loc[eligible.index, "rank"] = range(1, len(eligible) + 1)

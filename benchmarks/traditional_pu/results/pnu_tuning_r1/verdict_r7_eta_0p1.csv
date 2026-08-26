@@ -1,0 +1,7 @@
+algorithm,scenario,n_paired,baseline_success_rate,candidate_success_rate,baseline_mean_elapsed_seconds,candidate_mean_elapsed_seconds,baseline_p95_elapsed_seconds,candidate_p95_elapsed_seconds,paired_available,baseline_mean,candidate_mean,diff_mean,diff_ci95_low,diff_ci95_high,cond1_improves,oracle_cond1_improves,oracle_paired_available,cond2_success_ok,cond3_budget_ok,confirmed_improvement,oracle_only_improvement
+pnu,pnu-1:1:4-scalemid,20,1.0,1.0,0.00460000000002764,0.006199999999807899,0.0159999999998035,0.0159999999996216,True,1.0,1.0,0.0,0.0,0.0,False,False,True,True,True,False,False
+pnu,pnu-1:1:4-scalesmall,20,1.0,1.0,0.0032000000001062207,0.0030999999999039504,0.0159999999998035,0.0159999999996216,True,1.0,1.0,0.0,0.0,0.0,False,False,True,True,True,False,False
+pnu,pnu-1:1:8-scalemid,20,1.0,1.0,0.00550000000002909,0.004700000000229911,0.0159999999998035,0.0160000000032596,True,1.0,1.0,0.0,0.0,0.0,False,False,True,True,True,False,False
+pnu,pnu-1:1:8-scalesmall,20,1.0,1.0,0.0039000000000669307,0.006350000000202255,0.0159999999998035,0.0160000000032596,True,1.0,1.0,0.0,0.0,0.0,False,False,True,True,True,False,False
+pnu,pnu-1:2:4-scalemid,20,1.0,1.0,0.00710000000017315,0.006999999999970881,0.0160000000032596,0.016750000003048608,True,1.0,1.0,0.0,0.0,0.0,False,False,True,True,True,False,False
+pnu,pnu-1:2:4-scalesmall,20,1.0,1.0,0.00550000000002909,0.0022999999999228703,0.0159999999998035,0.015049999999428087,True,1.0,1.0,0.0,0.0,0.0,False,False,True,True,True,False,False

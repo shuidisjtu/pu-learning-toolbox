@@ -16,6 +16,7 @@ from tests.benchmarks.tuning_helpers import (
     ELKAN_NOTO_BASE_PARAMS,
     LLSVM_BASE_PARAMS,
     NNPU_BASE_PARAMS,
+    PNU_BASE_PARAMS,
     UPU_BASE_PARAMS,
     base_config_path,
 )
@@ -163,3 +164,29 @@ class TestMethodRegistration:
         assert json.loads(first[0].read_text(encoding="utf-8")) == json.loads(
             second[0].read_text(encoding="utf-8")
         )
+
+    def test_basic_pnu_generate_with_eta_override(self, tmp_path):
+        base = base_config_path(
+            tmp_path,
+            methods={"pnu": dict(PNU_BASE_PARAMS)},
+            timeouts={"pnu": 120},
+        )
+        paths = generate_round_configs(
+            base, tmp_path / "round", [("c1", {"eta": 0.5})], method="pnu"
+        )
+        produced = json.loads(paths[0].read_text(encoding="utf-8"))
+        assert set(produced["methods"]) == {"pnu"}
+        params = produced["methods"]["pnu"]
+        assert params["eta"] == 0.5
+        assert params["reg_lambda"] == 0.001  # untouched default kept
+        assert params["basis"] == "linear"
+        assert "locks_source_defaults" not in produced
+
+    def test_edge_pnu_rejects_class_prior_override(self, tmp_path):
+        # class_prior is a required constructor arg (no default), so it is
+        # runner-injected and must not appear in candidate overrides.
+        base = base_config_path(tmp_path, methods={"pnu": dict(PNU_BASE_PARAMS)})
+        with pytest.raises(ValueError, match="runner-injected"):
+            generate_round_configs(
+                base, tmp_path / "round", [("c1", {"class_prior": 0.3})], method="pnu"
+            )

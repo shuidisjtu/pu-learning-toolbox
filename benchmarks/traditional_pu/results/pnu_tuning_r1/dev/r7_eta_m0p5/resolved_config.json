@@ -1,0 +1,65 @@
+{
+  "data": {
+    "class_priors": [
+      0.3
+    ],
+    "n_features": 5,
+    "n_samples_mid": 2000,
+    "n_samples_small": 400,
+    "pn_ratios": [
+      "1:1:4",
+      "1:2:4",
+      "1:1:8"
+    ],
+    "separation": 2.0
+  },
+  "description": "PNU tri-label grid baseline v2: explicit constructor-default locks for the tuning rounds (contract §5 evolution record). | pnu tuning candidate 'r7_eta_m0p5' with overrides {\"eta\": -0.5}",
+  "limitations": [
+    "synthetic tri-label protocol; y_true reserved for final evaluation"
+  ],
+  "methods": {
+    "pnu": {
+      "basis": "linear",
+      "eta": -0.5,
+      "fit_intercept": true,
+      "kernel_width": null,
+      "n_centers": null,
+      "reg_lambda": 0.001
+    }
+  },
+  "protocol": "traditional_pu_baseline",
+  "resolved_at": "2026-08-26T13:55:31Z",
+  "schema_version": 1,
+  "seed_set_confirmation": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119
+  ],
+  "seed_set_development": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "timeouts": {
+    "pnu": 120
+  }
+}

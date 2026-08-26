@@ -390,12 +390,14 @@ benchmarks/
     configs/
       seven_methods_pu_baseline_v1.json
       pnu_baseline_v1.json
+      pnu_baseline_v2.json      (PNU 显式锁定默认参数基线, 调优轮 companion 来源)
       kldce_tuning_r1/         (KLDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       ldce_tuning_r1/          (LDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       nnpu_tuning_r1/          (nnPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       upu_tuning_r1/           (uPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       llsvm_tuning_r1/         (LLSVM 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       elkan_noto_tuning_r1/    (Elkan-Noto 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
+      pnu_tuning_r1/           (PNU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
     results/                   (运行产物: <run-name>/ 下四件套 + report.md)
 ```
 

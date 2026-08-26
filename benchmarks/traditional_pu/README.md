@@ -250,6 +250,14 @@ uv run python -m benchmarks.traditional_pu.compare \
   指标正常（AUC 0.997~1.0，分类质量极好），问题在协议指标阈值语义（0）与
   `_predict` 阈值（0.5）不匹配。已登记协议跟进项（指标修复须 TDD + 契约评审），
   参数簇本身未被证伪，详见 findings.md。
+- **PNU 调优第 1 轮（2026-08-26，`results/pnu_tuning_r1`）**：参数簇
+  `eta`/`reg_lambda`/`basis`/`kernel_width` 10 候选。**饱和 verdict**：三元
+  网格基线 oracle 指标全 1.0（默认参数已完美），dev 7/10 候选精确 1.0、conf
+  两入选者 diff 全 0——参数簇无可调空间，默认参数即最优，无写回。本轮协议
+  适配：筛选指标 = `pu_auc_roc`（二元 PU 指标在三元网格不可用，口径在
+  findings 明示）；rank 支持 pnu- 主网格与 `higher_is_better` 方向；新建
+  `pnu_baseline_v2.json` 显式锁定基线。七轮调优循环（§8 第 5 步）至此完成，
+  详见 findings.md。
 
 ## 开发期与正式基线的差异
 

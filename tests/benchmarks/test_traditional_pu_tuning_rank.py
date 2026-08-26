@@ -65,16 +65,44 @@ class TestRankCandidates:
         ranked = table[table["selected"]].sort_values("rank")
         assert list(ranked["name"]) == ["d", "c"]
 
+    def test_param_rank_higher_is_better_sorts_descending(self, tmp_path):
+        # The PNU tri-label grid has no binary PU metric, so rounds there
+        # rank on an oracle metric (pu_auc_roc) — higher is better, and the
+        # ranking direction must flip accordingly.
+        def pnu_rows(risk):
+            return [
+                {
+                    "algorithm": "pnu",
+                    "scenario": f"pnu-{ratio}-scale{scale}",
+                    "seed": seed,
+                    "status": "success",
+                    "degenerate_prediction": False,
+                    "pu_auc_roc": risk,
+                    "elapsed_seconds": 0.03,
+                }
+                for ratio in ("1:1:4", "1:2:4", "1:1:8")
+                for scale in ("small", "mid")
+                for seed in range(5)
+            ]
+
+        for name, risk in [("low", 0.7), ("high", 1.0), ("mid", 0.85)]:
+            write_candidate_trials(tmp_path, name, pnu_rows(risk))
+        table = rank_candidates(
+            tmp_path, ["low", "high", "mid"], metric="pu_auc_roc", higher_is_better=True
+        )
+        ranked = table[table["selected"]].sort_values("rank")
+        assert list(ranked["name"]) == ["high", "mid", "low"]
+
     def test_edge_rank_missing_trials_csv_raises(self, tmp_path):
         with pytest.raises(FileNotFoundError, match="ghost"):
             rank_candidates(tmp_path, ["ghost"])
 
     def test_edge_rank_rejects_scar_row_deficit_and_excludes_non_success_risk(self, tmp_path):
-        # 29 scar rows + 1 sar row → scar-count violation (sar rows are
-        # only legal as a complete 30-row diagnostic block).
+        # 29 scar rows + 1 sar row → main-grid count violation (sar rows
+        # are only legal as a complete 30-row diagnostic block).
         sar_row = make_row("sar-pi0.5-scalesmall", 0)
         write_candidate_trials(tmp_path, "mixed", [sar_row] + full_grid()[:29])
-        with pytest.raises(ValueError, match="scar dev rows"):
+        with pytest.raises(ValueError, match="main-grid dev rows"):
             rank_candidates(tmp_path, ["mixed"])
         # non-success rows never feed the risk mean
         rows = full_grid({s: 0.7 for s in SCENARIOS}, failed_cells={("scar-pi0.1-scalemid", 2)})
@@ -112,10 +140,47 @@ class TestRankCandidates:
         assert row["selected"]
 
     def test_edge_rank_rejects_unknown_scenario_prefix(self, tmp_path):
-        bogus_row = make_row("pnu-1-1-4-scalesmall", 0)
-        write_candidate_trials(tmp_path, "pnu", full_grid()[:29] + [bogus_row])
+        bogus_row = make_row("xxx-1-1-4-scalesmall", 0)
+        write_candidate_trials(tmp_path, "bogus", full_grid()[:29] + [bogus_row])
         with pytest.raises(ValueError, match="unknown scenario prefix"):
-            rank_candidates(tmp_path, ["pnu"])
+            rank_candidates(tmp_path, ["bogus"])
+
+    def test_param_rank_pnu_grid_uses_pnu_rows_as_main_grid(self, tmp_path):
+        # The PNU tri-label grid (3 ratios × 2 scales × 5 seeds = 30 rows)
+        # is PNU's main grid (contract §2.2): the elimination chain and the
+        # risk mean run over the 30 pnu- rows.  Binary PU metrics are
+        # unavailable there, so the caller passes an oracle metric.
+        rows = []
+        for ratio in ("1:1:4", "1:2:4", "1:1:8"):
+            for scale in ("small", "mid"):
+                for seed in range(5):
+                    rows.append(
+                        {
+                            "algorithm": "pnu",
+                            "scenario": f"pnu-{ratio}-scale{scale}",
+                            "seed": seed,
+                            "status": "success",
+                            "degenerate_prediction": False,
+                            "pu_auc_roc": 0.9 if ratio == "1:1:4" else 1.0,
+                            "elapsed_seconds": 0.03,
+                        }
+                    )
+        write_candidate_trials(tmp_path, "pnu", rows)
+        table = rank_candidates(tmp_path, ["pnu"], metric="pu_auc_roc")
+        row = table.iloc[0]
+        assert row["n_total"] == 30 and row["n_success"] == 30
+        assert row["sar_n_total"] == 0
+        # 10 rows at 0.9, 20 at 1.0 → mean 0.9667
+        assert row["risk_mean"] == pytest.approx((10 * 0.9 + 20 * 1.0) / 30)
+        assert row["eliminated_reason"] is None and row["selected"]
+
+    def test_edge_rank_rejects_mixed_scar_pnu_grids(self, tmp_path):
+        # A config is either binary-PU (scar rows) or PNU (pnu rows) —
+        # mixing the two main-grid protocols is a config error.
+        pnu_row = make_row("pnu-1:1:4-scalesmall", 0)
+        write_candidate_trials(tmp_path, "mixed", full_grid()[:15] + [pnu_row] * 15)
+        with pytest.raises(ValueError, match="scar and pnu"):
+            rank_candidates(tmp_path, ["mixed"])
 
     def test_determ_rank_same_input_same_output(self, tmp_path):
         for name, risk in [("a", 0.4), ("b", 0.3), ("c", 0.2)]:
