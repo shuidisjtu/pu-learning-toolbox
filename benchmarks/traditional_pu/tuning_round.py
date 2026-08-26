@@ -16,10 +16,11 @@ import numpy as np
 import pandas as pd
 
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
+from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 
 # method -> estimator class, mirrors check_baseline_configs.py's registry
 # (extended one entry per tuning round).
-_ESTIMATOR_CLASSES = {"kldce": KLDCEClassifier}
+_ESTIMATOR_CLASSES = {"kldce": KLDCEClassifier, "ldce": LDCEClassifier}
 _RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
 
 

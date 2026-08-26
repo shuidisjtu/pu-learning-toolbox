@@ -212,6 +212,13 @@ uv run python -m benchmarks.traditional_pu.compare \
   该参数簇无法清除低先验全负，问题归入实现级跟进；`reg_strength=0.1`
   是唯一方向性信号（退化 20→12/30，recall 全 0→0.002–0.013），详见
   findings.md。
+- **LDCE 调优第 1 轮（2026-08-26，`results/ldce_tuning_r1`）**：参数簇
+  `reg_strength`/`covariance_ridge`/`centroid_radius`/`max_iter` 10 候选，
+  两个正面 verdict：`centroid_radius=0.1`（首选，risk 0.436→0.339，配对
+  diff −0.072 至 −0.137）与 `covariance_ridge=1e-2`（risk 0.347，耗时 ~4.5×）
+  均 6/6 单元 `confirmed_improvement`；`max_iter` 5000–20000 零影响；
+  `reg_strength=0.1` 破坏稳定性（9 单元失败）。写回默认值属第 6 步另行
+  决策（须重锁基线+重跑），本轮不写回，详见 findings.md。
 
 ## 开发期与正式基线的差异
 

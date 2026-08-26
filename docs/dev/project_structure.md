@@ -388,6 +388,7 @@ benchmarks/
       seven_methods_pu_baseline_v1.json
       pnu_baseline_v1.json
       kldce_tuning_r1/         (KLDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
+      ldce_tuning_r1/          (LDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
     results/                   (运行产物: <run-name>/ 下四件套 + report.md)
 ```
 
