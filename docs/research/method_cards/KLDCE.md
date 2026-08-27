@@ -185,6 +185,16 @@ $`C_\text{eq}=-(n-k)/[2n(1-2ph)]`$。
 - **数值校验**：显式检查 $`0<p\le1`$（违反时拒绝而非静默继续）与 $`|1-2ph|`$ 近零（等价于 $`|1-2k/n|`$ 近零，病态时拒绝）；`ridge` 默认为 0（论文原式），若 $`\hat\Sigma`$ 奇异，严格模式报错，变体模式加 `ridge>0`。
 - **禁止照搬 `sklearn.svm.SVC` 内部逻辑**：其偏置恢复基于标准 C-SVC 对偶，KLDCE 的决策函数和 KKT 条件不同。
 - **偏置恢复优先采用论文式 (37)–(40) 的四项平均**，并用 primal/KKT oracle 检查其可行性。
+- **b₀ 恢复的类对称纪律（2026-08-27 实现决策，低先验全负修复）**：QP 版
+  一次性 KKT 恢复中，自由 SV 的余量估计形成两个紧簇（正类 $`b\approx1-g`$、
+  负类 $`b\approx-1-g`$，$`g=O(1/n)`$ 量级）。全体自由 SV 取中位数会坍缩到
+  多数类簇——低先验时负类自由 SV 占绝对多数，$`b_0\approx-1`$，决策函数
+  $`f(x)\approx b_0+g/(2\lambda)`$ 对一切点输出负值（全负预测；排序判别力
+  AUC 完好，问题仅在 0 阈值）。修复：**类对称中位数**——正/负类自由 SV
+  各取中位数再平均（与式 (37)–(40) 四项平均的类平衡意图一致）；仅一类有
+  自由 SV 时回退 bounded-interval（L/U 界来自两类边界 SV 的 KKT 不等式），
+  无交集时 $`b_0=0`$。回归锁定：`tests/estimators/risk/test_kldce_kkt.py`
+  `TestBiasRecoveryClassSymmetry` 与 `test_kldce_math.py` 类对称数值用例。
 - 对偶常数不要手工猜测：将论文公式逐项编码为可测试的 `dual_objective(z, m)`、`dual_gradient(z, m)` 与 `equality_coefficients`。
 - **收敛判据（2026-08-24 修正）**：QP oracle 版曾以 SLSQP 解处目标梯度范数
   作为 `kkt_residual`；约束 QP 最优解处该梯度由乘子平衡、不为零，导致 ACS

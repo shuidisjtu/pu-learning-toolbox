@@ -587,11 +587,17 @@ def _recover_bias_from_kkt(
 
     where gᵢ = f(xᵢ) − b₀.
 
-    We compute the bias-free decision scores gᵢ for all samples, then
-    take the median of {bᵢ} from free variables.
-
-    When no free variables exist, we fall back to the bounded-interval
-    method using KKT inequality conditions.
+    The bias-free scores gᵢ scale with the box caps (C ~ 1/n), so the
+    free-SV estimates form two tight clusters at b ≈ +1 (positive class)
+    and b ≈ −1 (negative class).  A plain median over all free SVs
+    collapses to the majority cluster; at low priors the negative
+    cluster dominates and b₀ ≈ −1, predicting every point negative.
+    Recovery is therefore **class-symmetric**: median within each class,
+    then average the two medians (same balancing intent as the appendix
+    Eqs. 37–40 four-term pair average).  When one class has no free SVs
+    the pair average is undefined and we fall back to the bounded-
+    interval method using KKT inequality conditions, whose lower/upper
+    bounds come from both classes' box-bound SVs.
 
     Parameters
     ----------
@@ -635,30 +641,39 @@ def _recover_bias_from_kkt(
 
     g = (g_alpha - g_gamma - g_centroid) / (2.0 * lambda_)
 
-    # ── Collect free support vectors ────────────────────────────────
+    # ── Collect free support vectors (class-separated) ───────────────
     info: dict = {"bias_recovery": "free_median", "n_free": 0}
 
-    b_estimates = []
+    b_pos: list[float] = []
+    b_neg: list[float] = []
 
     # Free α (all samples): 0 < αᵢ < C_alpha;ỹᵢ = +1 → f=1,ỹᵢ = −1 → f=−1
     free_alpha_mask = (alpha > 1e-12) & (alpha < C_alpha - 1e-12)
     for i in np.where(free_alpha_mask)[0]:
         if y_tilde[i] > 0:
-            b_estimates.append(1.0 - g[i])  # ỹ=+1: b = 1−g
+            b_pos.append(1.0 - g[i])  # ỹ=+1: b = 1−g
         else:
-            b_estimates.append(-1.0 - g[i])  # ỹ=−1: b = −1−g
+            b_neg.append(-1.0 - g[i])  # ỹ=−1: b = −1−g
 
     # Free γ (U samples): 0 < γⱼ < C_gamma → f = −1 → b = −1−g
     free_gamma_mask = (gamma > 1e-12) & (gamma < C_gamma - 1e-12)
     for j in np.where(free_gamma_mask)[0]:
         # ỹ_{k+j} = −1
-        b_estimates.append(-1.0 - g[k + j])
+        b_neg.append(-1.0 - g[k + j])
 
-    if len(b_estimates) > 0:
-        b0 = float(np.median(b_estimates))
-        info["n_free"] = len(b_estimates)
-        info["bias_recovery"] = "free_median"
+    if b_pos and b_neg:
+        # Class-symmetric median pair: prevents majority-class collapse
+        # at low priors (all-negative failure).
+        b0 = float(0.5 * (np.median(b_pos) + np.median(b_neg)))
+        info["n_free"] = len(b_pos) + len(b_neg)
+        info["bias_recovery"] = "class_symmetric_median"
         return b0, info
+
+    if b_pos or b_neg:
+        # One class has no free SVs: the pair average is undefined.
+        # Fall through to the bounded-interval path whose lower/upper
+        # bounds draw from both classes' box-bound KKT inequalities.
+        info["n_free"] = len(b_pos) + len(b_neg)
 
     # ── Fallback: bounded interval from KKT inequalities ───────────
     # L = lower bound on b₀, U = upper bound

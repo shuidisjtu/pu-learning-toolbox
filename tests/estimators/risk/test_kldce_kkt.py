@@ -7,7 +7,11 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pu_toolbox.estimators.risk.kldce import KLDCEClassifier, _true_kkt_residual
+from pu_toolbox.estimators.risk.kldce import (
+    KLDCEClassifier,
+    _recover_bias_from_kkt,
+    _true_kkt_residual,
+)
 from tests.estimators.risk.test_kldce_property import _make_censoring_pu_data
 
 
@@ -186,3 +190,104 @@ class TestACSConvergence:
         clf.fit(X, y_pu)
         for entry in clf.acs_history_:
             assert entry["eq_residual"] < 1e-6, entry
+
+
+@pytest.mark.unit
+class TestBiasRecoveryClassSymmetry:
+    """b0 recovery must not collapse to the majority free-SV class.
+
+    With a delta-like kernel the bias-free scores g_i are O(alpha) ~ 1/n,
+    so free-SV KKT estimates are two tight clusters at b ~ +1 (positive
+    class) and b ~ -1 (negative class).  A plain median over all free SVs
+    collapses to the majority cluster — at low priors the negative cluster
+    dominates and b0 ~ -1, which predicts every point negative (the
+    low-prior all-negative failure).  Recovery must be class-symmetric:
+    median within each class, then average the two medians.
+    """
+
+    @staticmethod
+    def _recover(alpha, gamma, y_tilde, *, k, sigma=1e-9, C_eq=0.0, lam=1.0):
+        n = len(y_tilde)
+        X = np.eye(n)  # delta kernel: K = I exactly for sigma -> 0
+        K = np.eye(n)
+        mu = np.zeros(n)
+        return _recover_bias_from_kkt(
+            alpha,
+            gamma,
+            X,
+            K,
+            y_tilde,
+            mu,
+            lam,
+            sigma,
+            C_eq,
+            1.0 / n,
+            1.0 / (2.0 * n),
+            k,
+        )
+
+    def test_basic_class_symmetric_when_imbalanced(self):
+        # 1 free positive SV (b ~ +1) vs 9 free negative SVs (b ~ -1):
+        # plain median -> ~-1; class-symmetric mean of medians -> ~0.
+        n, k = 10, 1
+        y_tilde = np.array([1.0] + [-1.0] * (n - 1))
+        alpha = np.full(n, 1.0 / (2.0 * n))  # all free (0 < alpha < C)
+        gamma = np.zeros(n - k)
+        b0, info = self._recover(alpha, gamma, y_tilde, k=k)
+        assert info["bias_recovery"] == "class_symmetric_median"
+        assert b0 == pytest.approx(0.0, abs=1e-6)
+
+    def test_param_single_class_free_falls_back(self):
+        # Positive alpha pinned at its lower bound (no free positive SV);
+        # negative SVs free.  No per-class pair exists -> fall back to the
+        # bounded-interval path, which balances both classes' KKT bounds.
+        n, k = 10, 1
+        y_tilde = np.array([1.0] + [-1.0] * (n - 1))
+        alpha = np.full(n, 1.0 / (2.0 * n))
+        alpha[0] = 0.0  # positive SV at lower bound
+        gamma = np.zeros(n - k)
+        b0, info = self._recover(alpha, gamma, y_tilde, k=k)
+        assert info["bias_recovery"] in ("bounded_interval", "indeterminate")
+        assert np.isfinite(b0)
+
+    def test_edge_no_free_variables_indeterminate(self):
+        n, k = 10, 1
+        y_tilde = np.array([1.0] + [-1.0] * (n - 1))
+        alpha = np.zeros(n)  # nothing free
+        gamma = np.zeros(n - k)
+        b0, info = self._recover(alpha, gamma, y_tilde, k=k)
+        assert info["bias_recovery"] == "indeterminate"
+        assert b0 == 0.0
+
+    def test_determ_symmetric_repeatable(self):
+        n, k = 10, 1
+        y_tilde = np.array([1.0] + [-1.0] * (n - 1))
+        alpha = np.full(n, 1.0 / (2.0 * n))
+        gamma = np.zeros(n - k)
+        b0_a, info_a = self._recover(alpha, gamma, y_tilde, k=k)
+        b0_b, info_b = self._recover(alpha, gamma, y_tilde, k=k)
+        assert b0_a == b0_b
+        assert info_a == info_b
+
+    def test_basic_fit_not_all_negative_low_prior(self):
+        # End-to-end regression for the low-prior all-negative failure:
+        # pi=0.1 synthetic SCAR, default params — predictions must include
+        # positives and recover a nontrivial fraction of true positives.
+        # (n=100 keeps the fit fast; the fixed b0 sits at the class
+        # midpoint and the decision is then driven by the bias-free
+        # scores, whose magnitude grows with n.)
+        from benchmarks.traditional_pu.data import make_scar_data
+
+        X, y_pu, y_true, _ = make_scar_data(
+            n_samples=100,
+            n_features=5,
+            class_prior=0.1,
+            separation=2.0,
+            label_frequency=0.5,
+            random_state=0,
+        )
+        clf = KLDCEClassifier(flip_probability=0.5, random_state=0)
+        clf.fit(X, y_pu, class_prior=0.1)
+        pred = clf.predict(X)
+        assert 0.005 < pred.mean() < 0.9
+        assert pred[y_true == 1].mean() > 0.05

@@ -409,8 +409,8 @@ class TestRBFCentroidDelta:
 class TestBiasRecovery:
     """KKT-based bias recovery for QP oracle."""
 
-    def test_basic_free_alpha_gives_correct_bias(self):
-        """When α is free, b = 1 - g."""
+    def test_basic_free_alpha_class_symmetric_bias(self):
+        """Free SVs on both classes: b0 = mean of per-class medians."""
         rng = np.random.RandomState(42)
         n, d = 6, 2
         X = rng.randn(n, d)
@@ -440,10 +440,20 @@ class TestBiasRecovery:
             k=k,
         )
 
+        # Independent recomputation of the bias-free scores g_i.
+        K_mu = _rbf_kernel(X, mu.reshape(1, -1), sigma=1.0).ravel()
+        g = (K @ (alpha * y_tilde) - K[:, k:] @ (gamma * y_tilde[k:]) - C_eq * K_mu) / 2.0
+        free = (alpha > 1e-12) & (alpha < C_alpha - 1e-12)
+        b_pos = [1.0 - g[i] for i in np.where(free)[0] if y_tilde[i] > 0]
+        b_neg = [-1.0 - g[i] for i in np.where(free)[0] if y_tilde[i] < 0]
+        gamma_free = (gamma > 1e-12) & (gamma < C_gamma - 1e-12)
+        b_neg += [-1.0 - g[k + j] for j in np.where(gamma_free)[0]]
+        expected = 0.5 * (np.median(b_pos) + np.median(b_neg))
+
         assert "n_free" in info
-        assert info["n_free"] > 0
-        assert info["bias_recovery"] == "free_median"
-        assert np.isfinite(b0)
+        assert info["n_free"] == len(b_pos) + len(b_neg)
+        assert info["bias_recovery"] == "class_symmetric_median"
+        assert b0 == pytest.approx(expected)
 
     def test_validation_all_at_bounds_fallback(self):
         """When all α,γ are at bounds, fall back to bounded interval."""
@@ -516,21 +526,22 @@ class TestBiasRecovery:
 
 @pytest.mark.math
 def test_edge_gamma_free_bias_uses_neg_one_minus_g():
-    """自由 γ(U 样本,ỹ=−1)恢复 b₀ 必须用 −1−g 而非 1−g.
+    """自由 γ(U 样本,ỹ=−1)的 b 估计必须用 −1−g 而非 1−g.
 
-    构造 k=1 正样本 + 1 个 U 样本:alpha 全在下界(非 free),
-    仅 γ 为 free(0.5)。手工计算:
-      sigma=1, X=[[0],[1]], λ=1, C_eq=0 →
-      g[1] = (0 − 0.5·(−1)·K[1,1])/(2·1) = 0.25
-      free γ → b₀ = −1 − g[1] = −1.25
-    修复前代码返回 1 − g[1] = 0.75(差 2)。
+    构造 k=1 正样本 + 1 个 U 样本:正类 α free(0.5)、负类 α 在下界
+    (0)、γ free(0.5)。手工计算:
+      sigma=1, X=[[0],[1]], λ=1, C_eq=0,e=exp(−0.5)
+      g = [0.25+0.25e, 0.25+0.25e](α 与 γ 贡献对称)
+      b_pos = 1−g[0];b_neg = −1−g[1](γ 在负类)
+      b₀ = (b_pos+b_neg)/2 = −0.25(1+e) ≈ −0.4016
+    若 γ 误用 1−g[1],b₀ = 0.75−0.25e ≈ 0.598(差 1)。
     """
     X = np.array([[0.0], [1.0]])
     sigma = 1.0
     K = _rbf_kernel(X, X, sigma)  # [[1, exp(-0.5)], [exp(-0.5), 1]]
     b0, info = _recover_bias_from_kkt(
-        alpha=np.array([1e-13]),  # 下界,非 free
-        gamma=np.array([0.5]),  # free γ
+        alpha=np.array([0.5, 0.0]),  # 正类 free,负类在下界
+        gamma=np.array([0.5]),  # free γ(负类)
         X=X,
         K=K,
         y_tilde=np.array([1.0, -1.0]),
@@ -542,5 +553,6 @@ def test_edge_gamma_free_bias_uses_neg_one_minus_g():
         C_gamma=1.0,
         k=1,
     )
-    assert info["bias_recovery"] == "free_median"
-    assert abs(b0 - (-1.25)) < 1e-9  # 修复前返回 0.75
+    assert info["bias_recovery"] == "class_symmetric_median"
+    e = np.exp(-0.5)
+    assert abs(b0 - (-0.25 * (1.0 + e))) < 1e-9  # γ 符号错 → 0.598
