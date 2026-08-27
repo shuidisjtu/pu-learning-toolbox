@@ -399,6 +399,7 @@ benchmarks/
       upu_tuning_r1/           (uPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       llsvm_tuning_r1/         (LLSVM 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       elkan_noto_tuning_r1/    (Elkan-Noto 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
+      elkan_noto_tuning_r2/    (Elkan-Noto 调优第 1 轮重跑: 契约 v2 口径, 同参数表)
       pnu_tuning_r1/           (PNU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
     results/                   (运行产物: <run-name>/ 下四件套 + report.md)
 ```

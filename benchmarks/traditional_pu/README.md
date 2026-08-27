@@ -269,6 +269,14 @@ uv run python -m benchmarks.traditional_pu.compare \
   参数簇本身未被证伪，详见 findings.md。
   2026-08-27 已将统一工作流和 benchmark 的风险输入改为模型原生 `predict` 标签，契约升至
   schema v2；本目录旧结果保留历史口径，后续重跑写入新目录，不覆盖旧产物。
+- **Elkan-Noto 调优第 1 轮重跑（2026-08-27，`results/elkan_noto_tuning_r2`）**：
+  契约 v2 口径 + baseline_v3 对齐下重跑同 10 候选参数表。筛选链恢复判别力，
+  信号完全来自 `mode=weighted_retraining`：**r2_weighted 与 r2_isotonic_weighted
+  均 12/12 全单元 confirmed**（§5 条件 1-6 全满足；两候选逐 cell 数字相同——
+  weighted 模式下 calibration_method 无效应，改善归因 mode 本身）；
+  r2_weighted_cv5 10/12（SCAR 6/6，两 SAR 单元 CI 上界略超 0）。companion 与
+  baseline_v3 elkan_noto 行逐单元 max|diff|=0。写回 `mode=weighted_retraining`
+  属第 6 步决策（须重锁基线+重跑），本轮不写回，详见 findings.md。
 - **PNU 调优第 1 轮（2026-08-26，`results/pnu_tuning_r1`）**：参数簇
   `eta`/`reg_lambda`/`basis`/`kernel_width` 10 候选。**饱和 verdict**：三元
   网格基线 oracle 指标全 1.0（默认参数已完美），dev 7/10 候选精确 1.0、conf

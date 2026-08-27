@@ -72,3 +72,10 @@ companion 一致性审计 7 轮全部 max|diff|=0.0,配对 CI 结论可信。
 - 2026-08-27：Elkan--Noto 协议级问题已按“predict 标签口径”修复并由工作流/benchmark
   回归测试锁定；指标契约升至 schema v2。历史第 6 轮结果仍保留为旧口径证据，修复后的
   Elkan--Noto 调优轮和受影响基线重跑另行生成新结果，不覆盖历史产物。
+- 2026-08-27：受影响基线重跑完成（baseline_v3，契约 v2 口径，1200/1200；
+  五个零阈值方法指标列与 v2 逐单元 max|diff|=0，elkan_noto risk 失真消除）。
+- 2026-08-27：Elkan--Noto 调优轮重跑完成（r2）：`mode=weighted_retraining`
+  12/12 全单元 confirmed（r2_weighted 与 r2_isotonic_weighted 数字逐 cell 相同，
+  改善归因 mode 本身）——第 6 步写回候选名单新增 elkan_noto `mode=
+  weighted_retraining`（写回须重锁 baseline_v3 的 elkan_noto 行 + 确认种子
+  重跑）。KLDCE 实现跟进项仍待办。
