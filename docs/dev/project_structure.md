@@ -394,6 +394,7 @@ benchmarks/
       seven_methods_pu_baseline_v2.json (契约 v1 口径历史快照, 勿在当前源码下重跑)
       seven_methods_pu_baseline_v3.json (契约 v2 口径正式基线: risk 跟随原生 predict 阈值)
       kldce_tuning_r1/         (KLDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
+      kldce_tuning_r3/         (KLDCE 调优第 1 轮重跑: b₀ 类对称修复后, 同参数表)
       ldce_tuning_r1/          (LDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       nnpu_tuning_r1/          (nnPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       upu_tuning_r1/           (uPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)

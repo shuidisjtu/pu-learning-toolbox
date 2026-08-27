@@ -1,0 +1,82 @@
+{
+  "config_sha256": "da57cec3fe5bd215f3b56efd2dedc9d35b0f2b008f566c6639d6e538f2f4149a",
+  "created_at_utc": "2026-08-27T10:59:30.694762+00:00",
+  "data_leakage_audit": {
+    "checks": {
+      "duplicate_samples": {
+        "reason": "synthetic per-trial generation: no persistent train/test splits; takes effect in phase B",
+        "status": "not_applicable"
+      },
+      "feature_blacklist": {
+        "reason": "synthetic per-trial generation: no persistent feature-column set; takes effect in phase B when the official data line lands",
+        "status": "not_applicable"
+      },
+      "trial_label_columns": {
+        "enforcement": "runner_gate",
+        "status": "pass"
+      },
+      "y_true_path": {
+        "enforcement": "runner_gate",
+        "status": "pass"
+      }
+    },
+    "config_sha256": "da57cec3fe5bd215f3b56efd2dedc9d35b0f2b008f566c6639d6e538f2f4149a",
+    "created_at_utc": "2026-08-27T10:52:45.567892+00:00",
+    "generation_parameters": {
+      "class_priors": [
+        0.1,
+        0.3,
+        0.5
+      ],
+      "label_frequency": 0.5,
+      "n_features": 5,
+      "n_samples_mid": 2000,
+      "n_samples_small": 400,
+      "sar_mechanism": "linear",
+      "sar_strength": 1.0,
+      "separation": 2.0
+    },
+    "hits": [],
+    "protocol": "traditional_pu_baseline",
+    "rule_version": 1,
+    "scenario_hash": "89fa4d46cc8ebd55386c7d2cf8990dc64cb9798106cbf2d021571ebf930297fe",
+    "schema_version": 1,
+    "scope": "synthetic_phase_a",
+    "seed_set": "development",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "status": "pass"
+  },
+  "environment": {
+    "dependencies": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.3",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.17.1"
+    },
+    "python": "3.11.15"
+  },
+  "git_commit": "434e0b8abdb38c7a94a98689fc19d422be2cf9a1",
+  "git_worktree_dirty": true,
+  "limitations": [
+    "synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5"
+  ],
+  "n_trials": 30,
+  "paper_claim": false,
+  "protocol": "traditional_pu_baseline",
+  "runner_sha256": "fe370595d000f6b07a18bd1c7da4aa2b740f1342957dfbb65728e9ea752c4346",
+  "schema_version": 1,
+  "seed_set": "development",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ]
+}

@@ -86,3 +86,11 @@ companion 一致性审计 7 轮全部 max|diff|=0.0,配对 CI 结论可信。
   pi=0.1 seed0 预测阳性率 0→0.278、recall 0→0.65（train AUC 不变）。TDD 回归
   锁定（TestBiasRecoveryClassSymmetry + math 数值用例）。**待办**：baseline_v3
   的 KLDCE 行重跑（implementation_fix §7）+ KLDCE 调优轮重跑（新 b₀ 语义）。
+- 2026-08-27：KLDCE 基线行重跑完成——baseline_v3 的 KLDCE 行由
+  kldce_baseline_v3 重跑替换（退化 80/960→0；pi=0.1/0.3 recall 0→0.59..0.79，
+  pi=0.5 不变），其余 5 方法行不受影响。KLDCE 调优轮重跑（r3）完成：
+  退化消失、risk 恢复 0.32 量级，三候选均 0/6 confirmed（diff 全在 ±0.02 内、
+  CI 跨 0、pi=0.5 单元 diff 精确 0）——参数簇无可调增益，默认参数即有效
+  工作点，r1 否定结论被修复取代，无新写回候选。至此两个跟进项均已闭环，
+  剩余工作：第 6 步写回（uPU/LDCE/elkan_noto 四候选，各须重锁基线+确认
+  重跑）。

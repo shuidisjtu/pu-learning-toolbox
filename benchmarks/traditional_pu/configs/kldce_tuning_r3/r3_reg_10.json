@@ -1,0 +1,67 @@
+{
+  "data": {
+    "class_priors": [
+      0.1,
+      0.3,
+      0.5
+    ],
+    "label_frequency": 0.5,
+    "n_features": 5,
+    "n_samples_mid": 2000,
+    "n_samples_small": 400,
+    "sar_mechanism": "linear",
+    "sar_strength": 1.0,
+    "separation": 2.0
+  },
+  "description": "kldce-only view of the v3 baseline for the post-bias-fix re-run (implementation_fix, ADR-0016 follow-up status). Other methods unchanged and remain as committed in baseline_v3. | kldce tuning candidate 'r3_reg_10' with overrides {\"reg_strength\": 10.0}",
+  "limitations": [
+    "synthetic SCAR/linear-SAR only; fixed n_features=5; label_frequency=0.5"
+  ],
+  "methods": {
+    "kldce": {
+      "centroid_radius": 1.0,
+      "covariance_ridge": 0.0,
+      "inner_tol": 1e-06,
+      "max_acs_iter": 50,
+      "max_inner_iter": 2000,
+      "mom_groups": 10,
+      "reg_strength": 10.0,
+      "sigma": "scale",
+      "tol": 1e-06
+    }
+  },
+  "protocol": "traditional_pu_baseline",
+  "schema_version": 1,
+  "seed_set_confirmation": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119
+  ],
+  "seed_set_development": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "timeouts": {
+    "kldce": 120
+  }
+}

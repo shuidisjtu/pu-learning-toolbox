@@ -233,6 +233,13 @@ uv run python -m benchmarks.traditional_pu.compare \
   该参数簇无法清除低先验全负，问题归入实现级跟进；`reg_strength=0.1`
   是唯一方向性信号（退化 20→12/30，recall 全 0→0.002–0.013），详见
   findings.md。
+- **KLDCE 调优第 1 轮重跑（2026-08-27，`results/kldce_tuning_r3`）**：b₀ 类
+  对称修复后重跑同 10 候选网格。退化消失（全 0），risk 0.317–0.321（默认
+  0.3207，修复前 0.44–0.72），`reg_strength` 是唯一微弱效应参数。conf 三
+  候选均 **0/6 confirmed**（diff 全在 ±0.02 内、CI 跨 0；pi=0.5 两单元 diff
+  精确 0——质心凸起边界不可达）。结论：参数簇无可调增益，默认参数即有效
+  工作点，r1 否定结论被修复本身取代（问题在 b₀ 语义而非参数簇）。无写回，
+  详见 findings.md。
 - **LDCE 调优第 1 轮（2026-08-26，`results/ldce_tuning_r1`）**：参数簇
   `reg_strength`/`covariance_ridge`/`centroid_radius`/`max_iter` 10 候选，
   两个正面 verdict：`centroid_radius=0.1`（首选，risk 0.436→0.339，配对
