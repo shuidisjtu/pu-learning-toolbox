@@ -78,4 +78,11 @@ companion 一致性审计 7 轮全部 max|diff|=0.0,配对 CI 结论可信。
   12/12 全单元 confirmed（r2_weighted 与 r2_isotonic_weighted 数字逐 cell 相同，
   改善归因 mode 本身）——第 6 步写回候选名单新增 elkan_noto `mode=
   weighted_retraining`（写回须重锁 baseline_v3 的 elkan_noto 行 + 确认种子
-  重跑）。KLDCE 实现跟进项仍待办。
+  重跑）。
+- 2026-08-27：KLDCE 实现跟进项根因修复完成（`fix/kldce-bias-class-symmetric`）：
+  b₀ 恢复的全体自由 SV 中位数在低先验下坍缩到多数类（负类）簇 → b₀≈−1 → 全负
+  预测（排序判别力 AUC 完好，问题仅在 0 阈值）。修复为类对称中位数（每类中位数
+  再平均，等价附录式 37–40 四项平均的类平衡意图）+ 单类回退 bounded-interval；
+  pi=0.1 seed0 预测阳性率 0→0.278、recall 0→0.65（train AUC 不变）。TDD 回归
+  锁定（TestBiasRecoveryClassSymmetry + math 数值用例）。**待办**：baseline_v3
+  的 KLDCE 行重跑（implementation_fix §7）+ KLDCE 调优轮重跑（新 b₀ 语义）。
