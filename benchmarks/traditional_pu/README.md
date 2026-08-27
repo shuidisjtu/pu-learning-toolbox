@@ -44,13 +44,23 @@ uv run python -m benchmarks.traditional_pu.run \
   --results-dir benchmarks/traditional_pu/results/confirmation_v1
 ```
 
-当前工具箱基线（v2，显式锁定默认参数，契约 §5 演进记录）：
+当前工具箱基线（v2，显式锁定默认参数，契约 §5 演进记录——契约 v1 口径历史快照，勿在当前源码下重跑）：
 
 ```bash
 uv run python -m benchmarks.traditional_pu.run \
   --config benchmarks/traditional_pu/configs/seven_methods_pu_baseline_v2.json \
   --seed-set confirmation \
   --results-dir benchmarks/traditional_pu/results/baseline_v2
+```
+
+当前工具箱基线（v3，契约 v2 口径：`pu_zero_one_risk` 跟随各分类器原生 `predict()`
+阈值，修复 elkan_noto 概率尺度与零阈值不相容的 risk ≡ 1−π 失真，def1544）：
+
+```bash
+uv run python -m benchmarks.traditional_pu.run \
+  --config benchmarks/traditional_pu/configs/seven_methods_pu_baseline_v3.json \
+  --seed-set confirmation \
+  --results-dir benchmarks/traditional_pu/results/baseline_v3
 ```
 
 PNU 网格：
@@ -210,6 +220,13 @@ uv run python -m benchmarks.traditional_pu.compare \
   `locks_source_defaults` 标记，由 `scripts/check_baseline_configs.py` 门禁校验
   与源码构造器默认值一致——未来默认参数演进在门禁报警，而非基线静默漂移
   （契约 §5 演进记录）。`confirmation_v1` 保留为修复前历史快照。
+- **v3 正式基线（2026-08-27，`results/baseline_v3`）**：指标契约升 v2
+  （def1544）后重跑：`pu_zero_one_risk` 改为跟随各分类器原生 `predict()`
+  阈值。五个零阈值方法（upu/nnpu/llsvm/ldce/kldce）指标列与 v2 逐单元
+  max|diff|=0（口径等价实证）；elkan_noto risk 由常数 0.9/0.7/0.5
+  （≡1−π 失真）变为真实风险 −0.218..0.096，`pred_positive_rate` 随先验
+  单调（0.06/0.20/0.42），0/240 退化。v2 保留为契约 v1 口径历史快照。
+  后续调优轮以 v3 为对齐基线。
 - **KLDCE 调优第 1 轮（2026-08-26，`results/kldce_tuning_r1`）**：参数簇
   `covariance_ridge`/`reg_strength`/`centroid_radius` 10 候选全部 30/30
   success 但零候选通过 §3.3 退化筛选（低先验全负预测），否定 verdict：

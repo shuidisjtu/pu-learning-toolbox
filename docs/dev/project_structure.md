@@ -391,6 +391,8 @@ benchmarks/
       seven_methods_pu_baseline_v1.json
       pnu_baseline_v1.json
       pnu_baseline_v2.json      (PNU 显式锁定默认参数基线, 调优轮 companion 来源)
+      seven_methods_pu_baseline_v2.json (契约 v1 口径历史快照, 勿在当前源码下重跑)
+      seven_methods_pu_baseline_v3.json (契约 v2 口径正式基线: risk 跟随原生 predict 阈值)
       kldce_tuning_r1/         (KLDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       ldce_tuning_r1/          (LDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
       nnpu_tuning_r1/          (nnPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
