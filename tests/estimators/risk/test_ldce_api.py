@@ -12,6 +12,43 @@ from sklearn.preprocessing import StandardScaler
 
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 
+
+@pytest.mark.unit
+class TestWritebackDefaults:
+    """Constructor defaults tuned in ADR-0016 step-6 write-back (LDCE combination).
+
+    Round-2 combination evaluation (ldce_tuning_r2) confirmed
+    ``centroid_radius=0.1`` x ``covariance_ridge=1e-2`` with 6/6 paired-CI
+    improvements over the old defaults (risk 0.436 -> 0.150, diff -0.27..-0.32,
+    roughly double the single-parameter gains).  These two defaults are pinned
+    here so a future change requires an explicit verdict round, not a silent
+    drift.
+    """
+
+    def test_basic_writeback_defaults_combination(self):
+        clf = LDCEClassifier(flip_probability=0.3)
+        assert clf.centroid_radius == 0.1
+        assert clf.covariance_ridge == 0.01
+
+    def test_param_other_defaults_unchanged(self):
+        clf = LDCEClassifier(flip_probability=0.3)
+        assert clf.reg_strength == 1.0
+        assert clf.mom_groups == 10
+        assert clf.learning_rate == 0.01
+        assert clf.n_inner_iter == 50
+        assert clf.max_iter == 10000
+        assert clf.tol == 1e-6
+
+    def test_edge_explicit_overrides_win(self):
+        clf = LDCEClassifier(
+            flip_probability=0.3,
+            centroid_radius=1.0,
+            covariance_ridge=1e-4,
+        )
+        assert clf.centroid_radius == 1.0
+        assert clf.covariance_ridge == 1e-4
+
+
 # ═════════════════════════════════════════════════════════════════════
 # Test helpers
 # ═════════════════════════════════════════════════════════════════════

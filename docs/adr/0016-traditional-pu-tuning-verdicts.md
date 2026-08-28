@@ -91,6 +91,14 @@ companion 一致性审计 7 轮全部 max|diff|=0.0,配对 CI 结论可信。
   pi=0.5 不变），其余 5 方法行不受影响。KLDCE 调优轮重跑（r3）完成：
   退化消失、risk 恢复 0.32 量级，三候选均 0/6 confirmed（diff 全在 ±0.02 内、
   CI 跨 0、pi=0.5 单元 diff 精确 0）——参数簇无可调增益，默认参数即有效
-  工作点，r1 否定结论被修复取代，无新写回候选。至此两个跟进项均已闭环，
-  剩余工作：第 6 步写回（uPU/LDCE/elkan_noto 四候选，各须重锁基线+确认
-  重跑）。
+  工作点，r1 否定结论被修复取代，无新写回候选。至此两个跟进项均已闭环。
+- 2026-08-28：LDCE 组合评估（ldce_tuning_r2）完成——`centroid_radius=0.1 ×
+  covariance_ridge=1e-2` 组合 conf 6/6 confirmed（diff −0.27..−0.32，为单参数
+  −0.07..−0.14 的 2 倍以上，强交互确认；dev 0.149 / conf 0.1498 复现）。
+- 2026-08-28：**第 6 步写回第 1 轮（LDCE）完成**——源码默认值改为组合
+  （ldce.py，默认值契约测试锁定）；基线重锁升 **v4**（v2/v3 摘
+  `locks_source_defaults` 冻结为历史快照，v4 钉住新默认，门禁通过）；
+  `ldce_baseline_v4` 确认重跑 120/120、0 退化，与新默认逐单元 max|diff|=0
+  （companion 审计通过，6/6 confirmed 直接迁移）；非 ldce 行确定性继承 v3。
+  剩余写回：uPU `loss='squared'`（12/12）、elkan_noto `mode=
+  weighted_retraining`（12/12），各升一个基线版本并确认重跑。

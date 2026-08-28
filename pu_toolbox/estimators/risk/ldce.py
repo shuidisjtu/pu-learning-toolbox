@@ -247,16 +247,20 @@ class LDCEClassifier(BasePUClassifier):
         negative (censoring rate).  Must be in ``(0, 1)``.  **Required.**
     reg_strength : float, default 1.0
         L2 regularisation coefficient λ for the linear weights.
-    centroid_radius : float, default 1.0
+    centroid_radius : float, default 0.1
         Ellipsoid radius *b* for the centroid constraint.  Selected via
-        cross-validation in the paper.
+        cross-validation in the paper; the toolkit default was tuned to
+        ``0.1`` in ADR-0016 step 6 (combined with ``covariance_ridge=1e-2``,
+        6/6 paired-CI improvement, risk 0.436 -> 0.150 on the SCAR grid).
     mom_groups : int, default 10
         Number of groups *g* for median-of-means centroid estimation.
         ``g=1`` degenerates to the ordinary mean.
-    covariance_ridge : float, default 1e-4
+    covariance_ridge : float, default 1e-2
         Ridge penalty added to the diagonal of the centroid covariance
-        matrix for numerical stability.  1e-4 is chosen over 1e-8 for
-        practical robustness on near-singular covariance matrices.
+        matrix for numerical stability.  The toolkit default was tuned to
+        ``1e-2`` in ADR-0016 step 6 (with ``centroid_radius=0.1``; the pair
+        is strongly interacting, roughly doubling the single-parameter
+        gains).
     learning_rate : float, default 0.01
         Initial step size for subgradient descent on *w*.
     n_inner_iter : int, default 50
@@ -330,9 +334,9 @@ class LDCEClassifier(BasePUClassifier):
         flip_probability: float,
         *,
         reg_strength: float = 1.0,
-        centroid_radius: float = 1.0,
+        centroid_radius: float = 0.1,
         mom_groups: int = 10,
-        covariance_ridge: float = 1e-4,
+        covariance_ridge: float = 1e-2,
         learning_rate: float = 0.01,
         n_inner_iter: int = 50,
         max_iter: int = 10000,
