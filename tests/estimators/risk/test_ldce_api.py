@@ -25,28 +25,25 @@ class TestWritebackDefaults:
     drift.
     """
 
-    def test_basic_writeback_defaults_combination(self):
+    def test_basic_writeback_defaults_and_overrides(self):
         clf = LDCEClassifier(flip_probability=0.3)
         assert clf.centroid_radius == 0.1
         assert clf.covariance_ridge == 0.01
-
-    def test_param_other_defaults_unchanged(self):
-        clf = LDCEClassifier(flip_probability=0.3)
+        # other defaults unchanged by the write-back
         assert clf.reg_strength == 1.0
         assert clf.mom_groups == 10
         assert clf.learning_rate == 0.01
         assert clf.n_inner_iter == 50
         assert clf.max_iter == 10000
         assert clf.tol == 1e-6
-
-    def test_edge_explicit_overrides_win(self):
-        clf = LDCEClassifier(
+        # explicit overrides still win
+        clf2 = LDCEClassifier(
             flip_probability=0.3,
             centroid_radius=1.0,
             covariance_ridge=1e-4,
         )
-        assert clf.centroid_radius == 1.0
-        assert clf.covariance_ridge == 1e-4
+        assert clf2.centroid_radius == 1.0
+        assert clf2.covariance_ridge == 1e-4
 
 
 # ═════════════════════════════════════════════════════════════════════

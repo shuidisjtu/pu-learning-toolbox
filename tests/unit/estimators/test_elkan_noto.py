@@ -33,20 +33,17 @@ class TestWritebackDefaults:
     an explicit verdict round, not a silent drift.
     """
 
-    def test_basic_writeback_default_mode_weighted(self):
+    def test_basic_writeback_defaults_and_overrides(self):
         clf = ElkanNotoClassifier()
         assert clf.mode == "weighted_retraining"
-
-    def test_param_other_defaults_unchanged(self):
-        clf = ElkanNotoClassifier()
+        # other defaults unchanged by the write-back
         assert clf.calibration_method == "sigmoid"
         assert clf.n_cv_folds == 3
         assert clf.eps == 1e-12
         assert clf.base_estimator is None
-
-    def test_edge_explicit_overrides_win(self):
-        clf = ElkanNotoClassifier(mode="probability_correction")
-        assert clf.mode == "probability_correction"
+        # explicit overrides still win
+        clf2 = ElkanNotoClassifier(mode="probability_correction")
+        assert clf2.mode == "probability_correction"
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -306,12 +303,10 @@ class TestMetadata:
         assert meta["family"] == "classic_calibration"
         assert "SCAR" in meta["assumption"]
         assert 0.0 < clf.propensity_ <= 1.0
-
-    def test_edge_isotonic_calibration(self, rng):
-        X, y_pu, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
-        clf = ElkanNotoClassifier(calibration_method="isotonic", n_cv_folds=3, random_state=42)
-        clf.fit(X, y_pu)
-        assert clf.predict(X).shape == (X.shape[0],)
+        # isotonic calibration path runs too
+        clf_iso = ElkanNotoClassifier(calibration_method="isotonic", n_cv_folds=3, random_state=42)
+        clf_iso.fit(X, y_pu)
+        assert clf_iso.predict(X).shape == (X.shape[0],)
 
 
 # ═════════════════════════════════════════════════════════════════════

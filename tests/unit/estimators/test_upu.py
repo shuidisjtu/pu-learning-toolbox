@@ -28,21 +28,18 @@ class TestWritebackDefaults:
     not a silent drift.
     """
 
-    def test_basic_writeback_default_loss_squared(self):
+    def test_basic_writeback_defaults_and_overrides(self):
         clf = UPUClassifier(class_prior=0.3)
         assert clf.loss == "squared"
-
-    def test_param_other_defaults_unchanged(self):
-        clf = UPUClassifier(class_prior=0.3)
+        # other defaults unchanged by the write-back
         assert clf.reg_lambda == 1e-3
         assert clf.basis == "linear"
         assert clf.fit_intercept is True
         assert clf.max_iter == 1000
         assert clf.tol == 1e-6
-
-    def test_edge_explicit_overrides_win(self):
-        clf = UPUClassifier(class_prior=0.3, loss="double_hinge")
-        assert clf.loss == "double_hinge"
+        # explicit overrides still win
+        clf2 = UPUClassifier(class_prior=0.3, loss="double_hinge")
+        assert clf2.loss == "double_hinge"
 
 
 # ═════════════════════════════════════════════════════════════════════
