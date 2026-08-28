@@ -34,7 +34,11 @@
 - **版本**: `1.9.0`（2026-08-27：新增七方法传统 PU 可复现 benchmark、锁定基线、
   数据泄露预检、断点续跑、配对统计比较与七轮调优证据；新增 AP、balanced accuracy、
   Brier score、ECE 指标及概率可用性契约；KLDCE 改为原生 SMO 内层求解并修复收敛诊断，
-  LDCE 默认迭代上限提升；修正 Elkan–Noto 等非零原生阈值模型的 PU 零一风险语义）
+  LDCE 默认迭代上限提升；修正 Elkan–Noto 等非零原生阈值模型的 PU 零一风险语义。
+  2026-08-28 追加：KLDCE b₀ 类对称修复（低先验全负根因）、契约 v2 基线重跑与
+  KLDCE 调优轮重跑；第 6 步写回三轮全部落地——LDCE 组合默认（v4）、uPU squared
+  （v5）、elkan_noto weighted_retraining（v6），每轮重锁基线 + 确认重跑 +
+  companion 逐单元审计，当前对齐基线 baseline_v6，ADR-0016）
 - **版本**: `1.8.0`（2026-08-21：新增 AISTATS 2025 联合漂移 PU clean-room 动态目标、
   对照/消融与公开数据 benchmark、双域 bootstrap 区间，以及 `shift-monitor`/`review` CLI
   和 UI 部署面板）
