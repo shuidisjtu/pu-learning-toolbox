@@ -100,5 +100,10 @@ companion 一致性审计 7 轮全部 max|diff|=0.0,配对 CI 结论可信。
   `locks_source_defaults` 冻结为历史快照，v4 钉住新默认，门禁通过）；
   `ldce_baseline_v4` 确认重跑 120/120、0 退化，与新默认逐单元 max|diff|=0
   （companion 审计通过，6/6 confirmed 直接迁移）；非 ldce 行确定性继承 v3。
-  剩余写回：uPU `loss='squared'`（12/12）、elkan_noto `mode=
-  weighted_retraining`（12/12），各升一个基线版本并确认重跑。
+- 2026-08-28：**第 6 步写回第 2 轮（uPU）完成**——源码默认值改为
+  `loss="squared"`（upu.py，契约测试 + 元数据测试更新）；基线重锁升 **v5**
+  （v4 摘 locks 冻结为历史快照，v5 钉住新默认，门禁通过）；`upu_baseline_v5`
+  确认重跑 240/240、0 退化，与 r4_loss_squared 候选行逐单元 max|diff|=0
+  （companion 审计通过，12/12 confirmed 直接迁移）；非 upu 行确定性继承 v4
+  （含 v4 的 ldce 写回行）。
+  剩余写回：elkan_noto `mode=weighted_retraining`（12/12），升 v6 并确认重跑。

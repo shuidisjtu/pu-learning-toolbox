@@ -16,6 +16,35 @@ from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.losses.upu import UPULoss
 from pu_toolbox.metrics.classification import pu_zero_one_risk
 
+
+@pytest.mark.unit
+class TestWritebackDefaults:
+    """Constructor defaults tuned in ADR-0016 step-6 write-back round 2 (uPU).
+
+    Round-4 tuning (upu_tuning_r1) confirmed ``loss="squared"`` with 12/12
+    paired-CI improvements (6 SCAR + 6 SAR, diff -0.035..-0.163, all CI
+    upper bounds < 0; closed-form solve, ~4x faster).  The default is
+    pinned here so a future change requires an explicit verdict round,
+    not a silent drift.
+    """
+
+    def test_basic_writeback_default_loss_squared(self):
+        clf = UPUClassifier(class_prior=0.3)
+        assert clf.loss == "squared"
+
+    def test_param_other_defaults_unchanged(self):
+        clf = UPUClassifier(class_prior=0.3)
+        assert clf.reg_lambda == 1e-3
+        assert clf.basis == "linear"
+        assert clf.fit_intercept is True
+        assert clf.max_iter == 1000
+        assert clf.tol == 1e-6
+
+    def test_edge_explicit_overrides_win(self):
+        clf = UPUClassifier(class_prior=0.3, loss="double_hinge")
+        assert clf.loss == "double_hinge"
+
+
 # ═════════════════════════════════════════════════════════════════════
 # Helpers
 # ═════════════════════════════════════════════════════════════════════
@@ -85,11 +114,11 @@ class TestUPUClassifier:
 
     def test_basic_metadata_and_api(self):
         clf = UPUClassifier(class_prior=0.5)
-        assert clf.loss == "double_hinge"
+        assert clf.loss == "squared"  # ADR-0016 step-6 write-back round 2
         assert clf.family.value == "risk_estimation"
         assert clf.requires_class_prior is True
         assert clf.get_pu_metadata()["is_fitted"] is False
-        assert clf.get_params()["loss"] == "double_hinge"
+        assert clf.get_params()["loss"] == "squared"
         clf.set_params(reg_lambda=0.1)
         assert clf.reg_lambda == 0.1
 

@@ -15,8 +15,8 @@ import check_baseline_configs as c  # noqa: E402
 
 
 def _locked_config() -> dict:
-    """The real locked v4 config, deep-copied for mutation per test."""
-    path = c.CONFIGS_DIR / "seven_methods_pu_baseline_v4.json"
+    """The real locked v5 config, deep-copied for mutation per test."""
+    path = c.CONFIGS_DIR / "seven_methods_pu_baseline_v5.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -31,9 +31,9 @@ def test_basic_constructor_defaults_exclude_runner_injected_keys():
 
 @pytest.mark.unit
 def test_basic_locked_config_pins_constructor_defaults_exactly():
-    """The shipped locked config (v4) matches live constructor defaults."""
+    """The shipped locked config (v5) matches live constructor defaults."""
     config = _locked_config()
-    assert c.check_config("seven_methods_pu_baseline_v4.json", config) == []
+    assert c.check_config("seven_methods_pu_baseline_v5.json", config) == []
 
 
 @pytest.mark.unit

@@ -90,13 +90,15 @@ class UPUClassifier(BasePUClassifier):
     class_prior : float
         Class prior π = P(y=1).  Required.  May be overridden in
         :meth:`fit` via the ``class_prior`` kwarg.
-    loss : {"double_hinge", "logistic", "squared"}, default "double_hinge"
+    loss : {"double_hinge", "logistic", "squared"}, default "squared"
         * ``"double_hinge"`` — ℓ(z) = max{−z, 0, (1−z)/2}.  Convex QP.
           Recommended primary variant (C-DH).
         * ``"logistic"`` — ℓ(z) = log(1+exp(−z)).  Smooth convex, L-BFGS.
           Alternative when QP solver is unavailable (C-LL).
         * ``"squared"`` — ℓ(z) = ¼(z−1)².  Closed-form linear solve.
-          Fastest but penalises correct large-margin predictions.
+          Fastest but penalises correct large-margin predictions.  The
+          toolkit default (ADR-0016 step-6 write-back round 2, 12/12
+          paired-CI improvement over double_hinge on the SCAR/SAR grid).
     reg_lambda : float, default 1e-3
         ℓ₂ regularisation coefficient for α.  Must be > 0.  The intercept
         *b* is never regularised (paper convention).
@@ -147,7 +149,7 @@ class UPUClassifier(BasePUClassifier):
         self,
         class_prior: float,
         *,
-        loss: Literal["double_hinge", "logistic", "squared"] = "double_hinge",
+        loss: Literal["double_hinge", "logistic", "squared"] = "squared",
         reg_lambda: float = 1e-3,
         basis: Literal["linear", "rbf"] = "linear",
         kernel_width: float | None = None,
