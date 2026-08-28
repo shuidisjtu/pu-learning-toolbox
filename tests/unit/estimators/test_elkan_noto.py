@@ -19,6 +19,36 @@ from pu_toolbox.core.exceptions import (
 from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 from pu_toolbox.preprocessing import make_scar_dataset
 
+
+@pytest.mark.unit
+class TestWritebackDefaults:
+    """Constructor defaults tuned in ADR-0016 step-6 write-back round 3.
+
+    Round-2 re-run (elkan_noto_tuning_r2, contract v2) confirmed
+    ``mode="weighted_retraining"`` with 12/12 paired-CI improvements (6
+    SCAR + 6 SAR, diff -0.009..-0.067, all CI upper bounds < 0; the
+    improvement is attributable to the mode itself — the calibration
+    method does not enter the final prediction under weighted
+    retraining).  The default is pinned here so a future change requires
+    an explicit verdict round, not a silent drift.
+    """
+
+    def test_basic_writeback_default_mode_weighted(self):
+        clf = ElkanNotoClassifier()
+        assert clf.mode == "weighted_retraining"
+
+    def test_param_other_defaults_unchanged(self):
+        clf = ElkanNotoClassifier()
+        assert clf.calibration_method == "sigmoid"
+        assert clf.n_cv_folds == 3
+        assert clf.eps == 1e-12
+        assert clf.base_estimator is None
+
+    def test_edge_explicit_overrides_win(self):
+        clf = ElkanNotoClassifier(mode="probability_correction")
+        assert clf.mode == "probability_correction"
+
+
 # ═════════════════════════════════════════════════════════════════════
 # Basic import + construction
 # ═════════════════════════════════════════════════════════════════════
@@ -34,17 +64,23 @@ class TestFitPredict:
 
         assert ElkanNotoClassifier is not None
         clf = ElkanNotoClassifier(n_cv_folds=3, random_state=42)
-        assert clf.mode == "probability_correction" and clf.n_cv_folds == 3
+        assert (
+            clf.mode == "weighted_retraining" and clf.n_cv_folds == 3
+        )  # ADR-0016 step-6 write-back round 3
 
+        # proba output requires probability-correction mode (weighted mode
+        # deliberately returns None from predict_label_proba)
+        clf_pc = ElkanNotoClassifier(mode="probability_correction", n_cv_folds=3, random_state=42)
         X, y_pu, _ = make_scar_dataset(random_state=rng)
         clf.fit(X, y_pu)
+        clf_pc.fit(X, y_pu)
 
         y_pred = clf.predict(X)
         assert y_pred.shape == (X.shape[0],) and y_pred.dtype == int
         assert set(np.unique(y_pred)).issubset({0, 1})
         assert clf.predict_proba(X).shape == (X.shape[0], 2)
         assert clf.decision_function(X).shape == (X.shape[0],)
-        assert clf.predict_label_proba(X).shape == (X.shape[0],)
+        assert clf_pc.predict_label_proba(X).shape == (X.shape[0],)
         assert np.allclose(clf.score_samples(X), clf.decision_function(X))
         assert np.array_equal(clf.classes_, np.array([0, 1]))
         # Proba columns sum to 1
@@ -104,7 +140,8 @@ class TestRankingInvariance:
         X_train, y_pu, _ = make_scar_dataset(n=200, c=0.5, random_state=rng)
         X_test, _, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
 
-        clf = ElkanNotoClassifier(n_cv_folds=3, random_state=42)
+        # g(x) is only produced under probability-correction mode
+        clf = ElkanNotoClassifier(mode="probability_correction", n_cv_folds=3, random_state=42)
         clf.fit(X_train, y_pu)
 
         for X in (X_train, X_test):
@@ -134,7 +171,7 @@ class TestWeightedRetraining:
         assert clf.predict_label_proba(X) is None
 
         # _compute_weights produces non-negative values summing to 1 per sample
-        clf_pc = ElkanNotoClassifier(n_cv_folds=3, random_state=42)
+        clf_pc = ElkanNotoClassifier(mode="probability_correction", n_cv_folds=3, random_state=42)
         clf_pc.fit(X, y_pu)
         g = clf_pc.predict_label_proba(X)
         mask_unl = y_pu == 0
@@ -222,9 +259,12 @@ class TestCompatibility:
         """Different base estimators and sample_weight produce varied outputs."""
         X, y_pu, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
 
-        # RandomForest base estimator
+        # RandomForest base estimator (probability-correction mode: weighted
+        # retraining with a non-calibrated estimator can produce negative
+        # duplication weights)
         clf_rf = ElkanNotoClassifier(
             base_estimator=RandomForestClassifier(n_estimators=10, random_state=42),
+            mode="probability_correction",
             n_cv_folds=3,
             random_state=42,
         )
@@ -262,7 +302,7 @@ class TestMetadata:
         clf.fit(X, y_pu)
         meta = clf.get_pu_metadata()
         assert meta["is_fitted"] is True
-        assert meta["mode"] == "probability_correction"
+        assert meta["mode"] == "weighted_retraining"  # ADR-0016 step-6 write-back round 3
         assert meta["family"] == "classic_calibration"
         assert "SCAR" in meta["assumption"]
         assert 0.0 < clf.propensity_ <= 1.0

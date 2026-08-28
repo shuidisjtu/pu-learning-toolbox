@@ -1,7 +1,8 @@
 {
   "schema_version": 1,
   "protocol": "traditional_pu_baseline",
-  "description": "v5 baseline of the SCAR main grid (pi x scale) + linear SAR diagnostic line for the 6 binary PU classifiers (PNU runs its own tri-label config, contract §2.2). Step-6 write-back round 2 (ADR-0016): uPU default loss tuned to squared (upu_tuning_r1, 12/12 paired-CI confirmed, diff -0.035..-0.163); LDCE keeps the v4 write-back combination. Only upu params change vs v4; non-upu rows inherit v4 results deterministically, upu rows re-run under seeds 100..119. v4 remains the frozen pre-uPU-writeback snapshot. contract v2 (schema 1).",
+  "locks_source_defaults": true,
+  "description": "v6 baseline of the SCAR main grid (pi x scale) + linear SAR diagnostic line for the 6 binary PU classifiers (PNU runs its own tri-label config, contract §2.2). Step-6 write-back round 3 (ADR-0016): elkan_noto default mode tuned to weighted_retraining (elkan_noto_tuning_r2, 12/12 paired-CI confirmed, diff -0.009..-0.067); LDCE keeps the v4 combination, uPU keeps the v5 squared loss. Only elkan_noto params change vs v5; non-elkan_noto rows inherit v5 results deterministically, elkan_noto rows re-run under seeds 100..119. v5 remains the frozen pre-elkan_noto-writeback snapshot. contract v2 (schema 1).",
   "seed_set_development": [
     0,
     1,
@@ -59,7 +60,7 @@
       "calibration_method": "sigmoid",
       "n_cv_folds": 3,
       "eps": 1e-12,
-      "mode": "probability_correction"
+      "mode": "weighted_retraining"
     },
     "upu": {
       "loss": "squared",

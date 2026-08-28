@@ -106,4 +106,12 @@ companion 一致性审计 7 轮全部 max|diff|=0.0,配对 CI 结论可信。
   确认重跑 240/240、0 退化，与 r4_loss_squared 候选行逐单元 max|diff|=0
   （companion 审计通过，12/12 confirmed 直接迁移）；非 upu 行确定性继承 v4
   （含 v4 的 ldce 写回行）。
-  剩余写回：elkan_noto `mode=weighted_retraining`（12/12），升 v6 并确认重跑。
+- 2026-08-28：**第 6 步写回第 3 轮（elkan_noto）完成，第 6 步收尾**——
+  源码默认值改为 `mode="weighted_retraining"`（elkan_noto.py，契约测试 +
+  4 个隐式默认依赖测试显式化）；基线重锁升 **v6**（v5 摘 locks 冻结为历史
+  快照，v6 钉住新默认，门禁通过）；`elkan_noto_baseline_v6` 确认重跑
+  240/240、0 退化，与 r2_weighted 候选行逐单元 max|diff|=0（companion 审计
+  通过，12/12 confirmed 直接迁移；isotonic 变体数值全一致，实证复现
+  "weighted 下校准方法不进最终预测"的结构性发现）；非 elkan_noto 行确定性
+  继承 v5。**三个写回候选全部落地**（LDCE 组合 v4、uPU squared v5、elkan_noto
+  weighted v6），后续调优/审计以 v6 为对齐基线；README 结果表已统一更新。

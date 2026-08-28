@@ -1,8 +1,12 @@
 # 传统 PU 七算法调优设计方案
 
+> 状态更新(2026-08-28):§8 第 5 步调优主循环与第 6 步写回已全部完成,
+> 当前对齐基线为 `baseline_v6`(ADR-0016 决策与跟进状态为权威记录);
+> 本设计文档保留为执行时点的历史方案,基线引用以下述 v6 为准。
+
 ```yaml
 schema_version: 1
-status: design_only
+status: executed  # design_only -> executed (2026-08-28, ADR-0016)
 scope:
   - elkan_noto
   - upu
@@ -11,7 +15,7 @@ scope:
   - ldce
   - kldce
   - llsvm
-baseline: benchmarks/traditional_pu/results/baseline_v2
+baseline: benchmarks/traditional_pu/results/baseline_v6  # updated 2026-08-28 (was baseline_v2 at design time)
 paper_claim: false
 ```
 
@@ -22,7 +26,8 @@ paper_claim: false
 压缩为一个未经声明的综合分数。
 
 本阶段只覆盖 Elkan--Noto、uPU、nnPU、PNU、LDCE、KLDCE 和 LLSVM。其他算法可作为外部
-参考，但不进入本阶段排名。`baseline_v2` 是冻结对照，不得被候选参数覆盖或静默重跑。
+参考，但不进入本阶段排名。`baseline_v6` 是冻结对照（设计时点为 v2，随第 6 步写回逐轮
+升版），不得被候选参数覆盖或静默重跑。
 
 ## 2. 固定实验协议
 

@@ -70,10 +70,14 @@ class ElkanNotoClassifier(BasePUClassifier):
         Numerical clipping threshold for ``g(x)`` to avoid division
         by zero in weight computation.
     mode : {"probability_correction", "weighted_retraining"}, \
-            default "probability_correction"
+            default "weighted_retraining"
         * ``"probability_correction"`` — scale ``g(x)`` by ``1 / c``.
         * ``"weighted_retraining"`` — duplicate unlabeled samples with
-          computed weights and refit the base estimator.
+          computed weights and refit the base estimator.  The toolkit
+          default (ADR-0016 step-6 write-back round 3, 12/12 paired-CI
+          improvement over probability_correction on the SCAR/SAR grid;
+          calibration method does not enter the final prediction under
+          this mode).
     random_state : int or None, default None
         Random seed for reproducible K-fold splits.
 
@@ -108,7 +112,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         calibration_method: Literal["sigmoid", "isotonic"] = "sigmoid",
         n_cv_folds: int = 3,
         eps: float = 1e-12,
-        mode: Literal["probability_correction", "weighted_retraining"] = "probability_correction",
+        mode: Literal["probability_correction", "weighted_retraining"] = "weighted_retraining",
         random_state=None,
     ) -> None:
         super().__init__()
