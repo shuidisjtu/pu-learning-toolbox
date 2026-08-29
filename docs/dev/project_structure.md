@@ -77,6 +77,7 @@ pu_toolbox/
       weighted_contrastive_pu.py          (native core)
       vision.py                           (WConPU CNN13/ResNet 与 tensor augmentation adapters)
       dgpu.py                             (native orchestration + generator protocol)
+      _validation.py                      (encoder 输出校验: 2-D/有限/feature_dim>=1)
     research/
       __init__.py                         (研究级估计器公开入口)
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
@@ -155,6 +156,7 @@ pu_toolbox/
 tests/
   contract/                             # 契约测试 — 写一次，所有 NATIVE 分类器复用
     test_classifier_baseline.py         # fit/predict/decision_function/get_params 等
+    test_capability_declarations.py     # 能力声明 4 组不变量契约测试
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -191,6 +193,7 @@ tests/
       test_vision.py                    # 统一深度编码器入口 build_encoder
       test_deep_vision_pickle.py        # 深度视觉模块 pickle 往返(E2/E3 回归;importorskip torch)
       test_llsvm.py                     # LLSVM 特有逻辑
+      test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -248,6 +251,7 @@ tests/
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
+      test_architecture_capability.py   # 架构能力校验 gate(能力/签名漂移 fail-loud)
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）

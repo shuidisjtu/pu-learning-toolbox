@@ -139,6 +139,35 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 # every run and flagged as removable once the category is covered, so
 # the list stays honest and shrinkable.
 PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
+    "test_architecture_capability.py": {
+        "basic": (
+            "single-purpose gate unit tests on synthetic classifier stubs; "
+            "the pipeline fit/predict flow is covered by test_pipeline(_deep) "
+            "integration tests"
+        ),
+        "edge": (
+            "the gate's own boundary scenarios (capability/signature mismatch) "
+            "are these error-path tests; input boundary validation lives in "
+            "encoder and pipeline tests"
+        ),
+        "determ": (
+            "check_architecture_capability is a pure function over metadata "
+            "(no randomness, no seed state); deep estimator seed determinism "
+            "is unit-tested with fixed seeds"
+        ),
+    },
+    "test_capability_declarations.py": {
+        "basic": (
+            "declaration-consistency contract tests (legality / registry-sync / "
+            "derivation / signature); fit-predict behavioral smoke is covered by "
+            "test_classifier_baseline.py and the algorithm unit suites"
+        ),
+        "param": (
+            "declaration validity is asserted via the four invariants, not via "
+            "constructor error paths; parameter validation lives in per-algorithm "
+            "unit tests"
+        ),
+    },
     "test_cli_deep_save_model.py": {
         "param": (
             "end-to-end success-path regression; CLI parameter error "
@@ -179,6 +208,13 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "edge": "factory boundary validation is covered by existing vision tests",
         "determ": (
             "pickle roundtrip recovery is asserted by value comparison; module has no randomness"
+        ),
+    },
+    "test_encoder_validation.py": {
+        "determ": (
+            "validate_encoder_features is a pure function (no randomness, no seed "
+            "state); determinism of the consuming deep estimators is unit-tested "
+            "with fixed seeds"
         ),
     },
     "test_history.py": {

@@ -123,8 +123,8 @@ def validate_encoder_features(features, *, encoder_param_name: str) -> int:
 
 接入点（现有 probe 逻辑委托）：
 
-- `infomax_pu.py:158-165`（InfoMaxPURepresentation.fit 一处 probe；InfoMaxPUClassifier.fit 经 `representation.shape[1]` 取维）；
-- `weighted_contrastive_pu.py:169-173`。
+- `infomax_pu.py:165-167`（InfoMaxPURepresentation.fit 一处 probe；InfoMaxPUClassifier.fit 经 `representation.shape[1]` 取维）；
+- `weighted_contrastive_pu.py:174-178`。
 
 有限性检查与项目输入契约（拒绝 NaN/Inf）对齐，属预期内的行为收紧。
 
@@ -198,7 +198,7 @@ def validate_encoder_features(features, *, encoder_param_name: str) -> int:
 - 集合类能力字段一律 `frozenset`（类属性共享必须不可变）
 - 每任务结束跑一次完整快速测试 `uv run pytest tests/ -v -m "not slow and not e2e"` 确认零回归，再提交
 
-**Spec corrections（对照代码现状的勘误）**：规范 §5 称 infomax 有"两处 probe（Classifier.fit 与 Representation.fit）"——实际 probe 只在 `InfoMaxPURepresentation.fit`（infomax_pu.py:158-165）一处，Classifier.fit 通过 `representation.shape[1]` 取维（:445-447）。Task 5 一并修正规范原文。
+**Spec corrections（对照代码现状的勘误）**：规范 §5 称 infomax 有"两处 probe（Classifier.fit 与 Representation.fit）"——实际 probe 只在 `InfoMaxPURepresentation.fit`（infomax_pu.py:165-167）一处，Classifier.fit 通过 `representation.shape[1]` 取维（:445-447）。Task 5 一并修正规范原文。
 
 ---
 

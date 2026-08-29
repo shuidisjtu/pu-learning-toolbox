@@ -128,6 +128,11 @@ requires_class_prior/backend/maturity/source_status/implementation_status 等）
 registry 据此管理发现和推荐。字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威；
 注册表实例见 `pu_toolbox/registry/builtin_methods.py`。
 
+架构能力字段（native_architectures / input_ndims / encoder_parameter /
+trains_encoder + 派生 is_tabular_only）以估算器类属性为权威，注册时经
+`_SYNC_FIELDS` 镜像进 registry；语义与消费点见 `dual_architecture_plan.md`
+§3-§4 与阶段 0 设计规范。
+
 `advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配（用户侧的选型决策原理见 [`../user/concepts/method_selection.md`](../user/concepts/method_selection.md)）：
 
 1. **硬过滤**：trainable、scenario、sparse 支持、class_prior 可用性
