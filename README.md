@@ -5,7 +5,7 @@
 **Positive-Unlabeled learning in Python** -- 17 registered algorithms, research joint-shift adaptation, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.10.0-blue)
+![Status](https://img.shields.io/badge/status-1.11.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features

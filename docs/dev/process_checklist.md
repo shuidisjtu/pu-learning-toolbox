@@ -29,8 +29,12 @@
 - [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
-## 发布状态 (v1.10.0)
+## 发布状态 (v1.11.0)
 
+- **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
+  （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
+  `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本
+  要求升至 `pu-toolbox >= 1.10.0`）
 - **版本**: `1.10.0`（2026-08-29：传统 PU 第一次调优收尾——KLDCE b₀ 类对称修复
   （低先验全负根因）、契约 v2 基线重跑与 KLDCE 调优轮重跑（r3，默认参数即有效
   工作点）、Elkan-Noto 调优轮重跑（r2，`mode=weighted_retraining` 12/12 全单元
