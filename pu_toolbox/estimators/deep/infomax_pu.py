@@ -25,6 +25,7 @@ from ...core.tags import (
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...prior.pen_l1 import ClassPriorEstimator
+from ._validation import validate_encoder_features
 
 
 def pu_smi_objective(
@@ -162,7 +163,9 @@ class InfoMaxPURepresentation(BaseEstimator, TransformerMixin):
             self.encoder_.eval()
             with torch.no_grad():
                 probe = self.encoder_(torch.as_tensor(X[:1], dtype=torch.float32, device=device))
-            representation_dim = int(probe.flatten(start_dim=1).shape[-1])
+            representation_dim = validate_encoder_features(
+                probe.flatten(start_dim=1), encoder_param_name="encoder"
+            )
         else:
             representation_dim = self.representation_dim
             encoder_layers: list[nn.Module] = [nn.Linear(X.shape[1], self.hidden_dim)]

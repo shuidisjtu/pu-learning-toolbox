@@ -22,6 +22,7 @@ from ...core.tags import (
     SourceStatus,
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
+from ._validation import validate_encoder_features
 
 
 def embedding_dissimilarity(query, keys):
@@ -174,7 +175,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         with torch.no_grad():
             probe = _flatten_features(self.encoder_(torch.as_tensor(X[:1], device=device)))
         self.encoder_.train()
-        feature_dim = int(probe.shape[-1])
+        feature_dim = validate_encoder_features(probe, encoder_param_name="encoder")
         self.projector_ = nn.Sequential(
             nn.Linear(feature_dim, self.hidden_dim),
             nn.ReLU(),

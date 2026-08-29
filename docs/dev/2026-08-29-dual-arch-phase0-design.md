@@ -123,7 +123,7 @@ def validate_encoder_features(features, *, encoder_param_name: str) -> int:
 
 接入点（现有 probe 逻辑委托）：
 
-- `infomax_pu.py:158-165`（InfoMaxPUClassifier.fit 与 InfoMaxPURepresentation.fit 两处 probe）；
+- `infomax_pu.py:158-165`（InfoMaxPURepresentation.fit 一处 probe；InfoMaxPUClassifier.fit 经 `representation.shape[1]` 取维）；
 - `weighted_contrastive_pu.py:169-173`。
 
 有限性检查与项目输入契约（拒绝 NaN/Inf）对齐，属预期内的行为收紧。
