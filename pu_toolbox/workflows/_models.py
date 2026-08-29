@@ -44,6 +44,36 @@ def declares_encoder_parameter(cls: type) -> bool:
     return "encoder" in inspect.signature(cls.__init__).parameters
 
 
+def check_architecture_capability(cls: type, architecture: str, classifier_name: str) -> None:
+    """Validate ``architecture`` against the class capability declaration.
+
+    Runs alongside the constructor-signature check; both conclusions must
+    agree.  A mismatch means the capability declaration has drifted from
+    the implementation and must be fixed (fail-loud, never silently pick
+    one side).
+    """
+    if architecture != "cnn":
+        return
+    signature_ok = declares_encoder_parameter(cls)
+    capability_ok = (
+        "cnn" in cls.native_architectures
+        and 4 in cls.input_ndims
+        and cls.encoder_parameter is not None
+    )
+    if signature_ok != capability_ok:
+        raise PipelineError(
+            f"architecture='cnn' capability mismatch for classifier "
+            f"{classifier_name!r}: constructor signature says "
+            f"{'encoder supported' if signature_ok else 'no encoder'}, but the "
+            f"capability declaration says "
+            f"{'cnn supported' if capability_ok else 'no cnn'} "
+            f"(native_architectures={set(cls.native_architectures)!r}, "
+            f"input_ndims={set(cls.input_ndims)!r}, "
+            f"encoder_parameter={cls.encoder_parameter!r}). "
+            "Fix the class capability declaration."
+        )
+
+
 def missing_required_params(cls: type, *, provided_params: set[str] | None = None) -> set[str]:
     signature = inspect.signature(cls.__init__)
     provided = provided_params or set()

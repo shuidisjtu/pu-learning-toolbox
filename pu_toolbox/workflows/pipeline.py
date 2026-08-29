@@ -40,6 +40,7 @@ from ._evaluation import (
 )
 from ._inputs import prepare_pipeline_inputs
 from ._models import (
+    check_architecture_capability,
     declares_encoder_parameter,
     fresh_estimator,
     missing_required_params,
@@ -234,6 +235,7 @@ class PUPipeline:
                     "Use architecture='mlp' (default) or choose wconpu / "
                     "infomax_pu."
                 )
+            check_architecture_capability(encoder_cls, architecture, self._classifier_name)
         self.architecture = architecture
         self.backbone = backbone
         self.device = device
