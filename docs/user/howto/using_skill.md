@@ -56,6 +56,19 @@ uv run pu-toolbox run --data X.csv --labels y_pu.csv --out-dir work/run
 uv run pu-toolbox sensitivity --data X.csv --labels y_pu.csv --out-dir work/
 ```
 
+### 可选扩展场景
+
+四步主线之外，技能在用户需求命中时提供三个可选扩展（需 `pu-toolbox >= 1.10.0`）：
+
+| 场景 | 触发条件 | 命令 |
+|---|---|---|
+| 分布漂移迁移 | 提到 target domain / covariate shift / 跨域迁移 | `shift-audit` → `shift-run`（无权重 vs 加权模型对比） |
+| 部署监控 | 部署后监控 / 生产漂移 / 人工复核队列 | `shift-monitor` → `review --model <model.pkl>` |
+| 基准审计 | 校验基准结果目录 | `audit-benchmark --result-dir <dir>` |
+
+扩展场景沿用主线纪律：命令 → 读 JSON 输出 → 强制检查点（漂移显著、监控告警、
+审计问题时停下等待用户确认）。详见 `distribution_shift.md` 与 `cli.md`。
+
 ## 3. 已知边界
 
 - 技能的 Step 4 解读模板（`references/interpret.zh-CN.md`）与部分参考文档
@@ -72,4 +85,4 @@ uv run pu-toolbox sensitivity --data X.csv --labels y_pu.csv --out-dir work/
 | `skill install` 提示 `skill assets not found` | 包版本过旧（< 1.2 无内置资源），`uv pip install --upgrade pu-toolbox` 后重试 |
 | `skill install` 提示 already installed | 已存在安装，默认跳过；需要覆盖加 `--force` |
 | 命令 exit 1 | 输入/用法错误，读 stderr 的 `error:` 消息；`pu-toolbox <子命令> --help` 查参数 |
-| 技能要求版本不符 | 技能要求 CLI `pu-toolbox >= 1.1`；`pip show pu-toolbox` 确认后升级 |
+| 技能要求版本不符 | 技能要求 CLI `pu-toolbox >= 1.10.0`；`pip show pu-toolbox` 确认后升级 |
