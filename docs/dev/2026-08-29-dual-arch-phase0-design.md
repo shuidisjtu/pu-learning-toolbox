@@ -1046,11 +1046,7 @@ fit 内 probe（若 encoder 非 None）：
 
 - [ ] **Step 3: 更新 docs/README.md**
 
-- 开发者文档表新增一行（在阶段 0 设计规范行之后）：
-
-```markdown
-| [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板：能力声明清单、自动门禁与 CNN 最低测试要求 |
-```
+- 开发者文档表新增一行（在阶段 0 设计规范行之后，链接格式仿照既有行，目标为 dev/new_algorithm_template.md，用途描述：新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求）；
 
 - 将阶段 0 设计规范行描述改为 "双架构阶段 0 能力契约设计规范与实施计划：字段模型、消费点、契约测试、任务分解与验收标准"。
 
