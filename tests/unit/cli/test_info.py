@@ -75,6 +75,20 @@ def test_param_list_priors_groups_aliases_with_canonical(capsys):
 
 
 @pytest.mark.unit
+def test_list_methods_shows_capability_columns(capsys):
+    """Input and Arch columns reflect the capability declarations."""
+    args = build_parser().parse_args(["list-methods"])
+    args.func(args)
+    out = capsys.readouterr().out
+    assert "Input" in out and "Arch" in out
+    lines = [line for line in out.splitlines()[2:] if line.strip()]
+    by_name = {line.split()[0]: line.split() for line in lines}
+    assert "2,4" in by_name["infomax_pu"] and "mlp,cnn" in by_name["infomax_pu"]
+    assert "2" in by_name["nnpu"] and "mlp" in by_name["nnpu"]
+    assert "tabular" in by_name["elkan_noto"]
+
+
+@pytest.mark.unit
 def test_deterministic_list_methods_output_stable(capsys):
     """Two invocations produce byte-identical output (deterministic table)."""
     args = build_parser().parse_args(["list-methods"])

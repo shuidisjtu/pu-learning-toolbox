@@ -30,7 +30,7 @@ def build_info_parser(sub: argparse._SubParsersAction) -> None:
 def run_list_methods(args: argparse.Namespace) -> None:
     """Print a table of registered classifiers with auto-instantiability."""
     register_all_builtin_methods()
-    rows: list[tuple[str, str, str, str, str]] = []
+    rows: list[tuple[str, str, str, str, str, str, str]] = []
     for meta in list_algorithms():
         cls = _resolve_class(meta.name)
         if cls is None or not issubclass(cls, BasePUClassifier):
@@ -39,12 +39,22 @@ def run_list_methods(args: argparse.Namespace) -> None:
         # all of them are accepted by --classifier, so list every one.
         for name in (meta.name, *meta.aliases):
             auto_inst = "yes" if not _missing_required_params(cls) else "no"
+            input_dims = ",".join(str(d) for d in sorted(meta.input_ndims))
+            # Display order per design doc §4.2 (mlp before cnn) — sorted()
+            # would render "cnn,mlp", contradicting the documented order.
+            arch = (
+                "tabular"
+                if meta.is_tabular_only
+                else ",".join(arch for arch in ("mlp", "cnn") if arch in meta.native_architectures)
+            )
             rows.append(
                 (
                     name,
                     meta.family.value,
                     "yes" if meta.requires_class_prior else "no",
                     meta.implementation_status.value,
+                    input_dims,
+                    arch,
                     auto_inst,
                 )
             )
@@ -56,10 +66,14 @@ def run_list_methods(args: argparse.Namespace) -> None:
         return
     # Dynamic Name width so long canonical names and aliases stay aligned.
     name_width = max(len(row[0]) for row in rows) + 2
-    print(f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}{'Status':<8}{'Auto-inst':<10}")
-    print("-" * (name_width + 46))
-    for name, family, prior, status, auto in rows:
-        print(f"{name:<{name_width}}{family:<22}{prior:<6}{status:<8}{auto:<10}")
+    print(
+        f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}{'Status':<8}{'Input':<7}{'Arch':<11}{'Auto-inst':<10}"
+    )
+    print("-" * (name_width + 64))
+    for name, family, prior, status, input_dims, arch, auto in rows:
+        print(
+            f"{name:<{name_width}}{family:<22}{prior:<6}{status:<8}{input_dims:<7}{arch:<11}{auto:<10}"
+        )
 
 
 def run_list_priors(args: argparse.Namespace) -> None:
