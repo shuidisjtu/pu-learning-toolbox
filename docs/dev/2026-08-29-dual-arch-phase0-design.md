@@ -729,7 +729,7 @@ Modify pu_toolbox/cli/info.py `run_list_methods`：
             arch = (
                 "tabular"
                 if meta.is_tabular_only
-                else ",".join(sorted(meta.native_architectures))
+                else ",".join(a for a in ("mlp", "cnn") if a in meta.native_architectures)
             )
             rows.append(
                 (
