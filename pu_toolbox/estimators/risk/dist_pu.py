@@ -39,6 +39,10 @@ class DistPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
     sample_weight_support = SampleWeightSupport.IGNORED
+    native_architectures = frozenset({"mlp"})
+    input_ndims = frozenset({2})
+    encoder_parameter = None
+    trains_encoder = False
 
     def __init__(
         self,

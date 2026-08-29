@@ -316,6 +316,10 @@ class InfoMaxPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
     sample_weight_support = SampleWeightSupport.SUPPORTED
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
 
     def __init__(
         self,

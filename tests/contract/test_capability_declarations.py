@@ -74,3 +74,24 @@ def test_cnn_capability_consistent_with_signature():
         if "cnn" in cls.native_architectures:
             assert cls.encoder_parameter is not None, meta.name
             assert declares_encoder_parameter(cls), meta.name
+
+
+_EXPECTED_DECLARATIONS = {
+    "infomax_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "weighted_contrastive_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "self_pu": (frozenset({"mlp"}), frozenset({2, 4}), None, False),
+    "nnpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "dist_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "dgpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+}
+
+
+@pytest.mark.contract
+def test_deep_capability_declarations():
+    register_all_builtin_methods()
+    for name, (archs, ndims, enc_param, trains) in _EXPECTED_DECLARATIONS.items():
+        cls = get_algorithm(name)
+        assert cls.native_architectures == archs, name
+        assert cls.input_ndims == ndims, name
+        assert cls.encoder_parameter == enc_param, name
+        assert cls.trains_encoder == trains, name
