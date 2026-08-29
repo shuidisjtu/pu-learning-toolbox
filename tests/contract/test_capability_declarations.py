@@ -14,8 +14,6 @@ from pu_toolbox.core.base import BasePUClassifier
 from pu_toolbox.registry import list_algorithms, register_all_builtin_methods
 from pu_toolbox.registry.registry import get_algorithm
 
-torch = pytest.importorskip("torch", reason="PyTorch not installed")
-
 _LEGAL_NDIMS = {2, 4}
 _LEGAL_ARCHS = {"mlp", "cnn"}
 
@@ -72,6 +70,7 @@ def test_cnn_capability_consistent_with_signature():
 
     for meta, cls in _classifier_entries():
         if "cnn" in cls.native_architectures:
+            assert 4 in cls.input_ndims, meta.name
             assert cls.encoder_parameter is not None, meta.name
             assert declares_encoder_parameter(cls), meta.name
 

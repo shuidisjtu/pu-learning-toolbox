@@ -1,4 +1,3 @@
-# ruff: noqa: N802, N803, N806
 """Unit tests for validate_encoder_features."""
 
 from __future__ import annotations

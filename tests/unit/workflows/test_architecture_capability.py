@@ -71,7 +71,7 @@ def test_capable_class_passes_cnn_check():
 
 @pytest.mark.unit
 def test_signature_yes_capability_no_raises():
-    with pytest.raises(PipelineError, match="mismatch"):
+    with pytest.raises(PipelineError, match="mismatch.*capability declaration says"):
         check_architecture_capability(_SigYesCapNo, "cnn", "fake")
 
 
