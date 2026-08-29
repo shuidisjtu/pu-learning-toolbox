@@ -70,6 +70,12 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     maturity: Maturity = Maturity.EXPERIMENTAL
     sample_weight_support: SampleWeightSupport = SampleWeightSupport.NOT_IMPLEMENTED
 
+    # ── Architecture capability (dual_architecture_plan.md §4.2) ─────
+    native_architectures: frozenset[str] = frozenset()
+    input_ndims: frozenset[int] = frozenset({2})
+    encoder_parameter: str | None = None
+    trains_encoder: bool = False
+
     # ── Internal state ─────────────────────────────────────────────
 
     def __init__(self) -> None:

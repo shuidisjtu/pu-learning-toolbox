@@ -84,6 +84,18 @@ class AlgorithmMetadata:
     do not declare it; the registry entry is the single source of truth.
     """
 
+    native_architectures: frozenset[str] = frozenset()
+    """Native architecture paths; subset of {"mlp", "cnn"} (empty = tabular-only)."""
+
+    input_ndims: frozenset[int] = frozenset({2})
+    """Supported input dimensionalities; subset of {2, 4}."""
+
+    encoder_parameter: str | None = None
+    """Constructor parameter name that receives an injected encoder."""
+
+    trains_encoder: bool = False
+    """Whether the algorithm trains an injected encoder end-to-end."""
+
     @property
     def trainable(self) -> bool:
         """``True`` when the algorithm has a working implementation.
@@ -92,6 +104,11 @@ class AlgorithmMetadata:
         mutating ``implementation_status`` in-place.
         """
         return self.implementation_status not in (ImplementationStatus.API_ONLY,)
+
+    @property
+    def is_tabular_only(self) -> bool:
+        """True when the algorithm natively supports only 2-D table input."""
+        return self.native_architectures == frozenset()
 
     def __post_init__(self) -> None:
         _validate_metadata(self)

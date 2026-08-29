@@ -130,6 +130,10 @@ _SYNC_FIELDS = (
     "source_status",
     "backend",
     "maturity",
+    "native_architectures",
+    "input_ndims",
+    "encoder_parameter",
+    "trains_encoder",
 )
 
 
