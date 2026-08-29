@@ -42,6 +42,7 @@
 | [research/traditional_pu_metric_contract.md](research/traditional_pu_metric_contract.md) | 传统 PU 七算法的单域指标、基线与统计契约 |
 | [research/traditional_pu_optimization_plan.md](research/traditional_pu_optimization_plan.md) | 传统 PU 七算法调优顺序、参数簇、晋级规则与产物契约 |
 | [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
+| [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与兼容性策略 |
 | [research/distribution_shift_metric_contract.md](research/distribution_shift_metric_contract.md) | 分布漂移审计、跨域目标评估与部署监控指标契约 |
 | [research/joint_shift_research_protocol.md](research/joint_shift_research_protocol.md) | JointShift 研究型算法评估协议与声明边界 |
 
