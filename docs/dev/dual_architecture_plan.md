@@ -1,6 +1,6 @@
 # PU 双架构渐进式升级方案
 
-状态：设计方案（不改变当前默认行为）  
+状态：设计方案（不改变当前默认行为；已对照 v1.11.0 代码现状核实修订）  
 适用范围：`PUPipeline`、Registry、深度估计器、实验与结果报告
 
 ## 1. 背景与目标
@@ -86,11 +86,16 @@ LIBSVM 的 problem/parameter/model 分离、训练前参数校验、统一 train
 - 不输出最终 PU logits；
 - 可被深拷贝、sklearn clone 相关流程和 pickle 使用；
 - 不在全量数据上提前拟合；
-- 在 CV 中由每个训练 fold 独立创建或训练。
+- CV 中的构造语义采用"共享构造 + 逐 fit 深拷贝"：Pipeline 以同一
+  random_state 构造一次 encoder，每个 fold 的估计器在 fit 内深拷贝出
+  独立副本，训练互不泄漏；初始化随机源在 fold 间共享（同一 seed 下各
+  fold 初始权重一致，现有测试锁定该语义）。"逐 fold 独立随机初始化"
+  是可选改进，仅在有明确实验需求（如研究 fold 间初始化多样性）时实施，
+  并同步更新锁定语义的测试。
 
 `architecture="mlp"` 仍返回/使用算法内置 MLP；`architecture="cnn"` 使用公共
-factory 构造 CNN/ResNet。现有 `build_encoder` API 继续兼容，必要时增加别名而
-不删除旧入口。
+factory 构造 CNN/ResNet。现有 `build_encoder` 函数继续兼容（当前仅在模块内
+使用，阶段 1 补公共导出），必要时增加别名而不删除旧入口。
 
 ### 4.2 Registry 能力声明
 
@@ -104,18 +109,29 @@ encoder_parameter = "encoder"
 trains_encoder = True
 ```
 
-不支持 CNN 的算法显式声明 `tabular_only` 或仅 `{2}`。当前基于构造函数签名的
-`encoder` 检查保留为兼容性兜底，逐步迁移到元数据校验。
+不支持 CNN 的算法显式声明 `tabular_only` 或仅 `{2}`。当前唯一的架构 gate 是
+构造函数签名检查；元数据能力字段是本方案的新增内容。落地顺序：阶段 0 新增
+元数据字段，与签名检查并行生效（二者结论应一致）；稳定后签名检查降级为
+兼容性兜底。
+
+新增字段归属沿用现有分工：与实现强绑定、适合类属性声明的能力字段
+（`input_ndims`、`encoder_parameter`、`trains_encoder`、
+`native_architectures` 等）以估算器类属性为权威来源（与
+`sample_weight_support` 同模式），注册表条目同步镜像；避免能力信息继续在
+注册表字段、类属性与签名检查三处分裂。
 
 ### 4.3 Pipeline 责任
 
 Pipeline 统一负责：
 
 - 输入维度、通道数和架构兼容性校验；
-- encoder 的按 fold 构造和注入；
+- encoder 的构造和注入（构造语义见 §4.1）；
 - 先验、设备、随机种子和训练预算传递；
-- CV、模型选择、报告以及保存加载；
+- CV、模型选择与报告；
 - 对不支持的架构快速失败。
+
+保存加载沿用现状分工：Pipeline 产出报告与最终模型对象，模型落盘与加载由
+CLI 负责（pickle 契约）；本方案只要求保存加载契约稳定可测，不迁移职责。
 
 算法自身只负责 PU 目标、算法 head 和特殊训练循环。
 
@@ -133,16 +149,24 @@ Pipeline 统一负责：
 
 ### 阶段 1：整理现有双架构实现
 
-- 明确 `vision.py` 的通用 encoder factory 职责；
+- 明确 `vision.py` 的通用 encoder factory 职责，补 `build_encoder`
+  公共导出；
 - 兼容保留现有 WConPU backbone 函数；
-- 固化 CNN13/ResNet、CPU/GPU、seed、CV、pickle/save-load 测试；
-- 报告 `native_mlp` 与 `native_cnn`。
+- 报告 provenance 增加 architecture/backbone/device/encoder 字段，
+  分别报告 `native_mlp` 与 `native_cnn`；
+- UI 的 CNN 算法候选集改由注册表能力元数据驱动（移除硬编码集合）；
+- 补齐测试缺口：CV fold 训练隔离测试（fold 间权重不泄漏）、
+  `build_encoder` 公共导出契约测试；其余项（CNN13/ResNet 形状、
+  seed 确定性、pickle/save-load round-trip、fail-fast）已有覆盖，
+  CPU/GPU 执行级测试在 CUDA 可用时补充。
 
 ### 阶段 2：以 `nnpu` 为首个试点
 
 - 增加可选 `encoder=None`；
 - `None` 继续使用原有 MLP；
 - 传入 encoder 时只替换表征网络，不改变 PU loss 数学目标；
+- 注意 nnpu 现有 `model` 参数语义为完整网络（输出原始 score），新增
+  `encoder` 后需定义 encoder→head 的组合结构及与 `model` 的共存/优先级；
 - 完成二维/四维输入、CV、seed、设备和保存加载回归测试。
 
 `dist_pu` 在试点稳定后再评估，避免同时改造多个训练循环。
@@ -150,7 +174,10 @@ Pipeline 统一负责：
 ### 阶段 3：逐个评估复杂深度算法
 
 分别处理 `self_pu`、`dgpu` 等使用完整 `backbone/model` 或特殊状态的算法。
-不得仅通过参数重命名把完整模型伪装成 encoder。
+不得仅通过参数重命名把完整模型伪装成 encoder。self_pu 的元学习再加权依赖
+干净验证标签（真值 y），encoder 适配不解决该前置条件；dgpu 依赖外部
+generator 协议，与 encoder 注入无法直接映射。二者建议长期搁置，待有明确
+实验需求再单独立项。
 
 ### 阶段 4：按实际需求增加传统算法图像适配
 
@@ -181,8 +208,12 @@ Pipeline 统一负责：
 
 ## 7. 当前实验的公平性协议
 
-实验设计包含 CIFAR10（ResNet-34）、USPS（MLP）、OS 数据生成、TS-OS 校准、
-正类比例 `{0.1, 0.3, 0.5}`、PA/PAUC/OA 模型选择以及全监督 oracle。
+实验设计包含 CIFAR10（cnn13，可扩展至现有 resnet18/resnet50；ResNet-34
+需先新增 backbone 支持）、USPS（MLP）、OS 数据生成、TS-OS 校准、正类比例
+`{0.1, 0.3, 0.5}`、PA/PAUC/OA 模型选择以及全监督 oracle。其中 PA/PAUC/OA
+模型选择与 TS-OS 校准当前不在工具箱实现中，属于本协议的前置基础设施，
+需单独立项，不计入双架构改造范围；正类比例集合与既有深度协议
+（pi=0.3/0.5/0.7）不一致，实施前需明确补充运行或对齐口径。
 
 建议分为三条轨道：
 
@@ -204,8 +235,11 @@ Pipeline 统一负责：
 - encoder 和预处理必须在训练 fold 内拟合；
 - 单独调参和报告，不与原生实现混合排名。
 
-所有轨道统一记录 Accuracy、AUC、F1、Precision、Recall、标准差、训练时间、
-失败率和有效 seed 数。需要 class prior 的算法同时报告真实先验和估计先验结果。
+所有轨道统一记录 Accuracy、AUC、F1、Precision、Recall、标准差（主报告已
+具备）；训练时间、失败率和有效 seed 数为待补齐字段（时间与 seed 数已存在
+于 benchmark trials，失败率需增加 trial 级异常捕获）。需要 class prior 的
+算法同时报告真实先验和估计先验结果（该并列目前仅 benchmark trials 具备，
+主报告待补齐）。
 
 ## 8. 传统算法引入 CNN 的风险
 
