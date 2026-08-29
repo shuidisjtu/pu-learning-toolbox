@@ -114,7 +114,7 @@ Name / Family / Prior / Status / Input / Arch / Auto-inst
 
 ## 5. 统一 encoder 输出校验
 
-新建 `pu_toolbox/estimators/deep/_validation.py`（core/validation.py 保持 torch-free）：
+新建 pu_toolbox/estimators/deep/_validation.py（`core/validation.py` 保持 torch-free）：
 
 ```python
 def validate_encoder_features(features, *, encoder_param_name: str) -> int:
@@ -128,7 +128,7 @@ def validate_encoder_features(features, *, encoder_param_name: str) -> int:
 
 有限性检查与项目输入契约（拒绝 NaN/Inf）对齐，属预期内的行为收紧。
 
-## 6. 契约测试（`tests/contract/test_capability_declarations.py`，测试先行）
+## 6. 契约测试（tests/contract/test_capability_declarations.py，测试先行）
 
 四组不变量，对全部 17 个注册分类器断言：
 
@@ -146,7 +146,7 @@ def validate_encoder_features(features, *, encoder_param_name: str) -> int:
 ## 7. 文档变更
 
 - `docs/dev/architecture.md` 注册表 schema 节补充 4 字段 + `is_tabular_only`（`metadata.py` docstring 引用该节，保持引用准确）；
-- 新建 `docs/dev/new_algorithm_template.md`：声明清单 + 测试清单（§9 最低要求 + 契约测试自动门禁说明）+ 最小示例片段；
+- 新建 docs/dev/new_algorithm_template.md：声明清单 + 测试清单（§9 最低要求 + 契约测试自动门禁说明）+ 最小示例片段；
 - 完成时更新 `docs/dev/process_checklist.md`（dev-workflow 步骤 4）。
 
 ## 8. 兼容性影响清单
