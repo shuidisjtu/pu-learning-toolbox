@@ -282,6 +282,25 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "param": "history.append accepts any mapping; there is no input validation path",
         "determ": "history module is deterministic by construction (no randomness)",
     },
+    "test_nnpu_pipeline_cnn.py": {
+        "basic": (
+            "pipeline end-to-end provenance mapping and pickle round-trip assertions "
+            "(single-intent integration locks); unit-level field assembly is covered by "
+            "test_report_provenance.py"
+        ),
+        "param": (
+            "no constructor-error surface beyond the pipeline gates themselves; pipeline "
+            "error paths are covered by test_pipeline_deep.py"
+        ),
+        "edge": (
+            "no new boundary scenarios; 4-D boundary behavior is covered by "
+            "test_nnpu_encoder.py and validate_pu_X_y tests"
+        ),
+        "determ": (
+            "seeded pipeline runs assert provenance values, not reproducibility; seed "
+            "determinism is covered by test_nnpu_encoder.py and test_pipeline_deep.py"
+        ),
+    },
     "test_report_provenance.py": {
         "basic": (
             "provenance field assembly assertions (plain dict key/value asserts, "

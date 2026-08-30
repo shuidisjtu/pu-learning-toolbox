@@ -185,6 +185,7 @@ tests/
       test_elkan_noto.py                # Elkan-Noto 特有逻辑
       test_upu.py                       # uPU 特有逻辑
       test_nnpu.py                      # nnPU 特有逻辑（含训练动态/早停）
+      test_nnpu_encoder.py              # nnPU encoder 注入(Sequential 组合/4-D 边界/默认回归)
       test_bias_aware.py                # PUSB / LBE 特有逻辑
       test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
       test_dist_pu.py                   # Dist-PU 特有逻辑
@@ -274,6 +275,7 @@ tests/
     test_shift_comparison.py            # 配对加权对照、证据门禁与报告集成
     test_joint_shift_baselines.py       # 联合漂移四基线、消融、边界与确定性
     test_cv_fold_isolation.py           # CV 折间训练隔离(折内权重在变/模板不被训练/折间不泄漏)
+    test_nnpu_pipeline_cnn.py           # nnPU 端到端 provenance 映射(cnn/mlp)+ encoder pickle 往返
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
