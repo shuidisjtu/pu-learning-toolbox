@@ -579,6 +579,10 @@ class PUPipeline:
             random_state=self.random_state,
             classifier_params=self.classifier_params,
             sample_weight=sample_weight,
+            architecture=self.architecture,
+            backbone=self.backbone,
+            device=self.device,
+            encoder_in_channels=int(X.shape[1]) if self.architecture == "cnn" else None,
         )
         emit_progress(
             progress_callback,

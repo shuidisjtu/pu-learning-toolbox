@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 
 from ..core.base import BasePUClassifier
+from ..core.device import resolve_device_name
 from ..diagnostics.report import PUDiagnosticReport
 from ..preprocessing.data_profiler import ProfileIssue, PUDataProfile
 from ..registry import RecommendationResult
@@ -33,6 +34,10 @@ def build_pipeline_report(
     random_state: int | None,
     classifier_params: dict[str, Any],
     sample_weight: np.ndarray | None,
+    architecture: str,
+    backbone: str | None,
+    device: str | None,
+    encoder_in_channels: int | None,
 ) -> PipelineReport:
     """Assemble issues, provenance, CV metadata, and fitted artifacts."""
     issues: list[ProfileIssue] = list(profile.issues)
@@ -81,6 +86,14 @@ def build_pipeline_report(
         "sample_weight": _sample_weight_provenance(sample_weight),
         "y_true_supplied": y_true is not None,
         "skipped_candidates": skipped_candidates,
+        "architecture": f"native_{architecture}",
+        "backbone": backbone,
+        "device": {"requested": device, "resolved": resolve_device_name(device)},
+        "encoder": (
+            {"backbone": backbone, "in_channels": encoder_in_channels}
+            if architecture == "cnn"
+            else None
+        ),
     }
     return PipelineReport(
         profile=profile,

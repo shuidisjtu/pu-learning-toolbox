@@ -231,6 +231,24 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "param": "history.append accepts any mapping; there is no input validation path",
         "determ": "history module is deterministic by construction (no randomness)",
     },
+    "test_report_provenance.py": {
+        "basic": (
+            "provenance 字段组装断言（明文断言 dict 键与取值），非 fit/predict 冒烟；"
+            "管道路径的端到端行为由 test_pipeline(_deep) 集成测试覆盖"
+        ),
+        "param": (
+            "以固定参数直接调用 build_pipeline_report 断言输出；字段取值校验与错误"
+            "路径由 pipeline/device 相关测试覆盖"
+        ),
+        "edge": (
+            "仅断言 mlp 裸配与 cnn 全配两个代表性组合；None/空值/非法值边界由"
+            "device 与 pipeline 测试覆盖"
+        ),
+        "determ": (
+            "build_pipeline_report 为纯组装函数（无随机性、无种子状态）；设备解析仅"
+            "断言结果 ∈ {cpu, cuda}，不绑定固定值"
+        ),
+    },
 }
 
 
