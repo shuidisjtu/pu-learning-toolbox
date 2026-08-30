@@ -33,7 +33,7 @@
 
 - 双架构阶段 0 能力契约（未发布，随下一版本发布）：Registry 4 能力字段 +
   Pipeline 并行校验 + list-methods 能力列 + encoder 输出校验 helper +
-  契约测试（详见 docs/dev/2026-08-29-dual-arch-phase0-design.md）
+  契约测试（详见 docs/dev/dual_architecture_plan.md §5）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

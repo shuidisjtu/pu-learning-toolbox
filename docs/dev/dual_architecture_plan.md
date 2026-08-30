@@ -147,6 +147,16 @@ CLI 负责（pickle 契约）；本方案只要求保存加载契约稳定可测
 
 验收：现有表格流程、WConPU/InfoMax MLP/CNN 流程和旧报告均不回归。
 
+**实施结果（已完成，2026-08-30）**：4 能力字段
+（native_architectures / input_ndims / encoder_parameter / trains_encoder +
+派生 is_tabular_only）以估算器类属性为权威，经 `_SYNC_FIELDS` 镜像进
+registry；Pipeline CNN 路径并行校验 `check_architecture_capability`
+（签名与能力声明漂移 fail-loud）；`list-methods` 扩为 7 列能力展示；
+统一 encoder 输出校验 helper `validate_encoder_features` 接入
+infomax/wconpu；契约测试 4 组不变量强制新算法声明；接入模板见
+[new_algorithm_template.md](new_algorithm_template.md)。验收通过：快速测试
+零回归、7 门禁全过、集成与基线契约红线文件未改。
+
 ### 阶段 1：整理现有双架构实现
 
 - 明确 `vision.py` 的通用 encoder factory 职责，补 `build_encoder`

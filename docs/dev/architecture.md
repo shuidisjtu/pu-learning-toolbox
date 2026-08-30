@@ -131,7 +131,7 @@ registry 据此管理发现和推荐。字段语义与枚举以 `pu_toolbox/core
 架构能力字段（native_architectures / input_ndims / encoder_parameter /
 trains_encoder + 派生 is_tabular_only）以估算器类属性为权威，注册时经
 `_SYNC_FIELDS` 镜像进 registry；语义与消费点见 `dual_architecture_plan.md`
-§3-§4 与阶段 0 设计规范。
+§3-§4，阶段 0 实施结果见其 §5。
 
 `advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配（用户侧的选型决策原理见 [`../user/concepts/method_selection.md`](../user/concepts/method_selection.md)）：
 
