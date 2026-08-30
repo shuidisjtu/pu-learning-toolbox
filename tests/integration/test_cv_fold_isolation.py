@@ -37,10 +37,11 @@ def _same(a, b):
 
 
 @pytest.mark.integration
-def test_cv_folds_do_not_leak_encoder_weights():
+@pytest.mark.parametrize("classifier_name", ["wconpu", "nnpu"])
+def test_cv_folds_do_not_leak_encoder_weights(classifier_name):
     X, y_pu = _image_data()
     pipe = PUPipeline(
-        classifier="wconpu",
+        classifier=classifier_name,
         architecture="cnn",
         backbone="cnn13",
         cv=2,
