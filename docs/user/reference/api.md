@@ -86,6 +86,11 @@ report = pipe.fit_evaluate(
 `not_implemented` 均抛 `PipelineError`。报告的
 `provenance["sample_weight"]` 保存是否提供、范围、均值和 ESS，不保存整列权重。
 
+`provenance["architecture"]` 为 `"native_mlp"` / `"native_cnn"`；
+`provenance["backbone"]` 为 CNN 骨架名（MLP 为 `None`）；`provenance["device"]`
+保存 `{"requested", "resolved"}` 两键；`provenance["encoder"]` 为注入 encoder 的
+构造摘要（`{"backbone", "in_channels"}`，MLP 无注入时为 `None`）。
+
 ### 类先验解析优先级
 
 | 优先级 | 来源 | 报告中的 source |

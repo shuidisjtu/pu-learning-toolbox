@@ -157,6 +157,7 @@ tests/
   contract/                             # 契约测试 — 写一次，所有 NATIVE 分类器复用
     test_classifier_baseline.py         # fit/predict/decision_function/get_params 等
     test_capability_declarations.py     # 能力声明 4 组不变量契约测试
+    test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -210,6 +211,7 @@ tests/
       test_ui_helpers.py                # 上传解析、类型化参数、配置状态与模型目录
       test_runtime.py                   # 后台运行、进度快照与协作式取消
       test_deployment.py                # UI 部署分析辅助函数与错误路径
+      test_cnn_candidates.py            # CNN 候选集与骨架清单元数据驱动(registry 能力声明推导)
     prior/
       test_recpe.py                     # ReCPE 特有逻辑
       test_pen_l1.py                    # penL1 特有逻辑
@@ -252,6 +254,7 @@ tests/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
       test_architecture_capability.py   # 架构能力校验 gate(能力/签名漂移 fail-loud)
+      test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
@@ -270,6 +273,7 @@ tests/
     test_joint_shift_classifier.py      # 联合漂移合成协议、有界性与确定性
     test_shift_comparison.py            # 配对加权对照、证据门禁与报告集成
     test_joint_shift_baselines.py       # 联合漂移四基线、消融、边界与确定性
+    test_cv_fold_isolation.py           # CV 折间训练隔离(折内权重在变/模板不被训练/折间不泄漏)
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
