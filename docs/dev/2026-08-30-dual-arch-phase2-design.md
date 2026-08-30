@@ -129,6 +129,7 @@ trains_encoder = True
 |---|---|
 | `tests/unit/ui/test_cnn_candidates.py` | 锁定集合 `{"infomax_pu", "weighted_contrastive_pu"}` → 增加 `"nnpu"` |
 | `tests/contract/test_capability_declarations.py` | `_EXPECTED_DECLARATIONS` 的 nnpu 条目 → `({"mlp","cnn"}, {2,4}, "encoder", True)` |
+| `tests/unit/cli/test_info.py:87` | list-methods Input/Arch 列精确断言同步为 `"2,4"` / `"mlp,cnn"`（Task 1 实施发现，与 infomax 同行风格一致） |
 
 ## 5. 测试设计
 
