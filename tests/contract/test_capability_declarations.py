@@ -79,7 +79,7 @@ _EXPECTED_DECLARATIONS = {
     "infomax_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "weighted_contrastive_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "self_pu": (frozenset({"mlp"}), frozenset({2, 4}), None, False),
-    "nnpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "nnpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "dist_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "dgpu": (frozenset({"mlp"}), frozenset({2}), None, False),
 }

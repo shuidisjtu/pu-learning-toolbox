@@ -84,7 +84,7 @@ def test_list_methods_shows_capability_columns(capsys):
     lines = [line for line in out.splitlines()[2:] if line.strip()]
     by_name = {line.split()[0]: line.split() for line in lines}
     assert "2,4" in by_name["infomax_pu"] and "mlp,cnn" in by_name["infomax_pu"]
-    assert "2" in by_name["nnpu"] and "mlp" in by_name["nnpu"]
+    assert "2,4" in by_name["nnpu"] and "mlp,cnn" in by_name["nnpu"]
     assert "tabular" in by_name["elkan_noto"]
 
 

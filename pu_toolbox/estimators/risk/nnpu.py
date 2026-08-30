@@ -108,10 +108,10 @@ class NonNegativePUClassifier(BasePUClassifier):
     backend: Backend = Backend.TORCH
     maturity: Maturity = Maturity.STABLE
     sample_weight_support: SampleWeightSupport = SampleWeightSupport.SUPPORTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
 
     def __init__(
         self,
