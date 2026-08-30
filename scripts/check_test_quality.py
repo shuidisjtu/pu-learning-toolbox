@@ -54,6 +54,7 @@ REGISTERED_MARKERS: set[str] = {
     "paper",
     "integration",
     "e2e",
+    "gpu",
 }
 
 # Keywords used to classify test intent.  A test name match counts
@@ -276,6 +277,20 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "input-boundary scenarios (4-D without encoder rejected, 3-D representation "
             "rejected, 4-D validation_data accepted) are covered; ratio/boundary warnings "
             "live in validate_pu_X_y tests"
+        ),
+    },
+    "test_nnpu_gpu.py": {
+        "param": (
+            "no parameter-error surface; parameter validation is covered by "
+            "test_nnpu_encoder.py and test_nnpu.py"
+        ),
+        "edge": (
+            "no boundary scenarios; boundary behavior is covered by "
+            "test_nnpu_encoder.py"
+        ),
+        "determ": (
+            "seeded GPU smoke asserts behavior, not reproducibility; seed determinism "
+            "is covered by test_nnpu_encoder.py test_seed_determinism_with_encoder"
         ),
     },
     "test_history.py": {
