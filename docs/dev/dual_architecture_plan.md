@@ -199,7 +199,8 @@ CV fold 隔离测试锁定"共享构造 + 逐 fit 深拷贝"语义（2 折真实
 `encoder=None` 分支逐字不动（默认 `Linear(d, 1)` 保持，计划原文
 "原有 MLP"系笔误）。能力声明升级 MLP/CNN 双架构，pipeline
 CV fold 隔离/UI 候选集/报告 provenance 声明驱动自动生效；新增 gpu
-marker 与 CUDA 执行级测试（无 CUDA 自动 skip）。设计细节见
+marker 与 CUDA 执行级测试（无 CUDA 自动 skip），gpu 实执行已于
+FunctionTest 验收环境（NVIDIA T600）验收通过。设计细节见
 [2026-08-30-dual-arch-phase2-design.md](2026-08-30-dual-arch-phase2-design.md)。
 
 ### 阶段 3：逐个评估复杂深度算法

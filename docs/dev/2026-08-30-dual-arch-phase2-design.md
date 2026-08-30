@@ -151,7 +151,7 @@ trains_encoder = True
 | sklearn clone / get_params | encoder 为 Module 被 deepcopy——与 infomax 既有模式一致 |
 | UI / CLI / run_config | 声明驱动自动生效；encoder 由 pipeline 管理（`_MANAGED_CLASSIFIER_PARAMS` 已含），用户侧无感知 |
 
-## 7. 验收标准
+## 7. 验收标准（已完成，2026-08-30）
 
 1. 新增测试全绿（单元 + CV 隔离 + pipeline 端到端）；
 2. 快速测试零回归，两个红线文件全程未改；
@@ -159,7 +159,7 @@ trains_encoder = True
 4. 报告目检：nnpu + `architecture="cnn"` → provenance `native_cnn` +
    encoder 摘要；`architecture="mlp"` → `native_mlp` + encoder None；
 5. `list-methods` 中 nnpu 行显示 cnn 能力；
-6. GPU 测试在 FunctionTest（CUDA）环境实际执行通过（用户环境验收）；
+6. GPU 测试在 FunctionTest（CUDA）环境实际执行通过（NVIDIA T600）；
 7. 设计文档蒸馏进 `dual_architecture_plan.md` §5 阶段 2「实施结果」，
    `process_checklist.md` 登记未发布条目。
 
