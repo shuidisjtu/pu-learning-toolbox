@@ -122,6 +122,11 @@ UNLIMITED_FILES: dict[str, str] = {
     "test_classification.py": (
         "PU + planned supervised/calibration metrics with hand-computed MATH golden values"
     ),
+    "test_pipeline.py": (
+        "cross-cutting end-to-end integration suite for the PUPipeline workflow "
+        "(report contents, prior resolution, auto mode, error paths, determinism, "
+        "provenance call-site mapping)"
+    ),
 }
 
 # Files whose algorithms are fully covered by contract tests
@@ -158,12 +163,13 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
     },
     "test_build_encoder_export.py": {
         "basic": (
-            "跨分类器导出契约套件，无参数化/边界分类行为；分类器参数与边界行为由 "
-            "test_classifier_baseline 与深度单测覆盖"
+            "cross-classifier export-contract suite: no fit/predict behavioral "
+            "smoke; classifier parameter and boundary behavior are covered by "
+            "test_classifier_baseline and the deep unit tests"
         ),
         "determ": (
-            "跨分类器导出契约套件，无参数化/边界分类行为；分类器参数与边界行为由 "
-            "test_classifier_baseline 与深度单测覆盖"
+            "export-contract test compares structure and forward shape only, "
+            "never trained weights (random init); no RNG/seed dependence"
         ),
     },
     "test_capability_declarations.py": {
@@ -257,20 +263,24 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
     },
     "test_report_provenance.py": {
         "basic": (
-            "provenance 字段组装断言（明文断言 dict 键与取值），非 fit/predict 冒烟；"
-            "管道路径的端到端行为由 test_pipeline(_deep) 集成测试覆盖"
+            "provenance field assembly assertions (plain dict key/value asserts, "
+            "not a fit/predict smoke); end-to-end pipeline behavior is covered "
+            "by test_pipeline(_deep) integration tests"
         ),
         "param": (
-            "以固定参数直接调用 build_pipeline_report 断言输出；字段取值校验与错误"
-            "路径由 pipeline/device 相关测试覆盖"
+            "build_pipeline_report is called directly with fixed arguments; "
+            "field-value validation and error paths are covered by "
+            "pipeline/device tests"
         ),
         "edge": (
-            "仅断言 mlp 裸配与 cnn 全配两个代表性组合；None/空值/非法值边界由"
-            "device 与 pipeline 测试覆盖"
+            "only two representative combinations (mlp bare, cnn full) are "
+            "asserted; None/empty/invalid boundaries are covered by device and "
+            "pipeline tests"
         ),
         "determ": (
-            "build_pipeline_report 为纯组装函数（无随机性、无种子状态）；设备解析仅"
-            "断言结果 ∈ {cpu, cuda}，不绑定固定值"
+            "build_pipeline_report is a pure assembly function (no randomness, "
+            "no seed state); device resolution is only asserted to land in "
+            "{cpu, cuda}, never pinned to a fixed value"
         ),
     },
 }

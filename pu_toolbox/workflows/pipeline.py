@@ -23,6 +23,7 @@ from ..core.exceptions import RegistryError
 from ..core.tags import Backend, SampleWeightSupport, TrainingCost
 from ..core.validation import check_scalar_in_range
 from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
+from ..estimators.deep.vision import CNN_BACKBONES
 from ..model_selection.split import PUStratifiedKFold
 from ..preprocessing.data_profiler import profile_pu_data
 from ..progress import CancellationToken, ProgressCallback, emit_progress
@@ -209,7 +210,7 @@ class PUPipeline:
         # -- Deep architecture selection --------------------------------
         if architecture not in {"mlp", "cnn"}:
             raise ValueError("architecture must be 'mlp' or 'cnn'")
-        if backbone not in {"cnn13", "resnet18", "resnet50"}:
+        if backbone not in CNN_BACKBONES:
             raise ValueError("backbone must be 'cnn13', 'resnet18', or 'resnet50'")
         if self._classifier_cls is not None:
             self._is_deep = getattr(self._classifier_cls, "backend", None) == Backend.TORCH

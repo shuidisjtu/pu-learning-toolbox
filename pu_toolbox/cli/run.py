@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..estimators.deep.vision import CNN_BACKBONES
 from ..model_selection import PUModelComparator, PUTuner
 from ..run_config import RunConfiguration
 from ..workflows import PUPipeline
@@ -119,7 +120,7 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
         "--backbone",
         type=str,
         default=None,
-        choices=["cnn13", "resnet18", "resnet50"],
+        choices=list(CNN_BACKBONES),
         help="CNN backbone when --architecture cnn (default: cnn13)",
     )
     parser.add_argument(

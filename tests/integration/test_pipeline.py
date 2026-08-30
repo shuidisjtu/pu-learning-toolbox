@@ -197,6 +197,49 @@ class TestPipelineDeterminism:
         assert first.prior.value == second.prior.value
 
 
+@pytest.mark.integration
+class TestPipelineProvenanceE2E:
+    """Pipeline-to-report provenance call-site mapping (native_mlp / native_cnn).
+
+    build_pipeline_report itself is unit-tested with hand-passed arguments
+    (test_report_provenance.py); these tests pin the pipeline's own call-site
+    mapping (architecture / backbone / encoder_in_channels) so the 872c999
+    fix (MLP runs must record backbone=None instead of the cnn13 default)
+    cannot silently regress.
+    """
+
+    def test_mlp_run_reports_native_mlp_provenance(self):
+        X, y_pu = _table_data(n=40)
+        report = PUPipeline(classifier="upu", cv=2, random_state=42).fit_evaluate(
+            X, y_pu, class_prior=0.3, refit=False
+        )
+        p = report.provenance
+        assert p["architecture"] == "native_mlp"
+        assert p["backbone"] is None
+        assert p["encoder"] is None
+        assert p["device"]["requested"] is None
+        assert p["device"]["resolved"] in {"cpu", "cuda"}
+
+    def test_cnn_run_reports_native_cnn_provenance(self):
+        pytest.importorskip("torch")
+        X, y_pu = _image_data()
+        report = PUPipeline(
+            classifier="wconpu",
+            architecture="cnn",
+            backbone="cnn13",
+            cv=2,
+            max_epochs=1,
+            random_state=42,
+            device="cpu",
+        ).fit_evaluate(X, y_pu, class_prior=0.3, refit=False)
+        p = report.provenance
+        assert p["architecture"] == "native_cnn"
+        assert p["backbone"] == "cnn13"
+        assert p["encoder"] == {"backbone": "cnn13", "in_channels": 3}
+        assert p["device"]["requested"] == "cpu"
+        assert p["device"]["resolved"] == "cpu"
+
+
 class _NoScoresClassifier(BasePUClassifier):
     """Minimal classifier without a usable decision function."""
 
@@ -221,3 +264,21 @@ class _FailingPriorEstimator(BasePriorEstimator):
 
     def estimate(self):
         raise AssertionError("unreachable")
+
+
+def _table_data(n=40, seed=2):
+    """Fast 2-D table data: float32, 8 labeled positives (mirrors test_pipeline_deep)."""
+    rng = np.random.RandomState(seed)
+    X = np.vstack(
+        [rng.normal(1.0, 0.3, size=(n // 2, 5)), rng.normal(-1.0, 0.3, size=(n // 2, 5))]
+    ).astype(np.float32)
+    y_pu = np.concatenate([np.ones(8, dtype=int), np.zeros(n - 8, dtype=int)])
+    return X, y_pu
+
+
+def _image_data(n=24, channels=3, size=8, seed=1):
+    """Fast 4-D NCHW image data: float32, 8 labeled positives (mirrors test_pipeline_deep)."""
+    rng = np.random.RandomState(seed)
+    X = rng.normal(0.5, 0.3, size=(n, channels, size, size)).astype(np.float32)
+    y_pu = np.concatenate([np.ones(8, dtype=int), np.zeros(n - 8, dtype=int)])
+    return X, y_pu
