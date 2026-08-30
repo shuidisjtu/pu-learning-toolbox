@@ -170,6 +170,17 @@ infomax/wconpu；契约测试 4 组不变量强制新算法声明；接入模板
   seed 确定性、pickle/save-load round-trip、fail-fast）已有覆盖，
   CPU/GPU 执行级测试在 CUDA 可用时补充。
 
+**实施结果（已完成，2026-08-30）**：`build_encoder` 从包根与
+`estimators.deep` 双层公共导出（torch-free 导入链保持）；报告
+provenance 顶层平铺 4 字段——architecture(native_mlp/native_cnn)、
+backbone（MLP 为 None）、device(requested+resolved)、encoder（构造摘要，
+MLP 为 None），schema_version 保持 1.0；UI CNN 候选集由 registry 能力
+元数据推导（`cnn_candidates` 纯函数），骨架清单以 vision.py
+`CNN_BACKBONES` 为单一权威（app/run_config/pipeline/CLI 全量消费）；
+CV fold 隔离测试锁定"共享构造 + 逐 fit 深拷贝"语义（2 折真实训练 +
+权重快照断言 + device=cpu 钉定）。设计细节见
+[2026-08-30-dual-arch-phase1-design.md](2026-08-30-dual-arch-phase1-design.md)。
+
 ### 阶段 2：以 `nnpu` 为首个试点
 
 - 增加可选 `encoder=None`；
