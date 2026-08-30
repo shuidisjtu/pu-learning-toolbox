@@ -717,7 +717,15 @@ Modify docs/user/reference/api.md — :87（sample_weight provenance 段之后�
 构造摘要（`{"backbone", "in_channels"}`，MLP 无注入时为 `None`）。
 ```
 
-- [ ] **Step 2: 全量验收**
+- [ ] **Step 2: 登记门禁与结构文档**
+
+阶段 1 新增 4 个测试文件需在质量门禁与结构文档登记（阶段 0 先例）：
+
+- `scripts/check_test_quality.py`：为 tests/contract/test_build_encoder_export.py、tests/unit/workflows/test_report_provenance.py、tests/unit/ui/test_cnn_candidates.py、tests/integration/test_cv_fold_isolation.py 登记（若缺失 basic/param/edge/determ 某类别，按既有条目格式加 PARTIAL_COVERAGE 声明与理由）；
+- Run: `uv run python scripts/generate_structure.py --update`
+- Expected: project_structure.md 登记 4 个新测试文件（无其他无关差异；若出现无关差异检查是否误改）
+
+- [ ] **Step 3: 全量验收**
 
 ```bash
 uv run pytest tests/ -v -m "not slow and not e2e"
