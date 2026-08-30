@@ -11,12 +11,13 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pu_toolbox.estimators.deep.vision import CNN_BACKBONES
 from pu_toolbox.run_config import RunConfiguration
 from pu_toolbox.ui.configuration import apply_run_configuration, parse_json_mapping
 from pu_toolbox.ui.data import load_feature_data, load_label_data
 from pu_toolbox.ui.execution import AnalysisResult, execute_analysis, finalize_run
 from pu_toolbox.ui.history import snapshot as history_snapshot
-from pu_toolbox.ui.parameters import classifier_catalog, render_parameter_form
+from pu_toolbox.ui.parameters import classifier_catalog, cnn_candidates, render_parameter_form
 from pu_toolbox.ui.results import render_results
 from pu_toolbox.ui.runtime import BackgroundRun, submit_background
 from pu_toolbox.workflows import DEFAULT_METRICS
@@ -90,6 +91,7 @@ def main() -> None:
 
     st.subheader("2 · 配置模型")
     catalog = classifier_catalog()
+    cnn_names = cnn_candidates()
     catalog_by_name = {item["name"]: item for item in catalog}
     metric_options = list(DEFAULT_METRICS) + ["pu_accuracy", "pu_f1", "pu_negative_rate"]
     if imported_config is not None and imported_digest != st.session_state.get(
@@ -114,7 +116,7 @@ def main() -> None:
                 name
                 for name in imported_config.comparison_classifiers
                 if any(parameter["required"] for parameter in catalog_by_name[name]["parameters"])
-                or (X.ndim == 4 and name not in {"infomax_pu", "weighted_contrastive_pu"})
+                or (X.ndim == 4 and name not in cnn_names)
             ]
             if ineligible_comparisons:
                 raise ValueError(
@@ -147,8 +149,7 @@ def main() -> None:
         choices = sorted(
             name
             for name, item in catalog_by_name.items()
-            if item["ui_ready"]
-            and (not image_mode or name in {"infomax_pu", "weighted_contrastive_pu"})
+            if item["ui_ready"] and (not image_mode or name in cnn_names)
         )
         classifier = config_columns[1].selectbox("分类器", choices, key="classifier")
         selected = catalog_by_name[classifier]
@@ -163,7 +164,7 @@ def main() -> None:
             for name, item in catalog_by_name.items()
             if item["ui_ready"]
             and not any(parameter["required"] for parameter in item["parameters"])
-            and (not image_mode or name in {"infomax_pu", "weighted_contrastive_pu"})
+            and (not image_mode or name in cnn_names)
         )
         comparison_classifiers = config_columns[1].multiselect(
             "待比较模型",
@@ -173,7 +174,7 @@ def main() -> None:
         )
         config_columns[2].caption("所有模型使用相同的先验、CV、指标和随机种子。")
     if image_mode:
-        st.info("图像输入使用 CNN 模式，目前支持 InfoMax PU 与 WConPU。")
+        st.info("图像输入使用 CNN 模式，目前支持：" + "、".join(sorted(cnn_names)) + "。")
 
     settings = st.columns(4)
     cv = settings[0].number_input("交叉验证折数", min_value=2, max_value=20, value=5, key="cv")
@@ -211,7 +212,7 @@ def main() -> None:
     configuration_grid: dict[str, Any] = {}
     backbone = "cnn13"
     if image_mode:
-        backbone = st.selectbox("CNN 骨架", ["cnn13", "resnet18", "resnet50"], key="backbone")
+        backbone = st.selectbox("CNN 骨架", list(CNN_BACKBONES), key="backbone")
     if classifier != "auto":
         with st.expander("模型参数与调参", expanded=True):
             parameter_rows = catalog_by_name[classifier]["parameters"]

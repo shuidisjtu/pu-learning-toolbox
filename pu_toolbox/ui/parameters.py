@@ -12,6 +12,16 @@ from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_bui
 _MANAGED_PARAMS = {"class_prior", "random_state", "encoder", "device"}
 
 
+def cnn_candidates() -> set[str]:
+    """Return trainable classifier names whose capability declaration includes cnn."""
+    register_all_builtin_methods()
+    return {
+        metadata.name
+        for metadata in list_algorithms(trainable_only=True)
+        if "cnn" in metadata.native_architectures
+    }
+
+
 def classifier_catalog() -> list[dict[str, Any]]:
     """Return trainable classifier metadata and constructor fields for the UI."""
     register_all_builtin_methods()

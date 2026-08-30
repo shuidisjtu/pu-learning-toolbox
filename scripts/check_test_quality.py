@@ -190,6 +190,18 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "GPU/CUDA deep training is not bit-reproducible; determinism is asserted at unit level"
         ),
     },
+    "test_cnn_candidates.py": {
+        "basic": (
+            "候选集推导为 registry 元数据查询，无 fit/predict 行为；训练流程由 "
+            "test_pipeline(_deep) 集成测试覆盖"
+        ),
+        "param": "无参数校验表面；能力声明合法性由 test_capability_declarations 契约测试覆盖",
+        "edge": "断言固定的当前声明集与双向一致性；空集/声明边界由 registry 单测覆盖",
+        "determ": (
+            "cnn_candidates 为纯函数（无随机性、无种子状态）；深度估计器种子确定性"
+            "由既有固定种子单测覆盖"
+        ),
+    },
     "test_ui_history_flow.py": {
         "param": (
             "AppTest wiring test is a success-path end-to-end; parameter errors are unit-level"

@@ -74,6 +74,10 @@ def _conv_block(in_channels: int, out_channels: int):
     ]
 
 
+CNN_BACKBONES: tuple[str, ...] = ("cnn13", "resnet18", "resnet50")
+"""Supported CNN backbone names (single source of truth for UI and config)."""
+
+
 def build_wconpu_backbone(
     name: Literal["cnn13", "resnet18", "resnet50"],
     *,

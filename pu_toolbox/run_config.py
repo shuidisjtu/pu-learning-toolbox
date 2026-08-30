@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .estimators.deep.vision import CNN_BACKBONES
 from .workflows import DEFAULT_METRICS
 
 _SCHEMA_VERSION = 1
@@ -86,7 +87,7 @@ class RunConfiguration:
             raise ValueError("random_state must be an integer.")
         if architecture not in {"mlp", "cnn"}:
             raise ValueError("architecture must be 'mlp' or 'cnn'.")
-        if backbone not in {"cnn13", "resnet18", "resnet50"}:
+        if backbone not in CNN_BACKBONES:
             raise ValueError("backbone must be 'cnn13', 'resnet18', or 'resnet50'.")
         if not isinstance(device, str) or not device:
             raise ValueError("device must be a non-empty string.")
