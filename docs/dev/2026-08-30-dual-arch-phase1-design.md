@@ -660,6 +660,7 @@ def test_cv_folds_do_not_leak_encoder_weights():
         cv=2,
         max_epochs=1,
         random_state=42,
+        device="cpu",  # pin CPU: template is CPU-built; CUDA would cross-device compare
     )
     pipe._encoder = build_encoder("cnn", backbone="cnn13", in_channels=3)
     template_initial = _snapshot(pipe._encoder)
