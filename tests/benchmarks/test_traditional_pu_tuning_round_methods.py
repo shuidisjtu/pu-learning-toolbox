@@ -41,6 +41,7 @@ class TestMethodRegistration:
         assert params["gamma"] == 1.0  # untouched default kept
         # JSON-inexpressible params stay at their base nulls, not overridden.
         assert params["model"] is None and params["optimizer"] is None
+        assert params["encoder"] is None
         assert params["device"] is None
         assert "locks_source_defaults" not in produced
 
@@ -56,14 +57,15 @@ class TestMethodRegistration:
             )
 
     def test_edge_nnpu_missing_non_tunable_keys_pass_coverage_check(self, tmp_path):
-        # model/optimizer/device are excluded from the constructor-defaults
-        # coverage check — a base missing them still generates (their
-        # constructor defaults of None are the correct values).
+        # model/encoder/optimizer/device are excluded from the
+        # constructor-defaults coverage check — a base missing them still
+        # generates (their constructor defaults of None are the correct
+        # values).
         methods = {
             "nnpu": {
                 k: v
                 for k, v in NNPU_BASE_PARAMS.items()
-                if k not in ("model", "optimizer", "device")
+                if k not in ("model", "encoder", "optimizer", "device")
             }
         }
         base = base_config_path(tmp_path, methods=methods)

@@ -39,6 +39,7 @@ from ...core.tags import (
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...losses.nnpu import NonNegativePULoss, _nnpu_train_step
+from ..deep._validation import validate_encoder_features
 
 # ═════════════════════════════════════════════════════════════════════
 # NonNegativePUClassifier
@@ -56,6 +57,11 @@ class NonNegativePUClassifier(BasePUClassifier):
     model : torch.nn.Module or None, default None
         PyTorch model that outputs raw scores g(x).
         If None, a default ``nn.Linear(n_features, 1)`` is created.
+    encoder : torch.nn.Module or None, default None
+        Feature encoder replacing the default raw-input model.  When
+        provided, ``model`` (if any) is used as the score head stacked
+        on the encoder; otherwise a default ``nn.Linear(rep_dim, 1)``
+        head is created.  ``encoder=None`` keeps the original behaviour.
     class_prior : float or None, default None
         Class prior π = P(y=1).  Must be in (0, 1).  Can also be
         supplied (or overridden) via :meth:`fit`.
@@ -117,6 +123,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         self,
         model: torch.nn.Module | None = None,  # noqa: F821
         *,
+        encoder: torch.nn.Module | None = None,  # noqa: F821
         class_prior: float | None = None,
         loss: Literal["sigmoid"] = "sigmoid",
         beta: float = 0.0,
@@ -130,6 +137,7 @@ class NonNegativePUClassifier(BasePUClassifier):
     ) -> None:
         super().__init__()
         self.model = model
+        self.encoder = encoder
         self.class_prior = class_prior
         self.loss = loss
         self.beta = beta
@@ -183,7 +191,12 @@ class NonNegativePUClassifier(BasePUClassifier):
             raise ValueError("class_prior must be provided either in __init__() or fit().")
 
         # ── Validate inputs ───────────────────────────────────────
-        X, y_pu = validate_pu_X_y(X, y_pu, estimator_name="NonNegativePUClassifier")
+        X, y_pu = validate_pu_X_y(
+            X,
+            y_pu,
+            allow_nd=self.encoder is not None,
+            estimator_name="NonNegativePUClassifier",
+        )
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
         check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
@@ -239,13 +252,29 @@ class NonNegativePUClassifier(BasePUClassifier):
             w_U = sample_weight[~mask_P]
 
         # ── Build model ───────────────────────────────────────────
-        if self.model is not None:
+        device = resolve_device(self.device)
+        if self.encoder is not None:
+            self.encoder_ = copy.deepcopy(self.encoder).to(device)
+            # Probe in eval mode: fresh BatchNorm layers reject 1-sample
+            # batches in training mode and must not accumulate stats
+            # from the probe.
+            self.encoder_.eval()
+            with torch.no_grad():
+                probe = self.encoder_(torch.as_tensor(X[:1], dtype=torch.float32, device=device))
+            # 1-D probes cannot be flattened (torch raises IndexError for
+            # start_dim=1); pass them through so validate_encoder_features
+            # rejects the invalid shape with the contract's ValueError.
+            probe_flat = probe.flatten(start_dim=1) if probe.ndim > 1 else probe
+            representation_dim = validate_encoder_features(probe_flat, encoder_param_name="encoder")
+            if self.model is not None:
+                head = copy.deepcopy(self.model)
+            else:
+                head = torch.nn.Linear(representation_dim, 1)
+            self.model_ = torch.nn.Sequential(self.encoder_, head)
+        elif self.model is not None:
             self.model_ = copy.deepcopy(self.model)
         else:
             self.model_ = torch.nn.Linear(d, 1)
-
-        # ── Device ────────────────────────────────────────────────
-        device = resolve_device(self.device)
         self.model_.to(device)
 
         # ── Build optimiser ───────────────────────────────────────
@@ -301,6 +330,7 @@ class NonNegativePUClassifier(BasePUClassifier):
             X_val, y_val_pu = validate_pu_X_y(
                 X_val,
                 y_val_pu,
+                allow_nd=self.encoder is not None,
                 estimator_name="NonNegativePUClassifier[val]",
             )
             X_val_t = torch.tensor(X_val, dtype=torch.float32)

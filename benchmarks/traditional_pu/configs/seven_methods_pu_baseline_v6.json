@@ -74,6 +74,7 @@
     },
     "nnpu": {
       "model": null,
+      "encoder": null,
       "loss": "sigmoid",
       "beta": 0.0,
       "gamma": 1.0,

@@ -271,6 +271,13 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "with fixed seeds"
         ),
     },
+    "test_nnpu_encoder.py": {
+        "edge": (
+            "input-boundary scenarios (4-D without encoder rejected, 3-D representation "
+            "rejected, 4-D validation_data accepted) are covered; ratio/boundary warnings "
+            "live in validate_pu_X_y tests"
+        ),
+    },
     "test_history.py": {
         "param": "history.append accepts any mapping; there is no input validation path",
         "determ": "history module is deterministic by construction (no randomness)",

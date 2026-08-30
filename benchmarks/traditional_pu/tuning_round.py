@@ -40,7 +40,7 @@ _RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
 # estimator instance (plan §4: optimizer/lr stay outside the round-1
 # cluster).  Their constructor defaults (None) are the correct values, so
 # they are also excluded from the constructor-defaults coverage check.
-_NON_TUNABLE = {"model", "optimizer", "device", "base_estimator"}
+_NON_TUNABLE = {"model", "encoder", "optimizer", "device", "base_estimator"}
 
 
 def generate_round_configs(

@@ -23,6 +23,7 @@ SCENARIOS = [
 
 NNPU_BASE_PARAMS = {
     "model": None,
+    "encoder": None,
     "loss": "sigmoid",
     "beta": 0.0,
     "gamma": 1.0,
