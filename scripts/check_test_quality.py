@@ -202,6 +202,18 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "由既有固定种子单测覆盖"
         ),
     },
+    "test_cv_fold_isolation.py": {
+        "basic": (
+            "单一意图隔离锁测试：2 折各真实训练 1 epoch 并断言权重/对象比较，"
+            "无 fit/predict 输出冒烟；管道路径行为由 test_pipeline(_deep) 集成测试覆盖"
+        ),
+        "param": "无参数校验表面（构造参数固定）；参数校验与错误路径由 pipeline/WConPU 单测覆盖",
+        "edge": "无输入边界场景；边界/校验行为由 validate_pu_X_y 与 encoder 单测覆盖",
+        "determ": (
+            "固定 random_state 播种但不断言确定性（被测对象是隔离而非复现）；"
+            "深度训练种子确定性由 test_pipeline_deep TestPipelineDeepSeedReproducibility 覆盖"
+        ),
+    },
     "test_ui_history_flow.py": {
         "param": (
             "AppTest wiring test is a success-path end-to-end; parameter errors are unit-level"
