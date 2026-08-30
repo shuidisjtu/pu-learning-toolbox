@@ -16,7 +16,7 @@
 | `recpe`（`re_cpe`） | `ReCPEEstimator` | class-prior | `copy_fraction` / `base_estimator` | [ReCPE](../../research/method_cards/ReCPE.md) |
 | `elkan_noto`（`en`） | `ElkanNotoClassifier` | classic | `base_estimator` / `calibration_method` / `n_cv_folds` / `eps` | [Elkan_Noto](../../research/method_cards/Elkan_Noto.md) |
 | `upu`（`convex_pu`） | `UPUClassifier` | risk | `class_prior` / `loss` / `reg_lambda` | [Convex uPU](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) |
-| `nnpu`（`nn-pu`） | `NonNegativePUClassifier` | risk | `model` / `class_prior` / `loss` / `optimizer` | [nnPU](../../research/method_cards/nnpu.md) |
+| `nnpu`（`nn-pu`） | `NonNegativePUClassifier` | risk | `model` / `encoder` / `class_prior` / `loss` / `optimizer` | [nnPU](../../research/method_cards/nnpu.md) |
 | `pnu` | `PNUClassifier` | risk | `class_prior` / `eta` / `reg_lambda` | [PNU](../../research/method_cards/PNU.md) |
 | `centroid_pu`（`ldce`） | `LDCEClassifier` | risk | `flip_probability` / `reg_strength` / `centroid_radius` | [LDCE](../../research/method_cards/LDCE.md) |
 | `kldce`（`kernelized_ldce`） | `KLDCEClassifier` | risk | `flip_probability` / `sigma` / `reg_strength` | [KLDCE](../../research/method_cards/KLDCE.md) |

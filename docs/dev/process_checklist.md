@@ -37,6 +37,11 @@
 - 双架构阶段 1 整理现有双架构实现（未发布，随下一版本发布）：build_encoder
   公共导出 + 报告 provenance 4 字段 + UI CNN 候选集元数据驱动 + CV fold
   训练隔离测试（详见 docs/dev/dual_architecture_plan.md §5）
+- 双架构阶段 2 nnpu encoder 试点（未发布，随下一版本发布）：nnpu
+  新增 encoder 参数（model 复用为 head，fit 内 Sequential 组合）、
+  MLP/CNN 双架构声明、CV fold 隔离与 pipeline 端到端测试、
+  gpu marker + CUDA 执行级测试（详见
+  docs/dev/dual_architecture_plan.md §5）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

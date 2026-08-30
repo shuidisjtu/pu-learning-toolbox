@@ -192,6 +192,16 @@ CV fold 隔离测试锁定"共享构造 + 逐 fit 深拷贝"语义（2 折真实
 
 `dist_pu` 在试点稳定后再评估，避免同时改造多个训练循环。
 
+**实施结果（已完成，2026-08-30）**：nnpu 新增 keyword-only `encoder`
+参数——提供时在 fit 内深拷贝 + eval probe 得 representation_dim，
+`model` 复用为 score head（默认 `Linear(rep_dim, 1)`），组合为
+`nn.Sequential(encoder_, head)`，训练循环与 PU loss 数学目标零改动；
+`encoder=None` 分支逐字不动（默认 `Linear(d, 1)` 保持，计划原文
+"原有 MLP"系笔误）。能力声明升级 MLP/CNN 双架构，pipeline
+CV fold 隔离/UI 候选集/报告 provenance 声明驱动自动生效；新增 gpu
+marker 与 CUDA 执行级测试（无 CUDA 自动 skip）。设计细节见
+[2026-08-30-dual-arch-phase2-design.md](2026-08-30-dual-arch-phase2-design.md)。
+
 ### 阶段 3：逐个评估复杂深度算法
 
 分别处理 `self_pu`、`dgpu` 等使用完整 `backbone/model` 或特殊状态的算法。

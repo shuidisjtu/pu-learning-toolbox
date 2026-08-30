@@ -196,6 +196,7 @@ tests/
       test_deep_vision_pickle.py        # 深度视觉模块 pickle 往返(E2/E3 回归;importorskip torch)
       test_llsvm.py                     # LLSVM 特有逻辑
       test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
+      test_nnpu_gpu.py                  # nnPU CNN encoder GPU 执行级测试(无 CUDA 自动 skip)
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
