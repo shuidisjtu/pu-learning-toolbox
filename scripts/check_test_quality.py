@@ -198,26 +198,40 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
     },
     "test_cnn_candidates.py": {
         "basic": (
-            "候选集推导为 registry 元数据查询，无 fit/predict 行为；训练流程由 "
-            "test_pipeline(_deep) 集成测试覆盖"
+            "Candidate-set derivation is a registry metadata query with no fit/predict "
+            "behavior; the training flow is covered by the test_pipeline(_deep) integration tests"
         ),
-        "param": "无参数校验表面；能力声明合法性由 test_capability_declarations 契约测试覆盖",
-        "edge": "断言固定的当前声明集与双向一致性；空集/声明边界由 registry 单测覆盖",
+        "param": (
+            "No parameter-validation surface; declaration legality is covered by the "
+            "test_capability_declarations contract tests"
+        ),
+        "edge": (
+            "Asserts the fixed current declaration set and bidirectional consistency; "
+            "empty-set/declaration boundaries are covered by registry unit tests"
+        ),
         "determ": (
-            "cnn_candidates 为纯函数（无随机性、无种子状态）；深度估计器种子确定性"
-            "由既有固定种子单测覆盖"
+            "cnn_candidates is a pure function (no randomness, no seed state); "
+            "deep-estimator seed determinism is covered by the existing fixed-seed unit tests"
         ),
     },
     "test_cv_fold_isolation.py": {
         "basic": (
-            "单一意图隔离锁测试：2 折各真实训练 1 epoch 并断言权重/对象比较，"
-            "无 fit/predict 输出冒烟；管道路径行为由 test_pipeline(_deep) 集成测试覆盖"
+            "Single-intent isolation lock test: both folds genuinely train 1 epoch each "
+            "and assert weight/object comparisons, no fit/predict output smoke; "
+            "pipeline-path behavior is covered by the test_pipeline(_deep) integration tests"
         ),
-        "param": "无参数校验表面（构造参数固定）；参数校验与错误路径由 pipeline/WConPU 单测覆盖",
-        "edge": "无输入边界场景；边界/校验行为由 validate_pu_X_y 与 encoder 单测覆盖",
+        "param": (
+            "No parameter-validation surface (constructor args fixed); parameter validation "
+            "and error paths are covered by pipeline/WConPU unit tests"
+        ),
+        "edge": (
+            "No input-boundary scenarios; boundary/validation behavior is covered by "
+            "validate_pu_X_y and encoder unit tests"
+        ),
         "determ": (
-            "固定 random_state 播种但不断言确定性（被测对象是隔离而非复现）；"
-            "深度训练种子确定性由 test_pipeline_deep TestPipelineDeepSeedReproducibility 覆盖"
+            "Seeded via fixed random_state but asserts no determinism (the subject is "
+            "isolation, not reproducibility); deep-training seed determinism is covered by "
+            "test_pipeline_deep TestPipelineDeepSeedReproducibility"
         ),
     },
     "test_ui_history_flow.py": {
