@@ -765,12 +765,12 @@ from pu_toolbox.workflows import PUPipeline
 rng = np.random.RandomState(1)
 X = rng.normal(0.5, 0.3, size=(24, 3, 8, 8)).astype(np.float32)
 y = np.concatenate([np.ones(8, int), np.zeros(16, int)])
-r = PUPipeline(classifier='wconpu', architecture='cnn', cv=2, max_epochs=1, refit=False).fit_evaluate(X, y, class_prior=0.3)
+r = PUPipeline(classifier='wconpu', architecture='cnn', cv=2, max_epochs=1).fit_evaluate(X, y, class_prior=0.3, refit=False)
 print({k: r.provenance[k] for k in ('architecture', 'backbone', 'device', 'encoder')})
 "
 ```
 
-Expected: 输出 `architecture: native_cnn, backbone: cnn13, device: {requested: auto, resolved: cpu 或 cuda}, encoder: {backbone: cnn13, in_channels: 3}`（native_mlp 对应运行同理，可在上一命令改 architecture 参数复核）。
+Expected: 输出 `architecture: native_cnn, backbone: cnn13, device: {requested: None, resolved: cpu 或 cuda}, encoder: {backbone: cnn13, in_channels: 3}`（requested 记录构造原值，未显式传 device 时为 None）。native_mlp 对应运行：architecture 改 'mlp'、X 改 2-D（`rng.normal(0.5, 0.3, size=(40, 5)).astype(np.float32)`、y 同构），Expected: `architecture: native_mlp, backbone: None, encoder: None`。
 
 - [ ] **Step 4: 提交**
 
