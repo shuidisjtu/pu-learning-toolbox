@@ -156,6 +156,16 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "is unit-tested with fixed seeds"
         ),
     },
+    "test_build_encoder_export.py": {
+        "basic": (
+            "跨分类器导出契约套件，无参数化/边界分类行为；分类器参数与边界行为由 "
+            "test_classifier_baseline 与深度单测覆盖"
+        ),
+        "determ": (
+            "跨分类器导出契约套件，无参数化/边界分类行为；分类器参数与边界行为由 "
+            "test_classifier_baseline 与深度单测覆盖"
+        ),
+    },
     "test_capability_declarations.py": {
         "basic": (
             "declaration-consistency contract tests (legality / registry-sync / "
