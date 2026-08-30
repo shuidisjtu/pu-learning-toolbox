@@ -580,7 +580,7 @@ class PUPipeline:
             classifier_params=self.classifier_params,
             sample_weight=sample_weight,
             architecture=self.architecture,
-            backbone=self.backbone,
+            backbone=self.backbone if self.architecture == "cnn" else None,
             device=self.device,
             encoder_in_channels=int(X.shape[1]) if self.architecture == "cnn" else None,
         )
