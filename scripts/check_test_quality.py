@@ -284,10 +284,7 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "no parameter-error surface; parameter validation is covered by "
             "test_nnpu_encoder.py and test_nnpu.py"
         ),
-        "edge": (
-            "no boundary scenarios; boundary behavior is covered by "
-            "test_nnpu_encoder.py"
-        ),
+        "edge": ("no boundary scenarios; boundary behavior is covered by test_nnpu_encoder.py"),
         "determ": (
             "seeded GPU smoke asserts behavior, not reproducibility; seed determinism "
             "is covered by test_nnpu_encoder.py test_seed_determinism_with_encoder"
