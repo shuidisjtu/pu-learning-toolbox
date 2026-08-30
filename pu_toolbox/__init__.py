@@ -22,6 +22,7 @@ from .estimators.classic.llsvm import LLSVMClassifier
 from .estimators.deep.dgpu import DGPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
 from .estimators.deep.self_pu import SelfPUClassifier
+from .estimators.deep.vision import build_encoder
 from .estimators.deep.weighted_contrastive_pu import WeightedContrastivePUClassifier
 from .estimators.risk.dist_pu import DistPUClassifier
 from .estimators.risk.kldce import KLDCEClassifier
@@ -75,6 +76,7 @@ __all__ = [
     "analyze_pu_shift",
     "analyze_pu_uncertainty",
     "build_diagnostic_report",
+    "build_encoder",
     "make_sar_dataset",
     "profile_pu_data",
     "recommend_from_profile",
