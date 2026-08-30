@@ -234,7 +234,7 @@ Modify pu_toolbox/__init__.py — import 区（:25 `from .estimators.deep.weight
 from .estimators.deep.vision import build_encoder
 ```
 
-`__all__` 在 `"build_diagnostic_report",`（:77）之前插入（build_d < build_e）：
+`__all__` 在 `"build_diagnostic_report",`（:77）之后插入（build_d < build_e 字母序）：
 
 ```python
     "build_encoder",
@@ -251,6 +251,10 @@ Expected: 4 项 PASS
 
 Run: `uv run pytest tests/ -v -m "not slow and not e2e"`
 Expected: 全部 PASS（test_import.py 冒烟覆盖各子包导入不受影响）
+
+- [ ] **Step 6.5: 门禁登记**
+
+`scripts/check_test_quality.py` 为 tests/contract/test_build_encoder_export.py 登记 PARTIAL_COVERAGE（缺失 basic/determ 类别，理由：跨分类器契约套件，参数/边界行为由 test_classifier_baseline 与深度单测覆盖），条目格式仿 test_capability_declarations.py；Run: `uv run python scripts/check_test_quality.py`，Expected: 全部通过。
 
 - [ ] **Step 7: 提交**
 
@@ -417,10 +421,14 @@ Expected: 全部 PASS（现有 provenance 断言均为按键访问，无键集�
 Then Run: `uv run pytest tests/ -v -m "not slow and not e2e"`
 Expected: 全部 PASS
 
-- [ ] **Step 7: 提交**
+- [ ] **Step 7: 门禁登记**
+
+`scripts/check_test_quality.py` 为 tests/unit/workflows/test_report_provenance.py 登记（缺失类别按实际补齐，条目格式仿既有 PARTIAL_COVERAGE）；Run: `uv run python scripts/check_test_quality.py`，Expected: 全部通过。
+
+- [ ] **Step 8: 提交**
 
 ```bash
-git add pu_toolbox/workflows/_reporting.py pu_toolbox/workflows/pipeline.py tests/unit/workflows/test_report_provenance.py
+git add pu_toolbox/workflows/_reporting.py pu_toolbox/workflows/pipeline.py tests/unit/workflows/test_report_provenance.py scripts/check_test_quality.py
 git commit -m "feat(workflows): 报告 provenance 增加架构能力 4 字段
 
 architecture(native_mlp/native_cnn)/backbone/device(requested+resolved)/
@@ -578,10 +586,14 @@ from .estimators.deep.vision import CNN_BACKBONES
 Run: `uv run pytest tests/ -v -m "not slow and not e2e"`
 Expected: 全部 PASS（UI streamlit 测试本地 skip，不受影响）
 
-- [ ] **Step 8: 提交**
+- [ ] **Step 8: 门禁登记**
+
+`scripts/check_test_quality.py` 为 tests/unit/ui/test_cnn_candidates.py 登记（缺失类别按实际补齐）；Run: `uv run python scripts/check_test_quality.py`，Expected: 全部通过。
+
+- [ ] **Step 9: 提交**
 
 ```bash
-git add pu_toolbox/estimators/deep/vision.py pu_toolbox/ui/parameters.py pu_toolbox/ui/app.py pu_toolbox/run_config.py tests/unit/ui/test_cnn_candidates.py
+git add pu_toolbox/estimators/deep/vision.py pu_toolbox/ui/parameters.py pu_toolbox/ui/app.py pu_toolbox/run_config.py tests/unit/ui/test_cnn_candidates.py scripts/check_test_quality.py
 git commit -m "feat(ui): CNN 候选集与骨架清单元数据驱动
 
 - cnn_candidates 纯函数从 registry 能力声明推导（app.py 3 处硬编码集合
@@ -683,10 +695,14 @@ Expected: 1 项 PASS
 Run: `uv run pytest tests/ -v -m "not slow and not e2e"`
 Expected: 全部 PASS（新增约 20-40s 训练时间）
 
-- [ ] **Step 4: 提交**
+- [ ] **Step 4: 门禁登记**
+
+`scripts/check_test_quality.py` 为 tests/integration/test_cv_fold_isolation.py 登记（缺失类别按实际补齐）；Run: `uv run python scripts/check_test_quality.py`，Expected: 全部通过。
+
+- [ ] **Step 5: 提交**
 
 ```bash
-git add tests/integration/test_cv_fold_isolation.py
+git add tests/integration/test_cv_fold_isolation.py scripts/check_test_quality.py
 git commit -m "test(deep): CV fold 训练隔离测试（fold 间权重不泄漏）
 
 共享 encoder 模板 2 折真实训练：防假阳性（折内权重确实在变）、
@@ -717,11 +733,10 @@ Modify docs/user/reference/api.md — :87（sample_weight provenance 段之后�
 构造摘要（`{"backbone", "in_channels"}`，MLP 无注入时为 `None`）。
 ```
 
-- [ ] **Step 2: 登记门禁与结构文档**
+- [ ] **Step 2: 登记结构文档**
 
-阶段 1 新增 4 个测试文件需在质量门禁与结构文档登记（阶段 0 先例）：
+各任务提交时已随任务完成 check_test_quality 登记（Task 1/2/3/4 各带 Step 6.5/7.5），本步仅核验：Run `uv run python scripts/check_test_quality.py`，Expected: 全部通过（若仍有遗漏，补登并说明）。
 
-- `scripts/check_test_quality.py`：为 tests/contract/test_build_encoder_export.py、tests/unit/workflows/test_report_provenance.py、tests/unit/ui/test_cnn_candidates.py、tests/integration/test_cv_fold_isolation.py 登记（若缺失 basic/param/edge/determ 某类别，按既有条目格式加 PARTIAL_COVERAGE 声明与理由）；
 - Run: `uv run python scripts/generate_structure.py --update`
 - Expected: project_structure.md 登记 4 个新测试文件（无其他无关差异；若出现无关差异检查是否误改）
 
