@@ -44,6 +44,7 @@
 | [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
 | [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与兼容性策略 |
 | [dev/2026-08-29-dual-arch-phase0-design.md](dev/2026-08-29-dual-arch-phase0-design.md) | 双架构阶段 0 能力契约设计规范与实施计划：字段模型、消费点、契约测试、任务分解与验收标准 |
+| [dev/2026-08-30-dual-arch-phase1-design.md](dev/2026-08-30-dual-arch-phase1-design.md) | 双架构阶段 1 设计规范：build_encoder 导出、provenance 字段、UI 元数据驱动、CV fold 隔离测试 |
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
 | [research/distribution_shift_metric_contract.md](research/distribution_shift_metric_contract.md) | 分布漂移审计、跨域目标评估与部署监控指标契约 |
 | [research/joint_shift_research_protocol.md](research/joint_shift_research_protocol.md) | JointShift 研究型算法评估协议与声明边界 |
