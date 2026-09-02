@@ -2,24 +2,66 @@
 
 ## 1. 设计决策
 
-设计决策与代价已迁移至 [docs/adr/](../adr/README.md)(ADR-0002 核心包
-轻量化、ADR-0003 概念解耦、ADR-0004 registry 元数据驱动、ADR-0005 复现
-可信度分级、ADR-0006 SAR 定位)。本文档只描述当前架构。
+设计决策与代价已迁移至 [docs/adr/](../adr/README.md)。本文档只描述当前架构。
 
-**与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（决策、
+**与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（模块划分、
 依赖方向、数据流）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
 **API 契约**：类的精确签名与方法语义以 [`user/reference/api.md`](../user/reference/api.md) 为权威来源，本文档不重复。
 
 ## 2. 模块分层
 
-| 层 | 模块 | 作用 |
+> 分层为概念归类；"模块"列给出对应 `pu_toolbox/` 子包；职责为模块级边界，
+> 更细的类/函数级归属见 [`project_structure.md`](project_structure.md) 目录树。
+
+### Core — 地基层：无上层依赖，被其余层引用
+
+| 模块 | 核心职责 | 详情来源 |
 |---|---|---|
-| Core | `core`, `preprocessing`, `registry`, `advisor`, `utils` | 稳定 API、标签规范、输入校验、SCAR/SAR 标签与数据生成、结构化数据画像、算法注册、元数据、算法推荐、共享工具 |
-| Estimation | `prior`, `losses` | 类先验估计、PU 损失函数 |
-| Algorithms | `estimators` | 实现具体 PU 分类器 |
-| Evaluation | `metrics`, `model_selection`, `diagnostics` | PU 评估指标、PU 分层切分、结构化报告、假设敏感性与源/目标漂移审计 |
-| Orchestration | `workflows`, `cli` | PUPipeline 端到端编排、协变量漂移加权工作流与命令行薄封装 |
-| User Layer | `examples`, `scripts/pu_workflow/`, pu-workflow skill | 教程、工作流兼容包装（委托 CLI 子命令）与 agent 流程 |
+| `core/` | PU 基类、标签规范、输入校验、设备/随机源统一、异常与 tags 语义 | [`../../pu_toolbox/core/__init__.py`](../../pu_toolbox/core/__init__.py) |
+| `preprocessing/` | SCAR/SAR 标签与数据生成、结构化数据画像 | [`../../pu_toolbox/preprocessing/__init__.py`](../../pu_toolbox/preprocessing/__init__.py)、[`画像指南`](../user/howto/data_profiling.md) |
+| `registry/` | 算法注册、元数据与内置方法发现 | [`../../pu_toolbox/registry/__init__.py`](../../pu_toolbox/registry/__init__.py)、[`内置方法表`](../../pu_toolbox/registry/builtin_methods.py) |
+| `advisor/` | 数据画像驱动的算法推荐 | [`../../pu_toolbox/advisor/__init__.py`](../../pu_toolbox/advisor/__init__.py)、[`选型原理`](../user/concepts/method_selection.md) |
+| `utils/` | 共享工具（非公开 API，可随小版本变化） | [`../../pu_toolbox/utils/__init__.py`](../../pu_toolbox/utils/__init__.py) |
+
+### Estimation — 类先验与 PU 损失，被 Algorithms 使用
+
+| 模块 | 核心职责 | 详情来源 |
+|---|---|---|
+| `prior/` | 类先验估计器（ReCPE / penL1 / KM） | [`../../pu_toolbox/prior/__init__.py`](../../pu_toolbox/prior/__init__.py)、[`先验方法卡`](../research/method_cards/class_prior_estimation.md) |
+| `losses/` | PU 风险/损失函数 | [`../../pu_toolbox/losses/__init__.py`](../../pu_toolbox/losses/__init__.py) |
+
+### Algorithms — 具体 PU 分类器实现
+
+| 模块 | 核心职责 | 详情来源 |
+|---|---|---|
+| `estimators/` | 全部 PU 分类器，按 `classic/`、`risk/`、`bias_aware/`、`deep/`、`research/` 分包 | [`../../pu_toolbox/estimators/__init__.py`](../../pu_toolbox/estimators/__init__.py) |
+
+算法↔模块落点与实现状态（NATIVE / api_only / `official_exact` adapter）
+以注册表[`内置方法表`](../../pu_toolbox/registry/builtin_methods.py)（`_BUILTINS`）
+为真相源；各算法原理见[`方法卡`](../research/method_cards/)。
+
+### Evaluation — 结果评估与诊断，被 Orchestration 调用
+
+| 模块 | 核心职责 | 详情来源 |
+|---|---|---|
+| `metrics/` | PU 评估指标（PU-only + 标准监督指标包装） | [`../../pu_toolbox/metrics/__init__.py`](../../pu_toolbox/metrics/__init__.py)、[`指标契约`](../research/traditional_pu_metric_contract.md) |
+| `model_selection/` | PU 分层切分、模型调优与比较 | [`../../pu_toolbox/model_selection/__init__.py`](../../pu_toolbox/model_selection/__init__.py)、[`调优指南`](../user/howto/model_tuning.md) |
+| `diagnostics/` | 结构化诊断报告与假设敏感性分析 | [`../../pu_toolbox/diagnostics/__init__.py`](../../pu_toolbox/diagnostics/__init__.py)、[`报告指南`](../user/howto/diagnostic_reports.md) |
+
+### Orchestration — 端到端编排与 CLI
+
+| 模块 | 核心职责 | 详情来源 |
+|---|---|---|
+| `workflows/` | PUPipeline 端到端编排与漂移感知工作流 | [`../../pu_toolbox/workflows/__init__.py`](../../pu_toolbox/workflows/__init__.py)、[`流水线指南`](../user/howto/pipeline.md)、[`漂移指南`](../user/howto/distribution_shift.md) |
+| `cli/` | 命令行薄封装（子命令一览） | [`命令行指南`](../user/howto/cli.md)、[`../../pu_toolbox/cli/__init__.py`](../../pu_toolbox/cli/__init__.py) |
+
+### User Layer — 面向用户的教学与 agent 包装
+
+| 模块 | 核心职责 | 详情来源 |
+|---|---|---|
+| `examples/` | 教程与最小示例 | [`../../examples/`](../../examples/) |
+| `scripts/pu_workflow/` | 兼容包装（委托 CLI 子命令） | [`../../scripts/pu_workflow/`](../../scripts/pu_workflow/) |
+| pu-workflow skill | agent 端到端流程（触发词驱动，内部走 CLI） | [`../../.claude/skills/pu-workflow/SKILL.md`](../../.claude/skills/pu-workflow/SKILL.md) |
 
 ### 2.1 系统上下文
 
