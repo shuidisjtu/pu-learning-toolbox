@@ -139,6 +139,18 @@ trains_encoder + 派生 is_tabular_only）以估算器类属性为权威，注�
 返回 `RecommendationResult`，支持 `to_json()` / `to_markdown()` / `save()`。
 向后兼容：`from pu_toolbox.registry import recommend_methods` 仍可用。
 
+### 与 `model_selection` 的分界
+
+推荐器只做**元数据推理**（数据画像 × registry 元数据的过滤/评分/排序），
+不训练任何模型；选定算法后的**实证选择**——超参搜索（`PUTuner`）、跨配置
+比较（`PUModelComparator`）、CV 折结构（`PUStratifiedKFold`）——由
+`model_selection` 承担并真实训练。二者是同一"选择"决策链的两段：推荐器
+回答"该用哪个算法"（秒级、无 GPU），`model_selection` 回答"选定后哪个
+配置在数据上最好"（实证评估）。串联默认：`PUPipeline(classifier="auto")`
+消费推荐结果选定方法，再经 `model_selection` 的切分/调参进入训练；调参为
+显式叠加，不自动执行。用户侧决策原理见
+[`method_selection.md`](../user/concepts/method_selection.md)。
+
 ## 5. 类先验、标记倾向与损失函数
 
 | 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |

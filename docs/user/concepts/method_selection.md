@@ -29,6 +29,9 @@ for c in result.candidates:
 标记充足度（各维权重可经 `ScoringConfig` 调整）。`class_prior` 是**硬过滤**：为 None
 时直接排除需要 π 的方法。完整签名与返回结构见 [API 参考](../reference/api.md)。
 
+推荐器只做元数据推理、不训练模型；选定方法后的**实证选择**（超参搜索、跨配置
+比较）由 `model_selection` 承担，见[模型调整指南](../howto/model_tuning.md)。
+
 ## 2. π 在 PU 中的角色（决策的轴心）
 
 - **需要 π 的方法**：风险估计类（uPU、nnPU、PNU、LLSVM、Dist-PU）与部分深度方法

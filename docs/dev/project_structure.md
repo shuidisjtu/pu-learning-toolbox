@@ -83,7 +83,7 @@ pu_toolbox/
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
       dynamic_joint_shift.py              (论文式联合权重/分类目标与共享特征动态训练)
       joint_shift_baselines.py            (JointShiftPUBaseline trPU/tePU/fine-tune/MMD 对照与 build_joint_shift_estimator 消融工厂)
-    __init__.py
+    __init__.py                           (包标记: 分类器由子包与包根聚合导出, 根级无符号)
   metrics/
     __init__.py                           (公共导出聚合: 12 个分类指标函数统一出口)
     classification.py                     (已实现: PU-only 指标 pu_zero_one_risk/pu_recall + 监督包装)
