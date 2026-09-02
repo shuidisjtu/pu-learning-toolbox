@@ -56,8 +56,9 @@ CV，失败的方法会保留错误记录而不会中断其他方法；最终只
 部署检查不会重新训练模型。共享服务上的历史文件仍由用户自行保存和再次上传，服务器不会
 跨进程永久保管数据。
 
-CSV 第一行必须是非数字列名，特征必须全部为有限数值。图像模式目前支持
-InfoMax PU 和 WConPU，可选择 CNN13、ResNet-18 或 ResNet-50；需同时安装 torch：
+CSV 第一行必须是非数字列名，特征必须全部为有限数值。图像模式支持声明了
+`encoder` 能力的深度算法（当前 InfoMax PU、WConPU、nnPU；候选集由注册表
+能力元数据自动推导），可选择 CNN13、ResNet-18 或 ResNet-50；需同时安装 torch：
 
 ```bash
 pip install "pu-toolbox[ui,torch]"

@@ -64,7 +64,7 @@ pipe = PUPipeline(
     metrics=DEFAULT_METRICS,    # 指标名元组，见下方指标表
                                 # （默认 metrics=None → DEFAULT_METRICS）
     random_state=42,
-    architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu）
+    architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu/nnpu）
     backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
 )
@@ -142,16 +142,17 @@ report = pipe.fit_evaluate(
 
 | 参数 | 默认 | 取值 | 语义 |
 |---|---|---|---|
-| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数（当前 `wconpu` / `infomax_pu`）；未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError` |
+| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数（当前 `wconpu` / `infomax_pu` / `nnpu`）；未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError` |
 | `backbone` | `"cnn13"` | `"cnn13"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
 | `device` | `None`（auto） | `None`/`"auto"`/`"cpu"`/`"cuda"` 等 | 透传给深度分类器（`_fresh_estimator` 按签名注入）；`None`/`"auto"` 自动检测：torch + CUDA 可用则 `"cuda"`，否则 `"cpu"` |
 
 - 深度算法接入契约：要获得 `architecture="cnn"` 支持，分类器构造签名必须声明
   `encoder` 参数（特征提取器形态，pipeline 注入 `build_encoder` 产物，
   `_fresh_estimator` 按签名守卫注入）；未声明时配 cnn 在构造期即被拒绝
-- 显式 `wconpu` / `infomax_pu`：放行必填参数检查，`class_prior` 按「显式 >
-  估计」顺序注入；`architecture="cnn"` 时 encoder 由 pipeline 在 `fit_evaluate`
-  内懒构建（`build_encoder("cnn", backbone=..., in_channels=...)`）并注入
+- 显式 `wconpu` / `infomax_pu` / `nnpu`：放行必填参数检查，`class_prior` 按
+  「显式 > 估计」顺序注入；`architecture="cnn"` 时 encoder 由 pipeline 在
+  `fit_evaluate` 内懒构建（`build_encoder("cnn", backbone=..., in_channels=...)`）
+  并注入
 - 输入维度：4-D NCHW + 显式深度分类器 + cnn → 正常（prior 估计与数据画像在
   展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
   `PipelineError`；2-D + cnn → `PipelineError`
@@ -344,8 +345,9 @@ higher_is_better=None, metrics=None, **pipeline_params)` 在相同的 PU-aware C
 
 ## build_encoder
 
-深度分类器的统一编码器构建入口（`pu_toolbox/estimators/deep/vision.py`），
-PUPipeline 在 `architecture="cnn"` 时内部调用；也可手动传给分类器。
+深度分类器的统一编码器构建入口（`pu_toolbox/estimators/deep/vision.py`，
+亦从包根 `from pu_toolbox import build_encoder` 公共导出），PUPipeline 在
+`architecture="cnn"` 时内部调用；也可手动传给分类器。
 
 ```python
 encoder = build_encoder(
