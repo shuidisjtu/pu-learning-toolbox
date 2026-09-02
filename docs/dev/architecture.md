@@ -5,7 +5,7 @@
 设计决策与代价已迁移至 [docs/adr/](../adr/README.md)。本文档只描述当前架构。
 
 **与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（模块划分、
-依赖方向、数据流）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
+依赖方向、数据流、算法推荐与注册约定）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
 **API 契约**：类的精确签名与方法语义以 [`user/reference/api.md`](../user/reference/api.md) 为权威来源，本文档不重复。
 
 ## 2. 模块分层
@@ -56,11 +56,13 @@
 | `workflows/` | PUPipeline 端到端编排与漂移感知工作流 | [`../../pu_toolbox/workflows/__init__.py`](../../pu_toolbox/workflows/__init__.py)、[`流水线指南`](../user/howto/pipeline.md)、[`漂移指南`](../user/howto/distribution_shift.md) |
 | `cli/` | 命令行薄封装（子命令一览） | [`命令行指南`](../user/howto/cli.md)、[`../../pu_toolbox/cli/__init__.py`](../../pu_toolbox/cli/__init__.py) |
 
-### User Layer — 面向用户的教学与 agent 包装
+### User Layer — 用户入口（教学 / 图形界面 / 复现工具）与 agent 包装
 
 | 模块 | 核心职责 | 详情来源 |
 |---|---|---|
 | `examples/` | 教程与最小示例 | [`../../examples/`](../../examples/) |
+| `ui/` | 图形界面（可选 ext，核心安装不导入 streamlit） | [`../../pu_toolbox/ui/__init__.py`](../../pu_toolbox/ui/__init__.py)、[`图形界面指南`](../user/howto/ui.md) |
+| `benchmarks/` | 论文复现基准（runner / 官方数据 / 产物管理；仓库根，官方数据由执行方提供） | [`../../benchmarks/`](../../benchmarks/) |
 | `scripts/pu_workflow/` | 兼容包装（委托 CLI 子命令） | [`../../scripts/pu_workflow/`](../../scripts/pu_workflow/) |
 | pu-workflow skill | agent 端到端流程（触发词驱动，内部走 CLI） | [`../../.claude/skills/pu-workflow/SKILL.md`](../../.claude/skills/pu-workflow/SKILL.md) |
 
@@ -74,6 +76,7 @@
 | Algorithms（`estimators/`） | Estimation、Core |
 | Estimation（`prior/`、`losses/`） | Core |
 | Evaluation（`metrics/`、`model_selection/`、`diagnostics/`） | —（指标与切分为无层内依赖的纯计算，供编排层调用） |
+| User Layer（`ui/`、`benchmarks/`） | Orchestration（经 CLI / workflows 消费工具箱能力） |
 
 **模块级依赖链**（代表性，全部为单向防环设计）：
 
@@ -87,57 +90,54 @@
 
 ## 3. 数据流
 
+一条主链：`PUPipeline.fit_evaluate` 从数据到报告；方括号为对应模块
+（与 §2 分层表术语一致），后续文字只解释图中说不清的部分。
+
+```text
+用户输入 (X, y_pu[, y_true])
+  ↓ 校验 + 标签规范化      [core/validation + labels]
+数据画像 profile            [preprocessing/data_profiler]
+  ↓ 画像 issues 含 error → fail-fast 停止
+推荐器选方法（auto 默认路径） [advisor/recommend_from_profile]
+  ↓ 显式 classifier 时跳过；推荐理由写入 provenance.classifier
+类先验估计（按需）         [prior/*]
+  ↑ 仅 requires_class_prior=True 的算法执行；不需要 π 的跳过
+  （如 PUSB/LBE/Elkan-Noto/InfoMax PU）
+训练（含 CV 切分）         [estimators/* + model_selection/split]
+  ↓ 输出 predict / decision_function / predict_proba
+评估 + 诊断 → 报告         [metrics + diagnostics → workflows/report]
 ```
-用户输入 (X, y_pu) → 标签规范化 + 校验 → Data Profiler
-    ↓
-Registry → 候选算法 → 实现解析 (native / torch)
-    ↓
-类先验估计 + 标记倾向估计 → 模型训练 → 输出 (predict / decision_function / predict_proba)
-    ↓
-评估 + 诊断 → 报告
-```
 
-源/目标双域路径独立于普通单域入口：`analyze_pu_shift` 用 OOF 域分类器估计可观测
-边际漂移和相对密度比；`ShiftAwarePUPipeline` 在覆盖门禁通过后把源域权重逐折传给
-`PUPipeline`。该路径的保证固定为 covariate-shift-only，不把边际权重描述为联合
-`p_target(x,y)/p_source(x,y)` 适配。
-
-Data Profiler 输出 `PUDataProfile`：包含基础统计、特征质量、问题级别、行动建议和
-标记机制证据。无审计真值时，SCAR/SAR 提示明确标记为非识别性筛查；提供 `y_true`
-时仅在真实正例内部评估 selection dependence，避免把类别可分性误认为 SAR。
-
-`build_diagnostic_report` 位于 `diagnostics`，只读取 Data Profiler、已拟合 estimator
-和指标接口。它不训练模型，并将观测 PU、类先验依赖、监督 oracle 和
-不可用指标分别标记，输出稳定 schema 的 JSON/Markdown 报告。
+- **输入契约**：`X` / `y_pu` 是用户整理好的 PU 数据——抽样（选择哪些样本）与
+  标签标记（哪些正例被标注）由研究者在工具箱之外完成，工具箱将其视为已给输入；
+  数据模拟器（`make_sar_*`/`make_scar_labels`/demo）只用于合成研究，不替代真实采样。
+  可选的 `y_true` 仅用于监督指标与审计，不参与训练。
+- **画像语义**：`PUDataProfile` 含基础统计、特征质量、问题级别、行动建议和标记机制证据。
+  无审计 `y_true` 时 SCAR/SAR 提示明确标记为非识别性筛查；提供 `y_true` 时仅在真实
+  正例内部评估 selection dependence，避免把类别可分性误认为 SAR。
+- **双域路径**（独立于单域入口）：`analyze_pu_shift` 用 OOF 域分类器估计可观测边际
+  漂移和相对密度比；`ShiftAwarePUPipeline` 在覆盖门禁通过后把源域权重逐折传给
+  `PUPipeline`。该路径保证固定为 covariate-shift-only，不把边际权重描述为联合
+  `p_target(x,y)/p_source(x,y)` 适配。
+- **报告组装**：`build_diagnostic_report`（`diagnostics`）只读画像、已拟合 estimator
+  和指标接口，不训练模型；将观测 PU、类先验依赖、监督 oracle 和不可用指标分别标记，
+  输出稳定 schema 的 JSON/Markdown 报告。
 
 ## 4. 算法注册与推荐
 
 每个算法在 `registry` 注册元信息（name/aliases/family/scenario/assumption/
-requires_class_prior/backend/maturity/source_status/implementation_status 等），
-registry 据此管理发现和推荐。字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威；
-注册表实例见 `pu_toolbox/registry/builtin_methods.py`。
+requires_class_prior/backend/maturity/source_status/implementation_status 与 4 个
+架构能力字段 native_architectures / input_ndims / encoder_parameter /
+trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威，内置方法与
+算法↔模块落点、实现状态见 `pu_toolbox/registry/builtin_methods.py`。能力字段以
+估算器类属性为权威、注册时经 `_SYNC_FIELDS` 镜像进 registry（语义与消费点见
+`dual_architecture_plan.md` §3-§4）。
 
-架构能力字段（native_architectures / input_ndims / encoder_parameter /
-trains_encoder + 派生 is_tabular_only）以估算器类属性为权威，注册时经
-`_SYNC_FIELDS` 镜像进 registry；语义与消费点见 `dual_architecture_plan.md`
-§3-§4，阶段 0 实施结果见其 §5。
-
-`advisor/` 模块提供 `recommend_methods(X, y_pu, ...)` 和 `recommend_from_profile(profile, ...)`，将数据画像与元数据匹配（用户侧的选型决策原理见 [`../user/concepts/method_selection.md`](../user/concepts/method_selection.md)）：
-
-1. **硬过滤**：trainable、scenario、sparse 支持、class_prior 可用性
-2. **软评分**：assumption 匹配 + maturity + source_status + 数据规模 + 训练成本 + GPU + 标记充足度
-3. **风险提示**：自动生成全局和每方法的警告
-
-评分权重通过 `ScoringConfig` dataclass 外化，开发者和用户可自定义维度权重
-（含训练成本权重 `cost_max`）、枚举分数映射和数据规模阈值。缺省使用 `DEFAULT_CONFIG`。
-
-模块结构：
-- `_types.py` — 数据类（`MethodCandidate`、`RecommendationResult`）
-- `rules.py` — 评分规则引擎（`ScoringConfig`、评分/警告函数）
-- `recommender.py` — 管线编排（过滤 → 评分 → 排序 → 组装）
-
-返回 `RecommendationResult`，支持 `to_json()` / `to_markdown()` / `save()`。
-向后兼容：`from pu_toolbox.registry import recommend_methods` 仍可用。
+`advisor` 把数据画像与 registry 元数据匹配后推荐方法：硬过滤（trainable、
+scenario、sparse、class_prior 可用性）→ 软评分（assumption 匹配/成熟度/可信度/
+规模/成本/GPU/标记充足度）→ 风险提示；权重外化为可定制的 `ScoringConfig`。
+推荐结果的结构与序列化契约见 [`user/reference/api.md`](../user/reference/api.md)，
+用户侧选型决策原理见 [`method_selection.md`](../user/concepts/method_selection.md)。
 
 ### 与 `model_selection` 的分界
 
@@ -151,33 +151,18 @@ trains_encoder + 派生 is_tabular_only）以估算器类属性为权威，注�
 显式叠加，不自动执行。用户侧决策原理见
 [`method_selection.md`](../user/concepts/method_selection.md)。
 
-## 5. 类先验、标记倾向与损失函数
+## 5. 评价与切分
 
-| 概念 | 相关方法（✅ 已实现 / ⏳ 计划中） |
-|---|---|
-| 类先验 $\pi$ | ✅ ReCPE, ✅ penL1, ✅ KM1/KM2, † TIcE, † AlphaMax |
-| 标记倾向 $c$ (SCAR) | ✅ Elkan-Noto |
-| 标记倾向 $c(x)$ (SAR) | ✅ LBE, ✅ PUSB |
-| PU 风险/损失 | ✅ uPU, ✅ nnPU, ✅ PNU, ✅ Dist-PU |
+| 能力 | 架构要点 | 详情 |
+|---|---|---|
+| PU 分层切分 | `PUStratifiedKFold` / `PUStratifiedShuffleSplit`：保证每个训练折含 labeled positive，保留 P/U 比例 | [`调优指南`](../user/howto/model_tuning.md) |
+| PU 评估指标 | PU-only（`pu_zero_one_risk`/`pu_recall`/`pu_estimated_precision`/`pu_negative_rate`，不需真实标签）；有真值时用标准监督包装（AUC/F1/Accuracy 等） | [`指标契约`](../research/traditional_pu_metric_contract.md) |
+| SCAR/SAR 证据 | 无审计真值时仅作非识别性筛查；提供 `y_true` 时在真实正例内检查 selection dependence | [`画像指南`](../user/howto/data_profiling.md) |
+| 结构化报告 | `build_diagnostic_report` 只读画像、已拟合估计器与指标接口，不训练；输出稳定 schema 的 JSON/Markdown | [`报告指南`](../user/howto/diagnostic_reports.md) |
+| 假设敏感性 | `analyze_pu_sensitivity` 固定模型输出扫 类先验×平均标记倾向 网格相容性；不承担 propensity 识别 | [`敏感性指南`](../user/howto/sensitivity_analysis.md) |
+| Selection-bias 模拟 | `make_sar_*` 支持常数/线性/非线性 propensity；`y_true/propensity` 对用户隐藏、仅供 benchmark | [`SAR 指南`](../user/howto/sar_simulation.md) |
 
-> † 扩展参考（不在 v1 范围内），非 17 篇核心论文方法（"17 篇"含 KLDCE 核化变体与 PUSBKernel，非严格论文数）。
-
-## 6. 评价与切分
-
-- `PUStratifiedKFold`、`PUStratifiedShuffleSplit`（已实现）：保证每个训练折含 labeled positive，保留 P/U 比例。
-- PU-only 指标（不需要真实标签）：`pu_zero_one_risk`（PU 零一验证风险）、`pu_recall`（从已标记正样本估计召回率）、`pu_estimated_precision`（利用类先验估计精确率）、`pu_negative_rate`（无标记样本负预测率）。
-- 有真实 $y$ 时使用标准监督指标包装（AUC, F1, Accuracy）。
-- SCAR/SAR 证据：`scar_diagnostic` 在无真值时仅报告非识别性 P/U 筛查信号；
-  提供审计 `y_true` 时，在真实正例内检查 selection dependence。
-- Selection-bias 模拟：`make_sar_propensity`、`make_sar_labels` 和 `make_sar_dataset`
-  支持常数、线性与非线性 propensity；隐藏 `y_true/propensity` 仅供 benchmark 使用。
-- 结构化报告：`build_diagnostic_report` 组合数据画像、模型 metadata、PU 指标和
-  可选监督指标，支持严格 JSON 与 Markdown 输出。
-- 假设敏感性：`analyze_pu_sensitivity` 固定模型输出，以 $`P(S=1)=\pi\bar c`$
-  检查类先验/平均标记倾向网格的相容性，并导出指标区间、JSON、Markdown 与 CSV；
-  不承担 propensity 识别或逐假设模型重训。
-
-## 7. 论文方法到实现的索引
+## 6. 论文方法到实现的索引
 
 每个方法的模块落点见 `project_structure.md` 目录树；论文公式、源码状态与
 复现风险见各方法卡 [`../research/method_cards/`](../research/method_cards/)
