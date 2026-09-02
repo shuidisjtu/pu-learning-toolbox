@@ -33,7 +33,7 @@
 | [dev/architecture.md](dev/architecture.md) | 当前架构:模块分层、数据流、注册表 |
 | [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
-| [dev/architecture_audit.md](dev/architecture_audit.md) | 审计发现快照、复跑指南与治理机制（ADR-0001） |
+| [dev/architecture_principles.md](dev/architecture_principles.md) | 架构维护原则：腐朽信号、应手与审计历史（ADR-0001） |
 | [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
 | [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | 分布漂移感知 PU 的假设、实现边界与验收标准 |
 | [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
@@ -42,9 +42,7 @@
 | [research/traditional_pu_metric_contract.md](research/traditional_pu_metric_contract.md) | 传统 PU 七算法的单域指标、基线与统计契约 |
 | [research/traditional_pu_optimization_plan.md](research/traditional_pu_optimization_plan.md) | 传统 PU 七算法调优顺序、参数簇、晋级规则与产物契约 |
 | [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
-| [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与兼容性策略 |
-| [dev/2026-08-30-dual-arch-phase1-design.md](dev/2026-08-30-dual-arch-phase1-design.md) | 双架构阶段 1 设计规范：build_encoder 导出、provenance 字段、UI 元数据驱动、CV fold 隔离测试 |
-| [dev/2026-08-30-dual-arch-phase2-design.md](dev/2026-08-30-dual-arch-phase2-design.md) | 双架构阶段 2 设计规范：nnpu encoder 试点、encoder→head 组合契约、gpu marker |
+| [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与实施结果（含各阶段设计决策要点） |
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
 | [research/distribution_shift_metric_contract.md](research/distribution_shift_metric_contract.md) | 分布漂移审计、跨域目标评估与部署监控指标契约 |
 | [research/joint_shift_research_protocol.md](research/joint_shift_research_protocol.md) | JointShift 研究型算法评估协议与声明边界 |

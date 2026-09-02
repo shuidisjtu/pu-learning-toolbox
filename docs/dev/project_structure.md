@@ -450,14 +450,12 @@ docs/
     new_algorithm_template.md  # 新算法接入模板（能力声明与测试要求）
     dual_architecture_plan.md  # 双架构渐进式升级计划（阶段 0-4 与实施结果）
     compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
-    architecture_audit.md      # 审计发现快照、复跑指南与治理机制（ADR-0001）
+    architecture_principles.md # 架构维护原则：腐朽信号、应手与审计历史
     data_leakage_audit_design.md # 数据泄露审计设计（黑名单/重复样本/guard）
     distribution_shift_aware_pu.md # 分布漂移感知 PU 设计（OOF 审计/协变量加权）
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
     process_checklist.md       # 进度清单与发布状态（权威来源）
     release_process.md         # 发布流程：版本策略、预检清单、上传、回滚与维护
-    2026-08-30-dual-arch-phase1-design.md # 双架构阶段 1 设计（build_encoder/provenance/UI 候选集）
-    2026-08-30-dual-arch-phase2-design.md # 双架构阶段 2 设计（nnpu encoder 试点）
 
   research/
     method_cards/
