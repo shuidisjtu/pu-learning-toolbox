@@ -19,9 +19,9 @@
 
 | 机制 | 定义 | 用途 |
 |---|---|---|
-| `scar` | 正类 propensity 为常数 | SCAR 控制组 |
-| `linear` | 标准化特征投影经过 sigmoid | 单调 instance-dependent bias |
-| `nonlinear` | 在线性投影上加入中心化二次项 | 非线性 selection bias |
+| `scar` | $`P(S=1\mid Y=1,X)=c`$（正类 propensity 为常数，经截距校准使均值等于 `label_frequency`） | SCAR 控制组 |
+| `linear` | $`P(S=1\mid Y=1,X)=\sigma(\gamma\,w^\top\tilde{x}+b)`$（标准化特征投影经过 sigmoid，$`\gamma`$ 为 `strength`、$`b`$ 为校准截距） | 单调 instance-dependent bias |
+| `nonlinear` | 在线性投影上加入中心化二次项：$`\sigma(\gamma\,(w^\top\tilde{x}+\tfrac12\,q)+b)`$，$`q`$ 为 $`w^\top\tilde{x}`$ 在真实正例上的中心化二次项 | 非线性 selection bias |
 
 `feature_weights` 控制投影方向，默认所有特征等权并进行 L2 归一化。`strength=0` 时，线性和非线性机制退化为常数 propensity，可作为实现正确性的边界检查。生成方法见 [howto/sar_simulation.md](../howto/sar_simulation.md)。
 
