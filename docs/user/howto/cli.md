@@ -34,7 +34,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--classifier` | — | `auto` | 注册方法名或 `auto`（推荐器选算法） |
 | `--classifier-param` | — | — | 分类器构造参数，可重复；支持 JSON 数字/布尔值/列表/对象（如 `--classifier-param reg_lambda=0.01`） |
 | `--config` | — | — | 导入 UI/CLI 共用的 JSON 运行配置；显式非默认参数覆盖配置值 |
-| `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu`） |
+| `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu/nnpu`） |
 | `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
 | `--device` | — | `auto` | 深度算法 torch 设备：`auto`/`cpu`/`cuda`（`auto` 在有 GPU 时自动用 CUDA） |
 | `--max-epochs` | — | 估计器默认 | 深度算法训练轮数上限（仅对构造签名含 `max_epochs` 的算法生效，如 `wconpu`/`self_pu`/`nnpu`） |
@@ -49,7 +49,8 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 ### 辅助命令
 
 - `list-methods`：列出全部注册算法（名称 / family / 是否需要先验 / 实现状态 /
-  能否自动实例化）。新算法注册后自动出现。
+  输入维度 Input / 原生架构 Arch / 能否自动实例化，共 7 列；能力列由注册表
+  元数据驱动）。新算法注册后自动出现。
 - `list-priors`：列出 `--prior-estimator` 可用的估计器（`km1`/`km2` 映射到
   `KernelMeanPriorEstimator(variant=...)`）。
 - `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 1.0] [--seed 42]`：
@@ -87,16 +88,17 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
 ## 深度算法与图像数据
 
-`run` 支持两个深度算法（WConPU、InfoMax PU），需先安装可选依赖
-`pip install pu-toolbox[torch]`。
+`run` 支持可注入 CNN 骨架的深度算法（WConPU、InfoMax PU、nnPU），
+需先安装可选依赖 `pip install pu-toolbox[torch]`。
 
 - **表格数据**（默认）：`--classifier wconpu --architecture mlp`，MLP 骨架
 - **图像数据**：`--data` 传 4-D NCHW float 数组（.npy 文件，如
   `benchmarks/deep_pu` 数据加载器导出的数组），配合
   `--architecture cnn --backbone cnn13|resnet18|resnet50`
 - `--architecture cnn` 仅对声明了 `encoder` 参数、支持骨架注入的深度算法
-  （`wconpu` / `infomax_pu`）有效；`auto`、非深度算法、或未适配的深度算法
-  （如 `self_pu`）配合 `--architecture cnn` 会报错
+  （`wconpu` / `infomax_pu` / `nnpu`）有效；`auto`、非深度算法、或未适配的
+  深度算法（如 `self_pu`）配合 `--architecture cnn` 会报错。完整支持清单以
+  `pu-toolbox list-methods` 的能力列为准（声明驱动，会随新算法接入更新）
 - 深度训练较慢（WConPU 默认 100 epoch，可用 `--max-epochs` 调整），可减少 `--cv` 折数
 
 ## 退出码

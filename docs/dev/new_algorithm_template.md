@@ -35,7 +35,8 @@
 - 输入/输出形状测试（encoder 输出经 validate_encoder_features 校验）；
 - CV fold 隔离测试（fold 间权重不泄漏）；
 - 固定 seed 测试；
-- CPU/GPU（可用时）测试；
+- GPU 执行级测试：挂 `gpu` pytest marker（pyproject 已注册，无 CUDA 自动 skip，
+  验收环境 `pytest -m gpu` 真执行；先例 `tests/unit/estimators/test_nnpu_gpu.py`）；
 - save/load/predict round-trip 测试；
 - 不支持架构的 fail-fast 测试（PUPipeline architecture 校验）。
 

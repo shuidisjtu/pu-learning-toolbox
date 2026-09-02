@@ -68,9 +68,9 @@ DGPU generator）建议传入已配置实例。
 
 ### 深度算法与架构选择
 
-`PUPipeline` 已为深度算法显式接入架构选择（`wconpu` / `infomax_pu` 支持
-`encoder` 骨架注入；`self_pu` 亦可按名实例化但尚未适配 cnn），需先安装可选
-依赖 `pip install pu-toolbox[torch]`。`auto` 模式下深度方法无 GPU
+`PUPipeline` 已为深度算法显式接入架构选择（`wconpu` / `infomax_pu` / `nnpu`
+支持 `encoder` 骨架注入；`self_pu` 亦可按名实例化但尚未适配 cnn），需先安装
+可选依赖 `pip install pu-toolbox[torch]`。`auto` 模式下深度方法无 GPU
 （`device=None`/`"auto"` 解析为 CPU）或小数据时评分低，不会被实际选中；
 解析为 CUDA 且数据量大时可能被推荐（深度方法的适用场景），选中后 torch 播种
 与训练成本警告照常生效。
@@ -82,7 +82,7 @@ DGPU generator）建议传入已配置实例。
 | `device` | `None`（auto） | 传给深度分类器的 torch 设备（如 `"cuda"`）；`None`/`"auto"` 自动检测：有 GPU 用 CUDA，否则 CPU |
 
 - 显式指定深度分类器且其构造签名声明 `encoder` 参数时放行（当前为 `wconpu` /
-  `infomax_pu`），`class_prior` 仍按「显式 > 估计」顺序注入；
+  `infomax_pu` / `nnpu`），`class_prior` 仍按「显式 > 估计」顺序注入；
   `architecture="cnn"` 时 pipeline 用 `build_encoder` 构建并注入 CNN 编码器；
   未声明 `encoder` 的深度分类器（如 `self_pu`）配 cnn 在构造期报 `PipelineError`
 - `architecture="cnn"` 要求 4-D NCHW 图像输入（`.npy` 数组）；2-D 表格配
@@ -112,8 +112,8 @@ DGPU generator）建议传入已配置实例。
 
 手动流程（`examples/minimal/05_recpe_pipeline.py`）需要 ~30 行样板：
 画像 → 先验估计 → CV → 评估。`PUPipeline` 一行等价，且报告
-`provenance` 完整记录每步决策（classifier 解析、先验来源、跳过候选、随机种子），
-满足可审计要求。
+`provenance` 完整记录每步决策（classifier 解析、先验来源、跳过候选、随机种子、
+architecture/backbone/device/encoder 四项架构信息），满足可审计要求。
 
 搜索多组超参数使用 `PUTuner`，详见[模型调整指南](model_tuning.md)。
 

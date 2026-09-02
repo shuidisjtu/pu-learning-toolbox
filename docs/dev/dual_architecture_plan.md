@@ -178,8 +178,14 @@ MLP 为 None），schema_version 保持 1.0；UI CNN 候选集由 registry 能�
 元数据推导（`cnn_candidates` 纯函数），骨架清单以 vision.py
 `CNN_BACKBONES` 为单一权威（app/run_config/pipeline/CLI 全量消费）；
 CV fold 隔离测试锁定"共享构造 + 逐 fit 深拷贝"语义（2 折真实训练 +
-权重快照断言 + device=cpu 钉定）。设计细节见
-[2026-08-30-dual-arch-phase1-design.md](2026-08-30-dual-arch-phase1-design.md)。
+权重快照断言 + device=cpu 钉定）。设计决策要点：architecture 单值
+（native_mlp/native_cnn，由 pipeline.architecture 映射，不同运行各自
+体现、单次报告不分节）；provenance 顶层平铺 4 键为纯 additive 扩展
+（schema_version 保持 1.0，不破坏旧消费者）；encoder 存构造摘要而非
+完整状态（MLP 为 None）；backbone 清单单一权威 vision.py
+`CNN_BACKBONES`（registry 不扩字段，YAGNI）；CV 隔离测试选 2 折真实
+训练 + 权重快照 + 防假阳性（方案 C）——静态检查或对象标识断言无法
+捕获 deepcopy 语义被破坏的真实风险，方案 C 直接锁定现状语义。
 
 ### 阶段 2：以 `nnpu` 为首个试点
 
@@ -200,8 +206,15 @@ CV fold 隔离测试锁定"共享构造 + 逐 fit 深拷贝"语义（2 折真实
 "原有 MLP"系笔误）。能力声明升级 MLP/CNN 双架构，pipeline
 CV fold 隔离/UI 候选集/报告 provenance 声明驱动自动生效；新增 gpu
 marker 与 CUDA 执行级测试（无 CUDA 自动 skip），gpu 实执行已于
-FunctionTest 验收环境（NVIDIA T600）验收通过。设计细节见
-[2026-08-30-dual-arch-phase2-design.md](2026-08-30-dual-arch-phase2-design.md)。
+FunctionTest 验收环境（NVIDIA T600）验收通过。设计决策要点：encoder
+与 model 同传合法、非互斥——model 复用为 score head，fit 内深拷贝 +
+eval probe 得 representation_dim 后组合为单一
+`nn.Sequential(encoder_, head)`，训练循环/early stopping/optimizer
+重建/decision_function 零改动，PU loss 数学目标不变；encoder=None
+分支逐字不动（默认 `Linear(d, 1)`，计划原文"原有 MLP"系笔误勘误，
+泛指原有默认网络）；head 维度不匹配不预校验、由 torch 前向自然报错
+（与现状 model 语义一致，YAGNI）；新测试全放新文件，既有测试与红线
+文件零改动；gpu 测试经 `pytest.mark.gpu` 注册，无 CUDA 自动 skip。
 
 ### 阶段 3：逐个评估复杂深度算法
 

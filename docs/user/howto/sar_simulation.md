@@ -72,9 +72,10 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 `label_frequency` 是正类 propensity 的目标均值，不是每次随机抽样后必须精确达到的比例：
 
 ```math
-\frac{1}{n_+}\sum_{i:Y_i=1}e(X_i)
-=\text{label_frequency}.
+\frac{1}{n_{+}}\sum_{i\,:\,Y_{i}=1} c(x_{i}) = q,
 ```
+
+其中 $`q`$ 即传入的 `label_frequency`（记号 $`c(x)`$ 与 [符号约定](../concepts/scar_sar.md#1-两种标记机制) 一致）。
 
 实际标记比例由 Bernoulli 抽样产生，会围绕目标波动。正式报告应同时保存：
 

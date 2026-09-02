@@ -297,6 +297,10 @@ L_{\mathrm{opt}}=
 - **mini-batch 组织**：当两个 loader 长度不同，可将一个 epoch 定义为遍历较长 loader，并循环较短 loader。无论采用何种策略，都应：记录实际更新步数；确保每个更新步同时含 P 和 U；分别对 P、U 批次求均值；不依赖两类样本数相同。
 - **loss 扩展（MVP 边界）**：MVP 只内置 sigmoid loss。若项目已有统一 loss protocol，可允许自定义 differentiable loss，但必须声明：是否有界及上界、是否支持 `target ∈ {-1,+1}`、是否按样本返回 loss、是否可用于概率评估（通常不可）。
 - **[项目现状]** Toolbox 已实现 Convex PU 相关部分；nnPU 应优先复用已有的标签规范、类别先验校验、P/U 风险分解与 loss 抽象（具体复用点需结合仓库代码确认）。
+- **[双架构]** 2026-08-30 起支持可选 `encoder` 参数（MLP/CNN 双架构，能力声明
+  {"mlp","cnn"}/输入维度{2,4}）：提供时 model 复用为 score head、fit 内组合
+  `nn.Sequential(encoder_, head)`；`encoder=None` 保持默认 `nn.Linear(d, 1)`
+  与既有调优基线不变（详见 docs/dev/dual_architecture_plan.md 阶段 2）。
 
 ---
 
