@@ -10,14 +10,15 @@
 
 ## 2. 模块分层
 
-> 分层为概念归类；"模块"列给出对应 `pu_toolbox/` 子包；职责为模块级边界，
-> 更细的类/函数级归属见 [`project_structure.md`](project_structure.md) 目录树。
+> 分层为概念归类；"模块"列给出对应 `pu_toolbox/` 子包；职责为模块级边界。
+> 文件级职能（每个文件的核心功能与公开入口）见 [`project_structure.md`](project_structure.md)
+> 目录树旁注——本表不重复，避免真相源分裂。
 
 ### Core — 地基层：无上层依赖，被其余层引用
 
 | 模块 | 核心职责 | 详情来源 |
 |---|---|---|
-| `core/` | PU 基类、标签规范、输入校验、设备/随机源统一、异常与 tags 语义 | [`../../pu_toolbox/core/__init__.py`](../../pu_toolbox/core/__init__.py) |
+| `core/` | PU 基类、标签语义规范、输入校验与规范化、设备/随机源统一、异常与 tags 语义 | [`../../pu_toolbox/core/__init__.py`](../../pu_toolbox/core/__init__.py) |
 | `preprocessing/` | SCAR/SAR 标签与数据生成、结构化数据画像 | [`../../pu_toolbox/preprocessing/__init__.py`](../../pu_toolbox/preprocessing/__init__.py)、[`画像指南`](../user/howto/data_profiling.md) |
 | `registry/` | 算法注册、元数据与内置方法发现 | [`../../pu_toolbox/registry/__init__.py`](../../pu_toolbox/registry/__init__.py)、[`内置方法表`](../../pu_toolbox/registry/builtin_methods.py) |
 | `advisor/` | 数据画像驱动的算法推荐 | [`../../pu_toolbox/advisor/__init__.py`](../../pu_toolbox/advisor/__init__.py)、[`选型原理`](../user/concepts/method_selection.md) |
@@ -63,79 +64,25 @@
 | `scripts/pu_workflow/` | 兼容包装（委托 CLI 子命令） | [`../../scripts/pu_workflow/`](../../scripts/pu_workflow/) |
 | pu-workflow skill | agent 端到端流程（触发词驱动，内部走 CLI） | [`../../.claude/skills/pu-workflow/SKILL.md`](../../.claude/skills/pu-workflow/SKILL.md) |
 
-### 2.1 系统上下文
+### 2.1 模块依赖关系
 
-```mermaid
-flowchart LR
-    U["PU 研究者 / 数据科学家"]
-    SYS["pu-learning-toolbox"]
-    DEPS["numpy · scipy · scikit-learn"]
-    EXT["论文官方源码与官方数据*"]
+**层间调用方向**（指向被依赖方；基座层被所有上层引用，不允许反向）：
 
-    U -- "CLI / Python API / agent skill" --> SYS
-    SYS -- "运行时依赖" --> DEPS
-    SYS -. "benchmarks 复现引用" .-> EXT
-```
+| 层 | 使用/调用 |
+|---|---|
+| Orchestration（`workflows/`、`cli/`） | Evaluation、Algorithms、Estimation、Core |
+| Algorithms（`estimators/`） | Estimation、Core |
+| Estimation（`prior/`、`losses/`） | Core |
+| Evaluation（`metrics/`、`model_selection/`、`diagnostics/`） | —（指标与切分为无层内依赖的纯计算，供编排层调用） |
 
-> \* 官方数据与历史环境由执行方提供，不内置工具箱（Dist-PU 需 Py3.7/numpy1.19 等）。
+**模块级依赖链**（代表性，全部为单向防环设计）：
 
-### 2.2 模块组件图
+- **标签语义链**：`core/labels.py`（纯元语：标签约定识别与重映射）→ `core/validation.py`（组装层：标签规范化 + X/y 一致性 + 样本量门槛与告警，返回值已是规范形）→ 各估计器 `fit` 入口
+- **数据画像链**：`preprocessing/profiling.py`（统计元语：`pu_data_summary`/`pnu_data_summary`/`scar_diagnostic`，向后兼容）→ `preprocessing/data_profiler.py`（聚合编排：`PUDataProfile` + 可行动 issues）→ `workflows`（pipeline 首步）/ `diagnostics`（报告）/ `advisor`（推荐）
+- **字段语义**：`core/tags.py` 是 registry 元数据字段与枚举的权威来源，registry/advisor 均以其为准
+- **设备与随机源入口**：`core/device.py` 的 `resolve_device`、`core/random.py` 的 `check_random_state` 是全工具箱唯一的设备/seed 归一化入口，避免各调用点语义漂移
 
-```mermaid
-flowchart TB
-    subgraph UL["User Layer"]
-        EX["examples/ 教程"]
-        WFS["scripts/pu_workflow/ 兼容包装"]
-    end
-    subgraph OR["Orchestration"]
-        CLI["cli/ 命令行入口"]
-        PPL["workflows/ PUPipeline 编排"]
-    end
-    subgraph EV["Evaluation"]
-        MET["metrics/ PU 指标"]
-        MS["model_selection/ PU 切分"]
-        DG["diagnostics/ 报告与敏感性"]
-    end
-    subgraph AL["Algorithms · estimators/"]
-        CLC["classic/"]
-        RSK["risk/"]
-        BIA["bias_aware/"]
-        DEE["deep/"]
-    end
-    subgraph ES["Estimation"]
-        PR["prior/ 类先验"]
-        LS["losses/ PU 风险"]
-    end
-    subgraph CR["Core"]
-        CORE["core/ 基类与校验"]
-        PRE["preprocessing/ 标签与画像"]
-        REG["registry/ 注册表"]
-        ADV["advisor/ 推荐器"]
-        UTL["utils/ 共享工具"]
-    end
-
-    WFS --> PPL
-    EX --> PPL
-    CLI --> PPL
-    PPL --> EV
-    PPL --> AL
-    PPL --> ES
-    PPL --> CR
-    AL --> ES
-    AL --> CR
-    ES --> CR
-
-    style UL fill:#E8F0FE,stroke:#4A6FA5,color:#1B2A4A
-    style OR fill:#FDEBD0,stroke:#C08000,color:#5C3D00
-    style EV fill:#E6F4EA,stroke:#3C8C5C,color:#14532D
-    style AL fill:#F3E8FF,stroke:#7C3AED,color:#3B0764
-    style ES fill:#FEE2E2,stroke:#C2410C,color:#7C2D12
-    style CR fill:#F1F5F9,stroke:#64748B,color:#1E293B
-```
-
-> 箭头表示调用方向（指向被依赖方）：编排层调用 Evaluation / Algorithms /
-> Estimation / Core，Algorithms 使用 Estimation 与 Core，Estimation 依赖 Core。
-> 分层与层间边为代表性概览，细粒度依赖以 [`project_structure.md`](project_structure.md)
+> 分层为代表性概览，细粒度依赖以 [`project_structure.md`](project_structure.md)
 > 目录树为准。
 
 ## 3. 数据流

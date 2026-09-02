@@ -18,136 +18,136 @@ pu-learning-toolbox/
 ```text
 pu_toolbox/
   core/
-    __init__.py
-    base.py
-    validation.py
-    labels.py
-    config.py
-    exceptions.py
-    random.py
-    tags.py
+    __init__.py                           (公共导出聚合)
+    base.py                               (shared: BasePUClassifier/BasePriorEstimator/BasePULoss 估计器与损失统一基类)
+    validation.py                         (shared: validate_pu_X_y/validate_pnu_X_y 输入与标量校验，fit 统一入口)
+    labels.py                             (shared: normalize_pu_labels/normalize_pnu_labels PU/PNU 标签规范化)
+    config.py                             (shared: 标签编码常量(+1/0/-1)与概率裁剪及 PU 比值阈值)
+    exceptions.py                         (shared: PULearningError 统一异常族（Validation/NotFitted/Registry 子类）)
+    random.py                             (shared: check_random_state 随机种子规范化（sklearn 兼容）)
+    tags.py                               (shared: Scenario/Assumption/ImplementationStatus 等类型化枚举)
     device.py                             (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
   preprocessing/
-    __init__.py
-    pu_labeling.py
-    selection_bias.py                     (SCAR/SAR propensity、标签与合成数据)
-    profiling.py                          (兼容 summary 与 SCAR 筛查接口)
-    data_profiler.py                      (结构化 PU 画像、问题与假设提示)
+    __init__.py                           (公共导出聚合)
+    pu_labeling.py                        (make_scar_labels/make_pu_labels 等造 PU/PNU 标签及高斯合成数据)
+    selection_bias.py                     (make_sar_propensity/make_sar_labels SAR 倾向与合成数据)
+    profiling.py                          (pu_data_summary 等轻量摘要与 scar_diagnostic SCAR 诊断)
+    data_profiler.py                      (profile_pu_data 结构化画像（摘要+问题清单+假设提示）)
   prior/
-    __init__.py
-    recpe.py                              (native)
-    pen_l1.py                             (native)
-    kernel_mean.py                        (native: KM1/KM2 kernel-mean class-prior estimation)
+    __init__.py                           (公共导出聚合)
+    recpe.py                              (native: ReCPEEstimator 重分组类先验估计，默认 KM2 基估计器)
+    pen_l1.py                             (native: ClassPriorEstimator 罚 L1 闭式先验，theta 网格搜索)
+    kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 核均值混合比例估计)
   utils/
-    __init__.py
-    basis.py                              (shared)
-    centroid.py                           (shared: MoM + 协方差原语, LDCE/KLDCE 共用)
-    activations.py                        (shared: sigmoid_stable 数值稳定实现单源)
-    serialization.py                      (shared: JSON 严格模式/Markdown 序列化助手单源)
+    __init__.py                           (公共导出聚合)
+    basis.py                              (shared: build_linear_basis/build_rbf_basis 基函数构造与中心子采样)
+    centroid.py                           (shared: MoM 质心与经验协方差原语，LDCE/KLDCE 共用)
+    activations.py                        (shared: sigmoid_stable 数值稳定 sigmoid，uPU/nnPU 损失单源)
+    serialization.py                      (shared: json_safe/canonical_hash 等报告序列化与 Markdown 转义单源)
   losses/
-    __init__.py
-    upu.py                                (native)
-    nnpu.py                               (native)
-    pnu.py                                (native)
-    llsvm.py                              (native)
+    __init__.py                           (公共导出聚合)
+    upu.py                                (native: UPULoss 无偏 PU 风险（logistic/squared 边缘损失）)
+    nnpu.py                               (native: NonNegativePULoss 非负风险评估与 nnPU 训练步)
+    pnu.py                                (native: PNU 风险组合组件（PN/NU/PU），risk/pnu.py 复用)
+    llsvm.py                              (native: llsvm_objective/calibration_loss LLSVM 损失组件（官方公式）)
   estimators/
     classic/                              (2/2 native)
-      __init__.py
-      elkan_noto.py                       (native)
-      llsvm.py                            (native)
+      __init__.py                         (公共导出聚合)
+      elkan_noto.py                       (native: Elkan–Noto SCAR 概率修正/加权重训, 分层 K 折 OOF 估 c)
+      llsvm.py                            (native: 线性 LLSVM 大间隔标定, SGD 非凸目标+早停, 对齐官方公式)
     risk/
-      __init__.py
+      __init__.py                         (公共导出聚合)
       _class_prior.py                     (shared: 类先验推导与 1−2ph 稳定性检查, KLDCE/LDCE 共用)
-      ldce.py                             (native)
+      ldce.py                             (native: 线性 LDCE(切断PU): MoM 质心+椭球约束, m-更新与次梯度 w 交替)
       kldce.py                            (native: ACS + 原生 SMO + RBF kernel)
       kldce_smo.py                        (原生配对 SMO 求解器: 解析更新 + KKT 选择)
-      dist_pu.py                          (native)
-      upu.py                              (native)
-      nnpu.py                             (native)
-      pnu.py                              (native)
+      dist_pu.py                          (native: Dist-PU 标签分布对齐: 正例监督+期望对齐+熵最小化, torch 可选 MLP)
+      upu.py                              (native: uPU 凸风险估计器(du Plessis'15): 双铰链/逻辑/平方损失三变体)
+      nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
+      pnu.py                              (native: 凸 PNU 半监督闭式解(平方损失, 对齐 pywsl, η 混合 P/NU))
     bias_aware/
-      __init__.py
-      pusb.py                             (native: linear source-classifier baseline)
+      __init__.py                         (公共导出聚合)
+      pusb.py                             (native: PUSB 选择偏差打分: LR 源分类器 + 可配置阈值(保序不保后验))
       pusb_kernel.py                      (native: official-aligned RBF PUSB adapter)
-      lbe.py                              (native)
+      lbe.py                              (native: LBE 实例依赖标注偏差: 交替加权 LR 估后验+倾向, sklearn)
     deep/
-      __init__.py
-      self_pu.py                          (native: self-paced + meta reweight + distillation)
-      infomax_pu.py                       (native: PURL + nnPU pipeline)
-      weighted_contrastive_pu.py          (native core)
-      vision.py                           (WConPU CNN13/ResNet 与 tensor augmentation adapters)
-      dgpu.py                             (native orchestration + generator protocol)
-      _validation.py                      (encoder 输出校验: 2-D/有限/feature_dim>=1)
+      __init__.py                         (公共导出聚合: DGPU/InfoMaxPU/SelfPU/WConPU 分类器与 vision 工厂)
+      self_pu.py                          (native: SelfPUClassifier 双学生自步进+元重加权+蒸馏 (官方精确对齐))
+      infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU 流水线, PU-SMI 目标)
+      weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier 原型+SAT+momentum queue 加权对比 (WConPU 论文协议))
+      vision.py                           (shared: 公共 CNN encoder factory: build_encoder/CNN_BACKBONES 单源)
+      dgpu.py                             (native: DGPUClassifier 判别-生成协作循环 + generator fit/sample/warm_start 协议)
+      _validation.py                      (shared: encoder 输出校验单源: validate_encoder_features 2-D/有限/feature_dim>=1)
     research/
-      __init__.py                         (研究级估计器公开入口)
+      __init__.py                         (公共导出聚合: 联合移位分类器/论文目标函数/JOINT_SHIFT_METHODS 工厂)
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
       dynamic_joint_shift.py              (论文式联合权重/分类目标与共享特征动态训练)
-      joint_shift_baselines.py            (trPU/tePU/fine-tune/MMD 对照与消融工厂)
+      joint_shift_baselines.py            (JointShiftPUBaseline trPU/tePU/fine-tune/MMD 对照与 build_joint_shift_estimator 消融工厂)
     __init__.py
   metrics/
-    __init__.py
-    classification.py                     (已实现: PU risk/recall/precision + supervised wrappers)
+    __init__.py                           (公共导出聚合: 12 个分类指标函数统一出口)
+    classification.py                     (已实现: PU-only 指标 pu_zero_one_risk/pu_recall + 监督包装)
   diagnostics/
-    __init__.py
-    benchmark.py                          (benchmark 产物、provenance 与 PU split 审计)
-    report.py                             (数据/模型/指标诊断，JSON/Markdown 报告)
+    __init__.py                           (公共导出聚合: 诊断报告类与假设分析函数统一入口)
+    benchmark.py                          (audit_benchmark_results: 校验 benchmark 结果目录完整性/溯源/指标列)
+    report.py                             (已实现: build_diagnostic_report 汇总数据画像与模型指标诊断)
     sensitivity.py                        (类先验/平均标记倾向假设敏感性)
-    shift.py                              (源/目标域 OOF 漂移审计、相对权重与 ESS 报告)
-    domain_assumptions.py                 (双域类先验、平均标记倾向与敏感性差异报告)
-    shift_monitor.py                      (固定参考域的窗口历史、变化量与分级告警)
-    uncertainty.py                        (概率边际、拒绝预测与主动人工复核策略)
+    shift.py                              (已实现: analyze_pu_shift 协变量漂移审计 → PUShiftReport)
+    domain_assumptions.py                 (已实现: analyze_domain_assumptions 跨域先验/标记机制移位诊断)
+    shift_monitor.py                      (已实现: PUShiftMonitor 窗口化重复漂移审计+告警, 持久化 history)
+    uncertainty.py                        (已实现: analyze_pu_uncertainty 不确定度/选择性预测/查询队列)
   model_selection/
-    __init__.py
-    comparison.py                         (PUModelComparator 多模型 CV 与最佳模型重训)
-    split.py                              (已实现: PUStratifiedKFold + PUStratifiedShuffleSplit)
-    tuning.py                             (PUTuner: PU-aware 参数网格、trial 与最佳报告)
+    __init__.py                           (公共导出聚合: 分裂器公开 + tuning/comparison 懒加载防环)
+    comparison.py                         (已实现: PUModelComparator 注册表分类器 CV 对比与排序)
+    split.py                              (已实现: PUStratifiedKFold 等 PU-aware 分裂器, 保每折标注正样本)
+    tuning.py                             (已实现: PUTuner 超参网格搜索, 复用 PUPipeline 与 PU 指标)
   registry/
-    __init__.py
-    registry.py                           (含别名解析逻辑)
-    metadata.py
-    builtin_methods.py                    (17 论文方法元数据 + native 绑定)
+    __init__.py                           (公共导出聚合; __getattr__ 懒转发 advisor 符号防导入环)
+    registry.py                           (已实现: 中央注册表 register_method/get_algorithm + 别名解析, 线程安全)
+    metadata.py                           (公开: AlgorithmMetadata 算法元数据契约, 注册表与文档生成共用)
+    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 17 个内置算法元数据)
   advisor/
-    __init__.py
-    recommender.py                        (算法推荐管线: recommend_methods / recommend_from_profile)
-    rules.py                              (评分规则引擎: ScoringConfig + 评分/警告函数)
-    _types.py                             (数据类: MethodCandidate / RecommendationResult)
+    __init__.py                           (公共导出聚合: 推荐引擎与推荐数据结构入口)
+    recommender.py                        (已实现: recommend_methods/recommend_from_profile 画像→注册表方法推荐)
+    rules.py                              (已实现: score_method 评分规则/method_warnings 风险告警; ScoringConfig 权重)
+    _types.py                             (advisor 私有组件: MethodCandidate/RecommendationResult 推荐结果数据结构)
   workflows/
-    __init__.py
-    pipeline.py                           (PUPipeline 顶层编排与类先验处理)
-    _errors.py                            (工作流共享异常类型)
+    __init__.py                           (公共导出聚合: PUPipeline 与 PipelineReport/ShiftAware 报告入口)
+    pipeline.py                           (已实现: PUPipeline 一键 profile→先验→训练→CV→诊断, 支持 mlp/cnn 与 auto 推荐)
+    _errors.py                            (工作流私有组件: PipelineError 编排异常)
     _evaluation.py                        (指标解析、PU-aware CV 执行与聚合)
     _inputs.py                            (输入校验、splitter 准备与 CV provenance)
-    _models.py                            (模型解析、参数校验与 estimator 构造)
-    _reporting.py                         (报告组装与参数 provenance)
-    report.py                             (报告数据类: PriorInfo/CVMetric/PipelineReport)
-    shift.py                              (ShiftAwarePUPipeline 协变量加权编排与组合报告)
+    _models.py                            (工作流私有组件: 分类器/先验解析实例化与参数校验)
+    _reporting.py                         (工作流私有组件: build_pipeline_report 报告组装与 provenance 归一)
+    report.py                             (报告数据类: PipelineReport/PriorInfo/CVMetric; to_dict/to_json/save 契约)
+    shift.py                              (已实现: ShiftAwarePUPipeline 配对 baseline/加权比较 → ShiftComparisonReport)
   cli/                                    (CLI 入口: argparse 子命令与工作流薄封装)
-    __init__.py
+    __init__.py                           (CLI 入口: build_parser/main 装配全部子命令, 用户错误→exit 1)
     run.py                                (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
-    info.py                               (list-methods / list-priors 子命令, registry 实时读取)
-    demo.py                               (make-demo-data 子命令: SCAR 演示数据)
-    profile.py                            (profile 子命令: 数据画像 + SCAR/SAR 诊断, 写 profile.json)
-    recommend.py                          (recommend 子命令: 算法推荐 + 类先验估计, 写 recommendation.json)
-    sensitivity.py                        (sensitivity 子命令: 假设敏感性分析, 写 sensitivity.json)
-    audit_benchmark.py                    (audit-benchmark 子命令: 实验产物与 provenance 审计)
-    skill.py                              (skill 子命令: 安装内置 pu-workflow 技能到用户级 agent 目录)
-    shift.py                              (shift-audit 子命令与三产物导出)
+    info.py                               (list-methods/list-priors 子命令: 打印注册分类器与先验表, km1/km2 特列)
+    demo.py                               (make-demo-data 子命令: 生成 SCAR 演示 X/y_pu/y_true 三 CSV, 校验 5 折可跑)
+    profile.py                            (profile 子命令: 画像+SCAR/SAR 诊断, 写 profile.json 供 recommend 用)
+    recommend.py                          (recommend 子命令: 读 profile.json 推荐方法/估先验, 写 recommendation.json)
+    sensitivity.py                        (sensitivity 子命令: 固定模型预测的先验/倾向敏感性扫描, 写 sensitivity.json)
+    audit_benchmark.py                    (audit-benchmark 子命令: 审计 benchmark 结果, PASS/FAIL 摘要, 可选写 JSON)
+    skill.py                              (skill 子命令: 安装 wheel 内置 pu-workflow skill 至用户 agent 目录)
+    shift.py                              (shift-audit/shift-run 子命令: 漂移审计与加权训练比较, 写 shift_report/comparison 产物)
     deployment.py                         (shift-monitor/review 部署子命令与产物导出)
   ui/                                     (可选 Streamlit 图形界面，核心安装不导入 streamlit)
-    __init__.py                           (数据/配置辅助函数导出)
-    app.py                                (Streamlit 页面流程协调)
-    configuration.py                      (运行配置与 Streamlit session state 适配)
-    data.py                               (CSV/NPY 上传解析与校验)
-    execution.py                          (普通/调参/比较三种运行模式调度)
-    history.py                            (进程级运行历史:刷新保留、重启清空)
-    parameters.py                         (构造器参数元数据与类型化控件)
-    results.py                            (指标、诊断与下载结果渲染)
-    runtime.py                            (后台线程、进度状态与取消控制)
-    launcher.py                           (pu-toolbox-ui 启动入口)
-    deployment.py                         (窗口漂移、coverage 与主动复核 Streamlit 面板)
+    __init__.py                           (公共导出聚合: 数据加载/运行配置/部署分析/参数目录导出)
+    app.py                                (Streamlit 页面流程协调: main() 上传→配置→后台训练→渲染结果)
+    configuration.py                      (运行配置与 session state 适配: apply_run_configuration/parse_json_mapping)
+    data.py                               (CSV/NPY 上传解析与校验: load_feature_data (含 4-D NCHW)/load_label_data)
+    execution.py                          (三种运行模式调度: execute_analysis 普通/调参/比较 + finalize_run 历史收尾)
+    history.py                            (进程级运行历史: append/snapshot 线程安全, 刷新保留、重启清空)
+    parameters.py                         (参数元数据与类型化控件: classifier_catalog 签名反射/parameter_schema/render_parameter_form)
+    results.py                            (结果渲染与下载: render_results 指标/诊断提示/JSON-MD-pkl 下载)
+    runtime.py                            (后台执行: submit_background/BackgroundRun 线程池、进度快照与协作取消)
+    launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
+    deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
   __init__.py
-  run_config.py                           (UI/CLI 共用的可移植 JSON 运行配置契约)
-  progress.py                             (线程安全进度快照、协作式取消 token)
+  run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
+  progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
 ```
 
 ## 3. 测试（`tests/`）
@@ -182,19 +182,19 @@ tests/
       test_shift_monitor.py             # 窗口 delta、告警、历史恢复与配置门禁
       test_uncertainty.py               # 拒绝覆盖、三类查询策略与逐行产物
     estimators/
-      test_elkan_noto.py                # Elkan-Noto 特有逻辑
-      test_upu.py                       # uPU 特有逻辑
+      test_elkan_noto.py                # Elkan-Noto 特有逻辑(OOF propensity 估计接近真 c、加权重训、类先验估计、predict_proba 列归一、pipeline 兼容)
+      test_upu.py                       # uPU 特有逻辑(可分边界、类先验敏感性、全 loss 变体、PU-CV λ 搜索、验证风险公式)
       test_nnpu.py                      # nnPU 特有逻辑（含训练动态/早停）
       test_nnpu_encoder.py              # nnPU encoder 注入(Sequential 组合/4-D 边界/默认回归)
-      test_bias_aware.py                # PUSB / LBE 特有逻辑
+      test_bias_aware.py                # PUSB / LBE 特有逻辑(LBE propensity 有界性、单 EM 迭代、PUSB 全正报错、参数与类先验校验)
       test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
-      test_dist_pu.py                   # Dist-PU 特有逻辑
+      test_dist_pu.py                   # Dist-PU 特有逻辑(torch 依赖 importorskip、mixup 权重边界、class prior/epochs 参数校验)
       test_self_pu.py                   # Self-PU pace/meta/EMA/三阶段训练
       test_deep_pu.py                   # InfoMax PU/WConPU/DGPU 接口与 registry
       test_deep_pu_vision.py            # WConPU 视觉骨干与张量增强
       test_vision.py                    # 统一深度编码器入口 build_encoder
       test_deep_vision_pickle.py        # 深度视觉模块 pickle 往返(E2/E3 回归;importorskip torch)
-      test_llsvm.py                     # LLSVM 特有逻辑
+      test_llsvm.py                     # LLSVM 特有逻辑(可分离合成训练、calibration 防全正、早停与显式先验路径)
       test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
       test_nnpu_gpu.py                  # nnPU CNN encoder GPU 执行级测试(无 CUDA 自动 skip)
     losses/
@@ -203,10 +203,10 @@ tests/
       test_llsvm_loss.py                # LLSVM loss golden tests (MATH)
       test_pnu_loss.py                  # PNU loss golden tests (MATH)
     metrics/
-      test_classification.py            # PU 指标测试
+      test_classification.py            # PU 指标测试(average_precision/pu_recall/pu_estimated_precision/pu_negative_rate 手算 golden、与 sklearn 对照、空组与低先验边界)
     model_selection/
       test_comparison.py                # 多模型比较、失败隔离与选择方向
-      test_split.py                     # PU 切分器测试
+      test_split.py                     # PU 切分器测试(每折保正样本、无重叠全覆盖、PU 比率近似保持、正样本数下限 MIN_POSITIVE_SAMPLES)
       test_tuning.py                    # PUTuner 网格、选择方向与不可用指标
     ui/
       test_history.py                   # 进程级运行历史与收尾条目写入(D9 回归)
@@ -215,13 +215,13 @@ tests/
       test_deployment.py                # UI 部署分析辅助函数与错误路径
       test_cnn_candidates.py            # CNN 候选集与骨架清单元数据驱动(registry 能力声明推导)
     prior/
-      test_recpe.py                     # ReCPE 特有逻辑
-      test_pen_l1.py                    # penL1 特有逻辑
+      test_recpe.py                     # ReCPE 特有逻辑(copy fraction 边界、自定义基分类器/基估计器、默认 KM2 基、置信区间 None、密度比分位数)
+      test_pen_l1.py                    # penL1 特有逻辑(自动 σ=中位数带宽、先验分离带/低先验带、估计有界)
       test_kernel_mean.py               # KM1/KM2 kernel-mean 类先验估计
     preprocessing/
-      test_pu_labeling.py               # PU/PNU 标签生成
+      test_pu_labeling.py               # PU/PNU 标签生成(6 公共函数、统一分发器、参数校验与确定性)
       test_selection_bias.py            # SCAR/SAR propensity、标记率校准与合成数据
-      test_profiling.py                 # 数据画像统计
+      test_profiling.py                 # 数据画像统计(pu_data_summary/pnu_data_summary 计数与比率、NaN/Inf 标记、稀疏输入与标签规范化)
       test_data_profiler.py             # 结构化报告、质量规则与审计诊断
       __init__.py
     scripts/
@@ -297,10 +297,10 @@ tests/
     test_traditional_pu_benchmark_runner.py # 传统 PU runner 状态机/resume/产物/失败隔离
     test_traditional_pu_data.py         # 数据协议: SCAR/SAR/PNU 形状、h、病态性
     test_traditional_pu_statistics.py   # 统计原语: 成功率/CI/配对差值
-    test_traditional_pu_configs.py      # <<< 新文件,补注释
-    test_traditional_pu_protocol.py     # <<< 新文件,补注释
-    test_traditional_pu_compare.py      # <<< 新文件,补注释
-    test_traditional_pu_resume.py       # <<< 新文件,补注释
+    test_traditional_pu_configs.py      # 出货配置契约: 网格单元数(SCAR 60/PNU 6)/确定性/seed 集不重叠/resume 改配置拒绝
+    test_traditional_pu_protocol.py     # 数据隔离+失败统计: 无 oracle 标签列、污染 gate(含 resume)、degenerate 标记、全败 NaN 汇总
+    test_traditional_pu_compare.py      # §6 配对决断: 配对/方向/预算容差门控、oracle-only 判定、verdict CSV
+    test_traditional_pu_resume.py       # 增量落盘/resume: 中断行校验、跳过已完成格子仍回 16 行
     test_traditional_pu_leakage_audit.py # 泄露审计: 黑名单/重复样本/guard/preflight 负向测试 + CLI 门禁
     test_traditional_pu_tuning_round.py # 调优轮工具: 候选配置生成/退化率核对
     test_traditional_pu_tuning_rank.py  # 调优轮排名: §4 筛选链/scar-sar 混合网格
