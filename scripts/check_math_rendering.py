@@ -8,6 +8,13 @@ rendered page:
   ("Missing superscript or subscript argument") — e.g. ``$`class_prior_`$``
 - unbalanced ``$`` delimiters, which make the parser swallow plain text
 - unbalanced braces or ``\begin``/``\end`` environments
+- macros rejected by GitHub's MathJax allow-list ("The following macros
+  are not allowed") — e.g. ``\operatorname``; use ``\mathrm{...}`` instead
+- bare ``$...$`` inline math whose content contains ``_``/``*`` (markdown
+  emphasis parsing ambiguity) — these must use the ``$`...`$`` form
+
+Scan scope: method cards plus the PU-survey docs (both contain math whose
+GitHub rendering is user-visible).
 
 Run:  uv run python scripts/check_math_rendering.py
 """
@@ -28,6 +35,9 @@ INLINE_PAT = re.compile(r"\$`(.*?)`\$|(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)", re.S
 BAD_ARG = re.compile(r"[\^_](?:\s+|[}]|&|\\\\|$)")
 EMPTY_GROUP = re.compile(r"[\^_]\{\}")
 ENV_PAT = re.compile(r"\\(begin|end)\{([a-zA-Z*]+)\}")
+# Macros on GitHub's MathJax reject list: rendered as
+# "The following macros are not allowed: <name>" — fail the gate instead.
+BAD_MACRO = re.compile(r"\\(?:operatorname|newcommand|renewcommand|def)\b")
 
 
 def extract_math(text: str) -> list[tuple[str, str, int]]:
@@ -51,6 +61,19 @@ def check_missing_args(chunk: str, kind: str, line: int) -> list[str]:
         start = max(0, m.start() - 20)
         ctx = chunk[start : m.end() + 10].replace("\n", "⏎")
         errors.append(f"{kind}:{line} empty ^{{}}/_{{}} group ...{ctx}...")
+    return errors
+
+
+def check_bad_macros(chunk: str, kind: str, line: int) -> list[str]:
+    errors: list[str] = []
+    for m in BAD_MACRO.finditer(chunk):
+        name = m.group(0)[1:]
+        start = max(0, m.start() - 20)
+        ctx = chunk[start : m.end() + 10].replace("\n", "⏎")
+        errors.append(
+            f"{kind}:{line} macro not allowed on GitHub ({name}) — "
+            f"use \\mathrm{{...}} instead ...{ctx}..."
+        )
     return errors
 
 
@@ -84,6 +107,7 @@ def check_braces(chunk: str, kind: str, line: int) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     files = sorted((PROJECT_ROOT / "docs" / "research" / "method_cards").glob("*.md"))
+    files += sorted((PROJECT_ROOT / "docs" / "research" / "pu_survey").glob("*.md"))
     if not files:
         print("No method cards found; refusing to pass empty scan.", file=sys.stderr)
         return 1
@@ -94,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         errors: list[str] = []
         for chunk, kind, line in extract_math(text):
             errors += check_missing_args(chunk, kind, line)
+            errors += check_bad_macros(chunk, kind, line)
             errors += check_braces(chunk, kind, line)
         # Unbalanced $ per line (odd count)
         for i, line in enumerate(text.splitlines(), 1):

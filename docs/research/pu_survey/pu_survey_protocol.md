@@ -80,7 +80,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
 2. 原始数据集生成 PU 数据集时，对正标签的观测采用标记频率 **label ratio / label frequency**
    $`c\in\{0.1,0.3,0.5\}`$。研究 $`c`$ 时固定同一数据集的总体类先验 $`\pi`$、数据划分、标注机制及
-   其余实验参数；具体 OS 标记方式见参考文献 1。SCAR 以 $`n_{L}=\operatorname{round}(c n_{+})`$ 为
+   其余实验参数；具体 OS 标记方式见参考文献 1。SCAR 以 $`n_{L}=\mathrm{round}(c n_{+})`$ 为
    固定抽样数，从全部正例中均匀无放回抽取，并记录 $`c_{\mathrm{realized}}=n_{L}/n_{+}`$；不采用
    逐样本 Bernoulli 标注。
 
