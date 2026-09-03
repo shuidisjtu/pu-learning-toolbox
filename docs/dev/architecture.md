@@ -45,7 +45,7 @@
 
 | 模块 | 核心职责 | 详情来源 |
 |---|---|---|
-| `metrics/` | PU 评估指标（PU-only + 标准监督指标包装） | [`../../pu_toolbox/metrics/__init__.py`](../../pu_toolbox/metrics/__init__.py)、[`指标契约`](../research/traditional_pu_metric_contract.md) |
+| `metrics/` | PU 评估指标（PU-only + 标准监督指标包装） | [`../../pu_toolbox/metrics/__init__.py`](../../pu_toolbox/metrics/__init__.py)、[`指标契约`](../research/traditional_pu/traditional_pu_metric_contract.md) |
 | `model_selection/` | PU 分层切分、模型调优与比较 | [`../../pu_toolbox/model_selection/__init__.py`](../../pu_toolbox/model_selection/__init__.py)、[`调优指南`](../user/howto/model_tuning.md) |
 | `diagnostics/` | 结构化诊断报告与假设敏感性分析 | [`../../pu_toolbox/diagnostics/__init__.py`](../../pu_toolbox/diagnostics/__init__.py)、[`报告指南`](../user/howto/diagnostic_reports.md) |
 
@@ -156,7 +156,7 @@ scenario、sparse、class_prior 可用性）→ 软评分（assumption 匹配/�
 | 能力 | 架构要点 | 详情 |
 |---|---|---|
 | PU 分层切分 | `PUStratifiedKFold` / `PUStratifiedShuffleSplit`：保证每个训练折含 labeled positive，保留 P/U 比例 | [`调优指南`](../user/howto/model_tuning.md) |
-| PU 评估指标 | PU-only（`pu_zero_one_risk`/`pu_recall`/`pu_estimated_precision`/`pu_negative_rate`，不需真实标签）；有真值时用标准监督包装（AUC/F1/Accuracy 等） | [`指标契约`](../research/traditional_pu_metric_contract.md) |
+| PU 评估指标 | PU-only（`pu_zero_one_risk`/`pu_recall`/`pu_estimated_precision`/`pu_negative_rate`，不需真实标签）；有真值时用标准监督包装（AUC/F1/Accuracy 等） | [`指标契约`](../research/traditional_pu/traditional_pu_metric_contract.md) |
 | SCAR/SAR 证据 | 无审计真值时仅作非识别性筛查；提供 `y_true` 时在真实正例内检查 selection dependence | [`画像指南`](../user/howto/data_profiling.md) |
 | 结构化报告 | `build_diagnostic_report` 只读画像、已拟合估计器与指标接口，不训练；输出稳定 schema 的 JSON/Markdown | [`报告指南`](../user/howto/diagnostic_reports.md) |
 | 假设敏感性 | `analyze_pu_sensitivity` 固定模型输出扫 类先验×平均标记倾向 网格相容性；不承担 propensity 识别 | [`敏感性指南`](../user/howto/sensitivity_analysis.md) |

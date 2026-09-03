@@ -46,7 +46,7 @@ planned_metrics: []
 指标标记为不可用并保存原因，不能以替代值或静默降级掩盖该事实。
 
 数据泄露审计、特征列黑名单、重复样本检查、预处理折内拟合和 benchmark 启动阻断规则，
-由 [数据泄露审计门禁设计](../dev/data_leakage_audit_design.md) 规定。该设计文档当前为
+由 [数据泄露审计门禁设计](../../dev/data_leakage_audit_design.md) 规定。该设计文档当前为
 `design_only`，在独立审计脚本和 runner gate 实现前，不得把实验标记为已通过完整泄露门禁。
 
 ## 2. 数据协议与隔离

@@ -477,14 +477,18 @@ docs/
       WConPU.md
       DGPU.md
       Importance_Weighted_PU_Shift.md
-    traditional_pu_metric_contract.md # 传统 PU 七算法单域指标、基线与统计契约
-    traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约
-    distribution_shift_metric_contract.md # 分布漂移审计、跨域评估与部署监控指标契约
-    joint_shift_research_protocol.md # JointShift 研究型算法评估协议与声明边界
-    pu_survey_protocol.md          # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
-    assets/
-      Dataset.png                  # 8 数据集类别标签与索引（Table B.1）
-      Dateset_PU.png               # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）
+    traditional_pu/
+      traditional_pu_metric_contract.md # 传统 PU 七算法单域指标、基线与统计契约
+      traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约
+    distribution_shift/
+      distribution_shift_metric_contract.md # 分布漂移审计、跨域评估与部署监控指标契约
+      joint_shift_research_protocol.md # JointShift 研究型算法评估协议与声明边界
+    pu_survey/
+      pu_survey_protocol.md          # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
+      implementation_plan.md         # 技术实现与推进状态（现状差距、双架构前置工作项、待办）
+      assets/
+        Dataset.png                  # 8 数据集类别标签与索引（Table B.1）
+        Dateset_PU.png               # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）
 
 ```
 

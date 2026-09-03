@@ -1,7 +1,7 @@
 # 传统 PU 基线 benchmark
 
 七类传统 PU 分类器（Elkan--Noto、uPU、nnPU、PNU、LDCE、KLDCE、LLSVM）的合成单域
-性能基线，协议与统计规则见 `docs/research/traditional_pu_metric_contract.md`。
+性能基线，协议与统计规则见 `docs/research/traditional_pu/traditional_pu_metric_contract.md`。
 所有报告固定 `paper_claim=false`：该基线用于工具箱自身性能评估与改进，不构成
 论文复现，也不得与论文表格数值直接比较。
 

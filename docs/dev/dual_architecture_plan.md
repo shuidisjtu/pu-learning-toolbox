@@ -253,7 +253,7 @@ generator 协议，与 encoder 注入无法直接映射。二者建议长期搁�
 
 ## 7. 当前实验的公平性协议
 
-> 实验协议全文：[pu_survey_protocol.md](../research/pu_survey_protocol.md)。
+> 实验协议全文：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)。
 > 8 数据集、ResNet-18 主协议、统一 OS 视图 + 可选 TS-OS 校准、`c∈{0.1, 0.3, 0.5}`。
 
 本计划与实验协议的关系：PA/PAUC/OA 模型选择与 TS-OS 校准当前不在工具箱
