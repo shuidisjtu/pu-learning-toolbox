@@ -46,6 +46,7 @@
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
 | [research/distribution_shift_metric_contract.md](research/distribution_shift_metric_contract.md) | 分布漂移审计、跨域目标评估与部署监控指标契约 |
 | [research/joint_shift_research_protocol.md](research/joint_shift_research_protocol.md) | JointShift 研究型算法评估协议与声明边界 |
+| [research/pu_survey_protocol.md](research/pu_survey_protocol.md) | PU 调研实验协议：8 数据集、OS/TS 视图、四份数据接口、PA/OA 双选模（工具箱首次实际应用） |
 
 ## 架构决策(docs/adr/)
 
