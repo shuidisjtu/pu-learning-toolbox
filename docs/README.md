@@ -39,13 +39,12 @@
 | [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
 | [research/method_cards/](research/method_cards/) | 18 篇论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
-| [research/traditional_pu_metric_contract.md](research/traditional_pu_metric_contract.md) | 传统 PU 七算法的单域指标、基线与统计契约 |
-| [research/traditional_pu_optimization_plan.md](research/traditional_pu_optimization_plan.md) | 传统 PU 七算法调优顺序、参数簇、晋级规则与产物契约 |
+| [research/traditional_pu/](research/traditional_pu/) | 传统 PU 调优：`traditional_pu_metric_contract.md` 单域指标/基线与统计契约、`traditional_pu_optimization_plan.md` 调优顺序/参数簇/晋级规则/产物契约 |
 | [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
 | [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与实施结果（含各阶段设计决策要点） |
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
-| [research/distribution_shift_metric_contract.md](research/distribution_shift_metric_contract.md) | 分布漂移审计、跨域目标评估与部署监控指标契约 |
-| [research/joint_shift_research_protocol.md](research/joint_shift_research_protocol.md) | JointShift 研究型算法评估协议与声明边界 |
+| [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界 |
+| [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：`pu_survey_protocol.md` 协议（8 数据集、OS/TS 视图、四份数据接口、PA/OA 双选模）、`implementation_plan.md` 实现计划（现状差距、双架构前置工作项、待办） |
 
 ## 架构决策(docs/adr/)
 

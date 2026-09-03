@@ -253,12 +253,16 @@ generator 协议，与 encoder 注入无法直接映射。二者建议长期搁�
 
 ## 7. 当前实验的公平性协议
 
-实验设计包含 CIFAR10（cnn13，可扩展至现有 resnet18/resnet50；ResNet-34
-需先新增 backbone 支持）、USPS（MLP）、OS 数据生成、TS-OS 校准、正类比例
-`{0.1, 0.3, 0.5}`、PA/PAUC/OA 模型选择以及全监督 oracle。其中 PA/PAUC/OA
-模型选择与 TS-OS 校准当前不在工具箱实现中，属于本协议的前置基础设施，
-需单独立项，不计入双架构改造范围；正类比例集合与既有深度协议
-（pi=0.3/0.5/0.7）不一致，实施前需明确补充运行或对齐口径。
+> 实验协议全文：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)。
+> 8 数据集、ResNet-18 主协议、统一 OS 视图 + 可选 TS-OS 校准、`c∈{0.1, 0.3, 0.5}`。
+
+本计划与实验协议的关系：PA/PAUC/OA 模型选择与 TS-OS 校准当前不在工具箱
+实现中，属于实验协议的前置基础设施，需单独立项，不计入双架构改造范围。
+协议要求图像榜单的 backbone 配置（统一 encoder/训练预算、能力台账与门禁、
+encoder 注入、`cnn_feature_adapter`、跨路径公平性检查）见协议 §2.5。
+当前工具箱已集成 cnn13/resnet18/resnet50，ResNet-34 尚未集成；协议的正类
+比例集合与既有深度协议（pi=0.3/0.5/0.7）不一致，实施前需明确补充运行或
+对齐口径。
 
 建议分为三条轨道：
 
