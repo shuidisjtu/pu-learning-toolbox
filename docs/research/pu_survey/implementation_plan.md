@@ -31,16 +31,16 @@
 
 ### 2.1 SCAR 标记（要求层级见协议 §2.3.2）
 
-- 固定抽样数：$n_L=\operatorname{round}(c\, n_+)$，从全部正例中**均匀无放回**抽取；不采用
-  逐样本 Bernoulli 标注（保证扫描 $c$ 时实际标记率与名义 $c$ 对齐）。
-- 记录 $c_{\mathrm{realized}}=n_L/n_+$；随生成 seed 与 manifest 保存。
+- 固定抽样数：$`n_{L}=\operatorname{round}(c\, n_{+})`$，从全部正例中**均匀无放回**抽取；不采用
+  逐样本 Bernoulli 标注（保证扫描 $`c`$ 时实际标记率与名义 $`c`$ 对齐）。
+- 记录 $`c_{\mathrm{realized}}=n_{L}/n_{+}`$；随生成 seed 与 manifest 保存。
 
 ### 2.2 SAR 压力测试（要求层级见协议 §2.3.2）
 
-- 协议要求仅取 $c\in\{0.1,0.5\}$；须与 PU-Bench 的 SAR 设定保持一致。
+- 协议要求仅取 $`c\in\{0.1,0.5\}`$；须与 PU-Bench 的 SAR 设定保持一致。
 - **待回填**：锁定 PU-Bench 当前代码 commit 的 LBE-A 与 LBE-B 选择策略、辅助 posterior 模型和
   全部参数（包括 `shrink_coef`）。锁定值确定后回填本行，并记入实现台账。
-- 保持固定 $n_L$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录。
+- 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录。
 
 ### 2.3 split 操作细节（要求层级见协议 §2.4.4-5）
 
@@ -48,7 +48,7 @@
   5% `clean_val`，其余 90% 为 `train`。
 - `pu_val`/`clean_val` 不重叠；`clean_val` 与 `test` 保持自然类先验。
 - 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同 seed 所有方法/PA/OA/
-  PN oracle/所有 $c$ 共享同一底层 split；同 $c$ 共享相同 P/U 标记；扫 $c$ 仅重生成 $S$ 标签。
+  PN oracle/所有 $`c`$ 共享同一底层 split；同 $`c`$ 共享相同 P/U 标记；扫 $`c`$ 仅重生成 $`S`$ 标签。
 - 记录 seed、样本索引与 split manifest。
 - 分层变量与实现工具（如 sklearn `train_test_split` 或自定义函数）在实现时确定并记录。
 
@@ -131,6 +131,6 @@ pilot 前的基础设施验收至少覆盖：
 | 事项 | 说明 | 状态 |
 |---|---|---|
 | test 测试集留出方式 | 协议 §2.4.4"保留 PU-Bench 的独立测试集"的留出比例，及其与"从原始训练源分层留出 10% 验证池"的先后关系未指明 | 待确认 |
-| $\pi_{population}$ 与 5 seed 关系 | 协议 §3.1 措辞建议改为"对每个 seed 定义于同一完整二元化数据池"（若每 seed 数据池一致则 $\pi_{population}$ 为常量） | 建议修订 |
+| $\pi_{population}$ 与 5 seed 关系 | 协议 §3.1 措辞建议改为"对每个 seed 定义于同一完整二元化数据池"（若每 seed 数据池一致则 $`\pi_{population}`$ 为常量） | 建议修订 |
 | DIY 接口 vs 中心注册表 | 协议 §2.4.2"丰富 DIY 参数"与 §5.3"中心注册表统一管理"并存：前者面向用户自定义，后者管理实验候选池，建议在协议中一处注明分层关系 | 待补 |
 | SAR 锁定 commit 值 | 见 §2.2；锁定 PU-Bench commit 后回填 | 待实现时回填 |

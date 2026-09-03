@@ -38,8 +38,8 @@
 - 目标 1 中"特定情况"指原始数据集本身、数据抽样方式、backbone、测试指标、class prior、
   标注概率、以及其它相关参数：例如参考文献 2 中研究的训练时间和峰值 GPU 内存。
 - 目标 2 中的"标记频率"是指真实正例中被标注为正例标签的平均比例，即参考文献 1、2 中的
-  **label ratio / label frequency**：$c=P(S=1\mid Y=1)$。它不是类先验；类先验单独记为
-  $\pi=P(Y=1)$。
+  **label ratio / label frequency**：$`c=P(S=1\mid Y=1)`$。它不是类先验；类先验单独记为
+  $`\pi=P(Y=1)`$。
 
 ## 2. 数据集
 
@@ -73,21 +73,21 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    TS-compatible 视图。基础数据始终是 OS，而不是在 `ts` 时重新独立抽样 TS 数据。
 
    > TS-OS 校准不是一次性改变数据文件，而是在训练期间对每个 mini-batch 执行
-   > $D_U^k \leftarrow D_U^k\cup D_P^k$：正例批次仍用于正例损失，同时被并入 TS 方法的
+   > $`D_{U}^{k} \leftarrow D_{U}^{k}\cup D_{P}^{k}`$：正例批次仍用于正例损失，同时被并入 TS 方法的
    > 未标记损失输入。验证集和测试集保持原始 OS 协议，不进行该合并。默认 `os_or_ts=os`；
    > 仅对已经在方法台账中标注为原生 TS、且训练接口允许替换未标记损失输入的方法设置
    > `os_or_ts=ts` 并启用校准。该参数不得被解释为重新生成严格独立抽样的 TS 数据。
 
 2. 原始数据集生成 PU 数据集时，对正标签的观测采用标记频率 **label ratio / label frequency**
-   $c\in\{0.1,0.3,0.5\}$。研究 $c$ 时固定同一数据集的总体类先验 $\pi$、数据划分、标注机制及
-   其余实验参数；具体 OS 标记方式见参考文献 1。SCAR 以 $n_L=\operatorname{round}(c n_+)$ 为
-   固定抽样数，从全部正例中均匀无放回抽取，并记录 $c_{\mathrm{realized}}=n_L/n_+$；不采用
+   $`c\in\{0.1,0.3,0.5\}`$。研究 $`c`$ 时固定同一数据集的总体类先验 $`\pi`$、数据划分、标注机制及
+   其余实验参数；具体 OS 标记方式见参考文献 1。SCAR 以 $`n_{L}=\operatorname{round}(c n_{+})`$ 为
+   固定抽样数，从全部正例中均匀无放回抽取，并记录 $`c_{\mathrm{realized}}=n_{L}/n_{+}`$；不采用
    逐样本 Bernoulli 标注。
 
    > SCAR（instance independent）为主实验。SAR 为独立压力测试：
-   > - 仅取 $c\in\{0.1,0.5\}$，并须与 PU-Bench 的 SAR 设定保持一致（实现锁定细节见
+   > - 仅取 $`c\in\{0.1,0.5\}`$，并须与 PU-Bench 的 SAR 设定保持一致（实现锁定细节见
    >   [implementation_plan.md](implementation_plan.md) §2）；
-   > - 保持固定 $n_L$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录；
+   > - 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录；
    > - SAR 下 PA 仅可作为诊断日志，正式模型选择及结论只使用 OA；
    > - 所有算法可在通过输入/训练门禁后参加 SAR OA 测试，但须按其原生假设是否匹配 SAR
    >   标为"原生适用"或"假设违背鲁棒性"。
@@ -107,8 +107,8 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    从原始训练源分层留出 10% 验证池，等分为 5% `pu_val` 和 5% `clean_val`，其余 90% 为
    `train`。`pu_val` 与 `clean_val` 必须不重叠，`clean_val` 和 `test` 保持自然类先验；
 5. 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同一 seed 下所有方法、
-   PA/OA、PN oracle 及所有 $c$ 共享同一底层 split，同一 $c$ 共享相同 P/U 标记结果。扫描 $c$
-   时仅重生成 $S$ 标签，不改变样本、split 或 $\pi_{population}$；
+   PA/OA、PN oracle 及所有 $`c`$ 共享同一底层 split，同一 $`c`$ 共享相同 P/U 标记结果。扫描 $`c`$
+   时仅重生成 $`S`$ 标签，不改变样本、split 或 $`\pi_{population}`$；
 6. 每个候选配置以固定 epoch 预算完整训练一次，记录所有 epoch 的 PA、OA 与 checkpoint；随后
    **离线独立**选择 PA 与 OA 各自最优的"超参数 + checkpoint + 阈值"。选中 checkpoint 直接在
    独立 `test` 评测，不与验证集重新合并训练；
@@ -154,15 +154,15 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
 ## 3. class prior 以及相关参数设置
 
-1. 本实验将类先验明确区分为：总体/测试分布类先验 $\pi_{population}=P(Y=1)$、构造后训练对象
-   的 $\pi_{train}$，以及未标记集内的 $\pi_U$。$\pi_{population}$ 定义为每个 seed 在分层划分前
+1. 本实验将类先验明确区分为：总体/测试分布类先验 $`\pi_{population}=P(Y=1)`$、构造后训练对象
+   的 $`\pi_{train}`$，以及未标记集内的 $`\pi_{U}`$。$`\pi_{population}`$ 定义为每个 seed 在分层划分前
    完整二元化数据池的正例经验比例；它是数据生成 metadata，不从 PU 标签、`train`、`U` 或
-   `test` 子集反推。扫描标记频率 $c$ 时固定每个数据集的 $\pi_{population}$，并在每次运行的
-   metadata 中记录三者及实际实现的 $c$；
-2. 主实验可向需要总体类先验的算法和 PA 传入真实 $\pi_{population}$，但结果必须标注为
-   `known-prior`（oracle-prior）设定。不得将 $\pi_U$ 或 $\pi_{train}$ 不加区分地传入所有名为
+   `test` 子集反推。扫描标记频率 $`c`$ 时固定每个数据集的 $`\pi_{population}`$，并在每次运行的
+   metadata 中记录三者及实际实现的 $`c`$；
+2. 主实验可向需要总体类先验的算法和 PA 传入真实 $`\pi_{population}`$，但结果必须标注为
+   `known-prior`（oracle-prior）设定。不得将 $`\pi_{U}`$ 或 $`\pi_{train}`$ 不加区分地传入所有名为
    `class_prior` 的参数；具体参数语义以算法原文和官方实现为准；
-3. 后续可单独开展 $\pi$ 估计器敏感性实验；该实验不得与使用真实 $\pi_{population}$ 的主结果
+3. 后续可单独开展 $`\pi`$ 估计器敏感性实验；该实验不得与使用真实 $`\pi_{population}`$ 的主结果
    混合；
 4. PU 学习算法的参数选择参考文献 1、2、算法原文和官方代码，并记录候选参数池、选择指标、
    随机种子和最终配置；
@@ -192,9 +192,9 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 1. 结果固定分为四组，且不混合排名：SCAR--PA 主榜、SCAR--OA oracle 对照、SAR--OA 压力测试
    （LBE-A、LBE-B 分开）和 PN oracle。每组按数据集、训练路径（端到端/feature-adapter）和原生
    假设分层；跨数据集只比较趋势，不生成总排名；
-2. "具有优势"仅在同一数据集、$c$、协议和训练路径内，以独立 `test` Accuracy 五次重复均值
+2. "具有优势"仅在同一数据集、$`c`$、协议和训练路径内，以独立 `test` Accuracy 五次重复均值
    比较；同步报告标准差、单配置训练成本、完整调参成本和峰值显存。暂不预设显著性检验门槛；
-3. 所有方法在同一数据集、$c$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/
+3. 所有方法在同一数据集、$`c`$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/
    官方代码预注册并记录候选数。超参数通过中心注册表统一管理（注册表设计参考见
    [implementation_plan.md](implementation_plan.md) §6）；
 4. 同一数据集内统一最大 epoch、batch-size 候选范围、资源上限和调参预算；环境只规定 GPU/CPU、
