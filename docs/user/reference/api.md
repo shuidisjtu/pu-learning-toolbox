@@ -1,14 +1,42 @@
 # API 参考
 
-> 这不是入门读物：先读 [快速开始](../quickstart.md) 或对应的操作指南。
-> 本文档只给精确契约；参数含义与使用示例在对应 howto 中。
+> **定位**：本文档是公共 API 的**权威契约参考**——每个入口自含签名、参数表、
+> 返回结构与最小示例。需要理解原理与完整走查时，从这里**单向**跳转：
+> 术语与整体设计见 [concepts](../concepts/)，操作教程见 [howto](../howto/)，
+> 完整示例见 [examples/minimal](../../../examples/minimal/)。
+> 反向不会发生：查参数契约不需要离开本页。
+>
+> **版本**：与 `pyproject.toml` 同步的 **v1.11.0**（随包发布更新；变更记录见
+> [dev/release_process.md](../../dev/release_process.md)）。
+> **防漂移**：`scripts/check_api_docs.py` 门禁校验本页覆盖每个公共导出与注册算法名，
+> 新增公共 API 必须登记本页，否则门禁失败。
 
-## 分类器与估计器总览
+## 阅读指引
+
+| 你想做什么 | 去哪儿 |
+|---|---|
+| 5 分钟跑通第一个实验 | [快速开始](../quickstart.md) |
+| 理解 PU 设定 / SCAR-SAR / 选型原理 | [concepts](../concepts/) |
+| 按任务走完整教程 | [howto](../howto/)（入口见 [README](../README.md)） |
+| **查某个 API 的签名 / 参数 / 返回** | **本页** |
+| 看运行示例脚本 | [examples/minimal/](../../../examples/minimal/) |
+| 算法原理、公式与复现状态 | [method cards](../../research/method_cards/) |
+
+> 信息分区：**参数契约**在本页；**行为细节**真相源是 docstring（ADR-0013）；
+> **走查示例**在 howto/examples；**算法研究内容**在 method card。每类信息
+> 只有一个权威位置，互以单向链接联系。
+
+## 分类器与估计器
 
 所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
 `get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。
 标签语义由分类器决定（PU 为 `{+1, 0}`，PNU 为 `{+1, -1, 0}`）。
-下表为注册表索引；每个方法的完整参数契约见对应 Method Card。
+
+### 注册表索引
+
+下表是注册表索引（快速导航与别名提示）；**每个方法的完整签名、参数表与
+返回行为见下方按族划分的分组小节**（参数契约的权威位置在本页，方法卡
+不再重复参数契约）。
 
 | 注册名（别名） | 类 | 族 | 核心构造参数摘要 | Method Card |
 |---|---|---|---|---|
@@ -26,7 +54,7 @@
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §6.2](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
-| `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见本文档 InfoMaxPUClassifier 节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
+| `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
 | `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
 | `dgpu` | `DGPUClassifier` | deep | `class_prior` / `generator` / `model` / `hidden_dim` | [DGPU](../../research/method_cards/DGPU.md) |
 | —（`km1` / `km2` variant） | `KernelMeanPriorEstimator` | class-prior | `variant="km1"/"km2"` 等（Kernel-mean 类先验，`PUPipeline` 的 `prior_estimator` 支持） | [Kernel_Mean](../../research/method_cards/Kernel_Mean_Class_Prior.md) |
@@ -49,9 +77,460 @@
 
 依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
 
+### 类先验估计器
+
+#### `ClassPriorEstimator`（注册名 `class_prior_estimation`，别名 `cpe` / `pen_l1`）
+
+penL1（惩罚 L1 风险）类先验估计器；`sigma=None` 时自适应选择中位数尺度。
+
+```python
+ClassPriorEstimator(*, sigma=None, reg_lambda=0.01, theta_grid=None, n_centers=200, standardize=True)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `sigma` | `float \| None` | `None`（数据自适应中位数距离） | RBF 核宽；显式 `sigma` 保留历史固定尺度行为 |
+| `reg_lambda` | `float` | `0.01` | 惩罚系数 |
+| `theta_grid` | `np.ndarray \| None` | `None`（自动生成） | 搜索网格（θ 候选值） |
+| `n_centers` | `int \| None` | `200` | 子采样的中心数 |
+| `standardize` | `bool` | `True` | 训练前对 X 标准化 |
+
+- 实现 `fit(X)` + `estimate()`；旧别名 `pe` 已弃用（`FutureWarning`）。
+- 文档：[class_prior_estimation 方法卡](../../research/method_cards/class_prior_estimation.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)（经 `PUPipeline` 使用）
+
+#### `ReCPEEstimator`（注册名 `recpe`，别名 `re_cpe`）
+
+拷贝正例模型（Copy Positive Estimator，ReCPE）类先验估计器。
+
+```python
+ReCPEEstimator(copy_fraction=0.1, base_estimator=None, classifier=None, classifier_max_iter=1000)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `copy_fraction` | `float` | `0.1` | 拷贝进正样本的未标记样例比例 |
+| `base_estimator` | estimator \| None | `None` | 实现 `estimate()` 的 CPE 估计器；`None` 使用内置混合比例基线 |
+| `classifier` | estimator \| None | `None` | 区分正例与未标记样本的二分类器；其正类概率用于排序未标记样本 |
+| `classifier_max_iter` | `int` | `1000` | 默认 logistic 分类器最大迭代数 |
+
+- 文档：[ReCPE 方法卡](../../research/method_cards/ReCPE.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)
+
+#### `KernelMeanPriorEstimator`（注册名 `km1` / `km2` 变体）
+
+核均值（Kernel-mean）类先验估计器（KM1 / KM2 算法）。
+
+```python
+KernelMeanPriorEstimator(*, variant="km1", kernel_width=None, width_selection="relative",
+                         kernel_width_scale=0.1, width_factors=(0.1, 0.316227766, 1.0, 3.16227766, 10.0),
+                         epsilon=0.04, lambda_upper_bound=8.0, km2_final_slope_weight=0.2,
+                         max_qp_iter=2000, qp_tolerance=1e-7, max_samples_per_group=None,
+                         standardize=False, random_state=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `variant` | `"km1"` / `"km2"` | `"km1"` | 算法变体 |
+| `kernel_width` | `float \| None` | `None` | 核宽；`None` 按 `width_selection` 选择 |
+| `width_selection` | `"relative"` / `"mmd_grid"` | `"relative"` | 核宽选择策略（相对启发式或 MMD 网格） |
+| `kernel_width_scale` | `float` | `0.1` | `relative` 策略的缩放系数 |
+| `width_factors` | `tuple[float, ...]` | 默认网格 | `mmd_grid` 的宽度因子网格 |
+| `epsilon` | `float` | `0.04` | KM2 松弛参数 |
+| `lambda_upper_bound` | `float` | `8.0` | 标度约束上界 |
+| `km2_final_slope_weight` | `float` | `0.2` | KM2 最终斜率权重 |
+| `max_qp_iter` / `qp_tolerance` | `int` / `float` | `2000` / `1e-7` | QP 求解迭代上限与容差 |
+| `max_samples_per_group` | `int \| None` | `None` | 每组最大样本数（`None` 不限制） |
+| `standardize` | `bool` | `False` | 训练前标准化 |
+| `random_state` | `int \| None` | `None` | 随机种子 |
+
+- `PUPipeline` 的 `prior_estimator="km1"/"km2"` 映射到本估计器。
+- 文档：[Kernel_Mean 方法卡](../../research/method_cards/Kernel_Mean_Class_Prior.md)
+
+### 经典包装器
+
+#### `ElkanNotoClassifier`（注册名 `elkan_noto`，别名 `en`）
+
+Elkan-Noto 经验估计包装：单模型校准 + 概率修正或加权重训。
+
+```python
+ElkanNotoClassifier(base_estimator=None, calibration_method="sigmoid", n_cv_folds=3,
+                    eps=1e-12, mode="weighted_retraining", random_state=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `base_estimator` | sklearn 估计器 | `None`（`LogisticRegression()`） | 基础二分类器；必须实现 `predict_proba` |
+| `calibration_method` | `"sigmoid"` / `"isotonic"` | `"sigmoid"` | 基估计器非线性概率输出时的校准方法（线性模型可有自然概率输出时不用） |
+| `n_cv_folds` | `int` | `3` | 估计 `c` 的 OOF 分层 CV 折数；须 ≥ 2 |
+| `eps` | `float` | `1e-12` | 权重计算中防除零的数值裁剪阈值 |
+| `mode` | `"probability_correction"` / `"weighted_retraining"` | `"weighted_retraining"` | 概率修正（`g(x)/c`）或加权重训；工具箱默认加权重训（ADR-0016） |
+| `random_state` | `int \| None` | `None` | K 折切分种子 |
+
+- 文档：[Elkan_Noto 方法卡](../../research/method_cards/Elkan_Noto.md) · 示例：[01_elkan_noto.py](../../../examples/minimal/01_elkan_noto.py)
+
+### 风险估计分类器
+
+#### `UPUClassifier`（注册名 `upu`，别名 `convex_pu`）
+
+无偏 PU（uPU / convex PU）分类器：最小化凸 PU 风险。
+
+```python
+UPUClassifier(class_prior, *, loss="squared", reg_lambda=1e-3, basis="linear",
+              kernel_width=None, n_centers=None, fit_intercept=True,
+              max_iter=1000, tol=1e-6, random_state=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 类先验 π=P(y=1)；可在 `fit` 经 `class_prior` kwarg 覆盖 |
+| `loss` | `"double_hinge"` / `"logistic"` / `"squared"` | `"squared"` | 边缘损失变体：C-DH（凸 QP，推荐主变体）/ C-LL（平滑凸，L-BFGS）/ squared（闭式解，最快但惩罚正确大边缘；工具箱默认，ADR-0016） |
+| `reg_lambda` | `float` | `1e-3` | α 的 ℓ₂ 正则系数；须 > 0；截距 *b* 不参与正则 |
+| `basis` | `"linear"` / `"rbf"` | `"linear"` | 基函数类型；`"rbf"` 用未标记数据子采样 *n_centers* 个中心 |
+| `kernel_width` | `float \| None` | `None` | RBF 核宽；`basis="rbf"` 时必填 |
+| `n_centers` | `int \| None` | `None`（`min(200, n_U)`） | RBF 中心数；`basis="linear"` 时忽略 |
+| `fit_intercept` | `bool` | `True` | 是否拟合截距 *b* |
+| `max_iter` / `tol` | `int` / `float` | `1000` / `1e-6` | 优化迭代上限与收敛容差 |
+| `random_state` | `int \| None` | `None` | 中心子采样种子 |
+
+- 文档：[Convex uPU 方法卡](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) · 示例：[02_upu.py](../../../examples/minimal/02_upu.py)
+
+#### `NonNegativePUClassifier`（注册名 `nnpu`，别名 `nn-pu`）
+
+非负 PU（nnPU）分类器（深度网络，PyTorch）。
+
+```python
+NonNegativePUClassifier(model=None, *, encoder=None, class_prior=None, loss="sigmoid",
+                        beta=0.0, gamma=1.0, optimizer=None, batch_size=256,
+                        max_epochs=200, patience=20, random_state=None, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `model` | `torch.nn.Module \| None` | `None`（`nn.Linear(d, 1)`） | 输出原始分数 g(x) 的 PyTorch 模型 |
+| `encoder` | `torch.nn.Module \| None` | `None` | 特征编码器替代默认原始输入模型；提供时 `model` 作为叠加的分数头，否则创建默认 `nn.Linear(rep_dim, 1)` 头。`None` 保持原行为 |
+| `class_prior` | `float \| None` | `None` | π∈(0,1)；也可经 `fit` 提供/覆盖 |
+| `loss` | `"sigmoid"` | `"sigmoid"` | 替代损失；MVP 仅支持 sigmoid |
+| `beta` | `float` | `0.0` | 非负阈值；须 ≥ 0 |
+| `gamma` | `float` | `1.0` | 校正分支步长折扣；∈[0,1] |
+| `optimizer` | `torch.optim.Optimizer \| None` | `None`（`Adam(lr=1e-3)`） | 优化器 |
+| `batch_size` | `int` | `256` | mini-batch 大小；P/U 批独立取 `min(batch_size, n_P/n_U)` |
+| `max_epochs` | `int` | `200` | 最大训练轮数 |
+| `patience` | `int` | `20` | 早停耐心（仅当 `fit` 传 `validation_data` 时生效） |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 种子与 torch 设备 |
+
+- 文档：[nnPU 方法卡](../../research/method_cards/nnpu.md) · 示例：[03_nnpu.py](../../../examples/minimal/03_nnpu.py)
+
+#### `PNUClassifier`（注册名 `pnu`）
+
+PNU（positive-negative-unlabeled）风险分类器：统一插件式 λ 损失与正则项。
+
+```python
+PNUClassifier(class_prior, *, eta=0.0, reg_lambda=1e-3, basis="linear",
+              kernel_width=None, n_centers=None, fit_intercept=True, random_state=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 类先验 θ_P=P(y=1)；须 ∈(0,1) |
+| `eta` | `float` | `0.0` | PNU 权衡参数 ∈[-1,1]：`0`=PN（监督）、`+1`=PU、`-1`=NU |
+| `reg_lambda` | `float` | `1e-3` | ℓ₂ 正则系数；截距 *b* 不参与 |
+| `basis` / `kernel_width` / `n_centers` | 见 uPU | `"linear"` / `None` / `None` | 基函数与 RBF 参数（同 uPU 语义） |
+| `fit_intercept` | `bool` | `True` | 经由常数基列实现（pywsl 惯例） |
+| `random_state` | `int \| None` | `None` | 中心子采样种子 |
+
+- 文档：[PNU 方法卡](../../research/method_cards/PNU.md) · 示例：[04_pnu.py](../../../examples/minimal/04_pnu.py)
+
+#### `LDCEClassifier`（注册名 `centroid_pu`，别名 `ldce`）
+
+LDCE（Label Density Centroid Estimation）分类器。
+
+```python
+LDCEClassifier(flip_probability, *, reg_strength=1.0, centroid_radius=0.1, mom_groups=10,
+               covariance_ridge=0.01, learning_rate=0.01, n_inner_iter=50,
+               max_iter=10000, tol=1e-6, random_state=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `flip_probability` | `float` | 必填 | 真正例被翻转为观测负例的概率 *h*（截尾率）；∈(0,1) |
+| `reg_strength` | `float` | `1.0` | 线性权重 ℓ₂ 正则系数 λ |
+| `centroid_radius` | `float` | `0.1` | 质心约束的椭球半径 *b*；工具箱默认 tuned（ADR-0016） |
+| `mom_groups` | `int` | `10` | 中位数质心估计的分组数 *g*；`1` 退化为普通均值 |
+| `covariance_ridge` | `float` | `1e-2` | 质心协方差对角脊；与 `centroid_radius` 强交互（ADR-0016） |
+| `learning_rate` | `float` | `0.01` | 次梯度下降初始步长 |
+| `n_inner_iter` | `int` | `50` | 每次外迭代的内层梯度步数 |
+| `max_iter` / `tol` | `int` / `float` | `10000` / `1e-6` | 交替优化上限与容差 |
+| `random_state` | `int \| None` | `None` | 种子 |
+
+- 文档：[LDCE 方法卡](../../research/method_cards/LDCE.md)
+
+#### `KLDCEClassifier`（注册名 `kldce`，别名 `kernelized_ldce`）
+
+核化 LDCE（Kernelized LDCE，ACP 组合交替求解）。
+
+```python
+KLDCEClassifier(flip_probability, *, sigma="scale", reg_strength=1.0, centroid_radius=1.0,
+                mom_groups=10, covariance_ridge=0.0, max_acs_iter=50, max_inner_iter=2000,
+                inner_tol=1e-6, tol=1e-6, random_state=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `flip_probability` | `float` | 必填 | 截尾率 *h*；∈(0,1) |
+| `sigma` | `float \| "scale"` | `"scale"` | RBF 带宽；`"scale"` 用启发式 `σ = 1/sqrt(n_features)` |
+| `reg_strength` | `float` | `1.0` | ℓ₂ 正则系数 λ |
+| `centroid_radius` | `float` | `1.0` | 椭球半径 *b* |
+| `mom_groups` | `int` | `10` | 中位数质心分组数 |
+| `covariance_ridge` | `float` | `0.0` | 质心协方差对角脊；`0.0` 与论文一致，>0 为数值稳定化变体 |
+| `max_acs_iter` / `max_inner_iter` / `inner_tol` | `int` / `int` / `float` | `50` / `2000` / `1e-6` | ACS 外循环上限、内层 QP 对更新上限与 KKT 容差 |
+| `tol` / `random_state` | `float` / `int \| None` | `1e-6` / `None` | 收敛容差与种子 |
+
+- 文档：[KLDCE 方法卡](../../research/method_cards/KLDCE.md)
+
+#### `LLSVMClassifier`（注册名 `llsvm`）
+
+标签相关线性 SVM（LLSVM，LPSVM 变体）。
+
+```python
+LLSVMClassifier(*, alpha=2.0, beta=1.0, gamma=10.0, squash_scale=10.0, reg_lambda=1.0,
+                learning_rate=5e-6, max_epochs=3000, n_batches=20, fit_intercept=True,
+                intercept_scale=10.0, shuffle=True, random_state=None, early_stopping=True,
+                patience=100, tol=5e-4, min_epochs=200)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `alpha` | `float` | `2.0` | 正类平方铰链损失权重 |
+| `beta` | `float` | `1.0` | 未标记 hat 损失权重 |
+| `gamma` | `float` | `10.0` | 标签校准损失权重 |
+| `squash_scale` | `float` | `10.0` | squash 函数缩放参数 *A*（A/π·arctan(f)） |
+| `reg_lambda` | `float` | `1.0` | ℓ₂ 正则强度 |
+| `learning_rate` | `float` | `5e-6` | 固定 SGD 步长 |
+| `max_epochs` | `int` | `3000` | 最大训练轮数 |
+| `n_batches` | `int` | `20` | 每 epoch 的 mini-batch 数 |
+| `fit_intercept` / `intercept_scale` | `bool` / `float` | `True` / `10.0` | 常数特征增广实现截距及其值 |
+| `shuffle` | `bool` | `True` | 每 epoch 是否打乱 |
+| `random_state` | `int \| None` | `None` | 初始化与打乱种子 |
+| `early_stopping` / `patience` / `tol` / `min_epochs` | `bool`/`int`/`float`/`int` | `True` / `100` / `5e-4` / `200` | 全数据目标平台期早停（官方代码固定 3000 轮，故默认开启） |
+
+- `get_pu_metadata()["n_epochs"]` 反映实际停止轮数。
+- 文档：[LLSVM 方法卡](../../research/method_cards/LLSVM.md)
+
+#### `DistPUClassifier`（注册名 `dist_pu`，别名 `distpu`）
+
+Dist-PU 小 MLP 分类器（标签分布目标）。
+
+```python
+DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, learning_rate=1e-3,
+                 alignment_weight=1.0, entropy_weight=0.05, mixup_weight=0.1,
+                 random_state=0, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 类先验 |
+| `hidden_dim` | `int` | `64` | 隐藏层维度 |
+| `epochs` | `int` | `100` | 训练轮数 |
+| `batch_size` | `int` | `128` | mini-batch 大小 |
+| `learning_rate` | `float` | `1e-3` | 学习率 |
+| `alignment_weight` | `float` | `1.0` | 分布对齐损失权重 |
+| `entropy_weight` | `float` | `0.05` | 熵损失权重 |
+| `mixup_weight` | `float` | `0.1` | Mixup 损失权重 |
+| `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 种子与 torch 设备 |
+
+- 文档：[Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)
+
+### Bias-Aware 分类器
+
+#### `PUSBClassifier`（注册名 `pusb`，别名 `biased_pu`）
+
+Selection-bias 鲁棒后验排序（PUSB）分类器。
+
+```python
+PUSBClassifier(*, threshold=0.5, C=1.0, max_iter=1000)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `threshold` | `float` | `0.5` | 决策阈值（sigmoid 化概率阈值）；`predict` 冻结为先验分位数 `threshold_`（单样本稳定） |
+| `C` | `float` | `1.0` | 正则化强度 |
+| `max_iter` | `int` | `1000` | 优化最大迭代 |
+
+- 文档：[PUSB 方法卡](../../research/method_cards/PUSB.md)
+
+#### `PUSBKernelClassifier`（注册名 `pusb_kernel`，别名 `kernelized_pusb`）
+
+官方对齐的 RBF PUSB（确定性 CV）。
+
+```python
+PUSBKernelClassifier(*, n_basis=300, cv=5, sigma_grid=(0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0),
+                     reg_grid=(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0),
+                     random_state=2018, max_iter=200, tol=1e-5)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `n_basis` | `int` | `300` | 核基函数数 |
+| `cv` | `int` | `5` | 确定性 CV 折数 |
+| `sigma_grid` | `Sequence[float]` | 官方网格 | RBF 带宽候选 |
+| `reg_grid` | `Sequence[float]` | 官方网格 | 正则候选 |
+| `random_state` | `int \| None` | `2018` | 种子（官方值） |
+| `max_iter` / `tol` | `int` / `float` | `200` / `1e-5` | 迭代上限与容差 |
+
+- 正则梯度与官方释放实现一致（`0.5·reg_lambda·‖coef‖²`）。
+- 文档：[PUSB 方法卡 §6.2](../../research/method_cards/PUSB.md)
+
+#### `LBEClassifier`（注册名 `lbe`）
+
+LBE（Label Bias Estimation）分类器：估计类后验与实例相关标记倾向。
+
+```python
+LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `max_iter` | `int` | `1000` | 主优化最大迭代 |
+| `n_em_iter` | `int` | `20` | EM 迭代数 |
+| `C` | `float` | `1.0` | 正则化强度 |
+
+- 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
+
+### 深度分类器
+
+#### `SelfPUClassifier`（注册名 `self_pu`）
+
+Self-PU 分类器（概率重加权 / 蒸馏 / 高置信度标记）。
+
+```python
+SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10,
+                 self_paced_start=10, self_paced_end=50, distill_start=50, max_epochs=200,
+                 max_trust_ratio=0.25, pace_1=0.2, pace_2=0.3, meta_step_size=1e-3,
+                 reweight_gamma=1/16, distillation_alpha=10.0, ema_decay=0.99,
+                 student_loss_weight=1.0, teacher_loss_weight=1.0, batch_size=256,
+                 learning_rate=1e-3, weight_decay=0.0, threshold=0.5,
+                 require_validation=False, random_state=None, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 类先验 |
+| `backbone` | `Any \| None` | `None`（内置 MLP） | 特征骨干（表格 MLP；数据画像特征维度由 fit 推断） |
+| `hidden_dim` | `int` | `128` | 隐藏层维度 |
+| `warmup_epochs` | `int` | `10` | 预热轮数 |
+| `self_paced_start` / `self_paced_end` | `int` | `10` / `50` | 自步长标定轮数区间 |
+| `distill_start` | `int` | `50` | 蒸馏开始轮数 |
+| `max_epochs` | `int` | `200` | 最大训练轮数 |
+| `max_trust_ratio` | `float` | `0.25` | 最大可信比例 |
+| `pace_1` / `pace_2` | `float` | `0.20` / `0.30` | 自步进阈值 |
+| `meta_step_size` | `float` | `1e-3` | 元学习步长 |
+| `reweight_gamma` | `float` | `1/16` | 重加权折扣 |
+| `distillation_alpha` | `float` | `10.0` | 蒸馏损失权重 |
+| `ema_decay` | `float` | `0.99` | 教师模型 EMA 衰减 |
+| `student_loss_weight` / `teacher_loss_weight` | `float` | `1.0` / `1.0` | 学生/教师损失权重 |
+| `batch_size` / `learning_rate` / `weight_decay` | `int` / `float` / `float` | `256` / `1e-3` / `0.0` | 训练设置 |
+| `threshold` | `float` | `0.5` | 决策阈值（未调谐，见方法卡） |
+| `require_validation` | `bool` | `False` | 是否要求 `fit` 传 `validation_data`（教师选择需要） |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 种子与设备 |
+
+- `fit(..., validation_data=...)` 提供 clean validation 时启用元重加权与验证基教师选择。
+- 文档：[Self-PU 方法卡](../../research/method_cards/Self-PU.md) · 示例：[10_self_pu.py](../../../examples/minimal/10_self_pu.py)
+
+#### `InfoMaxPUClassifier`（注册名 `infomax_pu`）
+
+深度 PU 分类器（PURL 表示学习 → 类先验估计 → nnPU 分类）；构造参数较多，
+需要细粒度控制时直接传实例给 `PUPipeline`。
+
+```python
+InfoMaxPUClassifier(*, class_prior=None, representation_dim=20, hidden_dim=60,
+                    representation_epochs=200, classifier_epochs=200, learning_rate=1e-3,
+                    representation_ratio_steps=4, representation_encoder_steps=1,
+                    representation_weight_decay=5e-4, representation_batch_norm=False,
+                    representation_activation=False, representation_batch_size=None,
+                    representation_gradient_noise=0.0, classifier_hidden_dims=(),
+                    classifier_batch_norm=False, classifier_optimizer="adam",
+                    classifier_learning_rate=1e-3, classifier_weight_decay=0.0,
+                    classifier_batch_size=256, prior_estimator=None,
+                    random_state=None, encoder=None, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float \| None` | `None` | 类先验；`None` 时用 `prior_estimator` 估计 |
+| `representation_*` | 组合 | 见签名 | 表示学习阶段：`representation_dim`（表示维度）/ `representation_epochs` / `representation_ratio_steps` / `representation_encoder_steps` / `representation_weight_decay` / `representation_batch_norm` / `representation_activation` / `representation_batch_size` / `representation_gradient_noise` |
+| `classifier_*` | 组合 | 见签名 | nnPU 分类器阶段：`classifier_hidden_dims` / `classifier_batch_norm` / `classifier_optimizer`（`"adam"` / `"adagrad"`）/ `classifier_learning_rate` / `classifier_weight_decay` / `classifier_batch_size` |
+| `prior_estimator` | `BaseEstimator \| None` | `None` | `class_prior=None` 时的先验估计器 |
+| `encoder` | `torch.nn.Module \| None` | `None` | 外置编码器（如 `build_encoder("cnn", ...)`）；`None` → 内置 MLP 编码器（向后兼容） |
+| `device` | `str \| None` | `None` | torch 设备（`None`/`"auto"` 自动检测） |
+| `random_state` / `hidden_dim` / `learning_rate` | — | — | 共用种子、隐藏维度与学习率 |
+
+- 传入外置 `encoder` 时替代内部 `nn.Sequential(Linear...)` 编码部分，`ratio_head_` 接在编码器特征之后；`fit` 放行 4-D NCHW 图像输入。
+- 文档：[InfoMax-PU 方法卡](../../research/method_cards/InfoMax-PU.md)
+
+#### `WeightedContrastivePUClassifier`（注册名 `weighted_contrastive_pu`，别名 `wconpu`）
+
+加权对比学习 PU 分类器（对比损失 + 分布匹配）。
+
+```python
+WeightedContrastivePUClassifier(class_prior, *, encoder=None, hidden_dim=128, embedding_dim=128,
+                                queue_size=8192, temperature=0.07, momentum=0.999,
+                                pseudo_label_momentum=0.9, contrastive_weight=0.1,
+                                distribution_weight=0.1, hard_negative_quantile=0.25,
+                                weak_augmentation=None, strong_augmentation=None, batch_size=256,
+                                max_epochs=100, learning_rate=1e-2, optimizer_momentum=0.9,
+                                scheduler="none", random_state=None, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 类先验 |
+| `encoder` | `torch.nn.Module \| None` | `None` | 特征编码器（图像用 `build_encoder("cnn", ...)`） |
+| `hidden_dim` / `embedding_dim` | `int` | `128` / `128` | 隐藏层与嵌入维度 |
+| `queue_size` / `temperature` / `momentum` | `int` / `float` / `float` | `8192` / `0.07` / `0.999` | 对比队列、温度与队列动量 |
+| `pseudo_label_momentum` | `float` | `0.9` | 伪标签动量 |
+| `contrastive_weight` / `distribution_weight` | `float` | `0.1` / `0.1` | 对比/分布损失权重 |
+| `hard_negative_quantile` | `float` | `0.25` | 难负例分位数 |
+| `weak_augmentation` / `strong_augmentation` | callable \| None | `None` | 弱/强增强变换（None 用默认） |
+| `batch_size` / `max_epochs` / `learning_rate` / `optimizer_momentum` | — | `256` / `100` / `1e-2` / `0.9` | 训练设置 |
+| `scheduler` | `"none"` / `"cosine_annealing"` | `"none"` | 学习率调度 |
+| `random_state` / `device` | — | `None` / `None` | 种子与设备 |
+
+- 文档：[WConPU 方法卡](../../research/method_cards/WConPU.md)
+
+#### `DGPUClassifier`（注册名 `dgpu`）
+
+深度生成式 PU 分类器（GAN 判别器 + 伪标签迭代）。
+
+```python
+DGPUClassifier(class_prior, generator, *, model=None, hidden_dim=128, rounds=3,
+               initialization_epochs=100, annotation_epochs=100, generated_samples=5000,
+               pseudo_label_fraction=0.1, confidence_threshold=0.95, debias_strength=0.8,
+               distribution_momentum=0.999, batch_size=256, learning_rate=1e-4,
+               weak_augmentation=None, strong_augmentation=None, random_state=None, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 类先验 |
+| `generator` | torch 模型 | 必填 | 数据生成器（如 GAN generator） |
+| `model` | `torch.nn.Module \| None` | `None` | 判别器/分类器模型（None 内置） |
+| `hidden_dim` | `int` | `128` | 隐藏维度 |
+| `rounds` | `int` | `3` | 伪标签迭代轮数 |
+| `initialization_epochs` / `annotation_epochs` | `int` | `100` / `100` | 初始化与标注轮数 |
+| `generated_samples` | `int` | `5000` | 生成样本数 |
+| `pseudo_label_fraction` | `float` | `0.1` | 伪标签比例 |
+| `confidence_threshold` | `float` | `0.95` | 伪标签置信阈值 |
+| `debias_strength` | `float` | `0.8` | 去偏强度 |
+| `distribution_momentum` | `float` | `0.999` | 分布动量 |
+| `batch_size` / `learning_rate` | — | `256` / `1e-4` | 训练设置 |
+| `weak_augmentation` / `strong_augmentation` | callable \| None | `None` | 弱/强增强 |
+| `random_state` / `device` | — | `None` / `None` | 种子与设备 |
+
+- 文档：[DGPU 方法卡](../../research/method_cards/DGPU.md) · 示例：[10_self_pu.py](../../../examples/minimal/10_self_pu.py)
+
 ## PUPipeline
 
-用法见 [howto/pipeline.md](../howto/pipeline.md)。
+用法见 [howto/pipeline.md](../howto/pipeline.md)；运行示例见
+[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)（先验估计 + 全流程）。
 
 ```python
 pipe = PUPipeline(
@@ -177,7 +656,10 @@ report = pipe.fit_evaluate(
 
 ## 分布漂移 API
 
-用法与解释见[分布漂移指南](../howto/distribution_shift.md)。
+用法与解释见[分布漂移指南](../howto/distribution_shift.md)；示例脚本见
+[11_distribution_shift.py](../../../examples/minimal/11_distribution_shift.py)、
+[12_shift_decision_tools.py](../../../examples/minimal/12_shift_decision_tools.py) 与
+[13_dynamic_joint_shift.py](../../../examples/minimal/13_dynamic_joint_shift.py)。
 
 ### `analyze_pu_shift`
 
@@ -285,9 +767,36 @@ monitor.save_history("history.json")
 
 ### `analyze_pu_uncertainty`
 
-对已拟合模型计算二分类概率边际、拒绝预测和主动人工复核列表。`query_strategy` 支持
-`uncertainty`、`shift_weighted`、`diverse_uncertainty`；第二种必须提供与行对齐的
-`importance_weight`。报告 JSON 只存摘要，CSV 保存逐行概率、不确定性、选择性预测和查询标记。
+对已拟合模型构建选择性预测与主动人工复核计划（`PUUncertaintyReport`）。
+
+```python
+report = analyze_pu_uncertainty(
+    estimator,                        # 已拟合模型（调用 predict/predict_proba）
+    X,
+    *,
+    y_pu=None,                        # 提供后，标记正例不进入查询候选
+    y_true=None,                      # 提供后启用真实标签监督指标
+    min_confidence=0.5,               # 选择性预测的置信度阈值
+    query_budget=0,                   # 查询数量上限（0 = 预算内全部候选）
+    query_strategy="uncertainty",     # "uncertainty" / "shift_weighted" / "diverse_uncertainty"
+    importance_weight=None,           # shift_weighted 必需（与行对齐的权重）
+    random_state=42,
+)
+```
+
+返回 `PUUncertaintyReport`（`pu_toolbox` 公共导出，dataclass）：
+
+| 字段 | 内容 |
+|---|---|
+| `positive_probability` | 每样本的正类概率（与行对齐） |
+| `uncertainty` | 每样本的不确定性度量（概率边际） |
+| `selective_predictions` | 选择性预测集合（低于 `min_confidence` 的样本） |
+| `query_indices` | 推荐主动复核的样本索引（按 `query_strategy` 排序） |
+| `summary` | 样本数、选择策略、预算、拒绝预测统计的摘要键值 |
+| `provenance` | 调用参数与配置记录 |
+
+与行对齐的逐项数值不内嵌 `to_json()`（只存 `summary`）；CSV 序列化保留逐行
+概率、不确定性、选择性预测与查询标记。
 
 ### `JointShiftPUClassifier`（research）
 
@@ -365,27 +874,10 @@ encoder = build_encoder(
   内嵌通道标准化）
 - 非法 `architecture` → `ValueError`
 
-## InfoMaxPUClassifier
-
-深度 PU 分类器（PURL 表示学习 → 类先验估计 → nnPU 分类），构造参数多
-（`representation_*` / `classifier_*` 系列）；需要细粒度控制时直接传实例给
-`PUPipeline`。`encoder` 参数：
-
-```python
-clf = InfoMaxPUClassifier(
-    encoder=None,     # 外置编码器（如 build_encoder("cnn", ...)）；None → 内置 MLP
-    device=None,      # torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
-    ...
-)
-```
-
-- `encoder=None`（默认）：内置 MLP 编码器，向后兼容（表格数据）
-- 传入外置编码器：替代内部 `nn.Sequential(Linear...)` 编码部分，`ratio_head_`
-  接在编码器特征之后；`fit` 放行 4-D NCHW 图像输入
-
 ## profile_pu_data
 
-用法见 [howto/data_profiling.md](../howto/data_profiling.md)。
+用法见 [howto/data_profiling.md](../howto/data_profiling.md)；示例：
+[07_data_profiling.py](../../../examples/minimal/07_data_profiling.py)。
 
 ```python
 report = profile_pu_data(
@@ -465,7 +957,8 @@ result = recommend_from_profile(
 
 ## 数据生成
 
-用法见 [howto/sar_simulation.md](../howto/sar_simulation.md)。
+用法见 [howto/sar_simulation.md](../howto/sar_simulation.md)；示例：
+[06_sar_simulation.py](../../../examples/minimal/06_sar_simulation.py)。
 
 ```python
 propensity = make_sar_propensity(X, y_true, mechanism="linear",
@@ -492,7 +985,8 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 
 ## analyze_pu_sensitivity
 
-用法见 [howto/sensitivity_analysis.md](../howto/sensitivity_analysis.md)。
+用法见 [howto/sensitivity_analysis.md](../howto/sensitivity_analysis.md)；示例：
+[09_sensitivity_analysis.py](../../../examples/minimal/09_sensitivity_analysis.py)。
 
 ```python
 analysis = analyze_pu_sensitivity(
@@ -522,7 +1016,8 @@ labeled-positive 和 unlabeled 组。返回 `PUSensitivityAnalysis`，每点含�
 
 ## build_diagnostic_report
 
-用法见 [howto/diagnostic_reports.md](../howto/diagnostic_reports.md)。三种模式：
+用法见 [howto/diagnostic_reports.md](../howto/diagnostic_reports.md)；示例：
+[08_diagnostic_report.py](../../../examples/minimal/08_diagnostic_report.py)。三种模式：
 
 ```python
 # 纯数据（只运行 profile_pu_data；预测类指标 basis=unavailable）
@@ -564,3 +1059,32 @@ report = build_diagnostic_report(X_valid, y_valid, y_pred=predictions,
 
 `PUDiagnosticReport` 顶层 `schema_version` 当前为 `1.0`；`save()` 按 `.json`/`.md` 后缀推断格式，
 JSON 严格编码（未定义值转 `null`）。
+
+## 错误与异常
+
+**所有权**：所有工具箱异常都继承自 `PULearningError`（`pu_toolbox.core.exceptions`），
+调用方用 `except PULearningError` 即可统一捕获。异常消息的权威文本在代码中定义
+（单一真相源）；本表只回答"什么场景抛什么异常、怎么处置"。
+
+| 异常 | 定义位置 | 触发场景（示例） |
+|---|---|---|
+| `PULearningError` | `core/exceptions.py` | 基类，所有工具箱异常父类；不作一次性抛出的单个类型使用 |
+| `ValidationError` | `core/exceptions.py` | 输入校验失败：`y` 编码非法、无正样本、正样本 < `MIN_POSITIVE_SAMPLES`、正样本少于 CV 折数、`sample_weight` 形状/数值非法 |
+| `NotFittedError` | `core/exceptions.py` | 未 `fit` 即调用 `predict`/`decision_function`/`score_samples`（与 sklearn 兼容） |
+| `RegistryError` | `core/exceptions.py` | 注册名或别名不存在、重复注册、参数校验失败（如先验语义不一致） |
+| `PipelineError` | `workflows/_errors.py` | 流水线层组合错误：无效 classifier/prior 名、方法不可自动实例化、需要先验但最终缺失、`sample_weight` 被 `ignored`/`not_implemented`、`architecture="cnn"` 与方法不兼容等 |
+| `RunCancelledError` | 进度取消模块 | 协作式取消请求在下一个安全边界被抛出 |
+
+> `PipelineError` 与 `RunCancelledError` 定义在 `workflows` 侧（因果性在编排层），
+> 其余在 `core`；对调用方无行为差异——统一捕获 `PULearningError` 即可。
+
+**各 API 的错误与问题码索引**（详细表在各节内，此处导航）：
+
+| API | 错误场景表 | 问题码表 |
+|---|---|---|
+| `PUPipeline` | [错误场景](#错误场景) | — |
+| `profile_pu_data` | 接口拒绝（如 `y_true` 不包含标记正例） | [问题代码](#问题代码)（`no_labeled_positives` / `sar_signal` / …） |
+| `build_diagnostic_report` | 未拟合 estimator 抛 `ValueError`；`estimator` 与 `y_pred`/`scores` 互斥 | 报告问题代码表（本节内上方，`constant_predictions` / …） |
+| `PUTuner` / 漂移管线 | 无法计算任何选择指标时抛 `PipelineError`；覆盖门禁失败抛 `PipelineError` | — |
+
+> 环境/安装类问题（版本矩阵、CI 职责、Python 支持）见 [dev/compatibility.md](../../dev/compatibility.md)。

@@ -1,6 +1,7 @@
 # ruff: noqa: N806
 
 """Audit class-prior and labeling-propensity assumptions for fixed outputs."""
+# API 参考（签名/参数/返回契约）：docs/user/reference/api.md
 
 from sklearn.model_selection import train_test_split
 

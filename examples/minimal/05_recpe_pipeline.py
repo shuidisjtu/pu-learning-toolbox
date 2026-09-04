@@ -1,4 +1,5 @@
 """ReCPE + UPU pipeline — estimate class prior, then train classifier."""
+# API 参考（签名/参数/返回契约）：docs/user/reference/api.md
 
 import numpy as np
 from sklearn.metrics import accuracy_score

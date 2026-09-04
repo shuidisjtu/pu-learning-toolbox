@@ -162,6 +162,17 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "is unit-tested with fixed seeds"
         ),
     },
+    "test_check_api_docs.py": {
+        "basic": (
+            "anti-drift gate unit tests: symbolic coverage checks and static "
+            "AST extraction, no fit/predict behavioral smoke; pipeline behavior "
+            "is covered by test_pipeline(_deep) integration tests"
+        ),
+        "param": (
+            "gate has no parameter surface (main takes no arguments; "
+            "extract/scan are pure functions over fixed symbol sources)"
+        ),
+    },
     "test_build_encoder_export.py": {
         "basic": (
             "cross-classifier export-contract suite: no fit/predict behavioral "

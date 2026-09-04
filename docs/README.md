@@ -2,6 +2,9 @@
 
 ## 用户文档（docs/user/）
 
+**受众**：库使用者——包括使用本工具箱 API 的第三方仓库开发者（不是模块内部
+实现者）；按**任务类型**分层：concepts 解释原理、howto 按任务走教程、reference
+查契约。仓库维护/贡献内容见 [开发者文档](#开发者文档docsdev)。
 从 [快速开始](user/quickstart.md) 开始，5 分钟跑通首个实验。
 
 | 类别 | 文档 | 用途 |
@@ -22,7 +25,7 @@
 | 操作 | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | 生成 SCAR/SAR 数据 |
 | 操作 | [user/howto/self_pu.md](user/howto/self_pu.md) | 训练 Self-PU 分类器 |
 | 操作 | [user/howto/using_skill.md](user/howto/using_skill.md) | 启用与使用 pu-workflow Skill |
-| 参考 | [user/reference/api.md](user/reference/api.md) | 核心 API 精确契约 |
+| 参考 | [user/reference/api.md](user/reference/api.md) | **API 权威契约**：签名、参数表、返回结构与最小示例（`check_api_docs` 门禁防漂移） |
 
 ## 开发者文档（docs/dev/）
 
@@ -50,7 +53,7 @@
 
 | 文档 | 用途 |
 |---|---|
-| [adr/](adr/) | ADR 索引(16 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略/目录合并/方法卡清洗/调优判决等) |
+| [adr/](adr/) | ADR 索引(17 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略/目录合并/方法卡清洗/调优判决/API 参考定位等) |
 
 > ADR 记决策,版本/进度状态见 dev/process_checklist.md 与 dev/release_process.md。
 

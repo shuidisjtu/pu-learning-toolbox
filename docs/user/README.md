@@ -1,6 +1,8 @@
 # 用户文档
 
-本目录是 PU Learning Toolbox 的使用文档，按阅读路径组织：
+本目录面向**库使用者**（含第三方仓库中调用本工具箱 API 的开发者），
+是 PU Learning Toolbox 的使用文档，按任务类型分三层：concepts（原理）/
+howto（操作）/ reference（契约），按阅读路径组织：
 
 1. **[快速开始](quickstart.md)**（5 分钟）——安装、CLI 三命令跑通演示数据、Python 最小片段。**从这里开始。**
 2. **概念**（`concepts/`，想理解原理时读）：
