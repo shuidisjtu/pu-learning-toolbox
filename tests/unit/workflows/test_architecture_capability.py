@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from pu_toolbox.core.base import BasePUClassifier
-from pu_toolbox.workflows._errors import PipelineError
+from pu_toolbox.workflows import PipelineError
 from pu_toolbox.workflows._models import check_architecture_capability
 
 

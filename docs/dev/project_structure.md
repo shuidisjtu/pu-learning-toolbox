@@ -114,7 +114,6 @@ pu_toolbox/
   workflows/
     __init__.py                           (公共导出聚合: PUPipeline 与 PipelineReport/ShiftAware 报告入口)
     pipeline.py                           (已实现: PUPipeline 一键 profile→先验→训练→CV→诊断, 支持 mlp/cnn 与 auto 推荐)
-    _errors.py                            (工作流私有组件: PipelineError 编排异常)
     _evaluation.py                        (指标解析、PU-aware CV 执行与聚合)
     _inputs.py                            (输入校验、splitter 准备与 CV provenance)
     _models.py                            (工作流私有组件: 分类器/先验解析实例化与参数校验)

@@ -31,7 +31,9 @@ ADR-0008 的触发复审条件("文档导航混乱")已出现:使用 API 时需�
    `pu_toolbox.core.exceptions.PULearningError` 家族、各 API 场景→异常→建议
    表与问题码索引)。异常消息文本真相源在代码(ADR-0013 原则不变)。
    代码侧异常类文件分裂(`workflows/_errors.py` 的 `PipelineError` 等 vs
-   `core/exceptions.py`)记录为后续 fix 工作项,不随本文档变更。
+   `core/exceptions.py`)随本变更收敛:定义统一回 `core/exceptions.py`
+   (原 `workflows/_errors.py` 已删除;`workflows.PipelineError` 与
+   `progress.RunCancelledError` 公共路径经再导出保留)。
 6. **后续项承接 ADR-0013**:mkdocstrings+Griffe 自动生成 API 参考的可行性
    评估继续;其前置是 docstring 规范化——本决策落地时发现约 10 个分类器
    具名类 docstring 缺 `Parameters` 段,纳入后续工作。

@@ -11,12 +11,12 @@ from typing import Any, Literal
 
 import numpy as np
 
+from pu_toolbox.core.exceptions import PipelineError
 from pu_toolbox.core.labels import normalize_pu_labels
 from pu_toolbox.core.validation import validate_true_binary_labels
 from pu_toolbox.diagnostics.shift import PUShiftReport, analyze_pu_shift
 from pu_toolbox.utils.serialization import escape_markdown, format_from_suffix, format_value
 
-from ._errors import PipelineError
 from ._evaluation import compute_metric, extract_scores
 from .pipeline import PUPipeline
 from .report import CVMetric, PipelineReport

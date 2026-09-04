@@ -30,3 +30,11 @@ class NotFittedError(PULearningError, _SklearnNotFittedError):
 
 class RegistryError(PULearningError):
     """Raised when registry operations fail (duplicate name, missing alias, etc.)."""
+
+
+class PipelineError(PULearningError):
+    """Workflow orchestration failed (unresolvable classifier/prior, etc.)."""
+
+
+class RunCancelledError(PULearningError):
+    """Raised at a safe boundary after cooperative cancellation is requested."""

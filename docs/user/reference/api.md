@@ -1072,11 +1072,12 @@ JSON 严格编码（未定义值转 `null`）。
 | `ValidationError` | `core/exceptions.py` | 输入校验失败：`y` 编码非法、无正样本、正样本 < `MIN_POSITIVE_SAMPLES`、正样本少于 CV 折数、`sample_weight` 形状/数值非法 |
 | `NotFittedError` | `core/exceptions.py` | 未 `fit` 即调用 `predict`/`decision_function`/`score_samples`（与 sklearn 兼容） |
 | `RegistryError` | `core/exceptions.py` | 注册名或别名不存在、重复注册、参数校验失败（如先验语义不一致） |
-| `PipelineError` | `workflows/_errors.py` | 流水线层组合错误：无效 classifier/prior 名、方法不可自动实例化、需要先验但最终缺失、`sample_weight` 被 `ignored`/`not_implemented`、`architecture="cnn"` 与方法不兼容等 |
-| `RunCancelledError` | 进度取消模块 | 协作式取消请求在下一个安全边界被抛出 |
+| `PipelineError` | `core/exceptions.py` | 流水线层组合错误：无效 classifier/prior 名、方法不可自动实例化、需要先验但最终缺失、`sample_weight` 被 `ignored`/`not_implemented`、`architecture="cnn"` 与方法不兼容等 |
+| `RunCancelledError` | `core/exceptions.py` | 协作式取消请求在下一个安全边界被抛出 |
 
-> `PipelineError` 与 `RunCancelledError` 定义在 `workflows` 侧（因果性在编排层），
-> 其余在 `core`；对调用方无行为差异——统一捕获 `PULearningError` 即可。
+> 全部异常定义统一于 `core/exceptions.py`（单一真相源）；`PipelineError` ／`RunCancelledError`
+> 在 `pu_toolbox.workflows`／`pu_toolbox.progress` 经再导出保留公共路径，对调用方无行为差异
+> ——统一捕获 `PULearningError` 即可。
 
 **各 API 的错误与问题码索引**（详细表在各节内，此处导航）：
 
