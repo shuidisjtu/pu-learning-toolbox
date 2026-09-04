@@ -1,5 +1,7 @@
 # Method Card: Elkan–Noto PU Learning
 
+> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
+
 ## 1. 论文信息
 
 | 字段 | 内容 |

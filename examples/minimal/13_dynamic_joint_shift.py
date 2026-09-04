@@ -1,6 +1,7 @@
 # ruff: noqa: N806
 
 """Train the research dynamic joint-shift PU objective on two domains."""
+# API 参考（签名/参数/返回契约）：docs/user/reference/api.md
 
 from pu_toolbox.estimators.research import DynamicJointShiftPUClassifier
 from pu_toolbox.preprocessing import make_scar_dataset

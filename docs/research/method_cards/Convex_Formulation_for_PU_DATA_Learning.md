@@ -1,5 +1,7 @@
 # Method Card: Convex Formulation for PU Classification
 
+> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
+
 > 标注约定：`【项目适配】` 表示依据当前项目模板/API 约定补充的内容，不是论文原文结论；`【实现建议】` 表示论文未规定、需要工程侧自行确定的实现选择。
 
 ## 1. 论文信息
