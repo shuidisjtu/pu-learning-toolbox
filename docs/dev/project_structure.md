@@ -225,6 +225,7 @@ tests/
       test_data_profiler.py             # 结构化报告、质量规则与审计诊断
       __init__.py
     scripts/
+      test_check_api_docs.py            # api.md 公共符号覆盖门禁(防漂移)脚本测试
       test_check_baseline_configs.py    # 基线配置一致性门禁脚本测试
       test_check_doc_links.py           # 文档链接门禁(orphan/md-link)脚本测试
       test_check_format.py              # 格式门禁(ruff lint+format)脚本测试
@@ -503,6 +504,7 @@ scripts/
   check_skill_sync.py         (Skill 同步检查：skills/ 定义与脚本枚举一致，第 5 道门禁)
   check_baseline_configs.py   (基线配置一致性：锁定配置 vs 源码构造器默认参数，第 6 道门禁)
   check_format.py             (格式门禁：ruff check + format --check 全目录，第 7 道门禁)
+  check_api_docs.py           (api.md 公共符号覆盖防漂移：静态提取 __all__ + 注册名校验，第 8 道门禁)
   pu_workflow/                (pu-workflow skill 环节脚本——兼容薄包装, 委托给 CLI 子命令)
     profile.py                (委托 `pu-toolbox profile`: profile.json 契约)
     recommend.py              (委托 `pu-toolbox recommend`: recommendation.json 契约)

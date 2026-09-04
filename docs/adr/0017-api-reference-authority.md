@@ -1,7 +1,7 @@
 # ADR-0017:API 参考定位与信息分区
 
 - 状态:已接受
-- 触发复审:文档导航再次混乱;或 mkdocstrings+Griffe 自动生成评估(ADR-0013 登记项)有结论需调整分工时
+- 触发复审:文档导航再次混乱;或 mkdocstrings+Griffe 自动生成评估(ADR-0013 登记项)有结论需调整分工时;或公共符号 > 100 或 api.md > 2000 行时(转换到决策 7 的拆分结构)
 
 ## 背景
 
@@ -35,6 +35,15 @@ ADR-0008 的触发复审条件("文档导航混乱")已出现:使用 API 时需�
 6. **后续项承接 ADR-0013**:mkdocstrings+Griffe 自动生成 API 参考的可行性
    评估继续;其前置是 docstring 规范化——本决策落地时发现约 10 个分类器
    具名类 docstring 缺 `Parameters` 段,纳入后续工作。
+7. **API 参考拆分预案**(触发条件:公共符号 > 100 或 api.md > 2000 行,
+   任一先到):拆为 `docs/user/reference/api/` 目录——
+   `index.md` 总索引(即现状注册表索引表)、`classifiers.md` 分类器
+   (占比最大,算法扩展到 58+ 时的首要增长点)、`tools.md`(PUPipeline、
+   数据生成、评估、漂移、其他函数)、`errors.md`(错误与异常)。配套改动:
+   `check_api_docs.py` 扫目录(递归 glob)、method card 与 examples 指针
+   链接改到对应子文件、docs/README 索引同步。**现在不拆**(YAGNI):
+   单一文件 + 分组目录(注册表索引)在 55 符号/1090 行规模仍可管理,
+   且预留拆法后不需在 mkdocstrings 自动生成的过渡期做第二次结构变更。
 
 ## 备选方案
 
