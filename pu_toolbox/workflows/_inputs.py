@@ -10,9 +10,8 @@ from typing import Any
 import numpy as np
 
 from ..core.config import POSITIVE_LABEL
-from ..core.exceptions import ValidationError
+from ..core.exceptions import PipelineError, ValidationError
 from ..core.validation import validate_pu_X_y, validate_true_binary_labels
-from ._errors import PipelineError
 
 
 def prepare_pipeline_inputs(

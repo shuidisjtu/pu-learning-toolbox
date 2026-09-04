@@ -19,7 +19,7 @@ import numpy as np
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.device import resolve_device_name
-from ..core.exceptions import RegistryError
+from ..core.exceptions import PipelineError, RegistryError
 from ..core.tags import Backend, SampleWeightSupport, TrainingCost
 from ..core.validation import check_scalar_in_range
 from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
@@ -29,7 +29,6 @@ from ..preprocessing.data_profiler import profile_pu_data
 from ..progress import CancellationToken, ProgressCallback, emit_progress
 from ..registry import RecommendationResult, recommend_from_profile
 from ..registry.registry import get_algorithm, get_metadata
-from ._errors import PipelineError
 from ._evaluation import (
     _METRIC_SPECS,
     DEFAULT_METRICS,

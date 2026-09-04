@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from threading import Event
 
-from .core.exceptions import PULearningError
+from .core.exceptions import RunCancelledError as RunCancelledError
 
 __all__ = [
     "CancellationToken",
@@ -15,10 +15,6 @@ __all__ = [
     "RunCancelledError",
     "emit_progress",
 ]
-
-
-class RunCancelledError(PULearningError):
-    """Raised at a safe boundary after cooperative cancellation is requested."""
 
 
 class CancellationToken:

@@ -11,9 +11,8 @@ import numpy as np
 from sklearn.base import clone
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
-from ..core.exceptions import RegistryError
+from ..core.exceptions import PipelineError, RegistryError
 from ..registry.registry import get_algorithm
-from ._errors import PipelineError
 
 _ALWAYS_PROVIDED = {"class_prior", "random_state"}
 
