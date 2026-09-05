@@ -70,19 +70,37 @@ oracle、阈值选择，通过 §7 验收清单后再扩展 SAR 细节与资源�
 ### 2.2 SAR 压力测试（要求层级见协议 §2.3.2）
 
 - 协议要求仅取 $`c\in\{0.1,0.5\}`$；须与 PU-Bench 的 SAR 设定保持一致。
-- **待回填**：锁定 PU-Bench 当前代码 commit 的 LBE-A 与 LBE-B 选择策略、辅助 posterior 模型和
-  全部参数（包括 `shrink_coef`）。锁定值确定后回填本行，并记入实现台账。
+- **锁定值（PU-Bench commit `2d95a19`，已对照源码核实）**：
+  - 辅助 posterior 模型：sklearn `LogisticRegression(solver='lbfgs', max_iter=100,
+    random_state=seed)`，在源 train 全部特征与**真实标签**上拟合，取 `P(y=1|x)` 作为 scores；
+  - LBE-A：权重 `p ∝ scores^k`，`k = 10`（LBE 论文指定）；平滑 `p = 0.9·p + 0.1·uniform`；
+  - LBE-B：权重 `p ∝ (1.5 + shrink_coef − scores)^k`，`shrink_coef = 1.0`（原实现 syn 函数取值）；
+    负值截断为 0；全部为 0 时退化为均匀分布；无平滑；
+  - 抽取方式：固定 `n_labeled`、**无放回**加权抽样；
+  - 差异记录：PU-Bench 的 `n_labeled = int(n_pos · labeled_ratio)` 为向下取整，协议 §2.1 采用
+    `round(c·n_+)`——实现时以协议口径为准并记录实际 `c`。
 - 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录。
 
 ### 2.3 split 操作细节（要求层级见协议 §2.4 第 3-4 条）
 
 - 保留 PU-Bench 的独立测试集；从原始训练源**分层**留出 10% 验证池，等分为 5% `pu_val` 和
   5% `clean_val`，其余 90% 为 `train`。
+- **PU-Bench 独立测试集来源（commit `2d95a19`，已核实）**：
+  - 自带官方测试集：MNIST、F-MNIST、CIFAR-10（`torchvision` `train=False` 测试集）、IMDB
+    （自带 train/test 划分）、20News（自带划分）；
+  - 无自带测试集的 Spambase、Connect-4、ADNI：`sklearn train_test_split(test_size=0.2,
+    stratify=y, random_state=seed)` 从全量切出 20% 固定为 test。
+- **验证池与 PU-Bench 做法的一致性**：PU-Bench 从源 train 内、在 PU 采样**之前**按真实标签
+  分层切出单一路 val（策略名 `split_source_before_pu_sampling`，防止 case-control 重复抽到跨
+  边界样本），并让 val 与 train 用同一 `labeled_ratio`/选择策略生成 PU 标签；config 各
+  `param_sweep_*.yaml` 统一 `val_ratio: 0.01`。本实验沿用"PU 采样前切分、真实标签分层"的机制，
+  在源 train 内切 10%（split 由实验侧实现，seed 驱动），`pu_val` 仅保留 PU 标签视图（剥离
+  真实标签），`clean_val` 保留真实标签。
 - `pu_val`/`clean_val` 不重叠；`clean_val` 与 `test` 保持自然类先验。
 - 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同 seed 所有方法/PA/OA/
   PN oracle/所有 $`c`$ 共享同一底层 split；同 $`c`$ 共享相同 P/U 标记；扫 $`c`$ 仅重生成 $`S`$ 标签。
 - 记录 seed、样本索引与 split manifest。
-- 分层变量与实现工具（如 sklearn `train_test_split` 或自定义函数）在实现时确定并记录。
+- 分层变量：真实（二元化）标签；实现工具：sklearn `train_test_split`。
 
 ## 3. backbone 实现细节（要求层级见协议 §2.5）
 
@@ -160,7 +178,7 @@ pilot 前的基础设施验收至少覆盖：
 
 ## 8. 待确认与待办
 
-| 事项 | 问题与待办 | 状态 |
-|---|---|---|
-| test 测试集留出方式 | PU-Bench 自带的独立测试集占整份数据多大比例？它和"从原始训练源留 10% 验证池"谁先谁后（先扣掉 test 再切验证池，还是反过来）？待办：对照 PU-Bench 源码/README 确认，把具体比例与顺序写入 §2.3 | 待确认 |
-| SAR 锁定 commit 值 | SAR 压力测试须与 PU-Bench 实现保持一致（LBE-A/LBE-B 选择策略、辅助 posterior 模型、`shrink_coef` 等）。这些值以 PU-Bench 仓库的某个具体 commit 为准，目前未锁定。待办：访问 PU-Bench 仓库确定 commit，逐项填充 §2.2 并登记实现台账 | 待实现时回填 |
+截至 2026-09-05 无开放事项。此前两项待办已解决并回填：
+
+- **test 测试集留出方式**：已对照 PU-Bench（commit `2d95a19`）核实，结论见 §2.3；
+- **SAR 锁定 commit 值**：已锁定（commit `2d95a19`），参数回填见 §2.2。
