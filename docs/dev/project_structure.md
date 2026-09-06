@@ -147,6 +147,7 @@ pu_toolbox/
   experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试(见 docs/research/pu_survey/)
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
+    datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
     manifest.py                           (manifest 写入/加载与必填键校验)
     protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
     resources.py                          (候选/调参/GPU 资源计量、运行环境探测与跨 seed 汇总)

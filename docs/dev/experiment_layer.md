@@ -27,6 +27,7 @@
 | 模块 | 职责 |
 |---|---|
 | `bundle.py` | `DatasetPart`/`DatasetBundle`/`validate_bundle`（索引两两不重叠、clean 视图、`test.for_selection=False` 强制） |
+| `datasets.py` | survey 八数据集锁定映射与确定性四路切分；官方 test 显式传入，无官方 test 时先分层留出 20% |
 | `tracking.py` | 纯数据类：`EpochRecord`/`RunTrajectory`/`SelectionArtifact`/`RunResult` |
 | `protocols.py` | 策略 ABC：`Generator.generate(X, y_true, c, seed)`；`Trainer.fit(estimator, X, y, *, class_prior, val_pu)`；`SelectionProtocol.select(trajectories, val_part, threshold_candidates)` |
 | `strategies.py` | `SCARGenerator`（fixed-count `round(c·n₊)` 无放回）、`SARLBEAGenerator`/`SARLBEBGenerator`（PU-Bench `2d95a19`：k=10/shrink 1.0、辅助模型 lbfgs(100) 拟合真实标签、**抽样池限定正例集** S=1⟹Y=1）、`ProtocolPA`/`ProtocolOA` + `select_threshold`、`FitTrainer`/`DeepFitTrainer`/`SupervisedTrainer` |
