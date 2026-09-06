@@ -7,6 +7,13 @@ from .datasets import (
     prepare_survey_dataset,
     survey_dataset_catalog,
 )
+from .image import (
+    SurveyImagePreprocessing,
+    build_survey_image_augmentation,
+    build_survey_image_encoder,
+    fit_survey_image_preprocessing,
+    transform_survey_images,
+)
 from .resources import aggregate_resource_usage
 from .runner import ExperimentRunner
 from .strategies import (
@@ -41,11 +48,16 @@ __all__ = [
     "SCARGenerator",
     "SupervisedTrainer",
     "SurveyDatasetSpec",
+    "SurveyImagePreprocessing",
     "aggregate_resource_usage",
     "binaryize_survey_labels",
+    "build_survey_image_augmentation",
+    "build_survey_image_encoder",
     "encode_survey_texts",
+    "fit_survey_image_preprocessing",
     "prepare_survey_dataset",
     "select_threshold",
     "survey_dataset_catalog",
+    "transform_survey_images",
     "validate_bundle",
 ]

@@ -28,6 +28,7 @@
 |---|---|
 | `bundle.py` | `DatasetPart`/`DatasetBundle`/`validate_bundle`（索引两两不重叠、clean 视图、`test.for_selection=False` 强制） |
 | `datasets.py` | survey 八数据集锁定映射与确定性四路切分；官方 test 显式传入，无官方 test 时先分层留出 20% |
+| `image.py` | 图像 train-only 统计、输入缩放、ResNet-18/首层/增强配置与哈希留痕；验证/test 禁用增强 |
 | `text.py` | 协议固定 `all-MiniLM-L6-v2` 的 384 维文本向量、revision 留痕与内容寻址 SHA-256 缓存 |
 | `tracking.py` | 纯数据类：`EpochRecord`/`RunTrajectory`/`SelectionArtifact`/`RunResult` |
 | `protocols.py` | 策略 ABC：`Generator.generate(X, y_true, c, seed)`；`Trainer.fit(estimator, X, y, *, class_prior, val_pu)`；`SelectionProtocol.select(trajectories, val_part, threshold_candidates)` |
@@ -41,8 +42,8 @@
   artifact、PN oracle（`SupervisedTrainer` + `protocols=[ProtocolOA()]`，调用方显式传递）、阈值
   选择、资源/失败最小留痕（elapsed + failures 字段）、二维（uPU）与 CNN（nnPU）端到端 smoke
 - **后续跟进项**（正式 survey 数据生成前处理）：
-  - 数据前处理 P1：八数据集目录/四路切分与 SBERT 文本缓存已实现；图像前处理、TS-OS 与
-    CNN feature adapter 仍待完成（2026-09-06）。
+  - 数据前处理 P1：八数据集目录/四路切分、SBERT 文本缓存、图像 train-only 统计及
+    ResNet-18/增强留痕已实现；TS-OS 与 CNN feature adapter 仍待完成（2026-09-06）。
   1. ~~训练失败记录与同 seed 重试~~：候选从 fresh clone 以同 seed 自动重试一次；恢复与最终
      失败均写入 `failures`，最终失败候选从排名排除，全失败时先写 manifest 再终止
      （协议 §5.5，2026-09-06 完成）

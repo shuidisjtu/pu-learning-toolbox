@@ -148,6 +148,7 @@ pu_toolbox/
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
+    image.py                              (train-only 图像统计、缩放、ResNet-18/增强配置与哈希留痕)
     text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存)
     manifest.py                           (manifest 写入/加载与必填键校验)
     protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
@@ -271,6 +272,7 @@ tests/
     experiment/
       test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
       test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
+      test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
       test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测
       test_manifest.py                  # manifest 往返与必填键 fail-loud
       test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
