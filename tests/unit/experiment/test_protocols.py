@@ -1,6 +1,8 @@
 # tests/unit/experiment/test_protocols.py
+
+# ruff: noqa: N803
+
 import numpy as np
-import pytest
 
 from pu_toolbox.experiment.protocols import Generator, SelectionProtocol, Trainer
 
