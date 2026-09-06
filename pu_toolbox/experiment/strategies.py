@@ -7,7 +7,8 @@ helper model is fitted on REAL labels (source train) — never on PU views.
 SAR-LBE sampling pool = true positives only (S=1 ⟹ Y=1), as in PU-Bench.
 Selection (protocol §2.4): OA min-max normalises scores before
 thresholding on real-label val; PA only ever sees the PU val view, so
-clean labels are structurally unreachable.
+clean labels are structurally unreachable. Injectable-strategy pattern
+per implementation_plan.md §1.4.
 """
 
 # ruff: noqa: N803
@@ -174,6 +175,8 @@ class ProtocolOA(SelectionProtocol):
     def select(
         self, trajectories: list[RunTrajectory], val_part: DatasetPart, threshold_candidates=None
     ) -> SelectionArtifact:
+        if not trajectories:
+            raise ValueError("OA selection requires at least one trajectory.")
         x_val, labels = val_part.X, val_part.labels
         if threshold_candidates is None:
             threshold_candidates = np.linspace(0.0, 1.0, 11)
@@ -200,7 +203,12 @@ class ProtocolOA(SelectionProtocol):
 
 
 class ProtocolPA(SelectionProtocol):
-    """PA: selection on the PU view only (pu_val, also keeps real labels away)."""
+    """PA: selection on the PU view only (pu_val, also keeps real labels away).
+
+    PA does not pick a threshold — ``threshold_candidates`` is kept only
+    to satisfy ``SelectionProtocol``'s interface contract (the runner
+    passes its grid uniformly); ``SelectionArtifact.threshold`` is None.
+    """
 
     name = "PA"
 
@@ -209,8 +217,6 @@ class ProtocolPA(SelectionProtocol):
     ) -> SelectionArtifact:
         if val_part.view != "pu":
             raise ValueError("ProtocolPA must receive a PU view (never clean labels).")
-        if threshold_candidates is None:
-            threshold_candidates = np.linspace(0.0, 1.0, 11)
         # PA uses unlabeled count + labeled-positive risk proxy; keep it simple:
         # pick the trajectory with best mean PU-view separation on val.
         best_run, best_score = 0, -1.0
@@ -237,7 +243,15 @@ class ProtocolPA(SelectionProtocol):
 
 
 class FitTrainer(Trainer):
-    """Single-point trainer for classical (no-epoch) estimators."""
+    """Single-point trainer for classical (no-epoch) estimators.
+
+    Design notes: classical estimators expose no per-epoch history, so a
+    run is one point — the trajectory holds a single record and
+    ``best_epoch`` stays None. ``class_prior`` is forwarded only when the
+    estimator accepts it (TypeError-catch, sklearn duck contract) so the
+    runner's candidate pool may mix prior-aware and prior-free methods.
+    See implementation_plan.md §1.4.
+    """
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
         if class_prior is not None:
@@ -251,14 +265,30 @@ class FitTrainer(Trainer):
 
 
 class SupervisedTrainer(Trainer):
-    """PN oracle: train on real labels (unbiased supervised baseline)."""
+    """PN oracle: train on real labels (unbiased supervised baseline).
+
+    Design notes: the oracle reuses the same single-point fit contract —
+    only the label view differs from a SCAR/SAR run, so the comparison
+    isolates the labeling mechanism instead of the training machinery;
+    delegating to FitTrainer avoids a second fit path to maintain. See
+    implementation_plan.md §1.4.
+    """
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
         return FitTrainer().fit(estimator, X, y, class_prior=class_prior)
 
 
 class DeepFitTrainer(Trainer):
-    """Probe-based trainer: uses validation_data + history_ when available."""
+    """Probe-based trainer: uses validation_data + history_ when available.
+
+    Design notes: probes the fit signature instead of requiring a deep
+    interface, so one runner implementation serves both classical and
+    deep estimators. When the probe passes but the implementation
+    disagrees at runtime, the call degrades to a bare fit in place
+    (replacement semantics — the FitTrainer fallback below is NOT
+    re-run), so a broken deep path cannot silently fall back twice. See
+    implementation_plan.md §1.4.
+    """
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
         params = inspect.signature(type(estimator).fit).parameters
