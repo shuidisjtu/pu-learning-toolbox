@@ -72,10 +72,10 @@ def make_scar_labels(
 ) -> np.ndarray:
     """Convert true binary labels to PU labels under the SCAR assumption.
 
-    Under SCAR (Selected Completely At Random), each positive sample is
-    labeled independently with constant probability *c*:
-
-        P(s=1 | y=1, x) = c
+    Under SCAR (Selected Completely At Random), a **fixed count** of
+    positives is labeled: ``n_L = max(1, round(c * n_pos))`` positives are
+    sampled uniformly without replacement.  This matches the fixed-count
+    policy of the PU survey protocol (no per-sample Bernoulli labeling).
 
     All true negatives (``y_true == 0``) become unlabeled (0).
 
@@ -84,7 +84,7 @@ def make_scar_labels(
     y_true : np.ndarray of shape (n_samples,)
         True binary labels in ``{0, 1}``.
     c : float, default 0.5
-        Labeling propensity.  Must satisfy ``0 < c <= 1``.
+        Labeling ratio (label frequency).  Must satisfy ``0 < c <= 1``.
     random_state : int or np.random.RandomState or None, optional
         Random seed or RandomState for reproducibility.
 
@@ -373,14 +373,14 @@ def make_scar_dataset(
 
     Creates a balanced binary dataset with positive class centred at
     ``+separation/2`` and negative at ``-separation/2``, then applies
-    SCAR labeling (each true positive labeled with probability *c*).
+    SCAR labeling (fixed-count policy, see :func:`make_scar_labels`).
 
     Parameters
     ----------
     n : int, default 100
         Number of samples **per class** (total = 2n).
     c : float, default 0.5
-        SCAR labeling propensity.  Must satisfy ``0 < c <= 1``.
+        SCAR labeling ratio (label frequency).  Must satisfy ``0 < c <= 1``.
     n_features : int, default 5
         Dimensionality of the feature space.
     separation : float, default 4.0
