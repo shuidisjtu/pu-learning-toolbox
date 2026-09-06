@@ -5,6 +5,9 @@ n_L = round(c·n_+), uniform without replacement); SAR-LBE matches
 PU-Bench commit 2d95a19 (implementation_plan.md §2.2). The posterior
 helper model is fitted on REAL labels (source train) — never on PU views.
 SAR-LBE sampling pool = true positives only (S=1 ⟹ Y=1), as in PU-Bench.
+Selection (protocol §2.4): OA min-max normalises scores before
+thresholding on real-label val; PA only ever sees the PU val view, so
+clean labels are structurally unreachable.
 """
 
 # ruff: noqa: N803
@@ -16,7 +19,9 @@ from sklearn.linear_model import LogisticRegression
 
 from pu_toolbox.core.random import check_random_state
 
-from .protocols import Generator
+from .bundle import DatasetPart
+from .protocols import Generator, SelectionProtocol
+from .tracking import RunTrajectory, SelectionArtifact
 
 
 def _n_labeled(y_true: np.ndarray, c: float) -> int:
@@ -130,3 +135,95 @@ class SARLBEBGenerator(Generator):
             "posterior_version": "PU-Bench 2d95a19/lbfgs(max_iter=100)",
             "scores_file": None,
         }
+
+
+# ---------------------------------------------------------------------------
+# Selection protocols (protocol §2.4: OA / PA model selection on the val view)
+# ---------------------------------------------------------------------------
+
+
+def select_threshold(
+    scores: np.ndarray, labels: np.ndarray, candidates: np.ndarray
+) -> tuple[float, float]:
+    """Pick the threshold maximizing accuracy.
+
+    Ties resolve to the lowest threshold (first candidate encountered, i.e.
+    the lowest one when ``candidates`` is non-decreasing).
+    """
+    best_thr, best_acc = candidates[0], -1.0
+    for thr in candidates:
+        pred = (scores >= thr).astype(int)
+        acc = float(np.mean(pred == labels))
+        if acc > best_acc:
+            best_acc, best_thr = acc, thr
+    return float(best_thr), best_acc
+
+
+class ProtocolOA(SelectionProtocol):
+    """Oracle selection on real-label validation (clean_val).
+
+    Scores are min-max normalised to [0, 1] before thresholding, so the
+    default ``np.linspace(0, 1, 11)`` grid is meaningful for any
+    ``decision_function`` range.
+    """
+
+    name = "OA"
+
+    def select(
+        self, trajectories: list[RunTrajectory], val_part: DatasetPart, threshold_candidates=None
+    ) -> SelectionArtifact:
+        x_val, labels = val_part.X, val_part.labels
+        if threshold_candidates is None:
+            threshold_candidates = np.linspace(0.0, 1.0, 11)
+        best_arti_cand = None
+        for i, traj in enumerate(trajectories):
+            model = traj.model
+            # normalise scores to [0,1] via decision_function min-max
+            scores = model.decision_function(x_val)
+            scale = np.ptp(scores)
+            if scale > 0:
+                scores = (scores - scores.min()) / scale
+            thr, acc = select_threshold(scores, labels, threshold_candidates)
+            cand = (acc, i, thr)
+            if best_arti_cand is None or acc > best_arti_cand[0]:
+                best_arti_cand = cand
+        _, run_idx, thr = best_arti_cand
+        return SelectionArtifact(
+            protocol="OA",
+            run_index=run_idx,
+            epoch=trajectories[run_idx].best_epoch,
+            threshold=thr,
+            metrics={"val_accuracy": best_arti_cand[0]},
+        )
+
+
+class ProtocolPA(SelectionProtocol):
+    """PA: selection on the PU view only (pu_val, also keeps real labels away)."""
+
+    name = "PA"
+
+    def select(
+        self, trajectories: list[RunTrajectory], val_part: DatasetPart, threshold_candidates=None
+    ) -> SelectionArtifact:
+        if val_part.view != "pu":
+            raise ValueError("ProtocolPA must receive a PU view (never clean labels).")
+        if threshold_candidates is None:
+            threshold_candidates = np.linspace(0.0, 1.0, 11)
+        # PA uses unlabeled count + labeled-positive risk proxy; keep it simple:
+        # pick the trajectory with best mean PU-view separation on val.
+        best_run, best_score = 0, -1.0
+        for i, traj in enumerate(trajectories):
+            scores = traj.model.decision_function(val_part.X)
+            mask = val_part.labels == 1
+            if mask.sum() == 0:
+                continue
+            sep = float(np.mean(scores[mask]) - np.mean(scores[~mask]))
+            if sep > best_score:
+                best_score, best_run = sep, i
+        return SelectionArtifact(
+            protocol="PA",
+            run_index=best_run,
+            epoch=trajectories[best_run].best_epoch,
+            threshold=None,
+            metrics={"pu_val_separation": best_score},
+        )
