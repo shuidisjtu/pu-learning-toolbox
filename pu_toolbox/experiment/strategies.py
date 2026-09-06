@@ -14,14 +14,16 @@ clean labels are structurally unreachable.
 
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from pu_toolbox.core.random import check_random_state
 
 from .bundle import DatasetPart
-from .protocols import Generator, SelectionProtocol
-from .tracking import RunTrajectory, SelectionArtifact
+from .protocols import Generator, SelectionProtocol, Trainer
+from .tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
 
 def _n_labeled(y_true: np.ndarray, c: float) -> int:
@@ -227,3 +229,61 @@ class ProtocolPA(SelectionProtocol):
             threshold=None,
             metrics={"pu_val_separation": best_score},
         )
+
+
+# ---------------------------------------------------------------------------
+# Training strategies (protocol §2.5 + spec §6.3: single-point / deep / oracle)
+# ---------------------------------------------------------------------------
+
+
+class FitTrainer(Trainer):
+    """Single-point trainer for classical (no-epoch) estimators."""
+
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+        if class_prior is not None:
+            try:
+                estimator.fit(X, y, class_prior=class_prior)
+            except TypeError:
+                estimator.fit(X, y)
+        else:
+            estimator.fit(X, y)
+        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
+
+
+class SupervisedTrainer(Trainer):
+    """PN oracle: train on real labels (unbiased supervised baseline)."""
+
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+        return FitTrainer().fit(estimator, X, y, class_prior=class_prior)
+
+
+class DeepFitTrainer(Trainer):
+    """Probe-based trainer: uses validation_data + history_ when available."""
+
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+        params = inspect.signature(type(estimator).fit).parameters
+        if val_pu is not None and "validation_data" in params:
+            kwargs = {"validation_data": val_pu}
+            if class_prior is not None:
+                kwargs["class_prior"] = class_prior
+            try:
+                estimator.fit(X, y, **kwargs)
+                hist = getattr(estimator, "history_", None)
+                if isinstance(hist, dict) and "val_risk" in hist and len(hist["val_risk"]):
+                    epochs = [
+                        EpochRecord(
+                            epoch=int(e),
+                            metrics={"val_risk": float(v), "train_risk": float(r)},
+                        )
+                        for e, v, r in zip(
+                            hist["epoch"], hist["val_risk"], hist["nnpu_risk"], strict=False
+                        )
+                    ]
+                    return RunTrajectory(
+                        epochs=epochs,
+                        model=estimator,
+                        best_epoch=int(np.argmin(hist["val_risk"])) + 1,
+                    )
+            except TypeError:
+                pass
+        return FitTrainer().fit(estimator, X, y, class_prior=class_prior)

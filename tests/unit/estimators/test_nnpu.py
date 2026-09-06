@@ -494,6 +494,18 @@ class TestAPIContract:
         clf3.fit(X3, y3, class_prior=pi3)
         assert len(clf3.history_["epoch"]) == 5
 
+    def test_history_val_risk_tracked(self, rng):
+        """history_["val_risk"] is filled per epoch with validation_data, empty otherwise."""
+        X, y_pu, pi = _make_synthetic_data(rng, n_p=10, n_u=20)
+        clf = NonNegativePUClassifier(max_epochs=3, patience=2, batch_size=4, random_state=0)
+        clf.fit(X, y_pu, class_prior=pi, validation_data=(X, y_pu))
+        assert len(clf.history_["val_risk"]) == len(clf.history_["epoch"])
+        assert len(clf.history_["val_risk"]) > 0
+
+        clf2 = NonNegativePUClassifier(max_epochs=3, patience=2, batch_size=4, random_state=0)
+        clf2.fit(X, y_pu, class_prior=pi)
+        assert clf2.history_["val_risk"] == []
+
     def test_basic_device_default_none_and_resolves_cpu(self, rng, monkeypatch):
         """Default device is None ("auto"); fit resolves to cpu without CUDA."""
         import torch
