@@ -18,6 +18,7 @@ from pu_toolbox.estimators.deep.self_pu import (
     ema_update,
     hard_distillation_loss,
 )
+from pu_toolbox.losses.nnpu import NonNegativePULoss
 
 
 @pytest.fixture
@@ -152,6 +153,7 @@ class TestSelfPUClassifier:
             "reweight",
             "distillation",
             "training",
+            "validation",
         }
 
     def test_edge_missing_validation_is_explicit_ablation(self, self_pu_data):
@@ -164,6 +166,34 @@ class TestSelfPUClassifier:
         assert classifier.calibration_mode_ == "ablation"
         assert classifier.teacher_selection_basis_ == "training_nnpu_risk_ablation"
         assert not any(item["calibration_active"] for item in classifier.reweight_history_)
+        assert classifier.history_["val_risk"] == []
+
+    def test_basic_pu_validation_tracks_and_restores_best_teacher(self, self_pu_data):
+        X, y_pu, X_val, _ = self_pu_data
+        y_pu_val = np.r_[np.ones(3, dtype=int), np.zeros(9, dtype=int)]
+
+        with pytest.warns(UserWarning, match="explicit Self-PU ablation"):
+            classifier = _small_classifier(max_epochs=2, distill_start=1).fit(
+                X,
+                y_pu,
+                pu_validation_data=(X_val, y_pu_val),
+            )
+
+        assert len(classifier.history_["val_risk"]) == 2
+        assert len(classifier.history_["train_risk"]) == 2
+        assert classifier.best_epoch_ == int(np.argmin(classifier.history_["val_risk"])) + 1
+        assert classifier.teacher_selection_basis_ == "pu_validation_nnpu_risk"
+        assert classifier.best_teacher_index_ == classifier.history_["val_teacher"][
+            classifier.best_epoch_ - 1
+        ]
+        scores = classifier.decision_function(X_val)
+        restored_risk = NonNegativePULoss()(
+            scores[y_pu_val == 1],
+            scores[y_pu_val == 0],
+            class_prior=1 / 3,
+            non_negative=True,
+        )
+        assert restored_risk == pytest.approx(min(classifier.history_["val_risk"]), abs=1e-6)
 
     def test_basic_prediction_shapes_probabilities_and_image_input(self):
         rng = np.random.RandomState(3)

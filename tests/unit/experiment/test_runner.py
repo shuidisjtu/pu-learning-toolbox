@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import torch
 
+from pu_toolbox.estimators.deep.self_pu import SelfPUClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.experiment.bundle import DatasetPart
@@ -422,6 +423,45 @@ def test_end_to_end_cnn_smoke(tmp_path):
         if traj.epochs:
             assert traj.best_epoch is not None
             assert 1 <= traj.best_epoch <= len(traj.epochs)
+
+
+def test_end_to_end_self_pu_uses_pu_validation_trajectory():
+    rng = np.random.RandomState(8)
+    x = rng.randn(40, 3).astype("float32")
+    y = np.zeros(40, dtype=int)
+    y[[0, 1, 2, 3, 4, 5, 6, 7, 28, 29, 32, 36]] = 1
+    train = make_part(x, y, np.arange(28))
+    pu_val = make_part(x, y, np.arange(28, 32))
+    clean_val = make_part(x, y, np.arange(32, 36))
+    test = make_part(x, y, np.arange(36, 40), fs=False)
+    trainer = _RecordingTrainer()
+    model = SelfPUClassifier(
+        0.3,
+        hidden_dim=4,
+        warmup_epochs=0,
+        self_paced_start=0,
+        self_paced_end=1,
+        distill_start=1,
+        max_epochs=1,
+        batch_size=12,
+        random_state=0,
+        device="cpu",
+    )
+    runner = ExperimentRunner(
+        seed=0,
+        class_prior=0.3,
+        config={"c": 1.0, "trainer": trainer},
+    )
+
+    with pytest.warns(UserWarning, match="explicit Self-PU ablation"):
+        result = runner.fit(model, train, pu_val, clean_val, test)
+
+    trajectory = trainer.trajectories[0]
+    assert trajectory.best_epoch == 1
+    assert trajectory.epochs[0].metrics["val_risk"] >= 0
+    assert trajectory.model.calibration_mode_ == "ablation"
+    assert trajectory.model.teacher_selection_basis_ == "pu_validation_nnpu_risk"
+    assert set(result.selections) == {"PA", "OA"}
 
 
 def test_oa_test_eval_reuses_val_side_transform():

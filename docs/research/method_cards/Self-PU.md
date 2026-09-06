@@ -384,6 +384,9 @@ L=L_{SP+Reweight}+L_{students}+L_{teachers}.
 
 - Self-PU 是深度 PU 训练框架，不是独立的 class-prior estimator；论文沿用 nnPU 的已知 `pi_p` 设定。
 - self-calibrated reweighting 需要含真实正负标签的 clean validation batch。只有 P/U 标签而没有 clean validation labels 时，不能严格复现该模块。没有 `D_V` 时：可以实现 self-paced + distillation 的消融版本，但不能声称完成论文的 self-calibrated loss；不应使用测试集标签替代 `D_V`。
+- 工具箱因此严格分离两个入口：`validation_data` 仅用于上述 clean-label 元重加权；
+  `pu_validation_data` 只用 P/U 标签记录逐 epoch nnPU risk 并恢复最低风险 teacher checkpoint，
+  后者不会被描述为论文的 clean-validation calibration。
 - trusted set 的正负伪标签来自当前模型置信度，不能把被选样本当作永久正确标签；论文明确使用 in-and-out 机制重新审查历史选择。
 - 动态采样、soft labels、meta weights、student consistency、EMA teacher 是相互关联的组件，不能把 Self-PU 简化成单次 pseudo-labeling。
 

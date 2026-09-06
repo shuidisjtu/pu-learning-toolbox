@@ -44,7 +44,9 @@
      （协议 §5.5，2026-09-06 完成）
   2. ~~runner 前置能力门禁~~：已按 `native_architectures`/`input_ndims` 在 PU 生成与训练前
      fail-loud；`config["architecture"]` 可显式声明 `"mlp"`/`"cnn"`（2026-09-06 完成）
-  3. SelfPU 补记 val 指标（当前仅 nnPU；SelfPU 走 DeepFitTrainer 裸 fit 退化路径）
+  3. ~~SelfPU 补记 val 指标~~：`pu_validation_data` 与论文所需 clean `validation_data` 分离，
+     每 epoch 记录两个 teacher 的 PU nnPU-risk、恢复最优 teacher checkpoint，`DeepFitTrainer`
+     输出可选模轨迹且不会重复裸 fit（2026-09-06 完成）
   4. ~~完整资源计量三口径~~：逐候选记录每次尝试/成功尝试成本，记录本 seed 全候选调参成本与
      全过程峰值 GPU allocated memory；PU 生成、runner 总时间、环境及不属于 runner 的共享预处理
      口径分列（协议 §5.3-4 / 实现计划 §6，2026-09-06 完成）

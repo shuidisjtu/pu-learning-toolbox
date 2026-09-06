@@ -433,6 +433,8 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 种子与设备 |
 
 - `fit(..., validation_data=...)` 提供 clean validation 时启用元重加权与验证基教师选择。
+- `fit(..., pu_validation_data=...)` 只接收 P/U 标签，逐 epoch 记录两个 teacher 的 nnPU risk，
+  并恢复 PU 验证风险最低的 teacher checkpoint；它不启用需要真实标签的元重加权。
 - 文档：[Self-PU 方法卡](../../research/method_cards/Self-PU.md) · 示例：[10_self_pu.py](../../../examples/minimal/10_self_pu.py)
 
 #### `InfoMaxPUClassifier`（注册名 `infomax_pu`）
@@ -1080,7 +1082,7 @@ docstring。
 | `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 PU 视图均值分离度选 run；不选阈值 |
 | `ProtocolOA` | OA 对照：min-max 归一化后，按真实标签验证集 accuracy 选阈值与 run |
 | `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
-| `DeepFitTrainer` | 深度估计器：探测 `validation_data`/`history_`，探测不一致时原地降级为裸 fit |
+| `DeepFitTrainer` | 深度估计器：优先探测无真实标签泄漏的 `pu_validation_data`，否则探测 `validation_data`，并将 `history_` 转成选模轨迹；验证 fit 已成功但无 history 时只产生单点轨迹、不重复 fit |
 | `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线 |
 | `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |

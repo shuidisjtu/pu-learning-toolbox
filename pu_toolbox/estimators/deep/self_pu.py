@@ -14,6 +14,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.labels import normalize_pu_labels
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -234,8 +235,10 @@ class SelfPUClassifier(BasePUClassifier):
     """Self-PU classifier with two paced students and EMA teachers.
 
     Clean validation labels enable the paper's self-calibrated meta weights
-    and final teacher selection. Without them, fitting emits a warning and
-    runs the explicit self-paced + distillation ablation.
+    and final teacher selection. A separate PU validation view can track and
+    restore a checkpoint without exposing clean labels. Without clean labels,
+    fitting emits a warning and runs the explicit self-paced + distillation
+    ablation.
     """
 
     family = AlgorithmFamily.DEEP_PU
@@ -376,6 +379,22 @@ class SelfPUClassifier(BasePUClassifier):
             raise ValueError("y_val must contain both classes encoded as {-1, 1} or {0, 1}.")
         return X_val, y_val
 
+    @staticmethod
+    def _validate_pu_validation(validation_data: Any, input_shape: tuple[int, ...]):
+        if not isinstance(validation_data, tuple) or len(validation_data) != 2:
+            raise ValueError("pu_validation_data must be a tuple (X_val, y_pu_val).")
+        X_val = np.asarray(validation_data[0], dtype=np.float32)
+        y_val = normalize_pu_labels(validation_data[1])
+        if X_val.ndim < 2 or X_val.shape[1:] != input_shape:
+            raise ValueError(f"PU X_val must have sample shape {input_shape}.")
+        if len(y_val) != len(X_val):
+            raise ValueError("PU y_val must align with X_val.")
+        if not np.isfinite(X_val).all():
+            raise ValueError("PU X_val contains NaN or Inf values.")
+        if not np.any(y_val == 1) or not np.any(y_val == 0):
+            raise ValueError("PU y_val must contain labeled-positive and unlabeled samples.")
+        return X_val, y_val
+
     def _make_model(self, input_shape: tuple[int, ...], device: Any):
         from torch import nn
 
@@ -439,9 +458,10 @@ class SelfPUClassifier(BasePUClassifier):
         *,
         class_prior: float | None = None,
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
+        pu_validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> SelfPUClassifier:
-        """Fit Self-PU; clean validation enables calibration and teacher choice.
+        """Fit Self-PU with separate clean-calibration and PU-tracking views.
 
         sample_weight : NotImplementedError (deep estimators do not accept instance weights)
         """
@@ -470,6 +490,7 @@ class SelfPUClassifier(BasePUClassifier):
 
         input_shape = tuple(X.shape[1:])
         clean_validation = None
+        pu_validation = None
         if validation_data is not None:
             clean_validation = self._validate_clean_validation(validation_data, input_shape)
         elif self.require_validation:
@@ -477,10 +498,12 @@ class SelfPUClassifier(BasePUClassifier):
         else:
             warnings.warn(
                 "validation_data was not supplied; running the explicit Self-PU "
-                "ablation without meta reweighting or validation-based teacher selection.",
+                "ablation without meta reweighting or clean-validation teacher selection.",
                 UserWarning,
                 stacklevel=2,
             )
+        if pu_validation_data is not None:
+            pu_validation = self._validate_pu_validation(pu_validation_data, input_shape)
 
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
@@ -498,6 +521,11 @@ class SelfPUClassifier(BasePUClassifier):
             ty_val = torch.as_tensor(y_val_np, dtype=torch.float32, device=device)
         else:
             tx_val = ty_val = None
+        if pu_validation is not None:
+            X_pu_val_np, y_pu_val = pu_validation
+            tx_pu_val = torch.as_tensor(X_pu_val_np, dtype=torch.float32, device=device)
+        else:
+            tx_pu_val = y_pu_val = None
 
         base_model = self._make_model(input_shape, device)
         with torch.no_grad():
@@ -533,6 +561,20 @@ class SelfPUClassifier(BasePUClassifier):
         self.reweight_history_: list[dict[str, Any]] = []
         self.distillation_history_: list[dict[str, Any]] = []
         self.training_history_: list[dict[str, Any]] = []
+        self.history_: dict[str, list] = {
+            "epoch": [],
+            "train_risk": [],
+            "val_risk": [],
+            "val_teacher": [],
+            "teacher_1_val_risk": [],
+            "teacher_2_val_risk": [],
+        }
+
+        best_pu_val_risk = float("inf")
+        best_pu_epoch = None
+        best_pu_teacher_index = None
+        best_pu_teacher_states = None
+        best_pu_teacher_metrics = None
 
         students = [self.student_1_, self.student_2_]
         teachers = [self.teacher_1_, self.teacher_2_]
@@ -720,6 +762,31 @@ class SelfPUClassifier(BasePUClassifier):
             for scheduler in schedulers:
                 scheduler.step()
 
+            epoch_records = self.training_history_[-len(students) :]
+            self.history_["epoch"].append(epoch)
+            self.history_["train_risk"].append(
+                float(np.mean([record["nnpu_loss"] for record in epoch_records]))
+            )
+            if tx_pu_val is not None and y_pu_val is not None:
+                teacher_val_risks = [
+                    _pu_validation_risk(teacher, tx_pu_val, y_pu_val, resolved_prior)
+                    for teacher in teachers
+                ]
+                val_teacher_index = int(np.argmin(teacher_val_risks))
+                val_risk = teacher_val_risks[val_teacher_index]
+                self.history_["val_risk"].append(val_risk)
+                self.history_["val_teacher"].append(val_teacher_index + 1)
+                self.history_["teacher_1_val_risk"].append(teacher_val_risks[0])
+                self.history_["teacher_2_val_risk"].append(teacher_val_risks[1])
+                if val_risk < best_pu_val_risk:
+                    best_pu_val_risk = val_risk
+                    best_pu_epoch = epoch
+                    best_pu_teacher_index = val_teacher_index
+                    best_pu_teacher_states = [
+                        copy.deepcopy(teacher.state_dict()) for teacher in teachers
+                    ]
+                    best_pu_teacher_metrics = teacher_val_risks
+
         self.optimizer_states_ = [copy.deepcopy(optimizer.state_dict()) for optimizer in optimizers]
         self.scheduler_states_ = [copy.deepcopy(scheduler.state_dict()) for scheduler in schedulers]
         self.trusted_indices_ = {}
@@ -740,6 +807,17 @@ class SelfPUClassifier(BasePUClassifier):
                     teacher_metrics.append(float((prediction == ty_val).float().mean().cpu()))
             self.teacher_selection_basis_ = "clean_validation_accuracy"
             best_index = int(np.argmax(teacher_metrics))
+            self.best_epoch_ = None
+        elif tx_pu_val is not None:
+            assert best_pu_teacher_index is not None
+            assert best_pu_teacher_states is not None
+            assert best_pu_teacher_metrics is not None
+            best_index = best_pu_teacher_index
+            for teacher, state in zip(teachers, best_pu_teacher_states, strict=True):
+                teacher.load_state_dict(state)
+            teacher_metrics = best_pu_teacher_metrics
+            self.teacher_selection_basis_ = "pu_validation_nnpu_risk"
+            self.best_epoch_ = best_pu_epoch
         else:
             with torch.no_grad():
                 for teacher in teachers:
@@ -754,6 +832,7 @@ class SelfPUClassifier(BasePUClassifier):
                     teacher_metrics.append(float(risk.cpu()))
             self.teacher_selection_basis_ = "training_nnpu_risk_ablation"
             best_index = int(np.argmin(teacher_metrics))
+            self.best_epoch_ = None
 
         self.teacher_selection_metrics_ = teacher_metrics
         self.best_teacher_index_ = best_index + 1
@@ -840,5 +919,23 @@ class SelfPUClassifier(BasePUClassifier):
                 "reweight": copy.deepcopy(self.reweight_history_),
                 "distillation": copy.deepcopy(self.distillation_history_),
                 "training": copy.deepcopy(self.training_history_),
+                "validation": copy.deepcopy(self.history_),
             },
         }
+
+
+def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, class_prior: float) -> float:
+    """Evaluate one teacher with nnPU risk using PU labels only."""
+    import torch
+
+    model.eval()
+    with torch.no_grad():
+        scores = _as_logits(model(X_val))
+        positive = torch.as_tensor(y_pu_val == 1, device=scores.device)
+        unlabeled = ~positive
+        positive_risk = class_prior * torch.sigmoid(-scores[positive]).mean()
+        negative_risk = torch.sigmoid(scores[unlabeled]).mean() - class_prior * torch.sigmoid(
+            scores[positive]
+        ).mean()
+        risk = positive_risk + torch.clamp(negative_risk, min=0.0)
+    return float(risk.cpu())

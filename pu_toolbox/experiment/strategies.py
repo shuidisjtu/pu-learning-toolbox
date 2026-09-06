@@ -311,8 +311,13 @@ class DeepFitTrainer(Trainer):
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
         params = inspect.signature(type(estimator).fit).parameters
-        if val_pu is not None and "validation_data" in params:
-            kwargs = {"validation_data": val_pu}
+        validation_parameter = None
+        if "pu_validation_data" in params:
+            validation_parameter = "pu_validation_data"
+        elif "validation_data" in params:
+            validation_parameter = "validation_data"
+        if val_pu is not None and validation_parameter is not None:
+            kwargs = {validation_parameter: val_pu}
             if class_prior is not None:
                 kwargs["class_prior"] = class_prior
             try:
@@ -322,23 +327,28 @@ class DeepFitTrainer(Trainer):
                 # runtime: degrade to a bare fit — replacement (single fit), so the
                 # FitTrainer fallback below is NOT re-run. Any other exception
                 # (including internal training bugs) must bubble up.
-                kwargs.pop("validation_data", None)
+                kwargs.pop(validation_parameter, None)
                 estimator.fit(X, y, **kwargs)
                 return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
             hist = getattr(estimator, "history_", None)
             if isinstance(hist, dict) and "val_risk" in hist and len(hist["val_risk"]):
-                epochs = [
-                    EpochRecord(
-                        epoch=int(e),
-                        metrics={"val_risk": float(v), "train_risk": float(r)},
-                    )
-                    for e, v, r in zip(
-                        hist["epoch"], hist["val_risk"], hist["nnpu_risk"], strict=False
-                    )
-                ]
+                if len(hist.get("epoch", [])) != len(hist["val_risk"]):
+                    raise ValueError("estimator history_ epoch and val_risk lengths must match.")
+                train_risk = hist.get("train_risk", hist.get("nnpu_risk"))
+                epochs = []
+                for position, (epoch, val_risk) in enumerate(
+                    zip(hist["epoch"], hist["val_risk"], strict=True)
+                ):
+                    metrics = {"val_risk": float(val_risk)}
+                    if train_risk is not None and position < len(train_risk):
+                        metrics["train_risk"] = float(train_risk[position])
+                    epochs.append(EpochRecord(epoch=int(epoch), metrics=metrics))
                 return RunTrajectory(
                     epochs=epochs,
                     model=estimator,
                     best_epoch=int(np.argmin(hist["val_risk"])) + 1,
                 )
+            # The validation-aware fit already completed. Missing optional
+            # history means a single-point trajectory, never a second fit.
+            return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
         return FitTrainer().fit(estimator, X, y, class_prior=class_prior)
