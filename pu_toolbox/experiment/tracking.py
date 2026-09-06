@@ -5,6 +5,7 @@ inspect them without coupling. Checkpoint identity is ``model`` (the
 fitted estimator, or the estimator restored to its internal best state).
 Per-epoch snapshots are intentionally out of P0 scope (see spec §9).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
