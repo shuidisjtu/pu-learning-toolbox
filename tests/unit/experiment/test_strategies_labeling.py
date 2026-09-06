@@ -39,6 +39,7 @@ def test_lbe_a_uses_posterior_scores():
     y_true = np.array([0] * 9 + [1, 1])
     y_pu, meta = SARLBEAGenerator().generate(X, y_true, 0.2, seed=0)  # -> 1 labeled
     assert y_pu.sum() == 1  # fixed count: exactly one labeled
+    assert np.all(y_true[y_pu == 1] == 1)  # pool = positives only (S=1 ⟹ Y=1)
     assert y_pu[10] == 1  # top-score positive (x=10.0) must be picked
     assert meta["mechanism"] == "sar_lbe_a"
     assert meta["posterior_fit_on"] == "real_labels"
@@ -51,5 +52,26 @@ def test_lbe_b_shrink_coef():
     y = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
     y_pu, meta = SARLBEBGenerator().generate(X, y, 0.1, seed=1)
     assert (y_pu == 1).sum() == 1
+    assert np.all(y[y_pu == 1] == 1)  # pool = positives only (S=1 ⟹ Y=1)
     assert meta["shrink_coef"] == 1.0
     assert meta["mechanism"] == "sar_lbe_b"
+
+
+def test_lbe_b_never_labels_high_weight_negatives():
+    # Negatives at low x (posterior ≈ 0) hold the largest LBE-B weights
+    # ((2.5 - score)^10 ≈ 9.5e3 vs ≈ 57 for positives), but the sampling
+    # pool is true positives only, so no seed may ever label a negative.
+    X = np.arange(10, dtype=float).reshape(-1, 1) * 5.0  # x = 0..45
+    y_true = np.array([0] * 8 + [1, 1])  # positives at x=40, 45
+    for seed in range(20):
+        y_pu, _ = SARLBEBGenerator().generate(X, y_true, 0.1, seed=seed)
+        assert (y_pu == 1).sum() == 1
+        assert np.all(y_true[y_pu == 1] == 1)
+
+
+def test_lbe_no_positives_returns_all_zero():
+    y_true = np.zeros(10, dtype=int)
+    for gen in (SARLBEAGenerator(), SARLBEBGenerator()):
+        y_pu, meta = gen.generate(np.zeros((10, 2)), y_true, 0.5, seed=0)
+        assert np.all(y_pu == 0)
+        assert meta["c_realized"] == 0.0

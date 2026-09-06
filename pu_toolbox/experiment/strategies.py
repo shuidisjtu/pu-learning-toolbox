@@ -4,6 +4,7 @@ Design notes: SCAR/SAR share the fixed-count policy (protocol §2.1,
 n_L = round(c·n_+), uniform without replacement); SAR-LBE matches
 PU-Bench commit 2d95a19 (implementation_plan.md §2.2). The posterior
 helper model is fitted on REAL labels (source train) — never on PU views.
+SAR-LBE sampling pool = true positives only (S=1 ⟹ Y=1), as in PU-Bench.
 """
 
 # ruff: noqa: N803
@@ -48,7 +49,11 @@ class SCARGenerator(Generator):
 
 
 def _lbe_sample(scores: np.ndarray, n_labeled: int, rng, weights: np.ndarray) -> np.ndarray:
-    """Weighted sampling without replacement used by both LBE variants."""
+    """Weighted sampling without replacement used by both LBE variants.
+
+    ``scores``/``weights`` are the positive-subset arrays; returned indices
+    are offsets within that subset (caller maps them back to global indices).
+    """
     if n_labeled >= len(scores):
         return np.arange(len(scores))
     if np.all(weights == 0):
@@ -57,7 +62,11 @@ def _lbe_sample(scores: np.ndarray, n_labeled: int, rng, weights: np.ndarray) ->
 
 
 class SARLBEAGenerator(Generator):
-    """LBE-A: p ∝ scores**k with smoothing p = 0.9p + 0.1·uniform (PU-Bench 2d95a19)."""
+    """LBE-A: p ∝ scores**k with smoothing p = 0.9p + 0.1·uniform (PU-Bench 2d95a19).
+
+    Sampling pool = true positives only (S=1 ⟹ Y=1); uniform term is
+    1/len(pos) as in PU-Bench ``uniform_p``.
+    """
 
     def __init__(self, k: float = 10, smoothing: tuple[float, float] = (0.9, 0.1)) -> None:
         self.k = k
@@ -66,16 +75,18 @@ class SARLBEAGenerator(Generator):
     def generate(self, X, y_true, c, seed=None):
         rng = check_random_state(seed)
         n_labeled = _n_labeled(y_true, c)
-        model = _fit_posterior(X, y_true, seed)
-        scores = model.predict_proba(X)[:, 1]
-        weights = np.clip(scores, 1e-9, None) ** self.k
-        w1, w0 = self.smoothing
-        weights = w1 * weights / weights.sum() + w0 * np.ones_like(weights) / len(weights)
+        pos = np.where(y_true == 1)[0]
+        n_pos = int(len(pos))
         y_pu = np.zeros(len(y_true), dtype=int)
-        if n_labeled > 0:
-            chosen = _lbe_sample(scores, n_labeled, rng, weights)
-            y_pu[chosen] = 1
-        n_pos = int(np.sum(y_true == 1))
+        if n_pos > 0:
+            model = _fit_posterior(X, y_true, seed)
+            scores = model.predict_proba(X)[:, 1]
+            scores_pos = scores[pos]
+            weights = np.clip(scores_pos, 1e-9, None) ** self.k
+            w1, w0 = self.smoothing
+            weights = w1 * weights / weights.sum() + w0 * np.ones_like(weights) / len(weights)
+            chosen_pos = _lbe_sample(scores_pos, n_labeled, rng, weights)
+            y_pu[pos[chosen_pos]] = 1
         return y_pu, {
             "mechanism": "sar_lbe_a",
             "c_realized": n_labeled / n_pos if n_pos else 0.0,
@@ -88,7 +99,10 @@ class SARLBEAGenerator(Generator):
 
 
 class SARLBEBGenerator(Generator):
-    """LBE-B: p ∝ (1.5 + shrink_coef - scores)**k, negative clipped, uniform fallback."""
+    """LBE-B: p ∝ (1.5 + shrink_coef - scores)**k, negative clipped, uniform fallback.
+
+    Sampling pool = true positives only (S=1 ⟹ Y=1).
+    """
 
     def __init__(self, shrink_coef: float = 1.0, k: float = 10) -> None:
         self.shrink_coef = shrink_coef
@@ -97,14 +111,16 @@ class SARLBEBGenerator(Generator):
     def generate(self, X, y_true, c, seed=None):
         rng = check_random_state(seed)
         n_labeled = _n_labeled(y_true, c)
-        model = _fit_posterior(X, y_true, seed)
-        scores = model.predict_proba(X)[:, 1]
-        weights = np.clip(1.5 + self.shrink_coef - scores, 0.0, None) ** self.k
+        pos = np.where(y_true == 1)[0]
+        n_pos = int(len(pos))
         y_pu = np.zeros(len(y_true), dtype=int)
-        if n_labeled > 0:
-            chosen = _lbe_sample(scores, n_labeled, rng, weights)
-            y_pu[chosen] = 1
-        n_pos = int(np.sum(y_true == 1))
+        if n_pos > 0:
+            model = _fit_posterior(X, y_true, seed)
+            scores = model.predict_proba(X)[:, 1]
+            scores_pos = scores[pos]
+            weights = np.clip(1.5 + self.shrink_coef - scores_pos, 0.0, None) ** self.k
+            chosen_pos = _lbe_sample(scores_pos, n_labeled, rng, weights)
+            y_pu[pos[chosen_pos]] = 1
         return y_pu, {
             "mechanism": "sar_lbe_b",
             "c_realized": n_labeled / n_pos if n_pos else 0.0,
