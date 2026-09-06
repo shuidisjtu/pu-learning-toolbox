@@ -1070,7 +1070,7 @@ docstring。
 
 | 符号 | 用途 |
 |---|---|
-| `ExperimentRunner` | 流程骨架（Template Method）：数据校验 → 生成 PU 视图 → 候选池训练 → PA/OA 离线选择 → 独立测试 → manifest 留痕；每个变动点注入策略 |
+| `ExperimentRunner` | 流程骨架（Template Method）：数据校验与模型能力门禁 → 生成 PU 视图 → 候选池训练 → PA/OA 离线选择 → 独立测试 → manifest 留痕；`config["architecture"]` 可显式声明 `"mlp"`/`"cnn"`，每个变动点注入策略 |
 | `DatasetBundle` | 四路数据合约：`train` / `pu_val` / `clean_val` / `test` |
 | `DatasetPart` | 一份划分 + 显式标签视图（`view="clean"` 真实标签 / `view="pu"` PU 视图）+ 全局样本索引 |
 | `validate_bundle` | 四路合约校验：视图、真实二元标签、索引不重叠、`test.for_selection=False` |

@@ -40,7 +40,8 @@
   选择、资源/失败最小留痕（elapsed + failures 字段）、二维（uPU）与 CNN（nnPU）端到端 smoke
 - **后续跟进项**（正式 survey 数据生成前处理）：
   1. 训练失败记录与同 seed 重试（协议 §5.5）——当前 `failures` 恒为空、训练异常直接冒泡
-  2. runner 前置能力门禁（`native_architectures`/`input_ndims` 训练前 fail-loud）
+  2. ~~runner 前置能力门禁~~：已按 `native_architectures`/`input_ndims` 在 PU 生成与训练前
+     fail-loud；`config["architecture"]` 可显式声明 `"mlp"`/`"cnn"`（2026-09-06 完成）
   3. SelfPU 补记 val 指标（当前仅 nnPU；SelfPU 走 DeepFitTrainer 裸 fit 退化路径）
   4. 完整资源计量三口径（协议 §5.3-4 / 实现计划 §6）不在 pilot 面
   5. OA 阈值评测已用 val 侧固定变换（F1 修复）；`_auc` 的裸 `except Exception` 可收窄

@@ -90,6 +90,43 @@ def test_runner_raises_when_pu_view_has_no_labeled_positive():
         runner.fit(UPUClassifier(0.15, random_state=0), train, pu_val, clean_val, test)
 
 
+def test_architecture_capability_preflight_blocks_before_training():
+    train, pu_val, clean_val, test = make_bundle()
+
+    class _NeverTrainer:
+        called = False
+
+        def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+            self.called = True
+            raise AssertionError("capability gate must run before training")
+
+    trainer = _NeverTrainer()
+    runner = ExperimentRunner(config={"c": 0.5, "trainer": trainer})
+
+    def as_image_part(part):
+        return DatasetPart(
+            X=part.X[:, None, None, :],
+            labels=part.labels,
+            view=part.view,
+            indices=part.indices,
+            for_selection=part.for_selection,
+        )
+
+    with pytest.raises(ValueError, match=r"train input ndim=4.*input_ndims=\[2\]"):
+        runner.fit(
+            UPUClassifier(0.3, random_state=0),
+            *(as_image_part(part) for part in (train, pu_val, clean_val, test)),
+        )
+    assert not trainer.called
+
+    runner = ExperimentRunner(
+        config={"architecture": "cnn", "c": 0.5, "trainer": trainer}
+    )
+    with pytest.raises(ValueError, match="does not support architecture='cnn'"):
+        runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
+    assert not trainer.called
+
+
 def test_end_to_end_small_pu(tmp_path):
     rng = np.random.RandomState(0)
     x = rng.randn(60, 2)

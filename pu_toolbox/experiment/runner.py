@@ -77,6 +77,7 @@ class ExperimentRunner:
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
         validate_bundle(bundle)
+        _validate_model_capability(model, bundle, self.config.get("architecture"))
 
         # 2. generate PU views (SCAR / SAR via the injected generator)
         c = self.config.get("c", 0.1)
@@ -168,3 +169,55 @@ def _auc(est, test: DatasetPart) -> float:
         return float(pu_auc_roc(test.labels, est.decision_function(test.X)))
     except Exception:
         return float("nan")
+
+
+def _validate_model_capability(
+    model,
+    bundle: DatasetBundle,
+    architecture: str | None,
+) -> None:
+    """Reject unsupported input/architecture combinations before training."""
+    cls = type(model)
+    allowed_ndims = frozenset(getattr(cls, "input_ndims", frozenset({2})))
+    for role in ("train", "pu_val", "clean_val", "test"):
+        ndim = getattr(getattr(bundle, role).X, "ndim", None)
+        if ndim not in allowed_ndims:
+            raise ValueError(
+                f"{cls.__name__} does not support {role} input ndim={ndim}; "
+                f"declared input_ndims={sorted(allowed_ndims)!r}."
+            )
+
+    if architecture not in (None, "mlp", "cnn"):
+        raise ValueError("experiment architecture must be 'mlp', 'cnn', or None.")
+
+    native = frozenset(getattr(cls, "native_architectures", frozenset()))
+    if architecture is None:
+        encoder_parameter = getattr(cls, "encoder_parameter", None)
+        if encoder_parameter and getattr(model, encoder_parameter, None) is not None:
+            architecture = "cnn"
+        elif "mlp" in native:
+            architecture = "mlp"
+        else:
+            # An empty declaration is the project's explicit tabular-only
+            # capability.  The input_ndims check above is its complete gate.
+            return
+
+    # Legacy tabular estimators declare no native architecture.  They remain
+    # compatible with an explicit ``architecture='mlp'`` when their declared
+    # input contract is two-dimensional.
+    if architecture == "mlp" and not native and allowed_ndims == frozenset({2}):
+        return
+    if architecture not in native:
+        raise ValueError(
+            f"{cls.__name__} does not support architecture={architecture!r}; "
+            f"declared native_architectures={sorted(native)!r}."
+        )
+
+    if architecture == "cnn":
+        encoder_parameter = getattr(cls, "encoder_parameter", None)
+        if 4 not in allowed_ndims or not encoder_parameter or not hasattr(model, encoder_parameter):
+            raise ValueError(
+                f"{cls.__name__} has an inconsistent CNN capability declaration: "
+                f"input_ndims={sorted(allowed_ndims)!r}, "
+                f"encoder_parameter={encoder_parameter!r}."
+            )
