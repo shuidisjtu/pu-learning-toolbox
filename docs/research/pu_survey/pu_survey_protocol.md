@@ -94,32 +94,48 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
 ### 2.4 训练集、验证集、测试集划分
 
-1. 本实验要求工具箱提供 `fit(model, train, pu_val, clean_val, test)` 或等价接口，并以已完成
-   split 和预处理的四路 `DatasetBundle` 作为输入；工具箱不负责切分原始数据，训练集、验证集和
-   测试集均由用户提供。`pu_val` 仅含标记正例与未标记样本，供 PA 选模；`clean_val` 含真实标签，
-   仅供 OA oracle 对照；`test` 含真实标签，但不得参与模型选择；
-2. 工具箱必须具备"利用用户给的数据和模型要求，训练出模型"这一功能，故需要提供丰富的可 DIY
-   参数的接口：训练模型的函数、生成数据的函数等；
-3. 提供一个官方示例脚本：读取用户准备的四份数据，并利用工具箱函数完成完整 PU 学习、模型选择
-   和测试流程；
-4. 对本次实验而言，研究团队作为工具箱用户，按参考文献 1、2 的划分思想和数据集约束自行准备
+按数据角色、切分规则、流程与任务要求四部分列出，条目编号全章节连续。
+
+**（一）四份数据的角色与用途**
+
+1. `train` 仅含 PU 标签，用于训练；`pu_val` 仅含标记正例与未标记样本，供 PA 选模；
+   `clean_val` 含真实标签，仅供 OA oracle 对照；`test` 含真实标签，但不得参与模型选择。
+2. PA 执行不得向模型或回调暴露 `clean_val`/`test`，OA 才注入 `clean_val`。无法移除真实
+   验证标签依赖的方法标为 `PA-ineligible`，仅进入 OA/补充表。
+
+**（二）切分与重生成规则**
+
+3. 对本次实验而言，研究团队作为工具箱用户，按参考文献 1、2 的划分思想和数据集约束自行准备
    训练集、PU 验证集、真实标签验证集与测试集，并将其传入接口。保留 PU-Bench 的独立测试集；
    从原始训练源分层留出 10% 验证池，等分为 5% `pu_val` 和 5% `clean_val`，其余 90% 为
-   `train`。`pu_val` 与 `clean_val` 必须不重叠，`clean_val` 和 `test` 保持自然类先验；
-5. 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同一 seed 下所有方法、
+   `train`。`pu_val` 与 `clean_val` 必须不重叠，`clean_val` 和 `test` 保持自然类先验。
+4. 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同一 seed 下所有方法、
    PA/OA、PN oracle 及所有 $`c`$ 共享同一底层 split，同一 $`c`$ 共享相同 P/U 标记结果。扫描 $`c`$
-   时仅重生成 $`S`$ 标签，不改变样本、split 或 $`\pi_{population}`$；
-6. 每个候选配置以固定 epoch 预算完整训练一次，记录所有 epoch 的 PA、OA 与 checkpoint；随后
+   时仅重生成 $`S`$ 标签，不改变样本、split 或 $`\pi_{population}`$。
+
+**（三）训练、选模与评测流程**
+
+5. 每个候选配置以固定 epoch 预算完整训练一次，记录所有 epoch 的 PA、OA 与 checkpoint；随后
    **离线独立**选择 PA 与 OA 各自最优的"超参数 + checkpoint + 阈值"。选中 checkpoint 直接在
-   独立 `test` 评测，不与验证集重新合并训练；
-7. PA 执行不得向模型或回调暴露 `clean_val`/`test`，OA 才注入 `clean_val`。无法移除真实
-   验证标签依赖的方法标为 `PA-ineligible`，仅进入 OA/补充表；
-8. PN oracle 在与 PU 运行相同的底层 `train` 分区使用完整真实 PN 标签，采用同一表征、
-   backbone、split、候选预算与五个 seed；它仅以 `clean_val` 的真实 Accuracy 选模，表中标为
-   `PN oracle (OA only)`，不得伪造 PA 结果；
-9. 应记录随机种子、样本索引和 split manifest；这是一项实验协议要求，不是工具箱的自动数据
-   划分职责。PA 与 OA 必须分别保存选择 artifact、checkpoint 和测试结果，不能用 OA 选择的
-   模型替代 PA 协议的结果。
+   独立 `test` 评测，不与验证集重新合并训练。
+6. PA 与 OA 必须分别保存选择 artifact、checkpoint 和测试结果，不能用 OA 选择的模型替代 PA
+   协议的结果。
+
+**（四）任务要求：接口、交付物与留痕**
+
+7. 本实验要求工具箱提供 `fit(model, train, pu_val, clean_val, test)` 或等价接口，并以已完成
+   split 和预处理的四路 `DatasetBundle` 作为输入；工具箱不负责切分原始数据，训练集、验证集和
+   测试集均由用户提供。
+8. 工具箱必须具备"利用用户给的数据和模型要求，训练出模型"这一功能，故需要提供丰富的可 DIY
+   参数的接口：训练模型的函数、生成数据的函数等。DIY 接口是工具箱面向所有用户开放的能力；
+   本实验的候选配置与超参数由 §5.3 的中心注册表统一管理，实验榜单仅使用注册表登记的配置；
+9. 提供一个官方示例脚本：读取用户准备的四份数据，并利用工具箱函数完成完整 PU 学习、模型选择
+   和测试流程。
+10. PN oracle 在与 PU 运行相同的底层 `train` 分区使用完整真实 PN 标签，采用同一表征、
+    backbone、split、候选预算与五个 seed；它仅以 `clean_val` 的真实 Accuracy 选模，表中标为
+    `PN oracle (OA only)`，不得伪造 PA 结果。
+11. 应记录随机种子、样本索引和 split manifest；这是一项实验协议要求，不是工具箱的自动数据
+    划分职责。
 
 > 上述要求的当前工具箱实现状态、`ExperimentRunner` 层结论与实现侧自动验证要求见
 > [implementation_plan.md](implementation_plan.md) §1。
@@ -155,10 +171,10 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 ## 3. class prior 以及相关参数设置
 
 1. 本实验将类先验明确区分为：总体/测试分布类先验 $`\pi_{population}=P(Y=1)`$、构造后训练对象
-   的 $`\pi_{train}`$，以及未标记集内的 $`\pi_{U}`$。$`\pi_{population}`$ 定义为每个 seed 在分层划分前
-   完整二元化数据池的正例经验比例；它是数据生成 metadata，不从 PU 标签、`train`、`U` 或
-   `test` 子集反推。扫描标记频率 $`c`$ 时固定每个数据集的 $`\pi_{population}`$，并在每次运行的
-   metadata 中记录三者及实际实现的 $`c`$；
+   的 $`\pi_{train}`$，以及未标记集内的 $`\pi_{U}`$。$`\pi_{population}`$ 定义为每个 seed 于同一
+   完整二元化数据池（分层划分前的完整池）的正例经验比例，故其为所有 seed 共享的常量；它是
+   数据生成 metadata，不从 PU 标签、`train`、`U` 或 `test` 子集反推。扫描标记频率 $`c`$ 时固定
+   每个数据集的 $`\pi_{population}`$，并在每次运行的 metadata 中记录三者及实际实现的 $`c`$；
 2. 主实验可向需要总体类先验的算法和 PA 传入真实 $`\pi_{population}`$，但结果必须标注为
    `known-prior`（oracle-prior）设定。不得将 $`\pi_{U}`$ 或 $`\pi_{train}`$ 不加区分地传入所有名为
    `class_prior` 的参数；具体参数语义以算法原文和官方实现为准；
