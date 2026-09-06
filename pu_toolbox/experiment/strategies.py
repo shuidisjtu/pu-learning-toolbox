@@ -268,22 +268,28 @@ class DeepFitTrainer(Trainer):
                 kwargs["class_prior"] = class_prior
             try:
                 estimator.fit(X, y, **kwargs)
-                hist = getattr(estimator, "history_", None)
-                if isinstance(hist, dict) and "val_risk" in hist and len(hist["val_risk"]):
-                    epochs = [
-                        EpochRecord(
-                            epoch=int(e),
-                            metrics={"val_risk": float(v), "train_risk": float(r)},
-                        )
-                        for e, v, r in zip(
-                            hist["epoch"], hist["val_risk"], hist["nnpu_risk"], strict=False
-                        )
-                    ]
-                    return RunTrajectory(
-                        epochs=epochs,
-                        model=estimator,
-                        best_epoch=int(np.argmin(hist["val_risk"])) + 1,
-                    )
             except TypeError:
-                pass
+                # Signature probe passed but the implementation is inconsistent at
+                # runtime: degrade to a bare fit — replacement (single fit), so the
+                # FitTrainer fallback below is NOT re-run. Any other exception
+                # (including internal training bugs) must bubble up.
+                kwargs.pop("validation_data", None)
+                estimator.fit(X, y, **kwargs)
+                return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
+            hist = getattr(estimator, "history_", None)
+            if isinstance(hist, dict) and "val_risk" in hist and len(hist["val_risk"]):
+                epochs = [
+                    EpochRecord(
+                        epoch=int(e),
+                        metrics={"val_risk": float(v), "train_risk": float(r)},
+                    )
+                    for e, v, r in zip(
+                        hist["epoch"], hist["val_risk"], hist["nnpu_risk"], strict=False
+                    )
+                ]
+                return RunTrajectory(
+                    epochs=epochs,
+                    model=estimator,
+                    best_epoch=int(np.argmin(hist["val_risk"])) + 1,
+                )
         return FitTrainer().fit(estimator, X, y, class_prior=class_prior)
