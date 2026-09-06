@@ -1080,6 +1080,8 @@ docstring。
 | `survey_dataset_catalog` | 返回 MNIST/F-MNIST/CIFAR-10/ADNI/IMDB/20News/Spambase/Connect-4 锁定目录 |
 | `binaryize_survey_labels` | 按协议锁定映射生成真实二元标签，并拒绝目录外类别 |
 | `prepare_survey_dataset` | 从调用方提供的数组确定性生成 90% train/5% PU-val/5% clean-val 和官方或派生 test，返回 bundle + split manifest |
+| `encode_survey_texts` | 用固定 `all-MiniLM-L6-v2` 生成 384 维文本向量；强制记录 revision，以文本内容和归一化选项寻址缓存，并在复用前校验 SHA-256 |
+| `SBERT_MODEL_NAME` / `SBERT_EMBEDDING_DIMENSION` | survey 文本协议锁定的模型标识与输出维度常量 |
 | `SCARGenerator` | SCAR 标记：固定数量无放回均匀采样，`n_L = round(c·n₊)`，记录 `c_realized` |
 | `SARLBEAGenerator` | SAR-LBE-A：`p ∝ scores^k`（k=10）+ 0.9/0.1 平滑（PU-Bench 2d95a19） |
 | `SARLBEBGenerator` | SAR-LBE-B：`p ∝ (1.5 + shrink_coef − scores)^k`，负值截断、全零均匀兜底 |

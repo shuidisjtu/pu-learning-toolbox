@@ -148,6 +148,7 @@ pu_toolbox/
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
+    text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存)
     manifest.py                           (manifest 写入/加载与必填键校验)
     protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
     resources.py                          (候选/调参/GPU 资源计量、运行环境探测与跨 seed 汇总)
@@ -269,6 +270,8 @@ tests/
       test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
     experiment/
       test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
+      test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
+      test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测
       test_manifest.py                  # manifest 往返与必填键 fail-loud
       test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
       test_runner.py                    # ExperimentRunner 端到端(小PU/CNN smoke)与 fail-loud

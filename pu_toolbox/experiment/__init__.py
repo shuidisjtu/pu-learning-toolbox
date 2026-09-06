@@ -20,6 +20,11 @@ from .strategies import (
     SupervisedTrainer,
     select_threshold,
 )
+from .text import (
+    SBERT_EMBEDDING_DIMENSION,
+    SBERT_MODEL_NAME,
+    encode_survey_texts,
+)
 
 __all__ = [
     "DatasetBundle",
@@ -31,11 +36,14 @@ __all__ = [
     "ProtocolPA",
     "SARLBEAGenerator",
     "SARLBEBGenerator",
+    "SBERT_EMBEDDING_DIMENSION",
+    "SBERT_MODEL_NAME",
     "SCARGenerator",
     "SupervisedTrainer",
     "SurveyDatasetSpec",
     "aggregate_resource_usage",
     "binaryize_survey_labels",
+    "encode_survey_texts",
     "prepare_survey_dataset",
     "select_threshold",
     "survey_dataset_catalog",

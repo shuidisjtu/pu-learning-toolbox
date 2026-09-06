@@ -143,6 +143,8 @@ oracle、阈值选择，通过 §7 验收清单后再扩展 SAR 细节与资源�
   路径报告。
 - 所有可学习预处理统计量仅在该 seed 的 `train` 拟合并冻结，图像增强仅用于训练。
 - 文本记录 `all-MiniLM-L6-v2` 的模型 revision、384 维输出及 embedding cache hash。
+  `experiment.text.encode_survey_texts` 已实现固定模型、显式 revision、内容寻址缓存及读取时
+  SHA-256 校验（2026-09-06）；真实语料批量产物仍须在正式实验环境生成。
 - 决策记录：原方案中的 ResNet-34 因当前 Toolbox 未集成且算力限制，不作为默认选择；已确认
   采用 PU-Bench 的数据集内统一训练与评估协议。
 

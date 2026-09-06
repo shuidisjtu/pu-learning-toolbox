@@ -28,6 +28,7 @@
 ```bash
 pip install pu-toolbox                # core dependencies (Python >= 3.10)
 pip install "pu-toolbox[torch]"       # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, ...)
+pip install "pu-toolbox[text]"        # + fixed SBERT preprocessing for survey text datasets
 pip install "pu-toolbox[ui]"          # + Streamlit graphical interface
 ```
 
