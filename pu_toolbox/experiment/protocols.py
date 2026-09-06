@@ -1,9 +1,9 @@
 """Strategy interfaces of the experiment layer.
 
-Design notes: one ABC per variation point (spec §6) instead of a Bridge
-hierarchy — a concrete strategy is injected into ExperimentRunner, no
-subclassing the runner. DIY = implement an ABC and inject. See
-docs/research/pu_survey/implementation_plan.md §1.4.
+Design notes: one ABC per variation point instead of a Bridge hierarchy —
+a concrete strategy is injected into ExperimentRunner, no subclassing the
+runner. DIY = implement an ABC and inject. See
+docs/dev/experiment_layer.md §2 and implementation_plan.md §1.4.
 """
 
 # ruff: noqa: N803

@@ -256,7 +256,8 @@ class ProtocolPA(SelectionProtocol):
 
 
 # ---------------------------------------------------------------------------
-# Training strategies (protocol §2.5 + spec §6.3: single-point / deep / oracle)
+# Training strategies (protocol §2.5: single-point / deep / oracle;
+# see docs/dev/experiment_layer.md §3)
 # ---------------------------------------------------------------------------
 
 

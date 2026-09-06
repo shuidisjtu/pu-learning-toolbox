@@ -3,7 +3,8 @@
 Design notes: dataclasses only — no logic — so every layer can hold and
 inspect them without coupling. Checkpoint identity is ``model`` (the
 fitted estimator, or the estimator restored to its internal best state).
-Per-epoch snapshots are intentionally out of P0 scope (see spec §9).
+Per-epoch snapshots are intentionally out of P0 scope (see
+docs/dev/experiment_layer.md §4).
 """
 
 from __future__ import annotations
