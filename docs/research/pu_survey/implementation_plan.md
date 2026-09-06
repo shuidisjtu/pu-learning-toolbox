@@ -47,8 +47,12 @@
 
 - **进**：四份数据（`DatasetBundle`）合约及校验（索引不重叠、PA 无真实标签、test 不参与选择）、训练 → PA/OA
   选模 → 独立测试的编排、全 epoch 轨迹记录与离线选择、选择制品与 manifest 留痕。
-- **不进（复用或外置）**：数据切分（用户负责，协议 §2.4 第 7 条）；SCAR/SAR 生成（复用现有
-  `preprocessing`）；类先验估计、指标计算（复用现有组件）；算法与 backbone 适配（见 §4、§5）。
+- **不进（复用或外置）**：数据切分（用户负责，协议 §2.4 第 7 条）；SCAR 生成（复用现有
+  `preprocessing`，固定计数口径已一致，见 §2.1）；类先验估计、指标计算（复用现有组件）；
+  算法与 backbone 适配（见 §4、§5）。
+- **新增而非复用**：SAR 的 LBE-A/LBE-B 口径生成器。现有 `preprocessing` 的 SAR 是倾向性校准 +
+  逐样本 Bernoulli 路线，与 §2.2 锁定的 PU-Bench LBE 设定不符（2026-09-06 代码审计结论），
+  须作为实验层新增实现，不复用现有 SAR 代码。
 - **对现有部分的影响**：零改动现有签名，实验层与工具箱之间为单向依赖（实验层 → 现有层）。
   对外新增一个公共接口 + 一个数据合约类型，属中等偏小的净新增。
 
@@ -156,10 +160,18 @@ SBERT 向量或表格 MLP 路径的前置条件；它是完成图像数据集公
 1. **统一图像 encoder/backbone 配置**：在 EncoderFactory/配置/报告中支持本实验选定的图像
    backbone、归一化和数据增强，并记录其版本与参数；当前已有的 CNN13、ResNet-18、ResNet-50
    不代表已复现 PU-Bench 的各数据集专用 CNN；
+   （2026-09-06 代码审计：编码器装配已落地——`build_encoder` 支持 resnet18 与灰度单通道
+   conv1 替换，含归一化/增强工厂，报告含 architecture/backbone/device/encoder 字段；剩余：
+   输入尺寸/归一化/增强等参数入 manifest 的固化。）
 2. **完善算法能力台账与门禁**：逐算法声明 `native_mlp`、`native_cnn`、`tabular_only` 等
    能力，训练前拒绝不兼容的输入组合；
+   （2026-09-06 代码审计：能力声明与门禁已实现——`AlgorithmMetadata.native_architectures`
+   /`input_ndims` + `check_architecture_capability` fail-loud 门禁 + CLI 能力列；字段命名为
+   `native_architectures`，与协议措辞 `native_mlp`/`native_cnn` 的台账口径对齐待议。）
 3. **完成必要的深度算法 encoder 适配**：针对本实验实际纳入图像榜单的方法，逐个评估并实现
    encoder 注入；不能仅改参数名或将完整模型伪装为 encoder；
+   （2026-09-06 代码审计：部分完成——nnPU、InfoMax-PU、WConPU 已支持 encoder 注入；
+   Dist-PU、Self-PU、DGPU 仍为 mlp-only。）
 4. **实现传统算法的 `cnn_feature_adapter`**（如主榜要求传统算法参与图像比较）：以固定或折内
    训练的 CNN encoder 提取二维特征，再训练传统 PU 算法。该路径必须单独调参、单独记录为
    `cnn_feature_adapter`；它不是传统算法原生 CNN 结果，也不得与端到端结果混合；
@@ -178,6 +190,10 @@ SBERT 向量或表格 MLP 路径的前置条件；它是完成图像数据集公
 - 当前外部 Toolbox 源码审计显示：22 个目标方法（21 个 PU 方法 + 1 个 oracle）中仅 uPU、nnPU、
   KLDCE、Dist-PU、PUSB、LBE、Self-PU 七个已注册并绑定为可训练实现；其余方法及 PN oracle
   仍需接入。
+  （2026-09-06 代码审计补充：上述"七个"限定在 22 个目标方法范围内成立；注册表整体已有
+  17 个可训练实现、0 个 `api_only`——另 10 个为 elkan_noto、pnu、recpe、
+  class_prior_estimation、centroid_pu(LDCE)、pusb_kernel、llsvm、infomax_pu、
+  weighted_contrastive_pu、dgpu，均不在协议 §4 名单；14 个未接入目标方法连占位注册也没有。）
 - 完整主榜以 22 法全部通过相应门禁为发布条件；在此之前只可发布明确标为
   `pilot / partial benchmark` 的部分结果。
 - 每个方法的**接入验收**依次包括：原论文和官方实现/commit 可追溯、固定小数据单元或冒烟测试、
