@@ -122,9 +122,7 @@ def test_architecture_capability_preflight_blocks_before_training():
         )
     assert not trainer.called
 
-    runner = ExperimentRunner(
-        config={"architecture": "cnn", "c": 0.5, "trainer": trainer}
-    )
+    runner = ExperimentRunner(config={"architecture": "cnn", "c": 0.5, "trainer": trainer})
     with pytest.raises(ValueError, match="does not support architecture='cnn'"):
         runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
     assert not trainer.called
@@ -335,9 +333,10 @@ def test_resource_accounting_covers_candidates_tuning_and_gpu(monkeypatch):
         item["successful_attempt_elapsed_seconds"]
         for item in resources["single_configuration_costs"]
     )
-    assert [
-        item["peak_gpu_memory_bytes"] for item in resources["single_configuration_costs"]
-    ] == [128, 512]
+    assert [item["peak_gpu_memory_bytes"] for item in resources["single_configuration_costs"]] == [
+        128,
+        512,
+    ]
     assert resources["data_generation_elapsed_seconds"] >= 0
     assert resources["shared_preprocessing"]["elapsed_seconds"] is None
     assert resources["environment"]["python_version"]

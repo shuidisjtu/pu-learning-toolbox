@@ -253,9 +253,7 @@ class ExperimentRunner:
         for name, artifact in selections.items():
             payload = asdict(artifact)
             selected_run = next(
-                item
-                for item in candidate_runs
-                if item["trajectory_index"] == artifact.run_index
+                item for item in candidate_runs if item["trajectory_index"] == artifact.run_index
             )
             payload["candidate_index"] = selected_run["candidate_index"]
             selection_payload[name] = payload

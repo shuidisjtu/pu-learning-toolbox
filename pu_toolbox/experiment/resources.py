@@ -52,9 +52,11 @@ def begin_peak_gpu_memory_measurement(model, params: dict) -> str | None:
     if "device" not in params and not hasattr(model, "device"):
         return None
     device_hint = params.get("device", getattr(model, "device", None))
-    if device_hint is not None and str(device_hint) not in ("auto",) and not str(
-        device_hint
-    ).startswith("cuda"):
+    if (
+        device_hint is not None
+        and str(device_hint) not in ("auto",)
+        and not str(device_hint).startswith("cuda")
+    ):
         return None
     try:
         import torch
@@ -109,9 +111,7 @@ def runtime_environment() -> dict[str, Any]:
                 {
                     "index": index,
                     "name": torch.cuda.get_device_name(index),
-                    "total_memory_bytes": int(
-                        torch.cuda.get_device_properties(index).total_memory
-                    ),
+                    "total_memory_bytes": int(torch.cuda.get_device_properties(index).total_memory),
                 }
                 for index in range(torch.cuda.device_count())
             ]

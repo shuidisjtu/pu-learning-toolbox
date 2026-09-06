@@ -183,9 +183,10 @@ class TestSelfPUClassifier:
         assert len(classifier.history_["train_risk"]) == 2
         assert classifier.best_epoch_ == int(np.argmin(classifier.history_["val_risk"])) + 1
         assert classifier.teacher_selection_basis_ == "pu_validation_nnpu_risk"
-        assert classifier.best_teacher_index_ == classifier.history_["val_teacher"][
-            classifier.best_epoch_ - 1
-        ]
+        assert (
+            classifier.best_teacher_index_
+            == classifier.history_["val_teacher"][classifier.best_epoch_ - 1]
+        )
         scores = classifier.decision_function(X_val)
         restored_risk = NonNegativePULoss()(
             scores[y_pu_val == 1],

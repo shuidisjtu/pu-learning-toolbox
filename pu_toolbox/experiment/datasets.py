@@ -29,24 +29,18 @@ class SurveyDatasetSpec:
 
 
 _CATALOG = {
-    "mnist": SurveyDatasetSpec(
-        "mnist", "image", (0, 2, 4, 6, 8), (1, 3, 5, 7, 9), True
-    ),
+    "mnist": SurveyDatasetSpec("mnist", "image", (0, 2, 4, 6, 8), (1, 3, 5, 7, 9), True),
     "fashion_mnist": SurveyDatasetSpec(
         "fashion_mnist", "image", (0, 2, 3, 4, 6), (1, 5, 7, 8, 9), True
     ),
-    "cifar10": SurveyDatasetSpec(
-        "cifar10", "image", (0, 1, 8, 9), (2, 3, 4, 5, 6, 7), True
-    ),
+    "cifar10": SurveyDatasetSpec("cifar10", "image", (0, 1, 8, 9), (2, 3, 4, 5, 6, 7), True),
     "adni": SurveyDatasetSpec("adni", "image", (0,), (1, 2, 3), False),
     "imdb": SurveyDatasetSpec("imdb", "text", (1,), (0,), True),
     "twenty_newsgroups": SurveyDatasetSpec(
         "twenty_newsgroups", "text", (0, 1, 2, 3), (4, 5, 6), True
     ),
     "spambase": SurveyDatasetSpec("spambase", "tabular", (1,), (0,), False),
-    "connect_4": SurveyDatasetSpec(
-        "connect_4", "tabular", ("win",), ("loss", "draw"), False
-    ),
+    "connect_4": SurveyDatasetSpec("connect_4", "tabular", ("win",), ("loss", "draw"), False),
 }
 
 _ALIASES = {

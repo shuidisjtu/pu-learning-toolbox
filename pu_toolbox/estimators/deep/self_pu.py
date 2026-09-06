@@ -934,8 +934,9 @@ def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, class_prio
         positive = torch.as_tensor(y_pu_val == 1, device=scores.device)
         unlabeled = ~positive
         positive_risk = class_prior * torch.sigmoid(-scores[positive]).mean()
-        negative_risk = torch.sigmoid(scores[unlabeled]).mean() - class_prior * torch.sigmoid(
-            scores[positive]
-        ).mean()
+        negative_risk = (
+            torch.sigmoid(scores[unlabeled]).mean()
+            - class_prior * torch.sigmoid(scores[positive]).mean()
+        )
         risk = positive_risk + torch.clamp(negative_risk, min=0.0)
     return float(risk.cpu())
