@@ -189,6 +189,11 @@ SBERT 向量或表格 MLP 路径的前置条件；它是完成图像数据集公
 双架构计划完成后仍不足以完成整个实验：TS-OS 校准、PA/OA 模型选择、四份用户数据的
 `ExperimentRunner` 接口及 SBERT 向量生成流程属于独立工作项，应与架构适配并行规划。
 
+TS-OS 的 batch 级转换已由 `experiment.training_views.calibrate_ts_os_batch` 实现
+（2026-09-06）：仅允许台账显式声明 `ts`/`both` 的方法在 train 使用，P 继续参与正例损失并
+追加到 U 损失输入；PU/clean 验证与 test 请求 TS 会 fail-loud。各 TS 方法接入时仍须在其原生
+mini-batch 训练循环调用该转换，不得预先生成另一份持久化 TS 数据集。
+
 ## 5. 算法接入与溯源现状
 
 - 当前外部 Toolbox 源码审计显示：22 个目标方法（21 个 PU 方法 + 1 个 oracle）中仅 uPU、nnPU、

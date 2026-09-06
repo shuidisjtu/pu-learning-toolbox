@@ -150,6 +150,7 @@ pu_toolbox/
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
     image.py                              (train-only 图像统计、缩放、ResNet-18/增强配置与哈希留痕)
     text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存)
+    training_views.py                     (train-only OS/TS-compatible mini-batch 损失视图与留痕)
     manifest.py                           (manifest 写入/加载与必填键校验)
     protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
     resources.py                          (候选/调参/GPU 资源计量、运行环境探测与跨 seed 汇总)
@@ -274,6 +275,7 @@ tests/
       test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
       test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
       test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测
+      test_training_views.py            # TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与哈希
       test_manifest.py                  # manifest 往返与必填键 fail-loud
       test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
       test_runner.py                    # ExperimentRunner 端到端(小PU/CNN smoke)与 fail-loud

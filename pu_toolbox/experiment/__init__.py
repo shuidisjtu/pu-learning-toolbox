@@ -32,6 +32,7 @@ from .text import (
     SBERT_MODEL_NAME,
     encode_survey_texts,
 )
+from .training_views import TSOSBatchView, calibrate_ts_os_batch
 
 __all__ = [
     "DatasetBundle",
@@ -49,10 +50,12 @@ __all__ = [
     "SupervisedTrainer",
     "SurveyDatasetSpec",
     "SurveyImagePreprocessing",
+    "TSOSBatchView",
     "aggregate_resource_usage",
     "binaryize_survey_labels",
     "build_survey_image_augmentation",
     "build_survey_image_encoder",
+    "calibrate_ts_os_batch",
     "encode_survey_texts",
     "fit_survey_image_preprocessing",
     "prepare_survey_dataset",

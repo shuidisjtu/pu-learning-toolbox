@@ -1084,6 +1084,8 @@ docstring。
 | `transform_survey_images` | 对验证/test 复用 train 阶段冻结的形状和缩放合约，拒绝跨分区缩放漂移 |
 | `build_survey_image_encoder` / `build_survey_image_augmentation` | 从冻结规格构造随机初始化 ResNet-18；增强只对 `train` 返回，PU/clean 验证与 test 固定为 `None` |
 | `SurveyImagePreprocessing` | 图像输入尺寸、首层、归一化、增强、训练数据与配置 SHA-256 的 JSON manifest 规格 |
+| `calibrate_ts_os_batch` | 按训练 batch 构造 OS 或 TS-compatible 损失视图；TS 时 P 同时进入正例与 U 损失输入，并强制原生 TS 台账和 train-only 门禁 |
+| `TSOSBatchView` | TS-OS 转换后的 P/U 损失数组、原始索引、运行视图与校准 manifest |
 | `encode_survey_texts` | 用固定 `all-MiniLM-L6-v2` 生成 384 维文本向量；强制记录 revision，以文本内容和归一化选项寻址缓存，并在复用前校验 SHA-256 |
 | `SBERT_MODEL_NAME` / `SBERT_EMBEDDING_DIMENSION` | survey 文本协议锁定的模型标识与输出维度常量 |
 | `SCARGenerator` | SCAR 标记：固定数量无放回均匀采样，`n_L = round(c·n₊)`，记录 `c_realized` |
