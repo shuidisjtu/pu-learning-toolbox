@@ -9,6 +9,7 @@ import torch
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.experiment.bundle import DatasetPart
+from pu_toolbox.experiment.manifest import load_manifest
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import DeepFitTrainer, ProtocolOA, SCARGenerator
 from pu_toolbox.experiment.tracking import EpochRecord, RunTrajectory, SelectionArtifact
@@ -194,7 +195,9 @@ def test_auc_does_not_hide_model_scoring_errors():
             return np.zeros(len(X), dtype=int)
 
         def decision_function(self, X):
-            raise RuntimeError("broken score path")
+            if np.array_equal(X, test.X):
+                raise RuntimeError("broken score path")
+            return np.asarray(X[:, 0], dtype=float)
 
     class _FakeTrainer:
         def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
@@ -213,6 +216,89 @@ def test_auc_does_not_hide_model_scoring_errors():
     )
     with pytest.raises(RuntimeError, match="broken score path"):
         runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
+
+
+def test_candidate_failures_retry_once_and_exclude_from_selection(tmp_path):
+    train, pu_val, clean_val, test = make_bundle()
+
+    class _StableModel:
+        def decision_function(self, X):
+            return np.asarray(X[:, 0], dtype=float)
+
+        def predict(self, X):
+            return (self.decision_function(X) >= 0.0).astype(int)
+
+    class _SelectiveTrainer:
+        def __init__(self):
+            self.calls = {}
+
+        def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+            key = estimator.reg_lambda
+            self.calls[key] = self.calls.get(key, 0) + 1
+            if key == 0.01 or self.calls[key] == 1:
+                raise TimeoutError(f"candidate {key} timed out")
+            return RunTrajectory(epochs=[], model=_StableModel())
+
+    class _FixedProtocol:
+        def select(self, trajectories, val_part, threshold_candidates=None):
+            assert len(trajectories) == 1
+            return SelectionArtifact(
+                protocol="custom", run_index=0, epoch=None, threshold=None, metrics={}
+            )
+
+    trainer = _SelectiveTrainer()
+    runner = ExperimentRunner(
+        seed=7,
+        protocols=[_FixedProtocol()],
+        manifest_path=str(tmp_path / "retry.json"),
+        config={
+            "c": 0.5,
+            "trainer": trainer,
+            "candidates": [{"reg_lambda": 0.01}, {"reg_lambda": 0.02}],
+        },
+    )
+    res = runner.fit(UPUClassifier(0.3), train, pu_val, clean_val, test)
+
+    assert trainer.calls == {0.01: 2, 0.02: 2}
+    assert [item["status"] for item in res.failures] == ["excluded", "recovered"]
+    assert all(item["seed"] == 7 for item in res.failures)
+    assert res.manifest["selection"]["custom"]["candidate_index"] == 1
+    assert [item["status"] for item in res.manifest["candidate_runs"]] == [
+        "excluded",
+        "recovered",
+    ]
+    assert load_manifest(tmp_path / "retry.json")["failures"] == res.failures
+
+
+def test_all_failed_candidates_write_manifest_then_fail_loudly(tmp_path):
+    train, pu_val, clean_val, test = make_bundle()
+    manifest_path = tmp_path / "all-failed.json"
+
+    class _FailingTrainer:
+        calls = 0
+
+        def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+            self.calls += 1
+            raise MemoryError("synthetic OOM")
+
+    trainer = _FailingTrainer()
+    runner = ExperimentRunner(
+        seed=11,
+        protocols=[],
+        manifest_path=str(manifest_path),
+        config={"c": 0.5, "trainer": trainer},
+    )
+    with pytest.raises(RuntimeError, match="all candidate runs failed"):
+        runner.fit(UPUClassifier(0.3), train, pu_val, clean_val, test)
+
+    manifest = load_manifest(manifest_path)
+    assert trainer.calls == 2
+    assert manifest["selection"] == {}
+    assert manifest["failures"][0]["status"] == "excluded"
+    assert [error["type"] for error in manifest["failures"][0]["errors"]] == [
+        "MemoryError",
+        "MemoryError",
+    ]
 
 
 class _RecordingTrainer(DeepFitTrainer):

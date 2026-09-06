@@ -39,7 +39,9 @@
   artifact、PN oracle（`SupervisedTrainer` + `protocols=[ProtocolOA()]`，调用方显式传递）、阈值
   选择、资源/失败最小留痕（elapsed + failures 字段）、二维（uPU）与 CNN（nnPU）端到端 smoke
 - **后续跟进项**（正式 survey 数据生成前处理）：
-  1. 训练失败记录与同 seed 重试（协议 §5.5）——当前 `failures` 恒为空、训练异常直接冒泡
+  1. ~~训练失败记录与同 seed 重试~~：候选从 fresh clone 以同 seed 自动重试一次；恢复与最终
+     失败均写入 `failures`，最终失败候选从排名排除，全失败时先写 manifest 再终止
+     （协议 §5.5，2026-09-06 完成）
   2. ~~runner 前置能力门禁~~：已按 `native_architectures`/`input_ndims` 在 PU 生成与训练前
      fail-loud；`config["architecture"]` 可显式声明 `"mlp"`/`"cnn"`（2026-09-06 完成）
   3. SelfPU 补记 val 指标（当前仅 nnPU；SelfPU 走 DeepFitTrainer 裸 fit 退化路径）

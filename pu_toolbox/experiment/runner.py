@@ -10,6 +10,7 @@ from __future__ import annotations
 import time
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from sklearn.base import clone
@@ -17,7 +18,7 @@ from sklearn.base import clone
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator
-from .tracking import RunResult
+from .tracking import RunResult, RunTrajectory
 
 
 class ExperimentRunner:
@@ -92,14 +93,91 @@ class ExperimentRunner:
                 "ensure pu_val contains real positives (and/or raise c)."
             )
 
-        # 3. train the candidate pool (clone + set_params per config)
+        # 3. train the candidate pool. A failed attempt is retried once from
+        #    a fresh clone; a twice-failed candidate is excluded from ranking.
         candidates = self.config.get("candidates", [{}])
         trajectories = []
-        for params in candidates:
-            est = clone(model)
-            if params:
-                est.set_params(**params)
-            trajectories.append(self._train(est, train_pu, pu_val_pu))
+        failures = []
+        candidate_runs = []
+        for candidate_index, params in enumerate(candidates):
+            errors = []
+            for attempt in (1, 2):
+                try:
+                    est = _clone_candidate(model, params, self.seed)
+                    _validate_model_capability(
+                        est,
+                        bundle,
+                        self.config.get("architecture"),
+                    )
+                    trajectory = self._train(est, train_pu, pu_val_pu)
+                    _validate_trajectory(trajectory, pu_val_pu)
+                except Exception as exc:  # noqa: BLE001 - recorded retry boundary
+                    errors.append(_exception_record(exc, attempt))
+                    continue
+
+                trajectory_index = len(trajectories)
+                trajectories.append(trajectory)
+                status = "recovered" if errors else "succeeded"
+                candidate_runs.append(
+                    {
+                        "candidate_index": candidate_index,
+                        "trajectory_index": trajectory_index,
+                        "params": _artifact_value(params),
+                        "seed": self.seed,
+                        "attempts": attempt,
+                        "status": status,
+                    }
+                )
+                if errors:
+                    failures.append(
+                        {
+                            "candidate_index": candidate_index,
+                            "params": _artifact_value(params),
+                            "seed": self.seed,
+                            "attempts": attempt,
+                            "status": status,
+                            "errors": errors,
+                        }
+                    )
+                break
+            else:
+                candidate_runs.append(
+                    {
+                        "candidate_index": candidate_index,
+                        "trajectory_index": None,
+                        "params": _artifact_value(params),
+                        "seed": self.seed,
+                        "attempts": 2,
+                        "status": "excluded",
+                    }
+                )
+                failures.append(
+                    {
+                        "candidate_index": candidate_index,
+                        "params": _artifact_value(params),
+                        "seed": self.seed,
+                        "attempts": 2,
+                        "status": "excluded",
+                        "errors": errors,
+                    }
+                )
+
+        if not trajectories:
+            manifest = {
+                "seed": self.seed,
+                "split_ref": self.config.get("split_ref", {}),
+                "generation": {"train": meta_train, "pu_val": meta_val},
+                "candidate_runs": candidate_runs,
+                "selection": {},
+                "test_results": {},
+                "elapsed": time.perf_counter() - t0,
+                "failures": failures,
+            }
+            self._write_manifest(manifest)
+            raise RuntimeError(
+                "all candidate runs failed after one same-seed retry; "
+                "inspect manifest['failures'] for details."
+            )
 
         # 4. offline selection: PA on the PU view, OA on the clean view,
         #    any other protocol gets the PU view (never clean labels).
@@ -136,20 +214,34 @@ class ExperimentRunner:
                 "auc_unavailable_reason": auc_unavailable_reason,
             }
 
+        selection_payload = {}
+        for name, artifact in selections.items():
+            payload = asdict(artifact)
+            selected_run = next(
+                item
+                for item in candidate_runs
+                if item["trajectory_index"] == artifact.run_index
+            )
+            payload["candidate_index"] = selected_run["candidate_index"]
+            selection_payload[name] = payload
+
         manifest = {
             "seed": self.seed,
             "split_ref": self.config.get("split_ref", {}),
             "generation": {"train": meta_train, "pu_val": meta_val},
-            "selection": {k: asdict(v) for k, v in selections.items()},
+            "candidate_runs": candidate_runs,
+            "selection": selection_payload,
             "test_results": test_metrics,
             "elapsed": time.perf_counter() - t0,
-            "failures": [],
+            "failures": failures,
         }
-        if self.manifest_path:
-            path = Path(self.manifest_path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            write_manifest(path, manifest)
-        return RunResult(selections=selections, test_metrics=test_metrics, manifest=manifest)
+        self._write_manifest(manifest)
+        return RunResult(
+            selections=selections,
+            test_metrics=test_metrics,
+            manifest=manifest,
+            failures=failures,
+        )
 
     def _train(self, est, train_pu: DatasetPart, pu_val_view: DatasetPart):
         trainer = self.config.get("trainer", DeepFitTrainer())
@@ -161,6 +253,12 @@ class ExperimentRunner:
             class_prior=self.class_prior,
             val_pu=val_pu,
         )
+
+    def _write_manifest(self, manifest: dict) -> None:
+        if self.manifest_path:
+            path = Path(self.manifest_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            write_manifest(path, manifest)
 
 
 def _auc(est, test: DatasetPart) -> tuple[float, str | None]:
@@ -227,3 +325,56 @@ def _validate_model_capability(
                 f"input_ndims={sorted(allowed_ndims)!r}, "
                 f"encoder_parameter={encoder_parameter!r}."
             )
+
+
+def _clone_candidate(model, params: dict, seed: int):
+    """Create a clean retry candidate while preserving one run seed."""
+    est = clone(model)
+    if params:
+        est.set_params(**params)
+    est_params = est.get_params(deep=False)
+    if "random_state" in est_params and est_params["random_state"] is None:
+        est.set_params(random_state=seed)
+    return est
+
+
+def _validate_trajectory(trajectory, pu_val: DatasetPart) -> None:
+    """Turn non-finite output and trainer interface drift into retryable failures."""
+    if not isinstance(trajectory, RunTrajectory):
+        raise TypeError("trainer.fit must return a RunTrajectory instance.")
+    for record in trajectory.epochs:
+        for metric_name, value in record.metrics.items():
+            if not np.isfinite(value):
+                raise FloatingPointError(
+                    f"training history metric {metric_name!r} is not finite at "
+                    f"epoch {record.epoch}."
+                )
+    scores = np.asarray(trajectory.model.decision_function(pu_val.X), dtype=float)
+    if scores.shape != pu_val.labels.shape:
+        raise ValueError(
+            "candidate decision_function must return one score per sample; "
+            f"got shape {scores.shape!r} for labels {pu_val.labels.shape!r}."
+        )
+    if not np.all(np.isfinite(scores)):
+        raise FloatingPointError("candidate validation scores contain NaN or infinity.")
+
+
+def _exception_record(exc: Exception, attempt: int) -> dict[str, Any]:
+    return {
+        "attempt": attempt,
+        "type": type(exc).__name__,
+        "message": str(exc),
+    }
+
+
+def _artifact_value(value):
+    """Convert candidate parameters to stable JSON-compatible artifact values."""
+    if value is None or isinstance(value, bool | int | float | str):
+        return value
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {str(key): _artifact_value(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_artifact_value(item) for item in value]
+    return repr(value)

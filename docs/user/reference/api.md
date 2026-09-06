@@ -1088,6 +1088,11 @@ docstring。
 `auc_unavailable_reason`；当测试真实标签只有一个类别时，`auc` 为 `NaN` 且原因字段为说明文本，
 正常可计算时原因字段为 `null`。模型 `decision_function` 或指标实现中的错误不会被转成 `NaN`。
 
+候选训练异常、非有限 epoch 指标或非有限验证分数会以 fresh clone 和同一 seed 自动重试一次。
+首次失败后成功的候选标为 `recovered`；再次失败则标为 `excluded` 并从 PA/OA 选模池排除。
+manifest 的 `candidate_runs` 保存候选到有效 trajectory 的映射，`failures` 保存异常类型与消息；
+若全部候选均失败，runner 会先写 manifest（配置了路径时），再抛出 `RuntimeError`。
+
 ## 错误与异常
 
 **所有权**：所有工具箱异常都继承自 `PULearningError`（`pu_toolbox.core.exceptions`），
