@@ -60,6 +60,6 @@ class SelectionArtifact:
 @dataclass
 class RunResult:
     selections: dict[str, SelectionArtifact]
-    test_metrics: dict[str, dict[str, float]]
+    test_metrics: dict[str, dict[str, float | str | None]]
     manifest: dict
     failures: list[dict] = field(default_factory=list)

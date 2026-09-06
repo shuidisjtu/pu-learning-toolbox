@@ -162,6 +162,59 @@ def test_end_to_end_small_pu(tmp_path):
     assert np.isfinite(res.test_metrics["PA"]["auc"]) and np.isfinite(res.test_metrics["OA"]["auc"])
 
 
+def test_auc_records_reason_when_test_has_one_class():
+    train, pu_val, clean_val, test = make_bundle()
+    one_class_test = DatasetPart(
+        X=test.X,
+        labels=np.zeros_like(test.labels),
+        view=test.view,
+        indices=test.indices,
+        for_selection=False,
+    )
+    runner = ExperimentRunner(seed=0, class_prior=0.3, config={"c": 0.5})
+
+    res = runner.fit(
+        UPUClassifier(0.3, random_state=0),
+        train,
+        pu_val,
+        clean_val,
+        one_class_test,
+    )
+
+    for metrics in res.test_metrics.values():
+        assert np.isnan(metrics["auc"])
+        assert "only one class" in metrics["auc_unavailable_reason"]
+
+
+def test_auc_does_not_hide_model_scoring_errors():
+    train, pu_val, clean_val, test = make_bundle()
+
+    class _BrokenScoreModel:
+        def predict(self, X):
+            return np.zeros(len(X), dtype=int)
+
+        def decision_function(self, X):
+            raise RuntimeError("broken score path")
+
+    class _FakeTrainer:
+        def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+            return RunTrajectory(epochs=[], model=_BrokenScoreModel())
+
+    class _FixedProtocol:
+        def select(self, trajectories, val_part, threshold_candidates=None):
+            return SelectionArtifact(
+                protocol="custom", run_index=0, epoch=None, threshold=None, metrics={}
+            )
+
+    runner = ExperimentRunner(
+        seed=0,
+        protocols=[_FixedProtocol()],
+        config={"c": 0.5, "trainer": _FakeTrainer()},
+    )
+    with pytest.raises(RuntimeError, match="broken score path"):
+        runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
+
+
 class _RecordingTrainer(DeepFitTrainer):
     """Records every trajectory so the deep-path invariant can be asserted."""
 

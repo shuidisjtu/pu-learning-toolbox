@@ -129,9 +129,11 @@ class ExperimentRunner:
                 pred = (scores >= art.threshold).astype(int)
             else:
                 pred = est.predict(test.X)
+            auc, auc_unavailable_reason = _auc(est, test)
             test_metrics[name] = {
                 "accuracy": float(np.mean(pred == test.labels)),
-                "auc": _auc(est, test),
+                "auc": auc,
+                "auc_unavailable_reason": auc_unavailable_reason,
             }
 
         manifest = {
@@ -161,14 +163,18 @@ class ExperimentRunner:
         )
 
 
-def _auc(est, test: DatasetPart) -> float:
-    """AUROC on real test labels; NaN (never a crash) when degenerate."""
+def _auc(est, test: DatasetPart) -> tuple[float, str | None]:
+    """AUROC on real test labels, with an explicit degenerate-label reason."""
     from pu_toolbox.metrics import pu_auc_roc
 
-    try:
-        return float(pu_auc_roc(test.labels, est.decision_function(test.X)))
-    except Exception:
-        return float("nan")
+    if np.unique(test.labels).size < 2:
+        return (
+            float("nan"),
+            "ROC AUC is unavailable because the test labels contain only one class.",
+        )
+    # Score-generation and metric bugs are not an expected availability case:
+    # let them surface instead of silently converting them to NaN.
+    return float(pu_auc_roc(test.labels, est.decision_function(test.X))), None
 
 
 def _validate_model_capability(

@@ -44,7 +44,8 @@
      fail-loud；`config["architecture"]` 可显式声明 `"mlp"`/`"cnn"`（2026-09-06 完成）
   3. SelfPU 补记 val 指标（当前仅 nnPU；SelfPU 走 DeepFitTrainer 裸 fit 退化路径）
   4. 完整资源计量三口径（协议 §5.3-4 / 实现计划 §6）不在 pilot 面
-  5. OA 阈值评测已用 val 侧固定变换（F1 修复）；`_auc` 的裸 `except Exception` 可收窄
+  5. OA 阈值评测已用 val 侧固定变换（F1 修复）；~~`_auc` 裸异常捕获~~已改为仅将
+     单类别测试集标记为不可用并记录原因，模型评分/指标错误保持 fail-loud（2026-09-06 完成）
 - **测试**：`tests/unit/experiment/`（`-m unit`；PARTIAL_COVERAGE 登记的 dataclass/ABC
   纯定义条目随覆盖自动移除）；自动验证要求（索引不重叠、PA 不读真实标签、test 不进训练/
   选择）由 `test_bundle.py`/`test_runner.py` 的断言保证。

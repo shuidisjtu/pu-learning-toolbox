@@ -1084,6 +1084,10 @@ docstring。
 | `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
 
+`ExperimentRunner` 的每个测试协议结果固定包含 `accuracy`、`auc` 和
+`auc_unavailable_reason`；当测试真实标签只有一个类别时，`auc` 为 `NaN` 且原因字段为说明文本，
+正常可计算时原因字段为 `null`。模型 `decision_function` 或指标实现中的错误不会被转成 `NaN`。
+
 ## 错误与异常
 
 **所有权**：所有工具箱异常都继承自 `PULearningError`（`pu_toolbox.core.exceptions`），
