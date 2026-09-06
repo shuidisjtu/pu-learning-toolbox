@@ -100,6 +100,9 @@ class NonNegativePUClassifier(BasePUClassifier):
         Per-epoch training metrics.  Keys: ``epoch``,
         ``positive_risk``, ``negative_risk``, ``upu_risk``,
         ``nnpu_risk``, ``optimization_loss``, ``correction_fraction``.
+        ``val_risk`` (nnPU validation risk) is only filled when
+        ``validation_data`` is passed to :meth:`fit`; otherwise it stays
+        empty.
     classes_ : np.ndarray
         ``np.array([0, 1])``.
     """
@@ -320,6 +323,7 @@ class NonNegativePUClassifier(BasePUClassifier):
             "nnpu_risk": [],
             "optimization_loss": [],
             "correction_fraction": [],
+            "val_risk": [],
         }
 
         # ── Validation data ───────────────────────────────────────
@@ -446,6 +450,7 @@ class NonNegativePUClassifier(BasePUClassifier):
                     class_prior=class_prior,
                     non_negative=True,
                 )
+                self.history_["val_risk"].append(float(val_risk))
 
                 if val_risk < best_val_risk:
                     best_val_risk = val_risk
@@ -556,7 +561,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         dict
             Keys: ``epoch``, ``positive_risk``, ``negative_risk``,
             ``upu_risk``, ``nnpu_risk``, ``optimization_loss``,
-            ``correction_fraction``.
+            ``correction_fraction``, ``val_risk``.
         """
         self._check_is_fitted()
         return dict(self.history_)

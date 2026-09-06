@@ -109,6 +109,9 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    训练集、PU 验证集、真实标签验证集与测试集，并将其传入接口。保留 PU-Bench 的独立测试集；
    从原始训练源分层留出 10% 验证池，等分为 5% `pu_val` 和 5% `clean_val`，其余 90% 为
    `train`。`pu_val` 与 `clean_val` 必须不重叠，`clean_val` 和 `test` 保持自然类先验。
+   此处"准备"指**切分与预处理**由用户完成；用户提供的是切分后的**真实标签**四路分区，
+   `train`/`pu_val` 的 PU 标签视图（`{+1, 0}` 形式）由工具箱的生成函数（第 8 条）在 split
+   之后生成并记录 `c_realized`；`clean_val`/`test` 保持真实标签。
 4. 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同一 seed 下所有方法、
    PA/OA、PN oracle 及所有 $`c`$ 共享同一底层 split，同一 $`c`$ 共享相同 P/U 标记结果。扫描 $`c`$
    时仅重生成 $`S`$ 标签，不改变样本、split 或 $`\pi_{population}`$。

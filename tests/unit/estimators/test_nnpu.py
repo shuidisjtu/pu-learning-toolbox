@@ -442,7 +442,7 @@ class TestAPIContract:
         assert isinstance(clf3.model_, torch.nn.Module)
 
     def test_edge_evaluate_pu_risk_and_early_stopping(self, rng):
-        """evaluate_pu_risk override/flag_switch; early stopping with/without validation."""
+        """evaluate_pu_risk override/flag_switch; early stopping + history val_risk with/without validation."""
         X, y_pu, pi = _make_synthetic_data(rng, n_p=20, n_u=40)
         model = torch.nn.Linear(5, 1)
         clf = NonNegativePUClassifier(model=model, max_epochs=2, batch_size=8)
@@ -486,13 +486,17 @@ class TestAPIContract:
         )
         clf2.fit(X2, y2, class_prior=pi2, validation_data=(X_val, y_val))
         assert len(clf2.history_["epoch"]) < 100
+        # history_["val_risk"] is filled per epoch with validation_data ...
+        assert len(clf2.history_["val_risk"]) == len(clf2.history_["epoch"])
+        assert len(clf2.history_["val_risk"]) > 0
 
-        # Without validation → full epochs
+        # Without validation → full epochs, val_risk empty
         X3, y3, pi3 = _make_synthetic_data(rng, n_p=20, n_u=40)
         model3 = torch.nn.Linear(5, 1)
         clf3 = NonNegativePUClassifier(model=model3, max_epochs=5, patience=2, batch_size=8)
         clf3.fit(X3, y3, class_prior=pi3)
         assert len(clf3.history_["epoch"]) == 5
+        assert clf3.history_["val_risk"] == []
 
     def test_basic_device_default_none_and_resolves_cpu(self, rng, monkeypatch):
         """Default device is None ("auto"); fit resolves to cpu without CUDA."""
