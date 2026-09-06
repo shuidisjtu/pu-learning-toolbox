@@ -10,8 +10,8 @@ from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.experiment.bundle import DatasetPart
 from pu_toolbox.experiment.runner import ExperimentRunner
-from pu_toolbox.experiment.strategies import DeepFitTrainer, SCARGenerator
-from pu_toolbox.experiment.tracking import SelectionArtifact
+from pu_toolbox.experiment.strategies import DeepFitTrainer, ProtocolOA, SCARGenerator
+from pu_toolbox.experiment.tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
 pytestmark = pytest.mark.unit
 
@@ -196,3 +196,74 @@ def test_end_to_end_cnn_smoke(tmp_path):
         if traj.epochs:
             assert traj.best_epoch is not None
             assert 1 <= traj.best_epoch <= len(traj.epochs)
+
+
+def test_oa_test_eval_reuses_val_side_transform():
+    """F1 fix: OA test evaluation must apply the VAL-side min-max affine
+    constants recorded at selection time. Re-normalising with the test
+    set's own min/max applies different affine constants and silently
+    shifts the threshold, so the reported test accuracy is wrong."""
+    x_test = np.zeros((10, 2))
+    x_test[6:, 0] = [0.0, 0.1, 0.2, 0.3]  # test decision scores live in [0.0, 0.3]
+    # labels[6:10] = [1, 1, 0, 0].
+    y_test = np.concatenate([np.zeros(6, dtype=int), np.array([1, 1, 0, 0])])
+    x_other = np.zeros((6, 2))  # rows 0-5 shared by train/pu_val/clean_val
+    y_other = np.array([1, 1, 1, 1, 0, 1])  # per-part segment controls the labels
+    train = make_part(x_other, y_other, np.arange(2))
+    pu_val = make_part(x_other, y_other, np.arange(2, 4))  # real positive for SCAR
+    clean_val = make_part(x_other, y_other, np.arange(4, 6))
+    test = make_part(x_test, y_test, np.arange(6, 10), fs=False)
+
+    class _ScoreModel:
+        """decision_function = first column (test scores are [0.0, 0.3])."""
+
+        def decision_function(self, X):
+            return X[:, 0]
+
+        def predict(self, X):
+            return (X[:, 0] >= 0.0).astype(int)
+
+    class _FakeTrainer:
+        """Returns a single trajectory holding ``_ScoreModel`` (never fits)."""
+
+        def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+            return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=_ScoreModel())
+
+    class _FixedOA(ProtocolOA):
+        """OA artifact with known val-side constants: val scores live in
+        [0.8, 1.0] (min=0.8, scale=0.2), threshold mid-grid."""
+
+        def select(self, trajectories, val_part, threshold_candidates=None):
+            return SelectionArtifact(
+                protocol="OA",
+                run_index=0,
+                epoch=None,
+                threshold=0.5,
+                metrics={
+                    "val_accuracy": 1.0,
+                    "val_score_min": 0.8,
+                    "val_score_scale": 0.2,
+                },
+            )
+
+    runner = ExperimentRunner(
+        seed=0,
+        generator=SCARGenerator(),
+        protocols=[_FixedOA()],
+        config={"c": 0.5, "trainer": _FakeTrainer()},
+    )
+    res = runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
+    acc = res.test_metrics["OA"]["accuracy"]
+
+    # Fixed val transform: (s - 0.8) / 0.2 lands in [-4.0, -2.5], all below
+    # 0.5 — every test point is predicted negative, accuracy = 0.5.
+    s_test = x_test[6:, 0]
+    y_test_part = y_test[6:]
+    val_transform_pred = ((s_test - 0.8) / 0.2 >= 0.5).astype(int)
+    assert acc == float(np.mean(val_transform_pred == y_test_part))
+    assert acc == 0.5  # all-negative predictions against two real positives
+    # The drift the fix prevents: the test's own min-max would predict
+    # [0, 0, 1, 1] here (accuracy 0.0), so the assertion discriminates the
+    # two transforms.
+    test_transform_pred = ((s_test - s_test.min()) / np.ptp(s_test) >= 0.5).astype(int)
+    assert float(np.mean(test_transform_pred == y_test_part)) != acc

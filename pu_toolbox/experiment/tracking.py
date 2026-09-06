@@ -53,7 +53,7 @@ class SelectionArtifact:
     run_index: int
     epoch: int | None
     threshold: float | None
-    metrics: dict[str, float]
+    metrics: dict[str, float | None]
 
 
 @dataclass

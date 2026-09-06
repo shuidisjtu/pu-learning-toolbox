@@ -167,7 +167,11 @@ class ProtocolOA(SelectionProtocol):
 
     Scores are min-max normalised to [0, 1] before thresholding, so the
     default ``np.linspace(0, 1, 11)`` grid is meaningful for any
-    ``decision_function`` range.
+    ``decision_function`` range. The val-side affine constants are
+    recorded in ``metrics`` so the runner applies the SAME transform to
+    test scores — the threshold was picked in the val-side normalised
+    space; re-normalising on the test set's own min/max would apply
+    different affine constants and shift the threshold (F1 fix).
     """
 
     name = "OA"
@@ -181,24 +185,38 @@ class ProtocolOA(SelectionProtocol):
         if threshold_candidates is None:
             threshold_candidates = np.linspace(0.0, 1.0, 11)
         best_arti_cand = None
+        best_min = best_scale = None
         for i, traj in enumerate(trajectories):
             model = traj.model
-            # normalise scores to [0,1] via decision_function min-max
+            # normalise scores to [0,1] via decision_function min-max,
+            # keeping the affine constants for the selected model.
             scores = model.decision_function(x_val)
             scale = np.ptp(scores)
             if scale > 0:
-                scores = (scores - scores.min()) / scale
+                s_min = float(scores.min())
+                scores = (scores - s_min) / scale
+                affine = (s_min, float(scale))
+            else:
+                # Constant-score model: keep the "scale == 0 skips
+                # normalisation" semantics — no affine constants recorded,
+                # the runner falls back to predict.
+                affine = (None, None)
             thr, acc = select_threshold(scores, labels, threshold_candidates)
             cand = (acc, i, thr)
             if best_arti_cand is None or acc > best_arti_cand[0]:
                 best_arti_cand = cand
+                best_min, best_scale = affine
         _, run_idx, thr = best_arti_cand
         return SelectionArtifact(
             protocol="OA",
             run_index=run_idx,
             epoch=trajectories[run_idx].best_epoch,
             threshold=thr,
-            metrics={"val_accuracy": best_arti_cand[0]},
+            metrics={
+                "val_accuracy": best_arti_cand[0],
+                "val_score_min": best_min,
+                "val_score_scale": best_scale,
+            },
         )
 
 

@@ -116,11 +116,15 @@ class ExperimentRunner:
         test_metrics = {}
         for name, art in selections.items():
             est = trajectories[art.run_index].model
-            scores = est.decision_function(test.X)
-            if art.threshold is not None and np.ptp(scores) > 0:
-                # Same min-max convention ProtocolOA used on the val view,
-                # so the [0, 1] threshold grid stays in range.
-                scores = (scores - scores.min()) / np.ptp(scores)
+            s_min = art.metrics.get("val_score_min")
+            s_scale = art.metrics.get("val_score_scale")
+            if art.threshold is not None and s_min is not None and s_scale:
+                # OA picked its threshold in the VAL-side min-max space; reuse
+                # the recorded val affine transform here, so the threshold keeps
+                # its val semantics. Re-normalising with the test's own min/max
+                # applies different affine constants and silently shifts the
+                # threshold (F1 fix: fixed val transform, not "same convention").
+                scores = (est.decision_function(test.X) - s_min) / s_scale
                 pred = (scores >= art.threshold).astype(int)
             else:
                 pred = est.predict(test.X)
