@@ -1086,6 +1086,8 @@ docstring。
 | `SurveyImagePreprocessing` | 图像输入尺寸、首层、归一化、增强、训练数据与配置 SHA-256 的 JSON manifest 规格 |
 | `calibrate_ts_os_batch` | 按训练 batch 构造 OS 或 TS-compatible 损失视图；TS 时 P 同时进入正例与 U 损失输入，并强制原生 TS 台账和 train-only 门禁 |
 | `TSOSBatchView` | TS-OS 转换后的 P/U 损失数组、原始索引、运行视图与校准 manifest |
+| `adapt_image_bundle_to_features` | 用固定或声明为仅 train 拟合的 CNN，在 eval/no-grad 下提取四路二维特征；校验 encoder 未变并记录权重/特征/split 哈希 |
+| `LeaderboardRunSpec` / `partition_fair_leaderboard_runs` | 校验同数据集 split、seed、epoch/batch/tuning 预算及同路径表征一致；原生 CNN 与 `cnn_feature_adapter` 强制分组，adapter 强制标为 `benchmark-adapted` |
 | `encode_survey_texts` | 用固定 `all-MiniLM-L6-v2` 生成 384 维文本向量；强制记录 revision，以文本内容和归一化选项寻址缓存，并在复用前校验 SHA-256 |
 | `SBERT_MODEL_NAME` / `SBERT_EMBEDDING_DIMENSION` | survey 文本协议锁定的模型标识与输出维度常量 |
 | `SCARGenerator` | SCAR 标记：固定数量无放回均匀采样，`n_L = round(c·n₊)`，记录 `c_realized` |

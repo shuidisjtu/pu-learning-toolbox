@@ -179,10 +179,15 @@ SBERT 向量或表格 MLP 路径的前置条件；它是完成图像数据集公
 4. **实现传统算法的 `cnn_feature_adapter`**（如主榜要求传统算法参与图像比较）：以固定或折内
    训练的 CNN encoder 提取二维特征，再训练传统 PU 算法。该路径必须单独调参、单独记录为
    `cnn_feature_adapter`；它不是传统算法原生 CNN 结果，也不得与端到端结果混合；
+   （2026-09-06：`adapt_image_bundle_to_features` 已实现 eval/no-grad 四路提取、encoder 前后权重
+   哈希不变门禁、固定外部/仅 train 拟合范围留痕及特征哈希；真实 encoder 的训练仍由实验配置负责。）
 5. **加入跨路径公平性检查**：同一数据集主榜应校验数据划分、特征版本/backbone、训练预算、
    调参预算和随机种子协议一致；
+   （2026-09-06：`partition_fair_leaderboard_runs` 已实现 split/seed/epoch/batch/tuning 预算一致性、
+   同路径 representation hash 一致性与 native/adapter 强制分组。）
 6. **固定图像路径分组**：原生端到端 CNN 与 `cnn_feature_adapter` 二维特征路径分别成组，
    绝不混合排名。adapter、非原文训练接口或其他兼容性改写均须标为 `benchmark-adapted`。
+   （2026-09-06：adapter 的 `benchmark-adapted` 标记和按路径输出分组已成为 fail-loud 门禁。）
 
 ### 4.3 独立的工作项
 

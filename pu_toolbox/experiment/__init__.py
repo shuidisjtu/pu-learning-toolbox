@@ -7,6 +7,11 @@ from .datasets import (
     prepare_survey_dataset,
     survey_dataset_catalog,
 )
+from .feature_adapter import (
+    LeaderboardRunSpec,
+    adapt_image_bundle_to_features,
+    partition_fair_leaderboard_runs,
+)
 from .image import (
     SurveyImagePreprocessing,
     build_survey_image_augmentation,
@@ -40,6 +45,7 @@ __all__ = [
     "DeepFitTrainer",
     "ExperimentRunner",
     "FitTrainer",
+    "LeaderboardRunSpec",
     "ProtocolOA",
     "ProtocolPA",
     "SARLBEAGenerator",
@@ -52,12 +58,14 @@ __all__ = [
     "SurveyImagePreprocessing",
     "TSOSBatchView",
     "aggregate_resource_usage",
+    "adapt_image_bundle_to_features",
     "binaryize_survey_labels",
     "build_survey_image_augmentation",
     "build_survey_image_encoder",
     "calibrate_ts_os_batch",
     "encode_survey_texts",
     "fit_survey_image_preprocessing",
+    "partition_fair_leaderboard_runs",
     "prepare_survey_dataset",
     "select_threshold",
     "survey_dataset_catalog",
