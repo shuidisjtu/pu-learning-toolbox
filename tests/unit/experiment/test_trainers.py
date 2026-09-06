@@ -3,10 +3,13 @@
 # ruff: noqa: N803, N806
 
 import numpy as np
+import pytest
 
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.experiment.strategies import DeepFitTrainer, FitTrainer, SupervisedTrainer
+
+pytestmark = pytest.mark.unit
 
 
 def test_fit_trainer_single_point():

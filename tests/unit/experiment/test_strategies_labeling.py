@@ -3,12 +3,15 @@
 # ruff: noqa: N806
 
 import numpy as np
+import pytest
 
 from pu_toolbox.experiment.strategies import (
     SARLBEAGenerator,
     SARLBEBGenerator,
     SCARGenerator,
 )
+
+pytestmark = pytest.mark.unit
 
 
 def _y(n):

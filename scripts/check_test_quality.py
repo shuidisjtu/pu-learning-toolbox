@@ -246,6 +246,84 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "test_pipeline_deep TestPipelineDeepSeedReproducibility"
         ),
     },
+    "test_bundle.py": {
+        "determ": (
+            "validate_bundle is a pure function (no randomness, no seed state); "
+            "determinism of the seed-driven parts is covered at the generator "
+            "level (test_scar_deterministic_seed) and the runner runs with fixed "
+            "seeds (test_basic_end_to_end_small_pu)"
+        ),
+    },
+    "test_manifest.py": {
+        "edge": (
+            "the only supported boundary — missing required key — is the "
+            "param/error path; nested-parent-dir creation is the runner's job "
+            "before write_manifest, covered by test_runner"
+        ),
+        "determ": (
+            "JSON dump/load roundtrip is deterministic by construction "
+            "(no randomness, no seed state)"
+        ),
+    },
+    "test_protocols.py": {
+        "edge": (
+            "ABC interface tests only; boundary behavior of the concrete "
+            "strategies is covered by test_strategies_selection / "
+            "test_strategies_labeling"
+        ),
+        "determ": (
+            "ABC definitions are static (abstract-method declarations; "
+            "no randomness, no seed state)"
+        ),
+    },
+    "test_runner.py": {
+        "determ": (
+            "runner reproducibility spans generate+train+select; the seed-driven "
+            "labeling step is asserted deterministically by "
+            "test_scar_deterministic_seed, and full-pipeline reproducibility is "
+            "deferred to the survey run itself"
+        ),
+    },
+    "test_strategies_labeling.py": {
+        "param": (
+            "generate() is exercised with fixed c values; invalid/degenerate c "
+            "degrade by clamping in _n_labeled (no error surface), so there is "
+            "no parameter-validation path to test"
+        ),
+    },
+    "test_strategies_selection.py": {
+        "determ": (
+            "select_threshold and the protocols are pure functions over fixed "
+            "inputs (no RNG, no seed state); seed-driven determinism of the "
+            "generation path is covered by test_scar_deterministic_seed"
+        ),
+    },
+    "test_tracking.py": {
+        "param": (
+            "dataclasses have no validation surface; required-field assembly "
+            "is exercised through the runner/protocol tests"
+        ),
+        "edge": (
+            "only default/unset fields are asserted (best_epoch=None, "
+            "threshold=None, failures=[]); no input-boundary scenarios"
+        ),
+        "determ": (
+            "dataclass assembly is deterministic by construction (no randomness, no seed state)"
+        ),
+    },
+    "test_trainers.py": {
+        "param": (
+            "class_prior forwarding is a TypeError-catch duck contract (no "
+            "validation surface — the fallback IS the exercised path); "
+            "estimator-level parameter validation is covered by the estimator "
+            "unit tests"
+        ),
+        "determ": (
+            "trainers hold no RNG/seed state — the trajectory is fully "
+            "determined by the injected estimator and data; estimator seed "
+            "determinism is covered by the estimator unit tests"
+        ),
+    },
     "test_ui_history_flow.py": {
         "param": (
             "AppTest wiring test is a success-path end-to-end; parameter errors are unit-level"

@@ -1060,6 +1060,30 @@ report = build_diagnostic_report(X_valid, y_valid, y_pred=predictions,
 `PUDiagnosticReport` 顶层 `schema_version` 当前为 `1.0`；`save()` 按 `.json`/`.md` 后缀推断格式，
 JSON 严格编码（未定义值转 `null`）。
 
+## 实验层（experiment）
+
+实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
+决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)
+§2.3-§2.4 与 [implementation_plan.md](../../research/pu_survey/implementation_plan.md)
+§1.3-§1.4）。本表只登记公共符号与一句话用途；参数契约与行为细节的真相源是各
+docstring。
+
+| 符号 | 用途 |
+|---|---|
+| `ExperimentRunner` | 流程骨架（Template Method）：数据校验 → 生成 PU 视图 → 候选池训练 → PA/OA 离线选择 → 独立测试 → manifest 留痕；每个变动点注入策略 |
+| `DatasetBundle` | 四路数据合约：`train` / `pu_val` / `clean_val` / `test` |
+| `DatasetPart` | 一份划分 + 显式标签视图（`view="clean"` 真实标签 / `view="pu"` PU 视图）+ 全局样本索引 |
+| `validate_bundle` | 四路合约校验：视图、真实二元标签、索引不重叠、`test.for_selection=False` |
+| `SCARGenerator` | SCAR 标记：固定数量无放回均匀采样，`n_L = round(c·n₊)`，记录 `c_realized` |
+| `SARLBEAGenerator` | SAR-LBE-A：`p ∝ scores^k`（k=10）+ 0.9/0.1 平滑（PU-Bench 2d95a19） |
+| `SARLBEBGenerator` | SAR-LBE-B：`p ∝ (1.5 + shrink_coef − scores)^k`，负值截断、全零均匀兜底 |
+| `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 PU 视图均值分离度选 run；不选阈值 |
+| `ProtocolOA` | OA 对照：min-max 归一化后，按真实标签验证集 accuracy 选阈值与 run |
+| `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
+| `DeepFitTrainer` | 深度估计器：探测 `validation_data`/`history_`，探测不一致时原地降级为裸 fit |
+| `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线 |
+| `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
+
 ## 错误与异常
 
 **所有权**：所有工具箱异常都继承自 `PULearningError`（`pu_toolbox.core.exceptions`），

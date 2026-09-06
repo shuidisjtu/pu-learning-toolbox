@@ -13,6 +13,8 @@ from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import DeepFitTrainer, SCARGenerator
 from pu_toolbox.experiment.tracking import SelectionArtifact
 
+pytestmark = pytest.mark.unit
+
 
 def make_part(x, labels, idx, fs=True):
     return DatasetPart(

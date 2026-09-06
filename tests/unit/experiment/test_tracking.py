@@ -1,8 +1,12 @@
 # tests/unit/experiment/test_tracking.py
+import pytest
+
 from pu_toolbox.experiment.tracking import EpochRecord, RunResult, RunTrajectory, SelectionArtifact
 
+pytestmark = pytest.mark.unit
 
-def test_trajectory_holds_epochs_and_model():
+
+def test_basic_trajectory_holds_epochs_and_model():
     traj = RunTrajectory(
         epochs=[EpochRecord(epoch=1, metrics={"val_risk": 0.4})],
         model=object(),

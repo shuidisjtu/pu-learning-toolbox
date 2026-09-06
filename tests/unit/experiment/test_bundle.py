@@ -4,6 +4,8 @@ import pytest
 
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 
+pytestmark = pytest.mark.unit
+
 
 def part(labels, indices=None, view="clean", for_selection=True):
     n = len(labels)
@@ -28,11 +30,11 @@ def ok_bundle():
     )
 
 
-def test_valid_bundle_passes(ok_bundle):
+def test_basic_valid_bundle_passes(ok_bundle):
     assert validate_bundle(ok_bundle) is None
 
 
-def test_input_views_must_be_clean():
+def test_param_input_views_must_be_clean():
     bundle = DatasetBundle(
         train=part([1, 1, 0], view="pu"),
         pu_val=part([1, 0]),
@@ -43,7 +45,7 @@ def test_input_views_must_be_clean():
         validate_bundle(bundle)
 
 
-def test_test_must_be_for_selection_false():
+def test_edge_test_for_selection_false():
     bundle = DatasetBundle(
         train=part([1, 0]),
         pu_val=part([1, 0]),
@@ -54,7 +56,7 @@ def test_test_must_be_for_selection_false():
         validate_bundle(bundle)
 
 
-def test_overlapping_indices_rejected():
+def test_edge_overlapping_indices_rejected():
     bundle = DatasetBundle(
         train=part([1, 0, 0], indices=[0, 1, 2]),
         pu_val=part([1, 0], indices=[2, 3]),  # overlaps at 2

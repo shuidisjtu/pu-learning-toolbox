@@ -144,6 +144,14 @@ pu_toolbox/
     runtime.py                            (后台执行: submit_background/BackgroundRun 线程池、进度快照与协作取消)
     launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
     deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
+  experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试(见 docs/research/pu_survey/)
+    __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/select_threshold)
+    bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
+    manifest.py                           (manifest 写入/加载与必填键校验)
+    protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
+    runner.py                             (ExperimentRunner 骨架: 校验/生成PU视图/候选池训练/PA-OA选择/独立测试)
+    strategies.py                         (内置策略: SCAR/SAR-LBE 生成、PA/OA 选模、Trainer 三实现、select_threshold)
+    tracking.py                           (运行留痕数据类: EpochRecord/RunTrajectory/SelectionArtifact/RunResult)
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -257,6 +265,15 @@ tests/
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
       test_architecture_capability.py   # 架构能力校验 gate(能力/签名漂移 fail-loud)
       test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
+    experiment/
+      test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
+      test_manifest.py                  # manifest 往返与必填键 fail-loud
+      test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
+      test_runner.py                    # ExperimentRunner 端到端(小PU/CNN smoke)与 fail-loud
+      test_strategies_labeling.py       # SCAR/SAR-LBE 生成(固定计数/posterior 正例池/seed 确定性)
+      test_strategies_selection.py      # 阈值选择与 PA/OA 选模(真实标签/non-PU 视图拒绝/空轨迹)
+      test_tracking.py                  # 轨迹/选择制品/结果数据类字段
+      test_trainers.py                  # Fit/DeepFit/Supervised 训练策略
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
