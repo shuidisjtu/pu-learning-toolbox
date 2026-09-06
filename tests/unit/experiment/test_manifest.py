@@ -5,7 +5,16 @@ from pu_toolbox.experiment.manifest import load_manifest, write_manifest
 
 pytestmark = pytest.mark.unit
 
-REQUIRED = ["seed", "split_ref", "generation", "selection", "test_results", "elapsed", "failures"]
+REQUIRED = [
+    "seed",
+    "split_ref",
+    "generation",
+    "selection",
+    "test_results",
+    "elapsed",
+    "failures",
+    "resources",
+]
 
 
 def test_basic_write_and_read_roundtrip(tmp_path):

@@ -16,6 +16,7 @@ _REQUIRED_KEYS = (
     "test_results",
     "elapsed",
     "failures",
+    "resources",
 )
 
 

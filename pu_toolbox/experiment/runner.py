@@ -15,6 +15,7 @@ from typing import Any
 import numpy as np
 from sklearn.base import clone
 
+from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator
@@ -81,6 +82,7 @@ class ExperimentRunner:
         _validate_model_capability(model, bundle, self.config.get("architecture"))
 
         # 2. generate PU views (SCAR / SAR via the injected generator)
+        generation_t0 = time.perf_counter()
         c = self.config.get("c", 0.1)
         y_pu_train, meta_train = self.generator.generate(train.X, train.labels, c, self.seed)
         y_pu_val, meta_val = self.generator.generate(pu_val.X, pu_val.labels, c, self.seed)
@@ -92,6 +94,7 @@ class ExperimentRunner:
                 "generated pu_val PU view has no labeled positive; "
                 "ensure pu_val contains real positives (and/or raise c)."
             )
+        generation_elapsed = time.perf_counter() - generation_t0
 
         # 3. train the candidate pool. A failed attempt is retried once from
         #    a fresh clone; a twice-failed candidate is excluded from ranking.
@@ -99,9 +102,13 @@ class ExperimentRunner:
         trajectories = []
         failures = []
         candidate_runs = []
+        tuning_t0 = time.perf_counter()
         for candidate_index, params in enumerate(candidates):
             errors = []
+            attempt_resources = []
             for attempt in (1, 2):
+                attempt_t0 = time.perf_counter()
+                gpu_device = resource_tools.begin_peak_gpu_memory_measurement(model, params)
                 try:
                     est = _clone_candidate(model, params, self.seed)
                     _validate_model_capability(
@@ -113,8 +120,24 @@ class ExperimentRunner:
                     _validate_trajectory(trajectory, pu_val_pu)
                 except Exception as exc:  # noqa: BLE001 - recorded retry boundary
                     errors.append(_exception_record(exc, attempt))
+                    attempt_resources.append(
+                        _attempt_resources(
+                            attempt,
+                            "failed",
+                            attempt_t0,
+                            gpu_device,
+                        )
+                    )
                     continue
 
+                attempt_resources.append(
+                    _attempt_resources(
+                        attempt,
+                        "succeeded",
+                        attempt_t0,
+                        gpu_device,
+                    )
+                )
                 trajectory_index = len(trajectories)
                 trajectories.append(trajectory)
                 status = "recovered" if errors else "succeeded"
@@ -126,6 +149,7 @@ class ExperimentRunner:
                         "seed": self.seed,
                         "attempts": attempt,
                         "status": status,
+                        "resources": _candidate_resources(attempt_resources),
                     }
                 )
                 if errors:
@@ -149,6 +173,7 @@ class ExperimentRunner:
                         "seed": self.seed,
                         "attempts": 2,
                         "status": "excluded",
+                        "resources": _candidate_resources(attempt_resources),
                     }
                 )
                 failures.append(
@@ -162,7 +187,16 @@ class ExperimentRunner:
                     }
                 )
 
+        tuning_elapsed = time.perf_counter() - tuning_t0
+        resources = _resource_summary(
+            candidate_runs,
+            generation_elapsed=generation_elapsed,
+            tuning_elapsed=tuning_elapsed,
+        )
+
         if not trajectories:
+            elapsed = time.perf_counter() - t0
+            resources["runner_elapsed_seconds"] = elapsed
             manifest = {
                 "seed": self.seed,
                 "split_ref": self.config.get("split_ref", {}),
@@ -170,8 +204,9 @@ class ExperimentRunner:
                 "candidate_runs": candidate_runs,
                 "selection": {},
                 "test_results": {},
-                "elapsed": time.perf_counter() - t0,
+                "elapsed": elapsed,
                 "failures": failures,
+                "resources": resources,
             }
             self._write_manifest(manifest)
             raise RuntimeError(
@@ -225,6 +260,8 @@ class ExperimentRunner:
             payload["candidate_index"] = selected_run["candidate_index"]
             selection_payload[name] = payload
 
+        elapsed = time.perf_counter() - t0
+        resources["runner_elapsed_seconds"] = elapsed
         manifest = {
             "seed": self.seed,
             "split_ref": self.config.get("split_ref", {}),
@@ -232,8 +269,9 @@ class ExperimentRunner:
             "candidate_runs": candidate_runs,
             "selection": selection_payload,
             "test_results": test_metrics,
-            "elapsed": time.perf_counter() - t0,
+            "elapsed": elapsed,
             "failures": failures,
+            "resources": resources,
         }
         self._write_manifest(manifest)
         return RunResult(
@@ -241,6 +279,7 @@ class ExperimentRunner:
             test_metrics=test_metrics,
             manifest=manifest,
             failures=failures,
+            resources=resources,
         )
 
     def _train(self, est, train_pu: DatasetPart, pu_val_view: DatasetPart):
@@ -378,3 +417,67 @@ def _artifact_value(value):
     if isinstance(value, list | tuple):
         return [_artifact_value(item) for item in value]
     return repr(value)
+
+
+def _attempt_resources(
+    attempt: int,
+    status: str,
+    started_at: float,
+    gpu_device: str | None,
+) -> dict[str, Any]:
+    return {
+        "attempt": attempt,
+        "status": status,
+        "elapsed_seconds": time.perf_counter() - started_at,
+        "peak_gpu_memory_bytes": resource_tools.peak_gpu_memory_bytes(gpu_device),
+    }
+
+
+def _candidate_resources(attempts: list[dict[str, Any]]) -> dict[str, Any]:
+    peaks = [item["peak_gpu_memory_bytes"] for item in attempts]
+    successful = next((item for item in attempts if item["status"] == "succeeded"), None)
+    return {
+        "elapsed_seconds": sum(item["elapsed_seconds"] for item in attempts),
+        "successful_attempt_elapsed_seconds": (
+            successful["elapsed_seconds"] if successful is not None else None
+        ),
+        "peak_gpu_memory_bytes": max((item for item in peaks if item is not None), default=None),
+        "attempts": attempts,
+    }
+
+
+def _resource_summary(
+    candidate_runs: list[dict[str, Any]],
+    *,
+    generation_elapsed: float,
+    tuning_elapsed: float,
+) -> dict[str, Any]:
+    candidate_costs = [
+        {
+            "candidate_index": item["candidate_index"],
+            "status": item["status"],
+            **item["resources"],
+        }
+        for item in candidate_runs
+    ]
+    peaks = [item["peak_gpu_memory_bytes"] for item in candidate_costs]
+    return {
+        "schema_version": "1.0",
+        "single_configuration_costs": candidate_costs,
+        "tuning": {
+            "elapsed_seconds": tuning_elapsed,
+            "candidate_count": len(candidate_runs),
+            "seed_count": 1,
+            "scope": "this ExperimentRunner seed",
+        },
+        "peak_gpu_memory_bytes": max(
+            (item for item in peaks if item is not None),
+            default=None,
+        ),
+        "data_generation_elapsed_seconds": generation_elapsed,
+        "shared_preprocessing": {
+            "elapsed_seconds": None,
+            "status": "outside ExperimentRunner scope",
+        },
+        "environment": resource_tools.runtime_environment(),
+    }

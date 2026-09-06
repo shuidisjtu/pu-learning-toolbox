@@ -30,7 +30,7 @@
 | `tracking.py` | 纯数据类：`EpochRecord`/`RunTrajectory`/`SelectionArtifact`/`RunResult` |
 | `protocols.py` | 策略 ABC：`Generator.generate(X, y_true, c, seed)`；`Trainer.fit(estimator, X, y, *, class_prior, val_pu)`；`SelectionProtocol.select(trajectories, val_part, threshold_candidates)` |
 | `strategies.py` | `SCARGenerator`（fixed-count `round(c·n₊)` 无放回）、`SARLBEAGenerator`/`SARLBEBGenerator`（PU-Bench `2d95a19`：k=10/shrink 1.0、辅助模型 lbfgs(100) 拟合真实标签、**抽样池限定正例集** S=1⟹Y=1）、`ProtocolPA`/`ProtocolOA` + `select_threshold`、`FitTrainer`/`DeepFitTrainer`/`SupervisedTrainer` |
-| `manifest.py` | 留痕写入/加载 + 7 必填键校验（协议 §5.6 最小版：seed/split_ref/generation/selection/test_results/elapsed/failures） |
+| `manifest.py` | 留痕写入/加载 + 8 必填键校验（seed/split_ref/generation/selection/test_results/elapsed/failures/resources） |
 | `runner.py` | `ExperimentRunner`：校验→生成→候选训练→PA/OA 离线选择→独立 test 评测→留痕 |
 
 ## 4. 边界与已知局限（P0）
@@ -45,7 +45,9 @@
   2. ~~runner 前置能力门禁~~：已按 `native_architectures`/`input_ndims` 在 PU 生成与训练前
      fail-loud；`config["architecture"]` 可显式声明 `"mlp"`/`"cnn"`（2026-09-06 完成）
   3. SelfPU 补记 val 指标（当前仅 nnPU；SelfPU 走 DeepFitTrainer 裸 fit 退化路径）
-  4. 完整资源计量三口径（协议 §5.3-4 / 实现计划 §6）不在 pilot 面
+  4. ~~完整资源计量三口径~~：逐候选记录每次尝试/成功尝试成本，记录本 seed 全候选调参成本与
+     全过程峰值 GPU allocated memory；PU 生成、runner 总时间、环境及不属于 runner 的共享预处理
+     口径分列（协议 §5.3-4 / 实现计划 §6，2026-09-06 完成）
   5. OA 阈值评测已用 val 侧固定变换（F1 修复）；~~`_auc` 裸异常捕获~~已改为仅将
      单类别测试集标记为不可用并记录原因，模型评分/指标错误保持 fail-loud（2026-09-06 完成）
 - **测试**：`tests/unit/experiment/`（`-m unit`；PARTIAL_COVERAGE 登记的 dataclass/ABC

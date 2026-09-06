@@ -1082,6 +1082,7 @@ docstring。
 | `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
 | `DeepFitTrainer` | 深度估计器：探测 `validation_data`/`history_`，探测不一致时原地降级为裸 fit |
 | `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线 |
+| `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
 
 `ExperimentRunner` 的每个测试协议结果固定包含 `accuracy`、`auc` 和
@@ -1092,6 +1093,13 @@ docstring。
 首次失败后成功的候选标为 `recovered`；再次失败则标为 `excluded` 并从 PA/OA 选模池排除。
 manifest 的 `candidate_runs` 保存候选到有效 trajectory 的映射，`failures` 保存异常类型与消息；
 若全部候选均失败，runner 会先写 manifest（配置了路径时），再抛出 `RuntimeError`。
+
+manifest 的必填 `resources` 使用三类互不混淆的成本口径：`single_configuration_costs` 逐候选
+列出每次尝试、成功尝试和候选总耗时；`tuning` 是当前 runner seed 下全部候选（含失败重试）的
+总耗时，跨 seed 汇总时应将各 manifest 的该值相加；`peak_gpu_memory_bytes` 是全过程最大 CUDA
+allocated memory。PU 标签生成时间单列，runner 不执行的共享预处理显式标为 scope 外；
+`environment` 记录 Python、NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。
+`aggregate_resource_usage(manifests)` 将多 seed artifact 汇总为协议要求的完整调参总成本。
 
 ## 错误与异常
 

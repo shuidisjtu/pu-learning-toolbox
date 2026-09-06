@@ -10,6 +10,7 @@ from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.experiment.bundle import DatasetPart
 from pu_toolbox.experiment.manifest import load_manifest
+from pu_toolbox.experiment.resources import aggregate_resource_usage
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import DeepFitTrainer, ProtocolOA, SCARGenerator
 from pu_toolbox.experiment.tracking import EpochRecord, RunTrajectory, SelectionArtifact
@@ -299,6 +300,55 @@ def test_all_failed_candidates_write_manifest_then_fail_loudly(tmp_path):
         "MemoryError",
         "MemoryError",
     ]
+
+
+def test_resource_accounting_covers_candidates_tuning_and_gpu(monkeypatch):
+    train, pu_val, clean_val, test = make_bundle()
+    measured_peaks = iter([128, 512])
+
+    monkeypatch.setattr(
+        "pu_toolbox.experiment.runner.resource_tools.begin_peak_gpu_memory_measurement",
+        lambda model, params: "cuda:0",
+    )
+    monkeypatch.setattr(
+        "pu_toolbox.experiment.runner.resource_tools.peak_gpu_memory_bytes",
+        lambda device: next(measured_peaks),
+    )
+
+    runner = ExperimentRunner(
+        seed=0,
+        class_prior=0.3,
+        config={
+            "c": 0.5,
+            "candidates": [{"reg_lambda": 0.01}, {"reg_lambda": 0.02}],
+        },
+    )
+    res = runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
+    resources = res.resources
+
+    assert resources == res.manifest["resources"]
+    assert resources["peak_gpu_memory_bytes"] == 512
+    assert resources["tuning"]["candidate_count"] == 2
+    assert resources["tuning"]["seed_count"] == 1
+    assert resources["tuning"]["elapsed_seconds"] >= sum(
+        item["successful_attempt_elapsed_seconds"]
+        for item in resources["single_configuration_costs"]
+    )
+    assert [
+        item["peak_gpu_memory_bytes"] for item in resources["single_configuration_costs"]
+    ] == [128, 512]
+    assert resources["data_generation_elapsed_seconds"] >= 0
+    assert resources["shared_preprocessing"]["elapsed_seconds"] is None
+    assert resources["environment"]["python_version"]
+
+    second_manifest = {**res.manifest, "seed": 1}
+    aggregate = aggregate_resource_usage([res.manifest, second_manifest])
+    assert aggregate["seed_count"] == 2
+    assert aggregate["total_tuning_elapsed_seconds"] == pytest.approx(
+        2 * resources["tuning"]["elapsed_seconds"]
+    )
+    assert aggregate["peak_gpu_memory_bytes"] == 512
+    assert len(aggregate["single_configuration_costs"]) == 4
 
 
 class _RecordingTrainer(DeepFitTrainer):

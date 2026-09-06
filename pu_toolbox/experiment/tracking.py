@@ -63,3 +63,4 @@ class RunResult:
     test_metrics: dict[str, dict[str, float | str | None]]
     manifest: dict
     failures: list[dict] = field(default_factory=list)
+    resources: dict = field(default_factory=dict)
