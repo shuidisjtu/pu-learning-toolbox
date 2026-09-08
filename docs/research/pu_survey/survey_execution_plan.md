@@ -46,17 +46,22 @@
 
 ### P1 执行准备（pilot 前完成）
 
-- **1.1 环境**：GPU 机器（驱动/CUDA 与 torch 匹配，`pytest -m gpu` 真实验证，先例 T600【这是我电脑上CUDA的型号】）+
-  `uv sync --extra research`（torch/torchvision/lightning/sentence-transformers/densratio）+ 
-  SBERT 模型落地（`all-MiniLM-L6-v2`，revision 显式锁定、内容寻址缓存）；依赖由 `uv.lock` 固化。
+- **1.1 环境 ✅（2026-09-08）**：T600（驱动 596.52）上 pytest -m gpu 真实验证通过；
+  `uv sync --extra research --extra dev`（torch 2.14.0+cu126 / torchvision 0.29.0+cu126 / lightning /
+  sentence-transformers 5.7.0 / densratio / pytest / ruff）+ SBERT 模型落地
+  （`all-MiniLM-L6-v2`，revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41` 锁定、内容寻址缓存生效）；
+  依赖由 `uv.lock` 固化（见 D3）。
 - **1.2 数据获取**：种子子集先行 = `CIFAR-10 + Spambase + IMDB`（1 图 + 1 表 + 1 文）；各数据集获取渠道——MNIST/F-MNIST/CIFAR-10 自动下载，
   20News `sklearn.fetch_20newsgroups`，Spambase/Connect-4 UCI，IMDB HF/原始文本，ADNI 特殊（见 D1）。
 - **1.3 先行小工作**（pilot 前，工作量小收益大）：
-  1. **方法台账 JSON**（`method_ledger.json`，程序真相源）：7 个已实现方法 × 6 字段，值按方法卡/论文
+  1. **方法台账 JSON ✅（2026-09-08）**（`pu_toolbox/experiment/method_ledger.json`，程序真相源）：7 个已实现方法 × 6 字段，值按方法卡/论文
      填写，存疑处显式标注；实验脚本读取（TS-OS 判定/结果标注"原生适用 vs 假设违背鲁棒性"的依据）。
-     【我的想法是：采用独立 JSON 方案；方法卡节、注册表字段扩展后期可做。】
-  2. **我们需提供的示例脚本**（协议 §2.4 第 9 条交付物 + pilot 执行载体；落地于 `scripts/`，文件名随实现确定）：
-     读取四份数据 → c/candidates 配置 → `ExperimentRunner` → PA/OA → 结果归档。
+     【采用独立 JSON 方案；方法卡节、注册表字段扩展后期可做。经典 5 方法（uPU/KLDCE/Dist-PU/PUSB/LBE）
+     已由 shuidisjtu 填写，nnPU/Self-PU 骨架+证据立好，待 HENG958 复核。】
+  2. **官方示例脚本 ✅（2026-09-08）**（协议 §2.4 第 9 条交付物 + pilot 执行载体；
+     `scripts/run_survey_experiment.py`）：
+     读取四份数据 → c/candidates 配置 → `ExperimentRunner` → PA/OA → 结果归档；台账驱动先验必传判定；
+     PN oracle 留待 P2 引入。
 - **1.4 pilot 数据产物**：种子 3 集按模态流水线（文本 SBERT 编码+缓存；图像 train-only 通道统计；
   切分 produce split manifest）。切分执行口径见 D2。
 
@@ -89,6 +94,7 @@
 |---|---|---|---|
 | D1 | **ADNI 数据获取** | **该数据集的获取似乎比较麻烦**，我会咨询一下学长。我目前的查证结论是（2026-09-08）：需通过 ADNI LONI 官网（adni.loni.usc.edu）在线申请——科研机构身份 + 接受数据使用协议（DUA）+ 研究用途描述，由 ADNI 数据共享与出版委员会（DPC）评审约 1-2 周，批准后经 LONI IDA 下载；限制：不得商用/重新分发、年度更新。决定后若申请通过，ADNI 加入后续实验矩阵；届时矩阵按"7+1"处理 | 2026-09-08 |
 | D2 | 协议分工执行口径 | 数据准备协议 §2.4"工具箱不负责切分"字面与参考实现并存，产生了一个矛盾点——我会修改/补充协议的说法，并和学长说一声 | 2026-09-08 |
+| D3 | 依赖锁与 CUDA 环境落地 | **uv.lock 已入库**（2026-09-08，chore(deps)）：替代 requirements.txt，PR 快层 CI 用 lock 确定性、nightly `--no-lock` 重新解析验证"最新可解析"（ADR-0012 修订）。**torch CUDA 配置**：pyproject `[tool.uv.index] pytorch-cu(cu126)` + `[tool.uv.sources]` 仅 `sys_platform=='win32'` 生效（CI Linux/macOS 保持 PyPI CPU 版；win 上 torch 2.14.0+cu126）；torchvision 并入 torch extra。多环境（T600/HENG958 主力机）由此保持一致 | 2026-09-08 |
 
 ## 4. 存在的开放问题与风险
 
