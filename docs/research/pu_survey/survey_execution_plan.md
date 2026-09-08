@@ -62,8 +62,11 @@
      `scripts/run_survey_experiment.py`）：
      读取四份数据 → c/candidates 配置 → `ExperimentRunner` → PA/OA → 结果归档；台账驱动先验必传判定；
      PN oracle 留待 P2 引入。
-- **1.4 pilot 数据产物**：种子 3 集按模态流水线（文本 SBERT 编码+缓存；图像 train-only 通道统计；
-  切分 produce split manifest）。切分执行口径见 D2。
+- **1.4 pilot 数据产物 ✅（2026-09-08）**：种子 3 集 × 5 seeds 四路切分完成
+  （`data/splits/<dataset>/split_<seed>/` 四份 npz + split_manifest.json；
+  `scripts/prepare_survey_splits.py` 生成，产物经 15 套合同断言 + 示例脚本端到端冒烟验证）。
+  模态预处理：Spambase z-score(float32)、IMDB SBERT 384-d(revision 锁定)、
+  CIFAR-10 uint8 NCHW + train-only 通道统计（统计均冻结入 manifest）。切分执行口径见 D2。
 
 ### P2 pilot 实验（结果一律标注 `pilot / partial benchmark`）
 
