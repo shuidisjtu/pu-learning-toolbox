@@ -33,9 +33,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: |
-          uv sync --python "${{ matrix.python-version }}" --extra dev --extra torch
-          uv pip install "torchvision>=0.15"  # vision tests (CNN/resnet backbones) run for real
+        run: uv sync --python "${{ matrix.python-version }}" --extra dev --extra torch
 
       - name: Verify matrix interpreter
         shell: bash
