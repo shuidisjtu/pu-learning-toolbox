@@ -1,0 +1,290 @@
+{
+  "schema_version": "1.0",
+  "purpose": "PU 调研实验方法台账（程序真相源）。协议 pu_survey_protocol.md §4 要求的 6 字段实现台账；P2 起实验脚本按此判定 TS-OS 校准与结果标注（原生适用 vs 假设违背鲁棒性）。",
+  "slots": {
+    "native_sampling_assumption": "方法原生假设的抽样视图：os / ts / both",
+    "run_view": "实验运行视图：os-compatible / ts-compatible",
+    "calibration_applied": "是否启用 TS-OS 校准（协议 §2.3 第 1 条：仅原生 TS 且训练接口允许替换未标记损失输入的方法）",
+    "prior_semantics": "class_prior 参数语义：population π / train π / 估计器（无需外部）/ 无 / 可选初始化",
+    "adaptation_level": "source-faithful（官方源码忠实适配）/ benchmark-adapted（重写或基准适配）",
+    "modality_backbone": "支持模态与 backbone（代码级能力声明 + 论文原生形式）"
+  },
+  "evidence_convention": "evidence 字段格式： 文件:行号 原文摘录。卡片内天然源与 registry 内标注共同构成。",
+  "fillers": {
+    "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "lbe"],
+    "HENG958": ["nnpu", "self_pu"]
+  },
+  "methods": {
+    "upu": {
+      "class": "UPUClassifier",
+      "paper": {
+        "title": "Convex Formulation for Learning from Positive and Unlabeled Data",
+        "authors": "Marthinus Christoffel du Plessis, Gang Niu, Masashi Sugiyama",
+        "venue": "ICML 2015 (JMLR W&CP Vol. 37)",
+        "year": 2015
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/t-sakai-kure/pywsl",
+        "source_status": "official_bundle (registry:121; 卡注明官方代码库仅作算法参考，公式以论文原文为权威)"
+      },
+      "implementation_status": "NATIVE, backend NUMPY; C-DH SLSQP / C-LL L-BFGS / Squared 闭式解 (upu.md:493)",
+      "native_sampling_assumption": "os",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "population π（requires_class_prior=True；训练时需要 π=p(y=1)，upu.md:19/68, registry:115）",
+      "adaptation_level": "benchmark-adapted（重写：官方 pywsl 仅提供 Squared Loss 闭式解，upu.md:496）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "线性参数模型 g(x)=αᵀφ(x)+b，basis 可选 Gaussian/linear/polynomial (upu.md:188-194)",
+        "code_capability": {
+          "native_architectures": [],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "upu.md:17 case_control（P 和 U 分别收集）; upu.md:16 要求 P 为 p(x|y=1) 的 i.i.d. 抽样（SCAR）; registry:113-114",
+        "prior_semantics": "upu.md:19/68; registry:115 requires_class_prior=True",
+        "adaptation_level": "upu.md:496-498; registry:121"
+      },
+      "uncertainty": [
+        "API 默认 loss=\"squared\"（upu.py:93）与方法卡推荐变体 C-DH（double hinge，upu.md:15）不一致，pilot 候选池需明确 loss 选择",
+        "卡末（upu.md:460）明确不要把后起 nnPU 的 non-negative correction 视为本文目标"
+      ]
+    },
+    "kldce": {
+      "class": "KLDCEClassifier",
+      "paper": {
+        "title": "Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning (kernelized version, RBF)",
+        "authors": "Chen Gong, Hong Shi, Tongliang Liu, Chuang Zhang, Jian Yang, Dacheng Tao",
+        "venue": "IEEE TPAMI",
+        "year": 2021
+      },
+      "code_version": {
+        "upstream_url": "https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
+        "source_status": "official_related（无官方代码；论文正文 + 在线补充附录为唯一权威，KLDCE.md:233）"
+      },
+      "implementation_status": "NATIVE; 附录原生 SMO 已接入 fit（配对解析更新式 (21)-(26)、KKT 违规选择、_solve_dual_smo 原生内层求解器）；SLSQP oracle 对照校验; 2026-08-25 质心单调回滚并定格 inner_tol=1e-6（KLDCE.md:234）",
+      "native_sampling_assumption": "ts（censoring PU，单一 i.i.d. 训练样本内 P 与污染负类混合；SCAR 型 censoring，KLDCE.md:13/31/37, registry:194）",
+      "run_view": "ts-compatible",
+      "calibration_applied": "true（需实现确认：方法卡未载 os_or_ts/校准接口；按协议 §2.3 第 1 条判定为原生 TS 候选，P2 前须确认训练接口允许替换未标记损失输入）",
+      "prior_semantics": "估计器（requires_class_prior=False；正类先验 p=k/[n(1-h)] 由 h 与观测正例比例估计，KLDCE.md:16/46, registry:196）",
+      "adaptation_level": "重写（论文正文 + 附录为唯一权威；附录 SMO 自论文附录编码，KLDCE.md:233-234）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "RBF 核 K(x,z)=exp(-‖x-z‖²/(2σ²))（KLDCE.md:13/52）",
+        "code_capability": {
+          "native_architectures": [],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "KLDCE.md:13/31/37; registry:194 scenario=SINGLE_TRAINING_SET",
+        "prior_semantics": "KLDCE.md:16/46; registry:196",
+        "adaptation_level": "KLDCE.md:233-234; registry:201 source_status=OFFICIAL_RELATED"
+      },
+      "uncertainty": [
+        "方法卡 16 行（先验由 h 与观测正例比例估计）与卡 240 行（探针网格曾传 class_prior=π 作 SCAR 简化构造）口径待澄清",
+        "多处论文未覆盖的实现决策：QP oracle 版非 Algorithm 1 逐行实现（KLDCE.md:184）、质心单调回滚处理 period-2 极限环（185/206-212）、b0 类对称中位数恢复（190-199）"
+      ]
+    },
+    "dist_pu": {
+      "class": "DistPUClassifier",
+      "paper": {
+        "title": "Dist-PU: Positive-Unlabeled Learning from a Label Distribution Perspective",
+        "authors": "Yunrui Zhao, Qianqian Xu, Yangbangyan Jiang, Peisong Wen, Qingming Huang",
+        "venue": "CVPR 2022",
+        "year": 2022
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
+        "source_status": "official_exact"
+      },
+      "implementation_status": "NATIVE; 论文核心损失的 clean-room 小型 MLP 版本（PyTorch optional dependency）（Dist-PU.md:222-224）",
+      "native_sampling_assumption": "os（case_control; X_P~p_P(x), X_U~p(x)=πp_P+(1-π)p_N; Dist-PU.md:14/24-30, registry:235-236）",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "population π（R_lab 以 E_U[q(x)]=π 对齐；Dist-PU.md:15/57/96, registry:237）",
+      "adaptation_level": "benchmark-adapted（clean-room 重写；官方 backbone、mini-batch、图像增强、数据 split、完整超参搜索均未对齐，Dist-PU.md:224-225）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "小型 MLP（原生）",
+        "code_capability": {
+          "native_architectures": ["mlp"],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "Dist-PU.md:14/24-30; registry:235-236",
+        "prior_semantics": "Dist-PU.md:15/57/96; registry:237",
+        "adaptation_level": "Dist-PU.md:222-225; 论文图像 backbone 未对齐（Dist-PU.md:185）"
+      },
+      "uncertainty": [
+        "全量张量训练（batch_size 为兼容性参数）、随机 lambda+stop-gradient 软目标；论文 alpha/gamma/nu 超参数协议未暴露（Dist-PU.md:184-186）",
+        "不应直接与论文图像 backbone 结果比较（Dist-PU.md:185）；pilot 图像模态须走 cnn_feature_adapter 并强制分组"
+      ]
+    },
+    "pusb": {
+      "class": "PUSBClassifier（linear baseline）+ PUSBKernelClassifier（official-aligned kernel）",
+      "paper": {
+        "title": "Learning from Positive and Unlabeled Data with a Selection Bias",
+        "authors": "Masahiro Kato, Takeshi Teshima, Junya Honda",
+        "venue": "ICLR 2019",
+        "year": 2019
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/MasaKat0/PUlearning",
+        "source_status": "official_exact（作者源码已锁定，PUSB.md:246）"
+      },
+      "implementation_status": "NATIVE；linear baseline 与 official-aligned kernel 双实现（PUSB.md:247）",
+      "native_sampling_assumption": "os（两集合视图 P_+^obs=p(x|y=1,s=1) 与 P_U=p(x)；原生标注机制为 SAR（e(x) 随 x 变化），PUSB.md:15/27-28, registry:254-255）",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "population π（官方核实现必填：PU 风险与分位数规则中的 π；linear baseline 不依赖；registry 主条目 requires_class_prior=False 为 linear baseline 语义，PUSB.md:16/227, registry:256）",
+      "adaptation_level": "source-faithful（official-aligned kernel 适配器：官方源码锁定 + 核 PU 目标/CV/分位数规则对齐；复用与官方梯度一致的 0.5*λ‖b‖²（PUSB.md:167）; linear baseline 为附加工程基线，不能声称 PUSB 论文复现（PUSB.md:143））",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "RBF 核适配器（中心 B=300，σ 带宽）+ sklearn LR 基线",
+        "code_capability": {
+          "native_architectures": [],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "PUSB.md:15/27-28; registry:254-255",
+        "prior_semantics": "PUSB.md:16/227; registry:256",
+        "adaptation_level": "PUSB.md:143/167/246-248"
+      },
+      "uncertainty": [
+        "Table 2 审计：72 单元仅 45 个满足声明样本量，不可声称复现六数据集比较（PUSB.md:174）",
+        "决策阈值双语义：公共 predict 冻结训练先验分位数 vs predict_with_prior_quantile 复刻官方批次分位数（PUSB.md:169-172）",
+        "predict_proba 非校准后验（PUSB.md:175）",
+        "pusb_kernel 为独立注册条目（builtin_methods.py:268-288；requires_class_prior=True；与 pcmb 主条目合占一个方法卡，P2 候选池须明确选哪条注册路径）"
+      ]
+    },
+    "lbe": {
+      "class": "LBEClassifier",
+      "paper": {
+        "title": "Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
+        "authors": "Chen Gong, Qizhou Wang, Tongliang Liu, Bo Han, Jia You, Jian Yang, Dachen Tao",
+        "venue": "IEEE TPAMI",
+        "year": 2022
+      },
+      "code_version": {
+        "upstream_url": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
+        "source_status": "official_related（无 GitHub 仓库；license=\"needs_review\"，需以压缩包许可证与源码对应论文版本复核，LBE.md:242/registry:305）"
+      },
+      "implementation_status": "NATIVE；线性 clean-room EM（LBE.md:243）",
+      "native_sampling_assumption": "ts（single_training_set + selection_biased；输入单一样本 X/s，s=1 为 labeled positive；SAR 型 instance-dependent labeling，LBE.md:15-16/159-160, registry:295-296）",
+      "run_view": "ts-compatible",
+      "calibration_applied": "true（需实现确认：方法卡未载 os_or_ts/校准接口；按协议 §2.3 第 1 条判定为原生 TS 候选，P2 前须确认训练接口允许替换未标记损失输入）",
+      "prior_semantics": "无/可选（class_prior 仅作 U latent posterior 初始化先验；不是独立的先验估计器，LBE.md:17/234, registry:297）",
+      "adaptation_level": "benchmark-adapted（clean-room 重写；线性 logistic + 交替 soft-label 近似论文 EM+Adam 框架，不能宣称复现论文神经网络实验，LBE.md:185/243）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "linear logistic（两份样本副本 + 权重 q_i、1-q_i 调用 sklearn logistic regression，LBE.md:185/188）",
+        "code_capability": {
+          "native_architectures": [],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "LBE.md:15-16/159-160; registry:295-296",
+        "prior_semantics": "LBE.md:17/234; registry:297",
+        "adaptation_level": "LBE.md:185/242-243"
+      },
+      "uncertainty": [
+        "predict_label_proba 输出被标记概率 P(S=1|x) 而非类别概率（LBE.md:179）",
+        "propensity 与 class posterior 分解需数据机制支持、局部最优风险（LBE.md:246）"
+      ]
+    },
+    "nnpu": {
+      "class": "NonNegativePUClassifier",
+      "paper": {
+        "title": "Positive-Unlabeled Learning with Non-Negative Risk Estimator",
+        "authors": "Ryuichi Kiryo, Gang Niu, Marthinus C. du Plessis, Masashi Sugiyama",
+        "venue": "NIPS",
+        "year": 2017
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/kiryor/nnPUlearning",
+        "source_status": "official_exact（官方 Chainer 实现，MIT；本项目为 clean-room native PyTorch，nnpu.md:339）"
+      },
+      "implementation_status": "NATIVE, backend TORCH（支持 GPU），接口按 BasePUClassifier 契约（nnpu.md:340）",
+      "native_sampling_assumption": "os（两样本：可靠正例 P + 边缘分布无标签 U；X_p~p_p(x)、X_u~p(x)，nnpu.md:13/38-39, registry:132-133）",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "population π（必填；本文不负责估计类别先验，nnpu.md:14/26-27/44, registry:134）",
+      "adaptation_level": "benchmark-adapted（clean-room 重写；跨框架（Chainer→PyTorch）而非逐行适配，nnpu.md:339-340）",
+      "modality_backbone": {
+        "modalities": ["tabular", "image"],
+        "backbone": "mlp/cnn 双架构（encoder 可选注入；encoder=None 时默认 nn.Linear(d,1)）",
+        "code_capability": {
+          "native_architectures": ["mlp", "cnn"],
+          "input_ndims": [2, 4],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "nnpu.md:13/38-39; registry:132-133",
+        "prior_semantics": "nnpu.md:14/26-27/44; registry:134",
+        "adaptation_level": "nnpu.md:339-340; registry:140"
+      },
+      "uncertainty": [
+        "ADR-0014 #9：r_i<-β 时对 max 直接反传播不等价于论文 Algorithm 1（nnpu.md:200）——候选实现需走复现路径确认",
+        "先验必须外部提供；max 误实现会静默偏离论文算法（nnpu.md:341）"
+      ],
+      "filler": "HENG958（骨架与证据已立，待复核确认）"
+    },
+    "self_pu": {
+      "class": "SelfPUClassifier",
+      "paper": {
+        "title": "Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training",
+        "authors": "Xuxi Chen, Wuyang Chen, Tianlong Chen, Ye Yuan, Chen Gong, Kewei Chen, Zhangyang Wang",
+        "venue": "ICML 2020 (PMLR 119:1510-1519)",
+        "year": 2020
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/VITA-Group/Self-PU（registry:323；方法卡记 TAMU-VITA/Self-PU，疑为同仓库更名，待核对）",
+        "source_status": "official_exact"
+      },
+      "implementation_status": "NATIVE clean-room core；paper-like benchmark 待完成（Self-PU.md:399/447）",
+      "native_sampling_assumption": "os（case_control; D=D_P∪D_U, x_i^p~p(x|Y=+1), x_i^u~p(x)，Self-PU.md:15/36-48, registry:314-315）",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "population π（论文沿用 π_p 已知设定，Self-PU.md:16/29-32/416, registry:316）",
+      "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:434-436/446-447/451）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）",
+        "code_capability": {
+          "native_architectures": ["mlp"],
+          "input_ndims": [2, 4],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "Self-PU.md:15/36-48; registry:314-315",
+        "prior_semantics": "Self-PU.md:16/29-32/416; registry:316",
+        "adaptation_level": "Self-PU.md:434-436/446-447/451"
+      },
+      "uncertainty": [
+        "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）",
+        "validation_data（clean-label 元重加权）与 pu_validation_data（仅 P/U 标签 nnPU risk 恢复 checkpoint）两入口严格分离（Self-PU.md:388-389）",
+        "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）"
+      ],
+      "filler": "HENG958（骨架与证据已立，待复核确认）"
+    }
+  }
+}
