@@ -57,6 +57,9 @@ CLAUDE.md
 demo_data/
 /results*/
 
+# Survey experiment data: raw downloads and prepared splits (never distributed)
+data/
+
 # Local one-off plans (never for distribution)
 .superpowers/
 
