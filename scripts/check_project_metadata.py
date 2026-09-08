@@ -126,11 +126,9 @@ def main() -> int:
     )
 
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
-    _check("uv.lock" in gitignore, "uv.lock policy must be explicit in .gitignore.", issues)
-    requirements_header = (ROOT / "requirements.txt").read_text(encoding="utf-8")[:500]
     _check(
-        "authoritative dependency spec is pyproject.toml" in requirements_header,
-        "requirements.txt must identify pyproject.toml as authoritative.",
+        (ROOT / "uv.lock").exists() and "uv.lock" not in gitignore,
+        "uv.lock is the committed environment lock; it must exist and must not be gitignored.",
         issues,
     )
 

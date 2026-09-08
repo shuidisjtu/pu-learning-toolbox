@@ -48,7 +48,6 @@ Thumbs.db
 CLAUDE.md
 
 # UV
-uv.lock
 .claude/*
 !.claude/skills/
 !.claude/skills/pu-workflow/

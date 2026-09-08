@@ -92,7 +92,6 @@ include = [
     "/LICENSE",
     "/README.md",
     "/pyproject.toml",
-    "/requirements.txt",
 ]
 
 # Windows builds of torch/torchvision on PyPI are CPU-only. CUDA builds come
