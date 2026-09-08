@@ -29,7 +29,7 @@ class _FakeEncoder:
         return np.ones((len(texts), 384), dtype=np.float32)
 
 
-def test_prepare_tabular_writes_scaled_products(prep_script, tmp_path):
+def test_basic_prepare_tabular_writes_scaled_products(prep_script, tmp_path):
     rng = np.random.RandomState(0)
     X = rng.randn(500, 57)
     y = np.array([1] * 150 + [0] * 350)
@@ -48,7 +48,7 @@ def test_prepare_tabular_writes_scaled_products(prep_script, tmp_path):
     assert len(manifest["preprocessing"]["feature_mean"]) == 57
 
 
-def test_prepare_image_keeps_uint8_and_records_preprocessing(prep_script, tmp_path):
+def test_basic_prepare_image_keeps_uint8_and_records_preprocessing(prep_script, tmp_path):
     rng = np.random.RandomState(0)
     X = rng.randint(0, 256, size=(500, 3, 32, 32), dtype=np.uint8)
     # positive classes {0,1,8,9} vs negative {2-7}: 150 pos + 350 neg.
@@ -68,7 +68,7 @@ def test_prepare_image_keeps_uint8_and_records_preprocessing(prep_script, tmp_pa
     assert len(manifest["preprocessing"]["train_data_sha256"]) == 64
 
 
-def test_prepare_text_writes_sbert_features(prep_script, tmp_path):
+def test_basic_prepare_text_writes_sbert_features(prep_script, tmp_path):
     texts_train = [
         f"review {i} good movie" if i % 2 else f"review {i} bad movie" for i in range(40)
     ]

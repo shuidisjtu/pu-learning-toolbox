@@ -50,7 +50,7 @@ def make_splits(data_dir: Path) -> None:
         )
 
 
-def test_run_survey_script_end_to_end(survey_script, tmp_path):
+def test_basic_run_survey_script_end_to_end(survey_script, tmp_path):
     """Example script completes: manifests carry all 8 required keys and PA/OA metrics."""
     data_dir = tmp_path / "splits"
     data_dir.mkdir()
@@ -94,7 +94,7 @@ def test_run_survey_script_end_to_end(survey_script, tmp_path):
     assert (out_dir / "c_0.3" / "seed_0" / "method_ledger_entry.json").is_file()
 
 
-def test_survey_script_requires_population_prior(survey_script, tmp_path, capsys):
+def test_param_survey_script_requires_population_prior(survey_script, tmp_path, capsys):
     """Ledger prior_semantics='population π' -> --class-prior is mandatory."""
     data_dir = tmp_path / "splits"
     data_dir.mkdir()
@@ -105,7 +105,7 @@ def test_survey_script_requires_population_prior(survey_script, tmp_path, capsys
     assert "pass --class-prior" in capsys.readouterr().err
 
 
-def test_survey_script_reports_missing_split_files(survey_script, tmp_path, capsys):
+def test_edge_survey_script_reports_missing_split_files(survey_script, tmp_path, capsys):
     """Missing .npz partitions produce a helpful error before any training."""
     rc = survey_script.main([str(tmp_path / "nothing"), "--method", "upu", "--class-prior", "0.3"])
     assert rc == 1
