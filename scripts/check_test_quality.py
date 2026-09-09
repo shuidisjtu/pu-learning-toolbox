@@ -284,6 +284,31 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "deferred to the survey run itself"
         ),
     },
+    "test_prepare_survey_splits.py": {
+        "param": (
+            "modality pipeline functions take well-formed synthetic arrays; "
+            "input-validation error paths live in the dataset/image/text layer "
+            "unit tests (prepare_survey_dataset, fit_survey_image_preprocessing, "
+            "encode_survey_texts)"
+        ),
+        "edge": (
+            "the smallest legal synthetic inputs are used for the functional "
+            "assertions; degenerate/empty inputs fail inside the underlying "
+            "layer (stratified split, encoding validation), covered by their "
+            "own unit tests"
+        ),
+        "determ": (
+            "the script is a thin wrapper over seed-driven prepare_survey_dataset; "
+            "split determinism per seed is asserted by test_datasets.py"
+        ),
+    },
+    "test_survey_script.py": {
+        "determ": (
+            "the script forwards the fixed seed to the runner; reproduction is "
+            "asserted at the runner layer (test_scar_deterministic_seed) and the "
+            "survey run session itself"
+        ),
+    },
     "test_strategies_labeling.py": {
         "param": (
             "generate() is exercised with fixed c values; invalid/degenerate c "

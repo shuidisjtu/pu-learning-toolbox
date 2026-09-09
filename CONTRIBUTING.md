@@ -10,7 +10,7 @@
 2. `docs/dev/process_checklist.md`：当前任务完成状态。
 3. `docs/dev/project_structure.md`：目录结构。
 4. `docs/dev/architecture.md`：公共 API、依赖方向和数据流。
-5. `requirements.txt`：开发环境快照，仅用于问题复查，不是安装规范。
+5. `uv.lock`：跨平台复现锁文件（CI 与本地共用；依赖权威仍是 `pyproject.toml`）。
 6. `docs/adr/`：架构与流程决策记录（决策的权威来源；版本/进度状态见
    `docs/dev/process_checklist.md` 与 `docs/dev/release_process.md`）。
 
@@ -36,8 +36,9 @@ python -m pip install -e ".[dev,torch]"
 依赖策略：
 
 - 可安装依赖只在 `pyproject.toml` 维护。
-- 本项目是 library，CI 需要验证声明范围内的最新可解析依赖，因此不提交 `uv.lock`。
-- `requirements.txt` 是一次开发环境的精确快照，不用于 CI，也不要与 `pyproject.toml` 手工双向同步。
+- 本项目是 library：PR 快层 CI 使用已提交的 `uv.lock` 保证确定性；nightly 用
+  `uv sync --no-lock` 重新解析最新依赖，验证声明范围内的最新可解析性。
+- `requirements.txt` 已由 `uv.lock` 取代（2026-09-08 删除），不再维护。
 - 新增仅开发期工具放入 `dev`；模型运行依赖放入对应 runtime extra。
 
 ## 3. 分支与提交

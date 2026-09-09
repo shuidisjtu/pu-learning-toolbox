@@ -48,7 +48,6 @@ Thumbs.db
 CLAUDE.md
 
 # UV
-uv.lock
 .claude/*
 !.claude/skills/
 !.claude/skills/pu-workflow/
@@ -57,6 +56,9 @@ uv.lock
 # CLI demo / run artifacts (intermediate outputs)
 demo_data/
 /results*/
+
+# Survey experiment data: raw downloads and prepared splits (never distributed)
+data/
 
 # Local one-off plans (never for distribution)
 .superpowers/

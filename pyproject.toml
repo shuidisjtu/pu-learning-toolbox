@@ -40,6 +40,7 @@ dev = [
 ]
 torch = [
     "torch>=2.0",
+    "torchvision>=0.15",
 ]
 text = [
     "sentence-transformers>=3.0,<6",
@@ -91,8 +92,19 @@ include = [
     "/LICENSE",
     "/README.md",
     "/pyproject.toml",
-    "/requirements.txt",
 ]
+
+# Windows builds of torch/torchvision on PyPI are CPU-only. CUDA builds come
+# from the pytorch.org cu126 index; the marker keeps Linux/macOS (and CI)
+# on the smaller PyPI CPU wheels, which is where all tests also run.
+[tool.uv.sources]
+torch = { index = "pytorch-cu", marker = "sys_platform == 'win32'" }
+torchvision = { index = "pytorch-cu", marker = "sys_platform == 'win32'" }
+
+[[tool.uv.index]]
+name = "pytorch-cu"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
 
 [tool.ruff]
 target-version = "py310"

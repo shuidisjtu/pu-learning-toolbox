@@ -31,7 +31,9 @@ torch 的训练路径或 PUSB benchmark 的 uLSIF 对照时，再提供明确安
 
 `pyproject.toml` 是安装规范。作为 library，项目使用最低版本约束并在 CI 中重新解析依赖，用于发现上游兼容问题。
 
-`uv.lock` 不提交到仓库；它可以在本地由 `uv sync` 临时生成。`requirements.txt` 是一次已知开发环境快照，仅用于重现特定问题，不代表全部受支持组合。
+`uv.lock` 提交入库并在 CI 与本地共用（跨平台解析、保证确定性）；nightly 用
+`uv sync --no-lock` 重新解析以发现上游兼容问题。`requirements.txt` 已由
+`uv.lock` 取代（2026-09-08 删除）。
 
 ## 4. CI 结构
 
