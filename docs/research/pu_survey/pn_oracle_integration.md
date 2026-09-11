@@ -192,6 +192,9 @@ oracle"并不冲突，只是冗余。
 ## 6. 实施步骤（TDD；每步独立可测）
 
 > 分支：`feature/pn-oracle`。每步先写失败测试，再实现，再跑门禁。
+> **进度（2026-09-11）**：Task 1 ✅ `db6686b`｜Task 2 ✅ `08c9778`｜
+> Task 3 ✅（并入 Task 1/2：`generation` 字段与 pu_val 校验随视图声明自动正确，
+> `class_prior` 由脚本层不传）｜Task 4 ✅ `be9c20a`｜Task 5 = Phase 2（本次不做）｜Task 6 ✅
 
 ### Task 1 — Generator 视图契约扩展（D-A）
 
@@ -257,6 +260,18 @@ oracle"并不冲突，只是冗余。
    同条件 PU 方法（行为级证据，人工核对后记录）
 5. 门禁：`check_test_quality` / `check_doc_links` / `check_api_docs` /
    `check_format` / `check_project_metadata` / `generate_structure --check`
+
+### 7.1 实测结果（2026-09-11）
+
+- **冒烟**（Spambase `split_0`、3 seed、`--oracle --model-params '{"max_iter": 400}'`）：
+  OA acc 0.9414 / 0.9435 / 0.9446，AUC 0.9833 / 0.9794 / 0.9830；
+  manifest `generation.train.n_labeled = 1305`（= train 全部正例，而非 `c·n₊`），
+  `test_results` 仅 `OA`，`failures` 为空
+- **上界方向**：同数据集 uPU 冒烟（P1）OA acc 0.853、AUC 0.955 —— oracle 高于 PU 方法，
+  与"上界"定位一致（非严格对照：两者 c 与配置不同，仅作方向性核对）
+- **守护强度**：将 runner 回退至修复前版本（`524c2b5`）时，新集成测试 3/6 失败
+  （edge / PA 拒绝 / 误配守卫），证明测试确实锚定缺陷而非复述实现
+- **IMDB 冒烟**：未跑（Phase 1 不阻塞；随 P2 跑批一并验证）
 
 ## 8. 与 P2 跑批的接口
 

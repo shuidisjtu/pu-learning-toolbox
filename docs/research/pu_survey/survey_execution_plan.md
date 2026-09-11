@@ -9,9 +9,13 @@
 - **实验层完备**：`pu_toolbox/experiment/` 34 个公共API，四路数据合约、PA/OA 独立选模、策略化接口、
   数据准备链（datasets/image/text/feature_adapter/training_views）、资源计量与失败语义、公平性门禁均已实现并入门禁覆盖。
 - **22 目标方法**：7 个已实现可训练——uPU、nnPU、KLDCE、Dist-PU、PUSB、LBE、Self-PU（均有方法卡）；
-  15 个**未出现**（无注册/无占位/无方法卡）：A 类 PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX，
-  B 类 VPU、PULDA，C 类 PUET、Grad-PU、Robust-PU、Split-PU、LAGAM，以及 PN oracle（无注册项，
-  但实验层 `SupervisedTrainer` 作为基于真实标签的单点 fit 实现）；`api_only` 0 个。
+  14 个**未出现**（无注册/无占位/无方法卡）：A 类 PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX，
+  B 类 VPU、PULDA，C 类 PUET、Grad-PU、Robust-PU、Split-PU、LAGAM；第 22 个即 PN oracle（下述）；
+  `api_only` 0 个。
+- **PN oracle（2026-09-11 接入 MLP 路径）**：无注册项；经 `CleanLabelGenerator`（真实标签透传、
+  `output_view="clean"`）+ `SupervisedTrainer` + 仅 OA 协议接入，脚本入口
+  `run_survey_experiment.py --oracle`。CNN（图像）路径的 clean-val checkpoint 选择留待 Phase 2。
+  详见 [pn_oracle_integration.md](pn_oracle_integration.md)。
 - **能力声明现状**：代码级声明仅 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
   四字段（有契约测试）——仅 nnPU 为双架构（mlp/cnn、{2,4}、encoder 注入），Self-PU 为 mlp/{2,4}，
   其余 5 个默认 tabular-only（{2}）——图像数据集上它们必须走 `cnn_feature_adapter`（benchmark-adapted）。
@@ -71,6 +75,8 @@
 ### P2 pilot 实验（结果一律标注 `pilot / partial benchmark`）
 
 - 7 方法 × 3 数据集 × c∈{0.1,0.3,0.5} × 5 seed × PA/OA 双协议；PN oracle 对照
+  （**跑批去重**：oracle 结果对 c 恒定，每 (dataset, seed) 跑 1 次共 15 次，
+  聚合时广播到各 c 列并标注 `c_independent`；脚本用 `--oracle`）
 - 模态-方法矩阵：表格/文本上 7 法均原生（文本＝SBERT 384 维特征 + MLP）；
   图像端到端仅 nnPU、Self-PU 原生（CNN）；其余 5 法图像走 `cnn_feature_adapter`
   （基准-适配、与原生路径**强制分组**，不混合排名）

@@ -202,12 +202,24 @@ mini-batch 训练循环调用该转换，不得预先生成另一份持久化 TS
 ## 5. 算法接入与溯源现状
 
 - 当前外部 Toolbox 源码审计显示：22 个目标方法（21 个 PU 方法 + 1 个 oracle）中仅 uPU、nnPU、
-  KLDCE、Dist-PU、PUSB、LBE、Self-PU 七个已注册并绑定为可训练实现；其余方法及 PN oracle
-  仍需接入。
+  KLDCE、Dist-PU、PUSB、LBE、Self-PU 七个已注册并绑定为可训练实现；其余 14 个 PU 方法仍需接入
+  （PN oracle 无注册项，走独立路径，见下）。
   （2026-09-06 代码审计补充：上述"七个"限定在 22 个目标方法范围内成立；注册表整体已有
   17 个可训练实现、0 个 `api_only`——另 10 个为 elkan_noto、pnu、recpe、
   class_prior_estimation、centroid_pu(LDCE)、pusb_kernel、llsvm、infomax_pu、
   weighted_contrastive_pu、dgpu，均不在协议 §4 名单；14 个未接入目标方法连占位注册也没有。）
+- **PN oracle 口径（2026-09-11 接入 MLP 路径，详见
+  [pn_oracle_integration.md](pn_oracle_integration.md) §3）**：与参考文献 2（PU-Bench
+  commit `2d95a19`）的 `pn` 基线有两处口径差异，本实验按协议 §2.4 第 10 条执行——
+  1. **选模指标**：本实验用 `clean_val` 的真实 Accuracy；PU-Bench 用 PU-only proxy accuracy
+     （`config/methods/pn.yaml` 的 `monitor: val_proxy_acc`）。故本实验的 PN oracle 数值
+     **不可与 PU-Bench 论文表中的 `pn` 直接对比**；结果目录以
+     `oracle_integration.json` 的 `selection_metric="clean_val_accuracy"` 固化该口径。
+  2. **分类器 bias 初始化**：PU-Bench 的 `pn` 不在 `SOURCE_FAITHFUL_NO_BIAS_INIT` 内，末层 bias
+     用 PU 先验 `pi_unlabeled` 初始化；本实验不做该初始化——oracle 的定位是纯监督上界，
+     引入 PU 先验会使其不再是上界。
+  另：本实验对 oracle 的约束严于 PU-Bench——要求与 PU 方法同一候选预算与同一表征/backbone，
+  而 PU-Bench 的 `pn` 用扁平固定配方、不参与超参搜索且无"强制同 backbone"断言。
 - 完整主榜以 22 法全部通过相应门禁为发布条件；在此之前只可发布明确标为
   `pilot / partial benchmark` 的部分结果。
 - 每个方法的**接入验收**依次包括：原论文和官方实现/commit 可追溯、固定小数据单元或冒烟测试、
@@ -230,7 +242,7 @@ pilot 前的基础设施验收至少覆盖：
 - 四路 `DatasetBundle` 合约；
 - SCAR/SAR 生成与 manifest；
 - PA/OA 独立选择 artifact；
-- PN oracle；
+- PN oracle（MLP 路径 ✅ 2026-09-11；CNN 路径的 clean-val checkpoint 选择列为 Phase 2）；
 - 阈值选择；
 - 资源/失败记录；
 - 一个二维方法和一个 CNN 方法的端到端 smoke run。
