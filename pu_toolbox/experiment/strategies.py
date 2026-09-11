@@ -22,7 +22,7 @@ from sklearn.linear_model import LogisticRegression
 
 from pu_toolbox.core.random import check_random_state
 
-from .bundle import DatasetPart
+from .bundle import DatasetPart, LabelView
 from .protocols import Generator, SelectionProtocol, Trainer
 from .tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
@@ -53,6 +53,30 @@ class SCARGenerator(Generator):
             "mechanism": "scar",
             "c_realized": n_labeled / n_pos if n_pos else 0.0,
             "n_labeled": n_labeled,
+        }
+
+
+class CleanLabelGenerator(Generator):
+    """PN oracle: pass the real labels through unchanged (§2.4 item 10).
+
+    Design notes: the oracle trains on the same underlying train partition as
+    the PU runs but keeps every real label, so it declares
+    ``output_view = "clean"``.  PA then fails loudly in ``ProtocolPA`` instead
+    of silently emitting a fake PA row, and the runner skips the PU-view
+    positive check that only applies to generated views.  ``c`` is recorded
+    but never applied — the oracle is c-independent by construction.
+    See docs/research/pu_survey/pn_oracle_integration.md §5 (D-A).
+    """
+
+    output_view: LabelView = "clean"
+
+    def generate(self, X, y_true, c, seed=None):
+        labels = np.asarray(y_true).astype(int)
+        return labels, {
+            "mechanism": "pn_oracle",
+            "c_realized": 1.0,
+            "n_labeled": int(np.sum(labels == 1)),
+            "c_requested": c,
         }
 
 
@@ -292,6 +316,8 @@ class SupervisedTrainer(Trainer):
     delegating to FitTrainer avoids a second fit path to maintain. See
     implementation_plan.md §1.4.
     """
+
+    trains_on_real_labels = True
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
         return FitTrainer().fit(estimator, X, y, class_prior=class_prior)

@@ -14,12 +14,21 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from .bundle import DatasetPart
+from .bundle import DatasetPart, LabelView
 from .tracking import RunTrajectory, SelectionArtifact
 
 
 class Generator(ABC):
-    """Labeling strategy: clean labels -> PU label view (+ meta)."""
+    """Labeling strategy: clean labels -> label view (+ meta).
+
+    ``output_view`` declares which view the produced labels carry: PU
+    generators emit ``"pu"``; the PN-oracle generator passes real labels
+    through and declares ``"clean"``, so PA stays structurally excluded
+    (``ProtocolPA`` rejects non-PU views) instead of relying on the caller.
+    See docs/research/pu_survey/pn_oracle_integration.md §5 (D-A).
+    """
+
+    output_view: LabelView = "pu"
 
     @abstractmethod
     def generate(
@@ -32,7 +41,17 @@ class Generator(ABC):
 
 
 class Trainer(ABC):
-    """Training strategy: one candidate run -> trajectory + checkpoint."""
+    """Training strategy: one candidate run -> trajectory + checkpoint.
+
+    ``trains_on_real_labels`` declares the label semantics ``fit`` expects:
+    ``False`` (default) for PU trainers, whose objective reads label ``0`` as
+    "unlabeled"; ``True`` for the PN-oracle trainers, which train supervised on
+    the real labels.  The runner gates clean views on this declaration, so a PU
+    trainer cannot be pointed at an oracle view (and vice versa) — a declaration
+    rather than a class list, so custom trainers stay injectable.
+    """
+
+    trains_on_real_labels: bool = False
 
     @abstractmethod
     def fit(

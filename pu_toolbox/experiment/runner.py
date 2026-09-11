@@ -7,6 +7,7 @@ strategy (Generator/Trainer/SelectionProtocol) per implementation_plan.md
 
 from __future__ import annotations
 
+import inspect
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -63,33 +64,114 @@ class ExperimentRunner:
     ) -> RunResult:
         """Run the full pipeline; see bundle contract (views must be clean).
 
-        Steps: validate → generate PU views → train the candidate pool →
-        offline selection per protocol → independent test evaluation →
-        manifest + ``RunResult``.
+        Steps: validate → generate label views → verify the view contract →
+        train the candidate pool → offline selection per protocol →
+        independent test evaluation → manifest + ``RunResult``.
 
         Raises
         ------
         ValueError
-            If the generated pu-val PU view ends up with no labeled
-            positive (the pu-val split has no real positive or the
-            labeling rate ``c`` is too low).  Fail loudly instead of
-            silently degrading PA's separation metric into its -1.0
-            sentinel.
+            If the generator's declared view is not ``"pu"``/``"clean"``, if its
+            reported mechanism contradicts that view, if a ``"clean"``
+            declaration does not actually carry the real labels, if a clean-view
+            run is handed a ``class_prior`` or a trainer that does not declare
+            ``trains_on_real_labels``, if a real-label (PN-oracle) trainer is
+            paired with a ``"pu"`` view, if ``config["trainer"]`` is a class
+            rather than an instance, or if the generated pu-val PU view ends up
+            with no labeled positive (the pu-val split has no real positive or
+            the labeling rate ``c`` is too low).  Fail loudly instead of
+            silently producing a wrong result.
         """
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
         validate_bundle(bundle)
         _validate_model_capability(model, bundle, self.config.get("architecture"))
 
-        # 2. generate PU views (SCAR / SAR via the injected generator)
+        # 2. generate label views (SCAR / SAR / clean via the injected generator)
         generation_t0 = time.perf_counter()
         c = self.config.get("c", 0.1)
-        y_pu_train, meta_train = self.generator.generate(train.X, train.labels, c, self.seed)
-        y_pu_val, meta_val = self.generator.generate(pu_val.X, pu_val.labels, c, self.seed)
-        train_pu = DatasetPart(X=train.X, labels=y_pu_train, view="pu", indices=train.indices)
-        pu_val_pu = DatasetPart(X=pu_val.X, labels=y_pu_val, view="pu", indices=pu_val.indices)
+        y_view_train, meta_train = self.generator.generate(train.X, train.labels, c, self.seed)
+        y_view_val, meta_val = self.generator.generate(pu_val.X, pu_val.labels, c, self.seed)
+        # The generator declares the view it produces: "pu" for SCAR/SAR, and
+        # "clean" for the PN oracle (real labels passed through).  Keeping the
+        # declaration on the strategy keeps PA structurally excluded — a clean
+        # view makes ProtocolPA raise instead of emitting a fake PA row.
+        view = getattr(self.generator, "output_view", "pu")
+        if view not in ("pu", "clean"):
+            # Fail closed: a typo such as "Clean" would otherwise skip both the
+            # clean-view verification below and the supervised-trainer guard.
+            raise ValueError(f"generator declared output_view={view!r}; expected 'pu' or 'clean'.")
+        for role, generated_meta in (("train", meta_train), ("pu_val", meta_val)):
+            # The generator's two self-descriptions must agree: the pn_oracle
+            # mechanism means real labels, i.e. the clean view.  Keeping the
+            # oracle's mechanism while declaring a PU view would skip every
+            # clean-view guard below and still be recorded as an oracle row.
+            if view == "pu" and _mechanism(generated_meta) == "pn_oracle":
+                raise ValueError(
+                    f"generator reports mechanism='pn_oracle' for {role} but declares "
+                    "output_view='pu'; the PN oracle mechanism implies real labels, "
+                    "which is the 'clean' view. Declare output_view='clean' (as "
+                    "CleanLabelGenerator does) or report a PU mechanism."
+                )
+        train_view = DatasetPart(X=train.X, labels=y_view_train, view=view, indices=train.indices)
+        pu_val_view = DatasetPart(X=pu_val.X, labels=y_view_val, view=view, indices=pu_val.indices)
 
-        if int(np.sum(pu_val_pu.labels == 1)) == 0:
+        # The trainer's declared label semantics and the view must agree: a PU
+        # trainer reads label 0 as "unlabeled", a real-label (PN-oracle) trainer
+        # reads it as a real negative. Mismatching them still trains something
+        # and still writes a manifest, so both directions fail loudly here.
+        # Resolved once and threaded into _train: the trainer this guard approved
+        # is the one that trains, even if the config is mutated meanwhile.
+        trainer = self._trainer()
+        trains_on_real_labels = getattr(trainer, "trains_on_real_labels", False)
+
+        if view == "clean":
+            # A "clean" declaration is verified, never trusted: a generator that
+            # declares real labels but emits marked ones would otherwise produce
+            # a silent fake oracle carrying a pn_oracle manifest.
+            for role, produced, original in (
+                ("train", train_view.labels, train.labels),
+                ("pu_val", pu_val_view.labels, pu_val.labels),
+            ):
+                if not np.array_equal(np.asarray(produced), np.asarray(original)):
+                    raise ValueError(
+                        f"generator declared output_view='clean' but produced different "
+                        f"{role} labels; a clean view must carry the real labels."
+                    )
+            if self.class_prior is not None:
+                # A prior on a real-label run would stop the oracle being an
+                # upper bound at all, so refuse rather than silently ignore it.
+                raise ValueError(
+                    "class_prior applies to PU methods; a clean-view (PN oracle) run "
+                    "trains on real labels and must not receive a prior. Drop "
+                    "class_prior for clean-view runs."
+                )
+            if not trains_on_real_labels:
+                # Defaulting to "PU trainer" is the fail-closed reading: it also
+                # covers the default DeepFitTrainer and any trainer that never
+                # declares the flag.
+                raise ValueError(
+                    f"{type(trainer).__name__} does not declare "
+                    "trains_on_real_labels=True, so it cannot train on a clean "
+                    "(PN oracle) view — a PU objective would read every real "
+                    "negative as unlabeled. Use SupervisedTrainer, or declare the "
+                    "flag on your own real-label trainer."
+                )
+        elif trains_on_real_labels:
+            # A real-label (PN-oracle) trainer needs a clean view. Pairing it with
+            # a PU-view generator trains on marked labels and silently produces a
+            # fake upper bound — the mis-wiring this path shipped with.
+            raise ValueError(
+                f"{type(trainer).__name__} declares trains_on_real_labels=True "
+                f"(PN oracle) but the generator produced a {view!r} view; it needs "
+                "a clean label view. Use CleanLabelGenerator as the generator, or "
+                "drop the real-label trainer. See docs/research/pu_survey/"
+                "pn_oracle_integration.md §1."
+            )
+
+        # PA needs a labeled positive in its val view. The oracle trains on real
+        # labels and runs OA only, so this generated-view check does not apply.
+        if view == "pu" and int(np.sum(pu_val_view.labels == 1)) == 0:
             raise ValueError(
                 "generated pu_val PU view has no labeled positive; "
                 "ensure pu_val contains real positives (and/or raise c)."
@@ -116,8 +198,8 @@ class ExperimentRunner:
                         bundle,
                         self.config.get("architecture"),
                     )
-                    trajectory = self._train(est, train_pu, pu_val_pu)
-                    _validate_trajectory(trajectory, pu_val_pu)
+                    trajectory = self._train(est, train_view, pu_val_view, trainer)
+                    _validate_trajectory(trajectory, pu_val_view)
                 except Exception as exc:  # noqa: BLE001 - recorded retry boundary
                     errors.append(_exception_record(exc, attempt))
                     attempt_resources.append(
@@ -214,16 +296,19 @@ class ExperimentRunner:
                 "inspect manifest['failures'] for details."
             )
 
-        # 4. offline selection: PA on the PU view, OA on the clean view,
-        #    any other protocol gets the PU view (never clean labels).
+        # 4. offline selection: OA on the clean view; PA and any other protocol
+        #    get the generated val view. That view holds PU labels on a PU run
+        #    and real labels on a clean-view (PN oracle) run — so an unknown
+        #    protocol is NOT guaranteed PU-only labels; only ProtocolPA enforces
+        #    that, via its own view check.
         selections = {}
         for proto in self.protocols:
             if isinstance(proto, ProtocolPA):
-                art = proto.select(trajectories, pu_val_pu, self.threshold_candidates)
+                art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
             elif isinstance(proto, ProtocolOA):
                 art = proto.select(trajectories, clean_val, self.threshold_candidates)
             else:
-                art = proto.select(trajectories, pu_val_pu, self.threshold_candidates)
+                art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
             selections[art.protocol] = art
 
         # 5. independent test evaluation (test never entered selection/training)
@@ -280,13 +365,25 @@ class ExperimentRunner:
             resources=resources,
         )
 
-    def _train(self, est, train_pu: DatasetPart, pu_val_view: DatasetPart):
+    def _trainer(self):
+        """The configured trainer instance, or the PU-view default."""
         trainer = self.config.get("trainer", DeepFitTrainer())
+        if inspect.isclass(trainer):
+            # A class satisfies the view guard through its class attributes and
+            # then never trains, leaving a failed-run manifest behind.
+            raise ValueError(
+                f"config['trainer'] must be an instance, got the class "
+                f"{trainer.__name__}; pass {trainer.__name__}()."
+            )
+        return trainer
+
+    def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer):
+        """Train one candidate with the trainer the view guard approved."""
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
         return trainer.fit(
             est,
-            train_pu.X,
-            train_pu.labels,
+            train_view.X,
+            train_view.labels,
             class_prior=self.class_prior,
             val_pu=val_pu,
         )
@@ -296,6 +393,11 @@ class ExperimentRunner:
             path = Path(self.manifest_path)
             path.parent.mkdir(parents=True, exist_ok=True)
             write_manifest(path, manifest)
+
+
+def _mechanism(generated_meta) -> object:
+    """The generator's self-reported mechanism, or None when it reports none."""
+    return generated_meta.get("mechanism") if isinstance(generated_meta, dict) else None
 
 
 def _auc(est, test: DatasetPart) -> tuple[float, str | None]:

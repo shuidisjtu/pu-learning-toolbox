@@ -110,3 +110,167 @@ def test_edge_survey_script_reports_missing_split_files(survey_script, tmp_path,
     rc = survey_script.main([str(tmp_path / "nothing"), "--method", "upu", "--class-prior", "0.3"])
     assert rc == 1
     assert "missing split files" in capsys.readouterr().err
+
+
+def test_basic_oracle_script_writes_oa_only_results(survey_script, tmp_path):
+    """--oracle runs the PN path: OA only, real labels, calibration recorded."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    out_dir = tmp_path / "oracle_out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--oracle",
+            "--model-params",
+            json.dumps({"hidden_layer_sizes": (8,), "max_iter": 50, "random_state": 0}),
+            "--seeds",
+            "0",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    assert set(manifest["test_results"]) == {"OA"}
+    assert manifest["generation"]["train"]["mechanism"] == "pn_oracle"
+    integration = json.loads((out_dir / "oracle_integration.json").read_text(encoding="utf-8"))
+    assert integration["selection_metric"] == "clean_val_accuracy"
+    assert integration["class_prior_applied"] is False
+
+
+def test_param_oracle_script_rejects_class_prior(survey_script, tmp_path, capsys):
+    """The oracle trains on real labels; a class prior there is a semantic error."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    rc = survey_script.main([str(data_dir), "--oracle", "--class-prior", "0.3"])
+    assert rc == 1
+    assert "drop --class-prior" in capsys.readouterr().err
+
+
+def test_param_oracle_script_rejects_method(survey_script, tmp_path, capsys):
+    """--oracle must not silently ignore --method and run a different path."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    rc = survey_script.main([str(data_dir), "--oracle", "--method", "nnpu"])
+    assert rc == 1
+    assert "drop --method" in capsys.readouterr().err
+
+
+def test_edge_oracle_script_leaves_no_calibration_file_when_runs_fail(survey_script, tmp_path):
+    """The calibration contract must not outlive the results it describes.
+
+    A failed output directory that still carries ``oracle_integration.json``
+    would read as a valid oracle row to anything scanning for that file.
+    """
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    # Every candidate fails on an unknown constructor parameter, so all runs are
+    # excluded and the script exits non-zero.
+    candidates = tmp_path / "candidates.json"
+    candidates.write_text(json.dumps([{"bogus_param": 1}]), encoding="utf-8")
+
+    out_dir = tmp_path / "oracle_failed"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--oracle",
+            "--candidates",
+            str(candidates),
+            "--seeds",
+            "0",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 1
+
+    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    assert manifest["failures"]  # the failure itself is recorded
+    assert not (out_dir / "oracle_integration.json").exists()
+
+
+def test_basic_survey_script_records_the_split_reference(survey_script, tmp_path):
+    """Protocol §2.4 item 11: a run must say which split it used.
+
+    The sample ids stay in the split manifest; the run manifest records the
+    path, the role sizes and the index digest instead of inlining them.
+    """
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    (data_dir / "split_manifest.json").write_text(
+        json.dumps(
+            {
+                "dataset": "toy",
+                "seed": 0,
+                "role_sizes": {"train": 18, "pu_val": 4, "clean_val": 4, "test": 4},
+                "indices_sha256": "deadbeef",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    out_dir = tmp_path / "out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--method",
+            "upu",
+            "--model-params",
+            json.dumps({"class_prior": 0.3, "loss": "squared"}),
+            "--c",
+            "0.3",
+            "--seeds",
+            "0",
+            "--class-prior",
+            "0.3",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    manifest = load_manifest(out_dir / "c_0.3" / "seed_0" / "manifest.json")
+    assert manifest["split_ref"]["indices_sha256"] == "deadbeef"
+    assert manifest["split_ref"]["role_sizes"]["train"] == 18
+    assert manifest["split_ref"]["manifest_path"].endswith("split_manifest.json")
+
+
+def test_param_oracle_script_explicit_split_ref_wins(survey_script, tmp_path):
+    """--split-ref overrides the reference auto-filled from the split directory."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    (data_dir / "split_manifest.json").write_text(
+        json.dumps({"indices_sha256": "auto"}), encoding="utf-8"
+    )
+    explicit = tmp_path / "explicit.json"
+    explicit.write_text(json.dumps({"note": "custom reference"}), encoding="utf-8")
+
+    out_dir = tmp_path / "explicit_out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--oracle",
+            "--model-params",
+            json.dumps({"hidden_layer_sizes": (8,), "max_iter": 50, "random_state": 0}),
+            "--seeds",
+            "0",
+            "--split-ref",
+            str(explicit),
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    assert manifest["split_ref"] == {"note": "custom reference"}

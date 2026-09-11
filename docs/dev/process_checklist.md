@@ -31,6 +31,12 @@
 
 ## 发布状态 (v1.11.0)
 
+- PN oracle 接入（未发布，随下一版本发布）：`CleanLabelGenerator` +
+  `Generator.output_view` 视图声明 + `Trainer.trains_on_real_labels` 声明与
+  runner 双向守卫（视图与 trainer 标签语义不一致即 fail-loud）+
+  脚本 `--oracle` 入口与 `oracle_integration.json` 口径留痕。
+  修复动机：原路径会把 SCAR 标记当作真实标签训练，静默产出错误的
+  "全监督上界"（详见 docs/research/pu_survey/pn_oracle_integration.md）
 - 双架构阶段 0 能力契约（未发布，随下一版本发布）：Registry 4 能力字段 +
   Pipeline 并行校验 + list-methods 能力列 + encoder 输出校验 helper +
   契约测试（详见 docs/dev/dual_architecture_plan.md §5）

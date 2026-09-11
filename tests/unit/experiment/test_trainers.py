@@ -13,6 +13,13 @@ from pu_toolbox.experiment.strategies import DeepFitTrainer, FitTrainer, Supervi
 pytestmark = pytest.mark.unit
 
 
+def test_basic_trainer_declares_label_semantics():
+    """The runner gates clean views on this flag (see the runner's view guards)."""
+    assert SupervisedTrainer.trains_on_real_labels is True
+    assert FitTrainer.trains_on_real_labels is False
+    assert DeepFitTrainer.trains_on_real_labels is False
+
+
 def test_fit_trainer_single_point():
     X = np.random.RandomState(0).randn(30, 3)
     y = np.array([1] * 6 + [0] * 24)
@@ -39,11 +46,26 @@ def test_fit_trainer_class_prior_fallback():
 
 
 def test_supervised_trainer_uses_true_labels():
+    """The estimator must receive the real labels unmodified (no PU remapping).
+
+    Asserting the captured labels rather than "it ran": the previous version
+    only checked ``len(traj.epochs) >= 1``, which held for any input and is why
+    the runner's PU-label mis-wiring escaped this file (see
+    docs/research/pu_survey/pn_oracle_integration.md §1.4).
+    """
     X = np.random.RandomState(0).randn(30, 3)
     y = np.array([1] * 6 + [0] * 24)
-    est = UPUClassifier(0.5, random_state=0)
-    traj = SupervisedTrainer().fit(est, X, y)
-    assert len(traj.epochs) >= 1
+    seen = {}
+
+    class RecordingEstimator:
+        def fit(self, X_arg, y_arg, **kwargs):
+            seen["y"] = np.array(y_arg)
+            return self
+
+    traj = SupervisedTrainer().fit(RecordingEstimator(), X, y)
+
+    assert np.array_equal(seen["y"], y)
+    assert len(traj.epochs) == 1
 
 
 def test_deep_trainer_reads_history_after_nnpu_fix():

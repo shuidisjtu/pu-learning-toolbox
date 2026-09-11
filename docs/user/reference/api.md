@@ -1093,13 +1093,23 @@ docstring。
 | `SCARGenerator` | SCAR 标记：固定数量无放回均匀采样，`n_L = round(c·n₊)`，记录 `c_realized` |
 | `SARLBEAGenerator` | SAR-LBE-A：`p ∝ scores^k`（k=10）+ 0.9/0.1 平滑（PU-Bench 2d95a19） |
 | `SARLBEBGenerator` | SAR-LBE-B：`p ∝ (1.5 + shrink_coef − scores)^k`，负值截断、全零均匀兜底 |
+| `CleanLabelGenerator` | PN oracle 视图：真实标签原样透传（固定 `n_L = n₊`）、声明 `output_view="clean"`，PA 因视图校验结构性拒绝；`c` 记录但不生效（oracle 对 c 恒定） |
 | `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 PU 视图均值分离度选 run；不选阈值 |
 | `ProtocolOA` | OA 对照：min-max 归一化后，按真实标签验证集 accuracy 选阈值与 run |
 | `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
 | `DeepFitTrainer` | 深度估计器：优先探测无真实标签泄漏的 `pu_validation_data`，否则探测 `validation_data`，并将 `history_` 转成选模轨迹；验证 fit 已成功但无 history 时只产生单点轨迹、不重复 fit |
-| `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线 |
+| `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线（声明 `trains_on_real_labels=True`）。必须配合 `CleanLabelGenerator`（真实标签视图）与 `protocols=[ProtocolOA()]` 使用——runner 默认生成 PU 视图，单独使用本类会被 runner 在训练前拦截 |
 | `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
+
+训练策略以 `trains_on_real_labels` 声明 `fit` 期望的标签语义：PU trainer 默认 `False`
+（label `0` 即未标记），PN oracle trainer 置 `True`（label `0` 是真实负类）。runner 在训练前
+要求声明与生成视图一致（两个方向都直接 `ValueError`），拒绝以类代替实例的 `config["trainer"]`，
+并要求生成器声明的视图与其上报的 `mechanism` 一致（`pn_oracle` 蕴含真实标签，即 clean 视图）。
+
+这些守卫约束的是视图、trainer 声明、生成器自述三者的一致性，不检验**估计器**被优化的目标：
+`SupervisedTrainer` 配上自带类先验的 PU 估计器时，runner 会放行而估计器仍按 PU 损失训练
+（使用约束与待决事项见 pn_oracle_integration.md §8）。
 
 `ExperimentRunner` 的每个测试协议结果固定包含 `accuracy`、`auc` 和
 `auc_unavailable_reason`；当测试真实标签只有一个类别时，`auc` 为 `NaN` 且原因字段为说明文本，

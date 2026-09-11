@@ -22,6 +22,7 @@ from .image import (
 from .resources import aggregate_resource_usage
 from .runner import ExperimentRunner
 from .strategies import (
+    CleanLabelGenerator,
     DeepFitTrainer,
     FitTrainer,
     ProtocolOA,
@@ -40,6 +41,7 @@ from .text import (
 from .training_views import TSOSBatchView, calibrate_ts_os_batch
 
 __all__ = [
+    "CleanLabelGenerator",
     "DatasetBundle",
     "DatasetPart",
     "DeepFitTrainer",

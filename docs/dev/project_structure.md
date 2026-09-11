@@ -287,6 +287,7 @@ tests/
       test_strategies_selection.py      # 阈值选择与 PA/OA 选模(真实标签/non-PU 视图拒绝/空轨迹)
       test_tracking.py                  # 轨迹/选择制品/结果数据类字段
       test_trainers.py                  # Fit/DeepFit/Supervised 训练策略
+      test_runner_oracle.py             # PN oracle 路径: 真实标签透传/OA-only/manifest 标注/误配 fail-loud
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）

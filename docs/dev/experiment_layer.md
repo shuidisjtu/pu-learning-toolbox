@@ -33,16 +33,24 @@
 | `text.py` | 协议固定 `all-MiniLM-L6-v2` 的 384 维文本向量、revision 留痕与内容寻址 SHA-256 缓存 |
 | `training_views.py` | mini-batch 级 OS/TS-compatible 损失视图；TS 方法把 P 同时保留在正例损失并入 U 损失，且仅限 train |
 | `tracking.py` | 纯数据类：`EpochRecord`/`RunTrajectory`/`SelectionArtifact`/`RunResult` |
-| `protocols.py` | 策略 ABC：`Generator.generate(X, y_true, c, seed)`；`Trainer.fit(estimator, X, y, *, class_prior, val_pu)`；`SelectionProtocol.select(trajectories, val_part, threshold_candidates)` |
-| `strategies.py` | `SCARGenerator`（fixed-count `round(c·n₊)` 无放回）、`SARLBEAGenerator`/`SARLBEBGenerator`（PU-Bench `2d95a19`：k=10/shrink 1.0、辅助模型 lbfgs(100) 拟合真实标签、**抽样池限定正例集** S=1⟹Y=1）、`ProtocolPA`/`ProtocolOA` + `select_threshold`、`FitTrainer`/`DeepFitTrainer`/`SupervisedTrainer` |
+| `protocols.py` | 策略 ABC：`Generator.generate(X, y_true, c, seed)` + `output_view` 声明（PU 生成器 `"pu"`，oracle 生成器 `"clean"`）；`Trainer.fit(estimator, X, y, *, class_prior, val_pu)` + `trains_on_real_labels` 声明（PU trainer 默认 `False`，oracle trainer 置 `True`，runner 据此要求声明与生成视图一致）；`SelectionProtocol.select(trajectories, val_part, threshold_candidates)` |
+| `strategies.py` | `SCARGenerator`（fixed-count `round(c·n₊)` 无放回）、`SARLBEAGenerator`/`SARLBEBGenerator`（PU-Bench `2d95a19`：k=10/shrink 1.0、辅助模型 lbfgs(100) 拟合真实标签、**抽样池限定正例集** S=1⟹Y=1）、`CleanLabelGenerator`（PN oracle 视图：真实标签透传、`output_view="clean"`）、`ProtocolPA`/`ProtocolOA` + `select_threshold`、`FitTrainer`/`DeepFitTrainer`/`SupervisedTrainer` |
 | `manifest.py` | 留痕写入/加载 + 8 必填键校验（seed/split_ref/generation/selection/test_results/elapsed/failures/resources） |
 | `runner.py` | `ExperimentRunner`：校验→生成→候选训练→PA/OA 离线选择→独立 test 评测→留痕 |
 
 ## 4. 边界与已知局限（P0）
 
 - **P0 已实现**（§7 验收清单全项 + smoke）：四路合约、SCAR/SAR 生成与 manifest、PA/OA 独立
-  artifact、PN oracle（`SupervisedTrainer` + `protocols=[ProtocolOA()]`，调用方显式传递）、阈值
-  选择、资源/失败最小留痕（elapsed + failures 字段）、二维（uPU）与 CNN（nnPU）端到端 smoke
+  artifact、阈值选择、资源/失败最小留痕（elapsed + failures 字段）、二维（uPU）与 CNN（nnPU）
+  端到端 smoke
+- **PN oracle 接入（2026-09-11，详见 [pn_oracle_integration.md](../research/pu_survey/pn_oracle_integration.md)）**：
+  `CleanLabelGenerator`（真实标签透传）+ `SupervisedTrainer` + `protocols=[ProtocolOA()]`，
+  脚本入口 `run_survey_experiment.py --oracle`。PA 因 clean 视图校验结构性拒绝；
+  **视图与 trainer 的标签语义不一致在 runner 内双向 fail-loud**（PU 视图 + 真实标签 trainer；
+  clean 视图 + 未声明 `trains_on_real_labels` 的 PU trainer）——此前两种误配都会静默把标记
+  当作真实标签（或反之）训练出错误的"上界"。判定以声明为准：未声明 `True` 的监督 trainer 会被
+  当作 PU trainer。守卫不覆盖估计器自身的优化目标（见 pn_oracle_integration.md §8）。深度
+  （CNN）oracle 的 clean-val checkpoint 选择列为 Phase 2
 - **后续跟进项**（正式 survey 数据生成前处理）：
   - 数据前处理 P1：八数据集目录/四路切分、SBERT 文本缓存、图像 train-only 统计及
     ResNet-18/增强留痕、TS-OS batch 校准、CNN feature adapter 与公平性分组门禁均已实现

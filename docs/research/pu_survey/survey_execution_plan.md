@@ -9,9 +9,13 @@
 - **实验层完备**：`pu_toolbox/experiment/` 34 个公共API，四路数据合约、PA/OA 独立选模、策略化接口、
   数据准备链（datasets/image/text/feature_adapter/training_views）、资源计量与失败语义、公平性门禁均已实现并入门禁覆盖。
 - **22 目标方法**：7 个已实现可训练——uPU、nnPU、KLDCE、Dist-PU、PUSB、LBE、Self-PU（均有方法卡）；
-  15 个**未出现**（无注册/无占位/无方法卡）：A 类 PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX，
-  B 类 VPU、PULDA，C 类 PUET、Grad-PU、Robust-PU、Split-PU、LAGAM，以及 PN oracle（无注册项，
-  但实验层 `SupervisedTrainer` 作为基于真实标签的单点 fit 实现）；`api_only` 0 个。
+  14 个**未出现**（无注册/无占位/无方法卡）：A 类 PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX，
+  B 类 VPU、PULDA，C 类 PUET、Grad-PU、Robust-PU、Split-PU、LAGAM；第 22 个即 PN oracle（下述）；
+  `api_only` 0 个。
+- **PN oracle（2026-09-11 接入 MLP 路径）**：无注册项；经 `CleanLabelGenerator`（真实标签透传、
+  `output_view="clean"`）+ `SupervisedTrainer` + 仅 OA 协议接入，脚本入口
+  `run_survey_experiment.py --oracle`。CNN（图像）路径的 clean-val checkpoint 选择留待 Phase 2。
+  详见 [pn_oracle_integration.md](pn_oracle_integration.md)。
 - **能力声明现状**：代码级声明仅 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
   四字段（有契约测试）——仅 nnPU 为双架构（mlp/cnn、{2,4}、encoder 注入），Self-PU 为 mlp/{2,4}，
   其余 5 个默认 tabular-only（{2}）——图像数据集上它们必须走 `cnn_feature_adapter`（benchmark-adapted）。
@@ -71,22 +75,34 @@
 ### P2 pilot 实验（结果一律标注 `pilot / partial benchmark`）
 
 - 7 方法 × 3 数据集 × c∈{0.1,0.3,0.5} × 5 seed × PA/OA 双协议；PN oracle 对照
+  （**跑批去重**：oracle 结果对 c 恒定，每 (dataset, seed) 跑 1 次共 15 次，
+  聚合时广播到各 c 列并标注 `c_independent`；脚本用 `--oracle`）
 - 模态-方法矩阵：表格/文本上 7 法均原生（文本＝SBERT 384 维特征 + MLP）；
   图像端到端仅 nnPU、Self-PU 原生（CNN）；其余 5 法图像走 `cnn_feature_adapter`
   （基准-适配、与原生路径**强制分组**，不混合排名）
 - 候选池：pilot 阶段用论文默认参数 + 少量合手候选（中心注册表到 P4 引入）
+- **依赖**：oracle 与各 PU 方法须在同一 backbone 规格下比较（协议 §2.5 第 4 条）——该规格
+  属 P3 前置（见下）。pilot 若在其确定前启动，oracle 行须标注自身结构并单列，待规格落定后重跑
 - 产出：pilot 榜单（SCAR-PA / SCAR-OA），交付前提=验证全链路（环境、数据、runner、manifest、资源计量）正常
 
 ### P3 算法接入（与 P2 并行推进；分工作如下：表 2.0）
 
+- **前置：确定数据集内共享的 backbone 规格**（表格/文本 MLP：层数、宽度、激活、优化器、
+  epoch 预算；图像 ResNet-18 已在协议 §2.5 锁定）。这是**方法接入的接口约定**——每个方法接入
+  时都要按它实现，所以归属 P3，**不由 P4 的中心注册表承担**（注册表管的是超参候选池）。
+  已实现的 7 个方法需回溯对齐：其表格路径默认各为 `nn.Linear(d, 1)`（深度类）或非网络
+  实现（经典类），尚未共享同一规格
 - 15 个缺失方法，我的建议顺序：B 类（VPU、PULDA，风格接近已有 B 类）→ A 类（7 个，依赖论文及其源码复现）
   → C 类（5 个，深度/优化设计，需 GPU 验证）：至于这里的任务分配，我还没有确定好，还需要评估
 - 每方法 = 实现 + 方法卡 + 台账登记（方法台账 JSON 同步更新）+ 门禁（原文可追溯、冒烟、
-  公开结果对照，协议 §5）；TS 原生方法在其训练循环内接入 `calibrate_ts_os_batch`
+  公开结果对照，协议 §5）；**接入验收须确认使用共享 backbone 规格**，方法私有网络只能标
+  `benchmark-adapted` 单列报告（协议 §2.5 第 4 条）；
+  TS 原生方法在其训练循环内接入 `calibrate_ts_os_batch`
 
 ### P4 完整主榜
 
-- 中心超参数注册表（参考 PU-Bench `core/hparams_registry.py`，注册表版本入 artifact）
+- 中心超参数注册表（参考 PU-Bench `core/hparams_registry.py`，注册表版本入 artifact）：
+  管理各方法的**超参候选池**；backbone 规格由 P3 的共享规格确定，不在注册表内
 - 22 方法全部通过四项门禁 → 四组榜单（SCAR-PA 主榜 / SCAR-OA / SAR-OA / PN oracle）→ §5.7 分析
 - 发布条件（协议 §4 原文）：完整主榜以 22 个目标方法全部通过相应门禁为发布条件；
   在此之前只可发布明确标为 `pilot / partial benchmark` 的部分结果。
