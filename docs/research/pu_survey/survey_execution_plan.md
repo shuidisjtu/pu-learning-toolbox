@@ -22,9 +22,12 @@
 - **协议要求但还未实现/未声明的项**：
   1. 台账 6 字段（`native_sampling_assumption`/`run_view`/`calibration_applied`/`prior_semantics`/
      `adaptation_level`/模态与 backbone）在代码与方法卡中**均未声明**（仅协议文字 + 实验层 per-call 机制）
-  2. 官方示例脚本（协议 §2.4 第 9 条）未实现（examples/ 无四份数据 + PA/OA 脚本）
+  2. ~~官方示例脚本（协议 §2.4 第 9 条）未实现~~ ✅ 2026-09-08 已实现（见 §2.2 的 1.3 先行小工作）
   3. 中心超参数注册表（实现计划 §6，参考 PU-Bench `core/hparams_registry.py`）未实现；
      当前候选池仅为 runner `config["candidates"]` 的运行态配置
+  4. **标签语义无声明字段**（`fit` 的 `y` 是 PU / 监督 PN / PNU）：PU 的 `{1,0}` 与监督的 `{0,1}`
+     数值同形，当前**仅靠约定区分、错配静默**。归 P3 接入前置，不阻塞 P2——
+     见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)
 
 ## 2. 推进路线
 
@@ -92,6 +95,10 @@
   时都要按它实现，所以归属 P3，**不由 P4 的中心注册表承担**（注册表管的是超参候选池）。
   已实现的 7 个方法需回溯对齐：其表格路径默认各为 `nn.Linear(d, 1)`（深度类）或非网络
   实现（经典类），尚未共享同一规格
+- **前置：标签语义声明**（`label_semantics`：`fit` 的 `y` 属 PU / 监督 PN / PNU）。同属接入时的
+  接口约定——错配（如把 PU 估计器喂真实标签）当前静默，Phase 2 的深度 oracle 最易踩。
+  方案、检查点与参考文献 2 的对照见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)；
+  P1 阶段（声明位 + 门禁，无行为变化）可与方法接入并行，P2 阶段须在 Phase 2 之前完成
 - 15 个缺失方法，我的建议顺序：B 类（VPU、PULDA，风格接近已有 B 类）→ A 类（7 个，依赖论文及其源码复现）
   → C 类（5 个，深度/优化设计，需 GPU 验证）：至于这里的任务分配，我还没有确定好，还需要评估
 - 每方法 = 实现 + 方法卡 + 台账登记（方法台账 JSON 同步更新）+ 门禁（原文可追溯、冒烟、

@@ -148,6 +148,9 @@ oracle、阈值选择，通过 §7 验收清单后再扩展 SAR 细节与资源�
   路径报告。**确定时机：P3 算法接入的前置**——它是每个方法接入时都要遵循的接口约定，
   不是超参候选池的一部分，故不归 P4 中心注册表；已实现的 7 个方法需回溯对齐
   （深度类默认 `nn.Linear(d, 1)`、经典类非网络，尚未共享同一规格）。
+- 标签语义（`fit` 的 `y` 属 PU / 监督 PN / PNU）同属"接入时的接口约定"：当前无声明字段，
+  PU 的 `{1,0}` 与监督的 `{0,1}` 数值同形、错配静默。**确定时机同为 P3 接入前置**，
+  方案与参考文献 2 的对照见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)。
 - 所有可学习预处理统计量仅在该 seed 的 `train` 拟合并冻结，图像增强仅用于训练。
 - 文本记录 `all-MiniLM-L6-v2` 的模型 revision、384 维输出及 embedding cache hash。
   `experiment.text.encode_survey_texts` 已实现固定模型、显式 revision、内容寻址缓存及读取时

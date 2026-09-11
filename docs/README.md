@@ -46,6 +46,7 @@
 | [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
 | [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与实施结果（含各阶段设计决策要点） |
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
+| [dev/label_semantics_plan.md](dev/label_semantics_plan.md) | 标签语义契约：`label_semantics` 能力声明、检查点与实施计划（值层不可判定性、与防泄漏守卫的分工） |
 | [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界 |
 | [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：`pu_survey_protocol.md` 协议（8 数据集、OS/TS 视图、四份数据接口、PA/OA 双选模）、`implementation_plan.md` 实现计划（现状差距、双架构前置工作项、待办）、`survey_execution_plan.md` 执行计划（pilot→主榜路线、现状基线、决策记录）、`pn_oracle_integration.md` PN oracle 接入（缺陷实证、PU-Bench 口径对照、设计决策、P2 接口与开放问题） |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）设计蒸馏：四路数据合约、策略化接口、PA/OA 双协议、P0 已知局限 |

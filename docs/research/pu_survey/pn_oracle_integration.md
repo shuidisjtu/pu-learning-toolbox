@@ -215,8 +215,9 @@ oracle"并不冲突，只是冗余。
    配上自带类先验的 PU 估计器（如 nnPU/Self-PU，先验挂在估计器构造器上）时 runner 放行，
    估计器仍按 PU 损失训练，而 manifest 记 `pn_oracle`。可探测性取决于估计器侧是否有声明——
    "`fit` 是否接受 `class_prior`"只是启发式，且会误伤 Phase 2 可能与 PU 方法共用估计器类的
-   同 backbone 监督头。未决：给估计器加声明位，还是把它列为使用约束（当前由脚本层保证
-   oracle 只用监督估计器）
+   同 backbone 监督头。**已定案（2026-09-11）：走"给估计器加声明位"，归属 P3 算法接入前置**
+   （不阻塞本实验——经示例脚本跑时该路径不可达），方案见
+   [label_semantics_plan.md](../../dev/label_semantics_plan.md)；当前由脚本层保证 oracle 只用监督估计器
 6. **oracle 的 backbone 尚未与 PU 方法对齐**（2026-09-11 发现，Phase 1 遗留）：当前
    `OracleMLP` 用 sklearn `MLPClassifier` 的默认结构（100 单元隐层），而 PU 深度方法默认
    `nn.Linear(d, 1)`、经典方法根本不含网络——按协议 §2.5 第 4 条本应"同一表征/backbone"。
