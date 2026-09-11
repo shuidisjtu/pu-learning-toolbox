@@ -1,4 +1,4 @@
-# PN oracle 接入实施计划
+# PN oracle 接入
 
 > 定位：修复并接入协议 §2.4 第 10 条的 PN oracle 对照路径。
 > 上游依据：[pu_survey_protocol.md](pu_survey_protocol.md) §2.4/§5、
@@ -189,135 +189,26 @@ oracle"并不冲突，只是冗余。
 建议榜单中 PN oracle 单独一组（协议 §5.1 已如此规定），并注明选模口径差异，
 不与 PU-Bench 论文表直接对比。
 
-## 6. 实施步骤（TDD；每步独立可测）
+## 6. 验收口径
 
-> 分支：`feature/pn-oracle`。每步先写失败测试，再实现，再跑门禁。
-> **进度（2026-09-11）**：Task 1 ✅ `db6686b`｜Task 2 ✅ `08c9778`｜
-> Task 3 ✅（并入 Task 1/2：`generation` 字段与 pu_val 校验随视图声明自动正确，
-> `class_prior` 由脚本层不传）｜Task 4 ✅ `be9c20a`｜Task 5 = Phase 2（本次不做）｜Task 6 ✅
+守护测试须能在修复前的代码上失败（回退到修复前提交验证）——只复述实现的测试不算守护。
+冒烟数值与实施步骤不在本文复写：前者随结果目录与 manifest 留痕，后者见 git log。
 
-### Task 1 — Generator 视图契约扩展（D-A）
-
-- 测试 `tests/unit/experiment/test_strategies_labeling.py`：
-  `CleanLabelGenerator().generate(X, y_true, c, seed)` 返回的标签等于 `y_true`、
-  meta 含 `mechanism == "pn_oracle"` 且 `c_realized == 1.0`；
-  默认 `Generator.output_view == "pu"`，`CleanLabelGenerator.output_view == "clean"`
-- 实现 `strategies.py`：加 `CleanLabelGenerator` + `Generator.output_view` 类属性
-- 改 `runner.py:89-90`：`view=getattr(self.generator, "output_view", "pu")`
-- 验证：现有 `test_pa_never_receives_clean_labels` 等全部保持绿
-
-### Task 2 — oracle 端到端集成测试（守护核心缺陷）
-
-- 新增集成测试 `test_runner_oracle.py`（置于 `tests/unit/experiment/` 目录）：
-  1. **核心断言**：用记录型 trainer 捕获 runner 传入的标签，
-     断言标记正例数 == train 真实正例数（当前 1.2 节复现的反面）
-  2. 断言 `result.test_metrics` 只含 `{"OA"}`，无 `PA`
-  3. 断言 `manifest["generation"]["train"]["mechanism"] == "pn_oracle"`（差距 4）
-  4. 断言 pu_val 无真实正例时 oracle 仍能跑通（差距 3 的条件化校验）
-  5. 断言显式传入 `protocols=[ProtocolPA()]` 时 fail-loud（防护不变量）
-- 该文件需登记 `docs/dev/project_structure.md`（Rule 2 门禁）
-
-### Task 3 — runner 侧 oracle 适配
-
-- `runner.py:92-96`：正例校验加条件（仅 PU 视图路径执行）
-- `runner.py`：oracle 路径下不向 trainer 传 `class_prior`（或由脚本传 `None` 并在
-  runner 记录 `class_prior_applied: false`）
-- `runner.py:266`：`generation` 字段写入 generator 的 meta（A1 下自动正确）
-- 补测：`test_runner_oracle.py` 增断言
-
-### Task 4 — 脚本层入口
-
-- `scripts/run_survey_experiment.py`：新增 `--oracle` 开关
-  （自动 `CleanLabelGenerator` + `protocols=[ProtocolOA()]` + `class_prior=None`
-  + `config["trainer"]=SupervisedTrainer()`），并在输出目录写
-  `oracle_integration.json`（选模口径、候选池、seed 数）
-- 测试扩展 `tests/unit/experiment/test_survey_script.py`（现有 3 例 + oracle 例）
-- 冒烟：`data/splits/spambase/split_0` 上跑一次，人工核对 oracle accuracy
-  **显著高于**同条件 PU 方法（行为级证据）
-
-### Task 5 — 深度路径（Phase 2，D-B）
-
-- 新增 oracle 深度 trainer（用 `validation_data` + clean accuracy argmax 选 checkpoint）
-- 测试：`tests/unit/experiment/test_trainers.py` 增 oracle 深度用例
-- CNN 冒烟（T600 或 CPU 小规模）
-
-### Task 6 — 文档与留痕
-
-- `docs/dev/experiment_layer.md:43-45`：修正"P0 已实现"表述为真实状态 + 接入方式
-- `docs/research/pu_survey/survey_execution_plan.md:13`：修正 oracle 现状描述；
-  §2 P2 条目补 oracle 跑批口径（15 次 + 广播）
-- `docs/research/pu_survey/implementation_plan.md`：记录 §3.1 的两处口径差异
-- `docs/user/reference/api.md:1100`：`SupervisedTrainer` 条目补接入约束
-- `docs/README.md`：登记本文件
-
-## 7. 验收标准
-
-1. §1.2 复现脚本在修复后输出 `OK: oracle received true labels`
-2. 新增集成测试能**在旧代码上失败、在新代码上通过**（否则等于没守护）
-3. 既有实验层测试全绿，尤其 `test_pa_never_receives_clean_labels` 与
-   `test_runner_raises_when_pu_view_has_no_labeled_positive`
-4. 脚本层 `--oracle` 在 Spambase/IMDB 上产出 OA-only 结果，accuracy 高于
-   同条件 PU 方法（行为级证据，人工核对后记录）
-5. 门禁：`check_test_quality` / `check_doc_links` / `check_api_docs` /
-   `check_format` / `check_project_metadata` / `generate_structure --check`
-
-### 7.1 实测结果（2026-09-11）
-
-- **冒烟**（Spambase `split_0`、3 seed、`--oracle --model-params '{"max_iter": 400}'`）：
-  OA acc 0.9414 / 0.9435 / 0.9446，AUC 0.9833 / 0.9794 / 0.9830；
-  manifest `generation.train.n_labeled = 1305`（= train 全部正例，而非 `c·n₊`），
-  `test_results` 仅 `OA`，`failures` 为空
-- **上界方向**：同数据集 uPU 冒烟 —— oracle 更高，与"上界"定位一致。注：早先记录的
-  uPU 数值（OA 0.853 / AUC 0.955）在仓库内**不可溯源**（无结果目录），验收代理以可比配置
-  复现得 OA 0.794 / AUC 0.924；两种口径下方向一致（非严格对照：c 与配置不同）
-- **守护强度**：将 runner 回退至修复前版本（`524c2b5`）时，新集成测试失败用例与预期一致，
-  证明测试锚定缺陷而非复述实现
-- **IMDB 冒烟**：由验收代理补跑，见 §7.2
-
-### 7.2 独立验收（2026-09-11）
-
-由独立子代理做对抗性验收（自建复现脚本、`git archive` 隔离副本回退、变异实验），
-不采信文档既有结论。
-
-**已修复（Important，提交 `051aa2d`）**
-
-1. `class_prior` 在 runner 层仍会生效——Task 3 只落实了脚本层，`_train` 无条件下传，
-   直接用 runner API 时先验会进入真实标签训练，无告警、manifest 无记录。现 clean 视图
-   下 fail-loud。
-2. clean 声明被信任而非校验，两条静默假 oracle 路径：生成器声明 `clean` 却输出标记标签；
-   以及守卫谓词 `view == "pu"` 让 `"Clean"` 之类笔误绕过全部守卫。现分别做标签逐元素
-   一致性校验、非法 view 值 fail-closed。
-
-**已确认无问题**（代理尝试但未能证伪）：trainer 以类 / `functools.partial` 传入会报错；
-SAR-LBE-A/B + `SupervisedTrainer` 被拦；默认 `DeepFitTrainer` + clean 视图不产假 oracle；
-oracle + 默认 protocols 不会伪造 PA 行；`CleanLabelGenerator + DeepFitTrainer` 直接报错
-（非静默）；`MLPClassifier` 的 TypeError 回退会丢弃先验且不吞其他异常。
-
-**记录备查（Minor，本次未修）**
-
-- `test_runner.py` 的 D4 守护用鸭子类型 `FakePA`，不经过真正的 `ProtocolPA`
-- `oracle_integration.json` 在任何 run 之前写入（全部候选失败也会留下口径声明）
-- 深度路径无显式 Phase 2 守卫，靠 `losses/nnpu.py` 的内部错误挡住（错误信息与 Phase 2 无关）
-
-**补充冒烟（代理执行）**：IMDB `split_0`（SBERT 384-d 预计算特征）oracle OA acc 0.776 /
-AUC 0.873，同切分 uPU（squared, c=0.1）OA 0.760 / AUC 0.847 —— 方向一致。
-
-## 8. 与 P2 跑批的接口
+## 7. 与 P2 跑批的接口
 
 - 交付物：`--oracle` 入口 + 跑批清单（dataset × seed 共 15 条）+ 结果目录约定
 - 执行方：HENG958（GPU 窗口）；榜单聚合由 shuidisjtu 的聚合脚本消费 oracle 结果
 - 公平性：聚合时构造 `LeaderboardRunSpec(method="pn_oracle", ...)` 并过
   `partition_fair_leaderboard_runs`，与同数据集同训练路径的 PU 方法同组校验
 
-## 9. 开放问题
+## 8. 开放问题
 
-1. ~~D-A / D-B / D-C 待拍板~~ —— 已于 2026-09-11 拍板，见 §5
-2. 图像数据集上 oracle 的训练路径分组（端到端 vs feature-adapter）需与协议 §5.1
+1. 图像数据集上 oracle 的训练路径分组（端到端 vs feature-adapter）需与协议 §5.1
    的"训练路径分层"对齐—— oracle 是否需要在两组各出一条？（Phase 2 实施前决策）
-3. 并列展示的口径差异说明是否要写进最终榜单脚注（面向论文读者）
-4. 协议 §2.4 第 10 条的选模口径（clean_val 真实 Accuracy）与参考文献 2 实际做法
+2. 并列展示的口径差异说明是否要写进最终榜单脚注（面向论文读者）
+3. 协议 §2.4 第 10 条的选模口径（clean_val 真实 Accuracy）与参考文献 2 实际做法
    （`val_proxy_acc`）的分歧，是否与学长确认过原意（见 §3.1）
-5. **oracle 的 backbone 尚未与 PU 方法对齐**（2026-09-11 发现，Phase 1 遗留）：当前
+4. **oracle 的 backbone 尚未与 PU 方法对齐**（2026-09-11 发现，Phase 1 遗留）：当前
    `OracleMLP` 用 sklearn `MLPClassifier` 的默认结构（100 单元隐层），而 PU 深度方法默认
    `nn.Linear(d, 1)`、经典方法根本不含网络——按协议 §2.5 第 4 条本应"同一表征/backbone"。
    根因是"数据集内共享 MLP 规格"尚未确定。**该规格原先被归入 P4 中心注册表，经复核属阶段
@@ -325,3 +216,8 @@ AUC 0.873，同切分 uPU（squared, c=0.1）OA 0.760 / AUC 0.847 —— 方向�
    [survey_execution_plan.md](survey_execution_plan.md) 与
    [implementation_plan.md](implementation_plan.md) §3）。规格落定后 `OracleMLP` 须改为
    按规格构造；在此之前 pilot 的 oracle 行须单列，不与 PU 行混排
+
+5. 独立验收记录的三项 Minor（本次未修，备查）：`tests/unit/experiment/test_runner.py`
+   的 D4 守护用鸭子类型 `FakePA`，不经过真正的 `ProtocolPA`；`oracle_integration.json`
+   在任何 run 之前写入（全部候选失败也会留下口径声明）；深度路径无显式 Phase 2 守卫，
+   靠 `losses/nnpu.py` 的内部错误挡住（错误信息与 Phase 2 无关）
