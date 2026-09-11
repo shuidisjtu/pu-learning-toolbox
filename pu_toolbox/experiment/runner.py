@@ -81,15 +81,22 @@ class ExperimentRunner:
         validate_bundle(bundle)
         _validate_model_capability(model, bundle, self.config.get("architecture"))
 
-        # 2. generate PU views (SCAR / SAR via the injected generator)
+        # 2. generate label views (SCAR / SAR / clean via the injected generator)
         generation_t0 = time.perf_counter()
         c = self.config.get("c", 0.1)
-        y_pu_train, meta_train = self.generator.generate(train.X, train.labels, c, self.seed)
-        y_pu_val, meta_val = self.generator.generate(pu_val.X, pu_val.labels, c, self.seed)
-        train_pu = DatasetPart(X=train.X, labels=y_pu_train, view="pu", indices=train.indices)
-        pu_val_pu = DatasetPart(X=pu_val.X, labels=y_pu_val, view="pu", indices=pu_val.indices)
+        y_view_train, meta_train = self.generator.generate(train.X, train.labels, c, self.seed)
+        y_view_val, meta_val = self.generator.generate(pu_val.X, pu_val.labels, c, self.seed)
+        # The generator declares the view it produces: "pu" for SCAR/SAR, and
+        # "clean" for the PN oracle (real labels passed through).  Keeping the
+        # declaration on the strategy keeps PA structurally excluded — a clean
+        # view makes ProtocolPA raise instead of emitting a fake PA row.
+        view = getattr(self.generator, "output_view", "pu")
+        train_view = DatasetPart(X=train.X, labels=y_view_train, view=view, indices=train.indices)
+        pu_val_view = DatasetPart(X=pu_val.X, labels=y_view_val, view=view, indices=pu_val.indices)
 
-        if int(np.sum(pu_val_pu.labels == 1)) == 0:
+        # PA needs a labeled positive in its val view. The oracle trains on real
+        # labels and runs OA only, so this generated-view check does not apply.
+        if view == "pu" and int(np.sum(pu_val_view.labels == 1)) == 0:
             raise ValueError(
                 "generated pu_val PU view has no labeled positive; "
                 "ensure pu_val contains real positives (and/or raise c)."
@@ -116,8 +123,8 @@ class ExperimentRunner:
                         bundle,
                         self.config.get("architecture"),
                     )
-                    trajectory = self._train(est, train_pu, pu_val_pu)
-                    _validate_trajectory(trajectory, pu_val_pu)
+                    trajectory = self._train(est, train_view, pu_val_view)
+                    _validate_trajectory(trajectory, pu_val_view)
                 except Exception as exc:  # noqa: BLE001 - recorded retry boundary
                     errors.append(_exception_record(exc, attempt))
                     attempt_resources.append(
@@ -219,11 +226,11 @@ class ExperimentRunner:
         selections = {}
         for proto in self.protocols:
             if isinstance(proto, ProtocolPA):
-                art = proto.select(trajectories, pu_val_pu, self.threshold_candidates)
+                art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
             elif isinstance(proto, ProtocolOA):
                 art = proto.select(trajectories, clean_val, self.threshold_candidates)
             else:
-                art = proto.select(trajectories, pu_val_pu, self.threshold_candidates)
+                art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
             selections[art.protocol] = art
 
         # 5. independent test evaluation (test never entered selection/training)
@@ -280,13 +287,13 @@ class ExperimentRunner:
             resources=resources,
         )
 
-    def _train(self, est, train_pu: DatasetPart, pu_val_view: DatasetPart):
+    def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart):
         trainer = self.config.get("trainer", DeepFitTrainer())
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
         return trainer.fit(
             est,
-            train_pu.X,
-            train_pu.labels,
+            train_view.X,
+            train_view.labels,
             class_prior=self.class_prior,
             val_pu=val_pu,
         )

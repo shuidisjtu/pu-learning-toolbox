@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pu_toolbox.experiment.strategies import (
+    CleanLabelGenerator,
     SARLBEAGenerator,
     SARLBEBGenerator,
     SCARGenerator,
@@ -78,3 +79,27 @@ def test_lbe_no_positives_returns_all_zero():
         y_pu, meta = gen.generate(np.zeros((10, 2)), y_true, 0.5, seed=0)
         assert np.all(y_pu == 0)
         assert meta["c_realized"] == 0.0
+
+
+def test_basic_clean_label_generator_passes_true_labels():
+    """PN oracle: real labels pass through unchanged and the view stays clean."""
+    y_true = _y(10)  # 5 positives
+    y_view, meta = CleanLabelGenerator().generate(np.zeros((10, 2)), y_true, 0.3, seed=0)
+    # every true positive survives: not a c-fraction of them (that is the defect)
+    assert np.array_equal(y_view, y_true)
+    assert int(np.sum(y_view == 1)) == 5
+    assert meta["mechanism"] == "pn_oracle"
+    assert meta["c_realized"] == 1.0
+    # view declaration: PU generators stay "pu", the oracle one is "clean"
+    assert SCARGenerator.output_view == "pu"
+    assert CleanLabelGenerator.output_view == "clean"
+
+
+def test_determ_clean_label_generator_ignores_seed_and_c():
+    """Oracle results are c-independent: c only drives PU label marking."""
+    X = np.zeros((10, 2))
+    y_true = _y(10)
+    a, _ = CleanLabelGenerator().generate(X, y_true, 0.1, seed=0)
+    b, _ = CleanLabelGenerator().generate(X, y_true, 0.9, seed=123)
+    assert np.array_equal(a, b)
+    assert np.array_equal(a, y_true)

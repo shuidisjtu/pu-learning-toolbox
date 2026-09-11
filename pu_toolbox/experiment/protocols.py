@@ -14,12 +14,21 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from .bundle import DatasetPart
+from .bundle import DatasetPart, LabelView
 from .tracking import RunTrajectory, SelectionArtifact
 
 
 class Generator(ABC):
-    """Labeling strategy: clean labels -> PU label view (+ meta)."""
+    """Labeling strategy: clean labels -> label view (+ meta).
+
+    ``output_view`` declares which view the produced labels carry: PU
+    generators emit ``"pu"``; the PN-oracle generator passes real labels
+    through and declares ``"clean"``, so PA stays structurally excluded
+    (``ProtocolPA`` rejects non-PU views) instead of relying on the caller.
+    See docs/research/pu_survey/pn_oracle_integration.md §5 (D-A).
+    """
+
+    output_view: LabelView = "pu"
 
     @abstractmethod
     def generate(
