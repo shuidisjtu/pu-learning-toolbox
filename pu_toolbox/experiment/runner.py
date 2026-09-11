@@ -18,7 +18,7 @@ from sklearn.base import clone
 from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
-from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator
+from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
 from .tracking import RunResult, RunTrajectory
 
 
@@ -93,6 +93,17 @@ class ExperimentRunner:
         view = getattr(self.generator, "output_view", "pu")
         train_view = DatasetPart(X=train.X, labels=y_view_train, view=view, indices=train.indices)
         pu_val_view = DatasetPart(X=pu_val.X, labels=y_view_val, view=view, indices=pu_val.indices)
+
+        # A supervised (PN-oracle) trainer needs real labels. Pairing it with a
+        # PU-view generator trains on marked labels and silently produces a fake
+        # upper bound — the mis-wiring this path shipped with. Fail loudly.
+        if view == "pu" and isinstance(self.config.get("trainer"), SupervisedTrainer):
+            raise ValueError(
+                "SupervisedTrainer (PN oracle) requires a clean label view; got a "
+                "'pu' view. Use CleanLabelGenerator as the generator, or drop the "
+                "supervised trainer. See docs/research/pu_survey/"
+                "pn_oracle_integration.md §1."
+            )
 
         # PA needs a labeled positive in its val view. The oracle trains on real
         # labels and runs OA only, so this generated-view check does not apply.
