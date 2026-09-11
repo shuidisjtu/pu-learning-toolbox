@@ -267,11 +267,40 @@ oracle"并不冲突，只是冗余。
   OA acc 0.9414 / 0.9435 / 0.9446，AUC 0.9833 / 0.9794 / 0.9830；
   manifest `generation.train.n_labeled = 1305`（= train 全部正例，而非 `c·n₊`），
   `test_results` 仅 `OA`，`failures` 为空
-- **上界方向**：同数据集 uPU 冒烟（P1）OA acc 0.853、AUC 0.955 —— oracle 高于 PU 方法，
-  与"上界"定位一致（非严格对照：两者 c 与配置不同，仅作方向性核对）
-- **守护强度**：将 runner 回退至修复前版本（`524c2b5`）时，新集成测试 3/6 失败
-  （edge / PA 拒绝 / 误配守卫），证明测试确实锚定缺陷而非复述实现
-- **IMDB 冒烟**：未跑（Phase 1 不阻塞；随 P2 跑批一并验证）
+- **上界方向**：同数据集 uPU 冒烟 —— oracle 更高，与"上界"定位一致。注：早先记录的
+  uPU 数值（OA 0.853 / AUC 0.955）在仓库内**不可溯源**（无结果目录），验收代理以可比配置
+  复现得 OA 0.794 / AUC 0.924；两种口径下方向一致（非严格对照：c 与配置不同）
+- **守护强度**：将 runner 回退至修复前版本（`524c2b5`）时，新集成测试失败用例与预期一致，
+  证明测试锚定缺陷而非复述实现
+- **IMDB 冒烟**：由验收代理补跑，见 §7.2
+
+### 7.2 独立验收（2026-09-11）
+
+由独立子代理做对抗性验收（自建复现脚本、`git archive` 隔离副本回退、变异实验），
+不采信文档既有结论。
+
+**已修复（Important，提交 `051aa2d`）**
+
+1. `class_prior` 在 runner 层仍会生效——Task 3 只落实了脚本层，`_train` 无条件下传，
+   直接用 runner API 时先验会进入真实标签训练，无告警、manifest 无记录。现 clean 视图
+   下 fail-loud。
+2. clean 声明被信任而非校验，两条静默假 oracle 路径：生成器声明 `clean` 却输出标记标签；
+   以及守卫谓词 `view == "pu"` 让 `"Clean"` 之类笔误绕过全部守卫。现分别做标签逐元素
+   一致性校验、非法 view 值 fail-closed。
+
+**已确认无问题**（代理尝试但未能证伪）：trainer 以类 / `functools.partial` 传入会报错；
+SAR-LBE-A/B + `SupervisedTrainer` 被拦；默认 `DeepFitTrainer` + clean 视图不产假 oracle；
+oracle + 默认 protocols 不会伪造 PA 行；`CleanLabelGenerator + DeepFitTrainer` 直接报错
+（非静默）；`MLPClassifier` 的 TypeError 回退会丢弃先验且不吞其他异常。
+
+**记录备查（Minor，本次未修）**
+
+- `test_runner.py` 的 D4 守护用鸭子类型 `FakePA`，不经过真正的 `ProtocolPA`
+- `oracle_integration.json` 在任何 run 之前写入（全部候选失败也会留下口径声明）
+- 深度路径无显式 Phase 2 守卫，靠 `losses/nnpu.py` 的内部错误挡住（错误信息与 Phase 2 无关）
+
+**补充冒烟（代理执行）**：IMDB `split_0`（SBERT 384-d 预计算特征）oracle OA acc 0.776 /
+AUC 0.873，同切分 uPU（squared, c=0.1）OA 0.760 / AUC 0.847 —— 方向一致。
 
 ## 8. 与 P2 跑批的接口
 
