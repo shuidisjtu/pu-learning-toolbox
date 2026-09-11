@@ -21,6 +21,9 @@
    + InfoMax/WConPU/DGPU)。
 4. **Phase 重整**:核心 PU 风险估计优先(Elkan-Noto → uPU → nnPU → ReCPE),
    经典分类器包装器后移;阶段定义以 `process_checklist.md` 为准。
+5. **Survey 实验分工优先级**：`docs/research/pu_survey/survey_execution_plan.md`
+   的任务表是 PU Survey 的唯一分工真相源，覆盖第 3 项中与 Survey 任务冲突的历史论文分配；
+   每项必须有单一主责、验收证据与阻塞升级记录。
 
 ## 备选方案
 

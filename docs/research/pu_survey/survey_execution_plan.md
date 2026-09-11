@@ -31,24 +31,28 @@
 
 ## 2. 推进路线
 
-### 2.0 分工与并行性（v1）
+### 2.0 分工、依赖与验收（v2）
 
-实施主体假设：**shuidisjtu**（执行/数据/文档）+ **HENG958**（算法接入/深度方向）。并行分工如下：
+实施主体：**shuidisjtu**（数据、实验编排、结果留痕与文档）和 **HENG958**（算法接入、深度训练与 GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复核。任务完成必须有测试、manifest、运行记录或 PR 链接等可复核证据，不能只以口头或代码存在判定完成。
 
-| 任务 | 依赖 | 建议分工 | 并行性 |
-|---|---|---|---|
-| 1.1 环境 | — | shuidisjtu（开发/冒烟验证）；HENG958（P2/P3 ），基本的环境部署两个人都需要完成 | 与其它全部互不等待 |
-| 1.2 数据获取+版本审计 | — | shuidisjtu | 与 1.3/P3 并行；仅 1.4 依赖 |
-| 1.3① 台账 JSON | — | shuidisjtu 统稿+经典 5 方法；HENG958 填 nnPU/Self-PU | 可分两半并行填，最后合并 |
-| 1.3② 示例脚本 | （骨架可先写） | shuidisjtu | 与 1.2/P3 并行 |
-| 1.4 pilot 数据产物 | 1.1、1.2 | shuidisjtu（数据/流水线）；执行（HENG958） | 关键路径；3 集可分两批（CIFAR/Spambase 先行，IMDB SBERT 之后） |
-| P2 pilot 跑批 | 1.3②、1.4 | **HENG958（执行）**；shuidisjtu（脚本/结果组织与分析） | GPU 独占窗口；期间两人在开发侧并行（P3 编码/台账/文档） |
-| P3 方法接入 | — | shuidisjtu：B 类（VPU、PULDA）+ A 类经典（PAN、RP、CVIR、PULNS）；HENG958：C 类（PUET、Grad-PU、Robust-PU、Split-PU、LAGAM）+ A 类深度（GEN-PU、Holistic-PU、P3MIX） | 每方法独立"实现+方法卡+台账"循环，两人并行；`feature/<method>` 分支→PR，错峰合入避免 registry/api.md 冲突 |
-| P3 GPU 验证（深度冒烟） | 与 P2 错开 | HENG958 | GPU 时间表轮换（单卡） |
-| P4 中心注册表 | P3 各方法候选参数 | shuidisjtu | 以先接入方法先行验证，与 P3 收尾并行 |
-| P4 榜单聚合/§5.7 分析 | 全部结果 | shuidisjtu（榜单+留痕）；HENG958（C/A 深度类别结论）、shuidisjtu（A/B 类别结论） | 分析按类别拆，shuidisjtu 最后合并 |
+| 编号 | 任务 | 前置 | 验收标准 | 状态 / 主责 |
+|---|---|---|---|---|
+| P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 复核其执行环境 |
+| P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 进行中 / shuidisjtu |
+| P1.3a | 方法台账 | — | 7 个已实现方法的六字段有证据；每项经对应方法负责人复核 | ✅ 初版完成 / shuidisjtu；HENG958 复核 nnPU、Self-PU |
+| P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
+| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ 已完成 / shuidisjtu；HENG958 复核可执行性 |
+| P2.0a | Pilot 共享规格与 oracle 对齐决策 | P1.3a、P1.3b | 共享 backbone/预算、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 未完成 / HENG958；shuidisjtu 复核 |
+| P2.0b | 标签语义门禁 | P1.3a、P1.3b | `label_semantics` 声明与 experiment/pipeline 检查点按计划完成，错误组合 fail-loud | 🚧 未完成 / shuidisjtu；HENG958 复核 |
+| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |
+| P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果 |
+| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | ⏳ 待办 / shuidisjtu：VPU、PULDA、PAN、RP、CVIR、PULNS |
+| P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | ⏳ 待办 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LAGAM、GEN-PU、Holistic-PU、P3MIX |
+| P3.3 | 深度 GPU 验证与调度 | P3.2 | GPU 预约、显存预算、失败/OOM 重试及结果路径均有记录；不与 P2.1 竞争同一窗口 | ⏳ 待办 / HENG958 |
+| P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | ⏳ 待办 / shuidisjtu |
+| P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
 
-**唯一串行关键路径**：`1.1 → 1.2/1.3 → 1.4 → P2 跑批 → P4`；其余均可并行。
+**依赖与升级规则**：P2.1 可在基础设施可用后做技术 smoke，但未完成 P2.0a 与 P2.0b 前不得将结果与 oracle 或跨方法结果混排；若为验证脚本而提前执行，产物必须标记为“需按 P2.0 规格重跑”。P2.1 与 P3.3 共享单卡时，HENG958 负责排定并记录 GPU 窗口；数据许可、共享规格、标签语义或资源不足造成阻塞时，主责须在计划的“开放问题与风险”中记录影响与下一步，并由两位实施主体共同决定升级、拆分或降级。Survey 分工在其范围内覆盖 ADR-0008 中较早的论文分配。
 
 
 ### P1 执行准备（pilot 前完成）
@@ -99,8 +103,8 @@
   接口约定——错配（如把 PU 估计器喂真实标签）当前静默，Phase 2 的深度 oracle 最易踩。
   方案、检查点与参考文献 2 的对照见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)；
   P1 阶段（声明位 + 门禁，无行为变化）可与方法接入并行，P2 阶段须在 Phase 2 之前完成
-- 15 个缺失方法，我的建议顺序：B 类（VPU、PULDA，风格接近已有 B 类）→ A 类（7 个，依赖论文及其源码复现）
-  → C 类（5 个，深度/优化设计，需 GPU 验证）：至于这里的任务分配，我还没有确定好，还需要评估
+- 14 个缺失方法的接入顺序：B 类（VPU、PULDA，风格接近已有 B 类）→ A 类（7 个，依赖论文及其源码复现）
+  → C 类（5 个，深度/优化设计，需 GPU 验证）；具体主责以表 2.0 为唯一真相源。
 - 每方法 = 实现 + 方法卡 + 台账登记（方法台账 JSON 同步更新）+ 门禁（原文可追溯、冒烟、
   公开结果对照，协议 §5）；**接入验收须确认使用共享 backbone 规格**，方法私有网络只能标
   `benchmark-adapted` 单列报告（协议 §2.5 第 4 条）；
