@@ -48,8 +48,9 @@
   脚本入口 `run_survey_experiment.py --oracle`。PA 因 clean 视图校验结构性拒绝；
   **视图与 trainer 的标签语义不一致在 runner 内双向 fail-loud**（PU 视图 + 真实标签 trainer；
   clean 视图 + 未声明 `trains_on_real_labels` 的 PU trainer）——此前两种误配都会静默把标记
-  当作真实标签（或反之）训练出错误的"上界"。深度（CNN）oracle 的 clean-val checkpoint 选择
-  列为 Phase 2
+  当作真实标签（或反之）训练出错误的"上界"。判定以声明为准：未声明 `True` 的监督 trainer 会被
+  当作 PU trainer。守卫不覆盖估计器自身的优化目标（见 pn_oracle_integration.md §8）。深度
+  （CNN）oracle 的 clean-val checkpoint 选择列为 Phase 2
 - **后续跟进项**（正式 survey 数据生成前处理）：
   - 数据前处理 P1：八数据集目录/四路切分、SBERT 文本缓存、图像 train-only 统计及
     ResNet-18/增强留痕、TS-OS batch 校准、CNN feature adapter 与公平性分组门禁均已实现

@@ -270,35 +270,9 @@ def main(argv: list[str] | None = None) -> int:
     config: dict[str, Any] = {"candidates": candidates, "split_ref": split_ref, **config_extra}
     out_root = Path(args.out_dir) if args.out_dir else Path("results") / "survey" / method
 
-    if args.oracle:
-        # Record the oracle's calibration contract next to the results: it is
-        # what makes the numbers comparable to (and distinguishable from) the
-        # PU method rows — see pn_oracle_integration.md §3.1.
-        out_root.mkdir(parents=True, exist_ok=True)
-        (out_root / "oracle_integration.json").write_text(
-            json.dumps(
-                {
-                    "method": "pn_oracle",
-                    "estimator": type(model).__name__,
-                    "generator": "CleanLabelGenerator",
-                    "trainer": "SupervisedTrainer",
-                    "protocols": ["OA"],
-                    "selection_metric": "clean_val_accuracy",
-                    "class_prior_applied": False,
-                    "c_independent": True,
-                    "note": (
-                        "PN oracle per protocol §2.4 item 10; the result is "
-                        "c-independent, so one run per (dataset, seed) suffices."
-                    ),
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
-
     c_values = [float(value) for value in args.c.split(",") if value.strip()]
     seed_values = [int(value) for value in args.seeds.split(",") if value.strip()]
+    completed_runs = 0
     for c in c_values:
         for seed in seed_values:
             run_dir = out_root / f"c_{c:.1f}" / f"seed_{seed}"
@@ -326,9 +300,40 @@ def main(argv: list[str] | None = None) -> int:
                     file=sys.stderr,
                 )
                 return 1
+            completed_runs += 1
             print(f"[{method}] c={c} seed={seed} -> {manifest_path}")
             for protocol, metrics_value in metrics.items():
                 print(f"  {protocol}: {metrics_value}")
+
+    if args.oracle and completed_runs:
+        # Written only after every planned run succeeded: a calibration file
+        # sitting next to no results would let a failed output directory pass as
+        # an oracle row. What it records (see pn_oracle_integration.md §3.1) is
+        # what makes these numbers comparable to — and distinguishable from —
+        # the PU method rows.
+        out_root.mkdir(parents=True, exist_ok=True)
+        (out_root / "oracle_integration.json").write_text(
+            json.dumps(
+                {
+                    "method": "pn_oracle",
+                    "estimator": type(model).__name__,
+                    "generator": "CleanLabelGenerator",
+                    "trainer": "SupervisedTrainer",
+                    "protocols": ["OA"],
+                    "selection_metric": "clean_val_accuracy",
+                    "class_prior_applied": False,
+                    "c_independent": True,
+                    "runs_completed": completed_runs,
+                    "note": (
+                        "PN oracle per protocol §2.4 item 10; the result is "
+                        "c-independent, so one run per (dataset, seed) suffices."
+                    ),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
     return 0
 
 

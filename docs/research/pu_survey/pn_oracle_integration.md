@@ -129,9 +129,9 @@ README 称其为 "fully supervised PN oracle baseline"。
 
 - `bundle.py:54-77` `validate_bundle`：四路必须 `view="clean"`；索引两两不重叠；
   `test.for_selection=False`
-- `strategies.py:236` `ProtocolPA.select`：`val_part.view != "pu"` 时 `raise ValueError`
+- `strategies.py` `ProtocolPA.select`：`val_part.view != "pu"` 时 `raise ValueError`
   —— PA **结构性**拿不到真实标签，由 `test_pa_never_receives_clean_labels`
-  （`tests/unit/experiment/test_runner.py:51`）守护
+  （`tests/unit/experiment/test_runner.py`，记录型子类走真正的 `ProtocolPA`）守护
 - `experiment_layer.md:22` D4 决策：Generate 阶段产 PU 视图，Trainer/PA 路径结构性接收不到真实标签
 - `protocols.py` `Trainer.trains_on_real_labels`：trainer 的标签语义声明，runner 要求它与生成
   视图一致——clean 视图要求 `True`，PU 视图要求 `False`，两个方向都在训练前 fail-loud
@@ -210,7 +210,14 @@ oracle"并不冲突，只是冗余。
 2. 并列展示的口径差异说明是否要写进最终榜单脚注（面向论文读者）
 3. 协议 §2.4 第 10 条的选模口径（clean_val 真实 Accuracy）与参考文献 2 实际做法
    （`val_proxy_acc`）的分歧，是否与学长确认过原意（见 §3.1）
-4. **oracle 的 backbone 尚未与 PU 方法对齐**（2026-09-11 发现，Phase 1 遗留）：当前
+5. **估计器的优化目标不在视图守卫范围内**（2026-09-11 独立验收发现）：守卫校验的是视图、
+   trainer 声明与生成器自述三者的一致性；`SupervisedTrainer`（或任何声明 `True` 的 trainer）
+   配上自带类先验的 PU 估计器（如 nnPU/Self-PU，先验挂在估计器构造器上）时 runner 放行，
+   估计器仍按 PU 损失训练，而 manifest 记 `pn_oracle`。可探测性取决于估计器侧是否有声明——
+   "`fit` 是否接受 `class_prior`"只是启发式，且会误伤 Phase 2 可能与 PU 方法共用估计器类的
+   同 backbone 监督头。未决：给估计器加声明位，还是把它列为使用约束（当前由脚本层保证
+   oracle 只用监督估计器）
+6. **oracle 的 backbone 尚未与 PU 方法对齐**（2026-09-11 发现，Phase 1 遗留）：当前
    `OracleMLP` 用 sklearn `MLPClassifier` 的默认结构（100 单元隐层），而 PU 深度方法默认
    `nn.Linear(d, 1)`、经典方法根本不含网络——按协议 §2.5 第 4 条本应"同一表征/backbone"。
    根因是"数据集内共享 MLP 规格"尚未确定。**该规格原先被归入 P4 中心注册表，经复核属阶段
@@ -218,8 +225,3 @@ oracle"并不冲突，只是冗余。
    [survey_execution_plan.md](survey_execution_plan.md) 与
    [implementation_plan.md](implementation_plan.md) §3）。规格落定后 `OracleMLP` 须改为
    按规格构造；在此之前 pilot 的 oracle 行须单列，不与 PU 行混排
-
-5. 独立验收记录的两项 Minor（本次未修，备查）：`tests/unit/experiment/test_runner.py`
-   的 D4 守护用鸭子类型 `FakePA`，不经过真正的 `ProtocolPA`（该 raise 另由
-   `test_strategies_selection.py` 与 `test_runner_oracle.py` 覆盖）；`oracle_integration.json`
-   在任何 run 之前写入（全部候选失败也会留下口径声明）

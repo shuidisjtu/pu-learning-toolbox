@@ -13,7 +13,12 @@ from pu_toolbox.experiment.bundle import DatasetPart
 from pu_toolbox.experiment.manifest import load_manifest
 from pu_toolbox.experiment.resources import aggregate_resource_usage
 from pu_toolbox.experiment.runner import ExperimentRunner
-from pu_toolbox.experiment.strategies import DeepFitTrainer, ProtocolOA, SCARGenerator
+from pu_toolbox.experiment.strategies import (
+    DeepFitTrainer,
+    ProtocolOA,
+    ProtocolPA,
+    SCARGenerator,
+)
 from pu_toolbox.experiment.tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
 pytestmark = pytest.mark.unit
@@ -49,22 +54,29 @@ def make_bundle(seed=1):
 
 
 def test_pa_never_receives_clean_labels():
+    """D4: the runner hands PA the generated PU view, never the clean one.
+
+    The recorder subclasses the real ``ProtocolPA`` and delegates to it, so the
+    test drives the production selection path (including its own view check)
+    instead of a stand-in that would keep passing if that check were removed.
+    """
     train, pu_val, clean_val, test = make_bundle()
     capture = {}
 
-    class FakePA:
+    class RecordingPA(ProtocolPA):
         def select(self, trajectories, val_part, threshold_candidates=None):
             capture["view"] = val_part.view
             capture["indices"] = val_part.indices.copy()
             capture["labels"] = val_part.labels.copy()
-            return SelectionArtifact(
-                protocol="PA", run_index=0, epoch=None, threshold=None, metrics={}
-            )
+            return super().select(trajectories, val_part, threshold_candidates)
 
     # c=0.15 keeps the generated train PU view above the estimator gate
     # (MIN_POSITIVE_SAMPLES=2) on this tiny synthetic split.
     runner = ExperimentRunner(
-        seed=3, generator=SCARGenerator(), protocols=[FakePA(), FakePA()], config={"c": 0.15}
+        seed=3,
+        generator=SCARGenerator(),
+        protocols=[RecordingPA(), RecordingPA()],
+        config={"c": 0.15},
     )
     runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
 

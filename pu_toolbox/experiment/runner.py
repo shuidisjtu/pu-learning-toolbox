@@ -7,6 +7,7 @@ strategy (Generator/Trainer/SelectionProtocol) per implementation_plan.md
 
 from __future__ import annotations
 
+import inspect
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -70,14 +71,16 @@ class ExperimentRunner:
         Raises
         ------
         ValueError
-            If the generator's declared view is not ``"pu"``/``"clean"``, if a
-            ``"clean"`` declaration does not actually carry the real labels, if
-            a clean-view run is handed a ``class_prior`` or a trainer that does
-            not declare ``trains_on_real_labels``, if a real-label (PN-oracle)
-            trainer is paired with a ``"pu"`` view, or if the generated pu-val
-            PU view ends up with no labeled positive (the pu-val split has no
-            real positive or the labeling rate ``c`` is too low).  Fail loudly
-            instead of silently producing a wrong result.
+            If the generator's declared view is not ``"pu"``/``"clean"``, if its
+            reported mechanism contradicts that view, if a ``"clean"``
+            declaration does not actually carry the real labels, if a clean-view
+            run is handed a ``class_prior`` or a trainer that does not declare
+            ``trains_on_real_labels``, if a real-label (PN-oracle) trainer is
+            paired with a ``"pu"`` view, if ``config["trainer"]`` is a class
+            rather than an instance, or if the generated pu-val PU view ends up
+            with no labeled positive (the pu-val split has no real positive or
+            the labeling rate ``c`` is too low).  Fail loudly instead of
+            silently producing a wrong result.
         """
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
@@ -98,6 +101,18 @@ class ExperimentRunner:
             # Fail closed: a typo such as "Clean" would otherwise skip both the
             # clean-view verification below and the supervised-trainer guard.
             raise ValueError(f"generator declared output_view={view!r}; expected 'pu' or 'clean'.")
+        for role, generated_meta in (("train", meta_train), ("pu_val", meta_val)):
+            # The generator's two self-descriptions must agree: the pn_oracle
+            # mechanism means real labels, i.e. the clean view.  Keeping the
+            # oracle's mechanism while declaring a PU view would skip every
+            # clean-view guard below and still be recorded as an oracle row.
+            if view == "pu" and _mechanism(generated_meta) == "pn_oracle":
+                raise ValueError(
+                    f"generator reports mechanism='pn_oracle' for {role} but declares "
+                    "output_view='pu'; the PN oracle mechanism implies real labels, "
+                    "which is the 'clean' view. Declare output_view='clean' (as "
+                    "CleanLabelGenerator does) or report a PU mechanism."
+                )
         train_view = DatasetPart(X=train.X, labels=y_view_train, view=view, indices=train.indices)
         pu_val_view = DatasetPart(X=pu_val.X, labels=y_view_val, view=view, indices=pu_val.indices)
 
@@ -105,6 +120,8 @@ class ExperimentRunner:
         # trainer reads label 0 as "unlabeled", a real-label (PN-oracle) trainer
         # reads it as a real negative. Mismatching them still trains something
         # and still writes a manifest, so both directions fail loudly here.
+        # Resolved once and threaded into _train: the trainer this guard approved
+        # is the one that trains, even if the config is mutated meanwhile.
         trainer = self._trainer()
         trains_on_real_labels = getattr(trainer, "trains_on_real_labels", False)
 
@@ -181,7 +198,7 @@ class ExperimentRunner:
                         bundle,
                         self.config.get("architecture"),
                     )
-                    trajectory = self._train(est, train_view, pu_val_view)
+                    trajectory = self._train(est, train_view, pu_val_view, trainer)
                     _validate_trajectory(trajectory, pu_val_view)
                 except Exception as exc:  # noqa: BLE001 - recorded retry boundary
                     errors.append(_exception_record(exc, attempt))
@@ -349,12 +366,21 @@ class ExperimentRunner:
         )
 
     def _trainer(self):
-        """The configured trainer, or the PU-view default."""
-        return self.config.get("trainer", DeepFitTrainer())
+        """The configured trainer instance, or the PU-view default."""
+        trainer = self.config.get("trainer", DeepFitTrainer())
+        if inspect.isclass(trainer):
+            # A class satisfies the view guard through its class attributes and
+            # then never trains, leaving a failed-run manifest behind.
+            raise ValueError(
+                f"config['trainer'] must be an instance, got the class "
+                f"{trainer.__name__}; pass {trainer.__name__}()."
+            )
+        return trainer
 
-    def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart):
+    def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer):
+        """Train one candidate with the trainer the view guard approved."""
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
-        return self._trainer().fit(
+        return trainer.fit(
             est,
             train_view.X,
             train_view.labels,
@@ -367,6 +393,11 @@ class ExperimentRunner:
             path = Path(self.manifest_path)
             path.parent.mkdir(parents=True, exist_ok=True)
             write_manifest(path, manifest)
+
+
+def _mechanism(generated_meta) -> object:
+    """The generator's self-reported mechanism, or None when it reports none."""
+    return generated_meta.get("mechanism") if isinstance(generated_meta, dict) else None
 
 
 def _auc(est, test: DatasetPart) -> tuple[float, str | None]:

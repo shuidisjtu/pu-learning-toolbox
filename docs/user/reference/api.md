@@ -1104,8 +1104,12 @@ docstring。
 
 训练策略以 `trains_on_real_labels` 声明 `fit` 期望的标签语义：PU trainer 默认 `False`
 （label `0` 即未标记），PN oracle trainer 置 `True`（label `0` 是真实负类）。runner 在训练前
-要求声明与生成视图一致：clean 视图配未声明该位的 trainer、PU 视图配 `True` 的 trainer，
-都直接 `ValueError`，不会静默训练出错误的"上界"。
+要求声明与生成视图一致（两个方向都直接 `ValueError`），拒绝以类代替实例的 `config["trainer"]`，
+并要求生成器声明的视图与其上报的 `mechanism` 一致（`pn_oracle` 蕴含真实标签，即 clean 视图）。
+
+这些守卫约束的是视图、trainer 声明、生成器自述三者的一致性，不检验**估计器**被优化的目标：
+`SupervisedTrainer` 配上自带类先验的 PU 估计器时，runner 会放行而估计器仍按 PU 损失训练
+（使用约束与待决事项见 pn_oracle_integration.md §8）。
 
 `ExperimentRunner` 的每个测试协议结果固定包含 `accuracy`、`auc` 和
 `auc_unavailable_reason`；当测试真实标签只有一个类别时，`auc` 为 `NaN` 且原因字段为说明文本，

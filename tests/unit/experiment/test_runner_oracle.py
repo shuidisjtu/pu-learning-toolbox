@@ -258,6 +258,69 @@ def test_param_oracle_rejects_default_trainer_on_clean_view():
         runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
 
 
+def test_param_oracle_rejects_pu_view_carrying_oracle_mechanism():
+    """Mechanism and view are two reports of the same fact; they must agree.
+
+    A generator that keeps the oracle's mechanism while declaring a PU view
+    skips every clean-view guard and is still recorded as an oracle row — with
+    real labels fed to a PU objective. Verified reachable before this check.
+    """
+
+    class QuietOracle(CleanLabelGenerator):
+        output_view = "pu"  # lies: the labels below are still the real ones
+
+    train, pu_val, clean_val, test = make_bundle()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=QuietOracle(),
+        protocols=[ProtocolOA()],
+        config={"trainer": RecordingPU(), "c": 0.1},
+    )
+    with pytest.raises(ValueError, match="implies real labels"):
+        runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+
+
+def test_param_oracle_rejects_trainer_class_not_instance():
+    """A class satisfies the guard through its class attributes and never trains."""
+    train, pu_val, clean_val, test = make_bundle()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=CleanLabelGenerator(),
+        protocols=[ProtocolOA()],
+        config={"trainer": SupervisedTrainer, "c": 0.1},
+    )
+    with pytest.raises(ValueError, match="must be an instance"):
+        runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+
+
+def test_edge_oracle_trains_with_the_trainer_the_guard_approved():
+    """A config that swaps trainers mid-run must not swap the one that trains."""
+
+    class FlippingConfig(dict):
+        def __init__(self, first, second):
+            # Non-empty: the runner keeps the config it is given only if truthy.
+            super().__init__({"c": 0.1})
+            self._first, self._second, self.lookups = first, second, 0
+
+        def get(self, key, default=None):
+            if key == "trainer":
+                self.lookups += 1
+                return self._first if self.lookups == 1 else self._second
+            return super().get(key, default)
+
+    approved, swapped_in = RecordingOracle(), RecordingPU()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=CleanLabelGenerator(),
+        protocols=[ProtocolOA()],
+        config=FlippingConfig(approved, swapped_in),
+    )
+    runner.fit(LogisticRegression(max_iter=200), *make_bundle())
+
+    assert approved.calls  # the guard-approved trainer is the one that trained
+    assert swapped_in.calls == 0
+
+
 def test_determ_oracle_metrics_are_c_independent():
     """c only drives PU marking, so the oracle's numbers must not move with c."""
     low, _ = run_oracle(make_bundle(), c=0.1)

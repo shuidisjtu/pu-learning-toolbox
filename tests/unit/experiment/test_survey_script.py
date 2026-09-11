@@ -161,3 +161,37 @@ def test_param_oracle_script_rejects_method(survey_script, tmp_path, capsys):
     rc = survey_script.main([str(data_dir), "--oracle", "--method", "nnpu"])
     assert rc == 1
     assert "drop --method" in capsys.readouterr().err
+
+
+def test_edge_oracle_script_leaves_no_calibration_file_when_runs_fail(survey_script, tmp_path):
+    """The calibration contract must not outlive the results it describes.
+
+    A failed output directory that still carries ``oracle_integration.json``
+    would read as a valid oracle row to anything scanning for that file.
+    """
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    # Every candidate fails on an unknown constructor parameter, so all runs are
+    # excluded and the script exits non-zero.
+    candidates = tmp_path / "candidates.json"
+    candidates.write_text(json.dumps([{"bogus_param": 1}]), encoding="utf-8")
+
+    out_dir = tmp_path / "oracle_failed"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--oracle",
+            "--candidates",
+            str(candidates),
+            "--seeds",
+            "0",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 1
+
+    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    assert manifest["failures"]  # the failure itself is recorded
+    assert not (out_dir / "oracle_integration.json").exists()
