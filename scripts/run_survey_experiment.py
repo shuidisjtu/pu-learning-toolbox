@@ -21,9 +21,14 @@ The script reads ``pu_toolbox/experiment/method_ledger.json`` as the
 programmatic truth source: ``--class-prior`` is enforced for entries whose
 prior_semantics is the population prior, and the method's ledger entry is
 copied next to the manifests so results can be labelled (runtime method,
-native-sampling assumption, adaptation level).  The PN oracle (§2.4 item
-10) uses SupervisedTrainer via the same runner and is wired in with the
-P2 pilot batch; this script ships the PU path.
+native-sampling assumption, adaptation level).
+
+``--oracle`` switches to the PN oracle path (§2.4 item 10): the same runner
+over the same underlying train partition, but the real labels are passed
+through (``CleanLabelGenerator``), OA is the only selection protocol, and no
+class prior is applied; the estimator defaults to a supervised MLP.  Its
+result does not depend on ``c``, so a batch only needs one run per
+(dataset, seed) — see pn_oracle_integration.md §5 (D-C).
 
 Usage::
 
@@ -31,6 +36,9 @@ Usage::
         --method upu --c 0.1,0.3 --seeds 0,1,2 --class-prior 0.1 \\
         --model-params '{"loss": "double_hinge", "class_prior": 0.1}' \\
         --out-dir results/survey/upu
+
+    uv run python scripts/run_survey_experiment.py path/to/my/splits/ \\
+        --oracle --seeds 0,1,2 --out-dir results/survey/pn_oracle
 """
 
 from __future__ import annotations
@@ -42,14 +50,41 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from sklearn.neural_network import MLPClassifier
 
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.runner import ExperimentRunner
-from pu_toolbox.experiment.strategies import SCARGenerator
+from pu_toolbox.experiment.strategies import (
+    CleanLabelGenerator,
+    ProtocolOA,
+    SCARGenerator,
+    SupervisedTrainer,
+)
 
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
 
 _ROLE_FILES: tuple[str, ...] = ("train", "pu_val", "clean_val", "test")
+
+
+class OracleMLP(MLPClassifier):
+    """Supervised MLP satisfying the toolbox classifier contract.
+
+    ``MLPClassifier`` exposes ``predict_proba`` but no ``decision_function``,
+    which the experiment layer requires (trajectory validation and OA
+    thresholding both score through it); the positive-class log-odds is the
+    natural score.  An MLP also keeps the tabular/text backbone of protocol
+    §2.5, so the oracle stays comparable to the PU rows on those datasets.
+    """
+
+    def decision_function(self, X):  # noqa: N803 - mirrors sklearn's estimator API
+        # MLPClassifier returns float32 probabilities: clipping in that dtype
+        # collapses 1 - 1e-12 back to 1.0 and divides by zero. Promote first.
+        positive = np.clip(
+            np.asarray(self.predict_proba(X)[:, 1], dtype=np.float64),
+            1e-12,
+            1.0 - 1e-12,
+        )
+        return np.log(positive / (1.0 - positive))
 
 
 def load_ledger(path: Path) -> dict[str, Any]:
@@ -100,6 +135,8 @@ def run_one(
     model,
     parts: tuple[DatasetPart, ...],
     *,
+    generator,
+    protocols: list | None = None,
     seed: int,
     c: float,
     class_prior: float | None,
@@ -109,7 +146,8 @@ def run_one(
     """Run one (method, c, seed) experiment and return the test metrics."""
     runner = ExperimentRunner(
         seed=seed,
-        generator=SCARGenerator(),
+        generator=generator,
+        protocols=protocols,
         class_prior=class_prior,
         manifest_path=str(manifest_path),
         config={**config, "c": c},
@@ -130,6 +168,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("data_dir", help="directory with train/pu_val/clean_val/test .npz files")
     parser.add_argument("--method", default="upu", help="registered algorithm name (default: upu)")
+    parser.add_argument(
+        "--oracle",
+        action="store_true",
+        help=(
+            "run the PN oracle path (§2.4 item 10) instead of a PU method: real "
+            "labels, OA-only selection, no class prior; estimator is a supervised MLP"
+        ),
+    )
     parser.add_argument(
         "--model-params",
         default="{}",
@@ -167,26 +213,83 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         ledger = load_ledger(LEDGER_PATH)
-        class_prior = resolve_class_prior(ledger, args.method, args.class_prior)
         candidates = _load_json_maybe(args.candidates, default=[{}])
         split_ref = _load_json_maybe(args.split_ref, default={})
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    try:
-        from pu_toolbox.core.exceptions import RegistryError
-        from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    # The oracle path (§2.4 item 10) and the PU path differ in the estimator,
+    # the label view and the selection protocol, so resolve them together.
+    if args.oracle:
+        if args.class_prior is not None:
+            print(
+                "error: --oracle trains on real labels and needs no class prior; "
+                "drop --class-prior.",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            model = OracleMLP(**json.loads(args.model_params))
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            print(f"error: cannot create the oracle estimator: {exc}", file=sys.stderr)
+            return 1
+        generator = CleanLabelGenerator()
+        protocols: list | None = [ProtocolOA()]
+        class_prior = None
+        method = "pn_oracle"
+        ledger_entry: dict[str, Any] | None = None
+        config_extra: dict[str, Any] = {"trainer": SupervisedTrainer()}
+    else:
+        try:
+            class_prior = resolve_class_prior(ledger, args.method, args.class_prior)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        try:
+            from pu_toolbox.core.exceptions import RegistryError
+            from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 
-        register_all_builtin_methods()  # idempotent; standalone scripts need the registry
-        model = get_algorithm(args.method)(**json.loads(args.model_params))
-    except (ImportError, RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        print(f"error: cannot create method '{args.method}': {exc}", file=sys.stderr)
-        return 1
+            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
+            model = get_algorithm(args.method)(**json.loads(args.model_params))
+        except (ImportError, RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            print(f"error: cannot create method '{args.method}': {exc}", file=sys.stderr)
+            return 1
+        generator = SCARGenerator()
+        protocols = None
+        method = args.method
+        ledger_entry = ledger["methods"].get(args.method)
+        config_extra = {}
 
-    config: dict[str, Any] = {"candidates": candidates, "split_ref": split_ref}
-    out_root = Path(args.out_dir) if args.out_dir else Path("results") / "survey" / args.method
-    ledger_entry = ledger["methods"].get(args.method)
+    config: dict[str, Any] = {"candidates": candidates, "split_ref": split_ref, **config_extra}
+    out_root = Path(args.out_dir) if args.out_dir else Path("results") / "survey" / method
+
+    if args.oracle:
+        # Record the oracle's calibration contract next to the results: it is
+        # what makes the numbers comparable to (and distinguishable from) the
+        # PU method rows — see pn_oracle_integration.md §3.1.
+        out_root.mkdir(parents=True, exist_ok=True)
+        (out_root / "oracle_integration.json").write_text(
+            json.dumps(
+                {
+                    "method": "pn_oracle",
+                    "estimator": type(model).__name__,
+                    "generator": "CleanLabelGenerator",
+                    "trainer": "SupervisedTrainer",
+                    "protocols": ["OA"],
+                    "selection_metric": "clean_val_accuracy",
+                    "class_prior_applied": False,
+                    "c_independent": True,
+                    "note": (
+                        "PN oracle per protocol §2.4 item 10; the result is "
+                        "c-independent, so one run per (dataset, seed) suffices."
+                    ),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
 
     c_values = [float(value) for value in args.c.split(",") if value.strip()]
     seed_values = [int(value) for value in args.seeds.split(",") if value.strip()]
@@ -203,6 +306,8 @@ def main(argv: list[str] | None = None) -> int:
                 metrics = run_one(
                     model,
                     parts,
+                    generator=generator,
+                    protocols=protocols,
                     seed=seed,
                     c=c,
                     class_prior=class_prior,
@@ -211,11 +316,11 @@ def main(argv: list[str] | None = None) -> int:
                 )
             except Exception as exc:  # noqa: BLE001 - user-facing example script boundary
                 print(
-                    f"error: run failed (method={args.method}, c={c}, seed={seed}): {exc}",
+                    f"error: run failed (method={method}, c={c}, seed={seed}): {exc}",
                     file=sys.stderr,
                 )
                 return 1
-            print(f"[{args.method}] c={c} seed={seed} -> {manifest_path}")
+            print(f"[{method}] c={c} seed={seed} -> {manifest_path}")
             for protocol, metrics_value in metrics.items():
                 print(f"  {protocol}: {metrics_value}")
     return 0
