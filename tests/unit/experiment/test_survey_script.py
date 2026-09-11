@@ -150,3 +150,14 @@ def test_param_oracle_script_rejects_class_prior(survey_script, tmp_path, capsys
     rc = survey_script.main([str(data_dir), "--oracle", "--class-prior", "0.3"])
     assert rc == 1
     assert "drop --class-prior" in capsys.readouterr().err
+
+
+def test_param_oracle_script_rejects_method(survey_script, tmp_path, capsys):
+    """--oracle must not silently ignore --method and run a different path."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    rc = survey_script.main([str(data_dir), "--oracle", "--method", "nnpu"])
+    assert rc == 1
+    assert "drop --method" in capsys.readouterr().err

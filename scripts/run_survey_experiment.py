@@ -167,7 +167,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         description="Run one PU-survey method on user-prepared four-way splits."
     )
     parser.add_argument("data_dir", help="directory with train/pu_val/clean_val/test .npz files")
-    parser.add_argument("--method", default="upu", help="registered algorithm name (default: upu)")
+    parser.add_argument("--method", default=None, help="registered algorithm name (default: upu)")
     parser.add_argument(
         "--oracle",
         action="store_true",
@@ -229,6 +229,12 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
+        if args.method is not None:
+            print(
+                "error: --oracle runs the PN path and does not use --method; drop --method.",
+                file=sys.stderr,
+            )
+            return 1
         try:
             model = OracleMLP(**json.loads(args.model_params))
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
@@ -241,8 +247,9 @@ def main(argv: list[str] | None = None) -> int:
         ledger_entry: dict[str, Any] | None = None
         config_extra: dict[str, Any] = {"trainer": SupervisedTrainer()}
     else:
+        method = args.method or "upu"
         try:
-            class_prior = resolve_class_prior(ledger, args.method, args.class_prior)
+            class_prior = resolve_class_prior(ledger, method, args.class_prior)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
@@ -251,14 +258,13 @@ def main(argv: list[str] | None = None) -> int:
             from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 
             register_all_builtin_methods()  # idempotent; standalone scripts need the registry
-            model = get_algorithm(args.method)(**json.loads(args.model_params))
+            model = get_algorithm(method)(**json.loads(args.model_params))
         except (ImportError, RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
-            print(f"error: cannot create method '{args.method}': {exc}", file=sys.stderr)
+            print(f"error: cannot create method '{method}': {exc}", file=sys.stderr)
             return 1
         generator = SCARGenerator()
         protocols = None
-        method = args.method
-        ledger_entry = ledger["methods"].get(args.method)
+        ledger_entry = ledger["methods"].get(method)
         config_extra = {}
 
     config: dict[str, Any] = {"candidates": candidates, "split_ref": split_ref, **config_extra}

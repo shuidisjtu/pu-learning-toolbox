@@ -142,13 +142,69 @@ def test_param_oracle_rejects_pu_view_generator():
     plausible-looking but wrong upper bound instead of failing.
     """
     train, pu_val, clean_val, test = make_bundle()
+    recorder = RecordingOracle()
     runner = ExperimentRunner(
         seed=0,
         generator=SCARGenerator(),
         protocols=[ProtocolOA()],
-        config={"trainer": SupervisedTrainer(), "c": 0.3},
+        config={"trainer": recorder, "c": 0.3},
     )
     with pytest.raises(ValueError, match="clean label view"):
+        runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+    # the guard must fire before training, not after a wasted candidate run
+    assert recorder.calls == []
+
+
+def test_param_oracle_rejects_misdeclared_clean_view():
+    """A generator declaring "clean" must actually emit the real labels.
+
+    Trusting the declaration would let it produce a silent fake oracle whose
+    manifest still reads mechanism='pn_oracle'.
+    """
+
+    class LyingCleanGenerator(CleanLabelGenerator):
+        def generate(self, X, y_true, c, seed=None):
+            return SCARGenerator().generate(X, y_true, c, seed)  # marked, not real
+
+    train, pu_val, clean_val, test = make_bundle()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=LyingCleanGenerator(),
+        protocols=[ProtocolOA()],
+        config={"trainer": RecordingOracle(), "c": 0.3},
+    )
+    with pytest.raises(ValueError, match="must carry the real labels"):
+        runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+
+
+def test_param_oracle_rejects_unknown_output_view():
+    """A typo like "Clean" must fail closed instead of skipping every guard."""
+
+    class TypoGenerator(SCARGenerator):
+        output_view = "Clean"
+
+    train, pu_val, clean_val, test = make_bundle()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=TypoGenerator(),
+        protocols=[ProtocolOA()],
+        config={"trainer": RecordingOracle(), "c": 0.3},
+    )
+    with pytest.raises(ValueError, match="expected 'pu' or 'clean'"):
+        runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+
+
+def test_param_oracle_rejects_class_prior():
+    """A prior on a real-label run would stop the oracle being an upper bound."""
+    train, pu_val, clean_val, test = make_bundle()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=CleanLabelGenerator(),
+        protocols=[ProtocolOA()],
+        class_prior=0.3,
+        config={"trainer": RecordingOracle(), "c": 0.3},
+    )
+    with pytest.raises(ValueError, match="must not receive a prior"):
         runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
 
 

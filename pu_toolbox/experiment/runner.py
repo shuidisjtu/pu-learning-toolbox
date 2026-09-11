@@ -63,18 +63,20 @@ class ExperimentRunner:
     ) -> RunResult:
         """Run the full pipeline; see bundle contract (views must be clean).
 
-        Steps: validate → generate PU views → train the candidate pool →
-        offline selection per protocol → independent test evaluation →
-        manifest + ``RunResult``.
+        Steps: validate → generate label views → verify the view contract →
+        train the candidate pool → offline selection per protocol →
+        independent test evaluation → manifest + ``RunResult``.
 
         Raises
         ------
         ValueError
-            If the generated pu-val PU view ends up with no labeled
-            positive (the pu-val split has no real positive or the
-            labeling rate ``c`` is too low).  Fail loudly instead of
-            silently degrading PA's separation metric into its -1.0
-            sentinel.
+            If the generator's declared view is not ``"pu"``/``"clean"``, if a
+            ``"clean"`` declaration does not actually carry the real labels, if
+            a clean-view run is handed a ``class_prior``, if a supervised
+            (PN-oracle) trainer is paired with a ``"pu"`` view, or if the
+            generated pu-val PU view ends up with no labeled positive (the
+            pu-val split has no real positive or the labeling rate ``c`` is too
+            low).  Fail loudly instead of silently producing a wrong result.
         """
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
@@ -91,16 +93,41 @@ class ExperimentRunner:
         # declaration on the strategy keeps PA structurally excluded — a clean
         # view makes ProtocolPA raise instead of emitting a fake PA row.
         view = getattr(self.generator, "output_view", "pu")
+        if view not in ("pu", "clean"):
+            # Fail closed: a typo such as "Clean" would otherwise skip both the
+            # clean-view verification below and the supervised-trainer guard.
+            raise ValueError(f"generator declared output_view={view!r}; expected 'pu' or 'clean'.")
         train_view = DatasetPart(X=train.X, labels=y_view_train, view=view, indices=train.indices)
         pu_val_view = DatasetPart(X=pu_val.X, labels=y_view_val, view=view, indices=pu_val.indices)
 
-        # A supervised (PN-oracle) trainer needs real labels. Pairing it with a
-        # PU-view generator trains on marked labels and silently produces a fake
-        # upper bound — the mis-wiring this path shipped with. Fail loudly.
-        if view == "pu" and isinstance(self.config.get("trainer"), SupervisedTrainer):
+        if view == "clean":
+            # A "clean" declaration is verified, never trusted: a generator that
+            # declares real labels but emits marked ones would otherwise produce
+            # a silent fake oracle carrying a pn_oracle manifest.
+            for role, produced, original in (
+                ("train", train_view.labels, train.labels),
+                ("pu_val", pu_val_view.labels, pu_val.labels),
+            ):
+                if not np.array_equal(np.asarray(produced), np.asarray(original)):
+                    raise ValueError(
+                        f"generator declared output_view='clean' but produced different "
+                        f"{role} labels; a clean view must carry the real labels."
+                    )
+            if self.class_prior is not None:
+                # A prior on a real-label run would stop the oracle being an
+                # upper bound at all, so refuse rather than silently ignore it.
+                raise ValueError(
+                    "class_prior applies to PU methods; a clean-view (PN oracle) run "
+                    "trains on real labels and must not receive a prior. Drop "
+                    "class_prior for clean-view runs."
+                )
+        elif isinstance(self.config.get("trainer"), SupervisedTrainer):
+            # A supervised (PN-oracle) trainer needs real labels. Pairing it with a
+            # PU-view generator trains on marked labels and silently produces a fake
+            # upper bound — the mis-wiring this path shipped with. Fail loudly.
             raise ValueError(
                 "SupervisedTrainer (PN oracle) requires a clean label view; got a "
-                "'pu' view. Use CleanLabelGenerator as the generator, or drop the "
+                f"{view!r} view. Use CleanLabelGenerator as the generator, or drop the "
                 "supervised trainer. See docs/research/pu_survey/"
                 "pn_oracle_integration.md §1."
             )
@@ -232,8 +259,11 @@ class ExperimentRunner:
                 "inspect manifest['failures'] for details."
             )
 
-        # 4. offline selection: PA on the PU view, OA on the clean view,
-        #    any other protocol gets the PU view (never clean labels).
+        # 4. offline selection: OA on the clean view; PA and any other protocol
+        #    get the generated val view. That view holds PU labels on a PU run
+        #    and real labels on a clean-view (PN oracle) run — so an unknown
+        #    protocol is NOT guaranteed PU-only labels; only ProtocolPA enforces
+        #    that, via its own view check.
         selections = {}
         for proto in self.protocols:
             if isinstance(proto, ProtocolPA):
