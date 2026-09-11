@@ -288,3 +288,11 @@ oracle"并不冲突，只是冗余。
 3. 并列展示的口径差异说明是否要写进最终榜单脚注（面向论文读者）
 4. 协议 §2.4 第 10 条的选模口径（clean_val 真实 Accuracy）与参考文献 2 实际做法
    （`val_proxy_acc`）的分歧，是否与学长确认过原意（见 §3.1）
+5. **oracle 的 backbone 尚未与 PU 方法对齐**（2026-09-11 发现，Phase 1 遗留）：当前
+   `OracleMLP` 用 sklearn `MLPClassifier` 的默认结构（100 单元隐层），而 PU 深度方法默认
+   `nn.Linear(d, 1)`、经典方法根本不含网络——按协议 §2.5 第 4 条本应"同一表征/backbone"。
+   根因是"数据集内共享 MLP 规格"尚未确定。**该规格原先被归入 P4 中心注册表，经复核属阶段
+   划分错误——它是方法接入的接口约定，应为 P3 的前置**（已更新
+   [survey_execution_plan.md](survey_execution_plan.md) 与
+   [implementation_plan.md](implementation_plan.md) §3）。规格落定后 `OracleMLP` 须改为
+   按规格构造；在此之前 pilot 的 oracle 行须单列，不与 PU 行混排
