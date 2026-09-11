@@ -195,3 +195,82 @@ def test_edge_oracle_script_leaves_no_calibration_file_when_runs_fail(survey_scr
     manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
     assert manifest["failures"]  # the failure itself is recorded
     assert not (out_dir / "oracle_integration.json").exists()
+
+
+def test_basic_survey_script_records_the_split_reference(survey_script, tmp_path):
+    """Protocol §2.4 item 11: a run must say which split it used.
+
+    The sample ids stay in the split manifest; the run manifest records the
+    path, the role sizes and the index digest instead of inlining them.
+    """
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    (data_dir / "split_manifest.json").write_text(
+        json.dumps(
+            {
+                "dataset": "toy",
+                "seed": 0,
+                "role_sizes": {"train": 18, "pu_val": 4, "clean_val": 4, "test": 4},
+                "indices_sha256": "deadbeef",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    out_dir = tmp_path / "out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--method",
+            "upu",
+            "--model-params",
+            json.dumps({"class_prior": 0.3, "loss": "squared"}),
+            "--c",
+            "0.3",
+            "--seeds",
+            "0",
+            "--class-prior",
+            "0.3",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    manifest = load_manifest(out_dir / "c_0.3" / "seed_0" / "manifest.json")
+    assert manifest["split_ref"]["indices_sha256"] == "deadbeef"
+    assert manifest["split_ref"]["role_sizes"]["train"] == 18
+    assert manifest["split_ref"]["manifest_path"].endswith("split_manifest.json")
+
+
+def test_param_oracle_script_explicit_split_ref_wins(survey_script, tmp_path):
+    """--split-ref overrides the reference auto-filled from the split directory."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    (data_dir / "split_manifest.json").write_text(
+        json.dumps({"indices_sha256": "auto"}), encoding="utf-8"
+    )
+    explicit = tmp_path / "explicit.json"
+    explicit.write_text(json.dumps({"note": "custom reference"}), encoding="utf-8")
+
+    out_dir = tmp_path / "explicit_out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--oracle",
+            "--model-params",
+            json.dumps({"hidden_layer_sizes": (8,), "max_iter": 50, "random_state": 0}),
+            "--seeds",
+            "0",
+            "--split-ref",
+            str(explicit),
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    assert manifest["split_ref"] == {"note": "custom reference"}

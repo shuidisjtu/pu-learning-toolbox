@@ -132,7 +132,10 @@ oracle、阈值选择，通过 §7 验收清单后再扩展 SAR 细节与资源�
 - `pu_val`/`clean_val` 不重叠；`clean_val` 与 `test` 保持自然类先验。
 - 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同 seed 所有方法/PA/OA/
   PN oracle/所有 $`c`$ 共享同一底层 split；同 $`c`$ 共享相同 P/U 标记；扫 $`c`$ 仅重生成 $`S`$ 标签。
-- 记录 seed、样本索引与 split manifest。
+- 记录 seed、样本索引与 split manifest：切分产物 `split_manifest.json` 记四路完整索引、
+  `indices_sha256` 与预处理统计量；示例脚本默认把它作为每个 run manifest 的 `split_ref`
+  （切分产物路径 + 四路样本数 + 索引摘要），`--split-ref` 可覆盖。按**可追溯**口径留痕——
+  不把全量索引内联进每个 run manifest。
 - 分层变量：真实（二元化）标签；实现工具：sklearn `train_test_split`。
 
 ## 3. backbone 实现细节（要求层级见协议 §2.5）

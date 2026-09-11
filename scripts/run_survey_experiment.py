@@ -8,14 +8,19 @@ independent test evaluation) -> write manifests -> print a summary.
 Input directory layout (one .npz per role, produced by the user's split
 step; see protocol §2.4 (二)3 — the toolbox does not split raw data):
 
-    train.npz     X, y (true binary {+1, 0}), indices
-    pu_val.npz    X, y (true binary {+1, 0}), indices
-    clean_val.npz X, y (true binary {+1, 0}), indices
-    test.npz      X, y (true binary {+1, 0}), indices
+    train.npz     X, y (true binary {0, 1}), indices
+    pu_val.npz    X, y (true binary {0, 1}), indices
+    clean_val.npz X, y (true binary {0, 1}), indices
+    test.npz      X, y (true binary {0, 1}), indices
 
 ``indices`` are globally unique sample ids from the user's split manifest.
 The runner generates the PU label views itself (SCAR contract), so the
 four files always carry REAL labels.
+
+Every manifest records a ``split_ref`` pointing back at the split it ran on
+(protocol §2.4 item 11): by default the ``split_manifest.json`` sitting next
+to the four .npz files, referenced by path, role sizes and index digest;
+``--split-ref`` overrides it.
 
 The script reads ``pu_toolbox/experiment/method_ledger.json`` as the
 programmatic truth source: ``--class-prior`` is enforced for entries whose
@@ -162,6 +167,30 @@ def _load_json_maybe(path: str | None, *, default: Any) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def resolve_split_ref(data_dir: Path, explicit: str | None) -> dict[str, Any]:
+    """Reference the split a run used (protocol §2.4 item 11).
+
+    An explicit ``--split-ref`` wins.  Otherwise the split directory's own
+    ``split_manifest.json`` — which holds the per-role sample ids and their
+    digest — is referenced by path, role sizes and index digest, so a run
+    manifest says which split it used without inlining thousands of ids
+    beside every run.
+    """
+    if explicit is not None:
+        return json.loads(Path(explicit).read_text(encoding="utf-8"))
+    manifest_path = Path(data_dir) / "split_manifest.json"
+    if not manifest_path.is_file():
+        return {}
+    split_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return {
+        "manifest_path": str(manifest_path.resolve()),
+        "dataset": split_manifest.get("dataset"),
+        "seed": split_manifest.get("seed"),
+        "role_sizes": split_manifest.get("role_sizes"),
+        "indices_sha256": split_manifest.get("indices_sha256"),
+    }
+
+
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run one PU-survey method on user-prepared four-way splits."
@@ -194,7 +223,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--split-ref",
         default=None,
-        help="JSON file with the split manifest reference (recorded in manifests)",
+        help=(
+            "JSON file with the split reference recorded in every manifest "
+            "(default: reference the data_dir's own split_manifest.json)"
+        ),
     )
     parser.add_argument(
         "--out-dir", default=None, help="results root (default: results/survey/<method>)"
@@ -204,9 +236,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    data_dir = Path(args.data_dir)
 
     try:
-        parts = load_split_parts(Path(args.data_dir))
+        parts = load_split_parts(data_dir)
     except (FileNotFoundError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -214,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         ledger = load_ledger(LEDGER_PATH)
         candidates = _load_json_maybe(args.candidates, default=[{}])
-        split_ref = _load_json_maybe(args.split_ref, default={})
+        split_ref = resolve_split_ref(data_dir, args.split_ref)
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
