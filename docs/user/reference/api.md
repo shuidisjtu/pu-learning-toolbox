@@ -1098,9 +1098,14 @@ docstring。
 | `ProtocolOA` | OA 对照：min-max 归一化后，按真实标签验证集 accuracy 选阈值与 run |
 | `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
 | `DeepFitTrainer` | 深度估计器：优先探测无真实标签泄漏的 `pu_validation_data`，否则探测 `validation_data`，并将 `history_` 转成选模轨迹；验证 fit 已成功但无 history 时只产生单点轨迹、不重复 fit |
-| `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线。必须配合 `CleanLabelGenerator`（真实标签视图）与 `protocols=[ProtocolOA()]` 使用——runner 默认生成 PU 视图，单独使用本类会把 PU 标记当作真实标签训练 |
+| `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线（声明 `trains_on_real_labels=True`）。必须配合 `CleanLabelGenerator`（真实标签视图）与 `protocols=[ProtocolOA()]` 使用——runner 默认生成 PU 视图，单独使用本类会被 runner 在训练前拦截 |
 | `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
+
+训练策略以 `trains_on_real_labels` 声明 `fit` 期望的标签语义：PU trainer 默认 `False`
+（label `0` 即未标记），PN oracle trainer 置 `True`（label `0` 是真实负类）。runner 在训练前
+要求声明与生成视图一致：clean 视图配未声明该位的 trainer、PU 视图配 `True` 的 trainer，
+都直接 `ValueError`，不会静默训练出错误的"上界"。
 
 `ExperimentRunner` 的每个测试协议结果固定包含 `accuracy`、`auc` 和
 `auc_unavailable_reason`；当测试真实标签只有一个类别时，`auc` 为 `NaN` 且原因字段为说明文本，

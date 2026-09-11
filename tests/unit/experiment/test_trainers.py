@@ -13,6 +13,13 @@ from pu_toolbox.experiment.strategies import DeepFitTrainer, FitTrainer, Supervi
 pytestmark = pytest.mark.unit
 
 
+def test_basic_trainer_declares_label_semantics():
+    """The runner gates clean views on this flag (see the runner's view guards)."""
+    assert SupervisedTrainer.trains_on_real_labels is True
+    assert FitTrainer.trains_on_real_labels is False
+    assert DeepFitTrainer.trains_on_real_labels is False
+
+
 def test_fit_trainer_single_point():
     X = np.random.RandomState(0).randn(30, 3)
     y = np.array([1] * 6 + [0] * 24)

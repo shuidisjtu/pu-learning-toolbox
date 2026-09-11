@@ -18,7 +18,7 @@ from sklearn.base import clone
 from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
-from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
+from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator
 from .tracking import RunResult, RunTrajectory
 
 
@@ -72,11 +72,12 @@ class ExperimentRunner:
         ValueError
             If the generator's declared view is not ``"pu"``/``"clean"``, if a
             ``"clean"`` declaration does not actually carry the real labels, if
-            a clean-view run is handed a ``class_prior``, if a supervised
-            (PN-oracle) trainer is paired with a ``"pu"`` view, or if the
-            generated pu-val PU view ends up with no labeled positive (the
-            pu-val split has no real positive or the labeling rate ``c`` is too
-            low).  Fail loudly instead of silently producing a wrong result.
+            a clean-view run is handed a ``class_prior`` or a trainer that does
+            not declare ``trains_on_real_labels``, if a real-label (PN-oracle)
+            trainer is paired with a ``"pu"`` view, or if the generated pu-val
+            PU view ends up with no labeled positive (the pu-val split has no
+            real positive or the labeling rate ``c`` is too low).  Fail loudly
+            instead of silently producing a wrong result.
         """
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
@@ -100,6 +101,13 @@ class ExperimentRunner:
         train_view = DatasetPart(X=train.X, labels=y_view_train, view=view, indices=train.indices)
         pu_val_view = DatasetPart(X=pu_val.X, labels=y_view_val, view=view, indices=pu_val.indices)
 
+        # The trainer's declared label semantics and the view must agree: a PU
+        # trainer reads label 0 as "unlabeled", a real-label (PN-oracle) trainer
+        # reads it as a real negative. Mismatching them still trains something
+        # and still writes a manifest, so both directions fail loudly here.
+        trainer = self._trainer()
+        trains_on_real_labels = getattr(trainer, "trains_on_real_labels", False)
+
         if view == "clean":
             # A "clean" declaration is verified, never trusted: a generator that
             # declares real labels but emits marked ones would otherwise produce
@@ -121,14 +129,26 @@ class ExperimentRunner:
                     "trains on real labels and must not receive a prior. Drop "
                     "class_prior for clean-view runs."
                 )
-        elif isinstance(self.config.get("trainer"), SupervisedTrainer):
-            # A supervised (PN-oracle) trainer needs real labels. Pairing it with a
-            # PU-view generator trains on marked labels and silently produces a fake
-            # upper bound — the mis-wiring this path shipped with. Fail loudly.
+            if not trains_on_real_labels:
+                # Defaulting to "PU trainer" is the fail-closed reading: it also
+                # covers the default DeepFitTrainer and any trainer that never
+                # declares the flag.
+                raise ValueError(
+                    f"{type(trainer).__name__} does not declare "
+                    "trains_on_real_labels=True, so it cannot train on a clean "
+                    "(PN oracle) view — a PU objective would read every real "
+                    "negative as unlabeled. Use SupervisedTrainer, or declare the "
+                    "flag on your own real-label trainer."
+                )
+        elif trains_on_real_labels:
+            # A real-label (PN-oracle) trainer needs a clean view. Pairing it with
+            # a PU-view generator trains on marked labels and silently produces a
+            # fake upper bound — the mis-wiring this path shipped with.
             raise ValueError(
-                "SupervisedTrainer (PN oracle) requires a clean label view; got a "
-                f"{view!r} view. Use CleanLabelGenerator as the generator, or drop the "
-                "supervised trainer. See docs/research/pu_survey/"
+                f"{type(trainer).__name__} declares trains_on_real_labels=True "
+                f"(PN oracle) but the generator produced a {view!r} view; it needs "
+                "a clean label view. Use CleanLabelGenerator as the generator, or "
+                "drop the real-label trainer. See docs/research/pu_survey/"
                 "pn_oracle_integration.md §1."
             )
 
@@ -328,10 +348,13 @@ class ExperimentRunner:
             resources=resources,
         )
 
+    def _trainer(self):
+        """The configured trainer, or the PU-view default."""
+        return self.config.get("trainer", DeepFitTrainer())
+
     def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart):
-        trainer = self.config.get("trainer", DeepFitTrainer())
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
-        return trainer.fit(
+        return self._trainer().fit(
             est,
             train_view.X,
             train_view.labels,

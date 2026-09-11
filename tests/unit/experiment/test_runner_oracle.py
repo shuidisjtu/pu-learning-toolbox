@@ -6,11 +6,13 @@ import numpy as np
 import pytest
 from sklearn.linear_model import LogisticRegression
 
+from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.experiment.bundle import DatasetPart
 from pu_toolbox.experiment.manifest import load_manifest
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import (
     CleanLabelGenerator,
+    DeepFitTrainer,
     ProtocolOA,
     ProtocolPA,
     SCARGenerator,
@@ -68,6 +70,18 @@ class RecordingOracle(SupervisedTrainer):
             }
         )
         return super().fit(estimator, X, y, class_prior=class_prior)
+
+
+class RecordingPU(DeepFitTrainer):
+    """A PU trainer (no real-label declaration) that counts fits."""
+
+    def __init__(self):
+        super().__init__()
+        self.calls = 0
+
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+        self.calls += 1
+        return super().fit(estimator, X, y, class_prior=class_prior, val_pu=val_pu)
 
 
 def run_oracle(bundle, *, protocols=None, c=0.1, recorder=None, manifest_path=None):
@@ -205,6 +219,42 @@ def test_param_oracle_rejects_class_prior():
         config={"trainer": RecordingOracle(), "c": 0.3},
     )
     with pytest.raises(ValueError, match="must not receive a prior"):
+        runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+
+
+def test_param_oracle_rejects_pu_trainer_on_clean_view():
+    """A PU trainer on the clean view trains the wrong objective — silently.
+
+    Its loss reads label 0 as "unlabeled", so on the oracle view every real
+    negative becomes unlabeled, and the run still writes a pn_oracle manifest.
+    This is the original defect read from the other side: the guard used to
+    check only "PU view + supervised trainer".
+    """
+    train, pu_val, clean_val, test = make_bundle()
+    estimator = NonNegativePUClassifier(class_prior=0.3, max_epochs=2, random_state=0, device="cpu")
+    recorder = RecordingPU()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=CleanLabelGenerator(),
+        protocols=[ProtocolOA()],
+        config={"trainer": recorder, "c": 0.1},
+    )
+    with pytest.raises(ValueError, match="trains_on_real_labels"):
+        runner.fit(estimator, train, pu_val, clean_val, test)
+    # the guard must fire before training, not after a wasted candidate run
+    assert recorder.calls == 0
+
+
+def test_param_oracle_rejects_default_trainer_on_clean_view():
+    """Forgetting ``config['trainer']`` must not fall back to the PU default."""
+    train, pu_val, clean_val, test = make_bundle()
+    runner = ExperimentRunner(
+        seed=0,
+        generator=CleanLabelGenerator(),
+        protocols=[ProtocolOA()],
+        config={"c": 0.1},  # no trainer -> ExperimentRunner's PU-view default
+    )
+    with pytest.raises(ValueError, match="trains_on_real_labels"):
         runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
 
 

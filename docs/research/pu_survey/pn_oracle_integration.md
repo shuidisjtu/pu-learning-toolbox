@@ -133,6 +133,8 @@ README 称其为 "fully supervised PN oracle baseline"。
   —— PA **结构性**拿不到真实标签，由 `test_pa_never_receives_clean_labels`
   （`tests/unit/experiment/test_runner.py:51`）守护
 - `experiment_layer.md:22` D4 决策：Generate 阶段产 PU 视图，Trainer/PA 路径结构性接收不到真实标签
+- `protocols.py` `Trainer.trains_on_real_labels`：trainer 的标签语义声明，runner 要求它与生成
+  视图一致——clean 视图要求 `True`，PU 视图要求 `False`，两个方向都在训练前 fail-loud
 
 **推论**：oracle 需要"用真实标签训练"这条路径必须**显式声明**，不能靠隐式复用
 PU 通道——否则 D4 不变量在审计上失效。
@@ -217,7 +219,7 @@ oracle"并不冲突，只是冗余。
    [implementation_plan.md](implementation_plan.md) §3）。规格落定后 `OracleMLP` 须改为
    按规格构造；在此之前 pilot 的 oracle 行须单列，不与 PU 行混排
 
-5. 独立验收记录的三项 Minor（本次未修，备查）：`tests/unit/experiment/test_runner.py`
-   的 D4 守护用鸭子类型 `FakePA`，不经过真正的 `ProtocolPA`；`oracle_integration.json`
-   在任何 run 之前写入（全部候选失败也会留下口径声明）；深度路径无显式 Phase 2 守卫，
-   靠 `losses/nnpu.py` 的内部错误挡住（错误信息与 Phase 2 无关）
+5. 独立验收记录的两项 Minor（本次未修，备查）：`tests/unit/experiment/test_runner.py`
+   的 D4 守护用鸭子类型 `FakePA`，不经过真正的 `ProtocolPA`（该 raise 另由
+   `test_strategies_selection.py` 与 `test_runner_oracle.py` 覆盖）；`oracle_integration.json`
+   在任何 run 之前写入（全部候选失败也会留下口径声明）

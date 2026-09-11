@@ -41,7 +41,17 @@ class Generator(ABC):
 
 
 class Trainer(ABC):
-    """Training strategy: one candidate run -> trajectory + checkpoint."""
+    """Training strategy: one candidate run -> trajectory + checkpoint.
+
+    ``trains_on_real_labels`` declares the label semantics ``fit`` expects:
+    ``False`` (default) for PU trainers, whose objective reads label ``0`` as
+    "unlabeled"; ``True`` for the PN-oracle trainers, which train supervised on
+    the real labels.  The runner gates clean views on this declaration, so a PU
+    trainer cannot be pointed at an oracle view (and vice versa) — a declaration
+    rather than a class list, so custom trainers stay injectable.
+    """
+
+    trains_on_real_labels: bool = False
 
     @abstractmethod
     def fit(

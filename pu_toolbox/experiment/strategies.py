@@ -317,6 +317,8 @@ class SupervisedTrainer(Trainer):
     implementation_plan.md §1.4.
     """
 
+    trains_on_real_labels = True
+
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
         return FitTrainer().fit(estimator, X, y, class_prior=class_prior)
 
