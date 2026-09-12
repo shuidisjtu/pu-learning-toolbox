@@ -12,7 +12,7 @@ from sklearn.base import clone
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import PipelineError, RegistryError
-from ..registry.registry import get_algorithm
+from ..registry.registry import get_algorithm, list_algorithms
 
 _ALWAYS_PROVIDED = {"class_prior", "random_state"}
 
@@ -41,6 +41,19 @@ def resolve_classifier_name(
 
 def declares_encoder_parameter(cls: type) -> bool:
     return "encoder" in inspect.signature(cls.__init__).parameters
+
+
+def cnn_capable_classifier_names() -> tuple[str, ...]:
+    """Return registered trainable methods declaring native CNN support."""
+    return tuple(
+        sorted(
+            meta.name
+            for meta in list_algorithms(trainable_only=True)
+            if "cnn" in meta.native_architectures
+            and 4 in meta.input_ndims
+            and meta.encoder_parameter is not None
+        )
+    )
 
 
 def check_architecture_capability(cls: type, architecture: str, classifier_name: str) -> None:

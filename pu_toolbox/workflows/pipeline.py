@@ -41,6 +41,7 @@ from ._evaluation import (
 from ._inputs import prepare_pipeline_inputs
 from ._models import (
     check_architecture_capability,
+    cnn_capable_classifier_names,
     declares_encoder_parameter,
     fresh_estimator,
     missing_required_params,
@@ -218,10 +219,12 @@ class PUPipeline:
         else:  # auto
             self._is_deep = False
         if architecture == "cnn":
+            cnn_methods = cnn_capable_classifier_names()
+            cnn_hint = ", ".join(cnn_methods) if cnn_methods else "no registered methods"
             if not self._is_deep:
                 raise PipelineError(
                     "architecture='cnn' requires an explicit deep classifier "
-                    "with encoder support (e.g. wconpu or infomax_pu); got "
+                    f"with registered encoder support (available: {cnn_hint}); got "
                     f"classifier={self._classifier_name!r}. For table data use "
                     "architecture='mlp' (default)."
                 )
@@ -232,8 +235,8 @@ class PUPipeline:
                     f"{self._classifier_name!r} to declare an 'encoder' "
                     "constructor parameter (encoder injection); this "
                     "algorithm is not yet adapted for CNN architectures. "
-                    "Use architecture='mlp' (default) or choose wconpu / "
-                    "infomax_pu."
+                    f"Registered CNN-capable methods: {cnn_hint}. "
+                    "Use architecture='mlp' (default) or choose one of them."
                 )
             check_architecture_capability(encoder_cls, architecture, self._classifier_name)
         self.architecture = architecture
