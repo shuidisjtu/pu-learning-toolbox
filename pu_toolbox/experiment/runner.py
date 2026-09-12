@@ -23,6 +23,16 @@ from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator
 from .tracking import RunResult, RunTrajectory
 
 
+def _manifest_c_context(config: dict[str, Any]) -> dict[str, Any]:
+    """Expose c-independence metadata without serializing arbitrary config."""
+    if not config.get("c_independent"):
+        return {}
+    return {
+        "c_independent": True,
+        "broadcast_c_values": list(config.get("broadcast_c_values", [])),
+    }
+
+
 class ExperimentRunner:
     """Configured runner for a four-way PU experiment (§2.4).
 
@@ -282,6 +292,7 @@ class ExperimentRunner:
             manifest = {
                 "seed": self.seed,
                 "split_ref": self.config.get("split_ref", {}),
+                **_manifest_c_context(self.config),
                 "generation": {"train": meta_train, "pu_val": meta_val},
                 "candidate_runs": candidate_runs,
                 "selection": {},
@@ -348,6 +359,7 @@ class ExperimentRunner:
         manifest = {
             "seed": self.seed,
             "split_ref": self.config.get("split_ref", {}),
+            **_manifest_c_context(self.config),
             "generation": {"train": meta_train, "pu_val": meta_val},
             "candidate_runs": candidate_runs,
             "selection": selection_payload,

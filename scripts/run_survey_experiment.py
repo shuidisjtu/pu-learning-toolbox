@@ -143,19 +143,22 @@ def run_one(
     generator,
     protocols: list | None = None,
     seed: int,
-    c: float,
+    c: float | None,
     class_prior: float | None,
     config: dict[str, Any],
     manifest_path: Path,
 ) -> dict[str, Any]:
     """Run one (method, c, seed) experiment and return the test metrics."""
+    runner_config = {**config}
+    if c is not None:
+        runner_config["c"] = c
     runner = ExperimentRunner(
         seed=seed,
         generator=generator,
         protocols=protocols,
         class_prior=class_prior,
         manifest_path=str(manifest_path),
-        config={**config, "c": c},
+        config=runner_config,
     )
     result = runner.fit(model, *parts)
     return result.test_metrics
@@ -305,38 +308,52 @@ def main(argv: list[str] | None = None) -> int:
 
     c_values = [float(value) for value in args.c.split(",") if value.strip()]
     seed_values = [int(value) for value in args.seeds.split(",") if value.strip()]
+    if args.oracle:
+        # PN oracle uses real labels and is independent of the PU labeling rate.
+        # Keep one physical artifact per (dataset, seed); aggregation broadcasts
+        # it to the requested c columns.
+        run_specs = [(None, seed) for seed in seed_values]
+        config["c_independent"] = True
+        config["broadcast_c_values"] = c_values
+    else:
+        run_specs = [(c, seed) for c in c_values for seed in seed_values]
     completed_runs = 0
-    for c in c_values:
-        for seed in seed_values:
-            run_dir = out_root / f"c_{c:.1f}" / f"seed_{seed}"
-            run_dir.mkdir(parents=True, exist_ok=True)
-            if ledger_entry is not None:
-                (run_dir / "method_ledger_entry.json").write_text(
-                    json.dumps(ledger_entry, ensure_ascii=False, indent=2), encoding="utf-8"
-                )
-            manifest_path = run_dir / "manifest.json"
-            try:
-                metrics = run_one(
-                    model,
-                    parts,
-                    generator=generator,
-                    protocols=protocols,
-                    seed=seed,
-                    c=c,
-                    class_prior=class_prior,
-                    config=config,
-                    manifest_path=manifest_path,
-                )
-            except Exception as exc:  # noqa: BLE001 - user-facing example script boundary
-                print(
-                    f"error: run failed (method={method}, c={c}, seed={seed}): {exc}",
-                    file=sys.stderr,
-                )
-                return 1
-            completed_runs += 1
-            print(f"[{method}] c={c} seed={seed} -> {manifest_path}")
-            for protocol, metrics_value in metrics.items():
-                print(f"  {protocol}: {metrics_value}")
+    for c, seed in run_specs:
+        run_dir = (
+            out_root / "c_independent" / f"seed_{seed}"
+            if args.oracle
+            else out_root / f"c_{c:.1f}" / f"seed_{seed}"
+        )
+        run_dir.mkdir(parents=True, exist_ok=True)
+        if ledger_entry is not None:
+            (run_dir / "method_ledger_entry.json").write_text(
+                json.dumps(ledger_entry, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        manifest_path = run_dir / "manifest.json"
+        try:
+            metrics = run_one(
+                model,
+                parts,
+                generator=generator,
+                protocols=protocols,
+                seed=seed,
+                c=c,
+                class_prior=class_prior,
+                config=config,
+                manifest_path=manifest_path,
+            )
+        except Exception as exc:  # noqa: BLE001 - user-facing example script boundary
+            c_label = "c_independent" if c is None else f"c={c}"
+            print(
+                f"error: run failed (method={method}, {c_label}, seed={seed}): {exc}",
+                file=sys.stderr,
+            )
+            return 1
+        completed_runs += 1
+        c_label = "c_independent" if c is None else f"c={c}"
+        print(f"[{method}] {c_label} seed={seed} -> {manifest_path}")
+        for protocol, metrics_value in metrics.items():
+            print(f"  {protocol}: {metrics_value}")
 
     if args.oracle and completed_runs:
         # Written only after every planned run succeeded: a calibration file
@@ -356,6 +373,7 @@ def main(argv: list[str] | None = None) -> int:
                     "selection_metric": "clean_val_accuracy",
                     "class_prior_applied": False,
                     "c_independent": True,
+                    "broadcast_c_values": c_values,
                     "runs_completed": completed_runs,
                     "note": (
                         "PN oracle per protocol §2.4 item 10; the result is "

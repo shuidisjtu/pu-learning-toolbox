@@ -133,12 +133,42 @@ def test_basic_oracle_script_writes_oa_only_results(survey_script, tmp_path):
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    manifest = load_manifest(out_dir / "c_independent" / "seed_0" / "manifest.json")
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["mechanism"] == "pn_oracle"
+    assert manifest["c_independent"] is True
+    assert manifest["broadcast_c_values"] == [0.1]
     integration = json.loads((out_dir / "oracle_integration.json").read_text(encoding="utf-8"))
     assert integration["selection_metric"] == "clean_val_accuracy"
     assert integration["class_prior_applied"] is False
+    assert integration["runs_completed"] == 1
+
+
+def test_oracle_deduplicates_runs_across_c_values(survey_script, tmp_path):
+    """PN oracle runs once per seed even when multiple c values are requested."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    out_dir = tmp_path / "oracle_out"
+
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--oracle",
+            "--c",
+            "0.1,0.3,0.5",
+            "--seeds",
+            "0,1",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+    assert len(list((out_dir / "c_independent").glob("seed_*/manifest.json"))) == 2
+    assert not (out_dir / "c_0.1").exists()
+    integration = json.loads((out_dir / "oracle_integration.json").read_text(encoding="utf-8"))
+    assert integration["runs_completed"] == 2
+    assert integration["broadcast_c_values"] == [0.1, 0.3, 0.5]
 
 
 def test_param_oracle_script_rejects_class_prior(survey_script, tmp_path, capsys):
@@ -192,7 +222,7 @@ def test_edge_oracle_script_leaves_no_calibration_file_when_runs_fail(survey_scr
     )
     assert rc == 1
 
-    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    manifest = load_manifest(out_dir / "c_independent" / "seed_0" / "manifest.json")
     assert manifest["failures"]  # the failure itself is recorded
     assert not (out_dir / "oracle_integration.json").exists()
 
@@ -272,5 +302,5 @@ def test_param_oracle_script_explicit_split_ref_wins(survey_script, tmp_path):
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / "c_0.1" / "seed_0" / "manifest.json")
+    manifest = load_manifest(out_dir / "c_independent" / "seed_0" / "manifest.json")
     assert manifest["split_ref"] == {"note": "custom reference"}
