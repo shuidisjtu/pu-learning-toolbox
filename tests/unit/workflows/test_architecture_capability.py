@@ -7,8 +7,11 @@ import numpy as np
 import pytest
 
 from pu_toolbox.core.base import BasePUClassifier
+from pu_toolbox.core.tags import AlgorithmFamily, ImplementationStatus
+from pu_toolbox.registry import AlgorithmMetadata, clear_registry, register_method
+from pu_toolbox.registry.builtin_methods import register_all_builtin_methods
 from pu_toolbox.workflows import PipelineError
-from pu_toolbox.workflows._models import check_architecture_capability
+from pu_toolbox.workflows._models import check_architecture_capability, cnn_capable_classifier_names
 
 
 class _Capable(BasePUClassifier):
@@ -85,3 +88,46 @@ def test_signature_no_capability_yes_raises():
 def test_mlp_architecture_never_checked():
     check_architecture_capability(_SigYesCapNo, "mlp", "fake")
     check_architecture_capability(_SigNoCapYes, "mlp", "fake")
+
+
+def _fake_cnn_meta(name: str, status: ImplementationStatus) -> AlgorithmMetadata:
+    return AlgorithmMetadata(
+        name=name,
+        paper=f"Test paper for {name}",
+        family=AlgorithmFamily.CLASSIC_CALIBRATION,
+        implementation_status=status,
+        native_architectures=frozenset({"cnn"}),
+        input_ndims=frozenset({2, 4}),
+        encoder_parameter="encoder",
+    )
+
+
+@pytest.mark.unit
+class TestCnnCapableClassifierNames:
+    @pytest.fixture(autouse=True)
+    def _clean_registry(self):
+        """Isolate registry state (mirrors tests/test_registry.py)."""
+        clear_registry()
+        yield
+        clear_registry()
+
+    def test_includes_registered_native_cnn_methods(self):
+        # Regression (issue #45): the cnn hint silently omitted nnpu once
+        # nnPU gained native CNN support; builtin registration must surface it.
+        register_all_builtin_methods()
+        names = cnn_capable_classifier_names()
+        assert "nnpu" in names
+        assert "infomax_pu" in names
+
+    def test_reflects_newly_registered_cnn_method(self):
+        """The hint derives from the registry, so new CNN-capable methods
+        appear automatically without editing error/help copy."""
+        register_all_builtin_methods()
+        register_method(_fake_cnn_meta("fake_cnn_test", ImplementationStatus.NATIVE))
+        assert "fake_cnn_test" in cnn_capable_classifier_names()
+
+    def test_excludes_api_only_cnn_methods(self):
+        """trainable_only must keep suggestable methods runnable."""
+        register_all_builtin_methods()
+        register_method(_fake_cnn_meta("fake_cnn_stub", ImplementationStatus.API_ONLY))
+        assert "fake_cnn_stub" not in cnn_capable_classifier_names()

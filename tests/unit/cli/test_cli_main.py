@@ -124,6 +124,16 @@ def test_param_run_parser_accepts_repeated_prior_params():
 
 
 @pytest.mark.unit
+def test_param_run_architecture_help_lists_registered_cnn_methods():
+    """Regression (issue #45): --architecture help hardcoded wconpu/infomax_pu
+    and silently dropped nnpu; the hint must reflect registered CNN methods."""
+    parser = build_parser()
+    run_parser = parser._subparsers._group_actions[0].choices["run"]
+    arch_action = next(a for a in run_parser._actions if a.dest == "architecture")
+    assert "nnpu" in arch_action.help
+
+
+@pytest.mark.unit
 def test_deterministic_help_output_stable(capsys):
     """Same argv produces byte-identical stdout and exit code."""
     with pytest.raises(SystemExit) as first_exit:

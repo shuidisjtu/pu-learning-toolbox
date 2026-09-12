@@ -123,6 +123,13 @@ class TestPipelineParameterErrors:
         with pytest.raises(TypeError, match="split"):
             PUPipeline(cv=object())
 
+    def test_param_cnn_error_hint_lists_registered_cnn_methods(self):
+        """Regression (issue #45): the cnn hint was hardcoded to
+        wconpu/infomax_pu and silently omitted nnpu once nnPU gained
+        native CNN support; the hint must name registered CNN methods."""
+        with pytest.raises(PipelineError, match="nnpu"):
+            PUPipeline(classifier="self_pu", architecture="cnn")
+
 
 @pytest.mark.integration
 class TestPipelineEdgeCases:

@@ -48,6 +48,10 @@
   MLP/CNN 双架构声明、CV fold 隔离与 pipeline 端到端测试、
   gpu marker + CUDA 执行级测试（详见
   docs/dev/dual_architecture_plan.md §5）
+- CNN 提示文案回归修复（未发布，随下一版本发布）：Pipeline cnn 报错与 CLI
+  `--architecture` help 的候选方法提示改为由 registry 能力声明动态生成
+  （原硬编码 wconpu/infomax_pu 遗漏 nnPU），并补错误文案/动态更新/排除
+  api_only 的回归测试（issue #45 低优先级 UX 子项闭环）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

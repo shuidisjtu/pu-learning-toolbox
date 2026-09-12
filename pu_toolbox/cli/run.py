@@ -15,8 +15,10 @@ import pandas as pd
 
 from ..estimators.deep.vision import CNN_BACKBONES
 from ..model_selection import PUModelComparator, PUTuner
+from ..registry.builtin_methods import register_all_builtin_methods
 from ..run_config import RunConfiguration
 from ..workflows import PUPipeline
+from ..workflows._models import cnn_capable_classifier_names
 
 __all__ = ["build_run_parser", "run_run"]
 
@@ -50,6 +52,17 @@ def _parse_prior_params(items: list[str] | None) -> dict[str, object]:
 def _parse_classifier_params(items: list[str] | None) -> dict[str, object]:
     """Parse repeated ``--classifier-param KEY=VALUE`` into a dict."""
     return _parse_params(items, "--classifier-param")
+
+
+def _cnn_classifier_hint() -> str:
+    """Slash-joined registered CNN-capable classifier names for help text.
+
+    Derived from the registry at parser-build time so the hint stays in
+    sync with capability declarations (regression: the hardcoded
+    ``wconpu/infomax_pu`` silently dropped nnpu once it gained CNN support).
+    """
+    register_all_builtin_methods()
+    return "/".join(cnn_capable_classifier_names()) or "none registered"
 
 
 def build_run_parser(sub: argparse._SubParsersAction) -> None:
@@ -114,7 +127,7 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
         default="mlp",
         choices=["mlp", "cnn"],
         help="network architecture for deep classifiers: 'mlp' (table data) "
-        "or 'cnn' (4-D NCHW images; requires --classifier wconpu/infomax_pu)",
+        f"or 'cnn' (4-D NCHW images; requires --classifier {_cnn_classifier_hint()})",
     )
     parser.add_argument(
         "--backbone",
