@@ -103,7 +103,6 @@ factory 构造 CNN/ResNet。现有 `build_encoder` 函数继续兼容（当前�
 
 ```python
 native_architectures = {"mlp", "cnn"}
-adapter_architectures = set()
 input_ndims = {2, 4}
 encoder_parameter = "encoder"
 trains_encoder = True
@@ -119,6 +118,10 @@ trains_encoder = True
 `native_architectures` 等）以估算器类属性为权威来源（与
 `sample_weight_support` 同模式），注册表条目同步镜像；避免能力信息继续在
 注册表字段、类属性与签名检查三处分裂。
+
+`encoder_parameter` 语义收窄为声明性元数据：它命名接收注入 encoder 的固定
+构造函数参数名，用于能力声明、门禁与列表展示；Pipeline 依构造函数签名经该
+参数注入 encoder，并通过类属性一致性校验把关，不基于该元数据做动态注入。
 
 ### 4.3 Pipeline 责任
 
@@ -235,6 +238,14 @@ generator 协议，与 encoder 注入无法直接映射。二者建议长期搁�
 该路径单独调参、单独报告为 `cnn_feature_adapter`，不替换
 `tabular_native` 结果，也不默认进入原生算法主榜单。
 
+**现状注记（2026-09-12）**：该路径已在实验层实现，见
+`pu_toolbox/experiment/feature_adapter.py`：`adapt_image_bundle_to_features`
+输出二维特征与可审计 manifest，`LeaderboardRunSpec` 提供跨方法公平分组门禁，
+服务调查实验并按协议 §2.5 单独报告。该能力停留在实验层——主链路
+`PUPipeline` 不提供传统算法的 encoder 注入，`tabular_native` 主榜单与报告
+口径不受影响。未来若需进入主链路（传统算法 CNN 适配接入 `PUPipeline`），
+单独立项重新评估。
+
 ## 6. 兼容性策略
 
 必须保持：
@@ -306,7 +317,6 @@ encoder 注入、`cnn_feature_adapter`、跨路径公平性检查）见协议 §
 
 - 支持的输入维度和模态；
 - `native_architectures`；
-- `adapter_architectures`（如有）；
 - 是否接收和训练 encoder；
 - 是否支持 GPU、稀疏输入和 sample weight。
 

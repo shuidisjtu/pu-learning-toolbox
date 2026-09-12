@@ -13,7 +13,7 @@
    |---|---|---|
    | native_architectures | ⊆ {"mlp","cnn"} | 原生架构路径；∅ = tabular_only（派生） |
    | input_ndims | ⊆ {2,4}，非空 | 支持输入维度 |
-   | encoder_parameter | None 或构造函数参数名 | 接收注入 encoder 的参数 |
+   | encoder_parameter | None 或构造函数参数名 | 接收注入 encoder 的构造函数参数名（声明性元数据；Pipeline 依构造函数签名经该参数注入 encoder，不以本字段驱动注入） |
    | trains_encoder | bool | 是否端到端训练注入的 encoder |
 
 3. 在 registry/builtin_methods.py 注册 AlgorithmMetadata（含

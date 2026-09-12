@@ -91,7 +91,13 @@ class AlgorithmMetadata:
     """Supported input dimensionalities; subset of {2, 4}."""
 
     encoder_parameter: str | None = None
-    """Constructor parameter name that receives an injected encoder."""
+    """Constructor parameter name that receives an injected encoder.
+
+    Declarative metadata only: injection is signature-driven -- the pipeline
+    passes the built encoder to the constructor parameter named here when the
+    constructor declares it, never by reading this field. Capability
+    validation goes through signature checks and class-attribute consistency.
+    """
 
     trains_encoder: bool = False
     """Whether the algorithm trains an injected encoder end-to-end."""

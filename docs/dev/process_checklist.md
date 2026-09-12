@@ -52,6 +52,12 @@
   `--architecture` help 的候选方法提示改为由 registry 能力声明动态生成
   （原硬编码 wconpu/infomax_pu 遗漏 nnPU），并补错误文案/动态更新/排除
   api_only 的回归测试（issue #45 低优先级 UX 子项闭环）
+- 双架构契约路线 B 收口（未发布，随下一版本发布）：issue #45 决策——
+  `adapter_architectures` 不落地为元数据字段（从计划 §4.2/§9 与模板删除）；
+  `encoder_parameter` 语义收窄为声明性元数据（注入依构造函数签名，不以
+  该字段驱动）；计划 §5 阶段 4 补现状注记（实验层已实现
+  `cnn_feature_adapter`，主链路不集成）；契约测试补字段集钉子与
+  声明性语义钉子（详见 issue #45 与 docs/dev/dual_architecture_plan.md）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

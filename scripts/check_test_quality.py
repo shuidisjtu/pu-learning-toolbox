@@ -190,11 +190,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "derivation / signature); fit-predict behavioral smoke is covered by "
             "test_classifier_baseline.py and the algorithm unit suites"
         ),
-        "param": (
-            "declaration validity is asserted via the four invariants, not via "
-            "constructor error paths; parameter validation lives in per-algorithm "
-            "unit tests"
-        ),
     },
     "test_cli_deep_save_model.py": {
         "param": (
