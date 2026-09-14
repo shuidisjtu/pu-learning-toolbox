@@ -3,7 +3,7 @@
 > 定位：本文件是**执行路线与状态**，与协议的承接关系——
 > [pu_survey_protocol.md](pu_survey_protocol.md) 是要求纲要，
 > [implementation_plan.md](implementation_plan.md) 是现状差距与技术实现维度；
-> 状态日期：2026-09-08。
+> 状态日期：2026-09-14。
 
 ## 1. 现状
 - **实验层完备**：`pu_toolbox/experiment/` 34 个公共API，四路数据合约、PA/OA 独立选模、策略化接口、
@@ -19,7 +19,8 @@
 - **能力声明现状**：代码级声明仅 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
   四字段（有契约测试）——当前 7 个 Survey 方法中仅 nnPU 支持原生 CNN（mlp/cnn、{2,4}、encoder 注入；
   工具箱整体另有 infomax_pu、weighted_contrastive_pu 为 mlp/cnn 双架构，不在 Survey 22 方法范围）；
-  Self-PU 为 mlp/{2}（非原生 CNN；4D 展平仅为估计器层容忍，非声明能力，issue #38 决策）；
+  Self-PU 为 mlp/{2,4}（非原生 CNN——由 native_architectures={"mlp"} 承载；input_ndims 按模板
+  "支持输入维度"口径如实声明，2026-09-14 审阅 P1#1 修正 issue #38 的收窄）；
   Dist-PU 声明 {mlp}/{2}（非
   tabular-only）；uPU/KLDCE/PUSB/LBE 为 tabular-only（{2}）——图像数据集上这些方法必须走
   `cnn_feature_adapter`（benchmark-adapted）。
@@ -31,7 +32,9 @@
   3. 中心超参数注册表（实现计划 §6，参考 PU-Bench `core/hparams_registry.py`）未实现；
      当前候选池仅为 runner `config["candidates"]` 的运行态配置
   4. **标签语义无声明字段**（`fit` 的 `y` 是 PU / 监督 PN / PNU）：PU 的 `{1,0}` 与监督的 `{0,1}`
-     数值同形，当前**仅靠约定区分、错配静默**。归 P3 接入前置，不阻塞 P2——
+     数值同形，当前**仅靠约定区分、错配静默**。实施拆两段（2026-09-14，issue #41 阶段 A/B）：
+     阶段 A 提前实施 label_semantics_plan P1+P2（声明位 + registry 同步 + experiment 层检查，
+     P2 pilot 前置），阶段 B 完成 P3+P4（pipeline 层检查 + 文档收口，P3 方法接入前置）——
      见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)
 
 ## 2. 推进路线
@@ -47,9 +50,10 @@
 | P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 初版完成 / shuidisjtu；HENG958 复核 nnPU、Self-PU |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
 | P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ 已完成 / shuidisjtu；HENG958 复核可执行性 |
-| P2.0a | Pilot 共享规格与 oracle 对齐决策 | P1.3a、P1.3b | 共享 backbone/预算、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 未完成 / HENG958；shuidisjtu 复核 |
-| P2.0b | 标签语义门禁 | P1.3a、P1.3b | `label_semantics` 声明与 experiment/pipeline 检查点按计划完成，错误组合 fail-loud | 🚧 未完成 / shuidisjtu；HENG958 复核 |
-| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |
+| P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 未完成 / HENG958；shuidisjtu 复核 |
+| P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 未完成 / shuidisjtu；HENG958 复核 |
+| P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 未完成 / shuidisjtu；HENG958 复核 |
+| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |
 | P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果 |
 | P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | ⏳ 待办 / shuidisjtu：VPU、PULDA、PAN、RP、CVIR、PULNS |
 | P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | ⏳ 待办 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LAGAM、GEN-PU、Holistic-PU、P3MIX |
@@ -57,7 +61,7 @@
 | P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | ⏳ 待办 / shuidisjtu |
 | P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
 
-**依赖与升级规则**：P2.1 可在基础设施可用后做技术 smoke，但未完成 P2.0a 与 P2.0b 前不得将结果与 oracle 或跨方法结果混排；若为验证脚本而提前执行，产物必须标记为“需按 P2.0 规格重跑”。P2.1 与 P3.3 共享单卡时，HENG958 负责排定并记录 GPU 窗口；数据许可、共享规格、标签语义或资源不足造成阻塞时，主责须在计划的“开放问题与风险”中记录影响与下一步，并由两位实施主体共同决定升级、拆分或降级。Survey 分工在其范围内覆盖 ADR-0008 中较早的论文分配。
+**依赖与升级规则（三种门槛）**：① **技术 smoke**（单方法链路验证）仅需基础设施可用，可随时执行；② **正式 pilot 跑批**须 P2.0a/P2.0b/P2.0c 全绿；③ **与 oracle 或跨方法结果混排**须阶段 A 验收全部满足。未达门槛而提前执行的结果，产物必须标记为”需按 P2.0 规格重跑”。P2.1 与 P3.3 共享单卡时，HENG958 负责排定并记录 GPU 窗口；数据许可、共享规格、标签语义或资源不足造成阻塞时，主责须在计划的“开放问题与风险”中记录影响与下一步，并由两位实施主体共同决定升级、拆分或降级。Survey 分工在其范围内覆盖 ADR-0008 中较早的论文分配。
 
 
 ### P1 执行准备（pilot 前完成）
@@ -102,8 +106,17 @@
 - **PUSB 行采用 `pusb_kernel`**（official-aligned RBF 核实现，需 π，由 registry `requires_class_prior`
   门禁强制每 run 传入）；linear baseline `pusb` 为附加工程基线，不入榜（2026-09-14，issue #42）
 - 候选池：pilot 阶段用论文默认参数 + 少量合手候选（中心注册表到 P4 引入）
+- **执行矩阵（阶段 A，P2.0a）**：冻结 `pu_toolbox/experiment/survey_protocol_v1.json`（预算定义表 +
+  执行单元行），runner 强制消费；矩阵锁定字段（representation/backbone/budget/training_path）
+  不可被 CLI 覆盖，允许的覆盖（--c/--seeds/--split-ref/--candidates）偏离协议须标记
+  `protocol_deviation` 并排除正式榜
+- **CIFAR adapter 接线（阶段 A，P2.0a）**：feature-adapter 原语已受测（`feature_adapter.py`），
+  但 ResNet-18 encoder factory、weights/seed 锁定、encoder state 共享范围与缓存复用、
+  `run_survey_experiment.py` 装配均未接通（审阅 P1#2）——接线完成前 CIFAR adapter 组不可启动
+- **交叉验证（阶段 A，P2.0c）**：对照矩阵与判定规则预注册（见本节末「交叉验证对照」），
+  随 pilot 执行并写入聚合报告
 - **依赖**：oracle 与各 PU 方法须在同一 backbone 规格下比较（协议 §2.5 第 4 条）——该规格
-  属 P3 前置（见下）。pilot 若在其确定前启动，oracle 行须标注自身结构并单列，待规格落定后重跑
+  由阶段 A 的执行矩阵锁定。pilot 若在其确定前启动，oracle 行须标注自身结构并单列，待规格落定后重跑
 - 产出：pilot 榜单（SCAR-PA / SCAR-OA），交付前提=验证全链路（环境、数据、runner、manifest、资源计量）正常
 
 ### P3 算法接入（与 P2 并行推进；分工作如下：表 2.0）
@@ -113,10 +126,10 @@
   时都要按它实现，所以归属 P3，**不由 P4 的中心注册表承担**（注册表管的是超参候选池）。
   已实现的 7 个方法需回溯对齐：其表格路径默认各为 `nn.Linear(d, 1)`（深度类）或非网络
   实现（经典类），尚未共享同一规格
-- **前置：标签语义声明**（`label_semantics`：`fit` 的 `y` 属 PU / 监督 PN / PNU）。同属接入时的
-  接口约定——错配（如把 PU 估计器喂真实标签）当前静默，Phase 2 的深度 oracle 最易踩。
-  方案、检查点与参考文献 2 的对照见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)；
-  P1 阶段（声明位 + 门禁，无行为变化）可与方法接入并行，P2 阶段须在 Phase 2 之前完成
+- **前置：标签语义声明的收口（阶段 B）**：P1+P2（声明位 + registry 同步 + experiment 层检查）
+  已于 2026-09-14 提前至 P2 阶段 A 实施（P2.0b）；P3 前置保留 P3+P4（pipeline/comparison 入口
+  检查 + CLI 展示 + ADR/文档收口）。方案、检查点与参考文献 2 的对照见
+  [label_semantics_plan.md](../../dev/label_semantics_plan.md)
 - 14 个缺失方法的接入顺序：B 类（VPU、PULDA，风格接近已有 B 类）→ A 类（7 个，依赖论文及其源码复现）
   → C 类（5 个，深度/优化设计，需 GPU 验证）；具体主责以表 2.0 为唯一真相源。
 - 每方法 = 实现 + 方法卡 + 台账登记（方法台账 JSON 同步更新）+ 门禁（原文可追溯、冒烟、
@@ -132,6 +145,65 @@
 - 发布条件（协议 §4 原文）：完整主榜以 22 个目标方法全部通过相应门禁为发布条件；
   在此之前只可发布明确标为 `pilot / partial benchmark` 的部分结果。
 
+### 交叉验证对照（预注册，2026-09-14）
+
+试验结果须与两篇参考文献（Wang et al., ICLR 2026 = PUBench；Chen et al., 2026 = PU-Bench）
+及各方法原论文交叉验证。本节为**预注册**：锚点数值与判定规则在 pilot 启动前冻结，执行后按
+规则裁决，禁止事后调整（阈值、锚点、对照来源均以本节为准；确需修订须记录理由并重发
+预注册版本）。
+
+**锚点来源三类**：① PUBench（PA/PAUC/OA 三准则并列；我方 OA↔其 OA 列、我方 PA↔其 PA 列）；
+② PU-Bench（其选模用真实验证标签的 macro-F1 = Wang 定义的 OA，**无 PA 机制**——我方 PA 结果
+与其数值无直接可比性）；③ 各方法原论文（以方法卡 `paper` 字段与官方实现为准）。
+
+**PU-Bench Table 1（p6）：cc/SCAR、c=0.1、10 seeds，Accuracy% ± std**
+
+| 方法 | CIFAR-10 | Spambase | IMDB |
+|---|---|---|---|
+| nnPU | 85.30±2.63 | 81.66±2.73 | 77.37±4.82 |
+| PUSB | 87.68±2.85 | 81.56±2.95 | 77.86±3.82 |
+| Dist-PU | 88.09±3.85 | 85.71±3.95 | 77.88±5.02 |
+| LBE-PU | 83.98±3.62 | 68.53±3.71 | 76.25±4.73 |
+| Self-PU | 76.73±2.43 | 72.10±2.92 | 74.05±3.23 |
+| PN oracle | 94.88±0.57 | 91.03±0.66 | 79.89±0.83 |
+
+> 注：uPU、KLDCE 未评估。其 "PUSB" 行对应仓库 `nnpusb` 实现，与**本项目 PUSB 同属
+> Kato PUSB/nnPUSB 来源家族**（Kato/Teshima/Honda，ICLR 2019，官方上游
+> MasaKat0/PUlearning），但 estimator 目标、模型族、先验语义与训练协议不同，**不能直接数值
+> 等价比较**。**PN 行不参与数值裁决**（降级为背景参考：其 `pn` 用 PU-only proxy 选模
+> （`val_proxy_acc`），我方 oracle 以 `clean_val` 真实 Accuracy 选模，口径不同——
+> `pn_oracle_integration.md` 既有决策；PN ≥ 各 PU 方法仅作协议内诊断预期）。主要协议差异：
+> 其验证比例 0.01（我方 5%+5%）、其 CIFAR-10 仅 /255.0（我方 train-only 通道归一化）、
+> 其 SBERT 特征 L2 归一化（我方口径待核对）。
+
+**PUBench Table 1/2（p8-9）：CIFAR-10，正例率 30%，Accuracy%，PA / PAUC / OA 三列**；
+Case 1 正类 {0,1,2,8,9}、Case 2 {2,3,5,7,9}——与我方 {0,1,8,9} 划分不同，仅判量级+趋势。
+uPU 80.24/76.07/82.04（Case 1）、66.21/69.03/70.46（Case 2）；nnPU 82.03/75.56/82.40、
+74.27/62.67/77.62；PUSB 81.53/82.49/82.91、75.74/78.80/78.35；Dist-PU 81.64/79.31/83.56、
+73.46/74.83/74.69；LBE 82.71/73.60/85.03、72.47/63.54/75.96（"-c" 校准版各行从略，
+见论文原表）。无 PN 基线行、无 Self-PU。
+
+**原论文锚点（方法卡转录）**：nnPU→CIFAR-10（可行，backbone 差异登记）；PUSB→Spambase
+（Kato et al. ICLR 2019 Table 2，扫 π∈{0.2,0.4,0.6,0.8} 与我方 c 轴不同，协议轴差异登记）；
+Dist-PU→CIFAR-10（clean-room 档，仅量级）；Self-PU→CIFAR-10（13 层 CNN，我方 mlp-only +
+adapter，仅量级）；uPU/KLDCE 无 pilot 对照点；LBE 论文为深度 Adam/EM 形态、我方线性近似，
+无直接数值对照——无锚点单元显式记录"无直接对照点"，不得静默跳过。
+
+**判定规则**：
+
+1. **数值裁决仅用于"协议高度一致"的锚点**（同选模口径、同 backbone 家族、同 c 档、同指标），
+   标准误感知：`SE_pooled = √(SD_anchor²/n_anchor + SD_ours²/n_ours)`；量级一致 ⟺
+   `|Δ mean| ≤ max(3pp, 2·SE_pooled)`。超限 → 人工排查（实现级 `-m paper` 复现测试/官方源码
+   对照/台账证据 → 协议级 c 抽样/划分/验证比例/backbone 预处理 → 数据口径版本/标签映射/类先验），
+   结论分三档：**实现错误 / 协议差异可解释 / 无解释**；仅"无解释"升级为正确性警报。
+2. **协议差异不可消除的锚点**（backbone 不同、正类划分不同等）：只记录方向与量级摘要，
+   不做数值裁决。
+3. **诊断预期**（非正确性硬门禁；违反 → 人工审阅并记录，不自动判实现错误）：PN oracle ≥
+   各 PU 方法；同方法 c 增大时 Accuracy 不明显下降；组内相对排序与锚点排序秩相关（软提示）。
+
+对照结论写入聚合报告，按协议 §5.7 区分"文献事实 / 本实验观测 / 推断"；对照矩阵版本与
+resolved 单元写入 manifest。
+
 ## 3. 决策记录（需讨论后确定）
 
 | # | 决策 | 内容 | 日期 |
@@ -139,6 +211,9 @@
 | D1 | **ADNI 数据获取** | **该数据集的获取似乎比较麻烦**，我会咨询一下学长。我目前的查证结论是（2026-09-08）：需通过 ADNI LONI 官网（adni.loni.usc.edu）在线申请——科研机构身份 + 接受数据使用协议（DUA）+ 研究用途描述，由 ADNI 数据共享与出版委员会（DPC）评审约 1-2 周，批准后经 LONI IDA 下载；限制：不得商用/重新分发、年度更新。决定后若申请通过，ADNI 加入后续实验矩阵；届时矩阵按"7+1"处理 | 2026-09-08 |
 | D2 | 协议分工执行口径 | 数据准备协议 §2.4"工具箱不负责切分"字面与参考实现并存，产生了一个矛盾点——我会修改/补充协议的说法，并和学长说一声 | 2026-09-08 |
 | D3 | 依赖锁与 CUDA 环境落地 | **uv.lock 已入库**（2026-09-08，chore(deps)）：替代 requirements.txt，PR 快层 CI 用 lock 确定性、nightly `--no-lock` 重新解析验证"最新可解析"（ADR-0012 修订）。**torch CUDA 配置**：pyproject `[tool.uv.index] pytorch-cu(cu126)` + `[tool.uv.sources]` 仅 `sys_platform=='win32'` 生效（CI Linux/macOS 保持 PyPI CPU 版；win 上 torch 2.14.0+cu126）；torchvision 并入 torch extra。多环境（T600/HENG958 主力机）由此保持一致 | 2026-09-08 |
+| D4 | issue #41 阶段 A/B 拆分 | 阶段 A（P2 pilot 前置，P2.0a/b/c）：版本化执行矩阵 + runner 强制消费 + manifest 扩展 + CIFAR adapter 接线 + label_semantics_plan P1+P2 提前 + 对照矩阵预注册；阶段 B（P3 前置）：label_semantics P3+P4（pipeline 层检查 + 文档收口）。issue #41 于阶段 B 完成后关闭 | 2026-09-14 |
+| D5 | Self-PU `input_ndims` 恢复 `{2,4}` | 审阅 P1#1：模板定义该字段为"支持输入维度"，4D 展平是 fit 的实际公共行为；"非原生 CNN"由 `native_architectures={"mlp"}` 承载（修正 issue #38 的收窄，代码随 fix 分支 PR） | 2026-09-14 |
+| D6 | PU-Bench PN 行降级为背景参考 | 其 `pn` 用 `val_proxy_acc` 选模、我方 oracle 用 `clean_val_accuracy`，数值不可直接对比（`pn_oracle_integration.md` 既有决策）；不参与「交叉验证对照」判定规则第 1 条的数值裁决 | 2026-09-14 |
 
 ## 4. 存在的开放问题与风险
 
@@ -153,4 +228,5 @@
 - 每个实验产物：manifest 固化（协议 §5.6：代码 commit、依赖锁文件、Python/PyTorch/CUDA/GPU、
   数据与方法配置、注册表版本、seed、split/label manifest、选择 artifact、schema 版本）
 - 结果按四组存储（SCAR-PA / SCAR-OA / SAR-OA / PN oracle），跨数据集只比较趋势，不生成总排名
+- 交叉验证对照结论随聚合报告归档（§2 末「交叉验证对照」三档结论），区分文献事实/本实验观测/推断
 - 本计划随执行更新：每完成一个阶段、每产生一个决策，更新 §1/§2/§3 相应条目
