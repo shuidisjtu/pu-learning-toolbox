@@ -6,7 +6,7 @@ Markdown with the same conventions (NaN/Inf -> ``None``, ``unavailable``
 for missing table cells, ``|`` escaping).  These helpers used to be
 copied per module; they live here so the conventions stay in sync.
 
-See ``docs/architecture.md`` §6 for the report serialization contract.
+See ``docs/user/reference/api.md`` for the report serialization contract.
 """
 
 from __future__ import annotations

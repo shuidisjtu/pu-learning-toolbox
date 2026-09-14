@@ -241,6 +241,17 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "test_pipeline_deep TestPipelineDeepSeedReproducibility"
         ),
     },
+    "test_ledger_registry_consistency.py": {
+        "param": (
+            "ledger-registry data-consistency contract over a fixed JSON file and the "
+            "builtin registry: nothing under test takes validated parameters, and the only "
+            "error path (a ledger key absent from the registry) is the key-set test"
+        ),
+        "edge": (
+            "both sides are fixed fixtures (ledger JSON + builtin registry) with no boundary "
+            "inputs to vary; the exact key-set equality IS the closure check"
+        ),
+    },
     "test_bundle.py": {
         "determ": (
             "validate_bundle is a pure function (no randomness, no seed state); "

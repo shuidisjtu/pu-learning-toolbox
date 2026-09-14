@@ -275,7 +275,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         ),
         scenario=[Scn.SELECTION_BIASED],
         assumption=[Asm.SAR],
-        requires_class_prior=True,  # official RBF scoring needs pi (Method Card §6.2)
+        requires_class_prior=True,  # official RBF scoring needs pi (Method Card §7.3)
         supports_sparse=False,
         supports_gpu=False,
         backend=Backend.NUMPY,  # scipy BFGS + numpy RBF design matrix
