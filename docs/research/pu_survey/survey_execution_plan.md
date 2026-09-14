@@ -19,7 +19,8 @@
 - **能力声明现状**：代码级声明仅 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
   四字段（有契约测试）——当前 7 个 Survey 方法中仅 nnPU 支持原生 CNN（mlp/cnn、{2,4}、encoder 注入；
   工具箱整体另有 infomax_pu、weighted_contrastive_pu 为 mlp/cnn 双架构，不在 Survey 22 方法范围）；
-  Self-PU 为 mlp/{2,4}（接受 4D 展平输入，非原生 CNN，图像归组见 §2）；Dist-PU 声明 {mlp}/{2}（非
+  Self-PU 为 mlp/{2}（非原生 CNN；4D 展平仅为估计器层容忍，非声明能力，issue #38 决策）；
+  Dist-PU 声明 {mlp}/{2}（非
   tabular-only）；uPU/KLDCE/PUSB/LBE 为 tabular-only（{2}）——图像数据集上这些方法必须走
   `cnn_feature_adapter`（benchmark-adapted）。
 - **协议要求但还未实现/未声明的项**：
@@ -96,9 +97,8 @@
   （**跑批去重**：oracle 结果对 c 恒定，每 (dataset, seed) 跑 1 次共 15 次，
   聚合时广播到各 c 列并标注 `c_independent`；脚本用 `--oracle`）
 - 模态-方法矩阵：表格/文本上 7 法均原生（文本＝SBERT 384 维特征 + MLP）；
-  图像端到端仅 nnPU 原生（CNN）；Self-PU 为 mlp-only（{mlp}/{2,4}、无 encoder，其图像路径
-  非端到端原生 CNN，归组待定）；其余 5 法图像走 `cnn_feature_adapter`
-  （基准-适配、与原生路径**强制分组**，不混合排名）
+  图像端到端仅 nnPU 原生（CNN）；其余 6 法（含 Self-PU，mlp-only、无 encoder，issue #38）
+  图像走 `cnn_feature_adapter`（基准-适配、与原生路径**强制分组**，不混合排名）
 - **PUSB 行采用 `pusb_kernel`**（official-aligned RBF 核实现，需 π，由 registry `requires_class_prior`
   门禁强制每 run 传入）；linear baseline `pusb` 为附加工程基线，不入榜（2026-09-14，issue #42）
 - 候选池：pilot 阶段用论文默认参数 + 少量合手候选（中心注册表到 P4 引入）

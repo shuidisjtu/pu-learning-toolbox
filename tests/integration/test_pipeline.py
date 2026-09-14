@@ -130,6 +130,19 @@ class TestPipelineParameterErrors:
         with pytest.raises(PipelineError, match="nnpu"):
             PUPipeline(classifier="self_pu", architecture="cnn")
 
+    def test_param_4d_mlp_error_hint_lists_registered_cnn_methods(self):
+        """Regression (issue #38): the 4-D + mlp error was hardcoded to
+        wconpu/infomax_pu and omitted nnpu; the hint must name registered
+        CNN-capable methods."""
+        rng = np.random.RandomState(0)
+        X = rng.randn(40, 1, 8, 8)  # 4-D NCHW
+        y_pu = np.zeros(40, dtype=int)
+        y_pu[:8] = POSITIVE_LABEL
+        with pytest.raises(PipelineError, match="nnpu"):
+            PUPipeline(classifier="self_pu", architecture="mlp").fit_evaluate(
+                X, y_pu, class_prior=0.4
+            )
+
 
 @pytest.mark.integration
 class TestPipelineEdgeCases:

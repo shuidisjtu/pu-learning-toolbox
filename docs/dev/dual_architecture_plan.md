@@ -227,6 +227,14 @@ eval probe 得 representation_dim 后组合为单一
 generator 协议，与 encoder 注入无法直接映射。二者建议长期搁置，待有明确
 实验需求再单独立项。
 
+**现状注记（2026-09-14，issue #38）**：Self-PU 维持 mlp-only——能力声明为
+`{mlp}`/`{2}`/无 encoder/不训练 encoder；`input_ndims` 已收窄为 `{2}`
+（此前 `{2,4}` 与 Pipeline 对 mlp 架构拒绝 4D 的行为脱节；默认网络的
+`Flatten` 仍容忍 4D 估计器级输入，但这不是声明能力）。Survey 图像行经
+`cnn_feature_adapter` 与其他非 CNN 方法同组。原生 CNN 接入（论文有
+MNIST MLP/CIFAR-13 层 CNN/ADNI 3-branch CNN 协议）待有明确实验需求时
+单独立项。
+
 ### 阶段 4：按实际需求增加传统算法图像适配
 
 仅在实验或用户需求明确时实现：
