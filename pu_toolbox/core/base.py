@@ -6,7 +6,7 @@ here.
 
 API Contracts
 -------------
-See ``docs/architecture.md`` §5 for the full specification.
+See ``docs/dev/architecture.md`` §2 (Core 地基层) for the full specification.
 """
 
 # ruff: noqa: N803

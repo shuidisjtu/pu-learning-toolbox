@@ -1,5 +1,11 @@
 # PU 调研实验：技术实现与推进状态
 
+> **状态横幅（2026-09-14）**：本计划为 2026-09-05 设计期快照。§1.1–§1.3 所列"未实现/待新增"的缺口
+> 已由 `pu_toolbox/experiment/` 实验层于 2026-09-06~09 落地（ExperimentRunner 四路 fit 接口、PA/OA
+> 选择协议、RunTrajectory 轨迹记录、SAR LBE-A/LBE-B 生成器、TS-OS 校准、SBERT 文本编码、图像特征适配
+> 与公平分组门禁、资源计量、split manifest 参数固化等）；进度与现状以
+> [survey_execution_plan.md](survey_execution_plan.md) 为准。以下正文保留设计期原貌，仅个别行随现状修正。
+
 > **本文件为实施方案与推进状态**：对应 [pu_survey_protocol.md](pu_survey_protocol.md)
 > （方案要求纲要，本实验的协议真相源）。本文件聚焦方案各步骤的**技术实现思路与细节、
 > 当前状态与进度审计**——如何用当前 Toolbox 落地、锁定哪些实现、当前差距与待办。
@@ -12,9 +18,9 @@
 
 | 要求 | 当前状态 | 依据与边界 |
 |---|---|---|
-| `fit(model, train, pu_val, clean_val, test)` 或等价接口 | 未实现 | 通用 `PUPipeline.fit_evaluate(X, y_pu, ...)` 只接收单个训练对象，并在内部执行 PU 分层交叉验证；没有用户传入的 `pu_val`、`clean_val`、`test` 参数。 |
-| 用户给定数据、模型与参数后训练，并提供训练/数据生成 DIY 接口 | 部分实现 | 已有注册分类器、`classifier_params`、`prior_estimator`、`architecture` 以及 SCAR/SAR 生成器；但模型必须是已注册方法或继承 `BasePUClassifier` 的实例，不能直接接入任意 sklearn/PyTorch 模型。 |
-| 读取四份用户数据并完成 PU 训练、PA/OA 选模与独立测试的官方示例脚本 | 未实现 | `examples/minimal/` 仅提供单功能示例；`benchmarks/` 使用内部固定协议，没有通用四份数据输入、双选模协议和独立测试汇总脚本。 |
+| `fit(model, train, pu_val, clean_val, test)` 或等价接口 | ✅ 已实现（实验层） | `ExperimentRunner.fit`（`pu_toolbox/experiment/runner.py`）以四份 `DatasetPart`（train/pu_val/clean_val/test）承载该接口；`PUPipeline.fit_evaluate` 保持原有内部交叉验证语义不变。 |
+| 用户给定数据、模型与参数后训练，并提供训练/数据生成 DIY 接口 | ✅ 已实现（实验层） | 注册分类器、`classifier_params`、`prior_estimator`、`architecture` 与 SCAR/SAR 生成器沿用；实验层 runner 接受任意可 `sklearn.clone` 的估计器，数据生成与选模协议经 `generator`/`protocols`/`config` 注入；"模型必须是已注册方法"仅 `PUPipeline` 仍成立。 |
+| 读取四份用户数据并完成 PU 训练、PA/OA 选模与独立测试的官方示例脚本 | ✅ 已实现 | `scripts/run_survey_experiment.py`：读取四份数据 → `ExperimentRunner` → PA/OA 选模 → 独立测试与结果归档；进度见 [survey_execution_plan.md](survey_execution_plan.md) §1.3。 |
 
 个别算法的专用能力不改变上述结论。例如 `SelfPUClassifier.fit(..., validation_data=...)`
 可接收 clean validation，但这不是全体算法共享的接口，也没有同时支持 PU validation、OA
@@ -257,7 +263,10 @@ pilot 前的基础设施验收至少覆盖：
 
 ## 8. 待确认与待办
 
-截至 2026-09-05 无开放事项。此前两项待办已解决并回填：
+截至设计期快照（2026-09-05）无开放事项。此前两项待办已解决并回填：
 
 - **test 测试集留出方式**：已对照 PU-Bench（commit `2d95a19`）核实，结论见 §2.3；
 - **SAR 锁定 commit 值**：已锁定（commit `2d95a19`），参数回填见 §2.2。
+
+当前开放事项由 [survey_execution_plan.md](survey_execution_plan.md) §4 与
+[pn_oracle_integration.md](pn_oracle_integration.md) §8 跟踪。

@@ -26,7 +26,10 @@ class AlgorithmMetadata:
     """Canonical metadata for a single PU algorithm registered in the toolbox.
 
     Every field maps directly to the registry schema defined in
-    ``docs/architecture.md`` §6 and ``docs/method_selection.md`` §4.
+    ``docs/dev/architecture.md`` §4; the capability fields
+    (``native_architectures`` / ``input_ndims`` / ``encoder_parameter`` /
+    ``trains_encoder``) are specified in ``docs/dev/dual_architecture_plan.md``
+    §4.2 and ``docs/dev/new_algorithm_template.md`` §1.
     """
 
     name: str

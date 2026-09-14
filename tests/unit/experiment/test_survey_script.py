@@ -105,6 +105,109 @@ def test_param_survey_script_requires_population_prior(survey_script, tmp_path, 
     assert "pass --class-prior" in capsys.readouterr().err
 
 
+def test_basic_script_runs_pusb_without_class_prior(survey_script, tmp_path):
+    """The linear PUSB baseline takes no pi: it must run without --class-prior.
+
+    The gate is the registry's requires_class_prior (False for this row), not
+    the ledger's annotation of the kernel sibling.
+    """
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    out_dir = tmp_path / "out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--method",
+            "pusb",
+            "--c",
+            "0.3",
+            "--seeds",
+            "0",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+    assert (out_dir / "c_0.3" / "seed_0" / "method_ledger_entry.json").is_file()
+
+
+def test_param_script_requires_class_prior_for_pusb_kernel(survey_script, tmp_path, capsys):
+    """Registry requires_class_prior=True for pusb_kernel -> --class-prior is mandatory.
+
+    The gate fires before any estimator is built or any run directory is
+    created: the deliberately invalid model params would otherwise surface a
+    constructor error instead of the prior error.
+    """
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    out_dir = tmp_path / "out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--method",
+            "pusb_kernel",
+            "--model-params",
+            json.dumps({"bogus_param": 1}),
+            "--seeds",
+            "0",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 1
+    assert "pass --class-prior" in capsys.readouterr().err
+    assert not out_dir.exists()
+
+
+def test_basic_script_runs_pusb_kernel_with_class_prior(survey_script, tmp_path):
+    """The official-aligned kernel row runs with pi and keeps its own ledger entry."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    out_dir = tmp_path / "out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--method",
+            "pusb_kernel",
+            "--class-prior",
+            "0.3",
+            "--c",
+            "1.0",
+            "--seeds",
+            "0",
+            "--model-params",
+            json.dumps({"n_basis": 16, "cv": 2, "max_iter": 100, "random_state": 0}),
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+    entry = json.loads(
+        (out_dir / "c_1.0" / "seed_0" / "method_ledger_entry.json").read_text(encoding="utf-8")
+    )
+    assert entry["class"] == "PUSBKernelClassifier"
+    assert "population" in entry["prior_semantics"]
+
+
+def test_param_script_rejects_methods_outside_survey_ledger(survey_script, tmp_path, capsys):
+    """A registered method outside the survey scope fails loud, not silently."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    rc = survey_script.main([str(data_dir), "--method", "elkan_noto", "--class-prior", "0.3"])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "elkan_noto" in err
+    assert "survey ledger" in err
+
+
 def test_edge_survey_script_reports_missing_split_files(survey_script, tmp_path, capsys):
     """Missing .npz partitions produce a helpful error before any training."""
     rc = survey_script.main([str(tmp_path / "nothing"), "--method", "upu", "--class-prior", "0.3"])

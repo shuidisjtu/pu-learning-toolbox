@@ -22,11 +22,15 @@ Every manifest records a ``split_ref`` pointing back at the split it ran on
 to the four .npz files, referenced by path, role sizes and index digest;
 ``--split-ref`` overrides it.
 
-The script reads ``pu_toolbox/experiment/method_ledger.json`` as the
-programmatic truth source: ``--class-prior`` is enforced for entries whose
-prior_semantics is the population prior, and the method's ledger entry is
-copied next to the manifests so results can be labelled (runtime method,
-native-sampling assumption, adaptation level).
+Two gates run before any training.  (1) ``--method`` must be a row of
+``pu_toolbox/experiment/method_ledger.json``: methods outside the survey
+scope fail loud instead of producing an unlabelled run.  (2)
+``--class-prior`` is mandatory when the registry entry carries
+``requires_class_prior`` — the estimator class attribute, mirrored into the
+registry — so the requirement follows the implementation rather than the
+prose.  The ledger entry itself only annotates the result: it is copied next
+to the manifests so runs can be labelled (runtime method, native-sampling
+assumption, adaptation level, prior semantics).
 
 ``--oracle`` switches to the PN oracle path (§2.4 item 10): the same runner
 over the same underlying train partition, but the real labels are passed
@@ -124,14 +128,40 @@ def load_split_parts(data_dir: Path) -> tuple[DatasetPart, ...]:
 
 
 def resolve_class_prior(
-    ledger: dict[str, Any], method: str, provided: float | None
+    ledger: dict[str, Any],
+    method: str,
+    provided: float | None,
+    *,
+    requires_class_prior: bool,
 ) -> float | None:
-    """Enforce the required class prior per ledger prior_semantics."""
+    """Gate a PU run on the survey ledger scope and the registry prior flag.
+
+    Two checks run before any estimator is built:
+
+    1. ``method`` must be a row of the survey ledger.  A method that is
+       registered in the toolbox but sits outside the survey scope fails
+       loud instead of producing a run that carries no survey annotation.
+    2. ``--class-prior`` is mandatory when the registry says so.  The flag
+       is the estimator class attribute (``requires_class_prior``), mirrored
+       into the registry through ``_SYNC_FIELDS``; the ledger's
+       ``prior_semantics`` text only annotates the error and the result.
+
+    The oracle path never reaches this function: it trains on real labels
+    and applies no class prior.
+    """
     entry = ledger["methods"].get(method)
-    if entry and "population" in entry.get("prior_semantics", "") and provided is None:
+    if entry is None:
+        raise ValueError(
+            f"method '{method}' is not in the survey ledger "
+            f"({LEDGER_PATH.name}, {len(ledger['methods'])} methods: "
+            f"{', '.join(sorted(ledger['methods']))}); add its ledger entry "
+            "before running it as a survey row."
+        )
+    if requires_class_prior and provided is None:
         raise ValueError(
             f"method '{method}' needs the population class prior "
-            f"(prior_semantics={entry['prior_semantics']!r}); pass --class-prior."
+            f"(registry requires_class_prior=True; ledger prior_semantics="
+            f"{entry.get('prior_semantics', '')!r}); pass --class-prior."
         )
     return provided
 
@@ -285,17 +315,26 @@ def main(argv: list[str] | None = None) -> int:
     else:
         method = args.method or "upu"
         try:
-            class_prior = resolve_class_prior(ledger, method, args.class_prior)
-        except ValueError as exc:
+            from pu_toolbox.core.exceptions import RegistryError
+            from pu_toolbox.registry import (
+                get_algorithm,
+                get_metadata,
+                register_all_builtin_methods,
+            )
+
+            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
+            class_prior = resolve_class_prior(
+                ledger,
+                method,
+                args.class_prior,
+                requires_class_prior=get_metadata(method).requires_class_prior,
+            )
+        except (ImportError, RegistryError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
         try:
-            from pu_toolbox.core.exceptions import RegistryError
-            from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
-
-            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
             model = get_algorithm(method)(**json.loads(args.model_params))
-        except (ImportError, RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
             print(f"error: cannot create method '{method}': {exc}", file=sys.stderr)
             return 1
         generator = SCARGenerator()

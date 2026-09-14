@@ -58,6 +58,14 @@
   该字段驱动）；计划 §5 阶段 4 补现状注记（实验层已实现
   `cnn_feature_adapter`，主链路不集成）；契约测试补字段集钉子与
   声明性语义钉子（详见 issue #45 与 docs/dev/dual_architecture_plan.md）
+- Survey 语义统一（未发布，随下一版本发布）：issue #42 审计闭环——PUSB
+  方法身份拆分：台账拆为 `pusb`（linear baseline，附加工程基线不入榜）与
+  `pusb_kernel`（official-aligned RBF，pilot 行，需 π）；`run_survey_experiment.py`
+  先验门禁改由 registry `requires_class_prior` 驱动（台账只做结果标注），
+  未入台账方法 fail-loud；新增台账↔registry 一致性契约测试 6 条不变量
+  （tests/contract/test_ledger_registry_consistency.py）；survey 文档双架构
+  表述限缩（7 个 Survey 方法中仅 nnPU 原生 CNN）与 implementation_plan
+  状态横幅（详见 issue #42 与 docs/research/pu_survey/survey_execution_plan.md）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

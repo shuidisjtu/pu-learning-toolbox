@@ -144,7 +144,7 @@ pu_toolbox/
     runtime.py                            (后台执行: submit_background/BackgroundRun 线程池、进度快照与协作取消)
     launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
     deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
-  experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试(见 docs/research/pu_survey/)
+  experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试 + method_ledger.json 方法台账(见 docs/research/pu_survey/)
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
@@ -171,6 +171,7 @@ tests/
     test_classifier_baseline.py         # fit/predict/decision_function/get_params 等
     test_capability_declarations.py     # 能力声明 4 组不变量契约测试
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
+    test_ledger_registry_consistency.py # 台账↔registry 6 条不变量一致性契约
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)

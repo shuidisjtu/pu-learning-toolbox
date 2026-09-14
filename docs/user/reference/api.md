@@ -51,7 +51,7 @@
 | `llsvm` | `LLSVMClassifier` | risk | `alpha` / `beta` / `gamma` / `reg_lambda` / `max_epochs` | [LLSVM](../../research/method_cards/LLSVM.md) |
 | `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
-| `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §6.2](../../research/method_cards/PUSB.md) |
+| `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
 | `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
@@ -377,7 +377,7 @@ PUSBKernelClassifier(*, n_basis=300, cv=5, sigma_grid=(0.01, 0.05, 0.1, 0.5, 1.0
 | `max_iter` / `tol` | `int` / `float` | `200` / `1e-5` | 迭代上限与容差 |
 
 - 正则梯度与官方释放实现一致（`0.5·reg_lambda·‖coef‖²`）。
-- 文档：[PUSB 方法卡 §6.2](../../research/method_cards/PUSB.md)
+- 文档：[PUSB 方法卡 §7.3](../../research/method_cards/PUSB.md)
 
 #### `LBEClassifier`（注册名 `lbe`）
 

@@ -5,7 +5,7 @@ construction, kernel helpers, numerical utilities) that are reused across
 estimator implementations.  They are NOT part of the public API and may
 change between minor releases.
 
-See ``docs/architecture.md`` for the package layering rationale.
+See ``docs/dev/architecture.md`` §2 for the package layering rationale.
 """
 
 from pu_toolbox.utils.activations import sigmoid_stable

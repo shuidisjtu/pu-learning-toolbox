@@ -17,11 +17,15 @@
   `run_survey_experiment.py --oracle`。CNN（图像）路径的 clean-val checkpoint 选择留待 Phase 2。
   详见 [pn_oracle_integration.md](pn_oracle_integration.md)。
 - **能力声明现状**：代码级声明仅 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
-  四字段（有契约测试）——仅 nnPU 为双架构（mlp/cnn、{2,4}、encoder 注入），Self-PU 为 mlp/{2,4}，
-  其余 5 个默认 tabular-only（{2}）——图像数据集上它们必须走 `cnn_feature_adapter`（benchmark-adapted）。
+  四字段（有契约测试）——当前 7 个 Survey 方法中仅 nnPU 支持原生 CNN（mlp/cnn、{2,4}、encoder 注入；
+  工具箱整体另有 infomax_pu、weighted_contrastive_pu 为 mlp/cnn 双架构，不在 Survey 22 方法范围）；
+  Self-PU 为 mlp/{2,4}（接受 4D 展平输入，非原生 CNN，图像归组见 §2）；Dist-PU 声明 {mlp}/{2}（非
+  tabular-only）；uPU/KLDCE/PUSB/LBE 为 tabular-only（{2}）——图像数据集上这些方法必须走
+  `cnn_feature_adapter`（benchmark-adapted）。
 - **协议要求但还未实现/未声明的项**：
-  1. 台账 6 字段（`native_sampling_assumption`/`run_view`/`calibration_applied`/`prior_semantics`/
-     `adaptation_level`/模态与 backbone）在代码与方法卡中**均未声明**（仅协议文字 + 实验层 per-call 机制）
+  1. 台账 6 槽（`native_sampling_assumption`/`run_view`/`calibration_applied`/`prior_semantics`/
+     `adaptation_level`/模态与 backbone；另有 `paper`/`code_version`/`implementation_status` 身份与来源
+     字段）在代码与方法卡中**均未声明**（仅协议文字 + 台账 JSON + 实验层 per-call 机制）
   2. ~~官方示例脚本（协议 §2.4 第 9 条）未实现~~ ✅ 2026-09-08 已实现（见 §2.2 的 1.3 先行小工作）
   3. 中心超参数注册表（实现计划 §6，参考 PU-Bench `core/hparams_registry.py`）未实现；
      当前候选池仅为 runner `config["candidates"]` 的运行态配置
@@ -39,7 +43,7 @@
 |---|---|---|---|---|
 | P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 复核其执行环境 |
 | P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 进行中 / shuidisjtu |
-| P1.3a | 方法台账 | — | 7 个已实现方法的六字段有证据；每项经对应方法负责人复核 | ✅ 初版完成 / shuidisjtu；HENG958 复核 nnPU、Self-PU |
+| P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 初版完成 / shuidisjtu；HENG958 复核 nnPU、Self-PU |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
 | P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ 已完成 / shuidisjtu；HENG958 复核可执行性 |
 | P2.0a | Pilot 共享规格与 oracle 对齐决策 | P1.3a、P1.3b | 共享 backbone/预算、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 未完成 / HENG958；shuidisjtu 复核 |
@@ -65,14 +69,21 @@
 - **1.2 数据获取**：种子子集先行 = `CIFAR-10 + Spambase + IMDB`（1 图 + 1 表 + 1 文）；各数据集获取渠道——MNIST/F-MNIST/CIFAR-10 自动下载，
   20News `sklearn.fetch_20newsgroups`，Spambase/Connect-4 UCI，IMDB HF/原始文本，ADNI 特殊（见 D1）。
 - **1.3 先行小工作**（pilot 前，工作量小收益大）：
-  1. **方法台账 JSON ✅（2026-09-08）**（`pu_toolbox/experiment/method_ledger.json`，程序真相源）：7 个已实现方法 × 6 字段，值按方法卡/论文
+  1. **方法台账 JSON ✅（2026-09-08）**（`pu_toolbox/experiment/method_ledger.json`，程序真相源）：7 个已实现方法 × 6 槽
+     （另有 `paper`/`code_version`/`implementation_status` 身份与来源字段），值按方法卡/论文
      填写，存疑处显式标注；实验脚本读取（TS-OS 判定/结果标注"原生适用 vs 假设违背鲁棒性"的依据）。
      【采用独立 JSON 方案；方法卡节、注册表字段扩展后期可做。经典 5 方法（uPU/KLDCE/Dist-PU/PUSB/LBE）
      已由 shuidisjtu 填写，nnPU/Self-PU 骨架+证据立好，待 HENG958 复核。】
+     【台账与 registry 边界（2026-09-14，issue #42）】registry（类属性权威 + `_SYNC_FIELDS` 镜像）
+     是代码真相源，负责训练正确性门禁（`requires_class_prior` 等）；本台账是 Survey 范围的实验标注源
+     （当前 8 键，含 `pusb_kernel`），负责 TS-OS/原生适用等标注与结果留痕；两者一致性由
+     `tests/contract/test_ledger_registry_consistency.py` 锁定。台账 evidence 当前覆盖 6 槽中的 3 个
+     （原生假设/先验语义/适配级别），其余槽证据待补（不阻塞 pilot）。
   2. **官方示例脚本 ✅（2026-09-08）**（协议 §2.4 第 9 条交付物 + pilot 执行载体；
      `scripts/run_survey_experiment.py`）：
-     读取四份数据 → c/candidates 配置 → `ExperimentRunner` → PA/OA → 结果归档；台账驱动先验必传判定；
-     PN oracle 留待 P2 引入。
+     读取四份数据 → c/candidates 配置 → `ExperimentRunner` → PA/OA → 结果归档；先验必传由 registry
+     `requires_class_prior`（类属性权威）驱动门禁、台账 `prior_semantics` 只做结果标注，未入台账的方法
+     经本脚本运行 fail-loud；PN oracle 已于 2026-09-11 接入（`--oracle`，见 §1）。
 - **1.4 pilot 数据产物 ✅（2026-09-08）**：种子 3 集 × 5 seeds 四路切分完成
   （`data/splits/<dataset>/split_<seed>/` 四份 npz + split_manifest.json；
   `scripts/prepare_survey_splits.py` 生成，产物经 15 套合同断言 + 示例脚本端到端冒烟验证）。
@@ -85,8 +96,11 @@
   （**跑批去重**：oracle 结果对 c 恒定，每 (dataset, seed) 跑 1 次共 15 次，
   聚合时广播到各 c 列并标注 `c_independent`；脚本用 `--oracle`）
 - 模态-方法矩阵：表格/文本上 7 法均原生（文本＝SBERT 384 维特征 + MLP）；
-  图像端到端仅 nnPU、Self-PU 原生（CNN）；其余 5 法图像走 `cnn_feature_adapter`
+  图像端到端仅 nnPU 原生（CNN）；Self-PU 为 mlp-only（{mlp}/{2,4}、无 encoder，其图像路径
+  非端到端原生 CNN，归组待定）；其余 5 法图像走 `cnn_feature_adapter`
   （基准-适配、与原生路径**强制分组**，不混合排名）
+- **PUSB 行采用 `pusb_kernel`**（official-aligned RBF 核实现，需 π，由 registry `requires_class_prior`
+  门禁强制每 run 传入）；linear baseline `pusb` 为附加工程基线，不入榜（2026-09-14，issue #42）
 - 候选池：pilot 阶段用论文默认参数 + 少量合手候选（中心注册表到 P4 引入）
 - **依赖**：oracle 与各 PU 方法须在同一 backbone 规格下比较（协议 §2.5 第 4 条）——该规格
   属 P3 前置（见下）。pilot 若在其确定前启动，oracle 行须标注自身结构并单列，待规格落定后重跑
