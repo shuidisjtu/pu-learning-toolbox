@@ -623,7 +623,7 @@ report = pipe.fit_evaluate(
 
 | 参数 | 默认 | 取值 | 语义 |
 |---|---|---|---|
-| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数（当前 `wconpu` / `infomax_pu` / `nnpu`）；未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError` |
+| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数；候选方法由 registry 能力声明动态生成（当前 `wconpu` / `infomax_pu` / `nnpu`，见 `list-methods` 能力列）。未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError`；4-D 图像配 `"mlp"` 同样抛 `PipelineError`（提示同源动态候选） |
 | `backbone` | `"cnn13"` | `"cnn13"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
 | `device` | `None`（auto） | `None`/`"auto"`/`"cpu"`/`"cuda"` 等 | 透传给深度分类器（`_fresh_estimator` 按签名注入）；`None`/`"auto"` 自动检测：torch + CUDA 可用则 `"cuda"`，否则 `"cpu"` |
 

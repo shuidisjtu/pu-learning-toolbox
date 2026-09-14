@@ -251,7 +251,7 @@ class SelfPUClassifier(BasePUClassifier):
     maturity = Maturity.RESEARCH
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
     native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2, 4})
+    input_ndims = frozenset({2})
     encoder_parameter = None
     trains_encoder = False
 
@@ -401,6 +401,8 @@ class SelfPUClassifier(BasePUClassifier):
         if self.backbone is not None:
             model = copy.deepcopy(self.backbone)
         else:
+            # Flatten tolerates 4-D estimator-level input, but the class
+            # declares input_ndims={2} only -- no native CNN path (issue #38).
             model = nn.Sequential(
                 nn.Flatten(),
                 nn.Linear(int(np.prod(input_shape)), self.hidden_dim),

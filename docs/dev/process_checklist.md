@@ -66,6 +66,13 @@
   （tests/contract/test_ledger_registry_consistency.py）；survey 文档双架构
   表述限缩（7 个 Survey 方法中仅 nnPU 原生 CNN）与 implementation_plan
   状态横幅（详见 issue #42 与 docs/research/pu_survey/survey_execution_plan.md）
+- Self-PU CNN 声明收口（未发布，随下一版本发布）：issue #38 决策——
+  Self-PU 不支持 native CNN（mlp-only）；`input_ndims` 收窄为 `{2}`
+  （4D 展平仅为估计器层容忍，非声明能力），契约 pin 与台账同步；
+  survey 图像行经 `cnn_feature_adapter` 与其余 5 法同组；4-D+mlp 的
+  Pipeline 报错提示改为 registry 动态候选（修复 #45 修复时遗漏的
+  第三处硬编码 wconpu/infomax_pu），补回归测试（详见 issue #38 与
+  docs/dev/dual_architecture_plan.md 阶段 3）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

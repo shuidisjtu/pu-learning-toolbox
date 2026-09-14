@@ -12,6 +12,7 @@ import numpy as np
 from ..core.config import POSITIVE_LABEL
 from ..core.exceptions import PipelineError, ValidationError
 from ..core.validation import validate_pu_X_y, validate_true_binary_labels
+from ._models import cnn_capable_classifier_names
 
 
 def prepare_pipeline_inputs(
@@ -33,9 +34,11 @@ def prepare_pipeline_inputs(
     if X.ndim not in (2, 4):
         raise ValidationError(f"X must be 2-D (table) or 4-D (NCHW images); got ndim={X.ndim}.")
     if X.ndim == 4 and not (is_deep and architecture == "cnn"):
+        cnn_methods = cnn_capable_classifier_names()
+        cnn_hint = ", ".join(cnn_methods) if cnn_methods else "no registered methods"
         raise PipelineError(
-            "4-D image inputs require an explicit deep classifier "
-            "(wconpu or infomax_pu) with architecture='cnn'."
+            "4-D image inputs require an explicit deep classifier with "
+            f"architecture='cnn' (registered CNN-capable methods: {cnn_hint})."
         )
     if X.ndim == 2 and architecture == "cnn":
         raise PipelineError(

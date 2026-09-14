@@ -308,10 +308,10 @@
       "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:434-436/446-447/451）",
       "modality_backbone": {
         "modalities": ["tabular"],
-        "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）",
+        "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）；不支持 native CNN（issue #38 决策：mlp-only、input_ndims 收窄为 {2}，4D 展平仅为估计器层容忍；survey 图像行走 cnn_feature_adapter）",
         "code_capability": {
           "native_architectures": ["mlp"],
-          "input_ndims": [2, 4],
+          "input_ndims": [2],
           "encoder_parameter": null,
           "trains_encoder": false
         }
@@ -325,7 +325,8 @@
         "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）",
         "validation_data（clean-label 元重加权）与 pu_validation_data（仅 P/U 标签 nnPU risk 恢复 checkpoint）两入口严格分离（Self-PU.md:388-389）",
         "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）",
-        "upstream_url 锚定 registry:323；方法卡记 TAMU-VITA/Self-PU，疑为同仓库更名，待核对"
+        "upstream_url 锚定 registry:323；方法卡记 TAMU-VITA/Self-PU，疑为同仓库更名，待核对",
+        "原生 CNN 未接入：依 dual_architecture_plan 阶段 3 长期搁置（元学习再加权依赖干净验证标签，encoder 适配不解决该前置条件）；需原生 CNN 时单独立项（issue #38，2026-09-14）"
       ],
       "filler": "HENG958（骨架与证据已立，待复核确认）"
     }
