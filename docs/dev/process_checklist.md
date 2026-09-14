@@ -73,6 +73,12 @@
   Pipeline 报错提示改为 registry 动态候选（修复 #45 修复时遗漏的
   第三处硬编码 wconpu/infomax_pu），补回归测试（详见 issue #38 与
   docs/dev/dual_architecture_plan.md 阶段 3）
+- Self-PU `input_ndims` 契约修正（未发布，随下一版本发布）：审阅 P1#1——
+  `input_ndims` 恢复 `{2,4}`（模板定义该字段为"支持输入维度"，4D 展平是
+  fit 实际公共行为，声明 {2} 与行为矛盾且 runner 会拒绝本可运行的输入）；
+  "非原生 CNN"语义由 `native_architectures={"mlp"}` 承载；契约 pin、台账
+  `code_capability` 与 dual_architecture_plan 阶段 3 注记同步（详见
+  docs/dev/dual_architecture_plan.md 阶段 3）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

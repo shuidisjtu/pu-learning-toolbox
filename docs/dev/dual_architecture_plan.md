@@ -227,10 +227,14 @@ eval probe 得 representation_dim 后组合为单一
 generator 协议，与 encoder 注入无法直接映射。二者建议长期搁置，待有明确
 实验需求再单独立项。
 
-**现状注记（2026-09-14，issue #38）**：Self-PU 维持 mlp-only——能力声明为
-`{mlp}`/`{2}`/无 encoder/不训练 encoder；`input_ndims` 已收窄为 `{2}`
-（此前 `{2,4}` 与 Pipeline 对 mlp 架构拒绝 4D 的行为脱节；默认网络的
-`Flatten` 仍容忍 4D 估计器级输入，但这不是声明能力）。Survey 图像行经
+**现状注记（2026-09-14，issue #38 + 审阅 P1#1 修正）**：Self-PU 维持
+mlp-only——能力声明为 `{mlp}`/`{2,4}`/无 encoder/不训练 encoder。"非原生
+CNN"语义由 `native_architectures={"mlp"}` 承载，不再由 `input_ndims`
+收窄表达：模板定义 `input_ndims` 为"支持输入维度"，而默认网络的
+`Flatten` 使 fit 实际接受 4D 估计器级输入（有测试验证），声明 `{2}` 与
+公共行为矛盾，且 `ExperimentRunner._validate_model_capability` 会按声明
+拒绝本可运行的输入——故恢复 `{2,4}`（2026-09-14 审阅 P1#1）。Pipeline
+层 4-D+mlp 的拒绝是独立于声明的 UX 护栏，不受影响。Survey 图像行经
 `cnn_feature_adapter` 与其他非 CNN 方法同组。原生 CNN 接入（论文有
 MNIST MLP/CIFAR-13 层 CNN/ADNI 3-branch CNN 协议）待有明确实验需求时
 单独立项。
