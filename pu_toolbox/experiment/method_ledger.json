@@ -308,10 +308,10 @@
       "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:434-436/446-447/451）",
       "modality_backbone": {
         "modalities": ["tabular"],
-        "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）；不支持 native CNN（issue #38 决策：mlp-only、input_ndims 收窄为 {2}，4D 展平仅为估计器层容忍；survey 图像行走 cnn_feature_adapter）",
+        "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）；不支持 native CNN（mlp-only；input_ndims {2,4} 按模板\"支持输入维度\"口径声明，4D 展平为估计器层实际支持、非 CNN 能力，2026-09-14 审阅 P1#1；survey 图像行走 cnn_feature_adapter）",
         "code_capability": {
           "native_architectures": ["mlp"],
-          "input_ndims": [2],
+          "input_ndims": [2, 4],
           "encoder_parameter": null,
           "trains_encoder": false
         }
