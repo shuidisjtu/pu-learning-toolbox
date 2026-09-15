@@ -119,6 +119,10 @@ oracle、阈值选择，通过 §7 验收清单后再扩展 SAR 细节与资源�
   - 差异记录：PU-Bench 的 `n_labeled = int(n_pos · labeled_ratio)` 为向下取整，协议 §2.1 采用
     `round(c·n_+)`——实现时以协议口径为准并记录实际 `c`。
 - 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录。
+- **脚本入口（2026-09-15，issue #43 完成）**：`run_survey_experiment.py --labeling-mechanism
+  sar_lbe_a|sar_lbe_b --c 0.05,0.5` 接通 OA-only SAR 路径；门禁、目录 schema 与 manifest
+  审计字段见 [survey_execution_plan.md](survey_execution_plan.md) §1 与
+  [experiment_layer.md](../../dev/experiment_layer.md) §4。
 
 ### 2.3 split 操作细节（要求层级见协议 §2.4 第 3-4 条）
 

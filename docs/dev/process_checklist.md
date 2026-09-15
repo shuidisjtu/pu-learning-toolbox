@@ -79,6 +79,19 @@
   "非原生 CNN"语义由 `native_architectures={"mlp"}` 承载；契约 pin、台账
   `code_capability` 与 dual_architecture_plan 阶段 3 注记同步（详见
   docs/dev/dual_architecture_plan.md 阶段 3）
+- SAR-OA 执行路径（未发布，随下一版本发布）：issue #43——官方脚本新增
+  `--labeling-mechanism {scar, sar_lbe_a, sar_lbe_b}`（默认 scar，与 --method
+  正交）；SAR 分支强制 OA-only（runner 默认是 `protocols or [PA, OA]`，
+  故须显式注入 `[ProtocolOA()]` 而非空列表）；SAR c 仅接受协议 token
+  `{0.05,0.5}`（PU-Bench vary-e，D7），目录按用户 token 命名并落
+  `<mechanism>/c_<token>/seed_<seed>`；c 词法五重校验与机制×oracle 组合门禁
+  在读数据/建目录/建模型前 fail-loud；生成器元数据统一审计词汇
+  （`c_requested`/`n_labeled_requested` 未夹紧 vs `c_realized`/`n_labeled`
+  夹紧后、`generation_seed`、`label_view_sha256`），posterior 输入支持任意
+  ndim（4-D NCHW 展平后 fit/predict 同视图）；`c_requested_token` 由脚本在
+  运行成功后回写 manifest（不改 runner）；测试抽取
+  `tests/unit/experiment/_survey_script_helpers.py` 共享夹具并新增 SAR 脚本
+  测试文件（basic/param/edge/determ 四类，RED→GREEN）
 - **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
   （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
   `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本

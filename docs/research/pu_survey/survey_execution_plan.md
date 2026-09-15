@@ -16,6 +16,12 @@
   `output_view="clean"`）+ `SupervisedTrainer` + 仅 OA 协议接入，脚本入口
   `run_survey_experiment.py --oracle`。CNN（图像）路径的 clean-val checkpoint 选择留待 Phase 2。
   详见 [pn_oracle_integration.md](pn_oracle_integration.md)。
+- **SAR-OA 执行路径（2026-09-15 接通，issue #43）**：官方脚本新增
+  `--labeling-mechanism {scar, sar_lbe_a, sar_lbe_b}`（默认 `scar`，与 `--method` 正交）。
+  SAR 行 OA-only、c 仅接受协议 token `{0.05, 0.5}`（PU-Bench vary-e），输出落
+  `<out-dir>/<mechanism>/c_<token>/seed_<seed>/`；生成器审计字段（请求值/夹紧值/seed/标记摘要）
+  入 manifest。**可运行边界**：SAR 行仍需 P2.0b 的标签语义门禁与 P2.0a 的执行矩阵才可进入正式
+  pilot 混排；在此之前 SAR 产物按技术验证单列（见 §2.0 三种门槛）。
 - **能力声明现状**：代码级声明仅 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
   四字段（有契约测试）——当前 7 个 Survey 方法中仅 nnPU 支持原生 CNN（mlp/cnn、{2,4}、encoder 注入；
   工具箱整体另有 infomax_pu、weighted_contrastive_pu 为 mlp/cnn 双架构，不在 Survey 22 方法范围）；
@@ -53,6 +59,7 @@
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 未完成 / HENG958；shuidisjtu 复核 |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 未完成 / shuidisjtu；HENG958 复核 |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 未完成 / shuidisjtu；HENG958 复核 |
+| P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 复核 |
 | P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |
 | P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果 |
 | P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | ⏳ 待办 / shuidisjtu：VPU、PULDA、PAN、RP、CVIR、PULNS |
@@ -215,6 +222,7 @@ resolved 单元写入 manifest。
 | D5 | Self-PU `input_ndims` 恢复 `{2,4}` | 审阅 P1#1：模板定义该字段为"支持输入维度"，4D 展平是 fit 的实际公共行为；"非原生 CNN"由 `native_architectures={"mlp"}` 承载（修正 issue #38 的收窄，代码随 fix 分支 PR） | 2026-09-14 |
 | D6 | PU-Bench PN 行降级为背景参考 | 其 `pn` 用 `val_proxy_acc` 选模、我方 oracle 用 `clean_val_accuracy`，数值不可直接对比（`pn_oracle_integration.md` 既有决策）；不参与「交叉验证对照」判定规则第 1 条的数值裁决 | 2026-09-14 |
 | D7 | SAR 标记频率口径修正 | 复核 PU-Bench 论文与锁定代码 `2d95a19`：`config/datasets_vary_e/*.yaml` 均使用 `c_values: [0.05, 0.5]`；原协议 `{0.1,0.5}` 与参考实现不一致，修正为 `{0.05,0.5}`。SCAR 主实验 `{0.1,0.3,0.5}` 不变；issue #43 按修正后口径实施 | 2026-09-15 |
+| D8 | SAR 执行路径设计（issue #43） | `--labeling-mechanism` 与 `--method` **正交**（机制是实验自变量，SAR 行可跑任意 survey 方法）；SAR 强制 OA-only（协议 §2.3 下 PA 仅可诊断，v1 不产出 PA 日志）；SAR c 只接受**规范 token** `{0.05,0.5}`，目录按用户输入 token 命名（`c_0.05` 不得被格式化为 `c_0.1`），同值异拼写（`0.05`/`5e-2`）拒绝；`c_requested_token` 由脚本在运行成功后回写 manifest（runner manifest schema 为固定白名单，不改 runner，降低与 P2.0a 冲突） | 2026-09-15 |
 
 ## 4. 存在的开放问题与风险
 

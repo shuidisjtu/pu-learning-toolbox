@@ -119,11 +119,27 @@ Survey runner with:
 ```bash
 uv run python scripts/prepare_survey_splits.py --help
 uv run python scripts/run_survey_experiment.py --help
+
+# SCAR row (PA + OA selection)
+uv run python scripts/run_survey_experiment.py path/to/splits \
+    --method lbe --c 0.1,0.3,0.5
+
+# SAR pressure test (LBE-A/LBE-B labeling, OA only, c in {0.05, 0.5})
+uv run python scripts/run_survey_experiment.py path/to/splits \
+    --method lbe --labeling-mechanism sar_lbe_a --c 0.05,0.5
 ```
 
-See [`docs/research/pu_survey/`](docs/research/pu_survey/) for the protocol,
-current execution status, and reporting boundaries. Until all protocol gates
-are satisfied, results must be identified as a `pilot / partial benchmark`.
+Methods that require the population class prior take `--class-prior` for the
+gate plus their constructor arguments via `--model-params` (see
+`--help` and the script docstring for a uPU example).
+
+`--labeling-mechanism` picks how the PU label view is generated (SCAR or the
+SAR LBE variants) and is orthogonal to `--method`: the mechanism is the
+experiment's independent variable, so the SAR rows run any survey method and
+report OA only. See [`docs/research/pu_survey/`](docs/research/pu_survey/) for
+the protocol, current execution status, and reporting boundaries. Until all
+protocol gates are satisfied, results must be identified as a
+`pilot / partial benchmark`.
 
 ## AI workflow skill
 
