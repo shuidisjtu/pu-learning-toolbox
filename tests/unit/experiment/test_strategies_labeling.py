@@ -103,3 +103,90 @@ def test_determ_clean_label_generator_ignores_seed_and_c():
     b, _ = CleanLabelGenerator().generate(X, y_true, 0.9, seed=123)
     assert np.array_equal(a, b)
     assert np.array_equal(a, y_true)
+
+
+def test_lbe_generators_accept_4d_nchw_input():
+    """CNN survey splits hand the generators 4-D NCHW tensors.
+
+    The posterior helper is a linear model, so fit AND predict must consume
+    the same flattened ``(n, -1)`` view (PU-Bench data_utils.py:417-421);
+    fitting on 4-D and predicting on 4-D must not diverge.
+    """
+    X = np.random.RandomState(0).normal(size=(12, 1, 4, 4))
+    y_true = np.array([1] * 6 + [0] * 6)
+    for gen in (SARLBEAGenerator(), SARLBEBGenerator()):
+        y_pu, _ = gen.generate(X, y_true, 0.5, seed=0)
+        # clamping is a no-op here: min(6, max(1, round(0.5*6))) = 3
+        assert int(np.sum(y_pu == 1)) == 3
+        assert np.all(y_true[y_pu == 1] == 1)  # pool = positives only (S=1 ⟹ Y=1)
+        again, _ = gen.generate(X, y_true, 0.5, seed=0)
+        assert np.array_equal(y_pu, again)
+
+
+def test_lbe_metadata_records_requested_and_actual_label_counts():
+    """The protocol formula and the clamped count disagree at c·n₊ < 0.5."""
+    X = np.array([[0.0], [1.0], [2.0], [3.0]])
+    y_true = np.array([1, 1, 0, 0])  # n_pos = 2
+    for gen in (SARLBEAGenerator(), SARLBEBGenerator()):
+        # requested = round(2*0.05) = 0, but _n_labeled clamps to one label
+        _, meta = gen.generate(X, y_true, 0.05, seed=0)
+        assert meta["n_labeled_requested"] == 0
+        assert meta["n_labeled"] == 1
+        assert meta["c_realized"] == 0.5
+        assert meta["n_positive"] == 2
+    # Non-boundary case: requested == realized.
+    X12 = np.zeros((12, 2))
+    y12 = _y(12)  # 6 positives
+    for gen in (SARLBEAGenerator(), SARLBEBGenerator()):
+        _, meta = gen.generate(X12, y12, 0.5, seed=0)  # round(0.5*6) = 3
+        assert meta["n_labeled_requested"] == 3
+        assert meta["n_labeled"] == 3
+
+
+def test_scar_metadata_records_common_audit_fields():
+    """SCAR and the LBE variants share one audit-field vocabulary."""
+    y_true = _y(10)  # 5 positives
+    _, meta = SCARGenerator().generate(np.zeros((10, 2)), y_true, 0.4, seed=3)
+    assert meta["generator"] == "SCARGenerator"
+    assert meta["mechanism"] == "scar"
+    assert meta["c_requested"] == 0.4
+    assert meta["c_realized"] == 0.4
+    assert meta["n_positive"] == 5
+    assert meta["n_labeled_requested"] == 2
+    assert meta["n_labeled"] == 2
+    assert meta["generation_seed"] == 3
+
+
+def test_lbe_metadata_records_generation_seed():
+    """LBE provenance: the seed that drove sampling is recorded verbatim."""
+    X = np.array([[0.0], [1.0], [2.0], [3.0]])
+    y_true = np.array([1, 1, 0, 0])
+    for gen, expected in (
+        (SARLBEAGenerator(), "SARLBEAGenerator"),
+        (SARLBEBGenerator(), "SARLBEBGenerator"),
+    ):
+        _, meta = gen.generate(X, y_true, 0.5, seed=5)
+        assert meta["generator"] == expected
+        assert meta["generation_seed"] == 5
+
+
+def test_label_view_hash_is_stable_and_reflects_the_marking():
+    """Protocol §2.4 item 4 audit hook: one (seed, c, mechanism) ⇒ one marking.
+
+    The manifest exposes counts only, so two runs can agree on every printed
+    number while marking different samples; the digest over the label view is
+    what lets a reader verify afterwards that the methods compared under one
+    (dataset, seed, c) really saw the same P/U marking.
+    """
+    from pu_toolbox.utils.serialization import canonical_hash
+
+    X = np.random.RandomState(1).normal(size=(40, 2))
+    y_true = np.array([1] * 20 + [0] * 20)
+    for gen in (SCARGenerator(), SARLBEAGenerator(), SARLBEBGenerator()):
+        y_a, meta_a = gen.generate(X, y_true, 0.5, seed=7)  # 10 labeled
+        _, meta_b = gen.generate(X, y_true, 0.5, seed=7)
+        assert meta_a["label_view_sha256"] == meta_b["label_view_sha256"]
+        assert meta_a["label_view_sha256"] == canonical_hash({"y_pu": y_a.tolist()})
+        # a different label count is a different marking by construction
+        _, meta_c = gen.generate(X, y_true, 0.2, seed=7)  # 4 labeled
+        assert meta_c["label_view_sha256"] != meta_a["label_view_sha256"]

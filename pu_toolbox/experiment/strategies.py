@@ -21,6 +21,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from pu_toolbox.core.random import check_random_state
+from pu_toolbox.utils.serialization import canonical_hash
 
 from .bundle import DatasetPart, LabelView
 from .protocols import Generator, SelectionProtocol, Trainer
@@ -34,8 +35,52 @@ def _n_labeled(y_true: np.ndarray, c: float) -> int:
     return min(n_pos, max(1, int(np.round(n_pos * c))))
 
 
+def _flatten_features(X: np.ndarray) -> np.ndarray:
+    """Return the ``(n_samples, -1)`` view of *X* (2-D input is unchanged).
+
+    The posterior helper is a linear model, so survey 4-D NCHW tensors must
+    be flattened before fit/predict — the same view for both, mirroring
+    PU-Bench ``data_utils.py`` (``features.reshape(features.shape[0], -1)``).
+    """
+    if X.ndim <= 2:
+        return X
+    return X.reshape(X.shape[0], -1)
+
+
 def _fit_posterior(X: np.ndarray, y_true: np.ndarray, seed: int | None):
-    return LogisticRegression(solver="lbfgs", max_iter=100, random_state=seed).fit(X, y_true)
+    """Fit the PU-Bench posterior helper on REAL labels (any input dim)."""
+    return LogisticRegression(solver="lbfgs", max_iter=100, random_state=seed).fit(
+        _flatten_features(X), y_true
+    )
+
+
+def _common_generation_metadata(
+    generator, c: float, n_labeled: int, n_pos: int, seed, y_pu: np.ndarray
+) -> dict:
+    """Audit fields shared by SCAR / LBE-A / LBE-B metadata (manifest).
+
+    ``n_labeled_requested`` is the protocol formula ``round(c·n₊)`` BEFORE the
+    ``_n_labeled`` clamp, ``n_labeled`` the count actually applied. The two
+    differ whenever ``round(c·n₊) == 0`` (small ``n₊`` or small ``c``): the
+    run then marks one positive although the protocol asked for none, and the
+    manifest must show both sides of that gap. ``c_requested`` is recorded
+    verbatim because ``c_realized`` is the clamped, sample-size-dependent one.
+
+    ``label_view_sha256`` digests the label view itself, which the counts
+    cannot: protocol §2.4 item 4 requires every method compared under one
+    (dataset, seed, c) to see the SAME P/U marking, and the digest is what
+    makes that auditable after the fact.
+    """
+    return {
+        "generator": type(generator).__name__,
+        "c_requested": float(c),
+        "c_realized": n_labeled / n_pos if n_pos else 0.0,
+        "n_positive": n_pos,
+        "n_labeled_requested": int(np.round(n_pos * c)),
+        "n_labeled": n_labeled,
+        "generation_seed": seed,
+        "label_view_sha256": canonical_hash({"y_pu": np.asarray(y_pu).astype(int).tolist()}),
+    }
 
 
 class SCARGenerator(Generator):
@@ -51,8 +96,7 @@ class SCARGenerator(Generator):
         n_pos = int(len(pos))
         return y_pu, {
             "mechanism": "scar",
-            "c_realized": n_labeled / n_pos if n_pos else 0.0,
-            "n_labeled": n_labeled,
+            **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
         }
 
 
@@ -112,7 +156,8 @@ class SARLBEAGenerator(Generator):
         y_pu = np.zeros(len(y_true), dtype=int)
         if n_pos > 0:
             model = _fit_posterior(X, y_true, seed)
-            scores = model.predict_proba(X)[:, 1]
+            # Score the SAME flattened view the posterior was fitted on.
+            scores = model.predict_proba(_flatten_features(X))[:, 1]
             scores_pos = scores[pos]
             weights = np.clip(scores_pos, 1e-9, None) ** self.k
             w1, w0 = self.smoothing
@@ -121,12 +166,12 @@ class SARLBEAGenerator(Generator):
             y_pu[pos[chosen_pos]] = 1
         return y_pu, {
             "mechanism": "sar_lbe_a",
-            "c_realized": n_labeled / n_pos if n_pos else 0.0,
             "k": self.k,
             "smoothing": self.smoothing,
             "posterior_fit_on": "real_labels",
             "posterior_version": "PU-Bench 2d95a19/lbfgs(max_iter=100)",
             "scores_file": None,
+            **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
         }
 
 
@@ -148,19 +193,20 @@ class SARLBEBGenerator(Generator):
         y_pu = np.zeros(len(y_true), dtype=int)
         if n_pos > 0:
             model = _fit_posterior(X, y_true, seed)
-            scores = model.predict_proba(X)[:, 1]
+            # Score the SAME flattened view the posterior was fitted on.
+            scores = model.predict_proba(_flatten_features(X))[:, 1]
             scores_pos = scores[pos]
             weights = np.clip(1.5 + self.shrink_coef - scores_pos, 0.0, None) ** self.k
             chosen_pos = _lbe_sample(scores_pos, n_labeled, rng, weights)
             y_pu[pos[chosen_pos]] = 1
         return y_pu, {
             "mechanism": "sar_lbe_b",
-            "c_realized": n_labeled / n_pos if n_pos else 0.0,
             "shrink_coef": self.shrink_coef,
             "k": self.k,
             "posterior_fit_on": "real_labels",
             "posterior_version": "PU-Bench 2d95a19/lbfgs(max_iter=100)",
             "scores_file": None,
+            **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
         }
 
 
