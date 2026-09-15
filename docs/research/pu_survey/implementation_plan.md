@@ -108,7 +108,7 @@ oracle、阈值选择，通过 §7 验收清单后再扩展 SAR 细节与资源�
 
 ### 2.2 SAR 压力测试（要求层级见协议 §2.3.2）
 
-- 协议要求仅取 $`c\in\{0.1,0.5\}`$；须与 PU-Bench 的 SAR 设定保持一致。
+- 协议要求仅取 $`c\in\{0.05,0.5\}`$；该值已按 PU-Bench 的 SAR vary-e 设定核实并回填。
 - **锁定值（PU-Bench commit `2d95a19`，已对照源码核实）**：
   - 辅助 posterior 模型：sklearn `LogisticRegression(solver='lbfgs', max_iter=100,
     random_state=seed)`，在源 train 全部特征与**真实标签**上拟合，取 `P(y=1|x)` 作为 scores；
