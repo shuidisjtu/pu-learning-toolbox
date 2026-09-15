@@ -85,7 +85,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    逐样本 Bernoulli 标注。
 
    > SCAR（instance independent）为主实验。SAR 为独立压力测试：
-   > - 仅取 $`c\in\{0.1,0.5\}`$，并须与 PU-Bench 的 SAR 设定保持一致（实现锁定细节见
+   > - 仅取 $`c\in\{0.05,0.5\}`$，并须与 PU-Bench 的 SAR 设定保持一致（实现锁定细节见
    >   [implementation_plan.md](implementation_plan.md) §2）；
    > - 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录；
    > - SAR 下 PA 仅可作为诊断日志，正式模型选择及结论只使用 OA；

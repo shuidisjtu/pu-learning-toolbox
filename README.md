@@ -110,6 +110,21 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 | [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, compatibility |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards |
 
+### PU Survey experiments
+
+Repository research experiments use dedicated scripts rather than the general
+`PUPipeline` workflow. Prepare reproducible four-way splits and inspect the
+Survey runner with:
+
+```bash
+uv run python scripts/prepare_survey_splits.py --help
+uv run python scripts/run_survey_experiment.py --help
+```
+
+See [`docs/research/pu_survey/`](docs/research/pu_survey/) for the protocol,
+current execution status, and reporting boundaries. Until all protocol gates
+are satisfied, results must be identified as a `pilot / partial benchmark`.
+
 ## AI workflow skill
 
 `pu-workflow` (Agent Skills open standard) drives the full PU analysis
