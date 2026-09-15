@@ -284,6 +284,8 @@ tests/
       test_runner.py                    # ExperimentRunner 端到端(小PU/CNN smoke)与 fail-loud
       test_prepare_survey_splits.py     # 1.4 切分产物流水线(tabular/image/text 三路径假数据)
       test_survey_script.py             # run_survey_experiment.py 端到端冒烟/先验强制/缺文件报错
+      _survey_script_helpers.py         # 脚本测试共享夹具: 动态加载与基础/SAR 两套四路 split
+      test_survey_script_sar.py         # SAR 机制 CLI: OA-only/c token 门禁/审计字段/确定性
       test_strategies_labeling.py       # SCAR/SAR-LBE 生成(固定计数/posterior 正例池/seed 确定性)
       test_strategies_selection.py      # 阈值选择与 PA/OA 选模(真实标签/non-PU 视图拒绝/空轨迹)
       test_tracking.py                  # 轨迹/选择制品/结果数据类字段

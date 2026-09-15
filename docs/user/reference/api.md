@@ -1102,6 +1102,16 @@ docstring。
 | `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
 
+三个 PU 标记生成器（`SCARGenerator` / `SARLBEAGenerator` / `SARLBEBGenerator`）的生成元数据
+（落入 manifest 的 `generation.train` / `generation.pu_val`）共享同一审计词汇：`generator`
+（类名）、`mechanism`、`c_requested`（未夹紧的请求值）、`c_realized`（夹紧后实际比例）、
+`n_positive`、`n_labeled_requested`（协议公式 `round(c·n₊)`，**未经夹紧**）、`n_labeled`
+（实际标记数）、`generation_seed` 与 `label_view_sha256`（标签视图摘要）。其中请求值与实际值
+在小 `n₊` 或小 `c` 下**并不相等**——`_n_labeled` 有最小值 1 的夹紧（`round(c·n₊) == 0` 时仍标记
+一个正例），两个字段都记录才可审计该偏移。`label_view_sha256` 供复核协议 §2.4 第 4 条
+"同 seed、同 c 下所有方法共享相同 P/U 标记"。PN oracle 的 `CleanLabelGenerator` 维持既有字段
+（`mechanism` / `c_realized` / `n_labeled` / `c_requested`），是 c 恒定的另一类生成器。
+
 训练策略以 `trains_on_real_labels` 声明 `fit` 期望的标签语义：PU trainer 默认 `False`
 （label `0` 即未标记），PN oracle trainer 置 `True`（label `0` 是真实负类）。runner 在训练前
 要求声明与生成视图一致（两个方向都直接 `ValueError`），拒绝以类代替实例的 `config["trainer"]`，

@@ -34,7 +34,7 @@
 | `training_views.py` | mini-batch 级 OS/TS-compatible 损失视图；TS 方法把 P 同时保留在正例损失并入 U 损失，且仅限 train |
 | `tracking.py` | 纯数据类：`EpochRecord`/`RunTrajectory`/`SelectionArtifact`/`RunResult` |
 | `protocols.py` | 策略 ABC：`Generator.generate(X, y_true, c, seed)` + `output_view` 声明（PU 生成器 `"pu"`，oracle 生成器 `"clean"`）；`Trainer.fit(estimator, X, y, *, class_prior, val_pu)` + `trains_on_real_labels` 声明（PU trainer 默认 `False`，oracle trainer 置 `True`，runner 据此要求声明与生成视图一致）；`SelectionProtocol.select(trajectories, val_part, threshold_candidates)` |
-| `strategies.py` | `SCARGenerator`（fixed-count `round(c·n₊)` 无放回）、`SARLBEAGenerator`/`SARLBEBGenerator`（PU-Bench `2d95a19`：k=10/shrink 1.0、辅助模型 lbfgs(100) 拟合真实标签、**抽样池限定正例集** S=1⟹Y=1）、`CleanLabelGenerator`（PN oracle 视图：真实标签透传、`output_view="clean"`）、`ProtocolPA`/`ProtocolOA` + `select_threshold`、`FitTrainer`/`DeepFitTrainer`/`SupervisedTrainer` |
+| `strategies.py` | `SCARGenerator`（fixed-count `round(c·n₊)` 无放回）、`SARLBEAGenerator`/`SARLBEBGenerator`（PU-Bench `2d95a19`：k=10/shrink 1.0、辅助模型 lbfgs(100) 拟合真实标签、**抽样池限定正例集** S=1⟹Y=1、输入任意 ndim——4-D NCHW 展平后 fit/predict 用同一视图）、`CleanLabelGenerator`（PN oracle 视图：真实标签透传、`output_view="clean"`）、`ProtocolPA`/`ProtocolOA` + `select_threshold`、`FitTrainer`/`DeepFitTrainer`/`SupervisedTrainer`；三个 PU 生成器的元数据共享审计词汇（`c_requested`/`n_labeled_requested` 未夹紧值 vs `c_realized`/`n_labeled` 夹紧后实际值、`generation_seed`、`label_view_sha256` 标签视图摘要） |
 | `manifest.py` | 留痕写入/加载 + 8 必填键校验（seed/split_ref/generation/selection/test_results/elapsed/failures/resources） |
 | `runner.py` | `ExperimentRunner`：校验→生成→候选训练→PA/OA 离线选择→独立 test 评测→留痕 |
 
@@ -51,6 +51,18 @@
   当作真实标签（或反之）训练出错误的"上界"。判定以声明为准：未声明 `True` 的监督 trainer 会被
   当作 PU trainer。守卫不覆盖估计器自身的优化目标（见 pn_oracle_integration.md §8）。深度
   （CNN）oracle 的 clean-val checkpoint 选择列为 Phase 2
+- **SAR LBE-A/LBE-B OA-only 执行路径（2026-09-15，issue #43）**：官方脚本新增
+  `--labeling-mechanism {scar, sar_lbe_a, sar_lbe_b}`（默认 `scar`，与 `--method` 正交——机制是
+  实验自变量，SAR 行可跑任意 survey 方法）。SAR 分支显式注入 `[ProtocolOA()]`（协议 §2.3：SAR 下
+  PA 仅可作诊断，正式选模与结论只用 OA），c 仅接受协议 token `{0.05, 0.5}`（PU-Bench vary-e），
+  运行落在 `<out-dir>/<mechanism>/c_<token>/seed_<seed>/`；SCAR 保持 runner 默认 PA+OA，目录为
+  `c_<token>`——两侧均按**用户输入 token** 命名（不再经 `:.1f` 归一，故 `--c 0.05` 不会落进
+  `c_0.1`；同一数值的不同拼写会被拒绝而非写成两个目录）。请求门禁（c 词法五重校验、机制×oracle
+  组合、SAR c 取值）在读取数据、创建目录与构造估计器之前 fail-loud；`c_requested_token`
+  （用户输入的 c 拼写）在运行成功后由脚本回写 manifest（runner 的 manifest schema 是固定白名单，
+  不序列化任意 config）。生成器审计字段见 api.md。
+  **边界**：脚本暂无 `--architecture` 入口，4-D 图像 bundle 上 SAR 标记可正常生成，但端到端训练
+  需经 `ExperimentRunner` API 显式声明 `architecture`（CLI 侧的图像执行路径归 P2.0a 执行矩阵）。
 - **后续跟进项**（正式 survey 数据生成前处理）：
   - 数据前处理 P1：八数据集目录/四路切分、SBERT 文本缓存、图像 train-only 统计及
     ResNet-18/增强留痕、TS-OS batch 校准、CNN feature adapter 与公平性分组门禁均已实现
