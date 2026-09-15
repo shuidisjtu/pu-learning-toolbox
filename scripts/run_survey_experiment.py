@@ -32,6 +32,22 @@ prose.  The ledger entry itself only annotates the result: it is copied next
 to the manifests so runs can be labelled (runtime method, native-sampling
 assumption, adaptation level, prior semantics).
 
+``--labeling-mechanism`` selects how the PU label view is *generated* — SCAR
+(protocol §2.1) or one of the SAR LBE variants (protocol §2.3 pressure test) —
+and is orthogonal to ``--method``: the mechanism is the experiment's
+independent variable, so ``sar_lbe_a`` does not imply ``--method lbe`` and any
+survey row can be run under either mechanism.  SAR is OA-only (protocol §2.3:
+under SAR the PA protocol only logs diagnostics, official model selection and
+conclusions use OA), so the SAR path injects ``[ProtocolOA()]`` explicitly and
+nests its runs under ``<mechanism>/c_<token>/seed_<seed>``.  The SAR label
+frequencies are restricted to the protocol values ``{0.05, 0.5}`` (PU-Bench
+vary-e, see implementation_plan.md §2.2); a token outside that set fails before
+any data is read.  Note that this CLI's ``--labeling-mechanism`` value space is
+*not* the ``labeling_mechanism`` column of ``benchmarks/assigned_methods``
+(``{scar, linear, nonlinear}``, the propensity-model shape inside that
+benchmark runner): here the name picks one of the survey's generator
+strategies.
+
 ``--oracle`` switches to the PN oracle path (§2.4 item 10): the same runner
 over the same underlying train partition, but the real labels are passed
 through (``CleanLabelGenerator``), OA is the only selection protocol, and no
@@ -47,6 +63,10 @@ Usage::
         --out-dir results/survey/upu
 
     uv run python scripts/run_survey_experiment.py path/to/my/splits/ \\
+        --method lbe --labeling-mechanism sar_lbe_a --c 0.05,0.5 \\
+        --seeds 0,1,2 --out-dir results/survey/sar_lbe_a
+
+    uv run python scripts/run_survey_experiment.py path/to/my/splits/ \\
         --oracle --seeds 0,1,2 --out-dir results/survey/pn_oracle
 """
 
@@ -54,7 +74,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -62,10 +84,13 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
+from pu_toolbox.experiment.manifest import load_manifest, write_manifest
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import (
     CleanLabelGenerator,
     ProtocolOA,
+    SARLBEAGenerator,
+    SARLBEBGenerator,
     SCARGenerator,
     SupervisedTrainer,
 )
@@ -73,6 +98,138 @@ from pu_toolbox.experiment.strategies import (
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
 
 _ROLE_FILES: tuple[str, ...] = ("train", "pu_val", "clean_val", "test")
+
+# Label-view mechanisms this CLI can run (``--labeling-mechanism``): SCAR, the
+# survey's main row, plus the two SAR LBE variants of the pressure test.
+LABELING_MECHANISMS: tuple[str, ...] = ("scar", "sar_lbe_a", "sar_lbe_b")
+
+# Mechanisms whose official selection protocol is OA only (protocol §2.3).
+SAR_MECHANISMS: frozenset[str] = frozenset({"sar_lbe_a", "sar_lbe_b"})
+
+# SAR label frequencies (PU-Bench vary-e, implementation_plan.md §2.2).
+SAR_C_TOKENS: frozenset[str] = frozenset({"0.05", "0.5"})
+
+_LABELING_GENERATORS: dict[str, type] = {
+    "scar": SCARGenerator,
+    "sar_lbe_a": SARLBEAGenerator,
+    "sar_lbe_b": SARLBEBGenerator,
+}
+
+
+@dataclass(frozen=True)
+class CValue:
+    """One requested label frequency: numeric value plus the spelling used.
+
+    Both parts are kept because they answer different questions.  ``value`` is
+    what the estimator and the generator run on; ``token`` is what the user
+    typed, and it names the output directory — ``0.05`` must not be
+    renormalised into the SCAR grid's ``c_0.1``.
+    """
+
+    value: float
+    token: str
+
+
+def _parse_c_values(raw: str) -> list[CValue]:
+    """Parse a ``--c`` argument into (value, token) pairs, rejecting bad input.
+
+    Per token: strip the whitespace, then require a non-empty, finite number
+    inside ``(0, 1]``.  A final pass rejects two tokens naming the same value
+    (``0.05`` and ``5e-2``): they would select one output directory and
+    silently reduce a two-point scan to a single overwritten run.
+    """
+    parsed: list[CValue] = []
+    seen: dict[float, str] = {}
+    for raw_token in raw.split(","):
+        token = raw_token.strip()
+        if not token:
+            raise ValueError(f"empty label frequency in --c {raw!r}")
+        try:
+            value = float(token)
+        except ValueError:
+            raise ValueError(f"label frequency {token!r} in --c {raw!r} is not a number") from None
+        if not math.isfinite(value):
+            raise ValueError(f"label frequency {token!r} in --c {raw!r} is not finite")
+        if not 0.0 < value <= 1.0:
+            raise ValueError(f"label frequency {token!r} in --c {raw!r} is outside (0, 1]")
+        if value in seen:
+            raise ValueError(
+                f"duplicate label frequency: tokens {seen[value]!r} and {token!r} both "
+                f"mean c={value}; keep one spelling per value so one request maps to "
+                "one output directory"
+            )
+        seen[value] = token
+        parsed.append(CValue(value=value, token=token))
+    return parsed
+
+
+def _resolve_labeling_generator(mechanism: str):
+    """Map a ``--labeling-mechanism`` name to a fresh generator strategy."""
+    if mechanism not in _LABELING_GENERATORS:
+        raise ValueError(
+            f"unknown labeling mechanism {mechanism!r}; expected one of "
+            f"{', '.join(LABELING_MECHANISMS)}"
+        )
+    return _LABELING_GENERATORS[mechanism]()
+
+
+def _resolve_labeling_protocols(mechanism: str) -> list | None:
+    """Selection protocols for a mechanism; ``None`` means the runner default.
+
+    SAR is OA-only (protocol §2.3), and the SAR branch must return a non-empty
+    list: the runner interprets ``protocols or [ProtocolPA(), ProtocolOA()]``,
+    so an empty list would silently reinstate the PA protocol SAR forbids.
+    SCAR keeps the runner default of PA + OA.
+    """
+    if mechanism in SAR_MECHANISMS:
+        return [ProtocolOA()]
+    return None
+
+
+def _validate_labeling_request(*, mechanism: str, is_oracle: bool, c_values: list[CValue]) -> None:
+    """Gate the mechanism/oracle combination and the SAR label frequencies.
+
+    Both gates run before any split is read, directory created or estimator
+    built, so an impossible request costs nothing but the error message.
+    """
+    if is_oracle and mechanism != "scar":
+        raise ValueError(
+            "--oracle trains on real labels and generates no PU label view, so "
+            f"--labeling-mechanism {mechanism!r} does not apply; drop --labeling-mechanism."
+        )
+    if mechanism in SAR_MECHANISMS:
+        allowed = ", ".join(sorted(SAR_C_TOKENS))
+        invalid = [item.token for item in c_values if item.token not in SAR_C_TOKENS]
+        if invalid:
+            raise ValueError(
+                f"labeling mechanism {mechanism!r} runs the protocol's SAR label "
+                f"frequencies only (PU-Bench vary-e: c in {{{allowed}}}); got "
+                f"{', '.join(invalid)}. Re-run with --c {','.join(sorted(SAR_C_TOKENS))}."
+            )
+
+
+def _run_directory(
+    out_root: Path, *, mechanism: str, c_value: CValue | None, seed: int, is_oracle: bool
+) -> Path:
+    """Output directory for one run, keyed by the requested c token."""
+    if is_oracle:
+        return Path(out_root) / "c_independent" / f"seed_{seed}"
+    if mechanism in SAR_MECHANISMS:
+        return Path(out_root) / mechanism / f"c_{c_value.token}" / f"seed_{seed}"
+    return Path(out_root) / f"c_{c_value.token}" / f"seed_{seed}"
+
+
+def _record_c_token(manifest_path: Path, token: str) -> None:
+    """Add the requested c spelling to a manifest of a run that succeeded.
+
+    The runner's manifest schema is a fixed whitelist and never serialises
+    arbitrary config, so the CLI's own spelling of ``c`` — the one that names
+    the output directory — is written back here rather than smuggled through
+    the runner.
+    """
+    payload = load_manifest(manifest_path)
+    payload["c_requested_token"] = token
+    write_manifest(manifest_path, payload)
 
 
 class OracleMLP(MLPClassifier):
@@ -239,6 +396,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--labeling-mechanism",
+        choices=LABELING_MECHANISMS,
+        default="scar",
+        help=(
+            "PU label-view mechanism (default: scar), orthogonal to --method: "
+            "'scar' keeps PA+OA selection, 'sar_lbe_a'/'sar_lbe_b' are the SAR "
+            "pressure test (OA only, c in {0.05, 0.5})"
+        ),
+    )
+    parser.add_argument(
         "--model-params",
         default="{}",
         help="JSON string of classifier constructor parameters (class_prior, loss, ...)",
@@ -270,6 +437,23 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     data_dir = Path(args.data_dir)
+
+    # Request gates first: a bad --c spelling or an impossible (mechanism,
+    # oracle) combination must fail before any split is read, any directory
+    # created and any estimator built.
+    try:
+        c_values = _parse_c_values(args.c)
+        seed_values = [int(value) for value in args.seeds.split(",") if value.strip()]
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    try:
+        _validate_labeling_request(
+            mechanism=args.labeling_mechanism, is_oracle=args.oracle, c_values=c_values
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     try:
         parts = load_split_parts(data_dir)
@@ -337,31 +521,32 @@ def main(argv: list[str] | None = None) -> int:
         except (RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
             print(f"error: cannot create method '{method}': {exc}", file=sys.stderr)
             return 1
-        generator = SCARGenerator()
-        protocols = None
+        generator = _resolve_labeling_generator(args.labeling_mechanism)
+        protocols = _resolve_labeling_protocols(args.labeling_mechanism)
         ledger_entry = ledger["methods"].get(method)
         config_extra = {}
 
     config: dict[str, Any] = {"candidates": candidates, "split_ref": split_ref, **config_extra}
     out_root = Path(args.out_dir) if args.out_dir else Path("results") / "survey" / method
 
-    c_values = [float(value) for value in args.c.split(",") if value.strip()]
-    seed_values = [int(value) for value in args.seeds.split(",") if value.strip()]
     if args.oracle:
         # PN oracle uses real labels and is independent of the PU labeling rate.
         # Keep one physical artifact per (dataset, seed); aggregation broadcasts
         # it to the requested c columns.
-        run_specs = [(None, seed) for seed in seed_values]
+        run_specs: list[tuple[CValue | None, int]] = [(None, seed) for seed in seed_values]
         config["c_independent"] = True
-        config["broadcast_c_values"] = c_values
+        config["broadcast_c_values"] = [item.value for item in c_values]
     else:
-        run_specs = [(c, seed) for c in c_values for seed in seed_values]
+        run_specs = [(item, seed) for item in c_values for seed in seed_values]
     completed_runs = 0
-    for c, seed in run_specs:
-        run_dir = (
-            out_root / "c_independent" / f"seed_{seed}"
-            if args.oracle
-            else out_root / f"c_{c:.1f}" / f"seed_{seed}"
+    for c_value, seed in run_specs:
+        c = None if c_value is None else c_value.value
+        run_dir = _run_directory(
+            out_root,
+            mechanism=args.labeling_mechanism,
+            c_value=c_value,
+            seed=seed,
+            is_oracle=args.oracle,
         )
         run_dir.mkdir(parents=True, exist_ok=True)
         if ledger_entry is not None:
@@ -388,6 +573,9 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
+        if c_value is not None:
+            # Only a completed run's manifest earns the annotation.
+            _record_c_token(manifest_path, c_value.token)
         completed_runs += 1
         c_label = "c_independent" if c is None else f"c={c}"
         print(f"[{method}] {c_label} seed={seed} -> {manifest_path}")
@@ -412,7 +600,7 @@ def main(argv: list[str] | None = None) -> int:
                     "selection_metric": "clean_val_accuracy",
                     "class_prior_applied": False,
                     "c_independent": True,
-                    "broadcast_c_values": c_values,
+                    "broadcast_c_values": [item.value for item in c_values],
                     "runs_completed": completed_runs,
                     "note": (
                         "PN oracle per protocol §2.4 item 10; the result is "
