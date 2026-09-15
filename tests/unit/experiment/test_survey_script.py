@@ -1,53 +1,18 @@
 # tests/unit/experiment/test_survey_script.py
 
-# ruff: noqa: N803, S101
+# F811 is needed because ``survey_script`` is the imported fixture: pytest looks
+# fixtures up by that name, so it repeats as a test parameter and pyflakes reads
+# the repetition as a redefinition of the import.
+# ruff: noqa: N803, S101, F811
 
-import importlib.util
 import json
-from pathlib import Path
 
-import numpy as np
 import pytest
+from _survey_script_helpers import make_splits, survey_script  # noqa: F401 - pytest fixture
 
 from pu_toolbox.experiment.manifest import load_manifest
 
 pytestmark = pytest.mark.unit
-
-SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts/run_survey_experiment.py"
-
-
-def _load_script_module():
-    spec = importlib.util.spec_from_file_location("run_survey_experiment", SCRIPT_PATH)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-@pytest.fixture(scope="module")
-def survey_script():
-    return _load_script_module()
-
-
-def make_splits(data_dir: Path) -> None:
-    """Four-part bundle with every role containing real positives; global ids 0..29."""
-    rng = np.random.RandomState(0)
-    x = rng.randn(30, 3)
-    # train(0-17): 6 pos + 12 neg; pu_val(18-21): 2 pos; clean_val(22-25): 2 pos;
-    # test(26-29): 2 pos + 2 neg (so AUC is defined).
-    y = np.array([1] * 6 + [0] * 12 + [1] * 2 + [0] * 2 + [1] * 2 + [0] * 2 + [1] * 2 + [0] * 2)
-    for name in ("train", "pu_val", "clean_val", "test"):
-        start, end = {
-            "train": (0, 18),
-            "pu_val": (18, 22),
-            "clean_val": (22, 26),
-            "test": (26, 30),
-        }[name]
-        np.savez(
-            data_dir / f"{name}.npz",
-            X=x[start:end],
-            y=y[start:end],
-            indices=np.arange(start, end),
-        )
 
 
 def test_basic_run_survey_script_end_to_end(survey_script, tmp_path):
