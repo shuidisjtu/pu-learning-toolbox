@@ -54,6 +54,50 @@ def test_basic_sar_lbe_a_runs_oa_only(survey_script, tmp_path):
     assert (run_dir / "method_ledger_entry.json").is_file()
 
 
+def test_basic_versioned_sar_binds_generator_oa_and_manifest(survey_script, tmp_path):
+    """survey-v1.1 keeps the SAR mechanism, OA-only route and audit metadata bound."""
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_sar_splits(data_dir)
+    (data_dir / "split_manifest.json").write_text(
+        json.dumps({"dataset": "spambase", "seed": 0}), encoding="utf-8"
+    )
+
+    out_dir = tmp_path / "out"
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--protocol",
+            "survey-v1.1",
+            "--dataset",
+            "spambase",
+            "--method",
+            "upu",
+            "--class-prior",
+            "0.4",
+            "--labeling-mechanism",
+            "sar_lbe_b",
+            "--c",
+            "0.05",
+            "--seeds",
+            "0",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+    assert rc == 0
+
+    run_dir = out_dir / "sar_lbe_b" / "c_0.05" / "seed_0"
+    manifest = load_manifest(run_dir / "manifest.json")
+    assert manifest["protocol_version"] == "survey-v1.1"
+    assert set(manifest["selection"]) == {"OA"}
+    assert set(manifest["test_results"]) == {"OA"}
+    assert manifest["generation"]["train"]["generator"] == "SARLBEBGenerator"
+    assert manifest["generation"]["train"]["posterior_fit_on"] == "real_labels"
+    assert manifest["c_requested_token"] == "0.05"
+    assert "c_grid" in manifest["protocol_deviation"]
+
+
 @pytest.mark.parametrize("mechanism", ["sar_lbe_a", "sar_lbe_b"])
 @pytest.mark.parametrize("c", ["0.05", "0.5"])
 def test_param_sar_mechanisms_and_c_values(survey_script, tmp_path, mechanism, c):

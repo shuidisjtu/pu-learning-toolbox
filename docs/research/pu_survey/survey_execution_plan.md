@@ -59,7 +59,7 @@
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 工程实现与 CPU/GPU smoke 完成，待规格/执行证据复核 / HENG958；shuidisjtu 复核；见 [交付记录](p2_0a_delivery.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 未完成 / shuidisjtu；HENG958 复核 |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 未完成 / shuidisjtu；HENG958 复核 |
-| P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 复核 |
+| P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
 | P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |
 | P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果 |
 | P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | ⏳ 待办 / shuidisjtu：VPU、PULDA、PAN、RP、CVIR、PULNS |
@@ -242,6 +242,10 @@ resolved 单元写入 manifest。
     当前服务器全局 PyTorch 与 Linux lock 版本不同，故 P2.1 前仍须创建 frozen-lock 隔离环境。
     P1.4 所需 split 产物未在当前工作树中，HENG958 可执行性复核等待产物同步。证据、命令和
     解除条件见 [独立复核记录](heng958_independent_review.md)。
+
+0b. **P2.0d 负责人复核（2026-09-16）**：SAR-LBE-A/B 与方法正交、规范 c token、
+    OA-only、生成审计和确定性均通过脚本级测试；新增 `survey-v1.1` 版本化端到端回归。
+    该复核不解除 P2.0a/b/c 对正式跑批的门禁，详见 [独立复核记录](heng958_independent_review.md#4-p20d-sar-oa-执行路径复核)。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；
