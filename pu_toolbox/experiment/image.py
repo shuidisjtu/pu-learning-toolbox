@@ -142,8 +142,13 @@ def fit_survey_image_preprocessing(
         randaugment_magnitude,
     )
 
-    means = tuple(float(value) for value in np.mean(prepared, axis=(0, 2, 3)))
-    stds = tuple(float(value) for value in np.std(prepared, axis=(0, 2, 3)))
+    # CIFAR split arrays can be non-contiguous NCHW views of HWC storage.
+    # A float32 reduction over ~45k images accumulates enough rounding error
+    # to saturate its channel sums (observed as the same 2**24 / pixel_count
+    # mean in all three channels). Accumulate in float64; keep the returned
+    # pixels and encoder input float32 as before.
+    means = tuple(float(value) for value in np.mean(prepared, axis=(0, 2, 3), dtype=np.float64))
+    stds = tuple(float(value) for value in np.std(prepared, axis=(0, 2, 3), dtype=np.float64))
     if any(value <= 0 for value in stds):
         raise ValueError("every train image channel must have non-zero standard deviation.")
     input_size = (int(prepared.shape[2]), int(prepared.shape[3]))

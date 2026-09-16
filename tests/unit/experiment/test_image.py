@@ -55,6 +55,24 @@ def test_determ_same_train_data_produces_same_stats_and_hashes():
     assert first.configuration_sha256 == second.configuration_sha256
 
 
+def test_edge_large_noncontiguous_cifar_stats_match_stored_pixels():
+    """Channel reductions must not saturate float32 on HWC-backed NCHW CIFAR splits."""
+    hwc = np.empty((4100, 32, 32, 3), dtype=np.uint8)
+    hwc[:] = [127, 191, 63]
+    hwc[:, ::2] += 2  # each channel has non-zero variance
+    images = hwc.transpose(0, 3, 1, 2)
+    assert not images.flags.c_contiguous
+
+    prepared, spec = fit_survey_image_preprocessing(
+        images, dataset="cifar10", train_augmentation="none"
+    )
+
+    np.testing.assert_allclose(spec.normalization_mean, [128 / 255, 192 / 255, 64 / 255], atol=1e-7)
+    np.testing.assert_allclose(spec.normalization_std, [1 / 255] * 3, atol=1e-7)
+    assert prepared.dtype == np.float32
+    assert spec.to_manifest()["augmentation"]["train"]["name"] == "none"
+
+
 def test_basic_transform_reuses_scaling_and_blocks_eval_augmentation():
     train = _uint8_images()
     _, spec = fit_survey_image_preprocessing(train, dataset="mnist")

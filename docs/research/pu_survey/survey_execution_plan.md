@@ -240,7 +240,9 @@ resolved 单元写入 manifest。
 
 0a. **HENG958 独立复核（2026-09-16）**：P1.1 GPU 能力与 P1.3a nnPU/Self-PU 台账已复核；
     当前服务器全局 PyTorch 与 Linux lock 版本不同，故 P2.1 前仍须创建 frozen-lock 隔离环境。
-    P1.4 所需 split 产物未在当前工作树中，HENG958 可执行性复核等待产物同步。证据、命令和
+    P1.4 所需 split 产物未在当前工作树中；CIFAR 历史 manifest 还存在通道统计审计错误
+    （issue #52，代码修复不等于真实 5-seed 产物重建），HENG958 可执行性复核等待产物同步。
+    证据、命令和
     解除条件见 [独立复核记录](heng958_independent_review.md)。
 
 0b. **P2.0d 负责人复核（2026-09-16）**：SAR-LBE-A/B 与方法正交、规范 c token、

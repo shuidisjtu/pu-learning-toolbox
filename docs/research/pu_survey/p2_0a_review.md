@@ -36,6 +36,20 @@
 R9 是新增发现的协议差距，不能因为 checkpoint 接线已完成就删除其正式阻断。
 复核若要求修改任一规格，应记录理由、更新版本、重跑受影响测试和数据单元。
 
+### 审核发现 A3：CIFAR split manifest 来源信息
+
+- A3a：split 准备阶段未施加增强，却把 estimator 默认 `simaugment` 记入 manifest；
+  合作者提交 `47f62c3` 已把此字段显式锁定为 `none`。
+- A3b（[issue #52](https://github.com/shuidisjtu/pu-learning-toolbox/issues/52)）：
+  大规模、HWC 存储转置而成的非连续 NCHW 数组在 `float32` 通道归约时累积精度丢失，
+  45,000 张 CIFAR train 图的通道和饱和在约 `2**24`，导致各通道均值同为
+  `2**24 / (45000*32*32) ≈ 0.364089`。工程代码已改用 `float64` 累积均值与方差，
+  并加入 4,100 张非连续图像的回归测试；输出图像仍为原来的 `float32` 缩放表示。
+- **历史产物未自动修复**：本服务器没有 `data/splits` 原始产物，不能据代码修复宣称
+  既有 5-seed split manifest 已重建。P1.4 复核与正式跑批前，须在持有原始 CIFAR 数据的
+  环境重生成 5 个 seed，并逐个比对 manifest 的 mean/std 与 `train.npz` 的 `float64`
+  统计值；还须记录新 manifest digest。A3b 的数据验收在此之前保持开放。
+
 ## 3. 复核前检查
 
 1. 阅读 JSON 预算、执行单元与 `selection_spec`，不要仅阅读文档摘要。
