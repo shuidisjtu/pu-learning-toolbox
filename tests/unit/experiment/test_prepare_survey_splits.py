@@ -66,6 +66,15 @@ def test_basic_prepare_image_keeps_uint8_and_records_preprocessing(prep_script, 
     assert manifest["preprocessing"]["normalization"]["source"] == ("train_only_channel_statistics")
     assert manifest["preprocessing"]["input_size"] == [32, 32]
     assert len(manifest["preprocessing"]["train_data_sha256"]) == 64
+    # Split preparation applies no augmentation: products store raw uint8 and the
+    # training pipeline owns augmentation (protocol-locked "none" in the pilot).
+    # Recording the estimator-side default here would misdescribe the artifacts.
+    assert manifest["preprocessing"]["augmentation"]["train"]["name"] == "none"
+    # Statistics must describe THIS split's train partition, not a constant:
+    # different seeds draw different train subsets, so the values must track data.
+    recorded = manifest["preprocessing"]["normalization"]
+    expected_mean = train["X"].astype(np.float32).reshape(len(train["X"]), 3, -1).mean(axis=(0, 2))
+    assert np.allclose(recorded["mean"], expected_mean / 255.0, atol=1e-6)
 
 
 def test_basic_prepare_text_writes_sbert_features(prep_script, tmp_path):

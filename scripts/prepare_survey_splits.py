@@ -186,8 +186,12 @@ def prepare_image(
     bundle, manifest = prepare_survey_dataset(
         X_train, y_train, dataset="cifar10", seed=seed, X_test=X_test, y_test=y_test
     )
+    # Split preparation applies no augmentation: the products store raw uint8 and
+    # the training pipeline owns augmentation (protocol-locked "none" for the
+    # pilot).  Recording the estimator-side default here would misdescribe what
+    # these artifacts actually are.
     _, preprocessing = fit_survey_image_preprocessing(
-        bundle.train.X, dataset="cifar10", train_augmentation="simaugment"
+        bundle.train.X, dataset="cifar10", train_augmentation="none"
     )
     manifest["preprocessing"] = preprocessing.to_manifest()
     # Raw uint8 NCHW arrays are stored; the frozen scaling is applied by the
