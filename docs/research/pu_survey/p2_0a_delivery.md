@@ -15,6 +15,8 @@
 
 配置的数值真相源只有上述 JSON；本文件解释选择及边界，不再维护另一份参数表。
 `review_status` 当前为 `pending_collaborator_review`，不得将工程默认值解释为两位负责人已签字。
+后续版本 `survey-v1.1` 已补齐逐 epoch 权重保存与独立恢复，预算/backbone 未改变；
+审查决定见 [复核包](p2_0a_review.md)，实现与证据见 [checkpoint 交付](epoch_checkpoint_delivery.md)。
 
 ## 2. 共享规格与预算决策
 
@@ -168,10 +170,11 @@ P2.0a 工程交付覆盖矩阵、runner 消费、manifest、CIFAR 接线及 orac
 负责人尚需复核默认规格、随机冻结 encoder 的报告范围、各路径预算与上述 GPU 执行证据。
 
 正式跑批仍须 P2.0b、P2.0c 与负责人复核完成。
-另一个实际发现的协议差距是：现有 `RunTrajectory` 只有最终/估计器内部最优模型，
-**没有全 epoch checkpoint 供 PA/OA 各自独立选择**。这与协议 §2.4 第 5–6 条有差距，
-本次未扩张 P2.0a 来重写训练器，而是把它注册为 `formal_blockers`。
-不得删除该阻断标记来冒充实验闭环；需单独实现、验收并按新版本重跑。
+首次交付时 `RunTrajectory` 只有最终/估计器内部最优模型，缺少全 epoch 独立选择。
+后续 `survey-v1.1` 已通过回调、持久化权重、双 teacher 记录与 PA/OA 独立恢复补齐该链路；
+只有实际训练满预算且快照覆盖完整，才能解除该单元的 checkpoint 阻断。
+新增确认的差距是 PA 仍用 PU 分离度代理，不是协议中的 Accuracy/阈值选择准则，
+已注册专用正式阻断；需要合作者锁定准则后单独补齐，不能仅删除字段升级结果。
 
 因此当前所有产物 `formal_eligible=false` 是有意的安全边界。
-未实现 CNN oracle、full-batch oracle 以及跨方法真正独立 checkpoint 选模，不得宣称完成。
+未实现 CNN oracle、full-batch oracle、完整 Self-PU OA 或正式 PA 准则，不得宣称完成。

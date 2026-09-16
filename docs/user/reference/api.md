@@ -1129,7 +1129,8 @@ docstring。
 首次失败后成功的候选标为 `recovered`；再次失败则标为 `excluded` 并从 PA/OA 选模池排除。
 manifest 的 `candidate_runs` 保存候选到有效 trajectory 的映射，`failures` 保存异常类型与消息；
 
-Survey 的版本化运行通过脚本 `--protocol survey-v1 --dataset ...` 启动。
+Survey 的版本化运行通过脚本 `--protocol survey-v1.1 --dataset ...` 启动
+（`survey-v1` 是当前版本别名，实际版本写入 manifest）。
 `config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
 预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
@@ -1137,7 +1138,16 @@ Survey 的版本化运行通过脚本 `--protocol survey-v1 --dataset ...` 启�
 `formal_eligible`/`formal_blockers`。无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。
 `survey_protocol.validate_comparable_manifests` 默认拒绝非正式结果及路径/预算/表征/标记不一致。
 构造参数/候选覆盖锁定字段会在训练前失败；绑定运行的协议预检失败也写拒绝 manifest。
-当前单元属于工程级 `benchmark-adapted`，不意味着完整 checkpoint 选模协议已验收。
+支持 `epoch_callback(epoch, self)` 的 nnPU/Dist-PU/Self-PU/torch MLP oracle，经内置 runner
+默认使用逐 epoch 权重快照；`RunTrajectory.checkpoints` 记录 epoch/component，
+`SelectionArtifact.checkpoint_index` 指向选中权重，`RunResult.selected_models` 返回独立恢复的推理模型。
+配置了 `manifest_path` 时权重默认写入相邻 `checkpoints` 目录；可用 `config['checkpoint_dir']` 指定根目录，
+或 `config['capture_epoch_checkpoints']=False` 保留旧单点路径（仍阻断正式 checkpoint 验收）。
+`checkpoints.load_selected_checkpoint(selection, template, device=...)` 校验权重摘要、
+以 weights-only 模式加载并恢复验证侧阈值；调用方须明确提供同架构 template。
+它不支持 optimizer/RNG 续训；无持久化时 manifest 不提供可复现的 checkpoint 文件路径。
+当前单元属于工程级 `benchmark-adapted`；PA 分离度代理与正式 Accuracy/阈值准则仍不一致，
+checkpoint 接线完成不意味着完整选模协议与 P2.0b/c 已验收。
 共享规格、命令与 oracle 边界见 [P2.0a 交付](../../research/pu_survey/p2_0a_delivery.md)。
 
 若全部候选均失败，runner 会先写 manifest（配置了路径时），再抛出 `RuntimeError`。

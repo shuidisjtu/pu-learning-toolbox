@@ -162,6 +162,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
+        epoch_callback=None,
     ) -> NonNegativePUClassifier:
         """Fit the nnPU classifier via mini-batch SGD (Algorithm 1).
 
@@ -180,6 +181,9 @@ class NonNegativePUClassifier(BasePUClassifier):
             PU validation data for early stopping.  If provided,
             training stops after ``patience`` epochs without
             improvement in nnPU validation risk.
+        epoch_callback : callable, optional
+            Called as ``epoch_callback(epoch, self)`` after each completed
+            epoch, before early-stop restoration. Exceptions propagate.
 
         Returns
         -------
@@ -459,8 +463,10 @@ class NonNegativePUClassifier(BasePUClassifier):
                 else:
                     patience_counter += 1
 
-                if patience_counter >= self.patience:
-                    break
+            if epoch_callback is not None:
+                epoch_callback(epoch, self)
+            if validation_data is not None and patience_counter >= self.patience:
+                break
 
         # ── Restore best model (if early-stopped) ─────────────────
         if validation_data is not None:

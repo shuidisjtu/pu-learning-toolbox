@@ -464,6 +464,7 @@ class SelfPUClassifier(BasePUClassifier):
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         pu_validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         sample_weight: np.ndarray | None = None,
+        epoch_callback=None,
     ) -> SelfPUClassifier:
         """Fit Self-PU with separate clean-calibration and PU-tracking views.
 
@@ -790,6 +791,9 @@ class SelfPUClassifier(BasePUClassifier):
                         copy.deepcopy(teacher.state_dict()) for teacher in teachers
                     ]
                     best_pu_teacher_metrics = teacher_val_risks
+
+            if epoch_callback is not None:
+                epoch_callback(epoch, self)
 
         self.optimizer_states_ = [copy.deepcopy(optimizer.state_dict()) for optimizer in optimizers]
         self.scheduler_states_ = [copy.deepcopy(scheduler.state_dict()) for scheduler in schedulers]

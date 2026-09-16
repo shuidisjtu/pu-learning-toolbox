@@ -16,6 +16,7 @@ per implementation_plan.md §1.4.
 from __future__ import annotations
 
 import inspect
+import time
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -24,6 +25,7 @@ from pu_toolbox.core.random import check_random_state
 from pu_toolbox.utils.serialization import canonical_hash
 
 from .bundle import DatasetPart, LabelView
+from .checkpoints import record_validation, selection_models
 from .protocols import Generator, SelectionProtocol, Trainer
 from .tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
@@ -249,6 +251,8 @@ class ProtocolOA(SelectionProtocol):
     def select(
         self, trajectories: list[RunTrajectory], val_part: DatasetPart, threshold_candidates=None
     ) -> SelectionArtifact:
+        if val_part.view != "clean" or not val_part.for_selection:
+            raise ValueError("ProtocolOA must receive a selection-enabled clean validation view")
         if not trajectories:
             raise ValueError("OA selection requires at least one trajectory.")
         x_val, labels = val_part.X, val_part.labels
@@ -256,37 +260,56 @@ class ProtocolOA(SelectionProtocol):
             threshold_candidates = np.linspace(0.0, 1.0, 11)
         best_arti_cand = None
         best_min = best_scale = None
+        best_epoch = best_checkpoint = None
         for i, traj in enumerate(trajectories):
-            model = traj.model
-            # normalise scores to [0,1] via decision_function min-max,
-            # keeping the affine constants for the selected model.
-            scores = model.decision_function(x_val)
-            scale = np.ptp(scores)
-            if scale > 0:
-                s_min = float(scores.min())
-                scores = (scores - s_min) / scale
-                affine = (s_min, float(scale))
-            else:
-                # Constant-score model: keep the "scale == 0 skips
-                # normalisation" semantics — no affine constants recorded,
-                # the runner falls back to predict.
-                affine = (None, None)
-            thr, acc = select_threshold(scores, labels, threshold_candidates)
-            cand = (acc, i, thr)
-            if best_arti_cand is None or acc > best_arti_cand[0]:
-                best_arti_cand = cand
-                best_min, best_scale = affine
+            for checkpoint_index, epoch, model in selection_models(traj):
+                started_at = time.perf_counter()
+                # Normalise each checkpoint in its own VAL-side space.
+                scores = model.decision_function(x_val)
+                if scores.shape != labels.shape or not np.isfinite(scores).all():
+                    raise ValueError(
+                        "OA checkpoint scores must be finite and match validation labels"
+                    )
+                scale = np.ptp(scores)
+                if not np.isfinite(scale):
+                    raise ValueError("OA checkpoint validation score range is not finite")
+                if scale > 0:
+                    s_min = float(scores.min())
+                    scores = (scores - s_min) / scale
+                    affine = (s_min, float(scale))
+                else:
+                    # Legacy constant-score behavior remains explicit.
+                    affine = (None, None)
+                thr, acc = select_threshold(scores, labels, threshold_candidates)
+                record_validation(
+                    traj,
+                    checkpoint_index,
+                    "OA",
+                    {
+                        "val_accuracy": acc,
+                        "threshold": thr,
+                        "val_score_min": affine[0],
+                        "val_score_scale": affine[1],
+                    },
+                    started_at,
+                )
+                cand = (acc, i, thr)
+                if best_arti_cand is None or acc > best_arti_cand[0]:
+                    best_arti_cand = cand
+                    best_min, best_scale = affine
+                    best_epoch, best_checkpoint = epoch, checkpoint_index
         _, run_idx, thr = best_arti_cand
         return SelectionArtifact(
             protocol="OA",
             run_index=run_idx,
-            epoch=trajectories[run_idx].best_epoch,
+            epoch=best_epoch,
             threshold=thr,
             metrics={
                 "val_accuracy": best_arti_cand[0],
                 "val_score_min": best_min,
                 "val_score_scale": best_scale,
             },
+            checkpoint_index=best_checkpoint,
         )
 
 
@@ -303,25 +326,42 @@ class ProtocolPA(SelectionProtocol):
     def select(
         self, trajectories: list[RunTrajectory], val_part: DatasetPart, threshold_candidates=None
     ) -> SelectionArtifact:
-        if val_part.view != "pu":
+        if val_part.view != "pu" or not val_part.for_selection:
             raise ValueError("ProtocolPA must receive a PU view (never clean labels).")
         # PA uses unlabeled count + labeled-positive risk proxy; keep it simple:
         # pick the trajectory with best mean PU-view separation on val.
-        best_run, best_score = 0, -1.0
+        if not trajectories:
+            raise ValueError("PA selection requires at least one trajectory")
+        mask = val_part.labels == 1
+        if not mask.any() or mask.all():
+            raise ValueError("PA validation requires both labeled positive and unlabeled samples")
+        best_run, best_score = 0, -float("inf")
+        best_epoch = best_checkpoint = None
         for i, traj in enumerate(trajectories):
-            scores = traj.model.decision_function(val_part.X)
-            mask = val_part.labels == 1
-            if mask.sum() == 0:
-                continue
-            sep = float(np.mean(scores[mask]) - np.mean(scores[~mask]))
-            if sep > best_score:
-                best_score, best_run = sep, i
+            for checkpoint_index, epoch, model in selection_models(traj):
+                started_at = time.perf_counter()
+                scores = model.decision_function(val_part.X)
+                if scores.shape != val_part.labels.shape or not np.isfinite(scores).all():
+                    raise ValueError(
+                        "PA checkpoint scores must be finite and match validation labels"
+                    )
+                sep = float(
+                    np.mean(scores[mask], dtype=np.float64)
+                    - np.mean(scores[~mask], dtype=np.float64)
+                )
+                record_validation(
+                    traj, checkpoint_index, "PA", {"pu_val_separation": sep}, started_at
+                )
+                if sep > best_score:
+                    best_score, best_run = sep, i
+                    best_epoch, best_checkpoint = epoch, checkpoint_index
         return SelectionArtifact(
             protocol="PA",
             run_index=best_run,
-            epoch=trajectories[best_run].best_epoch,
+            epoch=best_epoch,
             threshold=None,
             metrics={"pu_val_separation": best_score},
+            checkpoint_index=best_checkpoint,
         )
 
 

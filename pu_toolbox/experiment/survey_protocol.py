@@ -266,6 +266,10 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
                 raise ValueError("adapter manifest does not match the actual input features")
         representation["adapter"] = copy.deepcopy(adapter)
     blockers = list(protocol["formal_blockers"])
+    if protocol["review_status"] != "accepted" and "collaborator_review" not in blockers:
+        blockers.append("collaborator_review")
+    if "PA" in expected_names:
+        blockers.append("PA_separation_proxy_not_preregistered_accuracy_threshold")
     if row["method"] == "self_pu":
         blockers.append("SelfPU_clean_validation_meta_reweighting_OA_integration")
     if deviations:
@@ -287,7 +291,7 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         "protocol_deviation": deviations,
         "formal_eligible": not blockers,
         "formal_blockers": blockers,
-        "selection_checkpoint_scope": "final_or_estimator_internal_best; not independent_per_epoch",
+        "selection_checkpoint_scope": "pending_actual_trajectory_verification",
         "oracle_alignment": row["oracle_alignment"],
         "method_variant": "without_clean_validation_meta_reweighting"
         if row["method"] == "self_pu"

@@ -153,7 +153,7 @@ def test_edge_all_candidate_failures_keep_protocol_context(tmp_path):
             model, *(getattr(bundle, role) for role in ROLES)
         )
     payload = json.loads(path.read_text())
-    assert payload["protocol_version"] == "survey-v1"
+    assert payload["protocol_version"] == "survey-v1.1"
     assert payload["budget"]["epochs"] == 1
     assert payload["candidate_runs"][0]["attempts"] == 2
     assert payload["formal_eligible"] is False

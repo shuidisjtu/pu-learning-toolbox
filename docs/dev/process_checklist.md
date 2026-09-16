@@ -35,7 +35,9 @@
   协议/预算/表征 manifest、真实 split/seed 对应、CIFAR 原生 nnPU 与随机冻结 adapter 接线、
   摘要校验缓存、共享 MLP oracle、路径/预算/标签摘要比较门禁；46 项 CPU 专项通过，
   沙箱外 4 项 GPU smoke 通过（含既有 CNN13 测试），新增 3 项 GPU 测试。
-  正式结果仍受 P2.0b/c、负责人复核和独立全 epoch checkpoint 选模阻断；
+  后续 `survey-v1.1` 补齐逐 epoch 权重保存、双 teacher 保留、PA/OA 独立选择和推理恢复；
+  新增 checkpoint 专项 24 项、GPU 回归 8 项及完整快层 1532 项通过；
+  正式结果仍受 P2.0b/c、负责人复核、PA Accuracy/阈值准则及未完成路径阻断；
   CNN oracle 等缺少对齐对照的单元明确不可冒充上界。见
   [交付记录](../research/pu_survey/p2_0a_delivery.md)。
 

@@ -1,8 +1,18 @@
 {
   "schema_version": "1.0",
-  "protocol_version": "survey-v1",
+  "protocol_version": "survey-v1.1",
   "review_status": "pending_collaborator_review",
   "result_scope": "pilot / partial benchmark",
+  "selection_spec": {
+    "checkpoint_schema_version": "1.0",
+    "training": "one fixed-budget fit per candidate; snapshots before internal restoration",
+    "epoch_selection": "independent_offline_per_protocol",
+    "self_pu_components": "both EMA teachers at every epoch",
+    "pa_criterion": "engineering_pu_val_separation; no threshold tuning; formal acceptance pending",
+    "oa_criterion": "clean_val_accuracy; per-checkpoint val-side min-max threshold grid",
+    "tie_breaking": "earliest candidate, then earliest epoch/component, then earliest threshold",
+    "checkpoint_format": "weights_only; inference snapshots, not optimizer resume"
+  },
   "seeds": [
     0,
     1,
@@ -518,6 +528,7 @@
     "Full-batch Dist-PU is not budget-equivalent to mini-batch methods; unmatched oracle remains separate.",
     "Classical methods have no MLP backbone; no neural oracle is claimed to be backbone-matched.",
     "CNN oracle remains Phase 2; unsupported row fails before training.",
-    "Fixed epoch training and final/internal-selected checkpoints are technical evidence only until independent per-epoch selection is implemented."
+    "Completed-epoch weights are selected independently offline; inference checkpoints do not resume optimizer training.",
+    "PA still uses the engineering PU separation proxy, not the preregistered PA accuracy/threshold criterion; formal SCAR PA acceptance remains blocked."
   ]
 }

@@ -93,11 +93,12 @@ def test_basic_runner_consumes_matrix_and_records_blockers(survey_script, tmp_pa
     model, parts, config = _bound(survey_script, tmp_path)
     result = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts)
     manifest = result.manifest
-    assert manifest["protocol_version"] == "survey-v1"
+    assert manifest["protocol_version"] == "survey-v1.1"
     assert manifest["budget"]["unit"] == "one_closed_form_fit"
     assert manifest["formal_eligible"] is False
     assert "seed_subset" in manifest["protocol_deviation"]
-    assert "per_epoch_independent_PA_OA_checkpoint_selection" in manifest["formal_blockers"]
+    assert manifest["selection_checkpoint_scope"] == "single_point_no_epoch"
+    assert "per_epoch_independent_PA_OA_checkpoint_selection" not in manifest["formal_blockers"]
     assert len(manifest["representation"]["feature_sha256"]) == 4
 
 

@@ -63,8 +63,8 @@ def validate_score_model(network, family: str) -> None:
 class PilotOracleMLP(ClassifierMixin, BaseEstimator):
     """Isolated torch supervised MLP; no PU prior or real validation labels in fit.
 
-    This is a fixed-budget final-checkpoint technical baseline. Independent
-    per-epoch OA selection remains an explicit formal-pilot blocker.
+    Epoch callbacks expose fixed-budget weights to offline OA selection;
+    no validation labels enter training through the callback.
     """
 
     input_ndims = frozenset({2})
@@ -80,7 +80,7 @@ class PilotOracleMLP(ClassifierMixin, BaseEstimator):
         self.random_state = random_state
         self.device = device
 
-    def fit(self, X, y):
+    def fit(self, X, y, *, epoch_callback=None):
         import torch
         from torch import nn
 
@@ -97,7 +97,7 @@ class PilotOracleMLP(ClassifierMixin, BaseEstimator):
         generator = torch.Generator().manual_seed(self.random_state or 0)
         self.loss_history_ = []
         self.model_.train()
-        for _ in range(self.max_epochs):
+        for epoch in range(self.max_epochs):
             order = torch.randperm(len(X), generator=generator)
             losses = []
             for start in range(0, len(X), self.batch_size):
@@ -110,6 +110,8 @@ class PilotOracleMLP(ClassifierMixin, BaseEstimator):
                 optimizer.step()
                 losses.append(float(loss.detach().cpu()))
             self.loss_history_.append(float(np.mean(losses)))
+            if epoch_callback is not None:
+                epoch_callback(epoch, self)
         self.model_.eval()
         self.classes_ = np.array([0, 1])
         return self

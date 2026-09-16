@@ -23,7 +23,7 @@ def _args(data, out):
     return [
         str(data),
         "--protocol",
-        "survey-v1",
+        "survey-v1.1",
         "--dataset",
         "spambase",
         "--method",
@@ -42,7 +42,7 @@ def test_basic_versioned_cli_records_protocol_and_actual_budget(survey_script, t
     _splits(data)
     assert survey_script.main(_args(data, out)) == 0
     payload = json.loads((out / "c_0.5/seed_0/manifest.json").read_text())
-    assert payload["protocol_version"] == "survey-v1"
+    assert payload["protocol_version"] == "survey-v1.1"
     assert payload["budget"]["unit"] == "one_closed_form_fit"
     assert payload["formal_eligible"] is False
     assert payload["training_path"] == "native_2d"

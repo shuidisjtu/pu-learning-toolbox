@@ -70,7 +70,7 @@ class DistPUClassifier(BasePUClassifier):
         self.random_state = random_state
         self.device = device
 
-    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None):
         """Fit the Dist-PU label-distribution classifier.
 
         Parameters
@@ -110,7 +110,7 @@ class DistPUClassifier(BasePUClassifier):
         p_mask, u_mask = ty == 1, ty == 0
         self.loss_history_ = []
         bce = nn.BCEWithLogitsLoss()
-        for _ in range(self.epochs):
+        for epoch in range(self.epochs):
             optimizer.zero_grad()
             logits = self.model_(tx).squeeze(1).clamp(-10, 10)
             probs = torch.sigmoid(logits)
@@ -130,6 +130,8 @@ class DistPUClassifier(BasePUClassifier):
             loss.backward()
             optimizer.step()
             self.loss_history_.append(float(loss.detach().cpu()))
+            if epoch_callback is not None:
+                epoch_callback(epoch, self)
         self.classes_ = np.array([0, 1])
         self._class_prior, self._X_shape_, self._is_fitted = pi, X.shape, True
         self.device_ = device

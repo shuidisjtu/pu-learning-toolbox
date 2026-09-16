@@ -19,7 +19,7 @@ from sklearn.base import clone
 from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
-from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator
+from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
 from .survey_protocol import runner_protocol_context
 from .tracking import RunResult, RunTrajectory
 
@@ -37,13 +37,13 @@ def _manifest_c_context(config: dict[str, Any]) -> dict[str, Any]:
 class ExperimentRunner:
     """Configured runner for a four-way PU experiment (§2.4).
 
-    Best-epoch semantics: every ``SelectionArtifact.epoch`` mirrors
-    ``RunTrajectory.best_epoch`` — a 1-based *position* inside the
+    Epoch semantics: ``SelectionArtifact.epoch`` is a 1-based *position* inside the
     selected run's ``epochs`` list (``epochs[epoch - 1]`` holds the
     selected record). It is unrelated to the estimator's own epoch
     labels (``EpochRecord.epoch``); the runner never assumes equality.
     Callers who restore the checkpoint for a re-run must index
-    ``trajectory.epochs[artifact.epoch - 1]``.
+    ``trajectory.epochs[artifact.epoch - 1]``; weights are identified separately
+    by ``artifact.checkpoint_index``. PA/OA do not share an internally best epoch.
     """
 
     def __init__(
@@ -338,6 +338,8 @@ class ExperimentRunner:
         #    and real labels on a clean-view (PN oracle) run — so an unknown
         #    protocol is NOT guaranteed PU-only labels; only ProtocolPA enforces
         #    that, via its own view check.
+        protocol_context = _checkpoint_context(protocol_context, trajectories)
+        selection_started_at = time.perf_counter()
         selections = {}
         for proto in self.protocols:
             if isinstance(proto, ProtocolPA):
@@ -348,19 +350,39 @@ class ExperimentRunner:
                 art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
             selections[art.protocol] = art
 
+        selection_elapsed = time.perf_counter() - selection_started_at
+        _add_checkpoint_resources(resources, candidate_runs, trajectories, selection_elapsed)
+
         # 5. independent test evaluation (test never entered selection/training)
         test_metrics = {}
+        selected_models = {}
         for name, art in selections.items():
-            est = trajectories[art.run_index].model
+            trajectory = trajectories[art.run_index]
+            if art.checkpoint_index is None:
+                if trajectory.checkpoints:
+                    raise ValueError("selection artifact must identify an epoch checkpoint")
+                est = trajectory.model
+            else:
+                if not 0 <= art.checkpoint_index < len(trajectory.checkpoints):
+                    raise ValueError("selection checkpoint index is outside the trajectory")
+                checkpoint = trajectory.checkpoints[art.checkpoint_index]
+                if art.epoch != checkpoint.epoch_position:
+                    raise ValueError("selection epoch disagrees with its checkpoint")
+                est = checkpoint.restore()
+            selected_models[name] = est
             s_min = art.metrics.get("val_score_min")
             s_scale = art.metrics.get("val_score_scale")
-            if art.threshold is not None and s_min is not None and s_scale:
+            if art.threshold is not None:
                 # OA picked its threshold in the VAL-side min-max space; reuse
                 # the recorded val affine transform here, so the threshold keeps
                 # its val semantics. Re-normalising with the test's own min/max
                 # applies different affine constants and silently shifts the
                 # threshold (F1 fix: fixed val transform, not "same convention").
-                scores = (est.decision_function(test.X) - s_min) / s_scale
+                scores = est.decision_function(test.X)
+                if s_min is not None and s_scale:
+                    scores = (scores - s_min) / s_scale
+                if art.checkpoint_index is not None:
+                    est.set_selection(art.threshold, art.metrics)
                 pred = (scores >= art.threshold).astype(int)
             else:
                 pred = est.predict(test.X)
@@ -378,7 +400,20 @@ class ExperimentRunner:
                 item for item in candidate_runs if item["trajectory_index"] == artifact.run_index
             )
             payload["candidate_index"] = selected_run["candidate_index"]
+            if artifact.checkpoint_index is not None:
+                payload["checkpoint"] = (
+                    trajectories[artifact.run_index]
+                    .checkpoints[artifact.checkpoint_index]
+                    .reference()
+                )
             selection_payload[name] = payload
+
+        for item in candidate_runs:
+            if item["trajectory_index"] is not None:
+                item["epoch_checkpoints"] = [
+                    checkpoint.reference()
+                    for checkpoint in trajectories[item["trajectory_index"]].checkpoints
+                ]
 
         elapsed = time.perf_counter() - t0
         resources["runner_elapsed_seconds"] = elapsed
@@ -403,6 +438,7 @@ class ExperimentRunner:
             manifest=manifest,
             failures=failures,
             resources=resources,
+            selected_models=selected_models,
         )
 
     def _trainer(self):
@@ -420,6 +456,19 @@ class ExperimentRunner:
     def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer):
         """Train one candidate with the trainer the view guard approved."""
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
+        if (
+            type(trainer) in (DeepFitTrainer, SupervisedTrainer)
+            and self.config.get("capture_epoch_checkpoints", True)
+            and "epoch_callback" in inspect.signature(type(est).fit).parameters
+        ):
+            from .checkpoints import EpochCheckpointTrainer
+
+            root = self.config.get("checkpoint_dir")
+            if root is None and self.manifest_path:
+                root = str(Path(self.manifest_path).resolve().parent / "checkpoints")
+            trainer = EpochCheckpointTrainer(
+                supervised=trainer.trains_on_real_labels, checkpoint_dir=root
+            )
         return trainer.fit(
             est,
             train_view.X,
@@ -433,6 +482,76 @@ class ExperimentRunner:
             path = Path(self.manifest_path)
             path.parent.mkdir(parents=True, exist_ok=True)
             write_manifest(path, manifest)
+
+
+def _checkpoint_context(context, trajectories):
+    """Only actual complete trajectories can discharge the checkpoint blocker."""
+    if context.get("execution_mode") != "versioned_pilot":
+        return context
+    context = dict(context)
+    blockers = list(context["formal_blockers"])
+    expected = context["budget"].get("epochs")
+    complete = (
+        all(
+            trajectory.checkpoints and len(trajectory.epochs) == expected
+            for trajectory in trajectories
+        )
+        if expected is not None
+        else all(
+            not trajectory.checkpoints and len(trajectory.epochs) == 1
+            for trajectory in trajectories
+        )
+    )
+    blocker = "per_epoch_independent_PA_OA_checkpoint_selection"
+    if complete:
+        blockers = [item for item in blockers if item != blocker]
+        if expected is not None and any(
+            not checkpoint.persistent
+            for trajectory in trajectories
+            for checkpoint in trajectory.checkpoints
+        ):
+            blockers.append("epoch_checkpoint_persistence")
+    elif blocker not in blockers:
+        blockers.append(blocker)
+    context["formal_blockers"] = blockers
+    context["formal_eligible"] = not blockers
+    context["selection_checkpoint_scope"] = (
+        "independent_per_epoch"
+        if complete and expected is not None
+        else "single_point_no_epoch"
+        if complete
+        else "incomplete_or_internal_selected"
+    )
+    return context
+
+
+def _add_checkpoint_resources(resources, candidate_runs, trajectories, selection_elapsed):
+    """Include offline per-epoch scoring costs, with separate restore/dispatch overhead."""
+    validation_total = 0.0
+    for item, cost in zip(candidate_runs, resources["single_configuration_costs"], strict=True):
+        index = item["trajectory_index"]
+        checkpoints = [] if index is None else trajectories[index].checkpoints
+        elapsed = sum(checkpoint.validation_elapsed_seconds for checkpoint in checkpoints)
+        validation_total += elapsed
+        for target in (item["resources"], cost):
+            target["offline_checkpoint_validation_elapsed_seconds"] = elapsed
+            target["elapsed_seconds"] += elapsed
+            if target["successful_attempt_elapsed_seconds"] is not None:
+                target["successful_attempt_elapsed_seconds"] += elapsed
+        peaks = [
+            resource_tools.peak_gpu_memory_bytes(checkpoint.device)
+            for checkpoint in checkpoints
+            if checkpoint.device.startswith("cuda")
+        ]
+        peak = max((value for value in peaks if value is not None), default=None)
+        if peak is not None:
+            resources["peak_gpu_memory_bytes"] = max(resources["peak_gpu_memory_bytes"] or 0, peak)
+    resources["offline_selection_elapsed_seconds"] = selection_elapsed
+    resources["offline_checkpoint_validation_elapsed_seconds"] = validation_total
+    resources["offline_checkpoint_restore_dispatch_elapsed_seconds"] = max(
+        0.0, selection_elapsed - validation_total
+    )
+    resources["tuning"]["elapsed_seconds"] += selection_elapsed
 
 
 def _mechanism(generated_meta) -> object:
@@ -521,6 +640,24 @@ def _validate_trajectory(trajectory, pu_val: DatasetPart) -> None:
     """Turn non-finite output and trainer interface drift into retryable failures."""
     if not isinstance(trajectory, RunTrajectory):
         raise TypeError("trainer.fit must return a RunTrajectory instance.")
+    if trajectory.checkpoints:
+        components = {checkpoint.component for checkpoint in trajectory.checkpoints}
+        expected = {
+            (position, component)
+            for position in range(1, len(trajectory.epochs) + 1)
+            for component in components
+        }
+        actual = {
+            (checkpoint.epoch_position, checkpoint.component)
+            for checkpoint in trajectory.checkpoints
+        }
+        if actual != expected or len(actual) != len(trajectory.checkpoints):
+            raise ValueError(
+                "trajectory checkpoint coverage must include every epoch/component once"
+            )
+        for checkpoint in trajectory.checkpoints:
+            if checkpoint.epoch_label != trajectory.epochs[checkpoint.epoch_position - 1].epoch:
+                raise ValueError("checkpoint epoch label disagrees with training history")
     for record in trajectory.epochs:
         for metric_name, value in record.metrics.items():
             if not np.isfinite(value):

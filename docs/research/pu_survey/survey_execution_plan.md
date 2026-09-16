@@ -121,7 +121,9 @@
   ResNet-18 encoder factory、weights/seed 锁定、encoder state 共享范围与缓存复用、
   `run_survey_experiment.py --protocol survey-v1` 装配已于 2026-09-16 接通并完成 CPU smoke。
   当前 adapter 是随机冻结 encoder 工程基线，不是训练后的 CNN；规格与报告范围待复核，
-  正式跑批仍受阶段 A 与独立 checkpoint 选模门禁阻断，见 [P2.0a 交付](p2_0a_delivery.md)。
+  后续 `survey-v1.1` 补齐逐 epoch 权重保存与独立恢复；正式跑批仍受阶段 A、
+  PA 正式准则及未完成路径门禁阻断，见 [P2.0a 交付](p2_0a_delivery.md)。
+  合作者的逐条签署材料见 [P2.0a 复核包](p2_0a_review.md)。
 - **交叉验证（阶段 A，P2.0c）**：对照矩阵与判定规则预注册（见本节末「交叉验证对照」），
   随 pilot 执行并写入聚合报告
 - **依赖**：oracle 与各 PU 方法须在同一 backbone 规格下比较（协议 §2.5 第 4 条）——该规格
@@ -228,10 +230,12 @@ resolved 单元写入 manifest。
 
 ## 4. 存在的开放问题与风险
 
-0. **P2.0a 实测新增边界（2026-09-16）**：现有 runner 不能从全 epoch checkpoint 为 PA/OA
-   分别离线选模；CNN oracle 仍未接入，full-batch/经典路径没有同预算/backbone oracle。
-   已通过矩阵不可运行行、比较门禁与 manifest `formal_blockers` 显式阻断正式混排；
-   后续需拆成训练器/checkpoint 任务并由双方复核，不得只删除阻断字段升级结果。
+0. **P2.0a 后续补充（2026-09-16）**：`survey-v1.1` 已保存逐 epoch 权重、双 teacher，
+   支持 PA/OA 独立选择与恢复；实际完整预算/快照覆盖才解除相应 checkpoint 门禁。
+   PA 仍是 PU 分离度代理，正式 Accuracy/阈值准则未实现，新增专用 `formal_blockers`；
+   CNN oracle 仍未接入，full-batch/经典路径没有同预算/backbone oracle。
+   签署材料与逐条决定见 [复核包](p2_0a_review.md)，存储/加载/测试见
+   [checkpoint 交付](epoch_checkpoint_delivery.md)。不得只删除阻断字段升级结果。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；

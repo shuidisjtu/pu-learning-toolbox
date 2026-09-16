@@ -44,8 +44,12 @@
   `survey_protocol_v1.json`，脚本 `--protocol survey-v1` 选取 dataset/method/training_path 单元，
   runner 再次校验参数锁与真实表征，manifest 保存协议、预算、比较组和正式阻断信息。
   CIFAR 随机冻结 adapter 缓存与原生 nnPU 接线已有 CPU/GPU smoke；无协议入口为技术验证。
-  详细决策、oracle/增强/全 epoch checkpoint 未完成边界见
+  已补齐 nnPU/Dist-PU/Self-PU/MLP oracle 的逐 epoch 权重保存与 PA/OA 独立恢复；
+  完整预算及持久化验证后才解除相应单元的 checkpoint 阻断。
+  详细决策、oracle/增强及 PA 正式准则未完成边界见
   [P2.0a 交付](../research/pu_survey/p2_0a_delivery.md)。
+  复核入口与存储/加载证据见 [复核包](../research/pu_survey/p2_0a_review.md)、
+  [checkpoint 交付](../research/pu_survey/epoch_checkpoint_delivery.md)。
 
 - **P0 已实现**（§7 验收清单全项 + smoke）：四路合约、SCAR/SAR 生成与 manifest、PA/OA 独立
   artifact、阈值选择、资源/失败最小留痕（elapsed + failures 字段）、二维（uPU）与 CNN（nnPU）
