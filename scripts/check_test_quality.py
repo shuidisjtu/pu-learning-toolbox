@@ -297,12 +297,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "unit tests (prepare_survey_dataset, fit_survey_image_preprocessing, "
             "encode_survey_texts)"
         ),
-        "edge": (
-            "the smallest legal synthetic inputs are used for the functional "
-            "assertions; degenerate/empty inputs fail inside the underlying "
-            "layer (stratified split, encoding validation), covered by their "
-            "own unit tests"
-        ),
         "determ": (
             "the script is a thin wrapper over seed-driven prepare_survey_dataset; "
             "split determinism per seed is asserted by test_datasets.py"

@@ -102,3 +102,50 @@ def test_basic_prepare_text_writes_sbert_features(prep_script, tmp_path):
     manifest = json.loads((run_dir / "split_manifest.json").read_text(encoding="utf-8"))
     assert manifest["preprocessing"]["kind"] == "sbert"
     assert manifest["preprocessing"]["revision"].startswith("1110a243")
+    assert manifest["preprocessing"]["normalize_embeddings"] is False
+    assert manifest["preprocessing"]["effective_output_normalization"] == "not_l2_unit_norm"
+    assert manifest["preprocessing"]["normalization_source"] == "injected_encoder_output"
+
+
+def test_basic_prepare_text_records_effective_model_pipeline_normalization(
+    prep_script, tmp_path, monkeypatch
+):
+    def fake_pinned_encoder(texts, **_kwargs):
+        features = np.full((len(texts), 384), 1 / np.sqrt(384), dtype=np.float32)
+        return features, {"encoder_backend": "sentence-transformers", "normalize_embeddings": False}
+
+    monkeypatch.setattr(prep_script, "encode_survey_texts", fake_pinned_encoder)
+    prep_script.prepare_text(
+        [f"review {i}" for i in range(40)],
+        [i % 2 for i in range(40)],
+        [f"test {i}" for i in range(8)],
+        [i % 2 for i in range(8)],
+        seed=0,
+        run_dir=tmp_path / "split_0",
+        cache_dir=tmp_path / "cache",
+    )
+    manifest = json.loads((tmp_path / "split_0/split_manifest.json").read_text())
+    assert manifest["preprocessing"]["normalize_embeddings"] is False
+    assert manifest["preprocessing"]["effective_output_normalization"] == "l2_unit_norm"
+    assert manifest["preprocessing"]["normalization_source"] == "model_pipeline_module"
+
+
+def test_edge_prepare_text_rejects_nonunit_pinned_model_output(prep_script, tmp_path, monkeypatch):
+    def fake_pinned_encoder(texts, **_kwargs):
+        return np.ones((len(texts), 384), dtype=np.float32), {
+            "encoder_backend": "sentence-transformers",
+            "normalize_embeddings": False,
+        }
+
+    monkeypatch.setattr(prep_script, "encode_survey_texts", fake_pinned_encoder)
+    with pytest.raises(ValueError, match="not L2-normalized"):
+        prep_script.prepare_text(
+            [f"review {i}" for i in range(40)],
+            [i % 2 for i in range(40)],
+            [f"test {i}" for i in range(8)],
+            [i % 2 for i in range(8)],
+            seed=0,
+            run_dir=tmp_path / "split_0",
+            cache_dir=tmp_path / "cache",
+        )
+    assert not (tmp_path / "split_0/split_manifest.json").exists()

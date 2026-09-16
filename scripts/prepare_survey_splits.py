@@ -231,6 +231,15 @@ def prepare_text(
     embeddings, encoder_meta = encode_survey_texts(
         role_texts, cache_dir=cache_dir, revision=SBERT_REVISION, encoder=encoder
     )
+    # normalize_embeddings=False disables an extra encode-time pass; the pinned
+    # SentenceTransformer has a Normalize module in its model pipeline. Record
+    # the effective output, including for injected test encoders, not an
+    # inference from the encode() argument alone.
+    squared_norms = np.einsum("ij,ij->i", embeddings, embeddings, dtype=np.float64)
+    is_unit_norm = bool(np.allclose(squared_norms, 1.0, rtol=1e-4, atol=1e-4))
+    backend_is_model = encoder_meta["encoder_backend"] == "sentence-transformers"
+    if backend_is_model and not is_unit_norm:
+        raise ValueError("pinned SBERT pipeline output is not L2-normalized as expected")
     encoded_parts = []
     cursor = 0
     for part in (bundle.train, bundle.pu_val, bundle.clean_val, bundle.test):
@@ -250,6 +259,10 @@ def prepare_text(
         "kind": "sbert",
         "model_name": SBERT_MODEL_NAME,
         "revision": SBERT_REVISION,
+        "effective_output_normalization": "l2_unit_norm" if is_unit_norm else "not_l2_unit_norm",
+        "normalization_source": (
+            "model_pipeline_module" if backend_is_model else "injected_encoder_output"
+        ),
         **{key: value for key, value in encoder_meta.items() if key != "cache_hit"},
     }
     save_split_products(encoded_bundle, manifest, run_dir)
