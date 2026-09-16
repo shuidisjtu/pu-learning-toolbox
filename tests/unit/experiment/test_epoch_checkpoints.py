@@ -149,8 +149,17 @@ def test_basic_oracle_callback_receives_training_only_and_no_prior(tmp_path):
         EpochCheckpointTrainer(supervised=True).fit(model, X, y, class_prior=0.3)
 
 
-def test_basic_selfpu_keeps_both_teachers_at_every_epoch(tmp_path):
+def test_basic_selfpu_keeps_both_teachers_at_every_epoch(tmp_path, monkeypatch):
     X, y = _data()
+    original_step = torch.optim.Adam.step
+    step_count = 0
+
+    def counted_step(optimizer, *args, **kwargs):
+        nonlocal step_count
+        step_count += 1
+        return original_step(optimizer, *args, **kwargs)
+
+    monkeypatch.setattr(torch.optim.Adam, "step", counted_step)
     model = SelfPUClassifier(
         0.3,
         hidden_dim=4,
@@ -166,6 +175,7 @@ def test_basic_selfpu_keeps_both_teachers_at_every_epoch(tmp_path):
     )
     with pytest.warns(UserWarning, match="explicit Self-PU ablation"):
         trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(model, X, y)
+    assert step_count == 2 * model.max_epochs  # one sampled update per student per epoch
     assert [
         (checkpoint.epoch_position, checkpoint.component) for checkpoint in trajectory.checkpoints
     ] == [(1, "teacher_1"), (1, "teacher_2"), (2, "teacher_1"), (2, "teacher_2")]

@@ -434,7 +434,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--protocol",
         default=None,
-        help="survey-v1.1 (survey-v1 alias) or matrix JSON; omission means technical smoke only",
+        help="survey-v1.2 (v1/v1.1 aliases) or matrix JSON; otherwise technical smoke",
     )
     parser.add_argument("--dataset", choices=("spambase", "imdb", "cifar10"), default=None)
     parser.add_argument(
@@ -468,7 +468,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
     method = "pn_oracle" if args.oracle else args.method or "upu"
     protocol_path = (
         PROTOCOL_PATH
-        if args.protocol in ("survey-v1", "survey-v1.1")
+        if args.protocol in ("survey-v1", "survey-v1.1", "survey-v1.2")
         else Path(args.protocol).resolve()
     )
     # These gates precede loading splits, building encoders and creating output directories.

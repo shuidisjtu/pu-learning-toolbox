@@ -55,7 +55,7 @@ def test_basic_sar_lbe_a_runs_oa_only(survey_script, tmp_path):
 
 
 def test_basic_versioned_sar_binds_generator_oa_and_manifest(survey_script, tmp_path):
-    """survey-v1.1 keeps the SAR mechanism, OA-only route and audit metadata bound."""
+    """The v1.1 CLI alias resolves to the current SAR protocol and audit metadata."""
     data_dir = tmp_path / "splits"
     data_dir.mkdir()
     make_sar_splits(data_dir)
@@ -89,7 +89,7 @@ def test_basic_versioned_sar_binds_generator_oa_and_manifest(survey_script, tmp_
 
     run_dir = out_dir / "sar_lbe_b" / "c_0.05" / "seed_0"
     manifest = load_manifest(run_dir / "manifest.json")
-    assert manifest["protocol_version"] == "survey-v1.1"
+    assert manifest["protocol_version"] == "survey-v1.2"
     assert set(manifest["selection"]) == {"OA"}
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["generator"] == "SARLBEBGenerator"

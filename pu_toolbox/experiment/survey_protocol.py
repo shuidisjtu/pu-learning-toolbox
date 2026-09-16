@@ -19,6 +19,21 @@ import numpy as np
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 ROLES = ("train", "pu_val", "clean_val", "test")
 _LOCKED_CONFIG = ("backbone", "budget", "representation", "training_path", "comparability_group")
+_REVIEW_STATUSES = frozenset({"pending_collaborator_review", "changes_requested", "accepted"})
+_REQUIRED_UNIT_FIELDS = frozenset(
+    {
+        "dataset",
+        "method",
+        "training_path",
+        "budget",
+        "model_family",
+        "backbone",
+        "representation",
+        "comparability_group",
+        "oracle_alignment",
+        "runnable",
+    }
+)
 
 
 def digest(value: Any) -> str:
@@ -43,14 +58,77 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or payload.get("schema_version") != "1.0":
         raise ValueError("unsupported survey protocol schema_version")
-    for key in ("protocol_version", "budgets", "method_profiles", "backbone_specs", "c_tokens"):
-        if not payload.get(key):
+    for key in (
+        "protocol_version",
+        "budgets",
+        "method_profiles",
+        "backbone_specs",
+        "c_tokens",
+        "review_status",
+        "seeds",
+        "candidate_pool",
+        "formal_blockers",
+        "selection_spec",
+        "selection_spec_kind",
+    ):
+        if key not in payload:
             raise ValueError(f"survey protocol missing {key}")
+    if not isinstance(payload["protocol_version"], str) or not payload["protocol_version"]:
+        raise ValueError("survey protocol protocol_version must be a non-empty string")
+    for key in ("budgets", "method_profiles", "backbone_specs", "c_tokens", "selection_spec"):
+        if not isinstance(payload[key], dict) or not payload[key]:
+            raise ValueError(f"survey protocol {key} must be a non-empty object")
+    if (
+        not isinstance(payload["review_status"], str)
+        or payload["review_status"] not in _REVIEW_STATUSES
+    ):
+        raise ValueError("survey protocol review_status is not recognized")
+    if payload["selection_spec_kind"] != "descriptive_documentation":
+        raise ValueError("selection_spec_kind must be descriptive_documentation")
+    seeds = payload["seeds"]
+    if (
+        not isinstance(seeds, list)
+        or not seeds
+        or any(type(seed) is not int for seed in seeds)
+        or len(seeds) != len(set(seeds))
+    ):
+        raise ValueError("survey protocol seeds must be unique integers")
+    candidates = payload["candidate_pool"]
+    if (
+        not isinstance(candidates, list)
+        or not candidates
+        or any(not isinstance(candidate, dict) for candidate in candidates)
+    ):
+        raise ValueError("survey protocol candidate_pool must be a non-empty object list")
+    blockers = payload["formal_blockers"]
+    if (
+        not isinstance(blockers, list)
+        or any(not isinstance(item, str) or not item for item in blockers)
+        or len(blockers) != len(set(blockers))
+    ):
+        raise ValueError("survey protocol formal_blockers must be unique non-empty strings")
     units = payload.get("execution_units")
     if not isinstance(units, list) or not units:
         raise ValueError("survey protocol execution_units must not be empty")
     identities = set()
     for row in units:
+        if not isinstance(row, dict):
+            raise ValueError("survey execution unit must be an object")
+        missing = _REQUIRED_UNIT_FIELDS - row.keys()
+        if missing:
+            raise ValueError(f"survey execution unit missing {', '.join(sorted(missing))}")
+        for key in _REQUIRED_UNIT_FIELDS - {"runnable"}:
+            if not isinstance(row[key], str) or not row[key]:
+                raise ValueError(f"survey execution unit {key} must be a non-empty string")
+        if type(row["runnable"]) is not bool:
+            raise ValueError("survey execution unit runnable must be a JSON boolean")
+        if row["runnable"] is False and (
+            not isinstance(row.get("non_runnable_reason"), str)
+            or not row["non_runnable_reason"].strip()
+        ):
+            raise ValueError("non-runnable survey unit requires non_runnable_reason")
+        if row["runnable"] is True and "non_runnable_reason" in row:
+            raise ValueError("runnable survey unit must not declare non_runnable_reason")
         identity = (row["dataset"], row["method"], row["training_path"])
         if identity in identities:
             raise ValueError(f"duplicate survey execution unit: {identity}")
@@ -76,8 +154,8 @@ def resolve_unit(
     ]
     if len(matches) != 1:
         raise ValueError("survey unit missing or ambiguous; specify --training-path")
-    if not matches[0]["runnable"]:
-        raise ValueError("CNN oracle is Phase 2, not runnable in this pilot binding")
+    if matches[0].get("runnable") is not True:
+        raise ValueError(matches[0].get("non_runnable_reason", "survey unit is not runnable"))
     return copy.deepcopy(matches[0])
 
 
@@ -130,6 +208,10 @@ def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
 def _validate_budget(model, budget: dict) -> None:
     """Declared artifact budgets must describe the estimator that actually trains."""
     params = model.get_params(deep=False)
+    if "optimizer_steps_per_epoch" in budget and (
+        type(model).__name__ != "SelfPUClassifier" or budget["optimizer_steps_per_epoch"] != 2
+    ):
+        raise ValueError("two-student budget must describe two Self-PU updates per epoch")
     if "epochs" in budget:
         actual = params.get("max_epochs", params.get("epochs"))
         if actual != budget["epochs"]:

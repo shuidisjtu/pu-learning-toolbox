@@ -23,7 +23,7 @@ def _args(data, out):
     return [
         str(data),
         "--protocol",
-        "survey-v1.1",
+        "survey-v1.2",
         "--dataset",
         "spambase",
         "--method",
@@ -42,7 +42,7 @@ def test_basic_versioned_cli_records_protocol_and_actual_budget(survey_script, t
     _splits(data)
     assert survey_script.main(_args(data, out)) == 0
     payload = json.loads((out / "c_0.5/seed_0/manifest.json").read_text())
-    assert payload["protocol_version"] == "survey-v1.1"
+    assert payload["protocol_version"] == "survey-v1.2"
     assert payload["budget"]["unit"] == "one_closed_form_fit"
     assert payload["formal_eligible"] is False
     assert payload["training_path"] == "native_2d"
@@ -80,6 +80,14 @@ def test_edge_oracle_native_cnn_cannot_silently_run_mlp(survey_script, tmp_path,
     ]
     assert survey_script.main(args) == 1
     assert "Phase 2" in capsys.readouterr().err
+
+
+def test_edge_kldce_rejected_before_reading_splits(survey_script, tmp_path, capsys):
+    args = _args(tmp_path / "missing", tmp_path / "out")
+    args[args.index("upu")] = "kldce"
+    assert survey_script.main(args) == 1
+    assert "flip_probability" in capsys.readouterr().err
+    assert not (tmp_path / "out").exists()
 
 
 def test_param_dataset_and_seed_mismatches_rejected(survey_script, tmp_path, capsys):

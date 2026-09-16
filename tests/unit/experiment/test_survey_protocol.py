@@ -93,7 +93,7 @@ def test_basic_runner_consumes_matrix_and_records_blockers(survey_script, tmp_pa
     model, parts, config = _bound(survey_script, tmp_path)
     result = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts)
     manifest = result.manifest
-    assert manifest["protocol_version"] == "survey-v1.1"
+    assert manifest["protocol_version"] == "survey-v1.2"
     assert manifest["budget"]["unit"] == "one_closed_form_fit"
     assert manifest["formal_eligible"] is False
     assert "seed_subset" in manifest["protocol_deviation"]

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "protocol_version": "survey-v1.1",
+  "protocol_version": "survey-v1.2",
   "review_status": "pending_collaborator_review",
   "result_scope": "pilot / partial benchmark",
   "selection_spec": {
@@ -13,6 +13,7 @@
     "tie_breaking": "earliest candidate, then earliest epoch/component, then earliest threshold",
     "checkpoint_format": "weights_only; inference snapshots, not optimizer resume"
   },
+  "selection_spec_kind": "descriptive_documentation",
   "seeds": [
     0,
     1,
@@ -75,6 +76,16 @@
       "unit": "epochs",
       "epochs": 200,
       "batch_size": 256,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "two_student_sampled": {
+      "unit": "two_student_sampled_epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "optimizer_steps_per_epoch": 2,
+      "sampled_examples_per_step_max": 512,
       "outer_candidates": 1,
       "optimizer": "adam",
       "learning_rate": 0.001
@@ -192,7 +203,7 @@
       "group": "classical"
     },
     "self_pu": {
-      "budget": "minibatch",
+      "budget": "two_student_sampled",
       "params": {
         "hidden_dim": 128,
         "max_epochs": 200,
@@ -201,7 +212,7 @@
         "require_validation": false
       },
       "model_family": "mlp128",
-      "group": "minibatch"
+      "group": "two_student_sampled"
     },
     "pn_oracle": {
       "budget": "minibatch",
@@ -249,7 +260,8 @@
       "representation": "train_zscore",
       "comparability_group": "spambase/native_2d/classical",
       "oracle_alignment": "no_matched_neural_backbone_oracle",
-      "runnable": true
+      "runnable": false,
+      "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
     },
     {
       "dataset": "spambase",
@@ -291,12 +303,12 @@
       "dataset": "spambase",
       "method": "self_pu",
       "training_path": "native_2d",
-      "budget": "minibatch",
+      "budget": "two_student_sampled",
       "model_family": "mlp128",
       "backbone": "mlp128",
       "representation": "train_zscore",
-      "comparability_group": "spambase/native_2d/minibatch",
-      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "comparability_group": "spambase/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
       "runnable": true
     },
     {
@@ -345,7 +357,8 @@
       "representation": "sbert384",
       "comparability_group": "imdb/native_2d/classical",
       "oracle_alignment": "no_matched_neural_backbone_oracle",
-      "runnable": true
+      "runnable": false,
+      "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
     },
     {
       "dataset": "imdb",
@@ -387,12 +400,12 @@
       "dataset": "imdb",
       "method": "self_pu",
       "training_path": "native_2d",
-      "budget": "minibatch",
+      "budget": "two_student_sampled",
       "model_family": "mlp128",
       "backbone": "mlp128",
       "representation": "sbert384",
-      "comparability_group": "imdb/native_2d/minibatch",
-      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "comparability_group": "imdb/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
       "runnable": true
     },
     {
@@ -441,7 +454,8 @@
       "representation": "resnet18_random_initialization",
       "comparability_group": "cifar10/cnn_feature_adapter/classical",
       "oracle_alignment": "no_matched_neural_backbone_oracle",
-      "runnable": true
+      "runnable": false,
+      "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
     },
     {
       "dataset": "cifar10",
@@ -483,12 +497,12 @@
       "dataset": "cifar10",
       "method": "self_pu",
       "training_path": "cnn_feature_adapter",
-      "budget": "minibatch",
+      "budget": "two_student_sampled",
       "model_family": "mlp128",
       "backbone": "resnet18_random_frozen",
       "representation": "resnet18_random_initialization",
-      "comparability_group": "cifar10/cnn_feature_adapter/minibatch",
-      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "comparability_group": "cifar10/cnn_feature_adapter/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
       "runnable": true
     },
     {
@@ -513,7 +527,8 @@
       "representation": "resnet18_random_initialization",
       "comparability_group": "cifar10/native_cnn/native_cnn",
       "oracle_alignment": "cnn_oracle_phase2_not_available",
-      "runnable": false
+      "runnable": false,
+      "non_runnable_reason": "CNN oracle is Phase 2, not runnable in this pilot binding"
     }
   ],
   "formal_blockers": [
@@ -529,6 +544,9 @@
     "Classical methods have no MLP backbone; no neural oracle is claimed to be backbone-matched.",
     "CNN oracle remains Phase 2; unsupported row fails before training.",
     "Completed-epoch weights are selected independently offline; inference checkpoints do not resume optimizer training.",
-    "PA still uses the engineering PU separation proxy, not the preregistered PA accuracy/threshold criterion; formal SCAR PA acceptance remains blocked."
+    "PA still uses the engineering PU separation proxy, not the preregistered PA accuracy/threshold criterion; formal SCAR PA acceptance remains blocked.",
+    "KLDCE is non-runnable until flip_probability is bound at runtime; flip_probability = 1 - c is valid only under SCAR, while SAR requires a separate reject/value/deviation decision.",
+    "Self-PU uses two sampled optimizer steps per epoch, not a full traversal, and has no budget-matched mini-batch oracle; its comparability group is separate.",
+    "selection_spec is descriptive documentation; runner behavior is enforced by code and checkpoint tests, not by dynamically consuming this prose field."
   ]
 }
