@@ -296,6 +296,7 @@ tests/
       test_runner_oracle.py             # PN oracle 路径: 真实标签透传/OA-only/manifest 标注/误配 fail-loud
       test_survey_execution.py          # 共享 MLP/随机 encoder、adapter 缓存与 SAR 原空间一致性
       test_survey_protocol.py           # 执行矩阵、runner 参数锁、比较公平性与正式结果阻断
+      test_survey_protocol_validation.py # 执行矩阵审核字段/KLDCE 可运行性/Self-PU 独立预算门禁
       test_survey_protocol_cnn.py       # 真实 ResNet CPU 一 epoch smoke 与 encoder provenance 门禁
       test_survey_script_protocol.py    # 版本化脚本、split/seed 对应、oracle 去重与 CIFAR 缓存命中
       test_checkpoint_selection.py      # PA/OA 不同 epoch 选择、无泄漏与独立恢复反例

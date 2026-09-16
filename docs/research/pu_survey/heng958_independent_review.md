@@ -17,9 +17,11 @@ shuidisjtu 决策或签署的 P1 复核项；不替代 P2.0a/P2.0b/P2.0c 的协�
   均通过；解析为 86 个包（Linux PyTorch 2.13.0、torchvision 0.28.0），未在本次复核中
   下载或改写工作区环境。
 - **环境一致性限制**：当前服务器全局 Python 不是 frozen lock 环境；`uv.lock` 的 Linux
-  解析项为 PyTorch 2.13.0。上述结果只证明 CUDA 技术路径可用，不能作为正式 pilot 的
-  依赖复现证明。P2.1 前须在独立环境执行 `uv sync --frozen --extra research --extra dev`
-  并把解析后的版本、设备和 lock digest 写入运行 manifest。
+  解析项为 PyTorch 2.13.0，并依赖 CUDA 13 组件；前次记录的驱动 550.54.14 低于
+  CUDA 13.0 GA 所需的 580.65.06。上述结果只证明旧全局 CUDA 12.4 技术路径可用，
+  不能作为正式 pilot 的依赖复现证明。当前沙箱内 `nvidia-smi` 无法连接驱动，未完成
+  frozen-lock GPU 复验；须先共同决定升级驱动、调整 lock 或保留阻断，再在隔离环境
+  运行并把实际版本、设备、lock digest 和 JUnit 证据写入运行记录。
 
 ### 可追溯命令
 

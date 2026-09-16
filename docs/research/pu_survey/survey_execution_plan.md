@@ -239,7 +239,9 @@ resolved 单元写入 manifest。
    [checkpoint 交付](epoch_checkpoint_delivery.md)。不得只删除阻断字段升级结果。
 
 0a. **HENG958 独立复核（2026-09-16）**：P1.1 GPU 能力与 P1.3a nnPU/Self-PU 台账已复核；
-    当前服务器全局 PyTorch 与 Linux lock 版本不同，故 P2.1 前仍须创建 frozen-lock 隔离环境。
+    当前服务器全局 PyTorch 与 Linux lock 版本不同；Linux lock 的 CUDA 13 组件还高于
+    前次记录驱动 550.54.14 支持范围。P2.1 前须共同决定环境兼容路线，并完成 frozen-lock
+    GPU 验证，不能把旧全局环境 smoke 视为替代。
     P1.4 所需 split 产物未在当前工作树中；CIFAR 历史 manifest 还存在通道统计审计错误
     （issue #52，代码修复不等于真实 5-seed 产物重建），HENG958 可执行性复核等待产物同步。
     证据、命令和
@@ -248,6 +250,12 @@ resolved 单元写入 manifest。
 0b. **P2.0d 负责人复核（2026-09-16）**：SAR-LBE-A/B 与方法正交、规范 c token、
     OA-only、生成审计和确定性均通过脚本级测试；新增 `survey-v1.1` 版本化端到端回归。
     该复核不解除 P2.0a/b/c 对正式跑批的门禁，详见 [独立复核记录](heng958_independent_review.md#4-p20d-sar-oa-执行路径复核)。
+
+0c. **P2.0a 审核修改（2026-09-16）**：当前矩阵升为 `survey-v1.2`，KLDCE 三行在缺少
+    `flip_probability` 安全绑定前不可运行；Self-PU 按每 epoch 两次抽样优化更新单列预算和
+    比较组；矩阵关键字段严格校验，`selection_spec` 明确为描述性文档。IMDB split manifest
+    记录真实向量是否 L2 归一化及来源，但历史 split 不自动更新。详情见 [复核包](p2_0a_review.md)。
+    这些修改等待合作者再次复核，不解除 `collaborator_review` 或其他正式阻断项。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；
