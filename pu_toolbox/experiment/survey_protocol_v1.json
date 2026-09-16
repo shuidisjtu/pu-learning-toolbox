@@ -1,0 +1,523 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "survey-v1",
+  "review_status": "pending_collaborator_review",
+  "result_scope": "pilot / partial benchmark",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "c_tokens": {
+    "scar": [
+      "0.1",
+      "0.3",
+      "0.5"
+    ],
+    "sar_lbe_a": [
+      "0.05",
+      "0.5"
+    ],
+    "sar_lbe_b": [
+      "0.05",
+      "0.5"
+    ]
+  },
+  "candidate_pool": [
+    {}
+  ],
+  "backbone_specs": {
+    "mlp128": {
+      "hidden_dims": [
+        128
+      ],
+      "activation": "relu",
+      "output_dim": 1,
+      "initialization": "seeded_random",
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "image": {
+      "name": "resnet18",
+      "weights": null,
+      "initialization": "seeded_random",
+      "in_channels": 3,
+      "input_size": [
+        32,
+        32
+      ],
+      "small_input_stem": true,
+      "normalization": "train_only_channel_statistics",
+      "train_augmentation": "none",
+      "adapter_encoder_fit": "none",
+      "adapter_shared_scope": "dataset/split/seed; independent of method/c/mechanism",
+      "adapter_cache_schema": "1.0"
+    }
+  },
+  "budgets": {
+    "closed_form": {
+      "unit": "one_closed_form_fit",
+      "outer_candidates": 1
+    },
+    "minibatch": {
+      "unit": "epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "fullbatch": {
+      "unit": "full_train_gradient_steps",
+      "epochs": 200,
+      "batch_size": "full_train; estimator batch_size is unused",
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "alternating": {
+      "unit": "alternating_solver",
+      "max_acs_iter": 50,
+      "max_inner_iter": 2000,
+      "outer_candidates": 1
+    },
+    "kernel_cv": {
+      "unit": "kernel_cv_fit",
+      "outer_candidates": 1,
+      "internal_cv_folds": 5,
+      "internal_hyperparameter_pairs": 72,
+      "max_iter": 200,
+      "internal_search_counts_in_total_cost": true
+    },
+    "em": {
+      "unit": "em_fit",
+      "n_em_iter": 20,
+      "max_iter": 1000,
+      "outer_candidates": 1
+    }
+  },
+  "method_profiles": {
+    "upu": {
+      "budget": "closed_form",
+      "params": {
+        "loss": "squared",
+        "basis": "linear",
+        "fit_intercept": false,
+        "max_iter": 1000
+      },
+      "model_family": "linear",
+      "group": "classical"
+    },
+    "nnpu": {
+      "budget": "minibatch",
+      "params": {
+        "max_epochs": 200,
+        "batch_size": 256,
+        "patience": 201,
+        "optimizer": null
+      },
+      "model_family": "mlp128",
+      "group": "minibatch"
+    },
+    "kldce": {
+      "budget": "alternating",
+      "params": {
+        "max_acs_iter": 50,
+        "max_inner_iter": 2000
+      },
+      "model_family": "kernel",
+      "group": "classical"
+    },
+    "dist_pu": {
+      "budget": "fullbatch",
+      "params": {
+        "hidden_dim": 128,
+        "epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001
+      },
+      "model_family": "mlp128",
+      "group": "fullbatch"
+    },
+    "pusb_kernel": {
+      "budget": "kernel_cv",
+      "params": {
+        "n_basis": 300,
+        "cv": 5,
+        "max_iter": 200,
+        "sigma_grid": [
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          2,
+          5,
+          10,
+          20
+        ],
+        "reg_grid": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          5
+        ]
+      },
+      "model_family": "kernel",
+      "group": "classical"
+    },
+    "lbe": {
+      "budget": "em",
+      "params": {
+        "max_iter": 1000,
+        "n_em_iter": 20
+      },
+      "model_family": "linear_em",
+      "group": "classical"
+    },
+    "self_pu": {
+      "budget": "minibatch",
+      "params": {
+        "hidden_dim": 128,
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001,
+        "require_validation": false
+      },
+      "model_family": "mlp128",
+      "group": "minibatch"
+    },
+    "pn_oracle": {
+      "budget": "minibatch",
+      "params": {
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001
+      },
+      "model_family": "mlp128",
+      "group": "minibatch"
+    }
+  },
+  "execution_units": [
+    {
+      "dataset": "spambase",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "alternating",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "alternating",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "kldce",
+      "training_path": "cnn_feature_adapter",
+      "budget": "alternating",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "dist_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pusb_kernel",
+      "training_path": "cnn_feature_adapter",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "lbe",
+      "training_path": "cnn_feature_adapter",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "self_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": false
+    }
+  ],
+  "formal_blockers": [
+    "P2.0b_label_semantics_acceptance",
+    "P2.0c_cross_validation_acceptance",
+    "collaborator_review",
+    "per_epoch_independent_PA_OA_checkpoint_selection"
+  ],
+  "decisions": [
+    "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
+    "Native CNN and adapter rankings are strictly separate.",
+    "Full-batch Dist-PU is not budget-equivalent to mini-batch methods; unmatched oracle remains separate.",
+    "Classical methods have no MLP backbone; no neural oracle is claimed to be backbone-matched.",
+    "CNN oracle remains Phase 2; unsupported row fails before training.",
+    "Fixed epoch training and final/internal-selected checkpoints are technical evidence only until independent per-epoch selection is implemented."
+  ]
+}

@@ -50,6 +50,7 @@
 | [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界 |
 | [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：`pu_survey_protocol.md` 协议（8 数据集、OS/TS 视图、四份数据接口、PA/OA 双选模）、`implementation_plan.md` 实现计划（现状差距、双架构前置工作项、待办）、`survey_execution_plan.md` 执行计划（pilot→主榜路线、现状基线、决策记录）、`pn_oracle_integration.md` PN oracle 接入（缺陷实证、PU-Bench 口径对照、设计决策、P2 接口与开放问题） |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）设计蒸馏：四路数据合约、策略化接口、PA/OA 双协议、P0 已知局限 |
+| [research/pu_survey/p2_0a_delivery.md](research/pu_survey/p2_0a_delivery.md) | P2.0a 共享规格、执行矩阵、CIFAR 缓存接线、oracle 比较边界与 CPU 验证记录 |
 
 ## 架构决策(docs/adr/)
 

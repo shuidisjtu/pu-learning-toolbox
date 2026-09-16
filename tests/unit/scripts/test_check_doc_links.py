@@ -9,6 +9,7 @@ rule-4 index completeness over the whole docs tree.
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -18,6 +19,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
 import check_doc_links as d  # noqa: E402
 import generate_structure as g  # noqa: E402
+
+
+@pytest.mark.unit
+def test_basic_structure_scan_includes_unstaged_source_not_ignored_cache(tmp_path, monkeypatch):
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    (tmp_path / ".gitignore").write_text("cache/\n", encoding="utf-8")
+    (tmp_path / "new_module.py").write_text("", encoding="utf-8")
+    (tmp_path / "cache").mkdir()
+    (tmp_path / "cache/ignored.py").write_text("", encoding="utf-8")
+    monkeypatch.setattr(g, "PROJECT_ROOT", tmp_path)
+    assert g.tracked_py_files() == ["new_module.py"]
 
 
 def _make_tree(tmp_path: Path, files: dict[str, str]) -> Path:

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Regenerate the tree blocks of docs/dev/project_structure.md.
 
-The structure source is the set of git-tracked ``.py`` files
-(``git ls-files``), which automatically excludes ``.venv``/``__pycache__``
+The structure source is tracked and non-ignored new ``.py`` files
+(``git ls-files --cached --others --exclude-standard``), excluding ignored caches
 and caches. Hand-written annotations and directory order are preserved from
 the current document; files new on disk appear with a
 ``<<< 新文件,补注释`` placeholder so the missing annotation stays visible.
@@ -275,7 +275,7 @@ def generate(text: str, disk_files: list[str]) -> tuple[str, list[str], list[str
 
 
 def tracked_py_files() -> list[str]:
-    """Git-tracked ``.py`` files relative to the project root.
+    """Tracked and non-ignored new ``.py`` files relative to the project root.
 
     Falls back to a directory walk (excluding ``.venv``/``.git``/caches)
     when ``git`` is unavailable, e.g. in scratch-dir tests. Prefer
@@ -283,7 +283,7 @@ def tracked_py_files() -> list[str]:
     """
     try:
         proc = subprocess.run(
-            ["git", "ls-files"],
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
@@ -291,7 +291,7 @@ def tracked_py_files() -> list[str]:
         )
         files = [ln for ln in proc.stdout.splitlines() if ln.endswith(".py")]
         if files:
-            return files
+            return sorted(set(files))
     except (subprocess.SubprocessError, FileNotFoundError):
         pass
     skip = {

@@ -3,10 +3,10 @@
 > 定位：本文件是**执行路线与状态**，与协议的承接关系——
 > [pu_survey_protocol.md](pu_survey_protocol.md) 是要求纲要，
 > [implementation_plan.md](implementation_plan.md) 是现状差距与技术实现维度；
-> 状态日期：2026-09-14。
+> 状态日期：2026-09-16。
 
 ## 1. 现状
-- **实验层完备**：`pu_toolbox/experiment/` 34 个公共API，四路数据合约、PA/OA 独立选模、策略化接口、
+- **实验层基础功能就绪（不等于正式协议全绿）**：`pu_toolbox/experiment/` 34 个公共API，四路数据合约、PA/OA 独立选模、策略化接口、
   数据准备链（datasets/image/text/feature_adapter/training_views）、资源计量与失败语义、公平性门禁均已实现并入门禁覆盖。
 - **22 目标方法**：7 个已实现可训练——uPU、nnPU、KLDCE、Dist-PU、PUSB、LBE、Self-PU（均有方法卡）；
   14 个**未出现**（无注册/无占位/无方法卡）：A 类 PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX，
@@ -56,7 +56,7 @@
 | P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 初版完成 / shuidisjtu；HENG958 复核 nnPU、Self-PU |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
 | P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ 已完成 / shuidisjtu；HENG958 复核可执行性 |
-| P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 未完成 / HENG958；shuidisjtu 复核 |
+| P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 工程实现与 CPU/GPU smoke 完成，待规格/执行证据复核 / HENG958；shuidisjtu 复核；见 [交付记录](p2_0a_delivery.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 未完成 / shuidisjtu；HENG958 复核 |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 未完成 / shuidisjtu；HENG958 复核 |
 | P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 复核 |
@@ -118,8 +118,10 @@
   不可被 CLI 覆盖，允许的覆盖（--c/--seeds/--split-ref/--candidates）偏离协议须标记
   `protocol_deviation` 并排除正式榜
 - **CIFAR adapter 接线（阶段 A，P2.0a）**：feature-adapter 原语已受测（`feature_adapter.py`），
-  但 ResNet-18 encoder factory、weights/seed 锁定、encoder state 共享范围与缓存复用、
-  `run_survey_experiment.py` 装配均未接通（审阅 P1#2）——接线完成前 CIFAR adapter 组不可启动
+  ResNet-18 encoder factory、weights/seed 锁定、encoder state 共享范围与缓存复用、
+  `run_survey_experiment.py --protocol survey-v1` 装配已于 2026-09-16 接通并完成 CPU smoke。
+  当前 adapter 是随机冻结 encoder 工程基线，不是训练后的 CNN；规格与报告范围待复核，
+  正式跑批仍受阶段 A 与独立 checkpoint 选模门禁阻断，见 [P2.0a 交付](p2_0a_delivery.md)。
 - **交叉验证（阶段 A，P2.0c）**：对照矩阵与判定规则预注册（见本节末「交叉验证对照」），
   随 pilot 执行并写入聚合报告
 - **依赖**：oracle 与各 PU 方法须在同一 backbone 规格下比较（协议 §2.5 第 4 条）——该规格
@@ -225,6 +227,11 @@ resolved 单元写入 manifest。
 | D8 | SAR 执行路径设计（issue #43） | `--labeling-mechanism` 与 `--method` **正交**（机制是实验自变量，SAR 行可跑任意 survey 方法）；SAR 强制 OA-only（协议 §2.3 下 PA 仅可诊断，v1 不产出 PA 日志）；SAR c 只接受**规范 token** `{0.05,0.5}`，目录按用户输入 token 命名（`c_0.05` 不得被格式化为 `c_0.1`），同值异拼写（`0.05`/`5e-2`）拒绝；`c_requested_token` 由脚本在运行成功后回写 manifest（runner manifest schema 为固定白名单，不改 runner，降低与 P2.0a 冲突） | 2026-09-15 |
 
 ## 4. 存在的开放问题与风险
+
+0. **P2.0a 实测新增边界（2026-09-16）**：现有 runner 不能从全 epoch checkpoint 为 PA/OA
+   分别离线选模；CNN oracle 仍未接入，full-batch/经典路径没有同预算/backbone oracle。
+   已通过矩阵不可运行行、比较门禁与 manifest `formal_blockers` 显式阻断正式混排；
+   后续需拆成训练器/checkpoint 任务并由双方复核，不得只删除阻断字段升级结果。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；

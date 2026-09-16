@@ -158,6 +158,8 @@ pu_toolbox/
     runner.py                             (ExperimentRunner 骨架: 校验/生成PU视图/候选池训练/PA-OA选择/独立测试)
     strategies.py                         (内置策略: SCAR/SAR-LBE 生成、PA/OA 选模、Trainer 三实现、select_threshold)
     tracking.py                           (运行留痕数据类: EpochRecord/RunTrajectory/SelectionArtifact/RunResult)
+    survey_execution.py                   (P2.0a 共享模型/图像装配、随机冻结 adapter 校验缓存与原空间 SAR 标记)
+    survey_protocol.py                    (survey_protocol_v1.json 消费、参数预算锁、正式资格与比较门禁)
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -291,6 +293,10 @@ tests/
       test_tracking.py                  # 轨迹/选择制品/结果数据类字段
       test_trainers.py                  # Fit/DeepFit/Supervised 训练策略
       test_runner_oracle.py             # PN oracle 路径: 真实标签透传/OA-only/manifest 标注/误配 fail-loud
+      test_survey_execution.py          # 共享 MLP/随机 encoder、adapter 缓存与 SAR 原空间一致性
+      test_survey_protocol.py           # 执行矩阵、runner 参数锁、比较公平性与正式结果阻断
+      test_survey_protocol_cnn.py       # 真实 ResNet CPU 一 epoch smoke 与 encoder provenance 门禁
+      test_survey_script_protocol.py    # 版本化脚本、split/seed 对应、oracle 去重与 CIFAR 缓存命中
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）

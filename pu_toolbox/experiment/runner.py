@@ -20,6 +20,7 @@ from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator
+from .survey_protocol import runner_protocol_context
 from .tracking import RunResult, RunTrajectory
 
 
@@ -95,7 +96,30 @@ class ExperimentRunner:
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
         validate_bundle(bundle)
-        _validate_model_capability(model, bundle, self.config.get("architecture"))
+        try:
+            protocol_context = runner_protocol_context(
+                model, bundle, self.config, self.seed, self.generator, self.protocols
+            )
+            _validate_model_capability(model, bundle, self.config.get("architecture"))
+        except (ValueError, TypeError, KeyError) as exc:
+            if self.config.get("survey_protocol") is not None:
+                self._write_manifest(
+                    {
+                        "seed": self.seed,
+                        "split_ref": self.config.get("split_ref", {}),
+                        "survey_protocol_request": self.config["survey_protocol"],
+                        "execution_mode": "rejected_versioned_pilot",
+                        "formal_eligible": False,
+                        "formal_blockers": ["protocol_preflight_failure"],
+                        "generation": {},
+                        "selection": {},
+                        "test_results": {},
+                        "elapsed": time.perf_counter() - t0,
+                        "resources": {},
+                        "failures": [{"stage": "protocol_preflight", "error": str(exc)}],
+                    }
+                )
+            raise
 
         # 2. generate label views (SCAR / SAR / clean via the injected generator)
         generation_t0 = time.perf_counter()
@@ -290,6 +314,8 @@ class ExperimentRunner:
             elapsed = time.perf_counter() - t0
             resources["runner_elapsed_seconds"] = elapsed
             manifest = {
+                **protocol_context,
+                "estimator_parameters": _artifact_value(model.get_params(deep=False)),
                 "seed": self.seed,
                 "split_ref": self.config.get("split_ref", {}),
                 **_manifest_c_context(self.config),
@@ -357,6 +383,8 @@ class ExperimentRunner:
         elapsed = time.perf_counter() - t0
         resources["runner_elapsed_seconds"] = elapsed
         manifest = {
+            **protocol_context,
+            "estimator_parameters": _artifact_value(model.get_params(deep=False)),
             "seed": self.seed,
             "split_ref": self.config.get("split_ref", {}),
             **_manifest_c_context(self.config),

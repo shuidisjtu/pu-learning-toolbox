@@ -431,7 +431,199 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--out-dir", default=None, help="results root (default: results/survey/<method>)"
     )
+    parser.add_argument(
+        "--protocol",
+        default=None,
+        help="survey-v1 or a versioned matrix JSON; omission means technical smoke only",
+    )
+    parser.add_argument("--dataset", choices=("spambase", "imdb", "cifar10"), default=None)
+    parser.add_argument(
+        "--training-path",
+        choices=("native_2d", "native_cnn", "cnn_feature_adapter"),
+        default=None,
+        help="select a matrix row; CIFAR oracle requires an explicit path",
+    )
+    parser.add_argument("--device", default="cpu", help="execution device (default: cpu)")
+    parser.add_argument("--adapter-cache", default="data/cache/survey_adapter")
+    parser.add_argument("--extraction-batch-size", type=int, default=64)
     return parser.parse_args(argv)
+
+
+def _versioned_main(args, c_values, seed_values) -> int:
+    """Execute a bound pilot unit; no mutation of the generic smoke path."""
+    from pu_toolbox.experiment.survey_execution import (
+        SourceSpaceGenerator,
+        assemble_model,
+        cached_adapter,
+        prepare_image_bundle,
+    )
+    from pu_toolbox.experiment.survey_protocol import (
+        PROTOCOL_PATH,
+        load_protocol,
+        resolve_unit,
+        validate_parameters,
+    )
+    from pu_toolbox.registry import get_metadata, register_all_builtin_methods
+
+    method = "pn_oracle" if args.oracle else args.method or "upu"
+    protocol_path = PROTOCOL_PATH if args.protocol == "survey-v1" else Path(args.protocol).resolve()
+    # These gates precede loading splits, building encoders and creating output directories.
+    try:
+        if args.dataset is None:
+            raise ValueError("--protocol requires --dataset")
+        if not seed_values or len(set(seed_values)) != len(seed_values):
+            raise ValueError("survey seeds must be non-empty and unique")
+        if args.oracle and (args.class_prior is not None or args.method is not None):
+            raise ValueError("--oracle does not use --method or --class-prior")
+        if args.extraction_batch_size < 1:
+            raise ValueError("extraction batch size must be positive")
+        protocol = load_protocol(protocol_path)
+        row = resolve_unit(protocol, args.dataset, method, args.training_path)
+        profile = protocol["method_profiles"][method]
+        params = json.loads(args.model_params)
+        validate_parameters(params, profile)
+        candidates = _load_json_maybe(args.candidates, default=protocol["candidate_pool"])
+        if not isinstance(candidates, list) or not candidates:
+            raise ValueError("survey candidates must be a non-empty list")
+        for candidate in candidates:
+            validate_parameters(candidate, profile)
+        ledger = load_ledger(LEDGER_PATH)
+        register_all_builtin_methods()
+        prior = (
+            None
+            if args.oracle
+            else resolve_class_prior(
+                ledger,
+                method,
+                args.class_prior,
+                requires_class_prior=get_metadata(method).requires_class_prior,
+            )
+        )
+        if "class_prior" in params and params["class_prior"] != prior:
+            raise ValueError("constructor class_prior disagrees with --class-prior")
+    except (OSError, KeyError, TypeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    out_root = (
+        Path(args.out_dir)
+        if args.out_dir
+        else Path("results") / "survey" / args.dataset / method / row["training_path"]
+    )
+    for seed in seed_values:
+        # A template or a dataset root selects the actual per-seed split;
+        # never relabel the same split as five different protocol seeds.
+        data_dir = Path(args.data_dir.replace("{seed}", str(seed)))
+        if (data_dir / f"split_{seed}").is_dir():
+            data_dir = data_dir / f"split_{seed}"
+        try:
+            parts = load_split_parts(data_dir)
+            split_ref = resolve_split_ref(data_dir, args.split_ref)
+            if split_ref.get("dataset") != args.dataset:
+                raise ValueError("split manifest dataset does not match --dataset")
+            if split_ref.get("seed") != seed:
+                raise ValueError("split manifest seed does not match the requested run seed")
+            source = DatasetBundle(*parts)
+            image_manifest = adapter_manifest = encoder = None
+            bundle = source
+            if args.dataset == "imdb" and any(
+                getattr(source, role).X.shape[1] != 384 for role in _ROLE_FILES
+            ):
+                raise ValueError("IMDB protocol requires SBERT 384-dimensional inputs")
+            if args.dataset == "cifar10":
+                bundle, encoder, image_manifest = prepare_image_bundle(source, protocol, seed)
+                if row["training_path"] == "cnn_feature_adapter":
+                    bundle, adapter_manifest = cached_adapter(
+                        bundle,
+                        encoder,
+                        image_manifest,
+                        cache_dir=Path(args.adapter_cache),
+                        batch_size=args.extraction_batch_size,
+                        device=args.device,
+                    )
+                    encoder = None
+            model = assemble_model(
+                protocol,
+                row,
+                bundle.train.X.shape[1],
+                seed=seed,
+                params=params,
+                class_prior=prior,
+                device=args.device,
+                encoder=encoder,
+            )
+        except (OSError, KeyError, TypeError, ValueError, ImportError) as exc:
+            print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
+            return 1
+        for c_value in [None] if args.oracle else c_values:
+            generator = (
+                CleanLabelGenerator()
+                if args.oracle
+                else _resolve_labeling_generator(args.labeling_mechanism)
+            )
+            if row["training_path"] == "cnn_feature_adapter":
+                generator = SourceSpaceGenerator(generator, source, bundle)
+            config = {
+                "candidates": candidates,
+                "split_ref": split_ref,
+                "architecture": "cnn" if row["training_path"] == "native_cnn" else "mlp",
+                "survey_protocol": {
+                    "path": str(protocol_path),
+                    "dataset": args.dataset,
+                    "method": method,
+                    "training_path": row["training_path"],
+                    "mechanism": args.labeling_mechanism,
+                    "seeds": seed_values,
+                    "c_tokens": [value.token for value in c_values],
+                    "split_ref_overridden": args.split_ref is not None,
+                    "constructor_overrides": params,
+                },
+                "adapter_manifest": adapter_manifest,
+                "image_manifest": image_manifest,
+            }
+            if args.oracle:
+                config.update(
+                    {
+                        "trainer": SupervisedTrainer(),
+                        "c_independent": True,
+                        "broadcast_c_values": [value.value for value in c_values],
+                    }
+                )
+            else:
+                config["c_requested_token"] = c_value.token
+            run_dir = _run_directory(
+                out_root,
+                mechanism=args.labeling_mechanism,
+                c_value=c_value,
+                seed=seed,
+                is_oracle=args.oracle,
+            )
+            try:
+                metrics = run_one(
+                    model,
+                    tuple(getattr(bundle, role) for role in _ROLE_FILES),
+                    generator=generator,
+                    protocols=[ProtocolOA()]
+                    if args.oracle
+                    else _resolve_labeling_protocols(args.labeling_mechanism),
+                    seed=seed,
+                    c=None if c_value is None else c_value.value,
+                    class_prior=prior,
+                    config=config,
+                    manifest_path=run_dir / "manifest.json",
+                )
+                if c_value is not None:
+                    _record_c_token(run_dir / "manifest.json", c_value.token)
+                if not args.oracle:
+                    (run_dir / "method_ledger_entry.json").write_text(
+                        json.dumps(ledger["methods"][method], indent=2), encoding="utf-8"
+                    )
+            except Exception as exc:  # noqa: BLE001 - user-facing run boundary
+                print(f"error: survey run failed: {exc}", file=sys.stderr)
+                return 1
+            print(f"[{method}] seed={seed} -> {run_dir / 'manifest.json'}\n  {metrics}")
+    print("Versioned pilot evidence only: check manifest formal_blockers before aggregation.")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -453,6 +645,12 @@ def main(argv: list[str] | None = None) -> int:
         )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    if args.protocol is not None:
+        return _versioned_main(args, c_values, seed_values)
+    if args.training_path is not None or args.dataset is not None:
+        print("error: --dataset/--training-path require --protocol", file=sys.stderr)
         return 1
 
     try:

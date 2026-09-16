@@ -1128,6 +1128,18 @@ docstring。
 候选训练异常、非有限 epoch 指标或非有限验证分数会以 fresh clone 和同一 seed 自动重试一次。
 首次失败后成功的候选标为 `recovered`；再次失败则标为 `excluded` 并从 PA/OA 选模池排除。
 manifest 的 `candidate_runs` 保存候选到有效 trajectory 的映射，`failures` 保存异常类型与消息；
+
+Survey 的版本化运行通过脚本 `--protocol survey-v1 --dataset ...` 启动。
+`config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
+预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
+额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
+`representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与
+`formal_eligible`/`formal_blockers`。无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。
+`survey_protocol.validate_comparable_manifests` 默认拒绝非正式结果及路径/预算/表征/标记不一致。
+构造参数/候选覆盖锁定字段会在训练前失败；绑定运行的协议预检失败也写拒绝 manifest。
+当前单元属于工程级 `benchmark-adapted`，不意味着完整 checkpoint 选模协议已验收。
+共享规格、命令与 oracle 边界见 [P2.0a 交付](../../research/pu_survey/p2_0a_delivery.md)。
+
 若全部候选均失败，runner 会先写 manifest（配置了路径时），再抛出 `RuntimeError`。
 
 manifest 的必填 `resources` 使用三类互不混淆的成本口径：`single_configuration_costs` 逐候选

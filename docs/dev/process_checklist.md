@@ -31,6 +31,14 @@
 
 ## 发布状态 (v1.11.0)
 
+- Survey P2.0a 工程交付（未发布，待负责人复核）：版本化矩阵、runner 强制消费与参数锁、
+  协议/预算/表征 manifest、真实 split/seed 对应、CIFAR 原生 nnPU 与随机冻结 adapter 接线、
+  摘要校验缓存、共享 MLP oracle、路径/预算/标签摘要比较门禁；46 项 CPU 专项通过，
+  沙箱外 4 项 GPU smoke 通过（含既有 CNN13 测试），新增 3 项 GPU 测试。
+  正式结果仍受 P2.0b/c、负责人复核和独立全 epoch checkpoint 选模阻断；
+  CNN oracle 等缺少对齐对照的单元明确不可冒充上界。见
+  [交付记录](../research/pu_survey/p2_0a_delivery.md)。
+
 - PN oracle 接入（未发布，随下一版本发布）：`CleanLabelGenerator` +
   `Generator.output_view` 视图声明 + `Trainer.trains_on_real_labels` 声明与
   runner 双向守卫（视图与 trainer 标签语义不一致即 fail-loud）+

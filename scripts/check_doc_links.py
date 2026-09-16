@@ -198,10 +198,10 @@ def check_md_links(md_files: list[Path]) -> list[Issue]:
 
 
 def check_planned_consistency(structure_md: Path) -> list[Issue]:
-    """Rule 2: project_structure.md tree must match git-tracked .py files.
+    """Rule 2: tree must match tracked and non-ignored new .py files.
 
     Bidirectional check sharing the tree logic with generate_structure.py:
-    every git-tracked ``.py`` under ``pu_toolbox/``/``tests/`` must appear
+    every tracked/non-ignored new ``.py`` under ``pu_toolbox/``/``tests/`` must appear
     in the document, and every documented entry must exist on disk or be
     marked ``(planned)``. Entries that exist on disk while marked
     ``(planned)`` are errors too; for tree blocks the generator does not
