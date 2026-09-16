@@ -52,6 +52,7 @@
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）设计蒸馏：四路数据合约、策略化接口、PA/OA 双协议、P0 已知局限 |
 | [research/pu_survey/p2_0a_delivery.md](research/pu_survey/p2_0a_delivery.md) | P2.0a 共享规格、执行矩阵、CIFAR 接线与 CPU/GPU 验证记录 |
 | [research/pu_survey/p2_0a_review.md](research/pu_survey/p2_0a_review.md) | 合作者逐条复核决定、未决项与签署模板 |
+| [research/pu_survey/heng958_independent_review.md](research/pu_survey/heng958_independent_review.md) | HENG958 环境、nnPU/Self-PU 台账与 split 可执行性复核记录 |
 | [research/pu_survey/epoch_checkpoint_delivery.md](research/pu_survey/epoch_checkpoint_delivery.md) | 逐 epoch 权重保存、PA/OA 独立恢复与验证证据 |
 
 ## 架构决策(docs/adr/)

@@ -51,11 +51,11 @@
 
 | 编号 | 任务 | 前置 | 验收标准 | 状态 / 主责 |
 |---|---|---|---|---|
-| P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 复核其执行环境 |
+| P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 GPU 能力复核完成，正式跑批需 frozen-lock 环境（见独立复核记录） |
 | P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 进行中 / shuidisjtu |
-| P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 初版完成 / shuidisjtu；HENG958 复核 nnPU、Self-PU |
+| P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
-| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ 已完成 / shuidisjtu；HENG958 复核可执行性 |
+| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成；⏸ HENG958 可执行性复核等待 split 产物同步 |
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 工程实现与 CPU/GPU smoke 完成，待规格/执行证据复核 / HENG958；shuidisjtu 复核；见 [交付记录](p2_0a_delivery.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 未完成 / shuidisjtu；HENG958 复核 |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 未完成 / shuidisjtu；HENG958 复核 |
@@ -85,7 +85,8 @@
      （另有 `paper`/`code_version`/`implementation_status` 身份与来源字段），值按方法卡/论文
      填写，存疑处显式标注；实验脚本读取（TS-OS 判定/结果标注"原生适用 vs 假设违背鲁棒性"的依据）。
      【采用独立 JSON 方案；方法卡节、注册表字段扩展后期可做。经典 5 方法（uPU/KLDCE/Dist-PU/PUSB/LBE）
-     已由 shuidisjtu 填写，nnPU/Self-PU 骨架+证据立好，待 HENG958 复核。】
+     已由 shuidisjtu 填写；nnPU/Self-PU 已由 HENG958 于 2026-09-16 对照论文、官方实现、
+     registry 与 estimator 完成复核，机器可查状态写入台账 schema 1.1。】
      【台账与 registry 边界（2026-09-14，issue #42）】registry（类属性权威 + `_SYNC_FIELDS` 镜像）
      是代码真相源，负责训练正确性门禁（`requires_class_prior` 等）；本台账是 Survey 范围的实验标注源
      （当前 8 键，含 `pusb_kernel`），负责 TS-OS/原生适用等标注与结果留痕；两者一致性由
@@ -236,6 +237,11 @@ resolved 单元写入 manifest。
    CNN oracle 仍未接入，full-batch/经典路径没有同预算/backbone oracle。
    签署材料与逐条决定见 [复核包](p2_0a_review.md)，存储/加载/测试见
    [checkpoint 交付](epoch_checkpoint_delivery.md)。不得只删除阻断字段升级结果。
+
+0a. **HENG958 独立复核（2026-09-16）**：P1.1 GPU 能力与 P1.3a nnPU/Self-PU 台账已复核；
+    当前服务器全局 PyTorch 与 Linux lock 版本不同，故 P2.1 前仍须创建 frozen-lock 隔离环境。
+    P1.4 所需 split 产物未在当前工作树中，HENG958 可执行性复核等待产物同步。证据、命令和
+    解除条件见 [独立复核记录](heng958_independent_review.md)。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；

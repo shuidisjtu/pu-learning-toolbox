@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "purpose": "PU 调研实验方法台账（结果标注真相源）。协议 pu_survey_protocol.md §4 要求的实现台账：slots 6 槽 + paper/code_version/implementation_status 身份与来源字段（实列 8 项）；P2 起实验脚本按此标注 TS-OS 校准与结果（原生适用 vs 假设违背鲁棒性）。先验必传门禁以 registry requires_class_prior 为权威，本台账 prior_semantics 只做结果标注。",
   "slots": {
     "native_sampling_assumption": "方法原生假设的抽样视图：os / ts / both",
@@ -283,10 +283,16 @@
         "adaptation_level": "nnpu.md:339-340; registry:140"
       },
       "uncertainty": [
-        "ADR-0014 #9：r_i<-β 时对 max 直接反传播不等价于论文 Algorithm 1（nnpu.md:200）——候选实现需走复现路径确认",
-        "先验必须外部提供；max 误实现会静默偏离论文算法（nnpu.md:341）"
+        "先验必须外部提供；训练时必须保持 Algorithm 1 的分支梯度，不能对 max(0,r) 直接反传播（nnpu.md:341）",
+        "官方实现为 Chainer，本项目为原生 PyTorch clean-room 实现；实验数值只能在共享协议下对照，不能宣称逐行复现"
       ],
-      "filler": "HENG958（骨架与证据已立，待复核确认）"
+      "filler": "HENG958",
+      "owner_review": {
+        "status": "completed",
+        "reviewed_on": "2026-09-16",
+        "evidence": "docs/research/pu_survey/heng958_independent_review.md#2-p13a-nnpuself-pu-方法台账复核",
+        "conclusion": "六槽、来源、registry 能力声明与 Algorithm 1 分支梯度一致；保留跨框架 clean-room 复现边界"
+      }
     },
     "self_pu": {
       "class": "SelfPUClassifier",
@@ -325,10 +331,16 @@
         "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）",
         "validation_data（clean-label 元重加权）与 pu_validation_data（仅 P/U 标签 nnPU risk 恢复 checkpoint）两入口严格分离（Self-PU.md:388-389）",
         "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）",
-        "upstream_url 锚定 registry:323；方法卡记 TAMU-VITA/Self-PU，疑为同仓库更名，待核对",
+        "官方仓库当前规范地址为 VITA-Group/Self-PU；方法卡中的 TAMU-VITA 旧组织链接会重定向到同一仓库",
         "原生 CNN 未接入：依 dual_architecture_plan 阶段 3 长期搁置（元学习再加权依赖干净验证标签，encoder 适配不解决该前置条件）；需原生 CNN 时单独立项（issue #38，2026-09-14）"
       ],
-      "filler": "HENG958（骨架与证据已立，待复核确认）"
+      "filler": "HENG958",
+      "owner_review": {
+        "status": "completed",
+        "reviewed_on": "2026-09-16",
+        "evidence": "docs/research/pu_survey/heng958_independent_review.md#2-p13a-nnpuself-pu-方法台账复核",
+        "conclusion": "六槽、来源与 registry 能力声明一致；完整 self-calibration、原生 CNN 和 paper-like benchmark 仍明确不在当前实现声明内"
+      }
     }
   }
 }

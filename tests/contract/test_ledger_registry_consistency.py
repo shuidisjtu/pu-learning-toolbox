@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -127,3 +128,19 @@ def test_prior_semantics_consistent_with_registry_class_prior(
             f"{name}: prior_semantics={entry['prior_semantics']!r} "
             f"but registry requires_class_prior={requires}"
         )
+
+
+@pytest.mark.contract
+def test_heng958_owner_reviews_are_complete_and_traceable(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The two HENG958-owned rows carry review status and local evidence."""
+    repository_root = _LEDGER_PATH.parents[2]
+    for name in ("nnpu", "self_pu"):
+        review = ledger_methods[name]["owner_review"]
+        assert review["status"] == "completed", name
+        date.fromisoformat(review["reviewed_on"])
+        evidence_path, separator, anchor = review["evidence"].partition("#")
+        assert separator and anchor, name
+        assert (repository_root / evidence_path).is_file(), name
+        assert review["conclusion"].strip(), name
