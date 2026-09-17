@@ -18,16 +18,17 @@
 - **分布漂移护栏** -- OOF 源/目标漂移审计、有界协变量权重、覆盖诊断与受保护的 `ShiftAwarePUPipeline`
 - **部署监控** -- 可恢复的窗口告警、coverage/拒绝预测控制，以及 CLI/UI 主动复核导出
 - **CLI** -- `pu-toolbox` 把整条流水线变成终端命令
-- **模型调整** -- 统一 `classifier_params`、命令行参数入口与 PU-aware 网格搜索
+- **模型调优** -- 统一分类器参数与 PU-aware 网格搜索
 - **评估指标** -- PU 原生风险，以及带明确可用性契约的排序、平衡准确率与概率校准指标
 - **可复现传统 PU benchmark** -- 七方法锁定协议、数据泄露预检、断点续跑、配对比较与调优证据
-- **图形界面** -- 上传数据、配置/比较模型、查看诊断并下载报告与模型
+- **图形界面** -- 上传数据、配置/比较模型、查看诊断并下载结果
 
 ## 快速开始
 
 ```bash
 pip install pu-toolbox                # 核心依赖（Python ≥ 3.10）
 pip install "pu-toolbox[torch]"       # + 基于 PyTorch 的方法（nnPU、Dist-PU、Self-PU 等）
+pip install "pu-toolbox[text]"        # + Survey 文本数据集的固定 SBERT 预处理
 pip install "pu-toolbox[ui]"          # + Streamlit 图形界面
 ```
 
@@ -89,8 +90,8 @@ pip install "pu-toolbox[ui]"
 pu-toolbox-ui
 ```
 
-界面支持自动推荐、手动模型参数、PU 分层网格搜索、指标图表、诊断提示，以及报告、
-预测和模型下载。Python 与 CLI 调参方法见
+界面支持自动推荐、手动模型参数、PU 分层网格搜索、指标图表、诊断提示，以及报告和模型下载。
+相关说明见
 [模型调整指南](docs/user/howto/model_tuning.md)，界面说明见
 [图形界面指南](docs/user/howto/ui.md)。
 
@@ -104,8 +105,35 @@ pu-toolbox-ui
 | [`docs/user/concepts/`](docs/user/concepts/) | PU 问题设定、SCAR/SAR、方法选择 |
 | [`docs/user/howto/`](docs/user/howto/) | 任务指南：模拟、画像、流水线、CLI、报告、敏感性、分布漂移 |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | 精确 API 契约 |
-| [`docs/dev/`](docs/dev/) | 贡献者文档：架构、结构、路线图、兼容性 |
+| [`docs/dev/`](docs/dev/) | 贡献者文档：架构、结构、兼容性 |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | 各论文方法卡 |
+
+### PU Survey 实验
+
+仓库内的研究实验使用专用脚本，而不是通用的 `PUPipeline` 流程。可通过以下命令
+准备可复现的四路数据切分，并查看 Survey runner 的参数：
+
+```bash
+uv run python scripts/prepare_survey_splits.py --help
+uv run python scripts/run_survey_experiment.py --help
+
+# SCAR 实验行（PA + OA 选模）
+uv run python scripts/run_survey_experiment.py path/to/splits \
+    --method lbe --c 0.1,0.3,0.5
+
+# SAR 压力测试（LBE-A/LBE-B 标记机制，仅 OA，c ∈ {0.05, 0.5}）
+uv run python scripts/run_survey_experiment.py path/to/splits \
+    --method lbe --labeling-mechanism sar_lbe_a --c 0.05,0.5
+```
+
+需要总体类先验的方法，既要通过 `--class-prior` 满足入口门禁，也要通过
+`--model-params` 传入构造参数（uPU 示例见 `--help` 和脚本 docstring）。
+
+`--labeling-mechanism` 选择 PU 标签视图的生成方式（SCAR 或 SAR LBE 变体），
+它与 `--method` 相互独立：标记机制是实验自变量，因此 SAR 实验行可运行任意
+Survey 方法，并且只报告 OA。协议、当前执行状态和报告边界见
+[`docs/research/pu_survey/`](docs/research/pu_survey/)。在全部协议门禁满足前，
+结果必须标记为 `pilot / partial benchmark`。
 
 ## AI 工作流 Skill
 
@@ -132,6 +160,7 @@ uv run python scripts/check_doc_links.py
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
+uv run python scripts/check_baseline_configs.py    # 基线配置与源码默认参数一致性
 uv run python scripts/check_format.py        # 格式门禁（ruff check + format --check，全目录）
 uv run python scripts/generate_structure.py --check    # 结构文档一致性(--update 重新生成)
 ```
