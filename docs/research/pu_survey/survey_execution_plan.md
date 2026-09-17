@@ -56,7 +56,7 @@
 | P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
 | P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成；⏸ HENG958 可执行性复核等待 split 产物同步 |
-| P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | 🚧 工程实现与 CPU/GPU smoke 完成，待规格/执行证据复核 / HENG958；shuidisjtu 复核；见 [交付记录](p2_0a_delivery.md) |
+| P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | ✅ 已签署验收（2026-09-17）/ HENG958 交付；shuidisjtu 复核签署；**不放行正式 P2.1**（R5/R8 记为 P2.1 前置条件）；见 [交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 未完成 / shuidisjtu；HENG958 复核 |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 未完成 / shuidisjtu；HENG958 复核 |
 | P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
@@ -121,10 +121,11 @@
 - **CIFAR adapter 接线（阶段 A，P2.0a）**：feature-adapter 原语已受测（`feature_adapter.py`），
   ResNet-18 encoder factory、weights/seed 锁定、encoder state 共享范围与缓存复用、
   `run_survey_experiment.py --protocol survey-v1` 装配已于 2026-09-16 接通并完成 CPU smoke。
-  当前 adapter 是随机冻结 encoder 工程基线，不是训练后的 CNN；规格与报告范围待复核，
+  当前 adapter 是随机冻结 encoder 工程基线，不是训练后的 CNN（R4：接受并已写明边界）；
   后续 `survey-v1.1` 补齐逐 epoch 权重保存与独立恢复；正式跑批仍受阶段 A、
   PA 正式准则及未完成路径门禁阻断，见 [P2.0a 交付](p2_0a_delivery.md)。
-  合作者的逐条签署材料见 [P2.0a 复核包](p2_0a_review.md)。
+  规格与报告范围已由合作者签署确认（2026-09-17），逐条签署记录见
+  [P2.0a 复核包 §4](p2_0a_review.md#4-签署记录)。
 - **交叉验证（阶段 A，P2.0c）**：对照矩阵与判定规则预注册（见本节末「交叉验证对照」），
   随 pilot 执行并写入聚合报告
 - **依赖**：oracle 与各 PU 方法须在同一 backbone 规格下比较（协议 §2.5 第 4 条）——该规格
@@ -255,7 +256,20 @@ resolved 单元写入 manifest。
     `flip_probability` 安全绑定前不可运行；Self-PU 按每 epoch 两次抽样优化更新单列预算和
     比较组；矩阵关键字段严格校验，`selection_spec` 明确为描述性文档。IMDB split manifest
     记录真实向量是否 L2 归一化及来源，但历史 split 不自动更新。详情见 [复核包](p2_0a_review.md)。
-    这些修改等待合作者再次复核，不解除 `collaborator_review` 或其他正式阻断项。
+    上述修改已由合作者完成定向复验并签署（见下条 0d）。
+
+0d. **P2.0a 签署验收（2026-09-17）**：`review_status` 由 `pending_collaborator_review`
+    改为 `accepted`；`collaborator_review` 移出 `formal_blockers`，新增
+    `linux_frozen_lock_environment_deviation`（Linux 分支按方案 3 记录环境偏差并保持
+    正式阻断）。协议摘要 `faa9084c…a42ff16` → `b5b6b5f4…ed2ff20`。签署对象为**交付提交**
+    `83236d8`，**验证 HEAD** `0c90f27`（两者不同是预期的：交付对象不因后续修复前移）。
+    R1–R10 逐条结论与 overall decision 见 [复核包 §4](p2_0a_review.md#4-签署记录)。
+    接受 P2.0a 工程交付，**不放行正式 P2.1**；R5（P2.1 聚合入口须实现并强制调用分榜门禁）
+    与 R8（跑批前置磁盘检查、checkpoint 覆盖不变量改强制并补测试）记为 P2.1 前置条件。
+    继续保持阻断：R9、P2.0b、P2.0c、缺失的 CNN/full-batch oracle、完整 Self-PU OA
+    meta-reweighting、Linux frozen-lock 环境偏差、P1.4 provenance（issue #52）。
+    IMDB 制品层（`data/splits/imdb/`）不含返工新增的有效口径字段，并入 P1.4 三数据集
+    统一重建，验收按代码与测试层进行。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；

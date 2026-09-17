@@ -1,13 +1,15 @@
 # P2.0a 合作者复核包
 
-状态日期：2026-09-16。**材料已准备，尚未由 shuidisjtu 签署验收**。
+状态日期：2026-09-17。**已由 shuidisjtu 于 2026-09-17 签署验收**（记录见 §4）。
 主责 HENG958；复核人 shuidisjtu。依据 [执行计划](survey_execution_plan.md) §2.0，
 代码和测试通过不等同于合作者同意，不得由自动化代签或自行清除 `collaborator_review`。
 
 ## 1. 复核对象
 
-- 上次工程提交：`99c5bb7`（P2.0a 矩阵、装配、runner 门禁与 CPU/GPU smoke）。
-- 当前待复核矩阵 `survey_protocol_v1.json` 的实际版本为 `survey-v1.2`；
+- 交付提交：`83236d8`（P2.0a 交付对象：矩阵、装配、runner 门禁与 CPU/GPU smoke）。
+  验证时的 HEAD 为 `0c90f27`（含 A3a 修复与五项协议返工）；两者不同是预期的，
+  交付对象不因后续修复而前移。若需回退到 `83236d8` 重新验证，说明验证范围已变。
+- 已签署的矩阵 `survey_protocol_v1.json` 实际版本为 `survey-v1.2`；
   根据合作者的“要求修改”审核，修正 KLDCE 可运行性、Self-PU 预算与矩阵校验。
   `selection_spec_kind=descriptive_documentation` 表明其中八项文字不是 runner 消费的
   可执行真相源；实际选模行为以代码和对应测试为准。
@@ -33,7 +35,7 @@
 | R7 | Self-PU 本次不接入 clean validation，是明确的 no-meta 消融；逐 epoch 同时保存两个 teacher | 接受消融报告范围；完整 OA meta-reweighting 与 PA-ineligible 路径另立任务，不能向 PA 泄漏真实验证标签 |
 | R8 | 固定预算一次训练，逐 epoch 权重离线独立选模；同分取较早候选/epoch/teacher/阈值 | 接受 checkpoint 语义、保留策略、存储成本与保存加载证据；它不支持 optimizer/RNG 续训 |
 | R9 | PA 现有实现仍是 PU 分离度代理，OA 用真实验证 Accuracy 与阈值网格 | **未决**：锁定正式 PA 准则与阈值规则；该代理不等于协议 PA Accuracy，SCAR PA 正式验收仍阻断 |
-| R10 | A6000/CUDA 12.4 技术 smoke 可运行；环境记录来自现有服务器 Python | 认可技术验证，但完整 pilot 仍需核对 uv.lock 环境、数据产物与独占/共享 GPU 窗口 |
+| R10 | A6000/CUDA 12.4 技术 smoke 可运行；环境记录来自现有服务器 Python | 认可技术验证，但完整 pilot 仍需核对 uv.lock 环境、数据产物与独占/共享 GPU 窗口。**已确认（2026-09-17）**：win32 分支的 frozen-lock GPU 证据由复核人本人亲跑（8 passed / 0 skipped）；Linux 分支按方案 3 记录环境偏差并保持正式阻断。详见 §4 的 R10 与"冻结依赖 GPU 验证：已决议" |
 
 R9 是新增发现的协议差距，不能因为 checkpoint 接线已完成就删除其正式阻断。
 复核若要求修改任一规格，应记录理由、更新版本、重跑受影响测试和数据单元。
@@ -68,18 +70,22 @@ R9 是新增发现的协议差距，不能因为 checkpoint 接线已完成就�
   注入测试 encoder 则按实际向量范数和注入来源记录，不伪称真实模型流水线。
   模型公开的 [modules.json](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/blob/main/modules.json)
   列出 `Normalize` 模块；运行时数值检查仍是当前 revision 输出的最终判据。
-- 上述工程修改响应审核，不等于复核人重新验收。`review_status` 仍为
-  `pending_collaborator_review`，签署记录仍待本人填写。
+- 上述工程修改响应审核；复核人已完成受影响范围的定向复验并签署（2026-09-17）：
+  `review_status` 现为 `accepted`，`collaborator_review` 已从 `formal_blockers` 移除，
+  逐条结论见 §4。
 
-### 冻结依赖 GPU 验证待共同决策
+### 冻结依赖 GPU 验证：已决议（2026-09-17）
 
-之前的全局 Python/CUDA 12.4 smoke 不能替代 frozen-lock 验证。当前 `uv.lock` 的
-Linux PyTorch 2.13.0 依赖 CUDA 13 组件；前次沙箱外记录的驱动 550.54.14 低于
-CUDA 13.0 GA 所需的 580.65.06。当前沙箱内 `nvidia-smi` 无法连接驱动，故未声称
-重新验证了驱动状态，也未运行 frozen-lock GPU 套件。升级驱动、调整依赖锁，或暂时
-保留阻断应由两位实施主体共同决定；决定前不得拿全局 torch 2.6/cu124 结果代签。
-[NVIDIA CUDA 13.0 发布说明](https://docs.nvidia.com/cuda/archive/13.0.3/cuda-toolkit-release-notes/index.html)
-给出最低驱动版本。
+之前的全局 Python/CUDA 12.4 smoke 不能替代 frozen-lock 验证。`uv.lock` 的 Linux
+PyTorch 2.13.0 依赖 CUDA 13 组件；前次沙箱外记录的驱动 550.54.14 低于 CUDA 13.0 GA
+所需的 580.65.06（[NVIDIA CUDA 13.0 发布说明](https://docs.nvidia.com/cuda/archive/13.0.3/cuda-toolkit-release-notes/index.html)）。
+该沙箱内 `nvidia-smi` 无法连接驱动，故未运行 frozen-lock GPU 套件。
+
+**决议：方案 3——记录环境偏差并保持正式阻断**，已写入 `formal_blockers` 的
+`linux_frozen_lock_environment_deviation`。需要澄清的是：**"frozen-lock 从未被验证"
+并不成立**——win32 分支已由复核人本人在本机亲跑通过（8 passed / 0 failed / 0 skipped，
+见 §4 的 R10）；未验证的是 **Linux 分支**。仍要求交付方提交该分支的实际失败/偏差证据
+（"无法执行 + 原因 + 证据"），不得以全局 torch 2.6/cu124 的旧 smoke 顶替。
 
 ## 3. 复核前检查
 
@@ -89,25 +95,70 @@ CUDA 13.0 GA 所需的 580.65.06。当前沙箱内 `nvidia-smi` 无法连接驱�
 4. 核对真实 split；工程合成数据 smoke 不等于 P1.4 真实产物已在本服务器验收。
 5. 明确区分“接受工程规格”“接受方法消融范围”“允许正式 pilot”，三者不能相互替代。
 
-## 4. 签署记录模板
-
-请复核人本人在 PR review 或本文件提交明确记录；以下字段当前均为**待填写**：
+## 4. 签署记录
 
 ```text
 reviewer: shuidisjtu
-review_date: 待填写
-reviewed_code_commit: 待填写（本次代码提交后填完整 SHA）
+review_date: 2026-09-17
+delivery_commit: 83236d893c1cb1ef557129bfbb3e4114462617bf
+verification_head: 0c90f27f73db7fa8f894089fc4c5254c790ffb95
 reviewed_protocol_version: survey-v1.2
-reviewed_protocol_sha256: 待填写（JSON canonical SHA-256，不是原始文件字节摘要）
-R1 ... R10: 每条填写 接受 / 需修改 / 保持阻断，并附理由
-overall_decision: 待填写（接受工程交付 / 要求修改；正式 pilot 门槛另核对）
-evidence: 待填写（PR review 链接或本人提交 SHA）
+reviewed_protocol_sha256: b5b6b5f4945bf5bc1823eee6cddf487595d409b93f48911f0f1797b89ed2ff20
+  （签署前候选值 faa9084c631a3852ed75d104c9c6dbe1514043a3f21db15e4d9bab674a42ff16。
+    摘要包含 review_status 与 formal_blockers，故本次签署必然改变它；摘要未变即为失败。）
+
+R1  接受。接受 score blueprint。书面写明实际数据口径：Spambase 为 train-only 逐特征
+    z-score（复核人在真实制品上实测 train 特征均值 ~1e-8、std 1.0000，非全量拟合）；
+    IMDB 的有效口径是 L2 归一化（实测 max|‖x‖−1| = 1.19e-07），来源为锁定 revision 模型
+    内置的 Normalize 模块——manifest 记录的 normalize_embeddings=false 描述的是传给库的
+    实参，不是有效输出行为。两者已同时记入 manifest（effective_output_normalization /
+    normalization_source），该记录要求已由返工满足。
+R2  接受。写明 Self-PU 的独立预算边界：two_student_sampled，200 epochs × 每 epoch 2 次
+    optimizer step × 至多 512 样本，comparability group 与 minibatch 组不相交，且不宣称
+    存在匹配的 mini-batch oracle。runner 侧守卫接受声明值、拒绝被篡改的步数。
+R3  接受当前版本。ResNet-18 真实、随机初始化、train-only 统计被运行路径消费、非 none
+    增强在运行路径直接拒绝。制品层 A3b 见 issue #52（provenance 缺陷，不影响数值——
+    运行路径自行重算统计量）；A3a 已修复并在真实制品上复核为 augmentation=none。
+R4  接受，并写明边界：adapter 行是随机、未训练、冻结的 ResNet 特征，属工程基线，
+    不代表已训练表征；四路同状态、缓存绑定正确。
+R5  条件接受。分组键与门禁函数存在且有测试，但当前没有生产调用方——强制分榜目前是
+    库函数与落盘字段，尚无正式跑批路径经过它。条件：P2.1 聚合入口必须实现并强制调用
+    分榜门禁。（作为 P2.1 前置条件记录，不阻塞本次工程交付接受。）
+R6  接受书面边界、保持阻断。唯一 oracle 训练器为 PilotOracleMLP；native-CNN oracle 与
+    full-batch oracle 仍缺，且缺失在协议中显式命名而非静默省略。相关对照继续单列或
+    不可运行。
+R7  接受消融、保持阻断。本次是明确的 no-meta 消融（拟合期告警确认），两 teacher 逐
+    epoch 落盘，PA 路径不读内部选择。补记保留意见：technical_smoke 模式下无快照时 PA
+    回退到内部 PU-risk 所选 teacher 的组合不加标注、且无测试。完整 OA meta-reweighting
+    与 PA-ineligible 路径另立任务，不得向 PA 泄漏真实验证标签。
+R8  条件接受。接受 checkpoint 语义、恢复机制与存储不变量（真实 2-epoch 探针、损坏
+    fail-loud、weights_only、不存 optimizer/RNG/标签）。条件：(a) 跑批前置磁盘容量检查
+    （磁盘占用未入资源统计、无代码护栏）；(b) checkpoint 覆盖不变量改为 runner 强制并
+    补测试（当前由已保存的 component 集合反推，只存一个 teacher 时校验仍会通过）。
+    （同样作为 P2.1 前置条件记录。）本机制不支持 optimizer/RNG 续训。
+R9  保持阻断。PA 现有实现仍是 PU 分离度代理（threshold=None、不读真实标签），不等于
+    协议 PA Accuracy。正式 SCAR PA 准则、阈值规则、tie-break 与文献 PA 定义一致性待
+    专项任务锁定。不得因其他项通过而删除本阻断。
+R10 接受 win32 frozen-lock smoke；Linux 分支记录环境偏差、保持正式阻断。
+    本机（T600/win32，torch 2.14.0+cu126）由复核人本人亲手复现：8 passed / 0 failed /
+    0 skipped，退出码 0，JUnit 时间戳 2026-09-16 19:52:28，uv.lock sha256 与产物记录
+    一致，smoke 峰值显存 277.6 MiB allocated / 342.0 MiB reserved（smoke 口径）。
+    Linux 分支：锁解析到 CUDA 13.0（要求驱动 ≥ 580.65.06），服务器驱动 550.54.14 不满足，
+    采用方案 3——记录环境偏差并保持正式阻断，已记入 formal_blockers。
+
+overall_decision: 接受 P2.0a 工程交付；不放行正式 P2.1。
+    继续保持阻断：P2.0b 标签语义契约、P2.0c 对照预注册、PA 正式准则（R9）、缺失的
+    CNN/full-batch oracle、完整 Self-PU OA meta-reweighting、Linux frozen-lock 环境偏差
+    （方案 3）、P1.4 provenance（issue #52）。P2.1 的启动另需兑现 R5 与 R8 的前置条件。
+    IMDB 制品层（data/splits/imdb/ 的 5 个 manifest）不含本次返工新增的有效口径字段，
+    并入 P1.4 三数据集统一重建，不在本次单独刷新——验收按代码与测试层进行。
+
+evidence: 签署 PR 链接（见 §5）；本机 GPU 证据 JUnit 与三模态抽查记录见 PR 附件与
+    复核材料；本协议的 canonical 摘要由 pu_toolbox.experiment.survey_protocol.digest 计算。
 ```
 
-计算待审 JSON 摘要：
+计算当前协议摘要：
 
 ```bash
-python -c 'from pu_toolbox.experiment.survey_protocol import load_protocol, digest; p=load_protocol(); print(p["protocol_version"], digest(p))'
+uv run python -c 'from pu_toolbox.experiment.survey_protocol import load_protocol, digest; p=load_protocol(); print(p["protocol_version"], digest(p))'
 ```
-
-只有取得真实复核记录后才能按决定更新 `review_status`；本次不预填 `accepted`。
