@@ -1,7 +1,7 @@
 # P2.0a 交付：共享规格、执行矩阵与比较边界
 
-状态日期：2026-09-16。工程实现与 CPU/GPU 技术验证完成，**待 shuidisjtu 复核**；
-不代表正式 pilot 已启动。上游要求见 [执行计划](survey_execution_plan.md) P2.0a，
+状态日期：2026-09-17。工程实现与 CPU/GPU 技术验证完成，**已由 shuidisjtu 签署验收**
+（R1–R10 逐条结论见 [复核包 §4](p2_0a_review.md#4-签署记录)）；不代表正式 pilot 已启动。上游要求见 [执行计划](survey_execution_plan.md) P2.0a，
 实验要求仍以 [协议](pu_survey_protocol.md) 为准。
 
 ## 1. 交付物与程序权威
@@ -14,7 +14,10 @@
   无 `--protocol` 的旧入口仍可用于技术 smoke，但 manifest 必须标记非正式结果。
 
 配置的数值真相源只有上述 JSON；本文件解释选择及边界，不再维护另一份参数表。
-`review_status` 当前为 `pending_collaborator_review`，不得将工程默认值解释为两位负责人已签字。
+`review_status` 现为 `accepted`（2026-09-17 由复核人签署）。签署接受的是**工程交付**，
+**不放行正式 P2.1**：R5（聚合入口强制调用分榜门禁）与 R8（跑批前置磁盘检查、覆盖不变量
+改强制）是 P2.1 的前置条件，P2.0b/P2.0c、PA 正式准则、缺失 oracle、完整 Self-PU OA、
+Linux frozen-lock 环境偏差与 P1.4 provenance（issue #52）继续阻断。
 后续版本 `survey-v1.1` 已补齐逐 epoch 权重保存与独立恢复，预算/backbone 未改变；
 审查决定见 [复核包](p2_0a_review.md)，实现与证据见 [checkpoint 交付](epoch_checkpoint_delivery.md)。
 

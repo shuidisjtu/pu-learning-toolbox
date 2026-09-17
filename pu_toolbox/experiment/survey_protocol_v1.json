@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "protocol_version": "survey-v1.2",
-  "review_status": "pending_collaborator_review",
+  "review_status": "accepted",
   "result_scope": "pilot / partial benchmark",
   "selection_spec": {
     "checkpoint_schema_version": "1.0",
@@ -534,8 +534,8 @@
   "formal_blockers": [
     "P2.0b_label_semantics_acceptance",
     "P2.0c_cross_validation_acceptance",
-    "collaborator_review",
-    "per_epoch_independent_PA_OA_checkpoint_selection"
+    "per_epoch_independent_PA_OA_checkpoint_selection",
+    "linux_frozen_lock_environment_deviation"
   ],
   "decisions": [
     "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
