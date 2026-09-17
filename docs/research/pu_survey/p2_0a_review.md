@@ -47,12 +47,19 @@ R9 是新增发现的协议差距，不能因为 checkpoint 接线已完成就�
 - A3b（[issue #52](https://github.com/shuidisjtu/pu-learning-toolbox/issues/52)）：
   大规模、HWC 存储转置而成的非连续 NCHW 数组在 `float32` 通道归约时累积精度丢失，
   45,000 张 CIFAR train 图的通道和饱和在约 `2**24`，导致各通道均值同为
-  `2**24 / (45000*32*32) ≈ 0.364089`。工程代码已改用 `float64` 累积均值与方差，
-  并加入 4,100 张非连续图像的回归测试；输出图像仍为原来的 `float32` 缩放表示。
-- **历史产物未自动修复**：本服务器没有 `data/splits` 原始产物，不能据代码修复宣称
-  既有 5-seed split manifest 已重建。P1.4 复核与正式跑批前，须在持有原始 CIFAR 数据的
-  环境重生成 5 个 seed，并逐个比对 manifest 的 mean/std 与 `train.npz` 的 `float64`
-  统计值；还须记录新 manifest digest。A3b 的数据验收在此之前保持开放。
+  `2**24 / (45000*32*32) ≈ 0.364089`。`np.std` 的两遍算法复用这个饱和中心，std 因而
+  同样被污染（旧值 `0.259735` vs 真值 `0.247096`）；"错误中心抬高"与"第二遍 float32
+  累加压低"两个相反误差部分抵消，偏差仅约 5%，长期未被发现。工程代码已改用 `float64`
+  累积均值与方差，并加入 4,100 张非连续图像的回归测试；输出图像仍为原来的 `float32`
+  缩放表示。
+- **历史产物已重建并验收（2026-09-17）**：在持有原始 CIFAR 数据的环境重新生成 5 个
+  seed，逐 seed 比对 manifest 的 mean/std 与 `train.npz` 的 `float64` 重算值，并以
+  解压后字节比对确认划分/标签/图像未变；跨 seed 统计量互不相同。新 manifest digest
+  与命令见 [issue #52](https://github.com/shuidisjtu/pu-learning-toolbox/issues/52)
+  （已关闭）。制品已迁入标准路径 `data/splits/cifar10/` 并重验通过，旧制品移入归档。
+  该缺陷只出现在**制品生成路径**（`load_cifar10` 的非连续转置视图直通统计拟合）；
+  运行路径经 `np.load` 读入连续数组、且 `prepare_image_bundle` 当场重算统计量，
+  因此从未影响训练数值。A3b 的数据验收至此关闭。
 
 ### 审核修改 B：执行矩阵与 IMDB 来源信息
 
@@ -118,7 +125,8 @@ R2  接受。写明 Self-PU 的独立预算边界：two_student_sampled，200 ep
     存在匹配的 mini-batch oracle。runner 侧守卫接受声明值、拒绝被篡改的步数。
 R3  接受当前版本。ResNet-18 真实、随机初始化、train-only 统计被运行路径消费、非 none
     增强在运行路径直接拒绝。制品层 A3b 见 issue #52（provenance 缺陷，不影响数值——
-    运行路径自行重算统计量）；A3a 已修复并在真实制品上复核为 augmentation=none。
+    运行路径自行重算统计量）；5 个 seed 已于 2026-09-17 重建核验并迁入标准路径，
+    issue 已关闭。A3a 已修复并在真实制品上复核为 augmentation=none。
 R4  接受，并写明边界：adapter 行是随机、未训练、冻结的 ResNet 特征，属工程基线，
     不代表已训练表征；四路同状态、缓存绑定正确。
 R5  条件接受。分组键与门禁函数存在且有测试，但当前没有生产调用方——强制分榜目前是
@@ -149,7 +157,8 @@ R10 接受 win32 frozen-lock smoke；Linux 分支记录环境偏差、保持正�
 overall_decision: 接受 P2.0a 工程交付；不放行正式 P2.1。
     继续保持阻断：P2.0b 标签语义契约、P2.0c 对照预注册、PA 正式准则（R9）、缺失的
     CNN/full-batch oracle、完整 Self-PU OA meta-reweighting、Linux frozen-lock 环境偏差
-    （方案 3）、P1.4 provenance（issue #52）。P2.1 的启动另需兑现 R5 与 R8 的前置条件。
+    （方案 3）、P1.4 制品统一重建（IMDB/Spambase 待建；issue #52 的 CIFAR-10 部分已
+    关闭）。P2.1 的启动另需兑现 R5 与 R8 的前置条件。
     IMDB 制品层（data/splits/imdb/ 的 5 个 manifest）不含本次返工新增的有效口径字段，
     并入 P1.4 三数据集统一重建，不在本次单独刷新——验收按代码与测试层进行。
 

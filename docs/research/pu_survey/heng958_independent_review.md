@@ -82,7 +82,7 @@ source status、先验语义和 JSON 类型。
 脚本端到端执行。P1.4 的 shuidisjtu 侧完成声明保持不变，但 HENG958 侧复核不得标成完成。
 
 合作者审核另发现 CIFAR 旧产物的通道统计值不符（[issue #52](https://github.com/shuidisjtu/pu-learning-toolbox/issues/52)）；
-即使代码修复后，本项仍须重生成并核验真实产物，见 [P2.0a 复核包](p2_0a_review.md#审核发现-a3cifar-split-manifest-来源信息)。
+该问题已于 2026-09-17 经重生成与严格核验关闭，见 [P2.0a 复核包](p2_0a_review.md#审核发现-a3cifar-split-manifest-来源信息)。
 
 解除条件：同步或重新生成三数据集的 5-seed split 产物后，运行合同测试和至少每种模态一个
 `run_survey_experiment.py` smoke，并归档 split manifest digest 与命令记录。

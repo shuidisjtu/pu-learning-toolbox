@@ -243,8 +243,9 @@ resolved 单元写入 manifest。
     当前服务器全局 PyTorch 与 Linux lock 版本不同；Linux lock 的 CUDA 13 组件还高于
     前次记录驱动 550.54.14 支持范围。P2.1 前须共同决定环境兼容路线，并完成 frozen-lock
     GPU 验证，不能把旧全局环境 smoke 视为替代。
-    P1.4 所需 split 产物未在当前工作树中；CIFAR 历史 manifest 还存在通道统计审计错误
-    （issue #52，代码修复不等于真实 5-seed 产物重建），HENG958 可执行性复核等待产物同步。
+    P1.4 所需 split 产物未在当前工作树中；CIFAR 历史 manifest 的通道统计审计错误已由
+    issue #52 的重建与验收关闭（5 个 seed 已核验并迁入标准路径），但制品不在版本库中，
+    HENG958 可执行性复核仍等待产物同步。
     证据、命令和
     解除条件见 [独立复核记录](heng958_independent_review.md)。
 
@@ -267,7 +268,8 @@ resolved 单元写入 manifest。
     接受 P2.0a 工程交付，**不放行正式 P2.1**；R5（P2.1 聚合入口须实现并强制调用分榜门禁）
     与 R8（跑批前置磁盘检查、checkpoint 覆盖不变量改强制并补测试）记为 P2.1 前置条件。
     继续保持阻断：R9、P2.0b、P2.0c、缺失的 CNN/full-batch oracle、完整 Self-PU OA
-    meta-reweighting、Linux frozen-lock 环境偏差、P1.4 provenance（issue #52）。
+    meta-reweighting、Linux frozen-lock 环境偏差、P1.4 制品统一重建（IMDB/Spambase 待建；
+    issue #52 的 CIFAR-10 部分已关闭）。
     IMDB 制品层（`data/splits/imdb/`）不含返工新增的有效口径字段，并入 P1.4 三数据集
     统一重建，验收按代码与测试层进行。
 

@@ -17,7 +17,7 @@
 `review_status` 现为 `accepted`（2026-09-17 由复核人签署）。签署接受的是**工程交付**，
 **不放行正式 P2.1**：R5（聚合入口强制调用分榜门禁）与 R8（跑批前置磁盘检查、覆盖不变量
 改强制）是 P2.1 的前置条件，P2.0b/P2.0c、PA 正式准则、缺失 oracle、完整 Self-PU OA、
-Linux frozen-lock 环境偏差与 P1.4 provenance（issue #52）继续阻断。
+Linux frozen-lock 环境偏差与 P1.4 制品统一重建（IMDB/Spambase 待建；issue #52 的 CIFAR-10 部分已关闭）继续阻断。
 后续版本 `survey-v1.1` 已补齐逐 epoch 权重保存与独立恢复，预算/backbone 未改变；
 审查决定见 [复核包](p2_0a_review.md)，实现与证据见 [checkpoint 交付](epoch_checkpoint_delivery.md)。
 
