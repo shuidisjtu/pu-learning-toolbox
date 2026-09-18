@@ -33,6 +33,7 @@ class PUSBClassifier(BasePUClassifier):
     """Learn a selection-bias-robust posterior ordering from P/U data."""
 
     family = AlgorithmFamily.BIAS_AWARE
+    label_semantics = "pu"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.SELECTION_BIASED,)
     implementation_status = ImplementationStatus.NATIVE

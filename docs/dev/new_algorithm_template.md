@@ -4,9 +4,10 @@
 
 新算法必须：
 
-1. 实现 API 契约（fit/predict/decision_function/get_params/set_params，
-   y 标签语义由算法决定并在 fit 内校验）；
-2. 在类属性块声明 4 个能力字段（`BasePUClassifier` 有 tabular 默认值，
+1. 实现 API 契约（fit/predict/decision_function/get_params/set_params）；显式声明
+   `label_semantics`（`"pu"`、`"pnu"` 或监督目标的 `"pn"`），说明主 `fit(X, y)` 的
+   标签**含义**，不能仅靠 `{0, 1}` 取值校验区分 PU 与 PN；
+2. 在类属性块声明 4 个架构能力字段（`BasePUClassifier` 有 tabular 默认值，
    深度算法必须显式声明）：
 
    | 字段 | 合法值 | 说明 |
@@ -23,7 +24,8 @@
 ## 2. 自动门禁（无需手写）
 
 - 契约测试 tests/contract/test_capability_declarations.py：声明合法性、
-  注册表同步、tabular_only 派生、签名一致性——新算法漏声明直接失败；
+  注册表同步、tabular_only 派生、签名一致性，且注册分类器必须在类自身显式声明
+  `label_semantics`——新算法漏声明直接失败；
 - tests/contract/test_classifier_baseline.py：API 契约 + 基线行为；
 - check_doc_links Rule 1：文档引用路径必须真实存在。
 
@@ -48,6 +50,7 @@
     input_ndims = frozenset({2, 4})
     encoder_parameter = "encoder"
     trains_encoder = True
+    label_semantics = "pu"
 
 fit 内 probe（若 encoder 非 None）：
 
@@ -55,4 +58,5 @@ fit 内 probe（若 encoder 非 None）：
         probe.flatten(start_dim=1), encoder_param_name="encoder"
     )
 
-传统表格算法：不声明能力字段（继承 tabular 默认），只声明既有元数据。
+传统表格算法：可继承架构能力的 tabular 默认，但注册方法仍须显式声明
+`label_semantics = "pu"`；三值 PNU 方法声明 `"pnu"`。监督 oracle 声明 `"pn"`。

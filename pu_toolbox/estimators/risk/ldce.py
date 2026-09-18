@@ -320,6 +320,7 @@ class LDCEClassifier(BasePUClassifier):
 
     # ── Class-level metadata ──────────────────────────────────────────
     family: AlgorithmFamily = AlgorithmFamily.RISK_ESTIMATION
+    label_semantics = "pu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior: bool = False

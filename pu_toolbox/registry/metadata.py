@@ -105,6 +105,9 @@ class AlgorithmMetadata:
     trains_encoder: bool = False
     """Whether the algorithm trains an injected encoder end-to-end."""
 
+    label_semantics: str = "pu"
+    """Meaning of the main ``fit(X, y)`` labels: ``pu``, ``pn`` or ``pnu``."""
+
     @property
     def trainable(self) -> bool:
         """``True`` when the algorithm has a working implementation.
@@ -144,6 +147,8 @@ def _validate_metadata(meta: AlgorithmMetadata) -> None:
         raise ValueError("AlgorithmMetadata.name must be a non-empty string")
     if not meta.paper:
         raise ValueError(f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})")
+    if not isinstance(meta.label_semantics, str) or meta.label_semantics not in {"pu", "pn", "pnu"}:
+        raise ValueError("AlgorithmMetadata.label_semantics must be 'pu', 'pn', or 'pnu'")
     unknown_deprecated = set(meta.deprecated_aliases) - set(meta.aliases)
     if unknown_deprecated:
         raise ValueError(

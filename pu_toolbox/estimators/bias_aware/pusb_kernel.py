@@ -128,6 +128,7 @@ class PUSBKernelClassifier(BasePUClassifier):
     """
 
     family = AlgorithmFamily.BIAS_AWARE
+    label_semantics = "pu"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.SELECTION_BIASED,)
     requires_class_prior = True

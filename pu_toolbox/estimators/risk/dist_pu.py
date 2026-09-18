@@ -31,6 +31,7 @@ class DistPUClassifier(BasePUClassifier):
     """Train a small MLP using Dist-PU's label-distribution objective."""
 
     family = AlgorithmFamily.RISK_ESTIMATION
+    label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True

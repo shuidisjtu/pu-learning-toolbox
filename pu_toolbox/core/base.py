@@ -69,6 +69,10 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.EXPERIMENTAL
     sample_weight_support: SampleWeightSupport = SampleWeightSupport.NOT_IMPLEMENTED
+    # Meaning of the main fit(X, y) labels, not merely their numeric encoding.
+    # Registered classifiers must override this explicitly; third-party PU
+    # subclasses inherit the safe PU default.
+    label_semantics: str = "pu"
 
     # ── Architecture capability (dual_architecture_plan.md §4.2) ─────
     native_architectures: frozenset[str] = frozenset()
@@ -218,6 +222,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
             "backend": self.backend.value,
             "maturity": self.maturity.value,
             "sample_weight_support": self.sample_weight_support.value,
+            "label_semantics": self.label_semantics,
             "is_fitted": self._is_fitted,
             "n_features": self._X_shape_[1] if self._X_shape_ else None,
         }

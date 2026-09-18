@@ -109,6 +109,7 @@ class NonNegativePUClassifier(BasePUClassifier):
 
     # ── Class-level metadata ──────────────────────────────────────────
     family: AlgorithmFamily = AlgorithmFamily.RISK_ESTIMATION
+    label_semantics = "pu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
     requires_class_prior: bool = True

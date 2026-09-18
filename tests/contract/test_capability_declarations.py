@@ -45,6 +45,10 @@ def test_declarations_are_legal():
     import inspect
 
     for meta, cls in _classifier_entries():
+        assert "label_semantics" in cls.__dict__, (
+            f"{meta.name}: registered classifiers must explicitly declare fit-label semantics"
+        )
+        assert cls.label_semantics in {"pu", "pn", "pnu"}, meta.name
         assert cls.input_ndims, f"{meta.name}: input_ndims must be non-empty"
         assert cls.input_ndims <= _LEGAL_NDIMS, f"{meta.name}: input_ndims {cls.input_ndims}"
         assert cls.native_architectures <= _LEGAL_ARCHS, (
@@ -64,10 +68,26 @@ def test_declarations_are_legal():
 @pytest.mark.contract
 def test_registry_sync_matches_class():
     for meta, cls in _classifier_entries():
+        assert meta.label_semantics == cls.label_semantics, meta.name
         assert meta.native_architectures == cls.native_architectures, meta.name
         assert meta.input_ndims == cls.input_ndims, meta.name
         assert meta.encoder_parameter == cls.encoder_parameter, meta.name
         assert meta.trains_encoder == cls.trains_encoder, meta.name
+
+
+@pytest.mark.contract
+def test_pnu_is_the_only_registered_three_way_classifier():
+    declarations = {meta.name: cls.label_semantics for meta, cls in _classifier_entries()}
+    assert len(declarations) == 17
+    assert declarations["pnu"] == "pnu"
+    assert all(value == "pu" for name, value in declarations.items() if name != "pnu")
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize("value", ["unknown", "", None, []])
+def test_invalid_label_semantics_metadata_is_rejected(value):
+    with pytest.raises(ValueError, match="label_semantics"):
+        AlgorithmMetadata(name="bad_semantics", paper="test fixture", label_semantics=value)
 
 
 @pytest.mark.contract

@@ -44,6 +44,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
     """Clean-room WConPU core with prototypes, SAT and a momentum queue."""
 
     family = AlgorithmFamily.DEEP_PU
+    label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True

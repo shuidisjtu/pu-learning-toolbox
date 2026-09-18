@@ -134,6 +134,7 @@ _SYNC_FIELDS = (
     "input_ndims",
     "encoder_parameter",
     "trains_encoder",
+    "label_semantics",
 )
 
 

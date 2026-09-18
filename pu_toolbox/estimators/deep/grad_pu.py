@@ -96,6 +96,7 @@ class GradPUClassifier(BasePUClassifier):
     """
 
     family = AlgorithmFamily.DEEP_PU
+    label_semantics = "pu"
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     requires_class_prior = False

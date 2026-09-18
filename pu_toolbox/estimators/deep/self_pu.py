@@ -242,6 +242,7 @@ class SelfPUClassifier(BasePUClassifier):
     """
 
     family = AlgorithmFamily.DEEP_PU
+    label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True

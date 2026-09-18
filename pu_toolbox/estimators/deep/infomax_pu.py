@@ -311,6 +311,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
     """PURL followed by class-prior estimation and an nnPU classifier."""
 
     family = AlgorithmFamily.DEEP_PU
+    label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = False

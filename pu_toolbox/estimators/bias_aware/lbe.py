@@ -33,6 +33,7 @@ class LBEClassifier(BasePUClassifier):
     """Estimate class posterior and instance-dependent labeling propensity."""
 
     family = AlgorithmFamily.BIAS_AWARE
+    label_semantics = "pu"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET, Scenario.SELECTION_BIASED)
     implementation_status = ImplementationStatus.NATIVE

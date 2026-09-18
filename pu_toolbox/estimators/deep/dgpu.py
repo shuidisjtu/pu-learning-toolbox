@@ -27,6 +27,7 @@ class DGPUClassifier(BasePUClassifier):
     """DGPU classifier using an explicit user-supplied conditional generator."""
 
     family = AlgorithmFamily.DEEP_PU
+    label_semantics = "pu"
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     requires_class_prior = True

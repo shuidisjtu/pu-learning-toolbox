@@ -105,6 +105,7 @@ class LLSVMClassifier(BasePUClassifier):
     """
 
     family = AlgorithmFamily.RISK_ESTIMATION
+    label_semantics = "pu"
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True
