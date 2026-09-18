@@ -2,6 +2,7 @@
 """Coverage of the pre-registered comparison matrix against survey-v1.2."""
 
 import json
+from collections import Counter
 
 import pytest
 
@@ -108,6 +109,27 @@ def test_basic_shipped_matrix_covers_every_unit_exactly_once(survey, comparison)
     assert summary["units"] == EXPECTED_UNITS
     assert summary["unit_mappings"] == EXPECTED_UNITS
     assert summary["row_mappings"] >= 1
+
+
+def test_basic_shipped_review_handoff_keeps_disputed_rows_pending(comparison):
+    """The technical audit cannot silently turn into collaborator acceptance."""
+    assert comparison["review_status"] == "pending_collaborator_review"
+    assert comparison["formal_blockers"] == ["collaborator_review"]
+    anchor_states = Counter(a["review_state"] for a in comparison["anchors"])
+    mapping_states = Counter(m["review_state"] for m in comparison["mappings"])
+    assert anchor_states == {"accepted": 18, "pending_review": 36}
+    assert mapping_states == {"accepted": 187, "pending_review": 7}
+    assert all(c["review_state"] == "pending_review" for c in comparison["contradictions"])
+
+    pending_anchors = {
+        a["anchor_id"] for a in comparison["anchors"] if a["review_state"] == "pending_review"
+    }
+    pending_rows = [m for m in comparison["mappings"] if m["review_state"] == "pending_review"]
+    assert all(m["scope"] == "row" for m in pending_rows)
+    assert pending_anchors == {
+        anchor_id for mapping in pending_rows for anchor_id in mapping["anchor_ids"]
+    }
+    assert all(mapping["protocol_differences"] for mapping in pending_rows)
 
 
 def test_edge_duplicate_unit_mapping_is_rejected(survey, comparison):

@@ -554,7 +554,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -579,7 +579,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -604,7 +604,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -629,7 +629,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -654,7 +654,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -679,7 +679,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -704,7 +704,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -729,7 +729,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -754,7 +754,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -779,7 +779,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -804,7 +804,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -829,7 +829,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -854,7 +854,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -879,7 +879,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -904,7 +904,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -929,7 +929,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -954,7 +954,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -979,7 +979,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1004,7 +1004,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1029,7 +1029,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1054,7 +1054,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1079,7 +1079,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1104,7 +1104,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1129,7 +1129,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1154,7 +1154,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1179,7 +1179,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1204,7 +1204,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1229,7 +1229,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1254,7 +1254,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1279,7 +1279,7 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1304,7 +1304,7 @@
       "value_producer": "original_authors",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 2 ACC column, dist_pu row; prior 0.4, classes 0,1,8,9",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1329,7 +1329,7 @@
       "value_producer": "third_party_reproduction",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 2 ACC column, nnpu row; prior 0.4, classes 0,1,8,9. The nnpu row is this paper's own run of a method it did not author, so the producer is a third party relative to nnPU.",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1354,7 +1354,7 @@
       "value_producer": "original_authors",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 7 CIFAR-10 column, self_pu row; 13-layer CNN, prior 0.4",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1379,7 +1379,7 @@
       "value_producer": "third_party_reproduction",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 7 CIFAR-10 column, nnpu row; 13-layer CNN, prior 0.4",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1404,7 +1404,7 @@
       "value_producer": "third_party_reproduction",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 7 CIFAR-10 column, upu row; 13-layer CNN, prior 0.4",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -1429,7 +1429,7 @@
       "value_producer": "original_authors",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 2, Spambase, pi=0.4, U=3200: raw '18.9 (.018)'. Mean column is in percent; the parenthetical reads as a fraction and is registered as 1.8 pp, pending review.",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ],
@@ -5512,12 +5512,13 @@
         "chen_table7_upu_cifar10_accuracy"
       ],
       "protocol_differences": [
-        "the source sweeps a true class prior, not our label frequency c",
-        "backbone and validation policy differ",
-        "class mapping differs where the source uses a different split of the classes"
+        "PUBench: no matching label-frequency c axis; Case 1/2 positive-class mappings differ from our vehicles mapping",
+        "PUBench: CIFAR ResNet-32, fixed channel statistics and training transforms differ from our frozen ResNet-18 feature adapter and train-only statistics",
+        "PUBench: P/U holdout and PA/PAUC/OA checkpoint selection differ from our validation protocol",
+        "Self-PU Table 7 uPU baseline: fixed prior 0.4 and 1000 labeled positives, not a c sweep; vehicles mapping matches ours, but the 13-layer CNN and validation protocol differ"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -5546,12 +5547,14 @@
         "chen_table7_nnpu_cifar10_accuracy"
       ],
       "protocol_differences": [
-        "the source sweeps a true class prior, not our label frequency c",
-        "backbone and validation policy differ",
-        "class mapping differs where the source uses a different split of the classes"
+        "PUBench: no matching label-frequency c axis; Case 1/2 class mappings differ from our vehicles mapping",
+        "PUBench: CIFAR ResNet-32, fixed channel statistics and training transforms differ from our ResNet-18 small-image backbone and train-only statistics",
+        "PUBench: P/U holdout and PA/PAUC/OA checkpoint selection differ from our validation protocol",
+        "Dist-PU Table 2 nnPU baseline: fixed prior 0.4 and 1000 labeled positives, ImageNet statistics and 13-layer CNN; vehicles mapping matches ours",
+        "Self-PU Table 7 nnPU baseline: fixed prior 0.4 and 1000 labeled positives, third-party reproduction with a 13-layer CNN; vehicles mapping matches ours"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -5578,12 +5581,13 @@
         "pubench_table2_pusb_case2_oa_accuracy"
       ],
       "protocol_differences": [
-        "the source sweeps a true class prior, not our label frequency c",
-        "backbone and validation policy differ",
-        "class mapping differs where the source uses a different split of the classes"
+        "PUBench: no matching label-frequency c axis; Case 1/2 class mappings differ from our vehicles mapping",
+        "PUBench: CIFAR ResNet-32, fixed channel statistics and training transforms differ from our frozen ResNet-18 feature adapter and train-only statistics",
+        "PUBench: P/U holdout and PA/PAUC/OA checkpoint selection differ from our validation protocol",
+        "PUBench PUSB result is a method-family reference, not a direct replication of our pusb_kernel training path"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -5611,12 +5615,13 @@
         "zhao_table2_dist_pu_cifar10_accuracy"
       ],
       "protocol_differences": [
-        "the source sweeps a true class prior, not our label frequency c",
-        "backbone and validation policy differ",
-        "class mapping differs where the source uses a different split of the classes"
+        "PUBench: no matching label-frequency c axis; Case 1/2 class mappings differ from our vehicles mapping",
+        "PUBench: CIFAR ResNet-32, fixed channel statistics and training transforms differ from our frozen ResNet-18 feature adapter and train-only statistics",
+        "PUBench: P/U holdout and PA/PAUC/OA checkpoint selection differ from our validation protocol",
+        "Dist-PU Table 2: fixed prior 0.4 and 1000 labeled positives, not a prior sweep or c sweep; vehicles mapping matches ours, but ImageNet statistics and 13-layer CNN differ"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -5643,12 +5648,12 @@
         "pubench_table2_lbe_case2_oa_accuracy"
       ],
       "protocol_differences": [
-        "the source sweeps a true class prior, not our label frequency c",
-        "backbone and validation policy differ",
-        "class mapping differs where the source uses a different split of the classes"
+        "PUBench: no matching label-frequency c axis; Case 1/2 class mappings differ from our vehicles mapping",
+        "PUBench: CIFAR ResNet-32, fixed channel statistics and training transforms differ from our frozen ResNet-18 feature adapter and train-only statistics",
+        "PUBench: P/U holdout and PA/PAUC/OA checkpoint selection differ from our validation protocol"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -5670,12 +5675,12 @@
         "chen_table7_self_pu_cifar10_accuracy"
       ],
       "protocol_differences": [
-        "the source sweeps a true class prior, not our label frequency c",
-        "backbone and validation policy differ",
-        "class mapping differs where the source uses a different split of the classes"
+        "Self-PU Table 7: fixed prior 0.4 and 1000 labeled positives, not a prior sweep or c sweep; vehicles mapping matches ours",
+        "Self-PU Table 7: full self-calibrated training uses clean validation labels and is PA-ineligible, whereas our current run is an explicitly no-meta ablation",
+        "Self-PU Table 7: 13-layer CNN and source validation policy differ from our frozen ResNet-18 feature adapter and PA/OA selection"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
@@ -5697,12 +5702,12 @@
         "kato_table2_pusb_spambase_pi04_error_rate"
       ],
       "protocol_differences": [
-        "the source sweeps a true class prior, not our label frequency c",
-        "backbone and validation policy differ",
-        "class mapping differs where the source uses a different split of the classes"
+        "Kato Table 2 sweeps true class prior pi and P/U sample size, not our label frequency c",
+        "Kato Table 2 uses a linear-in-parameter classifier under a selection-biased P/U protocol; our pusb_kernel uses an RBF kernel under the survey execution protocol",
+        "Kato Table 2 parenthetical spread unit is unresolved; this row is magnitude-and-trend only, never a numeric adjudication"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "accepted",
+      "review_state": "pending_review",
       "verified_by": [
         "shuidisjtu"
       ]
