@@ -65,6 +65,7 @@ pu_toolbox/
       upu.py                              (native: uPU 凸风险估计器(du Plessis'15): 双铰链/逻辑/平方损失三变体)
       nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
       pnu.py                              (native: 凸 PNU 半监督闭式解(平方损失, 对齐 pywsl, η 混合 P/NU))
+      puet.py                             (native: PU Extra Trees nnPU/二次风险驱动的随机树集成，CPU)
     bias_aware/
       __init__.py                         (公共导出聚合)
       pusb.py                             (native: PUSB 选择偏差打分: LR 源分类器 + 可配置阈值(保序不保后验))
@@ -106,7 +107,7 @@ pu_toolbox/
     __init__.py                           (公共导出聚合; __getattr__ 懒转发 advisor 符号防导入环)
     registry.py                           (已实现: 中央注册表 register_method/get_algorithm + 别名解析, 线程安全)
     metadata.py                           (公开: AlgorithmMetadata 算法元数据契约, 注册表与文档生成共用)
-    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 18 个内置算法元数据)
+    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 19 个内置算法元数据)
   advisor/
     __init__.py                           (公共导出聚合: 推荐引擎与推荐数据结构入口)
     recommender.py                        (已实现: recommend_methods/recommend_from_profile 画像→注册表方法推荐)
@@ -208,6 +209,7 @@ tests/
       test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
       test_dist_pu.py                   # Dist-PU 特有逻辑(torch 依赖 importorskip、mixup 权重边界、class prior/epochs 参数校验)
       test_grad_pu.py                   # GradPU 公式 golden、接口/注册、确定性、checkpoint 与 CUDA smoke
+      test_puet.py                      # PUET 节点风险 golden、树集成、确定性、pickle 与 pipeline
       test_self_pu.py                   # Self-PU pace/meta/EMA/三阶段训练
       test_deep_pu.py                   # InfoMax PU/WConPU/DGPU 接口与 registry
       test_deep_pu_vision.py            # WConPU 视觉骨干与张量增强
@@ -517,6 +519,7 @@ docs/
       LLSVM.md
       Dist-PU.md
       GradPU.md
+      PUET.md
       PUSB.md
       LBE.md
       Self-PU.md

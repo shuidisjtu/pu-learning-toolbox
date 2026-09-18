@@ -30,6 +30,7 @@ from .estimators.risk.kldce import KLDCEClassifier
 from .estimators.risk.ldce import LDCEClassifier
 from .estimators.risk.nnpu import NonNegativePUClassifier
 from .estimators.risk.pnu import PNUClassifier
+from .estimators.risk.puet import PUExtraTreesClassifier
 from .estimators.risk.upu import UPUClassifier
 from .preprocessing import make_sar_dataset, profile_pu_data
 from .prior.kernel_mean import KernelMeanPriorEstimator
@@ -58,6 +59,7 @@ __all__ = [
     "LLSVMClassifier",
     "NonNegativePUClassifier",
     "PNUClassifier",
+    "PUExtraTreesClassifier",
     "PUSBClassifier",
     "PUSBKernelClassifier",
     "PipelineReport",

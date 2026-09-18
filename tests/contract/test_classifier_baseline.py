@@ -198,6 +198,12 @@ def _make_gradpu():
     return GradPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
 
 
+def _make_puet():
+    from pu_toolbox.estimators.risk import PUExtraTreesClassifier
+
+    return PUExtraTreesClassifier(class_prior=0.33, n_estimators=3, max_depth=4, random_state=42)
+
+
 _FACTORY_MAP: dict[str, callable] = {
     "elkan_noto": _make_elkan_noto,
     "llsvm": _make_llsvm,
@@ -217,6 +223,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "weighted_contrastive_pu": _make_weighted_contrastive_pu,
     "dgpu": _make_dgpu,
     "gradpu": _make_gradpu,
+    "puet": _make_puet,
 }
 
 _REPRESENTATIVE_ALGOS = [

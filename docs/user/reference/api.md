@@ -46,6 +46,7 @@
 | `upu`（`convex_pu`） | `UPUClassifier` | risk | `class_prior` / `loss` / `reg_lambda` | [Convex uPU](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) |
 | `nnpu`（`nn-pu`） | `NonNegativePUClassifier` | risk | `model` / `encoder` / `class_prior` / `loss` / `optimizer` | [nnPU](../../research/method_cards/nnpu.md) |
 | `pnu` | `PNUClassifier` | risk | `class_prior` / `eta` / `reg_lambda` | [PNU](../../research/method_cards/PNU.md) |
+| `puet`（`pu_extra_trees`） | `PUExtraTreesClassifier` | risk | `class_prior` / `n_estimators` / `max_features` / `max_candidates` | [PUET](../../research/method_cards/PUET.md) |
 | `centroid_pu`（`ldce`） | `LDCEClassifier` | risk | `flip_probability` / `reg_strength` / `centroid_radius` | [LDCE](../../research/method_cards/LDCE.md) |
 | `kldce`（`kernelized_ldce`） | `KLDCEClassifier` | risk | `flip_probability` / `sigma` / `reg_strength` | [KLDCE](../../research/method_cards/KLDCE.md) |
 | `llsvm` | `LLSVMClassifier` | risk | `alpha` / `beta` / `gamma` / `reg_lambda` / `max_epochs` | [LLSVM](../../research/method_cards/LLSVM.md) |
@@ -74,7 +75,7 @@
 |---|---|---|
 | `supported` | 权重进入训练目标 | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
 | `ignored` | 为 sklearn API 兼容而接受，但不参与训练 | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
-| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu` |
+| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu`, `puet` |
 
 依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
 
@@ -239,6 +240,30 @@ PNUClassifier(class_prior, *, eta=0.0, reg_lambda=1e-3, basis="linear",
 | `random_state` | `int \| None` | `None` | 中心子采样种子 |
 
 - 文档：[PNU 方法卡](../../research/method_cards/PNU.md) · 示例：[04_pnu.py](../../../examples/minimal/04_pnu.py)
+
+#### `PUExtraTreesClassifier`（注册名 `puet`，别名 `pu_extra_trees`）
+
+以 nnPU 二次风险下降训练的 PU Extra Trees；当前为二维表格/CPU 子集。
+
+```python
+PUExtraTreesClassifier(class_prior, *, n_estimators=100, max_depth=None,
+                       min_samples_leaf=1, max_features="sqrt", max_candidates=1,
+                       bootstrap=False, random_state=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 总体正类先验 $\pi\in(0,1)$；可由 `fit(..., class_prior=...)` 覆盖 |
+| `n_estimators` / `max_depth` | `int` / `int \| None` | `100` / `None` | 树数 / 最大深度 |
+| `min_samples_leaf` | `int` | `1` | 每个子叶至少包含的 P/U 样本总数 |
+| `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | 每节点候选特征数，`sqrt` 向上取整 |
+| `max_candidates` | `int` | `1` | 每候选特征随机阈值数 |
+| `bootstrap` | `bool` | `False` | 是否分别对 P/U 进行有放回重采样；作者代码默认不重采样 |
+| `random_state` | `int \| None` | `None` | 森林随机种子 |
+
+`decision_function` 为 $[-1,1]$ 投票边际，不是校准概率；零边际判负类。仅实现论文 nnPU/quadratic 变体，非完整论文基准。非空 `sample_weight` 报错。
+
+- 文档：[PUET 方法卡](../../research/method_cards/PUET.md)
 
 #### `LDCEClassifier`（注册名 `centroid_pu`，别名 `ldce`）
 

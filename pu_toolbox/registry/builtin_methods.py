@@ -403,6 +403,28 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license=None,
         training_cost=Cost.HIGH,  # second-order input-gradient penalty
     ),
+    # ── 17. PU Extra Trees ──────────────────────────────────────────
+    AlgorithmMetadata(
+        name="puet",
+        aliases=["pu_extra_trees"],
+        family=Fam.RISK_ESTIMATION,
+        paper=(
+            "Positive-Unlabeled Learning using Random Forests "
+            "via Recursive Greedy Risk Minimization"
+        ),
+        scenario=[Scn.CASE_CONTROL],
+        assumption=[Asm.SCAR],
+        requires_class_prior=True,
+        supports_sparse=False,
+        supports_gpu=False,
+        backend=Backend.NUMPY,
+        maturity=Maturity.EXPERIMENTAL,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_RELATED,
+        upstream_url="https://github.com/jonathanwilton/PUExtraTrees",
+        license="MIT",
+        training_cost=Cost.HIGH,  # default 100-tree CPU forest
+    ),
 ]
 
 
@@ -467,6 +489,7 @@ def _bind_native_classes() -> None:
         ),
         ("dgpu", "..estimators.deep.dgpu", "DGPUClassifier"),
         ("gradpu", "..estimators.deep.grad_pu", "GradPUClassifier"),
+        ("puet", "..estimators.risk.puet", "PUExtraTreesClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:
