@@ -2,7 +2,7 @@
 
 # PU Learning Toolbox
 
-**Positive-Unlabeled learning in Python** -- 17 registered algorithms, research joint-shift adaptation, SCAR & SAR support.
+**Positive-Unlabeled learning in Python** -- 18 registered algorithms, research joint-shift adaptation, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
 ![Status](https://img.shields.io/badge/status-1.11.0-blue)
@@ -10,7 +10,7 @@
 
 ## Features
 
-- **17 registered algorithms** from recent PU learning research, all native clean-room implementations, plus an isolated research joint-shift solver ([method cards](docs/research/method_cards/))
+- **18 registered algorithms** from recent PU learning research, all native clean-room implementations, plus an isolated research joint-shift solver ([method cards](docs/research/method_cards/))
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
 - **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
 - **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data

@@ -75,10 +75,16 @@ class TestRecommenderFiltering:
             assert Assumption.SAR in c.metadata.assumption
 
     def test_edge_all_filtered_returns_empty(self, profile):
+        # GradPU intentionally carries SCAR theory and biased-label empirical
+        # tags, so that intersection is no longer empty.
+        overlap = recommend_from_profile(
+            profile, scenario="selection_biased", assumption="SCAR", top_k=20
+        )
+        assert "gradpu" in {candidate.name for candidate in overlap.candidates}
         result = recommend_from_profile(
             profile,
             scenario="selection_biased",
-            assumption="SCAR",
+            assumption="unknown",
             top_k=15,
         )
         assert isinstance(result, RecommendationResult)

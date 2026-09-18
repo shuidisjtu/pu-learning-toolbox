@@ -20,6 +20,7 @@ from .estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
 from .estimators.classic.elkan_noto import ElkanNotoClassifier
 from .estimators.classic.llsvm import LLSVMClassifier
 from .estimators.deep.dgpu import DGPUClassifier
+from .estimators.deep.grad_pu import GradPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
 from .estimators.deep.self_pu import SelfPUClassifier
 from .estimators.deep.vision import build_encoder
@@ -48,6 +49,7 @@ __all__ = [
     "DistPUClassifier",
     "DomainAssumptionReport",
     "ElkanNotoClassifier",
+    "GradPUClassifier",
     "InfoMaxPUClassifier",
     "KLDCEClassifier",
     "KernelMeanPriorEstimator",

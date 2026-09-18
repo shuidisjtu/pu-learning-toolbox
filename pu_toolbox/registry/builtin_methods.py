@@ -1,4 +1,4 @@
-"""Built-in algorithm registry — 17 native paper methods.
+"""Built-in algorithm registry — native paper methods.
 
 Each entry captures canonical metadata (name, aliases, family, scenario,
 assumption, source status, upstream URL, license, etc.) so that the
@@ -384,6 +384,25 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license=None,
         training_cost=Cost.MEDIUM,  # torch, 200 epochs + generative sampling
     ),
+    # ── 16. GradPU ──────────────────────────────────────────────────
+    AlgorithmMetadata(
+        name="gradpu",
+        aliases=["grad_pu"],
+        family=Fam.DEEP_PU,
+        paper="GradPU: Positive-Unlabeled Learning via Gradient Penalty and Positive Upweighting",
+        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
+        assumption=[Asm.SCAR, Asm.SAR],
+        requires_class_prior=False,
+        supports_sparse=False,
+        supports_gpu=True,
+        backend=Backend.TORCH,
+        maturity=Maturity.EXPERIMENTAL,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.NOT_FOUND,
+        upstream_url=None,
+        license=None,
+        training_cost=Cost.HIGH,  # second-order input-gradient penalty
+    ),
 ]
 
 
@@ -447,6 +466,7 @@ def _bind_native_classes() -> None:
             "WeightedContrastivePUClassifier",
         ),
         ("dgpu", "..estimators.deep.dgpu", "DGPUClassifier"),
+        ("gradpu", "..estimators.deep.grad_pu", "GradPUClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:

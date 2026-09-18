@@ -71,7 +71,8 @@ pu_toolbox/
       pusb_kernel.py                      (native: official-aligned RBF PUSB adapter)
       lbe.py                              (native: LBE 实例依赖标注偏差: 交替加权 LR 估后验+倾向, sklearn)
     deep/
-      __init__.py                         (公共导出聚合: DGPU/InfoMaxPU/SelfPU/WConPU 分类器与 vision 工厂)
+      __init__.py                         (公共导出聚合: DGPU/GradPU/InfoMaxPU/SelfPU/WConPU 分类器与 vision 工厂)
+      grad_pu.py                         (native: GradPU 输入梯度惩罚 + 未归一化正样本加权，二维 MLP)
       self_pu.py                          (native: SelfPUClassifier 双学生自步进+元重加权+蒸馏 (官方精确对齐))
       infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU 流水线, PU-SMI 目标)
       weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier 原型+SAT+momentum queue 加权对比 (WConPU 论文协议))
@@ -105,7 +106,7 @@ pu_toolbox/
     __init__.py                           (公共导出聚合; __getattr__ 懒转发 advisor 符号防导入环)
     registry.py                           (已实现: 中央注册表 register_method/get_algorithm + 别名解析, 线程安全)
     metadata.py                           (公开: AlgorithmMetadata 算法元数据契约, 注册表与文档生成共用)
-    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 17 个内置算法元数据)
+    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 18 个内置算法元数据)
   advisor/
     __init__.py                           (公共导出聚合: 推荐引擎与推荐数据结构入口)
     recommender.py                        (已实现: recommend_methods/recommend_from_profile 画像→注册表方法推荐)
@@ -206,6 +207,7 @@ tests/
       test_bias_aware.py                # PUSB / LBE 特有逻辑(LBE propensity 有界性、单 EM 迭代、PUSB 全正报错、参数与类先验校验)
       test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
       test_dist_pu.py                   # Dist-PU 特有逻辑(torch 依赖 importorskip、mixup 权重边界、class prior/epochs 参数校验)
+      test_grad_pu.py                   # GradPU 公式 golden、接口/注册、确定性、checkpoint 与 CUDA smoke
       test_self_pu.py                   # Self-PU pace/meta/EMA/三阶段训练
       test_deep_pu.py                   # InfoMax PU/WConPU/DGPU 接口与 registry
       test_deep_pu_vision.py            # WConPU 视觉骨干与张量增强
@@ -514,6 +516,7 @@ docs/
       ReCPE.md
       LLSVM.md
       Dist-PU.md
+      GradPU.md
       PUSB.md
       LBE.md
       Self-PU.md

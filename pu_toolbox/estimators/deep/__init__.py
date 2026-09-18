@@ -1,6 +1,7 @@
 """Deep positive-unlabeled estimators."""
 
 from .dgpu import DGPUClassifier
+from .grad_pu import GradPUClassifier
 from .infomax_pu import InfoMaxPUClassifier, InfoMaxPURepresentation
 from .self_pu import SelfPUClassifier
 from .vision import build_encoder, build_wconpu_augmentation, build_wconpu_backbone
@@ -8,6 +9,7 @@ from .weighted_contrastive_pu import WeightedContrastivePUClassifier
 
 __all__ = [
     "DGPUClassifier",
+    "GradPUClassifier",
     "InfoMaxPUClassifier",
     "InfoMaxPURepresentation",
     "SelfPUClassifier",

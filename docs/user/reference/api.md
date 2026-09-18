@@ -53,6 +53,7 @@
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
+| `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
 | `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
 | `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
@@ -73,7 +74,7 @@
 |---|---|---|
 | `supported` | 权重进入训练目标 | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
 | `ignored` | 为 sklearn API 兼容而接受，但不参与训练 | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
-| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu` |
+| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu` |
 
 依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
 
@@ -396,6 +397,29 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 - 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
 
 ### 深度分类器
+
+#### `GradPUClassifier`（注册名 `gradpu`，别名 `grad_pu`）
+
+基于输入梯度惩罚与困难正样本加权的 PU 分类器，当前实现面向二维稠密特征。
+
+```python
+GradPUClassifier(model=None, *, hidden_dim=128, alpha=0.1, beta_max=1.0,
+                 batch_size=256, max_epochs=200, learning_rate=1e-3,
+                 weight_decay=5e-4, random_state=None, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `model` | `torch.nn.Module \| None` | `None` | 输出每行一个原始分数的网络；默认单隐层 MLP；不支持 BatchNorm |
+| `hidden_dim` | `int` | `128` | 默认 MLP 隐藏宽度 |
+| `alpha` / `beta_max` | `float` | `0.1` / `1.0` | 输入梯度惩罚强度 / 正样本加权上限 |
+| `batch_size` / `max_epochs` | `int` | `256` / `200` | 每组批大小 / 训练轮数 |
+| `learning_rate` / `weight_decay` | `float` | `1e-3` / `5e-4` | Adam 优化参数 |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子 / PyTorch 设备 |
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None)` 接受先验以适配统一接口，但论文目标不使用它；非 `None` 的 `sample_weight` 报错。`decision_function` 是 $[-1,1]$ 分数而非校准概率，预测阈值为 0。当前为论文公式导出的表格版组件，尚未进入正式 Survey 实验矩阵。
+
+- 文档：[GradPU 方法卡](../../research/method_cards/GradPU.md)
 
 #### `SelfPUClassifier`（注册名 `self_pu`）
 

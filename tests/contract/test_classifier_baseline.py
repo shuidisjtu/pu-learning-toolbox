@@ -192,6 +192,12 @@ def _make_dgpu():
     )
 
 
+def _make_gradpu():
+    from pu_toolbox.estimators.deep import GradPUClassifier
+
+    return GradPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
+
+
 _FACTORY_MAP: dict[str, callable] = {
     "elkan_noto": _make_elkan_noto,
     "llsvm": _make_llsvm,
@@ -210,6 +216,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "infomax_pu": _make_infomax_pu,
     "weighted_contrastive_pu": _make_weighted_contrastive_pu,
     "dgpu": _make_dgpu,
+    "gradpu": _make_gradpu,
 }
 
 _REPRESENTATIVE_ALGOS = [

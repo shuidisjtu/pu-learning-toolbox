@@ -2,7 +2,7 @@
 
 # PU Learning Toolbox
 
-**正例-无标记学习 Python 工具箱** -- 17 个注册算法、联合漂移研究适配，支持 SCAR 与 SAR。
+**正例-无标记学习 Python 工具箱** -- 18 个注册算法、联合漂移研究适配，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
 ![Status](https://img.shields.io/badge/status-1.11.0-blue)
@@ -10,7 +10,7 @@
 
 ## 特性
 
-- **17 个注册算法**，来自近年 PU 学习研究论文，全部为 native clean-room 实现；另有隔离的联合漂移研究求解器（[方法卡](docs/research/method_cards/)）
+- **18 个注册算法**，来自近年 PU 学习研究论文，全部为 native clean-room 实现；另有隔离的联合漂移研究求解器（[方法卡](docs/research/method_cards/)）
 - **兼容 sklearn API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`，支持 Pipeline 与交叉验证
 - **SCAR & SAR** -- 常数与实例相关两种标记机制，附数据模拟器
 - **数据画像 + 算法推荐** -- 自动质量检查、SCAR/SAR 证据，以及七维评分推荐器为你的数据选方法
