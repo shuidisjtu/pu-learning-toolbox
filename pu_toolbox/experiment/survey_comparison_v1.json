@@ -1,0 +1,5356 @@
+{
+  "schema_version": "1.0",
+  "comparison_version": "survey-comparison-v1",
+  "review_status": "pending_collaborator_review",
+  "bound_survey_protocol": {
+    "protocol_version": "survey-v1.2",
+    "protocol_sha256": "b5b6b5f4945bf5bc1823eee6cddf487595d409b93f48911f0f1797b89ed2ff20"
+  },
+  "metric_unit": "percentage_points",
+  "result_input_unit": "fraction",
+  "eligibility_classes": [
+    "numeric",
+    "magnitude_and_trend",
+    "background_only",
+    "no_direct_anchor",
+    "blocked_pending_pa_criterion",
+    "non_runnable"
+  ],
+  "decision_rules": {
+    "limit_floor_pp": 3.0,
+    "limit_multiplier": 2.0,
+    "about_to_implement": "each mapping is pre-registered before any pilot result exists"
+  },
+  "sources": [
+    {
+      "source_id": "pu_bench_2026",
+      "kind": "paper_and_locked_repository",
+      "paper_title": "PU-BENCH: A Unified Benchmark for Rigorous and Reproducible PU Learning",
+      "paper_version": "ICLR 2026",
+      "repository": "XiXiphus/PU-Bench",
+      "repository_commit": "2d95a19eefd72e66ff30128ec2f65e1d1d4cc077",
+      "evidence_reference": "P2.0c stage-1 source audit, Table 1 at PDF p6",
+      "notes": "selection criterion disagrees between the paper body and the released code"
+    },
+    {
+      "source_id": "pubench_2026",
+      "kind": "paper_and_locked_repository",
+      "paper_title": "Accessible, Realistic, and Fair Evaluation of Positive-Unlabeled Learning Algorithms",
+      "paper_version": "ICLR 2026; arXiv:2509.24228v2",
+      "repository": "wu-dd/PUBench",
+      "repository_commit": "a9a62b05b0f222c72aff4df8992307376c78d682",
+      "evidence_reference": "P2.0c stage-1 source audit, Tables 1-2 at PDF p8-p9",
+      "notes": "backbone and uncertainty kind disagree between the paper body and the released code"
+    },
+    {
+      "source_id": "kato_2019_pusb",
+      "kind": "paper",
+      "paper_title": "Learning from Positive and Unlabeled Data with a Selection Bias",
+      "paper_version": "ICLR 2019 camera-ready, OpenReview rJzLciCqKm",
+      "repository": "",
+      "repository_commit": "",
+      "evidence_reference": "P2.0c stage-1 source audit, Table 2 at print page 9",
+      "notes": "reports error rate, not accuracy, and sweeps the class prior rather than c"
+    },
+    {
+      "source_id": "kiryo_2017_nnpu",
+      "kind": "paper",
+      "paper_title": "Positive-Unlabeled Learning with Non-Negative Risk Estimator",
+      "paper_version": "NIPS 2017",
+      "repository": "kiryor/nnPUlearning",
+      "repository_commit": "",
+      "evidence_reference": "P2.0c stage-1 source audit: no accuracy or error value anywhere",
+      "notes": "CIFAR-10 appears only as risk curves (Figure 2d, Figure 3d); no numeric anchor"
+    },
+    {
+      "source_id": "zhao_2022_distpu",
+      "kind": "paper",
+      "paper_title": "Dist-PU: Positive-Unlabeled Learning from a Label Distribution Perspective",
+      "paper_version": "arXiv:2212.02801",
+      "repository": "Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
+      "repository_commit": "",
+      "evidence_reference": "P2.0c stage-1 source audit, Table 2 at page 6",
+      "notes": "normalizes with ImageNet statistics rather than train-only statistics"
+    },
+    {
+      "source_id": "chen_2020_selfpu",
+      "kind": "paper",
+      "paper_title": "Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training",
+      "paper_version": "ICML 2020, PMLR 119; arXiv:2006.11280",
+      "repository": "",
+      "repository_commit": "",
+      "evidence_reference": "P2.0c stage-1 source audit, Table 7 at page 9",
+      "notes": "its nnPU and uPU rows are reproductions from the official nnPU codebase"
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_id": "pu_bench_table1_nnpu_cifar10_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 85.3,
+      "spread_percent": 2.63,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_nnpu_spambase_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "nnpu",
+      "dataset": "spambase",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 81.66,
+      "spread_percent": 2.73,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_nnpu_imdb_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "nnpu",
+      "dataset": "imdb",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 77.37,
+      "spread_percent": 4.82,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_nnpusb_cifar10_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "nnpusb",
+      "dataset": "cifar10",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 87.68,
+      "spread_percent": 2.85,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_nnpusb_spambase_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "nnpusb",
+      "dataset": "spambase",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 81.56,
+      "spread_percent": 2.95,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_nnpusb_imdb_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "nnpusb",
+      "dataset": "imdb",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 77.86,
+      "spread_percent": 3.82,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_dist_pu_cifar10_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "dist_pu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 88.09,
+      "spread_percent": 3.85,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_dist_pu_spambase_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "dist_pu",
+      "dataset": "spambase",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 85.71,
+      "spread_percent": 3.95,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_dist_pu_imdb_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "dist_pu",
+      "dataset": "imdb",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 77.88,
+      "spread_percent": 5.02,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_lbe_cifar10_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "lbe",
+      "dataset": "cifar10",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 83.98,
+      "spread_percent": 3.62,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_lbe_spambase_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "lbe",
+      "dataset": "spambase",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 68.53,
+      "spread_percent": 3.71,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_lbe_imdb_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "lbe",
+      "dataset": "imdb",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 76.25,
+      "spread_percent": 4.73,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_self_pu_cifar10_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "self_pu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 76.73,
+      "spread_percent": 2.43,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_self_pu_spambase_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "self_pu",
+      "dataset": "spambase",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 72.1,
+      "spread_percent": 2.92,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_self_pu_imdb_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "self_pu",
+      "dataset": "imdb",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 74.05,
+      "spread_percent": 3.23,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_pn_oracle_cifar10_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "pn_oracle",
+      "dataset": "cifar10",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 94.88,
+      "spread_percent": 0.57,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_pn_oracle_spambase_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "pn_oracle",
+      "dataset": "spambase",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 91.03,
+      "spread_percent": 0.66,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pu_bench_table1_pn_oracle_imdb_c01_accuracy",
+      "source_id": "pu_bench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 6
+      },
+      "method_identity": "pn_oracle",
+      "dataset": "imdb",
+      "labeling_mechanism": "scar",
+      "c_token": "0.1",
+      "selection_protocol": "proxy_acc",
+      "metric": "accuracy",
+      "mean_percent": 79.89,
+      "spread_percent": 0.83,
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_upu_case1_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "upu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 80.24,
+      "spread_percent": 1.25,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_upu_case1_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "upu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 76.07,
+      "spread_percent": 2.83,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_upu_case1_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "upu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 82.04,
+      "spread_percent": 0.49,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_upu_case2_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "upu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 66.21,
+      "spread_percent": 1.4,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_upu_case2_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "upu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 69.03,
+      "spread_percent": 1.04,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_upu_case2_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "upu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 70.46,
+      "spread_percent": 0.7,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_nnpu_case1_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 82.03,
+      "spread_percent": 0.11,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_nnpu_case1_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 75.56,
+      "spread_percent": 0.29,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_nnpu_case1_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 82.4,
+      "spread_percent": 0.31,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_nnpu_case2_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 74.27,
+      "spread_percent": 1.26,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_nnpu_case2_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 62.67,
+      "spread_percent": 1.09,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_nnpu_case2_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 77.62,
+      "spread_percent": 0.68,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_pusb_case1_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "pusb",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 81.53,
+      "spread_percent": 0.77,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_pusb_case1_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "pusb",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 82.49,
+      "spread_percent": 1.02,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_pusb_case1_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "pusb",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 82.91,
+      "spread_percent": 0.7,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_pusb_case2_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "pusb",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 75.74,
+      "spread_percent": 0.61,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_pusb_case2_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "pusb",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 78.8,
+      "spread_percent": 0.55,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_pusb_case2_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "pusb",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 78.35,
+      "spread_percent": 0.41,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_distpu_case1_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "distpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 81.64,
+      "spread_percent": 0.45,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_distpu_case1_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "distpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 79.31,
+      "spread_percent": 0.51,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_distpu_case1_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "distpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 83.56,
+      "spread_percent": 0.46,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_distpu_case2_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "distpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 73.46,
+      "spread_percent": 0.59,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_distpu_case2_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "distpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 74.83,
+      "spread_percent": 0.58,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_distpu_case2_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "distpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 74.69,
+      "spread_percent": 0.6,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_lbe_case1_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "lbe",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 82.71,
+      "spread_percent": 0.73,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_lbe_case1_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "lbe",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 73.6,
+      "spread_percent": 1.29,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table1_lbe_case1_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "1",
+        "page": 8
+      },
+      "method_identity": "lbe",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 85.03,
+      "spread_percent": 0.38,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_lbe_case2_pa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "lbe",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pa",
+      "metric": "accuracy",
+      "mean_percent": 72.47,
+      "spread_percent": 1.5,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_lbe_case2_pauc_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "lbe",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "pauc",
+      "metric": "accuracy",
+      "mean_percent": 63.54,
+      "spread_percent": 2.86,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "pubench_table2_lbe_case2_oa_accuracy",
+      "source_id": "pubench_2026",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "lbe",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "oa",
+      "metric": "accuracy",
+      "mean_percent": 75.96,
+      "spread_percent": 0.88,
+      "uncertainty_kind": "sem",
+      "n_repeats": 3,
+      "value_producer": "benchmark_maintainers",
+      "protocol_provenance": "uncertain",
+      "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "zhao_table2_dist_pu_cifar10_accuracy",
+      "source_id": "zhao_2022_distpu",
+      "paper_location": {
+        "table": "2",
+        "page": 6
+      },
+      "method_identity": "dist_pu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "none",
+      "metric": "accuracy",
+      "mean_percent": 91.88,
+      "spread_percent": 0.52,
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "original_authors",
+      "protocol_provenance": "certain",
+      "transcription_evidence": "Table 2 ACC column, dist_pu row; prior 0.4, classes 0,1,8,9",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "zhao_table2_nnpu_cifar10_accuracy",
+      "source_id": "zhao_2022_distpu",
+      "paper_location": {
+        "table": "2",
+        "page": 6
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "none",
+      "metric": "accuracy",
+      "mean_percent": 88.89,
+      "spread_percent": 0.45,
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "original_authors",
+      "protocol_provenance": "certain",
+      "transcription_evidence": "Table 2 ACC column, nnpu row; prior 0.4, classes 0,1,8,9",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "chen_table7_self_pu_cifar10_accuracy",
+      "source_id": "chen_2020_selfpu",
+      "paper_location": {
+        "table": "7",
+        "page": 9
+      },
+      "method_identity": "self_pu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "none",
+      "metric": "accuracy",
+      "mean_percent": 89.68,
+      "spread_percent": 0.22,
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "original_authors",
+      "protocol_provenance": "certain",
+      "transcription_evidence": "Table 7 CIFAR-10 column, self_pu row; 13-layer CNN, prior 0.4",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "chen_table7_nnpu_cifar10_accuracy",
+      "source_id": "chen_2020_selfpu",
+      "paper_location": {
+        "table": "7",
+        "page": 9
+      },
+      "method_identity": "nnpu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "none",
+      "metric": "accuracy",
+      "mean_percent": 88.6,
+      "spread_percent": 0.4,
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "third_party_reproduction",
+      "protocol_provenance": "certain",
+      "transcription_evidence": "Table 7 CIFAR-10 column, nnpu row; 13-layer CNN, prior 0.4",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "chen_table7_upu_cifar10_accuracy",
+      "source_id": "chen_2020_selfpu",
+      "paper_location": {
+        "table": "7",
+        "page": 9
+      },
+      "method_identity": "upu",
+      "dataset": "cifar10",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "none",
+      "metric": "accuracy",
+      "mean_percent": 88.0,
+      "spread_percent": 0.62,
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "third_party_reproduction",
+      "protocol_provenance": "certain",
+      "transcription_evidence": "Table 7 CIFAR-10 column, upu row; 13-layer CNN, prior 0.4",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "anchor_id": "kato_table2_pusb_spambase_pi04_error_rate",
+      "source_id": "kato_2019_pusb",
+      "paper_location": {
+        "table": "2",
+        "page": 9
+      },
+      "method_identity": "pusb",
+      "dataset": "spambase",
+      "labeling_mechanism": "row_level",
+      "c_token": "row_level",
+      "selection_protocol": "none",
+      "metric": "error_rate",
+      "mean_percent": 18.9,
+      "spread_percent": 1.8,
+      "uncertainty_kind": "std",
+      "n_repeats": 100,
+      "value_producer": "original_authors",
+      "protocol_provenance": "certain",
+      "transcription_evidence": "Table 2, Spambase, pi=0.4, U=3200: raw '18.9 (.018)'. Mean column is in percent; the parenthetical reads as a fraction and is registered as 1.8 pp, pending review.",
+      "review_state": "pending_review",
+      "verified_by": [],
+      "metric_conversion": {
+        "to": "accuracy",
+        "rule": "accuracy = 100 - error_rate",
+        "mean_percent": 81.1,
+        "spread_percent": 1.8
+      }
+    }
+  ],
+  "mappings": [
+    {
+      "mapping_id": "unit_upu_spambase_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no PU-Bench row exists for this method"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_spambase_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_nnpu_spambase_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_spambase_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_kldce_spambase_non_runnable_non_runnable_non_runnable",
+      "scope": "unit",
+      "result_selector": {
+        "method": "kldce",
+        "dataset": "spambase",
+        "labeling_mechanism": "non_runnable",
+        "c_token": "non_runnable",
+        "selection_protocol": "non_runnable",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "non_runnable",
+      "anchor_ids": [],
+      "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_dist_pu_spambase_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_spambase_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_nnpusb_spambase_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_spambase_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_lbe_spambase_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_spambase_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_self_pu_spambase_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_spambase_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "spambase",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_spambase_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "spambase",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "the benchmark selects its PN checkpoint by a PU-label proxy while ours uses clean validation accuracy",
+        "backbone differs"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "background_only",
+      "anchor_ids": [
+        "pu_bench_table1_pn_oracle_spambase_c01_accuracy"
+      ],
+      "rationale": "the oracle row is a protocol-internal diagnostic; the external PN row differs in checkpoint semantics and must not drive an alert"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no PU-Bench row exists for this method"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_imdb_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_nnpu_imdb_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_imdb_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_kldce_imdb_non_runnable_non_runnable_non_runnable",
+      "scope": "unit",
+      "result_selector": {
+        "method": "kldce",
+        "dataset": "imdb",
+        "labeling_mechanism": "non_runnable",
+        "c_token": "non_runnable",
+        "selection_protocol": "non_runnable",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "non_runnable",
+      "anchor_ids": [],
+      "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_dist_pu_imdb_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_imdb_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_nnpusb_imdb_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_imdb_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_lbe_imdb_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_imdb_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_self_pu_imdb_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_imdb_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "imdb",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_imdb_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "imdb",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "protocol_differences": [
+        "the benchmark selects its PN checkpoint by a PU-label proxy while ours uses clean validation accuracy",
+        "backbone differs"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "background_only",
+      "anchor_ids": [
+        "pu_bench_table1_pn_oracle_imdb_c01_accuracy"
+      ],
+      "rationale": "the oracle row is a protocol-internal diagnostic; the external PN row differs in checkpoint semantics and must not drive an alert"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no PU-Bench row exists for this method"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_upu_cifar10_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_nnpu_cifar10_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_nnpu_cifar10_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_kldce_cifar10_non_runnable_non_runnable_non_runnable",
+      "scope": "unit",
+      "result_selector": {
+        "method": "kldce",
+        "dataset": "cifar10",
+        "labeling_mechanism": "non_runnable",
+        "c_token": "non_runnable",
+        "selection_protocol": "non_runnable",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "non_runnable",
+      "anchor_ids": [],
+      "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_dist_pu_cifar10_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_dist_pu_cifar10_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_nnpusb_cifar10_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pusb_kernel_cifar10_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_lbe_cifar10_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_lbe_cifar10_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_scar_0.1_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_scar_0.1_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [
+        "backbone differs (benchmark per-modality CNN/MLP vs ours)",
+        "validation split ratio differs (0.01 vs our 10-20%)",
+        "selection criterion differs (proxy accuracy vs our OA)",
+        "CIFAR preprocessing differs (/255 only vs train-only statistics)"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pu_bench_table1_self_pu_cifar10_c01_accuracy"
+      ],
+      "rationale": "only the c token and labelling mechanism line up; the backbone and selection protocol differences are not removable, so magnitude and trend only"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_scar_0.3_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_scar_0.3_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_scar_0.5_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "blocked_pending_pa_criterion",
+      "anchor_ids": [],
+      "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_scar_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no published anchor shares this dataset, method and c token"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_sar_lbe_a_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_sar_lbe_a_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_sar_lbe_b_0.05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_self_pu_cifar10_sar_lbe_b_0.5_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no SAR labelling-mechanism anchor exists in any source"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_cifar10_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "cifar10",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [
+        "the benchmark selects its PN checkpoint by a PU-label proxy while ours uses clean validation accuracy",
+        "backbone differs"
+      ],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "background_only",
+      "anchor_ids": [
+        "pu_bench_table1_pn_oracle_cifar10_c01_accuracy"
+      ],
+      "rationale": "the oracle row is a protocol-internal diagnostic; the external PN row differs in checkpoint semantics and must not drive an alert"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_cifar10_non_runnable_non_runnable_non_runnable",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "cifar10",
+        "labeling_mechanism": "non_runnable",
+        "c_token": "non_runnable",
+        "selection_protocol": "non_runnable",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "pending_review",
+      "verified_by": [],
+      "eligibility": "non_runnable",
+      "anchor_ids": [],
+      "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
+    },
+    {
+      "mapping_id": "row_upu_cifar10",
+      "scope": "row",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "row_level",
+        "c_token": "row_level",
+        "selection_protocol": "row_level",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pubench_table1_upu_case1_pa_accuracy",
+        "pubench_table1_upu_case1_pauc_accuracy",
+        "pubench_table1_upu_case1_oa_accuracy",
+        "pubench_table2_upu_case2_pa_accuracy",
+        "pubench_table2_upu_case2_pauc_accuracy",
+        "pubench_table2_upu_case2_oa_accuracy",
+        "chen_table7_upu_cifar10_accuracy"
+      ],
+      "protocol_differences": [
+        "the source sweeps a true class prior, not our label frequency c",
+        "backbone and validation policy differ",
+        "class mapping differs where the source uses a different split of the classes"
+      ],
+      "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "mapping_id": "row_nnpu_cifar10",
+      "scope": "row",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "row_level",
+        "c_token": "row_level",
+        "selection_protocol": "row_level",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pubench_table1_nnpu_case1_pa_accuracy",
+        "pubench_table1_nnpu_case1_pauc_accuracy",
+        "pubench_table1_nnpu_case1_oa_accuracy",
+        "pubench_table2_nnpu_case2_pa_accuracy",
+        "pubench_table2_nnpu_case2_pauc_accuracy",
+        "pubench_table2_nnpu_case2_oa_accuracy",
+        "zhao_table2_nnpu_cifar10_accuracy",
+        "chen_table7_nnpu_cifar10_accuracy"
+      ],
+      "protocol_differences": [
+        "the source sweeps a true class prior, not our label frequency c",
+        "backbone and validation policy differ",
+        "class mapping differs where the source uses a different split of the classes"
+      ],
+      "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "mapping_id": "row_pusb_kernel_cifar10",
+      "scope": "row",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "cifar10",
+        "labeling_mechanism": "row_level",
+        "c_token": "row_level",
+        "selection_protocol": "row_level",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pubench_table1_pusb_case1_pa_accuracy",
+        "pubench_table1_pusb_case1_pauc_accuracy",
+        "pubench_table1_pusb_case1_oa_accuracy",
+        "pubench_table2_pusb_case2_pa_accuracy",
+        "pubench_table2_pusb_case2_pauc_accuracy",
+        "pubench_table2_pusb_case2_oa_accuracy"
+      ],
+      "protocol_differences": [
+        "the source sweeps a true class prior, not our label frequency c",
+        "backbone and validation policy differ",
+        "class mapping differs where the source uses a different split of the classes"
+      ],
+      "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "mapping_id": "row_dist_pu_cifar10",
+      "scope": "row",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "row_level",
+        "c_token": "row_level",
+        "selection_protocol": "row_level",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pubench_table1_distpu_case1_pa_accuracy",
+        "pubench_table1_distpu_case1_pauc_accuracy",
+        "pubench_table1_distpu_case1_oa_accuracy",
+        "pubench_table2_distpu_case2_pa_accuracy",
+        "pubench_table2_distpu_case2_pauc_accuracy",
+        "pubench_table2_distpu_case2_oa_accuracy",
+        "zhao_table2_dist_pu_cifar10_accuracy"
+      ],
+      "protocol_differences": [
+        "the source sweeps a true class prior, not our label frequency c",
+        "backbone and validation policy differ",
+        "class mapping differs where the source uses a different split of the classes"
+      ],
+      "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "mapping_id": "row_lbe_cifar10",
+      "scope": "row",
+      "result_selector": {
+        "method": "lbe",
+        "dataset": "cifar10",
+        "labeling_mechanism": "row_level",
+        "c_token": "row_level",
+        "selection_protocol": "row_level",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "pubench_table1_lbe_case1_pa_accuracy",
+        "pubench_table1_lbe_case1_pauc_accuracy",
+        "pubench_table1_lbe_case1_oa_accuracy",
+        "pubench_table2_lbe_case2_pa_accuracy",
+        "pubench_table2_lbe_case2_pauc_accuracy",
+        "pubench_table2_lbe_case2_oa_accuracy"
+      ],
+      "protocol_differences": [
+        "the source sweeps a true class prior, not our label frequency c",
+        "backbone and validation policy differ",
+        "class mapping differs where the source uses a different split of the classes"
+      ],
+      "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "mapping_id": "row_self_pu_cifar10",
+      "scope": "row",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "cifar10",
+        "labeling_mechanism": "row_level",
+        "c_token": "row_level",
+        "selection_protocol": "row_level",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "chen_table7_self_pu_cifar10_accuracy"
+      ],
+      "protocol_differences": [
+        "the source sweeps a true class prior, not our label frequency c",
+        "backbone and validation policy differ",
+        "class mapping differs where the source uses a different split of the classes"
+      ],
+      "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
+      "review_state": "pending_review",
+      "verified_by": []
+    },
+    {
+      "mapping_id": "row_pusb_kernel_spambase",
+      "scope": "row",
+      "result_selector": {
+        "method": "pusb_kernel",
+        "dataset": "spambase",
+        "labeling_mechanism": "row_level",
+        "c_token": "row_level",
+        "selection_protocol": "row_level",
+        "metric": "accuracy",
+        "training_path": "native_2d"
+      },
+      "eligibility": "magnitude_and_trend",
+      "anchor_ids": [
+        "kato_table2_pusb_spambase_pi04_error_rate"
+      ],
+      "protocol_differences": [
+        "the source sweeps a true class prior, not our label frequency c",
+        "backbone and validation policy differ",
+        "class mapping differs where the source uses a different split of the classes"
+      ],
+      "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
+      "review_state": "pending_review",
+      "verified_by": []
+    }
+  ],
+  "contradictions": [
+    {
+      "contradiction_id": "pu_bench_selection_criterion",
+      "source_id": "pu_bench_2026",
+      "field": "validation_policy",
+      "paper_value": "best validation macro-F1 (paper p5 3.2 / p27 D.2.1)",
+      "code_value": "val_proxy_acc (config/methods/pn.yaml:16-20, train/base/lifecycle.py:142)",
+      "code_commit": "2d95a19eefd72e66ff30128ec2f65e1d1d4cc077",
+      "resolution": "code",
+      "impact": "cannot tell which selection criterion produced the published Table 1, so the registered validation policy of every PU-Bench anchor is uncertain",
+      "affected_anchors": [
+        "pu_bench_table1_nnpu_cifar10_c01_accuracy",
+        "pu_bench_table1_nnpu_spambase_c01_accuracy",
+        "pu_bench_table1_nnpu_imdb_c01_accuracy",
+        "pu_bench_table1_nnpusb_cifar10_c01_accuracy",
+        "pu_bench_table1_nnpusb_spambase_c01_accuracy",
+        "pu_bench_table1_nnpusb_imdb_c01_accuracy",
+        "pu_bench_table1_dist_pu_cifar10_c01_accuracy",
+        "pu_bench_table1_dist_pu_spambase_c01_accuracy",
+        "pu_bench_table1_dist_pu_imdb_c01_accuracy",
+        "pu_bench_table1_lbe_cifar10_c01_accuracy",
+        "pu_bench_table1_lbe_spambase_c01_accuracy",
+        "pu_bench_table1_lbe_imdb_c01_accuracy",
+        "pu_bench_table1_self_pu_cifar10_c01_accuracy",
+        "pu_bench_table1_self_pu_spambase_c01_accuracy",
+        "pu_bench_table1_self_pu_imdb_c01_accuracy",
+        "pu_bench_table1_pn_oracle_cifar10_c01_accuracy",
+        "pu_bench_table1_pn_oracle_spambase_c01_accuracy",
+        "pu_bench_table1_pn_oracle_imdb_c01_accuracy"
+      ],
+      "review_state": "pending_review"
+    },
+    {
+      "contradiction_id": "pubench_backbone_depth",
+      "source_id": "pubench_2026",
+      "field": "backbone",
+      "paper_value": "ResNet-34 (paper p8)",
+      "code_value": "resnet(depth=32) (core/networks.py:42)",
+      "code_commit": "a9a62b05b0f222c72aff4df8992307376c78d682",
+      "resolution": "code",
+      "impact": "the paper and the released code disagree on the trained network",
+      "affected_anchors": [
+        "pubench_table1_upu_case1_pa_accuracy",
+        "pubench_table1_upu_case1_pauc_accuracy",
+        "pubench_table1_upu_case1_oa_accuracy",
+        "pubench_table2_upu_case2_pa_accuracy",
+        "pubench_table2_upu_case2_pauc_accuracy",
+        "pubench_table2_upu_case2_oa_accuracy",
+        "pubench_table1_nnpu_case1_pa_accuracy",
+        "pubench_table1_nnpu_case1_pauc_accuracy",
+        "pubench_table1_nnpu_case1_oa_accuracy",
+        "pubench_table2_nnpu_case2_pa_accuracy",
+        "pubench_table2_nnpu_case2_pauc_accuracy",
+        "pubench_table2_nnpu_case2_oa_accuracy",
+        "pubench_table1_pusb_case1_pa_accuracy",
+        "pubench_table1_pusb_case1_pauc_accuracy",
+        "pubench_table1_pusb_case1_oa_accuracy",
+        "pubench_table2_pusb_case2_pa_accuracy",
+        "pubench_table2_pusb_case2_pauc_accuracy",
+        "pubench_table2_pusb_case2_oa_accuracy",
+        "pubench_table1_distpu_case1_pa_accuracy",
+        "pubench_table1_distpu_case1_pauc_accuracy",
+        "pubench_table1_distpu_case1_oa_accuracy",
+        "pubench_table2_distpu_case2_pa_accuracy",
+        "pubench_table2_distpu_case2_pauc_accuracy",
+        "pubench_table2_distpu_case2_oa_accuracy",
+        "pubench_table1_lbe_case1_pa_accuracy",
+        "pubench_table1_lbe_case1_pauc_accuracy",
+        "pubench_table1_lbe_case1_oa_accuracy",
+        "pubench_table2_lbe_case2_pa_accuracy",
+        "pubench_table2_lbe_case2_pauc_accuracy",
+        "pubench_table2_lbe_case2_oa_accuracy"
+      ],
+      "review_state": "pending_review"
+    },
+    {
+      "contradiction_id": "pubench_uncertainty_kind",
+      "source_id": "pubench_2026",
+      "field": "uncertainty_kind",
+      "paper_value": "mean+-std; 'standard deviations' (Table 1-2 captions, paper p8)",
+      "code_value": "np.std(values / sqrt(n)) == std / sqrt(n) (collect_results.py:26-27)",
+      "code_commit": "a9a62b05b0f222c72aff4df8992307376c78d682",
+      "resolution": "code",
+      "impact": "the printed spread is a standard error of the mean over 3 splits, so it must not be divided by n_repeats again in the pooled standard error",
+      "affected_anchors": [
+        "pubench_table1_upu_case1_pa_accuracy",
+        "pubench_table1_upu_case1_pauc_accuracy",
+        "pubench_table1_upu_case1_oa_accuracy",
+        "pubench_table2_upu_case2_pa_accuracy",
+        "pubench_table2_upu_case2_pauc_accuracy",
+        "pubench_table2_upu_case2_oa_accuracy",
+        "pubench_table1_nnpu_case1_pa_accuracy",
+        "pubench_table1_nnpu_case1_pauc_accuracy",
+        "pubench_table1_nnpu_case1_oa_accuracy",
+        "pubench_table2_nnpu_case2_pa_accuracy",
+        "pubench_table2_nnpu_case2_pauc_accuracy",
+        "pubench_table2_nnpu_case2_oa_accuracy",
+        "pubench_table1_pusb_case1_pa_accuracy",
+        "pubench_table1_pusb_case1_pauc_accuracy",
+        "pubench_table1_pusb_case1_oa_accuracy",
+        "pubench_table2_pusb_case2_pa_accuracy",
+        "pubench_table2_pusb_case2_pauc_accuracy",
+        "pubench_table2_pusb_case2_oa_accuracy",
+        "pubench_table1_distpu_case1_pa_accuracy",
+        "pubench_table1_distpu_case1_pauc_accuracy",
+        "pubench_table1_distpu_case1_oa_accuracy",
+        "pubench_table2_distpu_case2_pa_accuracy",
+        "pubench_table2_distpu_case2_pauc_accuracy",
+        "pubench_table2_distpu_case2_oa_accuracy",
+        "pubench_table1_lbe_case1_pa_accuracy",
+        "pubench_table1_lbe_case1_pauc_accuracy",
+        "pubench_table1_lbe_case1_oa_accuracy",
+        "pubench_table2_lbe_case2_pa_accuracy",
+        "pubench_table2_lbe_case2_pauc_accuracy",
+        "pubench_table2_lbe_case2_oa_accuracy"
+      ],
+      "review_state": "pending_review"
+    },
+    {
+      "contradiction_id": "pu_bench_imdb_embedding_normalization",
+      "source_id": "pu_bench_2026",
+      "field": "preprocessing",
+      "paper_value": "no embedding normalization stated anywhere in the paper",
+      "code_value": "_l2_normalize applied to X_train and X_test (data/IMDB_PU.py:226-234)",
+      "code_commit": "2d95a19eefd72e66ff30128ec2f65e1d1d4cc077",
+      "resolution": "code",
+      "impact": "the IMDB anchors were produced on L2-normalized features",
+      "affected_anchors": [
+        "pu_bench_table1_nnpu_imdb_c01_accuracy",
+        "pu_bench_table1_nnpusb_imdb_c01_accuracy",
+        "pu_bench_table1_dist_pu_imdb_c01_accuracy",
+        "pu_bench_table1_lbe_imdb_c01_accuracy",
+        "pu_bench_table1_self_pu_imdb_c01_accuracy",
+        "pu_bench_table1_pn_oracle_imdb_c01_accuracy"
+      ],
+      "review_state": "pending_review"
+    }
+  ],
+  "formal_blockers": [
+    "collaborator_review"
+  ]
+}

@@ -73,7 +73,7 @@ pu_toolbox/
       lbe.py                              (native: LBE 实例依赖标注偏差: 交替加权 LR 估后验+倾向, sklearn)
     deep/
       __init__.py                         (公共导出聚合: DGPU/GradPU/InfoMaxPU/SelfPU/WConPU 分类器与 vision 工厂)
-      grad_pu.py                         (native: GradPU 输入梯度惩罚 + 未归一化正样本加权，二维 MLP)
+      grad_pu.py                          (native: GradPU 输入梯度惩罚 + 未归一化正样本加权，二维 MLP)
       self_pu.py                          (native: SelfPUClassifier 双学生自步进+元重加权+蒸馏 (官方精确对齐))
       infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU 流水线, PU-SMI 目标)
       weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier 原型+SAT+momentum queue 加权对比 (WConPU 论文协议))
@@ -163,6 +163,7 @@ pu_toolbox/
     survey_execution.py                   (P2.0a 共享模型/图像装配、随机冻结 adapter 校验缓存与原空间 SAR 标记)
     survey_protocol.py                    (survey_protocol_v1.json 消费、参数预算锁、正式资格与比较门禁)
     checkpoints.py                        # 逐 epoch 权重快照、摘要校验与独立推理恢复
+    survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -305,6 +306,9 @@ tests/
       test_survey_script_protocol.py    # 版本化脚本、split/seed 对应、oracle 去重与 CIFAR 缓存命中
       test_checkpoint_selection.py      # PA/OA 不同 epoch 选择、无泄漏与独立恢复反例
       test_epoch_checkpoints.py         # 回调、权重快照、CPU/CUDA 保存加载与深度方法覆盖
+      test_survey_comparison.py         # 对照协议加载、单位/不确定度分支与 fail-closed 门禁
+      test_survey_comparison_coverage.py # 187 单元全集覆盖、维度/机制/选模分类与漏项/重复/幽灵映射门禁
+      test_survey_comparison_report.py  # manifest comparison 上下文、聚合报告与三档调查结论
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
