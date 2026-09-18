@@ -18,6 +18,13 @@ Design notes:
   report a standard deviation, others a standard error of the mean.  Treating
   one as the other double-counts the sample size, so the field is mandatory
   and the two branches are implemented separately.
+* ``value_producer`` answers "who computed this number", measured against the
+  method's own authors rather than against the paper it was read from.  A
+  source reporting somebody else's method is a third-party reproduction even
+  though the number carries that source's name; a benchmark's maintainers
+  running it are ``benchmark_maintainers``.  The field is descriptive only:
+  it never enters a verdict, and exists so that a reader cannot mistake a
+  reproduction for an original result.
 * Eligibility is a closed enum; nothing may be compared numerically without
   an explicit, reviewable classification.
 

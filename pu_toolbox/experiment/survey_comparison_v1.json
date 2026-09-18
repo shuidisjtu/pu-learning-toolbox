@@ -1228,9 +1228,9 @@
       "spread_percent": 0.45,
       "uncertainty_kind": "std",
       "n_repeats": 5,
-      "value_producer": "original_authors",
+      "value_producer": "third_party_reproduction",
       "protocol_provenance": "certain",
-      "transcription_evidence": "Table 2 ACC column, nnpu row; prior 0.4, classes 0,1,8,9",
+      "transcription_evidence": "Table 2 ACC column, nnpu row; prior 0.4, classes 0,1,8,9. The nnpu row is this paper's own run of a method it did not author, so the producer is a third party relative to nnPU.",
       "review_state": "pending_review",
       "verified_by": []
     },
