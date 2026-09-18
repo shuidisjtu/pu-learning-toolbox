@@ -151,6 +151,22 @@
   `benchmark-adapted` 单列报告（协议 §2.5 第 4 条）；
   TS 原生方法在其训练循环内接入 `calibrate_ts_os_batch`
 
+#### P3.2 技术预集成进度（2026-09-18；非正式验收）
+
+以下两项已作为独立组件推送至 `main`，可供 API/CLI 调用，但**尚未进入 Survey 台账或执行矩阵，
+不计入 P3.2 完成项，也不进入正式榜**。远程 Actions 结果待核验；本次推送时 GitHub CLI 未登录，
+不能据此宣称远程门禁通过。
+
+| 方法 | 已完成的技术工作 | 验收前仍需完成 |
+|---|---|---|
+| [Grad-PU](../method_cards/GradPU.md)（`9059fcf`） | 论文式 (5)–(7) 的二维特征 MLP 实现、注册/API、方法卡、公式及接口测试、CPU/CUDA smoke、训练轨迹与权重恢复 | P2.0b 后接入台账/矩阵；对齐共享 backbone 与协议，补多 seed GPU/资源记录、公开结果对照及双人复核；如宣称图像论文复现，还需 CNN 路径 |
+| [PUET](../method_cards/PUET.md)（`86b56de`） | CPU Extra Trees 的 nnPU/quadratic 分支、注册/API、方法卡、节点风险及随机性测试、pickle/pipeline 验证 | P2.0b 后接入台账/矩阵；公开结果对照及双人复核；确认树模型的分组、共享规格适用方式及 GPU smoke 是否豁免；若宣称完整作者实现，还需 uPU/logistic 分支 |
+
+**下一步独立工作**：在不触碰待审核协议的前提下，继续按 P3.2 名单逐项预集成缺失方法，
+每项单独提交并标清论文/实现边界；优先评估 Robust-PU，随后视官方实现与依赖情况推进
+Split-PU、LAGAM、GEN-PU、Holistic-PU、P3MIX。正式验收仍受 P2.0b、共享规格、Survey
+台账/矩阵、公开结果对照和合作者复核约束；此顺序只是技术预集成建议，不改变表 2.0 的主责与门禁。
+
 ### P4 完整主榜
 
 - 中心超参数注册表（参考 PU-Bench `core/hparams_registry.py`，注册表版本入 artifact）：
