@@ -1,6 +1,7 @@
 # P2.0c 交付：外部对照预注册
 
-状态：工程交付完成，`review_status=pending_collaborator_review`，全部锚点与映射 `pending_review`。
+状态：工程交付完成。54 个锚点与 194 条映射已由 shuidisjtu 自审置为 accepted；
+`review_status` 仍为 `pending_collaborator_review`，合作者独立复核未开始，复核记录见 [复核包](p2_0c_review.md)。
 本交付**不产生实验结果**，也不证明任何算法复现成功——它冻结的是结果出来之后如何进行正确性审计。
 上游要求见 [执行计划](survey_execution_plan.md) P2.0c；对照矩阵的机器可读真相源是
 `pu_toolbox/experiment/survey_comparison_v1.json`，本文件解释其中的判读与边界，不另行维护一份参数表。

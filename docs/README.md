@@ -55,6 +55,7 @@
 | [research/pu_survey/heng958_independent_review.md](research/pu_survey/heng958_independent_review.md) | HENG958 环境、nnPU/Self-PU 台账与 split 可执行性复核记录 |
 | [research/pu_survey/epoch_checkpoint_delivery.md](research/pu_survey/epoch_checkpoint_delivery.md) | 逐 epoch 权重保存、PA/OA 独立恢复与验证证据 |
 | [research/pu_survey/p2_0c_delivery.md](research/pu_survey/p2_0c_delivery.md) | P2.0c 外部对照预注册：资格闭集、覆盖推导、来源口径差异判读与签署顺序 |
+| [research/pu_survey/p2_0c_review.md](research/pu_survey/p2_0c_review.md) | P2.0c 复核包：自审结论、三处判读留痕、合作者复核与签署栏 |
 
 ## 架构决策(docs/adr/)
 
