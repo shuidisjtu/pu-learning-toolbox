@@ -22,6 +22,31 @@ from .config import MAX_PU_RATIO, MIN_POSITIVE_SAMPLES, NEGATIVE_LABEL
 from .exceptions import ValidationError
 from .labels import _check_y_1d, normalize_pnu_labels, normalize_pu_labels
 
+
+def validate_label_semantics(estimator: object, expected: str) -> None:
+    """Reject a fit-label meaning mismatch before training.
+
+    Values alone cannot distinguish PU ``0`` (unlabeled) from PN ``0``
+    (true negative).  Unregistered estimators without a declaration default
+    to ``pu``; a clean-label run therefore requires an explicit ``pn``.
+    """
+    allowed = {"pu", "pn", "pnu"}
+    if not isinstance(expected, str) or expected not in allowed:
+        raise ValueError(f"expected label semantics must be one of {sorted(allowed)!r}")
+    declared = getattr(estimator, "label_semantics", "pu")
+    if not isinstance(declared, str) or declared not in allowed:
+        raise ValueError(
+            f"{type(estimator).__name__} has invalid label_semantics={declared!r}; "
+            f"expected one of {sorted(allowed)!r}."
+        )
+    if declared != expected:
+        raise ValueError(
+            f"{type(estimator).__name__} declares label_semantics={declared!r}, "
+            f"but this run requires {expected!r} labels. Set label_semantics={expected!r} "
+            "on a compatible estimator; numeric label values cannot prove their meaning."
+        )
+
+
 # ═════════════════════════════════════════════════════════════════════
 # Shared X-validation helpers
 # ═════════════════════════════════════════════════════════════════════

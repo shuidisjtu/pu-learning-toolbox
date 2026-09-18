@@ -29,6 +29,7 @@ from .exceptions import (
 from .labels import normalize_pnu_labels as normalize_pnu_labels
 from .labels import normalize_pu_labels as normalize_pu_labels
 from .tags import SampleWeightSupport as SampleWeightSupport
+from .validation import validate_label_semantics as validate_label_semantics
 from .validation import validate_pnu_X_y as validate_pnu_X_y
 from .validation import validate_pu_X_y as validate_pu_X_y
 
@@ -44,5 +45,6 @@ __all__ = [
     "normalize_pnu_labels",
     "normalize_pu_labels",
     "validate_pnu_X_y",
+    "validate_label_semantics",
     "validate_pu_X_y",
 ]

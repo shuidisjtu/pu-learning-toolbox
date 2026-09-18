@@ -30,7 +30,10 @@
 
 所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
 `get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。
-标签语义由分类器决定（PU 为 `{+1, 0}`，PNU 为 `{+1, -1, 0}`）。
+注册分类器必须显式声明 `label_semantics`：`"pu"` 的 `0` 是未标记，`"pn"` 的
+`0` 是真实负类，`"pnu"` 接受正/负/未标记三值主输入。第三方未声明估计器在
+experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 `"pn"`。
+数值集合相同不能证明标签含义相同，见[标签语义契约](../../dev/label_semantics_plan.md)。
 
 ### 注册表索引
 
@@ -1166,9 +1169,11 @@ docstring。
 要求声明与生成视图一致（两个方向都直接 `ValueError`），拒绝以类代替实例的 `config["trainer"]`，
 并要求生成器声明的视图与其上报的 `mechanism` 一致（`pn_oracle` 蕴含真实标签，即 clean 视图）。
 
-这些守卫约束的是视图、trainer 声明、生成器自述三者的一致性，不检验**估计器**被优化的目标：
-`SupervisedTrainer` 配上自带类先验的 PU 估计器时，runner 会放行而估计器仍按 PU 损失训练
-（使用约束与待决事项见 pn_oracle_integration.md §8）。
+此外 runner 还要求估计器主 `fit` 的 `label_semantics` 与生成视图一致：PU 视图要求
+`"pu"`，clean 视图要求 `"pn"`；`"pnu"` 不会被错误地当作二值 PU 放行。
+因此 `SupervisedTrainer` 配 PU 风险估计器会在训练前报错，裸 sklearn 分类器因未声明
+`"pn"` 也不能直接用作监督 oracle。版本化 pilot 的监督模型及普通脚本 `OracleMLP`
+已显式声明 `"pn"`；这仍不能从运行数据本身验证声明是否真实。
 
 `ExperimentRunner` 的每个测试协议结果固定包含 `accuracy`、`auc` 和
 `auc_unavailable_reason`；当测试真实标签只有一个类别时，`auc` 为 `NaN` 且原因字段为说明文本，

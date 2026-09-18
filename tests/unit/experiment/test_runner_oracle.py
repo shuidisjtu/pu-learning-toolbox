@@ -22,6 +22,12 @@ from pu_toolbox.experiment.strategies import (
 pytestmark = pytest.mark.unit
 
 
+class PNLogisticRegression(LogisticRegression):
+    """Test-only supervised estimator that declares the meaning of fit labels."""
+
+    label_semantics = "pn"
+
+
 def make_part(x, labels, idx, fs=True):
     return DatasetPart(
         X=x[np.asarray(idx)],
@@ -95,7 +101,7 @@ def run_oracle(bundle, *, protocols=None, c=0.1, recorder=None, manifest_path=No
         config={"trainer": recorder, "c": c},
         manifest_path=manifest_path,
     )
-    result = runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+    result = runner.fit(PNLogisticRegression(max_iter=200), train, pu_val, clean_val, test)
     return result, recorder
 
 
@@ -146,7 +152,7 @@ def test_param_oracle_rejects_pa_protocol():
         config={"trainer": SupervisedTrainer(), "c": 0.1},
     )
     with pytest.raises(ValueError, match="PU view"):
-        runner.fit(LogisticRegression(max_iter=200), train, pu_val, clean_val, test)
+        runner.fit(PNLogisticRegression(max_iter=200), train, pu_val, clean_val, test)
 
 
 def test_param_oracle_rejects_pu_view_generator():
@@ -315,10 +321,42 @@ def test_edge_oracle_trains_with_the_trainer_the_guard_approved():
         protocols=[ProtocolOA()],
         config=FlippingConfig(approved, swapped_in),
     )
-    runner.fit(LogisticRegression(max_iter=200), *make_bundle())
+    runner.fit(PNLogisticRegression(max_iter=200), *make_bundle())
 
     assert approved.calls  # the guard-approved trainer is the one that trained
     assert swapped_in.calls == 0
+
+
+def test_clean_view_rejects_pu_estimator_even_with_supervised_trainer():
+    """F2: the trainer cannot turn a PU risk estimator into a PN oracle."""
+    estimator = NonNegativePUClassifier(class_prior=0.3, max_epochs=2, random_state=0, device="cpu")
+    recorder = RecordingOracle()
+    runner = ExperimentRunner(
+        generator=CleanLabelGenerator(),
+        protocols=[ProtocolOA()],
+        config={"trainer": recorder},
+    )
+    with pytest.raises(ValueError, match="label_semantics='pu'.*requires 'pn'"):
+        runner.fit(estimator, *make_bundle())
+    assert recorder.calls == []
+
+
+def test_pu_view_rejects_pn_estimator_before_training():
+    runner = ExperimentRunner(
+        generator=SCARGenerator(), protocols=[ProtocolOA()], config={"c": 0.3}
+    )
+    with pytest.raises(ValueError, match="label_semantics='pn'.*requires 'pu'"):
+        runner.fit(PNLogisticRegression(max_iter=200), *make_bundle())
+
+
+def test_clean_view_requires_explicit_pn_declaration():
+    runner = ExperimentRunner(
+        generator=CleanLabelGenerator(),
+        protocols=[ProtocolOA()],
+        config={"trainer": SupervisedTrainer()},
+    )
+    with pytest.raises(ValueError, match="label_semantics='pu'.*requires 'pn'"):
+        runner.fit(LogisticRegression(max_iter=200), *make_bundle())
 
 
 def test_determ_oracle_metrics_are_c_independent():

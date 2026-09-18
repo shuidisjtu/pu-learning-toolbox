@@ -210,14 +210,13 @@ oracle"并不冲突，只是冗余。
 2. 并列展示的口径差异说明是否要写进最终榜单脚注（面向论文读者）
 3. 协议 §2.4 第 10 条的选模口径（clean_val 真实 Accuracy）与参考文献 2 实际做法
    （`val_proxy_acc`）的分歧，是否与学长确认过原意（见 §3.1）
-5. **估计器的优化目标不在视图守卫范围内**（2026-09-11 独立验收发现）：守卫校验的是视图、
-   trainer 声明与生成器自述三者的一致性；`SupervisedTrainer`（或任何声明 `True` 的 trainer）
-   配上自带类先验的 PU 估计器（如 nnPU/Self-PU，先验挂在估计器构造器上）时 runner 放行，
-   估计器仍按 PU 损失训练，而 manifest 记 `pn_oracle`。可探测性取决于估计器侧是否有声明——
-   "`fit` 是否接受 `class_prior`"只是启发式，且会误伤 Phase 2 可能与 PU 方法共用估计器类的
-   同 backbone 监督头。**已定案（2026-09-11）：走"给估计器加声明位"，归属 P3 算法接入前置**
-   （不阻塞本实验——经示例脚本跑时该路径不可达），方案见
-   [label_semantics_plan.md](../../dev/label_semantics_plan.md)；当前由脚本层保证 oracle 只用监督估计器
+5. **估计器优化目标错配（2026-09-11 发现，2026-09-18 阶段 A 工程修复）**：原视图守卫只校验
+   生成视图、trainer 与生成器自述；`SupervisedTrainer` 配自带先验的 PU 风险估计器仍会静默产出
+   假 `pn_oracle`。P2.0b 已引入估计器 `label_semantics` 声明与 runner 强制检查，clean 视图只接受
+   显式 `"pn"`，该复现现在训练前报错；工程回归已通过，合作者复核待办。检查的是**声明**而非
+   损失函数数学形式，第三方/错误声明仍须审计；pipeline/comparison 入口检查归阶段 B。
+   方案见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)，交付证据见
+   [p2_0b_delivery.md](p2_0b_delivery.md)。
 6. **oracle 的 backbone 尚未与 PU 方法对齐**（2026-09-11 发现，Phase 1 遗留）：当前
    `OracleMLP` 用 sklearn `MLPClassifier` 的默认结构（100 单元隐层），而 PU 深度方法默认
    `nn.Linear(d, 1)`、经典方法根本不含网络——按协议 §2.5 第 4 条本应"同一表征/backbone"。

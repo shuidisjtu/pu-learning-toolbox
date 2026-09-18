@@ -23,8 +23,9 @@
   `<out-dir>/<mechanism>/c_<token>/seed_<seed>/`；生成器审计字段（请求值/夹紧值/seed/标记摘要）
   入 manifest。**可运行边界**：SAR 行仍需 P2.0b 的标签语义门禁与 P2.0a 的执行矩阵才可进入正式
   pilot 混排；在此之前 SAR 产物按技术验证单列（见 §2.0 三种门槛）。
-- **能力声明现状**：代码级声明仅 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
-  四字段（有契约测试）——当前 7 个 Survey 方法中仅 nnPU 支持原生 CNN（mlp/cnn、{2,4}、encoder 注入；
+- **能力声明现状**：架构声明为 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
+  四字段；P2.0b 新增独立的 `label_semantics` 主输入语义声明（17 个注册分类器显式声明且有契约测试）。
+  当前 7 个 Survey 方法中仅 nnPU 支持原生 CNN（mlp/cnn、{2,4}、encoder 注入；
   工具箱整体另有 infomax_pu、weighted_contrastive_pu 为 mlp/cnn 双架构，不在 Survey 22 方法范围）；
   Self-PU 为 mlp/{2,4}（非原生 CNN——由 native_architectures={"mlp"} 承载；input_ndims 按模板
   "支持输入维度"口径如实声明，2026-09-14 审阅 P1#1 修正 issue #38 的收窄）；
@@ -38,11 +39,10 @@
   2. ~~官方示例脚本（协议 §2.4 第 9 条）未实现~~ ✅ 2026-09-08 已实现（见 §2.2 的 1.3 先行小工作）
   3. 中心超参数注册表（实现计划 §6，参考 PU-Bench `core/hparams_registry.py`）未实现；
      当前候选池仅为 runner `config["candidates"]` 的运行态配置
-  4. **标签语义无声明字段**（`fit` 的 `y` 是 PU / 监督 PN / PNU）：PU 的 `{1,0}` 与监督的 `{0,1}`
-     数值同形，当前**仅靠约定区分、错配静默**。实施拆两段（2026-09-14，issue #41 阶段 A/B）：
-     阶段 A 提前实施 label_semantics_plan P1+P2（声明位 + registry 同步 + experiment 层检查，
-     P2 pilot 前置），阶段 B 完成 P3+P4（pipeline 层检查 + 文档收口，P3 方法接入前置）——
-     见 [label_semantics_plan.md](../../dev/label_semantics_plan.md)
+  4. ~~标签语义无声明字段、runner 错配静默~~：P2.0b 阶段 A 的声明位、registry 同步与 experiment
+     层守卫已完成工程实现，仍待 HENG958 复核/签署；pipeline/comparison 入口检查、CLI/UI 展示与
+     ADR 收口属于阶段 B，尚未完成。PU `{1,0}` 与监督 PN `{0,1}` 数值同形，无法用取值代替
+     声明，见 [标签语义方案](../../dev/label_semantics_plan.md) 与 [交付记录](p2_0b_delivery.md)。
 
 ## 2. 推进路线
 
@@ -58,7 +58,7 @@
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
 | P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成；⏸ HENG958 可执行性复核等待 split 产物同步 |
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | ✅ 已签署验收（2026-09-17）/ HENG958 交付；shuidisjtu 复核签署；**不放行正式 P2.1**（R5/R8 记为 P2.1 前置条件）；见 [交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
-| P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 未完成 / shuidisjtu；HENG958 复核 |
+| P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 工程实现与回归完成，HENG958 独立复核/签署待办；见 [交付记录](p2_0b_delivery.md) |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 技术审计修订完成，36 锚点/7 行映射待审；HENG958 正式复核未签署，见 [复核包](p2_0c_review.md) |
 | P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
 | P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |

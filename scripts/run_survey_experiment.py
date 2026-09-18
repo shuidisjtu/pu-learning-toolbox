@@ -242,6 +242,8 @@ class OracleMLP(MLPClassifier):
     §2.5, so the oracle stays comparable to the PU rows on those datasets.
     """
 
+    label_semantics = "pn"
+
     def decision_function(self, X):  # noqa: N803 - mirrors sklearn's estimator API
         # MLPClassifier returns float32 probabilities: clipping in that dtype
         # collapses 1 - 1e-12 back to 1.0 and divides by zero. Promote first.

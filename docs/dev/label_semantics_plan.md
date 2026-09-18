@@ -7,7 +7,8 @@
 > 上游依据：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §2.4 第 10 条、
 > [pn_oracle_integration.md](../research/pu_survey/pn_oracle_integration.md) §8 第 5 项
 > （独立验收判定为未决）、项目 CLAUDE.md「API 契约」条。
-> 状态日期：2026-09-14。
+> 状态日期：2026-09-18。阶段 A（P1+P2）已完成工程实现与回归，合作者独立复核/签署待办；
+> 阶段 B（P3+P4）仍待实施，详见 [P2.0b 交付记录](../research/pu_survey/p2_0b_delivery.md)。
 
 ## 1. 问题
 
@@ -71,7 +72,7 @@ PN oracle 的两轮修复解决的是**视图接线**（标签来源错、视图
 backbone 规格的 Survey 层执行矩阵同步落地，作为正式 pilot 跑批的门槛（P2.0b）；P3+P4 保持
 P3 接入前置不变（pipeline 层检查 + 文档收口，阶段 B）。
 
-## 2. 现状
+## 2. 设计时现状（2026-09-14；工程落地见交付记录）
 
 | 项 | 现状 |
 |---|---|
@@ -153,7 +154,8 @@ clean 视图放行，正是要封的路径。
 
 ## 4. 实施阶段（TDD；每阶段独立可验收）
 
-**时机**：P1+P2 已于 2026-09-14 提前至 P2 pilot 阶段 A 实施（issue #41 阶段 A，P2.0b）；
+**时机**：P1+P2 已于 2026-09-14 纳入 P2 pilot 阶段 A（issue #41 阶段 A，P2.0b）；
+2026-09-18 完成工程实现与回归，尚待合作者签署；
 P3+P4 保持 P3 算法接入前置（Phase 2 深度 oracle 之前完成）。
 
 **P1 —— 声明位与门禁（无行为变化）**

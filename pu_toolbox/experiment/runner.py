@@ -16,6 +16,8 @@ from typing import Any
 import numpy as np
 from sklearn.base import clone
 
+from pu_toolbox.core.validation import validate_label_semantics
+
 from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
@@ -203,6 +205,12 @@ class ExperimentRunner:
                 "pn_oracle_integration.md §1."
             )
 
+        # Numeric {0, 1} labels do not reveal whether 0 means unlabeled or a
+        # real negative.  The estimator, not only the trainer, must declare
+        # the meaning of the labels it receives.
+        expected_semantics = "pn" if view == "clean" else "pu"
+        validate_label_semantics(model, expected_semantics)
+
         # PA needs a labeled positive in its val view. The oracle trains on real
         # labels and runs OA only, so this generated-view check does not apply.
         if view == "pu" and int(np.sum(pu_val_view.labels == 1)) == 0:
@@ -232,6 +240,7 @@ class ExperimentRunner:
                         bundle,
                         self.config.get("architecture"),
                     )
+                    validate_label_semantics(est, expected_semantics)
                     trajectory = self._train(est, train_view, pu_val_view, trainer)
                     _validate_trajectory(trajectory, pu_val_view)
                 except Exception as exc:  # noqa: BLE001 - recorded retry boundary

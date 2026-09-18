@@ -8,10 +8,32 @@ from scipy import sparse
 
 from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.core.validation import (
+    validate_label_semantics,
     validate_pnu_X_y,
     validate_pu_X_y,
     validate_true_binary_labels,
 )
+
+
+@pytest.mark.unit
+def test_label_semantics_checks_meaning_not_numeric_values():
+    class PUModel:
+        label_semantics = "pu"
+
+    class PNModel:
+        label_semantics = "pn"
+
+    validate_label_semantics(PUModel(), "pu")
+    validate_label_semantics(PNModel(), "pn")
+    validate_label_semantics(object(), "pu")  # third-party PU default
+    with pytest.raises(ValueError, match="requires 'pn'"):
+        validate_label_semantics(PUModel(), "pn")
+    with pytest.raises(ValueError, match="requires 'pu'"):
+        validate_label_semantics(PNModel(), "pu")
+    with pytest.raises(ValueError, match="invalid label_semantics"):
+        validate_label_semantics(type("Bad", (), {"label_semantics": []})(), "pu")
+    with pytest.raises(ValueError, match="expected label semantics"):
+        validate_label_semantics(PUModel(), "unknown")
 
 
 @pytest.mark.unit

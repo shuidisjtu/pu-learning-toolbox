@@ -140,6 +140,37 @@ def test_architecture_capability_preflight_blocks_before_training():
     assert not trainer.called
 
 
+def test_candidate_label_semantics_change_is_recorded_and_excluded(tmp_path):
+    """A tuned candidate must not bypass the base model's semantic preflight."""
+
+    class SemanticUPU(UPUClassifier):
+        def __init__(self, class_prior=0.3, semantic="pu"):
+            super().__init__(class_prior=class_prior, random_state=0)
+            self.semantic = semantic
+
+        @property
+        def label_semantics(self):
+            return self.semantic
+
+    manifest_path = tmp_path / "semantic_candidate.json"
+    runner = ExperimentRunner(
+        generator=SCARGenerator(),
+        protocols=[ProtocolOA()],
+        config={"c": 0.3, "candidates": [{"semantic": "pn"}]},
+        manifest_path=str(manifest_path),
+    )
+    with pytest.raises(RuntimeError, match="all candidate runs failed"):
+        runner.fit(SemanticUPU(), *make_bundle())
+
+    manifest = load_manifest(manifest_path)
+    assert manifest["candidate_runs"][0]["status"] == "excluded"
+    assert manifest["candidate_runs"][0]["attempts"] == 2
+    assert all(
+        "label_semantics='pn'" in failure["message"]
+        for failure in manifest["failures"][0]["errors"]
+    )
+
+
 def test_end_to_end_small_pu(tmp_path):
     rng = np.random.RandomState(0)
     x = rng.randn(60, 2)
