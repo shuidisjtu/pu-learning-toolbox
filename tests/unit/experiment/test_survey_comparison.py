@@ -178,9 +178,12 @@ def test_edge_binding_and_review_gates_fail_loud(tmp_path):
     version_mismatch["bound_survey_protocol"]["protocol_version"] = "survey-v1.1"
     _rejected(tmp_path, version_mismatch, "protocol_version")
 
-    pending = _payload(review_status="accepted")
+    pending = _payload(review_status="accepted", formal_blockers=[])
     pending["anchors"][0]["review_state"] = "pending_review"
     _rejected(tmp_path, pending, "review_state")
+
+    blocked = _payload(review_status="accepted")
+    _rejected(tmp_path, blocked, "formal_blockers")
 
 
 # --- 2. eligibility_classes is pinned, not free text -------------------------
@@ -373,3 +376,31 @@ def test_edge_contradictions_must_bind_a_commit_and_resolve_to_code(tmp_path):
     dangling["contradictions"][0]["code_commit"] = "a" * 40
     dangling["contradictions"][0]["affected_anchors"] = ["nope"]
     _rejected(tmp_path, dangling, "affected_anchors")
+
+
+def test_edge_accepted_comparison_requires_reviewed_contradictions(tmp_path):
+    payload = _payload(review_status="accepted", formal_blockers=[])
+    payload["anchors"][0]["protocol_provenance"] = "uncertain"
+    payload["mappings"][0]["eligibility"] = "magnitude_and_trend"
+    payload["contradictions"] = [
+        {
+            "contradiction_id": "c1",
+            "source_id": "pu_bench_2026",
+            "field": "validation_policy",
+            "paper_value": "macro-F1",
+            "code_value": "val_proxy_acc",
+            "code_commit": "a" * 40,
+            "resolution": "code",
+            "impact": "published selection protocol is uncertain",
+            "affected_anchors": ["pu_bench_table1_nnpu_cifar10_c01_accuracy"],
+            "review_state": "pending_review",
+        }
+    ]
+    _rejected(tmp_path, payload, "contradiction review_state")
+
+    payload["contradictions"][0]["review_state"] = "accepted"
+    loaded = load_comparison_protocol(_write(tmp_path, payload), survey=_survey_payload())
+    assert loaded["review_status"] == "accepted"
+
+    payload["contradictions"][0]["review_state"] = "unknown"
+    _rejected(tmp_path, payload, "contradiction review_state")

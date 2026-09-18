@@ -177,9 +177,11 @@ def load_comparison_protocol(
     sources = _validate_sources(payload["sources"])
     anchors = _validate_anchors(payload["anchors"], sources)
     mappings = _validate_mappings(payload["mappings"], anchors)
-    _validate_contradictions(payload["contradictions"], sources, anchors)
+    contradictions = _validate_contradictions(payload["contradictions"], sources, anchors)
 
     if payload["review_status"] == "accepted":
+        if blockers:
+            raise ValueError("an accepted comparison must not have formal_blockers")
         for anchor in anchors.values():
             if anchor["review_state"] != "accepted":
                 raise ValueError(
@@ -191,6 +193,12 @@ def load_comparison_protocol(
                 raise ValueError(
                     "an accepted comparison requires every mapping review_state accepted: "
                     f"{mapping['mapping_id']}"
+                )
+        for contradiction in contradictions.values():
+            if contradiction["review_state"] != "accepted":
+                raise ValueError(
+                    "an accepted comparison requires every contradiction review_state accepted: "
+                    f"{contradiction['contradiction_id']}"
                 )
 
     comparison_digest(payload)  # also reject non-finite values
@@ -390,6 +398,8 @@ def _validate_contradictions(
                 "contradiction resolution must be 'code': protocol metadata follows the "
                 "locked repository (see the P2.0c plan 6.1)"
             )
+        if item.get("review_state") not in _REVIEW_STATES:
+            raise ValueError("contradiction review_state is not recognized")
         affected = item.get("affected_anchors")
         if not isinstance(affected, list) or any(not isinstance(a, str) for a in affected):
             raise ValueError("contradiction affected_anchors must be a string list")
