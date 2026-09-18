@@ -104,8 +104,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_nnpu_spambase_c01_accuracy",
@@ -127,8 +129,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_nnpu_imdb_c01_accuracy",
@@ -150,8 +154,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_nnpusb_cifar10_c01_accuracy",
@@ -173,8 +179,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_nnpusb_spambase_c01_accuracy",
@@ -196,8 +204,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_nnpusb_imdb_c01_accuracy",
@@ -219,8 +229,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_dist_pu_cifar10_c01_accuracy",
@@ -242,8 +254,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_dist_pu_spambase_c01_accuracy",
@@ -265,8 +279,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_dist_pu_imdb_c01_accuracy",
@@ -288,8 +304,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_lbe_cifar10_c01_accuracy",
@@ -311,8 +329,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_lbe_spambase_c01_accuracy",
@@ -334,8 +354,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_lbe_imdb_c01_accuracy",
@@ -357,8 +379,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_self_pu_cifar10_c01_accuracy",
@@ -380,8 +404,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_self_pu_spambase_c01_accuracy",
@@ -403,8 +429,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_self_pu_imdb_c01_accuracy",
@@ -426,8 +454,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_pn_oracle_cifar10_c01_accuracy",
@@ -449,8 +479,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_pn_oracle_spambase_c01_accuracy",
@@ -472,8 +504,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pu_bench_table1_pn_oracle_imdb_c01_accuracy",
@@ -495,8 +529,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1, 'Accuracy score of all PU methods across all datasets under the conventional setting'",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_upu_case1_pa_accuracy",
@@ -518,8 +554,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_upu_case1_pauc_accuracy",
@@ -541,8 +579,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_upu_case1_oa_accuracy",
@@ -564,8 +604,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_upu_case2_pa_accuracy",
@@ -587,8 +629,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_upu_case2_pauc_accuracy",
@@ -610,8 +654,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_upu_case2_oa_accuracy",
@@ -633,8 +679,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_nnpu_case1_pa_accuracy",
@@ -656,8 +704,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_nnpu_case1_pauc_accuracy",
@@ -679,8 +729,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_nnpu_case1_oa_accuracy",
@@ -702,8 +754,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_nnpu_case2_pa_accuracy",
@@ -725,8 +779,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_nnpu_case2_pauc_accuracy",
@@ -748,8 +804,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_nnpu_case2_oa_accuracy",
@@ -771,8 +829,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_pusb_case1_pa_accuracy",
@@ -794,8 +854,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_pusb_case1_pauc_accuracy",
@@ -817,8 +879,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_pusb_case1_oa_accuracy",
@@ -840,8 +904,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_pusb_case2_pa_accuracy",
@@ -863,8 +929,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_pusb_case2_pauc_accuracy",
@@ -886,8 +954,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_pusb_case2_oa_accuracy",
@@ -909,8 +979,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_distpu_case1_pa_accuracy",
@@ -932,8 +1004,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_distpu_case1_pauc_accuracy",
@@ -955,8 +1029,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_distpu_case1_oa_accuracy",
@@ -978,8 +1054,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_distpu_case2_pa_accuracy",
@@ -1001,8 +1079,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_distpu_case2_pauc_accuracy",
@@ -1024,8 +1104,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_distpu_case2_oa_accuracy",
@@ -1047,8 +1129,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_lbe_case1_pa_accuracy",
@@ -1070,8 +1154,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_lbe_case1_pauc_accuracy",
@@ -1093,8 +1179,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table1_lbe_case1_oa_accuracy",
@@ -1116,8 +1204,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 1 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_lbe_case2_pa_accuracy",
@@ -1139,8 +1229,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_lbe_case2_pauc_accuracy",
@@ -1162,8 +1254,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, PAUC column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "pubench_table2_lbe_case2_oa_accuracy",
@@ -1185,8 +1279,10 @@
       "value_producer": "benchmark_maintainers",
       "protocol_provenance": "uncertain",
       "transcription_evidence": "Table 2 'Test metric Accuracy' block, OA column",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "zhao_table2_dist_pu_cifar10_accuracy",
@@ -1208,8 +1304,10 @@
       "value_producer": "original_authors",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 2 ACC column, dist_pu row; prior 0.4, classes 0,1,8,9",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "zhao_table2_nnpu_cifar10_accuracy",
@@ -1231,8 +1329,10 @@
       "value_producer": "third_party_reproduction",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 2 ACC column, nnpu row; prior 0.4, classes 0,1,8,9. The nnpu row is this paper's own run of a method it did not author, so the producer is a third party relative to nnPU.",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "chen_table7_self_pu_cifar10_accuracy",
@@ -1254,8 +1354,10 @@
       "value_producer": "original_authors",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 7 CIFAR-10 column, self_pu row; 13-layer CNN, prior 0.4",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "chen_table7_nnpu_cifar10_accuracy",
@@ -1277,8 +1379,10 @@
       "value_producer": "third_party_reproduction",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 7 CIFAR-10 column, nnpu row; 13-layer CNN, prior 0.4",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "chen_table7_upu_cifar10_accuracy",
@@ -1300,8 +1404,10 @@
       "value_producer": "third_party_reproduction",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 7 CIFAR-10 column, upu row; 13-layer CNN, prior 0.4",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "anchor_id": "kato_table2_pusb_spambase_pi04_error_rate",
@@ -1323,8 +1429,10 @@
       "value_producer": "original_authors",
       "protocol_provenance": "certain",
       "transcription_evidence": "Table 2, Spambase, pi=0.4, U=3200: raw '18.9 (.018)'. Mean column is in percent; the parenthetical reads as a fraction and is registered as 1.8 pp, pending review.",
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "metric_conversion": {
         "to": "accuracy",
         "rule": "accuracy = 100 - error_rate",
@@ -1347,8 +1455,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1366,8 +1476,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no PU-Bench row exists for this method"
@@ -1385,8 +1497,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1404,8 +1518,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -1423,8 +1539,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1442,8 +1560,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -1461,8 +1581,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1480,8 +1602,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1499,8 +1623,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1518,8 +1644,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1537,8 +1665,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1561,8 +1691,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_nnpu_spambase_c01_accuracy"
@@ -1582,8 +1714,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1601,8 +1735,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -1620,8 +1756,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1639,8 +1777,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -1658,8 +1798,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1677,8 +1819,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1696,8 +1840,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1715,8 +1861,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1734,8 +1882,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "non_runnable",
       "anchor_ids": [],
       "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
@@ -1753,8 +1903,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1777,8 +1929,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_dist_pu_spambase_c01_accuracy"
@@ -1798,8 +1952,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1817,8 +1973,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -1836,8 +1994,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1855,8 +2015,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -1874,8 +2036,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1893,8 +2057,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1912,8 +2078,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1931,8 +2099,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -1950,8 +2120,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -1974,8 +2146,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_nnpusb_spambase_c01_accuracy"
@@ -1995,8 +2169,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2014,8 +2190,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2033,8 +2211,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2052,8 +2232,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2071,8 +2253,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2090,8 +2274,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2109,8 +2295,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2128,8 +2316,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2147,8 +2337,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2171,8 +2363,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_lbe_spambase_c01_accuracy"
@@ -2192,8 +2386,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2211,8 +2407,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2230,8 +2428,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2249,8 +2449,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2268,8 +2470,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2287,8 +2491,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2306,8 +2512,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2325,8 +2533,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2344,8 +2554,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2368,8 +2580,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_self_pu_spambase_c01_accuracy"
@@ -2389,8 +2603,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2408,8 +2624,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2427,8 +2645,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2446,8 +2666,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2465,8 +2687,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2484,8 +2708,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2503,8 +2729,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2522,8 +2750,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2544,8 +2774,10 @@
         "the benchmark selects its PN checkpoint by a PU-label proxy while ours uses clean validation accuracy",
         "backbone differs"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "background_only",
       "anchor_ids": [
         "pu_bench_table1_pn_oracle_spambase_c01_accuracy"
@@ -2565,8 +2797,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2584,8 +2818,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no PU-Bench row exists for this method"
@@ -2603,8 +2839,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2622,8 +2860,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2641,8 +2881,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2660,8 +2902,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2679,8 +2923,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2698,8 +2944,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2717,8 +2965,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2736,8 +2986,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2755,8 +3007,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2779,8 +3033,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_nnpu_imdb_c01_accuracy"
@@ -2800,8 +3056,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2819,8 +3077,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2838,8 +3098,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2857,8 +3119,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -2876,8 +3140,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2895,8 +3161,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2914,8 +3182,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2933,8 +3203,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -2952,8 +3224,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "non_runnable",
       "anchor_ids": [],
       "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
@@ -2971,8 +3245,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -2995,8 +3271,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_dist_pu_imdb_c01_accuracy"
@@ -3016,8 +3294,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3035,8 +3315,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3054,8 +3336,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3073,8 +3357,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3092,8 +3378,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3111,8 +3399,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3130,8 +3420,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3149,8 +3441,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3168,8 +3462,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3192,8 +3488,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_nnpusb_imdb_c01_accuracy"
@@ -3213,8 +3511,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3232,8 +3532,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3251,8 +3553,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3270,8 +3574,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3289,8 +3595,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3308,8 +3616,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3327,8 +3637,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3346,8 +3658,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3365,8 +3679,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3389,8 +3705,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_lbe_imdb_c01_accuracy"
@@ -3410,8 +3728,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3429,8 +3749,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3448,8 +3770,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3467,8 +3791,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3486,8 +3812,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3505,8 +3833,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3524,8 +3854,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3543,8 +3875,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3562,8 +3896,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3586,8 +3922,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_self_pu_imdb_c01_accuracy"
@@ -3607,8 +3945,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3626,8 +3966,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3645,8 +3987,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3664,8 +4008,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3683,8 +4029,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3702,8 +4050,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3721,8 +4071,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3740,8 +4092,10 @@
         "training_path": "native_2d"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3762,8 +4116,10 @@
         "the benchmark selects its PN checkpoint by a PU-label proxy while ours uses clean validation accuracy",
         "backbone differs"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "background_only",
       "anchor_ids": [
         "pu_bench_table1_pn_oracle_imdb_c01_accuracy"
@@ -3783,8 +4139,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3802,8 +4160,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no PU-Bench row exists for this method"
@@ -3821,8 +4181,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3840,8 +4202,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3859,8 +4223,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3878,8 +4244,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -3897,8 +4265,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3916,8 +4286,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3935,8 +4307,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3954,8 +4328,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -3973,8 +4349,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -3997,8 +4375,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_nnpu_cifar10_c01_accuracy"
@@ -4018,8 +4398,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4037,8 +4419,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4056,8 +4440,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4075,8 +4461,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4094,8 +4482,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4113,8 +4503,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4132,8 +4524,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4151,8 +4545,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4170,8 +4566,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "non_runnable",
       "anchor_ids": [],
       "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
@@ -4189,8 +4587,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4213,8 +4613,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_dist_pu_cifar10_c01_accuracy"
@@ -4234,8 +4636,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4253,8 +4657,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4272,8 +4678,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4291,8 +4699,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4310,8 +4720,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4329,8 +4741,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4348,8 +4762,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4367,8 +4783,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4386,8 +4804,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4410,8 +4830,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_nnpusb_cifar10_c01_accuracy"
@@ -4431,8 +4853,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4450,8 +4874,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4469,8 +4895,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4488,8 +4916,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4507,8 +4937,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4526,8 +4958,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4545,8 +4979,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4564,8 +5000,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4583,8 +5021,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4607,8 +5047,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_lbe_cifar10_c01_accuracy"
@@ -4628,8 +5070,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4647,8 +5091,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4666,8 +5112,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4685,8 +5133,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4704,8 +5154,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4723,8 +5175,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4742,8 +5196,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4761,8 +5217,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4780,8 +5238,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4804,8 +5264,10 @@
         "selection criterion differs (proxy accuracy vs our OA)",
         "CIFAR preprocessing differs (/255 only vs train-only statistics)"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "magnitude_and_trend",
       "anchor_ids": [
         "pu_bench_table1_self_pu_cifar10_c01_accuracy"
@@ -4825,8 +5287,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4844,8 +5308,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4863,8 +5329,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "blocked_pending_pa_criterion",
       "anchor_ids": [],
       "rationale": "our formal PA accuracy and threshold criterion is not locked yet (R9), so no PA unit may be adjudicated numerically"
@@ -4882,8 +5350,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no published anchor shares this dataset, method and c token"
@@ -4901,8 +5371,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4920,8 +5392,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4939,8 +5413,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4958,8 +5434,10 @@
         "training_path": "cnn_feature_adapter"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no SAR labelling-mechanism anchor exists in any source"
@@ -4980,8 +5458,10 @@
         "the benchmark selects its PN checkpoint by a PU-label proxy while ours uses clean validation accuracy",
         "backbone differs"
       ],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "background_only",
       "anchor_ids": [
         "pu_bench_table1_pn_oracle_cifar10_c01_accuracy"
@@ -5001,8 +5481,10 @@
         "training_path": "native_cnn"
       },
       "protocol_differences": [],
-      "review_state": "pending_review",
-      "verified_by": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
       "eligibility": "non_runnable",
       "anchor_ids": [],
       "rationale": "the survey protocol marks this row non-runnable, so no result unit exists to compare; recorded so the gap is not silently missing"
@@ -5035,8 +5517,10 @@
         "class mapping differs where the source uses a different split of the classes"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "mapping_id": "row_nnpu_cifar10",
@@ -5067,8 +5551,10 @@
         "class mapping differs where the source uses a different split of the classes"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "mapping_id": "row_pusb_kernel_cifar10",
@@ -5097,8 +5583,10 @@
         "class mapping differs where the source uses a different split of the classes"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "mapping_id": "row_dist_pu_cifar10",
@@ -5128,8 +5616,10 @@
         "class mapping differs where the source uses a different split of the classes"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "mapping_id": "row_lbe_cifar10",
@@ -5158,8 +5648,10 @@
         "class mapping differs where the source uses a different split of the classes"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "mapping_id": "row_self_pu_cifar10",
@@ -5183,8 +5675,10 @@
         "class mapping differs where the source uses a different split of the classes"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     },
     {
       "mapping_id": "row_pusb_kernel_spambase",
@@ -5208,8 +5702,10 @@
         "class mapping differs where the source uses a different split of the classes"
       ],
       "rationale": "the whole row is compared in magnitude and direction only: the source has no label-frequency axis, so no single c token can carry it",
-      "review_state": "pending_review",
-      "verified_by": []
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ]
     }
   ],
   "contradictions": [
