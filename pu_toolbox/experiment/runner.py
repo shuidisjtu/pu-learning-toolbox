@@ -211,6 +211,12 @@ class ExperimentRunner:
         expected_semantics = "pn" if view == "clean" else "pu"
         validate_label_semantics(model, expected_semantics)
 
+        # The per-epoch networks this estimator promises to write.  Resolved
+        # once, before any candidate runs: a malformed declaration is a code
+        # defect, and discovering it per candidate would report it as an
+        # excluded candidate rather than as the mistake it is.
+        declared_components = _declared_epoch_components(model)
+
         # PA needs a labeled positive in its val view. The oracle trains on real
         # labels and runs OA only, so this generated-view check does not apply.
         if view == "pu" and int(np.sum(pu_val_view.labels == 1)) == 0:
@@ -242,7 +248,7 @@ class ExperimentRunner:
                     )
                     validate_label_semantics(est, expected_semantics)
                     trajectory = self._train(est, train_view, pu_val_view, trainer)
-                    _validate_trajectory(trajectory, pu_val_view)
+                    _validate_trajectory(trajectory, pu_val_view, declared_components)
                 except Exception as exc:  # noqa: BLE001 - recorded retry boundary
                     errors.append(_exception_record(exc, attempt))
                     attempt_resources.append(
@@ -645,12 +651,33 @@ def _clone_candidate(model, params: dict, seed: int):
     return est
 
 
-def _validate_trajectory(trajectory, pu_val: DatasetPart) -> None:
+def _declared_epoch_components(model) -> tuple[str, ...]:
+    """Return the estimator's declared per-epoch checkpoint components.
+
+    The declaration, not the saved set, is what coverage is measured against.
+    Deriving the expectation from ``trajectory.checkpoints`` lets a writer that
+    dropped a component shrink the expectation until it matches, so the check
+    would pass on exactly the drift it exists to catch.
+    """
+    declared = getattr(model, "epoch_components", ("model",))
+    name = type(model).__name__
+    if not isinstance(declared, tuple | list) or not declared:
+        raise ValueError(f"{name}.epoch_components must be a non-empty sequence, got {declared!r}")
+    components = tuple(declared)
+    if any(not isinstance(component, str) or not component for component in components):
+        raise ValueError(
+            f"{name}.epoch_components must contain non-empty strings, got {declared!r}"
+        )
+    if len(set(components)) != len(components):
+        raise ValueError(f"{name}.epoch_components contains duplicates: {declared!r}")
+    return components
+
+
+def _validate_trajectory(trajectory, pu_val: DatasetPart, components: tuple[str, ...]) -> None:
     """Turn non-finite output and trainer interface drift into retryable failures."""
     if not isinstance(trajectory, RunTrajectory):
         raise TypeError("trainer.fit must return a RunTrajectory instance.")
     if trajectory.checkpoints:
-        components = {checkpoint.component for checkpoint in trajectory.checkpoints}
         expected = {
             (position, component)
             for position in range(1, len(trajectory.epochs) + 1)
@@ -661,8 +688,13 @@ def _validate_trajectory(trajectory, pu_val: DatasetPart) -> None:
             for checkpoint in trajectory.checkpoints
         }
         if actual != expected or len(actual) != len(trajectory.checkpoints):
+            observed = tuple(
+                sorted({checkpoint.component for checkpoint in trajectory.checkpoints})
+            )
             raise ValueError(
-                "trajectory checkpoint coverage must include every epoch/component once"
+                "trajectory checkpoint coverage must include every declared component "
+                f"at every epoch once; declared {tuple(sorted(components))!r}, "
+                f"observed {observed!r}."
             )
         for checkpoint in trajectory.checkpoints:
             if checkpoint.epoch_label != trajectory.epochs[checkpoint.epoch_position - 1].epoch:

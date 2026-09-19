@@ -214,6 +214,21 @@ class EpochCheckpointTrainer(Trainer):
                 cutoff = float(np.log(threshold / (1 - threshold)))
             else:
                 networks, cutoff = {"model": fitted.model_}, 0.0
+            # The names above are hardcoded; the declaration is the contract.
+            # An undeclared name means the writer learned a component the
+            # estimator never announced, which cannot be checked downstream --
+            # so it is named here rather than surfacing as a coverage error.
+            # A *missing* declared component is left to the runner: coverage is
+            # about the trajectory, and this writer can only save what exists.
+            declared = getattr(fitted, "epoch_components", None)
+            if declared is not None:
+                undeclared = set(networks) - set(declared)
+                if undeclared:
+                    raise ValueError(
+                        f"{type(fitted).__name__} declares epoch_components="
+                        f"{tuple(declared)!r}, but the checkpoint writer produced "
+                        f"undeclared components {tuple(sorted(undeclared))!r}."
+                    )
             for component, network in networks.items():
                 if component not in templates:
                     templates[component] = copy.deepcopy(network).cpu().eval()

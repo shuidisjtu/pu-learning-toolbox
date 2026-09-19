@@ -73,6 +73,12 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     # Registered classifiers must override this explicitly; third-party PU
     # subclasses inherit the safe PU default.
     label_semantics: str = "pu"
+    # Per-epoch networks a checkpoint-capturing fit writes.  The runner refuses
+    # a trajectory that does not cover every declared name at every epoch, so
+    # this is an expectation the writer cannot shrink by omitting data: a
+    # two-teacher estimator that saves one teacher fails rather than producing
+    # a smaller, self-consistent run.
+    epoch_components: tuple[str, ...] = ("model",)
 
     # ── Architecture capability (dual_architecture_plan.md §4.2) ─────
     native_architectures: frozenset[str] = frozenset()
