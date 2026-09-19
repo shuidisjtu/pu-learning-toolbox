@@ -44,8 +44,9 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
-# Project-specific Claude Code config (not for distribution)
+# Project-specific agent config (not for distribution)
 CLAUDE.md
+AGENTS.md
 
 # UV
 .claude/*
