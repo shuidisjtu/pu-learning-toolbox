@@ -1,6 +1,7 @@
 # ruff: noqa: N803, F811
 """Protocol CLI checks and small end-to-end P2.0a evidence."""
 
+import copy
 import json
 
 import numpy as np
@@ -8,7 +9,8 @@ import pytest
 import torch
 from _survey_script_helpers import make_splits, survey_script  # noqa: F401
 
-from pu_toolbox.experiment.survey_protocol import load_protocol
+from pu_toolbox.experiment import survey_comparison
+from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATH, load_protocol
 
 pytestmark = pytest.mark.unit
 
@@ -17,6 +19,55 @@ def _splits(path, *, seed=0, dataset="spambase"):
     path.mkdir()
     make_splits(path)
     (path / "split_manifest.json").write_text(json.dumps({"dataset": dataset, "seed": seed}))
+
+
+def _ghosted_comparison(monkeypatch):
+    """Stand in for the shipped matrix with one mapping that covers no unit."""
+    payload = json.loads(survey_comparison.COMPARISON_PATH.read_text(encoding="utf-8"))
+    ghost = copy.deepcopy(payload["mappings"][0])
+    ghost["mapping_id"] = "ghost_unit_mapping"
+    ghost["result_selector"]["c_token"] = "0.9"
+    payload["mappings"].append(ghost)
+    # The loader binds the file to the protocol; the defect under test is the
+    # coverage of an already-valid matrix, so the loader is stood in for.
+    monkeypatch.setattr(
+        survey_comparison, "load_comparison_protocol", lambda *args, **kwargs: payload
+    )
+
+
+def test_param_comparison_coverage_defect_aborts_before_any_split_is_read(
+    survey_script, tmp_path, capsys, monkeypatch
+):
+    """A mapping that covers nothing is refused at startup, not left to the runs.
+
+    Checked once, before seeds, encoders or output directories exist.  Per run
+    it would be invisible: the unit it fails to cover is simply resolved by
+    nothing, and the manifest would carry no comparison entry at all.
+    """
+    _ghosted_comparison(monkeypatch)
+
+    assert survey_script.main(_args(tmp_path / "missing", tmp_path / "out")) == 1
+    assert "ghost_unit_mapping" in capsys.readouterr().err
+    assert not (tmp_path / "out").exists()
+
+
+def test_param_coverage_gate_follows_the_matrix_contents_not_its_path(
+    survey_script, tmp_path, capsys, monkeypatch
+):
+    """A byte copy of the shipped matrix is still the shipped matrix.
+
+    Keying the gate on the path let a copy skip it, while the run's comparison
+    entry was still resolved against the shipped file -- so the copy bought no
+    safety and lost the only check that catches a ghost mapping.
+    """
+    _ghosted_comparison(monkeypatch)
+    copy_path = tmp_path / "matrix.json"
+    copy_path.write_text(PROTOCOL_PATH.read_text(encoding="utf-8"))
+    args = _args(tmp_path / "missing", tmp_path / "out")
+    args[args.index("survey-v1.2")] = str(copy_path)
+
+    assert survey_script.main(args) == 1
+    assert "ghost_unit_mapping" in capsys.readouterr().err
 
 
 def _args(data, out):

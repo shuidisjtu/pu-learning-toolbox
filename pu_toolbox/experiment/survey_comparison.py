@@ -720,6 +720,75 @@ def comparison_context(
     }
 
 
+def run_comparison_units(
+    protocol_context: dict[str, Any],
+    config: dict[str, Any],
+    *,
+    survey: dict[str, Any] | None = None,
+    comparison: dict[str, Any] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """The comparison entries one run's manifest records, keyed by selection protocol.
+
+    A run is not one result unit.  A SCAR run selects twice -- once on the PU
+    view, once on the clean view -- and the matrix registers those as two units
+    under two different mappings, so a manifest carrying a single ``mapping_id``
+    would leave half of its own result unadjudicable.  The keys are the protocol
+    names the manifest's own ``selection`` block uses, so P2.2 joins the two by
+    name rather than by position.
+
+    The units are taken from :func:`expected_result_units` rather than restated
+    here: which units a run produces is exactly what the coverage gate proves,
+    and a run that expanded its own grid differently would resolve to a mapping
+    the gate never counted.
+
+    Empty when the matrix covers none of them, which is not an error.  The
+    execution protocol lets ``--c`` be overridden and asks only that the
+    deviation be recorded, so a run at a c the matrix never registered is off
+    the grid by construction and its ``protocol_deviation`` already says so;
+    refusing it would delete a documented capability.  A *pre-registered* unit
+    the matrix fails to cover is a different failure -- it is caught once
+    before any run, by :func:`validate_comparison_coverage`, and it reaches
+    here as :func:`comparison_context` failing to resolve.
+    """
+    if survey is None:
+        from .survey_protocol import load_protocol
+
+        survey = load_protocol(config["survey_protocol"]["path"])
+    row = protocol_context["execution_unit"]
+    units = [unit for unit in expected_result_units(survey) if _is_run_unit(unit, row, config)]
+    entries: dict[str, dict[str, Any]] = {}
+    for unit in units:
+        # One unit per selection protocol is what makes the entry keys name the
+        # manifest's own selection keys; two would mean one of them silently
+        # overwrote the other.
+        key = unit["selection_protocol"].upper()
+        if key in entries:
+            raise ValueError(f"a run produces at most one result unit per protocol, got two {key}")
+        entries[key] = comparison_context(unit, comparison=comparison)
+    return entries
+
+
+def _is_run_unit(unit: dict[str, str], row: dict[str, Any], config: dict[str, Any]) -> bool:
+    """Whether one expected result unit is the unit this run produces.
+
+    A PN oracle row trains on real labels and generates no PU label view, so it
+    contributes its one c-independent unit whatever mechanism the CLI carries to
+    satisfy the runner's c-token binding.
+    """
+    if (unit["method"], unit["dataset"], unit["training_path"]) != (
+        row["method"],
+        row["dataset"],
+        row["training_path"],
+    ):
+        return False
+    if row["method"] == _PN_ORACLE:
+        return True
+    request = config["survey_protocol"]
+    return unit["labeling_mechanism"] == request["mechanism"] and unit["c_token"] == config.get(
+        "c_requested_token"
+    )
+
+
 def build_comparison_report(
     result_summary: dict[str, Any], *, comparison: dict[str, Any] | None = None
 ) -> dict[str, Any]:

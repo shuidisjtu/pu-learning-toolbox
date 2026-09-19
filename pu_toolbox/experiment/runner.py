@@ -24,6 +24,7 @@ from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
+from .survey_comparison import run_comparison_units
 from .survey_protocol import runner_protocol_context
 from .tracking import RunResult, RunTrajectory
 
@@ -36,6 +37,23 @@ def _manifest_c_context(config: dict[str, Any]) -> dict[str, Any]:
         "c_independent": True,
         "broadcast_c_values": list(config.get("broadcast_c_values", [])),
     }
+
+
+def _run_comparison(protocol_context: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
+    """The pre-registered comparison entries of a bound run, else nothing.
+
+    Only a versioned pilot row carries a comparison obligation: an unbound
+    technical smoke run has no execution unit, so it has nothing to resolve
+    against the matrix and must not be given a block that reads as one.
+    """
+    if protocol_context.get("execution_mode") != "versioned_pilot":
+        return {}
+    return run_comparison_units(protocol_context, config)
+
+
+def _comparison_entry(comparison: dict[str, Any]) -> dict[str, Any]:
+    """Expose the comparison block, omitting it rather than writing an empty one."""
+    return {"comparison": comparison} if comparison else {}
 
 
 class ExperimentRunner:
@@ -112,10 +130,16 @@ class ExperimentRunner:
         trainer = self._trainer()
 
         disk_preflight: dict[str, Any] = {}
+        comparison: dict[str, Any] = {}
         try:
             protocol_context = runner_protocol_context(
                 model, bundle, self.config, self.seed, self.generator, self.protocols
             )
+            # Resolved inside the preflight, not after it: a row the comparison
+            # matrix does not cover is a preregistration defect, and a run that
+            # produced results without stating what they may be compared against
+            # would leave P2.2 unable to adjudicate them at all.
+            comparison = _run_comparison(protocol_context, self.config)
             _validate_model_capability(model, bundle, self.config.get("architecture"))
             disk_preflight = self._checkpoint_disk_preflight(
                 model, trainer, protocol_context, declared_components
@@ -131,6 +155,7 @@ class ExperimentRunner:
                         "execution_mode": "rejected_versioned_pilot",
                         "formal_eligible": False,
                         "formal_blockers": ["protocol_preflight_failure"],
+                        **_comparison_entry(comparison),
                         "generation": {},
                         "selection": {},
                         "test_results": {},
@@ -344,6 +369,7 @@ class ExperimentRunner:
                 "seed": self.seed,
                 "split_ref": self.config.get("split_ref", {}),
                 **_manifest_c_context(self.config),
+                **_comparison_entry(comparison),
                 "generation": {"train": meta_train, "pu_val": meta_val},
                 "candidate_runs": candidate_runs,
                 "selection": {},
@@ -374,6 +400,15 @@ class ExperimentRunner:
             else:
                 art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
             selections[art.protocol] = art
+        # The two key sets are what lets P2.2 join a result row to its
+        # pre-registered unit, and nothing else checks that the matrix's
+        # protocol names and the selection strategies' own names agree.  An
+        # un-joinable manifest is worse than a refused run.
+        if comparison and set(comparison) != set(selections):
+            raise ValueError(
+                "comparison entries and selections disagree on the result units: "
+                f"{sorted(comparison)} vs {sorted(selections)}"
+            )
 
         selection_elapsed = time.perf_counter() - selection_started_at
         _add_checkpoint_resources(resources, candidate_runs, trajectories, selection_elapsed)
@@ -448,6 +483,7 @@ class ExperimentRunner:
             "seed": self.seed,
             "split_ref": self.config.get("split_ref", {}),
             **_manifest_c_context(self.config),
+            **_comparison_entry(comparison),
             "generation": {"train": meta_train, "pu_val": meta_val},
             "candidate_runs": candidate_runs,
             "selection": selection_payload,
