@@ -4,13 +4,13 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
 from sklearn.model_selection import train_test_split
+
+from pu_toolbox.utils.serialization import canonical_hash
 
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
@@ -293,9 +293,23 @@ def prepare_survey_dataset(
             for role in ("train", "pu_val", "clean_val", "test")
         },
         "indices": role_indices,
-        "indices_sha256": hashlib.sha256(
-            json.dumps(role_indices, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest(),
+        # The same helper the transfer verifier recomputes with, so a
+        # recomputation can never disagree with what was written here for a
+        # reason other than the data having changed.
+        "indices_sha256": canonical_hash(role_indices),
+        # Protocol §3.1 defines the population prior as the positive rate of
+        # the complete binarised pool *before* the stratified split, calls it
+        # data-generation metadata, and forbids back-inferring it from any
+        # subset.  The full pool is only visible here, so this is the only
+        # place it can be recorded rather than reconstructed.  The unlabelled
+        # rate is deliberately absent: it is a property of a run's label view,
+        # not of the split, and recording it here would invite reading a
+        # c-dependent number as a dataset constant.
+        "class_prior": {
+            "population": float(np.mean(y_source_binary)),
+            "population_basis": "binarised source pool before the stratified split",
+            "train": float(np.mean(bundle.train.labels)),
+        },
         "provenance": _provenance_block(spec, download),
     }
     return bundle, manifest

@@ -14,7 +14,9 @@ import numpy as np
 
 SBERT_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 SBERT_EMBEDDING_DIMENSION = 384
-_CACHE_SCHEMA_VERSION = "1.0"
+#: 1.1 keys the cache on the deduplicated corpus rather than the ordered input
+#: list, so an entry means "these texts" and not "these texts in this order".
+_CACHE_SCHEMA_VERSION = "1.1"
 
 
 class _TextEncoder(Protocol):
@@ -33,9 +35,17 @@ def encode_survey_texts(
     """Encode survey text with the protocol-locked SBERT model.
 
     ``revision`` is mandatory so every artifact identifies the exact model
-    revision used. The cache key binds that revision, every input text and
-    the normalization setting. The returned manifest includes the cached
-    ``.npy`` SHA-256 and whether this invocation was a cache hit.
+    revision used. The cache key binds that revision, the texts and the
+    normalization setting; the returned manifest includes the cached ``.npy``
+    SHA-256 and whether this invocation was a cache hit.
+
+    The cache is keyed on the *content* of the input, not on the arrangement of
+    it.  A four-way split hands this function the same fifty thousand reviews
+    in a different order for every seed -- the seed decides which role each
+    review lands in, and the roles are concatenated -- so keying on the ordered
+    list made every seed a miss that re-encoded the whole corpus to produce
+    embeddings it had already produced.  Entries hold the sorted, deduplicated
+    corpus, and a request is served by gathering the rows it asked for.
 
     ``encoder`` accepts a preloaded compatible object. It primarily supports
     offline tests and managed environments; outputs still must be finite
@@ -45,7 +55,8 @@ def encode_survey_texts(
     cache_root = Path(cache_dir)
     cache_root.mkdir(parents=True, exist_ok=True)
 
-    texts_sha256 = _json_sha256(text_values)
+    unique_texts = sorted(set(text_values))
+    texts_sha256 = _json_sha256(unique_texts)
     cache_inputs = {
         "schema_version": _CACHE_SCHEMA_VERSION,
         "model_name": SBERT_MODEL_NAME,
@@ -66,7 +77,7 @@ def encode_survey_texts(
         expected = {
             **cache_inputs,
             "cache_key": cache_key,
-            "text_count": len(text_values),
+            "encoded_text_count": len(unique_texts),
             "embedding_dimension": SBERT_EMBEDDING_DIMENSION,
             "dtype": "float32",
         }
@@ -79,18 +90,19 @@ def encode_survey_texts(
         if metadata.get("cache_sha256") != actual_sha256:
             raise ValueError(f"SBERT cache checksum mismatch for {cache_key}.")
         try:
-            embeddings = np.load(embedding_path, allow_pickle=False)
+            cached = np.load(embedding_path, allow_pickle=False)
         except (OSError, ValueError) as exc:
             raise ValueError(f"cannot load SBERT cache entry {cache_key}.") from exc
-        embeddings = _validated_embeddings(embeddings, len(text_values))
+        cached = _validated_embeddings(cached, len(unique_texts))
         result_manifest = dict(metadata)
         result_manifest["cache_hit"] = True
-        return embeddings, result_manifest
+        result_manifest["requested_text_count"] = len(text_values)
+        return _gather_rows(cached, unique_texts, text_values), result_manifest
 
     resolved_encoder, backend = _resolve_encoder(encoder, revision)
     try:
         raw_embeddings = resolved_encoder.encode(
-            text_values,
+            unique_texts,
             batch_size=batch_size,
             show_progress_bar=False,
             convert_to_numpy=True,
@@ -98,8 +110,8 @@ def encode_survey_texts(
         )
     except Exception as exc:
         raise RuntimeError(f"SBERT encoding failed for revision {revision!r}: {exc}") from exc
-    embeddings = _validated_embeddings(raw_embeddings, len(text_values))
-    _atomic_save_array(embedding_path, embeddings)
+    encoded = _validated_embeddings(raw_embeddings, len(unique_texts))
+    _atomic_save_array(embedding_path, encoded)
 
     metadata = {
         **cache_inputs,
@@ -107,14 +119,37 @@ def encode_survey_texts(
         "cache_file": embedding_path.name,
         "cache_sha256": _file_sha256(embedding_path),
         "metadata_file": metadata_path.name,
-        "text_count": len(text_values),
+        "encoded_text_count": len(unique_texts),
         "embedding_dimension": SBERT_EMBEDDING_DIMENSION,
         "dtype": "float32",
         "encoder_backend": backend,
         "cache_hit": False,
     }
     _atomic_write_json(metadata_path, metadata)
-    return embeddings, dict(metadata)
+    # Handed back as the cache file holds it, not as it was built.  The two
+    # differ in key order -- the file is written with sorted keys -- and a
+    # caller splicing this into a manifest would then produce different bytes
+    # for the same content depending on whether the encode was a hit.  That is
+    # a reproducibility defect, not a cosmetic one: the split digests travel
+    # with the artifacts and are compared against records made elsewhere.
+    result_manifest = _load_metadata(metadata_path)
+    result_manifest["requested_text_count"] = len(text_values)
+    return _gather_rows(encoded, unique_texts, text_values), result_manifest
+
+
+def _gather_rows(
+    encoded: np.ndarray, unique_texts: list[str], text_values: tuple[str, ...]
+) -> np.ndarray:
+    """Restore the caller's order from a canonical-order embedding table.
+
+    Duplicates in the request share a row, which is what encoding them
+    separately would have produced anyway.
+    """
+    position = {text: index for index, text in enumerate(unique_texts)}
+    rows = np.fromiter(
+        (position[text] for text in text_values), dtype=np.intp, count=len(text_values)
+    )
+    return encoded[rows]
 
 
 def _validate_inputs(texts: Sequence[str], *, revision: str, batch_size: int) -> tuple[str, ...]:
