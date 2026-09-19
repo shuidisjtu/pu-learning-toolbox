@@ -7,7 +7,7 @@ pipeline/comparison 入口、CLI/UI 展示及 ADR 收口属阶段 B。
 
 ## 已实现
 
-1. `BasePUClassifier.label_semantics` 默认 `"pu"`，注册的 17 个分类器全部在自身类属性显式声明；
+1. `BasePUClassifier.label_semantics` 默认 `"pu"`，全部注册分类器都在自身类属性显式声明；
    `pnu` 为 `"pnu"`，其余为 `"pu"`。`AlgorithmMetadata` 限定三值并由注册表同步，契约测试
    锁定“注册方法不得仅继承默认”。`self_pu` 只声明主 `fit` 输入为 PU，辅助 `validation_data`
    不借此获得 clean 视图资格。
@@ -24,7 +24,7 @@ pipeline/comparison 入口、CLI/UI 展示及 ADR 收口属阶段 B。
 
 ## 复核交接
 
-- 核对 17 个注册类的声明与真实主 `fit` 输入；尤其 `pnu` 三值和 `self_pu` 辅助验证标签。
+- 核对全部注册类的声明与真实主 `fit` 输入；尤其 `pnu` 三值和 `self_pu` 辅助验证标签。
 - 复跑 [runner 错配回归](../../../tests/unit/experiment/test_runner_oracle.py)、
   [注册表声明契约](../../../tests/contract/test_capability_declarations.py) 和普通脚本 oracle。
 - 确认 clean 视图上的第三方监督估计器必须显式加 `label_semantics="pn"` 的兼容性取舍。
