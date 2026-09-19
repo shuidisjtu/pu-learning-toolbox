@@ -95,15 +95,23 @@ def run_spec_from_manifest(manifest: dict, *, seeds: list[int]) -> LeaderboardRu
         adaptation_level=manifest["adaptation_level"],
         split_sha256=representation["split_sha256"],
         representation_sha256=digest(representation),
-        # A closed-form group caps no epochs.  The gate wants a positive int
-        # and only compares it within a group, where every member shares one
-        # budget family -- the group key is what keeps families apart, so this
-        # placeholder never decides anything.
-        max_epochs=budget.get("epochs") or 1,
-        batch_size_candidates=(budget["batch_size"],),
+        max_epochs=_shared_budget_value(budget, "epochs"),
+        batch_size_candidates=(_shared_budget_value(budget, "batch_size"),),
         tuning_candidate_count=len(manifest["candidate_runs"]),
         seeds=tuple(seeds),
     )
+
+
+def _shared_budget_value(budget: dict, field: str) -> int:
+    """A value for a fairness field this budget family does not define.
+
+    Four of the seven budget families cap no epochs and define no batch size:
+    a closed-form solve has neither.  The gate requires positive ints and only
+    ever compares a field within a group, where every member shares one budget
+    family -- the group key is what keeps families apart, so a placeholder
+    here never decides anything.
+    """
+    return budget.get(field) or 1
 
 
 def _refusal_reason(payload: dict) -> str | None:
@@ -228,8 +236,11 @@ def _print_report(report: dict) -> None:
         for unit in group["units"]:
             marker = "ok" if unit["state"] == "comparable" else "BLOCKED"
             print(f"  seed={unit['seed']} c={unit['c']}: {marker} ({', '.join(unit['methods'])})")
+            # In diagnostic mode the blockers are still worth printing, but
+            # "blocked by" under an ok unit would read as a contradiction.
+            label = "blocked by" if unit["state"] == "blocked" else "not formal"
             for blocker in unit["blockers"]:
-                print(f"    blocked by: {blocker}")
+                print(f"    {label}: {blocker}")
     for item in report["refused"]:
         print(f"\nnot aggregated: {item['reason']} -- {item['path']}")
 

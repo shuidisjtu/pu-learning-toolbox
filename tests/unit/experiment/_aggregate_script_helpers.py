@@ -45,6 +45,7 @@ def manifest(
     method="upu",
     dataset="spambase",
     training_path="native_2d",
+    budget="minibatch",
     seed=0,
     c=0.5,
     epochs=200,
@@ -56,17 +57,27 @@ def manifest(
     blockers=(),
     c_independent=False,
 ):
-    """A versioned-pilot manifest with only the fields aggregation reads."""
+    """A versioned-pilot manifest with only the fields aggregation reads.
+
+    ``epochs`` and ``batch_size`` are omitted when passed as ``None``, which is
+    what the four budget families without either actually look like in a real
+    manifest.
+    """
     representation = {
         "split_sha256": _digest(split_marker),
         "feature_sha256": {"train": _digest(representation_marker)},
     }
+    budget_payload = {"unit": budget}
+    if epochs is not None:
+        budget_payload["epochs"] = epochs
+    if batch_size is not None:
+        budget_payload["batch_size"] = batch_size
     unit = {
         "method": method,
         "dataset": dataset,
         "training_path": training_path,
-        "budget": "minibatch",
-        "comparability_group": f"{dataset}/{training_path}/minibatch",
+        "budget": budget,
+        "comparability_group": f"{dataset}/{training_path}/{budget}",
     }
     generation = {
         role: {

@@ -65,6 +65,28 @@ def test_edge_table_only_units_reach_the_gate(aggregate_script, tmp_path):
     assert report["refused"] == []
 
 
+def test_edge_budget_families_without_epochs_or_batch_size_still_aggregate(
+    aggregate_script, tmp_path
+):
+    """Four of the seven budget families cap no epochs and define no batch size.
+
+    A closed-form solve has neither, so the gate's positive-int fields have to
+    come from somewhere other than the budget -- found by running the entry
+    point against real artifacts, where synthetic manifests had always
+    supplied both.
+    """
+    root = write_tree(
+        tmp_path,
+        {
+            "a": manifest(method="upu", budget="closed_form", epochs=None, batch_size=None),
+            "b": manifest(method="kldce", budget="closed_form", epochs=None, batch_size=None),
+        },
+    )
+    report = _aggregate(aggregate_script, root)
+    assert report["groups"][0]["comparability_group"] == "spambase/native_2d/closed_form"
+    assert report["groups"][0]["units"][0]["methods"] == ["kldce", "upu"]
+
+
 def test_param_cross_method_mismatch_is_refused(aggregate_script, tmp_path):
     """A shared split is the premise of comparing two methods at all."""
     root = write_tree(
