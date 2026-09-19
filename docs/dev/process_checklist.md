@@ -43,6 +43,16 @@
   CNN oracle 等缺少对齐对照的单元明确不可冒充上界。见
   [交付记录](../research/pu_survey/p2_0a_delivery.md)。
 
+- Survey P1.2/P1.4 数据制品（未发布，2026-09-19 重建）：split manifest 新增 `provenance` 块
+  （来源 URL、版本、引用、标签语义、许可与本地下载摘要，并记明字节实际来自哪个 URL）。
+  许可逐条按官方页面原文记录：**UCI 声明 CC BY 4.0**（含署名要求），Stanford sentiment 与
+  Toronto CIFAR 两页确无许可条款；无许可者留空许可名但保留查证日期，以区别于「没查」。
+  三数据集 × 5 seed 统一重建：重建前先跑到临时目录作对照，**60 个 npz 逐字节不变**，
+  重建只补齐 IMDB 的 `effective_output_normalization`/`normalization_source` 并新增
+  `provenance` 块。取代前的 manifest 与摘要对照见
+  `data/archive/split-manifests-pre-p1.2-20260919/`；P1.4 对 HENG958 的可执行性复核仍等待
+  split 产物同步。
+
 - Survey P2.0b 标签语义门禁 + P2.0c 交叉验证对照预注册（未发布，工程完成、合作者签署待办）：
   P2.0b 新增分类器 `label_semantics` 声明位、registry 同步与 runner 训练前按视图强制检查
   （PU 视图须 `"pu"`、clean 视图须 `"pn"`；第三方未声明估计器按 `"pu"` 保守处理），
