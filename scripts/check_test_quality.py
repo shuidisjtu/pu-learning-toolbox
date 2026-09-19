@@ -449,6 +449,68 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "{cpu, cuda}, never pinned to a fixed value"
         ),
     },
+    # The survey-comparison and runner-oracle suites were each split to stay
+    # under the per-file count, which by construction leaves each half holding
+    # fewer of the four categories: the named family (an ``error_rate`` test
+    # carrying "error", the ``test_param_oracle_rejects_*`` family) moved to
+    # the sibling file that owns that concern.  The categories are covered --
+    # just not by this file any more.
+    "test_survey_comparison.py": {
+        "param": (
+            "the loader's rejection surface is expressed as edge_ tests, one "
+            "_rejected call per rule; the one error_ test that carried the param "
+            "name moved to test_survey_comparison_verdict.py with the arithmetic "
+            "it belongs to"
+        ),
+    },
+    "test_survey_comparison_verdict.py": {
+        "determ": (
+            "verdicts are pure arithmetic over fixed inputs (no randomness, no "
+            "seed state); matrix digest determinism is asserted in "
+            "test_survey_comparison.py"
+        ),
+    },
+    "test_survey_comparison_classification.py": {
+        "param": (
+            "assertions over the classifications in the shipped matrix; there is "
+            "no callable here taking validated parameters"
+        ),
+        "edge": (
+            "the shipped matrix is a fixed fixture with no boundary inputs to "
+            "vary; boundary rejection is covered by test_survey_comparison.py "
+            "and test_survey_comparison_coverage.py"
+        ),
+        "determ": (
+            "reading a fixed JSON fixture decides nothing; matrix digest "
+            "determinism is asserted in test_survey_comparison.py"
+        ),
+    },
+    "test_runner_oracle.py": {
+        "param": (
+            "the success path only; every wiring rejection is asserted in "
+            "test_runner_oracle_guards.py, which owns that concern"
+        ),
+    },
+    "test_runner_oracle_guards.py": {
+        "edge": (
+            "these ARE the boundary cases the runner must refuse (missing "
+            "trainer, trainer passed as a class, a typo'd output view); "
+            "input-level boundary validation lives in test_validation.py"
+        ),
+        "determ": (
+            "each test asserts a rejection, never a reproducible value; the "
+            "oracle's c-independence determinism is asserted in "
+            "test_runner_oracle.py"
+        ),
+    },
+    "test_validation_labels.py": {
+        "determ": (
+            "label-meaning checks are pure functions over fixed inputs (no "
+            "randomness, no seed state); the mutation-freedom assertion in "
+            "test_basic_accepts_binary_labels is a side-effect check, not a "
+            "reproducibility one"
+        ),
+    },
 }
 
 

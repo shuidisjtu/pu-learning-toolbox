@@ -298,7 +298,9 @@ tests/
       test_strategies_selection.py      # 阈值选择与 PA/OA 选模(真实标签/non-PU 视图拒绝/空轨迹)
       test_tracking.py                  # 轨迹/选择制品/结果数据类字段
       test_trainers.py                  # Fit/DeepFit/Supervised 训练策略
-      test_runner_oracle.py             # PN oracle 路径: 真实标签透传/OA-only/manifest 标注/误配 fail-loud
+      test_runner_oracle.py             # PN oracle 成功路径: 真实标签透传/OA-only/manifest 标注/c 无关性
+      test_runner_oracle_guards.py      # PN oracle 误配 fail-loud: 视图/生成器/训练器/先验/机制一致性
+      _runner_oracle_helpers.py         # oracle 测试共享夹具: 四路 bundle 与记录型训练器
       test_survey_execution.py          # 共享 MLP/随机 encoder、adapter 缓存与 SAR 原空间一致性
       test_survey_protocol.py           # 执行矩阵、runner 参数锁、比较公平性与正式结果阻断
       test_survey_protocol_validation.py # 执行矩阵审核字段/KLDCE 可运行性/Self-PU 独立预算门禁
@@ -306,9 +308,12 @@ tests/
       test_survey_script_protocol.py    # 版本化脚本、split/seed 对应、oracle 去重与 CIFAR 缓存命中
       test_checkpoint_selection.py      # PA/OA 不同 epoch 选择、无泄漏与独立恢复反例
       test_epoch_checkpoints.py         # 回调、权重快照、CPU/CUDA 保存加载与深度方法覆盖
-      test_survey_comparison.py         # 对照协议加载、单位/不确定度分支与 fail-closed 门禁
-      test_survey_comparison_coverage.py # 187 单元全集覆盖、维度/机制/选模分类与漏项/重复/幽灵映射门禁
+      test_survey_comparison.py         # 对照协议加载、审核门禁、协议绑定与矛盾记录 fail-closed
+      test_survey_comparison_verdict.py # 单位换算、pooled SE 双分支与阈值裁决
+      test_survey_comparison_coverage.py # 187 单元全集覆盖与漏项/重复/幽灵映射门禁
+      test_survey_comparison_classification.py # 已发布矩阵的资格分类: PA 阻断/不可运行/PN/双路径分榜
       test_survey_comparison_report.py  # manifest comparison 上下文、聚合报告与三档调查结论
+      _survey_comparison_helpers.py     # 对照测试共享夹具: 来源/锚点/映射/结果构造与写盘拒收
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
@@ -363,7 +368,8 @@ tests/
   helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
   test_import.py                        # 导入冒烟
   test_labels.py                        # 标签规范化
-  test_validation.py                    # 输入校验
+  test_validation.py                    # 数据集形态校验(维度/类别齐备/稀疏)
+  test_validation_labels.py             # 标签含义校验(label_semantics 声明与真值二值性)
   test_registry.py                      # 注册机制
   test_builtin_methods.py               # 注册表元数据
 ```
