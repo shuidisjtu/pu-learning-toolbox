@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 19 个注册方法均已完成 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器，后续重点是官方数据、历史环境和 paper-like benchmark。新接入的 GradPU、PUET 仍属实验性子集，未完成 Survey P3.2 验收。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 20 个注册方法均已完成 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器，后续重点是官方数据、历史环境和 paper-like benchmark。新接入的 GradPU、PUET、VPU 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收。
 > 实际执行顺序与原始路线图有调整：优先实现 PU 特有的风险估计方法（工具箱核心差异化能力），经典分类器包装器后移。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
@@ -140,7 +140,7 @@
   `--classifier-param`，支持按注册名调整模型；新增 PU-aware `PUTuner`，搜索阶段仅做
   CV 并只重训最佳候选；新增 Streamlit 图形界面，支持数据上传、模型配置、参数搜索、
   指标与诊断展示，以及报告、预测和模型下载）
-- **算法**: 19 个已注册方法，全部 native 实现
+- **算法**: 20 个已注册方法，全部 native 实现
 - **质量门禁**: 8 道（test_quality / doc_links / project_metadata / math_rendering / api_docs / skill_sync / baseline_configs / format）
 - **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
 - **依赖外部**: Phase 3 官方历史环境，以及 WConPU CUDA/授权数据和 DGPU EDM/CelebA

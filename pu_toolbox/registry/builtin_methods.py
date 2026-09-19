@@ -245,6 +245,25 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="MIT",
         training_cost=Cost.MEDIUM,  # torch, 100 epochs
     ),
+    # ── 9a. Variational PU (experimental tabular adapter) ───────────
+    AlgorithmMetadata(
+        name="vpu",
+        aliases=["variational_pu"],
+        family=Fam.RISK_ESTIMATION,
+        paper="A Variational Approach for Learning from Positive and Unlabeled Data",
+        scenario=[Scn.CASE_CONTROL],
+        assumption=[Asm.SCAR],
+        requires_class_prior=False,
+        supports_sparse=False,
+        supports_gpu=True,
+        backend=Backend.TORCH,
+        maturity=Maturity.EXPERIMENTAL,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_RELATED,
+        upstream_url="https://github.com/HC-Feynman/vpu",
+        license="MIT",
+        training_cost=Cost.MEDIUM,
+    ),
     # ── 10. PUSB ───────────────────────────────────────────────────
     AlgorithmMetadata(
         name="pusb",
@@ -474,6 +493,7 @@ def _bind_native_classes() -> None:
         ("recpe", "..prior.recpe", "ReCPEEstimator"),
         ("class_prior_estimation", "..prior.pen_l1", "ClassPriorEstimator"),
         ("dist_pu", "..estimators.risk.dist_pu", "DistPUClassifier"),
+        ("vpu", "..estimators.risk.vpu", "VPUClassifier"),
         ("pusb", "..estimators.bias_aware.pusb", "PUSBClassifier"),
         ("pusb_kernel", "..estimators.bias_aware.pusb_kernel", "PUSBKernelClassifier"),
         ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),

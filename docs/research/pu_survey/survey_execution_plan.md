@@ -9,9 +9,9 @@
 - **实验层基础功能就绪（不等于正式协议全绿）**：`pu_toolbox/experiment/` 34 个公共API，四路数据合约、PA/OA 独立选模、策略化接口、
   数据准备链（datasets/image/text/feature_adapter/training_views）、资源计量与失败语义、公平性门禁均已实现并入门禁覆盖。
 - **22 目标方法**：7 个已通过现有可训练接口接入——uPU、nnPU、KLDCE、Dist-PU、PUSB、LBE、Self-PU（均有方法卡）；
-  另有 Grad-PU（二维 MLP）与 PUET（CPU Extra Trees）完成实验性组件、注册、方法卡与 smoke，但未入 Survey 台账/执行矩阵，**不计入 P3.2 验收或正式榜**；
-  其余 12 个**未出现**（无注册/无占位/无方法卡）：A 类 PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX，
-  B 类 VPU、PULDA，C 类 Robust-PU、Split-PU、LAGAM；第 22 个即 PN oracle（下述）；
+  另有 Grad-PU（二维 MLP）、PUET（CPU Extra Trees）及 VPU（二维 MLP）完成实验性组件、注册、方法卡与 smoke，但未入 Survey 台账/执行矩阵，**不计入 P3.1/P3.2 验收或正式榜**；
+  其余 11 个**未出现**（无注册/无占位/无方法卡）：A 类 PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX，
+  B 类 PULDA，C 类 Robust-PU、Split-PU、LAGAM；第 22 个即 PN oracle（下述）；
   `api_only` 0 个。
 - **PN oracle（2026-09-11 接入 MLP 路径）**：无注册项；经 `CleanLabelGenerator`（真实标签透传、
   `output_view="clean"`）+ `SupervisedTrainer` + 仅 OA 协议接入，脚本入口
@@ -64,7 +64,7 @@
 | P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
 | P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |
 | P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果 |
-| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | ⏳ 待办 / shuidisjtu：VPU、PULDA、PAN、RP、CVIR、PULNS |
+| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 已完成独立组件，台账/矩阵与正式验收未做；其余 PULDA、PAN、RP、CVIR、PULNS 待办 |
 | P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | ⏳ 待办 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LAGAM、GEN-PU、Holistic-PU、P3MIX；Grad-PU/PUET 独立组件已完成，台账/矩阵及正式验收仍待前置项；PUET 为 CPU 树方法，分组/GPU 条款须复核 |
 | P3.3 | 深度 GPU 验证与调度 | P3.2 | GPU 预约、显存预算、失败/OOM 重试及结果路径均有记录；不与 P2.1 竞争同一窗口 | ⏳ 待办 / HENG958 |
 | P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | ⏳ 待办 / shuidisjtu |
@@ -151,6 +151,16 @@
   公开结果对照，协议 §5）；**接入验收须确认使用共享 backbone 规格**，方法私有网络只能标
   `benchmark-adapted` 单列报告（协议 §2.5 第 4 条）；
   TS 原生方法在其训练循环内接入 `calibrate_ts_os_batch`
+
+#### P3.1 技术预集成进度（2026-09-18；非正式验收）
+
+[VPU](../method_cards/VPU.md) 已完成二维特征版的变分风险与 MixUp 正则实现、
+注册/API、方法卡、公式及接口测试、PU 验证风险、训练轨迹与权重恢复。与
+`HC-Feynman/vpu` 锁定提交 `603bcc1e628795f57a5ac87e5b0b977273b7cf91`
+对照了核心目标与归一化方式；默认网络是工具箱适配，**不是**论文的图像或七层表格网络。
+这只是可独立使用的实验性组件，**未修改已冻结的 Survey 台账/执行矩阵**；正式 P3.1 仍需
+P2.0b 签署、共享 backbone/执行规格对齐、台账与矩阵登记、公开结果对照、多 seed
+GPU/资源记录及合作者复核。下一项按 B 类顺序推进 PULDA。
 
 #### P3.2 技术预集成进度（2026-09-18；非正式验收）
 

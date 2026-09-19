@@ -198,6 +198,12 @@ def _make_gradpu():
     return GradPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
 
 
+def _make_vpu():
+    from pu_toolbox.estimators.risk import VPUClassifier
+
+    return VPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
+
+
 def _make_puet():
     from pu_toolbox.estimators.risk import PUExtraTreesClassifier
 
@@ -223,6 +229,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "weighted_contrastive_pu": _make_weighted_contrastive_pu,
     "dgpu": _make_dgpu,
     "gradpu": _make_gradpu,
+    "vpu": _make_vpu,
     "puet": _make_puet,
 }
 

@@ -32,6 +32,7 @@ from .estimators.risk.nnpu import NonNegativePUClassifier
 from .estimators.risk.pnu import PNUClassifier
 from .estimators.risk.puet import PUExtraTreesClassifier
 from .estimators.risk.upu import UPUClassifier
+from .estimators.risk.vpu import VPUClassifier
 from .preprocessing import make_sar_dataset, profile_pu_data
 from .prior.kernel_mean import KernelMeanPriorEstimator
 from .prior.pen_l1 import ClassPriorEstimator
@@ -74,6 +75,7 @@ __all__ = [
     "ShiftComparisonReport",
     "SelfPUClassifier",
     "UPUClassifier",
+    "VPUClassifier",
     "WeightedContrastivePUClassifier",
     "analyze_domain_assumptions",
     "analyze_pu_sensitivity",

@@ -54,6 +54,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `kldce`（`kernelized_ldce`） | `KLDCEClassifier` | risk | `flip_probability` / `sigma` / `reg_strength` | [KLDCE](../../research/method_cards/KLDCE.md) |
 | `llsvm` | `LLSVMClassifier` | risk | `alpha` / `beta` / `gamma` / `reg_lambda` / `max_epochs` | [LLSVM](../../research/method_cards/LLSVM.md) |
 | `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
+| `vpu`（`variational_pu`） | `VPUClassifier` | risk | `hidden_dim` / `max_epochs` / `regularization_weight` / `mixup_alpha` | [VPU](../../research/method_cards/VPU.md) |
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
@@ -78,7 +79,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 |---|---|---|
 | `supported` | 权重进入训练目标 | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
 | `ignored` | 为 sklearn API 兼容而接受，但不参与训练 | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
-| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu`, `puet` |
+| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu`, `puet`, `vpu` |
 
 依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
 
@@ -367,6 +368,27 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, lear
 | `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 种子与 torch 设备 |
 
 - 文档：[Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)
+
+#### `VPUClassifier`（注册名 `vpu`，别名 `variational_pu`）
+
+无须类先验的变分 PU 分类器；仅支持稠密二维特征，默认网络为实验性工具箱适配。
+
+```python
+VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
+              learning_rate=3e-4, regularization_weight=0.03, mixup_alpha=0.3,
+              random_state=None, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | MLP 隐层宽度与层数；`depth=0` 为线性头 |
+| `max_epochs` / `batch_size` | `int` / `int` | `100` / `128` | 训练轮数与批次大小 |
+| `learning_rate` | `float` | `3e-4` | Adam 学习率 |
+| `regularization_weight` | `float` | `0.03` | 对数 MixUp 一致性权重 |
+| `mixup_alpha` | `float` | `0.3` | Beta 插值分布的两个同值形状参数 |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子与 torch 设备 |
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None)`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_`、`optimizer_steps_`、`max_log_phi_` 提供训练审计。详见 [VPU 方法卡](../../research/method_cards/VPU.md)。
 
 ### Bias-Aware 分类器
 

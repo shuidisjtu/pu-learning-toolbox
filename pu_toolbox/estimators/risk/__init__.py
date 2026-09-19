@@ -7,6 +7,7 @@ from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.pnu import PNUClassifier
 from pu_toolbox.estimators.risk.puet import PUExtraTreesClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
+from pu_toolbox.estimators.risk.vpu import VPUClassifier
 
 __all__ = [
     "KLDCEClassifier",
@@ -16,4 +17,5 @@ __all__ = [
     "PNUClassifier",
     "PUExtraTreesClassifier",
     "UPUClassifier",
+    "VPUClassifier",
 ]
