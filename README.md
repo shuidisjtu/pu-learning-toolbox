@@ -141,6 +141,15 @@ the protocol, current execution status, and reporting boundaries. Until all
 protocol gates are satisfied, results must be identified as a
 `pilot / partial benchmark`.
 
+Aggregating a run tree forces the leaderboard-separation gates and reports
+each comparability group separately; non-formal results are refused unless
+`--diagnostic` asks for them:
+
+```bash
+uv run python scripts/aggregate_survey_runs.py results/survey
+uv run python scripts/aggregate_survey_runs.py results/survey --diagnostic
+```
+
 ## AI workflow skill
 
 `pu-workflow` (Agent Skills open standard) drives the full PU analysis

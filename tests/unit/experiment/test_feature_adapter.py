@@ -171,3 +171,27 @@ def test_edge_fairness_gate_rejects_path_mislabel_and_representation_drift():
         )
     with pytest.raises(ValueError, match="representation_sha256"):
         partition_fair_leaderboard_runs([_run("a"), _run("b", representation_sha256="d" * 64)])
+
+
+def test_basic_native_2d_runs_join_the_fairness_gate():
+    """The table-only path is the matrix's majority, so the gate must take it.
+
+    The fairness invariants -- shared split, epoch cap, batch candidates,
+    tuning candidate count and seeds -- apply to it exactly as they do to the
+    image paths; only the path key differs.
+    """
+    groups = partition_fair_leaderboard_runs([_run("upu", "native_2d"), _run("kldce", "native_2d")])
+    assert set(groups) == {"mnist/native_2d"}
+    assert groups["mnist/native_2d"]["methods"] == ["kldce", "upu"]
+
+
+def test_edge_training_path_outside_the_locked_set_is_rejected():
+    """Widening the set must not turn it into free text.
+
+    This is the only place a training_path value is validated at all --
+    survey_protocol checks it is a non-empty string and resolve_unit is an
+    exact match -- so a typo would otherwise reach the non-CNN branches that
+    silently assume a 2-D MLP.
+    """
+    with pytest.raises(ValueError, match="training_path must be"):
+        partition_fair_leaderboard_runs([_run("upu", "native2d")])
