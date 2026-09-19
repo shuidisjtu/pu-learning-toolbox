@@ -31,15 +31,25 @@
 
 ## 发布状态 (v1.11.0)
 
-- Survey P2.0a 工程交付（未发布，待负责人复核）：版本化矩阵、runner 强制消费与参数锁、
+- Survey P2.0a 工程交付（未发布，2026-09-17 已签署验收）：版本化矩阵、runner 强制消费与参数锁、
   协议/预算/表征 manifest、真实 split/seed 对应、CIFAR 原生 nnPU 与随机冻结 adapter 接线、
   摘要校验缓存、共享 MLP oracle、路径/预算/标签摘要比较门禁；46 项 CPU 专项通过，
   沙箱外 4 项 GPU smoke 通过（含既有 CNN13 测试），新增 3 项 GPU 测试。
   后续 `survey-v1.1` 补齐逐 epoch 权重保存、双 teacher 保留、PA/OA 独立选择和推理恢复；
   新增 checkpoint 专项 24 项、GPU 回归 8 项及完整快层 1532 项通过；
-  正式结果仍受 P2.0b/c、负责人复核、PA Accuracy/阈值准则及未完成路径阻断；
+  正式结果仍受 P2.0b/c、PA Accuracy/阈值准则及未完成路径阻断；
   CNN oracle 等缺少对齐对照的单元明确不可冒充上界。见
   [交付记录](../research/pu_survey/p2_0a_delivery.md)。
+
+- Survey P2.0b 标签语义门禁 + P2.0c 交叉验证对照预注册（未发布，工程完成、合作者签署待办）：
+  P2.0b 新增分类器 `label_semantics` 声明位、registry 同步与 runner 训练前按视图强制检查
+  （PU 视图须 `"pu"`、clean 视图须 `"pn"`；第三方未声明估计器按 `"pu"` 保守处理），
+  堵住 `SupervisedTrainer` 配 PU 风险估计器静默产出假 `pn_oracle` 的路径；
+  P2.0c 为外部对照矩阵预注册，来源技术审计后部分锚点与行级映射退回待审。
+  两者均不放行正式 P2.1。见
+  [P2.0b 交付记录](../research/pu_survey/p2_0b_delivery.md)、
+  [P2.0c 交付记录](../research/pu_survey/p2_0c_delivery.md)、
+  [P2.0c 复核包](../research/pu_survey/p2_0c_review.md)。
 
 - PN oracle 接入（未发布，随下一版本发布）：`CleanLabelGenerator` +
   `Generator.output_view` 视图声明 + `Trainer.trains_on_real_labels` 声明与
@@ -130,8 +140,8 @@
   `--classifier-param`，支持按注册名调整模型；新增 PU-aware `PUTuner`，搜索阶段仅做
   CV 并只重训最佳候选；新增 Streamlit 图形界面，支持数据上传、模型配置、参数搜索、
   指标与诊断展示，以及报告、预测和模型下载）
-- **算法**: 17 个已注册方法，全部 native 实现
-- **质量门禁**: 7 道（test_quality / doc_links / project_metadata / math_rendering / skill_sync / baseline_configs / format）
+- **算法**: 19 个已注册方法，全部 native 实现
+- **质量门禁**: 8 道（test_quality / doc_links / project_metadata / math_rendering / api_docs / skill_sync / baseline_configs / format）
 - **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
 - **依赖外部**: Phase 3 官方历史环境，以及 WConPU CUDA/授权数据和 DGPU EDM/CelebA
   全量运行；InfoMax 暂定 Fashion-MNIST 20-seed 协议已执行

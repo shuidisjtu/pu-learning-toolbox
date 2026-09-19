@@ -24,7 +24,8 @@
   入 manifest。**可运行边界**：SAR 行仍需 P2.0b 的标签语义门禁与 P2.0a 的执行矩阵才可进入正式
   pilot 混排；在此之前 SAR 产物按技术验证单列（见 §2.0 三种门槛）。
 - **能力声明现状**：架构声明为 `native_architectures`/`input_ndims`/`encoder_parameter`/`trains_encoder`
-  四字段；P2.0b 新增独立的 `label_semantics` 主输入语义声明（17 个注册分类器显式声明且有契约测试）。
+  四字段；P2.0b 新增独立的 `label_semantics` 主输入语义声明（每个注册分类器都须显式声明，
+  由契约测试强制，不写死数量）。
   当前 7 个 Survey 方法中仅 nnPU 支持原生 CNN（mlp/cnn、{2,4}、encoder 注入；
   工具箱整体另有 infomax_pu、weighted_contrastive_pu 为 mlp/cnn 双架构，不在 Survey 22 方法范围）；
   Self-PU 为 mlp/{2,4}（非原生 CNN——由 native_architectures={"mlp"} 承载；input_ndims 按模板
