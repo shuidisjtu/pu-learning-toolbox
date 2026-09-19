@@ -463,6 +463,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         PROTOCOL_PATH,
         load_protocol,
         resolve_unit,
+        unit_checkpoint_bytes,
         validate_parameters,
     )
     from pu_toolbox.registry import get_metadata, register_all_builtin_methods
@@ -586,6 +587,12 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 },
                 "adapter_manifest": adapter_manifest,
                 "image_manifest": image_manifest,
+                # Pre-run disk guard input. The networks are built inside fit,
+                # so the size has to be derived from the locked protocol here
+                # rather than introspected from an unfitted estimator.
+                "checkpoint_bytes_per_component": unit_checkpoint_bytes(
+                    protocol, row, input_dim=bundle.train.X.shape[1]
+                ),
             }
             if args.oracle:
                 config.update(

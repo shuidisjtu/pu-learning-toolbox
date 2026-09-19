@@ -8,7 +8,9 @@ strategy (Generator/Trainer/SelectionProtocol) per implementation_plan.md
 from __future__ import annotations
 
 import inspect
+import tempfile
 import time
+import warnings
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -98,11 +100,27 @@ class ExperimentRunner:
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
         validate_bundle(bundle)
+        # The per-epoch networks this estimator promises to write.  Resolved
+        # once, before any candidate runs: a malformed declaration is a code
+        # defect, and discovering it per candidate would report it as an
+        # excluded candidate rather than as the mistake it is.
+        declared_components = _declared_epoch_components(model)
+        # Resolved once and threaded through both the disk guard and _train:
+        # the trainer this guard approved is the one that trains, even if the
+        # config is mutated meanwhile, and reading it twice would hand a
+        # config that answers differently each time two different trainers.
+        trainer = self._trainer()
+
+        disk_preflight: dict[str, Any] = {}
         try:
             protocol_context = runner_protocol_context(
                 model, bundle, self.config, self.seed, self.generator, self.protocols
             )
             _validate_model_capability(model, bundle, self.config.get("architecture"))
+            disk_preflight = self._checkpoint_disk_preflight(
+                model, trainer, protocol_context, declared_components
+            )
+            _enforce_disk_preflight(disk_preflight, protocol_context.get("execution_mode"))
         except (ValueError, TypeError, KeyError) as exc:
             if self.config.get("survey_protocol") is not None:
                 self._write_manifest(
@@ -117,7 +135,7 @@ class ExperimentRunner:
                         "selection": {},
                         "test_results": {},
                         "elapsed": time.perf_counter() - t0,
-                        "resources": {},
+                        "resources": _disk_resource_entry(disk_preflight),
                         "failures": [{"stage": "protocol_preflight", "error": str(exc)}],
                     }
                 )
@@ -156,9 +174,6 @@ class ExperimentRunner:
         # trainer reads label 0 as "unlabeled", a real-label (PN-oracle) trainer
         # reads it as a real negative. Mismatching them still trains something
         # and still writes a manifest, so both directions fail loudly here.
-        # Resolved once and threaded into _train: the trainer this guard approved
-        # is the one that trains, even if the config is mutated meanwhile.
-        trainer = self._trainer()
         trains_on_real_labels = getattr(trainer, "trains_on_real_labels", False)
 
         if view == "clean":
@@ -210,12 +225,6 @@ class ExperimentRunner:
         # the meaning of the labels it receives.
         expected_semantics = "pn" if view == "clean" else "pu"
         validate_label_semantics(model, expected_semantics)
-
-        # The per-epoch networks this estimator promises to write.  Resolved
-        # once, before any candidate runs: a malformed declaration is a code
-        # defect, and discovering it per candidate would report it as an
-        # excluded candidate rather than as the mistake it is.
-        declared_components = _declared_epoch_components(model)
 
         # PA needs a labeled positive in its val view. The oracle trains on real
         # labels and runs OA only, so this generated-view check does not apply.
@@ -324,6 +333,7 @@ class ExperimentRunner:
             generation_elapsed=generation_elapsed,
             tuning_elapsed=tuning_elapsed,
         )
+        resources.update(_disk_resource_entry(disk_preflight))
 
         if not trajectories:
             elapsed = time.perf_counter() - t0
@@ -468,21 +478,51 @@ class ExperimentRunner:
             )
         return trainer
 
+    def _checkpoint_disk_preflight(
+        self, model, trainer, protocol_context: dict, declared_components: tuple[str, ...]
+    ) -> dict[str, Any]:
+        """Measure the checkpoint storage this run needs.
+
+        Returns the payload so both the rejection manifest and the resource
+        summary record what was measured, not only what was decided.  Empty
+        when the run writes no checkpoints or cannot be sized.
+        """
+        if not _captures_checkpoints(self.config, trainer, model):
+            return {}
+        budget = protocol_context.get("budget") or {}
+        bytes_per_component = self.config.get("checkpoint_bytes_per_component")
+        # A bound unit knows its epoch cap from the protocol; an unbound one
+        # only from the estimator's own budget.
+        epochs = budget.get("epochs") or getattr(model, "max_epochs", None)
+        if bytes_per_component is None or not epochs:
+            # Sizing is unknowable here: the networks are built inside fit, so
+            # an unfitted estimator reports no parameters, and a wrong constant
+            # would refuse tiny runs or wave large ones through.  Unknown is not
+            # the same as "cannot fit", so it warns rather than blocking.
+            warnings.warn(
+                "checkpoint disk usage cannot be estimated; skipping the pre-run disk check.",
+                stacklevel=2,
+            )
+            return {}
+        return resource_tools.disk_space_preflight(
+            required_bytes=resource_tools.checkpoint_disk_requirement(
+                bytes_per_component=bytes_per_component,
+                epochs=epochs,
+                components=len(declared_components),
+                candidates=len(self.config.get("candidates", [{}])),
+            ),
+            directory=_checkpoint_root(self.config, self.manifest_path) or tempfile.gettempdir(),
+        )
+
     def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer):
         """Train one candidate with the trainer the view guard approved."""
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
-        if (
-            type(trainer) in (DeepFitTrainer, SupervisedTrainer)
-            and self.config.get("capture_epoch_checkpoints", True)
-            and "epoch_callback" in inspect.signature(type(est).fit).parameters
-        ):
+        if _captures_checkpoints(self.config, trainer, est):
             from .checkpoints import EpochCheckpointTrainer
 
-            root = self.config.get("checkpoint_dir")
-            if root is None and self.manifest_path:
-                root = str(Path(self.manifest_path).resolve().parent / "checkpoints")
             trainer = EpochCheckpointTrainer(
-                supervised=trainer.trains_on_real_labels, checkpoint_dir=root
+                supervised=trainer.trains_on_real_labels,
+                checkpoint_dir=_checkpoint_root(self.config, self.manifest_path),
             )
         return trainer.fit(
             est,
@@ -649,6 +689,56 @@ def _clone_candidate(model, params: dict, seed: int):
     if "random_state" in est_params and est_params["random_state"] is None:
         est.set_params(random_state=seed)
     return est
+
+
+def _checkpoint_root(config: dict[str, Any], manifest_path: str | None) -> str | None:
+    """Where checkpoints land, resolved in one place.
+
+    The pre-run disk guard and the trainer must agree on this directory: a
+    guard that measures somewhere else is not a guard.  ``None`` means the
+    checkpoint writer falls back to a system temporary directory.
+    """
+    root = config.get("checkpoint_dir")
+    if root is None and manifest_path:
+        root = str(Path(manifest_path).resolve().parent / "checkpoints")
+    return root
+
+
+def _captures_checkpoints(config: dict[str, Any], trainer, model) -> bool:
+    """Whether the runner will swap in a checkpoint-capturing trainer.
+
+    Shared by the disk guard and ``_train`` so the two cannot drift into
+    disagreeing about whether this run writes checkpoints at all.
+    """
+    return (
+        type(trainer) in (DeepFitTrainer, SupervisedTrainer)
+        and config.get("capture_epoch_checkpoints", True)
+        and "epoch_callback" in inspect.signature(type(model).fit).parameters
+    )
+
+
+def _enforce_disk_preflight(payload: dict[str, Any], execution_mode: str | None) -> None:
+    """Refuse a versioned pilot that cannot hold its checkpoints; warn otherwise.
+
+    The execution mode already carries the question that matters -- whether
+    this run's output counts -- so it decides the severity and no override flag
+    is needed.  A smoke run is still told, because a shortage there is a
+    symptom worth seeing before the formal batch.
+    """
+    if not payload or payload.get("ready", True):
+        return
+    message = (
+        f"insufficient disk for checkpoints: need {payload['required_bytes']} bytes, "
+        f"{payload['free_bytes']} free in {payload['directory']}"
+    )
+    if execution_mode == "versioned_pilot":
+        raise ValueError(message)
+    warnings.warn(f"{message}; continuing because this is not a versioned pilot.", stacklevel=3)
+
+
+def _disk_resource_entry(payload: dict[str, Any]) -> dict[str, Any]:
+    """The resource mapping for a rejected run, empty when nothing was measured."""
+    return {"checkpoint_disk_preflight": payload} if payload else {}
 
 
 def _declared_epoch_components(model) -> tuple[str, ...]:

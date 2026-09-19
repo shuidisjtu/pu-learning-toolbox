@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import platform
+import shutil
 import subprocess
 import sys
 from collections.abc import Iterable
 from importlib import metadata
+from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+#: Reserve for the one same-seed retry a candidate gets.  A retry writes into
+#: its own ``attempt-N`` directory, and the abandoned attempt is never cleaned
+#: up, so both copies can be on disk at once.
+DEFAULT_CHECKPOINT_ATTEMPTS = 2
 
 
 def aggregate_resource_usage(manifests: Iterable[dict]) -> dict[str, Any]:
@@ -120,6 +127,72 @@ def runtime_environment() -> dict[str, Any]:
         environment["torch_probe_error"] = f"{type(exc).__name__}: {exc}"
     environment["executable"] = sys.executable
     return environment
+
+
+def disk_free_bytes(directory: str | Path) -> int:
+    """Free bytes on the filesystem holding ``directory``.
+
+    The directory the guard cares about does not exist yet -- checkpointing
+    creates it -- so this walks up to the nearest existing ancestor rather than
+    creating anything just to measure it.
+    """
+    path = Path(directory)
+    while not path.exists():
+        parent = path.parent
+        if parent == path:
+            break
+        path = parent
+    return shutil.disk_usage(path).free
+
+
+def checkpoint_disk_requirement(
+    *,
+    bytes_per_component: int,
+    epochs: int,
+    components: int,
+    candidates: int,
+    attempts: int = DEFAULT_CHECKPOINT_ATTEMPTS,
+) -> int:
+    """Bytes needed to keep every candidate's per-epoch checkpoints on disk.
+
+    All arguments are counts of things, so each must be a positive integer;
+    ``bool`` is rejected explicitly because it is an ``int`` subclass and a
+    ``True`` here would silently mean "one".
+    """
+    values = {
+        "bytes_per_component": bytes_per_component,
+        "epochs": epochs,
+        "components": components,
+        "candidates": candidates,
+        "attempts": attempts,
+    }
+    for name, value in values.items():
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"checkpoint disk requirement needs a positive integer {name}")
+    return bytes_per_component * epochs * components * candidates * attempts
+
+
+def disk_space_preflight(
+    *,
+    required_bytes: int,
+    directory: str | Path,
+    free_bytes: int | None = None,
+) -> dict[str, Any]:
+    """Report whether the checkpoint directory can hold a run's checkpoints.
+
+    ``free_bytes`` is injectable so the decision can be tested without
+    depending on the host's actual free space; callers in production leave it
+    unset and get a real probe.
+    """
+    if free_bytes is None:
+        free_bytes = disk_free_bytes(directory)
+    return {
+        "required_bytes": int(required_bytes),
+        "free_bytes": int(free_bytes),
+        "missing_bytes": max(0, int(required_bytes) - int(free_bytes)),
+        "directory": str(directory),
+        "ready": int(free_bytes) >= int(required_bytes),
+    }
 
 
 def _package_version(name: str) -> str | None:

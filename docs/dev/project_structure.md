@@ -313,6 +313,7 @@ tests/
       test_checkpoint_selection.py      # PA/OA 不同 epoch 选择、无泄漏与独立恢复反例
       test_epoch_checkpoints.py         # 回调、权重快照、CPU/CUDA 保存加载与深度方法覆盖
       test_checkpoint_coverage.py       # 覆盖不变量按声明而非已保存集合校验、丢 component 不解除 R9 阻断
+      test_checkpoint_disk_preflight.py # 跑批前磁盘容量守卫: 纯函数算术/边界/按执行模式分级与体积估算
       test_survey_comparison.py         # 对照协议加载、审核门禁、协议绑定与矛盾记录 fail-closed
       test_survey_comparison_verdict.py # 单位换算、pooled SE 双分支与阈值裁决
       test_survey_comparison_coverage.py # 187 单元全集覆盖与漏项/重复/幽灵映射门禁
