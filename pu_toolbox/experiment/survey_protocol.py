@@ -414,6 +414,40 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     }
 
 
+def budget_fairness_fields(budget: dict) -> dict[str, Any]:
+    """Reduce a budget to the values the fairness gates compare.
+
+    The group key separates datasets, not budget families: the classical group
+    holds a closed-form solve, an EM fit, an internal-CV fit and an alternating
+    solver, which share no budget key at all.  Comparing the raw dictionaries
+    would refuse the rows the protocol lists side by side, so the comparison
+    rests on what the gates consume -- the epoch cap and the batch-size
+    candidate set.
+
+    A field the family does not number reports the placeholder ``1``.  That is
+    safe because these values are only ever compared within one comparability
+    group, where every member is subject to the same placeholder.
+    """
+    return {
+        "max_epochs": _positive_int(budget.get("epochs")),
+        "batch_size_candidates": (_positive_int(budget.get("batch_size")),),
+    }
+
+
+def _positive_int(value: Any) -> int:
+    """``value`` when it is a positive integer, and the placeholder otherwise.
+
+    A family may cap no epochs at all (a closed-form solve has none) or describe
+    a field instead of numbering it (the fullbatch family records that the
+    estimator's batch size is unused).  Both have to reach the gate as a
+    positive int, so both take the placeholder rather than the gate learning a
+    second accepted shape.
+    """
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        return 1
+    return value
+
+
 def validate_comparable_manifests(manifests: list[dict], *, require_formal: bool = True) -> None:
     """Fail closed before mixing paths, protocols, representations or budgets.
 
@@ -425,6 +459,7 @@ def validate_comparable_manifests(manifests: list[dict], *, require_formal: bool
     if require_formal and any(not item.get("formal_eligible", False) for item in manifests):
         raise ValueError("formal aggregation blocked; inspect formal_blockers")
     expected = manifests[0]
+    expected_budget = budget_fairness_fields(expected.get("budget", {}))
     for item in manifests[1:]:
         for key in (
             "protocol_version",
@@ -432,11 +467,16 @@ def validate_comparable_manifests(manifests: list[dict], *, require_formal: bool
             "seed",
             "training_path",
             "comparability_group",
-            "budget",
             "backbone",
         ):
             if item.get(key) != expected.get(key):
                 raise ValueError(f"comparison mismatch: {key}")
+        # Compared through the fields the fairness gates consume rather than as
+        # a dictionary: one comparability group can hold several budget families.
+        item_budget = budget_fairness_fields(item.get("budget", {}))
+        for field, value in item_budget.items():
+            if value != expected_budget[field]:
+                raise ValueError(f"comparison mismatch: budget.{field}")
         for key in ("split_sha256", "feature_sha256"):
             if item["representation"][key] != expected["representation"][key]:
                 raise ValueError(f"comparison representation mismatch: {key}")
