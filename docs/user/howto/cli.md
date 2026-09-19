@@ -61,7 +61,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `recommend --profile profile.json [--data X.csv --labels y_pu.csv] [--class-prior 0.3 | --prior-estimator recpe] [--top-k 5] [--has-gpu] [--out-dir .]`：
   算法推荐 + 类先验估计（估计需 `--data/--labels`），写 `recommendation.json`
   （pu-workflow 环节 2）。
-- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--out-dir .]`：
+- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--seed 42] [--out-dir .]`：
   假设敏感性分析（先验/标记倾向扫描），写 `sensitivity.json`（pu-workflow 环节 4）。
 - `audit-benchmark --result-dir 结果目录 [--output audit.json]`：检查 benchmark 的必需产物、
   配置哈希、trial/seed 完整性、重复行、指标有限值，以及 official-data PU split 的样本重叠

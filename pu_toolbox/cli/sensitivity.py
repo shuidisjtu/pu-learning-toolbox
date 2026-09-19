@@ -50,6 +50,7 @@ def build_sensitivity_parser(sub: argparse._SubParsersAction) -> None:
     parser.add_argument(
         "--label-propensities", default=None, help="comma-separated grid (optional)"
     )
+    parser.add_argument("--seed", type=int, default=42, help="classifier random seed (default: 42)")
     parser.add_argument("--out-dir", default=".", help="output directory (default: current)")
     parser.set_defaults(func=run_sensitivity)
 
@@ -67,6 +68,11 @@ def run_sensitivity(args: argparse.Namespace) -> None:
             "prior-free classifier (e.g. elkan_noto, nnpu, pusb)"
         )
     clf = get_algorithm(args.classifier)()
+    # Prior-free classifiers do not share one constructor signature. Apply
+    # the CLI seed only when the sklearn-compatible parameter is declared.
+    # This keeps repeated fixed-output audits byte-for-byte reproducible.
+    if "random_state" in clf.get_params(deep=False):
+        clf.set_params(random_state=args.seed)
     clf.fit(X, y_pu)
     y_pred = clf.predict(X)
     priors = _parse_floats(args.class_priors, "class-priors")
