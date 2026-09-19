@@ -58,7 +58,8 @@ Self-PU 当前运行不注入 clean validation，因此是去掉 meta-reweightin
   train/pu_val/clean_val/test 的二维特征。明确是工程级 random-feature 基线，不是已训练 CNN。
   `fixed_external` 是既有 adapter 的“无本 split 拟合”接口分支，绝不表示用了外部预训练权重；
   补充的 `encoder_training` 字段明确实际行为。
-- 两路径强制分组；同一路径的不同训练预算也不能混排。
+- 训练路径强制分组（表格 `native_2d`、原生端到端 CNN、`cnn_feature_adapter` 各自成组）；
+  同一路径的不同训练预算也不能混排。
 
 缓存绑定 dataset 的四路输入、索引、seed/预处理配置、实际 encoder 状态、提取设备与 batch size。
 不绑定 method、c、标记机制或真实标签，因此同 split/seed 的 adapter 方法与 oracle 可复用。

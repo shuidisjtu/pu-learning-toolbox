@@ -18,6 +18,11 @@ import numpy as np
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 ROLES = ("train", "pu_val", "clean_val", "test")
+
+#: One frozen ResNet-18 state_dict, rounded up from the 44 MB measured in
+#: epoch_checkpoint_delivery.md -- which is where the 200-epoch budget's
+#: 8-9 GB per candidate per seed comes from.
+RESNET18_COMPONENT_BYTES = 45 * 1024**2
 _LOCKED_CONFIG = ("backbone", "budget", "representation", "training_path", "comparability_group")
 _REVIEW_STATUSES = frozenset({"pending_collaborator_review", "changes_requested", "accepted"})
 _REQUIRED_UNIT_FIELDS = frozenset(
@@ -34,6 +39,34 @@ _REQUIRED_UNIT_FIELDS = frozenset(
         "runnable",
     }
 )
+
+
+def unit_checkpoint_bytes(protocol: dict, row: dict, *, input_dim: int) -> int | None:
+    """Bytes one per-epoch checkpoint component costs for this execution unit.
+
+    ``None`` when the unit's budget caps no epochs, i.e. a closed-form or
+    kernel method that never checkpoints.  The mlp figure is the declared
+    architecture's parameter count at four bytes each; the image figure is a
+    constant because the frozen ResNet-18 is fixed.  Both are lower bounds:
+    they ignore filesystem overhead and any candidate that changes the network
+    size.
+    """
+    if not protocol["budgets"][row["budget"]].get("epochs"):
+        return None
+    backbone = row["backbone"]
+    # Rows name the image backbone by variant (end-to-end vs random-frozen)
+    # while backbone_specs holds one shared "image" entry, so the family is
+    # matched by prefix rather than by a spec key that does not exist.
+    if backbone.startswith("resnet18"):
+        return RESNET18_COMPONENT_BYTES
+    hidden_dims = protocol["backbone_specs"].get(backbone, {}).get("hidden_dims")
+    if not hidden_dims:
+        return None
+    dims = [int(input_dim), *(int(dim) for dim in hidden_dims), 1]
+    # Each Linear contributes weight a*b plus its bias b.
+    return 4 * sum(
+        weights * units + units for weights, units in zip(dims[:-1], dims[1:], strict=True)
+    )
 
 
 def digest(value: Any) -> str:

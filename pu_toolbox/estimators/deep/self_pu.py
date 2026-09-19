@@ -243,6 +243,8 @@ class SelfPUClassifier(BasePUClassifier):
 
     family = AlgorithmFamily.DEEP_PU
     label_semantics = "pu"
+    # Both EMA teachers are written at every epoch by the checkpoint writer.
+    epoch_components = ("teacher_1", "teacher_2")
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True

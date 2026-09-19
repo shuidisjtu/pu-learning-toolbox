@@ -13,7 +13,14 @@ import numpy as np
 
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
-TrainingPath = Literal["native_cnn", "cnn_feature_adapter"]
+#: The paths a leaderboard group may be keyed by.  ``native_2d`` is the
+#: table-only path: it has no CNN variant to separate itself from, but it is
+#: subject to the same fairness invariants (shared split, epoch cap, batch
+#: candidates, tuning candidate count, seeds) and it is the majority of the
+#: survey matrix.  Keeping it out of this set meant the gate rejected the rows
+#: it exists to check.  Kept next to the Literal so the two cannot drift.
+LEGAL_TRAINING_PATHS = ("native_2d", "native_cnn", "cnn_feature_adapter")
+TrainingPath = Literal["native_2d", "native_cnn", "cnn_feature_adapter"]
 EncoderFitScope = Literal["fixed_external", "train_partition_only"]
 
 
@@ -285,8 +292,10 @@ def _validate_run_spec(run: LeaderboardRunSpec) -> None:
         or not run.dataset.strip()
     ):
         raise ValueError("leaderboard method and dataset must be non-empty.")
-    if run.training_path not in {"native_cnn", "cnn_feature_adapter"}:
-        raise ValueError("training_path must be 'native_cnn' or 'cnn_feature_adapter'.")
+    if run.training_path not in LEGAL_TRAINING_PATHS:
+        raise ValueError(
+            f"training_path must be one of {', '.join(repr(p) for p in LEGAL_TRAINING_PATHS)}."
+        )
     if run.adaptation_level not in {"source-faithful", "benchmark-adapted"}:
         raise ValueError("adaptation_level must be 'source-faithful' or 'benchmark-adapted'.")
     if run.training_path == "cnn_feature_adapter" and run.adaptation_level != "benchmark-adapted":

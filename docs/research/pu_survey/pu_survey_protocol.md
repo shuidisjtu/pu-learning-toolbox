@@ -209,8 +209,8 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 ## 5. 结果、复现与交付验收
 
 1. 结果固定分为四组，且不混合排名：SCAR--PA 主榜、SCAR--OA oracle 对照、SAR--OA 压力测试
-   （LBE-A、LBE-B 分开）和 PN oracle。每组按数据集、训练路径（端到端/feature-adapter）和原生
-   假设分层；跨数据集只比较趋势，不生成总排名；
+   （LBE-A、LBE-B 分开）和 PN oracle。每组按数据集、训练路径（表格 `native_2d`／端到端 CNN／
+   feature-adapter）和原生假设分层；跨数据集只比较趋势，不生成总排名；
 2. "具有优势"仅在同一数据集、$`c`$、协议和训练路径内，以独立 `test` Accuracy 五次重复均值
    比较；同步报告标准差、单配置训练成本、完整调参成本和峰值显存。暂不预设显著性检验门槛；
 3. 所有方法在同一数据集、$`c`$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/
