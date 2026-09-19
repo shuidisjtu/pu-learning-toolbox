@@ -117,7 +117,7 @@ def test_invalid_training_parameters(kwargs, message):
         _model(**kwargs).fit(X, y)
 
 
-def test_input_guards_and_weight_rejection():
+def test_edge_input_guards_and_weight_rejection():
     X, y = _data()
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(X)))
