@@ -247,7 +247,8 @@ adapter，仅量级）；uPU/KLDCE 无 pilot 对照点；LBE 论文为深度 Ada
    各 PU 方法；同方法 c 增大时 Accuracy 不明显下降；组内相对排序与锚点排序秩相关（软提示）。
 
 对照结论写入聚合报告，按协议 §5.7 区分"文献事实 / 本实验观测 / 推断"；对照矩阵版本与
-resolved 单元写入 manifest。
+resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按选择协议分列写入，
+入口脚本开跑前校验覆盖；聚合报告侧仍属 P2.2）。
 
 ## 3. 决策记录（需讨论后确定）
 

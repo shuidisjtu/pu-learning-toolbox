@@ -47,7 +47,8 @@
   P2.0b 新增分类器 `label_semantics` 声明位、registry 同步与 runner 训练前按视图强制检查
   （PU 视图须 `"pu"`、clean 视图须 `"pn"`；第三方未声明估计器按 `"pu"` 保守处理），
   堵住 `SupervisedTrainer` 配 PU 风险估计器静默产出假 `pn_oracle` 的路径；
-  P2.0c 为外部对照矩阵预注册，来源技术审计后部分锚点与行级映射退回待审。
+  P2.0c 为外部对照矩阵预注册，来源技术审计后部分锚点与行级映射退回待审；
+  跑批侧接线已补（manifest 按选择协议分列 comparison、入口脚本开跑前校验覆盖）。
   两者均不放行正式 P2.1。见
   [P2.0b 交付记录](../research/pu_survey/p2_0b_delivery.md)、
   [P2.0c 交付记录](../research/pu_survey/p2_0c_delivery.md)、

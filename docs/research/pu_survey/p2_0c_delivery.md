@@ -88,8 +88,16 @@ shuidisjtu 自审；本轮来源复核后，36 个锚点与 7 条行级映射回
 
 ## 5. 与下游的接口
 
-- **运行 manifest**：只写入 comparison 版本、摘要与解析出的 mapping id。
+- **运行 manifest**：写入 comparison 版本、摘要，以及**按选择协议分列**的 resolved mapping id。
+  一次 run 不等于一个结果单元：SCAR run 在 PU 视图与 clean 视图各选一次，矩阵把这两次登记为
+  两个不同映射，只写一个 `mapping_id` 会让该 run 另一半结果无法裁决。
   跨 seed 聚合与文献裁决不属于跑批阶段，不在 manifest 里做。
+- **跑批侧接线**（2026-09-19）：上述两个下游接口此前只有测试调用，执行路径从不 import 本模块，
+  于是 run 可以跑完而不记录自己属于哪个预注册单元。现已接线——runner 在协议预检内解析并写入
+  manifest 的 `comparison` 块；入口脚本在读取任何 split 之前用 `validate_comparison_coverage`
+  证明覆盖。矩阵未登记的 c 属于协议允许的偏离（`protocol_deviation` 已记录），这类 run 照常
+  执行，只是不带 `comparison`——拒绝它会删掉执行计划明文授予的能力。矩阵内容、`review_status`
+  与锚点审核状态均未改动，本条不构成签署。
 - **聚合报告**：注解层**不写回测量层**。报告承载我方指标、锚点值、差值与判定，但原始结果与排名不受其影响——
   对照矩阵不能反向修改被测对象。
 - **根因记录**：只在报告处于“待排查”状态时接受记录，且证据不可为空。

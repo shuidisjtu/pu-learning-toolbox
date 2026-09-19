@@ -453,6 +453,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def _versioned_main(args, c_values, seed_values) -> int:
     """Execute a bound pilot unit; no mutation of the generic smoke path."""
+    from pu_toolbox.experiment.survey_comparison import (
+        load_comparison_protocol,
+        validate_comparison_coverage,
+    )
     from pu_toolbox.experiment.survey_execution import (
         SourceSpaceGenerator,
         assemble_model,
@@ -461,6 +465,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
     )
     from pu_toolbox.experiment.survey_protocol import (
         PROTOCOL_PATH,
+        digest,
         load_protocol,
         resolve_unit,
         unit_checkpoint_bytes,
@@ -485,6 +490,21 @@ def _versioned_main(args, c_values, seed_values) -> int:
         if args.extraction_batch_size < 1:
             raise ValueError("extraction batch size must be positive")
         protocol = load_protocol(protocol_path)
+        if digest(protocol) == digest(load_protocol()):
+            # Prove the pre-registered pair covers every unit it must, here
+            # rather than per run.  A ghost mapping, a unit covered twice and a
+            # mapping that covers nothing are properties of the two files, and
+            # the last is visible only when both directions are checked; per run
+            # they would surface as a unit that quietly carries no comparison
+            # entry, long after the runs that could have revealed it were paid
+            # for.  Keyed on the matrix contents rather than on its path, so a
+            # copy of the shipped file is still checked: a run's comparison
+            # block is resolved against the shipped comparison either way, and
+            # nothing about the copy makes that resolution safer.  A genuinely
+            # different matrix is not checked -- the comparison file is bound to
+            # the shipped protocol by digest, so there is nothing to prove such
+            # a run against, and its units resolve, or do not, one by one.
+            validate_comparison_coverage(protocol, load_comparison_protocol(survey=protocol))
         row = resolve_unit(protocol, args.dataset, method, args.training_path)
         profile = protocol["method_profiles"][method]
         params = json.loads(args.model_params)
