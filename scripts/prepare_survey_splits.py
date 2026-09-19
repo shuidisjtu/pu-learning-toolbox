@@ -52,6 +52,12 @@ from pu_toolbox.experiment.text import SBERT_MODEL_NAME, encode_survey_texts
 
 SBERT_REVISION = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
 
+#: The datasets this pipeline prepares.  ``main`` rejects anything outside it
+#: and the guard test requires reviewed catalog provenance for everything
+#: inside it, so both read the same list: adding a dataset here without adding
+#: its provenance fails a test rather than a run.
+SPLIT_PIPELINE_DATASETS: tuple[str, ...] = ("spambase", "cifar10", "imdb")
+
 
 def load_spambase(raw_dir: Path) -> tuple[np.ndarray, np.ndarray]:
     """Load ``spambase.data``: 57 features + binary label column."""
@@ -159,10 +165,41 @@ def save_split_products(bundle: DatasetBundle, manifest: dict[str, Any], run_dir
     )
 
 
+def load_download_record(raw_dir: Path, dataset: str) -> dict[str, Any] | None:
+    """The local fetch record for one dataset, or ``None`` when there is none.
+
+    ``data/raw`` is machine-local, and its digests describe the archive *this*
+    machine downloaded, so they belong in the artifact rather than in the
+    reviewed catalog.  A record that exists but cannot answer for the download
+    is a defect, not an absent record, and must not be read as one.
+    """
+    path = raw_dir / dataset / "provenance.json"
+    if not path.is_file():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path} is not a JSON object")
+    declared = payload.get("dataset")
+    if declared is not None and declared != dataset:
+        raise ValueError(
+            f"{path} records a download of {declared!r}, not {dataset!r}; its "
+            "digest would otherwise be written into the wrong manifest"
+        )
+    return payload
+
+
 def prepare_tabular(
-    spec_name: str, X_source: np.ndarray, y_source: np.ndarray, *, seed: int, run_dir: Path
+    spec_name: str,
+    X_source: np.ndarray,
+    y_source: np.ndarray,
+    *,
+    seed: int,
+    run_dir: Path,
+    download: dict[str, Any] | None = None,
 ) -> None:
-    bundle, manifest = prepare_survey_dataset(X_source, y_source, dataset=spec_name, seed=seed)
+    bundle, manifest = prepare_survey_dataset(
+        X_source, y_source, dataset=spec_name, seed=seed, download=download
+    )
     mean, std = _standardizer_fit(bundle.train.X)
     scaled = _remap_bundle(bundle, lambda X: _standardizer_apply(X, mean, std))
     manifest["preprocessing"] = {
@@ -182,9 +219,16 @@ def prepare_image(
     *,
     seed: int,
     run_dir: Path,
+    download: dict[str, Any] | None = None,
 ) -> None:
     bundle, manifest = prepare_survey_dataset(
-        X_train, y_train, dataset="cifar10", seed=seed, X_test=X_test, y_test=y_test
+        X_train,
+        y_train,
+        dataset="cifar10",
+        seed=seed,
+        X_test=X_test,
+        y_test=y_test,
+        download=download,
     )
     # Split preparation applies no augmentation: the products store raw uint8 and
     # the training pipeline owns augmentation (protocol-locked "none" for the
@@ -209,6 +253,7 @@ def prepare_text(
     run_dir: Path,
     cache_dir: Path,
     encoder=None,
+    download: dict[str, Any] | None = None,
 ) -> None:
     """Split IMDB and store SBERT-encoded 384-d features per role."""
     y_source = np.asarray(labels_train, dtype=int)
@@ -221,6 +266,7 @@ def prepare_text(
         seed=seed,
         X_test=np.arange(len(texts_test))[:, None],
         y_test=y_test,
+        download=download,
     )
     role_texts = []
     for role in ("train", "pu_val", "clean_val"):
@@ -289,18 +335,32 @@ def main(argv: list[str] | None = None) -> int:
     if not dataset_names:
         print("error: --datasets must not be empty", file=sys.stderr)
         return 1
+    unknown = [name for name in dataset_names if name not in SPLIT_PIPELINE_DATASETS]
+    if unknown:
+        print(
+            f"error: unknown dataset(s) {unknown}; choose from {list(SPLIT_PIPELINE_DATASETS)}",
+            file=sys.stderr,
+        )
+        return 1
 
     for dataset in dataset_names:
         print(f"== {dataset} ==")
+        try:
+            download = load_download_record(raw_dir, dataset)
+        except (OSError, ValueError) as exc:
+            print(f"error: {dataset}: {exc}", file=sys.stderr)
+            return 1
         for seed in seeds:
             run_dir = out_dir / dataset / f"split_{seed}"
             try:
                 if dataset == "spambase":
                     X, y = load_spambase(raw_dir)
-                    prepare_tabular(dataset, X, y, seed=seed, run_dir=run_dir)
+                    prepare_tabular(dataset, X, y, seed=seed, run_dir=run_dir, download=download)
                 elif dataset == "cifar10":
                     X, y, X_test, y_test = load_cifar10(raw_dir)
-                    prepare_image(X, y, X_test, y_test, seed=seed, run_dir=run_dir)
+                    prepare_image(
+                        X, y, X_test, y_test, seed=seed, run_dir=run_dir, download=download
+                    )
                 elif dataset == "imdb":
                     texts_train, labels_train, texts_test, labels_test = load_imdb_texts(raw_dir)
                     prepare_text(
@@ -311,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
                         seed=seed,
                         run_dir=run_dir,
                         cache_dir=cache_dir,
+                        download=download,
                     )
                 else:
                     print(f"error: unknown dataset {dataset!r}", file=sys.stderr)

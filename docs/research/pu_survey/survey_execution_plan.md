@@ -54,10 +54,10 @@
 | 编号 | 任务 | 前置 | 验收标准 | 状态 / 主责 |
 |---|---|---|---|---|
 | P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 GPU 能力复核完成，正式跑批需 frozen-lock 环境（见独立复核记录） |
-| P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 进行中 / shuidisjtu |
+| P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 manifest 侧已补齐（2026-09-19，三 pilot 数据集；许可按官方页面原文逐条记录——UCI 为 CC BY 4.0，另两个来源未声明，见 §4 第 0f 条）；ADNI 不在 pilot 范围，准入路线见 D1 / shuidisjtu |
 | P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
-| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成；⏸ HENG958 可执行性复核等待 split 产物同步 |
+| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成（三数据集统一重建 2026-09-19，见 §4 第 0f 条）；⏸ HENG958 可执行性复核等待 split 产物同步 |
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | ✅ 已签署验收（2026-09-17）/ HENG958 交付；shuidisjtu 复核签署；**不放行正式 P2.1**（R5/R8 记为 P2.1 前置条件，两者已于 2026-09-19 工程兑现）；见 [交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 工程实现与回归完成，HENG958 独立复核/签署待办；见 [交付记录](p2_0b_delivery.md) |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 技术审计修订完成，36 锚点/7 行映射待审；HENG958 正式复核未签署，见 [复核包](p2_0c_review.md) |
@@ -315,6 +315,23 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
     候选全部失败、只留空 `selection` 的失败记录不再被当作结果聚合。
     本记录不改变 2026-09-17 的签署结论，0d 所列其余阻断项继续生效；
     见 [交付记录](p2_0a_delivery.md) §6。
+
+0f. **P1.2 字段补齐与 P1.4 三数据集统一重建（2026-09-19）**：split manifest 新增
+    `provenance` 块——来源 URL、版本、引用、许可状态，以及本地下载记录的
+    `sha256 / bytes / downloaded_at`。P1.2 四项要求里的标签映射未重复记录：manifest 顶层的
+    `positive_classes` / `negative_classes` 就是它，另记 `label_semantics` 说明这些 id 的含义。
+    许可按官方页面原文逐条记录：**UCI 明确声明 CC BY 4.0**（含署名要求），Stanford sentiment 与
+    Toronto CIFAR 两页确无许可条款（后者的第三方标注互相矛盾，不转引）。三条都记下查证日期；
+    无许可者留空许可名并保留日期，以区别于「没查」。`source_url`/`version`/`citation`/`license`
+    四项均入 manifest。可复核的发布事实入 `datasets.py` 目录（进版本库），机器本地的下载摘要仍来自
+    `data/raw/*/provenance.json`，随制品走（含字节实际来自哪个 URL——IMDB 走的是镜像，
+    制品里只印落地页会把读者引到错的主机去复算摘要）。
+    随后三数据集 × 5 seed 统一重建：`uv run python scripts/prepare_survey_splits.py
+    --datasets spambase,cifar10,imdb --seeds 0,1,2,3,4`。重建前先跑到临时目录做对照，
+    **60 个 npz 逐字节相同**（管线确定性），差异只在 manifest：IMDB 的 `preprocessing`
+    补齐 `effective_output_normalization` / `normalization_source`（即 0d 所记缺口），
+    其余除新增 `provenance` 块外逐键相同。取代前的 15 份 manifest、摘要对照与验证口径见
+    `data/archive/split-manifests-pre-p1.2-20260919/`。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；

@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pu_toolbox.experiment import survey_dataset_catalog
+
 pytestmark = pytest.mark.unit
 
 SCRIPT_PATH = Path(__file__).resolve().parents[3] / "scripts/prepare_survey_splits.py"
@@ -46,6 +48,66 @@ def test_basic_prepare_tabular_writes_scaled_products(prep_script, tmp_path):
     manifest = json.loads((run_dir / "split_manifest.json").read_text(encoding="utf-8"))
     assert manifest["preprocessing"]["kind"] == "z-score"
     assert len(manifest["preprocessing"]["feature_mean"]) == 57
+
+
+_DOWNLOAD = {
+    "sha256": "b" * 64,
+    "bytes": 125537,
+    "downloaded_at": "2026-09-08T10:01:00+08:00",
+}
+
+
+def test_basic_download_record_is_read_from_the_raw_directory(prep_script, tmp_path):
+    (tmp_path / "spambase").mkdir()
+    (tmp_path / "spambase/provenance.json").write_text(json.dumps(_DOWNLOAD), encoding="utf-8")
+    assert prep_script.load_download_record(tmp_path, "spambase") == _DOWNLOAD
+
+
+def test_edge_absent_download_record_is_none_and_a_malformed_one_is_refused(prep_script, tmp_path):
+    """Absent and unreadable are different answers, and only one of them is benign."""
+    assert prep_script.load_download_record(tmp_path, "spambase") is None
+    (tmp_path / "spambase").mkdir()
+    (tmp_path / "spambase/provenance.json").write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError, match="not a JSON object"):
+        prep_script.load_download_record(tmp_path, "spambase")
+
+
+def test_basic_split_products_carry_the_reviewed_provenance(prep_script, tmp_path):
+    rng = np.random.RandomState(0)
+    X = rng.randn(500, 57)
+    y = np.array([1] * 150 + [0] * 350)
+
+    prep_script.prepare_tabular(
+        "spambase", X, y, seed=0, run_dir=tmp_path / "split_0", download=_DOWNLOAD
+    )
+
+    manifest = json.loads((tmp_path / "split_0/split_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["provenance"]["download"]["sha256"] == _DOWNLOAD["sha256"]
+    assert manifest["provenance"]["license"]["name"] == "CC BY 4.0"
+    assert manifest["provenance"]["source_url"]
+
+
+def test_param_a_download_record_belonging_to_another_dataset_is_refused(prep_script, tmp_path):
+    """A copied record would otherwise write one dataset's digest into another's manifest."""
+    (tmp_path / "connect_4").mkdir()
+    (tmp_path / "connect_4/provenance.json").write_text(
+        json.dumps(dict(_DOWNLOAD, dataset="spambase")), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="download of 'spambase'"):
+        prep_script.load_download_record(tmp_path, "connect_4")
+
+
+def test_basic_every_dataset_the_pipeline_builds_has_reviewed_provenance(prep_script):
+    """The pipeline's dataset list and the catalog's reviewed facts must agree.
+
+    ``main`` rejects anything outside this list, so extending the list without
+    adding catalog provenance is how P1.2 would regress again -- silently, and
+    only in the artifact.
+    """
+    catalog = survey_dataset_catalog()
+    assert prep_script.SPLIT_PIPELINE_DATASETS
+    for name in prep_script.SPLIT_PIPELINE_DATASETS:
+        assert catalog[name].provenance is not None, name
 
 
 def test_basic_prepare_image_keeps_uint8_and_records_preprocessing(prep_script, tmp_path):

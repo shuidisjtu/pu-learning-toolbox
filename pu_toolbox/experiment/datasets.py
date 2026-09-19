@@ -18,6 +18,43 @@ Modality = Literal["image", "text", "tabular"]
 
 
 @dataclass(frozen=True)
+class DatasetProvenance:
+    """Where one survey dataset was published, and what its publisher states about it.
+
+    ``license_name`` is empty for a source that states no licence, and
+    ``license_checked_on`` is required so that emptiness cannot be read as an
+    unfinished entry: a date with no name means someone read the page and the
+    page names nothing.  Where a licence *is* stated it is transcribed together
+    with the URL it was read from; the status a manifest reports is derived from
+    the name rather than stored next to it, so the two cannot disagree.
+
+    ``label_semantics`` carries what the source labels *mean*.  A manifest's
+    ``positive_classes``/``negative_classes`` say which ids fall on which side,
+    and an id on its own does not say what the class is.
+    """
+
+    source_url: str
+    version: str
+    citation: str
+    label_semantics: str
+    #: The day the licence was read off that page, so a reader knows how stale
+    #: the reading is rather than treating it as permanent.
+    license_checked_on: str
+    license_name: str = ""
+    license_url: str = ""
+    license_notes: str = ""
+
+    def __post_init__(self) -> None:
+        if bool(self.license_name) != bool(self.license_url):
+            raise ValueError(
+                "a stated licence needs the URL it was read from, and a URL "
+                "without a name is not a licence"
+            )
+        if not self.license_checked_on:
+            raise ValueError("provenance must record when its licence was checked")
+
+
+@dataclass(frozen=True)
 class SurveyDatasetSpec:
     """Locked binary mapping and test-source policy for one survey dataset."""
 
@@ -26,6 +63,9 @@ class SurveyDatasetSpec:
     positive_classes: tuple[int | str, ...]
     negative_classes: tuple[int | str, ...]
     has_official_test: bool
+    #: Reviewed publishing facts, recorded into every split manifest (P1.2).
+    #: Absent for datasets whose split pipeline has not been built yet.
+    provenance: DatasetProvenance | None = None
 
 
 _CATALOG = {
@@ -33,13 +73,80 @@ _CATALOG = {
     "fashion_mnist": SurveyDatasetSpec(
         "fashion_mnist", "image", (0, 2, 3, 4, 6), (1, 5, 7, 8, 9), True
     ),
-    "cifar10": SurveyDatasetSpec("cifar10", "image", (0, 1, 8, 9), (2, 3, 4, 5, 6, 7), True),
+    "cifar10": SurveyDatasetSpec(
+        "cifar10",
+        "image",
+        (0, 1, 8, 9),
+        (2, 3, 4, 5, 6, 7),
+        True,
+        provenance=DatasetProvenance(
+            source_url="https://www.cs.toronto.edu/~kriz/cifar.html",
+            version="CIFAR-10 python distribution (Krizhevsky, 2009 tech report)",
+            citation=(
+                "Krizhevsky, A. (2009). Learning Multiple Layers of Features "
+                "from Tiny Images. Technical report, University of Toronto."
+            ),
+            label_semantics=(
+                "class ids 0-9 = airplane, automobile, bird, cat, deer, dog, "
+                "frog, horse, ship, truck; the positive classes are the four "
+                "vehicles, {0, 1, 8, 9}"
+            ),
+            license_checked_on="2026-09-19",
+            license_notes=(
+                "The distribution page states no licence; it asks that the tech "
+                "report be cited. Reusers record terms inconsistently (public "
+                "domain / MIT / unknown) and none of those traces to the "
+                "publisher, so none is transcribed here."
+            ),
+        ),
+    ),
     "adni": SurveyDatasetSpec("adni", "image", (0,), (1, 2, 3), False),
-    "imdb": SurveyDatasetSpec("imdb", "text", (1,), (0,), True),
+    "imdb": SurveyDatasetSpec(
+        "imdb",
+        "text",
+        (1,),
+        (0,),
+        True,
+        provenance=DatasetProvenance(
+            source_url="https://ai.stanford.edu/~amaas/data/sentiment/",
+            version="aclImdb_v1 (Maas et al., ACL 2011)",
+            citation=(
+                "Maas, Daly, Pham, Huang, Ng, Potts (2011). Learning Word "
+                "Vectors for Sentiment Analysis. ACL-HLT 2011, 142-150."
+            ),
+            label_semantics=(
+                "label 1 = positive sentiment, 0 = negative; only strongly "
+                "polarised reviews are labelled (score >= 7/10 or <= 4/10)"
+            ),
+            license_checked_on="2026-09-19",
+            license_notes=(
+                "The distribution page states no licence; it asks that the ACL 2011 paper be cited."
+            ),
+        ),
+    ),
     "twenty_newsgroups": SurveyDatasetSpec(
         "twenty_newsgroups", "text", (0, 1, 2, 3), (4, 5, 6), True
     ),
-    "spambase": SurveyDatasetSpec("spambase", "tabular", (1,), (0,), False),
+    "spambase": SurveyDatasetSpec(
+        "spambase",
+        "tabular",
+        (1,),
+        (0,),
+        False,
+        provenance=DatasetProvenance(
+            source_url="https://archive.ics.uci.edu/dataset/94/spambase",
+            version="UCI repository id 94 (donated 1999-06-30)",
+            citation=(
+                "Hopkins, Reeber, Forman, Suermondt (1999). Spambase. UCI "
+                "Machine Learning Repository. https://doi.org/10.24432/C53G6X"
+            ),
+            label_semantics=("last column: 1 = spam (the positive class), 0 = not spam"),
+            license_checked_on="2026-09-19",
+            license_name="CC BY 4.0",
+            license_url="https://creativecommons.org/licenses/by/4.0/legalcode",
+            license_notes=("The dataset page states the licence and its attribution requirement."),
+        ),
+    ),
     "connect_4": SurveyDatasetSpec("connect_4", "tabular", ("win",), ("loss", "draw"), False),
 }
 
@@ -87,6 +194,7 @@ def prepare_survey_dataset(
     y_test: np.ndarray | None = None,
     source_indices: np.ndarray | None = None,
     test_indices: np.ndarray | None = None,
+    download: dict[str, Any] | None = None,
 ) -> tuple[DatasetBundle, dict[str, Any]]:
     """Prepare the survey's train/PU-val/clean-val/test clean-label bundle.
 
@@ -188,8 +296,75 @@ def prepare_survey_dataset(
         "indices_sha256": hashlib.sha256(
             json.dumps(role_indices, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest(),
+        "provenance": _provenance_block(spec, download),
     }
     return bundle, manifest
+
+
+#: The fields a local download record must carry to enter a split manifest.
+#: Everything else in ``data/raw/*/provenance.json`` is either already in the
+#: reviewed catalog or free prose; these three are what this machine fetched.
+_DOWNLOAD_FIELDS = ("sha256", "bytes", "downloaded_at")
+#: How the local record may name the URL the bytes actually came from.  The
+#: three files spell it differently, and where a mirror was used that is the
+#: URL that answers for the digest.
+_RETRIEVAL_KEYS = ("mirror_url", "source_url", "canonical_source_url")
+
+
+def _provenance_block(spec: SurveyDatasetSpec, download: dict[str, Any] | None) -> dict[str, Any]:
+    """Assemble the split manifest's provenance block (P1.2).
+
+    The publishing facts come from the catalog, so every machine that prepares
+    this dataset reports the same ones; the download record is passed in
+    because it describes one particular fetch.  A dataset with no reviewed
+    facts records that instead of an empty block, which would read as an
+    answer -- and still reports its download, because what this machine
+    verified about the bytes does not depend on anyone having reviewed the
+    source.
+
+    ``positive_classes``/``negative_classes`` stay where they are, at the top
+    level of the manifest; ``label_semantics`` says what those ids mean.
+    """
+    if spec.provenance is None:
+        return {
+            "status": "not_recorded",
+            "reason": "no reviewed provenance for this dataset",
+            "download": _download_block(download),
+        }
+    provenance = spec.provenance
+    return {
+        "status": "recorded",
+        "source_url": provenance.source_url,
+        "version": provenance.version,
+        "citation": provenance.citation,
+        "label_semantics": provenance.label_semantics,
+        "license": {
+            "status": "stated" if provenance.license_name else "not_stated_by_source",
+            "name": provenance.license_name,
+            "url": provenance.license_url,
+            "source_url": provenance.source_url,
+            "checked_on": provenance.license_checked_on,
+            "notes": provenance.license_notes,
+        },
+        "download": _download_block(download),
+    }
+
+
+def _download_block(download: dict[str, Any] | None) -> dict[str, Any]:
+    if download is None:
+        return {"status": "not_recorded"}
+    missing = [name for name in _DOWNLOAD_FIELDS if name not in download]
+    if missing:
+        raise ValueError(f"download record is missing {missing}")
+    block = {name: download[name] for name in _DOWNLOAD_FIELDS}
+    # Which URL the bytes came from is not decoration: a manifest that prints a
+    # landing page beside a digest taken from a mirror invites the reader to
+    # recompute the digest from the wrong host.
+    for key in _RETRIEVAL_KEYS:
+        if download.get(key):
+            block["retrieved_from"] = download[key]
+            break
+    return block
 
 
 def _resolve_spec(dataset: str | SurveyDatasetSpec) -> SurveyDatasetSpec:

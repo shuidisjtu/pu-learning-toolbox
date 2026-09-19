@@ -309,12 +309,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
     },
     "test_prepare_survey_splits.py": {
-        "param": (
-            "modality pipeline functions take well-formed synthetic arrays; "
-            "input-validation error paths live in the dataset/image/text layer "
-            "unit tests (prepare_survey_dataset, fit_survey_image_preprocessing, "
-            "encode_survey_texts)"
-        ),
         "determ": (
             "the script is a thin wrapper over seed-driven prepare_survey_dataset; "
             "split determinism per seed is asserted by test_datasets.py"

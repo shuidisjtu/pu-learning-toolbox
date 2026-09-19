@@ -325,6 +325,7 @@ tests/
       test_survey_comparison_report.py  # manifest comparison 上下文、聚合报告与三档调查结论
       test_survey_comparison_run_wiring.py # 跑批侧接线: 一次 run 按选择协议解析映射、覆盖缺陷拒绝开跑
       _survey_comparison_helpers.py     # 对照测试共享夹具: 来源/锚点/映射/结果构造与写盘拒收
+      test_dataset_provenance.py        # 制品追溯: 目录内已复核事实、许可逐条按官方页原文、下载来源与摘要
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
