@@ -163,8 +163,11 @@ def test_basic_weights_roundtrip_preserves_scores():
     fitted = _model().fit(X, y)
     restored = copy.deepcopy(fitted.model_)
     restored.load_state_dict(fitted.model_.state_dict())
+    # fit resolves the default device, so the weights can be on CUDA; a bare
+    # module call does no placement of its own and the input has to follow.
+    device = next(restored.parameters()).device
     with torch.no_grad():
-        scores = restored(torch.as_tensor(X)).flatten().numpy()
+        scores = restored(torch.as_tensor(X, device=device)).flatten().cpu().numpy()
     np.testing.assert_allclose(scores, fitted.decision_function(X), atol=1e-6)
 
 

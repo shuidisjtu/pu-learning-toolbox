@@ -153,8 +153,11 @@ def test_weights_only_roundtrip_preserves_calibrated_scores():
     fitted = _model().fit(X, y)
     restored = copy.deepcopy(fitted.model_)
     restored.load_state_dict(fitted.model_.state_dict())
+    # fit resolves the default device, so the weights can be on CUDA; a bare
+    # module call does no placement of its own and the input has to follow.
+    device = next(restored.parameters()).device
     with torch.no_grad():
-        values = restored(torch.as_tensor(X)).flatten().numpy()
+        values = restored(torch.as_tensor(X, device=device)).flatten().cpu().numpy()
     np.testing.assert_allclose(values, fitted.decision_function(X), atol=1e-6)
     assert math.isfinite(fitted.max_log_phi_)
 
