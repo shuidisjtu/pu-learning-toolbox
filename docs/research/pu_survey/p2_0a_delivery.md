@@ -182,3 +182,25 @@ P2.0a 工程交付覆盖矩阵、runner 消费、manifest、CIFAR 接线及 orac
 
 因此当前所有产物 `formal_eligible=false` 是有意的安全边界。
 未实现 CNN oracle、full-batch oracle、完整 Self-PU OA 或正式 PA 准则，不得宣称完成。
+
+## 6. P2.1 前置条件的兑现（工程层，2026-09-19）
+
+2026-09-17 的签署把 R5 与 R8 记为正式 P2.1 的前置条件。两者的**工程实现**现已落地：
+
+- **R8**：PR #59（`0f42adf`）在候选循环之前加入磁盘容量检查，按 `execution_mode`
+  分级——`versioned_pilot` 拒绝、技术 smoke 仅警告；所需字节数是显式输入，无法判定时
+  降级为警告而不是拒跑。checkpoint 覆盖不变量改为按估计器**声明**的 component 集合
+  校验（`BasePUClassifier.epoch_components`），丢掉 component 不再能靠期望同步缩小
+  而通过。
+- **R5**：`scripts/aggregate_survey_runs.py` 是两个门禁的生产调用方。它按
+  `comparability_group` 分组、按 `(seed, c)` 细分单元，对每个单元强制调用
+  comparability 门禁与分榜门禁；`--diagnostic` 只放松正式资格，公平性检查两种模式都跑。
+- 兑现过程暴露并修复了四类缺陷：每个 manifest 造一个 spec 造成的重复方法、`fullbatch`
+  的**描述性** `batch_size` 被当成数值、`classical` 组跨四个预算族而门禁按 budget 整份
+  字典比较、以及分榜门禁比较 `split_sha256` 而每个 seed 有自己的 split——因此它只能在
+  `(seed, c)` 单元粒度调用。跨单元的漂移（协议改版或预算变更后只补跑部分 seed）另设
+  组级一致性检查；候选全部失败、只留下空 `selection` 的失败记录不再被当作结果聚合。
+
+本记录说明的是**工程前置条件已满足**，不改变 2026-09-17 的签署结论，也不替代复核人
+对该入口的验收。其余阻断项（P2.0b、P2.0c、PA 正式准则、缺失 oracle、完整 Self-PU OA、
+Linux frozen-lock 环境偏差、P1.4 制品统一重建）继续生效。

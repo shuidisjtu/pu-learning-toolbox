@@ -145,6 +145,24 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 # every run and flagged as removable once the category is covered, so
 # the list stays honest and shrinkable.
 PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
+    "test_aggregate_survey_budget_fairness.py": {
+        "basic": (
+            "budget-family comparability is asserted through the aggregation "
+            "entry point accepting or refusing a tree, not through its report "
+            "contents; the report path is covered by test_aggregate_survey_runs.py"
+        ),
+        "determ": (
+            "the comparison is a pure function over fixed budget dicts (no "
+            "randomness, no seed state); aggregation determinism is asserted in "
+            "test_aggregate_survey_runs.py"
+        ),
+    },
+    "test_aggregate_survey_cli.py": {
+        "determ": (
+            "the CLI decides exit codes and messages rather than values; "
+            "aggregation determinism is asserted in test_aggregate_survey_runs.py"
+        ),
+    },
     "test_architecture_capability.py": {
         "basic": (
             "single-purpose gate unit tests on synthetic classifier stubs; "

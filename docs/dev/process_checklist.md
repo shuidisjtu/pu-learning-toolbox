@@ -38,6 +38,8 @@
   后续 `survey-v1.1` 补齐逐 epoch 权重保存、双 teacher 保留、PA/OA 独立选择和推理恢复；
   新增 checkpoint 专项 24 项、GPU 回归 8 项及完整快层 1532 项通过；
   正式结果仍受 P2.0b/c、PA Accuracy/阈值准则及未完成路径阻断；
+  R5/R8 两项 P2.1 前置条件已于 2026-09-19 工程兑现（聚合入口强制分榜门禁、
+  跑批前磁盘检查、checkpoint 覆盖不变量改按声明校验），见交付记录 §6；
   CNN oracle 等缺少对齐对照的单元明确不可冒充上界。见
   [交付记录](../research/pu_survey/p2_0a_delivery.md)。
 

@@ -142,8 +142,13 @@ def test_param_paths_and_budgets_cannot_be_mixed(survey_script, tmp_path):
     right["training_path"] = "native_cnn"
     with pytest.raises(ValueError, match="training_path"):
         validate_comparable_manifests([left, right], require_formal=False)
+    # The budget is compared through the fields the fairness gates consume
+    # rather than as a dictionary, so the mismatch has to move one of those.
+    # Relabelling the family is not one: uPU's closed-form solve and LBE's EM
+    # fit are budgets the protocol ranks side by side.  uPU caps no epochs, so
+    # giving it a cap is.
     right = copy.deepcopy(left)
-    right["budget"]["unit"] = "epochs"
+    right["budget"]["epochs"] = 200
     with pytest.raises(ValueError, match="budget"):
         validate_comparable_manifests([left, right], require_formal=False)
 
