@@ -31,6 +31,7 @@ from .estimators.risk.ldce import LDCEClassifier
 from .estimators.risk.nnpu import NonNegativePUClassifier
 from .estimators.risk.pnu import PNUClassifier
 from .estimators.risk.puet import PUExtraTreesClassifier
+from .estimators.risk.pulda import PULDAClassifier
 from .estimators.risk.upu import UPUClassifier
 from .estimators.risk.vpu import VPUClassifier
 from .preprocessing import make_sar_dataset, profile_pu_data
@@ -61,6 +62,7 @@ __all__ = [
     "NonNegativePUClassifier",
     "PNUClassifier",
     "PUExtraTreesClassifier",
+    "PULDAClassifier",
     "PUSBClassifier",
     "PUSBKernelClassifier",
     "PipelineReport",

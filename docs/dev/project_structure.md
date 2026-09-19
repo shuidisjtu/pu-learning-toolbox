@@ -63,6 +63,7 @@ pu_toolbox/
       kldce_smo.py                        (原生配对 SMO 求解器: 解析更新 + KKT 选择)
       dist_pu.py                          (native: Dist-PU 标签分布对齐: 正例监督+期望对齐+熵最小化, torch 可选 MLP)
       vpu.py                              (native: VPU 变分风险+对数 MixUp 正则，先验无关的二维 MLP 适配)
+      pulda.py                            (native: PULDA 分布对齐+双向 margin+EMA 伪标签 MixUp，两阶段二维 MLP 适配)
       upu.py                              (native: uPU 凸风险估计器(du Plessis'15): 双铰链/逻辑/平方损失三变体)
       nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
       pnu.py                              (native: 凸 PNU 半监督闭式解(平方损失, 对齐 pywsl, η 混合 P/NU))
@@ -211,6 +212,7 @@ tests/
       test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
       test_dist_pu.py                   # Dist-PU 特有逻辑(torch 依赖 importorskip、mixup 权重边界、class prior/epochs 参数校验)
       test_vpu.py                       # VPU 公式 golden、归一化、注册/pipeline、checkpoint 与 CUDA smoke
+      test_pulda.py                     # PULDA 双损失 golden、两阶段轨迹、注册/pipeline、checkpoint 与 CUDA smoke
       test_grad_pu.py                   # GradPU 公式 golden、接口/注册、确定性、checkpoint 与 CUDA smoke
       test_puet.py                      # PUET 节点风险 golden、树集成、确定性、pickle 与 pipeline
       test_self_pu.py                   # Self-PU pace/meta/EMA/三阶段训练

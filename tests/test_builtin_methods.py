@@ -271,7 +271,7 @@ class TestBuiltinRegistration:
 
     def test_basic_heavy_fixed_epoch_methods_are_high_cost(self):
         """HIGH cost: long-epoch solvers, PUET's 100-tree CPU forest,
-        and PUSB kernel (full sigma x reg grid CV + refit);
+        PULDA's two fixed 60-epoch stages, and PUSB kernel (full grid CV + refit);
         short-epoch deep methods stay MEDIUM."""
         from pu_toolbox.core.tags import TrainingCost
 
@@ -288,4 +288,5 @@ class TestBuiltinRegistration:
             "pusb_kernel",
             "gradpu",
             "puet",
+            "pulda",
         }

@@ -40,4 +40,5 @@ L_{reg}=\mathbb E[(\log\tilde\Phi-\log\Phi_\theta(\tilde x))^2],
 - `vpu`（别名 `variational_pu`）注册为实验性原生方法，支持稠密二维特征、CPU 和显式 CUDA；PyTorch 为可选依赖。默认两层 MLP64 适配工具箱，不是论文 UCI 的七层 MLP300 或 CIFAR CNN，因此未宣称论文精度复现。
 - mini-batch 从正样本池和完整 P∪U 池分别有放回抽样；优化器 Adam `betas=(0.5,0.99)`。每轮保存分量损失、总风险、可选 PU 验证风险和更新次数；归一化层包含在权重快照中，支持逐轮 checkpoint 恢复。
 - 训练、预测拒绝非有限值或错误维度；非空 `sample_weight` 明确报错。`predict_proba` 是 VPU 自身归一化分数，不是独立校准器。外推样本的归一化分数可能超过 1；概率接口会截到 `[0,1]`，而原始 `decision_function` 保留未截断值以便审计。
+- 2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke；该单次技术 smoke 不替代正式多 seed GPU/资源验收。
 - 当前为 **P3.1 技术预集成**：未进入 Survey 方法台账与冻结执行矩阵，也未完成共享 backbone、图像路径、公开数值对照、多 seed GPU/资源记录及双人复核。不能列入正式 pilot 或 P3.1 验收完成项。

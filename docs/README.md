@@ -41,7 +41,7 @@
 | [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | 分布漂移感知 PU 的假设、实现边界与验收标准 |
 | [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
-| [research/method_cards/](research/method_cards/) | 21 篇论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
+| [research/method_cards/](research/method_cards/) | 22 篇论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
 | [research/traditional_pu/](research/traditional_pu/) | 传统 PU 调优：`traditional_pu_metric_contract.md` 单域指标/基线与统计契约、`traditional_pu_optimization_plan.md` 调优顺序/参数簇/晋级规则/产物契约 |
 | [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
 | [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与实施结果（含各阶段设计决策要点） |

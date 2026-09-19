@@ -119,6 +119,7 @@ _EXPECTED_DECLARATIONS = {
     "dgpu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "gradpu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "vpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "pulda": (frozenset({"mlp"}), frozenset({2}), None, False),
 }
 
 

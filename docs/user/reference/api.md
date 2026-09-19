@@ -55,6 +55,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `llsvm` | `LLSVMClassifier` | risk | `alpha` / `beta` / `gamma` / `reg_lambda` / `max_epochs` | [LLSVM](../../research/method_cards/LLSVM.md) |
 | `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
 | `vpu`（`variational_pu`） | `VPUClassifier` | risk | `hidden_dim` / `max_epochs` / `regularization_weight` / `mixup_alpha` | [VPU](../../research/method_cards/VPU.md) |
+| `pulda`（`label_distribution_alignment`） | `PULDAClassifier` | risk | `class_prior` / `warmup_epochs` / `pu_epochs` / `margin` / `mixup_weight` | [PULDA](../../research/method_cards/PULDA.md) |
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
@@ -79,7 +80,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 |---|---|---|
 | `supported` | 权重进入训练目标 | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
 | `ignored` | 为 sklearn API 兼容而接受，但不参与训练 | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
-| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu`, `puet`, `vpu` |
+| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu`, `puet`, `vpu`, `pulda` |
 
 依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
 
@@ -389,6 +390,35 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子与 torch 设备 |
 
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None)`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_`、`optimizer_steps_`、`max_log_phi_` 提供训练审计。详见 [VPU 方法卡](../../research/method_cards/VPU.md)。
+
+#### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
+
+标签分布对齐 + 双向 margin + 伪标签 MixUp 的两阶段 PU 分类器，仅支持稠密二维特征。
+
+```python
+PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
+                pu_epochs=60, positive_batch_size=16, unlabeled_batch_size=128,
+                warmup_learning_rate=1e-4, learning_rate=1e-3,
+                warmup_weight_decay=5e-4, weight_decay=1e-4,
+                temperature=3.5, unlabeled_ema=0.85, margin_ema=0.5,
+                margin=0.6, mixup_weight=4.2, mixup_alpha=11.0,
+                random_state=0, device=None)
+```
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `class_prior` | `float` | 必填 | 真实正类比例，须在 `(0,1)`；`fit(class_prior=...)` 可覆盖 |
+| `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | 工具箱 MLP 的隐层宽度与层数 |
+| `warmup_epochs` / `pu_epochs` | `int` / `int` | `60` / `60` | 分布对齐预热与伪标签 MixUp 阶段轮数，二者不能同时为 0 |
+| `positive_batch_size` / `unlabeled_batch_size` | `int` / `int` | `16` / `128` | 每批 P/U 数量 |
+| `warmup_learning_rate` / `learning_rate` | `float` / `float` | `1e-4` / `1e-3` | 两阶段 Adam 初始学习率 |
+| `warmup_weight_decay` / `weight_decay` | `float` / `float` | `5e-4` / `1e-4` | 两阶段权重衰减 |
+| `temperature` | `float` | `3.5` | 标签分布 symmetric-softplus 温度；margin 项按作者代码固定为 1 |
+| `unlabeled_ema` / `margin_ema` | `float` / `float` | `0.85` / `0.5` | 未标记均值及 margin 矩的 EMA 系数，范围 `[0,1)` |
+| `margin` / `mixup_weight` / `mixup_alpha` | `float` | `0.6` / `4.2` / `11.0` | 双向 margin、MixUp BCE 权重及 Beta 形状参数 |
+| `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 随机种子与 torch 设备 |
+
+`fit(..., sample_weight=None, epoch_callback=None)`：非空 `sample_weight` 报错。`history_` 记录阶段、三个损失分量、总损失与累计更新数；`pseudo_labels_` 保存第二阶段末的训练伪标签。`predict_proba` 是 sigmoid 分数而非独立校准概率。详见 [PULDA 方法卡](../../research/method_cards/PULDA.md)。
 
 ### Bias-Aware 分类器
 

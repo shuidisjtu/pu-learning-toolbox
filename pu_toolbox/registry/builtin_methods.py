@@ -264,6 +264,25 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="MIT",
         training_cost=Cost.MEDIUM,
     ),
+    # ── 9b. PULDA (experimental tabular adapter) ───────────────────
+    AlgorithmMetadata(
+        name="pulda",
+        aliases=["label_distribution_alignment"],
+        family=Fam.RISK_ESTIMATION,
+        paper="Positive-Unlabeled Learning with Label Distribution Alignment",
+        scenario=[Scn.CASE_CONTROL],
+        assumption=[Asm.SCAR],
+        requires_class_prior=True,
+        supports_sparse=False,
+        supports_gpu=True,
+        backend=Backend.TORCH,
+        maturity=Maturity.EXPERIMENTAL,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_RELATED,
+        upstream_url="https://github.com/jiangyangby/PULDA",
+        license="MIT",
+        training_cost=Cost.HIGH,
+    ),
     # ── 10. PUSB ───────────────────────────────────────────────────
     AlgorithmMetadata(
         name="pusb",
@@ -494,6 +513,7 @@ def _bind_native_classes() -> None:
         ("class_prior_estimation", "..prior.pen_l1", "ClassPriorEstimator"),
         ("dist_pu", "..estimators.risk.dist_pu", "DistPUClassifier"),
         ("vpu", "..estimators.risk.vpu", "VPUClassifier"),
+        ("pulda", "..estimators.risk.pulda", "PULDAClassifier"),
         ("pusb", "..estimators.bias_aware.pusb", "PUSBClassifier"),
         ("pusb_kernel", "..estimators.bias_aware.pusb_kernel", "PUSBKernelClassifier"),
         ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),

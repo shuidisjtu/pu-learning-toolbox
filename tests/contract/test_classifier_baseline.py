@@ -204,6 +204,20 @@ def _make_vpu():
     return VPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
 
 
+def _make_pulda():
+    from pu_toolbox.estimators.risk import PULDAClassifier
+
+    return PULDAClassifier(
+        0.33,
+        hidden_dim=8,
+        warmup_epochs=1,
+        pu_epochs=1,
+        positive_batch_size=8,
+        unlabeled_batch_size=32,
+        random_state=42,
+    )
+
+
 def _make_puet():
     from pu_toolbox.estimators.risk import PUExtraTreesClassifier
 
@@ -230,6 +244,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "dgpu": _make_dgpu,
     "gradpu": _make_gradpu,
     "vpu": _make_vpu,
+    "pulda": _make_pulda,
     "puet": _make_puet,
 }
 
