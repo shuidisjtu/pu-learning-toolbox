@@ -314,6 +314,21 @@ def prepare_text(
     save_split_products(encoded_bundle, manifest, run_dir)
 
 
+def _load_dataset(dataset: str, raw_dir: Path):
+    """A dataset's raw arrays, in the order its ``prepare_*`` takes them.
+
+    Separate from ``main`` so the one thing that is genuinely per-dataset
+    happens exactly once: everything downstream of it varies by seed.
+    """
+    if dataset == "spambase":
+        return load_spambase(raw_dir)
+    if dataset == "cifar10":
+        return load_cifar10(raw_dir)
+    if dataset == "imdb":
+        return load_imdb_texts(raw_dir)
+    raise ValueError(f"unknown dataset {dataset!r}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -347,35 +362,33 @@ def main(argv: list[str] | None = None) -> int:
         print(f"== {dataset} ==")
         try:
             download = load_download_record(raw_dir, dataset)
-        except (OSError, ValueError) as exc:
+            # Loaded once for every seed, not once per seed: the seed decides
+            # how the pool is split, never what is in it.  Loading inside the
+            # loop re-read all 813 MB of CIFAR-10 pickles and re-extracted
+            # fifty thousand IMDB reviews from the archive once per seed.  The
+            # archive is the expensive one -- measured at roughly two and a
+            # half minutes per pass, against about five seconds for the pickles
+            # -- and it was being paid five times per rebuild even when every
+            # encoding came from cache.
+            loaded = _load_dataset(dataset, raw_dir)
+        except (OSError, ValueError, ImportError) as exc:
             print(f"error: {dataset}: {exc}", file=sys.stderr)
             return 1
         for seed in seeds:
             run_dir = out_dir / dataset / f"split_{seed}"
             try:
                 if dataset == "spambase":
-                    X, y = load_spambase(raw_dir)
-                    prepare_tabular(dataset, X, y, seed=seed, run_dir=run_dir, download=download)
+                    prepare_tabular(dataset, *loaded, seed=seed, run_dir=run_dir, download=download)
                 elif dataset == "cifar10":
-                    X, y, X_test, y_test = load_cifar10(raw_dir)
-                    prepare_image(
-                        X, y, X_test, y_test, seed=seed, run_dir=run_dir, download=download
-                    )
-                elif dataset == "imdb":
-                    texts_train, labels_train, texts_test, labels_test = load_imdb_texts(raw_dir)
+                    prepare_image(*loaded, seed=seed, run_dir=run_dir, download=download)
+                else:
                     prepare_text(
-                        texts_train,
-                        labels_train,
-                        texts_test,
-                        labels_test,
+                        *loaded,
                         seed=seed,
                         run_dir=run_dir,
                         cache_dir=cache_dir,
                         download=download,
                     )
-                else:
-                    print(f"error: unknown dataset {dataset!r}", file=sys.stderr)
-                    return 1
             except (OSError, ValueError, ImportError) as exc:
                 print(f"error: {dataset} seed {seed}: {exc}", file=sys.stderr)
                 return 1

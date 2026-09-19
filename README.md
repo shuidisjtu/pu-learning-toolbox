@@ -141,6 +141,44 @@ the protocol, current execution status, and reporting boundaries. Until all
 protocol gates are satisfied, results must be identified as a
 `pilot / partial benchmark`.
 
+A pilot is several hundred runs, and the single-unit entry point stops at the
+first failure — so `run_survey_pilot.py` drives the whole matrix instead. It
+expands the protocol, asks the run manifests what is already finished, and
+runs only what is left. A batch is one unit and mechanism, coalesced only when
+the pending runs are that unit's complete seed-by-token grid: the unit script
+runs the grid's cross product with no per-cell check of its own, so a
+half-finished unit is split per seed rather than re-running cells that are
+already on disk.
+
+"Finished" is read from the manifest, not from the directory existing — a
+directory is created before a run either succeeds or fails, and a run whose
+candidates were *all* excluded writes a manifest too, with an empty selection
+beside its failures. A run also only counts for the split it ran on, so
+rebuilding the splits invalidates the runs made against the old ones.
+
+Most methods need the population class prior, which protocol §3.1 defines as
+data-generation metadata — the pool's positive rate before the stratified
+split, not something to back-infer from a subset — so the driver reads it from
+the splits that recorded it and refuses to start if it has neither that nor
+`--class-prior`. A `--class-prior` that *contradicts* a recorded one is an
+error, not a warning: the protocol fixes one constant per dataset, and nothing
+downstream compares priors, so a typo would go unnoticed to the end of the
+pilot. `--device` is passed through for the same reason: the unit script
+defaults to CPU, and the image rows are not worth running there.
+
+`--dry-run` prints the plan and the checkpoint storage the whole pilot implies
+without running anything. Checkpoints accumulate, since nothing deletes them
+and offline selection needs them afterwards, so that figure sizes a host
+rather than describing one run. It is an upper bound for the image rows that
+train an adapter head rather than the ResNet their row names — the protocol's
+per-component constant does not distinguish them — so treat it as a ceiling to
+plan against, not as the bytes that will land.
+
+```bash
+uv run python scripts/run_survey_pilot.py --dry-run
+uv run python scripts/run_survey_pilot.py --device cuda
+```
+
 Aggregating a run tree forces the leaderboard-separation gates and reports
 each comparability group separately; non-formal results are refused unless
 `--diagnostic` asks for them:
@@ -148,6 +186,28 @@ each comparability group separately; non-formal results are refused unless
 ```bash
 uv run python scripts/aggregate_survey_runs.py results/survey
 uv run python scripts/aggregate_survey_runs.py results/survey --diagnostic
+```
+
+The prepared splits are not distributed with the repository, so moving them to
+another machine is a manual step with a tool at each end: `pack` writes one
+deterministic archive per dataset plus an index describing every file in it,
+and `verify` runs where the archives land and reports every disagreement
+between the unpacked tree and the index, in both directions — a split the
+index describes but the tree lacks, a split the tree holds but the index does
+not, and whether the `.npz` indices still hash to the value each manifest
+records for them. It reports rather than raising, so a damaged delivery yields
+the whole list; corruption that predates packing is not among the things it
+can catch, since `X` is pinned by file digest alone. Record the index's
+archive digests in the repository before sending: a digest that travelled with
+the bytes it describes proves the trip was faithful, not that what was sent was
+right. Nothing runs `verify` automatically.
+
+```bash
+uv run python scripts/survey_splits_archive.py pack \
+    --root data/splits --out-dir dist/p1.4-splits
+uv run python scripts/survey_splits_archive.py verify \
+    --root unpacked --index dist/p1.4-splits/split_artifacts_index.json \
+    --archive-dir dist/p1.4-splits
 ```
 
 ## AI workflow skill

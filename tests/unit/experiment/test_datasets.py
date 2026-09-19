@@ -96,6 +96,31 @@ def test_basic_derived_test_builds_four_way_bundle():
     assert all(0.4 <= rate <= 0.6 for rate in manifest["role_positive_rates"].values())
 
 
+def test_edge_the_population_prior_comes_off_the_pool_not_a_stratified_subset():
+    """Protocol §3.1 defines it on the pool and forbids back-inferring it.
+
+    An odd positive count keeps the two apart: the pool sits at 0.4925 while
+    every stratified subset lands somewhere else, so a prior read off a subset
+    would be visibly the wrong number here rather than merely the wrong claim.
+    """
+    X, _ = _numeric_arrays()
+    y = np.array([1] * 197 + [0] * 203)
+    manifests = [prepare_survey_dataset(X, y, dataset="spambase", seed=seed)[1] for seed in (0, 4)]
+
+    block = manifests[0]["class_prior"]
+    assert block["population"] == 197 / 400
+    assert block["population_basis"] == "binarised source pool before the stratified split"
+    rates = manifests[0]["role_positive_rates"]
+    assert block["population"] not in set(rates.values())
+    assert block["train"] == rates["train"]
+    # One constant per dataset, shared by every seed, which is what makes it
+    # data-generation metadata rather than a per-split measurement.
+    assert manifests[0]["class_prior"] == manifests[1]["class_prior"]
+    # π_U belongs to a run's label view, not to the split: recording it here
+    # would invite reading a c-dependent number as a dataset constant.
+    assert "unlabeled" not in block
+
+
 def test_edge_rejects_unknown_labels_missing_test_and_tiny_splits():
     X, _ = _numeric_arrays(n_samples=20)
     with pytest.raises(ValueError, match="outside its locked binary mapping"):

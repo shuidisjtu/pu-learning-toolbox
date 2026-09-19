@@ -53,6 +53,78 @@
   `data/archive/split-manifests-pre-p1.2-20260919/`；P1.4 对 HENG958 的可执行性复核仍等待
   split 产物同步。
 
+- Survey split 制品跨机传输（未发布，2026-09-19）：`data/` 按设计不进版本库，制品一律带外传。
+  接收端此前校验的是制品的**形状**（`validate_bundle`、manifest 的 dataset/seed 与请求一致），
+  而**没有任何完整性校验**：runner 把 manifest 的 `indices_sha256` 原样抄进 run manifest，
+  从不与 `.npz` 重算比对，于是截断、损坏或与数据不符的制品会被静默接受。
+  新增 `scripts/survey_splits_archive.py`：`pack` 产出逐文件摘要索引与**确定性** tar
+  （成员元数据归零，同一棵树在不同时间/不同机器打包逐字节相同，故归档摘要可对外公布），
+  `verify` 在落地端**双向**校验——索引描述而树上没有的、树上多出而索引没描述的，
+  加上逐文件大小/摘要与**从 `.npz` 重算的索引摘要**与 manifest 比对，报告**全部**问题而非第一个，
+  且对截断、同尺寸损坏、不可读文件一律报告而不抛异常。索引与制品摘要记入仓库后再发送：
+  随字节同行的摘要只能证明传输无损，不能证明发出去的是对的。边界要说清：`X` 只由文件摘要兜底，
+  **打包之前**就存在的损坏会被 `pack` 背书而非被查出；本工具是操作者手动跑的，**没有接进跑批路径**，
+  所以没人跑 verify 的交付就是没人验证过的交付。**载体（GitHub Release / 网盘 / 内网共享）与
+  跑批主机路线一并留待决策**，本项只交付与载体无关的两端工具；归档尚未产出与发送，
+  故 digest 也未记录（避免载体未定时就写出会过期的记录）。
+
+- Survey 全 pilot 跑批驱动与磁盘预算（未发布，2026-09-19）：单单元入口在**第一个失败处即中止**，
+  跑全 pilot 会让一次失败带走后面全部排队运行，而 `scripts/` 一直没有编排载体。新增
+  `scripts/run_survey_pilot.py`：从协议枚举 **645 次运行**（18 非 oracle 单元 × 5 seed × 7 c token
+  + 3 oracle 单元 × 5 seed；oracle 不参与 c 网格）。批次划分的前提是脚本执行的是 seeds × c 的
+  笛卡尔积且自身无逐格完成判定，因此**只有待跑集恰好等于完整网格时才合并成一次调用，半完成单元按
+  seed 拆开**——否则会把已完成的格子再跑一遍，而重跑会多写一份永不复用的 `checkpoints/attempt-*`。
+  **已完成按 manifest 判定而非目录存在**，且需同时满足三条：`execution_mode == "versioned_pilot"`
+  （预检失败写 `rejected_versioned_pilot`；「候选全部 excluded」仍写 `versioned_pilot`）、
+  `selection` 非空（后者正是区分「跑成」与「每次都失败」的唯一依据，而非 oracle 行由缺 `c_requested_token`
+  兜住）、以及记录的 `split_sha256` 仍等于磁盘上该 (dataset, seed) 的 `indices_sha256`
+  （一次运行只对它所跑的数据构成证据，重建 split 后旧 manifest 描述的是已不持有的数据）。
+  识别不了的记录一律算未完成。预测目录路径的写法一旦与脚本漂移就会朝「跳过工作」的方向静默出错，
+  与聚合入口被打穿的失效同类。
+  **磁盘预算**（`--dry-run`，与 runner 跑前门禁同源）：645 次运行中 330 次写 checkpoint
+  （`lbe`/`pusb_kernel`/`upu` 三个闭式单元不写，闭式与核方法无逐 epoch 状态），
+  累积 **1280.6 GiB**（cifar10 占 1274.4），单次峰值 **17.58 GiB**
+  （`cifar10/self_pu/cnn_feature_adapter`，两份 teacher）；二者不可混用——
+  `checkpoints.py` 无清理逻辑且离线 selection 之后仍需这些文件，故累积成立。
+  跑前门禁另按 `DEFAULT_CHECKPOINT_ATTEMPTS=2` 要求 **35.16 GiB 空闲**，那是给重试的预留
+  （重试确实写进独立 `checkpoints/attempt-*`），是上限而非常态占用。
+  **这三个数对 adapter 行是上界**：`unit_checkpoint_bytes` 对任何 `resnet18*` 行按 45 MiB/epoch 计，
+  而 6 个 `cnn_feature_adapter` 行只训练 MLP head、从不保存 ResNet。一次独立复核用**真实写入器
+  实测**：adapter 行每文件 ≈265.7 KB/epoch（单次运行 50.7 MiB，self_pu 两个 teacher 101.4 MiB），
+  native_cnn 行每文件 ≈42.7 MiB/epoch（单次 8.34 GiB，含 ResNet-18 的 1117.7 万参数）；
+  即常量对 adapter 行高估 **≈178×**，据实测修正后**累积 ≈319 GiB**（cifar10 ≈313）、
+  **单次峰值行变为 `cifar10/nnpu/native_cnn`**（8.34 GiB）。该常量属 P2.0a 已签署绑定且被测试锁住，
+  本项不单方面修改，作为协议问题上报——但**向队友报磁盘需求时应以 ≈319 GiB 为准**，
+  1280.6 GiB 大 4 倍，会直接影响主机决策。
+  单组件 native CNN 行按常量 8.79 GiB/次，与 `epoch_checkpoint_delivery.md` 的「8–9 GB/候选/seed」一致。
+  候选池扩大时按倍数增长；队友服务器可用磁盘容量全仓无记录，需其侧确认。
+  π 按协议 §3.1 定义为**数据生成 metadata**（分层划分前完整池的正例率、全 seed 共享、禁止从子集反推），
+  但此前两个制品层都没记：split manifest 只有各子集的 `role_positive_rates`，
+  run manifest **连 §3.1 点名的三个命名字段（population/train/π_U）一个都没有**——应用值只出现在
+  `estimator_parameters.class_prior` 这类估计器转储里，且那需要方法本身带该构造参数。
+  本轮在生成侧补记 `class_prior.{population, population_basis, train}`，
+  驱动**从 split manifest 读取**，`--class-prior` 降级为覆盖，且**与记录值冲突时直接拒绝启动**
+  （须显式加 `--allow-prior-override`）——协议把它定为每数据集常量，而聚合侧的公平门禁不比较 π，
+  静默覆盖等于用错常数跑完全部运行且无人察觉。两者都缺则在开跑前一次性拒绝启动。
+  π_U 不入 split manifest（它是运行期标签视图的性质）。run manifest 侧仍未落地，
+  属 runner 白名单（P2.0a 范围），作为协议问题上报。
+  `--device` 同样透传（脚本默认 CPU，cifar10 行需 GPU）。
+
+- Survey 切分流水线效率修复与一处一致性缺陷（未发布，2026-09-20）：`prepare_survey_splits.py`
+  的三个 `load_*` 原本在 `for seed` 循环**内部**，而加载与 seed 无关——IMDB 每 seed 重解 tar
+  读五万成员（实测约 2.5 分钟/遍），CIFAR-10 每 seed 重读 813 MB pickle（约 5 秒/遍）。已外提到
+  循环之前。同时 `encode_survey_texts` 的缓存键取的是**整个有序列表**的摘要，而列表顺序由 seed
+  决定，于是同一批文本换个排列就是新键、每个 seed 重编全部语料（缓存里 5 条各 76.8 MB 的 npy
+  即其证据）；改为按排序去重的语料作键、命中时按索引装配，schema 升 1.1。
+  **顺带查出两处真缺陷**：① 旧方案下**同一文本在不同 seed 的嵌入值不同**——IMDB test 集
+  （indices 跨 seed 相同）实测跨 seed 最大差 **1.583e-07**，即文本特征取决于它被编进哪个 seed；
+  新方案下为 **0.000e+00**。② 缓存元数据**写成排序序、未命中时却返回插入序**，命中/未命中两条
+  路径交出不同键序 → 同一 split 准备两次的 manifest 字节取决于缓存是否命中，而传输索引要按摘要
+  比对。已让两条路径统一返回缓存文件里的那份，并加单测钉住（修复前该测试失败）。
+  制品影响：新增 `class_prior`，且 IMDB 的 13 个 npz 字节改变（max|ΔX| ≈ 1.7e-07，
+  float32 舍入级；indices/role_sizes/role_positive_rates 全不变），cifar10 与 spambase 的 40 个
+  npz 逐字节不变；归档见 `data/archive/split-manifests-pre-p1.2b-20260920/`。
+
 - Survey P2.0b 标签语义门禁 + P2.0c 交叉验证对照预注册（未发布，工程完成、合作者签署待办）：
   P2.0b 新增分类器 `label_semantics` 声明位、registry 同步与 runner 训练前按视图强制检查
   （PU 视图须 `"pu"`、clean 视图须 `"pn"`；第三方未声明估计器按 `"pu"` 保守处理），

@@ -57,12 +57,12 @@
 | P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 manifest 侧已补齐（2026-09-19，三 pilot 数据集；许可按官方页面原文逐条记录——UCI 为 CC BY 4.0，另两个来源未声明，见 §4 第 0f 条）；ADNI 不在 pilot 范围，准入路线见 D1 / shuidisjtu |
 | P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
-| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成（三数据集统一重建 2026-09-19，见 §4 第 0f 条）；⏸ HENG958 可执行性复核等待 split 产物同步 |
+| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成（三数据集统一重建 2026-09-19，见 §4 第 0f 条）；传输/校验两端工具已就位（`scripts/survey_splits_archive.py`，见第 0g 条），**载体与跑批主机路线未定，归档尚未发送**；⏸ HENG958 可执行性复核等待 split 产物同步 |
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | ✅ 已签署验收（2026-09-17）/ HENG958 交付；shuidisjtu 复核签署；**不放行正式 P2.1**（R5/R8 记为 P2.1 前置条件，两者已于 2026-09-19 工程兑现）；见 [交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 工程实现与回归完成，HENG958 独立复核/签署待办；见 [交付记录](p2_0b_delivery.md) |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 技术审计修订完成，36 锚点/7 行映射待审；HENG958 正式复核未签署，见 [复核包](p2_0c_review.md) |
 | P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
-| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958 |
+| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958；编排载体与磁盘预算已就位（`scripts/run_survey_pilot.py`，见第 0h 条），跑批主机与环境路线、GPU 窗口排定仍待定 |
 | P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果 |
 | P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU、PULDA 已完成独立组件，台账/矩阵与正式验收未做；其余 PAN、RP、CVIR、PULNS 待办 |
 | P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | ⏳ 待办 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LAGAM、GEN-PU、Holistic-PU、P3MIX；Grad-PU/PUET 独立组件已完成，台账/矩阵及正式验收仍待前置项；PUET 为 CPU 树方法，分组/GPU 条款须复核 |
@@ -332,6 +332,130 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
     补齐 `effective_output_normalization` / `normalization_source`（即 0d 所记缺口），
     其余除新增 `provenance` 块外逐键相同。取代前的 15 份 manifest、摘要对照与验证口径见
     `data/archive/split-manifests-pre-p1.2-20260919/`。
+
+0g. **split 制品跨机传输与接收端校验（2026-09-19）**：`data/` 按设计不进版本库
+    （`.gitignore` 注明 never distributed），制品一律带外传。接收端此前校验的是制品的**形状**——
+    `run_survey_experiment.py` 会走 `validate_bundle`（四路结构、索引不重叠、`test` 不得用于选择）
+    并比对 manifest 的 `dataset`/`seed` 与请求——但**没有任何完整性校验**：
+    `indices_sha256` 被原样抄进 run manifest 从不与 `.npz` 重算比对，`--split-ref` 传入的 JSON
+    连 schema 都不校验（既有测试甚至断言可塞任意 `{"note": ...}`），因此截断、损坏或与数据不符的
+    制品会被静默接受，只在结果异常时才暴露。
+    新增 `scripts/survey_splits_archive.py`（逻辑在 `pu_toolbox/experiment/split_archive.py`）：
+    `pack` 产出逐文件 `sha256`/大小索引与**确定性** tar（tar 成员元数据归零、成员按序，
+    同一棵树在不同时间、不同机器打包逐字节相同——归档摘要因此可对外公布）；
+    `verify` 在落地端**双向**校验（索引描述而树上没有、树上多出而索引没描述，后者含改名/复制出来的
+    多余 split 或整个数据集），逐文件比大小与摘要，并**从 `.npz` 重算索引摘要**与 manifest 比对，
+    报告**全部**问题而非第一个，对截断、同尺寸损坏、不可读文件一律报告而不抛异常。
+    索引与归档摘要须记入仓库后再发送：随字节同行的摘要只能证明传输无损，不能证明发出去的是对的。
+    两条边界必须一并说明：`X` 只由文件摘要兜底，**打包之前**就存在的损坏会被 `pack` 背书而非被查出；
+    本工具**没有接进跑批路径**，是操作者手动跑的，没人跑 verify 的交付仍是没人验证过的交付。
+    **本项只交付与载体无关的两端工具**：载体（GitHub Release / 网盘 / 内网共享）与跑批主机路线
+    一并留待决策；归档尚未产出与发送，digest 亦未记录——载体未定时写出会过期的摘要记录无益。
+    接收端复核仍按 `heng958_independent_review.md` 的解除条件执行（合同测试 + 每模态至少一个
+    `run_survey_experiment.py` smoke），本项只解除「制品怎么过去、怎么证明没坏」这一段。
+
+0h. **全 pilot 跑批驱动与 checkpoint 磁盘预算（2026-09-19）**：`run_survey_experiment.py`
+    单次调用在**第一个失败处即中止**（`run_survey_experiment.py:656` 的 `return 1`），跑全 pilot 会让
+    一次失败带走后面全部排队运行；`scripts/` 也一直只有单单元入口，全 pilot 无编排载体。
+    新增 `scripts/run_survey_pilot.py`（计划逻辑在 `pu_toolbox/experiment/pilot_plan.py`）：
+    从协议枚举 **645 次运行**（18 个非 oracle 可运行单元 × 5 seed × 7 个 c token
+    ——scar 3 + LBE-A 2 + LBE-B 2；加 3 个 oracle 单元 × 5 seed。oracle 由 `--oracle` 定义于 clean
+    视图，**不参与 c 网格**），按单元与机制分批，**批次只覆盖待跑的运行**：
+    脚本执行的是 seeds × c 的笛卡尔积且自身没有逐格完成判定，所以只有待跑集恰好等于完整网格时
+    才合并成一次调用，半完成的单元按 seed 拆开，否则会把已完成格子再跑一遍。
+    **已完成按 manifest 判定，不按目录存在判定**：预检失败会写 `rejected_versioned_pilot`；
+    而「候选全部 excluded」（每次 attempt 都失败）**仍写 `versioned_pilot`**，只是 `selection` 为空——
+    只看 mode 会把这一格记成已完成且永不重跑，故判定同时要求 `selection` 非空。
+    识别不了的记录一律算未完成（宁可重跑，不留空洞）。此外**要求 manifest 记录的
+    `split_sha256` 仍等于磁盘上该 (dataset, seed) split 的 `indices_sha256`**：
+    一次运行只对它所跑的那份数据构成证据，重建 split（P1.2/P1.4 刚做过）之后旧 manifest
+    描述的是本 pilot 已不再持有的数据，算作完成会让 pilot 自称跑完却握着一批不属于任何
+    split 的结果。反之，若改用「预测结果目录」判定，
+    一旦实现与脚本漂移就会朝**跳过工作**的方向静默出错，与 §4 第 0e 条聚合入口被真实 pilot
+    目录树打穿是同一类失效。默认一批失败即停（`--keep-going` 继续），收尾按 manifest 重扫并报数。
+    驱动**不替协议取值，也不越过协议去补记录**。π 是多数方法的硬门禁
+    （registry `requires_class_prior`），协议 §3.1 已把它定义为**数据生成 metadata**：
+    分层划分前完整二元化池的正例经验比例、所有 seed 共享的常量，并**明文禁止从任何子集反推**。
+    但此前**两个制品层都没记它**：split manifest 只有各子集的 `role_positive_rates`，
+    run manifest 的 `generation` 只记 `c_realized` 等、三个 π 一个都没有——而 §3.1 要求
+    「每次运行的 metadata 中记录三者及实际实现的 c」。本轮补上能补的那一半：
+    `prepare_survey_dataset` 在**唯一能看到完整池的地方**记录
+    `class_prior.{population, population_basis, train}`；驱动**从 split manifest 读取** π，
+    `--class-prior dataset=value` 降级为覆盖（与记录值冲突时告警，因为协议把它定为每数据集常量），
+    两者都没有时在**开跑前**一次性检查全部计划运行并拒绝启动，而不是跑到第一百个才失败。
+    π_U 故意不入 split manifest：它是某次运行标签视图的性质，记在这里会被当成数据集常量读。
+    `--device`（脚本默认 CPU，而 cifar10 行需要 GPU）同理透传。
+    **仍未落地的是 run manifest 侧**：按 §3.1 它应记录 π_population / π_train / π_U 三者，
+    目前一个都没有——那属于 runner 的 manifest 白名单（P2.0a 绑定范围），本项不改，作为协议问题上报。
+    **磁盘预算**（`uv run python scripts/run_survey_pilot.py --dry-run`，与 runner 跑前门禁同源——
+    同一个 `unit_checkpoint_bytes` + `checkpoint_disk_requirement`）。645 次运行中 **330 次写 checkpoint**，
+    另 315 次不写（`lbe` / `pusb_kernel` / `upu` 三个闭式单元 × 3 数据集 × 35 次；闭式与核方法不留
+    逐 epoch 状态）。三个数必须分开看，混用会朝相反方向错：
+
+    - **累积 1280.6 GiB**（cifar10 1274.4 / imdb 5.3 / spambase 0.8），单次峰值 **17.58 GiB**
+      （`cifar10/self_pu/cnn_feature_adapter`，两份 teacher）。这是「一次成功即一次 attempt」的占用：
+      `checkpoints.py` 没有任何清理逻辑，离线 selection 之后仍需这些文件，故逐次累加成立。
+    - **跑前门禁要求 35.16 GiB 空闲**（单次峰值 × 2）。`DEFAULT_CHECKPOINT_ATTEMPTS = 2` 是给重试的
+      预留，而重试确实写进独立的 `checkpoints/attempt-*` 目录（同一格重跑就多一份，且永不复用），
+      所以预留不是虚的；但它是**上限**，不是常态占用。
+
+    **这两个数对 adapter 行是上界，不能当真实占用用。** `unit_checkpoint_bytes`
+    （`survey_protocol.py:60-61`）对任何 `backbone` 以 `resnet18` 开头的行一律按 45 MiB/epoch 计，
+    但 6 个 `cnn_feature_adapter` 行**从不保存 ResNet**——adapter 只一次性提取冻结特征，
+    之后训练的是 MLP head（CLI 对 adapter 行传 `encoder=None`）。一次独立复核用**真实写入器**
+    （`EpochCheckpointTrainer` + 真实组装的 adapter 行模型 + 512 维特征）实测出倍数：
+
+    | 行 | 写入组件 | 每文件 | 单次成功运行 |
+    |---|---|---|---|
+    | `cifar10/self_pu/cnn_feature_adapter` | teacher_1, teacher_2 | 265,695 B | 101.4 MiB |
+    | `cifar10/dist_pu` / `pn_oracle`（adapter） | model | 265,655 B | 50.7 MiB |
+    | `cifar10/nnpu/native_cnn` | `Sequential(encoder_, head)` | 44,784,523 B（11,177,025 参数） | 8.34 GiB |
+
+    即该常量对 adapter 行**高估 ≈178×**，对 native_cnn 行只高约 5%（原设计如此）。
+    据实测修正后：**累积 ≈319 GiB**（cifar10 ≈313）、**单次峰值行是 `cifar10/nnpu/native_cnn`**
+    （8.34 GiB），门禁预留 ≈17.58 GiB。**向队友报磁盘需求时应以 ≈319 GiB 为准**——
+    下表头条的 1280.6 GiB 大 4 倍，会直接影响主机决策。
+    单组件 native CNN 行按常量 8.79 GiB/次，与 `epoch_checkpoint_delivery.md:44-45` 的
+    「8–9 GB/候选/seed」一致。口径与前提：候选数取协议现值 1 个、组件数取各方法类声明的
+    `epoch_components`；`unit_checkpoint_bytes` 声称是下界（忽略文件系统开销），
+    但对 adapter 行它同时是上界——这两个方向相反的偏差都源于同一个常量。
+    该常量属 P2.0a 已签署的绑定且被既有测试锁住，**本项不单方面修改**，作为协议问题上报：
+    需要协议负责人决定是按 `training_path` 区分，还是接受保守值。
+    队友侧主机已在 [P2.0a 交付记录](p2_0a_delivery.md) 记录（8 张 RTX A6000、每张约 48 GB，
+    **与其他任务共享**，当时仅暴露物理 0 号卡），但**该服务器的可用磁盘容量全仓文档均无记录**，
+    能否容纳需 HENG958 侧确认；GPU 独占窗口同样属其侧决策。
+
+0i. **切分流水线的两处效率修复与一处一致性缺陷（2026-09-20）**：
+
+    1. **重复加载**：`scripts/prepare_survey_splits.py` 的三个 `load_*` 原本写在
+       `for seed in seeds` 循环**内部**，而加载与 seed 无关。IMDB 因此每 seed 重解一次
+       `aclImdb_v1.tar.gz` 并读五万个成员（实测约 2.5 分钟/遍），CIFAR-10 每 seed 重读 813 MB
+       pickle（约 5 秒/遍）。现外提到 seed 循环之前（`_load_dataset`）。
+       **口径要说准**：大头是 IMDB 的 tar，CIFAR-10 的重复加载并不显著——上一轮 15 份重建的
+       IMDB 阶段耗时约 15 分钟，而那**全部是缓存命中下的读 tar 时间**，与编码无关。
+    2. **缓存键含顺序**：`encode_survey_texts` 的键取的是**整个有序文本列表**的摘要，而
+       `prepare_text` 传给它的顺序由 seed 决定（各 role 依次拼接），于是「同一批文本、不同排列」
+       成了不同的键，每个 seed 都重编全部语料。缓存里 5 条各 76,800,128 字节的 npy，
+       正是「每 seed 一份完整编码」。改为按**排序去重后的语料**作键、命中时按索引装配回调用方顺序；
+       schema 升至 1.1（键语义变了，旧键失效，一次性重编）。
+    3. **顺带查出的真缺陷**：旧方案下**同一条文本在不同 seed 的嵌入值不同**。实测 IMDB test 集
+       （indices 跨 seed 完全相同）的嵌入跨 seed 最大差 **1.583e-07**，即文本特征取决于它被编进
+       哪个 seed 的 batch；新方案下同一文本在任何 seed 下**逐值相同（0.000e+00）**。
+       这不是提速的副产品，而是本次更重要的结果：嵌入现在是「文本 + 模型 + revision」的纯函数。
+
+    4. **又一处可复现性缺陷（由 2 暴露，非 2 引入）**：`_atomic_write_json` 以 `sort_keys=True`
+       写缓存元数据，但**未命中**路径返回的是内存里插入序的 dict、**命中**路径返回的是从文件读回的
+       排序序 dict。同一内容、不同键序，而 `prepare_text` 把它拼进 manifest 的 `preprocessing`，
+       于是**同一个 split 准备两次，manifest 字节取决于那次编码是否命中缓存**——在传输索引按摘要
+       比对之后，这会让内容相同的两份制品摘要对不上。已让两条路径都返回「缓存文件里存的那份」，
+       并以单测钉住键序一致（该测试在修复前会失败）。
+
+    制品影响：本批重建新增 `class_prior`，且 **IMDB 的 13 个 npz 字节改变**
+    （max|ΔX| ≈ 1.7e-07，量级参照 |X| ≈ 0.27，即 float32 舍入级别；`indices`/`role_sizes`/
+    `role_positive_rates` 全部不变，切分本身无改动）。CIFAR-10 与 Spambase 的 40 个 npz
+    **逐字节不变**。取代前的 manifest 与前后对照见
+    `data/archive/split-manifests-pre-p1.2b-20260920/`。
+    代价与收益：缓存占用由 5×73 MiB 降为 73 MiB；旧键的 5 个文件（367 MB）成为死重，可删。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；

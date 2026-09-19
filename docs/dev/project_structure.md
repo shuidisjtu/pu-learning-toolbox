@@ -154,7 +154,7 @@ pu_toolbox/
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
     feature_adapter.py                    (CNN 二维特征适配、encoder/特征哈希与榜单公平性分组门禁)
     image.py                              (train-only 图像统计、缩放、ResNet-18/增强配置与哈希留痕)
-    text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存)
+    text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存；键按去重语料而非排列，故同一文本跨 seed 同值)
     training_views.py                     (train-only OS/TS-compatible mini-batch 损失视图与留痕)
     manifest.py                           (manifest 写入/加载与必填键校验)
     protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
@@ -166,6 +166,8 @@ pu_toolbox/
     survey_protocol.py                    (survey_protocol_v1.json 消费、参数预算锁、正式资格与比较门禁)
     checkpoints.py                        # 逐 epoch 权重快照、摘要校验与独立推理恢复
     survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
+    split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
+    pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -289,7 +291,7 @@ tests/
       test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
       test_feature_adapter.py           # CNN 特征四路适配/哈希/fit 范围与 split/seed/预算公平门禁
       test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
-      test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测
+      test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测；跨排列同条目、重复文本共享行
       test_training_views.py            # TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与哈希
       test_manifest.py                  # manifest 往返与必填键 fail-loud
       test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
@@ -326,6 +328,9 @@ tests/
       test_survey_comparison_run_wiring.py # 跑批侧接线: 一次 run 按选择协议解析映射、覆盖缺陷拒绝开跑
       _survey_comparison_helpers.py     # 对照测试共享夹具: 来源/锚点/映射/结果构造与写盘拒收
       test_dataset_provenance.py        # 制品追溯: 目录内已复核事实、许可逐条按官方页原文、下载来源与摘要
+      test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
+      test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
+      test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
