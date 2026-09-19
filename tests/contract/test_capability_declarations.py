@@ -78,9 +78,11 @@ def test_registry_sync_matches_class():
 @pytest.mark.contract
 def test_pnu_is_the_only_registered_three_way_classifier():
     declarations = {meta.name: cls.label_semantics for meta, cls in _classifier_entries()}
-    assert len(declarations) == 17
+    # Deliberately not a registry-size pin: registering another PU classifier is
+    # routine and must not redden a test about label semantics.  An empty registry
+    # still fails, because the lookup raises and the set below is not {"pnu"}.
     assert declarations["pnu"] == "pnu"
-    assert all(value == "pu" for name, value in declarations.items() if name != "pnu")
+    assert {name for name, value in declarations.items() if value == "pnu"} == {"pnu"}
 
 
 @pytest.mark.contract
