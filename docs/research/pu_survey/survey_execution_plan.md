@@ -2,7 +2,7 @@
 
 > 定位：本文件是**执行路线与状态**，与协议的承接关系——
 > [pu_survey_protocol.md](pu_survey_protocol.md) 是要求纲要，
-> [implementation_plan.md](implementation_plan.md) 是现状差距与技术实现维度；
+> [experiment_layer.md](../../dev/experiment_layer.md) 是实验层实现维度；
 > 状态日期：2026-09-18。
 
 ## 1. 现状
@@ -262,6 +262,7 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
 | D6 | PU-Bench PN 行降级为背景参考 | 其 `pn` 用 `val_proxy_acc` 选模、我方 oracle 用 `clean_val_accuracy`，数值不可直接对比（`pn_oracle_integration.md` 既有决策）；不参与「交叉验证对照」判定规则第 1 条的数值裁决 | 2026-09-14 |
 | D7 | SAR 标记频率口径修正 | 复核 PU-Bench 论文与锁定代码 `2d95a19`：`config/datasets_vary_e/*.yaml` 均使用 `c_values: [0.05, 0.5]`；原协议 `{0.1,0.5}` 与参考实现不一致，修正为 `{0.05,0.5}`。SCAR 主实验 `{0.1,0.3,0.5}` 不变；issue #43 按修正后口径实施 | 2026-09-15 |
 | D8 | SAR 执行路径设计（issue #43） | `--labeling-mechanism` 与 `--method` **正交**（机制是实验自变量，SAR 行可跑任意 survey 方法）；SAR 强制 OA-only（协议 §2.3 下 PA 仅可诊断，v1 不产出 PA 日志）；SAR c 只接受**规范 token** `{0.05,0.5}`，目录按用户输入 token 命名（`c_0.05` 不得被格式化为 `c_0.1`），同值异拼写（`0.05`/`5e-2`）拒绝；`c_requested_token` 由脚本在运行成功后回写 manifest（runner manifest schema 为固定白名单，不改 runner，降低与 P2.0a 冲突） | 2026-09-15 |
+| D9 | SCAR 标记数取整口径 | PU-Bench `n_labeled = int(n_pos · labeled_ratio)` 为**向下取整**，协议 §2.1 采用 `round(c·n₊)`；实现时以协议口径为准并记录实际 c | 2026-09-06 |
 
 ## 4. 存在的开放问题与风险
 
@@ -318,6 +319,16 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
     候选全部失败、只留空 `selection` 的失败记录不再被当作结果聚合。
     本记录不改变 2026-09-17 的签署结论，0d 所列其余阻断项继续生效；
     见 [交付记录](p2_0a_delivery.md) §6。
+
+    **P2.2 待确认（2026-09-20 审计发现，本次不处理）**：`aggregate_survey_runs.py`
+    的 `unit_key` 只返回 `(seed, c_requested)`，不含 `labeling_mechanism`；而协议
+    `c_tokens` 里 SCAR（`["0.1","0.3","0.5"]`）与 SAR（`sar_lbe_a`/`sar_lbe_b`，均
+    `["0.05","0.5"]`）在 **c=0.5** 有重叠 token，且 SAR 与 SCAR 单元共享同一
+    `comparability_group`（组键不含机制，`execution_units` 亦无机制字段）。P2.2 聚合时
+    同一 `(seed, 0.5)` 单元键下会同时落入 SCAR 与 SAR 两个 manifest，`_group_report`
+    的 `by_unit` 分组会把它们混进一个 unit。聚合脚本自述完整性网格/异常单元属 P2.2
+    故意缺失，此碰撞无测试覆盖——P2.2 开工前须先裁定：机制入键 / SAR 单列 / 明确
+    SAR 不参与该聚合。
 
 0f. **P1.2 字段补齐与 P1.4 三数据集统一重建（2026-09-19）**：split manifest 新增
     `provenance` 块——来源 URL、版本、引用、许可状态，以及本地下载记录的
