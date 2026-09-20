@@ -1,8 +1,8 @@
 # 实验层（experiment）设计文档
 
 > 对应需求：PU 调研实验协议 [pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)
-> §2.4（四份数据角色与 PA/OA 双协议）；执行状态与现状差距见
-> [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) §1。
+> §2.4（四份数据角色与 PA/OA 双协议）；执行状态见
+> [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) 任务分工表。
 > 本文件描述 **pilot（P0）阶段的实验层设计蒸馏**：架构、关键决策、边界与已知局限。
 
 ## 1. 为什么有这个层
@@ -65,7 +65,7 @@ sklearn 式 `fit(X, y)` 契约是应当保留的底层设计。"数据带角色"
   **视图与 trainer 的标签语义不一致在 runner 内双向 fail-loud**（PU 视图 + 真实标签 trainer；
   clean 视图 + 未声明 `trains_on_real_labels` 的 PU trainer）——此前两种误配都会静默把标记
   当作真实标签（或反之）训练出错误的"上界"。判定以声明为准：未声明 `True` 的监督 trainer 会被
-  当作 PU trainer。守卫不覆盖估计器自身的优化目标（见 pn_oracle_integration.md §8）。深度
+  当作 PU trainer。守卫不覆盖估计器自身的优化目标（见 [label_semantics_plan.md](label_semantics_plan.md)）。深度
   （CNN）oracle 的 clean-val checkpoint 选择列为 Phase 2
 - **SAR LBE-A/LBE-B OA-only 执行路径（2026-09-15，issue #43）**：官方脚本新增
   `--labeling-mechanism {scar, sar_lbe_a, sar_lbe_b}`（默认 `scar`，与 `--method` 正交——机制是

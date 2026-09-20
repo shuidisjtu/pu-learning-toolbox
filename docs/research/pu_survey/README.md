@@ -14,7 +14,7 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | 文档 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | 协议要求纲要（8 数据集、OS/TS 视图、四份数据接口、PA/OA 双选模） |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 执行路线、状态与决策记录（§4 的 0a–0j 条），本目录的状态权威源 |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 执行协调层：任务分工、交叉验证对照预注册、决策记录与留痕约定 |
 
 ## 交付记录
 
@@ -24,7 +24,7 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | [`p2_0b_delivery.md`](p2_0b_delivery.md) | P2.0b 标签语义 fail-loud 门禁交付（未签署） |
 | [`p2_0c_delivery.md`](p2_0c_delivery.md) | P2.0c 外部对照预注册：资格闭集、覆盖推导、来源口径差异判读与签署顺序 |
 | [`epoch_checkpoint_delivery.md`](epoch_checkpoint_delivery.md) | 逐 epoch 权重保存、PA/OA 独立恢复与验证证据 |
-| [`pn_oracle_integration.md`](pn_oracle_integration.md) | PN oracle 缺陷修复接入记录，决策仍被引用，开放问题见其 §8 |
+| [`pn_oracle_integration.md`](pn_oracle_integration.md) | PN oracle 接入决策与 PU-Bench 口径对照记录 |
 
 ## 复核 / 签署
 

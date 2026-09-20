@@ -212,8 +212,8 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 在此之前只可发布明确标为 `pilot / partial benchmark` 的部分结果。
 
 > 当前源码审计与接入验收流程（`source-faithful` 判定、冒烟/对照要求）见
-> [pn_oracle_integration.md](pn_oracle_integration.md)（PN oracle 口径）与
-> [survey_execution_plan.md](survey_execution_plan.md) §1（算法接入台账）。
+> [pn_oracle_integration.md](pn_oracle_integration.md)（PN oracle 口径）；算法接入台账的
+> 机器真相源是 `pu_toolbox/experiment/method_ledger.json`。
 
 ## 5. 结果、复现与交付验收
 

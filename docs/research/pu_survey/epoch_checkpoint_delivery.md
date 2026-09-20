@@ -71,7 +71,7 @@ predictions = selected.predict(X_test)
 最终 test 评测不冒充调参成本。逐 epoch 指标只含每套协议允许的验证结果，不保存标签。
 
 **已完成（2026-09-20）**：PA 的正式准则——proxy accuracy（Wang et al. 2026 Definition 1 的 OS
-分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见执行计划 §4 第 0j 条。
+分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见 [p2_0a_review.md](p2_0a_review.md) R9 补记。
 **仍未完成**：P2.0b/c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle。
 本次 checkpoint 功能补齐不意味着所有单元 `formal_eligible=true`。
 

@@ -41,7 +41,7 @@ R9 是新增发现的协议差距，不能因为 checkpoint 接线已完成就�
 复核若要求修改任一规格，应记录理由、更新版本、重跑受影响测试和数据单元。
 
 > **2026-09-20 后续**：R9 的**准则本体**已实现——proxy accuracy（Wang et al. 2026 Definition 1
-> 的 OS 分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见执行计划 §4 第 0j 条。代码里的阻断串
+> 的 OS 分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见 PR #65。代码里的阻断串
 > 由 `PA_separation_proxy_not_preregistered_accuracy_threshold` 换为
 > `PA_criterion_pending_collaborator_acceptance`。**本节对 R9 的结论不翻案**：残留的是合作者签署，
 > 以及 P2.0c 的 54 条 `blocked_pending_pa_criterion` 映射尚未裁决。协议摘要随之由
