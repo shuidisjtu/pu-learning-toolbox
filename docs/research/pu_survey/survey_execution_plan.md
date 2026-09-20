@@ -54,10 +54,10 @@
 | 编号 | 任务 | 前置 | 验收标准 | 状态 / 主责 |
 |---|---|---|---|---|
 | P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 GPU 能力复核完成，正式跑批需 frozen-lock 环境（见独立复核记录） |
-| P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 manifest 侧已补齐（2026-09-19，三 pilot 数据集；许可按官方页面原文逐条记录——UCI 为 CC BY 4.0，另两个来源未声明，见 §4 第 0f 条）；ADNI 不在 pilot 范围，准入路线见 D1 / shuidisjtu |
+| P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 manifest 侧已补齐（2026-09-19，三 pilot 数据集；许可按官方页面原文逐条记录——UCI 为 CC BY 4.0，另两个来源未声明，见 §4 第 0f 条）；ADNI 不在 pilot 范围，准入路线见 D1。本项 🚧 的口径是**范围**而非遗漏：协议 §2.1 列 8 个数据集，pilot 阶段先取 3 个易得且分属三种模态的（CIFAR-10 / Spambase / IMDB，见 §1.2），故 pilot 范围内已完成、按协议全量仍待办 / shuidisjtu |
 | P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
-| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成（三数据集统一重建 2026-09-19，见 §4 第 0f 条）；传输/校验两端工具已就位（`scripts/survey_splits_archive.py`，见第 0g 条），**载体与跑批主机路线未定，归档尚未发送**；⏸ HENG958 可执行性复核等待 split 产物同步 |
+| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成（三数据集统一重建 2026-09-19，见 §4 第 0f 条）；传输/校验两端工具已就位（`scripts/survey_splits_archive.py`，见第 0g 条）；**载体已定（网盘带外传），三个归档已于 2026-09-20 发送，逐文件索引与归档摘要先于发送入库**（`docs/research/pu_survey/data/split_artifacts_index.json`）；⏸ HENG958 可执行性复核等待其取件校验 |
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | ✅ 已签署验收（2026-09-17）/ HENG958 交付；shuidisjtu 复核签署；**不放行正式 P2.1**（R5/R8 记为 P2.1 前置条件，两者已于 2026-09-19 工程兑现）；见 [交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 工程实现与回归完成，HENG958 独立复核/签署待办；见 [交付记录](p2_0b_delivery.md) |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节（§2 末）；锚点数值预注册 | 🚧 技术审计修订完成，36 锚点/7 行映射待审；HENG958 正式复核未签署，见 [复核包](p2_0c_review.md) |
@@ -349,8 +349,11 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
     索引与归档摘要须记入仓库后再发送：随字节同行的摘要只能证明传输无损，不能证明发出去的是对的。
     两条边界必须一并说明：`X` 只由文件摘要兜底，**打包之前**就存在的损坏会被 `pack` 背书而非被查出；
     本工具**没有接进跑批路径**，是操作者手动跑的，没人跑 verify 的交付仍是没人验证过的交付。
-    **本项只交付与载体无关的两端工具**：载体（GitHub Release / 网盘 / 内网共享）与跑批主机路线
-    一并留待决策；归档尚未产出与发送，digest 亦未记录——载体未定时写出会过期的摘要记录无益。
+    **载体与交付（2026-09-20）**：本项当初只交付与载体无关的两端工具、载体留待决策；现已定为
+    **网盘带外传**（交大网盘，需 jaccount 登录），三个归档已发送（cifar10 813 MB / imdb 343 MB /
+    spambase 1.6 MB，合计 1.2 GB）。逐文件索引与归档摘要已于发送**之前**入库
+    （`docs/research/pu_survey/data/split_artifacts_index.json`，含各归档摘要与产出 commit），
+    接收端据此校验，比对基准不随字节同行；跑批主机路线仍待决策。
     接收端复核仍按 `heng958_independent_review.md` 的解除条件执行（合同测试 + 每模态至少一个
     `run_survey_experiment.py` smoke），本项只解除「制品怎么过去、怎么证明没坏」这一段。
 
