@@ -58,8 +58,10 @@ AGENTS.md
 demo_data/
 /results*/
 
-# Survey experiment data: raw downloads and prepared splits (never distributed)
-data/
+# Survey experiment data: raw downloads and prepared splits (never distributed).
+# Root-anchored so it does not also swallow docs/research/pu_survey/data/, which
+# holds the tracked delivery index -- metadata, not experiment data.
+/data/
 
 # Local one-off plans (never for distribution)
 .superpowers/
