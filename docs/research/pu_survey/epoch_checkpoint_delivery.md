@@ -70,8 +70,9 @@ predictions = selected.predict(X_test)
 并单列 `offline_checkpoint_validation_elapsed_seconds`、选择/分派开销。
 最终 test 评测不冒充调参成本。逐 epoch 指标只含每套协议允许的验证结果，不保存标签。
 
-**仍未完成**：PA 的正式 Accuracy/阈值准则（现有分离度代理显式阻断）、
-P2.0b/c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle。
+**已完成（2026-09-20）**：PA 的正式准则——proxy accuracy（Wang et al. 2026 Definition 1 的 OS
+分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见执行计划 §4 第 0j 条。
+**仍未完成**：P2.0b/c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle。
 本次 checkpoint 功能补齐不意味着所有单元 `formal_eligible=true`。
 
 ## 4. 验证

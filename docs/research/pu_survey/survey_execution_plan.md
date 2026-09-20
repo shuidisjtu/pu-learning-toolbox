@@ -268,6 +268,7 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
 0. **P2.0a 后续补充（2026-09-16）**：`survey-v1.1` 已保存逐 epoch 权重、双 teacher，
    支持 PA/OA 独立选择与恢复；实际完整预算/快照覆盖才解除相应 checkpoint 门禁。
    PA 仍是 PU 分离度代理，正式 Accuracy/阈值准则未实现，新增专用 `formal_blockers`；
+   （**2026-09-20 更新**：准则本体已由第 0j 条实现，残留为合作者签署与 P2.0c 裁决。）
    CNN oracle 仍未接入，full-batch/经典路径没有同预算/backbone oracle。
    签署材料与逐条决定见 [复核包](p2_0a_review.md)，存储/加载/测试见
    [checkpoint 交付](epoch_checkpoint_delivery.md)。不得只删除阻断字段升级结果。
@@ -303,6 +304,8 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
     继续保持阻断：R9、P2.0b、P2.0c、缺失的 CNN/full-batch oracle、完整 Self-PU OA
     meta-reweighting、Linux frozen-lock 环境偏差、P1.4 制品统一重建（IMDB/Spambase 待建；
     issue #52 的 CIFAR-10 部分已关闭）。
+    （**2026-09-20 更新**：本段所列的 R9 准则本体已由第 0j 条实现，残留仅剩合作者签署；
+    P1.4 制品重建与跨机交付见第 0f、0g 条。）
     IMDB 制品层（`data/splits/imdb/`）不含返工新增的有效口径字段，并入 P1.4 三数据集
     统一重建，验收按代码与测试层进行。
 
@@ -388,8 +391,9 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
     两者都没有时在**开跑前**一次性检查全部计划运行并拒绝启动，而不是跑到第一百个才失败。
     π_U 故意不入 split manifest：它是某次运行标签视图的性质，记在这里会被当成数据集常量读。
     `--device`（脚本默认 CPU，而 cifar10 行需要 GPU）同理透传。
-    **仍未落地的是 run manifest 侧**：按 §3.1 它应记录 π_population / π_train / π_U 三者，
-    目前一个都没有——那属于 runner 的 manifest 白名单（P2.0a 绑定范围），本项不改，作为协议问题上报。
+    **run manifest 侧的 π**：按 §3.1 它应记录 π_population / π_train / π_U 三者。第 0j 条随
+    `split_ref` 内联与 selection 块的 `class_prior{population, source}` 补上了 **π_population** 这一半；
+    另两个仍缺，属 runner 的 manifest 白名单（P2.0a 绑定范围），本项不改，作为协议问题上报。
     **磁盘预算**（`uv run python scripts/run_survey_pilot.py --dry-run`，与 runner 跑前门禁同源——
     同一个 `unit_checkpoint_bytes` + `checkpoint_disk_requirement`）。645 次运行中 **330 次写 checkpoint**，
     另 315 次不写（`lbe` / `pusb_kernel` / `upu` 三个闭式单元 × 3 数据集 × 35 次；闭式与核方法不留
@@ -459,6 +463,35 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
     **逐字节不变**。取代前的 manifest 与前后对照见
     `data/archive/split-manifests-pre-p1.2b-20260920/`。
     代价与收益：缓存占用由 5×73 MiB 降为 73 MiB；旧键的 5 个文件（367 MB）成为死重，可删。
+
+0j. **PA 正式选模准则实现（2026-09-20）**：R9 的**准则本体**落地。此前 PA 用
+    `pu_val_separation`（标记正例组均值 − 未标注组均值）选模且不选阈值，与预注册不符。
+    现按参考文献 1（Wang et al. 2026）Definition 1 的 **OS 分支**（协议 §2.3 统一采用 OS 数据生成）：
+
+        PA(θ) = (2π/n'_P)·Σ_{D'_P} 1[f(x) ≥ θ] + (1/(n'_P+n'_U))·Σ_{D'_P∪D'_U} 1[f(x) < θ]
+
+    第二项遍历**全部**验证样本（含标记正例），这是论文定义。π 是第一项的权重，因此它改变
+    **argmax 而非仅尺度**——这正是 π 必须 fail-loud 而不能取默认值的原因。代入完美分类器得
+    PA = ACC + π（常数平移），命题 1（PA 的排序与 ACC 一致）由此成立。
+    **π 的取值链**：run 自己的 `class_prior`（与训练同一常数，使 `--allow-prior-override` 对选模
+    同样生效）→ `split_ref.class_prior.population`（§3.1 的数据生成 metadata，split 制品是唯一
+    能记录它的地方）→ 都没有则**在训练前 fail-loud**（runner 预检，`ProtocolPA.select` 内另有第二道）。
+    预检显式跳过 clean view：那里 PA 由自己的视图守卫拒绝，报错才指向真正的缺陷（generator/protocol
+    错配）；预检也排在协议/配置/能力检查之后，以免用"缺 π"遮蔽更根本的缺陷。
+    **与 OA 同构**：每 checkpoint 在各自 val 侧 min-max，共用同一阈值网格与 val 侧仿射常数（test
+    阶段复用），tie-break 遵循 `selection_spec.tie_breaking` 的"最早"。`split_ref` 因此新增内联
+    `class_prior`，run manifest 的 selection 块新增 `class_prior{population, source}`。
+    **摘要变更**：`pa_criterion` 与 decisions 第 7 条改写，canonical digest
+    `b5b6b5f4…ed2ff20` → `c15b0c9e…eaff529`，`survey_comparison_v1.json` 的绑定同步重绑
+    （`survey_comparison.py` 双向校验版本与摘要，两者必须同一 commit 落地）。`protocol_version`
+    保持 `survey-v1.2`：准则是预注册的，本次是让实现符合它，不是改协议。
+    **残留阻断**：合作者尚未签署；P2.0c 的 54 条 `blocked_pending_pa_criterion` 映射**本次不动**
+    （`p2_0c_delivery.md` 明确"不得因其他项通过而被顺手删除"），留待 P2.0c 复核统一裁决。
+    代码里的阻断串由 `PA_separation_proxy_not_preregistered_accuracy_threshold` 换为
+    `PA_criterion_pending_collaborator_acceptance`。
+    **这是行为变化而非纯签名变化**：PA 选出的 candidate/epoch/threshold 会与旧实现不同。已知一例
+    是候选池测试——`multiplier` 只缩放分数（`m·(10x₀−5)` 的符号与 m 无关，两候选 predict 相同），
+    旧实现奖励分数范围因而选它，归一化后两者完全相同，于是平手取最早候选，与 OA 的行为一致。
 
 1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
    显存不足时（批大小/并行）需在实验记录中说明资源限制；

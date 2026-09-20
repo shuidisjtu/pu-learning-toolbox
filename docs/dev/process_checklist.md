@@ -126,6 +126,25 @@
   float32 舍入级；indices/role_sizes/role_positive_rates 全不变），cifar10 与 spambase 的 40 个
   npz 逐字节不变；归档见 `data/archive/split-manifests-pre-p1.2b-20260920/`。
 
+- Survey PA 正式选模准则（未发布，2026-09-20）：R9 的**准则本体**落地。此前 PA 用
+  `pu_val_separation`（标记正例组均值 − 未标注组均值）选模且 `threshold=None`，与预注册的
+  PA accuracy / 阈值准则不符。现按参考文献 1（Wang et al. 2026）Definition 1 的 **OS 分支**
+  实现 proxy accuracy：`(2π/n'_P)·Σ_{D'_P}1[f≥θ] + (1/(n'_P+n'_U))·Σ_{D'_P∪D'_U}1[f<θ]`。
+  **第二项遍历全部验证样本**（含标记正例）；代入完美分类器得 `PA = ACC + π`，命题 1 由此成立。
+  **π 是第一项的权重**，故它改变 argmax 而非仅尺度——这正是它必须 fail-loud 的原因：取值链为
+  run 的 `class_prior`（与训练同一常数，使 `--allow-prior-override` 对选模同样生效）→
+  `split_ref.class_prior.population`（§3.1 的数据生成 metadata，split 制品是唯一记录处）→
+  都没有则在**训练前**拒绝（`ProtocolPA.select` 内另有第二道）。预检显式跳过 clean view、且排在
+  协议/配置/能力检查之后：前者避免遮蔽 generator/protocol 错配这个真缺陷，后者避免用「缺 π」
+  遮蔽更根本的配置缺陷。归一化、阈值网格、val 侧仿射常数与 tie-break 均与 OA 同构，test 阶段
+  复用同一路径；`split_ref` 因此新增内联 `class_prior`，selection 块新增
+  `class_prior{population, source}`（§3.1 要求 run manifest 记 π 的缺口补上 π_population 一半）。
+  协议摘要 `b5b6b5f4…` → `c15b0c9e…`，comparison 绑定同步重绑、必须同一 commit 落地；
+  `protocol_version` 保持 survey-v1.2——准则是预注册的，本次是让实现符合它。
+  **残留**：合作者签署，以及 P2.0c 的 54 条 `blocked_pending_pa_criterion` 留待其复核统一裁决
+  （不得因准则实现而顺手删除）。**这是行为变化**：PA 选出的 candidate/epoch/threshold 会变，
+  归一化后仅尺度不同的候选不再被偏好（与 OA 行为一致）。
+
 - Survey P2.0b 标签语义门禁 + P2.0c 交叉验证对照预注册（未发布，工程完成、合作者签署待办）：
   P2.0b 新增分类器 `label_semantics` 声明位、registry 同步与 runner 训练前按视图强制检查
   （PU 视图须 `"pu"`、clean 视图须 `"pn"`；第三方未声明估计器按 `"pu"` 保守处理），
