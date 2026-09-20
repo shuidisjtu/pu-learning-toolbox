@@ -1235,8 +1235,8 @@ docstring。
 首次失败后成功的候选标为 `recovered`；再次失败则标为 `excluded` 并从 PA/OA 选模池排除。
 manifest 的 `candidate_runs` 保存候选到有效 trajectory 的映射，`failures` 保存异常类型与消息；
 
-Survey 的版本化运行通过脚本 `--protocol survey-v1.1 --dataset ...` 启动
-（`survey-v1` 是当前版本别名，实际版本写入 manifest）。
+Survey 的版本化运行通过脚本 `--protocol survey-v1.2 --dataset ...` 启动
+（`survey-v1`/`survey-v1.1` 保留为当前规格别名，实际版本写入 manifest）。
 `config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
 预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、

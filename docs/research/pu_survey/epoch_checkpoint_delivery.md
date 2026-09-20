@@ -64,7 +64,7 @@ predictions = selected.predict(X_test)
 实际训练满声明 epoch 且完整快照可供 PA/OA 独立选择，才解除本单元的
 `per_epoch_independent_PA_OA_checkpoint_selection` 阻断；无 epoch 方法标为 `single_point_no_epoch`。
 缩短训练、关闭 capture、旧自定义 trainer 或缺少持久化，均不能获得正式可复现资格。
-协议版本更新为 `survey-v1.1`；旧 `survey-v1` 历史 manifest 仍是旧语义，不能改版本标签升级。
+协议版本为 `survey-v1.2`（checkpoint 功能随 v1.1 引入）；旧 `survey-v1` 历史 manifest 仍是旧语义，不能改版本标签升级。
 
 训练成本包括保存快照；离线逐 epoch 验证/恢复成本记入单配置成本与总调参成本，
 并单列 `offline_checkpoint_validation_elapsed_seconds`、选择/分派开销。
