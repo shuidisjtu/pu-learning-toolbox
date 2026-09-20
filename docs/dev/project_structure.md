@@ -109,7 +109,7 @@ pu_toolbox/
     __init__.py                           (公共导出聚合; __getattr__ 懒转发 advisor 符号防导入环)
     registry.py                           (已实现: 中央注册表 register_method/get_algorithm + 别名解析, 线程安全)
     metadata.py                           (公开: AlgorithmMetadata 算法元数据契约, 注册表与文档生成共用)
-    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 19 个内置算法元数据)
+    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 21 个内置算法元数据)
   advisor/
     __init__.py                           (公共导出聚合: 推荐引擎与推荐数据结构入口)
     recommender.py                        (已实现: recommend_methods/recommend_from_profile 画像→注册表方法推荐)
