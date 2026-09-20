@@ -8,7 +8,7 @@
     "training": "one fixed-budget fit per candidate; snapshots before internal restoration",
     "epoch_selection": "independent_offline_per_protocol",
     "self_pu_components": "both EMA teachers at every epoch",
-    "pa_criterion": "engineering_pu_val_separation; no threshold tuning; formal acceptance pending",
+    "pa_criterion": "pu_val_proxy_accuracy (Wang et al. 2026 Def. 1, OS branch); per-checkpoint val-side min-max threshold grid; population class prior required; collaborator acceptance pending",
     "oa_criterion": "clean_val_accuracy; per-checkpoint val-side min-max threshold grid",
     "tie_breaking": "earliest candidate, then earliest epoch/component, then earliest threshold",
     "checkpoint_format": "weights_only; inference snapshots, not optimizer resume"
@@ -544,9 +544,10 @@
     "Classical methods have no MLP backbone; no neural oracle is claimed to be backbone-matched.",
     "CNN oracle remains Phase 2; unsupported row fails before training.",
     "Completed-epoch weights are selected independently offline; inference checkpoints do not resume optimizer training.",
-    "PA still uses the engineering PU separation proxy, not the preregistered PA accuracy/threshold criterion; formal SCAR PA acceptance remains blocked.",
+    "PA selects on the generated pu_val view by proxy accuracy (Wang et al. 2026 Definition 1, OS branch) over the same per-checkpoint val-side min-max threshold grid OA uses; the population class prior pi is required per run (from the run's class_prior, else the split artifact's class_prior.population) and a run without it fails loudly. Formal SCAR PA acceptance remains pending the collaborator's signature.",
     "KLDCE is non-runnable until flip_probability is bound at runtime; flip_probability = 1 - c is valid only under SCAR, while SAR requires a separate reject/value/deviation decision.",
     "Self-PU uses two sampled optimizer steps per epoch, not a full traversal, and has no budget-matched mini-batch oracle; its comparability group is separate.",
-    "selection_spec is descriptive documentation; runner behavior is enforced by code and checkpoint tests, not by dynamically consuming this prose field."
+    "selection_spec is descriptive documentation; runner behavior is enforced by code and checkpoint tests, not by dynamically consuming this prose field.",
+    "Implementing the PA criterion does not by itself unblock the pre-registered PA units: the 54 blocked_pending_pa_criterion mappings stay blocked until the P2.0c review rules on them."
   ]
 }

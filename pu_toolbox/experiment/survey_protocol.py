@@ -384,7 +384,12 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     if protocol["review_status"] != "accepted" and "collaborator_review" not in blockers:
         blockers.append("collaborator_review")
     if "PA" in expected_names:
-        blockers.append("PA_separation_proxy_not_preregistered_accuracy_threshold")
+        # The criterion itself is implemented (see p2_0a_review.md R9); what
+        # remains is the collaborator's acceptance, and the P2.0c matrix still
+        # classifies every PA unit as blocked_pending_pa_criterion.  Saying
+        # "separation proxy" here would now be a false statement in every
+        # manifest this function writes.
+        blockers.append("PA_criterion_pending_collaborator_acceptance")
     if row["method"] == "self_pu":
         blockers.append("SelfPU_clean_validation_meta_reweighting_OA_integration")
     if deviations:

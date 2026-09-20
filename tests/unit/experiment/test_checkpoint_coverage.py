@@ -227,6 +227,7 @@ def test_param_malformed_component_declaration_rejected_before_training(
     runner = ExperimentRunner(
         config={"c": 0.5, "trainer": trainer},
         manifest_path=str(tmp_path / "manifest.json"),
+        class_prior=0.5,
     )
     model = type("BadDeclaration", (_OneNetwork,), {"epoch_components": bad})()
     with pytest.raises(ValueError, match="epoch_components"):
@@ -258,6 +259,7 @@ def test_edge_dropped_component_cannot_discharge_r9_blocker(tmp_path, survey_scr
     runner = ExperimentRunner(
         config={**config, "trainer": _DroppingTrainer(tmp_path / "ckpt")},
         manifest_path=str(manifest_path),
+        class_prior=0.5,
     )
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
         runner.fit(model, *parts)
@@ -281,7 +283,7 @@ def test_basic_complete_versioned_run_does_discharge_the_blocker(tmp_path, surve
     """
     model, parts, config = _self_pu_bound(survey_script, tmp_path)
     manifest_path = tmp_path / "manifest.json"
-    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path))
+    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
     runner.fit(model, *parts)
 
     manifest = json.loads(manifest_path.read_text())

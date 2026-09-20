@@ -40,6 +40,13 @@
 R9 是新增发现的协议差距，不能因为 checkpoint 接线已完成就删除其正式阻断。
 复核若要求修改任一规格，应记录理由、更新版本、重跑受影响测试和数据单元。
 
+> **2026-09-20 后续**：R9 的**准则本体**已实现——proxy accuracy（Wang et al. 2026 Definition 1
+> 的 OS 分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见执行计划 §4 第 0j 条。代码里的阻断串
+> 由 `PA_separation_proxy_not_preregistered_accuracy_threshold` 换为
+> `PA_criterion_pending_collaborator_acceptance`。**本节对 R9 的结论不翻案**：残留的是合作者签署，
+> 以及 P2.0c 的 54 条 `blocked_pending_pa_criterion` 映射尚未裁决。协议摘要随之由
+> `b5b6b5f4…ed2ff20` 变为 `c15b0c9e…eaff529`。
+
 ### 审核发现 A3：CIFAR split manifest 来源信息
 
 - A3a：split 准备阶段未施加增强，却把 estimator 默认 `simaugment` 记入 manifest；
@@ -112,7 +119,10 @@ verification_head: 0c90f27f73db7fa8f894089fc4c5254c790ffb95
 reviewed_protocol_version: survey-v1.2
 reviewed_protocol_sha256: b5b6b5f4945bf5bc1823eee6cddf487595d409b93f48911f0f1797b89ed2ff20
   （签署前候选值 faa9084c631a3852ed75d104c9c6dbe1514043a3f21db15e4d9bab674a42ff16。
-    摘要包含 review_status 与 formal_blockers，故本次签署必然改变它；摘要未变即为失败。）
+    摘要包含 review_status 与 formal_blockers，故本次签署必然改变它；摘要未变即为失败。
+    2026-09-20：PA 正式准则实现后该摘要变为
+    c15b0c9e0677729d749c79af2d563849d5b70be395e65fd3ea2b2cfa0eaff529。本条记录的是
+    2026-09-17 签署时的值，不改写。）
 
 R1  接受。接受 score blueprint。书面写明实际数据口径：Spambase 为 train-only 逐特征
     z-score（复核人在真实制品上实测 train 特征均值 ~1e-8、std 1.0000，非全量拟合）；

@@ -64,9 +64,9 @@ def _run(tmp_path, bundle=None, *, candidates=None):
     config = {"c": 1.0}
     if candidates is not None:
         config["candidates"] = candidates
-    return ExperimentRunner(config=config, manifest_path=str(tmp_path / "manifest.json")).fit(
-        OppositeOptima(), bundle.train, bundle.pu_val, bundle.clean_val, bundle.test
-    )
+    return ExperimentRunner(
+        config=config, manifest_path=str(tmp_path / "manifest.json"), class_prior=0.5
+    ).fit(OppositeOptima(), bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
 
 
 def test_basic_runner_restores_opposite_pa_oa_epoch_optima(tmp_path):
@@ -126,8 +126,18 @@ def test_determ_test_values_and_labels_cannot_change_selection(tmp_path):
 
 
 def test_basic_candidate_pool_and_epoch_are_selected_jointly(tmp_path):
+    """Both dimensions are searched, and the two protocols land on different epochs.
+
+    ``multiplier`` only scales the epoch-0 scores: m * (10*x0 - 5) has the same
+    sign for every m > 0, so the two candidates predict identically.  Both
+    protocols min-max normalise each checkpoint in its own val-side space (the
+    runner reuses those affine constants on the test set), which erases the
+    scale difference and leaves PA tied -- it takes the earliest candidate,
+    exactly as OA already did.  The epochs still differ, which is the joint
+    search this test is about.
+    """
     result = _run(tmp_path, candidates=[{"multiplier": 1.0}, {"multiplier": 2.0}])
-    assert result.manifest["selection"]["PA"]["candidate_index"] == 1
+    assert result.manifest["selection"]["PA"]["candidate_index"] == 0
     assert result.manifest["selection"]["OA"]["candidate_index"] == 0
     assert result.selections["PA"].epoch == 1 and result.selections["OA"].epoch == 2
 
@@ -185,7 +195,7 @@ def test_param_truncated_budget_cannot_clear_formal_checkpoint_blocker(tmp_path)
 
 def test_basic_in_memory_run_retains_models_but_no_invalid_persistent_paths():
     bundle = _bundle()
-    result = ExperimentRunner(config={"c": 1.0}).fit(
+    result = ExperimentRunner(config={"c": 1.0}, class_prior=0.5).fit(
         OppositeOptima(), bundle.train, bundle.pu_val, bundle.clean_val, bundle.test
     )
     assert all(

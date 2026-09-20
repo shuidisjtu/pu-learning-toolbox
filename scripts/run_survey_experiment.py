@@ -367,6 +367,12 @@ def resolve_split_ref(data_dir: Path, explicit: str | None) -> dict[str, Any]:
     digest — is referenced by path, role sizes and index digest, so a run
     manifest says which split it used without inlining thousands of ids
     beside every run.
+
+    ``class_prior`` rides along because §3.1 defines pi as data-generation
+    metadata that only the split artifact can record: PA's selection criterion is
+    weighted by it, so without this the runner would have no prior to select
+    with.  The addition is inert for split identity — nothing decides which split
+    ran by reading ``split_ref``.
     """
     if explicit is not None:
         return json.loads(Path(explicit).read_text(encoding="utf-8"))
@@ -380,6 +386,7 @@ def resolve_split_ref(data_dir: Path, explicit: str | None) -> dict[str, Any]:
         "seed": split_manifest.get("seed"),
         "role_sizes": split_manifest.get("role_sizes"),
         "indices_sha256": split_manifest.get("indices_sha256"),
+        "class_prior": split_manifest.get("class_prior"),
     }
 
 

@@ -9,8 +9,13 @@
 | C0′ | `412d5f4f…2f9e1a0` | shuidisjtu 自审落库后；保留为历史基线 |
 | C0″ | `90c389c8…58d6563` | 独立技术审计修订后；36 个锚点与 7 条行级映射退回待审，未签署 |
 
-绑定的执行协议摘要 `S0 = b5b6b5f4…ed2ff20` 全程未变——**移除 `survey_protocol_v1.json` 的 P2.0c
-阻断项属于签署动作**，不在自审范围内。
+绑定的执行协议摘要 `S0 = b5b6b5f4…ed2ff20` 在本轮审查范围内未变——**移除 `survey_protocol_v1.json`
+的 P2.0c 阻断项属于签署动作**，不在自审范围内。
+
+> **2026-09-20 补记**：PA 正式准则实现（执行计划 §4 第 0j 条）改写了 `pa_criterion` 与 decisions，
+> 协议摘要变为 `S0′ = c15b0c9e…eaff529`，`survey_comparison_v1.json` 的绑定已同步重绑。
+> **54 条 `blocked_pending_pa_criterion` 未动**，`review_status` 仍为 `pending_collaborator_review`——
+> 实现准则不等于裁决这些单元。签署流程请以 `S0′` 为基线。
 
 ## 1. shuidisjtu 自审
 

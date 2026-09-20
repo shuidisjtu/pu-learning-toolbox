@@ -87,6 +87,22 @@ class ExperimentRunner:
         self.manifest_path = manifest_path
         self.config = config or {}
 
+    def _resolve_selection_prior(self) -> tuple[float | None, str | None]:
+        """The population class prior pi handed to the selection protocols.
+
+        Chain in order: the run's own ``class_prior`` — the value training used,
+        so one run never carries two different constants and a
+        ``--allow-prior-override`` covers selection as well as training — then the
+        split artifact's recorded ``class_prior.population`` (protocol §3.1:
+        data-generation metadata, never back-inferred from a subset).
+        """
+        if self.class_prior is not None:
+            return float(self.class_prior), "runner.class_prior"
+        recorded = (self.config.get("split_ref") or {}).get("class_prior")
+        if isinstance(recorded, dict) and recorded.get("population") is not None:
+            return float(recorded["population"]), "split_ref.class_prior.population"
+        return None, None
+
     def fit(
         self,
         model,
@@ -131,6 +147,8 @@ class ExperimentRunner:
 
         disk_preflight: dict[str, Any] = {}
         comparison: dict[str, Any] = {}
+        selection_prior: float | None = None
+        selection_prior_source: str | None = None
         try:
             protocol_context = runner_protocol_context(
                 model, bundle, self.config, self.seed, self.generator, self.protocols
@@ -141,6 +159,13 @@ class ExperimentRunner:
             # would leave P2.2 unable to adjudicate them at all.
             comparison = _run_comparison(protocol_context, self.config)
             _validate_model_capability(model, bundle, self.config.get("architecture"))
+            # Last of the preflight checks, but still inside it: a protocol/config
+            # mismatch or a capability defect is the more fundamental problem and a
+            # missing prior would bury it -- while a PA run that got past this point
+            # without one would burn a full training budget before discovering that
+            # its selection criterion had no weight to run with.
+            selection_prior, selection_prior_source = self._resolve_selection_prior()
+            _require_selection_prior(self.protocols, self.generator, selection_prior)
             disk_preflight = self._checkpoint_disk_preflight(
                 model, trainer, protocol_context, declared_components
             )
@@ -393,12 +418,13 @@ class ExperimentRunner:
         selection_started_at = time.perf_counter()
         selections = {}
         for proto in self.protocols:
-            if isinstance(proto, ProtocolPA):
-                art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
-            elif isinstance(proto, ProtocolOA):
-                art = proto.select(trajectories, clean_val, self.threshold_candidates)
-            else:
-                art = proto.select(trajectories, pu_val_view, self.threshold_candidates)
+            val_view = clean_val if isinstance(proto, ProtocolOA) else pu_val_view
+            art = proto.select(
+                trajectories,
+                val_view,
+                self.threshold_candidates,
+                **_select_kwargs(proto, selection_prior),
+            )
             selections[art.protocol] = art
         # The two key sets are what lets P2.2 join a result row to its
         # pre-registered unit, and nothing else checks that the matrix's
@@ -466,6 +492,13 @@ class ExperimentRunner:
                     .checkpoints[artifact.checkpoint_index]
                     .reference()
                 )
+            # Which constant the criterion ran with, and where it came from.
+            # PA's criterion is weighted by pi, so the P2.0c adjudication of PA
+            # units has to be able to tell one run's prior from another's.
+            payload["class_prior"] = {
+                "population": selection_prior,
+                "source": selection_prior_source,
+            }
             selection_payload[name] = payload
 
         for item in candidate_runs:
@@ -750,6 +783,45 @@ def _captures_checkpoints(config: dict[str, Any], trainer, model) -> bool:
         type(trainer) in (DeepFitTrainer, SupervisedTrainer)
         and config.get("capture_epoch_checkpoints", True)
         and "epoch_callback" in inspect.signature(type(model).fit).parameters
+    )
+
+
+def _select_kwargs(proto, class_prior: float | None) -> dict[str, Any]:
+    """Forward pi only to protocols that declare a pi parameter.
+
+    Probed BEFORE the call, never by catching a TypeError from inside it: a
+    TypeError raised by the protocol's own body would otherwise be read as "old
+    signature" and the protocol re-run, double-counting ``record_validation``.
+    """
+    try:
+        parameters = inspect.signature(proto.select).parameters
+    except (TypeError, ValueError):
+        return {}
+    accepts = "class_prior" in parameters or any(
+        p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
+    )
+    return {"class_prior": class_prior} if accepts else {}
+
+
+def _require_selection_prior(
+    protocols: list[Any], generator: Any, selection_prior: float | None
+) -> None:
+    """Refuse a PA run whose selection has no pi to weight its criterion.
+
+    Skipped on a clean-view run: there PA is refused by its own view guard, whose
+    message names the real defect (generator/protocol mismatch), and a
+    missing-prior error would both mislead and pre-empt it.
+    """
+    if selection_prior is not None or getattr(generator, "output_view", "pu") == "clean":
+        return
+    if not any(isinstance(p, ProtocolPA) for p in protocols):
+        return
+    raise ValueError(
+        "PA selection needs the population class prior pi (protocol §3.1: "
+        "data-generation metadata, never back-inferred from a subset), and neither "
+        "the run's class_prior nor config['split_ref']['class_prior']['population'] "
+        "supplies it. Pass --class-prior / class_prior=, or run against a split "
+        "directory whose split_manifest.json records class_prior.population."
     )
 
 

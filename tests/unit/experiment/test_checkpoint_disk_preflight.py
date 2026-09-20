@@ -78,7 +78,9 @@ def _bundle(n=8):
 
 
 def _smoke_run(tmp_path, model, *, config):
-    runner = ExperimentRunner(config=config, manifest_path=str(tmp_path / "manifest.json"))
+    runner = ExperimentRunner(
+        config=config, manifest_path=str(tmp_path / "manifest.json"), class_prior=0.5
+    )
     bundle = _bundle()
     runner.fit(model, bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
     return json.loads((tmp_path / "manifest.json").read_text())
@@ -182,7 +184,7 @@ def test_param_versioned_pilot_insufficient_disk_writes_rejection_manifest(
 ):  # noqa: F811
     model, parts, config = _bound_self_pu(survey_script, tmp_path)
     manifest_path = tmp_path / "manifest.json"
-    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path))
+    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
     monkeypatch.setattr(resources, "disk_free_bytes", lambda directory: 0)
 
     with pytest.raises(ValueError, match="disk"):

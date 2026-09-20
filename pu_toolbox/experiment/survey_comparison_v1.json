@@ -4,7 +4,7 @@
   "review_status": "pending_collaborator_review",
   "bound_survey_protocol": {
     "protocol_version": "survey-v1.2",
-    "protocol_sha256": "b5b6b5f4945bf5bc1823eee6cddf487595d409b93f48911f0f1797b89ed2ff20"
+    "protocol_sha256": "c15b0c9e0677729d749c79af2d563849d5b70be395e65fd3ea2b2cfa0eaff529"
   },
   "metric_unit": "percentage_points",
   "result_input_unit": "fraction",

@@ -174,8 +174,10 @@ class _LowerCasePA(ProtocolPA):
     preflight and still writes keys the comparison block cannot join.
     """
 
-    def select(self, trajectories, val_part, threshold_candidates=None):
-        artifact = super().select(trajectories, val_part, threshold_candidates)
+    def select(self, trajectories, val_part, threshold_candidates=None, *, class_prior=None):
+        artifact = super().select(
+            trajectories, val_part, threshold_candidates, class_prior=class_prior
+        )
         return replace(artifact, protocol="pa")
 
 
@@ -206,7 +208,10 @@ def _bound_runner(survey_script, tmp_path, *, c_token="0.5", protocols=None):
         },
     }
     runner = ExperimentRunner(
-        config=config, protocols=protocols, manifest_path=str(tmp_path / "manifest.json")
+        config=config,
+        protocols=protocols,
+        manifest_path=str(tmp_path / "manifest.json"),
+        class_prior=0.3,
     )
     return runner, (model, parts)
 
@@ -259,7 +264,9 @@ def test_basic_unbound_run_manifest_states_no_comparison(tmp_path, survey_script
         class_prior=0.3,
         device="cpu",
     )
-    runner = ExperimentRunner(config={"c": 0.5}, manifest_path=str(tmp_path / "manifest.json"))
+    runner = ExperimentRunner(
+        config={"c": 0.5}, manifest_path=str(tmp_path / "manifest.json"), class_prior=0.3
+    )
     runner.fit(model, *parts)
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["execution_mode"] == "technical_smoke"

@@ -20,7 +20,13 @@ def comparison():
 
 
 def test_basic_every_scar_pa_unit_is_blocked_pending_the_pa_criterion(comparison):
-    """R9 is unresolved, so no PA unit may be numerically adjudicated."""
+    """Every PA unit stays blocked -- now pending review, not pending implementation.
+
+    R9's engineering gap is closed (the criterion is implemented), but these
+    mappings were pre-registered as unadjudicable and the P2.0c review has not
+    ruled on them yet.  Dropping the class here would be exactly the "removed
+    because something else passed" move p2_0c_delivery.md forbids.
+    """
     pa = [m for m in comparison["mappings"] if m["result_selector"]["selection_protocol"] == "pa"]
     assert pa
     assert {m["eligibility"] for m in pa} == {"blocked_pending_pa_criterion"}

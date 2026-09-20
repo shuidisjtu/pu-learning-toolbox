@@ -308,6 +308,14 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "deferred to the survey run itself"
         ),
     },
+    "test_runner_class_prior.py": {
+        "determ": (
+            "prior resolution is a pure read of the run's own state (no RNG, no seed, "
+            "no hidden state) and PA selection determinism is asserted in "
+            "test_checkpoint_selection.py and at the protocol layer in "
+            "test_strategies_selection.py"
+        ),
+    },
     "test_prepare_survey_splits.py": {
         "determ": (
             "the script is a thin wrapper over seed-driven prepare_survey_dataset; "
