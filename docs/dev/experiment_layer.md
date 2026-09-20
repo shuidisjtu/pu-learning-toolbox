@@ -3,7 +3,7 @@
 > 对应需求：PU 调研实验协议 [pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)
 > §2.4（四份数据角色与 PA/OA 双协议）；执行状态见
 > [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) 任务分工表。
-> 本文件描述 **pilot（P0）阶段的实验层设计蒸馏**：架构、关键决策、边界与已知局限。
+> 本文件描述 **survey 实验层的设计蒸馏**：架构、关键决策、边界与已知局限。
 
 ## 1. 为什么有这个层
 

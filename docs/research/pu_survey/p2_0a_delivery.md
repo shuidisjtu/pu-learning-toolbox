@@ -204,3 +204,12 @@ P2.0a 工程交付覆盖矩阵、runner 消费、manifest、CIFAR 接线及 orac
 本记录说明的是**工程前置条件已满足**，不改变 2026-09-17 的签署结论，也不替代复核人
 对该入口的验收。其余阻断项（P2.0b、P2.0c、PA 正式准则、缺失 oracle、完整 Self-PU OA、
 Linux frozen-lock 环境偏差、P1.4 制品统一重建）继续生效。
+
+**磁盘预算实测修正（2026-09-19）**：`run_survey_pilot.py --dry-run` 与 runner 跑前
+门禁同源，初始估算 645 次运行中 330 次写 checkpoint，累积 1280.6 GiB（cifar10 占
+1274.4）。独立复核用真实写入器实测：`unit_checkpoint_bytes` 对 `resnet18*` 行按
+45 MiB/epoch 计，但 6 个 `cnn_feature_adapter` 行只训练 MLP head、从不保存 ResNet
+（实测 adapter 每文件 ≈265.7 KB/epoch，常量高估 ≈178×）；据此修正后累积 **≈319 GiB**
+（cifar10 ≈313），单次峰值行变为 `cifar10/nnpu/native_cnn`（8.34 GiB）。该常量属
+P2.0a 已签署绑定且被测试锁住，本项不单方面修改，作为协议问题上报——向队友报磁盘
+需求应以 ≈319 GiB 为准（1280.6 GiB 大 4 倍，直接影响主机决策）。

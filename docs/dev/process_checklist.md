@@ -1,254 +1,54 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 21 个注册方法均已完成 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器，后续重点是官方数据、历史环境和 paper-like benchmark。新接入的 GradPU、PUET、VPU、PULDA 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收。
-> 实际执行顺序与原始路线图有调整：优先实现 PU 特有的风险估计方法（工具箱核心差异化能力），经典分类器包装器后移。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 21 个注册方法均已完成 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。新接入的 GradPU、PUET、VPU、PULDA 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## 阶段历史（已闭环）
 
-- Phase 0 ✅ 项目骨架：pyproject + Core 基类 + Registry（初始 15 个 api_only 占位，现已按实现状态升级）+ 测试框架
-- Phase 1 ✅ 核心 PU 风险估计：Elkan-Noto / uPU / nnPU / ReCPE / PNU / PU splitters / metrics / minimal examples
-- Phase 2 ✅ 部分：penL1 类先验与算法推荐器完成；三经典包装器与 TIcE/AlphaMax 列 v1 范围外
-- Phase 3 ✅ 机制就绪：PUSB benchmark 全链路（来源锁/manifest/shard 聚合/断点续跑/审计器）；官方数据全量运行依赖外部，见下
-- Phase 4 ✅ 推荐与诊断：Data Profiler / SCAR-SAR 提示 / 推荐器 / 诊断报告 / 敏感性分析
-- Phase 5 ✅ SAR：数据模拟器、PUSB/LBE/Centroid/LLSVM 接口与 SCAR vs SAR 对比 benchmark
-- Phase 6 ✅ 深度 PU 大部分：Self-PU / Dist-PU / InfoMax PU / WConPU / DGPU 全链路（clean-room 多 seed、Fashion-MNIST 3-seed smoke、InfoMax 暂定协议 20 seeds）；剩余见下
-- Phase 7 ✅ 分布漂移感知 PU 第一版：OOF 域审计、有界边际相对权重、ESS/覆盖门禁、
-  `ShiftAwarePUPipeline`、`shift-audit` CLI 与三类产物；联合漂移动态训练列后续研究
-- Phase 8 ✅ 分布漂移决策扩展：配对加权对照与 `shift-run`、窗口监控、双域先验/标记
-  机制分解、不确定性拒绝/主动复核；新增研究级类别条件联合漂移近似求解器
-- Phase 9 ✅ 联合漂移研究执行层：论文式动态共享特征目标、四类对照与五类消融、公开表格
-  数据多 seed/CI 协议、双域先验 bootstrap，以及部署监控 CLI/UI
-
-> 逐条明细与批次历史见 git log(压缩前旧路径:git log --all -- docs/project_management/process_checklist.md)。
+Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 → SAR → 深度 → 分布漂移 → 联合漂移）；逐条明细与批次历史见 git log。
 
 ## 未完成项
 
-- [ ] Phase 3 官方数据/历史环境全量运行（依赖外部官方数据与历史环境提供，非工具箱缺口）
+- [ ] Phase 3 官方数据/历史环境全量运行（依赖外部官方数据与历史环境，非工具箱缺口）
 - [ ] Phase 6 WConPU 官方视觉 + DGPU EDM paper-like 全量（依赖 CUDA/授权数据）
 - [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
-## 发布状态 (v1.11.0)
+## 发布状态
 
-- Survey P2.0a 工程交付（未发布，2026-09-17 已签署验收）：版本化矩阵、runner 强制消费与参数锁、
-  协议/预算/表征 manifest、真实 split/seed 对应、CIFAR 原生 nnPU 与随机冻结 adapter 接线、
-  摘要校验缓存、共享 MLP oracle、路径/预算/标签摘要比较门禁；46 项 CPU 专项通过，
-  沙箱外 4 项 GPU smoke 通过（含既有 CNN13 测试），新增 3 项 GPU 测试。
-  后续 `survey-v1.1` 补齐逐 epoch 权重保存、双 teacher 保留、PA/OA 独立选择和推理恢复；
-  新增 checkpoint 专项 24 项、GPU 回归 8 项及完整快层 1532 项通过；
-  正式结果仍受 P2.0b/c、PA Accuracy/阈值准则及未完成路径阻断；
-  R5/R8 两项 P2.1 前置条件已于 2026-09-19 工程兑现（聚合入口强制分榜门禁、
-  跑批前磁盘检查、checkpoint 覆盖不变量改按声明校验），见交付记录 §6；
-  CNN oracle 等缺少对齐对照的单元明确不可冒充上界。见
-  [交付记录](../research/pu_survey/p2_0a_delivery.md)。
+### 未发布（Survey P2 前置，不放行正式 P2.1）
 
-- Survey P1.2/P1.4 数据制品（未发布，2026-09-19 重建）：split manifest 新增 `provenance` 块
-  （来源 URL、版本、引用、标签语义、许可与本地下载摘要，并记明字节实际来自哪个 URL）。
-  许可逐条按官方页面原文记录：**UCI 声明 CC BY 4.0**（含署名要求），Stanford sentiment 与
-  Toronto CIFAR 两页确无许可条款；无许可者留空许可名但保留查证日期，以区别于「没查」。
-  三数据集 × 5 seed 统一重建：重建前先跑到临时目录作对照，**60 个 npz 逐字节不变**，
-  重建只补齐 IMDB 的 `effective_output_normalization`/`normalization_source` 并新增
-  `provenance` 块。取代前的 manifest 与摘要对照见
-  `data/archive/split-manifests-pre-p1.2-20260919/`；P1.4 对 HENG958 的可执行性复核仍等待
-  split 产物同步。
+- **P2.0a 工程交付**（2026-09-17 已签署验收）：版本化执行矩阵、runner 强制消费与参数锁、CIFAR adapter/native 接线、逐 epoch checkpoint 保存与 PA/OA 独立恢复。见 [交付记录](../research/pu_survey/p2_0a_delivery.md)、[复核包](../research/pu_survey/p2_0a_review.md)。
+- **P1.2/P1.4 数据制品**（2026-09-19 重建）：split manifest 新增 `provenance` 块（来源/版本/引用/许可逐条按官方原文）；三数据集 × 5 seed 统一重建，60 npz 逐字节不变；切分流水线效率修复与跨 seed 文本嵌入一致性（PR #63/#64）。索引见 [split_artifacts_index](../research/pu_survey/data/split_artifacts_index.json)。
+- **split 制品跨机传输**：`survey_splits_archive.py` pack/verify 双向校验（逐文件摘要 + 从 `.npz` 重算索引摘要），载体定为网盘带外传（2026-09-20 已发送，索引先于发送入库）。
+- **全 pilot 跑批驱动与磁盘预算**：`run_survey_pilot.py` 编排 645 次运行，按 manifest 判定已完成、半完成单元按 seed 拆分；磁盘预算实测 ≈319 GiB（常量对 adapter 行高估 178×，见 [p2_0a_delivery §6](../research/pu_survey/p2_0a_delivery.md)）。
+- **PA 正式选模准则（R9）**（2026-09-20）：proxy accuracy（Wang et al. 2026 Def. 1 OS 分支）落地，π 必传，阈值网格与 OA 同构。见 [p2_0a_review R9 补记](../research/pu_survey/p2_0a_review.md)。
+- **P2.0b 标签语义门禁 + P2.0c 对照预注册**：工程完成、合作者签署待办。见 [p2_0b 交付](../research/pu_survey/p2_0b_delivery.md)、[p2_0c 交付](../research/pu_survey/p2_0c_delivery.md)。
 
-- Survey split 制品跨机传输（未发布，2026-09-19）：`data/` 按设计不进版本库，制品一律带外传。
-  接收端此前校验的是制品的**形状**（`validate_bundle`、manifest 的 dataset/seed 与请求一致），
-  而**没有任何完整性校验**：runner 把 manifest 的 `indices_sha256` 原样抄进 run manifest，
-  从不与 `.npz` 重算比对，于是截断、损坏或与数据不符的制品会被静默接受。
-  新增 `scripts/survey_splits_archive.py`：`pack` 产出逐文件摘要索引与**确定性** tar
-  （成员元数据归零，同一棵树在不同时间/不同机器打包逐字节相同，故归档摘要可对外公布），
-  `verify` 在落地端**双向**校验——索引描述而树上没有的、树上多出而索引没描述的，
-  加上逐文件大小/摘要与**从 `.npz` 重算的索引摘要**与 manifest 比对，报告**全部**问题而非第一个，
-  且对截断、同尺寸损坏、不可读文件一律报告而不抛异常。索引与制品摘要记入仓库后再发送：
-  随字节同行的摘要只能证明传输无损，不能证明发出去的是对的。边界要说清：`X` 只由文件摘要兜底，
-  **打包之前**就存在的损坏会被 `pack` 背书而非被查出；本工具是操作者手动跑的，**没有接进跑批路径**，
-  所以没人跑 verify 的交付就是没人验证过的交付。**载体已定：网盘带外传**（2026-09-20，交大网盘，
-  需 jaccount 登录），三个归档已发送（合计 1.2 GB）；逐文件索引与归档摘要已于发送**之前**入库
-  （`docs/research/pu_survey/data/split_artifacts_index.json`），接收端据此独立校验。跑批主机
-  路线仍待决策。
+### 未发布（随下一版本发布）
 
-- Survey 全 pilot 跑批驱动与磁盘预算（未发布，2026-09-19）：单单元入口在**第一个失败处即中止**，
-  跑全 pilot 会让一次失败带走后面全部排队运行，而 `scripts/` 一直没有编排载体。新增
-  `scripts/run_survey_pilot.py`：从协议枚举 **645 次运行**（18 非 oracle 单元 × 5 seed × 7 c token
-  + 3 oracle 单元 × 5 seed；oracle 不参与 c 网格）。批次划分的前提是脚本执行的是 seeds × c 的
-  笛卡尔积且自身无逐格完成判定，因此**只有待跑集恰好等于完整网格时才合并成一次调用，半完成单元按
-  seed 拆开**——否则会把已完成的格子再跑一遍，而重跑会多写一份永不复用的 `checkpoints/attempt-*`。
-  **已完成按 manifest 判定而非目录存在**，且需同时满足三条：`execution_mode == "versioned_pilot"`
-  （预检失败写 `rejected_versioned_pilot`；「候选全部 excluded」仍写 `versioned_pilot`）、
-  `selection` 非空（后者正是区分「跑成」与「每次都失败」的唯一依据，而非 oracle 行由缺 `c_requested_token`
-  兜住）、以及记录的 `split_sha256` 仍等于磁盘上该 (dataset, seed) 的 `indices_sha256`
-  （一次运行只对它所跑的数据构成证据，重建 split 后旧 manifest 描述的是已不持有的数据）。
-  识别不了的记录一律算未完成。预测目录路径的写法一旦与脚本漂移就会朝「跳过工作」的方向静默出错，
-  与聚合入口被打穿的失效同类。
-  **磁盘预算**（`--dry-run`，与 runner 跑前门禁同源）：645 次运行中 330 次写 checkpoint
-  （`lbe`/`pusb_kernel`/`upu` 三个闭式单元不写，闭式与核方法无逐 epoch 状态），
-  累积 **1280.6 GiB**（cifar10 占 1274.4），单次峰值 **17.58 GiB**
-  （`cifar10/self_pu/cnn_feature_adapter`，两份 teacher）；二者不可混用——
-  `checkpoints.py` 无清理逻辑且离线 selection 之后仍需这些文件，故累积成立。
-  跑前门禁另按 `DEFAULT_CHECKPOINT_ATTEMPTS=2` 要求 **35.16 GiB 空闲**，那是给重试的预留
-  （重试确实写进独立 `checkpoints/attempt-*`），是上限而非常态占用。
-  **这三个数对 adapter 行是上界**：`unit_checkpoint_bytes` 对任何 `resnet18*` 行按 45 MiB/epoch 计，
-  而 6 个 `cnn_feature_adapter` 行只训练 MLP head、从不保存 ResNet。一次独立复核用**真实写入器
-  实测**：adapter 行每文件 ≈265.7 KB/epoch（单次运行 50.7 MiB，self_pu 两个 teacher 101.4 MiB），
-  native_cnn 行每文件 ≈42.7 MiB/epoch（单次 8.34 GiB，含 ResNet-18 的 1117.7 万参数）；
-  即常量对 adapter 行高估 **≈178×**，据实测修正后**累积 ≈319 GiB**（cifar10 ≈313）、
-  **单次峰值行变为 `cifar10/nnpu/native_cnn`**（8.34 GiB）。该常量属 P2.0a 已签署绑定且被测试锁住，
-  本项不单方面修改，作为协议问题上报——但**向队友报磁盘需求时应以 ≈319 GiB 为准**，
-  1280.6 GiB 大 4 倍，会直接影响主机决策。
-  单组件 native CNN 行按常量 8.79 GiB/次，与 `epoch_checkpoint_delivery.md` 的「8–9 GB/候选/seed」一致。
-  候选池扩大时按倍数增长；队友服务器可用磁盘容量全仓无记录，需其侧确认。
-  π 按协议 §3.1 定义为**数据生成 metadata**（分层划分前完整池的正例率、全 seed 共享、禁止从子集反推），
-  但此前两个制品层都没记：split manifest 只有各子集的 `role_positive_rates`，
-  run manifest **连 §3.1 点名的三个命名字段（population/train/π_U）一个都没有**——应用值只出现在
-  `estimator_parameters.class_prior` 这类估计器转储里，且那需要方法本身带该构造参数。
-  本轮在生成侧补记 `class_prior.{population, population_basis, train}`，
-  驱动**从 split manifest 读取**，`--class-prior` 降级为覆盖，且**与记录值冲突时直接拒绝启动**
-  （须显式加 `--allow-prior-override`）——协议把它定为每数据集常量，而聚合侧的公平门禁不比较 π，
-  静默覆盖等于用错常数跑完全部运行且无人察觉。两者都缺则在开跑前一次性拒绝启动。
-  π_U 不入 split manifest（它是运行期标签视图的性质）。run manifest 侧仍未落地，
-  属 runner 白名单（P2.0a 范围），作为协议问题上报。
-  `--device` 同样透传（脚本默认 CPU，cifar10 行需 GPU）。
+- **PN oracle 接入**：`CleanLabelGenerator` + 视图/声明双向 fail-loud + `--oracle` 入口。见 [pn_oracle_integration](../research/pu_survey/pn_oracle_integration.md)。
+- **双架构阶段 0-2**：Registry 4 能力字段、build_encoder 导出、nnpu encoder 试点、CNN 提示文案回归、契约路线 B 收口。见 [dual_architecture_plan §5](dual_architecture_plan.md)。
+- **Survey 语义统一（issue #42）**：PUSB 拆为 `pusb`/`pusb_kernel`，先验门禁改由 registry 驱动，台账↔registry 一致性契约。见 [survey_execution_plan](../research/pu_survey/survey_execution_plan.md)。
+- **Self-PU 声明收口（issue #38/#45）**：`input_ndims` 恢复 `{2,4}`，非原生 CNN 由 `native_architectures` 承载。
+- **SAR-OA 执行路径（issue #43）**：`--labeling-mechanism` 与 `--method` 正交，SAR 强制 OA-only。见 [协议 §2.3](../research/pu_survey/pu_survey_protocol.md)、[D8](../research/pu_survey/survey_execution_plan.md)。
 
-- Survey 切分流水线效率修复与一处一致性缺陷（未发布，2026-09-20）：`prepare_survey_splits.py`
-  的三个 `load_*` 原本在 `for seed` 循环**内部**，而加载与 seed 无关——IMDB 每 seed 重解 tar
-  读五万成员（实测约 2.5 分钟/遍），CIFAR-10 每 seed 重读 813 MB pickle（约 5 秒/遍）。已外提到
-  循环之前。同时 `encode_survey_texts` 的缓存键取的是**整个有序列表**的摘要，而列表顺序由 seed
-  决定，于是同一批文本换个排列就是新键、每个 seed 重编全部语料（缓存里 5 条各 76.8 MB 的 npy
-  即其证据）；改为按排序去重的语料作键、命中时按索引装配，schema 升 1.1。
-  **顺带查出两处真缺陷**：① 旧方案下**同一文本在不同 seed 的嵌入值不同**——IMDB test 集
-  （indices 跨 seed 相同）实测跨 seed 最大差 **1.583e-07**，即文本特征取决于它被编进哪个 seed；
-  新方案下为 **0.000e+00**。② 缓存元数据**写成排序序、未命中时却返回插入序**，命中/未命中两条
-  路径交出不同键序 → 同一 split 准备两次的 manifest 字节取决于缓存是否命中，而传输索引要按摘要
-  比对。已让两条路径统一返回缓存文件里的那份，并加单测钉住（修复前该测试失败）。
-  制品影响：新增 `class_prior`，且 IMDB 的 13 个 npz 字节改变（max|ΔX| ≈ 1.7e-07，
-  float32 舍入级；indices/role_sizes/role_positive_rates 全不变），cifar10 与 spambase 的 40 个
-  npz 逐字节不变；归档见 `data/archive/split-manifests-pre-p1.2b-20260920/`。
+### 已发布版本
 
-- Survey PA 正式选模准则（未发布，2026-09-20）：R9 的**准则本体**落地。此前 PA 用
-  `pu_val_separation`（标记正例组均值 − 未标注组均值）选模且 `threshold=None`，与预注册的
-  PA accuracy / 阈值准则不符。现按参考文献 1（Wang et al. 2026）Definition 1 的 **OS 分支**
-  实现 proxy accuracy：`(2π/n'_P)·Σ_{D'_P}1[f≥θ] + (1/(n'_P+n'_U))·Σ_{D'_P∪D'_U}1[f<θ]`。
-  **第二项遍历全部验证样本**（含标记正例）；代入完美分类器得 `PA = ACC + π`，命题 1 由此成立。
-  **π 是第一项的权重**，故它改变 argmax 而非仅尺度——这正是它必须 fail-loud 的原因：取值链为
-  run 的 `class_prior`（与训练同一常数，使 `--allow-prior-override` 对选模同样生效）→
-  `split_ref.class_prior.population`（§3.1 的数据生成 metadata，split 制品是唯一记录处）→
-  都没有则在**训练前**拒绝（`ProtocolPA.select` 内另有第二道）。预检显式跳过 clean view、且排在
-  协议/配置/能力检查之后：前者避免遮蔽 generator/protocol 错配这个真缺陷，后者避免用「缺 π」
-  遮蔽更根本的配置缺陷。归一化、阈值网格、val 侧仿射常数与 tie-break 均与 OA 同构，test 阶段
-  复用同一路径；`split_ref` 因此新增内联 `class_prior`，selection 块新增
-  `class_prior{population, source}`（§3.1 要求 run manifest 记 π 的缺口补上 π_population 一半）。
-  协议摘要 `b5b6b5f4…` → `c15b0c9e…`，comparison 绑定同步重绑、必须同一 commit 落地；
-  `protocol_version` 保持 survey-v1.2——准则是预注册的，本次是让实现符合它。
-  **残留**：合作者签署，以及 P2.0c 的 54 条 `blocked_pending_pa_criterion` 留待其复核统一裁决
-  （不得因准则实现而顺手删除）。**这是行为变化**：PA 选出的 candidate/epoch/threshold 会变，
-  归一化后仅尺度不同的候选不再被偏好（与 OA 行为一致）。
+- 1.11.0（2026-08-29）：pu-workflow skill 扩展场景 + NaN/Inf 拒绝 + 最低版本要求升至 1.10.0
+- 1.10.0（2026-08-29）：传统 PU 调优收尾（KLDCE b₀ 修复、契约 v2、六轮写回，ADR-0016 闭环）
+- 1.9.0（2026-08-27）：七方法传统 PU benchmark + AP/balanced-accuracy/Brier/ECE 指标 + KLDCE 原生 SMO
+- 1.8.0（2026-08-21）：联合漂移研究求解器 + shift-monitor/review CLI + UI 部署面板
+- 1.7.0（2026-08-21）：配对漂移适配 + 窗口告警 + 不确定性/主动复核
+- 1.6.0（2026-08-21）：分布漂移审计 + 协变量加权 + shift-audit CLI
+- 1.5.1（2026-08-16）：CNN 序列化、PUTuner 坏参数隔离、UI 历史持久化
+- 1.5.0（2026-08-15）：classifier_params + PUTuner + Streamlit UI
 
-- Survey P2.0b 标签语义门禁 + P2.0c 交叉验证对照预注册（未发布，工程完成、合作者签署待办）：
-  P2.0b 新增分类器 `label_semantics` 声明位、registry 同步与 runner 训练前按视图强制检查
-  （PU 视图须 `"pu"`、clean 视图须 `"pn"`；第三方未声明估计器按 `"pu"` 保守处理），
-  堵住 `SupervisedTrainer` 配 PU 风险估计器静默产出假 `pn_oracle` 的路径；
-  P2.0c 为外部对照矩阵预注册，来源技术审计后部分锚点与行级映射退回待审；
-  跑批侧接线已补（manifest 按选择协议分列 comparison、入口脚本开跑前校验覆盖）。
-  两者均不放行正式 P2.1。见
-  [P2.0b 交付记录](../research/pu_survey/p2_0b_delivery.md)、
-  [P2.0c 交付记录](../research/pu_survey/p2_0c_delivery.md)、
-  [P2.0c 复核包](../research/pu_survey/p2_0c_review.md)。
+### 收尾统计
 
-- PN oracle 接入（未发布，随下一版本发布）：`CleanLabelGenerator` +
-  `Generator.output_view` 视图声明 + `Trainer.trains_on_real_labels` 声明与
-  runner 双向守卫（视图与 trainer 标签语义不一致即 fail-loud）+
-  脚本 `--oracle` 入口与 `oracle_integration.json` 口径留痕。
-  修复动机：原路径会把 SCAR 标记当作真实标签训练，静默产出错误的
-  "全监督上界"（详见 docs/research/pu_survey/pn_oracle_integration.md）
-- 双架构阶段 0 能力契约（未发布，随下一版本发布）：Registry 4 能力字段 +
-  Pipeline 并行校验 + list-methods 能力列 + encoder 输出校验 helper +
-  契约测试（详见 docs/dev/dual_architecture_plan.md §5）
-- 双架构阶段 1 整理现有双架构实现（未发布，随下一版本发布）：build_encoder
-  公共导出 + 报告 provenance 4 字段 + UI CNN 候选集元数据驱动 + CV fold
-  训练隔离测试（详见 docs/dev/dual_architecture_plan.md §5）
-- 双架构阶段 2 nnpu encoder 试点（未发布，随下一版本发布）：nnpu
-  新增 encoder 参数（model 复用为 head，fit 内 Sequential 组合）、
-  MLP/CNN 双架构声明、CV fold 隔离与 pipeline 端到端测试、
-  gpu marker + CUDA 执行级测试（详见
-  docs/dev/dual_architecture_plan.md §5）
-- CNN 提示文案回归修复（未发布，随下一版本发布）：Pipeline cnn 报错与 CLI
-  `--architecture` help 的候选方法提示改为由 registry 能力声明动态生成
-  （原硬编码 wconpu/infomax_pu 遗漏 nnPU），并补错误文案/动态更新/排除
-  api_only 的回归测试（issue #45 低优先级 UX 子项闭环）
-- 双架构契约路线 B 收口（未发布，随下一版本发布）：issue #45 决策——
-  `adapter_architectures` 不落地为元数据字段（从计划 §4.2/§9 与模板删除）；
-  `encoder_parameter` 语义收窄为声明性元数据（注入依构造函数签名，不以
-  该字段驱动）；计划 §5 阶段 4 补现状注记（实验层已实现
-  `cnn_feature_adapter`，主链路不集成）；契约测试补字段集钉子与
-  声明性语义钉子（详见 issue #45 与 docs/dev/dual_architecture_plan.md）
-- Survey 语义统一（未发布，随下一版本发布）：issue #42 审计闭环——PUSB
-  方法身份拆分：台账拆为 `pusb`（linear baseline，附加工程基线不入榜）与
-  `pusb_kernel`（official-aligned RBF，pilot 行，需 π）；`run_survey_experiment.py`
-  先验门禁改由 registry `requires_class_prior` 驱动（台账只做结果标注），
-  未入台账方法 fail-loud；新增台账↔registry 一致性契约测试 6 条不变量
-  （tests/contract/test_ledger_registry_consistency.py）；survey 文档双架构
-  表述限缩（7 个 Survey 方法中仅 nnPU 原生 CNN）与设计期快照
-  状态横幅（详见 issue #42 与 docs/research/pu_survey/survey_execution_plan.md）
-- Self-PU CNN 声明收口（未发布，随下一版本发布）：issue #38 决策——
-  Self-PU 不支持 native CNN（mlp-only）；`input_ndims` 收窄为 `{2}`
-  （4D 展平仅为估计器层容忍，非声明能力），契约 pin 与台账同步；
-  survey 图像行经 `cnn_feature_adapter` 与其余 5 法同组；4-D+mlp 的
-  Pipeline 报错提示改为 registry 动态候选（修复 #45 修复时遗漏的
-  第三处硬编码 wconpu/infomax_pu），补回归测试（详见 issue #38 与
-  docs/dev/dual_architecture_plan.md 阶段 3）
-- Self-PU `input_ndims` 契约修正（未发布，随下一版本发布）：审阅 P1#1——
-  `input_ndims` 恢复 `{2,4}`（模板定义该字段为"支持输入维度"，4D 展平是
-  fit 实际公共行为，声明 {2} 与行为矛盾且 runner 会拒绝本可运行的输入）；
-  "非原生 CNN"语义由 `native_architectures={"mlp"}` 承载；契约 pin、台账
-  `code_capability` 与 dual_architecture_plan 阶段 3 注记同步（详见
-  docs/dev/dual_architecture_plan.md 阶段 3）
-- SAR-OA 执行路径（未发布，随下一版本发布）：issue #43——官方脚本新增
-  `--labeling-mechanism {scar, sar_lbe_a, sar_lbe_b}`（默认 scar，与 --method
-  正交）；SAR 分支强制 OA-only（runner 默认是 `protocols or [PA, OA]`，
-  故须显式注入 `[ProtocolOA()]` 而非空列表）；SAR c 仅接受协议 token
-  `{0.05,0.5}`（PU-Bench vary-e，D7），目录按用户 token 命名并落
-  `<mechanism>/c_<token>/seed_<seed>`；c 词法五重校验与机制×oracle 组合门禁
-  在读数据/建目录/建模型前 fail-loud；生成器元数据统一审计词汇
-  （`c_requested`/`n_labeled_requested` 未夹紧 vs `c_realized`/`n_labeled`
-  夹紧后、`generation_seed`、`label_view_sha256`），posterior 输入支持任意
-  ndim（4-D NCHW 展平后 fit/predict 同视图）；`c_requested_token` 由脚本在
-  运行成功后回写 manifest（不改 runner）；测试抽取
-  `tests/unit/experiment/_survey_script_helpers.py` 共享夹具并新增 SAR 脚本
-  测试文件（basic/param/edge/determ 四类，RED→GREEN）
-- **版本**: `1.11.0`（2026-08-29：pu-workflow skill 更新——新增可选扩展场景
-  （漂移迁移 `shift-audit`/`shift-run`、部署监控 `shift-monitor`/`review`、基准审计
-  `audit-benchmark`，各带强制检查点）、输入契约补充 NaN/Inf 拒绝、技能最低版本
-  要求升至 `pu-toolbox >= 1.10.0`）
-- **版本**: `1.10.0`（2026-08-29：传统 PU 第一次调优收尾——KLDCE b₀ 类对称修复
-  （低先验全负根因）、契约 v2 基线重跑与 KLDCE 调优轮重跑（r3，默认参数即有效
-  工作点）、Elkan-Noto 调优轮重跑（r2，`mode=weighted_retraining` 12/12 全单元
-  confirmed）；第 6 步写回三轮全部落地——LDCE 组合默认（v4）、uPU squared（v5）、
-  elkan_noto weighted_retraining（v6），每轮重锁基线 + 确认种子重跑 +
-  companion 逐单元审计，当前对齐基线 baseline_v6，ADR-0016 闭环）
-- **版本**: `1.9.0`（2026-08-27：新增七方法传统 PU 可复现 benchmark、锁定基线、
-  数据泄露预检、断点续跑、配对统计比较与七轮调优证据（ADR-0016 verdict 留档）；
-  新增 AP、balanced accuracy、Brier score、ECE 指标及概率可用性契约；KLDCE
-  改为原生 SMO 内层求解并修复收敛诊断，LDCE 默认迭代上限提升；修正 Elkan–Noto
-  等非零原生阈值模型的 PU 零一风险语义）
-- **版本**: `1.8.0`（2026-08-21：新增 AISTATS 2025 联合漂移 PU clean-room 动态目标、
-  对照/消融与公开数据 benchmark、双域 bootstrap 区间，以及 `shift-monitor`/`review` CLI
-  和 UI 部署面板）
-- **版本**: `1.7.0`（2026-08-21：新增配对漂移适配比较、窗口告警历史、双域 PU
-  假设分析、不确定性/主动复核，以及明确标为 research 的联合漂移近似求解器）
-- **版本**: `1.6.0`（2026-08-21：新增分布漂移审计、协变量加权 PU 工作流、
-  `PUPipeline.sample_weight` 严格传递契约和 `shift-audit` CLI）
-- **版本**: `1.5.1`（2026-08-16：验收修复——CNN 模型序列化、PUTuner 坏参数隔离、
-  UI 运行历史持久化）
-- **版本**: `1.5.0`（2026-08-15：新增 `classifier_params` 与 CLI
-  `--classifier-param`，支持按注册名调整模型；新增 PU-aware `PUTuner`，搜索阶段仅做
-  CV 并只重训最佳候选；新增 Streamlit 图形界面，支持数据上传、模型配置、参数搜索、
-  指标与诊断展示，以及报告、预测和模型下载）
-- **算法**: 21 个已注册方法，全部 native 实现
-- **质量门禁**: 8 道（test_quality / doc_links / project_metadata / math_rendering / api_docs / skill_sync / baseline_configs / format）
-- **v1 范围外**: Phase 2 三个经典包装器与 TIcE/AlphaMax 类先验估计
-- **依赖外部**: Phase 3 官方历史环境，以及 WConPU CUDA/授权数据和 DGPU EDM/CelebA
-  全量运行；InfoMax 暂定 Fashion-MNIST 20-seed 协议已执行
+- **算法**：21 个已注册方法，全部 native 实现
+- **质量门禁**：8 道（test_quality / doc_links / project_metadata / math_rendering / api_docs / skill_sync / baseline_configs / format）
+- **v1 范围外**：Phase 2 三个经典包装器 + TIcE/AlphaMax 类先验估计
+- **依赖外部**：Phase 3 官方历史环境、WConPU CUDA/授权数据、DGPU EDM/CelebA 全量运行
 
 历史执行记录见 git log；关键决策见 [`docs/adr/`](../adr/)。
