@@ -563,7 +563,6 @@ docs/
       joint_shift_research_protocol.md # JointShift 研究型算法评估协议与声明边界
     pu_survey/
       pu_survey_protocol.md          # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
-      implementation_plan.md         # 技术实现与推进状态（现状差距、双架构前置工作项、待办）
       assets/
         Dataset.png                  # 8 数据集类别标签与索引（Table B.1）
         Dateset_PU.png               # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）

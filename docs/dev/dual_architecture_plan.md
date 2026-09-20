@@ -281,6 +281,9 @@ MNIST MLP/CIFAR-13 层 CNN/ADNI 3-branch CNN 协议）待有明确实验需求�
 
 本计划与实验协议的关系：PA/PAUC/OA 模型选择与 TS-OS 校准当前不在工具箱
 实现中，属于实验协议的前置基础设施，需单独立项，不计入双架构改造范围。
+同理，本双架构计划**不是**文本 SBERT 向量或表格 MLP 路径的前置条件——它
+仅是图像数据集公平比较的**部分**前置工作（原生 CNN 与 `cnn_feature_adapter`
+的路径分组依赖它）；文本/表格路径可独立推进。
 协议要求图像榜单的 backbone 配置（统一 encoder/训练预算、能力台账与门禁、
 encoder 注入、`cnn_feature_adapter`、跨路径公平性检查）见协议 §2.5。
 当前工具箱已集成 cnn13/resnet18/resnet50，ResNet-34 尚未集成；协议的正类

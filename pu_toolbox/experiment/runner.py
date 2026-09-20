@@ -1,8 +1,8 @@
 """ExperimentRunner — Template Method orchestration of the four-way protocol.
 
 Design notes: fixed skeleton; every variation point is an injected
-strategy (Generator/Trainer/SelectionProtocol) per implementation_plan.md
-§1.4. Does NOT subclass — users inject their own strategy objects.
+strategy (Generator/Trainer/SelectionProtocol) per docs/dev/experiment_layer.md
+§2. Does NOT subclass — users inject their own strategy objects.
 """
 
 from __future__ import annotations

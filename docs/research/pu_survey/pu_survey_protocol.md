@@ -4,8 +4,8 @@
 > 具有长期参考价值。本协议来自调研工作区实验要求 v2（原始稿存于外部工作区，未入版本控制）；
 > **修订在仓库内维护**；原始上下文与修订历程仍保存在外部工作区。
 >
-> 相关文档：技术实现与推进状态（现状差距、前置工作项、锁定细节、进度审计）见
-> [implementation_plan.md](implementation_plan.md)；
+> 相关文档：实验层设计与实现现状见 [experiment_layer.md](../../dev/experiment_layer.md)；
+> 执行状态与进度审计见 [survey_execution_plan.md](survey_execution_plan.md)；
 > 与双架构计划的关系见 [dual_architecture_plan.md §7](../../dev/dual_architecture_plan.md)；
 > 算法方法实现状态与台账见 [METHOD_CARDS](../method_cards/)。
 
@@ -86,7 +86,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
    > SCAR（instance independent）为主实验。SAR 为独立压力测试：
    > - 仅取 $`c\in\{0.05,0.5\}`$，并须与 PU-Bench 的 SAR 设定保持一致（实现锁定细节见
-   >   [implementation_plan.md](implementation_plan.md) §2）；
+   >   [experiment_layer.md](../../dev/experiment_layer.md) §3）；
    > - 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录；
    > - SAR 下 PA 仅可作为诊断日志，正式模型选择及结论只使用 OA；
    > - 所有算法可在通过输入/训练门禁后参加 SAR OA 测试，但须按其原生假设是否匹配 SAR
@@ -112,6 +112,15 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    此处"准备"指**切分与预处理**由用户完成；用户提供的是切分后的**真实标签**四路分区，
    `train`/`pu_val` 的 PU 标签视图（`{+1, 0}` 形式）由工具箱的生成函数（第 8 条）在 split
    之后生成并记录 `c_realized`；`clean_val`/`test` 保持真实标签。
+
+   > **PU-Bench test 来源对照（commit `2d95a19`，已核实）**：自带官方测试集的数据集为
+   > MNIST、F-MNIST、CIFAR-10、IMDB、20News；Spambase、Connect-4、ADNI 无自带测试集，
+   > 从全量 `train_test_split(test_size=0.2, stratify=y)` 留出 20% 固定为 test。验证池沿用
+   > PU-Bench 做法：在源 train 内、PU 采样**之前**按真实标签分层切出（策略名
+   > `split_source_before_pu_sampling`，防止 case-control 重复抽到跨边界样本），本实验据此切
+   > 10%（seed 驱动）；PU-Bench 各 `param_sweep_*.yaml` 统一 `val_ratio: 0.01`，本实验为
+   > 5%+5%（见第 3 条）。
+
 4. 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同一 seed 下所有方法、
    PA/OA、PN oracle 及所有 $`c`$ 共享同一底层 split，同一 $`c`$ 共享相同 P/U 标记结果。扫描 $`c`$
    时仅重生成 $`S`$ 标签，不改变样本、split 或 $`\pi_{population}`$。
@@ -141,7 +150,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
     划分职责。
 
 > 上述要求的当前工具箱实现状态、`ExperimentRunner` 层结论与实现侧自动验证要求见
-> [implementation_plan.md](implementation_plan.md) §1。
+> [实验层设计文档](../../dev/experiment_layer.md)。
 
 ### 2.5 特征提取框架（backbone）
 
@@ -159,7 +168,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    方法必须使用同一份划分和同一表征/backbone；因 backbone 或输入表征不同而得到的结果应单列
    报告，不得混入同一主榜单；
 5. 灰度与 RGB 的输入处理保持一致（具体实现口径见
-   [implementation_plan.md](implementation_plan.md) §3）；输入尺寸、首层设置、归一化和增强
+   [experiment_layer.md](../../dev/experiment_layer.md) §3）；输入尺寸、首层设置、归一化和增强
    均须入 manifest。方法私有网络只能作为 `benchmark-adapted` 路径报告；
 6. 所有可学习预处理统计量仅在该 seed 的 `train` 拟合并冻结，图像增强仅用于训练。文本须记录
    `all-MiniLM-L6-v2` 的模型 revision、384 维输出及 embedding cache hash。
@@ -168,8 +177,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
 双架构计划的结论：**双架构计划不是文本 SBERT 向量或表格 MLP 路径的前置条件；它是完成图像
 数据集公平比较的部分前置工作**；实施工作项与独立的后置工作项见
-[implementation_plan.md](implementation_plan.md) §4，计划全文见
-[dual_architecture_plan.md](../../dev/dual_architecture_plan.md) §7。
+[dual_architecture_plan.md](../../dev/dual_architecture_plan.md)（§5 实施阶段与 §7 公平性协议）。
 
 ## 3. class prior 以及相关参数设置
 
@@ -204,7 +212,8 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 在此之前只可发布明确标为 `pilot / partial benchmark` 的部分结果。
 
 > 当前源码审计与接入验收流程（`source-faithful` 判定、冒烟/对照要求）见
-> [implementation_plan.md](implementation_plan.md) §5。
+> [pn_oracle_integration.md](pn_oracle_integration.md)（PN oracle 口径）与
+> [survey_execution_plan.md](survey_execution_plan.md) §1（算法接入台账）。
 
 ## 5. 结果、复现与交付验收
 
@@ -214,8 +223,8 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 2. "具有优势"仅在同一数据集、$`c`$、协议和训练路径内，以独立 `test` Accuracy 五次重复均值
    比较；同步报告标准差、单配置训练成本、完整调参成本和峰值显存。暂不预设显著性检验门槛；
 3. 所有方法在同一数据集、$`c`$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/
-   官方代码预注册并记录候选数。超参数通过中心注册表统一管理（注册表设计参考见
-   [implementation_plan.md](implementation_plan.md) §6）；
+   官方代码预注册并记录候选数。超参数通过中心注册表统一管理（设计参考参考文献 1 代码库
+   `core/hparams_registry.py`；中心注册表落地属 P4.1）；
 4. 同一数据集内统一最大 epoch、batch-size 候选范围、资源上限和调参预算；环境只规定 GPU/CPU、
    显存等级和软件栈等大类，不将本机硬件写入方案。实际型号、驱动和资源限制写入 artifact。
    单配置成本从模型初始化到最终 epoch，包含训练和每 epoch 验证，不含下载、SBERT 生成、split
@@ -229,8 +238,8 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 7. 在上述条件满足后，再结合各方法局限性、可结合/改进点以及三类方法的优缺点分析实验结果。
    任何解释必须区分"文献事实""本实验观测"和"推断"。
 
-> pilot 前的基础设施验收清单与技术实现章节见
-> [implementation_plan.md](implementation_plan.md) §7。
+> pilot 前的基础设施验收清单与技术实现见
+> [实验层设计文档](../../dev/experiment_layer.md)。
 
 ## 6. 实验过程中的注意点
 

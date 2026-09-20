@@ -3,7 +3,7 @@
 Design notes: one ABC per variation point instead of a Bridge hierarchy —
 a concrete strategy is injected into ExperimentRunner, no subclassing the
 runner. DIY = implement an ABC and inject. See
-docs/dev/experiment_layer.md §2 and implementation_plan.md §1.4.
+docs/dev/experiment_layer.md §2.
 """
 
 # ruff: noqa: N803

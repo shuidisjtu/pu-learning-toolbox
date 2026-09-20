@@ -2,7 +2,7 @@
 
 > 定位：修复并接入协议 §2.4 第 10 条的 PN oracle 对照路径。
 > 上游依据：[pu_survey_protocol.md](pu_survey_protocol.md) §2.4/§5、
-> [implementation_plan.md](implementation_plan.md) §7 验收清单、
+> [experiment_layer.md](../../dev/experiment_layer.md) §4（P0 验收清单）、
 > [survey_execution_plan.md](survey_execution_plan.md) P2；
 > 参考文献 2 = PU-Bench `2d95a19`（与本项目其他锁定值同一 commit）。
 > 状态日期：2026-09-11。
@@ -116,7 +116,7 @@ README 称其为 "fully supervised PN oracle baseline"。
 建议：**保留协议口径**（它才是"上界"的正确语义，且协议是项目内更高权威），
 但必须做两件事：
 
-1. 在 `implementation_plan.md` 记录该差异，注明**本实验 PN oracle 数值不可与
+1. 在 `survey_execution_plan.md` 决策记录（D6）记录该差异，注明**本实验 PN oracle 数值不可与
    PU-Bench 论文表中的 `pn` 直接对比**（选模口径不同）；
 2. 在 oracle 的 manifest / 结果标注中写死 `selection_metric: "clean_val_accuracy"`，
    使口径可审计（PU-Bench 侧对应值是 `val_proxy_acc`）。
@@ -223,5 +223,5 @@ oracle"并不冲突，只是冗余。
    根因是"数据集内共享 MLP 规格"尚未确定。**该规格原先被归入 P4 中心注册表，经复核属阶段
    划分错误——它是方法接入的接口约定，应为 P3 的前置**（已更新
    [survey_execution_plan.md](survey_execution_plan.md) 与
-   [implementation_plan.md](implementation_plan.md) §3）。规格落定后 `OracleMLP` 须改为
+   [experiment_layer.md](../../dev/experiment_layer.md) §3）。规格落定后 `OracleMLP` 须改为
    按规格构造；在此之前 pilot 的 oracle 行须单列，不与 PU 行混排
