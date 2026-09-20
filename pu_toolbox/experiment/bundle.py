@@ -3,8 +3,7 @@
 Design notes: inputs are ALWAYS clean views (real labels); the Generator
 in the runner produces PU views (DatasetPart(view="pu")) so that PA
 paths structurally cannot receive real labels. See
-docs/research/pu_survey/implementation_plan.md §1.4 and
-docs/dev/experiment_layer.md.
+docs/dev/experiment_layer.md §2.
 """
 
 from __future__ import annotations

@@ -2,13 +2,13 @@
 
 Design notes: SCAR/SAR share the fixed-count policy (protocol §2.1,
 n_L = round(c·n_+), uniform without replacement); SAR-LBE matches
-PU-Bench commit 2d95a19 (implementation_plan.md §2.2). The posterior
+PU-Bench commit 2d95a19 (docs/dev/experiment_layer.md §3). The posterior
 helper model is fitted on REAL labels (source train) — never on PU views.
 SAR-LBE sampling pool = true positives only (S=1 ⟹ Y=1), as in PU-Bench.
 Selection (protocol §2.4): OA min-max normalises scores before
 thresholding on real-label val; PA only ever sees the PU val view, so
 clean labels are structurally unreachable. Injectable-strategy pattern
-per implementation_plan.md §1.4.
+per docs/dev/experiment_layer.md §2.
 """
 
 # ruff: noqa: N803
@@ -489,7 +489,7 @@ class FitTrainer(Trainer):
     ``best_epoch`` stays None. ``class_prior`` is forwarded only when the
     estimator accepts it (TypeError-catch, sklearn duck contract) so the
     runner's candidate pool may mix prior-aware and prior-free methods.
-    See implementation_plan.md §1.4.
+    See docs/dev/experiment_layer.md §2.
     """
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
@@ -510,7 +510,7 @@ class SupervisedTrainer(Trainer):
     only the label view differs from a SCAR/SAR run, so the comparison
     isolates the labeling mechanism instead of the training machinery;
     delegating to FitTrainer avoids a second fit path to maintain. See
-    implementation_plan.md §1.4.
+    docs/dev/experiment_layer.md §2.
     """
 
     trains_on_real_labels = True
@@ -528,7 +528,7 @@ class DeepFitTrainer(Trainer):
     disagrees at runtime, the call degrades to a bare fit in place
     (replacement semantics — the FitTrainer fallback below is NOT
     re-run), so a broken deep path cannot silently fall back twice. See
-    implementation_plan.md §1.4.
+    docs/dev/experiment_layer.md §2.
     """
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):

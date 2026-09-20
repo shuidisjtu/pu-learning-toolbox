@@ -1,4 +1,4 @@
-"""PU survey experiment layer (P0 pilot). See implementation_plan.md §1.4."""
+"""PU survey experiment layer (P0 pilot). See docs/dev/experiment_layer.md §2."""
 
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .datasets import (

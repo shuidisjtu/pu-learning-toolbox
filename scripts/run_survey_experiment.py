@@ -41,7 +41,7 @@ under SAR the PA protocol only logs diagnostics, official model selection and
 conclusions use OA), so the SAR path injects ``[ProtocolOA()]`` explicitly and
 nests its runs under ``<mechanism>/c_<token>/seed_<seed>``.  The SAR label
 frequencies are restricted to the protocol values ``{0.05, 0.5}`` (PU-Bench
-vary-e, see implementation_plan.md §2.2); a token outside that set fails before
+vary-e, see docs/dev/experiment_layer.md §3); a token outside that set fails before
 any data is read.  Note that this CLI's ``--labeling-mechanism`` value space is
 *not* the ``labeling_mechanism`` column of ``benchmarks/assigned_methods``
 (``{scar, linear, nonlinear}``, the propensity-model shape inside that
@@ -106,7 +106,7 @@ LABELING_MECHANISMS: tuple[str, ...] = ("scar", "sar_lbe_a", "sar_lbe_b")
 # Mechanisms whose official selection protocol is OA only (protocol §2.3).
 SAR_MECHANISMS: frozenset[str] = frozenset({"sar_lbe_a", "sar_lbe_b"})
 
-# SAR label frequencies (PU-Bench vary-e, implementation_plan.md §2.2).
+# SAR label frequencies (PU-Bench vary-e, docs/dev/experiment_layer.md §3).
 SAR_C_TOKENS: frozenset[str] = frozenset({"0.05", "0.5"})
 
 _LABELING_GENERATORS: dict[str, type] = {

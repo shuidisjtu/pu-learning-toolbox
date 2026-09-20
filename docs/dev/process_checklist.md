@@ -189,7 +189,7 @@
   先验门禁改由 registry `requires_class_prior` 驱动（台账只做结果标注），
   未入台账方法 fail-loud；新增台账↔registry 一致性契约测试 6 条不变量
   （tests/contract/test_ledger_registry_consistency.py）；survey 文档双架构
-  表述限缩（7 个 Survey 方法中仅 nnPU 原生 CNN）与 implementation_plan
+  表述限缩（7 个 Survey 方法中仅 nnPU 原生 CNN）与设计期快照
   状态横幅（详见 issue #42 与 docs/research/pu_survey/survey_execution_plan.md）
 - Self-PU CNN 声明收口（未发布，随下一版本发布）：issue #38 决策——
   Self-PU 不支持 native CNN（mlp-only）；`input_ndims` 收窄为 `{2}`

@@ -64,14 +64,14 @@ predictions = selected.predict(X_test)
 实际训练满声明 epoch 且完整快照可供 PA/OA 独立选择，才解除本单元的
 `per_epoch_independent_PA_OA_checkpoint_selection` 阻断；无 epoch 方法标为 `single_point_no_epoch`。
 缩短训练、关闭 capture、旧自定义 trainer 或缺少持久化，均不能获得正式可复现资格。
-协议版本更新为 `survey-v1.1`；旧 `survey-v1` 历史 manifest 仍是旧语义，不能改版本标签升级。
+协议版本为 `survey-v1.2`（checkpoint 功能随 v1.1 引入）；旧 `survey-v1` 历史 manifest 仍是旧语义，不能改版本标签升级。
 
 训练成本包括保存快照；离线逐 epoch 验证/恢复成本记入单配置成本与总调参成本，
 并单列 `offline_checkpoint_validation_elapsed_seconds`、选择/分派开销。
 最终 test 评测不冒充调参成本。逐 epoch 指标只含每套协议允许的验证结果，不保存标签。
 
 **已完成（2026-09-20）**：PA 的正式准则——proxy accuracy（Wang et al. 2026 Definition 1 的 OS
-分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见执行计划 §4 第 0j 条。
+分支）+ 与 OA 同构的阈值网格与归一化 + π 必传预检，见 [p2_0a_review.md](p2_0a_review.md) R9 补记。
 **仍未完成**：P2.0b/c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle。
 本次 checkpoint 功能补齐不意味着所有单元 `formal_eligible=true`。
 

@@ -48,14 +48,8 @@
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
 | [dev/label_semantics_plan.md](dev/label_semantics_plan.md) | 标签语义契约：`label_semantics` 能力声明、检查点与实施计划（值层不可判定性、与防泄漏守卫的分工） |
 | [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界 |
-| [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：`pu_survey_protocol.md` 协议（8 数据集、OS/TS 视图、四份数据接口、PA/OA 双选模）、`implementation_plan.md` 实现计划（现状差距、双架构前置工作项、待办）、`survey_execution_plan.md` 执行计划（pilot→主榜路线、现状基线、决策记录）、`pn_oracle_integration.md` PN oracle 接入（缺陷实证、PU-Bench 口径对照、设计决策、P2 接口与开放问题） |
+| [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：协议、执行计划、各 Phase 交付与复核记录——详见 [pu_survey/README.md](research/pu_survey/README.md) |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）设计蒸馏：四路数据合约、策略化接口、PA/OA 双协议、P0 已知局限 |
-| [research/pu_survey/p2_0a_delivery.md](research/pu_survey/p2_0a_delivery.md) | P2.0a 共享规格、执行矩阵、CIFAR 接线与 CPU/GPU 验证记录 |
-| [research/pu_survey/p2_0a_review.md](research/pu_survey/p2_0a_review.md) | 合作者逐条复核决定、未决项与签署模板 |
-| [research/pu_survey/heng958_independent_review.md](research/pu_survey/heng958_independent_review.md) | HENG958 环境、nnPU/Self-PU 台账与 split 可执行性复核记录 |
-| [research/pu_survey/epoch_checkpoint_delivery.md](research/pu_survey/epoch_checkpoint_delivery.md) | 逐 epoch 权重保存、PA/OA 独立恢复与验证证据 |
-| [research/pu_survey/p2_0c_delivery.md](research/pu_survey/p2_0c_delivery.md) | P2.0c 外部对照预注册：资格闭集、覆盖推导、来源口径差异判读与签署顺序 |
-| [research/pu_survey/p2_0c_review.md](research/pu_survey/p2_0c_review.md) | P2.0c 复核包：自审结论、三处判读留痕、合作者复核与签署栏 |
 
 ## 架构决策(docs/adr/)
 

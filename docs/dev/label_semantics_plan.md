@@ -5,8 +5,8 @@
 > 见 [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) §2）；P3+P4 保持
 > P3 算法接入前置。
 > 上游依据：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §2.4 第 10 条、
-> [pn_oracle_integration.md](../research/pu_survey/pn_oracle_integration.md) §8 第 5 项
-> （独立验收判定为未决）、项目 CLAUDE.md「API 契约」条。
+> [experiment_layer.md](experiment_layer.md) §4（守卫不覆盖估计器自身优化目标的边界）、
+> 项目 CLAUDE.md「API 契约」条。
 > 状态日期：2026-09-18。阶段 A（P1+P2）已完成工程实现与回归，合作者独立复核/签署待办；
 > 阶段 B（P3+P4）仍待实施，详见 [P2.0b 交付记录](../research/pu_survey/p2_0b_delivery.md)。
 
@@ -179,7 +179,7 @@ P3+P4 保持 P3 算法接入前置（Phase 2 深度 oracle 之前完成）。
 
 **P4 —— 文档与收口**
 1. ADR（决策：用声明位而非运行期校验，理由见 §1 的值层不可判定性）
-2. `docs/README.md` 索引登记本文件；`pn_oracle_integration.md` §8 第 5 项标记为该方案收口
+2. `docs/README.md` 索引登记本文件（已登记）；pn_oracle 原 §8 第 5 项已随 2026-09-20 重写归档
 3. 项目 CLAUDE.md「API 契约」条补一句：语义须由 `label_semantics` 声明
 
 建议：全部在一个 `feature/label-semantics` 分支内按阶段提交，单个 PR。
