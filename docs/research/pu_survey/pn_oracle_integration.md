@@ -9,7 +9,7 @@
 > 声明补上。
 >
 > 上游依据：[pu_survey_protocol.md](pu_survey_protocol.md) §2.4/§5、
-> [experiment_layer.md](../../dev/experiment_layer.md) §4（P0 验收清单）、
+> [experiment_layer.md](../../dev/experiment_layer.md) §2 D4 / §3（视图语义与声明守卫）、
 > [survey_execution_plan.md](survey_execution_plan.md) P2；
 > 参考文献 2 = PU-Bench `2d95a19`（与本项目其他锁定值同一 commit）。
 
