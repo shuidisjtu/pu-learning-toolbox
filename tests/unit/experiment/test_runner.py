@@ -64,11 +64,13 @@ def test_pa_never_receives_clean_labels():
     capture = {}
 
     class RecordingPA(ProtocolPA):
-        def select(self, trajectories, val_part, threshold_candidates=None):
+        def select(self, trajectories, val_part, threshold_candidates=None, *, class_prior=None):
             capture["view"] = val_part.view
             capture["indices"] = val_part.indices.copy()
             capture["labels"] = val_part.labels.copy()
-            return super().select(trajectories, val_part, threshold_candidates)
+            return super().select(
+                trajectories, val_part, threshold_candidates, class_prior=class_prior
+            )
 
     # c=0.15 keeps the generated train PU view above the estimator gate
     # (MIN_POSITIVE_SAMPLES=2) on this tiny synthetic split.
@@ -76,6 +78,7 @@ def test_pa_never_receives_clean_labels():
         seed=3,
         generator=SCARGenerator(),
         protocols=[RecordingPA(), RecordingPA()],
+        class_prior=0.3,
         config={"c": 0.15},
     )
     runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
@@ -329,6 +332,7 @@ def test_all_failed_candidates_write_manifest_then_fail_loudly(tmp_path):
         seed=11,
         protocols=[],
         manifest_path=str(manifest_path),
+        class_prior=0.5,
         config={"c": 0.5, "trainer": trainer},
     )
     with pytest.raises(RuntimeError, match="all candidate runs failed"):

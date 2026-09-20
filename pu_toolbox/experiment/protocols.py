@@ -66,7 +66,14 @@ class Trainer(ABC):
 
 
 class SelectionProtocol(ABC):
-    """Model-selection protocol: trajectories + its val view -> artifact."""
+    """Model-selection protocol: trajectories + its val view -> artifact.
+
+    ``class_prior`` is the population class prior pi (protocol §3.1), passed by
+    keyword.  A protocol whose criterion needs pi (PA) MUST fail loudly when it
+    is None; one whose criterion does not (OA) must ignore it, so every protocol
+    in the tree shares a single call shape.  Keyword-only and optional: this is
+    an addition to the interface, not a reordering of it.
+    """
 
     @abstractmethod
     def select(
@@ -74,4 +81,6 @@ class SelectionProtocol(ABC):
         trajectories: list[RunTrajectory],
         val_part: DatasetPart,
         threshold_candidates: np.ndarray | None = None,
+        *,
+        class_prior: float | None = None,
     ) -> SelectionArtifact: ...

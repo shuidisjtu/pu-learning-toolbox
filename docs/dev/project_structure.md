@@ -331,6 +331,7 @@ tests/
       test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
+      test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）

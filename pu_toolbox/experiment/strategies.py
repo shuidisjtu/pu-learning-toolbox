@@ -217,6 +217,22 @@ class SARLBEBGenerator(Generator):
 # ---------------------------------------------------------------------------
 
 
+def _best_threshold(candidates: np.ndarray, value_at) -> tuple[float, float]:
+    """Grid argmax; a plateau resolves to the earliest (lowest) candidate.
+
+    Shared by OA's accuracy scan and PA's proxy-accuracy scan so both
+    protocols resolve ties identically (``selection_spec.tie_breaking`` ends
+    with "...then earliest threshold").
+    """
+    best_thr = float(candidates[0])
+    best_value = -float("inf")
+    for thr in candidates:
+        value = value_at(float(thr))
+        if value > best_value:
+            best_thr, best_value = float(thr), value
+    return best_thr, best_value
+
+
 def select_threshold(
     scores: np.ndarray, labels: np.ndarray, candidates: np.ndarray
 ) -> tuple[float, float]:
@@ -225,17 +241,49 @@ def select_threshold(
     Ties resolve to the lowest threshold (first candidate encountered, i.e.
     the lowest one when ``candidates`` is non-decreasing).
     """
-    best_thr, best_acc = candidates[0], -1.0
-    for thr in candidates:
-        pred = (scores >= thr).astype(int)
-        acc = float(np.mean(pred == labels))
-        if acc > best_acc:
-            best_acc, best_thr = acc, thr
-    return float(best_thr), best_acc
+
+    def _accuracy(thr: float) -> float:
+        return float(np.mean((scores >= thr).astype(int) == labels))
+
+    return _best_threshold(candidates, _accuracy)
+
+
+def proxy_accuracy(
+    scores: np.ndarray, labels: np.ndarray, threshold: float, class_prior: float
+) -> float:
+    """Proxy accuracy, Wang et al. 2026 (ICLR) Definition 1, OS branch.
+
+    ::
+
+        PA(theta) = (2*pi/n'_P) * sum_{D'_P}          I(f(x) >= theta)
+                  + (1/(n'_P+n'_U)) * sum_{D'_P u D'_U} I(f(x) < theta)
+
+    ``labels`` is the PU view: 1 marks a labeled positive (``D'_P``), 0 an
+    unlabeled sample (``D'_U``).  The second sum runs over EVERY validation
+    sample, labeled positives included -- that is the paper's definition, not
+    a transcription slip.  Both ``n'_P`` and the sample count are fixed for a
+    given validation set, and with a perfect classifier the expression
+    evaluates to ``ACC + pi``: a constant shift, which is exactly why
+    Proposition 1 (PA orders classifiers the way ACC does) holds.
+
+    A consequence worth stating: ``pi`` is the WEIGHT of the positive term, so
+    it moves the argmax rather than merely rescaling the score.  A missing
+    prior must therefore be refused at the protocol level, never defaulted.
+    """
+    labeled = labels == 1
+    n_labeled = int(np.count_nonzero(labeled))
+    above = scores >= threshold
+    positive_term = 2.0 * class_prior * np.count_nonzero(above & labeled) / n_labeled
+    negative_term = np.count_nonzero(~above) / len(scores)
+    return float(positive_term + negative_term)
 
 
 class ProtocolOA(SelectionProtocol):
     """Oracle selection on real-label validation (clean_val).
+
+    ``class_prior`` is accepted for call-shape parity and ignored: OA scores on
+    real labels, so its criterion has no pi term.  Compare :class:`ProtocolPA`,
+    whose criterion does need it.
 
     Scores are min-max normalised to [0, 1] before thresholding, so the
     default ``np.linspace(0, 1, 11)`` grid is meaningful for any
@@ -249,7 +297,12 @@ class ProtocolOA(SelectionProtocol):
     name = "OA"
 
     def select(
-        self, trajectories: list[RunTrajectory], val_part: DatasetPart, threshold_candidates=None
+        self,
+        trajectories: list[RunTrajectory],
+        val_part: DatasetPart,
+        threshold_candidates=None,
+        *,
+        class_prior: float | None = None,  # ignored: OA's criterion has no pi term
     ) -> SelectionArtifact:
         if val_part.view != "clean" or not val_part.for_selection:
             raise ValueError("ProtocolOA must receive a selection-enabled clean validation view")
@@ -314,53 +367,110 @@ class ProtocolOA(SelectionProtocol):
 
 
 class ProtocolPA(SelectionProtocol):
-    """PA: selection on the PU view only (pu_val, also keeps real labels away).
+    """PA: proxy-accuracy selection on the PU view only (pu_val).
 
-    PA does not pick a threshold — ``threshold_candidates`` is kept only
-    to satisfy ``SelectionProtocol``'s interface contract (the runner
-    passes its grid uniformly); ``SelectionArtifact.threshold`` is None.
+    The criterion is :func:`proxy_accuracy` (Wang et al. 2026 Definition 1, OS
+    branch), scanned over the same per-checkpoint min-max normalised threshold
+    grid OA uses — so the runner re-emits the val-side affine constants at test
+    time through the very path OA already exercises.  Clean labels stay
+    structurally unreachable: the view guard below is the only gate.
+
+    ``class_prior`` is the population class prior pi (protocol §3.1).  It is
+    REQUIRED: pi weights the positive term of PA, so a run without it would
+    silently select by a different criterion rather than fail loudly.
     """
 
     name = "PA"
 
     def select(
-        self, trajectories: list[RunTrajectory], val_part: DatasetPart, threshold_candidates=None
+        self,
+        trajectories: list[RunTrajectory],
+        val_part: DatasetPart,
+        threshold_candidates=None,
+        *,
+        class_prior: float | None = None,
     ) -> SelectionArtifact:
         if val_part.view != "pu" or not val_part.for_selection:
             raise ValueError("ProtocolPA must receive a PU view (never clean labels).")
-        # PA uses unlabeled count + labeled-positive risk proxy; keep it simple:
-        # pick the trajectory with best mean PU-view separation on val.
-        if not trajectories:
-            raise ValueError("PA selection requires at least one trajectory")
         mask = val_part.labels == 1
         if not mask.any() or mask.all():
             raise ValueError("PA validation requires both labeled positive and unlabeled samples")
-        best_run, best_score = 0, -float("inf")
-        best_epoch = best_checkpoint = None
+        if class_prior is None:
+            raise ValueError(
+                "PA selection needs the population class prior pi (protocol §3.1: "
+                "data-generation metadata, never back-inferred from a subset). Pass "
+                "class_prior= to select(), or --class-prior to the run."
+            )
+        prior = float(class_prior)
+        if not np.isfinite(prior) or not 0.0 < prior <= 1.0:
+            raise ValueError(f"PA class prior pi must lie in (0, 1], got {class_prior!r}")
+        if not trajectories:
+            raise ValueError("PA selection requires at least one trajectory")
+        if threshold_candidates is None:
+            threshold_candidates = np.linspace(0.0, 1.0, 11)
+        labels = val_part.labels
+        best_value = -float("inf")
+        best_run, best_epoch, best_checkpoint = 0, None, None
+        best_threshold = float(threshold_candidates[0])
+        best_min = best_scale = None
         for i, traj in enumerate(trajectories):
             for checkpoint_index, epoch, model in selection_models(traj):
                 started_at = time.perf_counter()
+                # Normalise each checkpoint in its own VAL-side space, exactly as
+                # OA does: the runner has to reuse the same affine constants when
+                # it applies this threshold to the test scores.
                 scores = model.decision_function(val_part.X)
-                if scores.shape != val_part.labels.shape or not np.isfinite(scores).all():
+                if scores.shape != labels.shape or not np.isfinite(scores).all():
                     raise ValueError(
                         "PA checkpoint scores must be finite and match validation labels"
                     )
-                sep = float(
-                    np.mean(scores[mask], dtype=np.float64)
-                    - np.mean(scores[~mask], dtype=np.float64)
+                scale = np.ptp(scores)
+                if not np.isfinite(scale):
+                    raise ValueError("PA checkpoint validation score range is not finite")
+                if scale > 0:
+                    s_min = float(scores.min())
+                    scores = (scores - s_min) / scale
+                    affine = (s_min, float(scale))
+                else:
+                    # Constant-score checkpoint: the criterion is flat, so the
+                    # tie rule (earliest candidate/epoch/threshold) decides.
+                    affine = (None, None)
+                threshold, value = _best_threshold(
+                    threshold_candidates,
+                    # ``_scores`` binds the loop variable: the lambda is called
+                    # immediately, but a late-binding closure is exactly the
+                    # defect B023 flags, so bind it rather than silence it.
+                    lambda thr, _scores=scores: proxy_accuracy(_scores, labels, thr, prior),
                 )
                 record_validation(
-                    traj, checkpoint_index, "PA", {"pu_val_separation": sep}, started_at
+                    traj,
+                    checkpoint_index,
+                    "PA",
+                    {
+                        "val_proxy_accuracy": value,
+                        "threshold": threshold,
+                        "val_score_min": affine[0],
+                        "val_score_scale": affine[1],
+                        "class_prior": prior,
+                    },
+                    started_at,
                 )
-                if sep > best_score:
-                    best_score, best_run = sep, i
+                if value > best_value:
+                    best_value, best_run = value, i
+                    best_threshold = threshold
+                    best_min, best_scale = affine
                     best_epoch, best_checkpoint = epoch, checkpoint_index
         return SelectionArtifact(
             protocol="PA",
             run_index=best_run,
             epoch=best_epoch,
-            threshold=None,
-            metrics={"pu_val_separation": best_score},
+            threshold=best_threshold,
+            metrics={
+                "val_proxy_accuracy": float(best_value),
+                "val_score_min": best_min,
+                "val_score_scale": best_scale,
+                "class_prior": prior,
+            },
             checkpoint_index=best_checkpoint,
         )
 

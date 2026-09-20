@@ -11,6 +11,7 @@ script source without duplicating the loader.
 """
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -56,6 +57,21 @@ def make_splits(data_dir: Path) -> None:
             y=y[start:end],
             indices=np.arange(start, end),
         )
+    # Real split products carry a manifest, and §3.1 puts pi in it.  A method
+    # that needs no prior still has one for PA to select with, which is exactly
+    # the path a run without --class-prior is supposed to take.
+    (data_dir / "split_manifest.json").write_text(
+        json.dumps(
+            {
+                "dataset": "spambase",
+                "seed": 0,
+                "role_sizes": {"train": 18, "pu_val": 4, "clean_val": 4, "test": 4},
+                "class_prior": {"population": float(np.mean(y))},
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
 
 def make_sar_splits(data_dir: Path) -> None:
