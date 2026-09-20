@@ -37,6 +37,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = PROJECT_ROOT / "docs"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
+# Roots whose tree blocks generate_structure.py manages; Rule 2 delegates
+# their bidirectional existence check to that generator (single source of
+# truth, so this cannot drift from generate_structure.GENERATABLE_ROOTS).
+_GENERATABLE_PREFIXES = tuple(r + "/" for r in _gen.GENERATABLE_ROOTS)
+
 # Directories whose backtick-quoted paths we check in Rule 1.
 VALID_PATH_ROOTS: tuple[str, ...] = (
     "pu_toolbox",
@@ -270,7 +275,7 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
                     "error",
                 )
             )
-        elif not exists and not has_planned and not rel_path.startswith(("pu_toolbox/", "tests/")):
+        elif not exists and not has_planned and not rel_path.startswith(_GENERATABLE_PREFIXES):
             # Generator-managed roots are covered by the bidirectional
             # check below; keep the legacy existence check for blocks
             # that generate_structure.py does not manage (examples/, ...).
@@ -289,7 +294,7 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
     # every git-tracked .py under pu_toolbox/tests must appear in the
     # document, and every documented entry must exist on disk or be marked
     # (planned).
-    tracked = [f for f in _gen.tracked_py_files() if f.startswith(("pu_toolbox/", "tests/"))]
+    tracked = [f for f in _gen.tracked_py_files() if f.startswith(_GENERATABLE_PREFIXES)]
     _new_text, missing, stale = _gen.generate(text, tracked)
     for rel in missing:
         issues.append(

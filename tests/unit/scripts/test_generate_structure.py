@@ -11,6 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
+import check_doc_links as d  # noqa: E402
 import generate_structure as g  # noqa: E402
 
 pytestmark = pytest.mark.unit
@@ -215,3 +216,31 @@ def test_param_main_update_writes_document(tmp_path, monkeypatch):
     assert g.main(["--update"]) == 0
     written = md.read_text(encoding="utf-8")
     assert "new.py" in written and g.PLACEHOLDER in written
+
+
+def test_basic_scripts_root_is_generatable():
+    doc = """\
+```text
+scripts/
+  check_format.py           (格式门禁)
+  pu_workflow/
+    profile.py              (委托 profile)
+```
+"""
+    assert [r for _, _, r in g.find_blocks(doc.splitlines())] == ["scripts"]
+    disk = [
+        "scripts/check_format.py",
+        "scripts/pu_workflow/profile.py",
+        "scripts/new_tool.py",
+    ]
+    new_text, missing, stale = g.generate(doc, disk)
+    assert missing == ["scripts/new_tool.py"]
+    assert stale == []
+    assert "new_tool.py" in new_text and g.PLACEHOLDER in new_text
+
+
+def test_check_doc_links_prefixes_follow_generator():
+    # Rule 2 delegates its tree existence check to generate_structure, so its
+    # root prefixes must derive from GENERATABLE_ROOTS rather than be copied.
+    expected = tuple(r + "/" for r in g.GENERATABLE_ROOTS)
+    assert expected == d._GENERATABLE_PREFIXES

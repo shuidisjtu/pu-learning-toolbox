@@ -133,7 +133,9 @@ uv run python scripts/run_survey_experiment.py path/to/splits \
 它与 `--method` 相互独立：标记机制是实验自变量，因此 SAR 实验行可运行任意
 Survey 方法，并且只报告 OA。协议、当前执行状态和报告边界见
 [`docs/research/pu_survey/`](docs/research/pu_survey/)。在全部协议门禁满足前，
-结果必须标记为 `pilot / partial benchmark`。
+结果必须标记为 `pilot / partial benchmark`。整批 pilot 运行、结果聚合与
+split 传输由 `run_survey_pilot.py`、`aggregate_survey_runs.py`、
+`survey_splits_archive.py` 驱动（语义见各自 docstring 与 `docs/research/pu_survey/`）。
 
 ## AI 工作流 Skill
 

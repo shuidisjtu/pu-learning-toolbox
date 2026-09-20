@@ -28,7 +28,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 STRUCTURE_MD = PROJECT_ROOT / "docs" / "dev" / "project_structure.md"
-GENERATABLE_ROOTS = ("pu_toolbox", "tests")
+GENERATABLE_ROOTS = ("pu_toolbox", "tests", "scripts")
 COMMENT_COL = 42
 PLACEHOLDER = "<<< 新文件,补注释"
 FILES_KEY = "__files__"

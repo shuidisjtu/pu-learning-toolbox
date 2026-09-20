@@ -139,7 +139,9 @@ experiment's independent variable, so the SAR rows run any survey method and
 report OA only. See [`docs/research/pu_survey/`](docs/research/pu_survey/) for
 the protocol, current execution status, and reporting boundaries. Until all
 protocol gates are satisfied, results must be identified as a
-`pilot / partial benchmark`.
+`pilot / partial benchmark`. Whole-pilot runs, result aggregation, and split
+transfer are driven by `run_survey_pilot.py`, `aggregate_survey_runs.py`, and
+`survey_splits_archive.py` (see their docstrings and `docs/research/pu_survey/`).
 
 ## AI workflow skill
 
