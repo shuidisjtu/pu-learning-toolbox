@@ -76,6 +76,9 @@ is False` 强制。
 **为什么**：runner 不切分原始数据、只接受切好的四路数据——切分决定权与责任在协议/研究团队
 （`scripts/prepare_survey_splits.py` 只执行、不擅自决定，见协议 §2.4 第 3/7 条）。
 
+`model` 本身由调用方经 `registry.get_algorithm` 查表取类、实例化后注入，实验层不静态 import 算法
+文件（解耦机制见 [architecture.md](architecture.md) §2.1 实验层注入链）。
+
 ### D4 视图语义 —— clean 入 / PU 运行时生成 / 防泄漏
 
 **决策**：bundle 输入全部为 clean 视图（真实标签）；PU 视图由 `Generator.generate` 在**运行时**从

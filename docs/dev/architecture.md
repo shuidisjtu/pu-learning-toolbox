@@ -93,6 +93,11 @@
 - **设备与随机源入口**：`core/device.py` 的 `resolve_device`、`core/random.py` 的 `check_random_state` 是全工具箱唯一的设备/seed 归一化入口，避免各调用点语义漂移
 - **实验层注入链**：`experiment/runner.py`（固定编排骨架）→ 注入的 `model` 实例（estimators，调用方经 `registry.get_algorithm` 获取，非静态 import）+ 策略 ABC（`protocols.py` 的 `Generator`/`Trainer`/`SelectionProtocol`）→ 生成/训练/选模/留痕各由可替换策略承担
 
+  「非静态 import」指 `ExperimentRunner` 的 import 列表不含任何 estimator 或 registry，只经
+  `fit(model, …)` 接收实例；`model` 由**调用方**按方法名字符串 `registry.get_algorithm(method)`
+  查表取算法**类**、实例化后注入。按名字查表使实验层与算法谱系解耦——新增算法只需在 registry
+  注册，实验层的 runner/脚本/选模链零感知、零改动。
+
 > 分层为代表性概览，细粒度依赖以 [`project_structure.md`](project_structure.md)
 > 目录树为准。
 
@@ -172,6 +177,19 @@ trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威
 算法↔模块落点、实现状态见 `pu_toolbox/registry/builtin_methods.py`。能力字段以
 估算器类属性为权威、注册时经 `_SYNC_FIELDS` 镜像进 registry（语义与消费点见
 `dual_architecture_plan.md` §3-§4）。
+
+### registry 与实验层 method_ledger.json 的分工
+
+`registry` 是**代码侧真相源**：`get_algorithm(name)` 按名字返回算法**类**（供脚本实例化训练）、
+`get_metadata(name)` 返回元数据（供能力/先验门禁与 advisor 推荐）。实验层另有
+`pu_toolbox/experiment/method_ledger.json`（survey 方法台账），是**实验侧结果标注真相源**：记录每个
+方法的论文出处、原生采样假设、OS/TS 校准、适配级别与复核结论。脚本读它的两处用途：① `--method`
+必须落在台账内（survey 范围外的方法 fail-loud）；② 把该 entry 复制到 run 目录旁
+（`method_ledger_entry.json`）标注结果。二者不重复：台账里与 registry 重叠的字段（能力 4 字段、
+`source_status`、`requires_class_prior`↔`prior_semantics`）由
+`tests/contract/test_ledger_registry_consistency.py` 合同测试绑定，台账镜像 registry、不得漂移。
+台账语义与字段见 [pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §4 与
+[survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) P1.3a。
 
 `advisor` 把数据画像与 registry 元数据匹配后推荐方法：硬过滤（trainable、
 scenario、sparse、class_prior 可用性）→ 软评分（assumption 匹配/成熟度/可信度/
