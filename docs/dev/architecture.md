@@ -56,6 +56,12 @@
 | `workflows/` | PUPipeline 端到端编排与漂移感知工作流 | [`../../pu_toolbox/workflows/__init__.py`](../../pu_toolbox/workflows/__init__.py)、[`流水线指南`](../user/howto/pipeline.md)、[`漂移指南`](../user/howto/distribution_shift.md) |
 | `cli/` | 命令行薄封装（子命令一览） | [`命令行指南`](../user/howto/cli.md)、[`../../pu_toolbox/cli/__init__.py`](../../pu_toolbox/cli/__init__.py) |
 
+### Experiment — 实验/研究协议层
+
+| 模块 | 核心职责 | 详情来源 |
+|---|---|---|
+| `experiment/` | 面向研究者/实验用户的协议化实验编排：四路数据角色（train/pu_val/clean_val/test）、PA/OA 双协议离线选模、独立 test 评测、版本化留痕；`ExperimentRunner` 固定编排骨架，数据生成/训练/选模为可注入策略（`Generator`/`Trainer`/`SelectionProtocol`） | [`../../pu_toolbox/experiment/__init__.py`](../../pu_toolbox/experiment/__init__.py)、[`实验层设计`](experiment_layer.md)、[`ADR-0018`](../adr/0018-experiment-layer-public-api.md) |
+
 ### User Layer — 用户入口（教学 / 图形界面 / 复现工具）与 agent 包装
 
 | 模块 | 核心职责 | 详情来源 |
@@ -76,6 +82,7 @@
 | Algorithms（`estimators/`） | Estimation、Core |
 | Estimation（`prior/`、`losses/`） | Core |
 | Evaluation（`metrics/`、`model_selection/`、`diagnostics/`） | —（指标与切分为无层内依赖的纯计算，供编排层调用） |
+| Experiment（`experiment/`） | Core、utils（直接）；registry（延迟，获取算法类）；estimators（经 `fit(model, …)` 注入实例，不静态 import）；不被任何层依赖（叶子入口） |
 | User Layer（`ui/`、`benchmarks/`） | Orchestration（经 CLI / workflows 消费工具箱能力） |
 
 **模块级依赖链**（代表性，全部为单向防环设计）：
@@ -84,6 +91,7 @@
 - **数据画像链**：`preprocessing/profiling.py`（统计元语：`pu_data_summary`/`pnu_data_summary`/`scar_diagnostic`，向后兼容）→ `preprocessing/data_profiler.py`（聚合编排：`PUDataProfile` + 可行动 issues）→ `workflows`（pipeline 首步）/ `diagnostics`（报告）/ `advisor`（推荐）
 - **字段语义**：`core/tags.py` 是 registry 元数据字段与枚举的权威来源，registry/advisor 均以其为准
 - **设备与随机源入口**：`core/device.py` 的 `resolve_device`、`core/random.py` 的 `check_random_state` 是全工具箱唯一的设备/seed 归一化入口，避免各调用点语义漂移
+- **实验层注入链**：`experiment/runner.py`（固定编排骨架）→ 注入的 `model` 实例（estimators，调用方经 `registry.get_algorithm` 获取，非静态 import）+ 策略 ABC（`protocols.py` 的 `Generator`/`Trainer`/`SelectionProtocol`）→ 生成/训练/选模/留痕各由可替换策略承担
 
 > 分层为代表性概览，细粒度依赖以 [`project_structure.md`](project_structure.md)
 > 目录树为准。
@@ -122,6 +130,38 @@
 - **报告组装**：`build_diagnostic_report`（`diagnostics`）只读画像、已拟合 estimator
   和指标接口，不训练模型；将观测 PU、类先验依赖、监督 oracle 和不可用指标分别标记，
   输出稳定 schema 的 JSON/Markdown 报告。
+
+### 3.1 实验层数据流（与 PUPipeline 主链平行）
+
+实验层是**面向研究者/实验用户**的第二条入口，数据带角色 + 显式选模协议，不经
+advisor/prior 推荐链路（与 §3 主链的 PUPipeline 非专家路径互补，零改动共存）：
+
+```text
+四路数据 train/pu_val/clean_val/test（clean 视图）  [bundle/DatasetPart + core/validation]
+  ↓ 校验（索引两两不重叠、视图语义、test 不参与选模）
+生成 PU 视图（SCAR/SAR/oracle，按需）              [strategies/Generator]
+  ↓ Trainer/PA 路径结构性接收不到真实标签（view=="pu" 校验）
+候选训练 → RunTrajectory                           [Trainer → 注入的 estimator]
+  （训练视图：OS 原生；原生 TS 方法经 TS-OS 校准，仅 train）
+  ↓
+PA/OA 离线选模（逐 checkpoint，阈值网格，π 必传）   [strategies/SelectionProtocol]
+  ↓
+独立 test 评测 + 留痕（manifest）                   [runner → manifest]
+```
+
+- **视图语义**：bundle 输入的四份数据（含 `pu_val`）都存**真实标签**（clean 视图，
+  `validate_bundle` 强制）——PU 标签是训练/选模前由 `Generator.generate` 从真实标签按
+  SCAR/SAR 机制生成的，不预先落盘；生成产物 `view=="pu"`，使 Trainer/PA 路径结构性
+  接收不到真实标签（防止泄漏）。`pu_val`/`clean_val` 的命名指各数据**选模时用的视图**
+  （PA 用 PU 视图、OA 用 clean 视图），而非存储时的标签。
+- **抽样视图（OS/TS）**：基础数据始终为 OS（Single-Training-Set，单一 i.i.d. 样本）；
+  原生 TS（Two-Sample / Case-Control）方法不重新独立抽样，而是在训练期对每 mini-batch 做
+  TS-OS 校准 `D_U^k ∪ D_P^k`（正例批次并入未标记损失输入，仅限 train，验证/测试保持 OS）。
+  语义与门禁见协议 §2.3。
+- **选模协议**：PA/OA 各自独立——PA 用 proxy accuracy（OS 分支，π 必传），OA 用
+  clean_val 真实 Accuracy；逐 checkpoint 阈值网格选择，平手取最早候选（`selection_spec`）。
+- **版本化留痕**：manifest 固化 seed / split_ref / generation / selection /
+  test_results / elapsed / failures / resources 八类键，支持可审计复现。
 
 ## 4. 算法注册与推荐
 
