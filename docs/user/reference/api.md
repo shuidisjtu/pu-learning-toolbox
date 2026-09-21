@@ -26,10 +26,24 @@
 > **走查示例**在 howto/examples；**算法研究内容**在 method card。每类信息
 > 只有一个权威位置，互以单向链接联系。
 
+## 符号快速索引
+
+| 模块 | 章节 |
+|---|---|
+| 分类器与估计器（21 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
+| PUPipeline / PipelineReport | [§PUPipeline](#pupipeline) |
+| 分布漂移（审计 / 适配 / 监控 / 假设诊断） | [§分布漂移 API](#分布漂移-api) |
+| 实验层（survey 研究者） | [§实验层](#实验层experiment) |
+| 调参与比较 | [§PUTuner](#putuner) · [§PUModelComparator](#pumodelcomparator) |
+| 工具函数 | [§build_encoder](#build_encoder) · [§profile_pu_data](#profile_pu_data) · [§recommend](#recommend_methods--recommend_from_profile) · [§analyze_pu_sensitivity](#analyze_pu_sensitivity) · [§build_diagnostic_report](#build_diagnostic_report) |
+| 数据生成（SCAR/SAR 模拟器） | [§数据生成](#数据生成) |
+| 错误与异常 | [§错误与异常](#错误与异常) |
+
 ## 分类器与估计器
 
 所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
 `get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。
+
 注册分类器必须显式声明 `label_semantics`：`"pu"` 的 `0` 是未标记，`"pn"` 的
 `0` 是真实负类，`"pnu"` 接受正/负/未标记三值主输入。第三方未声明估计器在
 experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 `"pn"`。
@@ -644,6 +658,7 @@ pipe = PUPipeline(
     classifier_params=None,      # 显式注册名的构造参数；auto/实例模式不可用
     prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2"（后两者映射到
                                 # KernelMeanPriorEstimator）/ 估计器实例 / None
+    prior_params=None,          # 字符串名 prior_estimator 的构造参数（如 {"variant": "km2"}）；不能与 prior 实例组合
     cv=5,                       # PU 分层 CV 折数，或自定义 splitter
                                 # （默认 cv=None → 解析为 5 折 PUStratifiedKFold）
     metrics=DEFAULT_METRICS,    # 指标名元组，见下方指标表
@@ -652,6 +667,7 @@ pipe = PUPipeline(
     architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu/nnpu）
     backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
+    max_epochs=None,            # 注入到构造签名接受 max_epochs 的深度方法（wconpu/self_pu/nnpu）的训练 epoch 上限
 )
 report = pipe.fit_evaluate(
     X,
@@ -660,8 +676,24 @@ report = pipe.fit_evaluate(
     class_prior=None,
     sample_weight=None,         # 可选；逐 CV 训练折切片并传给最终 refit
     refit=True,
+    progress_callback=None,     # 进度回调（关键阶段调用）
+    cancellation_token=None,    # 取消令牌（raise_if_cancelled 中断）
 )
 ```
+
+| 构造参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `classifier` | `str \| BasePUClassifier` | `"auto"` | 注册名 / `"auto"`（推荐器）/ 实例 |
+| `classifier_params` | `dict \| None` | `None` | 显式注册名的构造参数（auto/实例不可用） |
+| `prior_estimator` | `str \| 实例 \| None` | `"pen_l1"` | 先验估计器（优先级见下） |
+| `prior_params` | `dict \| None` | `None` | 字符串先验名的构造参数 |
+| `cv` | `int \| splitter \| None` | `None`（→5 折） | PU 分层 CV |
+| `metrics` | `Sequence[str] \| None` | `None`（→DEFAULT_METRICS） | 指标名 |
+| `random_state` | `int \| None` | `42` | 随机种子 |
+| `architecture` | `str` | `"mlp"` | `"mlp"` / `"cnn"` |
+| `backbone` | `str` | `"cnn13"` | `cnn13`/`resnet18`/`resnet50` |
+| `device` | `str \| None` | `None`（auto） | torch 设备 |
+| `max_epochs` | `int \| None` | `None` | 深度方法训练 epoch 上限 |
 
 `refit=False` 只计算交叉验证指标，跳过全量模型重训与模型诊断；此时
 `report.final_model` 和 `report.diagnostic` 为 `None`。该模式主要供参数搜索使用。
@@ -760,6 +792,25 @@ report = pipe.fit_evaluate(
 | `sample_weight` 形状/数值非法 | `ValueError` |
 | 分类器忽略或未实现 `sample_weight` | `PipelineError`（不会静默训练） |
 
+### PipelineReport（返回对象）
+
+`fit_evaluate` 返回的 `PipelineReport` 字段：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `profile` | `PUDataProfile` | 数据画像 |
+| `recommendation` | `RecommendationResult \| None` | auto 模式的推荐结果（显式分类器时为 `None`） |
+| `prior` | `PriorInfo` | 类先验（value / source / estimator / auto_selected） |
+| `cv_metrics` | `dict[str, CVMetric]` | 各指标 CV 均值 / 标准差 / 可用性 |
+| `cv_provenance` | `dict` | CV 元数据（折数等） |
+| `final_model` | estimator \| None | 全量 refit 模型（`refit=False` 时为 `None`） |
+| `diagnostic` | `PUDiagnosticReport \| None` | 结构化诊断报告（`refit=False` 时为 `None`） |
+| `issues` | `tuple[ProfileIssue, ...]` | 问题清单（error / warning 级别） |
+| `provenance` | `dict` | 全程审计（classifier / class_prior / architecture / backbone / device / encoder / sample_weight 等） |
+
+属性与方法：`has_errors` / `has_warnings`（是否含 error / warning 级 issue）；
+`summary()` 返回紧凑可读摘要（CV 指标均值±标准差 + issues + 假设提示）。
+
 ## 分布漂移 API
 
 用法与解释见[分布漂移指南](../howto/distribution_shift.md)；示例脚本见
@@ -837,6 +888,17 @@ result = workflow.fit_evaluate(
 
 ### `ShiftAwarePUPipeline.compare`
 
+```python
+comparison = workflow.compare(
+    X_source, y_source_pu, X_target,
+    y_target_pu=...,              # 必须提供
+    y_true_source=None, y_true_target=None,
+    class_prior=None, target_class_prior=None,
+    primary_metric=None,          # 默认取第一个可用 oracle 指标
+    min_improvement=0.0,
+)
+```
+
 `compare(...)` 在同一目标集运行未加权和加权两臂并返回 `ShiftComparisonReport`。报告的
 `metric_deltas[*].improvement` 已统一方向：正数总表示加权臂更好（risk 会反号）。自动
 `recommendation` 只允许使用目标真值 oracle 指标或目标类先验依赖指标；仅有 PU-observed
@@ -864,9 +926,21 @@ monitor.save_history("history.json")
 
 ### `analyze_domain_assumptions`
 
+```python
+report = analyze_domain_assumptions(
+    X_source, y_source_pu, X_target, y_target_pu,
+    source_class_prior=None, target_class_prior=None,   # 缺失时各域独立估计
+    prior_estimator="pen_l1",
+    prior_shift_threshold=0.05, propensity_shift_threshold=0.05,
+    sensitivity_radius=0.05, bootstrap_replicates=0,
+    confidence=0.95, random_state=42,
+)
+```
+
 分别接收源/目标特征和 PU 标签，以及可选的两个域类先验。先验缺失时每个域独立估计。
 返回 `DomainAssumptionReport`，结论为 `stable`、`class_prior_shift`、
 `labeling_mechanism_shift`、`both_shift` 或 `inconclusive`。平均标记倾向不识别 SCAR/SAR。
+
 设置 `bootstrap_replicates>=2` 后，会分别对两个域做行级非参数重采样，每轮重新运行先验
 估计器，并把 percentile 区间传播到类先验、标记率、平均倾向及三类域差值。`uncertainty`
 记录请求、成功和失败 replicate；它反映采样和估计器变化，不覆盖识别假设偏差。
@@ -906,12 +980,29 @@ report = analyze_pu_uncertainty(
 
 ### `JointShiftPUClassifier`（research）
 
+```python
+clf = JointShiftPUClassifier(
+    alpha=0.1, target_mix=0.5, max_iter=5, tolerance=1e-3,
+    n_cv_folds=3, probability_clip=1e-5, random_state=42,
+)
+clf.fit(X, y_pu, X_target=..., y_target_pu=..., class_prior=..., target_class_prior=...)
+```
+
 从 `pu_toolbox.estimators.research` 导入。`fit` 除源域 `X/y_pu` 外还必须显式传入
 `X_target`、`y_target_pu`、`class_prior` 和 `target_class_prior`。它不在稳定注册表和
 `PUPipeline` 自动选型中；`get_pu_metadata()["guarantee"]` 固定为
 `research_joint_shift_approximation`。
 
 ### `DynamicJointShiftPUClassifier`（research）
+
+```python
+clf = DynamicJointShiftPUClassifier(
+    alpha=0.1, beta=0.5, hidden_dim=128, feature_dim=128,
+    max_epochs=200, classifier_learning_rate=1e-4, weight_learning_rate=1e-3,
+    weight_correction=True, classifier_correction=True,
+    training_mode="dynamic", random_state=42, device="auto",
+)
+```
 
 从 `pu_toolbox.estimators.research` 导入。Torch clean-room 路径实现 Kumagai 等人 AISTATS
 2025 的式 (13)、(19)–(23) 和 Algorithm 1：权重步骤固定共享特征，仅更新有界权重头；
@@ -924,12 +1015,22 @@ report = analyze_pu_uncertainty(
 
 ## PUTuner
 
-`PUTuner(classifier=..., param_grid=..., scoring=..., higher_is_better=None,
-metrics=None, **pipeline_params)` 对 `sklearn.model_selection.ParameterGrid` 展开的每个组合
-运行完整 `PUPipeline`。`classifier` 必须是显式注册名；`pipeline_params` 可包含 `cv`、
-`prior_estimator`、`random_state`、`architecture` 等流水线参数。
+```python
+tuner = PUTuner(
+    classifier="nnpu",          # 必须显式注册名（"auto" 报错）
+    param_grid={...},           # ParameterGrid 展开的每个组合
+    scoring="pu_zero_one_risk", # 选择指标
+    higher_is_better=None,      # 默认仅 pu_zero_one_risk 取最小
+    metrics=None,               # 报告的指标集
+    **pipeline_params,          # cv / prior_estimator / random_state / architecture 等
+)
+result = tuner.fit(X, y_pu, y_true=None, class_prior=None)
+```
 
-`fit(X, y_pu, y_true=None, class_prior=None)` 返回 `TuningResult`：
+对 `sklearn.model_selection.ParameterGrid` 展开的每个组合运行完整 `PUPipeline`。
+`pipeline_params` 可包含 `cv`、`prior_estimator`、`random_state`、`architecture` 等。
+
+返回 `TuningResult`：
 
 | 字段 | 含义 |
 |---|---|
@@ -944,19 +1045,39 @@ metrics=None, **pipeline_params)` 对 `sklearn.model_selection.ParameterGrid` �
 
 ## PUModelComparator
 
-`PUModelComparator(classifiers=..., classifier_params=None, scoring=...,
-higher_is_better=None, metrics=None, **pipeline_params)` 在相同的 PU-aware CV 设置下比较
-至少两个显式注册名。`fit(X, y_pu, y_true=None, class_prior=None)` 返回
-`ModelComparisonResult`，包含 `best_classifier`、`best_score`、逐模型 `trials` 和已全量
-拟合的 `best_report`。失败模型被隔离记录，非最佳模型只执行 CV。
+```python
+cmp = PUModelComparator(
+    classifiers=["nnpu", "upu"], # 至少两个显式注册名（"auto" 报错）
+    classifier_params=None,      # {name: params} 逐模型构造参数
+    scoring="pu_zero_one_risk",
+    higher_is_better=None,
+    metrics=None,
+    **pipeline_params,
+)
+result = cmp.fit(X, y_pu, y_true=None, class_prior=None)
+```
+
+在相同的 PU-aware CV 设置下比较至少两个显式注册名。返回 `ModelComparisonResult`，
+包含 `best_classifier`、`best_score`、逐模型 `trials` 和已全量拟合的 `best_report`。
+失败模型被隔离记录，非最佳模型只执行 CV。
 
 ## 进度与取消
 
 `PUPipeline.fit_evaluate`、`PUTuner.fit` 和 `PUModelComparator.fit` 均接受
-`progress_callback=` 与 `cancellation_token=`。回调收到 `ProgressUpdate`（`stage`、
-`completed`、`total`、`message`、`fraction`）；`CancellationToken.cancel()` 发出线程
-安全的协作式取消信号，并在下一个安全边界抛出 `RunCancelledError`。正在执行的单次模型
-`fit` 不会被强制终止。
+`progress_callback=` 与 `cancellation_token=`。
+
+```python
+token = CancellationToken()
+def on_progress(update: ProgressUpdate):
+    print(update.stage, update.fraction)   # 字段 stage/completed/total/message/fraction
+
+report = pipe.fit_evaluate(..., progress_callback=on_progress, cancellation_token=token)
+token.cancel()                             # 线程安全的协作式取消信号
+```
+
+`ProgressUpdate` 字段：`stage` / `completed` / `total` / `message` / `fraction`（property）。
+`CancellationToken.cancel()` 在下一个安全边界抛出 `RunCancelledError`；正在执行的单次
+模型 `fit` 不会被强制终止。
 
 ## build_encoder
 
@@ -1061,33 +1182,47 @@ result = recommend_from_profile(
 返回 `RecommendationResult`：`candidates`（`MethodCandidate`：name/score/rank/reasons/warnings/metadata）、
 `filters_applied`、`global_warnings`、`provenance`。导出：`result.to_json()` / `to_markdown()` / `save(path)`。
 
+### ScoringConfig（可定制评分权重）
+
+`recommend_methods` / `recommend_from_profile` 的 `config` 参数（默认 `DEFAULT_CONFIG`）。
+7 个 `*_max` 是各维度的归一化锚点（`raw / max * 100` 的分母）：
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `assumption_max` | `30.0` | 假设匹配维度上限 |
+| `maturity_max` | `20.0` | 成熟度维度上限 |
+| `source_max` | `15.0` | 源码状态维度上限 |
+| `scale_max` | `20.0` | 数据规模维度上限 |
+| `gpu_max` | `5.0` | GPU 可用性维度上限 |
+| `labeled_pos_max` | `10.0` | 标记正例充足度维度上限 |
+| `cost_max` | `10.0` | 训练成本维度上限 |
+| `maturity_scores` | `{stable:20, research:12, experimental:5}` | 成熟度分级得分 |
+| `source_scores` | `{official_exact:15, official_bundle:12, official_related:9, third_party_only:6, not_found:3, unknown:1}` | 源码状态分级得分 |
+| `small_data_threshold` | `1000` | 小数据规模阈值 |
+| `large_data_threshold` | `10000` | 大数据规模阈值 |
+
+`max_raw_score` = 7 个 `*_max` 之和；`__post_init__` 校验 `maturity_scores`/`source_scores`
+各值不超对应 `*_max`，防止评分越出 0-100 契约。
+
 ## 数据生成
 
 用法见 [howto/sar_simulation.md](../howto/sar_simulation.md)；示例：
 [06_sar_simulation.py](../../../examples/minimal/06_sar_simulation.py)。
 
-```python
-propensity = make_sar_propensity(X, y_true, mechanism="linear",
-                                 label_frequency=0.4, strength=1.5)
-y_pu, propensity = make_sar_labels(X, y_true, mechanism="nonlinear",
-                                   label_frequency=0.4, random_state=42,
-                                   return_propensity=True)
-X, y_pu, y_true, propensity = make_sar_dataset(
-    n_samples=1000, n_features=8, class_prior=0.3, separation=2.0,
-    mechanism="linear", label_frequency=0.4, strength=1.5, random_state=42)
-```
+| 函数 | 签名与返回 |
+|---|---|
+| `make_sar_propensity` | `(X, y_true, mechanism="linear", label_frequency=0.4, strength=1.5) -> propensity`：逐样本标记倾向 `P(S=1|Y,X)`，真实负类位置固定为 0 |
+| `make_sar_labels` | `(X, y_true, mechanism=..., label_frequency=..., random_state=..., return_propensity=False, ensure_labeled=True) -> (y_pu[, propensity])` |
+| `make_sar_dataset` | `(n_samples, n_features, class_prior, separation, mechanism, label_frequency, strength, random_state) -> (X, y_pu, y_true, propensity)` |
+| `make_scar_dataset` | `(n, c, n_features=5, separation=1.0, random_state=None) -> (X, y_pu, class_prior)`：SCAR 机制，CLI `make-demo-data` 内部使用 |
 
-- `mechanism`：`"scar"` / `"linear"` / `"nonlinear"`（定义见 [concepts/scar_sar.md](../concepts/scar_sar.md)）。
-  不传时默认 `"linear"`（SAR，标记依赖特征）并发出 `UserWarning`；类先验估计器假设 SCAR，
-  SCAR 场景需显式传 `mechanism="scar"`。
+- `mechanism`：`"scar"` / `"linear"` / `"nonlinear"`（定义见 [concepts/scar_sar.md](../concepts/scar_sar.md)）；
+  不传默认 `"linear"`（SAR，标记依赖特征）并发 `UserWarning`；类先验估计器假设 SCAR，
+  SCAR 场景需显式 `mechanism="scar"`。
 - `label_frequency`：正类 propensity 的目标均值（校准），不是抽样后的精确比例。
-- `make_sar_labels` 默认 `ensure_labeled=True`：小样本抽样未选中任何正类时选择
+- `make_sar_labels` 默认 `ensure_labeled=True`：小样本抽样未选中任何正类时选
   propensity 最高的真实正类，保证下游可训练。
-- 返回值 `propensity` 表示 `P(S=1|Y,X)`，真实负类位置固定为零。
-- CLI 演示数据 `make-demo-data`（`--n` 每类样本数、`--c` 标注概率、`--separation`
-  默认 1.0）内部使用 `make_scar_dataset`（`make_scar_dataset(n, c, n_features=5,
-  separation=1.0, random_state=None)` → `(X, y_pu, class_prior)`，机制固定为
-  SCAR；默认分离度避免强分离下类先验估计系统性低估）。
+- `make_scar_dataset` 默认分离度（1.0）避免强分离下类先验估计系统性低估。
 
 ## analyze_pu_sensitivity
 
@@ -1210,11 +1345,14 @@ docstring。
 （落入 manifest 的 `generation.train` / `generation.pu_val`）共享同一审计词汇：`generator`
 （类名）、`mechanism`、`c_requested`（未夹紧的请求值）、`c_realized`（夹紧后实际比例）、
 `n_positive`、`n_labeled_requested`（协议公式 `round(c·n₊)`，**未经夹紧**）、`n_labeled`
-（实际标记数）、`generation_seed` 与 `label_view_sha256`（标签视图摘要）。其中请求值与实际值
-在小 `n₊` 或小 `c` 下**并不相等**——`_n_labeled` 有最小值 1 的夹紧（`round(c·n₊) == 0` 时仍标记
-一个正例），两个字段都记录才可审计该偏移。`label_view_sha256` 供复核协议 §2.4 第 4 条
-"同 seed、同 c 下所有方法共享相同 P/U 标记"。PN oracle 的 `CleanLabelGenerator` 维持既有字段
-（`mechanism` / `c_realized` / `n_labeled` / `c_requested`），是 c 恒定的另一类生成器。
+（实际标记数）、`generation_seed` 与 `label_view_sha256`（标签视图摘要）。
+
+其中请求值与实际值在小 `n₊` 或小 `c` 下**并不相等**——`_n_labeled` 有最小值 1 的夹紧
+（`round(c·n₊) == 0` 时仍标记一个正例），两个字段都记录才可审计该偏移。
+
+`label_view_sha256` 供复核协议 §2.4 第 4 条"同 seed、同 c 下所有方法共享相同 P/U 标记"。
+PN oracle 的 `CleanLabelGenerator` 维持既有字段（`mechanism` / `c_realized` / `n_labeled` /
+`c_requested`），是 c 恒定的另一类生成器。
 
 训练策略以 `trains_on_real_labels` 声明 `fit` 期望的标签语义：PU trainer 默认 `False`
 （label `0` 即未标记），PN oracle trainer 置 `True`（label `0` 是真实负类）。runner 在训练前
@@ -1239,19 +1377,23 @@ Survey 的版本化运行通过脚本 `--protocol survey-v1.2 --dataset ...` 启
 （`survey-v1`/`survey-v1.1` 保留为当前规格别名，实际版本写入 manifest）。
 `config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
 预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
+
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
 `representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与
 `formal_eligible`/`formal_blockers`。无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。
 `survey_protocol.validate_comparable_manifests` 默认拒绝非正式结果及路径/预算/表征/标记不一致。
 构造参数/候选覆盖锁定字段会在训练前失败；绑定运行的协议预检失败也写拒绝 manifest。
+
 支持 `epoch_callback(epoch, self)` 的 nnPU/Dist-PU/Self-PU/torch MLP oracle，经内置 runner
 默认使用逐 epoch 权重快照；`RunTrajectory.checkpoints` 记录 epoch/component，
 `SelectionArtifact.checkpoint_index` 指向选中权重，`RunResult.selected_models` 返回独立恢复的推理模型。
 配置了 `manifest_path` 时权重默认写入相邻 `checkpoints` 目录；可用 `config['checkpoint_dir']` 指定根目录，
 或 `config['capture_epoch_checkpoints']=False` 保留旧单点路径（仍阻断正式 checkpoint 验收）。
+
 `checkpoints.load_selected_checkpoint(selection, template, device=...)` 校验权重摘要、
 以 weights-only 模式加载并恢复验证侧阈值；调用方须明确提供同架构 template。
 它不支持 optimizer/RNG 续训；无持久化时 manifest 不提供可复现的 checkpoint 文件路径。
+
 当前单元属于工程级 `benchmark-adapted`；PA 分离度代理与正式 Accuracy/阈值准则仍不一致，
 checkpoint 接线完成不意味着完整选模协议与 P2.0b/c 已验收。
 共享规格、命令与 oracle 边界见 [P2.0a 交付](../../research/pu_survey/p2_0a_delivery.md)。
@@ -1261,9 +1403,11 @@ checkpoint 接线完成不意味着完整选模协议与 P2.0b/c 已验收。
 manifest 的必填 `resources` 使用三类互不混淆的成本口径：`single_configuration_costs` 逐候选
 列出每次尝试、成功尝试和候选总耗时；`tuning` 是当前 runner seed 下全部候选（含失败重试）的
 总耗时，跨 seed 汇总时应将各 manifest 的该值相加；`peak_gpu_memory_bytes` 是全过程最大 CUDA
-allocated memory。PU 标签生成时间单列，runner 不执行的共享预处理显式标为 scope 外；
-`environment` 记录 Python、NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。
-`aggregate_resource_usage(manifests)` 将多 seed artifact 汇总为协议要求的完整调参总成本。
+allocated memory。
+
+PU 标签生成时间单列，runner 不执行的共享预处理显式标为 scope 外；`environment` 记录 Python、
+NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。`aggregate_resource_usage(manifests)`
+将多 seed artifact 汇总为协议要求的完整调参总成本。
 
 ## 错误与异常
 

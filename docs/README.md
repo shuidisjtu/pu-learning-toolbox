@@ -25,6 +25,7 @@
 | 操作 | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | 生成 SCAR/SAR 数据 |
 | 操作 | [user/howto/self_pu.md](user/howto/self_pu.md) | 训练 Self-PU 分类器 |
 | 操作 | [user/howto/using_skill.md](user/howto/using_skill.md) | 启用与使用 pu-workflow Skill |
+| 参考 | [user/reference/index.md](user/reference/index.md) | **API 索引**：按模块分组的符号快速导航（跳转到 api.md 契约） |
 | 参考 | [user/reference/api.md](user/reference/api.md) | **API 权威契约**：签名、参数表、返回结构与最小示例（`check_api_docs` 门禁防漂移） |
 
 ## 开发者文档（docs/dev/）
