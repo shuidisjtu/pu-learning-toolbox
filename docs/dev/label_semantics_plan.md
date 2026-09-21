@@ -5,7 +5,7 @@
 > 见 [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) §2）；P3+P4 保持
 > P3 算法接入前置。
 > 上游依据：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §2.4 第 10 条、
-> [experiment_layer.md](experiment_layer.md) §2 D4 / §3（既有视图与 trainer 声明守卫）、
+> [experiment_layer.md](experiment_layer.md) §1 D4（既有视图与 trainer 声明守卫）、
 > 项目 CLAUDE.md「API 契约」条。
 > 状态日期：2026-09-18。阶段 A（P1+P2）已完成工程实现与回归，合作者独立复核/签署待办；
 > 阶段 B（P3+P4）仍待实施，详见 [P2.0b 交付记录](../research/pu_survey/p2_0b_delivery.md)。

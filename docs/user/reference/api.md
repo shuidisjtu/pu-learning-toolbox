@@ -1305,7 +1305,7 @@ JSON 严格编码（未定义值转 `null`）。
 
 实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
 决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)
-§2.3-§2.4 与 [experiment_layer.md](../../dev/experiment_layer.md) §2）。本表只登记公共符号与一句话用途；参数契约与行为细节的真相源是各
+§2.3-§2.4 与 [experiment_layer.md](../../dev/experiment_layer.md) §1）。本表只登记公共符号与一句话用途；参数契约与行为细节的真相源是各
 docstring。
 
 | 符号 | 用途 |

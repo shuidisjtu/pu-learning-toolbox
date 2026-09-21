@@ -3,47 +3,116 @@
 > 对应需求：PU 调研实验协议 [pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)
 > §2.4（四份数据角色与 PA/OA 双协议）；执行状态见
 > [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) 任务分工表。
-> 本文件描述 **survey 实验层的设计蒸馏**：架构、关键决策、边界与已知局限。
 
-## 1. 为什么有这个层
+实验层是面向研究者/实验用户的公共 API 层，补齐 `PUPipeline` 缺失的「数据角色声明 + 显式模型选择协议」。
+本文档只记本层**独有的设计机制**（D1–D5 各决策如何实现、为何这样设计、如何扩展使用）。
+分层位置与数据流见 [architecture.md](architecture.md) §Experiment 与 §3.1；
+公共 API 签名与参数契约见 [api.md](../user/reference/api.md) §实验层；
+决策背景与备选方案见 [ADR-0018](../adr/0018-experiment-layer-public-api.md)；
+模块文件清单见 [project_structure.md](project_structure.md) 目录树（`experiment/` 块）。
 
-协议 §2.4 要求四份数据各带明确职责（`train` 只训练、`pu_val` 仅 PA、`clean_val` 仅 OA、
-`test` 只评测），而工具箱既有 `PUPipeline` 是"单份数据 + 内部 PU 分层 CV + 平均分选模"，
-没有数据角色声明与模型选择协议两个概念。实验层补齐该缺口，作为
-工具箱面向实验/研究者用户的公共 API 层。
+## 1. 关键设计机制
 
-这一演进不是早期设计错误：`PUPipeline` 面向非专家用户（一键分析 + 推荐 + 报告），
-"一份数据、内部划分"对他们是合理简化，此前也从未有用户需要数据角色；分类器层的
-sklearn 式 `fit(X, y)` 契约是应当保留的底层设计。"数据带角色"是本次实验首次出现的
-用户需求，属正常架构演进——补上缺口即可，无需推翻现有部分。
+### D1 编排 vs 策略 —— 可注入策略接口的实现与使用
 
-## 2. 关键架构决策
+**决策**：`ExperimentRunner` 固定编排骨架（Template Method）；数据生成、训练、选模为**可注入策略**，
+各自一个策略 ABC（`Generator`/`Trainer`/`SelectionProtocol`）。不采用 Bridge 双层次——变化点各自成轴，
+研究者 DIY = 实现策略并注入，不继承 runner（ADR-0018 决策 3）。
 
-| # | 决策 | 选择与理由 |
-|---|---|---|
-| D1 | 编排 vs 策略 | `ExperimentRunner` 固定编排骨架（Template Method）；数据生成、训练、选模、留痕均为**可注入策略接口**（`Generator`/`Trainer`/`SelectionProtocol`）。不采用 Bridge 双层次——变化点各自成轴，研究者 DIY = 实现策略 ABC 并注入，不继承 runner（ADR-0018） |
-| D2 | 现有层改动 | 与 `PUPipeline`/分类器签名零改动；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），SA 语义与早停逻辑不变 |
-| D3 | 公共 API | `ExperimentRunner.fit(model, train, pu_val, clean_val, test)`（协议 §2.4 第 7 条字面形态）+ `DatasetBundle`/`DatasetPart` 数据合约 |
-| D4 | 视图语义 | bundle 输入全部为 clean 视图（真实标签）；Generate 阶段产 PU 视图，Trainer/PA 路径**结构性接收不到真实标签**（`DatasetPart.view` + PA 入口 `view=="pu"` 校验） |
-| D5 | 轨迹语义 | `RunTrajectory.best_epoch` 为 **1-based position in `traj.epochs`**（`epochs[best_epoch-1]` 为最优记录）；`EpochRecord.epoch` 为来源标签（展示性，可能 0 基）。深路径借用分类器内部验证（nnPU early-stop best state），经典算法单点 |
+**实现方式**：
 
-## 3. 模块地图（pu_toolbox/experiment/）
+- **骨架固定，注入点只有三处**。[`runner.py`](../../pu_toolbox/experiment/runner.py) 只暴露 `fit()`、
+  不继承任何基类；`fit(model, train, pu_val, clean_val, test)` 按固定顺序编排——校验 → 生成 PU 视图 →
+  候选训练 → PA/OA 离线选模 → 独立 test 评测 → 留痕，其中只有 `generate`、`fit`、`select` 三个动作是
+  策略注入点。校验、执行顺序、候选重试策略、test 评测口径与 manifest 契约固定不可注入。
+- **策略 ABC 是契约载体，不是运行时门禁**。[`protocols.py`](../../pu_toolbox/experiment/protocols.py)
+  为三个策略各定义**一个抽象方法 + 一个声明属性**：
 
-| 模块 | 职责 |
-|---|---|
-| `bundle.py` | `DatasetPart`/`DatasetBundle`/`validate_bundle`（索引两两不重叠、clean 视图、`test.for_selection=False` 强制） |
-| `datasets.py` | survey 八数据集锁定映射与确定性四路切分；官方 test 显式传入，无官方 test 时先分层留出 20% |
-| `image.py` | 图像 train-only 统计、输入缩放、ResNet-18/首层/增强配置与哈希留痕；验证/test 禁用增强 |
-| `feature_adapter.py` | 固定/仅 train 拟合 CNN 的二维特征提取、权重/特征哈希及跨方法公平性分组门禁 |
-| `text.py` | 协议固定 `all-MiniLM-L6-v2` 的 384 维文本向量、revision 留痕与内容寻址 SHA-256 缓存 |
-| `training_views.py` | mini-batch 级 OS/TS-compatible 损失视图；TS 方法把 P 同时保留在正例损失并入 U 损失，且仅限 train |
-| `tracking.py` | 纯数据类：`EpochRecord`/`RunTrajectory`/`SelectionArtifact`/`RunResult` |
-| `protocols.py` | 策略 ABC：`Generator.generate(X, y_true, c, seed)` + `output_view` 声明（PU 生成器 `"pu"`，oracle 生成器 `"clean"`）；`Trainer.fit(estimator, X, y, *, class_prior, val_pu)` + `trains_on_real_labels` 声明（PU trainer 默认 `False`，oracle trainer 置 `True`，runner 据此要求声明与生成视图一致）；`SelectionProtocol.select(trajectories, val_part, threshold_candidates, *, class_prior)`（需要 π 的协议必须 fail-loud，不需要的必须忽略） |
-| `strategies.py` | `SCARGenerator`（fixed-count `round(c·n₊)` 无放回）、`SARLBEAGenerator`/`SARLBEBGenerator`（PU-Bench `2d95a19`：k=10/shrink 1.0、辅助模型 lbfgs(100) 拟合真实标签、**抽样池限定正例集** S=1⟹Y=1、输入任意 ndim——4-D NCHW 展平后 fit/predict 用同一视图）、`CleanLabelGenerator`（PN oracle 视图：真实标签透传、`output_view="clean"`）、`ProtocolPA`（proxy accuracy，Wang et al. 2026 Def. 1 的 OS 分支，π 必传）/`ProtocolOA` + `proxy_accuracy`/`select_threshold`、`FitTrainer`/`DeepFitTrainer`/`SupervisedTrainer`；三个 PU 生成器的元数据共享审计词汇（`c_requested`/`n_labeled_requested` 未夹紧值 vs `c_realized`/`n_labeled` 夹紧后实际值、`generation_seed`、`label_view_sha256` 标签视图摘要） |
-| `manifest.py` | 留痕写入/加载 + 8 必填键校验（seed/split_ref/generation/selection/test_results/elapsed/failures/resources） |
-| `runner.py` | `ExperimentRunner`：校验→生成→候选训练→PA/OA 离线选择→独立 test 评测→留痕 |
+  | 策略 | 抽象方法 | 声明属性 |
+  |---|---|---|
+  | `Generator` | `generate(X, y_true, c, seed) -> (y_view, meta)` | `output_view = "pu"` |
+  | `Trainer` | `fit(estimator, X, y, *, class_prior, val_pu) -> RunTrajectory` | `trains_on_real_labels = False` |
+  | `SelectionProtocol` | `select(trajectories, val_part, threshold_candidates, *, class_prior) -> SelectionArtifact` | —（仅 `name` 约定） |
 
-## 4. 边界与已知局限
+  runner 用 **duck-typing** 读取接口，全仓库对策略**没有一处** `isinstance(x, Generator/Trainer/
+  SelectionProtocol)` 门禁；两处 `isinstance` 只做路由（`ProtocolOA` 才拿 `clean_val`、`ProtocolPA`
+  才要求 π）。读取方式：`getattr` 读声明属性（取 fail-closed 默认值）、`inspect.signature` 探测
+  `select` 是否接受 `class_prior`（绝不靠捕获 `TypeError`）、精确 `type()` 判断是否套逐 epoch
+  checkpoint 捕获。ABC 的职责是**固化契约与文档**，使自定义策略无需继承特定类即可注入。
+- **声明属性驱动一致性 fail-loud**。runner 在 `fit` 内校验：`output_view` 取值合法（拼写 `"Clean"`
+  即 raise）、`output_view="clean"` 却声明 `mechanism="pn_oracle"` 不自洽即 raise、clean 视图与
+  `trains_on_real_labels`/`class_prior` 的兼容性、`model.epoch_components` 与标签语义声明。默认值
+  一律 fail-closed（如 `trains_on_real_labels` 默认 `False`），防止静默错配训练。
+
+**为什么这样设计**：生成/训练/选模三个变化点各自成轴、互不交织，用「一个方法 + 一个声明属性」的
+最小策略面即可 DIY；避免 Bridge 双层继承的过度设计（YAGNI，见 ADR-0018 备选方案）；runner 不继承、
+策略不继承，两侧独立演化；零改动现有 `PUPipeline` 与分类器 `fit(X, y)` 契约。
+
+**如何使用（DIY 扩展）**：实现一个策略 ABC 的抽象方法 + 声明属性，作为**实例**注入（非类；trainer
+经 `config["trainer"]` 传入，runner 显式拒绝传类）。硬性契约：
+- 生成器：`generate` 返回 `(y_view, meta)`，meta 建议含 `mechanism`（runner 读它做自洽校验），并声明 `output_view`。
+- 训练器：`fit` 必须返回 `RunTrajectory`（checkpoint 覆盖逐 epoch × component 完整、指标有限、
+  `decision_function` 在 pu_val 上返回同形有限分数）。
+- 选模协议：`select` 返回 `SelectionArtifact`，其 `epoch` 必须等于所选 checkpoint 的 `epoch_position`。
+
+**半注入边界**：是否套逐 epoch checkpoint 捕获由 `type(trainer) in (DeepFitTrainer, SupervisedTrainer)`
+精确类型判断决定——自定义 trainer 不会自动获得 checkpoint 捕获，需自行处理。
+
+### D2 零改动现有层
+
+与 `PUPipeline`/分类器签名零改动；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），
+SA 语义与早停逻辑不变。详见 ADR-0018 决策 2。
+
+### D3 公共 API 与数据合约
+
+**决策**：`ExperimentRunner.fit(model, train, pu_val, clean_val, test)`（协议 §2.4 第 7 条字面形态）
++ `DatasetBundle`/`DatasetPart` 数据合约。
+
+**实现方式**：[`bundle.py`](../../pu_toolbox/experiment/bundle.py) 的 `DatasetPart` 是 `frozen`
+dataclass（`view` 为 `Literal["pu","clean"]` 必填冻结字段），`DatasetBundle` 承载四路分区；
+`validate_bundle` 三查——四份 indices 两两不重叠、四者 `view` 全为 `"clean"`、`test.for_selection
+is False` 强制。
+
+**为什么**：runner 不切分原始数据、只接受切好的四路数据——切分决定权与责任在协议/研究团队
+（`scripts/prepare_survey_splits.py` 只执行、不擅自决定，见协议 §2.4 第 3/7 条）。
+
+### D4 视图语义 —— clean 入 / PU 运行时生成 / 防泄漏
+
+**决策**：bundle 输入全部为 clean 视图（真实标签）；PU 视图由 `Generator.generate` 在**运行时**从
+真实标签生成（不预先落盘）；PA 路径结构性接收不到真实标签。
+
+**实现方式**分两段：
+
+- **视图转换（clean → PU）**：`validate_bundle` 强制输入四份数据全为 clean 视图；对象 `frozen` 不
+  就地改字段，`Generator.generate` 返回新标签数组 `y_pu`，由 runner **重建**新 `DatasetPart` 并置
+  `view` 为生成器声明的 `output_view`。
+- **防泄漏（PA 拿不到真实标签）**，三层叠加：
+  1. **路由**：仅 `isinstance(proto, ProtocolOA)` 才拿 `clean_val`，其余（含 PA）拿 `pu_val_view`；
+  2. **声明**：`output_view="clean"` 使 π 检查让位给 PA 的 view guard（报错权交给 guard）；
+  3. **断言**：`ProtocolPA.select` 在 `view != "pu"` 时 raise（`strategies.py`），OA 对称要求 `"clean"`。
+
+**边界（必须写明）**：上述「结构性接收不到真实标签」只对**内置 PA**成立。非 OA 的未知自定义协议在
+clean 视图（PN oracle）运行里，`pu_val_view` 携带的是真实标签，只有 `ProtocolPA` 自己会拒绝——这不
+构成对任意自定义协议的通用保护。oracle 用真实标签训练必须显式声明
+（`CleanLabelGenerator.output_view="clean"` + `SupervisedTrainer.trains_on_real_labels=True`），
+不能靠隐式复用 PU 通道。
+
+### D5 轨迹语义
+
+**决策**：`RunTrajectory.best_epoch` 为 **1-based position in `epochs`**（`epochs[best_epoch-1]` 为
+最优记录）；`EpochRecord.epoch` 为来源标签（展示性，可能 0 基）。
+
+**实现方式**（[`tracking.py`](../../pu_toolbox/experiment/tracking.py) 为纯数据类、无逻辑）：
+- `best_epoch` 由 **Trainer** 写入（唯一写入点 `DeepFitTrainer.fit` 的 `argmin(val_risk)+1`），
+  `FitTrainer`/`SupervisedTrainer` 不设该字段（保持 `None`）；runner 只校验、不写入。
+- `SelectionArtifact.epoch` 同为 1-based position，由 `SelectionProtocol` 写入（有 checkpoint 时取自
+  `checkpoint.epoch_position`，legacy 无 checkpoint 才回落 `trajectory.best_epoch`）；runner 校验
+  `art.epoch == checkpoint.epoch_position`。
+
+**为什么**：位置语义与 estimator 的 epoch 标签解耦（后者可能 0 基或任意索引）——轨迹内以位置索引、
+跨层只认位置，避免来源标签歧义。
+
+## 2. 边界与已知局限
 
 - **正式资格**：PA 正式准则（proxy accuracy，R9）与逐 epoch checkpoint 独立恢复已实现；
   但 P2.0b/P2.0c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle
@@ -53,8 +122,8 @@ sklearn 式 `fit(X, y)` 契约是应当保留的底层设计。"数据带角色"
 - **PN oracle**：MLP 路径已接入（Phase 1）；CNN oracle 的 clean-val checkpoint 选择与
   backbone 对齐列为 Phase 2。见 [pn_oracle_integration](../research/pu_survey/pn_oracle_integration.md)。
 
-## 5. 文档与代码的分工（实施载体约定）
+## 3. 文档与代码的分工（实施载体约定）
 
-类/模块 docstring 中 `Design notes` 仅记"为什么"（≤6 行）并链接本文件（§2 决策表）；
-长效规格文本只存在于本文件与协议（不重复记入代码注释）；被否决/被替代的决策（如
-Bridge 方案）不写入注释，决策记录归 `docs/` ADR 体系。
+类/模块 docstring 中 `Design notes` 仅记「为什么」（≤6 行）并链接本文件（§1 关键设计机制）；
+长效规格文本只存在于本文件与协议（不重复记入代码注释）；被否决/被替代的决策（如 Bridge 方案）
+不写入注释，决策记录归 `docs/` ADR 体系。

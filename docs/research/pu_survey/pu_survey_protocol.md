@@ -86,7 +86,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
    > SCAR（instance independent）为主实验。SAR 为独立压力测试：
    > - 仅取 $`c\in\{0.05,0.5\}`$，并须与 PU-Bench 的 SAR 设定保持一致（实现锁定细节见
-   >   [experiment_layer.md](../../dev/experiment_layer.md) §3）；
+   >   [`strategies.py`](../../../pu_toolbox/experiment/strategies.py)）；
    > - 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录；
    > - SAR 下 PA 仅可作为诊断日志，正式模型选择及结论只使用 OA；
    > - 所有算法可在通过输入/训练门禁后参加 SAR OA 测试，但须按其原生假设是否匹配 SAR
@@ -175,7 +175,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    方法必须使用同一份划分和同一表征/backbone；因 backbone 或输入表征不同而得到的结果应单列
    报告，不得混入同一主榜单；
 5. 灰度与 RGB 的输入处理保持一致（具体实现口径见
-   [experiment_layer.md](../../dev/experiment_layer.md) §3）；输入尺寸、首层设置、归一化和增强
+   [`image.py`](../../../pu_toolbox/experiment/image.py)）；输入尺寸、首层设置、归一化和增强
    均须入 manifest。方法私有网络只能作为 `benchmark-adapted` 路径报告；
 6. 所有可学习预处理统计量仅在该 seed 的 `train` 拟合并冻结，图像增强仅用于训练。文本须记录
    `all-MiniLM-L6-v2` 的模型 revision、384 维输出及 embedding cache hash。

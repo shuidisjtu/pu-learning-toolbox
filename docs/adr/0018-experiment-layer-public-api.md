@@ -36,4 +36,4 @@ PU 调研实验协议 §2.4 要求四份数据各带明确职责(`train` 只训�
 - `PUPipeline` 与分类器契约保持不变,既有测试不受影响。
 - 研究者扩展 = 实现策略 ABC 注入,无需继承或修改 runner;策略接口先固化 SCAR 主实验,
   验证稳定后再扩展谱系(YAGNI)。
-- 本决策的逐条记录见 `docs/dev/experiment_layer.md` §2 D1–D5。
+- 本决策的逐条记录见 `docs/dev/experiment_layer.md` §1 D1–D5。

@@ -9,7 +9,7 @@
 > 声明补上。
 >
 > 上游依据：[pu_survey_protocol.md](pu_survey_protocol.md) §2.4/§5、
-> [experiment_layer.md](../../dev/experiment_layer.md) §2 D4 / §3（视图语义与声明守卫）、
+> [experiment_layer.md](../../dev/experiment_layer.md) §1 D4（视图语义与声明守卫）、
 > [survey_execution_plan.md](survey_execution_plan.md) P2；
 > 参考文献 2 = PU-Bench `2d95a19`（与本项目其他锁定值同一 commit）。
 
@@ -74,7 +74,7 @@ PU-Bench 的全监督基线叫 `pn`（`PNTrainer`），README 称 "fully supervi
 - `partition_fair_leaderboard_runs` 已能强制同数据集内 split/seed/epoch/batch/tuning 预算一致，
   oracle 只须正确构造 `LeaderboardRunSpec` 即可纳入公平门禁
 
-（视图语义与模块职责的权威描述见 experiment_layer.md §2 D4、§3。）
+（视图语义与模块职责的权威描述见 experiment_layer.md §1 D4。）
 
 ## 4. 与 P2 跑批的接口
 

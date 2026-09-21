@@ -50,7 +50,7 @@
 | [dev/label_semantics_plan.md](dev/label_semantics_plan.md) | 标签语义契约：`label_semantics` 能力声明、检查点与实施计划（值层不可判定性、与防泄漏守卫的分工） |
 | [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界 |
 | [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：协议、执行计划、各 Phase 交付与复核记录——详见 [pu_survey/README.md](research/pu_survey/README.md) |
-| [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）设计蒸馏：四路数据合约、策略化接口、PA/OA 双协议、P0 已知局限 |
+| [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）关键设计机制：可注入策略接口、视图/轨迹语义、P0 已知局限 |
 
 ## 架构决策(docs/adr/)
 
