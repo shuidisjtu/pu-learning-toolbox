@@ -15,8 +15,15 @@
 
 ### D1 编排 vs 策略 —— 可注入策略接口的实现与使用
 
-**决策**：`ExperimentRunner` 固定编排骨架（Template Method）；数据生成、训练、选模为**可注入策略**，
-各自一个策略 ABC（`Generator`/`Trainer`/`SelectionProtocol`）。不采用 Bridge 双层次——变化点各自成轴，
+> 本节三个软件工程术语，先各说一句直觉含义：**可注入策略**＝把「生成数据 / 训练模型 / 选模」三道
+> 会随实验变化的工序做成可插拔零件，runner 是固定流水线，换零件不改流水线
+> （[Strategy 模式](https://refactoring.guru/design-patterns/strategy)）；**策略 ABC（抽象基类）**＝
+> Python 里定义「接口契约」的方式——不写实现逻辑，只规定「要当这个零件，必须会哪个动作、声明哪个属性」
+> （[abc 官方文档](https://docs.python.org/3/library/abc.html)）；**DIY 注入**＝照某个 ABC 写一个子类、
+> 实现它的抽象方法，作为参数传给 runner（不继承 runner、不改 runner）。
+
+**决策**：`ExperimentRunner` 固定编排骨架（[Template Method](https://refactoring.guru/design-patterns/template-method)，固定骨架、子步骤可替换）；数据生成、训练、选模为**可注入策略**，
+各自一个策略 ABC（`Generator`/`Trainer`/`SelectionProtocol`）。不采用 [Bridge](https://refactoring.guru/design-patterns/bridge) 双层次（双轴继承，变化点尚少、过度设计）——变化点各自成轴，
 研究者 DIY = 实现策略并注入，不继承 runner（ADR-0018 决策 3）。
 
 **实现方式**：
@@ -34,7 +41,7 @@
   | `Trainer` | `fit(estimator, X, y, *, class_prior, val_pu) -> RunTrajectory` | `trains_on_real_labels = False` |
   | `SelectionProtocol` | `select(trajectories, val_part, threshold_candidates, *, class_prior) -> SelectionArtifact` | —（仅 `name` 约定） |
 
-  runner 用 **duck-typing** 读取接口，全仓库对策略**没有一处** `isinstance(x, Generator/Trainer/
+  runner 用 **duck-typing**（[鸭子类型](https://docs.python.org/3/glossary.html#term-duck-typing)：只看对象行为、不强制继承）读取接口，全仓库对策略**没有一处** `isinstance(x, Generator/Trainer/
   SelectionProtocol)` 门禁；两处 `isinstance` 只做路由（`ProtocolOA` 才拿 `clean_val`、`ProtocolPA`
   才要求 π）。读取方式：`getattr` 读声明属性（取 fail-closed 默认值）、`inspect.signature` 探测
   `select` 是否接受 `class_prior`（绝不靠捕获 `TypeError`）、精确 `type()` 判断是否套逐 epoch
