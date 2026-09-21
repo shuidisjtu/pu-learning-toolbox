@@ -138,6 +138,13 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 7. 本实验要求工具箱提供 `fit(model, train, pu_val, clean_val, test)` 或等价接口，并以已完成
    split 和预处理的四路 `DatasetBundle` 作为输入；工具箱不负责切分原始数据，训练集、验证集和
    测试集均由用户提供。
+
+   > **"不负责切分"与切分脚本的澄清**：第 7 条的"不负责切分"指
+   > `ExperimentRunner.fit` 不切分原始数据、只接受切好的四路 `DatasetBundle`。工具箱另提供
+   > `scripts/prepare_survey_splits.py` 与 `datasets.py` 的 `prepare_survey_dataset`，作为第 3 条
+   > "研究团队自行准备"的执行工具（P1.4 据此生成 split 制品）；切分比例（90/5/5）、策略与 seed 由
+   > 第 3、4 条锁定，脚本只执行、不擅自决定。二者不矛盾：切分决定权与责任在协议/研究团队。
+
 8. 工具箱必须具备"利用用户给的数据和模型要求，训练出模型"这一功能，故需要提供丰富的可 DIY
    参数的接口：训练模型的函数、生成数据的函数等。DIY 接口是工具箱面向所有用户开放的能力；
    本实验的候选配置与超参数由 §5.3 的中心注册表统一管理，实验榜单仅使用注册表登记的配置；
