@@ -24,6 +24,7 @@ from .estimators.deep.grad_pu import GradPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
 from .estimators.deep.robust_pu import RobustPUClassifier
 from .estimators.deep.self_pu import SelfPUClassifier
+from .estimators.deep.split_pu import SplitPUClassifier
 from .estimators.deep.vision import build_encoder
 from .estimators.deep.weighted_contrastive_pu import WeightedContrastivePUClassifier
 from .estimators.risk.dist_pu import DistPUClassifier
@@ -78,6 +79,7 @@ __all__ = [
     "ShiftAwarePipelineReport",
     "ShiftComparisonReport",
     "SelfPUClassifier",
+    "SplitPUClassifier",
     "UPUClassifier",
     "VPUClassifier",
     "WeightedContrastivePUClassifier",

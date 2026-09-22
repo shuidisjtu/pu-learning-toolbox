@@ -30,7 +30,7 @@
 
 | 模块 | 章节 |
 |---|---|
-| 分类器与估计器（22 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
+| 分类器与估计器（23 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
 | PUPipeline / PipelineReport | [§PUPipeline](#pupipeline) |
 | 分布漂移（审计 / 适配 / 监控 / 假设诊断） | [§分布漂移 API](#分布漂移-api) |
 | 实验层（survey 研究者） | [§实验层](#实验层experiment) |
@@ -75,6 +75,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
 | `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
 | `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
+| `split_pu`（`split-pu`） | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
 | `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
 | `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
@@ -492,6 +493,21 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 - 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
 
 ### 深度分类器
+
+#### `SplitPUClassifier`（注册名 `split_pu`，别名 `split-pu`）
+
+nnPU teacher → 预测分歧划分 easy/hard U → easy JS 蒸馏与 hard 双源一致性。当前仅支持二维稠密输入，未复现论文 CNN。
+
+```python
+SplitPUClassifier(class_prior=None, *, hidden_dim=100, teacher_epochs=10,
+                  split_epochs=10, student_epochs=10, rounds=2, batch_size=64,
+                  learning_rate=1e-3, agreement_threshold=0.92,
+                  js_teacher_weight=0.7, hard_weight=0.3,
+                  feature_weight=0.3, similarity_weight=0.1,
+                  noise_std=0.05, random_state=None, device=None)
+```
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None)`；`class_prior` 是 U 内正类比例。非空 `sample_weight` 报错。详见 [Split-PU 方法卡](../../research/method_cards/Split-PU.md)。
 
 #### `RobustPUClassifier`（注册名 `robust_pu`，别名 `robust-pu`）
 

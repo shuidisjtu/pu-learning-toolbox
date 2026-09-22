@@ -5,6 +5,7 @@ from .grad_pu import GradPUClassifier
 from .infomax_pu import InfoMaxPUClassifier, InfoMaxPURepresentation
 from .robust_pu import RobustPUClassifier
 from .self_pu import SelfPUClassifier
+from .split_pu import SplitPUClassifier
 from .vision import build_encoder, build_wconpu_augmentation, build_wconpu_backbone
 from .weighted_contrastive_pu import WeightedContrastivePUClassifier
 
@@ -15,6 +16,7 @@ __all__ = [
     "InfoMaxPURepresentation",
     "RobustPUClassifier",
     "SelfPUClassifier",
+    "SplitPUClassifier",
     "WeightedContrastivePUClassifier",
     "build_encoder",
     "build_wconpu_augmentation",

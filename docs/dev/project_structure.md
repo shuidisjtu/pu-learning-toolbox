@@ -74,9 +74,10 @@ pu_toolbox/
       pusb_kernel.py                      (native: official-aligned RBF PUSB adapter)
       lbe.py                              (native: LBE 实例依赖标注偏差: 交替加权 LR 估后验+倾向, sklearn)
     deep/
-      __init__.py                         (公共导出聚合: DGPU/GradPU/RobustPU/InfoMaxPU/SelfPU/WConPU 分类器与 vision 工厂)
+      __init__.py                         (公共导出聚合: DGPU/GradPU/RobustPU/SplitPU/InfoMaxPU/SelfPU/WConPU 分类器与 vision 工厂)
       grad_pu.py                          (native: GradPU 输入梯度惩罚 + 未归一化正样本加权，二维 MLP)
       robust_pu.py                        (native: Robust-PU nnPU 预训练 + 自步加权伪负例，二维 MLP)
+      split_pu.py                         (native: Split-PU nnPU teacher + 预测分歧分组 + 分支一致性，二维 MLP)
       self_pu.py                          (native: SelfPUClassifier 双学生自步进+元重加权+蒸馏 (官方精确对齐))
       infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU 流水线, PU-SMI 目标)
       weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier 原型+SAT+momentum queue 加权对比 (WConPU 论文协议))
@@ -218,6 +219,7 @@ tests/
       test_pulda.py                     # PULDA 双损失 golden、两阶段轨迹、注册/pipeline、checkpoint 与 CUDA smoke
       test_grad_pu.py                   # GradPU 公式 golden、接口/注册、确定性、checkpoint 与 CUDA smoke
       test_robust_pu.py                 # Robust-PU 自步权重、接口/注册、确定性、checkpoint 与 CUDA smoke
+      test_split_pu.py                  # Split-PU JS 公式、阶段、接口、确定性、checkpoint 与 CUDA smoke
       test_puet.py                      # PUET 节点风险 golden、树集成、确定性、pickle 与 pipeline
       test_self_pu.py                   # Self-PU pace/meta/EMA/三阶段训练
       test_deep_pu.py                   # InfoMax PU/WConPU/DGPU 接口与 registry
@@ -550,6 +552,7 @@ docs/
       Dist-PU.md
       GradPU.md
       Robust-PU.md
+      Split-PU.md
       PUET.md
       PUSB.md
       LBE.md

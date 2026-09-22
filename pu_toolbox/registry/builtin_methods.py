@@ -481,6 +481,24 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
+    AlgorithmMetadata(
+        name="split_pu",
+        aliases=["split-pu"],
+        family=Fam.DEEP_PU,
+        paper="Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",
+        scenario=[Scn.CASE_CONTROL],
+        assumption=[Asm.SCAR],
+        requires_class_prior=True,
+        supports_sparse=False,
+        supports_gpu=True,
+        backend=Backend.TORCH,
+        maturity=Maturity.EXPERIMENTAL,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_EXACT,
+        upstream_url="https://github.com/loadder/SplitPU_MM2022",
+        license="unknown",
+        training_cost=Cost.HIGH,
+    ),
 ]
 
 
@@ -549,6 +567,7 @@ def _bind_native_classes() -> None:
         ("gradpu", "..estimators.deep.grad_pu", "GradPUClassifier"),
         ("puet", "..estimators.risk.puet", "PUExtraTreesClassifier"),
         ("robust_pu", "..estimators.deep.robust_pu", "RobustPUClassifier"),
+        ("split_pu", "..estimators.deep.split_pu", "SplitPUClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:
