@@ -463,6 +463,24 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="MIT",
         training_cost=Cost.HIGH,  # default 100-tree CPU forest
     ),
+    AlgorithmMetadata(
+        name="robust_pu",
+        aliases=["robust-pu"],
+        family=Fam.DEEP_PU,
+        paper="Robust Positive-Unlabeled Learning via Noise Negative Sample Self-correction",
+        scenario=[Scn.CASE_CONTROL],
+        assumption=[Asm.SCAR],
+        requires_class_prior=True,
+        supports_sparse=False,
+        supports_gpu=True,
+        backend=Backend.TORCH,
+        maturity=Maturity.EXPERIMENTAL,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_EXACT,
+        upstream_url="https://github.com/woriazzc/Robust-PU",
+        license="unknown",
+        training_cost=Cost.HIGH,
+    ),
 ]
 
 
@@ -530,6 +548,7 @@ def _bind_native_classes() -> None:
         ("dgpu", "..estimators.deep.dgpu", "DGPUClassifier"),
         ("gradpu", "..estimators.deep.grad_pu", "GradPUClassifier"),
         ("puet", "..estimators.risk.puet", "PUExtraTreesClassifier"),
+        ("robust_pu", "..estimators.deep.robust_pu", "RobustPUClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:

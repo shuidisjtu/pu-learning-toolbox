@@ -30,7 +30,7 @@
 
 | 模块 | 章节 |
 |---|---|
-| 分类器与估计器（21 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
+| 分类器与估计器（22 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
 | PUPipeline / PipelineReport | [§PUPipeline](#pupipeline) |
 | 分布漂移（审计 / 适配 / 监控 / 假设诊断） | [§分布漂移 API](#分布漂移-api) |
 | 实验层（survey 研究者） | [§实验层](#实验层experiment) |
@@ -74,6 +74,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
 | `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
+| `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
 | `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
 | `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
@@ -491,6 +492,22 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 - 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
 
 ### 深度分类器
+
+#### `RobustPUClassifier`（注册名 `robust_pu`，别名 `robust-pu`）
+
+nnPU 预训练后对 P/U 分别计算自步权重，再做候选负例加权训练。`class_prior` 表示 U 内的正类比例；只支持稠密二维输入，输出 raw logit。
+
+```python
+RobustPUClassifier(class_prior=None, *, model=None, hidden_dim=100,
+                   pretrain_epochs=10, episodes=20, inner_epochs=1,
+                   batch_size=64, pretrain_lr=1e-3, learning_rate=1e-4,
+                   alpha_p=0.1, alpha_n=0.1, max_thresh_p=2.0,
+                   max_thresh_n=2.0, grow_steps=10, spl_type="welsch",
+                   temper_p=1.0, temper_n=1.0, phi=0.0,
+                   random_state=None, device=None)
+```
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None)`；非空 `sample_weight` 会报错。当前为表格版技术预集成，尚未进入正式 Survey 实验矩阵。详见 [Robust-PU 方法卡](../../research/method_cards/Robust-PU.md)。
 
 #### `GradPUClassifier`（注册名 `gradpu`，别名 `grad_pu`）
 

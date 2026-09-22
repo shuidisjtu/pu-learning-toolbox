@@ -198,6 +198,19 @@ def _make_gradpu():
     return GradPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
 
 
+def _make_robust_pu():
+    from pu_toolbox.estimators.deep import RobustPUClassifier
+
+    return RobustPUClassifier(
+        class_prior=0.33,
+        hidden_dim=8,
+        pretrain_epochs=1,
+        episodes=1,
+        batch_size=32,
+        random_state=42,
+    )
+
+
 def _make_vpu():
     from pu_toolbox.estimators.risk import VPUClassifier
 
@@ -243,6 +256,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "weighted_contrastive_pu": _make_weighted_contrastive_pu,
     "dgpu": _make_dgpu,
     "gradpu": _make_gradpu,
+    "robust_pu": _make_robust_pu,
     "vpu": _make_vpu,
     "pulda": _make_pulda,
     "puet": _make_puet,
@@ -255,6 +269,7 @@ _REPRESENTATIVE_ALGOS = [
     "pusb_kernel",
     "recpe",
     "self_pu",
+    "robust_pu",
     "kldce",
 ]
 

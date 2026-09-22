@@ -22,6 +22,7 @@ from .estimators.classic.llsvm import LLSVMClassifier
 from .estimators.deep.dgpu import DGPUClassifier
 from .estimators.deep.grad_pu import GradPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
+from .estimators.deep.robust_pu import RobustPUClassifier
 from .estimators.deep.self_pu import SelfPUClassifier
 from .estimators.deep.vision import build_encoder
 from .estimators.deep.weighted_contrastive_pu import WeightedContrastivePUClassifier
@@ -71,6 +72,7 @@ __all__ = [
     "PUShiftMonitor",
     "PUUncertaintyReport",
     "ReCPEEstimator",
+    "RobustPUClassifier",
     "ScoringConfig",
     "ShiftAwarePUPipeline",
     "ShiftAwarePipelineReport",
