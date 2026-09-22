@@ -15,6 +15,8 @@
 2. 随机初始化 temporary 模型，拟合 teacher 的硬预测；在 U 上的预测一致率达到阈值可提前停止。teacher/temporary 对 U 的预测不一致即 hard，其他为 easy。
 3. 随机初始化 student；对 P 用 BCE，对 easy U 用 teacher 软预测的加权 Jensen–Shannon 散度；对 hard U 用弱/强扰动预测一致性、teacher 低层特征 MSE 与 student 表征余弦一致性。下一轮以上一轮 student 为 teacher，默认两轮。
 
+第一轮默认 hard/feature/sim 权重为 0.3/0.3/0.1；第二轮按官方 `main.py` 收窄为 0.01/0/0。
+
 公开类 `SplitPUClassifier`，注册名 `split_pu`（别名 `split-pu`）；默认二维 MLP，可选 CPU/CUDA。`decision_function` 是 raw logit，0 为预测阈值，不宣称校准概率。非空 `sample_weight` 被拒绝。训练历史、每 epoch checkpoint 回调和 `state_dict` 权重恢复可用；若小样本集出现 U 全部一致/不一致，以 teacher 最低/最高 margin 的一个 U 维持两个分支非空。
 
 ## 差异与门禁

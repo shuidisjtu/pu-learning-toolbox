@@ -70,6 +70,10 @@ def test_stages_prediction_determinism_and_checkpoint(tmp_path):
     assert clf.n_easy_ > 0 and clf.n_hard_ > 0
     assert len(clf.history_["teacher_risk"]) == 1
     assert len(clf.history_["student_loss"]) == 2
+    assert clf.history_["round_weights"] == [
+        {"hard": 0.3, "feature": 0.3, "similarity": 0.1},
+        {"hard": 0.01, "feature": 0.0, "similarity": 0.0},
+    ]
     scores = clf.decision_function(X)
     assert np.isfinite(scores).all() and scores.shape == (len(X),)
     np.testing.assert_array_equal(_model().fit(X, y).decision_function(X), scores)

@@ -189,7 +189,12 @@ class SplitPUClassifier(BasePUClassifier):
         self.n_positive_, self.n_unlabeled_ = len(p_idx), len(u_idx)
         self._X_shape_ = X.shape
         self._class_prior = float(prior)
-        self.history_ = {"teacher_risk": [], "split_agreement": [], "student_loss": []}
+        self.history_ = {
+            "teacher_risk": [],
+            "split_agreement": [],
+            "student_loss": [],
+            "round_weights": [],
+        }
         self._is_fitted = False
         epoch = 0
 
@@ -276,7 +281,14 @@ class SplitPUClassifier(BasePUClassifier):
             student = _network(X.shape[1], self.hidden_dim).to(device)
             self.model_ = student
             optimizer = torch.optim.Adam(student.parameters(), lr=self.learning_rate)
-            stage_scale = 1.0 if round_index == 0 else 0.1
+            # Official main.py: first (hard=.3, sim=.1, feat=.3), then
+            # (hard=.01, sim=0, feat=0). Keep user tuning on the first pass.
+            hard_weight = self.hard_weight if round_index == 0 else 0.01
+            feature_weight = self.feature_weight if round_index == 0 else 0.0
+            similarity_weight = self.similarity_weight if round_index == 0 else 0.0
+            self.history_["round_weights"].append(
+                {"hard": hard_weight, "feature": feature_weight, "similarity": similarity_weight}
+            )
             for _ in range(self.student_epochs):
                 student.train()
                 losses = []
@@ -314,12 +326,9 @@ class SplitPUClassifier(BasePUClassifier):
                     loss = (
                         positive_loss
                         + easy_loss
-                        + stage_scale
-                        * (
-                            self.hard_weight * hard_loss
-                            + self.feature_weight * feature_loss
-                            + self.similarity_weight * sim_loss
-                        )
+                        + hard_weight * hard_loss
+                        + feature_weight * feature_loss
+                        + similarity_weight * sim_loss
                     )
                     if not torch.isfinite(loss):
                         raise FloatingPointError("Split-PU student loss became non-finite")
