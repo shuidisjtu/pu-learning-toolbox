@@ -22,6 +22,7 @@ from .estimators.classic.llsvm import LLSVMClassifier
 from .estimators.deep.dgpu import DGPUClassifier
 from .estimators.deep.grad_pu import GradPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
+from .estimators.deep.lagam import LaGAMClassifier
 from .estimators.deep.robust_pu import RobustPUClassifier
 from .estimators.deep.self_pu import SelfPUClassifier
 from .estimators.deep.split_pu import SplitPUClassifier
@@ -57,6 +58,7 @@ __all__ = [
     "GradPUClassifier",
     "InfoMaxPUClassifier",
     "KLDCEClassifier",
+    "LaGAMClassifier",
     "KernelMeanPriorEstimator",
     "LBEClassifier",
     "LDCEClassifier",

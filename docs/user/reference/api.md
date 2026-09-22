@@ -30,7 +30,7 @@
 
 | 模块 | 章节 |
 |---|---|
-| 分类器与估计器（23 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
+| 分类器与估计器（24 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
 | PUPipeline / PipelineReport | [§PUPipeline](#pupipeline) |
 | 分布漂移（审计 / 适配 / 监控 / 假设诊断） | [§分布漂移 API](#分布漂移-api) |
 | 实验层（survey 研究者） | [§实验层](#实验层experiment) |
@@ -76,6 +76,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
 | `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
 | `split_pu`（`split-pu`） | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
+| `lagam`（`la_gam`） | `LaGAMClassifier` | deep | `support_data`（fit 必传）/ `warmup_epochs` / `num_clusters` | [LaGAM](../../research/method_cards/LaGAM.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
 | `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
 | `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
@@ -493,6 +494,20 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 - 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
 
 ### 深度分类器
+
+#### `LaGAMClassifier`（注册名 `lagam`，别名 `la_gam`）
+
+潜在组对比学习和干净 support-set 元标签更新。**不适用于 PU-only PA 口径**；当前正式 Survey runner 不传 `support_data`，因此此方法仍为独立技术预集成。
+
+```python
+LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
+                batch_size=64, support_batch_size=32, num_clusters=5,
+                learning_rate=1e-3, meta_lr=1e-3, mix_weight=1.0,
+                contrastive_weight=1.0, temperature=0.07, noise_std=0.05,
+                rho_start=0.95, rho_end=0.8, random_state=None, device=None)
+```
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, support_data=(X_support, y_clean), epoch_callback=None)`；support set 必须独立、干净且包含两类，缺失时直接报错。非空 `sample_weight` 报错。详见 [LaGAM 方法卡](../../research/method_cards/LaGAM.md)。
 
 #### `SplitPUClassifier`（注册名 `split_pu`，别名 `split-pu`）
 

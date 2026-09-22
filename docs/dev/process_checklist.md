@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 23 个注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。新接入的 GradPU、PUET、VPU、PULDA、Robust-PU、Split-PU 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 24 个注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。新接入的 GradPU、PUET、VPU、PULDA、Robust-PU、Split-PU、LaGAM 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收；LaGAM 需独立干净 support set，当前 runner 不可用。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## 阶段历史（已闭环）

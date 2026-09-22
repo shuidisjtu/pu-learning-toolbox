@@ -11,7 +11,7 @@
 - **经典**：`elkan_noto`
 - **风险估计**：`upu`、`nnpu`、`pnu`、`puet`、`centroid_pu`、`kldce`、`llsvm`、`dist_pu`、`vpu`、`pulda`
 - **Bias-Aware**：`pusb`、`pusb_kernel`、`lbe`
-- **深度**：`gradpu`、`robust_pu`、`split_pu`、`self_pu`、`infomax_pu`、`weighted_contrastive_pu`、`dgpu`
+- **深度**：`gradpu`、`robust_pu`、`split_pu`、`lagam`、`self_pu`、`infomax_pu`、`weighted_contrastive_pu`、`dgpu`
 
 ## 流水线与编排
 

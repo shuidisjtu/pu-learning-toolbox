@@ -215,8 +215,28 @@ def _make_split_pu():
     from pu_toolbox.estimators.deep import SplitPUClassifier
 
     return SplitPUClassifier(
-        class_prior=0.33, hidden_dim=8, teacher_epochs=1, split_epochs=1,
-        student_epochs=1, rounds=1, batch_size=32, random_state=42,
+        class_prior=0.33,
+        hidden_dim=8,
+        teacher_epochs=1,
+        split_epochs=1,
+        student_epochs=1,
+        rounds=1,
+        batch_size=32,
+        random_state=42,
+    )
+
+
+def _make_lagam():
+    from pu_toolbox.estimators.deep import LaGAMClassifier
+
+    return LaGAMClassifier(
+        hidden_dim=8,
+        warmup_epochs=1,
+        max_epochs=2,
+        batch_size=32,
+        support_batch_size=8,
+        num_clusters=2,
+        random_state=42,
     )
 
 
@@ -267,6 +287,7 @@ _FACTORY_MAP: dict[str, callable] = {
     "gradpu": _make_gradpu,
     "robust_pu": _make_robust_pu,
     "split_pu": _make_split_pu,
+    "lagam": _make_lagam,
     "vpu": _make_vpu,
     "pulda": _make_pulda,
     "puet": _make_puet,

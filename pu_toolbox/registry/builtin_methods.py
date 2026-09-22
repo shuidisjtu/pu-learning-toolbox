@@ -499,6 +499,25 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
+    AlgorithmMetadata(
+        name="lagam",
+        aliases=["la_gam"],
+        family=Fam.DEEP_PU,
+        paper="Positive-Unlabeled Learning by Latent Group-Aware Meta Disambiguation",
+        scenario=[Scn.CASE_CONTROL],
+        assumption=[Asm.SCAR],
+        requires_class_prior=False,
+        requires_clean_support=True,
+        supports_sparse=False,
+        supports_gpu=True,
+        backend=Backend.TORCH,
+        maturity=Maturity.EXPERIMENTAL,
+        implementation_status=Impl.NATIVE,
+        source_status=Src.OFFICIAL_EXACT,
+        upstream_url="https://github.com/llong-cs/LaGAM",
+        license="unknown",
+        training_cost=Cost.HIGH,
+    ),
 ]
 
 
@@ -568,6 +587,7 @@ def _bind_native_classes() -> None:
         ("puet", "..estimators.risk.puet", "PUExtraTreesClassifier"),
         ("robust_pu", "..estimators.deep.robust_pu", "RobustPUClassifier"),
         ("split_pu", "..estimators.deep.split_pu", "SplitPUClassifier"),
+        ("lagam", "..estimators.deep.lagam", "LaGAMClassifier"),
     ]
 
     for canonical_name, module_path, class_name in _native_imports:

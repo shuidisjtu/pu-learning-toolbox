@@ -56,6 +56,13 @@ class AlgorithmMetadata:
     requires_class_prior: bool = False
     """Whether the algorithm needs π = P(y=1) at training time."""
 
+    requires_clean_support: bool = False
+    """Whether fit needs an independently labeled clean support set.
+
+    Such methods are excluded from the ordinary PU-only recommender until
+    the caller explicitly provides a compatible support-data protocol.
+    """
+
     supports_sparse: bool = False
     """Whether the algorithm accepts scipy sparse matrices."""
 
@@ -149,6 +156,8 @@ def _validate_metadata(meta: AlgorithmMetadata) -> None:
         raise ValueError(f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})")
     if not isinstance(meta.label_semantics, str) or meta.label_semantics not in {"pu", "pn", "pnu"}:
         raise ValueError("AlgorithmMetadata.label_semantics must be 'pu', 'pn', or 'pnu'")
+    if not isinstance(meta.requires_clean_support, bool):
+        raise ValueError("AlgorithmMetadata.requires_clean_support must be a boolean")
     unknown_deprecated = set(meta.deprecated_aliases) - set(meta.aliases)
     if unknown_deprecated:
         raise ValueError(

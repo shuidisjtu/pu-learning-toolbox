@@ -120,6 +120,7 @@ _EXPECTED_DECLARATIONS = {
     "gradpu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "robust_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "split_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "lagam": (frozenset({"mlp"}), frozenset({2}), None, False),
     "vpu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "pulda": (frozenset({"mlp"}), frozenset({2}), None, False),
 }

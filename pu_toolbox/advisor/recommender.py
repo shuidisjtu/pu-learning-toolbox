@@ -119,6 +119,13 @@ def recommend_from_profile(
     if len(filtered) != len(all_methods):
         filters_applied["maturity"] = "excluded deprecated"
 
+    # The ordinary recommender has no clean-support input. Returning such a
+    # method would make an auto-selected PU-only workflow fail or, worse,
+    # invite reuse of validation labels as training labels.
+    if any(m.requires_clean_support for m in filtered):
+        filtered = [m for m in filtered if not m.requires_clean_support]
+        filters_applied["clean_support_required"] = "excluded (not provided)"
+
     if scenario_enum is not None:
         filtered = [m for m in filtered if scenario_enum in m.scenario]
         filters_applied["scenario"] = scenario_enum.value

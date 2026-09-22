@@ -19,7 +19,7 @@
 
 3. 在 registry/builtin_methods.py 注册 AlgorithmMetadata（含
    implementation_status=NATIVE 仅当有真实训练逻辑；未实现必须 API_ONLY）；
-4. 声明 sample_weight_support / backend / requires_class_prior 等既有字段。
+4. 声明 sample_weight_support / backend / requires_class_prior 等既有字段；若方法依赖额外干净真值 support set，注册 `requires_clean_support=True`，并使缺失支持集时的 `fit` 直接报错。
 
 ## 2. 自动门禁（无需手写）
 

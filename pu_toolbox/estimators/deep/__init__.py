@@ -3,6 +3,7 @@
 from .dgpu import DGPUClassifier
 from .grad_pu import GradPUClassifier
 from .infomax_pu import InfoMaxPUClassifier, InfoMaxPURepresentation
+from .lagam import LaGAMClassifier
 from .robust_pu import RobustPUClassifier
 from .self_pu import SelfPUClassifier
 from .split_pu import SplitPUClassifier
@@ -14,6 +15,7 @@ __all__ = [
     "GradPUClassifier",
     "InfoMaxPUClassifier",
     "InfoMaxPURepresentation",
+    "LaGAMClassifier",
     "RobustPUClassifier",
     "SelfPUClassifier",
     "SplitPUClassifier",

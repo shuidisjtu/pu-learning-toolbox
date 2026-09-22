@@ -171,12 +171,14 @@ PA/OA 离线选模（逐 checkpoint，阈值网格，π 必传）   [strategies/
 ## 4. 算法注册与推荐
 
 每个算法在 `registry` 注册元信息（name/aliases/family/scenario/assumption/
-requires_class_prior/backend/maturity/source_status/implementation_status 与 4 个
+requires_class_prior/requires_clean_support/backend/maturity/source_status/implementation_status 与 4 个
 架构能力字段 native_architectures / input_ndims / encoder_parameter /
 trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威，内置方法与
 算法↔模块落点、实现状态见 `pu_toolbox/registry/builtin_methods.py`。能力字段以
 估算器类属性为权威、注册时经 `_SYNC_FIELDS` 镜像进 registry（语义与消费点见
 `dual_architecture_plan.md` §3-§4）。
+`requires_clean_support=True` 的方法需要额外干净真值 support set；普通 PU-only
+推荐器排除它们，显式训练调用必须按方法卡规定的独立标签预算提供数据。
 
 ### registry 与实验层 method_ledger.json 的分工
 
