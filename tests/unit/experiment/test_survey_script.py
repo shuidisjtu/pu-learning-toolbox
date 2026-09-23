@@ -8,7 +8,12 @@
 import json
 
 import pytest
-from _survey_script_helpers import make_splits, survey_script  # noqa: F401 - pytest fixture
+from _survey_script_helpers import (  # noqa: F401 - pytest fixture
+    make_splits,
+    run_manifest,
+    run_manifests,
+    survey_script,
+)
 
 from pu_toolbox.experiment.manifest import load_manifest
 
@@ -41,7 +46,7 @@ def test_basic_run_survey_script_end_to_end(survey_script, tmp_path):
     )
     assert rc == 0
 
-    manifest_path = out_dir / "c_0.3" / "seed_0" / "manifest.json"
+    manifest_path = run_manifest(out_dir, "c_0.3", "seed_0")
     manifest = load_manifest(manifest_path)
     for key in (
         "seed",
@@ -56,7 +61,7 @@ def test_basic_run_survey_script_end_to_end(survey_script, tmp_path):
         assert key in manifest
     assert set(manifest["test_results"]) == {"PA", "OA"}
     assert manifest["test_results"]["OA"]["auc_unavailable_reason"] is None
-    assert (out_dir / "c_0.3" / "seed_0" / "method_ledger_entry.json").is_file()
+    assert (run_manifest(out_dir, "c_0.3", "seed_0").parent / "method_ledger_entry.json").is_file()
 
 
 def test_param_survey_script_requires_population_prior(survey_script, tmp_path, capsys):
@@ -95,7 +100,7 @@ def test_basic_script_runs_pusb_without_class_prior(survey_script, tmp_path):
         ]
     )
     assert rc == 0
-    assert (out_dir / "c_0.3" / "seed_0" / "method_ledger_entry.json").is_file()
+    assert (run_manifest(out_dir, "c_0.3", "seed_0").parent / "method_ledger_entry.json").is_file()
 
 
 def test_param_script_requires_class_prior_for_pusb_kernel(survey_script, tmp_path, capsys):
@@ -154,7 +159,9 @@ def test_basic_script_runs_pusb_kernel_with_class_prior(survey_script, tmp_path)
     )
     assert rc == 0
     entry = json.loads(
-        (out_dir / "c_1.0" / "seed_0" / "method_ledger_entry.json").read_text(encoding="utf-8")
+        (run_manifest(out_dir, "c_1.0", "seed_0").parent / "method_ledger_entry.json").read_text(
+            encoding="utf-8"
+        )
     )
     assert entry["class"] == "PUSBKernelClassifier"
     assert "population" in entry["prior_semantics"]
@@ -201,7 +208,7 @@ def test_basic_oracle_script_writes_oa_only_results(survey_script, tmp_path):
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / "c_independent" / "seed_0" / "manifest.json")
+    manifest = load_manifest(run_manifest(out_dir, "c_independent", "seed_0"))
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["mechanism"] == "pn_oracle"
     assert manifest["c_independent"] is True
@@ -232,8 +239,11 @@ def test_oracle_deduplicates_runs_across_c_values(survey_script, tmp_path):
         ]
     )
     assert rc == 0
-    assert len(list((out_dir / "c_independent").glob("seed_*/manifest.json"))) == 2
-    assert not (out_dir / "c_0.1").exists()
+    # One run per seed, and none of them keyed by a c token: the oracle is
+    # c-independent, so no c_* directory may appear anywhere in the tree.
+    manifests = run_manifests(out_dir)
+    assert len(manifests) == 2
+    assert all(path.parent.name.startswith("seed_") for path in manifests)
     integration = json.loads((out_dir / "oracle_integration.json").read_text(encoding="utf-8"))
     assert integration["runs_completed"] == 2
     assert integration["broadcast_c_values"] == [0.1, 0.3, 0.5]
@@ -290,7 +300,7 @@ def test_edge_oracle_script_leaves_no_calibration_file_when_runs_fail(survey_scr
     )
     assert rc == 1
 
-    manifest = load_manifest(out_dir / "c_independent" / "seed_0" / "manifest.json")
+    manifest = load_manifest(run_manifest(out_dir, "c_independent", "seed_0"))
     assert manifest["failures"]  # the failure itself is recorded
     assert not (out_dir / "oracle_integration.json").exists()
 
@@ -336,7 +346,7 @@ def test_basic_survey_script_records_the_split_reference(survey_script, tmp_path
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / "c_0.3" / "seed_0" / "manifest.json")
+    manifest = load_manifest(run_manifest(out_dir, "c_0.3", "seed_0"))
     assert manifest["split_ref"]["indices_sha256"] == "deadbeef"
     assert manifest["split_ref"]["role_sizes"]["train"] == 18
     assert manifest["split_ref"]["manifest_path"].endswith("split_manifest.json")
@@ -370,5 +380,5 @@ def test_param_oracle_script_explicit_split_ref_wins(survey_script, tmp_path):
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / "c_independent" / "seed_0" / "manifest.json")
+    manifest = load_manifest(run_manifest(out_dir, "c_independent", "seed_0"))
     assert manifest["split_ref"] == {"note": "custom reference"}

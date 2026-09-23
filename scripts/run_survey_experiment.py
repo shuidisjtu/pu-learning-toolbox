@@ -217,14 +217,27 @@ def _validate_labeling_request(*, mechanism: str, is_oracle: bool, c_values: lis
 
 
 def _run_directory(
-    out_root: Path, *, mechanism: str, c_value: CValue | None, seed: int, is_oracle: bool
+    out_root: Path,
+    *,
+    mechanism: str,
+    c_value: CValue | None,
+    seed: int,
+    is_oracle: bool,
+    run_view: str,
 ) -> Path:
-    """Output directory for one run, keyed by the requested c token."""
+    """Output directory for one run, keyed by the training view.
+
+    The view is the outermost layer because both views write a same-named
+    ``manifest.json`` (and ``method_ledger_entry.json``) into their run
+    directory: without it, training a method under a second view silently
+    replaces the first view's record while its checkpoints stay behind.
+    """
+    root = Path(out_root) / run_view
     if is_oracle:
-        return Path(out_root) / "c_independent" / f"seed_{seed}"
+        return root / "c_independent" / f"seed_{seed}"
     if mechanism in SAR_MECHANISMS:
-        return Path(out_root) / mechanism / f"c_{c_value.token}" / f"seed_{seed}"
-    return Path(out_root) / f"c_{c_value.token}" / f"seed_{seed}"
+        return root / mechanism / f"c_{c_value.token}" / f"seed_{seed}"
+    return root / f"c_{c_value.token}" / f"seed_{seed}"
 
 
 def _record_c_token(manifest_path: Path, token: str) -> None:
@@ -726,6 +739,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 c_value=c_value,
                 seed=seed,
                 is_oracle=args.oracle,
+                run_view=os_or_ts,
             )
             try:
                 metrics = run_one(
@@ -897,6 +911,7 @@ def main(argv: list[str] | None = None) -> int:
             c_value=c_value,
             seed=seed,
             is_oracle=args.oracle,
+            run_view=os_or_ts,
         )
         run_dir.mkdir(parents=True, exist_ok=True)
         if ledger_entry is not None:

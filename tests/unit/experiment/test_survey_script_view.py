@@ -12,8 +12,14 @@ for a method the ledger declares native to OS sampling, and for the PN oracle,
 which trains on real labels and generates no PU label view at all.
 """
 
+import json
+
 import pytest
-from _survey_script_helpers import make_splits, survey_script  # noqa: F401 - pytest fixture
+from _survey_script_helpers import (  # noqa: F401 - pytest fixture
+    make_sar_splits,
+    make_splits,
+    survey_script,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -119,3 +125,98 @@ class TestCliGate:
         rc = survey_script.main([str(data_dir), "--oracle", "--os-or-ts", "ts", "--seeds", "0"])
         assert rc == 1
         assert "does not apply" in capsys.readouterr().err
+
+
+class TestViewScopedPaths:
+    """A run directory is keyed by its view: the manifest name is not unique.
+
+    Both views write ``manifest.json``, and ``method_ledger_entry.json`` beside
+    it, so two views sharing a directory means the later run silently replaces
+    the earlier one's record while its checkpoints stay behind.
+    """
+
+    def test_run_directory_differs_by_view(self, survey_script, tmp_path):
+        c_value = survey_script.CValue(value=0.1, token="0.1")
+        dirs = {
+            view: survey_script._run_directory(
+                tmp_path,
+                mechanism="scar",
+                c_value=c_value,
+                seed=0,
+                is_oracle=False,
+                run_view=view,
+            )
+            for view in ("os", "ts")
+        }
+        assert dirs["os"] != dirs["ts"]
+        # The view is the outermost layer, so the c/seed tail stays readable.
+        for view, path in dirs.items():
+            assert path.parent.name == "c_0.1"
+            assert path.name == "seed_0"
+            assert path.parent.parent.name == view
+
+    def test_sar_mechanism_keeps_its_layer_under_the_view(self, survey_script, tmp_path):
+        """mechanism and view compose without either one shadowing the other."""
+        path = survey_script._run_directory(
+            tmp_path,
+            mechanism="sar_lbe_a",
+            c_value=survey_script.CValue(value=0.05, token="0.05"),
+            seed=2,
+            is_oracle=False,
+            run_view="os",
+        )
+        assert path.parent.parent.name == "sar_lbe_a"
+        assert path.parent.parent.parent.name == "os"
+
+    def test_oracle_carries_the_view_layer_too(self, survey_script, tmp_path):
+        """The oracle has no view choice, but shares the layout so nothing collides."""
+        path = survey_script._run_directory(
+            tmp_path, mechanism="scar", c_value=None, seed=1, is_oracle=True, run_view="os"
+        )
+        assert path.parent.name == "c_independent"
+        assert path.name == "seed_1"
+        assert path.parent.parent.name == "os"
+
+    def test_second_view_does_not_overwrite_the_first(self, survey_script, tmp_path):
+        """End-to-end: one --out-dir must keep both runs' records."""
+        pytest.importorskip("torch", reason="nnpu needs PyTorch for the ts hook")
+        data_dir = tmp_path / "splits"
+        data_dir.mkdir()
+        # nnpu floors at 2 labeled positives in train *and* pu_val, so the roster
+        # needs more positives than ``make_splits`` carries at c=0.5.
+        make_sar_splits(data_dir)
+        # that helper writes only the npz bundle; the script reads the prior and
+        # the role sizes back from the manifest beside it.
+        (data_dir / "split_manifest.json").write_text(
+            json.dumps(
+                {
+                    "dataset": "spambase",
+                    "seed": 0,
+                    "role_sizes": {"train": 60, "pu_val": 20, "clean_val": 20, "test": 20},
+                    "class_prior": {"population": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+        out_dir = tmp_path / "out"
+        common = [
+            str(data_dir),
+            "--method",
+            "nnpu",
+            "--dataset",
+            "spambase",
+            "--protocol",
+            "survey-v1.2",
+            "--seeds",
+            "0",
+            "--c",
+            "0.5",
+            "--class-prior",
+            "0.5",
+        ]
+        assert survey_script.main(common + ["--out-dir", str(out_dir), "--os-or-ts", "ts"]) == 0
+        assert survey_script.main(common + ["--out-dir", str(out_dir), "--os-or-ts", "os"]) == 0
+        manifests = sorted(out_dir.rglob("manifest.json"))
+        assert len(manifests) == 2
+        views = {json.loads(path.read_text(encoding="utf-8"))["run_view"] for path in manifests}
+        assert views == {"ts-compatible", "os-compatible"}

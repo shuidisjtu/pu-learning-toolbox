@@ -104,3 +104,37 @@ def make_sar_splits(data_dir: Path) -> None:
             y=y[start:end],
             indices=np.arange(start, end),
         )
+
+
+def run_manifests(out_dir: Path) -> list[Path]:
+    """Every run manifest under ``out_dir``, in a stable order.
+
+    Runs are found by searching, not by rebuilding their path: the script owns
+    the directory layout (view / mechanism / c / seed), and a test that spells
+    the whole layout out breaks on every layout change without telling us
+    anything about behaviour.  Aggregation and the pilot driver locate runs the
+    same way.
+    """
+    return sorted(Path(out_dir).rglob("manifest.json"))
+
+
+def run_directory(out_dir: Path, *segments: str) -> Path:
+    """The run directory whose path ends with ``segments``."""
+    return run_manifest(out_dir, *segments).parent
+
+
+def run_manifest(out_dir: Path, *segments: str) -> Path:
+    """The manifest of the single run whose path ends with ``segments``.
+
+    Callers name only the segments they actually chose in the command
+    (``"c_0.3"``, ``"seed_0"``); the rest of the layout stays the script's
+    business.
+    """
+    wanted = tuple(segments)
+    matches = [
+        path
+        for path in run_manifests(out_dir)
+        if tuple(path.parts[-len(wanted) - 1 : -1]) == wanted
+    ]
+    assert len(matches) == 1, f"expected one run matching {wanted}, found {matches}"
+    return matches[0]
