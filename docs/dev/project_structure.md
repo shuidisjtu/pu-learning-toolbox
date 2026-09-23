@@ -334,11 +334,13 @@ tests/
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
       test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
-      test_leaderboard_run_view.py      # <<< 新文件,补注释
-      test_method_ledger.py             # <<< 新文件,补注释
-      test_runner_view_manifest.py      # <<< 新文件,补注释
-      test_survey_script_view.py        # <<< 新文件,补注释
-      test_training_view_routing.py     # <<< 新文件,补注释
+      test_leaderboard_run_view.py      # 排行榜分组: 视图不同即不入同一组（os 与 ts 不可同榜）
+      test_method_ledger.py             # 方法台账读取: 枚举+中文注记归一、缺字段与非法值拒绝
+      test_runner_view_manifest.py      # 训练视图留痕: 成功与失败路径都记 run_view/calibration_applied
+      test_survey_script_view.py        # 训练视图: 台账默认与 CLI 覆盖、门禁、视图进产物路径
+      test_training_view_routing.py     # trainer 侧视图参数: 按签名探测转发、未声明 fail-loud、os 不传参
+    utils/
+      test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
