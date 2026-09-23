@@ -1,7 +1,7 @@
 # P2.0c 复核包
 
-复核对象：`pu_toolbox/experiment/survey_comparison_v1.json`（`survey-comparison-v1`）。
-交付说明见 [交付文档](p2_0c_delivery.md)；矩阵绑定的执行协议为 `survey-v1.2`。
+复核对象：`pu_toolbox/experiment/survey_comparison_v2.json`（`survey-comparison-v2`，摘要
+`764ef03a…5b4095b`）。交付说明见 [交付文档](p2_0c_delivery.md)；矩阵绑定的执行协议为 `survey-v1.2`。
 
 | 时点 | comparison 摘要 | 说明 |
 |---|---|---|
@@ -16,6 +16,12 @@
 > 协议摘要变为 `S0′ = c15b0c9e…eaff529`，`survey_comparison_v1.json` 的绑定已同步重绑。
 > **54 条 `blocked_pending_pa_criterion` 未动**，`review_status` 仍为 `pending_collaborator_review`——
 > 实现准则不等于裁决这些单元。签署流程请以 `S0′` 为基线。
+
+> **2026-09-23 补记**：审计 nnPU/Spambase 锚点时发现 v1 的两处登记缺陷——错挂在全部数据集行上的
+> CIFAR 预处理差异、以及缺失的训练视图维度。已按预注册规则「确需修订须记录理由并重发预注册
+> 版本」重发为 `survey-comparison-v2.json`（摘要 `764ef03a…5b4095b`）。**锚点数值、判定规则与
+> 资格判定均未变动**，仅修正 15 个 PU-Bench 映射的 `protocol_differences`；`v1` 原样留档。
+> 修订理由与重放证据见 [执行计划](survey_execution_plan.md) 决策 D10。**本轮复核与签署的对象为 v2。**
 
 ## 1. shuidisjtu 自审
 

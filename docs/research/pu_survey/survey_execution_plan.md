@@ -41,8 +41,11 @@
 预注册版本）。
 
 **锚点来源三类**：① PUBench（PA/PAUC/OA 三准则并列；我方 OA↔其 OA 列、我方 PA↔其 PA 列）；
-② PU-Bench（其选模用真实验证标签的 macro-F1 = Wang 定义的 OA，**无 PA 机制**——我方 PA 结果
-与其数值无直接可比性）；③ 各方法原论文（以方法卡 `paper` 字段与官方实现为准）。
+② PU-Bench（**论文正文**说选模用真实验证标签的 macro-F1，**发布代码**却用 PU-only 的
+`val_proxy_acc`；两者的矛盾登记为矩阵的 `pu_bench_selection_criterion` 条目、`resolution` 取
+代码。本格重放实验站在代码一侧：按代码口径可复现锚点（|Δ|=0.75pp），按正文 macro-F1 复现
+则高 8pp。**无 PA 机制**——我方 PA 结果与其数值无直接可比性）；③ 各方法原论文（以方法卡
+`paper` 字段与官方实现为准）。
 
 **PU-Bench Table 1（p6）：cc/SCAR、c=0.1、10 seeds，Accuracy% ± std**
 
@@ -106,6 +109,8 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
 | D7 | SAR 标记频率口径修正 | 复核 PU-Bench 论文与锁定代码 `2d95a19`：`config/datasets_vary_e/*.yaml` 均使用 `c_values: [0.05, 0.5]`；原协议 `{0.1,0.5}` 与参考实现不一致，修正为 `{0.05,0.5}`。SCAR 主实验 `{0.1,0.3,0.5}` 不变；issue #43 按修正后口径实施 | 2026-09-15 |
 | D8 | SAR 执行路径设计（issue #43） | `--labeling-mechanism` 与 `--method` **正交**（机制是实验自变量，SAR 行可跑任意 survey 方法）；SAR 强制 OA-only（协议 §2.3 下 PA 仅可诊断，v1 不产出 PA 日志）；SAR c 只接受**规范 token** `{0.05,0.5}`，目录按用户输入 token 命名（`c_0.05` 不得被格式化为 `c_0.1`），同值异拼写（`0.05`/`5e-2`）拒绝；`c_requested_token` 由脚本在运行成功后回写 manifest（runner manifest schema 为固定白名单，不改 runner，降低与 P2.0a 冲突） | 2026-09-15 |
 | D9 | SCAR 标记数取整口径 | PU-Bench `n_labeled = int(n_pos · labeled_ratio)` 为**向下取整**，协议 §2.1 采用 `round(c·n₊)`；实现时以协议口径为准并记录实际 c | 2026-09-06 |
+| D10 | **对照矩阵修订（v1 → v2）** | 审计 nnPU/Spambase 锚点时发现 v1 的两处登记缺陷：① 15 个 PU-Bench 映射把 CIFAR-10 的预处理差异复制到了全部数据集行，而 Spambase 行两侧同为 train-only z-score，该差异并不存在；② 15 个映射都缺**训练视图**维度——PU-Bench 的 case-control 把已标注正例放回 U（`data/data_utils.py:640-699`），与我方 `ts` 视图等价、与 `os` 视图不等价，而矩阵没有这一维。按预注册规则「确需修订须记录理由并重发预注册版本」新建 `survey_comparison_v2.json`：锚点数值、判定规则、资格判定均未变，仅 `protocol_differences`；`v1` 原样留档 | 2026-09-23 |
+| D11 | **split 分母口径与 c 取整的补登记** | 两处协议字面与实现的差异，经审计补登记：① 协议 §2.4(二)3 写「留 10% 验证池、等分 5%+5%，其余 90% 为 train」，实现先在**全量池**上切走 20% test、再在剩余 80% 上做 90/10，故 Spambase 实测 `role_sizes = 3312/184/184/921`（占全量 72/4/4/20，占剩余即 90/5/5）；分层与泄漏隔离无误，但「5%」的分母口径此前未在文档显式；② c 标注数取整，协议 §2.1 定 `round(c·n₊)`，PU-Bench 发布代码为向下取整（`data/data_utils.py:423-425`），本格 n₊=1305、c=0.1 时两者同为 130，别格会分叉 | 2026-09-23 |
 
 ## 4. 风险
 
