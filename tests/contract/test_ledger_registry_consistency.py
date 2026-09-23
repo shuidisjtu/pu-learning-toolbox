@@ -23,6 +23,9 @@ One test per invariant:
 5. ``calibration_applied`` is a JSON boolean, not a string carrying prose;
 6. ``prior_semantics`` mentions "population" exactly when the registry entry
    requires a class prior (``requires_class_prior``).
+7. ``native_sampling_assumption`` (``os``/``ts``) mirrors the registry
+   ``scenario`` sampling mechanism (``SINGLE_TRAINING_SET``/``CASE_CONTROL``),
+   ignoring the orthogonal ``SELECTION_BIASED`` flag (issue #67).
 """
 
 from __future__ import annotations
@@ -34,6 +37,7 @@ from pathlib import Path
 
 import pytest
 
+from pu_toolbox.core.tags import Scenario
 from pu_toolbox.registry import get_metadata, register_all_builtin_methods
 
 _LEDGER_PATH = (
@@ -127,6 +131,40 @@ def test_prior_semantics_consistent_with_registry_class_prior(
         assert mentions == requires, (
             f"{name}: prior_semantics={entry['prior_semantics']!r} "
             f"but registry requires_class_prior={requires}"
+        )
+
+
+#: Ledger sampling assumption -> the registry sampling scenarios that encode
+#: it.  ``SELECTION_BIASED`` is an orthogonal labeling-bias flag and never
+#: enters this comparison: a method may carry it while still naming which
+#: sampling mechanism it assumes.
+_SAMPLING_SCENARIOS = {
+    "os": frozenset({Scenario.SINGLE_TRAINING_SET}),
+    "ts": frozenset({Scenario.CASE_CONTROL}),
+    "both": frozenset({Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL}),
+}
+
+
+@pytest.mark.contract
+def test_native_sampling_assumption_matches_registry_scenario(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The ledger's os/ts label equals the registry's sampling scenario.
+
+    ``os`` means single-training-set and ``ts`` means case-control.  Issue #67
+    recorded the two having drifted into exact opposites, so this pins them.
+    """
+    for name, entry in ledger_methods.items():
+        declared = _NOTE_OPEN.split(entry["native_sampling_assumption"], maxsplit=1)[0]
+        declared = declared.strip().lower()
+        assert declared in _SAMPLING_SCENARIOS, (
+            f"{name}: unexpected native_sampling_assumption {declared!r}"
+        )
+        registered = frozenset(get_metadata(name).scenario)
+        sampling = registered & {Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL}
+        assert sampling == _SAMPLING_SCENARIOS[declared], (
+            f"{name}: ledger native_sampling_assumption={declared!r} but registry "
+            f"scenario declares {sorted(item.value for item in sampling)}"
         )
 
 

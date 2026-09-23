@@ -289,7 +289,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         aliases=["biased_pu", "selection_bias_pu", "nnPUSB"],
         family=Fam.BIAS_AWARE,
         paper="Learning from Positive and Unlabeled Data with a Selection Bias",
-        scenario=[Scn.SELECTION_BIASED],
+        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
         assumption=[Asm.SAR],
         requires_class_prior=False,
         supports_sparse=False,
@@ -311,7 +311,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
             "Learning from Positive and Unlabeled Data with a Selection "
             "Bias (kernelized version, RBF)"
         ),
-        scenario=[Scn.SELECTION_BIASED],
+        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
         assumption=[Asm.SAR],
         requires_class_prior=True,  # official RBF scoring needs pi (Method Card §7.3)
         supports_sparse=False,
