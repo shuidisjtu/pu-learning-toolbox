@@ -10,7 +10,10 @@ docs/dev/experiment_layer.md §2.
 
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any
 
 import numpy as np
 
@@ -62,7 +65,43 @@ class Trainer(ABC):
         *,
         class_prior: float | None = None,
         val_pu: tuple[np.ndarray, np.ndarray] | None = None,
+        os_or_ts: str | None = None,
     ) -> RunTrajectory: ...
+
+
+def accepts_training_view(parameters: Mapping[str, Any]) -> bool:
+    """Whether a ``fit`` signature can carry ``os_or_ts``.
+
+    Protocol §2.3 gates the calibrated view on the training interface allowing
+    the unlabeled-loss input to be replaced, so both the view resolver and the
+    router ask this question the same way: a named parameter, or an explicit
+    ``**kwargs``.
+    """
+    return "os_or_ts" in parameters or any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()
+    )
+
+
+def route_training_view(
+    kwargs: dict, parameters: Mapping[str, Any], os_or_ts: str | None, target: object
+) -> None:
+    """Add ``os_or_ts`` to a fit-kwargs mapping, refusing a silent drop.
+
+    Only a calibrated (``"ts"``) request changes training, so only that value is
+    routed.  A target whose ``fit`` never declares the parameter would run the OS
+    view while the run's manifest claimed otherwise, so the mismatch is raised
+    here rather than swallowed.  Acceptance follows ``runner._select_kwargs``: a
+    named parameter or an explicit ``**kwargs``, detected by signature
+    inspection, never by catching ``TypeError``.
+    """
+    if os_or_ts != "ts":
+        return
+    if not accepts_training_view(parameters):
+        raise ValueError(
+            f"{type(target).__name__}.fit() does not accept os_or_ts, so the "
+            f"requested {os_or_ts!r} training view cannot be applied."
+        )
+    kwargs["os_or_ts"] = "ts"
 
 
 class SelectionProtocol(ABC):

@@ -73,6 +73,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import math
 import sys
@@ -85,6 +86,8 @@ from sklearn.neural_network import MLPClassifier
 
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.manifest import load_manifest, write_manifest
+from pu_toolbox.experiment.method_ledger import load_ledger, native_sampling_assumption
+from pu_toolbox.experiment.protocols import accepts_training_view
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import (
     CleanLabelGenerator,
@@ -96,6 +99,11 @@ from pu_toolbox.experiment.strategies import (
 )
 
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
+
+#: Training data views this CLI can request (``--os-or-ts``, protocol §2.3).
+#: ``os`` is the survey default; ``ts`` applies the TS-OS calibration and is
+#: gated on the method ledger declaring a native TS/case-control assumption.
+OS_OR_TS_VIEWS: tuple[str, ...] = ("os", "ts")
 
 _ROLE_FILES: tuple[str, ...] = ("train", "pu_val", "clean_val", "test")
 
@@ -255,14 +263,6 @@ class OracleMLP(MLPClassifier):
         return np.log(positive / (1.0 - positive))
 
 
-def load_ledger(path: Path) -> dict[str, Any]:
-    """Load the method ledger JSON (programmatic truth source, protocol §4)."""
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict) or not isinstance(value.get("methods"), dict):
-        raise ValueError(f"{path} is not a valid method ledger file.")
-    return value
-
-
 def load_split_parts(data_dir: Path) -> tuple[DatasetPart, ...]:
     """Load the four clean partitions and validate the four-way contract."""
     base = Path(data_dir)
@@ -323,6 +323,76 @@ def resolve_class_prior(
             f"{entry.get('prior_semantics', '')!r}); pass --class-prior."
         )
     return provided
+
+
+def resolve_training_view(
+    ledger: dict[str, Any],
+    method: str,
+    requested: str | None,
+    *,
+    is_oracle: bool,
+    estimator_class: type | None = None,
+) -> str:
+    """Resolve the run's training view: ledger default, or the explicit request.
+
+    Protocol §2.3 gates the calibrated view on **two** conditions — the method
+    ledger declaring native TS/case-control sampling, *and* the training
+    interface allowing the unlabeled-loss input to be replaced.  Both are
+    checked here: the ledger supplies the default, and ``--os-or-ts`` overrides
+    it.  A method that is native TS but whose estimator has no ``os_or_ts`` fit
+    hook stays on ``os`` rather than failing every run; only an *explicit* ``ts``
+    request on such a method is refused, naming the missing interface.
+    """
+    if is_oracle:
+        if requested == "ts":
+            raise ValueError(
+                "--oracle trains on real labels and generates no PU label view, so "
+                "--os-or-ts ts does not apply; drop --os-or-ts."
+            )
+        return "os"
+    entry = ledger["methods"].get(method)
+    if entry is None:
+        raise ValueError(f"method {method!r} is not in the survey ledger")
+    native = native_sampling_assumption(entry)
+    if requested is None:
+        if native not in {"ts", "both"} or estimator_class is None:
+            return "os"
+        return "ts" if accepts_training_view(_fit_parameters(estimator_class)) else "os"
+    if requested == "ts":
+        if native not in {"ts", "both"}:
+            raise ValueError(
+                f"method {method!r} is declared native to {native!r} sampling in the "
+                "method ledger, so the calibrated (ts) view does not apply to it."
+            )
+        if estimator_class is not None and not accepts_training_view(
+            _fit_parameters(estimator_class)
+        ):
+            raise ValueError(
+                f"method {method!r} is native to TS sampling but "
+                f"{estimator_class.__name__}.fit() declares no os_or_ts parameter, "
+                "so the training interface cannot replace the unlabeled-loss input."
+            )
+    return requested
+
+
+def _fit_parameters(estimator_class: type) -> Any:
+    """The ``fit`` parameters of an estimator class, for the view gate."""
+    return inspect.signature(estimator_class.fit).parameters
+
+
+def _write_ledger_entry(run_dir: Path, entry: dict[str, Any], run_view: str) -> None:
+    """Copy the ledger entry beside the run, annotated with the view it used.
+
+    The ledger records the method's *default*; this copy documents one run, so
+    an explicit ``--os-or-ts os`` override must not leave behind a copy that
+    still claims the calibrated view (``_record_c_token`` sets the precedent).
+    """
+    payload = dict(entry)
+    payload["run_view"] = f"{run_view}-compatible"
+    payload["calibration_applied"] = run_view == "ts"
+    (run_dir / "method_ledger_entry.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
 def run_one(
@@ -415,6 +485,17 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--os-or-ts",
+        choices=OS_OR_TS_VIEWS,
+        default=None,
+        help=(
+            "training data view (protocol §2.3; default: the method ledger's "
+            "native_sampling_assumption). 'ts' applies the TS-OS calibration "
+            "D_U <- D_U union D_P per training mini-batch and requires a method "
+            "declared native to TS/case-control sampling"
+        ),
+    )
+    parser.add_argument(
         "--model-params",
         default="{}",
         help="JSON string of classifier constructor parameters (class_prior, loss, ...)",
@@ -478,7 +559,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         unit_checkpoint_bytes,
         validate_parameters,
     )
-    from pu_toolbox.registry import get_metadata, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm, get_metadata, register_all_builtin_methods
 
     method = "pn_oracle" if args.oracle else args.method or "upu"
     protocol_path = (
@@ -535,6 +616,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
         )
         if "class_prior" in params and params["class_prior"] != prior:
             raise ValueError("constructor class_prior disagrees with --class-prior")
+        os_or_ts = resolve_training_view(
+            ledger,
+            method,
+            args.os_or_ts,
+            is_oracle=args.oracle,
+            estimator_class=None if args.oracle else get_algorithm(method),
+        )
     except (OSError, KeyError, TypeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -600,6 +688,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
             config = {
                 "candidates": candidates,
                 "split_ref": split_ref,
+                "os_or_ts": os_or_ts,
                 "architecture": "cnn" if row["training_path"] == "native_cnn" else "mlp",
                 "survey_protocol": {
                     "path": str(protocol_path),
@@ -655,9 +744,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 if c_value is not None:
                     _record_c_token(run_dir / "manifest.json", c_value.token)
                 if not args.oracle:
-                    (run_dir / "method_ledger_entry.json").write_text(
-                        json.dumps(ledger["methods"][method], indent=2), encoding="utf-8"
-                    )
+                    _write_ledger_entry(run_dir, ledger["methods"][method], os_or_ts)
             except Exception as exc:  # noqa: BLE001 - user-facing run boundary
                 print(f"error: survey run failed: {exc}", file=sys.stderr)
                 return 1
@@ -703,7 +790,27 @@ def main(argv: list[str] | None = None) -> int:
         ledger = load_ledger(LEDGER_PATH)
         candidates = _load_json_maybe(args.candidates, default=[{}])
         split_ref = resolve_split_ref(data_dir, args.split_ref)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        # Resolved with the other pre-run gates, before the estimator is built:
+        # an impossible view costs nothing but the error message.
+        method = "pn_oracle" if args.oracle else args.method or "upu"
+        estimator_class = None
+        if not args.oracle:
+            from pu_toolbox.core.exceptions import RegistryError
+            from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+
+            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
+            try:
+                estimator_class = get_algorithm(method)
+            except RegistryError as exc:
+                raise ValueError(str(exc)) from exc
+        os_or_ts = resolve_training_view(
+            ledger,
+            method,
+            args.os_or_ts,
+            is_oracle=args.oracle,
+            estimator_class=estimator_class,
+        )
+    except (OSError, ImportError, json.JSONDecodeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
@@ -764,7 +871,12 @@ def main(argv: list[str] | None = None) -> int:
         ledger_entry = ledger["methods"].get(method)
         config_extra = {}
 
-    config: dict[str, Any] = {"candidates": candidates, "split_ref": split_ref, **config_extra}
+    config: dict[str, Any] = {
+        "candidates": candidates,
+        "split_ref": split_ref,
+        "os_or_ts": os_or_ts,
+        **config_extra,
+    }
     out_root = Path(args.out_dir) if args.out_dir else Path("results") / "survey" / method
 
     if args.oracle:
@@ -788,9 +900,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         run_dir.mkdir(parents=True, exist_ok=True)
         if ledger_entry is not None:
-            (run_dir / "method_ledger_entry.json").write_text(
-                json.dumps(ledger_entry, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            _write_ledger_entry(run_dir, ledger_entry, os_or_ts)
         manifest_path = run_dir / "manifest.json"
         try:
             metrics = run_one(

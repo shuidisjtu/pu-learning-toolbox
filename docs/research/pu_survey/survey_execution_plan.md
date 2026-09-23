@@ -22,7 +22,8 @@
 | P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 工程实现与回归完成，HENG958 独立复核/签署待办；见 [交付记录](p2_0b_delivery.md) |
 | P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节；锚点数值预注册 | 🚧 技术审计修订完成，36 锚点/7 行映射待审；HENG958 正式复核未签署，见 [复核包](p2_0c_review.md) |
 | P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
-| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958；编排载体与磁盘预算已就位（`scripts/run_survey_pilot.py`），跑批主机与环境路线、GPU 窗口排定仍待定 |
+| P2.0e | TS-OS 校准接入训练执行链（协议 §2.3） | P1.3a | 视图默认由台账 `native_sampling_assumption` 推导、CLI 可覆盖；`ts` 视图逐训练 mini-batch 执行 `D_U^k ← D_U^k ∪ D_P^k`（验证/测试保持 OS）；逐 run 实际视图入 manifest（`run_view`/`calibration_applied`）并成为公平性分组维度；pilot 驱动透传与重跑判定收紧；未接线方法默认回落 `os`、显式请求 `ts` fail-loud | 🚧 部分完成 / shuidisjtu：`nnpu` 已接线并产出 os/ts 对照；其余 5 个原生 TS 方法校准形态各异（闭式 / EM / 双学生 / LR），待各自设计。`ts` 视图尚未经合作者复核，manifest 挂 `ts_view_collaborator_review` 阻断正式资格 |
+| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c、P2.0e | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958；编排载体与磁盘预算已就位（`scripts/run_survey_pilot.py`），跑批主机与环境路线、GPU 窗口排定仍待定 |
 | P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果 |
 | P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU、PULDA 已完成独立组件，台账/矩阵与正式验收未做；其余 PAN、RP、CVIR、PULNS 待办 |
 | P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | ⏳ 待办 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LAGAM、GEN-PU、Holistic-PU、P3MIX；Grad-PU/PUET 独立组件已完成，台账/矩阵及正式验收仍待前置项；PUET 为 CPU 树方法，分组/GPU 条款须复核 |

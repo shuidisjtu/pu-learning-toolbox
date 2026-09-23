@@ -35,7 +35,7 @@ class PUSBClassifier(BasePUClassifier):
     family = AlgorithmFamily.BIAS_AWARE
     label_semantics = "pu"
     assumption = (Assumption.SAR,)
-    scenario = (Scenario.SELECTION_BIASED,)
+    scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.SKLEARN

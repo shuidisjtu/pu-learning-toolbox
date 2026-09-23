@@ -233,7 +233,10 @@ def population_priors(splits_root: str | Path) -> dict[str, float]:
 
 
 def completed_runs(
-    results_root: str | Path, *, splits: dict[tuple[str, int], str] | None = None
+    results_root: str | Path,
+    *,
+    splits: dict[tuple[str, int], str] | None = None,
+    expected_view: str | None = None,
 ) -> dict[tuple[Any, ...], Path]:
     """Every completed run under ``results_root``, keyed by identity.
 
@@ -241,6 +244,12 @@ def completed_runs(
     than the one on disk is not completed: it ran on data this pilot no longer
     has.  A split the mapping does not cover counts as not done too -- the
     driver re-running a run is recoverable, a hole in the matrix is not.
+
+    ``expected_view`` is compared the same way: a run recorded under the OS view
+    does not satisfy a calibrated request, so changing the view cannot silently
+    skip work.  It stays optional because only an explicit request names a view
+    the driver can hold a run to; the ledger-derived default is not re-derived
+    here (the pilot does not read the ledger).
     """
     done: dict[tuple[Any, ...], Path] = {}
     for path in sorted(Path(results_root).rglob("manifest.json")):
@@ -254,6 +263,8 @@ def completed_runs(
         if identity is None:
             continue
         if splits is not None and not _ran_on_current_split(payload, identity, splits):
+            continue
+        if expected_view is not None and payload.get("run_view") != expected_view:
             continue
         done.setdefault(identity, path)
     return done
@@ -273,6 +284,7 @@ def pending_runs(
     results_root: str | Path,
     *,
     splits: dict[tuple[str, int], str] | None = None,
+    expected_view: str | None = None,
 ) -> tuple[tuple[PilotRun, ...], tuple[PilotRun, ...]]:
     """``(pending, completed)`` for the protocol's runs under ``results_root``.
 
@@ -280,7 +292,7 @@ def pending_runs(
     skipped; a driver that resumes silently is indistinguishable from one that
     ran nothing.
     """
-    done = completed_runs(results_root, splits=splits)
+    done = completed_runs(results_root, splits=splits, expected_view=expected_view)
     planned = planned_runs(protocol)
     pending = tuple(run for run in planned if run.key not in done)
     return pending, tuple(run for run in planned if run.key in done)
@@ -368,6 +380,7 @@ def batch_command(
     device: str | None = None,
     adapter_cache: str | None = None,
     extraction_batch_size: int | None = None,
+    os_or_ts: str | None = None,
 ) -> list[str]:
     """The unit script's arguments for one batch.
 
@@ -412,6 +425,10 @@ def batch_command(
         argv += ["--adapter-cache", adapter_cache]
     if extraction_batch_size is not None:
         argv += ["--extraction-batch-size", str(extraction_batch_size)]
+    if os_or_ts is not None:
+        # Omitted unless asked for: the unit script's ledger-derived default
+        # stays in force, so the driver never invents a view.
+        argv += ["--os-or-ts", os_or_ts]
     return argv
 
 

@@ -78,6 +78,7 @@ def manifest(
     c_independent=False,
     protocol_version="survey-v1.2",
     runnable=True,
+    run_view="os-compatible",
 ):
     """A versioned-pilot manifest with only the fields aggregation reads.
 
@@ -123,6 +124,7 @@ def manifest(
         "execution_unit": unit,
         "training_path": training_path,
         "adaptation_level": "benchmark-adapted",
+        "run_view": run_view,
         "representation": representation,
         "budget": budget_payload,
         "candidate_runs": [{"candidate_index": index} for index in range(candidates)],

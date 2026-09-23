@@ -45,6 +45,7 @@ def _run(method, path="native_cnn", **overrides):
         "adaptation_level": (
             "benchmark-adapted" if path == "cnn_feature_adapter" else "source-faithful"
         ),
+        "run_view": "os-compatible",
         "split_sha256": "a" * 64,
         "representation_sha256": ("b" if path == "native_cnn" else "c") * 64,
         "max_epochs": 100,

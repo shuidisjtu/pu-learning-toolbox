@@ -145,6 +145,75 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 # every run and flagged as removable once the category is covered, so
 # the list stays honest and shrinkable.
 PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
+    "test_leaderboard_run_view.py": {
+        "basic": (
+            "asserted through partition_fair_leaderboard_runs's group payload, "
+            "which is the only observable this field has; the surrounding "
+            "partitioning surface is covered by test_feature_adapter.py"
+        ),
+        "determ": "a pure function over fixed specs -- no randomness, no seed state",
+        "edge": (
+            "the boundary cases are the refusals asserted here (mixed views "
+            "allowed, duplicate method refused, unknown view refused); there is "
+            "no further input surface"
+        ),
+        "param": (
+            "LeaderboardRunSpec field validation lives in test_feature_adapter.py; "
+            "this file asserts how run_view participates in leaderboard grouping"
+        ),
+    },
+    "test_method_ledger.py": {
+        "basic": (
+            "the loader and the normaliser are asserted directly; the shipped "
+            "ledger's own consistency is asserted by the contract test"
+        ),
+        "determ": "pure functions over fixed JSON payloads -- no randomness, no seed state",
+        "param": (
+            "the enum's rejection surface is asserted as unknown values rather "
+            "than through a parameter-validation entry point"
+        ),
+    },
+    "test_nnpu_ts_view.py": {
+        "determ": (
+            "seeding is asserted by comparing two identically-seeded fits; "
+            "estimator-level determinism is covered by test_nnpu.py"
+        ),
+        "edge": (
+            "the boundary surface here is the view parameter; input degeneracy "
+            "(no positives, single sample) is covered by test_nnpu.py"
+        ),
+    },
+    "test_runner_view_manifest.py": {
+        "basic": (
+            "asserted through the manifest the runner writes, which is the only "
+            "observable of the view binding it records"
+        ),
+        "determ": (
+            "runs are seeded and the assertion is on recorded fields rather than on repeated values"
+        ),
+        "edge": (
+            "the boundary case is the failed run's manifest; the runner's wider "
+            "boundary surface is covered by test_runner.py"
+        ),
+        "param": (
+            "the view parameter's rejection paths are covered by "
+            "test_training_view_routing.py and test_survey_script_view.py"
+        ),
+    },
+    "test_survey_script_view.py": {
+        "basic": (
+            "asserted through resolve_training_view's return value; the CLI's "
+            "end-to-end path is covered by test_survey_script.py"
+        ),
+        "determ": "a pure function of the ledger and a fit signature -- no randomness",
+        "param": (
+            "the flag's rejection paths are the refusal tests here: ts on an "
+            "OS-native method, ts without the interface, ts on the PN oracle"
+        ),
+    },
+    "test_training_view_routing.py": {
+        "determ": ("the router is a pure function of a signature -- no randomness, no seed state"),
+    },
     "test_aggregate_survey_budget_fairness.py": {
         "basic": (
             "budget-family comparability is asserted through the aggregation "

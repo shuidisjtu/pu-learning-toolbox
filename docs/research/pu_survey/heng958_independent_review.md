@@ -41,6 +41,12 @@ checkpoint，详见 [P2.0a 交付记录](p2_0a_delivery.md#7-gpu-smoke)。本节
 
 - 原论文给出 two-sample P/U 设定，类别先验 `pi_p` 在论文中假定已知；因此台账
   `native_sampling_assumption=os`、`prior_semantics=population pi` 与原文一致。
+
+  > **更正（2026-09-23，issue #67）**：本条结论中的 `os` 沿用了当时颠倒的 os/ts 映射。
+  > 本条前句已正确判定论文是 **two-sample**，而 `os` 表示单一训练集（single-training-set）
+  > ——二者相互矛盾。台账 `native_sampling_assumption` 已随之更正为 `ts`。HENG958 的判定
+  > 依据（论文为 two-sample、类别先验 `pi_p` 已知）不受影响，`prior_semantics=population pi`
+  > 仍然成立。
 - 论文 Algorithm 1 在负风险 `r < -beta` 时沿 `-grad(r)` 更新并用 `gamma` 折扣步长。
   本项目 `_nnpu_train_step` 的 correction branch 使用 `-gamma * r`，不是对
   `max(0, r)` 直接反向传播；旧台账中的“候选实现待确认”已过时并已移除。

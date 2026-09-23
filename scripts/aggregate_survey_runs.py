@@ -72,6 +72,7 @@ _REQUIRED_FIELDS = (
     "candidate_runs",
     "generation",
     "adaptation_level",
+    "run_view",
     "seed",
     "training_path",
 )
@@ -125,6 +126,7 @@ def run_spec_from_manifest(manifest: dict, *, seeds: list[int]) -> LeaderboardRu
         dataset=unit["dataset"],
         training_path=manifest["training_path"],
         adaptation_level=manifest["adaptation_level"],
+        run_view=manifest["run_view"],
         split_sha256=representation["split_sha256"],
         representation_sha256=digest(representation),
         max_epochs=fairness["max_epochs"],
