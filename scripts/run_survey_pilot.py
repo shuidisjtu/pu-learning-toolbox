@@ -90,6 +90,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="accept a --class-prior that contradicts the prior a split recorded",
     )
     parser.add_argument("--device", default=None, help="passed through to the unit script")
+    parser.add_argument(
+        "--os-or-ts",
+        choices=("os", "ts"),
+        default=None,
+        help=(
+            "passed through to the unit script (default: each method's ledger view). "
+            "'ts' applies the TS-OS calibration; an explicit value also gates the "
+            "resume check, so runs recorded under the other view stay pending"
+        ),
+    )
     parser.add_argument("--adapter-cache", default=None, help="passed through to the unit script")
     parser.add_argument(
         "--extraction-batch-size", default=None, type=int, help="passed through to the unit script"
@@ -220,6 +230,17 @@ def _missing_priors(
     return sorted(missing)
 
 
+def _expected_view(args: argparse.Namespace) -> str | None:
+    """The view a resumed run must have recorded, when one was requested.
+    ``None`` means "no expectation": the unit script's ledger-derived default is
+    not re-derived here, because the pilot does not read the ledger and guessing
+    wrong would re-run the whole matrix.
+    """
+    if args.os_or_ts is None:
+        return None
+    return f"{args.os_or_ts}-compatible"
+
+
 def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float]) -> bool:
     argv = batch_command(
         batch,
@@ -230,6 +251,7 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
         device=args.device,
         adapter_cache=args.adapter_cache,
         extraction_batch_size=args.extraction_batch_size,
+        os_or_ts=args.os_or_ts,
     )
     label = f"{batch.dataset}/{batch.method}/{batch.training_path} ({batch.mechanism or 'oracle'})"
     print(f"== {label}: {len(batch.covers)} run(s), seeds {list(batch.seeds)}")
@@ -265,7 +287,9 @@ def main(argv: list[str] | None = None) -> int:
     planned = planned_runs(protocol)
 
     if args.dry_run:
-        pending, done = pending_runs(protocol, args.results, splits=splits)
+        pending, done = pending_runs(
+            protocol, args.results, splits=splits, expected_view=_expected_view(args)
+        )
         _print_plan(protocol, pending, done, dims)
         if priors:
             print(f"  class prior: {', '.join(f'{k}={v}' for k, v in sorted(priors.items()))}")
@@ -284,7 +308,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    pending, _ = pending_runs(protocol, args.results, splits=splits)
+    pending, _ = pending_runs(
+        protocol, args.results, splits=splits, expected_view=_expected_view(args)
+    )
     failed = False
     for batch in batches(pending):
         if failed and not args.keep_going:
@@ -294,7 +320,9 @@ def main(argv: list[str] | None = None) -> int:
     # Reported from the records rather than from the loop's own bookkeeping: a
     # batch can succeed and still leave runs behind, and the operator needs the
     # count that the manifests agree with.
-    still_pending, now_done = pending_runs(protocol, args.results, splits=splits)
+    still_pending, now_done = pending_runs(
+        protocol, args.results, splits=splits, expected_view=_expected_view(args)
+    )
     print(
         f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s); "
         f"{len(still_pending)} still pending"

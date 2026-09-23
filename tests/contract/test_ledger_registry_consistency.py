@@ -38,6 +38,7 @@ from pathlib import Path
 import pytest
 
 from pu_toolbox.core.tags import Scenario
+from pu_toolbox.experiment.method_ledger import native_sampling_assumption
 from pu_toolbox.registry import get_metadata, register_all_builtin_methods
 
 _LEDGER_PATH = (
@@ -155,8 +156,7 @@ def test_native_sampling_assumption_matches_registry_scenario(
     recorded the two having drifted into exact opposites, so this pins them.
     """
     for name, entry in ledger_methods.items():
-        declared = _NOTE_OPEN.split(entry["native_sampling_assumption"], maxsplit=1)[0]
-        declared = declared.strip().lower()
+        declared = native_sampling_assumption(entry)
         assert declared in _SAMPLING_SCENARIOS, (
             f"{name}: unexpected native_sampling_assumption {declared!r}"
         )

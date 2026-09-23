@@ -23,6 +23,7 @@ from pu_toolbox.core.validation import validate_label_semantics
 from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
+from .protocols import route_training_view
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
 from .survey_comparison import run_comparison_units
 from .survey_protocol import runner_protocol_context
@@ -36,6 +37,35 @@ def _manifest_c_context(config: dict[str, Any]) -> dict[str, Any]:
     return {
         "c_independent": True,
         "broadcast_c_values": list(config.get("broadcast_c_values", [])),
+    }
+
+
+def _require_view_routable(config: dict[str, Any], trainer, model) -> None:
+    """Refuse a calibrated request some hop in the chain cannot carry.
+
+    Both hops are checked against their own ``fit`` signature: the trainer the
+    config names, and the estimator it will be handed.
+    """
+    if config.get("os_or_ts") != "ts":
+        return
+    for target in (trainer, model):
+        route_training_view({}, inspect.signature(type(target).fit).parameters, "ts", target)
+
+
+def _manifest_view_context(config: dict[str, Any]) -> dict[str, Any]:
+    """Record which training view the run was bound to (protocol §2.3).
+
+    Only ``"ts"`` changes training, so it alone reports the calibrated view.
+    Written on every manifest -- including the rejected ones -- because a
+    refusal that leaves no trace cannot be told apart from a run that was never
+    requested, and the aggregation gates need the value to keep os and ts runs
+    out of the same leaderboard group.  Values match the method ledger's
+    ``run_view`` vocabulary.
+    """
+    calibrated = config.get("os_or_ts") == "ts"
+    return {
+        "run_view": "ts-compatible" if calibrated else "os-compatible",
+        "calibration_applied": calibrated,
     }
 
 
@@ -128,8 +158,10 @@ class ExperimentRunner:
             paired with a ``"pu"`` view, if ``config["trainer"]`` is a class
             rather than an instance, or if the generated pu-val PU view ends up
             with no labeled positive (the pu-val split has no real positive or
-            the labeling rate ``c`` is too low).  Fail loudly instead of
-            silently producing a wrong result.
+            the labeling rate ``c`` is too low), or if ``config["os_or_ts"]``
+            requests the calibrated view and either the trainer or the estimator
+            declares no ``os_or_ts`` fit parameter to carry it.  Fail loudly
+            instead of silently producing a wrong result.
         """
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
@@ -144,6 +176,10 @@ class ExperimentRunner:
         # config is mutated meanwhile, and reading it twice would hand a
         # config that answers differently each time two different trainers.
         trainer = self._trainer()
+        # The view is a property of the run, so an unroutable request is a
+        # configuration mistake rather than a candidate-local failure: refuse it
+        # here instead of letting the retry loop report it once per candidate.
+        _require_view_routable(self.config, trainer, model)
 
         disk_preflight: dict[str, Any] = {}
         comparison: dict[str, Any] = {}
@@ -180,6 +216,7 @@ class ExperimentRunner:
                         "execution_mode": "rejected_versioned_pilot",
                         "formal_eligible": False,
                         "formal_blockers": ["protocol_preflight_failure"],
+                        **_manifest_view_context(self.config),
                         **_comparison_entry(comparison),
                         "generation": {},
                         "selection": {},
@@ -394,6 +431,7 @@ class ExperimentRunner:
                 "seed": self.seed,
                 "split_ref": self.config.get("split_ref", {}),
                 **_manifest_c_context(self.config),
+                **_manifest_view_context(self.config),
                 **_comparison_entry(comparison),
                 "generation": {"train": meta_train, "pu_val": meta_val},
                 "candidate_runs": candidate_runs,
@@ -516,6 +554,7 @@ class ExperimentRunner:
             "seed": self.seed,
             "split_ref": self.config.get("split_ref", {}),
             **_manifest_c_context(self.config),
+            **_manifest_view_context(self.config),
             **_comparison_entry(comparison),
             "generation": {"train": meta_train, "pu_val": meta_val},
             "candidate_runs": candidate_runs,
@@ -599,7 +638,24 @@ class ExperimentRunner:
             train_view.labels,
             class_prior=self.class_prior,
             val_pu=val_pu,
+            **self._view_kwargs(trainer),
         )
+
+    def _view_kwargs(self, trainer) -> dict:
+        """Route the requested training view, never dropping it silently.
+
+        The probe runs on the trainer that will actually execute: the checkpoint
+        path replaces the injected trainer wholesale (see ``_captures_checkpoints``),
+        so only that object can answer whether the view is routable.
+        """
+        kwargs: dict = {}
+        route_training_view(
+            kwargs,
+            inspect.signature(type(trainer).fit).parameters,
+            self.config.get("os_or_ts"),
+            trainer,
+        )
+        return kwargs
 
     def _write_manifest(self, manifest: dict) -> None:
         if self.manifest_path:

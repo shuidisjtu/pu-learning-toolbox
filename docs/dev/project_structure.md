@@ -168,6 +168,7 @@ pu_toolbox/
     survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
     pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算
+    method_ledger.py                      <<< 新文件,补注释
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -225,6 +226,7 @@ tests/
       test_llsvm.py                     # LLSVM 特有逻辑(可分离合成训练、calibration 防全正、早停与显式先验路径)
       test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
       test_nnpu_gpu.py                  # nnPU CNN encoder GPU 执行级测试(无 CUDA 自动 skip)
+      test_nnpu_ts_view.py              # <<< 新文件,补注释
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -332,6 +334,11 @@ tests/
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
       test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
+      test_leaderboard_run_view.py      # <<< 新文件,补注释
+      test_method_ledger.py             # <<< 新文件,补注释
+      test_runner_view_manifest.py      # <<< 新文件,补注释
+      test_survey_script_view.py        # <<< 新文件,补注释
+      test_training_view_routing.py     # <<< 新文件,补注释
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）

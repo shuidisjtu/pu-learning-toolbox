@@ -265,8 +265,8 @@
       },
       "implementation_status": "NATIVE, backend TORCH（支持 GPU），接口按 BasePUClassifier 契约（nnpu.md:340）",
       "native_sampling_assumption": "ts（两样本：可靠正例 P + 边缘分布无标签 U；X_p~p_p(x)、X_u~p(x)，nnpu.md:13/38-39, registry:132-133）",
-      "run_view": "os-compatible",
-      "calibration_applied": false,
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
       "prior_semantics": "population π（必填；本文不负责估计类别先验，nnpu.md:14/26-27/44, registry:134）",
       "adaptation_level": "benchmark-adapted（clean-room 重写；跨框架（Chainer→PyTorch）而非逐行适配，nnpu.md:339-340）",
       "modality_backbone": {
@@ -287,7 +287,8 @@
       "uncertainty": [
         "先验必须外部提供；训练时必须保持 Algorithm 1 的分支梯度，不能对 max(0,r) 直接反传播（nnpu.md:341）",
         "官方实现为 Chainer，本项目为原生 PyTorch clean-room 实现；实验数值只能在共享协议下对照，不能宣称逐行复现",
-        "原生 case-control（ts）；TS-OS 校准尚未接入训练执行链（run_view=os-compatible、calibration_applied=false），P2 前须确认训练接口允许替换未标记损失输入（协议 §2.3）"
+        "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts，逐 mini-batch 执行 D_U ∪ D_P）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
+        "ts 视图路径尚未经合作者复核，manifest 会挂 ts_view_collaborator_review 阻断正式资格（协议 §2.3）"
       ],
       "filler": "HENG958",
       "owner_review": {
