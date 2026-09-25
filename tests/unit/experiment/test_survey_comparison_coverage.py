@@ -179,7 +179,7 @@ def test_edge_typoed_token_is_caught_either_way(survey, comparison):
 def test_basic_shipped_file_binds_the_pinned_protocol_and_excludes_preintegration(survey):
     assert COMPARISON_PATH.is_file()
     shipped = load_comparison_protocol(survey=survey)
-    assert shipped["comparison_version"] == "survey-comparison-v2"
+    assert shipped["comparison_version"] == "survey-comparison-v3"
     # Grad-PU and PUET are not in the survey matrix, so they must not be pre-registered.
     blob = json.dumps(shipped).lower()
     for absent in ("grad_pu", "gradpu", "puet"):

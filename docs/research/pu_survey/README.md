@@ -4,11 +4,13 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 
 **机器真相源**（数值/状态以它们为准，文档只作解释）：
 
-- `pu_toolbox/experiment/survey_protocol_v1.json` — 执行协议，当前 `survey-v1.2`，摘要 `c15b0c9e0677729d749c79af2d563849d5b70be395e65fd3ea2b2cfa0eaff529`
-- `pu_toolbox/experiment/survey_comparison_v2.json` — 外部对照矩阵，当前 `survey-comparison-v2`
-  （`v1` 原样留档为历史版本；修订理由见 `survey_execution_plan.md` 决策 D10）
+- `pu_toolbox/experiment/survey_protocol_v1.json` — 执行协议，当前 `survey-v1.2`，摘要 `c019a87d9bc079b5d97cb35d40f5a66f252340525c47fd8b10a3a112b8b4a50a`
+- `pu_toolbox/experiment/survey_comparison_v3.json` — 外部对照矩阵，当前 `survey-comparison-v3`
+  （`v1`/`v2` 原样留档为历史版本；修订理由见 `survey_execution_plan.md` 决策 D10、D12）
 
-**签署状态速览**：P2.0a 已签署（`accepted`）；P2.0b、P2.0c 未签署（`pending_collaborator_review`），见各自复核/交付记录。
+**签署状态速览**：P2.0a 已签署（`accepted`）。P2.0b、P2.0c 的合作者签署**仍未获得**
+（`pending_collaborator_review`）；两者由 shuidisjtu 于 2026-09-25 基于单方技术验收**放行**
+（已从协议 `formal_blockers` 移除，见决策 D12）。放行不等于对方已复核。
 
 ## 权威源
 

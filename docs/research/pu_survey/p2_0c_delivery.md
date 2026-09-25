@@ -6,14 +6,15 @@ shuidisjtu 自审；本轮来源复核后，36 个锚点与 7 条行级映射回
 正式独立复核待合作者确认，具体判定、来源与摘要见 [复核包](p2_0c_review.md)。
 本交付**不产生实验结果**，也不证明任何算法复现成功——它冻结的是结果出来之后如何进行正确性审计。
 上游要求见 [执行计划](survey_execution_plan.md) P2.0c；对照矩阵的机器可读真相源是
-`pu_toolbox/experiment/survey_comparison_v2.json`，本文件解释其中的判读与边界，不另行维护一份参数表。
+`pu_toolbox/experiment/survey_comparison_v3.json`，本文件解释其中的判读与边界，不另行维护一份参数表。
 （本文件写于 `v1` 交付时；`v1 → v2` 的登记修订见 [执行计划](survey_execution_plan.md) 决策 D10，
-`v1` 原样留档。）
+`v2 → v3` 的 IMDB 预处理差异修订见决策 D12；`v1`、`v2` 均原样留档。）
 
 ## 1. 交付物与程序权威
 
 - `pu_toolbox/experiment/survey_comparison_v1.json`：来源、锚点、结果单元映射、矛盾记录、判定规则
-  （交付时的文件名；2026-09-23 重发为 `survey_comparison_v2.json`，见决策 D10）。
+  （交付时的文件名；2026-09-23 重发为 `survey_comparison_v2.json`，见决策 D10；
+  2026-09-25 再重发为 `survey_comparison_v3.json`，见决策 D12）。
 - `pu_toolbox/experiment/survey_comparison.py`：loader / digest / resolver / 覆盖校验 / 数值裁决 / 聚合报告。
 - `tests/unit/experiment/` 下三个测试文件：载入与裁决、覆盖、报告契约。
 

@@ -3,6 +3,10 @@
 复核对象：`pu_toolbox/experiment/survey_comparison_v2.json`（`survey-comparison-v2`，摘要
 `764ef03a…5b4095b`）。交付说明见 [交付文档](p2_0c_delivery.md)；矩阵绑定的执行协议为 `survey-v1.2`。
 
+> **本包已为历史记录（2026-09-25）。** 当前对照矩阵为 `survey_comparison_v3.json`
+> （`survey-comparison-v3`，决策 D12：移除不成立的 IMDB 预处理差异），执行协议摘要亦已变更。
+> 本文件记录的复核结论针对 `v2`，原样留档；其中未获合作者签署的事实不因后续放行而改变。
+
 | 时点 | comparison 摘要 | 说明 |
 |---|---|---|
 | C0 | `060c6cd9…b6335bc` | 合并入 main 时，全部锚点与映射 `pending_review` |

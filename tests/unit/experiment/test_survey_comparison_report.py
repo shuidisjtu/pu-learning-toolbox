@@ -126,7 +126,7 @@ def _numeric_comparison(survey, **anchor_overrides):
 
 def test_basic_context_records_version_digest_and_mapping(comparison):
     context = comparison_context(_identity(), comparison=comparison)
-    assert context["comparison_version"] == "survey-comparison-v2"
+    assert context["comparison_version"] == "survey-comparison-v3"
     assert context["comparison_sha256"] == comparison_digest(comparison)
     assert context["mapping_id"]
     # nnPU/IMDB at c=0.1 is covered by PU-Bench, but only in magnitude and trend.
