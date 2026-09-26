@@ -138,18 +138,13 @@ def _summarise(runs: tuple[PilotRun, ...]) -> str:
     )
 
 
-def _print_disk(protocol: dict, runs: tuple[PilotRun, ...], dims: dict[str, int]) -> None:
-    """Checkpoint storage for ``runs``.
+def _print_disk(estimate: dict) -> None:
+    """Checkpoint storage the whole planned set implies.
 
-    Estimated over the whole planned set, not only the pending part: nothing
-    deletes checkpoints, so the runs already on disk are still occupying it and
+    The estimate is taken over everything planned, not only the pending part:
+    nothing deletes checkpoints, so the runs already on disk still occupy it and
     a figure that excluded them would understate what the host must hold.
     """
-    try:
-        estimate = estimate_checkpoint_bytes(protocol, input_dims=dims, runs=runs)
-    except ValueError as exc:
-        print(f"  disk:      cannot be estimated: {exc}", file=sys.stderr)
-        return
     writing = sum(
         entry["runs"] for entry in estimate["per_unit_bytes"].values() if entry["bytes_per_run"]
     )
@@ -169,19 +164,36 @@ def _print_disk(protocol: dict, runs: tuple[PilotRun, ...], dims: dict[str, int]
     )
     for dataset, size in estimate["per_dataset_bytes"].items():
         print(f"    {dataset}: {size / _GIB:.1f} GiB")
+    # Which storage model produced those figures.  The adapter rows save a
+    # trainable head rather than the ResNet they read features from, and saying
+    # so here is what keeps the reading of the total from being mistaken for a
+    # full network per row.
+    by_profile: dict[str, int] = {}
+    for entry in estimate["per_unit_bytes"].values():
+        if entry["bytes_per_run"]:
+            by_profile[entry["profile"]] = by_profile.get(entry["profile"], 0) + 1
+    if by_profile:
+        listed = ", ".join(
+            f"{count} unit(s) {name}"
+            for name, count in sorted(by_profile.items(), key=lambda item: (-item[1], item[0]))
+        )
+        print(f"    profiles:  {listed}")
+    print(
+        "    checkpoint storage only; data, logs, manifests, scratch files and the "
+        "host's own headroom are not included"
+    )
 
 
 def _print_plan(
-    protocol: dict,
     pending: tuple[PilotRun, ...],
     done: tuple[PilotRun, ...],
-    dims: dict[str, int],
+    estimate: dict,
 ) -> None:
     print(f"planned: {len(pending) + len(done)} run(s)")
     print(f"  completed: {len(done)} ({_summarise(done)})")
     print(f"  pending:   {len(pending)} ({_summarise(pending)})")
     print(f"  batches:   {len(batches(pending))} still to run")
-    _print_disk(protocol, planned_runs(protocol), dims)
+    _print_disk(estimate)
 
 
 def _resolve_priors(
@@ -346,10 +358,19 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    # Both the dry run and the batch loop report this figure, and a row it
+    # cannot size is a configuration error rather than a batch.  Refusing here
+    # costs nothing, while meeting it at whichever batch happens to reach that
+    # unit would mean paying for every batch queued ahead of it.
+    try:
+        estimate = estimate_checkpoint_bytes(protocol, input_dims=dims, runs=planned)
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     if args.dry_run:
         pending, done = pending_runs(protocol, args.results, splits=splits, expected_views=views)
-        _print_plan(protocol, pending, done, dims)
+        _print_plan(pending, done, estimate)
         if priors:
             print(f"  class prior: {', '.join(f'{k}={v}' for k, v in sorted(priors.items()))}")
         missing = _missing_priors(protocol, planned, priors)

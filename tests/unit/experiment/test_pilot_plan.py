@@ -366,6 +366,7 @@ def test_edge_a_unit_that_writes_no_checkpoints_is_recorded_as_zero():
     estimate = _estimate(_protocol())
     assert estimate["per_unit_bytes"]["spambase/upu/native_2d"] == {
         "runs": 6,
+        "profile": "no_epoch_budget",
         "bytes_per_run": 0,
         "guard_bytes_per_run": 0,
     }

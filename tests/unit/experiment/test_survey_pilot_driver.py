@@ -132,7 +132,16 @@ def test_basic_dry_run_reports_the_plan_without_starting_a_batch(
     printed = capsys.readouterr().out
     assert "planned: 645 run(s)" in printed
     assert "pending:   645" in printed
-    assert "peak per run" in printed
+    # What a host is sized against, and what the figure leaves out.  The peak is
+    # the native CNN's: the adapter rows save a trainable head, and pricing them
+    # as the ResNet they read features from is what made this four times too big.
+    assert "324.5 GiB for the whole pilot" in printed
+    assert "8.79 GiB (cifar10/nnpu/native_cnn)" in printed
+    assert "17.58 GiB" in printed
+    assert "adapter_trainable_head" in printed
+    assert "data, logs, manifests, scratch files" in printed
+    assert "1280.6" not in printed
+    assert "35.16" not in printed
 
 
 # --- parameter errors and determinism ----------------------------------------
@@ -285,6 +294,48 @@ def test_param_an_explicit_ts_is_refused_before_any_batch(
     err = capsys.readouterr().err
     assert err.startswith("error: ")
     assert reason in err
+    assert "Traceback" not in err
+
+
+def _unsized_protocol() -> dict:
+    """A matrix whose only runnable row names an architecture no profile covers.
+
+    ``native_cnn`` saves the ResNet itself, so the constant is evidence for the
+    backbone it was measured on and nothing else; naming a different one must
+    stop the pilot rather than inherit it.
+    """
+    protocol = _resume_protocol("nnpu")
+    protocol["execution_units"][0].update(
+        {"training_path": "native_cnn", "backbone": "resnet34_end_to_end"}
+    )
+    return protocol
+
+
+@pytest.mark.parametrize("dry_run", [True, False], ids=["dry-run", "real-run"])
+def test_param_an_unsized_row_stops_the_pilot_before_the_first_batch(
+    driver, unit_calls, tmp_path, capsys, monkeypatch, dry_run
+):
+    """A row the estimator cannot size is a configuration error, not a batch.
+
+    The unit script refuses it too, but only on reaching that unit -- by which
+    time every batch queued ahead of it has run.  Both paths report the same
+    figure, so both have to refuse before the first subprocess.
+    """
+    monkeypatch.setattr(driver, "load_protocol", _unsized_protocol)
+    splits = _splits(tmp_path, prior=0.39, datasets=("spambase",))
+    argv = ["--results", str(tmp_path / "out"), "--splits", str(splits), *_ALL_PRIORS]
+    if dry_run:
+        argv.append("--dry-run")
+
+    code = driver.main(argv)
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    # The message has to name enough for a reader to find the missing profile.
+    for field in ("spambase", "nnpu", "native_cnn", "resnet34_end_to_end"):
+        assert field in err
     assert "Traceback" not in err
 
 

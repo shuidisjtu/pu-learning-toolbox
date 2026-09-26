@@ -39,7 +39,7 @@ from .resources import (
     DEFAULT_CHECKPOINT_ATTEMPTS,
     checkpoint_disk_requirement,
 )
-from .survey_protocol import unit_checkpoint_bytes
+from .survey_protocol import unit_checkpoint_bytes, unit_checkpoint_profile
 from .training_views import validated_run_view
 
 #: The method every oracle unit runs under.  The run script substitutes it for
@@ -544,13 +544,14 @@ def estimate_checkpoint_bytes(
     the second attempt too, which is why the reserve exists.
 
     Uses the same two functions the guard uses, so a deficit this predicts is
-    the deficit that guard would refuse the run for.  The per-component figure
-    is a lower bound -- it ignores filesystem overhead and any candidate that
-    changes the network size -- and the candidate count comes from the
-    protocol's pool unless overridden.  For image rows the figure is instead an
-    upper bound: those rows train an adapter head rather than the ResNet their
-    row names, and the per-component constant does not distinguish them, so the
-    estimate overstates what they actually write.
+    the deficit that guard would refuse the run for, and the candidate count
+    comes from the protocol's pool unless overridden.  Which storage model
+    applies is decided per row -- by training path, backbone and model family
+    together -- so a row that saves a trainable head is not priced as the ResNet
+    it reads features from.  Each unit's figure carries the profile that decided
+    it, and the profile is what says which way that figure bounds: the MLP
+    formula is a lower bound on what a component costs, while the two image
+    constants are conservative upper bounds rounded up from real serialisations.
 
     Cost is per *unit*: mechanism, ``c`` and seed change how many times a unit
     runs, never how much one run weighs.
@@ -564,8 +565,12 @@ def estimate_checkpoint_bytes(
         label = _unit_label(run)
         if label not in per_unit:
             unit = _unit_of(protocol, run)
+            dimension = _input_dim(input_dims, unit, run.method)
             per_unit[label] = {
                 "runs": 0,
+                # Named next to the figure so a report can say which storage
+                # model produced it rather than leaving the reader to infer it.
+                "profile": unit_checkpoint_profile(protocol, unit, input_dim=dimension),
                 "bytes_per_run": _run_checkpoint_bytes(
                     protocol, unit, run.method, input_dims, candidate_count, attempts=1
                 ),
