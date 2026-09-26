@@ -15,6 +15,7 @@ much space the host happens to have.
 """
 
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -25,6 +26,7 @@ from torch import nn
 
 from pu_toolbox.experiment import resources
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
+from pu_toolbox.experiment.pilot_plan import _declared_components
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.survey_execution import assemble_model
 from pu_toolbox.experiment.survey_protocol import (
@@ -215,6 +217,45 @@ def test_basic_technical_smoke_insufficient_disk_warns_and_trains(tmp_path, monk
         )
     assert manifest["resources"]["checkpoint_disk_preflight"]["ready"] is False
     assert manifest["failures"] == []
+
+
+@pytest.mark.parametrize(
+    ("free_gib", "ready"),
+    [(40, True), (20, True), (18, True), (17, False)],
+)
+def test_param_the_guard_admits_a_host_the_inflated_estimate_refused(free_gib, ready):
+    """The threshold is the native CNN's own share, not the adapter's inflated one.
+
+    A host in between used to be refused: the adapter row was priced as a full
+    ResNet even though it saves a trainable head, so it outbid the one row that
+    really does train one.  The boundary moved, but it did not disappear -- a
+    host under the corrected requirement is still refused.
+    """
+    protocol = load_protocol()
+    row = resolve_unit(protocol, "cifar10", "nnpu", "native_cnn")
+    required = resources.checkpoint_disk_requirement(
+        bytes_per_component=unit_checkpoint_bytes(protocol, row, input_dim=512),
+        epochs=protocol["budgets"][row["budget"]]["epochs"],
+        components=len(_declared_components("nnpu")),
+        candidates=len(protocol["candidate_pool"]),
+        attempts=resources.DEFAULT_CHECKPOINT_ATTEMPTS,
+    )
+
+    payload = resources.disk_space_preflight(
+        required_bytes=required, directory=Path.cwd(), free_bytes=free_gib * 1024**3
+    )
+    assert payload["ready"] is ready
+
+    # What the adapter row used to be charged instead: the same ResNet constant,
+    # for a component count of two and so twice this figure.
+    inflated = resources.checkpoint_disk_requirement(
+        bytes_per_component=RESNET18_COMPONENT_BYTES,
+        epochs=protocol["budgets"][row["budget"]]["epochs"],
+        components=2,
+        candidates=len(protocol["candidate_pool"]),
+        attempts=resources.DEFAULT_CHECKPOINT_ATTEMPTS,
+    )
+    assert inflated > 35 * 1024**3 > required
 
 
 def test_edge_unknown_component_size_warns_instead_of_refusing(tmp_path, monkeypatch):

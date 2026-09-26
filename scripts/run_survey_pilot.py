@@ -164,6 +164,24 @@ def _print_disk(estimate: dict) -> None:
     )
     for dataset, size in estimate["per_dataset_bytes"].items():
         print(f"    {dataset}: {size / _GIB:.1f} GiB")
+    # Which storage model produced those figures.  The adapter rows save a
+    # trainable head rather than the ResNet they read features from, and saying
+    # so here is what keeps the reading of the total from being mistaken for a
+    # full network per row.
+    by_profile: dict[str, int] = {}
+    for entry in estimate["per_unit_bytes"].values():
+        if entry["bytes_per_run"]:
+            by_profile[entry["profile"]] = by_profile.get(entry["profile"], 0) + 1
+    if by_profile:
+        listed = ", ".join(
+            f"{count} unit(s) {name}"
+            for name, count in sorted(by_profile.items(), key=lambda item: (-item[1], item[0]))
+        )
+        print(f"    profiles:  {listed}")
+    print(
+        "    checkpoint storage only; data, logs, manifests, scratch files and the "
+        "host's own headroom are not included"
+    )
 
 
 def _print_plan(
