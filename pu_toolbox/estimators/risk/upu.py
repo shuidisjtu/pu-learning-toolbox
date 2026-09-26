@@ -82,6 +82,9 @@ class UPUClassifier(BasePUClassifier):
 
         J(α, b) = −(π/n_P) Σ_P g(x) + (1/n_U) Σ_U ℓ(−g(x)) + (λ/2)‖α‖²
 
+    (OS form; see :meth:`fit` ``os_or_ts="ts"`` for the calibrated
+    denominator ``n_P + n_U``.)
+
     where the margin loss ℓ is chosen so that ℓ̃(z) = ℓ(z)−ℓ(−z) = −z,
     guaranteeing convexity of the overall objective.
 
@@ -110,9 +113,10 @@ class UPUClassifier(BasePUClassifier):
         Gaussian kernel width σ.  Required when ``basis="rbf"``.
     n_centers : int or None, default None
         Number of RBF centers to subsample from the candidate pool of the
-        current training view (see :meth:`fit`).  Default: ``min(200, n_U)``
-        — the count is derived from the pre-calibration ``n_U`` and so does
-        not depend on the view.  Ignored for ``basis="linear"``.
+        current training view (see :meth:`fit`).  Default: ``min(200, n_U)``.
+        The effective count is capped at the pre-calibration ``n_U`` for that
+        default and for an explicit value alike, so the count never depends
+        on the view.  Ignored for ``basis="linear"``.
     fit_intercept : bool, default True
         Whether to fit the intercept *b*.  Setting to ``False`` yields
         the simplified model g(x) = αᵀ φ(x).
@@ -202,9 +206,11 @@ class UPUClassifier(BasePUClassifier):
             Training data view (survey protocol §2.3).  ``"ts"`` applies the
             TS-OS calibration to this estimator's unlabeled risk term: the
             empirical unlabeled distribution becomes ``D_U ∪ D_P``, so the
-            unlabeled average runs over every training row.  The positive term,
-            the class prior and the RBF centre *count* are unchanged; the RBF
-            centre *pool* follows the view.
+            unlabeled average runs over every training row.  The positive term
+            and the class prior are unchanged; the RBF centre *pool* follows
+            the view, while the centre *count* is capped at the
+            pre-calibration ``n_U`` under both views — so model capacity
+            does not.
 
             Unlike ``nnpu`` this is not mutually exclusive with
             ``sample_weight``: uPU ignores sample weights entirely, so the
@@ -273,7 +279,15 @@ class UPUClassifier(BasePUClassifier):
                 raise ValueError(
                     f"kernel_width must be > 0 for basis='rbf'; got {self.kernel_width}."
                 )
-            n_centers_val = self.n_centers if self.n_centers is not None else min(200, n_U)
+            # The count is capped at the pre-calibration n_U for the derived
+            # default and for an explicit n_centers alike -- never at the pool
+            # size: the pool follows the view, so a count derived from it would
+            # make model capacity a function of the training view, the exact
+            # confound the TS-OS calibration exists to avoid.  (Under OS the
+            # pool *is* X_U, so this is the same cap subsample_centers already
+            # applied there -- the OS path stays bit-identical.)
+            requested_centers = self.n_centers if self.n_centers is not None else 200
+            n_centers_val = min(requested_centers, n_U)
             centers = subsample_centers(X_loss_unlabeled, n_centers_val, rng)
             n_basis = centers.shape[0]
             kw = self.kernel_width

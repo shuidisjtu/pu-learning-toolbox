@@ -15,6 +15,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from pu_toolbox.estimators.risk import upu as upu_module
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 
 pytestmark = pytest.mark.unit
@@ -161,12 +162,44 @@ class TestSolverPoolAndDenominator:
 
 
 class TestRBFCentrePool:
-    def test_basic_ts_rbf_centers_come_from_the_union_pool(self):
+    def test_basic_ts_rbf_centers_come_from_the_union_pool(self, monkeypatch):
+        """ts 的候选池是整份训练集、OS 是 X_U：直接观测 subsample_centers 收到的池。
+
+        池身份不依赖「某次抽样恰好抽到正例」——那是单次 RNG 抽取的性质，换数据或
+        seed 即静默失效，故改为对池参数本身取证据。中心数上限为校准前 n_U（=3）
+        < 并集行数（=5），「抽满全池」已不可能，两视图的中心数因此都是 3。
+        """
         X, y_pu = _rbf_data()
-        clf = UPUClassifier(
-            **_squared_kwargs(basis="rbf", kernel_width=1.0, n_centers=X.shape[0])
-        ).fit(X, y_pu, os_or_ts="ts")
-        np.testing.assert_allclose(np.sort(clf._centers_.ravel()), np.sort(X.ravel()))
+        n_u = int((y_pu == 0).sum())
+        seen: dict = {}
+        original = upu_module.subsample_centers
+
+        def spy(X_pool, n_centers, rng):
+            seen["pool"] = np.array(X_pool, copy=True)
+            seen["n_centers"] = n_centers
+            return original(X_pool, n_centers, rng)
+
+        monkeypatch.setattr(upu_module, "subsample_centers", spy)
+        kwargs = _squared_kwargs(basis="rbf", kernel_width=1.0, n_centers=X.shape[0])
+
+        # 行集合（无序）比较：池身份是「哪些行」而非「行的排列」，故不钉住
+        # X_loss_unlabeled = X 这一实现细节（等价的 X_U/X_P 拼接亦应通过）。
+        def rows(a):
+            return {tuple(row) for row in np.asarray(a)}
+
+        ts_clf = UPUClassifier(**kwargs).fit(X, y_pu, os_or_ts="ts")
+        assert rows(seen["pool"]) == rows(X)
+        assert seen["n_centers"] == n_u
+
+        os_clf = UPUClassifier(**kwargs).fit(X, y_pu, os_or_ts="os")
+        assert rows(seen["pool"]) == rows(X[y_pu == 0])
+        assert seen["n_centers"] == n_u
+
+        # 观测到的池与模型实际持有的中心对齐（两种视图的抽取都落在各自池内）。
+        assert ts_clf._centers_.shape[0] == n_u
+        assert os_clf._centers_.shape[0] == n_u
+        assert set(ts_clf._centers_.ravel()) <= set(X.ravel())
+        assert set(os_clf._centers_.ravel()) <= set(X[y_pu == 0].ravel())
 
     def test_basic_os_rbf_centers_come_from_the_unlabeled_pool_only(self):
         X, y_pu = _rbf_data()
@@ -184,3 +217,21 @@ class TestRBFCentrePool:
         assert os_clf._centers_.shape == ts_clf._centers_.shape
         assert os_clf._n_basis_ == ts_clf._n_basis_
         assert os_clf._n_basis_ == int((y_pu == 0).sum())
+
+    def test_basic_explicit_center_count_is_view_independent(self):
+        """显式 n_centers 与默认一样按校准前的 n_U 截断：两视图中心数与 _n_basis_ 一致。
+
+        n_centers=4 跨在 n_U=3 与 n_total=5 之间，是刻意选的：若计数改由候选池
+        推导，ts 池（并集 5 行）会给 4 个中心而 os 只有 3 个，本用例即失败；
+        截断到校准前 n_U 后两个视图都是 3。n_centers=2 < n_U 用于证明该截断不是
+        「一律取 n_U」——显式值仍被尊重。
+        """
+        X, y_pu = _rbf_data()
+        for n_centers, expected in ((4, 3), (2, 2)):
+            kwargs = _squared_kwargs(basis="rbf", kernel_width=1.0, n_centers=n_centers)
+            os_clf = UPUClassifier(**kwargs).fit(X, y_pu, os_or_ts="os")
+            ts_clf = UPUClassifier(**kwargs).fit(X, y_pu, os_or_ts="ts")
+            assert os_clf._centers_.shape[0] == expected
+            assert ts_clf._centers_.shape[0] == expected
+            assert os_clf._n_basis_ == expected
+            assert ts_clf._n_basis_ == expected
