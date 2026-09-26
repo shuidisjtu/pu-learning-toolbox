@@ -81,7 +81,8 @@ def subsample_centers(
     Parameters
     ----------
     X_pool : np.ndarray of shape (n_samples, n_features)
-        Candidate centre pool (typically U samples).
+        Candidate centre pool supplied by the caller.  Which rows belong in it
+        is the caller's concern; this function is pool-agnostic.
     n_centers : int
         Desired number of centres.  Capped at ``len(X_pool)``.
     rng : np.random.RandomState
@@ -107,22 +108,29 @@ def resolve_basis_fn(
 ) -> tuple[callable, int, np.ndarray | None]:
     """Resolve basis-function callable and metadata from config.
 
-    Single source of truth for the ``basis=`` dispatch logic shared by
-    ``UPUClassifier``, ``PNUClassifier``, and future risk-estimation
-    classifiers.
+    Single source of truth for the ``basis=`` dispatch logic of
+    ``PNUClassifier``.  ``UPUClassifier`` does **not** route through here:
+    it builds its basis inline, because it must cap its centre count at a
+    value this function cannot know (see its :meth:`fit`).
 
     Parameters
     ----------
     basis : {"linear", "rbf"}
         Basis type.
     X_pool : np.ndarray of shape (n_samples, n_features)
-        Pool for RBF centre subsampling (typically U samples).  Ignored
-        for ``basis="linear"``.
+        Candidate centre pool supplied by the caller.  Which rows belong in it
+        is the caller's concern.  Ignored for ``basis="linear"``.
     kernel_width : float or None
         Required when ``basis="rbf"``; must be > 0.
     n_centers : int or None
-        Number of RBF centres.  Default: ``min(200, len(X_pool))``.
-        Ignored for ``basis="linear"``.  Must be > 0 if given.
+        Number of RBF centres.  Default: ``min(200, len(X_pool))`` — i.e. the
+        default count is *derived from the pool size*, so it varies with it.
+        A caller whose pool varies between calls therefore gets a varying
+        centre count, and passing an explicit value does not fix that on its
+        own: it is still capped at ``len(X_pool)`` below.  Such a caller must
+        pass a value it has already capped itself — ``UPUClassifier.fit`` does
+        this for the survey training-view case.  Ignored for
+        ``basis="linear"``.  Must be > 0 if given.
     rng : np.random.RandomState
         Seeded random state for centre subsampling.
 

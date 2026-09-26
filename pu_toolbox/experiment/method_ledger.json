@@ -29,8 +29,8 @@
       },
       "implementation_status": "NATIVE, backend NUMPY; C-DH SLSQP / C-LL L-BFGS / Squared 闭式解 (upu.md:493)",
       "native_sampling_assumption": "ts",
-      "run_view": "os-compatible",
-      "calibration_applied": false,
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
       "prior_semantics": "population π（requires_class_prior=True；训练时需要 π=p(y=1)，upu.md:19/68, registry:115）",
       "adaptation_level": "benchmark-adapted（重写：官方 pywsl 仅提供 Squared Loss 闭式解，upu.md:496）",
       "modality_backbone": {
@@ -51,7 +51,8 @@
       "uncertainty": [
         "API 默认 loss=\"squared\"（upu.py:93）与方法卡推荐变体 C-DH（double hinge，upu.md:15）不一致，pilot 候选池需明确 loss 选择",
         "卡末（upu.md:460）明确不要把后起 nnPU 的 non-negative correction 视为本文目标",
-        "原生 case-control（ts）；TS-OS 校准尚未接入训练执行链（run_view=os-compatible、calibration_applied=false），P2 前须确认训练接口允许替换未标记损失输入（协议 §2.3）"
+        "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts；全量求解下把承担无标签风险角色的集合换成 D_U ∪ D_P，RBF 中心候选池跟随视图、中心数量不变）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
+        "ts 视图路径尚未经合作者复核，manifest 会挂 ts_view_collaborator_review 阻断正式资格（协议 §2.3）"
       ]
     },
     "kldce": {

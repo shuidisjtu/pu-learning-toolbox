@@ -82,6 +82,9 @@ class UPUClassifier(BasePUClassifier):
 
         J(α, b) = −(π/n_P) Σ_P g(x) + (1/n_U) Σ_U ℓ(−g(x)) + (λ/2)‖α‖²
 
+    (OS form; see :meth:`fit` ``os_or_ts="ts"`` for the calibrated
+    denominator ``n_P + n_U``.)
+
     where the margin loss ℓ is chosen so that ℓ̃(z) = ℓ(z)−ℓ(−z) = −z,
     guaranteeing convexity of the overall objective.
 
@@ -104,12 +107,16 @@ class UPUClassifier(BasePUClassifier):
         *b* is never regularised (paper convention).
     basis : {"linear", "rbf"}, default "linear"
         Basis function type.  ``"linear"`` → φ(x) = x.  ``"rbf"`` →
-        Gaussian kernel with *n_centers* subsampled from unlabeled data.
+        Gaussian kernel with *n_centers* subsampled from the candidate pool
+        of the current training view.
     kernel_width : float or None, default None
         Gaussian kernel width σ.  Required when ``basis="rbf"``.
     n_centers : int or None, default None
-        Number of RBF centers to subsample from unlabeled data.
-        Default: ``min(200, n_U)``.  Ignored for ``basis="linear"``.
+        Number of RBF centers to subsample from the candidate pool of the
+        current training view (see :meth:`fit`).  Default: ``min(200, n_U)``.
+        The effective count is capped at the pre-calibration ``n_U`` for that
+        default and for an explicit value alike, so the count never depends
+        on the view.  Ignored for ``basis="linear"``.
     fit_intercept : bool, default True
         Whether to fit the intercept *b*.  Setting to ``False`` yields
         the simplified model g(x) = αᵀ φ(x).
@@ -181,6 +188,7 @@ class UPUClassifier(BasePUClassifier):
         *,
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
+        os_or_ts: str = "os",
     ) -> UPUClassifier:
         """Fit the uPU classifier.
 
@@ -194,6 +202,21 @@ class UPUClassifier(BasePUClassifier):
             Override the constructor's ``class_prior``.  Must be in (0, 1).
         sample_weight : np.ndarray, optional
             Accepted for API compatibility; currently ignored.
+        os_or_ts : {"os", "ts"}, default "os"
+            Training data view (survey protocol §2.3).  ``"ts"`` applies the
+            TS-OS calibration to this estimator's unlabeled risk term: the
+            empirical unlabeled distribution becomes ``D_U ∪ D_P``, so the
+            unlabeled average runs over every training row.  The positive term
+            and the class prior are unchanged; the RBF centre *pool* follows
+            the view, while the centre *count* is capped at the
+            pre-calibration ``n_U`` under both views — so model capacity
+            does not.
+
+            Unlike ``nnpu`` this is not mutually exclusive with
+            ``sample_weight``: uPU ignores sample weights entirely, so the
+            union introduces no row without a defined weight.  The estimator
+            has no validation or test entry point either, so nothing else has
+            to stay on the OS view.
 
         Returns
         -------
@@ -218,6 +241,8 @@ class UPUClassifier(BasePUClassifier):
             raise ValueError(f"reg_lambda must be > 0; got {self.reg_lambda}.")
         if self.loss not in ("double_hinge", "logistic", "squared"):
             raise ValueError(f"Unknown loss {self.loss!r}.")
+        if os_or_ts not in {"os", "ts"}:
+            raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
 
         # ── Split P / U ──────────────────────────────────────────────
         mask_P = y_pu == 1
@@ -234,6 +259,16 @@ class UPUClassifier(BasePUClassifier):
 
         rng = np.random.RandomState(self.random_state)
 
+        # ── TS-OS calibration (protocol §2.3) ─────────────────────────
+        # The unlabeled-risk role is carried by X_U under the OS view and by the
+        # whole training set under the calibrated (ts) view: the labeled
+        # positives join D_U, exactly as case-control sampling puts them back.
+        # Only this set and its cardinality change -- the positive term, the
+        # class prior and the RBF centre *count* do not.
+        calibrated = os_or_ts == "ts"
+        X_loss_unlabeled = X if calibrated else X_U
+        n_loss_unlabeled = X_loss_unlabeled.shape[0]
+
         # ── Build basis ───────────────────────────────────────────────
         if self.basis == "linear":
             _phi = build_linear_basis
@@ -244,8 +279,16 @@ class UPUClassifier(BasePUClassifier):
                 raise ValueError(
                     f"kernel_width must be > 0 for basis='rbf'; got {self.kernel_width}."
                 )
-            n_centers_val = self.n_centers if self.n_centers is not None else min(200, n_U)
-            centers = subsample_centers(X_U, n_centers_val, rng)
+            # The count is capped at the pre-calibration n_U for the derived
+            # default and for an explicit n_centers alike -- never at the pool
+            # size: the pool follows the view, so a count derived from it would
+            # make model capacity a function of the training view, the exact
+            # confound the TS-OS calibration exists to avoid.  (Under OS the
+            # pool *is* X_U, so this is the same cap subsample_centers already
+            # applied there -- the OS path stays bit-identical.)
+            requested_centers = self.n_centers if self.n_centers is not None else 200
+            n_centers_val = min(requested_centers, n_U)
+            centers = subsample_centers(X_loss_unlabeled, n_centers_val, rng)
             n_basis = centers.shape[0]
             kw = self.kernel_width
 
@@ -255,7 +298,7 @@ class UPUClassifier(BasePUClassifier):
             raise ValueError(f"Unknown basis {self.basis!r}.")
 
         Phi_P = _phi(X_P)  # (n_P, n_basis)
-        Phi_U = _phi(X_U)  # (n_U, n_basis)
+        Phi_U = _phi(X_loss_unlabeled)  # (n_loss_unlabeled, n_basis)
 
         self._n_basis_ = n_basis
         self._centers_ = centers
@@ -264,11 +307,11 @@ class UPUClassifier(BasePUClassifier):
         # ── Solve ─────────────────────────────────────────────────────
         loss_fn = self.loss
         if loss_fn == "squared":
-            self._fit_squared(Phi_P, Phi_U, n_P, n_U, pi)
+            self._fit_squared(Phi_P, Phi_U, n_P, n_loss_unlabeled, pi)
         elif loss_fn == "logistic":
-            self._fit_logistic(Phi_P, Phi_U, n_P, n_U, pi)
+            self._fit_logistic(Phi_P, Phi_U, n_P, n_loss_unlabeled, pi)
         else:  # double_hinge
-            self._fit_double_hinge(Phi_P, Phi_U, n_P, n_U, pi)
+            self._fit_double_hinge(Phi_P, Phi_U, n_P, n_loss_unlabeled, pi)
 
         # ── Finalise ──────────────────────────────────────────────────
         self._X_shape_ = X.shape
@@ -283,10 +326,14 @@ class UPUClassifier(BasePUClassifier):
         Phi_P: np.ndarray,
         Phi_U: np.ndarray,
         n_P: int,
-        n_U: int,
+        n_unlabeled_loss: int,
         pi: float,
     ) -> None:
-        """Squared-loss closed form (no intercept, per paper)."""
+        """Squared-loss closed form (no intercept, per paper).
+
+        ``n_unlabeled_loss`` is the cardinality of the set carrying the
+        unlabeled-risk role in the current training view.
+        """
         if self.fit_intercept:
             warnings.warn(
                 "Squared loss closed form does not support an intercept; "
@@ -298,10 +345,10 @@ class UPUClassifier(BasePUClassifier):
         n_basis = Phi_P.shape[1]
         lam = self.reg_lambda
 
-        # H = (1/(2 n_U)) Φ_Uᵀ Φ_U + λ I
-        H = (Phi_U.T @ Phi_U) / (2.0 * n_U) + lam * np.eye(n_basis)
-        # h = (π/n_P) Φ_Pᵀ 1 − (1/(2 n_U)) Φ_Uᵀ 1
-        h = (pi / n_P) * Phi_P.sum(axis=0) - (1.0 / (2.0 * n_U)) * Phi_U.sum(axis=0)
+        # H = (1/(2 n_unlabeled_loss)) Φ_Uᵀ Φ_U + λ I
+        H = (Phi_U.T @ Phi_U) / (2.0 * n_unlabeled_loss) + lam * np.eye(n_basis)
+        # h = (π/n_P) Φ_Pᵀ 1 − (1/(2 n_unlabeled_loss)) Φ_Uᵀ 1
+        h = (pi / n_P) * Phi_P.sum(axis=0) - (1.0 / (2.0 * n_unlabeled_loss)) * Phi_U.sum(axis=0)
 
         self.coef_ = solve(H, h, assume_a="pos")
         self.intercept_ = 0.0
@@ -316,10 +363,14 @@ class UPUClassifier(BasePUClassifier):
         Phi_P: np.ndarray,
         Phi_U: np.ndarray,
         n_P: int,
-        n_U: int,
+        n_unlabeled_loss: int,
         pi: float,
     ) -> None:
-        """L-BFGS minimisation of the smooth C-LL objective."""
+        """L-BFGS minimisation of the smooth C-LL objective.
+
+        ``n_unlabeled_loss`` is the cardinality of the set carrying the
+        unlabeled-risk role in the current training view.
+        """
         lam = self.reg_lambda
         has_b = self.fit_intercept
 
@@ -330,7 +381,7 @@ class UPUClassifier(BasePUClassifier):
 
         def objective(theta: np.ndarray) -> float:
             alpha, b = _unpack_theta(theta, n_basis, has_b)
-            g_U = Phi_U @ alpha + b  # (n_U,)
+            g_U = Phi_U @ alpha + b  # (n_unlabeled_loss,)
             pos_term = -(pi / n_P) * (alpha @ sum_Phi_P + n_P * b)
             unlabeled_term = float(np.mean(_softplus_stable(g_U)))
             reg_term = 0.5 * lam * (alpha @ alpha)
@@ -339,9 +390,13 @@ class UPUClassifier(BasePUClassifier):
         def gradient(theta: np.ndarray) -> np.ndarray:
             alpha, b = _unpack_theta(theta, n_basis, has_b)
             g_U = Phi_U @ alpha + b
-            sigma_U = sigmoid_stable(g_U)  # (n_U,)
+            sigma_U = sigmoid_stable(g_U)  # (n_unlabeled_loss,)
 
-            grad_alpha = -(pi / n_P) * sum_Phi_P + (1.0 / n_U) * (Phi_U.T @ sigma_U) + lam * alpha
+            grad_alpha = (
+                -(pi / n_P) * sum_Phi_P
+                + (1.0 / n_unlabeled_loss) * (Phi_U.T @ sigma_U)
+                + lam * alpha
+            )
             grad_b = -pi + float(np.mean(sigma_U))
 
             return _pack_theta(grad_alpha, grad_b, has_b)
@@ -378,7 +433,7 @@ class UPUClassifier(BasePUClassifier):
         Phi_P: np.ndarray,
         Phi_U: np.ndarray,
         n_P: int,
-        n_U: int,
+        n_unlabeled_loss: int,
         pi: float,
     ) -> None:
         """Minimise the C-DH objective via constrained QP (SLSQP).
@@ -386,12 +441,13 @@ class UPUClassifier(BasePUClassifier):
         The problem is equivalent to:
 
             min_{α,b}  −(π/n_P) Σ_P g(x_P) − π b
-                      + (1/n_U) Σ_U max{0, g(x_U), (1+g(x_U))/2}
+                      + (1/n_unlabeled_loss) Σ_U max{0, g(x_U), (1+g(x_U))/2}
                       + (λ/2) ‖α‖²
 
-        where g(x) = αᵀ φ(x) + b.  Although non-smooth, the convexity
-        guarantees that SLSQP (which handles inequality constraints
-        natively) converges reliably in practice.
+        where g(x) = αᵀ φ(x) + b, and ``n_unlabeled_loss`` is the cardinality
+        of the set carrying the unlabeled-risk role in the current training
+        view.  Although non-smooth, the convexity guarantees that SLSQP (which
+        handles inequality constraints natively) converges reliably in practice.
         """
         lam = self.reg_lambda
         has_b = self.fit_intercept
