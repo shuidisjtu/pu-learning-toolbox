@@ -208,7 +208,8 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "determ": "a pure function of the ledger and a fit signature -- no randomness",
         "param": (
             "the flag's rejection paths are the refusal tests here: ts on an "
-            "OS-native method, ts without the interface, ts on the PN oracle"
+            "OS-native method, ts without the interface, ts with no estimator "
+            "class to check that interface against, ts on the PN oracle"
         ),
     },
     "test_training_view_routing.py": {

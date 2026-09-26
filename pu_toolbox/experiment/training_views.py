@@ -232,6 +232,15 @@ def resolve_training_view(
     hook stays on ``os`` rather than failing every run; only an *explicit* ``ts``
     request on such a method is refused, naming the missing interface.
 
+    ``estimator_class`` is what makes that second condition checkable, so it is
+    required wherever the answer could be ``ts``: an explicit ``ts`` request
+    without one is refused rather than granted unverified.  Answering ``os``
+    there instead would be worse than useless -- the operator asked for the
+    calibrated view and would get a run that never took it, which is the same
+    silent downgrade this module exists to prevent.  The default path keeps the
+    conservative reading: a missing class resolves to ``os``, where a later
+    ``ts`` run merely stays pending instead of opening a hole in the matrix.
+
     Shared by the unit script and the pilot driver, so the view a resumed unit
     is held to is the view that unit will actually run under.  A second copy of
     this decision is how a driver ends up expecting something the runner never
@@ -258,9 +267,14 @@ def resolve_training_view(
                 f"method {method!r} is declared native to {native!r} sampling in the "
                 "method ledger, so the calibrated (ts) view does not apply to it."
             )
-        if estimator_class is not None and not accepts_training_view(
-            _fit_parameters(estimator_class)
-        ):
+        if estimator_class is None:
+            raise ValueError(
+                f"method {method!r} cannot be held to the calibrated (ts) view: no "
+                "estimator class was supplied, so the second §2.3 condition -- a "
+                "training interface that can replace the unlabeled-loss input -- "
+                "cannot be checked."
+            )
+        if not accepts_training_view(_fit_parameters(estimator_class)):
             raise ValueError(
                 f"method {method!r} is native to TS sampling but "
                 f"{estimator_class.__name__}.fit() declares no os_or_ts parameter, "
