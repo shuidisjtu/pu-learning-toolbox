@@ -288,6 +288,46 @@ def test_param_an_explicit_ts_is_refused_before_any_batch(
     assert "Traceback" not in err
 
 
+def _unsized_protocol() -> dict:
+    """A matrix whose only runnable row names an architecture no profile covers.
+
+    ``native_cnn`` saves the ResNet itself, so the constant is evidence for the
+    backbone it was measured on and nothing else; naming a different one must
+    stop the pilot rather than inherit it.
+    """
+    protocol = _resume_protocol("nnpu")
+    protocol["execution_units"][0].update(
+        {"training_path": "native_cnn", "backbone": "resnet34_end_to_end"}
+    )
+    return protocol
+
+
+@pytest.mark.parametrize("dry_run", [True, False], ids=["dry-run", "real-run"])
+def test_param_an_unsized_row_stops_the_pilot_before_the_first_batch(
+    driver, unit_calls, tmp_path, capsys, monkeypatch, dry_run
+):
+    """A row the estimator cannot size is a configuration error, not a batch.
+
+    The unit script refuses it too, but only on reaching that unit -- by which
+    time every batch queued ahead of it has run.  Both paths report the same
+    figure, so both have to refuse before the first subprocess.
+    """
+    monkeypatch.setattr(driver, "load_protocol", _unsized_protocol)
+    splits = _splits(tmp_path, prior=0.39, datasets=("spambase",))
+    argv = ["--results", str(tmp_path / "out"), "--splits", str(splits), *_ALL_PRIORS]
+    if dry_run:
+        argv.append("--dry-run")
+
+    code = driver.main(argv)
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    assert "resnet34_end_to_end" in err
+    assert "Traceback" not in err
+
+
 def test_edge_a_runnable_method_the_registry_cannot_supply_is_reported(
     driver, unit_calls, tmp_path, capsys, monkeypatch
 ):
