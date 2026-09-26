@@ -153,3 +153,134 @@ def test_determ_the_batch_order_is_the_same_on_a_second_pass(driver, unit_calls,
     driver.main(argv)
 
     assert first == unit_calls
+
+
+# --- the view a resumed unit is held to ---------------------------------------
+
+
+def _resume_protocol(*methods: str) -> dict:
+    """A matrix whose methods do not share one default view.
+
+    Kept small on purpose: the question is which view each unit resolves to, and
+    the shipped 645-run matrix would answer it far more slowly.
+    """
+    return {
+        "seeds": [0],
+        "c_tokens": {"scar": ["0.1"]},
+        "candidate_pool": [{}],
+        "budgets": {"minibatch": {"epochs": 200}},
+        "backbone_specs": {"mlp128": {"hidden_dims": [128], "activation": "relu"}},
+        "execution_units": [
+            {
+                "dataset": "spambase",
+                "method": method,
+                "training_path": "native_2d",
+                "budget": "minibatch",
+                "backbone": "mlp128",
+                "runnable": True,
+            }
+            for method in methods
+        ],
+    }
+
+
+def _write_run(results: Path, *, run_view: str) -> Path:
+    """A finished run's manifest, on the split ``_splits`` writes."""
+    path = results / "spambase" / "nnpu" / "c_0.1" / "seed_0" / "manifest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "execution_mode": "versioned_pilot",
+                "seed": 0,
+                "execution_unit": {
+                    "dataset": "spambase",
+                    "method": "nnpu",
+                    "training_path": "native_2d",
+                },
+                "generation": {"train": {"mechanism": "scar"}},
+                "c_requested_token": "0.1",
+                "selection": {"OA": {"candidate_index": 0}},
+                "run_view": run_view,
+                "calibration_applied": run_view == "ts-compatible",
+                "representation": {"split_sha256": "a" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_basic_each_method_resolves_to_its_own_default_view(driver):
+    """One global expectation cannot describe this matrix.
+
+    ``nnpu`` is native to TS and wired for calibration, so it defaults to the
+    calibrated view; ``upu`` is native to TS but declares no ``os_or_ts`` hook
+    and falls back to OS; ``lbe`` is native to OS; the oracle is never
+    calibrated.  The driver has to resolve each one the way the unit script
+    will, or it holds a resumed unit to a view that run was never going to use.
+    """
+    protocol = _resume_protocol("nnpu", "upu", "lbe", "pn_oracle")
+    planned = driver.planned_runs(protocol)
+
+    views = driver.expected_run_views(planned, None)
+
+    assert {run.method: views[run.key] for run in planned} == {
+        "nnpu": "ts-compatible",
+        "upu": "os-compatible",
+        "lbe": "os-compatible",
+        "pn_oracle": "os-compatible",
+    }
+
+
+@pytest.mark.parametrize(
+    ("requested", "expected"),
+    [(None, "ts-compatible"), ("os", "os-compatible"), ("ts", "ts-compatible")],
+)
+def test_param_a_request_selects_the_view_the_unit_script_would_use(driver, requested, expected):
+    protocol = _resume_protocol("nnpu")
+
+    views = driver.expected_run_views(driver.planned_runs(protocol), requested)
+
+    assert set(views.values()) == {expected}
+
+
+def test_edge_an_explicit_ts_on_an_os_native_method_is_refused_up_front(driver):
+    """The unit script refuses this per run; the driver must refuse it before one."""
+    protocol = _resume_protocol("lbe")
+
+    with pytest.raises(ValueError, match="native to 'os'"):
+        driver.expected_run_views(driver.planned_runs(protocol), "ts")
+
+
+def test_edge_a_runnable_method_the_registry_cannot_supply_is_reported(
+    driver, unit_calls, tmp_path, capsys, monkeypatch
+):
+    """A driver error, reported as one: readable, no traceback, no batch started."""
+    monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol("no_such_method"))
+    splits = _splits(tmp_path, datasets=("spambase",))
+
+    code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(splits)])
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    assert "estimator class" in err
+    assert "Traceback" not in err
+
+
+def test_basic_an_os_result_leaves_a_calibrated_unit_pending(
+    driver, unit_calls, tmp_path, capsys, monkeypatch
+):
+    """F11 end to end: the default request is calibrated, so an OS run is not it."""
+    monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol("nnpu"))
+    splits = _splits(tmp_path, datasets=("spambase",))
+    results = tmp_path / "results"
+    _write_run(results, run_view="os-compatible")
+
+    code = driver.main(["--dry-run", "--results", str(results), "--splits", str(splits)])
+
+    assert code == 0
+    assert unit_calls == []
+    assert "pending:   1" in capsys.readouterr().out

@@ -66,7 +66,15 @@ def _protocol() -> dict:
     }
 
 
-def _manifest(*, method: str, seed: int = 0, run_view: str = "os-compatible") -> dict:
+def _manifest(
+    *,
+    method: str,
+    seed: int = 0,
+    run_view: str = "os-compatible",
+    calibration_applied: bool | None = None,
+) -> dict:
+    if calibration_applied is None:
+        calibration_applied = run_view == "ts-compatible"
     return {
         "execution_mode": "versioned_pilot",
         "seed": seed,
@@ -79,7 +87,7 @@ def _manifest(*, method: str, seed: int = 0, run_view: str = "os-compatible") ->
         "c_requested_token": None if method == PN_ORACLE else "0.1",
         "selection": {"OA": {"candidate_index": 0}},
         "run_view": run_view,
-        "calibration_applied": run_view == "ts-compatible",
+        "calibration_applied": calibration_applied,
     }
 
 
@@ -108,9 +116,7 @@ def test_basic_the_os_and_ts_results_of_one_unit_are_both_kept(tmp_path):
 
 def _expected_views(protocol: dict, *, nnpu: str = "ts-compatible") -> dict:
     """Per-unit expectations: ``nnpu`` calibrated, the oracle always on OS."""
-    return {
-        run.key: ("os-compatible" if run.is_oracle else nnpu) for run in planned_runs(protocol)
-    }
+    return {run.key: ("os-compatible" if run.is_oracle else nnpu) for run in planned_runs(protocol)}
 
 
 def test_basic_an_os_result_does_not_satisfy_a_default_ts_unit(tmp_path):
@@ -127,3 +133,115 @@ def test_basic_an_os_result_does_not_satisfy_a_default_ts_unit(tmp_path):
     pending, _ = pending_runs(protocol, tmp_path, expected_views=_expected_views(protocol))
 
     assert nnpu_run in pending
+
+
+def test_basic_a_ts_result_does_satisfy_a_ts_unit(tmp_path):
+    """The other direction: the view that *was* asked for still counts."""
+    protocol = _protocol()
+    _write(tmp_path, "ts", _manifest(method="nnpu", run_view="ts-compatible"))
+    nnpu_run = next(run for run in planned_runs(protocol) if run.method == "nnpu")
+
+    pending, done = pending_runs(protocol, tmp_path, expected_views=_expected_views(protocol))
+
+    assert nnpu_run in done
+    assert nnpu_run not in pending
+
+
+def test_basic_the_oracle_is_satisfied_by_an_os_result(tmp_path):
+    """The oracle resolves to OS under every request, the default one included."""
+    protocol = _protocol()
+    _write(tmp_path, "oracle", _manifest(method=PN_ORACLE, run_view="os-compatible"))
+    oracle_run = next(run for run in planned_runs(protocol) if run.is_oracle)
+
+    pending, done = pending_runs(protocol, tmp_path, expected_views=_expected_views(protocol))
+
+    assert oracle_run in done
+    assert oracle_run not in pending
+
+
+@pytest.mark.parametrize(
+    ("nnpu_view", "written", "matched"),
+    [
+        ("os-compatible", "os-compatible", True),
+        ("ts-compatible", "ts-compatible", True),
+        ("ts-compatible", "os-compatible", False),
+        ("os-compatible", "ts-compatible", False),
+    ],
+)
+def test_param_a_unit_matches_only_the_view_it_will_run_with(tmp_path, nnpu_view, written, matched):
+    """An explicit request is held to its own view -- and so is the default."""
+    protocol = _protocol()
+    _write(tmp_path, "run", _manifest(method="nnpu", run_view=written))
+    nnpu_run = next(run for run in planned_runs(protocol) if run.method == "nnpu")
+
+    pending, done = pending_runs(
+        protocol, tmp_path, expected_views=_expected_views(protocol, nnpu=nnpu_view)
+    )
+
+    assert (nnpu_run in done) is matched
+    assert (nnpu_run in pending) is not matched
+
+
+def test_edge_a_missing_expected_view_is_a_caller_bug(tmp_path):
+    """Falling back to an identity-only lookup would reinstate the blind match."""
+    protocol = _protocol()
+
+    with pytest.raises(ValueError, match="expected_views"):
+        pending_runs(protocol, tmp_path, expected_views={})
+
+
+def test_determ_the_scan_does_not_depend_on_which_path_sorts_first(tmp_path):
+    """The view a unit is credited with must not come from directory order."""
+    protocol = _protocol()
+    views = _expected_views(protocol)
+    nnpu_run = next(run for run in planned_runs(protocol) if run.method == "nnpu")
+    first, second = tmp_path / "first", tmp_path / "second"
+    _write(first, "aaa", _manifest(method="nnpu", run_view="ts-compatible"))
+    _write(first, "zzz", _manifest(method="nnpu", run_view="os-compatible"))
+    _write(second, "zzz", _manifest(method="nnpu", run_view="ts-compatible"))
+    _write(second, "aaa", _manifest(method="nnpu", run_view="os-compatible"))
+
+    pending_a, _ = pending_runs(protocol, first, expected_views=views)
+    pending_b, _ = pending_runs(protocol, second, expected_views=views)
+
+    # Both trees hold both views, so the calibrated unit is complete either way.
+    assert nnpu_run not in pending_a
+    assert nnpu_run not in pending_b
+
+
+def test_edge_an_unusable_manifest_does_not_stop_the_scan(tmp_path):
+    """A results tree accumulates records from earlier attempts and other runs.
+
+    One manifest whose view contradicts its calibration flag is not evidence of
+    completion -- but it is also not a reason to abandon the scan, which would
+    let a file unrelated to the plan block a whole resume.
+    """
+    protocol = _protocol()
+    _write(tmp_path, "good", _manifest(method="nnpu", run_view="ts-compatible"))
+    _write(
+        tmp_path,
+        "contradictory",
+        _manifest(method="nnpu", run_view="ts-compatible", calibration_applied=False),
+    )
+    nnpu_run = next(run for run in planned_runs(protocol) if run.method == "nnpu")
+
+    pending, done = pending_runs(protocol, tmp_path, expected_views=_expected_views(protocol))
+
+    assert nnpu_run in done
+    assert nnpu_run not in pending
+
+
+def test_edge_a_unit_whose_only_record_is_unusable_stays_pending(tmp_path):
+    """Refusing to read a record must never read as "done"."""
+    protocol = _protocol()
+    _write(
+        tmp_path,
+        "contradictory",
+        _manifest(method="nnpu", run_view="ts-compatible", calibration_applied=False),
+    )
+    nnpu_run = next(run for run in planned_runs(protocol) if run.method == "nnpu")
+
+    pending, done = pending_runs(protocol, tmp_path, expected_views=_expected_views(protocol))
+
+    assert nnpu_run in pending
+    assert nnpu_run not in done
