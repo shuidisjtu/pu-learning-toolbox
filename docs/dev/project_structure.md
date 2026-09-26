@@ -227,6 +227,7 @@ tests/
       test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
       test_nnpu_gpu.py                  # nnPU CNN encoder GPU 执行级测试(无 CUDA 自动 skip)
       test_nnpu_ts_view.py              # <<< 新文件,补注释
+      test_upu_ts_view.py               # UPUClassifier 的 TS-OS 训练视图(独立重推 golden、solver 池与分母、RBF 中心池)
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

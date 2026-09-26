@@ -223,20 +223,22 @@ def _write_run(results: Path, *, run_view: str) -> Path:
 def test_basic_each_method_resolves_to_its_own_default_view(driver):
     """One global expectation cannot describe this matrix.
 
-    ``nnpu`` is native to TS and wired for calibration, so it defaults to the
-    calibrated view; ``upu`` is native to TS but declares no ``os_or_ts`` hook
-    and falls back to OS; ``lbe`` is native to OS; the oracle is never
-    calibrated.  The driver has to resolve each one the way the unit script
-    will, or it holds a resumed unit to a view that run was never going to use.
+    ``nnpu`` and ``upu`` are native to TS and wired for calibration, so they
+    default to the calibrated view; ``dist_pu`` is native to TS but declares no
+    ``os_or_ts`` hook and falls back to OS; ``lbe`` is native to OS; the oracle
+    is never calibrated.  The driver has to resolve each one the way the unit
+    script will, or it holds a resumed unit to a view that run was never going
+    to use.
     """
-    protocol = _resume_protocol("nnpu", "upu", "lbe", "pn_oracle")
+    protocol = _resume_protocol("nnpu", "upu", "dist_pu", "lbe", "pn_oracle")
     planned = driver.planned_runs(protocol)
 
     views = driver.expected_run_views(planned, None)
 
     assert {run.method: views[run.key] for run in planned} == {
         "nnpu": "ts-compatible",
-        "upu": "os-compatible",
+        "upu": "ts-compatible",
+        "dist_pu": "os-compatible",
         "lbe": "os-compatible",
         "pn_oracle": "os-compatible",
     }
@@ -266,7 +268,7 @@ def test_edge_an_explicit_ts_on_an_os_native_method_is_refused_up_front(driver):
     ("method", "reason"),
     [
         ("lbe", "declared native to 'os'"),
-        ("upu", "declares no os_or_ts parameter"),
+        ("dist_pu", "declares no os_or_ts parameter"),
         ("pn_oracle", "does not apply"),
     ],
 )
@@ -281,6 +283,12 @@ def test_param_an_explicit_ts_is_refused_before_any_batch(
     method native to OS, one native to TS whose estimator has no ``os_or_ts``
     hook, and the oracle, which has no PU view to calibrate at all.  Each has to
     arrive as a readable error, not as a traceback from the batch that found it.
+
+    The "native to TS but not yet wired" slot is pinned to whichever method is
+    still unwired (``dist_pu`` today) — a current-state check, not a permanent
+    guarantee.  The generic resolution rule itself is covered permanently by
+    ``test_survey_script_view.py`` with a synthetic estimator whose ``fit``
+    carries no ``os_or_ts``.
     """
     monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol(method))
     splits = _splits(tmp_path, datasets=("spambase",))

@@ -16,7 +16,6 @@ import pytest
 torch = pytest.importorskip("torch", reason="PyTorch not installed")
 
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier  # noqa: E402
-from pu_toolbox.estimators.risk.upu import UPUClassifier  # noqa: E402
 from pu_toolbox.experiment.bundle import DatasetPart  # noqa: E402
 from pu_toolbox.experiment.manifest import load_manifest  # noqa: E402
 from pu_toolbox.experiment.runner import ExperimentRunner  # noqa: E402
@@ -63,6 +62,20 @@ def _nnpu():
     )
 
 
+class _PlainEstimator:
+    """Stand-in for an estimator whose ``fit`` has no view hook.
+
+    Pinned to a stand-in rather than a real method on purpose: which methods
+    still lack ``os_or_ts`` is current state, and the runner's gate is about
+    the signature, not about any particular estimator.  The only thing that
+    has to hold is that the gate is reached -- ``_declared_epoch_components``
+    runs first and reads ``epoch_components`` off this object.
+    """
+
+    def fit(self, X, y, *, class_prior=None):  # noqa: N803
+        raise AssertionError("the view gate must refuse this run before any training.")
+
+
 def _runner(tmp_path, name, **config):
     return ExperimentRunner(
         seed=0,
@@ -104,7 +117,7 @@ class TestManifestViewFields:
         train, pu_val, clean_val, test = _bundle()
         with pytest.raises(ValueError, match="does not accept os_or_ts"):
             _runner(tmp_path, "bad.json", os_or_ts="ts").fit(
-                UPUClassifier(0.33, random_state=0), train, pu_val, clean_val, test
+                _PlainEstimator(), train, pu_val, clean_val, test
             )
 
     def test_failed_run_still_records_the_view(self, tmp_path):
