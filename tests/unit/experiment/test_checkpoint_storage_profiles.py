@@ -1,6 +1,8 @@
 # tests/unit/experiment/test_checkpoint_storage_profiles.py
 
-# ruff: noqa: N803, N806, S101
+# F811: ``survey_script`` is a pytest fixture looked up by name, so it repeats as
+# both an import and a test parameter.
+# ruff: noqa: N803, N806, S101, F811
 
 """What one per-epoch checkpoint component costs, per training path.
 
@@ -24,12 +26,20 @@ from pathlib import Path
 import numpy as np
 import pytest
 import torch
+from _survey_script_helpers import (  # noqa: F401 - survey_script is a fixture
+    make_splits,
+    survey_script,
+)
 
+from pu_toolbox.experiment import resources
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer
+from pu_toolbox.experiment.manifest import load_manifest
+from pu_toolbox.experiment.pilot_plan import _declared_components
 from pu_toolbox.experiment.resources import checkpoint_disk_requirement
 from pu_toolbox.experiment.survey_execution import (
     assemble_model,
+    cached_adapter,
     prepare_image_bundle,
 )
 from pu_toolbox.experiment.survey_protocol import (
@@ -105,8 +115,8 @@ def _cheap_epochs(protocol: dict, epochs: int = 2) -> dict:
     return protocol
 
 
-def _features(rows: int = 12) -> tuple[np.ndarray, np.ndarray]:
-    X = np.random.RandomState(0).normal(size=(rows, ADAPTER_FEATURE_DIM)).astype(np.float32)
+def _features(width: int, rows: int = 12) -> tuple[np.ndarray, np.ndarray]:
+    X = np.random.RandomState(0).normal(size=(rows, width)).astype(np.float32)
     return X, np.array([1, 1, 0] * (rows // 3))
 
 
@@ -125,6 +135,29 @@ def _cifar_source(rows: int = 8) -> DatasetBundle:
             for index, role in enumerate(ROLES)
         }
     )
+
+
+@pytest.fixture(scope="module")
+def adapter_width(tmp_path_factory) -> int:
+    """The head's input width, read back from the production adapter path.
+
+    The constant profiles ignore ``input_dim``, so a wider frozen encoder would
+    grow every real file while the estimate stayed at the published bound --
+    hard-coding the width here would let the bound and its evidence drift
+    together.  Taking it from the adapter cache is what makes the byte assertion
+    below about the head that actually trains.
+    """
+    protocol = _cheap_epochs(copy.deepcopy(load_protocol()))
+    prepared, encoder, image = prepare_image_bundle(_cifar_source(), protocol, 0)
+    adapted, _ = cached_adapter(
+        prepared,
+        encoder,
+        image,
+        cache_dir=tmp_path_factory.mktemp("adapter"),
+        batch_size=8,
+        device="cpu",
+    )
+    return int(adapted.train.X.shape[1])
 
 
 # --- the defect this file exists for -----------------------------------------
@@ -153,26 +186,34 @@ def test_basic_adapter_rows_do_not_cost_a_full_resnet():
 
 
 @pytest.mark.parametrize("method", _ADAPTER_METHODS)
-def test_basic_real_adapter_checkpoints_stay_under_the_published_bound(method, tmp_path):
+def test_basic_real_adapter_checkpoints_stay_under_the_published_bound(
+    method, adapter_width, tmp_path
+):
     """Serialise through the production path; assert every component, not the max.
 
     Checking only the largest written file would pass a run that silently
     dropped a component, so the written set is compared with the estimator's own
     declaration and every file is measured -- including both Self-PU teachers.
     """
+    # The bound is evidence for one head width.  A different one means the
+    # frozen encoder changed and the published byte figure is stale.
+    assert adapter_width == ADAPTER_FEATURE_DIM, (
+        f"the frozen encoder now emits {adapter_width}-dimensional features, not "
+        f"{ADAPTER_FEATURE_DIM}: re-measure ADAPTER_HEAD_COMPONENT_BYTES"
+    )
     protocol = _cheap_epochs(copy.deepcopy(load_protocol()))
     row = _adapter_row(protocol, method)
     model = assemble_model(
         protocol,
         row,
-        ADAPTER_FEATURE_DIM,
+        adapter_width,
         seed=0,
         params={},
         class_prior=None if method == "pn_oracle" else 0.3,
         device="cpu",
         encoder=None,
     )
-    X, y = _features()
+    X, y = _features(adapter_width)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         trajectory = EpochCheckpointTrainer(
@@ -256,7 +297,16 @@ def test_param_an_unregistered_architecture_is_refused_with_its_context():
             input_dim=ADAPTER_FEATURE_DIM,
         ).value
     )
-    for field in ("cifar10", "dist_pu", "cnn_feature_adapter", "resnet34_random_frozen", "mlp128"):
+    # Every field a reader needs to add the profile: dataset, method, training
+    # path, backbone, model family and budget.
+    for field in (
+        "cifar10",
+        "dist_pu",
+        "cnn_feature_adapter",
+        "resnet34_random_frozen",
+        "mlp128",
+        "fullbatch",
+    ):
         assert field in message
 
 
@@ -300,6 +350,113 @@ def test_basic_full_pilot_totals_are_pinned_to_exact_bytes():
     assert estimate["peak_unit"] == "cifar10/nnpu/native_cnn"
     assert estimate["peak_bytes_per_run"] == 9_437_184_000
     assert estimate["guard_peak_bytes_per_run"] == 18_874_368_000
+
+
+def test_determ_the_run_script_hands_the_runner_the_shared_component_size(survey_script, tmp_path):
+    """The guard's number is the one this helper produced, carried through config.
+
+    The pilot sizes a host from that figure and the runner refuses a run with it,
+    so a second formula on either side is a drift nobody notices until a batch
+    stops on a full disk.  Read end to end, from the script's own run.
+    """
+    protocol = load_protocol()
+    row = resolve_unit(protocol, "spambase", "dist_pu")
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+    out_dir = tmp_path / "out"
+    # The width the script itself sizes against, so this reproduces its
+    # expression rather than a number copied out of one run.
+    width = survey_script.load_split_parts(data_dir)[0].X.shape[1]
+    component = unit_checkpoint_bytes(protocol, row, input_dim=width)
+
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--protocol",
+            "survey-v1",
+            "--dataset",
+            "spambase",
+            "--training-path",
+            "native_2d",
+            "--method",
+            "dist_pu",
+            "--model-params",
+            '{"class_prior": 0.3}',
+            "--c",
+            "0.3",
+            "--seeds",
+            "0",
+            "--class-prior",
+            "0.3",
+            "--out-dir",
+            str(out_dir),
+        ]
+    )
+
+    assert rc == 0
+    manifests = list(out_dir.rglob("manifest.json"))
+    assert len(manifests) == 1
+    payload = load_manifest(manifests[0])["resources"]["checkpoint_disk_preflight"]
+    assert payload["required_bytes"] == checkpoint_disk_requirement(
+        bytes_per_component=component,
+        epochs=protocol["budgets"][row["budget"]]["epochs"],
+        components=len(_declared_components("dist_pu")),
+        candidates=len(protocol["candidate_pool"]),
+        attempts=resources.DEFAULT_CHECKPOINT_ATTEMPTS,
+    )
+
+
+def test_param_the_run_script_reports_an_unsized_row_without_a_traceback(
+    survey_script, tmp_path, capsys, monkeypatch
+):
+    """The pilot refuses this before any batch; the unit script is the second line.
+
+    A sizing failure has to arrive as an error line rather than as a traceback:
+    the caller is a batch loop that would otherwise report a crashed unit for a
+    configuration mistake it could have named.
+    """
+    data_dir = tmp_path / "splits"
+    data_dir.mkdir()
+    make_splits(data_dir)
+
+    def _refuse(protocol, row, *, input_dim):
+        raise ValueError(f"no checkpoint storage profile for {row['dataset']}/{row['method']}")
+
+    # The script imports the helper inside main(), so the patch goes on the
+    # module it imports from rather than on the script's namespace.
+    monkeypatch.setattr("pu_toolbox.experiment.survey_protocol.unit_checkpoint_bytes", _refuse)
+
+    rc = survey_script.main(
+        [
+            str(data_dir),
+            "--protocol",
+            "survey-v1",
+            "--dataset",
+            "spambase",
+            "--training-path",
+            "native_2d",
+            "--method",
+            "dist_pu",
+            "--model-params",
+            '{"class_prior": 0.3}',
+            "--c",
+            "0.3",
+            "--seeds",
+            "0",
+            "--class-prior",
+            "0.3",
+            "--out-dir",
+            str(tmp_path / "out"),
+        ]
+    )
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    assert "no checkpoint storage profile" in err
+    assert "Traceback" not in err
+    assert not list(tmp_path.rglob("manifest.json"))
 
 
 def test_determ_the_pilot_and_the_run_script_size_from_one_component():

@@ -21,7 +21,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - **P2.0a 工程交付**（2026-09-17 已签署验收）：版本化执行矩阵、runner 强制消费与参数锁、CIFAR adapter/native 接线、逐 epoch checkpoint 保存与 PA/OA 独立恢复。见 [交付记录](../research/pu_survey/p2_0a_delivery.md)、[复核包](../research/pu_survey/p2_0a_review.md)。
 - **P1.2/P1.4 数据制品**（2026-09-19 重建）：split manifest 新增 `provenance` 块（来源/版本/引用/许可逐条按官方原文）；三数据集 × 5 seed 统一重建，60 npz 逐字节不变；切分流水线效率修复与跨 seed 文本嵌入一致性（PR #63/#64）。索引见 [split_artifacts_index](../research/pu_survey/data/split_artifacts_index.json)。
 - **split 制品跨机传输**：`survey_splits_archive.py` pack/verify 双向校验（逐文件摘要 + 从 `.npz` 重算索引摘要），载体定为网盘带外传（2026-09-20 已发送，索引先于发送入库）。
-- **全 pilot 跑批驱动与磁盘预算**：`run_survey_pilot.py` 编排 645 次运行，按 manifest 判定已完成、半完成单元按 seed 拆分；磁盘预算实测 ≈319 GiB（常量对 adapter 行高估 178×，见 [p2_0a_delivery §6](../research/pu_survey/p2_0a_delivery.md)）。
+- **全 pilot 跑批驱动与磁盘预算**：`run_survey_pilot.py` 编排 645 次运行，按 manifest 判定已完成、半完成单元按 seed 拆分；**磁盘容量以代码输出为准**——累计 `348,443,368,000 B`（≈324.5 GiB）、跑前门禁 `18,874,368,000 B`（≈17.58 GiB），旧值与换算过程见 [p2_0a_delivery §6](../research/pu_survey/p2_0a_delivery.md) 与执行计划决策 D15。
 - **PA 正式选模准则（R9）**（2026-09-20）：proxy accuracy（Wang et al. 2026 Def. 1 OS 分支）落地，π 必传，阈值网格与 OA 同构。见 [p2_0a_review R9 补记](../research/pu_survey/p2_0a_review.md)。
 - **P2.0b 标签语义门禁 + P2.0c 对照预注册**：工程完成、合作者签署待办。见 [p2_0b 交付](../research/pu_survey/p2_0b_delivery.md)、[p2_0c 交付](../research/pu_survey/p2_0c_delivery.md)。
 - **TS-OS 校准接入训练执行链（P2.0e，2026-09-23）**：训练视图默认由方法台账 `native_sampling_assumption` 推导、`--os-or-ts` 可覆盖；`nnpu` 已接线（逐 mini-batch `D_U^k ← D_U^k ∪ D_P^k`），逐 run 实际视图入 manifest 并成为公平性分组维度；其余 5 个原生 TS 方法待各自设计。见 [执行计划 P2.0e](../research/pu_survey/survey_execution_plan.md)、[实验层关键设计机制](experiment_layer.md)。

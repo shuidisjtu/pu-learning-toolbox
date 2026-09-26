@@ -27,7 +27,7 @@ from torch import nn
 from pu_toolbox.experiment import resources
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
 from pu_toolbox.experiment.pilot_plan import _declared_components
-from pu_toolbox.experiment.runner import ExperimentRunner
+from pu_toolbox.experiment.runner import ExperimentRunner, _enforce_disk_preflight
 from pu_toolbox.experiment.survey_execution import assemble_model
 from pu_toolbox.experiment.survey_protocol import (
     ADAPTER_HEAD_COMPONENT_BYTES,
@@ -245,6 +245,15 @@ def test_param_the_guard_admits_a_host_the_inflated_estimate_refused(free_gib, r
         required_bytes=required, directory=Path.cwd(), free_bytes=free_gib * 1024**3
     )
     assert payload["ready"] is ready
+    if ready:
+        _enforce_disk_preflight(payload, "versioned_pilot")  # a formal pilot may start
+    else:
+        # The refusal carries both numbers, so an operator learns how far off the
+        # host is rather than only that it was refused.
+        with pytest.raises(ValueError, match="insufficient disk") as refusal:
+            _enforce_disk_preflight(payload, "versioned_pilot")
+        assert str(required) in str(refusal.value)
+        assert str(free_gib * 1024**3) in str(refusal.value)
 
     # What the adapter row used to be charged instead: the same ResNet constant,
     # for a component count of two and so twice this figure.

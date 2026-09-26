@@ -333,7 +333,9 @@ def test_param_an_unsized_row_stops_the_pilot_before_the_first_batch(
     assert unit_calls == []
     err = capsys.readouterr().err
     assert err.startswith("error: ")
-    assert "resnet34_end_to_end" in err
+    # The message has to name enough for a reader to find the missing profile.
+    for field in ("spambase", "nnpu", "native_cnn", "resnet34_end_to_end"):
+        assert field in err
     assert "Traceback" not in err
 
 
