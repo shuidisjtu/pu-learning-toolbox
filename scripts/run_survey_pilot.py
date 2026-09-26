@@ -97,8 +97,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=None,
         help=(
             "passed through to the unit script (default: each method's ledger view). "
-            "'ts' applies the TS-OS calibration; an explicit value also gates the "
-            "resume check, so runs recorded under the other view stay pending"
+            "'ts' applies the TS-OS calibration and is refused -- before any batch "
+            "starts -- for a method that cannot carry it, the oracle included. The "
+            "resume check holds every run to its own view whether that value was "
+            "explicit or derived, so results recorded under the other view stay "
+            "pending. This is a whole-matrix request: a plan containing any OS-native "
+            "method or the oracle cannot be run under an explicit 'ts'"
         ),
     )
     parser.add_argument("--adapter-cache", default=None, help="passed through to the unit script")
