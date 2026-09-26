@@ -183,6 +183,22 @@ def test_edge_the_oracle_stays_in_the_os_partition(aggregate_script, tmp_path):
     assert by_view["ts-compatible"]["methods"] == ["nnpu"]
 
 
+def test_edge_a_calibrated_oracle_is_refused(aggregate_script, tmp_path):
+    """The oracle trains on real labels, so a calibrated view of it cannot exist.
+
+    ``--oracle --os-or-ts ts`` is already refused at the command line; this is
+    the aggregation-side half of the same rule, so a hand-built manifest cannot
+    slip one into the calibrated leaderboard.
+    """
+    write_tree(
+        tmp_path,
+        {"a": manifest(method="pn_oracle", run_view="ts-compatible", c_independent=True)},
+    )
+
+    with pytest.raises(ValueError, match="oracle"):
+        aggregate_tree(aggregate_script, tmp_path)
+
+
 def test_determ_repeated_aggregation_yields_an_identical_report(aggregate_script, tmp_path):
     root = write_tree(
         tmp_path,

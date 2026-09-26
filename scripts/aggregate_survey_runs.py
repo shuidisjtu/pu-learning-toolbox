@@ -79,6 +79,12 @@ _MANIFEST_NAME = "manifest.json"
 #: method native to OS and one declared native to TS but not yet wired for
 #: calibration -- the field is the view a run took, not the ledger's assumption.
 _LEGAL_RUN_VIEWS = frozenset({"os-compatible", "ts-compatible"})
+#: The supervised upper bound.  It trains on real labels, so it generates no PU
+#: label view -- and no calibrated (ts) view to be run under.  ``--oracle
+#: --os-or-ts ts`` is already refused at the command line; this is the
+#: aggregation-side half of the same rule, so that a hand-built manifest cannot
+#: slip one into the calibrated leaderboard.
+_ORACLE_METHOD = "pn_oracle"
 #: Fields a versioned manifest must carry for the entry point to read it.  The
 #: comparability gate indexes ``representation`` directly and the rest are read
 #: while grouping and comparing, so a missing one would escape as a KeyError --
@@ -125,6 +131,9 @@ def manifest_run_view(payload: dict) -> str:
     rather than a third partition, so it is refused rather than sorted
     somewhere.  A missing flag is refused too -- the runner writes one on every
     manifest it produces, including the rejected ones.
+
+    The oracle is refused a calibrated view outright: it trains on real labels,
+    so the unlabeled loss that calibration feeds does not exist for it.
     """
     view = payload["run_view"]
     if view not in _LEGAL_RUN_VIEWS:
@@ -134,6 +143,11 @@ def manifest_run_view(payload: dict) -> str:
     calibrated = payload.get("calibration_applied")
     if calibrated is not (view == "ts-compatible"):
         raise ValueError(f"run_view {view!r} disagrees with calibration_applied {calibrated!r}")
+    if view == "ts-compatible" and payload["execution_unit"]["method"] == _ORACLE_METHOD:
+        raise ValueError(
+            "the PN oracle trains on real labels and generates no PU label view, "
+            "so it has no calibrated (ts) view"
+        )
     return view
 
 
