@@ -253,6 +253,41 @@ def test_edge_an_explicit_ts_on_an_os_native_method_is_refused_up_front(driver):
         driver.expected_run_views(driver.planned_runs(protocol), "ts")
 
 
+@pytest.mark.parametrize(
+    ("method", "reason"),
+    [
+        ("lbe", "declared native to 'os'"),
+        ("upu", "declares no os_or_ts parameter"),
+        ("pn_oracle", "does not apply"),
+    ],
+)
+def test_param_an_explicit_ts_is_refused_before_any_batch(
+    driver, unit_calls, tmp_path, capsys, monkeypatch, method, reason
+):
+    """Every way a calibrated request can be impossible is refused at start-up.
+
+    The unit script refuses each of these too, but per run -- so a pilot would
+    meet it at whichever batch happened to hit that method, with the batches
+    before it already paid for.  The three reasons are genuinely different: a
+    method native to OS, one native to TS whose estimator has no ``os_or_ts``
+    hook, and the oracle, which has no PU view to calibrate at all.  Each has to
+    arrive as a readable error, not as a traceback from the batch that found it.
+    """
+    monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol(method))
+    splits = _splits(tmp_path, datasets=("spambase",))
+
+    code = driver.main(
+        ["--results", str(tmp_path / "out"), "--splits", str(splits), "--os-or-ts", "ts"]
+    )
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    assert reason in err
+    assert "Traceback" not in err
+
+
 def test_edge_a_runnable_method_the_registry_cannot_supply_is_reported(
     driver, unit_calls, tmp_path, capsys, monkeypatch
 ):
