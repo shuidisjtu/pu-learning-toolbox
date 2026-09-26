@@ -339,6 +339,7 @@ tests/
       test_runner_view_manifest.py      # 训练视图留痕: 成功与失败路径都记 run_view/calibration_applied
       test_survey_script_view.py        # 训练视图: 台账默认与 CLI 覆盖、门禁、视图进产物路径
       test_training_view_routing.py     # trainer 侧视图参数: 按签名探测转发、未声明 fail-loud、os 不传参
+      test_aggregate_survey_run_view.py # 聚合按实际运行视图分区: 同方法 OS/TS 各成一榜、校准标志一致性、oracle 恒在 os
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性

@@ -28,6 +28,21 @@ Four things a naive version would get wrong, all pinned by tests:
   the requested seed list, so deriving it from the files found would let a
   2-of-5-seed pilot satisfy "the seeds agree" trivially.
 
+Groups are keyed by ``(comparability_group, run_view)``.  P2.0e records the view
+each run actually used and requires it to become a fairness-grouping dimension;
+without it a method run under both views reads as a duplicate of itself and the
+whole root is refused.  The same ``comparability_group`` string therefore
+appears once per view, and that composite pair -- never the string alone -- is
+a group's identity.  The protocol's group value is never suffixed with the
+view.  The partition stops here rather than inside
+``partition_fair_leaderboard_runs``: once the views are separated, every unit
+handed to that gate is single-view, so its contract is unchanged.
+
+``run_view`` is the view a run *used*, not the method's
+``native_sampling_assumption``: a method declared native to TS but not yet wired
+for calibration falls back to ``os-compatible``.  This module does not
+implement per-native-assumption stratification.
+
 ``--diagnostic`` relaxes eligibility only.  It is named for what the delivery
 record already calls a technical diagnostic rather than for what it turns off,
 and the fairness gates run in both modes -- an opt-out that also skipped those
@@ -58,8 +73,18 @@ from pu_toolbox.experiment.survey_protocol import (
     validate_comparable_manifests,
 )
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 _MANIFEST_NAME = "manifest.json"
+#: The views a versioned pilot may record.  ``os-compatible`` covers both a
+#: method native to OS and one declared native to TS but not yet wired for
+#: calibration -- the field is the view a run took, not the ledger's assumption.
+_LEGAL_RUN_VIEWS = frozenset({"os-compatible", "ts-compatible"})
+#: The supervised upper bound.  It trains on real labels, so it generates no PU
+#: label view -- and no calibrated (ts) view to be run under.  ``--oracle
+#: --os-or-ts ts`` is already refused at the command line; this is the
+#: aggregation-side half of the same rule, so that a hand-built manifest cannot
+#: slip one into the calibrated leaderboard.
+_ORACLE_METHOD = "pn_oracle"
 #: Fields a versioned manifest must carry for the entry point to read it.  The
 #: comparability gate indexes ``representation`` directly and the rest are read
 #: while grouping and comparing, so a missing one would escape as a KeyError --
@@ -96,6 +121,34 @@ def discover_manifests(out_root: str | Path) -> list[Path]:
     if not root.is_dir():
         raise ValueError(f"not a directory: {root}")
     return sorted(root.rglob(_MANIFEST_NAME))
+
+
+def manifest_run_view(payload: dict) -> str:
+    """The view one manifest ran under, checked against its calibration flag.
+
+    The protocol pairs the two: a calibrated run is the only one that reports
+    ``ts-compatible``.  A manifest whose flag contradicts its view is malformed
+    rather than a third partition, so it is refused rather than sorted
+    somewhere.  A missing flag is refused too -- the runner writes one on every
+    manifest it produces, including the rejected ones.
+
+    The oracle is refused a calibrated view outright: it trains on real labels,
+    so the unlabeled loss that calibration feeds does not exist for it.
+    """
+    view = payload["run_view"]
+    if view not in _LEGAL_RUN_VIEWS:
+        raise ValueError(
+            f"run_view must be one of {', '.join(sorted(_LEGAL_RUN_VIEWS))}, got {view!r}"
+        )
+    calibrated = payload.get("calibration_applied")
+    if calibrated is not (view == "ts-compatible"):
+        raise ValueError(f"run_view {view!r} disagrees with calibration_applied {calibrated!r}")
+    if view == "ts-compatible" and payload["execution_unit"]["method"] == _ORACLE_METHOD:
+        raise ValueError(
+            "the PN oracle trains on real labels and generates no PU label view, "
+            "so it has no calibrated (ts) view"
+        )
+    return view
 
 
 def unit_key(manifest: dict) -> tuple[int, Any]:
@@ -294,8 +347,13 @@ def _group_consistency(members: list[tuple[Path, dict]], *, seeds: list[int]) ->
 
 
 def _group_report(
-    key: str, members: list[tuple[Path, dict]], *, protocol: dict, require_formal: bool
+    key: tuple[str, str],
+    members: list[tuple[Path, dict]],
+    *,
+    protocol: dict,
+    require_formal: bool,
 ) -> dict:
+    group_name, run_view = key
     seeds = list(protocol.get("seeds", []))
     _group_consistency(members, seeds=seeds)
     by_unit: dict[tuple, list[tuple[Path, dict]]] = {}
@@ -306,7 +364,8 @@ def _group_report(
         for unit in sorted(by_unit, key=str)
     ]
     return {
-        "comparability_group": key,
+        "comparability_group": group_name,
+        "run_view": run_view,
         "dataset": members[0][1]["execution_unit"]["dataset"],
         "training_path": members[0][1]["training_path"],
         "methods": sorted({payload["execution_unit"]["method"] for _, payload in members}),
@@ -326,11 +385,10 @@ def aggregate(paths: list[Path], *, protocol: dict, require_formal: bool = True)
         else:
             refused.append({"path": str(path), "reason": reason})
 
-    grouped: dict[str, list[tuple[Path, dict]]] = {}
+    grouped: dict[tuple[str, str], list[tuple[Path, dict]]] = {}
     for path, payload in usable:
-        grouped.setdefault(payload["execution_unit"]["comparability_group"], []).append(
-            (path, payload)
-        )
+        key = (payload["execution_unit"]["comparability_group"], manifest_run_view(payload))
+        grouped.setdefault(key, []).append((path, payload))
 
     groups = [
         _group_report(key, grouped[key], protocol=protocol, require_formal=require_formal)
@@ -357,7 +415,10 @@ def _print_report(report: dict) -> None:
         print("NON-FORMAL (technical diagnostic) -- not a pilot leaderboard")
     print(f"protocol {report['protocol_version']}: {len(report['groups'])} group(s)")
     for group in report["groups"]:
-        print(f"\n[{group['comparability_group']}] {group['dataset']}/{group['training_path']}")
+        print(
+            f"\n[{group['comparability_group']}] {group['dataset']}/{group['training_path']}"
+            f" [{group['run_view']}]"
+        )
         print(f"  methods: {', '.join(group['methods'])}")
         for unit in group["units"]:
             marker = "ok" if unit["state"] == "comparable" else "BLOCKED"
