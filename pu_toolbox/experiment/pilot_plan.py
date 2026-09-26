@@ -30,7 +30,7 @@ split has been replaced, costs a repeated run rather than a hole in the pilot.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -40,6 +40,7 @@ from .resources import (
     checkpoint_disk_requirement,
 )
 from .survey_protocol import unit_checkpoint_bytes
+from .training_views import validated_run_view
 
 #: The method every oracle unit runs under.  The run script substitutes it for
 #: ``--method`` when ``--oracle`` is given, and an oracle run carries no
@@ -232,24 +233,40 @@ def population_priors(splits_root: str | Path) -> dict[str, float]:
     return found
 
 
+def manifest_resume_key(payload: dict[str, Any]) -> tuple[Any, ...] | None:
+    """The run *and view* a manifest records, or ``None`` when it records neither.
+
+    ``manifest_identity`` names a protocol unit; this names one execution of it.
+    A resume scan keys on the pair, because a unit may legitimately have been run
+    under both views and each manifest is evidence only for the view it used.
+    """
+    identity = manifest_identity(payload)
+    if identity is None:
+        return None
+    return (*identity, validated_run_view(payload))
+
+
 def completed_runs(
     results_root: str | Path,
     *,
     splits: dict[tuple[str, int], str] | None = None,
-    expected_view: str | None = None,
 ) -> dict[tuple[Any, ...], Path]:
-    """Every completed run under ``results_root``, keyed by identity.
+    """Every completed run under ``results_root``, keyed by ``(identity, view)``.
 
     With ``splits`` given, a run whose manifest records a different split digest
     than the one on disk is not completed: it ran on data this pilot no longer
     has.  A split the mapping does not cover counts as not done too -- the
     driver re-running a run is recoverable, a hole in the matrix is not.
 
-    ``expected_view`` is compared the same way: a run recorded under the OS view
-    does not satisfy a calibrated request, so changing the view cannot silently
-    skip work.  It stays optional because only an explicit request names a view
-    the driver can hold a run to; the ledger-derived default is not re-derived
-    here (the pilot does not read the ledger).
+    The key carries the view the run recorded, so the OS and TS manifests of one
+    unit stay separate entries instead of collapsing to whichever path sorted
+    first.  Which of them satisfies a request is the caller's question, and it
+    is answered against the view the run is going to use.
+
+    A manifest whose view cannot be validated counts as not done, like any other
+    record this module cannot fully identify: one unusable artifact is not
+    evidence of completion, and stopping the scan over it would block a resume
+    over a file unrelated to the planned matrix.
     """
     done: dict[tuple[Any, ...], Path] = {}
     for path in sorted(Path(results_root).rglob("manifest.json")):
@@ -264,9 +281,11 @@ def completed_runs(
             continue
         if splits is not None and not _ran_on_current_split(payload, identity, splits):
             continue
-        if expected_view is not None and payload.get("run_view") != expected_view:
+        try:
+            view = validated_run_view(payload)
+        except ValueError:
             continue
-        done.setdefault(identity, path)
+        done.setdefault((*identity, view), path)
     return done
 
 
@@ -283,19 +302,36 @@ def pending_runs(
     protocol: dict[str, Any],
     results_root: str | Path,
     *,
+    expected_views: Mapping[tuple[Any, ...], str],
     splits: dict[tuple[str, int], str] | None = None,
-    expected_view: str | None = None,
 ) -> tuple[tuple[PilotRun, ...], tuple[PilotRun, ...]]:
     """``(pending, completed)`` for the protocol's runs under ``results_root``.
+
+    Each planned run is looked up under the view it is going to run with, not
+    under its identity alone: an OS result does not satisfy a unit this pilot
+    will run calibrated, so changing the view cannot silently skip work.  That
+    view is resolved by the caller, which reads the same ledger the unit script
+    reads -- this module never guesses it.
+
+    ``expected_views`` must cover every planned run.  A missing entry is a
+    caller bug, and falling back to an identity-only lookup would reinstate
+    exactly the blind comparison this signature exists to remove.
 
     The completed half is returned alongside so a caller can report what it
     skipped; a driver that resumes silently is indistinguishable from one that
     ran nothing.
     """
-    done = completed_runs(results_root, splits=splits, expected_view=expected_view)
     planned = planned_runs(protocol)
-    pending = tuple(run for run in planned if run.key not in done)
-    return pending, tuple(run for run in planned if run.key in done)
+    missing = [run.key for run in planned if run.key not in expected_views]
+    if missing:
+        raise ValueError(
+            f"expected_views does not cover {len(missing)} planned run(s); "
+            f"first missing: {missing[0]}"
+        )
+    done = completed_runs(results_root, splits=splits)
+    pending = tuple(run for run in planned if (*run.key, expected_views[run.key]) not in done)
+    completed = tuple(run for run in planned if (*run.key, expected_views[run.key]) in done)
+    return pending, completed
 
 
 @dataclass(frozen=True)
