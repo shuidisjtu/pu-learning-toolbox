@@ -5,7 +5,7 @@
 > [pu_survey_protocol.md](pu_survey_protocol.md)（要求纲要）与
 > [experiment_layer.md](../../dev/experiment_layer.md)（实验层实现）；各 Phase 的交付证据
 > 见对应交付记录与复核包（`p2_0a/b/c_delivery.md`、`p2_0a/c_review.md`）。
-> 状态日期：2026-09-20。
+> 状态日期：2026-09-25。
 
 ## 1. 任务分工与验收
 
@@ -15,12 +15,12 @@
 |---|---|---|---|---|
 | P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 GPU 能力复核完成，正式跑批需 frozen-lock 环境（见独立复核记录） |
 | P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 manifest 侧已补齐（2026-09-19，三 pilot 数据集；许可按官方页面原文逐条记录——UCI 为 CC BY 4.0，另两个来源未声明）；ADNI 不在 pilot 范围，准入路线见 D1。本项 🚧 的口径是**范围**而非遗漏：协议 §2.1 列 8 个数据集，pilot 阶段先取 3 个易得且分属三种模态的（CIFAR-10 / Spambase / IMDB），故 pilot 范围内已完成、按协议全量仍待办 / shuidisjtu |
-| P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核 | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
+| P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核。**「7 个」为执行矩阵口径**——`survey_protocol_v1.json` 的 `method_profiles` 列 7 个 PU 方法 + `pn_oracle`；台账 `method_ledger.json` 另收 `pusb` 线性基线，实为 8 条 PU 条目（`pusb` / `pusb_kernel` 刻意分开，issue #42） | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
 | P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成（三数据集统一重建 2026-09-19）；传输/校验两端工具已就位（`scripts/survey_splits_archive.py`）；**载体已定（网盘带外传），三个归档已于 2026-09-20 发送，逐文件索引与归档摘要先于发送入库**（`docs/research/pu_survey/data/split_artifacts_index.json`）；⏸ HENG958 可执行性复核等待其取件校验 |
 | P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | ✅ 已签署验收（2026-09-17）/ HENG958 交付；shuidisjtu 复核签署；**不放行正式 P2.1**（R5/R8 记为 P2.1 前置条件，两者已于 2026-09-19 工程兑现）；见 [交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
-| P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | 🚧 工程实现与回归完成，HENG958 独立复核/签署待办；见 [交付记录](p2_0b_delivery.md) |
-| P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节；锚点数值预注册 | 🚧 技术审计修订完成，36 锚点/7 行映射待审；HENG958 正式复核未签署，见 [复核包](p2_0c_review.md) |
+| P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | ✅ 已完成（P1+P2）/ shuidisjtu 单方技术验收放行（2026-09-25，决策 D12）：19/19 注册分类器显式声明、8 组语义组合 fail-loud 行为正确、红绿对照实测（修复前 3 FAILED `DID NOT RAISE` → 当前 3 passed）。**HENG958 签署未获**；见 [交付记录](p2_0b_delivery.md) |
+| P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节；锚点数值预注册 | ✅ 已完成 / shuidisjtu 单方技术验收放行（2026-09-25，决策 D12）：判定规则常量与 `decision_rules` 一致、**48/48 锚点值逐值对账通过**、D10 修订复算完整；F8（IMDB 预处理差异不成立）已由 `survey_comparison_v3.json` 修订。**36 锚点/7 映射的合作者复核仍未获得**；见 [复核包](p2_0c_review.md) |
 | P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
 | P2.0e | TS-OS 校准接入训练执行链（协议 §2.3） | P1.3a | 视图默认由台账 `native_sampling_assumption` 推导、CLI 可覆盖；`ts` 视图逐训练 mini-batch 执行 `D_U^k ← D_U^k ∪ D_P^k`（验证/测试保持 OS）；逐 run 实际视图入 manifest（`run_view`/`calibration_applied`）并成为公平性分组维度；pilot 驱动透传与重跑判定收紧；未接线方法默认回落 `os`、显式请求 `ts` fail-loud | 🚧 部分完成 / shuidisjtu：`nnpu` 已接线并产出 os/ts 对照；其余 5 个原生 TS 方法校准形态各异（闭式 / EM / 双学生 / LR），待各自设计。`ts` 视图尚未经合作者复核，manifest 挂 `ts_view_collaborator_review` 阻断正式资格 |
 | P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c、P2.0e | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958；编排载体与磁盘预算已就位（`scripts/run_survey_pilot.py`），跑批主机与环境路线、GPU 窗口排定仍待定 |
@@ -65,7 +65,8 @@
 > （`val_proxy_acc`），我方 oracle 以 `clean_val` 真实 Accuracy 选模，口径不同——
 > `pn_oracle_integration.md` 既有决策；PN ≥ 各 PU 方法仅作协议内诊断预期）。主要协议差异：
 > 其验证比例 0.01（我方 5%+5%）、其 CIFAR-10 仅 /255.0（我方 train-only 通道归一化）、
-> 其 SBERT 特征 L2 归一化（我方口径待核对）。
+> 其 SBERT 特征 L2 归一化（**已结清**：我方 IMDB 特征同为 L2 单位化，两侧无此差异，
+> 见决策 D12 与对照矩阵 `v3`）。
 
 **PUBench Table 1/2（p8-9）：CIFAR-10，正例率 30%，Accuracy%，PA / PAUC / OA 三列**；
 Case 1 正类 {0,1,2,8,9}、Case 2 {2,3,5,7,9}——与我方 {0,1,8,9} 划分不同，仅判量级+趋势。
@@ -111,6 +112,7 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
 | D9 | SCAR 标记数取整口径 | PU-Bench `n_labeled = int(n_pos · labeled_ratio)` 为**向下取整**，协议 §2.1 采用 `round(c·n₊)`；实现时以协议口径为准并记录实际 c | 2026-09-06 |
 | D10 | **对照矩阵修订（v1 → v2）** | 审计 nnPU/Spambase 锚点时发现 v1 的两处登记缺陷：① 15 个 PU-Bench 映射把 CIFAR-10 的预处理差异复制到了全部数据集行，而 Spambase 行两侧同为 train-only z-score，该差异并不存在；② 15 个映射都缺**训练视图**维度——PU-Bench 的 case-control 把已标注正例放回 U（`data/data_utils.py:640-699`），与我方 `ts` 视图等价、与 `os` 视图不等价，而矩阵没有这一维。按预注册规则「确需修订须记录理由并重发预注册版本」新建 `survey_comparison_v2.json`：锚点数值、判定规则、资格判定均未变，仅 `protocol_differences`；`v1` 原样留档 | 2026-09-23 |
 | D11 | **split 分母口径与 c 取整的补登记** | 两处协议字面与实现的差异，经审计补登记：① 协议 §2.4(二)3 写「留 10% 验证池、等分 5%+5%，其余 90% 为 train」，实现先在**全量池**上切走 20% test、再在剩余 80% 上做 90/10，故 Spambase 实测 `role_sizes = 3312/184/184/921`（占全量 72/4/4/20，占剩余即 90/5/5）；分层与泄漏隔离无误，但「5%」的分母口径此前未在文档显式；② c 标注数取整，协议 §2.1 定 `round(c·n₊)`，PU-Bench 发布代码为向下取整（`data/data_utils.py:423-425`），本格 n₊=1305、c=0.1 时两者同为 130，别格会分叉 | 2026-09-23 |
+| D12 | **P2.0b/P2.0c 单方放行 + 对照矩阵 v3（F8）** | 三件事合并为一次摘要变更：① **放行 P2.0b/P2.0c**——两者工程实现经 shuidisjtu 单方技术验收（P2.0b 含红绿对照实测；P2.0c 含 48/48 锚点逐值对账），合作者未同步、未签署，为不使单人阻塞进度，从 `survey_protocol_v1.json` 的 `formal_blockers` 移除 `P2.0b_label_semantics_acceptance` 与 `P2.0c_cross_validation_acceptance`。**移除的是"阻断正式资格"，不等于合作者已复核**：对照矩阵的 `review_status` 仍为 `pending_collaborator_review`、`formal_blockers` 仍为 `["collaborator_review"]`，逐 run 写入 manifest 的 `comparison` 块，呈报时不得读作已签署；② **F8（对照矩阵 v3）**——v2 中 IMDB 的 5 条 PU-Bench 映射登记「preprocessing differs (the benchmark L2-normalises the SBERT features)」，但该差异**不成立**：我方 IMDB 特征同为 L2 单位化（split manifest 记 `effective_output_normalization="l2_unit_norm"`，实测 `data/splits/imdb/split_0/train.npz` 每行 L2 范数 0.99999988–1.00000012），与 PU-Bench 锁定代码的 `_l2_normalize` 同口径。D10 已正确删去 spambase 上错挂的 CIFAR 差异，却只把 IMDB 那行由 CIFAR 换成 IMDB、未校验替换后的差异是否成立——本条是同一类缺陷的收尾。按预注册规则新建 `survey_comparison_v3.json`，锚点数值、判定规则、资格判定均不变，仅 `protocol_differences`；`v1`/`v2` 原样留档；③ ①引发的协议摘要由 `c15b0c9e…` 变为 `c019a87d…`（**版本串按项目先例保持 `survey-v1.2`**，摘要才是绑定锚点），`v1`/`v2`/`v3` 的 `bound_survey_protocol.protocol_sha256` 一次性同步重绑 | 2026-09-25 |
 
 ## 4. 风险
 

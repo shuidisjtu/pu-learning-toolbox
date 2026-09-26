@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "comparison_version": "survey-comparison-v2",
+  "comparison_version": "survey-comparison-v3",
   "revisions": [
     {
       "revision": 1,
@@ -14,6 +14,18 @@
         "15 PU mappings: added the training-view difference"
       ],
       "evidence": "Replaying PU-Bench's own selection protocol over the 200 recorded checkpoints of each of our 5 os/ts runs reproduced the anchor on the ts view (80.91 +- 1.26 vs 81.66 +- 2.73, |delta| 0.75, 2*SE 2.06) while the os view and the paper-body macro-F1 protocol both miss it by 7-8pp. That is what identified the training view as a protocol difference rather than an implementation defect.",
+      "affects": "no anchor value and no decision rule changes; protocol_differences only"
+    },
+    {
+      "revision": 2,
+      "from_version": "survey-comparison-v2",
+      "date": "2026-09-25",
+      "reason": "The IMDB preprocessing difference registered by revision 1 does not hold. Revision 1 correctly identified the CIFAR-10 preprocessing line as wrongly copied onto dataset rows that do not carry that difference, and replaced it on the IMDB rows with an IMDB-specific line -- but the replacement was never itself checked. Our IMDB features are L2 unit-norm, the same convention as PU-Bench's locked code, so the two sides do not differ in preprocessing.",
+      "changed": [
+        "comparison_version: survey-comparison-v2 -> survey-comparison-v3",
+        "5 IMDB PU mappings: dropped the IMDB preprocessing difference"
+      ],
+      "evidence": "Our shipped split manifests record preprocessing.effective_output_normalization = 'l2_unit_norm' with normalization_source = 'model_pipeline_module' (model sentence-transformers/all-MiniLM-L6-v2); measured on the shipped data/splits/imdb/split_0/train.npz the per-row L2 norm is min 0.99999988 / max 1.00000012 / mean 1.00000000. PU-Bench's locked code applies _l2_normalize to X_train and X_test (data/IMDB_PU.py:226-234, commit 2d95a19; contradiction pu_bench_imdb_embedding_normalization). Both sides unit-norm => no difference.",
       "affects": "no anchor value and no decision rule changes; protocol_differences only"
     }
   ],
@@ -3047,7 +3059,6 @@
         "backbone differs (benchmark per-modality CNN/MLP vs ours)",
         "validation split ratio differs (0.01 vs our 10-20%)",
         "selection criterion differs (proxy accuracy vs our OA)",
-        "IMDB preprocessing differs (the benchmark L2-normalises the SBERT features; see contradiction pu_bench_imdb_embedding_normalization)",
         "training view differs (the benchmark's case-control setting returns the labeled positives into U, which our ts view reproduces; our os view does not)"
       ],
       "review_state": "accepted",
@@ -3286,7 +3297,6 @@
         "backbone differs (benchmark per-modality CNN/MLP vs ours)",
         "validation split ratio differs (0.01 vs our 10-20%)",
         "selection criterion differs (proxy accuracy vs our OA)",
-        "IMDB preprocessing differs (the benchmark L2-normalises the SBERT features; see contradiction pu_bench_imdb_embedding_normalization)",
         "training view differs (the benchmark's case-control setting returns the labeled positives into U, which our ts view reproduces; our os view does not)"
       ],
       "review_state": "accepted",
@@ -3504,7 +3514,6 @@
         "backbone differs (benchmark per-modality CNN/MLP vs ours)",
         "validation split ratio differs (0.01 vs our 10-20%)",
         "selection criterion differs (proxy accuracy vs our OA)",
-        "IMDB preprocessing differs (the benchmark L2-normalises the SBERT features; see contradiction pu_bench_imdb_embedding_normalization)",
         "training view differs (the benchmark's case-control setting returns the labeled positives into U, which our ts view reproduces; our os view does not)"
       ],
       "review_state": "accepted",
@@ -3722,7 +3731,6 @@
         "backbone differs (benchmark per-modality CNN/MLP vs ours)",
         "validation split ratio differs (0.01 vs our 10-20%)",
         "selection criterion differs (proxy accuracy vs our OA)",
-        "IMDB preprocessing differs (the benchmark L2-normalises the SBERT features; see contradiction pu_bench_imdb_embedding_normalization)",
         "training view differs (the benchmark's case-control setting returns the labeled positives into U, which our ts view reproduces; our os view does not)"
       ],
       "review_state": "accepted",
@@ -3940,7 +3948,6 @@
         "backbone differs (benchmark per-modality CNN/MLP vs ours)",
         "validation split ratio differs (0.01 vs our 10-20%)",
         "selection criterion differs (proxy accuracy vs our OA)",
-        "IMDB preprocessing differs (the benchmark L2-normalises the SBERT features; see contradiction pu_bench_imdb_embedding_normalization)",
         "training view differs (the benchmark's case-control setting returns the labeled positives into U, which our ts view reproduces; our os view does not)"
       ],
       "review_state": "accepted",

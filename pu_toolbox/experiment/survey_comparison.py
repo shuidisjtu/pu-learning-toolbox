@@ -39,7 +39,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-COMPARISON_PATH = Path(__file__).with_name("survey_comparison_v2.json")
+COMPARISON_PATH = Path(__file__).with_name("survey_comparison_v3.json")
 
 #: The six eligibility classes, in canonical order.  A comparison file that
 #: declares anything else (an extra class, a missing one) is rejected rather
