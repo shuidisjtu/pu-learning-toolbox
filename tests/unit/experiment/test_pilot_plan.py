@@ -98,6 +98,11 @@ def _manifest(dataset, method, training_path, seed, **overrides) -> dict:
         # an empty selection when every candidate was excluded, still under the
         # completed execution mode.
         "selection": {"OA": {"candidate_index": 0}},
+        # A resume scan keys on the view as well as the identity, so every
+        # manifest has to record one.  The runner writes both fields on every
+        # manifest it produces, including the rejected ones.
+        "run_view": "os-compatible",
+        "calibration_applied": False,
     }
     payload.update(overrides)
     return payload
@@ -171,7 +176,9 @@ def test_basic_only_a_selected_run_counts_and_everything_else_does_not(tmp_path)
     (tmp_path / "broken").mkdir()
     (tmp_path / "broken/manifest.json").write_text("{not json", encoding="utf-8")
 
-    assert set(completed_runs(tmp_path)) == {("spambase", "upu", "native_2d", "scar", "0.1", 0)}
+    assert set(completed_runs(tmp_path)) == {
+        ("spambase", "upu", "native_2d", "scar", "0.1", 0, "os-compatible")
+    }
 
 
 def test_edge_a_run_from_a_rebuilt_split_is_not_done(tmp_path):
@@ -189,8 +196,8 @@ def test_edge_a_run_from_a_rebuilt_split_is_not_done(tmp_path):
     seed1["representation"] = {"split_sha256": "new"}
     _write(tmp_path, "seed0", seed0)
     _write(tmp_path, "seed1", seed1)
-    key0 = ("spambase", "upu", "native_2d", "scar", "0.1", 0)
-    key1 = ("spambase", "upu", "native_2d", "scar", "0.1", 1)
+    key0 = ("spambase", "upu", "native_2d", "scar", "0.1", 0, "os-compatible")
+    key1 = ("spambase", "upu", "native_2d", "scar", "0.1", 1, "os-compatible")
 
     # Matching digests: both runs still describe the splits on disk.
     both = {("spambase", 0): "old", ("spambase", 1): "new"}
@@ -226,7 +233,8 @@ def test_basic_pending_is_the_plan_minus_what_the_records_place(tmp_path):
     protocol = _protocol()
     _write(tmp_path, "a", _manifest("spambase", "upu", "native_2d", 0))
     _write(tmp_path, "b", _manifest("spambase", PN_ORACLE, "native_2d", 1))
-    pending, done = pending_runs(protocol, tmp_path)
+    views = {run.key: "os-compatible" for run in planned_runs(protocol)}
+    pending, done = pending_runs(protocol, tmp_path, expected_views=views)
     assert len(pending) + len(done) == len(planned_runs(protocol))
     assert len(done) == 2
     assert ("spambase", "upu", "native_2d", "scar", "0.1", 0) not in {run.key for run in pending}

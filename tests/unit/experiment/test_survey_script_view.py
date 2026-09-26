@@ -97,6 +97,18 @@ class TestResolution:
                 ledger, "nnpu", "ts", is_oracle=False, estimator_class=_PlainEstimator
             )
 
+    def test_explicit_ts_without_an_estimator_class_is_refused(self, survey_script, ledger):
+        """No class means the interface was never checked, so ``ts`` cannot be claimed.
+
+        ``--os-or-ts ts`` is the operator stating which view the run must take.
+        A caller that omits the estimator class leaves the second §2.3 condition
+        unverifiable, and answering ``ts`` anyway would hand back an unverified
+        promise.  Falling back to ``os`` is no better: that is exactly the silent
+        view downgrade this resolution exists to prevent.
+        """
+        with pytest.raises(ValueError, match="no estimator class was supplied"):
+            survey_script.resolve_training_view(ledger, "nnpu", "ts", is_oracle=False)
+
     def test_oracle_refuses_a_calibrated_view(self, survey_script, ledger):
         with pytest.raises(ValueError, match="does not apply"):
             survey_script.resolve_training_view(ledger, "pn_oracle", "ts", is_oracle=True)

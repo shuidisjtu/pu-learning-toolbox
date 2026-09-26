@@ -29,6 +29,7 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from pu_toolbox.experiment.pilot_plan import (
     Batch,
@@ -96,8 +97,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=None,
         help=(
             "passed through to the unit script (default: each method's ledger view). "
-            "'ts' applies the TS-OS calibration; an explicit value also gates the "
-            "resume check, so runs recorded under the other view stay pending"
+            "'ts' applies the TS-OS calibration and is refused -- before any batch "
+            "starts -- for a method that cannot carry it, the oracle included. The "
+            "resume check holds every run to its own view whether that value was "
+            "explicit or derived, so results recorded under the other view stay "
+            "pending. This is a whole-matrix request: a plan containing any OS-native "
+            "method or the oracle cannot be run under an explicit 'ts'"
         ),
     )
     parser.add_argument("--adapter-cache", default=None, help="passed through to the unit script")
@@ -230,15 +235,64 @@ def _missing_priors(
     return sorted(missing)
 
 
-def _expected_view(args: argparse.Namespace) -> str | None:
-    """The view a resumed run must have recorded, when one was requested.
-    ``None`` means "no expectation": the unit script's ledger-derived default is
-    not re-derived here, because the pilot does not read the ledger and guessing
-    wrong would re-run the whole matrix.
+def expected_run_views(
+    runs: tuple[PilotRun, ...],
+    requested: str | None,
+) -> dict[tuple[Any, ...], str]:
+    """The view every planned run will execute under, keyed by run identity.
+
+    The driver used to hold one global expectation, and to drop it entirely when
+    ``--os-or-ts`` was absent -- which left the default path comparing runs by
+    identity alone.  A method's default view is not one value, though: a method
+    native to TS and wired for calibration runs calibrated, one declared native
+    to TS but not yet wired falls back to OS, and the oracle is never calibrated.
+    Resolving per run is what lets a resumed unit be held to the view it will
+    actually run with.
+
+    The resolution is not reimplemented here.  ``resolve_training_view`` is shared
+    with the unit script, so a driver and a runner cannot disagree about what
+    "default" means -- and an explicit request is refused for a method that
+    cannot carry it before any batch starts, rather than at the batch that
+    happens to hit that method.
+
+    A method the protocol marks runnable but the registry cannot supply a class
+    for is a driver error, not a view: it is refused here, named, rather than
+    silently resolved as OS.
     """
-    if args.os_or_ts is None:
-        return None
-    return f"{args.os_or_ts}-compatible"
+    from pu_toolbox.core.exceptions import RegistryError
+    from pu_toolbox.experiment.method_ledger import load_ledger
+    from pu_toolbox.experiment.training_views import resolve_training_view
+    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+
+    register_all_builtin_methods()
+    ledger = load_ledger()
+    #: A run's view is a property of its method and the request, not of its seed
+    #: or c token, so the same resolution serves every unit of one method.
+    resolved: dict[tuple[str, bool], str] = {}
+    views: dict[tuple[Any, ...], str] = {}
+    for run in runs:
+        cache_key = (run.method, run.is_oracle)
+        if cache_key not in resolved:
+            estimator_class = None
+            if not run.is_oracle:
+                try:
+                    estimator_class = get_algorithm(run.method)
+                except RegistryError as exc:
+                    raise ValueError(
+                        f"the protocol marks {run.dataset}/{run.method}/"
+                        f"{run.training_path} runnable, but the registry holds no "
+                        f"estimator class for {run.method!r}, so the view that run "
+                        "would use cannot be resolved."
+                    ) from exc
+            resolved[cache_key] = resolve_training_view(
+                ledger,
+                run.method,
+                requested,
+                is_oracle=run.is_oracle,
+                estimator_class=estimator_class,
+            )
+        views[run.key] = f"{resolved[cache_key]}-compatible"
+    return views
 
 
 def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float]) -> bool:
@@ -285,11 +339,16 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     protocol = load_protocol()
     planned = planned_runs(protocol)
+    # Resolved once, before anything runs: a request the plan cannot satisfy is
+    # refused here rather than at whichever batch happens to hit that method.
+    try:
+        views = expected_run_views(planned, args.os_or_ts)
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     if args.dry_run:
-        pending, done = pending_runs(
-            protocol, args.results, splits=splits, expected_view=_expected_view(args)
-        )
+        pending, done = pending_runs(protocol, args.results, splits=splits, expected_views=views)
         _print_plan(protocol, pending, done, dims)
         if priors:
             print(f"  class prior: {', '.join(f'{k}={v}' for k, v in sorted(priors.items()))}")
@@ -308,9 +367,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    pending, _ = pending_runs(
-        protocol, args.results, splits=splits, expected_view=_expected_view(args)
-    )
+    pending, _ = pending_runs(protocol, args.results, splits=splits, expected_views=views)
     failed = False
     for batch in batches(pending):
         if failed and not args.keep_going:
@@ -321,7 +378,7 @@ def main(argv: list[str] | None = None) -> int:
     # batch can succeed and still leave runs behind, and the operator needs the
     # count that the manifests agree with.
     still_pending, now_done = pending_runs(
-        protocol, args.results, splits=splits, expected_view=_expected_view(args)
+        protocol, args.results, splits=splits, expected_views=views
     )
     print(
         f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s); "
