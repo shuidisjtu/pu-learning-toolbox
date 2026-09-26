@@ -81,7 +81,9 @@ def subsample_centers(
     Parameters
     ----------
     X_pool : np.ndarray of shape (n_samples, n_features)
-        Candidate centre pool (typically U samples).
+        Candidate centre pool — the set carrying the unlabeled role in the
+        current training view: the unlabeled rows under the OS view, the whole
+        training set under the calibrated (ts) view.
     n_centers : int
         Desired number of centres.  Capped at ``len(X_pool)``.
     rng : np.random.RandomState
