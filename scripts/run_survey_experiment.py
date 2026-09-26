@@ -73,7 +73,6 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import inspect
 import json
 import math
 import sys
@@ -86,8 +85,7 @@ from sklearn.neural_network import MLPClassifier
 
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.manifest import load_manifest, write_manifest
-from pu_toolbox.experiment.method_ledger import load_ledger, native_sampling_assumption
-from pu_toolbox.experiment.protocols import accepts_training_view
+from pu_toolbox.experiment.method_ledger import load_ledger
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import (
     CleanLabelGenerator,
@@ -97,6 +95,7 @@ from pu_toolbox.experiment.strategies import (
     SCARGenerator,
     SupervisedTrainer,
 )
+from pu_toolbox.experiment.training_views import resolve_training_view
 
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
 
@@ -336,61 +335,6 @@ def resolve_class_prior(
             f"{entry.get('prior_semantics', '')!r}); pass --class-prior."
         )
     return provided
-
-
-def resolve_training_view(
-    ledger: dict[str, Any],
-    method: str,
-    requested: str | None,
-    *,
-    is_oracle: bool,
-    estimator_class: type | None = None,
-) -> str:
-    """Resolve the run's training view: ledger default, or the explicit request.
-
-    Protocol §2.3 gates the calibrated view on **two** conditions — the method
-    ledger declaring native TS/case-control sampling, *and* the training
-    interface allowing the unlabeled-loss input to be replaced.  Both are
-    checked here: the ledger supplies the default, and ``--os-or-ts`` overrides
-    it.  A method that is native TS but whose estimator has no ``os_or_ts`` fit
-    hook stays on ``os`` rather than failing every run; only an *explicit* ``ts``
-    request on such a method is refused, naming the missing interface.
-    """
-    if is_oracle:
-        if requested == "ts":
-            raise ValueError(
-                "--oracle trains on real labels and generates no PU label view, so "
-                "--os-or-ts ts does not apply; drop --os-or-ts."
-            )
-        return "os"
-    entry = ledger["methods"].get(method)
-    if entry is None:
-        raise ValueError(f"method {method!r} is not in the survey ledger")
-    native = native_sampling_assumption(entry)
-    if requested is None:
-        if native not in {"ts", "both"} or estimator_class is None:
-            return "os"
-        return "ts" if accepts_training_view(_fit_parameters(estimator_class)) else "os"
-    if requested == "ts":
-        if native not in {"ts", "both"}:
-            raise ValueError(
-                f"method {method!r} is declared native to {native!r} sampling in the "
-                "method ledger, so the calibrated (ts) view does not apply to it."
-            )
-        if estimator_class is not None and not accepts_training_view(
-            _fit_parameters(estimator_class)
-        ):
-            raise ValueError(
-                f"method {method!r} is native to TS sampling but "
-                f"{estimator_class.__name__}.fit() declares no os_or_ts parameter, "
-                "so the training interface cannot replace the unlabeled-loss input."
-            )
-    return requested
-
-
-def _fit_parameters(estimator_class: type) -> Any:
-    """The ``fit`` parameters of an estimator class, for the view gate."""
-    return inspect.signature(estimator_class.fit).parameters
 
 
 def _write_ledger_entry(run_dir: Path, entry: dict[str, Any], run_view: str) -> None:

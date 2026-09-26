@@ -5,11 +5,15 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
+
+from .method_ledger import native_sampling_assumption
+from .protocols import accepts_training_view
 
 SamplingAssumption = Literal["os", "ts", "both"]
 RunView = Literal["os", "ts"]
@@ -162,3 +166,109 @@ def _json_indices(indices: np.ndarray) -> list[int | float | str | bool | None]:
             raise ValueError("floating-point indices must be finite.")
         values.append(value)
     return values
+
+
+#: The views a versioned pilot may record.  ``os-compatible`` covers both a
+#: method native to OS and one declared native to TS but not yet wired for
+#: calibration -- the field is the view a run took, not the ledger's assumption.
+LEGAL_RUN_VIEWS = frozenset({"os-compatible", "ts-compatible"})
+
+#: The supervised upper bound.  It trains on real labels, so it generates no PU
+#: label view -- and no calibrated (ts) view to be run under.  ``--oracle
+#: --os-or-ts ts`` is already refused at the command line; this is the
+#: aggregation-side half of the same rule.
+ORACLE_METHOD = "pn_oracle"
+
+
+def validated_run_view(payload: dict[str, Any]) -> str:
+    """The view one manifest ran under, checked against its calibration flag.
+
+    The protocol pairs the two: a calibrated run is the only one that reports
+    ``ts-compatible``.  A manifest whose flag contradicts its view is malformed
+    rather than a third view, so it is refused rather than sorted somewhere.
+    A missing flag is refused too -- the runner writes one on every manifest it
+    produces, including the rejected ones.
+
+    The oracle is refused a calibrated view outright: it trains on real labels,
+    so the unlabeled loss that calibration feeds does not exist for it.
+
+    Raised as ``ValueError`` so each caller can decide what a malformed artifact
+    means to it: aggregating stops on one, while a resume scan counts it as not
+    done and keeps going.
+    """
+    view = payload.get("run_view")
+    if view not in LEGAL_RUN_VIEWS:
+        raise ValueError(
+            f"run_view must be one of {', '.join(sorted(LEGAL_RUN_VIEWS))}, got {view!r}"
+        )
+    calibrated = payload.get("calibration_applied")
+    if calibrated is not (view == "ts-compatible"):
+        raise ValueError(f"run_view {view!r} disagrees with calibration_applied {calibrated!r}")
+    unit = payload.get("execution_unit")
+    method = unit.get("method") if isinstance(unit, dict) else None
+    if view == "ts-compatible" and method == ORACLE_METHOD:
+        raise ValueError(
+            "the PN oracle trains on real labels and generates no PU label view, "
+            "so it has no calibrated (ts) view"
+        )
+    return view
+
+
+def resolve_training_view(
+    ledger: dict[str, Any],
+    method: str,
+    requested: str | None,
+    *,
+    is_oracle: bool,
+    estimator_class: type | None = None,
+) -> str:
+    """Resolve the run's training view: ledger default, or the explicit request.
+
+    Protocol §2.3 gates the calibrated view on **two** conditions — the method
+    ledger declaring native TS/case-control sampling, *and* the training
+    interface allowing the unlabeled-loss input to be replaced.  Both are
+    checked here: the ledger supplies the default, and ``--os-or-ts`` overrides
+    it.  A method that is native TS but whose estimator has no ``os_or_ts`` fit
+    hook stays on ``os`` rather than failing every run; only an *explicit* ``ts``
+    request on such a method is refused, naming the missing interface.
+
+    Shared by the unit script and the pilot driver, so the view a resumed unit
+    is held to is the view that unit will actually run under.  A second copy of
+    this decision is how a driver ends up expecting something the runner never
+    does.
+    """
+    if is_oracle:
+        if requested == "ts":
+            raise ValueError(
+                "--oracle trains on real labels and generates no PU label view, so "
+                "--os-or-ts ts does not apply; drop --os-or-ts."
+            )
+        return "os"
+    entry = ledger["methods"].get(method)
+    if entry is None:
+        raise ValueError(f"method {method!r} is not in the survey ledger")
+    native = native_sampling_assumption(entry)
+    if requested is None:
+        if native not in {"ts", "both"} or estimator_class is None:
+            return "os"
+        return "ts" if accepts_training_view(_fit_parameters(estimator_class)) else "os"
+    if requested == "ts":
+        if native not in {"ts", "both"}:
+            raise ValueError(
+                f"method {method!r} is declared native to {native!r} sampling in the "
+                "method ledger, so the calibrated (ts) view does not apply to it."
+            )
+        if estimator_class is not None and not accepts_training_view(
+            _fit_parameters(estimator_class)
+        ):
+            raise ValueError(
+                f"method {method!r} is native to TS sampling but "
+                f"{estimator_class.__name__}.fit() declares no os_or_ts parameter, "
+                "so the training interface cannot replace the unlabeled-loss input."
+            )
+    return requested
+
+
+def _fit_parameters(estimator_class: type) -> Any:
+    """The ``fit`` parameters of an estimator class, for the view gate."""
+    return inspect.signature(estimator_class.fit).parameters
