@@ -79,6 +79,7 @@ def manifest(
     protocol_version="survey-v1.2",
     runnable=True,
     run_view="os-compatible",
+    calibration_applied=None,
 ):
     """A versioned-pilot manifest with only the fields aggregation reads.
 
@@ -117,6 +118,8 @@ def manifest(
         }
         for role in ("train", "pu_val")
     }
+    if calibration_applied is None:
+        calibration_applied = run_view == "ts-compatible"
     return {
         "execution_mode": "versioned_pilot",
         "protocol_version": protocol_version,
@@ -125,6 +128,7 @@ def manifest(
         "training_path": training_path,
         "adaptation_level": "benchmark-adapted",
         "run_view": run_view,
+        "calibration_applied": calibration_applied,
         "representation": representation,
         "budget": budget_payload,
         "candidate_runs": [{"candidate_index": index} for index in range(candidates)],
