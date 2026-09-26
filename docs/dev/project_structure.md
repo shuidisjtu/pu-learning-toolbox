@@ -168,7 +168,7 @@ pu_toolbox/
     survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
     pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算
-    method_ledger.py                      <<< 新文件,补注释
+    method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -226,7 +226,7 @@ tests/
       test_llsvm.py                     # LLSVM 特有逻辑(可分离合成训练、calibration 防全正、早停与显式先验路径)
       test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
       test_nnpu_gpu.py                  # nnPU CNN encoder GPU 执行级测试(无 CUDA 自动 skip)
-      test_nnpu_ts_view.py              # <<< 新文件,补注释
+      test_nnpu_ts_view.py              # nnPU 的 TS-OS 训练视图（并集输入、视图门禁、验证保持 OS）
       test_upu_ts_view.py               # UPUClassifier 的 TS-OS 训练视图(独立重推 golden、solver 池与分母、RBF 中心池)
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)

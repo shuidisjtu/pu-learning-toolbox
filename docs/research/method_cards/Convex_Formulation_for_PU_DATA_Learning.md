@@ -471,6 +471,8 @@ Input:
 
 - **Squared 闭式解**：实现应使用线性方程求解（如 `np.linalg.solve`），不显式计算矩阵逆。
 
+- **训练视图叠加（协议 §2.3，实验层叠加而非算法语义）**：`fit(..., os_or_ts=...)` 默认 `"os"`，即 §3.3–§3.5 描述的风险形态。`"ts"`（方法原生 case-control 采样）把无标签风险项的经验分布由 $`D_U`$ 换成 $`D_U \cup D_P`$，分母随之取全训练集行数；正例项 $`-(\pi/n_P)\sum_P g`$、class prior $`\pi`$ 与正则项不变。RBF 基函数的**中心候选池**跟随该集合，但**中心数量**仍由校准前的 $`n_U`$ 推出，故 OS/TS 对照不混入模型容量变化。直接调用 estimator 时默认 OS；Survey 未显式覆盖时的默认视图由 resolver 依台账原生假设与 `fit` 签名决定。与 `nnpu` 不同，此处 `"ts"` 与 `sample_weight` **不**互斥——uPU 本就忽略样本权重（`sample_weight_support = IGNORED`），并集不产生无权重定义的追加行。`ts` 路径尚未经合作者复核。
+
 ---
 
 ## 7. 论文实验参考
