@@ -544,13 +544,14 @@ def estimate_checkpoint_bytes(
     the second attempt too, which is why the reserve exists.
 
     Uses the same two functions the guard uses, so a deficit this predicts is
-    the deficit that guard would refuse the run for.  The per-component figure
-    is a lower bound -- it ignores filesystem overhead and any candidate that
-    changes the network size -- and the candidate count comes from the
-    protocol's pool unless overridden.  Which storage model applies is decided
-    per row -- by training path, backbone and model family together -- so a row
-    that saves a trainable head is not priced as the ResNet it reads features
-    from.  Each unit's figure carries the profile that decided it.
+    the deficit that guard would refuse the run for, and the candidate count
+    comes from the protocol's pool unless overridden.  Which storage model
+    applies is decided per row -- by training path, backbone and model family
+    together -- so a row that saves a trainable head is not priced as the ResNet
+    it reads features from.  Each unit's figure carries the profile that decided
+    it, and the profile is what says which way that figure bounds: the MLP
+    formula is a lower bound on what a component costs, while the two image
+    constants are conservative upper bounds rounded up from real serialisations.
 
     Cost is per *unit*: mechanism, ``c`` and seed change how many times a unit
     runs, never how much one run weighs.

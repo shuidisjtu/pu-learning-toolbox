@@ -40,10 +40,14 @@ RESNET18_COMPONENT_BYTES = 45 * 1024**2
 ADAPTER_HEAD_COMPONENT_BYTES = 512 * 1024
 
 #: Storage profiles whose per-component size is a *constant*.  A constant is
-#: evidence for the architecture it was measured on and for nothing else, so the
-#: key is the whole identity: a new adapter method, a wider head or a different
-#: backbone has to add a row here along with its own serialisation evidence,
-#: rather than silently inheriting a bound that no longer covers it.
+#: evidence for the architecture it was measured on and for nothing else, and the
+#: key is the whole identity because the method is not part of it: two methods
+#: sharing a training path, backbone and model family share a head.  So a new
+#: triple has to add a row here, and any change to the architecture behind an
+#: existing row has to re-measure it -- either way with its own serialisation
+#: evidence, rather than silently inheriting a bound that no longer covers it.
+#: (A new method on an existing triple needs no new row, but the serialisation
+#: test is parametrised over the matrix, so its head is measured all the same.)
 _CONSTANT_COMPONENT_PROFILES: dict[tuple[str, str, str], tuple[int, str]] = {
     ("cnn_feature_adapter", "resnet18_random_frozen", "mlp128"): (
         ADAPTER_HEAD_COMPONENT_BYTES,
@@ -134,8 +138,14 @@ def unit_checkpoint_bytes(protocol: dict, row: dict, *, input_dim: int) -> int |
     ``backbone`` names where the features come from, not what gets saved, and on
     the adapter path the two differ by three orders of magnitude.
 
-    Both figures are lower bounds: they ignore filesystem overhead and any
-    candidate that changes the network size.
+    The two kinds of figure bound in **opposite** directions, and which one a
+    row gets decides how its total should be read.  The MLP figure is the
+    declared architecture's parameter count at four bytes each, so it is a
+    *lower* bound: it ignores serialisation overhead and any candidate that
+    changes the network size.  The constants are rounded up from real
+    serialisations of the components they cover, so they are conservative
+    *upper* bounds -- a host sized against one is not going to run out of room
+    because a header was longer than expected.
     """
     return _checkpoint_storage(protocol, row, input_dim=input_dim)[0]
 
