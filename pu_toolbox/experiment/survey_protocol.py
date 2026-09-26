@@ -19,10 +19,41 @@ import numpy as np
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 ROLES = ("train", "pu_val", "clean_val", "test")
 
-#: One frozen ResNet-18 state_dict, rounded up from the 44 MB measured in
-#: epoch_checkpoint_delivery.md -- which is where the 200-epoch budget's
-#: 8-9 GB per candidate per seed comes from.
+#: One end-to-end ResNet-18 checkpoint component, rounded up from the 44 MB
+#: measured in epoch_checkpoint_delivery.md -- which is where the 200-epoch
+#: budget's 8-9 GB per candidate per seed comes from.  It sizes the rows that
+#: train the ResNet itself; the adapter rows train a head on frozen features and
+#: are sized by ADAPTER_HEAD_COMPONENT_BYTES instead.
 RESNET18_COMPONENT_BYTES = 45 * 1024**2
+
+#: One trainable MLP head under the frozen-encoder adapter path.  Measured
+#: 2026-09-26 by serialising every runnable adapter row's real per-epoch
+#: checkpoint through the production path (assemble_model with the shipped
+#: mlp128 score model, written by EpochCheckpointTrainer): the largest component
+#: file was 265,695 bytes at cifar10/self_pu, so 512 KiB leaves a 1.97x margin.
+#: The frozen encoder is not in it -- the writer saves ``fitted.model_``, which
+#: on this path is the head, not the features it reads.
+#:
+#: tests/unit/experiment/test_checkpoint_storage_profiles.py re-runs that
+#: serialisation, so a head that outgrows this bound fails rather than quietly
+#: keeping a stale constant plausible.
+ADAPTER_HEAD_COMPONENT_BYTES = 512 * 1024
+
+#: Storage profiles whose per-component size is a *constant*.  A constant is
+#: evidence for the architecture it was measured on and for nothing else, so the
+#: key is the whole identity: a new adapter method, a wider head or a different
+#: backbone has to add a row here along with its own serialisation evidence,
+#: rather than silently inheriting a bound that no longer covers it.
+_CONSTANT_COMPONENT_PROFILES: dict[tuple[str, str, str], tuple[int, str]] = {
+    ("cnn_feature_adapter", "resnet18_random_frozen", "mlp128"): (
+        ADAPTER_HEAD_COMPONENT_BYTES,
+        "adapter_trainable_head",
+    ),
+    ("native_cnn", "resnet18_end_to_end", "resnet18_linear"): (
+        RESNET18_COMPONENT_BYTES,
+        "native_cnn_full_resnet18",
+    ),
+}
 _LOCKED_CONFIG = ("backbone", "budget", "representation", "training_path", "comparability_group")
 _REVIEW_STATUSES = frozenset({"pending_collaborator_review", "changes_requested", "accepted"})
 _REQUIRED_UNIT_FIELDS = frozenset(
@@ -41,32 +72,82 @@ _REQUIRED_UNIT_FIELDS = frozenset(
 )
 
 
+def _profile_key(row: dict) -> tuple[str, object, object]:
+    """The identity a constant profile is registered under.
+
+    ``backbone`` and ``model_family`` are read leniently so a row that omits one
+    fails as an unsized row with its context spelled out, rather than as a
+    ``KeyError`` from the lookup.  The loader requires both on every shipped
+    unit, and a missing field can never match a registered profile -- which is
+    the fail-closed direction either way.
+    """
+    return (row["training_path"], row.get("backbone"), row.get("model_family"))
+
+
+def _unsized_message(row: dict) -> str:
+    """Name every field a reader would need to add the missing profile."""
+    return (
+        f"no checkpoint storage profile for {row['dataset']}/{row['method']}/"
+        f"{row['training_path']} (backbone={row.get('backbone')!r}, "
+        f"model_family={row.get('model_family')!r}, budget={row['budget']!r})"
+    )
+
+
+def _checkpoint_storage(protocol: dict, row: dict, *, input_dim: int) -> tuple[int | None, str]:
+    """Bytes one per-epoch checkpoint component costs, and the profile behind it.
+
+    The single place the training path is decided.  ``None`` means this budget
+    caps no epochs -- a closed-form or kernel method that never checkpoints --
+    and is deliberately *not* how "unknown" is spelled: an unrecognised path or
+    architecture raises, because a silently guessed size is a figure the pre-run
+    guard would then hold a host to.
+    """
+    if not protocol["budgets"][row["budget"]].get("epochs"):
+        return None, "no_epoch_budget"
+    profile = _CONSTANT_COMPONENT_PROFILES.get(_profile_key(row))
+    if profile is not None:
+        return profile
+    if row["training_path"] == "native_2d":
+        # Parametric rather than constant: the figure follows the row's own
+        # declared architecture, so a wider network is covered by construction.
+        hidden_dims = protocol["backbone_specs"].get(row.get("backbone"), {}).get("hidden_dims")
+        if not hidden_dims:
+            raise ValueError(_unsized_message(row))
+        dims = [int(input_dim), *(int(dim) for dim in hidden_dims), 1]
+        # Each Linear contributes weight a*b plus its bias b.
+        return (
+            4 * sum(w * u + u for w, u in zip(dims[:-1], dims[1:], strict=True)),
+            "native_2d_mlp",
+        )
+    raise ValueError(
+        f"{_unsized_message(row)}. Add a profile for this training path, backbone "
+        "and model family, with its own serialisation evidence."
+    )
+
+
 def unit_checkpoint_bytes(protocol: dict, row: dict, *, input_dim: int) -> int | None:
     """Bytes one per-epoch checkpoint component costs for this execution unit.
 
     ``None`` when the unit's budget caps no epochs, i.e. a closed-form or
-    kernel method that never checkpoints.  The mlp figure is the declared
-    architecture's parameter count at four bytes each; the image figure is a
-    constant because the frozen ResNet-18 is fixed.  Both are lower bounds:
-    they ignore filesystem overhead and any candidate that changes the network
-    size.
+    kernel method that never checkpoints.  Which model applies is decided by the
+    unit's training path, backbone and model family together -- the row's
+    ``backbone`` names where the features come from, not what gets saved, and on
+    the adapter path the two differ by three orders of magnitude.
+
+    Both figures are lower bounds: they ignore filesystem overhead and any
+    candidate that changes the network size.
     """
-    if not protocol["budgets"][row["budget"]].get("epochs"):
-        return None
-    backbone = row["backbone"]
-    # Rows name the image backbone by variant (end-to-end vs random-frozen)
-    # while backbone_specs holds one shared "image" entry, so the family is
-    # matched by prefix rather than by a spec key that does not exist.
-    if backbone.startswith("resnet18"):
-        return RESNET18_COMPONENT_BYTES
-    hidden_dims = protocol["backbone_specs"].get(backbone, {}).get("hidden_dims")
-    if not hidden_dims:
-        return None
-    dims = [int(input_dim), *(int(dim) for dim in hidden_dims), 1]
-    # Each Linear contributes weight a*b plus its bias b.
-    return 4 * sum(
-        weights * units + units for weights, units in zip(dims[:-1], dims[1:], strict=True)
-    )
+    return _checkpoint_storage(protocol, row, input_dim=input_dim)[0]
+
+
+def unit_checkpoint_profile(protocol: dict, row: dict, *, input_dim: int) -> str:
+    """Which storage profile decided that figure.
+
+    Same call and same signature as ``unit_checkpoint_bytes``, so a report that
+    explains the number cannot end up describing a different path than the
+    number came from.
+    """
+    return _checkpoint_storage(protocol, row, input_dim=input_dim)[1]
 
 
 def digest(value: Any) -> str:

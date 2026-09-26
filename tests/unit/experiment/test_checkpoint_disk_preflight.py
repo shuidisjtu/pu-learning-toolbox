@@ -28,6 +28,7 @@ from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.survey_execution import assemble_model
 from pu_toolbox.experiment.survey_protocol import (
+    ADAPTER_HEAD_COMPONENT_BYTES,
     PROTOCOL_PATH,
     RESNET18_COMPONENT_BYTES,
     load_protocol,
@@ -169,8 +170,13 @@ def test_edge_unit_checkpoint_bytes_per_row_family():
     mlp = resolve_unit(protocol, "spambase", "self_pu")
     assert unit_checkpoint_bytes(protocol, mlp, input_dim=57) == 4 * (128 * (57 + 2) + 1)
 
-    image = resolve_unit(protocol, "cifar10", "self_pu")
-    assert unit_checkpoint_bytes(protocol, image, input_dim=3) == RESNET18_COMPONENT_BYTES
+    # The image rows part by what they save, not by the backbone they name: the
+    # adapter trains a head on frozen features, the native CNN trains the ResNet.
+    adapter = resolve_unit(protocol, "cifar10", "self_pu", "cnn_feature_adapter")
+    assert unit_checkpoint_bytes(protocol, adapter, input_dim=512) == ADAPTER_HEAD_COMPONENT_BYTES
+
+    end_to_end = resolve_unit(protocol, "cifar10", "nnpu", "native_cnn")
+    assert unit_checkpoint_bytes(protocol, end_to_end, input_dim=512) == RESNET18_COMPONENT_BYTES
 
     closed_form = resolve_unit(protocol, "spambase", "upu")
     assert unit_checkpoint_bytes(protocol, closed_form, input_dim=57) is None

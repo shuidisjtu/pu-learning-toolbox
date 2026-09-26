@@ -642,6 +642,19 @@ def _versioned_main(args, c_values, seed_values) -> int:
             )
             if row["training_path"] == "cnn_feature_adapter":
                 generator = SourceSpaceGenerator(generator, source, bundle)
+            # Pre-run disk guard input. The networks are built inside fit, so the
+            # size has to be derived from the locked protocol here rather than
+            # introspected from an unfitted estimator.  A row with no storage
+            # profile is refused before any candidate trains, and as a readable
+            # error rather than a traceback: this call sits outside the assembly
+            # guard above.
+            try:
+                checkpoint_bytes_per_component = unit_checkpoint_bytes(
+                    protocol, row, input_dim=bundle.train.X.shape[1]
+                )
+            except ValueError as exc:
+                print(f"error: {exc}", file=sys.stderr)
+                return 1
             config = {
                 "candidates": candidates,
                 "split_ref": split_ref,
@@ -660,12 +673,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 },
                 "adapter_manifest": adapter_manifest,
                 "image_manifest": image_manifest,
-                # Pre-run disk guard input. The networks are built inside fit,
-                # so the size has to be derived from the locked protocol here
-                # rather than introspected from an unfitted estimator.
-                "checkpoint_bytes_per_component": unit_checkpoint_bytes(
-                    protocol, row, input_dim=bundle.train.X.shape[1]
-                ),
+                "checkpoint_bytes_per_component": checkpoint_bytes_per_component,
             }
             if args.oracle:
                 config.update(
