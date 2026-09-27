@@ -208,3 +208,42 @@ def test_basic_the_filter_reaches_the_batches_not_only_the_report(driver, unit_c
     )
 
     assert len(unit_calls) == 19  # spambase's batches, not the matrix's 57
+
+
+# --- a scoped count has to name its scope ------------------------------------
+
+
+def test_basic_the_summary_declares_its_scope_when_the_plan_is_a_subset(
+    driver, unit_calls, tmp_path, capsys
+):
+    """Two hosts each reporting "completed 215 of 215" reads as a finished matrix."""
+    driver.main(
+        [
+            "--results",
+            str(tmp_path / "out"),
+            "--splits",
+            str(splits_tree(tmp_path)),
+            "--datasets",
+            "spambase",
+            *ALL_PRIORS,
+        ]
+    )
+
+    assert "completed 0 of 215 run(s) in spambase" in capsys.readouterr().out
+
+
+def test_basic_the_unfiltered_summary_is_unchanged(driver, unit_calls, tmp_path, capsys):
+    """Without the flag the count has always meant the matrix, and still does."""
+    driver.main(
+        [
+            "--results",
+            str(tmp_path / "out"),
+            "--splits",
+            str(splits_tree(tmp_path)),
+            *ALL_PRIORS,
+        ]
+    )
+
+    out = capsys.readouterr().out
+    assert "completed 0 of 645 run(s); 645 still pending" in out
+    assert "run(s) in " not in out

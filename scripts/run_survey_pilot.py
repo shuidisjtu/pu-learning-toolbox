@@ -143,6 +143,11 @@ def _select_datasets(protocol: dict[str, Any], requested: tuple[str, ...] | None
     }
 
 
+def _planned_datasets(planned: tuple[PilotRun, ...]) -> list[str]:
+    """The datasets a plan covers, sorted: what a scoped report has to name."""
+    return sorted({run.dataset for run in planned})
+
+
 def _write_plan_snapshot(
     path: str,
     *,
@@ -162,7 +167,7 @@ def _write_plan_snapshot(
     """
     payload = {
         "protocol_version": protocol["protocol_version"],
-        "datasets": sorted({run.dataset for run in planned}),
+        "datasets": _planned_datasets(planned),
         "totals": {
             "planned": len(planned),
             "completed": len(completed),
@@ -564,8 +569,12 @@ def main(argv: list[str] | None = None) -> int:
     still_pending, now_done = pending_runs(
         protocol, args.results, splits=splits, expected_views=views
     )
+    # A subset request reports a subset's count, so the count has to name the
+    # subset: two hosts each reading "completed 215 of 215" would call the
+    # matrix finished while half of it has not started.
+    scope = "" if requested is None else f" in {', '.join(_planned_datasets(planned))}"
     print(
-        f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s); "
+        f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s){scope}; "
         f"{len(still_pending)} still pending"
     )
     return 1 if still_pending else 0
