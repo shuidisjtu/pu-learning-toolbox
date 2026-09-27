@@ -57,6 +57,58 @@ def _splits(root: Path, *, prior: float | None = None, datasets=("cifar10", "imd
     return root
 
 
+_UNWIRED_METHOD = "ts_native_unwired"
+
+
+class _UnwiredTSNativeEstimator:
+    """A method that is native to TS but carries no view hook -- on purpose.
+
+    Reachable by *name* rather than by class identity, because the driver
+    resolves methods through the registry: a stub class alone could never be
+    substituted here.
+    """
+
+    def fit(self, X, y, *, class_prior=None):  # no os_or_ts: the point of it
+        raise AssertionError("the driver must refuse before anything is fitted")
+
+
+@pytest.fixture
+def unwired_ts_method(monkeypatch):
+    """Register that method at the two seams the resolution actually reads.
+
+    ``expected_run_views`` imports both names inside its own body, so patching
+    the modules that *define* them is what reaches it.
+
+    Pinning the slot to a synthetic method keeps it a permanent guarantee: a
+    real method that later gains the hook cannot break these two tests, and
+    neither can the last unwired method running out.
+    """
+    from pu_toolbox import registry
+    from pu_toolbox.experiment import method_ledger
+
+    real_get_algorithm = registry.get_algorithm
+    real_load_ledger = method_ledger.load_ledger
+
+    def get_algorithm(name):
+        if name == _UNWIRED_METHOD:
+            return _UnwiredTSNativeEstimator
+        return real_get_algorithm(name)
+
+    def load_ledger(*args, **kwargs):
+        ledger = real_load_ledger(*args, **kwargs)
+        return {
+            **ledger,
+            "methods": {
+                **ledger["methods"],
+                _UNWIRED_METHOD: {"native_sampling_assumption": "ts"},
+            },
+        }
+
+    monkeypatch.setattr(registry, "get_algorithm", get_algorithm)
+    monkeypatch.setattr(method_ledger, "load_ledger", load_ledger)
+    return _UNWIRED_METHOD
+
+
 # --- the safety property the F1 defect violated ------------------------------
 
 
@@ -220,15 +272,15 @@ def _write_run(results: Path, *, run_view: str) -> Path:
     return path
 
 
-def test_basic_each_method_resolves_to_its_own_default_view(driver):
+def test_basic_each_method_resolves_to_its_own_default_view(driver, unwired_ts_method):
     """One global expectation cannot describe this matrix.
 
-    ``nnpu`` and ``upu`` are native to TS and wired for calibration, so they
-    default to the calibrated view; ``dist_pu`` is native to TS but declares no
-    ``os_or_ts`` hook and falls back to OS; ``lbe`` is native to OS; the oracle
-    is never calibrated.  The driver has to resolve each one the way the unit
-    script will, or it holds a resumed unit to a view that run was never going
-    to use.
+    ``nnpu``, ``upu``, ``pusb_kernel`` and ``dist_pu`` are native to TS and wired
+    for calibration, so they default to the calibrated view; the unwired-TS slot
+    is carried by a synthetic method with no ``os_or_ts`` hook and falls back to
+    OS; ``lbe`` is native to OS; the oracle is never calibrated.  The driver has
+    to resolve each one the way the unit script will, or it holds a resumed unit
+    to a view that run was never going to use.
     """
     protocol = _resume_protocol("nnpu", "upu", "dist_pu", "lbe", "pn_oracle")
     planned = driver.planned_runs(protocol)
@@ -238,10 +290,15 @@ def test_basic_each_method_resolves_to_its_own_default_view(driver):
     assert {run.method: views[run.key] for run in planned} == {
         "nnpu": "ts-compatible",
         "upu": "ts-compatible",
-        "dist_pu": "os-compatible",
+        "dist_pu": "ts-compatible",
         "lbe": "os-compatible",
         "pn_oracle": "os-compatible",
     }
+
+    unwired = _resume_protocol(unwired_ts_method)
+    unwired_views = driver.expected_run_views(driver.planned_runs(unwired), None)
+
+    assert set(unwired_views.values()) == {"os-compatible"}
 
 
 @pytest.mark.parametrize(
@@ -268,12 +325,12 @@ def test_edge_an_explicit_ts_on_an_os_native_method_is_refused_up_front(driver):
     ("method", "reason"),
     [
         ("lbe", "declared native to 'os'"),
-        ("dist_pu", "declares no os_or_ts parameter"),
+        pytest.param(_UNWIRED_METHOD, "declares no os_or_ts parameter"),
         ("pn_oracle", "does not apply"),
     ],
 )
 def test_param_an_explicit_ts_is_refused_before_any_batch(
-    driver, unit_calls, tmp_path, capsys, monkeypatch, method, reason
+    driver, unit_calls, tmp_path, capsys, monkeypatch, method, reason, unwired_ts_method
 ):
     """Every way a calibrated request can be impossible is refused at start-up.
 
@@ -284,11 +341,12 @@ def test_param_an_explicit_ts_is_refused_before_any_batch(
     hook, and the oracle, which has no PU view to calibrate at all.  Each has to
     arrive as a readable error, not as a traceback from the batch that found it.
 
-    The "native to TS but not yet wired" slot is pinned to whichever method is
-    still unwired (``dist_pu`` today) — a current-state check, not a permanent
-    guarantee.  The generic resolution rule itself is covered permanently by
-    ``test_survey_script_view.py`` with a synthetic estimator whose ``fit``
-    carries no ``os_or_ts``.
+    The "native to TS but not yet wired" slot is carried by a *synthetic* method
+    (``unwired_ts_method``), not by whichever real method happens to be unwired
+    today: every method in the matrix is expected to end up wired, so a slot
+    pinned to one of them would rot the moment that method landed.  The generic
+    resolution rule is also covered permanently by ``test_survey_script_view.py``
+    with a synthetic estimator whose ``fit`` carries no ``os_or_ts``.
     """
     monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol(method))
     splits = _splits(tmp_path, datasets=("spambase",))

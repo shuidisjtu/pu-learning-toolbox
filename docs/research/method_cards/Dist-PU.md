@@ -186,13 +186,20 @@ H(q)=-q\log q-(1-q)\log(1-q).
 - 当前实现使用随机 `lambda`，并对构造 soft target 使用 stop-gradient；这是工程侧简化，尚未暴露论文中的完整 `alpha/gamma/nu` 超参数协议。
 - 数值稳定性：
   - logits 在熵计算前限制在 `[-10, 10]`，避免 `log(0)` 和指数溢出；
-  - sigmoid 输出的熵计算增加 `1e-6` epsilon；
+  - sigmoid 输出的熵计算在 `log` 内加 `1e-6`——**这不是数值守卫**（真正的兜底是上面的 clamp，概率被夹在 `[4.5e-5, 0.99995]`），重构时须逐字符保留其位置，不得因「看起来没用」而删改；
   - 推理时 sigmoid 输入限制在 `[-40, 40]`；
   - `random_state` 只控制 PyTorch 初始化和 Mixup 随机性；GPU 上的完全确定性仍需额外配置。
 
 结果记录（benchmark 数字与官方配置 commit 锁以 benchmarks 产物为准）：
 
 > 结果见 `benchmarks/assigned_methods/results/clean_room_multiseed/`（当前 clean-room 运行结果）；官方配置 commit 锁见 `benchmarks/assigned_methods/configs/official_sources.lock.json`
+
+- **训练视图叠加（协议 §2.3，实验层叠加而非算法语义）**：`fit(..., os_or_ts=...)` 默认 `"os"`。`"ts"`（方法原生 case-control 采样）把 **label-distribution alignment 与 entropy 的角色集合**由 $`X_U`$ 换成 $`X_U \cup X_P`$（alignment 均值的分母随之取 $`n_P + n_U`$）。正例 BCE 只消费原始 $`P`$，不因 P 同时进入 marginal 角色而扩大分母或重复行；class prior 保持总体 $`\pi`$，**不**按观测 P/U 比例重估。直接调用 estimator 时默认 OS；Survey 未显式覆盖时的默认视图由 resolver 依台账原生假设与 `fit` 签名决定（本方法台账已是原生 TS，故接线后其默认行转 `ts` 并挂 `ts_view_collaborator_review`）。
+- **alignment 的依据是可核验的 population identity，不是「约定如此」**：$`R_{lab}`$ 约束的是 $`E_{p(x)}[f(x)] = \pi`$，而 OS 视图下的 $`X_U`$ 恰好排除了已标记正例、不再代表完整 marginal，约束因此落在错的值上；并集把它搬回正确落点。**量化（本次 Spambase `split_0` 制品观测，不是本方法的一般性质——换 seed、数据集或 `c` 数值会不同）**：OS 角色集真实正例率 0.369265 vs 目标 $`\pi`$ = 0.394045（偏离 −0.024780）；TS 角色集 0.394022（偏离 −0.000023，即分层切分的舍入残差）；前者约为后者的 1076 倍。一般成立的是那条恒等式：并集均值被约束到 $`\pi`$ 时，U 行被要求达到的条件均值是 $`\left((n_P+n_U)\pi - n_P \overline{f}_P\right)/n_U`$；在本制品上它等于 0.369，正是 U 行的真实正例率。
+- **entropy 扩到 P 上只有协议一致性依据，须与 alignment 分开标注**：协议 §2.3 对「未标记损失输入」作整体规则（PUBench 同样如此），这不是数学必然。P 的概率已被权重 1.0 的正例损失推向 1，entropy 权重仅 0.05，两者方向一致、不冲突。按 D17 ⑤ 的口径，这是**协议选择（protocol choice）**，不是论文事实。
+- **其余一概不随视图变化**：模型结构、优化器、epoch、先验决策、callback 与 checkpoint 契约；Mixup 物理池**本已消费完整 X**，故保持原样、不追加 P。Mixup 池不随视图变化还有一条更硬的理由：**单变量消融**——池子若在 OS 下缩回 $`X_U`$，两跑的差异就不止「正则项角色集」这一个变量（与 D17 否决「验证折并入 P」同源）。随机侧只锁定 **RNG API 的调用次数、调用顺序、`randperm` 长度、`lam` 的形状与抽样位置**；**不**锁定后续 epoch 的 loss 或梯度——模型参数在首轮更新后即分化，那是消融的目的而非缺陷。
+- **`sample_weight` 的处置与相邻方法都不同**：本估计器是 `SampleWeightSupport.IGNORED`——既不是 `nnpu` 的「需要互斥门」，也不是 `pusb_kernel` 的「整体拒绝」。并集确实会引入没有权重定义的 P 行，但本估计器整体忽略权重，故无害。三种处置的措辞**不可互相照抄**。
+- **与 PUBench 的关系是类比，不是逐行对应**：PUBench 的公共 union 只把 P 追加进 U batch，而它的 label-distribution loss 是**双样本直方图**损失（`l_p + frac_prior * l_u`，只有 `l_u` 吃扩充后的 U），本实现是**单样本矩约束**；其 Mixup 因外层 union 使 P 在池中出现两次，本项目不复制。`ts` 路径尚未经合作者复核。
 
 ---
 

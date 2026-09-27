@@ -136,6 +136,31 @@ def test_basic_distpu_records_fullbatch_epochs_without_repeated_fit(tmp_path):
     )
 
 
+def test_basic_distpu_view_reaches_the_estimator_through_the_trainer(tmp_path):
+    """The trainer's signature gate must let the calibrated view through.
+
+    A method whose ``fit`` gained ``os_or_ts`` starts accepting the calibrated
+    view on the checkpoint path as well -- and the checkpoint contract itself
+    must not move with the view.
+    """
+    X, y = _data()
+    os_model = DistPUClassifier(0.3, epochs=2, hidden_dim=4, device="cpu")
+    os_trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path / "os").fit(os_model, X, y)
+
+    ts_model = DistPUClassifier(0.3, epochs=2, hidden_dim=4, device="cpu")
+    ts_trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path / "ts").fit(
+        ts_model, X, y, os_or_ts="ts"
+    )
+
+    assert len(os_trajectory.checkpoints) == len(ts_trajectory.checkpoints) == 2
+    np.testing.assert_array_equal(
+        ts_trajectory.checkpoints[-1].restore().decision_function(X),
+        ts_model.decision_function(X),
+    )
+    # The view did reach the estimator: same config, different trajectory.
+    assert ts_model.loss_history_ != os_model.loss_history_
+
+
 def test_basic_oracle_callback_receives_training_only_and_no_prior(tmp_path):
     X, _ = _data()
     y = np.array([1, 0] * 6)
