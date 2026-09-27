@@ -483,11 +483,12 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         blockers.append("PA_criterion_pending_collaborator_acceptance")
     if row["method"] == "self_pu":
         blockers.append("SelfPU_clean_validation_meta_reweighting_OA_integration")
-    if config.get("os_or_ts") == "ts":
-        # Fail closed: the calibrated view changes what the estimator trains on,
-        # and no collaborator has reviewed that path yet.  Recorded per run rather
-        # than as a protocol constant so OS runs are not blocked by it.
-        blockers.append("ts_view_collaborator_review")
+    # The calibrated view used to append ``ts_view_collaborator_review`` here.
+    # Decision D20 releases P2.0e on single-party technical acceptance, which
+    # removes that blocker from formal eligibility; it does NOT mean the
+    # collaborator reviewed the calibrated path, and reports must not read it as
+    # signed off.  The standing caveat lives in the method ledger's uncertainty
+    # notes and in the delivery record instead of in every manifest.
     if deviations:
         blockers.append("protocol_deviation")
     return {
