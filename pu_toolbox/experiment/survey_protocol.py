@@ -17,7 +17,19 @@ from typing import Any
 import numpy as np
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
+#: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
+#: version is a property of the file's contents, and the file is replaced rather
+#: than multiplied when it changes, so naming an older version gets the current
+#: one.  A caller that resolves a name and a caller that resolves a path have to
+#: agree about which matrix "survey-v1.2" is, which is why this list has one home.
+PROTOCOL_ALIASES = ("survey-v1", "survey-v1.1", "survey-v1.2")
 ROLES = ("train", "pu_val", "clean_val", "test")
+
+
+def resolve_protocol_path(value: str | Path) -> Path:
+    """The matrix file *value* denotes: a shipped name, or the path it gives."""
+    return PROTOCOL_PATH if str(value) in PROTOCOL_ALIASES else Path(value).resolve()
+
 
 #: One end-to-end ResNet-18 checkpoint component, rounded up from the 44 MB
 #: measured in epoch_checkpoint_delivery.md -- which is where the 200-epoch

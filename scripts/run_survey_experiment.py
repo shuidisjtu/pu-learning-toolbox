@@ -509,9 +509,9 @@ def _versioned_main(args, c_values, seed_values) -> int:
         prepare_image_bundle,
     )
     from pu_toolbox.experiment.survey_protocol import (
-        PROTOCOL_PATH,
         digest,
         load_protocol,
+        resolve_protocol_path,
         resolve_unit,
         unit_checkpoint_bytes,
         validate_parameters,
@@ -519,11 +519,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
     from pu_toolbox.registry import get_algorithm, get_metadata, register_all_builtin_methods
 
     method = "pn_oracle" if args.oracle else args.method or "upu"
-    protocol_path = (
-        PROTOCOL_PATH
-        if args.protocol in ("survey-v1", "survey-v1.1", "survey-v1.2")
-        else Path(args.protocol).resolve()
-    )
+    # Shared with the pilot driver: the two resolve ``--protocol`` to the same
+    # file, so a batch the driver planned and the run it executes cannot end up
+    # describing different matrices.
+    protocol_path = resolve_protocol_path(args.protocol)
     # These gates precede loading splits, building encoders and creating output directories.
     try:
         if args.dataset is None:

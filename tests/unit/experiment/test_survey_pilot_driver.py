@@ -316,7 +316,7 @@ def test_param_an_explicit_ts_is_refused_before_any_batch(
     resolution rule is also covered permanently by ``test_survey_script_view.py``
     with a synthetic estimator whose ``fit`` carries no ``os_or_ts``.
     """
-    monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol(method))
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_resume_protocol(method)))
     splits = splits_tree(tmp_path, datasets=("spambase",))
 
     code = driver.main(
@@ -329,6 +329,21 @@ def test_param_an_explicit_ts_is_refused_before_any_batch(
     assert err.startswith("error: ")
     assert reason in err
     assert "Traceback" not in err
+
+
+def _stub_protocol(protocol: dict):
+    """A ``load_protocol`` stand-in that yields *protocol* for any path.
+
+    The driver resolves ``--protocol`` to a file and loads that file; the tests
+    here inject a synthetic matrix rather than write one out, so the path is
+    accepted and ignored.  The parameter is real because the caller's is: a
+    stub that took none would pass only while the driver forgot to resolve.
+    """
+
+    def _load(_path=None):
+        return protocol
+
+    return _load
 
 
 def _unsized_protocol() -> dict:
@@ -355,7 +370,7 @@ def test_param_an_unsized_row_stops_the_pilot_before_the_first_batch(
     time every batch queued ahead of it has run.  Both paths report the same
     figure, so both have to refuse before the first subprocess.
     """
-    monkeypatch.setattr(driver, "load_protocol", _unsized_protocol)
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_unsized_protocol()))
     splits = splits_tree(tmp_path, prior=0.39, datasets=("spambase",))
     argv = ["--results", str(tmp_path / "out"), "--splits", str(splits), *ALL_PRIORS]
     if dry_run:
@@ -377,7 +392,7 @@ def test_edge_a_runnable_method_the_registry_cannot_supply_is_reported(
     driver, unit_calls, tmp_path, capsys, monkeypatch
 ):
     """A driver error, reported as one: readable, no traceback, no batch started."""
-    monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol("no_such_method"))
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_resume_protocol("no_such_method")))
     splits = splits_tree(tmp_path, datasets=("spambase",))
 
     code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(splits)])
@@ -394,7 +409,7 @@ def test_basic_an_os_result_leaves_a_calibrated_unit_pending(
     driver, unit_calls, tmp_path, capsys, monkeypatch
 ):
     """F11 end to end: the default request is calibrated, so an OS run is not it."""
-    monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol("nnpu"))
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_resume_protocol("nnpu")))
     splits = splits_tree(tmp_path, datasets=("spambase",))
     results = tmp_path / "results"
     _write_run(results, run_view="os-compatible")
