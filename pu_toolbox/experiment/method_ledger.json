@@ -105,12 +105,12 @@
         "upstream_url": "https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
         "source_status": "official_exact"
       },
-      "implementation_status": "NATIVE; 论文核心损失的 clean-room 小型 MLP 版本（PyTorch optional dependency）（Dist-PU.md:222-224）",
+      "implementation_status": "NATIVE; 论文核心损失的 clean-room 小型 MLP 版本（PyTorch optional dependency）（Dist-PU.md:229-231）",
       "native_sampling_assumption": "ts（case_control; X_P~p_P(x), X_U~p(x)=πp_P+(1-π)p_N; Dist-PU.md:14/24-30, registry:235-236）",
-      "run_view": "os-compatible",
-      "calibration_applied": false,
-      "prior_semantics": "population π（R_lab 以 E_U[q(x)]=π 对齐；Dist-PU.md:15/57/96, registry:237）",
-      "adaptation_level": "benchmark-adapted（clean-room 重写；官方 backbone、mini-batch、图像增强、数据 split、完整超参搜索均未对齐，Dist-PU.md:224-225）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population π（R_lab 以「角色集合均值 = π」对齐；该 identity 的角色集**随视图变化**——os 下是 X_U，ts 下是 X_U ∪ X_P，目标始终是总体 π、不因观测 P/U 比例重估；Dist-PU.md:15/57/96, registry:237）",
+      "adaptation_level": "benchmark-adapted（clean-room 重写；官方 backbone、mini-batch、图像增强、数据 split、完整超参搜索均未对齐，Dist-PU.md:231-232）",
       "modality_backbone": {
         "modalities": ["tabular"],
         "backbone": "小型 MLP（原生）",
@@ -124,12 +124,12 @@
       "evidence": {
         "native_sampling_assumption": "Dist-PU.md:14/24-30; registry:235-236",
         "prior_semantics": "Dist-PU.md:15/57/96; registry:237",
-        "adaptation_level": "Dist-PU.md:222-225; 论文图像 backbone 未对齐（Dist-PU.md:185）"
+        "adaptation_level": "Dist-PU.md:229-232; 论文图像 backbone 未对齐（Dist-PU.md:185）"
       },
       "uncertainty": [
         "全量张量训练（batch_size 为兼容性参数）、随机 lambda+stop-gradient 软目标；论文 alpha/gamma/nu 超参数协议未暴露（Dist-PU.md:184-186）",
         "不应直接与论文图像 backbone 结果比较（Dist-PU.md:185）；pilot 图像模态须走 cnn_feature_adapter 并强制分组",
-        "原生 case-control（ts）；TS-OS 校准尚未接入训练执行链（run_view=os-compatible、calibration_applied=false），P2 前须确认训练接口允许替换未标记损失输入（协议 §2.3）"
+        "TS-OS 校准已接入（协议 §2.3）：ts 视图把 alignment 与 entropy 的**角色集合**由 X_U 换成 X_U ∪ X_P（分母随之取 n_P + n_U）；正例项、class prior、Mixup 物理池（本已消费完整 X）、RNG 调用序列、epoch 与 checkpoint 契约一概不变。alignment 的目标仍是总体 π，不因观测 P/U 比例重估；该口径的量化依据是**本次 Spambase split_0 制品观测**（不是 Dist-PU 的一般性质，换 seed/数据集/c 数值会不同），见执行计划 D18。其正确性由独立数学 golden、结构测试与五处变异注入锁定，不靠真实跑批指标"
       ]
     },
     "pusb": {

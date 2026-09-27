@@ -230,6 +230,8 @@ tests/
       test_upu_ts_view.py               # UPUClassifier 的 TS-OS 训练视图(独立重推 golden、solver 池与分母、RBF 中心池)
       test_pusb_kernel_ts_view.py       # PUSBKernelClassifier 的 TS-OS 训练视图(独立重推 golden、角色集与分母、OS 冻结基线)
       test_pusb_kernel_view_invariants.py # PUSBKernel 视图不变量(中心/fold/阈值池不变、角色重合但不复制物理样本)
+      test_dist_pu_ts_view.py           # DistPU 视图的数学期望与 OS 冻结基线(独立算式 golden、逐 tensor 容差、改造前后逐位等价)
+      test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

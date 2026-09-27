@@ -17,6 +17,7 @@ import pytest
 from _survey_script_helpers import survey_script  # noqa: F401 - pytest fixture
 
 from pu_toolbox.estimators.bias_aware import PUSBKernelClassifier
+from pu_toolbox.estimators.risk import DistPUClassifier
 from pu_toolbox.experiment.protocols import route_training_view
 from pu_toolbox.experiment.strategies import DeepFitTrainer, FitTrainer, SupervisedTrainer
 from pu_toolbox.experiment.training_views import resolve_training_view
@@ -120,17 +121,30 @@ class TestTrainerForwarding:
         assert estimator.calls == 1
 
 
+@pytest.mark.parametrize(
+    ("method", "estimator_class"),
+    [
+        ("pusb_kernel", PUSBKernelClassifier),
+        ("dist_pu", DistPUClassifier),
+    ],
+)
 class TestResolutionForARealMethod:
-    """The resolver's answer for one real method, against the real ledger.
+    """The resolver's answer for a real method, against the real ledger.
 
     The other suites pin the resolution *rule* with stand-in estimators; this
     one pins the wiring of an actual method, so a ledger entry the code cannot
     honour (or code the ledger does not declare) is caught instead of assumed.
+
+    Parametrized rather than duplicated per method: this file sits on the
+    test-quality gate's per-file method limit, and the two methods are checked
+    by exactly the same two properties.
     """
 
-    def test_basic_pusb_kernel_is_declared_and_wired_to_the_calibrated_view(self, survey_script):
+    def test_basic_the_method_is_declared_and_wired_to_the_calibrated_view(
+        self, survey_script, method, estimator_class
+    ):
         ledger = survey_script.load_ledger(survey_script.LEDGER_PATH)
-        entry = ledger["methods"]["pusb_kernel"]
+        entry = ledger["methods"][method]
 
         assert entry["native_sampling_assumption"].startswith("ts")
         assert entry["run_view"] == "ts-compatible"
@@ -138,25 +152,27 @@ class TestResolutionForARealMethod:
         assert (
             resolve_training_view(
                 ledger,
-                "pusb_kernel",
+                method,
                 None,
                 is_oracle=False,
-                estimator_class=PUSBKernelClassifier,
+                estimator_class=estimator_class,
             )
             == "ts"
         )
 
-    def test_basic_pusb_kernel_explicit_view_request_is_honoured(self, survey_script):
+    def test_basic_the_explicit_view_request_is_honoured(
+        self, survey_script, method, estimator_class
+    ):
         ledger = survey_script.load_ledger(survey_script.LEDGER_PATH)
 
         for requested, expected in (("os", "os"), ("ts", "ts")):
             assert (
                 resolve_training_view(
                     ledger,
-                    "pusb_kernel",
+                    method,
                     requested,
                     is_oracle=False,
-                    estimator_class=PUSBKernelClassifier,
+                    estimator_class=estimator_class,
                 )
                 == expected
             )
