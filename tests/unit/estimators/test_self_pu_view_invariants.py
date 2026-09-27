@@ -73,10 +73,14 @@ def _data():
     return X, y_pu, X_val, y_val, y_pu_val
 
 
-def _fit(view="os", overrides=None, **fit_kwargs):
+def _fit(view="os", overrides=None, validation="pu", **fit_kwargs):
+    """``validation`` picks the branch: PU tracking, clean-label meta, or none."""
     X, y_pu, X_val, y_val, y_pu_val = _data()
     if not fit_kwargs:
-        fit_kwargs = {"pu_validation_data": (X_val, y_pu_val)}
+        if validation == "pu":
+            fit_kwargs = {"pu_validation_data": (X_val, y_pu_val)}
+        elif validation == "clean":
+            fit_kwargs = {"validation_data": (X_val, y_val)}
     model = SelfPUClassifier(**{**_CONF, **(overrides or {})})
     model.fit(X, y_pu, os_or_ts=view, **fit_kwargs)
     return model, X, y_pu
@@ -119,7 +123,12 @@ def test_basic_the_negative_role_counts_untrusted_u_rows_not_the_batch(monkeypat
 
 
 def test_basic_only_the_training_loss_carries_the_calibrated_flag(monkeypatch):
-    """Validation, selection and checkpoints must not blend the positive batch."""
+    """Validation, selection and checkpoints must not blend the positive batch.
+
+    The call count is the guard, not just the flag: the ablation teacher
+    selection branch (no validation at all) computes its own nnPU risk, and
+    routing *that* through the blend would show up here as extra calls.
+    """
     calls = _spy_on_blend(monkeypatch, [])
     _fit("ts", overrides={"max_epochs": 3})
 
@@ -130,6 +139,11 @@ def test_basic_only_the_training_loss_carries_the_calibrated_flag(monkeypatch):
     _fit("os", overrides={"max_epochs": 3})
     assert len(os_calls) == 6
     assert not any(flag for _u, _p, flag in os_calls)
+
+    ablation_calls = _spy_on_blend(monkeypatch, [])
+    model, _X, _y = _fit("ts", overrides={"max_epochs": 3}, validation="none")
+    assert model.teacher_selection_basis_ == "training_nnpu_risk_ablation"
+    assert len(ablation_calls) == 6  # training only; the ablation risk is untouched
 
 
 def test_basic_the_trusted_population_and_pace_ignore_the_view():
@@ -215,6 +229,29 @@ def test_determ_the_forward_pass_count_is_view_independent():
 
     assert os_counts  # the counter really ran
     assert os_counts == ts_counts
+
+
+def test_basic_the_meta_matrix_covers_only_untrusted_u_rows(monkeypatch):
+    """The learned weights are sized by untrusted U rows, in both columns.
+
+    Only the clean-validation configuration reaches this path at all, so a
+    positive row appended here would be invisible to the Pilot-shaped suite.
+    """
+    shapes = []
+    original = SelfPUClassifier._meta_weights
+
+    def spy(self, model, positive_loss, ce_losses, pu_losses, X_val, y_val):
+        shapes.append((int(ce_losses.shape[0]), int(pu_losses.shape[0])))
+        return original(self, model, positive_loss, ce_losses, pu_losses, X_val, y_val)
+
+    with pytest.MonkeyPatch.context() as patcher:
+        patcher.setattr(SelfPUClassifier, "_meta_weights", spy)
+        model, _X, _y = _fit("ts", validation="clean")
+
+    assert shapes  # the meta path really ran
+    assert len(shapes) == len(model.trusted_history_) == 6
+    for (ce_rows, pu_rows), record in zip(shapes, model.trusted_history_, strict=True):
+        assert ce_rows == pu_rows == _N_UNLABELED - record["actual_size"], record
 
 
 def test_basic_meta_weights_are_invariant_to_scaling_the_negative_column():
