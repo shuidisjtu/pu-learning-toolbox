@@ -97,7 +97,7 @@ trusted set 或全量/mini-batch 差异。上游 `resolve_training_view` 按台�
   `resolve_basis_fn` 参数文档一度以 OS/TS 视图定义 `X_pool`；该模块是各估计器共用的通用实现。
   已恢复通用描述，视图解读留在 `UPUClassifier.fit`。
 
-## 5. `pusb_kernel` 切片（本 PR）
+## 5. `pusb_kernel` 切片（PR #76，squash 提交 `0b16815`）
 
 ### 5.1 实现
 
@@ -173,7 +173,7 @@ uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --pr
 **边界**：真实跑批只能证明「实际视图与校准标志被正确记录」和「路径非空转」；它**证明不了**内部
 验证折未被校准——后者由结构测试与变异检验负责（§5.2 前四层），不得写进跑批核对项。
 
-## 6. `dist_pu` 切片（本 PR）
+## 6. `dist_pu` 切片（PR #77，squash 提交 `8e1efbe`）
 
 ### 6.1 实现
 
