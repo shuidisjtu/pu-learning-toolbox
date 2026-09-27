@@ -609,7 +609,7 @@ scripts/
   generate_structure.py                   (结构文档生成器：--check 校验 / --update 重生成 project_structure.md 树块)
   prepare_survey_splits.py                (P1.4 四路 split 产物准备：data/raw 生成 train/pu_val/clean_val/test.npz 与 manifest)
   run_survey_experiment.py                (官方示例脚本(协议 §2.4 第 9 条)：单方法四路 PU 实验、PA/OA 选模、独立 test 评测)
-  run_survey_pilot.py                     (全 pilot 驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算与 --dry-run)
+  run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets 子集与 --plan-json 计划快照)
   aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
 ```
