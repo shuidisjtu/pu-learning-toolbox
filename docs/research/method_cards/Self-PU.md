@@ -404,6 +404,9 @@ L=L_{SP+Reweight}+L_{students}+L_{teachers}.
 - **双 student 独立**：论文在两个 student 上分别维护对应的 trusted set 和 reweighting 过程；项目实现不能只为一个 student 计算 weights 后无说明地复制给另一个 pace。
 - **hard sample mining**：`alpha` 越小，触发蒸馏的样本越多；实现必须记录每轮的 active hard-sample fraction。
 - **reweight_gamma 核对**：`gamma` 为 CE 权重总量约束因子，论文使用小于 1 的约束因子；需与官方源码核对。
+- **训练视图叠加（协议 §2.3，实验层叠加而非算法语义）**：`fit(..., os_or_ts=...)` 默认 `"os"`。`"ts"`（方法原生 case-control 采样）把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」：trusted 行由伪标签监督、两个视图下都不入负角色；P 则在同一 epoch 内既供正例项与校正项，又按其 batch 行数质量进入负项——身份未被改写，只是多担一个角色。混合系数取两批**实际行数**，不是固定 1/2，**也不是** class prior：$`\pi`$ 只出现在校正项 $`\pi R_P^-`$，P 不按 $`\pi`$ 重加权、$`\pi`$ 不重估。U 侧若已被元权重重整，该混合是质量守恒的扩展而**不等于**普通并集均值（元权重非均匀时亦然）；$`\alpha_U`$ 无需进入 meta 探针——列 1 的逐列归一化会抵消一致缩放。trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签。复用正例批已算出的 logits：相对 `"os"` **零额外前向、零额外 RNG**。直接调用 estimator 时默认 OS；Survey 未显式覆盖时的默认视图由 resolver 依台账原生假设与 `fit` 签名决定（本方法台账已是原生 TS，故接线后其默认行转 `ts` 并挂 `ts_view_collaborator_review`）。
+- **一致性项的实现收窄（视图无关）**：论文的 $`L_{students}`$ 在 $`D-D_{trust}`$ 上、$`L_{teachers}`$ 在 $`D`$ 上求和（§3.4），两者都含 $`D_P`$；本实现只对 U 批求一致性。这是既有收窄，TS 校准**不**改它（保持一致性的单变量对照），也不得据此声称论文的一致性项是 U-only。
+- **Survey 中该方法是消融分支**：实验层不向 PU 方法传 clean validation（协议 §2.4 把 `clean_val` 留给 OA oracle），故 Pilot 里的 `self_pu` 恒为 `calibration_mode_="ablation"`——无 self-calibrated 元重加权，选模走 PU-validation nnPU risk。引用 Pilot 结果时不得读成「含 meta 的完整 Self-PU」；含 meta 的分支只由单元测试覆盖。
 
 ---
 

@@ -311,12 +311,12 @@
         "upstream_url": "https://github.com/VITA-Group/Self-PU",
         "source_status": "official_exact"
       },
-      "implementation_status": "NATIVE clean-room core；paper-like benchmark 待完成（Self-PU.md:399/447）",
+      "implementation_status": "NATIVE clean-room core；paper-like benchmark 待完成（Self-PU.md:399/450）",
       "native_sampling_assumption": "ts（case_control; D=D_P∪D_U, x_i^p~p(x|Y=+1), x_i^u~p(x)，Self-PU.md:15/36-48, registry:352-353）",
-      "run_view": "os-compatible",
-      "calibration_applied": false,
-      "prior_semantics": "population π（论文沿用 π_p 已知设定，Self-PU.md:16/29-32/416, registry:354）",
-      "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:434-436/446-447/451）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population π（论文沿用 π_p 已知设定，Self-PU.md:16/29-32/419, registry:354）；TS 下 α_P 是 batch 行数质量而非 π——P 不按 π 重加权、π 不重估",
+      "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:437-439/449-450/454）",
       "modality_backbone": {
         "modalities": ["tabular"],
         "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）；不支持 native CNN（mlp-only；input_ndims {2,4} 按模板\"支持输入维度\"口径声明，4D 展平为估计器层实际支持、非 CNN 能力，2026-09-14 审阅 P1#1；survey 图像行走 cnn_feature_adapter）",
@@ -329,8 +329,8 @@
       },
       "evidence": {
         "native_sampling_assumption": "Self-PU.md:15/36-48; registry:352-353",
-        "prior_semantics": "Self-PU.md:16/29-32/416; registry:354",
-        "adaptation_level": "Self-PU.md:434-436/446-447/451"
+        "prior_semantics": "Self-PU.md:16/29-32/419; registry:354",
+        "adaptation_level": "Self-PU.md:437-439/449-450/454; 视图叠加与消融分支口径（Self-PU.md:407-409）"
       },
       "uncertainty": [
         "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）",
@@ -338,7 +338,7 @@
         "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）",
         "官方仓库当前规范地址为 VITA-Group/Self-PU；方法卡中的 TAMU-VITA 旧组织链接会重定向到同一仓库",
         "原生 CNN 未接入：依 dual_architecture_plan 阶段 3 长期搁置（元学习再加权依赖干净验证标签，encoder 适配不解决该前置条件）；需原生 CNN 时单独立项（issue #38，2026-09-14）",
-        "原生 case-control（ts）；TS-OS 校准尚未接入训练执行链（run_view=os-compatible、calibration_applied=false），P2 前须确认训练接口允许替换未标记损失输入（协议 §2.3）"
+        "原生 case-control（ts）；TS-OS 校准已接入训练执行链（协议 §2.3，Self-PU.md:407-409）：ts 视图把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」，两侧按**实际行数**混合（α_P 是 batch 质量、不是 π；class prior 不重估）；trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签；复用正例批 logits，零额外前向、零额外 RNG；OS 路径与改造前一致（冻结基线，本切片实测逐位为 0 偏差）。**边界**：论文的一致性项本在 D−D_trust / D 全域求和，实现收窄为 U 批（视图无关的既有收窄）；Pilot 不向 PU 方法传 clean validation，故 Survey 中的 self_pu 恒为无 meta 的消融分支，含 meta 的分支只由单元测试覆盖。口径见执行计划 D19；ts 视图尚未经合作者复核"
       ],
       "filler": "HENG958",
       "owner_review": {

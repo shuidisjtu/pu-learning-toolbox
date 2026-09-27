@@ -275,14 +275,14 @@ def _write_run(results: Path, *, run_view: str) -> Path:
 def test_basic_each_method_resolves_to_its_own_default_view(driver, unwired_ts_method):
     """One global expectation cannot describe this matrix.
 
-    ``nnpu``, ``upu``, ``pusb_kernel`` and ``dist_pu`` are native to TS and wired
-    for calibration, so they default to the calibrated view; the unwired-TS slot
-    is carried by a synthetic method with no ``os_or_ts`` hook and falls back to
-    OS; ``lbe`` is native to OS; the oracle is never calibrated.  The driver has
-    to resolve each one the way the unit script will, or it holds a resumed unit
-    to a view that run was never going to use.
+    ``nnpu``, ``upu``, ``pusb_kernel``, ``dist_pu`` and ``self_pu`` are native to
+    TS and wired for calibration, so they default to the calibrated view; the
+    unwired-TS slot is carried by a synthetic method with no ``os_or_ts`` hook and
+    falls back to OS; ``lbe`` is native to OS; the oracle is never calibrated.
+    The driver has to resolve each one the way the unit script will, or it holds
+    a resumed unit to a view that run was never going to use.
     """
-    protocol = _resume_protocol("nnpu", "upu", "dist_pu", "lbe", "pn_oracle")
+    protocol = _resume_protocol("nnpu", "upu", "dist_pu", "self_pu", "lbe", "pn_oracle")
     planned = driver.planned_runs(protocol)
 
     views = driver.expected_run_views(planned, None)
@@ -291,6 +291,7 @@ def test_basic_each_method_resolves_to_its_own_default_view(driver, unwired_ts_m
         "nnpu": "ts-compatible",
         "upu": "ts-compatible",
         "dist_pu": "ts-compatible",
+        "self_pu": "ts-compatible",
         "lbe": "os-compatible",
         "pn_oracle": "os-compatible",
     }
