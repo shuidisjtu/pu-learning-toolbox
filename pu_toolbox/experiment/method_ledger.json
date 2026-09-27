@@ -187,8 +187,8 @@
       },
       "implementation_status": "NATIVE, backend NUMPY；clean-room RBF 核适配器：复刻官方基选择（中心一次选取）、shuffled-fold CV、PU 目标与先验分位数规则，暴露 sklearn 估计器 API（pusb_kernel.py:3-9, PUSB.md:145）",
       "native_sampling_assumption": "ts（两集合视图 P_+^obs=p(x|y=1,s=1) 与 P_U=p(x)；原生标注机制为 SAR（e(x) 随 x 变化），PUSB.md:15/27-28, registry:276-277）",
-      "run_view": "os-compatible",
-      "calibration_applied": false,
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
       "prior_semantics": "population π（必填：PU 风险与分位数规则中的 π，PUSB.md:16/227, registry:278）",
       "adaptation_level": "source-faithful（official-aligned RBF 核适配器，clean-room 依据官方发布代码；registry 为 OFFICIAL_RELATED）",
       "modality_backbone": {
@@ -211,7 +211,7 @@
         "决策阈值双语义：公共 predict 冻结训练先验分位数 vs predict_with_prior_quantile 复刻官方批次分位数（PUSB.md:169-172）",
         "CV 折内类别覆盖：官方折分配在低 c / 小样本下可能使某折缺 P 或 U，folds 校验会直接拒绝该候选（pusb_kernel.py:204-214）",
         "Table 2 审计：72 单元仅 45 个满足声明样本量，不可声称复现六数据集比较（PUSB.md:174）",
-        "原生 case-control（ts）；TS-OS 校准尚未接入训练执行链（run_view=os-compatible、calibration_applied=false），P2 前须确认训练接口允许替换未标记损失输入（协议 §2.3）"
+        "TS-OS 校准已接入（协议 §2.3）：ts 视图把无标签风险项的集合由 X_U 换成 X_U ∪ X_P，分母随之取 n_P + n_U；正例项、class prior、RBF 中心候选池与先验分位数阈值池都不变（中心池本就取自完整 X，故与 upu 不同、不随视图变化）。**CV 验证折固定保持 OS**，因此这是协议驱动的跨目标选参决策——用 OS 目标的验证值去选 TS 训练目标的超参数，不是论文结论，代价是选出的超参数可能偏向 OS 部署表现；被否决的替代（验证折并入该折自己的 P，同样 held-out 且更自洽）与理由见执行计划 D17。其正确性由独立 objective/gradient golden 与变异检验锁定，不靠真实跑批指标"
       ]
     },
     "lbe": {

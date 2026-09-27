@@ -5,7 +5,7 @@
 > 数值与状态以方法台账 `pu_toolbox/experiment/method_ledger.json` 的
 > `run_view` / `calibration_applied` 与各 run 的 manifest 为准，本文件只作解释。
 >
-> 当前进度：`nnpu`（#68）、`upu`（#74）已接线。剩余 `pusb_kernel`、`dist_pu`、`self_pu`
+> 当前进度：`nnpu`（#68）、`upu`（#74）、`pusb_kernel`（本切片）已接线。剩余 `dist_pu`、`self_pu`
 > 待各自独立设计；线性 `pusb` 待适用性裁决（见 D16 ①）。
 
 ## 1. `ts` 视图的语义
@@ -24,7 +24,7 @@
 |---|---|---|---|---|---|
 | `nnpu` | 逐 mini-batch SGD | 每个训练批次把正例批 `cat` 进无标签损失输入 | — | 是 | 已接线（#68） |
 | `upu` | 全量凸求解（squared 闭式 / logistic L-BFGS / double-hinge SLSQP） | 唯一构造点：无标签角色集合与 RBF 候选池 | — | 是 | 已接线（#74） |
-| `pusb_kernel` | 全量 BFGS + (σ,λ) 网格 CV | `_pu_objective_and_gradient`（3 处调用） | ① CV **验证折**按协议须保持 OS，标志只能作用于训练折与终拟合；② 冻结训练先验分位数阈值会随视图漂移（属训练产物，非选择项） | 是 | 待独立设计 |
+| `pusb_kernel` | 全量 BFGS + (σ,λ) 网格 CV | `_pu_objective_and_gradient`（**2 个调用点 / 3 个角色**，训练折与终拟合共用 `_fit_coefficients`） | ① CV **验证折**按协议须保持 OS，标志只能作用于训练折与终拟合；② 冻结训练先验分位数阈值会随视图漂移（属训练产物，非选择项） | 是 | 已接线（本切片 §5） |
 | `dist_pu` | 全量梯度下降（`batch_size` 为兼容性死参数） | 分布对齐项 | 对齐目标里的 `-π` 是"U ~ p(x)"的**显式编码**，并入 P 后须**重新推导目标**，不能机械拼接——属方法学判断 | 是 | 待独立设计 |
 | `self_pu` | 每 epoch 各抽一次批的 SGD（无 DataLoader） | 5–6 处（未标记损失、缓存概率张量形状、`TrustedSetManager` 人口数） | 最硬：trusted-set 按分数取"最低分为负半"，并入的**已知正例会拿到伪负标签**；须先冻结"已知正例永不进入负半"的身份约束 | 是 | 待独立设计 |
 | 线性 `pusb` | sklearn `LogisticRegression` 一次 `fit` | **无** | 训练信号即「U ≡ 负类」，不存在与风险估计器同形的"未标记损失输入" | 否（附加工程基线不入榜） | 待适用性裁决 |
@@ -96,13 +96,96 @@ trusted set 或全量/mini-batch 差异。上游 `resolve_training_view` 按台�
   `resolve_basis_fn` 参数文档一度以 OS/TS 视图定义 `X_pool`；该模块是各估计器共用的通用实现。
   已恢复通用描述，视图解读留在 `UPUClassifier.fit`。
 
-## 5. 操作后果（供 P2.1 排期与 P2.2 聚合）
+## 5. `pusb_kernel` 切片（本 PR）
+
+### 5.1 实现
+
+- **校准范围**：`ts` 只作用于**内部 CV 训练折**与**最终 refit**，无标签风险项的经验分布由 `D_U`
+  换成 `D_U ∪ D_P`（分母随之取 `n_P + n_U`）。正例项、class prior、正则项不变。
+- **验证折保持 OS**：内部 CV 的验证折两个角色由该折自己的 P/U 就地构造，**不经**视图开关。这是
+  协议驱动的**跨目标选参**决策（D17）——用 OS 目标的验证值去选 TS 训练目标的超参数；被否决的
+  替代（验证折并入该折自己的 P，即 `U_val ∪ P_val`，同样 held-out 且在「选参准则与训练风险
+  同形」上更自洽）与否决理由见 D17。
+- **容量与池子不变**：RBF 中心**候选池**本已取自完整 `X`（不是 `X_U`），故**不**照搬 upu 的
+  「中心池跟随视图」——照搬会人为抬高 P 被选为中心的权重。中心数量、CV fold、先验分位数阈值池
+  一概不随视图变化。
+- **接口**：`fit(..., os_or_ts="os")`；角色构造 helper `_risk_role_designs` 只接收显式布尔
+  `include_positive_in_unlabeled`，**不接收** run 级视图字符串，且验证折**不经**它——「验证保持
+  OS」在代码结构上 fail-closed，而非靠调用者记得传 `"os"`。
+
+### 5.2 证据（按归属分层）
+
+| 层级 | 内容 |
+|---|---|
+| 独立 golden | OS/TS objective 与 gradient 的字面量期望值，由独立脚本用原始数组重推（**不调用**生产 helper）；TS 侧显式体现 P 同时进正项与无标签项 |
+| 公式无关锚 | 两视图各做有限差分梯度检查；另有一条 mean-invariance 性质测试（把分母写死会在重复行上被抓住） |
+| OS 冻结 golden | 改造前从 HEAD（`7c716f9`）取样 `coef_`/`cv_scores_`/`threshold_`/中心索引/fold 并固化：重构后逐位未变。离散量（`sigma_`/`reg_lambda_`/中心索引/fold）精确相等，连续量给容差（BFGS 末位可随 BLAS/SciPy 版本漂移，取样环境 numpy 2.4.6 / scipy 1.17.1 已记入测试） |
+| 结构测试 | 角色 spy（布尔序列、design 行数）、每 fold × 每 `(σ, λ)` 的验证折反向测试、阈值池大小、中心/fold/容量不变、**角色重合但物理样本不复制** |
+| 变异检验 | 对四个不变量各注入一处缺陷，确认确有测试翻红（复制行入并集 / 验证折注入并集 / 阈值池扩容 / 中心池跟随视图），每次运行后按哈希还原生产文件 |
+| 真实跑批 | 已完成，见 §5.3（视图/标志/阻断位/容量不变 + 路径非空转；不含也无法含估计器内部选择） |
+
+### 5.3 真实跑批
+
+Spambase `split_0`、`c=0.1`、`π=0.39404477287546186`（与 nnpu/upu 审计参数一致）。命令：
+
+```bash
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v1.2 --dataset spambase --method pusb_kernel --os-or-ts os --c 0.1 --seeds 0 --class-prior 0.39404477287546186 --out-dir F:/Temp/lab/P2.0e/pusb_kernel_os
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v1.2 --dataset spambase --method pusb_kernel --os-or-ts ts --c 0.1 --seeds 0 --class-prior 0.39404477287546186 --out-dir F:/Temp/lab/P2.0e/pusb_kernel_ts
+```
+
+产物：`F:/Temp/lab/P2.0e/pusb_kernel_os/os/c_0.1/seed_0/` 与
+`pusb_kernel_ts/ts/c_0.1/seed_0/`（层级与前两切片一致）。跑批前用**同一串 flag 跑 upu** 做过
+命令形状核对：产物层级逐层相同，且 upu 的 PA `0.8382193268186754` / OA `0.8545059717698155`
+与 §4.2 所记逐位相同——两次切片的命令逐字可比。
+
+实测（同单元两跑，`execution_mode = versioned_pilot`）：
+
+| 指标 | OS | TS |
+|---|---|---|
+| `run_view` / `calibration_applied` | `os-compatible` / `False` | `ts-compatible` / `True` |
+| `formal_blockers` | 不含 ts 阻断位 | **含** `ts_view_collaborator_review` |
+| `estimator_parameters` | `n_basis=300, cv=5, max_iter=200, tol=1e-5, random_state=0` + 官方 σ/λ 网格 | **逐字相同** |
+| test PA accuracy | 0.8219326818675353 | 0.8827361563517915 |
+| test PA AUC | 0.9538024428053754 | 0.9545676708433306 |
+| test OA accuracy | 0.8805646036916395 | 0.8892508143322475 |
+| test OA AUC | 0.9538024428053754 | 0.9545676708433306 |
+| `selection.OA` 的 `val_score_min` / `val_score_scale` | -4.2203822834906415 / 9.672616291594961 | -4.038635261279397 / 8.604982562375582 |
+| `elapsed` | 57.30 s | 41.61 s |
+
+**产物级可证的两件事**：① 视图与校准标志被正确记录，且 TS 侧确实多挂 `ts_view_collaborator_review`
+（OS 侧没有）；② 两视图的 `estimator_parameters` 逐字一致而 scores 分布统计
+（`val_score_min`/`val_score_scale`）不同——即**校准改的是风险项、不是模型容量**，且路径非空转。
+
+**本表核对项之外的三点边界**（避免被读成已验证）：
+
+1. **真实指标不同只证明路径非空转**，数值正确性以 §5.2 的独立 golden 与变异检验为准。
+2. **manifest 不承载估计器内部的 `(σ, λ)`、中心数与冻结 `threshold_`**：`candidate_runs[].params`
+   为空对象、`selection.threshold` 是**选择协议**用于把 scores 转标签的阈值候选（PA 侧 OS 0.6 /
+   TS 0.4、OA 侧两者均 0.5），**不是**估计器 `fit` 内冻结的训练先验分位数阈值。设计稿 §9 把
+   "核对中心数、选中超参数、threshold"列为跑批核对项，**超出了产物的承载能力**——要核对它们须
+   另外输出审计字段。本地重拟合**不**作为替代：跑批的 PU 标签由 runner 用 SCAR 生成器按 `c=0.1`
+   现场生成（切分制品存的是真实标签），复现它需逐字重放生成器与种子推导，差一点就会给出看不出
+   错的数字。
+3. `selection.*.metrics.val_proxy_accuracy` 大于 1（OS 1.3184 / TS 1.3316）是该 proxy 指标的
+   已知形态（离散网格撞值，语义见 §4.2 对 upu 同类值的验算），**不得**当作通过率读。
+
+**边界**：真实跑批只能证明「实际视图与校准标志被正确记录」和「路径非空转」；它**证明不了**内部
+验证折未被校准——后者由结构测试与变异检验负责（§5.2 前四层），不得写进跑批核对项。
+
+## 6. 操作后果（供 P2.1 排期与 P2.2 聚合）
 
 - 本切片后 `upu` 的 pilot **默认视图为 `ts`**，故其默认行挂 `ts_view_collaborator_review`、
   正式不合格——与 `nnpu` 自 #68 起的处境相同。且 `--os-or-ts` 是**整矩阵**参数（D14），
   无法只给 `upu` 单开 OS。
 - **RBF 那半改动对 pilot 结果零影响**：pilot 的 `upu` profile 是
   `linear` / `squared` / `fit_intercept = false`（`survey_protocol_v1.json`），不走 RBF 分支。
+- 本切片后 `pusb_kernel` 的 pilot **默认视图同样翻为 `ts`**（其台账原生假设本就是 `ts`，接线后
+  resolver 即返回 `ts`），默认行从此挂 `ts_view_collaborator_review`、正式不合格——与 `upu`/
+  `nnpu` 同处境，且同样因 `--os-or-ts` 是整矩阵参数（D14）而无法只给它单开 OS。
+- 与 upu 那半改动不同，**本切片会实际改变 `pusb_kernel` 的 pilot 结果**：它本身就在 Pilot 矩阵内，
+  且 profile 走的就是 RBF 分支（`n_basis=300`、`cv=5`、官方 σ/λ 网格）。
+
+## 7. 未决项
 
 ## 6. 未决项
 
@@ -111,7 +194,12 @@ trusted set 或全量/mini-batch 差异。上游 `resolve_training_view` 按台�
 - 建议（终审提出，尚未实施）：新增"台账 `calibration_applied` ↔ 代码钩子
   （`accepts_training_view`）"的**派生一致性契约测试**。今天该槽只是人工断言，而
   `native_sampling_assumption` 已与 registry scenario 耦合；这条守卫可机械地消灭本项目反复
-  出现的"记录与实现不符"那一类问题。
+  出现的"记录与实现不符"那一类问题。**本切片只走了半步**：`test_training_view_routing.py::TestResolutionForARealMethod`
+  把 `pusb_kernel` 的「台账声明 ↔ 真实估计器类 ↔ resolver 默认值」三者手工配对钉住，仍**不是**
+  覆盖全部方法的机械守卫。
+- 本切片新增的 `resolve_training_view` 断言顺带暴露一个事实：台账的 `run_view` /
+  `calibration_applied` 是**描述性**字段，resolver 只读 `native_sampling_assumption`；因此
+  显式视图请求的正确性不受台账这两个字段影响，能守住「记录与实现一致」的只有上述手工配对的测试。
 - `survey_execution_plan.md` 的 P2.0e 验收标准格仍写"`ts` 视图**逐训练 mini-batch** 执行
   `D_U^k ← D_U^k ∪ D_P^k`"——那是忠实复述协议 §2.3 原文（受摘要绑定的锁定要求文档），
   全量求解是该规则的**退化单批**情形。故**不改写**该格（改写会制造新的不一致）；

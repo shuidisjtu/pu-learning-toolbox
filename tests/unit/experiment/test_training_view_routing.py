@@ -1,4 +1,5 @@
-# ruff: noqa: N803, N806, S101
+# F811: ``survey_script`` is a pytest fixture looked up by name.
+# ruff: noqa: N803, N806, S101, F811
 
 """Routing of the ``os_or_ts`` training view from a trainer to an estimator.
 
@@ -13,9 +14,12 @@ import inspect
 
 import numpy as np
 import pytest
+from _survey_script_helpers import survey_script  # noqa: F401 - pytest fixture
 
+from pu_toolbox.estimators.bias_aware import PUSBKernelClassifier
 from pu_toolbox.experiment.protocols import route_training_view
 from pu_toolbox.experiment.strategies import DeepFitTrainer, FitTrainer, SupervisedTrainer
+from pu_toolbox.experiment.training_views import resolve_training_view
 
 pytestmark = pytest.mark.unit
 
@@ -114,3 +118,45 @@ class TestTrainerForwarding:
         estimator = _PlainEstimator()
         trainer.fit(estimator, X, Y)
         assert estimator.calls == 1
+
+
+class TestResolutionForARealMethod:
+    """The resolver's answer for one real method, against the real ledger.
+
+    The other suites pin the resolution *rule* with stand-in estimators; this
+    one pins the wiring of an actual method, so a ledger entry the code cannot
+    honour (or code the ledger does not declare) is caught instead of assumed.
+    """
+
+    def test_basic_pusb_kernel_is_declared_and_wired_to_the_calibrated_view(self, survey_script):
+        ledger = survey_script.load_ledger(survey_script.LEDGER_PATH)
+        entry = ledger["methods"]["pusb_kernel"]
+
+        assert entry["native_sampling_assumption"].startswith("ts")
+        assert entry["run_view"] == "ts-compatible"
+        assert entry["calibration_applied"] is True
+        assert (
+            resolve_training_view(
+                ledger,
+                "pusb_kernel",
+                None,
+                is_oracle=False,
+                estimator_class=PUSBKernelClassifier,
+            )
+            == "ts"
+        )
+
+    def test_basic_pusb_kernel_explicit_view_request_is_honoured(self, survey_script):
+        ledger = survey_script.load_ledger(survey_script.LEDGER_PATH)
+
+        for requested, expected in (("os", "os"), ("ts", "ts")):
+            assert (
+                resolve_training_view(
+                    ledger,
+                    "pusb_kernel",
+                    requested,
+                    is_oracle=False,
+                    estimator_class=PUSBKernelClassifier,
+                )
+                == expected
+            )

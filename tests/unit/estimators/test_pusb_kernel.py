@@ -97,15 +97,17 @@ def test_edge_public_prediction_is_independent_of_batch_composition():
 def test_determ_objective_gradient_matches_finite_difference():
     X, y = _data()
     design = _rbf_design(_squared_distances(X, X[:5]), sigma=0.8)
+    positive = design[y == 1]
+    unlabeled = design[y == 0]
     coef = np.linspace(-0.2, 0.3, design.shape[1])
-    objective, gradient = _pu_objective_and_gradient(coef, design, y, 0.4, 0.07)
+    objective, gradient = _pu_objective_and_gradient(coef, positive, unlabeled, 0.4, 0.07)
     epsilon = 1e-6
     numerical = np.empty_like(coef)
     for index in range(len(coef)):
         offset = np.zeros_like(coef)
         offset[index] = epsilon
-        upper = _pu_objective_and_gradient(coef + offset, design, y, 0.4, 0.07)[0]
-        lower = _pu_objective_and_gradient(coef - offset, design, y, 0.4, 0.07)[0]
+        upper = _pu_objective_and_gradient(coef + offset, positive, unlabeled, 0.4, 0.07)[0]
+        lower = _pu_objective_and_gradient(coef - offset, positive, unlabeled, 0.4, 0.07)[0]
         numerical[index] = (upper - lower) / (2.0 * epsilon)
 
     assert np.isfinite(objective)
