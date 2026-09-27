@@ -5,8 +5,9 @@
 > 数值与状态以方法台账 `pu_toolbox/experiment/method_ledger.json` 的
 > `run_view` / `calibration_applied` 与各 run 的 manifest 为准，本文件只作解释。
 >
-> 当前进度：`nnpu`（#68）、`upu`（#74）、`pusb_kernel`（本切片）已接线。剩余 `dist_pu`、`self_pu`
-> 待各自独立设计；线性 `pusb` 待适用性裁决（见 D16 ①）。
+> 当前进度：`nnpu`（#68）、`upu`（#74）、`pusb_kernel`（#76）、`dist_pu`（#77）、`self_pu`（本切片）
+> 已接线，五个适用方法**无剩余待接线项**；线性 `pusb` 经 2026-09-27 裁决**不适用校准**（其训练信号即
+> 「U ≡ 负类」，不存在可替换的未标记损失输入，见 D16 ①），本切片不含其工作。逐方法口径见 D16 ③ / D17 / D18 / D19。
 
 ## 1. `ts` 视图的语义
 
@@ -26,8 +27,8 @@
 | `upu` | 全量凸求解（squared 闭式 / logistic L-BFGS / double-hinge SLSQP） | 唯一构造点：无标签角色集合与 RBF 候选池 | — | 是 | 已接线（#74） |
 | `pusb_kernel` | 全量 BFGS + (σ,λ) 网格 CV | `_pu_objective_and_gradient`（**2 个调用点 / 3 个角色**，训练折与终拟合共用 `_fit_coefficients`） | ① CV **验证折**按协议须保持 OS，标志只能作用于训练折与终拟合；② 冻结训练先验分位数阈值会随视图漂移（属训练产物，非选择项） | 是 | 已接线（本切片 §5） |
 | `dist_pu` | 全量梯度下降（`batch_size` 为兼容性死参数） | 分布对齐项 | 对齐目标里的 `-π` 是"U ~ p(x)"的**显式编码**，并入 P 后须**重新推导目标**，不能机械拼接——属方法学判断 | 是 | 已接线（本切片 §6） |
-| `self_pu` | 每 epoch 各抽一次批的 SGD（无 DataLoader） | 5–6 处（未标记损失、缓存概率张量形状、`TrustedSetManager` 人口数） | 最硬：trusted-set 按分数取"最低分为负半"，并入的**已知正例会拿到伪负标签**；须先冻结"已知正例永不进入负半"的身份约束 | 是 | 待独立设计 |
-| 线性 `pusb` | sklearn `LogisticRegression` 一次 `fit` | **无** | 训练信号即「U ≡ 负类」，不存在与风险估计器同形的"未标记损失输入" | 否（附加工程基线不入榜） | 待适用性裁决 |
+| `self_pu` | 每 epoch 各抽一次批的 SGD（无 DataLoader） | **只有 1 处**：负 PU 项的角色集合（未信任 U 行） | 调查时判断为"最硬"（trusted-set 按分数取最低分为负半）——接线时的结论是**该风险在结构上不存在**：manager 只吃 U-local 概率、形状 fail-loud，已知正例根本不在其人口内（§7.2） | 是 | 已接线（本切片 §7） |
+| 线性 `pusb` | sklearn `LogisticRegression` 一次 `fit` | **无** | 训练信号即「U ≡ 负类」，不存在与风险估计器同形的"未标记损失输入" | 否（附加工程基线不入榜） | **不适用校准**（2026-09-27 裁决，D16 ①）|
 
 ## 3. 接线范式（工程经验，不构成其他方法的数学先例）
 
