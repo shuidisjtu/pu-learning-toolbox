@@ -1,6 +1,6 @@
 # tests/unit/experiment/test_survey_pilot_driver.py
 
-# ruff: noqa: N803, N806, S101
+# ruff: noqa: N803, N806, F811, S101
 
 """The driver's gates, which decide whether a pilot starts at all.
 
@@ -10,51 +10,18 @@ wasted and says nothing.  The unit script is stubbed here so a test failure
 means the gate let something through rather than that a model was trained.
 """
 
-import importlib.util
 import json
-import subprocess
 from pathlib import Path
 
 import pytest
+from _survey_pilot_helpers import (  # noqa: F401 - imported fixtures are used by name
+    ALL_PRIORS,
+    driver,
+    splits_tree,
+    unit_calls,
+)
 
 pytestmark = pytest.mark.unit
-
-_SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
-_ALL_PRIORS = ["--class-prior", "spambase=0.39,imdb=0.5,cifar10=0.1"]
-
-
-@pytest.fixture
-def driver():
-    spec = importlib.util.spec_from_file_location(
-        "run_survey_pilot", _SCRIPTS / "run_survey_pilot.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-@pytest.fixture
-def unit_calls(driver, monkeypatch):
-    """Capture what the driver would have executed instead of executing it."""
-    recorded: list[list[str]] = []
-
-    def _record(argv, check=False):
-        recorded.append(list(argv))
-        return subprocess.CompletedProcess(argv, 0)
-
-    monkeypatch.setattr(driver.subprocess, "run", _record)
-    return recorded
-
-
-def _splits(root: Path, *, prior: float | None = None, datasets=("cifar10", "imdb", "spambase")):
-    for dataset in datasets:
-        path = root / dataset / "split_0" / "split_manifest.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"dataset": dataset, "seed": 0, "indices_sha256": "a" * 64}
-        if prior is not None:
-            payload["class_prior"] = {"population": prior}
-        path.write_text(json.dumps(payload), encoding="utf-8")
-    return root
 
 
 _UNWIRED_METHOD = "ts_native_unwired"
@@ -114,7 +81,7 @@ def unwired_ts_method(monkeypatch):
 
 def test_edge_without_a_class_prior_no_run_is_started(driver, unit_calls, tmp_path, capsys):
     """The gate must precede the batches, not surface at the hundredth one."""
-    code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(_splits(tmp_path))])
+    code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(splits_tree(tmp_path))])
 
     assert code == 1
     assert unit_calls == []
@@ -127,7 +94,7 @@ def test_edge_a_prior_contradicting_the_splits_is_refused(driver, unit_calls, tm
     Nothing downstream catches it: the aggregation gates compare budget and
     representation, not the prior.
     """
-    splits = _splits(tmp_path, prior=0.39)
+    splits = splits_tree(tmp_path, prior=0.39)
     out = str(tmp_path / "out")
     contradicted = ["--class-prior", "spambase=0.039,imdb=0.5,cifar10=0.1"]
 
@@ -150,7 +117,7 @@ def test_edge_a_prior_contradicting_the_splits_is_refused(driver, unit_calls, tm
 def test_basic_the_recorded_prior_reaches_the_unit_script(driver, unit_calls, tmp_path):
     """π is read from the splits; needing the operator to retype it invites drift."""
     driver.main(
-        ["--results", str(tmp_path / "out"), "--splits", str(_splits(tmp_path, prior=0.42))]
+        ["--results", str(tmp_path / "out"), "--splits", str(splits_tree(tmp_path, prior=0.42))]
     )
 
     assert unit_calls
@@ -174,8 +141,8 @@ def test_basic_dry_run_reports_the_plan_without_starting_a_batch(
             "--results",
             str(tmp_path / "none"),
             "--splits",
-            str(_splits(tmp_path)),
-            *_ALL_PRIORS,
+            str(splits_tree(tmp_path)),
+            *ALL_PRIORS,
         ]
     )
 
@@ -206,7 +173,7 @@ def test_param_a_malformed_dimension_or_prior_is_reported_not_raised(driver, tmp
 
 
 def test_determ_the_batch_order_is_the_same_on_a_second_pass(driver, unit_calls, tmp_path):
-    argv = ["--results", str(tmp_path / "out"), "--splits", str(_splits(tmp_path)), *_ALL_PRIORS]
+    argv = ["--results", str(tmp_path / "out"), "--splits", str(splits_tree(tmp_path)), *ALL_PRIORS]
 
     driver.main(argv)
     first = list(unit_calls)
@@ -350,7 +317,7 @@ def test_param_an_explicit_ts_is_refused_before_any_batch(
     with a synthetic estimator whose ``fit`` carries no ``os_or_ts``.
     """
     monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol(method))
-    splits = _splits(tmp_path, datasets=("spambase",))
+    splits = splits_tree(tmp_path, datasets=("spambase",))
 
     code = driver.main(
         ["--results", str(tmp_path / "out"), "--splits", str(splits), "--os-or-ts", "ts"]
@@ -389,8 +356,8 @@ def test_param_an_unsized_row_stops_the_pilot_before_the_first_batch(
     figure, so both have to refuse before the first subprocess.
     """
     monkeypatch.setattr(driver, "load_protocol", _unsized_protocol)
-    splits = _splits(tmp_path, prior=0.39, datasets=("spambase",))
-    argv = ["--results", str(tmp_path / "out"), "--splits", str(splits), *_ALL_PRIORS]
+    splits = splits_tree(tmp_path, prior=0.39, datasets=("spambase",))
+    argv = ["--results", str(tmp_path / "out"), "--splits", str(splits), *ALL_PRIORS]
     if dry_run:
         argv.append("--dry-run")
 
@@ -411,7 +378,7 @@ def test_edge_a_runnable_method_the_registry_cannot_supply_is_reported(
 ):
     """A driver error, reported as one: readable, no traceback, no batch started."""
     monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol("no_such_method"))
-    splits = _splits(tmp_path, datasets=("spambase",))
+    splits = splits_tree(tmp_path, datasets=("spambase",))
 
     code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(splits)])
 
@@ -428,7 +395,7 @@ def test_basic_an_os_result_leaves_a_calibrated_unit_pending(
 ):
     """F11 end to end: the default request is calibrated, so an OS run is not it."""
     monkeypatch.setattr(driver, "load_protocol", lambda: _resume_protocol("nnpu"))
-    splits = _splits(tmp_path, datasets=("spambase",))
+    splits = splits_tree(tmp_path, datasets=("spambase",))
     results = tmp_path / "results"
     _write_run(results, run_view="os-compatible")
 

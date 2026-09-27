@@ -21,13 +21,26 @@ implies, which is where the disk budget comes from::
 
     uv run python scripts/run_survey_pilot.py --dry-run
     uv run python scripts/run_survey_pilot.py --class-prior spambase=0.39,imdb=0.5
+
+``--datasets`` narrows the matrix to the datasets it names, which is how one
+pilot is split across hosts: each host is handed its own list.  Nothing
+outside enforces that two lists partition the matrix instead of overlapping,
+so ``--plan-json`` writes the expanded plan out and the files can be checked
+against each other.  The restriction is applied to the matrix before anything
+reads it, so the plan, the storage a host is sized against, the resume check
+and the batches all describe the same shard::
+
+    uv run python scripts/run_survey_pilot.py --dry-run --datasets imdb,spambase \\
+        --plan-json shard-b.json
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -68,6 +81,116 @@ def _parse_pairs(raw: str, *, cast) -> dict:
     return parsed
 
 
+def _parse_datasets(raw: str | None) -> tuple[str, ...] | None:
+    """The datasets a request names, or ``None`` when it names none at all.
+
+    ``None`` means the whole matrix, which is what the flag's absence asks for.
+    A flag that is *present* but names nothing is a different request and is
+    refused by the caller: splitting a pilot across two hosts means each host
+    is given a list, and a list that quietly planned nothing would have both
+    hosts report success over the same hole.
+    """
+    if raw is None:
+        return None
+    names = tuple(dict.fromkeys(item.strip() for item in raw.split(",") if item.strip()))
+    if not names:
+        raise ValueError(
+            "--datasets names no dataset; pass a comma-separated list such as "
+            "'cifar10' or 'imdb,spambase'."
+        )
+    return names
+
+
+def _dataset_names(protocol: dict[str, Any]) -> tuple[str, ...]:
+    """Every dataset the matrix plans runs for.
+
+    Read off the same ``runnable`` flag :func:`planned_runs` honours: a dataset
+    whose units are all excluded cannot be requested into existence, and naming
+    it has to say so rather than plan an empty shard.
+    """
+    return tuple(
+        sorted(
+            {
+                unit["dataset"]
+                for unit in protocol["execution_units"]
+                if unit.get("runnable") is True
+            }
+        )
+    )
+
+
+def _select_datasets(protocol: dict[str, Any], requested: tuple[str, ...] | None) -> dict[str, Any]:
+    """The matrix reduced to ``requested``, or unchanged when that is ``None``.
+
+    The restriction is applied to the protocol rather than to the plan so that
+    every reader narrows together: the plan itself, the view resolution, the
+    checkpoint estimate a host is sized against, the resume check and the
+    batches.  A filter that reached only the report would print one shard and
+    then train the whole matrix.
+    """
+    if requested is None:
+        return protocol
+    known = _dataset_names(protocol)
+    unknown = [name for name in requested if name not in known]
+    if unknown:
+        raise ValueError(f"unknown dataset(s) {unknown}; the matrix plans {list(known)}.")
+    wanted = set(requested)
+    return {
+        **protocol,
+        "execution_units": [
+            unit for unit in protocol["execution_units"] if unit["dataset"] in wanted
+        ],
+    }
+
+
+def _planned_datasets(planned: tuple[PilotRun, ...]) -> list[str]:
+    """The datasets a plan covers, sorted: what a scoped report has to name."""
+    return sorted({run.dataset for run in planned})
+
+
+def _write_plan_snapshot(
+    path: str,
+    *,
+    protocol: dict[str, Any],
+    planned: tuple[PilotRun, ...],
+    pending: tuple[PilotRun, ...],
+    completed: tuple[PilotRun, ...],
+    views: Mapping[tuple[Any, ...], str],
+) -> None:
+    """Write what this request covers, in a form two hosts can be checked against.
+
+    The runs recorded are the *planned* set rather than the pending one: two
+    hosts partition the matrix, and what each is accountable for does not shrink
+    as it finishes.  The view travels with each run because the resume check
+    holds a run to the view it is going to use, so a shard is only reproducible
+    together with the ledger state that resolved it.
+    """
+    payload = {
+        "protocol_version": protocol["protocol_version"],
+        "datasets": _planned_datasets(planned),
+        "totals": {
+            "planned": len(planned),
+            "completed": len(completed),
+            "pending": len(pending),
+        },
+        "runs": [
+            {
+                "dataset": run.dataset,
+                "method": run.method,
+                "training_path": run.training_path,
+                "mechanism": run.mechanism,
+                "c_token": run.c_token,
+                "seed": run.seed,
+                "view": views[run.key],
+            }
+            for run in planned
+        ],
+    }
+    Path(path).write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -75,6 +198,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--splits", default="data/splits", help="prepared split products root")
     parser.add_argument("--results", default="results/survey", help="where run trees live")
     parser.add_argument("--protocol", default="survey-v1", help="protocol version or path")
+    parser.add_argument(
+        "--datasets",
+        default=None,
+        help=(
+            "comma-separated datasets to run (default: every dataset in the matrix). "
+            "Splitting a pilot across hosts gives each host its own list; an unknown "
+            "name is refused rather than planned empty, because an empty plan exits 0 "
+            "and the other host would be believed to have covered it"
+        ),
+    )
     parser.add_argument(
         "--input-dims",
         default=",".join(f"{name}={value}" for name, value in DEFAULT_INPUT_DIMS.items()),
@@ -111,6 +244,15 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="report the plan and the disk it needs, then stop"
+    )
+    parser.add_argument(
+        "--plan-json",
+        default=None,
+        help=(
+            "path to write the expanded plan to (requires --dry-run): every run this "
+            "request covers, so two hosts' shards can be checked for overlap instead "
+            "of being asserted disjoint"
+        ),
     )
     parser.add_argument(
         "--keep-going",
@@ -335,6 +477,18 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.plan_json and not args.dry_run:
+        print(
+            "error: --plan-json records the plan, and --dry-run is what produces one; "
+            "writing it during a batch run would leave a file nothing reads.",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        requested = _parse_datasets(args.datasets)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     try:
         dims = _parse_pairs(args.input_dims, cast=int)
         given_priors = _parse_pairs(args.class_prior, cast=float)
@@ -350,6 +504,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     protocol = load_protocol()
+    try:
+        protocol = _select_datasets(protocol, requested)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     planned = planned_runs(protocol)
     # Resolved once, before anything runs: a request the plan cannot satisfy is
     # refused here rather than at whichever batch happens to hit that method.
@@ -371,6 +530,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         pending, done = pending_runs(protocol, args.results, splits=splits, expected_views=views)
         _print_plan(pending, done, estimate)
+        if args.plan_json:
+            _write_plan_snapshot(
+                args.plan_json,
+                protocol=protocol,
+                planned=planned,
+                pending=pending,
+                completed=done,
+                views=views,
+            )
         if priors:
             print(f"  class prior: {', '.join(f'{k}={v}' for k, v in sorted(priors.items()))}")
         missing = _missing_priors(protocol, planned, priors)
@@ -401,8 +569,12 @@ def main(argv: list[str] | None = None) -> int:
     still_pending, now_done = pending_runs(
         protocol, args.results, splits=splits, expected_views=views
     )
+    # A subset request reports a subset's count, so the count has to name the
+    # subset: two hosts each reading "completed 215 of 215" would call the
+    # matrix finished while half of it has not started.
+    scope = "" if requested is None else f" in {', '.join(_planned_datasets(planned))}"
     print(
-        f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s); "
+        f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s){scope}; "
         f"{len(still_pending)} still pending"
     )
     return 1 if still_pending else 0

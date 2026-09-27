@@ -340,6 +340,8 @@ tests/
       test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
+      _survey_pilot_helpers.py          # 驱动测试共享夹具: 脚本动态加载、subprocess 记录与 split 目录树
+      test_survey_pilot_subset.py       # 驱动子集: --datasets 收窄计划与批次、未知名拒绝、--plan-json 分区可核对
       test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
       test_leaderboard_run_view.py      # 排行榜分组: 视图不同即不入同一组（os 与 ts 不可同榜）
       test_method_ledger.py             # 方法台账读取: 枚举+中文注记归一、缺字段与非法值拒绝
