@@ -303,7 +303,92 @@ manifest **不承载**估计器内部的 `loss_history_` 与选择细节（`cand
 
 ### 7.5 真实跑批
 
-（本节在跑批与重放审计完成后补齐。）
+Spambase `split_0`、`c=0.1`、`π=0.39404477287546186`（与前四切片同参数）。命令（两视图各一次）：
+
+```bash
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --method self_pu --dataset spambase --training-path native_2d --protocol survey-v1.2 --c 0.1 --seeds 0 --class-prior 0.39404477287546186 --os-or-ts os --out-dir F:/Temp/lab/P2.0e/self_pu_os
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --method self_pu --dataset spambase --training-path native_2d --protocol survey-v1.2 --c 0.1 --seeds 0 --class-prior 0.39404477287546186 --os-or-ts ts --out-dir F:/Temp/lab/P2.0e/self_pu_ts
+```
+
+产物：`self_pu_os/os/c_0.1/seed_0/` 与 `self_pu_ts/ts/c_0.1/seed_0/`（层级同前三切片），
+各 **400 个 checkpoint**（200 epoch × `teacher_1` / `teacher_2`；组件名与 `epoch_components` 一致）。
+
+| 指标 | OS | TS |
+|---|---|---|
+| `run_view` / `calibration_applied` | `os-compatible` / `False` | `ts-compatible` / `True` |
+| `estimator_parameters` | 22 键（`hidden_dim=128`、`max_epochs=200`、`batch_size=256`、`warmup=10`、`self_paced 10→50`、`distill_start=50`、`pace=0.2/0.3`、`random_state=0`…） | **逐字相同** |
+| `formal_blockers` | 4 项 | **5 项**，多出 `ts_view_collaborator_review` |
+| PA accuracy / AUC | 0.9022801302931596 / 0.9650512949633184 | 0.9131378935939196 / 0.9642564451948615 |
+| OA accuracy / AUC | 0.9131378935939196 / 0.9624248348588524 | 0.9022801302931596 / 0.9635356497526586 |
+
+OS 与 TS 的 PA/OA **accuracy 恰好互换了取值**（0.9022… 与 0.9131… 在两视图间换位）。这是一个巧合，
+**不得**读成「视图把 PA/OA 调换」——两条跑的选模与报告路径都相同，换位的只是两个数。
+
+**两个视图确实各自训练出了不同的模型**：两份制品最后一个 epoch 的 `teacher_1` 权重最大绝对差
+**0.08757619559764862**；重放审计里 trusted 集合含有的真实正例数也分别为 398 / 405。
+
+**两个视图都落在消融分支**（D19 ⑧ 的制品级证据）：两条跑批日志各含一条
+`UserWarning: validation_data was not supplied; running the explicit Self-PU ablation without meta
+reweighting or clean-validation teacher selection.`；重放审计中 `meta_influence_calls = 0`。故
+**Pilot 的 `self_pu` 不含 self-calibrated 元重加权**，含 meta 的分支只由 §7.3 的单元测试覆盖。
+协议侧的 `formal_blockers` 本就带 `SelfPU_clean_validation_meta_reweighting_OA_integration`，与这条
+边界一致。
+
+#### 7.5.1 重放身份审计
+
+制品**不落盘** trusted 成员、meta 行数或 consistency 行数，所以身份证据来自**重放审计**：从
+manifest 取参数/seed/视图/split 引用 → 重建视图并校验摘要 → 走同一 trainer 调用路径重放 →
+**逐位比对制品最后一个 epoch 的两个 teacher checkpoint** → 通过后才写诊断。产物
+`F:/Temp/lab/P2.0e/self_pu_identity_audit.json`（脚本一次性，不入库；JSON 与本节摘要才是留存物）。
+
+**重现校验（审计成立的前提）**：两视图 × 两 teacher 全部 `bitwise = true`、`max_abs_delta = 0.0`
+（对 `epoch_0200_teacher_{1,2}.pt`）。输入同源：四个角色的 `feature_sha256` 全部匹配，
+`split_sha256` 重算一致。
+
+| 审计项 | OS | TS |
+|---|---|---|
+| 已揭示正例 / 真实正例 / U 行数 | 130 / 1305 / 3182 | 同 |
+| U 中的隐藏正例 | 1175 | 同 |
+| `manager` 人口（两次构造） | `[3182, 3182]` | `[3182, 3182]` |
+| **已揭示正例 ∩ trusted** | **0** | **0** |
+| trusted 中的真实正例数（观测，**非**不变量） | 398 | 405 |
+| trusted 最终规模（student 1 / 2） | 636 / 794 | 636 / 794 |
+| `meta_influence_calls` / rows | 0 / `[]` | 0 / `[]` |
+| consistency（student）调用数 / 每对行数 | 302 / 两列逐对相等 | 302 / 两列逐对相等 |
+| teacher consistency 行数（由 `min(batch_size, n_U)` 推得，非观测） | 256 | 256 |
+| `calibration_mode_` / 选模依据 | `ablation` / `pu_validation_nnpu_risk` | 同 |
+| Gate C（审计进程内构造的反例） | trusted 规模 6、交集 **0** | 同 |
+
+**一处必须写明的边界**：审计初版把「正例」取成 split 里的**真实标签**，于是与 1305 个真实正例求交
+得到 398/405 的「交集」——那是**隐藏正例被自我步进机制伪标注**，是 PU 学习在正常工作，**不是**身份
+泄漏。守卫对象是**已揭示正例**（估计器被告知的那 130 个），它与 trusted 的交集必须为 0。两个数字都
+留在审计 JSON 里并各自标注含义，不得混用。
+
+**边界（不得读作结论）**：与前三切片相同——单 seed 的 PA/OA 差**不构成**「校准更优/更差」的证据。
+本节只证明：①实际视图与校准标志被正确记录；②blocker 按协议挂上；③估计器内部参数与模型容量不随
+视图变化；④两视图确实训练出不同模型且都在消融分支；⑤身份不变量在真实制品上成立（经逐位重现的重放）。
+
+#### 7.5.2 CIFAR adapter 技术 smoke
+
+`cifar10/split_0`（`π=0.4`、`c=0.1`）、`--training-path cnn_feature_adapter`、两视图各一次：
+
+| 检查项 | OS | TS |
+|---|---|---|
+| `run_view` / `calibration_applied` | `os-compatible` / `False` | `ts-compatible` / `True` |
+| `training_path` / `budget` | `cnn_feature_adapter` / `two_student_sampled` | 同 |
+| `estimator_parameters` | — | **与 OS 逐字相同** |
+| `formal_blockers` | 4 项 | **5 项**（多 `ts_view_collaborator_review`） |
+| checkpoint 数 / 组件 | 400（`teacher_1`、`teacher_2`） | 400（同） |
+
+**adapter 路径的 hook 转发成立**：两视图都完成了 200 epoch × 2 student 的完整训练并写出 400 个
+双 teacher checkpoint，说明 `os_or_ts` 经 `EpochCheckpointTrainer` → `DeepFitTrainer` 一路到达
+`self_pu`（与 §7.3 的 native_2d 路径同一套转发，但这条走 4D 图像 → 适配器特征）。
+
+**smoke 指标无意义，不得引用**：adapter 的 encoder 是**随机初始化**的
+（`backbone.specs.image.weights = None`），故 PA/OA accuracy ≈ 0.5997、AUC ≈ 0.53（近随机）是
+构造使然，只说明管线跑通，不说明该方法在此数据上的表现。adapter 特征缓存按
+「dataset/split/seed」共享（与 method/c/mechanism 无关，见 manifest 的
+`adapter_shared_scope`），故第二次跑复用同一条缓存（两次跑后缓存仍为 1 条）。
 
 ## 8. 操作后果（供 P2.1 排期与 P2.2 聚合）
 
