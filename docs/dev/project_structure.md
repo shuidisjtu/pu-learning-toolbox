@@ -232,6 +232,8 @@ tests/
       test_pusb_kernel_view_invariants.py # PUSBKernel 视图不变量(中心/fold/阈值池不变、角色重合但不复制物理样本)
       test_dist_pu_ts_view.py           # DistPU 视图的数学期望与 OS 冻结基线(独立算式 golden、逐 tensor 容差、改造前后逐位等价)
       test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
+      test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
+      test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

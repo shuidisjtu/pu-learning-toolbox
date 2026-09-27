@@ -223,6 +223,43 @@ def hard_distillation_loss(
     return loss, active.float().mean()
 
 
+def _marginal_negative_risk(
+    unlabeled_negative: Any,
+    positive_negative_losses: Any,
+    *,
+    n_unlabeled_role: int,
+    include_positive_in_unlabeled: bool,
+) -> Any:
+    """Blend the negative marginal term when the positive batch joins it.
+
+    ``unlabeled_negative`` is the U side as the trusted/meta machinery already
+    assembled it: a weighted mean over the U rows of the batch that currently
+    carry the negative role (column 1 of the meta weights sums to one, and the
+    uniform fallback does too).  ``n_unlabeled_role`` is how many rows that is --
+    not the size of the batch, which also holds trusted rows that are supervised
+    by their pseudo-labels instead and must not be counted here.
+
+    Under the calibrated view the positive batch joins the same role set, so the
+    two sides are blended by the row mass each brings.  When the U side is a
+    plain mean the result is exactly the empirical mean over the union, which is
+    what makes the calibration an unbiased-sample argument; once meta weights
+    re-weight the U side it is the mass-preserving extension of that identity and
+    not the union mean.  The positive side never enters the meta probe, so no
+    weight is learned for it.
+
+    The switch is an explicit boolean rather than a run-level view string: the
+    paths that must stay on the uncalibrated role set have no way to pass ``"ts"``
+    and get the union by accident.
+    """
+    if not include_positive_in_unlabeled:
+        return unlabeled_negative
+    n_positive = int(positive_negative_losses.shape[0])
+    total = int(n_unlabeled_role) + n_positive
+    return (int(n_unlabeled_role) / total) * unlabeled_negative + (
+        n_positive / total
+    ) * positive_negative_losses.mean()
+
+
 def _as_logits(output: Any) -> Any:
     if output.ndim == 1:
         return output
@@ -467,11 +504,32 @@ class SelfPUClassifier(BasePUClassifier):
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         pu_validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         sample_weight: np.ndarray | None = None,
+        os_or_ts: str = "os",
         epoch_callback=None,
     ) -> SelfPUClassifier:
         """Fit Self-PU with separate clean-calibration and PU-tracking views.
 
         sample_weight : NotImplementedError (deep estimators do not accept instance weights)
+
+        os_or_ts : {"os", "ts"}, default "os"
+            Training data view (survey protocol §2.3).  ``"ts"`` applies the
+            TS-OS calibration to the one component of Self-PU that estimates a
+            population marginal: the negative PU term.  Its role set gains the
+            positive batch, so P contributes to the negative risk in the same
+            epoch in which it still supplies the positive risk and the correction
+            -- P takes on a second *role*, it is never relabelled or duplicated.
+
+            Everything identity-driven stays on the original U: the trusted-set
+            population and its pace, the pseudo-labels, the meta reweighting
+            matrix and the consistency terms.  A known positive can therefore
+            never be handed a pseudo-label, whatever score it receives.  The
+            validation views, teacher selection and checkpoints are unchanged,
+            and the calibrated run is selected by an OS validation objective.
+
+            The blend is by row mass (untrusted U rows against the positive
+            batch), not by a fixed half and not by the class prior.  Reusing the
+            positive batch's already-computed logits means no extra forward pass
+            and no extra RNG draw relative to ``"os"``.
         """
         try:
             import torch
@@ -486,6 +544,9 @@ class SelfPUClassifier(BasePUClassifier):
             allow_nd=True,
             estimator_name="SelfPUClassifier",
         )
+        # Before any RNG use: an invalid view must not perturb the torch seed.
+        if os_or_ts not in {"os", "ts"}:
+            raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
@@ -520,6 +581,10 @@ class SelfPUClassifier(BasePUClassifier):
         tx = torch.as_tensor(X, dtype=torch.float32, device=device)
         positive_global = np.flatnonzero(y_pu == 1)
         unlabeled_global = np.flatnonzero(y_pu == 0)
+        # The calibrated view widens the *role set* of the negative PU term only;
+        # the two index spaces above, and everything derived from them, are the
+        # same under both views.
+        calibrated_view = os_or_ts == "ts"
         if len(unlabeled_global) < 2:
             raise ValueError("SelfPUClassifier requires at least two unlabeled samples.")
 
@@ -650,8 +715,11 @@ class SelfPUClassifier(BasePUClassifier):
                 student.train()
                 positive_logits = _as_logits(student(x_positive))
                 unlabeled_logits = _as_logits(student(x_unlabeled))
+                # Computed once: under the calibrated view the same tensor feeds
+                # both the correction term and the positive side of the marginal.
+                positive_negative_losses = torch.sigmoid(positive_logits)
                 R_p_plus = torch.sigmoid(-positive_logits).mean()
-                R_p_minus = torch.sigmoid(positive_logits).mean()
+                R_p_minus = positive_negative_losses.mean()
 
                 trusted_mask_np = np.isin(unlabeled_local_batch, manager.indices)
                 trusted_mask = torch.as_tensor(trusted_mask_np, device=device)
@@ -703,7 +771,12 @@ class SelfPUClassifier(BasePUClassifier):
                         "zero_weight_fraction": 0.0,
                     }
 
-                unlabeled_negative = (weights[:, 1] * pu_losses).sum()
+                unlabeled_negative = _marginal_negative_risk(
+                    (weights[:, 1] * pu_losses).sum(),
+                    positive_negative_losses,
+                    n_unlabeled_role=pu_losses.shape[0],
+                    include_positive_in_unlabeled=calibrated_view,
+                )
                 negative_risk = unlabeled_negative - resolved_prior * R_p_minus
                 nnpu_loss = positive_risk + torch.clamp(negative_risk, min=0.0)
                 calibrated_ce = (weights[:, 0] * ce_losses).sum()

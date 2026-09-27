@@ -5,8 +5,9 @@
 > 数值与状态以方法台账 `pu_toolbox/experiment/method_ledger.json` 的
 > `run_view` / `calibration_applied` 与各 run 的 manifest 为准，本文件只作解释。
 >
-> 当前进度：`nnpu`（#68）、`upu`（#74）、`pusb_kernel`（本切片）已接线。剩余 `dist_pu`、`self_pu`
-> 待各自独立设计；线性 `pusb` 待适用性裁决（见 D16 ①）。
+> 当前进度：`nnpu`（#68）、`upu`（#74）、`pusb_kernel`（#76）、`dist_pu`（#77）、`self_pu`（本切片）
+> 已接线，五个适用方法**无剩余待接线项**；线性 `pusb` 经 2026-09-27 裁决**不适用校准**（其训练信号即
+> 「U ≡ 负类」，不存在可替换的未标记损失输入，见 D16 ①），本切片不含其工作。逐方法口径见 D16 ③ / D17 / D18 / D19。
 
 ## 1. `ts` 视图的语义
 
@@ -26,8 +27,8 @@
 | `upu` | 全量凸求解（squared 闭式 / logistic L-BFGS / double-hinge SLSQP） | 唯一构造点：无标签角色集合与 RBF 候选池 | — | 是 | 已接线（#74） |
 | `pusb_kernel` | 全量 BFGS + (σ,λ) 网格 CV | `_pu_objective_and_gradient`（**2 个调用点 / 3 个角色**，训练折与终拟合共用 `_fit_coefficients`） | ① CV **验证折**按协议须保持 OS，标志只能作用于训练折与终拟合；② 冻结训练先验分位数阈值会随视图漂移（属训练产物，非选择项） | 是 | 已接线（本切片 §5） |
 | `dist_pu` | 全量梯度下降（`batch_size` 为兼容性死参数） | 分布对齐项 | 对齐目标里的 `-π` 是"U ~ p(x)"的**显式编码**，并入 P 后须**重新推导目标**，不能机械拼接——属方法学判断 | 是 | 已接线（本切片 §6） |
-| `self_pu` | 每 epoch 各抽一次批的 SGD（无 DataLoader） | 5–6 处（未标记损失、缓存概率张量形状、`TrustedSetManager` 人口数） | 最硬：trusted-set 按分数取"最低分为负半"，并入的**已知正例会拿到伪负标签**；须先冻结"已知正例永不进入负半"的身份约束 | 是 | 待独立设计 |
-| 线性 `pusb` | sklearn `LogisticRegression` 一次 `fit` | **无** | 训练信号即「U ≡ 负类」，不存在与风险估计器同形的"未标记损失输入" | 否（附加工程基线不入榜） | 待适用性裁决 |
+| `self_pu` | 每 epoch 各抽一次批的 SGD（无 DataLoader） | **只有 1 处**：负 PU 项的角色集合（未信任 U 行） | 调查时判断为"最硬"（trusted-set 按分数取最低分为负半）——接线时的结论是**该风险在结构上不存在**：manager 只吃 U-local 概率、形状 fail-loud，已知正例根本不在其人口内（§7.2） | 是 | 已接线（本切片 §7） |
+| 线性 `pusb` | sklearn `LogisticRegression` 一次 `fit` | **无** | 训练信号即「U ≡ 负类」，不存在与风险估计器同形的"未标记损失输入" | 否（附加工程基线不入榜） | **不适用校准**（2026-09-27 裁决，D16 ①）|
 
 ## 3. 接线范式（工程经验，不构成其他方法的数学先例）
 
@@ -96,7 +97,7 @@ trusted set 或全量/mini-batch 差异。上游 `resolve_training_view` 按台�
   `resolve_basis_fn` 参数文档一度以 OS/TS 视图定义 `X_pool`；该模块是各估计器共用的通用实现。
   已恢复通用描述，视图解读留在 `UPUClassifier.fit`。
 
-## 5. `pusb_kernel` 切片（本 PR）
+## 5. `pusb_kernel` 切片（PR #76，squash 提交 `0b16815`）
 
 ### 5.1 实现
 
@@ -172,7 +173,7 @@ uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --pr
 **边界**：真实跑批只能证明「实际视图与校准标志被正确记录」和「路径非空转」；它**证明不了**内部
 验证折未被校准——后者由结构测试与变异检验负责（§5.2 前四层），不得写进跑批核对项。
 
-## 6. `dist_pu` 切片（本 PR）
+## 6. `dist_pu` 切片（PR #77，squash 提交 `8e1efbe`）
 
 ### 6.1 实现
 
@@ -235,7 +236,176 @@ manifest 里的**同一份 `estimator_parameters`** 直接把两个视图各跑�
 不随视图变化；④两视图产物确实不同。内部角色集合的正确性由 §6.2 的结构不变量与变异检验负责——
 manifest **不承载**估计器内部的 `loss_history_` 与选择细节（`candidate_runs[].params` 为空对象）。
 
-## 7. 操作后果（供 P2.1 排期与 P2.2 聚合）
+## 7. `self_pu` 切片（本 PR）
+
+### 7.1 实现
+
+- `pu_toolbox/estimators/deep/self_pu.py`：新增模块级
+  `_marginal_negative_risk(unlabeled_negative, positive_negative_losses, *, n_unlabeled_role, include_positive_in_unlabeled)`
+  ——**唯一**的角色咽喉点，只接收显式布尔（与 D17 ④ 同形）；OS 时**原样返回输入**（逐位不变）。
+- `fit` 增加 keyword-only `os_or_ts: str = "os"`；非法值在 `torch.manual_seed` **之前** fail-loud
+  （与 `dist_pu` 同址：非法视图不得扰动全局随机状态）；`sample_weight` 的整体拒绝不变。
+- 正例批的 negative losses 由已算出的 `positive_logits` 导出一次，同时供校正项 `R_p^-` 与并集侧
+  → **0 次额外前向、0 次额外 RNG**（由计数 backbone 与 `RandomState` 记录子类锁定）。
+- 校准范围**只有一处**：负 PU 项的角色集合由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」，按两批
+  **实际行数**混合。trusted 人口与 pace、伪标签、meta 矩阵两列维度、consistency（student 用未信任
+  子集、teacher 用整批 U）、验证/选模（含无 validation 时的 ablation 分支）与 checkpoint 一概不动。
+
+### 7.2 调查结论的修正：当初判定的「最硬障碍」在结构上不存在
+
+§2 表在接线前把 `self_pu` 记为最硬——trusted-set 按分数取「最低分为负半」，并集带进的已知正例会
+拿到伪负标签。实施结论是**该风险不成立**：`TrustedSetManager` 只接收形状严格为 `(n_U,)` 的概率
+（不匹配即 fail-loud），`manager.indices` 恒为 U-local，映射回全局后与 `positive_global` 由
+`flatnonzero` 天然互斥。故身份不变量是**结构性保证**，本切片加的是**回归锁**（含「已知正例概率
+全局最低」的反例构造）而非补漏；也**没有**在生产热循环里加运行期断言（200 epoch × 2 student ×
+2 视图会跑 400 次），只由形状校验与测试钉住。
+
+### 7.3 证据（按归属分层）
+
+| 层级 | 内容 |
+|---|---|
+| OS 冻结基线（实现方自动复现） | 改造前在固定 CPU/seed/小模型下采集**两套配置**（A 消融＝Pilot 口径、B clean-meta＝库口径）的 student/teacher state_dict、四类 history、best teacher 与 decision scores，写成 `test_self_pu_ts_view.py` 的 `_GOLDEN`；常量由一次性脚本生成，**无手抄** |
+| 改造等价性（实现方自动复现） | 改造后四组跑（A/B × 默认/显式 `os`）与 golden 逐值比对，**最大绝对偏差 0.0**（逐位未变）；测试本身按 `rtol=1e-6` 断言，给未来无关的浮点重排留余量 |
+| 独立数学期望 | 混合语义由**手写表达式**给出（含 `np.r_[np.full(n_u_role, u), positives].mean()` 这一显式并集数组），**不调用生产 helper**：均匀权重下混合 == 并集经验均值（Gate A）；非均匀下 == 质量混合且**不等于**并集均值；OS 返回输入本身 |
+| 结构不变量 | 负角色行数**精确** == `n_U − 该 epoch trusted 规模`（配置取整批 U，使该式不含 RNG 假设）；校准标志只出现在训练装配处，且 helper 调用次数恰为 2×epochs（含无 validation 的消融分支）；meta 两列行数 == 未信任行数（**只有 clean-meta 分支可达**）；trusted 人口与 pace 不随视图变化；RNG 抽样序列两视图逐位相同；前向调用序列两视图相同；`α_U` 施加位置不改变 meta 权重 |
+| 变异检验 | §7.4 |
+| 真实跑批 | §7.5 |
+| **复核人待办** | 以上全部为**实现方自证**；`ts` 路径的方法学复核**尚未获得**（D16 ④ / D19 ⑨） |
+
+**第一轮 CI 暴露的「冻结方式」错误（必须记录）**：CI 报
+`golden.valid.val_teacher[1]`（第 2 epoch 选中的 teacher）本地为 1、CI 为 2。根因**不是实现漂移**，
+而是第一版 golden 冻结了一个**由噪声级裕度决定的选择**：实测该配置四个 epoch 的两个 teacher
+PU 验证风险差为 **0 / 0 / 2.4e-7 / 6e-8**（float32 噪声量级），`argmin` 取谁随环境的浮点末位而变——
+冻结它的取值等于冻结环境。修正：
+
+- 两个**排序导出**的选择（`val_teacher` 序列、`best` 的 teacher 索引与 epoch）改为
+  「**按本 run 自身的风险走规则** + 冻结裕度决定性时才要求相等」，并列容差 `_TIE_TOL = 1e-4`
+  （高于噪声三个数量级、低于 trusted 边界裕度一个数量级）；`best` 的两条选模依据（PU 验证风险
+  argmin / clean 验证指标 argmax）各自的规则也被显式钉住；
+- **trusted 成员仍逐值冻结**：同一 run 上的边界裕度为 **1.4e-3 ~ 1.6e-2**，比噪声高四个数量级，
+  第一轮 CI 也确实通过了它们；
+- 新增 `test_param_a_tie_broken_the_other_way_is_still_accepted` 复现该 CI 观测（把第 2、4 epoch
+  的并列破向另一边）：**把容差置 0 该用例即失败**，证明容差是承重的，不是为了让测试变绿。
+
+### 7.4 变异检验（隔离方案，不改写生产文件）
+
+九处注入**全部被抓住**；收尾三项校验通过（`git diff --check` 空、`git status --short` 空、
+生产文件 sha256 与开始前一致）。**没有**改写工作树里的生产文件：补丁打在**内存副本**上、写入
+临时文件，再由一次性 pytest 插件在收集前替换模块。脚本在**工作区不干净时 fail-closed 拒跑**
+（第一次运行正是被这条挡住——这条守卫比「事后还原」强，因为它不依赖 `finally` 被执行）。
+
+| # | 注入的缺陷 | 抓住它的测试（红灯数） |
+|---|---|---|
+| M1 | 已知正例进入 manager 人口（概率与索引空间一起改为 P∪U） | 身份反例 `test_edge_a_known_positive_ranked_lowest_never_becomes_trusted`（9） |
+| M2 | `unlabeled_global` 直接含正例 | 同上身份反例（13） |
+| M3 | TS 仍只用 U 的负项（调用点把标志写死 `False`） | `test_basic_the_ts_view_fits_and_moves_the_solution` + 校准标志守卫（4） |
+| M4 | 正例行进入 meta 两列 | 28 条（含新增的 meta 行数测试，但见下方边界 2） |
+| M5 | 混合改用固定 1/2 | 数学字面量 4 条（`!= fixed_half` 那条）（4） |
+| M6 | 混合分母误用整批 U 行数 | **仅**精确角色行数不变量 2 条（2） |
+| M7 | 验证风险也被校准（PU 验证的 marginal 含正例） | `test_basic_pu_validation_tracks_and_restores_best_teacher`（3） |
+| M8 | teacher consistency 扩进正例批 | OS 冻结基线 4 条（训练历史逐值变化）（4） |
+| M9 | OS 默认路径被校准（调用点写死 `True`） | OS 冻结基线 4 条 + TS 行为 2 条（7） |
+
+**两处必须记录的边界**：
+
+1. **M6 只有 2 条测试能抓**——正是为它写的精确角色行数不变量。若没有这一条，缺陷会**静默存活**
+   （它只改变混合的质量权重，不动任何形状或标志）。这与 `dist_pu` 切片 M4 的教训同源：
+   **没有变异检验，「测试齐全」只是自评**。
+2. **M4 的抓住方式是下游形状报错，而非那条专门的 meta 行数断言**：把正例行塞进两列后，先炸的是
+   `hard_distillation_loss` 的对齐检查。该断言目前是**结构性锁**（鉴别力由「未信任行数 24–28 <
+   批大小 30」体现，与 M6 同源），还没有被一个隔离变异体单独证明过——不得在文档里写成「由变异
+   检验证明」。
+
+### 7.5 真实跑批
+
+Spambase `split_0`、`c=0.1`、`π=0.39404477287546186`（与前四切片同参数）。命令（两视图各一次）：
+
+```bash
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --method self_pu --dataset spambase --training-path native_2d --protocol survey-v1.2 --c 0.1 --seeds 0 --class-prior 0.39404477287546186 --os-or-ts os --out-dir F:/Temp/lab/P2.0e/self_pu_os
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --method self_pu --dataset spambase --training-path native_2d --protocol survey-v1.2 --c 0.1 --seeds 0 --class-prior 0.39404477287546186 --os-or-ts ts --out-dir F:/Temp/lab/P2.0e/self_pu_ts
+```
+
+产物：`self_pu_os/os/c_0.1/seed_0/` 与 `self_pu_ts/ts/c_0.1/seed_0/`（层级同前三切片），
+各 **400 个 checkpoint**（200 epoch × `teacher_1` / `teacher_2`；组件名与 `epoch_components` 一致）。
+
+| 指标 | OS | TS |
+|---|---|---|
+| `run_view` / `calibration_applied` | `os-compatible` / `False` | `ts-compatible` / `True` |
+| `estimator_parameters` | 22 键（`hidden_dim=128`、`max_epochs=200`、`batch_size=256`、`warmup=10`、`self_paced 10→50`、`distill_start=50`、`pace=0.2/0.3`、`random_state=0`…） | **逐字相同** |
+| `formal_blockers` | 4 项 | **5 项**，多出 `ts_view_collaborator_review` |
+| PA accuracy / AUC | 0.9022801302931596 / 0.9650512949633184 | 0.9131378935939196 / 0.9642564451948615 |
+| OA accuracy / AUC | 0.9131378935939196 / 0.9624248348588524 | 0.9022801302931596 / 0.9635356497526586 |
+
+OS 与 TS 的 PA/OA **accuracy 恰好互换了取值**（0.9022… 与 0.9131… 在两视图间换位）。这是一个巧合，
+**不得**读成「视图把 PA/OA 调换」——两条跑的选模与报告路径都相同，换位的只是两个数。
+
+**两个视图确实各自训练出了不同的模型**：两份制品最后一个 epoch 的 `teacher_1` 权重最大绝对差
+**0.08757619559764862**；重放审计里 trusted 集合含有的真实正例数也分别为 398 / 405。
+
+**两个视图都落在消融分支**（D19 ⑧ 的制品级证据）：两条跑批日志各含一条
+`UserWarning: validation_data was not supplied; running the explicit Self-PU ablation without meta
+reweighting or clean-validation teacher selection.`；重放审计中 `meta_influence_calls = 0`。故
+**Pilot 的 `self_pu` 不含 self-calibrated 元重加权**，含 meta 的分支只由 §7.3 的单元测试覆盖。
+协议侧的 `formal_blockers` 本就带 `SelfPU_clean_validation_meta_reweighting_OA_integration`，与这条
+边界一致。
+
+#### 7.5.1 重放身份审计
+
+制品**不落盘** trusted 成员、meta 行数或 consistency 行数，所以身份证据来自**重放审计**：从
+manifest 取参数/seed/视图/split 引用 → 重建视图并校验摘要 → 走同一 trainer 调用路径重放 →
+**逐位比对制品最后一个 epoch 的两个 teacher checkpoint** → 通过后才写诊断。产物
+`F:/Temp/lab/P2.0e/self_pu_identity_audit.json`（脚本一次性，不入库；JSON 与本节摘要才是留存物）。
+
+**重现校验（审计成立的前提）**：两视图 × 两 teacher 全部 `bitwise = true`、`max_abs_delta = 0.0`
+（对 `epoch_0200_teacher_{1,2}.pt`）。输入同源：四个角色的 `feature_sha256` 全部匹配，
+`split_sha256` 重算一致。
+
+| 审计项 | OS | TS |
+|---|---|---|
+| 已揭示正例 / 真实正例 / U 行数 | 130 / 1305 / 3182 | 同 |
+| U 中的隐藏正例 | 1175 | 同 |
+| `manager` 人口（两次构造） | `[3182, 3182]` | `[3182, 3182]` |
+| **已揭示正例 ∩ trusted** | **0** | **0** |
+| trusted 中的真实正例数（观测，**非**不变量） | 398 | 405 |
+| trusted 最终规模（student 1 / 2） | 636 / 794 | 636 / 794 |
+| `meta_influence_calls` / rows | 0 / `[]` | 0 / `[]` |
+| consistency（student）调用数 / 每对行数 | 302 / 两列逐对相等 | 302 / 两列逐对相等 |
+| teacher consistency 行数（由 `min(batch_size, n_U)` 推得，非观测） | 256 | 256 |
+| `calibration_mode_` / 选模依据 | `ablation` / `pu_validation_nnpu_risk` | 同 |
+| Gate C（审计进程内构造的反例） | trusted 规模 6、交集 **0** | 同 |
+
+**一处必须写明的边界**：审计初版把「正例」取成 split 里的**真实标签**，于是与 1305 个真实正例求交
+得到 398/405 的「交集」——那是**隐藏正例被自我步进机制伪标注**，是 PU 学习在正常工作，**不是**身份
+泄漏。守卫对象是**已揭示正例**（估计器被告知的那 130 个），它与 trusted 的交集必须为 0。两个数字都
+留在审计 JSON 里并各自标注含义，不得混用。
+
+**边界（不得读作结论）**：与前三切片相同——单 seed 的 PA/OA 差**不构成**「校准更优/更差」的证据。
+本节只证明：①实际视图与校准标志被正确记录；②blocker 按协议挂上；③估计器内部参数与模型容量不随
+视图变化；④两视图确实训练出不同模型且都在消融分支；⑤身份不变量在真实制品上成立（经逐位重现的重放）。
+
+#### 7.5.2 CIFAR adapter 技术 smoke
+
+`cifar10/split_0`（`π=0.4`、`c=0.1`）、`--training-path cnn_feature_adapter`、两视图各一次：
+
+| 检查项 | OS | TS |
+|---|---|---|
+| `run_view` / `calibration_applied` | `os-compatible` / `False` | `ts-compatible` / `True` |
+| `training_path` / `budget` | `cnn_feature_adapter` / `two_student_sampled` | 同 |
+| `estimator_parameters` | — | **与 OS 逐字相同** |
+| `formal_blockers` | 4 项 | **5 项**（多 `ts_view_collaborator_review`） |
+| checkpoint 数 / 组件 | 400（`teacher_1`、`teacher_2`） | 400（同） |
+
+**adapter 路径的 hook 转发成立**：两视图都完成了 200 epoch × 2 student 的完整训练并写出 400 个
+双 teacher checkpoint，说明 `os_or_ts` 经 `EpochCheckpointTrainer` → `DeepFitTrainer` 一路到达
+`self_pu`（与 §7.3 的 native_2d 路径同一套转发，但这条走 4D 图像 → 适配器特征）。
+
+**smoke 指标无意义，不得引用**：adapter 的 encoder 是**随机初始化**的
+（`backbone.specs.image.weights = None`），故 PA/OA accuracy ≈ 0.5997、AUC ≈ 0.53（近随机）是
+构造使然，只说明管线跑通，不说明该方法在此数据上的表现。adapter 特征缓存按
+「dataset/split/seed」共享（与 method/c/mechanism 无关，见 manifest 的
+`adapter_shared_scope`），故第二次跑复用同一条缓存（两次跑后缓存仍为 1 条）。
+
+## 8. 操作后果（供 P2.1 排期与 P2.2 聚合）
 
 - 本切片后 `upu` 的 pilot **默认视图为 `ts`**，故其默认行挂 `ts_view_collaborator_review`、
   正式不合格——与 `nnpu` 自 #68 起的处境相同。且 `--os-or-ts` 是**整矩阵**参数（D14），
@@ -253,11 +423,35 @@ manifest **不承载**估计器内部的 `loss_history_` 与选择细节（`cand
 - 现有 benchmark 产物（`benchmarks/assigned_methods/results/clean_room_multiseed/`）中的 `dist_pu`
   **全部是校准前的 OS 视图**（`official/dist_pu.json` 状态为 `locked_not_executed`）；引用那些数字
   时必须标注视图，不得与接线后的 ts 跑混算。
+- 本切片后 `self_pu` 的 pilot **默认视图同样翻为 `ts`**（台账原生假设本就是 `ts`），默认行挂
+  `ts_view_collaborator_review`、正式不合格——与 `nnpu`/`upu`/`pusb_kernel`/`dist_pu` 同处境，
+  同样因 `--os-or-ts` 是整矩阵参数（D14）而无法只给它单开 OS。它**在 Pilot 矩阵内**，故本切片会
+  实际改变其 pilot 结果。**但改的是消融分支**：Pilot 不向 PU 方法传 clean validation（协议 §2.4），
+  故 `self_pu` 的 pilot 行恒为 `calibration_mode_="ablation"`（含 meta 的分支只由单元测试覆盖，
+  见 §7.1/§7.3 与 D19 ⑧）。
+- 因此引用 `self_pu` 的 pilot 结果时必须同时标注**视图**与**分支**：它既不是「论文完整 Self-PU」，
+  也不是「无校准的 Self-PU」。
+- **D20 之后本节前几条的措辞需要按时间读**：上面若干条写「默认行挂
+  `ts_view_collaborator_review`、正式不合格」，那是**放行前**的状态。D20 ① 已移除该阻断位的
+  运行时追加，故此后新产生的 `ts` run 不再挂它；**本切片之前已产出的制品仍如实记录它们当时挂过**
+  （§4–§7 的逐 run 表格不改写，它们描述的是那些 run 的 manifest 原样）。放行只解除「阻断正式
+  资格」，**不构成**合作者对 `ts` 路径的方法学复核。
+- 线性 `pusb` 经 2026-09-27 裁决为**不适用校准**（D16 ①），本切片未改其代码；D16 ① 完成口径中
+  的「+ `pusb` 明确处置」由 **D20 ②** 落地。
+  其台账 `uncertainty` 里仍留着「TS-OS 校准尚未接入训练执行链…P2 前须确认训练接口」的措辞
+  （`method_ledger.json` 的 `pusb` 条目）——该措辞就 `pusb` 而言仍属实，但它读起来像「待办」，
+  而裁决已把它定为「不适用」。是否把它改写为「不适用校准」，随 D16 ① 措辞一并另行裁决。
 
-## 8. 未决项
+## 9. 未决项
 
-- **`ts` 路径的合作者复核仍未获得**（D16 ④）：每个 `ts` run 的 manifest 继续挂
-  `ts_view_collaborator_review`，本记录**不构成**对 `ts` 路径的方法学复核。
+- **`ts` 路径的合作者复核仍未获得**（D16 ④）：按 **D20 ①** 的单方技术验收放行，manifest 已
+  **不再**挂 `ts_view_collaborator_review`（该阻断位的运行时追加已移除）；本记录**不构成**对 `ts`
+  路径的方法学复核，**放行也不等于合作者已签署**——该口径保留在方法台账 `uncertainty`
+  （`nnpu`/`upu`）与三张方法卡的视图条目中。
+- **`self_pu` 的两处覆盖边界**（见 §7.4）：① M4 那类「正例行进入 meta」目前只被下游形状报错抓住，
+  专门的 meta 行数断言还是结构性锁；② 无 validation 时的 ablation teacher selection **不经过**
+  角色 helper，故只能用「helper 调用次数恰为 2×epochs」间接守卫，无法直接 spy 它的输入行数。
+  两者都不影响本切片的结论，但若要更强的保证需要给该分支加可观测钩子——属额外工程量，未做。
 - 建议（终审提出，尚未实施）：新增"台账 `calibration_applied` ↔ 代码钩子
   （`accepts_training_view`）"的**派生一致性契约测试**。今天该槽只是人工断言，而
   `native_sampling_assumption` 已与 registry scenario 耦合；这条守卫可机械地消灭本项目反复
