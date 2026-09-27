@@ -801,6 +801,83 @@ def _assert_matches(observed, expected, path="golden"):
     assert observed == pytest.approx(expected, rel=_RTOL, abs=_ATOL), path
 
 
+#: A margin at or below this is a tie for the purposes of the frozen baseline.
+#: Calibrated from measurement: the trajectory's environment noise floor is ~1e-7,
+#: while the trusted-set boundary margins on this configuration are 1.4e-3..1.6e-2.
+#: The tolerance sits two to three orders above the noise and an order below the
+#: boundary, which is what separates "decided by noise" from "decided".
+_TIE_TOL = 1e-4
+
+
+def _assert_best(
+    observed_best,
+    frozen_best,
+    *,
+    observed_metrics,
+    frozen_metrics,
+    observed_val_risk,
+    frozen_val_risk,
+    picked,
+):
+    """The best-teacher tuple, under the same rule-not-outcome treatment.
+
+    Two selection bases, two rules: the PU-validation branch minimises the
+    validation risk over the epochs, the clean-validation branch maximises the
+    teacher metrics.  The frozen outcome is only required where its own margin
+    makes it a real decision.
+    """
+    index, epoch = observed_best
+    frozen_index, frozen_epoch = frozen_best
+
+    if frozen_epoch is None:
+        assert epoch is None
+        assert index == int(np.argmax([float(value) for value in observed_metrics])) + 1
+        margins = sorted(float(value) for value in frozen_metrics)
+        if margins[-1] - margins[-2] > _TIE_TOL:
+            assert index == frozen_index
+        return
+
+    assert epoch == int(np.argmin([float(value) for value in observed_val_risk])) + 1
+    frozen_risks = sorted(float(value) for value in frozen_val_risk)
+    if frozen_risks[1] - frozen_risks[0] > _TIE_TOL:
+        assert epoch == frozen_epoch
+    # Whichever teacher won that epoch is already checked against the frozen
+    # history by _assert_selection; here the two must at least agree.
+    assert index == picked[epoch - 1]
+
+
+def _assert_selection(picked, frozen_picked, frozen_valid, observed_valid):
+    """Pin the teacher-selection *rule*, not a tie-broken winner.
+
+    Measured on this frozen configuration, the two teachers' PU-validation risks
+    differ by 0, 0, 2.4e-7 and 6e-8 across the four epochs -- float32 noise.  Which
+    one ``argmin`` returns is therefore environment-dependent (a CI run broke the
+    epoch-2 tie the other way), so a frozen index would make the suite flaky while
+    proving nothing.  What is stable, and what this asserts, is the rule applied to
+    the risks this run actually produced; the frozen index is still required
+    wherever its margin is wide enough to be a real decision.
+
+    The trusted-set membership is *not* in this category: its boundary margins on
+    the same run are 1.4e-3..1.6e-2, four orders of magnitude above noise, so it is
+    frozen exactly by the matcher above.
+    """
+    assert len(picked) == len(frozen_picked)
+    for index, (actual, frozen) in enumerate(zip(picked, frozen_picked, strict=True)):
+        first, second = (
+            frozen_valid["teacher_1_val_risk"][index],
+            frozen_valid["teacher_2_val_risk"][index],
+        )
+        if abs(first - second) > _TIE_TOL:
+            assert actual == frozen, index
+        else:
+            assert actual in (1, 2), index
+        risks = [
+            observed_valid["teacher_1_val_risk"][index],
+            observed_valid["teacher_2_val_risk"][index],
+        ]
+        assert actual == int(np.argmin(risks)) + 1, index
+
+
 class TestFrozenOsBaseline:
     """The pre-refactor OS trajectory, on both configuration shapes."""
 
@@ -810,9 +887,68 @@ class TestFrozenOsBaseline:
         ids=["A-default", "A-explicit", "B-default", "B-explicit"],
     )
     def test_determ_os_golden_matches_the_pre_refactor_run(self, config_key, view):
-        """Adding a view flag must not move the view it defaults to."""
+        """Adding a view flag must not move the view it defaults to.
+
+        Everything is frozen, except the two rank-derived *selections* -- which
+        teacher the PU validation picks and, with it, the best teacher.  Those are
+        stripped here and checked by :func:`_assert_selection` against the run's own
+        risks: a selection decided by a margin at float-noise scale is not a stable
+        observable, so freezing its outcome would be freezing the environment.
+        """
         model, epochs = _fit(config_key, view)
-        _assert_matches(_observed(model, epochs), _GOLDEN[config_key])
+        observed = dict(_observed(model, epochs))
+        expected = dict(_GOLDEN[config_key])
+
+        observed_valid = dict(observed.pop("valid"))
+        expected_valid = dict(expected.pop("valid"))
+        picked = observed_valid.pop("val_teacher")
+        frozen_picked = expected_valid.pop("val_teacher")
+        observed_best = observed.pop("best")
+        frozen_best = expected.pop("best")
+
+        _assert_matches(observed_valid, expected_valid, f"golden[{config_key}].valid")
+        _assert_matches(observed, expected, f"golden[{config_key}]")
+        _assert_selection(picked, frozen_picked, expected_valid, observed_valid)
+        _assert_best(
+            observed_best,
+            frozen_best,
+            observed_metrics=observed["metrics"],
+            frozen_metrics=expected["metrics"],
+            observed_val_risk=observed_valid["val_risk"],
+            frozen_val_risk=expected_valid["val_risk"],
+            picked=picked,
+        )
+
+    def test_param_a_tie_broken_the_other_way_is_still_accepted(self):
+        """The first CI run failed here: a tie must not be an assertion failure.
+
+        Reproduces that observation -- the same trajectory, with the near-equal
+        teacher risks at epochs 2 and 4 ordered the other way, so ``argmin``
+        returns teacher 2 at epoch 2 and teacher 1 at epoch 4.  Epoch 2 is an
+        exact tie in the frozen history; epoch 4 is the harder case, decided there
+        by 6e-8, which only the *tolerance* accepts (set it to zero and this test
+        fails).  Either way the selection follows the run's own risks.
+        """
+        frozen_valid = {
+            "teacher_1_val_risk": [0.5197252035, 0.5197098255, 0.519690752, 0.5196704268],
+            "teacher_2_val_risk": [0.5197252035, 0.5197098255, 0.5196905136, 0.5196703672],
+        }
+        flipped_valid = {
+            "teacher_1_val_risk": [0.5197252035, 0.5197098265, 0.519690752, 0.5196703672],
+            "teacher_2_val_risk": [0.5197252035, 0.5197098255, 0.5196905136, 0.5196704268],
+        }
+        picked = [1, 2, 2, 1]
+
+        _assert_selection(picked, [1, 1, 2, 2], frozen_valid, flipped_valid)
+        _assert_best(
+            (1, 4),
+            (2, 4),
+            observed_metrics=[0.5, 0.5],
+            frozen_metrics=[0.5, 0.5],
+            observed_val_risk=[0.5197252035, 0.5197098255, 0.5196905136, 0.5196703672],
+            frozen_val_risk=frozen_valid["teacher_1_val_risk"],
+            picked=picked,
+        )
 
     @pytest.mark.parametrize("config_key", ["A", "B"])
     def test_determ_the_default_view_is_the_explicit_os_view(self, config_key):
