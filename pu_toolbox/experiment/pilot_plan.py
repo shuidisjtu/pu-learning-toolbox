@@ -172,7 +172,46 @@ def manifest_identity(payload: dict[str, Any]) -> tuple[Any, ...] | None:
     return (dataset, method, training_path, mechanism, token, seed)
 
 
-def split_digests(splits_root: str | Path) -> dict[tuple[str, int], str]:
+def _dataset_allowlist(datasets: Iterable[str] | None) -> set[str] | None:
+    """The datasets a read covers, or ``None`` for every one of them.
+
+    A bare string is refused rather than iterated: ``"spambase"`` is a sequence
+    of eight characters, and a set of them matches no dataset at all, so a
+    caller who meant one dataset would be handed an empty read -- a wrong answer
+    that reads exactly like a fact.  Naming *nothing* is a different request and
+    is allowed: an empty collection asks for no datasets, not for all of them.
+    """
+    if datasets is None:
+        return None
+    if isinstance(datasets, str):
+        raise ValueError(f"datasets takes a collection of names, not the string {datasets!r}")
+    return set(datasets)
+
+
+def _split_manifests(splits_root: str | Path, allowed: set[str] | None) -> list[Path]:
+    """The split manifests a read covers, in a stable order.
+
+    Scoping the *walk*, rather than reading everything and discarding the rest,
+    is what makes "a shard reads its own splits" true of the I/O and not only of
+    the result.  The directory a manifest sits in names the dataset it belongs
+    to -- the convention ``split_archive`` already packs and verifies under --
+    so a manifest can only be read by the shard whose directory holds it.
+    What a manifest *declares* is checked by the callers as well, so one that
+    names another dataset is skipped rather than attributed across datasets.
+    """
+    root = Path(splits_root)
+    if allowed is None:
+        return sorted(root.glob("*/split_*/split_manifest.json"))
+    return sorted(
+        manifest
+        for dataset in sorted(allowed)
+        for manifest in (root / dataset).glob("split_*/split_manifest.json")
+    )
+
+
+def split_digests(
+    splits_root: str | Path, *, datasets: Iterable[str] | None = None
+) -> dict[tuple[str, int], str]:
     """The indices digest each prepared split currently declares.
 
     A run is only evidence about the data it ran on.  When the splits are
@@ -180,14 +219,21 @@ def split_digests(splits_root: str | Path) -> dict[tuple[str, int], str]:
     the old ones stops describing anything the pilot still has, and counting it
     as done would leave the pilot reporting complete while holding results
     that belong to no split on disk.
+
+    ``datasets`` limits both the walk and the result to those datasets, which is
+    what a shard asks for: it is sized, resumed and gated against its own
+    splits, and nothing under a dataset it never names is this read's business.
     """
+    allowed = _dataset_allowlist(datasets)
     found: dict[tuple[str, int], str] = {}
-    for path in sorted(Path(splits_root).glob("*/split_*/split_manifest.json")):
+    for path in _split_manifests(splits_root, allowed):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
         if not isinstance(payload, dict):
+            continue
+        if allowed is not None and payload.get("dataset") not in allowed:
             continue
         dataset, seed, digest = (
             payload.get("dataset"),
@@ -199,7 +245,9 @@ def split_digests(splits_root: str | Path) -> dict[tuple[str, int], str]:
     return found
 
 
-def population_priors(splits_root: str | Path) -> dict[str, float]:
+def population_priors(
+    splits_root: str | Path, *, datasets: Iterable[str] | None = None
+) -> dict[str, float]:
     """The population class prior each dataset's splits declare.
 
     Protocol §3.1 makes this a constant shared by every seed of a dataset, so
@@ -209,17 +257,27 @@ def population_priors(splits_root: str | Path) -> dict[str, float]:
     A dataset whose splits record none is simply absent: the value was added to
     the manifest after the first artifacts were built, and a caller can still
     supply one for those.
+
+    ``datasets`` limits both the read and the defect it reports.  A shard reads
+    the priors of the datasets it runs, so a disagreement inside a dataset it
+    does not name cannot stop it -- the shards of one pilot are prepared and
+    held separately, and a host should not fail over data no run of it touches.
     """
+    allowed = _dataset_allowlist(datasets)
     found: dict[str, float] = {}
     sources: dict[str, str] = {}
-    for path in sorted(Path(splits_root).glob("*/split_*/split_manifest.json")):
+    for path in _split_manifests(splits_root, allowed):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        block = payload.get("class_prior") if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            continue
+        if allowed is not None and payload.get("dataset") not in allowed:
+            continue
+        block = payload.get("class_prior")
         population = block.get("population") if isinstance(block, dict) else None
-        dataset = payload.get("dataset") if isinstance(payload, dict) else None
+        dataset = payload.get("dataset")
         if not isinstance(dataset, str) or not isinstance(population, (int, float)):
             continue
         if dataset in found and found[dataset] != float(population):

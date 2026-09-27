@@ -163,11 +163,11 @@ pu_toolbox/
     strategies.py                         (内置策略: SCAR/SAR-LBE 生成、PA/OA 选模、Trainer 三实现、select_threshold)
     tracking.py                           (运行留痕数据类: EpochRecord/RunTrajectory/SelectionArtifact/RunResult)
     survey_execution.py                   (P2.0a 共享模型/图像装配、随机冻结 adapter 校验缓存与原空间 SAR 标记)
-    survey_protocol.py                    (survey_protocol_v1.json 消费、参数预算锁、正式资格与比较门禁)
+    survey_protocol.py                    (survey_protocol_v1.json 消费、--protocol 名/路径统一解析、参数预算锁、正式资格与比较门禁)
     checkpoints.py                        # 逐 epoch 权重快照、摘要校验与独立推理恢复
     survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
-    pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算
+    pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算、splits 读取可按数据集收窄
     method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
@@ -341,6 +341,7 @@ tests/
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
       _survey_pilot_helpers.py          # 驱动测试共享夹具: 脚本动态加载、subprocess 记录与 split 目录树
+      test_survey_pilot_request_scope.py # 请求范围: --protocol 决定计划与批次、无关数据集的坏 splits 不阻断分片、快照写失败报错
       test_survey_pilot_subset.py       # 驱动子集: --datasets 收窄计划与批次、未知名拒绝、--plan-json 分区可核对
       test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
       test_leaderboard_run_view.py      # 排行榜分组: 视图不同即不入同一组（os 与 ts 不可同榜）
@@ -609,7 +610,7 @@ scripts/
   generate_structure.py                   (结构文档生成器：--check 校验 / --update 重生成 project_structure.md 树块)
   prepare_survey_splits.py                (P1.4 四路 split 产物准备：data/raw 生成 train/pu_val/clean_val/test.npz 与 manifest)
   run_survey_experiment.py                (官方示例脚本(协议 §2.4 第 9 条)：单方法四路 PU 实验、PA/OA 选模、独立 test 评测)
-  run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets 子集与 --plan-json 计划快照)
+  run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets 子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
   aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
 ```

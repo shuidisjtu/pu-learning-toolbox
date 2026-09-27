@@ -27,8 +27,10 @@ pilot is split across hosts: each host is handed its own list.  Nothing
 outside enforces that two lists partition the matrix instead of overlapping,
 so ``--plan-json`` writes the expanded plan out and the files can be checked
 against each other.  The restriction is applied to the matrix before anything
-reads it, so the plan, the storage a host is sized against, the resume check
-and the batches all describe the same shard::
+reads it -- the protocol the request names is loaded and narrowed first, and the
+splits are read afterwards and only for the datasets that survived -- so the
+plan, the storage a host is sized against, the resume check and the batches all
+describe the same shard, and a shard never fails over data it does not run::
 
     uv run python scripts/run_survey_pilot.py --dry-run --datasets imdb,spambase \\
         --plan-json shard-b.json
@@ -55,7 +57,7 @@ from pu_toolbox.experiment.pilot_plan import (
     population_priors,
     split_digests,
 )
-from pu_toolbox.experiment.survey_protocol import load_protocol
+from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
 
 _SCRIPTS = Path(__file__).resolve().parent
 UNIT_SCRIPT = _SCRIPTS / "run_survey_experiment.py"
@@ -489,24 +491,40 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    # Resolved exactly as the unit script resolves it, so the matrix this
+    # request is planned from is the one its runs are given: a driver that
+    # planned the shipped matrix and passed a custom path to every batch would
+    # size, resume and validate one pilot and train another.
+    try:
+        protocol = load_protocol(resolve_protocol_path(args.protocol))
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    try:
+        protocol = _select_datasets(protocol, requested)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    #: The datasets this request runs, read off the matrix rather than off the
+    #: flag: a request that named its matrix by path is narrowed by that matrix
+    #: whether or not it also passed ``--datasets``, and the two reads below have
+    #: to follow whatever narrowed them.
+    effective = _dataset_names(protocol)
     try:
         dims = _parse_pairs(args.input_dims, cast=int)
         given_priors = _parse_pairs(args.class_prior, cast=float)
-        # Read once: a run only counts as done if it ran on the splits on disk
-        # now, and the prior is read from those same splits.
-        splits = split_digests(args.splits)
+        # Read once, after the filter: a run only counts as done if it ran on
+        # the splits on disk now, and the prior comes from those same splits.
+        # Both reads stop at the shard's own datasets -- a host holds the splits
+        # it was handed, and a defect in one this request does not name must not
+        # stop it before its first batch.
+        splits = split_digests(args.splits, datasets=effective)
         priors = _resolve_priors(
-            population_priors(args.splits),
+            population_priors(args.splits, datasets=effective),
             given_priors,
             allow_override=args.allow_prior_override,
         )
     except (OSError, ValueError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-    protocol = load_protocol()
-    try:
-        protocol = _select_datasets(protocol, requested)
-    except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     planned = planned_runs(protocol)
@@ -531,14 +549,24 @@ def main(argv: list[str] | None = None) -> int:
         pending, done = pending_runs(protocol, args.results, splits=splits, expected_views=views)
         _print_plan(pending, done, estimate)
         if args.plan_json:
-            _write_plan_snapshot(
-                args.plan_json,
-                protocol=protocol,
-                planned=planned,
-                pending=pending,
-                completed=done,
-                views=views,
-            )
+            # Refused rather than traced back: an unwritable path is an operator
+            # mistake -- a typo, or a directory that was never made -- and this
+            # is the same error-and-exit shape every other gate here uses.
+            try:
+                _write_plan_snapshot(
+                    args.plan_json,
+                    protocol=protocol,
+                    planned=planned,
+                    pending=pending,
+                    completed=done,
+                    views=views,
+                )
+            except OSError as exc:
+                print(
+                    f"error: cannot write the plan snapshot to {args.plan_json}: {exc}",
+                    file=sys.stderr,
+                )
+                return 1
         if priors:
             print(f"  class prior: {', '.join(f'{k}={v}' for k, v in sorted(priors.items()))}")
         missing = _missing_priors(protocol, planned, priors)
