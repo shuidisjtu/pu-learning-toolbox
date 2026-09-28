@@ -11,7 +11,7 @@
   },
   "evidence_convention": "evidence 字段格式： 文件:行号 原文摘录。卡片内天然源与 registry 内标注共同构成。",
   "fillers": {
-    "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "pusb_kernel", "lbe"],
+    "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "pusb_kernel", "lbe", "vpu"],
     "HENG958": ["nnpu", "self_pu"]
   },
   "methods": {
@@ -347,6 +347,56 @@
         "evidence": "docs/research/pu_survey/heng958_independent_review.md#2-p13a-nnpuself-pu-方法台账复核",
         "conclusion": "六槽、来源与 registry 能力声明一致；完整 self-calibration、原生 CNN 和 paper-like benchmark 仍明确不在当前实现声明内"
       }
+    },
+    "vpu": {
+      "class": "VPUClassifier",
+      "paper": {
+        "title": "A Variational Approach for Learning from Positive and Unlabeled Data",
+        "authors": "Hui Chen, Fangqing Liu, Yin Wang, Liyue Zhao, Hao Wu",
+        "venue": "NeurIPS 2020",
+        "year": 2020
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/HC-Feynman/vpu",
+        "source_status": "official_related (registry:262; 公式与关键训练逻辑对照作者锁定提交 603bcc1，网络与实验协议为工具箱适配，见 VPU.md:14)"
+      },
+      "implementation_status": "NATIVE, backend TORCH; 先验无关的变分风险 + 对数 MixUp 正则；稠密二维输入，CPU 与显式 CUDA (VPU.md:18/34)",
+      "native_sampling_assumption": "ts（边缘项要求总体边缘分布：论文式 (6) 的 f 即训练总体边缘；作者 x_loader 覆盖正例与未标记且 P 池是 X 池的子集，故边缘池 = D_U ∪ D_P。四层证据与逐行核对见 vpu_sampling_audit.md，裁决 D21；both 可辩但需改 registry，本切片不做。VPU.md:40, registry:254）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:256)",
+      "adaptation_level": "benchmark-adapted；clean-room MLP 版本，不宣称作者脚本或论文数值复现；上游的 20-epoch 学习率衰减未进入，lr 默认值相差一个数量级 (vpu_sampling_audit.md §9, VPU.md:53)",
+      "modality_backbone": {
+        "modalities": [
+          "tabular"
+        ],
+        "backbone": "小型 MLP（原文为七层 MLP300 / CIFAR CNN，未进入）",
+        "code_capability": {
+          "native_architectures": [
+            "mlp"
+          ],
+          "input_ndims": [
+            2
+          ],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "VPU.md:40; vpu_sampling_audit.md §2-§5; registry:254",
+        "prior_semantics": "VPU.md:34; registry:256",
+        "adaptation_level": "VPU.md:53; vpu_sampling_audit.md §9"
+      },
+      "uncertainty": [
+        "当前只有工具箱 MLP（默认两层 MLP64），不是论文 UCI 七层 MLP300 或 CIFAR CNN；未完成共享 backbone、图像路径与公开数值对照 (VPU.md:49)",
+        "与上游的既有适配缺口：上游每 20 epoch 将学习率减半并重建优化器（vpu.py:39-41），本实现无此衰减；学习率默认值 3e-4 vs 上游 3e-5（run.py:11）相差一个数量级；max_epochs 100 vs 50、batch_size 128 vs 500，且每 epoch 迭代数由数据量推导而上游固定 val_iterations=30 (vpu_sampling_audit.md §9)",
+        "TS/OS 视图裁决由 shuidisjtu 单方技术审计（D21），合作者复核未获得",
+        "VPU 输出是归一化分数，不是独立概率校准后验 (VPU.md:34)",
+        "显式 os 对照是协议定义的消融（边缘池被限制到 p(x|s=0)），不是 VPU 在其原生假设下的运行；引用 OS 结果不得读作原生结果 (D21, vpu_sampling_audit.md §6)",
+        "验证变分风险按上游定义（合并边缘池 U_val ∪ P_val）计算，与协议 §2.3 验证 OS 要求的关系由 D22 限定为 source diagnostic、不得充当 PA/OA 选模准则；若将来进入执行矩阵且需 PA 选模，必须另行裁决",
+        "GPU 只有 2026-09-19 的单次技术 smoke（RTX A6000 限定 0 号卡），不替代正式多 seed 资源验收 (VPU.md:52)",
+        "本切片只完成台账与训练视图接线；VPU 不进入冻结执行矩阵，不得读作 P3.1 完成"
+      ]
     }
   }
 }
