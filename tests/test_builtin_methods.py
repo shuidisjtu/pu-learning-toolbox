@@ -271,8 +271,15 @@ class TestBuiltinRegistration:
 
     def test_basic_heavy_fixed_epoch_methods_are_high_cost(self):
         """HIGH cost: long-epoch solvers, PUET's 100-tree CPU forest,
-        PULDA's two fixed 60-epoch stages, and PUSB kernel (full grid CV + refit);
-        short-epoch deep methods stay MEDIUM."""
+        PULDA's two fixed 60-epoch stages, PUSB kernel (full grid CV + refit),
+        and the multi-stage deep solvers Robust-PU (nnPU warm-up plus 20
+        self-paced episodes), Split-PU (teacher/temporary/student per round)
+        and LaGAM (a second-order meta-gradient every epoch); short-epoch deep
+        methods stay MEDIUM.
+
+        Pinned so a re-classification is a deliberate edit rather than a side
+        effect of registering a method.
+        """
         from pu_toolbox.core.tags import TrainingCost
 
         register_all_builtin_methods()
@@ -289,4 +296,7 @@ class TestBuiltinRegistration:
             "gradpu",
             "puet",
             "pulda",
+            "robust_pu",
+            "lagam",
+            "split_pu",
         }

@@ -104,6 +104,32 @@ def test_weights_remain_aligned_with_samples_across_shuffles():
     assert model.history_["positive_weight"] != model.history_["unlabeled_weight"]
 
 
+def test_edge_single_batch_and_threshold_cap():
+    """The degenerate end of the batch and threshold schedules.
+
+    ``batch_size == len(X)`` collapses both the pretrain loop and the episode
+    loop to a single step.  ``grow_steps=1`` reaches the threshold ceiling on
+    the second episode, so the third one exercises the ``min(..., 1.0)``
+    clamp instead of the linear ramp.  ``phi=0`` drops the cross-episode
+    moving average entirely.
+    """
+    X, y = _data()
+    model = _estimator(
+        pretrain_epochs=1,
+        episodes=3,
+        batch_size=len(X),
+        grow_steps=1,
+        phi=0.0,
+    ).fit(X, y)
+    assert model.history_["threshold_p"] == [0.1, 2.0, 2.0]
+    assert model.history_["threshold_n"] == [0.1, 2.0, 2.0]
+    assert len(model.history_["episode_loss"]) == 3
+    assert all(0 < value <= 1 for value in model.history_["positive_weight"])
+    assert all(0 < value <= 1 for value in model.history_["unlabeled_weight"])
+    scores = model.decision_function(X)
+    assert scores.shape == (len(X),) and np.isfinite(scores).all()
+
+
 @pytest.mark.parametrize(
     "kwargs, message",
     [
