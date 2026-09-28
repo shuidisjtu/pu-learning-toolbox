@@ -1,6 +1,22 @@
 # ruff: noqa: N803, N806
 
-"""Mini-batch OS and TS-compatible training views for the survey protocol."""
+"""The survey layer over the neutral role view: gates, manifest, legacy strings.
+
+The roles themselves are built in :mod:`pu_toolbox.core.training_views`, which
+estimators import and which therefore may not know about this layer.  What
+lives here is everything that *is* survey policy or survey history:
+
+* the ledger gate -- a calibrated view needs a method whose ledger entry says so
+  (``_validate_options``), and the routing decision that reads the ledger
+  (:func:`resolve_training_view`);
+* the run manifest and its ``run_view`` vocabulary (``"OS"``/``"TS-compatible"``
+  here, ``"os-compatible"``/``"ts-compatible"`` in a run manifest), neither of
+  which the core should have to carry forward;
+* the legacy ``TSOSBatchView`` surface, kept as a boundary adapter.
+
+The dependency direction is one-way: this module imports the core, and the core
+never imports this one.
+"""
 
 from __future__ import annotations
 
@@ -12,12 +28,14 @@ from typing import Any, Literal
 
 import numpy as np
 
+from ..core.training_views import RunView, ViewRole, build_training_view
 from .method_ledger import native_sampling_assumption
 from .protocols import accepts_training_view
 
+#: The method ledger's vocabulary.  It stays on this side of the boundary: the
+#: core view is built from a decision already taken, and this is where the
+#: decision is read and enforced.
 SamplingAssumption = Literal["os", "ts", "both"]
-RunView = Literal["os", "ts"]
-ViewRole = Literal["train", "pu_val", "clean_val", "test"]
 
 
 @dataclass(frozen=True)
@@ -55,49 +73,26 @@ def calibrate_ts_os_batch(
     experiment ledger explicitly declares a native ``"ts"`` (or ``"both"``)
     sampling assumption.
     """
+    # The ledger gate stays here, not one layer down: the core knows no ledger,
+    # so a caller who wanted to bypass this could assert anything to it anyway.
+    # What the core must not carry is the vocabulary, not the check.
     _validate_options(
         os_or_ts=os_or_ts,
         native_sampling_assumption=native_sampling_assumption,
         role=role,
         method_name=method_name,
     )
-    X_values = np.asarray(X_batch)
-    labels = np.asarray(y_pu_batch)
-    if X_values.ndim < 2 or X_values.shape[0] == 0:
-        raise ValueError("TS-OS calibration expects a non-empty batch-first feature array.")
-    if labels.ndim != 1 or len(labels) != len(X_values):
-        raise ValueError("y_pu_batch must be one-dimensional and align with X_batch.")
-    if not np.all(np.isin(labels, (0, 1))):
-        raise ValueError("y_pu_batch must use canonical PU labels {0, 1}.")
+    view = build_training_view(
+        X_batch, y_pu_batch, requested_view=os_or_ts, role=role, indices=indices
+    )
 
-    source_indices = np.arange(len(X_values)) if indices is None else np.asarray(indices)
-    if source_indices.ndim != 1 or len(source_indices) != len(X_values):
-        raise ValueError("indices must be one-dimensional and align with X_batch.")
-    if len(set(source_indices.tolist())) != len(source_indices):
-        raise ValueError("indices must be unique within the source OS mini-batch.")
-
-    positive_mask = labels == 1
-    unlabeled_mask = labels == 0
-    if not np.any(positive_mask) or not np.any(unlabeled_mask):
-        raise ValueError(
-            "TS-OS calibration requires both labeled-positive and unlabeled rows in every batch."
-        )
-    positive_X = X_values[positive_mask]
-    original_unlabeled_X = X_values[unlabeled_mask]
-    positive_indices = source_indices[positive_mask]
-    original_unlabeled_indices = source_indices[unlabeled_mask]
-
-    calibration_applied = os_or_ts == "ts"
-    if calibration_applied:
-        loss_unlabeled_X = np.concatenate((original_unlabeled_X, positive_X), axis=0)
-        loss_unlabeled_indices = np.concatenate(
-            (original_unlabeled_indices, positive_indices), axis=0
-        )
-        run_view = "TS-compatible"
-    else:
-        loss_unlabeled_X = original_unlabeled_X
-        loss_unlabeled_indices = original_unlabeled_indices
-        run_view = "OS"
+    positive_indices = view.positive_indices
+    original_unlabeled_indices = view.native_unlabeled_indices
+    loss_unlabeled_indices = view.loss_unlabeled_indices
+    calibration_applied = view.calibration_applied
+    # History stays at the boundary: the core carries the request, and the
+    # strings this artifact has always used are derived from it here.
+    run_view = "TS-compatible" if calibration_applied else "OS"
 
     index_payload = {
         "positive": _json_indices(positive_indices),
@@ -113,19 +108,21 @@ def calibrate_ts_os_batch(
         "calibration_applied": calibration_applied,
         "calibration": ("D_U_batch <- D_U_batch union D_P_batch" if calibration_applied else None),
         "role": role,
-        "source_batch_size": len(X_values),
-        "positive_count": len(positive_X),
-        "original_unlabeled_count": len(original_unlabeled_X),
-        "loss_unlabeled_count": len(loss_unlabeled_X),
-        "positive_rows_added_to_unlabeled_loss": (len(positive_X) if calibration_applied else 0),
+        "source_batch_size": len(view.source_features),
+        "positive_count": len(view.positive_positions),
+        "original_unlabeled_count": len(view.native_unlabeled_positions),
+        "loss_unlabeled_count": len(view.loss_unlabeled_positions),
+        "positive_rows_added_to_unlabeled_loss": (
+            len(view.positive_positions) if calibration_applied else 0
+        ),
         "indices": index_payload,
         "indices_sha256": hashlib.sha256(
             json.dumps(index_payload, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest(),
     }
     return TSOSBatchView(
-        positive_features=positive_X,
-        loss_unlabeled_features=loss_unlabeled_X,
+        positive_features=view.positive_features,
+        loss_unlabeled_features=view.loss_unlabeled_features,
         positive_indices=positive_indices,
         loss_unlabeled_indices=loss_unlabeled_indices,
         run_view=run_view,

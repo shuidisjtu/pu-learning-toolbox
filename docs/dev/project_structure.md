@@ -27,6 +27,7 @@ pu_toolbox/
     random.py                             (shared: check_random_state 随机种子规范化（sklearn 兼容）)
     tags.py                               (shared: Scenario/Assumption/ImplementationStatus 等类型化枚举)
     device.py                             (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
+    training_views.py                     (shared: TrainingView/build_training_view——P/原始 U/损失 U 角色与来源索引的中立构造，不认识台账·方法名·manifest)
   preprocessing/
     __init__.py                           (公共导出聚合)
     pu_labeling.py                        (make_scar_labels/make_pu_labels 等造 PU/PNU 标签及高斯合成数据)
@@ -155,7 +156,7 @@ pu_toolbox/
     feature_adapter.py                    (CNN 二维特征适配、encoder/特征哈希与榜单公平性分组门禁)
     image.py                              (train-only 图像统计、缩放、ResNet-18/增强配置与哈希留痕)
     text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存；键按去重语料而非排列，故同一文本跨 seed 同值)
-    training_views.py                     (train-only OS/TS-compatible mini-batch 损失视图与留痕)
+    training_views.py                     (survey 边界适配器: 台账门禁与路由裁决、旧 run_view 词表在出口现算、manifest 留痕；角色构造委托 core.training_views)
     manifest.py                           (manifest 写入/加载与必填键校验)
     protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
     resources.py                          (候选/调参/GPU 资源计量、运行环境探测与跨 seed 汇总)
@@ -290,6 +291,7 @@ tests/
       test_deployment_commands.py       # shift-monitor/review CLI 参数与产物旅程
     core/
       test_device.py                    # resolve_device 设备解析共享助手测试
+      test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
@@ -301,7 +303,7 @@ tests/
       test_feature_adapter.py           # CNN 特征四路适配/哈希/fit 范围与 split/seed/预算公平门禁
       test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
       test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测；跨排列同条目、重复文本共享行
-      test_training_views.py            # TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与哈希
+      test_training_views.py            # 实验层边界适配器: TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与 manifest 哈希
       test_manifest.py                  # manifest 往返与必填键 fail-loud
       test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
       test_runner.py                    # ExperimentRunner 端到端(小PU/CNN smoke)与 fail-loud

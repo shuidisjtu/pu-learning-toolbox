@@ -44,6 +44,14 @@ trusted set 或全量/mini-batch 差异。上游 `resolve_training_view` 按台�
 **否决：抽共享的并集 helper。** nnpu 的逐批拼接无法复用它，对全量求解类也仅省几行掩码，
 收益薄。
 
+> **2026-09-28 修订：部分重开，边界改小（见 §10）。** 上面否决的是「抽共享的**并集 helper**」，
+> 收益口径是省代码行数。后续方案换掉了这个口径：核心层只做**角色与来源**——三个角色的身份、
+> 行序、所有权契约与索引留痕——不替算法做并集，也**仍然不复用** nnpu 的逐批拼接（§10 与方案
+> §5.2 明确要求设备内消费者维持内联构造）。因此本条的否决理由（nnpu 无法复用、全量类只省几行）
+> **没有被推翻**，改的只是收益定位：面向尚未接入的方法，以及把「哪一行为何可写」的契约固定下来。
+> 抽象的规模上限也一并记录在案——若参考消费证明核心层被迫理解算法公式，按方案 §6 阶段 D 的
+> kill criterion 回退。
+
 ## 4. `upu` 切片（PR #74，squash 提交 `aeca474`）
 
 ### 4.1 实现
@@ -480,3 +488,38 @@ manifest 取参数/seed/视图/split 引用 → 重建视图并校验摘要 → 
   上，接线后必然翻红（实测正是 `test_survey_pilot_driver.py` 的 2 个测试）。改用合成方法而非
   「挪到 `self_pu`」，是因为 P2.0e 的终态是 `self_pu` 也接线，届时真实矩阵里再无未接线方法，
   该槽位会**第二次**腐烂。合成槽位为永久保证，改完不再依赖任何真实方法的接线状态。
+
+## 10. 训练视图分层：核心层与实验层（本 PR）
+
+**背景。** §1-§7 为五个方法逐个接线。后续方法若继续各写各的角色构造，语义会漂移；但直接抽
+一个共用 helper 已被 §3 否决过一次，且那条理由（nnpu 逐批拼接无法复用、全量类只省几行掩码）
+成立。本 PR 采取的是**缩小边界**的做法：不抽并集 helper，而是把「角色与来源」下沉到一个中立层，
+把「政策与历史」留在实验层。
+
+**改了什么。**
+
+| 层 | 文件 | 职责 |
+|---|---|---|
+| 核心层（新增） | `pu_toolbox/core/training_views.py` | `TrainingView` + `build_training_view`：从一次训练分区识别 `positive` / `native_unlabeled` / `loss_unlabeled` 三个角色与来源索引。不认识台账、方法名、manifest |
+| 实验层（改） | `pu_toolbox/experiment/training_views.py` | 台账门禁（`_validate_options` 原样留在本层）、路由裁决 `resolve_training_view`、历史 `run_view` 词表在出口现算、manifest 构造；`calibrate_ts_os_batch` 改为边界适配器 |
+
+**为什么必须分层。** estimator 是通用算法，不得静态依赖 survey 协议。实测：`import
+pu_toolbox.experiment.training_views` 会经实验包 `__init__` 拉起 **28 个 estimator 模块**，而
+`import pu_toolbox.estimators.risk.upu` 拉起的 experiment 模块数为 **0**。让 estimator 反向导入
+实验层即破坏这条边界（倒置、污染与成环三者都不是想要的，按高风险处理）。依赖方向固定为
+`estimators → core`，由 `tests/unit/core/test_training_view_contract.py` 的**子进程**导入边界测试
+守住——必须子进程，同进程内只要先导入过 experiment 就再也测不出来。
+
+**兼容面。** `calibrate_ts_os_batch` / `TSOSBatchView` 的公开字段、异常类型、错误信息与 manifest
+字段**逐字保持不变**：`tests/unit/experiment/test_training_views.py` 的 6 条测试未作改动即通过。
+值得注意的是这两个符号在生产代码中**没有调用方**，所以真正的兼容面是公开导出 + 这 6 条测试 +
+`api.md` 条目，而不是调用点。
+
+**所有权契约（本次新增）。** `frozen=True` 只禁止重绑属性，不阻止原地改写数组内容，故逐项写明：
+三组 positions 与 `source_indices` **自有并冻结**（构造时复制后 `setflags(write=False)`）；
+`source_features` / `source_labels` **借用**不复制（features 可能是整个训练集），调用方不得在视图
+存活期间改写。冻结的是自有副本，**不得**作用于调用方传入的数组。
+
+**未做（有意）。** 不迁移任何生产 estimator，`upu` 也不迁。核心 API 的可消费性由测试专用
+reference consumer 证明；生产迁移推迟到第一个真实待接入算法——理由是本轮实测的角色构造重复量
+每个方法仅一行到数行，拿已验收算法做迁移无法证明收益，只会引入重构风险。
