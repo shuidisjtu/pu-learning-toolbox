@@ -28,6 +28,21 @@ Four things a naive version would get wrong, all pinned by tests:
   the requested seed list, so deriving it from the files found would let a
   2-of-5-seed pilot satisfy "the seeds agree" trivially.
 
+Groups are keyed by ``(comparability_group, run_view)``.  P2.0e records the view
+each run actually used and requires it to become a fairness-grouping dimension;
+without it a method run under both views reads as a duplicate of itself and the
+whole root is refused.  The same ``comparability_group`` string therefore
+appears once per view, and that composite pair -- never the string alone -- is
+a group's identity.  The protocol's group value is never suffixed with the
+view.  The partition stops here rather than inside
+``partition_fair_leaderboard_runs``: once the views are separated, every unit
+handed to that gate is single-view, so its contract is unchanged.
+
+``run_view`` is the view a run *used*, not the method's
+``native_sampling_assumption``: a method declared native to TS but not yet wired
+for calibration falls back to ``os-compatible``.  This module does not
+implement per-native-assumption stratification.
+
 ``--diagnostic`` relaxes eligibility only.  It is named for what the delivery
 record already calls a technical diagnostic rather than for what it turns off,
 and the fairness gates run in both modes -- an opt-out that also skipped those
@@ -57,8 +72,9 @@ from pu_toolbox.experiment.survey_protocol import (
     load_protocol,
     validate_comparable_manifests,
 )
+from pu_toolbox.experiment.training_views import validated_run_view
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 _MANIFEST_NAME = "manifest.json"
 #: Fields a versioned manifest must carry for the entry point to read it.  The
 #: comparability gate indexes ``representation`` directly and the rest are read
@@ -72,6 +88,7 @@ _REQUIRED_FIELDS = (
     "candidate_runs",
     "generation",
     "adaptation_level",
+    "run_view",
     "seed",
     "training_path",
 )
@@ -125,6 +142,7 @@ def run_spec_from_manifest(manifest: dict, *, seeds: list[int]) -> LeaderboardRu
         dataset=unit["dataset"],
         training_path=manifest["training_path"],
         adaptation_level=manifest["adaptation_level"],
+        run_view=manifest["run_view"],
         split_sha256=representation["split_sha256"],
         representation_sha256=digest(representation),
         max_epochs=fairness["max_epochs"],
@@ -292,8 +310,13 @@ def _group_consistency(members: list[tuple[Path, dict]], *, seeds: list[int]) ->
 
 
 def _group_report(
-    key: str, members: list[tuple[Path, dict]], *, protocol: dict, require_formal: bool
+    key: tuple[str, str],
+    members: list[tuple[Path, dict]],
+    *,
+    protocol: dict,
+    require_formal: bool,
 ) -> dict:
+    group_name, run_view = key
     seeds = list(protocol.get("seeds", []))
     _group_consistency(members, seeds=seeds)
     by_unit: dict[tuple, list[tuple[Path, dict]]] = {}
@@ -304,7 +327,8 @@ def _group_report(
         for unit in sorted(by_unit, key=str)
     ]
     return {
-        "comparability_group": key,
+        "comparability_group": group_name,
+        "run_view": run_view,
         "dataset": members[0][1]["execution_unit"]["dataset"],
         "training_path": members[0][1]["training_path"],
         "methods": sorted({payload["execution_unit"]["method"] for _, payload in members}),
@@ -324,11 +348,10 @@ def aggregate(paths: list[Path], *, protocol: dict, require_formal: bool = True)
         else:
             refused.append({"path": str(path), "reason": reason})
 
-    grouped: dict[str, list[tuple[Path, dict]]] = {}
+    grouped: dict[tuple[str, str], list[tuple[Path, dict]]] = {}
     for path, payload in usable:
-        grouped.setdefault(payload["execution_unit"]["comparability_group"], []).append(
-            (path, payload)
-        )
+        key = (payload["execution_unit"]["comparability_group"], validated_run_view(payload))
+        grouped.setdefault(key, []).append((path, payload))
 
     groups = [
         _group_report(key, grouped[key], protocol=protocol, require_formal=require_formal)
@@ -355,7 +378,10 @@ def _print_report(report: dict) -> None:
         print("NON-FORMAL (technical diagnostic) -- not a pilot leaderboard")
     print(f"protocol {report['protocol_version']}: {len(report['groups'])} group(s)")
     for group in report["groups"]:
-        print(f"\n[{group['comparability_group']}] {group['dataset']}/{group['training_path']}")
+        print(
+            f"\n[{group['comparability_group']}] {group['dataset']}/{group['training_path']}"
+            f" [{group['run_view']}]"
+        )
         print(f"  methods: {', '.join(group['methods'])}")
         for unit in group["units"]:
             marker = "ok" if unit["state"] == "comparable" else "BLOCKED"

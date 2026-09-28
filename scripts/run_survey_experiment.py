@@ -85,6 +85,7 @@ from sklearn.neural_network import MLPClassifier
 
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.manifest import load_manifest, write_manifest
+from pu_toolbox.experiment.method_ledger import load_ledger
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import (
     CleanLabelGenerator,
@@ -94,8 +95,14 @@ from pu_toolbox.experiment.strategies import (
     SCARGenerator,
     SupervisedTrainer,
 )
+from pu_toolbox.experiment.training_views import resolve_training_view
 
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
+
+#: Training data views this CLI can request (``--os-or-ts``, protocol §2.3).
+#: ``os`` is the survey default; ``ts`` applies the TS-OS calibration and is
+#: gated on the method ledger declaring a native TS/case-control assumption.
+OS_OR_TS_VIEWS: tuple[str, ...] = ("os", "ts")
 
 _ROLE_FILES: tuple[str, ...] = ("train", "pu_val", "clean_val", "test")
 
@@ -209,14 +216,27 @@ def _validate_labeling_request(*, mechanism: str, is_oracle: bool, c_values: lis
 
 
 def _run_directory(
-    out_root: Path, *, mechanism: str, c_value: CValue | None, seed: int, is_oracle: bool
+    out_root: Path,
+    *,
+    mechanism: str,
+    c_value: CValue | None,
+    seed: int,
+    is_oracle: bool,
+    run_view: str,
 ) -> Path:
-    """Output directory for one run, keyed by the requested c token."""
+    """Output directory for one run, keyed by the training view.
+
+    The view is the outermost layer because both views write a same-named
+    ``manifest.json`` (and ``method_ledger_entry.json``) into their run
+    directory: without it, training a method under a second view silently
+    replaces the first view's record while its checkpoints stay behind.
+    """
+    root = Path(out_root) / run_view
     if is_oracle:
-        return Path(out_root) / "c_independent" / f"seed_{seed}"
+        return root / "c_independent" / f"seed_{seed}"
     if mechanism in SAR_MECHANISMS:
-        return Path(out_root) / mechanism / f"c_{c_value.token}" / f"seed_{seed}"
-    return Path(out_root) / f"c_{c_value.token}" / f"seed_{seed}"
+        return root / mechanism / f"c_{c_value.token}" / f"seed_{seed}"
+    return root / f"c_{c_value.token}" / f"seed_{seed}"
 
 
 def _record_c_token(manifest_path: Path, token: str) -> None:
@@ -253,14 +273,6 @@ class OracleMLP(MLPClassifier):
             1.0 - 1e-12,
         )
         return np.log(positive / (1.0 - positive))
-
-
-def load_ledger(path: Path) -> dict[str, Any]:
-    """Load the method ledger JSON (programmatic truth source, protocol §4)."""
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict) or not isinstance(value.get("methods"), dict):
-        raise ValueError(f"{path} is not a valid method ledger file.")
-    return value
 
 
 def load_split_parts(data_dir: Path) -> tuple[DatasetPart, ...]:
@@ -323,6 +335,21 @@ def resolve_class_prior(
             f"{entry.get('prior_semantics', '')!r}); pass --class-prior."
         )
     return provided
+
+
+def _write_ledger_entry(run_dir: Path, entry: dict[str, Any], run_view: str) -> None:
+    """Copy the ledger entry beside the run, annotated with the view it used.
+
+    The ledger records the method's *default*; this copy documents one run, so
+    an explicit ``--os-or-ts os`` override must not leave behind a copy that
+    still claims the calibrated view (``_record_c_token`` sets the precedent).
+    """
+    payload = dict(entry)
+    payload["run_view"] = f"{run_view}-compatible"
+    payload["calibration_applied"] = run_view == "ts"
+    (run_dir / "method_ledger_entry.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
 def run_one(
@@ -415,6 +442,17 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--os-or-ts",
+        choices=OS_OR_TS_VIEWS,
+        default=None,
+        help=(
+            "training data view (protocol §2.3; default: the method ledger's "
+            "native_sampling_assumption). 'ts' applies the TS-OS calibration "
+            "D_U <- D_U union D_P per training mini-batch and requires a method "
+            "declared native to TS/case-control sampling"
+        ),
+    )
+    parser.add_argument(
         "--model-params",
         default="{}",
         help="JSON string of classifier constructor parameters (class_prior, loss, ...)",
@@ -471,21 +509,20 @@ def _versioned_main(args, c_values, seed_values) -> int:
         prepare_image_bundle,
     )
     from pu_toolbox.experiment.survey_protocol import (
-        PROTOCOL_PATH,
         digest,
         load_protocol,
+        resolve_protocol_path,
         resolve_unit,
         unit_checkpoint_bytes,
         validate_parameters,
     )
-    from pu_toolbox.registry import get_metadata, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm, get_metadata, register_all_builtin_methods
 
     method = "pn_oracle" if args.oracle else args.method or "upu"
-    protocol_path = (
-        PROTOCOL_PATH
-        if args.protocol in ("survey-v1", "survey-v1.1", "survey-v1.2")
-        else Path(args.protocol).resolve()
-    )
+    # Shared with the pilot driver: the two resolve ``--protocol`` to the same
+    # file, so a batch the driver planned and the run it executes cannot end up
+    # describing different matrices.
+    protocol_path = resolve_protocol_path(args.protocol)
     # These gates precede loading splits, building encoders and creating output directories.
     try:
         if args.dataset is None:
@@ -535,6 +572,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
         )
         if "class_prior" in params and params["class_prior"] != prior:
             raise ValueError("constructor class_prior disagrees with --class-prior")
+        os_or_ts = resolve_training_view(
+            ledger,
+            method,
+            args.os_or_ts,
+            is_oracle=args.oracle,
+            estimator_class=None if args.oracle else get_algorithm(method),
+        )
     except (OSError, KeyError, TypeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -597,9 +641,23 @@ def _versioned_main(args, c_values, seed_values) -> int:
             )
             if row["training_path"] == "cnn_feature_adapter":
                 generator = SourceSpaceGenerator(generator, source, bundle)
+            # Pre-run disk guard input. The networks are built inside fit, so the
+            # size has to be derived from the locked protocol here rather than
+            # introspected from an unfitted estimator.  A row with no storage
+            # profile is refused before any candidate trains, and as a readable
+            # error rather than a traceback: this call sits outside the assembly
+            # guard above.
+            try:
+                checkpoint_bytes_per_component = unit_checkpoint_bytes(
+                    protocol, row, input_dim=bundle.train.X.shape[1]
+                )
+            except ValueError as exc:
+                print(f"error: {exc}", file=sys.stderr)
+                return 1
             config = {
                 "candidates": candidates,
                 "split_ref": split_ref,
+                "os_or_ts": os_or_ts,
                 "architecture": "cnn" if row["training_path"] == "native_cnn" else "mlp",
                 "survey_protocol": {
                     "path": str(protocol_path),
@@ -614,12 +672,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 },
                 "adapter_manifest": adapter_manifest,
                 "image_manifest": image_manifest,
-                # Pre-run disk guard input. The networks are built inside fit,
-                # so the size has to be derived from the locked protocol here
-                # rather than introspected from an unfitted estimator.
-                "checkpoint_bytes_per_component": unit_checkpoint_bytes(
-                    protocol, row, input_dim=bundle.train.X.shape[1]
-                ),
+                "checkpoint_bytes_per_component": checkpoint_bytes_per_component,
             }
             if args.oracle:
                 config.update(
@@ -637,6 +690,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 c_value=c_value,
                 seed=seed,
                 is_oracle=args.oracle,
+                run_view=os_or_ts,
             )
             try:
                 metrics = run_one(
@@ -655,9 +709,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 if c_value is not None:
                     _record_c_token(run_dir / "manifest.json", c_value.token)
                 if not args.oracle:
-                    (run_dir / "method_ledger_entry.json").write_text(
-                        json.dumps(ledger["methods"][method], indent=2), encoding="utf-8"
-                    )
+                    _write_ledger_entry(run_dir, ledger["methods"][method], os_or_ts)
             except Exception as exc:  # noqa: BLE001 - user-facing run boundary
                 print(f"error: survey run failed: {exc}", file=sys.stderr)
                 return 1
@@ -703,7 +755,27 @@ def main(argv: list[str] | None = None) -> int:
         ledger = load_ledger(LEDGER_PATH)
         candidates = _load_json_maybe(args.candidates, default=[{}])
         split_ref = resolve_split_ref(data_dir, args.split_ref)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        # Resolved with the other pre-run gates, before the estimator is built:
+        # an impossible view costs nothing but the error message.
+        method = "pn_oracle" if args.oracle else args.method or "upu"
+        estimator_class = None
+        if not args.oracle:
+            from pu_toolbox.core.exceptions import RegistryError
+            from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+
+            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
+            try:
+                estimator_class = get_algorithm(method)
+            except RegistryError as exc:
+                raise ValueError(str(exc)) from exc
+        os_or_ts = resolve_training_view(
+            ledger,
+            method,
+            args.os_or_ts,
+            is_oracle=args.oracle,
+            estimator_class=estimator_class,
+        )
+    except (OSError, ImportError, json.JSONDecodeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
@@ -764,7 +836,12 @@ def main(argv: list[str] | None = None) -> int:
         ledger_entry = ledger["methods"].get(method)
         config_extra = {}
 
-    config: dict[str, Any] = {"candidates": candidates, "split_ref": split_ref, **config_extra}
+    config: dict[str, Any] = {
+        "candidates": candidates,
+        "split_ref": split_ref,
+        "os_or_ts": os_or_ts,
+        **config_extra,
+    }
     out_root = Path(args.out_dir) if args.out_dir else Path("results") / "survey" / method
 
     if args.oracle:
@@ -785,12 +862,11 @@ def main(argv: list[str] | None = None) -> int:
             c_value=c_value,
             seed=seed,
             is_oracle=args.oracle,
+            run_view=os_or_ts,
         )
         run_dir.mkdir(parents=True, exist_ok=True)
         if ledger_entry is not None:
-            (run_dir / "method_ledger_entry.json").write_text(
-                json.dumps(ledger_entry, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            _write_ledger_entry(run_dir, ledger_entry, os_or_ts)
         manifest_path = run_dir / "manifest.json"
         try:
             metrics = run_one(

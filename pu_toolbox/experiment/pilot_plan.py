@@ -30,7 +30,7 @@ split has been replaced, costs a repeated run rather than a hole in the pilot.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -39,7 +39,8 @@ from .resources import (
     DEFAULT_CHECKPOINT_ATTEMPTS,
     checkpoint_disk_requirement,
 )
-from .survey_protocol import unit_checkpoint_bytes
+from .survey_protocol import unit_checkpoint_bytes, unit_checkpoint_profile
+from .training_views import validated_run_view
 
 #: The method every oracle unit runs under.  The run script substitutes it for
 #: ``--method`` when ``--oracle`` is given, and an oracle run carries no
@@ -171,7 +172,46 @@ def manifest_identity(payload: dict[str, Any]) -> tuple[Any, ...] | None:
     return (dataset, method, training_path, mechanism, token, seed)
 
 
-def split_digests(splits_root: str | Path) -> dict[tuple[str, int], str]:
+def _dataset_allowlist(datasets: Iterable[str] | None) -> set[str] | None:
+    """The datasets a read covers, or ``None`` for every one of them.
+
+    A bare string is refused rather than iterated: ``"spambase"`` is a sequence
+    of eight characters, and a set of them matches no dataset at all, so a
+    caller who meant one dataset would be handed an empty read -- a wrong answer
+    that reads exactly like a fact.  Naming *nothing* is a different request and
+    is allowed: an empty collection asks for no datasets, not for all of them.
+    """
+    if datasets is None:
+        return None
+    if isinstance(datasets, str):
+        raise ValueError(f"datasets takes a collection of names, not the string {datasets!r}")
+    return set(datasets)
+
+
+def _split_manifests(splits_root: str | Path, allowed: set[str] | None) -> list[Path]:
+    """The split manifests a read covers, in a stable order.
+
+    Scoping the *walk*, rather than reading everything and discarding the rest,
+    is what makes "a shard reads its own splits" true of the I/O and not only of
+    the result.  The directory a manifest sits in names the dataset it belongs
+    to -- the convention ``split_archive`` already packs and verifies under --
+    so a manifest can only be read by the shard whose directory holds it.
+    What a manifest *declares* is checked by the callers as well, so one that
+    names another dataset is skipped rather than attributed across datasets.
+    """
+    root = Path(splits_root)
+    if allowed is None:
+        return sorted(root.glob("*/split_*/split_manifest.json"))
+    return sorted(
+        manifest
+        for dataset in sorted(allowed)
+        for manifest in (root / dataset).glob("split_*/split_manifest.json")
+    )
+
+
+def split_digests(
+    splits_root: str | Path, *, datasets: Iterable[str] | None = None
+) -> dict[tuple[str, int], str]:
     """The indices digest each prepared split currently declares.
 
     A run is only evidence about the data it ran on.  When the splits are
@@ -179,14 +219,21 @@ def split_digests(splits_root: str | Path) -> dict[tuple[str, int], str]:
     the old ones stops describing anything the pilot still has, and counting it
     as done would leave the pilot reporting complete while holding results
     that belong to no split on disk.
+
+    ``datasets`` limits both the walk and the result to those datasets, which is
+    what a shard asks for: it is sized, resumed and gated against its own
+    splits, and nothing under a dataset it never names is this read's business.
     """
+    allowed = _dataset_allowlist(datasets)
     found: dict[tuple[str, int], str] = {}
-    for path in sorted(Path(splits_root).glob("*/split_*/split_manifest.json")):
+    for path in _split_manifests(splits_root, allowed):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
         if not isinstance(payload, dict):
+            continue
+        if allowed is not None and payload.get("dataset") not in allowed:
             continue
         dataset, seed, digest = (
             payload.get("dataset"),
@@ -198,7 +245,9 @@ def split_digests(splits_root: str | Path) -> dict[tuple[str, int], str]:
     return found
 
 
-def population_priors(splits_root: str | Path) -> dict[str, float]:
+def population_priors(
+    splits_root: str | Path, *, datasets: Iterable[str] | None = None
+) -> dict[str, float]:
     """The population class prior each dataset's splits declare.
 
     Protocol §3.1 makes this a constant shared by every seed of a dataset, so
@@ -208,17 +257,27 @@ def population_priors(splits_root: str | Path) -> dict[str, float]:
     A dataset whose splits record none is simply absent: the value was added to
     the manifest after the first artifacts were built, and a caller can still
     supply one for those.
+
+    ``datasets`` limits both the read and the defect it reports.  A shard reads
+    the priors of the datasets it runs, so a disagreement inside a dataset it
+    does not name cannot stop it -- the shards of one pilot are prepared and
+    held separately, and a host should not fail over data no run of it touches.
     """
+    allowed = _dataset_allowlist(datasets)
     found: dict[str, float] = {}
     sources: dict[str, str] = {}
-    for path in sorted(Path(splits_root).glob("*/split_*/split_manifest.json")):
+    for path in _split_manifests(splits_root, allowed):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        block = payload.get("class_prior") if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            continue
+        if allowed is not None and payload.get("dataset") not in allowed:
+            continue
+        block = payload.get("class_prior")
         population = block.get("population") if isinstance(block, dict) else None
-        dataset = payload.get("dataset") if isinstance(payload, dict) else None
+        dataset = payload.get("dataset")
         if not isinstance(dataset, str) or not isinstance(population, (int, float)):
             continue
         if dataset in found and found[dataset] != float(population):
@@ -232,15 +291,40 @@ def population_priors(splits_root: str | Path) -> dict[str, float]:
     return found
 
 
+def manifest_resume_key(payload: dict[str, Any]) -> tuple[Any, ...] | None:
+    """The run *and view* a manifest records, or ``None`` when it records neither.
+
+    ``manifest_identity`` names a protocol unit; this names one execution of it.
+    A resume scan keys on the pair, because a unit may legitimately have been run
+    under both views and each manifest is evidence only for the view it used.
+    """
+    identity = manifest_identity(payload)
+    if identity is None:
+        return None
+    return (*identity, validated_run_view(payload))
+
+
 def completed_runs(
-    results_root: str | Path, *, splits: dict[tuple[str, int], str] | None = None
+    results_root: str | Path,
+    *,
+    splits: dict[tuple[str, int], str] | None = None,
 ) -> dict[tuple[Any, ...], Path]:
-    """Every completed run under ``results_root``, keyed by identity.
+    """Every completed run under ``results_root``, keyed by ``(identity, view)``.
 
     With ``splits`` given, a run whose manifest records a different split digest
     than the one on disk is not completed: it ran on data this pilot no longer
     has.  A split the mapping does not cover counts as not done too -- the
     driver re-running a run is recoverable, a hole in the matrix is not.
+
+    The key carries the view the run recorded, so the OS and TS manifests of one
+    unit stay separate entries instead of collapsing to whichever path sorted
+    first.  Which of them satisfies a request is the caller's question, and it
+    is answered against the view the run is going to use.
+
+    A manifest whose view cannot be validated counts as not done, like any other
+    record this module cannot fully identify: one unusable artifact is not
+    evidence of completion, and stopping the scan over it would block a resume
+    over a file unrelated to the planned matrix.
     """
     done: dict[tuple[Any, ...], Path] = {}
     for path in sorted(Path(results_root).rglob("manifest.json")):
@@ -255,7 +339,11 @@ def completed_runs(
             continue
         if splits is not None and not _ran_on_current_split(payload, identity, splits):
             continue
-        done.setdefault(identity, path)
+        try:
+            view = validated_run_view(payload)
+        except ValueError:
+            continue
+        done.setdefault((*identity, view), path)
     return done
 
 
@@ -272,18 +360,36 @@ def pending_runs(
     protocol: dict[str, Any],
     results_root: str | Path,
     *,
+    expected_views: Mapping[tuple[Any, ...], str],
     splits: dict[tuple[str, int], str] | None = None,
 ) -> tuple[tuple[PilotRun, ...], tuple[PilotRun, ...]]:
     """``(pending, completed)`` for the protocol's runs under ``results_root``.
+
+    Each planned run is looked up under the view it is going to run with, not
+    under its identity alone: an OS result does not satisfy a unit this pilot
+    will run calibrated, so changing the view cannot silently skip work.  That
+    view is resolved by the caller, which reads the same ledger the unit script
+    reads -- this module never guesses it.
+
+    ``expected_views`` must cover every planned run.  A missing entry is a
+    caller bug, and falling back to an identity-only lookup would reinstate
+    exactly the blind comparison this signature exists to remove.
 
     The completed half is returned alongside so a caller can report what it
     skipped; a driver that resumes silently is indistinguishable from one that
     ran nothing.
     """
-    done = completed_runs(results_root, splits=splits)
     planned = planned_runs(protocol)
-    pending = tuple(run for run in planned if run.key not in done)
-    return pending, tuple(run for run in planned if run.key in done)
+    missing = [run.key for run in planned if run.key not in expected_views]
+    if missing:
+        raise ValueError(
+            f"expected_views does not cover {len(missing)} planned run(s); "
+            f"first missing: {missing[0]}"
+        )
+    done = completed_runs(results_root, splits=splits)
+    pending = tuple(run for run in planned if (*run.key, expected_views[run.key]) not in done)
+    completed = tuple(run for run in planned if (*run.key, expected_views[run.key]) in done)
+    return pending, completed
 
 
 @dataclass(frozen=True)
@@ -368,6 +474,7 @@ def batch_command(
     device: str | None = None,
     adapter_cache: str | None = None,
     extraction_batch_size: int | None = None,
+    os_or_ts: str | None = None,
 ) -> list[str]:
     """The unit script's arguments for one batch.
 
@@ -412,6 +519,10 @@ def batch_command(
         argv += ["--adapter-cache", adapter_cache]
     if extraction_batch_size is not None:
         argv += ["--extraction-batch-size", str(extraction_batch_size)]
+    if os_or_ts is not None:
+        # Omitted unless asked for: the unit script's ledger-derived default
+        # stays in force, so the driver never invents a view.
+        argv += ["--os-or-ts", os_or_ts]
     return argv
 
 
@@ -491,13 +602,14 @@ def estimate_checkpoint_bytes(
     the second attempt too, which is why the reserve exists.
 
     Uses the same two functions the guard uses, so a deficit this predicts is
-    the deficit that guard would refuse the run for.  The per-component figure
-    is a lower bound -- it ignores filesystem overhead and any candidate that
-    changes the network size -- and the candidate count comes from the
-    protocol's pool unless overridden.  For image rows the figure is instead an
-    upper bound: those rows train an adapter head rather than the ResNet their
-    row names, and the per-component constant does not distinguish them, so the
-    estimate overstates what they actually write.
+    the deficit that guard would refuse the run for, and the candidate count
+    comes from the protocol's pool unless overridden.  Which storage model
+    applies is decided per row -- by training path, backbone and model family
+    together -- so a row that saves a trainable head is not priced as the ResNet
+    it reads features from.  Each unit's figure carries the profile that decided
+    it, and the profile is what says which way that figure bounds: the MLP
+    formula is a lower bound on what a component costs, while the two image
+    constants are conservative upper bounds rounded up from real serialisations.
 
     Cost is per *unit*: mechanism, ``c`` and seed change how many times a unit
     runs, never how much one run weighs.
@@ -511,8 +623,12 @@ def estimate_checkpoint_bytes(
         label = _unit_label(run)
         if label not in per_unit:
             unit = _unit_of(protocol, run)
+            dimension = _input_dim(input_dims, unit, run.method)
             per_unit[label] = {
                 "runs": 0,
+                # Named next to the figure so a report can say which storage
+                # model produced it rather than leaving the reader to infer it.
+                "profile": unit_checkpoint_profile(protocol, unit, input_dim=dimension),
                 "bytes_per_run": _run_checkpoint_bytes(
                     protocol, unit, run.method, input_dims, candidate_count, attempts=1
                 ),

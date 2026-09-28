@@ -1370,8 +1370,8 @@ docstring。
 | `transform_survey_images` | 对验证/test 复用 train 阶段冻结的形状和缩放合约，拒绝跨分区缩放漂移 |
 | `build_survey_image_encoder` / `build_survey_image_augmentation` | 从冻结规格构造随机初始化 ResNet-18；增强只对 `train` 返回，PU/clean 验证与 test 固定为 `None` |
 | `SurveyImagePreprocessing` | 图像输入尺寸、首层、归一化、增强、训练数据与配置 SHA-256 的 JSON manifest 规格 |
-| `calibrate_ts_os_batch` | 按训练 batch 构造 OS 或 TS-compatible 损失视图；TS 时 P 同时进入正例与 U 损失输入，并强制原生 TS 台账和 train-only 门禁 |
-| `TSOSBatchView` | TS-OS 转换后的 P/U 损失数组、原始索引、运行视图与校准 manifest |
+| `calibrate_ts_os_batch` | **survey 边界适配器**（角色构造委托 `pu_toolbox.core.training_views`）：按训练 batch 产出 OS 或 TS-compatible 损失视图；TS 时 P 同时进入正例与 U 损失输入；原生 TS 台账与 train-only 两条门禁**留在本层**，不随角色构造下沉到核心层 |
+| `TSOSBatchView` | TS-OS 转换后的 P/U 损失数组、原始索引、运行视图与校准 manifest；`run_view` 取 `"OS"` / `"TS-compatible"`，这套历史词表只存在于本层出口 |
 | `adapt_image_bundle_to_features` | 用固定或声明为仅 train 拟合的 CNN，在 eval/no-grad 下提取四路二维特征；校验 encoder 未变并记录权重/特征/split 哈希 |
 | `LeaderboardRunSpec` / `partition_fair_leaderboard_runs` | 校验同数据集 split、seed、epoch/batch/tuning 预算及同路径表征一致；按训练路径（`native_2d`、原生 CNN、`cnn_feature_adapter`）强制分组，adapter 强制标为 `benchmark-adapted` |
 | `encode_survey_texts` | 用固定 `all-MiniLM-L6-v2` 生成 384 维文本向量；强制记录 revision，以文本内容和归一化选项寻址缓存，并在复用前校验 SHA-256 |
@@ -1456,6 +1456,18 @@ allocated memory。
 PU 标签生成时间单列，runner 不执行的共享预处理显式标为 scope 外；`environment` 记录 Python、
 NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。`aggregate_resource_usage(manifests)`
 将多 seed artifact 汇总为协议要求的完整调参总成本。
+
+### 训练视图（`pu_toolbox.core.training_views`）
+
+角色构造放在**中立核心层**，因为它由 estimator 导入，而 estimator 不得依赖 Survey 实验层
+（依赖方向固定为 `estimators → core`，反向禁止；由 `tests/unit/core/test_training_view_contract.py`
+的子进程导入边界测试守住）。本层不认识方法台账、方法名与 manifest——「这个方法能不能用校准视图」
+由实验层的台账门禁与 `resolve_training_view` 裁决，再把结果传进来。
+
+| 符号 | 用途 |
+|---|---|
+| `TrainingView` | 一次训练分区上的三个角色（`positive` / `native_unlabeled` / `loss_unlabeled`）及来源索引；**每个角色都非空**（它描述的是训练分区）；自有数组（三组 positions、`source_indices`）只读，大数组（features/labels）借用——**视图只在申请它的那一步训练内有效**，不得跨重排、原地归一化或重标注复用 |
+| `build_training_view` | 纯构造器：只收**已裁决的** `requested_view`（`"os"`/`"ts"`）与 `role`；TS 下损失无标签角色为 `D_U ∪ D_P`（原始 U 在前、正例在后），OS 下即 `D_U`；**P 与 U 均非空对所有 `role` 强制**（非 train 角色出现在签名里，只是为了让“校准仅限 train”这条能被具名拒绝，不是用来描述验证/测试分区）；校准仅限 train 角色 |
 
 ## 错误与异常
 

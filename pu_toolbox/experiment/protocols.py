@@ -10,7 +10,10 @@ docs/dev/experiment_layer.md §2.
 
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any
 
 import numpy as np
 
@@ -62,7 +65,65 @@ class Trainer(ABC):
         *,
         class_prior: float | None = None,
         val_pu: tuple[np.ndarray, np.ndarray] | None = None,
+        os_or_ts: str | None = None,
     ) -> RunTrajectory: ...
+
+
+def accepts_training_view(parameters: Mapping[str, Any]) -> bool:
+    """Whether a ``fit`` signature can carry ``os_or_ts``.
+
+    Protocol §2.3 gates the calibrated view on the training interface allowing
+    the unlabeled-loss input to be replaced, so both the view resolver and the
+    router ask this question the same way: a named parameter, or an explicit
+    ``**kwargs``.
+    """
+    return "os_or_ts" in parameters or any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()
+    )
+
+
+def route_training_view(
+    kwargs: dict, parameters: Mapping[str, Any], os_or_ts: str | None, target: object
+) -> None:
+    """Add ``os_or_ts`` to a fit-kwargs mapping, refusing a silent drop.
+
+    A calibrated (``"ts"``) request changes training for every target that can
+    carry it, so it is routed whenever the target declares the parameter -- by
+    name or through an explicit ``**kwargs`` -- and refused when it cannot: a
+    target that ran the OS view while the run's manifest claimed otherwise is
+    exactly the mismatch this exists to catch.
+
+    An explicit ``os`` request is routed as well, but only to a target that
+    **names** ``os_or_ts``.  For most estimators the two are indistinguishable
+    -- their own default is already ``"os"`` -- which is why forwarding only
+    ``ts`` used to be enough; a method native to the calibrated view breaks
+    that assumption, and dropping its ``os`` request would silently run the
+    view the operator did not ask for.
+
+    The asymmetry is deliberate.  An undeclared ``ts`` request is a silent
+    *downgrade* and is refused; an undeclared ``os`` request is a *no-op*,
+    because such a target is OS by construction.  ``**kwargs`` does not count
+    as a declaration for ``os`` -- it is not evidence that the parameter was
+    meant to be carried -- whereas the ``ts`` path keeps the repo's existing
+    named-or-var-keyword rule unchanged.
+
+    ``None`` is never routed: no request leaves the estimator's own default to
+    decide, which is what a direct API caller gets.  Acceptance follows
+    ``runner._select_kwargs``: a named parameter or an explicit ``**kwargs``,
+    detected by signature inspection, never by catching ``TypeError``.
+    """
+    if os_or_ts is None:
+        return
+    if os_or_ts == "ts":
+        if not accepts_training_view(parameters):
+            raise ValueError(
+                f"{type(target).__name__}.fit() does not accept os_or_ts, so the "
+                f"requested {os_or_ts!r} training view cannot be applied."
+            )
+        kwargs["os_or_ts"] = "ts"
+        return
+    if os_or_ts == "os" and "os_or_ts" in parameters:
+        kwargs["os_or_ts"] = "os"
 
 
 class SelectionProtocol(ABC):

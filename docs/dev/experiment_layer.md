@@ -38,7 +38,7 @@
   | 策略 | 抽象方法 | 声明属性 |
   |---|---|---|
   | `Generator` | `generate(X, y_true, c, seed) -> (y_view, meta)` | `output_view = "pu"` |
-  | `Trainer` | `fit(estimator, X, y, *, class_prior, val_pu) -> RunTrajectory` | `trains_on_real_labels = False` |
+  | `Trainer` | `fit(estimator, X, y, *, class_prior, val_pu, os_or_ts) -> RunTrajectory` | `trains_on_real_labels = False` |
   | `SelectionProtocol` | `select(trajectories, val_part, threshold_candidates, *, class_prior) -> SelectionArtifact` | —（仅 `name` 约定） |
 
   runner 用 **duck-typing**（[鸭子类型](https://docs.python.org/3/glossary.html#term-duck-typing)：只看对象行为、不强制继承）读取接口，全仓库对策略**没有一处** `isinstance(x, Generator/Trainer/

@@ -9,7 +9,14 @@ import json
 import re
 
 import pytest
-from _survey_script_helpers import make_sar_splits, make_splits, survey_script  # noqa: F401
+from _survey_script_helpers import (  # noqa: F401
+    make_sar_splits,
+    make_splits,
+    run_directory,
+    run_manifest,
+    run_manifests,
+    survey_script,
+)
 
 from pu_toolbox.experiment.manifest import load_manifest
 from pu_toolbox.experiment.strategies import (
@@ -46,7 +53,7 @@ def test_basic_sar_lbe_a_runs_oa_only(survey_script, tmp_path):
     )
     assert rc == 0
 
-    run_dir = out_dir / "sar_lbe_a" / "c_0.05" / "seed_0"
+    run_dir = run_directory(out_dir, "sar_lbe_a", "c_0.05", "seed_0")
     manifest = load_manifest(run_dir / "manifest.json")
     assert set(manifest["selection"]) == {"OA"}
     assert set(manifest["test_results"]) == {"OA"}
@@ -87,7 +94,7 @@ def test_basic_versioned_sar_binds_generator_oa_and_manifest(survey_script, tmp_
     )
     assert rc == 0
 
-    run_dir = out_dir / "sar_lbe_b" / "c_0.05" / "seed_0"
+    run_dir = run_directory(out_dir, "sar_lbe_b", "c_0.05", "seed_0")
     manifest = load_manifest(run_dir / "manifest.json")
     assert manifest["protocol_version"] == "survey-v1.2"
     assert set(manifest["selection"]) == {"OA"}
@@ -124,7 +131,7 @@ def test_param_sar_mechanisms_and_c_values(survey_script, tmp_path, mechanism, c
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / mechanism / f"c_{c}" / "seed_0" / "manifest.json")
+    manifest = load_manifest(run_manifest(out_dir, mechanism, f"c_{c}", "seed_0"))
     assert set(manifest["selection"]) == {"OA"}
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["mechanism"] == mechanism
@@ -209,8 +216,8 @@ def test_determ_sar_same_seed_same_marking_and_metrics(survey_script, tmp_path):
     assert survey_script.main([*argv, "--out-dir", str(tmp_path / "out_a")]) == 0
     assert survey_script.main([*argv, "--out-dir", str(tmp_path / "out_b")]) == 0
 
-    first = load_manifest(tmp_path / "out_a" / "sar_lbe_a" / "c_0.05" / "seed_0" / "manifest.json")
-    second = load_manifest(tmp_path / "out_b" / "sar_lbe_a" / "c_0.05" / "seed_0" / "manifest.json")
+    first = load_manifest(run_manifest(tmp_path / "out_a", "sar_lbe_a", "c_0.05", "seed_0"))
+    second = load_manifest(run_manifest(tmp_path / "out_b", "sar_lbe_a", "c_0.05", "seed_0"))
     assert (
         first["generation"]["train"]["label_view_sha256"]
         == second["generation"]["train"]["label_view_sha256"]
@@ -247,7 +254,7 @@ def test_basic_sar_manifest_records_generator_audit(survey_script, tmp_path):
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / "sar_lbe_a" / "c_0.05" / "seed_0" / "manifest.json")
+    manifest = load_manifest(run_manifest(out_dir, "sar_lbe_a", "c_0.05", "seed_0"))
     train = manifest["generation"]["train"]
     assert train["generator"] == "SARLBEAGenerator"
     assert train["c_requested"] == 0.05
@@ -290,7 +297,7 @@ def test_basic_scar_default_keeps_pa_oa(survey_script, tmp_path):
     )
     assert rc == 0
 
-    manifest = load_manifest(out_dir / "c_0.3" / "seed_0" / "manifest.json")
+    manifest = load_manifest(run_manifest(out_dir, "c_0.3", "seed_0"))
     assert set(manifest["selection"]) == {"PA", "OA"}
     assert manifest["generation"]["train"]["mechanism"] == "scar"
     assert manifest["selection"]["PA"]["protocol"] == "PA"
@@ -321,9 +328,10 @@ def test_edge_sar_token_shapes_the_output_path(survey_script, tmp_path):
     )
     assert rc == 0
 
-    assert (out_dir / "sar_lbe_a" / "c_0.05" / "seed_0" / "manifest.json").is_file()
-    assert not (out_dir / "c_0.1").exists()
-    assert not (out_dir / "sar_lbe_a" / "c_0.1").exists()
+    # The token, not its numeric value, names the run: 0.05 must not be
+    # renormalised to 0.1 anywhere in the tree.
+    assert run_manifest(out_dir, "sar_lbe_a", "c_0.05", "seed_0").is_file()
+    assert all(path.parent.name != "c_0.1" for path in run_manifests(out_dir))
 
 
 def test_param_sar_rejects_duplicate_numeric_tokens(survey_script, tmp_path, capsys):
@@ -383,7 +391,7 @@ def test_basic_sar_runs_non_lbe_classifier(survey_script, tmp_path):
     )
     assert rc == 0
 
-    run_dir = out_dir / "sar_lbe_a" / "c_0.05" / "seed_0"
+    run_dir = run_directory(out_dir, "sar_lbe_a", "c_0.05", "seed_0")
     manifest = load_manifest(run_dir / "manifest.json")
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["mechanism"] == "sar_lbe_a"

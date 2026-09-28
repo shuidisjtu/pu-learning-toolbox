@@ -32,6 +32,7 @@ class LeaderboardRunSpec:
     dataset: str
     training_path: TrainingPath
     adaptation_level: Literal["source-faithful", "benchmark-adapted"]
+    run_view: Literal["os-compatible", "ts-compatible"]
     split_sha256: str
     representation_sha256: str
     max_epochs: int
@@ -211,7 +212,19 @@ def partition_fair_leaderboard_runs(
                 raise ValueError(f"representation_sha256 differs within {dataset}/{training_path}.")
             methods = [run.method for run in path_runs]
             if len(set(methods)) != len(methods):
-                raise ValueError(f"duplicate method in {dataset}/{training_path} leaderboard.")
+                # The same method may legitimately be run under both views, but
+                # only in separate leaderboards -- otherwise one row would hide
+                # the other.  Name the view when that is what separates them.
+                repeated = {method for method in methods if methods.count(method) > 1}
+                views = sorted({run.run_view for run in path_runs if run.method in repeated})
+                detail = (
+                    f": the repeated method(s) differ in training view {views}"
+                    if len(views) > 1
+                    else ""
+                )
+                raise ValueError(
+                    f"duplicate method in {dataset}/{training_path} leaderboard{detail}."
+                )
             group_payload = {
                 "dataset": dataset,
                 "training_path": training_path,
@@ -219,6 +232,11 @@ def partition_fair_leaderboard_runs(
                 "adaptation_levels": {
                     run.method: run.adaptation_level
                     for run in sorted(path_runs, key=lambda x: x.method)
+                },
+                # Per method, not shared: native assumptions legitimately differ
+                # between methods inside one dataset (protocol §5 strata).
+                "run_views": {
+                    run.method: run.run_view for run in sorted(path_runs, key=lambda x: x.method)
                 },
                 "split_sha256": reference.split_sha256,
                 "representation_sha256": representation,
@@ -298,6 +316,8 @@ def _validate_run_spec(run: LeaderboardRunSpec) -> None:
         )
     if run.adaptation_level not in {"source-faithful", "benchmark-adapted"}:
         raise ValueError("adaptation_level must be 'source-faithful' or 'benchmark-adapted'.")
+    if run.run_view not in {"os-compatible", "ts-compatible"}:
+        raise ValueError("run_view must be 'os-compatible' or 'ts-compatible'.")
     if run.training_path == "cnn_feature_adapter" and run.adaptation_level != "benchmark-adapted":
         raise ValueError("cnn_feature_adapter runs must be marked 'benchmark-adapted'.")
     if not _is_sha256(run.split_sha256) or not _is_sha256(run.representation_sha256):

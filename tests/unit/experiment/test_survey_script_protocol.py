@@ -7,7 +7,7 @@ import json
 import numpy as np
 import pytest
 import torch
-from _survey_script_helpers import make_splits, survey_script  # noqa: F401
+from _survey_script_helpers import make_splits, run_manifest, survey_script  # noqa: F401
 
 from pu_toolbox.experiment import survey_comparison
 from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATH, load_protocol
@@ -92,7 +92,7 @@ def test_basic_versioned_cli_records_protocol_and_actual_budget(survey_script, t
     data, out = tmp_path / "data", tmp_path / "out"
     _splits(data)
     assert survey_script.main(_args(data, out)) == 0
-    payload = json.loads((out / "c_0.5/seed_0/manifest.json").read_text())
+    payload = json.loads(run_manifest(out, "c_0.5", "seed_0").read_text())
     assert payload["protocol_version"] == "survey-v1.2"
     assert payload["budget"]["unit"] == "one_closed_form_fit"
     assert payload["formal_eligible"] is False
@@ -160,7 +160,7 @@ def test_basic_per_seed_root_loads_distinct_split_manifests(survey_script, tmp_p
     _splits(data / "split_1", seed=1)
     out = tmp_path / "out"
     assert survey_script.main(_args(data, out) + ["--seeds", "0,1"]) == 0
-    assert json.loads((out / "c_0.5/seed_1/manifest.json").read_text())["split_ref"]["seed"] == 1
+    assert json.loads(run_manifest(out, "c_0.5", "seed_1").read_text())["split_ref"]["seed"] == 1
 
 
 def test_determ_repeated_cli_preserves_label_and_representation_hashes(survey_script, tmp_path):
@@ -168,7 +168,7 @@ def test_determ_repeated_cli_preserves_label_and_representation_hashes(survey_sc
     _splits(data)
     args = _args(data, out)
     assert survey_script.main(args) == 0
-    path = out / "c_0.5/seed_0/manifest.json"
+    path = run_manifest(out, "c_0.5", "seed_0")
     first = json.loads(path.read_text())
     assert survey_script.main(args) == 0
     second = json.loads(path.read_text())
@@ -204,7 +204,7 @@ def test_basic_torch_oracle_is_oa_only_and_c_independent(survey_script, tmp_path
         str(out),
     ]
     assert survey_script.main(args) == 0
-    payload = json.loads((out / "c_independent/seed_0/manifest.json").read_text())
+    payload = json.loads(run_manifest(out, "c_independent", "seed_0").read_text())
     assert set(payload["selection"]) == {"OA"}
     assert payload["c_independent"] is True
     assert "noncanonical_protocol_matrix" in payload["protocol_deviation"]
@@ -230,7 +230,7 @@ def test_basic_cifar_adapter_script_assembles_and_reuses_cache(survey_script, tm
     torch.set_num_threads(1)
     try:
         assert survey_script.main(args) == 0
-        path = out / "c_0.5/seed_0/manifest.json"
+        path = run_manifest(out, "c_0.5", "seed_0")
         first = json.loads(path.read_text())
         assert first["representation"]["adapter"]["feature_dimension"] == 512
         assert survey_script.main(args) == 0

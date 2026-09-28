@@ -297,6 +297,7 @@ L_{\mathrm{opt}}=
 - **[状态]** 已实现为 native 分类器（torch backend，2026-07-16），接口按 `BasePUClassifier` 契约对齐。
 - **`beta` 范围（实现建议）**：对无界 loss，论文无法给出有限上界；实现只要求 `beta >= 0`，并默认 `beta=0`。
 - **mini-batch 组织**：当两个 loader 长度不同，可将一个 epoch 定义为遍历较长 loader，并循环较短 loader。无论采用何种策略，都应：记录实际更新步数；确保每个更新步同时含 P 和 U；分别对 P、U 批次求均值；不依赖两类样本数相同。
+- **训练视图叠加（协议 §2.3，实验层叠加而非算法语义）**：`fit(..., os_or_ts=...)` 默认 `"os"`，即本节描述的 P/U 双批次形态。`"ts"`（方法原生 case-control 采样）把未标记风险项的输入扩为 $`D_U^k \cup D_P^k`$ 后取均值，正例风险项与验证/测试路径不变；`"ts"` 与 `sample_weight` 互斥（追加行无权重定义），显式拒绝而非猜。
 - **loss 扩展（MVP 边界）**：MVP 只内置 sigmoid loss。若项目已有统一 loss protocol，可允许自定义 differentiable loss，但必须声明：是否有界及上界、是否支持 `target ∈ {-1,+1}`、是否按样本返回 loss、是否可用于概率评估（通常不可）。
 - **[项目现状]** Toolbox 已实现 Convex PU 相关部分；nnPU 应优先复用已有的标签规范、类别先验校验、P/U 风险分解与 loss 抽象（具体复用点需结合仓库代码确认）。
 - **[双架构]** 2026-08-30 起支持可选 `encoder` 参数（MLP/CNN 双架构，能力声明

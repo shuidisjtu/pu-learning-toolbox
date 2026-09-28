@@ -12,7 +12,7 @@ required), and the registry is the gate's truth source.
 One test per invariant:
 
 1. every ledger key is a registered algorithm and the key set is exactly the
-   expected eight entries (``pusb`` and ``pusb_kernel`` stay separate);
+   expected entries (``pusb`` and ``pusb_kernel`` stay separate);
 2. ``modality_backbone.code_capability`` mirrors the registry capability
    fields (``native_architectures`` / ``input_ndims`` / ``encoder_parameter`` /
    ``trains_encoder``);
@@ -23,6 +23,9 @@ One test per invariant:
 5. ``calibration_applied`` is a JSON boolean, not a string carrying prose;
 6. ``prior_semantics`` mentions "population" exactly when the registry entry
    requires a class prior (``requires_class_prior``).
+7. ``native_sampling_assumption`` (``os``/``ts``) mirrors the registry
+   ``scenario`` sampling mechanism (``SINGLE_TRAINING_SET``/``CASE_CONTROL``),
+   ignoring the orthogonal ``SELECTION_BIASED`` flag (issue #67).
 """
 
 from __future__ import annotations
@@ -34,6 +37,8 @@ from pathlib import Path
 
 import pytest
 
+from pu_toolbox.core.tags import Scenario
+from pu_toolbox.experiment.method_ledger import native_sampling_assumption
 from pu_toolbox.registry import get_metadata, register_all_builtin_methods
 
 _LEDGER_PATH = (
@@ -49,6 +54,7 @@ _EXPECTED_METHOD_KEYS = {
     "lbe",
     "nnpu",
     "self_pu",
+    "vpu",
 }
 
 # Ledger notes open their annotation with either an ASCII or a full-width
@@ -70,8 +76,14 @@ def _as_set(value: object) -> set:
 
 
 @pytest.mark.contract
-def test_method_keys_are_the_eight_registered_algorithms(ledger_methods: dict[str, dict]) -> None:
-    """Keys resolve through the registry, as the exact post-split key set."""
+def test_method_keys_are_the_registered_algorithms(ledger_methods: dict[str, dict]) -> None:
+    """Keys resolve through the registry, as the exact post-split key set.
+
+    The set is pinned on purpose: a ledger entry cannot land unnoticed, so
+    adding one means changing this constant in the same commit.  ``pusb`` and
+    ``pusb_kernel`` stay separate (issue #42); ``vpu`` joined with its
+    sampling-assumption ruling (decision D21).
+    """
     for name in ledger_methods:
         assert get_metadata(name).name == name, f"{name!r} is not a registered algorithm"
     assert set(ledger_methods) == _EXPECTED_METHOD_KEYS
@@ -127,6 +139,39 @@ def test_prior_semantics_consistent_with_registry_class_prior(
         assert mentions == requires, (
             f"{name}: prior_semantics={entry['prior_semantics']!r} "
             f"but registry requires_class_prior={requires}"
+        )
+
+
+#: Ledger sampling assumption -> the registry sampling scenarios that encode
+#: it.  ``SELECTION_BIASED`` is an orthogonal labeling-bias flag and never
+#: enters this comparison: a method may carry it while still naming which
+#: sampling mechanism it assumes.
+_SAMPLING_SCENARIOS = {
+    "os": frozenset({Scenario.SINGLE_TRAINING_SET}),
+    "ts": frozenset({Scenario.CASE_CONTROL}),
+    "both": frozenset({Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL}),
+}
+
+
+@pytest.mark.contract
+def test_native_sampling_assumption_matches_registry_scenario(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The ledger's os/ts label equals the registry's sampling scenario.
+
+    ``os`` means single-training-set and ``ts`` means case-control.  Issue #67
+    recorded the two having drifted into exact opposites, so this pins them.
+    """
+    for name, entry in ledger_methods.items():
+        declared = native_sampling_assumption(entry)
+        assert declared in _SAMPLING_SCENARIOS, (
+            f"{name}: unexpected native_sampling_assumption {declared!r}"
+        )
+        registered = frozenset(get_metadata(name).scenario)
+        sampling = registered & {Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL}
+        assert sampling == _SAMPLING_SCENARIOS[declared], (
+            f"{name}: ledger native_sampling_assumption={declared!r} but registry "
+            f"scenario declares {sorted(item.value for item in sampling)}"
         )
 
 

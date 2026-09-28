@@ -279,8 +279,9 @@ MNIST MLP/CIFAR-13 层 CNN/ADNI 3-branch CNN 协议）待有明确实验需求�
 > 实验协议全文：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)。
 > 8 数据集、ResNet-18 主协议、统一 OS 视图 + 可选 TS-OS 校准、`c∈{0.1, 0.3, 0.5}`。
 
-本计划与实验协议的关系：PA/PAUC/OA 模型选择与 TS-OS 校准当前不在工具箱
-实现中，属于实验协议的前置基础设施，需单独立项，不计入双架构改造范围。
+本计划与实验协议的关系：PA/PAUC/OA 模型选择与 TS-OS 校准均已落地于实验层
+（`pu_toolbox/experiment/`，见 [experiment_layer.md](experiment_layer.md)），
+属实验协议的前置基础设施，不计入双架构改造范围。
 同理，本双架构计划**不是**文本 SBERT 向量或表格 MLP 路径的前置条件——它
 仅是图像数据集公平比较的**部分**前置工作（原生 CNN 与 `cnn_feature_adapter`
 的路径分组依赖它）；文本/表格路径可独立推进。

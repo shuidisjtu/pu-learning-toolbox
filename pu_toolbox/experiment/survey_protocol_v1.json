@@ -532,8 +532,6 @@
     }
   ],
   "formal_blockers": [
-    "P2.0b_label_semantics_acceptance",
-    "P2.0c_cross_validation_acceptance",
     "per_epoch_independent_PA_OA_checkpoint_selection",
     "linux_frozen_lock_environment_deviation"
   ],

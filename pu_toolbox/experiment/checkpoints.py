@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .protocols import Trainer
+from .protocols import Trainer, route_training_view
 from .tracking import EpochRecord, RunTrajectory
 
 
@@ -178,7 +178,7 @@ class EpochCheckpointTrainer(Trainer):
         self.trains_on_real_labels = supervised
         self.checkpoint_dir = checkpoint_dir
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         import torch
 
         params = inspect.signature(type(estimator).fit).parameters
@@ -264,6 +264,7 @@ class EpochCheckpointTrainer(Trainer):
             name = "pu_validation_data" if "pu_validation_data" in params else "validation_data"
             if name in params:
                 kwargs[name] = val_pu
+        route_training_view(kwargs, params, os_or_ts, estimator)
         # No TypeError fallback: a callback error must not become a second bare fit.
         estimator.fit(X, y, **kwargs)
         if not checkpoints:

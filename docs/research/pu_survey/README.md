@@ -4,10 +4,13 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 
 **机器真相源**（数值/状态以它们为准，文档只作解释）：
 
-- `pu_toolbox/experiment/survey_protocol_v1.json` — 执行协议，当前 `survey-v1.2`，摘要 `c15b0c9e0677729d749c79af2d563849d5b70be395e65fd3ea2b2cfa0eaff529`
-- `pu_toolbox/experiment/survey_comparison_v1.json` — 外部对照矩阵，`survey-comparison-v1`
+- `pu_toolbox/experiment/survey_protocol_v1.json` — 执行协议，当前 `survey-v1.2`，摘要 `c019a87d9bc079b5d97cb35d40f5a66f252340525c47fd8b10a3a112b8b4a50a`
+- `pu_toolbox/experiment/survey_comparison_v3.json` — 外部对照矩阵，当前 `survey-comparison-v3`
+  （`v1`/`v2` 原样留档为历史版本；修订理由见 `survey_execution_plan.md` 决策 D10、D12）
 
-**签署状态速览**：P2.0a 已签署（`accepted`）；P2.0b、P2.0c 未签署（`pending_collaborator_review`），见各自复核/交付记录。
+**签署状态速览**：P2.0a 已签署（`accepted`）。P2.0b、P2.0c 的合作者签署**仍未获得**
+（`pending_collaborator_review`）；两者由 shuidisjtu 于 2026-09-25 基于单方技术验收**放行**
+（已从协议 `formal_blockers` 移除，见决策 D12）。放行不等于对方已复核。
 
 ## 权威源
 
@@ -23,8 +26,10 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | [`p2_0a_delivery.md`](p2_0a_delivery.md) | P2.0a 共享规格、执行矩阵、CIFAR 接线与 CPU/GPU 验证记录 |
 | [`p2_0b_delivery.md`](p2_0b_delivery.md) | P2.0b 标签语义 fail-loud 门禁交付（未签署） |
 | [`p2_0c_delivery.md`](p2_0c_delivery.md) | P2.0c 外部对照预注册：资格闭集、覆盖推导、来源口径差异判读与签署顺序 |
+| [`p2_0e_delivery.md`](p2_0e_delivery.md) | P2.0e TS-OS 校准接线：各方法校准形态调查、接线范式、`nnpu`/`upu` 切片证据与未决项 |
 | [`epoch_checkpoint_delivery.md`](epoch_checkpoint_delivery.md) | 逐 epoch 权重保存、PA/OA 独立恢复与验证证据 |
 | [`pn_oracle_integration.md`](pn_oracle_integration.md) | PN oracle 接入决策与 PU-Bench 口径对照记录 |
+| [`vpu_sampling_audit.md`](vpu_sampling_audit.md) | P3.1 局部：VPU 采样假设审计（Gate 0 四层证据、原生 `ts` 裁决、与上游的验证口径分歧）；对应决策 D21，**未完成 P3.1 验收** |
 
 ## 复核 / 签署
 

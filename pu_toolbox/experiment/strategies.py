@@ -26,7 +26,7 @@ from pu_toolbox.utils.serialization import canonical_hash
 
 from .bundle import DatasetPart, LabelView
 from .checkpoints import record_validation, selection_models
-from .protocols import Generator, SelectionProtocol, Trainer
+from .protocols import Generator, SelectionProtocol, Trainer, route_training_view
 from .tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
 
@@ -492,14 +492,17 @@ class FitTrainer(Trainer):
     See docs/dev/experiment_layer.md §2.
     """
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+        params = inspect.signature(type(estimator).fit).parameters
+        kwargs = {}
+        route_training_view(kwargs, params, os_or_ts, estimator)
         if class_prior is not None:
             try:
-                estimator.fit(X, y, class_prior=class_prior)
+                estimator.fit(X, y, class_prior=class_prior, **kwargs)
             except TypeError:
-                estimator.fit(X, y)
+                estimator.fit(X, y, **kwargs)
         else:
-            estimator.fit(X, y)
+            estimator.fit(X, y, **kwargs)
         return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
 
 
@@ -515,8 +518,8 @@ class SupervisedTrainer(Trainer):
 
     trains_on_real_labels = True
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
-        return FitTrainer().fit(estimator, X, y, class_prior=class_prior)
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+        return FitTrainer().fit(estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts)
 
 
 class DeepFitTrainer(Trainer):
@@ -531,7 +534,7 @@ class DeepFitTrainer(Trainer):
     docs/dev/experiment_layer.md §2.
     """
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         params = inspect.signature(type(estimator).fit).parameters
         validation_parameter = None
         if "pu_validation_data" in params:
@@ -542,6 +545,7 @@ class DeepFitTrainer(Trainer):
             kwargs = {validation_parameter: val_pu}
             if class_prior is not None:
                 kwargs["class_prior"] = class_prior
+            route_training_view(kwargs, params, os_or_ts, estimator)
             try:
                 estimator.fit(X, y, **kwargs)
             except TypeError:
@@ -573,4 +577,4 @@ class DeepFitTrainer(Trainer):
             # The validation-aware fit already completed. Missing optional
             # history means a single-point trajectory, never a second fit.
             return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
-        return FitTrainer().fit(estimator, X, y, class_prior=class_prior)
+        return FitTrainer().fit(estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts)

@@ -164,6 +164,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         sample_weight: np.ndarray | None = None,
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         epoch_callback=None,
+        os_or_ts: str = "os",
     ) -> NonNegativePUClassifier:
         """Fit the nnPU classifier via mini-batch SGD (Algorithm 1).
 
@@ -185,6 +186,13 @@ class NonNegativePUClassifier(BasePUClassifier):
         epoch_callback : callable, optional
             Called as ``epoch_callback(epoch, self)`` after each completed
             epoch, before early-stop restoration. Exceptions propagate.
+        os_or_ts : {"os", "ts"}, default "os"
+            Training data view (survey protocol §2.3).  ``"ts"`` applies the
+            TS-OS calibration ``D_U^k <- D_U^k union D_P^k`` on every training
+            mini-batch: the positive batch keeps feeding the positive loss and
+            is additionally appended to the unlabeled-loss input.  Validation
+            and test roles stay on the OS view.  Not available together with
+            ``sample_weight`` (the appended rows have no weight definition).
 
         Returns
         -------
@@ -218,6 +226,15 @@ class NonNegativePUClassifier(BasePUClassifier):
             raise ValueError(f"max_epochs must be > 0; got {self.max_epochs}.")
         if self.batch_size <= 0:
             raise ValueError(f"batch_size must be > 0; got {self.batch_size}.")
+        if os_or_ts not in {"os", "ts"}:
+            raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
+        if os_or_ts == "ts" and sample_weight is not None:
+            raise ValueError(
+                "os_or_ts='ts' cannot be combined with sample_weight: the "
+                "calibrated view appends the positive batch to the unlabeled-loss "
+                "input, and those appended rows carry no weight definition.  Pass "
+                "os_or_ts='os', or drop sample_weight."
+            )
 
         # Warn if beta exceeds sigmoid upper bound
         if self.beta > class_prior:
@@ -345,6 +362,7 @@ class NonNegativePUClassifier(BasePUClassifier):
             X_val_t = torch.tensor(X_val, dtype=torch.float32)
 
         # ── Training loop ─────────────────────────────────────────
+        calibrated_view = os_or_ts == "ts"
         best_val_risk = float("inf")
         best_state = copy.deepcopy(self.model_.state_dict())
         patience_counter = 0
@@ -392,7 +410,13 @@ class NonNegativePUClassifier(BasePUClassifier):
                 opt.zero_grad()
 
                 scores_P = self.model_(batch_P_x).squeeze(-1)
-                scores_U = self.model_(batch_U_x).squeeze(-1)
+                # TS-compatible view (protocol §2.3): the positive batch above
+                # still feeds the positive loss and joins the unlabeled-loss
+                # input here, so the U risk sees the changed D_U batch.
+                unlabeled_input = (
+                    torch.cat([batch_U_x, batch_P_x], dim=0) if calibrated_view else batch_U_x
+                )
+                scores_U = self.model_(unlabeled_input).squeeze(-1)
 
                 # Apply sample weights within each group
                 if batch_P_w is not None:

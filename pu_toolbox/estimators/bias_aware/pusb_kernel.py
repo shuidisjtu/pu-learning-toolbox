@@ -56,16 +56,21 @@ def _rbf_design(distances: np.ndarray, sigma: float) -> np.ndarray:
 
 def _pu_objective_and_gradient(
     coef: np.ndarray,
-    design: np.ndarray,
-    y_pu: np.ndarray,
+    positive_design: np.ndarray,
+    unlabeled_design: np.ndarray,
     class_prior: float,
     reg_lambda: float,
 ) -> tuple[float, np.ndarray]:
-    """Evaluate the numerically stable PUSB risk and its exact gradient."""
-    positive = design[y_pu == 1]
-    unlabeled = design[y_pu == 0]
-    positive_scores = positive @ coef
-    unlabeled_scores = unlabeled @ coef
+    """Evaluate the numerically stable PUSB risk and its exact gradient.
+
+    Both roles are handed in already built, so the caller decides which rows
+    carry the unlabeled-risk role (survey protocol §2.3): under the OS view that
+    is the unlabeled rows alone, under the calibrated (ts) view it is the whole
+    training set.  A physical row may therefore appear in both role arrays --
+    the union is a role assignment, not a duplication of the training matrix.
+    """
+    positive_scores = positive_design @ coef
+    unlabeled_scores = unlabeled_design @ coef
 
     objective = (
         -class_prior * float(np.mean(positive_scores))
@@ -73,11 +78,31 @@ def _pu_objective_and_gradient(
         + 0.5 * reg_lambda * float(coef @ coef)
     )
     gradient = (
-        -class_prior * np.mean(positive, axis=0)
-        + np.mean(expit(unlabeled_scores)[:, None] * unlabeled, axis=0)
+        -class_prior * np.mean(positive_design, axis=0)
+        + np.mean(expit(unlabeled_scores)[:, None] * unlabeled_design, axis=0)
         + reg_lambda * coef
     )
     return objective, gradient
+
+
+def _risk_role_designs(
+    design: np.ndarray, y_pu: np.ndarray, *, include_positive_in_unlabeled: bool
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build the positive and unlabeled role designs for one training risk.
+
+    Takes an explicit boolean rather than the run-level view string: a caller
+    that has to stay on the OS view then holds no view value it could pass by
+    mistake.  The internal CV validation fold is exactly such a caller
+    (protocol §2.3), and it builds its roles inline instead of calling this.
+
+    The returned unlabeled design may be ``design`` itself (no copy is made --
+    the union is a role assignment).  Callers must therefore treat both returned
+    arrays as read-only.
+    """
+    positive = design[y_pu == 1]
+    if include_positive_in_unlabeled:
+        return positive, design
+    return positive, design[y_pu == 0]
 
 
 def prior_quantile_predict(scores: np.ndarray, class_prior: float) -> tuple[np.ndarray, float]:
@@ -94,17 +119,19 @@ def prior_quantile_predict(scores: np.ndarray, class_prior: float) -> tuple[np.n
 
 
 def _fit_coefficients(
-    design: np.ndarray,
-    y_pu: np.ndarray,
+    positive_design: np.ndarray,
+    unlabeled_design: np.ndarray,
     class_prior: float,
     reg_lambda: float,
     max_iter: int,
     tol: float,
 ) -> OptimizeResult:
-    initial = np.zeros(design.shape[1], dtype=float)
+    initial = np.zeros(positive_design.shape[1], dtype=float)
 
     def objective(coef):
-        return _pu_objective_and_gradient(coef, design, y_pu, class_prior, reg_lambda)
+        return _pu_objective_and_gradient(
+            coef, positive_design, unlabeled_design, class_prior, reg_lambda
+        )
 
     result = minimize(
         objective,
@@ -130,7 +157,7 @@ class PUSBKernelClassifier(BasePUClassifier):
     family = AlgorithmFamily.BIAS_AWARE
     label_semantics = "pu"
     assumption = (Assumption.SAR,)
-    scenario = (Scenario.SELECTION_BIASED,)
+    scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     requires_class_prior = True
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
@@ -186,16 +213,68 @@ class PUSBKernelClassifier(BasePUClassifier):
             raise ValueError("X and parameter grids must contain only finite values")
         return sigma_grid, reg_grid
 
-    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+    def fit(
+        self,
+        X,
+        y_pu,
+        *,
+        class_prior=None,
+        sample_weight=None,
+        os_or_ts: str = "os",
+    ):
+        """Fit the kernel PUSB classifier.
+
+        Parameters
+        ----------
+        X : np.ndarray of shape (n_samples, n_features)
+            Feature matrix.
+        y_pu : np.ndarray of shape (n_samples,)
+            PU labels.  +1 = labeled positive, 0 = unlabeled.
+        class_prior : float
+            Population class prior pi.  Required -- the PU risk and the
+            quantile decision rule both use it.
+        sample_weight : None
+            Not supported: the official PUSB objective defines no weighting.
+        os_or_ts : {"os", "ts"}, default "os"
+            Training data view (survey protocol §2.3).  ``"ts"`` applies the
+            TS-OS calibration to this estimator's unlabeled risk term: the
+            empirical unlabeled distribution becomes ``D_U ∪ D_P``, so the
+            unlabeled average runs over every training row and its denominator
+            becomes ``n_P + n_U``.  The positive term and the class prior are
+            unchanged, and so are the RBF centre pool, the CV folds and the
+            prior-quantile threshold pool -- calibration changes the risk term's
+            role set, never model capacity.
+
+            The internal CV *validation* fold stays on the OS view under both
+            settings (protocol §2.3).  This makes hyper-parameter selection a
+            deliberate cross-objective choice: the (sigma, lambda) grid is
+            scored with the OS objective even for a ``"ts"`` fit, so a ts run is
+            not tuned against the calibrated objective.  See the method card.
+
+            Unlike ``nnpu``, no extra gate between ``"ts"`` and ``sample_weight``
+            is needed here: this estimator rejects sample weights outright, so
+            the union can never introduce a row without a defined weight.
+        """
         X, y_pu = validate_pu_X_y(
             X, y_pu, accept_sparse=False, estimator_name="PUSBKernelClassifier"
         )
         X = np.asarray(X, dtype=float)
         if not np.any(y_pu == 0):
             raise ValueError("PUSBKernelClassifier requires unlabeled samples")
+        if os_or_ts not in {"os", "ts"}:
+            raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         if sample_weight is not None:
             raise NotImplementedError("The official PUSB objective does not define sample_weight")
         sigma_grid, reg_grid = self._validate_parameters(X, class_prior)
+
+        # ── TS-OS calibration (protocol §2.3) ─────────────────────────────
+        # The unlabeled-risk role is carried by X_U under the OS view and by the
+        # whole training set under the calibrated (ts) view: the labeled
+        # positives join D_U, exactly as case-control sampling puts them back.
+        # Only that role set (and its denominator) changes; the internal CV
+        # validation fold below is deliberately built from the original OS
+        # roles, so the ablation changes one thing at a time.
+        calibrated_view = os_or_ts == "ts"
 
         rng = np.random.RandomState(self.random_state)
         center_indices = rng.permutation(len(X))[: min(self.n_basis, len(X))]
@@ -224,18 +303,28 @@ class PUSBKernelClassifier(BasePUClassifier):
                 for fold in range(self.cv):
                     train = fold_ids != fold
                     validation = ~train
-                    result = _fit_coefficients(
+                    positive_train, unlabeled_train = _risk_role_designs(
                         design[train],
                         y_pu[train],
+                        include_positive_in_unlabeled=calibrated_view,
+                    )
+                    result = _fit_coefficients(
+                        positive_train,
+                        unlabeled_train,
                         float(class_prior),
                         float(reg_lambda),
                         self.max_iter,
                         self.tol,
                     )
+                    # The validation objective stays on the OS view.  Its roles
+                    # are built inline rather than through _risk_role_designs,
+                    # so the union switch is not on this path at all.
+                    val_design = design[validation]
+                    val_y = y_pu[validation]
                     fold_score, _ = _pu_objective_and_gradient(
                         result.x,
-                        design[validation],
-                        y_pu[validation],
+                        val_design[val_y == 1],
+                        val_design[val_y == 0],
                         float(class_prior),
                         float(reg_lambda),
                     )
@@ -254,9 +343,12 @@ class PUSBKernelClassifier(BasePUClassifier):
         self.cv_convergence_ = cv_convergence
 
         design = _rbf_design(distances, self.sigma_)
+        positive_all, unlabeled_all = _risk_role_designs(
+            design, y_pu, include_positive_in_unlabeled=calibrated_view
+        )
         result = _fit_coefficients(
-            design,
-            y_pu,
+            positive_all,
+            unlabeled_all,
             float(class_prior),
             self.reg_lambda_,
             self.max_iter,

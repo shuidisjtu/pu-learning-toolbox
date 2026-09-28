@@ -1,6 +1,6 @@
 # tests/unit/experiment/test_survey_pilot_driver.py
 
-# ruff: noqa: N803, N806, S101
+# ruff: noqa: N803, N806, F811, S101
 
 """The driver's gates, which decide whether a pilot starts at all.
 
@@ -10,51 +10,70 @@ wasted and says nothing.  The unit script is stubbed here so a test failure
 means the gate let something through rather than that a model was trained.
 """
 
-import importlib.util
 import json
-import subprocess
 from pathlib import Path
 
 import pytest
+from _survey_pilot_helpers import (  # noqa: F401 - imported fixtures are used by name
+    ALL_PRIORS,
+    driver,
+    splits_tree,
+    unit_calls,
+)
 
 pytestmark = pytest.mark.unit
 
-_SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
-_ALL_PRIORS = ["--class-prior", "spambase=0.39,imdb=0.5,cifar10=0.1"]
+
+_UNWIRED_METHOD = "ts_native_unwired"
+
+
+class _UnwiredTSNativeEstimator:
+    """A method that is native to TS but carries no view hook -- on purpose.
+
+    Reachable by *name* rather than by class identity, because the driver
+    resolves methods through the registry: a stub class alone could never be
+    substituted here.
+    """
+
+    def fit(self, X, y, *, class_prior=None):  # no os_or_ts: the point of it
+        raise AssertionError("the driver must refuse before anything is fitted")
 
 
 @pytest.fixture
-def driver():
-    spec = importlib.util.spec_from_file_location(
-        "run_survey_pilot", _SCRIPTS / "run_survey_pilot.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def unwired_ts_method(monkeypatch):
+    """Register that method at the two seams the resolution actually reads.
 
+    ``expected_run_views`` imports both names inside its own body, so patching
+    the modules that *define* them is what reaches it.
 
-@pytest.fixture
-def unit_calls(driver, monkeypatch):
-    """Capture what the driver would have executed instead of executing it."""
-    recorded: list[list[str]] = []
+    Pinning the slot to a synthetic method keeps it a permanent guarantee: a
+    real method that later gains the hook cannot break these two tests, and
+    neither can the last unwired method running out.
+    """
+    from pu_toolbox import registry
+    from pu_toolbox.experiment import method_ledger
 
-    def _record(argv, check=False):
-        recorded.append(list(argv))
-        return subprocess.CompletedProcess(argv, 0)
+    real_get_algorithm = registry.get_algorithm
+    real_load_ledger = method_ledger.load_ledger
 
-    monkeypatch.setattr(driver.subprocess, "run", _record)
-    return recorded
+    def get_algorithm(name):
+        if name == _UNWIRED_METHOD:
+            return _UnwiredTSNativeEstimator
+        return real_get_algorithm(name)
 
+    def load_ledger(*args, **kwargs):
+        ledger = real_load_ledger(*args, **kwargs)
+        return {
+            **ledger,
+            "methods": {
+                **ledger["methods"],
+                _UNWIRED_METHOD: {"native_sampling_assumption": "ts"},
+            },
+        }
 
-def _splits(root: Path, *, prior: float | None = None, datasets=("cifar10", "imdb", "spambase")):
-    for dataset in datasets:
-        path = root / dataset / "split_0" / "split_manifest.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"dataset": dataset, "seed": 0, "indices_sha256": "a" * 64}
-        if prior is not None:
-            payload["class_prior"] = {"population": prior}
-        path.write_text(json.dumps(payload), encoding="utf-8")
-    return root
+    monkeypatch.setattr(registry, "get_algorithm", get_algorithm)
+    monkeypatch.setattr(method_ledger, "load_ledger", load_ledger)
+    return _UNWIRED_METHOD
 
 
 # --- the safety property the F1 defect violated ------------------------------
@@ -62,7 +81,7 @@ def _splits(root: Path, *, prior: float | None = None, datasets=("cifar10", "imd
 
 def test_edge_without_a_class_prior_no_run_is_started(driver, unit_calls, tmp_path, capsys):
     """The gate must precede the batches, not surface at the hundredth one."""
-    code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(_splits(tmp_path))])
+    code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(splits_tree(tmp_path))])
 
     assert code == 1
     assert unit_calls == []
@@ -75,7 +94,7 @@ def test_edge_a_prior_contradicting_the_splits_is_refused(driver, unit_calls, tm
     Nothing downstream catches it: the aggregation gates compare budget and
     representation, not the prior.
     """
-    splits = _splits(tmp_path, prior=0.39)
+    splits = splits_tree(tmp_path, prior=0.39)
     out = str(tmp_path / "out")
     contradicted = ["--class-prior", "spambase=0.039,imdb=0.5,cifar10=0.1"]
 
@@ -98,7 +117,7 @@ def test_edge_a_prior_contradicting_the_splits_is_refused(driver, unit_calls, tm
 def test_basic_the_recorded_prior_reaches_the_unit_script(driver, unit_calls, tmp_path):
     """π is read from the splits; needing the operator to retype it invites drift."""
     driver.main(
-        ["--results", str(tmp_path / "out"), "--splits", str(_splits(tmp_path, prior=0.42))]
+        ["--results", str(tmp_path / "out"), "--splits", str(splits_tree(tmp_path, prior=0.42))]
     )
 
     assert unit_calls
@@ -122,8 +141,8 @@ def test_basic_dry_run_reports_the_plan_without_starting_a_batch(
             "--results",
             str(tmp_path / "none"),
             "--splits",
-            str(_splits(tmp_path)),
-            *_ALL_PRIORS,
+            str(splits_tree(tmp_path)),
+            *ALL_PRIORS,
         ]
     )
 
@@ -132,7 +151,16 @@ def test_basic_dry_run_reports_the_plan_without_starting_a_batch(
     printed = capsys.readouterr().out
     assert "planned: 645 run(s)" in printed
     assert "pending:   645" in printed
-    assert "peak per run" in printed
+    # What a host is sized against, and what the figure leaves out.  The peak is
+    # the native CNN's: the adapter rows save a trainable head, and pricing them
+    # as the ResNet they read features from is what made this four times too big.
+    assert "324.5 GiB for the whole pilot" in printed
+    assert "8.79 GiB (cifar10/nnpu/native_cnn)" in printed
+    assert "17.58 GiB" in printed
+    assert "adapter_trainable_head" in printed
+    assert "data, logs, manifests, scratch files" in printed
+    assert "1280.6" not in printed
+    assert "35.16" not in printed
 
 
 # --- parameter errors and determinism ----------------------------------------
@@ -145,7 +173,7 @@ def test_param_a_malformed_dimension_or_prior_is_reported_not_raised(driver, tmp
 
 
 def test_determ_the_batch_order_is_the_same_on_a_second_pass(driver, unit_calls, tmp_path):
-    argv = ["--results", str(tmp_path / "out"), "--splits", str(_splits(tmp_path)), *_ALL_PRIORS]
+    argv = ["--results", str(tmp_path / "out"), "--splits", str(splits_tree(tmp_path)), *ALL_PRIORS]
 
     driver.main(argv)
     first = list(unit_calls)
@@ -153,3 +181,241 @@ def test_determ_the_batch_order_is_the_same_on_a_second_pass(driver, unit_calls,
     driver.main(argv)
 
     assert first == unit_calls
+
+
+# --- the view a resumed unit is held to ---------------------------------------
+
+
+def _resume_protocol(*methods: str) -> dict:
+    """A matrix whose methods do not share one default view.
+
+    Kept small on purpose: the question is which view each unit resolves to, and
+    the shipped 645-run matrix would answer it far more slowly.
+    """
+    return {
+        "seeds": [0],
+        "c_tokens": {"scar": ["0.1"]},
+        "candidate_pool": [{}],
+        "budgets": {"minibatch": {"epochs": 200}},
+        "backbone_specs": {"mlp128": {"hidden_dims": [128], "activation": "relu"}},
+        "execution_units": [
+            {
+                "dataset": "spambase",
+                "method": method,
+                "training_path": "native_2d",
+                "budget": "minibatch",
+                "backbone": "mlp128",
+                "runnable": True,
+            }
+            for method in methods
+        ],
+    }
+
+
+def _write_run(results: Path, *, run_view: str) -> Path:
+    """A finished run's manifest, on the split ``_splits`` writes."""
+    path = results / "spambase" / "nnpu" / "c_0.1" / "seed_0" / "manifest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "execution_mode": "versioned_pilot",
+                "seed": 0,
+                "execution_unit": {
+                    "dataset": "spambase",
+                    "method": "nnpu",
+                    "training_path": "native_2d",
+                },
+                "generation": {"train": {"mechanism": "scar"}},
+                "c_requested_token": "0.1",
+                "selection": {"OA": {"candidate_index": 0}},
+                "run_view": run_view,
+                "calibration_applied": run_view == "ts-compatible",
+                "representation": {"split_sha256": "a" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_basic_each_method_resolves_to_its_own_default_view(driver, unwired_ts_method):
+    """One global expectation cannot describe this matrix.
+
+    ``nnpu``, ``upu``, ``pusb_kernel``, ``dist_pu`` and ``self_pu`` are native to
+    TS and wired for calibration, so they default to the calibrated view; the
+    unwired-TS slot is carried by a synthetic method with no ``os_or_ts`` hook and
+    falls back to OS; ``lbe`` is native to OS; the oracle is never calibrated.
+    The driver has to resolve each one the way the unit script will, or it holds
+    a resumed unit to a view that run was never going to use.
+    """
+    protocol = _resume_protocol("nnpu", "upu", "dist_pu", "self_pu", "lbe", "pn_oracle")
+    planned = driver.planned_runs(protocol)
+
+    views = driver.expected_run_views(planned, None)
+
+    assert {run.method: views[run.key] for run in planned} == {
+        "nnpu": "ts-compatible",
+        "upu": "ts-compatible",
+        "dist_pu": "ts-compatible",
+        "self_pu": "ts-compatible",
+        "lbe": "os-compatible",
+        "pn_oracle": "os-compatible",
+    }
+
+    unwired = _resume_protocol(unwired_ts_method)
+    unwired_views = driver.expected_run_views(driver.planned_runs(unwired), None)
+
+    assert set(unwired_views.values()) == {"os-compatible"}
+
+
+@pytest.mark.parametrize(
+    ("requested", "expected"),
+    [(None, "ts-compatible"), ("os", "os-compatible"), ("ts", "ts-compatible")],
+)
+def test_param_a_request_selects_the_view_the_unit_script_would_use(driver, requested, expected):
+    protocol = _resume_protocol("nnpu")
+
+    views = driver.expected_run_views(driver.planned_runs(protocol), requested)
+
+    assert set(views.values()) == {expected}
+
+
+def test_edge_an_explicit_ts_on_an_os_native_method_is_refused_up_front(driver):
+    """The unit script refuses this per run; the driver must refuse it before one."""
+    protocol = _resume_protocol("lbe")
+
+    with pytest.raises(ValueError, match="native to 'os'"):
+        driver.expected_run_views(driver.planned_runs(protocol), "ts")
+
+
+@pytest.mark.parametrize(
+    ("method", "reason"),
+    [
+        ("lbe", "declared native to 'os'"),
+        pytest.param(_UNWIRED_METHOD, "declares no os_or_ts parameter"),
+        ("pn_oracle", "does not apply"),
+    ],
+)
+def test_param_an_explicit_ts_is_refused_before_any_batch(
+    driver, unit_calls, tmp_path, capsys, monkeypatch, method, reason, unwired_ts_method
+):
+    """Every way a calibrated request can be impossible is refused at start-up.
+
+    The unit script refuses each of these too, but per run -- so a pilot would
+    meet it at whichever batch happened to hit that method, with the batches
+    before it already paid for.  The three reasons are genuinely different: a
+    method native to OS, one native to TS whose estimator has no ``os_or_ts``
+    hook, and the oracle, which has no PU view to calibrate at all.  Each has to
+    arrive as a readable error, not as a traceback from the batch that found it.
+
+    The "native to TS but not yet wired" slot is carried by a *synthetic* method
+    (``unwired_ts_method``), not by whichever real method happens to be unwired
+    today: every method in the matrix is expected to end up wired, so a slot
+    pinned to one of them would rot the moment that method landed.  The generic
+    resolution rule is also covered permanently by ``test_survey_script_view.py``
+    with a synthetic estimator whose ``fit`` carries no ``os_or_ts``.
+    """
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_resume_protocol(method)))
+    splits = splits_tree(tmp_path, datasets=("spambase",))
+
+    code = driver.main(
+        ["--results", str(tmp_path / "out"), "--splits", str(splits), "--os-or-ts", "ts"]
+    )
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    assert reason in err
+    assert "Traceback" not in err
+
+
+def _stub_protocol(protocol: dict):
+    """A ``load_protocol`` stand-in that yields *protocol* for any path.
+
+    The driver resolves ``--protocol`` to a file and loads that file; the tests
+    here inject a synthetic matrix rather than write one out, so the path is
+    accepted and ignored.  The parameter is real because the caller's is: a
+    stub that took none would pass only while the driver forgot to resolve.
+    """
+
+    def _load(_path=None):
+        return protocol
+
+    return _load
+
+
+def _unsized_protocol() -> dict:
+    """A matrix whose only runnable row names an architecture no profile covers.
+
+    ``native_cnn`` saves the ResNet itself, so the constant is evidence for the
+    backbone it was measured on and nothing else; naming a different one must
+    stop the pilot rather than inherit it.
+    """
+    protocol = _resume_protocol("nnpu")
+    protocol["execution_units"][0].update(
+        {"training_path": "native_cnn", "backbone": "resnet34_end_to_end"}
+    )
+    return protocol
+
+
+@pytest.mark.parametrize("dry_run", [True, False], ids=["dry-run", "real-run"])
+def test_param_an_unsized_row_stops_the_pilot_before_the_first_batch(
+    driver, unit_calls, tmp_path, capsys, monkeypatch, dry_run
+):
+    """A row the estimator cannot size is a configuration error, not a batch.
+
+    The unit script refuses it too, but only on reaching that unit -- by which
+    time every batch queued ahead of it has run.  Both paths report the same
+    figure, so both have to refuse before the first subprocess.
+    """
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_unsized_protocol()))
+    splits = splits_tree(tmp_path, prior=0.39, datasets=("spambase",))
+    argv = ["--results", str(tmp_path / "out"), "--splits", str(splits), *ALL_PRIORS]
+    if dry_run:
+        argv.append("--dry-run")
+
+    code = driver.main(argv)
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    # The message has to name enough for a reader to find the missing profile.
+    for field in ("spambase", "nnpu", "native_cnn", "resnet34_end_to_end"):
+        assert field in err
+    assert "Traceback" not in err
+
+
+def test_edge_a_runnable_method_the_registry_cannot_supply_is_reported(
+    driver, unit_calls, tmp_path, capsys, monkeypatch
+):
+    """A driver error, reported as one: readable, no traceback, no batch started."""
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_resume_protocol("no_such_method")))
+    splits = splits_tree(tmp_path, datasets=("spambase",))
+
+    code = driver.main(["--results", str(tmp_path / "out"), "--splits", str(splits)])
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert err.startswith("error: ")
+    assert "estimator class" in err
+    assert "Traceback" not in err
+
+
+def test_basic_an_os_result_leaves_a_calibrated_unit_pending(
+    driver, unit_calls, tmp_path, capsys, monkeypatch
+):
+    """F11 end to end: the default request is calibrated, so an OS run is not it."""
+    monkeypatch.setattr(driver, "load_protocol", _stub_protocol(_resume_protocol("nnpu")))
+    splits = splits_tree(tmp_path, datasets=("spambase",))
+    results = tmp_path / "results"
+    _write_run(results, run_view="os-compatible")
+
+    code = driver.main(["--dry-run", "--results", str(results), "--splits", str(splits)])
+
+    assert code == 0
+    assert unit_calls == []
+    assert "pending:   1" in capsys.readouterr().out

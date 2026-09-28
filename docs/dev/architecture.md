@@ -18,7 +18,7 @@
 
 | 模块 | 核心职责 | 详情来源 |
 |---|---|---|
-| `core/` | PU 基类、标签语义规范、输入校验与规范化、设备/随机源统一、异常与 tags 语义 | [`../../pu_toolbox/core/__init__.py`](../../pu_toolbox/core/__init__.py) |
+| `core/` | PU 基类、标签语义规范、输入校验与规范化、设备/随机源统一、异常与 tags 语义、**中立训练角色视图**（`core/training_views.py`） | [`../../pu_toolbox/core/__init__.py`](../../pu_toolbox/core/__init__.py) |
 | `preprocessing/` | SCAR/SAR 标签与数据生成、结构化数据画像 | [`../../pu_toolbox/preprocessing/__init__.py`](../../pu_toolbox/preprocessing/__init__.py)、[`画像指南`](../user/howto/data_profiling.md) |
 | `registry/` | 算法注册、元数据与内置方法发现 | [`../../pu_toolbox/registry/__init__.py`](../../pu_toolbox/registry/__init__.py)、[`内置方法表`](../../pu_toolbox/registry/builtin_methods.py) |
 | `advisor/` | 数据画像驱动的算法推荐 | [`../../pu_toolbox/advisor/__init__.py`](../../pu_toolbox/advisor/__init__.py)、[`选型原理`](../user/concepts/method_selection.md) |
@@ -91,6 +91,7 @@
 - **数据画像链**：`preprocessing/profiling.py`（统计元语：`pu_data_summary`/`pnu_data_summary`/`scar_diagnostic`，向后兼容）→ `preprocessing/data_profiler.py`（聚合编排：`PUDataProfile` + 可行动 issues）→ `workflows`（pipeline 首步）/ `diagnostics`（报告）/ `advisor`（推荐）
 - **字段语义**：`core/tags.py` 是 registry 元数据字段与枚举的权威来源，registry/advisor 均以其为准
 - **设备与随机源入口**：`core/device.py` 的 `resolve_device`、`core/random.py` 的 `check_random_state` 是全工具箱唯一的设备/seed 归一化入口，避免各调用点语义漂移
+- **训练视图链**：`core/training_views.py`（中立元语：从一次训练分区识别 `positive` / `native_unlabeled` / `loss_unlabeled` 三个角色与来源索引，不认识台账、方法名与 manifest）→ `experiment/training_views.py`（survey 边界：台账门禁、路由裁决、历史 `run_view` 词表在出口现算、manifest 构造；角色构造委托核心层）→ estimator 的 `os_or_ts` 消费点。**方向是 `estimator → core`，禁止 `estimator → experiment`**：estimator 是通用算法，静态依赖 survey 协议即构成反向依赖（实测 `experiment.training_views` 会经实验包 `__init__` 拉起 28 个 estimator 模块，反方向为 0）。边界由 `tests/unit/core/test_training_view_contract.py` 的子进程导入测试守住。角色是事实，能否校准是政策——政策留在实验层，事实下沉到核心层。
 - **实验层注入链**：`experiment/runner.py`（固定编排骨架）→ 注入的 `model` 实例（estimators，调用方经 `registry.get_algorithm` 获取，非静态 import）+ 策略 ABC（`protocols.py` 的 `Generator`/`Trainer`/`SelectionProtocol`）→ 生成/训练/选模/留痕各由可替换策略承担
 
   「非静态 import」指 `ExperimentRunner` 的 import 列表不含任何 estimator 或 registry，只经

@@ -27,6 +27,7 @@ pu_toolbox/
     random.py                             (shared: check_random_state 随机种子规范化（sklearn 兼容）)
     tags.py                               (shared: Scenario/Assumption/ImplementationStatus 等类型化枚举)
     device.py                             (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
+    training_views.py                     (shared: TrainingView/build_training_view——P/原始 U/损失 U 角色与来源索引的中立构造，不认识台账·方法名·manifest)
   preprocessing/
     __init__.py                           (公共导出聚合)
     pu_labeling.py                        (make_scar_labels/make_pu_labels 等造 PU/PNU 标签及高斯合成数据)
@@ -158,7 +159,7 @@ pu_toolbox/
     feature_adapter.py                    (CNN 二维特征适配、encoder/特征哈希与榜单公平性分组门禁)
     image.py                              (train-only 图像统计、缩放、ResNet-18/增强配置与哈希留痕)
     text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存；键按去重语料而非排列，故同一文本跨 seed 同值)
-    training_views.py                     (train-only OS/TS-compatible mini-batch 损失视图与留痕)
+    training_views.py                     (survey 边界适配器: 台账门禁与路由裁决、旧 run_view 词表在出口现算、manifest 留痕；角色构造委托 core.training_views)
     manifest.py                           (manifest 写入/加载与必填键校验)
     protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
     resources.py                          (候选/调参/GPU 资源计量、运行环境探测与跨 seed 汇总)
@@ -166,11 +167,12 @@ pu_toolbox/
     strategies.py                         (内置策略: SCAR/SAR-LBE 生成、PA/OA 选模、Trainer 三实现、select_threshold)
     tracking.py                           (运行留痕数据类: EpochRecord/RunTrajectory/SelectionArtifact/RunResult)
     survey_execution.py                   (P2.0a 共享模型/图像装配、随机冻结 adapter 校验缓存与原空间 SAR 标记)
-    survey_protocol.py                    (survey_protocol_v1.json 消费、参数预算锁、正式资格与比较门禁)
+    survey_protocol.py                    (survey_protocol_v1.json 消费、--protocol 名/路径统一解析、参数预算锁、正式资格与比较门禁)
     checkpoints.py                        # 逐 epoch 权重快照、摘要校验与独立推理恢复
     survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
-    pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算
+    pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算、splits 读取可按数据集收窄
+    method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -184,7 +186,7 @@ tests/
     test_classifier_baseline.py         # fit/predict/decision_function/get_params 等
     test_capability_declarations.py     # 能力声明 4 组不变量契约测试
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
-    test_ledger_registry_consistency.py # 台账↔registry 6 条不变量一致性契约
+    test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -217,6 +219,7 @@ tests/
       test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
       test_dist_pu.py                   # Dist-PU 特有逻辑(torch 依赖 importorskip、mixup 权重边界、class prior/epochs 参数校验)
       test_vpu.py                       # VPU 公式 golden、归一化、注册/pipeline、checkpoint 与 CUDA smoke
+      test_vpu_ts_view.py               # VPU 的 TS-OS 训练视图(两池由核心角色位置产生、裸默认等价 ts、验证只请求 train 角色)
       test_pulda.py                     # PULDA 双损失 golden、两阶段轨迹、注册/pipeline、checkpoint 与 CUDA smoke
       test_grad_pu.py                   # GradPU 公式 golden、接口/注册、确定性、checkpoint 与 CUDA smoke
       test_robust_pu.py                 # Robust-PU 自步权重、接口/注册、确定性、checkpoint 与 CUDA smoke
@@ -231,6 +234,14 @@ tests/
       test_llsvm.py                     # LLSVM 特有逻辑(可分离合成训练、calibration 防全正、早停与显式先验路径)
       test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
       test_nnpu_gpu.py                  # nnPU CNN encoder GPU 执行级测试(无 CUDA 自动 skip)
+      test_nnpu_ts_view.py              # nnPU 的 TS-OS 训练视图（并集输入、视图门禁、验证保持 OS）
+      test_upu_ts_view.py               # UPUClassifier 的 TS-OS 训练视图(独立重推 golden、solver 池与分母、RBF 中心池)
+      test_pusb_kernel_ts_view.py       # PUSBKernelClassifier 的 TS-OS 训练视图(独立重推 golden、角色集与分母、OS 冻结基线)
+      test_pusb_kernel_view_invariants.py # PUSBKernel 视图不变量(中心/fold/阈值池不变、角色重合但不复制物理样本)
+      test_dist_pu_ts_view.py           # DistPU 视图的数学期望与 OS 冻结基线(独立算式 golden、逐 tensor 容差、改造前后逐位等价)
+      test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
+      test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
+      test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -287,6 +298,7 @@ tests/
       test_deployment_commands.py       # shift-monitor/review CLI 参数与产物旅程
     core/
       test_device.py                    # resolve_device 设备解析共享助手测试
+      test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
@@ -298,7 +310,7 @@ tests/
       test_feature_adapter.py           # CNN 特征四路适配/哈希/fit 范围与 split/seed/预算公平门禁
       test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
       test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测；跨排列同条目、重复文本共享行
-      test_training_views.py            # TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与哈希
+      test_training_views.py            # 实验层边界适配器: TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与 manifest 哈希
       test_manifest.py                  # manifest 往返与必填键 fail-loud
       test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
       test_runner.py                    # ExperimentRunner 端到端(小PU/CNN smoke)与 fail-loud
@@ -337,7 +349,20 @@ tests/
       test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
+      _survey_pilot_helpers.py          # 驱动测试共享夹具: 脚本动态加载、subprocess 记录与 split 目录树
+      test_survey_pilot_request_scope.py # 请求范围: --protocol 决定计划与批次、无关数据集的坏 splits 不阻断分片、快照写失败报错
+      test_survey_pilot_subset.py       # 驱动子集: --datasets 收窄计划与批次、未知名拒绝、--plan-json 分区可核对
       test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
+      test_leaderboard_run_view.py      # 排行榜分组: 视图不同即不入同一组（os 与 ts 不可同榜）
+      test_method_ledger.py             # 方法台账读取: 枚举+中文注记归一、缺字段与非法值拒绝
+      test_runner_view_manifest.py      # 训练视图留痕: 成功与失败路径都记 run_view/calibration_applied
+      test_survey_script_view.py        # 训练视图: 台账默认与 CLI 覆盖、门禁、视图进产物路径
+      test_training_view_routing.py     # trainer 侧视图参数: 按签名探测转发、未声明 fail-loud、os 不传参
+      test_aggregate_survey_run_view.py # 聚合按实际运行视图分区: 同方法 OS/TS 各成一榜、校准标志一致性、oracle 恒在 os
+      test_pilot_resume_view.py         # 续跑按视图限定: 默认视图逐单元解析、OS/TS 不折叠、非法制品不阻断扫描
+      test_checkpoint_storage_profiles.py # checkpoint 体积 profile: 按训练路径+backbone+model_family 分派、真实序列化上界、全 Pilot 精确字节
+    utils/
+      test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
@@ -597,7 +622,7 @@ scripts/
   generate_structure.py                   (结构文档生成器：--check 校验 / --update 重生成 project_structure.md 树块)
   prepare_survey_splits.py                (P1.4 四路 split 产物准备：data/raw 生成 train/pu_val/clean_val/test.npz 与 manifest)
   run_survey_experiment.py                (官方示例脚本(协议 §2.4 第 9 条)：单方法四路 PU 实验、PA/OA 选模、独立 test 评测)
-  run_survey_pilot.py                     (全 pilot 驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算与 --dry-run)
+  run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets 子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
   aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
 ```
