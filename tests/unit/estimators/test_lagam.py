@@ -108,6 +108,37 @@ def test_missing_or_malformed_clean_support_fails_closed():
         _model().fit(X, y, support_data=support, sample_weight=np.ones(len(y)))
 
 
+def test_edge_minimal_support_and_shortest_schedule():
+    """The accepted end of the support gate and of the epoch schedule.
+
+    One clean sample per class is the smallest support set the gate admits,
+    and it is what drives the ``clamp_min(1.0)`` guards inside the balanced
+    BCE.  ``warmup_epochs=0`` with ``max_epochs=1`` is the shortest schedule
+    the validation admits, and the only one that exercises the
+    ``max(max_epochs - 1, 1)`` guard on ``rho``'s denominator.
+    """
+    X, y, support = _data()
+    minimal_support = (support[0][[0, 5]], support[1][[0, 5]])
+    clf = LaGAMClassifier(
+        hidden_dim=8,
+        warmup_epochs=0,
+        max_epochs=1,
+        batch_size=8,
+        support_batch_size=32,
+        num_clusters=2,
+        rho_start=0.0,
+        rho_end=0.0,
+        random_state=5,
+        device="cpu",
+    )
+    clf.fit(X, y, support_data=minimal_support)
+    assert clf.n_support_ == 2
+    assert len(clf.history_["train_loss"]) == 1
+    scores = clf.decision_function(X)
+    assert scores.shape == (len(X),) and np.isfinite(scores).all()
+    assert bool(torch.all(clf.pseudo_labels_[y == 1] == 1))
+
+
 def test_registry_declares_support_and_pu_only_recommender_excludes_lagam():
     X, y, _ = _data()
     register_all_builtin_methods()
