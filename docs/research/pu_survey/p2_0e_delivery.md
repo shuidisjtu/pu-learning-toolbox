@@ -357,6 +357,11 @@ reweighting or clean-validation teacher selection.`；重放审计中 `meta_infl
 协议侧的 `formal_blockers` 本就带 `SelfPU_clean_validation_meta_reweighting_OA_integration`，与这条
 边界一致。
 
+> **补记（2026-09-28，决策 D24）**：该阻断位的运行时追加**已移除**，「阻断正式资格」不再生效；
+> 依据是当日裁决「现有消融变体纳入 pilot 范围」。**放行不等于合作者已复核**——上方关于消融边界的
+> 陈述仍然有效，manifest 的 `method_variant` 仍如实写入
+> `without_clean_validation_meta_reweighting`。本句为补记，上方原文按历史记录保留、**不改写**。
+
 #### 7.5.1 重放身份审计
 
 制品**不落盘** trusted 成员、meta 行数或 consistency 行数，所以身份证据来自**重放审计**：从

@@ -4,7 +4,7 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 
 **机器真相源**（数值/状态以它们为准，文档只作解释）：
 
-- `pu_toolbox/experiment/survey_protocol_v1.json` — 执行协议，当前 `survey-v1.2`，摘要 `c019a87d9bc079b5d97cb35d40f5a66f252340525c47fd8b10a3a112b8b4a50a`
+- `pu_toolbox/experiment/survey_protocol_v1.json` — 执行协议，当前 `survey-v1.2`，摘要 `287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a`
 - `pu_toolbox/experiment/survey_comparison_v3.json` — 外部对照矩阵，当前 `survey-comparison-v3`
   （`v1`/`v2` 原样留档为历史版本；修订理由见 `survey_execution_plan.md` 决策 D10、D12）
 

@@ -532,8 +532,7 @@
     }
   ],
   "formal_blockers": [
-    "per_epoch_independent_PA_OA_checkpoint_selection",
-    "linux_frozen_lock_environment_deviation"
+    "per_epoch_independent_PA_OA_checkpoint_selection"
   ],
   "decisions": [
     "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
