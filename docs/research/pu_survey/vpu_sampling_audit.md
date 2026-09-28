@@ -14,8 +14,8 @@
 
 ```text
 native_sampling_assumption = ts
-run_view                    = ts-compatible（接线后）
-calibration_applied         = true（接线后）
+run_view                    = ts-compatible
+calibration_applied         = true
 ```
 
 即：**VPU 的边缘池必须是 $D_U\cup D_P$**。工具箱现有实现用传入 `fit` 的完整 `X` 作为边缘池，与作者实现的池**逐集合等价**，等价于始终运行校准后的 TS 视图——只是此前没有显式记录。
@@ -129,7 +129,7 @@ PU-Bench 的 VPU 套件（本地对照库，见 §3 环境说明）由未参与�
 - 本审计为**单方技术审计**，无合作者复核；
 - 作者仓库亲验限于 cifar10 路径；`dataset_avila.py` / `dataset_grid.py` / `dataset_pageblocks.py` 的池构造未逐一核验（结构同源，但未亲验逐字）；
 - VPU 输出是归一化分数，不是独立概率校准后验；
-- OS 对照的行为变化：接线后显式 `os` 请求对 VPU 的语义由「静默跑 TS」变为「真跑 OS」，属可观测变化，须在方法卡与 changelog 记录。
+- OS 对照的行为变化（2026-09-28 已随接线发生）：显式 `os` 请求对 VPU 的语义由「静默跑 TS」变为「真跑 OS」，方法卡已记录；同一变更修好了路由转发（决策 D23）。
 
 ## 11. 证据清单
 
