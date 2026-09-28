@@ -216,6 +216,7 @@ tests/
       test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
       test_dist_pu.py                   # Dist-PU 特有逻辑(torch 依赖 importorskip、mixup 权重边界、class prior/epochs 参数校验)
       test_vpu.py                       # VPU 公式 golden、归一化、注册/pipeline、checkpoint 与 CUDA smoke
+      test_vpu_ts_view.py               # VPU 的 TS-OS 训练视图(两池由核心角色位置产生、裸默认等价 ts、验证只请求 train 角色)
       test_pulda.py                     # PULDA 双损失 golden、两阶段轨迹、注册/pipeline、checkpoint 与 CUDA smoke
       test_grad_pu.py                   # GradPU 公式 golden、接口/注册、确定性、checkpoint 与 CUDA smoke
       test_puet.py                      # PUET 节点风险 golden、树集成、确定性、pickle 与 pipeline

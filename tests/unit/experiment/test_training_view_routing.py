@@ -30,12 +30,18 @@ Y = np.array([1, 0, 0, 0])
 
 
 class _DeclaringEstimator:
-    """Estimator whose ``fit`` advertises the calibrated view."""
+    """Estimator whose ``fit`` advertises the calibrated view.
+
+    Its own default is ``"ts"``, standing for a method native to the calibrated
+    view (VPU is the first): for such a target, dropping an explicit ``os``
+    request would run the opposite of what the operator asked for. That is why
+    ``os`` is routed at all.
+    """
 
     def __init__(self):
         self.received = "unset"
 
-    def fit(self, X, y, *, class_prior=None, os_or_ts=None):  # noqa: N803
+    def fit(self, X, y, *, class_prior=None, os_or_ts="ts"):  # noqa: N803
         self.received = os_or_ts
         return self
 
@@ -57,12 +63,48 @@ def _params(estimator):
 
 
 class TestRouteTrainingView:
-    def test_os_and_none_are_not_routed(self):
-        """Only a calibrated request changes training, so only it is forwarded."""
+    def test_none_is_not_routed(self):
+        """No request means no keyword: the estimator's own default decides."""
         kwargs: dict = {}
         declaring = _DeclaringEstimator()
-        route_training_view(kwargs, _params(declaring), "os", declaring)
         route_training_view(kwargs, _params(declaring), None, declaring)
+        assert kwargs == {}
+
+    def test_os_is_routed_when_the_target_declares_it(self):
+        """An explicit ``os`` must reach a target whose own default is not os.
+
+        Without this, a method native to the calibrated view runs the view the
+        operator did not ask for, and the manifest records the request rather
+        than what happened -- the silent reversal the module exists to prevent,
+        in the other direction.
+        """
+        declaring = _DeclaringEstimator()
+        kwargs: dict = {}
+        route_training_view(kwargs, _params(declaring), "os", declaring)
+        assert kwargs == {"os_or_ts": "os"}
+
+    def test_os_is_not_routed_when_undeclared(self):
+        """A target that never declares the view is OS by construction."""
+        plain = _PlainEstimator()
+        kwargs: dict = {}
+        route_training_view(kwargs, _params(plain), "os", plain)
+        assert kwargs == {}
+
+    def test_os_is_not_routed_when_fit_only_takes_var_keyword(self):
+        """``**kwargs`` is not evidence that the view was meant to be carried.
+
+        The ``ts`` path keeps the repo's named-or-var-keyword rule (frozen
+        behaviour); an ``os`` request has nothing to downgrade, so it is not
+        injected into a signature that never named the parameter.
+        """
+
+        class _VarKeywordEstimator:
+            def fit(self, X, y, **kwargs):  # noqa: N803
+                self.kwargs = kwargs
+
+        estimator = _VarKeywordEstimator()
+        kwargs: dict = {}
+        route_training_view(kwargs, _params(estimator), "os", estimator)
         assert kwargs == {}
 
     def test_ts_is_routed_when_declared(self):

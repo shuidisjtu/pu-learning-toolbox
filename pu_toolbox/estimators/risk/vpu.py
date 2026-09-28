@@ -25,6 +25,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 
 
@@ -105,12 +106,23 @@ class VPUClassifier(BasePUClassifier):
         sample_weight=None,
         pu_validation_data=None,
         epoch_callback=None,
+        os_or_ts: str = "ts",
     ) -> VPUClassifier:
-        """Minimize the variational objective using P and the full P/U pool.
+        """Minimize the variational objective using P and the marginal pool.
+
+        ``os_or_ts`` selects the training view (protocol §2.3). The paper's
+        marginal term is an expectation over the population marginal, so the
+        calibrated (``"ts"``) view -- the pool is ``D_U ∪ D_P``, the whole
+        training partition -- is this method's **native** default rather than
+        an opt-in: a bare ``fit`` keeps the objective the paper defines.
+        ``"os"`` restricts the pool to the unlabeled rows; that is a
+        protocol-defined ablation, not a native reading of VPU.
 
         ``class_prior`` is accepted only for the common estimator interface;
         it never enters VPU's loss. ``pu_validation_data`` may be a PU-view
-        DatasetPart or ``(X_val, y_pu_val)`` and is used only for epoch risk.
+        DatasetPart or ``(X_val, y_pu_val)`` and is used only for epoch risk,
+        which is a source diagnostic and does not follow the training view
+        (decision D22).
         """
         try:
             import torch
@@ -124,10 +136,24 @@ class VPUClassifier(BasePUClassifier):
         X = _finite_features(X, name="X")
         if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
             raise ValueError("class_prior, if supplied, must be in (0, 1)")
+        if os_or_ts not in {"os", "ts"}:
+            raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         self._validate_parameters()
-        positive = X[y_pu == 1]
-        if not np.any(y_pu == 0):
-            raise ValueError("VPU needs at least one unlabeled sample")
+
+        # ── TS-OS calibration (protocol §2.3, decision D21) ───────────────
+        # Both pools are taken from the core view's **role positions**, never
+        # from the source array directly. That is what makes the calibrated
+        # view exercised rather than merely declared: if this bypassed the
+        # roles, a core constructor that dropped or duplicated rows would
+        # leave every test here green. The positive rows are ascending by
+        # construction; the loss pool is sorted back into source order, which
+        # under the calibrated view restores the full partition's own order
+        # (so the sampling trajectory is unchanged from the pre-view code).
+        view = build_training_view(X, y_pu, requested_view=os_or_ts, role="train")
+        positive = view.source_features[view.positive_positions]
+        loss_unlabeled = view.source_features[np.sort(view.loss_unlabeled_positions)]
+        n_loss_unlabeled = len(loss_unlabeled)
+
         validation = _prepare_pu_validation(pu_validation_data, X.shape[1])
 
         rng = np.random.RandomState(self.random_state)
@@ -147,7 +173,7 @@ class VPUClassifier(BasePUClassifier):
         self.model_ = nn.Sequential(*layers, calibration).to(device)
         phi = self.model_[:-1]
         optimizer = torch.optim.Adam(phi.parameters(), lr=self.learning_rate, betas=(0.5, 0.99))
-        x_data = torch.as_tensor(X, device=device)
+        x_data = torch.as_tensor(loss_unlabeled, device=device)
         p_data = torch.as_tensor(positive, device=device)
         val_data = None
         if validation is not None:
@@ -156,8 +182,11 @@ class VPUClassifier(BasePUClassifier):
                 torch.as_tensor(val_X, device=device),
                 torch.as_tensor(val_X[val_y == 1], device=device),
             )
-        steps = max(math.ceil(len(X) / self.batch_size), math.ceil(len(positive) / self.batch_size))
-        batch_size = min(self.batch_size, len(X))
+        steps = max(
+            math.ceil(n_loss_unlabeled / self.batch_size),
+            math.ceil(len(positive) / self.batch_size),
+        )
+        batch_size = min(self.batch_size, n_loss_unlabeled)
         self.history_ = {
             "epoch": [],
             "variational_loss": [],
@@ -169,6 +198,10 @@ class VPUClassifier(BasePUClassifier):
         self.optimizer_steps_ = 0
         self.n_positive_ = len(positive)
         self.n_unlabeled_ = int(np.sum(y_pu == 0))
+        #: The rows the marginal term actually acted on: ``D_U`` under ``os``,
+        #: ``D_U ∪ D_P`` under ``ts``. Recorded so a run can be audited on the
+        #: pool it trained on rather than on the view it asked for.
+        self.n_loss_unlabeled_ = n_loss_unlabeled
         self.n_features_in_ = X.shape[1]
         self._X_shape_ = X.shape
         self._class_prior = None
@@ -180,7 +213,7 @@ class VPUClassifier(BasePUClassifier):
             self.model_.train()
             for _ in range(steps):
                 p_idx = rng.choice(len(positive), size=batch_size, replace=True)
-                x_idx = rng.choice(len(X), size=batch_size, replace=True)
+                x_idx = rng.choice(n_loss_unlabeled, size=batch_size, replace=True)
                 p_batch = p_data[p_idx]
                 x_batch = x_data[x_idx]
                 mixing = torch.as_tensor(
@@ -215,7 +248,7 @@ class VPUClassifier(BasePUClassifier):
             with torch.no_grad():
                 max_log_phi = max(
                     float(phi(x_data[start : start + self.batch_size]).max().cpu())
-                    for start in range(0, len(X), self.batch_size)
+                    for start in range(0, n_loss_unlabeled, self.batch_size)
                 )
                 calibration.bias.fill_(-max_log_phi - math.log(0.5))
                 self.max_log_phi_ = max_log_phi
