@@ -18,7 +18,7 @@ from _survey_script_helpers import survey_script  # noqa: F401 - pytest fixture
 
 from pu_toolbox.estimators.bias_aware import PUSBKernelClassifier
 from pu_toolbox.estimators.deep import SelfPUClassifier
-from pu_toolbox.estimators.risk import DistPUClassifier
+from pu_toolbox.estimators.risk import DistPUClassifier, VPUClassifier
 from pu_toolbox.experiment.protocols import route_training_view
 from pu_toolbox.experiment.strategies import DeepFitTrainer, FitTrainer, SupervisedTrainer
 from pu_toolbox.experiment.training_views import resolve_training_view
@@ -170,6 +170,7 @@ class TestTrainerForwarding:
         ("pusb_kernel", PUSBKernelClassifier),
         ("dist_pu", DistPUClassifier),
         ("self_pu", SelfPUClassifier),
+        ("vpu", VPUClassifier),
     ],
 )
 class TestResolutionForARealMethod:

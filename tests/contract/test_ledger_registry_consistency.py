@@ -12,7 +12,7 @@ required), and the registry is the gate's truth source.
 One test per invariant:
 
 1. every ledger key is a registered algorithm and the key set is exactly the
-   expected eight entries (``pusb`` and ``pusb_kernel`` stay separate);
+   expected entries (``pusb`` and ``pusb_kernel`` stay separate);
 2. ``modality_backbone.code_capability`` mirrors the registry capability
    fields (``native_architectures`` / ``input_ndims`` / ``encoder_parameter`` /
    ``trains_encoder``);
@@ -54,6 +54,7 @@ _EXPECTED_METHOD_KEYS = {
     "lbe",
     "nnpu",
     "self_pu",
+    "vpu",
 }
 
 # Ledger notes open their annotation with either an ASCII or a full-width
@@ -75,8 +76,14 @@ def _as_set(value: object) -> set:
 
 
 @pytest.mark.contract
-def test_method_keys_are_the_eight_registered_algorithms(ledger_methods: dict[str, dict]) -> None:
-    """Keys resolve through the registry, as the exact post-split key set."""
+def test_method_keys_are_the_registered_algorithms(ledger_methods: dict[str, dict]) -> None:
+    """Keys resolve through the registry, as the exact post-split key set.
+
+    The set is pinned on purpose: a ledger entry cannot land unnoticed, so
+    adding one means changing this constant in the same commit.  ``pusb`` and
+    ``pusb_kernel`` stay separate (issue #42); ``vpu`` joined with its
+    sampling-assumption ruling (decision D21).
+    """
     for name in ledger_methods:
         assert get_metadata(name).name == name, f"{name!r} is not a registered algorithm"
     assert set(ledger_methods) == _EXPECTED_METHOD_KEYS
