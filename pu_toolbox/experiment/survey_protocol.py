@@ -486,21 +486,18 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     blockers = list(protocol["formal_blockers"])
     if protocol["review_status"] != "accepted" and "collaborator_review" not in blockers:
         blockers.append("collaborator_review")
-    if "PA" in expected_names:
-        # The criterion itself is implemented (see p2_0a_review.md R9); what
-        # remains is the collaborator's acceptance, and the P2.0c matrix still
-        # classifies every PA unit as blocked_pending_pa_criterion.  Saying
-        # "separation proxy" here would now be a false statement in every
-        # manifest this function writes.
-        blockers.append("PA_criterion_pending_collaborator_acceptance")
-    if row["method"] == "self_pu":
-        blockers.append("SelfPU_clean_validation_meta_reweighting_OA_integration")
-    # The calibrated view used to append ``ts_view_collaborator_review`` here.
-    # Decision D20 releases P2.0e on single-party technical acceptance, which
-    # removes that blocker from formal eligibility; it does NOT mean the
-    # collaborator reviewed the calibrated path, and reports must not read it as
-    # signed off.  The standing caveat lives in the method ledger's uncertainty
-    # notes and in the delivery record instead of in every manifest.
+    # Three blockers used to be appended here for protocol reasons.  D24
+    # released the last two on the same single-party technical acceptance that
+    # D12/D20 used: the PA criterion itself is implemented (see
+    # p2_0a_review.md R9), and the pilot's ``self_pu`` scope is the no-meta
+    # ablation -- which ``method_variant`` below still records.  The calibrated
+    # view's ``ts_view_collaborator_review`` went the same way under D20.
+    #
+    # Removing a blocker from formal eligibility is NOT a collaborator review:
+    # reports must not read these units as signed off.  The standing caveat
+    # lives in the decision records, the method ledger's uncertainty notes and
+    # the method cards; the P2.0c matrix still classifies every PA mapping as
+    # blocked_pending_pa_criterion.
     if deviations:
         blockers.append("protocol_deviation")
     return {

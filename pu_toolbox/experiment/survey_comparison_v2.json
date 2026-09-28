@@ -20,7 +20,7 @@
   "review_status": "pending_collaborator_review",
   "bound_survey_protocol": {
     "protocol_version": "survey-v1.2",
-    "protocol_sha256": "c019a87d9bc079b5d97cb35d40f5a66f252340525c47fd8b10a3a112b8b4a50a"
+    "protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a"
   },
   "metric_unit": "percentage_points",
   "result_input_unit": "fraction",
