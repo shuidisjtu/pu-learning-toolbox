@@ -33,6 +33,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - **双架构阶段 0-2**：Registry 4 能力字段、build_encoder 导出、nnpu encoder 试点、CNN 提示文案回归、契约路线 B 收口。见 [dual_architecture_plan §5](dual_architecture_plan.md)。
 - **Survey 语义统一（issue #42）**：PUSB 拆为 `pusb`/`pusb_kernel`，先验门禁改由 registry 驱动，台账↔registry 一致性契约。见 [survey_execution_plan](../research/pu_survey/survey_execution_plan.md)。
 - **Self-PU 声明收口（issue #38/#45）**：`input_ndims` 恢复 `{2,4}`，非原生 CNN 由 `native_architectures` 承载。
+- **训练视图分层（P2.0e 后续）**：角色构造下沉到中立核心层 `pu_toolbox/core/training_views.py`（`TrainingView` + `build_training_view`：P / 原始 U / 损失 U 三角色与来源索引，不认识台账·方法名·manifest），实验层只留政策与历史——台账门禁、路由裁决、旧 `run_view` 词表在出口现算、manifest 构造。依赖方向固定 `estimators → core`、禁止 `estimators → experiment`（实测反向导入会拉起 28 个 estimator 模块），由子进程导入边界测试守住。所有权契约：三组 positions 与 `source_indices` 自有并冻结，`source_features`/`source_labels` 借用不复制且只读。**不迁移任何生产 estimator**——本轮实测各方法角色构造重复量仅一行到数行，生产迁移推迟到首个真实待接入算法。见 [P2.0e 交付 §10](../research/pu_survey/p2_0e_delivery.md)、[架构 §2.1](architecture.md)。
 - **SAR-OA 执行路径（issue #43）**：`--labeling-mechanism` 与 `--method` 正交，SAR 强制 OA-only。见 [协议 §2.3](../research/pu_survey/pu_survey_protocol.md)、[D8](../research/pu_survey/survey_execution_plan.md)。
 
 ### 已发布版本
