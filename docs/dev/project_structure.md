@@ -183,7 +183,7 @@ tests/
     test_classifier_baseline.py         # fit/predict/decision_function/get_params 等
     test_capability_declarations.py     # 能力声明 4 组不变量契约测试
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
-    test_ledger_registry_consistency.py # 台账↔registry 6 条不变量一致性契约
+    test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
