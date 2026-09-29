@@ -247,3 +247,113 @@ def test_basic_the_unfiltered_summary_is_unchanged(driver, unit_calls, tmp_path,
     out = capsys.readouterr().out
     assert "completed 0 of 645 run(s); 645 still pending" in out
     assert "run(s) in " not in out
+
+
+def test_basic_a_dataset_only_request_says_nothing_more_than_it_always_did(
+    driver, unit_calls, tmp_path, capsys
+):
+    """Narrowing by method and by path added a line, not a new spelling.
+
+    A dataset's runs are all in scope when the dataset is what was asked for,
+    so ``in spambase`` is a complete description and the scope line would only
+    be noise -- and the hosts holding last week's command lines are still
+    reading this output.
+    """
+    driver.main(
+        [
+            "--results",
+            str(tmp_path / "out"),
+            "--splits",
+            str(splits_tree(tmp_path)),
+            "--datasets",
+            "spambase",
+            *ALL_PRIORS,
+        ]
+    )
+
+    out = capsys.readouterr().out
+    assert "completed 0 of 215 run(s) in spambase; 215 still pending" in out
+    assert "scope:" not in out
+
+
+# --- a slice has to reach execution, and has to leave the protocol alone -----
+
+
+def test_basic_the_scope_reaches_execution_without_rewriting_the_protocol(
+    driver, unit_calls, tmp_path
+):
+    """The end-to-end property, asserted where it can fail silently.
+
+    Three claims at once.  The methods a scope did not name never reach a
+    subprocess -- a count of batches would not say so, since a filter that
+    reached the report and not the loop runs the right *number* of the wrong
+    batches.  The unit scripts are handed the protocol the request named, not a
+    narrowed copy of it, because their manifests are bound to that file's
+    digest and a copy would bind them to a protocol no reader has.  And the
+    oracle batch carries no ``--method`` at all, so the parser here has to fall
+    back to it rather than read a missing argument as an unnamed method.
+    """
+    driver.main(
+        [
+            "--results",
+            str(tmp_path / "out"),
+            "--splits",
+            str(splits_tree(tmp_path)),
+            "--datasets",
+            "cifar10",
+            "--methods",
+            "self_pu,dist_pu",
+            "--training-paths",
+            "cnn_feature_adapter",
+            *ALL_PRIORS,
+        ]
+    )
+
+    assert len(unit_calls) == 6  # two methods, three mechanisms each
+    methods = {
+        call[call.index("--method") + 1] if "--method" in call else "pn_oracle"
+        for call in unit_calls
+    }
+    assert methods == {"self_pu", "dist_pu"}
+    assert {call[call.index("--training-path") + 1] for call in unit_calls} == {
+        "cnn_feature_adapter"
+    }
+    for call in unit_calls:
+        assert call[call.index("--protocol") + 1] == "survey-v1"
+
+
+def test_param_a_name_that_covers_nothing_is_refused_before_any_batch(
+    driver, unit_calls, tmp_path, capsys
+):
+    """Every name is in the matrix; one of them still runs nothing here.
+
+    Two shapes of the same thing, and the second is the quiet one: when the
+    whole intersection is empty the count would have been 0 and someone would
+    notice, but when only *one* named value covers nothing the plan looks
+    healthy and its own scope line claims the value was run.  Both have to be
+    refused rather than planned, and the message has to name what would have
+    worked -- ``pn_oracle`` beside the native CNN row and ``self_pu`` beside it
+    both read as reasonable requests.
+    """
+    for methods, paths in (("pn_oracle", "native_cnn"), ("nnpu,self_pu", "native_cnn")):
+        code = driver.main(
+            [
+                "--results",
+                str(tmp_path / "out"),
+                "--splits",
+                str(splits_tree(tmp_path)),
+                "--datasets",
+                "cifar10",
+                "--methods",
+                methods,
+                "--training-paths",
+                paths,
+                *ALL_PRIORS,
+            ]
+        )
+
+        assert code == 1, methods
+        assert unit_calls == []
+        err = capsys.readouterr().err
+        assert err.startswith("error: ")
+    assert "available matching methods: ['nnpu']" in err

@@ -311,3 +311,84 @@ def test_determ_one_request_writes_the_same_snapshot_every_time(driver, tmp_path
         written.append(path.read_bytes())
 
     assert written[0] == written[1]
+
+
+# --- a request now names two things: a matrix, and a slice of it -------------
+
+
+def test_edge_a_custom_matrix_and_a_scope_read_splits_for_their_intersection(
+    driver, tmp_path, monkeypatch
+):
+    """Two filters over one matrix, and the read follows both.
+
+    The matrix decides which datasets this request has and the scope decides
+    which of them it runs.  A read that followed only the matrix would open the
+    splits of a dataset the request never runs -- and a defect in them would
+    stop a shard that does not touch them, which is the failure the dataset
+    filter was introduced to prevent.
+    """
+    custom = _protocol_without(tmp_path, "imdb")  # spambase and cifar10
+    seen: list[tuple[str, tuple[str, ...] | None]] = []
+    for name in ("split_digests", "population_priors"):
+        real = getattr(driver, name)
+
+        def _record(root, *, datasets=None, _name=name, _real=real):
+            seen.append((_name, None if datasets is None else tuple(datasets)))
+            return _real(root, datasets=datasets)
+
+        monkeypatch.setattr(driver, name, _record)
+
+    code = driver.main(
+        [
+            "--dry-run",
+            "--results",
+            str(tmp_path / "none"),
+            "--splits",
+            str(splits_tree(tmp_path)),
+            "--protocol",
+            custom,
+            "--datasets",
+            "spambase",
+            "--methods",
+            "nnpu",
+            *ALL_PRIORS,
+        ]
+    )
+
+    assert code == 0
+    assert seen == [("split_digests", ("spambase",)), ("population_priors", ("spambase",))]
+
+
+def test_edge_an_unknown_name_is_listed_against_the_matrix_the_request_names(
+    driver, unit_calls, tmp_path, capsys
+):
+    """A refusal offers this matrix's names, not the shipped matrix's.
+
+    The two filters are checked in one breath, so the values a message offers
+    have to come from the matrix the request named -- listing the shipped
+    matrix's paths here would send the operator to a file this run never opens.
+    """
+    custom = _protocol_without(tmp_path, "cifar10")  # spambase and imdb only
+
+    code = driver.main(
+        [
+            "--results",
+            str(tmp_path / "out"),
+            "--splits",
+            str(splits_tree(tmp_path)),
+            "--protocol",
+            custom,
+            "--methods",
+            "self_pu",
+            "--training-paths",
+            "cnn_feature_adapter",
+            *ALL_PRIORS,
+        ]
+    )
+
+    assert code == 1
+    assert unit_calls == []
+    err = capsys.readouterr().err
+    assert "unknown training_path(s) ['cnn_feature_adapter']" in err
+    assert "native_2d" in err  # what this matrix has
+    assert "native_cnn" not in err  # a path of the shipped matrix, not this one

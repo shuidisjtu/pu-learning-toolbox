@@ -350,8 +350,11 @@ tests/
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
       _survey_pilot_helpers.py          # 驱动测试共享夹具: 脚本动态加载、subprocess 记录与 split 目录树
-      test_survey_pilot_request_scope.py # 请求范围: --protocol 决定计划与批次、无关数据集的坏 splits 不阻断分片、快照写失败报错
-      test_survey_pilot_subset.py       # 驱动子集: --datasets 收窄计划与批次、未知名拒绝、--plan-json 分区可核对
+      test_survey_pilot_request_scope.py # 请求范围: --protocol 决定计划与批次、无关数据集的坏 splits 不阻断分片、快照写失败报错、未知名按本矩阵列值
+      test_survey_pilot_subset.py       # 驱动子集: --datasets 收窄计划与批次、未知名拒绝、--plan-json 分区可核对、作用域到执行的集成断言
+      test_survey_pilot_execution_scope.py # 执行单元作用域: 三轴交集与三类拒绝（未知名/存在但不可运行/组合为空）、不可运行行保留而计划不含
+      test_survey_pilot_scope_wiring.py # 作用域接线: 计划/估算/split 读取/续跑同源收窄、快照记完整协议摘要与 selection、显式 ts 合法域随作用域变化
+      test_survey_pilot_batch_contract.py # 五批合同: B1/B2/B3a/B3b/B4 = 215/215/110/70/35、两两不相交、并集 645、矩阵排除项不进入任何批次
       test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
       test_leaderboard_run_view.py      # 排行榜分组: 视图不同即不入同一组（os 与 ts 不可同榜）
       test_method_ledger.py             # 方法台账读取: 枚举+中文注记归一、缺字段与非法值拒绝
@@ -623,7 +626,7 @@ scripts/
   generate_structure.py                   (结构文档生成器：--check 校验 / --update 重生成 project_structure.md 树块)
   prepare_survey_splits.py                (P1.4 四路 split 产物准备：data/raw 生成 train/pu_val/clean_val/test.npz 与 manifest)
   run_survey_experiment.py                (官方示例脚本(协议 §2.4 第 9 条)：单方法四路 PU 实验、PA/OA 选模、独立 test 评测)
-  run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets 子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
+  run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets/--methods/--training-paths 三轴子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
   aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
 ```

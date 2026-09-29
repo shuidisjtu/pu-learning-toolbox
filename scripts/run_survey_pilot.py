@@ -34,6 +34,22 @@ describe the same shard, and a shard never fails over data it does not run::
 
     uv run python scripts/run_survey_pilot.py --dry-run --datasets imdb,spambase \\
         --plan-json shard-b.json
+
+The dataset list is not the only axis a host can be handed.  ``--methods`` and
+``--training-paths`` narrow the same matrix along its other two, and the three
+intersect: CIFAR-10's adapter rows, its native CNN row and its two-student rows
+are one dataset and three different shards, and no dataset list separates
+them::
+
+    uv run python scripts/run_survey_pilot.py --dry-run --datasets cifar10 \\
+        --methods self_pu,dist_pu --training-paths cnn_feature_adapter
+
+A filter that names something the matrix does not have, something it has never
+run, or a combination that intersects nothing is refused rather than narrowed
+to nothing, for the reason the dataset list is: an empty plan exits 0 and the
+host meant to cover that slice would be believed to have covered it.  What the
+request named travels into the plan snapshot and onto the console, so 70 runs
+inside a dataset of 215 cannot be read as the whole dataset.
 """
 
 from __future__ import annotations
@@ -49,15 +65,21 @@ from typing import Any
 from pu_toolbox.experiment.pilot_plan import (
     Batch,
     PilotRun,
+    PilotScope,
     batch_command,
     batches,
     estimate_checkpoint_bytes,
     pending_runs,
     planned_runs,
     population_priors,
+    select_execution_units,
     split_digests,
 )
-from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
+from pu_toolbox.experiment.survey_protocol import (
+    digest,
+    load_protocol,
+    resolve_protocol_path,
+)
 
 _SCRIPTS = Path(__file__).resolve().parent
 UNIT_SCRIPT = _SCRIPTS / "run_survey_experiment.py"
@@ -68,6 +90,12 @@ UNIT_SCRIPT = _SCRIPTS / "run_survey_experiment.py"
 DEFAULT_INPUT_DIMS = {"spambase": 57, "imdb": 384}
 
 _GIB = 1024**3
+
+#: The snapshot's own format version.  Moved only when a field is removed,
+#: renamed or retyped: adding one is a backward-compatible change and leaving
+#: the version alone is what keeps it worth reading.  It is not the survey
+#: protocol's version -- the plan and the matrix are different artifacts.
+SNAPSHOT_SCHEMA_VERSION = "1.0"
 
 
 def _parse_pairs(raw: str, *, cast) -> dict:
@@ -83,23 +111,25 @@ def _parse_pairs(raw: str, *, cast) -> dict:
     return parsed
 
 
-def _parse_datasets(raw: str | None) -> tuple[str, ...] | None:
-    """The datasets a request names, or ``None`` when it names none at all.
+def _parse_names(raw: str | None, *, flag: str, example: str) -> tuple[str, ...] | None:
+    """The values one filter flag names, or ``None`` when the flag is absent.
 
-    ``None`` means the whole matrix, which is what the flag's absence asks for.
-    A flag that is *present* but names nothing is a different request and is
-    refused by the caller: splitting a pilot across two hosts means each host
-    is given a list, and a list that quietly planned nothing would have both
-    hosts report success over the same hole.
+    ``None`` means the whole matrix along that axis, which is what the flag's
+    absence asks for.  A flag that is *present* but names nothing is a
+    different request and is refused by the caller: splitting a pilot across
+    two hosts means each host is given a list, and a list that quietly planned
+    nothing would have both hosts report success over the same hole.
+
+    Sorted and deduplicated, because an axis names a *set*: which order it was
+    typed in is not part of the request, and a snapshot that recorded it would
+    have two hosts writing different files for the same shard -- the one thing
+    those files exist to rule out.
     """
     if raw is None:
         return None
-    names = tuple(dict.fromkeys(item.strip() for item in raw.split(",") if item.strip()))
+    names = tuple(sorted({item.strip() for item in raw.split(",") if item.strip()}))
     if not names:
-        raise ValueError(
-            "--datasets names no dataset; pass a comma-separated list such as "
-            "'cifar10' or 'imdb,spambase'."
-        )
+        raise ValueError(f"{flag} names nothing; pass a comma-separated list such as {example}.")
     return names
 
 
@@ -121,39 +151,64 @@ def _dataset_names(protocol: dict[str, Any]) -> tuple[str, ...]:
     )
 
 
-def _select_datasets(protocol: dict[str, Any], requested: tuple[str, ...] | None) -> dict[str, Any]:
-    """The matrix reduced to ``requested``, or unchanged when that is ``None``.
-
-    The restriction is applied to the protocol rather than to the plan so that
-    every reader narrows together: the plan itself, the view resolution, the
-    checkpoint estimate a host is sized against, the resume check and the
-    batches.  A filter that reached only the report would print one shard and
-    then train the whole matrix.
-    """
-    if requested is None:
-        return protocol
-    known = _dataset_names(protocol)
-    unknown = [name for name in requested if name not in known]
-    if unknown:
-        raise ValueError(f"unknown dataset(s) {unknown}; the matrix plans {list(known)}.")
-    wanted = set(requested)
-    return {
-        **protocol,
-        "execution_units": [
-            unit for unit in protocol["execution_units"] if unit["dataset"] in wanted
-        ],
-    }
-
-
 def _planned_datasets(planned: tuple[PilotRun, ...]) -> list[str]:
     """The datasets a plan covers, sorted: what a scoped report has to name."""
     return sorted({run.dataset for run in planned})
+
+
+def _planned_units(planned: tuple[PilotRun, ...]) -> list[dict[str, str]]:
+    """The runnable units a plan covers, in matrix order.
+
+    Not the narrowed protocol's rows: that list still carries the matrix's
+    exclusions, and a unit that will never run does not belong in the record of
+    what a request covers.  ``planned`` is already in matrix order, so a unit's
+    first appearance is that order.
+    """
+    units: dict[tuple[str, str, str], None] = {}
+    for run in planned:
+        units.setdefault((run.dataset, run.method, run.training_path), None)
+    return [
+        {"dataset": dataset, "method": method, "training_path": training_path}
+        for dataset, method, training_path in units
+    ]
+
+
+def _print_scope(scope: PilotScope) -> None:
+    """Name the axes a request narrowed by, once the datasets stop saying it.
+
+    A dataset-only request needs nothing here: its plans have reported ``in
+    <datasets>`` since the flag existed, and every run of those datasets is in
+    scope.  Once methods or training paths narrow *within* a dataset that
+    report stops being enough -- ``completed 70 of 70 run(s) in cifar10`` reads
+    as CIFAR-10 finished, and 145 of its runs were never asked for.
+    """
+    if scope.methods is None and scope.training_paths is None:
+        return
+    named = [
+        f"{name}={','.join(sorted(values))}"
+        for name, values in (
+            ("datasets", scope.datasets),
+            ("methods", scope.methods),
+            ("training_paths", scope.training_paths),
+        )
+        if values is not None
+    ]
+    print(f"scope: {'; '.join(named)}")
+
+
+def _narrowed_by_request(scope: PilotScope) -> bool:
+    """Whether a request named anything at all, i.e. whether its plan is a subset."""
+    return any(
+        values is not None for values in (scope.datasets, scope.methods, scope.training_paths)
+    )
 
 
 def _write_plan_snapshot(
     path: str,
     *,
     protocol: dict[str, Any],
+    source_protocol_sha256: str,
+    scope: PilotScope,
     planned: tuple[PilotRun, ...],
     pending: tuple[PilotRun, ...],
     completed: tuple[PilotRun, ...],
@@ -166,10 +221,35 @@ def _write_plan_snapshot(
     as it finishes.  The view travels with each run because the resume check
     holds a run to the view it is going to use, so a shard is only reproducible
     together with the ledger state that resolved it.
+
+    ``source_protocol_sha256`` is the digest of the *whole* frozen matrix, not
+    of the slice this request runs, and it is written by the same function the
+    unit script hashes the same file with -- so a snapshot can be held against
+    any manifest of its batch rather than merely against another snapshot.
+    ``selection`` records the axes the request spelled, which is what makes two
+    hosts' files comparable as requests and not only as run lists; ``datasets``
+    below stays what it always was, the datasets the *plan* covers.
+
+    Every field here is additive.  A reader that only knows the older keys
+    still finds them, with the names and meanings it knew them by; that is why
+    ``snapshot_schema_version`` does not move for this change.
     """
     payload = {
+        "snapshot_schema_version": SNAPSHOT_SCHEMA_VERSION,
         "protocol_version": protocol["protocol_version"],
+        "source_protocol_sha256": source_protocol_sha256,
         "datasets": _planned_datasets(planned),
+        #: Sorted rather than as typed, so two hosts spelling one request
+        #: differently still write the same bytes -- the same reason the plan is
+        #: recorded in matrix order and the datasets are sorted.
+        "selection": {
+            "datasets": None if scope.datasets is None else sorted(scope.datasets),
+            "methods": None if scope.methods is None else sorted(scope.methods),
+            "training_paths": (
+                None if scope.training_paths is None else sorted(scope.training_paths)
+            ),
+        },
+        "execution_units": _planned_units(planned),
         "totals": {
             "planned": len(planned),
             "completed": len(completed),
@@ -208,6 +288,25 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
             "Splitting a pilot across hosts gives each host its own list; an unknown "
             "name is refused rather than planned empty, because an empty plan exits 0 "
             "and the other host would be believed to have covered it"
+        ),
+    )
+    parser.add_argument(
+        "--methods",
+        default=None,
+        help=(
+            "comma-separated methods to run (default: every runnable method in scope). "
+            "Intersects with --datasets and --training-paths; an unknown name, one the "
+            "matrix never runs, or a combination that intersects nothing is refused "
+            "rather than planned empty, for the reason --datasets gives"
+        ),
+    )
+    parser.add_argument(
+        "--training-paths",
+        default=None,
+        help=(
+            "comma-separated training paths to run (default: every path in scope). "
+            "This is the axis that separates one dataset's adapter rows from its "
+            "native-backbone row"
         ),
     )
     parser.add_argument(
@@ -487,7 +586,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     try:
-        requested = _parse_datasets(args.datasets)
+        scope = PilotScope(
+            datasets=_parse_names(
+                args.datasets, flag="--datasets", example="'cifar10' or 'imdb,spambase'"
+            ),
+            methods=_parse_names(
+                args.methods, flag="--methods", example="'nnpu' or 'self_pu,dist_pu'"
+            ),
+            training_paths=_parse_names(
+                args.training_paths, flag="--training-paths", example="'native_2d'"
+            ),
+        )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -496,12 +605,22 @@ def main(argv: list[str] | None = None) -> int:
     # planned the shipped matrix and passed a custom path to every batch would
     # size, resume and validate one pilot and train another.
     try:
-        protocol = load_protocol(resolve_protocol_path(args.protocol))
+        source_protocol = load_protocol(resolve_protocol_path(args.protocol))
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    #: The digest of the matrix as shipped, which is the identity every unit
+    #: manifest is bound to: the unit script loads that same file by the path
+    #: below and hashes it with this same function.  Narrowing therefore happens
+    #: on a copy, after this read -- a request that shrank its own protocol
+    #: would have its runs writing a digest no reader of the plan could match.
+    source_protocol_sha256 = digest(source_protocol)
+    #: Narrowed here, before anything reads the matrix, for the reason
+    #: ``--datasets`` was: the plan, the storage a host is sized against, the
+    #: resume check and the batches have to describe one shard.  A filter that
+    #: reached only the report would print one shard and train the matrix.
     try:
-        protocol = _select_datasets(protocol, requested)
+        protocol = select_execution_units(source_protocol, scope)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -548,6 +667,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         pending, done = pending_runs(protocol, args.results, splits=splits, expected_views=views)
         _print_plan(pending, done, estimate)
+        _print_scope(scope)
         if args.plan_json:
             # Refused rather than traced back: an unwritable path is an operator
             # mistake -- a typo, or a directory that was never made -- and this
@@ -556,6 +676,8 @@ def main(argv: list[str] | None = None) -> int:
                 _write_plan_snapshot(
                     args.plan_json,
                     protocol=protocol,
+                    source_protocol_sha256=source_protocol_sha256,
+                    scope=scope,
                     planned=planned,
                     pending=pending,
                     completed=done,
@@ -600,11 +722,14 @@ def main(argv: list[str] | None = None) -> int:
     # A subset request reports a subset's count, so the count has to name the
     # subset: two hosts each reading "completed 215 of 215" would call the
     # matrix finished while half of it has not started.
-    scope = "" if requested is None else f" in {', '.join(_planned_datasets(planned))}"
+    subset = (
+        "" if not _narrowed_by_request(scope) else f" in {', '.join(_planned_datasets(planned))}"
+    )
     print(
-        f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s){scope}; "
+        f"completed {len(now_done)} of {len(now_done) + len(still_pending)} run(s){subset}; "
         f"{len(still_pending)} still pending"
     )
+    _print_scope(scope)
     return 1 if still_pending else 0
 
 
