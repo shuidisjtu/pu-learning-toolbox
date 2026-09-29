@@ -126,6 +126,220 @@ def planned_runs(protocol: dict[str, Any]) -> tuple[PilotRun, ...]:
     return tuple(runs)
 
 
+@dataclass(frozen=True)
+class _Axis:
+    """One way a request narrows the matrix, and the words a refusal uses.
+
+    ``scope`` is the attribute it is written as, ``row`` the key it reads on an
+    execution unit, and the two nouns are singular and plural labels.  Kept in
+    one record so a diagnostic cannot name one axis while listing another's
+    values.
+    """
+
+    scope: str
+    row: str
+    noun: str
+    plural: str
+
+
+#: The axes, in the order a refusal considers them.  This order breaks a tie
+#: when more than one axis could be blamed -- see :func:`_refuse_empty_selection`.
+_AXES: tuple[_Axis, ...] = (
+    _Axis("datasets", "dataset", "dataset", "datasets"),
+    _Axis("methods", "method", "method", "methods"),
+    _Axis("training_paths", "training_path", "training_path", "training_paths"),
+)
+
+
+@dataclass(frozen=True)
+class PilotScope:
+    """Which slice of the frozen matrix a request asks for.
+
+    Each axis is an allowlist, or ``None`` when the request does not name it at
+    all.  "No filter" and "a filter that names nothing" are different requests,
+    and the second is refused rather than narrowed to nothing: an empty plan
+    exits 0, and the host that was meant to cover that slice would be believed
+    to have covered it.
+    """
+
+    datasets: tuple[str, ...] | None = None
+    methods: tuple[str, ...] | None = None
+    training_paths: tuple[str, ...] | None = None
+
+
+def _scope_values(scope: PilotScope) -> dict[str, tuple[str, ...] | None]:
+    """Each axis as the request spells it, repeats dropped.
+
+    Refusing an axis that names nothing here, and not only in the argument
+    parser, is what keeps the meaning of an empty sequence from being decided
+    somewhere else later: ``None`` already means "do not filter", so an empty
+    one has no meaning left except "match nothing".
+    """
+    values: dict[str, tuple[str, ...] | None] = {}
+    for axis in _AXES:
+        named = getattr(scope, axis.scope)
+        if named is None:
+            values[axis.scope] = None
+            continue
+        names = tuple(dict.fromkeys(named))
+        if not names:
+            raise ValueError(
+                f"{axis.scope} names nothing; pass a non-empty sequence, or None for "
+                "an axis that does not filter."
+            )
+        values[axis.scope] = names
+    return values
+
+
+def _refuse_unknown_names(
+    rows: list[dict[str, Any]], requested: dict[str, tuple[str, ...] | None]
+) -> None:
+    """A name the matrix does not have is a typo, and says so with the options.
+
+    Checked against *every* row rather than the runnable ones, so that "the
+    matrix has no such name" and "the matrix has the name and never runs it"
+    stay two different answers -- see :func:`_refuse_names_with_no_runnable_row`.
+    """
+    for axis in _AXES:
+        names = requested[axis.scope]
+        if names is None:
+            continue
+        declared = sorted({row[axis.row] for row in rows})
+        unknown = [name for name in names if name not in set(declared)]
+        if unknown:
+            raise ValueError(f"unknown {axis.noun}(s) {unknown}; the matrix declares {declared}.")
+
+
+def _refuse_names_with_no_runnable_row(
+    rows: list[dict[str, Any]], requested: dict[str, tuple[str, ...] | None]
+) -> None:
+    """A name the matrix holds and never runs is not an unknown name.
+
+    ``kldce`` sits in the matrix at every dataset with ``runnable: false``, so
+    reporting it as unknown would send an operator looking for a spelling
+    mistake that is not there.  A name can also be runnable elsewhere and
+    barren here, which is the intersection's business rather than this check's
+    -- this one only asks whether *any* row runs it.
+    """
+    runnable = [row for row in rows if row.get("runnable") is True]
+    for axis in _AXES:
+        names = requested[axis.scope]
+        if names is None:
+            continue
+        runs = {row[axis.row] for row in runnable}
+        barren = [name for name in names if name not in runs]
+        if barren:
+            raise ValueError(
+                f"{axis.noun}(s) {barren} exist in the matrix, but no execution unit "
+                "is runnable for them."
+            )
+
+
+def _refuse_names_that_cover_nothing(
+    rows: list[dict[str, Any]], requested: dict[str, tuple[str, ...] | None]
+) -> None:
+    """Refuse a request that names a value the *other* axes leave nothing for.
+
+    Every name here is in the matrix and some are even runnable, so the useful
+    report is which axis has no runnable value left once the other axes are
+    applied, and which values it does have.  The axis reported is the one with
+    the most alternatives remaining, because that is the axis whose other
+    values would work: blaming an axis that is itself starved would name a list
+    that is empty either way.  A tie keeps :data:`_AXES` order.
+
+    This runs whether or not the plan came out empty, because the empty plan is
+    only the loudest case of the same thing.  ``--methods nnpu,self_pu`` beside
+    ``--training-paths native_cnn`` plans the ``nnpu`` runs and silently drops
+    ``self_pu`` -- and then reports ``self_pu`` as in scope, so the host that
+    was to cover it never runs one and no count is short.  A name that covers
+    nothing is refused whenever it is named, not only when every name does.
+    """
+    runnable = [row for row in rows if row.get("runnable") is True]
+    blamed: tuple[_Axis, list[str], list[str], list[tuple[_Axis, tuple[str, ...]]]] | None = None
+    for axis in _AXES:
+        names = requested[axis.scope]
+        if names is None:
+            continue
+        others = [
+            (other, requested[other.scope])
+            for other in _AXES
+            if other is not axis and requested[other.scope] is not None
+        ]
+        available = sorted(
+            {
+                row[axis.row]
+                for row in runnable
+                if all(row[other.row] in set(values) for other, values in others)
+            }
+        )
+        unmatched = [name for name in names if name not in set(available)]
+        if not unmatched:
+            continue
+        if blamed is None or len(available) > len(blamed[2]):
+            blamed = (axis, unmatched, available, others)
+    if blamed is None:
+        return
+    axis, unmatched, available, others = blamed
+    under = ", ".join(f"{other.plural}={list(values)}" for other, values in others)
+    clause = f" under {under}" if under else ""
+    raise ValueError(
+        f"requested {axis.noun}(s) {unmatched} have no runnable execution unit{clause}; "
+        f"available matching {axis.plural}: {available}."
+    )
+
+
+def select_execution_units(protocol: dict[str, Any], scope: PilotScope) -> dict[str, Any]:
+    """The matrix narrowed to ``scope``, keeping the rows the matrix excluded.
+
+    A pure intersection per axis: rows outside the request are dropped, rows
+    inside it are returned in the matrix's own order, and the *unrunnable* ones
+    come along.  That last part is deliberate.  The matrix states its
+    exclusions and why (``non_runnable_reason``), and the only thing that has
+    ever kept those rows from running is :func:`planned_runs` skipping them --
+    so narrowing them away here would be this function re-deciding a matrix
+    question, and would leave ``--datasets`` returning a different protocol
+    than the driver returns today for the same request.
+
+    Narrowing the protocol rather than the plan is what makes the plan, the
+    storage estimate, the resume check and the batches describe one shard: a
+    filter applied where the plan is printed would print one batch and train
+    the matrix.
+
+    Refusals are per axis and distinct, because "there is no such name", "the
+    matrix has it and never runs it" and "the other axes leave it nothing" need
+    three different fixes.  Anything that would plan nothing raises rather than
+    returning an empty matrix: the caller reports the count, and a shard that
+    planned nothing exits 0 while another host is believed to have covered it.
+    The same refusal covers the quieter half of that case -- a value that covers
+    nothing while its neighbours cover something -- because the count would not
+    be short either way, and the printed scope would claim the value was run.
+    """
+    rows = list(protocol["execution_units"])
+    requested = _scope_values(scope)
+    _refuse_unknown_names(rows, requested)
+    _refuse_names_with_no_runnable_row(rows, requested)
+    allowed = {
+        axis.row: None if requested[axis.scope] is None else set(requested[axis.scope])
+        for axis in _AXES
+    }
+    narrowed = {
+        **protocol,
+        "execution_units": [
+            row
+            for row in rows
+            if all(names is None or row[key] in names for key, names in allowed.items())
+        ],
+    }
+    #: Asked of the plan, not of the rows: a row that never runs cannot make a
+    #: name covered.  With every axis named this already rejects an empty
+    #: intersection, so the guard below is the shape an unnamed axis leaves --
+    #: defence for a scope that filters nothing, which is never empty today.
+    _refuse_names_that_cover_nothing(rows, requested)
+    if not planned_runs(narrowed):
+        raise ValueError("the request selects no runnable execution unit.")
+    return narrowed
+
+
 def manifest_identity(payload: dict[str, Any]) -> tuple[Any, ...] | None:
     """The run a manifest records, or ``None`` when it records no completed one.
 
