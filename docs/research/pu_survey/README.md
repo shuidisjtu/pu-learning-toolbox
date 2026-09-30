@@ -36,6 +36,7 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | 文档 | 定位 |
 |---|---|
 | [`p2_1_b1_snapshot.md`](p2_1_b1_snapshot.md) | P2.1 B1（`spambase`，215 runs）：清单层与门禁层快照；不含排名与数值裁决（属 P2.2） |
+| [`p2_1_b2_snapshot.md`](p2_1_b2_snapshot.md) | P2.1 B2（`imdb`，215 runs）：同构快照，含与 B1 合并聚合的独立性验证 |
 
 ## 方案
 
