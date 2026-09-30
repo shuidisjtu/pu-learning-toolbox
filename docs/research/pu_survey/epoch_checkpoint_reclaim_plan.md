@@ -75,6 +75,11 @@ B4 的 checkpoint 预算是**百 GB 量级**（项目内部估算约 280 GB，�
 - 被回收项**不写成 `path=null`** —— 那会被读成「从未持久化」（临时目录语义，见 `epoch_checkpoint_delivery.md:38-39`），
   与事实不符。保留原路径并标记 `reclaimed`，审计者可据此区分「曾经存在、已被回收」与「从未落盘」。
 
+**语义边界**：`reclaimed` 专指「**曾落盘、后回收**」，因而**必须**伴随原 `path` 与 `sha256`。
+若将来某个模式从源头就不落盘某些 epoch 权重（架构文档 §6.2 的阶段 2），那是**第三种状态**，
+**不得复用本字段、更不得补造路径或摘要** —— 见
+[`artifact_storage_architecture.md` §6.3](artifact_storage_architecture.md)。
+
 **收益**：每 run 由 `epochs × candidates × components` 个文件降到至多 2 个（OA/PA 各一）。
 按 B4 估算，占用由百 GB 量级降到**个位数 GB**（保留的即是可做模型级复核的选中权重）。
 
