@@ -308,7 +308,7 @@ wall-clock 完成时间合并结果，候选序就会与离线流程不同。阶
 | 维度 | 现状 | 风险 | 处置方向 |
 |---|---|---|---|
 | **日志** | 每 run 一份完整 stdout/stderr；B3a 已被 sklearn `ConvergenceWarning` 刷屏（来源：`strategies.py:54` 的 `max_iter=100`） | 6000 runs 下可到百 GB 级，且淹没真实信号 | 警告去重与计数汇总、按 run 轮转、stdout 与归档日志分级 |
-| **特征缓存** | `$ADAPTER_CACHE` 一次提取、多 run 复用，附 cache key 与摘要 | 良性，但仅覆盖 adapter 路径 | 推广为通用「表示缓存」（文本 SBERT、图像 backbone 特征），8 数据集下收益更大 |
+| **特征缓存** | `ADAPTER_CACHE` 环境变量一次提取、多 run 复用，附 cache key 与摘要 | 良性，但仅覆盖 adapter 路径 | 推广为通用「表示缓存」（文本 SBERT、图像 backbone 特征），8 数据集下收益更大 |
 | **数据集** | 3 个，含大文本与图像 | 8 个数据集含 ADNI（3D 医学图像），体量未测 | 提前测量；数据与制品分盘；只读挂载 |
 | **manifest 体积** | `candidate_runs[].epoch_checkpoints` 内含逐 epoch 元数据 | 逐 epoch 分数若进 JSON 会显著膨胀 | L1 落为**独立二进制文件**（npz）+ manifest 只存引用与 sha256，与 checkpoint 同构 |
 | **归档生命周期** | 每批一个 tar + sha256 | 规模放大后归档本身成为负担 | 按分级设定留存：L1 永久；L2 见 §3 与 §9.2；L3 不留。打包期间的并存副本须计入峰值（§5） |
