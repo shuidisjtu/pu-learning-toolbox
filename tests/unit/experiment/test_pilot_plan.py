@@ -306,6 +306,10 @@ def test_basic_the_command_passes_through_only_what_the_caller_supplied():
     bare = batch_command(batch, splits_root="data/splits", out_root="results/survey")
     assert "--device" not in bare
     assert "--class-prior" not in bare
+    # Reclaiming is opt-in: the default run must keep every checkpoint.  A
+    # silently dropped flag here would be invisible -- the pilot's formal
+    # batches would just stop reclaiming.
+    assert "--reclaim-unselected-checkpoints" not in bare
 
     given = batch_command(
         batch,
@@ -314,12 +318,14 @@ def test_basic_the_command_passes_through_only_what_the_caller_supplied():
         class_prior=0.39,
         device="cuda",
         extraction_batch_size=64,
+        reclaim_unselected_checkpoints=True,
     )
     # A prior the method needs must actually reach the run: without it the
     # script refuses the row before reading a single split.
     assert given[given.index("--class-prior") + 1] == "0.39"
     assert given[given.index("--device") + 1] == "cuda"
     assert given[given.index("--extraction-batch-size") + 1] == "64"
+    assert "--reclaim-unselected-checkpoints" in given
 
 
 def test_basic_a_run_key_of_none_mechanism_is_reported_as_the_oracle() -> None:
