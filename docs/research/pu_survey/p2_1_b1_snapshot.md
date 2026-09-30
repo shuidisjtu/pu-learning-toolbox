@@ -80,13 +80,57 @@ uv run python scripts/aggregate_survey_runs.py <B1 结果根>
 其中绝大多数文件已不在盘上；B1 的 manifest 产出早于 D25 的实现，**没有** `reclaimed` 标记。
 **不得**据该字段判断文件是否存在，实际存在性以 `sha256` 校验或 `RECLAIMED.md` 为准。
 
-## 5. 本快照不含
+## 5. 量化指标现状（**非裁决**）
+
+本节只**罗列**每份 manifest 已记录的 test 指标，**不做**跨 seed 或跨 c 的聚合，
+**不做**方法间比较，**不构成** P2.2 的数值裁决。列在这里是为了回答「数据齐不齐」，
+而不是「结果如何」。
+
+**字段结构**：每份 manifest 的 `test_results` 按选择协议分组：
+
+```json
+"test_results": {
+  "PA": {"accuracy": ..., "auc": ..., "auc_unavailable_reason": null},
+  "OA": {"accuracy": ..., "auc": ..., "auc_unavailable_reason": null}
+}
+```
+
+**覆盖**（B1 共 215 份）：
+
+| 项 | 值 |
+|---|---|
+| manifest 总数 | 215 |
+| 含 OA 指标 | **215**（全覆盖） |
+| 含 PA 指标 | **90**（SCAR 的全部 run） |
+| 无 PA 指标 | **125**（SAR 120 + `pn_oracle` 5） |
+
+无 PA 指标**不是缺失**：SAR 下 PA 仅作诊断日志、不产出正式选择产物，`pn_oracle` 为 OA only。
+这与门禁层的 `selection` 分布（PA + OA 90 / 仅 OA 125）逐一对上。
+
+**逐 run 罗列样例**（`dist_pu` / `scar` / `ts-compatible` / `c=0.1`，五个 seed）：
+
+| seed | PA accuracy | PA AUC | OA accuracy | OA AUC |
+|---|---|---|---|---|
+| 0 | 0.7937 | 0.9145 | 0.8990 | 0.9546 |
+| 1 | 0.7698 | 0.8409 | 0.9023 | 0.9448 |
+| 2 | 0.8317 | 0.9310 | 0.8610 | 0.9299 |
+| 3 | 0.6667 | 0.9327 | 0.8860 | 0.9370 |
+| 4 | 0.8122 | 0.9152 | 0.8893 | 0.9401 |
+
+完整罗列（B1 + B2 共 430 行 × 12 列）由 manifest 的 `test_results` 逐行摊平得到，
+**无聚合、无派生字段**：列为 `batch` / `dataset` / `method` / `training_path` / `run_view` /
+`mechanism` / `c` / `seed`，加上 PA、OA 各自的 `accuracy` 与 `auc`。
+
+**5 次重复的均值与标准差尚未计算**，它属 P2.2：需先冻结口径（哪些 run 进统计、按 `seed`
+还是 `(seed, c)` 聚合、5 个带 `protocol_deviation` 的单元如何处理），再行汇总。
+
+## 6. 本快照不含
 
 - 方法间排名、对比与数值裁决（P2.2）；
 - 与参考文献的交叉验证结论（P2.2）；
 - 期望单元完整性格网（口径未定，见 D13 遗留项）。
 
-## 6. 待办
+## 7. 待办
 
 - **B2**：结果在训练主机上（215 份 manifest），取回后并入同一根，生成跨数据集的第二批快照；
 - **§9 补验**：dry-run 对账（`completed=215` / `pending=0`）尚未在 B1 上补跑。

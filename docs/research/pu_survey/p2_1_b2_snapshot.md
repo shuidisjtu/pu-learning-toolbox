@@ -32,6 +32,9 @@
 90 个含 PA + OA 对应 SCAR 全部 run，125 个仅 OA 对应 SAR 120 + `pn_oracle` 5，
 仍与协议 §2.3 及 §159-161 的规则逐一对上。
 
+test 指标的字段结构与覆盖同 B1（OA 全覆盖、PA 覆盖 90 个 SCAR run，其余 125 个无 PA 指标
+而非缺失），逐 run 罗列样例见 [`p2_1_b1_snapshot.md`](p2_1_b1_snapshot.md) 的「量化指标现状」一节。
+
 ## 3. 门禁层
 
 | 项 | 值 |
