@@ -31,6 +31,12 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | [`pn_oracle_integration.md`](pn_oracle_integration.md) | PN oracle 接入决策与 PU-Bench 口径对照记录 |
 | [`vpu_sampling_audit.md`](vpu_sampling_audit.md) | P3.1 局部：VPU 采样假设审计（Gate 0 四层证据、原生 `ts` 裁决、与上游的验证口径分歧）；对应决策 D21，**未完成 P3.1 验收** |
 
+## 批次快照
+
+| 文档 | 定位 |
+|---|---|
+| [`p2_1_b1_snapshot.md`](p2_1_b1_snapshot.md) | P2.1 B1（`spambase`，215 runs）：清单层与门禁层快照；不含排名与数值裁决（属 P2.2） |
+
 ## 方案
 
 | 文档 | 定位 |
