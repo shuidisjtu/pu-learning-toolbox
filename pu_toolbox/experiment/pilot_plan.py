@@ -689,6 +689,7 @@ def batch_command(
     adapter_cache: str | None = None,
     extraction_batch_size: int | None = None,
     os_or_ts: str | None = None,
+    reclaim_unselected_checkpoints: bool = False,
 ) -> list[str]:
     """The unit script's arguments for one batch.
 
@@ -737,6 +738,10 @@ def batch_command(
         # Omitted unless asked for: the unit script's ledger-derived default
         # stays in force, so the driver never invents a view.
         argv += ["--os-or-ts", os_or_ts]
+    if reclaim_unselected_checkpoints:
+        # Opt-in only.  The flag is absent by default so the unit script keeps
+        # every checkpoint, which is what the library and probe paths expect.
+        argv.append("--reclaim-unselected-checkpoints")
     return argv
 
 

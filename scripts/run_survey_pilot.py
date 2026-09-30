@@ -341,6 +341,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--adapter-cache", default=None, help="passed through to the unit script")
     parser.add_argument(
+        "--reclaim-unselected-checkpoints",
+        action="store_true",
+        help=(
+            "passed through to the unit script: delete the per-epoch weights that "
+            "neither PA nor OA selected, once selection and test scoring are done"
+        ),
+    )
+    parser.add_argument(
         "--extraction-batch-size", default=None, type=int, help="passed through to the unit script"
     )
     parser.add_argument(
@@ -561,6 +569,7 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
         adapter_cache=args.adapter_cache,
         extraction_batch_size=args.extraction_batch_size,
         os_or_ts=args.os_or_ts,
+        reclaim_unselected_checkpoints=args.reclaim_unselected_checkpoints,
     )
     label = f"{batch.dataset}/{batch.method}/{batch.training_path} ({batch.mechanism or 'oracle'})"
     print(f"== {label}: {len(batch.covers)} run(s), seeds {list(batch.seeds)}")

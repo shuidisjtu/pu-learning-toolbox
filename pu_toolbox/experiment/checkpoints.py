@@ -92,6 +92,10 @@ class EpochCheckpoint:
     persistent: bool = False
     validation_metrics: dict = field(default_factory=dict)
     validation_elapsed_seconds: float = 0.0
+    # Set by the opt-in reclaim pass once the file has been deleted.  The path
+    # and digest above stay as they were, so "existed, then reclaimed" remains
+    # distinguishable from "never persisted" (persistent=False).
+    reclaimed: bool = False
 
     def reference(self):
         return {
@@ -105,6 +109,7 @@ class EpochCheckpoint:
             "device": self.device,
             "score_cutoff": self.cutoff,
             "persistent": self.persistent,
+            "reclaimed": self.reclaimed,
             "training_resume_supported": False,
             "validation_metrics": copy.deepcopy(self.validation_metrics),
         }

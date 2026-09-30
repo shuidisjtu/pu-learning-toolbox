@@ -493,6 +493,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--device", default="cpu", help="execution device (default: cpu)")
     parser.add_argument("--adapter-cache", default="data/cache/survey_adapter")
     parser.add_argument("--extraction-batch-size", type=int, default=64)
+    parser.add_argument(
+        "--reclaim-unselected-checkpoints",
+        action="store_true",
+        help=(
+            "delete per-epoch weights that neither PA nor OA selected, once "
+            "selection and test scoring are finished (default: keep them all)"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -673,6 +681,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 "adapter_manifest": adapter_manifest,
                 "image_manifest": image_manifest,
                 "checkpoint_bytes_per_component": checkpoint_bytes_per_component,
+                "reclaim_unselected_checkpoints": args.reclaim_unselected_checkpoints,
             }
             if args.oracle:
                 config.update(
