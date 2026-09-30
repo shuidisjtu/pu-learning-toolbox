@@ -1,6 +1,6 @@
 # 逐 epoch checkpoint 容量治理方案
 
-状态日期：2026-09-30。状态：**待实施**（方案与合入时机已由实验主责批准，见 §9）。
+状态日期：2026-09-30。状态：**已实施**（方案与合入时机已由实验主责批准，实现于同日落地，见 §9）。
 
 定位：本文件是 [artifact_storage_architecture.md](artifact_storage_architecture.md) 的**阶段 1（本次实施）**。
 架构文档给出制品分级、规模推演与面向 8 数据集 × 22 方法的迁移路径；本文件只描述本次的回收实施。
@@ -150,7 +150,11 @@ B4 的 checkpoint 预算是**百 GB 量级**（项目内部估算约 280 GB，�
 
 - **批准**：实验主责于 2026-09-30 批准「保留选中、回收其余」，并要求**赶在 B3b 启动前合入**。
 - **流程**：`feature/` 分支 → 实现 + 测试 → PR → 合并 `main`。B3a 运行中的进程使用已加载的旧代码，不受影响。
-- **前置**：§5 的决策记录登记完成。
+- **前置**：§5 的决策记录登记完成（决策 D25 已登记于 `survey_execution_plan.md` §3）。
+- **实施（2026-09-30）**：`feature/checkpoint-reclaim` 分支落地，改动面与 §7 一致——
+  `checkpoints.py` 的 `reclaimed` 字段与 `reference()` 输出、`runner.py` 的回收函数与调用点、
+  单元脚本与 Pilot 的两级开关（默认关闭）、专项测试与 `epoch_checkpoint_delivery.md` §4 的
+  回收语义增补。§8 的新增测试与既有 `checkpoint*` 回归全部通过。
 - **验收标准**：
   1. §8 全部新增与既有测试通过；
   2. 门禁与格式检查（`check_format.py`、`check_test_quality.py`、`check_doc_links.py`）通过；

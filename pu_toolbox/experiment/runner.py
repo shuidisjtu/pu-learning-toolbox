@@ -517,6 +517,12 @@ class ExperimentRunner:
                 "auc_unavailable_reason": auc_unavailable_reason,
             }
 
+        # After test scoring and PA/OA selection, before any reference() call:
+        # the manifest must describe the final on-disk state, and the gate that
+        # asked for independent per-epoch selection was satisfied upstream.
+        if self.config.get("reclaim_unselected_checkpoints", False):
+            _reclaim_unselected_checkpoints(trajectories, selections)
+
         selection_payload = {}
         for name, artifact in selections.items():
             payload = asdict(artifact)
@@ -814,6 +820,35 @@ def _clone_candidate(model, params: dict, seed: int):
     if "random_state" in est_params and est_params["random_state"] is None:
         est.set_params(random_state=seed)
     return est
+
+
+def _reclaim_unselected_checkpoints(trajectories, selections) -> list[str]:
+    """Delete epoch weights no protocol selected, keeping their references.
+
+    Only the weights PA/OA actually selected are needed for model-level
+    rechecking; the remaining per-epoch snapshots of a run are storage the
+    experiment cannot afford to keep at B4 scale.  Each removed reference keeps
+    its original path and digest and gains ``reclaimed=True``, so the manifest
+    still records what existed and what it hashed to.
+
+    A failed unlink is raised rather than swallowed: a half-reclaimed run whose
+    manifest claims otherwise is worse than a failed run.
+    """
+    keep = set()
+    for artifact in selections.values():
+        if artifact.checkpoint_index is None:
+            continue
+        keep.add(trajectories[artifact.run_index].checkpoints[artifact.checkpoint_index].path)
+
+    reclaimed = []
+    for trajectory in trajectories:
+        for checkpoint in trajectory.checkpoints:
+            if not checkpoint.persistent or checkpoint.path in keep:
+                continue
+            Path(checkpoint.path).unlink()
+            checkpoint.reclaimed = True
+            reclaimed.append(checkpoint.path)
+    return reclaimed
 
 
 def _checkpoint_root(config: dict[str, Any], manifest_path: str | None) -> str | None:

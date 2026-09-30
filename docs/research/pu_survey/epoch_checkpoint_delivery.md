@@ -75,7 +75,35 @@ predictions = selected.predict(X_test)
 **仍未完成**：P2.0b/c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle。
 本次 checkpoint 功能补齐不意味着所有单元 `formal_eligible=true`。
 
-## 4. 验证
+## 4. 回收语义（D25，2026-09-30）
+
+**开关默认关闭**。正式跑批可显式启用 `--reclaim-unselected-checkpoints`（由 Pilot 透传给单元脚本）。
+启用后每个 run 在 PA/OA 选择与 test 评测**全部完成之后**、manifest 构造**之前**，逐个
+`unlink` 掉没有被任何协议选中的逐 epoch 权重。被选中的权重保留；两套协议选中同一文件时
+只留一份，故保留集**至多两组**。粒度是逐文件，不删整个 `attempt-*` 目录。
+
+**与 §3 首段的关系（关键口径）**：门禁判定发生在 **run 执行期**，回收在其后，因此
+「完整快照可供 PA/OA 独立选择」在执行期**完全成立**。本方案**不是**「关闭 capture」
+（`capture_epoch_checkpoints=False` 会退回旧单点路径并保留阻断），也**不是**「缺少持久化」
+（`checkpoint_dir=None` 的临时目录语义）。**表述收窄**：启用回收的单元，其可持久复现范围是
+「**选中权重 + 全部逐 epoch 选择记录**」，**不是**「全部 epoch 权重」。不采纳「选择完成后
+完整快照仍须在盘上」的读法，理由见决策 D25 ③。
+
+**manifest 语义**：`candidate_runs[].epoch_checkpoints` 的每一条仍保留原 `path` 与 `sha256`，
+并新增 `reclaimed` 布尔字段。`reclaimed: true` **专指「曾落盘、后回收」**，必伴随原路径与
+摘要；它与 `persistent: false`（临时目录，`path: null`）是**两种不同状态**，不得互相冒充，
+也不得为前者补造路径或摘要。回收失败（文件缺失、权限）**报错而非静默继续**。
+
+**逐 epoch 指标仍全量保留**：回收的是权重文件，不是记录。哪些 epoch 被评估过、各自什么
+指标、哪个被选中，全部照旧写入 manifest。
+
+**未改变的**：选模结果、阈值、selected epoch、test 指标，因此不构成口径变更、不破坏组内
+可比性。
+
+**须如实披露的差异**：`B3a` 与 `B3b` 均为**全量快照留存**（B3b 跑完时本方案尚未合入），
+自 **B4** 起启用回收。批次验收记录与 P2.2 交接清单须写明该差异。
+
+## 5. 验证
 
 专项命令（合成数据工程测试，不是正式 benchmark）：
 

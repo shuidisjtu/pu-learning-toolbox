@@ -365,6 +365,7 @@ tests/
       test_pilot_resume_view.py         # 续跑按视图限定: 默认视图逐单元解析、OS/TS 不折叠、非法制品不阻断扫描
       test_checkpoint_storage_profiles.py # checkpoint 体积 profile: 按训练路径+backbone+model_family 分派、真实序列化上界、全 Pilot 精确字节
       test_survey_formal_eligibility.py # 正式资格放行(D24): canonical 单元无阻断、真实偏差仍阻断、消融变体标签保留
+      test_checkpoint_reclaim.py        # D25 回收非选中权重：只留选中、reclaimed 语义、开关默认关闭
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
