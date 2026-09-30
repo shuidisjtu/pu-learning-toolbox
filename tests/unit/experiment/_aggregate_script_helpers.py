@@ -80,6 +80,7 @@ def manifest(
     runnable=True,
     run_view="os-compatible",
     calibration_applied=None,
+    mechanism=None,
 ):
     """A versioned-pilot manifest with only the fields aggregation reads.
 
@@ -91,6 +92,10 @@ def manifest(
     ``group`` defaults to the group the locked protocol gives this budget
     family, which is not always named after the family -- see
     ``_GROUP_OF_FAMILY``.
+
+    ``mechanism`` defaults to ``scar`` (or ``pn_oracle`` when ``c_independent``).
+    A real pilot also carries ``sar_lbe_a`` / ``sar_lbe_b``, which the SCAR runs
+    are not comparable with even at a shared ``c``.
     """
     representation = {
         "split_sha256": _digest(split_marker),
@@ -112,7 +117,7 @@ def manifest(
     }
     generation = {
         role: {
-            "mechanism": "pn_oracle" if c_independent else "scar",
+            "mechanism": mechanism or ("pn_oracle" if c_independent else "scar"),
             "c_requested": c,
             "label_view_sha256": _digest("c"),
         }

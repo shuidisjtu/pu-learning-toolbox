@@ -286,3 +286,37 @@ def test_determ_repeated_aggregation_yields_identical_report(aggregate_script, t
     second = aggregate_tree(aggregate_script, root)
     assert first == second
     assert first["groups"][0]["units"][0]["methods"] == ["kldce", "upu"]
+
+
+def test_param_mechanisms_sharing_a_c_value_are_gated_apart(aggregate_script, tmp_path):
+    """SCAR and SAR runs share a c value without being comparable results.
+
+    The protocol runs SAR as a separate stress test, and a real pilot puts both
+    under one comparability group: spambase's SCAR runs cover c in
+    {0.1, 0.3, 0.5} while ``sar_lbe_a`` / ``sar_lbe_b`` cover {0.05, 0.5}.  A
+    group keyed on (comparability_group, run_view) alone therefore lands three
+    mechanisms in one (seed, c) unit, where ``validate_comparable_manifests``
+    compares each against the first manifest and refuses on ``mechanism``.
+    """
+    root = write_tree(
+        tmp_path,
+        {
+            "scar": manifest(method="upu", seed=0, c=0.5, mechanism="scar"),
+            "sar_a": manifest(method="upu", seed=0, c=0.5, mechanism="sar_lbe_a"),
+            "sar_b": manifest(method="upu", seed=0, c=0.5, mechanism="sar_lbe_b"),
+        },
+    )
+    report = aggregate_tree(aggregate_script, root)
+
+    assert [group["mechanism"] for group in report["groups"]] == [
+        "sar_lbe_a",
+        "sar_lbe_b",
+        "scar",
+    ]
+    # Each mechanism keeps its own unit rather than absorbing another's runs.
+    assert [unit["methods"] for group in report["groups"] for unit in group["units"]] == [
+        ["upu"],
+        ["upu"],
+        ["upu"],
+    ]
+    assert report["formal_ready"] is True

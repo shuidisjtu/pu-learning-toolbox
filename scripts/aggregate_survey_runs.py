@@ -28,15 +28,25 @@ Four things a naive version would get wrong, all pinned by tests:
   the requested seed list, so deriving it from the files found would let a
   2-of-5-seed pilot satisfy "the seeds agree" trivially.
 
-Groups are keyed by ``(comparability_group, run_view)``.  P2.0e records the view
-each run actually used and requires it to become a fairness-grouping dimension;
-without it a method run under both views reads as a duplicate of itself and the
-whole root is refused.  The same ``comparability_group`` string therefore
-appears once per view, and that composite pair -- never the string alone -- is
-a group's identity.  The protocol's group value is never suffixed with the
-view.  The partition stops here rather than inside
-``partition_fair_leaderboard_runs``: once the views are separated, every unit
-handed to that gate is single-view, so its contract is unchanged.
+Groups are keyed by ``(comparability_group, run_view, mechanism)``.  Only the
+first is a protocol field; the other two are manifest fields the protocol
+records and this entry point promotes to grouping dimensions.
+
+P2.0e records the view each run actually used and requires it to become a
+fairness-grouping dimension; without it a method run under both views reads as a
+duplicate of itself and the whole root is refused.  The mechanism earns the same
+treatment for the same reason: the protocol runs SAR as a separate stress test,
+and the pilot's SCAR and SAR grids overlap at ``c = 0.5``, so a group keyed on
+the view alone puts three mechanisms in one ``(seed, c)`` unit -- where the
+label-view gate compares each manifest against the first and refuses.
+
+Because all three are in the key, the same ``comparability_group`` string
+appears once per (view, mechanism) pair, and that composite triple -- never the
+string alone -- is a group's identity.  The protocol's group value is never
+suffixed with either.  The partition stops here rather than inside
+``partition_fair_leaderboard_runs``: once views and mechanisms are separated,
+every unit handed to that gate is single-view and single-mechanism, so its
+contract is unchanged.
 
 ``run_view`` is the view a run *used*, not the method's
 ``native_sampling_assumption``: a method declared native to TS but not yet wired
@@ -123,6 +133,23 @@ def unit_key(manifest: dict) -> tuple[int, Any]:
     if manifest.get("c_independent"):
         return manifest["seed"], "c_independent"
     return manifest["seed"], manifest["generation"]["train"]["c_requested"]
+
+
+def group_key(manifest: dict) -> tuple[str, str, str]:
+    """The ``(comparability_group, run_view, mechanism)`` one manifest joins.
+
+    ``run_view`` and ``mechanism`` are manifest fields promoted to grouping
+    dimensions, because the protocol's group string pins dataset, training path
+    and budget family and none of those separates a SCAR run from an SAR one.
+    The pilot overlaps their ``c`` grids -- SCAR covers {0.1, 0.3, 0.5} and SAR
+    {0.05, 0.5} -- so keying on the view alone lands both in one ``(seed, c)``
+    unit at ``c = 0.5``, where the label-view gate refuses the mixture.
+    """
+    return (
+        manifest["execution_unit"]["comparability_group"],
+        validated_run_view(manifest),
+        manifest["generation"]["train"]["mechanism"],
+    )
 
 
 def run_spec_from_manifest(manifest: dict, *, seeds: list[int]) -> LeaderboardRunSpec:
@@ -316,7 +343,7 @@ def _group_report(
     protocol: dict,
     require_formal: bool,
 ) -> dict:
-    group_name, run_view = key
+    group_name, run_view, mechanism = key
     seeds = list(protocol.get("seeds", []))
     _group_consistency(members, seeds=seeds)
     by_unit: dict[tuple, list[tuple[Path, dict]]] = {}
@@ -329,6 +356,7 @@ def _group_report(
     return {
         "comparability_group": group_name,
         "run_view": run_view,
+        "mechanism": mechanism,
         "dataset": members[0][1]["execution_unit"]["dataset"],
         "training_path": members[0][1]["training_path"],
         "methods": sorted({payload["execution_unit"]["method"] for _, payload in members}),
@@ -348,10 +376,9 @@ def aggregate(paths: list[Path], *, protocol: dict, require_formal: bool = True)
         else:
             refused.append({"path": str(path), "reason": reason})
 
-    grouped: dict[tuple[str, str], list[tuple[Path, dict]]] = {}
+    grouped: dict[tuple[str, str, str], list[tuple[Path, dict]]] = {}
     for path, payload in usable:
-        key = (payload["execution_unit"]["comparability_group"], validated_run_view(payload))
-        grouped.setdefault(key, []).append((path, payload))
+        grouped.setdefault(group_key(payload), []).append((path, payload))
 
     groups = [
         _group_report(key, grouped[key], protocol=protocol, require_formal=require_formal)
@@ -380,7 +407,7 @@ def _print_report(report: dict) -> None:
     for group in report["groups"]:
         print(
             f"\n[{group['comparability_group']}] {group['dataset']}/{group['training_path']}"
-            f" [{group['run_view']}]"
+            f" [{group['run_view']}] mechanism={group['mechanism']}"
         )
         print(f"  methods: {', '.join(group['methods'])}")
         for unit in group["units"]:
