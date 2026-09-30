@@ -58,6 +58,10 @@ AGENTS.md
 demo_data/
 /results*/
 
+# Tool scratch (uv staging and transient locks): root-anchored, so a package
+# that ships its own .tmp/ is unaffected.
+/.tmp/
+
 # Survey experiment data: raw downloads and prepared splits (never distributed).
 # Root-anchored so it does not also swallow docs/research/pu_survey/data/, which
 # holds the tracked delivery index -- metadata, not experiment data.
