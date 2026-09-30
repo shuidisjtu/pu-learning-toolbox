@@ -243,8 +243,20 @@ OA only。这与门禁层的 `selection` 分布逐一对上。
 - 与参考文献的交叉验证结论（P2.2）；
 - 期望单元完整性格网（口径未定，见 D13 遗留项）。
 
-## 10. 待办
+## 10. 完成判定补验与待办
 
-- **B4**：dry-run、分段规划与跑批；D25 的代码实施必须排在其之前；
-- **§9 补验**：dry-run 对账（`completed` / `pending`）在 B1 / B2 上尚未补跑；
+**§9 完成判定（2026-09-30 补验）**：四批的重新 dry-run 全部报 `planned = completed`、
+`pending 0`、退出码 0——B1 215/215、B2 215/215、B3a 110/110、B3b 70/70。
+
+**§6 对账**在 B1 / B2 上以「本次 recheck 生成的计划 vs 已验收参考计划」的方式补做：
+五个身份字段（`snapshot_schema_version`、`source_protocol_sha256`、`selection`、
+`execution_units`、`runs`）**逐值相同**；**仅 `totals` 的进度分量不同**——recheck 为
+`completed 215 / pending 0`，参考计划为跑前的 `completed 0 / pending 215`，两侧 `planned`
+都是 215。这正是 §11.4「completed/pending 可因进度变化而不同，协议、selection、
+execution_units 与 runs 身份不得变化」所预期的差异，不是缺陷。
+
+## 11. 待办
+
+- **B4**：dry-run、分段规划与跑批。D25（回收）已合入 `main` 并成为其前置；注意
+  **AutoDL 上的仓库仍是 `7f445be`**，启用回收前须先确认 B4 指南对冻结身份的表述；
 - **adapter cache 清理决策**：待 §12.1 与 16 号 §9 的条件齐备后单独决定。

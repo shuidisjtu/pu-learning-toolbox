@@ -114,5 +114,6 @@ spambase / imdb，lbfgs 在该尺度下才不收敛。**预期它在图像数据
 
 ## 8. 待办
 
-- **B3b / B4**：尚未开跑；B4 是 D25 回收逻辑第一个有实质收益的用例；
-- **§9 补验**：dry-run 对账（`completed` / `pending`）尚未在三个已完成批次上补跑。
+- **B3b**：已完成，与 B3a 的**合并分析**见 [`p2_1_b3ab_snapshot.md`](p2_1_b3ab_snapshot.md)；
+- **§9 补验**：已于 2026-09-30 补做（`planned 110 / completed 110 / pending 0`，退出码 0）；
+- **B4**：D25 回收逻辑第一个有实质收益的用例，回收已合入 `main`。

@@ -132,5 +132,7 @@ uv run python scripts/aggregate_survey_runs.py <B1 结果根>
 
 ## 7. 待办
 
-- **B2**：结果在训练主机上（215 份 manifest），取回后并入同一根，生成跨数据集的第二批快照；
-- **§9 补验**：dry-run 对账（`completed=215` / `pending=0`）尚未在 B1 上补跑。
+- **§9 补验**：已于 2026-09-30 补做——重新 dry-run 报 `planned 215 / completed 215 / pending 0`、
+  退出码 0；§6 对账的五个身份字段与已验收参考计划逐值相同，仅 `totals` 的进度分量不同
+  （recheck 跑完态 vs 参考计划跑前态，见 §11.4）。四批补验的汇总见
+  [`p2_1_b3ab_snapshot.md`](p2_1_b3ab_snapshot.md) §10。
