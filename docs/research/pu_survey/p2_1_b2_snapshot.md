@@ -74,6 +74,16 @@ uv run python scripts/aggregate_survey_runs.py <B1 与 B2 结果所在的根>
 （215 + 210 = 425 个文件，3.1 MiB），避免重演 B1 那 806 MiB 的全量快照负担。
 `pn_oracle` 不产出方法台账条目，故台账比 manifest 少 5 份——与 B1 一致，不是缺失。
 
+> **更正（2026-10-01）**：上文“本批未导出权重”只覆盖了**随证据包下载走的那一份**
+> （`B2_manifests.tar.gz`，3.1 MiB，仅 manifest 与台账）。本批实际**另有一份全量归档**
+> `B2_imdb.tar.gz`（4.98 GiB，`sha256`
+> `aa2eeb7e8ed94d27d0d57ff0798eacda67eda9ca15c3e7ca3c84c099540743eb`），一直存放在
+> AutoDL 暂存目录 `pu-survey-backup-stage/B2_imdb/`，**内含逐 epoch 权重**
+> （`imdb/<method>/native_2d/<view>/<mechanism>/<c>/seed_<n>/checkpoints/attempt-*/epoch_NNNN_model.pt`，
+> 2026-10-01 抽查确认）。该归档此前未登记在任何快照中；同日已复制到文件存储
+> `/root/autodl-fs/pu-survey-backups/pu-survey-backup-stage/` 并逐字节校验通过。
+> 因此 B2 的模型复核层**不缺归档**，缺的是它没有被写进记录。
+
 权重仍留在训练主机的结果树上，**尚未取回、也尚未回收**。若后续需要模型级复核，按 D25 的
 L2 语义只取被 `selection` 指向的选中权重即可。
 

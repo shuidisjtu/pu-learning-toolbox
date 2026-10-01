@@ -125,7 +125,11 @@ PA/OA 趋同），不是重复落盘。
 
 归档 `cifar10_feature_adapter_20260930_211528.tar.gz`（`sha256`
 `c1d5d01e25378e8a39babed28cc2a2b93acd8f37d4b86c8c023462c05ab6d992`），校验 `OK`。
-**cache 未清理**——§12.1 明写不得提前清理 adapter cache 目录。
+**cache 已于 2026-10-01 清理**。§12.1 的四项前置条件彼时全部满足：B3a 验收完成、B3b 跑完、
+cache key 与特征摘要及两批 manifest 审计完成（见本节）、adapter cache 独立归档并校验通过
+（`c1d5d01e…`）。清理前另按 16 号 §9 做了可恢复抽查：`tar -tzf` 确认归档内确为
+`cifar10_feature_adapter/<key>/{features.npz,adapter.json}` 结构，且目录 key 与本节记录的
+`26c9f820ae…` 一致。释放 586 MiB。
 
 ## 6. 量化指标现状（**非裁决**）
 
@@ -257,6 +261,7 @@ execution_units 与 runs 身份不得变化」所预期的差异，不是缺陷�
 
 ## 11. 待办
 
-- **B4**：dry-run、分段规划与跑批。D25（回收）已合入 `main` 并成为其前置；注意
-  **AutoDL 上的仓库仍是 `7f445be`**，启用回收前须先确认 B4 指南对冻结身份的表述；
-- **adapter cache 清理决策**：待 §12.1 与 16 号 §9 的条件齐备后单独决定。
+- **B4**：已于 2026-10-01 开跑。AutoDL 仓库已由 `7f445be` 推进到
+  `ee54b5ba488674faf3b9e504611518471ab0a31b`（含 D25 回收，默认关闭、本批显式启用）；
+  `uv.lock` 与协议摘要两项未变，dry-run 与计划对账（六项身份字段 `mismatches= []`）均通过；
+- **adapter cache**：已于 2026-10-01 清理，依据与抽查过程见 §5。
