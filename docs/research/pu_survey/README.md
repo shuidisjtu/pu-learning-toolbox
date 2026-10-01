@@ -40,12 +40,18 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | [`p2_1_b3a_snapshot.md`](p2_1_b3a_snapshot.md) | P2.1 B3a（`cifar10`/adapter，110 runs）：快照，含 checkpoint 形态与 `ConvergenceWarning` 已知现象 |
 | [`p2_1_b3ab_snapshot.md`](p2_1_b3ab_snapshot.md) | P2.1 B3a+B3b **合并分析组**（`cifar10`/adapter，180 runs）：§12.1 要求的两批合并快照，含 adapter cache 审计、量化指标逐 run 罗列、B 层策略与 checkpoint 容量对账；不含组级方法排名 |
 
+## P2.1 交接
+
+| 文档 | 定位 |
+|---|---|
+| [`p2_1_handoff_checklist.md`](p2_1_handoff_checklist.md) | P2.1 → P2.2 交接清单的执行侧记录：14 号 §8 各项的证据与缺口，以及「未使用测试集真值选模」的代码级证据 |
+
 ## 方案
 
 | 文档 | 定位 |
 |---|---|
 | [`artifact_storage_architecture.md`](artifact_storage_architecture.md) | 制品存储架构：L1 决策记录 / L2 选中权重 / L3 轨迹权重的分级，面向 8 数据集 × 22 方法的规模推演与三段迁移路径 |
-| [`epoch_checkpoint_reclaim_plan.md`](epoch_checkpoint_reclaim_plan.md) | 上者的**阶段 1**：保留选中权重、回收其余（**待实施**；含协议口径收窄的决策登记要求与可比性影响） |
+| [`epoch_checkpoint_reclaim_plan.md`](epoch_checkpoint_reclaim_plan.md) | 上者的**阶段 1**：保留选中权重、回收其余（**已实施**，D25 见 commit `e7c6f21`；含协议口径收窄的决策登记要求与可比性影响） |
 
 ## 复核 / 签署
 
