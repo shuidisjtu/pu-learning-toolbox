@@ -101,7 +101,7 @@ candidate` 的重试预留），实际落盘 **5.196 GiB**——`du`（5.3G）�
 PA/OA 趋同），不是重复落盘。
 
 **归档**：`B3b_cifar10_self_dist_20260930_210009.tar.gz`（4.8 GB，`sha256`
-`d97a3ab2143c40e6554315f369843647d3b2ad572751e050c4cc6cc9bc3ba5b`）；manifest 子集包
+`ed97a3ab2143c40e6554315f369843647d3b2ad572751e050c4cc6cc9bc3ba5b`）；manifest 子集包
 `B3b_manifests.tar.gz`（2.2 MiB / 140 文件）已取回本地。
 
 ## 5. adapter cache 审计
@@ -237,8 +237,21 @@ OA only。这与门禁层的 `selection` 分布逐一对上。
 | B3a | 远程保留完整批次归档 | 保留完整 epoch / 模型复核能力 |
 | B3b | 远程保留完整批次归档（4.8 GB） | 同上 |
 
-**两批的全量归档目前只存在于 AutoDL 数据盘**，本地只取回了 manifest 子集。实例释放
-即丢失——这是归档方案里显式承担的取舍，不是疏漏。
+两批的全量归档在**数据盘暂存目录**与**文件存储**各存一份，本地只取回了 manifest 子集。
+B3a 的归档为 `B3a_cifar10_adapter_classical_oracle_20261001_161352.tar.gz`
+（246197696 B，sha256 `9e7396a2a88d3e8e976e6b12063f63167e6a4f747b359efa47016b319f7277a3`），
+已于文件存储端以 `sha256sum -c` 回读校验通过。
+
+> **更正（2026-10-01）**：本节原写「**两批的全量归档目前只存在于 AutoDL 数据盘**，本地只
+> 取回了 manifest 子集。实例释放即丢失——这是归档方案里显式承担的取舍，不是疏漏」。
+> 两处需更正，完整记录见
+> [`p2_1_b5_review_checklist.md`](p2_1_b5_review_checklist.md) §2.1：
+>
+> - 该句**对 B3a 而言从来就不成立**——实测两侧 B3a 目录此前均为**空目录**，B3a 的 B 层当时
+>   只有数据盘结果树一个副本。该缺口已于同日补做归档闭合（见上）。
+> - B3b 的全量归档已于同日复制到
+>   `/root/autodl-fs/pu-survey-backups/pu-survey-backup-stage/`（文件存储，独立于实例），
+>   「实例释放即丢失」不再成立。
 
 ## 9. 本快照不含
 

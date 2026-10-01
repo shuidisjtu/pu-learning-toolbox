@@ -14,8 +14,14 @@
 | 制品 | `B3a_manifests.tar.gz`（227 KiB，**仅 manifest 与方法台账条目**） |
 
 **收尾证据**：日志末行 `completed 110 of 110 run(s) in cifar10; 0 still pending`，
-manifest 计数 110。**本批未产出退出码文件**（dry-run 那一步有 `B3a_dry_run_exit_code.txt`），
-故本快照不引用退出码——验收以日志的 completed 行与 manifest 计数为准，不假称有退出码。
+manifest 计数 110，退出码文件 `B3a_exit_code.txt` 为 `0`。
+
+> **更正（2026-10-01）**：本节原写「**本批未产出退出码文件**（dry-run 那一步有
+> `B3a_dry_run_exit_code.txt`），故本快照不引用退出码——验收以日志的 completed 行与
+> manifest 计数为准，不假称有退出码」。该判断有误。实测
+> `/root/autodl-tmp/pu-survey-logs/B3a_cifar10_adapter_classical_oracle/B3a_exit_code.txt`
+> **存在**：2 字节、内容 `0`、mtime 2026-09-30 20:00。更正后 13 号 §9 完成判定的第一条
+> （真实退出码为 0）对 B3a 同样成立，不必只依赖日志的 completed 行。
 
 ## 2. 清单层
 
