@@ -175,6 +175,7 @@ pu_toolbox/
     method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
     survey_audit.py                       <<< 新文件,补注释
     survey_summary.py                     <<< 新文件,补注释
+    survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -381,6 +382,10 @@ tests/
       test_survey_audit_reclaim.py      # <<< 新文件,补注释
       test_survey_summary_measures.py   # <<< 新文件,补注释
       test_survey_comparison_attachment.py # <<< 新文件,补注释
+      _survey_recipe_registry_helpers.py # recipe registry 测试共用 fixture（从冻结协议派生，非手写副本）
+      test_survey_recipe_registry.py    # recipe registry 的 schema/候选池/摘要规则
+      test_survey_recipe_registry_manifest.py # manifest recipe 绑定校验（fail-closed + legacy 兼容）
+      test_survey_recipe_registry_sources.py # recipe registry 来源证据引用规则
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
@@ -648,6 +653,7 @@ scripts/
   audit_survey_batches.py                 <<< 新文件,补注释
   summarize_survey_results.py             <<< 新文件,补注释
   compare_survey_results.py               <<< 新文件,补注释
+  check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
 ```
 
 ## 7. CI/CD（`.github/`）
