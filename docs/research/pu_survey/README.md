@@ -17,7 +17,7 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | 文档 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | 协议要求纲要（8 数据集、OS/TS 视图、四份数据接口、PA/OA 双选模） |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 执行协调层：任务分工、交叉验证对照预注册、决策记录与留痕约定 |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 执行协调层：当前状态、任务分工与验收、交叉验证对照预注册、风险与留痕约定；决策账本见文末附录 A |
 
 ## 交付记录
 

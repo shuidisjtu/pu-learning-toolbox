@@ -1,7 +1,7 @@
 # P2.0a 合作者复核包
 
 状态日期：2026-09-17。**已由 shuidisjtu 于 2026-09-17 签署验收**（记录见 §4）。
-主责 HENG958；复核人 shuidisjtu。依据 [执行计划](survey_execution_plan.md) §2.0，
+主责 HENG958；复核人 shuidisjtu。依据 [执行计划](survey_execution_plan.md) 的 P2.0a 条目，
 代码和测试通过不等同于合作者同意，不得由自动化代签或自行清除 `collaborator_review`。
 
 ## 1. 复核对象
