@@ -639,66 +639,18 @@ def _validate_candidates(
     candidates in v1: an override here would be a deviation there, not merely a
     recipe choice.  The correspondence itself is not policed by a separate rule,
     because in v1 any divergence already *is* an override.
+
+    This is the entry point only; the pool's contract, its declared size and each
+    candidate are checked by the helpers below.  They answer separate questions
+    and fail for separate reasons, and a finding a reader cannot attribute to one
+    of them is the kind of report ``survey_audit``'s ``scope`` field exists to
+    prevent.
     """
-    findings: list[Finding] = []
-    method = profile.get("method")
-    lifecycle = profile.get("recipe_lifecycle")
     pool = profile.get("candidate_pool")
-    budget_name = (protocol.get("method_profiles") or {}).get(method, {}).get("budget")
-    budget = (protocol.get("budgets") or {}).get(budget_name, {})
-    frozen_pool = protocol.get("candidate_pool")
-    is_frozen_list = isinstance(frozen_pool, Sequence) and not isinstance(frozen_pool, (str, bytes))
-
     if pool is None:
-        if lifecycle != "excluded":
-            findings.append(
-                _finding(
-                    "candidate_pool_null_not_excluded",
-                    f"{path}.candidate_pool",
-                    "a null candidate pool is only legal for an excluded profile",
-                )
-            )
-        if not profile.get("exclusion_reason"):
-            findings.append(
-                _finding(
-                    "missing_exclusion_reason",
-                    f"{path}.exclusion_reason",
-                    "a null candidate pool must record why the method carries none",
-                )
-            )
-        runnable = sorted(
-            {
-                str(row.get("dataset"))
-                for row in protocol.get("execution_units", [])
-                if row.get("method") == method and row.get("runnable")
-            }
-        )
-        # Only meaningful once the lifecycle actually claims exclusion; on any
-        # other lifecycle the null pool is already reported as the defect it is,
-        # and naming the runnable rows too would suggest the protocol is at fault.
-        if lifecycle == "excluded" and runnable:
-            findings.append(
-                _finding(
-                    "excluded_method_still_runnable",
-                    f"{path}.recipe_lifecycle",
-                    f"an excluded profile still has runnable execution units: {runnable}",
-                )
-            )
-        return findings
+        return _validate_null_pool(path, profile, protocol)
 
-    # The field's meaning is "why this profile carries no candidate", so it is
-    # present exactly when there is no pool.  A reason left behind on an adopted
-    # profile is a stale justification -- the drift this field exists to make
-    # visible, not a harmless leftover.
-    if profile.get("exclusion_reason"):
-        findings.append(
-            _finding(
-                "unexpected_exclusion_reason",
-                f"{path}.exclusion_reason",
-                "an adopted profile has no exclusion to explain",
-            )
-        )
-
+    findings = _validate_stale_exclusion_reason(path, profile)
     if not isinstance(pool, Sequence) or isinstance(pool, (str, bytes)):
         findings.append(
             _finding(
@@ -710,16 +662,102 @@ def _validate_candidates(
         return findings
     if not pool:
         findings.append(_finding("empty_candidate_pool", f"{path}.candidate_pool", "pool is empty"))
+    findings.extend(_validate_pool_counts(path, profile, pool, protocol))
+    for index, candidate in enumerate(pool):
+        findings.extend(
+            _validate_one_candidate(
+                f"{path}.candidate_pool[{index}]",
+                candidate,
+                profile,
+                protocol,
+                seen_candidate_ids,
+            )
+        )
+    return findings
+
+
+def _validate_null_pool(
+    path: str, profile: Mapping[str, Any], protocol: Mapping[str, Any]
+) -> list[Finding]:
+    """A profile that carries no candidate, and what that obliges it to say."""
+    findings: list[Finding] = []
+    lifecycle = profile.get("recipe_lifecycle")
+    if lifecycle != "excluded":
+        findings.append(
+            _finding(
+                "candidate_pool_null_not_excluded",
+                f"{path}.candidate_pool",
+                "a null candidate pool is only legal for an excluded profile",
+            )
+        )
+    if not profile.get("exclusion_reason"):
+        findings.append(
+            _finding(
+                "missing_exclusion_reason",
+                f"{path}.exclusion_reason",
+                "a null candidate pool must record why the method carries none",
+            )
+        )
+    method = profile.get("method")
+    runnable = sorted(
+        {
+            str(row.get("dataset"))
+            for row in protocol.get("execution_units", [])
+            if row.get("method") == method and row.get("runnable")
+        }
+    )
+    # Only meaningful once the lifecycle actually claims exclusion; on any other
+    # lifecycle the null pool is already reported as the defect it is, and naming
+    # the runnable rows too would suggest the protocol is at fault.
+    if lifecycle == "excluded" and runnable:
+        findings.append(
+            _finding(
+                "excluded_method_still_runnable",
+                f"{path}.recipe_lifecycle",
+                f"an excluded profile still has runnable execution units: {runnable}",
+            )
+        )
+    return findings
+
+
+def _validate_stale_exclusion_reason(path: str, profile: Mapping[str, Any]) -> list[Finding]:
+    """The adopted-pool half of ``exclusion_reason``'s meaning.
+
+    The field says *why this profile carries no candidate*, so it is present
+    exactly when there is no pool.  A reason left behind on an adopted profile is
+    a stale justification -- the drift this field exists to make visible, not a
+    harmless leftover.
+    """
+    if not profile.get("exclusion_reason"):
+        return []
+    return [
+        _finding(
+            "unexpected_exclusion_reason",
+            f"{path}.exclusion_reason",
+            "an adopted profile has no exclusion to explain",
+        )
+    ]
+
+
+def _validate_pool_counts(
+    path: str, profile: Mapping[str, Any], pool: Sequence[Any], protocol: Mapping[str, Any]
+) -> list[Finding]:
+    """The pool's size against both of the protocol's declarations.
+
+    Mirroring the pool's *contents* is not checked separately: in v1 the frozen
+    pool is ``[{}]``, so any divergence is already an override, and a rule that
+    cannot fire on its own would be a rule nobody can attribute.
+    """
+    method = profile.get("method")
+    budget_name = (protocol.get("method_profiles") or {}).get(method, {}).get("budget")
+    budget = (protocol.get("budgets") or {}).get(budget_name, {})
+    frozen_pool = protocol.get("candidate_pool")
     declarations: dict[str, Any] = {
         f"budgets.{budget_name}.outer_candidates": budget.get("outer_candidates")
     }
-    if is_frozen_list:
-        # The protocol declares the count twice, and both are declarations the
-        # registry must agree with.  Mirroring the pool's *contents* is not
-        # checked separately: in v1 the frozen pool is ``[{}]``, so any
-        # divergence is already an override, and a rule that cannot fire on its
-        # own would be a rule nobody can attribute.
+    if isinstance(frozen_pool, Sequence) and not isinstance(frozen_pool, (str, bytes)):
         declarations["the protocol's candidate_pool length"] = len(frozen_pool)
+    findings: list[Finding] = []
     for source, declared in declarations.items():
         if isinstance(declared, int) and len(pool) != declared:
             findings.append(
@@ -729,74 +767,98 @@ def _validate_candidates(
                     f"{len(pool)} candidate(s) against {declared} declared by {source}",
                 )
             )
-
-    for index, candidate in enumerate(pool):
-        candidate_path = f"{path}.candidate_pool[{index}]"
-        if not isinstance(candidate, Mapping):
-            findings.append(
-                _finding("missing_registry_field", candidate_path, "a candidate must be an object")
-            )
-            continue
-        candidate_id = candidate.get("recipe_candidate_id")
-        if not candidate_id:
-            findings.append(
-                _finding(
-                    "missing_registry_field",
-                    f"{candidate_path}.recipe_candidate_id",
-                    "a candidate needs a stable identity, not a list position",
-                )
-            )
-        else:
-            if candidate_id in seen_candidate_ids:
-                findings.append(
-                    _finding(
-                        "duplicate_candidate_id",
-                        f"{candidate_path}.recipe_candidate_id",
-                        f"duplicate candidate id {candidate_id!r}",
-                    )
-                )
-            seen_candidate_ids.add(candidate_id)
-        if candidate.get("candidate_role") not in CANDIDATE_ROLES:
-            findings.append(
-                _finding(
-                    "unknown_candidate_role",
-                    f"{candidate_path}.candidate_role",
-                    f"must be one of {list(CANDIDATE_ROLES)}; "
-                    f"got {candidate.get('candidate_role')!r}",
-                )
-            )
-        if candidate.get("overrides"):
-            findings.append(
-                _finding(
-                    "candidate_overrides_forbidden",
-                    f"{candidate_path}.overrides",
-                    "v1 registers the current binding: the frozen protocol pool carries no "
-                    "overrides, so this entry could not mirror it and would be a recorded "
-                    "protocol deviation",
-                )
-            )
-        findings.extend(_truth_keys(candidate, candidate_path))
-        snapshot = candidate.get("resolved_snapshot")
-        if lifecycle == "locked" and snapshot is None:
-            findings.append(
-                _finding(
-                    "missing_resolved_snapshot",
-                    f"{candidate_path}.resolved_snapshot",
-                    "a locked registry must carry the expanded snapshot for every candidate",
-                )
-            )
-        elif isinstance(snapshot, Mapping):
-            expected = _expected_snapshot(profile, candidate, protocol)
-            if expected is not None and digest(expected) != digest(snapshot):
-                findings.append(
-                    _finding(
-                        "resolved_snapshot_mismatch",
-                        f"{candidate_path}.resolved_snapshot",
-                        "stored snapshot does not match the expansion of base_ref and the "
-                        "protocol binding",
-                    )
-                )
     return findings
+
+
+def _validate_one_candidate(
+    candidate_path: str,
+    candidate: Any,
+    profile: Mapping[str, Any],
+    protocol: Mapping[str, Any],
+    seen_candidate_ids: set[str],
+) -> list[Finding]:
+    """One candidate's identity, role, overrides and snapshot."""
+    if not isinstance(candidate, Mapping):
+        return [_finding("missing_registry_field", candidate_path, "a candidate must be an object")]
+    findings: list[Finding] = []
+    candidate_id = candidate.get("recipe_candidate_id")
+    if not candidate_id:
+        findings.append(
+            _finding(
+                "missing_registry_field",
+                f"{candidate_path}.recipe_candidate_id",
+                "a candidate needs a stable identity, not a list position",
+            )
+        )
+    else:
+        if candidate_id in seen_candidate_ids:
+            findings.append(
+                _finding(
+                    "duplicate_candidate_id",
+                    f"{candidate_path}.recipe_candidate_id",
+                    f"duplicate candidate id {candidate_id!r}",
+                )
+            )
+        seen_candidate_ids.add(candidate_id)
+    if candidate.get("candidate_role") not in CANDIDATE_ROLES:
+        findings.append(
+            _finding(
+                "unknown_candidate_role",
+                f"{candidate_path}.candidate_role",
+                f"must be one of {list(CANDIDATE_ROLES)}; got {candidate.get('candidate_role')!r}",
+            )
+        )
+    if candidate.get("overrides"):
+        findings.append(
+            _finding(
+                "candidate_overrides_forbidden",
+                f"{candidate_path}.overrides",
+                "v1 registers the current binding: the frozen protocol pool carries no "
+                "overrides, so this entry could not mirror it and would be a recorded "
+                "protocol deviation",
+            )
+        )
+    findings.extend(_truth_keys(candidate, candidate_path))
+    findings.extend(_validate_candidate_snapshot(candidate_path, candidate, profile, protocol))
+    return findings
+
+
+def _validate_candidate_snapshot(
+    candidate_path: str,
+    candidate: Mapping[str, Any],
+    profile: Mapping[str, Any],
+    protocol: Mapping[str, Any],
+) -> list[Finding]:
+    """A locked registry must carry the expansion, and it must still match.
+
+    The snapshot is a derived artifact, so the check recomputes it rather than
+    trusting it: one that drifted from ``base_ref`` plus the protocol binding is
+    exactly the hand-edited parameter source the registry exists to prevent
+    (plan §13 decision 3).
+    """
+    snapshot = candidate.get("resolved_snapshot")
+    if snapshot is None:
+        if profile.get("recipe_lifecycle") != "locked":
+            return []
+        return [
+            _finding(
+                "missing_resolved_snapshot",
+                f"{candidate_path}.resolved_snapshot",
+                "a locked registry must carry the expanded snapshot for every candidate",
+            )
+        ]
+    if not isinstance(snapshot, Mapping):
+        return []
+    expected = _expected_snapshot(profile, candidate, protocol)
+    if expected is None or digest(expected) == digest(snapshot):
+        return []
+    return [
+        _finding(
+            "resolved_snapshot_mismatch",
+            f"{candidate_path}.resolved_snapshot",
+            "stored snapshot does not match the expansion of base_ref and the protocol binding",
+        )
+    ]
 
 
 def _expected_snapshot(
