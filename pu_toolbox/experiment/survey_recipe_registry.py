@@ -1176,42 +1176,74 @@ def validate_manifest_binding(
     requires that run to fail anyway, so the discriminator has to be external --
     the batch/version whitelist and the artifact schema, which are stage 3's
     wiring, not a property of the payload.
+
+    The three questions below are asked in order because each one is only
+    meaningful once the previous has been answered: whether the manifest claims a
+    binding at all, whether it cites the registry it claims, and whether the
+    profile and candidate it names hold together.
     """
-    findings: list[Finding] = []
+    verdict = _binding_form_verdict(manifest)
+    if verdict is not None:
+        return verdict
+    findings = _validate_registry_reference(manifest, registry)
+    findings.extend(_validate_bound_candidate(manifest, registry, protocol))
+    return findings
+
+
+def _binding_form_verdict(manifest: Mapping[str, Any]) -> list[Finding] | None:
+    """The fail-closed form check, or ``None`` when the binding can be resolved.
+
+    A returned list *ends* the check, including the empty list: that is the
+    legacy pass, not a reason to keep looking.  ``None`` is the only value that
+    means "claimed and complete enough to resolve against the registry".
+
+    A payload carrying one binding field has claimed the binding, so a missing
+    remainder is a defect rather than grounds to fall back to legacy
+    (D-P4.1-2).
+    """
     status = manifest.get("recipe_binding_status")
     present = manifest_has_binding_fields(manifest)
     if status is not None and status not in RECIPE_BINDING_STATUS:
-        findings.append(
+        return [
             _finding(
                 "unknown_recipe_binding_status",
                 "recipe_binding_status",
                 f"must be one of {list(RECIPE_BINDING_STATUS)}; got {status!r}",
             )
-        )
-        return findings
+        ]
     if status is None and not present:
-        return findings
+        return []
     if status == "legacy_unbound":
-        if present:
-            findings.append(
-                _finding(
-                    "partial_recipe_binding",
-                    "recipe_binding_status",
-                    "a legacy_unbound manifest must not carry registry fields",
-                )
-            )
-        return findings
-    missing = [field for field in REGISTRY_BOUND_MANIFEST_FIELDS if field not in manifest]
-    if missing:
-        findings.append(
+        if not present:
+            return []
+        return [
             _finding(
-                "manifest_registry_field_missing",
-                "recipe_registry_version",
-                f"registry-bound manifest is missing {missing}",
+                "partial_recipe_binding",
+                "recipe_binding_status",
+                "a legacy_unbound manifest must not carry registry fields",
             )
+        ]
+    missing = [field for field in REGISTRY_BOUND_MANIFEST_FIELDS if field not in manifest]
+    if not missing:
+        return None
+    return [
+        _finding(
+            "manifest_registry_field_missing",
+            "recipe_registry_version",
+            f"registry-bound manifest is missing {missing}",
         )
-        return findings
+    ]
 
+
+def _validate_registry_reference(
+    manifest: Mapping[str, Any], registry: Mapping[str, Any]
+) -> list[Finding]:
+    """The manifest must cite the registry it was bound to.
+
+    Both are checked because they answer to different readers: the version for a
+    human reading a report, the digest for anything recomputing the binding.
+    """
+    findings: list[Finding] = []
     if manifest["recipe_registry_version"] != registry.get("recipe_registry_version"):
         findings.append(
             _finding(
@@ -1228,27 +1260,40 @@ def validate_manifest_binding(
                 "recorded registry digest does not recompute over the bound registry",
             )
         )
+    return findings
+
+
+def _validate_bound_candidate(
+    manifest: Mapping[str, Any],
+    registry: Mapping[str, Any],
+    protocol: Mapping[str, Any] | None,
+) -> list[Finding]:
+    """The named profile and candidate must resolve, and their fields must agree.
+
+    Failure to resolve ends the check on purpose: an unresolvable profile makes
+    every later comparison meaningless, and reporting them anyway would suggest
+    several independent defects where there is one.
+    """
+    findings: list[Finding] = []
     profile = _find_profile(registry, manifest.get("recipe_profile_id"))
     if profile is None:
-        findings.append(
+        return [
             _finding(
                 "unknown_recipe_candidate",
                 "recipe_profile_id",
                 f"{manifest.get('recipe_profile_id')!r} does not resolve in the registry",
             )
-        )
-        return findings
+        ]
     candidate = _find_candidate(profile, manifest.get("recipe_candidate_id"))
     if candidate is None:
-        findings.append(
+        return [
             _finding(
                 "unknown_recipe_candidate",
                 "recipe_candidate_id",
                 f"{manifest.get('recipe_candidate_id')!r} does not resolve under "
                 f"{manifest.get('recipe_profile_id')!r}",
             )
-        )
-        return findings
+        ]
     expected_inner = (profile.get("inner_search") or {}).get("inner_search_id")
     if manifest["inner_search_id"] != expected_inner:
         findings.append(
@@ -1261,17 +1306,16 @@ def validate_manifest_binding(
         )
     if protocol is not None:
         expected = _expected_snapshot(profile, candidate, protocol)
-        if expected is not None:
-            recorded = manifest["resolved_params_sha256"]
-            if recorded != resolved_params_digest(expected):
-                findings.append(
-                    _finding(
-                        "resolved_params_digest_mismatch",
-                        "resolved_params_sha256",
-                        "recorded resolved-parameters digest does not match the candidate's "
-                        "expansion",
-                    )
+        if expected is not None and manifest["resolved_params_sha256"] != resolved_params_digest(
+            expected
+        ):
+            findings.append(
+                _finding(
+                    "resolved_params_digest_mismatch",
+                    "resolved_params_sha256",
+                    "recorded resolved-parameters digest does not match the candidate's expansion",
                 )
+            )
     return findings
 
 
