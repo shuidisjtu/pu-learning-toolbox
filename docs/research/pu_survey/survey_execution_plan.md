@@ -1,39 +1,118 @@
 # PU 调研实验执行计划（pilot → 主榜）
 
-> 定位：本文件是**执行路线与状态**的协调层，只保留需人工阅读与决策的内容——任务分工、
-> 交叉验证对照预注册、决策记录、风险与留痕约定。实现细节与现状见
+> 定位：本文件是**执行路线与状态**的协调层，只保留需人工阅读与决策的内容——当前状态、
+> 任务分工与验收、交叉验证对照预注册、风险与留痕约定。按时间追加的决策账本（D1–D26）置于
+> 文末**附录 A**，按决策号查阅；账本内的状态类补充（例如「接线状态更新（同日）」）是**当时**
+> 的记录，**不代表当前状态**，现状一律以 §1 为准。实现细节见
 > [pu_survey_protocol.md](pu_survey_protocol.md)（要求纲要）与
-> [experiment_layer.md](../../dev/experiment_layer.md)（实验层实现）；各 Phase 的交付证据
-> 见对应交付记录与复核包（`p2_0a/b/c_delivery.md`、`p2_0a/c_review.md`）。
-> 状态日期：2026-09-29。
+> [experiment_layer.md](../../dev/experiment_layer.md)（实验层实现）；交付证据见对应交付记录、
+> 复核包与批次快照（`p2_0a/b/c_delivery.md`、`p2_0a/c_review.md`、`p2_1_b*_snapshot.md`）。
+> 状态日期：**2026-10-02**。
 
-## 1. 任务分工与验收
+## 1. 当前状态
 
-实施主体：**shuidisjtu**（数据、实验编排、结果留痕与文档）和 **HENG958**（算法接入、深度训练与 GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复核。任务完成必须有测试、manifest、运行记录或 PR 链接等可复核证据，不能只以口头或代码存在判定完成。
+本节是现状的**唯一**叙述；批次级明细见各批次快照，不在此复述。
+
+### 1.1 运行制品
+
+| 批 | 数据集 / 训练路径 / 方法 | runs | 状态 | 执行 commit |
+|---|---|---|---|---|
+| B1 | spambase / native_2d / 6 方法 + `pn_oracle` | 215 | ✅ 完成 | `7f445be` |
+| B2 | imdb / native_2d / 6 方法 + `pn_oracle` | 215 | ✅ 完成 | `7f445be` |
+| B3a | cifar10 / cnn_feature_adapter / `lbe` `pusb_kernel` `upu` + `pn_oracle` | 110 | ✅ 完成 | `7f445be` |
+| B3b | cifar10 / cnn_feature_adapter / `dist_pu` `self_pu` | 70 | ✅ 完成 | `7f445be` |
+| B4 | cifar10 / native_cnn / `nnpu` | 35 | 🔄 运行中 | `ee54b5b` |
+
+- **协议身份**：`survey-v1.2`，摘要
+  `287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a`；B1–B3b 的 610 份
+  manifest **单值一致**。`uv.lock` 的跨平台身份（git blob `cf5772f4…`）自 B0 起未变。
+- **执行平台**：**AutoDL 云平台**——P2.1 跑批统一在该平台执行，跑批期间逐 run 记录实例与卡型，
+  不设跨方 GPU 排期本（P2.1 与 P3.3 不共享单卡）。B0–B3b 于 `7f445be`，B4 起为 `ee54b5b`。
+- **模型复核层**：B3a/B3b 保留完整批次归档，在数据盘暂存与文件存储各一份；B4 起启用逐 epoch
+  回收（D25），其可持久复现范围随之收窄，见 §1.3 第 3 条。
+- **本文不回填批次实测值**：B4 的收尾验收命令与实测值见
+  [`p2_1_b4_snapshot.md`](p2_1_b4_snapshot.md)。原 §1 状态格与决策记录中重复的现状叙述已并入
+  本节与附录 A，主文不再各写一份。
+
+### 1.2 门禁与聚合现状
+
+- 610 份 manifest（B1–B3b）逐份通过身份预检，**0 份不可复现**；
+- 公平性门禁分为 **45 个组**，全部通过，0 个组被拒；
+- 批次级 `formal_ready = False`：**3 个组含被门禁阻断的单元**——即 B1/B2/B3a 各 5 个
+  `pn_oracle` 带 `protocol_deviation: ['c_grid']`。这是 D24 保留该阻断位要标的真实偏差，
+  属**正确行为**，不是缺陷；
+- 汇总出 **173 行**：170 `formal` / 3 `partial`（三条全部是上述 oracle 行），无缺失 seed，
+  门槛拒收 0 条；
+- 行级 `formal` 与门禁级 `formal_ready` 是**两个层次**：前者说这一条可比条件自身没有阻断，
+  后者说整棵树能否整体作为正式榜。两者须同时给出，否则读者会以为其中一个写错了。
+
+### 1.3 不可越过的口径边界
+
+以下三条当前**未解除**，任何呈报不得越过：
+
+1. **PA 行不能数值裁决**：对照矩阵中 **54 条**映射为 `blocked_pending_pa_criterion`，PA 准则的
+   合作者复核未获得（D24 ④(a)）；
+2. **对照附录必为定性**：矩阵 194 条映射中 `numeric` 为 **0 条**（111 `no_direct_anchor`、
+   54 `blocked_pending_pa_criterion`、22 `magnitude_and_trend`、4 `non_runnable`、
+   3 `background_only`），故预注册的 `|Δ| ≤ max(3pp, 2·SE_pooled)` 当前**无对象可施**；
+3. **回收后的可持久复现范围**是「**选中权重 + 全部逐 epoch 选择记录**」，**不是**「全部 epoch
+   权重」（D25 ③）。回收改变的是存储义务，不是选择能力。
+
+### 1.4 尚未获得的合作者复核
+
+以下复核**一律未获得**；相关单元的呈报**不得读作已签署**。各任务行只引本表，不复述：
+
+| 复核项 | 出处 |
+|---|---|
+| 数据制品的可执行性复核（取件校验） | 决策 D12 ① |
+| P2.0b 标签语义门禁的签署 | 决策 D12 ① |
+| P2.0c 对照矩阵：36 个锚点 / 7 条映射仍待复核 | 决策 D12 ①、D24 ② |
+| PA 正式选模准则的签署 | 决策 D24 ② |
+| `self_pu` clean-validation 元重加权的复核 | 决策 D24 ② |
+| P2.0e 五个方法 `ts` 接线的方法学复核 | 决策 D20 ① |
+| P3.1 / P3.2 各方法的方法学复核 | 决策 D21 ⑥、D25 ⑤(d) |
+
+对照矩阵自身的 `review_status` 仍为 `pending_collaborator_review`、`formal_blockers` 仍为
+`["collaborator_review"]`。
+
+## 2. 任务分工与验收
+
+实施主体：**shuidisjtu**（数据、实验编排、结果留痕与文档）和 **HENG958**（算法接入、深度训练与
+GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复核。任务完成必须有测试、manifest、
+运行记录或 PR 链接等可复核证据，不能只以口头或代码存在判定完成。
+
+### 2.1 已完成（编号 + 任务 + 证据指针）
+
+| 编号 | 任务 | 证据 |
+|---|---|---|
+| P1.1 | 环境与 GPU 验证 | `uv.lock` 可复现；目标环境 GPU smoke 与版本/设备记录可追溯。HENG958 的 GPU 能力复核已完成；正式跑批需 frozen-lock 环境 |
+| P1.2 | 数据获取与版本审计 | pilot 三数据集的来源/版本/标签映射/许可入 manifest（2026-09-19，按官方页原文逐条记录）。协议全量 8 数据集与 ADNI 准入见决策 D1，属后续阶段——本行的余项是**范围**而非遗漏 |
+| P1.3a | 方法台账 | 矩阵口径为 7 个 PU 方法 + `pn_oracle`；台账另收 `pusb` 线性基线与 `vpu`，实为 9 条 PU 条目（`pusb`/`pusb_kernel` 刻意分开，issue #42），后二者**不进执行矩阵**。HENG958 已复核 nnPU、Self-PU（2026-09-16） |
+| P1.3b | 官方 Survey 脚本 | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 |
+| P1.4 | Pilot 数据产物 | 三数据集 × 5 seed 统一重建（2026-09-19）；传输/校验工具已就位（`scripts/survey_splits_archive.py`），载体定为网盘带外传，三个归档已于 2026-09-20 发送，索引与摘要先于发送入库 |
+| P2.0a | Pilot 共享规格与 oracle 对齐（阶段 A） | 2026-09-17 签署验收，shuidisjtu 复核签署；见[交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
+| P2.0b | 标签语义门禁（阶段 A） | P1+P2 已完成；按决策 D12 ① 单方技术验收放行。见[交付记录](p2_0b_delivery.md) |
+| P2.0c | 交叉验证对照预注册（阶段 A） | 锚点数值与判定规则已冻结并落矩阵；按决策 D12 ① 单方技术验收放行。见[复核包](p2_0c_review.md) |
+| P2.0d | SAR-OA 执行路径（issue #43） | 已完成；HENG958 已复核（2026-09-16） |
+| P2.0e | TS-OS 校准接入训练执行链 | 五个适用方法（`nnpu`、`upu`、`pusb_kernel`、`dist_pu`、`self_pu`）全部接线并按决策 D20 ① 单方技术验收放行。逐方法口径见决策 D16 ③ / D17 / D18 / D19，**不得**笼统写作「其余 4 个」或「五个都接线**口径相同**」 |
+
+### 2.2 未完成（前置 / 验收标准 / 状态与主责）
 
 | 编号 | 任务 | 前置 | 验收标准 | 状态 / 主责 |
 |---|---|---|---|---|
-| P1.1 | 环境与 GPU 验证 | — | `uv.lock` 可复现；目标环境完成 GPU smoke；版本、设备与验证记录可追溯 | ✅ 已完成 / shuidisjtu；HENG958 GPU 能力复核完成，正式跑批需 frozen-lock 环境（见独立复核记录） |
-| P1.2 | 数据获取与版本审计 | — | 数据来源、版本、标签映射与许可记录入 manifest；ADNI 的准入状态明确 | 🚧 manifest 侧已补齐（2026-09-19，三 pilot 数据集；许可按官方页原文逐条记录）；ADNI 不在 pilot 范围，准入路线见 D1。本项 🚧 的口径是**范围**而非遗漏：协议 §2.1 列 8 个数据集，pilot 先取 3 个易得分属三种模态者，故 pilot 范围内已完成、按协议全量仍待办 / shuidisjtu |
-| P1.3a | 方法台账 | — | 7 个已实现方法的 6 槽（另有 paper/code_version/implementation_status 身份与来源字段）已填写，evidence 覆盖其中 3 槽；每项经对应方法负责人复核。**「7 个」为执行矩阵口径**——`survey_protocol_v1.json` 的 `method_profiles` 列 7 个 PU 方法 + `pn_oracle`；台账 `method_ledger.json` 另收 `pusb` 线性基线与 `vpu`（P3.1 局部前置，决策 D21），实为 **9 条 PU 条目**（`pusb` / `pusb_kernel` 刻意分开，issue #42）；**两者都不进执行矩阵**——矩阵口径仍是 7 个 PU 方法 + `pn_oracle`，本行「7 个」不变 | ✅ 已完成 / shuidisjtu；HENG958 已复核 nnPU、Self-PU（2026-09-16） |
-| P1.3b | 官方 Survey 脚本 | — | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 | ✅ 已完成 / shuidisjtu |
-| P1.4 | Pilot 数据产物 | P1.1、P1.2 | CIFAR-10、IMDB、Spambase 各 5 个 seed 的四路 split、预处理与 manifest 均通过合同验证 | ✅ shuidisjtu 侧已完成（三数据集统一重建 2026-09-19）；传输/校验工具已就位（`scripts/survey_splits_archive.py`），**载体已定（网盘带外传）、三个归档已于 2026-09-20 发送**，索引与摘要先于发送入库；⏸ HENG958 可执行性复核等待其取件校验 |
-| P2.0a | Pilot 共享规格与 oracle 对齐决策（阶段 A） | P1.3a、P1.3b | 版本化执行矩阵（`survey_protocol_v1.json`：预算定义表 + 执行单元行）、runner 强制消费、manifest 扩展（protocol_version/backbone/budget/representation/comparability_group + adapter manifest 合并）、CIFAR adapter 接线、训练路径分组与 PN oracle 对齐方式书面锁定 | ✅ 已签署验收（2026-09-17）/ HENG958 交付；shuidisjtu 复核签署；**不放行正式 P2.1**（R5/R8 为 P2.1 前置条件，两者已于 2026-09-19 工程兑现）；见[交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
-| P2.0b | 标签语义门禁（阶段 A） | P1.3a、P1.3b | `label_semantics_plan` P1+P2 提前完成：声明位 + registry 同步 + experiment 层检查，错误组合 fail-loud；pipeline 层检查属阶段 B | ✅ 已完成（P1+P2）/ shuidisjtu 单方技术验收放行（2026-09-25，决策 D12）。**HENG958 签署未获**；证据见[交付记录](p2_0b_delivery.md) |
-| P2.0c | 交叉验证对照预注册（阶段 A） | P2.0a | 对照矩阵与判定规则冻结入本文档「交叉验证对照」节；锚点数值预注册 | ✅ 已完成 / shuidisjtu 单方技术验收放行（2026-09-25，决策 D12）：锚点逐值对账通过、判定规则与 `decision_rules` 一致、D10 修订复算完整；F8 已由 `survey_comparison_v3.json` 修订。**36 锚点/7 映射的合作者复核仍未获得**；见[复核包](p2_0c_review.md) |
-| P2.0d | SAR-OA 执行路径（issue #43） | P1.3b | 官方脚本可选标记机制（SCAR / SAR LBE-A / SAR LBE-B）；SAR 仅 `{0.05,0.5}` 且强制 OA-only；生成器审计字段入 manifest；脚本级端到端测试 | ✅ 已完成 / shuidisjtu；HENG958 已复核（2026-09-16） |
-| P2.0e | TS-OS 校准接入训练执行链（协议 §2.3） | P1.3a | 视图默认由台账 `native_sampling_assumption` 推导、CLI 可覆盖；`ts` 视图逐训练 mini-batch 执行 `D_U^k ← D_U^k ∪ D_P^k`（验证/测试保持 OS）；逐 run 实际视图入 manifest（`run_view`/`calibration_applied`）并成为公平性分组维度；pilot 驱动透传与重跑判定收紧；未接线方法默认回落 `os`、显式请求 `ts` fail-loud | ✅ 已完成 / shuidisjtu 单方技术验收放行（2026-09-27，决策 D20）：`nnpu`/`upu`/`pusb_kernel`/`dist_pu`/`self_pu` 已全部接线并各产出 os/ts 对照（逐方法口径见 D16 ③ / D17 / D18 / D19；**不得**笼统写作“其余 4 个”或“五个都接线”）；线性 `pusb` 经裁决为**不适用校准**（D16 ① / D20 ②）。放行边界见 D20 ①：**移除 `ts_view_collaborator_review` 阻断位不等于合作者已复核**，呈报不得读作已签署。聚合按实际运行视图分区（D13）、续跑判定按视图收紧（D14）均已落地 |
-| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c、P2.0e | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | ⏳ 待办 / HENG958；编排载体与磁盘预算已就位（`scripts/run_survey_pilot.py`）：`--datasets` 子集（2026-09-27 PR #79）与**三轴作用域** `--methods`/`--training-paths`（2026-09-29）均可驱动，B1/B2/B3a/B3b/B4 可分别跑——B3a/B3b/B4 同为 cifar10，只按数据集切不开；跑批主机与环境路线仍待定；**GPU 窗口不单独排期，改为逐 run 记录实例与卡型**（见下方三种门槛）；续跑判定已按视图收紧（D14）、磁盘口径已按存储 profile 修正（D15，**数值以代码输出为准**）、正式资格阻断位已放行（D24，但同一 `(dataset, seed, c)` 单元须整组重跑、新旧摘要不得混用，见 D24 ④(c)）；**显式 `--os-or-ts ts` 的合法域随作用域变化**，“合法”不得读作“应当” |
-| P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | ⏳ 待办 / shuidisjtu；HENG958 复核深度结果。聚合入口已按**实际运行视图**分区（D13）；覆盖率/完整性口径须在实施前定夺；**PA 相关行仍受对照矩阵 54 条 `blocked_pending_pa_criterion` 限制，不能数值裁决**（D24 ④(a)） |
-| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：**VPU 已完成独立组件、Gate 0 采样假设裁决（D21）、方法台账条目与训练视图接入（D23）**，但共享 backbone、图像路径、公开行为对照、多 seed GPU/资源记录与双人复核**均未完成**，且**不进执行矩阵**——不得读作本行完成；PULDA 仍只有独立组件，台账/矩阵与正式验收未做；其余 PAN、RP、CVIR、PULNS 待办 |
-| P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 独立组件已完成；上述组件仍未完成方法台账/执行矩阵登记、GPU 实跑及正式验收；后三者为表格子集、未做论文数值复现；LaGAM 依赖额外干净 support set，当前 Survey v1/runner 不可用且 PA-ineligible，协议扩展待合作者审阅。GEN-PU、Holistic-PU、P3MIX 待办；PUET 为 CPU 树方法，分组/GPU 条款须复核 |
+| P2.1 | Pilot 跑批与运行制品 | P1.4、P2.0a、P2.0b、P2.0c、P2.0e | 每个计划单元产生完整 manifest、选择 artifact、资源/失败记录；oracle 按 `(dataset, seed)` 去重 | 🔄 B1–B3b 完成、B4 运行中 / shuidisjtu 执行（AutoDL）；HENG958 复核深度结果。编排载体 `scripts/run_survey_pilot.py` 已就位（`--datasets` 与 `--methods`/`--training-paths` 三轴作用域，B1–B4 可分别驱动——B3a/B3b/B4 同为 cifar10，只按数据集切不开）。续跑判定已按视图收紧、磁盘口径按存储 profile 修正、正式资格阻断位已放行（决策 D24；同一 `(dataset, seed, c)` 单元须整组重跑、新旧摘要不得混用）。**显式 `--os-or-ts ts` 的合法域随作用域变化**，「合法」不得读作「应当」 |
+| P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | 🚧 **工具链已就位**：`scripts/audit_survey_batches.py` 与 `scripts/summarize_survey_results.py`，已在 610 份真实 manifest 上跑通（45 组全过公平性门禁、173 行汇总、0 份不可复现）。剩余为 B4 纳入后的正式汇总与合作者复核 / shuidisjtu；HENG958 复核深度结果。**PA 行受 §1.3 第 1 条限制，不能数值裁决**（决策 D24 ④(a)） |
+| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 已完成独立组件、Gate 0 采样假设裁决（决策 D21）、台账条目与训练视图接入（决策 D23），但共享 backbone、图像路径、公开行为对照、多 seed GPU/资源记录与双人复核**均未完成**，且**不进执行矩阵**——不得读作本行完成；PULDA 仍只有独立组件，台账/矩阵与正式验收未做；其余 PAN、RP、CVIR、PULNS 待办 |
+| P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 独立组件已完成；上述组件仍未完成方法台账/执行矩阵登记、GPU 实跑及正式验收；后三者为表格子集、未做论文数值复现。LaGAM 依赖额外干净 support set，当前 Survey v1/runner 不可用且 PA-ineligible，协议扩展待合作者审阅。GEN-PU、Holistic-PU、P3MIX 待办；PUET 为 CPU 树方法，分组/GPU 条款须复核 |
 | P3.3 | 深度 GPU 验证与调度 | P3.2 | GPU 预约、显存预算、失败/OOM 重试及结果路径均有记录，且逐 run 记录实例与卡型；与 P2.1 已不共享单卡，无跨方窗口竞争 | ⏳ 待办 / HENG958 |
 | P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | ⏳ 待办 / shuidisjtu |
 | P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
 
+### 2.3 依赖与升级规则（三种门槛）
+
 **依赖与升级规则（三种门槛）**：① **技术 smoke**（单方法链路验证）仅需基础设施可用，可随时执行；② **正式 pilot 跑批**须 P2.0a/P2.0b/P2.0c 全绿；③ **与 oracle 或跨方法结果混排**须阶段 A 验收全部满足。未达门槛而提前执行的结果，产物必须标记为“需按 P2.0 规格重跑”。P2.1 与 P3.3 已不再共享单卡（跑批平台分离），故**不设跨方 GPU 排期本**；改为**逐 run 记录实例与卡型**——每份 manifest 的 device/资源字段须能回答该 run 跑在哪张卡、是否独占，作为资源与复现证据；数据许可、共享规格、标签语义或资源不足造成阻塞时，主责须在“风险”中记录影响与下一步，并由两位实施主体共同决定升级、拆分或降级。Survey 分工在其范围内覆盖 ADR-0008 中较早的论文分配。
 
-## 2. 交叉验证对照（预注册，2026-09-14）
+## 3. 交叉验证对照（预注册，2026-09-14）
 
 试验结果须与两篇参考文献（Wang et al., ICLR 2026 = PUBench；Chen et al., 2026 = PU-Bench）
 及各方法原论文交叉验证。本节为**预注册**：锚点数值与判定规则在 pilot 启动前冻结，执行后按
@@ -93,11 +172,41 @@ adapter，仅量级）；uPU/KLDCE 无 pilot 对照点；LBE 论文为深度 Ada
 3. **诊断预期**（非正确性硬门禁；违反 → 人工审阅并记录，不自动判实现错误）：PN oracle ≥
    各 PU 方法；同方法 c 增大时 Accuracy 不明显下降；组内相对排序与锚点排序秩相关（软提示）。
 
-对照结论写入聚合报告，按协议 §5.7 区分"文献事实 / 本实验观测 / 推断"；对照矩阵版本与
-resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按选择协议分列写入，
-入口脚本开跑前校验覆盖；聚合报告侧仍属 P2.2）。
+对照结论写入聚合报告，按协议 §5 第 7 条区分「文献事实 / 本实验观测 / 推断」；对照矩阵版本与 resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按选择协议分列写入，入口脚本开跑前校验覆盖；聚合报告侧由 P2.2 工具链承担，见 §1.2）。
 
-## 3. 决策记录
+## 4. 风险与留痕约定
+
+### 4.1 风险
+
+1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不足以承担正式跑批，故重活统一在 AutoDL 云平台
+   执行，本地只做轻量批与开发验证。显存不足时（批大小/并行）需在实验记录中说明资源限制。
+2. **数据集获取确认**：20News/IMDB/Connect-4/Spambase 的版本与标签编码需与协议锁定映射核对；
+   数据版本或标签编码变化时必须提供映射转换审计记录（协议 §2.2 要求）。
+3. **结果可解释性**：pilot 结果必须区分「文献事实 / 本实验观测 / 推断」（协议 §5 第 7 条要求，
+   P2 起执行）。
+4. **磁盘容量**：pilot 全 645 run 的累计 checkpoint 预算为 348,443,368,000 B（≈324.5 GiB）、
+   跑前门禁 18,874,368,000 B（≈17.58 GiB）（决策 D15）。两者均为**全 pilot 累计**口径而非单批，
+   且**数值以代码输出为准**。该数字只含 checkpoint：数据集、日志、manifest、临时文件与操作系统
+   余量都不在内——**门禁通过不等于余量充足**（20 GiB 的主机过门禁后只剩 ≈2.4 GiB）；并发跑多个
+   run 时总瞬时需求会超过单 run 门禁，调度层须按并发数另加余量。B4 起启用逐 epoch 回收
+   （决策 D25），单 run 峰值由「全量 epoch 快照」变为「选中权重 + 全部逐 epoch 选择记录」。
+
+### 4.2 留痕约定
+
+- **每个运行 artifact 必须固化**（协议 §5 第 6 条）：代码 commit、依赖锁文件、Python/PyTorch/CUDA/
+  GPU 信息、方法和数据配置、中心超参数注册表版本、seed、split/label manifest、选择 artifact 和
+  结果 schema 版本。缺失任一项的结果标记为**不可复现**，不进入汇总主表。
+  **注意口径**：其中「代码 commit」与「依赖锁文件」由**批次级**记录承载（批次计划与证据包），
+  manifest 本身**不含**这两项——逐 run 索要会把合法制品误判为缺陷。
+- 结果按四组存储（SCAR-PA / SCAR-OA / SAR-OA / PN oracle），跨数据集只比较趋势，不生成总排名。
+- 交叉验证对照结论随聚合报告归档（§3 的三档结论），区分文献事实/本实验观测/推断。
+- 本计划随执行更新：每完成一个阶段、每产生一个决策，更新 §1 与 §2，并把新决策追加到附录 A。
+
+## 附录 A. 决策账本（D1–D26）
+
+> 本账本按时间追加，每条记录的是**写下当时**的裁决与其理由；其后兑现或修正的状态以「补强」
+> 「状态更新」等形式挂在原记录上，**不改写**原措辞——这是账本的留痕要求。因此**账本内的状态
+> 类补充不代表当前状态**，现状一律见 §1。决策号 D1–D26 是外部引用契约，**不重排**。
 
 | # | 决策 | 内容 | 日期 |
 |---|---|---|---|
@@ -127,24 +236,3 @@ resolved 单元写入 manifest（manifest 侧 2026-09-19 已接线：runner 按�
 | D24 | **放行三个 manifest 正式资格阻断位（承接 D12/D20 的做法）** | **① 触发与前提**：P2.1 跑批移至云平台后，干跑报告的每个计划单元都带三个阻断位、`formal_eligible` 恒为 `False`，使聚合报告 `formal_ready` 恒为 `False`——跑批与聚合都能执行，但只能进 partial/技术层。三个阻断位的依据按最新事实**均已不成立**：(a) `linux_frozen_lock_environment_deviation`——来源是旧 Linux 服务器驱动低于 CUDA 13 所需版本（方案 3），换平台后不再存在；(b) `SelfPU_clean_validation_meta_reweighting_OA_integration`——2026-09-28 裁决“现有消融变体纳入 pilot 范围”，故 pilot 的 `self_pu` **就是**消融口径，与该阻断位的语义相反；(c) `PA_criterion_pending_collaborator_acceptance`——准则本体已实现并合并（PR #65，见 R9 补记），残留的只是合作者签署，与 D12/D20 已放行的两类**同构**。**② 改动**：从 `survey_protocol_v1.json` 的 `formal_blockers` 移除 `linux_frozen_lock_environment_deviation`（**保留** `per_epoch_independent_PA_OA_checkpoint_selection`——它按实际轨迹是否完整动态解除，不是静态阻断）；`survey_protocol.py` 移除对 PA 与 `self_pu` 两处运行时追加，并在删除点留墓碑注释（对齐 D20 的做法）。**保留** `protocol_deviation`（真实偏差仍要标）与 `method_variant: without_clean_validation_meta_reweighting`（消融**范围记录**，不是阻断位）。**移除的是“阻断正式资格”，不等于合作者已复核**：PA 准则与 `self_pu` 元重加权的合作者复核**仍未获得**，口径保留在决策记录、方法台账 `uncertainty` 与方法卡中，呈报时**不得**读作已签署；对照矩阵的 `review_status` 仍为 `pending_collaborator_review`、`formal_blockers` 仍为 `["collaborator_review"]`，本次**不动**。**③ 摘要变更**：由 `c019a87d…` 变为 `287c2f45…`（**版本串保持 `survey-v1.2`**，摘要才是绑定锚点），`survey_comparison_v1/v2/v3.json` 的 `bound_survey_protocol.protocol_sha256` 与 `README.md` 的摘要串一次性同步重绑。**④ 明确边界**：(a) 对照矩阵中 54 条 `blocked_pending_pa_criterion` 映射**未动**，P2.2 对 PA 行**仍不能数值裁决**；(b) 历史制品的 `formal_blockers` 仍如实记录当时状态，**不改写**（D20 口径）；(c) 因 `validate_comparable_manifests` 要求同一比较组内 `protocol_sha256` 一致，**同一 `(dataset, seed, c)` 单元须整组重跑**，新旧摘要不得混用——混用会在聚合期抛 `comparison mismatch: protocol_sha256`，而分组一致性检查只比 `protocol_version`、拦不住它；(d) 本记录**不放行任何方法的方法学复核** | 2026-09-28 |
 | D25 | **逐 epoch checkpoint 回收：保留选中、回收其余（容量治理）** | **① 触发**：B4（`nnpu`/`cifar10`/`native_cnn`，35 runs）的逐 epoch 全量快照约 280 GB（项目内部估算，非租用容量保证），而 AutoDL 数据盘可用约 25 G、文件存储默认上限 200 GB 且当前未开通。`pilot_plan.py:805-811` 已记载 `Nothing deletes them`——峰值门禁（`guard_*`）是按「跑完即回收」设想的，但实现中没有任何回收，故 B4 的需求是全量而非峰值。该设计取舍的初衷是可审计与可复现，其占用量已**反噬该目标**。**② 裁决**：回收**非选中**的逐 epoch 权重，保留每个 run 被 PA/OA 选中的权重（两套协议可能选中不同候选与不同 epoch，故保留集至多两组，同一文件被同时选中时只留一份）。回收时机为 PA/OA 选择与 test 评测**全部完成之后**、manifest 构造**之前**，逐文件 `unlink`（不删整个 `attempt-*` 目录）；逐 epoch 的 epoch/component/sha256/验证指标等**元数据全部保留**在 `candidate_runs[].epoch_checkpoints`。manifest 语义随之变更：被回收项**保留原 `path` 与 `sha256` 并新增 `reclaimed` 标记**，**不得**写成 `path=null`——后者是「从未持久化」的临时目录语义（`epoch_checkpoint_delivery.md:38-39`），与事实不符。**③ 与「完整快照可供 PA/OA 独立选择」的关系（关键口径澄清）**：`epoch_checkpoint_delivery.md` §3 规定实际训练满声明 epoch 且完整快照可供 PA/OA 独立选择才解除 `per_epoch_independent_PA_OA_checkpoint_selection` 阻断。门禁判定发生在 **run 执行期**，回收在其后，故该条件在执行期**完全成立**。本条**不采纳**「选择完成后完整快照仍须在盘上」的读法——那是把**选择能力**偷换成**存储义务**，而后者正是本条要治理的对象。据此，本方案**不是**「关闭 capture」（`config['capture_epoch_checkpoints']=False` 会退回旧单点路径并保留阻断，见 `api.md:1438-1439`），也**不是**「缺少持久化」（`checkpoint_dir=None` 的临时目录语义）。**表述收窄**：此后解除阻断的单元，其可持久复现范围是「**选中权重 + 全部逐 epoch 选择记录**」，**不是**「全部 epoch 权重」；该收窄须在 `epoch_checkpoint_delivery.md` 同步增补一节。**④ 可比性边界**：回收不改变任何 run 的选模结果、阈值、selected epoch 与 test 指标，故**不构成口径变更、不破坏组内可比性**，**B3a 无需重跑**；须如实披露的差异是 B3a 为全量快照留存、B3b 起为选中权重留存（写入批次验收记录与 P2.2 交接清单）。**⑤ 明确不做**：(a) 不改选模路径、不改保存粒度——不采用「只记逐 epoch 验证分数向量」的替代方案，其收益与本条相同但改动面更大且需证明数值等价；(b) 不动 `per_epoch_independent_PA_OA_checkpoint_selection` 的**动态解除**逻辑（该阻断位按实际轨迹动态解除，不是静态阻断位，见 D24 ②）；(c) 开关默认**关闭**，`-m paper`/技术 probe 与既有测试行为不变，仅 pilot 正式跑批启用；(d) 本条**不放行任何方法的方法学复核**。**⑥ 前置与状态**：方案文本见 [`epoch_checkpoint_reclaim_plan.md`](epoch_checkpoint_reclaim_plan.md)，本记录为其决策登记；实现经 `feature/` 分支 + 测试 + PR 合入，须**赶在 B3b 启动前**完成（B3a 运行中进程使用已加载的旧代码，不受影响） | 2026-09-30 |
 | D26 | **F13 修复：聚合分组补上 mechanism 维度** | B1 结果树（215 manifests）聚合被拒于 `comparison label-view mismatch: mechanism`。**根因**：分组键为 `(comparability_group, run_view)`（D13）、单元键为 `(seed, c_requested)`，两者都不含 mechanism；而同一 `comparability_group + run_view` 下并存 `scar` / `sar_lbe_a` / `sar_lbe_b` 三种机制，SCAR 的 `c ∈ {0.1, 0.3, 0.5}` 与 SAR 的 `{0.05, 0.5}` 在 **c=0.5 重叠**，于是三者的 c=0.5 run 落进同一个 `(seed, 0.5)` 单元，`validate_comparable_manifests` 取 `manifests[0]` 与后续逐一比对、首个 mechanism 不同的即抛错。**修复**：新增 `group_key()`，把 `generation.train.mechanism` 提升为第三个分组维度，组条目与文本输出带出 `mechanism`。**分区仍放在聚合层**（承接 D13），**不动** `partition_fair_leaderboard_runs` 与 `validate_comparable_manifests`——交到它们手里的每个 unit 已是单视图**且单机制**，公开契约不变。**概念边界**：`comparability_group` 是协议字段（pins dataset / training path / budget family），`run_view` 与 `mechanism` 是 manifest 字段被提升为公平性分组维度，协议组值本身**不**加后缀。**测试缺口的成因**：`tests/unit/experiment/_aggregate_script_helpers.py` 的 fixture 其 mechanism 只有 `scar` 与 `pn_oracle` 两态，后者因 `c_independent` 被分到独立单元、**恰好避开了同 c 冲突**；本次让 fixture 支持 `mechanism` 参数并补复现测试 `test_param_mechanisms_sharing_a_c_value_are_gated_apart`。**影响面**：B2 及后续含 SAR+SCAR 的批次（B3a/B3b/B4）此前均无法聚合，而 `--diagnostic` 只放宽正式资格、绕不过。**验证**：aggregate 相关 35 个测试通过；B1 真实结果树由拒收变为 16 个组、全部单元 `ok`；`check_format` 与 `check_test_quality` 通过。**遗留**：D13 登记的 P2.2 期望单元覆盖率/完整性格网口径问题不变，本次不涉 | 2026-09-30 |
-
-## 4. 风险
-
-1. **GPU 算力/显存**：shuidisjtu 本机 T600（4GB）不够强，所以主要进行轻量批与开发验证的工作，
-   显存不足时（批大小/并行）需在实验记录中说明资源限制；
-2. **数据集获取确认**：20News/IMDB/Connect-4/Spambase 的版本与标签编码需与协议锁定映射核对；
-   数据版本或标签编码变化时必须提供映射转换审计记录（协议 §2.2 要求）
-3. **结果可解释性**：pilot 结果必须区分"文献事实/本实验观测/推断"（协议 §5.7 要求，P2 起执行）
-4. **磁盘容量**：P2.1 的累计 checkpoint 预算为 **348,443,368,000 B（≈324.5 GiB）**、跑前门禁
-   **18,874,368,000 B（≈17.58 GiB）**（D15），**不得再使用旧估算 1280.6 GiB / 35.16 GiB**。
-   该数字只含 checkpoint：数据集、日志、manifest、临时文件与操作系统余量都不在内——**门禁通过
-   不等于余量充足**（20 GiB 的主机过门禁后只剩 ≈2.4 GiB）；并发跑多个 run 时总瞬时需求会超过
-   单 run 门禁，调度层须按并发数另加余量
-
-## 5. 留痕约定
-
-- 每个实验产物：manifest 固化（协议 §5.6：代码 commit、依赖锁文件、Python/PyTorch/CUDA/GPU、
-  数据与方法配置、注册表版本、seed、split/label manifest、选择 artifact、schema 版本）
-- 结果按四组存储（SCAR-PA / SCAR-OA / SAR-OA / PN oracle），跨数据集只比较趋势，不生成总排名
-- 交叉验证对照结论随聚合报告归档（「交叉验证对照」节三档结论），区分文献事实/本实验观测/推断
-- 本计划随执行更新：每完成一个阶段、每产生一个决策，更新任务分工表与决策记录相应条目

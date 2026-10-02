@@ -214,8 +214,14 @@ OA only。这与门禁层的 `selection` 分布逐一对上。
 **无聚合、无派生字段**：列为 `batch` / `dataset` / `method` / `training_path` / `run_view` /
 `mechanism` / `c` / `seed`，加上 PA、OA 各自的 `accuracy` 与 `auc`。
 
-**5 次重复的均值与标准差尚未计算**，它属 P2.2：需先冻结口径（哪些 run 进统计、按 `seed`
-还是 `(seed, c)` 聚合、5 个带 `protocol_deviation` 的单元如何处理），再行汇总。
+**5 次重复的均值与标准差尚未计算**——它属 P2.2。聚合口径**不需再冻结**：协议 §5 第 2 条已明文
+规定「……仅在同一数据集、`c`、协议和训练路径内，以独立 `test` Accuracy 五次重复均值比较；
+同步报告标准差……」，即组内含 `c`、组内跨 5 个 seed 汇总。
+
+> **更正（2026-10-02）**：本节原写「需先冻结口径（哪些 run 进统计、按 `seed` 还是 `(seed, c)`
+> 聚合、5 个带 `protocol_deviation` 的单元如何处理），再行汇总」。该措辞与
+> [`p2_1_b1_snapshot.md`](p2_1_b1_snapshot.md) §5 同源，同日一并更正：聚合维度已由协议
+> §5 第 2 条冻结，不是待决项。
 
 ## 7. 已知现象：`ConvergenceWarning`
 

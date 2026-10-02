@@ -121,8 +121,16 @@ uv run python scripts/aggregate_survey_runs.py <B1 结果根>
 **无聚合、无派生字段**：列为 `batch` / `dataset` / `method` / `training_path` / `run_view` /
 `mechanism` / `c` / `seed`，加上 PA、OA 各自的 `accuracy` 与 `auc`。
 
-**5 次重复的均值与标准差尚未计算**，它属 P2.2：需先冻结口径（哪些 run 进统计、按 `seed`
-还是 `(seed, c)` 聚合、5 个带 `protocol_deviation` 的单元如何处理），再行汇总。
+**5 次重复的均值与标准差尚未计算**——它属 P2.2。聚合口径**不需再冻结**：协议 §5 第 2 条已明文
+规定「……仅在同一数据集、`c`、协议和训练路径内，以独立 `test` Accuracy 五次重复均值比较；
+同步报告标准差……」，即组内含 `c`、组内跨 5 个 seed 汇总。P2.2 照此执行，并把纳入／排除的
+run 逐组列出即可。
+
+> **更正（2026-10-02）**：本节原写「需先冻结口径（哪些 run 进统计、按 `seed` 还是 `(seed, c)`
+> 聚合、5 个带 `protocol_deviation` 的单元如何处理），再行汇总」。其中「按 `seed` 还是
+> `(seed, c)` 聚合」协议 §5 第 2 条早有答案，原措辞把**已冻结**的事项说成了待冻结，容易
+> 误导后续实现。其余两问（哪些 run 进统计、带 `protocol_deviation` 的单元如何处理）协议
+> §5 第 1、5、6 条亦有落点，见 [`p2_1_b5_review_checklist.md`](p2_1_b5_review_checklist.md)。
 
 ## 6. 本快照不含
 

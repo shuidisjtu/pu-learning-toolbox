@@ -104,7 +104,7 @@ B4 的 checkpoint 预算是**百 GB 量级**（项目内部估算约 280 GB，�
 3. 采用本方案意味着**表述层的收窄**：此后解除阻断的单元，
    其可持久复现的范围是「选中权重 + 全部逐 epoch 选择记录」，**不是**「全部 epoch 权重」。
 
-**处置**：该收窄须以决策记录形式登记（`survey_execution_plan.md` §3 决策表），并在
+**处置**：该收窄须以决策记录形式登记（`survey_execution_plan.md` 附录 A 决策账本），并在
 `epoch_checkpoint_delivery.md` 增补一节说明回收语义。**未登记前不合入。**
 
 ## 6. 可比性影响
@@ -150,7 +150,7 @@ B4 的 checkpoint 预算是**百 GB 量级**（项目内部估算约 280 GB，�
 
 - **批准**：实验主责于 2026-09-30 批准「保留选中、回收其余」，并要求**赶在 B3b 启动前合入**。
 - **流程**：`feature/` 分支 → 实现 + 测试 → PR → 合并 `main`。B3a 运行中的进程使用已加载的旧代码，不受影响。
-- **前置**：§5 的决策记录登记完成（决策 D25 已登记于 `survey_execution_plan.md` §3）。
+- **前置**：§5 的决策记录登记完成（决策 D25 已登记于 `survey_execution_plan.md` 附录 A）。
 - **实施（2026-09-30）**：`feature/checkpoint-reclaim` 分支落地，改动面与 §7 一致——
   `checkpoints.py` 的 `reclaimed` 字段与 `reference()` 输出、`runner.py` 的回收函数与调用点、
   单元脚本与 Pilot 的两级开关（默认关闭）、专项测试与 `epoch_checkpoint_delivery.md` §4 的

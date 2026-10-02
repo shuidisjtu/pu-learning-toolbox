@@ -143,6 +143,21 @@ protocol gates are satisfied, results must be identified as a
 transfer are driven by `run_survey_pilot.py`, `aggregate_survey_runs.py`, and
 `survey_splits_archive.py` (see their docstrings and `docs/research/pu_survey/`).
 
+Auditing and summarizing a finished batch set is driven by
+`audit_survey_batches.py` and `summarize_survey_results.py`. Both take a
+batch-root whitelist and write only to their `--out-dir`: the first reports every
+structural and fairness finding it can decide, and names the checks it cannot
+rather than recording them as passes; the second emits one mean and sample
+standard deviation per comparable row, with costs kept per run so they are not
+billed twice across the two selection protocols. Neither writes to a result tree.
+
+Attaching the pre-registered literature comparison to a finished summary is driven
+by `compare_survey_results.py`, which reads that `summary.json` and resolves each
+row through the frozen matrix. It reports the class the matrix assigns each unit
+and evaluates a numeric rule only where the matrix licenses one and our own
+protocol calls the row formal; every other row is listed as unresolved rather than
+compared, so a class without a rule cannot be read as agreement.
+
 ## AI workflow skill
 
 `pu-workflow` (Agent Skills open standard) drives the full PU analysis

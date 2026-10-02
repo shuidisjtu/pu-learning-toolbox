@@ -1469,6 +1469,37 @@ NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。`aggregate_r
 | `TrainingView` | 一次训练分区上的三个角色（`positive` / `native_unlabeled` / `loss_unlabeled`）及来源索引；**每个角色都非空**（它描述的是训练分区）；自有数组（三组 positions、`source_indices`）只读，大数组（features/labels）借用——**视图只在申请它的那一步训练内有效**，不得跨重排、原地归一化或重标注复用 |
 | `build_training_view` | 纯构造器：只收**已裁决的** `requested_view`（`"os"`/`"ts"`）与 `role`；TS 下损失无标签角色为 `D_U ∪ D_P`（原始 U 在前、正例在后），OS 下即 `D_U`；**P 与 U 均非空对所有 `role` 强制**（非 train 角色出现在签名里，只是为了让“校准仅限 train”这条能被具名拒绝，不是用来描述验证/测试分区）；校准仅限 train 角色 |
 
+### P2.2 审计与汇总（`survey_audit` / `survey_summary`）
+
+两个模块服务于 B5/B6 的交付面：`scripts/audit_survey_batches.py` 按白名单读结果树逐项出审计报告，
+`scripts/summarize_survey_results.py` 把 manifest 汇总为五 seed 均值与样本标准差。两者只读结果制品，
+不写、不移动、不删除结果树下的任何文件。注意 `check_api_docs.py` 的扫描面是包根 `__all__` 与内置注册表，
+**不含实验层子包**，因此本表是人工维护的公共面契约，增删公共符号须同步此处。
+
+| 符号 | 用途 |
+|---|---|
+| `STATUSES` / `STATUS_PRIORITY` | 交付状态的七档闭集与优先级；聚合门槛自己的 `comparable` / `blocked` 是**单元状态**，不是本状态取值 |
+| `REASONS` | reason 代码词表（机器校验）；不变式为 `status` 取 `formal` 当且仅当 `reasons` 为空 |
+| `choose_status` / `reasons_for` / `resolve_status` | 状态归并：候选集取最高优先级、校验 `reasons` 与 `status` 的对应、合并多路检查的结论 |
+| `status_for_refusal` / `status_for_gate_block` / `status_for_gate_error` / `status_for_completeness` | 四类来源各自的状态判定：门槛整体拒收、被公平性阻断的单元、组级门槛错误、seed 完整性 |
+| `GATE_REFUSAL_REASONS` / `GATE_MESSAGE_REASONS` | 门槛拒收码闭集，以及门槛消息子串到细分 reason 的映射；未识别的消息回落为 `fairness_gate_blocked` 而不是被丢弃 |
+| `aggregate_metric` / `sample_std` | 五 seed 的均值与**样本**标准差（`n-1`）；观测数小于 2 时 std 为 `null` 而非 0，重复 seed 或协议外 seed 直接拒绝 |
+| `summarize_costs` | 协议 §5 第 2 条的三项成本：单配置（mean 与 sum）、完整调参（sum）、峰值显存（**取全过程最大值**，不是跨 run 求和） |
+| `normalize_c_token` / `mechanism_of` | manifest 的两个身份读法：`c_independent` 先于任何 c 值读取（oracle 的名义 `c_requested` 为 `0.1`）；机制按 manifest 原样读，供分榜使用 |
+| `row_key` | 报告行键：门槛组键加方法、选择协议与 `c_token`；**不含 seed**，seed 是聚合维度 |
+| `to_result_summary` | 报告行到预注册矩阵入参的唯一翻译点（`result_identity` / `mean` / `std` / `n_repeats` / `metric_unit`） |
+| `SummaryError` | 上述纯函数的拒绝异常 |
+| `preflight_status` / `missing_fields` | 单个 manifest 的预检，**不抛异常**：结构与环境身份字段缺失判 `not_reproducible`；仅有成本计时与显存测量值缺失不属此列 |
+| `REQUIRED_MANIFEST_FIELDS` / `REQUIRED_ENVIRONMENT_FIELDS` / `BATCH_IDENTITY_FIELDS` | 必填字段清单；批次级身份（代码 commit 与依赖锁）**不在 manifest 内**，故单列 |
+| `make_check` / `rollup_gate_check` / `overall_status` | check 的构造与汇总：校验三个词表、组级失败归并为一条 check、`overall` 按 fail 优先于 not_run 优先于 partial 优先于 pass |
+| `CHECK_RESULTS` / `CHECK_SEVERITIES` / `CHECK_SCOPES` | check 的结果、严重度与作用域三个闭集 |
+| `AuditError` | check 构造或不可用的审计请求 |
+
+未在包级重新导出的模块内 API：`group_key`、`result_labeling_mechanism`、`RESULT_IDENTITY_FIELDS`、
+`METRIC_UNIT` 与 `SCHEMA_VERSION` 由 `pu_toolbox.experiment.survey_summary` 直接提供，两个 CLI 入口按子模块
+路径导入。其中 `result_labeling_mechanism` 承担矩阵词汇与 manifest 词汇之间的翻译——矩阵把 c-independent
+行记作 `c_independent`，而 manifest 记作 `pn_oracle`——该翻译只在出口使用，不参与分榜。
+
 ## 错误与异常
 
 **所有权**：所有工具箱异常都继承自 `PULearningError`（`pu_toolbox.core.exceptions`），

@@ -173,6 +173,8 @@ pu_toolbox/
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
     pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算、splits 读取可按数据集收窄
     method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
+    survey_audit.py                       <<< 新文件,补注释
+    survey_summary.py                     <<< 新文件,补注释
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -187,6 +189,7 @@ tests/
     test_capability_declarations.py     # 能力声明 4 组不变量契约测试
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
     test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
+    test_public_exports.py              # <<< 新文件,补注释
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -366,6 +369,18 @@ tests/
       test_checkpoint_storage_profiles.py # checkpoint 体积 profile: 按训练路径+backbone+model_family 分派、真实序列化上界、全 Pilot 精确字节
       test_survey_formal_eligibility.py # 正式资格放行(D24): canonical 单元无阻断、真实偏差仍阻断、消融变体标签保留
       test_checkpoint_reclaim.py        # D25 回收非选中权重：只留选中、reclaimed 语义、开关默认关闭
+      _survey_summary_helpers.py        # <<< 新文件,补注释
+      test_survey_audit.py              # <<< 新文件,补注释
+      test_survey_audit_scope.py        # <<< 新文件,补注释
+      test_survey_summary_boundaries.py # <<< 新文件,补注释
+      test_survey_summary_cli.py        # <<< 新文件,补注释
+      test_survey_summary_comparison.py # <<< 新文件,补注释
+      test_survey_summary_states.py     # <<< 新文件,补注释
+      test_survey_summary_stats.py      # <<< 新文件,补注释
+      test_survey_audit_checks.py       # <<< 新文件,补注释
+      test_survey_audit_reclaim.py      # <<< 新文件,补注释
+      test_survey_summary_measures.py   # <<< 新文件,补注释
+      test_survey_comparison_attachment.py # <<< 新文件,补注释
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
@@ -630,6 +645,9 @@ scripts/
   run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets/--methods/--training-paths 三轴子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
   aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
+  audit_survey_batches.py                 <<< 新文件,补注释
+  summarize_survey_results.py             <<< 新文件,补注释
+  compare_survey_results.py               <<< 新文件,补注释
 ```
 
 ## 7. CI/CD（`.github/`）
