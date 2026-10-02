@@ -33,6 +33,20 @@ from .strategies import (
     SupervisedTrainer,
     select_threshold,
 )
+from .survey_audit import (
+    BATCH_IDENTITY_FIELDS,
+    CHECK_RESULTS,
+    CHECK_SCOPES,
+    CHECK_SEVERITIES,
+    REQUIRED_ENVIRONMENT_FIELDS,
+    REQUIRED_MANIFEST_FIELDS,
+    AuditError,
+    gate_error_check,
+    make_check,
+    missing_fields,
+    overall_status,
+    preflight_status,
+)
 from .survey_summary import (
     GATE_MESSAGE_REASONS,
     GATE_REFUSAL_REASONS,
@@ -58,6 +72,11 @@ from .text import (
 from .training_views import TSOSBatchView, calibrate_ts_os_batch
 
 __all__ = [
+    "AuditError",
+    "BATCH_IDENTITY_FIELDS",
+    "CHECK_RESULTS",
+    "CHECK_SCOPES",
+    "CHECK_SEVERITIES",
     "CleanLabelGenerator",
     "DatasetBundle",
     "DatasetPart",
@@ -70,6 +89,8 @@ __all__ = [
     "ProtocolOA",
     "ProtocolPA",
     "REASONS",
+    "REQUIRED_ENVIRONMENT_FIELDS",
+    "REQUIRED_MANIFEST_FIELDS",
     "SARLBEAGenerator",
     "SARLBEBGenerator",
     "SBERT_EMBEDDING_DIMENSION",
@@ -92,10 +113,15 @@ __all__ = [
     "choose_status",
     "encode_survey_texts",
     "fit_survey_image_preprocessing",
+    "gate_error_check",
+    "make_check",
     "mechanism_of",
+    "missing_fields",
     "normalize_c_token",
+    "overall_status",
     "partition_fair_leaderboard_runs",
     "prepare_survey_dataset",
+    "preflight_status",
     "reasons_for",
     "resolve_status",
     "row_key",
