@@ -22,7 +22,11 @@ tests:
   partitioned over the closed status set (``survey_summary.REPORT_TIERS``), and
   every grouping column is printed: clause 1's leaderboard boundaries are the
   dataset, training path and view, so a table that omits them asks the reader to
-  take the separation on trust.
+  take the separation on trust.  The gate's batch-wide ``formal_ready`` is printed
+  beside the tables rather than folded into them: a row's ``formal`` is a statement
+  about that row, a batch's readiness is a statement about the delivery, and neither
+  rewrites the other -- but a reader who sees only the first will read 170 clean rows
+  as a delivered leaderboard.
 
 Runs the batch whitelist from :mod:`audit_survey_batches` and writes only to
 ``--out-dir``.
@@ -459,6 +463,20 @@ def _row_line(row: dict[str, Any]) -> str:
     )
 
 
+def batch_readiness(checks: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The gate's batch-wide verdict, read out of the A08 check.
+
+    Read rather than recomputed: the check already ran the same gate over the same
+    groups, and a second call could disagree with the report it is printed beside.
+    ``None`` when there is no A08 -- a report that failed before the audit ran has no
+    batch verdict to state, and inventing one would be worse than omitting the line.
+    """
+    for check in checks:
+        if check["check_id"] == "A08":
+            return dict(check["observed"])
+    return None
+
+
 def _render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# P2.2 数值汇总",
@@ -470,12 +488,27 @@ def _render_markdown(report: dict[str, Any]) -> str:
         "（同法汇总，**不参与选模与排名**）",
         f"- 行数：{report['coverage']['rows']}；run 成本条目：{report['coverage']['run_costs']}",
         f"- 结论：**{report['overall']}**",
-        "",
-        "> 行按 `(组, 视图, 机制, 方法, 选择协议, c)` 取键，**不含 seed**——seed 是聚合维度。",
-        "> 成本按 run 记录，不复制到 PA/OA 两行。",
-        "> 分组列（数据集 / 路径 / 组 / 视图 / 机制）逐行给出，因为分榜边界就是它们。",
-        "",
     ]
+    readiness = batch_readiness(report.get("checks", []))
+    if readiness:
+        lines.append(
+            f"- 批次级公平性：**formal_ready={readiness.get('formal_ready')}**"
+            f"（{readiness.get('groups')} 组，其中 "
+            f"{readiness.get('groups_with_blocked_units')} 组含被阻断单元，"
+            f"被拒 run {readiness.get('refused_runs')}）"
+        )
+    lines.extend(
+        [
+            "",
+            "> 行按 `(组, 视图, 机制, 方法, 选择协议, c)` 取键，**不含 seed**——seed 是聚合维度。",
+            "> 成本按 run 记录，不复制到 PA/OA 两行。",
+            "> 分组列（数据集 / 路径 / 组 / 视图 / 机制）逐行给出，因为分榜边界就是它们。",
+            "> 行级 `formal` 只说该行自身齐备（协议 seed 齐、成员无 blocker、通过公平性）；",
+            "> 批次级 `formal_ready` 是整份交付的另一层结论。两层分别陈述，互不改写：",
+            "> 批次不 ready 不代表每行都不 formal，反之亦然。",
+            "",
+        ]
+    )
     by_tier: dict[str, list[dict[str, Any]]] = {tier: [] for tier in REPORT_TIERS}
     for row in report["rows"]:
         by_tier[tier_of(row["status"])].append(row)

@@ -82,6 +82,35 @@ def test_basic_a_complete_tree_yields_one_row_per_selection_protocol(summary_cli
     assert report["coverage"]["not_reproducible"] == 0
 
 
+def test_basic_the_header_carries_the_batch_readiness_beside_the_row_statuses(
+    summary_cli, tmp_path
+):
+    # The shape the two layers exist for: one c's rows are blocked while the other c's
+    # rows are clean, and the batch as a whole is not ready.  A reader of this file
+    # alone has to be able to see both, or 170 formal rows read as a ready delivery.
+    c_tokens = [float(token) for token in load_protocol()["c_tokens"]["scar"]]
+    blocked_c = c_tokens[0]
+    grid = {
+        f"c_{c}_seed_{seed}": manifest(
+            c=c,
+            seed=seed,
+            # The runner writes eligibility and blockers together, and the gate reads
+            # a blocker only on a manifest that declares itself ineligible.  Setting
+            # one without the other would be a shape no real manifest has.
+            formal_eligible=c != blocked_c,
+            blockers=["protocol_deviation"] if c == blocked_c else (),
+        )
+        for c in c_tokens
+        for seed in range(5)
+    }
+    tree = write_tree(tmp_path / "b1", grid)
+
+    _, report, out_dir = _run_summary(summary_cli, tmp_path, tree, expected=len(grid))
+
+    assert report["coverage"]["rows_by_tier"] == {"formal": 4, "partial": 2, "diagnostic": 0}
+    assert "formal_ready=False" in (out_dir / "summary.md").read_text(encoding="utf-8")
+
+
 def test_basic_the_row_mean_is_over_the_five_seeds_not_over_the_runs(summary_cli, tmp_path):
     seeds = {f"seed_{seed}": manifest(seed=seed, accuracy=0.5 + 0.1 * seed) for seed in range(5)}
     tree = write_tree(tmp_path / "b1", seeds)
