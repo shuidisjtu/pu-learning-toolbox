@@ -1,30 +1,23 @@
-"""The auditor's two contracts: never crash, and never blame one file for a group.
+"""The auditor must turn a malformed manifest into a finding, not a traceback.
 
-Both are about what a *finding* is allowed to say.
+The aggregation entry point raises on a manifest missing a field it reads, which
+is correct for an entry point whose whole output is an exit code.  An audit that
+stopped at the first bad item would report one problem and hide the rest, and a
+traceback is not a finding a reviewer can act on -- so the preflight returns
+reason codes and names the fields it could not find, and never raises.
 
-* A malformed manifest must become a finding.  The aggregation entry point raises
-  on one, which is correct for an entry point whose whole output is an exit code
-  -- but an audit that stopped at the first bad item would report one problem and
-  hide the rest, and a traceback is not a finding a reviewer can act on.
-* A group-level refusal may not be pinned on a manifest.  The gate raises on the
-  first bad group and names the rule, not the file, so a check that picked one
-  member would manufacture a culprit.  ``members`` is mandatory for unit- and
-  group-scoped checks precisely so that cannot be done quietly.
+The identity fields asserted here are the ones a real manifest carries.  Code
+commit and the dependency lock are deliberately absent from the list: the survey
+runner records them per batch rather than per run, so demanding them per manifest
+would mark every legitimate artifact defective.
 
-The identity fields asserted here are the ones a real manifest carries: code
-commit and the dependency lock are deliberately absent from the list, because the
-survey runner records them per batch rather than per run.
+The check schema, its scopes and the gate roll-up have their own file,
+``test_survey_audit_scope.py``.
 """
 
 import pytest
 
-from pu_toolbox.experiment.survey_audit import (
-    AuditError,
-    gate_error_check,
-    make_check,
-    overall_status,
-    preflight_status,
-)
+from pu_toolbox.experiment.survey_audit import preflight_status
 
 pytestmark = pytest.mark.unit
 
@@ -121,73 +114,6 @@ def test_param_a_manifest_whose_c_cannot_be_resolved_is_not_reproducible():
 
     assert status == "not_reproducible"
     assert reasons == ["missing_c_token"]
-
-
-def test_param_rejects_an_unknown_check_result():
-    with pytest.raises(AuditError, match="unknown check result"):
-        make_check(check_id="A01", result="ok", severity="info", scope="global", message="x")
-
-
-def test_param_rejects_a_group_scoped_check_without_members():
-    with pytest.raises(AuditError, match="must name its members"):
-        make_check(check_id="A08", result="fail", severity="error", scope="group", message="x")
-
-
-def test_param_rejects_a_manifest_scoped_check_naming_two_manifests():
-    with pytest.raises(AuditError, match="exactly one manifest"):
-        make_check(
-            check_id="A04",
-            result="fail",
-            severity="error",
-            scope="manifest",
-            message="x",
-            members=["a/manifest.json", "b/manifest.json"],
-        )
-
-
-def test_param_rejects_a_check_carrying_an_unknown_reason():
-    with pytest.raises(AuditError, match="unknown reason code"):
-        make_check(
-            check_id="A08",
-            result="fail",
-            severity="error",
-            scope="global",
-            message="x",
-            reasons=["because_i_said_so"],
-        )
-
-
-def test_basic_a_gate_refusal_becomes_a_group_check_naming_every_member():
-    members = ["b1/manifest.json", "b1/other/manifest.json"]
-    check = gate_error_check(
-        check_id="A08",
-        message="unit spans training paths ['a', 'b']; a comparability group must pin one",
-        members=members,
-    )
-
-    assert check["result"] == "fail"
-    assert check["scope"] == "group"
-    assert check["members"] == members
-    assert check["reasons"] == ["fairness_gate_blocked", "group_key_mismatch"]
-
-
-def test_basic_overall_status_fails_on_a_failure_and_is_partial_when_one_did_not_run():
-    def check(result):
-        return make_check(check_id="A", result=result, severity="info", scope="global", message="x")
-
-    assert overall_status([check("pass")]) == "pass"
-    assert overall_status([check("pass"), check("warn")]) == "pass"
-    assert overall_status([check("pass"), check("fail")]) == "fail"
-    assert overall_status([check("pass"), check("not_run")]) == "partial"
-    assert overall_status([]) == "pass"
-
-
-def test_determ_overall_status_does_not_depend_on_check_order():
-    def check(result):
-        return make_check(check_id="A", result=result, severity="info", scope="global", message="x")
-
-    forward = [check("pass"), check("not_run"), check("fail")]
-    assert overall_status(forward) == overall_status(list(reversed(forward)))
 
 
 def test_determ_the_preflight_is_a_pure_function_of_its_input():

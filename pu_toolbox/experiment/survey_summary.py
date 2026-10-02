@@ -27,6 +27,8 @@ import math
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from .training_views import validated_run_view
+
 SCHEMA_VERSION = "survey-summary-1"
 
 #: Delivery status vocabulary.  A report row's ``status`` is one of these and
@@ -143,29 +145,62 @@ def normalize_c_token(manifest: Mapping[str, Any]) -> str:
 
 
 def mechanism_of(manifest: Mapping[str, Any]) -> str:
-    """The labeling mechanism this manifest ran under."""
-    if manifest.get("c_independent"):
-        return "c_independent"
+    """The labeling mechanism this manifest ran under, verbatim.
+
+    Read straight from the manifest with no c-independent special case.  The
+    oracle's manifest records ``pn_oracle`` here, which is the value the
+    aggregation gate groups by; answering ``c_independent`` instead would put
+    oracle rows in a different group than the gate does.  The matrix's own
+    vocabulary *does* call that mechanism ``c_independent``, and that translation
+    belongs to :func:`result_labeling_mechanism`, at the point of use -- not here,
+    where it would silently desynchronize the grouping.
+    """
     train = manifest.get("generation", {}).get("train")
     if not isinstance(train, Mapping) or "mechanism" not in train:
         raise SummaryError("manifest generation is missing the train mechanism")
     return str(train["mechanism"])
 
 
-def row_key(manifest: Mapping[str, Any], *, selection_protocol: str) -> tuple[str, ...]:
-    """``numeric_report_row_key``: the key one mean/std row is reported under.
+def result_labeling_mechanism(manifest: Mapping[str, Any]) -> str:
+    """The ``labeling_mechanism`` the pre-registered matrix selects on.
 
-    Contains no ``seed`` -- that is the aggregation axis, and leaving it in would
-    make each method report five rows of one observation instead of one row of
-    five (see the module docstring).  ``selection_protocol`` is a *derived*
-    dimension: the manifest stores results under ``PA``/``OA`` dictionary keys
-    and records no such field of its own.
+    The matrix names the c-independent row's mechanism ``c_independent`` while
+    the manifest names it ``pn_oracle``; this is where the two vocabularies meet.
+    """
+    return "c_independent" if manifest.get("c_independent") else mechanism_of(manifest)
+
+
+def group_key(manifest: Mapping[str, Any]) -> tuple[str, str, str]:
+    """The aggregation gate's group key: ``(comparability_group, view, mechanism)``.
+
+    The same three fields the gate builds from, read the same way -- including
+    through :func:`validated_run_view`, which refuses a view contradicted by the
+    manifest's calibration flag.  Reading ``run_view`` raw here instead would let
+    this module group a manifest the gate refuses, and the two would disagree
+    about which runs share a leaderboard.
     """
     unit = manifest["execution_unit"]
     return (
         unit["comparability_group"],
-        manifest["run_view"],
+        validated_run_view(dict(manifest)),
         mechanism_of(manifest),
+    )
+
+
+def row_key(manifest: Mapping[str, Any], *, selection_protocol: str) -> tuple[str, ...]:
+    """``numeric_report_row_key``: the key one mean/std row is reported under.
+
+    The gate's group key plus the three dimensions that split a group into rows:
+    ``method``, the derived ``selection_protocol``, and ``c``.  It contains no
+    ``seed`` -- that is the aggregation axis, and leaving it in would make each
+    method report five rows of one observation instead of one row of five (see
+    the module docstring).  ``selection_protocol`` is a *derived* dimension: the
+    manifest stores results under ``PA``/``OA`` dictionary keys and records no
+    such field of its own.
+    """
+    unit = manifest["execution_unit"]
+    return (
+        *group_key(manifest),
         unit["method"],
         selection_protocol,
         normalize_c_token(manifest),
@@ -331,13 +366,15 @@ def to_result_summary(row: Mapping[str, Any], *, metric: str = "accuracy") -> di
             f"row carries metric {metric_block.get('metric_name')!r}, not {metric!r}"
         )
     mean, std, n_repeats = metric_block["mean"], metric_block["std"], metric_block["n_observed"]
+    # The repeat count is checked first: a row with one observation has no mean
+    # or spread for a reason, and naming that reason beats naming the symptom.
+    if n_repeats < 2:
+        raise SummaryError(f"result n_repeats must be at least 2, got {n_repeats}")
     if mean is None or std is None:
         raise SummaryError(
             f"cannot build a result summary from n_observed={n_repeats} "
             "(the matrix needs a mean and a spread)"
         )
-    if n_repeats < 2:
-        raise SummaryError(f"result n_repeats must be at least 2, got {n_repeats}")
     identity = row["result_identity"]
     missing = [field for field in RESULT_IDENTITY_FIELDS if field not in identity]
     if missing:

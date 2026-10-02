@@ -169,37 +169,54 @@ def make_check(
         "scope": scope,
         "observed": dict(observed or {}),
         "expected": dict(expected or {}),
-        "evidence": list(evidence),
-        "members": list(members),
+        # Coerced here rather than at each call site: a caller naturally passes
+        # the ``Path`` objects it discovered with, and a check that cannot be
+        # serialized is a report that cannot be written.
+        "evidence": [str(item) for item in evidence],
+        "members": [str(item) for item in members],
         "reasons": codes,
         "message": message,
     }
 
 
-def gate_error_check(*, check_id: str, message: str, members: Sequence[str]) -> dict[str, Any]:
-    """A group-scoped check for a refusal the aggregation gate raised.
+def rollup_gate_check(
+    *, check_id: str, failures: Sequence[tuple[Sequence[str], str]]
+) -> dict[str, Any]:
+    """One check for the fairness gate's refusals, naming every affected member.
 
-    ``members`` is required because the gate's message identifies the rule, not
-    the file: every manifest in the failing group is a member, and the check says
-    so instead of picking one.  The check's ``reasons`` are what a report turns
-    into a row status; the check itself carries no ``status``, so one schema
-    describes every finding.
+    A single check rather than one per refusing group: two findings sharing an
+    id cannot be cited unambiguously, and every one of these is the same category
+    of problem.  Nothing is lost by merging them -- each group's rule and members
+    still appear, in ``evidence`` and ``members``.
+
+    ``members`` is required per failure because the gate's message identifies the
+    rule, not the file: the whole failing group is named instead of one culprit
+    picked out of it.
     """
-    if not members:
-        raise AuditError("a gate refusal must name the members it was found among")
-    status, reasons = status_for_gate_error(message)
-    if status == "formal":
-        # The gate refused something; a formal verdict would drop the finding.
-        raise AuditError("a gate refusal cannot be a formal verdict")
+    if not failures:
+        raise AuditError("a gate roll-up needs at least one failure")
+    members: list[str] = []
+    reasons: set[str] = set()
+    evidence: list[str] = []
+    for group_members, message in failures:
+        if not group_members:
+            raise AuditError("a gate refusal must name the members it was found among")
+        status, codes = status_for_gate_error(message)
+        if status == "formal":
+            # The gate refused something; a formal verdict would drop the finding.
+            raise AuditError("a gate refusal cannot be a formal verdict")
+        members.extend(str(item) for item in group_members)
+        reasons.update(codes)
+        evidence.append(f"{len(group_members)} member(s): {message}")
     return make_check(
         check_id=check_id,
         result="fail",
         severity="error",
         scope="group",
-        message=message,
-        evidence=[message],
+        message=f"{len(failures)} group(s) refused by the fairness gate",
+        evidence=evidence,
         members=members,
-        reasons=reasons,
+        reasons=sorted(reasons),
     )
 
 

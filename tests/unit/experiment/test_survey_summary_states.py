@@ -34,7 +34,11 @@ pytestmark = pytest.mark.unit
 
 
 def _manifest(**overrides):
-    """A manifest carrying only the fields identity resolution reads."""
+    """A manifest carrying only the fields identity resolution reads.
+
+    ``calibration_applied`` travels with ``run_view`` because the production view
+    validator refuses a manifest where the two disagree.
+    """
     payload = {
         "execution_unit": {
             "method": "nnpu",
@@ -42,6 +46,7 @@ def _manifest(**overrides):
             "comparability_group": "spambase/native_2d/minibatch",
         },
         "run_view": "ts-compatible",
+        "calibration_applied": True,
         "c_requested_token": "0.1",
         "generation": {"train": {"mechanism": "scar", "c_requested": 0.1}},
     }
@@ -53,7 +58,8 @@ def _oracle(**overrides):
     """The shape B1's five oracle manifests actually carry.
 
     ``c_requested`` is a nominal ``0.1`` even though the run is c-independent --
-    which is why the flag has to be read first.
+    which is why the flag has to be read first.  Its view is the uncalibrated one:
+    a calibrated oracle is refused by the view validator.
     """
     payload = {
         "execution_unit": {
@@ -62,6 +68,7 @@ def _oracle(**overrides):
             "comparability_group": "spambase/native_2d/minibatch",
         },
         "run_view": "os-compatible",
+        "calibration_applied": False,
         "c_independent": True,
         "broadcast_c_values": [0.1],
         "c_requested_token": None,

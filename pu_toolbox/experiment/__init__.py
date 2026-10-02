@@ -41,11 +41,11 @@ from .survey_audit import (
     REQUIRED_ENVIRONMENT_FIELDS,
     REQUIRED_MANIFEST_FIELDS,
     AuditError,
-    gate_error_check,
     make_check,
     missing_fields,
     overall_status,
     preflight_status,
+    rollup_gate_check,
 )
 from .survey_summary import (
     GATE_MESSAGE_REASONS,
@@ -113,7 +113,6 @@ __all__ = [
     "choose_status",
     "encode_survey_texts",
     "fit_survey_image_preprocessing",
-    "gate_error_check",
     "make_check",
     "mechanism_of",
     "missing_fields",
@@ -124,6 +123,7 @@ __all__ = [
     "preflight_status",
     "reasons_for",
     "resolve_status",
+    "rollup_gate_check",
     "row_key",
     "sample_std",
     "select_threshold",
