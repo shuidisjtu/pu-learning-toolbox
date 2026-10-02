@@ -25,9 +25,13 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from .survey_comparison import resolve_comparison_unit
 from .survey_summary import (
     REASONS,
+    SELECTION_PROTOCOLS,
     SummaryError,
+    group_key,
+    matrix_selector,
     normalize_c_token,
     reasons_for,
     status_for_gate_error,
@@ -37,14 +41,27 @@ SCHEMA_VERSION = "survey-audit-1"
 
 #: Outcomes a single check may report.  ``not_run`` is a first-class value: a
 #: check that could not run because its inputs are absent is not a pass, and
-#: recording it as one is how a gap disappears from a report.
-CHECK_RESULTS: tuple[str, ...] = ("pass", "warn", "fail", "not_run")
+#: recording it as one is how a gap disappears from a report.  ``not_applicable``
+#: is the other half of that honesty, and is kept apart from ``not_run`` on
+#: purpose: a check the artifact set cannot raise (reclaim accounting, on batches
+#: that never reclaimed) must not degrade the overall verdict the way a check whose
+#: inputs are missing does.
+CHECK_RESULTS: tuple[str, ...] = ("pass", "warn", "fail", "not_run", "not_applicable")
 
 CHECK_SEVERITIES: tuple[str, ...] = ("error", "warning", "info")
 
 #: What a check's finding is about.  ``manifest`` findings name one file;
 #: ``unit`` / ``group`` findings name the members they were found among.
 CHECK_SCOPES: tuple[str, ...] = ("manifest", "unit", "group", "batch", "global")
+
+#: The roles a whitelisted batch may carry.  A probe batch's runs are real but
+#: protocol §5 clause 1 bars them from the formal leaderboard, so the role is a
+#: fact about the batch that both entry points have to read the same way.
+BATCH_ROLES: tuple[str, ...] = ("formal", "technical_probe")
+
+#: The probe role, named once.  A summarizer that spelled this string itself
+#: could disagree with the whitelist validator about which batches are probes.
+PROBE_ROLE = "technical_probe"
 
 #: Per-manifest identity, whose absence makes the result not reproducible
 #: (protocol §5 clause 6).  Dotted so a nested gap names the field actually
@@ -104,12 +121,60 @@ def missing_fields(payload: Mapping[str, Any], paths: Sequence[str]) -> list[str
     return [path for path in paths if _dig(payload, path) is _MISSING]
 
 
-def preflight_status(payload: Mapping[str, Any]) -> tuple[str, list[str], list[str]]:
+def matrix_conflicts(payload: Mapping[str, Any], *, comparison: Mapping[str, Any]) -> list[str]:
+    """Reason codes for recorded protocols the frozen matrix does not corroborate.
+
+    Protocol §5.2 keeps two statements that must agree, and neither is derived from
+    the other: the manifest records what the run *did* (``c_independent``, the
+    mechanism, the recorded ``c`` token) and the matrix records what that execution
+    row is *expected* to be.  Every selection protocol the manifest recorded a
+    result under is therefore resolved against the matrix's own mappings, one of
+    which has to match exactly.  A run the matrix does not cover and a run it
+    places on a different axis are both findings -- a later comparison is judged
+    against the pre-registration, so the claim is checked here rather than trusted.
+
+    A manifest that recorded no results still makes a c-axis claim of its own, so the
+    check falls back to both selection protocols rather than concluding there is
+    nothing to compare: a claim is checkable whether or not a number was produced
+    under it, and an unaudited claim is how the axis drifts unnoticed.
+
+    ``comparison`` is a parameter because loading it re-validates the whole matrix,
+    which is too expensive to repeat per manifest; the caller loads it once.
+    """
+    codes: set[str] = set()
+    recorded = payload.get("test_results")
+    protocols = (
+        sorted(recorded) if isinstance(recorded, Mapping) and recorded else SELECTION_PROTOCOLS
+    )
+    for protocol in protocols:
+        try:
+            selector = matrix_selector(payload, selection_protocol=protocol)
+        except (KeyError, SummaryError):
+            # Already a structural finding; naming it twice would suggest two gaps.
+            continue
+        try:
+            resolve_comparison_unit(selector, comparison=comparison)
+        except ValueError:
+            # Both directions of a broken axis claim land here: an oracle standing
+            # where the matrix has a c grid, and a c-grid run standing where the
+            # matrix has the c-independent row.
+            codes.add(
+                "oracle_c_independent_conflict"
+                if payload.get("c_independent")
+                else "mechanism_mismatch"
+            )
+    return sorted(codes)
+
+
+def preflight_status(
+    payload: Mapping[str, Any], *, comparison: Mapping[str, Any] | None = None
+) -> tuple[str, list[str], list[str]]:
     """``(status, reasons, missing_fields)`` for one manifest, without raising.
 
-    Structure only.  Whether the run *succeeded* is the aggregation gate's call:
-    a run that selected nothing is a fact about the experiment, while a manifest
-    missing its split digest is a defect in the artifact -- and only the second
+    Structure, plus -- when *comparison* is supplied -- the identity the frozen
+    matrix expects.  Whether the run *succeeded* is the aggregation gate's call: a
+    run that selected nothing is a fact about the experiment, while a manifest
+    missing its split digest is a defect in the artifact, and only the second
     makes the result unreproducible.
     """
     absent = missing_fields(payload, REQUIRED_MANIFEST_FIELDS)
@@ -125,6 +190,17 @@ def preflight_status(payload: Mapping[str, Any]) -> tuple[str, list[str], list[s
         normalize_c_token(payload)
     except SummaryError:
         codes.add("missing_c_token")
+    if not absent and not unrecorded:
+        # The view/calibration pair and the mechanism are read here so that a
+        # manifest the aggregation gate cannot assign to a group becomes a finding
+        # rather than an exception thrown out of the middle of a report.  Checked
+        # only when nothing structural is missing, which would explain it already.
+        try:
+            group_key(payload)
+        except (KeyError, SummaryError, ValueError):
+            codes.add("group_key_mismatch")
+    if comparison is not None:
+        codes.update(matrix_conflicts(payload, comparison=comparison))
     if not codes:
         return "formal", [], []
     status = "not_reproducible"
@@ -221,7 +297,12 @@ def rollup_gate_check(
 
 
 def overall_status(checks: Iterable[Mapping[str, Any]]) -> str:
-    """``fail`` if any check failed, ``partial`` if any was not run, else ``pass``."""
+    """``fail`` if any check failed, ``partial`` if any was not run, else ``pass``.
+
+    ``not_applicable`` leaves the verdict alone: a check the artifact set cannot
+    raise is not a gap in coverage, which is the separate finding ``not_run``
+    records.
+    """
     results = {check["result"] for check in checks}
     if "fail" in results:
         return "fail"

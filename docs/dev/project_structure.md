@@ -189,6 +189,7 @@ tests/
     test_capability_declarations.py     # 能力声明 4 组不变量契约测试
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
     test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
+    test_public_exports.py              # <<< 新文件,补注释
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -376,6 +377,10 @@ tests/
       test_survey_summary_comparison.py # <<< 新文件,补注释
       test_survey_summary_states.py     # <<< 新文件,补注释
       test_survey_summary_stats.py      # <<< 新文件,补注释
+      test_survey_audit_checks.py       # <<< 新文件,补注释
+      test_survey_audit_reclaim.py      # <<< 新文件,补注释
+      test_survey_summary_measures.py   # <<< 新文件,补注释
+      test_survey_comparison_attachment.py # <<< 新文件,补注释
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
@@ -642,6 +647,7 @@ scripts/
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
   audit_survey_batches.py                 <<< 新文件,补注释
   summarize_survey_results.py             <<< 新文件,补注释
+  compare_survey_results.py               <<< 新文件,补注释
 ```
 
 ## 7. CI/CD（`.github/`）

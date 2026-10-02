@@ -18,6 +18,7 @@ The check schema, its scopes and the gate roll-up have their own file,
 import pytest
 
 from pu_toolbox.experiment.survey_audit import preflight_status
+from pu_toolbox.experiment.survey_comparison import load_comparison_protocol
 
 pytestmark = pytest.mark.unit
 
@@ -35,6 +36,10 @@ def _complete_manifest():
         },
         "training_path": "native_2d",
         "run_view": "ts-compatible",
+        # Paired with the view, as the runner writes it: only a calibrated run
+        # reports ts-compatible, and a manifest missing the flag is refused rather
+        # than assumed either way.
+        "calibration_applied": True,
         "representation": {
             "name": "tabular_mlp",
             "split_sha256": "b" * 64,
@@ -124,3 +129,35 @@ def test_determ_the_preflight_is_a_pure_function_of_its_input():
     # It reads its argument and returns findings; it neither mutates the payload
     # nor remembers anything between calls.
     assert preflight_status(_complete_manifest()) == first
+
+
+def test_basic_a_manifest_the_frozen_matrix_covers_passes_the_preflight():
+    status, reasons, _ = preflight_status(
+        _complete_manifest(), comparison=load_comparison_protocol()
+    )
+
+    assert status == "formal"
+    assert reasons == []
+
+
+def test_param_an_oracle_claim_the_matrix_does_not_corroborate_is_reported():
+    # The manifest asserts c-independence on an execution row the matrix holds as a
+    # scar row; the two statements disagree, and neither is derived from the other.
+    manifest = _complete_manifest()
+    manifest["c_independent"] = True
+
+    status, reasons, _ = preflight_status(manifest, comparison=load_comparison_protocol())
+
+    assert status == "not_reproducible"
+    assert "oracle_c_independent_conflict" in reasons
+
+
+def test_determ_the_matrix_check_is_opt_in_and_leaves_the_structure_verdict_alone():
+    entry = _without(_complete_manifest(), "split_ref")
+    absent_fields = preflight_status(entry)
+
+    # Structure is judged with or without the matrix; the identity the matrix holds
+    # is only compared when a caller supplies it, so a caller that has none is not
+    # silently credited with the check having run.
+    assert preflight_status(entry, comparison=load_comparison_protocol()) == absent_fields
+    assert absent_fields[1] == ["missing_manifest_field"]

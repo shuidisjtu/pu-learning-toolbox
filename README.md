@@ -151,6 +151,13 @@ rather than recording them as passes; the second emits one mean and sample
 standard deviation per comparable row, with costs kept per run so they are not
 billed twice across the two selection protocols. Neither writes to a result tree.
 
+Attaching the pre-registered literature comparison to a finished summary is driven
+by `compare_survey_results.py`, which reads that `summary.json` and resolves each
+row through the frozen matrix. It reports the class the matrix assigns each unit
+and evaluates a numeric rule only where the matrix licenses one and our own
+protocol calls the row formal; every other row is listed as unresolved rather than
+compared, so a class without a rule cannot be read as agreement.
+
 ## AI workflow skill
 
 `pu-workflow` (Agent Skills open standard) drives the full PU analysis

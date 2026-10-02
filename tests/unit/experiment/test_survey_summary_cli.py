@@ -17,6 +17,7 @@ import pytest
 from _survey_summary_helpers import (  # noqa: F401
     audit_cli,
     config_for,
+    load_protocol,
     manifest,
     summary_cli,
     write_config,
@@ -28,6 +29,23 @@ pytestmark = pytest.mark.unit
 
 def _five_seeds(**overrides):
     return {f"seed_{seed}": manifest(seed=seed, **overrides) for seed in range(5)}
+
+
+def _protocol_grid(**overrides):
+    """One SCAR row over the c grid the protocol designed, five seeds each.
+
+    A five-seed single-c stub is what the audit calls an incomplete row -- 20 of the
+    30 designed units are absent -- so the one test that asserts a clean verdict
+    needs the grid, not just the seeds.
+    """
+    # The protocol stores the tokens as strings (they are report keys); the fixture
+    # builder takes the number, as the runner's own config does.
+    c_tokens = [float(token) for token in load_protocol()["c_tokens"]["scar"]]
+    return {
+        f"c_{c}_seed_{seed}": manifest(c=c, seed=seed, **overrides)
+        for c in c_tokens
+        for seed in range(5)
+    }
 
 
 def _run_summary(summary_cli, tmp_path, tree, *, expected=5, extra_config=None):
@@ -42,14 +60,25 @@ def _run_summary(summary_cli, tmp_path, tree, *, expected=5, extra_config=None):
 
 
 def test_basic_a_complete_tree_yields_one_row_per_selection_protocol(summary_cli, tmp_path):
-    tree = write_tree(tmp_path / "b1", _five_seeds())
+    grid = _protocol_grid()
+    tree = write_tree(tmp_path / "b1", grid)
 
-    code, report, _ = _run_summary(summary_cli, tmp_path, tree)
+    code, report, _ = _run_summary(summary_cli, tmp_path, tree, expected=len(grid))
 
+    # The one clean verdict in this file, and it takes the designed c grid to earn
+    # it: over a five-seed single-c stub the audit reports 20 of 30 units absent,
+    # which is a finding the exit code is supposed to carry.
     assert code == 0
-    protocols = sorted(row["result_identity"]["selection_protocol"] for row in report["rows"])
+    protocols = sorted({row["row_key"]["selection_protocol"] for row in report["rows"]})
     assert protocols == ["OA", "PA"]
-    assert report["coverage"]["manifests"] == 5
+    # Two vocabularies, pinned together so neither drifts: the report row keeps the
+    # manifest's own dictionary key, and the selector handed to the pre-registered
+    # matrix is spelled the way the matrix reads.
+    assert sorted({row["result_identity"]["selection_protocol"] for row in report["rows"]}) == [
+        "oa",
+        "pa",
+    ]
+    assert report["coverage"]["manifests"] == len(grid)
     assert report["coverage"]["not_reproducible"] == 0
 
 
@@ -59,7 +88,7 @@ def test_basic_the_row_mean_is_over_the_five_seeds_not_over_the_runs(summary_cli
 
     _, report, _ = _run_summary(summary_cli, tmp_path, tree)
 
-    row = next(r for r in report["rows"] if r["result_identity"]["selection_protocol"] == "OA")
+    row = next(r for r in report["rows"] if r["row_key"]["selection_protocol"] == "OA")
     assert row["metric"]["n_observed"] == 5
     assert row["metric"]["n_expected"] == 5
     assert row["metric"]["mean"] == pytest.approx((0.5 + 0.6 + 0.7 + 0.8 + 0.9) / 5)
@@ -72,7 +101,7 @@ def test_basic_a_missing_seed_makes_the_row_partial_and_names_it(summary_cli, tm
 
     _, report, _ = _run_summary(summary_cli, tmp_path, tree, expected=5)
 
-    row = next(r for r in report["rows"] if r["result_identity"]["selection_protocol"] == "OA")
+    row = next(r for r in report["rows"] if r["row_key"]["selection_protocol"] == "OA")
     assert row["metric"]["missing_seeds"] == [2]
     assert row["status"] == "partial"
     assert row["reasons"] == ["missing_seed"]
@@ -89,7 +118,7 @@ def test_basic_a_manifest_without_environment_identity_is_not_reproducible(summa
 
     assert report["coverage"]["not_reproducible"] == 1
     # It still contributes nothing to the row: the mean is the four reproducible runs.
-    row = next(r for r in report["rows"] if r["result_identity"]["selection_protocol"] == "OA")
+    row = next(r for r in report["rows"] if r["row_key"]["selection_protocol"] == "OA")
     assert row["metric"]["missing_seeds"] == [4]
 
 

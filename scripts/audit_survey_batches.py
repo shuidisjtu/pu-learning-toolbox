@@ -43,17 +43,29 @@ import aggregate_survey_runs as gate  # noqa: E402
 
 from pu_toolbox.experiment.manifest import load_manifest  # noqa: E402
 from pu_toolbox.experiment.survey_audit import (  # noqa: E402
-    SCHEMA_VERSION as AUDIT_SCHEMA_VERSION,
-)
-from pu_toolbox.experiment.survey_audit import (  # noqa: E402
+    PROBE_ROLE,
     AuditError,
     make_check,
     overall_status,
     preflight_status,
     rollup_gate_check,
 )
+from pu_toolbox.experiment.survey_audit import (  # noqa: E402
+    SCHEMA_VERSION as AUDIT_SCHEMA_VERSION,
+)
+from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
+    expected_result_units,
+    load_comparison_protocol,
+)
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol  # noqa: E402
-from pu_toolbox.experiment.survey_summary import group_key  # noqa: E402
+from pu_toolbox.experiment.survey_summary import (  # noqa: E402
+    STATUSES,
+    group_key,
+    matrix_selection_protocol,
+    mechanism_of,
+    normalize_c_token,
+    result_labeling_mechanism,
+)
 
 CONFIG_SCHEMA_VERSION = "survey-batch-roots-1"
 
@@ -210,6 +222,391 @@ def check_protocol(entries: list[dict[str, Any]], *, frozen_sha256: str) -> dict
     )
 
 
+def check_whitelist(config: dict[str, Any], entries: list[dict[str, Any]]) -> dict[str, Any]:
+    """A01: results come only from the whitelisted batch roots.
+
+    Reported on the success path too, not only when discovery refuses: a check that
+    appears only alongside an error tells a reader nothing about whether the
+    whitelist was applied, which is the whole claim.
+    """
+    absent = [entry["missing_root"] for entry in entries if "missing_root" in entry]
+    roots = {batch["name"]: batch["root"] for batch in config["batches"]}
+    return make_check(
+        check_id="A01",
+        result="fail" if absent else "pass",
+        severity="error" if absent else "info",
+        scope="batch",
+        message=(
+            f"discovery read {len(roots)} whitelisted root(s), each by its own exact root"
+            + (f"; absent: {absent}" if absent else "")
+        ),
+        observed={
+            "batches": sorted(roots),
+            "excluded_subpaths": list(config.get("excluded_subpaths", WORKING_COPY_DIRS)),
+        },
+        expected={"batches": sorted(roots)},
+        evidence=absent,
+    )
+
+
+def check_selection(loaded: list[dict[str, Any]]) -> dict[str, Any]:
+    """A06: every run that produced a result recorded the candidate it came from.
+
+    ``candidate_index`` is what this reads, not ``checkpoint_index``: the classical
+    estimators have no epoch checkpoints, so their ``checkpoint_index`` is
+    legitimately ``null`` and demanding it would mark every classical run defective.
+    A result whose selection names no candidate is a number nothing can be traced
+    back to, which is the finding.
+    """
+    problems: list[str] = []
+    for entry in loaded:
+        payload = entry["payload"]
+        selection = payload.get("selection")
+        if not isinstance(selection, dict):
+            problems.append(f"{entry['path']}: no selection block")
+            continue
+        for protocol in sorted(payload.get("test_results") or {}):
+            picked = selection.get(protocol)
+            if not isinstance(picked, dict) or picked.get("candidate_index") is None:
+                problems.append(
+                    f"{entry['path']}: {protocol} has a test result but names no selected candidate"
+                )
+    return make_check(
+        check_id="A06",
+        result="fail" if problems else "pass",
+        severity="error" if problems else "info",
+        scope="global",
+        message=(
+            f"{len(loaded) - len(problems)}/{len(loaded)} runs name the candidate behind "
+            "their results"
+            if problems
+            else f"all {len(loaded)} runs name the candidate behind every result"
+        ),
+        observed={"runs": len(loaded), "without_selection": len(problems)},
+        evidence=problems[:20],
+    )
+
+
+def check_view_mechanism(loaded: list[dict[str, Any]]) -> dict[str, Any]:
+    """A07: the view and calibration distribution the leaderboard boundaries rest on.
+
+    Reported as a distribution rather than only as a verdict, because B3b's TS rows
+    and every OS row differ exactly here and a reader has to be able to see the
+    split.  ``calibration_applied`` is what this adds: ``run_view`` is already
+    required structurally, so its absence is A12's finding.
+    """
+    distribution: Counter[tuple[str, Any, Any]] = Counter()
+    unrecorded: list[str] = []
+    for entry in loaded:
+        payload = entry["payload"]
+        if "calibration_applied" not in payload:
+            unrecorded.append(f"{entry['path']}: no calibration_applied")
+            continue
+        distribution[
+            (mechanism_of(payload), payload.get("run_view"), payload["calibration_applied"])
+        ] += 1
+    observed = {
+        f"{mechanism}/{view}/calibrated={calibrated}": count
+        for (mechanism, view, calibrated), count in sorted(distribution.items(), key=str)
+    }
+    return make_check(
+        check_id="A07",
+        result="fail" if unrecorded else "pass",
+        severity="error" if unrecorded else "info",
+        scope="global",
+        message=(
+            f"{len(observed)} view x mechanism x calibration combination(s) recorded"
+            + (f"; {len(unrecorded)} run(s) do not record calibration" if unrecorded else "")
+        ),
+        observed={"distribution": observed},
+        evidence=unrecorded[:20],
+    )
+
+
+def check_result_completeness(
+    loaded: list[dict[str, Any]], *, protocol: dict[str, Any]
+) -> dict[str, Any]:
+    """A09: every designed ``(c, protocol, seed)`` unit of a delivered row exists.
+
+    The expectation comes from the protocol's own execution rows and c grid, never
+    hand-listed.  Coverage is judged *within* the rows this whitelist delivers: which
+    execution rows a batch is supposed to cover is the batch plan's statement (A04's
+    input, not wired here), and a check that demanded every row of the protocol would
+    report the datasets that have not run yet as defects of the runs that did.
+
+    Mechanisms are named in the matrix's vocabulary here rather than the manifest's,
+    because the comparison is against the protocol's execution rows, which are
+    written that way: the protocol calls the PN oracle's row ``c_independent`` while
+    the manifest records ``pn_oracle``, and reading the manifest's own name would
+    report every oracle row as using a mechanism the protocol never defined.
+    """
+    seeds = sorted(int(seed) for seed in protocol.get("seeds", []))
+    expected_by_row: dict[tuple, set[tuple[str, str, str]]] = {}
+    for unit in expected_result_units(protocol):
+        if unit["labeling_mechanism"] == "non_runnable":
+            continue
+        key = (unit["dataset"], unit["method"], unit["training_path"])
+        expected_by_row.setdefault(key, set()).add(
+            (unit["labeling_mechanism"], unit["c_token"], unit["selection_protocol"])
+        )
+
+    rows: dict[tuple, set[tuple]] = {}
+    row_paths: dict[tuple, set[str]] = {}
+    deviations: dict[str, list[str]] = {}
+    for entry in loaded:
+        payload = entry["payload"]
+        unit = payload["execution_unit"]
+        row = (
+            unit["dataset"],
+            unit["method"],
+            payload["training_path"],
+            result_labeling_mechanism(payload),
+        )
+        row_paths.setdefault(row, set()).add(str(entry["path"]))
+        for name in sorted(payload.get("test_results") or {}):
+            rows.setdefault(row, set()).add(
+                (normalize_c_token(payload), matrix_selection_protocol(name), int(payload["seed"]))
+            )
+        if payload.get("protocol_deviation"):
+            deviations.setdefault("/".join(row), []).append(
+                f"{entry['path']}: {payload['protocol_deviation']}"
+            )
+
+    missing: list[str] = []
+    undefined: list[str] = []
+    problem_rows: set[tuple] = set()
+    for (dataset, method, path, mechanism), observed in sorted(rows.items()):
+        wanted = {
+            unit
+            for unit in expected_by_row.get((dataset, method, path), set())
+            if unit[0] == mechanism
+        }
+        if not wanted:
+            undefined.append(f"{dataset}/{method}/{path}/{mechanism}")
+            problem_rows.add((dataset, method, path, mechanism))
+            continue
+        for _, c_token, selection_protocol in sorted(wanted):
+            for seed in seeds:
+                if (c_token, selection_protocol, seed) not in observed:
+                    missing.append(
+                        f"{dataset}/{method}/{path}/{mechanism}"
+                        f"/c={c_token}/{selection_protocol}/seed={seed}"
+                    )
+                    problem_rows.add((dataset, method, path, mechanism))
+    deviation_evidence = [
+        f"protocol_deviation {key}: {item}"
+        for key, items in sorted(deviations.items())
+        for item in items[:2]
+    ]
+    incomplete = bool(missing or undefined)
+    return make_check(
+        check_id="A09",
+        result="fail" if incomplete else "pass",
+        severity="error" if incomplete else "info",
+        # Scope follows the finding: a gap belongs to the rows it was found in, and
+        # naming those rows' manifests is what makes it attributable.  A clean run
+        # is a statement about the batch, and needs no members.
+        scope="unit" if incomplete else "batch",
+        message=(
+            f"{len(rows)} delivered row(s) complete against the protocol's c grid and seeds"
+            if not incomplete
+            else f"{len(missing)} unit(s) missing; {len(undefined)} row(s) use a mechanism "
+            "the protocol does not define for them"
+        ),
+        observed={
+            "rows": len(rows),
+            "missing_units": len(missing),
+            "rows_with_undefined_mechanism": len(undefined),
+            "rows_with_protocol_deviation": len(deviations),
+        },
+        expected={"seeds": seeds},
+        evidence=missing[:20] + deviation_evidence,
+        members=sorted(path for row in problem_rows for path in row_paths.get(row, set())),
+        reasons=["protocol_deviation"] if deviations else [],
+    )
+
+
+def _reclaim_refs(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """The ``epoch_checkpoints`` references of a manifest that carry ``reclaimed``.
+
+    The field is nested under ``candidate_runs[*].epoch_checkpoints[*]`` and is not a
+    top-level key, so a reader looking for it at the top would find nothing and
+    conclude that no batch reclaims anything.
+    """
+    return [
+        checkpoint
+        for candidate in payload.get("candidate_runs") or []
+        for checkpoint in candidate.get("epoch_checkpoints") or []
+        if isinstance(checkpoint, dict) and "reclaimed" in checkpoint
+    ]
+
+
+def check_reclaim(loaded: list[dict[str, Any]]) -> dict[str, Any]:
+    """A10: ``reclaimed_true + files_on_disk == refs``, run by run.
+
+    Only batches that actually reclaimed can be judged, so a tree whose manifests
+    carry no ``reclaimed`` field at all is ``not_applicable`` rather than ``fail``
+    (B1-B3b predate the field) or ``pass`` (nothing was checked).  The count is per
+    manifest: one run's references cannot be reconciled against a whole result tree's
+    file count.  Where the recorded checkpoint paths do not resolve on this host the
+    count is refused rather than guessed, because a local success against a foreign
+    path would be an accident.
+    """
+    applicable = {str(entry["path"]): _reclaim_refs(entry["payload"]) for entry in loaded}
+    applicable = {path: refs for path, refs in applicable.items() if refs}
+    if not applicable:
+        return make_check(
+            check_id="A10",
+            result="not_applicable",
+            severity="info",
+            scope="global",
+            message=(
+                f"no manifest of {len(loaded)} carries the reclaimed field; reclaim "
+                "accounting applies to batches run with reclamation enabled"
+            ),
+            observed={"manifests": len(loaded), "with_reclaim_references": 0},
+        )
+    unreachable: list[str] = []
+    mismatched: list[str] = []
+    for path, refs in sorted(applicable.items()):
+        reclaimed = sum(1 for ref in refs if ref.get("reclaimed"))
+        directories = {Path(str(ref["path"])).parent for ref in refs if ref.get("path")}
+        if not directories or any(not directory.is_dir() for directory in directories):
+            unreachable.append(f"{path}: recorded checkpoint directories do not resolve locally")
+            continue
+        on_disk = sum(1 for directory in directories for _ in directory.glob("epoch_*.pt"))
+        if reclaimed + on_disk != len(refs):
+            mismatched.append(
+                f"{path}: reclaimed {reclaimed} + on disk {on_disk} != {len(refs)} references"
+            )
+    if unreachable:
+        return make_check(
+            check_id="A10",
+            result="not_run",
+            severity="warning",
+            scope="group",
+            message=f"{len(unreachable)} manifest(s) record checkpoint paths outside this tree",
+            observed={"manifests_with_reclaim": len(applicable)},
+            evidence=unreachable[:20],
+            members=sorted(applicable),
+        )
+    return make_check(
+        check_id="A10",
+        result="fail" if mismatched else "pass",
+        severity="error" if mismatched else "info",
+        scope="group",
+        message=(
+            f"reclaimed + on disk balances against references in all {len(applicable)} manifest(s)"
+            if not mismatched
+            else f"{len(mismatched)} manifest(s) do not balance"
+        ),
+        observed={"manifests_with_reclaim": len(applicable), "unbalanced": len(mismatched)},
+        evidence=mismatched[:20],
+        members=sorted(applicable),
+    )
+
+
+def check_status_labels(loaded: list[dict[str, Any]]) -> dict[str, Any]:
+    """A13: every label the report assigns is in the closed set, with its reasons.
+
+    The invariant ``status == "formal"`` iff ``reasons == []`` is checked here rather
+    than left to a reader, because it is what makes a label mean exactly one thing.
+    The gate's own ``comparable`` / ``blocked`` vocabulary is deliberately not
+    admitted: those describe a unit's state, and a report that copied one into
+    ``status`` would put a value there that no consumer is allowed to read.
+    """
+    problems: list[tuple[str, str]] = []
+    distribution: Counter[str] = Counter()
+    for entry in loaded:
+        status, reasons = entry.get("status"), entry.get("reasons") or []
+        if status is None:
+            continue
+        distribution[status] += 1
+        path = str(entry["path"])
+        if status not in STATUSES:
+            problems.append((path, f"{path}: status {status!r} is not in the closed set"))
+        elif (status == "formal") != (not reasons):
+            problems.append((path, f"{path}: status {status!r} carries reasons {list(reasons)}"))
+    return make_check(
+        check_id="A13",
+        result="fail" if problems else "pass",
+        severity="error" if problems else "info",
+        scope="manifest" if len(problems) == 1 else "global",
+        message=(
+            f"{sum(distribution.values())} label(s): {dict(sorted(distribution.items()))}"
+            if not problems
+            else f"{len(problems)} label(s) violate the closed set or the reasons invariant"
+        ),
+        observed={"distribution": dict(sorted(distribution.items()))},
+        expected={"statuses": list(STATUSES)},
+        evidence=[message for _, message in problems[:20]],
+        members=[path for path, _ in problems],
+    )
+
+
+def check_probe_separation(
+    loaded: list[dict[str, Any]], *, protocol: dict[str, Any]
+) -> dict[str, Any]:
+    """A15: probe batches stay out of the formal total, and no non-runnable row ran.
+
+    Two facts, both decidable here.  The coverage split is carried by A02's
+    accounting -- probe batches never enter the formal total -- and restated as its
+    own check so a reader sees the separation stated rather than inferred from
+    another check's arithmetic.  The second is the protocol's own ``runnable=false``
+    rows: a delivered row naming one of those is a manifest claiming a run the
+    protocol forbids, whatever its numbers say.
+    """
+    probe = sorted({entry["batch"] for entry in loaded if entry.get("role") == PROBE_ROLE})
+    formal = sorted({entry["batch"] for entry in loaded if entry.get("role", "formal") == "formal"})
+    forbidden = {
+        (unit["method"], unit["dataset"], unit["training_path"])
+        for unit in expected_result_units(protocol)
+        if unit["labeling_mechanism"] == "non_runnable"
+    }
+    impostors = sorted(
+        f"{entry['path']}: {entry['payload']['execution_unit']['method']}"
+        f"/{entry['payload']['execution_unit']['dataset']}/{entry['payload']['training_path']}"
+        for entry in loaded
+        if (
+            entry["payload"]["execution_unit"]["method"],
+            entry["payload"]["execution_unit"]["dataset"],
+            entry["payload"]["training_path"],
+        )
+        in forbidden
+    )
+    if not probe and not impostors:
+        return make_check(
+            check_id="A15",
+            result="not_applicable",
+            severity="info",
+            scope="batch",
+            message="no probe batch is whitelisted and no non-runnable row is delivered",
+            observed={"formal_batches": formal, "probe_batches": probe},
+        )
+    return make_check(
+        check_id="A15",
+        result="fail" if impostors else "pass",
+        severity="error" if impostors else "info",
+        scope="batch",
+        message=(
+            f"formal batches {formal}; probe batches {probe or 'none'}"
+            + (
+                f"; {len(impostors)} run(s) claim a row the protocol marks non-runnable"
+                if impostors
+                else ""
+            )
+        ),
+        observed={
+            "formal_batches": formal,
+            "probe_batches": probe,
+            "non_runnable_rows": sorted("/".join(item) for item in forbidden),
+        },
+        evidence=impostors[:20],
+        members=sorted({entry["batch"] for entry in loaded if entry.get("role") == PROBE_ROLE}),
+        reasons=["probe_only"] if probe else [],
+    )
+
+
 def empty_report(generated_at: str | None = None) -> dict[str, Any]:
     """The report skeleton every audit returns, so the schema has one home.
 
@@ -266,15 +663,23 @@ def build_audit(
         "total": len(loaded),
     }
 
-    checks = [check_coverage(config, entries), check_protocol(loaded, frozen_sha256=frozen)]
+    checks = [
+        check_whitelist(config, entries),
+        check_coverage(config, entries),
+        check_protocol(loaded, frozen_sha256=frozen),
+    ]
 
     # Phase A: per-manifest structure, grouped so one check names every offender.
+    # The frozen matrix is loaded once and handed to the preflight: the loader
+    # re-validates every mapping and anchor, which is too much work to repeat 610
+    # times for the same answer.
+    comparison = load_comparison_protocol()
     unusable: list[str] = []
     for entry in loaded:
-        status, reasons, missing = preflight_status(entry["payload"])
+        status, reasons, missing = preflight_status(entry["payload"], comparison=comparison)
+        entry["status"] = status
+        entry["reasons"] = reasons
         if status == "not_reproducible":
-            entry["status"] = status
-            entry["reasons"] = reasons
             unusable.append(f"{entry['path']}: {', '.join(missing) or ', '.join(reasons)}")
     entry_reasons = sorted({code for entry in loaded for code in entry.get("reasons", [])})
     checks.append(
@@ -290,9 +695,21 @@ def build_audit(
             ),
             observed={"not_reproducible": len(unusable)},
             evidence=unusable[:20],
-            members=[str(entry["path"]) for entry in loaded if entry.get("status")],
+            members=[
+                str(entry["path"]) for entry in loaded if entry.get("status") == "not_reproducible"
+            ],
             reasons=entry_reasons,
         )
+    )
+    checks.extend(
+        [
+            check_selection(loaded),
+            check_view_mechanism(loaded),
+            check_result_completeness(loaded, protocol=protocol),
+            check_reclaim(loaded),
+            check_status_labels(loaded),
+            check_probe_separation(loaded, protocol=protocol),
+        ]
     )
 
     # Phase B: one gate call per group, so a refusal names its own members.

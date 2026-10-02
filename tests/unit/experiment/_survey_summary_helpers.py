@@ -102,7 +102,10 @@ def manifest(
         },
         "budget": budget_payload,
         "candidate_runs": [{"candidate_index": index} for index in range(candidates)],
-        "selection": {"OA": {"candidate_index": 0}},
+        # Both protocols: a run that records a PA test result has a PA selection, so
+        # a fixture carrying only OA is one the audit has to report as a result with
+        # nothing behind it.
+        "selection": {protocol: {"candidate_index": 0} for protocol in ("PA", "OA")},
         "generation": {"train": label_view, "pu_val": dict(label_view)},
         "seed": seed,
         "split_ref": {"indices_sha256": _digest("i")},

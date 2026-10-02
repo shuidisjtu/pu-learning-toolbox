@@ -59,8 +59,13 @@ from .survey_summary import (
     mechanism_of,
     normalize_c_token,
     reasons_for,
+    resolve_status,
     row_key,
     sample_std,
+    status_for_completeness,
+    status_for_gate_block,
+    status_for_gate_error,
+    status_for_refusal,
     summarize_costs,
     to_result_summary,
 )

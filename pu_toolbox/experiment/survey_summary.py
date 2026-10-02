@@ -1,6 +1,6 @@
 """P2.2 numeric summary: turn pilot manifests into aggregate report rows.
 
-Three things this module is careful about, each pinned by tests:
+Four things this module is careful about, each pinned by tests:
 
 * **``blocked`` is not a status.**  ``scripts/aggregate_survey_runs.py`` reports a
   ``(seed, c)`` unit's ``state`` as ``comparable``/``blocked`` -- the gate's own
@@ -17,6 +17,15 @@ Three things this module is careful about, each pinned by tests:
   ``n_repeats`` / ``metric_unit``; :func:`to_result_summary` emits exactly that
   and nothing else, because a locally invented name would only fail later, at
   the matrix boundary.
+* **An absent value is read by what it costs.**  Four kinds of absence mean four
+  different things, and collapsing them either invents defects or hides them.  A
+  missing identity field makes the result unreproducible (protocol §5 clause 6).
+  A missing *measurement* -- the training cost and tuning time clause 2 requires
+  a report to carry -- costs the row its formal standing but not its
+  reproducibility.  A missing *GPU peak* on a run whose candidates never
+  allocated GPU memory is the complete answer rather than a gap.  A seed that ran
+  but recorded no value for a secondary metric is *unavailable*, which is not the
+  same finding as a seed that never ran.
 
 Pure functions over manifest dicts -- no file access, no training, no test truth.
 """
@@ -57,6 +66,27 @@ STATUS_PRIORITY: tuple[str, ...] = (
     "partial",
     "formal",
 )
+
+#: The three tables protocol §5.2 asks the report to separate, as a partition of
+#: :data:`STATUSES`.  Kept beside the closed set for one reason: a status added
+#: there must not be able to fall silently out of every table.  A probe row is its
+#: own table because its numbers are real but clause 1 bars it from the formal
+#: leaderboard, and a partial row keeps its metric while losing only the right to
+#: be ranked.
+REPORT_TIERS: Mapping[str, tuple[str, ...]] = {
+    "formal": ("formal",),
+    "partial": ("partial", "refused", "incomplete", "not_reproducible", "historical"),
+    "diagnostic": ("technical_probe",),
+}
+
+
+def tier_of(status: str) -> str:
+    """Which report table *status* is filed under; raises if it is filed nowhere."""
+    for tier, statuses in REPORT_TIERS.items():
+        if status in statuses:
+            return tier
+    raise SummaryError(f"status {status!r} belongs to no report tier: {sorted(REPORT_TIERS)}")
+
 
 #: Reason codes.  Free-form prose is not allowed here: the taxonomy is
 #: machine-checked, one ``status`` may be explained by several reasons, and
@@ -102,6 +132,18 @@ RESULT_IDENTITY_FIELDS: tuple[str, ...] = (
 
 #: Unit of the ``mean``/``std`` pair this module emits and the matrix reads back.
 METRIC_UNIT = "fraction"
+
+#: The selection protocols a manifest records results under, in the manifest's own
+#: spelling.  Named once because three readers need the same pair -- the summarizer
+#: that walks the results, and the audit that has to ask about a run's c axis even
+#: when the run recorded no results at all.
+SELECTION_PROTOCOLS: tuple[str, ...] = ("PA", "OA")
+
+#: The metric the pre-registered matrix selects on.  Protocol §1.2 makes Accuracy
+#: the comparison's metric and the others additional, so this is a fact about the
+#: pre-registration rather than a choice made here.  A test pins it equal to the
+#: comparison module's own constant, so the two cannot drift apart silently.
+COMPARISON_METRIC = "accuracy"
 
 
 class SummaryError(ValueError):
@@ -168,6 +210,43 @@ def result_labeling_mechanism(manifest: Mapping[str, Any]) -> str:
     the manifest names it ``pn_oracle``; this is where the two vocabularies meet.
     """
     return "c_independent" if manifest.get("c_independent") else mechanism_of(manifest)
+
+
+def matrix_selection_protocol(protocol: str) -> str:
+    """The selection protocol's name in the matrix's vocabulary.
+
+    The manifest stores a run's results under the upper-case ``PA`` / ``OA``
+    dictionary keys; the pre-registered matrix selects on the lower-case form.
+    The translation lives at the adapter, alongside
+    :func:`result_labeling_mechanism`, so the report row keeps the manifest's own
+    spelling while the matrix input is spelled the way the matrix reads.
+    """
+    return protocol.lower()
+
+
+def matrix_selector(
+    manifest: Mapping[str, Any],
+    *,
+    selection_protocol: str,
+    metric: str = COMPARISON_METRIC,
+) -> dict[str, str]:
+    """The pre-registered matrix's selector for one manifest under one protocol.
+
+    Built here rather than in the entry point because this module already owns
+    :data:`RESULT_IDENTITY_FIELDS`, the matrix's own field list: a selector
+    assembled somewhere else could spell a field differently and only fail at the
+    matrix boundary, which is exactly what the field list exists to prevent.
+    """
+    unit = manifest["execution_unit"]
+    return {
+        "method": unit["method"],
+        "dataset": unit["dataset"],
+        "labeling_mechanism": result_labeling_mechanism(manifest),
+        "c_token": normalize_c_token(manifest),
+        "selection_protocol": matrix_selection_protocol(selection_protocol),
+        "metric": metric,
+        "training_path": manifest["training_path"],
+    }
 
 
 def group_key(manifest: Mapping[str, Any]) -> tuple[str, str, str]:
@@ -300,6 +379,61 @@ def aggregate_metric(
     }
 
 
+def aggregate_additional_metric(
+    observations: Iterable[tuple[int, float]],
+    *,
+    metric_name: str,
+    ran_seeds: Sequence[int],
+) -> dict[str, Any]:
+    """A metric the report carries beside the primary one, never ranked on.
+
+    Protocol §1.2 makes Accuracy the selection metric and this one additional
+    (logged, not trained against), so the row keeps its single leaderboard
+    standing: this block carries a mean and a spread for reading, and the report
+    says so rather than leaving a bare average that reads as rankable.
+
+    ``ran_seeds`` is the primary metric's observed seed set, which is what makes
+    the accounting honest.  A seed that ran but recorded no usable value here is
+    *unavailable*, and that is a different finding from a seed that did not run --
+    reporting the first as ``missing_seeds`` would blame the run for a property of
+    the data.  The manifest has exactly that state for AUC: when the test truth
+    holds a single class the value is ``NaN`` and ``auc_unavailable_reason`` says
+    why.  A non-finite value is therefore an unavailable observation rather than
+    the hard error it is for the primary metric.
+    """
+    # Materialised once: ``observations`` is routinely a generator, and reading it
+    # twice would silently aggregate an exhausted iterator into an empty block.
+    pairs = [(int(seed), float(value)) for seed, value in observations]
+    seeds = [seed for seed, _ in pairs]
+    if len(set(seeds)) != len(seeds):
+        raise SummaryError(f"metric {metric_name!r} repeats a seed: {sorted(seeds)}")
+    ran = sorted({int(seed) for seed in ran_seeds})
+    values = {seed: value for seed, value in pairs if math.isfinite(value)}
+    outside = sorted(set(seeds) - set(ran))
+    if outside:
+        raise SummaryError(
+            f"metric {metric_name!r} observed seed(s) {outside} "
+            f"outside the seeds that ran under the protocol's {ran}"
+        )
+    ordered = [values[seed] for seed in sorted(values)]
+    mean = math.fsum(ordered) / len(ordered) if ordered else None
+    std = sample_std(ordered)
+    return {
+        "metric_name": metric_name,
+        "mean": mean,
+        "std": std,
+        "mean_percent": None if mean is None else mean * 100.0,
+        "std_percent": None if std is None else std * 100.0,
+        "metric_unit": METRIC_UNIT,
+        # Seeds the protocol ran, seeds this metric could be read from, and the
+        # difference -- named separately so neither is read as the other.
+        "n_seeds": len(ran),
+        "n_observed": len(ordered),
+        "seeds_observed": sorted(values),
+        "unavailable_seeds": sorted(set(ran) - set(values)),
+    }
+
+
 def summarize_costs(
     observations: Iterable[tuple[int, Mapping[str, Any]]],
     *,
@@ -350,6 +484,50 @@ def summarize_costs(
         "seeds_observed": seeds,
         "missing_seeds": sorted(set(expected) - set(seeds)),
     }
+
+
+#: The measured cost fields protocol §5 clause 2 requires a report to carry either
+#: way, because every run trains candidates and every run tunes them.
+MEASURED_COST_FIELDS: tuple[str, ...] = (
+    "single_configuration_cost_seconds",
+    "tuning_cost_seconds",
+)
+
+
+def unrecorded_measurements(resources: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Measured cost fields a run's ``resources`` failed to record.
+
+    The report-blocking fields are the two above.  ``peak_gpu_memory_bytes`` is
+    judged differently, and deliberately so: its absence is only a gap when the
+    run had a peak to aggregate.  A CPU-only method reports ``null`` at the run
+    level *and* at every candidate level, which is the complete answer for a run
+    that allocated no GPU memory -- measured on the B1 pilot, the 105 of 215
+    manifests with a null peak are exactly the three classical methods
+    (``lbe`` / ``pusb_kernel`` / ``upu``), and every one of them is null at
+    candidate level too.  Reading that as a lost measurement would demote half the
+    pilot's rows for reporting a CPU run correctly.  The inconsistency worth
+    flagging is the opposite shape: candidate peaks exist but the run-level
+    aggregate does not.
+    """
+    names: list[str] = []
+    candidate_costs = [
+        cost for item in resources for cost in (item.get("single_configuration_costs") or [])
+    ]
+    if not any(cost.get("elapsed_seconds") is not None for cost in candidate_costs):
+        names.append("single_configuration_cost_seconds")
+    if not any(
+        isinstance(item.get("tuning"), Mapping)
+        and item["tuning"].get("elapsed_seconds") is not None
+        for item in resources
+    ):
+        names.append("tuning_cost_seconds")
+    candidate_peaks = [cost.get("peak_gpu_memory_bytes") for cost in candidate_costs]
+    run_peaks = [item.get("peak_gpu_memory_bytes") for item in resources]
+    if any(peak is not None for peak in candidate_peaks) and all(
+        peak is None for peak in run_peaks
+    ):
+        names.append("peak_gpu_memory_bytes")
+    return names
 
 
 def to_result_summary(row: Mapping[str, Any], *, metric: str = "accuracy") -> dict[str, Any]:
