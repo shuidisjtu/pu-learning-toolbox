@@ -28,6 +28,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - **P2.0b 标签语义门禁 + P2.0c 对照预注册**：工程完成、合作者签署待办。见 [p2_0b 交付](../research/pu_survey/p2_0b_delivery.md)、[p2_0c 交付](../research/pu_survey/p2_0c_delivery.md)。
 - **TS-OS 校准接入训练执行链（P2.0e，2026-09-23；2026-09-27 单方放行）**：训练视图默认由方法台账 `native_sampling_assumption` 推导、`--os-or-ts` 可覆盖；`nnpu`（逐 mini-batch `D_U^k ← D_U^k ∪ D_P^k`）、`upu`、`pusb_kernel`、`dist_pu`、`self_pu` 五个适用方法**无剩余待接线项**，逐 run 实际视图入 manifest 并成为公平性分组维度。**逐方法的校准范围、验证折口径与不变量见[执行计划](../research/pu_survey/survey_execution_plan.md) 决策 D16③/D17/D18/D19 与三张方法卡的「训练视图叠加」条目**，此处不复述以免两处各写一份。线性 `pusb` 经 2026-09-27 裁决为**不适用校准**（训练信号直接把 U 当作负类，不存在同形的未标记损失输入，且不在 Pilot 矩阵内，见 D16 ①）。按 D20 ① 单方技术验收放行：**移除 `ts_view_collaborator_review` 阻断位不等于合作者已复核**，该路径的方法学复核仍未获得、呈报不得读作已签署。聚合按实际运行视图分区、续跑判定按视图收紧均已落地。见[实验层关键设计机制](experiment_layer.md)。
 
+- **P2.2 批次审计、数值汇总与文献对照附着（2026-10-02）**：三个入口只写 `--out-dir`，不写、不移动、不删除结果树。`audit_survey_batches.py` 按白名单根逐批出审计（覆盖、协议摘要、逐 manifest 身份、选择制品、视图与校准分布、按协议 c 网格与 seed 的结果完整性、回收守恒、状态闭集、probe 分离等可判项，判不了的逐条记 `not_run` 并写明缺什么输入——不把没跑的检查报成 pass）；`summarize_survey_results.py` 每个可比行给一个均值与**样本**标准差，成本按 run 记录以免 PA/OA 两行重复计费，并按状态分 formal / partial / diagnostic 三表；`compare_survey_results.py` 把行接入预注册对照矩阵，只对矩阵判 `numeric` **且**本协议判 `formal` 的行出数值裁决，其余保留其 eligibility 类别列入未决项。当前白名单仅 B1–B3b（610 份 manifest），B4 的 35 个 run 待跑完补入，故尚无正式五批汇总。见[实验层 API](../user/reference/api.md) 与[执行计划](../research/pu_survey/survey_execution_plan.md)。
+
 ### 未发布（随下一版本发布）
 
 - **PN oracle 接入**：`CleanLabelGenerator` + 视图/声明双向 fail-loud + `--oracle` 入口。见 [pn_oracle_integration](../research/pu_survey/pn_oracle_integration.md)。
