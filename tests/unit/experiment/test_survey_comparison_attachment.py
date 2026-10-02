@@ -150,6 +150,27 @@ def test_basic_the_tally_separates_adjudicated_from_not_comparable():
     assert [item["method"] for item in attach.unresolved_items(report)] == ["no_such_method"]
 
 
+def test_basic_the_markdown_heading_counts_verdicts_not_reports(tmp_path):
+    # A row the matrix calls numeric and our protocol calls partial gets a withheld
+    # report, and a row it does not cover gets none at all: neither is a verdict, and
+    # the heading is the one place a reader counts them.
+    summary = {
+        "rows": [
+            _row(mean=0.56),
+            _row(status="partial"),
+            _row(identity=_identity(method="no_such_method")),
+        ]
+    }
+    report = attach.build_comparison(summary, comparison=_matrix())
+    attach.write_report(report, tmp_path)
+
+    markdown = (tmp_path / "comparison_summary.md").read_text(encoding="utf-8")
+    # Two renderings of one fact, read from the same predicate, so they cannot drift.
+    assert report["coverage"]["adjudicated"] == 1
+    assert f"## 数值裁决（{report['coverage']['adjudicated']} 行）" in markdown
+    assert f"已裁决 {report['coverage']['adjudicated']}" in markdown
+
+
 def test_edge_an_empty_summary_yields_zeroes_and_still_names_the_matrix_state():
     report = attach.build_comparison(
         {"rows": []}, comparison=_matrix(review_state="pending_review")

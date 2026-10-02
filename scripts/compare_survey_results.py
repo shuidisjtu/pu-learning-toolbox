@@ -65,6 +65,19 @@ NUMERIC = "numeric"
 #: coverage, not a seventh eligibility the pre-registration granted.
 UNRESOLVED = "unresolved"
 
+#: The report statuses that are a numeric verdict.  ``not_comparable`` is a report the
+#: matrix produced for a class with no rule behind it, so counting it as an
+#: adjudication would make every blocked unit look decided -- the exact reading the
+#: whole attachment exists to prevent.  Named once because the tally and the Markdown
+#: heading are two renderings of one fact: deriving them separately is how the heading
+#: came to say 170 while the JSON said 0.
+ADJUDICATED_STATUSES: tuple[str, ...] = ("consistent", "investigate")
+
+
+def is_adjudicated(entry: dict[str, Any]) -> bool:
+    """Whether a row carries a numeric verdict rather than a statement of its class."""
+    return entry["report"] is not None and entry["report"]["status"] in ADJUDICATED_STATUSES
+
 
 def compare_row(row: dict[str, Any], *, comparison: dict[str, Any]) -> dict[str, Any]:
     """One report row's standing against the frozen matrix.
@@ -148,7 +161,7 @@ def build_comparison(summary: dict[str, Any], *, comparison: dict[str, Any]) -> 
             # A verdict is a numeric one; ``not_comparable`` is a report the matrix
             # produced, and counting it as adjudicated would make every blocked unit
             # look decided.
-            "adjudicated": sum(by_status.get(name, 0) for name in ("consistent", "investigate")),
+            "adjudicated": sum(1 for entry in rows if is_adjudicated(entry)),
             "not_comparable": by_status.get("not_comparable", 0),
             "withheld_not_formal": sum(
                 1 for entry in rows if entry["note"] and "row status is" in entry["note"]
@@ -227,12 +240,17 @@ def _render_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         f"| {name} | {count} |" for name, count in sorted(coverage["by_eligibility"].items())
     )
-    adjudicated = [entry for entry in report["rows"] if entry["report"] is not None]
+    adjudicated = [entry for entry in report["rows"] if is_adjudicated(entry)]
     lines.extend(["", f"## 数值裁决（{len(adjudicated)} 行）", ""])
     if not adjudicated:
+        # Why a heading of zero is informative, not empty: the two numbers that
+        # account for it are printed rather than left for the reader to reconstruct.
         lines.extend(
             [
-                "（无：本次没有任何单元的矩阵类别为 `numeric` 且行状态为 `formal`。）",
+                "（无。没有任何单元同时满足矩阵判 `numeric` 与本协议判 `formal`；"
+                f"其中 `numeric` 类别 "
+                f"{coverage['by_eligibility'].get(NUMERIC, 0)} 行，"
+                f"`not_comparable` {coverage['not_comparable']} 行。）",
                 "",
             ]
         )
