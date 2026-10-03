@@ -108,6 +108,19 @@ git diff --check
 
 **代谢率红线**：PR 评审时对增量代码做单源检查——发现 **>1 处单源违规为黄线**（该 PR 必须包含收敛治理）；**≥3 处或同一概念第 3 次分裂为红线**，触发该区域的结构性重构评估。历史治理记录见 `docs/dev/architecture_principles.md` §5 与 `docs/adr/0001-architecture-governance.md`。
 
+### 5.2 注释规则
+
+源码注释的判定标准、门禁规则与迁移策略见
+[`docs/dev/comment_governance.md`](docs/dev/comment_governance.md)。贡献者需要知道的三条：
+
+- 未完成事项写 `TBD`，且必须带上下文（`TBD: ...` 或 `TBD(#123) ...`）；
+  不新增 `TODO`、`FIXME`、`XXX`、`HACK`；
+- 行尾注释默认不鼓励，工具链指令（`noqa`、`pragma:`、`type:` 等）除外；
+- 注释与 docstring 中引用的仓库内文件路径必须真实存在。
+
+机械门禁：`uv run python scripts/check_comment_quality.py`（默认扫 `pu_toolbox/`）
+与 `uv run python scripts/check_doc_links.py`（含源码注释的路径引用）。
+
 ## 6. 论文方法和 benchmark
 
 状态必须严格区分：
