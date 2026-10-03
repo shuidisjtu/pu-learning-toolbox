@@ -116,7 +116,7 @@ git diff --check
 - 未完成事项写 `TBD`，且必须带上下文（`TBD: ...` 或 `TBD(#123) ...`）；
   不新增 `TODO`、`FIXME`、`XXX`、`HACK`；
 - 行尾注释默认不鼓励，工具链指令（`noqa`、`pragma:`、`type:` 等）除外；
-- 注释与 docstring 中引用的仓库内文件路径必须真实存在。
+- 注释、docstring 与字符串字面量中引用的仓库内文件路径必须真实存在。
 
 机械门禁：`uv run python scripts/check_comment_quality.py`（默认扫 `pu_toolbox/`）
 与 `uv run python scripts/check_doc_links.py`（含源码注释的路径引用）。
