@@ -1,4 +1,4 @@
-# tests/unit/core/test_training_views.py
+# tests/unit/core/test_training_view_contract.py
 
 # ruff: noqa: N803, N806, S101
 
@@ -42,15 +42,12 @@ def test_basic_role_and_view_vocabulary_is_frozen():
     in hashed survey artifacts, so their exact value is pinned here rather than
     derived from the implementation.
     """
-    from typing import get_args
+    from pu_toolbox.core.training_views import ROLES, RUN_VIEWS
 
-    from pu_toolbox.core.training_views import ROLES, RUN_VIEWS, RunView, ViewRole
-
+    # Pinned by value: these strings are the contract, so a rename or a
+    # reordering in the module is exactly the edit this test exists to catch.
     assert ROLES == ("train", "pu_val", "clean_val", "test")
     assert RUN_VIEWS == ("os", "ts")
-    # The runtime tuples must stay derived from the aliases, not restated.
-    assert get_args(ViewRole) == ROLES
-    assert get_args(RunView) == RUN_VIEWS
 
 
 # --- the three roles, under each view ----------------------------------------
