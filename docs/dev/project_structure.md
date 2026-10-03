@@ -283,6 +283,7 @@ tests/
       test_check_skill_sync.py          # skill 双份一致性门禁脚本测试
       test_check_test_quality_exemptions.py # 测试质量门禁豁免审查测试
       test_generate_structure.py        # 结构文档生成器(--check/--update)单元测试
+      test_check_comment_quality.py     # 注释质量门禁(遗留标记/裸TBD/行尾注释)脚本测试
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -656,6 +657,7 @@ scripts/
   summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
+  check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
 ```
 
 ## 7. CI/CD（`.github/`）

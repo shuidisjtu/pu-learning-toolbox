@@ -186,6 +186,7 @@ uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # baseline config vs source defaults
 uv run python scripts/check_format.py        # ruff check + format --check (full scope)
+uv run python scripts/check_comment_quality.py  # comment hygiene: legacy markers / bare TBD / trailing comments
 uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry gate (declares itself inactive until the registry file lands; not wired into CI yet)
 uv run python scripts/generate_structure.py --check    # structure document consistency (--update to regenerate)
 ```
