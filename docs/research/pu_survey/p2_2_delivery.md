@@ -18,11 +18,19 @@
 | 协议 | `survey_protocol_v1.json`（`survey-v1.2`） | 仓库 |
 | 对照矩阵 | `survey_comparison_v3.json` | 仓库 |
 | 批次白名单 | 五批根目录 + 期望 manifest 数的 JSON，由 `--config` 传入 | 执行机（不含在本仓库） |
+| 报告身份块 | `pu_toolbox/experiment/survey_provenance.py`（三份报告共用，见 `api.md` 同名一节） | 仓库 |
 | 原始制品 | `01_audit` / `02_summary` / `03_comparison` / `04_evidence` | 执行机分析工作区，**在仓库外** |
+| 复核包 | [`p2_2_review.md`](p2_2_review.md)（双栏清单与签署模板） | 仓库 |
+| 比对基准 | [`data/p2_2_artifacts_index.json`](data/p2_2_artifacts_index.json) | 仓库 |
+| 645 行交付表 | 逐 run 原始数据（含三项成本与环境身份）加 P2.2 派生层 | **在仓库外，由执行方直接发送** |
 
-**原始制品的存放与分发方式尚未决定**：本文件承载结论性口径与分层计数，逐行的均值/标准差、
-分组明细与审计证据都在上表的「原始制品」里，不在仓库。需要这些内容的复核者要么按 §7 重跑，
-要么由执行方另行提供。
+**制品分发的决定（2026-10-03）**：不打包上网盘。合作者同时具备仓库权限与数据盘权限，
+分析产物按 §7 自行复现即可，本文件与基准文件承载口径与比对基准；645 行交付表是唯一需要
+送达的实体文件，由执行方直接发送。基准文件里登记了它的摘要，接收端可比对。
+
+**先比输入、再比产物。** 基准文件同时给出 645 份 manifest 的**树摘要**与各产物的逐文件摘要。
+复核者用自己的副本重跑后，须先比对树摘要确认读的是同一批字节——树不一致时，结果差异应归因于
+输入而非代码。逐行的均值/标准差、分组明细与审计证据都在上表的「原始制品」里，不在仓库。
 
 ## 2. 输入覆盖与白名单机制
 
@@ -104,11 +112,24 @@ uv run python scripts/compare_survey_results.py --summary <02_summary/summary.js
 `excluded_subpaths` 列出必须拒绝的工作副本目录名。跑之前必须确认输入树已稳定（B4 已收尾、
 无 runner 在写），协议摘要在一个值上。
 
+**两处按原样照抄会失败，须知道：**
+
+1. 白名单里的 `batches[].root` 记的是执行机路径，直接沿用会找不到输入。改成自己那份副本的路径；
+   该改成什么，同一份文件里的 `source_roots` 已经写了。
+2. 三份报告会各自写入一个身份块（代码 commit 与其状态、输入结果根、协议与对照摘要）。
+   因此**报告是产出它的那次 checkout 的函数**：换了 commit 或输入根，报告就会不同。
+   比对时必须先核身份块，再比数值。
+
+**比对基准**在 [`data/p2_2_artifacts_index.json`](data/p2_2_artifacts_index.json)：先比
+`inputs.total.tree_sha256`（确认读的是同一批字节），再比 `artifacts` 的逐文件摘要。
+Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字节可复现；JSON 里带 `generated_at`，
+比对时须先移除该字段。
+
 ## 8. 未决项
 
 - **合作者复核未获得**：P2.0c 对照矩阵仍为 `pending_collaborator_review`、`formal_blockers` 仍为
   `["collaborator_review"]`；PA 准则与 `self_pu` 元重加权的复核同样未获得。**本文件不得读作已签署**
   （未获项清单见 [`survey_execution_plan.md`](survey_execution_plan.md) §1.4）。
 - **期望单元完整性格网口径**（D13 遗留）：复合分区下「缺失单元」如何判定仍未定，本次不涉。
-- **原始制品的存放与分发**：见 §1，尚未决定。
-- **复核材料未建**：实施方案 §4 布局中的 `05_review/`（复核清单与签署模板）尚未产出。
+- **A04（计划身份）仍为 `not_run`**：需要五批的参考计划 JSON，目前只有 B1 的在执行机上，
+  B2/B3a/B3b/B4 需从源端取。其余 6 项 `not_run` 的缺什么输入见 §6。

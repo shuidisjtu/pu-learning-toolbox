@@ -62,9 +62,11 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 |---|---|
 | [`p2_0a_review.md`](p2_0a_review.md) | P2.0a 合作者逐条复核决定、未决项与签署模板（已签署） |
 | [`p2_0c_review.md`](p2_0c_review.md) | P2.0c 复核包：自审结论、判读留痕、合作者复核与签署栏（未签署） |
+| [`p2_2_review.md`](p2_2_review.md) | P2.2 复核包：双栏清单（合作者管文献与对照、实验负责人管交付面）、复现与比对步骤、签署模板（未签署） |
 | [`heng958_independent_review.md`](heng958_independent_review.md) | HENG958 环境、nnPU/Self-PU 台账、split 可执行性与 P2.0d SAR-OA 复核（独立复核，不替代签署） |
 
 ## 其他
 
 - [`data/split_artifacts_index.json`](data/split_artifacts_index.json) — P1.4 的 15 份 split 制品索引（归档摘要与逐文件 sha256），接收端 `verify` 的比对基准
+- [`data/p2_2_artifacts_index.json`](data/p2_2_artifacts_index.json) — P2.2 交付面基准：输入树的 645 份 manifest 树摘要与逐文件摘要（先比树、再比产物）、十份分析产物与三份证据的 sha256，以及 645 行交付表的摘要
 - `assets/` — 协议配图
