@@ -26,20 +26,45 @@ def test_basic_converts_numpy_arrays_to_plain_json_scalars():
     assert json_scalars(np.array([1.5, -2.0]), name="indices") == [1.5, -2.0]
     assert json_scalars(np.array(["a", "b"]), name="indices") == ["a", "b"]
     assert json_scalars(np.array([True, False]), name="indices") == [True, False]
+    # ``True == 1``, so the equality above cannot tell bool from int; the type
+    # can -- and ``json.dumps`` writes ``true`` vs ``1``, which moves a digest.
+    assert [type(value) for value in json_scalars(np.array([True, False]), name="indices")] == [
+        bool,
+        bool,
+    ]
 
 
 def test_param_refusals_carry_the_callers_name_verbatim():
     """The two messages keep the exact wording the two predecessors used."""
     boxed = np.empty(1, dtype=object)
     boxed[0] = (2, 3)
-    with pytest.raises(ValueError) as non_scalar:
-        json_scalars(boxed, name="bundle indices")
-    assert str(non_scalar.value) == "bundle indices must contain JSON scalar values."
 
-    for not_finite in (np.nan, np.inf, -np.inf):
-        with pytest.raises(ValueError) as non_finite:
-            json_scalars(np.array([not_finite]), name="train indices")
-        assert str(non_finite.value) == "floating-point train indices must be finite."
+    refusals = (
+        (
+            "indices",
+            "indices must contain JSON scalar values.",
+            "floating-point indices must be finite.",
+        ),
+        (
+            "bundle indices",
+            "bundle indices must contain JSON scalar values.",
+            "floating-point bundle indices must be finite.",
+        ),
+        (
+            "train indices",
+            "train indices must contain JSON scalar values.",
+            "floating-point train indices must be finite.",
+        ),
+    )
+    for name, non_scalar_message, non_finite_message in refusals:
+        with pytest.raises(ValueError) as non_scalar:
+            json_scalars(boxed, name=name)
+        assert str(non_scalar.value) == non_scalar_message
+
+        for not_finite in (np.nan, np.inf, -np.inf):
+            with pytest.raises(ValueError) as non_finite:
+                json_scalars(np.array([not_finite]), name=name)
+            assert str(non_finite.value) == non_finite_message
 
 
 def test_edge_object_dtype_is_unboxed_and_empty_and_nested_are_handled():
