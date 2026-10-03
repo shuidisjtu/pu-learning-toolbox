@@ -52,6 +52,10 @@ from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
     comparison_digest,
     load_comparison_protocol,
 )
+from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
+    build_provenance,
+    render_provenance_lines,
+)
 from pu_toolbox.experiment.survey_summary import SummaryError, to_result_summary  # noqa: E402
 
 SCHEMA_VERSION = "survey-comparison-report-1"
@@ -143,6 +147,29 @@ def matrix_state(comparison: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _carried_provenance(summary: dict[str, Any], *, comparison: dict[str, Any]) -> dict[str, Any]:
+    """The summary's own identity carried forward, plus this matrix's digest.
+
+    This entry point reads no whitelist -- its input is the summary -- so its
+    input result roots are the ones that summary recorded, and its code commit
+    is the commit that produced it.  Re-deriving either here would let this
+    report disagree with the report it attached itself to.  A summary written
+    before this block existed carries none of it, and this report then says so
+    rather than presenting an absence as a reading.
+    """
+    origin = summary.get("provenance") or {}
+    return build_provenance(
+        protocol_version=summary.get("protocol_version"),
+        protocol_sha256=summary.get("protocol_sha256"),
+        comparison_version=comparison.get("comparison_version"),
+        comparison_sha256=comparison_digest(comparison),
+        result_roots=origin.get("input_result_roots"),
+        source_roots=origin.get("source_roots"),
+        code_commit=origin.get("code_commit"),
+        code_commit_dirty=origin.get("code_commit_dirty"),
+    )
+
+
 def build_comparison(summary: dict[str, Any], *, comparison: dict[str, Any]) -> dict[str, Any]:
     """Resolve every row, then report what could and could not be compared."""
     rows = [compare_row(row, comparison=comparison) for row in summary.get("rows", [])]
@@ -155,6 +182,7 @@ def build_comparison(summary: dict[str, Any], *, comparison: dict[str, Any]) -> 
         "eligibility_classes": list(ELIGIBILITY_CLASSES),
         "summary_schema_version": summary.get("schema_version"),
         "summary_protocol_sha256": summary.get("protocol_sha256"),
+        "provenance": _carried_provenance(summary, comparison=comparison),
         "matrix_state": matrix_state(comparison),
         "coverage": {
             "rows": len(rows),
@@ -226,17 +254,25 @@ def _render_markdown(report: dict[str, Any]) -> str:
         f"- 锚点 {state['anchors']}（待复核 {state['anchors_pending_review']}）；"
         f"映射 {state['mappings']}（待复核 {state['mappings_pending_review']}）",
         f"- 数值汇总：`{report['summary_schema_version']}` / `{report['summary_protocol_sha256']}`",
-        f"- 行数 {coverage['rows']}；已裁决 {coverage['adjudicated']}；"
-        f"因非 formal 而保留 {coverage['withheld_not_formal']}",
-        "",
-        "> 规则与算术读自 `survey_comparison.py`，本文件只汇总与渲染。",
-        "> **未裁决不等于一致**：没有数值规则、或本协议未判 formal 的单元，一律保留其原始类别。",
-        "",
-        "## 按 eligibility 分布",
-        "",
-        "| 类别 | 行数 |",
-        "|---|---|",
     ]
+    # Identity before verdicts, and carried forward rather than re-read: this
+    # report's inputs are whatever that summary was built from.
+    lines.extend(render_provenance_lines(report.get("provenance")))
+    lines.extend(
+        [
+            f"- 行数 {coverage['rows']}；已裁决 {coverage['adjudicated']}；"
+            f"因非 formal 而保留 {coverage['withheld_not_formal']}",
+            "",
+            "> 规则与算术读自 `survey_comparison.py`，本文件只汇总与渲染。",
+            "> **未裁决不等于一致**：没有数值规则、或本协议未判 formal 的单元，"
+            "一律保留其原始类别。",
+            "",
+            "## 按 eligibility 分布",
+            "",
+            "| 类别 | 行数 |",
+            "|---|---|",
+        ]
+    )
     lines.extend(
         f"| {name} | {count} |" for name, count in sorted(coverage["by_eligibility"].items())
     )

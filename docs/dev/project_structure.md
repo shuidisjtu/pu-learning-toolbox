@@ -176,6 +176,7 @@ pu_toolbox/
     survey_audit.py                       (P2.2 批次审计: 逐 manifest 判完整性/可复现/可交付, 畸形 manifest 记为 finding 而非异常, 检查携带 scope 与 members)
     survey_summary.py                     (P2.2 数值汇总: manifest → 交付行(每行一均值+样本标准差), 状态闭集 STATUSES 与优先级裁决, 缺值按代价分四类读)
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
+    survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -386,6 +387,7 @@ tests/
       test_survey_recipe_registry.py    # recipe registry 的 schema/候选池/摘要规则
       test_survey_recipe_registry_manifest.py # manifest recipe 绑定校验（fail-closed + legacy 兼容）
       test_survey_recipe_registry_sources.py # recipe registry 来源证据引用规则
+      test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性

@@ -56,8 +56,19 @@ import aggregate_survey_runs as gate  # noqa: E402
 import audit_survey_batches as audit  # noqa: E402
 
 from pu_toolbox.experiment.survey_audit import PROBE_ROLE, AuditError  # noqa: E402
-from pu_toolbox.experiment.survey_comparison import load_comparison_protocol  # noqa: E402
+from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
+    comparison_digest,
+    load_comparison_protocol,
+)
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol  # noqa: E402
+from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
+    build_provenance,
+    input_result_roots,
+    recorded_source_roots,
+    render_provenance_lines,
+    resolve_code_commit,
+    with_code_commit,
+)
 from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     METRIC_UNIT,
     REPORT_TIERS,
@@ -280,6 +291,8 @@ def empty_summary(*, protocol: dict[str, Any]) -> dict[str, Any]:
         "generated_at": None,
         "protocol_version": protocol.get("protocol_version"),
         "protocol_sha256": digest(protocol),
+        #: Filled by :func:`build_summary`; ``None`` only for a report built by hand.
+        "provenance": None,
         "metric_unit": METRIC_UNIT,
         "batches": [],
         # Zero-filled rather than empty: a failed run still renders, and the
@@ -319,10 +332,22 @@ def build_summary(config: dict[str, Any]) -> dict[str, Any]:
         # is refused rather than reported as a batch-wide defect.
         raise SummaryError("the loaded protocol carries no seed list")
 
+    # Stamped before discovery so the refusal path below carries the same
+    # identity a successful summary does: the protocol and the roots are known
+    # whether or not the tree can be walked.  The comparison fields are added
+    # further down, once that matrix is loaded.
+    provenance = build_provenance(
+        protocol_version=protocol.get("protocol_version"),
+        protocol_sha256=digest(protocol),
+        result_roots=input_result_roots(config),
+        source_roots=recorded_source_roots(config),
+    )
+
     try:
         entries = audit.discover_batches(config)
     except audit.ConfigError as exc:
         report = empty_summary(protocol=protocol)
+        report["provenance"] = provenance
         report["checks"] = audit.build_audit(config)["checks"]
         report["overall"] = "fail"
         report["error"] = str(exc)
@@ -379,6 +404,17 @@ def build_summary(config: dict[str, Any]) -> dict[str, Any]:
     # module's own use of the same mapping.
     checks = audit_report["checks"]
     report = empty_summary(protocol=protocol)
+    # The matrix is part of this report's identity: the row statuses below were
+    # resolved against it, so which matrix produced them belongs next to the
+    # protocol digest.
+    report["provenance"] = build_provenance(
+        protocol_version=protocol.get("protocol_version"),
+        protocol_sha256=digest(protocol),
+        comparison_version=comparison.get("comparison_version"),
+        comparison_sha256=comparison_digest(comparison),
+        result_roots=input_result_roots(config),
+        source_roots=recorded_source_roots(config),
+    )
     report["batches"] = sorted({entry["batch"] for entry in loaded})
     tiers = Counter(tier_of(row["status"]) for row in primary_rows)
     report["coverage"] = {
@@ -482,13 +518,21 @@ def _render_markdown(report: dict[str, Any]) -> str:
         "# P2.2 数值汇总",
         "",
         f"- 协议：`{report['protocol_version']}` / `{report['protocol_sha256']}`",
-        f"- 主指标：`{PRIMARY_METRIC}`（五 seed 均值与**样本**标准差，单位 "
-        f"`{report['metric_unit']}`；排名依据）",
-        f"- 附加指标：{', '.join(f'`{name}`' for name in ADDITIONAL_METRICS)}"
-        "（同法汇总，**不参与选模与排名**）",
-        f"- 行数：{report['coverage']['rows']}；run 成本条目：{report['coverage']['run_costs']}",
-        f"- 结论：**{report['overall']}**",
     ]
+    # Identity before numbers: these rows are only reproducible against a named
+    # checkout and a named input tree.
+    lines.extend(render_provenance_lines(report.get("provenance")))
+    lines.extend(
+        [
+            f"- 主指标：`{PRIMARY_METRIC}`（五 seed 均值与**样本**标准差，单位 "
+            f"`{report['metric_unit']}`；排名依据）",
+            f"- 附加指标：{', '.join(f'`{name}`' for name in ADDITIONAL_METRICS)}"
+            "（同法汇总，**不参与选模与排名**）",
+            f"- 行数：{report['coverage']['rows']}；"
+            f"run 成本条目：{report['coverage']['run_costs']}",
+            f"- 结论：**{report['overall']}**",
+        ]
+    )
     readiness = batch_readiness(report.get("checks", []))
     if readiness:
         lines.append(
@@ -650,6 +694,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     report["generated_at"] = datetime.now(timezone.utc).isoformat()
+    # The only reading that needs a process: kept out of build_summary so two
+    # summaries over one tree stay equal.
+    commit, dirty = resolve_code_commit()
+    report["provenance"] = with_code_commit(report.get("provenance"), commit, dirty=dirty)
     for path in write_report(report, args.out_dir):
         print(f"wrote {path}")
     print(f"overall: {report['overall']}; rows: {report['coverage']['rows']}")
