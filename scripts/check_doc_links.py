@@ -2,7 +2,10 @@
 """Documentation-code consistency gate.
 
 Rules:
-1. **Path references** -- every ``path/file.{py,md}`` in project Markdown must exist on disk.
+1. **Path references** -- every ``path/file.{py,md}`` in project Markdown and
+   in ``pu_toolbox/``/``scripts/`` Python source text must exist on disk.
+   Python files are read as whole-file text, so a reference inside a string
+   literal is checked too, not only one inside a comment or docstring.
 2. **(planned) consistency** -- ``project_structure.md`` tree must match
    actual file existence.
 3. **Architecture S8 mapping** -- ``architecture.md`` S8 table must agree
@@ -107,6 +110,23 @@ def _find_md_files() -> list[Path]:
     return files
 
 
+def _find_source_files() -> list[Path]:
+    """Return Python sources whose text we scan for path references.
+
+    The scan reads whole-file text, so a reference inside a string literal
+    is matched too, not only one inside a comment or docstring.  ``tests/``
+    is deliberately excluded: dangling backtick paths there are negative
+    fixtures for this very gate, not claims about repository files.
+    """
+    files: list[Path] = []
+    for root in (PROJECT_ROOT / "pu_toolbox", SCRIPTS_DIR):
+        if not root.is_dir():
+            continue
+        files.extend(p for p in root.rglob("*.py") if "__pycache__" not in p.parts)
+    files.sort()
+    return files
+
+
 def _extract_backtick_paths(text: str) -> list[tuple[str, int]]:
     """Return (path, 1-indexed line_number) for every `root/.../file.{py,md}`.
 
@@ -159,17 +179,20 @@ def _extract_md_link_targets(text: str) -> list[tuple[str, int]]:
 # ====================================================================
 
 
-def check_path_references(md_files: list[Path]) -> list[Issue]:
-    """Rule 1: every `path/file.{py,md}` in docs must exist on disk."""
+def check_path_references(files: list[Path]) -> list[Issue]:
+    """Rule 1: every `path/file.{py,md}` in docs and source text exists.
+
+    Source files are read whole, so a string literal counts too.
+    """
     issues: list[Issue] = []
-    for md_file in md_files:
-        text = md_file.read_text(encoding="utf-8")
+    for source_file in files:
+        text = source_file.read_text(encoding="utf-8")
         for ref_path, line_no in _extract_backtick_paths(text):
             if not (PROJECT_ROOT / ref_path).exists():
                 issues.append(
                     Issue(
                         "rule-1",
-                        _relative(md_file),
+                        _relative(source_file),
                         line_no,
                         f"referenced file not found: `{ref_path}`",
                         "error",
@@ -526,7 +549,7 @@ def main() -> int:
     print(" Documentation-Code Consistency Check")
     print("=" * 62)
 
-    issues = check_path_references(md_files)
+    issues = check_path_references([*md_files, *_find_source_files()])
     all_issues.extend(issues)
     _print_rule_report("Rule 1: Path references", issues)
 

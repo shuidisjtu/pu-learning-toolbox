@@ -284,6 +284,7 @@ tests/
       test_check_test_quality_exemptions.py # 测试质量门禁豁免审查测试
       test_generate_structure.py        # 结构文档生成器(--check/--update)单元测试
       test_check_comment_quality.py     # 注释质量门禁(遗留标记/裸TBD/行尾注释)脚本测试
+      test_check_doc_links_sources.py   # 文档引用门禁源码语料(rule-1 在 .py 注释中的路径引用)测试
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
