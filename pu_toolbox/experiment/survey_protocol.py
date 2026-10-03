@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
+from pu_toolbox.utils.serialization import json_scalars
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
@@ -450,7 +451,12 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         "name": row["representation"],
         "feature_sha256": {role: array_digest(getattr(bundle, role).X) for role in ROLES},
         "split_sha256": digest(
-            {role: np.asarray(getattr(bundle, role).indices).tolist() for role in ROLES}
+            {
+                role: json_scalars(
+                    np.asarray(getattr(bundle, role).indices), name=f"{role} indices"
+                )
+                for role in ROLES
+            }
         ),
     }
     adapter = config.get("adapter_manifest")

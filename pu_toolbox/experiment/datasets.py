@@ -11,7 +11,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.utils.serialization import canonical_hash
+from pu_toolbox.utils.serialization import canonical_hash, json_scalars
 
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
@@ -275,7 +275,9 @@ def prepare_survey_dataset(
     )
     validate_bundle(bundle)
 
-    role_indices = {role: _json_indices(getattr(bundle, role).indices) for role in ROLES}
+    role_indices = {
+        role: json_scalars(getattr(bundle, role).indices, name=f"{role} indices") for role in ROLES
+    }
     manifest = {
         "schema_version": "1.0",
         "dataset": spec.name,
@@ -447,7 +449,3 @@ def _part(
         view="clean",
         indices=indices[positions],
     )
-
-
-def _json_indices(indices: np.ndarray) -> list[int | str]:
-    return [item.item() if isinstance(item, np.generic) else item for item in indices]

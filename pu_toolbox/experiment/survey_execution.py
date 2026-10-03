@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
+from ..utils.serialization import json_scalars
 from .bundle import DatasetBundle, validate_bundle
 from .feature_adapter import _encoder_state_sha256, adapt_image_bundle_to_features
 from .image import (
@@ -203,7 +204,12 @@ def cached_adapter(
             "encoder_state_sha256": _encoder_state_sha256(encoder),
             "image": image_manifest,
             "inputs": {role: array_digest(getattr(bundle, role).X) for role in ROLES},
-            "indices": {role: np.asarray(getattr(bundle, role).indices).tolist() for role in ROLES},
+            "indices": {
+                role: json_scalars(
+                    np.asarray(getattr(bundle, role).indices), name=f"{role} indices"
+                )
+                for role in ROLES
+            },
             "device": device,
             "extraction_batch_size": batch_size,
         }

@@ -12,6 +12,7 @@ from typing import Any, Literal
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
+from pu_toolbox.utils.serialization import json_scalars
 
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
@@ -85,7 +86,7 @@ def adapt_image_bundle_to_features(
             raise ValueError(
                 "encoder_fit_indices must exactly match the train partition and no other role."
             )
-        fit_indices_hash = _json_sha256(_json_scalars(fit_indices))
+        fit_indices_hash = _json_sha256(json_scalars(fit_indices, name="bundle indices"))
 
     canonical_backbone_manifest = _canonical_json_object(
         backbone_manifest, name="backbone_manifest"
@@ -132,7 +133,8 @@ def adapt_image_bundle_to_features(
     if len(feature_dimensions) != 1:
         raise ValueError("CNN encoder output dimension changed across dataset roles.")
     split_indices = {
-        role: _json_scalars(np.asarray(getattr(bundle, role).indices)) for role in ROLES
+        role: json_scalars(np.asarray(getattr(bundle, role).indices), name="bundle indices")
+        for role in ROLES
     }
     representation_payload = {
         "feature_version": feature_version,
@@ -357,19 +359,6 @@ def _canonical_json_object(value: dict[str, Any], *, name: str) -> dict[str, Any
         return json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{name} must contain only finite JSON-compatible values.") from exc
-
-
-def _json_scalars(values: np.ndarray) -> list[int | float | str | bool | None]:
-    result = []
-    for value in values.tolist():
-        if isinstance(value, np.generic):
-            value = value.item()
-        if value is not None and not isinstance(value, bool | int | float | str):
-            raise ValueError("bundle indices must contain JSON scalar values.")
-        if isinstance(value, float) and not np.isfinite(value):
-            raise ValueError("floating-point bundle indices must be finite.")
-        result.append(value)
-    return result
 
 
 def _array_sha256(values: np.ndarray) -> str:

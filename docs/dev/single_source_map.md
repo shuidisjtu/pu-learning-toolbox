@@ -5,16 +5,16 @@
 > [`architecture_principles.md`](architecture_principles.md) §5。
 >
 > 本表以 2026-10-03、BASE `f1182ec` 的审计为基线。**各行随其收敛落地就地更新**：未更新行，
-> 其行号仍指 `f1182ec` 基线；已更新行改用收敛提交的行号。当前仅「训练视图」已更新（收敛为单一，
-> 行号按 `d5ebd57` 重取）。**发现重复不等于已收敛**——其余各行只记录基线现状，迁移在后续批次；
-> 本表整体并非当前快照。
+> 其行号仍指 `f1182ec` 基线；已更新行改用收敛提交的行号。当前「训练视图」（单一，行号按
+> `d5ebd57` 重取）与「JSON 安全转换」（单一，权威源行号按 `6a7c256` 重取）两行已更新。
+> **发现重复不等于已收敛**——其余各行只记录基线现状，迁移在后续批次；本表整体并非当前快照。
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
 |---|---|---|---|---|
 | 标签语义 | `pu_toolbox/core/labels.py:92` `normalize_pu_labels` / `:145` `normalize_pnu_labels`；字面值在 `pu_toolbox/core/config.py:8`-`:10` | `core/validation.py`（`validate_pu_X_y` / `validate_pnu_X_y` 的前置归一）、`metrics/classification.py`、`preprocessing/`、`model_selection/split.py`、`diagnostics/`、`workflows/shift.py`、`estimators/deep/self_pu.py`、`estimators/risk/nnpu.py`、`estimators/risk/vpu.py` | 无 | 单一 |
 | 设备 | `pu_toolbox/core/device.py:11` `resolve_device_name` / `:29` `resolve_device` | 14 个 torch 估计器（`estimators/deep/*`、`estimators/risk/{dist_pu,nnpu,pulda,vpu}.py`、`estimators/research/*`）、`workflows/pipeline.py:431`、`workflows/_reporting.py:91` | 无 | 单一 |
 | 随机源 | `pu_toolbox/core/random.py:8` `check_random_state` | `experiment/strategies.py`、`preprocessing/pu_labeling.py`、`preprocessing/selection_bias.py` | 无 | 重复（可收敛） |
-| JSON 安全转换 | `pu_toolbox/utils/serialization.py:38` `json_safe` | `diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py` | 无 | 重复（可收敛） |
+| JSON 安全转换 | `pu_toolbox/utils/serialization.py:39` `json_safe`（宽容，报告载荷）与 `:54` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
 | 哈希 | `pu_toolbox/utils/serialization.py:32` `canonical_hash` | `diagnostics/benchmark.py`、`experiment/datasets.py`、`experiment/split_archive.py`、`experiment/strategies.py` | 无 | 重复（可收敛） |
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
@@ -49,20 +49,38 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
 
 ### JSON 安全转换
 
-**重复形态。** `utils/serialization.py:38` 的 `json_safe` 是报告载荷的通用归一化（NaN/Inf → None、
-`np.generic` → `item`、`Path` → `str`、递归 dict/list），消费者在 `diagnostics/`、`workflows/`、
-`preprocessing/data_profiler.py`。`experiment/` 层另有 3 份索引/标量序列化器：
-`experiment/datasets.py:455` `_json_indices`（弱版，无校验）、`experiment/training_views.py:155`
-`_json_indices` 与 `experiment/feature_adapter.py:364` `_json_scalars`（后两者逐行同构，仅形参名与
-报错措辞不同）。模式 `grep -rn 'def _json_indices\|def _json_scalars\|def json_safe' pu_toolbox/`
-命中 4 处。
+**已收敛（单一）。** 权威源是 `utils/serialization.py` 的**一对**函数，二者**不是同一概念，不合并**：
 
-**为何现在不能直接合并。** 语义不同：`json_safe` 永不抛错（NaN → None），而 experiment 的两个索引器
-遇到非 JSON 标量或非有限值会抛 `ValueError`；`datasets` 的弱版两者都不做。把弱版换成强版会在现有
-输入上新增异常路径。
+- `:39` `json_safe`——**宽容**（NaN/Inf → None、`np.generic` → `item`、`Path` → `str`、递归
+  dict/list），用于报告载荷：报告要么写得出来，要么不成其为报告，故它永不抛错。消费者在
+  `diagnostics/`、`workflows/`、`preprocessing/data_profiler.py`。
+- `:54` `json_scalars`——**严格**（非 JSON 标量或非有限浮点一律 `ValueError`），用于清单载荷
+  （索引列表），因为这些列表会被摘要进 survey 制品：被静默强转的一个元素会在无人选择的情况下移动
+  摘要。`name` 参数把报错归因到拒绝它的调用方。
 
-**收敛前提。** 先确认 experiment 清单里的索引实际都是有限 JSON 标量；再把 `training_views` 与
-`feature_adapter` 两份同构实现并为一处；最后才评估索引器是否要归并到 `json_safe` 一侧。
+**本批收敛了 8 处调用表达式。** `experiment/training_views.py` 调 3、`experiment/feature_adapter.py`
+调 2、`experiment/datasets.py` 调 1，外加**审计漏记的 2 处内联**（下段）。三个旧定义已删：
+`training_views._json_indices`、`feature_adapter._json_scalars`、`datasets._json_indices`。收敛判据：
+模式 `grep -rn 'def _json_indices\|def _json_scalars\|def json_safe' pu_toolbox/` 命中 1 处——只剩
+`serialization.py` 的 `def json_safe`（`__pycache__` 里的旧字节码命中不算）。
+
+**审计漏记的 2 处内联（本批已收）。** 基线审计的 grep 口径是 `def _json_*`，**数不到内联写法**，
+故少记两处：
+
+- `experiment/survey_execution.py` 里 `cached_adapter` 的适配器**缓存键** `"indices"`；
+- `experiment/survey_protocol.py` 里 `runner_protocol_context` 的表征 **`split_sha256`**。
+
+这两处正是风险所在：`split_sha256` 这一个字段曾被**两套实现各算一次**（`feature_adapter` 走严格版、
+`survey_protocol` 走弱版），今天相等靠的是输入恰好老实、而非共同契约。故真实清单是
+5 文件 / 3 定义 / **8 处调用表达式**。
+
+**为何不并入 `json_safe`。** 语义相反：`json_safe` 遇非有限值返回 `None`，`json_scalars` 抛
+`ValueError`。把严格版换成 `json_safe`，会让「被哈希的列表里出现 NaN」从报错变成静默改写摘要——
+正是本批要消除的失败模式。
+
+**未并，且是不同概念（一处）。** `experiment/bundle.py:74` 的
+`np.asarray(..., dtype=object).tolist()` 也不属本族：它在 `dtype=object` 上做**重叠判定**，需收
+任意可哈希对象而非 JSON 标量，与 `json_scalars` 的严格 JSON 标量契约无关。
 
 ### 哈希
 
