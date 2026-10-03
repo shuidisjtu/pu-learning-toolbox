@@ -25,6 +25,7 @@ __all__ = [
     "format_value",
     "json_safe",
     "json_scalars",
+    "strict_canonical_hash",
 ]
 
 ReportFormat = Literal["json", "markdown", "csv"]
@@ -33,6 +34,22 @@ ReportFormat = Literal["json", "markdown", "csv"]
 def canonical_hash(document: dict[str, Any]) -> str:
     """Return a stable SHA-256 hash for a JSON-serializable mapping."""
     payload = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def strict_canonical_hash(value: Any) -> str:
+    """Stable SHA-256 of canonical JSON, refusing non-finite numbers.
+
+    The strict counterpart of :func:`canonical_hash`: that one writes ``NaN``
+    and ``Infinity``, which no strict JSON reader accepts, because a report
+    payload has to be writable either way.  This one refuses them, because
+    these digests are artifact identities -- a value that cannot round-trip
+    must not be silently hashed into one.
+
+    Accepts any JSON-serialisable value, not only mappings: the feature
+    adapter hashes a list of role indices with it.
+    """
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     return hashlib.sha256(payload).hexdigest()
 
 
