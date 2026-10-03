@@ -5,8 +5,9 @@ assumption, source status, upstream URL, license, etc.) so that the
 registry browser and documentation generators have complete
 information even before training logic is implemented.
 
-See ``docs/dev/resources.md`` for the full source inventory and
-``docs/user/concepts/method_selection.md`` §§2–5 for the algorithm family taxonomy.
+See the method cards under ``docs/research/method_cards/`` for per-method source
+status, and ``docs/user/concepts/method_selection.md`` §§2–5 for the algorithm
+family taxonomy.
 """
 
 from __future__ import annotations
@@ -38,7 +39,8 @@ from .metadata import AlgorithmMetadata
 from .registry import register_method
 
 # ═════════════════════════════════════════════════════════════════════
-# Canonical method list (order follows resources_optimized.md §4)
+# Canonical method list -- this ordering is the authority; the registry is
+# the code-side source of truth for algorithm metadata.
 # ═════════════════════════════════════════════════════════════════════
 
 _BUILTIN: list[AlgorithmMetadata] = [

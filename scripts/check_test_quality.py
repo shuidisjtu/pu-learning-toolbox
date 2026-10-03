@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test quality gate - enforce per-module limits, markers, and coverage.
 
-Rules (aligned with ``docs/project_structure.md`` §3):
+Rules (aligned with ``docs/dev/project_structure.md`` §3):
 1. **Count**: <= 15 test methods per paper / module file.
 2. **Markers**: every test class or method must carry a registered pytest
    marker (``unit``, ``math``, ``property``, ``contract``, ``slow``,
