@@ -92,7 +92,12 @@ def test_basic_derived_test_builds_four_way_bundle():
         "test": 80,
     }
     assert manifest["test_source"] == "stratified_source_20_percent"
-    assert len(manifest["indices_sha256"]) == 64
+    # Frozen: the split manifest's identity.  ``indices_sha256`` is what the
+    # transfer verifier recomputes, so it may not drift with a refactor.
+    assert (
+        manifest["indices_sha256"]
+        == "339d9ecb4f78417ef8f14e39892014120b59bda3981b0c625b283d40a64665e9"
+    )
     assert all(0.4 <= rate <= 0.6 for rate in manifest["role_positive_rates"].values())
 
 
