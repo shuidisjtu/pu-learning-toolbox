@@ -4,8 +4,10 @@
 > 模块分层与依赖方向见 [`architecture.md`](architecture.md)；治理批次与审计历史见
 > [`architecture_principles.md`](architecture_principles.md) §5。
 >
-> 本表是**审计快照**（记于 2026-10-03，BASE `f1182ec`）。**发现重复不等于已收敛**——本批只记录，
-> 迁移在后续批次。
+> 本表以 2026-10-03、BASE `f1182ec` 的审计为基线。**各行随其收敛落地就地更新**：未更新行，
+> 其行号仍指 `f1182ec` 基线；已更新行改用收敛提交的行号。当前仅「训练视图」已更新（收敛为单一，
+> 行号按 `d5ebd57` 重取）。**发现重复不等于已收敛**——其余各行只记录基线现状，迁移在后续批次；
+> 本表整体并非当前快照。
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
 |---|---|---|---|---|
@@ -90,7 +92,7 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
 `deep/self_pu.py`）、`experiment/` 层各消费者、`scripts/run_survey_experiment.py`（`--os-or-ts` 的
 choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）、
 `scripts/prepare_survey_splits.py`（写拆分与尺寸）。收敛判据：模式
-`grep -rn 'not in {"os", "ts"}' pu_toolbox/estimators/` 无命中；模式
+`grep -rn 'not in {"os", "ts"}' pu_toolbox/ scripts/` 无命中；模式
 `grep -rn '"train", "pu_val", "clean_val", "test"' pu_toolbox/ scripts/` 仅命中
 `core/training_views.py:42`（单源本身）。
 

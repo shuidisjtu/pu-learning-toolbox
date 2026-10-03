@@ -83,6 +83,11 @@ from typing import Any
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 
+# The view/role vocabularies this CLI offers are the core declarations, imported
+# rather than restated: ``--os-or-ts`` presents ``RUN_VIEWS`` and the split loader
+# reads ``ROLES``.  ``os`` is the survey default; ``ts`` applies the TS-OS
+# calibration and is gated on the method ledger declaring a native
+# TS/case-control assumption.
 from pu_toolbox.core.training_views import ROLES, RUN_VIEWS
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.manifest import load_manifest, write_manifest
@@ -99,12 +104,6 @@ from pu_toolbox.experiment.strategies import (
 from pu_toolbox.experiment.training_views import resolve_training_view
 
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
-
-#: The vocabularies this CLI offers are the core declarations, imported rather
-#: than restated: ``--os-or-ts`` presents ``RUN_VIEWS`` and the split loader
-#: reads ``ROLES``.  ``os`` is the survey default; ``ts`` applies the TS-OS
-#: calibration and is gated on the method ledger declaring a native
-#: TS/case-control assumption.
 
 # Label-view mechanisms this CLI can run (``--labeling-mechanism``): SCAR, the
 # survey's main row, plus the two SAR LBE variants of the pressure test.
