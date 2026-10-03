@@ -6,10 +6,10 @@
 >
 > 本表以 2026-10-03、BASE `f1182ec` 的审计为基线。**各行随其收敛落地就地更新**：未更新行，
 > 其行号仍指 `f1182ec` 基线；已更新行的行号按**其权威源当前形态**重取，并标注能复现这些行号
-> 的那一笔提交——它通常是本行的收敛提交（如「训练视图」，锚 `d5ebd57`）；若权威源在本行收敛
-> 之前就已定形、此后未再改动，则锚定形它的那一笔（如「JSON 安全转换」，锚 `6a7c256`，
-> `json_scalars` 即在那笔落地）。当前「训练视图」「JSON 安全转换」「哈希」三行已更新（「哈希」同属后
-> 一类：权威源行号按 `9fe2004` 重取，其严格版 `strict_canonical_hash` 在那笔落地）。**发现重复不等于
+> 的那一笔提交——它通常是本行的收敛提交（如「训练视图」，锚 `d5ebd57`）；若权威源在被重取之前
+> 已由更早一笔定形、此后未再改动，则锚定形它的那一笔。当前「训练视图」「JSON 安全转换」
+> 「哈希」三行已更新：后两行的权威源同在 `pu_toolbox/utils/serialization.py`，均按 `9fe2004`
+> 重取（`strict_canonical_hash` 在那笔落地，把 `json_safe` / `json_scalars` 一并下移）。**发现重复不等于
 > 已收敛**——其余各行只记录基线现状，迁移在后续批次；本表整体并非当前快照。
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
@@ -17,7 +17,7 @@
 | 标签语义 | `pu_toolbox/core/labels.py:92` `normalize_pu_labels` / `:145` `normalize_pnu_labels`；字面值在 `pu_toolbox/core/config.py:8`-`:10` | `core/validation.py`（`validate_pu_X_y` / `validate_pnu_X_y` 的前置归一）、`metrics/classification.py`、`preprocessing/`、`model_selection/split.py`、`diagnostics/`、`workflows/shift.py`、`estimators/deep/self_pu.py`、`estimators/risk/nnpu.py`、`estimators/risk/vpu.py` | 无 | 单一 |
 | 设备 | `pu_toolbox/core/device.py:11` `resolve_device_name` / `:29` `resolve_device` | 14 个 torch 估计器（`estimators/deep/*`、`estimators/risk/{dist_pu,nnpu,pulda,vpu}.py`、`estimators/research/*`）、`workflows/pipeline.py:431`、`workflows/_reporting.py:91` | 无 | 单一 |
 | 随机源 | `pu_toolbox/core/random.py:8` `check_random_state` | `experiment/strategies.py`、`preprocessing/pu_labeling.py`、`preprocessing/selection_bias.py` | 无 | 重复（可收敛） |
-| JSON 安全转换 | `pu_toolbox/utils/serialization.py:39` `json_safe`（宽容，报告载荷）与 `:54` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
+| JSON 安全转换 | `pu_toolbox/utils/serialization.py:56` `json_safe`（宽容，报告载荷）与 `:71` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
 | 哈希 | `pu_toolbox/utils/serialization.py:34` `canonical_hash`（宽容，`allow_nan` 默认——报告与清单载荷）与 `:40` `strict_canonical_hash`（严格，`allow_nan=False`——制品身份）——**两者不是同一概念，不合并** | `canonical_hash`：`diagnostics/benchmark.py`、`experiment/{datasets,split_archive,strategies,image,training_views}.py`；`strict_canonical_hash`：`experiment/{feature_adapter,survey_protocol,survey_comparison}.py` | `survey_protocol.digest`、`survey_comparison.comparison_digest`（**只改委托、不改名**的公开入口） | 单一 |
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
