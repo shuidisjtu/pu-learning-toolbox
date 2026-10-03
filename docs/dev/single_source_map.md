@@ -16,7 +16,7 @@
 | 哈希 | `pu_toolbox/utils/serialization.py:32` `canonical_hash` | `diagnostics/benchmark.py`、`experiment/datasets.py`、`experiment/split_archive.py`、`experiment/strategies.py` | 无 | 重复（可收敛） |
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
-| 训练视图 | `pu_toolbox/core/training_views.py:117` `build_training_view`；角色词表 `:42` `ViewRole` / `:45` `_LEGAL_ROLES` | `estimators/risk/vpu.py:152`、`experiment/training_views.py:85`；角色元组另有 9 处内联复制、2 处集合字面量 | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 重复（可收敛） |
+| 训练视图 | `pu_toolbox/core/training_views.py:120` `build_training_view`；角色词表 `:42` `ViewRole` + `:48` `ROLES`；视图词表 `:38` `RunView` + `:47` `RUN_VIEWS`（运行时元组由 `get_args` 派生） | `estimators/risk/{vpu,upu,nnpu,dist_pu}.py`、`estimators/bias_aware/pusb_kernel.py`、`estimators/deep/self_pu.py`、`experiment/` 各消费者、`scripts/{run_survey_experiment,run_survey_pilot,prepare_survey_splits}.py`；另有三项词表与两处子集未并（不同概念，见说明） | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 单一（角色名与 os/ts 视图；未并项见说明） |
 | 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`）经 `registry/registry.py:141` `_sync_class_metadata_to_registry` 覆盖 `registry/builtin_methods.py` 的字面量 | `registry/registry.py` `get_metadata`、`advisor/`、`cli/`、`workflows/pipeline.py`、`ui/` | 无 | 重复（可收敛） |
 
 ## 说明
@@ -82,20 +82,37 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
 
 ### 训练视图
 
-**重复形态。** `core/training_views.py:117` `build_training_view` 是唯一构造器，角色词表在 `:42`
-`ViewRole`（Literal）与 `:45` `_LEGAL_ROLES`（元组）。但同一四元角色在 experiment/ 层被反复内联：
-模式 `grep -rn '("train", "pu_val", "clean_val", "test")' pu_toolbox/` 命中 11 处（含核心 1 处元组与
-`survey_protocol.py:26` 这第二份模块级定义 `ROLES`），其余为 `bundle.py`×2、`datasets.py`×2、
-`feature_adapter.py`×4、`runner.py`×1 的内联字面元组；另有 2 处集合字面量
-（`experiment/image.py:323`、`experiment/training_views.py:145`）与 2 处类型别名
-（`core/training_views.py:42`、`experiment/image.py:14`）。`pu_val` 在 `experiment/` 之外出现 34 次。
+**已收敛（单一）。** 角色名与 os/ts 视图名的唯一声明在 `pu_toolbox/core/training_views.py`：
+`:42` `ViewRole` 与 `:38` `RunView` 两个 `Literal` 别名是唯一来源，运行时元组 `:48` `ROLES` /
+`:47` `RUN_VIEWS` 由 `typing.get_args` 从别名派生——改别名即同步改元组，两者不可能漂移；
+`:120` `build_training_view` 是唯一构造器。消费端改为导入该单源、不再内联复制：
+`estimators/` 的六个 os/ts 消费点（`risk/{vpu,upu,nnpu,dist_pu}.py`、`bias_aware/pusb_kernel.py`、
+`deep/self_pu.py`）、`experiment/` 层各消费者、`scripts/run_survey_experiment.py`（`--os-or-ts` 的
+choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）、
+`scripts/prepare_survey_splits.py`（写拆分与尺寸）。收敛判据：模式
+`grep -rn 'not in {"os", "ts"}' pu_toolbox/estimators/` 无命中；模式
+`grep -rn '"train", "pu_val", "clean_val", "test"' pu_toolbox/ scripts/` 仅命中
+`core/training_views.py:42`（单源本身）。
 
-**为何现在不能直接合并。** 角色名被当纯字符串键分散使用；`core` 不能反向依赖 `experiment`，而
-`experiment/survey_protocol.py:26` 的 `ROLES` 是跨模块导入点；`Literal[...]` 类型别名也无法由运行时
-元组推导。一次替换触及面过广。
+**未并，且是不同概念（三项，非遗漏）。**
 
-**收敛前提。** 先在 `core` 暴露一个公开元组作为唯一定义，让各内联字面量改为导入；`Literal` 若要由
-元组派生，需先确认 mypy/typing 的可行方案。
+- `experiment/training_views.py:38` `SamplingAssumption = Literal["os", "ts", "both"]` 是**台账词表**：
+  比运行视图多一个 `"both"`，表达「方法原生支持的假设」，属于 survey 政策。core 不认识台账（政策留在
+  实验层），故不下沉。
+- `experiment/training_views.py:171` `LEGAL_RUN_VIEWS = frozenset({"os-compatible", "ts-compatible"})`
+  是 manifest 的**带后缀拼写**，与 core 的小写 `RunView` 是两套词表；两者由边界适配器在出口换算。
+- `run_view` 的祖传拼写 `"TS-compatible"` / `"OS"`（`experiment/training_views.py` 出口）同样留在实验层：
+  它们是历史制品里已落盘的字符串，改词表会改写既有 manifest。
+
+**未并，且是不同概念（两处子集）。**
+
+- `experiment/survey_execution.py:141` 与 `experiment/survey_protocol.py:596` 的 `("train", "pu_val")`
+  是**带生成 PU 标签视图的分区**：标签视图只在 train/pu_val 上生成，`clean_val`/`test` 保留真实标签。
+  前者取 adapted→source 的特征映射，后者逐角色核对生成元数据。它不是四角色的缺省子集，
+  扩成 `ROLES` 会访问没有生成标签视图的角色。
+- `scripts/prepare_survey_splits.py:277`（`prepare_text`）的 `("train", "pu_val", "clean_val")` 是
+  「其行取自 train 文本池的角色」：这些角色的行按 `texts_train` 池编码，`test` 的行来自另一个池、在
+  循环外单独追加。扩成 `ROLES` 会用 test 的行去索引 train 池（读错位），是 bug 而非重构。
 
 ### 方法能力字段
 

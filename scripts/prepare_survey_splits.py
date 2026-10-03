@@ -45,6 +45,7 @@ from typing import Any
 
 import numpy as np
 
+from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
 from pu_toolbox.experiment.datasets import prepare_survey_dataset
 from pu_toolbox.experiment.image import fit_survey_image_preprocessing
@@ -144,7 +145,7 @@ def _remap_bundle(bundle, transform_fn) -> DatasetBundle:
 def save_split_products(bundle: DatasetBundle, manifest: dict[str, Any], run_dir: Path) -> None:
     """Write the four .npz partitions and the merged split manifest."""
     run_dir.mkdir(parents=True, exist_ok=True)
-    for role in ("train", "pu_val", "clean_val", "test"):
+    for role in ROLES:
         part = getattr(bundle, role)
         np.savez_compressed(
             run_dir / f"{role}.npz",
@@ -156,9 +157,7 @@ def save_split_products(bundle: DatasetBundle, manifest: dict[str, Any], run_dir
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    sizes = [
-        int(len(getattr(bundle, role).labels)) for role in ("train", "pu_val", "clean_val", "test")
-    ]
+    sizes = [int(len(getattr(bundle, role).labels)) for role in ROLES]
     print(
         f"  wrote {run_dir.name}: sizes={sizes} "
         f"manifest_sha256={hashlib.sha256(manifest_path.read_bytes()).hexdigest()[:16]}"
@@ -268,6 +267,12 @@ def prepare_text(
         y_test=y_test,
         download=download,
     )
+    # Three roles, not core's ``ROLES``: these rows are carved from
+    # ``texts_train`` and encoded from it, while ``test`` comes from
+    # ``texts_test`` and is appended on its own line below.  The set means
+    # "roles sourced from the train pool" -- a different concept from the four
+    # partition roles; widening it to ``ROLES`` would index ``texts_train``
+    # with test rows.
     role_texts = []
     for role in ("train", "pu_val", "clean_val"):
         part = getattr(bundle, role)

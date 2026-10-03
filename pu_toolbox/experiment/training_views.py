@@ -28,7 +28,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from ..core.training_views import ROLES, RunView, ViewRole, build_training_view
+from ..core.training_views import ROLES, RUN_VIEWS, RunView, ViewRole, build_training_view
 from .method_ledger import native_sampling_assumption
 from .protocols import accepts_training_view
 
@@ -138,7 +138,7 @@ def _validate_options(
     role: str,
     method_name: str,
 ) -> None:
-    if os_or_ts not in {"os", "ts"}:
+    if os_or_ts not in RUN_VIEWS:
         raise ValueError("os_or_ts must be 'os' or 'ts'.")
     if native_sampling_assumption not in {"os", "ts", "both"}:
         raise ValueError("native_sampling_assumption must be 'os', 'ts', or 'both'.")

@@ -36,6 +36,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import RUN_VIEWS
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...losses.upu import _softplus_stable
 from ...utils.activations import sigmoid_stable
@@ -241,7 +242,7 @@ class UPUClassifier(BasePUClassifier):
             raise ValueError(f"reg_lambda must be > 0; got {self.reg_lambda}.")
         if self.loss not in ("double_hinge", "logistic", "squared"):
             raise ValueError(f"Unknown loss {self.loss!r}.")
-        if os_or_ts not in {"os", "ts"}:
+        if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
 
         # ── Split P / U ──────────────────────────────────────────────
