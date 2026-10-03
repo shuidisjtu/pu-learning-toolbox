@@ -5,14 +5,13 @@
 because each alone has a blind spot:
 
 * an AST scan catches *function-local* imports, which never show up in an
-  import graph because nothing executes them at module load.  It is limited to
-  what an AST can see: an import built from a runtime string
-  (``importlib.import_module("pu_toolbox.experiment")``) leaves no trace, and
-  no static scan can recover it;
+  import graph because nothing executes them at module load.  It does not
+  chase call expressions at all, so a dynamic import --
+  ``importlib.import_module(...)``, ``exec(...)`` -- is not detected here;
 * a subprocess import graph catches *transitive* pulls -- a lower-layer module
   reaching ``experiment`` through some third package -- and does execute
   dynamic imports, but only when they run at module load; a dynamic import
-  inside a function escapes both layers.
+  inside a function escapes both layers, since the function never runs.
 
 The rule is quoted from §2.1; this file does not invent one.
 """
@@ -79,7 +78,13 @@ def _imports_experiment(source: str, filename: str, *, package: str) -> list[tup
         elif isinstance(node, ast.ImportFrom):
             if node.level:
                 parts = package.split(".")
-                base = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
+                depth = len(parts) - (node.level - 1)
+                if depth < 0:
+                    # Deeper than the package root: a fatal ImportError at
+                    # runtime, not a layer violation.  A negative slice would
+                    # otherwise wrap around and synthesise a false hit.
+                    continue
+                base = parts[:depth] if node.level > 1 else parts
                 anchor = ".".join([*base, node.module]) if node.module else ".".join(base)
             else:
                 anchor = node.module or ""
@@ -195,9 +200,26 @@ def test_param_scanner_flags_every_forbidden_import_form(source):
     assert _imports_experiment(source, "synthetic.py", package="pu_toolbox.core")
 
 
-def test_edge_scanner_ignores_mentions_in_comments_and_strings():
-    source = '# from pu_toolbox.experiment import runner\nDOC = "pu_toolbox.experiment"\n'
+def test_edge_scanner_ignores_non_violations():
+    """Not every mention is a hit: comments, string literals, and relative
+    imports that reach above the package root.
+
+    A level deeper than the package is a fatal ``ImportError`` at runtime
+    (CPython refuses to resolve it), so it imports nothing and is not a layer
+    violation -- a negative slice would otherwise wrap around and fake a hit.
+    """
+    source = (
+        '# from pu_toolbox.experiment import runner\nDOC = "pu_toolbox.experiment"\n'
+        "from .... import experiment\n"
+    )
     assert _imports_experiment(source, "synthetic.py", package="pu_toolbox.core") == []
+    # Three-component package: level 6 is likewise beyond the root.
+    assert (
+        _imports_experiment(
+            "from ...... import experiment\n", "synthetic.py", package="pu_toolbox.core.foo"
+        )
+        == []
+    )
 
 
 def test_determ_scan_of_real_sources_is_reproducible():
