@@ -412,6 +412,7 @@ tests/
     test_joint_shift_baselines.py       # 联合漂移四基线、消融、边界与确定性
     test_cv_fold_isolation.py           # CV 折间训练隔离(折内权重在变/模板不被训练/折间不泄漏)
     test_nnpu_pipeline_cnn.py           # nnPU 端到端 provenance 映射(cnn/mlp)+ encoder pickle 往返
+    test_iris_smoke.py                  # Iris 冒烟回归: 22 个 native 分类器可训练性与预测接口(不断言准确率)
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -450,6 +451,7 @@ tests/
   test_validation_labels.py             # 标签含义校验(label_semantics 声明与真值二值性)
   test_registry.py                      # 注册机制
   test_builtin_methods.py               # 注册表元数据
+  estimator_factories.py                # 契约层与 Iris 层共享的零参估计器工厂(非测试模块; torch 缺席时可导入)
 ```
 
 测试权威级别（pytest markers）：`unit`（算法特有逻辑）、`math`（手工计算 → 失败=代码bug）、`property`（数学不变量 → 失败=代码bug）、`contract`（API 契约）、`integration`（跨组件集成）、`e2e`（真实子进程用户旅程）、`slow`（慢速）、`paper`（论文复现）。
