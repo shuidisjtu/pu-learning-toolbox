@@ -90,6 +90,9 @@ jobs:
       - name: Baseline config consistency check
         run: uv run --python "3.11" python scripts/check_baseline_configs.py
 
+      - name: Comment quality gate
+        run: uv run --python "3.11" python scripts/check_comment_quality.py
+
   ui:
     name: Streamlit UI smoke tests
     runs-on: ubuntu-latest

@@ -10,6 +10,7 @@
 
 - [ ] `python -m pytest -q`
 - [ ] `python scripts/check_format.py`（ruff check + format --check）
+- [ ] `python scripts/check_comment_quality.py`
 - [ ] `python scripts/check_test_quality.py`
 - [ ] `python scripts/check_doc_links.py`
 - [ ] `python scripts/check_project_metadata.py`
