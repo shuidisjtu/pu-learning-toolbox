@@ -1500,6 +1500,32 @@ NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。`aggregate_r
 路径导入。其中 `result_labeling_mechanism` 承担矩阵词汇与 manifest 词汇之间的翻译——矩阵把 c-independent
 行记作 `c_independent`，而 manifest 记作 `pn_oracle`——该翻译只在出口使用，不参与分榜。
 
+### P2.2 报告身份块（`survey_provenance`）
+
+三份报告（批次审计 / 数值汇总 / 文献对照附着）各自携带**同一形状**的身份块：输入结果根、代码 commit
+与其状态、协议摘要、对照矩阵摘要。组装是纯函数；读 git 只在各入口的 `main` 里发生一次，因此
+`build_audit` / `build_summary` 仍是「handed 什么就是什么」的纯函数，两次构建可比较。
+
+两条刻意的设计：
+
+- **Markdown 不带时间戳。** 汇总的 md 与 csv 被钉住为同一输入下逐字节相同，所以渲染不读时钟、
+  集合排序后才渲染；`generated_at` 只进 JSON。
+- **读不到的摘要不留空。** `code_commit_state` 取 `recorded` / `unavailable`，不在 git 工作树内时
+  **明说**而不留空——留空读起来像「没有可记录的东西」。`code_commit_dirty` 再区分「该提交完整描述代码」
+  与「工作区有未提交改动」。
+
+文献对照附着入口**不读白名单也不读 git**：它的输入就是那份 summary，因此输入结果根与 commit 由
+summary **前向携带**而非重新派生——重新派生会让它与自己所附着的报告产生分歧。
+
+| 符号 | 用途 |
+|---|---|
+| `build_provenance` | 身份块的纯组装（无时钟、无 I/O）；输入根按批名排序，每个键在每条路径上都存在 |
+| `input_result_roots` / `recorded_source_roots` | 读白名单 config 的结果根，以及可选的上游源根块（非 schema 键，缺失即空表） |
+| `with_code_commit` | 入口 `main` 的盖章：返回副本并派生 `code_commit_state`；传入 `None` 也不抛 |
+| `resolve_code_commit` | 唯一有 I/O 者：`git rev-parse HEAD` 与 `git status --porcelain`；失败降级为 `(None, None)` 并向 stderr 告警 |
+| `render_provenance_lines` | 不读时钟的 Markdown 行；无块时返回空表，不重印协议与对照摘要 |
+| `CODE_COMMIT_STATES` | `code_commit_state` 的两值闭集 |
+
 ## 错误与异常
 
 **所有权**：所有工具箱异常都继承自 `PULearningError`（`pu_toolbox.core.exceptions`），

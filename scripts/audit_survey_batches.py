@@ -54,10 +54,19 @@ from pu_toolbox.experiment.survey_audit import (  # noqa: E402
     SCHEMA_VERSION as AUDIT_SCHEMA_VERSION,
 )
 from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
+    comparison_digest,
     expected_result_units,
     load_comparison_protocol,
 )
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol  # noqa: E402
+from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
+    build_provenance,
+    input_result_roots,
+    recorded_source_roots,
+    render_provenance_lines,
+    resolve_code_commit,
+    with_code_commit,
+)
 from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     STATUSES,
     group_key,
@@ -619,6 +628,8 @@ def empty_report(generated_at: str | None = None) -> dict[str, Any]:
         "generated_at": generated_at,
         "protocol_version": None,
         "protocol_sha256": None,
+        #: Filled by :func:`build_audit`; ``None`` only for a report built by hand.
+        "provenance": None,
         "batches": [],
         "coverage": {},
         "checks": [],
@@ -639,6 +650,16 @@ def build_audit(
     report = empty_report()
     report["protocol_version"] = protocol.get("protocol_version")
     report["protocol_sha256"] = frozen
+    # Stamped before discovery so the refusal path below carries the same
+    # identity a successful audit does: the protocol and the roots are known
+    # whether or not the tree can be walked.  The comparison fields are added
+    # further down, once that matrix is loaded.
+    report["provenance"] = build_provenance(
+        protocol_version=protocol.get("protocol_version"),
+        protocol_sha256=frozen,
+        result_roots=input_result_roots(config),
+        source_roots=recorded_source_roots(config),
+    )
 
     try:
         entries = discover_batches(config) if entries is None else entries
@@ -674,6 +695,16 @@ def build_audit(
     # re-validates every mapping and anchor, which is too much work to repeat 610
     # times for the same answer.
     comparison = load_comparison_protocol()
+    # The matrix is part of this report's identity: the preflight verdicts below
+    # depend on it, so which matrix produced them belongs next to the protocol.
+    report["provenance"] = build_provenance(
+        protocol_version=protocol.get("protocol_version"),
+        protocol_sha256=frozen,
+        comparison_version=comparison.get("comparison_version"),
+        comparison_sha256=comparison_digest(comparison),
+        result_roots=input_result_roots(config),
+        source_roots=recorded_source_roots(config),
+    )
     unusable: list[str] = []
     for entry in loaded:
         status, reasons, missing = preflight_status(entry["payload"], comparison=comparison)
@@ -779,12 +810,19 @@ def _render_markdown(report: dict[str, Any]) -> str:
         "# P2.1 批次审计",
         "",
         f"- 协议：`{report['protocol_version']}` / `{report['protocol_sha256']}`",
-        f"- 制品：{report['coverage'].get('total', 0)} 份 manifest",
-        f"- 结论：**{report['overall']}**",
-        "",
-        "| check | 结果 | 作用域 | reasons | 说明 |",
-        "|---|---|---|---|---|",
     ]
+    # Identity before findings: a reader has to know which checkout and input
+    # tree this audit is about before the verdict means anything.
+    lines.extend(render_provenance_lines(report.get("provenance")))
+    lines.extend(
+        [
+            f"- 制品：{report['coverage'].get('total', 0)} 份 manifest",
+            f"- 结论：**{report['overall']}**",
+            "",
+            "| check | 结果 | 作用域 | reasons | 说明 |",
+            "|---|---|---|---|---|",
+        ]
+    )
     for check in report["checks"]:
         reasons = ", ".join(check["reasons"]) or "—"
         lines.append(
@@ -827,6 +865,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     report["generated_at"] = datetime.now(timezone.utc).isoformat()
+    # The only reading that needs a process: kept out of build_audit so two
+    # audits over one tree stay equal.
+    commit, dirty = resolve_code_commit()
+    report["provenance"] = with_code_commit(report.get("provenance"), commit, dirty=dirty)
     written = write_report(report, args.out_dir)
     for path in written:
         print(f"wrote {path}")
