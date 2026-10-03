@@ -111,3 +111,16 @@ def test_edge_tbd_substring_is_not_a_marker(tmp_path):
     source.write_text("# the TBDs are listed elsewhere\n# TBDX is unrelated\n", encoding="utf-8")
 
     assert scan_files([source]).errors == ()
+
+
+@pytest.mark.unit
+def test_edge_unparsable_file_reports_scan_error(tmp_path):
+    """A file that cannot be tokenized yields a scan-error, never a silent pass."""
+    source = tmp_path / "broken.py"
+    source.write_text("def broken(:\n", encoding="utf-8")
+
+    report = scan_files([source])
+
+    assert len(report.errors) == 1
+    assert report.errors[0].kind == "scan-error"
+    assert report.errors[0].line == 1

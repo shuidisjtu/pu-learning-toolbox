@@ -86,3 +86,23 @@ def test_determ_source_scan_order_is_stable(tmp_path, monkeypatch):
 
     assert d._find_source_files() == d._find_source_files()
     assert [p.name for p in d._find_source_files()] == ["a.py", "b.py", "c.py"]
+
+
+@pytest.mark.unit
+def test_edge_string_literal_path_is_reported(tmp_path, monkeypatch):
+    """A dangling backtick path inside a plain string literal is reported too.
+
+    The gate reads whole-file text rather than parsed comments, so this
+    exposure is deliberate -- pin it so a future refactor to comment-only
+    scanning cannot silently narrow the gate.
+    """
+    _use_source_tree(
+        tmp_path,
+        monkeypatch,
+        {"pu_toolbox/mod.py": 'HELP = "see `docs/missing.md`"\n'},
+    )
+
+    issues = d.check_path_references(d._find_source_files())
+
+    assert len(issues) == 1
+    assert issues[0].rule == "rule-1"
