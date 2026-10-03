@@ -67,7 +67,6 @@ class CommentReport:
 
     files_scanned: int
     comments_scanned: int
-    trailing_comments: int
     findings: tuple[CommentFinding, ...]
 
     @property
@@ -110,7 +109,6 @@ def scan_files(paths: Iterable[Path], *, strict_inline: bool = False) -> Comment
     findings: list[CommentFinding] = []
     files = _python_files(paths)
     comment_count = 0
-    trailing_count = 0
 
     for path in files:
         try:
@@ -149,7 +147,6 @@ def scan_files(paths: Iterable[Path], *, strict_inline: bool = False) -> Comment
 
                 prefix = lines[token.start[0] - 1][: token.start[1]].strip()
                 if prefix and not _is_tooling_comment(body):
-                    trailing_count += 1
                     findings.append(
                         CommentFinding(
                             path=path,
@@ -176,7 +173,6 @@ def scan_files(paths: Iterable[Path], *, strict_inline: bool = False) -> Comment
     return CommentReport(
         files_scanned=len(files),
         comments_scanned=comment_count,
-        trailing_comments=trailing_count,
         findings=tuple(
             sorted(
                 findings,
