@@ -116,7 +116,7 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
 `digest(...)`（`cache_key`）。私有包装 `survey_comparison._survey_digest` 已删除，其唯一调用点改指
 `comparison_digest`——收敛后「与 `survey_protocol.digest` 相同」由结构保证，不再靠 docstring 自述。
 
-**G1/G2 的全部调用方。**
+**G1/G2 的全部 `pu_toolbox/` 内调用方。**
 
 - G1（`strict_canonical_hash`，直接或经上列公开名）：`experiment/feature_adapter.py`（4 处：
   `encoder_fit_indices_sha256`、`representation_sha256`、`split_sha256`、`fairness_sha256`）、
@@ -128,13 +128,17 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
   `experiment/split_archive.py`、`experiment/strategies.py`，以及本批新增的 `experiment/image.py`
   与 `experiment/training_views.py`。
 
+`canonical_hash` 另有 `benchmarks/` 侧消费者：它们经 `benchmarks/_common.py` 的兼容 re-export
+（该模块重新导出它并列入自身 `__all__`）使用，不在上列 `pu_toolbox/` 口径内。
+
 **知情保留（第三种语义，一处）。** `experiment/text.py:206` 的 `_json_sha256` **一字未动**：它多一个
 `ensure_ascii=False`（并以 utf-8 编码），在**含非 ASCII 码点**的语料上摘要与上两者都不同，且其产物
 `cache_key` **直接是缓存文件名**——改它会让已记录的 `texts_sha256` 与本地文本缓存失效，属破坏性兼容
 变更。也不为此加 `ensure_ascii` 开关：把第三个语义并成一个带开关的名字，与上文两条对偶的裁决同理。
 
 **未并（另一族，非重复）。** `_array_sha256` 两份（`experiment/feature_adapter.py` 与
-`experiment/image.py`）哈希的是**数组 dtype/shape/bytes**，不是 JSON 规范形式，不属本族，本批不动。
+`experiment/image.py`）与公开的 `experiment/survey_protocol.py:187` `array_digest` 用同一配方
+哈希**数组 dtype、shape 与字节**，不是 JSON 规范形式，不属本族，本批不动；是否收敛留给批次 E3b。
 
 **收敛判据。** 模式 `grep -rn 'def _json_sha256\|def _survey_digest\|def canonical_hash'
 pu_toolbox/ --include=*.py` 命中 2 处：`utils/serialization.py` 的 `def canonical_hash`（单源本体）
