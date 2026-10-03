@@ -393,6 +393,7 @@ tests/
       test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
+      test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）

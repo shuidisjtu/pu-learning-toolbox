@@ -1,4 +1,4 @@
-"""Shared serialization helpers for report-like objects.
+"""Shared serialization helpers for report-like objects and manifest payloads.
 
 Every report type (``PipelineReport``, ``PUDiagnosticReport``,
 ``PUSensitivityAnalysis``, ``PUDataProfile``) renders strict JSON and
@@ -24,6 +24,7 @@ __all__ = [
     "format_from_suffix",
     "format_value",
     "json_safe",
+    "json_scalars",
 ]
 
 ReportFormat = Literal["json", "markdown", "csv"]
@@ -48,6 +49,32 @@ def json_safe(value: Any) -> Any:
     if isinstance(value, Path):
         return str(value)
     return value
+
+
+def json_scalars(values: np.ndarray, *, name: str) -> list[int | float | str | bool | None]:
+    """Flatten a 1-D array to JSON scalars, refusing values that would not round-trip.
+
+    The strict counterpart of :func:`json_safe`: that one coerces a non-finite
+    float to ``None``, because a report has to be writable either way.  This one
+    refuses it, because these lists are hashed into survey artifacts -- a
+    silently coerced element would move a digest without anyone choosing it.
+    ``name`` names the payload in the error messages, so the caller that
+    refused stays identifiable.
+
+    ``tolist`` already unboxes numeric and string dtypes; the ``np.generic``
+    branch is what covers object arrays, where the elements pass through as
+    they were stored.
+    """
+    result: list[int | float | str | bool | None] = []
+    for value in values.tolist():
+        if isinstance(value, np.generic):
+            value = value.item()
+        if value is not None and not isinstance(value, bool | int | float | str):
+            raise ValueError(f"{name} must contain JSON scalar values.")
+        if isinstance(value, float) and not np.isfinite(value):
+            raise ValueError(f"floating-point {name} must be finite.")
+        result.append(value)
+    return result
 
 
 def format_value(value: Any) -> str:
