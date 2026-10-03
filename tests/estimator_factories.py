@@ -10,9 +10,10 @@ derived from, and must not be re-tuned to, any fixture's true prior --
 selecting a prior from test truth is forbidden by the governance plan
 (phase 5).  The values were chosen per method by whoever integrated it; there
 is no uniform policy (``pnu`` 0.4 matches the contract PNU fixture's 20/50,
-six methods use 0.33 matching the contract fixture's 30/90, while ``upu``
-0.5 and ``dist_pu`` 0.3 match neither).  Recorded here so nobody later
-mistakes them for a deliberate design.
+eight methods use 0.33 matching the fixture's 30/90 -- four written as the
+``class_prior`` keyword and four positionally -- while ``upu`` 0.5 and
+``dist_pu`` 0.3 match neither).  Recorded here so nobody later mistakes them
+for a deliberate design.
 
 This module must stay importable **without** PyTorch installed: the Iris
 smoke tier imports it in torch-free environments.  Do not add a module-level
