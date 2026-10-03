@@ -27,6 +27,7 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | [`p2_0b_delivery.md`](p2_0b_delivery.md) | P2.0b 标签语义 fail-loud 门禁交付（未签署） |
 | [`p2_0c_delivery.md`](p2_0c_delivery.md) | P2.0c 外部对照预注册：资格闭集、覆盖推导、来源口径差异判读与签署顺序 |
 | [`p2_0e_delivery.md`](p2_0e_delivery.md) | P2.0e TS-OS 校准接线：各方法校准形态调查、接线范式、`nnpu`/`upu` 切片证据与未决项 |
+| [`p2_2_delivery.md`](p2_2_delivery.md) | P2.2 Pilot 聚合与审计：两套键与两套状态、分层计数、审计可判项与未接线项、复现入口；原始制品在仓库外，**未获合作者复核** |
 | [`epoch_checkpoint_delivery.md`](epoch_checkpoint_delivery.md) | 逐 epoch 权重保存、PA/OA 独立恢复与验证证据 |
 | [`pn_oracle_integration.md`](pn_oracle_integration.md) | PN oracle 接入决策与 PU-Bench 口径对照记录 |
 | [`vpu_sampling_audit.md`](vpu_sampling_audit.md) | P3.1 局部：VPU 采样假设审计（Gate 0 四层证据、原生 `ts` 裁决、与上游的验证口径分歧）；对应决策 D21，**未完成 P3.1 验收** |
