@@ -190,11 +190,13 @@ def test_determ_predictions_reproducible(meta, iris_pu, iris_pnu):
 
 def test_basic_skip_declarations_are_consistent():
     candidates = {meta.name for meta in _CANDIDATES}
-    torch_backed = {meta.name for meta in _CANDIDATES if meta.backend is Backend.TORCH}
-    # The registry's structural "needs a clean support set" flag is the one
-    # sanctioned reason for a torch-backed method to appear in _SKIP_REASONS:
-    # otherwise the entry would merely duplicate the optional-dependency skip.
-    clean_support = {meta.name for meta in _CANDIDATES if meta.requires_clean_support}
+    # The dynamic rule above fires only when torch is *absent*, so a
+    # torch-backed method may legitimately be declared here -- on a machine
+    # that has torch, the declared entry is the only thing that skips it.
+    # What must never happen is an entry for a method this fixture could
+    # actually drive: that would silently drop coverage.  So every declared
+    # skip has to be backed by a capability the registry names and this
+    # fixture does not supply.
     assert set(_SKIP_REASONS).issubset(candidates)
-    assert not set(_SKIP_REASONS) & (torch_backed - clean_support)
     assert all(reason.strip() for reason in _SKIP_REASONS.values())
+    assert all(meta.requires_clean_support for meta in _CANDIDATES if meta.name in _SKIP_REASONS)
