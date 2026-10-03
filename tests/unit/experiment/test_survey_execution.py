@@ -87,9 +87,10 @@ def test_edge_cache_keys_do_not_depend_on_labels(tmp_path):
         changed, tiny_encoder(), {"test_spec": True}, cache_dir=tmp_path
     )
     assert first["cache_key"] == other["cache_key"]
-    # Frozen: the key is a digest over the serialised role indices.  A change
-    # to that serialisation would silently stop matching every cached adapter
-    # rather than fail, so it is pinned by value here.
+    # Frozen: the key digests the serialised role indices alongside the
+    # encoder state, input digests and device.  A change to the index
+    # serialisation would silently stop matching every cached adapter rather
+    # than fail, so the whole key is pinned by value here.
     assert first["cache_key"] == "249f32ee97a24001c4f1465caab4ae071c517c3bde56573f32d485d8de6e6fc1"
     assert other["cache_hit"]
     np.testing.assert_array_equal(adapted.train.labels, changed.train.labels)
