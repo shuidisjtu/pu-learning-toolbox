@@ -38,7 +38,7 @@
 | [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/architecture_principles.md](dev/architecture_principles.md) | 架构维护原则：腐朽信号、应手与审计历史（ADR-0001） |
-| [dev/comment_governance.md](dev/comment_governance.md) | 注释治理：判定标准、机械门禁规则与存量迁移策略（ADR-0019） |
+| [dev/comment_governance.md](dev/comment_governance.md) | 注释治理：判定标准、机械门禁规则、已裁决的保留项与存量迁移策略（ADR-0019） |
 | [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
 | [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | 分布漂移感知 PU 的假设、实现边界与验收标准 |
 | [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
