@@ -86,15 +86,15 @@
 | `pu_toolbox/core/config.py` | `MAX_PU_RATIO` 的 warn 语义 | 严重性：`validation.py` 只 `warnings.warn`，不阻断 |
 | `pu_toolbox/core/config.py` | `MIN_POSITIVE_SAMPLES` 的 raise 语义 | 严重性：`validation.py` 直接 `raise`，与上一行形成对照 |
 | `pu_toolbox/core/tags.py` | `SCAR`、`SAR` 的概率定义式 | 公式即定义；删除后该值在全仓库无处可寻 |
-| `pu_toolbox/core/tags.py` | `TrainingCost` 四档的判据与数值界 | 判据（闭式 / 有界迭代 / 固定轮次非凸）与 `~1000 epochs` 界 |
+| `pu_toolbox/core/tags.py` | `TrainingCost` 四档的判据与数值界 | 判据（闭式 / 有界迭代 / 固定轮次非凸 / 未分类中性计分）与 `~1000 epochs` 界 |
 | `pu_toolbox/core/tags.py` | `API_ONLY`、`NATIVE` 的语义 | 前者是「无训练逻辑」的实现状态契约，后者是来源与法务语义 |
 | `pu_toolbox/losses/llsvm.py` | 13 处 shape 注解 | 签名用裸 `np.ndarray`，不携带形状；本库未引入 shape 类型标注 |
 
 判定为**系统性风格问题、另议**（不在注释清理批次内处理）：
 
-- `pu_toolbox/core/tags.py` 的 9 条 `# ── X ──` 分段标题与紧随其后的类名逐字重复，
-  按 §1 标准应删；但该风格是全库 house style（12 个文件、89 处），只在单文件删除会
-  造成文件间不一致，属全库风格决策。
+- `pu_toolbox/core/tags.py` 的 9 条 `# ── X ──` 分段标题与紧随其后的类名重复
+  （9 条中 4 条逐字相同，其余仅大小写或空格有别），按 §1 标准应删；但该风格在本库
+  源码中普遍使用、跨多个模块，只在单文件删除会造成文件间不一致，属全库风格决策。
 
 ## 4. 迁移策略
 
