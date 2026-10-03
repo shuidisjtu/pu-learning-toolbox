@@ -173,8 +173,8 @@ pu_toolbox/
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
     pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算、splits 读取可按数据集收窄
     method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
-    survey_audit.py                       <<< 新文件,补注释
-    survey_summary.py                     <<< 新文件,补注释
+    survey_audit.py                       (P2.2 批次审计: 逐 manifest 判完整性/可复现/可交付, 畸形 manifest 记为 finding 而非异常, 检查携带 scope 与 members)
+    survey_summary.py                     (P2.2 数值汇总: manifest → 交付行(每行一均值+样本标准差), 状态闭集 STATUSES 与优先级裁决, 缺值按代价分四类读)
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
@@ -190,7 +190,7 @@ tests/
     test_capability_declarations.py     # 能力声明 4 组不变量契约测试
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
     test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
-    test_public_exports.py              # <<< 新文件,补注释
+    test_public_exports.py              # 公共导出契约: 包 __init__ 的 __all__ 声明名必须真实存在(星号导入不炸), 补 check_api_docs 覆盖不到的漂移
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -370,18 +370,18 @@ tests/
       test_checkpoint_storage_profiles.py # checkpoint 体积 profile: 按训练路径+backbone+model_family 分派、真实序列化上界、全 Pilot 精确字节
       test_survey_formal_eligibility.py # 正式资格放行(D24): canonical 单元无阻断、真实偏差仍阻断、消融变体标签保留
       test_checkpoint_reclaim.py        # D25 回收非选中权重：只留选中、reclaimed 语义、开关默认关闭
-      _survey_summary_helpers.py        # <<< 新文件,补注释
-      test_survey_audit.py              # <<< 新文件,补注释
-      test_survey_audit_scope.py        # <<< 新文件,补注释
-      test_survey_summary_boundaries.py # <<< 新文件,补注释
-      test_survey_summary_cli.py        # <<< 新文件,补注释
-      test_survey_summary_comparison.py # <<< 新文件,补注释
-      test_survey_summary_states.py     # <<< 新文件,补注释
-      test_survey_summary_stats.py      # <<< 新文件,补注释
-      test_survey_audit_checks.py       # <<< 新文件,补注释
-      test_survey_audit_reclaim.py      # <<< 新文件,补注释
-      test_survey_summary_measures.py   # <<< 新文件,补注释
-      test_survey_comparison_attachment.py # <<< 新文件,补注释
+      _survey_summary_helpers.py        # 审计/汇总入口测试共用夹具: manifest 树、config、两入口 CLI 构造器
+      test_survey_audit.py              # 审计器不得把畸形 manifest 变成异常: 预检是输入纯函数且从不抛出
+      test_survey_audit_scope.py        # finding 能说"问题在哪"的边界: 组级拒绝整组点名、scope/members 校验
+      test_survey_summary_boundaries.py # 报告行拒绝合并的边界: 视图/机制/训练路径/协议不同即不同行
+      test_survey_summary_cli.py        # 审计/汇总两入口端到端: 产出什么, 以及不得产出什么
+      test_survey_summary_comparison.py # 接入预注册矩阵的适配器契约: 字段名取自矩阵、资格类别为其六类之一
+      test_survey_summary_states.py     # 报告的两套闭集词表: 行身份(c_token/oracle)与状态(status/优先级/理由)
+      test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径
+      test_survey_audit_checks.py       # A01/A06/A07/A09 仅凭 manifest 可判的检查项
+      test_survey_audit_reclaim.py      # A10/A13/A15: 回收对账、标签闭集、technical_probe 分离
+      test_survey_summary_measures.py   # 缺值怎么读: 测量/峰值/次要指标/状态四类缺席各不相同, 状态分档须划分闭集
+      test_survey_comparison_attachment.py # 矩阵附着: 哪些行可数值裁决、哪些不得读作已裁决; 裁决与不可比分开计数
       _survey_recipe_registry_helpers.py # recipe registry 测试共用 fixture（从冻结协议派生，非手写副本）
       test_survey_recipe_registry.py    # recipe registry 的 schema/候选池/摘要规则
       test_survey_recipe_registry_manifest.py # manifest recipe 绑定校验（fail-closed + legacy 兼容）
@@ -650,9 +650,9 @@ scripts/
   run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets/--methods/--training-paths 三轴子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
   aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
-  audit_survey_batches.py                 <<< 新文件,补注释
-  summarize_survey_results.py             <<< 新文件,补注释
-  compare_survey_results.py               <<< 新文件,补注释
+  audit_survey_batches.py                 # P2.2 批次审计入口: 按白名单根逐批出审计, 判不了的记 not_run 而非 pass, 只写 --out-dir
+  summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
+  compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
 ```
 

@@ -1,6 +1,6 @@
 # P2.1 → P2.2 交接清单（执行侧记录）
 
-状态日期：2026-10-01。依据：执行手册 14 §8 的交接清单。
+状态日期：2026-10-03。依据：执行手册 14 §8 的交接清单。
 
 本文件逐项记录**证据**与**当前状态**，供 B6 勾选。它**不含**方法排名、跨方法对比与数值裁决——
 那些属 P2.2。这里只回答「制品与记录是否齐备、可不可审计」。
@@ -9,18 +9,18 @@
 
 | # | 清单项 | 状态 | 证据 / 缺口 |
 |---|---|---|---|
-| 1 | 五批覆盖 215/215/110/70/35 = 645 | 部分 | B1–B3b 见各批快照 §1；**B4 待跑完后核对** |
-| 2 | 五批 `selection` / `execution_units` 与参考 JSON 一致 | 部分 | B4 已做 §6 对账，六项身份字段 `mismatches= []`；B4 待跑完复核 |
-| 3 | 所有正式 manifest 协议摘要唯一且为冻结值 | 部分 | B1–B3b 已记；B4 待跑完统计 |
-| 4 | 每个分析单元的阶段性快照与边界措辞已保存 | 部分 | B1 / B2 / B3a / B3a+B3b 已有；**B4 待写** |
-| 5 | A 层制品、B 层策略与清理记录完整 | **缺口** | B1 有回收记录；B2 / B3a / B3b 的未选中 checkpoint **尚未清理**，归档内容亦未抽查；B4 的策略待写入快照 |
+| 1 | 五批覆盖 215/215/110/70/35 = 645 | 是 | B1–B3b 见各批快照 §1；B4 实测 35（`p2_1_b4_snapshot.md` §7.2），五批合计 **645** |
+| 2 | 五批 `selection` / `execution_units` 与参考 JSON 一致 | 是 | 五批均与参考快照的六项身份字段对账，`mismatches= []`；B4 跑后重跑 dry-run 得 `planned 35 / completed 35 / pending 0`（`p2_1_b4_snapshot.md` §7.1 第 6 项） |
+| 3 | 所有正式 manifest 协议摘要唯一且为冻结值 | 是 | 五批均单值且等于冻结摘要；B4 实测 35 份单值（`p2_1_b4_snapshot.md` §7.2） |
+| 4 | 每个分析单元的阶段性快照与边界措辞已保存 | 是 | B1 / B2 / B3a / B3a+B3b / B4 五份快照齐；B4 见 `p2_1_b4_snapshot.md` |
+| 5 | A 层制品、B 层策略与清理记录完整 | 是 | A 层齐备（各批 manifests 树 + 证据包 + 日志；归档双侧各一份、摘要一致）；B 层策略均已选定并记录——B1 有回收记录、B2 / B3a / B3b 保留完整批次归档、**B4 采用每 run selected checkpoint**（快照 §7.7）。B2 / B3a / B3b 的未选中 checkpoint 未清理：16 §4.3 的措辞是「才可**考虑**清理」，清理属可选项而非要求，故不构成缺口 |
 | 6 | 五批结果、日志、计划、备份目录相互隔离 | 是 | 目录按批独立，B3a 与 B3b 结果树分开 |
 | 7 | B3a adapter cache / frozen feature 来源已审计 | 是 | `p2_1_b3ab_snapshot.md` §5；cache 已于 2026-10-01 清理 |
 | 8 | B3b 70 个 TS 视图与校准字段已审计 | 是 | `p2_1_b3ab_snapshot.md` §2 |
-| 9 | B4 技术 probe 与正式结果分开，无 native oracle 冒充 | 是（待写入快照） | probe 结果树已删、manifest 与 §7A 测量记录存本批证据目录；协议载明 `cifar10/pn_oracle/native_cnn` 为 `runnable=false` |
+| 9 | B4 技术 probe 与正式结果分开，无 native oracle 冒充 | 是 | probe 结果树已删、manifest 与 §7A 测量记录存本批证据目录（`p2_1_b4_snapshot.md` §3）；B4 不含 oracle，`formal_eligible` 35/35 True（同快照 §7.2） |
 | 10 | Self-PU 消融变体与未获方法学合作者复核已披露 | 是 | `p2_1_b3ab_snapshot.md` §2 |
-| 11 | 所有失败、重试与最终状态可追溯 | 部分 | B1–B3b 失败记录为 0；B4 待跑完 |
-| 12 | 正式 / partial / 技术 probe / 历史结果状态标签清楚 | 部分 | probe 已分离并留档；标签体系待 B6 明确 |
+| 11 | 所有失败、重试与最终状态可追溯 | 是 | 五批失败记录均为 0；B4 的 `failure_index.txt` 为空，退出码 `0`、`0 still pending` |
+| 12 | 正式 / partial / 技术 probe / 历史结果状态标签清楚 | 是 | 词表已由实验负责人 2026-10-02 确认（`P2.2_B5_B6_implementation_plan.md` §11.2）：`formal` / `partial` / `technical_probe` / `historical` / `refused` / `incomplete` / `not_reproducible`，配 `status` + `reasons` 两字段，判定式 `status == formal` ⟺ `reasons == []`。P2.2 汇总已按该闭集分层输出（180 formal / 3 partial / 0 diagnostic） |
 | 13 | 未使用测试集真值选择先验、阈值或超参数 | 是 | 代码级证据见 §2 |
 
 ## 2. 无测试集泄露：代码级证据
@@ -46,8 +46,11 @@
 
 ## 3. 待办
 
-- **B4 跑完后**：补第 1、2、3、4、11 项的 B4 行，并写入 §7A 测量记录与回收实测
-  （单 run 占用 8.34 GiB → 42.5 MiB，判据 `reclaimed_true + files_on_disk == refs`）；
-- **清理前置**：B2 / B3a / B3b 未选中 checkpoint 的归档内容抽查与可恢复抽查（16 号 §9），
-  通过后方可清理；
+- **B4 已完成**（2026-10-03）：第 1、2、3、4、5、9、11 项的 B4 行已按实测补齐；§7A 测量记录与
+  回收实测见 `p2_1_b4_snapshot.md` §3–§4 与 §7（单 run 占用 8.34 GiB → 42.5 MiB，终态 38 个
+  选中权重，判据 `reclaimed + files_on_disk == refs` 对 35 行全部成立）；
+- **P2.2**：按手册 16 §4.1 的 A 层口径建立**五批白名单**，重跑三个入口产出
+  `01_audit` / `02_summary` / `03_comparison`；
+- **清理未执行**：B2 / B3a / B3b 的未选中 checkpoint 至今未清理；16 号 §9 的门禁项已具备
+  （归档双侧各一份、目标端校验通过），是否清理另行决定；
 - **B6 阶段**：明确第 12 项的状态标签体系。

@@ -1,7 +1,7 @@
 # B4 批次快照（P2.1）· 草稿
 
-状态日期：2026-10-01。**本文件是草稿**：B4 于 2026-10-01 09:34 起跑，计划耗时约 40 小时。
-前置门禁、技术探针与回收实测已有实测值（§1–§4）；清单层与门禁层的统计待跑完填入（§7）。
+状态日期：2026-10-03。B4 于 2026-10-01 09:34 起跑，2026-10-03 00:03 结束，退出码 `0`、
+`completed 35 of 35 run(s)`。§1–§4 为跑前与跑中记录；§5 与 §7 为跑完后的实测统计与收尾验收。
 
 定位同其他批次快照：记录**清单层与门禁层**的可审计情况，**不含**方法排名、跨方法对比与数值裁决
 （属 P2.2）。
@@ -78,12 +78,12 @@ refs 200   reclaimed_true 199   files_on_disk 1
 **一处如实说明**：run 1 结束那一刻的 `df` **没有取样**，因此「回弹到约 25G」是由 manifest
 证据与盘面序列**推定**，不是直接观测。若需要直接证据，可在后续 run 边界补取一次。
 
-## 5. 已知现象（预期）
+## 5. 已知现象（实测）
 
 `ConvergenceWarning`（SAR 标注生成器的 `LogisticRegression(max_iter=100)`）：B3a 为
-120 次 / 60 个 SAR run、B3b 为 80 次 / 40 个，两批均 **2.0 次/SAR run**。B4 有 20 个 SAR run，
-预期 **20–40 次**，实测计数待跑完填入。该警告不影响任何 run 的选模结果，**不修改**
-（`max_iter` 属冻结实现，改动即协议变更）。
+120 次 / 60 个 SAR run、B3b 为 80 次 / 40 个，两批均 **2.0 次/SAR run**。B4 实测 **40 次 /
+20 个 SAR run = 2.0 次/run**，与前两批一致（跑前估计区间 20–40）。该警告不影响任何 run 的
+选模结果，**不修改**（`max_iter` 属冻结实现，改动即协议变更）。
 
 ## 6. 本快照不含
 
@@ -91,57 +91,143 @@ refs 200   reclaimed_true 199   files_on_disk 1
 - 与参考文献的交叉验证结论（P2.2）；
 - 期望单元完整性格网（口径未定，见 D13 遗留项）。
 
-## 7. 待跑完填入（含验收命令）
+## 7. 收尾验收与统计（实测，2026-10-03）
 
-以下命令一律用**字面路径**，不依赖环境变量（B4 跑批终端之外的新终端没有那些变量）。
+验收在**无卡模式**实例上执行。第 6 项的 dry-run 经代码核实不触 GPU：`run_survey_pilot.py:676-706`
+的 dry-run 分支在 `_run_batch`（唯一把 `--device` 传进子进程处，`:561`）之前返回，`cuda` 全程
+只作字符串存进 config。
 
-1. **真实退出码**
-   ```
-   cat /root/autodl-tmp/pu-survey-logs/B4_cifar10_native_cnn/B4_exit_code.txt
-   ```
-   预期 `0`。
+### 7.1 十项验收结果
 
-2. **完成行**
-   ```
-   tail -n 3 /root/autodl-tmp/pu-survey-logs/B4_cifar10_native_cnn/B4_run.log
-   ```
-   预期含 `completed 35 of 35 run(s)` 与 `0 still pending`。
+| # | 项 | 实测 | 判定 |
+|---|---|---|---|
+| 1 | 真实退出码 | `0` | 通过 |
+| 2 | 完成行 | `completed 35 of 35 run(s) in cifar10; 0 still pending` | 通过 |
+| 3 | manifest / 摘要 / 视图 | 35；摘要单值且等于冻结值；`ts-compatible` 35；`calibration_applied` True 35 | 通过 |
+| 4 | checkpoint 终态 | **38** | 通过（偏差说明见 §7.4） |
+| 5 | 回收账目自洽 | 35 行全部满足 `reclaimed + on_disk == 200`；磁盘数合计 38 | 通过 |
+| 6 | 重新 dry-run | `planned 35 / completed 35 / pending 0`，退出码 `0` | 通过（命令更正见 §7.5） |
+| 7 | `ConvergenceWarning` | **40**（20 个 SAR run × 2.0） | 通过 |
+| 8 | 备份与取回 | 见 §7.6 | 通过 |
+| 9 | B 层策略披露 | 见 §7.7 | 文档条目 |
+| 10 | 分段续跑闭环 | **未使用、未验证**（本批一趟跑完） | 文档条目 |
 
-3. **manifest 计数、协议摘要唯一性、视图分布**
-   ```
-   /root/p21-env/bin/python -c "import json,glob,collections; ms=sorted(glob.glob('/root/autodl-tmp/pu-survey-results/B4_cifar10_native_cnn/**/manifest.json',recursive=True)); print('manifests',len(ms)); print('protocol',set(json.load(open(p)).get('protocol_sha256') for p in ms)); print('views',collections.Counter(json.load(open(p)).get('run_view') for p in ms)); print('calib',collections.Counter(json.load(open(p)).get('calibration_applied') for p in ms))"
-   ```
-   预期：`manifests 35`；协议摘要为单值且等于冻结值；视图为 `{'ts-compatible': 35}`。
+### 7.2 清单层
 
-4. **checkpoint 终态**（回收后应只剩选中的引用）
-   ```
-   find /root/autodl-tmp/pu-survey-results/B4_cifar10_native_cnn -name "epoch_*.pt" | wc -l
-   ```
-   预期 **约 42–43**（35 个 run 各自选中的 PA/OA 权重），**不是 7000**。
+**35 个 run 全部成功**，失败记录 0（`failure_index.txt` 为空）。
 
-5. **回收账目自洽**（逐个 manifest 核对 `reclaimed_true + files_on_disk == refs`）
-   ```
-   /root/p21-env/bin/python -c "import json,glob,os; [print(p, (lambda cps: (len(cps), sum(1 for c in cps if c.get('reclaimed')), len(glob.glob(os.path.dirname(p)+'/**/epoch_*.pt',recursive=True))))([c for r in json.load(open(p)).get('candidate_runs',[]) for c in r.get('epoch_checkpoints',[])])) for p in sorted(glob.glob('/root/autodl-tmp/pu-survey-results/B4_cifar10_native_cnn/**/manifest.json',recursive=True))]"
-   ```
+| 维度 | 分布 |
+|---|---|
+| 方法 | `nnpu` 35 |
+| 机制 | `scar` 15（`c_0.1` / `c_0.3` / `c_0.5` 各 5）；`sar_lbe_a` 10；`sar_lbe_b` 10 |
+| 视图 | `ts-compatible` 35 |
+| `calibration_applied` | True 35（与视图严格对应） |
+| 选择产物 | PA + OA 15；仅 OA 20 |
+| `protocol_deviation` | 全空 35 |
+| `formal_eligible` | True 35 |
+| `formal_blockers` | 空 |
 
-6. **重新 dry-run**（§9 完成判定第三条）。**用独立的 `--plan-json`**，避免覆盖 §6 用过的
-   跑前快照：
-   ```
-   cd /root/autodl-tmp/pu-learning-toolbox && /root/p21-env/bin/python scripts/run_survey_pilot.py --splits /root/autodl-tmp/pu-survey-data/splits --results /root/autodl-tmp/pu-survey-results/B4_cifar10_native_cnn --protocol survey-v1.2 --datasets cifar10 --methods nnpu --training-paths native_cnn --device cuda --reclaim-unselected-checkpoints --dry-run --plan-json /root/autodl-tmp/pu-survey-plans/B4_cifar10_native_cnn/B4_recheck_plan.json
-   ```
-   预期 `planned 35 / completed 35 / pending 0`，退出码 0。
+选择产物的分布与协议规则逐一对上：含 PA + OA 的 15 个正是 SCAR 全部；仅 OA 的 20 个是
+`sar_lbe_a` 与 `sar_lbe_b`（SAR 下 PA 仅作诊断日志，协议 §2.3）。
 
-7. **`ConvergenceWarning` 计数**
-   ```
-   grep -c ConvergenceWarning /root/autodl-tmp/pu-survey-logs/B4_cifar10_native_cnn/B4_run.log
-   ```
-   与 20 个 SAR run 对账。
+**视图统一为 `ts-compatible` 是单方法批次的必然结果**：`nnpu` 的
+`native_sampling_assumption` 为 ts、`calibration_applied=True`，而本批不含任何 os 原生方法。
+B1 / B2 / B3a 那种 `ts` / `os` 混合分布在这里不会出现，故 `calibration_applied` 无 False 分量。
 
-8. **§12 备份**：按手册 12 节打包、生成 sha256、下载到
-   `F:\Temp\lab\P2.1\autodl_batch_backups\B4_cifar10_native_cnn`，并复制到
-   `/root/autodl-fs/pu-survey-backups/`。
+### 7.3 门禁层
 
-9. **B 层策略披露**：按 16 号 §4.2，B4 采用**每 run selected checkpoint**（即 D25 回收的产物），
-   须在本快照写明放弃的是未选 epoch 的后续复核能力。
+`scripts/aggregate_survey_runs.py` 在本地 manifests 树上运行（`--json` 报告）：
 
-10. **分段续跑闭环**：本批一趟跑完，未进入分段流程，按手册 13 §14 记为「未使用、未验证」。
+| 项 | 值 |
+|---|---|
+| 组 | **3** |
+| 单元 | **35** |
+| `comparable` | 35 |
+| `blocked` | 0 |
+| `refused` | 0 |
+| `formal_ready` | **True** |
+
+组的构成——同一 `comparability_group = cifar10/native_cnn/native_cnn`，按 mechanism 分榜：
+
+| 机制 | 视图 | 单元 | 方法 |
+|---|---|---|---|
+| `scar` | ts | 15 | `nnpu` |
+| `sar_lbe_a` | ts | 10 | `nnpu` |
+| `sar_lbe_b` | ts | 10 | `nnpu` |
+
+**B4 是五批中第一个 `formal_ready = True` 的批次**。B1 / B2 / B3a / B3b 因含 5 个 `pn_oracle`
+run 的 `protocol_deviation: ['c_grid']` 而为 False；B4 不含 oracle，该偏差不存在。
+
+### 7.4 制品状态：checkpoint 终态 38
+
+第 4 项实测 **38**，低于本文件跑前估计的「约 42–43」。第 5 项逐 run 对账显示
+`reclaimed + on_disk == refs` 对全部 35 行成立，故 **38 是正确终态，原估计是粗估**。
+
+构成由保留规则决定——`runner.py:825-851` 的 `keep` 是**选中路径的集合**，PA 与 OA 选中同一
+epoch 时路径相同、自动合并为一个文件：
+
+| 组 | run 数 | 每 run 保留 | 小计 |
+|---|---:|---:|---:|
+| `sar_lbe_a` / `sar_lbe_b`（仅 OA 选择） | 20 | 1 | 20 |
+| SCAR（PA + OA 合流） | 12 | 1 | 12 |
+| SCAR（PA + OA 分叉） | 3 | 2 | 6 |
+| **合计** | **35** | | **38** |
+
+原估计相当于假设约 7–8 个 SCAR run 出现分叉，实测 3 个。结果树 `du -sb` 实测
+**1,708,451,430 B ≈ 1.59 GiB**（回收后；未回收时该批为 291.8 GiB 量级）。
+
+### 7.5 验收清单的两处更正
+
+本文件的验收清单有两处缺口，执行时已按手册处理：
+
+1. **缺 `PYTHONPATH`**。运行环境按 `uv sync --no-install-project` 建立（手册 03 §5），
+   `pu_toolbox` 只经 `PYTHONPATH` 可见；手册 03 §7 与 13 §3 都要求
+   `export PYTHONPATH=/root/autodl-tmp/pu-learning-toolbox`。故本节「不依赖环境变量」的说法
+   对 `PYTHONPATH` 不成立——它对仓库路径类变量成立，但解释器路径与 `PYTHONPATH` 是前置条件。
+2. **§10 证据采集未列入**。手册 13 §12 的备份会把证据目录（脚本中写作 `EVIDENCE`）整个拷入
+   备份目录，而本批该目录当时只有 probe 与磁盘轨迹三项，缺手册 13 §10 产出的
+   `failure_index.txt`、`artifact_index.txt`、`checkpoint_inventory.tsv`、`result_size.txt`。
+   执行时已按 §10 补做，四项随备份留存（清单 38 行，与 §7.4 的终态一致）。
+
+### 7.6 归档与取回
+
+| 载体 | 内容 | 摘要 |
+|---|---|---|
+| 数据盘暂存 | `/root/autodl-tmp/pu-survey-backup-stage/B4_cifar10_native_cnn/` | — |
+| 完整归档 | `B4_cifar10_native_cnn_20261003_092708.tar.gz`，**1,577,665,039 B** | `0f09ec35cd06bff1dc9b0f71d343d0c2caed5a53b4b580bb1ba58a7a886ea3f4` |
+| 网盘副本 | `/root/autodl-fs/pu-survey-backups/pu-survey-backup-stage/B4_cifar10_native_cnn/` | 两侧 `sha256sum` 直接比对，一致 |
+| 本机副本 | `F:\Temp\lab\P2.1\autodl_batch_backups\B4_cifar10_native_cnn\` | 见下表 |
+
+本机取回三个文件，**源端与本机摘要逐字一致**：
+
+| 文件 | sha256 |
+|---|---|
+| `B4_manifests.tar.gz` | `68054c37982959bc9d7366fa7817c19bd9ee07c2537f44167472301b2c620e71` |
+| `B4_evidence.tar.gz` | `4c6c87e6ce822f9129633518a77c156f96a89ef8daee0d581bc11f5d5da4c047` |
+| `B4_run.log` | `484037e2ca62b7daa12a89fbe797cfaafb0457d3eeec8035192953c25c0d071a` |
+
+**取回范围**：本机只保存 manifests 树（35 份 `manifest.json` + 35 份 `method_ledger_entry.json`）、
+evidence 包与 `B4_run.log`，**不保存 checkpoint**；完整权重仅存于网盘副本。本机 manifests 树已复核：
+摘要单值且等于冻结值、视图全 `ts-compatible`、`formal_eligible` 全 True。
+
+### 7.7 B 层策略披露（第 9 项）
+
+按手册 16 §4.2，B4 采用**每 run selected checkpoint** 方案（D25 回收的产物）：保留被 `selection`
+指向的 38 个权重，**放弃的是未选 epoch 的后续复核能力**——不能用新准则在旧轨迹上重选，也不能
+重新生成某个未选 epoch 的预测。选中权重的复核能力完整保留（重算阈值、查看 selected epoch、
+生成新预测）。
+
+**与 B1 的关键差异**：B4 的 manifest **带 `reclaimed` 标记**。每个 run 的 200 个引用中 199（或 198）
+个为 `reclaimed=true`，盘上实存的就是 `reclaimed=false` 的那 1–2 个。因此本批**可以**直接用该字段
+判断文件存在性，不必像 B1 那样退回 sha256 校验或外部记录。
+
+### 7.8 分段续跑闭环（第 10 项）
+
+**未使用、未验证**：本批一趟跑完 35/35，未进入分段流程（手册 13 §14）。按手册 16 §10 的检查项，
+该项保持未勾选，不因批次完成而视为已验证。
+
+### 7.9 复现入口
+
+验收命令见手册 13 §9（完成判定）、§10（manifest 与证据采集）、§12（备份）；第 6 项的
+dry-run 命令需按 §7.5 第 1 条补 `PYTHONPATH`。门禁层可由
+`uv run python scripts/aggregate_survey_runs.py <B4 manifests 根>` 复现（加 `--json` 取结构化报告）。

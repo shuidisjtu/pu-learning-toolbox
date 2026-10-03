@@ -21,7 +21,7 @@
 | B2 | imdb / native_2d / 6 方法 + `pn_oracle` | 215 | ✅ 完成 | `7f445be` |
 | B3a | cifar10 / cnn_feature_adapter / `lbe` `pusb_kernel` `upu` + `pn_oracle` | 110 | ✅ 完成 | `7f445be` |
 | B3b | cifar10 / cnn_feature_adapter / `dist_pu` `self_pu` | 70 | ✅ 完成 | `7f445be` |
-| B4 | cifar10 / native_cnn / `nnpu` | 35 | 🔄 运行中 | `ee54b5b` |
+| B4 | cifar10 / native_cnn / `nnpu` | 35 | ✅ 完成 | `ee54b5b` |
 
 - **协议身份**：`survey-v1.2`，摘要
   `287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a`；B1–B3b 的 610 份
