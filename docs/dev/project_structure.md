@@ -192,6 +192,7 @@ tests/
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
     test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
     test_public_exports.py              # 公共导出契约: 包 __init__ 的 __all__ 声明名必须真实存在(星号导入不炸), 补 check_api_docs 覆盖不到的漂移
+    test_layer_boundaries.py            # 下层对 experiment 层的依赖边界 ratchet(静态 AST 扫描抓函数内导入 + 子进程导入图抓传递依赖)
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
