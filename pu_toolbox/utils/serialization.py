@@ -61,6 +61,11 @@ def json_scalars(values: np.ndarray, *, name: str) -> list[int | float | str | b
     ``name`` names the payload in the error messages, so the caller that
     refused stays identifiable.
 
+    The 1-D precondition is the caller's to keep -- it is not checked.  A
+    non-1-D array is therefore not reported as a shape problem: ``tolist``
+    yields nested lists, whose elements the scalar check rejects first, so the
+    caller sees the scalar-values message rather than a dimension message.
+
     ``tolist`` already unboxes numeric and string dtypes; the ``np.generic``
     branch is what covers object arrays, where the elements pass through as
     they were stored.
