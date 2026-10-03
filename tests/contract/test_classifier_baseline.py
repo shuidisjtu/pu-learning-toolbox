@@ -3,7 +3,7 @@
 
 Covers API contract compliance (architecture.md §5) plus baseline
 basic/param/edge/determ categories.  New NATIVE algorithms get full
-contract coverage by adding a factory entry to ``_FACTORY_MAP``.
+contract coverage by adding a factory entry to ``FACTORY_MAP``.
 """
 
 from __future__ import annotations
@@ -14,8 +14,6 @@ import pytest
 from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.core.tags import SampleWeightSupport
-from pu_toolbox.estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
-from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.pnu import PNUClassifier
 from pu_toolbox.registry import (
     clear_registry,
@@ -23,275 +21,10 @@ from pu_toolbox.registry import (
     list_algorithms,
     register_all_builtin_methods,
 )
+from tests.estimator_factories import FACTORY_MAP, fit_kwargs
 
 torch = pytest.importorskip("torch", reason="PyTorch not installed")
 
-# ── Factory functions ─────────────────────────────────────────────
-
-
-def _make_elkan_noto():
-    from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
-
-    return ElkanNotoClassifier(n_cv_folds=3, random_state=42)
-
-
-def _make_llsvm():
-    from pu_toolbox.estimators.classic.llsvm import LLSVMClassifier
-
-    # Defaults run 3000 SGD epochs; shrink for the 90-sample contract data.
-    return LLSVMClassifier(max_epochs=10, min_epochs=1, random_state=42)
-
-
-def _make_upu():
-    from pu_toolbox.estimators.risk.upu import UPUClassifier
-
-    return UPUClassifier(
-        class_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=200, random_state=42
-    )
-
-
-def _make_nnpu():
-    torch.manual_seed(42)
-    return NonNegativePUClassifier(
-        model=torch.nn.Linear(5, 1), max_epochs=1, batch_size=8, random_state=42
-    )
-
-
-def _make_pnu():
-    return PNUClassifier(class_prior=0.4, eta=0.5, reg_lambda=1.0, random_state=42)
-
-
-def _make_ldce():
-    from pu_toolbox.estimators.risk.ldce import LDCEClassifier
-
-    return LDCEClassifier(flip_probability=0.3, max_iter=10, tol=1e-4, random_state=42)
-
-
-def _make_kldce():
-    from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
-
-    return KLDCEClassifier(
-        flip_probability=0.3, sigma=2.0, max_acs_iter=5, tol=1e-4, random_state=42
-    )
-
-
-def _make_dist_pu():
-    from pu_toolbox.estimators.risk.dist_pu import DistPUClassifier
-
-    return DistPUClassifier(0.3, hidden_dim=8, epochs=2, random_state=42)
-
-
-def _make_pusb():
-    from pu_toolbox.estimators.bias_aware.pusb import PUSBClassifier
-
-    return PUSBClassifier(threshold=0.5)
-
-
-def _make_pusb_kernel():
-    from pu_toolbox.estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
-
-    # Small grid / low basis keep the full CV + refit affordable in tests.
-    # sigma grid matches the ±2-separated 90-sample data (pairwise d2 ~ 80):
-    # sigma=2 -> exp(-10) ~ 4.5e-5, sigma=4 -> exp(-2.5) ~ 0.08, both alive.
-    # cv=2 relies on the 30-positive balance for the per-fold P/U guard.
-    return PUSBKernelClassifier(
-        n_basis=10,
-        sigma_grid=[2.0, 4.0],
-        reg_grid=[0.01, 0.1],
-        cv=2,
-        max_iter=50,
-        random_state=42,
-    )
-
-
-def _make_lbe():
-    from pu_toolbox.estimators.bias_aware.lbe import LBEClassifier
-
-    return LBEClassifier(n_em_iter=3)
-
-
-def _make_class_prior_estimation():
-    from pu_toolbox.prior.pen_l1 import ClassPriorEstimator
-
-    return ClassPriorEstimator(n_centers=50)
-
-
-def _make_recpe():
-    from pu_toolbox.prior.recpe import ReCPEEstimator
-
-    return ReCPEEstimator(copy_fraction=0.1)
-
-
-def _make_infomax_pu():
-    from pu_toolbox.estimators.deep import InfoMaxPUClassifier
-
-    return InfoMaxPUClassifier(
-        class_prior=0.33,
-        representation_dim=3,
-        hidden_dim=8,
-        representation_epochs=1,
-        classifier_epochs=1,
-        random_state=42,
-    )
-
-
-def _make_weighted_contrastive_pu():
-    from pu_toolbox.estimators.deep import WeightedContrastivePUClassifier
-
-    return WeightedContrastivePUClassifier(
-        0.33,
-        hidden_dim=8,
-        embedding_dim=4,
-        queue_size=16,
-        batch_size=32,
-        max_epochs=1,
-        random_state=42,
-    )
-
-
-def _make_self_pu():
-    from pu_toolbox.estimators.deep import SelfPUClassifier
-
-    return SelfPUClassifier(
-        0.33,
-        hidden_dim=8,
-        warmup_epochs=0,
-        self_paced_start=0,
-        self_paced_end=1,
-        distill_start=1,
-        max_epochs=1,
-        batch_size=32,
-        random_state=42,
-    )
-
-
-class _MockConditionalGenerator:
-    def fit(self, X, y, *, warm_start=True):
-        self.means_ = {label: X[y == label].mean(axis=0) for label in np.unique(y)}
-        self.n_features_in_ = X.shape[1]
-        return self
-
-    def sample(self, n_samples, *, class_label, random_state=None):
-        rng = np.random.RandomState(random_state)
-        mean = self.means_.get(class_label, np.zeros(self.n_features_in_))
-        return mean + 0.01 * rng.randn(n_samples, self.n_features_in_)
-
-
-def _make_dgpu():
-    from pu_toolbox.estimators.deep import DGPUClassifier
-
-    return DGPUClassifier(
-        0.33,
-        _MockConditionalGenerator(),
-        hidden_dim=8,
-        rounds=1,
-        initialization_epochs=1,
-        annotation_epochs=1,
-        generated_samples=6,
-        random_state=42,
-    )
-
-
-def _make_gradpu():
-    from pu_toolbox.estimators.deep import GradPUClassifier
-
-    return GradPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
-
-
-def _make_robust_pu():
-    from pu_toolbox.estimators.deep import RobustPUClassifier
-
-    return RobustPUClassifier(
-        class_prior=0.33,
-        hidden_dim=8,
-        pretrain_epochs=1,
-        episodes=1,
-        batch_size=32,
-        random_state=42,
-    )
-
-
-def _make_split_pu():
-    from pu_toolbox.estimators.deep import SplitPUClassifier
-
-    return SplitPUClassifier(
-        class_prior=0.33,
-        hidden_dim=8,
-        teacher_epochs=1,
-        split_epochs=1,
-        student_epochs=1,
-        rounds=1,
-        batch_size=32,
-        random_state=42,
-    )
-
-
-def _make_lagam():
-    from pu_toolbox.estimators.deep import LaGAMClassifier
-
-    return LaGAMClassifier(
-        hidden_dim=8,
-        warmup_epochs=1,
-        max_epochs=2,
-        batch_size=32,
-        support_batch_size=8,
-        num_clusters=2,
-        random_state=42,
-    )
-
-
-def _make_vpu():
-    from pu_toolbox.estimators.risk import VPUClassifier
-
-    return VPUClassifier(hidden_dim=8, batch_size=32, max_epochs=1, random_state=42)
-
-
-def _make_pulda():
-    from pu_toolbox.estimators.risk import PULDAClassifier
-
-    return PULDAClassifier(
-        0.33,
-        hidden_dim=8,
-        warmup_epochs=1,
-        pu_epochs=1,
-        positive_batch_size=8,
-        unlabeled_batch_size=32,
-        random_state=42,
-    )
-
-
-def _make_puet():
-    from pu_toolbox.estimators.risk import PUExtraTreesClassifier
-
-    return PUExtraTreesClassifier(class_prior=0.33, n_estimators=3, max_depth=4, random_state=42)
-
-
-_FACTORY_MAP: dict[str, callable] = {
-    "elkan_noto": _make_elkan_noto,
-    "llsvm": _make_llsvm,
-    "upu": _make_upu,
-    "nnpu": _make_nnpu,
-    "pnu": _make_pnu,
-    "centroid_pu": _make_ldce,
-    "kldce": _make_kldce,
-    "dist_pu": _make_dist_pu,
-    "pusb": _make_pusb,
-    "pusb_kernel": _make_pusb_kernel,
-    "lbe": _make_lbe,
-    "class_prior_estimation": _make_class_prior_estimation,
-    "recpe": _make_recpe,
-    "self_pu": _make_self_pu,
-    "infomax_pu": _make_infomax_pu,
-    "weighted_contrastive_pu": _make_weighted_contrastive_pu,
-    "dgpu": _make_dgpu,
-    "gradpu": _make_gradpu,
-    "robust_pu": _make_robust_pu,
-    "split_pu": _make_split_pu,
-    "lagam": _make_lagam,
-    "vpu": _make_vpu,
-    "pulda": _make_pulda,
-    "puet": _make_puet,
-}
 
 _REPRESENTATIVE_ALGOS = [
     "elkan_noto",
@@ -308,7 +41,7 @@ _REPRESENTATIVE_ALGOS = [
 _REPRESENTATIVE_CLFS = [
     name
     for name in _REPRESENTATIVE_ALGOS
-    if not isinstance(_FACTORY_MAP[name](), BasePriorEstimator)
+    if not isinstance(FACTORY_MAP[name](), BasePriorEstimator)
 ]
 
 _ALL_PARAMS = [pytest.param(name, id=name) for name in _REPRESENTATIVE_ALGOS]
@@ -347,22 +80,6 @@ def _get_data_factory(clf):
     return _make_X_y
 
 
-def _get_fit_kwargs(clf, y):
-    """Class-prior kwargs for the estimators that need them at fit time.
-
-    Narrowly scoped to the classes whose fit *requires* an explicit prior
-    (or overrides the constructor value by design): nnPU and
-    PUSBKernelClassifier.  Deliberately NOT keyed off the
-    ``requires_class_prior`` class attribute — many estimators (uPU, PNU,
-    Dist-PU, Self-PU, ...) declare it but train with their
-    constructor-chosen prior; injecting here would silently override it.
-    """
-    n_p = int(np.sum(y == 1))
-    if isinstance(clf, NonNegativePUClassifier | PUSBKernelClassifier):
-        return {"class_prior": n_p / len(y)}
-    return {}
-
-
 def _is_prior_estimator(clf):
     return isinstance(clf, BasePriorEstimator)
 
@@ -371,7 +88,7 @@ def _fit(clf, X, y):
     if _is_prior_estimator(clf):
         clf.fit(X, y)
     else:
-        clf.fit(X, y, **_get_fit_kwargs(clf, y))
+        clf.fit(X, y, **fit_kwargs(clf, y))
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -390,7 +107,7 @@ class TestBaseline:
         data/grid) would pass the shape/determinism assertions below and fix
         a bad fit into the suite as baseline behavior.
         """
-        clf = _make_pusb_kernel()
+        clf = FACTORY_MAP["pusb_kernel"]()
         X, y = _make_X_y(rng)
         clf.fit(X, y, class_prior=0.5)
         assert np.all(clf.cv_convergence_), "pusb_kernel contract fit did not converge"
@@ -399,19 +116,19 @@ class TestBaseline:
         """Every registered trainable method must have a contract factory.
 
         Guards against silent zero-coverage drift (e.g. llsvm was registered
-        NATIVE but missing from _FACTORY_MAP). New methods only need the
+        NATIVE but missing from FACTORY_MAP). New methods only need the
         factory entry; _REPRESENTATIVE_ALGOS is a performance pick.
         """
         register_all_builtin_methods()
         trainable = {m.name for m in list_algorithms(trainable_only=True)}
-        assert set(_FACTORY_MAP) == trainable, (
-            f"factory map mismatch: missing={trainable - set(_FACTORY_MAP)}, "
-            f"extra={set(_FACTORY_MAP) - trainable}"
+        assert set(FACTORY_MAP) == trainable, (
+            f"factory map mismatch: missing={trainable - set(FACTORY_MAP)}, "
+            f"extra={set(FACTORY_MAP) - trainable}"
         )
 
     @pytest.mark.parametrize("algo_name", _ALL_PARAMS)
     def test_basic_fit_and_output_shape(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         X, y = _get_data_factory(clf)(rng)
         _fit(clf, X, y)
         if _is_prior_estimator(clf):
@@ -428,7 +145,7 @@ class TestBaseline:
 
     @pytest.mark.parametrize("algo_name", _ALL_PARAMS)
     def test_param_invalid_labels_raises(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         X, _ = _get_data_factory(clf)(rng)
         y_bad = np.zeros(X.shape[0], dtype=int)
         with pytest.raises(Exception):
@@ -436,7 +153,7 @@ class TestBaseline:
 
     @pytest.mark.parametrize("algo_name", _ALL_PARAMS)
     def test_edge_single_sample_prediction(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         X, y = _get_data_factory(clf)(rng)
         _fit(clf, X, y)
         if _is_prior_estimator(clf):
@@ -447,8 +164,8 @@ class TestBaseline:
 
     @pytest.mark.parametrize("algo_name", _ALL_PARAMS)
     def test_deterministic_predictions_across_runs(self, algo_name, rng):
-        clf1 = _FACTORY_MAP[algo_name]()
-        clf2 = _FACTORY_MAP[algo_name]()
+        clf1 = FACTORY_MAP[algo_name]()
+        clf2 = FACTORY_MAP[algo_name]()
         X, y = _get_data_factory(clf1)(rng)
         _fit(clf1, X, y)
         _fit(clf2, X, y)
@@ -469,7 +186,7 @@ class TestAPIContract:
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
     def test_not_fitted_raises(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         X, _ = _get_data_factory(clf)(rng)
         with pytest.raises(NotFittedError):
             clf.predict(X)
@@ -478,7 +195,7 @@ class TestAPIContract:
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
     def test_classes_set_after_fit(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         X, y = _get_data_factory(clf)(rng)
         _fit(clf, X, y)
         assert hasattr(clf, "classes_")
@@ -486,7 +203,7 @@ class TestAPIContract:
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
     def test_get_params_set_params(self, algo_name):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         params = clf.get_params()
         assert isinstance(params, dict)
         clf.set_params(**{k: v for k, v in params.items() if v is not None})
@@ -498,7 +215,7 @@ class TestAPIContract:
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
     def test_metadata_after_fit(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         X, y = _get_data_factory(clf)(rng)
         _fit(clf, X, y)
         meta = clf.get_pu_metadata()
@@ -509,7 +226,7 @@ class TestAPIContract:
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
     def test_score_samples_delegates_to_decision_function(self, algo_name, rng):
-        clf = _FACTORY_MAP[algo_name]()
+        clf = FACTORY_MAP[algo_name]()
         X, y = _get_data_factory(clf)(rng)
         _fit(clf, X, y)
         np.testing.assert_array_equal(
@@ -519,7 +236,7 @@ class TestAPIContract:
 
     def test_sample_weight_semantics_are_explicit(self):
         """Every classifier declares one of the three documented behaviors."""
-        for algo_name, factory in _FACTORY_MAP.items():
+        for algo_name, factory in FACTORY_MAP.items():
             clf = factory()
             if _is_prior_estimator(clf):
                 continue
