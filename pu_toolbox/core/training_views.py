@@ -26,7 +26,7 @@ view built here is a decision already taken, not a capability claim.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, get_args
 
 import numpy as np
 
@@ -41,8 +41,11 @@ RunView = Literal["os", "ts"]
 #: a validation or test partition is never the place a population is restored.
 ViewRole = Literal["train", "pu_val", "clean_val", "test"]
 
-_LEGAL_VIEWS = ("os", "ts")
-_LEGAL_ROLES = ("train", "pu_val", "clean_val", "test")
+#: Runtime companions of the two aliases above.  Derived rather than restated,
+#: so each alias stays the single declaration: editing one moves its runtime
+#: tuple with it, and the two can never drift apart.
+RUN_VIEWS: tuple[RunView, ...] = get_args(RunView)
+ROLES: tuple[ViewRole, ...] = get_args(ViewRole)
 
 
 def _owned(values: np.ndarray) -> np.ndarray:
@@ -152,10 +155,10 @@ def build_training_view(
     disagreeing with the positions derived from it.  The positions and indices
     are the view's own copies and stay consistent regardless.
     """
-    if requested_view not in _LEGAL_VIEWS:
-        raise ValueError(f"requested_view must be one of {_LEGAL_VIEWS}, got {requested_view!r}.")
-    if role not in _LEGAL_ROLES:
-        raise ValueError(f"role must be one of {_LEGAL_ROLES}, got {role!r}.")
+    if requested_view not in RUN_VIEWS:
+        raise ValueError(f"requested_view must be one of {RUN_VIEWS}, got {requested_view!r}.")
+    if role not in ROLES:
+        raise ValueError(f"role must be one of {ROLES}, got {role!r}.")
     calibration_applied = requested_view == "ts"
     if calibration_applied and role != "train":
         raise ValueError(

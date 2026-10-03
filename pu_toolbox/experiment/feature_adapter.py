@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 import numpy as np
 
+from pu_toolbox.core.training_views import ROLES
+
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
 #: The paths a leaderboard group may be keyed by.  ``native_2d`` is the
@@ -88,10 +90,7 @@ def adapt_image_bundle_to_features(
     canonical_backbone_manifest = _canonical_json_object(
         backbone_manifest, name="backbone_manifest"
     )
-    source_shapes = {
-        np.asarray(getattr(bundle, role).X).shape[1:]
-        for role in ("train", "pu_val", "clean_val", "test")
-    }
+    source_shapes = {np.asarray(getattr(bundle, role).X).shape[1:] for role in ROLES}
     if len(source_shapes) != 1:
         raise ValueError("source image shape must match across all four dataset roles.")
     torch, module = _resolve_torch_encoder(encoder, device)
@@ -107,7 +106,7 @@ def adapt_image_bundle_to_features(
                 batch_size=batch_size,
                 device=device,
             )
-            for role in ("train", "pu_val", "clean_val", "test")
+            for role in ROLES
         }
     finally:
         module.train(was_training)
@@ -124,7 +123,7 @@ def adapt_image_bundle_to_features(
                 indices=getattr(bundle, role).indices,
                 for_selection=getattr(bundle, role).for_selection,
             )
-            for role in ("train", "pu_val", "clean_val", "test")
+            for role in ROLES
         }
     )
     validate_bundle(adapted)
@@ -133,8 +132,7 @@ def adapt_image_bundle_to_features(
     if len(feature_dimensions) != 1:
         raise ValueError("CNN encoder output dimension changed across dataset roles.")
     split_indices = {
-        role: _json_scalars(np.asarray(getattr(bundle, role).indices))
-        for role in ("train", "pu_val", "clean_val", "test")
+        role: _json_scalars(np.asarray(getattr(bundle, role).indices)) for role in ROLES
     }
     representation_payload = {
         "feature_version": feature_version,

@@ -16,6 +16,8 @@ from typing import Any
 
 import numpy as np
 
+from pu_toolbox.core.training_views import ROLES
+
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
 #: version is a property of the file's contents, and the file is replaced rather
@@ -23,7 +25,6 @@ PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: one.  A caller that resolves a name and a caller that resolves a path have to
 #: agree about which matrix "survey-v1.2" is, which is why this list has one home.
 PROTOCOL_ALIASES = ("survey-v1", "survey-v1.1", "survey-v1.2")
-ROLES = ("train", "pu_val", "clean_val", "test")
 
 
 def resolve_protocol_path(value: str | Path) -> Path:

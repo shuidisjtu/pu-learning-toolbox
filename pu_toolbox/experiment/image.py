@@ -11,7 +11,12 @@ from typing import Any, Literal
 
 import numpy as np
 
-ImageRole = Literal["train", "pu_val", "clean_val", "test"]
+from pu_toolbox.core.training_views import ROLES, ViewRole
+
+#: The image pipeline names the same four protocol partitions the bundle does
+#: (``train``/``pu_val``/``clean_val``/``test``): callers pass the shared
+#: vocabulary straight in, so this is the protocol role, not a second one.
+ImageRole = ViewRole
 TrainAugmentation = Literal["none", "simaugment", "randaugment"]
 
 _IMAGE_CHANNELS = {
@@ -320,7 +325,7 @@ def _validate_augmentation(
 
 
 def _validate_role(role: str) -> None:
-    if role not in {"train", "pu_val", "clean_val", "test"}:
+    if role not in ROLES:
         raise ValueError("role must be 'train', 'pu_val', 'clean_val', or 'test'.")
 
 

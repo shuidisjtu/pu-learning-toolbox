@@ -28,7 +28,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from ..core.training_views import RunView, ViewRole, build_training_view
+from ..core.training_views import ROLES, RunView, ViewRole, build_training_view
 from .method_ledger import native_sampling_assumption
 from .protocols import accepts_training_view
 
@@ -142,7 +142,7 @@ def _validate_options(
         raise ValueError("os_or_ts must be 'os' or 'ts'.")
     if native_sampling_assumption not in {"os", "ts", "both"}:
         raise ValueError("native_sampling_assumption must be 'os', 'ts', or 'both'.")
-    if role not in {"train", "pu_val", "clean_val", "test"}:
+    if role not in ROLES:
         raise ValueError("role must be 'train', 'pu_val', 'clean_val', or 'test'.")
     if not isinstance(method_name, str) or not method_name.strip():
         raise ValueError("method_name must identify the method ledger entry.")
