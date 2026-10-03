@@ -54,10 +54,11 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
 
 **已收敛（单一）。** 权威源是 `utils/serialization.py` 的**一对**函数，二者**不是同一概念，不合并**：
 
-- `:39` `json_safe`——**宽容**（NaN/Inf → None、`np.generic` → `item`、`Path` → `str`、递归
-  dict/list），用于报告载荷：报告要么写得出来，要么不成其为报告，故它永不抛错。消费者在
-  `diagnostics/`、`workflows/`、`preprocessing/data_profiler.py`。
-- `:54` `json_scalars`——**严格**（非 JSON 标量或非有限浮点一律 `ValueError`），用于清单载荷
+- `:56` `json_safe`——**宽容**（NaN/Inf → None、`np.generic` → `item`、`Path` → `str`、递归
+  dict/list），用于报告载荷。它不抛错是指**常规载荷**：自引用结构会 `RecursionError`，
+  未识别类型（`np.ndarray`、`set`、`bytes`）会**原样返回**，故它不保证输出可序列化。
+  消费者在 `diagnostics/`、`workflows/`、`preprocessing/data_profiler.py`。
+- `:71` `json_scalars`——**严格**（非 JSON 标量或非有限浮点一律 `ValueError`），用于清单载荷
   （索引列表），因为这些列表会被摘要进 survey 制品：被静默强转的一个元素会在无人选择的情况下移动
   摘要。`name` 参数把报错归因到拒绝它的调用方。
 
