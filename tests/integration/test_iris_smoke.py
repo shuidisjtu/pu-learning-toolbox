@@ -126,7 +126,9 @@ def test_basic_fit_predict_decision_shape(meta, iris_pu, iris_pnu):
     if reason:
         pytest.skip(reason)
     X_train, y_train, X_test = _data_for(meta, iris_pu, iris_pnu)
-    clf = _fit(meta, X_train, y_train)
+    clf = FACTORY_MAP[meta.name]()
+    assert clf.fit(X_train, y_train, **fit_kwargs(clf, y_train)) is clf
+    np.testing.assert_array_equal(clf.classes_, np.array([0, 1]))
     decision = np.asarray(clf.decision_function(X_test))
     pred = np.asarray(clf.predict(X_test))
     assert decision.shape == (X_test.shape[0],)
