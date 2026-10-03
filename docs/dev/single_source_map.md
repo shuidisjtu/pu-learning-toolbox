@@ -31,6 +31,11 @@
 另 1 处 `prior/pen_l1.py:27` 是硬编码 `np.random.RandomState(0)`。**两者差 1**：把「19 处
 `self.random_state`」当作事实会多算一处。
 
+**第二个入口点（不同生成器族）。** 另有 `diagnostics/domain_assumptions.py:338` 的
+`np.random.default_rng(random_state)`，供 `_bootstrap_domain_uncertainty` 做重复抽样。它构造的是
+`Generator` 而非 `RandomState`，不受 `check_random_state` 归一，也不计入上文 19 处；但按本图收敛
+RNG 约定时这一点须一并纳入。
+
 **为何现在不能直接合并。** 两种写法语义不等价，且实测（numpy 2.4.6）：内联式
 `np.random.RandomState(RandomState(42))` 抛 `TypeError`（`Cannot cast scalar from dtype('O') to
 dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该实例并保留同一对象身份。
@@ -95,8 +100,10 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
 ### 方法能力字段
 
 **重复形态。** 同一事实写两处：`registry/builtin_methods.py` 在 `AlgorithmMetadata(...)` 里写
-`implementation_status=` / `source_status=` 字面量（模式 `grep -c` 各 24 处），估计器类再声明同名类
-属性（如 `estimators/risk/puet.py:85`-`:86`）。注册时 `bind_estimator_class` →
+`implementation_status=` / `source_status=` 字面量（真实字面量各 24 处），估计器类再声明同名类
+属性（如 `estimators/risk/puet.py:85`-`:86`）。核对时 `grep -c 'source_status='` 得 24，而
+`grep -c 'implementation_status='` 得 **25**——`register_all_builtin_methods` 的 docstring（`:534`）
+另含一次该串，须减去这处文档提及才等于 24 条字面量。注册时 `bind_estimator_class` →
 `registry/registry.py:141` `_sync_class_metadata_to_registry` 用 `_SYNC_FIELDS`（含这两字段）对类属性
 做 `setattr`，覆盖字面量。
 
