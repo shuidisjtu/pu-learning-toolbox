@@ -98,7 +98,7 @@ git diff --check
 | 助手 | 位置 | 用途 |
 |---|---|---|
 | `canonical_hash` | `pu_toolbox/utils/serialization.py`（`benchmarks/_common.py` 为兼容 re-export） | 严格 JSON 规范化哈希 |
-| `json_safe` | `pu_toolbox/utils/serialization.py` | **宽容**转换（报告载荷）：NaN/Inf → `None`、`np.generic` → `item()`、`Path` → `str`，永不抛错 |
+| `json_safe` | `pu_toolbox/utils/serialization.py` | **宽容**转换（报告载荷）：NaN/Inf → `None`、`np.generic` → `item()`、`Path` → `str`；对常规载荷不抛错（边界见下方） |
 | `json_scalars` | `pu_toolbox/utils/serialization.py` | **严格**转换（清单索引）：拒绝非标量元素与非有限浮点——这些列表要进哈希，是制品身份的一部分 |
 | `sigmoid_stable` | `pu_toolbox/utils/activations.py` | 数值稳定 sigmoid |
 | `rbf_weights` | `pu_toolbox/utils/basis.py` | RBF 核权重（六处收敛单源） |
@@ -107,7 +107,11 @@ git diff --check
 | `solve_prior_from_positive_fraction` / `stable_centroid_denominator` | `pu_toolbox/estimators/risk/_class_prior.py` | 类先验推导与质心项 1−2ph 稳定性检查 |
 | `git_worktree_dirty` | `benchmarks/_common.py` | git 脏状态检测（`exclude` 参数排除 runner 自身输出） |
 
-`json_safe` 与 `json_scalars` 是**一对对偶**，不是同一件事：**输出侧**用前者（报告要能写出去，NaN 变 `None` 是想要的），**身份侧**用后者（列表要进哈希，NaN 必须拒绝，否则摘要会在无人选择的情况下改变）。两者语义相反，**不得合并**；把数组序列化成 JSON 标量列表这件事，也不得再在任何模块内联复制一份 `.tolist()` 版本。
+`json_safe` 与 `json_scalars` 是**一对对偶**，不是同一件事：**输出侧**用前者（报告要能写出去，NaN 变 `None` 是想要的），**身份侧**用后者（列表要进哈希，NaN 必须拒绝，否则摘要会在无人选择的情况下改变）。两者语义相反，**不得合并**。
+
+「数组 → JSON 标量列表 → 进哈希」这类清单索引转换必须复用 `json_scalars`，不得再内联复制 `.tolist()` 版本。目前仅两处**知情保留**：`pu_toolbox/experiment/strategies.py` 的 `label_view_sha256`（载荷是标签视图而非索引，`.astype(int)` 已保证整数，校验分支不会触发）与 `pu_toolbox/diagnostics/uncertainty.py` 的报告载荷（输出侧，宽容语义才正确）。
+
+`json_safe` 的宽容有边界，别当它保证输出可序列化：它**不检测自引用结构**（会 `RecursionError`），也不处理未识别的类型（`np.ndarray`、`set`、`bytes` 会**原样返回**）。
 
 **代谢率红线**：PR 评审时对增量代码做单源检查——发现 **>1 处单源违规为黄线**（该 PR 必须包含收敛治理）；**≥3 处或同一概念第 3 次分裂为红线**，触发该区域的结构性重构评估。历史治理记录见 `docs/dev/architecture_principles.md` §5 与 `docs/adr/0001-architecture-governance.md`。
 

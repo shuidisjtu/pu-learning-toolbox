@@ -1365,7 +1365,7 @@ docstring。
 | `SurveyDatasetSpec` | survey 数据集的模态、正负类映射和官方 test 策略只读规格 |
 | `survey_dataset_catalog` | 返回 MNIST/F-MNIST/CIFAR-10/ADNI/IMDB/20News/Spambase/Connect-4 锁定目录 |
 | `binaryize_survey_labels` | 按协议锁定映射生成真实二元标签，并拒绝目录外类别 |
-| `prepare_survey_dataset` | 从调用方提供的数组确定性生成 90% train/5% PU-val/5% clean-val 和官方或派生 test，返回 bundle + split manifest；`source_indices` / `test_indices` 省略时取默认整数序号，显式传入时每个元素必须是有限 JSON 标量（`None`/`bool`/`int`/`float`/`str`），否则拒绝 |
+| `prepare_survey_dataset` | 从调用方提供的数组确定性生成 90% train/5% PU-val/5% clean-val 和官方或派生 test，返回 bundle + split manifest；索引参数可省略（`source_indices` 默认 `np.arange`；官方 test 数据集的 `test_indices` 默认接续序号），显式传入时须为与数据等长、互异的一维有限 JSON 标量数组（`None`/`bool`/`int`/`float`/`str`），否则拒绝；派生 test 的数据集（Spambase/Connect-4/ADNI）不接受 `test_indices`，其 test 索引继承 `source_indices` |
 | `fit_survey_image_preprocessing` | 仅用 train 图像拟合通道统计，锁定 NCHW/通道/缩放和 ResNet-18 配置，返回单位区间数组与可审计规格 |
 | `transform_survey_images` | 对验证/test 复用 train 阶段冻结的形状和缩放合约，拒绝跨分区缩放漂移 |
 | `build_survey_image_encoder` / `build_survey_image_augmentation` | 从冻结规格构造随机初始化 ResNet-18；增强只对 `train` 返回，PU/clean 验证与 test 固定为 `None` |
