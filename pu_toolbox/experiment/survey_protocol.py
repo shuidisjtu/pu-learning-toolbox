@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.utils.serialization import json_scalars
+from pu_toolbox.utils.serialization import json_scalars, strict_canonical_hash
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
@@ -175,10 +175,13 @@ def unit_checkpoint_profile(protocol: dict, row: dict, *, input_dim: int) -> str
 
 
 def digest(value: Any) -> str:
-    """Hash canonical JSON, independent of whitespace and key order."""
-    return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-    ).hexdigest()
+    """Hash canonical JSON, independent of whitespace and key order.
+
+    The artifact-identity digest: it delegates to
+    :func:`~pu_toolbox.utils.serialization.strict_canonical_hash` so that the
+    survey layer cannot drift from the one strict recipe.
+    """
+    return strict_canonical_hash(value)
 
 
 def array_digest(value: np.ndarray) -> str:

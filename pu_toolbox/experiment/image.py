@@ -12,6 +12,7 @@ from typing import Any, Literal
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES, ViewRole
+from pu_toolbox.utils.serialization import canonical_hash
 
 #: The image pipeline names the same four protocol partitions the bundle does
 #: (``train``/``pu_val``/``clean_val``/``test``): callers pass the shared
@@ -193,7 +194,7 @@ def fit_survey_image_preprocessing(
         randaugment_magnitude=randaugment_magnitude,
         small_input_stem=input_size[0] <= 64,
         train_data_sha256=train_data_sha256,
-        configuration_sha256=_json_sha256(config),
+        configuration_sha256=canonical_hash(config),
     )
     return prepared, spec
 
@@ -335,8 +336,3 @@ def _array_sha256(values: np.ndarray) -> str:
     digest.update(json.dumps(values.shape).encode())
     digest.update(np.ascontiguousarray(values).tobytes())
     return digest.hexdigest()
-
-
-def _json_sha256(value: Any) -> str:
-    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()

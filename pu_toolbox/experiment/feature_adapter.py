@@ -12,7 +12,7 @@ from typing import Any, Literal
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.utils.serialization import json_scalars
+from pu_toolbox.utils.serialization import json_scalars, strict_canonical_hash
 
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
@@ -86,7 +86,7 @@ def adapt_image_bundle_to_features(
             raise ValueError(
                 "encoder_fit_indices must exactly match the train partition and no other role."
             )
-        fit_indices_hash = _json_sha256(json_scalars(fit_indices, name="bundle indices"))
+        fit_indices_hash = strict_canonical_hash(json_scalars(fit_indices, name="bundle indices"))
 
     canonical_backbone_manifest = _canonical_json_object(
         backbone_manifest, name="backbone_manifest"
@@ -156,8 +156,8 @@ def adapt_image_bundle_to_features(
         "encoder_fit_indices_sha256": fit_indices_hash,
         "encoder_state_sha256": state_before,
         "backbone_manifest": canonical_backbone_manifest,
-        "representation_sha256": _json_sha256(representation_payload),
-        "split_sha256": _json_sha256(split_indices),
+        "representation_sha256": strict_canonical_hash(representation_payload),
+        "split_sha256": strict_canonical_hash(split_indices),
         "feature_sha256": {
             role: _array_sha256(features) for role, features in role_features.items()
         },
@@ -245,7 +245,7 @@ def partition_fair_leaderboard_runs(
                 "tuning_candidate_count": reference.tuning_candidate_count,
                 "seeds": list(reference.seeds),
             }
-            group_payload["fairness_sha256"] = _json_sha256(group_payload)
+            group_payload["fairness_sha256"] = strict_canonical_hash(group_payload)
             partitions[f"{dataset}/{training_path}"] = group_payload
     return partitions
 
@@ -367,8 +367,3 @@ def _array_sha256(values: np.ndarray) -> str:
     digest.update(json.dumps(values.shape).encode())
     digest.update(np.ascontiguousarray(values).tobytes())
     return digest.hexdigest()
-
-
-def _json_sha256(value: Any) -> str:
-    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-    return hashlib.sha256(payload).hexdigest()

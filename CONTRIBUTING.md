@@ -97,7 +97,8 @@ git diff --check
 
 | 助手 | 位置 | 用途 |
 |---|---|---|
-| `canonical_hash` | `pu_toolbox/utils/serialization.py`（`benchmarks/_common.py` 为兼容 re-export） | 严格 JSON 规范化哈希 |
+| `canonical_hash` | `pu_toolbox/utils/serialization.py`（`benchmarks/_common.py` 为兼容 re-export） | **宽容** JSON 规范化哈希（`allow_nan` 默认）：报告与清单载荷 |
+| `strict_canonical_hash` | `pu_toolbox/utils/serialization.py` | **严格** JSON 规范化哈希（`allow_nan=False`）：拒绝非有限浮点——制品身份摘要不得把写不出去的数悄悄折进摘要 |
 | `json_safe` | `pu_toolbox/utils/serialization.py` | **宽容**转换（报告载荷）：NaN/Inf → `None`、`np.generic` → `item()`、`Path` → `str`；对常规载荷不抛错（边界见下方） |
 | `json_scalars` | `pu_toolbox/utils/serialization.py` | **严格**转换（清单索引）：拒绝非标量元素与非有限浮点——这些列表要进哈希，是制品身份的一部分 |
 | `sigmoid_stable` | `pu_toolbox/utils/activations.py` | 数值稳定 sigmoid |
@@ -109,7 +110,11 @@ git diff --check
 
 `json_safe` 与 `json_scalars` 是**一对对偶**，不是同一件事：**输出侧**用前者（报告要能写出去，NaN 变 `None` 是想要的），**身份侧**用后者（列表要进哈希，NaN 必须拒绝，否则摘要会在无人选择的情况下改变）。两者语义相反，**不得合并**。
 
+`canonical_hash` 与 `strict_canonical_hash` 同样是**一对对偶**：**报告/清单载荷**用前者（写得出 `NaN` 是想要的），**制品身份摘要**用后者（`split_sha256`、`cache_key`、`protocol_sha256` 这类字段要先拒绝写不出去的数，否则摘要会在无人选择的情况下改变）。两者只差 `allow_nan`，但在非有限输入上分道扬镳，**不得合并**。
+
 「数组 → JSON 标量列表 → 进哈希」这类清单索引转换必须复用 `json_scalars`，不得再内联复制 `.tolist()` 版本。目前仅两处**知情保留**：`pu_toolbox/experiment/strategies.py` 的 `label_view_sha256`（载荷是标签视图而非索引，`.astype(int)` 已保证整数，校验分支不会触发）与 `pu_toolbox/diagnostics/uncertainty.py` 的报告载荷（输出侧，宽容语义才正确）。
+
+哈希助手另有一处**知情保留**：`pu_toolbox/experiment/text.py` 的 `_json_sha256` 是**第三种语义**——它多一个 `ensure_ascii=False`，含非 ASCII 码点的语料上摘要与 `canonical_hash` / `strict_canonical_hash` 都不同，且其产物 `cache_key` 直接是缓存文件名；改它会失效已记录的文本摘要与本地缓存，属破坏性变更。
 
 `json_safe` 的宽容有边界，别当它保证输出可序列化：它**不检测自引用结构**（会 `RecursionError`），也不处理未识别的类型（`np.ndarray`、`set`、`bytes` 会**原样返回**）。
 

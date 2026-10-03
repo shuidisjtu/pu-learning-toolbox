@@ -20,16 +20,14 @@ never imports this one.
 
 from __future__ import annotations
 
-import hashlib
 import inspect
-import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
 
 from ..core.training_views import ROLES, RUN_VIEWS, RunView, ViewRole, build_training_view
-from ..utils.serialization import json_scalars
+from ..utils.serialization import canonical_hash, json_scalars
 from .method_ledger import native_sampling_assumption
 from .protocols import accepts_training_view
 
@@ -117,9 +115,7 @@ def calibrate_ts_os_batch(
             len(view.positive_positions) if calibration_applied else 0
         ),
         "indices": index_payload,
-        "indices_sha256": hashlib.sha256(
-            json.dumps(index_payload, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest(),
+        "indices_sha256": canonical_hash(index_payload),
     }
     return TSOSBatchView(
         positive_features=view.positive_features,
