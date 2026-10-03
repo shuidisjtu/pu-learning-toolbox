@@ -66,3 +66,27 @@ def test_determ_canonical_hash_still_writes_non_finite_numbers():
     digest = canonical_hash({"value": float("nan")})
     assert len(digest) == 64
     assert digest != canonical_hash({"value": float("inf")})
+
+
+def test_param_the_delegating_public_names_carry_the_strict_contract():
+    """The two public entry points must reach the strict helper, not the lenient one.
+
+    ``survey_protocol.digest`` and ``survey_comparison.comparison_digest`` are
+    the names the experiment layer and the survey scripts call, and both are
+    supposed to be artifact-identity digests.  Every payload reachable from the
+    frozen artifacts is finite, and on finite input the two helpers agree
+    byte-for-byte -- so a value freeze cannot tell them apart.  This asserts
+    the contract itself, which is the only way a future rerouting to the
+    lenient helper gets caught.
+    """
+    from pu_toolbox.experiment.survey_comparison import comparison_digest
+    from pu_toolbox.experiment.survey_protocol import digest as protocol_digest
+
+    for not_finite in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ValueError):
+            protocol_digest({"value": not_finite})
+        with pytest.raises(ValueError):
+            comparison_digest({"value": not_finite})
+
+    # The lenient helper keeps writing them -- that is its contract, not a bug.
+    assert len(canonical_hash({"value": float("nan")})) == 64
