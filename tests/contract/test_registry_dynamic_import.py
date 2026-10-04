@@ -60,10 +60,24 @@ def test_edge_registered_classes_are_defined_in_the_higher_layers():
 
     ``list_algorithms()`` yields metadata, not names, so the name is read off
     each entry before asking for the bound class.
+
+    Walking every registered name also asserts a second, deliberate thing:
+    nothing sits in the metadata table without a bound class.  It is asserted
+    separately rather than left as a side effect of the loop, so the two
+    failures say different things.  If a legitimately ``api_only`` entry is
+    ever added, this is the line to revisit -- that is a registry question, not
+    a question about the dynamic edge.
     """
     registry.register_all_builtin_methods()
-    modules = {registry.get_algorithm(item.name).__module__ for item in registry.list_algorithms()}
-    assert modules
+    modules: set[str] = set()
+    unbound: list[str] = []
+    for entry in registry.list_algorithms():
+        try:
+            modules.add(registry.get_algorithm(entry.name).__module__)
+        except RegistryError:
+            unbound.append(entry.name)
+    assert modules, "no algorithm class was bound"
+    assert not unbound, f"registered without a bound class: {unbound}"
     outside = sorted(
         name
         for name in modules

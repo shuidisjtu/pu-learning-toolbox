@@ -1380,7 +1380,7 @@ docstring。
 | `SARLBEAGenerator` | SAR-LBE-A：`p ∝ scores^k`（k=10）+ 0.9/0.1 平滑（PU-Bench 2d95a19） |
 | `SARLBEBGenerator` | SAR-LBE-B：`p ∝ (1.5 + shrink_coef − scores)^k`，负值截断、全零均匀兜底 |
 | `CleanLabelGenerator` | PN oracle 视图：真实标签原样透传（固定 `n_L = n₊`）、声明 `output_view="clean"`，PA 因视图校验结构性拒绝；`c` 记录但不生效（oracle 对 c 恒定） |
-| `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 proxy accuracy（Wang et al. 2026 Def. 1 的 OS 分支，见 `proxy_accuracy`）在 min-max 归一化的阈值网格上选 run/epoch/阈值；`class_prior` 必传，缺失即报错 |
+| `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 proxy accuracy（Wang et al. 2026 Def. 1 的 OS 分支，见下表小注的 `proxy_accuracy`）在 min-max 归一化的阈值网格上选 run/epoch/阈值；`class_prior` 必传，缺失即报错 |
 | `ProtocolOA` | OA 对照：min-max 归一化后，按真实标签验证集 accuracy 选阈值与 run |
 | `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
 | `DeepFitTrainer` | 深度估计器：优先探测无真实标签泄漏的 `pu_validation_data`，否则探测 `validation_data`，并将 `history_` 转成选模轨迹；验证 fit 已成功但无 history 时只产生单点轨迹、不重复 fit |

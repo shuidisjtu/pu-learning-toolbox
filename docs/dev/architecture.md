@@ -130,10 +130,13 @@
    （其 docstring 自陈是为「without creating a pipeline import cycle」）。保留理由：
    构建在 PU 感知工作流之上的调参与比较是该层职责，上移成本大于收益。
 
-**未清理项（2026-10-04 勘察后裁定）**：通用层有 12 处 docstring **归因引用**了 Survey 语境
-（如 `utils/basis.py`、`utils/serialization.py`、`estimators/risk/vpu.py`）。勘察确认
-**无一处进入行为**——没有解析台账字段、没有 survey 制品路径、无硬编码仓库路径。判为
-「保留」：这些引用是「这段通用代码为何这么写」的信息，删除即丢失。
+**未清理项（2026-10-04 勘察后裁定）**：通用层有些 docstring **归因引用**了 Survey 语境。
+口径与当日实测：点名 `survey` 的 docstring **13 个**（`core/training_views.py`、
+`utils/activations.py`、`utils/basis.py`、`utils/serialization.py`、
+`preprocessing/pu_labeling.py`，以及 5 个 estimator 文件里的 7 个），另有 **2 个**只引调研协议的
+章节号或决策号（`estimators/bias_aware/pusb_kernel.py`、`estimators/risk/vpu.py`）。
+勘察确认**无一处进入行为**——没有解析台账字段、没有 survey 制品路径、无硬编码仓库路径。
+判为「保留」：这些引用是「这段通用代码为何这么写」的信息，删除即丢失。
 
 **模块级依赖链**（代表性，层间单向；两条层内环见上）：
 
