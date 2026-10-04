@@ -137,6 +137,17 @@ Survey 方法，并且只报告 OA。协议、当前执行状态和报告边界�
 split 传输由 `run_survey_pilot.py`、`aggregate_survey_runs.py`、
 `survey_splits_archive.py` 驱动（语义见各自 docstring 与 `docs/research/pu_survey/`）。
 
+已完成批次集的审计与数值汇总由 `audit_survey_batches.py` 与
+`summarize_survey_results.py` 驱动。两者都接受批次根白名单，并且只写自己的 `--out-dir`：
+前者报告它能判定的每一条结构与公平性发现，对判不了的检查逐条记名、而不是记为通过；
+后者为每个可比行给出一个均值与样本标准差，成本按 run 记录，以免在两个选模协议之间重复计费。
+两者都不写结果树。
+
+把预注册的文献对照附着到已完成的汇总上由 `compare_survey_results.py` 驱动：它读取该
+`summary.json`，并让每一行经冻结矩阵裁决。它报告矩阵为每个单元分配的类别，且只在矩阵授权、
+且本协议判定该行为 `formal` 时才做数值裁决；其余行一律列入未决而不参与比较——因此，
+没有规则的类别不能被读作「一致」。
+
 ## AI 工作流 Skill
 
 `pu-workflow`（Agent Skills 开放标准）以自然语言驱动完整 PU 分析流程：
@@ -159,12 +170,16 @@ uv run ruff format --check pu_toolbox/      # 格式检查
 # 质量门禁
 uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
+uv run python scripts/check_api_docs.py       # api.md 覆盖全部公共符号（防漂移）
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # 基线配置与源码默认参数一致性
 uv run python scripts/check_format.py        # 格式门禁（ruff check + format --check，全目录）
+uv run python scripts/check_comment_quality.py  # 注释卫生：遗留标记 / 裸 TBD / 行尾注释
+uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry 门禁（registry 文件未物化前声明自身不生效；尚未接入 CI）
 uv run python scripts/generate_structure.py --check    # 结构文档一致性(--update 重新生成)
+uv run python scripts/generate_layer_deps.py --check  # architecture.md §2.1 分层表（--update 重新生成）
 ```
 
 贡献指南见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
