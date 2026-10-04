@@ -17,9 +17,16 @@
    | encoder_parameter | None 或构造函数参数名 | 接收注入 encoder 的构造函数参数名（声明性元数据；Pipeline 依构造函数签名经该参数注入 encoder，不以本字段驱动注入） |
    | trains_encoder | bool | 是否端到端训练注入的 encoder |
 
-3. 在 registry/builtin_methods.py 注册 AlgorithmMetadata（含
-   implementation_status=NATIVE 仅当有真实训练逻辑；未实现必须 API_ONLY）；
+3. 在 registry/builtin_methods.py 注册 AlgorithmMetadata（`implementation_status` 取
+   NATIVE 仅当有真实训练逻辑；未实现必须 API_ONLY；写在哪一栏见第 5 条）；
 4. 声明 sample_weight_support / backend / requires_class_prior 等既有字段；若方法依赖额外干净真值 support set，注册 `requires_clean_support=True`，并使缺失支持集时的 `fit` 直接报错。
+5. 这 8 个条目字段**只写在类属性块**：`family` / `assumption` / `scenario` /
+   `requires_class_prior` / `implementation_status` / `source_status` / `backend` /
+   `maturity` 由估计器类声明，注册时同步进 registry（与第 2 条的 4 个架构能力字段同源）；
+   已绑定条目的 `AlgorithmMetadata(...)` 里**不得**重复写它们，否则
+   `tests/test_builtin_methods.py` 的 `test_static_entries_do_not_redeclare_class_fields`
+   判红。未实现（`api_only`）的方法反其道——没有可绑定的类，这 8 个字段**只写在注册表
+   字面量**里；那时字面量是唯一源，写错会静默落回 dataclass 默认值。
 
 ## 2. 自动门禁（无需手写）
 

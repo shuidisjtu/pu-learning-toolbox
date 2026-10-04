@@ -10,7 +10,8 @@
 > 已由更早一笔定形、此后未再改动，则锚定形它的那一笔。当前「训练视图」「JSON 安全转换」
 > 「哈希」三行已更新：后两行的权威源同在 `pu_toolbox/utils/serialization.py`，均按 `0f40217`
 > 重取（该笔把 `array_hash` / `file_hash` 并入该模块，令 JSON 对与 `json_safe` / `json_scalars`
-> 一并下移；`strict_canonical_hash` 则在更早的 `9fe2004` 落地）。**发现重复不等于
+> 一并下移；`strict_canonical_hash` 则在更早的 `9fe2004` 落地）。另有「方法能力字段」行在批次 E4
+> 收敛为单一（权威源是估计器类属性，行号锚 `f5cf55d`）。**发现重复不等于
 > 已收敛**——其余各行只记录基线现状，迁移在后续批次；本表整体并非当前快照。
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
@@ -23,7 +24,7 @@
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
 | 训练视图 | `pu_toolbox/core/training_views.py:120` `build_training_view`；角色词表 `:42` `ViewRole` + `:48` `ROLES`；视图词表 `:38` `RunView` + `:47` `RUN_VIEWS`（运行时元组由 `get_args` 派生） | `estimators/risk/{vpu,upu,nnpu,dist_pu}.py`、`estimators/bias_aware/pusb_kernel.py`、`estimators/deep/self_pu.py`、`experiment/` 各消费者、`scripts/{run_survey_experiment,run_survey_pilot,prepare_survey_splits}.py`；另有三项词表与两处子集未并（不同概念，见说明） | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 单一（角色名与 os/ts 视图；未并项见说明） |
-| 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`）经 `registry/registry.py:141` `_sync_class_metadata_to_registry` 覆盖 `registry/builtin_methods.py` 的字面量 | `registry/registry.py` `get_metadata`、`advisor/`、`cli/`、`workflows/pipeline.py`、`ui/` | 无 | 重复（可收敛） |
+| 方法能力字段 | 估计器类属性（已绑定方法，如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py:141` `_sync_class_metadata_to_registry` 同步；**未绑定（`api_only`）条目以注册表字面量为源** | `registry/registry.py` `get_metadata`、`advisor/`、`cli/`、`workflows/pipeline.py`、`ui/` | 无 | 单一（绑定条目；`api_only` 见说明） |
 
 ## 说明
 
@@ -231,26 +232,63 @@ choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）
 
 ### 方法能力字段
 
-**重复形态。** 同一事实写两处：`registry/builtin_methods.py` 在 `AlgorithmMetadata(...)` 里写
-`implementation_status=` / `source_status=` 字面量（真实字面量各 24 处），估计器类再声明同名类
-属性（如 `estimators/risk/puet.py:85`-`:86`）。核对时 `grep -c 'source_status='` 得 24，而
-`grep -c 'implementation_status='` 得 **25**——`register_all_builtin_methods` 的 docstring（`:534`）
-另含一次该串，须减去这处文档提及才等于 24 条字面量。注册时 `bind_estimator_class` →
-`registry/registry.py:141` `_sync_class_metadata_to_registry` 用 `_SYNC_FIELDS`（含这两字段）对类属性
-做 `setattr`，覆盖字面量。
+**已收敛（单一）。** 能力字段的权威源是估计器类属性：注册时 `bind_estimator_class` →
+`registry/registry.py:141` `_sync_class_metadata_to_registry` 按 `_SYNC_FIELDS`
+（`registry/registry.py:124`-`:138`）对类**自身**声明的字段做 `setattr`，写进注册表条目。
+`_SYNC_FIELDS` 共 **13** 个成员，分两半：
 
-**实测（受控实验）。** 把 `_BUILTIN` 中 `pusb_kernel` 的字面量故意改成 `NOT_FOUND` 后注册，注册表
-仍显示类属性值 `official_related`（EXP1）；再把类属性改成 `OFFICIAL_BUNDLE` 重新绑定，注册表随即
-变为 `official_bundle`（EXP2）。按 `registry.py` 的同步判据复算：24 个已绑定方法里各有 23 个对这两
-个字段触发覆盖；唯一字面量存活的是 `class_prior_estimation`（其 `ClassPriorEstimator` 未声明这两个
-类属性）。
+- **8 个条目字段**：`family` / `assumption` / `scenario` / `requires_class_prior` /
+  `implementation_status` / `source_status` / `backend` / `maturity`。它们曾被同时写在
+  `registry/builtin_methods.py` 的 `AlgorithmMetadata(...)` 字面量里与类属性上，本批已收敛为单源。
+- **5 个仅类/默认值字段**：`native_architectures` / `input_ndims` / `encoder_parameter` /
+  `trains_encoder`（4 个架构能力字段）与 `label_semantics`。它们**从来不写字面量**，只存在于类属性
+  与 dataclass 默认值中，且已由 `tests/contract/test_capability_declarations.py` 守卫。
 
-**为何现在不能直接合并。** 两处写在 24 个条目上取值恰好全部一致（实测 mismatch = 0），因此**当前
-没有可观测的不一致**；真正的风险是潜在漂移——只改字面量而不改类属性时会被静默忽略。所以这不是
-「两值冲突」，而是「两处声明同一事实、其中一处（23/24）是死写」。
+**审计的两条错误记述（本批订正）。** 批次 D 审计行只点了 `implementation_status` / `source_status`
+两个字段，把 8 个字的同步面**少记了 6 个**；它另有两处与事实不符：
 
-**收敛前提。** 把类属性定为唯一真相源：`builtin_methods.py` 的字面量降级为仅供无绑定类的 `api_only`
-条目使用的兜底并在注释中写明；补一条断言「已绑定方法的能力字段来自类声明」的测试。
+1. 原文称「只改字面量而不改类属性时会被静默忽略」——**不成立**。
+   `tests/test_builtin_methods.py` 的事故守卫自 `4d5eebe`（PR #12）起就在比对字面量与类值，
+   这类漂移早已会被它抓住。
+2. 原文的「收敛前提：补一条断言」——**那条断言早已存在**。若照做，是重写一条既有测试，
+   而不是新增保护。
+
+**真正的缺口在活写一侧。** 那条既有守卫对「类未声明的字段」直接跳过（源码里是 `continue`），
+于是它守的是 182 处**死写**（写错也无害，反正会被类属性覆盖），跳过的是 10 处**活写**
+（字面量即权威，写错有后果）。10 处活写里 **7 处此前无任何守卫**：写错或写漏会静默落回 dataclass
+默认值，例如 `family` → `CLASSIC_CALIBRATION`、`source_status` → `UNKNOWN`、`scenario` /
+`assumption` → `[UNKNOWN]`。**第 8 处是例外**：`class_prior_estimation` 的
+`implementation_status` 早已被既有的 `tests/test_builtin_methods.py` 的
+`test_basic_implementation_status_distribution`（断言每个注册方法必须是 NATIVE）**泛覆盖**，
+本批未动那条测试。故口径是 **7/8**，不是「8 个字段此前无任何守卫」。
+
+**收敛动作（本批）。** 删除 **182** 处死写（= 23 条目 × 8 字段 − 2），保留 **10** 处活写：
+`class_prior_estimation` 的全部 8 个，与 `pusb` / `lbe` 的 `requires_class_prior`（这两个方法的该
+字段靠基类默认，而基类被同步判据刻意排除，故字面量是唯一源）。删除后
+`registry/builtin_methods.py` 不再重复声明这 8 个字段，要看某法的取值请去其类属性。
+
+**守卫现状（已从「事后发现一致」改为「禁止重复声明」）。** 事故守卫原地重写为**双向契约**
+（`tests/test_builtin_methods.py` 的 `TestBuiltinRegistration.test_static_entries_do_not_redeclare_class_fields`）：
+
+- clause 1：类已声明的字段**不得**在条目字面量里重复出现（死写回潮即变红）；
+- clause 2：类未声明的字段**必须**在字面量里显式声明；`class_prior_estimation` 的 8 个值被逐个钉住
+  （钉具体值，不是钉「等于自己」）。
+
+守卫解析源码 AST 而非读 metadata 对象——删掉的 kwarg 仍会以 dataclass 默认值响应 `getattr`，
+属性访问分不出「省略」与「声明」。需如实说明：`class_prior_estimation.implementation_status` 的这
+条钉子与上文那条泛覆盖测试**构成冗余**，不是新增保护。
+
+**已知边界（本批如实登记，未解决）。** clause 1 无条件禁止**任何**条目（含未来的 `api_only`）在
+字面量里写那 5 个仅类/默认值字段。对已绑定条目这是正确的（类才是源），但 `api_only` 条目没有可
+绑定的类，于是只能取 dataclass 默认值——它的架构能力与 `label_semantics` 无法通过字面量声明。
+今日 24 个条目全部已绑定、`api_only` 为 **0**，故这条规则空转；一旦新增 `api_only` 条目，该限制与
+「字面量是唯一源」的原则相冲突，届时需要重新裁定。
+
+**行号锚。** 本批删除 182 行后 `registry/builtin_methods.py` 全文件行号位移，本节引它的行号按
+`f5cf55d` 重取：`register_all_builtin_methods` 的 docstring 现 `:366`（原 `:534`）。取号依据：
+`grep -n 'implementation_status=' pu_toolbox/registry/builtin_methods.py` 命中 `:79` 与 `:366`
+两处，前者是 `class_prior_estimation` 的活写字面量，后者即该 docstring。
+`registry/registry.py`（`:141`、`:124`-`:138`）本批未动，行号不受影响。
 
 ### RBF 权重
 
