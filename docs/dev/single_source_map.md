@@ -349,7 +349,8 @@ choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）
 
 **未受门的第三份（2026-10-04 复核）**：`experiment/method_ledger.json` 另有两份副本不在任何契约
 测试覆盖内（`tests/contract/test_ledger_registry_consistency.py` 对这两个字段零引用）：
-`implementation_status`（10 处）与 `class`（9 处）。故 `implementation_status` 的事实存在三处——
+`implementation_status`（grep 全文 10 处：字段键 9 个，另 1 处是 `purpose` 串里的文字提及）与
+`class`（9 处，均为字段键）。故 `implementation_status` 的事实存在三处——
 类属性（权威）→ registry 条目（经 `_SYNC_FIELDS` 同步）→ 台账副本；`class` 为类定义 + registry
 动态导入表（权威）→ 台账副本。第三份漂移不会使任何测试变红。
 
