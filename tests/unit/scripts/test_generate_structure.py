@@ -175,7 +175,7 @@ def test_basic_collect_entries_flattens_to_repo_paths():
     }
 
 
-def test_basic_tracked_py_files_fallback_walk(tmp_path):
+def test_basic_tracked_files_fallback_walk(tmp_path):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("", encoding="utf-8")
     (tmp_path / ".venv").mkdir()
@@ -183,7 +183,7 @@ def test_basic_tracked_py_files_fallback_walk(tmp_path):
     monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setattr(g, "PROJECT_ROOT", tmp_path)
     try:
-        files = g.tracked_py_files()
+        files = g.tracked_files()
     finally:
         monkeypatch.undo()
     assert "src/a.py" in files
@@ -194,7 +194,7 @@ def test_param_main_check_fails_on_drift(tmp_path, monkeypatch):
     md = tmp_path / "project_structure.md"
     md.write_text(DOC, encoding="utf-8")
     monkeypatch.setattr(g, "STRUCTURE_MD", md)
-    monkeypatch.setattr(g, "tracked_py_files", lambda: ["pu_toolbox/ui/new.py"])
+    monkeypatch.setattr(g, "tracked_files", lambda: ["pu_toolbox/ui/new.py"])
     assert g.main(["--check"]) == 1
 
 
@@ -204,7 +204,7 @@ def test_param_main_check_passes_when_synced(tmp_path, monkeypatch):
     md = tmp_path / "project_structure.md"
     md.write_text(new_text, encoding="utf-8")
     monkeypatch.setattr(g, "STRUCTURE_MD", md)
-    monkeypatch.setattr(g, "tracked_py_files", lambda: disk)
+    monkeypatch.setattr(g, "tracked_files", lambda: disk)
     assert g.main(["--check"]) == 0
 
 
@@ -212,7 +212,7 @@ def test_param_main_update_writes_document(tmp_path, monkeypatch):
     md = tmp_path / "project_structure.md"
     md.write_text(DOC, encoding="utf-8")
     monkeypatch.setattr(g, "STRUCTURE_MD", md)
-    monkeypatch.setattr(g, "tracked_py_files", lambda: ["pu_toolbox/ui/new.py"])
+    monkeypatch.setattr(g, "tracked_files", lambda: ["pu_toolbox/ui/new.py"])
     assert g.main(["--update"]) == 0
     written = md.read_text(encoding="utf-8")
     assert "new.py" in written and g.PLACEHOLDER in written

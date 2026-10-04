@@ -1,8 +1,9 @@
 # Project Directory Structure
 
 > 本文档是项目目录结构的权威定义。已实现/存在的文件如实列出，规划文件标注 `(planned)`。
-> 其中 `pu_toolbox/`、`tests/`、`scripts/` 三节的树块由 `generate_structure.py` 生成，逐文件
-> 一致由该门禁保证；其余各节为人工维护，`docs/` 一节的范围见 §5 的说明。
+> 其中 `pu_toolbox/`、`tests/`、`scripts/`、`docs/` 四节的树块由 `generate_structure.py` 生成，
+> 文件名集合的双向一致由该门禁保证；其余各节（§1、§4、§4.1、§7）为人工维护。生成器覆盖哪些
+> 后缀、哪些子树只做分组登记、以及它**不**校验什么，见 §5 的范围说明。
 
 ## 1. 项目根目录
 
@@ -290,6 +291,8 @@ tests/
       test_check_comment_quality.py     # 注释质量门禁(遗留标记/裸TBD/行尾注释)脚本测试
       test_check_doc_links_sources.py   # 文档引用门禁源码语料(rule-1 在 .py 注释中的路径引用)测试
       test_generate_layer_deps.py       # 层间依赖表生成器单元测试
+      test_check_doc_links_docs_scope.py # docs/ 纳入生成器后 rule-2 反向范围扩大的测试
+      test_generate_structure_docs_scope.py # 生成器 docs 作用域：按根后缀集收文件 + 分组子树豁免
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -575,58 +578,67 @@ benchmarks/
 
 ## 5. 文档（`docs/`）
 
-> **范围（如实）**：本节为人工维护，不在 `generate_structure.py` 的生成范围内（见文首说明）。
-> `dev/`、`user/`，以及 `research/` 的 `method_cards/`、`traditional_pu/`、`distribution_shift/`
-> 三个子目录逐篇列出在库文档；`research/pu_survey/` 只列协议与资产，其余交付与复核文档见
-> [pu_survey/README.md](../research/pu_survey/README.md)；`adr/` 只列索引行，编号决策见
-> [adr/README.md](../adr/README.md)。完整文档索引见 [docs/README.md](../README.md)。
+> **范围（如实）**：本节树块由 `generate_structure.py` 生成，`--check` 守住块内**文件名集合**的
+> 双向一致——在库却没列出报 missing，列出而磁盘上没有报 stale。作用域边界如下：
+>
+> - **覆盖的后缀**：`docs/` 根收 `.md`、`.png`、`.json`（文档、图资产、调研数据清单三类）。
+>   这三个以外的后缀（如将来出现的 `.csv`/`.ipynb`）不在块的作用域内：既不必列出，也不受检。
+> - **分组登记子树**：`adr/`（编号决策）与 `research/pu_survey/`（协议资产与各阶段交付/复核）
+>   按**分组**登记，块只指向各自索引 [adr/README.md](../adr/README.md)、
+>   [pu_survey/README.md](../research/pu_survey/README.md)——其文件随任务批次增删，逐条列会长期
+>   滞后。子树下**未列出**的文件属刻意省略，不计 missing（`research/pu_survey/data/` 的两个
+>   `.json` 即在此列）；子树下**已列出**的条目（`pu_survey_protocol.md`、`assets/` 的两张图）
+>   仍照常做存在性校验。其余路径逐篇列出在库文档。
+> - **catch 不到什么**：它只比对**文件名**，从不校验注释文字——注释由生成器原样读入、原样回抄，
+>   不来自磁盘。所以「路径仍在、注释已过时」的行，任何基于路径存在性的门禁在原理上都看不见；
+>   阶段 6 最终评审阻断的两条正是此类，且其中一条就落在**本节块内**（`governance_backlog.md`
+>   那行曾把收口状态写成「阶段 6/7 未完项」，文件名与路径全程有效），另一条是 §3 说明里指向已删
+>   转抄的括号。文件名不变而含义改变时，只能由人改注释。
+>
+> 完整文档索引见 [docs/README.md](../README.md)。
 
 ```text
 docs/
-  README.md                    # 导航首页（用户 / 开发者 / 项目过程分栏）
-  adr/                         # 架构与流程决策记录(ADR 索引 + 编号决策)
-
-  user/                        # 用户文档：旅程式（快速开始 → 概念 → 操作 → 参考）
-    README.md                  # 用户旅程图
-    quickstart.md              # 5 分钟快速开始
+  adr/                                    # 架构与流程决策记录(ADR 索引 + 编号决策)
+  user/                                   # 用户文档：旅程式（快速开始 → 概念 → 操作 → 参考）
     concepts/
-      pu_problem.md            # PU 问题设定、符号表与 π 的角色
-      scar_sar.md              # SCAR/SAR 机制与识别边界
-      method_selection.md      # 选型决策原理（推荐器 + 决策表）
+      pu_problem.md                       # PU 问题设定、符号表与 π 的角色
+      scar_sar.md                         # SCAR/SAR 机制与识别边界
+      method_selection.md                 # 选型决策原理（推荐器 + 决策表）
     howto/
-      pipeline.md              # PUPipeline 端到端工作流
-      cli.md                   # 命令行接口
-      data_profiling.md        # 数据画像与假设提示
-      diagnostic_reports.md    # 生成诊断报告
-      sensitivity_analysis.md  # 类先验/标记倾向敏感性分析
-      sar_simulation.md        # SCAR/SAR 数据模拟
-      self_pu.md               # Self-PU 训练
-      distribution_shift.md    # 分布漂移审计与协变量加权适配
-      model_tuning.md          # 模型参数与 PU-aware 网格搜索
-      ui.md                    # 图形界面安装与使用
-      using_skill.md           # 启用与使用 pu-workflow Skill
+      pipeline.md                         # PUPipeline 端到端工作流
+      cli.md                              # 命令行接口
+      data_profiling.md                   # 数据画像与假设提示
+      diagnostic_reports.md               # 生成诊断报告
+      sensitivity_analysis.md             # 类先验/标记倾向敏感性分析
+      sar_simulation.md                   # SCAR/SAR 数据模拟
+      self_pu.md                          # Self-PU 训练
+      distribution_shift.md               # 分布漂移审计与协变量加权适配
+      model_tuning.md                     # 模型参数与 PU-aware 网格搜索
+      ui.md                               # 图形界面安装与使用
+      using_skill.md                      # 启用与使用 pu-workflow Skill
     reference/
-      api.md                   # 核心 API 精确契约
-      index.md                 # API 索引：按模块分组的符号导航
-
-  dev/                         # 开发者文档（贡献前必读）
-    architecture.md            # 当前架构:模块分层、模块依赖关系、数据流、注册表
-    project_structure.md       # 目录结构（本文档，权威来源）
-    new_algorithm_template.md  # 新算法接入模板（能力声明与测试要求）
-    dual_architecture_plan.md  # 双架构渐进式升级计划（阶段 0-4 与实施结果）
-    label_semantics_plan.md    # 标签语义契约：`label_semantics` 能力声明与检查点
-    experiment_layer.md        # 实验层关键设计机制：可注入策略、视图/轨迹语义
-    compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
-    architecture_principles.md # 架构维护原则：腐朽信号、应手与审计历史
-    comment_governance.md      # 注释治理：判定标准、门禁规则、已裁决保留项与迁移策略
-    single_source_map.md       # 单源地图：九个概念的真相源、消费者与重复判定
-    data_leakage_audit_design.md # 数据泄露审计设计（黑名单/重复样本/guard）
-    distribution_shift_aware_pu.md # 分布漂移感知 PU 设计（OOF 审计/协变量加权）
+      api.md                              # 核心 API 精确契约
+      index.md                            # API 索引：按模块分组的符号导航
+    README.md                             # 用户旅程图
+    quickstart.md                         # 5 分钟快速开始
+  dev/                                    # 开发者文档（贡献前必读）
+    architecture.md                       # 当前架构:模块分层、模块依赖关系、数据流、注册表
+    project_structure.md                  # 目录结构（本文档，权威来源）
+    new_algorithm_template.md             # 新算法接入模板（能力声明与测试要求）
+    dual_architecture_plan.md             # 双架构渐进式升级计划（阶段 0-4 与实施结果）
+    label_semantics_plan.md               # 标签语义契约：`label_semantics` 能力声明与检查点
+    experiment_layer.md                   # 实验层关键设计机制：可注入策略、视图/轨迹语义
+    compatibility.md                      # Python/依赖支持矩阵、CI 职责与构建策略
+    architecture_principles.md            # 架构维护原则：腐朽信号、应手与审计历史
+    comment_governance.md                 # 注释治理：判定标准、门禁规则、已裁决保留项与迁移策略
+    single_source_map.md                  # 单源地图：九个概念的真相源、消费者与重复判定
+    data_leakage_audit_design.md          # 数据泄露审计设计（黑名单/重复样本/guard）
+    distribution_shift_aware_pu.md        # 分布漂移感知 PU 设计（OOF 审计/协变量加权）
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
-    process_checklist.md       # 进度清单与发布状态（权威来源）
-    release_process.md         # 发布流程：版本策略、预检清单、上传、回滚与维护
-    governance_backlog.md      # 治理待办：架构治理方案的剩余阶段（阶段 7 未完项）
-
+    process_checklist.md                  # 进度清单与发布状态（权威来源）
+    release_process.md                    # 发布流程：版本策略、预检清单、上传、回滚与维护
+    governance_backlog.md                 # 治理待办：架构治理方案的剩余阶段（阶段 7 未完项）
   research/
     method_cards/
       class_prior_estimation.md
@@ -655,17 +667,17 @@ docs/
       DGPU.md
       Importance_Weighted_PU_Shift.md
     traditional_pu/
-      traditional_pu_metric_contract.md # 传统 PU 七算法单域指标、基线与统计契约
+      traditional_pu_metric_contract.md   # 传统 PU 七算法单域指标、基线与统计契约
       traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约
     distribution_shift/
       distribution_shift_metric_contract.md # 分布漂移审计、跨域评估与部署监控指标契约
-      joint_shift_research_protocol.md # JointShift 研究型算法评估协议与声明边界
+      joint_shift_research_protocol.md    # JointShift 研究型算法评估协议与声明边界
     pu_survey/
-      pu_survey_protocol.md          # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
       assets/
-        Dataset.png                  # 8 数据集类别标签与索引（Table B.1）
-        Dateset_PU.png               # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）
-
+        Dataset.png                       # 8 数据集类别标签与索引（Table B.1）
+        Dateset_PU.png                    # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）
+      pu_survey_protocol.md               # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
+  README.md                               # 导航首页（用户 / 开发者 / 项目过程分栏）
 ```
 
 ## 6. 脚本（`scripts/`）

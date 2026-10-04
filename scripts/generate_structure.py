@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """Regenerate the tree blocks of docs/dev/project_structure.md.
 
-The structure source is tracked and non-ignored new ``.py`` files
-(``git ls-files --cached --others --exclude-standard``), excluding ignored caches
-and caches. Hand-written annotations and directory order are preserved from
-the current document; files new on disk appear with a
-``<<< 新文件,补注释`` placeholder so the missing annotation stays visible.
+The structure source is the tracked and non-ignored new files whose suffix
+is in scope for their root (``GENERATABLE_SUFFIXES``), read with
+``git ls-files --cached --others --exclude-standard``, excluding ignored
+caches. Subtrees registered as a group (``GROUPED_SUBTREES``) are named by
+index rather than enumerated, so their unlisted files are never reported
+as missing while their listed entries are still verified. Hand-written
+annotations and directory order are preserved from the current document;
+files new on disk appear with a ``<<< 新文件,补注释`` placeholder so the
+missing annotation stays visible.
+
+The generator compares *file names* only. It never derives annotation text
+from disk -- see the scope note in project_structure.md §5 for what that
+leaves uncovered.
 
 Usage::
 
@@ -28,10 +36,60 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 STRUCTURE_MD = PROJECT_ROOT / "docs" / "dev" / "project_structure.md"
-GENERATABLE_ROOTS = ("pu_toolbox", "tests", "scripts")
+
+# Single source for what a block enumerates: a root is generatable when it
+# is a key here, and its block covers exactly the listed suffixes.  ``docs``
+# carries three because its inventory is prose (.md), figures (.png) and the
+# survey data manifests (.json); suffixes outside a root's tuple are out of
+# scope for that block -- neither required nor checked.
+GENERATABLE_SUFFIXES: dict[str, tuple[str, ...]] = {
+    "pu_toolbox": (".py",),
+    "tests": (".py",),
+    "scripts": (".py",),
+    "docs": (".md", ".png", ".json"),
+}
+
+# Derived, never restated: the roots ARE the mapping's keys, so the two
+# cannot drift.  check_doc_links derives its prefix tuple from this name.
+GENERATABLE_ROOTS: tuple[str, ...] = tuple(GENERATABLE_SUFFIXES)
+
+# Subtrees registered as a group: the block names the subtree's own index
+# instead of enumerating it, so a file below one of these that the document
+# does not list is deliberate and never counts as missing.  A *listed* entry
+# below one is asserted like any other -- gone from disk, it is stale.
+# Repo-relative, no trailing slash.
+GROUPED_SUBTREES: tuple[str, ...] = ("docs/adr", "docs/research/pu_survey")
+
 COMMENT_COL = 42
 PLACEHOLDER = "<<< 新文件,补注释"
 FILES_KEY = "__files__"
+
+
+def in_scope(rel_path: str) -> bool:
+    """True when *rel_path* is a file some tree block enumerates.
+
+    The top-level component must be a generatable root and the suffix must
+    be one of that root's suffixes.  This is the single place for what used
+    to be three separate ``.py`` hardcodes: the enumeration layer, the
+    ``disk_set`` filter and ``parse_tree``.
+    """
+    root, sep, _ = rel_path.partition("/")
+    if not sep or root not in GENERATABLE_SUFFIXES:
+        return False
+    return rel_path.endswith(GENERATABLE_SUFFIXES[root])
+
+
+def is_grouped(rel_path: str) -> bool:
+    """True when *rel_path* is inside a grouped subtree (see GROUPED_SUBTREES)."""
+    return any(rel_path == sub or rel_path.startswith(sub + "/") for sub in GROUPED_SUBTREES)
+
+
+def scope_suffixes() -> tuple[str, ...]:
+    """Union of every root's suffixes, order-preserved and de-duplicated."""
+    out: list[str] = []
+    for suffixes in GENERATABLE_SUFFIXES.values():
+        out.extend(s for s in suffixes if s not in out)
+    return tuple(out)
 
 
 def find_blocks(lines: list[str]) -> list[tuple[int, int, str | None]]:
@@ -40,7 +98,8 @@ def find_blocks(lines: list[str]) -> list[tuple[int, int, str | None]]:
     Returns ``(start, end, rootname)`` triples where *start* is the fence
     opening line, *end* the fence closing line, and *rootname* the first
     entry of the block when it is one of GENERATABLE_ROOTS (``None`` for
-    any other block, e.g. the root-directory listing).
+    any other block, e.g. the root-directory listing or the ``examples/``
+    block, which stay hand-maintained).
     """
     blocks: list[tuple[int, int, str | None]] = []
     i = 0
@@ -74,6 +133,9 @@ def parse_tree(content: list[str], root: str) -> tuple[dict[str, Any], dict[str,
     ``pu_toolbox/estimators/risk``) to its trailing annotation text.
     An indent-0 bare file entry (a block-leading line that is not the
     root directory) is ignored: it is never reported as missing or stale.
+    A name counts as a file entry when it ends with one of *root*'s
+    suffixes (``GENERATABLE_SUFFIXES``), so the ``docs`` block's ``.md``,
+    ``.png`` and ``.json`` entries are parsed, not dropped.
     """
     tree: dict[str, Any] = {}
     dir_ann: dict[str, str] = {}
@@ -93,7 +155,7 @@ def parse_tree(content: list[str], root: str) -> tuple[dict[str, Any], dict[str,
             stack.append((indent, node, full))
             if len(parts) > 1:
                 dir_ann[full] = parts[1]
-        elif name.endswith(".py"):
+        elif name.endswith(GENERATABLE_SUFFIXES.get(root, ())):
             target = stack[-1][1] if stack else tree
             files = target.setdefault(FILES_KEY, {})
             files[name] = parts[1] if len(parts) > 1 else ""
@@ -131,10 +193,13 @@ def merge_tree(
     Entries present in both keep their old relative order and annotations;
     new directories and files are appended alphabetically. Files on disk
     but absent from the old document are appended with PLACEHOLDER and
-    recorded in *missing* (repo-relative). ``(planned)`` entries that do
-    not exist on disk are kept verbatim. Directory-level ``(planned)``
-    markers are not preserved: only file entries are kept or excluded
-    per ``"(planned)" in ann`` -- real documents do not use this form.
+    recorded in *missing* (repo-relative), unless they sit inside a grouped
+    subtree (``is_grouped``), where the block registers the subtree rather
+    than its files: those are neither emitted nor counted. ``(planned)``
+    entries that do not exist on disk are kept verbatim. Directory-level
+    ``(planned)`` markers are not preserved: only file entries are kept or
+    excluded per ``"(planned)" in ann`` -- real documents do not use this
+    form.
     """
     new_dirs = {k for k in new if k != FILES_KEY}
     new_files = set(new.get(FILES_KEY, {}))
@@ -155,6 +220,8 @@ def merge_tree(
         )
         seen_dirs.add(k)
     for k in sorted(new_dirs - seen_dirs):
+        if is_grouped(f"{path}/{k}" if path else k):
+            continue  # 分组子树的目录不新增:其条目由该子树的索引负责
         out.append("  " * level + k + "/")
         merge_tree(
             {}, new[k], dir_ann, prefix, f"{path}/{k}" if path else k, level + 1, out, missing
@@ -178,10 +245,13 @@ def merge_tree(
         out.append(line)
         seen_files.add(name)
     for name in sorted(new_files - seen_files):
+        rel = f"{path}/{name}" if path else name
+        if is_grouped(rel):
+            continue  # 分组子树下未列出的文件不计入 missing,也不产生占位符
         pad = max(1, COMMENT_COL - level * 2 - len(name) - len(prefix))
         line = "  " * level + name + " " * pad + prefix + PLACEHOLDER
         out.append(line)
-        missing.append(f"{path}/{name}" if path else name)
+        missing.append(rel)
 
 
 def collect_entries(trees: dict[str, Any]) -> set[str]:
@@ -227,16 +297,20 @@ def generate(text: str, disk_files: list[str]) -> tuple[str, list[str], list[str
     """
     lines = text.splitlines()
     blocks = find_blocks(lines)
-    disk_set = {f for f in disk_files if f.endswith(".py") and f.split("/")[0] in GENERATABLE_ROOTS}
+    disk_set = {f for f in disk_files if in_scope(f)}
     out_lines: list[str] = []
     missing: list[str] = []
     stale: list[str] = []
     # A root whose whole tree block is missing must still fail: otherwise
     # deleting an entire block would pass both gates with empty lists.
+    # Grouped subtrees are exempt here too -- the block never lists them
+    # file by file, so their absence from the document is not a gap.
     found_roots = {r for _, _, r in blocks if r is not None}
     for root in GENERATABLE_ROOTS:
         if root not in found_roots:
-            missing.extend(sorted(f for f in disk_set if f.startswith(root + "/")))
+            missing.extend(
+                sorted(f for f in disk_set if f.startswith(root + "/") and not is_grouped(f))
+            )
     i = 0
     while i < len(lines):
         if blocks and blocks[0][0] == i:
@@ -274,13 +348,17 @@ def generate(text: str, disk_files: list[str]) -> tuple[str, list[str], list[str
     return "\n".join(out_lines) + "\n", missing, stale
 
 
-def tracked_py_files() -> list[str]:
-    """Tracked and non-ignored new ``.py`` files relative to the project root.
+def tracked_files() -> list[str]:
+    """Tracked and non-ignored new files of any in-scope suffix, repo-wide.
 
-    Falls back to a directory walk (excluding ``.venv``/``.git``/caches)
-    when ``git`` is unavailable, e.g. in scratch-dir tests. Prefer
-    ``git ls-files`` in the real repository: it excludes ignored files.
+    The suffix union comes from ``GENERATABLE_SUFFIXES``, so adding a root
+    or a suffix widens this enumeration too; callers scope the result to
+    the roots they manage.  Falls back to a directory walk (excluding
+    ``.venv``/``.git``/caches) when ``git`` is unavailable, e.g. in
+    scratch-dir tests. Prefer ``git ls-files`` in the real repository: it
+    excludes ignored files.
     """
+    suffixes = scope_suffixes()
     try:
         proc = subprocess.run(
             ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
@@ -289,7 +367,7 @@ def tracked_py_files() -> list[str]:
             text=True,
             check=True,
         )
-        files = [ln for ln in proc.stdout.splitlines() if ln.endswith(".py")]
+        files = [ln for ln in proc.stdout.splitlines() if ln.endswith(suffixes)]
         if files:
             return sorted(set(files))
     except (subprocess.SubprocessError, FileNotFoundError):
@@ -307,8 +385,10 @@ def tracked_py_files() -> list[str]:
     }
     return sorted(
         str(p.relative_to(PROJECT_ROOT)).replace("\\", "/")
-        for p in PROJECT_ROOT.rglob("*.py")
-        if not any(part in skip for part in p.relative_to(PROJECT_ROOT).parts)
+        for p in PROJECT_ROOT.rglob("*")
+        if p.is_file()
+        and p.suffix in suffixes
+        and not any(part in skip for part in p.relative_to(PROJECT_ROOT).parts)
     )
 
 
@@ -339,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {STRUCTURE_MD} not found", file=sys.stderr)
         return 1
     text = STRUCTURE_MD.read_text(encoding="utf-8")
-    disk = tracked_py_files()
+    disk = tracked_files()
     new_text, missing, stale = generate(text, disk)
     changed = new_text != text
 
