@@ -156,9 +156,12 @@ JSON 对只差 `allow_nan`，在**非有限输入上分道扬镳**：宽容版�
   `np.ascontiguousarray(value)` 再从**返回值**读 shape，而该函数把 0-d 提升为 1-d（`ndmin=1`），
   shape 串由 `[]` 变成 `[1]`；两处 `_array_sha256` 则从**原数组**读 shape。裁定为**取原数组的
   shape**（即 `array_hash` 的语义），理由：其背后已落盘制品更多（`feature_sha256` ×4 +
-  `train_data_sha256`）。该裁定**无任何冻结制品覆盖 0-d 输入**，唯一守卫是
-  `tests/unit/utils/test_content_hashes.py` 的合成用例
-  （`test_edge_array_hash_reads_the_shape_of_the_callers_array`，钉住 0-d 的字面摘要）。
+  `train_data_sha256`）。该裁定**无任何冻结制品覆盖 0-d 输入**，守卫只有
+  `tests/unit/utils/test_content_hashes.py` 的两条合成用例，覆盖两个面：
+  `test_edge_array_hash_reads_the_shape_of_the_callers_array` 钉住 helper 的字面摘要，
+  `test_param_the_public_entry_point_carries_the_same_zero_d_ruling` 钉住**公开入口**
+  （并复现入口改前的配方 `4a95a9fb…d03` 作为阴性对照——只守 helper 时，把入口改回旧配方
+  不会有任何测试变红）。
 - **File-1（文件，3 个实现体）。** `file_hash`（`:83`）是文件字节摘要的唯一配方。
   `experiment/checkpoints.py` 的 `_file_digest`（调点现 `:113`、`:249`）与 `experiment/text.py` 的
   `_file_sha256`（调点现 `:91`、`:122`）**已删**，四处改调 `file_hash`；`experiment/split_archive.py:62`

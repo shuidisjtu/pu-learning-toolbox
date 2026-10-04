@@ -67,14 +67,43 @@ def test_edge_array_hash_reads_the_shape_of_the_callers_array():
     project ruling is that the digest describes the array the caller passed.
     The two ``_array_sha256`` copies this helper replaces behaved this way; the
     ``array_digest`` copy did not, and that is the behaviour this converges
-    away.  No frozen artifact covers 0-d input, so this literal -- captured from
-    the two ``_array_sha256`` implementations before the convergence -- is the
-    only guard.
+    away.  No frozen artifact covers 0-d input, so the ruling rests on the two
+    synthetic cases in this file: this literal, captured from the two
+    ``_array_sha256`` implementations before the convergence, pins the helper,
+    and the delegating-entry test below pins the public name.
     """
     zero_d = np.array(3.5)
     assert zero_d.shape == ()
     assert np.ascontiguousarray(zero_d).shape == (1,), "the promotion this test guards against"
     assert array_hash(zero_d) == "cb4f6a2cea26f9fc45898e0924e00f299aa23f980b8ade1a62256326d9a6fdc8"
+
+
+def test_param_the_public_entry_point_carries_the_same_zero_d_ruling():
+    """``array_digest`` is the name the survey layer calls; it must not drift back.
+
+    Every frozen artifact is >= 2-D, so nothing that runs over them ever reaches
+    the public entry with a 0-d array -- and this entry is the one copy that used
+    to read the shape off the contiguous array.  Reverting it to that recipe
+    changes the digest, and the helper-level literal above would not notice.
+    """
+    from pu_toolbox.experiment.survey_protocol import array_digest
+
+    zero_d = np.array(3.5)
+    converges = "cb4f6a2cea26f9fc45898e0924e00f299aa23f980b8ade1a62256326d9a6fdc8"
+    assert array_digest(zero_d) == array_hash(zero_d)
+    assert array_digest(zero_d) == converges
+
+    # The recipe this entry used before the convergence, transcribed from the
+    # deleted body: contiguous copy first, shape read off that copy.  Pinning its
+    # value keeps the inequality below from passing on a mis-transcription.
+    before = "4a95a9fb28a095d04b5c845608b0543951e44b01fc436f1a7c623e0568b00d03"
+    contiguous = np.ascontiguousarray(zero_d)
+    old_recipe = hashlib.sha256()
+    old_recipe.update(str(contiguous.dtype).encode())
+    old_recipe.update(json.dumps(contiguous.shape).encode())
+    old_recipe.update(contiguous.tobytes())
+    assert old_recipe.hexdigest() == before
+    assert array_digest(zero_d) != old_recipe.hexdigest()
 
 
 def test_edge_file_hash_is_chunk_boundary_independent():
