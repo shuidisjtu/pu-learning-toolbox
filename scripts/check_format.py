@@ -7,6 +7,23 @@ scope the CI workflow uses — so the local gate can never diverge from
 CI again.  (A local commit that skipped ``ruff format --check`` passed
 the 5 legacy gates and then failed the CI format step on 2026-08-09.)
 
+``SCOPE`` is a hand-maintained inventory, and it must stay one: "the
+project's source surface" is a policy decision, not a filesystem fact,
+so no derivation from the tree can reproduce it.  The obvious dynamic
+replacement — enumerate the top-level directories — is *wider*, not
+stricter.  ``data/`` and ``dist/`` are gitignored local-only trees
+(``.gitignore:5`` / ``:68``) that are absent from a CI checkout, yet
+naming them explicitly makes ruff lint them::
+
+    $ printf 'import os\\n' > data/scratch_probe.py     # gitignored scratch file
+    $ uv run ruff check benchmarks data dist docs examples pu_toolbox scripts tests
+     --> data\\scratch_probe.py:1:8       # F401 in a gitignored, local-only tree
+
+That turns the verdict into a function of the working tree, so the same
+commit can fail locally and pass in CI — exactly the divergence this
+gate was written to prevent.  A new top-level source root is therefore
+linted only after it is added to ``SCOPE`` by hand.
+
 Usage::
 
     uv run python scripts/check_format.py

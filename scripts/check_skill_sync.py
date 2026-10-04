@@ -11,6 +11,16 @@ Claude Code extension fields (``argument-hint``, ``user-invocable``,
 ``disable-model-invocation``, ``hooks``, ...) are silently ignored by
 other tools, so adding them would quietly break portability.
 
+``DEFAULT_PATHS`` is a hand-maintained pair and cannot be derived from
+either skills directory: the invariant is a 1:1 correspondence (one
+skill shipped to two tool ecosystems), and no directory listing records
+which copies are meant to mirror each other.  ``.claude/skills/`` holds
+two skills (``dev-workflow``, ``pu-workflow``) while ``.agents/skills/``
+holds one, because a project-local skill has no counterpart to mirror —
+so an enumeration rule ("every ``.claude`` skill needs an ``.agents``
+twin") would report a deliberately unmirrored skill as drift.  Adding a
+skill that *is* mirrored means adding its pair here by hand.
+
 Usage::
 
     uv run python scripts/check_skill_sync.py

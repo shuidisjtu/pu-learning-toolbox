@@ -14,7 +14,10 @@ rendered page:
   emphasis parsing ambiguity) — these must use the ``$`...`$`` form
 
 Scan scope: method cards plus the PU-survey docs (both contain math whose
-GitHub rendering is user-visible).
+GitHub rendering is user-visible), listed in ``SCAN_DIRS``.  This is a
+hand-maintained corpus, not a derived one: a doc tree whose math is
+GitHub-rendered must be added to ``SCAN_DIRS`` by hand, and nothing else
+will pick it up.
 
 Run:  uv run python scripts/check_math_rendering.py
 """
@@ -26,6 +29,12 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+# Scan roots, relative to ``PROJECT_ROOT``.  A module-level constant so it is
+# injectable (tests point it at a corpus of deliberately broken math), and
+# relative rather than pre-resolved so redirecting ``PROJECT_ROOT`` alone is
+# still enough to exercise the empty-scan refusal below.
+SCAN_DIRS = ("docs/research/method_cards", "docs/research/pu_survey")
 
 BLOCK_PAT = re.compile(r"```math\n(.*?)```", re.S)
 INLINE_PAT = re.compile(r"\$`(.*?)`\$|(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)", re.S)
@@ -106,8 +115,9 @@ def check_braces(chunk: str, kind: str, line: int) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    files = sorted((PROJECT_ROOT / "docs" / "research" / "method_cards").glob("*.md"))
-    files += sorted((PROJECT_ROOT / "docs" / "research" / "pu_survey").glob("*.md"))
+    files: list[Path] = []
+    for relative in SCAN_DIRS:
+        files += sorted((PROJECT_ROOT / relative).glob("*.md"))
     if not files:
         print("No method cards found; refusing to pass empty scan.", file=sys.stderr)
         return 1
