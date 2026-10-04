@@ -56,16 +56,18 @@
 - [ ] **对稳定模块冻结重构范围**。现状：[`architecture_principles.md`](architecture_principles.md)
   §4 已有「稳定模块标识」原则（长期无提交视为稳定、不迁移不重构），但没有稳定模块清单，
   冻结范围未落到具体模块。
-- [ ] **复核门禁本身：能否失败、是否误报、是否覆盖新增文件**。勘察线索（2026-10-04 实测，
-  **均未裁定**，不等于缺陷判定）：
-  - `scripts/check_api_docs.py` 不在 `README.md` 的门禁块、也不在
-    `../../.github/workflows/tests.yml` 的步骤里，但被 [`process_checklist.md`](process_checklist.md)
-    的「质量门禁」一行计入；
-  - `scripts/check_survey_recipe_registry.py` 已登记 README 并自陈未接入 CI（属已声明的范围，
-    不是漏登记）；
+- [ ] **复核门禁本身：能否失败、是否误报、是否覆盖新增文件**。已查处并修掉一处（2026-10-04）：
+  注册点不成对——`scripts/check_api_docs.py` 的**两个注册点都不在**（它只活在自己的 docstring、
+  项目 `CLAUDE.md` 与 [`process_checklist.md`](process_checklist.md) 的门禁统计里），而
+  `scripts/generate_structure.py --check` 只在 README、不在 CI；两者现都补齐到 README 与 CI 的
+  quality job，那行手工门禁统计（含计数、与两处都不一致）改为指向 README/CI。**仍开口**：
+  - `scripts/check_survey_recipe_registry.py` 未接入 CI 属**自陈范围**（README 已注明），
+    不是漏登记；
   - `scripts/generate_structure.py` 的生成范围只含 `pu_toolbox/`、`tests/`、`scripts/`
-    （`GENERATABLE_ROOTS`，且只收 `.py`），`project_structure.md` §5 的 `docs/` 树块不在其中。
-    该块曾与磁盘脱节（`dev/` 缺 4 篇、`user/` 缺 5 篇、`research/` 缺 2 篇方法卡；树内无
-    过期名），已按「如实写明范围」的方式修掉：这几处补全到与磁盘一致，`research/pu_survey/`
-    与 `adr/` 保持分组并指向各自索引，范围写进 §5。**仍开口**：`docs/` 是否也纳入生成器——
-    生成器当前按后缀收文件（`.py`），要覆盖 `docs/` 须先泛化这一口径。
+    （`GENERATABLE_ROOTS`，且只收 `.py`）；`project_structure.md` §5 的 `docs/` 树块因此只有
+    **单向门禁**——`check_doc_links`（其反向检查只跑那三个根）会报「列出了但磁盘上没有」，
+    **不报「在库却没列出」**，这正是它能悄悄脱节的原因：实测树内无过期名，却缺 11 篇在库文档
+    （`dev/` 4、`user/` 5、`research/` 2 篇方法卡）。已按「如实写明范围」的方式修掉：这 11 处
+    补全到与磁盘一致，`research/pu_survey/` 与 `adr/` 保持分组并指向各自索引，范围写进 §5。
+    **仍开口**：要不要给 `docs/` 补上反向门禁——生成器当前按后缀收文件（`.py`），要覆盖
+    `docs/` 须先泛化这一口径。

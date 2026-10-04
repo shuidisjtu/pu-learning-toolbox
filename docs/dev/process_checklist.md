@@ -53,7 +53,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 ### 收尾统计
 
 - **算法**：21 个已注册方法，全部 native 实现
-- **质量门禁**：8 道（test_quality / doc_links / project_metadata / math_rendering / api_docs / skill_sync / baseline_configs / format）
+- **质量门禁**：清单见 [README](../../README.md) 的 Quality gates 与 CI 的 quality job
 - **v1 范围外**：Phase 2 三个经典包装器 + TIcE/AlphaMax 类先验估计
 - **依赖外部**：Phase 3 官方历史环境、WConPU CUDA/授权数据、DGPU EDM/CelebA 全量运行
 

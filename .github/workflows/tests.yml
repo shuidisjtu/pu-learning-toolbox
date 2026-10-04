@@ -78,6 +78,9 @@ jobs:
       - name: Doc consistency check
         run: uv run --python "3.11" python scripts/check_doc_links.py
 
+      - name: API reference coverage gate
+        run: uv run --python "3.11" python scripts/check_api_docs.py
+
       - name: Project metadata consistency check
         run: uv run --python "3.11" python scripts/check_project_metadata.py
 
@@ -92,6 +95,9 @@ jobs:
 
       - name: Comment quality gate
         run: uv run --python "3.11" python scripts/check_comment_quality.py
+
+      - name: Structure document consistency check
+        run: uv run --python "3.11" python scripts/generate_structure.py --check
 
       - name: Layer dependency table consistency
         run: uv run --python "3.11" python scripts/generate_layer_deps.py --check

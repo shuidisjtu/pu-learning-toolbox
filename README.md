@@ -181,6 +181,7 @@ uv run ruff format --check pu_toolbox/      # format check
 # Quality gates
 uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
+uv run python scripts/check_api_docs.py       # api.md covers every public symbol (anti-drift)
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
