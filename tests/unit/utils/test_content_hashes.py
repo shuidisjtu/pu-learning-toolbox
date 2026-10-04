@@ -51,8 +51,9 @@ def test_param_array_hash_matches_every_encoding_it_replaced():
     for label, values in cases.items():
         reference = hashlib.sha256()
         reference.update(str(values.dtype).encode())
-        # ``json.dumps`` writes ``[3, 4]`` with a space; ``str(list(shape))`` does
-        # not match it, which is why the shape goes through the same encoder.
+        # Same encoder as the implementation, byte for byte: ``json.dumps`` emits
+        # the ``", "`` separator, and a space-stripped rewrite of the shape -- a
+        # `str(list(shape)).replace(" ", "")`, say -- would check a different recipe.
         reference.update(json.dumps(values.shape).encode())
         reference.update(np.ascontiguousarray(values).tobytes())
         assert array_hash(values) == reference.hexdigest(), label
