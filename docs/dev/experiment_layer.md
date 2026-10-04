@@ -134,9 +134,9 @@ clean 视图（PN oracle）运行里，`pu_val_view` 携带的是真实标签，
 
 **与通用层的边界（2026-10-04 复核）**：实验层的跨层依赖为——**模块级只有 Core**（`core/`、`utils/`）；
 **函数内另有** Core（`registry/`）、Evaluation（`metrics/`，`runner.py:751`）、**Algorithms**
-（`estimators/`，`experiment/image.py:223`、`:243`）。这与 `architecture.md:87` 的生成行
-（`Experiment（experiment/）| Core、Algorithms（仅函数内）、Evaluation（仅函数内）`）一致。
-数据画像、advisor 推荐、PU 感知切分与 `PUPipeline` 编排都**没有**被复制。
+（`estimators/`，`experiment/image.py:223`、`:243`）。这与 `architecture.md:87` 的生成行一致：
+`Experiment` 层的依赖为 **Core、Algorithms（仅函数内）、Evaluation（仅函数内）**（该行在生成块内、勿手改）。
+数据画像、advisor 推荐、PU 感知 CV 与 `PUPipeline` 编排都**没有**被复制（与下文第 ③ 项不冲突：`_stratified_split` 切的是干净标签、且实验层对 `model_selection` 零 import）。
 三处「看似重复」的实现及判定：① `survey_execution.py` 的 `PilotOracleMLP` 手写训练循环——
 **不算泄漏**（oracle 基线不是已注册算法，进 `estimators/` 会污染算法谱系）；② 报告组装
 （`survey_summary.py` / `survey_comparison.py` / `survey_provenance.py`）——**不算泄漏**

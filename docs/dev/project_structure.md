@@ -469,7 +469,7 @@ tests/
 
 **测试分层与选择口径（2026-10-04 复核）**：通用层与实验层按**目录**分开——`tests/unit/experiment/`
 是实验层侧（71 个测试文件，其中 36 个为 `test_survey_*`，其余测实验层自身机制：runner / protocols /
-bundle / manifest / tracking / trainers / strategies）。**选择口径不分层**：该目录内所有文件都标
+bundle / manifest / tracking / trainers / strategies）。**选择口径不分层**：该目录内所有测试文件都标
 `pytest.mark.unit`，没有 survey 之类的分区标记，CI 也不按路径过滤（口径见 `compatibility.md` §4）。
 故「将通用算法测试和 Survey 协议测试分开」在**目录粒度成立**、在**选择粒度不成立**
 （引号内措辞与 `governance_backlog.md` 对方案任务 5 的转抄保持一致，用「和」不用「与」）。

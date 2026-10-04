@@ -37,8 +37,10 @@ torch 的训练路径或 PUSB benchmark 的 uLSIF 对照时，再提供明确安
 
 **基础导入的可选依赖口径（2026-10-04 复核）**：判据是「**本包自身的 import 语句不引入可选依赖**」——
 实测屏蔽 `torch`/`torchvision`/`streamlit` 后 `import pu_toolbox` 成功；本包零**无条件**
-module-level `import torch`（唯一一处在 `pu_toolbox/estimators/deep/vision.py:11` 的 `try:` 内、
-带 `except ImportError` 兜底——写「零 module-level import」会被字面读成「一行都没有」，故收紧措辞）。
+module-level `import torch`——模块作用域里出现 `torch` 的只有两处，且都不可无条件执行：
+可执行的那一处在 `pu_toolbox/estimators/deep/vision.py:11` 的 `try:` 内（`from torch import nn`，
+带 `except ImportError` 兜底）；另一处 `pu_toolbox/core/device.py:8` 的 `import torch` 在
+`if TYPE_CHECKING:` 下、运行时不执行（写「只有一处」会被 AST 复核证伪，故写明两处）。
 **本判据不覆盖**「装了可选依赖时基础导入不加载它」：装了 `torch` 时，根包的伞形 re-export 命中
 `try` 分支而加载 torch（`torch/hub.py` 再带入 `tqdm`），实验层本身与其 research 依赖
 （`densratio`/`lightning`/`sentence_transformers`）**不加载**。要把口径收紧到后者，须把根包
