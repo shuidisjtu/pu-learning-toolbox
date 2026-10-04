@@ -43,6 +43,15 @@ from .registry import register_method
 # the code-side source of truth for algorithm metadata.
 # ═════════════════════════════════════════════════════════════════════
 
+# NOTE: a bound entry must NOT repeat the fields its estimator class declares --
+# the class is the source, and `_sync_class_metadata_to_registry` overwrites the
+# literal at registration, so a literal there is computed and then discarded.
+# An entry with no bound class (`api_only`) is the opposite: the literal IS the
+# source, so it must declare all eight entry fields (the `_SYNC_FIELDS` members
+# that entries carry).
+# `tests/test_builtin_methods.py::test_static_entries_do_not_redeclare_class_fields`
+# enforces both halves.
+
 _BUILTIN: list[AlgorithmMetadata] = [
     # ── 1. Class-Prior Estimation ──────────────────────────────────
     AlgorithmMetadata(
@@ -72,17 +81,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="recpe",
         aliases=["re_cpe", "rethinking_cpe"],
-        family=Fam.CLASS_PRIOR_ESTIMATION,
         paper="Rethinking Class-Prior Estimation for Positive-Unlabeled Learning",
-        scenario=[Scn.SINGLE_TRAINING_SET, Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,
-        maturity=Maturity.STABLE,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning",
         license="MIT",
         training_cost=Cost.LOW,  # convex scipy solve
@@ -91,17 +92,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="elkan_noto",
         aliases=["en", "elkan-noto", "elkan_noto_calibration"],
-        family=Fam.CLASSIC_CALIBRATION,
         paper="Learning Classifiers from Only Positive and Unlabeled Data",
-        scenario=[Scn.SINGLE_TRAINING_SET],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.SKLEARN,
-        maturity=Maturity.STABLE,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.THIRD_PARTY_ONLY,
         upstream_url="https://github.com/pulearn/pulearn",
         license="BSD-3-Clause",
         training_cost=Cost.LOW,  # sklearn LogisticRegression wrapper
@@ -110,17 +103,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="upu",
         aliases=["convex_pu", "unbiased_pu", "u-pu"],
-        family=Fam.RISK_ESTIMATION,
         paper="Convex Formulation for Learning from Positive and Unlabeled Data",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,  # constructor-required pi; must match class attr
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,
-        maturity=Maturity.STABLE,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_BUNDLE,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
         license="MIT",
         training_cost=Cost.LOW,  # convex objective, scipy minimize
@@ -129,17 +114,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="nnpu",
         aliases=["non_negative_pu", "nn-pu", "nnPU"],
-        family=Fam.RISK_ESTIMATION,
         paper="Positive-Unlabeled Learning with Non-Negative Risk Estimator",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.STABLE,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/kiryor/nnPUlearning",
         license="MIT",
         training_cost=Cost.MEDIUM,  # torch, fixed 200 epochs
@@ -148,20 +125,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="pnu",
         aliases=["pnu_classifier", "pn-pu-nu"],
-        family=Fam.RISK_ESTIMATION,
         paper=(
             "Semi-supervised Classification Based on Classification "
             "from Positive and Unlabeled Data"
         ),
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/t-sakai-kure/pywsl",
         license="MIT",
         training_cost=Cost.LOW,  # closed-form linear solve
@@ -170,17 +139,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="centroid_pu",
         aliases=["ldce", "centroid_estimation"],
-        family=Fam.RISK_ESTIMATION,
         paper="Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning",
-        scenario=[Scn.SINGLE_TRAINING_SET],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
         license="unknown",
         training_cost=Cost.MEDIUM,  # fixed 10000-iteration alternating scheme
@@ -188,20 +149,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="kldce",
         aliases=["kernelized_ldce"],
-        family=Fam.RISK_ESTIMATION,
         paper=(
             "Loss Decomposition and Centroid Estimation for Positive and "
             "Unlabeled Learning (kernelized version, RBF)"
         ),
-        scenario=[Scn.SINGLE_TRAINING_SET],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
         license="unknown",
         training_cost=Cost.MEDIUM,  # 100 iterations, QP oracle on RBF
@@ -210,20 +163,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="llsvm",
         aliases=["large_margin_svm", "label_calibrated_svm"],
-        family=Fam.RISK_ESTIMATION,
         paper=(
             "Large-Margin Label-Calibrated Support Vector Machines "
             "for Positive and Unlabeled Learning"
         ),
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR, Asm.SAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LLSVM_TNNLS19.rar",
         license="unknown",
         training_cost=Cost.HIGH,  # fixed 3000-epoch non-convex SGD
@@ -232,17 +177,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="dist_pu",
         aliases=["distribution_pu", "distpu"],
-        family=Fam.RISK_ESTIMATION,
         paper="Dist-PU: Positive-Unlabeled Learning from a Label Distribution Perspective",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
         license="MIT",
         training_cost=Cost.MEDIUM,  # torch, 100 epochs
@@ -251,17 +188,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="vpu",
         aliases=["variational_pu"],
-        family=Fam.RISK_ESTIMATION,
         paper="A Variational Approach for Learning from Positive and Unlabeled Data",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://github.com/HC-Feynman/vpu",
         license="MIT",
         training_cost=Cost.MEDIUM,
@@ -270,17 +199,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="pulda",
         aliases=["label_distribution_alignment"],
-        family=Fam.RISK_ESTIMATION,
         paper="Positive-Unlabeled Learning with Label Distribution Alignment",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://github.com/jiangyangby/PULDA",
         license="MIT",
         training_cost=Cost.HIGH,
@@ -289,17 +210,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="pusb",
         aliases=["biased_pu", "selection_bias_pu", "nnPUSB"],
-        family=Fam.BIAS_AWARE,
         paper="Learning from Positive and Unlabeled Data with a Selection Bias",
-        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
-        assumption=[Asm.SAR],
         requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.SKLEARN,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/MasaKat0/PUlearning",
         license="MIT",
         training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000
@@ -308,20 +222,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="pusb_kernel",
         aliases=["kernelized_pusb"],
-        family=Fam.BIAS_AWARE,
         paper=(
             "Learning from Positive and Unlabeled Data with a Selection "
             "Bias (kernelized version, RBF)"
         ),
-        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
-        assumption=[Asm.SAR],
-        requires_class_prior=True,  # official RBF scoring needs pi (Method Card §7.3)
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,  # scipy BFGS + numpy RBF design matrix
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_RELATED,  # clean-room, mirrors KLDCE convention
         upstream_url="https://github.com/MasaKat0/PUlearning",
         license="MIT",
         training_cost=Cost.HIGH,  # full (sigma x reg) grid CV + refit
@@ -330,17 +236,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="lbe",
         aliases=["labeling_bias", "labeling_bias_estimation"],
-        family=Fam.BIAS_AWARE,
         paper="Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
-        scenario=[Scn.SINGLE_TRAINING_SET, Scn.SELECTION_BIASED],
-        assumption=[Asm.SAR],
         requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.SKLEARN,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
         license="needs_review",
         training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000 + EM loop
@@ -349,17 +248,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="self_pu",
         aliases=["self_pu_classifier"],
-        family=Fam.DEEP_PU,
         paper="Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/VITA-Group/Self-PU",
         license="MIT",
         training_cost=Cost.MEDIUM,  # torch, 200 epochs
@@ -368,17 +259,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="infomax_pu",
         aliases=["information_theoretic_pu", "pu_representation"],
-        family=Fam.DEEP_PU,
         paper="Information-Theoretic Representation Learning for Positive-Unlabeled Classification",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
         training_cost=Cost.HIGH,  # torch, ~600 epochs (two-stage)
@@ -387,20 +270,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="weighted_contrastive_pu",
         aliases=["wcon_pu", "wconpu", "contrastive_pu"],
-        family=Fam.DEEP_PU,
         paper=(
             "Weighted Contrastive Learning with Hard Negative Mining "
             "for Positive and Unlabeled Learning"
         ),
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.RESEARCH,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
         training_cost=Cost.HIGH,  # torch, 100 epochs
@@ -409,17 +284,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="dgpu",
         aliases=["discriminative_generative_pu"],
-        family=Fam.DEEP_PU,
         paper="Discriminative-Generative Positive and Unlabeled Learning",
-        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
-        assumption=[Asm.SCAR, Asm.SAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
         training_cost=Cost.MEDIUM,  # torch, 200 epochs + generative sampling
@@ -428,17 +295,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="gradpu",
         aliases=["grad_pu"],
-        family=Fam.DEEP_PU,
         paper="GradPU: Positive-Unlabeled Learning via Gradient Penalty and Positive Upweighting",
-        scenario=[Scn.CASE_CONTROL, Scn.SELECTION_BIASED],
-        assumption=[Asm.SCAR, Asm.SAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.NOT_FOUND,
         upstream_url=None,
         license=None,
         training_cost=Cost.HIGH,  # second-order input-gradient penalty
@@ -447,20 +306,12 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="puet",
         aliases=["pu_extra_trees"],
-        family=Fam.RISK_ESTIMATION,
         paper=(
             "Positive-Unlabeled Learning using Random Forests "
             "via Recursive Greedy Risk Minimization"
         ),
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=False,
-        backend=Backend.NUMPY,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_RELATED,
         upstream_url="https://github.com/jonathanwilton/PUExtraTrees",
         license="MIT",
         training_cost=Cost.HIGH,  # default 100-tree CPU forest
@@ -468,17 +319,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="robust_pu",
         aliases=["robust-pu"],
-        family=Fam.DEEP_PU,
         paper="Robust Positive-Unlabeled Learning via Noise Negative Sample Self-correction",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/woriazzc/Robust-PU",
         license="unknown",
         training_cost=Cost.HIGH,
@@ -486,17 +329,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="split_pu",
         aliases=["split-pu"],
-        family=Fam.DEEP_PU,
         paper="Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/loadder/SplitPU_MM2022",
         license="unknown",
         training_cost=Cost.HIGH,
@@ -504,18 +339,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
     AlgorithmMetadata(
         name="lagam",
         aliases=["la_gam"],
-        family=Fam.DEEP_PU,
         paper="Positive-Unlabeled Learning by Latent Group-Aware Meta Disambiguation",
-        scenario=[Scn.CASE_CONTROL],
-        assumption=[Asm.SCAR],
-        requires_class_prior=False,
         requires_clean_support=True,
         supports_sparse=False,
         supports_gpu=True,
-        backend=Backend.TORCH,
-        maturity=Maturity.EXPERIMENTAL,
-        implementation_status=Impl.NATIVE,
-        source_status=Src.OFFICIAL_EXACT,
         upstream_url="https://github.com/llong-cs/LaGAM",
         license="unknown",
         training_cost=Cost.HIGH,
