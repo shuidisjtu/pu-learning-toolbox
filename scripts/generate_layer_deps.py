@@ -8,9 +8,9 @@ that table was hand-written, and it had drifted -- five classes of edges were
 missing or contradicted (see the stage-4 audit row in the same §5 table).
 
 The block between the BEGIN/END markers is a pure function of the source tree:
-every layer-to-layer edge is measured with ``ast``, so the table cannot record
-anything the code does not do.  ``--check`` fails when the document differs from
-what the code says.
+every layer-to-layer edge that an ``import`` statement creates is measured with
+``ast``, so the table cannot record anything the code does not do.  ``--check``
+fails when the document differs from what the code says.
 
 Facts live in the block; judgement does not.  Which reverse edges have been
 ruled acceptable, and why, is policy: it is written in the hand-written prose
@@ -18,7 +18,11 @@ ruled acceptable, and why, is policy: it is written in the hand-written prose
 
 Coverage boundary, stated rather than implied: this block covers **layer-to-layer**
 edges only.  Edges *within* a layer, and import cycles, are not generated here --
-they are corrected in prose and re-checked by hand.
+they are corrected in prose and re-checked by hand.  Neither is an edge created
+by a *string*-based dynamic import (``importlib.import_module``): reading text with
+``ast`` cannot resolve it.  There is one such edge today -- ``registry`` reaching
+``estimators``/``prior`` -- and it is recorded as a ruled exception in
+architecture.md §2.1 rather than here.
 
 Excluded from the measurement: the package facade (``pu_toolbox/__init__.py``)
 and the top-level helper modules (``pu_toolbox/progress.py``,

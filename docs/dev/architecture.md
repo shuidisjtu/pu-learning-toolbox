@@ -96,7 +96,7 @@
 `diagnostics/sensitivity.py` 依赖 `metrics`，`diagnostics/shift_monitor.py` 依赖
 `diagnostics.shift`。此外全包有两条**层内**环，均需函数内导入才能成环、故普通（模块加载期）导入图看不出：
 `estimators/risk/kldce.py` ↔ `kldce_smo.py`，以及 `experiment/survey_execution.py` ↔
-`survey_protocol.py`。**无跨层导入环**（层图上 `Evaluation` ↔ `Orchestration` 那对互边，即下方「依赖方向的已裁决例外」第 2 条）。
+`survey_protocol.py`。**无跨层导入环**（层图上 `Evaluation` 与 `Orchestration` 互为对方的目标，其中向上的那半——`Evaluation → Orchestration`——即下方「依赖方向的已裁决例外」第 2 条；反向是正常边）。
 
 **未归层的顶层文件（如实登记）**：`pu_toolbox/__init__.py`（伞形 re-export 门面）、
 `pu_toolbox/run_config.py`、`pu_toolbox/progress.py` 不属于任何一层，故不参与上表的测量。
