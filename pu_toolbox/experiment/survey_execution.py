@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-from ..utils.serialization import json_scalars
+from ..utils.serialization import array_hash, json_scalars
 from .bundle import DatasetBundle, validate_bundle
 from .feature_adapter import _encoder_state_sha256, adapt_image_bundle_to_features
 from .image import (
@@ -216,8 +216,6 @@ def cached_adapter(
     )
     entry = None if cache_dir is None else Path(cache_dir) / cache_key
     if entry is not None and entry.exists():
-        from .feature_adapter import _array_sha256
-
         manifest = json.loads((entry / "adapter.json").read_text(encoding="utf-8"))
         if manifest.get("cache_key") != cache_key or manifest[
             "encoder_state_sha256"
@@ -225,7 +223,7 @@ def cached_adapter(
             raise ValueError("adapter cache encoder/key mismatch")
         with np.load(entry / "features.npz", allow_pickle=False) as payload:
             features = {role: payload[role] for role in ROLES}
-        if any(_array_sha256(features[role]) != manifest["feature_sha256"][role] for role in ROLES):
+        if any(array_hash(features[role]) != manifest["feature_sha256"][role] for role in ROLES):
             raise ValueError("adapter cache feature hash mismatch")
         adapted = DatasetBundle(
             **{role: replace(getattr(bundle, role), X=features[role]) for role in ROLES}

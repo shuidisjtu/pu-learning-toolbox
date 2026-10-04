@@ -8,8 +8,9 @@
 > 其行号仍指 `f1182ec` 基线；已更新行的行号按**其权威源当前形态**重取，并标注能复现这些行号
 > 的那一笔提交——它通常是本行的收敛提交（如「训练视图」，锚 `d5ebd57`）；若权威源在被重取之前
 > 已由更早一笔定形、此后未再改动，则锚定形它的那一笔。当前「训练视图」「JSON 安全转换」
-> 「哈希」三行已更新：后两行的权威源同在 `pu_toolbox/utils/serialization.py`，均按 `9fe2004`
-> 重取（`strict_canonical_hash` 在那笔落地，把 `json_safe` / `json_scalars` 一并下移）。**发现重复不等于
+> 「哈希」三行已更新：后两行的权威源同在 `pu_toolbox/utils/serialization.py`，均按 `0f40217`
+> 重取（该笔把 `array_hash` / `file_hash` 并入该模块，令 JSON 对与 `json_safe` / `json_scalars`
+> 一并下移；`strict_canonical_hash` 则在更早的 `9fe2004` 落地）。**发现重复不等于
 > 已收敛**——其余各行只记录基线现状，迁移在后续批次；本表整体并非当前快照。
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
@@ -17,8 +18,8 @@
 | 标签语义 | `pu_toolbox/core/labels.py:92` `normalize_pu_labels` / `:145` `normalize_pnu_labels`；字面值在 `pu_toolbox/core/config.py:8`-`:10` | `core/validation.py`（`validate_pu_X_y` / `validate_pnu_X_y` 的前置归一）、`metrics/classification.py`、`preprocessing/`、`model_selection/split.py`、`diagnostics/`、`workflows/shift.py`、`estimators/deep/self_pu.py`、`estimators/risk/nnpu.py`、`estimators/risk/vpu.py` | 无 | 单一 |
 | 设备 | `pu_toolbox/core/device.py:11` `resolve_device_name` / `:29` `resolve_device` | 14 个 torch 估计器（`estimators/deep/*`、`estimators/risk/{dist_pu,nnpu,pulda,vpu}.py`、`estimators/research/*`）、`workflows/pipeline.py:431`、`workflows/_reporting.py:91` | 无 | 单一 |
 | 随机源 | `pu_toolbox/core/random.py:8` `check_random_state` | `experiment/strategies.py`、`preprocessing/pu_labeling.py`、`preprocessing/selection_bias.py` | 无 | 重复（可收敛） |
-| JSON 安全转换 | `pu_toolbox/utils/serialization.py:56` `json_safe`（宽容，报告载荷）与 `:71` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
-| 哈希 | `pu_toolbox/utils/serialization.py:34` `canonical_hash`（宽容，`allow_nan` 默认——报告与清单载荷）与 `:40` `strict_canonical_hash`（严格，`allow_nan=False`——制品身份）——**两者不是同一概念，不合并** | `canonical_hash`：`diagnostics/benchmark.py`、`experiment/{datasets,split_archive,strategies,image,training_views}.py`；`strict_canonical_hash`：`experiment/{feature_adapter,survey_protocol,survey_comparison}.py` | `survey_protocol.digest`、`survey_comparison.comparison_digest`（**只改委托、不改名**的公开入口） | 单一 |
+| JSON 安全转换 | `pu_toolbox/utils/serialization.py:92` `json_safe`（宽容，报告载荷）与 `:107` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
+| 哈希 | `pu_toolbox/utils/serialization.py` 的**一组三族**：`:41` `canonical_hash`（宽容，`allow_nan` 默认——报告与清单载荷）与 `:47` `strict_canonical_hash`（严格，`allow_nan=False`——制品身份）为一族，**两者不是同一概念，不合并**；`:67` `array_hash`（数组 dtype/shape/字节）与 `:83` `file_hash`（文件字节，流式）各为一族 | `canonical_hash`：`diagnostics/benchmark.py`、`experiment/{datasets,split_archive,strategies,image,training_views}.py`；`strict_canonical_hash`：`experiment/{feature_adapter,survey_protocol,survey_comparison}.py`；`array_hash`：`experiment/{feature_adapter,image,survey_execution}.py`，并经公开名 `survey_protocol.array_digest` 供 `experiment/survey_execution.py` 与 `experiment/survey_protocol.py` 消费；`file_hash`：`experiment/{checkpoints,text}.py`，并经公开名 `split_archive.file_sha256` 供 `experiment/split_archive.py` 与 `tests/` 消费 | `survey_protocol.digest`、`survey_comparison.comparison_digest`、`survey_protocol.array_digest`、`split_archive.file_sha256`（**只改委托、不改名**的公开入口） | 单一 |
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
 | 训练视图 | `pu_toolbox/core/training_views.py:120` `build_training_view`；角色词表 `:42` `ViewRole` + `:48` `ROLES`；视图词表 `:38` `RunView` + `:47` `RUN_VIEWS`（运行时元组由 `get_args` 派生） | `estimators/risk/{vpu,upu,nnpu,dist_pu}.py`、`estimators/bias_aware/pusb_kernel.py`、`estimators/deep/self_pu.py`、`experiment/` 各消费者、`scripts/{run_survey_experiment,run_survey_pilot,prepare_survey_splits}.py`；另有三项词表与两处子集未并（不同概念，见说明） | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 单一（角色名与 os/ts 视图；未并项见说明） |
@@ -88,19 +89,24 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
 
 ### 哈希
 
-**已收敛（单一）。** 权威源是 `utils/serialization.py` 的**一对**函数，二者**不是同一概念，不合并**，
-与上文「JSON 安全转换」的 `json_safe` / `json_scalars` 对偶同构（行号锚 `9fe2004`，严格版即在那笔落地）：
+**已收敛（单一）。** 权威源是 `utils/serialization.py` 的**一组三族**，三族**不是同一概念，不合并**。
+JSON 对与上文「JSON 安全转换」的 `json_safe` / `json_scalars` 对偶同构（行号锚 `0f40217`，
+`strict_canonical_hash` 落地于更早的 `9fe2004`）：
 
-- `:34` `canonical_hash`——**宽容**（`allow_nan` 默认），用于**报告与清单载荷**：报告要么写得出去，
+- `:41` `canonical_hash`——**宽容**（`allow_nan` 默认），用于**报告与清单载荷**：报告要么写得出去，
   写 `NaN` 是想要的，故它不拒绝非有限浮点。
-- `:40` `strict_canonical_hash`——**严格**（`allow_nan=False`），用于**制品身份摘要**（`split_sha256`、
+- `:47` `strict_canonical_hash`——**严格**（`allow_nan=False`），用于**制品身份摘要**（`split_sha256`、
   `cache_key`、`protocol_sha256` 这类字段）：写不出去的数要先拒绝，否则摘要会在无人选择的情况下改变。
+- `:67` `array_hash`——数组的 dtype / shape / 字节摘要，供 `feature_sha256`、`train_data_sha256`
+  这类**制品身份**使用。
+- `:83` `file_hash`——文件字节的流式摘要（1 MiB 分块，`_FILE_CHUNK_BYTES`），供 `cache_sha256`、
+  `manifest_sha256` 使用。
 
-两者只差 `allow_nan`，在**非有限输入上分道扬镳**：宽容版写 `NaN`/`Infinity`（非严格 JSON），严格版抛
+JSON 对只差 `allow_nan`，在**非有限输入上分道扬镳**：宽容版写 `NaN`/`Infinity`（非严格 JSON），严格版抛
 `ValueError`。并成带开关的一个名字，就是**把两个契约塞进一个名字**——同 E2 对 `json_safe` /
 `json_scalars` 的裁定。
 
-**本批收敛 6 个实现体（3 个 G1 + 3 个 G2）到这两个具名函数。**
+**E3a 收敛 6 个实现体（3 个 G1 + 3 个 G2）到 JSON 对。**
 
 - G1（严格，3 个）：`experiment/feature_adapter.py` 的 `_json_sha256`（已删）、
   `experiment/survey_protocol.py` 的 `digest`、`experiment/survey_comparison.py` 的
@@ -125,26 +131,66 @@ dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该�
   `_validate_binding` / `comparison_context` / `build_comparison_report`）、
   `experiment/survey_recipe_registry.py`、`experiment/survey_execution.py`。
 - G2（`canonical_hash` 直接调用）：`diagnostics/benchmark.py`、`experiment/datasets.py`、
-  `experiment/split_archive.py`、`experiment/strategies.py`，以及本批新增的 `experiment/image.py`
+  `experiment/split_archive.py`、`experiment/strategies.py`，以及 E3a 新增的 `experiment/image.py`
   与 `experiment/training_views.py`。
 
 `canonical_hash` 另有 `benchmarks/` 侧消费者：它们经 `benchmarks/_common.py` 的兼容 re-export
 （该模块重新导出它并列入自身 `__all__`）使用，不在上列 `pu_toolbox/` 口径内。
 
-**知情保留（第三种语义，一处）。** `experiment/text.py:206` 的 `_json_sha256` **一字未动**：它多一个
+**知情保留（第三种语义，一处）。** `experiment/text.py:208` 的 `_json_sha256` **一字未动**：它多一个
 `ensure_ascii=False`（并以 utf-8 编码），在**含非 ASCII 码点**的语料上摘要与上两者都不同，且其产物
 `cache_key` **直接是缓存文件名**——改它会让已记录的 `texts_sha256` 与本地文本缓存失效，属破坏性兼容
 变更。也不为此加 `ensure_ascii` 开关：把第三个语义并成一个带开关的名字，与上文两条对偶的裁决同理。
+**勿与 File-1 的 `_file_sha256` 混淆**：后者是同文件里的**文件**摘要（E3b 已删、去向 `file_hash`），
+而这条是 **JSON** 摘要，两者正交。
 
-**未并（另一族，非重复）。** `_array_sha256` 两份（`experiment/feature_adapter.py` 与
-`experiment/image.py`）与公开的 `experiment/survey_protocol.py:187` `array_digest` 用同一配方
-哈希**数组 dtype、shape 与字节**，不是 JSON 规范形式，不属本族，本批不动；是否收敛留给批次 E3b。
+**E3b 把两组二进制内容摘要各收敛到一个 helper（`array_hash` / `file_hash`）。**
 
-**收敛判据。** 模式 `grep -rn 'def _json_sha256\|def _survey_digest\|def canonical_hash'
+- **Arr-1（数组，3 个实现体）。** `array_hash`（`:67`）是数组摘要的唯一配方。
+  `experiment/feature_adapter.py` 的 `_array_sha256`（调点现 `:161`）与 `experiment/image.py` 的
+  `_array_sha256`（调点现 `:159`）**已删**，两处改调 `array_hash`；`experiment/survey_protocol.py:186`
+  的公开名 `array_digest` **留名改委托**（`return array_hash(value)`）。`experiment/survey_execution.py`
+  原有一行**函数内** `from .feature_adapter import _array_sha256`（`:219`）与其唯一调用点（现 `:226`）：
+  函数内导入已删，调用改调模块级 `array_hash`（该模块本就模块级 import 同包，上提不引入环）。
+- **0-d 分叉与裁定。** 三个数组实现**并非逐行同构**：`survey_protocol.array_digest` 先
+  `np.ascontiguousarray(value)` 再从**返回值**读 shape，而该函数把 0-d 提升为 1-d（`ndmin=1`），
+  shape 串由 `[]` 变成 `[1]`；两处 `_array_sha256` 则从**原数组**读 shape。裁定为**取原数组的
+  shape**（即 `array_hash` 的语义），理由：其背后已落盘制品更多（`feature_sha256` ×4 +
+  `train_data_sha256`）。该裁定**无任何冻结制品覆盖 0-d 输入**，唯一守卫是
+  `tests/unit/utils/test_content_hashes.py` 的合成用例
+  （`test_edge_array_hash_reads_the_shape_of_the_callers_array`，钉住 0-d 的字面摘要）。
+- **File-1（文件，3 个实现体）。** `file_hash`（`:83`）是文件字节摘要的唯一配方。
+  `experiment/checkpoints.py` 的 `_file_digest`（调点现 `:113`、`:249`）与 `experiment/text.py` 的
+  `_file_sha256`（调点现 `:91`、`:122`）**已删**，四处改调 `file_hash`；`experiment/split_archive.py:62`
+  的公开名 `file_sha256` **留名改委托**（`return file_hash(path)`），其 5 个内部调用点
+  （现 `:121`、`:130`、`:208`、`:271`、`:395`）引用模块全局名不变，故
+  `tests/unit/experiment/test_split_archive.py:198` 对该全局名的 monkeypatch 仍生效。
+
+**两个公开委托名及其消费者（E3b）。** `survey_protocol.array_digest`：`experiment/survey_execution.py:29`
+模块级 import，调用点 `:153`、`:206`；另有 `experiment/survey_protocol.py:453` 内部一处。
+`split_archive.file_sha256`：`experiment/split_archive.py` 内部 5 处（上列），
+`tests/unit/experiment/test_split_archive.py`（import 并在 `:198` monkeypatch）。
+
+**未并（另一族，登记为开口）。** `benchmarks/` 下 **13 处** `hashlib.sha256(`（横跨 **10 个模块**）
+仍是各自为政：具名 helper 有 `assigned_methods/pusb_official_data.py:33` `_sha256` 与
+`assigned_methods/runner.py:386` `_file_sha256`（均一次性 `read_bytes()`），与
+`assigned_methods/pusb_table2_{aggregate,data,report}.py`、`deep_pu/official_data.py:560` `_sha256_file`
+（1 MiB 流式）；其余为内联调用（`assigned_methods/preflight_paper.py:92`/`:126`、四个 `runner_sha256`
+内联点、`deep_pu/official_data.py:327` 的数组字节一次性）。它们的产物是**基准配置身份**
+（`runner_sha256` / `dataset_sha256`），收敛会改写已记录值，且不在本批两道治理 ratchet 的语料内，
+故留待各自冻结与验收。`pu_toolbox/ui/app.py:46` 的 `sha256(config_bytes)` 同样未收敛：入参是
+Streamlit 上传文件的**内存字节块**而非文件路径，与 `file_hash`（收路径）签名不同族。
+
+**收敛判据。** JSON 对：模式 `grep -rn 'def _json_sha256\|def _survey_digest\|def canonical_hash'
 pu_toolbox/ --include=*.py` 命中 2 处：`utils/serialization.py` 的 `def canonical_hash`（单源本体）
-与 `experiment/text.py:206` 的 `def _json_sha256`（上列知情保留）。被删的两处私有体
+与 `experiment/text.py:208` 的 `def _json_sha256`（上列知情保留）。被删的两处私有体
 （`feature_adapter` / `image.py` 的 `_json_sha256`）与 `_survey_digest` 必须零命中；该模式**不匹配**
-`def strict_canonical_hash`（另一字符串）。
+`def strict_canonical_hash`（另一字符串）。E3b 两组：模式 `grep -rn 'def _array_sha256\|def _file_digest
+\|def _file_sha256\|def array_digest\|def file_sha256' pu_toolbox/ --include=*.py` **恰好命中 2 处**——
+`experiment/survey_protocol.py` 的 `def array_digest` 与 `experiment/split_archive.py` 的
+`def file_sha256`（两个公开委托体）；`feature_adapter` / `image` 的 `_array_sha256`、`checkpoints` 的
+`_file_digest`、`text` 的 `_file_sha256` 必须零命中，而 `utils/serialization.py` 的
+`def array_hash` / `def file_hash` **不匹配**该模式（不同字符串）。
 
 ### 训练视图
 

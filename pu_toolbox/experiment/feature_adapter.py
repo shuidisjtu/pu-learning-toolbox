@@ -12,7 +12,7 @@ from typing import Any, Literal
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.utils.serialization import json_scalars, strict_canonical_hash
+from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_canonical_hash
 
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
@@ -158,9 +158,7 @@ def adapt_image_bundle_to_features(
         "backbone_manifest": canonical_backbone_manifest,
         "representation_sha256": strict_canonical_hash(representation_payload),
         "split_sha256": strict_canonical_hash(split_indices),
-        "feature_sha256": {
-            role: _array_sha256(features) for role, features in role_features.items()
-        },
+        "feature_sha256": {role: array_hash(features) for role, features in role_features.items()},
     }
     return adapted, manifest
 
@@ -359,11 +357,3 @@ def _canonical_json_object(value: dict[str, Any], *, name: str) -> dict[str, Any
         return json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{name} must contain only finite JSON-compatible values.") from exc
-
-
-def _array_sha256(values: np.ndarray) -> str:
-    digest = hashlib.sha256()
-    digest.update(str(values.dtype).encode())
-    digest.update(json.dumps(values.shape).encode())
-    digest.update(np.ascontiguousarray(values).tobytes())
-    return digest.hexdigest()

@@ -9,7 +9,6 @@ See docs/research/pu_survey/survey_execution_plan.md, P2.0a.
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -17,7 +16,7 @@ from typing import Any
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.utils.serialization import json_scalars, strict_canonical_hash
+from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_canonical_hash
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
@@ -185,13 +184,12 @@ def digest(value: Any) -> str:
 
 
 def array_digest(value: np.ndarray) -> str:
-    """Hash shape, dtype and bytes so shape-preserving corruption is detected."""
-    value = np.ascontiguousarray(value)
-    result = hashlib.sha256()
-    result.update(str(value.dtype).encode())
-    result.update(json.dumps(value.shape).encode())
-    result.update(value.tobytes())
-    return result.hexdigest()
+    """Hash shape, dtype and bytes so shape-preserving corruption is detected.
+
+    Kept as a named entry point because ``survey_execution`` imports it; the
+    recipe itself is :func:`~pu_toolbox.utils.serialization.array_hash`.
+    """
+    return array_hash(value)
 
 
 def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
