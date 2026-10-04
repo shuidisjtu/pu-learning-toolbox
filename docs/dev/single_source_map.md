@@ -19,7 +19,7 @@
 |---|---|---|---|---|
 | 标签语义 | `pu_toolbox/core/labels.py:92` `normalize_pu_labels` / `:145` `normalize_pnu_labels`；字面值在 `pu_toolbox/core/config.py:8`-`:10` | `core/validation.py`（`validate_pu_X_y` / `validate_pnu_X_y` 的前置归一）、`metrics/classification.py`、`preprocessing/`、`model_selection/split.py`、`diagnostics/`、`workflows/shift.py`、`estimators/deep/self_pu.py`、`estimators/risk/nnpu.py`、`estimators/risk/vpu.py` | 无 | 单一 |
 | 设备 | `pu_toolbox/core/device.py:11` `resolve_device_name` / `:29` `resolve_device` | 14 个 torch 估计器（`estimators/deep/*`、`estimators/risk/{dist_pu,nnpu,pulda,vpu}.py`、`estimators/research/*`）、`workflows/pipeline.py:431`、`workflows/_reporting.py:91` | 无 | 单一 |
-| 随机源 | `pu_toolbox/core/random.py:8` `check_random_state` | `experiment/strategies.py`、`preprocessing/pu_labeling.py`、`preprocessing/selection_bias.py` | 无 | 重复（可收敛） |
+| 随机源 | `pu_toolbox/core/random.py:8` `check_random_state` | `experiment/strategies.py`、`preprocessing/pu_labeling.py`、`preprocessing/selection_bias.py` | 无 | 重复（不可合并，理由：见说明） |
 | JSON 安全转换 | `pu_toolbox/utils/serialization.py:92` `json_safe`（宽容，报告载荷）与 `:107` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
 | 哈希 | `pu_toolbox/utils/serialization.py` 的**一组三族**：`:41` `canonical_hash`（宽容，`allow_nan` 默认——报告与清单载荷）与 `:47` `strict_canonical_hash`（严格，`allow_nan=False`——制品身份）为一族，**两者不是同一概念，不合并**；`:67` `array_hash`（数组 dtype/shape/字节）与 `:83` `file_hash`（文件字节，流式）各为一族 | `canonical_hash`：`diagnostics/benchmark.py`、`experiment/{datasets,split_archive,strategies,image,training_views}.py`；`strict_canonical_hash`：`experiment/{feature_adapter,survey_protocol,survey_comparison}.py`；`array_hash`：`experiment/{feature_adapter,image,survey_execution}.py`，并经公开名 `survey_protocol.array_digest` 供 `experiment/survey_execution.py` 与 `experiment/survey_protocol.py` 消费；`file_hash`：`experiment/{checkpoints,text}.py`，并经公开名 `split_archive.file_sha256` 供 `experiment/split_archive.py` 与 `tests/` 消费 | `survey_protocol.digest`、`survey_comparison.comparison_digest`、`survey_protocol.array_digest`、`split_archive.file_sha256`（**只改委托、不改名**的公开入口） | 单一 |
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
@@ -31,27 +31,67 @@
 
 ### 随机源
 
-**重复形态。** `core/random.py:8` 的 `check_random_state` 定义了唯一归一化入口（接受 `int` /
-`RandomState` / `None`），但它只被 `experiment/strategies.py`、`preprocessing/pu_labeling.py`、
-`preprocessing/selection_bias.py` 使用。`estimators/` 与 `prior/` 下有 **19** 处直接构造
-`np.random.RandomState(`，绕过该 helper。模式 `np\.random\.RandomState\(` 命中 19 处，其中 18 处是
-`np.random.RandomState(self.random_state)`（模式 `np\.random\.RandomState\(self\.random_state\)`），
-另 1 处 `prior/pen_l1.py:27` 是硬编码 `np.random.RandomState(0)`。**两者差 1**：把「19 处
-`self.random_state`」当作事实会多算一处。
+**判定：重复（不可合并）。** 批次 D 曾判「重复（可收敛）」并给出前提；批次 E5 复核后改判，
+理由见下。两个实现不是同一概念的两个副本，而是**两层各持一个契约**。
 
-**第二个入口点（不同生成器族）。** 另有 `diagnostics/domain_assumptions.py:338` 的
-`np.random.default_rng(random_state)`，供 `_bootstrap_domain_uncertainty` 做重复抽样。它构造的是
-`Generator` 而非 `RandomState`，不受 `check_random_state` 归一，也不计入上文 19 处；但按本图收敛
-RNG 约定时这一点须一并纳入。
+**两个契约（逐字）。** `core/random.py:8` 的 `check_random_state` 声明
+`seed: int | np.random.RandomState | None`，服务 `preprocessing/` 与 `experiment/`：
+`preprocessing/pu_labeling.py:71`、`:136`、`:197` 等声明
+`random_state: int | np.random.RandomState | None`，docstring 亦写作
+「int or np.random.RandomState or None」。估计器与先验层的 18 个类则统一声明
+`random_state: int | None`（`docs/user/reference/api.md` 的类型列一律 `` `int \| None` ``），
+且**无一处传入实例**。
 
-**为何现在不能直接合并。** 两种写法语义不等价，且实测（numpy 2.4.6）：内联式
-`np.random.RandomState(RandomState(42))` 抛 `TypeError`（`Cannot cast scalar from dtype('O') to
-dtype('int64')`），而 `check_random_state(RandomState(42))` 原样返回该实例并保留同一对象身份。
-因此把内联式替换成 helper 是**放宽**（原本崩溃的调用变为可用），会改变那些估计器 `random_state`
-参数的实际接受域，属于行为变更而非等价重构。
+**为何不能合并。** 把内联式换成 helper 不是「放宽」而是**双向变更**（numpy 2.4.6 实测）：
 
-**收敛前提。** 先逐一确认各估计器 `random_state` 参数的契约是否承诺接受 `RandomState` 实例；
-统一迁移到 `check_random_state` 后，补一条「传入 `RandomState` 实例」的回归测试。
+| 候选 | 内联 `np.random.RandomState(v)` | `check_random_state(v)` | 方向 |
+|---|---|---|---|
+| `RandomState` 实例 | `TypeError` | 通过，且原样返回同一对象 | 放宽 |
+| `np.array(42)`（0-d） | 通过 | `TypeError` | 收紧 |
+| `[42]` | 通过 | `TypeError` | 收紧 |
+| `np.array([42])` | 通过 | `TypeError` | 收紧 |
+
+其余候选（`int` / `np.int64` / `np.uint32` / `bool` / `None` / `Generator` / `str` / `float` /
+越界与负数）两侧同结果。若照「放宽」的旧记述办事，会漏掉收紧面。
+
+**放宽对 3 个类不可达。** 10 个 torch 类里 7 个从归一化 rng 派生种子
+（`torch.manual_seed(int(rng.randint(0, 2**31)))`：`nnpu`、`vpu`、`pulda`、`lagam`、
+`split_pu`、`grad_pu`、`robust_pu`），迁移不改变轨迹；另 3 个把属性直传
+（`dgpu:153`、`self_pu:579`、`weighted_contrastive_pu:167` 的
+`torch.manual_seed(self.random_state)`），实测对实例抛 `TypeError`，`dgpu:275`/`:285` 还有
+`self.random_state + 2 * round_index` 的算术约束。对它们换 helper 只是把报错从 numpy 行
+搬到 torch 行，且在全局状态已被改动之后。若为「彻底放宽」而把直传改为派生，torch 种子会由
+`N` 变成派生值，**改变这三类的随机轨迹**——越界。
+
+**实例传递在外层是承重用法。** `pu_labeling.py:408` 把 `:400` 建好的 `rng` 传给
+`make_scar_labels`，`selection_bias.py:362` 同样链式传递，目的是让下游**延续同一条随机流**；
+测试侧 `tests/conftest.py:20` 的 `rng` fixture 经 `tests/helpers.py:38`、`:56`、
+`tests/integration/test_run.py:265`、`tests/unit/estimators/test_elkan_noto.py` 13 处传入。
+即「接受实例」有真实消费者，不是遗留兼容。
+
+**helper 调用点共 10 处**（此前记作 8 处，已订正）：`experiment/strategies.py` 3 处
+（`:92`/`:154`/`:191`，其 `seed` 由 `experiment/protocols.py:42` 声明为 `int | None`）、
+`preprocessing/pu_labeling.py` 5 处（`:107`/`:179`/`:300`/`:350`/`:400`）、
+`preprocessing/selection_bias.py` 2 处（`:246`/`:345`）。
+
+**第 19 处不是绕过。** `prior/pen_l1.py:27` 的 `np.random.RandomState(0)` 位于模块级
+`_median_pairwise_distance`，而 `ClassPriorEstimator` **没有 `random_state` 参数**；
+它是固定种子的确定性行子采样，不是「绕过归一化的参数」。改写为 `check_random_state(0)`
+行为零改变，属纯装饰。
+
+**第二个生成器族（本次不动）。** `diagnostics/domain_assumptions.py:338` 的
+`np.random.default_rng(random_state)` 构造的是 `Generator` 而非 `RandomState`，不受
+`check_random_state` 归一；其公开入口 `analyze_domain_assumptions` 只声明
+`random_state: int | None`，改动会改变 bootstrap 置信区间，故须单独立项。
+
+**登记项。** `check_random_state` 此前**零直接测试**（批次 E5 已补
+`tests/unit/core/test_random.py`）、未从 `core/__init__.py` 或 `pu_toolbox/__init__.py` 导出、
+未出现在 `api.md`，也不在 `CONTRIBUTING.md` §5.1 的「必须复用」表内——**这是有意的**：
+把它写进 §5.1 会误导贡献者在估计器层复用它。
+
+**若将来要收敛。** 前提是同时解决：① 目标层的 `random_state` 契约改为
+`int | RandomState | None` 并接受 array-like 整数的收紧；② 对 3 个直传 torch 类给出
+不改变轨迹的方案（或明确其放宽不可达）；③ `dgpu` 的算术点单独裁定。
 
 ### JSON 安全转换
 
