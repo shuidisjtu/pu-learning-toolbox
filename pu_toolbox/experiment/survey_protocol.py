@@ -482,12 +482,10 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
             raise ValueError("cnn_feature_adapter unit requires its actual adapter manifest")
         if adapter.get("backbone_manifest") != image:
             raise ValueError("adapter and image preprocessing provenance disagree")
-        if adapter["feature_sha256"] != representation["feature_sha256"]:
+        if adapter["feature_sha256"] != representation["feature_sha256"]:  # noqa: SIM102
             # Adapter uses its own array hash encoding; recompute through that same helper.
-            from .feature_adapter import _array_sha256
-
             if adapter["feature_sha256"] != {
-                role: _array_sha256(getattr(bundle, role).X) for role in ROLES
+                role: array_hash(getattr(bundle, role).X) for role in ROLES
             }:
                 raise ValueError("adapter manifest does not match the actual input features")
         representation["adapter"] = copy.deepcopy(adapter)
