@@ -93,6 +93,9 @@ jobs:
       - name: Comment quality gate
         run: uv run --python "3.11" python scripts/check_comment_quality.py
 
+      - name: Layer dependency table consistency
+        run: uv run --python "3.11" python scripts/generate_layer_deps.py --check
+
   ui:
     name: Streamlit UI smoke tests
     runs-on: ubuntu-latest
