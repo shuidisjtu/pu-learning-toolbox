@@ -107,17 +107,26 @@ def test_edge_function_local_import_is_marked_as_such(tmp_path):
 
 
 def test_edge_facade_and_top_level_helpers_are_not_measured(tmp_path):
-    """The umbrella facade reaches every layer by design; it is not a layer."""
+    """The umbrella facade reaches every layer by design; it is not a layer.
+
+    The layer map is narrowed to the one root this tree actually holds.  A map
+    must describe the real tree on disk, so passing ``_TWO_LAYERS`` (which also
+    declares the absent ``pkg/high``) would make ``validate_layout`` fail -- and
+    that failure is correct, not something to work around by weakening it.
+    """
     _write(tmp_path, "pkg/__init__.py", "import pkg.low.b\n")
     _write(tmp_path, "pkg/run_config.py", "import pkg.low.b\n")
     _write(tmp_path, "pkg/low/b.py", "thing = 1\n")
-    assert gld.measure_edges(tmp_path, _TWO_LAYERS) == {}
+    assert gld.measure_edges(tmp_path, {"Low": ("pkg/low",)}) == {}
 
 
 def test_edge_import_of_the_same_layer_is_not_a_layer_edge(tmp_path):
     _write(tmp_path, "pkg/low/a.py", "from pkg.low.b import thing\n")
     _write(tmp_path, "pkg/low/b.py", "thing = 1\n")
-    assert gld.measure_edges(tmp_path, _TWO_LAYERS) == {}
+    # Narrowed to the root this tree holds: a layer map must describe the real
+    # tree, so declaring the absent ``pkg/high`` would (correctly) fail
+    # ``validate_layout`` before any edge is measured.
+    assert gld.measure_edges(tmp_path, {"Low": ("pkg/low",)}) == {}
 
 
 def test_edge_unparseable_source_fails_loudly(tmp_path):
@@ -126,6 +135,21 @@ def test_edge_unparseable_source_fails_loudly(tmp_path):
     _write(tmp_path, "pkg/low/b.py", "thing = 1\n")
     with pytest.raises(SyntaxError):
         gld.measure_edges(tmp_path, _TWO_LAYERS)
+
+
+def test_edge_unlisted_package_under_the_root_is_reported(tmp_path):
+    """A package no layer lists would drop edges with no trace in the table."""
+    _write(tmp_path, "pu_toolbox/low/__init__.py", "")
+    _write(tmp_path, "pu_toolbox/stray/__init__.py", "")
+    with pytest.raises(ValueError, match="stray"):
+        gld.validate_layout(tmp_path, {"Low": ("pu_toolbox/low",)})
+
+
+def test_edge_declared_layer_root_that_does_not_exist_is_reported(tmp_path):
+    _write(tmp_path, "pu_toolbox/low/__init__.py", "")
+    layers = {"Low": ("pu_toolbox/low",), "Gone": ("pu_toolbox/gone",)}
+    with pytest.raises(ValueError, match="gone"):
+        gld.validate_layout(tmp_path, layers)
 
 
 def test_edge_missing_markers_are_reported(tmp_path):

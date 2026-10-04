@@ -176,6 +176,47 @@ def _layer_sources(root: Path, layers: Mapping[str, tuple[str, ...]]) -> list[tu
     return sorted(out, key=lambda item: str(item[1]))
 
 
+PACKAGE_NAME = "pu_toolbox"
+
+
+def validate_layout(
+    root: Path = PROJECT_ROOT,
+    layers: Mapping[str, tuple[str, ...]] = LAYERS,
+) -> None:
+    """Fail loudly when the layer map no longer describes the package tree.
+
+    Two ways the map can go stale, both of which would otherwise drop edges
+    from the generated table with no trace in the output:
+
+    * a declared root no longer exists (a rename, a typo, a deleted package);
+    * a package exists under ``pu_toolbox/`` that no layer lists -- such a
+      package is invisible both as a source and as an edge target, because
+      ``_layer_of`` only matches declared prefixes.
+
+    A generator that quietly reports "everything is fine" is worse than one
+    that stops, so both cases raise.
+    """
+    missing = sorted(rel for roots in layers.values() for rel in roots if not (root / rel).is_dir())
+    if missing:
+        raise ValueError(f"declared layer roots do not exist: {missing}")
+
+    package = root / PACKAGE_NAME
+    if not package.is_dir():
+        return
+    covered = [rel for roots in layers.values() for rel in roots]
+    unlisted = sorted(
+        rel
+        for init in package.rglob("__init__.py")
+        if (rel := init.parent.relative_to(root).as_posix()) != PACKAGE_NAME
+        and not any(rel == entry or rel.startswith(entry + "/") for entry in covered)
+    )
+    if unlisted:
+        raise ValueError(
+            f"packages under {PACKAGE_NAME}/ that no layer lists, so their edges "
+            f"would be dropped silently: {unlisted}"
+        )
+
+
 def measure_edges(
     root: Path = PROJECT_ROOT,
     layers: Mapping[str, tuple[str, ...]] = LAYERS,
@@ -190,7 +231,13 @@ def measure_edges(
     A file that cannot be parsed raises rather than being skipped: silently
     dropping its edges would under-report, which is the failure mode this whole
     script exists to remove.
+
+    Raises ``ValueError`` when the layer map no longer matches the tree on
+    disk -- see ``validate_layout``.  That check runs *inside* this function,
+    not in ``main``, so a caller who invokes ``measure_edges`` directly still
+    gets the loud failure instead of a silently under-reported result.
     """
+    validate_layout(root, layers)
     edges: dict[str, dict[str, str]] = {}
     for source_layer, path in _layer_sources(root, layers):
         package = _package_of(path, root)
@@ -307,7 +354,7 @@ def main(argv: list[str] | None = None) -> int:
             layers=LAYERS,
             newline=newline,
         )
-    except SyntaxError as exc:
+    except (SyntaxError, ValueError) as exc:
         print(f"cannot measure layer edges: {exc}")
         return 1
 
