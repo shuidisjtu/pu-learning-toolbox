@@ -472,7 +472,7 @@ tests/
 bundle / manifest / tracking / trainers / strategies）。**选择口径不分层**：该目录内所有测试文件都标
 `pytest.mark.unit`，没有 survey 之类的分区标记，CI 也不按路径过滤（口径见 `compatibility.md` §4）。
 故「将通用算法测试和 Survey 协议测试分开」在**目录粒度成立**、在**选择粒度不成立**
-（引号内措辞与 `governance_backlog.md` 对方案任务 5 的转抄保持一致，用「和」不用「与」）。
+（引号内措辞取自治理方案的阶段 6 任务 5 原文；该转抄随阶段 6 收口已从本仓库移除）。
 
 ## 4. 示例（`examples/`）
 
@@ -625,7 +625,7 @@ docs/
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
     process_checklist.md       # 进度清单与发布状态（权威来源）
     release_process.md         # 发布流程：版本策略、预检清单、上传、回滚与维护
-    governance_backlog.md      # 治理待办：架构治理方案的剩余阶段（阶段 6/7 未完项）
+    governance_backlog.md      # 治理待办：架构治理方案的剩余阶段（阶段 7 未完项）
 
   research/
     method_cards/
