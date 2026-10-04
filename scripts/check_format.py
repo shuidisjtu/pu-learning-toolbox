@@ -7,22 +7,22 @@ scope the CI workflow uses — so the local gate can never diverge from
 CI again.  (A local commit that skipped ``ruff format --check`` passed
 the 5 legacy gates and then failed the CI format step on 2026-08-09.)
 
-``SCOPE`` is a hand-maintained inventory, and it must stay one: "the
-project's source surface" is a policy decision, not a filesystem fact,
-so no derivation from the tree can reproduce it.  The obvious dynamic
-replacement — enumerate the top-level directories — is *wider*, not
-stricter.  ``data/`` and ``dist/`` are gitignored local-only trees
-(``.gitignore:5`` / ``:68``) that are absent from a CI checkout, yet
-naming them explicitly makes ruff lint them::
+``SCOPE`` is derived from the git index, not hand-maintained: it is the
+set of top-level components of the tracked ``*.py`` files
+(``git ls-files '*.py' | cut -d/ -f1 | sort -u`` → today exactly
+``benchmarks examples pu_toolbox scripts tests``).  A new top-level
+source root is therefore linted as soon as it is staged, with no list
+to remember to update — the gate answers "does it cover the new files?"
+by construction.
 
-    $ printf 'import os\\n' > data/scratch_probe.py     # gitignored scratch file
-    $ uv run ruff check benchmarks data dist docs examples pu_toolbox scripts tests
-     --> data\\scratch_probe.py:1:8       # F401 in a gitignored, local-only tree
+The index decides which *roots* are checked, not which *files*: the
+roots are passed to ruff as directories, so ruff checks the ``.py``
+files present in the working tree under them.  A file that exists only
+locally is therefore linted here but is absent from a CI checkout — a
+local green is not by itself proof that CI is green.
 
-That turns the verdict into a function of the working tree, so the same
-commit can fail locally and pass in CI — exactly the divergence this
-gate was written to prevent.  A new top-level source root is therefore
-linted only after it is added to ``SCOPE`` by hand.
+When git is unavailable (source tarball, stripped image) the derivation
+falls back to ``FALLBACK_SCOPE`` and says so on stderr.
 
 Usage::
 
@@ -39,8 +39,39 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-# Keep in sync with the CI scope in .github/workflows/tests.yml.
-SCOPE = ("pu_toolbox", "tests", "benchmarks", "examples", "scripts")
+# Used when the git index cannot be read (source tarball, stripped image);
+# the five roots this repository tracked when the derivation was introduced.
+FALLBACK_SCOPE = ("benchmarks", "examples", "pu_toolbox", "scripts", "tests")
+
+
+def _tracked_source_roots() -> tuple[str, ...]:
+    """Top-level components of the tracked ``*.py`` files, in stable order."""
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "*.py"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        print(
+            f"check_format: git unavailable ({exc}); using FALLBACK_SCOPE={FALLBACK_SCOPE}.",
+            file=sys.stderr,
+        )
+        return FALLBACK_SCOPE
+    roots = {line.split("/", 1)[0] for line in proc.stdout.splitlines() if line.strip()}
+    if proc.returncode != 0 or not roots:
+        print(
+            "check_format: `git ls-files '*.py'` yielded no tracked roots; "
+            f"using FALLBACK_SCOPE={FALLBACK_SCOPE}.",
+            file=sys.stderr,
+        )
+        return FALLBACK_SCOPE
+    return tuple(sorted(roots))
+
+
+SCOPE = _tracked_source_roots()
 
 
 def run_ruff(
