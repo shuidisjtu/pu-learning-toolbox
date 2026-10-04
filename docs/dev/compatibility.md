@@ -35,6 +35,15 @@ torch 的训练路径或 PUSB benchmark 的 uLSIF 对照时，再提供明确安
 `uv sync --no-lock` 重新解析以发现上游兼容问题。`requirements.txt` 已由
 `uv.lock` 取代（2026-09-08 删除）。
 
+**基础导入的可选依赖口径（2026-10-04 复核）**：判据是「**本包自身的 import 语句不引入可选依赖**」——
+实测屏蔽 `torch`/`torchvision`/`streamlit` 后 `import pu_toolbox` 成功；本包零**无条件**
+module-level `import torch`（唯一一处在 `pu_toolbox/estimators/deep/vision.py:11` 的 `try:` 内、
+带 `except ImportError` 兜底——写「零 module-level import」会被字面读成「一行都没有」，故收紧措辞）。
+**本判据不覆盖**「装了可选依赖时基础导入不加载它」：装了 `torch` 时，根包的伞形 re-export 命中
+`try` 分支而加载 torch（`torch/hub.py` 再带入 `tqdm`），实验层本身与其 research 依赖
+（`densratio`/`lightning`/`sentence_transformers`）**不加载**。要把口径收紧到后者，须把根包
+re-export 改为惰性导出——属独立立项（所有者 2026-10-04 裁定）。
+
 ## 4. CI 结构
 
 CI 分为四个独立职责：
@@ -45,6 +54,13 @@ CI 分为四个独立职责：
 4. **Nightly（顶层全量）**：每周一 03:23 UTC 在 3 × 3 矩阵运行 slow + e2e 测试（`-m "slow or e2e"`），依赖同快层（含 torchvision）。
 
 显式解释器断言用于防止 `.python-version` 意外覆盖 CI matrix。
+
+**测试选择口径（2026-10-04 复核）**：CI 的 `quality` 作业只跑静态门禁；测试作业在每次
+push/PR 到 `main` 时跑 `pytest tests/ -m "not slow and not e2e"`（`.github/workflows/tests.yml`），
+**不按路径过滤**——故改动任何一个子包（含 `experiment/`）都会跑整套 fast 套件。
+慢层与端到端（`slow or e2e`）只在 `nightly.yml` 每周跑。因此「Survey 变更不会默认触发通用
+工作流全量回归」只能按「不触发慢层全量」理解（所有者 2026-10-04 裁定）：fast 套件全量跑是
+设计，不是缺陷。
 
 ## 5. 构建内容
 

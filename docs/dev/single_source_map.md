@@ -347,6 +347,12 @@ choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）
 两处，前者是 `class_prior_estimation` 的活写字面量，后者即该 docstring。
 `registry/registry.py`（`:141`、`:124`-`:138`）本批未动，行号不受影响。
 
+**未受门的第三份（2026-10-04 复核）**：`experiment/method_ledger.json` 另有两份副本不在任何契约
+测试覆盖内（`tests/contract/test_ledger_registry_consistency.py` 对这两个字段零引用）：
+`implementation_status`（10 处）与 `class`（9 处）。故 `implementation_status` 的事实存在三处——
+类属性（权威）→ registry 条目（经 `_SYNC_FIELDS` 同步）→ 台账副本；`class` 为类定义 + registry
+动态导入表（权威）→ 台账副本。第三份漂移不会使任何测试变红。
+
 ### RBF 权重
 
 **重复形态。** `utils/basis.py:34` `build_rbf_basis` 是共享实现，`prior/pen_l1.py`、
