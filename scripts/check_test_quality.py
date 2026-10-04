@@ -220,10 +220,12 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
         "determ": "a pure function of the ledger and a fit signature -- no randomness",
         "edge": (
-            "the view module's input-boundary cases (a ts request against an "
-            "OS-native method, batches without both PU groups, bad indices) are "
-            "asserted in test_training_views.py; the boundaries this file varies "
-            "are the refusal paths carried by its param declaration"
+            "this file drives the module's resolve_training_view entry point, "
+            "whose boundaries are the refusal paths carried by its param "
+            "declaration; the input-boundary cases of the same module's other "
+            "entry point, calibrate_ts_os_batch (a ts request against an "
+            "OS-native method, batches without both PU groups, bad indices), are "
+            "asserted in test_training_views.py"
         ),
         "param": (
             "the flag's rejection paths are the refusal tests here: ts on an "

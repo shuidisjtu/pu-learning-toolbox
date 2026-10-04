@@ -8,11 +8,15 @@ boundary: the start of the name, or just after an underscore.
 The rejected cases are the two collision mechanisms measured in the field
 (``.superpowers/sdd/probe_category_matcher.py``) plus their nearest
 neighbours; the sweep keeps every keyword in ``CATEGORY_KEYWORDS``
-reachable, so the tightening cannot silently disable one.
+reachable, so the tightening cannot silently disable one.  A final ratchet
+holds the line the rule deliberately leaves open: prefix matching stays, but
+no file may owe its credit to a prefix hit.
 """
 
 from __future__ import annotations
 
+import ast
+import re
 import sys
 from pathlib import Path
 
@@ -23,6 +27,39 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 import check_test_quality as gate  # noqa: E402
 
 pytestmark = pytest.mark.unit
+
+
+def _test_names(path: Path) -> list[str]:
+    """Module-level and in-class ``test_*`` names of one test file."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    names = [
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+    ]
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            names += [
+                child.name
+                for child in node.body
+                if isinstance(child, ast.FunctionDef) and child.name.startswith("test_")
+            ]
+    return names
+
+
+def _whole_token_match(name: str, keyword: str) -> bool:
+    """The gate's boundary rule with prefix matching switched off entirely."""
+    token = re.escape(keyword.rstrip("_"))
+    return re.search(rf"(?:^|_){token}(?:_|$)", name.lower()) is not None
+
+
+def _categories(names: list[str], matcher) -> set[str]:
+    """Categories *matcher* credits over *names*, derived from the gate's table."""
+    return {
+        category
+        for category, keywords in gate.CATEGORY_KEYWORDS.items()
+        if any(matcher(name, kw) for name in names for kw in keywords)
+    }
 
 
 @pytest.mark.parametrize(
@@ -114,6 +151,58 @@ def test_every_declared_keyword_is_still_reachable():
 
 
 def test_repeated_classification_is_consistent():
-    """Classification is a pure function of the name."""
+    """Classification is a pure function of the name -- and it answers.
+
+    Two recomputations must agree *and* return the categories the name
+    states: a bare ``f(x) == f(x)`` would also hold for a matcher that
+    degenerated to an empty set, and an empty set is precisely what the
+    gate reads as "no coverage at all".
+    """
     name = "test_edge_max_iter_too_small_raises"
-    assert gate._classify_name(name) == gate._classify_name(name)
+    first = gate._classify_name(name)
+    second = gate._classify_name(name)
+    assert first == second == {"edge", "param"}
+    assert gate._classify_name("test_plain_name") == set()
+
+
+def test_no_edge_credit_rests_on_a_prefix_hit():
+    """Ratchet: a prefix hit may exist, but must never be load-bearing.
+
+    ``_keyword_matches`` prefix-matches a keyword inside the token it opens.
+    Among the boundary (*edge*) keywords a longer word is usually a
+    *different* concept rather than a variant of the keyword --
+    ``nonempty`` hits ``none``, ``zeroes`` hits ``zero``, ``edges`` hits
+    ``edge`` (a layer-dependency graph edge, not a boundary).  Those hits
+    are tolerated only while they are redundant.  If a file's real boundary
+    test were deleted or renamed, a prefix hit would be the only thing left
+    and the file would keep its edge credit with nothing asserting a
+    boundary -- the false credit this batch exists to remove.
+
+    So every test file's edge credit is recomputed twice -- once through
+    the gate (``analyse_file``) and once with prefix matching disabled
+    (whole-token equality, derived from ``CATEGORY_KEYWORDS``) -- and the
+    two must agree.
+
+    Scope: the ``edge`` keyword set.  The other three categories are built
+    from stems on purpose (``determ`` -> ``deterministic``, ``fit`` ->
+    ``fitted``, ``output`` -> ``outputs``), and a corpus-wide
+    "prefix matching disabled" comparison is *false today*: 43 files
+    (42 determ, 3 basic) owe their credit to those stems.  The ratchet is
+    therefore applied where a prefix hit is evidence of a collision rather
+    than of morphology.  Measured offenders in that scope: 0.
+    """
+    files = sorted(gate.TESTS_DIR.rglob("test_*.py"))
+    assert files, "no test files found: the census is not looking at the corpus"
+    offenders = {}
+    for path in files:
+        by_gate = gate.analyse_file(path).categories_found
+        by_whole_token = _categories(_test_names(path), _whole_token_match)
+        if ("edge" in by_gate) != ("edge" in by_whole_token):
+            offenders[path.relative_to(gate.PROJECT_ROOT).as_posix()] = {
+                "with_gate": "edge" in by_gate,
+                "whole_token_only": "edge" in by_whole_token,
+            }
+    assert offenders == {}, (
+        "these files hold edge credit only through a prefix hit "
+        f"(gate vs whole-token-only): {offenders}"
+    )
