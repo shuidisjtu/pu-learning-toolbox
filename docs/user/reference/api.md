@@ -1386,8 +1386,10 @@ docstring。
 | `DeepFitTrainer` | 深度估计器：优先探测无真实标签泄漏的 `pu_validation_data`，否则探测 `validation_data`，并将 `history_` 转成选模轨迹；验证 fit 已成功但无 history 时只产生单点轨迹、不重复 fit |
 | `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线（声明 `trains_on_real_labels=True`）。必须配合 `CleanLabelGenerator`（真实标签视图）与 `protocols=[ProtocolOA()]` 使用——runner 默认生成 PU 视图，单独使用本类会被 runner 在训练前拦截 |
 | `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
-| `proxy_accuracy` | PU 验证集上的 proxy accuracy（Wang et al. 2026 Def. 1，OS 分支）：`(2π/n'_P)·Σ_{D'_P}1[f≥θ] + (1/(n'_P+n'_U))·Σ_{D'_P∪D'_U}1[f<θ]`，第二项遍历全部验证样本；π 是第一项权重，改变 argmax 而非仅尺度 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
+
+不在包级命名空间、故不入上表：`proxy_accuracy`（`pu_toolbox.experiment.strategies` 下，
+`ProtocolPA` 选模所用的 proxy accuracy，见 `pu_toolbox/experiment/strategies.py`）。
 
 三个 PU 标记生成器（`SCARGenerator` / `SARLBEAGenerator` / `SARLBEBGenerator`）的生成元数据
 （落入 manifest 的 `generation.train` / `generation.pu_val`）共享同一审计词汇：`generator`

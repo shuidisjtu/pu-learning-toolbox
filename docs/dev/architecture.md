@@ -113,6 +113,28 @@
 
 跨层的两条**已裁决例外**见下方「依赖方向的已裁决例外」。
 
+**依赖方向的已裁决例外（2026-10-04 裁定，不拆）**：
+
+1. **`registry` → `estimators` / `prior`（Core → Algorithms / Estimation）**：
+   `pu_toolbox/registry/builtin_methods.py` 用 `importlib.import_module` + `getattr` 按
+   **字符串**加载算法类。这条边**静态 AST 扫描与子进程导入图都看不见**（前者只认
+   `Import`/`ImportFrom` 节点，后者在调用时才发生），由
+   `tests/contract/test_registry_dynamic_import.py` 钉住这条边的**含义**：注册表在调用前为空、
+   注册出的类定义在 `estimators`/`prior` 下、可重复调用、未知名被拒。**注意**：不能用
+   `sys.modules` 的增量来证明它——伞形门面早已加载了那些模块，调用本身新增零个模块
+   （控制方实测）。
+   保留理由：按名字查表正是实验层与算法谱系解耦的机制——新增算法只需注册。
+2. **`model_selection` → `workflows`（Evaluation → Orchestration，向上）**：
+   `model_selection/comparison.py` 与 `tuning.py` 静态依赖编排层的 `PUPipeline`；
+   `model_selection/__init__.py` 用 PEP 562 模块级 `__getattr__` 懒加载这两个模块
+   （其 docstring 自陈是为「without creating a pipeline import cycle」）。保留理由：
+   构建在 PU 感知工作流之上的调参与比较是该层职责，上移成本大于收益。
+
+**未清理项（2026-10-04 勘察后裁定）**：通用层有 12 处 docstring **归因引用**了 Survey 语境
+（如 `utils/basis.py`、`utils/serialization.py`、`estimators/risk/vpu.py`）。勘察确认
+**无一处进入行为**——没有解析台账字段、没有 survey 制品路径、无硬编码仓库路径。判为
+「保留」：这些引用是「这段通用代码为何这么写」的信息，删除即丢失。
+
 **模块级依赖链**（代表性，层间单向；两条层内环见上）：
 
 - **标签语义链**：`core/labels.py`（纯元语：标签约定识别与重映射）→ `core/validation.py`（组装层：标签规范化 + X/y 一致性 + 样本量门槛与告警，返回值已是规范形）→ 各估计器 `fit` 入口
