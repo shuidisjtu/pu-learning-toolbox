@@ -32,13 +32,14 @@
 ### 随机源
 
 **判定：重复（不可合并）。** 批次 D 曾判「重复（可收敛）」并给出前提；批次 E5 复核后改判，
-理由见下。两个实现不是同一概念的两个副本，而是**两层各持一个契约**。
+理由见下。两个实现不是同一概念的两个副本，而是**两类消费者各持一个契约**。
 
 **两个契约（逐字）。** `core/random.py:8` 的 `check_random_state` 声明
-`seed: int | np.random.RandomState | None`，服务 `preprocessing/` 与 `experiment/`：
+`seed: int | np.random.RandomState | None`。它的三个消费模块里，**只有 `preprocessing/` 声明宽契约**：
 `preprocessing/pu_labeling.py:71`、`:136`、`:197` 等声明
 `random_state: int | np.random.RandomState | None`，docstring 亦写作
-「int or np.random.RandomState or None」。估计器与先验层中**带内联
+「int or np.random.RandomState or None」；`experiment/` 侧只**消费**该 helper，
+其 `experiment/protocols.py:42` 的 `seed` 声明为 `int | None`。估计器与先验层中**带内联
 `np.random.RandomState(self.random_state)` 构造点的 18 个类**则统一声明
 `random_state: int | None`（该层声明此参数的类不止 18 个——`dist_pu`、`infomax_pu`、`research/*`
 等并无该构造点，另有一处工厂函数参数；`docs/user/reference/api.md` 凡给出类型处均为
