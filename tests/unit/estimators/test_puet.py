@@ -13,6 +13,8 @@ from pu_toolbox.estimators.risk.puet import (
     PUExtraTreesClassifier,
     _nnpu_quadratic_node_risk,
 )
+from pu_toolbox.experiment.method_ledger import load_ledger
+from pu_toolbox.experiment.training_views import resolve_training_view
 from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 from pu_toolbox.workflows import PUPipeline
 
@@ -74,6 +76,26 @@ def test_basic_single_split_gain_equals_closed_form_root_risk():
     np.testing.assert_array_equal(fitted.n_leaves_, [2])
     np.testing.assert_array_equal(fitted.tree_depths_, [1])
     np.testing.assert_array_equal(fitted.predict(X), y)
+
+
+@pytest.mark.math
+def test_ts_node_risk_uses_p_rows_in_both_roles():
+    X = np.r_[np.ones((4, 1)), np.zeros((4, 1))]
+    y = np.r_[np.ones(4, int), np.zeros(4, int)]
+    assert (
+        resolve_training_view(
+            load_ledger(), "puet", None, is_oracle=False, estimator_class=PUExtraTreesClassifier
+        )
+        == "ts"
+    )
+    fitted = _model(n_estimators=1, max_depth=1, max_features="all").fit(X, y, os_or_ts="ts")
+    assert fitted.calibration_applied_
+    assert fitted.n_loss_unlabeled_ == len(X)
+    # Root risk 0.96; P-side child has Wp=.4 and Wu=.5, risk=.32.
+    assert fitted.feature_importances_[0] == pytest.approx(0.64)
+    np.testing.assert_array_equal(fitted.predict(X), y)
+    with pytest.raises(ValueError, match="requested_view"):
+        _model().fit(X, y, os_or_ts="unknown")
 
 
 def test_determ_same_seed_repeats_with_or_without_group_bootstrap():

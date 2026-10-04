@@ -1,6 +1,7 @@
 """Risk-estimation PU estimators."""
 
 from pu_toolbox.estimators.risk.dist_pu import DistPUClassifier
+from pu_toolbox.estimators.risk.cvir import CVIRClassifier
 from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.ldce import LDCEClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
@@ -11,6 +12,7 @@ from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.estimators.risk.vpu import VPUClassifier
 
 __all__ = [
+    "CVIRClassifier",
     "KLDCEClassifier",
     "DistPUClassifier",
     "LDCEClassifier",

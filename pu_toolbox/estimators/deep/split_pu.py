@@ -25,6 +25,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 from ...losses.nnpu import _nnpu_train_step
 
@@ -142,6 +143,7 @@ class SplitPUClassifier(BasePUClassifier):
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
+        os_or_ts: str = "os",
     ) -> SplitPUClassifier:
         import torch
         from torch.nn import functional as F
@@ -149,6 +151,7 @@ class SplitPUClassifier(BasePUClassifier):
         if sample_weight is not None:
             raise NotImplementedError("Split-PU does not implement sample_weight")
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="SplitPUClassifier")
+        view = build_training_view(X, y_pu, requested_view=os_or_ts)
         prior = self.class_prior if class_prior is None else class_prior
         if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
             raise ValueError("class_prior must be in (0, 1)")
@@ -178,15 +181,17 @@ class SplitPUClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X must remain finite after float32 conversion")
-        p_idx, u_idx = np.flatnonzero(y_pu == 1), np.flatnonzero(y_pu == 0)
-        if not len(u_idx):
-            raise ValueError("Split-PU needs unlabeled samples")
+        p_idx = np.array(view.positive_positions, copy=True)
+        u_idx = np.array(view.native_unlabeled_positions, copy=True)
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
         data = torch.as_tensor(X, device=device)
         self.n_features_in_ = X.shape[1]
         self.n_positive_, self.n_unlabeled_ = len(p_idx), len(u_idx)
+        self.n_loss_unlabeled_ = len(view.loss_unlabeled_positions)
+        self.training_view_ = os_or_ts
+        self.calibration_applied_ = view.calibration_applied
         self._X_shape_ = X.shape
         self._class_prior = float(prior)
         self.history_ = {
@@ -213,10 +218,13 @@ class SplitPUClassifier(BasePUClassifier):
                 p = p_order[(step * self.batch_size) % len(p_idx) :][: self.batch_size]
                 u = u_order[(step * self.batch_size) % len(u_idx) :][: self.batch_size]
                 pos, unl = _score(teacher, data[p]), _score(teacher, data[u])
+                # The teacher's nnPU marginal term is the only unlabeled risk
+                # role.  Easy/hard splitting below must use original U only.
+                loss_unl = torch.cat((unl, pos)) if view.calibration_applied else unl
                 loss, info = _nnpu_train_step(
                     torch.sigmoid(-pos).mean(),
                     torch.sigmoid(pos).mean(),
-                    torch.sigmoid(unl).mean(),
+                    torch.sigmoid(loss_unl).mean(),
                     class_prior=prior,
                 )
                 if not torch.isfinite(loss):

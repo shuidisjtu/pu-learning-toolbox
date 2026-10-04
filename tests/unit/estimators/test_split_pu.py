@@ -3,6 +3,7 @@
 # ruff: noqa: N806
 
 import copy
+import importlib
 import os
 
 import numpy as np
@@ -16,6 +17,8 @@ from pu_toolbox.estimators.deep.split_pu import (  # noqa: E402
     splitpu_js_loss,
 )
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
+from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
+from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -82,6 +85,47 @@ def test_stages_prediction_determinism_and_checkpoint(tmp_path):
     restored.load_state_dict(clf.model_.state_dict())
     with torch.no_grad():
         np.testing.assert_allclose(restored(torch.as_tensor(X)).reshape(-1).numpy(), scores)
+
+
+def test_ts_calibrates_teacher_but_preserves_original_u_split():
+    X, y = _data()
+    assert (
+        resolve_training_view(
+            load_ledger(), "split_pu", None, is_oracle=False, estimator_class=SplitPUClassifier
+        )
+        == "ts"
+    )
+    os_model = _model().fit(X, y, os_or_ts="os")
+    ts_model = _model().fit(X, y, os_or_ts="ts")
+    assert not os_model.calibration_applied_
+    assert ts_model.calibration_applied_
+    assert ts_model.n_loss_unlabeled_ == len(y)
+    assert ts_model.n_unlabeled_ == int((y == 0).sum())
+    assert ts_model.n_easy_ + ts_model.n_hard_ == ts_model.n_unlabeled_
+    assert os_model.history_["teacher_risk"] != ts_model.history_["teacher_risk"]
+    with pytest.raises(ValueError, match="requested_view"):
+        _model().fit(X, y, os_or_ts="unknown")
+
+
+@pytest.mark.math
+def test_ts_teacher_marginal_is_exact_p_u_union(monkeypatch):
+    X, y = _data()
+    module = importlib.import_module("pu_toolbox.estimators.deep.split_pu")
+    original = module._nnpu_train_step
+    inputs = []
+
+    def capture(pos_loss, pos_as_negative, unl_loss, *, class_prior):
+        inputs.append(
+            (float(pos_loss.detach()), float(pos_as_negative.detach()), float(unl_loss.detach()))
+        )
+        return original(pos_loss, pos_as_negative, unl_loss, class_prior=class_prior)
+
+    monkeypatch.setattr(module, "_nnpu_train_step", capture)
+    _model(batch_size=32).fit(X, y, os_or_ts="os")
+    _model(batch_size=32).fit(X, y, os_or_ts="ts")
+    os_input, ts_input = inputs
+    np.testing.assert_allclose(os_input[:2], ts_input[:2], rtol=0, atol=0)
+    np.testing.assert_allclose(ts_input[2], (os_input[2] * 16 + os_input[1] * 8) / 24)
 
 
 @pytest.mark.parametrize(

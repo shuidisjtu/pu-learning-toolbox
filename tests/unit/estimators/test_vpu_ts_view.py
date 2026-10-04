@@ -108,6 +108,8 @@ def test_basic_fit_declares_os_or_ts_defaulting_to_the_calibrated_view():
 def test_basic_the_calibrated_pool_is_the_whole_partition():
     X, y_pu = _data()
     fitted = _model().fit(X, y_pu, os_or_ts="ts")
+    assert fitted.training_view_ == "ts"
+    assert fitted.calibration_applied_ is True
 
     assert fitted.n_loss_unlabeled_ == len(X)
     assert fitted.n_unlabeled_ == int((y_pu == 0).sum())
@@ -118,6 +120,8 @@ def test_basic_the_os_pool_keeps_only_the_unlabeled_rows():
     X, y_pu = _data()
     os_fit = _model().fit(X, y_pu, os_or_ts="os")
     ts_fit = _model().fit(X, y_pu, os_or_ts="ts")
+    assert os_fit.training_view_ == "os"
+    assert os_fit.calibration_applied_ is False
 
     assert os_fit.n_loss_unlabeled_ == int((y_pu == 0).sum())
     assert os_fit.n_loss_unlabeled_ < ts_fit.n_loss_unlabeled_

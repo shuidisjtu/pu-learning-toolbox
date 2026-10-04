@@ -23,4 +23,4 @@ LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在
 
 ## 验证与待办
 
-单元测试覆盖平衡 BCE、二阶元标签方向、组对比损失、支持集 fail-closed、确定性、回调权重往返和 CUDA smoke 配置。正式接入仍需独立 support set 协议、官方行为对照、GPU 实跑、台账/矩阵登记及审阅。
+单元测试覆盖平衡 BCE、二阶元标签方向、组对比损失、支持集 fail-closed、确定性与回调权重往返。2026-09-28 全局 PyTorch 2.6.0+cu124 环境下的 A6000 单次 CUDA smoke 通过，但不替代 frozen-lock 或多 seed 资源验收。方法台账已登记为 `run_view=os-compatible`、`calibration_applied=false`：当前没有同形的未标记风险输入可安全替换，而校准也不能消除独立干净 support set 的标签预算。标准 PA 不适用；正式接入仍需 support/选模集合互斥的协议扩展、公开数值对照、候选矩阵与合作者审阅。

@@ -18,11 +18,13 @@ One test per invariant:
    ``trains_encoder``);
 3. the head of ``code_version.source_status`` (everything before its
    parenthetical note) equals the registry ``source_status`` enum value;
-4. ``code_version.upstream_url`` is a bare HTTP URL -- no parenthetical note
-   mixed into it;
+4. ``code_version.upstream_url`` matches the registry's source URL, or is null
+   when no official implementation was found; URLs carry no prose;
 5. ``calibration_applied`` is a JSON boolean, not a string carrying prose;
 6. ``prior_semantics`` mentions "population" exactly when the registry entry
-   requires a class prior (``requires_class_prior``).
+   requires the common population class prior (``requires_class_prior``).
+   CVIR's separate alpha_U remains documented in the ledger and constructor;
+   it deliberately does not use this shared population-prior gate.
 7. ``native_sampling_assumption`` (``os``/``ts``) mirrors the registry
    ``scenario`` sampling mechanism (``SINGLE_TRAINING_SET``/``CASE_CONTROL``),
    ignoring the orthogonal ``SELECTION_BIASED`` flag (issue #67).
@@ -30,6 +32,7 @@ One test per invariant:
 
 from __future__ import annotations
 
+import inspect
 import json
 import re
 from datetime import date
@@ -39,7 +42,7 @@ import pytest
 
 from pu_toolbox.core.tags import Scenario
 from pu_toolbox.experiment.method_ledger import native_sampling_assumption
-from pu_toolbox.registry import get_metadata, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm, get_metadata, register_all_builtin_methods
 
 _LEDGER_PATH = (
     Path(__file__).resolve().parents[2] / "pu_toolbox" / "experiment" / "method_ledger.json"
@@ -55,6 +58,13 @@ _EXPECTED_METHOD_KEYS = {
     "nnpu",
     "self_pu",
     "vpu",
+    "robust_pu",
+    "split_pu",
+    "cvir",
+    "pulda",
+    "puet",
+    "gradpu",
+    "lagam",
 }
 
 # Ledger notes open their annotation with either an ASCII or a full-width
@@ -113,9 +123,13 @@ def test_source_status_note_head_matches_registry_enum(ledger_methods: dict[str,
 
 @pytest.mark.contract
 def test_upstream_url_is_a_bare_http_url(ledger_methods: dict[str, dict]) -> None:
-    """``upstream_url`` carries a real URL only -- no parenthetical prose."""
+    """The ledger does not invent an upstream URL for unavailable source."""
     for name, entry in ledger_methods.items():
         url = entry["code_version"]["upstream_url"]
+        expected = get_metadata(name).upstream_url
+        assert url == expected, f"{name}: ledger URL {url!r} vs registry {expected!r}"
+        if url is None:
+            continue
         assert url.startswith("http"), f"{name}: {url!r}"
         assert not _NOTE_OPEN.search(url), f"{name}: URL carries a note: {url!r}"
 
@@ -126,6 +140,20 @@ def test_calibration_applied_is_a_json_boolean(ledger_methods: dict[str, dict]) 
     for name, entry in ledger_methods.items():
         value = entry["calibration_applied"]
         assert isinstance(value, bool), f"{name}: {type(value).__name__} {value!r}"
+
+
+@pytest.mark.contract
+def test_ledger_calibration_claims_have_a_real_fit_hook(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """A TS default must have an explicit estimator view parameter."""
+    for name, entry in ledger_methods.items():
+        calibrated = entry["calibration_applied"]
+        assert entry["run_view"] == ("ts-compatible" if calibrated else "os-compatible"), name
+        if calibrated:
+            assert native_sampling_assumption(entry) in {"ts", "both"}, name
+            parameters = inspect.signature(get_algorithm(name).fit).parameters
+            assert "os_or_ts" in parameters, name
 
 
 @pytest.mark.contract

@@ -48,5 +48,5 @@ L_{LDA}+L_{2way}+w_{mix}L_{BCE}^{mix}.
 - 注册名 `pulda`，别名 `label_distribution_alignment`；支持稠密二维数值特征、CPU 和显式 CUDA。默认两层 MLP64 是工具箱技术适配，不是作者 CIFAR CNN。
 - 默认值对齐发布脚本的关键训练量：预热/PU 各 60 epoch、P/U 批次 16/128、温度 3.5、EMA 0.85/0.5、margin 0.6、MixUp 权重 4.2、Beta 参数 11；优化器为两阶段 Adam + cosine schedule。
 - `decision_function` 返回原始 logit，`predict` 在 0 阈值分类，`predict_proba` 仅为 sigmoid 分数，未经过独立概率校准。非空 `sample_weight` 明确报错。
-- 已有公式 golden、两阶段轨迹、确定性、类先验覆盖、注册/pipeline 与逐 epoch 权重恢复测试；2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke。该单次技术 smoke 不替代正式多 seed GPU/资源验收。
-- 当前为 **P3.1 技术预集成**。尚未登记冻结 Survey 台账/执行矩阵，也未完成共享 backbone、CIFAR 图像路径、公开数值对照、多 seed 资源记录与合作者复核，不得进入正式榜。
+- 已有公式 golden、两阶段轨迹、确定性、类先验覆盖、注册/pipeline 与逐 epoch 权重恢复测试；2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke，2026-09-28 又通过全局 PyTorch 2.6.0+cu124 环境下的原生与 TS 特征路径单次 CUDA smoke。这些技术 smoke 不替代 frozen-lock 或正式多 seed GPU/资源验收。
+- 当前为 **P3.1 技术预集成**。方法台账已登记；`fit(os_or_ts="ts")` 的 LDA 与 two-way margin 的 U 期望角色逐批取 `U∪P`，EMA 同步该角色。正例项、总体先验、MixUp 物理池和持久伪标签索引不变；默认视图为 `ts-compatible`，逐 run 实际值以 manifest 为准。冻结 Survey 执行矩阵尚未登记，且共享 backbone、CIFAR 图像路径、公开数值对照、多 seed 资源记录与合作者复核仍未完成，不得进入正式榜。

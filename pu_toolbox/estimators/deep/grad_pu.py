@@ -25,6 +25,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 
 
@@ -144,6 +145,7 @@ class GradPUClassifier(BasePUClassifier):
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
+        os_or_ts: str = "os",
     ) -> GradPUClassifier:
         """Fit with independent P/U minibatches and linear beta annealing."""
         import torch
@@ -151,6 +153,7 @@ class GradPUClassifier(BasePUClassifier):
         if sample_weight is not None:
             raise NotImplementedError("GradPU does not implement sample_weight")
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="GradPUClassifier")
+        view = build_training_view(X, y_pu, requested_view=os_or_ts)
         if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
             raise ValueError("X must contain finite numeric values")
         for name in ("hidden_dim", "batch_size", "max_epochs"):
@@ -221,6 +224,9 @@ class GradPUClassifier(BasePUClassifier):
         self.optimizer_steps_ = 0
         self.n_positive_ = len(positive)
         self.n_unlabeled_ = len(unlabeled)
+        self.n_loss_unlabeled_ = len(view.loss_unlabeled_positions)
+        self.training_view_ = os_or_ts
+        self.calibration_applied_ = view.calibration_applied
         self.n_features_in_ = X.shape[1]
         self._X_shape_ = X.shape
         self._class_prior = None  # accepted for API compatibility, never used by Eq. 7
@@ -247,23 +253,26 @@ class GradPUClassifier(BasePUClassifier):
                 )
                 p_batch = p_data[p_index].to(device)
                 u_batch = u_data[u_index].to(device)
+                risk_u_batch = (
+                    torch.cat((u_batch, p_batch)) if view.calibration_applied else u_batch
+                )
                 beta = self.beta_max * (epoch * n_steps + step + 1) / (self.max_epochs * n_steps)
                 raw_p = _one_score_per_row(raw_model(p_batch), len(p_batch))
-                raw_u = _one_score_per_row(raw_model(u_batch), len(u_batch))
+                raw_u = _one_score_per_row(raw_model(risk_u_batch), len(risk_u_batch))
                 if self.alpha > 0:
-                    size = max(len(p_batch), len(u_batch))
+                    size = max(len(p_batch), len(risk_u_batch))
                     p_repeat_index = torch.as_tensor(
                         rng.choice(len(p_batch), size=size, replace=size > len(p_batch)),
                         dtype=torch.long,
                         device=device,
                     )
                     u_repeat_index = torch.as_tensor(
-                        rng.choice(len(u_batch), size=size, replace=size > len(u_batch)),
+                        rng.choice(len(risk_u_batch), size=size, replace=size > len(risk_u_batch)),
                         dtype=torch.long,
                         device=device,
                     )
                     p_repeated = p_batch[p_repeat_index]
-                    u_repeated = u_batch[u_repeat_index]
+                    u_repeated = risk_u_batch[u_repeat_index]
                     mix_shape = (size,) + (1,) * (X.ndim - 1)
                     mixing = torch.as_tensor(
                         rng.uniform(size=mix_shape), dtype=torch.float32, device=device

@@ -18,6 +18,8 @@ from pu_toolbox.estimators.deep.lagam import (  # noqa: E402
     lagam_contrastive_loss,
     lagam_meta_labels,
 )
+from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
+from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
 from pu_toolbox.registry import (  # noqa: E402
     AlgorithmMetadata,
     get_algorithm,
@@ -137,6 +139,23 @@ def test_edge_minimal_support_and_shortest_schedule():
     scores = clf.decision_function(X)
     assert scores.shape == (len(X),) and np.isfinite(scores).all()
     assert bool(torch.all(clf.pseudo_labels_[y == 1] == 1))
+
+
+def test_ledger_does_not_claim_calibration_or_pa_eligibility():
+    ledger = load_ledger()
+    entry = ledger["methods"]["lagam"]
+    assert entry["run_view"] == "os-compatible"
+    assert entry["calibration_applied"] is False
+    assert (
+        resolve_training_view(
+            ledger, "lagam", None, is_oracle=False, estimator_class=LaGAMClassifier
+        )
+        == "os"
+    )
+    with pytest.raises(ValueError, match="no os_or_ts parameter"):
+        resolve_training_view(
+            ledger, "lagam", "ts", is_oracle=False, estimator_class=LaGAMClassifier
+        )
 
 
 def test_registry_declares_support_and_pu_only_recommender_excludes_lagam():
