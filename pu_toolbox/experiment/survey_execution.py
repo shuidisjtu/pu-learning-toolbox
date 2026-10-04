@@ -20,7 +20,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 
 from ..utils.serialization import array_hash, json_scalars
 from .bundle import DatasetBundle, validate_bundle
-from .feature_adapter import _encoder_state_sha256, adapt_image_bundle_to_features
+from .feature_adapter import adapt_image_bundle_to_features, encoder_state_sha256
 from .image import (
     build_survey_image_encoder,
     fit_survey_image_preprocessing,
@@ -184,7 +184,7 @@ def prepare_image_bundle(bundle: DatasetBundle, protocol: dict, seed: int):
         encoder = build_survey_image_encoder(preprocessing)
     metadata = preprocessing.to_manifest()
     metadata["initialization_seed"] = seed
-    metadata["encoder_state_sha256"] = _encoder_state_sha256(encoder)
+    metadata["encoder_state_sha256"] = encoder_state_sha256(encoder)
     return prepared, encoder, metadata
 
 
@@ -201,7 +201,7 @@ def cached_adapter(
     cache_key = digest(
         {
             "schema_version": "1.0",
-            "encoder_state_sha256": _encoder_state_sha256(encoder),
+            "encoder_state_sha256": encoder_state_sha256(encoder),
             "image": image_manifest,
             "inputs": {role: array_digest(getattr(bundle, role).X) for role in ROLES},
             "indices": {
@@ -219,7 +219,7 @@ def cached_adapter(
         manifest = json.loads((entry / "adapter.json").read_text(encoding="utf-8"))
         if manifest.get("cache_key") != cache_key or manifest[
             "encoder_state_sha256"
-        ] != _encoder_state_sha256(encoder):
+        ] != encoder_state_sha256(encoder):
             raise ValueError("adapter cache encoder/key mismatch")
         with np.load(entry / "features.npz", allow_pickle=False) as payload:
             features = {role: payload[role] for role in ROLES}

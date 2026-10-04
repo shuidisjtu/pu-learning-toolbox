@@ -10,7 +10,7 @@ import torch
 from torch import nn
 
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
-from pu_toolbox.experiment.feature_adapter import _encoder_state_sha256
+from pu_toolbox.experiment.feature_adapter import encoder_state_sha256
 from pu_toolbox.experiment.strategies import SARLBEAGenerator
 from pu_toolbox.experiment.survey_execution import (
     PilotOracleMLP,
@@ -53,7 +53,7 @@ def test_basic_image_statistics_and_encoder_are_train_only():
     assert manifest["normalization"]["source"] == "train_only_channel_statistics"
     assert manifest["augmentation"]["train"]["name"] == "none"
     assert manifest["backbone"]["weights"] is None
-    assert _encoder_state_sha256(encoder) == manifest["encoder_state_sha256"]
+    assert encoder_state_sha256(encoder) == manifest["encoder_state_sha256"]
 
 
 def test_determ_encoder_seed_and_train_statistics_ignore_test_changes():
@@ -62,18 +62,18 @@ def test_determ_encoder_seed_and_train_statistics_ignore_test_changes():
     changed = replace(source, test=replace(source.test, X=np.zeros_like(source.test.X)))
     _, second, other = prepare_image_bundle(changed, load_protocol(), 0)
     assert manifest == other
-    assert _encoder_state_sha256(first) == _encoder_state_sha256(second)
+    assert encoder_state_sha256(first) == encoder_state_sha256(second)
 
 
 def test_basic_adapter_cache_reuses_features_and_keeps_labels(tmp_path):
     source = image_bundle()
     encoder = tiny_encoder()
-    before = _encoder_state_sha256(encoder)
+    before = encoder_state_sha256(encoder)
     first, one = cached_adapter(source, encoder, {"test_spec": True}, cache_dir=tmp_path)
     second, two = cached_adapter(source, encoder, {"test_spec": True}, cache_dir=tmp_path)
     assert not one["cache_hit"] and two["cache_hit"]
     assert one["representation_sha256"] == two["representation_sha256"]
-    assert _encoder_state_sha256(encoder) == before
+    assert encoder_state_sha256(encoder) == before
     for role in ROLES:
         np.testing.assert_array_equal(getattr(first, role).X, getattr(second, role).X)
         np.testing.assert_array_equal(getattr(second, role).labels, getattr(source, role).labels)
@@ -182,7 +182,7 @@ def test_edge_oracle_rejects_single_class_and_zero_budget():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_basic_real_resnet_adapter_gpu_cache_smoke(tmp_path):
     prepared, encoder, image = prepare_image_bundle(image_bundle(), load_protocol(), 0)
-    before = _encoder_state_sha256(encoder)
+    before = encoder_state_sha256(encoder)
     first, one = cached_adapter(
         prepared, encoder, image, cache_dir=tmp_path, device="cuda", batch_size=2
     )
@@ -190,7 +190,7 @@ def test_basic_real_resnet_adapter_gpu_cache_smoke(tmp_path):
         prepared, encoder, image, cache_dir=tmp_path, device="cuda", batch_size=2
     )
     assert all(parameter.device.type == "cuda" for parameter in encoder.parameters())
-    assert _encoder_state_sha256(encoder) == before
+    assert encoder_state_sha256(encoder) == before
     assert one["device"] == "cuda" and one["encoder_mode"] == "eval_no_grad"
     assert not one["cache_hit"] and two["cache_hit"]
     assert one["feature_dimension"] == 512

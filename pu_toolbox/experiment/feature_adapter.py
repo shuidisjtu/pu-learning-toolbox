@@ -95,7 +95,7 @@ def adapt_image_bundle_to_features(
     if len(source_shapes) != 1:
         raise ValueError("source image shape must match across all four dataset roles.")
     torch, module = _resolve_torch_encoder(encoder, device)
-    state_before = _encoder_state_sha256(module)
+    state_before = encoder_state_sha256(module)
     was_training = bool(module.training)
     module.eval()
     try:
@@ -111,7 +111,7 @@ def adapt_image_bundle_to_features(
         }
     finally:
         module.train(was_training)
-    state_after = _encoder_state_sha256(module)
+    state_after = encoder_state_sha256(module)
     if state_before != state_after:
         raise RuntimeError("CNN feature extraction mutated the encoder state.")
 
@@ -286,7 +286,7 @@ def _extract_features(torch, encoder, X, *, batch_size: int, device: str) -> np.
     return features
 
 
-def _encoder_state_sha256(encoder) -> str:
+def encoder_state_sha256(encoder) -> str:
     digest = hashlib.sha256()
     state = encoder.state_dict()
     if not state:

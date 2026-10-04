@@ -18,6 +18,8 @@ import numpy as np
 from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_canonical_hash
 
+from .feature_adapter import encoder_state_sha256
+
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
 #: version is a property of the file's contents, and the file is replaced rather
@@ -472,11 +474,11 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         ):
             raise ValueError("image manifest disagrees with locked size/initialization")
         representation["image_preprocessing"] = copy.deepcopy(image)
-        if row["training_path"] == "native_cnn":
-            from .feature_adapter import _encoder_state_sha256
-
-            if _encoder_state_sha256(model.encoder) != image["encoder_state_sha256"]:
-                raise ValueError("native CNN encoder state does not match its image manifest")
+        if (
+            row["training_path"] == "native_cnn"
+            and encoder_state_sha256(model.encoder) != image["encoder_state_sha256"]
+        ):
+            raise ValueError("native CNN encoder state does not match its image manifest")
     if row["training_path"] == "cnn_feature_adapter":
         if not adapter or adapter.get("training_path") != "cnn_feature_adapter":
             raise ValueError("cnn_feature_adapter unit requires its actual adapter manifest")
