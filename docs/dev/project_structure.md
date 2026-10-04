@@ -1,6 +1,8 @@
 # Project Directory Structure
 
 > 本文档是项目目录结构的权威定义。已实现/存在的文件如实列出，规划文件标注 `(planned)`。
+> 其中 `pu_toolbox/`、`tests/`、`scripts/` 三节的树块由 `generate_structure.py` 生成，逐文件
+> 一致由该门禁保证；其余各节为人工维护，`docs/` 一节的范围见 §5 的说明。
 
 ## 1. 项目根目录
 
@@ -566,6 +568,12 @@ benchmarks/
 
 ## 5. 文档（`docs/`）
 
+> **范围（如实）**：本节为人工维护，不在 `generate_structure.py` 的生成范围内（见文首说明）。
+> `dev/`、`user/`，以及 `research/` 的 `method_cards/`、`traditional_pu/`、`distribution_shift/`
+> 三个子目录逐篇列出在库文档；`research/pu_survey/` 只列协议与资产，其余交付与复核文档见
+> [pu_survey/README.md](../research/pu_survey/README.md)；`adr/` 只列索引行，编号决策见
+> [adr/README.md](../adr/README.md)。完整文档索引见 [docs/README.md](../README.md)。
+
 ```text
 docs/
   README.md                    # 导航首页（用户 / 开发者 / 项目过程分栏）
@@ -586,16 +594,25 @@ docs/
       sensitivity_analysis.md  # 类先验/标记倾向敏感性分析
       sar_simulation.md        # SCAR/SAR 数据模拟
       self_pu.md               # Self-PU 训练
+      distribution_shift.md    # 分布漂移审计与协变量加权适配
+      model_tuning.md          # 模型参数与 PU-aware 网格搜索
+      ui.md                    # 图形界面安装与使用
+      using_skill.md           # 启用与使用 pu-workflow Skill
     reference/
       api.md                   # 核心 API 精确契约
+      index.md                 # API 索引：按模块分组的符号导航
 
   dev/                         # 开发者文档（贡献前必读）
     architecture.md            # 当前架构:模块分层、模块依赖关系、数据流、注册表
     project_structure.md       # 目录结构（本文档，权威来源）
     new_algorithm_template.md  # 新算法接入模板（能力声明与测试要求）
     dual_architecture_plan.md  # 双架构渐进式升级计划（阶段 0-4 与实施结果）
+    label_semantics_plan.md    # 标签语义契约：`label_semantics` 能力声明与检查点
+    experiment_layer.md        # 实验层关键设计机制：可注入策略、视图/轨迹语义
     compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
     architecture_principles.md # 架构维护原则：腐朽信号、应手与审计历史
+    comment_governance.md      # 注释治理：判定标准、门禁规则、已裁决保留项与迁移策略
+    single_source_map.md       # 单源地图：九个概念的真相源、消费者与重复判定
     data_leakage_audit_design.md # 数据泄露审计设计（黑名单/重复样本/guard）
     distribution_shift_aware_pu.md # 分布漂移感知 PU 设计（OOF 审计/协变量加权）
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
@@ -621,6 +638,8 @@ docs/
       Split-PU.md
       LaGAM.md
       PUET.md
+      PULDA.md
+      VPU.md
       PUSB.md
       LBE.md
       Self-PU.md

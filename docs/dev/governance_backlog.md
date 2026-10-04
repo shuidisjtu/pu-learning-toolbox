@@ -64,9 +64,8 @@
   - `scripts/check_survey_recipe_registry.py` 已登记 README 并自陈未接入 CI（属已声明的范围，
     不是漏登记）；
   - `scripts/generate_structure.py` 的生成范围只含 `pu_toolbox/`、`tests/`、`scripts/`
-    （`GENERATABLE_ROOTS`），`project_structure.md` §5 的 `docs/` 树块不在其中。按文件名比对
-    实测（2026-10-04），该块未列出在库的 `docs/dev/` 4 篇（`comment_governance.md`、
-    `experiment_layer.md`、`label_semantics_plan.md`、`single_source_map.md`）、`docs/user/`
-    5 篇、`docs/research/` 24 篇；树块内的名字无过期项（每个名字都仍在库）。这与
-    `project_structure.md` 首行「已实现/存在的文件如实列出」的口径不符——补全列举，还是给该块
-    加一句「代表性列举、完整索引见 `docs/README.md`」的口径说明，须先裁定。
+    （`GENERATABLE_ROOTS`，且只收 `.py`），`project_structure.md` §5 的 `docs/` 树块不在其中。
+    该块曾与磁盘脱节（`dev/` 缺 4 篇、`user/` 缺 5 篇、`research/` 缺 2 篇方法卡；树内无
+    过期名），已按「如实写明范围」的方式修掉：这几处补全到与磁盘一致，`research/pu_survey/`
+    与 `adr/` 保持分组并指向各自索引，范围写进 §5。**仍开口**：`docs/` 是否也纳入生成器——
+    生成器当前按后缀收文件（`.py`），要覆盖 `docs/` 须先泛化这一口径。
