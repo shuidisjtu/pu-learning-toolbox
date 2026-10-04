@@ -71,10 +71,14 @@ MD_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 # Files in docs/ that are NOT expected to appear in docs/README.md.
 DOC_INDEX_EXCLUDED: set[str] = {"README.md"}
 
-# Docs subdirectories excluded from ALL checks. research/ (method cards)
-# is in scope: it is the densest citation source and must not be
-# wholesale-exempted.
-_EXCLUDED_DOC_DIRS: set[str] = {"superpowers", "figures"}
+# Docs subdirectories excluded from ALL checks, derived from the
+# generator's declaration so the two gates cannot disagree about what is
+# excluded (single source; entries are repo-relative, we keep the part
+# below ``docs/``).  research/ (method cards) is in scope: it is the
+# densest citation source and must not be wholesale-exempted.
+_EXCLUDED_DOC_DIRS: set[str] = {
+    subtree.removeprefix("docs/") for subtree in _gen.EXCLUDED_DOC_SUBTREES
+}
 
 
 # ====================================================================

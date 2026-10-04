@@ -172,6 +172,37 @@ def test_param_unregistered_grouped_subtree_is_reported(tmp_path, monkeypatch):
     assert any("docs/adr" in m and "not registered" in m for m in messages)
 
 
+def test_edge_excluded_doc_subtree_is_exempt_in_both_gates(tmp_path, monkeypatch):
+    """A tracked ``docs/figures`` file is neither required nor complained about.
+
+    The exclusion list has a single source (``generate_structure``) and this
+    gate derives its own set from it, so the two cannot disagree about what
+    is out of scope.  Rule-2 (delegated to the generator) must not report the
+    figure as missing, and rule-4 must not demand it in the docs index.
+    """
+    derived = {subtree.removeprefix("docs/") for subtree in g.EXCLUDED_DOC_SUBTREES}
+    assert derived == d._EXCLUDED_DOC_DIRS
+
+    tracked = ["docs/README.md", "docs/figures/x.png"]
+    new_text, missing, stale = g.generate(DOC, tracked)
+    assert missing == []
+    assert stale == []
+    assert "x.png" not in new_text  # not emitted, not even as a placeholder
+    assert "figures" not in new_text
+    assert g.PLACEHOLDER not in new_text
+
+    issues = _run_rule2(tmp_path, monkeypatch, DOC, tracked)
+    assert [i for i in issues if "figures" in i.message] == []
+
+    docs_dir = tmp_path / "docs"
+    (docs_dir / "figures").mkdir(parents=True, exist_ok=True)
+    (docs_dir / "figures" / "note.md").write_text("# note\n", encoding="utf-8")
+    (docs_dir / "README.md").write_text("# index\n", encoding="utf-8")
+    monkeypatch.setattr(d, "SCRIPTS_DIR", tmp_path / "scripts")  # 4b skipped
+    index_issues = d.check_index_completeness(docs_dir / "README.md", tmp_path / "README.md", None)
+    assert [i for i in index_issues if "figures" in i.message] == []
+
+
 def test_determ_repeated_docs_rule2_checks_agree(tmp_path, monkeypatch):
     """Rule-2 over a docs block is a pure function of the document and the tree."""
 

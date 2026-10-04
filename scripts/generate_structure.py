@@ -6,7 +6,11 @@ is in scope for their root (``GENERATABLE_SUFFIXES``), read with
 ``git ls-files --cached --others --exclude-standard``, excluding ignored
 caches. Subtrees registered as a group (``GROUPED_SUBTREES``) are named by
 index rather than enumerated, so their unlisted files are never reported
-as missing while their listed entries are still verified. Hand-written
+as missing while their listed entries are still verified.
+``EXCLUDED_DOC_SUBTREES`` get the same "never enumerated" treatment with no
+index line at all: nothing below them is ever required or reported
+(``check_doc_links`` derives its excluded-doc-directory set from that tuple).
+Hand-written
 annotations are preserved from the current document, and so is the entry
 order *within each kind* -- a level's directories first, then its files,
 each group in its old relative order (see ``merge_tree``). Files new on
@@ -70,6 +74,16 @@ GENERATABLE_ROOTS: tuple[str, ...] = tuple(GENERATABLE_SUFFIXES)
 # trailing slash.
 GROUPED_SUBTREES: tuple[str, ...] = ("docs/adr", "docs/research/pu_survey")
 
+# Subtrees no gate enumerates: ``docs/superpowers`` is gitignored scratch
+# space and ``docs/figures`` is where the docs block's ``.png`` scope lands
+# once figures are tracked.  The exemption is a grouped subtree's --
+# unlisted files below are neither missing nor stale -- but WITHOUT its
+# registration anchor: these never have, and must never be given, a
+# directory line in the block, so ``block_problems`` does not demand one.
+# ``check_doc_links`` derives its ``_EXCLUDED_DOC_DIRS`` from this tuple
+# (single source), so the two gates cannot disagree about what is excluded.
+EXCLUDED_DOC_SUBTREES: tuple[str, ...] = ("docs/superpowers", "docs/figures")
+
 COMMENT_COL = 42
 PLACEHOLDER = "<<< 新文件,补注释"
 FILES_KEY = "__files__"
@@ -97,6 +111,22 @@ def in_scope(rel_path: str) -> bool:
 def is_grouped(rel_path: str) -> bool:
     """True when *rel_path* is inside a grouped subtree (see GROUPED_SUBTREES)."""
     return any(rel_path == sub or rel_path.startswith(sub + "/") for sub in GROUPED_SUBTREES)
+
+
+def is_excluded(rel_path: str) -> bool:
+    """True when *rel_path* is inside an excluded subtree (EXCLUDED_DOC_SUBTREES)."""
+    return any(rel_path == sub or rel_path.startswith(sub + "/") for sub in EXCLUDED_DOC_SUBTREES)
+
+
+def is_exempt(rel_path: str) -> bool:
+    """True when a tree block never enumerates *rel_path*.
+
+    Both exemptions leave a path out of the block, so every caller that asks
+    "would the block list this?" wants this predicate rather than
+    ``is_grouped`` alone; the two differ only on the registration anchor,
+    which ``is_declared_subtree`` owns.
+    """
+    return is_grouped(rel_path) or is_excluded(rel_path)
 
 
 def is_declared_subtree(rel_path: str) -> bool:
@@ -334,7 +364,7 @@ def merge_tree(
         sub_path = f"{path}/{k}" if path else k
         # 分组子树内部的目录不新增(其条目由该子树的索引负责);子树自身的
         # 登记行例外——它必须在,否则子树会被 update 悄悄注销。
-        if is_grouped(sub_path) and not is_declared_subtree(sub_path):
+        if is_exempt(sub_path) and not is_declared_subtree(sub_path):
             continue
         out.append("  " * level + k + "/")
         merge_tree({}, new[k], dir_ann, prefix, sub_path, level + 1, out, missing)
@@ -358,8 +388,8 @@ def merge_tree(
         seen_files.add(name)
     for name in sorted(new_files - seen_files):
         rel = f"{path}/{name}" if path else name
-        if is_grouped(rel):
-            continue  # 分组子树下未列出的文件不计入 missing,也不产生占位符
+        if is_exempt(rel):
+            continue  # 分组/豁免子树下未列出的文件不计入 missing,也不产生占位符
         pad = max(1, COMMENT_COL - level * 2 - len(name) - len(prefix))
         line = "  " * level + name + " " * pad + prefix + PLACEHOLDER
         out.append(line)
@@ -421,7 +451,7 @@ def generate(text: str, disk_files: list[str]) -> tuple[str, list[str], list[str
     for root in GENERATABLE_ROOTS:
         if root not in found_roots:
             missing.extend(
-                sorted(f for f in disk_set if f.startswith(root + "/") and not is_grouped(f))
+                sorted(f for f in disk_set if f.startswith(root + "/") and not is_exempt(f))
             )
     i = 0
     while i < len(lines):

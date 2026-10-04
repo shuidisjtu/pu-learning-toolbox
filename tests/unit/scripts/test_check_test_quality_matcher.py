@@ -6,8 +6,8 @@ categories they never asserted.  A keyword now matches only at a token
 boundary: the start of the name, or just after an underscore.
 
 The rejected cases are the two collision mechanisms measured in the field
-(``.superpowers/sdd/probe_category_matcher.py``) plus their nearest
-neighbours; the sweep keeps every keyword in ``CATEGORY_KEYWORDS``
+with a read-only census script, plus their nearest neighbours; the sweep
+keeps every keyword in ``CATEGORY_KEYWORDS``
 reachable, so the tightening cannot silently disable one.  A final ratchet
 holds the line the rule deliberately leaves open: prefix matching stays, but
 no file may owe its credit to a prefix hit.

@@ -102,6 +102,10 @@
 | `pu_toolbox/core/tags.py` | `API_ONLY`、`NATIVE` 的语义 | 前者是「无训练逻辑」的实现状态契约，后者是来源与法务语义 |
 | `pu_toolbox/losses/llsvm.py` | 13 处 shape 注解 | 签名用裸 `np.ndarray`，不携带形状；本库未引入 shape 类型标注 |
 
+§3 保留项合计 25 行（**机械锚点**：`tests/unit/scripts/test_check_comment_quality.py`
+按它比对下列文件**当前实际**的行尾注释数，不一致即红）：`pu_toolbox/core/config.py` 4、
+`pu_toolbox/core/tags.py` 8、`pu_toolbox/losses/llsvm.py` 13。
+
 判定为**系统性风格问题、另议**（不在注释清理批次内处理）：
 
 - `pu_toolbox/core/tags.py` 的 9 条 `# ── X ──` 分段标题与紧随其后的类名重复

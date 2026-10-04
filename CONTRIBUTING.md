@@ -135,7 +135,7 @@ git diff --check
 
 - 未完成事项写 `TBD`，且必须带上下文（`TBD: ...` 或 `TBD(#123) ...`）；
   不新增 `TODO`、`FIXME`、`XXX`、`HACK`；
-- 行尾注释默认不鼓励，工具链指令（`noqa`、`pragma:`、`type:` 等）除外；
+- 行尾注释：默认运行下**已迁移分区**（清单在门禁脚本内，单一源）为 error，未迁移分区仍为不鼓励的 advisory；`--strict-inline` 是手动迁移开关。工具链指令（`noqa`、`pragma:`、`type:` 等）除外；
 - 注释、docstring 与字符串字面量中引用的仓库内文件路径必须真实存在。
 
 机械门禁：`uv run python scripts/check_comment_quality.py`（默认扫 `pu_toolbox/`）
