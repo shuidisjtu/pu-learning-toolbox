@@ -1,13 +1,14 @@
 """Unit tests for the seed-normalisation helper.
 
-Scope note (batch E5): ``check_random_state`` serves the ``preprocessing`` and
-``experiment`` layers, whose ``random_state`` parameters are declared
-``int | np.random.RandomState | None`` and where passing an already-built
-``RandomState`` downstream is a load-bearing idiom -- it continues the stream.
-Estimators declare ``random_state: int | None`` and construct
+Scope note (batch E5): only the ``preprocessing`` layer declares ``random_state``
+as ``int | np.random.RandomState | None``; passing an already-built
+``RandomState`` downstream is a load-bearing idiom there -- it continues the
+stream.  The ``experiment`` layer merely consumes this helper: its ``seed``
+parameter (``experiment/protocols.py``) is declared ``int | None``.  Estimators
+declare ``random_state: int | None`` and construct
 ``np.random.RandomState(self.random_state)`` inline on purpose; see
-``docs/dev/single_source_map.md`` (随机源) for why the two layers keep two
-contracts.  Do not "fix" the estimators to call this helper.
+``docs/dev/single_source_map.md`` (随机源) for why the estimators keep a
+narrower contract.  Do not "fix" the estimators to call this helper.
 """
 
 from __future__ import annotations

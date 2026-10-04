@@ -11,8 +11,10 @@ def check_random_state(seed: int | np.random.RandomState | None) -> np.random.Ra
     Mirrors ``sklearn.utils.check_random_state`` so sklearn-dependent code
     in the toolbox can use this function without importing sklearn directly.
 
-    Scope: this helper serves the ``preprocessing`` and ``experiment`` layers,
-    whose ``random_state`` is declared ``int | np.random.RandomState | None``.
+    Scope: only the ``preprocessing`` layer declares ``random_state`` as
+    ``int | np.random.RandomState | None``, and this helper is what normalizes
+    it.  The ``experiment`` layer merely *consumes* the helper: its ``seed``
+    parameter (``experiment/protocols.py``) is declared ``int | None``.
     Estimators deliberately construct ``np.random.RandomState(random_state)``
     inline instead: their contract is ``int | None``, and widening it would be
     unreachable for the classes that hand ``random_state`` straight to
