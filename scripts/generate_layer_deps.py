@@ -26,6 +26,13 @@ and the top-level helper modules (``pu_toolbox/progress.py``,
 umbrella re-export that legitimately reaches every layer, so including it would
 drown the real edges.
 
+Coverage boundary of ``validate_layout``: it checks the packages *inside*
+``pu_toolbox/`` against the layer map.  A top-level root outside the package is
+only covered when the map lists it (``benchmarks/`` is listed as part of the
+User Layer); adding a new sibling root means adding it to ``LAYERS`` by hand.
+A whitelist of top-level directories would just be one more hand-maintained
+record to drift, which is the failure this batch exists to remove.
+
 Usage::
 
     uv run python scripts/generate_layer_deps.py --check    # verify (exit 0/1)
@@ -189,9 +196,11 @@ def validate_layout(
     from the generated table with no trace in the output:
 
     * a declared root no longer exists (a rename, a typo, a deleted package);
-    * a package exists under ``pu_toolbox/`` that no layer lists -- such a
-      package is invisible both as a source and as an edge target, because
-      ``_layer_of`` only matches declared prefixes.
+    * a directory exists under ``pu_toolbox/`` that no layer lists -- such a
+      directory is invisible both as a source and as an edge target, because
+      ``_layer_of`` only matches declared prefixes.  What is checked is any
+      directory holding ``.py`` files, not only a regular package: a
+      namespace-style directory (no ``__init__.py``) hides edges just as well.
 
     A generator that quietly reports "everything is fine" is worse than one
     that stops, so both cases raise.
@@ -206,8 +215,8 @@ def validate_layout(
     covered = [rel for roots in layers.values() for rel in roots]
     unlisted = sorted(
         rel
-        for init in package.rglob("__init__.py")
-        if (rel := init.parent.relative_to(root).as_posix()) != PACKAGE_NAME
+        for source in package.rglob("*.py")
+        if (rel := source.parent.relative_to(root).as_posix()) != PACKAGE_NAME
         and not any(rel == entry or rel.startswith(entry + "/") for entry in covered)
     )
     if unlisted:

@@ -137,10 +137,35 @@ def test_edge_unparseable_source_fails_loudly(tmp_path):
         gld.measure_edges(tmp_path, _TWO_LAYERS)
 
 
-def test_edge_unlisted_package_under_the_root_is_reported(tmp_path):
-    """A package no layer lists would drop edges with no trace in the table."""
+def test_edge_measurement_refuses_a_stale_layer_map(tmp_path):
+    """The guard must live at the measurement entry, not only at the CLI.
+
+    Testing validate_layout directly would leave the wiring itself unpinned: a
+    refactor that moved the call back into main() would restore silent
+    under-reporting for direct callers, green across the suite.
+    """
+    _write(tmp_path, "pkg/low/b.py", "thing = 1\n")
+    with pytest.raises(ValueError):
+        gld.measure_edges(tmp_path, _TWO_LAYERS)  # declares an absent pkg/high
+
+
+@pytest.mark.parametrize(
+    "stray_path",
+    [
+        "pu_toolbox/stray/__init__.py",
+        "pu_toolbox/stray_ns/mod.py",
+    ],
+)
+def test_edge_unlisted_package_under_the_root_is_reported(tmp_path, stray_path):
+    """A directory no layer lists would drop edges with no trace in the table.
+
+    Two shapes, one param each: a regular package (holds ``__init__.py``) and a
+    namespace-style directory (holds only modules).  Both hide edges, so a
+    regression that narrowed the walk back to ``__init__.py`` turns exactly the
+    namespace param red while the package param stays green.
+    """
     _write(tmp_path, "pu_toolbox/low/__init__.py", "")
-    _write(tmp_path, "pu_toolbox/stray/__init__.py", "")
+    _write(tmp_path, stray_path, "thing = 1\n")
     with pytest.raises(ValueError, match="stray"):
         gld.validate_layout(tmp_path, {"Low": ("pu_toolbox/low",)})
 
