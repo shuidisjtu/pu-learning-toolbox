@@ -19,14 +19,21 @@
 
 3. 在 registry/builtin_methods.py 注册 AlgorithmMetadata（`implementation_status` 取
    NATIVE 仅当有真实训练逻辑；未实现必须 API_ONLY；写在哪一栏见第 5 条）；
-4. 声明 sample_weight_support / backend / requires_class_prior 等既有字段；若方法依赖额外干净真值 support set，注册 `requires_clean_support=True`，并使缺失支持集时的 `fit` 直接报错。
-5. 这 8 个条目字段**只写在类属性块**：`family` / `assumption` / `scenario` /
-   `requires_class_prior` / `implementation_status` / `source_status` / `backend` /
-   `maturity` 由估计器类声明，注册时同步进 registry（与第 2 条的 4 个架构能力字段同源）；
-   已绑定条目的 `AlgorithmMetadata(...)` 里**不得**重复写它们，否则
-   `tests/test_builtin_methods.py` 的 `test_static_entries_do_not_redeclare_class_fields`
-   判红。未实现（`api_only`）的方法反其道——没有可绑定的类，这 8 个字段**只写在注册表
-   字面量**里；那时字面量是唯一源，写错会静默落回 dataclass 默认值。
+4. 声明只在注册表字面量里写的那些字段：`aliases` / `deprecated_aliases` / `paper` /
+   `supports_sparse` / `supports_gpu` / `upstream_url` / `license` / `training_cost`；
+   若方法依赖额外干净真值 support set，置 `requires_clean_support=True`，并使缺失支持集时的
+   `fit` 直接报错。
+5. 那 8 个条目字段（`family` / `assumption` / `scenario` / `requires_class_prior` /
+   `implementation_status` / `source_status` / `backend` / `maturity`）写在哪一栏，**逐字段**由
+   「你的类是否声明该字段」决定，与条目是否绑定无关：类属性块声明了的，注册时同步进 registry，
+   `AlgorithmMetadata(...)` 里就**不得**再写（写了也会被覆盖）；**类没声明的**必须写在字面量里，
+   否则只能落到 dataclass 默认值。所以「已绑定」不等于「一律不写」：`class_prior_estimation`
+   是已绑定条目，但它的类一个字段都不声明，8 个全写在字面量；`pusb` / `lbe` 的
+   `requires_class_prior` 同理（基类默认值不算「类声明」）。未实现（`api_only`）的方法没有可绑定的
+   类，这 8 个字段全写在字面量里。两种情况都由 `tests/test_builtin_methods.py` 的
+   `test_static_entries_do_not_redeclare_class_fields` 守住。**已知边界**：那 5 个仅类字段
+   （4 个架构能力字段与 `label_semantics`）不允许出现在任何条目字面量里，`api_only` 方法因此只能
+   取 dataclass 默认值——见 `docs/dev/single_source_map.md` 的登记。
 
 ## 2. 自动门禁（无需手写）
 

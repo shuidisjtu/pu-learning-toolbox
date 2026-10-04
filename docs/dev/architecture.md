@@ -181,11 +181,15 @@ trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威
 `family` / `assumption` / `scenario` / `requires_class_prior` / `implementation_status` /
 `source_status` / `backend` / `maturity`（8 个条目字段）与 `label_semantics`；该同步只认类
 **自身**声明的字段，基类默认值不算（语义与消费点见 `dual_architecture_plan.md` §3-§4）。
-据此分两半：**已绑定条目不得在条目字面量里重复声明那 8 个条目字段**（类才是源；本批已删 182 处
-重复，守卫见 `tests/test_builtin_methods.py` 的
-`test_static_entries_do_not_redeclare_class_fields`），**未绑定（`api_only`）条目反之，必须把它们
-全写在字面量里**（字面量是唯一源，写错会静默落回 dataclass 默认值）；余下 5 个字段（4 个架构能力
-字段与 `label_semantics`）不分绑定与否都不出现在字面量里，只来自类属性或默认值。
+条目字面量该写什么，**逐字段**由「该类是否声明该字段」决定，与条目是否绑定无关：
+**类已声明的字段不得在字面量里重复出现**（写了也会被同步覆盖，是死写；本批已删 182 处，守卫见
+`tests/test_builtin_methods.py` 的 `test_static_entries_do_not_redeclare_class_fields`），
+**类未声明的字段必须在字面量里显式声明**（此时字面量是唯一源，写错或漏写会静默落回 dataclass
+默认值）。所以「已绑定」不等于「一律不写」：`class_prior_estimation` 是已绑定条目，但它的类一个
+字段都不声明，8 个都要写；`pusb` / `lbe` 的 `requires_class_prior` 同理（它们靠基类默认值，而基类
+默认值不算「类声明」）。未绑定（`api_only`）条目没有类可同步，这 8 个字段全落在「类未声明」一侧，
+必须写全。余下 5 个字段（4 个架构能力字段与 `label_semantics`）不分绑定与否都不出现在字面量里，
+只来自类属性或默认值。
 `requires_clean_support=True` 的方法需要额外干净真值 support set；普通 PU-only
 推荐器排除它们，显式训练调用必须按方法卡规定的独立标签预算提供数据。
 

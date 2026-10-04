@@ -11,7 +11,8 @@
 > 「哈希」三行已更新：后两行的权威源同在 `pu_toolbox/utils/serialization.py`，均按 `0f40217`
 > 重取（该笔把 `array_hash` / `file_hash` 并入该模块，令 JSON 对与 `json_safe` / `json_scalars`
 > 一并下移；`strict_canonical_hash` 则在更早的 `9fe2004` 落地）。另有「方法能力字段」行在批次 E4
-> 收敛为单一（权威源是估计器类属性，行号锚 `f5cf55d`）。**发现重复不等于
+> 收敛为单一（权威源**逐字段**判定：类声明了就以类为源，未声明则以条目字面量为源；行号锚
+> `f54c0c6`，该笔最后动过本行引用的两个文件）。**发现重复不等于
 > 已收敛**——其余各行只记录基线现状，迁移在后续批次；本表整体并非当前快照。
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
@@ -24,7 +25,7 @@
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
 | 训练视图 | `pu_toolbox/core/training_views.py:120` `build_training_view`；角色词表 `:42` `ViewRole` + `:48` `ROLES`；视图词表 `:38` `RunView` + `:47` `RUN_VIEWS`（运行时元组由 `get_args` 派生） | `estimators/risk/{vpu,upu,nnpu,dist_pu}.py`、`estimators/bias_aware/pusb_kernel.py`、`estimators/deep/self_pu.py`、`experiment/` 各消费者、`scripts/{run_survey_experiment,run_survey_pilot,prepare_survey_splits}.py`；另有三项词表与两处子集未并（不同概念，见说明） | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 单一（角色名与 os/ts 视图；未并项见说明） |
-| 方法能力字段 | 估计器类属性（已绑定方法，如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py:141` `_sync_class_metadata_to_registry` 同步；**未绑定（`api_only`）条目以注册表字面量为源** | `registry/registry.py` `get_metadata`、`advisor/`、`cli/`、`workflows/pipeline.py`、`ui/` | 无 | 单一（绑定条目；`api_only` 见说明） |
+| 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py:141` `_sync_class_metadata_to_registry` 同步；**类未声明的字段以条目字面量为源**（`class_prior_estimation` 的 8 个字段、`pusb`/`lbe` 的 `requires_class_prior` 即如此） | `registry/registry.py` `get_metadata`、`advisor/`、`cli/`、`workflows/pipeline.py`、`ui/` | 无 | 单一（逐字段判定；`api_only` 边界见说明） |
 
 ## 说明
 
@@ -255,12 +256,17 @@ choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）
 
 **真正的缺口在活写一侧。** 那条既有守卫对「类未声明的字段」直接跳过（源码里是 `continue`），
 于是它守的是 182 处**死写**（写错也无害，反正会被类属性覆盖），跳过的是 10 处**活写**
-（字面量即权威，写错有后果）。10 处活写里 **7 处此前无任何守卫**：写错或写漏会静默落回 dataclass
-默认值，例如 `family` → `CLASSIC_CALIBRATION`、`source_status` → `UNKNOWN`、`scenario` /
-`assumption` → `[UNKNOWN]`。**第 8 处是例外**：`class_prior_estimation` 的
-`implementation_status` 早已被既有的 `tests/test_builtin_methods.py` 的
-`test_basic_implementation_status_distribution`（断言每个注册方法必须是 NATIVE）**泛覆盖**，
-本批未动那条测试。故口径是 **7/8**，不是「8 个字段此前无任何守卫」。
+（字面量即权威，写错有后果）。10 处活写里有 **7 处此前无任何守卫**，全部落在
+`class_prior_estimation`：写错或写漏会静默落回 dataclass 默认值，例如 `family` →
+`CLASSIC_CALIBRATION`、`source_status` → `UNKNOWN`、`scenario` / `assumption` → `[UNKNOWN]`。
+**另 3 处已各有守卫**（本批新增的钉子对它们构成冗余，不是新增保护）：
+`class_prior_estimation.implementation_status` 由既有的
+`test_basic_implementation_status_distribution`（断言每个注册方法必须是 NATIVE）泛覆盖；
+`pusb` / `lbe` 的 `requires_class_prior` 由 `tests/contract/test_ledger_registry_consistency.py`
+的 `test_prior_semantics_consistent_with_registry_class_prior` 守住（台账的 `prior_semantics`
+与注册表该字段必须一致，改任一侧即变红）。故准确口径是
+「`class_prior_estimation` 的 8 处活写里 **7 处**此前无守卫」——既不是「8 个字段此前无任何守卫」，
+也不是「10 处里只有 1 处有守卫」。
 
 **收敛动作（本批）。** 删除 **182** 处死写（= 23 条目 × 8 字段 − 2），保留 **10** 处活写：
 `class_prior_estimation` 的全部 8 个，与 `pusb` / `lbe` 的 `requires_class_prior`（这两个方法的该
