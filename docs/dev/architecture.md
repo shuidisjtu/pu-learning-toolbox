@@ -94,16 +94,18 @@
 
 **层内依赖与环（手写，非生成）**：`Evaluation` 层内确有依赖——`diagnostics/report.py` 与
 `diagnostics/sensitivity.py` 依赖 `metrics`，`diagnostics/shift_monitor.py` 依赖
-`diagnostics.shift`。此外全包有两条**层内**环，均需函数内导入才能成环、故静态导入图看不出：
+`diagnostics.shift`。此外全包有两条**层内**环，均需函数内导入才能成环、故普通（模块加载期）导入图看不出：
 `estimators/risk/kldce.py` ↔ `kldce_smo.py`，以及 `experiment/survey_execution.py` ↔
-`survey_protocol.py`。**无跨层环。**
+`survey_protocol.py`。**无跨层导入环**（层图上 `Evaluation` ↔ `Orchestration` 那对互边，即下方「依赖方向的已裁决例外」第 2 条）。
 
 **未归层的顶层文件（如实登记）**：`pu_toolbox/__init__.py`（伞形 re-export 门面）、
 `pu_toolbox/run_config.py`、`pu_toolbox/progress.py` 不属于任何一层，故不参与上表的测量。
 其中 `run_config.py` **确有**向上依赖（`:11` → `estimators.deep.vision`、`:12` → `workflows`），
 登记为「未归层的顶层便利模块」——本批不改代码，也不为它单列一层。
 `benchmarks/` 虽在 `pu_toolbox/` 包外，仍属 User Layer 并已纳入测量（上表 `User Layer → Estimation`
-那条边即来自 `benchmarks/assigned_methods/runner.py:35`）。
+那条边有**两处**来源：模块级的 `benchmarks/assigned_methods/runner.py:35`，以及函数内的
+`benchmarks/deep_pu/runner.py:189`——只删前者，该边会由 `module` 降级为 `（仅函数内）`
+而不是消失）。
 
 **叶子入口与守卫（手写，非生成）**：实测仍无任何层指向 `Experiment`——不被任何层依赖（叶子入口）。
 该方向由 `tests/contract/test_layer_boundaries.py` 对全部下层模块做静态 AST 扫描与子进程导入图

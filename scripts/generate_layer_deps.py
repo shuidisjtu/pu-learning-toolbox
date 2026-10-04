@@ -26,8 +26,9 @@ and the top-level helper modules (``pu_toolbox/progress.py``,
 umbrella re-export that legitimately reaches every layer, so including it would
 drown the real edges.
 
-Coverage boundary of ``validate_layout``: it checks the packages *inside*
-``pu_toolbox/`` against the layer map.  A top-level root outside the package is
+Coverage boundary of ``validate_layout``: it checks the directories holding
+``.py`` files *inside* ``pu_toolbox/`` -- regular packages and namespace-style
+directories alike -- against the layer map.  A top-level root outside the package is
 only covered when the map lists it (``benchmarks/`` is listed as part of the
 User Layer); adding a new sibling root means adding it to ``LAYERS`` by hand.
 A whitelist of top-level directories would just be one more hand-maintained
@@ -213,16 +214,20 @@ def validate_layout(
     if not package.is_dir():
         return
     covered = [rel for roots in layers.values() for rel in roots]
+    # A set, not a list: the walk yields one entry per ``.py`` file, so a
+    # directory holding several files would otherwise be reported once per file.
     unlisted = sorted(
-        rel
-        for source in package.rglob("*.py")
-        if (rel := source.parent.relative_to(root).as_posix()) != PACKAGE_NAME
-        and not any(rel == entry or rel.startswith(entry + "/") for entry in covered)
+        {
+            rel
+            for source in package.rglob("*.py")
+            if (rel := source.parent.relative_to(root).as_posix()) != PACKAGE_NAME
+            and not any(rel == entry or rel.startswith(entry + "/") for entry in covered)
+        }
     )
     if unlisted:
         raise ValueError(
-            f"packages under {PACKAGE_NAME}/ that no layer lists, so their edges "
-            f"would be dropped silently: {unlisted}"
+            f"directories under {PACKAGE_NAME}/ that no layer lists, so their .py "
+            f"files would be dropped silently: {unlisted}"
         )
 
 
