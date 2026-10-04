@@ -148,7 +148,7 @@ JSON 对只差 `allow_nan`，在**非有限输入上分道扬镳**：宽容版�
 
 - **Arr-1（数组，3 个实现体）。** `array_hash`（`:67`）是数组摘要的唯一配方。
   `experiment/feature_adapter.py` 的 `_array_sha256`（调点现 `:161`）与 `experiment/image.py` 的
-  `_array_sha256`（调点现 `:159`）**已删**，两处改调 `array_hash`；`experiment/survey_protocol.py:186`
+  `_array_sha256`（调点现 `:159`）**已删**，两处改调 `array_hash`；`experiment/survey_protocol.py:188`
   的公开名 `array_digest` **留名改委托**（`return array_hash(value)`）。`experiment/survey_execution.py`
   原有一行**函数内** `from .feature_adapter import _array_sha256`（`:219`）与其唯一调用点（现 `:226`）：
   函数内导入已删，调用改调模块级 `array_hash`（该模块本就模块级 import 同包，上提不引入环）。
@@ -167,7 +167,7 @@ JSON 对只差 `allow_nan`，在**非有限输入上分道扬镳**：宽容版�
   `tests/unit/experiment/test_split_archive.py:198` 对该全局名的 monkeypatch 仍生效。
 
 **两个公开委托名及其消费者（E3b）。** `survey_protocol.array_digest`：`experiment/survey_execution.py:29`
-模块级 import，调用点 `:153`、`:206`；另有 `experiment/survey_protocol.py:453` 内部一处。
+模块级 import，调用点 `:153`、`:206`；另有 `experiment/survey_protocol.py:455` 内部一处。
 `split_archive.file_sha256`：`experiment/split_archive.py` 内部 5 处（上列），
 `tests/unit/experiment/test_split_archive.py`（import 并在 `:198` monkeypatch）。
 
