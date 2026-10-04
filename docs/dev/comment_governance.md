@@ -35,8 +35,10 @@
 | `scripts/check_comment_quality.py` | 遗留标记、裸 TBD、行尾注释 | error / error / advisory |
 | `scripts/check_doc_links.py`（Rule 1） | 反引号路径引用是否存在 | error |
 
-`check_comment_quality.py` 另有一条 `scan-error`：无法解析的 Python 文件（语法或词法
-错误）会产生 error 级 finding，而不是静默跳过。
+`check_comment_quality.py` 另有一条 `scan-error`：无法解析的 Python 文件（语法、词法
+错误或非 UTF-8 编码）会产生 error 级 finding，而不是静默跳过。扫描到 **0 个文件**时它
+**拒绝通过**（exit 1）：路径不存在或扫描集为空都不算「通过」，旧行为打印
+`passed: scanned 0 file(s)` 并 exit 0 是实测到的假绿。
 
 ### 2.1 遗留标记
 
@@ -57,6 +59,16 @@
 行尾注释默认不鼓励，仅以下工具链指令豁免：`noqa`、`pragma:`、`type:`、
 `fmt:`、`ruff:`、`isort:`。其余行尾注释产生 advisory，不阻断。
 按目录迁移时用 `--strict-inline` 局部提升为阻断。
+
+行尾注释的 strict 判定按**分区**生效：`scripts/check_comment_quality.py` 内的
+分区清单是**单一源**，CI 的默认运行即按它执行（`--strict-inline` 保留为手动迁移开关）。
+已迁移的分区行尾注释为 error；未迁移的分区仍为 advisory，并在门禁通过时**自报**清单，
+故这里的存量数字不写进文档。新增顶层模块若不归入任一分区，覆盖断言会让门禁变红——
+即新模块出生时必须显式选择分区。
+
+**剩余边界（如实登记）**：工具链指令**前缀**之后的散文（如 `# type: 业务理由`）在机制上
+无法与真指令区分；未 `git add` 的顶层目录不在覆盖断言内（覆盖集读自 git 索引）；显式传
+路径会整体关闭分区严格性（该次扫描只按 `--strict-inline` 或全 advisory 处理）。
 
 ### 2.4 引用存在性
 
@@ -103,6 +115,9 @@
 3. 删除注释前先判定类别：可由代码表达的直接删，其余改写为块前意图注释；
 4. 任何注释改动不得改变代码行为、随机序列、序列化字段或公共 API；
 5. 门禁误报必须有最小复现测试，修门禁而不加永久豁免。
+6. `core/` 与 `losses/` 暂不迁移：两目录的行尾注释里，§3 已裁定保留的 25 行与门禁的
+   strict 判定直接冲突，整目录 strict 会把这批保留项判成 error。在两目录之间做取舍
+   （保留项例外表 / 改写为块前注释 / 维持 advisory）是独立裁定，不在本批。
 
 ## 5. 语言
 

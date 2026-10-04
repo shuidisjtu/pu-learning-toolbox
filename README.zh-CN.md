@@ -176,8 +176,8 @@ uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # 基线配置与源码默认参数一致性
 uv run python scripts/check_format.py        # 格式门禁（ruff check + format --check，全目录）
-uv run python scripts/check_comment_quality.py  # 注释卫生：遗留标记 / 裸 TBD / 行尾注释
-uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry 门禁（registry 文件未物化前声明自身不生效；尚未接入 CI）
+uv run python scripts/check_comment_quality.py  # 注释卫生：遗留标记 / 裸 TBD；行尾注释在已迁移分区为 error，未迁移分区为 advisory 并在通过时自报
+uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry 门禁：刻意不接入 CI——注册表物化前它不可能变红（任何输入都走 return 0），接入等于新增一道永远通过的检查，与架构原则 §3.2 相抵；注册表落地那一笔再接
 uv run python scripts/generate_structure.py --check    # 结构文档一致性(--update 重新生成)
 uv run python scripts/generate_layer_deps.py --check  # architecture.md §2.1 分层表（--update 重新生成）
 ```

@@ -293,6 +293,11 @@ tests/
       test_generate_layer_deps.py       # 层间依赖表生成器单元测试
       test_check_doc_links_docs_scope.py # docs/ 纳入生成器后 rule-2 反向范围扩大的测试
       test_generate_structure_docs_scope.py # 生成器 docs 作用域：按根后缀集收文件 + 分组子树豁免
+      test_check_comment_quality_partitions.py # 注释门禁分区机制(覆盖断言/空扫描拒绝/按分区判级/只增不减棘轮)
+      test_check_doc_links_rule3.py     # rule-3 架构表 vs 注册表 NATIVE: 提取不到即变红(单开文件避 15 测试上限)
+      test_check_project_metadata.py    # 项目元数据门禁失败路径: 拼装仓库跑 main(), 逐项变异须非零退出
+      test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
+      test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -406,6 +411,7 @@ tests/
       test_content_hashes.py            # 两个二进制摘要: array_hash 定 dtype/形状/字节且形状读自调用方(含 0-d)、file_hash 流式分块无关
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
+    test_stable_modules.py              # §4.8 稳定模块清单完备性解析(浅克隆下只读索引不查标签)
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
     test_model_configuration.py         # 命名参数、必填参数与 PUTuner 确定性
     test_pipeline.py                    # PUPipeline 全流程/先验解析/错误/可用性/确定性
@@ -596,8 +602,8 @@ benchmarks/
 >   `--update` 会把该行补回为无注释的目录行、不会让子树就此消失。
 > - **catch 不到什么**：它只比对**文件名**，从不校验注释文字——注释由生成器原样读入、原样回抄，
 >   不来自磁盘。所以「路径仍在、注释已过时」的行，任何基于路径存在性的门禁在原理上都看不见；
->   阶段 6 最终评审阻断的两条正是此类，且其中一条就落在**本节块内**（`governance_backlog.md`
->   那行曾把收口状态写成「阶段 6/7 未完项」，文件名与路径全程有效），另一条是 §3 说明里指向已删
+>   阶段 6 最终评审阻断的两条正是此类，且其中一条就落在**本节块内**（本块曾有一行把收口状态写成
+>   「阶段 6/7 未完项」，文件名与路径全程有效），另一条是 §3 说明里指向已删
 >   转抄的括号。文件名不变而含义改变时，只能由人改注释。
 >
 > 完整文档索引见 [docs/README.md](../README.md)。
@@ -643,7 +649,6 @@ docs/
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
     process_checklist.md                  # 进度清单与发布状态（权威来源）
     release_process.md                    # 发布流程：版本策略、预检清单、上传、回滚与维护
-    governance_backlog.md                 # 治理待办：架构治理方案的剩余阶段（阶段 7 未完项）
   research/
     method_cards/
       class_prior_estimation.md

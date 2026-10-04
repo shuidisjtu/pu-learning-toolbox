@@ -187,8 +187,8 @@ uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # baseline config vs source defaults
 uv run python scripts/check_format.py        # ruff check + format --check (full scope)
-uv run python scripts/check_comment_quality.py  # comment hygiene: legacy markers / bare TBD / trailing comments
-uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry gate (declares itself inactive until the registry file lands; not wired into CI yet)
+uv run python scripts/check_comment_quality.py  # comment hygiene: legacy markers / bare TBD; trailing comments are errors inside migrated (strict) partitions, advisory elsewhere (self-reported on pass)
+uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry gate: deliberately NOT wired into CI -- before the registry is materialised it cannot fail (every input returns 0), so wiring it would add an always-passing check, against architecture principles §3.2; wire it in the commit that lands the registry
 uv run python scripts/generate_structure.py --check    # structure document consistency (--update to regenerate)
 uv run python scripts/generate_layer_deps.py --check  # architecture.md §2.1 layer table (--update to regenerate)
 ```
