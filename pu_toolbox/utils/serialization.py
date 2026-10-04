@@ -1,10 +1,15 @@
-"""Shared serialization helpers for report-like objects and manifest payloads.
+"""Shared JSON and binary-content helpers for reports, manifests and artifacts.
 
 Every report type (``PipelineReport``, ``PUDiagnosticReport``,
 ``PUSensitivityAnalysis``, ``PUDataProfile``) renders strict JSON and
 Markdown with the same conventions (NaN/Inf -> ``None``, ``unavailable``
 for missing table cells, ``|`` escaping).  These helpers used to be
 copied per module; they live here so the conventions stay in sync.
+
+Alongside the JSON digests (:func:`canonical_hash`, :func:`strict_canonical_hash`)
+this module owns the two binary-content digests the experiment layer needs in
+order to name artifacts: :func:`array_hash` for an ndarray's dtype/shape/bytes
+and :func:`file_hash` for streamed file bytes.
 
 See ``docs/user/reference/api.md`` for the report serialization contract.
 """
@@ -19,8 +24,10 @@ from typing import Any, Literal
 import numpy as np
 
 __all__ = [
+    "array_hash",
     "canonical_hash",
     "escape_markdown",
+    "file_hash",
     "format_from_suffix",
     "format_value",
     "json_safe",
@@ -51,6 +58,35 @@ def strict_canonical_hash(value: Any) -> str:
     """
     payload = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     return hashlib.sha256(payload).hexdigest()
+
+
+#: Large files are streamed in this block size; the digest does not depend on it.
+_FILE_CHUNK_BYTES = 1024 * 1024
+
+
+def array_hash(values: np.ndarray) -> str:
+    """Stable SHA-256 of an array's dtype, shape and bytes.
+
+    The metadata is hashed alongside the payload so that a shape-preserving
+    corruption still changes the digest.  The shape is read from ``values``
+    itself, not from the contiguous copy: ``np.ascontiguousarray`` promotes a
+    0-d input to shape ``(1,)``, and the digest describes the array the caller
+    handed over.
+    """
+    digest = hashlib.sha256()
+    digest.update(str(values.dtype).encode())
+    digest.update(json.dumps(values.shape).encode())
+    digest.update(np.ascontiguousarray(values).tobytes())
+    return digest.hexdigest()
+
+
+def file_hash(path: str | Path) -> str:
+    """Stable SHA-256 of a file's bytes, streamed so large files never load whole."""
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for block in iter(lambda: handle.read(_FILE_CHUNK_BYTES), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def json_safe(value: Any) -> Any:

@@ -395,6 +395,7 @@ tests/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
       test_serialization_hashes.py      # 两个 JSON 摘要: strict 拒非有限数、lenient 仍写 NaN、有限载荷下两者一致
+      test_content_hashes.py            # 两个二进制摘要: array_hash 定 dtype/形状/字节且形状读自调用方(含 0-d)、file_hash 流式分块无关
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
