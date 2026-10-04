@@ -5,8 +5,10 @@ CSV inputs, maps errors to exit codes, and delegates learning logic to
 the library.  Two subcommands fit a registered estimator directly
 (``sensitivity`` and ``recommend``); ``run`` additionally owns its own
 configuration merge, parameter grid assembly, and artifact writing
-(``report.json``, ``report.md``, plus ``tuning.json``,
-``comparison.json``, and ``model.pkl``).
+(``report.json`` and ``report.md`` are always written, while
+``tuning.json`` / ``comparison.json`` / ``model.pkl`` are written only
+on their respective branches: a tuning grid, a multi-model comparison,
+and ``--save-model``).
 """
 
 from __future__ import annotations

@@ -53,7 +53,7 @@
 
 **为什么这样设计**：生成/训练/选模三个变化点各自成轴、互不交织，用「一个方法 + 一个声明属性」的
 最小策略面即可 DIY；避免 Bridge 双层继承的过度设计（YAGNI，见 ADR-0018 备选方案）；runner 不继承、
-策略不继承，两侧独立演化；未改写现有 `PUPipeline` 与分类器既有契约语义，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的文件共 **11 个**。
+策略不继承，两侧独立演化；未改写现有 `PUPipeline` 与分类器既有契约语义，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的 **11 个 `.py` 源文件**（git 跟踪的源文件，不含 `__pycache__` 一类缓存）。
 
 **如何使用（DIY 扩展）**：实现一个策略 ABC 的抽象方法 + 声明属性，作为**实例**注入（非类；trainer
 经 `config["trainer"]` 传入，runner 显式拒绝传类）。硬性契约：
@@ -65,9 +65,9 @@
 **半注入边界**：是否套逐 epoch checkpoint 捕获由 `type(trainer) in (DeepFitTrainer, SupervisedTrainer)`
 精确类型判断决定——自定义 trainer 不会自动获得 checkpoint 捕获，需自行处理。
 
-### D2 零改动现有层
+### D2 未改写现有层契约语义
 
-与 `PUPipeline`/分类器**未改写既有契约语义**，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的文件共 **11 个**；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），
+与 `PUPipeline`/分类器**未改写既有契约语义**，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的 **11 个 `.py` 源文件**（git 跟踪的源文件，不含 `__pycache__` 一类缓存）；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），
 SA 语义与早停逻辑不变。详见 ADR-0018 决策 2。
 
 ### D3 公共 API 与数据合约
