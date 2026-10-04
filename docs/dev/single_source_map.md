@@ -38,9 +38,12 @@
 `seed: int | np.random.RandomState | None`，服务 `preprocessing/` 与 `experiment/`：
 `preprocessing/pu_labeling.py:71`、`:136`、`:197` 等声明
 `random_state: int | np.random.RandomState | None`，docstring 亦写作
-「int or np.random.RandomState or None」。估计器与先验层的 18 个类则统一声明
-`random_state: int | None`（`docs/user/reference/api.md` 的类型列一律 `` `int \| None` ``），
-且**无一处传入实例**。
+「int or np.random.RandomState or None」。估计器与先验层中**带内联
+`np.random.RandomState(self.random_state)` 构造点的 18 个类**则统一声明
+`random_state: int | None`（该层声明此参数的类不止 18 个——`dist_pu`、`infomax_pu`、`research/*`
+等并无该构造点，另有一处工厂函数参数；`docs/user/reference/api.md` 凡给出类型处均为
+`` `int \| None` ``，仅 `InfoMaxPUClassifier`、`WeightedContrastivePUClassifier`、`DGPUClassifier`
+三条只给签名、无类型列），且**无一处传入实例**。
 
 **为何不能合并。** 把内联式换成 helper 不是「放宽」而是**双向变更**（numpy 2.4.6 实测）：
 
@@ -54,12 +57,14 @@
 其余候选（`int` / `np.int64` / `np.uint32` / `bool` / `None` / `Generator` / `str` / `float` /
 越界与负数）两侧同结果。若照「放宽」的旧记述办事，会漏掉收紧面。
 
-**放宽对 3 个类不可达。** 10 个 torch 类里 7 个从归一化 rng 派生种子
-（`torch.manual_seed(int(rng.randint(0, 2**31)))`：`nnpu`、`vpu`、`pulda`、`lagam`、
+**放宽对 3 个类不可达。** 10 个 torch 类里 7 个从各自构造的 rng 派生种子
+（七处均为 `torch.manual_seed(...)`，入参取自各自构造的 rng 的 `randint(0, 2**31)`——
+其中 6 处带 `int()`，`nnpu` 一处不带，语义等价：`nnpu`、`vpu`、`pulda`、`lagam`、
 `split_pu`、`grad_pu`、`robust_pu`），迁移不改变轨迹；另 3 个把属性直传
 （`dgpu:153`、`self_pu:579`、`weighted_contrastive_pu:167` 的
-`torch.manual_seed(self.random_state)`），实测对实例抛 `TypeError`，`dgpu:275`/`:285` 还有
-`self.random_state + 2 * round_index` 的算术约束。对它们换 helper 只是把报错从 numpy 行
+`torch.manual_seed(self.random_state)`），实测对实例抛 `TypeError`，`dgpu:275` 为
+`self.random_state + 2 * round_index`、`:285` 为 `self.random_state + 2 * round_index + 1`
+的算术约束。对它们换 helper 只是把报错从 numpy 行
 搬到 torch 行，且在全局状态已被改动之后。若为「彻底放宽」而把直传改为派生，torch 种子会由
 `N` 变成派生值，**改变这三类的随机轨迹**——越界。
 
@@ -69,7 +74,7 @@
 `tests/integration/test_run.py:265`、`tests/unit/estimators/test_elkan_noto.py` 13 处传入。
 即「接受实例」有真实消费者，不是遗留兼容。
 
-**helper 调用点共 10 处**（此前记作 8 处，已订正）：`experiment/strategies.py` 3 处
+**helper 调用点共 10 处**：`experiment/strategies.py` 3 处
 （`:92`/`:154`/`:191`，其 `seed` 由 `experiment/protocols.py:42` 声明为 `int | None`）、
 `preprocessing/pu_labeling.py` 5 处（`:107`/`:179`/`:300`/`:350`/`:400`）、
 `preprocessing/selection_bias.py` 2 处（`:246`/`:345`）。
