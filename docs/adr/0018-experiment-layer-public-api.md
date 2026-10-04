@@ -17,6 +17,7 @@ PU 调研实验协议 §2.4 要求四份数据各带明确职责(`train` 只训�
    模型选择记录及最终测试,作为工具箱面向实验/研究者用户的公共 API 层。
 2. **零改动现有层**:不改 `PUPipeline` 的交叉验证语义,不修改分类器层的 `fit(X, y)` 契约;
    实验层与工具箱之间为单向依赖(实验层 → 现有层)。
+   2026-10-04 复核:`fit` 后续新增了可选 kwarg(`os_or_ts`、`epoch_callback`,见 `experiment_layer.md`),故本句按「未改写语义」读;历史表述保留。
 3. **策略化接口**:`ExperimentRunner` 固定编排骨架(Template Method),数据生成/训练/选模/留痕
    各自为可注入策略 ABC(`Generator`/`Trainer`/`SelectionProtocol`);不采用 Bridge 双层次——
    变化点各自成轴,研究者 DIY = 实现策略并注入,不继承 runner。

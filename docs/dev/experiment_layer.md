@@ -53,7 +53,7 @@
 
 **为什么这样设计**：生成/训练/选模三个变化点各自成轴、互不交织，用「一个方法 + 一个声明属性」的
 最小策略面即可 DIY；避免 Bridge 双层继承的过度设计（YAGNI，见 ADR-0018 备选方案）；runner 不继承、
-策略不继承，两侧独立演化；零改动现有 `PUPipeline` 与分类器 `fit(X, y)` 契约。
+策略不继承，两侧独立演化；未改写现有 `PUPipeline` 与分类器既有契约语义，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的文件共 **11 个**。
 
 **如何使用（DIY 扩展）**：实现一个策略 ABC 的抽象方法 + 声明属性，作为**实例**注入（非类；trainer
 经 `config["trainer"]` 传入，runner 显式拒绝传类）。硬性契约：
@@ -67,7 +67,7 @@
 
 ### D2 零改动现有层
 
-与 `PUPipeline`/分类器签名零改动；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），
+与 `PUPipeline`/分类器**未改写既有契约语义**，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的文件共 **11 个**；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），
 SA 语义与早停逻辑不变。详见 ADR-0018 决策 2。
 
 ### D3 公共 API 与数据合约
@@ -83,8 +83,8 @@ is False` 强制。
 **为什么**：runner 不切分原始数据、只接受切好的四路数据——切分决定权与责任在协议/研究团队
 （`scripts/prepare_survey_splits.py` 只执行、不擅自决定，见协议 §2.4 第 3/7 条）。
 
-`model` 本身由调用方经 `registry.get_algorithm` 查表取类、实例化后注入，实验层不静态 import 算法
-文件（解耦机制见 [architecture.md](architecture.md) §2.1 实验层注入链）。
+`model` 本身由调用方经 `registry.get_algorithm` 查表取类、实例化后注入，实验层不在模块级静态 import 算法
+文件（`registry` 与 estimator 均只在函数内导入，对应 [architecture.md](architecture.md) §2 分层表的「仅函数内」标注；解耦机制见其 §2.1 实验层注入链）。
 
 ### D4 视图语义 —— clean 入 / PU 运行时生成 / 防泄漏
 

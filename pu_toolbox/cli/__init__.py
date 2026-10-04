@@ -1,8 +1,12 @@
 """Command-line interface for the PU Learning Toolbox.
 
-The CLI is a thin wrapper over :class:`~pu_toolbox.workflows.PUPipeline`:
-it parses arguments, reads CSV inputs, delegates to the pipeline, and
-maps errors to exit codes.  All learning logic lives in the pipeline.
+The CLI is a thin wrapper over the library: it parses arguments, reads
+CSV inputs, maps errors to exit codes, and delegates learning logic to
+the library.  Two subcommands fit a registered estimator directly
+(``sensitivity`` and ``recommend``); ``run`` additionally owns its own
+configuration merge, parameter grid assembly, and artifact writing
+(``report.json``, ``report.md``, plus ``tuning.json``,
+``comparison.json``, and ``model.pkl``).
 """
 
 from __future__ import annotations

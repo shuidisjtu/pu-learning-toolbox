@@ -13,6 +13,9 @@ CLI 需零新增依赖、可扩展;agent 工作流(pu-workflow skill)需可复�
 1. **CLI 采用 argparse 单命令薄封装**(run/list-methods/list-priors/
    make-demo-data/…):所有逻辑在 PUPipeline,CLI 只做参数解析/CSV IO/
    错误映射;辅助命令从 registry 实时读取。
+   2026-10-04 复核:该表述已不覆盖 `sensitivity`/`recommend` 两个子命令——二者在 CLI 内
+   直接对估计器 `fit`;详见 `docs/user/howto/cli.md` 与 `pu_toolbox/cli/__init__.py` 的订正。
+   历史表述保留。
 2. **run 默认 auto 模式引入推荐器训练成本维度**(第 7 维)+ LLSVM 收敛
    早停(默认开):默认 run 实测 30s → 2s。
 3. **Deep PU 接入 Pipeline/CLI**:两级参数 `architecture`(mlp/cnn)+
