@@ -286,6 +286,7 @@ tests/
       test_generate_structure.py        # 结构文档生成器(--check/--update)单元测试
       test_check_comment_quality.py     # 注释质量门禁(遗留标记/裸TBD/行尾注释)脚本测试
       test_check_doc_links_sources.py   # 文档引用门禁源码语料(rule-1 在 .py 注释中的路径引用)测试
+      test_generate_layer_deps.py       # 层间依赖表生成器单元测试
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -666,6 +667,7 @@ scripts/
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
+  generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
 ```
 
 ## 7. CI/CD（`.github/`）
