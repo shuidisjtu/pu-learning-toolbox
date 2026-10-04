@@ -71,3 +71,22 @@ def test_empty_scan_refuses(tmp_path, monkeypatch, capsys):
     rc = m.main([])
     assert rc == 1
     assert "refusing to pass empty scan" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_empty_registry_refuses(tmp_path, monkeypatch, capsys):
+    """A registry that yields no method name is not an empty coverage set.
+
+    If ``builtin_methods.py`` is renamed, deleted, or stops matching the
+    static parse, every registered method silently leaves the scan; the
+    gate must refuse instead of passing on the reduced symbol list.
+    """
+    init = tmp_path / "pu_toolbox" / "__init__.py"
+    init.parent.mkdir(parents=True)
+    init.write_text('__all__ = ["PUPipeline"]\n', encoding="utf-8")
+    monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
+    rc = m.main([])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "refusing to pass empty scan" in err
+    assert "builtin_methods.py" in err

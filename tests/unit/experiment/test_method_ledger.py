@@ -57,6 +57,18 @@ def test_rejects_missing_field():
         native_sampling_assumption({})
 
 
+def test_edge_note_only_value_has_no_enum_head():
+    """The boundary of the head-split rule: a value that is all note.
+
+    ``native_sampling_assumption`` reads the head before the first
+    parenthesis as the enum, so an entry whose value opens with the note
+    has no enum at all; it must be refused rather than resolve to an empty
+    string that no training view can be gated on.
+    """
+    with pytest.raises(ValueError, match="native_sampling_assumption"):
+        native_sampling_assumption(_entry("(only a note)"))
+
+
 def test_shipped_ledger_normalises_for_every_method():
     """Every shipped entry resolves to a value the training-view gate accepts."""
     methods = load_ledger(LEDGER_PATH)["methods"]

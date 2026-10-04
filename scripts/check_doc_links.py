@@ -40,6 +40,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = PROJECT_ROOT / "docs"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
+# Registry of NATIVE methods, the source rule-3 maps architecture.md S8
+# against.  Module-level so tests can point it at a scratch copy.
+REGISTRY_FILE = PROJECT_ROOT / "pu_toolbox" / "registry" / "builtin_methods.py"
+
 # Roots whose tree blocks generate_structure.py manages; Rule 2 delegates
 # their bidirectional existence check to that generator (single source of
 # truth, so this cannot drift from generate_structure.GENERATABLE_ROOTS).
@@ -226,14 +230,17 @@ def check_md_links(md_files: list[Path]) -> list[Issue]:
 
 
 def check_planned_consistency(structure_md: Path) -> list[Issue]:
-    """Rule 2: tree must match tracked and non-ignored new .py files.
+    """Rule 2: tree must match the files of every generator-managed root.
 
     Bidirectional check sharing the tree logic with generate_structure.py:
-    every tracked/non-ignored new ``.py`` under ``pu_toolbox/``/``tests/`` must appear
-    in the document, and every documented entry must exist on disk or be
-    marked ``(planned)``. Entries that exist on disk while marked
-    ``(planned)`` are errors too; for tree blocks the generator does not
-    manage (e.g. ``examples/``), the legacy existence check still applies.
+    every tracked/non-ignored new file whose suffix is in scope for its
+    root (``GENERATABLE_SUFFIXES``; ``.py`` for the code roots, ``.md`` /
+    ``.png`` / ``.json`` for ``docs/``) must appear in the document --
+    except below a grouped subtree, whose files are registered by index --
+    and every documented entry must exist on disk or be marked
+    ``(planned)``. Entries that exist on disk while marked ``(planned)``
+    are errors too; for tree blocks the generator does not manage (e.g.
+    ``examples/``), the legacy existence check still applies.
     """
     if not structure_md.exists():
         return [
@@ -314,10 +321,12 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
             )
 
     # Bidirectional check, sharing the tree logic with generate_structure.py:
-    # every git-tracked .py under pu_toolbox/tests must appear in the
+    # every in-scope file under a generator-managed root must appear in the
     # document, and every documented entry must exist on disk or be marked
-    # (planned).
-    tracked = [f for f in _gen.tracked_py_files() if f.startswith(_GENERATABLE_PREFIXES)]
+    # (planned).  The scope (roots x suffixes) and the grouped-subtree
+    # exemption both come from the generator, so widening either one there
+    # widens this rule here without a second edit.
+    tracked = [f for f in _gen.tracked_files() if f.startswith(_GENERATABLE_PREFIXES)]
     _new_text, missing, stale = _gen.generate(text, tracked)
     for rel in missing:
         issues.append(
@@ -354,13 +363,17 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
 
     native_paths = _get_native_module_paths()
     if not native_paths:
+        # A missing registry file or a renamed extraction marker returns an
+        # empty set; that is a broken rule, not a clean repository, so it
+        # must fail rather than downgrade to a warning the verdict ignores.
         return [
             Issue(
                 "rule-3",
                 _relative(arch_md),
                 None,
-                "could not extract NATIVE paths from builtin_methods.py",
-                "warning",
+                "could not extract NATIVE paths from builtin_methods.py "
+                "(registry file or `_native_imports` marker missing)",
+                "error",
             )
         ]
 
@@ -389,12 +402,15 @@ def _get_native_module_paths() -> set[str]:
     Looks for the ``_native_imports`` list and converts relative import
     paths (e.g. ``..estimators.classic.elkan_noto``) to file paths
     relative to ``pu_toolbox/`` (e.g. ``estimators/classic/elkan_noto.py``).
+
+    An empty return means *extraction failed* (no registry file, no
+    marker, no entries); callers treat it as a rule error, never as "this
+    repository has no native methods".
     """
-    registry_file = PROJECT_ROOT / "pu_toolbox" / "registry" / "builtin_methods.py"
-    if not registry_file.exists():
+    if not REGISTRY_FILE.exists():
         return set()
 
-    text = registry_file.read_text(encoding="utf-8")
+    text = REGISTRY_FILE.read_text(encoding="utf-8")
     start = text.find("_native_imports")
     if start == -1:
         return set()
