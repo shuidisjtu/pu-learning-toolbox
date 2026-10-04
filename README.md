@@ -142,6 +142,8 @@ protocol gates are satisfied, results must be identified as a
 `pilot / partial benchmark`. Whole-pilot runs, result aggregation, and split
 transfer are driven by `run_survey_pilot.py`, `aggregate_survey_runs.py`, and
 `survey_splits_archive.py` (see their docstrings and `docs/research/pu_survey/`).
+Received survey data can be checked read-only with `scripts/review_survey_split_receipt.py`;
+documentation consistency checks include `scripts/check_doc_links.py` and `scripts/check_api_docs.py`.
 
 Auditing and summarizing a finished batch set is driven by
 `audit_survey_batches.py` and `summarize_survey_results.py`. Both take a

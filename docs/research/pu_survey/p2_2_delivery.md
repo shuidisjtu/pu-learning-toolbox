@@ -1,5 +1,7 @@
 # P2.2 Pilot 聚合与审计（交付记录）
 
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+
 - 日期：2026-10-03
 - 定位：把 P2.1 五批（645 runs）的运行制品推进为可审计、可分层的 P2.2 交付。**不含**跨数据集总排名
   （协议 §5 第 1 条），也不含方法排名——分层结果的逐行数值由汇总产物承载，本文件只写口径、边界与未决项。
@@ -63,8 +65,8 @@
 - 汇总出 **183 行**：**180 `formal` / 3 `partial` / 0 `diagnostic`**；`not_reproducible` 0、`refused` 0；
 - 3 条 `partial` 是三个数据集各一个 `pn_oracle` 单元，带 `protocol_deviation: ['c_grid']`
   （c-independent 行不跑完整 c 网格）——这是 D24 保留该阻断位要标的**真实偏差**，不是缺陷；
-- **B4 是五批中唯一 `formal_ready = True` 的批次**（不含 oracle，其 3 个组全部 `ok`）；B1 / B2 / B3a
-  的 `formal_ready = False` 完全由上述 oracle 单元造成。
+- 按单批边界，**B3b 与 B4 均无 oracle 阻断**；B1 / B2 / B3a 的 `formal_ready = False` 由上述 oracle 单元造成。
+  B3a+B3b 合并分析组仍为 False；原「B4 唯一 True」与 B3b 快照冲突，已更正，源端报告待独立对账。
 
 分榜边界与三张表的划分依据协议 §5 第 1 条（SCAR–PA 主榜 / SCAR–OA 对照 / SAR–OA 压力测试 /
 PN oracle）；跨数据集只比较趋势，不生成总排名。

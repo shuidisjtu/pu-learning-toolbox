@@ -1,5 +1,7 @@
 # PU Survey 文档索引
 
+2026-10-04 接收端更新：[P1.4 数据验收](p1_4_review.md)、[P2.0b/c/e、P2.1、P2.2 独立技术复核](pilot_independent_review_20261004.md)、[机器可读证据](data/pilot_review_20261004.json)。正式结果独立复算及本人签署仍待原始制品交接。
+
 PU 调研实验（工具箱首次实际应用）的全部文档。本目录自包含：外层 `docs/README.md` 只保留到本目录的目录级入口，文件级索引在此维护。
 
 **机器真相源**（数值/状态以它们为准，文档只作解释）：
@@ -40,7 +42,7 @@ PU 调研实验（工具箱首次实际应用）的全部文档。本目录自�
 | [`p2_1_b2_snapshot.md`](p2_1_b2_snapshot.md) | P2.1 B2（`imdb`，215 runs）：同构快照，含与 B1 合并聚合的独立性验证 |
 | [`p2_1_b3a_snapshot.md`](p2_1_b3a_snapshot.md) | P2.1 B3a（`cifar10`/adapter，110 runs）：快照，含 checkpoint 形态与 `ConvergenceWarning` 已知现象 |
 | [`p2_1_b3ab_snapshot.md`](p2_1_b3ab_snapshot.md) | P2.1 B3a+B3b **合并分析组**（`cifar10`/adapter，180 runs）：§12.1 要求的两批合并快照，含 adapter cache 审计、量化指标逐 run 罗列、B 层策略与 checkpoint 容量对账；不含组级方法排名 |
-| [`p2_1_b4_snapshot.md`](p2_1_b4_snapshot.md) | P2.1 B4（`cifar10`/`native_cnn`，35 runs）：**草稿**，运行中。已填身份、前置门禁与对账、§7A 探针、D25 回收实测；清单层与门禁层统计及验收命令见其 §7 |
+| [`p2_1_b4_snapshot.md`](p2_1_b4_snapshot.md) | P2.1 B4（`cifar10`/`native_cnn`，35 runs）：2026-10-03 已完成。已填身份、前置门禁与对账、§7A 探针、D25 回收实测；清单层与门禁层统计及验收命令见其 §7 |
 
 ## P2.1 交接
 
