@@ -77,9 +77,14 @@ def test_edge_array_hash_reads_the_shape_of_the_callers_array():
 
 
 def test_edge_file_hash_is_chunk_boundary_independent():
-    """Chunking is the only real risk in a streaming digest, so pin its edges."""
-    values = bytes(range(256)) * 40  # 10240 bytes
+    """Chunking is the only real risk in a streaming digest, so pin its edges.
+
+    The payload must outgrow the chunk size, or every slice below is the same
+    buffer and the multi-chunk path -- the one that can go wrong -- never runs.
+    """
     boundary = 1024 * 1024
+    values = bytes(range(256)) * 8192  # exactly 2 * boundary
+    assert len(values) == 2 * boundary
     payloads = {
         "empty": b"",
         "one byte": b"x",
@@ -88,6 +93,9 @@ def test_edge_file_hash_is_chunk_boundary_independent():
         "boundary+1": values[: boundary + 1],
         "two boundaries": values[: 2 * boundary],
     }
+    assert len({len(payload) for payload in payloads.values()}) == len(payloads), (
+        "each case must be a distinct length, or the slices are not distinct"
+    )
 
     tmp_path = pathlib.Path(__import__("tempfile").mkdtemp())
     try:
