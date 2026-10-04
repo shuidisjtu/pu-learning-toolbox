@@ -44,7 +44,7 @@
 `random_state: int | None`（该层声明此参数的类不止 18 个——`dist_pu`、`infomax_pu`、`research/*`
 等并无该构造点，另有一处工厂函数参数；`docs/user/reference/api.md` 凡给出类型处均为
 `` `int \| None` ``，仅 `InfoMaxPUClassifier`、`WeightedContrastivePUClassifier`、`DGPUClassifier`
-三条只给签名、无类型列），且**无一处传入实例**。
+三条的 `random_state` 类型格为 `—`，即 `:632`、`:663`、`:694`），且**无一处传入实例**。
 
 **为何不能合并。** 把内联式换成 helper 不是「放宽」而是**双向变更**（numpy 2.4.6 实测）：
 
@@ -65,8 +65,11 @@
 （`dgpu:153`、`self_pu:579`、`weighted_contrastive_pu:167` 的
 `torch.manual_seed(self.random_state)`），实测对实例抛 `TypeError`，`dgpu:275` 为
 `self.random_state + 2 * round_index`、`:285` 为 `self.random_state + 2 * round_index + 1`
-的算术约束。对它们换 helper 只是把报错从 numpy 行
-搬到 torch 行，且在全局状态已被改动之后。若为「彻底放宽」而把直传改为派生，torch 种子会由
+的算术约束。这三处的 torch 行**先于**其下邻的内联 numpy 行（`:154`、`:580`、`:168`）执行，
+故传入实例时在 torch 行即抛错、numpy/helper 行根本到不了，`torch` 全局 RNG 状态在抛错前后实测
+不变——迁移对实例**不移动报错、也不改动全局状态**，零可观测差异；两式真正分道的只有 array-like
+整数（如 `np.array(42)`）：torch 行接受、numpy 行可达，此时内联式接受而 helper 抛错，即上表
+「收紧」一行。若为「彻底放宽」而把直传改为派生，torch 种子会由
 `N` 变成派生值，**改变这三类的随机轨迹**——越界。
 
 **实例传递在外层是承重用法。** `pu_labeling.py:408` 把 `:400` 建好的 `rng` 传给
