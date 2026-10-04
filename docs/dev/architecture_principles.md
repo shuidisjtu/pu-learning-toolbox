@@ -70,6 +70,30 @@
 8. **稳定模块标识**：长期无提交的模块视为稳定，不迁移不重构（YAGNI）。
    Python 源码分发下不做二进制物理隔离。
 
+   判据（可复现）：**以最近一次 minor 发布标签为界**——该标签之后无提交的模块判为稳定。
+   基准标签 `v1.11.0`（2026-08-29），实测日 2026-10-04。判定命令（计数为 0 ⟺ 稳定）：
+   `git log --oneline v1.11.0..HEAD -- pu_toolbox/<模块>`。
+
+   日粒度命令只做**粗筛**——标签侧 `git log -1 --format=%ad --date=short v1.11.0^{commit}`、
+   模块侧 `git log -1 --format=%ad --date=short -- pu_toolbox/<模块>`。它只到日，而标签时刻
+   是当日 18:41、其后同日仍有 13 笔提交：若某模块唯一的 post-tag 提交落在标签当日，粗筛会
+   输出与标签相同的日期而被误读成「未动」，故判定以计数为准。两侧同用 author date
+   （`%ad`）——口径固定，任一侧换字段就不再有可比性。
+
+   | 分类 | 模块 |
+   |---|---|
+   | 稳定（冻结迁移与重构） | `losses`、`prior`、`diagnostics`、`metrics` |
+   | 活跃 | `advisor`、`cli`、`core`、`estimators`、`experiment`、`model_selection`、`preprocessing`、`registry`、`ui`、`utils`、`workflows` |
+
+   边界（2026-10-04 裁定）：冻结针对**结构与契约的迁移/重构**，**不针对零行为变更的
+   注释清理**——否则与注释门禁的分区迁移互相矛盾。
+
+   如实登记：清单的**完备性**（每个被跟踪的顶层**模块目录**恰好被分类一次，且无 stale）由
+   `tests/unit/test_stable_modules.py` 守住；根级模块 `pu_toolbox/__init__.py`、
+   `pu_toolbox/progress.py`、`pu_toolbox/run_config.py` **不在表内、不被守**——判据按目录，
+   它们没有可判定的行。「某个模块是否**仍然**稳定」（即基准标签之后是否被改过）
+   **没有机械守卫**——复核要重跑上面那条判定命令。
+
 ## 5. 审计历史
 
 历次审计的完整发现与治理批次见 [ADR-0001](../adr/0001-architecture-governance.md)
