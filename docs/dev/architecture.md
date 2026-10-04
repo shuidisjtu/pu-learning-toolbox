@@ -177,10 +177,10 @@ requires_class_prior/requires_clean_support/backend/maturity/source_status/imple
 trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威，内置方法与
 算法↔模块落点、实现状态见 `pu_toolbox/registry/builtin_methods.py`。能力字段以
 估计器类属性为权威、注册时经 `registry/registry.py:141` `_sync_class_metadata_to_registry`
-把 `_SYNC_FIELDS` 的全部 **13** 个成员镜像进 registry——不只是 4 个架构能力字段，还包括
+同步——同步面覆盖 `_SYNC_FIELDS` 的全部 **13** 个成员，不只是 4 个架构能力字段，还包括
 `family` / `assumption` / `scenario` / `requires_class_prior` / `implementation_status` /
-`source_status` / `backend` / `maturity`（8 个条目字段）与 `label_semantics`；该同步只认类
-**自身**声明的字段，基类默认值不算（语义与消费点见 `dual_architecture_plan.md` §3-§4）。
+`source_status` / `backend` / `maturity`（8 个条目字段）与 `label_semantics`；但**只对类
+自身声明的字段生效**，基类默认值不算（语义与消费点见 `dual_architecture_plan.md` §3-§4）。
 条目字面量该写什么，**逐字段**由「该类是否声明该字段」决定，与条目是否绑定无关：
 **类已声明的字段不得在字面量里重复出现**（写了也会被同步覆盖，是死写；本批已删 182 处，守卫见
 `tests/test_builtin_methods.py` 的 `test_static_entries_do_not_redeclare_class_fields`），

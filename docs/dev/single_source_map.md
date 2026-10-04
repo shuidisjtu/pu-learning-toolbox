@@ -257,8 +257,9 @@ choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）
 **真正的缺口在活写一侧。** 那条既有守卫对「类未声明的字段」直接跳过（源码里是 `continue`），
 于是它守的是 182 处**死写**（写错也无害，反正会被类属性覆盖），跳过的是 10 处**活写**
 （字面量即权威，写错有后果）。10 处活写里有 **7 处此前无任何守卫**，全部落在
-`class_prior_estimation`：写错或写漏会静默落回 dataclass 默认值，例如 `family` →
-`CLASSIC_CALIBRATION`、`source_status` → `UNKNOWN`、`scenario` / `assumption` → `[UNKNOWN]`。
+`class_prior_estimation`：**漏写**会静默落回 dataclass 默认值（`family` → `CLASSIC_CALIBRATION`、
+`source_status` → `UNKNOWN`、`scenario` / `assumption` → `[UNKNOWN]`），**写成另一个合法值**则会
+静默取那个错值——后者更隐蔽，连默认值的痕迹都没有。
 **另 3 处已各有守卫**（本批新增的钉子对它们构成冗余，不是新增保护）：
 `class_prior_estimation.implementation_status` 由既有的
 `test_basic_implementation_status_distribution`（断言每个注册方法必须是 NATIVE）泛覆盖；
@@ -286,7 +287,8 @@ choices 与拆分文件角色名）、`scripts/run_survey_pilot.py`（choices）
 
 **已知边界（本批如实登记，未解决）。** clause 1 无条件禁止**任何**条目（含未来的 `api_only`）在
 字面量里写那 5 个仅类/默认值字段。对已绑定条目这是正确的（类才是源），但 `api_only` 条目没有可
-绑定的类，于是只能取 dataclass 默认值——它的架构能力与 `label_semantics` 无法通过字面量声明。
+绑定的类，于是只能取 dataclass 默认值——它的架构能力与 `label_semantics` **没有**声明途径
+（`AlgorithmMetadata` 本身接受这些 kwarg，是守卫的 clause 1 拒绝，不是无法表达）。
 今日 24 个条目全部已绑定、`api_only` 为 **0**，故这条规则空转；一旦新增 `api_only` 条目，该限制与
 「字面量是唯一源」的原则相冲突，届时需要重新裁定。
 
