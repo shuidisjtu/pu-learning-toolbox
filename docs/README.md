@@ -53,6 +53,7 @@
 | [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：协议、执行计划、各 Phase 交付与复核记录——详见 [pu_survey/README.md](research/pu_survey/README.md) |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）关键设计机制：可注入策略接口、视图/轨迹语义、P0 已知局限 |
 | [dev/single_source_map.md](dev/single_source_map.md) | 单源地图：九个概念的权威真相源、消费者与重复判定（审计快照） |
+| [dev/governance_backlog.md](dev/governance_backlog.md) | 治理待办：架构治理方案的剩余阶段（阶段 6 未启动、阶段 7 未完项） |
 
 ## 架构决策(docs/adr/)
 

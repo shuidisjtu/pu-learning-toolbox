@@ -601,6 +601,7 @@ docs/
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
     process_checklist.md       # 进度清单与发布状态（权威来源）
     release_process.md         # 发布流程：版本策略、预检清单、上传、回滚与维护
+    governance_backlog.md      # 治理待办：架构治理方案的剩余阶段（阶段 6/7 未完项）
 
   research/
     method_cards/
