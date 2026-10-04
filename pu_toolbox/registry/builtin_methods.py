@@ -51,6 +51,11 @@ from .registry import register_method
 # that entries carry).
 # `tests/test_builtin_methods.py::test_static_entries_do_not_redeclare_class_fields`
 # enforces both halves.
+# The five `_SYNC_FIELDS` members an entry never carries -- `native_architectures`,
+# `input_ndims`, `encoder_parameter`, `trains_encoder`, `label_semantics` -- come
+# from the class or the dataclass default.  An `api_only` entry has no class to
+# declare them, so it takes the defaults; writing one into a literal is not
+# expressible today (known boundary, recorded in docs/dev/single_source_map.md).
 
 _BUILTIN: list[AlgorithmMetadata] = [
     # ── 1. Class-Prior Estimation ──────────────────────────────────
