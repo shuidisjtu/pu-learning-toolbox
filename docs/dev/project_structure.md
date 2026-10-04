@@ -307,6 +307,7 @@ tests/
     core/
       test_device.py                    # resolve_device 设备解析共享助手测试
       test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
+      test_random.py                    # check_random_state 种子归一化助手直接测试(含与内联构造的双向差异)
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
