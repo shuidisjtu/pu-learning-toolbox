@@ -114,7 +114,7 @@ GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复
 | P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 已完成独立组件、Gate 0 采样假设裁决（决策 D21）、台账条目与训练视图接入（决策 D23），但共享 backbone、图像路径、公开行为对照、多 seed GPU/资源记录与双人复核**均未完成**，且**不进执行矩阵**——不得读作本行完成；PULDA 仍只有独立组件，台账/矩阵与正式验收未做；其余 PAN、RP、CVIR、PULNS 待办 |
 | P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 独立组件已完成；上述组件仍未完成方法台账/执行矩阵登记、GPU 实跑及正式验收；后三者为表格子集、未做论文数值复现。LaGAM 依赖额外干净 support set，当前 Survey v1/runner 不可用且 PA-ineligible，协议扩展待合作者审阅。GEN-PU、Holistic-PU、P3MIX 待办；PUET 为 CPU 树方法，分组/GPU 条款须复核 |
 | P3.3 | 深度 GPU 验证与调度 | P3.2 | GPU 预约、显存预算、失败/OOM 重试及结果路径均有记录，且逐 run 记录实例与卡型；与 P2.1 已不共享单卡，无跨方窗口竞争 | ⏳ 待办 / HENG958 |
-| P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | ⏳ 待办 / shuidisjtu |
+| P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | **阶段 0 已落地**（2026-10-02，`cb2fe0f`/PR #94）：模块 `pu_toolbox/experiment/survey_recipe_registry.py`、门禁 `scripts/check_survey_recipe_registry.py`（registry JSON 未物化时**声明跳过**、未接入 CI）；**阶段 1+ 待办** / shuidisjtu：冻结 registry JSON 未物化、`validate_manifest_binding` 未接入 runner 与 pilot，故验收标准「版本写入 artifact 并受 manifest 校验」未达成。 |
 | P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
 
 ### 2.3 依赖与升级规则（三种门槛）
