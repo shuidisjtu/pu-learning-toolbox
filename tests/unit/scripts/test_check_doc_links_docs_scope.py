@@ -26,31 +26,73 @@ import generate_structure as g  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
-DOC = """\
+# Both declared grouped subtrees are registered in every fixture: the
+# declaration is global, so a block that omits one is a (correct) problem.
+SURVEY_LINES = """\
+  research/
+    pu_survey/                 # 调研协议与交付(索引)
+"""
+
+DOC = (
+    """\
 ```text
 docs/
   README.md                    # 首页
   adr/                         # 决策记录(索引)
-```
 """
+    + SURVEY_LINES
+    + "```\n"
+)
 
-DOC_WITH_ADR_INDEX = """\
+DOC_WITH_ADR_INDEX = (
+    """\
 ```text
 docs/
   README.md                    # 首页
   adr/                         # 决策记录(索引)
     README.md                  # 决策索引
-```
 """
+    + SURVEY_LINES
+    + "```\n"
+)
 
-DOC_WITH_GHOST = """\
+DOC_WITH_GHOST = (
+    """\
 ```text
 docs/
   README.md                    # 首页
   user/
     ghost.md                   # 幽灵条目
-```
+  adr/                         # 决策记录(索引)
 """
+    + SURVEY_LINES
+    + "```\n"
+)
+
+# A listed entry under docs/ whose suffix the docs block does not cover: the
+# generator never parses it, so only the legacy existence check can see it.
+DOC_WITH_OUT_OF_SCOPE = (
+    """\
+```text
+docs/
+  README.md                    # 首页
+  legacy_script.py             # 早年的脚本
+  adr/                         # 决策记录(索引)
+"""
+    + SURVEY_LINES
+    + "```\n"
+)
+
+# The docs block with the `adr/` anchor line deleted.
+DOC_WITHOUT_ADR_ANCHOR = (
+    """\
+```text
+docs/
+  README.md                    # 首页
+"""
+    + SURVEY_LINES
+    + "```\n"
+)
 
 
 def _run_rule2(tmp_path, monkeypatch, doc_text: str, tracked: list[str]) -> list:
@@ -104,6 +146,30 @@ def test_edge_grouped_subtree_files_are_exempt_from_rule2(tmp_path, monkeypatch)
         tracked=["docs/README.md", "docs/adr/0001-governance.md", "docs/adr/README.md"],
     )
     assert [i for i in issues if "docs/" in i.message] == []
+
+
+def test_param_out_of_scope_docs_entry_keeps_its_existence_check(tmp_path, monkeypatch):
+    """Regression: a listed `docs/*.py` must still be existence-checked.
+
+    The generator owns in-scope entries (root x suffix) and the legacy
+    per-line check covers the rest.  Guarding that split by root prefix
+    alone let every out-of-scope suffix under docs/ fall between the two.
+    """
+    issues = _run_rule2(tmp_path, monkeypatch, DOC_WITH_OUT_OF_SCOPE, tracked=["docs/README.md"])
+    messages = [i.message for i in issues]
+    assert any("does not exist on disk" in m and "docs/legacy_script.py" in m for m in messages)
+
+
+def test_param_unregistered_grouped_subtree_is_reported(tmp_path, monkeypatch):
+    """The generator's anchor problem surfaces as a rule-2 error here too."""
+    issues = _run_rule2(
+        tmp_path,
+        monkeypatch,
+        DOC_WITHOUT_ADR_ANCHOR,
+        tracked=["docs/README.md", "docs/adr/README.md"],
+    )
+    messages = [i.message for i in issues]
+    assert any("docs/adr" in m and "not registered" in m for m in messages)
 
 
 def test_determ_repeated_docs_rule2_checks_agree(tmp_path, monkeypatch):

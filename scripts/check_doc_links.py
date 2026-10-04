@@ -240,7 +240,10 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
     and every documented entry must exist on disk or be marked
     ``(planned)``. Entries that exist on disk while marked ``(planned)``
     are errors too; for tree blocks the generator does not manage (e.g.
-    ``examples/``), the legacy existence check still applies.
+    ``examples/``), the legacy existence check still applies -- as it does
+    for a listed entry whose suffix its block does not parse, which the
+    generator reports separately (``block_problems``, forwarded here) and
+    would otherwise drop from the document without a trace.
     """
     if not structure_md.exists():
         return [
@@ -305,10 +308,14 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
                     "error",
                 )
             )
-        elif not exists and not has_planned and not rel_path.startswith(_GENERATABLE_PREFIXES):
-            # Generator-managed roots are covered by the bidirectional
-            # check below; keep the legacy existence check for blocks
-            # that generate_structure.py does not manage (examples/, ...).
+        elif not exists and not has_planned and not _gen.in_scope(rel_path):
+            # The generator's bidirectional check below owns every entry
+            # that is *in scope* for its block (root x suffix); the legacy
+            # existence check covers the rest, including blocks the
+            # generator does not manage (examples/, ...) and entries under a
+            # managed root whose suffix its block does not parse (a stray
+            # `docs/*.py`, say).  Matching on the root prefix alone would
+            # drop that last class between the two checks.
             issues.append(
                 Issue(
                     "rule-2",
@@ -338,6 +345,11 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
                 "error",
             )
         )
+    # Problems the generator reports on their own channel: an unregistered
+    # grouped subtree, or a listed entry whose suffix the block does not
+    # cover.  Neither is a missing/stale path, so both land here verbatim.
+    for message in _gen.block_problems(text):
+        issues.append(Issue("rule-2", _relative(structure_md), None, message, "error"))
     for rel in stale:
         issues.append(
             Issue(

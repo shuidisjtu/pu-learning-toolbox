@@ -7,9 +7,11 @@ is in scope for their root (``GENERATABLE_SUFFIXES``), read with
 caches. Subtrees registered as a group (``GROUPED_SUBTREES``) are named by
 index rather than enumerated, so their unlisted files are never reported
 as missing while their listed entries are still verified. Hand-written
-annotations and directory order are preserved from the current document;
-files new on disk appear with a ``<<< 新文件,补注释`` placeholder so the
-missing annotation stays visible.
+annotations are preserved from the current document, and so is the entry
+order *within each kind* -- a level's directories first, then its files,
+each group in its old relative order (see ``merge_tree``). Files new on
+disk appear with a ``<<< 新文件,补注释`` placeholder so the missing
+annotation stays visible.
 
 The generator compares *file names* only. It never derives annotation text
 from disk -- see the scope note in project_structure.md §5 for what that
@@ -21,14 +23,17 @@ Usage::
     uv run python scripts/generate_structure.py --update  # rewrite the document
 
 ``--check`` fails when the document tree differs from disk (missing or
-stale entries, or formatting drift from this generator). ``--update``
-rewrites the tree blocks in place and exits 0, printing the files that
-still need a hand-written annotation.
+stale entries, formatting drift from this generator, or a problem from
+``block_problems`` -- an unregistered grouped subtree, or a listed entry
+whose suffix the block does not cover). ``--update`` rewrites the tree
+blocks in place and exits 0, printing the files that still need a
+hand-written annotation plus any ``block_problems`` (which it cannot fix).
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -40,8 +45,10 @@ STRUCTURE_MD = PROJECT_ROOT / "docs" / "dev" / "project_structure.md"
 # Single source for what a block enumerates: a root is generatable when it
 # is a key here, and its block covers exactly the listed suffixes.  ``docs``
 # carries three because its inventory is prose (.md), figures (.png) and the
-# survey data manifests (.json); suffixes outside a root's tuple are out of
-# scope for that block -- neither required nor checked.
+# survey data manifests (.json).  A suffix outside a root's tuple is out of
+# scope for that block: the generator neither requires nor checks it, and a
+# listed entry with such a suffix is reported by ``block_problems`` rather
+# than dropped in silence (see that function).
 GENERATABLE_SUFFIXES: dict[str, tuple[str, ...]] = {
     "pu_toolbox": (".py",),
     "tests": (".py",),
@@ -57,12 +64,20 @@ GENERATABLE_ROOTS: tuple[str, ...] = tuple(GENERATABLE_SUFFIXES)
 # instead of enumerating it, so a file below one of these that the document
 # does not list is deliberate and never counts as missing.  A *listed* entry
 # below one is asserted like any other -- gone from disk, it is stale.
-# Repo-relative, no trailing slash.
+# The declaration is only meaningful while the subtree's own directory line
+# is in the block, so ``block_problems`` asserts that anchor: a subtree whose
+# line is gone has been deregistered, not emptied.  Repo-relative, no
+# trailing slash.
 GROUPED_SUBTREES: tuple[str, ...] = ("docs/adr", "docs/research/pu_survey")
 
 COMMENT_COL = 42
 PLACEHOLDER = "<<< 新文件,补注释"
 FILES_KEY = "__files__"
+
+# A tree-block entry that looks like a file name: a stem, a dot, and an
+# extension that starts with a letter.  Requiring the letter keeps numbered
+# prose ("1.2") and dot-files (".gitignore") out of the out-of-scope report.
+_FILE_ENTRY = re.compile(r"^[^\s/]+\.[A-Za-z][A-Za-z0-9_]*$")
 
 
 def in_scope(rel_path: str) -> bool:
@@ -84,12 +99,100 @@ def is_grouped(rel_path: str) -> bool:
     return any(rel_path == sub or rel_path.startswith(sub + "/") for sub in GROUPED_SUBTREES)
 
 
+def is_declared_subtree(rel_path: str) -> bool:
+    """True when *rel_path* IS a grouped subtree's own root, not a path below it."""
+    return rel_path in GROUPED_SUBTREES
+
+
 def scope_suffixes() -> tuple[str, ...]:
     """Union of every root's suffixes, order-preserved and de-duplicated."""
     out: list[str] = []
     for suffixes in GENERATABLE_SUFFIXES.values():
         out.extend(s for s in suffixes if s not in out)
     return tuple(out)
+
+
+def subtree_is_registered(content: list[str], root: str, subtree: str) -> bool:
+    """True when *subtree*'s own directory line is present in a parsed block.
+
+    The grouped exemption is only a deliberate index while the block names
+    the subtree itself; without that line the subtree is deregistered, and
+    its files simply stop appearing.
+    """
+    node: Any = parse_tree(content, root)[0]
+    for part in subtree.split("/"):
+        if not isinstance(node, dict) or part not in node:
+            return False
+        node = node[part]
+    return True
+
+
+def out_of_scope_entries(content: list[str], root: str) -> list[str]:
+    """File-looking entries in a block whose suffix is outside that block's scope.
+
+    ``parse_tree`` keeps only in-scope suffixes, so these lines never enter
+    the parsed tree: they are neither checked nor recorded as missing/stale,
+    and ``--update`` drops them.  They therefore have to be reported.
+    """
+    suffixes = GENERATABLE_SUFFIXES.get(root, ())
+    out: list[str] = []
+    stack: list[tuple[int, str]] = []
+    for line in content:
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        name = line.strip().split(maxsplit=1)[0]
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        if name.endswith("/"):
+            stack.append((indent, name.rstrip("/")))
+            continue
+        if name.endswith(suffixes) or not _FILE_ENTRY.match(name):
+            continue
+        out.append("/".join(c for _, c in stack) + "/" + name)
+    return out
+
+
+def block_problems(text: str) -> list[str]:
+    """Structural problems of the tree blocks, as free-form messages.
+
+    Neither condition below is a missing or stale *path*, so both get their
+    own channel and their own wording:
+
+    * a declared grouped subtree whose directory line is gone from its block
+      -- the subtree has left the document, which otherwise looks exactly
+      like a subtree that was never listed;
+    * a listed entry whose suffix is out of scope for its block -- unchecked,
+      and dropped in silence by the next ``--update``.
+
+    Callers must surface this alongside ``missing``/``stale``.  A block that
+    is absent altogether is not reported here: every non-grouped file it owns
+    already lands in ``missing``, which is far louder.
+    """
+    lines = text.splitlines()
+    problems: list[str] = []
+    for start, end, root in find_blocks(lines):
+        if root is None:
+            continue
+        content = lines[start + 1 : end]
+        for subtree in GROUPED_SUBTREES:
+            if not subtree.startswith(root + "/"):
+                continue
+            if not subtree_is_registered(content, root, subtree):
+                problems.append(
+                    f"grouped subtree `{subtree}` is not registered in the {root} block "
+                    f"(no `{subtree.split('/')[-1]}/` line): its files have left the "
+                    f"document rather than been merged away -- restore the line, or drop "
+                    f"`{subtree}` from GROUPED_SUBTREES"
+                )
+        for rel in out_of_scope_entries(content, root):
+            problems.append(
+                f"`{rel}` is listed in the {root} block but its suffix is outside that "
+                f"block's scope ({', '.join(GENERATABLE_SUFFIXES[root])}): it is neither "
+                f"checked nor kept, and `--update` drops the line -- remove it or move it "
+                f"to a block that covers the suffix"
+            )
+    return problems
 
 
 def find_blocks(lines: list[str]) -> list[tuple[int, int, str | None]]:
@@ -190,16 +293,24 @@ def merge_tree(
 ) -> None:
     """Recursively merge the old tree order/annotations into the new one.
 
-    Entries present in both keep their old relative order and annotations;
-    new directories and files are appended alphabetically. Files on disk
-    but absent from the old document are appended with PLACEHOLDER and
-    recorded in *missing* (repo-relative), unless they sit inside a grouped
-    subtree (``is_grouped``), where the block registers the subtree rather
-    than its files: those are neither emitted nor counted. ``(planned)``
-    entries that do not exist on disk are kept verbatim. Directory-level
-    ``(planned)`` markers are not preserved: only file entries are kept or
-    excluded per ``"(planned)" in ann`` -- real documents do not use this
-    form.
+    Order is preserved *within each kind*, not across kinds: every level
+    emits its directory group first and its file group second, keeping the
+    old relative order inside each group, and appends new entries of that
+    kind alphabetically at the end of the group.  A level whose document
+    listed files before directories therefore comes back with the files
+    below -- the generator preserves group order and annotations, not the
+    interleaving.
+
+    Files on disk but absent from the old document are appended with
+    PLACEHOLDER and recorded in *missing* (repo-relative), unless they sit
+    inside a grouped subtree (``is_grouped``), where the block registers the
+    subtree rather than its files: those are neither emitted nor counted.
+    A grouped subtree's *own* directory line is emitted even when the
+    document has lost it (``is_declared_subtree``), so an update cannot
+    quietly deregister the subtree.  ``(planned)`` entries that do not exist
+    on disk are kept verbatim. Directory-level ``(planned)`` markers are not
+    preserved: only file entries are kept or excluded per ``"(planned)" in
+    ann`` -- real documents do not use this form.
     """
     new_dirs = {k for k in new if k != FILES_KEY}
     new_files = set(new.get(FILES_KEY, {}))
@@ -220,12 +331,13 @@ def merge_tree(
         )
         seen_dirs.add(k)
     for k in sorted(new_dirs - seen_dirs):
-        if is_grouped(f"{path}/{k}" if path else k):
-            continue  # 分组子树的目录不新增:其条目由该子树的索引负责
+        sub_path = f"{path}/{k}" if path else k
+        # 分组子树内部的目录不新增(其条目由该子树的索引负责);子树自身的
+        # 登记行例外——它必须在,否则子树会被 update 悄悄注销。
+        if is_grouped(sub_path) and not is_declared_subtree(sub_path):
+            continue
         out.append("  " * level + k + "/")
-        merge_tree(
-            {}, new[k], dir_ann, prefix, f"{path}/{k}" if path else k, level + 1, out, missing
-        )
+        merge_tree({}, new[k], dir_ann, prefix, sub_path, level + 1, out, missing)
     old_files: dict[str, str] = old.get(FILES_KEY, {})
     seen_files: set[str] = set()
     for name, ann in old_files.items():
@@ -421,6 +533,7 @@ def main(argv: list[str] | None = None) -> int:
     text = STRUCTURE_MD.read_text(encoding="utf-8")
     disk = tracked_files()
     new_text, missing, stale = generate(text, disk)
+    block_issues = block_problems(text)
     changed = new_text != text
 
     if args.update:
@@ -435,6 +548,12 @@ def main(argv: list[str] | None = None) -> int:
             print("documented files missing from disk (removed by this update):")
             for f in stale:
                 print(f"  {f}")
+        if block_issues:
+            # --update cannot fix these, and one of them (an out-of-scope
+            # entry) is a line the update just dropped -- never silently.
+            print("tree-block problems (--update does not fix these):")
+            for p in block_issues:
+                print(f"  {p}")
         return 0
 
     problems = 0
@@ -453,6 +572,9 @@ def main(argv: list[str] | None = None) -> int:
             f"error: {f} is listed but does not exist on disk -- remove it or mark `(planned)`",
             file=sys.stderr,
         )
+        problems += 1
+    for p in block_issues:
+        print(f"error: {p}", file=sys.stderr)
         problems += 1
     if not problems:
         print("structure document is up to date")
