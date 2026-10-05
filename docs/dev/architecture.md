@@ -101,11 +101,8 @@
 **未归层的顶层文件（如实登记）**：`pu_toolbox/__init__.py`（伞形 re-export 门面）、
 `pu_toolbox/run_config.py`、`pu_toolbox/progress.py` 不属于任何一层，故不参与上表的测量。
 其中 `run_config.py` **确有**向上依赖（`:11` → `estimators.deep.vision`、`:12` → `workflows`），
-登记为「未归层的顶层便利模块」——本批不改代码，也不为它单列一层。
-`benchmarks/` 虽在 `pu_toolbox/` 包外，仍属 User Layer 并已纳入测量（上表 `User Layer → Estimation`
-那条边有**两处**来源：模块级的 `benchmarks/assigned_methods/runner.py:35`，以及函数内的
-`benchmarks/deep_pu/runner.py:189`——只删前者，该边会由 `module` 降级为 `（仅函数内）`
-而不是消失）。
+登记为「未归层的顶层便利模块」。
+`benchmarks/` 虽在 `pu_toolbox/` 包外，仍属 User Layer 并已纳入测量。
 
 **叶子入口与守卫（手写，非生成）**：实测仍无任何层指向 `Experiment`——不被任何层依赖（叶子入口）。
 该方向由 `tests/contract/test_layer_boundaries.py` 对全部下层模块做静态 AST 扫描与子进程导入图
@@ -113,30 +110,21 @@
 
 跨层的两条**已裁决例外**见下方「依赖方向的已裁决例外」。
 
-**依赖方向的已裁决例外（2026-10-04 裁定，不拆）**：
+**依赖方向的已裁决例外**：
 
 1. **`registry` → `estimators` / `prior`（Core → Algorithms / Estimation）**：
    `pu_toolbox/registry/builtin_methods.py` 用 `importlib.import_module` + `getattr` 按
-   **字符串**加载算法类。这条边**静态 AST 扫描与子进程导入图都看不见**（前者只认
-   `Import`/`ImportFrom` 节点，后者在调用时才发生），由
-   `tests/contract/test_registry_dynamic_import.py` 钉住这条边的**含义**：注册表在调用前为空、
-   注册出的类定义在 `estimators`/`prior` 下、可重复调用、未知名被拒。**注意**：不能用
-   `sys.modules` 的增量来证明它——伞形门面早已加载了那些模块，调用本身新增零个模块
-   （控制方实测）。
+   **字符串**加载算法类，这条边**静态 AST 扫描与子进程导入图都看不见**，由
+   `tests/contract/test_registry_dynamic_import.py` 钉住其含义。
    保留理由：按名字查表正是实验层与算法谱系解耦的机制——新增算法只需注册。
 2. **`model_selection` → `workflows`（Evaluation → Orchestration，向上）**：
    `model_selection/comparison.py` 与 `tuning.py` 静态依赖编排层的 `PUPipeline`；
-   `model_selection/__init__.py` 用 PEP 562 模块级 `__getattr__` 懒加载这两个模块
-   （其 docstring 自陈是为「without creating a pipeline import cycle」）。保留理由：
-   构建在 PU 感知工作流之上的调参与比较是该层职责，上移成本大于收益。
+   `model_selection/__init__.py` 用 PEP 562 模块级 `__getattr__` 懒加载这两个模块。
+   保留理由：构建在 PU 感知工作流之上的调参与比较是该层职责，上移成本大于收益。
 
-**未清理项（2026-10-04 勘察后裁定）**：通用层有些 docstring **归因引用**了 Survey 语境。
-口径与当日实测：点名 `survey` 的 docstring **13 个**（`core/training_views.py`、
-`utils/activations.py`、`utils/basis.py`、`utils/serialization.py`、
-`preprocessing/pu_labeling.py`，以及 5 个 estimator 文件里的 7 个），另有 **2 个**只引调研协议的
-章节号或决策号（`estimators/bias_aware/pusb_kernel.py`、`estimators/risk/vpu.py`）。
-勘察确认**无一处进入行为**——没有解析台账字段、没有 survey 制品路径、无硬编码仓库路径。
-判为「保留」：这些引用是「这段通用代码为何这么写」的信息，删除即丢失。
+**通用层 docstring 的 Survey 归因（已裁定保留）**：通用层有些 docstring 归因引用了 Survey 语境，
+勘察确认**无一处进入行为**（没有解析台账字段、没有 survey 制品路径、无硬编码仓库路径）。
+判为保留：这些引用是「这段通用代码为何这么写」的信息，删除即丢失。
 
 **模块级依赖链**（代表性，层间单向；两条层内环见上）：
 
@@ -148,7 +136,7 @@
   **预处理层**声明 `int | RandomState | None`，接受实例并原样返回以延续随机流，
   **实验层**只消费该 helper（其 `experiment/protocols.py:42` 的 `seed` 声明为 `int | None`）；
   估计器层**有意不经过它**——那里的 `random_state` 契约是 `int | None`，理由见 `single_source_map.md` §随机源
-- **训练视图链**：`core/training_views.py`（中立元语：从一次训练分区识别 `positive` / `native_unlabeled` / `loss_unlabeled` 三个角色与来源索引，不认识台账、方法名与 manifest）→ `experiment/training_views.py`（survey 边界：台账门禁、路由裁决、历史 `run_view` 词表在出口现算、manifest 构造；角色构造委托核心层）→ estimator 的 `os_or_ts` 消费点。**方向是 `estimator → core`，禁止 `estimator → experiment`**：estimator 是通用算法，静态依赖 survey 协议即构成反向依赖（实测反方向为 0；至于往下看会连带出现 estimator 模块，那是**根包 `pu_toolbox/__init__.py` 的伞形 re-export** 所致——任何 `pu_toolbox.*` 子模块的导入都会先执行它，与实验包自身无关）。此前仅有 `tests/unit/core/test_training_view_contract.py` 的子进程导入测试守住该边界，但它只导入 `pu_toolbox.estimators.risk.upu` 一个模块（仅覆盖全部下层模块中的一个）；全部下层模块的覆盖由 `tests/contract/test_layer_boundaries.py` 的 ratchet 承担——静态 AST 扫描抓函数内导入，子进程导入图抓传递依赖。角色是事实，能否校准是政策——政策留在实验层，事实下沉到核心层。
+- **训练视图链**：`core/training_views.py`（中立元语：从一次训练分区识别 `positive` / `native_unlabeled` / `loss_unlabeled` 三个角色与来源索引，不认识台账、方法名与 manifest）→ `experiment/training_views.py`（survey 边界：台账门禁、路由裁决、历史 `run_view` 词表在出口现算、manifest 构造；角色构造委托核心层）→ estimator 的 `os_or_ts` 消费点。**方向是 `estimator → core`，禁止 `estimator → experiment`**：estimator 是通用算法，静态依赖 survey 协议即构成反向依赖（反方向实测为 0；往下看会连带出现 estimator 模块，是**根包 `pu_toolbox/__init__.py` 的伞形 re-export** 所致——任何 `pu_toolbox.*` 子模块的导入都会先执行它，与实验包自身无关）。该边界由 `tests/contract/test_layer_boundaries.py` 的 ratchet 守住（静态 AST 扫描抓函数内导入，子进程导入图抓传递依赖）。角色是事实，能否校准是政策——政策留在实验层，事实下沉到核心层。
 - **实验层注入链**：`experiment/runner.py`（固定编排骨架）→ 注入的 `model` 实例（estimators，调用方经 `registry.get_algorithm` 获取，非静态 import）+ 策略 ABC（`protocols.py` 的 `Generator`/`Trainer`/`SelectionProtocol`）→ 生成/训练/选模/留痕各由可替换策略承担
 
   「非静态 import」指 `ExperimentRunner` 的 import 列表不含任何 estimator 或 registry，只经
@@ -239,7 +227,7 @@ trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威
 `source_status` / `backend` / `maturity`（8 个条目字段）与 `label_semantics`；但**只对类
 自身声明的字段生效**，基类默认值不算（语义与消费点见 `dual_architecture_plan.md` §3-§4）。
 条目字面量该写什么，**逐字段**由「该类是否声明该字段」决定，与条目是否绑定无关：
-**类已声明的字段不得在字面量里重复出现**（写了也会被同步覆盖，是死写；本批已删 182 处，守卫见
+**类已声明的字段不得在字面量里重复出现**（写了也会被同步覆盖，是死写；守卫见
 `tests/test_builtin_methods.py` 的 `test_static_entries_do_not_redeclare_class_fields`），
 **类未声明的字段必须在字面量里显式声明**（此时字面量是唯一源，写错或漏写会静默落回 dataclass
 默认值）。所以「已绑定」不等于「一律不写」：`class_prior_estimation` 是已绑定条目，但它的类一个
