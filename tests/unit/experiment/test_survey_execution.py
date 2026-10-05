@@ -46,6 +46,26 @@ def tiny_encoder():
         return nn.Sequential(nn.Conv2d(3, 2, 1), nn.AdaptiveAvgPool2d(1), nn.Flatten())
 
 
+def _pinned_encoder():
+    """``tiny_encoder`` with its weights overwritten by fixed bytes.
+
+    A digest over ``tiny_encoder``'s weights is not portable across torch
+    builds: the seeded initialisation differs between the 2.14.0+cu126 wheel
+    ``uv.lock`` pins on win32 and the 2.13.0 wheel it pins on every other
+    platform, so the same test produced one digest on Windows and a different
+    one on Linux/macOS.  Pinning a digest over those weights therefore also
+    pinned the torch build, which is not what the pin is for.  Tests that
+    freeze a cache_key use this encoder instead: 0.5 is exact in float32, so
+    the bytes -- and the digest -- are the same everywhere, while a change to
+    the serialisation recipe still moves it.
+    """
+    encoder = tiny_encoder()
+    with torch.no_grad():
+        for parameter in encoder.parameters():
+            parameter.copy_(torch.full_like(parameter, 0.5))
+    return encoder
+
+
 def test_basic_image_statistics_and_encoder_are_train_only():
     source = image_bundle()
     prepared, encoder, manifest = prepare_image_bundle(source, load_protocol(), 0)
@@ -81,17 +101,19 @@ def test_basic_adapter_cache_reuses_features_and_keeps_labels(tmp_path):
 
 def test_edge_cache_keys_do_not_depend_on_labels(tmp_path):
     source = image_bundle()
-    _, first = cached_adapter(source, tiny_encoder(), {"test_spec": True}, cache_dir=tmp_path)
+    _, first = cached_adapter(source, _pinned_encoder(), {"test_spec": True}, cache_dir=tmp_path)
     changed = replace(source, train=replace(source.train, labels=1 - source.train.labels))
     adapted, other = cached_adapter(
-        changed, tiny_encoder(), {"test_spec": True}, cache_dir=tmp_path
+        changed, _pinned_encoder(), {"test_spec": True}, cache_dir=tmp_path
     )
     assert first["cache_key"] == other["cache_key"]
     # Frozen: the key digests the serialised role indices alongside the
     # encoder state, input digests and device.  A change to the index
     # serialisation would silently stop matching every cached adapter rather
-    # than fail, so the whole key is pinned by value here.
-    assert first["cache_key"] == "249f32ee97a24001c4f1465caab4ae071c517c3bde56573f32d485d8de6e6fc1"
+    # than fail, so the whole key is pinned by value here.  The encoder is
+    # _pinned_encoder() -- pinning a digest over torch-initialised weights
+    # would pin the torch build too (see its docstring).
+    assert first["cache_key"] == "9e7b3a57ecc1a58b47b4ea06246c23281ee0da485aa69ce59b9380e092e6eb5a"
     assert other["cache_hit"]
     np.testing.assert_array_equal(adapted.train.labels, changed.train.labels)
 
