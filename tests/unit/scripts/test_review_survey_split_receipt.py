@@ -5,6 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts/review_survey_split_receipt.py"
 
@@ -21,19 +25,22 @@ def run_audit(*args, optimized=False):
     )
 
 
-def test_help_does_not_require_received_data():
+def test_basic_determ_help_does_not_require_received_data():
     result = run_audit("--help")
     assert result.returncode == 0
     assert "--archive-dir" in result.stdout
+    repeated = run_audit("--help")
+    assert repeated.returncode == result.returncode
+    assert repeated.stdout == result.stdout
 
 
-def test_optimized_python_is_refused(tmp_path):
+def test_param_optimized_python_is_refused(tmp_path):
     result = run_audit("--archive-dir", str(tmp_path), optimized=True)
     assert result.returncode != 0
     assert "Assertions are required" in result.stderr
 
 
-def test_missing_receipt_fails_before_array_loading(tmp_path):
+def test_edge_missing_receipt_fails_before_array_loading(tmp_path):
     result = run_audit("--archive-dir", str(tmp_path), "--splits", str(tmp_path / "missing"))
     assert result.returncode != 0
     assert "Receipt integrity check failed" in result.stderr

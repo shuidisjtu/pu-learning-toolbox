@@ -143,6 +143,15 @@ protocol gates are satisfied, results must be identified as a
 transfer are driven by `run_survey_pilot.py`, `aggregate_survey_runs.py`, and
 `survey_splits_archive.py` (see their docstrings and `docs/research/pu_survey/`).
 Received survey data can be checked read-only with `scripts/review_survey_split_receipt.py`;
+pilot delivery Excel can be reconciled with `scripts/audit_survey_workbook.py` (optional `openpyxl`).
+Missing public raw datasets can be collected with `scripts/collect_survey_public_data.py`;
+this does not prepare or approve formal survey splits and excludes access-controlled ADNI.
+Survey recipe preparation uses `scripts/prepare_survey_recipe_registry.py`; validate a draft with
+`scripts/check_survey_recipe_registry.py --registry <draft.json>` before review and locking.
+Synthetic seven-method serialization (and PULDA checkpoint) storage can be probed with
+`scripts/profile_survey_candidate_storage.py` (`--method all --seeds 0 1 2`);
+this does not set formal budgets or audit GPU usage. The separate five-method handoff draft is
+generated read-only by `scripts/prepare_p3_preintegration_extension.py`, without approving candidates.
 documentation consistency checks include `scripts/check_doc_links.py` and `scripts/check_api_docs.py`.
 
 Auditing and summarizing a finished batch set is driven by

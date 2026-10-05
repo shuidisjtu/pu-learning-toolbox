@@ -145,6 +145,25 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 # every run and flagged as removable once the category is covered, so
 # the list stays honest and shrinkable.
 PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
+    "test_p3_candidate_admission.py": {
+        "determ": "static draft JSON versus ledger/protocol identity; no stochastic execution",
+        "param": "static admission facts; schema/ledger API error paths have separate tests",
+    },
+    "test_multistage_disk_preflight.py": {
+        "determ": "pure budget arithmetic; disk errors: test_checkpoint_disk_preflight.py",
+    },
+    "test_p3_feature_adapter_smoke.py": {
+        "param": "success-path binding; validation: method tests and test_feature_adapter.py",
+        "edge": "invalid IDs/empty arrays: test_pulns.py and test_feature_adapter.py",
+    },
+    "test_p3_pulda_puet_runner_smoke.py": {
+        "determ": "seeded access smoke; reproduction: test_pulda.py and test_puet.py",
+        "param": "success-path binding; constructor validation: method unit tests",
+        "edge": "success-path binding; input/checkpoint boundaries: method/checkpoint tests",
+    },
+    "test_unimplemented_calibration_routing.py": {
+        "determ": "pure signature/ledger routing without RNG; views are directly asserted",
+    },
     "test_leaderboard_run_view.py": {
         "basic": (
             "asserted through partition_fair_leaderboard_runs's group payload, "
@@ -334,10 +353,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "ledger-registry data-consistency contract over a fixed JSON file and the "
             "builtin registry: nothing under test takes validated parameters, and the only "
             "error path (a ledger key absent from the registry) is the key-set test"
-        ),
-        "edge": (
-            "both sides are fixed fixtures (ledger JSON + builtin registry) with no boundary "
-            "inputs to vary; the exact key-set equality IS the closure check"
         ),
     },
     "test_bundle.py": {

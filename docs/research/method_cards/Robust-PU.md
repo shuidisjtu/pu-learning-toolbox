@@ -1,5 +1,20 @@
 # Method Card: Robust-PU
 
+原生 CNN 工程路径（2026-10-05）：`encoder=nn.Module` deepcopy/解冻训练，有限二维特征
+接默认 MLP 或用户 raw-logit 头；四维图像缺 encoder 时拒绝，不静默 flatten。
+probe、自步权重扫描及推断均 eval，不更新 BatchNorm；预测恢复模式并校验完整空间 shape。
+图像/观测标签保留 CPU，自步权重按原始行在 CPU 更新，优化批次上设备；不把权重跟随
+shuffle 重新编号。TS 风险池替换仍只在 nnPU 预训练，自步伪负例仍为原始 U。
+阶段计数/快照、BN 真实训练更新与模板未污染、种子/clone/pickle/权重回放、GPU 驻留见
+`test_robust_pu_cnn.py`；公共 pipeline、不同 CV 折有集成测试。
+图像微型 smoke 不替代作者增强/scheduler、正式预算、多 seed 资源或数值验收。
+
+资源接口补齐（2026-10-05）：`checkpoint_epoch_count=pretrain_epochs+episodes`，
+预训练每轮和每个完整 episode 各一份快照；`inner_epochs` 不额外产生快照，全部更新计入
+`optimizer_steps_`（每次 fit 重置）。runner 按此数量估算峰值，显式协议预算仍优先；
+回收不是峰值优化，正式 bytes/component 和候选预算仍须实测/预注册。
+独立优化器 step 插桩、两阶段快照/回放和失败不重试见 `test_multistage_candidate_accounting.py`。
+
 > 本卡记录技术预集成，不表示 Survey P3.2 正式验收或论文数值复现。
 
 ## 来源与适用范围
@@ -20,7 +35,7 @@
 
 ## 与论文/官方脚本不同的部分
 
-- 本实现只有二维表格 MLP 路径，没有官方 CIFAR CNN、图像增强和论文训练预算；默认预训练 10 epoch + 20 episode 是轻量起点，非最优复现配置。
+- 本实现支持二维 MLP 和注入 CNN 的四维图像工程路径，非官方 CIFAR 网络/图像增强/完整训练预算；默认预训练 10 epoch + 20 episode 是轻量起点。
 - 官方脚本用真实验证标签选预训练及最终模型，并读取真实训练标签做诊断日志；本实现的 `fit` **没有这些标签入口**，也不在内部做真实标签选模。PA/OA 只能由工具箱实验 runner 在各自协议路径处理。
 - 官方有更多 scheduler、hardness、SPL 与重启分支；这里只实现默认的 logistic hardness、linear scheduler、Welsch 权重，并额外保留 hard/linear 权重规则。不得将这个子集声称为官方完整功能等价。
 - 来源许可证未在核对的仓库中确认；本代码为独立实现，不复制官方源码。

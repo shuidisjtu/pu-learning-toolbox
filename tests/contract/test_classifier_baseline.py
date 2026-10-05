@@ -266,6 +266,69 @@ def _make_puet():
     return PUExtraTreesClassifier(class_prior=0.33, n_estimators=3, max_depth=4, random_state=42)
 
 
+def _make_holistic_pu():
+    from pu_toolbox import HolisticPUClassifier
+
+    return HolisticPUClassifier(
+        hidden_dim=4, warmup_epochs=3, max_epochs=1, batch_size=32, random_state=42, device="cpu"
+    )
+
+
+def _make_genpu():
+    from pu_toolbox import GenPUClassifier
+
+    return GenPUClassifier(
+        class_prior=0.33,
+        hidden_dim=4,
+        latent_dim=2,
+        max_epochs=1,
+        classifier_epochs=1,
+        batch_size=32,
+        random_state=42,
+        device="cpu",
+    )
+
+
+def _make_pan():
+    from pu_toolbox import PANClassifier
+
+    return PANClassifier(hidden_dim=8, max_epochs=2, batch_size=32, random_state=42, device="cpu")
+
+
+def _make_rp():
+    from pu_toolbox import RankPruningClassifier
+
+    return RankPruningClassifier(random_state=42)
+
+
+def _make_cvir():
+    from pu_toolbox.estimators.risk import CVIRClassifier
+
+    return CVIRClassifier(
+        unlabeled_positive_prior=0.33,
+        hidden_dim=8,
+        warm_start_epochs=1,
+        max_epochs=1,
+        batch_size=32,
+        random_state=42,
+        device="cpu",
+    )
+
+
+def _make_pulns():
+    from pu_toolbox import PULNSClassifier
+
+    return PULNSClassifier(
+        hidden_dim=4,
+        pretrain_epochs=1,
+        episodes=1,
+        classifier_epochs=1,
+        batch_size=32,
+        random_state=42,
+        device="cpu",
+    )
+
+
 _FACTORY_MAP: dict[str, callable] = {
     "elkan_noto": _make_elkan_noto,
     "llsvm": _make_llsvm,
@@ -291,6 +354,12 @@ _FACTORY_MAP: dict[str, callable] = {
     "vpu": _make_vpu,
     "pulda": _make_pulda,
     "puet": _make_puet,
+    "pan": _make_pan,
+    "genpu": _make_genpu,
+    "holistic_pu": _make_holistic_pu,
+    "rp": _make_rp,
+    "cvir": _make_cvir,
+    "pulns": _make_pulns,
 }
 
 _REPRESENTATIVE_ALGOS = [

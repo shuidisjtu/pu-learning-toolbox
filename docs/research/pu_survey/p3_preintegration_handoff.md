@@ -1,5 +1,9 @@
 # P3 缺失方法技术预集成交接（2026-09-28）
 
+2026-10-05 补记：PAN、RP、PULNS、GenPU、Holistic-PU 已补独立组件、方法卡、台账、共享特征与单元/契约测试；四个新增深度方法 CUDA smoke 已通过，P3MIX 仅完成 batch 组件，未注册 estimator，详见[独立推进记录](independent_progress_20261005.md)。PULNS 有额外干净 support 监督，不具备标准 PU-only PA 资格；本次不更改下文的历史证据或正式准入状态。
+
+2026-10-04 补记：8 方法的准备顺序和逐项准入 blocker 已整理为 [机器清单](data/p3_candidate_admission_v1_draft.json)，后续排序与 P4.1 草稿交付见 [推进计划](post_pilot_priority_plan.md)。这不改变本交接的正式准入边界。
+
 本文件只汇总**正式跑批之前**可以独立核查的工程证据。它不是 `survey_protocol_v1.json` 的修订、不是合作者签署，也不改变 P2.1/P3.1/P3.2 的正式验收状态。冻结矩阵仍只有 7 个 PU 方法和 PN oracle；新增条目仅在 `pu_toolbox/experiment/method_ledger.json` 中登记。
 
 ## 方法—视图—准入矩阵
@@ -7,7 +11,7 @@
 | 方法 | 本轮代码/台账状态 | 校准实际作用 | 候选矩阵前置裁决 |
 |---|---|---|---|
 | VPU | 既有实现、台账和 D21/D23 视图接线；本轮修正过时方法卡，补拟合视图诊断字段 | `ts` 边缘池为 `U∪P`；验证变分风险仅是 source diagnostic，**不得**作 PA/OA 选模（D22） | 先裁决 PA 选模准则；OS 为消融，不可称原生结果 |
-| PULDA | 既有两阶段实现；本轮补台账、`os_or_ts` 与角色测试 | LDA 和 two-way margin 的 U 期望及 EMA 用逐批 `U∪P`；MixUp/伪标签原池不变 | 共享预算、图像路径、公开数值对照与选模准则预注册 |
+| PULDA | 两阶段实现、台账/角色测试；现支持注入可训练 CNN 与分批图像处理 | LDA 和 two-way margin 的 U 期望及 EMA 用逐批 `U∪P`；MixUp/伪标签原池不变 | 共享预算/正式图像规格、公开数值对照与选模准则预注册 |
 | PUET | 既有 nnPU/quadratic CPU 树；本轮补台账、`os_or_ts` 与节点风险 golden | 复制 P 为 U 风险行，原 P 角色保留；U 权重分母变为 `n_U+n_P` | CPU 树预算及 P3.2 GPU 条款豁免；不能借用神经 checkpoint 配额 |
 | Grad-PU | 既有式 (5)–(7) 实现；本轮补台账、`os_or_ts` 与梯度池测试 | U 风险和梯度插值的边缘池逐批取 `U∪P`；不使用类别先验 | 官方实现未核实（`source_status=not_found`）；不能声称代码逐行复现 |
 | Robust-PU | nnPU warm-up + self-paced 组件；本轮补台账、风险视图 | 仅 warm-up 的 nnPU U 风险用 `U∪P`；后续伪负例仍仅为原始 U；跳过 warm-up 时拒绝 `ts` | 非完整官方 scheduler/CNN/图像增强，须单列 benchmark-adapted |

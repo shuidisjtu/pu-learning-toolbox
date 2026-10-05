@@ -89,7 +89,11 @@ def test_fit_predict_checkpoint_registry_and_determinism(tmp_path):
     assert scores.shape == (len(X),) and np.isfinite(scores).all()
     assert set(model.predict(X)) <= {0, 1}
     assert len(trajectory.checkpoints) == 5
-    np.testing.assert_allclose(trajectory.checkpoints[-1].restore().decision_function(X), scores)
+    # Batched native prediction and full-batch restored inference can differ
+    # by float32 GEMM rounding near zero (observed absolute delta < 1e-8).
+    np.testing.assert_allclose(
+        trajectory.checkpoints[-1].restore().decision_function(X), scores, atol=1e-7
+    )
     np.testing.assert_array_equal(_estimator().fit(X, y).decision_function(X), scores)
     assert len(model.history_["pretrain_risk"]) == 2
     assert len(model.history_["episode_loss"]) == 3
@@ -212,7 +216,7 @@ def test_rejects_unsupported_weight_and_bad_model_and_input():
     restored.load_state_dict(fitted.model_.state_dict())
     with torch.no_grad():
         values = restored(torch.as_tensor(X)).reshape(-1).numpy()
-    np.testing.assert_allclose(values, fitted.decision_function(X))
+    np.testing.assert_allclose(values, fitted.decision_function(X), atol=1e-7)
 
 
 @pytest.mark.integration

@@ -2,13 +2,14 @@
 """Assembly for versioned survey runs, including a verified frozen adapter cache.
 
 Design notes: random frozen ResNet features are shared across methods and c,
-never trained on clean labels. Oracle MLP uses the same torch score blueprint;
-unimplemented CNN oracle rows fail closed rather than flattening images.
+never trained on clean labels. Oracle paths are isolated supervised estimators;
+CNN support does not expand the historical frozen experiment matrix.
 See docs/research/pu_survey/survey_execution_plan.md, P2.0a.
 """
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import tempfile
@@ -86,25 +87,30 @@ class PilotOracleMLP(ClassifierMixin, BaseEstimator):
 
         if self.max_epochs < 1 or self.batch_size < 1 or self.learning_rate <= 0:
             raise ValueError("oracle epochs/batch_size/learning_rate must be positive")
-        if X.ndim != 2 or set(np.unique(y)) != {0, 1}:
-            raise ValueError("pilot oracle requires 2-D inputs and both real binary classes")
+        if X.ndim not in self.input_ndims or set(np.unique(y)) != {0, 1}:
+            raise ValueError("pilot oracle requires supported inputs and both real binary classes")
+        if len(X) != len(y) or np.asarray(y).ndim != 1:
+            raise ValueError("oracle requires one binary label per input")
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(self.random_state or 0)
-            self.model_ = score_model(X.shape[1], "mlp128").to(self.device)
-        tx = torch.as_tensor(np.asarray(X, dtype=np.float32), device=self.device)
-        ty = torch.as_tensor(np.asarray(y, dtype=np.float32), device=self.device)
+            self.model_ = self._build_network(X).to(self.device)
+        # Keep the whole image dataset off the GPU; transfer only each batch.
+        tx = torch.as_tensor(np.asarray(X, dtype=np.float32))
+        ty = torch.as_tensor(np.asarray(y, dtype=np.float32))
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         generator = torch.Generator().manual_seed(self.random_state or 0)
         self.loss_history_ = []
         self.model_.train()
         for epoch in range(self.max_epochs):
+            self.model_.train()  # callbacks may temporarily switch to eval mode
             order = torch.randperm(len(X), generator=generator)
             losses = []
             for start in range(0, len(X), self.batch_size):
-                indices = order[start : start + self.batch_size].to(self.device)
+                indices = order[start : start + self.batch_size]
                 optimizer.zero_grad()
                 loss = nn.functional.binary_cross_entropy_with_logits(
-                    self.model_(tx[indices]).reshape(-1), ty[indices]
+                    self.model_(tx[indices].to(self.device)).reshape(-1),
+                    ty[indices].to(self.device),
                 )
                 loss.backward()
                 optimizer.step()
@@ -116,19 +122,79 @@ class PilotOracleMLP(ClassifierMixin, BaseEstimator):
         self.classes_ = np.array([0, 1])
         return self
 
+    def _build_network(self, X):
+        return score_model(X.shape[1], "mlp128")
+
     def decision_function(self, X):
         import torch
 
-        with torch.no_grad():
-            return (
-                self.model_(torch.as_tensor(np.asarray(X, dtype=np.float32), device=self.device))
-                .reshape(-1)
-                .cpu()
-                .numpy()
-            )
+        was_training = self.model_.training
+        self.model_.eval()
+        try:
+            with torch.no_grad():
+                scores = [
+                    self.model_(
+                        torch.as_tensor(
+                            np.asarray(X[start : start + self.batch_size], dtype=np.float32),
+                            device=self.device,
+                        )
+                    )
+                    .reshape(-1)
+                    .cpu()
+                    .numpy()
+                    for start in range(0, len(X), self.batch_size)
+                ]
+            return np.concatenate(scores) if scores else np.empty(0, dtype=np.float32)
+        finally:
+            self.model_.train(was_training)
 
     def predict(self, X):
         return (self.decision_function(X) >= 0).astype(int)
+
+
+class PilotOracleCNN(PilotOracleMLP):
+    """PN end-to-end image oracle: trainable encoder plus binary score head.
+
+    CleanLabelGenerator/SupervisedTrainer and OA-only selection remain the
+    runner's responsibility. An encoder is mandatory; no image flatten fallback.
+    """
+
+    input_ndims = frozenset({4})
+    native_architectures = frozenset({"cnn"})
+
+    def __init__(
+        self,
+        *,
+        encoder,
+        max_epochs=200,
+        batch_size=256,
+        learning_rate=1e-3,
+        random_state=None,
+        device="cpu",
+    ):
+        super().__init__(
+            max_epochs=max_epochs,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            random_state=random_state,
+            device=device,
+        )
+        self.encoder = encoder
+
+    def _build_network(self, X):
+        import torch
+        from torch import nn
+
+        if self.encoder is None:
+            raise ValueError("CNN oracle requires an explicit image encoder")
+        encoder = copy.deepcopy(self.encoder).to("cpu")
+        encoder.eval()
+        with torch.no_grad():
+            features = encoder(torch.as_tensor(np.asarray(X[:1], dtype=np.float32)))
+        if features.ndim != 2 or features.shape[1] < 1:
+            raise ValueError("CNN oracle encoder must return a 2-D feature matrix")
+        encoder.requires_grad_(True)
+        return nn.Sequential(encoder, nn.Linear(features.shape[1], 1))
 
 
 class SourceSpaceGenerator:
@@ -284,6 +350,10 @@ def assemble_model(
     validate_parameters(params, profile)
     constructor = {**profile["params"], **params}
     if row["method"] == "pn_oracle":
+        if row["training_path"] == "native_cnn":
+            if encoder is None:
+                raise ValueError("CNN oracle requires an explicit image encoder")
+            return PilotOracleCNN(encoder=encoder, **constructor, random_state=seed, device=device)
         return PilotOracleMLP(**constructor, random_state=seed, device=device)
     from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 

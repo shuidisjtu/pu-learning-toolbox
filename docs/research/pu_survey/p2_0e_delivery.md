@@ -1,5 +1,7 @@
 # P2.0e TS-OS 校准接入训练执行链（交付记录）
 
+> **2026-10-04 技术复核**：五方法校准/路由回归通过，交付 Excel 的逐行视图与校准标志一致；见 [技术复核](pilot_independent_review_20261004.md)及[表格对账](p21_workbook_review_20261004.md)。这验证接线与记录，不代替方法学签署或原始制品重放。
+
 > 定位：本文件是 P2.0e 的交付记录，**随各方法接线逐次追加**。P2.0e 的整体状态与完成口径
 > 仍以 [`survey_execution_plan.md`](survey_execution_plan.md) 的 P2.0e 行与决策 D16 为准；
 > 数值与状态以方法台账 `pu_toolbox/experiment/method_ledger.json` 的

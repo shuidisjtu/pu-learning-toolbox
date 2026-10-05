@@ -88,7 +88,7 @@ class RunConfiguration:
         if architecture not in {"mlp", "cnn"}:
             raise ValueError("architecture must be 'mlp' or 'cnn'.")
         if backbone not in CNN_BACKBONES:
-            raise ValueError("backbone must be 'cnn13', 'resnet18', or 'resnet50'.")
+            raise ValueError(f"backbone must be one of {CNN_BACKBONES}.")
         if not isinstance(device, str) or not device:
             raise ValueError("device must be a non-empty string.")
         _validate_mapping(tuning_grid, "tuning_grid")

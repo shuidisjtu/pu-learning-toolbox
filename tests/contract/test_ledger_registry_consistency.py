@@ -65,6 +65,11 @@ _EXPECTED_METHOD_KEYS = {
     "puet",
     "gradpu",
     "lagam",
+    "pan",
+    "genpu",
+    "holistic_pu",
+    "rp",
+    "pulns",
 }
 
 # Ledger notes open their annotation with either an ASCII or a full-width

@@ -221,6 +221,117 @@ def profile_id(profile: Mapping[str, Any]) -> str:
     return f"{profile.get('method')}/{profile.get('variant_id')}"
 
 
+def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
+    """Materialize current protocol bindings without signing or changing recipes.
+
+    This is a preparation artifact, not permission to run new methods or bind
+    historical manifests. Parameter values remain in the protocol. Only its
+    existing empty-override candidates can be registered by schema v1.
+    """
+    pool = protocol.get("candidate_pool")
+    if (
+        not isinstance(pool, Sequence)
+        or isinstance(pool, str | bytes)
+        or not pool
+        or any(not isinstance(candidate, Mapping) or bool(candidate) for candidate in pool)
+    ):
+        raise ValueError("Registry v1 draft requires non-empty, override-free protocol candidates.")
+    refs = ["frozen_protocol", "project_method_ledger"]
+    profiles: dict[str, Any] = {}
+    for method, declared in protocol["method_profiles"].items():
+        rows = [row for row in protocol["execution_units"] if row["method"] == method]
+        if not rows:
+            raise ValueError(f"Cannot register {method!r}: no declared execution scope.")
+        runnable = any(row.get("runnable") is True for row in rows)
+        budget = protocol["budgets"][declared["budget"]]
+        inner = None
+        if budget.get("internal_hyperparameter_pairs") is not None:
+            inner = {
+                "inner_search_id": f"{method}_internal_cv_v1",
+                "grid_ref": f"{BASE_REF_PREFIX}{method}.params",
+            }
+        method_refs = refs if method != "pn_oracle" else ["frozen_protocol", "pn_oracle_spec"]
+        profile: dict[str, Any] = {
+            "method": method,
+            "recipe_family": "oracle" if method == "pn_oracle" else "pu",
+            "variant_id": f"survey_shared_{method}",
+            "recipe_lifecycle": "draft" if runnable else "excluded",
+            "scope": {
+                "datasets": sorted({row["dataset"] for row in rows}),
+                "training_paths": sorted({row["training_path"] for row in rows}),
+            },
+            "base_ref": f"{BASE_REF_PREFIX}{method}",
+            "selection_spec_ref": SELECTION_SPEC_REF,
+            "source_refs": list(method_refs),
+            "fixed_overrides": {},
+            "candidate_pool": [
+                {
+                    "recipe_candidate_id": f"{method}_protocol_binding_v1_{index}",
+                    "candidate_role": "current_protocol_binding",
+                    "overrides": {},
+                    "resolved_snapshot": None,
+                    "source_refs": list(method_refs),
+                }
+                for index, _ in enumerate(pool)
+            ]
+            if runnable
+            else None,
+            "inner_search": inner,
+            "budget_binding_ref": f"{BUDGET_BINDING_PREFIX}{declared['budget']}",
+            "review": {
+                "reviewers": [],
+                "open_questions": [
+                    "Method-owner review and explicit sign-off are required before locking.",
+                    "Historical pilot manifests remain legacy_unbound; never backfill a binding.",
+                ],
+            },
+        }
+        if not runnable:
+            reasons = sorted(
+                {row.get("non_runnable_reason", "No runnable execution unit") for row in rows}
+            )
+            profile["exclusion_reason"] = "; ".join(reasons)
+        profiles[method] = profile
+    registry = {
+        "schema_version": SCHEMA_VERSION,
+        "recipe_registry_version": "survey-recipes-v0.1-draft",
+        "recipe_lifecycle": "draft",
+        "protocol_basis": {
+            "protocol_version": protocol["protocol_version"],
+            "protocol_sha256": digest(protocol),
+        },
+        "selection_spec_ref": SELECTION_SPEC_REF,
+        "profiles": profiles,
+        "source_evidence": {
+            "frozen_protocol": {
+                "type": "in_repo",
+                "file": "pu_toolbox/experiment/survey_protocol_v1.json",
+            },
+            "project_method_ledger": {
+                "type": "in_repo",
+                "file": "pu_toolbox/experiment/method_ledger.json",
+            },
+            "pn_oracle_spec": {
+                "type": "in_repo",
+                "file": "docs/research/pu_survey/pn_oracle_integration.md",
+            },
+        },
+        "validation": {
+            "recipe_candidate_ids_unique": True,
+            "source_evidence_required": True,
+            "test_truth_forbidden": True,
+            "parameter_overrides_forbidden_in_v1": True,
+        },
+    }
+    findings = validate_registry(registry, protocol)
+    errors = [finding for finding in findings if finding.severity == "error"]
+    if errors:
+        raise ValueError(
+            "Draft registry failed validation: " + "; ".join(f.message for f in errors)
+        )
+    return registry
+
+
 def manifest_has_binding_fields(manifest: Mapping[str, Any]) -> bool:
     """Whether *any* recipe binding field is present.
 
@@ -249,7 +360,7 @@ def digest_payload(registry: Mapping[str, Any]) -> dict[str, Any]:
             continue
         entry = {k: v for k, v in profile.items() if k not in _DIGEST_EXCLUDED_PROFILE}
         pool = profile.get("candidate_pool")
-        if isinstance(pool, Sequence) and not isinstance(pool, (str, bytes)):
+        if isinstance(pool, Sequence) and not isinstance(pool, str | bytes):
             entry["candidate_pool"] = [
                 {k: v for k, v in candidate.items() if k not in _DIGEST_EXCLUDED_CANDIDATE}
                 if isinstance(candidate, Mapping)
@@ -322,7 +433,7 @@ def _truth_keys(value: Any, path: str) -> list[Finding]:
                     )
                 )
             findings.extend(_truth_keys(child, f"{path}.{key}"))
-    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+    elif isinstance(value, Sequence) and not isinstance(value, str | bytes):
         for index, child in enumerate(value):
             findings.extend(_truth_keys(child, f"{path}[{index}]"))
     return findings
@@ -592,7 +703,7 @@ def _validate_scope(
     }
     for field, declared in allowed.items():
         claimed = scope.get(field)
-        if not isinstance(claimed, Sequence) or isinstance(claimed, (str, bytes)):
+        if not isinstance(claimed, Sequence) or isinstance(claimed, str | bytes):
             findings.append(
                 _finding(
                     "missing_registry_field",
@@ -651,7 +762,7 @@ def _validate_candidates(
         return _validate_null_pool(path, profile, protocol)
 
     findings = _validate_stale_exclusion_reason(path, profile)
-    if not isinstance(pool, Sequence) or isinstance(pool, (str, bytes)):
+    if not isinstance(pool, Sequence) or isinstance(pool, str | bytes):
         findings.append(
             _finding(
                 "empty_candidate_pool",
@@ -755,7 +866,7 @@ def _validate_pool_counts(
     declarations: dict[str, Any] = {
         f"budgets.{budget_name}.outer_candidates": budget.get("outer_candidates")
     }
-    if isinstance(frozen_pool, Sequence) and not isinstance(frozen_pool, (str, bytes)):
+    if isinstance(frozen_pool, Sequence) and not isinstance(frozen_pool, str | bytes):
         declarations["the protocol's candidate_pool length"] = len(frozen_pool)
     findings: list[Finding] = []
     for source, declared in declarations.items():
@@ -1089,7 +1200,7 @@ def _is_empty_ref_list(value: Any) -> bool:
     list, and silently iterating it would report three unknown refs named after
     its characters.
     """
-    return isinstance(value, Sequence) and not isinstance(value, (str, bytes)) and not value
+    return isinstance(value, Sequence) and not isinstance(value, str | bytes) and not value
 
 
 def _check_refs(
@@ -1110,7 +1221,7 @@ def _check_refs(
                 )
             ]
         return []
-    if not isinstance(refs, Sequence) or isinstance(refs, (str, bytes)):
+    if not isinstance(refs, Sequence) or isinstance(refs, str | bytes):
         return [_finding("source_evidence_shape_invalid", path, "source_refs is a list of ref_ids")]
     findings: list[Finding] = []
     for ref in refs:

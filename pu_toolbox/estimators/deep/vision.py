@@ -64,22 +64,24 @@ else:  # pragma: no cover - placeholder for torch-free imports
             raise ImportError("torch is required to build vision modules")
 
 
-def _conv_block(in_channels: int, out_channels: int):
+def _conv_block(in_channels: int, out_channels: int, *, batch_norm: bool = True):
     from torch import nn
 
-    return [
+    layers = [
         nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-        nn.BatchNorm2d(out_channels),
-        nn.ReLU(inplace=True),
     ]
+    if batch_norm:
+        layers.append(nn.BatchNorm2d(out_channels))
+    layers.append(nn.ReLU(inplace=True))
+    return layers
 
 
-CNN_BACKBONES: tuple[str, ...] = ("cnn13", "resnet18", "resnet50")
+CNN_BACKBONES: tuple[str, ...] = ("cnn13", "cnn13_no_bn", "resnet18", "resnet50")
 """Supported CNN backbone names (single source of truth for UI and config)."""
 
 
 def build_wconpu_backbone(
-    name: Literal["cnn13", "resnet18", "resnet50"],
+    name: Literal["cnn13", "cnn13_no_bn", "resnet18", "resnet50"],
     *,
     in_channels: int = 3,
     base_channels: int = 64,
@@ -92,9 +94,12 @@ def build_wconpu_backbone(
     ``cnn13`` is a documented clean-room 13-convolution adapter because the
     paper specifies only the depth. ResNet adapters use torchvision topology
     with random initialization and return flattened feature vectors.
+    ``cnn13_no_bn`` is an explicit engineering variant with no BatchNorm;
+    the default ``cnn13`` topology/state is unchanged. Neither is claimed
+    to replay GradPU's unpublished architecture details.
     """
-    if name not in {"cnn13", "resnet18", "resnet50"}:
-        raise ValueError("name must be 'cnn13', 'resnet18', or 'resnet50'")
+    if name not in CNN_BACKBONES:
+        raise ValueError(f"name must be one of {CNN_BACKBONES}")
     if in_channels < 1 or base_channels < 1:
         raise ValueError("in_channels and base_channels must be positive")
     if len(normalization_mean) != in_channels:
@@ -103,7 +108,7 @@ def build_wconpu_backbone(
     from torch import nn
 
     normalize = _normalization_module(normalization_mean, normalization_std)
-    if name == "cnn13":
+    if name in {"cnn13", "cnn13_no_bn"}:
         channels = [
             base_channels,
             base_channels,
@@ -122,7 +127,7 @@ def build_wconpu_backbone(
         layers: list[nn.Module] = [normalize]
         previous = in_channels
         for index, width in enumerate(channels):
-            layers.extend(_conv_block(previous, width))
+            layers.extend(_conv_block(previous, width, batch_norm=name == "cnn13"))
             previous = width
             if index in {2, 5, 8}:
                 layers.append(nn.MaxPool2d(2))

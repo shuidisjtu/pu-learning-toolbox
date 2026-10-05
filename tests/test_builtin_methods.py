@@ -274,8 +274,10 @@ class TestBuiltinRegistration:
         PULDA's two fixed 60-epoch stages, PUSB kernel (full grid CV + refit),
         and the multi-stage deep solvers Robust-PU (nnPU warm-up plus 20
         self-paced episodes), Split-PU (teacher/temporary/student per round)
-        and LaGAM (a second-order meta-gradient every epoch); short-epoch deep
-        methods stay MEDIUM.
+        and LaGAM (a second-order meta-gradient every epoch), PAN (two-network
+        adversarial updates), PULNS (sequential policy/probe/classifier), GenPU
+        (five-network GAN plus PN), Holistic-PU (warmup/trajectory/pseudo-label
+        training); short-epoch deep methods stay MEDIUM.
 
         Pinned so a re-classification is a deliberate edit rather than a side
         effect of registering a method.
@@ -299,4 +301,8 @@ class TestBuiltinRegistration:
             "robust_pu",
             "lagam",
             "split_pu",
+            "pan",
+            "pulns",
+            "genpu",
+            "holistic_pu",
         }

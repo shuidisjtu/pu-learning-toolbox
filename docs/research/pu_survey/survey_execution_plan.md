@@ -9,6 +9,8 @@
 > 复核包与批次快照（`p2_0a/b/c_delivery.md`、`p2_0a/c_review.md`、`p2_1_b*_snapshot.md`）。
 > 状态日期：**2026-10-04**。最新代理技术复核见 [Pilot 独立复核](pilot_independent_review_20261004.md)；不替代合作者本人签署。
 
+合作者最新五项建议的独立补全见[专项跟进](collaborator_followup_20261004.md)：公开数据收集工具、CNN oracle 实现与定向验证、历史 OS/TS 差值及文献诊断对照已补；新数据 split、真实 CNN baseline、原始制品配对和本人签署仍待闭环，不更改旧冻结矩阵。
+
 ## 1. 当前状态
 
 本节是现状的**唯一**叙述；批次级明细见各批次快照，不在此复述。
@@ -36,6 +38,8 @@
   本节与附录 A，主文不再各写一份。
 
 ### 1.2 门禁与聚合现状
+
+2026-10-04 接收侧已取得登记的 645-run Excel，摘要完全一致，183 行 raw → summary 独立数值对账通过；见 [阶段验收](p21_workbook_review_20261004.md)。下列门禁统计仍需原始报告/manifest 独立重放，不把表格通过等同于完整制品通过。
 
 以下为**正式五批**（B1–B4，645 份 manifest）跑通后的实测值：
 
@@ -96,7 +100,7 @@ GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复
 |---|---|---|
 | P1.1 | 环境与 GPU 验证 | `uv.lock` 可复现；目标环境 GPU smoke 与版本/设备记录可追溯。HENG958 的 GPU 能力复核已完成；正式跑批需 frozen-lock 环境 |
 | P1.2 | 数据获取与版本审计 | pilot 三数据集的来源/版本/标签映射/许可入 manifest（2026-09-19，按官方页原文逐条记录）。协议全量 8 数据集与 ADNI 准入见决策 D1，属后续阶段——本行的余项是**范围**而非遗漏 |
-| P1.3a | 方法台账 | 矩阵口径为 7 个 PU 方法 + `pn_oracle`；远程台账另收 `pusb` 线性基线与 `vpu`，为 9 条 PU 条目。本地 2026-09-28 预集成修改另补 `cvir`、`robust_pu`、`split_pu`、`pulda`、`puet`、`gradpu`、`lagam`，现有 16 条；新增七条已于 2026-10-04 提交（`7e779d2`）、尚未经方法负责人复核，均不进冻结执行矩阵（`pusb`/`pusb_kernel` 刻意分开，issue #42）。HENG958 已复核 nnPU、Self-PU（2026-09-16） |
+| P1.3a | 方法台账 | 矩阵口径为 7 个 PU 方法 + `pn_oracle`；台账另收 `pusb` 线性基线与 `vpu`，为 9 条 PU 条目。2026-09-28 预集成另补 `cvir`、`robust_pu`、`split_pu`、`pulda`、`puet`、`gradpu`、`lagam`；七条于 2026-10-04 提交（`7e779d2`）。2026-10-05 再补 `pan`、`rp`、`pulns`、`genpu`、`holistic_pu`，本地共 21 条，见[独立推进](independent_progress_20261005.md)。新增条目尚未经方法负责人复核，均不进冻结执行矩阵（`pusb`/`pusb_kernel` 刻意分开，issue #42）。HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 |
 | P1.4 | Pilot 数据产物 | 三数据集 × 5 seed 统一重建（2026-09-19），三个归档 2026-09-20 发送；2026-10-04 本机确认收到，15 split / 75 文件 / 3 归档摘要全部通过，四角色契约、预处理统计及真实脚本 smoke 通过。见[P1.4 复核](p1_4_review.md)；本人签署未代填 |
 | P2.0a | Pilot 共享规格与 oracle 对齐（阶段 A） | 2026-09-17 签署验收，shuidisjtu 复核签署；见[交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
@@ -108,13 +112,15 @@ GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复
 
 ### 2.2 未完成（前置 / 验收标准 / 状态与主责）
 
+复核以外的实施顺序与 2026-10-04 独立准备切片见 [后续优先级](post_pilot_priority_plan.md)：先闭合已有方法准入与注册表草稿，再缺失算法、资源验证、正式注册表绑定及主榜。P4.1 草稿不代表各新方法候选已确定。
+
 | 编号 | 任务 | 前置 | 验收标准 | 状态 / 主责 |
 |---|---|---|---|---|
 | P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | 🚧 **正式五批汇总已产出**：见交付记录 [`p2_2_delivery.md`](p2_2_delivery.md) 与 §1.2——645 份 manifest、48 组全过公平性门禁、183 行（180 `formal` / 3 `partial` / 0 `diagnostic`）、0 份不可复现。对照附录裁决 0 条（矩阵 `numeric` 为 0，必为定性，§1.3 第 2 条）。**剩余为合作者复核**（§1.4）及原始结果树独立重放；分发以 P2.2 交付与制品索引为准。**PA 行受 §1.3 第 1 条限制，不能数值裁决**（决策 D24 ④(a)） |
-| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 完成独立组件、采样假设裁决（D21）、台账与视图接线（D23）；PULDA 已补台账及 LDA/margin 风险 TS-OS 校准；CVIR 已有固定 α_U 表格适配器、方法卡与台账，但总体 π 不能无条件代替 α_U，故校准未接线、显式 ts fail-loud。三者均未进入冻结矩阵；共享 backbone/原生图像路径、公开结果对照、多 seed 资源记录及双人复核仍未完成，不得读作 P3.1 验收。PAN、RP、PULNS 待办 |
-| P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 的独立组件、方法卡与台账均已有；Robust-PU/Split-PU 仅 nnPU warm-up/teacher 校准，PUET 节点 U 风险与 Grad-PU 的 U 风险/插值池已接 TS-OS；LaGAM 需要独立干净 support set，当前 PA-ineligible 且无可安全替换的同形未标记风险项，校准不适用。均未进入冻结矩阵，公开结果对照、共享 backbone/原生图像路径、多 seed GPU/资源记录及合作者复核仍待办；表格适配不等于论文图像数值复现。PUET 是 CPU 树方法，其 P3.2 分组与 GPU 条款适用性须复核。GEN-PU、Holistic-PU、P3MIX 待办 |
+| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 组件与 D21/D23 接线；PULDA 台账、LDA/margin TS-OS 校准、两阶段存储估算及注入可训练 CNN/分批图像工程路径；CVIR 固定 α_U 表格组件，不能用总体 π 无条件代替 α_U，显式 ts fail-loud。2026-10-05 PAN、RP、PULNS 已补独立组件、方法卡、台账与测试，见[独立推进](independent_progress_20261005.md)；三者未启用 TS 风险替换，PULNS 另需独立 clean support、标准 PU-only PA-ineligible。均未进入冻结矩阵；共享 backbone/正式原生图像规格、公开数值对照、多 seed 资源记录及双人复核仍未完成，不得读作 P3.1 验收 |
+| P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 的独立组件、方法卡与台账均已有；Robust-PU/Split-PU 仅 nnPU warm-up/teacher 校准，PUET 节点 U 风险与 Grad-PU 的 U 风险/插值池已接 TS-OS；LaGAM 需要独立干净 support set，当前 PA-ineligible 且无可安全替换的同形未标记风险项，校准不适用。均未进入冻结矩阵，公开结果对照、共享 backbone/原生图像路径、多 seed GPU/资源记录及合作者复核仍待办；表格适配不等于论文图像数值复现。PUET 是 CPU 树方法，其 P3.2 分组与 GPU 条款适用性须复核。2026-10-05 GEN-PU、Holistic-PU 已补实验预集成、台账/方法卡、共享特征与 CUDA smoke，仍待正式准入；P3MIX 仅有来源核查后的 batch 数学组件，未注册完整 estimator |
 | P3.3 | 深度 GPU 验证与调度 | P3.2 | GPU 预约、显存预算、失败/OOM 重试及结果路径均有记录，且逐 run 记录实例与卡型；与 P2.1 已不共享单卡，无跨方窗口竞争 | ⏳ 待办 / HENG958 |
-| P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | ⏳ 待办 / shuidisjtu |
+| P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | 🚧 准备阶段 / shuidisjtu：已有 schema/校验器；2026-10-04 物化冻结 pilot 8 profile 的 draft 注册表、只读生成器及契约测试，见[后续交付](post_pilot_priority_plan.md)。未正式冻结，未训练前绑定，未改写旧 manifest；新方法候选确定、resolved snapshot、runner/审计绑定与本人签署仍待办 |
 | P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
 
 > 本地预集成的台账、风险视图接线和 2026-09-28 单卡 CUDA smoke 证据，见 [P3 技术预集成交接](p3_preintegration_handoff.md)；技术预集成已提交（`7e779d2`），不改变正式验收状态。

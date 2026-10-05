@@ -1,0 +1,386 @@
+{
+  "schema_version": "survey-recipe-registry-1.0",
+  "recipe_registry_version": "survey-recipes-v0.1-draft",
+  "recipe_lifecycle": "draft",
+  "protocol_basis": {
+    "protocol_version": "survey-v1.2",
+    "protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a"
+  },
+  "selection_spec_ref": "survey_protocol_v1.selection_spec",
+  "profiles": {
+    "upu": {
+      "method": "upu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_upu",
+      "recipe_lifecycle": "draft",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.upu",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "upu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": null,
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v1.budgets.closed_form",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      }
+    },
+    "nnpu": {
+      "method": "nnpu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_nnpu",
+      "recipe_lifecycle": "draft",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.nnpu",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "nnpu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": null,
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v1.budgets.minibatch",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      }
+    },
+    "kldce": {
+      "method": "kldce",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_kldce",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.kldce",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v1.budgets.alternating",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "exclusion_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
+    },
+    "dist_pu": {
+      "method": "dist_pu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_dist_pu",
+      "recipe_lifecycle": "draft",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.dist_pu",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "dist_pu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": null,
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v1.budgets.fullbatch",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      }
+    },
+    "pusb_kernel": {
+      "method": "pusb_kernel",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_pusb_kernel",
+      "recipe_lifecycle": "draft",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.pusb_kernel",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "pusb_kernel_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": null,
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": {
+        "inner_search_id": "pusb_kernel_internal_cv_v1",
+        "grid_ref": "survey_protocol_v1.method_profiles.pusb_kernel.params"
+      },
+      "budget_binding_ref": "survey_protocol_v1.budgets.kernel_cv",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      }
+    },
+    "lbe": {
+      "method": "lbe",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_lbe",
+      "recipe_lifecycle": "draft",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.lbe",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "lbe_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": null,
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v1.budgets.em",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      }
+    },
+    "self_pu": {
+      "method": "self_pu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_self_pu",
+      "recipe_lifecycle": "draft",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.self_pu",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "self_pu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": null,
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v1.budgets.two_student_sampled",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      }
+    },
+    "pn_oracle": {
+      "method": "pn_oracle",
+      "recipe_family": "oracle",
+      "variant_id": "survey_shared_pn_oracle",
+      "recipe_lifecycle": "draft",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v1.method_profiles.pn_oracle",
+      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "pn_oracle_spec"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "pn_oracle_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": null,
+          "source_refs": [
+            "frozen_protocol",
+            "pn_oracle_spec"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v1.budgets.minibatch",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      }
+    }
+  },
+  "source_evidence": {
+    "frozen_protocol": {
+      "type": "in_repo",
+      "file": "pu_toolbox/experiment/survey_protocol_v1.json"
+    },
+    "project_method_ledger": {
+      "type": "in_repo",
+      "file": "pu_toolbox/experiment/method_ledger.json"
+    },
+    "pn_oracle_spec": {
+      "type": "in_repo",
+      "file": "docs/research/pu_survey/pn_oracle_integration.md"
+    }
+  },
+  "validation": {
+    "recipe_candidate_ids_unique": true,
+    "source_evidence_required": true,
+    "test_truth_forbidden": true,
+    "parameter_overrides_forbidden_in_v1": true
+  }
+}

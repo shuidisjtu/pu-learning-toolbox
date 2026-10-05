@@ -37,19 +37,41 @@ def _same(a, b):
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("classifier_name", ["wconpu", "nnpu"])
+@pytest.mark.parametrize(
+    "classifier_name", ["wconpu", "nnpu", "pan", "pulda", "gradpu", "robust_pu", "split_pu"]
+)
 def test_cv_folds_do_not_leak_encoder_weights(classifier_name):
     X, y_pu = _image_data()
     pipe = PUPipeline(
         classifier=classifier_name,
         architecture="cnn",
-        backbone="cnn13",
+        backbone="cnn13_no_bn" if classifier_name == "gradpu" else "cnn13",
         cv=2,
         max_epochs=1,
         random_state=42,
         device="cpu",
+        classifier_params=(
+            {
+                "warmup_epochs": 1,
+                "pu_epochs": 1,
+                "positive_batch_size": 4,
+                "unlabeled_batch_size": 8,
+            }
+            if classifier_name == "pulda"
+            else {"pretrain_epochs": 1, "episodes": 1, "batch_size": 8}
+            if classifier_name == "robust_pu"
+            else {
+                "teacher_epochs": 1,
+                "split_epochs": 1,
+                "student_epochs": 1,
+                "rounds": 1,
+                "batch_size": 8,
+            }
+            if classifier_name == "split_pu"
+            else {}
+        ),
     )
-    pipe._encoder = build_encoder("cnn", backbone="cnn13", in_channels=3)
+    pipe._encoder = build_encoder("cnn", backbone=pipe.backbone, in_channels=3)
     template_initial = _snapshot(pipe._encoder)
 
     # Fold 1 trains a deep copy; the shared template must stay untouched
@@ -59,6 +81,9 @@ def test_cv_folds_do_not_leak_encoder_weights(classifier_name):
     assert not _same(_snapshot(clf1.encoder_), template_initial)  # training took effect
     assert _same(_snapshot(pipe._encoder), template_initial)  # template untainted
     fold1_after = _snapshot(clf1.encoder_)
+    if classifier_name == "pan":
+        discriminator1_after = _snapshot(clf1.discriminator_encoder_)
+        assert not _same(discriminator1_after, template_initial)
 
     # Fold 2 trains its own copy; fold 1's weights must not move.
     clf2 = pipe._fresh_estimator(pipe._classifier_cls, None, 0.3)
@@ -66,6 +91,10 @@ def test_cv_folds_do_not_leak_encoder_weights(classifier_name):
     assert _same(_snapshot(clf1.encoder_), fold1_after)  # fold 2 did not touch fold 1
     assert not _same(_snapshot(clf2.encoder_), template_initial)  # fold 2 trained
     assert _same(_snapshot(pipe._encoder), template_initial)  # template never trained
+    if classifier_name == "pan":
+        assert _same(_snapshot(clf1.discriminator_encoder_), discriminator1_after)
+        assert clf1.discriminator_encoder_ is not clf2.discriminator_encoder_
+        assert clf1.discriminator_encoder_ is not clf1.encoder_
 
     # Object isolation: three distinct module objects.
     assert clf1.encoder_ is not clf2.encoder_

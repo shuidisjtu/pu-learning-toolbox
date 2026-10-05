@@ -11,7 +11,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox.core.exceptions import NotFittedError, ValidationError  # noqa: E402
+from pu_toolbox.core.exceptions import NotFittedError  # noqa: E402
 from pu_toolbox.estimators.deep.grad_pu import (  # noqa: E402
     GradPUClassifier,
     gradpu_objective,
@@ -185,7 +185,7 @@ def test_edge_input_and_unsupported_weight_paths_reject():
         _model().fit(X, y, sample_weight=np.ones(len(X)))
     with pytest.raises(ValueError, match="class_prior"):
         _model().fit(X, y, class_prior=1.0)
-    with pytest.raises(ValidationError, match="2-D"):
+    with pytest.raises(ValueError, match="encoder"):
         _model().fit(X.reshape(len(X), 1, 1, 3), y)
     with pytest.raises(ValueError, match="finite"):
         corrupted = X.copy()

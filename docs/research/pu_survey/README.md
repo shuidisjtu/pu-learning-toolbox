@@ -1,5 +1,21 @@
 # PU Survey 文档索引
 
+GradPU 独立[来源与协议复核准备](gradpu_source_review_20261005.md)：论文去 BatchNorm，
+理论边缘 U 与实验剩余 U 分开登记；保持 pending，未改冻结数值锚点。
+
+2026-10-05 独立推进：[五方法技术预集成、P3MIX 组件与存储/路由修补](independent_progress_20261005.md)。新方法不进入历史冻结矩阵，PULNS 额外 clean-support 预算仍需独立协议。
+
+补充：[五方法准入交接草稿](data/p3_preintegration_extension_v1_draft.json)、
+[7 方法 × 3 seed 合成存储记录](data/candidate_storage_probe_20261005.json)。均不构成正式预算或负责人签署。
+
+合作者最新五项建议：[补全状态、CNN oracle、校准差值、文献对照与数据收集边界](collaborator_followup_20261004.md)。实现和表格复算不等于正式 GPU 实验/制品签署。
+
+P3 首批准入材料：[PULDA / PUET 预算、视图、选模与存储规格草案](p3_pulda_puet_admission_spec_draft.md)，附四角色 runner smoke，尚未正式准入。
+
+验收以外的推进：[后续优先级与本批交付](post_pilot_priority_plan.md)、[P4.1 注册表草稿](data/survey_recipe_registry_v0_1_draft.json)、[8 方法准入清单](data/p3_candidate_admission_v1_draft.json)。均为准备材料，不是新冻结协议或本人签署。
+
+最新收件：[645-run Excel 独立对账与阶段验收](p21_workbook_review_20261004.md)、[对账证据](data/p21_workbook_review_20261004.json)。表格层通过，原始 manifest / 门禁报告 / checkpoint 层仍待交付；人工签署不代填。
+
 2026-10-04 接收端更新：[P1.4 数据验收](p1_4_review.md)、[P2.0b/c/e、P2.1、P2.2 独立技术复核](pilot_independent_review_20261004.md)、[机器可读证据](data/pilot_review_20261004.json)。正式结果独立复算及本人签署仍待原始制品交接。
 
 PU 调研实验（工具箱首次实际应用）的全部文档。本目录自包含：外层 `docs/README.md` 只保留到本目录的目录级入口，文件级索引在此维护。

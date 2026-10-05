@@ -607,7 +607,11 @@ class ExperimentRunner:
         bytes_per_component = self.config.get("checkpoint_bytes_per_component")
         # A bound unit knows its epoch cap from the protocol; an unbound one
         # only from the estimator's own budget.
-        epochs = budget.get("epochs") or getattr(model, "max_epochs", None)
+        epochs = (
+            budget.get("epochs")
+            or getattr(model, "checkpoint_epoch_count", None)
+            or getattr(model, "max_epochs", None)
+        )
         if bytes_per_component is None or not epochs:
             # Sizing is unknowable here: the networks are built inside fit, so
             # an unfitted estimator reports no parameters, and a wrong constant

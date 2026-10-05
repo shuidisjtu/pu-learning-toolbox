@@ -1,0 +1,42 @@
+{
+  "schema_version": "survey-gradpu-source-review-draft-1",
+  "method": "gradpu",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "source_status": "not_found",
+  "primary_source": {
+    "url": "https://ojs.aaai.org/index.php/AAAI/article/download/25889/25661",
+    "doi": "10.1609/aaai.v37i6.25889",
+    "printed_page": 7300,
+    "pdf_page_1_based": 5
+  },
+  "paper_facts": {
+    "gradient_penalty_output": "pre_tanh_raw_score",
+    "beta_schedule": "linear_increase",
+    "batchnorm": "removed",
+    "gray_mlp_hidden_layers": 4,
+    "gray_mlp_hidden_width": 300,
+    "cifar_backbone": "CNN13_without_BatchNorm",
+    "optimizer": "Adam",
+    "batch_size": 250,
+    "gray_epochs": 100,
+    "cifar_epochs": 200,
+    "runs": 3,
+    "learning_rate_terminal_fraction": 0.1,
+    "validation_rows": 500,
+    "experimental_U": "remaining_original_training_rows_after_P_and_validation",
+    "theoretical_U": "population_marginal",
+    "positive_class_indices": {"mnist": [1,3,5,7,9], "fashion_mnist": [0,2,4,6,8], "cifar10": [0,1,8,9]}
+  },
+  "engineering_decisions": {
+    "retain_batchnorm_rejection": true,
+    "no_silent_backbone_rewrite": true,
+    "retain_ledger_theoretical_TS_assumption": true,
+    "TS_run_is_paper_experiment_replay": false,
+    "numeric_anchors_added": false,
+    "admitted": false,
+    "candidate_protocol_ref": null,
+    "budget_ref": null
+  },
+  "blockers": ["confirmed_author_code_and_license", "supplementary_preprocessing_grid_validation_labels", "formal_no_BatchNorm_CNN_spec_and_resource_validation", "versioned_sampling_backbone_budget_selection", "formal_resources_and_owner_review"]
+}

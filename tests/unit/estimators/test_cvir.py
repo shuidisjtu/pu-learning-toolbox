@@ -50,7 +50,7 @@ def test_negative_selection_is_low_score_stable_and_never_empty():
         select_cvir_negatives(np.array([np.nan]), 0.3)
 
 
-def test_fit_checkpoint_registry_and_prior_gate(tmp_path):
+def test_fit_seed_determinism_checkpoint_registry_and_prior_gate(tmp_path):
     X, y = _data()
     model = _model()
     with pytest.raises(NotFittedError):

@@ -254,6 +254,17 @@ def resolve_training_view(
     if entry is None:
         raise ValueError(f"method {method!r} is not in the survey ledger")
     native = native_sampling_assumption(entry)
+    # A fit parameter may exist solely to reject TS (e.g. PULNS); signature
+    # presence alone must not advertise a risk substitution that does not exist.
+    # Absent declarations retain the frozen legacy routing behavior.
+    if entry.get("calibration_hooked") is False:
+        if requested == "ts":
+            raise ValueError(
+                f"method {method!r} explicitly declares calibration_hooked=false; "
+                "the calibrated (ts) training-risk substitution is not implemented."
+            )
+        if requested is None:
+            return "os"
     if requested is None:
         if native not in {"ts", "both"} or estimator_class is None:
             return "os"

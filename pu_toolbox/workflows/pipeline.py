@@ -211,7 +211,7 @@ class PUPipeline:
         if architecture not in {"mlp", "cnn"}:
             raise ValueError("architecture must be 'mlp' or 'cnn'")
         if backbone not in CNN_BACKBONES:
-            raise ValueError("backbone must be 'cnn13', 'resnet18', or 'resnet50'")
+            raise ValueError(f"backbone must be one of {CNN_BACKBONES}")
         if self._classifier_cls is not None:
             self._is_deep = getattr(self._classifier_cls, "backend", None) == Backend.TORCH
         elif isinstance(classifier, BasePUClassifier):
@@ -467,15 +467,17 @@ class PUPipeline:
 
         # -- Training-cost hint ------------------------------------------
         # Deep (TORCH) methods and registry HIGH-cost solvers (e.g. LLSVM
-        # SGD, PUSB kernel grid CV) are refit n_splits+1 times; say so
+        # SGD, PUSB kernel grid CV) train once per fold and optionally refit; say so
         # instead of silently running for minutes to hours.
         heavy = self._is_deep
         with contextlib.suppress(Exception):  # instance mode: not a registry name
             heavy = heavy or get_metadata(classifier_name).training_cost == TrainingCost.HIGH
         if heavy and n_splits > 1:
+            training_count = n_splits + int(refit)
+            training_roles = "CV folds + full refit" if refit else "CV folds only; refit=False"
             warnings.warn(
-                f"{classifier_name} will be trained {n_splits + 1} times "
-                "(CV folds + full refit); this method is HIGH-cost "
+                f"{classifier_name} will be trained {training_count} times "
+                f"({training_roles}); this method is HIGH-cost "
                 "(deep training or heavy grid search). Reduce the number "
                 "of folds for quicker runs.",
                 stacklevel=2,

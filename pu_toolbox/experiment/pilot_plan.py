@@ -492,7 +492,7 @@ def population_priors(
         block = payload.get("class_prior")
         population = block.get("population") if isinstance(block, dict) else None
         dataset = payload.get("dataset")
-        if not isinstance(dataset, str) or not isinstance(population, (int, float)):
+        if not isinstance(dataset, str) or not isinstance(population, int | float):
             continue
         if dataset in found and found[dataset] != float(population):
             raise ValueError(

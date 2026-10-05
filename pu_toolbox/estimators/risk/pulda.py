@@ -3,17 +3,19 @@
 
 This module clean-room implements the loss and two-stage training flow exposed
 by the authors' public code.  The default dense MLP is a toolbox adapter; the
-upstream experiment uses a CIFAR CNN and is not reproduced here.
+injected CNN path is an engineering adaptation, not upstream numeric reproduction.
 """
 
 from __future__ import annotations
 
+import copy
 import math
 
 import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.exceptions import ValidationError
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -180,10 +182,15 @@ class PULDAClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
+
+    @property
+    def checkpoint_epoch_count(self) -> int:
+        """Both stages persist snapshots; PU epochs alone undercount peak disk."""
+        return self.warmup_epochs + self.pu_epochs
 
     def __init__(
         self,
@@ -205,6 +212,7 @@ class PULDAClassifier(BasePUClassifier):
         margin: float = 0.6,
         mixup_weight: float = 4.2,
         mixup_alpha: float = 11.0,
+        encoder=None,
         random_state: int | None = 0,
         device: str | None = None,
     ) -> None:
@@ -226,6 +234,7 @@ class PULDAClassifier(BasePUClassifier):
         self.margin = margin
         self.mixup_weight = mixup_weight
         self.mixup_alpha = mixup_alpha
+        self.encoder = encoder
         self.random_state = random_state
         self.device = device
 
@@ -248,8 +257,15 @@ class PULDAClassifier(BasePUClassifier):
 
         if sample_weight is not None:
             raise NotImplementedError("PULDA does not implement sample_weight")
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="PULDAClassifier")
+        self._is_fitted = False
+        X, y_pu = validate_pu_X_y(
+            X, y_pu, accept_sparse=False, allow_nd=True, estimator_name="PULDAClassifier"
+        )
         X = _finite_features(X, name="X")
+        if X.ndim == 4 and self.encoder is None:
+            raise ValueError("PULDA 4-D images require an encoder; images are not flattened")
+        if self.encoder is not None and not isinstance(self.encoder, nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
         prior = self.class_prior if class_prior is None else class_prior
         check_scalar_in_range(prior, 0.0, 1.0, "class_prior", inclusive=False)
@@ -260,19 +276,33 @@ class PULDAClassifier(BasePUClassifier):
         device = resolve_device(self.device)
         layers = []
         width = X.shape[1]
+        self.encoder_ = None
+        if self.encoder is not None:
+            from ..deep._validation import validate_encoder_features
+
+            self.encoder_ = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
+            self.encoder_.requires_grad_(True).eval()
+            with torch.no_grad():
+                width = validate_encoder_features(
+                    self.encoder_(torch.as_tensor(X[:1], device=device)),
+                    encoder_param_name="encoder",
+                )
+            layers.append(self.encoder_)
         for _ in range(self.depth):
             layers.extend((nn.Linear(width, self.hidden_dim), nn.ReLU()))
             width = self.hidden_dim
         layers.append(nn.Linear(width, 1))
         self.model_ = nn.Sequential(*layers).to(device)
-        tx = torch.as_tensor(X, device=device)
-        ty = torch.as_tensor(y_pu, device=device)
+        # Keep image storage on CPU; only optimization batches live on the GPU.
+        tx = torch.as_tensor(X)
+        ty = torch.as_tensor(y_pu)
         positive_indices = np.flatnonzero(y_pu == 1)
         unlabeled_indices = np.flatnonzero(y_pu == 0)
 
         self.classes_ = np.array([0, 1])
         self.n_features_in_ = X.shape[1]
         self._X_shape_ = X.shape
+        self.input_shape_ = tuple(X.shape[1:])
         self._class_prior = float(prior)
         self.training_view_ = os_or_ts
         self.calibration_applied_ = view.calibration_applied
@@ -320,7 +350,9 @@ class PULDAClassifier(BasePUClassifier):
             epoch_number += 1
 
         with torch.no_grad():
-            pseudo_labels = torch.sigmoid(self.model_(tx).flatten().clamp(-10, 10)).detach()
+            pseudo_labels = torch.sigmoid(
+                torch.as_tensor(self._decision_function(X), device=device).clamp(-10, 10)
+            ).detach()
         pu_optimizer = torch.optim.Adam(
             self.model_.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
         )
@@ -374,8 +406,8 @@ class PULDAClassifier(BasePUClassifier):
             u_idx = order[step * self.unlabeled_batch_size : (step + 1) * self.unlabeled_batch_size]
             p_idx = rng.choice(positive_indices, size=self.positive_batch_size, replace=True)
             indices = np.concatenate((p_idx, u_idx))
-            batch_x = tx[indices]
-            batch_y = ty[indices]
+            batch_x = tx[indices].to(self.device_)
+            batch_y = ty[indices].to(self.device_)
             logits = self.model_(batch_x).flatten().clamp(-10, 10)
             # Distribution and two-way margin have a marginal-U role.  In
             # the calibrated view the same P logits enter that role too;
@@ -487,15 +519,29 @@ class PULDAClassifier(BasePUClassifier):
         import torch
 
         X = _finite_features(X, name="prediction X")
-        if X.shape[1] != self.n_features_in_:
-            raise ValueError("prediction X has the wrong feature dimension")
+        if tuple(X.shape[1:]) != self.input_shape_:
+            raise ValueError("prediction X has the wrong feature dimension or input shape")
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        was_training = self.model_.training
         self.model_.eval()
-        with torch.no_grad():
-            return (
-                self.model_(torch.as_tensor(X, device=self.device_)).flatten().cpu().numpy()
-                if len(X)
-                else np.empty(0, dtype=np.float32)
-            )
+        try:
+            with torch.no_grad():
+                return np.concatenate(
+                    [
+                        self.model_(
+                            torch.as_tensor(
+                                X[start : start + self.unlabeled_batch_size], device=self.device_
+                            )
+                        )
+                        .flatten()
+                        .cpu()
+                        .numpy()
+                        for start in range(0, len(X), self.unlabeled_batch_size)
+                    ]
+                )
+        finally:
+            self.model_.train(was_training)
 
     def _predict(self, X):
         return (self._decision_function(X) >= 0).astype(int)
@@ -509,8 +555,8 @@ class PULDAClassifier(BasePUClassifier):
 
 def _finite_features(X, *, name):
     X = np.asarray(X)
-    if X.ndim != 2 or not np.issubdtype(X.dtype, np.number):
-        raise ValueError(f"{name} must be a dense 2-D numeric array")
+    if X.ndim not in {2, 4} or not np.issubdtype(X.dtype, np.number):
+        raise ValidationError(f"{name} must be a dense 2-D or 4-D numeric array")
     if not np.isfinite(X).all():
         raise ValueError(f"{name} must contain only finite values")
     result = np.asarray(X, dtype=np.float32)

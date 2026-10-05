@@ -1,6 +1,6 @@
 # Method Card: PULDA
 
-> 参数签名与行为契约以 [API 参考](../../user/reference/api.md) 为准。本卡区分论文方法、作者发布代码和工具箱二维特征适配；当前接入不表示 Survey P3.1 已验收。
+> 参数签名与行为契约以 [API 参考](../../user/reference/api.md) 为准。本卡区分论文方法、作者发布代码与工具箱 MLP/注入 CNN 适配；当前接入不表示 Survey P3.1 已验收。
 
 ## 论文与来源
 
@@ -45,8 +45,19 @@ L_{LDA}+L_{2way}+w_{mix}L_{BCE}^{mix}.
 
 ## 当前实现与边界
 
-- 注册名 `pulda`，别名 `label_distribution_alignment`；支持稠密二维数值特征、CPU 和显式 CUDA。默认两层 MLP64 是工具箱技术适配，不是作者 CIFAR CNN。
+- 注册名 `pulda`，别名 `label_distribution_alignment`；支持稠密二维数值特征、注入 encoder 的四维图像、CPU 和显式 CUDA。默认两层 MLP64 是工具箱技术适配，不是作者 CIFAR CNN。
 - 默认值对齐发布脚本的关键训练量：预热/PU 各 60 epoch、P/U 批次 16/128、温度 3.5、EMA 0.85/0.5、margin 0.6、MixUp 权重 4.2、Beta 参数 11；优化器为两阶段 Adam + cosine schedule。
 - `decision_function` 返回原始 logit，`predict` 在 0 阈值分类，`predict_proba` 仅为 sigmoid 分数，未经过独立概率校准。非空 `sample_weight` 明确报错。
 - 已有公式 golden、两阶段轨迹、确定性、类先验覆盖、注册/pipeline 与逐 epoch 权重恢复测试；2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke，2026-09-28 又通过全局 PyTorch 2.6.0+cu124 环境下的原生与 TS 特征路径单次 CUDA smoke。这些技术 smoke 不替代 frozen-lock 或正式多 seed GPU/资源验收。
-- 当前为 **P3.1 技术预集成**。方法台账已登记；`fit(os_or_ts="ts")` 的 LDA 与 two-way margin 的 U 期望角色逐批取 `U∪P`，EMA 同步该角色。正例项、总体先验、MixUp 物理池和持久伪标签索引不变；默认视图为 `ts-compatible`，逐 run 实际值以 manifest 为准。冻结 Survey 执行矩阵尚未登记，且共享 backbone、CIFAR 图像路径、公开数值对照、多 seed 资源记录与合作者复核仍未完成，不得进入正式榜。
+- 当前为 **P3.1 技术预集成**。方法台账已登记；`fit(os_or_ts="ts")` 的 LDA 与 two-way margin 的 U 期望角色逐批取 `U∪P`，EMA 同步该角色。正例项、总体先验、MixUp 物理池和持久伪标签索引不变；默认视图为 `ts-compatible`，逐 run 实际值以 manifest 为准。冻结 Survey 执行矩阵尚未登记，且共享 backbone/正式 CIFAR 规格、公开数值对照、多 seed 资源记录与合作者复核仍未完成，不得进入正式榜。
+
+## 原生 CNN 工程路径（2026-10-05）
+
+`encoder=nn.Module` 输出须为有限二维特征；其 deepcopy 被解冻训练，调用方原模板和不同 CV 折
+互不影响，后接原 MLP 头。四维图像缺 encoder 时拒绝，不静默 flatten。probe 在 eval 下执行。
+训练图像/观测标签保留 CPU，仅 P/U 或 MixUp batch 搬入设备；预热后伪标签以 eval 分批计算，
+不让 BatchNorm 读取整份训练集或更新统计。预测同样分批，恢复原模式并校验完整空间 shape。
+默认二维 MLP 的目标与阶段预算不变；图像输入上的 MixUp 是输入插值，不冒充作者完整增强协议。
+两阶段 epoch 权重只支持分类器推断回放，不包含优化器/RNG/EMA/伪标签的续训状态。
+单元形状/BN/模板/种子/pickle/快照测试为 `test_pulda_cnn.py`；流水线与折隔离另有集成测试。
+这不决定正式 backbone、候选预算或方法负责人接受，也不改历史冻结结果。

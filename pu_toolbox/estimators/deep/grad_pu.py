@@ -1,6 +1,6 @@
 """GradPU: gradient-penalized, positive-upweighted PU learning.
 
-This is a paper-derived, tabular MLP implementation of Dai et al. (AAAI 2023),
+This is a paper-derived MLP/injected no-BatchNorm CNN implementation of Dai et al. (AAAI 2023),
 Equations 5--7 and Algorithm 1. The paper's image CNN and published benchmark
 numbers are not claimed by this implementation.
 """
@@ -83,7 +83,7 @@ def gradpu_objective(
 
 
 class GradPUClassifier(BasePUClassifier):
-    """Paper-derived GradPU classifier for dense 2-D PU data.
+    """Paper-derived GradPU for dense features or injected no-BatchNorm CNNs.
 
     A user-supplied ``model`` must map one batch to one *raw* score per row.
     The fitted ``model_`` appends tanh so checkpoint snapshots and normal
@@ -106,10 +106,10 @@ class GradPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
 
     def __init__(
         self,
@@ -122,6 +122,7 @@ class GradPUClassifier(BasePUClassifier):
         max_epochs: int = 200,
         learning_rate: float = 1e-3,
         weight_decay: float = 5e-4,
+        encoder=None,
         random_state: int | None = None,
         device: str | None = None,
     ) -> None:
@@ -134,6 +135,7 @@ class GradPUClassifier(BasePUClassifier):
         self.max_epochs = max_epochs
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.encoder = encoder
         self.random_state = random_state
         self.device = device
 
@@ -152,7 +154,16 @@ class GradPUClassifier(BasePUClassifier):
 
         if sample_weight is not None:
             raise NotImplementedError("GradPU does not implement sample_weight")
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="GradPUClassifier")
+        self._is_fitted = False
+        X, y_pu = validate_pu_X_y(
+            X, y_pu, accept_sparse=False, allow_nd=True, estimator_name="GradPUClassifier"
+        )
+        if X.ndim not in {2, 4}:
+            raise ValueError("GradPU accepts 2-D features or 4-D images")
+        if X.ndim == 4 and self.encoder is None:
+            raise ValueError("GradPU 4-D images require an explicit no-BatchNorm encoder")
+        if self.encoder is not None and not isinstance(self.encoder, torch.nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
         if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
             raise ValueError("X must contain finite numeric values")
@@ -178,9 +189,26 @@ class GradPUClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
+        self.encoder_ = None
+        width = X.shape[1]
+        if self.encoder is not None:
+            from ._validation import validate_encoder_features
+
+            if any(
+                isinstance(layer, torch.nn.modules.batchnorm._BatchNorm)
+                for layer in self.encoder.modules()
+            ):
+                raise ValueError("GradPU gradient penalty does not support BatchNorm encoders")
+            self.encoder_ = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
+            self.encoder_.requires_grad_(True).eval()
+            with torch.no_grad():
+                width = validate_encoder_features(
+                    self.encoder_(torch.as_tensor(positive[:1], device=device)),
+                    encoder_param_name="encoder",
+                )
         if self.model is None:
             raw_model = torch.nn.Sequential(
-                torch.nn.Linear(X.shape[1], self.hidden_dim),
+                torch.nn.Linear(width, self.hidden_dim),
                 torch.nn.ReLU(),
                 torch.nn.Linear(self.hidden_dim, 1),
             )
@@ -188,6 +216,8 @@ class GradPUClassifier(BasePUClassifier):
             if not isinstance(self.model, torch.nn.Module):
                 raise TypeError("model must be a torch.nn.Module")
             raw_model = copy.deepcopy(self.model)
+        if self.encoder_ is not None:
+            raw_model = torch.nn.Sequential(self.encoder_, raw_model)
         if any(
             isinstance(layer, torch.nn.modules.batchnorm._BatchNorm)
             for layer in raw_model.modules()
@@ -228,6 +258,7 @@ class GradPUClassifier(BasePUClassifier):
         self.training_view_ = os_or_ts
         self.calibration_applied_ = view.calibration_applied
         self.n_features_in_ = X.shape[1]
+        self.input_shape_ = tuple(X.shape[1:])
         self._X_shape_ = X.shape
         self._class_prior = None  # accepted for API compatibility, never used by Eq. 7
         self._is_fitted = False
@@ -315,15 +346,39 @@ class GradPUClassifier(BasePUClassifier):
         import torch
 
         X = np.asarray(X)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError("GradPU prediction X must have the fitted 2-D feature shape")
+        if tuple(X.shape[1:]) != self.input_shape_:
+            raise ValueError(
+                "GradPU prediction X must have the fitted "
+                f"{len(self.input_shape_) + 1}-D input shape"
+            )
         if not np.isfinite(X).all():
             raise ValueError("GradPU prediction X must contain finite values")
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        was_training = self.model_.training
         self.model_.eval()
         device = next(self.model_.parameters()).device
-        with torch.no_grad():
-            scores = self.model_(torch.as_tensor(X, dtype=torch.float32, device=device))
-        return _one_score_per_row(scores, len(X)).cpu().numpy()
+        try:
+            with torch.no_grad():
+                return np.concatenate(
+                    [
+                        _one_score_per_row(
+                            self.model_(
+                                torch.as_tensor(
+                                    X[start : start + self.batch_size],
+                                    dtype=torch.float32,
+                                    device=device,
+                                )
+                            ),
+                            len(X[start : start + self.batch_size]),
+                        )
+                        .cpu()
+                        .numpy()
+                        for start in range(0, len(X), self.batch_size)
+                    ]
+                )
+        finally:
+            self.model_.train(was_training)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0.0).astype(int)

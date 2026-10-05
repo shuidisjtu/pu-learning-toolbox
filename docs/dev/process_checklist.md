@@ -18,6 +18,10 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-04 后续准备：P4.1 冻结 pilot 注册表 draft 已物化并校验，8 个预集成方法准入 blocker 已形成机器清单；PULDA/PUET 的预算/视图/选择/存储草案与四角色 runner smoke 已补。见 [推进计划](../research/pu_survey/post_pilot_priority_plan.md)。未修改冻结协议，未升级任何方法或配方为正式已签署。
+
+2026-10-04 后续：645-run Excel 已收到且原索引摘要一致，183 行 raw → summary 对账通过；315 次显存缺测、说明页 c/OS/TS/PA 术语勘误和若干低 AUC 诊断已披露。见 [表格层验收](../research/pu_survey/p21_workbook_review_20261004.md)；原始制品层仍待复核。
+
 2026-10-04：P1.4 已接收，15 split / 75 文件 / 3 归档摘要及数据契约均通过，见 [接收验收](../research/pu_survey/p1_4_review.md)。P2.1 五批已由执行侧完成；P2.0b/c/e 与 P2.2 的放行不等于独立签署，详见 [本轮复核](../research/pu_survey/pilot_independent_review_20261004.md)。
 
 - **P2.0a 工程交付**（2026-09-17 已签署验收）：版本化执行矩阵、runner 强制消费与参数锁、CIFAR adapter/native 接线、逐 epoch checkpoint 保存与 PA/OA 独立恢复。见 [交付记录](../research/pu_survey/p2_0a_delivery.md)、[复核包](../research/pu_survey/p2_0a_review.md)。

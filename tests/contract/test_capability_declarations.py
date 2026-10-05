@@ -117,12 +117,16 @@ _EXPECTED_DECLARATIONS = {
     "nnpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "dist_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "dgpu": (frozenset({"mlp"}), frozenset({2}), None, False),
-    "gradpu": (frozenset({"mlp"}), frozenset({2}), None, False),
-    "robust_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
-    "split_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "gradpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "robust_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "split_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "lagam": (frozenset({"mlp"}), frozenset({2}), None, False),
     "vpu": (frozenset({"mlp"}), frozenset({2}), None, False),
-    "pulda": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "pulda": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "pan": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "genpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "holistic_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "pulns": (frozenset({"mlp"}), frozenset({2}), None, False),
 }
 
 

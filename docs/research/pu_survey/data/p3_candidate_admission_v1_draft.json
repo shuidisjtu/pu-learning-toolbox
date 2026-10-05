@@ -1,0 +1,177 @@
+{
+  "schema_version": "survey-p3-candidate-admission-draft-1",
+  "review_status": "pending_method_owner_review",
+  "purpose": "Preparation only; no execution authorization, new protocol, human sign-off or paper-number reproduction.",
+  "frozen_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+  "common_blockers": [
+    "versioned_execution_and_comparison_preregistration",
+    "public_behavior_or_numeric_comparison",
+    "budget_storage_and_selection_contract",
+    "method_owner_review"
+  ],
+  "candidates": [
+    {
+      "method": "pulda",
+      "preparation_priority": 1,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pulda",
+      "ledger_snapshot": {
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "prior_semantics": "population π（分布对齐目标固定为总体正类先验；PULDA.md:10）",
+        "adaptation_level": "benchmark-adapted（二维 MLP 或独立 deepcopy 后训练的注入 CNN+MLP head；图像分批搬入 GPU、eval 分批刷新伪标签；非作者 CIFAR CNN/完整预处理和数值复现）"
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical MLP/frozen-feature or injected end-to-end CNN paths; no paper image reproduction or formal pilot claim",
+      "specific_blockers": [
+        "selection_and_budget_preregistration",
+        "shared_representation_or_native_image_spec"
+      ]
+    },
+    {
+      "method": "puet",
+      "preparation_priority": 2,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.puet",
+      "ledger_snapshot": {
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "prior_semantics": "population π（节点正类风险质量 π·n_P,node/n_P；PUET.md:10/24）",
+        "adaptation_level": "benchmark-adapted（仅作者 nnPU/quadratic 分支；非论文完整实验协议）"
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "specific_blockers": [
+        "cpu_tree_budget_and_storage_spec",
+        "gpu_clause_applicability_review"
+      ]
+    },
+    {
+      "method": "gradpu",
+      "preparation_priority": 3,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.gradpu",
+      "ledger_snapshot": {
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "prior_semantics": "无（目标不使用 class_prior，fit 仅接口兼容；GradPU.md:12）",
+        "adaptation_level": "benchmark-adapted（MLP128 或注入无 BatchNorm CNN+MLP头；显式 cnn13_no_bn 为工具箱13卷积变体，不是作者未公开完整架构；论文预处理/调参/学习率规格未复现）",
+        "source_protocol_review_ref": "docs/research/pu_survey/data/gradpu_source_review_20261005.json"
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical MLP/frozen-feature or injected no-BatchNorm CNN; no paper image reproduction or formal pilot claim",
+      "specific_blockers": [
+        "official_source_status_not_found_review",
+        "gradient_interpolation_and_budget_spec"
+      ]
+    },
+    {
+      "method": "robust_pu",
+      "preparation_priority": 4,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.robust_pu",
+      "ledger_snapshot": {
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU 预训练；Robust-PU.md:13, registry:473）",
+        "adaptation_level": "benchmark-adapted（MLP 或注入可训练 CNN+MLP/raw-logit头；图像批次上卡、原行权重在 CPU 计算；非官方 CIFAR CNN/增强/scheduler/完整预算复现）",
+        "checkpoint_accounting": {"epoch_bound": "pretrain_epochs + episodes", "bound_is_upper_limit": true, "inner_epochs_emit_extra_snapshots": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false}
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical MLP/frozen-feature or injected end-to-end CNN; no paper image reproduction or formal pilot claim",
+      "specific_blockers": [
+        "warmup_only_calibration_disclosure",
+        "incomplete_scheduler_image_augmentation_disclosure"
+      ]
+    },
+    {
+      "method": "split_pu",
+      "preparation_priority": 5,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.split_pu",
+      "ledger_snapshot": {
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU teacher 训练；Split-PU.md:9, registry:491）",
+        "adaptation_level": "benchmark-adapted（MLP 或独立训练的注入 CNN：真实中间层 MSE/最终编码特征余弦；CPU 池分批上设备；Gaussian 扰动及余弦替代官方图像增强/SimSiam，非论文完整 CNN 配方）",
+        "checkpoint_accounting": {"epoch_bound": "teacher_epochs + split_epochs + rounds * student_epochs", "bound_is_upper_limit": true, "splitter_early_stop_may_reduce_actual": true, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false}
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical MLP/frozen-feature or injected end-to-end CNN with intermediate encoder features; no paper image reproduction or formal pilot claim",
+      "specific_blockers": [
+        "teacher_only_calibration_disclosure",
+        "feature_noise_not_official_image_augmentation"
+      ]
+    },
+    {
+      "method": "vpu",
+      "preparation_priority": 6,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.vpu",
+      "ledger_snapshot": {
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:256)",
+        "adaptation_level": "benchmark-adapted；clean-room MLP 版本，不宣称作者脚本或论文数值复现；上游的 20-epoch 学习率衰减未进入，lr 默认值相差一个数量级 (vpu_sampling_audit.md §9, VPU.md:53)"
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "specific_blockers": [
+        "D22_PA_selection_decision",
+        "source_training_schedule_discrepancies"
+      ]
+    },
+    {
+      "method": "cvir",
+      "preparation_priority": 7,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir",
+      "ledger_snapshot": {
+        "run_view": "os-compatible",
+        "calibration_applied": false,
+        "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
+        "adaptation_level": "benchmark-adapted（clean-room 表格 MLP、固定 epoch 和一次 PvU warm-start；未集成 BBE/TEDn、原文图像/文本 backbone）"
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "specific_blockers": [
+        "alpha_U_provenance_and_finite_sample_conversion",
+        "explicit_ts_unsupported"
+      ]
+    },
+    {
+      "method": "lagam",
+      "preparation_priority": 8,
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.lagam",
+      "ledger_snapshot": {
+        "run_view": "os-compatible",
+        "calibration_applied": false,
+        "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
+        "adaptation_level": "benchmark-adapted（官方图像 backbone/Faiss/增强/预算未进入）"
+      },
+      "candidate_protocol_ref": null,
+      "budget_ref": null,
+      "candidate_pool": null,
+      "admitted": false,
+      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "specific_blockers": [
+        "independent_clean_support_protocol",
+        "PA_ineligible_label_budget_decision"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 # PN oracle 接入（决策与口径记录）
 
+2026-10-04 补充：端到端 `PilotOracleCNN` 已实现并通过真实标签/OA/checkpoint 合成图像 runner 测试；
+历史冻结矩阵仍不含该行，真实 CIFAR GPU 数值尚未完成。详见[本次补全](collaborator_followup_20261004.md)。
+下文分阶段决定保留为历史记录，不因实现完成回写原有跑批状态。
+
 > 定位：PN oracle 对照路径（协议 §2.4 第 10 条）的**接入决策**、与 PU-Bench 的**口径差异**，
 > 以及 P2 跑批的接口约定。缺陷修复的过程证据见 git log。
 >

@@ -19,10 +19,15 @@ from .estimators.bias_aware.pusb import PUSBClassifier
 from .estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
 from .estimators.classic.elkan_noto import ElkanNotoClassifier
 from .estimators.classic.llsvm import LLSVMClassifier
+from .estimators.classic.rank_pruning import RankPruningClassifier
 from .estimators.deep.dgpu import DGPUClassifier
+from .estimators.deep.gen_pu import GenPUClassifier
 from .estimators.deep.grad_pu import GradPUClassifier
+from .estimators.deep.holistic_pu import HolisticPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
 from .estimators.deep.lagam import LaGAMClassifier
+from .estimators.deep.pan import PANClassifier
+from .estimators.deep.pulns import PULNSClassifier
 from .estimators.deep.robust_pu import RobustPUClassifier
 from .estimators.deep.self_pu import SelfPUClassifier
 from .estimators.deep.split_pu import SplitPUClassifier
@@ -56,6 +61,8 @@ __all__ = [
     "DomainAssumptionReport",
     "ElkanNotoClassifier",
     "GradPUClassifier",
+    "GenPUClassifier",
+    "HolisticPUClassifier",
     "InfoMaxPUClassifier",
     "KLDCEClassifier",
     "LaGAMClassifier",
@@ -64,6 +71,8 @@ __all__ = [
     "LDCEClassifier",
     "LLSVMClassifier",
     "NonNegativePUClassifier",
+    "PANClassifier",
+    "PULNSClassifier",
     "PNUClassifier",
     "PUExtraTreesClassifier",
     "PULDAClassifier",
@@ -75,6 +84,7 @@ __all__ = [
     "PUShiftMonitor",
     "PUUncertaintyReport",
     "ReCPEEstimator",
+    "RankPruningClassifier",
     "RobustPUClassifier",
     "ScoringConfig",
     "ShiftAwarePUPipeline",

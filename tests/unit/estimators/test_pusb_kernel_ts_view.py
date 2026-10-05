@@ -313,7 +313,7 @@ class TestViewRoles:
 
         assert len(calls) == 1 + 3 * 2 * 2  # one refit + cv folds x grid
         assert {call["include_positive"] for call in calls} == {expected}
-        assert all(isinstance(call["include_positive"], (bool, np.bool_)) for call in calls)
+        assert all(isinstance(call["include_positive"], bool | np.bool_) for call in calls)
 
     def test_determ_role_helper_never_sees_a_validation_fold_design(self, monkeypatch):
         """The helper is called with training-fold and full designs only.

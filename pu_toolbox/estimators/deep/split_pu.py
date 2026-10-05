@@ -1,8 +1,9 @@
-"""Split-PU: source-derived easy/hard distillation for tabular PU data.
+"""Split-PU: source-derived easy/hard distillation for PU data.
 
 This adaptation preserves the nnPU teacher, prediction-disagreement split,
 Jensen-Shannon easy loss and dual-source hard consistency of Xu et al. It
-does not reproduce the official image augmentation or CNN experiment.
+supports injected CNN representations but does not reproduce the official
+image augmentation, SimSiam or full CNN experiment.
 """
 
 # ruff: noqa: N803, N806, N812
@@ -10,6 +11,7 @@ does not reproduce the official image augmentation or CNN experiment.
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -54,33 +56,116 @@ def splitpu_js_loss(student_logits, teacher_logits, *, teacher_weight: float = 0
     return (scale * (teacher_weight * kl_teacher + (1 - teacher_weight) * kl_student)).mean()
 
 
-def _network(n_features, hidden_dim):
+def _network(n_features, hidden_dim, *, encoder=None, feature_layer=None):
     import torch
 
-    return torch.nn.Sequential(
+    head = torch.nn.Sequential(
         torch.nn.Linear(n_features, hidden_dim),
         torch.nn.ReLU(),
         torch.nn.Linear(hidden_dim, hidden_dim),
         torch.nn.ReLU(),
         torch.nn.Linear(hidden_dim, 1),
     )
+    if encoder is None:
+        return head
+    model = torch.nn.Sequential(copy.deepcopy(encoder), *list(head.children()))
+    model._splitpu_feature_layer = feature_layer
+    return model
+
+
+@contextmanager
+def _singleton_batchnorm(model, X):
+    """Use running BN statistics for one-row groups without dropping rows.
+
+    A valid hard/easy group can contain one row and CNN spatial maps can
+    shrink to 1x1. BN affine/encoder gradients remain enabled. Restore all
+    layer modes even when forward raises; larger groups are unchanged.
+    """
+    import torch
+
+    layers = (
+        [
+            layer
+            for layer in model.modules()
+            if isinstance(layer, torch.nn.modules.batchnorm._BatchNorm) and layer.training
+        ]
+        if len(X) == 1
+        else []
+    )
+    try:
+        for layer in layers:
+            layer.eval()
+        yield
+    finally:
+        for layer in layers:
+            layer.train()
 
 
 def _score(model, X):
-    scores = model(X)
+    with _singleton_batchnorm(model, X):
+        scores = model(X)
     if scores.shape == (len(X), 1):
         return scores[:, 0]
     raise ValueError("model must output one raw logit per row")
 
 
 def _features(model, X):
+    if hasattr(model, "_splitpu_feature_layer"):
+        import torch
+
+        outputs = []
+        layer = model[0].get_submodule(model._splitpu_feature_layer)
+        # Preserve the layer value before a downstream in-place activation.
+        # clone keeps gradients, unlike detach, and is only batch-sized.
+        handle = layer.register_forward_hook(
+            lambda _module, _args, output: outputs.append(
+                output.clone() if isinstance(output, torch.Tensor) else output
+            )
+        )
+        try:
+            with _singleton_batchnorm(model[0], X):
+                high = model[0](X)
+        finally:
+            handle.remove()
+        if len(outputs) != 1:
+            raise ValueError("encoder_feature_layer must execute exactly once per encoder forward")
+        from ._validation import validate_encoder_features
+
+        validate_encoder_features(high, encoder_param_name="encoder")
+        if high.shape[0] != len(X):
+            raise ValueError("encoder output must preserve the input batch size")
+        low = outputs[0]
+        if (
+            not isinstance(low, torch.Tensor)
+            or low.ndim < 2
+            or low.shape[0] != len(X)
+            or low[0].numel() == 0
+            or not torch.isfinite(low).all()
+        ):
+            raise ValueError("encoder_feature_layer must return finite batched features")
+        return low, high
     low = model[:2](X)
     high = model[2:4](low)
     return low, high
 
 
+def _batched_score(model, data, batch_size, device):
+    """Detached CPU scores without a full-data GPU tensor or BN updates."""
+    import torch
+
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.no_grad():
+            return torch.cat(
+                [_score(model, batch.to(device)).cpu() for batch in data.split(batch_size)]
+            )
+    finally:
+        model.train(was_training)
+
+
 class SplitPUClassifier(BasePUClassifier):
-    """PU-only Split-PU tabular adaptation with explicit training stages."""
+    """PU-only Split-PU adaptation with independent MLP/CNN training stages."""
 
     family = AlgorithmFamily.DEEP_PU
     label_semantics = "pu"
@@ -92,15 +177,22 @@ class SplitPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
+
+    @property
+    def checkpoint_epoch_count(self):
+        """Upper bound across teacher, early-stopped splitter and student rounds."""
+        return self.teacher_epochs + self.split_epochs + self.rounds * self.student_epochs
 
     def __init__(
         self,
         class_prior: float | None = None,
         *,
+        encoder=None,
+        encoder_feature_layer: str | None = None,
         hidden_dim: int = 100,
         teacher_epochs: int = 10,
         split_epochs: int = 10,
@@ -119,6 +211,8 @@ class SplitPUClassifier(BasePUClassifier):
     ) -> None:
         super().__init__()
         self.class_prior = class_prior
+        self.encoder = encoder
+        self.encoder_feature_layer = encoder_feature_layer
         self.hidden_dim = hidden_dim
         self.teacher_epochs = teacher_epochs
         self.split_epochs = split_epochs
@@ -150,7 +244,18 @@ class SplitPUClassifier(BasePUClassifier):
 
         if sample_weight is not None:
             raise NotImplementedError("Split-PU does not implement sample_weight")
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="SplitPUClassifier")
+        self._is_fitted = False
+        X, y_pu = validate_pu_X_y(
+            X, y_pu, accept_sparse=False, allow_nd=True, estimator_name="SplitPUClassifier"
+        )
+        if X.ndim not in (2, 4):
+            raise ValueError("Split-PU requires 2-D features or 4-D images")
+        if X.ndim == 4 and self.encoder is None:
+            raise ValueError("Split-PU 4-D images require encoder; images are not flattened")
+        if self.encoder is not None and not isinstance(self.encoder, torch.nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
+        if self.encoder_feature_layer is not None and self.encoder is None:
+            raise ValueError("encoder_feature_layer requires encoder")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
         prior = self.class_prior if class_prior is None else class_prior
         if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
@@ -183,10 +288,67 @@ class SplitPUClassifier(BasePUClassifier):
             raise ValueError("X must remain finite after float32 conversion")
         p_idx = np.array(view.positive_positions, copy=True)
         u_idx = np.array(view.native_unlabeled_positions, copy=True)
+        if len(u_idx) < 2:
+            raise ValueError("Split-PU requires at least two original U rows for easy/hard groups")
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
-        data = torch.as_tensor(X, device=device)
+        data = torch.as_tensor(X)
+        width, feature_layer = X.shape[1], None
+        encoder_template = None
+        if self.encoder is not None:
+            from ._validation import validate_encoder_features
+
+            encoder_template = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
+            encoder_template.requires_grad_(True).eval()
+            if self.encoder_feature_layer is not None:
+                if (
+                    not isinstance(self.encoder_feature_layer, str)
+                    or not self.encoder_feature_layer
+                ):
+                    raise ValueError("encoder_feature_layer must be a nonempty module path")
+                feature_layer = self.encoder_feature_layer
+                try:
+                    encoder_template.get_submodule(feature_layer)
+                except (AttributeError, KeyError) as exc:
+                    raise ValueError(
+                        "encoder_feature_layer does not identify an encoder module"
+                    ) from exc
+            else:
+                modules = list(encoder_template.named_modules())
+                feature_layer = next(
+                    (name for name, module in modules if isinstance(module, torch.nn.MaxPool2d)),
+                    None,
+                )
+                if feature_layer is None:
+                    feature_layer = next(
+                        (
+                            name
+                            for name, module in modules
+                            if name and isinstance(module, torch.nn.Conv2d | torch.nn.Linear)
+                        ),
+                        None,
+                    )
+                if feature_layer is None:
+                    raise ValueError("encoder requires an explicit encoder_feature_layer")
+            with torch.no_grad():
+                width = validate_encoder_features(
+                    encoder_template(data[:1].to(device)), encoder_param_name="encoder"
+                )
+                probe_model = (
+                    _network(
+                        width,
+                        self.hidden_dim,
+                        encoder=encoder_template,
+                        feature_layer=feature_layer,
+                    )
+                    .to(device)
+                    .eval()
+                )
+                _features(probe_model, data[:1].to(device))
+            del probe_model
+        self.encoder_feature_layer_ = feature_layer
+        self.input_shape_ = X.shape[1:]
         self.n_features_in_ = X.shape[1]
         self.n_positive_, self.n_unlabeled_ = len(p_idx), len(u_idx)
         self.n_loss_unlabeled_ = len(view.loss_unlabeled_positions)
@@ -194,6 +356,7 @@ class SplitPUClassifier(BasePUClassifier):
         self.calibration_applied_ = view.calibration_applied
         self._X_shape_ = X.shape
         self._class_prior = float(prior)
+        self.optimizer_steps_ = 0
         self.history_ = {
             "teacher_risk": [],
             "split_agreement": [],
@@ -203,7 +366,10 @@ class SplitPUClassifier(BasePUClassifier):
         self._is_fitted = False
         epoch = 0
 
-        teacher = _network(X.shape[1], self.hidden_dim).to(device)
+        teacher = _network(
+            width, self.hidden_dim, encoder=encoder_template, feature_layer=feature_layer
+        ).to(device)
+        self.encoder_ = teacher[0] if encoder_template is not None else None
         self.model_ = teacher
         optimizer = torch.optim.Adam(teacher.parameters(), lr=self.learning_rate)
         for _ in range(self.teacher_epochs):
@@ -217,7 +383,8 @@ class SplitPUClassifier(BasePUClassifier):
             for step in range(steps):
                 p = p_order[(step * self.batch_size) % len(p_idx) :][: self.batch_size]
                 u = u_order[(step * self.batch_size) % len(u_idx) :][: self.batch_size]
-                pos, unl = _score(teacher, data[p]), _score(teacher, data[u])
+                pos = _score(teacher, data[p].to(device))
+                unl = _score(teacher, data[u].to(device))
                 # The teacher's nnPU marginal term is the only unlabeled risk
                 # role.  Easy/hard splitting below must use original U only.
                 loss_unl = torch.cat((unl, pos)) if view.calibration_applied else unl
@@ -232,6 +399,7 @@ class SplitPUClassifier(BasePUClassifier):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                self.optimizer_steps_ += 1
                 risks.append(info["nnpu_risk"])
             self.history_["teacher_risk"].append(float(np.mean(risks)))
             self._is_fitted = True
@@ -241,27 +409,31 @@ class SplitPUClassifier(BasePUClassifier):
         self.teacher_ = copy.deepcopy(teacher).eval()
         for param in self.teacher_.parameters():
             param.requires_grad_(False)
+        self.teacher_encoder_ = self.teacher_[0] if encoder_template is not None else None
 
-        splitter = _network(X.shape[1], self.hidden_dim).to(device)
+        splitter = _network(
+            width, self.hidden_dim, encoder=encoder_template, feature_layer=feature_layer
+        ).to(device)
+        self.splitter_encoder_ = splitter[0] if encoder_template is not None else None
+        self.encoder_ = self.splitter_encoder_
         self.splitter_ = splitter
         self.model_ = splitter
         optimizer = torch.optim.SGD(splitter.parameters(), lr=self.learning_rate)
+        # The teacher is frozen, so its targets are computed once on CPU.
+        target = (_batched_score(self.teacher_, data, self.batch_size, device) > 0).float()
         for _ in range(self.split_epochs):
             splitter.train()
-            with torch.no_grad():
-                target = (_score(self.teacher_, data) > 0).float()
             for indices in _batches(rng, len(X), self.batch_size):
                 loss = F.binary_cross_entropy_with_logits(
-                    _score(splitter, data[indices]), target[indices]
+                    _score(splitter, data[indices].to(device)), target[indices].to(device)
                 )
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                self.optimizer_steps_ += 1
             splitter.eval()
-            with torch.no_grad():
-                agreement = float(
-                    ((_score(splitter, data[u_idx]) > 0).float() == target[u_idx]).float().mean()
-                )
+            split_scores = _batched_score(splitter, data[u_idx], self.batch_size, device)
+            agreement = float(((split_scores > 0).float() == target[u_idx]).float().mean())
             self.history_["split_agreement"].append(agreement)
             self._is_fitted = True
             if epoch_callback is not None:
@@ -270,23 +442,25 @@ class SplitPUClassifier(BasePUClassifier):
             if agreement >= self.agreement_threshold:
                 break
 
-        with torch.no_grad():
-            teacher_sign = _score(self.teacher_, data[u_idx]) > 0
-            splitter_sign = _score(splitter, data[u_idx]) > 0
-            hard_mask = (teacher_sign != splitter_sign).cpu().numpy()
-            # A tiny/noisy dataset may have perfect agreement; retain one
-            # lowest-margin U for the hard branch instead of dividing by zero.
-            if not np.any(hard_mask):
-                margins = _score(self.teacher_, data[u_idx]).abs().cpu().numpy()
-                hard_mask[int(np.argmin(margins))] = True
-            if np.all(hard_mask):
-                margins = _score(self.teacher_, data[u_idx]).abs().cpu().numpy()
-                hard_mask[int(np.argmax(margins))] = False
+        teacher_scores = _batched_score(self.teacher_, data[u_idx], self.batch_size, device)
+        teacher_sign = teacher_scores > 0
+        splitter_sign = split_scores > 0
+        hard_mask = (teacher_sign != splitter_sign).numpy()
+        # A tiny/noisy dataset may have perfect agreement; retain one
+        # lowest-margin U for the hard branch instead of dividing by zero.
+        margins = teacher_scores.abs().numpy()
+        if not np.any(hard_mask):
+            hard_mask[int(np.argmin(margins))] = True
+        if np.all(hard_mask):
+            hard_mask[int(np.argmax(margins))] = False
         easy_idx, hard_idx = u_idx[~hard_mask], u_idx[hard_mask]
         self.n_easy_, self.n_hard_ = len(easy_idx), len(hard_idx)
         current_teacher = self.teacher_
         for round_index in range(self.rounds):
-            student = _network(X.shape[1], self.hidden_dim).to(device)
+            student = _network(
+                width, self.hidden_dim, encoder=encoder_template, feature_layer=feature_layer
+            ).to(device)
+            self.encoder_ = student[0] if encoder_template is not None else None
             self.model_ = student
             optimizer = torch.optim.Adam(student.parameters(), lr=self.learning_rate)
             # Official main.py: first (hard=.3, sim=.1, feat=.3), then
@@ -303,8 +477,8 @@ class SplitPUClassifier(BasePUClassifier):
                 for p, easy, hard in _three_group_batches(
                     rng, p_idx, easy_idx, hard_idx, self.batch_size
                 ):
-                    pos = data[p]
-                    easy_data, hard_data = data[easy], data[hard]
+                    pos = data[p].to(device)
+                    easy_data, hard_data = data[easy].to(device), data[hard].to(device)
                     with torch.no_grad():
                         teacher_easy = _score(current_teacher, easy_data)
                         teacher_low, _ = _features(current_teacher, hard_data)
@@ -343,6 +517,7 @@ class SplitPUClassifier(BasePUClassifier):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
+                    self.optimizer_steps_ += 1
                     losses.append(float(loss.detach()))
                 self.history_["student_loss"].append(float(np.mean(losses)))
                 self._is_fitted = True
@@ -359,18 +534,17 @@ class SplitPUClassifier(BasePUClassifier):
         import torch
 
         X = np.asarray(X)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError("Split-PU prediction requires fitted 2-D feature shape")
+        if X.ndim != len(self.input_shape_) + 1 or X.shape[1:] != self.input_shape_:
+            raise ValueError("Split-PU prediction requires fitted 2-D/4-D feature shape")
         if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
             raise ValueError("Split-PU prediction must be finite numeric")
+        X = np.asarray(X, dtype=np.float32)
+        if not np.isfinite(X).all():
+            raise ValueError("Split-PU prediction must remain finite after float32 conversion")
+        if len(X) == 0:
+            return np.empty(0, dtype=np.float32)
         device = next(self.model_.parameters()).device
-        self.model_.eval()
-        with torch.no_grad():
-            return (
-                _score(self.model_, torch.as_tensor(X, dtype=torch.float32, device=device))
-                .cpu()
-                .numpy()
-            )
+        return _batched_score(self.model_, torch.as_tensor(X), self.batch_size, device).numpy()
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0).astype(int)

@@ -80,11 +80,62 @@ def test_stages_prediction_determinism_and_checkpoint(tmp_path):
     scores = clf.decision_function(X)
     assert np.isfinite(scores).all() and scores.shape == (len(X),)
     np.testing.assert_array_equal(_model().fit(X, y).decision_function(X), scores)
-    np.testing.assert_allclose(trajectory.checkpoints[-1].restore().decision_function(X), scores)
+    # Snapshot replay uses one full matrix; fitted prediction is batched.
+    np.testing.assert_allclose(
+        trajectory.checkpoints[-1].restore().decision_function(X), scores, atol=1e-7
+    )
     restored = copy.deepcopy(clf.model_)
     restored.load_state_dict(clf.model_.state_dict())
     with torch.no_grad():
-        np.testing.assert_allclose(restored(torch.as_tensor(X)).reshape(-1).numpy(), scores)
+        np.testing.assert_allclose(
+            restored(torch.as_tensor(X)).reshape(-1).numpy(), scores, atol=1e-7
+        )
+
+
+def test_scores_are_bounded_batches_with_cpu_pool_and_mode_restoration(monkeypatch):
+    X, y = _data()
+    module = importlib.import_module("pu_toolbox.estimators.deep.split_pu")
+    original_scan, original_score = module._batched_score, module._score
+    scans, sizes = [], []
+
+    def scan(model, data, batch_size, device):
+        scans.append((data.device.type, len(data)))
+        return original_scan(model, data, batch_size, device)
+
+    def score(model, batch):
+        sizes.append(len(batch))
+        return original_score(model, batch)
+
+    monkeypatch.setattr(module, "_batched_score", scan)
+    monkeypatch.setattr(module, "_score", score)
+    fitted = _model().fit(X, y, os_or_ts="ts")
+    assert scans and all(kind == "cpu" for kind, _ in scans)
+    assert max(sizes) <= fitted.batch_size
+    assert fitted.n_easy_ + fitted.n_hard_ == int((y == 0).sum())
+    assert fitted.n_loss_unlabeled_ == len(y)
+    assert fitted.model_.training
+    first = fitted.decision_function(X)
+    assert fitted.model_.training
+    fitted.model_.eval()
+    np.testing.assert_array_equal(fitted.decision_function(X), first)
+    assert not fitted.model_.training
+    assert fitted.decision_function(X[:0]).shape == (0,)
+    assert max(sizes) <= fitted.batch_size
+
+
+def test_single_u_cannot_support_two_nonempty_groups():
+    X, y = _data()
+    indices = np.r_[np.flatnonzero(y == 1), np.flatnonzero(y == 0)[:1]]
+    with pytest.raises(ValueError, match="at least two original U"):
+        _model().fit(X[indices], y[indices])
+
+
+def test_prediction_rejects_float32_overflow():
+    X, y = _data()
+    fitted = _model().fit(X, y)
+    huge = np.full(X.shape, np.finfo(np.float64).max)
+    with np.errstate(over="ignore"), pytest.raises(ValueError, match="float32"):
+        fitted.decision_function(huge)
 
 
 def test_ts_calibrates_teacher_but_preserves_original_u_split():
@@ -159,12 +210,28 @@ def test_rejects_weights_and_bad_input():
 
 
 @pytest.mark.gpu
-def test_cuda_smoke():
+def test_cuda_smoke(monkeypatch, tmp_path):
     if not torch.cuda.is_available():
         if os.environ.get("PU_REQUIRE_CUDA") == "1":
             pytest.fail("PU_REQUIRE_CUDA=1 requires CUDA")
         pytest.skip("CUDA unavailable")
     X, y = _data()
-    fitted = _model(device="cuda").fit(X, y)
+    module = importlib.import_module("pu_toolbox.estimators.deep.split_pu")
+    original = module._batched_score
+    scans = []
+
+    def capture(model, data, batch_size, device):
+        scans.append(data.device.type)
+        return original(model, data, batch_size, device)
+
+    monkeypatch.setattr(module, "_batched_score", capture)
+    fitted = _model(device="cuda")
+    trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(fitted, X, y, os_or_ts="ts")
     assert next(fitted.model_.parameters()).device.type == "cuda"
-    assert np.isfinite(fitted.decision_function(X)).all()
+    scores = fitted.decision_function(X)
+    assert np.isfinite(scores).all()
+    assert scans and set(scans) == {"cpu"}
+    assert fitted.n_loss_unlabeled_ == len(y)
+    restored = trajectory.checkpoints[-1].restore(device="cpu")
+    assert next(restored.model_.parameters()).device.type == "cpu"
+    np.testing.assert_allclose(restored.decision_function(X), scores, atol=1e-6, rtol=1e-5)

@@ -70,6 +70,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
 | `vpu`（`variational_pu`） | `VPUClassifier` | risk | `hidden_dim` / `max_epochs` / `regularization_weight` / `mixup_alpha` | [VPU](../../research/method_cards/VPU.md) |
 | `pulda`（`label_distribution_alignment`） | `PULDAClassifier` | risk | `class_prior` / `warmup_epochs` / `pu_epochs` / `margin` / `mixup_weight` | [PULDA](../../research/method_cards/PULDA.md) |
+| `cvir` | `CVIRClassifier` | risk | `unlabeled_positive_prior`（U 内比例）/ `max_epochs` / `batch_size` | [CVIR](../../research/method_cards/CVIR.md) |
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
@@ -77,6 +78,11 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
 | `split_pu`（`split-pu`） | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
 | `lagam`（`la_gam`） | `LaGAMClassifier` | deep | `support_data`（fit 必传）/ `warmup_epochs` / `num_clusters` | [LaGAM](../../research/method_cards/LaGAM.md) |
+| `pan`（`predictive_adversarial_pu`） | `PANClassifier` | deep | `encoder` / `model` / `discriminator` / `adversarial_weight` / `max_epochs` | [PAN](../../research/method_cards/PAN.md) |
+| `genpu`（`gen_pu`） | `GenPUClassifier` | deep | `class_prior` / `latent_dim` / `max_epochs` / `classifier_epochs` | [GEN-PU](../../research/method_cards/GEN-PU.md) |
+| `holistic_pu`（`holisticpu`） | `HolisticPUClassifier` | deep | `warmup_epochs` / `trend_scale` / `max_epochs` | [Holistic-PU](../../research/method_cards/Holistic-PU.md) |
+| `rp`（`rank_pruning`） | `RankPruningClassifier` | classic | `base_estimator` / `n_cv_folds` / `frac_pos2neg` / `min_retained` | [RP](../../research/method_cards/RP.md) |
+| `pulns`（`negative_selector_pu`） | `PULNSClassifier` | deep | `support_data`（fit 必传）/ `episodes` / `discount` / `terminal_weight` | [PULNS](../../research/method_cards/PULNS.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
 | `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
 | `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
@@ -410,7 +416,7 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 
 #### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
 
-标签分布对齐 + 双向 margin + 伪标签 MixUp 的两阶段 PU 分类器，仅支持稠密二维特征。
+标签分布对齐 + 双向 margin + 伪标签 MixUp 的两阶段 PU 分类器，支持二维特征及注入 CNN 的四维图像。
 
 ```python
 PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
@@ -418,7 +424,7 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
                 warmup_learning_rate=1e-4, learning_rate=1e-3,
                 warmup_weight_decay=5e-4, weight_decay=1e-4,
                 temperature=3.5, unlabeled_ema=0.85, margin_ema=0.5,
-                margin=0.6, mixup_weight=4.2, mixup_alpha=11.0,
+                margin=0.6, mixup_weight=4.2, mixup_alpha=11.0, encoder=None,
                 random_state=0, device=None)
 ```
 
@@ -426,6 +432,7 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
 |---|---|---|---|
 | `class_prior` | `float` | 必填 | 真实正类比例，须在 `(0,1)`；`fit(class_prior=...)` 可覆盖 |
 | `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | 工具箱 MLP 的隐层宽度与层数 |
+| `encoder` | `torch.nn.Module \| None` | `None` | 可选特征编码器；四维图像必须提供，deepcopy 后端到端训练，后接上述 MLP 头 |
 | `warmup_epochs` / `pu_epochs` | `int` / `int` | `60` / `60` | 分布对齐预热与伪标签 MixUp 阶段轮数，二者不能同时为 0 |
 | `positive_batch_size` / `unlabeled_batch_size` | `int` / `int` | `16` / `128` | 每批 P/U 数量 |
 | `warmup_learning_rate` / `learning_rate` | `float` / `float` | `1e-4` / `1e-3` | 两阶段 Adam 初始学习率 |
@@ -436,6 +443,84 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
 | `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 随机种子与 torch 设备 |
 
 `fit(..., sample_weight=None, epoch_callback=None)`：非空 `sample_weight` 报错。`history_` 记录阶段、三个损失分量、总损失与累计更新数；`pseudo_labels_` 保存第二阶段末的训练伪标签。`predict_proba` 是 sigmoid 分数而非独立校准概率。详见 [PULDA 方法卡](../../research/method_cards/PULDA.md)。
+
+### 新增 PU 方法（实验预集成）
+
+#### `HolisticPUClassifier`（`holistic_pu`）
+
+```python
+HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
+                     batch_size=64, learning_rate=1e-3, trend_scale=2.0,
+                     random_state=0, device=None)
+```
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`：平衡 P/U 重采样、
+预测轨迹、论文全时序 signed trend 与 variance 二分、伪标签监督训练。二维 MLP。
+固定预热不是论文 LZO 自动停止；`warmup_epochs>=2`；外部先验不使用，sample_weight / TS 请求拒绝。
+`prediction_trajectory_` / `pseudo_labels_` / `pseudo_label_indices_` / `breakpoint_` 可对账；
+`optimizer_steps_` 含两阶段，callback 每轮结束以连续零起始编号调用；
+`history_["phase"]` 标注 warmup / pseudo_pn；`checkpoint_epoch_count` 计两阶段存储峰值。
+快照只用于推断回放，正式 PA/OA 候选阶段需另行预注册。见[方法卡](../../research/method_cards/Holistic-PU.md)。
+
+#### `GenPUClassifier`（`genpu`，别名 `gen_pu`）
+
+```python
+GenPUClassifier(*, class_prior=None, hidden_dim=128, latent_dim=100,
+                max_epochs=100, classifier_epochs=100, batch_size=64,
+                learning_rate=3e-4, positive_weight=1.0, negative_weight=1.0,
+                unlabeled_weight=1.0, random_state=0, device=None)
+```
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`：总体先验必填，
+构造/fit 冲突拒绝。论文目标的两 generator / 三 discriminator，之后用合成流训练 PN classifier；
+只有 Du 真实池支持 TS 的 U∪P 替换。二维 MLP，不是图像 CNN 或官方 demo 数值复现。
+`history_` / `optimizer_steps_` 分别记录 GAN 与 PN 成本；callback 仅在合成 PN 分类器轮末调用，
+零起始编号；`checkpoint_epoch_count=classifier_epochs`，不把 GAN 网络冒充分类器快照。
+快照用于分类器推断回放，完整六模型状态另存可信 pickle；不支持训练恢复或正式准入。
+非空 sample_weight 报错；sigmoid 分数不保证独立概率校准。见[GEN-PU 方法卡](../../research/method_cards/GEN-PU.md)。
+
+#### `PULNSClassifier`（`pulns`）
+
+```python
+PULNSClassifier(*, hidden_dim=32, pretrain_epochs=10, episodes=20,
+                classifier_epochs=1, batch_size=128, learning_rate=1e-3,
+                selector_learning_rate=1e-3, discount=0.9, terminal_weight=1.0,
+                random_state=0, device=None)
+```
+
+论文 RL 负例选择的实验适配；`fit(..., support_data=(X_support,y_clean),
+train_indices=None, support_indices=None, os_or_ts="os")`。需独立真实正负 support，
+不能复用 clean_val/test；支持集为训练奖励，PA-ineligible。提供双方 IDs 时验证互斥，
+否则隔离状态未验证。拒绝 ts/非空 sample_weight。`history_` 记录 reward probe、实际 classifier
+accuracy、policy loss 和负例数，两个最优/基线分别存为 `best_support_accuracy_`、`reward_baseline_`。
+不提供 epoch_callback；当前 pickle round-trip 不是正式 episode checkpoint 规格验收。
+
+#### `PANClassifier`（`pan`）
+
+```python
+PANClassifier(*, hidden_dim=128, max_epochs=100, batch_size=64,
+              learning_rate=1e-4, adversarial_weight=1.0, model=None,
+              discriminator=None, encoder=None, random_state=0, device=None)
+```
+
+PAN 式 (7) 的 MLP / 注入 CNN 实验适配：C/D 交替 Adam、C 负责预测，无外部先验；`fit` 支持
+`epoch_callback` 和 `os_or_ts="os"`，显式 ts 与非空外部 sample_weight 报错。仅推理 C 的 epoch
+snapshot 不支持训练续跑。`predict_proba` 是 sigmoid 分数，不承诺校准；正式 Survey 尚未准入。
+4-D NCHW 必须显式提供 `encoder`，两份独立副本均解冻并端到端训练，不修改原模板；
+此时 `model` / `discriminator` 是 score heads（默认 linear），encoder 必须输出有限 2-D 特征。
+Pipeline 可使用 `architecture="cnn"` 注入共享初始 backbone；并不代表作者图像网络数值复现。
+
+#### `RankPruningClassifier`（`rp`）
+
+```python
+RankPruningClassifier(*, base_estimator=None, n_cv_folds=3,
+                      frac_pos2neg=None, min_retained=10, random_state=0)
+```
+
+只支持无误标正例的 PU 特例。每候选 n_cv_folds 次 OOF + 1 次重权拟合，无需外部先验。
+`fit(os_or_ts="os")`；显式 ts/非空外部 sample_weight 报错。内部重权要求 base_estimator 的 fit
+支持 sample_weight。`rho1_`、`rho0_`、`pi0_`、`estimated_prior_`、`prior_diagnostic_`、OOF/保留索引
+为诊断，不是正式预算登记或独立概率校准。
 
 ### Bias-Aware 分类器
 
@@ -511,10 +596,11 @@ LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
 
 #### `SplitPUClassifier`（注册名 `split_pu`，别名 `split-pu`）
 
-nnPU teacher → 预测分歧划分 easy/hard U → easy JS 蒸馏与 hard 双源一致性。当前仅支持二维稠密输入，未复现论文 CNN。
+nnPU teacher → 预测分歧划分 easy/hard U → easy JS 蒸馏与 hard 双源一致性。支持二维稠密输入或注入 CNN 的四维图像；未复现论文完整增强/SimSiam 配方。
 
 ```python
-SplitPUClassifier(class_prior=None, *, hidden_dim=100, teacher_epochs=10,
+SplitPUClassifier(class_prior=None, *, encoder=None, encoder_feature_layer=None,
+                  hidden_dim=100, teacher_epochs=10,
                   split_epochs=10, student_epochs=10, rounds=2, batch_size=64,
                   learning_rate=1e-3, agreement_threshold=0.92,
                   js_teacher_weight=0.7, hard_weight=0.3,
@@ -522,14 +608,26 @@ SplitPUClassifier(class_prior=None, *, hidden_dim=100, teacher_epochs=10,
                   noise_std=0.05, random_state=None, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None)`；`class_prior` 是 U 内正类比例。非空 `sample_weight` 报错。详见 [Split-PU 方法卡](../../research/method_cards/Split-PU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`；
+TS 下 class_prior 是总体 π（边缘 U 的正类比例）。TS 风险池替换只在 nnPU teacher，
+splitter、easy/hard 与 student 仍取原始 U。非空 sample_weight 报错。
+详见 [Split-PU 方法卡](../../research/method_cards/Split-PU.md)。
+
+`checkpoint_epoch_count=teacher_epochs+split_epochs+rounds*student_epochs` 是快照数量上界，
+splitter 早停会减少实际快照；`optimizer_steps_` 累计三个阶段/全部 student rounds 的真实更新。
+回收只减少最终留存，不降低训练时峰值；此上界不是正式候选预算。
+数据池及冻结教师目标留在 CPU，训练与预测分批上设备；预测恢复模型模式。
+原始 U 至少两条，以保证 easy/hard 两分支非空；空预测返回空数组。
+encoder 各阶段独立 deepcopy/训练，四维输入缺 encoder 拒绝。低层 MSE 用指定编码器
+模块（默认首个 MaxPool，否则 Conv/Linear），高层余弦用最终编码特征；不是官方 SimSiam。
+单行组的 BN 暂用运行统计且保留梯度，较大组照常更新。
 
 #### `RobustPUClassifier`（注册名 `robust_pu`，别名 `robust-pu`）
 
-nnPU 预训练后对 P/U 分别计算自步权重，再做候选负例加权训练。`class_prior` 表示 U 内的正类比例；只支持稠密二维输入，输出 raw logit。
+nnPU 预训练后对 P/U 分别计算自步权重，再做候选负例加权训练。支持二维特征或注入 CNN 的四维图像，输出 raw logit。
 
 ```python
-RobustPUClassifier(class_prior=None, *, model=None, hidden_dim=100,
+RobustPUClassifier(class_prior=None, *, model=None, encoder=None, hidden_dim=100,
                    pretrain_epochs=10, episodes=20, inner_epochs=1,
                    batch_size=64, pretrain_lr=1e-3, learning_rate=1e-4,
                    alpha_p=0.1, alpha_n=0.1, max_thresh_p=2.0,
@@ -538,22 +636,33 @@ RobustPUClassifier(class_prior=None, *, model=None, hidden_dim=100,
                    random_state=None, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None)`；非空 `sample_weight` 会报错。当前为表格版技术预集成，尚未进入正式 Survey 实验矩阵。详见 [Robust-PU 方法卡](../../research/method_cards/Robust-PU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`；
+TS 风险池替换仅在 nnPU 预训练，后续伪负例仍取原始 U；跳过预训练时明确拒绝 TS。
+非空 sample_weight 报错。当前为表格版技术预集成，尚未进入正式 Survey 实验矩阵。
+详见 [Robust-PU 方法卡](../../research/method_cards/Robust-PU.md)。
+
+`checkpoint_epoch_count=pretrain_epochs+episodes`，每个 episode 仅输出一份快照；
+`inner_epochs` 全部计入 `optimizer_steps_`，不重复计为快照。重新 fit 会重置更新计数。
+
+`encoder` deepcopy 后解冻训练，四维图像必须提供；其后接默认 MLP 或 model 原始分数头。
+CPU 保存图像/标签/原行自步权重，仅训练批次移到设备；预测分批 eval 并恢复模式。
+不等于作者完整 CIFAR 训练配方、scheduler 或图像增强。
 
 #### `GradPUClassifier`（注册名 `gradpu`，别名 `grad_pu`）
 
-基于输入梯度惩罚与困难正样本加权的 PU 分类器，当前实现面向二维稠密特征。
+基于输入梯度惩罚与困难正样本加权的 PU 分类器，支持二维特征或无 BatchNorm encoder 的四维图像。
 
 ```python
 GradPUClassifier(model=None, *, hidden_dim=128, alpha=0.1, beta_max=1.0,
                  batch_size=256, max_epochs=200, learning_rate=1e-3,
-                 weight_decay=5e-4, random_state=None, device=None)
+                 weight_decay=5e-4, encoder=None, random_state=None, device=None)
 ```
 
 | 参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `model` | `torch.nn.Module \| None` | `None` | 输出每行一个原始分数的网络；默认单隐层 MLP；不支持 BatchNorm |
 | `hidden_dim` | `int` | `128` | 默认 MLP 隐藏宽度 |
+| `encoder` | `torch.nn.Module \| None` | `None` | 四维图像必填；无 BatchNorm，deepcopy 后端到端训练；model 若同时提供则作为原始分数头 |
 | `alpha` / `beta_max` | `float` | `0.1` / `1.0` | 输入梯度惩罚强度 / 正样本加权上限 |
 | `batch_size` / `max_epochs` | `int` | `256` / `200` | 每组批大小 / 训练轮数 |
 | `learning_rate` / `weight_decay` | `float` | `1e-3` / `5e-4` | Adam 优化参数 |
@@ -713,7 +822,7 @@ pipe = PUPipeline(
                                 # （默认 metrics=None → DEFAULT_METRICS）
     random_state=42,
     architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu/nnpu）
-    backbone="cnn13",           # CNN 骨架：cnn13/resnet18/resnet50（仅 cnn 有效）
+    backbone="cnn13",           # CNN 骨架：cnn13/cnn13_no_bn/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
     max_epochs=None,            # 注入到构造签名接受 max_epochs 的深度方法（wconpu/self_pu/nnpu）的训练 epoch 上限
 )
@@ -739,7 +848,7 @@ report = pipe.fit_evaluate(
 | `metrics` | `Sequence[str] \| None` | `None`（→DEFAULT_METRICS） | 指标名 |
 | `random_state` | `int \| None` | `42` | 随机种子 |
 | `architecture` | `str` | `"mlp"` | `"mlp"` / `"cnn"` |
-| `backbone` | `str` | `"cnn13"` | `cnn13`/`resnet18`/`resnet50` |
+| `backbone` | `str` | `"cnn13"` | `cnn13`/`cnn13_no_bn`/`resnet18`/`resnet50` |
 | `device` | `str \| None` | `None`（auto） | torch 设备 |
 | `max_epochs` | `int \| None` | `None` | 深度方法训练 epoch 上限 |
 
@@ -808,7 +917,7 @@ report = pipe.fit_evaluate(
 | 参数 | 默认 | 取值 | 语义 |
 |---|---|---|---|
 | `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数；候选方法由 registry 能力声明动态生成（当前 `wconpu` / `infomax_pu` / `nnpu`，见 `list-methods` 能力列）。未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError`；4-D 图像配 `"mlp"` 同样抛 `PipelineError`（提示同源动态候选） |
-| `backbone` | `"cnn13"` | `"cnn13"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
+| `backbone` | `"cnn13"` | `"cnn13"` / `"cnn13_no_bn"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
 | `device` | `None`（auto） | `None`/`"auto"`/`"cpu"`/`"cuda"` 等 | 透传给深度分类器（`_fresh_estimator` 按签名注入）；`None`/`"auto"` 自动检测：torch + CUDA 可用则 `"cuda"`，否则 `"cpu"` |
 
 - 深度算法接入契约：要获得 `architecture="cnn"` 支持，分类器构造签名必须声明
@@ -1137,7 +1246,7 @@ token.cancel()                             # 线程安全的协作式取消信�
 encoder = build_encoder(
     architecture,             # "mlp" | "cnn"
     *,
-    backbone="cnn13",         # "cnn13" / "resnet18" / "resnet50"（仅 cnn）
+    backbone="cnn13",         # "cnn13" / "cnn13_no_bn" / "resnet18" / "resnet50"（仅 cnn）
     in_channels,              # 图像通道数（如 RGB=3）
     normalization_mean=None,  # 每通道均值；默认 0.5
     normalization_std=None,   # 每通道标准差；默认 0.5
@@ -1432,7 +1541,8 @@ Survey 的版本化运行通过脚本 `--protocol survey-v1.2 --dataset ...` 启
 `survey_protocol.validate_comparable_manifests` 默认拒绝非正式结果及路径/预算/表征/标记不一致。
 构造参数/候选覆盖锁定字段会在训练前失败；绑定运行的协议预检失败也写拒绝 manifest。
 
-支持 `epoch_callback(epoch, self)` 的 nnPU/Dist-PU/Self-PU/torch MLP oracle，经内置 runner
+支持 `epoch_callback(epoch, self)` 的 nnPU/Dist-PU/Self-PU/PULDA/PAN/Holistic-PU/GEN-PU
+及 torch MLP/CNN oracle，经内置 runner
 默认使用逐 epoch 权重快照；`RunTrajectory.checkpoints` 记录 epoch/component，
 `SelectionArtifact.checkpoint_index` 指向选中权重，`RunResult.selected_models` 返回独立恢复的推理模型。
 配置了 `manifest_path` 时权重默认写入相邻 `checkpoints` 目录；可用 `config['checkpoint_dir']` 指定根目录，

@@ -78,7 +78,7 @@ DGPU generator）建议传入已配置实例。
 | 参数 | 默认 | 说明 |
 |---|---|---|
 | `architecture` | `"mlp"` | `"mlp"`（表格数据）或 `"cnn"`（4-D NCHW 图像） |
-| `backbone` | `"cnn13"` | CNN 骨架：`"cnn13"` / `"resnet18"` / `"resnet50"`（仅 `architecture="cnn"` 时有效） |
+| `backbone` | `"cnn13"` | CNN 骨架：`"cnn13"` / `"cnn13_no_bn"` / `"resnet18"` / `"resnet50"`（仅 `architecture="cnn"` 时有效） |
 | `device` | `None`（auto） | 传给深度分类器的 torch 设备（如 `"cuda"`）；`None`/`"auto"` 自动检测：有 GPU 用 CUDA，否则 CPU |
 
 - 显式指定深度分类器且其构造签名声明 `encoder` 参数时放行（当前为 `wconpu` /

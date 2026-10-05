@@ -14,8 +14,13 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+from pu_toolbox.estimators.classic.rank_pruning import RankPruningClassifier  # noqa: E402
+from pu_toolbox.estimators.deep.gen_pu import GenPUClassifier  # noqa: E402
 from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier  # noqa: E402
+from pu_toolbox.estimators.deep.holistic_pu import HolisticPUClassifier  # noqa: E402
 from pu_toolbox.estimators.deep.lagam import LaGAMClassifier  # noqa: E402
+from pu_toolbox.estimators.deep.pan import PANClassifier  # noqa: E402
+from pu_toolbox.estimators.deep.pulns import PULNSClassifier  # noqa: E402
 from pu_toolbox.estimators.deep.robust_pu import RobustPUClassifier  # noqa: E402
 from pu_toolbox.estimators.deep.split_pu import SplitPUClassifier  # noqa: E402
 from pu_toolbox.estimators.risk.cvir import CVIRClassifier  # noqa: E402
@@ -31,7 +36,7 @@ from pu_toolbox.experiment import (  # noqa: E402
 pytestmark = pytest.mark.unit
 
 
-def _features():
+def _features(*, independent_support=False):
     rng = np.random.default_rng(22)
     parts = {}
     start = 0
@@ -54,19 +59,55 @@ def _features():
         torch.nn.Flatten(),
         torch.nn.Linear(32, 4),
     )
-    return adapt_image_bundle_to_features(
+    adapted = adapt_image_bundle_to_features(
         DatasetBundle(**parts),
         encoder,
         feature_version="p3-synthetic-smoke-v1",
         backbone_manifest={"name": "tiny-test-encoder", "claim": "interface-only"},
         batch_size=5,
     )
+    if not independent_support:
+        return adapted
+    # Fifth role: no selection/test rows or labels are reused for RL rewards.
+    support_images = rng.normal(size=(8, 1, 4, 4)).astype(np.float32)
+    support_labels = np.tile([1, 0], 4)
+    support_images[support_labels == 1] += 0.25
+    encoder.eval()
+    with torch.no_grad():
+        support_features = encoder(torch.from_numpy(support_images)).numpy()
+    return (*adapted, (support_features, support_labels), np.arange(start, start + 8))
 
 
 @pytest.mark.parametrize(
     "name,construct,view",
     [
         ("vpu", lambda: VPUClassifier(max_epochs=1, batch_size=8, random_state=3), "ts"),
+        ("pan", lambda: PANClassifier(max_epochs=1, batch_size=8, random_state=3), "os"),
+        ("rp", lambda: RankPruningClassifier(n_cv_folds=2, random_state=3), "os"),
+        (
+            "genpu",
+            lambda: GenPUClassifier(
+                class_prior=0.4,
+                hidden_dim=4,
+                latent_dim=3,
+                max_epochs=1,
+                classifier_epochs=1,
+                batch_size=8,
+                random_state=3,
+            ),
+            "ts",
+        ),
+        (
+            "holistic_pu",
+            lambda: HolisticPUClassifier(
+                hidden_dim=4,
+                warmup_epochs=3,
+                max_epochs=1,
+                batch_size=8,
+                random_state=3,
+            ),
+            "os",
+        ),
         (
             "pulda",
             lambda: PULDAClassifier(
@@ -129,7 +170,7 @@ def _features():
         ),
     ],
 )
-def test_shared_image_feature_path_is_2d_and_fits(name, construct, view):
+def test_determ_shared_image_feature_path_is_2d_and_fits(name, construct, view):
     adapted, manifest = _features()
     assert manifest["training_path"] == "cnn_feature_adapter"
     assert manifest["encoder_mode"] == "eval_no_grad"
@@ -148,6 +189,39 @@ def test_shared_image_feature_path_is_2d_and_fits(name, construct, view):
     scores = model.decision_function(adapted.test.X)
     assert scores.shape == (len(adapted.test.X),)
     assert np.isfinite(scores).all()
+    if name == "pan":
+        repeated_bundle, repeated_manifest = _features()
+        assert repeated_manifest == manifest
+        for role in ("train", "pu_val", "clean_val", "test"):
+            np.testing.assert_array_equal(
+                getattr(adapted, role).X, getattr(repeated_bundle, role).X
+            )
+        repeated = construct().fit(repeated_bundle.train.X, y_pu, os_or_ts=view)
+        np.testing.assert_array_equal(repeated.decision_function(repeated_bundle.test.X), scores)
+
+
+def test_pulns_shared_features_require_a_separate_fifth_support_role():
+    adapted, manifest, support, support_ids = _features(independent_support=True)
+    for role in (adapted.train, adapted.pu_val, adapted.clean_val, adapted.test):
+        assert not np.intersect1d(role.indices, support_ids).size
+    y_pu = np.zeros(len(adapted.train.X), dtype=int)
+    y_pu[np.flatnonzero(adapted.train.labels == 1)[:4]] = 1
+    model = PULNSClassifier(
+        hidden_dim=4,
+        pretrain_epochs=1,
+        episodes=1,
+        classifier_epochs=1,
+        batch_size=8,
+        random_state=3,
+    ).fit(
+        adapted.train.X,
+        y_pu,
+        support_data=support,
+        train_indices=adapted.train.indices,
+        support_indices=support_ids,
+    )
+    assert manifest["encoder_mode"] == "eval_no_grad"
+    assert np.isfinite(model.decision_function(adapted.test.X)).all()
 
 
 @pytest.mark.gpu

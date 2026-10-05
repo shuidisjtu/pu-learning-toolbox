@@ -86,16 +86,25 @@ class RobustPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
+
+    @property
+    def checkpoint_epoch_count(self):
+        """One snapshot per pretrain epoch and completed episode.
+
+        Inner epochs contribute optimizer cost, not additional snapshots.
+        """
+        return self.pretrain_epochs + self.episodes
 
     def __init__(
         self,
         class_prior: float | None = None,
         *,
         model=None,
+        encoder=None,
         hidden_dim: int = 100,
         pretrain_epochs: int = 10,
         episodes: int = 20,
@@ -118,6 +127,7 @@ class RobustPUClassifier(BasePUClassifier):
         super().__init__()
         self.class_prior = class_prior
         self.model = model
+        self.encoder = encoder
         self.hidden_dim = hidden_dim
         self.pretrain_epochs = pretrain_epochs
         self.episodes = episodes
@@ -152,7 +162,16 @@ class RobustPUClassifier(BasePUClassifier):
 
         if sample_weight is not None:
             raise NotImplementedError("Robust-PU does not implement sample_weight")
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="RobustPUClassifier")
+        self._is_fitted = False
+        X, y_pu = validate_pu_X_y(
+            X, y_pu, accept_sparse=False, allow_nd=True, estimator_name="RobustPUClassifier"
+        )
+        if X.ndim not in {2, 4}:
+            raise ValueError("Robust-PU accepts 2-D features or 4-D images")
+        if X.ndim == 4 and self.encoder is None:
+            raise ValueError("Robust-PU 4-D images require an encoder; no silent flattening")
+        if self.encoder is not None and not isinstance(self.encoder, torch.nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
         prior = self.class_prior if class_prior is None else class_prior
         if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
@@ -199,9 +218,21 @@ class RobustPUClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
+        width = X.shape[1]
+        self.encoder_ = None
+        if self.encoder is not None:
+            from ._validation import validate_encoder_features
+
+            self.encoder_ = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
+            self.encoder_.requires_grad_(True).eval()
+            with torch.no_grad():
+                width = validate_encoder_features(
+                    self.encoder_(torch.as_tensor(X[:1], device=device)),
+                    encoder_param_name="encoder",
+                )
         model = (
             torch.nn.Sequential(
-                torch.nn.Linear(X.shape[1], self.hidden_dim),
+                torch.nn.Linear(width, self.hidden_dim),
                 torch.nn.ReLU(),
                 torch.nn.Linear(self.hidden_dim, 1),
             )
@@ -210,22 +241,27 @@ class RobustPUClassifier(BasePUClassifier):
         )
         if not isinstance(model, torch.nn.Module):
             raise TypeError("model must be a torch.nn.Module")
+        if self.encoder_ is not None:
+            model = torch.nn.Sequential(self.encoder_, model)
         model.to(device=device, dtype=torch.float32)
         if not any(param.requires_grad for param in model.parameters()):
             raise ValueError("model must contain trainable parameters")
+        model.eval()
         with torch.no_grad():
             _scores(model, torch.as_tensor(X[:1], device=device))
-        data = torch.as_tensor(X, device=device)
-        labels = torch.as_tensor(y_pu.astype(np.float32), device=device)
+        data = torch.as_tensor(X)
+        labels = torch.as_tensor(y_pu.astype(np.float32))
         self.model_ = model
         self._class_prior = float(prior)
         self._X_shape_ = X.shape
         self.n_features_in_ = X.shape[1]
+        self.input_shape_ = tuple(X.shape[1:])
         self.n_positive_ = len(p_idx)
         self.n_unlabeled_ = len(u_idx)
         self.n_loss_unlabeled_ = len(view.loss_unlabeled_positions)
         self.training_view_ = os_or_ts
         self.calibration_applied_ = view.calibration_applied
+        self.optimizer_steps_ = 0
         self.history_ = {
             "pretrain_risk": [],
             "episode_loss": [],
@@ -256,7 +292,7 @@ class RobustPUClassifier(BasePUClassifier):
                     % len(u_order)
                     + self.batch_size
                 ]
-                pos, unl = _scores(model, data[p]), _scores(model, data[u])
+                pos, unl = _scores(model, data[p].to(device)), _scores(model, data[u].to(device))
                 # Only the nnPU marginal-risk role is calibrated.  Self-paced
                 # pseudo-negative episodes below retain the original U rows.
                 loss_unl = torch.cat((unl, pos)) if view.calibration_applied else unl
@@ -271,6 +307,7 @@ class RobustPUClassifier(BasePUClassifier):
                 pre_optimizer.zero_grad()
                 loss.backward()
                 pre_optimizer.step()
+                self.optimizer_steps_ += 1
                 risks.append(info["nnpu_risk"])
             self.history_["pretrain_risk"].append(float(np.mean(risks)))
             self._is_fitted = True
@@ -288,7 +325,12 @@ class RobustPUClassifier(BasePUClassifier):
             )
             model.eval()
             with torch.no_grad():
-                raw = torch.cat([_scores(model, batch) for batch in data.split(self.batch_size)])
+                raw = torch.cat(
+                    [
+                        _scores(model, batch.to(device)).cpu()
+                        for batch in data.split(self.batch_size)
+                    ]
+                )
                 weights = _episode_weights(
                     raw,
                     labels,
@@ -307,18 +349,19 @@ class RobustPUClassifier(BasePUClassifier):
                     rng.permutation(len(X)),
                     max(1, (len(X) + self.batch_size - 1) // self.batch_size),
                 ):
-                    logits = _scores(model, data[indices])
+                    logits = _scores(model, data[indices].to(device))
                     loss = (
                         F.binary_cross_entropy_with_logits(
-                            logits, labels[indices], reduction="none"
+                            logits, labels[indices].to(device), reduction="none"
                         )
-                        * moving[indices]
+                        * moving[indices].to(device)
                     ).mean()
                     if not torch.isfinite(loss):
                         raise FloatingPointError("Robust-PU episode loss became non-finite")
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
+                    self.optimizer_steps_ += 1
                     losses.append(float(loss.detach()))
             self.history_["episode_loss"].append(float(np.mean(losses)))
             self.history_["positive_weight"].append(float(moving[p_idx].mean()))
@@ -336,15 +379,36 @@ class RobustPUClassifier(BasePUClassifier):
         import torch
 
         X = np.asarray(X)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError("Robust-PU prediction X must have fitted 2-D feature shape")
+        if tuple(X.shape[1:]) != self.input_shape_:
+            raise ValueError(
+                "Robust-PU prediction X must have fitted "
+                f"{len(self.input_shape_) + 1}-D feature shape or image input shape"
+            )
         if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
             raise ValueError("Robust-PU prediction X must be finite numeric")
+        X = np.asarray(X, dtype=np.float32)
+        if not np.isfinite(X).all():
+            raise ValueError("Robust-PU prediction X must remain finite after float32 conversion")
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        was_training = self.model_.training
         self.model_.eval()
         device = next(self.model_.parameters()).device
-        with torch.no_grad():
-            values = _scores(self.model_, torch.as_tensor(X, dtype=torch.float32, device=device))
-        return values.cpu().numpy()
+        try:
+            with torch.no_grad():
+                return np.concatenate(
+                    [
+                        _scores(
+                            self.model_,
+                            torch.as_tensor(X[start : start + self.batch_size], device=device),
+                        )
+                        .cpu()
+                        .numpy()
+                        for start in range(0, len(X), self.batch_size)
+                    ]
+                )
+        finally:
+            self.model_.train(was_training)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0).astype(int)

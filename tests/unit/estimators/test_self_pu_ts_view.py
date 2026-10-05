@@ -777,7 +777,7 @@ def _observed(model, epochs):
             for record in model.distillation_history_
         ],
         "valid": {
-            key: [int(v) if isinstance(v, (int, np.integer)) else float(v) for v in values]
+            key: [int(v) if isinstance(v, int | np.integer) else float(v) for v in values]
             for key, values in model.history_.items()
         },
     }
@@ -795,7 +795,7 @@ def _assert_matches(observed, expected, path="golden"):
         for index, (item, reference) in enumerate(zip(observed, expected, strict=True)):
             _assert_matches(item, reference, f"{path}[{index}]")
         return
-    if isinstance(expected, (bool, int, str)) or expected is None:
+    if isinstance(expected, bool | int | str) or expected is None:
         assert observed == expected, path
         return
     assert observed == pytest.approx(expected, rel=_RTOL, abs=_ATOL), path

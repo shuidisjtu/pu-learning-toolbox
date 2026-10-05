@@ -56,6 +56,7 @@ pu_toolbox/
       __init__.py                         (公共导出聚合)
       elkan_noto.py                       (native: Elkan–Noto SCAR 概率修正/加权重训, 分层 K 折 OOF 估 c)
       llsvm.py                            (native: 线性 LLSVM 大间隔标定, SGD 非凸目标+早停, 对齐官方公式)
+      rank_pruning.py                     # PU-only Rank Pruning, OOF 剪枝与加权
     risk/
       __init__.py                         (公共导出聚合)
       _class_prior.py                     (shared: 类先验推导与 1−2ph 稳定性检查, KLDCE/LDCE 共用)
@@ -87,6 +88,11 @@ pu_toolbox/
       vision.py                           (shared: 公共 CNN encoder factory: build_encoder/CNN_BACKBONES 单源)
       dgpu.py                             (native: DGPUClassifier 判别-生成协作循环 + generator fit/sample/warm_start 协议)
       _validation.py                      (shared: encoder 输出校验单源: validate_encoder_features 2-D/有限/feature_dim>=1)
+      pan.py                              # PAN 预测对抗 MLP, 原生 OS
+      pulns.py                            # PULNS RL 负例选择, 独立 clean support
+      gen_pu.py                           # GenPU 两生成器三判别器与合成 PN
+      holistic_pu.py                      # Holistic-PU 趋势与自然断点伪标签
+      p3mix.py                            # P3Mix batch 数学组件, 未注册分类器
     research/
       __init__.py                         (公共导出聚合: 联合移位分类器/论文目标函数/JOINT_SHIFT_METHODS 工厂)
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
@@ -193,6 +199,7 @@ tests/
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
     test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
     test_public_exports.py              # 公共导出契约: 包 __init__ 的 __all__ 声明名必须真实存在(星号导入不炸), 补 check_api_docs 覆盖不到的漂移
+    test_p3_candidate_admission.py      # P3 准入草稿与台账同步、冻结矩阵隔离契约
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -249,6 +256,17 @@ tests/
       test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
       test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
       test_cvir.py                      # CVIR 负例保留顺序、先验与显式 TS 拒绝测试
+      test_pan.py                       # PAN 公式、梯度隔离与保存加载
+      test_pulns.py                     # PULNS 奖励、support 隔离与空负例
+      test_rank_pruning.py              # Rank Pruning OOF、剪枝与噪声权重
+      test_gen_pu.py                    # GenPU anti-GAN 方向与风险池校准
+      test_holistic_pu.py               # Holistic-PU 论文/代码分歧与训练
+      test_p3mix.py                     # P3Mix 作者 slides 公式与边界
+      test_pan_cnn.py                   # PAN 双编码器 CNN 更新、隔离与 checkpoint 回放
+      test_pulda_cnn.py                 # PULDA CNN 两阶段训练、CPU 图像驻留与权重回放
+      test_grad_pu_cnn.py               # GradPU 原图二阶梯度、无 BN 编码器与权重回放
+      test_robust_pu_cnn.py             # Robust-PU CNN 阶段、BN 隔离与 CPU 权重/快照回放
+      test_split_pu_cnn.py              # Split-PU 多层 CNN 蒸馏、阶段隔离与快照回放
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -286,6 +304,10 @@ tests/
       test_check_test_quality_exemptions.py # 测试质量门禁豁免审查测试
       test_generate_structure.py        # 结构文档生成器(--check/--update)单元测试
       test_review_survey_split_receipt.py # P1.4 只读接收复核的失败关闭与 CLI 测试
+      test_audit_survey_workbook.py     # 交付 Excel 独立对账的篡改、覆盖与舍入测试
+      test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约
+      test_profile_survey_candidate_storage.py # 七方法存储探针和恢复边界
+      test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -392,6 +414,13 @@ tests/
       test_survey_recipe_registry_sources.py # recipe registry 来源证据引用规则
       test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
       test_p3_feature_adapter_smoke.py  # P3 预集成方法的共享冻结特征工程 smoke
+      test_p3_pulda_puet_runner_smoke.py # PULDA/PUET 四角色、TS 与 PA/OA 技术 smoke
+      test_survey_recipe_registry_draft.py # P4.1 draft 生成、排除、候选与旧 manifest 保护
+      test_oracle_cnn.py                # CNN PN oracle 端到端训练、OA 恢复与回收
+      test_multistage_disk_preflight.py # 两阶段 checkpoint 峰值预算优先级
+      test_p3_new_methods_runner_smoke.py # 新方法四角色 PA/OA 与支持集门禁
+      test_unimplemented_calibration_routing.py # 拒绝接口不等于 TS 校准能力
+      test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
@@ -414,6 +443,7 @@ tests/
     test_joint_shift_baselines.py       # 联合漂移四基线、消融、边界与确定性
     test_cv_fold_isolation.py           # CV 折间训练隔离(折内权重在变/模板不被训练/折间不泄漏)
     test_nnpu_pipeline_cnn.py           # nnPU 端到端 provenance 映射(cnn/mlp)+ encoder pickle 往返
+    test_pan_pipeline_cnn.py            # PAN/PULDA 原生 CNN 流水线、种子复验与架构门禁
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -661,6 +691,11 @@ scripts/
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   review_survey_split_receipt.py          (P1.4 接收端只读校验：归档摘要、四角色契约与预处理统计)
+  audit_survey_workbook.py                (只读交付 Excel 身份、协议覆盖与逐 seed 汇总对账)
+  prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)
+  collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
+  profile_survey_candidate_storage.py     # 七方法多 seed 合成存储与恢复探针
+  prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
 ```
 
 ## 7. CI/CD（`.github/`）

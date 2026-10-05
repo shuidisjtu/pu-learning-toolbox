@@ -35,7 +35,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--classifier-param` | — | — | 分类器构造参数，可重复；支持 JSON 数字/布尔值/列表/对象（如 `--classifier-param reg_lambda=0.01`） |
 | `--config` | — | — | 导入 UI/CLI 共用的 JSON 运行配置；显式非默认参数覆盖配置值 |
 | `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu/nnpu`） |
-| `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
+| `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`cnn13_no_bn`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
 | `--device` | — | `auto` | 深度算法 torch 设备：`auto`/`cpu`/`cuda`（`auto` 在有 GPU 时自动用 CUDA） |
 | `--max-epochs` | — | 估计器默认 | 深度算法训练轮数上限（仅对构造签名含 `max_epochs` 的算法生效，如 `wconpu`/`self_pu`/`nnpu`） |
 | `--cv` | — | `5` | CV 折数 |
@@ -94,7 +94,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - **表格数据**（默认）：`--classifier wconpu --architecture mlp`，MLP 骨架
 - **图像数据**：`--data` 传 4-D NCHW float 数组（.npy 文件，如
   `benchmarks/deep_pu` 数据加载器导出的数组），配合
-  `--architecture cnn --backbone cnn13|resnet18|resnet50`
+  `--architecture cnn --backbone cnn13|cnn13_no_bn|resnet18|resnet50`
 - `--architecture cnn` 仅对声明了 `encoder` 参数、支持骨架注入的深度算法
   （`wconpu` / `infomax_pu` / `nnpu`）有效；`auto`、非深度算法、或未适配的
   深度算法（如 `self_pu`）配合 `--architecture cnn` 会报错。完整支持清单以
