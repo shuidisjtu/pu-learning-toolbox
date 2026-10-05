@@ -33,7 +33,7 @@ jobs:
 
       - name: Install dependencies (re-resolve latest; PR fast layer uses the committed lock)
         shell: bash
-        run: uv sync --no-lock --python "${{ matrix.python-version }}" --extra dev --extra torch
+        run: uv sync --upgrade --python "${{ matrix.python-version }}" --extra dev --extra torch
 
       - name: Verify matrix interpreter
         shell: bash

@@ -37,7 +37,7 @@ python -m pip install -e ".[dev,torch]"
 
 - 可安装依赖只在 `pyproject.toml` 维护。
 - 本项目是 library：PR 快层 CI 使用已提交的 `uv.lock` 保证确定性；nightly 用
-  `uv sync --no-lock` 重新解析最新依赖，验证声明范围内的最新可解析性。
+  `uv sync --upgrade` 重新解析最新依赖，验证声明范围内的最新可解析性（仅更新 CI 临时 checkout 的锁文件）。
 - `requirements.txt` 已由 `uv.lock` 取代（2026-09-08 删除），不再维护。
 - 新增仅开发期工具放入 `dev`；模型运行依赖放入对应 runtime extra。
 

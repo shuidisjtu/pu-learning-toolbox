@@ -11,8 +11,12 @@ flip the exit code.
 
 from __future__ import annotations
 
+import os
+import re
 import shutil
+import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -27,6 +31,7 @@ _COPIED_FILES = (
     ".python-version",
     ".gitignore",
     ".github/workflows/tests.yml",
+    ".github/workflows/nightly.yml",
     "pu_toolbox/__init__.py",
 )
 
@@ -120,6 +125,28 @@ def test_param_ci_matrix_version_missing_fails_main(tmp_path, monkeypatch, capsy
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("uv sync --upgrade", "uv sync --no-lock", "unsupported uv sync --no-lock"),
+        ("uv sync --upgrade", "uv sync", "re-resolve dependencies"),
+        (
+            'uv run --python "${{ matrix.python-version }}"',
+            "uv run",
+            "nightly must pass the matrix interpreter",
+        ),
+    ],
+)
+def test_param_invalid_nightly_commands_fail_main(tmp_path, monkeypatch, capsys, old, new, message):
+    """Reject broken nightly dependency resolution or interpreter routing."""
+    root = _fake_repo(tmp_path)
+    _mutate(root, ".github/workflows/nightly.yml", old, new)
+    monkeypatch.setattr(m, "ROOT", root)
+    assert m.main() == 1
+    assert message in capsys.readouterr().out
+
+
+@pytest.mark.unit
 def test_param_wheel_packages_drift_fails_main(tmp_path, monkeypatch, capsys):
     """Widening the wheel target beyond pu_toolbox fails the gate."""
     root = _fake_repo(tmp_path)
@@ -151,3 +178,55 @@ def test_determ_repeated_runs_identical(tmp_path, monkeypatch, capsys):
     first = (m.main(), capsys.readouterr().out)
     second = (m.main(), capsys.readouterr().out)
     assert first == second
+
+
+def _run_ci_summary(tmp_path: Path):
+    workflow = (_REAL_ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+    assert "--junitxml=pytest-results.xml" in workflow
+    assert "fail-fast: false" in workflow
+    match = re.search(r"python - <<'PY'\n(.*?)\n\s+PY\n", workflow, re.DOTALL)
+    assert match is not None
+    summary = tmp_path / "summary.md"
+    result = subprocess.run(
+        [sys.executable, "-c", textwrap.dedent(match.group(1))],
+        cwd=tmp_path,
+        env={**os.environ, "GITHUB_STEP_SUMMARY": str(summary)},
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    return summary.read_text(encoding="utf-8") if summary.exists() else None
+
+
+@pytest.mark.unit
+def test_edge_ci_summary_missing_report_preserves_dependency_failure(tmp_path):
+    """An installation failure must not be replaced by a summary parsing error."""
+    assert _run_ci_summary(tmp_path) is None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("problem", ["failure", "error"])
+def test_basic_ci_summary_exposes_failure_traceback_and_is_repeatable(tmp_path, problem):
+    report = tmp_path / "pytest-results.xml"
+    report.write_text(
+        '<testsuites><testsuite><testcase classname="tests.example" name="test_case">'
+        f'<{problem} message="failed">AssertionError: expected 2, got 1\n```</{problem}>'
+        "</testcase></testsuite></testsuites>",
+        encoding="utf-8",
+    )
+    summary = _run_ci_summary(tmp_path)
+    assert "tests.example::test_case" in summary
+    assert "AssertionError: expected 2, got 1" in summary
+    assert summary.count("```") == 2
+    (tmp_path / "summary.md").unlink()
+    assert _run_ci_summary(tmp_path) == summary
+
+
+@pytest.mark.unit
+def test_basic_ci_summary_passing_report_is_explicit(tmp_path):
+    (tmp_path / "pytest-results.xml").write_text(
+        '<testsuites><testsuite><testcase name="test_ok"/></testsuite></testsuites>',
+        encoding="utf-8",
+    )
+    assert "No test failures recorded" in _run_ci_summary(tmp_path)

@@ -80,6 +80,22 @@ def main() -> int:
         "CI must pass the matrix interpreter explicitly to uv run.",
         issues,
     )
+    nightly = (ROOT / ".github/workflows/nightly.yml").read_text(encoding="utf-8")
+    _check(
+        "--no-lock" not in nightly,
+        "nightly must not use the unsupported uv sync --no-lock option.",
+        issues,
+    )
+    _check(
+        'uv sync --upgrade --python "${{ matrix.python-version }}"' in nightly,
+        "nightly must re-resolve dependencies with uv sync --upgrade and the matrix interpreter.",
+        issues,
+    )
+    _check(
+        'uv run --python "${{ matrix.python-version }}"' in nightly,
+        "nightly must pass the matrix interpreter explicitly to uv run.",
+        issues,
+    )
 
     extra_names = {
         name: {_dependency_name(specifier) for specifier in dependencies}

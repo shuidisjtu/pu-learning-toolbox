@@ -23,7 +23,7 @@
 
 - **uv.lock 不入库(2026-09-08 修订前旧策)**:理由"library 需要验证声明
   范围内最新可解析依赖,锁文件会掩盖漂移"。保留该诉求的新机制:nightly
-  (每周 slow+e2e)以 `uv sync --no-lock` 重新解析最新依赖,PR 快层用
+  (每周 slow+e2e)以 `uv sync --upgrade` 重新解析最新依赖,PR 快层用
   已提交 lock 保证确定性。并入本次修订。
 - **requirements.txt 快照(旧策)**:一次开发环境快照,问题复查用,需手工
   与 pyproject 保持同步——已被 `uv.lock` 取代(2026-09-08 删除)。
@@ -36,4 +36,6 @@
 - CI matrix 与 extras 的一致性由 check_project_metadata 门禁维护。
 - 2026-09-08 修订:因 PU 调研实验执行计划(依赖复现口径)与多环境
   (T600/HENG958 主力机)一致性,uv.lock 入库、requirements.txt 删除;
-  nightly --no-lock 承担"最新可解析"验证。
+  nightly --upgrade 承担"最新可解析"验证。
+- 2026-10-05 修正:uv sync 不支持 --no-lock;改用 --upgrade,只更新
+  CI 临时 checkout 中的锁文件,不回写仓库已提交的依赖锁。
