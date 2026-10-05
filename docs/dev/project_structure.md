@@ -438,6 +438,7 @@ tests/
       test_p3_new_methods_runner_smoke.py # 新方法四角色 PA/OA 与支持集门禁
       test_unimplemented_calibration_routing.py # 拒绝接口不等于 TS 校准能力
       test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
+      test_checkpoint_prediction_batching.py # 快照推理分批登记/恢复、旧引用回退与非法元数据拒绝
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

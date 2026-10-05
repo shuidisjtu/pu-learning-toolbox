@@ -92,6 +92,11 @@ class RobustPUClassifier(BasePUClassifier):
     trains_encoder = True
 
     @property
+    def checkpoint_prediction_batch_size(self):
+        """Preserve inference chunks; changing them can change float32 scores."""
+        return self.batch_size
+
+    @property
     def checkpoint_epoch_count(self):
         """One snapshot per pretrain epoch and completed episode.
 

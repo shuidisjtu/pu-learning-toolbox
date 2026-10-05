@@ -118,6 +118,11 @@ class HolisticPUClassifier(BasePUClassifier):
     trains_encoder = False
 
     @property
+    def checkpoint_prediction_batch_size(self):
+        """Preserve inference chunks; changing them can change float32 scores."""
+        return self.batch_size
+
+    @property
     def checkpoint_epoch_count(self):
         """Count both stages for peak checkpoint storage, not only pseudo-PN."""
         return self.warmup_epochs + self.max_epochs

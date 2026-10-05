@@ -1553,6 +1553,11 @@ Survey 的版本化运行通过脚本 `--protocol survey-v1.2 --dataset ...` 启
 `checkpoints.load_selected_checkpoint(selection, template, device=...)` 校验权重摘要、
 以 weights-only 模式加载并恢复验证侧阈值；调用方须明确提供同架构 template。
 它不支持 optimizer/RNG 续训；无持久化时 manifest 不提供可复现的 checkpoint 文件路径。
+声明 `checkpoint_prediction_batch_size` 的估计器会把推理分批大小写入
+checkpoint reference 的 `prediction_batch_size`，恢复时沿用该值，避免改变 CNN
+运算形状造成 float32 舍入差异。PULDA 使用 `unlabeled_batch_size`，PAN、GradPU、
+Robust-PU、Split-PU、Holistic-PU、GenPU 使用 `batch_size`。
+旧 reference 缺少此字段时仍使用历史默认值 256，不重新解释已冻结的快照。
 
 当前单元属于工程级 `benchmark-adapted`；PA 分离度代理与正式 Accuracy/阈值准则仍不一致，
 checkpoint 接线完成不意味着完整选模协议与 P2.0b/c 已验收。

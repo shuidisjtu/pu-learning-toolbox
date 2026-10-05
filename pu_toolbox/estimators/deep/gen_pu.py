@@ -102,6 +102,11 @@ class GenPUClassifier(BasePUClassifier):
     encoder_parameter = None
     trains_encoder = False
 
+    @property
+    def checkpoint_prediction_batch_size(self):
+        """Preserve inference chunks; changing them can change float32 scores."""
+        return self.batch_size
+
     def __init__(
         self,
         *,

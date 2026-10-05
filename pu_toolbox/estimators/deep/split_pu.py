@@ -183,6 +183,11 @@ class SplitPUClassifier(BasePUClassifier):
     trains_encoder = True
 
     @property
+    def checkpoint_prediction_batch_size(self):
+        """Preserve inference chunks; changing them can change float32 scores."""
+        return self.batch_size
+
+    @property
     def checkpoint_epoch_count(self):
         """Upper bound across teacher, early-stopped splitter and student rounds."""
         return self.teacher_epochs + self.split_epochs + self.rounds * self.student_epochs

@@ -188,6 +188,11 @@ class PULDAClassifier(BasePUClassifier):
     trains_encoder = True
 
     @property
+    def checkpoint_prediction_batch_size(self):
+        """PULDA inference uses the U chunk size, not its positive batch size."""
+        return self.unlabeled_batch_size
+
+    @property
     def checkpoint_epoch_count(self) -> int:
         """Both stages persist snapshots; PU epochs alone undercount peak disk."""
         return self.warmup_epochs + self.pu_epochs

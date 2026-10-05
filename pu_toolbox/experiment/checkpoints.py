@@ -27,6 +27,8 @@ class SnapshotPredictor:
     """Inference-only snapshot with the original raw-score prediction cutoff."""
 
     def __init__(self, network, *, device, cutoff=0.0, batch_size=256):
+        if type(batch_size) is not int or batch_size < 1:
+            raise ValueError("prediction batch_size must be a positive integer")
         self.model_ = network.to(device).eval()
         self.device = device
         self.cutoff = cutoff
@@ -88,6 +90,8 @@ class EpochCheckpoint:
     # and digest above stay as they were, so "existed, then reclaimed" remains
     # distinguishable from "never persisted" (persistent=False).
     reclaimed: bool = False
+    # Missing metadata in old references keeps the historical 256-row replay.
+    prediction_batch_size: int = 256
 
     def reference(self):
         return {
@@ -100,6 +104,7 @@ class EpochCheckpoint:
             "sha256": self.sha256,
             "device": self.device,
             "score_cutoff": self.cutoff,
+            "prediction_batch_size": self.prediction_batch_size,
             "persistent": self.persistent,
             "reclaimed": self.reclaimed,
             "training_resume_supported": False,
@@ -114,7 +119,12 @@ class EpochCheckpoint:
             raise ValueError("checkpoint weight digest mismatch")
         network = copy.deepcopy(self.template)
         network.load_state_dict(torch.load(self.path, map_location="cpu", weights_only=True))
-        return SnapshotPredictor(network, device=device or self.device, cutoff=self.cutoff)
+        return SnapshotPredictor(
+            network,
+            device=device or self.device,
+            cutoff=self.cutoff,
+            batch_size=self.prediction_batch_size,
+        )
 
 
 def selection_models(trajectory):
@@ -148,6 +158,7 @@ def load_epoch_checkpoint(reference, template, *, device=None):
         reference["score_cutoff"],
         template,
         persistent=True,
+        prediction_batch_size=reference.get("prediction_batch_size", 256),
     )
     return checkpoint.restore(device=device)
 
@@ -251,6 +262,9 @@ class EpochCheckpointTrainer(Trainer):
                         cutoff,
                         templates[component],
                         persistent=owner is None,
+                        prediction_batch_size=getattr(
+                            fitted, "checkpoint_prediction_batch_size", 256
+                        ),
                     )
                 )
 
