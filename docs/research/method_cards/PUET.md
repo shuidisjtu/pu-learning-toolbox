@@ -11,6 +11,7 @@
 | Venue | NeurIPS 2022 |
 | 原文 | [NeurIPS 论文](https://proceedings.neurips.cc/paper_files/paper/2022/file/98257285340854262185500e59bc0f28-Paper-Conference.pdf) |
 | 作者代码 | [PUExtraTrees](https://github.com/jonathanwilton/PUExtraTrees)，MIT 许可 |
+| 本批锁定 | `5cb15d7e021a6e24d4cd300278500c38729e2775`；源码字节摘要见五方法证据包 |
 | 类先验 | 必需，$\pi=P(Y=1)\in(0,1)$ |
 | 数据假设 | case-control P/U；P 从正类条件分布采样，U 从总体边缘分布采样（SCAR） |
 
@@ -45,3 +46,12 @@ W_N(S)=W_U(S)-W_P(S).
 - 默认 `bootstrap=False` 与作者发布代码一致，树间随机性来自特征/阈值；`bootstrap=True` 可启用论文 §4 描述的 P/U 分组重采样。为保证真正的贪心风险最小化，仅接受正风险下降的划分；与论文实验的完整逐节点决策/数值结果尚未对齐。
 - `decision_function` 返回 $[-1,1]$ 多数票边际，不是校准概率；`predict_proba` 不提供。`sample_weight` 非空时报错。
 - 已有节点风险 golden、训练/预测、随机性、Bootstrap、参数/边界、pickle 与 pipeline 接入测试。方法台账已登记；`fit(os_or_ts="ts")` 将正例行复制为边缘 U 风险角色，原行仍保留正例角色；U 节点质量分母改为 `n_P+n_U`，P 质量与先验不变。OS/TS 节点风险与分裂增益已有独立数值测试。正式 P3.2 仍需冻结矩阵之外的候选规格、公开结果对照和合作者审阅；本算法为 CPU 树方法，GPU smoke 不适用，任务分组调整仍需复核。
+
+## 准入证据补全（2026-10-05）
+
+见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。作者 `tree.py:293-298`
+在叶节点质量并列时随机投票；我方固定负类。作者 `tree.py:347-348` 按第二小/第二大
+值裁边抽阈值，我方用完整 min/max 区间。作者 `tree.py:357-363` 未要求正风险下降；
+我方要求 gain>1e-12。上游 `min_samples_leaf` 在该处只检查父节点，我方约束两个子节点。
+这四项是明确的适配，不由节点风险公式一致推出完整树等价；森林多数票并列均取负类。
+新增 tie/零增益/CPU 非 epoch 预算测试，不能把树数套用神经快照预算。

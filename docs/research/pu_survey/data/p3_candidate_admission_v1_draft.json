@@ -14,6 +14,7 @@
       "method": "pulda",
       "preparation_priority": 1,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pulda",
+      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,
@@ -34,6 +35,7 @@
       "method": "puet",
       "preparation_priority": 2,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.puet",
+      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,
@@ -54,6 +56,7 @@
       "method": "gradpu",
       "preparation_priority": 3,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.gradpu",
+      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,
@@ -75,6 +78,7 @@
       "method": "robust_pu",
       "preparation_priority": 4,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.robust_pu",
+      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,
@@ -96,6 +100,7 @@
       "method": "split_pu",
       "preparation_priority": 5,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.split_pu",
+      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,

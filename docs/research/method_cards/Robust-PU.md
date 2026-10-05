@@ -40,6 +40,15 @@ shuffle 重新编号。TS 风险池替换仍只在 nnPU 预训练，自步伪负
 - 官方有更多 scheduler、hardness、SPL 与重启分支；这里只实现默认的 logistic hardness、linear scheduler、Welsch 权重，并额外保留 hard/linear 权重规则。不得将这个子集声称为官方完整功能等价。
 - 来源许可证未在核对的仓库中确认；本代码为独立实现，不复制官方源码。
 
+## 准入证据补全（2026-10-05）
+
+见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。上游 `main.py:71-84`
+预训练恢复 best clean-validation 模型，`:396-406` 最终按 clean-validation/patience
+早停并恢复；本实现固定预算、从末轮预训练继续，不以内部 clean-val 做阶段决定。
+作者 parser 默认 pre_epochs=400/epochs=100（`:554-594`），不是我方默认 10/20。
+新增 SPL 三规则边界/停止梯度对照，沿用真实 step 和快照上界插桩测试。
+PA/OA 外置不能消除阶段初始化差异；正式选模/候选预算和未决许可仍须负责人复核。
+
 ## 验证与剩余门禁
 
 本地单元测试覆盖权重公式、参数错误、接口、确定性、checkpoint、权重往返和 CPU 训练。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU 预训练的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。后续自步伪负例仍只取原始 U；若跳过预训练（`pretrain_epochs=0`），请求 `ts` 会显式报错，避免 manifest 误记校准。台账默认 `ts-compatible`，每次实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过；这不替代 frozen-lock、多 seed 或正式资源验收。正式 P3.2 仍需公开论文数值对照、Survey 矩阵接入及合作者复核；本技术预集成不得混入冻结 pilot 或主榜。

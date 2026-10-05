@@ -401,3 +401,20 @@ GPU/slow 明确排除；PULDA CUDA 技术探针单独执行，不称 frozen-lock
 新增来源在训练期间变化的拒绝测试随后另跑 **1 passed /15 deselected**（8.09s），
 不虚增本次整套回归计数。台账只新增 technical_resource_evidence 指针、预算未批准且
 protocol_binding=null；关联契约/方法台账/UI 专项 **31 passed**。
+
+## P1-1：五方法来源、预算与选模工程准备
+
+本次按 PULDA → PUET → Grad-PU → Robust-PU → Split-PU 补齐证据，见
+[交付说明](p3_admission_evidence_20261005.md)和[机器包](data/p3_admission_evidence_20261005.json)。
+四个作者仓库的 17 个文件均已按 commit/字节摘要核验；Grad-PU 保持未确认源码。
+只读检查器核对当前构造默认值、checkpoint 上界、视图、证据引用和未准入状态，
+可另行检查本地作者源码，但不下载或执行外部代码。
+
+独立标量公式/梯度、PULDA 不等阶段/真实 step、PUET 边界与选择签名等新增测试，
+连同检查器与既有准入契约专项 **45 passed**。四个来源实际检查返回 ok=true，
+formal_admission=false。方法卡、台账、八方法草稿、索引和路线的准备状态同步。
+
+特别核实 PULDA warmup cosine 在两实现中均按 pu_epochs；Split-PU teacher/student
+返回末轮权重而非按 test-best 恢复，easy 组损失归一化差异另列。
+本次不改生产训练逻辑，不新增公开数值锚点，不重新绑定旧结果，不清空正式阻断或代签。
+私有 Excel 保持未跟踪，不进入本次提交。完整回归与静态门禁结果见本批交付说明。

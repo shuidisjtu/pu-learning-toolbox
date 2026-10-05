@@ -61,3 +61,14 @@ L_{LDA}+L_{2way}+w_{mix}L_{BCE}^{mix}.
 两阶段 epoch 权重只支持分类器推断回放，不包含优化器/RNG/EMA/伪标签的续训状态。
 单元形状/BN/模板/种子/pickle/快照测试为 `test_pulda_cnn.py`；流水线与折隔离另有集成测试。
 这不决定正式 backbone、候选预算或方法负责人接受，也不改历史冻结结果。
+
+## 准入证据补全（2026-10-05）
+
+见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。锁定作者
+`dataTools/PUSampler.py:15-41` 丢弃 U 尾批并循环抽 P；本实现保留尾批、P 有放回抽样，
+同 epoch 不保证相同更新数。作者 `train.py:120` warmup cosine 用 pu_epochs，
+本实现亦用 max(1, pu_epochs)，不是独立的 warmup 长度；不等阶段测试锁住此耦合事实。
+`train.py:199-235` 跟踪 test 最高 accuracy，不等同于我方外部 PA/OA 的选模和末轮推断。
+`dataTools/factory.py:14` 的 ImageNet 统计亦非我方 train-only 统计。
+上游 U 的擦标签 P 副本构造不使 TS 风险角色并集等于完整 MixUp/RNG 流程重放。
+新增三批 EMA 梯度对照与不等阶段/尾批更新计数测试；正式阶段准入、候选和预算仍待审。

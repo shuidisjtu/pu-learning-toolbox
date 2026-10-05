@@ -52,4 +52,14 @@ affine/编码器仍有梯度，模式随后恢复；不复制/丢弃行，不改
 
 - 官方使用 CIFAR CNN、图像弱/强增强和带 predictor 的高层 SimSiam 一致性；本版仍以 Gaussian 弱/强扰动和余弦一致性替代，不含官方 SimSiam 投影/predictor。默认 MLP 用隐层特征，注入 CNN 用真实中间/最终编码特征；低层选择和相同模板初始化各阶段均属**显式工程适配**，不可直接拿论文准确率作数值裁决。
 - 官方代码训练中反复读取测试标签报告准确率；本实现的 `fit` 无真实标签入口，不使用 test set 决定阶段或权重。PA/OA 由外部 runner 分开执行。
+- 锁定 `nnpu_utils.py:30-34` / `splitpu_utils.py:170-172` 返回末轮 state_dict；虽然声明 best_acc/best_weight，但未用于恢复。**测试监控不是 test-best 选模**，不由这些变量名字推断存在该选模。
 - 已配置公式、阶段、接口、确定性、checkpoint 和 CUDA smoke 测试。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU teacher 的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。temporary 的一致率、easy/hard 划分及 student 的 U 分支仍只取原始 U，避免已知 P 被当伪负例。台账默认 `ts-compatible`，实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过；不替代 frozen-lock、多 seed 或正式资源验收。公开论文数值对照、Survey 矩阵、合作者复核仍待完成；本技术预集成不进入冻结 pilot/主榜。
+
+## 准入证据补全（2026-10-05）
+
+见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。上游
+`splitpu_utils.py:162-165` 用 `(sum_P BCE+sum_easy JSD)/(n_P+n_easy)`；本版为
+`mean_P BCE+mean_easy JSD`，相对组权重不一致，不能仅凭 JS 公式一致声称训练等价。
+上游 teacher20/splitter最多50/student100每轮及不同阶段 LR/weight_decay，不是我方10/10/10。
+本次补独立 Bernoulli JS 与 teacher detach 对照、阶段/预算和选模边界登记；不静默改目标。
+官方增强、SimSiam、正式预算及上述显式适配是否接受仍须负责人判断。

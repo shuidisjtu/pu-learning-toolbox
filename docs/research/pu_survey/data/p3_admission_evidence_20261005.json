@@ -1,0 +1,570 @@
+{
+  "schema_version": "survey-p3-admission-evidence-draft-1",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "frozen_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+  "scope": "P1-1 technical evidence only; not paper-number reproduction, formal admission, training authorization or human sign-off.",
+  "selection_contract": {
+    "training_role": "train",
+    "PA_role": "pu_val",
+    "OA_role": "clean_val",
+    "test_role": "test",
+    "test_used_for_selection": false,
+    "fit_receives_validation_labels": false,
+    "checkpoint_eligibility": "pending_method_owner_review"
+  },
+  "storage_contract": {
+    "snapshots_are": "inference_only_not_training_resume",
+    "reclaim_reduces_training_peak": false,
+    "historical_probe_records": "unchanged_pre_CI_fix_source_digests",
+    "formal_resource_approval": false
+  },
+  "methods": {
+    "pulda": {
+      "source_schedule_fact": "Both author train.py:120 and toolbox warmup cosine use pu_epochs; toolbox guards with max(1, pu_epochs), not an independent warmup horizon.",
+      "implementation_ref": "pu_toolbox/estimators/risk/pulda.py",
+      "class": "PULDAClassifier",
+      "constructor_defaults": {
+        "hidden_dim": 64,
+        "depth": 2,
+        "warmup_epochs": 60,
+        "pu_epochs": 60,
+        "positive_batch_size": 16,
+        "unlabeled_batch_size": 128,
+        "warmup_learning_rate": 0.0001,
+        "learning_rate": 0.001,
+        "warmup_weight_decay": 0.0005,
+        "weight_decay": 0.0001,
+        "temperature": 3.5,
+        "unlabeled_ema": 0.85,
+        "margin_ema": 0.5,
+        "margin": 0.6,
+        "mixup_weight": 4.2,
+        "mixup_alpha": 11.0,
+        "encoder": null,
+        "random_state": 0,
+        "device": null
+      },
+      "source": {
+        "kind": "locked_clean_author_checkout",
+        "repository": "https://github.com/jiangyangby/PULDA",
+        "commit": "7b3dcad95bd7caa0a9477af37a05764fbe6e27bc",
+        "files": [
+          {
+            "path": "train.py",
+            "sha256": "3db3bf7e29f43823ef98d2a7745b56df136872d92e23dba30827417ad9400313"
+          },
+          {
+            "path": "losses/distributionLoss.py",
+            "sha256": "6042bc6543006efa59599a9f9cc6ca8ebe197e1a54c3a068461f33fc88d732fd"
+          },
+          {
+            "path": "losses/twoWaySigmoidLoss.py",
+            "sha256": "7678b68c143e0395bf170b2474b6b1077f366d9c512f9221cc63603d031328a7"
+          },
+          {
+            "path": "losses/factory.py",
+            "sha256": "63be676bf5fe1760ec7b18feb0a17010d4152d4c971e085b511056623478ef0e"
+          },
+          {
+            "path": "dataTools/PUSampler.py",
+            "sha256": "a0074a8c53e908d8d689800bd134e7031cf323af0f758f90b924474ea9017561"
+          },
+          {
+            "path": "dataTools/PUdataset.py",
+            "sha256": "f2eabd47fa7f7bd21eafd00faeb2acbc8d3b42b5ec0cdd882d4e47f44f3ff225"
+          },
+          {
+            "path": "dataTools/factory.py",
+            "sha256": "b843372a51797223207d837a84d92502dd58505dc84b9ad438df623f45f9efd8"
+          }
+        ],
+        "paper_review_ref": null
+      },
+      "budget": {
+        "unit": "two_stage_epochs",
+        "snapshot_bound": "warmup_epochs + pu_epochs",
+        "snapshot_property": "checkpoint_epoch_count",
+        "optimizer_counter": "optimizer_steps_",
+        "early_stop": false,
+        "formal_budget_approved": false,
+        "approved_candidate_pool": null,
+        "approved_storage_bytes": null
+      },
+      "calibration": {
+        "scope": "LDA_and_two_way_margin_with_EMA_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "source_behavior_tests": [
+        "tests/unit/estimators/test_p3_source_behavior.py::test_basic_pulda_ema_three_batches_matches_scalar_source_and_gradient",
+        "tests/unit/estimators/test_p3_budget_selection_evidence.py::test_basic_determ_pulda_unequal_phases_keep_tail_and_report_real_steps"
+      ],
+      "adaptation_differences": [
+        {
+          "id": "test_best_reporting",
+          "source_location": {
+            "path": "train.py",
+            "line_start": 199,
+            "line_end": 235
+          },
+          "meaning": "Upstream tracks test-set best accuracy across both phases; toolbox fits without test labels and delegates PA/OA selection to isolated roles."
+        },
+        {
+          "id": "tail_batch_and_P_sampling",
+          "source_location": {
+            "path": "dataTools/PUSampler.py",
+            "line_start": 15,
+            "line_end": 41
+          },
+          "meaning": "Upstream floors U batches and cycles shuffled P; toolbox keeps U tail and samples P with replacement. Equal epochs do not imply equal update counts."
+        },
+        {
+          "id": "population_U_construction",
+          "source_location": {
+            "path": "dataTools/PUdataset.py",
+            "line_start": 22,
+            "line_end": 36
+          },
+          "meaning": "Upstream adds erased-label copies of selected P into U; TS union restores marginal risk roles, not identical minibatch/RNG or duplicated MixUp/pseudo-label pools."
+        },
+        {
+          "id": "ImageNet_normalization",
+          "source_location": {
+            "path": "dataTools/factory.py",
+            "line_start": 7,
+            "line_end": 15
+          },
+          "meaning": "Upstream uses ImageNet channel statistics; toolbox formal pilot uses train-only statistics, injected CNN remains a separate adaptation."
+        },
+        {
+          "id": "missing_loss_module",
+          "source_location": {
+            "path": "losses/factory.py",
+            "line_start": 1,
+            "line_end": 3
+          },
+          "meaning": "Upstream imports absent entropyMinimization; component correspondence is not a runnable full-repository reproduction."
+        }
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "puet": {
+      "implementation_ref": "pu_toolbox/estimators/risk/puet.py",
+      "class": "PUExtraTreesClassifier",
+      "constructor_defaults": {
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "max_candidates": 1,
+        "bootstrap": false,
+        "random_state": null
+      },
+      "source": {
+        "kind": "locked_clean_author_checkout",
+        "repository": "https://github.com/jonathanwilton/PUExtraTrees",
+        "commit": "5cb15d7e021a6e24d4cd300278500c38729e2775",
+        "files": [
+          {
+            "path": "tree.py",
+            "sha256": "2f388dbb581ff5699b20d59ba8293088fe3b24686711dd9f51266d427806de02"
+          },
+          {
+            "path": "trees.py",
+            "sha256": "1815a522bff6e3a58d5792317335df5076d608816eb255ee0e7610c83f11b092"
+          },
+          {
+            "path": "LICENSE",
+            "sha256": "ea8b32270d748afa6ce4976e12aa5aab3f449c902c467007551fe0dbb9066e80"
+          }
+        ],
+        "paper_review_ref": null
+      },
+      "budget": {
+        "unit": "trees",
+        "snapshot_bound": null,
+        "snapshot_property": null,
+        "optimizer_counter": null,
+        "early_stop": false,
+        "formal_budget_approved": false,
+        "approved_candidate_pool": null,
+        "approved_storage_bytes": null
+      },
+      "calibration": {
+        "scope": "node_U_risk_mass_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "source_behavior_tests": [
+        "tests/unit/estimators/test_p3_source_behavior.py::test_param_puet_node_risk_matches_scalar_closed_form",
+        "tests/unit/estimators/test_p3_budget_selection_evidence.py::test_edge_puet_ties_and_zero_gain_keep_deterministic_negative_leaf"
+      ],
+      "adaptation_differences": [
+        {
+          "id": "leaf_mass_tie",
+          "source_location": {
+            "path": "tree.py",
+            "line_start": 274,
+            "line_end": 298
+          },
+          "meaning": "Upstream randomly resolves vstar=0.5; toolbox chooses negative leaf deterministically. Forest vote ties both select negative."
+        },
+        {
+          "id": "candidate_threshold_interval",
+          "source_location": {
+            "path": "tree.py",
+            "line_start": 339,
+            "line_end": 348
+          },
+          "meaning": "Upstream trims the interval using second-smallest/second-largest values; toolbox uses the full min/max interval."
+        },
+        {
+          "id": "strict_positive_gain",
+          "source_location": {
+            "path": "tree.py",
+            "line_start": 353,
+            "line_end": 363
+          },
+          "meaning": "Upstream chooses minimum child risk without a positive-gain guard; toolbox requires gain > 1e-12."
+        },
+        {
+          "id": "minimum_leaf_size",
+          "source_location": {
+            "path": "tree.py",
+            "line_start": 319,
+            "line_end": 319
+          },
+          "meaning": "Upstream checks parent size only here; toolbox also rejects children below min_samples_leaf."
+        },
+        {
+          "id": "branch_and_RNG_scope",
+          "source_location": {
+            "path": "trees.py",
+            "line_start": 78,
+            "line_end": 84
+          },
+          "meaning": "Toolbox covers nnPU/quadratic only, uses per-fit seeded RNG and optional grouped bootstrap; not all author branches or random trajectories."
+        }
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "gradpu": {
+      "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
+      "class": "GradPUClassifier",
+      "constructor_defaults": {
+        "model": null,
+        "hidden_dim": 128,
+        "alpha": 0.1,
+        "beta_max": 1.0,
+        "batch_size": 256,
+        "max_epochs": 200,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0005,
+        "encoder": null,
+        "random_state": null,
+        "device": null
+      },
+      "source": {
+        "kind": "paper_only",
+        "repository": null,
+        "commit": null,
+        "files": [],
+        "paper_review_ref": "docs/research/pu_survey/data/gradpu_source_review_20261005.json"
+      },
+      "budget": {
+        "unit": "epochs",
+        "snapshot_bound": "max_epochs",
+        "snapshot_property": null,
+        "optimizer_counter": "optimizer_steps_",
+        "early_stop": false,
+        "formal_budget_approved": false,
+        "approved_candidate_pool": null,
+        "approved_storage_bytes": null
+      },
+      "calibration": {
+        "scope": "U_risk_and_raw_input_gradient_interpolation",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "source_behavior_tests": [
+        "tests/unit/estimators/test_p3_source_behavior.py::test_basic_gradpu_raw_gradient_penalty_matches_scalar_and_second_derivative",
+        "tests/unit/estimators/test_grad_pu.py::test_ts_calibrates_unlabeled_risk_and_gradient_interpolation"
+      ],
+      "adaptation_differences": [
+        {
+          "id": "source_unverified",
+          "source_location": null,
+          "meaning": "Official author code not verified; formula-level clean-room tests only, not source execution."
+        },
+        {
+          "id": "paper_recipe",
+          "source_location": null,
+          "meaning": "Paper p7300: four-layer MLP300 or CNN13 without BN, batch250 and decaying learning rate; toolbox MLP128/batch256/fixed LR and explicit cnn13_no_bn adaptation differ."
+        },
+        {
+          "id": "sampling_and_selection",
+          "source_location": null,
+          "meaning": "Paper uses remaining U after P/500 validation removal; TS union is not that experiment replay. Validation label/grid details remain unresolved."
+        }
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "robust_pu": {
+      "implementation_ref": "pu_toolbox/estimators/deep/robust_pu.py",
+      "class": "RobustPUClassifier",
+      "constructor_defaults": {
+        "class_prior": null,
+        "model": null,
+        "encoder": null,
+        "hidden_dim": 100,
+        "pretrain_epochs": 10,
+        "episodes": 20,
+        "inner_epochs": 1,
+        "batch_size": 64,
+        "pretrain_lr": 0.001,
+        "learning_rate": 0.0001,
+        "alpha_p": 0.1,
+        "alpha_n": 0.1,
+        "max_thresh_p": 2.0,
+        "max_thresh_n": 2.0,
+        "grow_steps": 10,
+        "spl_type": "welsch",
+        "temper_p": 1.0,
+        "temper_n": 1.0,
+        "phi": 0.0,
+        "random_state": null,
+        "device": null
+      },
+      "source": {
+        "kind": "locked_clean_author_checkout",
+        "repository": "https://github.com/woriazzc/Robust-PU",
+        "commit": "34d950f2c6e56510855a922acb5f84b6459773ef",
+        "files": [
+          {
+            "path": "main.py",
+            "sha256": "68ba9e54cf9c1840369955a90e387bd2b685365242e9e5ddaed204e702778bec"
+          },
+          {
+            "path": "spl_utills.py",
+            "sha256": "622d7020730cce67b8d5d7c3053f12adc8a2bbf76b19b6dfaa6d2dd662c2faee"
+          },
+          {
+            "path": "lossFunc.py",
+            "sha256": "6bc8cf1f05b576959ab0e57a776416821e794816329755318e018bf5325bf26a"
+          }
+        ],
+        "paper_review_ref": null
+      },
+      "budget": {
+        "unit": "pretrain_epochs_and_episodes_with_inner_epochs",
+        "snapshot_bound": "pretrain_epochs + episodes",
+        "snapshot_property": "checkpoint_epoch_count",
+        "optimizer_counter": "optimizer_steps_",
+        "early_stop": false,
+        "formal_budget_approved": false,
+        "approved_candidate_pool": null,
+        "approved_storage_bytes": null
+      },
+      "calibration": {
+        "scope": "nnPU_pretrain_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "source_behavior_tests": [
+        "tests/unit/estimators/test_p3_source_behavior.py::test_param_robust_spl_rules_match_scalar_boundaries_and_detach",
+        "tests/unit/experiment/test_multistage_candidate_accounting.py::test_basic_optimizer_counter_matches_instrumented_all_stage_updates_and_resets"
+      ],
+      "adaptation_differences": [
+        {
+          "id": "clean_validation_selection",
+          "source_location": {
+            "path": "main.py",
+            "line_start": 396,
+            "line_end": 406
+          },
+          "meaning": "Upstream selects best clean-validation episode with patience and restores it; toolbox fixed-budget fit has no validation label input, external PA/OA selects recorded checkpoints."
+        },
+        {
+          "id": "pretrain_selection",
+          "source_location": {
+            "path": "main.py",
+            "line_start": 71,
+            "line_end": 84
+          },
+          "meaning": "Upstream restores best validation pretrain model; toolbox continues from last pretrain model, not internal best clean-validation model."
+        },
+        {
+          "id": "subset_schedule_restart",
+          "source_location": {
+            "path": "main.py",
+            "line_start": 271,
+            "line_end": 271
+          },
+          "meaning": "Toolbox keeps linear schedule/logistic hardness and hard/linear/Welsch subset; no upstream restart or full alternative schedules."
+        },
+        {
+          "id": "defaults_budget",
+          "source_location": {
+            "path": "main.py",
+            "line_start": 554,
+            "line_end": 594
+          },
+          "meaning": "Upstream parser defaults pre_epochs400/epochs100; toolbox 10 pretrain epochs/20 episodes are not matched training budgets."
+        },
+        {
+          "id": "licensing",
+          "source_location": null,
+          "meaning": "No source license confirmed in locked checkout; independent implementation, no upstream code vendored."
+        }
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "split_pu": {
+      "implementation_ref": "pu_toolbox/estimators/deep/split_pu.py",
+      "class": "SplitPUClassifier",
+      "constructor_defaults": {
+        "class_prior": null,
+        "encoder": null,
+        "encoder_feature_layer": null,
+        "hidden_dim": 100,
+        "teacher_epochs": 10,
+        "split_epochs": 10,
+        "student_epochs": 10,
+        "rounds": 2,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "agreement_threshold": 0.92,
+        "js_teacher_weight": 0.7,
+        "hard_weight": 0.3,
+        "feature_weight": 0.3,
+        "similarity_weight": 0.1,
+        "noise_std": 0.05,
+        "random_state": null,
+        "device": null
+      },
+      "source": {
+        "kind": "locked_clean_author_checkout",
+        "repository": "https://github.com/loadder/SplitPU_MM2022",
+        "commit": "82fb9730597a65a12156736419d4588675bc24d5",
+        "files": [
+          {
+            "path": "main.py",
+            "sha256": "9683bb53cfb7518069f4e0420314c2d1888b7445087e5f19edee20867d3b61c1"
+          },
+          {
+            "path": "splitpu_utils.py",
+            "sha256": "ae2974a18998b6c921dd5fbc69da871327a2166380351acd4fc09e0cb1eb5639"
+          },
+          {
+            "path": "nnpu_utils.py",
+            "sha256": "ad3e1256954ce4a410cfb58190ef8384bfe9c306eec3f571305cb67b0a1977a5"
+          },
+          {
+            "path": "utils.py",
+            "sha256": "05fc493d26dcfbd51d016284b1f371132fe87f6b4492a20fc0492441a92e7dfe"
+          }
+        ],
+        "paper_review_ref": null
+      },
+      "budget": {
+        "unit": "teacher_splitter_student_epochs_and_rounds",
+        "snapshot_bound": "teacher_epochs + split_epochs + rounds * student_epochs",
+        "snapshot_property": "checkpoint_epoch_count",
+        "optimizer_counter": "optimizer_steps_",
+        "early_stop": true,
+        "formal_budget_approved": false,
+        "approved_candidate_pool": null,
+        "approved_storage_bytes": null
+      },
+      "calibration": {
+        "scope": "nnPU_teacher_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "source_behavior_tests": [
+        "tests/unit/estimators/test_p3_source_behavior.py::test_basic_splitpu_js_matches_scalar_bernoulli_source_and_detaches_teacher",
+        "tests/unit/experiment/test_multistage_candidate_accounting.py::test_determ_snapshots_respect_budget_bound_and_early_stop_without_changing_fit"
+      ],
+      "adaptation_differences": [
+        {
+          "id": "test_monitoring_not_best_restoration",
+          "source_location": {
+            "path": "splitpu_utils.py",
+            "line_start": 170,
+            "line_end": 172
+          },
+          "meaning": "Upstream evaluates test each student epoch but returns last state_dict; unused best_weight/best_acc locals do not prove test-based best-model selection. Toolbox fit takes no test labels."
+        },
+        {
+          "id": "easy_loss_normalization",
+          "source_location": {
+            "path": "splitpu_utils.py",
+            "line_start": 162,
+            "line_end": 165
+          },
+          "meaning": "Upstream uses (sum_P BCE + sum_easy JSD)/(n_P+n_easy); toolbox mean_P BCE + mean_easy JSD changes relative group weights."
+        },
+        {
+          "id": "augmentation_and_projection",
+          "source_location": {
+            "path": "splitpu_utils.py",
+            "line_start": 118,
+            "line_end": 154
+          },
+          "meaning": "Upstream weak/strong crop/color augmentation, low features on both views and SimSiam z/p; toolbox Gaussian views, selected intermediate feature and cosine without projection/predictor."
+        },
+        {
+          "id": "budget_and_phase_lr",
+          "source_location": {
+            "path": "main.py",
+            "line_start": 13,
+            "line_end": 44
+          },
+          "meaning": "Upstream teacher20, splitter<=50, student100/round with stage-specific LR/weight_decay; toolbox default10/10/10 and common LR are separate budgets."
+        },
+        {
+          "id": "licensing",
+          "source_location": null,
+          "meaning": "No source license confirmed in locked checkout; independent implementation, no upstream code vendored."
+        }
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    }
+  }
+}

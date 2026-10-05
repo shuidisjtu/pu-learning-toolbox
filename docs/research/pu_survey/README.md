@@ -1,5 +1,9 @@
 # PU Survey 文档索引
 
+P1-1 工程准备已补齐：[五方法来源行为、预算与选模证据包](p3_admission_evidence_20261005.md)、
+[机器登记](data/p3_admission_evidence_20261005.json)。可用只读检查器核对当前代码与锁定来源，
+不代表 P3.1/P3.2 正式验收、参数冻结或负责人签署。
+
 GradPU 独立[来源与协议复核准备](gradpu_source_review_20261005.md)：论文去 BatchNorm，
 理论边缘 U 与实验剩余 U 分开登记；保持 pending，未改冻结数值锚点。
 

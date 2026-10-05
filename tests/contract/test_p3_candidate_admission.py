@@ -36,6 +36,10 @@ def test_basic_p3_admission_draft_matches_ledger_and_remains_unadmitted():
         assert row["budget_ref"] is None
         assert row["candidate_pool"] is None
         assert row["specific_blockers"]
+        if row["method"] in {"pulda", "puet", "gradpu", "robust_pu", "split_pu"}:
+            reference = ledger["methods"][row["method"]]["admission_evidence_ref"]
+            assert row["admission_evidence_ref"] == reference
+            assert (ROOT / reference).is_file()
         assert row["ledger_snapshot"] == {
             k: ledger["methods"][row["method"]][k] for k in row["ledger_snapshot"]
         }

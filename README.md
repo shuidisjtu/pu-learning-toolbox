@@ -157,6 +157,12 @@ CNN checkpoint/full-estimator sizes and CPU replay can be probed separately with
 its synthetic measurements and optional process-local CUDA peaks are not formal resource budgets.
 documentation consistency checks include `scripts/check_doc_links.py` and `scripts/check_api_docs.py`.
 
+P3 preparation evidence for PULDA, PUET, Grad-PU, Robust-PU and Split-PU is documented in
+[the admission evidence handoff](docs/research/pu_survey/p3_admission_evidence_20261005.md).
+`scripts/check_p3_admission_evidence.py` checks code/ledger facts offline; optional
+`--source-dir METHOD=PATH` verifies pinned local source bytes without executing author code.
+Passing this technical check does not approve candidates, budgets or method-owner review.
+
 Auditing and summarizing a finished batch set is driven by
 `audit_survey_batches.py` and `summarize_survey_results.py`. Both take a
 batch-root whitelist and write only to their `--out-dir`: the first reports every

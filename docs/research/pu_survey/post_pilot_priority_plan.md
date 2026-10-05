@@ -63,6 +63,14 @@ PYTHONPATH=. python scripts/check_survey_recipe_registry.py \
 
 ## 4. 紧接着的交接
 
+2026-10-05 P1-1 更新：第 2 项中五方法的自主工程准备已补齐，详见
+[来源行为、预算与选模证据包](p3_admission_evidence_20261005.md)。PULDA/PUET/Grad-PU/
+Robust-PU/Split-PU 的默认参数、预算计数、校准范围、来源差异和机器引用已同步；
+四个锁定作者仓库的 17 个文件有摘要核验，Grad-PU 仍仅论文来源。
+这不关闭正式预算/存储 profile、阶段选模资格、公开数值复现与负责人复核的 blocker。
+下一独立优先项是完善公开对照可比性/差异证据；正式候选池与新版协议待负责人决定，
+不跳到主榜训练，也不继续以新增类名替代验收闭环。
+
 2026-10-05 状态更新：[独立推进记录](independent_progress_20261005.md)。PULDA 两阶段 checkpoint
 计数已接入磁盘预检，PULDA/PUET 已有可复跑的合成存储/恢复探针；三项新增算法 PAN、RP、PULNS
 已完成独立组件、台账和方法卡。下文磁盘警告为 10-04 历史状态，不再表示技术估算接口缺失；

@@ -272,6 +272,8 @@ tests/
       test_grad_pu_cnn.py               # GradPU 原图二阶梯度、无 BN 编码器与权重回放
       test_robust_pu_cnn.py             # Robust-PU CNN 阶段、BN 隔离与 CPU 权重/快照回放
       test_split_pu_cnn.py              # Split-PU 多层 CNN 蒸馏、阶段隔离与快照回放
+      test_p3_budget_selection_evidence.py # 五方法预算计数、来源适配和选择签名边界
+      test_p3_source_behavior.py        # 五方法独立标量来源公式、梯度和边界对照
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -324,6 +326,7 @@ tests/
       test_profile_survey_candidate_storage.py # 七方法存储探针和恢复边界
       test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
       test_profile_survey_cnn_storage.py # CNN 快照体积、恢复、来源身份和输入边界
+      test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -768,6 +771,7 @@ scripts/
   profile_survey_candidate_storage.py     # 七方法多 seed 合成存储与恢复探针
   prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
   profile_survey_cnn_storage.py           # 五方法 CNN 存储探针与多 seed 恢复；非正式预算
+  check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
 ```
 
 ## 7. CI/CD（`.github/`）

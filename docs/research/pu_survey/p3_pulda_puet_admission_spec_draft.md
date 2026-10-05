@@ -3,6 +3,12 @@
 状态：**draft / pending_method_owner_review**。承接 [后续优先级](post_pilot_priority_plan.md) 的第 2 项。
 只记录代码事实、技术接口证据及待决问题；不建立正式候选池，不扩展冻结矩阵，不宣称论文数值复现。
 
+2026-10-05 P1-1 补记：[五方法机器证据与检查入口](p3_admission_evidence_20261005.md)
+补齐默认值、更新计数、来源行号/摘要及适配差异。PULDA 两阶段学习率 cosine 均依赖
+pu_epochs（warmup 不使用独立周期）；U 尾批与 P 抽样不同于作者。
+PUET 的叶 tie、阈值区间、划分增益和子节点约束亦有显式差异。
+技术 callback 能捕获权重，不证明每个阶段都获正式 PA/OA 候选资格；该资格仍待负责人确认。
+
 ## 1. 预算与表征必须分别处理
 
 | 项 | PULDA | PUET |
