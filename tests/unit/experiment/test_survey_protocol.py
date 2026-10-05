@@ -168,6 +168,12 @@ def test_determ_bound_runs_reproduce_label_and_representation_hashes(survey_scri
     second = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
     assert first["generation"] == second["generation"]
     assert first["representation"] == second["representation"]
+    # Frozen: this digest covers the serialised role indices of the bound
+    # split, and it is the field the audit compares across runs.
+    assert (
+        first["representation"]["split_sha256"]
+        == "b8233261437efced432d65db9de158027cb2bec405cf1184e28d543f98966cf7"
+    )
     validate_comparable_manifests([first, second], require_formal=False)
 
 

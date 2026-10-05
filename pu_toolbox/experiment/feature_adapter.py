@@ -11,6 +11,9 @@ from typing import Any, Literal
 
 import numpy as np
 
+from pu_toolbox.core.training_views import ROLES
+from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_canonical_hash
+
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 
 #: The paths a leaderboard group may be keyed by.  ``native_2d`` is the
@@ -83,19 +86,16 @@ def adapt_image_bundle_to_features(
             raise ValueError(
                 "encoder_fit_indices must exactly match the train partition and no other role."
             )
-        fit_indices_hash = _json_sha256(_json_scalars(fit_indices))
+        fit_indices_hash = strict_canonical_hash(json_scalars(fit_indices, name="bundle indices"))
 
     canonical_backbone_manifest = _canonical_json_object(
         backbone_manifest, name="backbone_manifest"
     )
-    source_shapes = {
-        np.asarray(getattr(bundle, role).X).shape[1:]
-        for role in ("train", "pu_val", "clean_val", "test")
-    }
+    source_shapes = {np.asarray(getattr(bundle, role).X).shape[1:] for role in ROLES}
     if len(source_shapes) != 1:
         raise ValueError("source image shape must match across all four dataset roles.")
     torch, module = _resolve_torch_encoder(encoder, device)
-    state_before = _encoder_state_sha256(module)
+    state_before = encoder_state_sha256(module)
     was_training = bool(module.training)
     module.eval()
     try:
@@ -107,11 +107,11 @@ def adapt_image_bundle_to_features(
                 batch_size=batch_size,
                 device=device,
             )
-            for role in ("train", "pu_val", "clean_val", "test")
+            for role in ROLES
         }
     finally:
         module.train(was_training)
-    state_after = _encoder_state_sha256(module)
+    state_after = encoder_state_sha256(module)
     if state_before != state_after:
         raise RuntimeError("CNN feature extraction mutated the encoder state.")
 
@@ -124,7 +124,7 @@ def adapt_image_bundle_to_features(
                 indices=getattr(bundle, role).indices,
                 for_selection=getattr(bundle, role).for_selection,
             )
-            for role in ("train", "pu_val", "clean_val", "test")
+            for role in ROLES
         }
     )
     validate_bundle(adapted)
@@ -133,8 +133,8 @@ def adapt_image_bundle_to_features(
     if len(feature_dimensions) != 1:
         raise ValueError("CNN encoder output dimension changed across dataset roles.")
     split_indices = {
-        role: _json_scalars(np.asarray(getattr(bundle, role).indices))
-        for role in ("train", "pu_val", "clean_val", "test")
+        role: json_scalars(np.asarray(getattr(bundle, role).indices), name="bundle indices")
+        for role in ROLES
     }
     representation_payload = {
         "feature_version": feature_version,
@@ -156,11 +156,9 @@ def adapt_image_bundle_to_features(
         "encoder_fit_indices_sha256": fit_indices_hash,
         "encoder_state_sha256": state_before,
         "backbone_manifest": canonical_backbone_manifest,
-        "representation_sha256": _json_sha256(representation_payload),
-        "split_sha256": _json_sha256(split_indices),
-        "feature_sha256": {
-            role: _array_sha256(features) for role, features in role_features.items()
-        },
+        "representation_sha256": strict_canonical_hash(representation_payload),
+        "split_sha256": strict_canonical_hash(split_indices),
+        "feature_sha256": {role: array_hash(features) for role, features in role_features.items()},
     }
     return adapted, manifest
 
@@ -245,7 +243,7 @@ def partition_fair_leaderboard_runs(
                 "tuning_candidate_count": reference.tuning_candidate_count,
                 "seeds": list(reference.seeds),
             }
-            group_payload["fairness_sha256"] = _json_sha256(group_payload)
+            group_payload["fairness_sha256"] = strict_canonical_hash(group_payload)
             partitions[f"{dataset}/{training_path}"] = group_payload
     return partitions
 
@@ -288,7 +286,7 @@ def _extract_features(torch, encoder, X, *, batch_size: int, device: str) -> np.
     return features
 
 
-def _encoder_state_sha256(encoder) -> str:
+def encoder_state_sha256(encoder) -> str:
     digest = hashlib.sha256()
     state = encoder.state_dict()
     if not state:
@@ -359,29 +357,3 @@ def _canonical_json_object(value: dict[str, Any], *, name: str) -> dict[str, Any
         return json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{name} must contain only finite JSON-compatible values.") from exc
-
-
-def _json_scalars(values: np.ndarray) -> list[int | float | str | bool | None]:
-    result = []
-    for value in values.tolist():
-        if isinstance(value, np.generic):
-            value = value.item()
-        if value is not None and not isinstance(value, bool | int | float | str):
-            raise ValueError("bundle indices must contain JSON scalar values.")
-        if isinstance(value, float) and not np.isfinite(value):
-            raise ValueError("floating-point bundle indices must be finite.")
-        result.append(value)
-    return result
-
-
-def _array_sha256(values: np.ndarray) -> str:
-    digest = hashlib.sha256()
-    digest.update(str(values.dtype).encode())
-    digest.update(json.dumps(values.shape).encode())
-    digest.update(np.ascontiguousarray(values).tobytes())
-    return digest.hexdigest()
-
-
-def _json_sha256(value: Any) -> str:
-    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-    return hashlib.sha256(payload).hexdigest()

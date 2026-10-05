@@ -2,7 +2,10 @@
 """Documentation-code consistency gate.
 
 Rules:
-1. **Path references** -- every ``path/file.{py,md}`` in project Markdown must exist on disk.
+1. **Path references** -- every ``path/file.{py,md}`` in project Markdown and
+   in ``pu_toolbox/``/``scripts/`` Python source text must exist on disk.
+   Python files are read as whole-file text, so a reference inside a string
+   literal is checked too, not only one inside a comment or docstring.
 2. **(planned) consistency** -- ``project_structure.md`` tree must match
    actual file existence.
 3. **Architecture S8 mapping** -- ``architecture.md`` S8 table must agree
@@ -37,6 +40,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = PROJECT_ROOT / "docs"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
+# Registry of NATIVE methods, the source rule-3 maps architecture.md S8
+# against.  Module-level so tests can point it at a scratch copy.
+REGISTRY_FILE = PROJECT_ROOT / "pu_toolbox" / "registry" / "builtin_methods.py"
+
 # Roots whose tree blocks generate_structure.py manages; Rule 2 delegates
 # their bidirectional existence check to that generator (single source of
 # truth, so this cannot drift from generate_structure.GENERATABLE_ROOTS).
@@ -64,10 +71,14 @@ MD_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 # Files in docs/ that are NOT expected to appear in docs/README.md.
 DOC_INDEX_EXCLUDED: set[str] = {"README.md"}
 
-# Docs subdirectories excluded from ALL checks. research/ (method cards)
-# is in scope: it is the densest citation source and must not be
-# wholesale-exempted.
-_EXCLUDED_DOC_DIRS: set[str] = {"superpowers", "figures"}
+# Docs subdirectories excluded from ALL checks, derived from the
+# generator's declaration so the two gates cannot disagree about what is
+# excluded (single source; entries are repo-relative, we keep the part
+# below ``docs/``).  research/ (method cards) is in scope: it is the
+# densest citation source and must not be wholesale-exempted.
+_EXCLUDED_DOC_DIRS: set[str] = {
+    subtree.removeprefix("docs/") for subtree in _gen.EXCLUDED_DOC_SUBTREES
+}
 
 
 # ====================================================================
@@ -103,6 +114,23 @@ def _find_md_files() -> list[Path]:
         if any(p.is_relative_to(DOCS_DIR / d) for d in _EXCLUDED_DOC_DIRS):
             continue
         files.append(p)
+    files.sort()
+    return files
+
+
+def _find_source_files() -> list[Path]:
+    """Return Python sources whose text we scan for path references.
+
+    The scan reads whole-file text, so a reference inside a string literal
+    is matched too, not only one inside a comment or docstring.  ``tests/``
+    is deliberately excluded: dangling backtick paths there are negative
+    fixtures for this very gate, not claims about repository files.
+    """
+    files: list[Path] = []
+    for root in (PROJECT_ROOT / "pu_toolbox", SCRIPTS_DIR):
+        if not root.is_dir():
+            continue
+        files.extend(p for p in root.rglob("*.py") if "__pycache__" not in p.parts)
     files.sort()
     return files
 
@@ -159,17 +187,20 @@ def _extract_md_link_targets(text: str) -> list[tuple[str, int]]:
 # ====================================================================
 
 
-def check_path_references(md_files: list[Path]) -> list[Issue]:
-    """Rule 1: every `path/file.{py,md}` in docs must exist on disk."""
+def check_path_references(files: list[Path]) -> list[Issue]:
+    """Rule 1: every `path/file.{py,md}` in docs and source text exists.
+
+    Source files are read whole, so a string literal counts too.
+    """
     issues: list[Issue] = []
-    for md_file in md_files:
-        text = md_file.read_text(encoding="utf-8")
+    for source_file in files:
+        text = source_file.read_text(encoding="utf-8")
         for ref_path, line_no in _extract_backtick_paths(text):
             if not (PROJECT_ROOT / ref_path).exists():
                 issues.append(
                     Issue(
                         "rule-1",
-                        _relative(md_file),
+                        _relative(source_file),
                         line_no,
                         f"referenced file not found: `{ref_path}`",
                         "error",
@@ -203,14 +234,20 @@ def check_md_links(md_files: list[Path]) -> list[Issue]:
 
 
 def check_planned_consistency(structure_md: Path) -> list[Issue]:
-    """Rule 2: tree must match tracked and non-ignored new .py files.
+    """Rule 2: tree must match the files of every generator-managed root.
 
     Bidirectional check sharing the tree logic with generate_structure.py:
-    every tracked/non-ignored new ``.py`` under ``pu_toolbox/``/``tests/`` must appear
-    in the document, and every documented entry must exist on disk or be
-    marked ``(planned)``. Entries that exist on disk while marked
-    ``(planned)`` are errors too; for tree blocks the generator does not
-    manage (e.g. ``examples/``), the legacy existence check still applies.
+    every tracked/non-ignored new file whose suffix is in scope for its
+    root (``GENERATABLE_SUFFIXES``; ``.py`` for the code roots, ``.md`` /
+    ``.png`` / ``.json`` for ``docs/``) must appear in the document --
+    except below a grouped subtree, whose files are registered by index --
+    and every documented entry must exist on disk or be marked
+    ``(planned)``. Entries that exist on disk while marked ``(planned)``
+    are errors too; for tree blocks the generator does not manage (e.g.
+    ``examples/``), the legacy existence check still applies -- as it does
+    for a listed entry whose suffix its block does not parse, which the
+    generator reports separately (``block_problems``, forwarded here) and
+    would otherwise drop from the document without a trace.
     """
     if not structure_md.exists():
         return [
@@ -275,10 +312,14 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
                     "error",
                 )
             )
-        elif not exists and not has_planned and not rel_path.startswith(_GENERATABLE_PREFIXES):
-            # Generator-managed roots are covered by the bidirectional
-            # check below; keep the legacy existence check for blocks
-            # that generate_structure.py does not manage (examples/, ...).
+        elif not exists and not has_planned and not _gen.in_scope(rel_path):
+            # The generator's bidirectional check below owns every entry
+            # that is *in scope* for its block (root x suffix); the legacy
+            # existence check covers the rest, including blocks the
+            # generator does not manage (examples/, ...) and entries under a
+            # managed root whose suffix its block does not parse (a stray
+            # `docs/*.py`, say).  Matching on the root prefix alone would
+            # drop that last class between the two checks.
             issues.append(
                 Issue(
                     "rule-2",
@@ -291,10 +332,12 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
             )
 
     # Bidirectional check, sharing the tree logic with generate_structure.py:
-    # every git-tracked .py under pu_toolbox/tests must appear in the
+    # every in-scope file under a generator-managed root must appear in the
     # document, and every documented entry must exist on disk or be marked
-    # (planned).
-    tracked = [f for f in _gen.tracked_py_files() if f.startswith(_GENERATABLE_PREFIXES)]
+    # (planned).  The scope (roots x suffixes) and the grouped-subtree
+    # exemption both come from the generator, so widening either one there
+    # widens this rule here without a second edit.
+    tracked = [f for f in _gen.tracked_files() if f.startswith(_GENERATABLE_PREFIXES)]
     _new_text, missing, stale = _gen.generate(text, tracked)
     for rel in missing:
         issues.append(
@@ -306,6 +349,11 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
                 "error",
             )
         )
+    # Problems the generator reports on their own channel: an unregistered
+    # grouped subtree, or a listed entry whose suffix the block does not
+    # cover.  Neither is a missing/stale path, so both land here verbatim.
+    for message in _gen.block_problems(text):
+        issues.append(Issue("rule-2", _relative(structure_md), None, message, "error"))
     for rel in stale:
         issues.append(
             Issue(
@@ -331,13 +379,17 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
 
     native_paths = _get_native_module_paths()
     if not native_paths:
+        # A missing registry file or a renamed extraction marker returns an
+        # empty set; that is a broken rule, not a clean repository, so it
+        # must fail rather than downgrade to a warning the verdict ignores.
         return [
             Issue(
                 "rule-3",
                 _relative(arch_md),
                 None,
-                "could not extract NATIVE paths from builtin_methods.py",
-                "warning",
+                "could not extract NATIVE paths from builtin_methods.py "
+                "(registry file or `_native_imports` marker missing)",
+                "error",
             )
         ]
 
@@ -366,12 +418,15 @@ def _get_native_module_paths() -> set[str]:
     Looks for the ``_native_imports`` list and converts relative import
     paths (e.g. ``..estimators.classic.elkan_noto``) to file paths
     relative to ``pu_toolbox/`` (e.g. ``estimators/classic/elkan_noto.py``).
+
+    An empty return means *extraction failed* (no registry file, no
+    marker, no entries); callers treat it as a rule error, never as "this
+    repository has no native methods".
     """
-    registry_file = PROJECT_ROOT / "pu_toolbox" / "registry" / "builtin_methods.py"
-    if not registry_file.exists():
+    if not REGISTRY_FILE.exists():
         return set()
 
-    text = registry_file.read_text(encoding="utf-8")
+    text = REGISTRY_FILE.read_text(encoding="utf-8")
     start = text.find("_native_imports")
     if start == -1:
         return set()
@@ -526,7 +581,7 @@ def main() -> int:
     print(" Documentation-Code Consistency Check")
     print("=" * 62)
 
-    issues = check_path_references(md_files)
+    issues = check_path_references([*md_files, *_find_source_files()])
     all_issues.extend(issues)
     _print_rule_report("Rule 1: Path references", issues)
 

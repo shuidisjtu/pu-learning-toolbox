@@ -28,6 +28,11 @@ One test per invariant:
 7. ``native_sampling_assumption`` (``os``/``ts``) mirrors the registry
    ``scenario`` sampling mechanism (``SINGLE_TRAINING_SET``/``CASE_CONTROL``),
    ignoring the orthogonal ``SELECTION_BIASED`` flag (issue #67).
+
+The ledger's prose also cites registry entries as ``registry:<method>``: a
+``registry:NNN`` line number rots the moment ``builtin_methods.py`` grows, and
+all 46 that once carried one had drifted off their target field by the time
+they were found (E4).
 """
 
 from __future__ import annotations
@@ -75,6 +80,10 @@ _EXPECTED_METHOD_KEYS = {
 # Ledger notes open their annotation with either an ASCII or a full-width
 # parenthesis; the head is everything before it.
 _NOTE_OPEN = re.compile(r"[（(]")
+
+# A rotted prose citation: ``registry:`` followed by a line number (or a
+# ``NNN-NNN`` range) instead of the cited method's name.
+_LINE_NUMBER_REF = re.compile(r"registry:\d+(?:-\d+)?")
 
 
 @pytest.fixture(scope="module")
@@ -222,3 +231,20 @@ def test_heng958_owner_reviews_are_complete_and_traceable(
         assert separator and anchor, name
         assert (repository_root / evidence_path).is_file(), name
         assert review["conclusion"].strip(), name
+
+
+# The name deliberately avoids the word "ledger": `check_test_quality` matches
+# category keywords as substrings, and "edge" sits inside that word -- which
+# would flip this file's honest "no edge cases here" declaration to "covered".
+@pytest.mark.contract
+def test_basic_does_not_cite_source_line_numbers() -> None:
+    """Prose registry citations name the method, never a source line number.
+
+    A ``registry:NNN`` anchor is a claim about ``builtin_methods.py``'s layout
+    that silently rots as the file grows: every one of the 46 refs that once
+    carried a line number had drifted off its target field, so the ledger cites
+    ``registry:<method>`` instead.  This pins that form for good.
+    """
+    raw = _LEDGER_PATH.read_text(encoding="utf-8")
+    offenders = _LINE_NUMBER_REF.findall(raw)
+    assert not offenders, f"ledger cites source line numbers: {sorted(set(offenders))}"

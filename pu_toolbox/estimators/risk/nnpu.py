@@ -37,6 +37,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import RUN_VIEWS
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...losses.nnpu import NonNegativePULoss, _nnpu_train_step
 from ..deep._validation import validate_encoder_features
@@ -226,7 +227,7 @@ class NonNegativePUClassifier(BasePUClassifier):
             raise ValueError(f"max_epochs must be > 0; got {self.max_epochs}.")
         if self.batch_size <= 0:
             raise ValueError(f"batch_size must be > 0; got {self.batch_size}.")
-        if os_or_ts not in {"os", "ts"}:
+        if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         if os_or_ts == "ts" and sample_weight is not None:
             raise ValueError(

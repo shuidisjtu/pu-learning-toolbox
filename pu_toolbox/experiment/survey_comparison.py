@@ -34,10 +34,11 @@ See docs/research/pu_survey/p2_0c_delivery.md, P2.0c.
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
+
+from pu_toolbox.utils.serialization import strict_canonical_hash
 
 COMPARISON_PATH = Path(__file__).with_name("survey_comparison_v3.json")
 
@@ -124,15 +125,13 @@ _REQUIRED_ANCHOR = (
 
 
 def comparison_digest(value: Any) -> str:
-    """Hash canonical JSON, independent of whitespace and key order."""
-    return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-    ).hexdigest()
+    """Hash canonical JSON, independent of whitespace and key order.
 
-
-def _survey_digest(payload: dict[str, Any]) -> str:
-    """Digest an execution protocol exactly as survey_protocol.digest would."""
-    return comparison_digest(payload)
+    Kept as a named entry point because the comparison scripts and tests
+    import it; the recipe itself is
+    :func:`~pu_toolbox.utils.serialization.strict_canonical_hash`.
+    """
+    return strict_canonical_hash(value)
 
 
 def load_comparison_protocol(
@@ -220,7 +219,7 @@ def _validate_binding(bound: Any, survey: dict[str, Any] | None) -> dict[str, An
             "bound survey protocol_version disagrees with the execution protocol: "
             f"{bound['protocol_version']!r} != {survey['protocol_version']!r}"
         )
-    expected = _survey_digest(survey)
+    expected = comparison_digest(survey)
     if bound["protocol_sha256"] != expected:
         raise ValueError(
             "bound survey protocol_sha256 disagrees with the execution protocol digest"

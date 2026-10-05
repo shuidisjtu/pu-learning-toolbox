@@ -20,15 +20,14 @@ never imports this one.
 
 from __future__ import annotations
 
-import hashlib
 import inspect
-import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
 
-from ..core.training_views import RunView, ViewRole, build_training_view
+from ..core.training_views import ROLES, RUN_VIEWS, RunView, ViewRole, build_training_view
+from ..utils.serialization import canonical_hash, json_scalars
 from .method_ledger import native_sampling_assumption
 from .protocols import accepts_training_view
 
@@ -95,9 +94,9 @@ def calibrate_ts_os_batch(
     run_view = "TS-compatible" if calibration_applied else "OS"
 
     index_payload = {
-        "positive": _json_indices(positive_indices),
-        "original_unlabeled": _json_indices(original_unlabeled_indices),
-        "loss_unlabeled": _json_indices(loss_unlabeled_indices),
+        "positive": json_scalars(positive_indices, name="indices"),
+        "original_unlabeled": json_scalars(original_unlabeled_indices, name="indices"),
+        "loss_unlabeled": json_scalars(loss_unlabeled_indices, name="indices"),
     }
     manifest = {
         "schema_version": "1.0",
@@ -116,9 +115,7 @@ def calibrate_ts_os_batch(
             len(view.positive_positions) if calibration_applied else 0
         ),
         "indices": index_payload,
-        "indices_sha256": hashlib.sha256(
-            json.dumps(index_payload, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest(),
+        "indices_sha256": canonical_hash(index_payload),
     }
     return TSOSBatchView(
         positive_features=view.positive_features,
@@ -138,11 +135,11 @@ def _validate_options(
     role: str,
     method_name: str,
 ) -> None:
-    if os_or_ts not in {"os", "ts"}:
+    if os_or_ts not in RUN_VIEWS:
         raise ValueError("os_or_ts must be 'os' or 'ts'.")
     if native_sampling_assumption not in {"os", "ts", "both"}:
         raise ValueError("native_sampling_assumption must be 'os', 'ts', or 'both'.")
-    if role not in {"train", "pu_val", "clean_val", "test"}:
+    if role not in ROLES:
         raise ValueError("role must be 'train', 'pu_val', 'clean_val', or 'test'.")
     if not isinstance(method_name, str) or not method_name.strip():
         raise ValueError("method_name must identify the method ledger entry.")
@@ -150,19 +147,6 @@ def _validate_options(
         raise ValueError("TS-OS calibration requires a method declared native to TS sampling.")
     if os_or_ts == "ts" and role != "train":
         raise ValueError("TS-OS calibration is train-only; validation and test remain OS.")
-
-
-def _json_indices(indices: np.ndarray) -> list[int | float | str | bool | None]:
-    values = []
-    for value in indices.tolist():
-        if isinstance(value, np.generic):
-            value = value.item()
-        if value is not None and not isinstance(value, bool | int | float | str):
-            raise ValueError("indices must contain JSON scalar values.")
-        if isinstance(value, float) and not np.isfinite(value):
-            raise ValueError("floating-point indices must be finite.")
-        values.append(value)
-    return values
 
 
 #: The views a versioned pilot may record.  ``os-compatible`` covers both a

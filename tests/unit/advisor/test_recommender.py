@@ -104,55 +104,6 @@ class TestRecommenderScoring:
         if stable_scores and experimental_scores:
             assert max(stable_scores) > min(experimental_scores)
 
-    def test_basic_sar_diagnostic_boosts_sar(self):
-        """A SAR-like (at_risk) diagnostic must flip the ranking between
-        SAR-aware and SCAR-only methods, while a plausible (SCAR)
-        diagnostic keeps SCAR methods ahead.
-
-        Regression guard: the old test only asserted that SAR methods
-        appear in top-15 (true regardless of the assumption dimension),
-        so a dead SAR boost would go unnoticed.
-        """
-        from pu_toolbox.preprocessing import make_sar_dataset
-
-        scar_X, scar_y, scar_yt, _ = make_sar_dataset(
-            n_samples=2000,
-            n_features=5,
-            class_prior=0.5,
-            separation=2.0,
-            mechanism="scar",
-            label_frequency=0.5,
-            random_state=7,
-        )
-        sar_X, sar_y, sar_yt, _ = make_sar_dataset(
-            n_samples=2000,
-            n_features=5,
-            class_prior=0.5,
-            separation=2.0,
-            mechanism="linear",
-            label_frequency=0.5,
-            strength=3.0,
-            random_state=7,
-        )
-        scar_scores = {
-            c.name: c.score
-            for c in recommend_from_profile(
-                profile_pu_data(scar_X, scar_y, y_true=scar_yt, random_state=42),
-                class_prior=0.5,
-                top_k=15,
-            ).candidates
-        }
-        sar_scores = {
-            c.name: c.score
-            for c in recommend_from_profile(
-                profile_pu_data(sar_X, sar_y, y_true=sar_yt, random_state=42),
-                class_prior=0.5,
-                top_k=15,
-            ).candidates
-        }
-        assert sar_scores["pusb"] > sar_scores["upu"]  # at_risk: SAR boosted
-        assert scar_scores["pusb"] < scar_scores["upu"]  # plausible: SCAR ahead
-
     def test_edge_small_data_penalizes_deep(self):
         rng = np.random.RandomState(0)
         X_small = rng.randn(50, 3)

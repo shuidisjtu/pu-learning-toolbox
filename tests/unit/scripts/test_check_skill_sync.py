@@ -11,6 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
+import check_skill_sync as m  # noqa: E402
 from check_skill_sync import check_sync  # noqa: E402
 
 _GOOD_FRONTMATTER = (
@@ -102,6 +103,16 @@ def test_param_invalid_missing_skill_reported(tmp_path):
     b.unlink()
     issues = check_sync(a, b)
     assert any("missing SKILL.md" in i for i in issues)
+
+
+@pytest.mark.unit
+def test_edge_main_reports_drift_with_nonzero_exit(tmp_path, monkeypatch, capsys):
+    """main() must exit non-zero, not just have check_sync return issues."""
+    a, b = _write_pair(tmp_path, "line1\nline2\n", "line1\nline2 CHANGED\n")
+    monkeypatch.setattr(m, "DEFAULT_PATHS", (a, b))
+    rc = m.main([])
+    assert rc == 1
+    assert "content mismatch" in capsys.readouterr().out
 
 
 @pytest.mark.unit

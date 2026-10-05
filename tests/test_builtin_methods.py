@@ -13,7 +13,12 @@ from pathlib import Path
 import pytest
 
 from pu_toolbox.core.tags import (
+    AlgorithmFamily,
+    Assumption,
+    Backend,
     ImplementationStatus,
+    Maturity,
+    Scenario,
     SourceStatus,
 )
 from pu_toolbox.registry import (
@@ -194,23 +199,33 @@ class TestBuiltinRegistration:
             if _declared_on_class(cls, "scenario"):
                 assert synced.scenario == list(cls.scenario), f"{meta.name}.scenario mismatch"
 
-    def test_static_entries_match_class_attributes(self):
-        """_BUILTIN entry literals must match class metadata BEFORE sync.
+    def test_static_entries_do_not_redeclare_class_fields(self):
+        """What a `_BUILTIN` literal is for: exactly what the class does not say.
 
-        The test above reads the registry AFTER binding, where
-        _sync_class_metadata_to_registry has already overwritten entry
-        fields with class values — so static drift in the literals is
-        invisible to it (upu was False in the entry while the class
-        says True, silently papered over for months).  This test
-        snapshots the entry literals first, then registers, then
-        compares against the bound classes.
+        This replaces the older consistency check, which asserted the literals
+        *equal* the class values.  That check had to exist because the literals
+        duplicated live data -- `upu` sat with `False` in the entry while the
+        class said `True`, silently papered over for months.  Removing the
+        duplicate removes that failure mode; the assertion is now inverted, so
+        re-introducing one fails here instead of drifting quietly.
+
+        The source is parsed rather than the metadata read: a deleted keyword
+        still answers `getattr` with the dataclass default, so attribute access
+        cannot tell "omitted" from "declared".
+
+        Two clauses:
+        1. a field the class declares must NOT appear in the literal;
+        2. a field the class does not declare must appear -- and for the entry
+           whose literals are authoritative (`class_prior_estimation`), carry
+           the ruled value rather than a fresh copy of itself.
         """
-        from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
-        from pu_toolbox.registry import get_algorithm
-        from pu_toolbox.registry.builtin_methods import _BUILTIN
+        import ast
 
-        _bases = (BasePUClassifier, BasePriorEstimator)
-        sync_fields = (
+        from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
+        from pu_toolbox.registry import get_metadata
+        from pu_toolbox.registry.registry import _CLASSES, _SYNC_FIELDS
+
+        entry_fields = (
             "family",
             "assumption",
             "scenario",
@@ -220,44 +235,70 @@ class TestBuiltinRegistration:
             "backend",
             "maturity",
         )
+        class_only_fields = tuple(f for f in _SYNC_FIELDS if f not in entry_fields)
+
+        source = (PROJECT_ROOT / "pu_toolbox/registry/builtin_methods.py").read_text(
+            encoding="utf-8"
+        )
+        written: dict[str, set[str]] = {}
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "AlgorithmMetadata":
+                name = next(k.value.value for k in node.keywords if k.arg == "name")
+                written[name] = {k.arg for k in node.keywords}
+
+        bases = (BasePUClassifier, BasePriorEstimator)
 
         def _declared_on_class(cls, field_name):
             return any(
                 field_name in klass.__dict__
                 for klass in cls.__mro__
-                if klass not in _bases and not issubclass(klass, type)
+                if klass not in bases and not issubclass(klass, type)
             )
 
-        # Snapshot BEFORE registering: register_method + the sync step
-        # overwrite the metadata objects in place, so reading them after
-        # registration would see the synced values, not the literals.
-        snapshots = {
-            meta.name: {
-                field: (
-                    list(getattr(meta, field))
-                    if isinstance(getattr(meta, field), tuple | list)
-                    else getattr(meta, field)
-                )
-                for field in sync_fields
-            }
-            for meta in _BUILTIN
-        }
-
+        assert written, "the AST parse found no entries"
         register_all_builtin_methods()
-        for name, snapshot in snapshots.items():
-            cls = get_algorithm(name)  # api_only entries would fail here loudly
-            for field, entry_value in snapshot.items():
-                if not _declared_on_class(cls, field):
-                    continue  # not synced from class; the literal is authoritative
-                cls_value = getattr(cls, field)
-                if isinstance(cls_value, tuple | list):
-                    assert list(cls_value) == entry_value, (
-                        f"{name}.{field}: entry={entry_value} != class={list(cls_value)}"
+        for name, fields in written.items():
+            for field_name in class_only_fields:
+                assert field_name not in fields, (
+                    f"{name}.{field_name}: belongs to the class/dataclass, not to an entry literal"
+                )
+            cls = _CLASSES.get(name)
+            if cls is None:  # api_only: the literal is the only source
+                assert set(entry_fields) <= fields, (
+                    f"{name} has no bound class, so its literal must declare every entry field"
+                )
+                continue
+            for field_name in entry_fields:
+                # Exactly one of the two may hold: the class declares the field
+                # (so a literal is dead weight) XOR the literal carries it (the
+                # class does not say it, so the literal is the source).
+                assert _declared_on_class(cls, field_name) != (field_name in fields), (
+                    f"{name}.{field_name}: "
+                    + (
+                        "the class declares it, so a literal here is dead weight"
+                        if _declared_on_class(cls, field_name)
+                        else "the class does not declare it, so the literal is the source"
                     )
-                else:
-                    assert cls_value == entry_value, (
-                        f"{name}.{field}: entry={entry_value} != class={cls_value}"
-                    )
+                )
+
+        # The one entry with no class declaration: its literals are the only
+        # source, and a typo there falls back to a dataclass default --
+        # `implementation_status` would flip `trainable` to False and drop the
+        # method from every trainable-only listing.  Pin the values, not "equals
+        # itself".
+        cpe = get_metadata("class_prior_estimation")
+        assert cpe.family == AlgorithmFamily.CLASS_PRIOR_ESTIMATION
+        assert cpe.requires_class_prior is False
+        assert cpe.implementation_status == ImplementationStatus.NATIVE
+        assert cpe.source_status == SourceStatus.OFFICIAL_RELATED
+        assert cpe.backend == Backend.NUMPY
+        assert cpe.maturity == Maturity.STABLE
+        assert cpe.scenario == [Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL]
+        assert cpe.assumption == [Assumption.SCAR]
+        # pusb / lbe: same shape (class inherits the base default, which the sync
+        # deliberately excludes), so their literals are live too.
+        assert get_metadata("pusb").requires_class_prior is False
+        assert get_metadata("lbe").requires_class_prior is False
 
     def test_basic_every_method_has_explicit_training_cost(self):
         """All entries carry an explicit training-cost level (no UNKNOWN)."""

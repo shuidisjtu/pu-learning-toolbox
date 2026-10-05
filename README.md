@@ -2,7 +2,7 @@
 
 # PU Learning Toolbox
 
-**Positive-Unlabeled learning in Python** -- 24 registered algorithms, research joint-shift adaptation, SCAR & SAR support.
+**Positive-Unlabeled learning in Python** -- registered PU algorithms, research joint-shift adaptation, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
 ![Status](https://img.shields.io/badge/status-1.11.0-blue)
@@ -10,7 +10,7 @@
 
 ## Features
 
-- **24 registered algorithms** from recent PU learning research, all native clean-room implementations, plus an isolated research joint-shift solver ([method cards](docs/research/method_cards/))
+- **Registered PU algorithms** from recent research, all native clean-room implementations, plus an isolated research joint-shift solver ([method cards](docs/research/method_cards/)); `pu-toolbox list-methods` prints the current set
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
 - **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
 - **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data
@@ -192,13 +192,16 @@ uv run ruff format --check pu_toolbox/      # format check
 # Quality gates
 uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
+uv run python scripts/check_api_docs.py       # api.md covers every public symbol (anti-drift)
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # baseline config vs source defaults
 uv run python scripts/check_format.py        # ruff check + format --check (full scope)
-uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry gate (declares itself inactive until the registry file lands; not wired into CI yet)
+uv run python scripts/check_comment_quality.py  # comment hygiene: legacy markers / bare TBD; trailing comments are errors inside migrated (strict) partitions, advisory elsewhere (self-reported on pass)
+uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry gate: deliberately NOT wired into CI -- before the registry is materialised it cannot fail (every input returns 0), so wiring it would add an always-passing check, against architecture principles §3.2; wire it in the commit that lands the registry
 uv run python scripts/generate_structure.py --check    # structure document consistency (--update to regenerate)
+uv run python scripts/generate_layer_deps.py --check  # architecture.md §2.1 layer table (--update to regenerate)
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines.

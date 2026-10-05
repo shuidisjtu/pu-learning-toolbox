@@ -25,6 +25,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import RUN_VIEWS
 from ...core.validation import (
     check_scalar_in_range,
     validate_pu_X_y,
@@ -545,7 +546,7 @@ class SelfPUClassifier(BasePUClassifier):
             estimator_name="SelfPUClassifier",
         )
         # Before any RNG use: an invalid view must not perturb the torch seed.
-        if os_or_ts not in {"os", "ts"}:
+        if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():

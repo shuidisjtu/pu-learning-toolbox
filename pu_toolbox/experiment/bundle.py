@@ -13,6 +13,7 @@ from typing import Literal
 
 import numpy as np
 
+from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.core.validation import validate_true_binary_labels
 
 LabelView = Literal["pu", "clean"]
@@ -59,7 +60,7 @@ def validate_bundle(bundle: DatasetBundle) -> None:
         On wrong view, invalid labels, overlapping indices, or
         ``test.for_selection`` not False.
     """
-    for name in ("train", "pu_val", "clean_val", "test"):
+    for name in ROLES:
         part = getattr(bundle, name)
         if part.view != "clean":
             raise ValueError(f"{name} must use view='clean' (real labels); got {part.view!r}.")
@@ -69,7 +70,7 @@ def validate_bundle(bundle: DatasetBundle) -> None:
         raise ValueError("test must have for_selection=False (may not be read by selection).")
 
     seen: dict[int, str] = {}
-    for name in ("train", "pu_val", "clean_val", "test"):
+    for name in ROLES:
         for idx in np.asarray(getattr(bundle, name).indices, dtype=object).tolist():
             if idx in seen:
                 raise ValueError(f"indices overlap between {name} and {seen[idx]}: {idx}.")

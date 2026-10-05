@@ -78,7 +78,7 @@
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU 预训练；Robust-PU.md:13, registry:473）",
+        "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU 预训练；Robust-PU.md:13, registry:robust_pu）",
         "adaptation_level": "benchmark-adapted（MLP 或注入可训练 CNN+MLP/raw-logit头；图像批次上卡、原行权重在 CPU 计算；非官方 CIFAR CNN/增强/scheduler/完整预算复现）",
         "checkpoint_accounting": {"epoch_bound": "pretrain_epochs + episodes", "bound_is_upper_limit": true, "inner_epochs_emit_extra_snapshots": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false}
       },
@@ -99,7 +99,7 @@
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU teacher 训练；Split-PU.md:9, registry:491）",
+        "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU teacher 训练；Split-PU.md:9, registry:split_pu）",
         "adaptation_level": "benchmark-adapted（MLP 或独立训练的注入 CNN：真实中间层 MSE/最终编码特征余弦；CPU 池分批上设备；Gaussian 扰动及余弦替代官方图像增强/SimSiam，非论文完整 CNN 配方）",
         "checkpoint_accounting": {"epoch_bound": "teacher_epochs + split_epochs + rounds * student_epochs", "bound_is_upper_limit": true, "splitter_early_stop_may_reduce_actual": true, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false}
       },
@@ -120,7 +120,7 @@
       "ledger_snapshot": {
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:256)",
+        "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:vpu)",
         "adaptation_level": "benchmark-adapted；clean-room MLP 版本，不宣称作者脚本或论文数值复现；上游的 20-epoch 学习率衰减未进入，lr 默认值相差一个数量级 (vpu_sampling_audit.md §9, VPU.md:53)"
       },
       "candidate_protocol_ref": null,

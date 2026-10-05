@@ -101,9 +101,10 @@ class PUTuner:
 
         from ..workflows._evaluation import resolve_metric_names
 
-        # scoring 与 metrics 必须分别规范化：用户指定 scoring="pu_recall" 而未传
-        # metrics 时，metric_names[0] 是默认指标（pu_zero_one_risk），若用其作为
-        # self.scoring 会按错误指标选最优参数（P0，不得再犯）。
+        # Normalize scoring and metrics independently. If scoring is set to
+        # ``pu_recall`` without explicit metrics, the first default metric is
+        # ``pu_zero_one_risk``; using it for selection would optimize the wrong
+        # objective (P0 regression guard).
         scoring_name = resolve_metric_names([scoring])[0]
         metric_names = resolve_metric_names(metrics or DEFAULT_METRICS)
         if scoring_name not in metric_names:

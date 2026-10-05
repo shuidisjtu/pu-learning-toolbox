@@ -25,5 +25,14 @@ def test_cnn_candidates_matches_registry_declarations():
 
 @pytest.mark.unit
 def test_cnn_candidates_matches_current_declarations():
-    """Phase-2 declarations: infomax/wconpu/nnpu support cnn today."""
-    assert cnn_candidates() == {"infomax_pu", "weighted_contrastive_pu", "nnpu"}
+    """Candidate declarations include the independently tested CNN adapters."""
+    assert cnn_candidates() == {
+        "infomax_pu",
+        "weighted_contrastive_pu",
+        "nnpu",
+        "pan",
+        "pulda",
+        "gradpu",
+        "robust_pu",
+        "split_pu",
+    }

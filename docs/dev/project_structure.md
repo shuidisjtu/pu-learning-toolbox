@@ -1,6 +1,9 @@
 # Project Directory Structure
 
 > 本文档是项目目录结构的权威定义。已实现/存在的文件如实列出，规划文件标注 `(planned)`。
+> 其中 `pu_toolbox/`、`tests/`、`scripts/`、`docs/` 四节的树块由 `generate_structure.py` 生成，
+> 文件名集合的双向一致由该门禁保证；其余各节（§1、§4、§4.1、§7）为人工维护。生成器覆盖哪些
+> 后缀、哪些子树只做分组登记、以及它**不**校验什么，见 §5 的范围说明。
 
 ## 1. 项目根目录
 
@@ -200,6 +203,8 @@ tests/
     test_ledger_registry_consistency.py # 台账↔registry 7 条不变量一致性契约(+1 条 HENG958 负责人复核可追溯性)
     test_public_exports.py              # 公共导出契约: 包 __init__ 的 __all__ 声明名必须真实存在(星号导入不炸), 补 check_api_docs 覆盖不到的漂移
     test_p3_candidate_admission.py      # P3 准入草稿与台账同步、冻结矩阵隔离契约
+    test_layer_boundaries.py            # 下层对 experiment 层的依赖边界 ratchet(静态 AST 扫描抓函数内导入 + 子进程导入图抓传递依赖)
+    test_registry_dynamic_import.py     # registry 经 importlib 按名字动态加载 estimators/prior 的向上边(Core→Algorithms/Estimation): 静态 AST 扫描与子进程导入图都看不见的已裁决例外, 由注册表观测量钉住
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -303,6 +308,16 @@ tests/
       test_check_skill_sync.py          # skill 双份一致性门禁脚本测试
       test_check_test_quality_exemptions.py # 测试质量门禁豁免审查测试
       test_generate_structure.py        # 结构文档生成器(--check/--update)单元测试
+      test_check_comment_quality.py     # 注释质量门禁(遗留标记/裸TBD/行尾注释)脚本测试
+      test_check_doc_links_sources.py   # 文档引用门禁源码语料(rule-1 在 .py 注释中的路径引用)测试
+      test_generate_layer_deps.py       # 层间依赖表生成器单元测试
+      test_check_doc_links_docs_scope.py # docs/ 纳入生成器后 rule-2 反向范围扩大的测试
+      test_generate_structure_docs_scope.py # 生成器 docs 作用域：按根后缀集收文件 + 分组子树豁免
+      test_check_comment_quality_partitions.py # 注释门禁分区机制(覆盖断言/空扫描拒绝/按分区判级/只增不减棘轮)
+      test_check_doc_links_rule3.py     # rule-3 架构表 vs 注册表 NATIVE: 提取不到即变红(单开文件避 15 测试上限)
+      test_check_project_metadata.py    # 项目元数据门禁失败路径: 拼装仓库跑 main(), 逐项变异须非零退出
+      test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
+      test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
       test_review_survey_split_receipt.py # P1.4 只读接收复核的失败关闭与 CLI 测试
       test_audit_survey_workbook.py     # 交付 Excel 独立对账的篡改、覆盖与舍入测试
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约
@@ -329,6 +344,7 @@ tests/
     core/
       test_device.py                    # resolve_device 设备解析共享助手测试
       test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
+      test_random.py                    # check_random_state 种子归一化助手直接测试(含与内联构造的双向差异)
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
@@ -423,8 +439,12 @@ tests/
       test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
+      test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
+      test_serialization_hashes.py      # 两个 JSON 摘要: strict 拒非有限数、lenient 仍写 NaN、有限载荷下两者一致
+      test_content_hashes.py            # 两个二进制摘要: array_hash 定 dtype/形状/字节且形状读自调用方(含 0-d)、file_hash 流式分块无关
     test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
     test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
+    test_stable_modules.py              # §4.8 稳定模块清单完备性解析(浅克隆下只读索引不查标签)
   integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
     test_model_configuration.py         # 命名参数、必填参数与 PUTuner 确定性
     test_pipeline.py                    # PUPipeline 全流程/先验解析/错误/可用性/确定性
@@ -444,6 +464,7 @@ tests/
     test_cv_fold_isolation.py           # CV 折间训练隔离(折内权重在变/模板不被训练/折间不泄漏)
     test_nnpu_pipeline_cnn.py           # nnPU 端到端 provenance 映射(cnn/mlp)+ encoder pickle 往返
     test_pan_pipeline_cnn.py            # PAN/PULDA 原生 CNN 流水线、种子复验与架构门禁
+    test_iris_smoke.py                  # Iris 冒烟回归: 22 个 native 分类器可训练性与预测接口(不断言准确率)
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -482,11 +503,19 @@ tests/
   test_validation_labels.py             # 标签含义校验(label_semantics 声明与真值二值性)
   test_registry.py                      # 注册机制
   test_builtin_methods.py               # 注册表元数据
+  estimator_factories.py                # 契约层与 Iris 层共享的零参估计器工厂(非测试模块; torch 缺席时可导入)
 ```
 
 测试权威级别（pytest markers）：`unit`（算法特有逻辑）、`math`（手工计算 → 失败=代码bug）、`property`（数学不变量 → 失败=代码bug）、`contract`（API 契约）、`integration`（跨组件集成）、`e2e`（真实子进程用户旅程）、`slow`（慢速）、`paper`（论文复现）。
 
 测试金字塔分层与 CI 映射：`unit` + `integration` 为 PR 快层（`-m "not slow and not e2e"`）；`e2e` + `slow` 为 nightly 顶层（`-m "slow or e2e"`）。
+
+**测试分层与选择口径（2026-10-04 复核）**：通用层与实验层按**目录**分开——`tests/unit/experiment/`
+是实验层侧（71 个测试文件，其中 36 个为 `test_survey_*`，其余测实验层自身机制：runner / protocols /
+bundle / manifest / tracking / trainers / strategies）。**选择口径不分层**：该目录内所有测试文件都标
+`pytest.mark.unit`，没有 survey 之类的分区标记，CI 也不按路径过滤（口径见 `compatibility.md` §4）。
+故「将通用算法测试和 Survey 协议测试分开」在**目录粒度成立**、在**选择粒度不成立**
+（引号内措辞取自治理方案的阶段 6 任务 5 原文；该转抄随阶段 6 收口已从本仓库移除）。
 
 ## 4. 示例（`examples/`）
 
@@ -589,42 +618,71 @@ benchmarks/
 
 ## 5. 文档（`docs/`）
 
+> **范围（如实）**：本节树块由 `generate_structure.py` 生成，`--check` 守住块内**文件名集合**的
+> 双向一致——在库却没列出报 missing，列出而磁盘上没有报 stale。作用域边界如下：
+>
+> - **覆盖的后缀**：`docs/` 根收 `.md`、`.png`、`.json`（文档、图资产、调研数据清单三类）。
+>   这三个以外的后缀（如将来出现的 `.csv`/`.ipynb`）不在块的作用域内：**既不必列出，也不由本块
+>   校验；但一旦被列出，报错且不会被静默删掉**——`--check` 会报「后缀越界」（消息与「路径不存在」
+>   区分开），`--update` 也会把这条 problem 打印出来，因为它确实会将该行从块中移除。
+> - **分组登记子树**：`adr/`（编号决策）与 `research/pu_survey/`（协议资产与各阶段交付/复核）
+>   按**分组**登记，块只指向各自索引 [adr/README.md](../adr/README.md)、
+>   [pu_survey/README.md](../research/pu_survey/README.md)——其文件随任务批次增删，逐条列会长期
+>   滞后。子树下**未列出**的文件属刻意省略，不计 missing（`research/pu_survey/data/` 的两个
+>   `.json` 即在此列）；子树下**已列出**的条目（`pu_survey_protocol.md`、`assets/` 的两张图）
+>   仍照常做存在性校验。其余路径逐篇列出在库文档。
+>   这条「按分组登记」本身有校验锚点：**声明的子树若在块里找不到自己的目录行，`--check` 报
+>   problem 并点名缺哪个子树**（否则「按索引登记」与「整棵子树被删掉」在门禁里长得一样），
+>   `--update` 会把该行补回为无注释的目录行、不会让子树就此消失。
+> - **catch 不到什么**：它只比对**文件名**，从不校验注释文字——注释由生成器原样读入、原样回抄，
+>   不来自磁盘。所以「路径仍在、注释已过时」的行，任何基于路径存在性的门禁在原理上都看不见；
+>   阶段 6 最终评审阻断的两条正是此类，且其中一条就落在**本节块内**（本块曾有一行把收口状态写成
+>   「阶段 6/7 未完项」，文件名与路径全程有效），另一条是 §3 说明里指向已删
+>   转抄的括号。文件名不变而含义改变时，只能由人改注释。
+>
+> 完整文档索引见 [docs/README.md](../README.md)。
+
 ```text
 docs/
-  README.md                    # 导航首页（用户 / 开发者 / 项目过程分栏）
-  adr/                         # 架构与流程决策记录(ADR 索引 + 编号决策)
-
-  user/                        # 用户文档：旅程式（快速开始 → 概念 → 操作 → 参考）
-    README.md                  # 用户旅程图
-    quickstart.md              # 5 分钟快速开始
+  adr/                                    # 架构与流程决策记录(ADR 索引 + 编号决策)
+  user/                                   # 用户文档：旅程式（快速开始 → 概念 → 操作 → 参考）
     concepts/
-      pu_problem.md            # PU 问题设定、符号表与 π 的角色
-      scar_sar.md              # SCAR/SAR 机制与识别边界
-      method_selection.md      # 选型决策原理（推荐器 + 决策表）
+      pu_problem.md                       # PU 问题设定、符号表与 π 的角色
+      scar_sar.md                         # SCAR/SAR 机制与识别边界
+      method_selection.md                 # 选型决策原理（推荐器 + 决策表）
     howto/
-      pipeline.md              # PUPipeline 端到端工作流
-      cli.md                   # 命令行接口
-      data_profiling.md        # 数据画像与假设提示
-      diagnostic_reports.md    # 生成诊断报告
-      sensitivity_analysis.md  # 类先验/标记倾向敏感性分析
-      sar_simulation.md        # SCAR/SAR 数据模拟
-      self_pu.md               # Self-PU 训练
+      pipeline.md                         # PUPipeline 端到端工作流
+      cli.md                              # 命令行接口
+      data_profiling.md                   # 数据画像与假设提示
+      diagnostic_reports.md               # 生成诊断报告
+      sensitivity_analysis.md             # 类先验/标记倾向敏感性分析
+      sar_simulation.md                   # SCAR/SAR 数据模拟
+      self_pu.md                          # Self-PU 训练
+      distribution_shift.md               # 分布漂移审计与协变量加权适配
+      model_tuning.md                     # 模型参数与 PU-aware 网格搜索
+      ui.md                               # 图形界面安装与使用
+      using_skill.md                      # 启用与使用 pu-workflow Skill
     reference/
-      api.md                   # 核心 API 精确契约
-
-  dev/                         # 开发者文档（贡献前必读）
-    architecture.md            # 当前架构:模块分层、模块依赖关系、数据流、注册表
-    project_structure.md       # 目录结构（本文档，权威来源）
-    new_algorithm_template.md  # 新算法接入模板（能力声明与测试要求）
-    dual_architecture_plan.md  # 双架构渐进式升级计划（阶段 0-4 与实施结果）
-    compatibility.md           # Python/依赖支持矩阵、CI 职责与构建策略
-    architecture_principles.md # 架构维护原则：腐朽信号、应手与审计历史
-    data_leakage_audit_design.md # 数据泄露审计设计（黑名单/重复样本/guard）
-    distribution_shift_aware_pu.md # 分布漂移感知 PU 设计（OOF 审计/协变量加权）
+      api.md                              # 核心 API 精确契约
+      index.md                            # API 索引：按模块分组的符号导航
+    README.md                             # 用户旅程图
+    quickstart.md                         # 5 分钟快速开始
+  dev/                                    # 开发者文档（贡献前必读）
+    architecture.md                       # 当前架构:模块分层、模块依赖关系、数据流、注册表
+    project_structure.md                  # 目录结构（本文档，权威来源）
+    new_algorithm_template.md             # 新算法接入模板（能力声明与测试要求）
+    dual_architecture_plan.md             # 双架构渐进式升级计划（阶段 0-4 与实施结果）
+    label_semantics_plan.md               # 标签语义契约：`label_semantics` 能力声明与检查点
+    experiment_layer.md                   # 实验层关键设计机制：可注入策略、视图/轨迹语义
+    compatibility.md                      # Python/依赖支持矩阵、CI 职责与构建策略
+    architecture_principles.md            # 架构维护原则：腐朽信号、应手与审计历史
+    comment_governance.md                 # 注释治理：判定标准、门禁规则、已裁决保留项与迁移策略
+    single_source_map.md                  # 单源地图：九个概念的真相源、消费者与重复判定
+    data_leakage_audit_design.md          # 数据泄露审计设计（黑名单/重复样本/guard）
+    distribution_shift_aware_pu.md        # 分布漂移感知 PU 设计（OOF 审计/协变量加权）
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
-    process_checklist.md       # 进度清单与发布状态（权威来源）
-    release_process.md         # 发布流程：版本策略、预检清单、上传、回滚与维护
-
+    process_checklist.md                  # 进度清单与发布状态（权威来源）
+    release_process.md                    # 发布流程：版本策略、预检清单、上传、回滚与维护
   research/
     method_cards/
       class_prior_estimation.md
@@ -643,6 +701,8 @@ docs/
       Split-PU.md
       LaGAM.md
       PUET.md
+      PULDA.md
+      VPU.md
       PUSB.md
       LBE.md
       Self-PU.md
@@ -650,18 +710,25 @@ docs/
       WConPU.md
       DGPU.md
       Importance_Weighted_PU_Shift.md
+      CVIR.md                             # CVIR 固定未标记正类先验的经典适配器（技术预集成）
+      GEN-PU.md                           # Gen-PU 三判别器/双生成器来源、视图和适配边界
+      Holistic-PU.md                      # Holistic-PU 趋势分组与伪 PN 适配边界
+      P3MIX.md                            # P3MIX 来源限制与未注册批组件
+      PAN.md                              # PAN 双网络风险与 CNN 接入边界
+      PULNS.md                            # PULNS 选择器与独立 clean support 标签预算
+      RP.md                               # RankPruning PU-only rho0=0 来源与 OOF 校准
     traditional_pu/
-      traditional_pu_metric_contract.md # 传统 PU 七算法单域指标、基线与统计契约
+      traditional_pu_metric_contract.md   # 传统 PU 七算法单域指标、基线与统计契约
       traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约
     distribution_shift/
       distribution_shift_metric_contract.md # 分布漂移审计、跨域评估与部署监控指标契约
-      joint_shift_research_protocol.md # JointShift 研究型算法评估协议与声明边界
+      joint_shift_research_protocol.md    # JointShift 研究型算法评估协议与声明边界
     pu_survey/
-      pu_survey_protocol.md          # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
       assets/
-        Dataset.png                  # 8 数据集类别标签与索引（Table B.1）
-        Dateset_PU.png               # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）
-
+        Dataset.png                       # 8 数据集类别标签与索引（Table B.1）
+        Dateset_PU.png                    # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）
+      pu_survey_protocol.md               # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
+  README.md                               # 导航首页（用户 / 开发者 / 项目过程分栏）
 ```
 
 ## 6. 脚本（`scripts/`）
@@ -677,8 +744,8 @@ scripts/
   check_project_metadata.py               (Python/CI/extras/Hatchling 跨文件一致性)
   check_math_rendering.py                 (方法卡 MathJax 渲染检查：缺上下标参数/括号配对/$ 配对)
   check_skill_sync.py                     (Skill 同步检查：skills/ 定义与脚本枚举一致，第 5 道门禁)
-  check_baseline_configs.py               (基线配置一致性：锁定配置 vs 源码构造器默认参数，第 6 道门禁)
-  check_format.py                         (格式门禁：ruff check + format --check 全目录，第 7 道门禁)
+  check_baseline_configs.py               (基线配置一致性：锁定配置 vs 源码构造器默认参数，第 7 道门禁)
+  check_format.py                         (格式门禁：ruff check + format --check 全目录，第 6 道门禁)
   check_api_docs.py                       (api.md 公共符号覆盖防漂移：静态提取 __all__ + 注册名校验，第 8 道门禁)
   generate_structure.py                   (结构文档生成器：--check 校验 / --update 重生成 project_structure.md 树块)
   prepare_survey_splits.py                (P1.4 四路 split 产物准备：data/raw 生成 train/pu_val/clean_val/test.npz 与 manifest)
@@ -690,6 +757,8 @@ scripts/
   summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
+  check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
+  generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
   review_survey_split_receipt.py          (P1.4 接收端只读校验：归档摘要、四角色契约与预处理统计)
   audit_survey_workbook.py                (只读交付 Excel 身份、协议覆盖与逐 seed 汇总对账)
   prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)

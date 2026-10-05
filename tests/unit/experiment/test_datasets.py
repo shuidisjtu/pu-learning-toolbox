@@ -92,7 +92,12 @@ def test_basic_derived_test_builds_four_way_bundle():
         "test": 80,
     }
     assert manifest["test_source"] == "stratified_source_20_percent"
-    assert len(manifest["indices_sha256"]) == 64
+    # Frozen: the split manifest's identity.  ``indices_sha256`` is what the
+    # transfer verifier recomputes, so it may not drift with a refactor.
+    assert (
+        manifest["indices_sha256"]
+        == "339d9ecb4f78417ef8f14e39892014120b59bda3981b0c625b283d40a64665e9"
+    )
     assert all(0.4 <= rate <= 0.6 for rate in manifest["role_positive_rates"].values())
 
 
@@ -119,6 +124,96 @@ def test_edge_the_population_prior_comes_off_the_pool_not_a_stratified_subset():
     # π_U belongs to a run's label view, not to the split: recording it here
     # would invite reading a c-dependent number as a dataset constant.
     assert "unlabeled" not in block
+
+
+@pytest.mark.parametrize("not_finite", [float("nan"), float("inf"), float("-inf")])
+@pytest.mark.parametrize(
+    ("parameter", "expected"),
+    [
+        ("source_indices", "floating-point train indices must be finite."),
+        ("test_indices", "floating-point test indices must be finite."),
+    ],
+)
+def test_param_entry_point_refuses_non_finite_indices(parameter, expected, not_finite):
+    """The survey entry point refuses indices that would not survive JSON.
+
+    ``mnist`` carries an official test split, so both parameters are reachable
+    here.  On a derived-test dataset such as ``spambase`` the ``test_indices``
+    argument is rejected by an earlier guard and this contract is never
+    reached, so that dataset cannot pin it.
+    """
+    X_source, y_source = _numeric_arrays()
+    X_test, y_test = _numeric_arrays(n_samples=60)
+    offset = len(X_source) if parameter == "test_indices" else 0
+    size = len(X_test) if parameter == "test_indices" else len(X_source)
+    indices = np.arange(offset, offset + size, dtype=float)
+    indices[7] = not_finite
+
+    with pytest.raises(ValueError) as refusal:
+        prepare_survey_dataset(
+            X_source,
+            y_source,
+            dataset="mnist",
+            seed=0,
+            X_test=X_test,
+            y_test=y_test,
+            **{parameter: indices},
+        )
+    assert str(refusal.value) == expected
+
+
+def test_edge_entry_point_refuses_non_scalar_index_elements():
+    """A tuple element used to be written as a JSON array and passed silently.
+
+    That is the compatibility change this contract introduced: the indices are
+    now required to be JSON scalars, so an element that cannot round-trip is
+    refused rather than silently becoming part of an artifact digest.
+    """
+    X_source, y_source = _numeric_arrays()
+    X_test, y_test = _numeric_arrays(n_samples=60)
+
+    source_indices = np.empty(len(X_source), dtype=object)
+    source_indices[:] = np.arange(len(X_source)).tolist()
+    source_indices[9] = (1, 2)
+    with pytest.raises(ValueError) as source_refusal:
+        prepare_survey_dataset(
+            X_source,
+            y_source,
+            dataset="mnist",
+            seed=0,
+            X_test=X_test,
+            y_test=y_test,
+            source_indices=source_indices,
+        )
+    assert str(source_refusal.value) == "train indices must contain JSON scalar values."
+
+    test_indices = np.empty(len(X_test), dtype=object)
+    test_indices[:] = np.arange(len(X_source), len(X_source) + len(X_test)).tolist()
+    test_indices[11] = (3, 4)
+    with pytest.raises(ValueError) as test_refusal:
+        prepare_survey_dataset(
+            X_source,
+            y_source,
+            dataset="mnist",
+            seed=0,
+            X_test=X_test,
+            y_test=y_test,
+            test_indices=test_indices,
+        )
+    assert str(test_refusal.value) == "test indices must contain JSON scalar values."
+
+    # Control: the same call with well-formed indices is accepted, so the
+    # refusals above are about the values, not about passing the parameter.
+    bundle, _ = prepare_survey_dataset(
+        X_source,
+        y_source,
+        dataset="mnist",
+        seed=0,
+        X_test=X_test,
+        y_test=y_test,
+        test_indices=np.arange(len(X_source), len(X_source) + len(X_test)),
+    )
+    assert len(bundle.test.indices) == len(X_test)
 
 
 def test_edge_rejects_unknown_labels_missing_test_and_tiny_splits():

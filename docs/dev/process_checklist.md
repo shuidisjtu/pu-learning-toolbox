@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前 24 个注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。新接入的 GradPU、PUET、VPU、PULDA、Robust-PU、Split-PU、LaGAM 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收；LaGAM 需独立干净 support set，当前 runner 不可用。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。新接入的 GradPU、PUET、VPU、PULDA、Robust-PU、Split-PU、LaGAM 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收；LaGAM 需独立干净 support set，当前 runner 不可用。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## 阶段历史（已闭环）
@@ -42,7 +42,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - **双架构阶段 0-2**：Registry 4 能力字段、build_encoder 导出、nnpu encoder 试点、CNN 提示文案回归、契约路线 B 收口。见 [dual_architecture_plan §5](dual_architecture_plan.md)。
 - **Survey 语义统一（issue #42）**：PUSB 拆为 `pusb`/`pusb_kernel`，先验门禁改由 registry 驱动，台账↔registry 一致性契约。见 [survey_execution_plan](../research/pu_survey/survey_execution_plan.md)。
 - **Self-PU 声明收口（issue #38/#45）**：`input_ndims` 恢复 `{2,4}`，非原生 CNN 由 `native_architectures` 承载。
-- **训练视图分层（P2.0e 后续）**：角色构造下沉到中立核心层 `pu_toolbox/core/training_views.py`（`TrainingView` + `build_training_view`：P / 原始 U / 损失 U 三角色与来源索引，不认识台账·方法名·manifest），实验层只留政策与历史——台账门禁、路由裁决、旧 `run_view` 词表在出口现算、manifest 构造。依赖方向固定 `estimators → core`、禁止 `estimators → experiment`（实测反向导入会拉起 28 个 estimator 模块），由子进程导入边界测试守住。所有权契约：三组 positions 与 `source_indices` 自有并冻结，`source_features`/`source_labels` 借用不复制且只读。本轮**未**迁移生产 estimator——各方法角色构造重复量仅一行到数行，生产迁移推迟到首个真实待接入算法；**该算法已于 2026-09-28 落地为 `vpu`**（P3.1 局部前置：两个池由核心层角色位置产生、默认视图 `ts`、显式 `os` 与 `ts` 都能真正抵达），接线前的冻结基线经隔离采集确认 `decision_function` / `history_` 全序列 / `max_log_phi_` **逐位相同**；同一变更修好路由器对显式 `os` 的转发（决策 D23）——旧规则只转发 `ts`，对一个默认视图不是 `os` 的方法会把显式 `os` 请求静默跑成 `ts`。见 [P2.0e 交付 §10/§11](../research/pu_survey/p2_0e_delivery.md)、[架构 §2.1](architecture.md)。
+- **训练视图分层（P2.0e 后续）**：角色构造下沉到中立核心层 `pu_toolbox/core/training_views.py`（`TrainingView` + `build_training_view`：P / 原始 U / 损失 U 三角色与来源索引，不认识台账·方法名·manifest），实验层只留政策与历史——台账门禁、路由裁决、旧 `run_view` 词表在出口现算、manifest 构造。依赖方向固定 `estimators → core`、禁止 `estimators → experiment`（实测 `estimators → experiment` 为 0；至于导入一侧会连带出现 estimator 模块，那是**根包 `pu_toolbox/__init__.py` 的伞形 re-export** 所致——任何 `pu_toolbox.*` 子模块的导入都会先执行它，与实验包自身无关），由子进程导入边界测试守住。所有权契约：三组 positions 与 `source_indices` 自有并冻结，`source_features`/`source_labels` 借用不复制且只读。本轮**未**迁移生产 estimator——各方法角色构造重复量仅一行到数行，生产迁移推迟到首个真实待接入算法；**该算法已于 2026-09-28 落地为 `vpu`**（P3.1 局部前置：两个池由核心层角色位置产生、默认视图 `ts`、显式 `os` 与 `ts` 都能真正抵达），接线前的冻结基线经隔离采集确认 `decision_function` / `history_` 全序列 / `max_log_phi_` **逐位相同**；同一变更修好路由器对显式 `os` 的转发（决策 D23）——旧规则只转发 `ts`，对一个默认视图不是 `os` 的方法会把显式 `os` 请求静默跑成 `ts`。见 [P2.0e 交付 §10/§11](../research/pu_survey/p2_0e_delivery.md)、[架构 §2.1](architecture.md)。
 - **SAR-OA 执行路径（issue #43）**：`--labeling-mechanism` 与 `--method` 正交，SAR 强制 OA-only。见 [协议 §2.3](../research/pu_survey/pu_survey_protocol.md)、[D8](../research/pu_survey/survey_execution_plan.md)。
 
 ### 已发布版本
@@ -58,8 +58,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 收尾统计
 
-- **算法**：21 个已注册方法，全部 native 实现
-- **质量门禁**：8 道（test_quality / doc_links / project_metadata / math_rendering / api_docs / skill_sync / baseline_configs / format）
+- **算法**：全部注册方法为 native 实现（当前集合见 registry / `pu-toolbox list-methods`）
+- **质量门禁**：清单见 [README](../../README.md) 的 Quality gates 与 CI 的 quality job
 - **v1 范围外**：Phase 2 三个经典包装器 + TIcE/AlphaMax 类先验估计
 - **依赖外部**：Phase 3 官方历史环境、WConPU CUDA/授权数据、DGPU EDM/CelebA 全量运行
 

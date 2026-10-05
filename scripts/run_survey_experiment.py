@@ -83,6 +83,12 @@ from typing import Any
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 
+# The view/role vocabularies this CLI offers are the core declarations, imported
+# rather than restated: ``--os-or-ts`` presents ``RUN_VIEWS`` and the split loader
+# reads ``ROLES``.  ``os`` is the survey default; ``ts`` applies the TS-OS
+# calibration and is gated on the method ledger declaring a native
+# TS/case-control assumption.
+from pu_toolbox.core.training_views import ROLES, RUN_VIEWS
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.manifest import load_manifest, write_manifest
 from pu_toolbox.experiment.method_ledger import load_ledger
@@ -98,13 +104,6 @@ from pu_toolbox.experiment.strategies import (
 from pu_toolbox.experiment.training_views import resolve_training_view
 
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
-
-#: Training data views this CLI can request (``--os-or-ts``, protocol §2.3).
-#: ``os`` is the survey default; ``ts`` applies the TS-OS calibration and is
-#: gated on the method ledger declaring a native TS/case-control assumption.
-OS_OR_TS_VIEWS: tuple[str, ...] = ("os", "ts")
-
-_ROLE_FILES: tuple[str, ...] = ("train", "pu_val", "clean_val", "test")
 
 # Label-view mechanisms this CLI can run (``--labeling-mechanism``): SCAR, the
 # survey's main row, plus the two SAR LBE variants of the pressure test.
@@ -278,7 +277,7 @@ class OracleMLP(MLPClassifier):
 def load_split_parts(data_dir: Path) -> tuple[DatasetPart, ...]:
     """Load the four clean partitions and validate the four-way contract."""
     base = Path(data_dir)
-    missing = [name for name in _ROLE_FILES if not (base / f"{name}.npz").is_file()]
+    missing = [name for name in ROLES if not (base / f"{name}.npz").is_file()]
     if missing:
         raise FileNotFoundError(
             f"missing split files in {base}: {', '.join(missing)}. "
@@ -292,7 +291,7 @@ def load_split_parts(data_dir: Path) -> tuple[DatasetPart, ...]:
             indices=np.load(base / f"{name}.npz")["indices"],
             for_selection=(name != "test"),
         )
-        for name in _ROLE_FILES
+        for name in ROLES
     )
     validate_bundle(DatasetBundle(*parts))
     return parts
@@ -443,7 +442,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--os-or-ts",
-        choices=OS_OR_TS_VIEWS,
+        choices=RUN_VIEWS,
         default=None,
         help=(
             "training data view (protocol §2.3; default: the method ledger's "
@@ -613,7 +612,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
             image_manifest = adapter_manifest = encoder = None
             bundle = source
             if args.dataset == "imdb" and any(
-                getattr(source, role).X.shape[1] != 384 for role in _ROLE_FILES
+                getattr(source, role).X.shape[1] != 384 for role in ROLES
             ):
                 raise ValueError("IMDB protocol requires SBERT 384-dimensional inputs")
             if args.dataset == "cifar10":
@@ -704,7 +703,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
             try:
                 metrics = run_one(
                     model,
-                    tuple(getattr(bundle, role) for role in _ROLE_FILES),
+                    tuple(getattr(bundle, role) for role in ROLES),
                     generator=generator,
                     protocols=[ProtocolOA()]
                     if args.oracle

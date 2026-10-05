@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test quality gate - enforce per-module limits, markers, and coverage.
 
-Rules (aligned with ``docs/project_structure.md`` §3):
+Rules (aligned with ``docs/dev/project_structure.md`` §3):
 1. **Count**: <= 15 test methods per paper / module file.
 2. **Markers**: every test class or method must carry a registered pytest
    marker (``unit``, ``math``, ``property``, ``contract``, ``slow``,
@@ -33,6 +33,7 @@ two can never drift apart; ``--lenient`` is the explicit opt-out.
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 from typing import NamedTuple
@@ -63,6 +64,10 @@ REGISTERED_MARKERS: set[str] = {
 # ``test_param_`` / ``test_edge_`` / ``test_determ_``, so the ``param``
 # and ``determ`` families also carry their literal prefixes as keywords
 # (``basic`` / ``edge`` already did).
+# A keyword matches only at a token boundary -- the start of the name or
+# just after an underscore (``_keyword_matches``) -- so ``edge`` no longer
+# matches inside ``ledger``.  A trailing underscore on a keyword means it
+# matches a whole token, not a prefix: ``all_`` is not ``allowed``.
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "basic": [
         "basic",
@@ -148,13 +153,10 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
     "test_p3_candidate_admission.py": {
         "determ": "static draft JSON versus ledger/protocol identity; no stochastic execution",
         "param": "static admission facts; schema/ledger API error paths have separate tests",
+        "edge": "fixed admission artifacts; malformed inputs tested by recipe/ledger validators",
     },
     "test_multistage_disk_preflight.py": {
         "determ": "pure budget arithmetic; disk errors: test_checkpoint_disk_preflight.py",
-    },
-    "test_p3_feature_adapter_smoke.py": {
-        "param": "success-path binding; validation: method tests and test_feature_adapter.py",
-        "edge": "invalid IDs/empty arrays: test_pulns.py and test_feature_adapter.py",
     },
     "test_p3_pulda_puet_runner_smoke.py": {
         "determ": "seeded access smoke; reproduction: test_pulda.py and test_puet.py",
@@ -219,12 +221,28 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "test_training_view_routing.py and test_survey_script_view.py"
         ),
     },
+    "test_ldce_api.py": {
+        "edge": (
+            "the estimator's input-boundary behaviour (w=0 centroid update, "
+            "singular covariance, identity data) is asserted in test_ldce_math.py "
+            "(test_w_zero_returns_m_hat), where the numeric core it exercises "
+            "lives; this file's own boundary inputs are its parameter refusals"
+        ),
+    },
     "test_survey_script_view.py": {
         "basic": (
             "asserted through resolve_training_view's return value; the CLI's "
             "end-to-end path is covered by test_survey_script.py"
         ),
         "determ": "a pure function of the ledger and a fit signature -- no randomness",
+        "edge": (
+            "this file drives the module's resolve_training_view entry point, "
+            "whose boundaries are the refusal paths carried by its param "
+            "declaration; the input-boundary cases of the same module's other "
+            "entry point, calibrate_ts_os_batch (a ts request against an "
+            "OS-native method, batches without both PU groups, bad indices), are "
+            "asserted in test_training_views.py"
+        ),
         "param": (
             "the flag's rejection paths are the refusal tests here: ts on an "
             "OS-native method, ts without the interface, ts with no estimator "
@@ -349,6 +367,7 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
     },
     "test_ledger_registry_consistency.py": {
+        "edge": "fixed ledger/registry identity facts; no callable input boundary in this contract",
         "param": (
             "ledger-registry data-consistency contract over a fixed JSON file and the "
             "builtin registry: nothing under test takes validated parameters, and the only "
@@ -616,6 +635,16 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "reproducibility one"
         ),
     },
+    "test_p3_feature_adapter_smoke.py": {
+        "edge": (
+            "one synthetic bundle exercises the shared path; empty/extreme "
+            "image inputs are the adapter's own test surface"
+        ),
+        "param": (
+            "adapt_image_bundle_to_features is called with fixed valid "
+            "arguments; invalid-bundle rejection is not this smoke's concern"
+        ),
+    },
 }
 
 
@@ -684,12 +713,32 @@ def _module_pytestmark(tree: ast.Module) -> bool:
     return False
 
 
+def _keyword_matches(name: str, keyword: str) -> bool:
+    """True if *keyword* matches a token of *name* (case-insensitive).
+
+    Bare substring matching credited names with categories they never
+    asserted: ``edge`` matched inside ``ledger`` and ``all_`` inside
+    ``small_``.  A keyword must therefore begin at the start of the name
+    or just after an underscore.
+
+    A keyword written with a trailing underscore declares that it matches
+    one *whole* token rather than a prefix of it (``all_`` matches
+    ``test_all_zeros`` and ``..._all``, but not ``..._allowed`` or
+    ``..._allocate``).  Every other keyword prefix-matches the token it
+    opens (``determ`` matches ``deterministic``).
+    """
+    lower = name.lower()
+    if keyword.endswith("_"):
+        token = re.escape(keyword.rstrip("_"))
+        return re.search(rf"(?:^|_){token}(?:_|$)", lower) is not None
+    return re.search(rf"(?:^|_){re.escape(keyword)}", lower) is not None
+
+
 def _classify_name(name: str) -> set[str]:
     """Return the coverage categories that *name* belongs to."""
     found: set[str] = set()
-    lower = name.lower()
     for cat, keywords in CATEGORY_KEYWORDS.items():
-        if any(kw in lower for kw in keywords):
+        if any(_keyword_matches(name, kw) for kw in keywords):
             found.add(cat)
     return found
 

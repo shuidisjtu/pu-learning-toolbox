@@ -75,7 +75,13 @@ def test_determ_manifest_indices_and_hash_are_reproducible():
     second = calibrate_ts_os_batch(X.copy(), y_pu.copy(), **kwargs)
 
     assert first.manifest == second.manifest
-    assert len(first.manifest["indices_sha256"]) == 64
+    # Frozen: this digest covers the serialised index payload, so it is an
+    # artifact identity.  A change in how indices are serialised must fail
+    # here rather than silently re-baseline every recorded manifest.
+    assert (
+        first.manifest["indices_sha256"]
+        == "1b4c4c48c3c16feffccd2b8686689dd4a419562c6dd26d666e32fa28ae45bf81"
+    )
 
 
 def test_edge_rejects_ts_for_os_method_and_non_train_roles():

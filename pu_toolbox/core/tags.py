@@ -27,10 +27,9 @@ class Scenario(str, Enum):
 class Assumption(str, Enum):
     """Labeling mechanism assumption.
 
-    ``SAR`` is the canonical name for instance-dependent labeling
-    (P(s=1|y=1, x) = c(x)).  Registry consumers that accept raw
-    strings should normalise ``"instance_dependent"`` → ``"SAR"``
-    before comparison.
+    ``SAR`` is the canonical name for instance-dependent labeling.
+    Registry consumers that accept raw strings should normalise
+    ``"instance_dependent"`` → ``"SAR"`` before comparison.
     """
 
     SCAR = "SCAR"  # P(s=1|y=1, x) = constant

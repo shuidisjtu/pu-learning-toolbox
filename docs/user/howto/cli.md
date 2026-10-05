@@ -1,8 +1,11 @@
 # 使用命令行接口
 
 > 前置条件：先完成 [快速开始](../quickstart.md)（3 条命令的完整流程）。
-> 概念：CLI 是 [PUPipeline](../howto/pipeline.md) 的薄封装——所有学习逻辑在库内，
-> CLI 只负责参数解析、CSV 读写与错误映射。
+> 概念：CLI 是库层的薄封装——学习逻辑在库内；`sensitivity`、`recommend` 两个子命令
+> 在 CLI 内直接对估计器 `fit`，其余子命令委托库层；`run` 子命令另自持配置合并、
+> 网格拼装与制品落盘：`report.json`/`report.md` 每次都写，`tuning.json`/`comparison.json`/
+> `model.pkl` 按分支写出（配置含网格时出 `tuning.json`、含多模型设置时出 `comparison.json`、
+> 传 `--save-model` 才出 `model.pkl`）。
 
 ## 快速上手（3 条命令）
 

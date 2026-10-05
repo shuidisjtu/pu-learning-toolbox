@@ -25,7 +25,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
-from ...core.training_views import build_training_view
+from ...core.training_views import RUN_VIEWS, build_training_view
 from ...core.validation import validate_pu_X_y
 
 
@@ -136,7 +136,7 @@ class VPUClassifier(BasePUClassifier):
         X = _finite_features(X, name="X")
         if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
             raise ValueError("class_prior, if supplied, must be in (0, 1)")
-        if os_or_ts not in {"os", "ts"}:
+        if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         self._validate_parameters()
 

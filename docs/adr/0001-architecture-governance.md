@@ -15,10 +15,9 @@
 
 1. **审计框架**:架构腐朽四信号(删除风险/局部性/承重 bug/疤痕组织)+ 三表现
    (真相分裂/概念膨胀/治理腐朽),判定绿/黄/红。
-2. **单源助手机制**:跨模块共用逻辑提取为单一实现,现 8 项:canonical_hash、
-   json_safe、sigmoid_stable、rbf_weights、validate_true_binary_labels、
-   check_scalar_in_range、solve_prior_from_positive_fraction、git_worktree_dirty。
-   新代码必须复用而非内联重写;清单维护于 `CONTRIBUTING.md` §5.1。
+2. **单源助手机制**:跨模块共用逻辑提取为单一实现。新代码必须复用而非内联重写;
+   清单(位置、用途与选择边界)维护于 `CONTRIBUTING.md` §5.1。此处不再复制枚举,
+   以免与本记录一同漂移。
 3. **代谢率红线**:PR 增量检查发现 >1 处单源违规 = 黄线(PR 内收敛治理);
    ≥3 处或同一概念第 3 次分裂 = 红线(触发该区域结构性重构评估)。
 4. **审计复跑条件**:每发布一个 minor 版本后,或每引入 >5 个新文件时。

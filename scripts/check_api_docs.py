@@ -17,6 +17,8 @@ need torch or other optional deps):
 The check is name-presence based and intentionally shallow: the reference
 doc is the human-facing contract, docstrings are the behavioural truth
 source (ADR-0013); this gate only guards against forgotten/renamed symbols.
+Either symbol source coming back empty is itself a failure -- a renamed or
+unparsable file must not shrink the scan into a vacuous pass.
 
 Run:  uv run python scripts/check_api_docs.py
 """
@@ -87,6 +89,13 @@ def main(argv: list[str] | None = None) -> int:
     if not exports:
         print(
             "Could not parse __all__ from pu_toolbox/__init__.py; refusing to pass empty scan.",
+            file=sys.stderr,
+        )
+        return 1
+    if not registered:
+        print(
+            "Could not parse any AlgorithmMetadata(name=...) entry from "
+            "pu_toolbox/registry/builtin_methods.py; refusing to pass empty scan.",
             file=sys.stderr,
         )
         return 1
