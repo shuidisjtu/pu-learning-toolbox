@@ -10,7 +10,6 @@ These are inference snapshots, not optimizer/RNG training-resume checkpoints.
 from __future__ import annotations
 
 import copy
-import hashlib
 import inspect
 import tempfile
 import time
@@ -19,16 +18,9 @@ from pathlib import Path
 
 import numpy as np
 
+from ..utils.serialization import file_hash
 from .protocols import Trainer, route_training_view
 from .tracking import EpochRecord, RunTrajectory
-
-
-def _file_digest(path):
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 class SnapshotPredictor:
@@ -118,7 +110,7 @@ class EpochCheckpoint:
         """Verify bytes before loading tensors; reject missing/corrupt weights."""
         import torch
 
-        if _file_digest(self.path) != self.sha256:
+        if file_hash(self.path) != self.sha256:
             raise ValueError("checkpoint weight digest mismatch")
         network = copy.deepcopy(self.template)
         network.load_state_dict(torch.load(self.path, map_location="cpu", weights_only=True))
@@ -254,7 +246,7 @@ class EpochCheckpointTrainer(Trainer):
                         int(epoch),
                         component,
                         str(path.resolve()),
-                        _file_digest(path),
+                        file_hash(path),
                         str(next(network.parameters()).device),
                         cutoff,
                         templates[component],

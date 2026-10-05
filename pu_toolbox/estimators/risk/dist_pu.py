@@ -26,6 +26,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import RUN_VIEWS
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 
 
@@ -155,7 +156,7 @@ class DistPUClassifier(BasePUClassifier):
             raise ImportError("DistPUClassifier requires the optional 'torch' dependency") from exc
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="DistPUClassifier")
         # Before any RNG use: an invalid view must not perturb the torch seed.
-        if os_or_ts not in {"os", "ts"}:
+        if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         pi = self.class_prior if class_prior is None else class_prior
         check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)

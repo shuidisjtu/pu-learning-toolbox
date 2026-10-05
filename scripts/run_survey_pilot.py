@@ -62,6 +62,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from pu_toolbox.core.training_views import RUN_VIEWS
 from pu_toolbox.experiment.pilot_plan import (
     Batch,
     PilotRun,
@@ -327,7 +328,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--device", default=None, help="passed through to the unit script")
     parser.add_argument(
         "--os-or-ts",
-        choices=("os", "ts"),
+        choices=RUN_VIEWS,
         default=None,
         help=(
             "passed through to the unit script (default: each method's ledger view). "

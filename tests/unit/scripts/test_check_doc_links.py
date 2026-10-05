@@ -29,7 +29,7 @@ def test_basic_structure_scan_includes_unstaged_source_not_ignored_cache(tmp_pat
     (tmp_path / "cache").mkdir()
     (tmp_path / "cache/ignored.py").write_text("", encoding="utf-8")
     monkeypatch.setattr(g, "PROJECT_ROOT", tmp_path)
-    assert g.tracked_py_files() == ["new_module.py"]
+    assert g.tracked_files() == ["new_module.py"]
 
 
 def _make_tree(tmp_path: Path, files: dict[str, str]) -> Path:
@@ -236,7 +236,7 @@ def _run_rule2(tmp_path, monkeypatch, doc_text: str, tracked: list[str]) -> list
     md = tmp_path / "project_structure.md"
     md.write_text(doc_text, encoding="utf-8")
     monkeypatch.setattr(d, "PROJECT_ROOT", tmp_path)  # legacy planned checks
-    monkeypatch.setattr(g, "tracked_py_files", lambda: tracked)
+    monkeypatch.setattr(g, "tracked_files", lambda: tracked)
     return d.check_planned_consistency(md)
 
 

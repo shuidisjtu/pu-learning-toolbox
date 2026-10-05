@@ -36,7 +36,6 @@ has verified.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import tarfile
 from collections.abc import Iterable
@@ -45,7 +44,7 @@ from typing import Any
 
 import numpy as np
 
-from pu_toolbox.utils.serialization import canonical_hash
+from pu_toolbox.utils.serialization import canonical_hash, file_hash
 
 from .survey_protocol import ROLES
 
@@ -59,18 +58,14 @@ MANIFEST_NAME = "split_manifest.json"
 #: against a document it did not understand.
 INDEX_SCHEMA_VERSION = "1.0"
 
-#: 1 MiB read chunks: large enough that hashing a 800 MB split is I/O bound
-#: rather than syscall bound, small enough not to hold a partition in memory.
-_CHUNK_BYTES = 1024 * 1024
-
 
 def file_sha256(path: str | Path) -> str:
-    """Stream a file through SHA-256 without loading it whole."""
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(_CHUNK_BYTES), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    """Stream a file through SHA-256 without loading it whole.
+
+    Kept as a named entry point because the archive tests import and monkeypatch
+    it; the recipe itself is :func:`~pu_toolbox.utils.serialization.file_hash`.
+    """
+    return file_hash(path)
 
 
 def read_indices(path: Path) -> list[int]:

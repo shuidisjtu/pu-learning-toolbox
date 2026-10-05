@@ -70,6 +70,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
 | `vpu`（`variational_pu`） | `VPUClassifier` | risk | `hidden_dim` / `max_epochs` / `regularization_weight` / `mixup_alpha` | [VPU](../../research/method_cards/VPU.md) |
 | `pulda`（`label_distribution_alignment`） | `PULDAClassifier` | risk | `class_prior` / `warmup_epochs` / `pu_epochs` / `margin` / `mixup_weight` | [PULDA](../../research/method_cards/PULDA.md) |
+| `cvir`（`conditional_value_ignoring_risk`） | `CVIRClassifier` | risk | `unlabeled_positive_prior` / `hidden_dim` / `max_epochs` / `warm_start_epochs` | [CVIR](../../research/method_cards/CVIR.md) |
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
@@ -1365,7 +1366,7 @@ docstring。
 | `SurveyDatasetSpec` | survey 数据集的模态、正负类映射和官方 test 策略只读规格 |
 | `survey_dataset_catalog` | 返回 MNIST/F-MNIST/CIFAR-10/ADNI/IMDB/20News/Spambase/Connect-4 锁定目录 |
 | `binaryize_survey_labels` | 按协议锁定映射生成真实二元标签，并拒绝目录外类别 |
-| `prepare_survey_dataset` | 从调用方提供的数组确定性生成 90% train/5% PU-val/5% clean-val 和官方或派生 test，返回 bundle + split manifest |
+| `prepare_survey_dataset` | 从调用方提供的数组确定性生成 90% train/5% PU-val/5% clean-val 和官方或派生 test，返回 bundle + split manifest；索引参数可省略（`source_indices` 默认 `np.arange`；官方 test 数据集的 `test_indices` 默认接续序号），显式传入时须为与数据等长、互异的一维有限 JSON 标量数组（`None`/`bool`/`int`/`float`/`str`），否则拒绝；派生 test 的数据集（Spambase/Connect-4/ADNI）不接受 `test_indices`，其 test 索引继承 `source_indices` |
 | `fit_survey_image_preprocessing` | 仅用 train 图像拟合通道统计，锁定 NCHW/通道/缩放和 ResNet-18 配置，返回单位区间数组与可审计规格 |
 | `transform_survey_images` | 对验证/test 复用 train 阶段冻结的形状和缩放合约，拒绝跨分区缩放漂移 |
 | `build_survey_image_encoder` / `build_survey_image_augmentation` | 从冻结规格构造随机初始化 ResNet-18；增强只对 `train` 返回，PU/clean 验证与 test 固定为 `None` |
@@ -1380,14 +1381,16 @@ docstring。
 | `SARLBEAGenerator` | SAR-LBE-A：`p ∝ scores^k`（k=10）+ 0.9/0.1 平滑（PU-Bench 2d95a19） |
 | `SARLBEBGenerator` | SAR-LBE-B：`p ∝ (1.5 + shrink_coef − scores)^k`，负值截断、全零均匀兜底 |
 | `CleanLabelGenerator` | PN oracle 视图：真实标签原样透传（固定 `n_L = n₊`）、声明 `output_view="clean"`，PA 因视图校验结构性拒绝；`c` 记录但不生效（oracle 对 c 恒定） |
-| `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 proxy accuracy（Wang et al. 2026 Def. 1 的 OS 分支，见 `proxy_accuracy`）在 min-max 归一化的阈值网格上选 run/epoch/阈值；`class_prior` 必传，缺失即报错 |
+| `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 proxy accuracy（Wang et al. 2026 Def. 1 的 OS 分支，见表下小注的 `proxy_accuracy`）在 min-max 归一化的阈值网格上选 run/epoch/阈值；`class_prior` 必传，缺失即报错 |
 | `ProtocolOA` | OA 对照：min-max 归一化后，按真实标签验证集 accuracy 选阈值与 run |
 | `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
 | `DeepFitTrainer` | 深度估计器：优先探测无真实标签泄漏的 `pu_validation_data`，否则探测 `validation_data`，并将 `history_` 转成选模轨迹；验证 fit 已成功但无 history 时只产生单点轨迹、不重复 fit |
 | `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线（声明 `trains_on_real_labels=True`）。必须配合 `CleanLabelGenerator`（真实标签视图）与 `protocols=[ProtocolOA()]` 使用——runner 默认生成 PU 视图，单独使用本类会被 runner 在训练前拦截 |
 | `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
-| `proxy_accuracy` | PU 验证集上的 proxy accuracy（Wang et al. 2026 Def. 1，OS 分支）：`(2π/n'_P)·Σ_{D'_P}1[f≥θ] + (1/(n'_P+n'_U))·Σ_{D'_P∪D'_U}1[f<θ]`，第二项遍历全部验证样本；π 是第一项权重，改变 argmax 而非仅尺度 |
 | `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
+
+不在包级命名空间、故不入上表：`proxy_accuracy`（`pu_toolbox.experiment.strategies` 下，
+`ProtocolPA` 选模所用的 proxy accuracy，见 `pu_toolbox/experiment/strategies.py`）。
 
 三个 PU 标记生成器（`SCARGenerator` / `SARLBEAGenerator` / `SARLBEBGenerator`）的生成元数据
 （落入 manifest 的 `generation.train` / `generation.pu_val`）共享同一审计词汇：`generator`

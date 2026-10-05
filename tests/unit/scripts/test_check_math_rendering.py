@@ -2,7 +2,9 @@
 
 Covers the architecture-decay fix: the gate must scan the real
 method_cards dir no matter what cwd it is run from, and must refuse
-to fake-green when the scan finds no files at all.
+to fake-green when the scan finds no files at all.  Then the main
+detection path: a card carrying broken math must make ``main()``
+return 1 and name the offending file.
 """
 
 from __future__ import annotations
@@ -32,6 +34,23 @@ def test_empty_scan_refuses_with_error(tmp_path, monkeypatch, capsys):
     rc = m.main([])
     assert rc == 1
     assert "No method cards found" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_edge_bad_formula_fails_main(tmp_path, monkeypatch, capsys):
+    """A card with real broken math must turn the gate red and name the file."""
+    card_dir = tmp_path / "method_cards"
+    card_dir.mkdir()
+    (card_dir / "bad_card.md").write_text(
+        "The prior $`class_prior_`$ is estimated from the labeled set.\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(m, "SCAN_DIRS", ("method_cards",))
+    rc = m.main([])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "bad_card.md" in out
+    assert "missing superscript/subscript argument" in out
 
 
 @pytest.mark.unit

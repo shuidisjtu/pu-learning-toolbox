@@ -53,7 +53,7 @@
 
 **为什么这样设计**：生成/训练/选模三个变化点各自成轴、互不交织，用「一个方法 + 一个声明属性」的
 最小策略面即可 DIY；避免 Bridge 双层继承的过度设计（YAGNI，见 ADR-0018 备选方案）；runner 不继承、
-策略不继承，两侧独立演化；零改动现有 `PUPipeline` 与分类器 `fit(X, y)` 契约。
+策略不继承，两侧独立演化；未改写现有 `PUPipeline` 与分类器既有契约语义，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的 **11 个 `.py` 源文件**（git 跟踪的源文件，不含 `__pycache__` 一类缓存）。
 
 **如何使用（DIY 扩展）**：实现一个策略 ABC 的抽象方法 + 声明属性，作为**实例**注入（非类；trainer
 经 `config["trainer"]` 传入，runner 显式拒绝传类）。硬性契约：
@@ -65,9 +65,9 @@
 **半注入边界**：是否套逐 epoch checkpoint 捕获由 `type(trainer) in (DeepFitTrainer, SupervisedTrainer)`
 精确类型判断决定——自定义 trainer 不会自动获得 checkpoint 捕获，需自行处理。
 
-### D2 零改动现有层
+### D2 未改写现有层契约语义
 
-与 `PUPipeline`/分类器签名零改动；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），
+与 `PUPipeline`/分类器**未改写既有契约语义**，`fit` 新增可选 kwarg（`os_or_ts`、`epoch_callback`）以支持训练视图与逐 epoch 回调；实测 `pu_toolbox/estimators/` 下含其中任一关键字的 **11 个 `.py` 源文件**（git 跟踪的源文件，不含 `__pycache__` 一类缓存）；仅 nnPU `history_` 内部补记 `val_risk`（供深度轨迹读取），
 SA 语义与早停逻辑不变。详见 ADR-0018 决策 2。
 
 ### D3 公共 API 与数据合约
@@ -83,8 +83,8 @@ is False` 强制。
 **为什么**：runner 不切分原始数据、只接受切好的四路数据——切分决定权与责任在协议/研究团队
 （`scripts/prepare_survey_splits.py` 只执行、不擅自决定，见协议 §2.4 第 3/7 条）。
 
-`model` 本身由调用方经 `registry.get_algorithm` 查表取类、实例化后注入，实验层不静态 import 算法
-文件（解耦机制见 [architecture.md](architecture.md) §2.1 实验层注入链）。
+`model` 本身由调用方经 `registry.get_algorithm` 查表取类、实例化后注入，实验层不在模块级静态 import 算法
+文件（`registry` 与 estimator 均只在函数内导入，对应 [architecture.md](architecture.md) §2 分层表的「仅函数内」标注；解耦机制见其 §2.1 实验层注入链）。
 
 ### D4 视图语义 —— clean 入 / PU 运行时生成 / 防泄漏
 
@@ -131,6 +131,18 @@ clean 视图（PN oracle）运行里，`pu_val_view` 携带的是真实标签，
   [epoch_checkpoint_delivery](../research/pu_survey/epoch_checkpoint_delivery.md)。
 - **PN oracle**：MLP 路径已接入（Phase 1）；CNN oracle 的 clean-val checkpoint 选择与
   backbone 对齐列为 Phase 2。见 [pn_oracle_integration](../research/pu_survey/pn_oracle_integration.md)。
+
+**与通用层的边界（2026-10-04 复核）**：实验层的跨层依赖为——**模块级只有 Core**（`core/`、`utils/`）；
+**函数内另有** Core（`registry/`）、Evaluation（`metrics/`，`runner.py:751`）、**Algorithms**
+（`estimators/`，`experiment/image.py:223`、`:243`）。这与 `architecture.md:87` 的生成行一致：
+`Experiment` 层的依赖为 **Core、Algorithms（仅函数内）、Evaluation（仅函数内）**（该行在生成块内、勿手改）。
+数据画像、advisor 推荐、PU 感知 CV 与 `PUPipeline` 编排都**没有**被复制（与下文第 ③ 项不冲突：`_stratified_split` 切的是干净标签、且实验层对本仓库的 `pu_toolbox/model_selection` 零 import——`datasets.py:11` 用的是第三方 `sklearn.model_selection`，与本仓库同名包无关）。
+三处「看似重复」的实现及判定：① `survey_execution.py` 的 `PilotOracleMLP` 手写训练循环——
+**不算泄漏**（oracle 基线不是已注册算法，进 `estimators/` 会污染算法谱系）；② 报告组装
+（`survey_summary.py` / `survey_comparison.py` / `survey_provenance.py`）——**不算泄漏**
+（survey 制品 schema 与用户报告不同物）；③ `datasets.py` 的 `_stratified_split` 与两处内联
+accuracy（`runner.py`、`strategies.py`）——**可收敛但未收敛**：收敛会改动已落盘制品
+（split / manifest），须独立批次 + 制品对拍。
 
 ## 3. 文档与代码的分工（实施载体约定）
 

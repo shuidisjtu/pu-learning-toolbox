@@ -114,7 +114,7 @@ GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复
 | P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 完成独立组件、采样假设裁决（D21）、台账与视图接线（D23）；PULDA 已补台账及 LDA/margin 风险 TS-OS 校准；CVIR 已有固定 α_U 表格适配器、方法卡与台账，但总体 π 不能无条件代替 α_U，故校准未接线、显式 ts fail-loud。三者均未进入冻结矩阵；共享 backbone/原生图像路径、公开结果对照、多 seed 资源记录及双人复核仍未完成，不得读作 P3.1 验收。PAN、RP、PULNS 待办 |
 | P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 的独立组件、方法卡与台账均已有；Robust-PU/Split-PU 仅 nnPU warm-up/teacher 校准，PUET 节点 U 风险与 Grad-PU 的 U 风险/插值池已接 TS-OS；LaGAM 需要独立干净 support set，当前 PA-ineligible 且无可安全替换的同形未标记风险项，校准不适用。均未进入冻结矩阵，公开结果对照、共享 backbone/原生图像路径、多 seed GPU/资源记录及合作者复核仍待办；表格适配不等于论文图像数值复现。PUET 是 CPU 树方法，其 P3.2 分组与 GPU 条款适用性须复核。GEN-PU、Holistic-PU、P3MIX 待办 |
 | P3.3 | 深度 GPU 验证与调度 | P3.2 | GPU 预约、显存预算、失败/OOM 重试及结果路径均有记录，且逐 run 记录实例与卡型；与 P2.1 已不共享单卡，无跨方窗口竞争 | ⏳ 待办 / HENG958 |
-| P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | ⏳ 待办 / shuidisjtu |
+| P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | **阶段 0 已落地**（2026-10-02，`cb2fe0f`/PR #94）：模块 `pu_toolbox/experiment/survey_recipe_registry.py`、门禁 `scripts/check_survey_recipe_registry.py`（registry JSON 未物化时**声明跳过**、未接入 CI）；**阶段 1+ 待办** / shuidisjtu：冻结 registry JSON 未物化、`validate_manifest_binding` 未接入 runner 与 pilot，故验收标准「版本写入 artifact 并受 manifest 校验」未达成。 |
 | P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
 
 > 本地预集成的台账、风险视图接线和 2026-09-28 单卡 CUDA smoke 证据，见 [P3 技术预集成交接](p3_preintegration_handoff.md)；技术预集成已提交（`7e779d2`），不改变正式验收状态。

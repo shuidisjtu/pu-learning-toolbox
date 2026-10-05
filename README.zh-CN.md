@@ -2,7 +2,7 @@
 
 # PU Learning Toolbox
 
-**正例-无标记学习 Python 工具箱** -- 21 个注册算法、联合漂移研究适配，支持 SCAR 与 SAR。
+**正例-无标记学习 Python 工具箱** -- 内置注册算法、联合漂移研究适配，支持 SCAR 与 SAR。
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
 ![Status](https://img.shields.io/badge/status-1.11.0-blue)
@@ -10,7 +10,7 @@
 
 ## 特性
 
-- **21 个注册算法**，来自近年 PU 学习研究论文，全部为 native clean-room 实现；另有隔离的联合漂移研究求解器（[方法卡](docs/research/method_cards/)）
+- **近年 PU 学习研究的注册算法**，全部为 native clean-room 实现；另有隔离的联合漂移研究求解器（[方法卡](docs/research/method_cards/)）；当前集合见 `pu-toolbox list-methods`
 - **兼容 sklearn API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`，支持 Pipeline 与交叉验证
 - **SCAR & SAR** -- 常数与实例相关两种标记机制，附数据模拟器
 - **数据画像 + 算法推荐** -- 自动质量检查、SCAR/SAR 证据，以及七维评分推荐器为你的数据选方法
@@ -137,6 +137,17 @@ Survey 方法，并且只报告 OA。协议、当前执行状态和报告边界�
 split 传输由 `run_survey_pilot.py`、`aggregate_survey_runs.py`、
 `survey_splits_archive.py` 驱动（语义见各自 docstring 与 `docs/research/pu_survey/`）。
 
+已完成批次集的审计与数值汇总由 `audit_survey_batches.py` 与
+`summarize_survey_results.py` 驱动。两者都接受批次根白名单，并且只写自己的 `--out-dir`：
+前者报告它能判定的每一条结构与公平性发现，对判不了的检查逐条记名、而不是记为通过；
+后者为每个可比行给出一个均值与样本标准差，成本按 run 记录，以免在两个选模协议之间重复计费。
+两者都不写结果树。
+
+把预注册的文献对照附着到已完成的汇总上由 `compare_survey_results.py` 驱动：它读取该
+`summary.json`，并让每一行经冻结矩阵裁决。它报告矩阵为每个单元分配的类别，且只在矩阵授权、
+且本协议判定该行为 `formal` 时才做数值裁决；其余行一律列入未决而不参与比较——因此，
+没有规则的类别不能被读作「一致」。
+
 ## AI 工作流 Skill
 
 `pu-workflow`（Agent Skills 开放标准）以自然语言驱动完整 PU 分析流程：
@@ -159,12 +170,16 @@ uv run ruff format --check pu_toolbox/      # 格式检查
 # 质量门禁
 uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
+uv run python scripts/check_api_docs.py       # api.md 覆盖全部公共符号（防漂移）
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # 基线配置与源码默认参数一致性
 uv run python scripts/check_format.py        # 格式门禁（ruff check + format --check，全目录）
+uv run python scripts/check_comment_quality.py  # 注释卫生：遗留标记 / 裸 TBD；行尾注释在已迁移分区为 error，未迁移分区为 advisory 并在通过时自报
+uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry 门禁：刻意不接入 CI——注册表物化前它不可能变红（任何输入都走 return 0），接入等于新增一道永远通过的检查，与架构原则 §3.2 相抵；注册表落地那一笔再接
 uv run python scripts/generate_structure.py --check    # 结构文档一致性(--update 重新生成)
+uv run python scripts/generate_layer_deps.py --check  # architecture.md §2.1 分层表（--update 重新生成）
 ```
 
 贡献指南见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。

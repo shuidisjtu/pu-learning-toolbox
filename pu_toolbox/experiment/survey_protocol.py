@@ -9,12 +9,16 @@ See docs/research/pu_survey/survey_execution_plan.md, P2.0a.
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+from pu_toolbox.core.training_views import ROLES
+from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_canonical_hash
+
+from .feature_adapter import encoder_state_sha256
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
@@ -23,7 +27,6 @@ PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
 #: one.  A caller that resolves a name and a caller that resolves a path have to
 #: agree about which matrix "survey-v1.2" is, which is why this list has one home.
 PROTOCOL_ALIASES = ("survey-v1", "survey-v1.1", "survey-v1.2")
-ROLES = ("train", "pu_val", "clean_val", "test")
 
 
 def resolve_protocol_path(value: str | Path) -> Path:
@@ -173,20 +176,22 @@ def unit_checkpoint_profile(protocol: dict, row: dict, *, input_dim: int) -> str
 
 
 def digest(value: Any) -> str:
-    """Hash canonical JSON, independent of whitespace and key order."""
-    return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
-    ).hexdigest()
+    """Hash canonical JSON, independent of whitespace and key order.
+
+    The artifact-identity digest: it delegates to
+    :func:`~pu_toolbox.utils.serialization.strict_canonical_hash` so that the
+    survey layer cannot drift from the one strict recipe.
+    """
+    return strict_canonical_hash(value)
 
 
 def array_digest(value: np.ndarray) -> str:
-    """Hash shape, dtype and bytes so shape-preserving corruption is detected."""
-    value = np.ascontiguousarray(value)
-    result = hashlib.sha256()
-    result.update(str(value.dtype).encode())
-    result.update(json.dumps(value.shape).encode())
-    result.update(value.tobytes())
-    return result.hexdigest()
+    """Hash shape, dtype and bytes so shape-preserving corruption is detected.
+
+    Kept as a named entry point because ``survey_execution`` imports it; the
+    recipe itself is :func:`~pu_toolbox.utils.serialization.array_hash`.
+    """
+    return array_hash(value)
 
 
 def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
@@ -449,7 +454,12 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         "name": row["representation"],
         "feature_sha256": {role: array_digest(getattr(bundle, role).X) for role in ROLES},
         "split_sha256": digest(
-            {role: np.asarray(getattr(bundle, role).indices).tolist() for role in ROLES}
+            {
+                role: json_scalars(
+                    np.asarray(getattr(bundle, role).indices), name=f"{role} indices"
+                )
+                for role in ROLES
+            }
         ),
     }
     adapter = config.get("adapter_manifest")
@@ -464,24 +474,18 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         ):
             raise ValueError("image manifest disagrees with locked size/initialization")
         representation["image_preprocessing"] = copy.deepcopy(image)
-        if row["training_path"] == "native_cnn":
-            from .feature_adapter import _encoder_state_sha256
-
-            if _encoder_state_sha256(model.encoder) != image["encoder_state_sha256"]:
-                raise ValueError("native CNN encoder state does not match its image manifest")
+        if (
+            row["training_path"] == "native_cnn"
+            and encoder_state_sha256(model.encoder) != image["encoder_state_sha256"]
+        ):
+            raise ValueError("native CNN encoder state does not match its image manifest")
     if row["training_path"] == "cnn_feature_adapter":
         if not adapter or adapter.get("training_path") != "cnn_feature_adapter":
             raise ValueError("cnn_feature_adapter unit requires its actual adapter manifest")
         if adapter.get("backbone_manifest") != image:
             raise ValueError("adapter and image preprocessing provenance disagree")
         if adapter["feature_sha256"] != representation["feature_sha256"]:
-            # Adapter uses its own array hash encoding; recompute through that same helper.
-            from .feature_adapter import _array_sha256
-
-            if adapter["feature_sha256"] != {
-                role: _array_sha256(getattr(bundle, role).X) for role in ROLES
-            }:
-                raise ValueError("adapter manifest does not match the actual input features")
+            raise ValueError("adapter manifest does not match the actual input features")
         representation["adapter"] = copy.deepcopy(adapter)
     blockers = list(protocol["formal_blockers"])
     if protocol["review_status"] != "accepted" and "collaborator_review" not in blockers:

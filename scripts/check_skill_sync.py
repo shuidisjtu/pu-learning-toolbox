@@ -11,6 +11,22 @@ Claude Code extension fields (``argument-hint``, ``user-invocable``,
 ``disable-model-invocation``, ``hooks``, ...) are silently ignored by
 other tools, so adding them would quietly break portability.
 
+``DEFAULT_PATHS`` is a hand-maintained pair, because the check needs a
+pair to compare and an enumeration rule would silently lose exactly the
+failure it exists to catch.  Pair the two trees by the skill names they
+share, then delete one copy of the pair: the name now appears on one side
+only, so the intersection is empty, the rule has no key left to attach a
+failure to, and it reports no drift — while ``check_sync`` reports the
+missing copy.  The alternative (treat every name on either side as
+expected) needs a prior record of which names *should* be paired, i.e.
+the hand-maintained list again.  Adding a skill that is mirrored means
+adding its pair here by hand.
+
+The two trees are not symmetric in this working tree either:
+``.claude/skills/`` also holds ``dev-workflow``, a skill that is untracked
+and gitignored (``.gitignore:55``), so a CI checkout contains one skill
+per side.  Only the tracked pair is compared here.
+
 Usage::
 
     uv run python scripts/check_skill_sync.py

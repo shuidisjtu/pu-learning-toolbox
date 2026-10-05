@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 from sklearn.base import clone
 
+from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.core.validation import validate_label_semantics
 
 from . import resources as resource_tools
@@ -767,7 +768,7 @@ def _validate_model_capability(
     """Reject unsupported input/architecture combinations before training."""
     cls = type(model)
     allowed_ndims = frozenset(getattr(cls, "input_ndims", frozenset({2})))
-    for role in ("train", "pu_val", "clean_val", "test"):
+    for role in ROLES:
         ndim = getattr(getattr(bundle, role).X, "ndim", None)
         if ndim not in allowed_ndims:
             raise ValueError(

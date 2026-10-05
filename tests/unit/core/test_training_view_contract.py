@@ -1,4 +1,4 @@
-# tests/unit/core/test_training_views.py
+# tests/unit/core/test_training_view_contract.py
 
 # ruff: noqa: N803, N806, S101
 
@@ -32,6 +32,22 @@ def _data():
     X = np.arange(24).reshape(6, 4)
     y_pu = np.array([1, 0, 0, 1, 0, 0])
     return X, y_pu
+
+
+# --- the frozen vocabulary ----------------------------------------------------
+
+
+def test_basic_role_and_view_vocabulary_is_frozen():
+    """The vocabulary is a serialisation contract: role names become dict keys
+    in hashed survey artifacts, so their exact value is pinned here rather than
+    derived from the implementation.
+    """
+    from pu_toolbox.core.training_views import ROLES, RUN_VIEWS
+
+    # Pinned by value: these strings are the contract, so a rename or a
+    # reordering in the module is exactly the edit this test exists to catch.
+    assert ROLES == ("train", "pu_val", "clean_val", "test")
+    assert RUN_VIEWS == ("os", "ts")
 
 
 # --- the three roles, under each view ----------------------------------------

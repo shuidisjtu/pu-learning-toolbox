@@ -105,7 +105,17 @@ def test_param_train_fitted_encoder_requires_exact_train_indices():
         encoder_fit_indices=bundle.train.indices[::-1],
     )
     assert manifest["encoder_fit_scope"] == "train_partition_only"
-    assert len(manifest["encoder_fit_indices_sha256"]) == 64
+    # Frozen pair: ``split_sha256`` covers the serialised role indices and
+    # ``encoder_fit_indices_sha256`` the serialised fit scope.  Both are
+    # recorded as artifact identity, so both must survive a refactor intact.
+    assert (
+        manifest["split_sha256"]
+        == "8ca3ec68d0df39fdceaf21a29f213c3cfa78a1eb160477194653f275efe63d1d"
+    )
+    assert (
+        manifest["encoder_fit_indices_sha256"]
+        == "e57d6b345f3a82ca20e3c588552aec7d045dc5ddc0e7e1aac7b32888f31469e0"
+    )
 
     with pytest.raises(ValueError, match="exactly match"):
         adapt_image_bundle_to_features(

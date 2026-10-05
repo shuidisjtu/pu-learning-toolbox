@@ -12,6 +12,8 @@ from typing import Any, Protocol
 
 import numpy as np
 
+from ..utils.serialization import file_hash
+
 SBERT_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 SBERT_EMBEDDING_DIMENSION = 384
 #: 1.1 keys the cache on the deduplicated corpus rather than the ordered input
@@ -86,7 +88,7 @@ def encode_survey_texts(
             raise ValueError(
                 f"SBERT cache metadata mismatch for {cache_key}: {', '.join(mismatches)}."
             )
-        actual_sha256 = _file_sha256(embedding_path)
+        actual_sha256 = file_hash(embedding_path)
         if metadata.get("cache_sha256") != actual_sha256:
             raise ValueError(f"SBERT cache checksum mismatch for {cache_key}.")
         try:
@@ -117,7 +119,7 @@ def encode_survey_texts(
         **cache_inputs,
         "cache_key": cache_key,
         "cache_file": embedding_path.name,
-        "cache_sha256": _file_sha256(embedding_path),
+        "cache_sha256": file_hash(embedding_path),
         "metadata_file": metadata_path.name,
         "encoded_text_count": len(unique_texts),
         "embedding_dimension": SBERT_EMBEDDING_DIMENSION,
@@ -211,14 +213,6 @@ def _json_sha256(value: Any) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
-
-
-def _file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def _load_metadata(path: Path) -> dict[str, Any]:

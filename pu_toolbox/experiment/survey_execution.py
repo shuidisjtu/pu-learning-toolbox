@@ -18,8 +18,9 @@ from pathlib import Path
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
+from ..utils.serialization import array_hash, json_scalars
 from .bundle import DatasetBundle, validate_bundle
-from .feature_adapter import _encoder_state_sha256, adapt_image_bundle_to_features
+from .feature_adapter import adapt_image_bundle_to_features, encoder_state_sha256
 from .image import (
     build_survey_image_encoder,
     fit_survey_image_preprocessing,
@@ -183,7 +184,7 @@ def prepare_image_bundle(bundle: DatasetBundle, protocol: dict, seed: int):
         encoder = build_survey_image_encoder(preprocessing)
     metadata = preprocessing.to_manifest()
     metadata["initialization_seed"] = seed
-    metadata["encoder_state_sha256"] = _encoder_state_sha256(encoder)
+    metadata["encoder_state_sha256"] = encoder_state_sha256(encoder)
     return prepared, encoder, metadata
 
 
@@ -200,26 +201,29 @@ def cached_adapter(
     cache_key = digest(
         {
             "schema_version": "1.0",
-            "encoder_state_sha256": _encoder_state_sha256(encoder),
+            "encoder_state_sha256": encoder_state_sha256(encoder),
             "image": image_manifest,
             "inputs": {role: array_digest(getattr(bundle, role).X) for role in ROLES},
-            "indices": {role: np.asarray(getattr(bundle, role).indices).tolist() for role in ROLES},
+            "indices": {
+                role: json_scalars(
+                    np.asarray(getattr(bundle, role).indices), name=f"{role} indices"
+                )
+                for role in ROLES
+            },
             "device": device,
             "extraction_batch_size": batch_size,
         }
     )
     entry = None if cache_dir is None else Path(cache_dir) / cache_key
     if entry is not None and entry.exists():
-        from .feature_adapter import _array_sha256
-
         manifest = json.loads((entry / "adapter.json").read_text(encoding="utf-8"))
         if manifest.get("cache_key") != cache_key or manifest[
             "encoder_state_sha256"
-        ] != _encoder_state_sha256(encoder):
+        ] != encoder_state_sha256(encoder):
             raise ValueError("adapter cache encoder/key mismatch")
         with np.load(entry / "features.npz", allow_pickle=False) as payload:
             features = {role: payload[role] for role in ROLES}
-        if any(_array_sha256(features[role]) != manifest["feature_sha256"][role] for role in ROLES):
+        if any(array_hash(features[role]) != manifest["feature_sha256"][role] for role in ROLES):
             raise ValueError("adapter cache feature hash mismatch")
         adapted = DatasetBundle(
             **{role: replace(getattr(bundle, role), X=features[role]) for role in ROLES}

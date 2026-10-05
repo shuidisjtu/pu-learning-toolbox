@@ -27,6 +27,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import RUN_VIEWS
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 
 _OFFICIAL_SIGMA_GRID = (0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
@@ -261,7 +262,7 @@ class PUSBKernelClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=float)
         if not np.any(y_pu == 0):
             raise ValueError("PUSBKernelClassifier requires unlabeled samples")
-        if os_or_ts not in {"os", "ts"}:
+        if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         if sample_weight is not None:
             raise NotImplementedError("The official PUSB objective does not define sample_weight")

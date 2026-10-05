@@ -38,11 +38,12 @@
 | [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
 | [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
 | [dev/architecture_principles.md](dev/architecture_principles.md) | 架构维护原则：腐朽信号、应手与审计历史（ADR-0001） |
+| [dev/comment_governance.md](dev/comment_governance.md) | 注释治理：判定标准、机械门禁规则、已裁决的保留项与存量迁移策略（ADR-0019） |
 | [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
 | [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | 分布漂移感知 PU 的假设、实现边界与验收标准 |
 | [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
 | [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
-| [research/method_cards/](research/method_cards/) | 22 篇论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
+| [research/method_cards/](research/method_cards/) | 各论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
 | [research/traditional_pu/](research/traditional_pu/) | 传统 PU 调优：`traditional_pu_metric_contract.md` 单域指标/基线与统计契约、`traditional_pu_optimization_plan.md` 调优顺序/参数簇/晋级规则/产物契约 |
 | [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
 | [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与实施结果（含各阶段设计决策要点） |
@@ -51,12 +52,13 @@
 | [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界 |
 | [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：协议、执行计划、各 Phase 交付与复核记录——详见 [pu_survey/README.md](research/pu_survey/README.md) |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）关键设计机制：可注入策略接口、视图/轨迹语义、P0 已知局限 |
+| [dev/single_source_map.md](dev/single_source_map.md) | 单源地图：九个概念的权威真相源、消费者与重复判定（审计快照） |
 
 ## 架构决策(docs/adr/)
 
 | 文档 | 用途 |
 |---|---|
-| [adr/](adr/) | ADR 索引(17 篇:架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略/目录合并/方法卡清洗/调优判决/API 参考定位等) |
+| [adr/](adr/) | ADR 索引(架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略/目录合并/方法卡清洗/调优判决/API 参考定位/注释质量门禁等) |
 
 > ADR 记决策,版本/进度状态见 dev/process_checklist.md 与 dev/release_process.md。
 
@@ -64,5 +66,5 @@
 
 - [../README.md](../README.md)：项目门面（英文）；[../README.zh-CN.md](../README.zh-CN.md)：中文版
 - [../CONTRIBUTING.md](../CONTRIBUTING.md)：代码贡献、论文复现状态与 benchmark 产物管理
-- [../examples/minimal/](../examples/minimal/)：13 个最小可运行示例脚本
+- [../examples/minimal/](../examples/minimal/)：最小可运行示例脚本
 - [../benchmarks/deep_pu/README.md](../benchmarks/deep_pu/README.md)：深度 PU benchmark（InfoMax PU、WConPU、DGPU runner 与多 seed 结果）

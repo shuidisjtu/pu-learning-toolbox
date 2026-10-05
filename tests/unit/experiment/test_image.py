@@ -30,7 +30,12 @@ def test_basic_train_fit_records_complete_resnet18_provenance():
     assert manifest["backbone"]["first_layer"]["in_channels"] == 1
     assert manifest["augmentation"]["train"]["name"] == "simaugment"
     assert manifest["augmentation"]["test"] == {"name": "none"}
-    assert len(manifest["configuration_sha256"]) == 64
+    # Frozen: this digest covers the preprocessing config -- including the
+    # fitted train-data hash -- via the same canonical-JSON recipe the shared
+    # helper uses.  A refactor that reroutes it must not move it.
+    assert manifest["configuration_sha256"] == (
+        "2df0dca339e840ab8f16fe9d90cf93c297d6b22f617df600da1e813a62b4b410"
+    )
 
 
 @pytest.mark.parametrize(

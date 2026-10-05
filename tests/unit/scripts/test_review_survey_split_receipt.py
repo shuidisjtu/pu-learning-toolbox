@@ -5,8 +5,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts/review_survey_split_receipt.py"
+
+pytestmark = pytest.mark.unit
 
 
 def run_audit(*args, optimized=False):

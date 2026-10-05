@@ -97,8 +97,12 @@ git diff --check
 
 | 助手 | 位置 | 用途 |
 |---|---|---|
-| `canonical_hash` | `pu_toolbox/utils/serialization.py`（`benchmarks/_common.py` 为兼容 re-export） | 严格 JSON 规范化哈希 |
-| `json_safe` | `pu_toolbox/utils/serialization.py` | 严格 JSON 兼容转换 |
+| `canonical_hash` | `pu_toolbox/utils/serialization.py`（`benchmarks/_common.py` 为兼容 re-export） | **宽容** JSON 规范化哈希（`allow_nan` 默认）：报告与清单载荷 |
+| `strict_canonical_hash` | `pu_toolbox/utils/serialization.py` | **严格** JSON 规范化哈希（`allow_nan=False`）：拒绝非有限浮点——制品身份摘要不得把写不出去的数悄悄折进摘要 |
+| `json_safe` | `pu_toolbox/utils/serialization.py` | **宽容**转换（报告载荷）：NaN/Inf → `None`、`np.generic` → `item()`、`Path` → `str`；对常规载荷不抛错（边界见下方） |
+| `json_scalars` | `pu_toolbox/utils/serialization.py` | **严格**转换（清单索引）：拒绝非标量元素与非有限浮点——这些列表要进哈希，是制品身份的一部分 |
+| `array_hash` | `pu_toolbox/utils/serialization.py` | **数组内容**摘要（sha256）：`dtype` 串 + `json.dumps(shape)` + 连续字节；shape 取**调用方原数组**（`np.ascontiguousarray` 会把 0-d 提升为 `(1,)`，那是实现细节不是契约） |
+| `file_hash` | `pu_toolbox/utils/serialization.py` | **文件字节**摘要（sha256）：按 `_FILE_CHUNK_BYTES`（1 MiB）分块流式，无元数据前缀 |
 | `sigmoid_stable` | `pu_toolbox/utils/activations.py` | 数值稳定 sigmoid |
 | `rbf_weights` | `pu_toolbox/utils/basis.py` | RBF 核权重（六处收敛单源） |
 | `validate_true_binary_labels` | `pu_toolbox/core/validation.py` | y_true 值域校验 |
@@ -106,7 +110,36 @@ git diff --check
 | `solve_prior_from_positive_fraction` / `stable_centroid_denominator` | `pu_toolbox/estimators/risk/_class_prior.py` | 类先验推导与质心项 1−2ph 稳定性检查 |
 | `git_worktree_dirty` | `benchmarks/_common.py` | git 脏状态检测（`exclude` 参数排除 runner 自身输出） |
 
+`json_safe` 与 `json_scalars` 是**一对对偶**，不是同一件事：**输出侧**用前者（报告要能写出去，NaN 变 `None` 是想要的），**身份侧**用后者（列表要进哈希，NaN 必须拒绝，否则摘要会在无人选择的情况下改变）。两者语义相反，**不得合并**。
+
+`canonical_hash` 与 `strict_canonical_hash` 同样是**一对对偶**：**报告/清单载荷**用前者（写得出 `NaN` 是想要的），**制品身份摘要**用后者（`split_sha256`、`cache_key`、`protocol_sha256` 这类字段要先拒绝写不出去的数，否则摘要会在无人选择的情况下改变）。两者只差 `allow_nan`，但在非有限输入上分道扬镳，**不得合并**。
+
+「数组 → JSON 标量列表 → 进哈希」这类清单索引转换必须复用 `json_scalars`，不得再内联复制 `.tolist()` 版本。目前仅两处**知情保留**：`pu_toolbox/experiment/strategies.py` 的 `label_view_sha256`（载荷是标签视图而非索引，`.astype(int)` 已保证整数，校验分支不会触发）与 `pu_toolbox/diagnostics/uncertainty.py` 的报告载荷（输出侧，宽容语义才正确）。
+
+哈希助手另有一处**知情保留**：`pu_toolbox/experiment/text.py` 的 `_json_sha256` 是**第三种语义**——它多一个 `ensure_ascii=False`，含非 ASCII 码点的语料上摘要与 `canonical_hash` / `strict_canonical_hash` 都不同，且其产物 `cache_key` 直接是缓存文件名；改它会失效已记录的文本摘要与本地缓存，属破坏性变更。
+
+数组摘要与文件摘要是**两个正交概念**，不是一个带开关的概念，**不得合并**：输入类型（`np.ndarray` vs 路径）、编码（带 `dtype`/`shape` 元数据前缀 vs 纯字节流）、分块语义（只对文件存在，大文件不能一次读入）都不同。选择边界：**内存里的 ndarray** 用 `array_hash`；**磁盘上的文件**用 `file_hash`；内存里的字节块（如 Streamlit 上传的配置）既不是数组也不是文件路径，不在两者范围内。既有公开名 `survey_protocol.array_digest` 与 `split_archive.file_sha256` 是**委托包装**，保留名字供既有消费者使用；新增消费者直接复用 `array_hash` / `file_hash`，不得再内联复制。
+
+`array_hash` 的 0-d 语义是一次**已裁定的兼容性变更**：摘要描述调用方交出的数组（0-d 的 shape 串是 `[]`），而不是内部连续化副本（那会得到 `[1]`）。三个旧实现里只有 `survey_protocol.array_digest` 取的是副本，故该入口的 0-d 行为在收敛时改变；这个输入当前不可达任何已落盘制品，守卫只在 `tests/unit/utils/test_content_hashes.py`（helper 与公开入口各一条）。
+
+`benchmarks/` 下另有 **13 处** `hashlib.sha256(`（横跨 10 个模块）**未并**——它们的产物是基准配置身份（`runner_sha256` / `dataset_sha256`），收敛会改写已记录值，需各自的冻结与验收；清单见 [`docs/dev/single_source_map.md`](docs/dev/single_source_map.md)。
+
+`json_safe` 的宽容有边界，别当它保证输出可序列化：它**不检测自引用结构**（会 `RecursionError`），也不处理未识别的类型（`np.ndarray`、`set`、`bytes` 会**原样返回**）。
+
 **代谢率红线**：PR 评审时对增量代码做单源检查——发现 **>1 处单源违规为黄线**（该 PR 必须包含收敛治理）；**≥3 处或同一概念第 3 次分裂为红线**，触发该区域的结构性重构评估。历史治理记录见 `docs/dev/architecture_principles.md` §5 与 `docs/adr/0001-architecture-governance.md`。
+
+### 5.2 注释规则
+
+源码注释的判定标准、门禁规则与迁移策略见
+[`docs/dev/comment_governance.md`](docs/dev/comment_governance.md)。贡献者需要知道的三条：
+
+- 未完成事项写 `TBD`，且必须带上下文（`TBD: ...` 或 `TBD(#123) ...`）；
+  不新增 `TODO`、`FIXME`、`XXX`、`HACK`；
+- 行尾注释：默认运行下**已迁移分区**（清单在门禁脚本内，单一源）为 error，未迁移分区仍为不鼓励的 advisory；`--strict-inline` 是手动迁移开关。工具链指令（`noqa`、`pragma:`、`type:` 等）除外；
+- 注释、docstring 与字符串字面量中引用的仓库内文件路径必须真实存在。
+
+机械门禁：`uv run python scripts/check_comment_quality.py`（默认扫 `pu_toolbox/`）
+与 `uv run python scripts/check_doc_links.py`（含源码注释的路径引用）。
 
 ## 6. 论文方法和 benchmark
 

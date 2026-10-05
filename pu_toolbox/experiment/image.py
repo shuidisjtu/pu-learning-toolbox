@@ -4,14 +4,18 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
 
-ImageRole = Literal["train", "pu_val", "clean_val", "test"]
+from pu_toolbox.core.training_views import ROLES, ViewRole
+from pu_toolbox.utils.serialization import array_hash, canonical_hash
+
+#: The image pipeline names the same four protocol partitions the bundle does
+#: (``train``/``pu_val``/``clean_val``/``test``): callers pass the shared
+#: vocabulary straight in, so this is the protocol role, not a second one.
+ImageRole = ViewRole
 TrainAugmentation = Literal["none", "simaugment", "randaugment"]
 
 _IMAGE_CHANNELS = {
@@ -152,7 +156,7 @@ def fit_survey_image_preprocessing(
     if any(value <= 0 for value in stds):
         raise ValueError("every train image channel must have non-zero standard deviation.")
     input_size = (int(prepared.shape[2]), int(prepared.shape[3]))
-    train_data_sha256 = _array_sha256(prepared)
+    train_data_sha256 = array_hash(prepared)
     config = {
         "schema_version": "1.0",
         "dataset": canonical_dataset,
@@ -188,7 +192,7 @@ def fit_survey_image_preprocessing(
         randaugment_magnitude=randaugment_magnitude,
         small_input_stem=input_size[0] <= 64,
         train_data_sha256=train_data_sha256,
-        configuration_sha256=_json_sha256(config),
+        configuration_sha256=canonical_hash(config),
     )
     return prepared, spec
 
@@ -320,18 +324,5 @@ def _validate_augmentation(
 
 
 def _validate_role(role: str) -> None:
-    if role not in {"train", "pu_val", "clean_val", "test"}:
+    if role not in ROLES:
         raise ValueError("role must be 'train', 'pu_val', 'clean_val', or 'test'.")
-
-
-def _array_sha256(values: np.ndarray) -> str:
-    digest = hashlib.sha256()
-    digest.update(str(values.dtype).encode())
-    digest.update(json.dumps(values.shape).encode())
-    digest.update(np.ascontiguousarray(values).tobytes())
-    return digest.hexdigest()
-
-
-def _json_sha256(value: Any) -> str:
-    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
