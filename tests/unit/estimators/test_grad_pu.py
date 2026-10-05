@@ -137,8 +137,15 @@ def test_ts_calibrates_unlabeled_risk_and_gradient_interpolation(monkeypatch):
     assert (len(os_p), len(os_u), os_interpolated) == (8, 16, 16)
     assert (len(ts_p), len(ts_u), ts_interpolated) == (8, 24, 24)
     np.testing.assert_array_equal(ts_p, os_p)
-    np.testing.assert_array_equal(ts_u[: len(os_u)], os_u)
-    np.testing.assert_array_equal(ts_u[len(os_u) :], os_p)
+    # Under ts the U pool is scored in a bigger batch (16 + 8 vs 16), and the
+    # BLAS reduction order depends on batch size, so the same rows come back
+    # differing in the last float32 ulp (~6e-08).  What this asserts is "the
+    # same rows in the same order", not bitwise-identical arithmetic; 1e-6 is
+    # about eight ulp and still orders of magnitude below the gap a different
+    # row would produce.  The P pool above stays bitwise because its batch
+    # size is unchanged.
+    np.testing.assert_allclose(ts_u[: len(os_u)], os_u, rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(ts_u[len(os_u) :], os_p, rtol=1e-6, atol=1e-6)
     assert ts_model.calibration_applied_ and not os_model.calibration_applied_
     assert ts_model.n_loss_unlabeled_ == len(y)
     with pytest.raises(ValueError, match="requested_view"):

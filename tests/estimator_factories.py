@@ -269,6 +269,19 @@ def _make_puet():
     return PUExtraTreesClassifier(class_prior=0.33, n_estimators=3, max_depth=4, random_state=42)
 
 
+def _make_cvir():
+    from pu_toolbox.estimators.risk import CVIRClassifier
+
+    return CVIRClassifier(
+        unlabeled_positive_prior=0.25,
+        hidden_dim=8,
+        warm_start_epochs=1,
+        max_epochs=2,
+        batch_size=32,
+        random_state=42,
+    )
+
+
 FACTORY_MAP: dict[str, callable] = {
     "elkan_noto": _make_elkan_noto,
     "llsvm": _make_llsvm,
@@ -294,6 +307,7 @@ FACTORY_MAP: dict[str, callable] = {
     "vpu": _make_vpu,
     "pulda": _make_pulda,
     "puet": _make_puet,
+    "cvir": _make_cvir,
 }
 
 
