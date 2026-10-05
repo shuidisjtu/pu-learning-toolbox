@@ -42,6 +42,11 @@ shuffle 重新编号。TS 风险池替换仍只在 nnPU 预训练，自步伪负
 
 ## 准入证据补全（2026-10-05）
 
+P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)补原表 CIFAR/Spambase
+三档 π_U 的 error读数与10 trials；锁定 main.py:515 明确 mean×100、std分数，
+误差棒归一化不是 numeric验收。论文PN把U当负类，不是全监督oracle；论文的prior-free
+不能照搬到本工具箱需要先验的nnPU warmup组合，标签/采样和选模预算继续待审。
+
 见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。上游 `main.py:71-84`
 预训练恢复 best clean-validation 模型，`:396-406` 最终按 clean-validation/patience
 早停并恢复；本实现固定预算、从末轮预训练继续，不以内部 clean-val 做阶段决定。

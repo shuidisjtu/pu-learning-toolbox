@@ -1,5 +1,9 @@
 # PU Survey 文档索引
 
+P1-2 自主准备：[五方法公开结果与可比性](p3_public_comparison_20261005.md)、
+[12条待审读数与15格覆盖草稿](data/p3_public_comparison_draft_20261005.json)。
+四篇原表已核列，PULDA 全文暂不可读；全部 pending，不是新增冻结锚点或数值通过。
+
 P1-1 工程准备已补齐：[五方法来源行为、预算与选模证据包](p3_admission_evidence_20261005.md)、
 [机器登记](data/p3_admission_evidence_20261005.json)。可用只读检查器核对当前代码与锁定来源，
 不代表 P3.1/P3.2 正式验收、参数冻结或负责人签署。

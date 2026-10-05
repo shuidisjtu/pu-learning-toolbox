@@ -477,6 +477,7 @@
     },
     "pulda": {
       "class": "PULDAClassifier",
+      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Positive-Unlabeled Learning with Label Distribution Alignment",
@@ -514,6 +515,7 @@
     },
     "puet": {
       "class": "PUExtraTreesClassifier",
+      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Positive-Unlabeled Learning using Random Forests via Recursive Greedy Risk Minimization",
@@ -551,6 +553,7 @@
     },
     "gradpu": {
       "class": "GradPUClassifier",
+      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "GradPU: Positive-Unlabeled Learning via Gradient Penalty and Positive Upweighting",
@@ -661,6 +664,7 @@
     },
     "robust_pu": {
       "class": "RobustPUClassifier",
+      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Robust Positive-Unlabeled Learning via Noise Negative Sample Self-correction",
@@ -704,6 +708,7 @@
     },
     "split_pu": {
       "class": "SplitPUClassifier",
+      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",

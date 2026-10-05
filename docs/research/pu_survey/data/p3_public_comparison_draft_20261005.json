@@ -1,0 +1,776 @@
+{
+  "schema_version": "survey-p3-public-comparison-draft-1",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "scope": "P1-2 source inventory only, not pre-registration or verdict; reviewed own-method tables only, not exhaustive literature coverage.",
+  "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
+  "bound_files_sha256": {
+    "uv.lock": "7a7adf38905461b4fe0eeb73e613545cbde499a829155b7a793369a5bf22e0ed",
+    "pu_toolbox/experiment/survey_protocol_v1.json": "e0263cc4410a37f4c8c29f84e248f988a7dd9878af124b13a9be78e07376a855",
+    "pu_toolbox/experiment/survey_comparison_v1.json": "3465b47941c37da31b112e9a11a99438008c4bef836ecbfa039d3e7777d3ed37",
+    "pu_toolbox/experiment/survey_comparison_v2.json": "f44c782dbc3ddbff76984af2e93f73fb55e05697aae89bf75d4b774e47c69743",
+    "pu_toolbox/experiment/survey_comparison_v3.json": "5e3eb24a2bf4de0905dbec5d4658301696155002debf2c68a8e5a14d89b20436",
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "77bbccd044f5de431a5e404f07843a2838cd639d585d1068ec9e69694f6c8457"
+  },
+  "reference_scope": "historical_pilot_context_not_new_method_recipe",
+  "numeric_policy": {
+    "enabled": false,
+    "tolerance_pp": null,
+    "policy_ref": null
+  },
+  "new_method_results": [],
+  "numeric_verdicts": [],
+  "source_profiles": {
+    "pulda": {
+      "paper_url": "https://ieeexplore.ieee.org/document/10264106",
+      "paper_file": null,
+      "paper_sha256": null,
+      "paper_status": "full_text_unavailable",
+      "paper_location": null,
+      "method_variant": "PULDA",
+      "metric": null,
+      "uncertainty_kind": null,
+      "spread_unit": null,
+      "n_repeats": null,
+      "protocol_facts": {
+        "positive_cifar_indices": [
+          0,
+          1,
+          8,
+          9
+        ],
+        "sampling": "code: all original training rows in U, selected P also retained via erased-label copies",
+        "label_axis": "code: fixed n_labeled=1000; not pilot c",
+        "representation": "code: custom CIFAR CNN",
+        "normalization": "code: ImageNet statistics",
+        "selection": "code: highest test accuracy reporting, not PA/OA",
+        "budget": "code: 60 warmup + 60 PU; tail and P sampler differ from toolbox",
+        "repeats": "unknown",
+        "validation": "unknown paper protocol"
+      },
+      "evidence_locations": [
+        "locked train.py:23,53-54,199-235",
+        "dataTools/PUdataset.py:22-36",
+        "dataTools/factory.py:14",
+        "dataTools/cifar10.py:21-31"
+      ],
+      "unresolved": [
+        "full_paper_numeric_tables_and_uncertainty",
+        "paper_code_protocol_correspondence"
+      ],
+      "additional_source_files": [
+        {
+          "path": "dataTools/cifar10.py",
+          "sha256": "46c4b060de221dfddc7670d1afe1a1fe38ff4f99ce016dea13aa27a0d1029058"
+        }
+      ]
+    },
+    "puet": {
+      "paper_url": "https://proceedings.neurips.cc/paper_files/paper/2022/file/98257285340854262185500e59bc0f28-Paper-Conference.pdf",
+      "paper_file": "puet.pdf",
+      "paper_sha256": "e3866f4cc1a0dbf398af32c9939bc27db9814b7edae2a53b6e4e8a7ab177fa7b",
+      "paper_status": "table_visually_checked",
+      "paper_location": {
+        "pdf_page_1_based": 8,
+        "table": "2",
+        "column": "Nonnegative risk estimator / Quadratic Loss"
+      },
+      "method_variant": "nnPU_quadratic_PU_ET",
+      "metric": "accuracy",
+      "uncertainty_kind": "std",
+      "spread_unit": "percentage_points",
+      "n_repeats": 5,
+      "protocol_facts": {
+        "positive_cifar_indices": [
+          0,
+          1,
+          8,
+          9
+        ],
+        "sampling": "P sampled from full training; whole training set is U",
+        "label_axis": "fixed 1000 labeled positives; not pilot c",
+        "representation": "3072 input features for CIFAR; not ResNet features or a CNN classifier",
+        "normalization": "no channel normalization alignment established",
+        "selection": "no PA/OA criterion or exact threshold search verified",
+        "budget": "100 trees; ceil(sqrt(d)) features; one threshold; unlimited depth",
+        "repeats": "five fits on same dataset, not necessarily five split seeds",
+        "validation": "not established in reviewed main text"
+      },
+      "evidence_locations": [
+        "paper pp6-8 Table1/Table2 and sections5/5.1",
+        "P1-1 locked tree.py behavior differences"
+      ],
+      "unresolved": [
+        "same_raw_feature_and_sampling_recipe",
+        "selection_protocol_and_split_identity",
+        "documented_tree_adaptations_acceptance"
+      ],
+      "additional_source_files": []
+    },
+    "gradpu": {
+      "paper_url": "https://ojs.aaai.org/index.php/AAAI/article/download/25889/25661",
+      "paper_file": "gradpu.pdf",
+      "paper_sha256": "c9ec9499389007546c5e3020edd98a8e17f221511b380663fc65efedeeca9244",
+      "paper_status": "table_visually_checked",
+      "paper_location": {
+        "pdf_page_1_based": 6,
+        "printed_page": 7301,
+        "table": "1",
+        "column": "GradPU (not Sup.)"
+      },
+      "method_variant": "GradPU",
+      "metric": "accuracy",
+      "uncertainty_kind": "unspecified_deviation",
+      "spread_unit": "percentage_points",
+      "n_repeats": 3,
+      "protocol_facts": {
+        "positive_cifar_indices": [
+          0,
+          1,
+          8,
+          9
+        ],
+        "sampling": "remaining training rows after P and 500 validation rows form U",
+        "label_axis": "1000 or 3000 labeled positives; not pilot c",
+        "representation": "CNN13 without BatchNorm",
+        "normalization": "supplementary preprocessing not verified",
+        "selection": "hyperparameters tuned on validation; label use and checkpoint rule unresolved",
+        "budget": "CIFAR 200 epochs, batch250, Adam, LR ends at 0.1 initial",
+        "repeats": "three runs; deviation definition not explicit in inspected text",
+        "validation": "500 rows"
+      },
+      "evidence_locations": [
+        "paper printed7300 implementation/SCAR,7301 Table1",
+        "existing gradpu_source_review_20261005.json"
+      ],
+      "unresolved": [
+        "supplement_validation_labels_grid_preprocessing",
+        "deviation_definition",
+        "confirmed_author_code"
+      ],
+      "additional_source_files": []
+    },
+    "robust_pu": {
+      "paper_url": "https://arxiv.org/pdf/2308.00279v1",
+      "paper_file": "robust_pu.pdf",
+      "paper_sha256": "844eb4d3033aa55201a2b972063b4354061182a321533e785695e85b5c7c6bf4",
+      "paper_status": "table_visually_checked",
+      "paper_location": {
+        "pdf_page_1_based": 7,
+        "table": "3",
+        "column": "ours / CIFAR-10 or spambase"
+      },
+      "method_variant": "Robust_PU",
+      "metric": "error_rate",
+      "uncertainty_kind": "std",
+      "spread_unit": "fraction",
+      "n_repeats": 10,
+      "protocol_facts": {
+        "positive_cifar_indices": [
+          0,
+          1,
+          8,
+          9
+        ],
+        "sampling": "P and separately constructed U with controlled positive fraction pi_U",
+        "label_axis": "pi_U in {0.2,0.4,0.6}, not c",
+        "representation": "paper/source dataset-specific network, not approved project backbone",
+        "normalization": "no train-only statistics equivalence established",
+        "selection": "code restores clean-validation best at pretrain and final stages",
+        "budget": "CIFAR P2000/U4000; spambase P400/U800; code parser and task overrides differ",
+        "repeats": "ten trials; code std uses ddof=0 on fractional test errors",
+        "validation": "code CIFAR500/spambase100; clean labels influence stage selection",
+        "prior": "paper calls method prior-free; toolbox nnPU warmup requires prior, so whole pipeline is not prior-free",
+        "pn_baseline": "paper PN relabels U as negative; not fully supervised oracle"
+      },
+      "evidence_locations": [
+        "paper PDF6 dataset construction and metric; PDF7 Table3",
+        "locked main.py:476-491,499-515",
+        "locked main.py:71-84,396-406"
+      ],
+      "unresolved": [
+        "population_prior_vs_U_prior_sampling",
+        "paper_prior_free_vs_nnPU_warmup_variant",
+        "published_table_runs_not_shipped_as_logs"
+      ],
+      "additional_source_files": []
+    },
+    "split_pu": {
+      "paper_url": "https://arxiv.org/pdf/2211.16756v1",
+      "paper_file": "split_pu.pdf",
+      "paper_sha256": "c53993a50848bdd2e637088c97185b39ef0e2933b4962579ac2113d19d6f85dd",
+      "paper_status": "table_visually_checked",
+      "paper_location": {
+        "pdf_page_1_based": 6,
+        "table": "1",
+        "column": "Ours (not nnPU or nnPU*)"
+      },
+      "method_variant": "Split_PU",
+      "metric": "accuracy",
+      "uncertainty_kind": "std",
+      "spread_unit": "percentage_points",
+      "n_repeats": 5,
+      "protocol_facts": {
+        "positive_cifar_indices": [
+          0,
+          1,
+          8,
+          9
+        ],
+        "sampling": "paper/code: rest of original training after labeled P is U",
+        "label_axis": "500/1000/3000 labeled positives; not pilot c",
+        "representation": "13-layer CNN; real weak/strong image augmentation and SimSiam",
+        "normalization": "exact alignment with project train-only statistics not verified",
+        "selection": "locked teacher/student return last state; test accuracy monitored",
+        "budget": "paper teacher50/batch512/student100; code main teacher20; toolbox10/10/10",
+        "repeats": "five repetitions",
+        "validation": "no PA/OA threshold grid established"
+      },
+      "evidence_locations": [
+        "paper PDF6 Table1 and implementation/metrics",
+        "locked main.py:13-44",
+        "locked dataset.py:24-30,66-78",
+        "locked splitpu_utils.py:162-172"
+      ],
+      "unresolved": [
+        "teacher50_paper_vs20_code_without_training_logs",
+        "source_easy_normalization_and_augmentation_adaptations",
+        "no_PA_OA_equivalence"
+      ],
+      "additional_source_files": [
+        {
+          "path": "dataset.py",
+          "sha256": "b2b8d0c317910637a06f90b60afe908675218dcca624cac34fa94a481cde3ce6"
+        }
+      ]
+    }
+  },
+  "readings": [
+    {
+      "reading_id": "puet_cifar10_n_labeled_positive_1000",
+      "method": "puet",
+      "dataset": "cifar10",
+      "method_variant": "nnPU_quadratic_PU_ET",
+      "axis": {
+        "name": "n_labeled_positive",
+        "value": 1000
+      },
+      "paper_location": {
+        "pdf_page_1_based": 8,
+        "table": "2",
+        "column": "Nonnegative risk estimator / Quadratic Loss"
+      },
+      "metric": "accuracy",
+      "mean": 79.74,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.37",
+      "spread_unit": "percentage_points",
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "gradpu_cifar10_n_labeled_positive_1000",
+      "method": "gradpu",
+      "dataset": "cifar10",
+      "method_variant": "GradPU",
+      "axis": {
+        "name": "n_labeled_positive",
+        "value": 1000
+      },
+      "paper_location": {
+        "pdf_page_1_based": 6,
+        "printed_page": 7301,
+        "table": "1",
+        "column": "GradPU (not Sup.)"
+      },
+      "metric": "accuracy",
+      "mean": 90.1,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.2",
+      "spread_unit": "percentage_points",
+      "uncertainty_kind": "unspecified_deviation",
+      "n_repeats": 3,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "gradpu_cifar10_n_labeled_positive_3000",
+      "method": "gradpu",
+      "dataset": "cifar10",
+      "method_variant": "GradPU",
+      "axis": {
+        "name": "n_labeled_positive",
+        "value": 3000
+      },
+      "paper_location": {
+        "pdf_page_1_based": 6,
+        "printed_page": 7301,
+        "table": "1",
+        "column": "GradPU (not Sup.)"
+      },
+      "metric": "accuracy",
+      "mean": 91.9,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.1",
+      "spread_unit": "percentage_points",
+      "uncertainty_kind": "unspecified_deviation",
+      "n_repeats": 3,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "split_pu_cifar10_n_labeled_positive_500",
+      "method": "split_pu",
+      "dataset": "cifar10",
+      "method_variant": "Split_PU",
+      "axis": {
+        "name": "n_labeled_positive",
+        "value": 500
+      },
+      "paper_location": {
+        "pdf_page_1_based": 6,
+        "table": "1",
+        "column": "Ours (not nnPU or nnPU*)"
+      },
+      "metric": "accuracy",
+      "mean": 89.18,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.12",
+      "spread_unit": "percentage_points",
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "split_pu_cifar10_n_labeled_positive_1000",
+      "method": "split_pu",
+      "dataset": "cifar10",
+      "method_variant": "Split_PU",
+      "axis": {
+        "name": "n_labeled_positive",
+        "value": 1000
+      },
+      "paper_location": {
+        "pdf_page_1_based": 6,
+        "table": "1",
+        "column": "Ours (not nnPU or nnPU*)"
+      },
+      "metric": "accuracy",
+      "mean": 90.51,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.10",
+      "spread_unit": "percentage_points",
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "split_pu_cifar10_n_labeled_positive_3000",
+      "method": "split_pu",
+      "dataset": "cifar10",
+      "method_variant": "Split_PU",
+      "axis": {
+        "name": "n_labeled_positive",
+        "value": 3000
+      },
+      "paper_location": {
+        "pdf_page_1_based": 6,
+        "table": "1",
+        "column": "Ours (not nnPU or nnPU*)"
+      },
+      "metric": "accuracy",
+      "mean": 92.51,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.10",
+      "spread_unit": "percentage_points",
+      "uncertainty_kind": "std",
+      "n_repeats": 5,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "robust_pu_cifar10_unlabeled_class_prior_0p2",
+      "method": "robust_pu",
+      "dataset": "cifar10",
+      "method_variant": "Robust_PU",
+      "axis": {
+        "name": "unlabeled_class_prior",
+        "value": 0.2
+      },
+      "paper_location": {
+        "pdf_page_1_based": 7,
+        "table": "3",
+        "column": "ours / CIFAR-10 or spambase"
+      },
+      "metric": "error_rate",
+      "mean": 7.58,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.004",
+      "spread_unit": "fraction",
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "robust_pu_cifar10_unlabeled_class_prior_0p4",
+      "method": "robust_pu",
+      "dataset": "cifar10",
+      "method_variant": "Robust_PU",
+      "axis": {
+        "name": "unlabeled_class_prior",
+        "value": 0.4
+      },
+      "paper_location": {
+        "pdf_page_1_based": 7,
+        "table": "3",
+        "column": "ours / CIFAR-10 or spambase"
+      },
+      "metric": "error_rate",
+      "mean": 10.26,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.006",
+      "spread_unit": "fraction",
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "robust_pu_cifar10_unlabeled_class_prior_0p6",
+      "method": "robust_pu",
+      "dataset": "cifar10",
+      "method_variant": "Robust_PU",
+      "axis": {
+        "name": "unlabeled_class_prior",
+        "value": 0.6
+      },
+      "paper_location": {
+        "pdf_page_1_based": 7,
+        "table": "3",
+        "column": "ours / CIFAR-10 or spambase"
+      },
+      "metric": "error_rate",
+      "mean": 10.73,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.005",
+      "spread_unit": "fraction",
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "robust_pu_spambase_unlabeled_class_prior_0p2",
+      "method": "robust_pu",
+      "dataset": "spambase",
+      "method_variant": "Robust_PU",
+      "axis": {
+        "name": "unlabeled_class_prior",
+        "value": 0.2
+      },
+      "paper_location": {
+        "pdf_page_1_based": 7,
+        "table": "3",
+        "column": "ours / CIFAR-10 or spambase"
+      },
+      "metric": "error_rate",
+      "mean": 6.4,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.006",
+      "spread_unit": "fraction",
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "robust_pu_spambase_unlabeled_class_prior_0p4",
+      "method": "robust_pu",
+      "dataset": "spambase",
+      "method_variant": "Robust_PU",
+      "axis": {
+        "name": "unlabeled_class_prior",
+        "value": 0.4
+      },
+      "paper_location": {
+        "pdf_page_1_based": 7,
+        "table": "3",
+        "column": "ours / CIFAR-10 or spambase"
+      },
+      "metric": "error_rate",
+      "mean": 9.79,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.014",
+      "spread_unit": "fraction",
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    },
+    {
+      "reading_id": "robust_pu_spambase_unlabeled_class_prior_0p6",
+      "method": "robust_pu",
+      "dataset": "spambase",
+      "method_variant": "Robust_PU",
+      "axis": {
+        "name": "unlabeled_class_prior",
+        "value": 0.6
+      },
+      "paper_location": {
+        "pdf_page_1_based": 7,
+        "table": "3",
+        "column": "ours / CIFAR-10 or spambase"
+      },
+      "metric": "error_rate",
+      "mean": 11.25,
+      "mean_unit": "percentage_points",
+      "spread_token": "0.009",
+      "spread_unit": "fraction",
+      "uncertainty_kind": "std",
+      "n_repeats": 10,
+      "value_producer": "original_authors",
+      "review_state": "pending_review",
+      "numeric_eligible": false
+    }
+  ],
+  "coverage": [
+    {
+      "method": "pulda",
+      "dataset": "spambase",
+      "reading_ids": [],
+      "disposition": "source_unavailable",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "pulda",
+      "dataset": "imdb",
+      "reading_ids": [],
+      "disposition": "source_unavailable",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "pulda",
+      "dataset": "cifar10",
+      "reading_ids": [],
+      "disposition": "source_unavailable",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "puet",
+      "dataset": "spambase",
+      "reading_ids": [],
+      "disposition": "no_observed_reading",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "puet",
+      "dataset": "imdb",
+      "reading_ids": [],
+      "disposition": "no_observed_reading",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "puet",
+      "dataset": "cifar10",
+      "reading_ids": [
+        "puet_cifar10_n_labeled_positive_1000"
+      ],
+      "disposition": "protocol_mismatch",
+      "numeric_eligible": false,
+      "blockers": [
+        "new_method_not_in_frozen_pilot",
+        "sampling_label_axis_and_selection_not_aligned",
+        "representation_budget_or_variant_not_aligned",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "gradpu",
+      "dataset": "spambase",
+      "reading_ids": [],
+      "disposition": "no_observed_reading",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "gradpu",
+      "dataset": "imdb",
+      "reading_ids": [],
+      "disposition": "no_observed_reading",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "gradpu",
+      "dataset": "cifar10",
+      "reading_ids": [
+        "gradpu_cifar10_n_labeled_positive_1000",
+        "gradpu_cifar10_n_labeled_positive_3000"
+      ],
+      "disposition": "protocol_mismatch",
+      "numeric_eligible": false,
+      "blockers": [
+        "new_method_not_in_frozen_pilot",
+        "sampling_label_axis_and_selection_not_aligned",
+        "representation_budget_or_variant_not_aligned",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "robust_pu",
+      "dataset": "spambase",
+      "reading_ids": [
+        "robust_pu_spambase_unlabeled_class_prior_0p2",
+        "robust_pu_spambase_unlabeled_class_prior_0p4",
+        "robust_pu_spambase_unlabeled_class_prior_0p6"
+      ],
+      "disposition": "protocol_mismatch",
+      "numeric_eligible": false,
+      "blockers": [
+        "new_method_not_in_frozen_pilot",
+        "sampling_label_axis_and_selection_not_aligned",
+        "representation_budget_or_variant_not_aligned",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "robust_pu",
+      "dataset": "imdb",
+      "reading_ids": [],
+      "disposition": "no_observed_reading",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "robust_pu",
+      "dataset": "cifar10",
+      "reading_ids": [
+        "robust_pu_cifar10_unlabeled_class_prior_0p2",
+        "robust_pu_cifar10_unlabeled_class_prior_0p4",
+        "robust_pu_cifar10_unlabeled_class_prior_0p6"
+      ],
+      "disposition": "protocol_mismatch",
+      "numeric_eligible": false,
+      "blockers": [
+        "new_method_not_in_frozen_pilot",
+        "sampling_label_axis_and_selection_not_aligned",
+        "representation_budget_or_variant_not_aligned",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "split_pu",
+      "dataset": "spambase",
+      "reading_ids": [],
+      "disposition": "no_observed_reading",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "split_pu",
+      "dataset": "imdb",
+      "reading_ids": [],
+      "disposition": "no_observed_reading",
+      "numeric_eligible": false,
+      "blockers": [
+        "not_evidence_of_no_public_result_anywhere",
+        "new_method_not_in_frozen_pilot",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    },
+    {
+      "method": "split_pu",
+      "dataset": "cifar10",
+      "reading_ids": [
+        "split_pu_cifar10_n_labeled_positive_500",
+        "split_pu_cifar10_n_labeled_positive_1000",
+        "split_pu_cifar10_n_labeled_positive_3000"
+      ],
+      "disposition": "protocol_mismatch",
+      "numeric_eligible": false,
+      "blockers": [
+        "new_method_not_in_frozen_pilot",
+        "sampling_label_axis_and_selection_not_aligned",
+        "representation_budget_or_variant_not_aligned",
+        "new_result_artifacts_and_owner_review_missing"
+      ]
+    }
+  ],
+  "contradictions": [
+    {
+      "id": "split_teacher_epochs_paper_vs_code",
+      "method": "split_pu",
+      "paper_fact": "teacher50",
+      "paper_location": "PDF6 implementation",
+      "code_fact": "teacher20",
+      "code_location": "main.py:13-22",
+      "resolution": "record_both_no_training_logs_no_equivalence_claim"
+    },
+    {
+      "id": "robust_mean_spread_mixed_units",
+      "method": "robust_pu",
+      "paper_fact": "Table3 mean (%) and std parentheses",
+      "paper_location": "PDF7 Table3",
+      "code_fact": "mean*100, std(fraction), ddof=0",
+      "code_location": "main.py:511-515",
+      "resolution": "normalize_spread_by_100_with_code_evidence_pending_table_provenance_review"
+    }
+  ]
+}

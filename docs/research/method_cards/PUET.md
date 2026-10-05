@@ -49,6 +49,10 @@ W_N(S)=W_U(S)-W_P(S).
 
 ## 准入证据补全（2026-10-05）
 
+P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)登记原表 Table2
+nonnegative/quadratic CIFAR accuracy79.74(0.37)，5次拟合；不是邻列 logistic79.86。
+原图3072维/固定P1000/全体训练U与共享冻结特征、c扫描、PA/OA不同，数字保持 pending。
+
 见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。作者 `tree.py:293-298`
 在叶节点质量并列时随机投票；我方固定负类。作者 `tree.py:347-348` 按第二小/第二大
 值裁边抽阈值，我方用完整 min/max 区间。作者 `tree.py:357-363` 未要求正风险下降；

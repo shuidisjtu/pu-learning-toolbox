@@ -62,6 +62,10 @@ P/U 数据留 CPU、优化批次上卡；预测分批 eval 并恢复模式，完
 
 ## 验证状态与后续门禁
 
+P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)核 Table1 GradPU
+CIFAR n_P1000/3000 为90.1±0.2/91.9±0.1，不是相邻 Sup. 列90.5/92.9。
+三 runs 的 deviation 暂不强定 SD/SEM，validation标签/选模尚待补充材料；全部 pending。
+
 2026-10-05 补充[来源/实验流程核查](../pu_survey/gradpu_source_review_20261005.md)：
 印刷页 7300 明确 CNN13 去 BatchNorm，原训练集划出 P/500 validation 后剩余作为 U。
 理论 U~p(x) 与发布实验分开登记；TS 校准不是原实验协议直接重放。

@@ -327,6 +327,7 @@ tests/
       test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
       test_profile_survey_cnn_storage.py # CNN 快照体积、恢复、来源身份和输入边界
       test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
+      test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -772,6 +773,7 @@ scripts/
   prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
   profile_survey_cnn_storage.py           # 五方法 CNN 存储探针与多 seed 恢复；非正式预算
   check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
+  check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决
 ```
 
 ## 7. CI/CD（`.github/`）

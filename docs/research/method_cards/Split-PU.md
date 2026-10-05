@@ -57,6 +57,11 @@ affine/编码器仍有梯度，模式随后恢复；不复制/丢弃行，不改
 
 ## 准入证据补全（2026-10-05）
 
+P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)核 Table1 Ours
+n_P500/1000/3000 accuracy89.18±0.12/90.51±0.10/92.51±0.10，5次重复，全部 pending。
+原论文PDF6 teacher50轮与锁定 main.py:14 teacher20轮不同，无日志确定哪一配方产出表格；
+本版默认10轮又是独立适配，不能只按同名epoch或论文数字宣布复现。
+
 见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。上游
 `splitpu_utils.py:162-165` 用 `(sum_P BCE+sum_easy JSD)/(n_P+n_easy)`；本版为
 `mean_P BCE+mean_easy JSD`，相对组权重不一致，不能仅凭 JS 公式一致声称训练等价。

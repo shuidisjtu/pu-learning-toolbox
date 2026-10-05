@@ -63,6 +63,13 @@ PYTHONPATH=. python scripts/check_survey_recipe_registry.py \
 
 ## 4. 紧接着的交接
 
+2026-10-05 P1-2 更新：[公开结果对照准备](p3_public_comparison_20261005.md)
+已登记12条原表读数、五方法×三数据集15格范围、来源单位/重复数/采样与选模差异，
+新增只读检查器核 frozen bytes、读数单位和 pending 边界。PULDA 全文访问仍未获得；
+其余读数也不与尚不存在的新方法正式结果配对，不清空公开数值验收/负责人阻断。
+下一步先完善并审阅方法特定选模、预算、表征与采样规格，以及未取得的来源材料；
+批准新版协议和资源后才执行源配方或 benchmark-adapted 数值实验。
+
 2026-10-05 P1-1 更新：第 2 项中五方法的自主工程准备已补齐，详见
 [来源行为、预算与选模证据包](p3_admission_evidence_20261005.md)。PULDA/PUET/Grad-PU/
 Robust-PU/Split-PU 的默认参数、预算计数、校准范围、来源差异和机器引用已同步；

@@ -64,6 +64,9 @@ L_{LDA}+L_{2way}+w_{mix}L_{BCE}^{mix}.
 
 ## 准入证据补全（2026-10-05）
 
+P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)已沿用代码协议；
+全文访问受限，未登记 PULDA 数字，不以 Dist-PU 数值代替，也不声称原论文没有结果。
+
 见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。锁定作者
 `dataTools/PUSampler.py:15-41` 丢弃 U 尾批并循环抽 P；本实现保留尾批、P 有放回抽样，
 同 epoch 不保证相同更新数。作者 `train.py:120` warmup cosine 用 pu_epochs，

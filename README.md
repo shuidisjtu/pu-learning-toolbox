@@ -163,6 +163,12 @@ P3 preparation evidence for PULDA, PUET, Grad-PU, Robust-PU and Split-PU is docu
 `--source-dir METHOD=PATH` verifies pinned local source bytes without executing author code.
 Passing this technical check does not approve candidates, budgets or method-owner review.
 
+Public result preparation is described in
+[the source comparison handoff](docs/research/pu_survey/p3_public_comparison_20261005.md).
+`scripts/check_p3_public_comparison.py` validates draft reading units, coverage and frozen-file
+bindings; optional local paper/source checks verify bytes. It issues no numeric verdicts,
+does not consume experiment artifacts and does not promote pending readings to accepted anchors.
+
 Auditing and summarizing a finished batch set is driven by
 `audit_survey_batches.py` and `summarize_survey_results.py`. Both take a
 batch-root whitelist and write only to their `--out-dir`: the first reports every

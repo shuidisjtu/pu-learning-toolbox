@@ -3,6 +3,11 @@
 状态：**draft / pending_method_owner_review**。承接 [后续优先级](post_pilot_priority_plan.md) 的第 2 项。
 只记录代码事实、技术接口证据及待决问题；不建立正式候选池，不扩展冻结矩阵，不宣称论文数值复现。
 
+P1-2 已补[公开结果可比性准备](p3_public_comparison_20261005.md)：PUET 原表的 CIFAR
+nnPU/quadratic accuracy79.74(0.37)仅作待审读数；原文用3072维输入与固定P1000/全体U，
+不是项目冻结图像特征与 c 扫描。PULDA 全文未取得，不引用 Dist-PU 数字替代。
+两方法正式 recipe、数值资格和判定阈值均不由本草稿决定。
+
 2026-10-05 P1-1 补记：[五方法机器证据与检查入口](p3_admission_evidence_20261005.md)
 补齐默认值、更新计数、来源行号/摘要及适配差异。PULDA 两阶段学习率 cosine 均依赖
 pu_epochs（warmup 不使用独立周期）；U 尾批与 P 抽样不同于作者。
