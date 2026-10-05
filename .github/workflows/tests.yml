@@ -72,6 +72,9 @@ jobs:
                       name = f"{case.get('classname', '')}::{case.get('name', '')}"
                       details = (problem.text or problem.get("message", "")).replace("```", "''' ")
                       summary.write(f"### {name}\n\n```text\n{details}\n```\n\n")
+                      annotation = f"{name}\n{details[-14000:]}"
+                      annotation = annotation.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+                      print(f"::error::{annotation}")
               if not failed:
                   summary.write("No test failures recorded.\n")
           PY

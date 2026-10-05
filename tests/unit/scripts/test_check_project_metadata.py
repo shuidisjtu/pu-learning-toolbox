@@ -180,7 +180,7 @@ def test_determ_repeated_runs_identical(tmp_path, monkeypatch, capsys):
     assert first == second
 
 
-def _run_ci_summary(tmp_path: Path):
+def _run_ci_summary(tmp_path: Path, *, expect_failure=False):
     workflow = (_REAL_ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
     assert "--junitxml=pytest-results.xml" in workflow
     assert "fail-fast: false" in workflow
@@ -196,6 +196,8 @@ def _run_ci_summary(tmp_path: Path):
         timeout=10,
     )
     assert result.returncode == 0, result.stderr
+    if expect_failure:
+        assert "::error::tests.example::test_case%0AAssertionError" in result.stdout
     return summary.read_text(encoding="utf-8") if summary.exists() else None
 
 
@@ -215,12 +217,12 @@ def test_basic_ci_summary_exposes_failure_traceback_and_is_repeatable(tmp_path, 
         "</testcase></testsuite></testsuites>",
         encoding="utf-8",
     )
-    summary = _run_ci_summary(tmp_path)
+    summary = _run_ci_summary(tmp_path, expect_failure=True)
     assert "tests.example::test_case" in summary
     assert "AssertionError: expected 2, got 1" in summary
     assert summary.count("```") == 2
     (tmp_path / "summary.md").unlink()
-    assert _run_ci_summary(tmp_path) == summary
+    assert _run_ci_summary(tmp_path, expect_failure=True) == summary
 
 
 @pytest.mark.unit
