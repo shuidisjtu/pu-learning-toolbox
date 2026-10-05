@@ -66,7 +66,7 @@ def test_determ_history_round_trip_and_configuration_guard(tmp_path):
     path = monitor.save_history(tmp_path / "history.json")
     restored = PUShiftMonitor(source, labels, cv=2).load_history(path)
     assert restored.to_dict() == monitor.to_dict()
-    assert json.loads(path.read_text())["n_windows"] == 1
+    assert json.loads(path.read_text(encoding="utf-8"))["n_windows"] == 1
     with pytest.raises(ValueError, match="configuration"):
         PUShiftMonitor(source, labels, cv=3).load_history(path)
 

@@ -87,7 +87,7 @@ def test_basic_runner_restores_opposite_pa_oa_epoch_optima(tmp_path):
 
 def test_basic_manifest_has_separate_selection_refs_and_all_epoch_metrics(tmp_path):
     result = _run(tmp_path)
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     left, right = (manifest["selection"][name]["checkpoint"] for name in ("PA", "OA"))
     assert left["path"] != right["path"] and left["sha256"] != right["sha256"]
     assert all(Path(reference["path"]).is_file() for reference in (left, right))

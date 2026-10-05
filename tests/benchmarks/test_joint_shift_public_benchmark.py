@@ -32,7 +32,7 @@ def test_basic_public_benchmark_writes_trials_summary_and_split_audit(tmp_path):
     assert len(report.summary) == 4
     assert all(row["source_target_overlap"] == 0 for row in report.split_audit)
     assert all(row["train_test_overlap"] == 0 for row in report.split_audit)
-    payload = json.loads((tmp_path / "summary.json").read_text())
+    payload = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
     assert payload["paper_claim"] is False
     assert (tmp_path / "trials.csv").is_file()
     assert (tmp_path / "summary.md").is_file()

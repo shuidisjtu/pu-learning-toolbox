@@ -29,7 +29,7 @@ for dataset in ("spambase", "imdb", "cifar10"):
     test_hashes = []
     for seed in range(5):
         base = args.splits / dataset / f"split_{seed}"
-        m = json.loads((base / "split_manifest.json").read_text())
+        m = json.loads((base / "split_manifest.json").read_text(encoding="utf-8"))
         parts = {}
         entry = {"dataset": dataset, "seed": seed, "roles": {}, "issues": []}
         for role in ROLES:

@@ -171,7 +171,7 @@ def test_basic_official_data_benchmark_writes_provenance_artifacts(tmp_path, mon
     assert len(trials) == 1
     for name in ("trials.csv", "summary.csv", "run_manifest.json", "resolved_config.json"):
         assert (tmp_path / "results" / name).is_file()
-    manifest = json.loads((tmp_path / "results" / "run_manifest.json").read_text())
+    manifest = json.loads((tmp_path / "results" / "run_manifest.json").read_text(encoding="utf-8"))
     assert manifest["paper_claim"] is False
     assert manifest["dataset"]["sha256"] == "verified-test-hash"
     assert manifest["n_trials"] == 1

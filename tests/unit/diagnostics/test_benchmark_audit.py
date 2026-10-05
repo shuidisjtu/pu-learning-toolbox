@@ -86,7 +86,7 @@ def test_edge_config_tampering_and_trial_count_fail(result_dir):
 
 @pytest.mark.parametrize("bad_value", ["nan", "inf", "not-a-number"])
 def test_param_nonfinite_or_invalid_metric_fails(result_dir, bad_value):
-    rows = list(csv.reader((result_dir / "trials.csv").read_text().splitlines()))
+    rows = list(csv.reader((result_dir / "trials.csv").read_text(encoding="utf-8").splitlines()))
     rows[1][2] = bad_value
     with (result_dir / "trials.csv").open("w", encoding="utf-8", newline="") as handle:
         csv.writer(handle).writerows(rows)

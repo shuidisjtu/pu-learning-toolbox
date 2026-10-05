@@ -61,7 +61,7 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
     import openpyxl
 
     path = Path(path)
-    index = json.loads(Path(index_path).read_text())
+    index = json.loads(Path(index_path).read_text(encoding="utf-8"))
     protocol = load_protocol(resolve_protocol_path(protocol_path))
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     problems = []

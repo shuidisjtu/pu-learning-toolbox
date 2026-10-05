@@ -85,7 +85,7 @@ def test_basic_new_methods_four_role_runner_and_manifest(tmp_path, name, view, r
     assert set(result.test_metrics) == {"PA", "OA"}
     for metrics in result.test_metrics.values():
         assert np.isfinite(metrics["accuracy"]) and np.isfinite(metrics["auc"])
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding="utf-8"))
     assert manifest["run_view"] == f"{view}-compatible"
     assert manifest["calibration_applied"] is (view == "ts")
     assert manifest.get("execution_mode") != "versioned_pilot"
@@ -128,7 +128,7 @@ def test_param_edge_missing_pulns_support_cannot_steal_selection_labels(tmp_path
     )
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
         runner.fit(model, *parts())
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert "clean support_data" in json.dumps(manifest["failures"])
     assert manifest["selection"] == {} and manifest["test_results"] == {}
     assert not model._is_fitted

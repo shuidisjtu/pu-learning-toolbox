@@ -101,7 +101,10 @@ def test_basic_real_resnet_native_cnn_gpu_smoke(tmp_path, monkeypatch):
     assert set(result.test_metrics) == {"PA", "OA"}
     assert result.manifest["formal_eligible"] is False
     assert "noncanonical_protocol_matrix" in result.manifest["protocol_deviation"]
-    assert json.loads((tmp_path / "gpu_manifest.json").read_text())["formal_eligible"] is False
+    assert (
+        json.loads((tmp_path / "gpu_manifest.json").read_text(encoding="utf-8"))["formal_eligible"]
+        is False
+    )
 
 
 def test_param_mutated_encoder_rejected_before_training(tmp_path):
@@ -152,7 +155,7 @@ def test_edge_all_candidate_failures_keep_protocol_context(tmp_path):
         ExperimentRunner(class_prior=0.3, config=config, manifest_path=str(path)).fit(
             model, *(getattr(bundle, role) for role in ROLES)
         )
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["protocol_version"] == "survey-v1.2"
     assert payload["budget"]["epochs"] == 1
     assert payload["candidate_runs"][0]["attempts"] == 2

@@ -53,7 +53,7 @@ def test_edge_local_receipt_is_not_publisher_checksum(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="existing file preserved"):
         collector.collect("connect_4", tmp_path)
     assert target.read_bytes() == b"changed"
-    assert json.loads((target.parent / "provenance.json").read_text()) == first
+    assert json.loads((target.parent / "provenance.json").read_text(encoding="utf-8")) == first
 
 
 def test_adni_not_allowed():

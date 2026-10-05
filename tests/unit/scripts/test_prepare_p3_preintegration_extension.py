@@ -19,15 +19,28 @@ pytestmark = pytest.mark.unit
 
 
 def ledger():
-    return json.loads((ROOT / "pu_toolbox/experiment/method_ledger.json").read_text())
+    return json.loads(
+        (ROOT / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
+    )
+
+
+def test_edge_unicode_ledger_read_is_independent_of_windows_default_encoding(monkeypatch):
+    original = Path.read_text
+
+    def windows_default(path, *args, **kwargs):
+        kwargs.setdefault("encoding", "cp1252")
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", windows_default)
+    assert len(draft.build_extension(ledger(), load_protocol())["candidates"]) == 5
 
 
 def test_basic_determ_generated_extension_matches_recorded_draft_and_sources():
     report = draft.build_extension(ledger(), load_protocol())
     recorded = json.loads(
-        (
-            ROOT / "docs/research/pu_survey/data/p3_preintegration_extension_v1_draft.json"
-        ).read_text()
+        (ROOT / "docs/research/pu_survey/data/p3_preintegration_extension_v1_draft.json").read_text(
+            encoding="utf-8"
+        )
     )
     assert report == recorded
     assert draft.build_extension(ledger(), load_protocol()) == report

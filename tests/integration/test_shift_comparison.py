@@ -70,6 +70,6 @@ def test_determ_report_serialization_is_stable(rng, tmp_path):
     )
     report.save(tmp_path / "comparison.json")
     report.save(tmp_path / "comparison.md")
-    payload = json.loads((tmp_path / "comparison.json").read_text())
+    payload = json.loads((tmp_path / "comparison.json").read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "shift_adaptation_comparison"
-    assert "Paired Target Metrics" in (tmp_path / "comparison.md").read_text()
+    assert "Paired Target Metrics" in (tmp_path / "comparison.md").read_text(encoding="utf-8")

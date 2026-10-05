@@ -67,7 +67,9 @@ def test_oracle_is_separate_and_historical_manifests_remain_unbound():
 def test_determ_generated_draft_matches_checked_in_artifact():
     root = Path(__file__).resolve().parents[3]
     recorded = json.loads(
-        (root / "docs/research/pu_survey/data/survey_recipe_registry_v0_1_draft.json").read_text()
+        (root / "docs/research/pu_survey/data/survey_recipe_registry_v0_1_draft.json").read_text(
+            encoding="utf-8"
+        )
     )
     generated = build_draft_registry(load_protocol())
     assert generated == recorded

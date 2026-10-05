@@ -71,7 +71,7 @@ def test_determ_sensitivity_grid_and_serialization(tmp_path):
     )
     assert len(report.sensitivity) == 9
     path = report.save(tmp_path / "domain.json")
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "cross_domain_pu_assumption_analysis"
     report.save(tmp_path / "domain.md")
 

@@ -110,7 +110,7 @@ def test_basic_shift_audit_smoke(tmp_path, rng):
         "2",
     )
     assert proc.returncode == 0, proc.stderr
-    payload = json.loads((tmp_path / "shift" / "shift_report.json").read_text())
+    payload = json.loads((tmp_path / "shift" / "shift_report.json").read_text(encoding="utf-8"))
     weights = pd.read_csv(tmp_path / "shift" / "source_importance_weights.csv")
     assert payload["analysis_type"] == "marginal_distribution_shift_audit"
     assert len(weights) == len(X_source)

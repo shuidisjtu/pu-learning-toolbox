@@ -110,7 +110,7 @@ def test_param_runner_preflight_rejects_budget_override_with_failure_manifest(
     path = tmp_path / "rejected.json"
     with pytest.raises(ValueError, match="protocol-locked"):
         ExperimentRunner(class_prior=0.3, config=config, manifest_path=str(path)).fit(model, *parts)
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["formal_eligible"] is False
     assert payload["failures"][0]["stage"] == "protocol_preflight"
 

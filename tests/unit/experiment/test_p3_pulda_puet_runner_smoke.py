@@ -58,7 +58,7 @@ def test_pulda_puet_ts_four_role_pa_oa_smoke(tmp_path, method):
     for metrics in result.test_metrics.values():
         assert np.isfinite(metrics["accuracy"])
         assert np.isfinite(metrics["auc"])
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding="utf-8"))
     assert manifest["run_view"] == "ts-compatible"
     assert manifest["calibration_applied"] is True
     assert manifest.get("execution_mode") != "versioned_pilot"

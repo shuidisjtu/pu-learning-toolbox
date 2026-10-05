@@ -186,7 +186,7 @@ def test_basic_prepare_text_records_effective_model_pipeline_normalization(
         run_dir=tmp_path / "split_0",
         cache_dir=tmp_path / "cache",
     )
-    manifest = json.loads((tmp_path / "split_0/split_manifest.json").read_text())
+    manifest = json.loads((tmp_path / "split_0/split_manifest.json").read_text(encoding="utf-8"))
     assert manifest["preprocessing"]["normalize_embeddings"] is False
     assert manifest["preprocessing"]["effective_output_normalization"] == "l2_unit_norm"
     assert manifest["preprocessing"]["normalization_source"] == "model_pipeline_module"

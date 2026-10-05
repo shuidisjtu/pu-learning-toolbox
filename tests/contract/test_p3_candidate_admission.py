@@ -14,9 +14,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_basic_p3_admission_draft_matches_ledger_and_remains_unadmitted():
     proposal = json.loads(
-        (ROOT / "docs/research/pu_survey/data/p3_candidate_admission_v1_draft.json").read_text()
+        (ROOT / "docs/research/pu_survey/data/p3_candidate_admission_v1_draft.json").read_text(
+            encoding="utf-8"
+        )
     )
-    ledger = json.loads((ROOT / "pu_toolbox/experiment/method_ledger.json").read_text())
+    ledger = json.loads(
+        (ROOT / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
+    )
     protocol = load_protocol()
     candidates = proposal["candidates"]
     methods = [row["method"] for row in candidates]
@@ -39,7 +43,9 @@ def test_basic_p3_admission_draft_matches_ledger_and_remains_unadmitted():
 
 def test_p3_special_label_and_view_restrictions_remain_explicit():
     proposal = json.loads(
-        (ROOT / "docs/research/pu_survey/data/p3_candidate_admission_v1_draft.json").read_text()
+        (ROOT / "docs/research/pu_survey/data/p3_candidate_admission_v1_draft.json").read_text(
+            encoding="utf-8"
+        )
     )
     rows = {row["method"]: row for row in proposal["candidates"]}
     assert "D22_PA_selection_decision" in rows["vpu"]["specific_blockers"]
@@ -48,7 +54,9 @@ def test_p3_special_label_and_view_restrictions_remain_explicit():
     assert rows["cvir"]["ledger_snapshot"]["calibration_applied"] is False
     assert rows["lagam"]["ledger_snapshot"]["calibration_applied"] is False
     gradpu_review = json.loads(
-        (ROOT / rows["gradpu"]["ledger_snapshot"]["source_protocol_review_ref"]).read_text()
+        (ROOT / rows["gradpu"]["ledger_snapshot"]["source_protocol_review_ref"]).read_text(
+            encoding="utf-8"
+        )
     )
     # This checks handoff state, not whether the human paper readings are correct.
     assert gradpu_review["method"] == "gradpu"
@@ -69,12 +77,14 @@ def test_p3_special_label_and_view_restrictions_remain_explicit():
 
 
 def test_basic_cnn_storage_evidence_remains_separate_from_formal_budget():
-    ledger = json.loads((ROOT / "pu_toolbox/experiment/method_ledger.json").read_text())
+    ledger = json.loads(
+        (ROOT / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
+    )
     record = ledger["technical_resource_evidence"][0]
     assert record["formal_budget_approved"] is False and record["protocol_binding"] is None
     methods = set(record["methods"])
     assert methods == {"pulda", "gradpu", "robust_pu", "split_pu", "pan"}
-    profiles = json.loads((ROOT / record["cpu_record"]).read_text())["profiles"]
+    profiles = json.loads((ROOT / record["cpu_record"]).read_text(encoding="utf-8"))["profiles"]
     assert len(profiles) == 15
     assert {(p["method"], p["seed"]) for p in profiles} == {
         (method, seed) for method in methods for seed in (0, 1, 2)
@@ -85,7 +95,7 @@ def test_basic_cnn_storage_evidence_remains_separate_from_formal_budget():
         assert profile["encoder"]["matches_toolbox_default_width"] is True
         assert profile["epoch_weights_bytes"]["all_snapshots_replayed"]
         assert profile["method"] not in load_protocol()["method_profiles"]
-    cuda = json.loads((ROOT / record["cuda_record"]).read_text())["profiles"]
+    cuda = json.loads((ROOT / record["cuda_record"]).read_text(encoding="utf-8"))["profiles"]
     assert len(cuda) == 1 and cuda[0]["method"] == "pulda"
     assert record["cuda_methods"] == ["pulda"]
     assert cuda[0]["device"] == "cuda" and cuda[0]["formal_budget_approved"] is False

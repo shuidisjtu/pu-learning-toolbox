@@ -87,6 +87,6 @@ def test_determ_report_saves_json_markdown_and_rows(tmp_path):
     report.save(tmp_path / "uncertainty.json")
     report.save(tmp_path / "uncertainty.md")
     report.save(tmp_path / "uncertainty.csv")
-    payload = json.loads((tmp_path / "uncertainty.json").read_text())
+    payload = json.loads((tmp_path / "uncertainty.json").read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "pu_prediction_uncertainty"
-    assert len((tmp_path / "uncertainty.csv").read_text().splitlines()) == 4
+    assert len((tmp_path / "uncertainty.csv").read_text(encoding="utf-8").splitlines()) == 4

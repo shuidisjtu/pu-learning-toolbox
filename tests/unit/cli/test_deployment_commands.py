@@ -88,7 +88,7 @@ def test_basic_shift_monitor_writes_history_and_window_artifacts(tmp_path):
     parsed = build_parser().parse_args(_monitor_arguments(tmp_path))
     parsed.func(parsed)
     out = tmp_path / "out"
-    payload = json.loads((out / "shift_history.json").read_text())
+    payload = json.loads((out / "shift_history.json").read_text(encoding="utf-8"))
     assert payload["n_windows"] == 1
     assert (out / "window_summary.json").is_file()
     assert (out / "window_shift.json").is_file()
@@ -103,7 +103,7 @@ def test_param_monitor_appends_compatible_previous_history(tmp_path):
         _monitor_arguments(tmp_path, out_name="out2", window_id="w2", history=history)
     )
     second.func(second)
-    payload = json.loads((tmp_path / "out2" / "shift_history.json").read_text())
+    payload = json.loads((tmp_path / "out2" / "shift_history.json").read_text(encoding="utf-8"))
     assert [row["window_id"] for row in payload["windows"]] == ["w1", "w2"]
 
 
@@ -111,7 +111,7 @@ def test_basic_review_writes_selective_predictions_and_query_rows(tmp_path):
     parsed = build_parser().parse_args(_review_arguments(tmp_path))
     parsed.func(parsed)
     out = tmp_path / "review"
-    payload = json.loads((out / "uncertainty.json").read_text())
+    payload = json.loads((out / "uncertainty.json").read_text(encoding="utf-8"))
     assert payload["summary"]["n_queries"] == 2
     rows = pd.read_csv(out / "uncertainty_rows.csv")
     assert rows["selected_for_review"].sum() == 2

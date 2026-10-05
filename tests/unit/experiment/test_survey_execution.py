@@ -122,7 +122,7 @@ def test_param_damaged_cache_rejected(tmp_path):
     source = image_bundle()
     _, manifest = cached_adapter(source, tiny_encoder(), {"test_spec": True}, cache_dir=tmp_path)
     path = tmp_path / manifest["cache_key"] / "adapter.json"
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     payload["feature_sha256"]["train"] = "0" * 64
     path.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match="feature hash"):

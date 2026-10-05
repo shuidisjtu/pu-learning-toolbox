@@ -264,7 +264,7 @@ def test_edge_dropped_component_cannot_discharge_r9_blocker(tmp_path, survey_scr
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
         runner.fit(model, *parts)
 
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["execution_mode"] == "versioned_pilot"
     messages = [error["message"] for failure in manifest["failures"] for error in failure["errors"]]
     assert any("coverage" in message for message in messages), messages
@@ -286,7 +286,7 @@ def test_basic_complete_versioned_run_does_discharge_the_blocker(tmp_path, surve
     runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
     runner.fit(model, *parts)
 
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["failures"] == []
     assert "per_epoch_independent_PA_OA_checkpoint_selection" not in manifest["formal_blockers"]
     assert manifest["selection_checkpoint_scope"] == "independent_per_epoch"

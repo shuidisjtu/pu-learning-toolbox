@@ -86,7 +86,7 @@ def _smoke_run(tmp_path, model, *, config):
     )
     bundle = _bundle()
     runner.fit(model, bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
-    return json.loads((tmp_path / "manifest.json").read_text())
+    return json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
 
 
 def _bound_self_pu(survey_script, tmp_path):  # noqa: F811
@@ -198,7 +198,7 @@ def test_param_versioned_pilot_insufficient_disk_writes_rejection_manifest(
     with pytest.raises(ValueError, match="disk"):
         runner.fit(model, *parts)
 
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["execution_mode"] == "rejected_versioned_pilot"
     assert manifest["failures"][0]["stage"] == "protocol_preflight"
     payload = manifest["resources"]["checkpoint_disk_preflight"]

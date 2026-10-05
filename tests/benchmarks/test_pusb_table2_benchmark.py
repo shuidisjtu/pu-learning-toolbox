@@ -147,7 +147,7 @@ def test_basic_plan_only_writes_claim_safe_artifacts(tmp_path, monkeypatch):
     assert trials.empty
     for name in ("trial_plan.csv", "excluded_cells.csv", "plan_manifest.json"):
         assert (tmp_path / "output" / name).is_file()
-    manifest = json.loads((tmp_path / "output" / "plan_manifest.json").read_text())
+    manifest = json.loads((tmp_path / "output" / "plan_manifest.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "planned_not_executed"
     assert manifest["paper_claim"] is False
 
@@ -195,7 +195,10 @@ def test_determ_execution_checkpoints_and_resume_skips_completed_trial(tmp_path,
 
     assert len(first) == len(second) == 1
     assert calls == [10]
-    assert json.loads((output / "run_manifest.json").read_text())["status"] == "completed"
+    assert (
+        json.loads((output / "run_manifest.json").read_text(encoding="utf-8"))["status"]
+        == "completed"
+    )
 
 
 def test_determ_shards_partition_selected_trials_without_overlap(tmp_path, monkeypatch):
@@ -217,7 +220,7 @@ def test_determ_shards_partition_selected_trials_without_overlap(tmp_path, monke
     )
     written = pd.read_csv(output / "trial_plan.csv")
     assert written.loc[written["selected_for_shard"], "seed"].tolist() == [11, 13]
-    manifest = json.loads((output / "plan_manifest.json").read_text())
+    manifest = json.loads((output / "plan_manifest.json").read_text(encoding="utf-8"))
     assert manifest["shard_selected_trials"] == 2
 
 
@@ -292,7 +295,9 @@ def test_basic_aggregate_shards_requires_exact_plan_keys(tmp_path):
     )
 
     assert len(trials) == 2
-    manifest = json.loads((tmp_path / "aggregate" / "aggregation_manifest.json").read_text())
+    manifest = json.loads(
+        (tmp_path / "aggregate" / "aggregation_manifest.json").read_text(encoding="utf-8")
+    )
     assert manifest["status"] == "completed"
     assert manifest["n_trials"] == manifest["n_expected_trials"] == 2
 

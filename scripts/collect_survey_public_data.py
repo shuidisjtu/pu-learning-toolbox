@@ -55,7 +55,7 @@ def collect(dataset, raw_dir):
     directory = raw_dir / dataset
     directory.mkdir(parents=True, exist_ok=True)
     receipt_path = directory / "provenance.json"
-    previous = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
+    previous = json.loads(receipt_path.read_text(encoding="utf-8")) if receipt_path.exists() else {}
     previous_files = {entry["filename"]: entry for entry in previous.get("files", [])}
     records = []
     for name, url, algorithm, expected in entries:

@@ -99,7 +99,9 @@ def receipt(tmp_path):
         (r["dataset"], r["method"], r["training_path"]): r for r in protocol["execution_units"]
     }
     index = json.loads(
-        (ROOT / "docs/research/pu_survey/data/p2_2_artifacts_index.json").read_text()
+        (ROOT / "docs/research/pu_survey/data/p2_2_artifacts_index.json").read_text(
+            encoding="utf-8"
+        )
     )
     book = openpyxl.Workbook()
     book.remove(book.active)
@@ -262,7 +264,7 @@ def test_edge_four_decimal_training_rounding_is_allowed(receipt):
 
 def test_file_digest_mismatch_is_rejected(receipt):
     _, path, index, _ = receipt
-    recorded = json.loads(index.read_text())
+    recorded = json.loads(index.read_text(encoding="utf-8"))
     recorded["release_table"]["sha256"] = "0" * 64
     index.write_text(json.dumps(recorded))
     assert not audit.audit_workbook(path, index)["ok"]

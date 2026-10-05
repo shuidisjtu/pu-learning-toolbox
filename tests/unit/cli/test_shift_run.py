@@ -59,7 +59,7 @@ def test_basic_shift_run_writes_comparison_artifacts(tmp_path):
     parsed = build_parser().parse_args(args)
     parsed.func(parsed)
     out = tmp_path / "out"
-    payload = json.loads((out / "shift_comparison.json").read_text())
+    payload = json.loads((out / "shift_comparison.json").read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "shift_adaptation_comparison"
     assert (out / "shift_comparison.md").is_file()
     assert (out / "shift_report.json").is_file()
