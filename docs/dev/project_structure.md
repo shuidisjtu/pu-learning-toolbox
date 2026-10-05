@@ -323,6 +323,7 @@ tests/
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约
       test_profile_survey_candidate_storage.py # 七方法存储探针和恢复边界
       test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
+      test_profile_survey_cnn_storage.py # CNN 快照体积、恢复、来源身份和输入边界
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -765,6 +766,7 @@ scripts/
   collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
   profile_survey_candidate_storage.py     # 七方法多 seed 合成存储与恢复探针
   prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
+  profile_survey_cnn_storage.py           # 五方法 CNN 存储探针与多 seed 恢复；非正式预算
 ```
 
 ## 7. CI/CD（`.github/`）

@@ -113,6 +113,10 @@ deepcopy；默认首池化层（否则 Conv/Linear）或显式模块路径，单
 公共 pipeline/fold 隔离与全阶段回放纳入测试；Gaussian 增强、无 SimSiam 投影/predictor、
 同模板各阶段初始化仍是已登记适配，正式资源 profile 与选模/预算规格继续待办。
 
+已补[默认宽度 CNN 存储技术实测](candidate_cnn_storage_review_20261005.md)：PULDA、GradPU、
+Robust-PU、Split-PU、PAN 各三种子 CPU 快照/完整对象恢复，另有 PULDA 单组 CUDA allocator
+峰值；记录实际源摘要。不使用二维探针外推图像配额，不以这些缩短合成任务替代 P3.3。
+
 本批验证：注册表 schema/source/manifest/draft、P3 清单契约及两方法 runner smoke 合计 **55 passed**。文档一致性与 diff 空白检查通过。原注册表模块已有的 7 条 UP038 风格告警未改动，本轮增量 lint 排除该既有规则后通过；不是全仓库 lint 验收。
 
 第 2 项已继续到 [PULDA/PUET 规格草案](p3_pulda_puet_admission_spec_draft.md)：预算单位、标签/视图、选模及存储缺口已分别登记，并新增两方法四角色 PA/OA runner smoke（2 passed）。PULDA 的磁盘估算缺口明确保留，不称正式存储验收。

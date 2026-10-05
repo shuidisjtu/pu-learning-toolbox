@@ -66,3 +66,28 @@ def test_p3_special_label_and_view_restrictions_remain_explicit():
         assert accounting["formal_budget_approved"] is False
         assert accounting["optimizer_steps_attribute"] == "optimizer_steps_"
         assert accounting["bound_is_upper_limit"] is True
+
+
+def test_basic_cnn_storage_evidence_remains_separate_from_formal_budget():
+    ledger = json.loads((ROOT / "pu_toolbox/experiment/method_ledger.json").read_text())
+    record = ledger["technical_resource_evidence"][0]
+    assert record["formal_budget_approved"] is False and record["protocol_binding"] is None
+    methods = set(record["methods"])
+    assert methods == {"pulda", "gradpu", "robust_pu", "split_pu", "pan"}
+    profiles = json.loads((ROOT / record["cpu_record"]).read_text())["profiles"]
+    assert len(profiles) == 15
+    assert {(p["method"], p["seed"]) for p in profiles} == {
+        (method, seed) for method in methods for seed in (0, 1, 2)
+    }
+    for profile in profiles:
+        assert profile["formal_budget_approved"] is False
+        assert profile["device"] == "cpu" and profile["cuda_peak"] is None
+        assert profile["encoder"]["matches_toolbox_default_width"] is True
+        assert profile["epoch_weights_bytes"]["all_snapshots_replayed"]
+        assert profile["method"] not in load_protocol()["method_profiles"]
+    cuda = json.loads((ROOT / record["cuda_record"]).read_text())["profiles"]
+    assert len(cuda) == 1 and cuda[0]["method"] == "pulda"
+    assert record["cuda_methods"] == ["pulda"]
+    assert cuda[0]["device"] == "cuda" and cuda[0]["formal_budget_approved"] is False
+    assert cuda[0]["cuda_peak"]["allocated_bytes"] > 0
+    assert (ROOT / record["review_ref"]).is_file()

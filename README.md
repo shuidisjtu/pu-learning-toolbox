@@ -152,6 +152,9 @@ Synthetic seven-method serialization (and PULDA checkpoint) storage can be probe
 `scripts/profile_survey_candidate_storage.py` (`--method all --seeds 0 1 2`);
 this does not set formal budgets or audit GPU usage. The separate five-method handoff draft is
 generated read-only by `scripts/prepare_p3_preintegration_extension.py`, without approving candidates.
+CNN checkpoint/full-estimator sizes and CPU replay can be probed separately with
+`scripts/profile_survey_cnn_storage.py` (`--method all --seeds 0 1 2`);
+its synthetic measurements and optional process-local CUDA peaks are not formal resource budgets.
 documentation consistency checks include `scripts/check_doc_links.py` and `scripts/check_api_docs.py`.
 
 Auditing and summarizing a finished batch set is driven by

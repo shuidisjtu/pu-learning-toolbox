@@ -45,6 +45,10 @@ SCAR 标记、显式 TS、独立 PA/OA 选择、测试 accuracy/AUC 及 manifest
 合成存储探针和逐预测恢复证据见[独立推进记录](independent_progress_20261005.md)。
 此修补不填写新正式 budget/storage profile，不据小 MLP 的 bytes 推算 CIFAR 上界。
 
+后续 CNN 技术实测见[存储复核](candidate_cnn_storage_review_20261005.md)：
+PULDA 默认宽度 CNN/小 head 的每份推断快照 40,792,242 字节，三种子一致、恢复通过；
+另有一组合成 CUDA allocator 峰值。它不是批准结构/正式图像预算的上界，正式配额仍待决。
+
 复现：
 
 ```bash

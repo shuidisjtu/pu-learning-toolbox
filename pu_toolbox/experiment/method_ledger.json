@@ -15,6 +15,19 @@
     "HENG958": ["nnpu", "self_pu"]
   },
   "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "pulda", "puet", "gradpu", "lagam", "pan", "rp", "pulns", "genpu", "holistic_pu"],
+  "technical_resource_evidence": [
+    {
+      "id": "candidate_cnn_storage_probe_20261005",
+      "methods": ["pulda", "gradpu", "robust_pu", "split_pu", "pan"],
+      "cpu_record": "docs/research/pu_survey/data/candidate_cnn_storage_probe_20261005.json",
+      "cuda_record": "docs/research/pu_survey/data/candidate_cnn_cuda_probe_20261005.json",
+      "cuda_methods": ["pulda"],
+      "review_ref": "docs/research/pu_survey/candidate_cnn_storage_review_20261005.md",
+      "scope": "default-width CNN, reduced synthetic input/head/stages, engineering evidence only",
+      "formal_budget_approved": false,
+      "protocol_binding": null
+    }
+  ],
   "methods": {
     "holistic_pu": {
       "class": "HolisticPUClassifier",

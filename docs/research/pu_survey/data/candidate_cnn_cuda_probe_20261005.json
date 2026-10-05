@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "schema_version": 1,
+      "status": "synthetic_cnn_storage_probe_not_formal_admission",
+      "method": "pulda",
+      "seed": 0,
+      "device": "cuda",
+      "training_view": "ts",
+      "input_shape": [
+        24,
+        3,
+        8,
+        8
+      ],
+      "encoder": {
+        "backbone": "cnn13",
+        "base_channels": 64,
+        "matches_toolbox_default_width": true,
+        "normalization_mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "normalization_std": [
+          0.5,
+          0.5,
+          0.5
+        ]
+      },
+      "parameters": {
+        "class_prior": 0.4,
+        "depth": 1,
+        "device": "cuda",
+        "hidden_dim": 4,
+        "learning_rate": 0.001,
+        "margin": 0.6,
+        "margin_ema": 0.5,
+        "mixup_alpha": 11,
+        "mixup_weight": 4.2,
+        "positive_batch_size": 4,
+        "pu_epochs": 1,
+        "random_state": 0,
+        "temperature": 3.5,
+        "unlabeled_batch_size": 8,
+        "unlabeled_ema": 0.85,
+        "warmup_epochs": 1,
+        "warmup_learning_rate": 0.0001,
+        "warmup_weight_decay": 0.0005,
+        "weight_decay": 0.0001
+      },
+      "inference_model_parameter_count": 10185033,
+      "optimizer_steps": 4,
+      "fit_elapsed_seconds": 1.8830206599086523,
+      "epoch_weights_bytes": {
+        "count": 2,
+        "min": 40792242,
+        "max": 40792242,
+        "total": 81584484,
+        "all_snapshots_replayed": true,
+        "final_scores_match": true
+      },
+      "estimator_pickle_bytes": 81592380,
+      "trusted_pickle_roundtrip_verified": true,
+      "cuda_peak": {
+        "baseline_allocated_bytes": 0,
+        "baseline_reserved_bytes": 0,
+        "allocated_bytes": 308205056,
+        "reserved_bytes": 333447168,
+        "scope": "this_process_torch_allocator_during_synthetic_fit"
+      },
+      "environment": {
+        "python": "3.12.2",
+        "torch": "2.6.0+cu124"
+      },
+      "code_commit": "19c68c23303ed28aeda52a3758bd7d121880d9e5",
+      "source_files_sha256": {
+        "scripts/profile_survey_cnn_storage.py": "fc3449c2f1484658e284183b43339d6b888be663b155dea3c2440f13820da41a",
+        "pu_toolbox/estimators/deep/vision.py": "00630828971f0d3750584b9c53bb15953fc750c93d67841b48089b8f2d4c6d25",
+        "pu_toolbox/experiment/checkpoints.py": "075387d5e83646779f65177128383655e9a6d94196c2e73d386df704059b8a91",
+        "pu_toolbox/utils/serialization.py": "8d96363d9e0b215123d9c53b690c335fa7c8f0b9a1fe52db554ff236fde6a3eb",
+        "pu_toolbox/estimators/risk/pulda.py": "114db773a6513b10ad96310c0e4ae6b59ff15c03410414c086bcd90214ba9a16"
+      },
+      "formal_budget_approved": false,
+      "limitations": [
+        "Synthetic images, 24 rows, reduced head/epochs; not paper or pilot experiments",
+        "Reported disk bytes are measurements, not upper bounds for formal checkpoints",
+        "Pickle includes auxiliary networks; inference snapshots include selected model only",
+        "No training resume, formal candidates/retries, clean selection or frozen-lock audit",
+        "CPU mode has no GPU memory evidence; CUDA peak is process-local, not formal audit"
+      ]
+    }
+  ]
+}

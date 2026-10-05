@@ -373,3 +373,31 @@ CNN 工程能力不代表官方图像增强、SimSiam 投影/predictor、作者�
 正式多 seed/资源预算已复现；admitted=false、候选池/协议/预算 null、负责人签署仍待办。
 本轮公开源码重读请求未成功，未新增来源审阅/源码授权结论；沿用已有锁定来源和显式
 适配边界，不以网络失败猜测作者细节。冻结协议/比较矩阵/uv.lock 未改，未提交或推送。
+
+## 推送、远程治理合并与 CNN 存储实测
+
+用户明确要求推送后，本地成果提交 d29da22；fetch 发现合作者 PR98 / 488d744，
+合并保存为 19c68c2，普通 push 成功，原始 Excel 未上传。保留注释门禁、单源注册表、
+中央测试工厂、稳定台账方法引用与架构文档。五新算法接中央 factory，类声明字段不在
+registry 重复写；PULNS 无独立 clean support 的 Iris 用例显式不适用，专门 support 测试保留。
+清理新门禁指出的过期豁免，不降低检查规则。静态 draft 引用与 canonical 台账同步，
+null/未准入状态不变。合并专项 225 passed /23 skipped（9.21s）。扩展 CPU 回归
+2518 passed /25 skipped /32 deselected，只因 UI 旧三方法名单断言失败；名单按当前八个
+CNN 声明同步后 2 passed，未把这写成整套重新执行绿。合并前四目录为1568 passed。
+全部格式/注释/文档/数学/目录/层间依赖/测试质量/元数据门禁通过。
+
+推送后继续资源准备，新增脚本与[默认宽度 CNN 存储复核](candidate_cnn_storage_review_20261005.md)。
+五方法 ×3 seeds CPU，所有阶段快照/最终分数/可信全对象恢复通过；另一次 PULDA CUDA
+测量使用 GPU6 /A6000，峰值 allocated 308,205,056 /reserved333,447,168字节，测后1MiB/0%。
+该数字仅本进程、小合成输入/阶段预算，不是正式 CIFAR 容量。29 项存储专项通过。
+源码摘要在训练前后核验，CPU不伪报GPU峰值，请求CUDA失败不静默降级。
+新记录不覆盖旧二维探针、不改旧冻结配置、不批准候选或正式预算。后续继续审阅所需
+资源/选模规格、来源行为与剩余图像适配；正式结果制品和本人签署仍不能由工程测试替代。
+
+最后重新执行全部 unit/contract/integration 与 builtin 测试（not gpu and not slow）：
+**2535 passed /25 skipped /32 deselected**（185.36s）；这次包含修正的 UI 候选断言，
+不是沿用上一次有失败的回归。跳过包括可选依赖与 clean-support 不适用 fixture，
+GPU/slow 明确排除；PULDA CUDA 技术探针单独执行，不称 frozen-lock 验收。
+新增来源在训练期间变化的拒绝测试随后另跑 **1 passed /15 deselected**（8.09s），
+不虚增本次整套回归计数。台账只新增 technical_resource_evidence 指针、预算未批准且
+protocol_binding=null；关联契约/方法台账/UI 专项 **31 passed**。
