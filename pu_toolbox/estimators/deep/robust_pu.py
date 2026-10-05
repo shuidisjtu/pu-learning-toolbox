@@ -24,6 +24,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 from ...losses.nnpu import _nnpu_train_step
 
@@ -144,6 +145,7 @@ class RobustPUClassifier(BasePUClassifier):
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
+        os_or_ts: str = "os",
     ) -> RobustPUClassifier:
         import torch
         from torch.nn import functional as F
@@ -151,6 +153,7 @@ class RobustPUClassifier(BasePUClassifier):
         if sample_weight is not None:
             raise NotImplementedError("Robust-PU does not implement sample_weight")
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="RobustPUClassifier")
+        view = build_training_view(X, y_pu, requested_view=os_or_ts)
         prior = self.class_prior if class_prior is None else class_prior
         if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
             raise ValueError("class_prior must be in (0, 1)")
@@ -165,6 +168,8 @@ class RobustPUClassifier(BasePUClassifier):
             value = getattr(self, name)
             if type(value) is not int or value < (0 if name == "pretrain_epochs" else 1):
                 raise ValueError(f"{name} must be a valid non-negative/positive integer")
+        if view.calibration_applied and self.pretrain_epochs == 0:
+            raise ValueError("os_or_ts='ts' requires pretrain_epochs > 0 for nnPU calibration")
         for name in (
             "pretrain_lr",
             "learning_rate",
@@ -187,9 +192,10 @@ class RobustPUClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X must remain finite after float32 conversion")
-        p_idx, u_idx = np.flatnonzero(y_pu == 1), np.flatnonzero(y_pu == 0)
-        if not len(u_idx):
-            raise ValueError("Robust-PU needs unlabeled samples")
+        # Torch's NumPy index bridge expects writable arrays; the view owns
+        # read-only positions, so make local index copies for later indexing.
+        p_idx = np.array(view.positive_positions, copy=True)
+        u_idx = np.array(view.native_unlabeled_positions, copy=True)
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
@@ -217,6 +223,9 @@ class RobustPUClassifier(BasePUClassifier):
         self.n_features_in_ = X.shape[1]
         self.n_positive_ = len(p_idx)
         self.n_unlabeled_ = len(u_idx)
+        self.n_loss_unlabeled_ = len(view.loss_unlabeled_positions)
+        self.training_view_ = os_or_ts
+        self.calibration_applied_ = view.calibration_applied
         self.history_ = {
             "pretrain_risk": [],
             "episode_loss": [],
@@ -248,10 +257,13 @@ class RobustPUClassifier(BasePUClassifier):
                     + self.batch_size
                 ]
                 pos, unl = _scores(model, data[p]), _scores(model, data[u])
+                # Only the nnPU marginal-risk role is calibrated.  Self-paced
+                # pseudo-negative episodes below retain the original U rows.
+                loss_unl = torch.cat((unl, pos)) if view.calibration_applied else unl
                 loss, info = _nnpu_train_step(
                     torch.sigmoid(-pos).mean(),
                     torch.sigmoid(pos).mean(),
-                    torch.sigmoid(unl).mean(),
+                    torch.sigmoid(loss_unl).mean(),
                     class_prior=prior,
                 )
                 if not torch.isfinite(loss):

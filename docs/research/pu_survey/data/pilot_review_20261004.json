@@ -1,0 +1,1142 @@
+{
+  "integrity": {
+    "ok": true,
+    "problems": [],
+    "checked": {
+      "splits": 15,
+      "files": 75
+    }
+  },
+  "splits": [
+    {
+      "dataset": "spambase",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "shape": [
+            3312,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.39402173913043476,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3967391304347826,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.391304347826087,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            921,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3941368078175896,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.39404477287546186,
+      "manifest_sha256": "cf854a60afcf70a9942f0151c07316f6ec65e14dd9d8ea46fd0d8c356fcf6502",
+      "train_mean_max_abs": 1.3286742192787537e-08,
+      "train_std_max_error": 4.013346877052015e-08
+    },
+    {
+      "dataset": "spambase",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "shape": [
+            3312,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.39402173913043476,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.391304347826087,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3967391304347826,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            921,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3941368078175896,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.39404477287546186,
+      "manifest_sha256": "a152fb47054329f584f4c1a9b17caa9e3be99dc84683b1d753c1081b6e4dd418",
+      "train_mean_max_abs": 1.2505367614220882e-08,
+      "train_std_max_error": 2.705201329611384e-08
+    },
+    {
+      "dataset": "spambase",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "shape": [
+            3312,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.39402173913043476,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3967391304347826,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.391304347826087,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            921,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3941368078175896,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.39404477287546186,
+      "manifest_sha256": "d4b4637245a73716881e4dd5d96c06ad11a44c9137a238760a1a013c84d6d75a",
+      "train_mean_max_abs": 1.0971234587486833e-08,
+      "train_std_max_error": 1.7759684833862366e-08
+    },
+    {
+      "dataset": "spambase",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "shape": [
+            3312,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.39402173913043476,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3967391304347826,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.391304347826087,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            921,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3941368078175896,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.39404477287546186,
+      "manifest_sha256": "bdae7af9e1f4981a53fceb31223a3c0d240f6f43a5dea4266345f7962eb1cc51",
+      "train_mean_max_abs": 1.1858615826293467e-08,
+      "train_std_max_error": 3.211277110892752e-08
+    },
+    {
+      "dataset": "spambase",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "shape": [
+            3312,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.39402173913043476,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3967391304347826,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            184,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.391304347826087,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            921,
+            57
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.3941368078175896,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.39404477287546186,
+      "manifest_sha256": "706e2c860175ac16f1267dd33c1e3dd2b763be92fcbaaa2afb514d15df9fd2cc",
+      "train_mean_max_abs": 1.337946671542626e-08,
+      "train_std_max_error": 2.14989117619524e-08
+    },
+    {
+      "dataset": "imdb",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "shape": [
+            22500,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "pu_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "clean_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "test": {
+          "shape": [
+            25000,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "87929f198b59fe83db67ab64ce53584969a35742708703a0752f02209315069b"
+    },
+    {
+      "dataset": "imdb",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "shape": [
+            22500,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "pu_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "clean_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "test": {
+          "shape": [
+            25000,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "175b93db5e009eef7465614e8f3047a9a08b7df0665a57591a81791a38a99e66"
+    },
+    {
+      "dataset": "imdb",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "shape": [
+            22500,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "pu_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "clean_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "test": {
+          "shape": [
+            25000,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "5914535e2e16eeae55280c1320e0a07f02795f3aecf2c5c48152c1ade62e64c5"
+    },
+    {
+      "dataset": "imdb",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "shape": [
+            22500,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "pu_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "clean_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "test": {
+          "shape": [
+            25000,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "8b43450f8580880f28bb7184f70651a593b69bef5c84b3b2655a02b65acc106e"
+    },
+    {
+      "dataset": "imdb",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "shape": [
+            22500,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "pu_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "clean_val": {
+          "shape": [
+            1250,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        },
+        "test": {
+          "shape": [
+            25000,
+            384
+          ],
+          "dtype": "float32",
+          "positive_rate": 0.5,
+          "finite": true,
+          "norm_max_error": 1.1920928955078125e-07
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "9348fc7d06f6110e1fe34058ed3dd6416e5783135a88b3181fe3d21a9b16cbcb"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "shape": [
+            45000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            10000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.4,
+      "manifest_sha256": "d532d1c69340204829b5ea311382f032a4eaf487fa324a1bbdb99e34178b8230",
+      "channel_mean": [
+        0.49125039209715315,
+        0.48193308899500237,
+        0.4462892658892452
+      ],
+      "channel_std": [
+        0.2470960371506015,
+        0.24355190989051462,
+        0.2616041053767255
+      ],
+      "channel_mean_max_error": 3.666678072278273e-12,
+      "channel_std_max_error": 7.2679917639817404e-12,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "shape": [
+            45000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            10000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.4,
+      "manifest_sha256": "1a8168c508b7f50d821411e33c894d30a7553fc64e75a4260ff01c326095d3d8",
+      "channel_mean": [
+        0.4915970100859472,
+        0.48230629322678076,
+        0.4467858397981471
+      ],
+      "channel_std": [
+        0.24716126226571966,
+        0.24364707684507317,
+        0.2618233410034054
+      ],
+      "channel_mean_max_error": 3.675726389928968e-12,
+      "channel_std_max_error": 5.20677945203829e-12,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "shape": [
+            45000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            10000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.4,
+      "manifest_sha256": "540e3f13c91d48203b074cc3e9ddba413259e9ff1966d19e05683640696d9abd",
+      "channel_mean": [
+        0.49149224999817037,
+        0.4820072555810954,
+        0.44637508824734146
+      ],
+      "channel_std": [
+        0.2471066408710509,
+        0.24350629319687056,
+        0.261467712724876
+      ],
+      "channel_mean_max_error": 3.6518565948995274e-12,
+      "channel_std_max_error": 6.908557059759346e-12,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "shape": [
+            45000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            10000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.4,
+      "manifest_sha256": "2c716385abb2f91f16bd63d9a873341f7192d136972158a525ddaf57540a61c2",
+      "channel_mean": [
+        0.49175246505178805,
+        0.4825610260900277,
+        0.4469923503926895
+      ],
+      "channel_std": [
+        0.2471730596016682,
+        0.24356783135224921,
+        0.2615851302408474
+      ],
+      "channel_mean_max_error": 3.649136548489196e-12,
+      "channel_std_max_error": 6.418282572084877e-12,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "shape": [
+            45000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            2500,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            10000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.4,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.4,
+      "manifest_sha256": "ba3bc04fcfda8a2e2ffb3f1f168e51e3a329371a7751705556f92d155c7abc88",
+      "channel_mean": [
+        0.49127895121387605,
+        0.4820198757476565,
+        0.4464716734696641
+      ],
+      "channel_std": [
+        0.24705483428116948,
+        0.24353079999945113,
+        0.2616095112775758
+      ],
+      "channel_mean_max_error": 3.646860591288714e-12,
+      "channel_std_max_error": 6.765227267280238e-12,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    }
+  ],
+  "test_file_hash_count": {
+    "spambase": 5,
+    "imdb": 1,
+    "cifar10": 1
+  },
+  "review_date": "2026-10-04",
+  "reviewer": "Codex technical audit; no human signature",
+  "repository_head": "bef43f5133fa4a6385b415effc2fbdc012323428",
+  "worktree": "dirty pre-existing algorithm changes; not frozen AutoDL environment",
+  "formal_results_independently_recomputed": false,
+  "additional_validation": {
+    "receipt_entrypoint_tests": 3,
+    "documentation_checker_tests": 15,
+    "passed": 18,
+    "doc_links": "passed",
+    "diff_whitespace": "passed",
+    "B4_dry_run_reclaim_unselected_checkpoints": true
+  },
+  "regression_suites": [
+    {
+      "file": "delivery-regression.xml",
+      "tests": 215,
+      "failures": 0,
+      "errors": 0,
+      "modules": [
+        "tests.unit.experiment.test_checkpoint_reclaim",
+        "tests.unit.experiment.test_prepare_survey_splits",
+        "tests.unit.experiment.test_split_archive",
+        "tests.unit.experiment.test_strategies_selection",
+        "tests.unit.experiment.test_survey_audit",
+        "tests.unit.experiment.test_survey_audit_checks",
+        "tests.unit.experiment.test_survey_audit_reclaim",
+        "tests.unit.experiment.test_survey_audit_scope",
+        "tests.unit.experiment.test_survey_comparison_attachment",
+        "tests.unit.experiment.test_survey_pilot_batch_contract",
+        "tests.unit.experiment.test_survey_pilot_scope_wiring",
+        "tests.unit.experiment.test_survey_provenance",
+        "tests.unit.experiment.test_survey_summary_boundaries",
+        "tests.unit.experiment.test_survey_summary_cli",
+        "tests.unit.experiment.test_survey_summary_comparison",
+        "tests.unit.experiment.test_survey_summary_measures",
+        "tests.unit.experiment.test_survey_summary_states",
+        "tests.unit.experiment.test_survey_summary_stats"
+      ]
+    },
+    {
+      "file": "p20-regression.xml",
+      "tests": 205,
+      "failures": 0,
+      "errors": 0,
+      "modules": [
+        "tests.contract.test_capability_declarations",
+        "tests.unit.core.test_training_view_contract",
+        "tests.unit.estimators.test_dist_pu_ts_view",
+        "tests.unit.estimators.test_nnpu_ts_view.TestCalibratedUnlabeledInput",
+        "tests.unit.estimators.test_nnpu_ts_view.TestViewGates",
+        "tests.unit.estimators.test_pusb_kernel_ts_view.TestRiskGolden",
+        "tests.unit.estimators.test_pusb_kernel_ts_view.TestViewRoles",
+        "tests.unit.estimators.test_self_pu_ts_view.TestBlendedNegativeRole",
+        "tests.unit.estimators.test_self_pu_ts_view.TestFrozenOsBaseline",
+        "tests.unit.estimators.test_self_pu_ts_view.TestKnownPositiveSafety",
+        "tests.unit.estimators.test_self_pu_ts_view.TestViewFlag",
+        "tests.unit.estimators.test_upu_ts_view.TestRBFCentrePool",
+        "tests.unit.estimators.test_upu_ts_view.TestSolverPoolAndDenominator",
+        "tests.unit.estimators.test_upu_ts_view.TestSquaredGolden",
+        "tests.unit.estimators.test_upu_ts_view.TestViewResolution",
+        "tests.unit.experiment.test_runner_oracle",
+        "tests.unit.experiment.test_runner_oracle_guards",
+        "tests.unit.experiment.test_survey_comparison",
+        "tests.unit.experiment.test_survey_comparison_classification",
+        "tests.unit.experiment.test_survey_comparison_coverage",
+        "tests.unit.experiment.test_survey_comparison_report",
+        "tests.unit.experiment.test_survey_comparison_run_wiring",
+        "tests.unit.experiment.test_survey_comparison_verdict",
+        "tests.unit.experiment.test_training_view_routing.TestResolutionForARealMethod",
+        "tests.unit.experiment.test_training_view_routing.TestRouteTrainingView",
+        "tests.unit.experiment.test_training_view_routing.TestTrainerForwarding",
+        "tests.unit.experiment.test_training_views"
+      ]
+    }
+  ],
+  "regenerated_plans": {
+    "B1": {
+      "snapshot_schema_version": "1.0",
+      "protocol_version": "survey-v1.2",
+      "source_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+      "selection": {
+        "datasets": [
+          "spambase"
+        ],
+        "methods": null,
+        "training_paths": null
+      },
+      "execution_units": [
+        {
+          "dataset": "spambase",
+          "method": "upu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "spambase",
+          "method": "nnpu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "spambase",
+          "method": "dist_pu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "spambase",
+          "method": "pusb_kernel",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "spambase",
+          "method": "lbe",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "spambase",
+          "method": "self_pu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "spambase",
+          "method": "pn_oracle",
+          "training_path": "native_2d"
+        }
+      ],
+      "totals": {
+        "planned": 215,
+        "completed": 0,
+        "pending": 215
+      }
+    },
+    "B2": {
+      "snapshot_schema_version": "1.0",
+      "protocol_version": "survey-v1.2",
+      "source_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+      "selection": {
+        "datasets": [
+          "imdb"
+        ],
+        "methods": null,
+        "training_paths": null
+      },
+      "execution_units": [
+        {
+          "dataset": "imdb",
+          "method": "upu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "imdb",
+          "method": "nnpu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "imdb",
+          "method": "dist_pu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "imdb",
+          "method": "pusb_kernel",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "imdb",
+          "method": "lbe",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "imdb",
+          "method": "self_pu",
+          "training_path": "native_2d"
+        },
+        {
+          "dataset": "imdb",
+          "method": "pn_oracle",
+          "training_path": "native_2d"
+        }
+      ],
+      "totals": {
+        "planned": 215,
+        "completed": 0,
+        "pending": 215
+      }
+    },
+    "B3a": {
+      "snapshot_schema_version": "1.0",
+      "protocol_version": "survey-v1.2",
+      "source_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+      "selection": {
+        "datasets": [
+          "cifar10"
+        ],
+        "methods": [
+          "lbe",
+          "pn_oracle",
+          "pusb_kernel",
+          "upu"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "execution_units": [
+        {
+          "dataset": "cifar10",
+          "method": "upu",
+          "training_path": "cnn_feature_adapter"
+        },
+        {
+          "dataset": "cifar10",
+          "method": "pusb_kernel",
+          "training_path": "cnn_feature_adapter"
+        },
+        {
+          "dataset": "cifar10",
+          "method": "lbe",
+          "training_path": "cnn_feature_adapter"
+        },
+        {
+          "dataset": "cifar10",
+          "method": "pn_oracle",
+          "training_path": "cnn_feature_adapter"
+        }
+      ],
+      "totals": {
+        "planned": 110,
+        "completed": 0,
+        "pending": 110
+      }
+    },
+    "B3b": {
+      "snapshot_schema_version": "1.0",
+      "protocol_version": "survey-v1.2",
+      "source_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+      "selection": {
+        "datasets": [
+          "cifar10"
+        ],
+        "methods": [
+          "dist_pu",
+          "self_pu"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "execution_units": [
+        {
+          "dataset": "cifar10",
+          "method": "dist_pu",
+          "training_path": "cnn_feature_adapter"
+        },
+        {
+          "dataset": "cifar10",
+          "method": "self_pu",
+          "training_path": "cnn_feature_adapter"
+        }
+      ],
+      "totals": {
+        "planned": 70,
+        "completed": 0,
+        "pending": 70
+      }
+    },
+    "B4": {
+      "snapshot_schema_version": "1.0",
+      "protocol_version": "survey-v1.2",
+      "source_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+      "selection": {
+        "datasets": [
+          "cifar10"
+        ],
+        "methods": [
+          "nnpu"
+        ],
+        "training_paths": [
+          "native_cnn"
+        ]
+      },
+      "execution_units": [
+        {
+          "dataset": "cifar10",
+          "method": "nnpu",
+          "training_path": "native_cnn"
+        }
+      ],
+      "totals": {
+        "planned": 35,
+        "completed": 0,
+        "pending": 35
+      }
+    }
+  },
+  "locked_code_sha256": {
+    "pubench_datasets.py": "aaaf3d12224e58d6041e81d94433f00bce85e8f60a8910a39f809ef6f3da0a55",
+    "pubench_collect.py": "362b7705b8602da04fa06ea6d213fb55b837764f9607aac9059f522226d721f7",
+    "pubench_train.py": "8036909ab071d62ad0649ee23d6f30ff21ba9ce7cff0f1c27e50493da47f183e",
+    "pubench_networks.py": "d3558f5d418e05cf3c5a2838bf2b641618c76b4ffebd5fe0570d98176f16444d"
+  }
+}

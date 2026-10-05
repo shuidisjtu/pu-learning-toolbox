@@ -24,6 +24,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import build_training_view
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 
 
@@ -236,6 +237,7 @@ class PULDAClassifier(BasePUClassifier):
         class_prior=None,
         sample_weight=None,
         epoch_callback=None,
+        os_or_ts: str = "os",
     ) -> PULDAClassifier:
         """Run distribution-alignment warmup followed by pseudo-label MixUp."""
         try:
@@ -248,6 +250,7 @@ class PULDAClassifier(BasePUClassifier):
             raise NotImplementedError("PULDA does not implement sample_weight")
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="PULDAClassifier")
         X = _finite_features(X, name="X")
+        view = build_training_view(X, y_pu, requested_view=os_or_ts)
         prior = self.class_prior if class_prior is None else class_prior
         check_scalar_in_range(prior, 0.0, 1.0, "class_prior", inclusive=False)
         self._validate_parameters()
@@ -271,6 +274,11 @@ class PULDAClassifier(BasePUClassifier):
         self.n_features_in_ = X.shape[1]
         self._X_shape_ = X.shape
         self._class_prior = float(prior)
+        self.training_view_ = os_or_ts
+        self.calibration_applied_ = view.calibration_applied
+        self.n_positive_ = len(view.positive_positions)
+        self.n_unlabeled_ = len(view.native_unlabeled_positions)
+        self.n_loss_unlabeled_ = len(view.loss_unlabeled_positions)
         self.device_ = device
         self._is_fitted = False
         self.optimizer_steps_ = 0
@@ -305,6 +313,7 @@ class PULDAClassifier(BasePUClassifier):
                 ema,
                 prior,
                 pseudo_labels=None,
+                calibrated_view=view.calibration_applied,
             )
             warmup_scheduler.step()
             self._record_epoch(epoch_number, "warmup", totals, epoch_callback)
@@ -330,6 +339,7 @@ class PULDAClassifier(BasePUClassifier):
                 ema,
                 prior,
                 pseudo_labels=pseudo_labels,
+                calibrated_view=view.calibration_applied,
             )
             pu_scheduler.step()
             self._record_epoch(epoch_number, "pu_mixup", totals, epoch_callback)
@@ -351,6 +361,7 @@ class PULDAClassifier(BasePUClassifier):
         prior,
         *,
         pseudo_labels,
+        calibrated_view,
     ):
         import torch
         from torch.nn import functional
@@ -366,20 +377,28 @@ class PULDAClassifier(BasePUClassifier):
             batch_x = tx[indices]
             batch_y = ty[indices]
             logits = self.model_(batch_x).flatten().clamp(-10, 10)
+            # Distribution and two-way margin have a marginal-U role.  In
+            # the calibrated view the same P logits enter that role too;
+            # MixUp and persistent pseudo-labels below retain original rows.
+            if calibrated_view:
+                risk_logits = torch.cat((logits, logits[: len(p_idx)]))
+                risk_y = torch.cat((batch_y, torch.zeros_like(batch_y[: len(p_idx)])))
+            else:
+                risk_logits, risk_y = logits, batch_y
             u_exp, p_neg, u_neg, u_correction, margin_correction = ema.moments(
-                logits, batch_y, self.margin
+                risk_logits, risk_y, self.margin
             )
             distribution, _, _ = pulda_distribution_alignment(
-                logits,
-                batch_y,
+                risk_logits,
+                risk_y,
                 class_prior=prior,
                 temperature=self.temperature,
                 unlabeled_expectation=u_exp,
                 ema_correction=u_correction,
             )
             margin_loss, _, _ = pulda_two_way_margin(
-                logits,
-                batch_y,
+                risk_logits,
+                risk_y,
                 class_prior=prior,
                 margin=self.margin,
                 temperature=1.0,

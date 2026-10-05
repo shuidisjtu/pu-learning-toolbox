@@ -332,6 +332,16 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.HIGH,
     ),
     AlgorithmMetadata(
+        name="cvir",
+        aliases=["conditional_value_ignoring_risk"],
+        paper="Mixture Proportion Estimation and PU Learning: A Modern Approach",
+        supports_sparse=False,
+        supports_gpu=True,
+        upstream_url="https://github.com/acmi-lab/PU_learning",
+        license="Apache-2.0",
+        training_cost=Cost.MEDIUM,
+    ),
+    AlgorithmMetadata(
         name="split_pu",
         aliases=["split-pu"],
         paper="Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",
@@ -420,6 +430,7 @@ def _bind_native_classes() -> None:
         ("gradpu", "..estimators.deep.grad_pu", "GradPUClassifier"),
         ("puet", "..estimators.risk.puet", "PUExtraTreesClassifier"),
         ("robust_pu", "..estimators.deep.robust_pu", "RobustPUClassifier"),
+        ("cvir", "..estimators.risk.cvir", "CVIRClassifier"),
         ("split_pu", "..estimators.deep.split_pu", "SplitPUClassifier"),
         ("lagam", "..estimators.deep.lagam", "LaGAMClassifier"),
     ]

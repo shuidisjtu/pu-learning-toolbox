@@ -622,6 +622,41 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "reproducibility one"
         ),
     },
+    "test_cvir.py": {
+        "determ": (
+            "determinism is asserted by the two identically-seeded fits in "
+            "test_fit_checkpoint_registry_and_prior_gate; there is no separate "
+            "seed-reproducibility surface beyond the estimator's random_state"
+        ),
+    },
+    "test_p3_feature_adapter_smoke.py": {
+        "determ": (
+            "the smoke runs under fixed seeds (rng default_rng(22), "
+            "torch.manual_seed(5)); estimator determinism is asserted in their "
+            "own unit suites"
+        ),
+        "edge": (
+            "one synthetic bundle exercises the shared path; empty/extreme "
+            "image inputs are the adapter's own test surface"
+        ),
+        "param": (
+            "adapt_image_bundle_to_features is called with fixed valid "
+            "arguments; invalid-bundle rejection is not this smoke's concern"
+        ),
+    },
+    "test_review_survey_split_receipt.py": {
+        "basic": (
+            "the three tests exercise --help and two refusal paths of a "
+            "read-only CLI audit; functional assembly of the receipt check "
+            "lives in the script itself"
+        ),
+        "determ": "a subprocess CLI audit has no randomness or seed state",
+        "edge": ("the refusal paths (optimized Python, missing receipt) are the boundary surface"),
+        "param": (
+            "the refusals are input/parameter validation paths (--archive-dir "
+            "with a missing receipt, -O mode)"
+        ),
+    },
 }
 
 

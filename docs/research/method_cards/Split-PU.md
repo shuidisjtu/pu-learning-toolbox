@@ -23,4 +23,4 @@
 
 - 官方使用 CIFAR CNN、图像弱/强增强和带 predictor 的高层 SimSiam 一致性；本版用二维特征的 Gaussian 扰动与隐层余弦一致性，是**结构保留的表格适配**，不提供图像 backbone，不可直接拿论文准确率作数值裁决。
 - 官方代码训练中反复读取测试标签报告准确率；本实现的 `fit` 无真实标签入口，不使用 test set 决定阶段或权重。PA/OA 由外部 runner 分开执行。
-- 已配置公式、阶段、接口、确定性、checkpoint 和 CUDA smoke 测试；CUDA 实跑、官方行为对照、台账/矩阵、合作者复核仍待完成。P2.0b/c 前置未签署前不进入正式 pilot/主榜。
+- 已配置公式、阶段、接口、确定性、checkpoint 和 CUDA smoke 测试。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU teacher 的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。temporary 的一致率、easy/hard 划分及 student 的 U 分支仍只取原始 U，避免已知 P 被当伪负例。台账默认 `ts-compatible`，实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过；不替代 frozen-lock、多 seed 或正式资源验收。公开论文数值对照、Survey 矩阵、合作者复核仍待完成；本技术预集成不进入冻结 pilot/主榜。

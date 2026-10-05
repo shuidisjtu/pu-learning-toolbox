@@ -72,6 +72,7 @@ pu_toolbox/
       nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
       pnu.py                              (native: 凸 PNU 半监督闭式解(平方损失, 对齐 pywsl, η 混合 P/NU))
       puet.py                             (native: PU Extra Trees nnPU/二次风险驱动的随机树集成，CPU)
+      cvir.py                             (CVIR 固定未标记正类先验的经典适配器，技术预集成)
     bias_aware/
       __init__.py                         (公共导出聚合)
       pusb.py                             (native: PUSB 选择偏差打分: LR 源分类器 + 可配置阈值(保序不保后验))
@@ -252,6 +253,7 @@ tests/
       test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
       test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
       test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
+      test_cvir.py                      # CVIR 负例保留顺序、先验与显式 TS 拒绝测试
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -298,6 +300,7 @@ tests/
       test_check_project_metadata.py    # 项目元数据门禁失败路径: 拼装仓库跑 main(), 逐项变异须非零退出
       test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
       test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
+      test_review_survey_split_receipt.py # P1.4 只读接收复核的失败关闭与 CLI 测试
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -404,6 +407,7 @@ tests/
       test_survey_recipe_registry_manifest.py # manifest recipe 绑定校验（fail-closed + legacy 兼容）
       test_survey_recipe_registry_sources.py # recipe registry 来源证据引用规则
       test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
+      test_p3_feature_adapter_smoke.py  # P3 预集成方法的共享冻结特征工程 smoke
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -676,6 +680,7 @@ docs/
       WConPU.md
       DGPU.md
       Importance_Weighted_PU_Shift.md
+      CVIR.md                             # CVIR 固定未标记正类先验的经典适配器（技术预集成）
     traditional_pu/
       traditional_pu_metric_contract.md   # 传统 PU 七算法单域指标、基线与统计契约
       traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约
@@ -718,6 +723,7 @@ scripts/
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
   generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
+  review_survey_split_receipt.py          (P1.4 接收端只读校验：归档摘要、四角色契约与预处理统计)
 ```
 
 ## 7. CI/CD（`.github/`）

@@ -3,6 +3,7 @@
 # ruff: noqa: N806
 
 import copy
+import importlib
 import os
 
 import numpy as np
@@ -17,6 +18,8 @@ from pu_toolbox.estimators.deep.grad_pu import (  # noqa: E402
     gradpu_positive_weight,
 )
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
+from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
+from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
 from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
 from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
@@ -94,6 +97,52 @@ def test_basic_fit_predict_checkpoint_and_registry(tmp_path):
     register_all_builtin_methods()
     assert get_algorithm("gradpu") is GradPUClassifier
     assert get_algorithm("grad_pu") is GradPUClassifier
+
+
+@pytest.mark.math
+def test_ts_calibrates_unlabeled_risk_and_gradient_interpolation(monkeypatch):
+    X, y = _data()
+    assert (
+        resolve_training_view(
+            load_ledger(), "gradpu", None, is_oracle=False, estimator_class=GradPUClassifier
+        )
+        == "ts"
+    )
+    module = importlib.import_module("pu_toolbox.estimators.deep.grad_pu")
+    original = module.gradpu_objective
+    observed = []
+
+    def capture(raw_p, raw_u, *, beta, alpha, interpolated_inputs, raw_interpolated):
+        observed.append(
+            (
+                raw_p.detach().cpu().numpy(),
+                raw_u.detach().cpu().numpy(),
+                len(interpolated_inputs),
+            )
+        )
+        return original(
+            raw_p,
+            raw_u,
+            beta=beta,
+            alpha=alpha,
+            interpolated_inputs=interpolated_inputs,
+            raw_interpolated=raw_interpolated,
+        )
+
+    monkeypatch.setattr(module, "gradpu_objective", capture)
+    os_model = _model(batch_size=64, max_epochs=1).fit(X, y, os_or_ts="os")
+    ts_model = _model(batch_size=64, max_epochs=1).fit(X, y, os_or_ts="ts")
+    os_p, os_u, os_interpolated = observed[0]
+    ts_p, ts_u, ts_interpolated = observed[1]
+    assert (len(os_p), len(os_u), os_interpolated) == (8, 16, 16)
+    assert (len(ts_p), len(ts_u), ts_interpolated) == (8, 24, 24)
+    np.testing.assert_array_equal(ts_p, os_p)
+    np.testing.assert_array_equal(ts_u[: len(os_u)], os_u)
+    np.testing.assert_array_equal(ts_u[len(os_u) :], os_p)
+    assert ts_model.calibration_applied_ and not os_model.calibration_applied_
+    assert ts_model.n_loss_unlabeled_ == len(y)
+    with pytest.raises(ValueError, match="requested_view"):
+        _model().fit(X, y, os_or_ts="unknown")
 
 
 def test_determ_seeded_fits_and_prior_compatibility_are_stable():

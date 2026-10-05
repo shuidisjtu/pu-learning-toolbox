@@ -3,6 +3,7 @@
 # ruff: noqa: N806
 
 import copy
+import importlib
 import os
 
 import numpy as np
@@ -19,6 +20,8 @@ from pu_toolbox.estimators.risk.pulda import (  # noqa: E402
     symmetric_softplus_distance,
 )
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
+from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
+from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
 from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
 from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
@@ -106,6 +109,49 @@ def test_basic_two_stage_fit_checkpoint_registry_and_probabilities(tmp_path):
     register_all_builtin_methods()
     assert get_algorithm("pulda") is PULDAClassifier
     assert get_algorithm("label_distribution_alignment") is PULDAClassifier
+
+
+def test_ts_calibrates_distribution_roles_without_relabeling_pseudo_pool():
+    X, y = _data()
+    assert (
+        resolve_training_view(
+            load_ledger(), "pulda", None, is_oracle=False, estimator_class=PULDAClassifier
+        )
+        == "ts"
+    )
+    os_model = _model().fit(X, y, os_or_ts="os")
+    ts_model = _model().fit(X, y, os_or_ts="ts")
+    assert ts_model.calibration_applied_ and not os_model.calibration_applied_
+    assert ts_model.n_loss_unlabeled_ == len(y)
+    assert ts_model.n_unlabeled_ == int((y == 0).sum())
+    assert len(ts_model.pseudo_labels_) == len(y)
+    assert os_model.history_["distribution_loss"] != ts_model.history_["distribution_loss"]
+    with pytest.raises(ValueError, match="requested_view"):
+        _model().fit(X, y, os_or_ts="unknown")
+
+
+@pytest.mark.math
+def test_ts_distribution_input_reuses_positive_logits_as_u_role(monkeypatch):
+    X, y = _data()
+    module = importlib.import_module("pu_toolbox.estimators.risk.pulda")
+    original = module.pulda_distribution_alignment
+    observed = []
+
+    def capture(logits, labels, **kwargs):
+        observed.append((logits.detach().cpu().numpy(), labels.detach().cpu().numpy()))
+        return original(logits, labels, **kwargs)
+
+    monkeypatch.setattr(module, "pulda_distribution_alignment", capture)
+    _model(warmup_epochs=1, pu_epochs=0).fit(X, y, os_or_ts="os")
+    _model(warmup_epochs=1, pu_epochs=0).fit(X, y, os_or_ts="ts")
+    # First batches share initialization, order and original P/U inputs.
+    os_logits, os_labels = observed[0]
+    ts_logits, ts_labels = observed[3]  # 18 U rows / batch 7 -> 3 warm-up steps
+    np.testing.assert_array_equal(ts_logits[: len(os_logits)], os_logits)
+    np.testing.assert_array_equal(ts_labels[: len(os_labels)], os_labels)
+    n_p = int((os_labels == 1).sum())
+    np.testing.assert_array_equal(ts_logits[len(os_logits) :], os_logits[:n_p])
+    np.testing.assert_array_equal(ts_labels[len(os_labels) :], np.zeros(n_p))
 
 
 def test_determ_seeded_fit_and_prior_override_are_stable():

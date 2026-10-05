@@ -202,6 +202,8 @@ class VPUClassifier(BasePUClassifier):
         #: ``D_U ∪ D_P`` under ``ts``. Recorded so a run can be audited on the
         #: pool it trained on rather than on the view it asked for.
         self.n_loss_unlabeled_ = n_loss_unlabeled
+        self.training_view_ = os_or_ts
+        self.calibration_applied_ = view.calibration_applied
         self.n_features_in_ = X.shape[1]
         self._X_shape_ = X.shape
         self._class_prior = None

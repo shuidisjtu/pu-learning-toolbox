@@ -1,6 +1,6 @@
 {
   "schema_version": "1.1",
-  "purpose": "PU 调研实验方法台账（结果标注真相源）。协议 pu_survey_protocol.md §4 要求的实现台账：slots 6 槽 + paper/code_version/implementation_status 身份与来源字段（实列 8 项）；P2 起实验脚本按此标注 TS-OS 校准与结果（原生适用 vs 假设违背鲁棒性）。先验必传门禁以 registry requires_class_prior 为权威，本台账 prior_semantics 只做结果标注。",
+  "purpose": "PU 调研实验方法台账（结果标注真相源）。协议 pu_survey_protocol.md §4 要求的实现台账：slots 6 槽 + paper/code_version/implementation_status 身份与来源字段；现含冻结矩阵方法及后续技术预集成条目，台账有记录不代表进入 Survey v1 执行矩阵。实验脚本按此标注 TS-OS 校准与结果（原生适用 vs 假设违背鲁棒性）。先验必传门禁以 registry requires_class_prior 为权威，本台账 prior_semantics 只做结果标注。",
   "slots": {
     "native_sampling_assumption": "方法原生假设的抽样视图：os / ts / both",
     "run_view": "实验运行视图：os-compatible / ts-compatible",
@@ -14,6 +14,7 @@
     "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "pusb_kernel", "lbe", "vpu"],
     "HENG958": ["nnpu", "self_pu"]
   },
+  "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "pulda", "puet", "gradpu", "lagam"],
   "methods": {
     "upu": {
       "class": "UPUClassifier",
@@ -347,6 +348,259 @@
         "evidence": "docs/research/pu_survey/heng958_independent_review.md#2-p13a-nnpuself-pu-方法台账复核",
         "conclusion": "六槽、来源与 registry 能力声明一致；完整 self-calibration、原生 CNN 和 paper-like benchmark 仍明确不在当前实现声明内"
       }
+    },
+    "pulda": {
+      "class": "PULDAClassifier",
+      "paper": {
+        "title": "Positive-Unlabeled Learning with Label Distribution Alignment",
+        "authors": "Yangbangyan Jiang, Qianqian Xu, Yunrui Zhao, Zhiyong Yang, Peisong Wen, Xiaochun Cao, Qingming Huang",
+        "venue": "IEEE TPAMI 2023",
+        "year": 2023
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/jiangyangby/PULDA",
+        "source_status": "official_related (method card audited commit 7b3dcad95bd7caa0a9477af37a05764fbe6e27bc)"
+      },
+      "implementation_status": "NATIVE, backend TORCH; LDA + two-way margin warm-up and pseudo-label MixUp, dense tabular adapter",
+      "native_sampling_assumption": "ts（P 为可靠正类、U 为总体边缘分布；PULDA.md:10-15）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population π（分布对齐目标固定为总体正类先验；PULDA.md:10）",
+      "adaptation_level": "benchmark-adapted（作者 CIFAR CNN 与完整预处理未进入；仅稠密二维 MLP）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "dense tabular MLP64",
+        "code_capability": {"native_architectures": ["mlp"], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
+      },
+      "evidence": {
+        "native_sampling_assumption": "PULDA.md:10-15; registry scenario=CASE_CONTROL",
+        "prior_semantics": "PULDA.md:10; pulda.py distribution/margin targets",
+        "adaptation_level": "PULDA.md:11-14/61-65"
+      },
+      "uncertainty": [
+        "TS-OS 校准仅替换 LDA 和 two-way margin 的 U 期望角色为逐 batch U∪P，EMA 跟随该角色；正例期望、总体 π、MixUp 物理池与伪标签持久索引不变。实际视图以逐 run manifest 为准",
+        "原仓库锁定提交缺失 entropyMinimization 模块，工具箱只对照可审计损失文件；无端到端上游复现声明",
+        "共享 backbone/图像路径、公开数值对照、多 seed 资源记录及合作者复核未完成；不进入冻结 Survey v1 矩阵"
+      ]
+    },
+    "puet": {
+      "class": "PUExtraTreesClassifier",
+      "paper": {
+        "title": "Positive-Unlabeled Learning using Random Forests via Recursive Greedy Risk Minimization",
+        "authors": "Jonathan Wilton, Abigail M. Y. Koay, Ryan K. L. Ko, Miao Xu, Nan Ye",
+        "venue": "NeurIPS 2022",
+        "year": 2022
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/jonathanwilton/PUExtraTrees",
+        "source_status": "official_related (clean-room nnPU quadratic branch only)"
+      },
+      "implementation_status": "NATIVE, backend NUMPY; randomized forest with closed-form nnPU quadratic node risk",
+      "native_sampling_assumption": "ts（可靠 P 与总体边缘 U 分别贡献节点风险质量；PUET.md:9-16）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population π（节点正类风险质量 π·n_P,node/n_P；PUET.md:10/24）",
+      "adaptation_level": "benchmark-adapted（仅作者 nnPU/quadratic 分支；非论文完整实验协议）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "randomized Extra Trees, no neural backbone, CPU only",
+        "code_capability": {"native_architectures": [], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
+      },
+      "evidence": {
+        "native_sampling_assumption": "PUET.md:9-16; registry scenario=CASE_CONTROL",
+        "prior_semantics": "PUET.md:10/24; puet.py node risk",
+        "adaptation_level": "PUET.md:43-47"
+      },
+      "uncertainty": [
+        "TS-OS 校准把 P 行复制为 U 风险角色的树行，原 P 行仍为正例；U 权重分母由 n_U 变为 n_P+n_U；bootstrap 分组保持分离。逐 run manifest 记录实际视图",
+        "PUET 是 CPU 树方法，P3.2 的 GPU 条款不适用；正式任务分组调整需合作者复核",
+        "未完成共享规格下的公开数值对照、正式执行矩阵及合作者复核"
+      ]
+    },
+    "gradpu": {
+      "class": "GradPUClassifier",
+      "paper": {
+        "title": "GradPU: Positive-Unlabeled Learning via Gradient Penalty and Positive Upweighting",
+        "authors": "Songmin Dai, Xiaoqiang Li, Yue Zhou, Xichen Ye, Tong Liu",
+        "venue": "AAAI 2023",
+        "year": 2023
+      },
+      "code_version": {
+        "upstream_url": null,
+        "source_status": "not_found (official implementation not verified; primary paper linked in GradPU.md)"
+      },
+      "implementation_status": "NATIVE, backend TORCH; paper Eq. 5-7 clean-room dense tabular MLP",
+      "native_sampling_assumption": "ts（P 与总体边缘 U 分别贡献风险和插值梯度惩罚；GradPU.md:10-17）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "无（目标不使用 class_prior，fit 仅接口兼容；GradPU.md:12）",
+      "adaptation_level": "benchmark-adapted（论文图像网络和完整调参协议未进入）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "dense tabular MLP128; optional raw-score PyTorch model",
+        "code_capability": {"native_architectures": ["mlp"], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
+      },
+      "evidence": {
+        "native_sampling_assumption": "GradPU.md:10-17; registry scenario=CASE_CONTROL plus SELECTION_BIASED",
+        "prior_semantics": "GradPU.md:12; grad_pu.py fit discards class_prior",
+        "adaptation_level": "GradPU.md:57-64"
+      },
+      "uncertainty": [
+        "TS-OS 校准使 U 风险和输入梯度插值的边缘角色在逐 mini-batch 取 U∪P；正例权重不变，类先验仍不进入目标；逐 run manifest 记录实际视图",
+        "SCAR 理论与作者选择偏差实验不能混为一般 SAR 保证；原生图像路径、公开数值对照、多 seed GPU/资源记录和合作者复核未完成"
+      ]
+    },
+    "lagam": {
+      "class": "LaGAMClassifier",
+      "paper": {
+        "title": "Positive-Unlabeled Learning by Latent Group-Aware Meta Disambiguation",
+        "authors": "Lin Long, Haobo Wang, Zhijie Jiang, Lei Feng, Chang Yao, Gang Chen, Junbo Zhao",
+        "venue": "CVPR 2024",
+        "year": 2024
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/llong-cs/LaGAM",
+        "source_status": "official_exact (method card audits author training script)"
+      },
+      "implementation_status": "NATIVE, backend TORCH; clean-support-gated tabular meta-label and contrastive adapter",
+      "native_sampling_assumption": "ts（P/U 两组训练并另需独立干净 support set；LaGAM.md:18-20）",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
+      "adaptation_level": "benchmark-adapted（官方图像 backbone/Faiss/增强/预算未进入）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "dense tabular MLP128 + sklearn KMeans; requires independent clean support",
+        "code_capability": {"native_architectures": ["mlp"], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
+      },
+      "evidence": {
+        "native_sampling_assumption": "LaGAM.md:18-20; registry scenario=CASE_CONTROL",
+        "prior_semantics": "LaGAM.md:20; lagam.py class_prior ignored",
+        "adaptation_level": "LaGAM.md:12-20"
+      },
+      "uncertainty": [
+        "必须由调用者提供独立干净 support set；标准 PU-only PA 不符合资格，OA 若复用 clean_val 会泄漏。Survey v1/runner 不传 support_data，不能进入冻结矩阵",
+        "无可直接替换的同形未标记风险角色，且校准不能绕开 support 标签预算；无 os_or_ts 接口，显式 ts fail-loud",
+        "原生图像路径、公开数值对照、多 seed GPU 证据和合作者协议审阅未完成"
+      ]
+    },
+    "cvir": {
+      "class": "CVIRClassifier",
+      "paper": {
+        "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
+        "authors": "Saurabh Garg, Yifan Wu, Alexander J. Smola, Sivaraman Balakrishnan, Zachary C. Lipton",
+        "venue": "NeurIPS 2021",
+        "year": 2021
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/acmi-lab/PU_learning",
+        "source_status": "official_exact (paper Algorithm 2 is the implementation authority; this is not TEDn or BBE)"
+      },
+      "implementation_status": "NATIVE, backend TORCH; fixed-alpha CVIR negative selection and weighted risk, dense tabular MLP; technical pre-integration only",
+      "native_sampling_assumption": "ts（独立 P 与边缘分布 U；原文 α 为 U 内正类比例；NeurIPS 2021 Algorithm 2, p5）",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
+      "adaptation_level": "benchmark-adapted（clean-room 表格 MLP、固定 epoch 和一次 PvU warm-start；未集成 BBE/TEDn、原文图像/文本 backbone）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "dense tabular MLP64",
+        "code_capability": {
+          "native_architectures": ["mlp"],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "Garg et al., NeurIPS 2021 Algorithm 2 p5; cvir.py module docstring",
+        "prior_semantics": "Garg et al., NeurIPS 2021 p5 Algorithm 2 input α; cvir.py:fit rejects class_prior",
+        "adaptation_level": "Garg et al., NeurIPS 2021 §6 p8 architecture/protocol; cvir.py class docstring"
+      },
+      "uncertainty": [
+        "CVIR 的 α 是原始 U 池内混合比例，冻结 Survey driver 传的是总体 population π，两者在 OS 标记机制下通常不同；未建立可核的 α_U 转换，故不得纳入 Survey v1 矩阵或直接比较论文数值",
+        "原文 TS/边缘 U 假设；目前估计器无 os_or_ts 接口，TS-OS 校准未接入。台账默认 os-compatible、calibration_applied=false；显式请求 ts 会被实验路由拒绝，不能把原始 P 并入负候选池",
+        "有限样本保留数使用 floor((1-α)*n_U)，至少 1；默认 warm-start 一轮、固定 epoch，未实现收敛停机或 BBE/TEDn 先验估计",
+        "本地训练与公式 smoke 不等于公开行为对照、GPU 多 seed 验证或合作者复核"
+      ]
+    },
+    "robust_pu": {
+      "class": "RobustPUClassifier",
+      "paper": {
+        "title": "Robust Positive-Unlabeled Learning via Noise Negative Sample Self-correction",
+        "authors": "Zhangchi Zhu, Lu Wang, Pu Zhao, Chao Du, Wei Zhang, Hang Dong, Bo Qiao, Qingwei Lin, Saravan Rajmohan, Dongmei Zhang",
+        "venue": "KDD 2023",
+        "year": 2023
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/woriazzc/Robust-PU",
+        "source_status": "official_exact (method card audited commit 34d950f2c6e56510855a922acb5f84b6459773ef)"
+      },
+      "implementation_status": "NATIVE, backend TORCH; nnPU warm-up plus self-paced weighted BCE on dense tabular MLP; technical pre-integration only",
+      "native_sampling_assumption": "ts（P 与边缘分布 U 分别采样；Robust-PU.md:13-17，registry:robust_pu）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU 预训练；Robust-PU.md:13, registry:robust_pu）",
+      "adaptation_level": "benchmark-adapted（clean-room 表格 MLP；没有官方 CIFAR CNN、图像增强与完整训练预算）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "dense tabular MLP100; optional raw-logit PyTorch model",
+        "code_capability": {
+          "native_architectures": ["mlp"],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "Robust-PU.md:13-17; registry:robust_pu",
+        "prior_semantics": "Robust-PU.md:13; robust_pu.py:258-266",
+        "adaptation_level": "Robust-PU.md:24-31"
+      },
+      "uncertainty": [
+        "TS-OS 校准只作用于 nnPU 预训练的未标记风险：ts 时逐 batch 使用 U∪P，正例风险和先验不变；自步加权 BCE 的伪负例仍仅为原始 U，不能把已知 P 当伪负例；pretrain_epochs=0 时显式拒绝 ts。逐 run 实际视图以 manifest 为准",
+        "原论文 CIFAR backbone、官方 scheduler/重启分支、真实标签选模不在本适配器内；未做公开数值对照、GPU 正式多 seed 验证或合作者复核；不进入冻结 Survey v1 矩阵",
+        "上游许可证未确认；clean-room 实现，不复制官方源码"
+      ]
+    },
+    "split_pu": {
+      "class": "SplitPUClassifier",
+      "paper": {
+        "title": "Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",
+        "authors": "Chengming Xu, Chen Liu, Siqian Yang, Yabiao Wang, Shijie Zhang, Lijie Jia, Yanwei Fu",
+        "venue": "ACM Multimedia 2022",
+        "year": 2022
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/loadder/SplitPU_MM2022",
+        "source_status": "official_exact (method card audited commit 82fb9730597a65a12156736419d4588675bc24d5)"
+      },
+      "implementation_status": "NATIVE, backend TORCH; nnPU teacher, agreement split and two-round student distillation; technical pre-integration only",
+      "native_sampling_assumption": "ts（P 与边缘分布 U 分别采样；Split-PU.md:9-13，registry:split_pu）",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU teacher 训练；Split-PU.md:9, registry:split_pu）",
+      "adaptation_level": "benchmark-adapted（clean-room 表格 MLP；Gaussian 扰动及隐层余弦替代官方 CIFAR CNN/增强/SimSiam）",
+      "modality_backbone": {
+        "modalities": ["tabular"],
+        "backbone": "dense tabular MLP100",
+        "code_capability": {
+          "native_architectures": ["mlp"],
+          "input_ndims": [2],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "Split-PU.md:9-13; registry:split_pu",
+        "prior_semantics": "Split-PU.md:9; split_pu.py:223-231",
+        "adaptation_level": "Split-PU.md:29-34"
+      },
+      "uncertainty": [
+        "TS-OS 校准只作用于 nnPU teacher 的未标记风险：ts 时逐 batch 使用 U∪P，正例风险和先验不变；后续 temporary、easy/hard 及 student 仍只使用原始 U，保证已知 P 不被分入伪负例；逐 run 实际视图以 manifest 为准",
+        "无原生 CIFAR CNN、官方弱强图像增强/SimSiam、真实标签选模；未做公开数值对照、GPU 正式多 seed 验证或合作者复核；不进入冻结 Survey v1 矩阵",
+        "上游许可证未确认；clean-room 实现，不复制官方源码"
+      ]
     },
     "vpu": {
       "class": "VPUClassifier",

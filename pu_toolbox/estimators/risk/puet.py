@@ -24,6 +24,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 
 
@@ -117,6 +118,7 @@ class PUExtraTreesClassifier(BasePUClassifier):
         *,
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
+        os_or_ts: str = "os",
     ) -> PUExtraTreesClassifier:
         """Build independent randomized trees from reliable P and marginal U."""
         if sample_weight is not None:
@@ -127,6 +129,7 @@ class PUExtraTreesClassifier(BasePUClassifier):
         if not np.isfinite(X).all():
             raise ValueError("X must contain finite values")
         X = np.asarray(X, dtype=np.float64)
+        view = build_training_view(X, y_pu, requested_view=os_or_ts)
         n_positive = int(np.count_nonzero(y_pu == 1))
         n_unlabeled = len(X) - n_positive
         if n_unlabeled == 0:
@@ -152,10 +155,22 @@ class PUExtraTreesClassifier(BasePUClassifier):
             raise ValueError("bootstrap must be a bool")
 
         rng = np.random.RandomState(self.random_state)
-        positive_rows = np.flatnonzero(y_pu == 1)
-        unlabeled_rows = np.flatnonzero(y_pu == 0)
+        positive_rows = np.array(view.positive_positions, copy=True)
+        native_unlabeled_rows = np.array(view.native_unlabeled_positions, copy=True)
+        if view.calibration_applied:
+            # A tree's U-risk role is represented by separate rows.  Keep
+            # original P rows in the positive role and append P copies as
+            # marginal-U rows; they are not relabeled in the source partition.
+            train_X = np.concatenate((X, X[positive_rows]))
+            train_y = np.concatenate((y_pu, np.zeros(n_positive, dtype=y_pu.dtype)))
+            unlabeled_rows = np.concatenate(
+                (native_unlabeled_rows, np.arange(len(X), len(train_X)))
+            )
+        else:
+            train_X, train_y = X, y_pu
+            unlabeled_rows = native_unlabeled_rows
         positive_weight = float(prior) / n_positive
-        unlabeled_weight = 1.0 / n_unlabeled
+        unlabeled_weight = 1.0 / len(unlabeled_rows)
         n_features = X.shape[1]
         if self.max_features == "sqrt":
             feature_budget = max(1, int(np.ceil(np.sqrt(n_features))))
@@ -177,10 +192,10 @@ class PUExtraTreesClassifier(BasePUClassifier):
                     ]
                 )
             else:
-                rows = np.arange(len(X))
+                rows = np.arange(len(train_X))
             root, importance, leaves, depth = self._build_tree(
-                X,
-                y_pu,
+                train_X,
+                train_y,
                 rows,
                 positive_weight=positive_weight,
                 unlabeled_weight=unlabeled_weight,
@@ -200,6 +215,11 @@ class PUExtraTreesClassifier(BasePUClassifier):
         self.classes_ = np.array([0, 1])
         self._class_prior = float(prior)
         self._X_shape_ = X.shape
+        self.n_positive_ = n_positive
+        self.n_unlabeled_ = n_unlabeled
+        self.n_loss_unlabeled_ = len(view.loss_unlabeled_positions)
+        self.training_view_ = os_or_ts
+        self.calibration_applied_ = view.calibration_applied
         self._is_fitted = True
         return self
 

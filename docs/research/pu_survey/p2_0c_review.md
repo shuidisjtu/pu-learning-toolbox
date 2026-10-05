@@ -1,5 +1,7 @@
 # P2.0c 复核包
 
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+
 复核对象：`pu_toolbox/experiment/survey_comparison_v2.json`（`survey-comparison-v2`，摘要
 `764ef03a…5b4095b`）。交付说明见 [交付文档](p2_0c_delivery.md)；矩阵绑定的执行协议为 `survey-v1.2`。
 

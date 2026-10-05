@@ -7,7 +7,7 @@
 > [pu_survey_protocol.md](pu_survey_protocol.md)（要求纲要）与
 > [experiment_layer.md](../../dev/experiment_layer.md)（实验层实现）；交付证据见对应交付记录、
 > 复核包与批次快照（`p2_0a/b/c_delivery.md`、`p2_0a/c_review.md`、`p2_1_b*_snapshot.md`）。
-> 状态日期：**2026-10-02**。
+> 状态日期：**2026-10-04**。最新代理技术复核见 [Pilot 独立复核](pilot_independent_review_20261004.md)；不替代合作者本人签署。
 
 ## 1. 当前状态
 
@@ -43,8 +43,8 @@
 - 公平性门禁分为 **48 个组**，全部通过，0 个组被拒；
 - 批次级 `formal_ready = False`：**3 个组含被门禁阻断的单元**——即 B1/B2/B3a 各 5 个
   `pn_oracle` 带 `protocol_deviation: ['c_grid']`。这是 D24 保留该阻断位要标的真实偏差，
-  属**正确行为**，不是缺陷（B4 不含 oracle，其 3 个组全部 `ok`，是五批中唯一
-  `formal_ready = True` 的批次）；
+  属**正确行为**，不是缺陷。按单批边界，B3b 与 B4 均无 oracle 阻断；B3a+B3b 合并分析组仍为
+  `formal_ready = False`。原「B4 唯一 True」措辞与 B3b 快照冲突，已按粒度更正，原始报告待独立对账；
 - 汇总出 **183 行**：180 `formal` / 3 `partial`（三条全部是上述 oracle 行），无缺失 seed，
   门槛拒收 0 条；
 - 行级 `formal` 与门禁级 `formal_ready` 是**两个层次**：前者说这一条可比条件自身没有阻断，
@@ -53,7 +53,7 @@
 复现入口：`scripts/audit_survey_batches.py`（审计）、`scripts/summarize_survey_results.py`（汇总）、
 `scripts/compare_survey_results.py`（对照附着），由同一份批次白名单 JSON 经 `--config` 驱动、
 输出目录经 `--out-dir` 指定。本次运行的原始制品（`01_audit` / `02_summary` / `03_comparison` /
-`04_evidence`）留在执行机的分析工作区，**在仓库外**；其存放与分发方式待定，本节只承载结论性数字。
+`04_evidence`）留在执行机的分析工作区，**在仓库外**；分发以 P2.2 交付/制品索引为准（直接交付 Excel、分析可自行重放，不另建云端分析归档）。本节数字来自产出方记录，本轮尚未取得原始结果树独立复算。
 
 ### 1.3 不可越过的口径边界
 
@@ -73,7 +73,7 @@
 
 | 复核项 | 出处 |
 |---|---|
-| 数据制品的可执行性复核（取件校验） | 决策 D12 ① |
+| 数据制品的本人复核签署 | 决策 D12 ①；[P1.4 接收端技术验收](p1_4_review.md)已通过，不再缺取件 |
 | P2.0b 标签语义门禁的签署 | 决策 D12 ① |
 | P2.0c 对照矩阵：36 个锚点 / 7 条映射仍待复核 | 决策 D12 ①、D24 ② |
 | PA 正式选模准则的签署 | 决策 D24 ② |
@@ -96,9 +96,9 @@ GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复
 |---|---|---|
 | P1.1 | 环境与 GPU 验证 | `uv.lock` 可复现；目标环境 GPU smoke 与版本/设备记录可追溯。HENG958 的 GPU 能力复核已完成；正式跑批需 frozen-lock 环境 |
 | P1.2 | 数据获取与版本审计 | pilot 三数据集的来源/版本/标签映射/许可入 manifest（2026-09-19，按官方页原文逐条记录）。协议全量 8 数据集与 ADNI 准入见决策 D1，属后续阶段——本行的余项是**范围**而非遗漏 |
-| P1.3a | 方法台账 | 矩阵口径为 7 个 PU 方法 + `pn_oracle`；台账另收 `pusb` 线性基线与 `vpu`，实为 9 条 PU 条目（`pusb`/`pusb_kernel` 刻意分开，issue #42），后二者**不进执行矩阵**。HENG958 已复核 nnPU、Self-PU（2026-09-16） |
+| P1.3a | 方法台账 | 矩阵口径为 7 个 PU 方法 + `pn_oracle`；远程台账另收 `pusb` 线性基线与 `vpu`，为 9 条 PU 条目。本地 2026-09-28 预集成修改另补 `cvir`、`robust_pu`、`split_pu`、`pulda`、`puet`、`gradpu`、`lagam`，现有 16 条；新增七条已于 2026-10-04 提交（`7e779d2`）、尚未经方法负责人复核，均不进冻结执行矩阵（`pusb`/`pusb_kernel` 刻意分开，issue #42）。HENG958 已复核 nnPU、Self-PU（2026-09-16） |
 | P1.3b | 官方 Survey 脚本 | 四路输入、PA/OA、结果归档与 oracle 入口均有脚本级测试 |
-| P1.4 | Pilot 数据产物 | 三数据集 × 5 seed 统一重建（2026-09-19）；传输/校验工具已就位（`scripts/survey_splits_archive.py`），载体定为网盘带外传，三个归档已于 2026-09-20 发送，索引与摘要先于发送入库 |
+| P1.4 | Pilot 数据产物 | 三数据集 × 5 seed 统一重建（2026-09-19），三个归档 2026-09-20 发送；2026-10-04 本机确认收到，15 split / 75 文件 / 3 归档摘要全部通过，四角色契约、预处理统计及真实脚本 smoke 通过。见[P1.4 复核](p1_4_review.md)；本人签署未代填 |
 | P2.0a | Pilot 共享规格与 oracle 对齐（阶段 A） | 2026-09-17 签署验收，shuidisjtu 复核签署；见[交付记录](p2_0a_delivery.md)、[复核包](p2_0a_review.md) |
 | P2.0b | 标签语义门禁（阶段 A） | P1+P2 已完成；按决策 D12 ① 单方技术验收放行。见[交付记录](p2_0b_delivery.md) |
 | P2.0c | 交叉验证对照预注册（阶段 A） | 锚点数值与判定规则已冻结并落矩阵；按决策 D12 ① 单方技术验收放行。见[复核包](p2_0c_review.md) |
@@ -110,12 +110,14 @@ GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复
 
 | 编号 | 任务 | 前置 | 验收标准 | 状态 / 主责 |
 |---|---|---|---|---|
-| P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | 🚧 **正式五批汇总已产出**：见交付记录 [`p2_2_delivery.md`](p2_2_delivery.md) 与 §1.2——645 份 manifest、48 组全过公平性门禁、183 行（180 `formal` / 3 `partial` / 0 `diagnostic`）、0 份不可复现。对照附录裁决 0 条（矩阵 `numeric` 为 0，必为定性，§1.3 第 2 条）。**剩余为合作者复核**（§1.4）；原始制品的存放与分发方式待定。**PA 行受 §1.3 第 1 条限制，不能数值裁决**（决策 D24 ④(a)） |
-| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 已完成独立组件、Gate 0 采样假设裁决（决策 D21）、台账条目与训练视图接入（决策 D23），但共享 backbone、图像路径、公开行为对照、多 seed GPU/资源记录与双人复核**均未完成**，且**不进执行矩阵**——不得读作本行完成；PULDA 仍只有独立组件，台账/矩阵与正式验收未做；其余 PAN、RP、CVIR、PULNS 待办 |
-| P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 独立组件已完成；上述组件仍未完成方法台账/执行矩阵登记、GPU 实跑及正式验收；后三者为表格子集、未做论文数值复现。LaGAM 依赖额外干净 support set，当前 Survey v1/runner 不可用且 PA-ineligible，协议扩展待合作者审阅。GEN-PU、Holistic-PU、P3MIX 待办；PUET 为 CPU 树方法，分组/GPU 条款须复核 |
+| P2.2 | Pilot 聚合与审计 | P2.1 | 发布 `pilot / partial benchmark` 分层结果；检查路径隔离、复现字段和异常单元；不得生成跨数据集总排名 | 🚧 **正式五批汇总已产出**：见交付记录 [`p2_2_delivery.md`](p2_2_delivery.md) 与 §1.2——645 份 manifest、48 组全过公平性门禁、183 行（180 `formal` / 3 `partial` / 0 `diagnostic`）、0 份不可复现。对照附录裁决 0 条（矩阵 `numeric` 为 0，必为定性，§1.3 第 2 条）。**剩余为合作者复核**（§1.4）及原始结果树独立重放；分发以 P2.2 交付与制品索引为准。**PA 行受 §1.3 第 1 条限制，不能数值裁决**（决策 D24 ④(a)） |
+| P3.1 | 缺失方法接入（经典/B 类） | P2.0a、P2.0b | 每方法完成实现、方法卡、台账、原文可追溯、冒烟与公开行为对照；使用已锁定的共享规格 | 🚧 技术预集成 / shuidisjtu：VPU 完成独立组件、采样假设裁决（D21）、台账与视图接线（D23）；PULDA 已补台账及 LDA/margin 风险 TS-OS 校准；CVIR 已有固定 α_U 表格适配器、方法卡与台账，但总体 π 不能无条件代替 α_U，故校准未接线、显式 ts fail-loud。三者均未进入冻结矩阵；共享 backbone/原生图像路径、公开结果对照、多 seed 资源记录及双人复核仍未完成，不得读作 P3.1 验收。PAN、RP、PULNS 待办 |
+| P3.2 | 缺失方法接入（深度/C 类） | P2.0a、P2.0b | 同 P3.1，另需 GPU smoke、设备/随机性与保存加载验证 | 🚧 技术预集成 / HENG958：PUET、Grad-PU、Robust-PU、Split-PU、LaGAM 的独立组件、方法卡与台账均已有；Robust-PU/Split-PU 仅 nnPU warm-up/teacher 校准，PUET 节点 U 风险与 Grad-PU 的 U 风险/插值池已接 TS-OS；LaGAM 需要独立干净 support set，当前 PA-ineligible 且无可安全替换的同形未标记风险项，校准不适用。均未进入冻结矩阵，公开结果对照、共享 backbone/原生图像路径、多 seed GPU/资源记录及合作者复核仍待办；表格适配不等于论文图像数值复现。PUET 是 CPU 树方法，其 P3.2 分组与 GPU 条款适用性须复核。GEN-PU、Holistic-PU、P3MIX 待办 |
 | P3.3 | 深度 GPU 验证与调度 | P3.2 | GPU 预约、显存预算、失败/OOM 重试及结果路径均有记录，且逐 run 记录实例与卡型；与 P2.1 已不共享单卡，无跨方窗口竞争 | ⏳ 待办 / HENG958 |
 | P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | **阶段 0 已落地**（2026-10-02，`cb2fe0f`/PR #94）：模块 `pu_toolbox/experiment/survey_recipe_registry.py`、门禁 `scripts/check_survey_recipe_registry.py`（registry JSON 未物化时**声明跳过**、未接入 CI）；**阶段 1+ 待办** / shuidisjtu：冻结 registry JSON 未物化、`validate_manifest_binding` 未接入 runner 与 pilot，故验收标准「版本写入 artifact 并受 manifest 校验」未达成。 |
 | P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
+
+> 本地预集成的台账、风险视图接线和 2026-09-28 单卡 CUDA smoke 证据，见 [P3 技术预集成交接](p3_preintegration_handoff.md)；技术预集成已提交（`7e779d2`），不改变正式验收状态。
 
 ### 2.3 依赖与升级规则（三种门槛）
 

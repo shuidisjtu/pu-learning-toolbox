@@ -44,4 +44,4 @@ W_N(S)=W_U(S)-W_P(S).
 - 当前只实现作者默认的 **nnPU + quadratic** 分支；作者代码另有 uPU 与 logistic 分支，本组件未宣称覆盖。`source_status=official_related` 表示作者代码可追溯，但本实现是独立编写的受限子集。
 - 默认 `bootstrap=False` 与作者发布代码一致，树间随机性来自特征/阈值；`bootstrap=True` 可启用论文 §4 描述的 P/U 分组重采样。为保证真正的贪心风险最小化，仅接受正风险下降的划分；与论文实验的完整逐节点决策/数值结果尚未对齐。
 - `decision_function` 返回 $[-1,1]$ 多数票边际，不是校准概率；`predict_proba` 不提供。`sample_weight` 非空时报错。
-- 已有节点风险 golden、训练/预测、随机性、Bootstrap、参数/边界、pickle 与 pipeline 接入测试。正式 P3.2 仍需 P2.0b 后的台账/执行矩阵、共享规格与公开结果对照；CPU 树算法是否豁免 GPU smoke 待复核。
+- 已有节点风险 golden、训练/预测、随机性、Bootstrap、参数/边界、pickle 与 pipeline 接入测试。方法台账已登记；`fit(os_or_ts="ts")` 将正例行复制为边缘 U 风险角色，原行仍保留正例角色；U 节点质量分母改为 `n_P+n_U`，P 质量与先验不变。OS/TS 节点风险与分裂增益已有独立数值测试。正式 P3.2 仍需冻结矩阵之外的候选规格、公开结果对照和合作者审阅；本算法为 CPU 树方法，GPU smoke 不适用，任务分组调整仍需复核。

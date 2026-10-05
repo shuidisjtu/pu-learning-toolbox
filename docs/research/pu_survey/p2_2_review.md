@@ -1,5 +1,7 @@
 # P2.2 复核包
 
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+
 - 日期：2026-10-03
 - 对象：P2.2 交付面——五批 645 runs 的审计、数值汇总与文献对照附着，以及随附的 645 行交付表。
 - 本文件是**待签署**的复核包：清单在此，结论栏为空。**未签署之前，本文件不得被读作已经复核**
@@ -73,7 +75,7 @@
 | O2 | 核分层计数 | 48 组全过公平性门禁、0 组被拒；183 行 = 180 `formal` + 3 `partial` + 0 `diagnostic`；`refused` 0、`not_reproducible` 0 | |
 | O3 | 核状态词表与不变式 | 交付状态是闭集；门禁内部的 `comparable` / `blocked` **不得**作为状态取值；`status == formal` 当且仅当 `reasons` 为空 | |
 | O4 | 核 3 条 `partial` 的来历 | 三个数据集各一个 `pn_oracle` 单元，`reasons` 为 `formal_blockers_present` + `protocol_deviation`；这是决策 D24 保留阻断位要标的**真实偏差**，不是缺陷 | |
-| O5 | 核 `formal_ready` 的两层含义 | B4 是五批中唯一 `formal_ready = True` 的批次；其余三批的 `False` 完全由上述 oracle 单元造成。行级 `formal` 与批次级 `formal_ready` 分别陈述、互不改写 | |
+| O5 | 核 `formal_ready` 的两层含义 | 单批 B3b 与 B4 无 oracle 阻断；B1/B2/B3a 为 False，B3a+B3b 合并组仍为 False。原始报告待独立对账。行级 `formal` 与批次级 `formal_ready` 分别陈述、互不改写 | |
 | O6 | 批准状态标签词表 | 词表见实施方案 §11.2；本项在 B6 时回填 `p2_1_b5_review_checklist.md` | |
 | O7 | 核「清理未执行」的措辞 | 本轮**未执行** checkpoint 清理（决定：办掉遗留项、不删权重）。报告须明写「未清理」，而不是让人读成已完成 | |
 | O8 | 核未接线项的记账 | 审计 7 项 `not_run` 是「输入未接线」的既有约定，**不报成 pass**；逐项缺什么输入见 `p2_2_delivery.md` §6 | |
