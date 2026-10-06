@@ -58,6 +58,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .survey_artifacts import survey_artifact_ref
 from .survey_protocol import digest
 
 SCHEMA_VERSION = "survey-recipe-registry-1.0"
@@ -313,7 +314,7 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
             },
             "pn_oracle_spec": {
                 "type": "in_repo",
-                "file": "docs/research/pu_survey/pn_oracle_integration.md",
+                "file": survey_artifact_ref("pn_oracle_integration"),
             },
         },
         "validation": {

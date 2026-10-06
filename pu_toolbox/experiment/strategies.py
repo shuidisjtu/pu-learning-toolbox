@@ -111,7 +111,7 @@ class CleanLabelGenerator(Generator):
     of silently emitting a fake PA row, and the runner skips the PU-view
     positive check that only applies to generated views.  ``c`` is recorded
     but never applied — the oracle is c-independent by construction.
-    See docs/research/pu_survey/pn_oracle_integration.md §5 (D-A).
+    See docs/research/pu_survey/admission/pn_oracle_integration.md §5 (D-A).
     """
 
     output_view: LabelView = "clean"

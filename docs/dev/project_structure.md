@@ -187,6 +187,7 @@ pu_toolbox/
     survey_summary.py                     (P2.2 数值汇总: manifest → 交付行(每行一均值+样本标准差), 状态闭集 STATUSES 与优先级裁决, 缺值按代价分四类读)
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
     survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
+    survey_artifacts.py                   # Survey 证据制品的集中式仓库相对路径映射与解析
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)

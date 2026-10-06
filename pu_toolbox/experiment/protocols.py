@@ -28,7 +28,7 @@ class Generator(ABC):
     generators emit ``"pu"``; the PN-oracle generator passes real labels
     through and declares ``"clean"``, so PA stays structurally excluded
     (``ProtocolPA`` rejects non-PU views) instead of relying on the caller.
-    See docs/research/pu_survey/pn_oracle_integration.md §5 (D-A).
+    See docs/research/pu_survey/admission/pn_oracle_integration.md §5 (D-A).
     """
 
     output_view: LabelView = "pu"

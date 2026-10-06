@@ -28,7 +28,7 @@ Design notes:
 * Eligibility is a closed enum; nothing may be compared numerically without
   an explicit, reviewable classification.
 
-See docs/research/pu_survey/p2_0c_delivery.md, P2.0c.
+See docs/research/pu_survey/delivery/p2_0c_delivery.md, P2.0c.
 """
 
 from __future__ import annotations
