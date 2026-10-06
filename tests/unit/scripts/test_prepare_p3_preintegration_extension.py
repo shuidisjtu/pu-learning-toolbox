@@ -67,6 +67,13 @@ def test_edge_null_candidates_empty_signatures_no_p3mix_registration_or_source_m
     pulns = next(row for row in report["candidates"] if row["method"] == "pulns")
     assert pulns["ledger_snapshot"]["requires_clean_support"] is True
     assert pulns["ledger_snapshot"]["pa_eligible"] is False
+    holistic = next(row for row in report["candidates"] if row["method"] == "holistic_pu")
+    assert holistic["ledger_snapshot"]["warmup_selection_review_ref"].endswith(
+        "holistic_lzo_selection_20261007.md"
+    )
+    assert (
+        "lzo_positive_loss_recipe_and_external_selection_isolation" in holistic["specific_blockers"]
+    )
     report["candidates"][0]["ledger_snapshot"]["code_version"]["upstream_url"] = "changed"
     assert (facts, protocol) == before
 

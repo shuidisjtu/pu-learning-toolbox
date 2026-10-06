@@ -452,6 +452,8 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
 HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
                      batch_size=64, learning_rate=1e-3, trend_scale=2.0,
                      encoder=None, pseudo_pn_initialization="continue",
+                     warmup_selection="fixed", lzo_alpha=0.5,
+                     lzo_validation_size=None,
                      random_state=0, device=None)
 ```
 
@@ -464,6 +466,14 @@ HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
 仅对齐补充 Algorithm 2 的初始化步骤；不是完整作者配方。自定义编码器参数所有者须有
 `reset_parameters`；legacy weight_norm 拒绝，不将复制预训练权重叫作重新初始化。
 固定预热不是论文 LZO 自动停止；`warmup_epochs>=2`；外部先验不使用，sample_weight / TS 请求拒绝。
+`warmup_selection="lzo_positive_loss"` 启用工程变体：仅训练 P 的固定类内 mixup，
+正例平均 CE 全预算 argmin，候选2..warmup，最早平局；默认 alpha0.5、大小 n_P。
+独立辅助随机流不推进训练流，验证 eval 保留 BN/torch RNG；全预算执行后裁剪趋势前缀，
+continue 恢复选中权重/Adam，两个初始化变体均恢复选中随机流。不是总体 accuracy、
+patience 提前退出、checkpoint 续训 API 或正式 PA/OA 准则；来源未明确的规则在 spec 中登记。
+`selected_warmup_epoch_` / `executed_warmup_epochs_` / `discarded_warmup_optimizer_steps_`、
+`lzo_losses_` / `lzo_mixup_indices_` / `lzo_mixup_weights_` / `lzo_selection_spec_` 可对账；
+`lzo_evaluated_rows_` / `lzo_forward_batches_` 计额外验证，训练累计成本不扣被舍弃的后缀。
 `prediction_trajectory_` / `pseudo_labels_` / `pseudo_label_indices_` / `breakpoint_` 可对账；
 `optimizer_steps_` 含两阶段且重初始化不清零；`stage_optimizer_steps_` 分阶段，
 `pseudo_pn_initialization_` / `pseudo_pn_optimizer_reset_` 可核实际路径；callback 每轮结束以连续零起始编号调用；

@@ -4,6 +4,9 @@
 [来源复核](holistic_source_cnn_review_20261007.md) 和[后续优先级](post_pilot_priority_plan.md)。
 不改旧冻结协议/结果，不进行真实数据跑批，不代填负责人签署或正式候选。
 
+后续已补 [LZO 正例损失工程变体](holistic_lzo_selection_20261007.md)。本页保留
+`5c133fa` 的后段初始化交付/验证记录；末尾继续项是该提交时状态，非当前接口缺失。
+
 ## 1. 来源与明确边界
 
 会议[摘要页](https://proceedings.neurips.cc/paper_files/paper/2023/hash/d5c0f9585592bad5251133813893a6c0-Abstract-Conference.html)

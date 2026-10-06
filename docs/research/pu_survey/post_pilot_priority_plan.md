@@ -63,6 +63,16 @@ PYTHONPATH=. python scripts/check_survey_recipe_registry.py \
 
 ## 4. 紧接着的交接
 
+以下按最新进展在前保留历史交接记录；较早记录中的“下一项/待实现”是当时状态，
+当前工程完成情况以最上方更新及所链接的最新复核文档为准，正式审批阻断不因此消失。
+
+2026-10-07 继续 [Holistic-PU LZO 工程终点选择](holistic_lzo_selection_20261007.md)：
+只用训练 P 固定类内 mixup、全预算 CE argmin/最早平局、趋势前缀和模型/Adam/随机流恢复；
+统计完整已执行成本和额外验证，不将正例 CE 当总体 accuracy 或外部 PA/OA 选模。
+默认 fixed 路径保留，台账/准入草稿新增 recipe/外部角色隔离复核，签署与正式候选仍空。
+下一独立项继续 GEN-PU/PULNS 原生路径与来源差异、Holistic-PU 新变体资源/选模交接；
+完整图像/增强/精确源配方及数值验收未据工程接口清空。
+
 2026-10-07 继续[Holistic-PU 后段初始化](holistic_stage_initialization_20261007.md)：
 显式 `reinitialize` 新建模型/Adam、随机重置 CNN 参数和 BN，默认 `continue` 保留兼容；
 分阶段更新和全局成本不混淆，快照跨重建回放，台账/准入草稿同步但不决定正式变体。

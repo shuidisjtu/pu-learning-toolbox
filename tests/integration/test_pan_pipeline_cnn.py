@@ -126,3 +126,29 @@ def test_basic_holistic_reinitialization_is_available_through_public_pipeline(ba
     assert report.provenance["architecture"] == "native_cnn"
     assert report.provenance["backbone"] == backbone
     assert report.provenance["classifier_params"]["pseudo_pn_initialization"] == "reinitialize"
+
+
+@pytest.mark.parametrize("initialization", ["continue", "reinitialize"])
+def test_basic_holistic_lzo_recipe_is_explicit_in_pipeline_parameters(initialization):
+    features, labels = images()
+    params = {
+        **small_params("holistic_pu"),
+        "warmup_selection": "lzo_positive_loss",
+        "lzo_validation_size": 5,
+        "pseudo_pn_initialization": initialization,
+    }
+    pipe = PUPipeline(
+        classifier="holistic_pu",
+        architecture="cnn",
+        backbone="cnn13",
+        cv=2,
+        max_epochs=1,
+        classifier_params=params,
+        random_state=3,
+        device="cpu",
+    )
+    with pytest.warns(UserWarning, match=r"trained 2 times \(CV folds only; refit=False\)"):
+        report = pipe.fit_evaluate(features, labels, refit=False)
+    assert report.provenance["classifier_params"]["warmup_selection"] == "lzo_positive_loss"
+    assert report.provenance["classifier_params"]["lzo_validation_size"] == 5
+    assert report.provenance["classifier_params"]["pseudo_pn_initialization"] == initialization

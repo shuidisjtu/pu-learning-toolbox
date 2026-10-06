@@ -100,7 +100,8 @@ def holistic_natural_break(scores, *, objective="paper_variance"):
 class HolisticPUClassifier(BasePUClassifier):
     """Balanced resampling, paper pairwise trend score, then pseudo-PN training.
 
-    Fixed warmup budget is an explicit adaptation, not the paper's LZO stopping.
+    Fixed warmup is the default; lzo_positive_loss is an explicit engineering
+    recipe for label-invariant positive mixup validation, not author-code replay.
     Source code's adjacent score/Jenks/fine-tuning differ from this paper path.
     pseudo_pn_initialization="reinitialize" builds a new network and optimizer;
     the legacy default "continue" retains both after trend partitioning.
@@ -144,6 +145,9 @@ class HolisticPUClassifier(BasePUClassifier):
         trend_scale=2.0,
         encoder=None,
         pseudo_pn_initialization="continue",
+        warmup_selection="fixed",
+        lzo_alpha=0.5,
+        lzo_validation_size=None,
         random_state=0,
         device=None,
     ):
@@ -156,6 +160,9 @@ class HolisticPUClassifier(BasePUClassifier):
         self.trend_scale = trend_scale
         self.encoder = encoder
         self.pseudo_pn_initialization = pseudo_pn_initialization
+        self.warmup_selection = warmup_selection
+        self.lzo_alpha = lzo_alpha
+        self.lzo_validation_size = lzo_validation_size
         self.random_state = random_state
         self.device = device
 
@@ -175,6 +182,22 @@ class HolisticPUClassifier(BasePUClassifier):
             self.pseudo_pn_initialization, str
         ) or self.pseudo_pn_initialization not in {"continue", "reinitialize"}:
             raise ValueError("pseudo_pn_initialization must be continue or reinitialize")
+        if not isinstance(self.warmup_selection, str) or self.warmup_selection not in {
+            "fixed",
+            "lzo_positive_loss",
+        }:
+            raise ValueError("warmup_selection must be fixed or lzo_positive_loss")
+        if (
+            isinstance(self.lzo_alpha, (bool, np.bool_))
+            or not isinstance(self.lzo_alpha, (int, float, np.integer, np.floating))
+            or not np.isfinite(self.lzo_alpha)
+            or self.lzo_alpha <= 0
+        ):
+            raise ValueError("lzo_alpha must be finite and positive")
+        if self.lzo_validation_size is not None and (
+            type(self.lzo_validation_size) is not int or self.lzo_validation_size < 1
+        ):
+            raise ValueError("lzo_validation_size must be None or a positive integer")
         for name in ("hidden_dim", "warmup_epochs", "max_epochs", "batch_size"):
             if type(getattr(self, name)) is not int or getattr(self, name) < 1:
                 raise ValueError(f"{name} must be a positive integer")
@@ -206,6 +229,8 @@ class HolisticPUClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         self.device_ = resolve_device(self.device)
+        if self.warmup_selection != "fixed" and self.device_.type not in {"cpu", "cuda"}:
+            raise ValueError("LZO RNG restoration supports CPU or CUDA")
         self.model_, self.encoder_ = self._build_model(X)
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         data = torch.as_tensor(X)
@@ -226,10 +251,19 @@ class HolisticPUClassifier(BasePUClassifier):
             "phase": [],
             "train_loss": [],
             "optimizer_steps": [],
+            "warmup_validation_loss": [],
         }
-        self.stopping_rule_ = "fixed_warmup_budget_not_LZO"
+        self.stopping_rule_ = (
+            "fixed_warmup_budget_not_LZO"
+            if self.warmup_selection == "fixed"
+            else "lzo_positive_loss_full_horizon_argmin"
+        )
         self.trend_variant_, self.partition_objective_ = "paper_pairwise", "paper_variance"
         self.pseudo_label_indices_ = unlabeled.copy()
+        self.selected_warmup_epoch_ = self.warmup_epochs
+        self.executed_warmup_epochs_ = 0
+        self.discarded_warmup_optimizer_steps_ = 0
+        self._prepare_lzo(positive, rng)
 
         def update(loss, stage):
             if not torch.isfinite(loss):
@@ -241,6 +275,7 @@ class HolisticPUClassifier(BasePUClassifier):
             self.stage_optimizer_steps_[stage] += 1
 
         trajectories = []
+        best_state, best_loss = None, float("inf")
         for epoch in range(self.warmup_epochs):
             self.model_.train()
             losses = []
@@ -257,10 +292,44 @@ class HolisticPUClassifier(BasePUClassifier):
             self.model_.eval()
             trajectories.append(self._scores(X[unlabeled]))
             self.history_["warmup_loss"].append(float(np.mean(losses)))
+            self.executed_warmup_epochs_ = epoch + 1
+            if self.warmup_selection == "lzo_positive_loss":
+                validation_loss = self._lzo_loss(X)
+                if not np.isfinite(validation_loss):
+                    raise ValueError("LZO validation loss must remain finite")
+                self.history_["warmup_validation_loss"].append(float(validation_loss))
+                # Trend equations require >=2 observations; epoch 1 is diagnostic
+                # only. Strict comparison chooses the earliest exact tied risk.
+                if epoch >= 1 and validation_loss < best_loss:
+                    best_loss = validation_loss
+                    self.selected_warmup_epoch_ = epoch + 1
+                    best_state = self._capture_lzo_state(optimizer, rng)
             self._record_epoch(epoch, "warmup", losses, epoch_callback)
         from scipy.special import expit
 
-        self.prediction_trajectory_ = expit(np.stack(trajectories, axis=1))
+        self.observed_prediction_trajectory_ = expit(np.stack(trajectories, axis=1))
+        self.prediction_trajectory_ = (
+            self.observed_prediction_trajectory_
+            if self.selected_warmup_epoch_ == self.warmup_epochs
+            else self.observed_prediction_trajectory_[:, : self.selected_warmup_epoch_]
+        )
+        self.lzo_losses_ = np.asarray(self.history_["warmup_validation_loss"], dtype=float)
+        if self.warmup_selection == "lzo_positive_loss":
+            if best_state is None:
+                raise ValueError("LZO did not produce an eligible warmup terminal state")
+            self.discarded_warmup_optimizer_steps_ = (
+                self.stage_optimizer_steps_["warmup"] - best_state["optimizer_steps"]
+            )
+            if self.pseudo_pn_initialization == "continue":
+                self.model_.load_state_dict(best_state["model"])
+                optimizer.load_state_dict(best_state["optimizer"])
+            rng.set_state(best_state["numpy_rng"])
+            torch.set_rng_state(best_state["torch_rng"])
+            if best_state["cuda_rng"] is not None:
+                torch.cuda.set_rng_state(best_state["cuda_rng"], self.device_)
+            # Internal terminal selection is not a checkpoint resume API. Keep
+            # only one best CPU state and release it before pseudo-PN training.
+            best_state = None
         self.trend_scores_ = holistic_trend_scores(
             self.prediction_trajectory_, scale=self.trend_scale
         )
@@ -301,6 +370,98 @@ class HolisticPUClassifier(BasePUClassifier):
         self.model_.eval()
         self._is_fitted = True
         return self
+
+    def _prepare_lzo(self, positive, training_rng):
+        """Fixed train-P-only mixup plan; never advance the training RNG stream."""
+        self.lzo_validation_size_ = 0
+        self.lzo_mixup_indices_ = np.empty((0, 2), dtype=int)
+        self.lzo_mixup_weights_ = np.empty(0)
+        self.lzo_evaluated_rows_ = self.lzo_forward_batches_ = 0
+        self.lzo_candidate_epochs_ = ()
+        self.lzo_selection_spec_ = None
+        if self.warmup_selection == "fixed":
+            return
+        if len(positive) < 2:
+            raise ValueError("LZO mixup requires >=2 labeled training positives")
+        size = len(positive) if self.lzo_validation_size is None else self.lzo_validation_size
+        validation_rng = np.random.RandomState(0)
+        validation_rng.set_state(training_rng.get_state())
+        self.lzo_validation_size_ = size
+        self.lzo_mixup_indices_ = validation_rng.choice(positive, size=(size, 2), replace=True)
+        self.lzo_mixup_weights_ = validation_rng.beta(self.lzo_alpha, self.lzo_alpha, size=size)
+        if not np.isfinite(self.lzo_mixup_weights_).all():
+            raise ValueError("LZO beta samples must remain finite")
+        self.lzo_candidate_epochs_ = tuple(range(2, self.warmup_epochs + 1))
+        self.lzo_selection_spec_ = {
+            "variant": "holistic-lzo-positive-loss-engineering-v1",
+            "source": "labeled_training_positive_only",
+            "metric": "mean_positive_binary_cross_entropy",
+            "mixup_alpha": float(self.lzo_alpha),
+            "validation_size": size,
+            "sampling": "with_replacement_same_row_pairs_allowed_fixed_across_epochs",
+            "rng": "independent_copy_of_local_training_numpy_state_after_model_seed",
+            "candidate_epochs": list(self.lzo_candidate_epochs_),
+            "tie_rule": "earliest_exact_minimum",
+            "evaluation": "full_warmup_horizon_not_patience_early_exit",
+        }
+
+    def _lzo_loss(self, X):
+        """Stable positive CE on lazily mixed CPU rows; eval preserves torch RNG."""
+        import torch
+
+        total = 0.0
+        devices = (
+            [self.device_.index if self.device_.index is not None else torch.cuda.current_device()]
+            if self.device_.type == "cuda"
+            else []
+        )
+        with torch.random.fork_rng(devices=devices):
+            for start in range(0, self.lzo_validation_size_, self.batch_size):
+                pairs = self.lzo_mixup_indices_[start : start + self.batch_size]
+                weights = self.lzo_mixup_weights_[start : start + self.batch_size].astype(
+                    np.float32
+                )
+                weights = weights.reshape((-1,) + (1,) * (X.ndim - 1))
+                mixed = weights * X[pairs[:, 0]] + (1 - weights) * X[pairs[:, 1]]
+                logits = np.asarray(self._scores(mixed), dtype=float)
+                total += float(np.logaddexp(0.0, -logits).sum())
+                self.lzo_evaluated_rows_ += len(pairs)
+                self.lzo_forward_batches_ += 1
+        return total / self.lzo_validation_size_
+
+    @staticmethod
+    def _cpu_state_copy(value):
+        """Copy one best state onto CPU, preserving state_dict version metadata."""
+        import torch
+
+        if torch.is_tensor(value):
+            return value.detach().cpu().clone()
+        if isinstance(value, dict):
+            copied = type(value)(
+                (key, HolisticPUClassifier._cpu_state_copy(item)) for key, item in value.items()
+            )
+            if hasattr(value, "_metadata"):
+                copied._metadata = copy.deepcopy(value._metadata)
+            return copied
+        if isinstance(value, (list, tuple)):
+            return type(value)(HolisticPUClassifier._cpu_state_copy(item) for item in value)
+        return copy.deepcopy(value)
+
+    def _capture_lzo_state(self, optimizer, rng):
+        """Retain only best RNG and, for continue, best weights/Adam moments."""
+        import torch
+
+        continues = self.pseudo_pn_initialization == "continue"
+        return {
+            "model": self._cpu_state_copy(self.model_.state_dict()) if continues else None,
+            "optimizer": self._cpu_state_copy(optimizer.state_dict()) if continues else None,
+            "optimizer_steps": self.optimizer_steps_,
+            "numpy_rng": copy.deepcopy(rng.get_state()),
+            "torch_rng": torch.get_rng_state().clone(),
+            "cuda_rng": torch.cuda.get_rng_state(self.device_).clone()
+            if self.device_.type == "cuda"
+            else None,
+        }
 
     @staticmethod
     def _check_encoder_reinitialization(encoder):
