@@ -91,8 +91,10 @@ def main() -> None:
 
     st.subheader("2 · 配置模型")
     catalog = classifier_catalog()
-    cnn_names = cnn_candidates()
     catalog_by_name = {item["name"]: item for item in catalog}
+    cnn_names = {
+        name for name in cnn_candidates() if catalog_by_name.get(name, {}).get("ui_ready", False)
+    }
     metric_options = list(DEFAULT_METRICS) + ["pu_accuracy", "pu_f1", "pu_negative_rate"]
     if imported_config is not None and imported_digest != st.session_state.get(
         "applied_config_digest"

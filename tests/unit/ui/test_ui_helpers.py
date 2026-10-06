@@ -109,3 +109,21 @@ def test_basic_run_configuration_populates_widget_state():
     assert state["param_upu_loss"] == "logistic"
     assert state["prior_method"] == "手动输入"
     assert json.loads(state["tuning_text"]) == {"reg_lambda": [0.01, 0.1]}
+
+
+@pytest.mark.parametrize("method", ["pulns", "lagam"])
+@pytest.mark.parametrize("mode", ["manual", "comparison"])
+def test_param_edge_clean_support_methods_are_not_ui_ready_or_importable(method, mode):
+    catalog = {item["name"]: item for item in classifier_catalog()}
+    assert catalog[method]["requires_clean_support"] is True
+    assert catalog[method]["ui_ready"] is False
+    config = (
+        RunConfiguration(classifier=method)
+        if mode == "manual"
+        else RunConfiguration(comparison_classifiers=("upu", method))
+    )
+    state = {"selection_mode": "手动选择", "classifier": "upu"}
+    before = dict(state)
+    with pytest.raises(ValueError, match="independent clean reward/support"):
+        apply_run_configuration(state, config, catalog)
+    assert state == before

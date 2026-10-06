@@ -21,6 +21,7 @@ METHOD_BLOCKERS = {
         "PA_ineligible_protocol_decision",
         "native_TS_vs_uncalibrated_OS_adapter_decision",
         "sequential_policy_probe_and_classifier_budget",
+        "CNN_representation_and_sequential_policy_resource_spec",
     ],
     "genpu": [
         "paper_minimax_vs_author_nonsaturating_demo_decision",
@@ -75,6 +76,7 @@ def build_extension(ledger, protocol):
                         "calibration_hooked",
                         "requires_clean_support",
                         "pa_eligible",
+                        "source_behavior_review_ref",
                         "stage_initialization_review_ref",
                         "warmup_selection_review_ref",
                     )
@@ -108,7 +110,7 @@ def build_extension(ledger, protocol):
                 ),
                 "frozen_protocol_sha256": digest(protocol),
                 "declared_scope": (
-                    "synthetic dense/frozen-feature and PAN/Holistic-PU injected-CNN "
+                    "synthetic dense/frozen-feature and PAN/Holistic-PU/PULNS injected-CNN "
                     "engineering paths; not paper image reproduction"
                 ),
                 "common_blockers": [

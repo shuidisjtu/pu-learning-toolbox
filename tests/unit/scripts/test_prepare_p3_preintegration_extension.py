@@ -67,6 +67,17 @@ def test_edge_null_candidates_empty_signatures_no_p3mix_registration_or_source_m
     pulns = next(row for row in report["candidates"] if row["method"] == "pulns")
     assert pulns["ledger_snapshot"]["requires_clean_support"] is True
     assert pulns["ledger_snapshot"]["pa_eligible"] is False
+    assert pulns["ledger_snapshot"]["modality_backbone"]["code_capability"] == {
+        "native_architectures": ["cnn", "mlp"],
+        "input_ndims": [2, 4],
+        "encoder_parameter": "encoder",
+        "trains_encoder": True,
+    }
+    assert pulns["ledger_snapshot"]["calibration_applied"] is False
+    assert "CNN_representation_and_sequential_policy_resource_spec" in pulns["specific_blockers"]
+    assert pulns["ledger_snapshot"]["source_behavior_review_ref"].endswith(
+        "pulns_source_cnn_review_20261007.md"
+    )
     holistic = next(row for row in report["candidates"] if row["method"] == "holistic_pu")
     assert holistic["ledger_snapshot"]["warmup_selection_review_ref"].endswith(
         "holistic_lzo_selection_20261007.md"

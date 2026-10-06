@@ -139,6 +139,11 @@ GPU 执行）。每项只有一名**主责**；协作者须在交付前完成复
 | P4.1 | 中心超参数注册表 | 各方法候选参数已确定 | 候选池预注册、版本化；版本写入 artifact 并受 manifest 校验 | 🚧 准备阶段 / shuidisjtu：阶段 0 已落地（`cb2fe0f`/PR #94）；2026-10-04 已物化冻结 pilot 8 profile 的 draft、只读生成器与契约测试，见[后续交付](post_pilot_priority_plan.md)。正式 registry 未冻结、门禁未接 CI；`validate_manifest_binding` 未接 runner/pilot，resolved snapshot 与本人签署仍待办，未改写旧 manifest，尚未达成正式验收 |
 | P4.2 | 主榜聚合与分析 | P3.1、P3.2、P3.3、P4.1 | 22 项全部通过门禁后，按四组结果和训练路径分层；结论区分文献事实、实验观测与推断 | ⏳ 待办 / shuidisjtu；HENG958 复核 C/A 深度结论 |
 
+2026-10-07 工程更新：[PULNS 来源/CNN 复核](pulns_source_cnn_review_20261007.md) 已补
+独立编码器预训练、奖励 probe、实际分类器训练与分批状态缓存、阶段成本、模板/BN/最佳模型隔离。
+台账和校准声明同步，独立真值 support、PA-ineligible、TS拒绝及全角色/正式资源/负责人审批
+阻断保留；公共 UI/工作流不隐式复用 selection/test，能力接线不是 P3.1/P3.2 正式验收。
+
 > 本地预集成的台账、风险视图接线和 2026-09-28 单卡 CUDA smoke 证据，见 [P3 技术预集成交接](p3_preintegration_handoff.md)；技术预集成已提交（`7e779d2`），不改变正式验收状态。
 
 ### 2.3 依赖与升级规则（三种门槛）

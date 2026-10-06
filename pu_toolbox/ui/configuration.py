@@ -30,6 +30,17 @@ def apply_run_configuration(
     catalog_by_name: dict[str, dict[str, Any]],
 ) -> None:
     """Populate widget state from a validated portable configuration."""
+    configured = {config.classifier, *config.comparison_classifiers}
+    needs_support = sorted(
+        name
+        for name in configured
+        if catalog_by_name.get(name, {}).get("requires_clean_support", False)
+    )
+    if needs_support:
+        raise ValueError(
+            "UI has no independent clean reward/support input for "
+            f"{needs_support}; call the estimator explicitly with isolated support_data."
+        )
     state["selection_mode"] = (
         "比较模型"
         if config.comparison_classifiers

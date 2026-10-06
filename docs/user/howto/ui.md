@@ -57,8 +57,9 @@ CV，失败的方法会保留错误记录而不会中断其他方法；最终只
 跨进程永久保管数据。
 
 CSV 第一行必须是非数字列名，特征必须全部为有限数值。图像模式支持声明了
-`encoder` 能力的深度算法（当前 InfoMax PU、WConPU、nnPU；候选集由注册表
-能力元数据自动推导），可选择 CNN13、ResNet-18 或 ResNet-50；需同时安装 torch：
+`encoder` 能力且满足当前 UI 输入条件的深度算法（例如 InfoMax PU、WConPU、nnPU、
+PAN、PULDA 和 Holistic-PU；列表由注册表能力与 UI 可运行条件自动推导），
+可选择 CNN13、ResNet-18 或 ResNet-50 等 backbone；各方法可能限制具体骨架，需同时安装 torch：
 
 ```bash
 pip install "pu-toolbox[ui,torch]"
@@ -66,6 +67,11 @@ pip install "pu-toolbox[ui,torch]"
 
 DGPU 的 `generator` 是 Python 对象协议，不能用 JSON 表单安全构造，因此暂不出现在
 UI 的模型下拉框中；仍可通过 Python API 完整配置。
+
+PULNS、LaGAM 需要独立干净的奖励/support 标签集，当前 UI、CLI 和普通 Pipeline没有
+这个独立输入角色，因此不列入手动/比较模型，导入相关配置也会明确拒绝且不改变原配置。
+页面中的可选真实标签用于评估，不能代替训练奖励集。PULNS 的原生 CNN能力仍在注册表中
+登记；需要该方法时使用 Python estimator API，显式提供隔离的 `support_data`。
 
 ## 参数输入示例
 

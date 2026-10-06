@@ -66,6 +66,12 @@ PYTHONPATH=. python scripts/check_survey_recipe_registry.py \
 以下按最新进展在前保留历史交接记录；较早记录中的“下一项/待实现”是当时状态，
 当前工程完成情况以最上方更新及所链接的最新复核文档为准，正式审批阻断不因此消失。
 
+2026-10-07 继续 [PULNS 原生 CNN 路径及来源复核](pulns_source_cnn_review_20261007.md)：
+补独立编码器端到端预训练/probe/实际分类器更新、分批CPU状态、模板/BN/最佳模型隔离及全成本。
+论文确用CNN，但未确认作者代码，不把通用backbone当原CNN数值复现；台账/校准/能力/草稿同步。
+需要独立真值奖励集、PA-ineligible、TS拒绝及正式资源/全角色协议阻断保留；公共工作流不偷偷
+借用selection/test标签。下一独立项为GEN-PU图像架构来源与新路径资源准备。
+
 2026-10-07 继续 [Holistic-PU LZO 工程终点选择](holistic_lzo_selection_20261007.md)：
 只用训练 P 固定类内 mixup、全预算 CE argmin/最早平局、趋势前缀和模型/Adam/随机流恢复；
 统计完整已执行成本和额外验证，不将正例 CE 当总体 accuracy 或外部 PA/OA 选模。

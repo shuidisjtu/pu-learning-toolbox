@@ -80,25 +80,26 @@
         "authors": "Chuan Luo, Pu Zhao, Chen Chen, Bo Qiao, Chao Du, Hongyu Zhang, Wei Wu, Shaowei Cai, Bing He, Saravanakumar Rajmohan, Qingwei Lin",
         "venue": "AAAI", "year": 2021
       },
-      "code_version": {"upstream_url": null, "source_status": "not_found（2026-10-05 未定位到可确认的作者 PULNS 代码；依据论文 pp.8786-8788 独立实现）"},
-      "implementation_status": "NATIVE; experimental dense MLP RL selector/classifier; not PU-only or formal survey admission",
+      "code_version": {"upstream_url": null, "source_status": "not_found（2026-10-07 复核论文/作者机构页面与关键词检索仍未确认作者 PULNS 仓库；不等于证明源码不存在；论文独立适配）"},
+      "implementation_status": "NATIVE; experimental MLP or injected trainable CNN RL selector/classifier; independent reward probe and full stage cost; requires clean support, not PU-only or formal survey admission",
       "native_sampling_assumption": "ts（原论文 §Experimental Setup 对 P 与给定正类比例 gamma 的 U 分别抽样；另有干净奖励验证集）",
       "run_view": "os-compatible", "calibration_applied": false,
       "calibration_hooked": false,
       "prior_semantics": "无外部先验；需要独立带正负真值的 support_data 计算终端奖励和内部最优分类器，PA-ineligible",
-      "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 特征、工程预算；不声称完整 CNN 数值复现）",
+      "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 或注入 CNN 最后隐层作状态，分类器/独立 probe 均端到端训练编码器；CNN 特征分批提取并在 CPU 缓存，顺序 policy 图仍随 U 增长；工程架构/Adam 重置/预算，不声称完整作者 CNN 数值复现）",
       "requires_clean_support": true,
       "pa_eligible": false,
       "modality_backbone": {
-        "modalities": ["tabular"], "backbone": "MLP 特征分类器 + 输入为当前样本/负例质心/正例质心的 64-32-1 selector",
-        "code_capability": {"native_architectures": ["mlp"], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
+        "modalities": ["tabular", "image"], "backbone": "MLP 或独立 deepcopy 的可训练 CNN + hidden_dim 隐层/score head；selector 输入为当前样本/负例质心/正例质心，64-32-1；原始图像/奖励数据留 CPU",
+        "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
       },
+      "source_behavior_review_ref": "docs/research/pu_survey/pulns_source_cnn_review_20261007.md",
       "evidence": {
         "native_sampling_assumption": "PULNS.md；原论文 §Experimental Setup 印刷页 8788，P/U 分别抽样",
         "prior_semantics": "PULNS.md；印刷页 8787 明确奖励验证集需要真实正/负标签",
         "adaptation_level": "PULNS.md；Algorithm 1 与折扣 REINFORCE；独立 clean support 参数不可用选模验证集隐式替代"
       },
-      "uncertainty": ["原生 TS 但没有可安全同形替换的未标记风险项，当前不启用 U∪P 校准；显式 ts fail-loud；默认 OS 仅是工程输入，不声称原生假设对齐", "需要独立干净 support set，禁止复用 PA/OA selection 或 test；只提供数组时隔离未验证，提供双方 sample IDs 可核对 train/support 互斥；完整四角色/support 隔离需新协议", "REINFORCE 每 U 逐行图构造，负例集合可能为空；空集合跳过分类器更新，不强制捏造负例", "预训练 + 每 episode 的 reward-probe 与 policy-update 后分类器训练全部计预算，probe 不与最终 classifier 最优权重混淆", "无 epoch checkpoint 接口；当前通过 pickle 保存整个可信模型，正式资源/保存规格尚未批准；未进入旧冻结协议"]
+      "uncertainty": ["原生 TS 但没有可安全同形替换的未标记风险项，当前不启用 U∪P 校准；显式 ts fail-loud；默认 OS 仅是工程输入，不声称原生假设对齐", "需要独立干净 support set，禁止复用 PA/OA selection 或 test；只提供数组时隔离未验证，提供双方 sample IDs 可核对 train/support 互斥；完整四角色/support 隔离需新协议", "REINFORCE 每 U 逐行图构造，负例集合可能为空；空集合跳过分类器更新，不强制捏造负例", "预训练、reward-probe、policy 和实际 classifier 的累计更新分别计入 stage_optimizer_steps_；返回较早最优网络不倒退 optimizer_steps_/history；probe 与实际分类器最优权重/BN 不混淆", "无 epoch checkpoint 接口；当前通过 pickle 保存整个可信模型，正式资源/保存规格尚未批准；未进入旧冻结协议", "CNN 仅为工程原生路径，不是已确认作者 CNN；编码器须输出有限二维且保留 batch；原模板独立，singleton BN 采用运行统计；CNN hidden 缓存为 CPU n_train×hidden_dim，但 policy activation graph、probe/模型/最佳权重及额外奖励 forwards 仍需资源规格；旧二维探针不可外推", "公共 Pipeline/CLI/Survey 当前没有独立 support 角色传参，因此仍不能直接 fit_evaluate/run 该方法；架构接线不等于支持标签预算已开放；不隐式复用 selection/test"]
     },
     "pan": {
       "class": "PANClassifier",

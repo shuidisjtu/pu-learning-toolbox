@@ -503,7 +503,7 @@ GenPUClassifier(*, class_prior=None, hidden_dim=128, latent_dim=100,
 PULNSClassifier(*, hidden_dim=32, pretrain_epochs=10, episodes=20,
                 classifier_epochs=1, batch_size=128, learning_rate=1e-3,
                 selector_learning_rate=1e-3, discount=0.9, terminal_weight=1.0,
-                random_state=0, device=None)
+                encoder=None, random_state=0, device=None)
 ```
 
 论文 RL 负例选择的实验适配；`fit(..., support_data=(X_support,y_clean),
@@ -512,6 +512,16 @@ train_indices=None, support_indices=None, os_or_ts="os")`。需独立真实正�
 否则隔离状态未验证。拒绝 ts/非空 sample_weight。`history_` 记录 reward probe、实际 classifier
 accuracy、policy loss 和负例数，两个最优/基线分别存为 `best_support_accuracy_`、`reward_baseline_`。
 不提供 epoch_callback；当前 pickle round-trip 不是正式 episode checkpoint 规格验收。
+二维 MLP 或显式注入 `encoder` 的4-D NCHW；不静默 flatten。每次 fit deepcopy 并解冻编码器，
+CNN 预训练、奖励 probe 和实际分类器均端到端更新；selector 状态来自最后 hidden_dim 隐层，
+状态/奖励停止梯度，policy 更新不反传编码器。CNN 状态分批提取、在 CPU 缓存，顺序 policy 图
+仍随 U 增长；不声称全 episode 常数显存。singleton BN 用运行统计，推理不更新 BN且恢复原模式。
+`stage_optimizer_steps_` 分 pretrain/reward_probe/policy/classifier，`optimizer_steps_` 和
+`history_["optimizer_steps"]` 计实际全部更新；返回较早最佳网络不扣成本。
+CNN13/ResNet18 工程测试不代表作者架构复现。公共 Pipeline/CLI/Survey 尚无独立奖励集路由，
+仍需直接调用 estimator 并显式提供隔离 support，不能因为架构可选就复用测试/选模标签。
+UI 目录保留能力元数据但标记 ui_ready=false，不提供手动/比较选项；配置导入拒绝缺少
+独立support入口的方法并保留原widget状态，不据此开放 PA/OA训练。
 
 #### `PANClassifier`（`pan`）
 

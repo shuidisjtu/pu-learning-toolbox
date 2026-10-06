@@ -277,6 +277,7 @@ tests/
       test_holistic_pu_cnn.py           # Holistic-PU 双阶段 CNN、模板/BN 隔离与快照回放
       test_holistic_pu_initialization.py # Holistic-PU 后段重初始化、Adam 隔离与累计成本
       test_holistic_pu_lzo.py           # Holistic-PU 正例 mixup 终点选择、状态恢复与全预算成本测试
+      test_pulns_cnn.py                 # PULNS CNN/奖励 probe 隔离、状态提取、最佳模型与全预算成本
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -476,6 +477,7 @@ tests/
     test_nnpu_pipeline_cnn.py           # nnPU 端到端 provenance 映射(cnn/mlp)+ encoder pickle 往返
     test_pan_pipeline_cnn.py            # PAN/PULDA 原生 CNN 流水线、种子复验与架构门禁
     test_iris_smoke.py                  # Iris 冒烟回归: 22 个 native 分类器可训练性与预测接口(不断言准确率)
+    test_pulns_cnn_support.py           # PULNS 内置 CNN 与独立奖励集、公共工作流不借用测试标签
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
