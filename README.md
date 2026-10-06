@@ -155,6 +155,11 @@ generated read-only by `scripts/prepare_p3_preintegration_extension.py`, without
 CNN checkpoint/full-estimator sizes and CPU replay can be probed separately with
 `scripts/profile_survey_cnn_storage.py` (`--method all --seeds 0 1 2`);
 its synthetic measurements and optional process-local CUDA peaks are not formal resource budgets.
+New PULNS/GEN-PU/Holistic-PU CNN variants can be measured in fresh subprocesses with
+`scripts/profile_survey_extended_cnn_storage.py`; validate receipts read-only with
+`scripts/check_survey_extended_cnn_storage.py --record <receipt.json>`.
+See [the scope and resource handoff](docs/research/pu_survey/extended_cnn_resource_review_20261007.md);
+clean reward labels, absent PULNS epoch snapshots and pending formal budgets remain explicit.
 documentation consistency checks include `scripts/check_doc_links.py` and `scripts/check_api_docs.py`.
 
 P3 preparation evidence for PULDA, PUET, Grad-PU, Robust-PU and Split-PU is documented in

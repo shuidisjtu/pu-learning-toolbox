@@ -22,19 +22,42 @@ def test_basic_actual_cnn_snapshots_and_trusted_estimator_roundtrip(method):
     assert report["status"] == "synthetic_cnn_storage_probe_not_formal_admission"
     assert report["encoder"]["matches_toolbox_default_width"] is False
     assert report["input_shape"] == [24, 3, 8, 8]
-    assert report["training_view"] == ("os" if method == "pan" else "ts")
+    assert report["training_view"] == ("os" if method in {"pan", "pulns", "holistic_pu"} else "ts")
     assert report["encoder"]["backbone"] == ("cnn13_no_bn" if method == "gradpu" else "cnn13")
     snapshots = report["epoch_weights_bytes"]
-    assert (
-        snapshots["count"]
-        == {"pulda": 2, "gradpu": 1, "robust_pu": 2, "split_pu": 4, "pan": 2}[method]
-    )
-    assert snapshots["all_snapshots_replayed"] and snapshots["final_scores_match"]
-    assert snapshots["total"] >= snapshots["max"] >= snapshots["min"] > 0
+    if method == "pulns":
+        assert (
+            snapshots is None
+            and report["epoch_checkpoint_status"] == "unavailable_no_epoch_callback"
+        )
+        assert report["checkpoint_training_contexts"] == []
+        support = report["clean_support"]
+        assert set(support["train_ids"]).isdisjoint(support["support_ids"])
+        assert (
+            support["labels"] == "clean_pn" and support["formal_support_budget_approved"] is False
+        )
+    else:
+        assert (
+            snapshots["count"]
+            == {
+                "pulda": 2,
+                "gradpu": 1,
+                "robust_pu": 2,
+                "split_pu": 4,
+                "pan": 2,
+                "genpu": 2,
+                "holistic_pu": 4,
+            }[method]
+        )
+        assert snapshots["all_snapshots_replayed"] and snapshots["final_scores_match"]
+        assert snapshots["total"] >= snapshots["max"] >= snapshots["min"] > 0
     assert report["estimator_pickle_bytes"] > 0 and report["trusted_pickle_roundtrip_verified"]
     assert report["inference_model_parameter_count"] > 0 and report["optimizer_steps"] > 0
     assert report["cuda_peak"] is None and report["formal_budget_approved"] is False
     assert all(len(value) == 64 for value in report["source_files_sha256"].values())
+    assert report["retained_module_storage"]["unique_storage_bytes_by_device"]["cpu"] > 0
+    if report["stage_optimizer_steps"] is not None:
+        assert sum(report["stage_optimizer_steps"].values()) == report["optimizer_steps"]
     json.dumps(report, allow_nan=False)
 
 

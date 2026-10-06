@@ -334,6 +334,8 @@ tests/
       test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
       test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
       test_prepare_p3_selection_budget_spec.py # 阶段/预算草稿再生成、类型严格一致与审批篡改拒绝
+      test_check_survey_extended_cnn_storage.py # 新 CNN 资源证据身份、角色、预算与来源拒绝测试
+      test_profile_survey_extended_cnn_storage.py # 独立进程资源测量、变体范围、内存去重与失败边界
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -783,6 +785,8 @@ scripts/
   check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
   check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决
   prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
+  check_survey_extended_cnn_storage.py    # 新 CNN 资源记录只读身份/角色/阶段成本/源码校验
+  profile_survey_extended_cnn_storage.py  # 七个新 CNN 工程变体的独立进程多种子资源探针
 ```
 
 ## 7. CI/CD（`.github/`）
