@@ -26,6 +26,17 @@
       "scope": "default-width CNN, reduced synthetic input/head/stages, engineering evidence only",
       "formal_budget_approved": false,
       "protocol_binding": null
+    },
+    {
+      "id": "candidate_extended_cnn_storage_probe_20261007",
+      "methods": ["pulns", "genpu", "holistic_pu"],
+      "cpu_record": "docs/research/pu_survey/data/candidate_extended_cnn_storage_probe_20261007.json",
+      "cuda_record": null,
+      "cuda_methods": [],
+      "review_ref": "docs/research/pu_survey/extended_cnn_resource_review_20261007.md",
+      "scope": "default-width CNN13, synthetic 24-row 3x32x32 inputs, 7 recipes x 3 seeds, isolated CPU processes; engineering evidence only",
+      "formal_budget_approved": false,
+      "protocol_binding": null
     }
   ],
   "methods": {
@@ -42,6 +53,7 @@
       "modality_backbone": {"modalities": ["tabular", "image"], "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后默认继续分类器/Adam，reinitialize 可重建全部网络/优化器；原始数据留 CPU",
         "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}},
       "source_behavior_review_ref": "docs/research/pu_survey/holistic_source_cnn_review_20261007.md",
+      "technical_resource_evidence_ref": "candidate_extended_cnn_storage_probe_20261007",
       "stage_initialization_review_ref": "docs/research/pu_survey/holistic_stage_initialization_20261007.md",
       "warmup_selection_review_ref": "docs/research/pu_survey/holistic_lzo_selection_20261007.md",
       "evidence": {"native_sampling_assumption": "Holistic-PU.md；固定 commit dataset/cifar.py:86 的 setdiff1d，限标准分支", "prior_semantics": "Holistic-PU.md；论文 §2.4 按趋势划分，无外部先验；当前 estimated_unlabeled_prior_ 只作诊断", "adaptation_level": "Holistic-PU.md；train.py 尾部邻差评分、jenkspy 与 utils/misc.py:101-105；公式及独立暴力分割测试 test_holistic_pu.py"},
@@ -67,6 +79,7 @@
         "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
       },
       "source_behavior_review_ref": "docs/research/pu_survey/genpu_source_cnn_review_20261007.md",
+      "technical_resource_evidence_ref": "candidate_extended_cnn_storage_probe_20261007",
       "evidence": {
         "native_sampling_assumption": "GEN-PU.md；论文 §2.1 U~p(x)，官方 utils/data_wrapper.py:160-168 排除已标记正例",
         "prior_semantics": "GEN-PU.md；原论文式 (3)-(11)、Proposition 1 的 Du 混合项；官方 demo pun_demo_main.py:249-263 未加该权重",
@@ -95,6 +108,7 @@
         "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
       },
       "source_behavior_review_ref": "docs/research/pu_survey/pulns_source_cnn_review_20261007.md",
+      "technical_resource_evidence_ref": "candidate_extended_cnn_storage_probe_20261007",
       "evidence": {
         "native_sampling_assumption": "PULNS.md；原论文 §Experimental Setup 印刷页 8788，P/U 分别抽样",
         "prior_semantics": "PULNS.md；印刷页 8787 明确奖励验证集需要真实正/负标签",
