@@ -1,6 +1,6 @@
 # HENG958 独立复核记录
 
-> **2026-10-04 现状补记**：本文的 P1.4 待重建/未取件描述为当时记录，原签署不改。本服务器已完成 15 split / 75 文件 / 3 归档校验、数据契约与真实脚本 smoke，见 [P1.4 接收复核](p1_4_review.md)。本轮代理技术检查不冒充 HENG958 / shuidisjtu 本人签署。
+> **2026-10-04 现状补记**：本文的 P1.4 待重建/未取件描述为当时记录，原签署不改。本服务器已完成 15 split / 75 文件 / 3 归档校验、数据契约与真实脚本 smoke，见 [P1.4 接收复核](../delivery/p1_4_review.md)。本轮代理技术检查不冒充 HENG958 / shuidisjtu 本人签署。
 
 状态日期：2026-09-16。本记录只覆盖执行计划中明确交给 HENG958、且不需要
 shuidisjtu 决策或签署的 P1 复核项；不替代 P2.0a/P2.0b/P2.0c 的协作验收。
@@ -34,7 +34,7 @@ CUDA_VISIBLE_DEVICES=2 python -c '<CUDA tensor smoke + version/lock digest>'
 ```
 
 此前 P2.0a 深路径 GPU 测试覆盖 nnPU CNN、ResNet adapter、MLP oracle 和逐 epoch
-checkpoint，详见 [P2.0a 交付记录](p2_0a_delivery.md#7-gpu-smoke)。本节新增的是负责人侧
+checkpoint，详见 [P2.0a 交付记录](../delivery/p2_0a_delivery.md#7-gpu-smoke)。本节新增的是负责人侧
 环境复核，不重复把同一 smoke 计作正式 pilot 结果。
 
 ## 2. P1.3a nnPU/Self-PU 方法台账复核
@@ -90,7 +90,7 @@ source status、先验语义和 JSON 类型。
 脚本端到端执行。P1.4 的 shuidisjtu 侧完成声明保持不变，但 HENG958 侧复核不得标成完成。
 
 合作者审核另发现 CIFAR 旧产物的通道统计值不符（[issue #52](https://github.com/shuidisjtu/pu-learning-toolbox/issues/52)）；
-该问题已于 2026-09-17 经重生成与严格核验关闭，见 [P2.0a 复核包](p2_0a_review.md#审核发现-a3cifar-split-manifest-来源信息)。
+该问题已于 2026-09-17 经重生成与严格核验关闭，见 [P2.0a 复核包](../delivery/p2_0a_review.md#审核发现-a3cifar-split-manifest-来源信息)。
 
 解除条件：同步或重新生成三数据集的 5-seed split 产物后，运行合同测试和至少每种模态一个
 `run_survey_experiment.py` smoke，并归档 split manifest digest 与命令记录。

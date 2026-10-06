@@ -2,7 +2,7 @@
 
 > **2026-10-04 清单进展**：O1/O2/O5 表格层有条件接受，O3/O4 表格核验通过，O10 Excel 收件摘要确认。依据、条件及其余未决项见 [代理对账记录](p21_workbook_review_20261004.md) §4；这些结论不代填下方人工签署栏。
 
-> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](../reviews/pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
 
 - 日期：2026-10-03
 - 对象：P2.2 交付面——五批 645 runs 的审计、数值汇总与文献对照附着，以及随附的 645 行交付表。
@@ -20,8 +20,8 @@
 | 审计入口 / 汇总入口 / 对照附着入口 | 仓库 `scripts/audit_survey_batches.py`、`scripts/summarize_survey_results.py`、`scripts/compare_survey_results.py` |
 | 报告身份块 | 三份报告各自携带；口径见 `docs/user/reference/api.md` 的 P2.2 与 `survey_provenance` 两节 |
 | 协议 / 对照矩阵 | `pu_toolbox/experiment/survey_protocol_v1.json`（`survey-v1.2`）、`survey_comparison_v3.json` |
-| 结论性文档 | [`p2_2_delivery.md`](p2_2_delivery.md)（口径与分层计数）、[`survey_execution_plan.md`](survey_execution_plan.md) §1.2–§1.4 |
-| **比对基准** | [`data/p2_2_artifacts_index.json`](data/p2_2_artifacts_index.json) |
+| 结论性文档 | [`p2_2_delivery.md`](p2_2_delivery.md)（口径与分层计数）、[`survey_execution_plan.md`](../survey_execution_plan.md) §1.2 |
+| **比对基准** | [`data/p2_2_artifacts_index.json`](../data/p2_2_artifacts_index.json) |
 | 逐行数据与派生层 | 645 行交付表（仓库外，由执行方直接发送） |
 
 基准里的身份（复核时先核这一行，再看别的）：
@@ -86,13 +86,13 @@
 
 ## 3. 不得越过的边界与未获项
 
-以下三条**一律未解除**，逐条出处与口径见 [`survey_execution_plan.md`](survey_execution_plan.md) §1.3：
+以下三条**一律未解除**，逐条出处与口径见 [`survey_execution_plan.md`](../survey_execution_plan.md) §1.2：
 
 1. PA 行不能数值裁决；
 2. 对照附录必为定性（矩阵 `numeric` 为 0 条）；
 3. 回收后的可持久复现范围是「选中权重 + 全部逐 epoch 选择记录」，不是「全部 epoch 权重」。
 
-**未获项**（详见执行计划 §1.4）：对照矩阵的合作者复核仍为 `pending_collaborator_review`；
+**未获项**（详见执行计划 §1.2）：对照矩阵的合作者复核仍为 `pending_collaborator_review`；
 PA 准则与 `self_pu` 元重加权的复核同样未获。P2.0b、P2.0c 的合作者签署至今未获得，
 两者由实验负责人于 2026-09-25 基于单方技术验收放行——**放行不等于对方已复核**。
 

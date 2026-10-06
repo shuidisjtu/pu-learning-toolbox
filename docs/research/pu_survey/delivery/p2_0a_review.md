@@ -3,7 +3,7 @@
 > **2026-10-04 现状补记**：本文的 P1.4 待重建/未取件描述为当时记录，原签署不改。本服务器已完成 15 split / 75 文件 / 3 归档校验、数据契约与真实脚本 smoke，见 [P1.4 接收复核](p1_4_review.md)。本轮代理技术检查不冒充 HENG958 / shuidisjtu 本人签署。
 
 状态日期：2026-09-17。**已由 shuidisjtu 于 2026-09-17 签署验收**（记录见 §4）。
-主责 HENG958；复核人 shuidisjtu。依据 [执行计划](survey_execution_plan.md) 的 P2.0a 条目，
+主责 HENG958；复核人 shuidisjtu。依据 [执行计划](../survey_execution_plan.md) 的 P2.0a 条目，
 代码和测试通过不等同于合作者同意，不得由自动化代签或自行清除 `collaborator_review`。
 
 ## 1. 复核对象
@@ -21,7 +21,7 @@
 - `--protocol survey-v1.2` 是当前入口；`survey-v1`/`survey-v1.1` 保留为当前规格别名，
   实际版本与 JSON 内容摘要以 manifest 为准，不能据 CLI 别名将结果记为旧版。
 - 交付与测试证据：[P2.0a 交付](p2_0a_delivery.md)、
-  [逐 epoch checkpoint 交付](epoch_checkpoint_delivery.md)。
+  [逐 epoch checkpoint 交付](../architecture/epoch_checkpoint_delivery.md)。
 - 不纳入本次验收：P2.0b 标签语义契约、P2.0c 对照预注册、正式跑批及主榜。
 
 ## 2. 决策清单（逐条确认，不默认通过）

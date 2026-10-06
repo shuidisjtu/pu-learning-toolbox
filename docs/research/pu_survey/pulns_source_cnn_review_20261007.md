@@ -1,7 +1,7 @@
 # PULNS：来源复核与原生 CNN 工程路径
 
 状态：**implemented engineering path / pending_method_owner_review**。
-本项承接[后续优先级](post_pilot_priority_plan.md)的缺失算法训练路径，未修改冻结协议、
+本项承接[后续优先级](survey_execution_plan.md)的缺失算法训练路径，未修改冻结协议、
 比较矩阵、历史结果或本人签署。能力增加不意味着正式准入或 PU-only PA 资格。
 
 ## 1. 原始来源与不能推断的部分

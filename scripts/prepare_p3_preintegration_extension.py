@@ -11,6 +11,7 @@ import argparse
 import json
 from pathlib import Path
 
+from pu_toolbox.experiment.survey_artifacts import survey_artifact_ref
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 
 METHOD_BLOCKERS = {
@@ -90,15 +91,13 @@ def build_extension(ledger, protocol):
                 "admitted": False,
                 "owner_decisions": {},
                 "specific_blockers": list(blockers),
-                "storage_evidence_ref": (
-                    "docs/research/pu_survey/data/candidate_storage_probe_20261005.json"
-                ),
+                "storage_evidence_ref": (survey_artifact_ref("candidate_storage_probe_20261005")),
                 "gpu_smoke": "not_applicable_cpu"
                 if method == "rp"
                 else "synthetic_current_environment_only",
                 "gpu_evidence_ref": None
                 if method == "rp"
-                else "docs/research/pu_survey/independent_progress_20261005.md",
+                else survey_artifact_ref("independent_progress_20261005"),
             }
         )
     # Roundtrip yields independent plain-JSON snapshots, never ledger aliases.

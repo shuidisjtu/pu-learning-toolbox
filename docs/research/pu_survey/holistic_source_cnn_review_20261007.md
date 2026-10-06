@@ -1,7 +1,7 @@
 # Holistic-PU：停止/阶段来源复核与端到端 CNN
 
 状态：**独立工程准备，pending_method_owner_review**。承接
-[优先级](post_pilot_priority_plan.md) 的缺失算法/原生图像路径，不改冻结 pilot、
+[优先级](survey_execution_plan.md) 的缺失算法/原生图像路径，不改冻结 pilot、
 历史结果或本人签署。台账和五方法扩展草稿同步，`admitted=false`。
 
 后续状态：已补[显式后段重新初始化变体](holistic_stage_initialization_20261007.md)。

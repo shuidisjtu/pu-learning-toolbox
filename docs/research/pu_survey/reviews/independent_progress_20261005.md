@@ -1,6 +1,6 @@
 # 不依赖合作者实验数据的独立推进（2026-10-05）
 
-按[后续优先级](post_pilot_priority_plan.md)继续。这里只记录工程预集成与合成数据证据，
+按[执行计划](../survey_execution_plan.md)继续。这里只记录工程预集成与合成数据证据，
 不代填方法负责人签署，不接受未收到的原始实验制品，也不修改历史冻结协议或对照矩阵。
 
 ## 已实施
@@ -26,11 +26,11 @@ PULNS 不把 support 行送入 classifier 的梯度 minibatch，但 support 的�
   只表示本次检索结果，不声称不存在。
 - RP：[作者仓库](https://github.com/cgnorthcutt/rankpruning/tree/40ae17cc50fcfeec8d7a345a1c5426036d2bdb1a)，
   `rankpruning/rankpruning.py` 的 OOF、PU-only 噪声约束、排序剪枝与加权；采用独立 clone
-  防折间污染，并显式设随机种子。完整差异见[RP 方法卡](../method_cards/RP.md)。
+  防折间污染，并显式设随机种子。完整差异见[RP 方法卡](../../method_cards/RP.md)。
 - PULNS：[AAAI 2021 原论文](https://ojs.aaai.org/index.php/AAAI/article/view/17064)，
   pp.8786–8788 的状态/奖励/算法及独立 P、U 构造；没有将原生 case-control 记成 OS。
   默认 OS 适配未做等价风险校准，显式 TS 请求拒绝；support 标签预算必须另立口径。
-  论文推导组件不是作者源码重放，probe 拷贝与 Adam 重建等适配见[PULNS 方法卡](../method_cards/PULNS.md)。
+  论文推导组件不是作者源码重放，probe 拷贝与 Adam 重建等适配见[PULNS 方法卡](../../method_cards/PULNS.md)。
 
 三方法没有可安全直接替换的同形 U 风险项；台账均 `calibration_hooked=false`，
 拒绝 TS 而非静默降级。不能据注册数量声称“校准全部完成”。
@@ -59,11 +59,11 @@ Self-PU 既有无 clean-validation ablation 警告属预期披露，不是这三
 
 追加交付：GenPU 已完成独立可训练组件、台账、方法卡与公开 API；总体先验与 Du 的 TS-OS
 训练池校准均接线。作者源码归档已锁定 sha256，论文与发布代码的明确分歧见
-[GEN-PU 方法卡](../method_cards/GEN-PU.md)。不是未找到源码，也不是作者 demo 数值复现；
+[GEN-PU 方法卡](../../method_cards/GEN-PU.md)。不是未找到源码，也不是作者 demo 数值复现；
 正式目标口径仍待负责人决定。GenPU 单项和通用 registry/API/台账回归 **115 passed / 1 GPU deselected**。
 当前台账共 20 条（16 个既有 + PAN/RP/PULNS/GenPU）。
 
-再追加：Holistic-PU 已补论文目标的可训练二维 MLP、台账、API 和[方法卡](../method_cards/Holistic-PU.md)，
+再追加：Holistic-PU 已补论文目标的可训练二维 MLP、台账、API 和[方法卡](../../method_cards/Holistic-PU.md)，
 单项与通用契约回归 **115 passed / 1 GPU deselected**。本地台账现为 21 条。
 明确披露 signed 全时序评分 / variance 分割与作者简化邻差 / Jenks SSE 的差异，
 固定预热并未完成 LZO。全部 contract 目录 **111 passed**。
@@ -74,7 +74,7 @@ resolver 现在尊重台账显式 `calibration_hooked=false`：自动视图保�
 专用路由及历史路由/脚本/台账回归 **50 passed**。冻结 JSON 未修改。
 
 P3MIX 已通过 ICLR 官方作者 slides 核查并补三个 batch 数学组件及
-[方法卡](../method_cards/P3MIX.md)，但完整论文下载 403、作者源码未核实；
+[方法卡](../../method_cards/P3MIX.md)，但完整论文下载 403、作者源码未核实；
 尚不注册 estimator、不新增“完成”的台账行，也不把基础 mixup 冒充 E/C 变体。
 
 短时 CUDA 已独立验证：2026-10-05，物理 6 号 NVIDIA RTX A6000，驱动 550.54.14，
@@ -100,7 +100,7 @@ CUDA_VISIBLE_DEVICES=6 PU_REQUIRE_CUDA=1 pytest -q -m gpu \
   PULNS 使用同一 encoder 编码独立第五角色，support 身份与四角色逐一不相交。
   这仍是合成图像的 2-D 接口验证，不是原生 CNN 训练或正式 representation 准入。
 - 存储探针扩展至 7 方法及多个 seed，脚本回归 **14 passed**；21 份实测记录见
-  [机器记录](data/candidate_storage_probe_20261005.json)。没有候选预算、显存峰值或正式选模声明。
+  [机器记录](../data/candidate_storage_probe_20261005.json)。没有候选预算、显存峰值或正式选模声明。
 
 | 方法 | seed 0/1/2 完整 pickle bytes | 更新步数 | 说明 |
 |---|---|---|---|
@@ -118,7 +118,7 @@ CUDA_VISIBLE_DEVICES=6 PU_REQUIRE_CUDA=1 pytest -q -m gpu \
 
 ### 后续独立工作
 
-新增五方法准入交接草稿：[机器清单](data/p3_preintegration_extension_v1_draft.json)，
+新增五方法准入交接草稿：[机器清单](../data/p3_preintegration_extension_v1_draft.json)，
 由 `scripts/prepare_p3_preintegration_extension.py` 只读生成，**6 passed**。
 每方法直接引用台账来源/版本、原生假设、默认视图和适配差异，明确方法特有待决项；
 PULNS 的独立标签预算及 PA-ineligible 不被省略，P3MIX 明确列为未注册组件。
@@ -192,7 +192,7 @@ GEN-PU/探针/runner **32 passed / 1 deselected**。
 
 ### 新存储证据与回归
 
-保留旧合成快照，新增 [v2 探针](data/candidate_storage_probe_20261005_v2.json)：
+保留旧合成快照，新增 [v2 探针](../data/candidate_storage_probe_20261005_v2.json)：
 7 方法 × seeds 0/1/2，48×3 CPU，同样不作速度排名或正式资源上界。
 每 seed：PAN 两轮分类器权重共 4016 bytes、完整 pickle 4931 bytes；
 Holistic-PU 四轮权重共 8032 bytes、pickle 4782 bytes；
@@ -267,7 +267,7 @@ CNN/增强完整路径及负责人审阅仍是待办，不因计数接口补齐�
 batch250/三次运行/学习率渐降至0.1初值、灰度100/CIFAR200 epoch；实际实验从原训练集
 划出 P 与500 validation 后剩余作为 U，而理论描述 U 为总体边缘。tanh 前梯度与 beta
 线性增长也有同页证据。源事实与下一步接入约束已写入独立文档/机器清单，见
-[GradPU 来源核查](gradpu_source_review_20261005.md)。
+[GradPU 来源核查](../admission/gradpu_source_review_20261005.md)。
 因此保留现有 BN 拒绝及理论 TS 声明，但明确 TS 校准不是原实验流程直接复现；
 不静默删除默认 CNN13 的 BN，不把当前 MLP128/固定学习率说成论文配方。
 台账增加来源核查指针与采样/骨干差异，八方法准入草稿同步指针，未动预算/null 或 admitted。
@@ -386,7 +386,7 @@ null/未准入状态不变。合并专项 225 passed /23 skipped（9.21s）。�
 CNN 声明同步后 2 passed，未把这写成整套重新执行绿。合并前四目录为1568 passed。
 全部格式/注释/文档/数学/目录/层间依赖/测试质量/元数据门禁通过。
 
-推送后继续资源准备，新增脚本与[默认宽度 CNN 存储复核](candidate_cnn_storage_review_20261005.md)。
+推送后继续资源准备，新增脚本与[默认宽度 CNN 存储复核](../admission/candidate_cnn_storage_review_20261005.md)。
 五方法 ×3 seeds CPU，所有阶段快照/最终分数/可信全对象恢复通过；另一次 PULDA CUDA
 测量使用 GPU6 /A6000，峰值 allocated 308,205,056 /reserved333,447,168字节，测后1MiB/0%。
 该数字仅本进程、小合成输入/阶段预算，不是正式 CIFAR 容量。29 项存储专项通过。
@@ -405,7 +405,7 @@ protocol_binding=null；关联契约/方法台账/UI 专项 **31 passed**。
 ## P1-1：五方法来源、预算与选模工程准备
 
 本次按 PULDA → PUET → Grad-PU → Robust-PU → Split-PU 补齐证据，见
-[交付说明](p3_admission_evidence_20261005.md)和[机器包](data/p3_admission_evidence_20261005.json)。
+[交付说明](../p3_admission_evidence_20261005.md)和[机器包](../data/p3_admission_evidence_20261005.json)。
 四个作者仓库的 17 个文件均已按 commit/字节摘要核验；Grad-PU 保持未确认源码。
 只读检查器核对当前构造默认值、checkpoint 上界、视图、证据引用和未准入状态，
 可另行检查本地作者源码，但不下载或执行外部代码。
@@ -421,8 +421,8 @@ formal_admission=false。方法卡、台账、八方法草稿、索引和路线�
 
 ## P1-2：公开结果库存与可比性准备
 
-见[交付说明](p3_public_comparison_20261005.md)和
-[机器草稿](data/p3_public_comparison_draft_20261005.json)。四篇原论文表格已渲染核列，
+见[交付说明](../p3_public_comparison_20261005.md)和
+[机器草稿](../data/p3_public_comparison_draft_20261005.json)。四篇原论文表格已渲染核列，
 登记12条本人方法数值（不是其它方法的转载/邻列oracle），PULDA 全文受限明确保留未知。
 五方法×三数据集15格中5格有读数但协议不符、7格仅在本批未观察到读数、3格来源不可读；
 不是冻结 run 覆盖、更不是文献穷举；无新方法结果可作数值裁决。

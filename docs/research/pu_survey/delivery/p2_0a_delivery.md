@@ -3,8 +3,8 @@
 > **2026-10-04 现状补记**：本文的 P1.4 待重建/未取件描述为当时记录，原签署不改。本服务器已完成 15 split / 75 文件 / 3 归档校验、数据契约与真实脚本 smoke，见 [P1.4 接收复核](p1_4_review.md)。本轮代理技术检查不冒充 HENG958 / shuidisjtu 本人签署。
 
 状态日期：2026-09-17。工程实现与 CPU/GPU 技术验证完成，**已由 shuidisjtu 签署验收**
-（R1–R10 逐条结论见 [复核包 §4](p2_0a_review.md#4-签署记录)）；不代表正式 pilot 已启动。上游要求见 [执行计划](survey_execution_plan.md) P2.0a，
-实验要求仍以 [协议](pu_survey_protocol.md) 为准。
+（R1–R10 逐条结论见 [复核包 §4](p2_0a_review.md#4-签署记录)）；不代表正式 pilot 已启动。上游要求见 [执行计划](../survey_execution_plan.md) P2.0a，
+实验要求仍以 [协议](../pu_survey_protocol.md) 为准。
 
 ## 1. 交付物与程序权威
 
@@ -21,7 +21,7 @@
 改强制）是 P2.1 的前置条件，P2.0b/P2.0c、PA 正式准则、缺失 oracle、完整 Self-PU OA、
 Linux frozen-lock 环境偏差与 P1.4 制品统一重建（IMDB/Spambase 待建；issue #52 的 CIFAR-10 部分已关闭）继续阻断。
 后续版本 `survey-v1.1` 已补齐逐 epoch 权重保存与独立恢复，预算/backbone 未改变；
-审查决定见 [复核包](p2_0a_review.md)，实现与证据见 [checkpoint 交付](epoch_checkpoint_delivery.md)。
+审查决定见 [复核包](p2_0a_review.md)，实现与证据见 [checkpoint 交付](../architecture/epoch_checkpoint_delivery.md)。
 
 ## 2. 共享规格与预算决策
 

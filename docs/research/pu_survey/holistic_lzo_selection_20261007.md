@@ -2,7 +2,7 @@
 
 状态：**implemented engineering variant / pending_method_owner_review**。承接
 [来源复核](holistic_source_cnn_review_20261007.md)、[后段初始化](holistic_stage_initialization_20261007.md)
-及[后续优先级](post_pilot_priority_plan.md)。没有改冻结协议、历史结果、本人签署或正式候选。
+及[后续优先级](survey_execution_plan.md)。没有改冻结协议、历史结果、本人签署或正式候选。
 
 ## 1. 来源支持什么、没有支持什么
 

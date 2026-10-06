@@ -1,7 +1,7 @@
 # 方法特定阶段、选模与预算准备（2026-10-07）
 
 状态：**draft / pending_method_owner_review**。承接
-[后续优先级](post_pilot_priority_plan.md) 第2项及
+[后续优先级](survey_execution_plan.md) 第2项及
 [公开对照准备](p3_public_comparison_20261005.md)，不是执行路线编号 P1.3。
 本批补实际 checkpoint 留痕与五方法机器规格；不决定新方法的正式候选池、预算或阶段资格。
 原始 pilot 制品、负责人签署和公开数值验收的阻断全部保留。

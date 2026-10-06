@@ -374,7 +374,7 @@
     },
     "pn_oracle_spec": {
       "type": "in_repo",
-      "file": "docs/research/pu_survey/pn_oracle_integration.md"
+      "file": "docs/research/pu_survey/admission/pn_oracle_integration.md"
     }
   },
   "validation": {

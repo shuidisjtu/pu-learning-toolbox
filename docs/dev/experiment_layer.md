@@ -134,10 +134,10 @@ round_index、累计 optimizer_steps）。选中引用、恢复的 predictor 与
 - **正式资格**：PA 正式准则（proxy accuracy，R9）与逐 epoch checkpoint 独立恢复已实现；
   但 P2.0b/P2.0c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle
   仍未完成，各单元保持 `formal_eligible=false`。阻断与验收见
-  [p2_0a_review](../research/pu_survey/p2_0a_review.md)、
-  [epoch_checkpoint_delivery](../research/pu_survey/epoch_checkpoint_delivery.md)。
+  [p2_0a_review](../research/pu_survey/delivery/p2_0a_review.md)、
+  [epoch_checkpoint_delivery](../research/pu_survey/architecture/epoch_checkpoint_delivery.md)。
 - **PN oracle**：MLP 路径已接入（Phase 1）；CNN oracle 的 clean-val checkpoint 选择与
-  backbone 对齐列为 Phase 2。见 [pn_oracle_integration](../research/pu_survey/pn_oracle_integration.md)。
+  backbone 对齐列为 Phase 2。见 [pn_oracle_integration](../research/pu_survey/admission/pn_oracle_integration.md)。
 
 **与通用层的边界（2026-10-04 复核）**：实验层的跨层依赖为——**模块级只有 Core**（`core/`、`utils/`）；
 **函数内另有** Core（`registry/`）、Evaluation（`metrics/`，`runner.py:751`）、**Algorithms**

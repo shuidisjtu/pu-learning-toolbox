@@ -1,14 +1,14 @@
 # PULDA / PUET 准入规格草案（2026-10-04）
 
-状态：**draft / pending_method_owner_review**。承接 [后续优先级](post_pilot_priority_plan.md) 的第 2 项。
+状态：**draft / pending_method_owner_review**。承接[执行计划](../survey_execution_plan.md)的 P3.2/P3.3 任务。
 只记录代码事实、技术接口证据及待决问题；不建立正式候选池，不扩展冻结矩阵，不宣称论文数值复现。
 
-P1-2 已补[公开结果可比性准备](p3_public_comparison_20261005.md)：PUET 原表的 CIFAR
+P1-2 已补[公开结果可比性准备](../p3_public_comparison_20261005.md)：PUET 原表的 CIFAR
 nnPU/quadratic accuracy79.74(0.37)仅作待审读数；原文用3072维输入与固定P1000/全体U，
 不是项目冻结图像特征与 c 扫描。PULDA 全文未取得，不引用 Dist-PU 数字替代。
 两方法正式 recipe、数值资格和判定阈值均不由本草稿决定。
 
-2026-10-05 P1-1 补记：[五方法机器证据与检查入口](p3_admission_evidence_20261005.md)
+2026-10-05 P1-1 补记：[五方法机器证据与检查入口](../p3_admission_evidence_20261005.md)
 补齐默认值、更新计数、来源行号/摘要及适配差异。PULDA 两阶段学习率 cosine 均依赖
 pu_epochs（warmup 不使用独立周期）；U 尾批与 P 抽样不同于作者。
 PUET 的叶 tie、阈值区间、划分增益和子节点约束亦有显式差异。
@@ -27,7 +27,7 @@ PUET 的叶 tie、阈值区间、划分增益和子节点约束亦有显式差�
 | 存储 | 需要新预算/结构的实测序列化 profile；不可无证借用 mlp128 配额 | 应登记森林模型持久化，不能借神经 epoch checkpoint 配额 |
 | 资源 | CPU 技术测试可执行；GPU、多 seed、frozen-lock 尚待正式验证 | CPU 计时/内存；GPU smoke 不适用，任务条款修改由负责人确认 |
 
-依据：[PULDA 方法卡](../method_cards/PULDA.md)、[PUET 方法卡](../method_cards/PUET.md)，
+依据：[PULDA 方法卡](../../method_cards/PULDA.md)、[PUET 方法卡](../../method_cards/PUET.md)，
 以及 `pu_toolbox/estimators/risk/pulda.py` / `pu_toolbox/estimators/risk/puet.py` 的构造和 fit 签名。
 上述默认参数是**当前组件事实**，不是已批准的 Survey 候选值或统一公平预算。
 
@@ -53,7 +53,7 @@ SCAR 标记、显式 TS、独立 PA/OA 选择、测试 accuracy/AUC 及 manifest
 
 2026-10-05 更新：PULDA `checkpoint_epoch_count` 已让 runner 在无显式 epoch budget 时按两阶段
 总轮数估算；冻结预算仍优先，候选/重试乘数与回收后的峰值语义已由测试锁定。
-合成存储探针和逐预测恢复证据见[独立推进记录](independent_progress_20261005.md)。
+合成存储探针和逐预测恢复证据见[独立推进记录](../reviews/independent_progress_20261005.md)。
 此修补不填写新正式 budget/storage profile，不据小 MLP 的 bytes 推算 CIFAR 上界。
 
 后续 CNN 技术实测见[存储复核](candidate_cnn_storage_review_20261005.md)：

@@ -1,15 +1,15 @@
 # P2.0c 交付：外部对照预注册
 
-> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](../reviews/pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
 
 状态：工程预注册与技术审计修订完成，**合作者尚未签署**。原先 54 个锚点与 194 条映射均经
 shuidisjtu 自审；本轮来源复核后，36 个锚点与 7 条行级映射回退 `pending_review`，
 现为 18/54 锚点、187/194 映射自审接受。`review_status` 仍为 `pending_collaborator_review`，
 正式独立复核待合作者确认，具体判定、来源与摘要见 [复核包](p2_0c_review.md)。
 本交付**不产生实验结果**，也不证明任何算法复现成功——它冻结的是结果出来之后如何进行正确性审计。
-上游要求见 [执行计划](survey_execution_plan.md) P2.0c；对照矩阵的机器可读真相源是
+上游要求见 [执行计划](../survey_execution_plan.md) P2.0c；对照矩阵的机器可读真相源是
 `pu_toolbox/experiment/survey_comparison_v3.json`，本文件解释其中的判读与边界，不另行维护一份参数表。
-（本文件写于 `v1` 交付时；`v1 → v2` 的登记修订见 [执行计划](survey_execution_plan.md) 决策 D10，
+（本文件写于 `v1` 交付时；`v1 → v2` 的登记修订见 [执行计划](../survey_execution_plan.md) 决策 D10，
 `v2 → v3` 的 IMDB 预处理差异修订见决策 D12；`v1`、`v2` 均原样留档。）
 
 ## 1. 交付物与程序权威

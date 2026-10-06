@@ -2,12 +2,12 @@
 
 > **2026-10-04 表格层收件验收**：645 行 Excel 与登记摘要完全一致；从 raw 重算 183 行均值、样本 SD、AUC 与成本通过，见 [独立对账](p21_workbook_review_20261004.md)。原始制品门禁与人工签署仍待完成。
 
-> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](../reviews/pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
 
 - 日期：2026-10-03
 - 定位：把 P2.1 五批（645 runs）的运行制品推进为可审计、可分层的 P2.2 交付。**不含**跨数据集总排名
   （协议 §5 第 1 条），也不含方法排名——分层结果的逐行数值由汇总产物承载，本文件只写口径、边界与未决项。
-- 依据：`survey_execution_plan.md` §2.2 的 P2.2 行与决策 D13 / D24 / D26；实施方案
+- 依据：`survey_execution_plan.md` §1.2 的 P2.2 行与决策 D13 / D24 / D26；实施方案
   `P2.2_B5_B6_implementation_plan.md`（v0.4，执行工作区文档，未入库）。
 
 ## 1. 交付物与权威源
@@ -25,7 +25,7 @@
 | 报告身份块 | `pu_toolbox/experiment/survey_provenance.py`（三份报告共用，见 `api.md` 同名一节） | 仓库 |
 | 原始制品 | `01_audit` / `02_summary` / `03_comparison` / `04_evidence` | 执行机分析工作区，**在仓库外** |
 | 复核包 | [`p2_2_review.md`](p2_2_review.md)（双栏清单与签署模板） | 仓库 |
-| 比对基准 | [`data/p2_2_artifacts_index.json`](data/p2_2_artifacts_index.json) | 仓库 |
+| 比对基准 | [`data/p2_2_artifacts_index.json`](../data/p2_2_artifacts_index.json) | 仓库 |
 | 645 行交付表 | 逐 run 原始数据（含三项成本与环境身份）加 P2.2 派生层 | **在仓库外，由执行方直接发送** |
 
 **制品分发的决定（2026-10-03）**：不打包上网盘。合作者同时具备仓库权限与数据盘权限，
@@ -75,7 +75,7 @@ PN oracle）；跨数据集只比较趋势，不生成总排名。
 
 ## 5. 不可越过者
 
-三条边界当前**一律未解除**，逐条出处与口径见 [`survey_execution_plan.md`](survey_execution_plan.md) §1.3，
+三条边界当前**一律未解除**，逐条出处与口径见本文件 §5；任务与复核责任见 [`survey_execution_plan.md`](../survey_execution_plan.md) §1.2，
 本文件不复述；此处只点明它们对 P2.2 的约束：
 
 1. PA 行不能数值裁决；
@@ -124,7 +124,7 @@ uv run python scripts/compare_survey_results.py --summary <02_summary/summary.js
    因此**报告是产出它的那次 checkout 的函数**：换了 commit 或输入根，报告就会不同。
    比对时必须先核身份块，再比数值。
 
-**比对基准**在 [`data/p2_2_artifacts_index.json`](data/p2_2_artifacts_index.json)：先比
+**比对基准**在 [`data/p2_2_artifacts_index.json`](../data/p2_2_artifacts_index.json)：先比
 `inputs.total.tree_sha256`（确认读的是同一批字节），再比 `artifacts` 的逐文件摘要。
 Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字节可复现；JSON 里带 `generated_at`，
 比对时须先移除该字段。
@@ -133,7 +133,7 @@ Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字�
 
 - **合作者复核未获得**：P2.0c 对照矩阵仍为 `pending_collaborator_review`、`formal_blockers` 仍为
   `["collaborator_review"]`；PA 准则与 `self_pu` 元重加权的复核同样未获得。**本文件不得读作已签署**
-  （未获项清单见 [`survey_execution_plan.md`](survey_execution_plan.md) §1.4）。
+  （未获项清单见 [`survey_execution_plan.md`](../survey_execution_plan.md) §1.2 的 RV1–RV7）。
 - **期望单元完整性格网口径**（D13 遗留）：复合分区下「缺失单元」如何判定仍未定，本次不涉。
 - **A04（计划身份）仍为 `not_run`**：需要五批的参考计划 JSON，目前只有 B1 的在执行机上，
   B2/B3a/B3b/B4 需从源端取。其余 6 项 `not_run` 的缺什么输入见 §6。

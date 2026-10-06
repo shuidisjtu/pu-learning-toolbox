@@ -1,9 +1,9 @@
 # Pilot 独立技术复核（2026-10-04）
 
-> **同日后续收件**：此前待取的 Excel 已收到且摘要一致；645-run → 183-row 独立数值对账通过，见 [Excel 验收补记](p21_workbook_review_20261004.md)。本文「未收到表格」属于本轮前半段记录，原始 manifest / 日志 / 权重仍未取得。
+> **同日后续收件**：此前待取的 Excel 已收到且摘要一致；645-run → 183-row 独立数值对账通过，见 [Excel 验收补记](../delivery/p21_workbook_review_20261004.md)。本文「未收到表格」属于本轮前半段记录，原始 manifest / 日志 / 权重仍未取得。
 
-范围：按 [执行计划](survey_execution_plan.md) 复核 P2.0b、P2.0c、P2.0e、P2.1、P2.2；
-暂停新增算法集成。P1.4 接收验收见 [数据复核](p1_4_review.md)。
+范围：按 [执行计划](../survey_execution_plan.md) 复核 P2.0b、P2.0c、P2.0e、P2.1、P2.2；
+暂停新增算法集成。P1.4 接收验收见 [数据复核](../delivery/p1_4_review.md)。
 复核主体是 Codex 代理技术检查，**不是两名实施主体的本人签署**。
 
 ## 1. 分项结论与边界
@@ -20,7 +20,7 @@
 新增接收端脚本与文档检查器测试另有 **18 passed**，本轮合计 438 passed；文档一致性检查及差异空白检查通过。
 后者 9 条磁盘容量警告来自测试 fixture 的估算口径，不是实机磁盘审计失败。
 模块、逐 split 读数、五批计划身份及已下载锁定源码摘要见
-[机器可读证据](data/pilot_review_20261004.json)。在证据列出的模块上用 `pytest -q` 可重跑。
+[机器可读证据](../data/pilot_review_20261004.json)。在证据列出的模块上用 `pytest -q` 可重跑。
 本轮计划读取当前工作树，completed=0 表示指定的空结果树没有制品，**不是否认 AutoDL 已完成**。
 这些计划不能替代源端参考 plan JSON；原执行与重放代码身份必须分别记录。
 
@@ -74,7 +74,7 @@ Table 1，印刷页 6：我方登记的 6 方法 × 3 数据集共 18 个均值�
 - [core/networks.py:42](https://github.com/wu-dd/PUBench/blob/a9a62b05b0f222c72aff4df8992307376c78d682/core/networks.py#L42)
   调用 `resnet(depth=32)`，与论文 ResNet-34 矛盾确认。
 - [collect_results.py:21–29](https://github.com/wu-dd/PUBench/blob/a9a62b05b0f222c72aff4df8992307376c78d682/collect_results.py#L21)
-  写明 standard error，计算 `100*np.std(data/sqrt(n))`，`ddof=0`。以代码为准时已是 SE，不可再除一次 sqrt(n)。
+  写明 standard error，计算 `100*np.std(../data/sqrt(n))`，`ddof=0`。以代码为准时已是 SE，不可再除一次 sqrt(n)。
   **不能仅靠代码证明印刷表确由这一函数生成**；缺原日志/checkpoint 时保留产出来源的不确定性。
 - [train.py:103–104](https://github.com/wu-dd/PUBench/blob/a9a62b05b0f222c72aff4df8992307376c78d682/train.py#L103)
   从 P、U 各切 10% validation，确认。
@@ -93,7 +93,7 @@ Table 1，印刷页 6：我方登记的 6 方法 × 3 数据集共 18 个均值�
 ## 3. P2.2 文档矛盾修正
 
 **推翻**「B4 是五批中唯一 formal_ready=True」：
-[B3a+B3b 快照](p2_1_b3ab_snapshot.md) §1/2 记录 B3b 70/70 eligible、偏差为空、无阻断；
+[B3a+B3b 快照](../delivery/p2_1_b3ab_snapshot.md) §1/2 记录 B3b 70/70 eligible、偏差为空、无阻断；
 B4 同样无 oracle。按单批边界应为 **B3b 与 B4** 无阻断；
 B1/B2/B3a 因 oracle c_grid 偏差为 False，**B3a+B3b 合并分析组仍为 False**（§3）。
 执行计划、P2.2 交付与复核包已统一这个粒度，绝不将合并分析组改为 True。
@@ -102,7 +102,7 @@ B1/B2/B3a 因 oracle c_grid 偏差为 False，**B3a+B3b 合并分析组仍为 Fa
 ## 4. 独立验收剩余输入及执行顺序
 
 本服务器没有定位到 XLSX，也没有 AutoDL SSH host 配置；不猜账号或连接凭据。
-按 [P2.2 制品索引](data/p2_2_artifacts_index.json)，需要：
+按 [P2.2 制品索引](../data/p2_2_artifacts_index.json)，需要：
 
 1. `P2.1_results_645runs_20261003.xlsx`：126370 bytes，sha256
    `cafedc98d8983764625d7b32e62301aa8de87e7da9d772e185f6a135df9c1244`。

@@ -1,7 +1,7 @@
 # Holistic-PU：后段模型/优化器重新初始化
 
 状态：**工程实现 / pending_method_owner_review**。承接
-[来源复核](holistic_source_cnn_review_20261007.md) 和[后续优先级](post_pilot_priority_plan.md)。
+[来源复核](holistic_source_cnn_review_20261007.md) 和[后续优先级](survey_execution_plan.md)。
 不改旧冻结协议/结果，不进行真实数据跑批，不代填负责人签署或正式候选。
 
 后续已补 [LZO 正例损失工程变体](holistic_lzo_selection_20261007.md)。本页保留

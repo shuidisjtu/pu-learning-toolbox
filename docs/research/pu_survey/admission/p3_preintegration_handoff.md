@@ -1,24 +1,24 @@
 # P3 缺失方法技术预集成交接（2026-09-28）
 
-2026-10-07 补记：[阶段选模/预算草案](p3_stage_budget_review_20261007.md)
+2026-10-07 补记：[阶段选模/预算草案](../p3_stage_budget_review_20261007.md)
 已补 PULDA/GradPU/Robust-PU/Split-PU 的可核快照上下文与五方法机器规格；
 GenPU/Holistic-PU 同样保留阶段 provenance。只补工程可观察性，不批准阶段候选，
 不改已冻结 pilot 引用与任何数值结论，原准入和原始制品阻断全部保留。
 
-2026-10-05 P1-2 补记：[公开对照草稿与可比性](p3_public_comparison_20261005.md)
+2026-10-05 P1-2 补记：[公开对照草稿与可比性](../p3_public_comparison_20261005.md)
 补12条待审原表读数与15格范围，不把校准/公式 smoke 升级为论文数值复现。
 Split-PU 论文teacher50/代码20、Robust-PU混合单位与非oracle PN均单列；
 本项目尚无这五方法正式结果，不消除原交接的数值对照及签署待办。
 
-2026-10-05 P1-1 补记：[五方法准入证据包](p3_admission_evidence_20261005.md)
+2026-10-05 P1-1 补记：[五方法准入证据包](../p3_admission_evidence_20261005.md)
 已补来源行为与独立公式测试、预算/选择角色和只读机器核验，引用已进入台账与原八方法草稿。
 特别纠正 Split-PU：锁定上游 teacher/student 返回末轮权重，测试指标是监控，
 不把未使用的 best_acc 变量解释为 test-best 选模；easy 损失归一化另列差异。
 本补记只更新工程准备，不覆盖历史数值/来源摘要或代填签署。
 
-2026-10-05 补记：PAN、RP、PULNS、GenPU、Holistic-PU 已补独立组件、方法卡、台账、共享特征与单元/契约测试；四个新增深度方法 CUDA smoke 已通过，P3MIX 仅完成 batch 组件，未注册 estimator，详见[独立推进记录](independent_progress_20261005.md)。PULNS 有额外干净 support 监督，不具备标准 PU-only PA 资格；本次不更改下文的历史证据或正式准入状态。
+2026-10-05 补记：PAN、RP、PULNS、GenPU、Holistic-PU 已补独立组件、方法卡、台账、共享特征与单元/契约测试；四个新增深度方法 CUDA smoke 已通过，P3MIX 仅完成 batch 组件，未注册 estimator，详见[独立推进记录](../reviews/independent_progress_20261005.md)。PULNS 有额外干净 support 监督，不具备标准 PU-only PA 资格；本次不更改下文的历史证据或正式准入状态。
 
-2026-10-04 补记：8 方法的准备顺序和逐项准入 blocker 已整理为 [机器清单](data/p3_candidate_admission_v1_draft.json)，后续排序与 P4.1 草稿交付见 [推进计划](post_pilot_priority_plan.md)。这不改变本交接的正式准入边界。
+2026-10-04 补记：8 方法的准备顺序和逐项准入 blocker 已整理为 [机器清单](../data/p3_candidate_admission_v1_draft.json)，任务顺序与 P4.1 绑定见[执行计划](../survey_execution_plan.md) §1.2。这不改变本交接的正式准入边界。
 
 本文件只汇总**正式跑批之前**可以独立核查的工程证据。它不是 `survey_protocol_v1.json` 的修订、不是合作者签署，也不改变 P2.1/P3.1/P3.2 的正式验收状态。冻结矩阵仍只有 7 个 PU 方法和 PN oracle；新增条目仅在 `pu_toolbox/experiment/method_ledger.json` 中登记。
 
