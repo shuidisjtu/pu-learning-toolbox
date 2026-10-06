@@ -27,6 +27,8 @@ def small_params(method):
         return {"pretrain_epochs": 1, "episodes": 1, "batch_size": 8, "hidden_dim": 4}
     if method == "holistic_pu":
         return {"warmup_epochs": 3, "batch_size": 8, "hidden_dim": 4}
+    if method == "genpu":
+        return {"classifier_epochs": 1, "batch_size": 8, "hidden_dim": 4, "latent_dim": 2}
     if method == "split_pu":
         return {
             "teacher_epochs": 1,
@@ -47,7 +49,7 @@ def small_params(method):
 
 
 @pytest.mark.parametrize(
-    "method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu", "holistic_pu"]
+    "method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu", "holistic_pu", "genpu"]
 )
 def test_basic_cnn_pipeline_fits_and_reports_encoder_provenance(method):
     features, labels = images()
@@ -70,7 +72,7 @@ def test_basic_cnn_pipeline_fits_and_reports_encoder_provenance(method):
 
 
 @pytest.mark.parametrize(
-    "method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu", "holistic_pu"]
+    "method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu", "holistic_pu", "genpu"]
 )
 def test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak(method):
     from pu_toolbox import build_encoder
@@ -104,7 +106,28 @@ def test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak
 
 def test_param_edge_cnn_not_silently_enabled_for_mlp_only_algorithms():
     with pytest.raises(PipelineError, match="cnn"):
-        PUPipeline(classifier="genpu", architecture="cnn", cv=2, max_epochs=1)
+        PUPipeline(classifier="dist_pu", architecture="cnn", cv=2, max_epochs=1)
+
+
+@pytest.mark.parametrize("backbone", ["cnn13", "resnet18"])
+def test_basic_genpu_pixel_tanh_recipe_runs_through_public_cnn_pipeline(backbone):
+    features, labels = images()
+    features = np.tanh(features)
+    pipe = PUPipeline(
+        classifier="genpu",
+        architecture="cnn",
+        backbone=backbone,
+        cv=2,
+        max_epochs=1,
+        classifier_params={**small_params("genpu"), "generator_output": "tanh"},
+        random_state=3,
+        device="cpu",
+    )
+    with pytest.warns(UserWarning, match=r"trained 2 times \(CV folds only; refit=False\)"):
+        report = pipe.fit_evaluate(features, labels, refit=False, class_prior=0.4)
+    assert report.provenance["architecture"] == "native_cnn"
+    assert report.provenance["backbone"] == backbone
+    assert report.provenance["classifier_params"]["generator_output"] == "tanh"
 
 
 @pytest.mark.parametrize("backbone", ["cnn13", "resnet18"])

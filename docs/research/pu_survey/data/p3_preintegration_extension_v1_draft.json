@@ -3,7 +3,7 @@
   "review_status": "pending_method_owner_review",
   "purpose": "Technical handoff only; no execution authorization or human signatures.",
   "frozen_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
-  "declared_scope": "synthetic dense/frozen-feature and PAN/Holistic-PU/PULNS injected-CNN engineering paths; not paper image reproduction",
+  "declared_scope": "synthetic dense/frozen-feature and PAN/Holistic-PU/PULNS/GEN-PU injected-CNN engineering paths; not paper image reproduction",
   "common_blockers": [
     "versioned_execution_and_comparison_preregistration",
     "approved_budget_and_PA_OA_selection_spec",
@@ -164,7 +164,7 @@
         "run_view": "ts-compatible",
         "calibration_applied": true,
         "prior_semantics": "population π；论文式 (3) 正负生成分布与 Du 假样本混合权重，最终合成 PN risk 同按 π 加权；需要明确总体先验，fit/构造冲突 fail-loud",
-        "adaptation_level": "benchmark-adapted（按论文带先验权重的 minimax/anti-GAN 独立实现；与官方 demo 的非饱和 generator 和无先验 Du 配方不同，不合并成 source-faithful）",
+        "adaptation_level": "benchmark-adapted（按论文带先验权重的 minimax/anti-GAN 独立实现；与官方 demo 的非饱和 generator 和无先验 Du 配方不同；图像生成器仍为稠密像素 MLP，输出显式 NCHW，三个判别器和新建 PN 各有独立可训练 CNN；G 步冻结 D 权重/BN/dropout 而保留输入梯度；默认 identity 兼容，显式 tanh 要求训练数据已在 [-1,1]；不合并成 source-faithful）",
         "code_version": {
           "upstream_url": "https://qibinzhao.github.io/assets/publications/IJCAI_2018_HouMing/gen_pu_demo.zip",
           "upstream_sha256": "a0975a3da5979febbd0504d5ee5b2638b4f9074a66e72d45198278933f54e6c0",
@@ -172,21 +172,25 @@
         },
         "modality_backbone": {
           "modalities": [
-            "tabular"
+            "tabular",
+            "image"
           ],
-          "backbone": "二维特征、两个无界 MLP generator、三个 discriminator 与最终 MLP classifier",
+          "backbone": "二维特征 MLP 或显式 NCHW 双稠密像素 generator；Dp/Dn/Du/最终 PN 分别 deepcopy 外部 CNN 模板并端到端训练；原始数据留 CPU，仅批次送设备；非作者 Table 1 的全 MLP 实验",
           "code_capability": {
             "native_architectures": [
+              "cnn",
               "mlp"
             ],
             "input_ndims": [
-              2
+              2,
+              4
             ],
-            "encoder_parameter": null,
-            "trains_encoder": false
+            "encoder_parameter": "encoder",
+            "trains_encoder": true
           }
         },
-        "calibration_hooked": true
+        "calibration_hooked": true,
+        "source_behavior_review_ref": "docs/research/pu_survey/genpu_source_cnn_review_20261007.md"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
@@ -197,7 +201,9 @@
         "paper_minimax_vs_author_nonsaturating_demo_decision",
         "prior_weighted_Du_and_synthetic_PN_spec",
         "source_license_review",
-        "six_network_GAN_plus_PN_selection_and_storage_spec"
+        "six_network_GAN_plus_PN_selection_and_storage_spec",
+        "dense_pixel_output_domain_and_four_CNN_encoder_recipe",
+        "generator_step_discriminator_mode_and_native_image_resource_spec"
       ],
       "storage_evidence_ref": "docs/research/pu_survey/data/candidate_storage_probe_20261005.json",
       "gpu_smoke": "synthetic_current_environment_only",

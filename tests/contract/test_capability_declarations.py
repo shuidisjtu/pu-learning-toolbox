@@ -124,7 +124,7 @@ _EXPECTED_DECLARATIONS = {
     "vpu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "pulda": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "pan": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
-    "genpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "genpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "holistic_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "pulns": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
 }

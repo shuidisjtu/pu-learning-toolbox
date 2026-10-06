@@ -28,6 +28,8 @@ METHOD_BLOCKERS = {
         "prior_weighted_Du_and_synthetic_PN_spec",
         "source_license_review",
         "six_network_GAN_plus_PN_selection_and_storage_spec",
+        "dense_pixel_output_domain_and_four_CNN_encoder_recipe",
+        "generator_step_discriminator_mode_and_native_image_resource_spec",
     ],
     "holistic_pu": [
         "paper_pairwise_variance_vs_author_adjacent_Jenks_decision",
@@ -110,7 +112,7 @@ def build_extension(ledger, protocol):
                 ),
                 "frozen_protocol_sha256": digest(protocol),
                 "declared_scope": (
-                    "synthetic dense/frozen-feature and PAN/Holistic-PU/PULNS injected-CNN "
+                    "synthetic dense/frozen-feature and PAN/Holistic-PU/PULNS/GEN-PU injected-CNN "
                     "engineering paths; not paper image reproduction"
                 ),
                 "common_blockers": [

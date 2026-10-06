@@ -85,6 +85,18 @@ def test_edge_null_candidates_empty_signatures_no_p3mix_registration_or_source_m
     assert (
         "lzo_positive_loss_recipe_and_external_selection_isolation" in holistic["specific_blockers"]
     )
+    genpu = next(row for row in report["candidates"] if row["method"] == "genpu")
+    assert genpu["ledger_snapshot"]["modality_backbone"]["code_capability"] == {
+        "native_architectures": ["cnn", "mlp"],
+        "input_ndims": [2, 4],
+        "encoder_parameter": "encoder",
+        "trains_encoder": True,
+    }
+    assert genpu["ledger_snapshot"]["calibration_applied"] is True
+    assert genpu["ledger_snapshot"]["source_behavior_review_ref"].endswith(
+        "genpu_source_cnn_review_20261007.md"
+    )
+    assert "dense_pixel_output_domain_and_four_CNN_encoder_recipe" in genpu["specific_blockers"]
     report["candidates"][0]["ledger_snapshot"]["code_version"]["upstream_url"] = "changed"
     assert (facts, protocol) == before
 

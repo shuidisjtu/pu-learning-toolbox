@@ -37,4 +37,5 @@ def test_cnn_candidates_matches_current_declarations():
         "split_pu",
         "holistic_pu",
         "pulns",
+        "genpu",
     }

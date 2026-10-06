@@ -486,13 +486,18 @@ patience 提前退出、checkpoint 续训 API 或正式 PA/OA 准则；来源未
 GenPUClassifier(*, class_prior=None, hidden_dim=128, latent_dim=100,
                 max_epochs=100, classifier_epochs=100, batch_size=64,
                 learning_rate=3e-4, positive_weight=1.0, negative_weight=1.0,
-                unlabeled_weight=1.0, random_state=0, device=None)
+                unlabeled_weight=1.0, encoder=None, generator_output="identity",
+                random_state=0, device=None)
 ```
 
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`：总体先验必填，
 构造/fit 冲突拒绝。论文目标的两 generator / 三 discriminator，之后用合成流训练 PN classifier；
-只有 Du 真实池支持 TS 的 U∪P 替换。二维 MLP，不是图像 CNN 或官方 demo 数值复现。
-`history_` / `optimizer_steps_` 分别记录 GAN 与 PN 成本；callback 仅在合成 PN 分类器轮末调用，
+只有 Du 真实池支持 TS 的 U∪P 替换。支持二维 MLP 和显式注入 CNN 的四维 NCHW；
+两个稠密像素 generator，三个独立可训练判别器编码器，新建独立 PN 编码器，不展平真实图像。
+`generator_output="identity"` 保留旧默认；`"tanh"` 要求 X 已处于 [-1,1]，不自动截断/重标定。
+G 步冻结 D 参数/BN/dropout 但保留输入梯度，原始数据留 CPU。不是作者全 MLP 图像实验或数值复现。
+`history_` / `optimizer_steps_` / `stage_optimizer_steps_` 记录 GAN+PN 全成本及六网络分项；
+`history_["optimizer_steps"]` 为 PN 轮末累计成本。callback 仅在合成 PN 分类器轮末调用，
 零起始编号；`checkpoint_epoch_count=classifier_epochs`，不把 GAN 网络冒充分类器快照。
 快照用于分类器推断回放，完整六模型状态另存可信 pickle；不支持训练恢复或正式准入。
 非空 sample_weight 报错；sigmoid 分数不保证独立概率校准。见[GEN-PU 方法卡](../../research/method_cards/GEN-PU.md)。

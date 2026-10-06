@@ -1,5 +1,9 @@
 # Method Card: GEN-PU
 
+2026-10-07 补[像素生成/CNN 来源复核](../pu_survey/genpu_source_cnn_review_20261007.md)：
+双稠密 generator 显式输出 NCHW；三判别器和新建最终 PN 使用四份独立可训练 CNN。
+原论文 Table 1 及作者 demo 均是稠密网络，本接口是工程图像适配，不是作者 CNN 重放。
+
 2026-10-07 补[阶段技术留痕](../pu_survey/p3_stage_budget_review_20261007.md)：
 仅 synthetic_pn 分类器快照增加局部 epoch 与累计全部 GAN+PN optimizer 更新数，
 不把 GAN 阶段登记为空分类器候选，不改变 Du 校准范围或正式准入状态。
@@ -25,9 +29,11 @@ Hou et al., IJCAI 2018，DOI 10.24963/ijcai.2018/312；[原论文](https://www.i
 
 ## 当前组件与校准
 
-`GenPUClassifier` / `genpu`，二维稠密 MLP、CPU/CUDA；独立重写。
+`GenPUClassifier` / `genpu`，二维稠密 MLP 或显式注入 CNN 的四维图像路径、CPU/CUDA；独立重写。
 原始 logit 上用 logsigmoid，Gp 最小化标准 GAN 项，Gn 最小化 Du 项并最大化 Dn 项。
-D 步生成流停止梯度，G 步冻结三个 D 参数但保留输入梯度。最终 PN 只用新生成流，不读取真值标签。
+D 步生成流停止梯度，G 步冻结三个 D 参数/BN/dropout 但保留输入梯度，并在异常时恢复模式与参数标志。
+Dp/Dn/Du/最终 PN 各自 deepcopy 外部 encoder 模板，最终 PN 不借用已训练判别器权重；
+真实图像不展平成旧 MLP 输入，双稠密生成器输出同形 NCHW。最终 PN 只用新生成流，不读取真值标签。
 有限训练不会证明 Nash 平衡、生成质量或分类性能。
 
 总体先验必填且构造/fit 值不得冲突。`os_or_ts="ts"` 仅将 Du 的真实训练 risk 池换成 U∪P，
@@ -35,9 +41,12 @@ Dp/Dn 的真实池始终是 P；默认 OS 明确不是论文原生边缘池。�
 台账 / Survey 自动路由默认 TS，`calibration_applied=true`、`calibration_hooked=true`；
 直接组件 fit 默认 OS 保留显式消融入口，真实运行视图按 manifest。
 
-无界 generator 输出适配表格特征，不是 demo 的图像 tanh、官方完整训练配方或共享 CNN。
+默认 `generator_output="identity"` 为无界输出，保留旧二维行为；显式 `"tanh"` 支持有界像素，
+要求训练 X 已在 [-1,1]，不自动重标定或读取验证/测试统计。train-only 标准化超出该域时拒绝 tanh，
+而不是截断真实数据。编码器与原始数据隔离、仅批次送设备；图像配方仍待正式批准。
 `max_epochs` 为 GAN 轮数，`classifier_epochs` 为 PN 轮数；每轮步数由实际 Du 池大小决定，
-5 个 GAN optimizer update 加 1 个 PN update 分别计数。`epoch_callback` 仅在合成 PN 分类器轮末
+5 个 GAN optimizer update 加 1 个 PN update 分别计数，`stage_optimizer_steps_` 保留六项分账，
+`history_["optimizer_steps"]` 为 PN 轮末全局累计成本。`epoch_callback` 仅在合成 PN 分类器轮末
 调用，使用零起始连续编号；GAN 阶段没有可部署分类器，不输出空壳分类器快照。
 `checkpoint_stage_="synthetic_pn"`、`checkpoint_epoch_count=classifier_epochs` 用于解释与磁盘预检。
 `EpochCheckpointTrainer` 支持各 PN 轮分类器权重的 CPU 回放，不包含 GAN/优化器/RNG 的训练恢复；

@@ -56,22 +56,23 @@
         "upstream_sha256": "a0975a3da5979febbd0504d5ee5b2638b4f9074a66e72d45198278933f54e6c0",
         "source_status": "official_related（作者主页 Code 页明确链接的源码归档，2026-10-05 下载锁定摘要；不复制/执行归档代码和权重；授权未明确）"
       },
-      "implementation_status": "NATIVE; experimental paper-objective 2G/3D + synthetic PN MLP; not author-demo replay or formal admission",
+      "implementation_status": "NATIVE; experimental paper-objective dense 2G/3D + synthetic PN; MLP or four independent trainable CNN score encoders and explicit NCHW pixel outputs; not author-demo replay or formal admission",
       "native_sampling_assumption": "ts（论文 §2.1/§3.2 的 U 为总体边缘 p(x)；发布 MNIST demo 实际从 U 排除已标记 P，差异单列）",
       "run_view": "ts-compatible", "calibration_applied": true,
       "calibration_hooked": true,
       "prior_semantics": "population π；论文式 (3) 正负生成分布与 Du 假样本混合权重，最终合成 PN risk 同按 π 加权；需要明确总体先验，fit/构造冲突 fail-loud",
-      "adaptation_level": "benchmark-adapted（按论文带先验权重的 minimax/anti-GAN 独立实现；与官方 demo 的非饱和 generator 和无先验 Du 配方不同，不合并成 source-faithful）",
+      "adaptation_level": "benchmark-adapted（按论文带先验权重的 minimax/anti-GAN 独立实现；与官方 demo 的非饱和 generator 和无先验 Du 配方不同；图像生成器仍为稠密像素 MLP，输出显式 NCHW，三个判别器和新建 PN 各有独立可训练 CNN；G 步冻结 D 权重/BN/dropout 而保留输入梯度；默认 identity 兼容，显式 tanh 要求训练数据已在 [-1,1]；不合并成 source-faithful）",
       "modality_backbone": {
-        "modalities": ["tabular"], "backbone": "二维特征、两个无界 MLP generator、三个 discriminator 与最终 MLP classifier",
-        "code_capability": {"native_architectures": ["mlp"], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
+        "modalities": ["tabular", "image"], "backbone": "二维特征 MLP 或显式 NCHW 双稠密像素 generator；Dp/Dn/Du/最终 PN 分别 deepcopy 外部 CNN 模板并端到端训练；原始数据留 CPU，仅批次送设备；非作者 Table 1 的全 MLP 实验",
+        "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
       },
+      "source_behavior_review_ref": "docs/research/pu_survey/genpu_source_cnn_review_20261007.md",
       "evidence": {
         "native_sampling_assumption": "GEN-PU.md；论文 §2.1 U~p(x)，官方 utils/data_wrapper.py:160-168 排除已标记正例",
         "prior_semantics": "GEN-PU.md；原论文式 (3)-(11)、Proposition 1 的 Du 混合项；官方 demo pun_demo_main.py:249-263 未加该权重",
         "adaptation_level": "GEN-PU.md；gen_pu.py 的 paper_minimax_prior_weighted；test_gen_pu.py 检查 anti-GAN 方向、Du risk 池和两阶段预算"
       },
-      "uncertainty": ["作者归档未发现明确 license，未复制或执行作者程序/预置 pickle，来源授权待复核", "论文 minimax 与官方 demo 非饱和 generator/未按先验混合 Du 存在差异，当前明确采用论文目标，不宣称官方 replay", "ts 仅 Du 真实风险池取 U∪P，Dp/Dn 真实行始终 P；生成流与最终 PN 标签不靠真值数据，默认 OS 非原生视图", "epoch callback 仅合成 PN 分类器阶段；checkpoint_epoch_count=classifier_epochs，不输出 GAN 分类器空壳；六模型可信 pickle 不等于训练恢复或正式存储规格；GAN+PN 全部 optimizer steps 已计数，正式选模候选资格待预注册，未进入旧冻结矩阵", "有限步 GAN 不保证收敛或负分布恢复；图像 tanh、超参数网格、共享 backbone、数值对照与资源验收未完成"]
+      "uncertainty": ["作者归档未发现明确 license，未复制或执行作者程序/预置 pickle，来源授权待复核", "论文 minimax 与官方 demo 非饱和 generator/未按先验混合 Du 存在差异，当前明确采用论文目标，不宣称官方 replay", "ts 仅 Du 真实风险池取 U∪P，Dp/Dn 真实行始终 P；生成流与最终 PN 标签不靠真值数据，默认 OS 非原生视图", "epoch callback 仅合成 PN 分类器阶段；checkpoint_epoch_count=classifier_epochs，不输出 GAN 分类器空壳；六模型可信 pickle 不等于训练恢复或正式存储规格；GAN+PN 全部 optimizer steps 按六网络分别计数，正式选模候选资格待预注册，未进入旧冻结矩阵", "有限步 GAN 不保证收敛或负分布恢复；原论文 Table 1/作者 demo 生成器和判别器均为稠密网络；注入 CNN 是显式工程表征适配，不是作者 CNN 或数值复现；identity/tanh、归一化、四份 CNN/BN 与 G 步模式须批准 recipe", "tanh 不自动重标定或截断；train-only 标准化可能超出 [-1,1]，这时必须保持 identity 或采用另行批准的数据坐标；模板不被修改，singleton BN 用运行统计；双像素 MLP、四份 CNN、全部优化器及保留 GAN 状态要计资源，旧二维 CPU/GPU 探针不可外推；超参数网格、公开数值与正式资源验收未完成"]
     },
     "pulns": {
       "class": "PULNSClassifier",
