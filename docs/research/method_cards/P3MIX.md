@@ -2,8 +2,16 @@
 
 Li et al., ICLR 2022，[官方报告页](https://iclr.cc/virtual/2022/poster/5904)、
 [作者 slides](https://iclr.cc/media/iclr-2022/Slides/5904.pdf)，第 10–12 页。
-完整论文 OpenReview `NH2992OYEmj` 的下载在 2026-10-05 返回 403；作者代码尚未核实。
+完整论文正确 OpenReview ID 为 `NH29920YEmj`（`2` 后是数字 `0`，不是字母 `O`）；
+[论文入口](https://openreview.net/forum?id=NH29920YEmj)由 ICLR 官方报告页链接。
+2026-10-05 记录的 `NH2992OYEmj`/403 是当时记录，不作为正确入口不可访问的证明。
+2026-10-07 正确入口及 PDF 当前返回浏览器验证页，仍未取得全文；作者代码尚未核实。
 不以其它 benchmark 的改写代替作者来源，也不将名称相似的 mixup 当完整方法。
+
+本轮也核对了作者 Lei Feng 的[论文页](https://lfeng1995.github.io/research.html)及
+[Code & Data 页](https://lfeng1995.github.io/codedata.html)：论文页收录该题名，代码页本轮未找到
+对应 P3Mix 入口。此为检索状态，不证明作者实现不存在。未绕过验证、执行未知代码或加载制品；
+搜索索引摘要不替代全文 Algorithm/附录，现有组件与未注册状态保持不变。
 
 ## 本阶段交付
 
