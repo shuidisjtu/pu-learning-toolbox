@@ -104,8 +104,8 @@ def build_extension(ledger, protocol):
                 ),
                 "frozen_protocol_sha256": digest(protocol),
                 "declared_scope": (
-                    "synthetic dense/frozen-feature and PAN injected-CNN engineering paths; "
-                    "not paper image reproduction"
+                    "synthetic dense/frozen-feature and PAN/Holistic-PU injected-CNN "
+                    "engineering paths; not paper image reproduction"
                 ),
                 "common_blockers": [
                     "versioned_execution_and_comparison_preregistration",

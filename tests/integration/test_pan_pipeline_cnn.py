@@ -1,4 +1,4 @@
-"""Native PAN/PULDA CNN public pipelines, without formal survey claims."""
+"""Preintegrated native CNN public pipelines, without formal survey claims."""
 
 import pickle
 
@@ -25,6 +25,8 @@ def small_params(method):
         return {"batch_size": 8, "hidden_dim": 4}
     if method == "robust_pu":
         return {"pretrain_epochs": 1, "episodes": 1, "batch_size": 8, "hidden_dim": 4}
+    if method == "holistic_pu":
+        return {"warmup_epochs": 3, "batch_size": 8, "hidden_dim": 4}
     if method == "split_pu":
         return {
             "teacher_epochs": 1,
@@ -44,7 +46,9 @@ def small_params(method):
     }
 
 
-@pytest.mark.parametrize("method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu"])
+@pytest.mark.parametrize(
+    "method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu", "holistic_pu"]
+)
 def test_basic_cnn_pipeline_fits_and_reports_encoder_provenance(method):
     features, labels = images()
     pipe = PUPipeline(
@@ -65,7 +69,9 @@ def test_basic_cnn_pipeline_fits_and_reports_encoder_provenance(method):
     assert report.provenance["device"] == {"requested": "cpu", "resolved": "cpu"}
 
 
-@pytest.mark.parametrize("method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu"])
+@pytest.mark.parametrize(
+    "method", ["pan", "pulda", "gradpu", "robust_pu", "split_pu", "holistic_pu"]
+)
 def test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak(method):
     from pu_toolbox import build_encoder
 

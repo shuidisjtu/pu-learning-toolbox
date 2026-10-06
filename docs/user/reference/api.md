@@ -80,7 +80,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `lagam`（`la_gam`） | `LaGAMClassifier` | deep | `support_data`（fit 必传）/ `warmup_epochs` / `num_clusters` | [LaGAM](../../research/method_cards/LaGAM.md) |
 | `pan`（`predictive_adversarial_pu`） | `PANClassifier` | deep | `encoder` / `model` / `discriminator` / `adversarial_weight` / `max_epochs` | [PAN](../../research/method_cards/PAN.md) |
 | `genpu`（`gen_pu`） | `GenPUClassifier` | deep | `class_prior` / `latent_dim` / `max_epochs` / `classifier_epochs` | [GEN-PU](../../research/method_cards/GEN-PU.md) |
-| `holistic_pu`（`holisticpu`） | `HolisticPUClassifier` | deep | `warmup_epochs` / `trend_scale` / `max_epochs` | [Holistic-PU](../../research/method_cards/Holistic-PU.md) |
+| `holistic_pu`（`holisticpu`） | `HolisticPUClassifier` | deep | `encoder` / `warmup_epochs` / `trend_scale` / `max_epochs` | [Holistic-PU](../../research/method_cards/Holistic-PU.md) |
 | `rp`（`rank_pruning`） | `RankPruningClassifier` | classic | `base_estimator` / `n_cv_folds` / `frac_pos2neg` / `min_retained` | [RP](../../research/method_cards/RP.md) |
 | `pulns`（`negative_selector_pu`） | `PULNSClassifier` | deep | `support_data`（fit 必传）/ `episodes` / `discount` / `terminal_weight` | [PULNS](../../research/method_cards/PULNS.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
@@ -451,11 +451,14 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
 ```python
 HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
                      batch_size=64, learning_rate=1e-3, trend_scale=2.0,
-                     random_state=0, device=None)
+                     encoder=None, random_state=0, device=None)
 ```
 
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`：平衡 P/U 重采样、
-预测轨迹、论文全时序 signed trend 与 variance 二分、伪标签监督训练。二维 MLP。
+预测轨迹、论文全时序 signed trend 与 variance 二分、伪标签监督训练。二维 MLP 或注入端到端 CNN。
+4-D NCHW 必须提供 `encoder`（输出 batch×feature_dim）；每次 fit deepcopy 并训练两阶段编码器，
+模板权重/BN 不共享；数据留 CPU，优化/轨迹扫描/预测分批，扫描和预测 eval 并恢复模式。
+单行尾批使用 BN 运行统计而不丢行。继续同一模型/Adam 是显式适配，非补充 Algorithm 2 的重初始化。
 固定预热不是论文 LZO 自动停止；`warmup_epochs>=2`；外部先验不使用，sample_weight / TS 请求拒绝。
 `prediction_trajectory_` / `pseudo_labels_` / `pseudo_label_indices_` / `breakpoint_` 可对账；
 `optimizer_steps_` 含两阶段，callback 每轮结束以连续零起始编号调用；

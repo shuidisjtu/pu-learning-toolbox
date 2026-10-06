@@ -34,15 +34,16 @@
       "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Beyond Myopia: Learning from Positive and Unlabeled Data through Holistic Predictive Trends", "authors": "Xinrui Wang, Wenhai Wan, Chuanxing Geng, Shaoyuan Li, Songcan Chen", "venue": "NeurIPS", "year": 2023},
       "code_version": {"upstream_url": "https://github.com/wxr99/HolisticPU", "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3", "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；license 待复核）"},
-      "implementation_status": "NATIVE; experimental dense balanced resampling + paper pairwise trend/variance partition + pseudo-PN fit; fixed warmup, not LZO; both-stage inference checkpoints and peak disk epoch count",
+      "implementation_status": "NATIVE; experimental MLP or injected trainable CNN balanced resampling + paper pairwise trend/variance partition + pseudo-PN fit; fixed warmup, not LZO; both-stage inference checkpoints and peak disk epoch count",
       "native_sampling_assumption": "os（标准 CIFAR 分支 dataset/cifar.py:74-93 的 p_u_split 用 setdiff1d 排除已标记 P；非 lt_p_u_split 的独立长尾抽样分支）",
       "run_view": "os-compatible", "calibration_applied": false, "calibration_hooked": false,
       "prior_semantics": "无需外部先验；趋势伪标签估计 U 内正类比例仅为诊断；class_prior 若传入只校验，不影响训练",
-      "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；发布代码简化分数/Jenks SSE/渐进目标与强弱增强未照搬；固定预算替代 LZO）",
-      "modality_backbone": {"modalities": ["tabular"], "backbone": "二维 MLP；平衡 P/U 重采样，轨迹伪标签后继续分类器",
-        "code_capability": {"native_architectures": ["mlp"], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}},
+      "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；二维 MLP 或注入 CNN 两阶段端到端训练；发布代码简化分数/Jenks SSE/渐进目标与强弱增强未照搬；固定预算替代 LZO；继续同模型而非补充 Algorithm 2 的重初始化）",
+      "modality_backbone": {"modalities": ["tabular", "image"], "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后继续同一分类器/Adam；原始数据留 CPU",
+        "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}},
+      "source_behavior_review_ref": "docs/research/pu_survey/holistic_source_cnn_review_20261007.md",
       "evidence": {"native_sampling_assumption": "Holistic-PU.md；固定 commit dataset/cifar.py:86 的 setdiff1d，限标准分支", "prior_semantics": "Holistic-PU.md；论文 §2.4 按趋势划分，无外部先验；当前 estimated_unlabeled_prior_ 只作诊断", "adaptation_level": "Holistic-PU.md；train.py 尾部邻差评分、jenkspy 与 utils/misc.py:101-105；公式及独立暴力分割测试 test_holistic_pu.py"},
-      "uncertainty": ["未实现 LZO 自动停止，只显式 fixed_warmup_budget_not_LZO；共享候选须预注册停止与预算", "论文 signed 全时序分数与发布代码 log(1+delta+delta²/2) 邻差不等价；式8 variance 与 jenkspy SSE 也不等价；两 variant 的数学函数分别命名，classifier 只用论文路径", "发布 train_phase1 在 breakpoint>0 时调用 three_sigma，实际硬过滤 x<0.2/9 而不是三倍标准差；当前不照搬该未预注册常数", "默认标准 OS；没有可安全同形替换的 TS risk，显式 ts fail-loud；lt_p_u_split 源分支和 SAR 不在本适配声明内", "两阶段逐 epoch 分类器权重支持推断回放，不支持训练恢复；history 标注 warmup/pseudo_pn，正式选模阶段资格与预算尚待预注册；图像增强、官方 fine-tune/EMA/LZO、公开数值与资源验收均未完成；未进旧冻结协议"]
+      "uncertainty": ["未实现 LZO 自动停止，只显式 fixed_warmup_budget_not_LZO；锁定作者 main.py:284 和 train.py:213 也按固定 warming_steps 运行，validation 调用被注释；论文/代码停止不一致，不能据源码宣称论文 LZO；共享候选须预注册停止与预算", "论文 signed 全时序分数与发布代码 log(1+delta+delta²/2) 邻差不等价；式8 variance 与 jenkspy SSE 也不等价；两 variant 的数学函数分别命名，classifier 只用论文路径", "发布 train_phase1 在 breakpoint>0 时调用 three_sigma，实际硬过滤 x<0.2/9 而不是三倍标准差；当前不照搬该未预注册常数", "默认标准 OS；没有可安全同形替换的 TS risk，显式 ts fail-loud；lt_p_u_split 源分支和 SAR 不在本适配声明内", "两阶段逐 epoch 分类器权重支持推断回放，不支持训练恢复；history 标注 warmup/pseudo_pn，正式选模阶段资格与预算尚待预注册；图像增强、官方 fine-tune/EMA/LZO、公开数值与资源验收均未完成；未进旧冻结协议", "补充材料 Algorithm 2 页22 要求后段重初始化，锁定 main.py:329-335 也删除预热模型并新建后段模型；当前继续同模型/Adam 是独立工程适配，不宣称完整论文训练程序；singleton BN 用运行统计，外部 encoder 模板不被修改"]
     },
     "genpu": {
       "class": "GenPUClassifier",

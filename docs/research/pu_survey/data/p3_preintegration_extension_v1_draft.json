@@ -3,7 +3,7 @@
   "review_status": "pending_method_owner_review",
   "purpose": "Technical handoff only; no execution authorization or human signatures.",
   "frozen_protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
-  "declared_scope": "synthetic dense/frozen-feature and PAN injected-CNN engineering paths; not paper image reproduction",
+  "declared_scope": "synthetic dense/frozen-feature and PAN/Holistic-PU injected-CNN engineering paths; not paper image reproduction",
   "common_blockers": [
     "versioned_execution_and_comparison_preregistration",
     "approved_budget_and_PA_OA_selection_spec",
@@ -207,7 +207,7 @@
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无需外部先验；趋势伪标签估计 U 内正类比例仅为诊断；class_prior 若传入只校验，不影响训练",
-        "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；发布代码简化分数/Jenks SSE/渐进目标与强弱增强未照搬；固定预算替代 LZO）",
+        "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；二维 MLP 或注入 CNN 两阶段端到端训练；发布代码简化分数/Jenks SSE/渐进目标与强弱增强未照搬；固定预算替代 LZO；继续同模型而非补充 Algorithm 2 的重初始化）",
         "code_version": {
           "upstream_url": "https://github.com/wxr99/HolisticPU",
           "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3",
@@ -215,18 +215,21 @@
         },
         "modality_backbone": {
           "modalities": [
-            "tabular"
+            "tabular",
+            "image"
           ],
-          "backbone": "二维 MLP；平衡 P/U 重采样，轨迹伪标签后继续分类器",
+          "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后继续同一分类器/Adam；原始数据留 CPU",
           "code_capability": {
             "native_architectures": [
+              "cnn",
               "mlp"
             ],
             "input_ndims": [
-              2
+              2,
+              4
             ],
-            "encoder_parameter": null,
-            "trains_encoder": false
+            "encoder_parameter": "encoder",
+            "trains_encoder": true
           }
         },
         "calibration_hooked": false

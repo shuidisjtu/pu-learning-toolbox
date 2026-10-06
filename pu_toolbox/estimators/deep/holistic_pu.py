@@ -1,11 +1,13 @@
 # ruff: noqa: N803, N806
-"""Auditable paper-objective Holistic-PU dense adapter and trend components.
+"""Auditable paper-objective Holistic-PU MLP/CNN adapter and trend components.
 
 Paper equations (4),(5),(8) differ from the released simplified score and
 jenkspy SSE objective. Variant names are explicit to prevent silent conflation.
 """
 
 from __future__ import annotations
+
+import copy
 
 import numpy as np
 
@@ -23,6 +25,7 @@ from ...core.tags import (
 )
 from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
+from ._validation import validate_encoder_features
 
 
 def holistic_trend_scores(probabilities, *, variant="paper_pairwise", scale=2.0):
@@ -112,10 +115,10 @@ class HolisticPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
     checkpoint_stages = ("warmup", "pseudo_pn")
 
     @property
@@ -137,6 +140,7 @@ class HolisticPUClassifier(BasePUClassifier):
         batch_size=64,
         learning_rate=1e-3,
         trend_scale=2.0,
+        encoder=None,
         random_state=0,
         device=None,
     ):
@@ -147,6 +151,7 @@ class HolisticPUClassifier(BasePUClassifier):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.trend_scale = trend_scale
+        self.encoder = encoder
         self.random_state = random_state
         self.device = device
 
@@ -173,8 +178,14 @@ class HolisticPUClassifier(BasePUClassifier):
         if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
             raise ValueError("class_prior, if supplied, must be in (0,1); it is not used")
         X, y_pu = validate_pu_X_y(
-            X, y_pu, accept_sparse=False, estimator_name="HolisticPUClassifier"
+            X, y_pu, accept_sparse=False, allow_nd=True, estimator_name="HolisticPUClassifier"
         )
+        if X.ndim not in (2, 4):
+            raise ValueError("Holistic-PU supports 2-D features or 4-D NCHW images")
+        if X.ndim == 4 and self.encoder is None:
+            raise ValueError("Holistic-PU 4-D images require an explicit encoder; no flattening")
+        if self.encoder is not None and not isinstance(self.encoder, nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X must remain finite after float32 conversion")
@@ -185,13 +196,28 @@ class HolisticPUClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         self.device_ = resolve_device(self.device)
+        self.encoder_ = None
+        width = X.shape[1]
+        if self.encoder is not None:
+            # Each fit/fold owns its encoder weights and BN buffers. Shape probing
+            # must not update the template, running statistics or dropout state.
+            self.encoder_ = copy.deepcopy(self.encoder).to(device=self.device_, dtype=torch.float32)
+            self.encoder_.requires_grad_(True).eval()
+            with torch.no_grad():
+                features = self.encoder_(torch.as_tensor(X[:1], device=self.device_))
+            width = validate_encoder_features(features, encoder_param_name="encoder")
+            if features.shape[0] != 1:
+                raise ValueError("encoder must preserve the input batch dimension")
         self.model_ = nn.Sequential(
-            nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
+            nn.Linear(width, self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
         ).to(self.device_)
+        if self.encoder_ is not None:
+            self.model_ = nn.Sequential(self.encoder_, self.model_)
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         data = torch.as_tensor(X)
         self.classes_ = np.array([0, 1])
         self.n_features_in_, self._X_shape_ = X.shape[1], X.shape
+        self.input_shape_ = tuple(X.shape[1:])
         self._class_prior = None
         self.training_view_, self.calibration_applied_ = "os", False
         self.n_positive_, self.n_unlabeled_ = len(positive), len(unlabeled)
@@ -224,8 +250,8 @@ class HolisticPUClassifier(BasePUClassifier):
                 u = order[start : start + self.batch_size]
                 p = rng.choice(positive, len(u), replace=True)
                 loss = (
-                    functional.softplus(-self.model_(data[p].to(self.device_))).mean()
-                    + functional.softplus(self.model_(data[u].to(self.device_))).mean()
+                    functional.softplus(-self._logits(data[p].to(self.device_))).mean()
+                    + functional.softplus(self._logits(data[u].to(self.device_))).mean()
                 )
                 update(loss)
                 losses.append(float(loss.detach().cpu()))
@@ -252,7 +278,7 @@ class HolisticPUClassifier(BasePUClassifier):
             order = rng.permutation(len(X))
             for start in range(0, len(order), self.batch_size):
                 indices = order[start : start + self.batch_size]
-                logits = self.model_(data[indices].to(self.device_)).reshape(-1)
+                logits = self._logits(data[indices].to(self.device_))
                 loss = functional.binary_cross_entropy_with_logits(
                     logits, targets[indices].to(self.device_)
                 )
@@ -277,26 +303,65 @@ class HolisticPUClassifier(BasePUClassifier):
         if callback is not None:
             callback(epoch, self)
 
+    def _logits(self, batch):
+        """One finite logit per row; singleton tails use running BN statistics.
+
+        Keep every training row instead of dropping one-row remainder batches.
+        BN affine parameters still receive gradients; restore modes on failure.
+        """
+        import torch
+
+        single_row_bn = (
+            [
+                layer
+                for layer in self.model_.modules()
+                if isinstance(layer, torch.nn.modules.batchnorm._BatchNorm) and layer.training
+            ]
+            if len(batch) == 1
+            else []
+        )
+        try:
+            for layer in single_row_bn:
+                layer.eval()
+            logits = self.model_(batch)
+        finally:
+            for layer in single_row_bn:
+                layer.train()
+        if not torch.is_tensor(logits) or logits.shape != (len(batch), 1):
+            raise ValueError("Holistic-PU model must return one logit per input row")
+        if not torch.isfinite(logits).all():
+            raise ValueError("Holistic-PU logits became non-finite")
+        return logits[:, 0]
+
     def _scores(self, X):
         import torch
 
-        with torch.no_grad():
-            return np.concatenate(
-                [
-                    self.model_(torch.as_tensor(X[i : i + self.batch_size], device=self.device_))
-                    .reshape(-1)
-                    .cpu()
-                    .numpy()
-                    for i in range(0, len(X), self.batch_size)
-                ]
-            )
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        modes = [(layer, layer.training) for layer in self.model_.modules()]
+        self.model_.eval()
+        try:
+            with torch.no_grad():
+                return np.concatenate(
+                    [
+                        self._logits(
+                            torch.as_tensor(X[i : i + self.batch_size], device=self.device_)
+                        )
+                        .cpu()
+                        .numpy()
+                        for i in range(0, len(X), self.batch_size)
+                    ]
+                )
+        finally:
+            for layer, training in modes:
+                layer.training = training
 
     def _decision_function(self, X):
         from sklearn.utils.validation import check_array
 
-        X = check_array(X, dtype=np.float32)
-        if X.shape[1] != self.n_features_in_:
-            raise ValueError("Holistic-PU feature count differs from training")
+        X = check_array(X, dtype=np.float32, allow_nd=True, ensure_min_samples=0)
+        if tuple(X.shape[1:]) != self.input_shape_:
+            raise ValueError("Holistic-PU input shape differs from training")
         return self._scores(X)
 
     def _predict(self, X):

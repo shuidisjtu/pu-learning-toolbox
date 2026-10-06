@@ -63,6 +63,13 @@ PYTHONPATH=. python scripts/check_survey_recipe_registry.py \
 
 ## 4. 紧接着的交接
 
+2026-10-07 继续缺失算法图像路径：[Holistic-PU 来源/端到端 CNN 核查](holistic_source_cnn_review_20261007.md)。
+已补编码器两阶段训练、分批 CPU→设备、模板/BN/fold 隔离及阶段快照回放，台账和扩展草稿同步。
+新增来源核查明确论文 LZO 与锁定代码固定 warming_steps 的差异，且补充 Algorithm 2/作者代码
+均要求后段新建模型；当前继续同模型/Adam 保留为显式适配，LZO/重初始化变体仍待实现。
+下一独立项是两项来源支持的训练语义补齐；P3MIX 全文 API 仍 HTTP403，不注册空壳。
+不改冻结结果，不以 CNN 技术接线清空预算/公开数值/负责人准入阻断。
+
 2026-10-07 第2项继续：[阶段/选模/预算准备](p3_stage_budget_review_20261007.md)
 已实现新方法快照阶段、round/local epoch、累计更新数留痕，选中恢复与回收保留元数据；
 五方法规格由 AST/来源生成并与台账同步，全部正式候选/阶段资格/资源决定仍为 null。
