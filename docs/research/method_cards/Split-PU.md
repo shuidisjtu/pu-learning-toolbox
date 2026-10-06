@@ -57,6 +57,10 @@ affine/编码器仍有梯度，模式随后恢复；不复制/丢弃行，不改
 
 ## 准入证据补全（2026-10-05）
 
+2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+teacher/splitter/student 快照保留局部 epoch、student round 与累计更新数，
+实际 splitter 早停后不假造快照；恢复/回收不丢阶段。正式阶段及轮次资格仍待批准。
+
 P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)核 Table1 Ours
 n_P500/1000/3000 accuracy89.18±0.12/90.51±0.10/92.51±0.10，5次重复，全部 pending。
 原论文PDF6 teacher50轮与锁定 main.py:14 teacher20轮不同，无日志确定哪一配方产出表格；

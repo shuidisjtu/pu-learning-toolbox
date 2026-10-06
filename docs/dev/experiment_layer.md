@@ -122,6 +122,13 @@ clean 视图（PN oracle）运行里，`pu_val_view` 携带的是真实标签，
 **为什么**：位置语义与 estimator 的 epoch 标签解耦（后者可能 0 基或任意索引）——轨迹内以位置索引、
 跨层只认位置，避免来源标签歧义。
 
+**后续方法阶段留痕（2026-10-07）**：声明 `checkpoint_stages` 的新方法使用推断引用
+schema `1.1`，额外记录 `training_context`（stage、1-based stage_epoch、可空的1-based
+round_index、累计 optimizer_steps）。选中引用、恢复的 predictor 与回收后的记录均保留
+上下文；它不改变上面的全局 position 或 PA/OA 选择范围，不证明阶段已经批准。
+未声明阶段的历史 pilot 仍输出 `1.0`，旧记录不回填。详见
+[阶段/预算复核](../research/pu_survey/p3_stage_budget_review_20261007.md)。
+
 ## 2. 边界与已知局限
 
 - **正式资格**：PA 正式准则（proxy accuracy，R9）与逐 epoch checkpoint 独立恢复已实现；

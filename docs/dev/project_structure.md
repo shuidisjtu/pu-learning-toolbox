@@ -328,6 +328,7 @@ tests/
       test_profile_survey_cnn_storage.py # CNN 快照体积、恢复、来源身份和输入边界
       test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
       test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
+      test_prepare_p3_selection_budget_spec.py # 阶段/预算草稿再生成、类型严格一致与审批篡改拒绝
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -443,6 +444,7 @@ tests/
       test_unimplemented_calibration_routing.py # 拒绝接口不等于 TS 校准能力
       test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
       test_checkpoint_prediction_batching.py # 快照推理分批登记/恢复、旧引用回退与非法元数据拒绝
+      test_checkpoint_training_context.py # 新方法阶段/轮次/更新计数、恢复与回收留痕
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -774,6 +776,7 @@ scripts/
   profile_survey_cnn_storage.py           # 五方法 CNN 存储探针与多 seed 恢复；非正式预算
   check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
   check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决
+  prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
 ```
 
 ## 7. CI/CD（`.github/`）

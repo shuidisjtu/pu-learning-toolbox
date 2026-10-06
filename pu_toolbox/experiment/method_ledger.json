@@ -31,6 +31,7 @@
   "methods": {
     "holistic_pu": {
       "class": "HolisticPUClassifier",
+      "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Beyond Myopia: Learning from Positive and Unlabeled Data through Holistic Predictive Trends", "authors": "Xinrui Wang, Wenhai Wan, Chuanxing Geng, Shaoyuan Li, Songcan Chen", "venue": "NeurIPS", "year": 2023},
       "code_version": {"upstream_url": "https://github.com/wxr99/HolisticPU", "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3", "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；license 待复核）"},
       "implementation_status": "NATIVE; experimental dense balanced resampling + paper pairwise trend/variance partition + pseudo-PN fit; fixed warmup, not LZO; both-stage inference checkpoints and peak disk epoch count",
@@ -45,6 +46,7 @@
     },
     "genpu": {
       "class": "GenPUClassifier",
+      "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Generative Adversarial Positive-Unlabelled Learning", "authors": "Ming Hou, Brahim Chaib-draa, Chao Li, Qibin Zhao", "venue": "IJCAI", "year": 2018},
       "code_version": {
         "upstream_url": "https://qibinzhao.github.io/assets/publications/IJCAI_2018_HouMing/gen_pu_demo.zip",
@@ -477,6 +479,7 @@
     },
     "pulda": {
       "class": "PULDAClassifier",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
@@ -515,6 +518,7 @@
     },
     "puet": {
       "class": "PUExtraTreesClassifier",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
@@ -553,6 +557,7 @@
     },
     "gradpu": {
       "class": "GradPUClassifier",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
@@ -664,6 +669,7 @@
     },
     "robust_pu": {
       "class": "RobustPUClassifier",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
@@ -708,6 +714,7 @@
     },
     "split_pu": {
       "class": "SplitPUClassifier",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {

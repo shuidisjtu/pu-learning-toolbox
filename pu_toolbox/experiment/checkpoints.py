@@ -23,10 +23,57 @@ from .protocols import Trainer, route_training_view
 from .tracking import EpochRecord, RunTrajectory
 
 
+def _validate_training_context(context):
+    """Check optional provenance, not stage eligibility for PA/OA selection."""
+    if context is None:
+        return
+    if not isinstance(context, dict) or set(context) != {
+        "stage",
+        "stage_epoch",
+        "round_index",
+        "optimizer_steps",
+    }:
+        raise ValueError("checkpoint training_context must contain all four provenance fields")
+    stage = context["stage"]
+    if not isinstance(stage, str) or not stage or not stage.isidentifier():
+        raise ValueError("checkpoint training stage must be a nonempty identifier")
+    for name in ("stage_epoch", "round_index", "optimizer_steps"):
+        value = context[name]
+        if name == "round_index" and value is None:
+            continue
+        minimum = 0 if name == "optimizer_steps" else 1
+        if type(value) is not int or value < minimum:
+            raise ValueError(f"checkpoint {name} must be an integer >= {minimum}")
+
+
+def _training_context(fitted):
+    """Only explicitly staged estimators opt in; legacy pilot references stay unchanged."""
+    stages = getattr(fitted, "checkpoint_stages", None)
+    if stages is None:
+        return None
+    if (
+        not isinstance(stages, tuple)
+        or not stages
+        or any(not isinstance(stage, str) or not stage.isidentifier() for stage in stages)
+        or len(set(stages)) != len(stages)
+    ):
+        raise ValueError("checkpoint_stages must declare unique stage identifiers")
+    context = {
+        "stage": getattr(fitted, "checkpoint_stage_", None),
+        "stage_epoch": getattr(fitted, "checkpoint_stage_epoch_", None),
+        "round_index": getattr(fitted, "checkpoint_round_", None),
+        "optimizer_steps": getattr(fitted, "optimizer_steps_", None),
+    }
+    _validate_training_context(context)
+    if context["stage"] not in stages:
+        raise ValueError("checkpoint stage was not declared by the estimator")
+    return context
+
+
 class SnapshotPredictor:
     """Inference-only snapshot with the original raw-score prediction cutoff."""
 
-    def __init__(self, network, *, device, cutoff=0.0, batch_size=256):
+    def __init__(self, network, *, device, cutoff=0.0, batch_size=256, training_context=None):
         if type(batch_size) is not int or batch_size < 1:
             raise ValueError("prediction batch_size must be a positive integer")
         self.model_ = network.to(device).eval()
@@ -35,6 +82,8 @@ class SnapshotPredictor:
         self.batch_size = batch_size
         self.selection_threshold = None
         self.selection_metrics = {}
+        _validate_training_context(training_context)
+        self.training_context = copy.deepcopy(training_context)
 
     def decision_function(self, X):
         import torch
@@ -92,9 +141,16 @@ class EpochCheckpoint:
     reclaimed: bool = False
     # Missing metadata in old references keeps the historical 256-row replay.
     prediction_batch_size: int = 256
+    # Opt-in provenance for new methods; never backfilled into old artifacts.
+    training_context: dict | None = None
+
+    def __post_init__(self):
+        _validate_training_context(self.training_context)
+        self.training_context = copy.deepcopy(self.training_context)
 
     def reference(self):
-        return {
+        _validate_training_context(self.training_context)
+        reference = {
             "schema_version": "1.0",
             "format": "torch_weights_only",
             "epoch_position": self.epoch_position,
@@ -110,6 +166,10 @@ class EpochCheckpoint:
             "training_resume_supported": False,
             "validation_metrics": copy.deepcopy(self.validation_metrics),
         }
+        if self.training_context is not None:
+            reference["schema_version"] = "1.1"
+            reference["training_context"] = copy.deepcopy(self.training_context)
+        return reference
 
     def restore(self, *, device=None):
         """Verify bytes before loading tensors; reject missing/corrupt weights."""
@@ -124,6 +184,7 @@ class EpochCheckpoint:
             device=device or self.device,
             cutoff=self.cutoff,
             batch_size=self.prediction_batch_size,
+            training_context=self.training_context,
         )
 
 
@@ -148,6 +209,13 @@ def load_epoch_checkpoint(reference, template, *, device=None):
     """
     if reference.get("format") != "torch_weights_only" or not reference.get("path"):
         raise ValueError("checkpoint reference must identify persisted weights-only files")
+    context = reference.get("training_context")
+    if (context is not None and reference.get("schema_version") != "1.1") or (
+        reference.get("schema_version") == "1.1" and context is None
+    ):
+        raise ValueError(
+            "checkpoint schema 1.1 requires training_context; legacy refs must omit it"
+        )
     checkpoint = EpochCheckpoint(
         reference["epoch_position"],
         reference["epoch_label"],
@@ -159,6 +227,7 @@ def load_epoch_checkpoint(reference, template, *, device=None):
         template,
         persistent=True,
         prediction_batch_size=reference.get("prediction_batch_size", 256),
+        training_context=context,
     )
     return checkpoint.restore(device=device)
 
@@ -210,6 +279,11 @@ class EpochCheckpointTrainer(Trainer):
             if epochs and epoch <= epochs[-1].epoch:
                 raise ValueError("checkpoint epoch labels must be strictly increasing")
             history = getattr(fitted, "history_", {})
+            context = _training_context(fitted)
+            if context is not None and checkpoints:
+                previous = checkpoints[-1].training_context
+                if previous is None or context["optimizer_steps"] < previous["optimizer_steps"]:
+                    raise ValueError("checkpoint cumulative optimizer steps must not decrease")
             metrics = {
                 name: float(values[-1])
                 for name, values in history.items()
@@ -265,6 +339,7 @@ class EpochCheckpointTrainer(Trainer):
                         prediction_batch_size=getattr(
                             fitted, "checkpoint_prediction_batch_size", 256
                         ),
+                        training_context=context,
                     )
                 )
 

@@ -181,6 +181,7 @@ class SplitPUClassifier(BasePUClassifier):
     input_ndims = frozenset({2, 4})
     encoder_parameter = "encoder"
     trains_encoder = True
+    checkpoint_stages = ("teacher", "splitter", "student")
 
     @property
     def checkpoint_prediction_batch_size(self):
@@ -377,7 +378,7 @@ class SplitPUClassifier(BasePUClassifier):
         self.encoder_ = teacher[0] if encoder_template is not None else None
         self.model_ = teacher
         optimizer = torch.optim.Adam(teacher.parameters(), lr=self.learning_rate)
-        for _ in range(self.teacher_epochs):
+        for teacher_epoch in range(self.teacher_epochs):
             teacher.train()
             p_order, u_order = rng.permutation(p_idx), rng.permutation(u_idx)
             steps = max(
@@ -408,6 +409,9 @@ class SplitPUClassifier(BasePUClassifier):
                 risks.append(info["nnpu_risk"])
             self.history_["teacher_risk"].append(float(np.mean(risks)))
             self._is_fitted = True
+            self.checkpoint_stage_ = "teacher"
+            self.checkpoint_stage_epoch_ = teacher_epoch + 1
+            self.checkpoint_round_ = None
             if epoch_callback is not None:
                 epoch_callback(epoch, self)
             epoch += 1
@@ -426,7 +430,7 @@ class SplitPUClassifier(BasePUClassifier):
         optimizer = torch.optim.SGD(splitter.parameters(), lr=self.learning_rate)
         # The teacher is frozen, so its targets are computed once on CPU.
         target = (_batched_score(self.teacher_, data, self.batch_size, device) > 0).float()
-        for _ in range(self.split_epochs):
+        for split_epoch in range(self.split_epochs):
             splitter.train()
             for indices in _batches(rng, len(X), self.batch_size):
                 loss = F.binary_cross_entropy_with_logits(
@@ -441,6 +445,9 @@ class SplitPUClassifier(BasePUClassifier):
             agreement = float(((split_scores > 0).float() == target[u_idx]).float().mean())
             self.history_["split_agreement"].append(agreement)
             self._is_fitted = True
+            self.checkpoint_stage_ = "splitter"
+            self.checkpoint_stage_epoch_ = split_epoch + 1
+            self.checkpoint_round_ = None
             if epoch_callback is not None:
                 epoch_callback(epoch, self)
             epoch += 1
@@ -476,7 +483,7 @@ class SplitPUClassifier(BasePUClassifier):
             self.history_["round_weights"].append(
                 {"hard": hard_weight, "feature": feature_weight, "similarity": similarity_weight}
             )
-            for _ in range(self.student_epochs):
+            for student_epoch in range(self.student_epochs):
                 student.train()
                 losses = []
                 for p, easy, hard in _three_group_batches(
@@ -526,6 +533,9 @@ class SplitPUClassifier(BasePUClassifier):
                     losses.append(float(loss.detach()))
                 self.history_["student_loss"].append(float(np.mean(losses)))
                 self._is_fitted = True
+                self.checkpoint_stage_ = "student"
+                self.checkpoint_stage_epoch_ = student_epoch + 1
+                self.checkpoint_round_ = round_index + 1
                 if epoch_callback is not None:
                     epoch_callback(epoch, self)
                 epoch += 1

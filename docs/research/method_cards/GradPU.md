@@ -62,6 +62,10 @@ P/U 数据留 CPU、优化批次上卡；预测分批 eval 并恢复模式，完
 
 ## 验证状态与后续门禁
 
+2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+pu 阶段快照保留局部位置和累计 optimizer 更新数；梯度插值/二阶梯度与 TS 风险逻辑不改。
+新引用不批准阶段或候选，不构成论文图像配方复现。
+
 P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)核 Table1 GradPU
 CIFAR n_P1000/3000 为90.1±0.2/91.9±0.1，不是相邻 Sup. 列90.5/92.9。
 三 runs 的 deviation 暂不强定 SD/SEM，validation标签/选模尚待补充材料；全部 pending。

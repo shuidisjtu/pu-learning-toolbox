@@ -49,6 +49,10 @@ W_N(S)=W_U(S)-W_P(S).
 
 ## 准入证据补全（2026-10-05）
 
+2026-10-07 [阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)另列
+CPU 单次森林 fit、100棵默认树与独立模型存储，不伪造神经 epoch/provenance 或 GPU 验收。
+正式预算、表示、GPU 条款豁免仍待决定。
+
 P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)登记原表 Table2
 nonnegative/quadratic CIFAR accuracy79.74(0.37)，5次拟合；不是邻列 logistic79.86。
 原图3072维/固定P1000/全体训练U与共享冻结特征、c扫描、PA/OA不同，数字保持 pending。

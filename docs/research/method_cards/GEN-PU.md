@@ -1,5 +1,9 @@
 # Method Card: GEN-PU
 
+2026-10-07 补[阶段技术留痕](../pu_survey/p3_stage_budget_review_20261007.md)：
+仅 synthetic_pn 分类器快照增加局部 epoch 与累计全部 GAN+PN optimizer 更新数，
+不把 GAN 阶段登记为空分类器候选，不改变 Du 校准范围或正式准入状态。
+
 Hou et al., IJCAI 2018，DOI 10.24963/ijcai.2018/312；[原论文](https://www.ijcai.org/proceedings/2018/0312.pdf)
 式 (3)–(11)。两生成器、三判别器，之后训练合成 PN 分类器；负生成器与 Dn 的目标是同向分离，不能误写成标准 GAN。
 

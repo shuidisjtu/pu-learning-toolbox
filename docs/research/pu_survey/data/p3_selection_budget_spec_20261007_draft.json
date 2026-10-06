@@ -1,0 +1,569 @@
+{
+  "schema_version": "survey-p3-selection-budget-spec-draft-1",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "scope": "Current engineering facts only, not executable recipes or formal stage admission.",
+  "evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
+  "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
+  "bound_files_sha256": {
+    "uv.lock": "7a7adf38905461b4fe0eeb73e613545cbde499a829155b7a793369a5bf22e0ed",
+    "pu_toolbox/experiment/survey_protocol_v1.json": "e0263cc4410a37f4c8c29f84e248f988a7dd9878af124b13a9be78e07376a855",
+    "pu_toolbox/experiment/survey_comparison_v1.json": "3465b47941c37da31b112e9a11a99438008c4bef836ecbfa039d3e7777d3ed37",
+    "pu_toolbox/experiment/survey_comparison_v2.json": "f44c782dbc3ddbff76984af2e93f73fb55e05697aae89bf75d4b774e47c69743",
+    "pu_toolbox/experiment/survey_comparison_v3.json": "5e3eb24a2bf4de0905dbec5d4658301696155002debf2c68a8e5a14d89b20436",
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "77bbccd044f5de431a5e404f07843a2838cd639d585d1068ec9e69694f6c8457"
+  },
+  "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
+  "storage_contract": {
+    "weights_only_inference_snapshots": true,
+    "reclaim_reduces_training_peak": false,
+    "prior_probe_numbers_are_formal_upper_bounds": false,
+    "neural_peak_basis": "bytes_per_component * actual_snapshot_count * components * candidates * retained_attempts",
+    "peak_before_training_uses_declared_snapshot_bound": true,
+    "tree_storage_requires_separate_measured_profile": true
+  },
+  "methods": {
+    "pulda": {
+      "class": "PULDAClassifier",
+      "implementation_ref": "pu_toolbox/estimators/risk/pulda.py",
+      "implementation_sha256": "a51f0be19ee64f2cb4c240a2580805346e7c0f3bea7270cfc54dd32a02ff4110",
+      "fit_named_parameters": [
+        "X",
+        "y_pu",
+        "class_prior",
+        "sample_weight",
+        "epoch_callback",
+        "os_or_ts"
+      ],
+      "constructor_defaults": {
+        "hidden_dim": 64,
+        "depth": 2,
+        "warmup_epochs": 60,
+        "pu_epochs": 60,
+        "positive_batch_size": 16,
+        "unlabeled_batch_size": 128,
+        "warmup_learning_rate": 0.0001,
+        "learning_rate": 0.001,
+        "warmup_weight_decay": 0.0005,
+        "weight_decay": 0.0001,
+        "temperature": 3.5,
+        "unlabeled_ema": 0.85,
+        "margin_ema": 0.5,
+        "margin": 0.6,
+        "mixup_weight": 4.2,
+        "mixup_alpha": 11.0,
+        "encoder": null,
+        "random_state": 0,
+        "device": null
+      },
+      "representation_fact": {
+        "modalities": [
+          "tabular",
+          "image"
+        ],
+        "backbone": "dense MLP64 or injected trainable CNN + same MLP head",
+        "code_capability": {
+          "native_architectures": [
+            "mlp",
+            "cnn"
+          ],
+          "input_ndims": [
+            2,
+            4
+          ],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
+        }
+      },
+      "calibration_fact": {
+        "scope": "LDA_and_two_way_margin_with_EMA_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "budget_fact": {
+        "default_snapshot_count": 120,
+        "snapshot_bound_expression": "warmup_epochs + pu_epochs",
+        "bound_only_due_to_early_stop": false,
+        "trees_per_default_fit": null,
+        "optimizer_steps_expression": "(warmup_epochs + pu_epochs) * ceil(n_native_U / unlabeled_batch_size)",
+        "counter_source": "optimizer_steps_",
+        "tree_fit_is_neural_epoch": false,
+        "defaults_are_approved_budget": false
+      },
+      "checkpoint_fact": {
+        "stages": [
+          "warmup",
+          "pu_mixup"
+        ],
+        "reference_schema": "1.1",
+        "provenance_fields": [
+          "stage",
+          "stage_epoch",
+          "round_index",
+          "optimizer_steps"
+        ],
+        "single_final_fit_without_epoch_callback": false,
+        "training_resume_supported": false
+      },
+      "current_technical_selection": {
+        "scope": "all_recorded_inference_snapshots",
+        "PA_role": "pu_val",
+        "OA_role": "clean_val",
+        "selection_changes_training": false,
+        "current_behavior_approves_formal_stage_eligibility": false
+      },
+      "formal_decisions": {
+        "candidate_protocol_ref": null,
+        "candidate_pool": null,
+        "approved_budget": null,
+        "approved_storage_bytes": null,
+        "eligible_stages_PA": null,
+        "eligible_stages_OA": null,
+        "eligible_student_rounds": null,
+        "threshold_policy_ref": null,
+        "approved_representation_ref": null,
+        "GPU_exemption_approved": false,
+        "admitted": false
+      },
+      "owner_questions": [
+        "warmup_vs_PU_stage_eligibility",
+        "two_stage_budget_and_cosine_horizon"
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "puet": {
+      "class": "PUExtraTreesClassifier",
+      "implementation_ref": "pu_toolbox/estimators/risk/puet.py",
+      "implementation_sha256": "f506a6922a055221cb03e4c8316783351089aae8db95d5aa83b858bb81b876f0",
+      "fit_named_parameters": [
+        "X",
+        "y_pu",
+        "class_prior",
+        "sample_weight",
+        "os_or_ts"
+      ],
+      "constructor_defaults": {
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "max_candidates": 1,
+        "bootstrap": false,
+        "random_state": null
+      },
+      "representation_fact": {
+        "modalities": [
+          "tabular"
+        ],
+        "backbone": "randomized Extra Trees, no neural backbone, CPU only",
+        "code_capability": {
+          "native_architectures": [],
+          "input_ndims": [
+            2
+          ],
+          "encoder_parameter": null,
+          "trains_encoder": false
+        }
+      },
+      "calibration_fact": {
+        "scope": "node_U_risk_mass_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "budget_fact": {
+        "default_snapshot_count": null,
+        "snapshot_bound_expression": null,
+        "bound_only_due_to_early_stop": false,
+        "trees_per_default_fit": 100,
+        "optimizer_steps_expression": null,
+        "counter_source": null,
+        "tree_fit_is_neural_epoch": false,
+        "defaults_are_approved_budget": false
+      },
+      "checkpoint_fact": {
+        "stages": [],
+        "reference_schema": null,
+        "provenance_fields": [],
+        "single_final_fit_without_epoch_callback": true,
+        "training_resume_supported": false
+      },
+      "current_technical_selection": {
+        "scope": "single_fitted_forest",
+        "PA_role": "pu_val",
+        "OA_role": "clean_val",
+        "selection_changes_training": false,
+        "current_behavior_approves_formal_stage_eligibility": false
+      },
+      "formal_decisions": {
+        "candidate_protocol_ref": null,
+        "candidate_pool": null,
+        "approved_budget": null,
+        "approved_storage_bytes": null,
+        "eligible_stages_PA": null,
+        "eligible_stages_OA": null,
+        "eligible_student_rounds": null,
+        "threshold_policy_ref": null,
+        "approved_representation_ref": null,
+        "GPU_exemption_approved": false,
+        "admitted": false
+      },
+      "owner_questions": [
+        "CPU_tree_budget_family_and_GPU_exemption",
+        "raw_pixels_vs_frozen_features"
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "gradpu": {
+      "class": "GradPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
+      "implementation_sha256": "c823ec5a678c7f6c081f828cc26d6ea4e265348a5e7a0f3d42f1f6ab62f58535",
+      "fit_named_parameters": [
+        "X",
+        "y_pu",
+        "class_prior",
+        "sample_weight",
+        "epoch_callback",
+        "os_or_ts"
+      ],
+      "constructor_defaults": {
+        "model": null,
+        "hidden_dim": 128,
+        "alpha": 0.1,
+        "beta_max": 1.0,
+        "batch_size": 256,
+        "max_epochs": 200,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0005,
+        "encoder": null,
+        "random_state": null,
+        "device": null
+      },
+      "representation_fact": {
+        "modalities": [
+          "tabular",
+          "image"
+        ],
+        "backbone": "MLP128 or injected no-BatchNorm CNN with MLP/raw-score head; explicit cnn13_no_bn adapter",
+        "code_capability": {
+          "native_architectures": [
+            "mlp",
+            "cnn"
+          ],
+          "input_ndims": [
+            2,
+            4
+          ],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
+        }
+      },
+      "calibration_fact": {
+        "scope": "U_risk_and_raw_input_gradient_interpolation",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "budget_fact": {
+        "default_snapshot_count": 200,
+        "snapshot_bound_expression": "max_epochs",
+        "bound_only_due_to_early_stop": false,
+        "trees_per_default_fit": null,
+        "optimizer_steps_expression": "max_epochs * max(ceil(n_P / batch_size), ceil(n_native_U / batch_size))",
+        "counter_source": "optimizer_steps_",
+        "tree_fit_is_neural_epoch": false,
+        "defaults_are_approved_budget": false
+      },
+      "checkpoint_fact": {
+        "stages": [
+          "pu"
+        ],
+        "reference_schema": "1.1",
+        "provenance_fields": [
+          "stage",
+          "stage_epoch",
+          "round_index",
+          "optimizer_steps"
+        ],
+        "single_final_fit_without_epoch_callback": false,
+        "training_resume_supported": false
+      },
+      "current_technical_selection": {
+        "scope": "all_recorded_inference_snapshots",
+        "PA_role": "pu_val",
+        "OA_role": "clean_val",
+        "selection_changes_training": false,
+        "current_behavior_approves_formal_stage_eligibility": false
+      },
+      "formal_decisions": {
+        "candidate_protocol_ref": null,
+        "candidate_pool": null,
+        "approved_budget": null,
+        "approved_storage_bytes": null,
+        "eligible_stages_PA": null,
+        "eligible_stages_OA": null,
+        "eligible_student_rounds": null,
+        "threshold_policy_ref": null,
+        "approved_representation_ref": null,
+        "GPU_exemption_approved": false,
+        "admitted": false
+      },
+      "owner_questions": [
+        "paper_validation_labels_and_deviation",
+        "CNN_no_BN_and_schedule"
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "robust_pu": {
+      "class": "RobustPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/robust_pu.py",
+      "implementation_sha256": "4e69aadcd972589d4f65d6a52c9af677d24d19651834517dffeb2af6421c0f5e",
+      "fit_named_parameters": [
+        "X",
+        "y_pu",
+        "class_prior",
+        "sample_weight",
+        "epoch_callback",
+        "os_or_ts"
+      ],
+      "constructor_defaults": {
+        "class_prior": null,
+        "model": null,
+        "encoder": null,
+        "hidden_dim": 100,
+        "pretrain_epochs": 10,
+        "episodes": 20,
+        "inner_epochs": 1,
+        "batch_size": 64,
+        "pretrain_lr": 0.001,
+        "learning_rate": 0.0001,
+        "alpha_p": 0.1,
+        "alpha_n": 0.1,
+        "max_thresh_p": 2.0,
+        "max_thresh_n": 2.0,
+        "grow_steps": 10,
+        "spl_type": "welsch",
+        "temper_p": 1.0,
+        "temper_n": 1.0,
+        "phi": 0.0,
+        "random_state": null,
+        "device": null
+      },
+      "representation_fact": {
+        "modalities": [
+          "tabular",
+          "image"
+        ],
+        "backbone": "MLP100 or injected trainable CNN + MLP/raw-logit head",
+        "code_capability": {
+          "native_architectures": [
+            "mlp",
+            "cnn"
+          ],
+          "input_ndims": [
+            2,
+            4
+          ],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
+        }
+      },
+      "calibration_fact": {
+        "scope": "nnPU_pretrain_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "budget_fact": {
+        "default_snapshot_count": 30,
+        "snapshot_bound_expression": "pretrain_epochs + episodes",
+        "bound_only_due_to_early_stop": false,
+        "trees_per_default_fit": null,
+        "optimizer_steps_expression": "pretrain_epochs * max(ceil(n_P / batch_size), ceil(n_native_U / batch_size)) + episodes * inner_epochs * ceil((n_P + n_native_U) / batch_size)",
+        "counter_source": "optimizer_steps_",
+        "tree_fit_is_neural_epoch": false,
+        "defaults_are_approved_budget": false
+      },
+      "checkpoint_fact": {
+        "stages": [
+          "pretrain",
+          "self_paced"
+        ],
+        "reference_schema": "1.1",
+        "provenance_fields": [
+          "stage",
+          "stage_epoch",
+          "round_index",
+          "optimizer_steps"
+        ],
+        "single_final_fit_without_epoch_callback": false,
+        "training_resume_supported": false
+      },
+      "current_technical_selection": {
+        "scope": "all_recorded_inference_snapshots",
+        "PA_role": "pu_val",
+        "OA_role": "clean_val",
+        "selection_changes_training": false,
+        "current_behavior_approves_formal_stage_eligibility": false
+      },
+      "formal_decisions": {
+        "candidate_protocol_ref": null,
+        "candidate_pool": null,
+        "approved_budget": null,
+        "approved_storage_bytes": null,
+        "eligible_stages_PA": null,
+        "eligible_stages_OA": null,
+        "eligible_student_rounds": null,
+        "threshold_policy_ref": null,
+        "approved_representation_ref": null,
+        "GPU_exemption_approved": false,
+        "admitted": false
+      },
+      "owner_questions": [
+        "pretrain_vs_episode_eligibility",
+        "prior_scope_and_clean_val_source_budget"
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    },
+    "split_pu": {
+      "class": "SplitPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/split_pu.py",
+      "implementation_sha256": "c6d2404bf6164490d78f74be6b4a7492ffef31b8270422ed2cecbd6cccd20dfa",
+      "fit_named_parameters": [
+        "X",
+        "y_pu",
+        "class_prior",
+        "sample_weight",
+        "epoch_callback",
+        "os_or_ts"
+      ],
+      "constructor_defaults": {
+        "class_prior": null,
+        "encoder": null,
+        "encoder_feature_layer": null,
+        "hidden_dim": 100,
+        "teacher_epochs": 10,
+        "split_epochs": 10,
+        "student_epochs": 10,
+        "rounds": 2,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "agreement_threshold": 0.92,
+        "js_teacher_weight": 0.7,
+        "hard_weight": 0.3,
+        "feature_weight": 0.3,
+        "similarity_weight": 0.1,
+        "noise_std": 0.05,
+        "random_state": null,
+        "device": null
+      },
+      "representation_fact": {
+        "modalities": [
+          "tabular",
+          "image"
+        ],
+        "backbone": "dense MLP100 or injected CNN encoder + MLP head; intermediate module feature and final encoder vector",
+        "code_capability": {
+          "native_architectures": [
+            "mlp",
+            "cnn"
+          ],
+          "input_ndims": [
+            2,
+            4
+          ],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
+        }
+      },
+      "calibration_fact": {
+        "scope": "nnPU_teacher_only",
+        "run_view": "ts-compatible",
+        "calibration_applied": true,
+        "source_equivalence_claim": false
+      },
+      "budget_fact": {
+        "default_snapshot_count": 40,
+        "snapshot_bound_expression": "teacher_epochs + split_epochs + rounds * student_epochs",
+        "bound_only_due_to_early_stop": true,
+        "trees_per_default_fit": null,
+        "optimizer_steps_expression": "teacher_epochs * max(ceil(n_P / batch_size), ceil(n_native_U / batch_size)) + actual_split_epochs * ceil((n_P + n_native_U) / batch_size) + sum_round(student_epochs * max(ceil(n_P / batch_size), ceil(n_easy / batch_size), ceil(n_hard / batch_size)))",
+        "counter_source": "optimizer_steps_",
+        "tree_fit_is_neural_epoch": false,
+        "defaults_are_approved_budget": false
+      },
+      "checkpoint_fact": {
+        "stages": [
+          "teacher",
+          "splitter",
+          "student"
+        ],
+        "reference_schema": "1.1",
+        "provenance_fields": [
+          "stage",
+          "stage_epoch",
+          "round_index",
+          "optimizer_steps"
+        ],
+        "single_final_fit_without_epoch_callback": false,
+        "training_resume_supported": false
+      },
+      "current_technical_selection": {
+        "scope": "all_recorded_inference_snapshots",
+        "PA_role": "pu_val",
+        "OA_role": "clean_val",
+        "selection_changes_training": false,
+        "current_behavior_approves_formal_stage_eligibility": false
+      },
+      "formal_decisions": {
+        "candidate_protocol_ref": null,
+        "candidate_pool": null,
+        "approved_budget": null,
+        "approved_storage_bytes": null,
+        "eligible_stages_PA": null,
+        "eligible_stages_OA": null,
+        "eligible_student_rounds": null,
+        "threshold_policy_ref": null,
+        "approved_representation_ref": null,
+        "GPU_exemption_approved": false,
+        "admitted": false
+      },
+      "owner_questions": [
+        "teacher_splitter_student_round_eligibility",
+        "early_stop_and_paper_code_epochs"
+      ],
+      "remaining_blockers": [
+        "versioned_execution_and_comparison_preregistration",
+        "method_specific_PA_OA_checkpoint_eligibility",
+        "approved_candidate_budget_and_resource_profile",
+        "public_numeric_comparison_if_reproduction_claimed",
+        "method_owner_review"
+      ]
+    }
+  }
+}

@@ -116,6 +116,7 @@ class HolisticPUClassifier(BasePUClassifier):
     input_ndims = frozenset({2})
     encoder_parameter = None
     trains_encoder = False
+    checkpoint_stages = ("warmup", "pseudo_pn")
 
     @property
     def checkpoint_prediction_batch_size(self):
@@ -265,6 +266,11 @@ class HolisticPUClassifier(BasePUClassifier):
         return self
 
     def _record_epoch(self, epoch, phase, losses, callback):
+        self.checkpoint_stage_ = phase
+        self.checkpoint_stage_epoch_ = (
+            epoch + 1 if phase == "warmup" else epoch - self.warmup_epochs + 1
+        )
+        self.checkpoint_round_ = None
         self.history_["epoch"].append(epoch)
         self.history_["phase"].append(phase)
         self.history_["train_loss"].append(float(np.mean(losses)))

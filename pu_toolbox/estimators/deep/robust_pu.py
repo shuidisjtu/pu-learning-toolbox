@@ -90,6 +90,7 @@ class RobustPUClassifier(BasePUClassifier):
     input_ndims = frozenset({2, 4})
     encoder_parameter = "encoder"
     trains_encoder = True
+    checkpoint_stages = ("pretrain", "self_paced")
 
     @property
     def checkpoint_prediction_batch_size(self):
@@ -278,7 +279,7 @@ class RobustPUClassifier(BasePUClassifier):
         self._is_fitted = False
         callback_epoch = 0
         pre_optimizer = torch.optim.Adam(model.parameters(), lr=self.pretrain_lr)
-        for _ in range(self.pretrain_epochs):
+        for pretrain_epoch in range(self.pretrain_epochs):
             p_order, u_order = rng.permutation(p_idx), rng.permutation(u_idx)
             steps = max(
                 (len(p_order) + self.batch_size - 1) // self.batch_size,
@@ -316,6 +317,9 @@ class RobustPUClassifier(BasePUClassifier):
                 risks.append(info["nnpu_risk"])
             self.history_["pretrain_risk"].append(float(np.mean(risks)))
             self._is_fitted = True
+            self.checkpoint_stage_ = "pretrain"
+            self.checkpoint_stage_epoch_ = pretrain_epoch + 1
+            self.checkpoint_round_ = None
             if epoch_callback is not None:
                 epoch_callback(callback_epoch, self)
             callback_epoch += 1
@@ -374,6 +378,9 @@ class RobustPUClassifier(BasePUClassifier):
             self.history_["threshold_p"].append(float(threshold_p))
             self.history_["threshold_n"].append(float(threshold_n))
             self._is_fitted = True
+            self.checkpoint_stage_ = "self_paced"
+            self.checkpoint_stage_epoch_ = episode + 1
+            self.checkpoint_round_ = None
             if epoch_callback is not None:
                 epoch_callback(callback_epoch, self)
             callback_epoch += 1

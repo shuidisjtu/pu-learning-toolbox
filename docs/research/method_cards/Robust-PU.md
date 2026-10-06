@@ -42,6 +42,10 @@ shuffle 重新编号。TS 风险池替换仍只在 nnPU 预训练，自步伪负
 
 ## 准入证据补全（2026-10-05）
 
+2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+pretrain/self_paced 的 snapshot 引用区分 epoch/episode，保留累计更新数；
+inner_epochs 增成本不增快照，warmup-only TS 与默认预算不改；阶段资格仍未批准。
+
 P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)补原表 CIFAR/Spambase
 三档 π_U 的 error读数与10 trials；锁定 main.py:515 明确 mean×100、std分数，
 误差棒归一化不是 numeric验收。论文PN把U当负类，不是全监督oracle；论文的prior-free

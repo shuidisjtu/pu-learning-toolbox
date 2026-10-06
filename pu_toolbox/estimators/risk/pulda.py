@@ -186,6 +186,7 @@ class PULDAClassifier(BasePUClassifier):
     input_ndims = frozenset({2, 4})
     encoder_parameter = "encoder"
     trains_encoder = True
+    checkpoint_stages = ("warmup", "pu_mixup")
 
     @property
     def checkpoint_prediction_batch_size(self):
@@ -474,6 +475,11 @@ class PULDAClassifier(BasePUClassifier):
         return totals / steps
 
     def _record_epoch(self, epoch, phase, totals, epoch_callback):
+        self.checkpoint_stage_ = phase
+        self.checkpoint_stage_epoch_ = (
+            epoch + 1 if phase == "warmup" else epoch - self.warmup_epochs + 1
+        )
+        self.checkpoint_round_ = None
         self.history_["epoch"].append(epoch)
         self.history_["phase"].append(phase)
         for key, value in zip(

@@ -169,6 +169,12 @@ Public result preparation is described in
 bindings; optional local paper/source checks verify bytes. It issues no numeric verdicts,
 does not consume experiment artifacts and does not promote pending readings to accepted anchors.
 
+Method-specific stage and budget preparation is documented in
+[the stage/budget review](docs/research/pu_survey/p3_stage_budget_review_20261007.md).
+`scripts/prepare_p3_selection_budget_spec.py` reads code/ledger facts and checks the pending draft;
+it does not approve checkpoint stages or recipes. New staged methods retain stage/round/update
+provenance in inference references; historical pilot references remain unchanged.
+
 Auditing and summarizing a finished batch set is driven by
 `audit_survey_batches.py` and `summarize_survey_results.py`. Both take a
 batch-root whitelist and write only to their `--out-dir`: the first reports every

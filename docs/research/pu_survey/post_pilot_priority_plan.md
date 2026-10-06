@@ -63,6 +63,12 @@ PYTHONPATH=. python scripts/check_survey_recipe_registry.py \
 
 ## 4. 紧接着的交接
 
+2026-10-07 第2项继续：[阶段/选模/预算准备](p3_stage_budget_review_20261007.md)
+已实现新方法快照阶段、round/local epoch、累计更新数留痕，选中恢复与回收保留元数据；
+五方法规格由 AST/来源生成并与台账同步，全部正式候选/阶段资格/资源决定仍为 null。
+这使负责人能逐阶段审阅，但不批准 recipe 或启动新正式实验；旧 pilot 引用与冻结矩阵不改。
+GenPU/Holistic-PU 同时补阶段技术留痕，P3MIX 完整来源与图像训练源配方缺口仍待继续。
+
 2026-10-05 P1-2 更新：[公开结果对照准备](p3_public_comparison_20261005.md)
 已登记12条原表读数、五方法×三数据集15格范围、来源单位/重复数/采样与选模差异，
 新增只读检查器核 frozen bytes、读数单位和 pending 边界。PULDA 全文访问仍未获得；

@@ -12,6 +12,7 @@
   "candidates": [
     {
       "method": "pulda",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "preparation_priority": 1,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pulda",
@@ -34,6 +35,7 @@
     },
     {
       "method": "puet",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "preparation_priority": 2,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.puet",
@@ -56,6 +58,7 @@
     },
     {
       "method": "gradpu",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "preparation_priority": 3,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.gradpu",
@@ -79,6 +82,7 @@
     },
     {
       "method": "robust_pu",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "preparation_priority": 4,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.robust_pu",
@@ -102,6 +106,7 @@
     },
     {
       "method": "split_pu",
+      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "preparation_priority": 5,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.split_pu",

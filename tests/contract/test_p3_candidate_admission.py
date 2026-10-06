@@ -43,6 +43,9 @@ def test_basic_p3_admission_draft_matches_ledger_and_remains_unadmitted():
             public_ref = ledger["methods"][row["method"]]["public_comparison_ref"]
             assert row["public_comparison_ref"] == public_ref
             assert (ROOT / public_ref).is_file()
+            spec_ref = ledger["methods"][row["method"]]["selection_budget_spec_ref"]
+            assert row["selection_budget_spec_ref"] == spec_ref
+            assert (ROOT / spec_ref).is_file()
         assert row["ledger_snapshot"] == {
             k: ledger["methods"][row["method"]][k] for k in row["ledger_snapshot"]
         }

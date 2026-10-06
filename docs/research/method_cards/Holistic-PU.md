@@ -1,5 +1,9 @@
 # Method Card: Holistic-PU
 
+2026-10-07 补[阶段技术留痕](../pu_survey/p3_stage_budget_review_20261007.md)：
+warmup/pseudo_pn 快照保留阶段内 epoch 和累计更新数；不改变 fixed warmup、
+OS/TS 适用性或预算，也不由技术快照记录决定正式阶段资格。
+
 Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_files/paper/2023/file/d5c0f9585592bad5251133813893a6c0-Paper-Conference.pdf)
 式 (1)、(4)/(5)、(8)、§2.4 的最终 CE。[作者仓库](https://github.com/wxr99/HolisticPU/tree/4d4ce7d6ba29722995d308293374c0f475d988d3)
 已锁定 `4d4ce7d6ba29722995d308293374c0f475d988d3`。独立实现，不执行/复制作者代码，未确认许可证。

@@ -110,6 +110,7 @@ class GradPUClassifier(BasePUClassifier):
     input_ndims = frozenset({2, 4})
     encoder_parameter = "encoder"
     trains_encoder = True
+    checkpoint_stages = ("pu",)
 
     @property
     def checkpoint_prediction_batch_size(self):
@@ -340,6 +341,9 @@ class GradPUClassifier(BasePUClassifier):
                 self.history_[key].append(value / n_steps)
             self.history_["beta"].append(float(beta))
             self.history_["optimizer_steps"].append(self.optimizer_steps_)
+            self.checkpoint_stage_ = "pu"
+            self.checkpoint_stage_epoch_ = epoch + 1
+            self.checkpoint_round_ = None
             if epoch_callback is not None:
                 epoch_callback(epoch, self)
 

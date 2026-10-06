@@ -64,6 +64,10 @@ L_{LDA}+L_{2way}+w_{mix}L_{BCE}^{mix}.
 
 ## 准入证据补全（2026-10-05）
 
+2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+warmup/pu_mixup 快照保留阶段内位置与累计更新数；当前技术 selector 仍遍历两阶段。
+哪些阶段可获正式 PA/OA 资格仍 null，训练目标、校准范围和默认预算未改。
+
 P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)已沿用代码协议；
 全文访问受限，未登记 PULDA 数字，不以 Dist-PU 数值代替，也不声称原论文没有结果。
 

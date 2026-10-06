@@ -101,6 +101,7 @@ class GenPUClassifier(BasePUClassifier):
     input_ndims = frozenset({2})
     encoder_parameter = None
     trains_encoder = False
+    checkpoint_stages = ("synthetic_pn",)
 
     @property
     def checkpoint_prediction_batch_size(self):
@@ -273,6 +274,7 @@ class GenPUClassifier(BasePUClassifier):
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         # Prior-weighted PN risk on fresh generated streams; no real clean labels.
         self.checkpoint_stage_ = "synthetic_pn"
+        self.checkpoint_round_ = None
         for epoch in range(self.classifier_epochs):
             losses = []
             for _ in range(steps):
@@ -286,6 +288,7 @@ class GenPUClassifier(BasePUClassifier):
                 losses.append(float(loss.detach().cpu()))
             self.history_["pn_loss"].append(float(np.mean(losses)))
             self.model_.eval()
+            self.checkpoint_stage_epoch_ = epoch + 1
             if epoch_callback is not None:
                 epoch_callback(epoch, self)
         self.model_.eval()
