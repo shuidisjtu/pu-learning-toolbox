@@ -1,7 +1,7 @@
 # PN oracle 接入（决策与口径记录）
 
 2026-10-04 补充：端到端 `PilotOracleCNN` 已实现并通过真实标签/OA/checkpoint 合成图像 runner 测试；
-历史冻结矩阵仍不含该行，真实 CIFAR GPU 数值尚未完成。详见[本次补全](collaborator_followup_20261004.md)。
+历史冻结矩阵仍不含该行，真实 CIFAR GPU 数值尚未完成。详见[本次补全](../reviews/collaborator_followup_20261004.md)。
 下文分阶段决定保留为历史记录，不因实现完成回写原有跑批状态。
 
 > 定位：PN oracle 对照路径（协议 §2.4 第 10 条）的**接入决策**、与 PU-Bench 的**口径差异**，
@@ -12,9 +12,9 @@
 > `Generator.output_view` 修复（决策 D-A），标签语义双向 fail-loud 由 P2.0b 的 `label_semantics`
 > 声明补上。
 >
-> 上游依据：[pu_survey_protocol.md](pu_survey_protocol.md) §2.4/§5、
-> [experiment_layer.md](../../dev/experiment_layer.md) §1 D4（视图语义与声明守卫）、
-> [survey_execution_plan.md](survey_execution_plan.md) P2；
+> 上游依据：[pu_survey_protocol.md](../pu_survey_protocol.md) §2.4/§5、
+> [experiment_layer.md](../../../dev/experiment_layer.md) §1 D4（视图语义与声明守卫）、
+> [survey_execution_plan.md](../survey_execution_plan.md) P2；
 > 参考文献 2 = PU-Bench `2d95a19`（与本项目其他锁定值同一 commit）。
 
 ## 1. 接入决策（2026-09-11）
@@ -61,7 +61,7 @@ PU-Bench 的全监督基线叫 `pn`（`PNTrainer`），README 称 "fully supervi
 
 **实质分歧：选模口径。** PU-Bench 的 `pn` 严格说是"用真标签训练、但用 PU proxy 选 checkpoint"
 的半监督式参照；本协议要求纯监督上界（真实 Accuracy 选模）。据此
-[执行计划 D6](survey_execution_plan.md) 决定 PN 行降级为背景参考，不参与「交叉验证对照」的
+[执行计划 D6](../survey_execution_plan.md) 决定 PN 行降级为背景参考，不参与「交叉验证对照」的
 数值裁决；oracle 的 manifest 写死 `selection_metric: "clean_val_accuracy"` 使口径可审计
 （PU-Bench 侧对应 `val_proxy_acc`）。
 

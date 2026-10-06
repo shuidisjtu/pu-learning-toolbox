@@ -124,7 +124,7 @@ skip-magic-trailing-comma = false
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = ["-v", "--tb=short", "--strict-markers"]
+addopts = ["-qqq", "--tb=short", "--strict-markers"]
 markers = [
     "slow: slow tests (integration / overfitting behaviour)",
     "contract: shared API contract tests — applied to every NATIVE classifier",

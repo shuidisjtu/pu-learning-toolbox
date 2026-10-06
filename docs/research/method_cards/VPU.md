@@ -37,7 +37,7 @@ L_{reg}=\mathbb E[(\log\tilde\Phi-\log\Phi_\theta(\tilde x))^2],
 
 ## 训练视图（OS/TS）
 
-**原生假设为 `ts`**：变分目标的边缘项要求 $f$ 是训练总体的边缘分布，因此边缘池必须是 $D_U\cup D_P$。作者实现的 X loader 覆盖「正例与未标记」、且 P 池是 X 池的子集而非互斥划分，故本实现把完整 `X` 作边缘池与作者实现**逐集合等价**。四层证据与逐行核对见 [VPU 采样假设审计](../pu_survey/vpu_sampling_audit.md)。
+**原生假设为 `ts`**：变分目标的边缘项要求 $f$ 是训练总体的边缘分布，因此边缘池必须是 $D_U\cup D_P$。作者实现的 X loader 覆盖「正例与未标记」、且 P 池是 X 池的子集而非互斥划分，故本实现把完整 `X` 作边缘池与作者实现**逐集合等价**。四层证据与逐行核对见 [VPU 采样假设审计](../pu_survey/admission/vpu_sampling_audit.md)。
 
 - **OS 对照**：存在且可解释，但它是**协议定义的消融**（边缘池被限制到 $p(x\mid s=0)$），**不是** VPU 在其原生假设下的运行；引用 OS 结果时不得读作原生结果。
 - **不是 `both`**：`both` 可辩（genuine OS 数据集定义下 `X` 本身也是 $p(x)$ 样本），但 registry 只登记 `CASE_CONTROL`，改 registry 属方法学定位变更，超出当前切片。

@@ -56,7 +56,7 @@
       ],
       "storage_evidence_ref": "docs/research/pu_survey/data/candidate_storage_probe_20261005.json",
       "gpu_smoke": "synthetic_current_environment_only",
-      "gpu_evidence_ref": "docs/research/pu_survey/independent_progress_20261005.md"
+      "gpu_evidence_ref": "docs/research/pu_survey/reviews/independent_progress_20261005.md"
     },
     {
       "method": "rp",
@@ -148,7 +148,7 @@
       ],
       "storage_evidence_ref": "docs/research/pu_survey/data/candidate_storage_probe_20261005.json",
       "gpu_smoke": "synthetic_current_environment_only",
-      "gpu_evidence_ref": "docs/research/pu_survey/independent_progress_20261005.md"
+      "gpu_evidence_ref": "docs/research/pu_survey/reviews/independent_progress_20261005.md"
     },
     {
       "method": "genpu",
@@ -196,7 +196,7 @@
       ],
       "storage_evidence_ref": "docs/research/pu_survey/data/candidate_storage_probe_20261005.json",
       "gpu_smoke": "synthetic_current_environment_only",
-      "gpu_evidence_ref": "docs/research/pu_survey/independent_progress_20261005.md"
+      "gpu_evidence_ref": "docs/research/pu_survey/reviews/independent_progress_20261005.md"
     },
     {
       "method": "holistic_pu",
@@ -244,7 +244,7 @@
       ],
       "storage_evidence_ref": "docs/research/pu_survey/data/candidate_storage_probe_20261005.json",
       "gpu_smoke": "synthetic_current_environment_only",
-      "gpu_evidence_ref": "docs/research/pu_survey/independent_progress_20261005.md"
+      "gpu_evidence_ref": "docs/research/pu_survey/reviews/independent_progress_20261005.md"
     }
   ],
   "unregistered_components": [

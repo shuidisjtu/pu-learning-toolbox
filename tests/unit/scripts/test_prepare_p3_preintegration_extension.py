@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from pu_toolbox.experiment.survey_artifacts import survey_artifact_ref
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -47,6 +48,11 @@ def test_basic_determ_generated_extension_matches_recorded_draft_and_sources():
     assert report["frozen_protocol_sha256"] == digest(load_protocol())
     assert len(report["candidates"]) == 5
     for entry in report["candidates"]:
+        assert entry["storage_evidence_ref"] == survey_artifact_ref(
+            "candidate_storage_probe_20261005"
+        )
+        if entry["method"] != "rp":
+            assert entry["gpu_evidence_ref"] == survey_artifact_ref("independent_progress_20261005")
         for field in ("storage_evidence_ref", "gpu_evidence_ref"):
             if entry[field] is not None:
                 assert (ROOT / entry[field]).is_file()

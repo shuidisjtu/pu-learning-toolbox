@@ -51,7 +51,7 @@ def test_supervised_trainer_uses_true_labels():
     Asserting the captured labels rather than "it ran": the previous version
     only checked ``len(traj.epochs) >= 1``, which held for any input and is why
     the runner's PU-label mis-wiring escaped this file (see
-    docs/research/pu_survey/pn_oracle_integration.md §1.4).
+    docs/research/pu_survey/admission/pn_oracle_integration.md §1.4).
     """
     X = np.random.RandomState(0).randn(30, 3)
     y = np.array([1] * 6 + [0] * 24)

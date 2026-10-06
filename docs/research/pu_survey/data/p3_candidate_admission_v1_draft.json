@@ -121,7 +121,7 @@
         "run_view": "ts-compatible",
         "calibration_applied": true,
         "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:vpu)",
-        "adaptation_level": "benchmark-adapted；clean-room MLP 版本，不宣称作者脚本或论文数值复现；上游的 20-epoch 学习率衰减未进入，lr 默认值相差一个数量级 (vpu_sampling_audit.md §9, VPU.md:53)"
+        "adaptation_level": "benchmark-adapted；clean-room MLP 版本，不宣称作者脚本或论文数值复现；上游的 20-epoch 学习率衰减未进入，lr 默认值相差一个数量级 (admission/vpu_sampling_audit.md §9, VPU.md:53)"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
