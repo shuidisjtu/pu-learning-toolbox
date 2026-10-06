@@ -1,7 +1,7 @@
 # GradPU 来源与协议复核准备（2026-10-05）
 
 状态：**pending_method_owner_review**；不是签署、数值复现或正式准入。
-机器事实见 [JSON](data/gradpu_source_review_20261005.json)，不改冻结矩阵。
+机器事实见 [JSON](../data/gradpu_source_review_20261005.json)，不改冻结矩阵。
 
 ## 原始证据
 

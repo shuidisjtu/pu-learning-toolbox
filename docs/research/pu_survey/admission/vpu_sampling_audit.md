@@ -28,7 +28,7 @@ VPU 用非负函数 $\Phi_\theta(x)$ 近似正类后验，变分目标（论文�
 L_{var}=\log\mathbb E_{x\sim f}[\Phi_\theta(x)]-\mathbb E_{x\sim f_P}[\log\Phi_\theta(x)].
 ```
 
-其中 $f$ 是**训练总体的边缘分布**，$f_P$ 是正类条件分布。这是**论文事实**：$f$ 既不是类条件分布，也不是「仅未标记行」的分布。方法卡 [`method_cards/VPU.md`](../method_cards/VPU.md) 第 21–22 行记录了同一式子。
+其中 $f$ 是**训练总体的边缘分布**，$f_P$ 是正类条件分布。这是**论文事实**：$f$ 既不是类条件分布，也不是「仅未标记行」的分布。方法卡 [`method_cards/VPU.md`](../../method_cards/VPU.md) 第 21–22 行记录了同一式子。
 
 ## 3. 作者实现（本次亲验）
 

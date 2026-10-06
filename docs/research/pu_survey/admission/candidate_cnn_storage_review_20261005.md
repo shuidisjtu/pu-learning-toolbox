@@ -1,6 +1,6 @@
 # CNN 存储技术实测（2026-10-05）
 
-状态：**工程证据，非正式预算/准入**。承接[优先级](post_pilot_priority_plan.md)第 2 项。
+状态：**工程证据，非正式预算/准入**。承接[执行计划](../survey_execution_plan.md)的 P3.2/P3.3 任务。
 不使用合作者实验数据，不改变旧协议、比较矩阵、候选池、签署或历史 manifest。
 
 ## 范围与来源
@@ -12,8 +12,8 @@ NCHW 输入（3×8×8），CNN13 的默认 base_channels=64，GradPU 使用显�
 全阶段 weights-only 快照均在 CPU 恢复为有限预测，最终快照与 fitted estimator 分数一致；
 完整 estimator 仅反序列化本次自己生成的可信 pickle。临时目录退出后自动清理，仅保留 JSON。
 
-机器记录：[CPU 15 组](data/candidate_cnn_storage_probe_20261005.json)、
-[CUDA 单组](data/candidate_cnn_cuda_probe_20261005.json)。每组保留参数、视图、输入尺寸、
+机器记录：[CPU 15 组](../data/candidate_cnn_storage_probe_20261005.json)、
+[CUDA 单组](../data/candidate_cnn_cuda_probe_20261005.json)。每组保留参数、视图、输入尺寸、
 Python/PyTorch 版本、基线 commit 与实际源码 SHA256；训练前后来源摘要变化即拒绝记录。
 基线 commit 为 19c68c2，新探针当时尚未提交，所以**实际源码以逐文件摘要识别**，
 不能仅凭 code_commit 宣称整个工作区当时干净或代码已冻结。

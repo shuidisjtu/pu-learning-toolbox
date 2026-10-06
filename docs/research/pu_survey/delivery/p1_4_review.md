@@ -7,9 +7,9 @@
 
 接收目录为 `data/splits`；原始三个 tar 位于
 `data/incoming/p1.4-splits/P1.4仅划分和预处理后的数据产物`。
-按照 [冻结索引](data/split_artifacts_index.json)，逐文件及原始归档 sha256 校验通过：
+按照 [冻结索引](../data/split_artifacts_index.json)，逐文件及原始归档 sha256 校验通过：
 **15 个 split、75 个文件、3 个归档**，缺失及摘要差异均为 0。
-可归档的逐 split 读数见 [本轮证据](data/pilot_review_20261004.json)。
+可归档的逐 split 读数见 [本轮证据](../data/pilot_review_20261004.json)。
 
 | 复核项 | 结果 |
 |---|---|

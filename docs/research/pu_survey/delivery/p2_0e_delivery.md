@@ -1,9 +1,9 @@
 # P2.0e TS-OS 校准接入训练执行链（交付记录）
 
-> **2026-10-04 技术复核**：五方法校准/路由回归通过，交付 Excel 的逐行视图与校准标志一致；见 [技术复核](pilot_independent_review_20261004.md)及[表格对账](p21_workbook_review_20261004.md)。这验证接线与记录，不代替方法学签署或原始制品重放。
+> **2026-10-04 技术复核**：五方法校准/路由回归通过，交付 Excel 的逐行视图与校准标志一致；见 [技术复核](../reviews/pilot_independent_review_20261004.md)及[表格对账](p21_workbook_review_20261004.md)。这验证接线与记录，不代替方法学签署或原始制品重放。
 
 > 定位：本文件是 P2.0e 的交付记录，**随各方法接线逐次追加**。P2.0e 的整体状态与完成口径
-> 仍以 [`survey_execution_plan.md`](survey_execution_plan.md) 的 P2.0e 行与决策 D16 为准；
+> 仍以 [`survey_execution_plan.md`](../survey_execution_plan.md) 的 P2.0e 行与决策 D16 为准；
 > 数值与状态以方法台账 `pu_toolbox/experiment/method_ledger.json` 的
 > `run_view` / `calibration_applied` 与各 run 的 manifest 为准，本文件只作解释。
 >
@@ -534,7 +534,7 @@ reference consumer 证明；生产迁移推迟到第一个真实待接入算法�
 ## 11. 首个真实生产消费者：`vpu`（P3.1 局部前置）
 
 §10 把生产迁移推迟到第一个真实待接入算法。**VPU 就是那一个**（P3.1 技术预集成中的方法，
-采样假设先经审计裁决为原生 `ts`，见 [`vpu_sampling_audit.md`](vpu_sampling_audit.md) 与决策 D21）。
+采样假设先经审计裁决为原生 `ts`，见 [`vpu_sampling_audit.md`](../admission/vpu_sampling_audit.md) 与决策 D21）。
 本节只登记这次接入改变了什么；VPU 的 P3.1 完整验收（共享 backbone、图像路径、公开数值对照、
 多 seed GPU/资源记录、双人复核）**仍未完成**，VPU 也**不进入**冻结执行矩阵。
 

@@ -2,13 +2,13 @@
 
 > 定位：根治"PU 标签与真实标签数值同形、语义相反"导致的**静默错配训练**。
 > **阶段归属**：P1+P2 已于 2026-09-14 提前至 P2 pilot 阶段 A 实施（issue #41 阶段 A，P2.0b，
-> 见 [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) §3）；P3+P4 保持
+> 见 [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) §1）；P3+P4 保持
 > P3 算法接入前置。
 > 上游依据：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §2.4 第 10 条、
 > [experiment_layer.md](experiment_layer.md) §1 D4（既有视图与 trainer 声明守卫）、
 > 项目 CLAUDE.md「API 契约」条。
 > 状态日期：2026-09-18。阶段 A（P1+P2）已完成工程实现与回归，合作者独立复核/签署待办；
-> 阶段 B（P3+P4）仍待实施，详见 [P2.0b 交付记录](../research/pu_survey/p2_0b_delivery.md)。
+> 阶段 B（P3+P4）仍待实施，详见 [P2.0b 交付记录](../research/pu_survey/delivery/p2_0b_delivery.md)。
 
 ## 1. 问题
 

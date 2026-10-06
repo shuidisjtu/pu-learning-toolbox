@@ -2,13 +2,13 @@
 
 结论：**交付表身份、计划覆盖及 raw → summary 数值对账通过；完整制品验收仍待 manifest / 日志 / 权重**。
 复核为用户委托的 Codex 技术检查，不代填 HENG958 / shuidisjtu 本人签署，也不解除文献与 PA 阻断。
-机器证据见 [对账 JSON](data/p21_workbook_review_20261004.json)。
+机器证据见 [对账 JSON](../data/p21_workbook_review_20261004.json)。
 
 ## 1. 收件身份及逐层结果
 
 收到 `P2.1_results_645runs_20261003(1).xlsx`：126370 bytes，sha256
 `cafedc98d8983764625d7b32e62301aa8de87e7da9d772e185f6a135df9c1244`，
-与 [交付索引](data/p2_2_artifacts_index.json) 完全一致。文件名的 `(1)` 不影响字节身份。
+与 [交付索引](../data/p2_2_artifacts_index.json) 完全一致。文件名的 `(1)` 不影响字节身份。
 未编辑原表，未把原始 XLSX 提交至 Git。
 
 | 层 | 独立复核结果 |

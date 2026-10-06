@@ -1561,7 +1561,7 @@ Robust-PU、Split-PU、Holistic-PU、GenPU 使用 `batch_size`。
 
 当前单元属于工程级 `benchmark-adapted`；PA 分离度代理与正式 Accuracy/阈值准则仍不一致，
 checkpoint 接线完成不意味着完整选模协议与 P2.0b/c 已验收。
-共享规格、命令与 oracle 边界见 [P2.0a 交付](../../research/pu_survey/p2_0a_delivery.md)。
+共享规格、命令与 oracle 边界见 [P2.0a 交付](../../research/pu_survey/delivery/p2_0a_delivery.md)。
 
 若全部候选均失败，runner 会先写 manifest（配置了路径时），再抛出 `RuntimeError`。
 

@@ -1,6 +1,6 @@
 # P2.0c 复核包
 
-> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](../reviews/pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
 
 复核对象：`pu_toolbox/experiment/survey_comparison_v2.json`（`survey-comparison-v2`，摘要
 `764ef03a…5b4095b`）。交付说明见 [交付文档](p2_0c_delivery.md)；矩阵绑定的执行协议为 `survey-v1.2`。
@@ -27,7 +27,7 @@
 > CIFAR 预处理差异、以及缺失的训练视图维度。已按预注册规则「确需修订须记录理由并重发预注册
 > 版本」重发为 `survey-comparison-v2.json`（摘要 `764ef03a…5b4095b`）。**锚点数值、判定规则与
 > 资格判定均未变动**，仅修正 15 个 PU-Bench 映射的 `protocol_differences`；`v1` 原样留档。
-> 修订理由与重放证据见 [执行计划](survey_execution_plan.md) 决策 D10。**本轮复核与签署的对象为 v2。**
+> 修订理由与重放证据见 [执行计划](../survey_execution_plan.md) 决策 D10。**本轮复核与签署的对象为 v2。**
 
 ## 1. shuidisjtu 自审
 

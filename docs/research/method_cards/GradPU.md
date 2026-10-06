@@ -62,7 +62,7 @@ P/U 数据留 CPU、优化批次上卡；预测分批 eval 并恢复模式，完
 
 ## 验证状态与后续门禁
 
-2026-10-05 补充[来源/实验流程核查](../pu_survey/gradpu_source_review_20261005.md)：
+2026-10-05 补充[来源/实验流程核查](../pu_survey/admission/gradpu_source_review_20261005.md)：
 印刷页 7300 明确 CNN13 去 BatchNorm，原训练集划出 P/500 validation 后剩余作为 U。
 理论 U~p(x) 与发布实验分开登记；TS 校准不是原实验协议直接重放。
 作者代码仍未确认，补充材料和正式无 BatchNorm 图像规格继续待办；工程路径见上节。
