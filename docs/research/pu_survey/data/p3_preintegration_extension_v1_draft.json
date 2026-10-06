@@ -207,7 +207,7 @@
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无需外部先验；趋势伪标签估计 U 内正类比例仅为诊断；class_prior 若传入只校验，不影响训练",
-        "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；二维 MLP 或注入 CNN 两阶段端到端训练；发布代码简化分数/Jenks SSE/渐进目标与强弱增强未照搬；固定预算替代 LZO；继续同模型而非补充 Algorithm 2 的重初始化）",
+        "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；二维 MLP 或注入 CNN 两阶段端到端训练；发布代码简化分数/Jenks SSE/渐进目标与强弱增强未照搬；固定预算替代 LZO；默认 continue 同模型/Adam，显式 reinitialize 重建网络、重置 CNN 参数/BN 和 Adam，对齐补充 Algorithm 2 的阶段初始化但非完整源配方）",
         "code_version": {
           "upstream_url": "https://github.com/wxr99/HolisticPU",
           "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3",
@@ -218,7 +218,7 @@
             "tabular",
             "image"
           ],
-          "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后继续同一分类器/Adam；原始数据留 CPU",
+          "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后默认继续分类器/Adam，reinitialize 可重建全部网络/优化器；原始数据留 CPU",
           "code_capability": {
             "native_architectures": [
               "cnn",
@@ -232,7 +232,8 @@
             "trains_encoder": true
           }
         },
-        "calibration_hooked": false
+        "calibration_hooked": false,
+        "stage_initialization_review_ref": "docs/research/pu_survey/holistic_stage_initialization_20261007.md"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
@@ -242,6 +243,7 @@
       "specific_blockers": [
         "paper_pairwise_variance_vs_author_adjacent_Jenks_decision",
         "fixed_warmup_vs_LZO_and_finetune_spec",
+        "pseudo_pn_initialization_variant_recipe_decision",
         "source_license_review",
         "trajectory_and_model_selection_storage_spec"
       ],

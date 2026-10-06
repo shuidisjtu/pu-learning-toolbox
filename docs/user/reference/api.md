@@ -451,17 +451,22 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
 ```python
 HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
                      batch_size=64, learning_rate=1e-3, trend_scale=2.0,
-                     encoder=None, random_state=0, device=None)
+                     encoder=None, pseudo_pn_initialization="continue",
+                     random_state=0, device=None)
 ```
 
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`：平衡 P/U 重采样、
 预测轨迹、论文全时序 signed trend 与 variance 二分、伪标签监督训练。二维 MLP 或注入端到端 CNN。
 4-D NCHW 必须提供 `encoder`（输出 batch×feature_dim）；每次 fit deepcopy 并训练两阶段编码器，
 模板权重/BN 不共享；数据留 CPU，优化/轨迹扫描/预测分批，扫描和预测 eval 并恢复模式。
-单行尾批使用 BN 运行统计而不丢行。继续同一模型/Adam 是显式适配，非补充 Algorithm 2 的重初始化。
+单行尾批使用 BN 运行统计而不丢行。`pseudo_pn_initialization="continue"` 默认继续同一模型/Adam；
+`"reinitialize"` 后段新建整个网络和 Adam、随机重置 CNN/head 参数及 BN 运行统计，
+仅对齐补充 Algorithm 2 的初始化步骤；不是完整作者配方。自定义编码器参数所有者须有
+`reset_parameters`；legacy weight_norm 拒绝，不将复制预训练权重叫作重新初始化。
 固定预热不是论文 LZO 自动停止；`warmup_epochs>=2`；外部先验不使用，sample_weight / TS 请求拒绝。
 `prediction_trajectory_` / `pseudo_labels_` / `pseudo_label_indices_` / `breakpoint_` 可对账；
-`optimizer_steps_` 含两阶段，callback 每轮结束以连续零起始编号调用；
+`optimizer_steps_` 含两阶段且重初始化不清零；`stage_optimizer_steps_` 分阶段，
+`pseudo_pn_initialization_` / `pseudo_pn_optimizer_reset_` 可核实际路径；callback 每轮结束以连续零起始编号调用；
 `history_["phase"]` 标注 warmup / pseudo_pn；`checkpoint_epoch_count` 计两阶段存储峰值。
 快照只用于推断回放，正式 PA/OA 候选阶段需另行预注册。见[方法卡](../../research/method_cards/Holistic-PU.md)。
 

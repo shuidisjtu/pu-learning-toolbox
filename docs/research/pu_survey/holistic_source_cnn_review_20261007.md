@@ -4,6 +4,9 @@
 [优先级](post_pilot_priority_plan.md) 的缺失算法/原生图像路径，不改冻结 pilot、
 历史结果或本人签署。台账和五方法扩展草稿同步，`admitted=false`。
 
+后续状态：已补[显式后段重新初始化变体](holistic_stage_initialization_20261007.md)。
+以下是 `2406a80` 的来源/CNN 交付记录；“下一项”按当时状态保留，当前 LZO 仍未完成。
+
 ## 1. 本轮核查来源
 
 - [正式论文](https://proceedings.neurips.cc/paper_files/paper/2023/file/d5c0f9585592bad5251133813893a6c0-Paper-Conference.pdf)，§2.2、§2.3。

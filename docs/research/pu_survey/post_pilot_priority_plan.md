@@ -63,6 +63,11 @@ PYTHONPATH=. python scripts/check_survey_recipe_registry.py \
 
 ## 4. 紧接着的交接
 
+2026-10-07 继续[Holistic-PU 后段初始化](holistic_stage_initialization_20261007.md)：
+显式 `reinitialize` 新建模型/Adam、随机重置 CNN 参数和 BN，默认 `continue` 保留兼容；
+分阶段更新和全局成本不混淆，快照跨重建回放，台账/准入草稿同步但不决定正式变体。
+下一项继续 LZO 选预热终点接口及资源证据，完整源 fine-tune/图像配方、数值与负责人审批仍保留。
+
 2026-10-07 继续缺失算法图像路径：[Holistic-PU 来源/端到端 CNN 核查](holistic_source_cnn_review_20261007.md)。
 已补编码器两阶段训练、分批 CPU→设备、模板/BN/fold 隔离及阶段快照回放，台账和扩展草稿同步。
 新增来源核查明确论文 LZO 与锁定代码固定 warming_steps 的差异，且补充 Algorithm 2/作者代码

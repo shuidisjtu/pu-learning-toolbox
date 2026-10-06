@@ -102,6 +102,8 @@ class HolisticPUClassifier(BasePUClassifier):
 
     Fixed warmup budget is an explicit adaptation, not the paper's LZO stopping.
     Source code's adjacent score/Jenks/fine-tuning differ from this paper path.
+    pseudo_pn_initialization="reinitialize" builds a new network and optimizer;
+    the legacy default "continue" retains both after trend partitioning.
     No test labels, clean support, or population prior are consumed in fit.
     """
 
@@ -141,6 +143,7 @@ class HolisticPUClassifier(BasePUClassifier):
         learning_rate=1e-3,
         trend_scale=2.0,
         encoder=None,
+        pseudo_pn_initialization="continue",
         random_state=0,
         device=None,
     ):
@@ -152,6 +155,7 @@ class HolisticPUClassifier(BasePUClassifier):
         self.learning_rate = learning_rate
         self.trend_scale = trend_scale
         self.encoder = encoder
+        self.pseudo_pn_initialization = pseudo_pn_initialization
         self.random_state = random_state
         self.device = device
 
@@ -167,6 +171,10 @@ class HolisticPUClassifier(BasePUClassifier):
             raise NotImplementedError("Holistic-PU does not implement sample_weight")
         if os_or_ts != "os":
             raise ValueError("Holistic-PU OS resampling has no equivalent ts risk substitution")
+        if not isinstance(
+            self.pseudo_pn_initialization, str
+        ) or self.pseudo_pn_initialization not in {"continue", "reinitialize"}:
+            raise ValueError("pseudo_pn_initialization must be continue or reinitialize")
         for name in ("hidden_dim", "warmup_epochs", "max_epochs", "batch_size"):
             if type(getattr(self, name)) is not int or getattr(self, name) < 1:
                 raise ValueError(f"{name} must be a positive integer")
@@ -186,6 +194,8 @@ class HolisticPUClassifier(BasePUClassifier):
             raise ValueError("Holistic-PU 4-D images require an explicit encoder; no flattening")
         if self.encoder is not None and not isinstance(self.encoder, nn.Module):
             raise TypeError("encoder must be a torch.nn.Module")
+        if self.encoder is not None and self.pseudo_pn_initialization == "reinitialize":
+            self._check_encoder_reinitialization(self.encoder)
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X must remain finite after float32 conversion")
@@ -196,23 +206,7 @@ class HolisticPUClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         self.device_ = resolve_device(self.device)
-        self.encoder_ = None
-        width = X.shape[1]
-        if self.encoder is not None:
-            # Each fit/fold owns its encoder weights and BN buffers. Shape probing
-            # must not update the template, running statistics or dropout state.
-            self.encoder_ = copy.deepcopy(self.encoder).to(device=self.device_, dtype=torch.float32)
-            self.encoder_.requires_grad_(True).eval()
-            with torch.no_grad():
-                features = self.encoder_(torch.as_tensor(X[:1], device=self.device_))
-            width = validate_encoder_features(features, encoder_param_name="encoder")
-            if features.shape[0] != 1:
-                raise ValueError("encoder must preserve the input batch dimension")
-        self.model_ = nn.Sequential(
-            nn.Linear(width, self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
-        ).to(self.device_)
-        if self.encoder_ is not None:
-            self.model_ = nn.Sequential(self.encoder_, self.model_)
+        self.model_, self.encoder_ = self._build_model(X)
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         data = torch.as_tensor(X)
         self.classes_ = np.array([0, 1])
@@ -222,24 +216,29 @@ class HolisticPUClassifier(BasePUClassifier):
         self.training_view_, self.calibration_applied_ = "os", False
         self.n_positive_, self.n_unlabeled_ = len(positive), len(unlabeled)
         self.optimizer_steps_ = 0
+        self.stage_optimizer_steps_ = {"warmup": 0, "pseudo_pn": 0}
+        self.pseudo_pn_initialization_ = self.pseudo_pn_initialization
+        self.pseudo_pn_optimizer_reset_ = False
         self.history_ = {
             "warmup_loss": [],
             "pseudo_pn_loss": [],
             "epoch": [],
             "phase": [],
             "train_loss": [],
+            "optimizer_steps": [],
         }
         self.stopping_rule_ = "fixed_warmup_budget_not_LZO"
         self.trend_variant_, self.partition_objective_ = "paper_pairwise", "paper_variance"
         self.pseudo_label_indices_ = unlabeled.copy()
 
-        def update(loss):
+        def update(loss, stage):
             if not torch.isfinite(loss):
                 raise ValueError("Holistic-PU loss became non-finite")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             self.optimizer_steps_ += 1
+            self.stage_optimizer_steps_[stage] += 1
 
         trajectories = []
         for epoch in range(self.warmup_epochs):
@@ -253,7 +252,7 @@ class HolisticPUClassifier(BasePUClassifier):
                     functional.softplus(-self._logits(data[p].to(self.device_))).mean()
                     + functional.softplus(self._logits(data[u].to(self.device_))).mean()
                 )
-                update(loss)
+                update(loss, "warmup")
                 losses.append(float(loss.detach().cpu()))
             self.model_.eval()
             trajectories.append(self._scores(X[unlabeled]))
@@ -271,7 +270,19 @@ class HolisticPUClassifier(BasePUClassifier):
         labels = y_pu.astype(np.float32).copy()
         labels[unlabeled] = self.pseudo_labels_
         targets = torch.as_tensor(labels)
-        # Continue the warmup classifier on P + pseudo-labeled U, no clean selection.
+        if self.pseudo_pn_initialization == "reinitialize":
+            # Supplement Algorithm 2 step 14 and author main.py:329-335 discard
+            # the warmup model. Reset the CNN too, not just its score head, and
+            # never carry warmup Adam moments into a newly initialized network.
+            restarted, restarted_encoder = self._build_model(X, reinitialize_encoder=True)
+            old_shapes = {name: value.shape for name, value in self.model_.state_dict().items()}
+            new_shapes = {name: value.shape for name, value in restarted.state_dict().items()}
+            if old_shapes != new_shapes:
+                raise ValueError("reinitialized model architecture must match warmup checkpoints")
+            self.model_, self.encoder_ = restarted, restarted_encoder
+            optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
+            self.pseudo_pn_optimizer_reset_ = True
+        # Supervise P + pseudo-labeled U; neither variant reads clean selection.
         for epoch in range(self.max_epochs):
             self.model_.train()
             losses = []
@@ -282,7 +293,7 @@ class HolisticPUClassifier(BasePUClassifier):
                 loss = functional.binary_cross_entropy_with_logits(
                     logits, targets[indices].to(self.device_)
                 )
-                update(loss)
+                update(loss, "pseudo_pn")
                 losses.append(float(loss.detach().cpu()))
             self.history_["pseudo_pn_loss"].append(float(np.mean(losses)))
             self.model_.eval()
@@ -290,6 +301,55 @@ class HolisticPUClassifier(BasePUClassifier):
         self.model_.eval()
         self._is_fitted = True
         return self
+
+    @staticmethod
+    def _check_encoder_reinitialization(encoder):
+        """Refuse parameter owners without an explicit reset contract.
+
+        Built-in Conv/Linear/BN layers implement reset_parameters. A custom
+        parameter owner must do so too: copying initial/pretrained weights is
+        not a substitute for randomly reinitializing the source algorithm.
+        """
+        for name, layer in encoder.named_modules():
+            own_parameters = dict(layer.named_parameters(recurse=False))
+            if {"weight_g", "weight_v"} <= own_parameters.keys():
+                raise ValueError(
+                    "reinitialize encoder does not support legacy weight_norm parameter owners; "
+                    f"reset_parameters does not reset weight_g/weight_v at {name or '<root>'}"
+                )
+            if own_parameters and not callable(getattr(layer, "reset_parameters", None)):
+                raise ValueError(
+                    "reinitialize encoder requires reset_parameters on every parameter owner; "
+                    f"missing at {name or '<root>'} ({type(layer).__name__})"
+                )
+
+    def _build_model(self, X, *, reinitialize_encoder=False):
+        """Independent encoder/head; probing is eval-only and device-batched."""
+        import torch
+        from torch import nn
+
+        own_encoder = None
+        width = X.shape[1]
+        if self.encoder is not None:
+            own_encoder = copy.deepcopy(self.encoder).to(device=self.device_, dtype=torch.float32)
+            if reinitialize_encoder:
+                for layer in own_encoder.modules():
+                    reset = getattr(layer, "reset_parameters", None)
+                    has_own_state = list(layer.parameters(recurse=False)) or list(
+                        layer.buffers(recurse=False)
+                    )
+                    if has_own_state and callable(reset):
+                        reset()
+            own_encoder.requires_grad_(True).eval()
+            with torch.no_grad():
+                features = own_encoder(torch.as_tensor(X[:1], device=self.device_))
+            width = validate_encoder_features(features, encoder_param_name="encoder")
+            if features.shape[0] != 1:
+                raise ValueError("encoder must preserve the input batch dimension")
+        head = nn.Sequential(
+            nn.Linear(width, self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
+        ).to(self.device_)
+        return (nn.Sequential(own_encoder, head) if own_encoder is not None else head), own_encoder
 
     def _record_epoch(self, epoch, phase, losses, callback):
         self.checkpoint_stage_ = phase
@@ -300,6 +360,7 @@ class HolisticPUClassifier(BasePUClassifier):
         self.history_["epoch"].append(epoch)
         self.history_["phase"].append(phase)
         self.history_["train_loss"].append(float(np.mean(losses)))
+        self.history_["optimizer_steps"].append(self.optimizer_steps_)
         if callback is not None:
             callback(epoch, self)
 

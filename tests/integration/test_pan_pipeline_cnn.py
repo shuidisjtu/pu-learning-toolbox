@@ -105,3 +105,24 @@ def test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak
 def test_param_edge_cnn_not_silently_enabled_for_mlp_only_algorithms():
     with pytest.raises(PipelineError, match="cnn"):
         PUPipeline(classifier="genpu", architecture="cnn", cv=2, max_epochs=1)
+
+
+@pytest.mark.parametrize("backbone", ["cnn13", "resnet18"])
+def test_basic_holistic_reinitialization_is_available_through_public_pipeline(backbone):
+    features, labels = images()
+    params = {**small_params("holistic_pu"), "pseudo_pn_initialization": "reinitialize"}
+    pipe = PUPipeline(
+        classifier="holistic_pu",
+        architecture="cnn",
+        backbone=backbone,
+        cv=2,
+        max_epochs=1,
+        classifier_params=params,
+        random_state=3,
+        device="cpu",
+    )
+    with pytest.warns(UserWarning, match=r"trained 2 times \(CV folds only; refit=False\)"):
+        report = pipe.fit_evaluate(features, labels, refit=False)
+    assert report.provenance["architecture"] == "native_cnn"
+    assert report.provenance["backbone"] == backbone
+    assert report.provenance["classifier_params"]["pseudo_pn_initialization"] == "reinitialize"

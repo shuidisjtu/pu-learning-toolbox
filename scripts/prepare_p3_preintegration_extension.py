@@ -31,6 +31,7 @@ METHOD_BLOCKERS = {
     "holistic_pu": [
         "paper_pairwise_variance_vs_author_adjacent_Jenks_decision",
         "fixed_warmup_vs_LZO_and_finetune_spec",
+        "pseudo_pn_initialization_variant_recipe_decision",
         "source_license_review",
         "trajectory_and_model_selection_storage_spec",
     ],
@@ -73,6 +74,7 @@ def build_extension(ledger, protocol):
                         "calibration_hooked",
                         "requires_clean_support",
                         "pa_eligible",
+                        "stage_initialization_review_ref",
                     )
                     if key in entry
                 },

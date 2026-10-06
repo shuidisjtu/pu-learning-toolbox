@@ -5,7 +5,8 @@ warmup/pseudo_pn 快照保留阶段内 epoch 和累计更新数；不改变 fixe
 OS/TS 适用性或预算，也不由技术快照记录决定正式阶段资格。
 
 同日补[原始停止/阶段来源核查及 CNN 工程路径](../pu_survey/holistic_source_cnn_review_20261007.md)：
-原生注入 CNN 已能两阶段端到端训练；LZO 与后段重新初始化仍未实现，不宣称完整论文复现。
+原生注入 CNN 已能两阶段端到端训练；后续已补
+[显式后段重新初始化](../pu_survey/holistic_stage_initialization_20261007.md)，LZO 仍未实现，不宣称完整论文复现。
 
 Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_files/paper/2023/file/d5c0f9585592bad5251133813893a6c0-Paper-Conference.pdf)
 式 (1)、(4)/(5)、(8)、§2.4 的最终 CE。[作者仓库](https://github.com/wxr99/HolisticPU/tree/4d4ce7d6ba29722995d308293374c0f475d988d3)
@@ -23,7 +24,7 @@ Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_fil
 | 划分 | 式 (8)：SSE左/n左 + SSE右/n右 | `jenkspy.jenks_breaks` 的 SSE左+SSE右；不能将两者视为同目标 |
 | 正断点处理 | 当前无额外常数过滤 | `utils/misc.py:101-105` 的 `three_sigma` 实际取 x<0.2/9，不是三倍标准差 |
 | 停止 | 论文 §2.2/§2.3 用 LZO；本分类器仍是固定预算 `fixed_warmup_budget_not_LZO` | `main.py:284` / `train.py:213` 按固定 warming_steps；`train.py:168` 混合验证调用被注释，不据此声称论文 LZO |
-| 后段训练 | §2.4 的伪标签 CE；补充 Algorithm 2 页22 要求重新初始化，本分类器继续同模型/Adam 是适配 | `main.py:329-335` 删除预热模型后新建；`model/loss.py:loss_ft` 渐进目标、强弱增强未复现 |
+| 后段训练 | §2.4 的伪标签 CE；默认 `continue` 保留同模型/Adam；显式 `reinitialize` 重新建网络和 Adam，对齐补充 Algorithm 2 页22 的初始化步骤 | `main.py:329-335` 删除预热模型后新建；`model/loss.py:loss_ft` 渐进目标、强弱增强未复现 |
 
 `holistic_trend_scores` 明确区分 `paper_pairwise` 与 `author_adjacent`（后者 scale 必须 1）；
 `holistic_natural_break` 区分 `paper_variance` 与 `author_sse`。
@@ -50,10 +51,17 @@ sample_weight 非空拒绝。`epoch_callback` 在两个阶段每轮结束时调�
 不构造全样本二次矩阵。不是 LZO 或完整官方图像实验复现。
 
 `encoder` 必须输出二维 batch×features；4-D NCHW 不允许默默 flatten。每次 fit deepcopy
-模板并训练编码器，两个阶段继续同一副本；模板权重/BatchNorm 不污染其它折。
+模板并训练编码器；默认两个阶段继续同一副本，`reinitialize` 后段新建并随机重置 CNN 和 head、
+清空 BN 运行统计及 Adam；模板权重/BatchNorm 不污染其它折。
 原始数据/目标留 CPU，优化批次、轨迹扫描、预测按 `batch_size` 分批上设备。
 eval 扫描不更新 BN，预测即使失败也恢复全部层的原模式；单行尾批用 BN 运行统计，
 不丢行且保留 affine 参数梯度。这些是独立工程约定，非作者 CNN7/增强/EMA 配方。
+
+`pseudo_pn_initialization` 仅接受 `continue`（默认）/`reinitialize`；后者不等于只恢复
+初始模板/预训练 CNN，参数所有者必须支持 `reset_parameters`，legacy weight_norm 明确拒绝。
+`pseudo_pn_initialization_` / `pseudo_pn_optimizer_reset_` 记录实际路径，
+`stage_optimizer_steps_` 分阶段计数，`optimizer_steps_` / history 保持累计，不因后段重建清零。
+LZO、后段初始化变体选择和正式阶段 PA/OA 资格仍待预注册；该接口不批准任何 recipe。
 
 公式、暴力划分、40,000 行内存形态 smoke、平衡 minibatch、常数轨迹拒绝、种子/clone/pickle
 及预算边界见 `tests/unit/estimators/test_holistic_pu.py`。正式候选、图像/停止规格、数字对照、

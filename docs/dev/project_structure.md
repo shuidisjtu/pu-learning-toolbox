@@ -275,6 +275,7 @@ tests/
       test_p3_budget_selection_evidence.py # 五方法预算计数、来源适配和选择签名边界
       test_p3_source_behavior.py        # 五方法独立标量来源公式、梯度和边界对照
       test_holistic_pu_cnn.py           # Holistic-PU 双阶段 CNN、模板/BN 隔离与快照回放
+      test_holistic_pu_initialization.py # Holistic-PU 后段重初始化、Adam 隔离与累计成本
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
