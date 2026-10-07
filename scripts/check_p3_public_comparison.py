@@ -16,6 +16,11 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+
 from scripts.check_p3_admission_evidence import (
     EVIDENCE_REF,
     METHODS,
@@ -34,6 +39,8 @@ BOUND_FILES = (
     "pu_toolbox/experiment/survey_comparison_v3.json",
     EVIDENCE_REF,
 )
+BOUND_FILES_DIGEST_POLICY = "parsed_json_toml_strict_canonical_json_sha256"
+CONFIG_PARSERS = {".json": json.loads, ".lock": tomllib.loads}
 DATASETS = ("spambase", "imdb", "cifar10")
 SOURCE_TYPES = {
     "puet": ("accuracy", "percentage_points", "std", 5),
@@ -71,6 +78,22 @@ def normalize_reading(row):
     }
 
 
+def config_digest(path):
+    """Digest parsed configuration: types and array order, never formatting.
+
+    Newlines, indentation, object key order and comments are representation, not
+    configuration, so hashing recorded bytes would report them as drift.  Only
+    formats named in ``CONFIG_PARSERS`` are parsed: an unknown suffix is refused
+    rather than guessed as TOML, and there is no raw-byte fallback that would
+    hide a binding still written under the old byte policy.
+    """
+    from pu_toolbox.utils.serialization import strict_canonical_hash
+
+    parse = CONFIG_PARSERS.get(path.suffix)
+    require(parse is not None, f"unsupported configuration format: {path.name}")
+    return strict_canonical_hash(parse(path.read_text(encoding="utf-8")))
+
+
 def validate_draft(draft, ledger, protocol, *, root=ROOT):
     """Validate coverage/reference consistency; this cannot verify paper truths."""
     json.dumps(draft, allow_nan=False)
@@ -93,10 +116,16 @@ def validate_draft(draft, ledger, protocol, *, root=ROOT):
         draft["new_method_results"] == [] and draft["numeric_verdicts"] == [], "invented results"
     )
     require(draft["admission_evidence_ref"] == EVIDENCE_REF, "evidence ref drift")
+    digest_policy = draft.get("bound_files_digest_policy")
+    require(digest_policy is not None, "missing bound file digest policy")
+    require(
+        digest_policy == BOUND_FILES_DIGEST_POLICY,
+        f"unknown bound file digest policy: {digest_policy!r}",
+    )
     require(set(draft["bound_files_sha256"]) == set(BOUND_FILES), "missing frozen bindings")
     for reference, expected in draft["bound_files_sha256"].items():
         require(
-            hashlib.sha256(repo_file(reference, root).read_bytes()).hexdigest() == expected,
+            config_digest(repo_file(reference, root)) == expected,
             "bound file drift",
         )
     profiles = draft["source_profiles"]
