@@ -86,7 +86,6 @@ WORKING_COPY_DIRS = ("B3ab_merged",)
 #: Checks this entry point cannot decide, and why.  Recorded so that a reader
 #: sees them as unwired rather than as reviewed-and-clean.
 _UNWIRED_CHECKS = {
-    "A04": "plan identity needs the batch plan JSONs, which are not wired yet",
     "A05": "exit codes and completion lines live in the run logs, not the manifests",
     "A11": "archive existence and digests need the backup directories",
     "A14": "snapshot wording is a documentation check, not a manifest one",
@@ -120,6 +119,18 @@ def load_config(path: str | Path) -> dict[str, Any]:
             raise ConfigError(f"batch {batch.get('name')!r} needs an expected count")
         if batch.get("role", "formal") not in {"formal", "technical_probe"}:
             raise ConfigError(f"batch {batch.get('name')!r} has an unknown role")
+        if "plan" in batch:
+            if not isinstance(batch["plan"], str) or not batch["plan"]:
+                raise ConfigError(f"batch {batch.get('name')!r} needs 'plan' as a path string")
+            # Relative to the config, so a config and its plans can move together.
+            batch["plan"] = str((Path(path).resolve().parent / batch["plan"]).resolve())
+        if "checkpoint_inventory" in batch:
+            inventory = batch["checkpoint_inventory"]
+            if not isinstance(inventory, str) or not inventory:
+                raise ConfigError(
+                    f"batch {batch.get('name')!r} needs 'checkpoint_inventory' as a path string"
+                )
+            batch["checkpoint_inventory"] = str((Path(path).resolve().parent / inventory).resolve())
     return payload
 
 
@@ -255,6 +266,134 @@ def check_whitelist(config: dict[str, Any], entries: list[dict[str, Any]]) -> di
         },
         expected={"batches": sorted(roots)},
         evidence=absent,
+    )
+
+
+def _plan_run_key(run: dict[str, Any]) -> tuple[Any, ...]:
+    return tuple(
+        run.get(field)
+        for field in ("dataset", "method", "training_path", "mechanism", "c_token", "seed", "view")
+    )
+
+
+def _manifest_run_key(payload: dict[str, Any]) -> tuple[Any, ...]:
+    """A manifest's run, spelled the way a plan spells it.
+
+    The plan writes the PN oracle with no mechanism and no c, while its manifest
+    records ``pn_oracle`` and a nominal ``c``; the translation is made here, once,
+    so neither side is read literally.
+    """
+    unit = payload["execution_unit"]
+    oracle = bool(payload.get("c_independent"))
+    return (
+        unit["dataset"],
+        unit["method"],
+        payload["training_path"],
+        None if oracle else mechanism_of(payload),
+        None if oracle else normalize_c_token(payload),
+        payload["seed"],
+        payload["run_view"],
+    )
+
+
+def _compare_plan(
+    plan_path: str, delivered: list[dict[str, Any]], *, frozen_sha256: str
+) -> tuple[list[str], list[str], set[str]]:
+    """``(findings, member_paths, reason_codes)`` for one batch against its plan."""
+    try:
+        document = json.loads(Path(plan_path).read_text(encoding="utf-8"))
+        runs = document["runs"]
+        planned = [_plan_run_key(run) for run in runs]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        return [f"cannot read the plan {plan_path}: {exc}"], [], set()
+
+    findings: list[str] = []
+    reasons: set[str] = set()
+    if document.get("source_protocol_sha256") != frozen_sha256:
+        findings.append(
+            f"plan protocol {document.get('source_protocol_sha256')!r} is not the frozen "
+            f"protocol {frozen_sha256!r}"
+        )
+        reasons.add("superseded_protocol")
+    total = (document.get("totals") or {}).get("planned")
+    if total != len(planned):
+        findings.append(f"totals.planned is {total!r} but the plan lists {len(planned)} run(s)")
+    repeated = sorted(
+        {key for key in planned if planned.count(key) > 1}, key=lambda key: tuple(map(str, key))
+    )
+    findings.extend(f"plan repeats run {key}" for key in repeated)
+
+    by_key: dict[tuple[Any, ...], list[str]] = {}
+    for entry in delivered:
+        try:
+            key = _manifest_run_key(entry["payload"])
+        except (KeyError, TypeError, ValueError):
+            findings.append(f"{entry['path']}: identity fields cannot be read against the plan")
+            continue
+        by_key.setdefault(key, []).append(str(entry["path"]))
+    planned_set = set(planned)
+    members: list[str] = []
+    for key in sorted(planned_set - set(by_key), key=lambda key: tuple(map(str, key))):
+        findings.append(f"planned but not delivered: {key}")
+    for key in sorted(set(by_key) - planned_set, key=lambda key: tuple(map(str, key))):
+        for path in by_key[key]:
+            findings.append(f"delivered but not planned: {path} {key}")
+            members.append(path)
+    return findings, members, reasons
+
+
+def check_plan(
+    config: dict[str, Any], loaded: list[dict[str, Any]], *, frozen_sha256: str
+) -> dict[str, Any]:
+    """A04: each planned batch delivered exactly the runs its plan listed.
+
+    Compared as sets of parsed runs rather than by file hash or by count: the same
+    plan has been stored twice with different bytes and identical content, and a
+    count cannot see a run swapped for another.  Three honest outcomes: ``fail`` if
+    any configured batch disagrees with its plan; ``not_run`` while any batch has no
+    plan configured, with the verified ones named so a verified half is not read as a
+    verified whole; ``pass`` only when every batch was compared and agreed.
+    """
+    verified: dict[str, int] = {}
+    unverified: list[str] = []
+    findings: list[str] = []
+    members: list[str] = []
+    reasons: set[str] = set()
+    for batch in config["batches"]:
+        name = batch["name"]
+        if not batch.get("plan"):
+            unverified.append(name)
+            continue
+        delivered = [entry for entry in loaded if entry["batch"] == name]
+        batch_findings, batch_members, batch_reasons = _compare_plan(
+            batch["plan"], delivered, frozen_sha256=frozen_sha256
+        )
+        findings.extend(f"{name}: {item}" for item in batch_findings)
+        members.extend(batch_members)
+        reasons.update(batch_reasons)
+        if not batch_findings:
+            verified[name] = len(delivered)
+    if findings:
+        result, severity = "fail", "error"
+        message = f"{len(findings)} disagreement(s) between a batch and its plan"
+    elif unverified:
+        result, severity = "not_run", "warning"
+        message = f"no plan configured for {unverified}" + (
+            f"; verified {sorted(verified)}" if verified else ""
+        )
+    else:
+        result, severity = "pass", "info"
+        message = f"every delivered run is a planned run, in {len(verified)} batch(es)"
+    return make_check(
+        check_id="A04",
+        result=result,
+        severity=severity,
+        scope="batch",
+        message=message,
+        observed={"verified_batches": verified, "unverified_batches": sorted(unverified)},
+        evidence=findings[:40],
+        members=members,
+        reasons=sorted(reasons),
     )
 
 
@@ -450,7 +589,39 @@ def _reclaim_refs(payload: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def check_reclaim(loaded: list[dict[str, Any]]) -> dict[str, Any]:
+def load_checkpoint_inventory(path: str | Path) -> set[str]:
+    """The checkpoint paths a batch's ``checkpoint_inventory.tsv`` lists as on disk.
+
+    One ``<path>\\t<bytes>`` line per file left after reclamation.  Only the path is
+    read; the size is not evidence of anything the reclaim accounting claims.
+    """
+    paths: set[str] = set()
+    for number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        fields = line.split("\t")
+        if len(fields) != 2 or not fields[0] or not fields[1].isdigit():
+            raise ConfigError(f"{path}: line {number} is not '<path><TAB><bytes>'")
+        paths.add(fields[0])
+    return paths
+
+
+def _inventory_findings(refs: list[dict[str, Any]], inventory: set[str], *, path: str) -> list[str]:
+    """File-by-file disagreements between a manifest's references and an inventory."""
+    findings = []
+    for ref in refs:
+        recorded = str(ref.get("path"))
+        present = recorded in inventory
+        if ref.get("reclaimed") and present:
+            findings.append(f"{path}: {recorded} is marked reclaimed but still on disk")
+        elif not ref.get("reclaimed") and not present:
+            findings.append(f"{path}: {recorded} is marked kept but missing from the inventory")
+    return findings
+
+
+def check_reclaim(
+    loaded: list[dict[str, Any]], *, inventories: dict[str, set[str]] | None = None
+) -> dict[str, Any]:
     """A10: ``reclaimed_true + files_on_disk == refs``, run by run.
 
     Only batches that actually reclaimed can be judged, so a tree whose manifests
@@ -460,9 +631,16 @@ def check_reclaim(loaded: list[dict[str, Any]]) -> dict[str, Any]:
     file count.  Where the recorded checkpoint paths do not resolve on this host the
     count is refused rather than guessed, because a local success against a foreign
     path would be an accident.
+
+    A batch may instead come with its ``checkpoint_inventory.tsv`` (*inventories*,
+    keyed by batch name), which stands in for the directory listing.  It is judged
+    file by file -- a reclaimed reference must be absent, a kept one present, and an
+    inventory file no manifest references is an orphan -- because a lost file and a
+    stray file would otherwise cancel in a count.
     """
     applicable = {str(entry["path"]): _reclaim_refs(entry["payload"]) for entry in loaded}
     applicable = {path: refs for path, refs in applicable.items() if refs}
+    batch_of = {str(entry["path"]): entry["batch"] for entry in loaded}
     if not applicable:
         return make_check(
             check_id="A10",
@@ -477,7 +655,15 @@ def check_reclaim(loaded: list[dict[str, Any]]) -> dict[str, Any]:
         )
     unreachable: list[str] = []
     mismatched: list[str] = []
+    referenced: dict[str, set[str]] = {}
     for path, refs in sorted(applicable.items()):
+        inventory = (inventories or {}).get(batch_of[path])
+        if inventory is not None:
+            referenced.setdefault(batch_of[path], set()).update(
+                str(ref.get("path")) for ref in refs
+            )
+            mismatched.extend(_inventory_findings(refs, inventory, path=path))
+            continue
         reclaimed = sum(1 for ref in refs if ref.get("reclaimed"))
         directories = {Path(str(ref["path"])).parent for ref in refs if ref.get("path")}
         if not directories or any(not directory.is_dir() for directory in directories):
@@ -488,6 +674,29 @@ def check_reclaim(loaded: list[dict[str, Any]]) -> dict[str, Any]:
             mismatched.append(
                 f"{path}: reclaimed {reclaimed} + on disk {on_disk} != {len(refs)} references"
             )
+    orphans = [
+        f"{batch}: {recorded} is in the inventory but no manifest references it (orphan)"
+        for batch, listed in sorted((inventories or {}).items())
+        if batch in referenced
+        for recorded in sorted(listed - referenced[batch])
+    ]
+    # A fault found outranks a gap: a batch that could not be judged must not hide
+    # one that was judged and does not balance.
+    if mismatched or orphans:
+        unbalanced = len({item.split(": ", 1)[0] for item in mismatched})
+        observed = {"manifests_with_reclaim": len(applicable), "unbalanced": unbalanced}
+        if inventories:
+            observed["orphans"] = len(orphans)
+        return make_check(
+            check_id="A10",
+            result="fail",
+            severity="error",
+            scope="group",
+            message=f"{unbalanced} manifest(s) do not balance; {len(orphans)} orphan file(s)",
+            observed=observed,
+            evidence=(mismatched + orphans)[:20],
+            members=sorted(applicable),
+        )
     if unreachable:
         return make_check(
             check_id="A10",
@@ -499,18 +708,18 @@ def check_reclaim(loaded: list[dict[str, Any]]) -> dict[str, Any]:
             evidence=unreachable[:20],
             members=sorted(applicable),
         )
+    observed = {"manifests_with_reclaim": len(applicable), "unbalanced": 0}
+    if inventories:
+        observed["orphans"] = 0
     return make_check(
         check_id="A10",
-        result="fail" if mismatched else "pass",
-        severity="error" if mismatched else "info",
+        result="pass",
+        severity="info",
         scope="group",
         message=(
             f"reclaimed + on disk balances against references in all {len(applicable)} manifest(s)"
-            if not mismatched
-            else f"{len(mismatched)} manifest(s) do not balance"
         ),
-        observed={"manifests_with_reclaim": len(applicable), "unbalanced": len(mismatched)},
-        evidence=mismatched[:20],
+        observed=observed,
         members=sorted(applicable),
     )
 
@@ -684,10 +893,16 @@ def build_audit(
         "total": len(loaded),
     }
 
+    inventories = {
+        batch["name"]: load_checkpoint_inventory(batch["checkpoint_inventory"])
+        for batch in config["batches"]
+        if batch.get("checkpoint_inventory")
+    }
     checks = [
         check_whitelist(config, entries),
         check_coverage(config, entries),
         check_protocol(loaded, frozen_sha256=frozen),
+        check_plan(config, loaded, frozen_sha256=frozen),
     ]
 
     # Phase A: per-manifest structure, grouped so one check names every offender.
@@ -737,7 +952,7 @@ def build_audit(
             check_selection(loaded),
             check_view_mechanism(loaded),
             check_result_completeness(loaded, protocol=protocol),
-            check_reclaim(loaded),
+            check_reclaim(loaded, inventories=inventories),
             check_status_labels(loaded),
             check_probe_separation(loaded, protocol=protocol),
         ]

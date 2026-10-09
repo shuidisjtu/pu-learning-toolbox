@@ -102,6 +102,20 @@ PN oracle）；跨数据集只比较趋势，不生成总排名。
 A10 的**实质**已另行验证：B4 的回收守恒式 `reclaimed + on_disk == refs` 在源端逐 run 核对通过
 （35/35），见 [`p2_1_b4_snapshot.md`](p2_1_b4_snapshot.md) §7.1。
 
+**接线更新（2026-10-09，分支 `feature/p2-2-audit-wiring`）**：上表是产出 commit `40826a2` 那次报告的记账，
+下面两项此后已有代码入口，原报告数字不改写，须用新 checkout 重跑才得到新结论：
+
+- **A04** 读白名单里每批可选的 `plan`（相对路径按配置文件所在目录解析）：把计划的 `runs`
+  与 manifest 按 `(dataset, method, training_path, mechanism, c_token, seed, view)` 解析后的集合比对，
+  同时核计划的 `source_protocol_sha256` 与 `totals.planned`。比解析内容而非文件字节，
+  因为同一份 B1 计划在本机与备份包里字节不同、内容相等。任一批未配置 `plan` 时仍为 `not_run`，
+  并写明已验证的批次。
+- **A10** 读每批可选的 `checkpoint_inventory`（`<路径>\t<字节数>` 的 TSV）代替磁盘列表，逐文件判定：
+  标记已回收的引用须不在清单中，未回收的须在清单中，清单中无人引用的文件算孤儿。
+  未配置清单且路径本机解析不到时仍为 `not_run`。
+
+A05（退出码不在日志里，只有完成行）与 A11 尚未接线。
+
 ## 7. 复现
 
 三个入口都是读 manifest 的纯分析，不重训、不改 test 指标：
@@ -135,5 +149,6 @@ Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字�
   `["collaborator_review"]`；PA 准则与 `self_pu` 元重加权的复核同样未获得。**本文件不得读作已签署**
   （未获项清单见 [`survey_execution_plan.md`](../survey_execution_plan.md) §1.2 的 RV1–RV7）。
 - **期望单元完整性格网口径**（D13 遗留）：复合分区下「缺失单元」如何判定仍未定，本次不涉。
-- **A04（计划身份）仍为 `not_run`**：需要五批的参考计划 JSON，目前只有 B1 的在执行机上，
-  B2/B3a/B3b/B4 需从源端取。其余 6 项 `not_run` 的缺什么输入见 §6。
+- **A04 / A10 已有接线入口，但原报告未重跑**：五批计划 JSON 已在本机
+  （`execution_partition_plan/plans/`），B4 的 `checkpoint_inventory.tsv` 在备份的 evidence 包内；
+  需用接线后的 checkout 重跑审计并登记新摘要，原 `not_run` 才能改写。其余 `not_run` 的缺什么输入见 §6。
