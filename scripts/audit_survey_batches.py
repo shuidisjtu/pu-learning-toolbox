@@ -89,14 +89,6 @@ _PATH_KEYS = ("plan", "checkpoint_inventory", "run_log", "archive_digests", "exi
 #: as its flattened copy, so discovery refuses the whole run instead.
 WORKING_COPY_DIRS = ("B3ab_merged",)
 
-#: Checks this entry point cannot decide, and why.  Recorded so that a reader
-#: sees them as unwired rather than as reviewed-and-clean.
-_UNWIRED_CHECKS = {
-    "A14": "snapshot wording is a documentation check, not a manifest one",
-    "A16": "ablation disclosure is a snapshot/report check, not a manifest one",
-    "A17": "selection-path isolation is asserted by the protocol test suite",
-}
-
 
 class ConfigError(ValueError):
     """A batch-root config that cannot be used as given."""
@@ -1095,8 +1087,159 @@ def empty_report(generated_at: str | None = None) -> dict[str, Any]:
     }
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DELIVERY_DIR = "docs/research/pu_survey/delivery"
+
+#: The stage snapshot that carries each batch's boundary wording.  B3a and B3b share
+#: one because the adapter group is analysed as a whole.
+SNAPSHOT_FILES = {
+    "B1": "p2_1_b1_snapshot.md",
+    "B2": "p2_1_b2_snapshot.md",
+    "B3a": "p2_1_b3a_snapshot.md",
+    "B3b": "p2_1_b3ab_snapshot.md",
+    "B4": "p2_1_b4_snapshot.md",
+}
+ABLATION_SNAPSHOT = SNAPSHOT_FILES["B3b"]
+
+#: Tests that keep the test set out of selection: a test view cannot be handed to a
+#: selection protocol, and PA never sees clean labels.
+ISOLATION_TESTS = (
+    ("tests/unit/experiment/test_bundle.py", "test_edge_test_for_selection_false"),
+    (
+        "tests/unit/experiment/test_strategies_selection.py",
+        "test_param_protocolpa_rejects_clean_view",
+    ),
+    ("tests/unit/experiment/test_runner.py", "test_pa_never_receives_clean_labels"),
+)
+
+_BOUNDARY_HEADING = re.compile(r"^#+ .*本快照不含", re.MULTILINE)
+
+
+def _read_text(path: Path) -> tuple[str | None, str | None]:
+    """``(text, problem)``: exactly one of the two is ``None``."""
+    try:
+        return path.read_text(encoding="utf-8"), None
+    except (OSError, UnicodeDecodeError) as exc:
+        return None, f"cannot read {path.name}: {exc}"
+
+
+def _documentation_check(
+    check_id: str, findings: list[str], *, ok_message: str, fail_message: str, observed: dict
+) -> dict[str, Any]:
+    failed = bool(findings)
+    return make_check(
+        check_id=check_id,
+        result="fail" if failed else "pass",
+        severity="error" if failed else "info",
+        scope="global",
+        message=fail_message if failed else ok_message,
+        observed=observed,
+        evidence=findings[:40],
+    )
+
+
+def check_snapshots(config: dict[str, Any], repo_root: Path) -> dict[str, Any]:
+    """A14: each batch has its stage snapshot, and the snapshot has its boundary section.
+
+    Only the file and the "本快照不含" heading are looked for; whether the wording under
+    it is right, or the snapshot final (B4's title still says draft), is a reviewer's call.
+    """
+    findings: list[str] = []
+    drafts: list[str] = []
+    found: list[str] = []
+    for batch in config["batches"]:
+        name = batch["name"]
+        filename = SNAPSHOT_FILES.get(name)
+        if filename is None:
+            findings.append(f"{name}: no stage snapshot is registered for this batch")
+            continue
+        text, problem = _read_text(repo_root / DELIVERY_DIR / filename)
+        if problem:
+            findings.append(f"{name}: {problem}")
+        elif not _BOUNDARY_HEADING.search(text):
+            findings.append(f"{name}: {filename} has no '本快照不含' section")
+        else:
+            found.append(name)
+            if "草稿" in text.splitlines()[0]:
+                drafts.append(name)
+    return _documentation_check(
+        "A14",
+        findings,
+        ok_message=(
+            f"{len(found)} batch snapshot(s) present with their boundary section; "
+            "the wording itself is not judged"
+            + (f"; still titled draft: {drafts}" if drafts else "")
+        ),
+        fail_message=f"{len(findings)} snapshot problem(s)",
+        observed={"snapshots_found": sorted(found), "titled_draft": sorted(drafts)},
+    )
+
+
+def check_ablation_disclosure(loaded: list[dict[str, Any]], repo_root: Path) -> dict[str, Any]:
+    """A16: a delivered ``self_pu`` run is disclosed as an ablation variant without review.
+
+    Both halves are required: the variant is named, and the snapshot says the
+    methodological review of it was not obtained.  Not applicable when no ``self_pu``
+    run is delivered.
+    """
+    if not any(entry["payload"]["execution_unit"]["method"] == "self_pu" for entry in loaded):
+        return make_check(
+            check_id="A16",
+            result="not_applicable",
+            severity="info",
+            scope="global",
+            message="no self_pu run is delivered, so there is no ablation to disclose",
+        )
+    text, problem = _read_text(repo_root / DELIVERY_DIR / ABLATION_SNAPSHOT)
+    findings: list[str] = []
+    if problem:
+        findings.append(problem)
+    else:
+        if "消融变体" not in text:
+            findings.append(f"{ABLATION_SNAPSHOT} does not name the ablation variant")
+        if not any("未获" in line and "复核" in line for line in text.splitlines()):
+            findings.append(f"{ABLATION_SNAPSHOT} does not say the review was not obtained")
+    return _documentation_check(
+        "A16",
+        findings,
+        ok_message=(
+            "the snapshot names the ablation variant and says its review was not obtained; "
+            "that the disclosure is accurate is not judged"
+        ),
+        fail_message=f"{len(findings)} gap(s) in the self_pu disclosure",
+        observed={"snapshot": ABLATION_SNAPSHOT},
+    )
+
+
+def check_isolation_tests(repo_root: Path) -> dict[str, Any]:
+    """A17: the tests that keep the test set out of selection are present.
+
+    The audit does not run them: that they pass is the test suite's verdict.
+    """
+    findings: list[str] = []
+    for relative, test_name in ISOLATION_TESTS:
+        text, problem = _read_text(repo_root / relative)
+        if problem:
+            findings.append(f"{relative}: {problem}")
+        elif f"def {test_name}(" not in text:
+            findings.append(f"{relative}: no test named {test_name}")
+    return _documentation_check(
+        "A17",
+        findings,
+        ok_message=(
+            f"{len(ISOLATION_TESTS)} isolation guard test(s) present; "
+            "whether they pass is the test suite's verdict, not this audit's"
+        ),
+        fail_message=f"{len(findings)} isolation guard test(s) missing",
+        observed={"tests": [f"{path}::{name}" for path, name in ISOLATION_TESTS]},
+    )
+
+
 def build_audit(
-    config: dict[str, Any], *, entries: list[dict[str, Any]] | None = None
+    config: dict[str, Any],
+    *,
+    entries: list[dict[str, Any]] | None = None,
+    repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
     """Run every check this entry point can decide, and name the ones it cannot.
 
@@ -1255,16 +1398,13 @@ def build_audit(
         )
     )
 
-    for check_id, why in sorted(_UNWIRED_CHECKS.items()):
-        checks.append(
-            make_check(
-                check_id=check_id,
-                result="not_run",
-                severity="warning",
-                scope="global",
-                message=why,
-            )
-        )
+    checks.extend(
+        [
+            check_snapshots(config, repo_root),
+            check_ablation_disclosure(loaded, repo_root),
+            check_isolation_tests(repo_root),
+        ]
+    )
 
     report["checks"] = checks
     report["overall"] = overall_status(checks)
