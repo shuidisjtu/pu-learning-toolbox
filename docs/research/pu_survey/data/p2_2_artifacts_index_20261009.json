@@ -1,7 +1,7 @@
 {
   "schema_version": "survey-p22-artifacts-index-1",
   "generated_date": "2026-10-09",
-  "produced_by_commit": "423f761f604bac33d465b131c46970734284fd99",
+  "produced_by_commit": "8cd2922ccc2e23b8d394da844c3bf00e2ba2baed",
   "protocol_version": "survey-v1.2",
   "supersedes_note": "不覆盖 p2_2_artifacts_index.json（产出 commit 40826a2）。本索引是接线 A04/A05/A10/A11 之后在 main 上的重跑：输入树摘要与旧基线相同，汇总与对照的数值结果相同，差异只在审计检查结果与身份块里的 commit。",
   "identity": {
@@ -50,29 +50,29 @@
   "audit_wiring": {
     "A04": "pass",
     "A10": "pass",
-    "A05": "not_run",
-    "A11": "not_run",
+    "A05": "pass",
+    "A11": "pass",
     "A14": "not_run",
     "A16": "not_run",
     "A17": "not_run",
-    "_note": "A05 缺 B3a/B3b 运行日志；A11 缺 B2/B3a/B3b 的 .sha256；退出码恒为 unverified。"
+    "_note": "A05 的退出码在 B1/B3a/B3b/B4 已核对为 0，B2 无退出码文件、记为未核对；A11 只核格式与命名，B1 已重算，其余归档不在本机。"
   },
   "artifacts": {
     "01_audit/audit.json": {
-      "bytes": 17750,
-      "sha256": "8f922e318035288ef4a9c43ebee670f62f00c2c9622c794c9f4d66103f4a308a"
+      "bytes": 18124,
+      "sha256": "c64eb7c5c5cff08fc4e60ab83c98f14200c4f91c860bedf1e929f454684fc9f2"
     },
     "01_audit/audit.md": {
-      "bytes": 4265,
-      "sha256": "d0afc1e55c013af9e20c992c4a8cdbb0b2f24e70f784266320f87741e185a276"
+      "bytes": 4367,
+      "sha256": "fd39c4ef0213e6ac44ea70564a38b9bb5aa4271644ce0ca2c5602364a37bd72c"
     },
     "02_summary/summary.json": {
-      "bytes": 557277,
-      "sha256": "6d906bcf43eb86b32a651bd1c9194650b7d55cac3a5ef50c6fdf31b1465851ca"
+      "bytes": 557651,
+      "sha256": "fc8d1157e54be199b6f6b6a8733dd8e944f55ff197c05c60e58e40269d186bab"
     },
     "02_summary/summary.md": {
       "bytes": 32519,
-      "sha256": "6f0f7c0549894247f14937dbd338735fe883cea2faa930a16c5cc18e6e5fbdc6"
+      "sha256": "605341482687e6109401a50566ceb82eda6539363fb2b17fe1012dc2b05389a7"
     },
     "02_summary/summary.csv": {
       "bytes": 39308,
@@ -88,11 +88,11 @@
     },
     "03_comparison/comparison_summary.json": {
       "bytes": 306060,
-      "sha256": "d6baee1c3387929ac982737663735be860d746a508245bccf7d25fabb9721d93"
+      "sha256": "6404db2389b6c98bdfaa35f31eb1cd163ff5d9f32585ffdc57f46ee5c65d20d7"
     },
     "03_comparison/comparison_summary.md": {
       "bytes": 6493,
-      "sha256": "273a028021b74f5b0f0e304bbd5137b4f8aa42074efa4a6b82690954bb0ba797"
+      "sha256": "1fb97fcd86177eafb2b25283ff0294f0cc01bd57206bfe3f0da9dc4f91869d20"
     },
     "03_comparison/unresolved_items.csv": {
       "bytes": 17730,
@@ -101,12 +101,12 @@
   },
   "evidence": {
     "04_evidence/command_log.txt": {
-      "bytes": 620,
-      "sha256": "343bb648deec89285f3007eff7e4e88a8baebba98f836ee21d0477010bfcbe10"
+      "bytes": 771,
+      "sha256": "973890152b4221c20b1b8a18b3d96205c3de4dcfd0b426f82878e95fc3e330e6"
     },
     "00_inputs/batch_rerun_config.json": {
-      "bytes": 3110,
-      "sha256": "b52a6d9f628a7bf49e1a1717a83637c2c3281956cd6ca0ae16ff026dac36843c"
+      "bytes": 3994,
+      "sha256": "b5ddee788e9309902506c12d1a2dfd833c8f4965e6ba96bd41844600ab4ef848"
     }
   },
   "release_table": {
