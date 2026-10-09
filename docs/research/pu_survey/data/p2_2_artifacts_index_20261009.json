@@ -1,0 +1,118 @@
+{
+  "schema_version": "survey-p22-artifacts-index-1",
+  "generated_date": "2026-10-09",
+  "produced_by_commit": "423f761f604bac33d465b131c46970734284fd99",
+  "protocol_version": "survey-v1.2",
+  "supersedes_note": "不覆盖 p2_2_artifacts_index.json（产出 commit 40826a2）。本索引是接线 A04/A05/A10/A11 之后在 main 上的重跑：输入树摘要与旧基线相同，汇总与对照的数值结果相同，差异只在审计检查结果与身份块里的 commit。",
+  "identity": {
+    "_digest_note": "两种口径并列：*_sha256 是全仓库通用的规范 JSON 摘要（三份报告里印的就是它，由 survey_comparison.comparison_digest() 计算）；*_file_sha256 是仓库中该文件的字节 sha256，供在磁盘上验证文件用。两种不可互相替代。",
+    "protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+    "protocol_file_sha256": "29d2e62339d08033f2155f5425f28a8061efd7ef5c2b136492f0b557bd8d8797",
+    "comparison_sha256": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
+    "comparison_file_sha256": "12b769a22d17db86fed09a2ec61a8fc2d936a840f33d8179853d7dcb7e37a9a3"
+  },
+  "inputs": {
+    "_note": "三个入口只读每份 manifest.json，故树摘要覆盖的正是它们读的全部内容。bytes 是这 645 份 manifest 的合计，不含权重与日志。",
+    "_tree_digest_recipe": "对每个白名单根，取其下全部 manifest.json（三个入口只读这一种文件），按相对路径（以该根为基准、正斜杠、升序）逐行写 `<文件 sha256><两个空格><相对路径>`，行尾 \\n；逐批取该串的 sha256 得批摘要。整体摘要同法，但相对路径写成 `<批名>/<相对路径>`，批序按白名单 batches 的次序（B1 B2 B3a B3b B4）。",
+    "batches": {
+      "B1": {
+        "manifests": 215,
+        "bytes": 30247233,
+        "tree_sha256": "d53789f47701a312c4747a2fa0a2ab1fd945bca9df23654b4e57b757586a8581"
+      },
+      "B2": {
+        "manifests": 215,
+        "bytes": 29304899,
+        "tree_sha256": "387042bc4174a774e2d34344de1efe50823aca7c296984922416ae4c8fa62fd2"
+      },
+      "B3a": {
+        "manifests": 110,
+        "bytes": 2341846,
+        "tree_sha256": "5d898cf25e2d6c978dac25ab4d583306055a94425c1c503377a0d02a8e1cca8f"
+      },
+      "B3b": {
+        "manifests": 70,
+        "bytes": 21414625,
+        "tree_sha256": "47b763411dd5b3bd5405748995cb0b980870eb4974193d0787e69c1c9a53656d"
+      },
+      "B4": {
+        "manifests": 35,
+        "bytes": 7449233,
+        "tree_sha256": "8d05136e476d03afcc6a2c3b9cf6b44496b3eb822bea50ff54334a89f824294b"
+      }
+    },
+    "total": {
+      "manifests": 645,
+      "bytes": 90757836,
+      "tree_sha256": "4c38547a956205d7cae06f79bc1c17a535179da8a3d03a7490a1b18f50c2884e"
+    }
+  },
+  "audit_wiring": {
+    "A04": "pass",
+    "A10": "pass",
+    "A05": "not_run",
+    "A11": "not_run",
+    "A14": "not_run",
+    "A16": "not_run",
+    "A17": "not_run",
+    "_note": "A05 缺 B3a/B3b 运行日志；A11 缺 B2/B3a/B3b 的 .sha256；退出码恒为 unverified。"
+  },
+  "artifacts": {
+    "01_audit/audit.json": {
+      "bytes": 17750,
+      "sha256": "8f922e318035288ef4a9c43ebee670f62f00c2c9622c794c9f4d66103f4a308a"
+    },
+    "01_audit/audit.md": {
+      "bytes": 4265,
+      "sha256": "d0afc1e55c013af9e20c992c4a8cdbb0b2f24e70f784266320f87741e185a276"
+    },
+    "02_summary/summary.json": {
+      "bytes": 557277,
+      "sha256": "6d906bcf43eb86b32a651bd1c9194650b7d55cac3a5ef50c6fdf31b1465851ca"
+    },
+    "02_summary/summary.md": {
+      "bytes": 32519,
+      "sha256": "6f0f7c0549894247f14937dbd338735fe883cea2faa930a16c5cc18e6e5fbdc6"
+    },
+    "02_summary/summary.csv": {
+      "bytes": 39308,
+      "sha256": "41dfaa29c73afb25aa55b5e07f380e28e5bd807057e78fabefdece6fed133f1d"
+    },
+    "02_summary/coverage.csv": {
+      "bytes": 159,
+      "sha256": "576e79ed9fb2a05d0502cc15c28a77c66b7575e9117517b501772d108965fea6"
+    },
+    "02_summary/refusals.json": {
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "03_comparison/comparison_summary.json": {
+      "bytes": 306060,
+      "sha256": "d6baee1c3387929ac982737663735be860d746a508245bccf7d25fabb9721d93"
+    },
+    "03_comparison/comparison_summary.md": {
+      "bytes": 6493,
+      "sha256": "273a028021b74f5b0f0e304bbd5137b4f8aa42074efa4a6b82690954bb0ba797"
+    },
+    "03_comparison/unresolved_items.csv": {
+      "bytes": 17730,
+      "sha256": "7d77e814c47c513ee9f5e8bb1896caf19ea6aabdd5442835e70d97b8bf21afbf"
+    }
+  },
+  "evidence": {
+    "04_evidence/command_log.txt": {
+      "bytes": 620,
+      "sha256": "343bb648deec89285f3007eff7e4e88a8baebba98f836ee21d0477010bfcbe10"
+    },
+    "00_inputs/batch_rerun_config.json": {
+      "bytes": 3110,
+      "sha256": "b52a6d9f628a7bf49e1a1717a83637c2c3281956cd6ca0ae16ff026dac36843c"
+    }
+  },
+  "release_table": {
+    "file": "P2.1_results_645runs_20261003.xlsx",
+    "bytes": 126370,
+    "sha256": "cafedc98d8983764625d7b32e62301aa8de87e7da9d772e185f6a135df9c1244",
+    "_note": "645 行逐 run 原始数据（runs 页）加 183 行 P2.2 派生层（P2.2 汇总 页）的交付表。它在仓库外、由执行方直接发送给复核者；此处登记摘要供接收端比对。生成脚本与生成口径见工作区，不随表交付。"
+  }
+}

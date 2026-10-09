@@ -129,6 +129,17 @@ A10 的**实质**已另行验证：B4 的回收守恒式 `reclaimed + on_disk ==
 本机开发验证（临时配置，非正式报告）：B1/B2/B4 的日志与五批 manifest 一致（215/215/35）；B1 的归档摘要已重算并相符，
 B4 的归档不在本机、未重算；B3a/B3b 无日志，B2/B3a/B3b 无摘要文件，故 A05、A11 在五批整体上仍为 `not_run`。
 
+**重跑记录（2026-10-09，`main` 的 `423f761`，干净检出）**：用接线后的代码重跑三个入口，登记在
+[`data/p2_2_artifacts_index_20261009.json`](../data/p2_2_artifacts_index_20261009.json)，**不覆盖** `40826a2` 那份基线。
+
+- 输入树摘要与旧基线相同（`4c38547a…`，五批摘要也逐批相同）。
+- 审计仍为 `partial`、0 fail：**A04 pass**（645 份对五份计划）、**A10 pass**（B4 的 35 份，守恒式成立）；
+  A05 `not_run`（B1/B2/B4 已验证，缺 B3a/B3b 日志，退出码恒 unverified）；A11 `not_run`（B1/B4 已验证，缺 B2/B3a/B3b 摘要文件）；
+  A14/A16/A17 不变。
+- 汇总与对照的数值结果不变：183 行、180 `formal` / 3 `partial`；`summary.csv`、`coverage.csv`、`refusals.json`、
+  `unresolved_items.csv` 与旧基线逐字节相同，其余文件的差异只来自审计检查与身份块的 commit。
+- 上文 7 项 `not_run` 的表是 `40826a2` 那次报告的记账，保留不改；现状以本段与新索引为准。
+
 ## 7. 复现
 
 三个入口都是读 manifest 的纯分析，不重训、不改 test 指标：
@@ -162,8 +173,6 @@ Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字�
   `["collaborator_review"]`；PA 准则与 `self_pu` 元重加权的复核同样未获得。**本文件不得读作已签署**
   （未获项清单见 [`survey_execution_plan.md`](../survey_execution_plan.md) §1.2 的 RV1–RV7）。
 - **期望单元完整性格网口径**（D13 遗留）：复合分区下「缺失单元」如何判定仍未定，本次不涉。
-- **A04 / A05 / A10 / A11 已有接线入口，但原报告未重跑**：五批计划 JSON 已在本机
-  （`execution_partition_plan/plans/`），B4 的 `checkpoint_inventory.tsv` 在备份的 evidence 包内，
-  B1/B2/B4 有运行日志、B1/B4 有 `.sha256`；需用接线后的 checkout 重跑审计并登记新摘要，原 `not_run` 才能改写。
-  B3a/B3b 的运行日志与 B2/B3a/B3b 的归档摘要仍须从执行机补取。A14、A16、A17 仍是文档/协议证据，
+- **A04 / A10 已由 2026-10-09 重跑转为 pass**（见 §6 重跑记录）；**A05 / A11 仍为 `not_run`**：
+  B3a/B3b 的运行日志与 B2/B3a/B3b 的归档摘要须从执行机补取，补齐后再重跑并登记新索引。A14、A16、A17 仍是文档/协议证据，
   不由 manifest 推断；其余缺什么输入见 §6。
