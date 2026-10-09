@@ -25,7 +25,9 @@ Run:  uv run python scripts/audit_survey_batches.py --config <config.json> --out
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -78,6 +80,10 @@ from pu_toolbox.experiment.survey_summary import (  # noqa: E402
 
 CONFIG_SCHEMA_VERSION = "survey-batch-roots-1"
 
+#: Optional per-batch inputs, each a path.  A check whose key is absent reports
+#: ``not_run`` rather than passing, so adding a key can only add evidence.
+_PATH_KEYS = ("plan", "checkpoint_inventory", "run_log", "archive_digests")
+
 #: Directory names that hold a derived copy rather than a batch of its own.
 #: A manifest under one of these would be counted twice, once as itself and once
 #: as its flattened copy, so discovery refuses the whole run instead.
@@ -86,8 +92,6 @@ WORKING_COPY_DIRS = ("B3ab_merged",)
 #: Checks this entry point cannot decide, and why.  Recorded so that a reader
 #: sees them as unwired rather than as reviewed-and-clean.
 _UNWIRED_CHECKS = {
-    "A05": "exit codes and completion lines live in the run logs, not the manifests",
-    "A11": "archive existence and digests need the backup directories",
     "A14": "snapshot wording is a documentation check, not a manifest one",
     "A16": "ablation disclosure is a snapshot/report check, not a manifest one",
     "A17": "selection-path isolation is asserted by the protocol test suite",
@@ -119,18 +123,13 @@ def load_config(path: str | Path) -> dict[str, Any]:
             raise ConfigError(f"batch {batch.get('name')!r} needs an expected count")
         if batch.get("role", "formal") not in {"formal", "technical_probe"}:
             raise ConfigError(f"batch {batch.get('name')!r} has an unknown role")
-        if "plan" in batch:
-            if not isinstance(batch["plan"], str) or not batch["plan"]:
-                raise ConfigError(f"batch {batch.get('name')!r} needs 'plan' as a path string")
-            # Relative to the config, so a config and its plans can move together.
-            batch["plan"] = str((Path(path).resolve().parent / batch["plan"]).resolve())
-        if "checkpoint_inventory" in batch:
-            inventory = batch["checkpoint_inventory"]
-            if not isinstance(inventory, str) or not inventory:
-                raise ConfigError(
-                    f"batch {batch.get('name')!r} needs 'checkpoint_inventory' as a path string"
-                )
-            batch["checkpoint_inventory"] = str((Path(path).resolve().parent / inventory).resolve())
+        for key in _PATH_KEYS:
+            if key not in batch:
+                continue
+            if not isinstance(batch[key], str) or not batch[key]:
+                raise ConfigError(f"batch {batch.get('name')!r} needs {key!r} as a path string")
+            # Relative to the config, so a config and its inputs can move together.
+            batch[key] = str((Path(path).resolve().parent / batch[key]).resolve())
     return payload
 
 
@@ -394,6 +393,220 @@ def check_plan(
         evidence=findings[:40],
         members=members,
         reasons=sorted(reasons),
+    )
+
+
+_ARROW_LINE = re.compile(r"->\s+(\S+/manifest\.json)\s*$")
+_COMPLETION_LINE = re.compile(
+    r"^completed (\d+) of (\d+) run\(s\)(?: in [^;]+)?; (\d+) still pending"
+)
+
+
+def _relative_key(path: Path, root: str) -> str:
+    """A manifest's path under its batch root, the part a log shares with the host."""
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _compare_log(log_path: str, delivered: list[dict[str, Any]], root: str) -> list[str]:
+    """Disagreements between one batch's run log and the manifests it delivered."""
+    try:
+        lines = Path(log_path).read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        return [f"cannot read the log {log_path}: {exc}"]
+
+    keys = {_relative_key(Path(entry["path"]), root) for entry in delivered}
+    logged: Counter[str] = Counter()
+    unmatched: list[str] = []
+    for line in lines:
+        arrow = _ARROW_LINE.search(line)
+        if not arrow:
+            continue
+        logged_path = arrow.group(1)
+        match = next((key for key in sorted(keys) if logged_path.endswith("/" + key)), None)
+        if match is None:
+            unmatched.append(logged_path)
+        else:
+            logged[match] += 1
+
+    findings: list[str] = []
+    completion = [m for m in map(_COMPLETION_LINE.match, lines) if m]
+    if not completion:
+        findings.append("the log has no completion line")
+    else:
+        done, total, pending = (int(value) for value in completion[-1].groups())
+        if done != total:
+            findings.append(f"the completion line reports {done} of {total} run(s)")
+        if pending:
+            findings.append(f"the completion line reports {pending} still pending")
+        if total != len(delivered):
+            findings.append(
+                f"the completion line totals {total} run(s) but {len(delivered)} manifest(s) "
+                "were delivered"
+            )
+    findings.extend(
+        f"run logged more than once: {key}" for key, n in sorted(logged.items()) if n > 1
+    )
+    findings.extend(f"logged but not delivered: {item}" for item in sorted(set(unmatched)))
+    findings.extend(f"delivered but not logged: {key}" for key in sorted(keys - set(logged)))
+    return findings
+
+
+def check_completion(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict[str, Any]:
+    """A05: each logged batch completed, and its log names exactly the delivered runs.
+
+    The P2.1 logs carry a closing ``completed X of Y run(s); Z still pending`` line and
+    one ``-> .../manifest.json`` line per run, and **no exit code**.  So the check reads
+    what is there, matches each logged run to a manifest by its path under the batch
+    root (the absolute prefix belongs to the execution host), and reports the exit code
+    as unverified instead of guessing it.  Any disagreement is a ``fail``; a batch with
+    no log is ``not_run``, and the verified batches are named so a verified half is not
+    read as a verified whole.
+    """
+    verified: dict[str, int] = {}
+    unverified: list[str] = []
+    findings: list[str] = []
+    for batch in config["batches"]:
+        name = batch["name"]
+        if not batch.get("run_log"):
+            unverified.append(name)
+            continue
+        delivered = [entry for entry in loaded if entry["batch"] == name]
+        batch_findings = _compare_log(batch["run_log"], delivered, batch["root"])
+        findings.extend(f"{name}: {item}" for item in batch_findings)
+        if not batch_findings:
+            verified[name] = len(delivered)
+    caveat = "the exit code is not in the log and stays unverified"
+    if findings:
+        result, severity = "fail", "error"
+        message = f"{len(findings)} disagreement(s) between a batch and its run log; {caveat}"
+    elif unverified:
+        result, severity = "not_run", "warning"
+        message = f"no run log configured for {unverified}" + (
+            f"; verified {sorted(verified)}" if verified else ""
+        )
+    else:
+        result, severity = "pass", "info"
+        message = (
+            f"every delivered run is logged and every log reports completion, in "
+            f"{len(verified)} batch(es); {caveat}"
+        )
+    return make_check(
+        check_id="A05",
+        result=result,
+        severity=severity,
+        scope="batch",
+        message=message,
+        observed={
+            "verified_batches": verified,
+            "unverified_batches": sorted(unverified),
+            "exit_code": "unverified",
+        },
+        evidence=findings[:40],
+    )
+
+
+_DIGEST_LINE = re.compile(r"^([0-9a-f]{64})  (\S.*)$")
+
+
+def _sha256_of(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            hasher.update(block)
+    return hasher.hexdigest()
+
+
+def _compare_archives(digest_path: str, batch: str) -> tuple[list[str], int, int]:
+    """``(findings, archives, recomputed)`` for one batch's ``sha256sum`` file."""
+    try:
+        lines = Path(digest_path).read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        return [f"cannot read the digest file {digest_path}: {exc}"], 0, 0
+
+    findings: list[str] = []
+    seen: Counter[str] = Counter()
+    archives = recomputed = 0
+    for number, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        match = _DIGEST_LINE.match(line)
+        if not match:
+            findings.append(f"line {number} is not '<sha256>  <path>'")
+            continue
+        digest, recorded = match.groups()
+        archives += 1
+        seen[recorded] += 1
+        basename = re.split(r"[\\/]", recorded)[-1]
+        if not basename.startswith(f"{batch}_"):
+            findings.append(f"line {number}: {basename} does not belong to batch {batch}")
+        local = Path(digest_path).resolve().parent / basename
+        if local.is_file():
+            recomputed += 1
+            actual = _sha256_of(local)
+            if actual != digest:
+                findings.append(
+                    f"line {number}: recomputed {actual} but the file records {digest} "
+                    f"for {basename}"
+                )
+    findings.extend(
+        f"archive listed more than once: {recorded}"
+        for recorded, count in sorted(seen.items())
+        if count > 1
+    )
+    if not archives and not findings:
+        findings.append("the digest file lists no archive")
+    return findings, archives, recomputed
+
+
+def check_archives(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict[str, Any]:
+    """A11: each batch's archive digest file is well formed and names its own archive.
+
+    Only the *form* and the *name* are judged everywhere; the digest is recomputed
+    where the archive happens to sit beside its digest file.  Where it does not the
+    check says so, and it never says an archive was recovered -- that stays a
+    reviewer's decision.  A batch with no digest file is ``not_run``.
+    """
+    del loaded  # the evidence is per batch and does not depend on the manifests
+    verified: dict[str, dict[str, int]] = {}
+    unverified: list[str] = []
+    findings: list[str] = []
+    for batch in config["batches"]:
+        name = batch["name"]
+        if not batch.get("archive_digests"):
+            unverified.append(name)
+            continue
+        batch_findings, archives, recomputed = _compare_archives(batch["archive_digests"], name)
+        findings.extend(f"{name}: {item}" for item in batch_findings)
+        if not batch_findings:
+            verified[name] = {"archives": archives, "recomputed": recomputed}
+    total = sum(item["archives"] for item in verified.values())
+    recomputed_total = sum(item["recomputed"] for item in verified.values())
+    if findings:
+        result, severity = "fail", "error"
+        message = f"{len(findings)} problem(s) in the archive digest files"
+    elif unverified:
+        result, severity = "not_run", "warning"
+        message = f"no archive digest file configured for {unverified}" + (
+            f"; verified {sorted(verified)}" if verified else ""
+        )
+    else:
+        result, severity = "pass", "info"
+        message = (
+            f"digest files well formed and archives named for their batch in {len(verified)} "
+            f"batch(es); {total - recomputed_total} archive(s) not recomputed on this host; "
+            "recovery is not tested"
+        )
+    return make_check(
+        check_id="A11",
+        result=result,
+        severity=severity,
+        scope="batch",
+        message=message,
+        observed={"verified_batches": verified, "unverified_batches": sorted(unverified)},
+        evidence=findings[:40],
     )
 
 
@@ -903,6 +1116,8 @@ def build_audit(
         check_coverage(config, entries),
         check_protocol(loaded, frozen_sha256=frozen),
         check_plan(config, loaded, frozen_sha256=frozen),
+        check_completion(config, loaded),
+        check_archives(config, loaded),
     ]
 
     # Phase A: per-manifest structure, grouped so one check names every offender.

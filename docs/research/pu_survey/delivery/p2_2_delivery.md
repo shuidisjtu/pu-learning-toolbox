@@ -114,7 +114,20 @@ A10 的**实质**已另行验证：B4 的回收守恒式 `reclaimed + on_disk ==
   标记已回收的引用须不在清单中，未回收的须在清单中，清单中无人引用的文件算孤儿。
   未配置清单且路径本机解析不到时仍为 `not_run`。
 
-A05（退出码不在日志里，只有完成行）与 A11 尚未接线。
+**接线更新（2026-10-09，分支 `feature/p2-2-audit-a05-a11`）**：A05 与 A11 同样已有入口，同样须重跑才得新结论。
+上表 A05 一行把「退出码」与「完成行」都记为在运行日志里，经核对**只有完成行在日志里，退出码不在**，此处更正：
+
+- **A05** 读每批可选的 `run_log`：解析 `completed X of Y run(s) …; Z still pending` 完成行，
+  要求 X = Y、Z = 0 且 Y 等于该批交付的 manifest 数；并核日志里每条 `-> …/manifest.json` 与交付的
+  manifest 一一对应（按**批次根之下的相对路径**匹配，因为绝对前缀是执行机的），重复、日志有而未交付、
+  交付而日志无都是 `fail`。**退出码恒报 `unverified`**，既不使 A05 通过也不使其失败，须人工记录
+  （B4 的退出码 0 目前只在 [B4 快照](p2_1_b4_snapshot.md) §7.1 的人工记录里）。无日志的批次仍为 `not_run`。
+- **A11** 读每批可选的 `archive_digests`（`sha256sum` 格式文件）：逐行核 64 位小写十六进制 + 两个空格 + 路径、
+  同一归档不重复、归档文件名以该批名加下划线开头；归档恰好与摘要文件同目录时**重算并比对**，否则只在
+  `observed` 里记 `recomputed` 数，消息写明「未重算、恢复未测试」。它不判定归档可恢复，那是 O9 的人工结论。
+
+本机开发验证（临时配置，非正式报告）：B1/B2/B4 的日志与五批 manifest 一致（215/215/35）；B1 的归档摘要已重算并相符，
+B4 的归档不在本机、未重算；B3a/B3b 无日志，B2/B3a/B3b 无摘要文件，故 A05、A11 在五批整体上仍为 `not_run`。
 
 ## 7. 复现
 
@@ -149,6 +162,8 @@ Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字�
   `["collaborator_review"]`；PA 准则与 `self_pu` 元重加权的复核同样未获得。**本文件不得读作已签署**
   （未获项清单见 [`survey_execution_plan.md`](../survey_execution_plan.md) §1.2 的 RV1–RV7）。
 - **期望单元完整性格网口径**（D13 遗留）：复合分区下「缺失单元」如何判定仍未定，本次不涉。
-- **A04 / A10 已有接线入口，但原报告未重跑**：五批计划 JSON 已在本机
-  （`execution_partition_plan/plans/`），B4 的 `checkpoint_inventory.tsv` 在备份的 evidence 包内；
-  需用接线后的 checkout 重跑审计并登记新摘要，原 `not_run` 才能改写。其余 `not_run` 的缺什么输入见 §6。
+- **A04 / A05 / A10 / A11 已有接线入口，但原报告未重跑**：五批计划 JSON 已在本机
+  （`execution_partition_plan/plans/`），B4 的 `checkpoint_inventory.tsv` 在备份的 evidence 包内，
+  B1/B2/B4 有运行日志、B1/B4 有 `.sha256`；需用接线后的 checkout 重跑审计并登记新摘要，原 `not_run` 才能改写。
+  B3a/B3b 的运行日志与 B2/B3a/B3b 的归档摘要仍须从执行机补取。A14、A16、A17 仍是文档/协议证据，
+  不由 manifest 推断；其余缺什么输入见 §6。
