@@ -437,7 +437,9 @@ tests/
       test_survey_audit_checks.py       # A01/A06/A07/A09 仅凭 manifest 可判的检查项
       test_survey_audit_plan.py         # A04: 计划身份(解析后的 run 集合比对)
       test_survey_audit_inventory.py    # A10 清单模式: 逐文件判定已回收/保留/孤儿
-      test_survey_audit_wiring.py       # 审计入口读配置里的可选输入(plan 路径解析、CLI 端到端)
+      test_survey_audit_completion.py   # A05: 运行日志完成行与交付 manifest 一一对应, 退出码恒为 unverified
+      test_survey_audit_archive.py      # A11: sha256sum 摘要文件形式/批次命名/同目录重算
+      test_survey_audit_wiring.py       # 审计入口读配置里的可选输入(plan/run_log/archive_digests 路径解析、CLI 端到端)
       test_survey_audit_reclaim.py      # A10/A13/A15: 回收对账(磁盘)、标签闭集、technical_probe 分离
       test_survey_summary_measures.py   # 缺值怎么读: 测量/峰值/次要指标/状态四类缺席各不相同, 状态分档须划分闭集
       test_survey_comparison_attachment.py # 矩阵附着: 哪些行可数值裁决、哪些不得读作已裁决; 裁决与不可比分开计数
