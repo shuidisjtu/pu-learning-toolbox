@@ -104,7 +104,7 @@ def test_determ_two_audits_of_one_configured_tree_agree_on_every_check(audit_cli
     assert checks_of("first") == checks_of("second")
 
 
-@pytest.mark.parametrize("key", ["run_log", "archive_digests"])
+@pytest.mark.parametrize("key", ["run_log", "archive_digests", "exit_code_file"])
 def test_param_load_config_rejects_an_evidence_input_that_is_not_a_path_string(tmp_path, key):
     config = config_for({"B1": (tmp_path, 1)})
     config["batches"][0][key] = ["x"]
@@ -113,7 +113,7 @@ def test_param_load_config_rejects_an_evidence_input_that_is_not_a_path_string(t
         checks.load_config(path)
 
 
-@pytest.mark.parametrize("key", ["run_log", "archive_digests"])
+@pytest.mark.parametrize("key", ["run_log", "archive_digests", "exit_code_file"])
 def test_edge_load_config_resolves_a_relative_evidence_input_beside_the_config(tmp_path, key):
     config = config_for({"B1": (tmp_path, 1)})
     config["batches"][0][key] = f"evidence/{key}.txt"
