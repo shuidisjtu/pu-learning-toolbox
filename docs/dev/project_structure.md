@@ -458,6 +458,7 @@ tests/
       test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
       test_checkpoint_prediction_batching.py # 快照推理分批登记/恢复、旧引用回退与非法元数据拒绝
       test_checkpoint_training_context.py # 新方法阶段/轮次/更新计数、恢复与回收留痕
+      test_survey_audit_exit_code.py    # <<< 新文件,补注释
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

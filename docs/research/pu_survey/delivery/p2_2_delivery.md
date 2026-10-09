@@ -120,8 +120,10 @@ A10 的**实质**已另行验证：B4 的回收守恒式 `reclaimed + on_disk ==
 - **A05** 读每批可选的 `run_log`：解析 `completed X of Y run(s) …; Z still pending` 完成行，
   要求 X = Y、Z = 0 且 Y 等于该批交付的 manifest 数；并核日志里每条 `-> …/manifest.json` 与交付的
   manifest 一一对应（按**批次根之下的相对路径**匹配，因为绝对前缀是执行机的），重复、日志有而未交付、
-  交付而日志无都是 `fail`。**退出码恒报 `unverified`**，既不使 A05 通过也不使其失败，须人工记录
-  （B4 的退出码 0 目前只在 [B4 快照](p2_1_b4_snapshot.md) §7.1 的人工记录里）。无日志的批次仍为 `not_run`。
+  交付而日志无都是 `fail`。**退出码**不在日志里，而在执行机上与日志并列的 `<批名>_exit_code.txt`（一行整数）；
+  每批可选的 `exit_code_file` 读它：内容为单个 `0` 才算核对，非 0、空文件、非整数、读不了都是 `fail`；
+  没配置的批次在 `observed` 里记为未核对（`exit_code` 为 `verified` / `partial` / `unverified`），
+  不使 A05 失败，也不会被写成已核对。无日志的批次仍为 `not_run`。
 - **A11** 读每批可选的 `archive_digests`（`sha256sum` 格式文件）：逐行核 64 位小写十六进制 + 两个空格 + 路径、
   同一归档不重复、归档文件名以该批名加下划线开头；归档恰好与摘要文件同目录时**重算并比对**，否则只在
   `observed` 里记 `recomputed` 数，消息写明「未重算、恢复未测试」。它不判定归档可恢复，那是 O9 的人工结论。

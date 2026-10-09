@@ -82,7 +82,7 @@ CONFIG_SCHEMA_VERSION = "survey-batch-roots-1"
 
 #: Optional per-batch inputs, each a path.  A check whose key is absent reports
 #: ``not_run`` rather than passing, so adding a key can only add evidence.
-_PATH_KEYS = ("plan", "checkpoint_inventory", "run_log", "archive_digests")
+_PATH_KEYS = ("plan", "checkpoint_inventory", "run_log", "archive_digests", "exit_code_file")
 
 #: Directory names that hold a derived copy rather than a batch of its own.
 #: A manifest under one of these would be counted twice, once as itself and once
@@ -454,22 +454,46 @@ def _compare_log(log_path: str, delivered: list[dict[str, Any]], root: str) -> l
     return findings
 
 
+def _exit_code_findings(exit_code_path: str) -> list[str]:
+    """Why an exit-code file cannot vouch for success; empty when it holds a single ``0``."""
+    try:
+        text = Path(exit_code_path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return [f"cannot read the exit code file {exit_code_path}: {exc}"]
+    tokens = text.split()
+    if len(tokens) != 1 or not re.fullmatch(r"-?\d+", tokens[0]):
+        return [f"the exit code file is not a single integer: {text.strip()[:40]!r}"]
+    if int(tokens[0]) != 0:
+        return [f"the exit code is {tokens[0]}, not 0"]
+    return []
+
+
 def check_completion(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict[str, Any]:
     """A05: each logged batch completed, and its log names exactly the delivered runs.
 
     The P2.1 logs carry a closing ``completed X of Y run(s); Z still pending`` line and
-    one ``-> .../manifest.json`` line per run, and **no exit code**.  So the check reads
-    what is there, matches each logged run to a manifest by its path under the batch
-    root (the absolute prefix belongs to the execution host), and reports the exit code
-    as unverified instead of guessing it.  Any disagreement is a ``fail``; a batch with
-    no log is ``not_run``, and the verified batches are named so a verified half is not
-    read as a verified whole.
+    one ``-> .../manifest.json`` line per run, and **no exit code**; the runner's exit
+    status sits in a separate ``<batch>_exit_code.txt``.  So the check matches each logged
+    run to a manifest by its path under the batch root (the absolute prefix belongs to the
+    execution host), and reads the exit code only from a configured ``exit_code_file``:
+    ``0`` verifies it, anything else is a ``fail``, and a batch without the file is named
+    as unverified instead of guessed.  Any disagreement is a ``fail``; a batch with no log
+    is ``not_run``, and the verified batches are named so a verified half is not read as a
+    verified whole.
     """
     verified: dict[str, int] = {}
     unverified: list[str] = []
+    exit_unverified: list[str] = []
     findings: list[str] = []
     for batch in config["batches"]:
         name = batch["name"]
+        if batch.get("exit_code_file"):
+            exit_findings = _exit_code_findings(batch["exit_code_file"])
+            findings.extend(f"{name}: {item}" for item in exit_findings)
+            if exit_findings:
+                exit_unverified.append(name)
+        else:
+            exit_unverified.append(name)
         if not batch.get("run_log"):
             unverified.append(name)
             continue
@@ -478,7 +502,18 @@ def check_completion(config: dict[str, Any], loaded: list[dict[str, Any]]) -> di
         findings.extend(f"{name}: {item}" for item in batch_findings)
         if not batch_findings:
             verified[name] = len(delivered)
-    caveat = "the exit code is not in the log and stays unverified"
+    exit_state = (
+        "unverified"
+        if len(exit_unverified) == len(config["batches"])
+        else "partial"
+        if exit_unverified
+        else "verified"
+    )
+    caveat = (
+        "the exit code was read from its file in every batch"
+        if exit_state == "verified"
+        else f"the exit code is unverified for {sorted(exit_unverified)}"
+    )
     if findings:
         result, severity = "fail", "error"
         message = f"{len(findings)} disagreement(s) between a batch and its run log; {caveat}"
@@ -502,7 +537,8 @@ def check_completion(config: dict[str, Any], loaded: list[dict[str, Any]]) -> di
         observed={
             "verified_batches": verified,
             "unverified_batches": sorted(unverified),
-            "exit_code": "unverified",
+            "exit_code": exit_state,
+            "exit_code_unverified_batches": sorted(exit_unverified),
         },
         evidence=findings[:40],
     )
