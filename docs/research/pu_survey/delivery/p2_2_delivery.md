@@ -174,7 +174,9 @@ uv run python scripts/compare_survey_results.py --summary <02_summary/summary.js
    因此**报告是产出它的那次 checkout 的函数**：换了 commit 或输入根，报告就会不同。
    比对时必须先核身份块，再比数值。
 
-**比对基准**在 [`data/p2_2_artifacts_index.json`](../data/p2_2_artifacts_index.json)：先比
+**原始比对基准**在 [`data/p2_2_artifacts_index.json`](../data/p2_2_artifacts_index.json)；
+2026-10-09 接线重跑用[新索引](../data/p2_2_artifacts_index_20261009.json)，不要与原始 Excel 的生产 commit 混用。
+表格跨基准对账命令与独立验收剩余输入见[收尾记录](../reviews/p2_2_followup_20261012.md)。先比
 `inputs.total.tree_sha256`（确认读的是同一批字节），再比 `artifacts` 的逐文件摘要。
 Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字节可复现；JSON 里带 `generated_at`，
 比对时须先移除该字段。
@@ -182,7 +184,7 @@ Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字�
 ## 8. 未决项
 
 - **合作者复核未获得**：P2.0c 对照矩阵仍为 `pending_collaborator_review`、`formal_blockers` 仍为
-  `["collaborator_review"]`；PA 准则与 `self_pu` 元重加权的复核同样未获得。**本文件不得读作已签署**
+  `["collaborator_review"]`；PA 准则与 `self_pu` 元重加权的复核同样未获得。**负责人 O1–O10 已于 2026-10-09 签署，但不等于合作者或双方验收通过**
   （未获项清单见 [`survey_execution_plan.md`](../survey_execution_plan.md) §1.2 的 RV1–RV7）。
 - **期望单元完整性格网口径**（D13 遗留）：复合分区下「缺失单元」如何判定仍未定，本次不涉。
 - **审计 17 项在 2026-10-09 重跑中全部 pass 或 `not_applicable`**（见 §6 重跑记录）。仍须说明的限度：A05 的 B2 退出码未核对；A11 除 B1 外未重算摘要且未测恢复；A14/A16/A17 只核证据在，不判内容。

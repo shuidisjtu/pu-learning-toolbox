@@ -268,3 +268,39 @@ def test_file_digest_mismatch_is_rejected(receipt):
     recorded["release_table"]["sha256"] = "0" * 64
     index.write_text(json.dumps(recorded))
     assert not audit.audit_workbook(path, index)["ok"]
+
+
+def test_basic_rerun_requires_explicit_original_workbook_baseline(receipt, tmp_path):
+    _, path, original, _ = receipt
+    rerun = json.loads(original.read_text())
+    rerun["produced_by_commit"] = "a" * 40
+    later = tmp_path / "rerun.json"
+    later.write_text(json.dumps(rerun))
+    assert not audit.audit_workbook(path, later)["ok"]
+    report = audit.audit_workbook(path, later, workbook_index_path=original)
+    assert report["ok"], report["problems"]
+    assert report["baseline_identity"]["analysis_producer_commit"] == "a" * 40
+    assert report["baseline_identity"]["workbook_producer_commit"] != "a" * 40
+    assert report["source_manifests_independently_verified"] is False
+
+
+@pytest.mark.parametrize(
+    "section,field,value",
+    [
+        ("identity", "protocol_sha256", "0" * 64),
+        ("identity", "comparison_sha256", "0" * 64),
+        ("inputs", "total", {"manifests": 645, "tree_sha256": "0" * 64}),
+        ("inputs", "batches", {}),
+        ("release_table", "sha256", "0" * 64),
+        ("release_table", "bytes", 1),
+    ],
+)
+def test_param_unrelated_workbook_baseline_is_rejected(receipt, tmp_path, section, field, value):
+    _, path, original, _ = receipt
+    unrelated = json.loads(original.read_text())
+    unrelated[section][field] = value
+    baseline = tmp_path / "unrelated.json"
+    baseline.write_text(json.dumps(unrelated))
+    report = audit.audit_workbook(path, original, workbook_index_path=baseline)
+    assert not report["ok"]
+    assert any("baseline" in problem and field in problem for problem in report["problems"])

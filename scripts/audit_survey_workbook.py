@@ -57,11 +57,18 @@ def batch_for(dataset, method, path):
     return "unknown"
 
 
-def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
+def audit_workbook(path, index_path, protocol_path="survey-v1.2", *, workbook_index_path=None):
     import openpyxl
 
     path = Path(path)
     index = json.loads(Path(index_path).read_text(encoding="utf-8"))
+    # A report rerun is not a workbook regeneration. Bind the workbook's
+    # producer separately, requiring identical registered inputs and table.
+    workbook_index = (
+        json.loads(Path(workbook_index_path).read_text(encoding="utf-8"))
+        if workbook_index_path is not None
+        else index
+    )
     protocol = load_protocol(resolve_protocol_path(protocol_path))
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     problems = []
@@ -69,6 +76,22 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
     def check(condition, message):
         if not condition:
             problems.append(message)
+
+    for field in ("protocol_sha256", "comparison_sha256"):
+        check(
+            workbook_index["identity"][field] == index["identity"][field],
+            f"workbook baseline {field} differs from analysis baseline",
+        )
+    for field in ("total", "batches"):
+        check(
+            workbook_index["inputs"][field] == index["inputs"][field],
+            f"workbook baseline inputs.{field} differs from analysis baseline",
+        )
+    for field in ("bytes", "sha256"):
+        check(
+            workbook_index["release_table"][field] == index["release_table"][field],
+            f"workbook baseline release_table.{field} differs from analysis baseline",
+        )
 
     def records(sheet):
         iterator = iter(workbook[sheet].values)
@@ -97,7 +120,7 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
     readme = "\n".join(str(row[0]) for row in workbook["readme"].values if row[0])
     for name in ("protocol_sha256", "comparison_sha256"):
         check(index["identity"][name] in readme, f"readme missing {name}")
-    check(index["produced_by_commit"] in readme, "readme producer commit differs")
+    check(workbook_index["produced_by_commit"] in readme, "readme producer commit differs")
     expected = {
         (
             r.dataset,
@@ -332,6 +355,15 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
             "not source manifest audit"
         ),
         "input": {"filename": path.name, "bytes": path.stat().st_size, "sha256": received_hash},
+        "baseline_identity": {
+            "analysis_producer_commit": index["produced_by_commit"],
+            "workbook_producer_commit": workbook_index["produced_by_commit"],
+            "analysis_index_sha256": hashlib.sha256(Path(index_path).read_bytes()).hexdigest(),
+            "workbook_index_sha256": hashlib.sha256(
+                Path(workbook_index_path or index_path).read_bytes()
+            ).hexdigest(),
+            "note": "Index consistency only; source manifests and rerun artifacts not verified.",
+        },
         "ok": not problems,
         "problems": problems,
         "runs": len(runs),
@@ -398,9 +430,16 @@ def main():
         "--index", type=Path, default=Path("docs/research/pu_survey/data/p2_2_artifacts_index.json")
     )
     parser.add_argument("--protocol", default="survey-v1.2")
+    parser.add_argument(
+        "--workbook-index",
+        type=Path,
+        help="Original workbook baseline when --index refers to a later report rerun",
+    )
     args = parser.parse_args()
     try:
-        report = audit_workbook(args.workbook, args.index, args.protocol)
+        report = audit_workbook(
+            args.workbook, args.index, args.protocol, workbook_index_path=args.workbook_index
+        )
     except (ImportError, KeyError, ValueError, OSError) as exc:
         parser.exit(1, f"error: workbook audit failed: {exc}\n")
     print(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False))
