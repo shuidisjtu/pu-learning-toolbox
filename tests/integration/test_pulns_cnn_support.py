@@ -47,10 +47,29 @@ def test_basic_determ_native_backbone_support_training_and_independent_fold_copi
         support_indices=np.arange(17, 23),
     )
     second = PULNSClassifier(**params).fit(features, labels, support_data=support)
-    np.testing.assert_array_equal(
-        first.decision_function(features), second.decision_function(features)
+    # The two fits differ only in whether explicit sample identities were supplied, so
+    # every RNG-driven decision has to land identically; these are exact by construction.
+    assert first.selected_negative_indices_.tolist() == second.selected_negative_indices_.tolist()
+    for exact in ("episode", "selected_negatives", "optimizer_steps"):
+        assert first.history_[exact] == second.history_[exact]
+    # Float32 network totals only agree to the platform's reduction order: multi-threaded
+    # Linux/OpenBLAS drifts by a few ULP, which no seed can remove.  Bounding that is not
+    # the same claim as bit-equality, so the tolerance is stated rather than implied.
+    for approximate in (
+        "probe_support_accuracy",
+        "terminal_reward",
+        "support_accuracy",
+        "policy_loss",
+    ):
+        np.testing.assert_allclose(
+            first.history_[approximate], second.history_[approximate], rtol=1e-5, atol=1e-6
+        )
+    np.testing.assert_allclose(
+        first.decision_function(features),
+        second.decision_function(features),
+        rtol=1e-5,
+        atol=1e-6,
     )
-    assert first.history_ == second.history_
     assert first.support_isolation_status_ == "train_support_ids_disjoint"
     assert first.training_view_ == "os" and not first.calibration_applied_
     assert (

@@ -162,6 +162,69 @@ def write_config(path: Path, config: dict) -> Path:
     return path
 
 
+def entry(payload, *, batch="B1", role="formal", name="manifest.json"):
+    """One discovered-manifest entry, the shape ``discover_batches`` hands the checks."""
+    return {"batch": batch, "role": role, "path": Path(name), "payload": payload}
+
+
+def reclaimed_manifest(run_dir: Path, *, references: int, reclaimed: int, **kwargs):
+    """A manifest whose checkpoint references point into *run_dir*.
+
+    The first *reclaimed* references carry ``reclaimed: True``; the rest are the
+    ones a run keeps.  ``kwargs`` go to :func:`manifest`.
+    """
+    payload = manifest(**kwargs)
+    payload["candidate_runs"] = [
+        {
+            "candidate_index": 0,
+            "epoch_checkpoints": [
+                {
+                    "epoch": index,
+                    "component": "student",
+                    "path": str(run_dir / f"epoch_{index:04d}_student.pt"),
+                    "reclaimed": index < reclaimed,
+                }
+                for index in range(references)
+            ],
+        }
+    ]
+    return payload
+
+
+def write_checkpoint_files(run_dir: Path, count: int):
+    """Create *count* checkpoint files named as :func:`reclaimed_manifest` expects."""
+    run_dir.mkdir(parents=True, exist_ok=True)
+    for index in range(count):
+        (run_dir / f"epoch_{index:04d}_student.pt").write_bytes(b"weights")
+
+
+def plan_run(payload):
+    """The plan's row for a manifest, written the way a plan writes it."""
+    unit = payload["execution_unit"]
+    oracle = bool(payload.get("c_independent"))
+    return {
+        "dataset": unit["dataset"],
+        "method": unit["method"],
+        "training_path": payload["training_path"],
+        "mechanism": None if oracle else payload["generation"]["train"]["mechanism"],
+        "c_token": None if oracle else payload["c_requested_token"],
+        "seed": payload["seed"],
+        "view": payload["run_view"],
+    }
+
+
+def write_plan(path, payloads, *, sha256=FROZEN_PROTOCOL_SHA256, **overrides):
+    runs = [plan_run(payload) for payload in payloads]
+    document = {
+        "source_protocol_sha256": sha256,
+        "totals": {"planned": len(runs)},
+        "runs": runs,
+    }
+    document.update(overrides)
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
 def _load(name: str):
     if str(SCRIPTS_DIR) not in sys.path:
         sys.path.insert(0, str(SCRIPTS_DIR))

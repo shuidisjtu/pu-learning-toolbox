@@ -18,43 +18,21 @@ import sys
 from pathlib import Path
 
 import pytest
-from _survey_summary_helpers import SCRIPTS_DIR, config_for, load_protocol, manifest
+from _survey_summary_helpers import (
+    SCRIPTS_DIR,
+    config_for,
+    load_protocol,
+    manifest,
+)
+from _survey_summary_helpers import entry as _entry
+from _survey_summary_helpers import reclaimed_manifest as _reclaimed_manifest
+from _survey_summary_helpers import write_checkpoint_files as _write_files
 
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 checks = importlib.import_module("audit_survey_batches")
 
 pytestmark = pytest.mark.unit
-
-
-def _entry(payload, *, batch="B1", role="formal", name="manifest.json"):
-    return {"batch": batch, "role": role, "path": Path(name), "payload": payload}
-
-
-def _reclaimed_manifest(run_dir: Path, *, references: int, reclaimed: int):
-    """A manifest whose checkpoint references point into *run_dir*."""
-    payload = manifest()
-    payload["candidate_runs"] = [
-        {
-            "candidate_index": 0,
-            "epoch_checkpoints": [
-                {
-                    "epoch": index,
-                    "component": "student",
-                    "path": str(run_dir / f"epoch_{index:04d}_student.pt"),
-                    "reclaimed": index < reclaimed,
-                }
-                for index in range(references)
-            ],
-        }
-    ]
-    return payload
-
-
-def _write_files(run_dir: Path, count: int):
-    run_dir.mkdir(parents=True, exist_ok=True)
-    for index in range(count):
-        (run_dir / f"epoch_{index:04d}_student.pt").write_bytes(b"weights")
 
 
 def test_basic_a10_is_not_applicable_on_batches_that_never_reclaimed():

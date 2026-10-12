@@ -328,7 +328,7 @@ tests/
       test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
       test_review_survey_split_receipt.py # P1.4 只读接收复核的失败关闭与 CLI 测试
       test_audit_survey_workbook.py     # 交付 Excel 独立对账的篡改、覆盖与舍入测试
-      test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约
+      test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
       test_profile_survey_candidate_storage.py # 七方法存储探针和恢复边界
       test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
       test_profile_survey_cnn_storage.py # CNN 快照体积、恢复、来源身份和输入边界
@@ -435,7 +435,12 @@ tests/
       test_survey_summary_states.py     # 报告的两套闭集词表: 行身份(c_token/oracle)与状态(status/优先级/理由)
       test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径
       test_survey_audit_checks.py       # A01/A06/A07/A09 仅凭 manifest 可判的检查项
-      test_survey_audit_reclaim.py      # A10/A13/A15: 回收对账、标签闭集、technical_probe 分离
+      test_survey_audit_plan.py         # A04: 计划身份(解析后的 run 集合比对)
+      test_survey_audit_inventory.py    # A10 清单模式: 逐文件判定已回收/保留/孤儿
+      test_survey_audit_completion.py   # A05: 运行日志完成行与交付 manifest 一一对应, 退出码恒为 unverified
+      test_survey_audit_archive.py      # A11: sha256sum 摘要文件形式/批次命名/同目录重算
+      test_survey_audit_wiring.py       # 审计入口读配置里的可选输入(plan/run_log/archive_digests 路径解析、CLI 端到端)
+      test_survey_audit_reclaim.py      # A10/A13/A15: 回收对账(磁盘)、标签闭集、technical_probe 分离
       test_survey_summary_measures.py   # 缺值怎么读: 测量/峰值/次要指标/状态四类缺席各不相同, 状态分档须划分闭集
       test_survey_comparison_attachment.py # 矩阵附着: 哪些行可数值裁决、哪些不得读作已裁决; 裁决与不可比分开计数
       _survey_recipe_registry_helpers.py # recipe registry 测试共用 fixture（从冻结协议派生，非手写副本）
@@ -453,6 +458,9 @@ tests/
       test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
       test_checkpoint_prediction_batching.py # 快照推理分批登记/恢复、旧引用回退与非法元数据拒绝
       test_checkpoint_training_context.py # 新方法阶段/轮次/更新计数、恢复与回收留痕
+      test_survey_audit_exit_code.py    # A05: 退出码文件(单个 0 才核对;非 0/空/非整数/读不了为 fail;缺文件记未核对)
+      test_survey_audit_docs.py         # A14/A16/A17: 快照与边界小节、self_pu 消融披露、隔离保护测试存在(只核证据在)
+      test_prepare_survey_splits_adni.py # ADNI 替代数据:读取(类别序/垃圾文件/计数校验)、无官方测试集划分、多归档收据汇总
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

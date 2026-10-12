@@ -1,0 +1,175 @@
+{
+  "datasets": {
+    "adni": {
+      "archive": {
+        "bytes": 292147200,
+        "file": "adni-splits.tar",
+        "sha256": "ae1a3fefe30d35aa3ef5822bee9d26d9ac110d2dbd7244b4ddcd5bea9a48414e"
+      },
+      "split_0": {
+        "files": {
+          "clean_val.npz": {
+            "bytes": 2336408,
+            "sha256": "67717b0529b25a952a70a3175f26b86dd0141c522fd7940422a7d283d4f18a1b"
+          },
+          "pu_val.npz": {
+            "bytes": 2329585,
+            "sha256": "e1eabc5ccd942dcdc0cfab0a50db785e0daa8d0fc020ee4e81c19f4d0e870fcc"
+          },
+          "split_manifest.json": {
+            "bytes": 85882,
+            "sha256": "83d41d7548edf99af5f92a4a47770f77939a356a14d8cd489e351fb203b16568"
+          },
+          "test.npz": {
+            "bytes": 11677500,
+            "sha256": "9f3a183a2458f05191107e3ef6efb55325d59a06b121f717c57d95668f3c73e2"
+          },
+          "train.npz": {
+            "bytes": 41995435,
+            "sha256": "97dca93d77c285c2bb061f5f94fccbc27020fd656379c8858ba89743142e64c9"
+          }
+        },
+        "indices_sha256": "c4348acf27cb62ffdc6325f626948259f68abc480c51801d0ed175e7fa77f6e1",
+        "manifest_sha256": "83d41d7548edf99af5f92a4a47770f77939a356a14d8cd489e351fb203b16568",
+        "role_sizes": {
+          "clean_val": 256,
+          "pu_val": 256,
+          "test": 1280,
+          "train": 4608
+        }
+      },
+      "split_1": {
+        "files": {
+          "clean_val.npz": {
+            "bytes": 2338336,
+            "sha256": "67be441dbc910724888936cb710022eca7ece093f6bb56e06f9d2e1828acde3f"
+          },
+          "pu_val.npz": {
+            "bytes": 2331298,
+            "sha256": "8b14fb4c186a493090e7beae99376018ba937eacb7690c71cefb7bf1a8812c65"
+          },
+          "split_manifest.json": {
+            "bytes": 85882,
+            "sha256": "a1199cdd60392efbb3ccc1e1eb9e37dfc0e6951d2f21ef239f273d2592b8d309"
+          },
+          "test.npz": {
+            "bytes": 11662653,
+            "sha256": "7982e46e7f615854d1bebd39cf8f72693e08433ef3a1685d399873e10ddc4738"
+          },
+          "train.npz": {
+            "bytes": 42012520,
+            "sha256": "f5a2e752cb502d144e8d7fde5d17a645fa3ab4d55830bcce861134900c838fc6"
+          }
+        },
+        "indices_sha256": "5a3674df119113339c1c8631e97abd8ce0419c371ddeca6eff8203dd3eadaf44",
+        "manifest_sha256": "a1199cdd60392efbb3ccc1e1eb9e37dfc0e6951d2f21ef239f273d2592b8d309",
+        "role_sizes": {
+          "clean_val": 256,
+          "pu_val": 256,
+          "test": 1280,
+          "train": 4608
+        }
+      },
+      "split_2": {
+        "files": {
+          "clean_val.npz": {
+            "bytes": 2339298,
+            "sha256": "24770505a97b25a1244e94992ed30a4762509c4178ed61b8dcb453513cac1371"
+          },
+          "pu_val.npz": {
+            "bytes": 2328808,
+            "sha256": "2f8251b310e95ae163eec2e64f3c500ab7153d7057f6bd47eaab422ad2288e62"
+          },
+          "split_manifest.json": {
+            "bytes": 85883,
+            "sha256": "93a6223b9fb8a136a850fb03617817c7439f0c90cf439b01e31d9c746892d24a"
+          },
+          "test.npz": {
+            "bytes": 11665624,
+            "sha256": "71476ac40f748892f299bed3451cf8806d7051e33ad3896f963830f61e702e1d"
+          },
+          "train.npz": {
+            "bytes": 42006492,
+            "sha256": "5be908fec28ab1f9ec9642c70ecb980563914d262c38e2bb899952e2d9560223"
+          }
+        },
+        "indices_sha256": "0bfe48096e7976b49c96f9275233a04d7101700ea0ff052440864a0398624b5a",
+        "manifest_sha256": "93a6223b9fb8a136a850fb03617817c7439f0c90cf439b01e31d9c746892d24a",
+        "role_sizes": {
+          "clean_val": 256,
+          "pu_val": 256,
+          "test": 1280,
+          "train": 4608
+        }
+      },
+      "split_3": {
+        "files": {
+          "clean_val.npz": {
+            "bytes": 2329119,
+            "sha256": "8c27db18574cc2fb11d8f2dbf87c3eaa9cba6c3635774eaf9bb0a55006b1cde3"
+          },
+          "pu_val.npz": {
+            "bytes": 2337878,
+            "sha256": "675441201cfd4e50b6d18ea421b964af7948456a4692a858cdc155881721ee1d"
+          },
+          "split_manifest.json": {
+            "bytes": 85883,
+            "sha256": "bf451f57129b382281545254da1298cc8fa3c5abd33639283d1feb1882802432"
+          },
+          "test.npz": {
+            "bytes": 11662466,
+            "sha256": "42d34dea56049e5a60b772d4aee97a37fabdc4d7191283d72bc9f66a957fb6db"
+          },
+          "train.npz": {
+            "bytes": 42006267,
+            "sha256": "8991b7f81eec71f025aeb8a1eb094c3088cfcdf6ce684b96e2db1b8a6b32d86f"
+          }
+        },
+        "indices_sha256": "6ecedc316fb9f1900afe41c290acf0ba02660b59ee64546c7a75af2e4ccb45dc",
+        "manifest_sha256": "bf451f57129b382281545254da1298cc8fa3c5abd33639283d1feb1882802432",
+        "role_sizes": {
+          "clean_val": 256,
+          "pu_val": 256,
+          "test": 1280,
+          "train": 4608
+        }
+      },
+      "split_4": {
+        "files": {
+          "clean_val.npz": {
+            "bytes": 2336298,
+            "sha256": "21dea056a031cf604be782f456ae75269e0ce560d037482e0f5765f3b8b3230c"
+          },
+          "pu_val.npz": {
+            "bytes": 2330002,
+            "sha256": "7d87845ee364ece953317b1165a1778571e731af4f9397baeeac30edeb32e511"
+          },
+          "split_manifest.json": {
+            "bytes": 85881,
+            "sha256": "a3e912777ed228b1ef7f4064b78e7f49cb70307d0f608c210527bef9e25614b2"
+          },
+          "test.npz": {
+            "bytes": 11666377,
+            "sha256": "d9f481e9212445eec79b8103d3c25eeae6f03f8f8363313e705db8756d23b146"
+          },
+          "train.npz": {
+            "bytes": 42005016,
+            "sha256": "6cc044d63b19f848915a1df244f1abee09f9f6192b67c4b40321a9f025695d98"
+          }
+        },
+        "indices_sha256": "f2ec46920261797cad39a56e21c6319e73b32f92bd93850557be6ce387b5e6e1",
+        "manifest_sha256": "a3e912777ed228b1ef7f4064b78e7f49cb70307d0f608c210527bef9e25614b2",
+        "role_sizes": {
+          "clean_val": 256,
+          "pu_val": 256,
+          "test": 1280,
+          "train": 4608
+        }
+      }
+    }
+  },
+  "generator": "pu_toolbox.experiment.split_archive",
+  "produced_by_commit": "c0ee3d6385b326770276a12e348e0669b8e53c34",
+  "protocol_version": "survey-v1.2",
+  "schema_version": "1.0"
+}

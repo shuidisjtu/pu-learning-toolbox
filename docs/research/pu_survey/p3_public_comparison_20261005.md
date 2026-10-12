@@ -6,8 +6,8 @@
 
 机器事实见[公开对照草稿](data/p3_public_comparison_draft_20261005.json)。
 所有读数保持 `pending_review`，所有单元 `numeric_eligible=false`；没有新方法实验结果、
-数值 verdict、签名或判定阈值。旧执行矩阵、对照 v1/v2/v3、P1-1 证据与 uv.lock 字节摘要绑定，
-不修改原矩阵或将新方法塞进历史 645 runs。
+数值 verdict、签名或判定阈值。旧执行矩阵、对照 v1/v2/v3、P1-1 证据与 uv.lock 按**配置语义摘要**
+绑定，不修改原矩阵或将新方法塞进历史 645 runs。
 
 ## 1. 原始来源与可证伪读数
 
@@ -79,6 +79,14 @@ PUET 的 79.86 属 logistic 列，不是本适配的 quadratic；Split-PU 表内
 
 `scripts/check_p3_public_comparison.py` 只读检查：12条读数 / 5方法×3数据集15格，
 来源类型、axis 身份、单位方向、台账指针、未准入及冻结文件摘要。当前覆盖为：
+
+冻结的 6 个文件（`uv.lock` 与 5 个 JSON）按**配置语义摘要**绑定，草稿以
+`bound_files_digest_policy=parsed_json_toml_strict_canonical_json_sha256` 声明该口径：
+`.json` 用 JSON、`uv.lock` 用 TOML 解析，再对解析值取严格规范化 JSON 的 SHA256。
+换行（CRLF/LF）、缩进、对象键顺序、转义写法与 TOML 注释属于表示差异，不算配置漂移；
+字符串/布尔/整数/浮点的类型区别和数组顺序仍然保留，实际键值或数组顺序变化照旧 fail-closed。
+不支持的扩展名、缺失或未知的摘要策略都报错，不退回原始字节摘要掩盖未迁移的旧绑定。
+这与源码身份校验是两套口径：源码摘要另见 P1-3 预算规格的源码文本策略。
 
 - 5 格有已核原表读数，但协议不匹配；
 - 7 格在本批审阅范围中未登记读数；**不宣称全世界没有对应结果**；

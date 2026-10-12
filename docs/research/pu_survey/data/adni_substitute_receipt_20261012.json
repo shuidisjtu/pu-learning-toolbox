@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-12",
+  "dataset_slot": "adni",
+  "status": "substitute_raw_collected_splits_prepared_archived_not_accepted",
+  "formal_split_accepted": false,
+  "archive_extracted": false,
+  "is_adni": false,
+  "what_it_is": "Kaggle 'Alzheimer's Dataset (4 class of Images)' (tourist55), taken from a personal GitHub mirror. The reference paper's Table B.1 calls it Alzheimer MRI; its appendix describes it as ADNI. It is not ADNI data and carries no ADNI approval.",
+  "decision": "Replaces the approved-access ADNI route of decision D1 for this project, agreed by shuidisjtu with the senior colleague and the supervisor (2026-10-12).",
+  "mirror": {
+    "repository": "https://github.com/Jahnabi19/AD-Dataset",
+    "commit": "d90729118954bbedfe481dea8a53b4f3ee5a21b2",
+    "license": "none stated by the mirror; the Kaggle page lists License: Unknown (checked 2026-10-12 by shuidisjtu)"
+  },
+  "archives": {
+    "NonDemented.zip": {
+      "bytes": 18915533,
+      "sha256": "989b9fb78a05c8951744bed3528b38251cb2317c71795764ff08060ffc7ae605"
+    },
+    "VeryMildDemented.zip": {
+      "bytes": 13402521,
+      "sha256": "963270e02aeb6f5ceeb91d0ab13282d9c1b199e0301f8277c515750ab1076d65"
+    },
+    "ModerateDemented.zip": {
+      "bytes": 383241,
+      "sha256": "5f8eb289e2ee8d362df07e312f127b9cefeaf7791536bf0ae018fde5a94ff2b4"
+    },
+    "MildDemented.zip": {
+      "bytes": 5369586,
+      "sha256": "1dc707628874ebb7e25abfa81cf655f5dbeb845a43ab1dbbd955fa1bebdf36c6"
+    }
+  },
+  "images": {
+    "total": 6400,
+    "per_class": {
+      "NonDemented": 3200,
+      "VeryMildDemented": 2240,
+      "ModerateDemented": 64,
+      "MildDemented": 896
+    },
+    "format": "176x208 grayscale JPEG; resized to 128x128 (LANCZOS) by the loader",
+    "macos_litter": "each zip also holds __MACOSX entries, which the loader ignores",
+    "byte_identical_duplicates": 0,
+    "duplicates_after_resize": 0
+  },
+  "class_ids": {
+    "0": "NonDemented",
+    "1": "VeryMildDemented",
+    "2": "ModerateDemented",
+    "3": "MildDemented"
+  },
+  "binary_mapping": "0 vs 1,2,3 (NonDemented positive), class prior 0.5",
+  "protocol_differs_from_pu_bench": "PU-Bench's AlzheimerMRI loader treats ModerateDemented+MildDemented as positive (prior about 0.15); this project follows protocol 2.2 and the paper's tables instead",
+  "split_check": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "sizes_train_pu_val_clean_val_test": [
+      4608,
+      256,
+      256,
+      1280
+    ],
+    "positive_rate_per_role": 0.5,
+    "audit": "read-only audit on all five seeds: roles disjoint and together the 6400 source rows; every role's array equals the source row its index names and its label is the binarised class; train-only mean/std recomputed from train match the manifest within 1e-8; test sets differ across seeds; validate_bundle passes",
+    "not_checkable": "same-subject slices across roles (the source has no subject ids)",
+    "archive": {
+      "file": "adni-splits.tar",
+      "bytes": 292147200,
+      "sha256": "ae1a3fefe30d35aa3ef5822bee9d26d9ac110d2dbd7244b4ddcd5bea9a48414e",
+      "index": "adni_split_artifacts_index_20261012.json",
+      "verified": "all 25 files of the five splits match the index; verifying against data/splits also lists the other datasets' 15 splits as unexpected, which is expected"
+    }
+  },
+  "known_risks": [
+    "same-subject slices may fall on both sides of a split; the source has no subject ids, so this cannot be checked",
+    "no licence is stated by the mirror and the Kaggle page lists License as Unknown, so redistribution rights are not established",
+    "the mirror is a personal repository and may change or disappear; the commit and digests above are the pin"
+  ]
+}

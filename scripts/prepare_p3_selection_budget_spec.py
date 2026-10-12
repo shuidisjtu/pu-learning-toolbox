@@ -26,6 +26,8 @@ from scripts.check_p3_admission_evidence import (
 )
 from scripts.check_p3_public_comparison import (
     BOUND_FILES,
+    BOUND_FILES_DIGEST_POLICY,
+    config_digest,
     validate_draft,
 )
 from scripts.check_p3_public_comparison import DRAFT_REF as COMPARISON_REF
@@ -115,6 +117,11 @@ def _budget(method, defaults):
     }
 
 
+def source_digest(path):
+    """Bind source text with universal newlines; resource receipts still hash raw bytes."""
+    return hashlib.sha256(path.read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+
+
 def build_spec(ledger, protocol, *, root=ROOT):
     """Source-bound pending draft; no inference of future approved values."""
     evidence = json.loads(repo_file(EVIDENCE_REF, root).read_text(encoding="utf-8"))
@@ -146,7 +153,7 @@ def build_spec(ledger, protocol, *, root=ROOT):
         methods[method] = {
             "class": entry["class"],
             "implementation_ref": old["implementation_ref"],
-            "implementation_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "implementation_sha256": source_digest(path),
             "fit_named_parameters": parameters,
             "constructor_defaults": defaults,
             "representation_fact": entry["modality_backbone"],
@@ -196,13 +203,14 @@ def build_spec(ledger, protocol, *, root=ROOT):
                 ),
                 "evidence_ref": EVIDENCE_REF,
                 "public_comparison_ref": COMPARISON_REF,
+                "bound_files_digest_policy": BOUND_FILES_DIGEST_POLICY,
+                "source_digest_policy": "utf8_text_universal_newlines_sha256",
                 "bound_files_sha256": {
-                    ref: hashlib.sha256(repo_file(ref, root).read_bytes()).hexdigest()
-                    for ref in BOUND_FILES
+                    ref: config_digest(repo_file(ref, root)) for ref in BOUND_FILES
                 },
-                "checkpoint_writer_sha256": hashlib.sha256(
-                    repo_file("pu_toolbox/experiment/checkpoints.py", root).read_bytes()
-                ).hexdigest(),
+                "checkpoint_writer_sha256": source_digest(
+                    repo_file("pu_toolbox/experiment/checkpoints.py", root)
+                ),
                 "storage_contract": {
                     "weights_only_inference_snapshots": True,
                     "reclaim_reduces_training_peak": False,

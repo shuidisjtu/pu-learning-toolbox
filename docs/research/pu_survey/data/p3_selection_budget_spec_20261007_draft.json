@@ -5,13 +5,15 @@
   "scope": "Current engineering facts only, not executable recipes or formal stage admission.",
   "evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
   "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
+  "bound_files_digest_policy": "parsed_json_toml_strict_canonical_json_sha256",
+  "source_digest_policy": "utf8_text_universal_newlines_sha256",
   "bound_files_sha256": {
-    "uv.lock": "7a7adf38905461b4fe0eeb73e613545cbde499a829155b7a793369a5bf22e0ed",
-    "pu_toolbox/experiment/survey_protocol_v1.json": "e0263cc4410a37f4c8c29f84e248f988a7dd9878af124b13a9be78e07376a855",
-    "pu_toolbox/experiment/survey_comparison_v1.json": "3465b47941c37da31b112e9a11a99438008c4bef836ecbfa039d3e7777d3ed37",
-    "pu_toolbox/experiment/survey_comparison_v2.json": "f44c782dbc3ddbff76984af2e93f73fb55e05697aae89bf75d4b774e47c69743",
-    "pu_toolbox/experiment/survey_comparison_v3.json": "5e3eb24a2bf4de0905dbec5d4658301696155002debf2c68a8e5a14d89b20436",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "77bbccd044f5de431a5e404f07843a2838cd639d585d1068ec9e69694f6c8457"
+    "uv.lock": "f843bcfc793e9b4e91a0d6fd83ed09b5d66eefbc214a7154fa27ecefef4286d5",
+    "pu_toolbox/experiment/survey_protocol_v1.json": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+    "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
+    "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
+    "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "22d4cb75833af7f3ebfe4a59ee282d942606fe76f30e3829e40279b45d8fd758"
   },
   "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
   "storage_contract": {

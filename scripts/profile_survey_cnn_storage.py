@@ -229,7 +229,7 @@ def profile_cnn_storage(
         Path("pu_toolbox/estimators/deep/_validation.py"),
         Path(__import__(model.__module__, fromlist=["__file__"]).__file__).relative_to(ROOT),
     ]
-    source_hashes = {str(path): file_hash(ROOT / path) for path in source_paths}
+    source_hashes = {path.as_posix(): file_hash(ROOT / path) for path in source_paths}
     if device == "cuda":
         torch.cuda.synchronize()
         baseline_allocated = torch.cuda.memory_allocated()
@@ -294,7 +294,7 @@ def profile_cnn_storage(
     stage_steps = getattr(model, "stage_optimizer_steps_", None)
     if stage_steps is not None and sum(stage_steps.values()) != model.optimizer_steps_:
         raise AssertionError("stage optimizer cost does not sum to full paid cost")
-    if source_hashes != {str(path): file_hash(ROOT / path) for path in source_paths}:
+    if source_hashes != {path.as_posix(): file_hash(ROOT / path) for path in source_paths}:
         raise RuntimeError("probe source changed during training; refuse ambiguous receipt")
     commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True

@@ -69,7 +69,9 @@ def profile_recipes(
     for recipe in recipes:
         for seed in seeds:
             probe.validate_probe_arguments(**RECIPES[recipe], seed=seed, **common)
-    sources = {str(path.relative_to(ROOT)): source_digest(path) for path in (Path(__file__), PROBE)}
+    sources = {
+        path.relative_to(ROOT).as_posix(): source_digest(path) for path in (Path(__file__), PROBE)
+    }
     profiles = []
     for recipe in recipes:
         options = RECIPES[recipe]
@@ -115,8 +117,8 @@ def profile_recipes(
             ):
                 raise ValueError("child receipt overclaims admission or lacks trusted recovery")
             if (
-                row["source_files_sha256"].get(str(PROBE.relative_to(ROOT)))
-                != sources[str(PROBE.relative_to(ROOT))]
+                row["source_files_sha256"].get(PROBE.relative_to(ROOT).as_posix())
+                != sources[PROBE.relative_to(ROOT).as_posix()]
             ):
                 raise ValueError("child receipt source mismatch")
             if row["encoder"]["base_channels"] != base_channels:
@@ -128,7 +130,7 @@ def profile_recipes(
             row["single_profile_isolated_process"] = True
             profiles.append(row)
     if sources != {
-        str(path.relative_to(ROOT)): source_digest(path) for path in (Path(__file__), PROBE)
+        path.relative_to(ROOT).as_posix(): source_digest(path) for path in (Path(__file__), PROBE)
     }:
         raise RuntimeError("probe driver/source changed during measurement")
     # Reject non-finite JSON, including unexpected output from a child.
