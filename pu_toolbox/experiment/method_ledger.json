@@ -372,12 +372,16 @@
       },
       "code_version": {
         "upstream_url": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
-        "source_status": "official_exact（registry:lbe；无 GitHub 仓库，license=\"needs_review\"，需以压缩包许可证与源码对应论文版本复核，LBE.md:242/registry:lbe）"
+        "source_status": "official_exact（指官方来源锁，不是实现等价；2026-10-12 用户包与旧官方包 hash/配方不同，分别留档；两模型 EM 公式确认，license 仍 needs_review）",
+        "official_archive_sha256": "79cc2c3635a6bcefef1d12832cc9e29be4c0c42a6c31ce6e7b44c6aeac504c6a",
+        "user_supplied_archive_sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
+        "review_evidence": "docs/research/pu_survey/data/lbe_source_review_20261012.json"
       },
       "implementation_status": "NATIVE；线性 clean-room EM（LBE.md:243）",
       "native_sampling_assumption": "os（single_training_set + selection_biased；输入单一样本 X/s，s=1 为 labeled positive；SAR 型 instance-dependent labeling，LBE.md:15-16/159-160, registry:lbe）",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_applicability": "not_applicable_native_os_joint_likelihood",
       "prior_semantics": "无/可选（class_prior 仅作 U latent posterior 初始化先验；不是独立的先验估计器，LBE.md:17/234, registry:lbe）",
       "adaptation_level": "benchmark-adapted（clean-room 重写；线性 logistic + 交替 soft-label 近似论文 EM+Adam 框架，不能宣称复现论文神经网络实验，LBE.md:185/243）",
       "modality_backbone": {
@@ -393,11 +397,14 @@
       "evidence": {
         "native_sampling_assumption": "LBE.md:15-16/159-160; registry:lbe",
         "prior_semantics": "LBE.md:17/234; registry:lbe",
-        "adaptation_level": "LBE.md:185/242-243"
+        "adaptation_level": "LBE.md §6/§9; docs/research/pu_survey/data/lbe_source_review_20261012.json"
       },
       "uncertainty": [
         "predict_label_proba 输出被标记概率 P(S=1|x) 而非类别概率（LBE.md:179）",
-        "propensity 与 class posterior 分解需数据机制支持、局部最优风险（LBE.md:246）"
+        "propensity 与 class posterior 分解需数据机制支持、局部最优风险（LBE.md:246）",
+        "用户包 MLP 为20步预训练/wd=1e-3/不筛small-loss；旧官方包为100步/wd=1e-2/保留80%，不可混用；仅作源码核查，未执行、未复现公开数值",
+        "用户包 LF demo 从训练真值选择 ROC 阈值，不能接入 PU-only PA；MLP demo 对全量数据归一化后切分且反复评测 test，迁移须保持 train-only 和独立选模；没有发现明确再分发 license",
+        "当前 estimator 仍为线性 EM，未新增神经网络或 CNN；新增迭代数/收敛/观测似然诊断，历史645-run不回填或改写"
       ]
     },
     "nnpu": {

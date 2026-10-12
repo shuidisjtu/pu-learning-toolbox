@@ -1,0 +1,67 @@
+{
+  "schema_version": "lbe-source-review-1",
+  "date": "2026-10-12",
+  "review_kind": "agent_technical_source_review_not_human_signoff",
+  "archive": {
+    "filename": "Instance-Dependent PU Learning via Graphical Model(1).rar",
+    "bytes": 368258,
+    "sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
+    "origin": "user_supplied",
+    "official_archive_identity_confirmed": false,
+    "license_found": false,
+    "executed": false,
+    "copied_into_repository": false
+  },
+  "files_sha256": {
+    "LBE_MLP/em.py": "9066215c43c53d45b7f9111af7276822facffde9c58ed89325c3a8828a8b8b49",
+    "LBE_MLP/reader.py": "c349a03d43e6d3777560309a950967e2d6e6597016577949f9a31ebeb24d0aae",
+    "LBE_MLP/train.py": "4a1186c53fcc579793c5f5c231094f921e3ac57a58a58e7c29673e9078551be2",
+    "LBE_LF/breast/EStep.m": "6c63940b914ce30270d1b0b503677b6e9f150baf11bee684f9048ed96bf67b21",
+    "LBE_LF/breast/LBE_LF_Main.m": "ccb024c69da65f0ffec47015f969efcdf6c24cb5ba611bd23fe61a3f46021c67",
+    "LBE_LF/breast/MStep_Adam.m": "a0a5a807815a54d44d8d6f7530d124d9a7c00fe5da6283ccbf2763b3629fc0ad",
+    "LBE_MLP/datasets/Australian.mat": "51ff9a18c818065aafc073c926263fddfb070cea0a84183234a1380a108f6a95",
+    "LBE_MLP/datasets/breast.mat": "57dae4b0153798e004d6df60fdbc691bc55b1ba54d2c01bafaf2b56b663825ee"
+  },
+  "comparison_to_official_lock": {
+    "official_sha256": "79cc2c3635a6bcefef1d12832cc9e29be4c0c42a6c31ce6e7b44c6aeac504c6a",
+    "archive_equal": false,
+    "em_py_equal": true,
+    "reader_py_equal": false,
+    "included_datasets_equal": true,
+    "recipe_differences": {
+      "pretrain_steps_per_model": {"official": 100, "uploaded": 20, "location": "LBE_MLP/train.py:30,40"},
+      "weight_decay": {"official": 0.01, "uploaded": 0.001, "location": "LBE_MLP/train.py:101"},
+      "small_loss_keep_fraction": {"official": 0.8, "uploaded": 1.0, "location": "LBE_MLP/train.py:74"},
+      "propensity_pretrain": {"official": "class-balanced observed-label BCE", "uploaded": "latent-positive-weighted observed-label BCE", "location": "LBE_MLP/train.py:37-43"},
+      "sampling_nan_fallback": {"official": "replace NaN weights with 1e-5", "uploaded": "no NaN fallback", "location": "LBE_MLP/reader.py:42-49"}
+    }
+  },
+  "equation_findings": [
+    {"status": "confirmed", "claim": "E-step normalizes the positive/negative joint probabilities; toolbox linear posterior agrees", "location": "LBE_MLP/em.py:3-16; LBE_LF/breast/EStep.m:3-17"},
+    {"status": "confirmed", "claim": "M-step classifier uses soft target q; propensity BCE is weighted by q, not all rows equally", "location": "LBE_MLP/train.py:74-78"},
+    {"status": "confirmed", "claim": "MLP E posterior is detached for 40 M updates; 20 E rounds; a fresh 10% sample is drawn per M update", "location": "LBE_MLP/train.py:62-81"},
+    {"status": "confirmed", "claim": "Toolbox linear penalized logistic solve is an adaptation, not Adam/MLP or MATLAB optimizer replay", "location": "pu_toolbox/estimators/bias_aware/lbe.py"}
+  ],
+  "protocol_hazards": [
+    {"location": "LBE_LF/breast/LBE_LF_Main.m:62-66", "issue": "ROC threshold uses clean training truth; forbidden for PU-only PA"},
+    {"location": "LBE_MLP/reader.py:28-30; LBE_MLP/train.py:92-107", "issue": "Whole-pool normalization before random splitting; train.py computes fea_norm but trains with fea"},
+    {"location": "LBE_MLP/train.py:54,82,86", "issue": "Repeated test accuracy evaluation is diagnostic in this code, not evidence of test-based selection; toolbox training must not consume test"},
+    {"location": "LBE_MLP/reader.py:31-56", "issue": "SCAR type=3 path returns uninitialized model; do not run the archive blindly"},
+    {"location": "LBE_MLP/train.py:13,62,68", "issue": "Declared M_STEPS=20 is unused; actual inner loop is 40, not 20"}
+  ],
+  "toolbox_fixes": [
+    "Fitted checks for class and labeling probabilities",
+    "Failed refit invalidates fitted flag",
+    "Finite positive C and integer iteration validation; scalar initialization prior validation",
+    "Explicit posterior helper plus independent E/M formula regression tests",
+    "EM iteration count, posterior convergence and observed likelihood diagnostics",
+    "Official preflight required data paths corrected from dataset/ to datasets/",
+    "Ledger preserves OS and explicit no TS calibration; source variants recorded separately"
+  ],
+  "remaining_boundaries": [
+    "No human reviewer signature or formal method admission",
+    "Linear implementation only; no new neural/CNN training path or paper-number reproduction",
+    "No changes to historical pilot protocols, matrices, results or manifests",
+    "Uploaded source license and upstream version attribution remain unresolved"
+  ]
+}

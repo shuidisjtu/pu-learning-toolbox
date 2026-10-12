@@ -244,3 +244,43 @@ S\sim Bernoulli(Y\cdot c(X)),
 | 当前实现可声称 | 可运行 SAR 接口、类别后验、labeling propensity 和 latent posterior |
 | 当前实现不可声称 | 已复现论文的完整 Adam/深度网络实验、理论收敛条件或表格结果 |
 | 主要风险 | 潜变量模型可能存在局部最优；正类过少时两个 logistic 模型会互相补偿；propensity 与 class posterior 的分解需要数据机制支持 |
+
+## 9. 2026-10-12 用户源码包复核与修复
+
+收到的 `Instance-Dependent PU Learning via Graphical Model(1).rar` 同时包含
+`LBE_MLP` 与 `LBE_LF`；源码/数据逐文件摘要、公式结论、配方差异和问题位置见
+[机器可读复核记录](../pu_survey/data/lbe_source_review_20261012.json)。未执行作者代码或将其复制进仓库，
+没有发现明确再分发许可证；该包的官方版本归属尚不能确认，不能直接覆盖旧官方来源锁。
+
+| 项 | 旧官方锁 `79cc2c36…` | 新用户包 `86034d5b…` |
+|---|---|---|
+| 每个模型预训练 | 100 steps | 20 steps |
+| weight decay | 0.01 | 0.001 |
+| classifier small-loss 保留比例 | 80% | 全部 |
+| propensity 预训练 | observed-label balanced BCE | `s+(1-s)*r` 加权 BCE |
+| EM 主循环 | 20 E × 40 M | 相同；文件头未使用的 `M_STEPS=20` 不能作为实际预算 |
+
+两个包的 `em.py` 和两份数据字节相同；`reader.py` 不同，新包没有旧包的 NaN 权重回退。
+E-step 的联合概率归一化与本项目
+`q=r(1-c)/(1-r*c)` 相符；M-step 的 classifier soft target 与 propensity 的 `q` 权重也相符。
+**不需要把 U 当负类或给 propensity 去掉权重**。线性 penalized logistic 解法与作者 Adam/MLP
+的优化轨迹、初始化、预算并不等价；本轮仍未新增神经网络路径或复现论文表格。
+
+已修复：
+
+- 所有概率预测入口要求成功拟合；重训失败后不能继续假装旧模型有效；
+- `max_iter` / `n_em_iter` 须为正整数，`C` 须有限且为正，初始化先验须为 `(0,1)` 内实数；
+- 增加 `n_iter_`、`converged_`、`observed_log_likelihood_history_`。
+  最后一项是观测似然之和，不含正则项；不能据此保证单调或全局收敛；
+- 官方 preflight 数据目录由错误的 `dataset/` 改为源码实际使用的 `datasets/`；
+- 台账显式记录校准不适用：原生 OS 的类别/标记联合似然不接 TS 的 U∪P 风险校准，
+  不是“TS 适配待实现”；`calibration_applied=false` 与原生 OS 拒绝路径保持不变。
+
+源程序不能不加检查地放入正式协议：MATLAB demo 用训练真值优化 ROC 阈值，不属于纯 PU-only PA；
+MLP demo 在切分前计算全量统计，`train.py` 的 `fea_norm` 未被训练使用；SCAR `type=3` 还会返回
+未初始化的 `model`。其反复 test accuracy 只是当前代码的诊断，不能据此认定已按 test 选模，
+但迁移时必须保持 test 与训练/选模隔离。这些差异均已登记，不修改旧 645-run 实验事实。
+
+本轮新增 32 项源码公式/接口/边界/确定性测试；连同台账契约与 pilot 拒收路由共 62 项定向回归通过。
+在基线 `25fc71d` 的线性实现与修复版上，用同一合成输入、默认及显式 0.3 初始化各运行 5 轮，
+类别概率和标记概率的最大差均为 0；这仅证明该回归样例未改变有效训练行为，不是正式数值复现。

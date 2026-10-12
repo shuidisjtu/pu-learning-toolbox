@@ -280,6 +280,7 @@ tests/
       test_holistic_pu_lzo.py           # Holistic-PU 正例 mixup 终点选择、状态恢复与全预算成本测试
       test_pulns_cnn.py                 # PULNS CNN/奖励 probe 隔离、状态提取、最佳模型与全预算成本
       test_gen_pu_cnn.py                # GEN-PU 像素生成、四 CNN 隔离、G 梯度、六网络成本与快照回放
+      test_lbe_review.py                # LBE 源公式、概率契约、重训失效与来源/校准复核
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

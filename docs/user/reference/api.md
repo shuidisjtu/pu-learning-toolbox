@@ -607,9 +607,13 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 |---|---|---|---|
 | `max_iter` | `int` | `1000` | 主优化最大迭代 |
 | `n_em_iter` | `int` | `20` | EM 迭代数 |
-| `C` | `float` | `1.0` | 正则化强度 |
+| `C` | `float` | `1.0` | 正则化强度的倒数，须有限且大于 0 |
 
 - 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
+- 当前为线性 logistic EM，不是作者双 MLP/Adam；`fit(class_prior=...)` 仅影响 U 后验初始化。
+- 拟合后 `n_iter_` / `converged_` 记录实际 EM 轮数与后验停止条件；
+  `observed_log_likelihood_history_` 记录每轮观测对数似然之和，不是含正则项的优化目标，亦不保证单调。
+- `predict_proba` 返回类别概率，`predict_label_proba` 返回被标记概率；所有预测入口均要求先成功拟合。
 
 ### 深度分类器
 
