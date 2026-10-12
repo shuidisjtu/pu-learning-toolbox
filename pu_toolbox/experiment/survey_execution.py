@@ -27,7 +27,7 @@ from .image import (
     fit_survey_image_preprocessing,
     transform_survey_images,
 )
-from .survey_protocol import ROLES, array_digest, digest, validate_parameters
+from .survey_protocol import ROLES, array_digest, digest, image_spec, validate_parameters
 
 
 def score_model(input_dim: int, family: str):
@@ -220,16 +220,18 @@ class SourceSpaceGenerator:
         }
 
 
-def prepare_image_bundle(bundle: DatasetBundle, protocol: dict, seed: int):
+def prepare_image_bundle(bundle: DatasetBundle, protocol: dict, seed: int, *, dataset: str):
     """Fit only train statistics; normalization stays inside the encoder."""
     import torch
 
-    spec = protocol["backbone_specs"]["image"]
+    spec = image_spec(protocol, dataset)
     train, preprocessing = fit_survey_image_preprocessing(
-        bundle.train.X, dataset="cifar10", train_augmentation=spec["train_augmentation"]
+        bundle.train.X, dataset=dataset, train_augmentation=spec["train_augmentation"]
     )
     if list(preprocessing.input_size) != spec["input_size"]:
-        raise ValueError("CIFAR input size disagrees with the locked image specification")
+        raise ValueError(f"{dataset} input size disagrees with the locked image specification")
+    if preprocessing.in_channels != spec["in_channels"]:
+        raise ValueError(f"{dataset} channel count disagrees with the locked image specification")
     if preprocessing.train_augmentation != "none":
         raise ValueError(
             "pilot assembly has no augmentation hook; non-none augmentation is unsupported"

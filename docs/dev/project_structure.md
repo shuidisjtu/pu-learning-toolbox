@@ -461,6 +461,7 @@ tests/
       test_survey_audit_exit_code.py    # A05: 退出码文件(单个 0 才核对;非 0/空/非整数/读不了为 fail;缺文件记未核对)
       test_survey_audit_docs.py         # A14/A16/A17: 快照与边界小节、self_pu 消融披露、隔离保护测试存在(只核证据在)
       test_prepare_survey_splits_adni.py # ADNI 替代数据:读取(类别序/垃圾文件/计数校验)、无官方测试集划分、多归档收据汇总
+      test_survey_image_spec.py         # 图像规格按数据集取(v1 平铺规格原样可读;per_dataset 覆盖与校验)、运行入口按模态而非数据集名分支
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
