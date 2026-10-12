@@ -460,6 +460,7 @@ tests/
       test_checkpoint_training_context.py # 新方法阶段/轮次/更新计数、恢复与回收留痕
       test_survey_audit_exit_code.py    # <<< 新文件,补注释
       test_survey_audit_docs.py         # <<< 新文件,补注释
+      test_prepare_survey_splits_adni.py # <<< 新文件,补注释
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

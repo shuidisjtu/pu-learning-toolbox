@@ -57,7 +57,20 @@ SBERT_REVISION = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
 #: and the guard test requires reviewed catalog provenance for everything
 #: inside it, so both read the same list: adding a dataset here without adding
 #: its provenance fails a test rather than a run.
-SPLIT_PIPELINE_DATASETS: tuple[str, ...] = ("spambase", "cifar10", "imdb")
+SPLIT_PIPELINE_DATASETS: tuple[str, ...] = ("spambase", "cifar10", "imdb", "adni")
+
+#: The ADNI stand-in's classes in the order of the paper's Table B.1, which fixes the
+#: ids 0-3 the protocol maps as ``0 vs 1,2,3``, and the image count of each class in the
+#: pinned mirror: a different count means a different set of files.
+ADNI_CLASSES = ("NonDemented", "VeryMildDemented", "ModerateDemented", "MildDemented")
+ADNI_EXPECTED_COUNTS = {
+    "NonDemented": 3200,
+    "VeryMildDemented": 2240,
+    "ModerateDemented": 64,
+    "MildDemented": 896,
+}
+ADNI_IMAGE_SIZE = (128, 128)
+_ADNI_IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 
 
 def load_spambase(raw_dir: Path) -> tuple[np.ndarray, np.ndarray]:
@@ -79,6 +92,48 @@ def load_cifar10(raw_dir: Path):
     y_train = np.asarray([label for _, label in train])
     y_test = np.asarray([label for _, label in test])
     return X_train, y_train, X_test, y_test
+
+
+def load_adni(
+    raw_dir: Path, *, expected_counts: dict[str, int] | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Load the ADNI stand-in from its four class archives (NCHW uint8, class ids 0-3).
+
+    The archives are read in place and never extracted.  Reading and preprocessing follow
+    PU-Bench's ``AlzheimerMRI`` loader (grayscale, LANCZOS resize to 128x128); its class
+    lists and its own split are not used.  macOS litter in the zips (``__MACOSX/``,
+    dot-files) is ignored, members are taken in sorted order so the arrays do not depend on
+    how the zip was written, and a class whose image count differs from the pinned mirror
+    is an error rather than a silently different dataset.
+    """
+    import io
+    import zipfile
+
+    from PIL import Image
+
+    counts = ADNI_EXPECTED_COUNTS if expected_counts is None else expected_counts
+    images: list[np.ndarray] = []
+    labels: list[int] = []
+    for class_id, name in enumerate(ADNI_CLASSES):
+        with zipfile.ZipFile(raw_dir / "adni" / f"{name}.zip") as archive:
+            members = sorted(
+                info.filename
+                for info in archive.infolist()
+                if not info.is_dir()
+                and info.filename.startswith(f"{name}/")
+                and not info.filename.rsplit("/", 1)[-1].startswith(".")
+                and info.filename.lower().endswith(_ADNI_IMAGE_SUFFIXES)
+            )
+            if len(members) != counts[name]:
+                raise ValueError(
+                    f"adni {name}: found {len(members)} images, expected {counts[name]}"
+                )
+            for member in members:
+                with Image.open(io.BytesIO(archive.read(member))) as image:
+                    resized = image.convert("L").resize(ADNI_IMAGE_SIZE, Image.LANCZOS)
+                images.append(np.asarray(resized, dtype=np.uint8))
+                labels.append(class_id)
+    return np.stack(images)[:, np.newaxis, :, :], np.asarray(labels)
 
 
 def load_imdb_texts(raw_dir: Path) -> tuple[list[str], list[int], list[str], list[int]]:
@@ -184,7 +239,29 @@ def load_download_record(raw_dir: Path, dataset: str) -> dict[str, Any] | None:
             f"{path} records a download of {declared!r}, not {dataset!r}; its "
             "digest would otherwise be written into the wrong manifest"
         )
+    if "files" in payload and "sha256" not in payload:
+        return _aggregate_download_record(path, payload)
     return payload
+
+
+def _aggregate_download_record(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """One download record for a dataset shipped as several archives.
+
+    The digest is taken over ``<sha256>  <filename>`` lines in filename order, so it
+    changes if any archive changes and not with the order the collector listed them.
+    """
+    if not payload.get("collected_at"):
+        raise ValueError(f"{path} lists archives but records no collected_at")
+    files = sorted(payload["files"], key=lambda item: item["filename"])
+    listing = "".join(f"{item['sha256']}  {item['filename']}\n" for item in files)
+    record = {
+        "sha256": hashlib.sha256(listing.encode("utf-8")).hexdigest(),
+        "bytes": sum(int(item["bytes"]) for item in files),
+        "downloaded_at": payload["collected_at"],
+    }
+    if payload.get("mirror_url"):
+        record["mirror_url"] = payload["mirror_url"]
+    return record
 
 
 def prepare_tabular(
@@ -213,17 +290,19 @@ def prepare_tabular(
 def prepare_image(
     X_train: np.ndarray,
     y_train: np.ndarray,
-    X_test: np.ndarray,
-    y_test: np.ndarray,
+    X_test: np.ndarray | None = None,
+    y_test: np.ndarray | None = None,
     *,
     seed: int,
     run_dir: Path,
     download: dict[str, Any] | None = None,
+    dataset: str = "cifar10",
 ) -> None:
+    """Prepare one image dataset; a dataset with no official test passes none (ADNI)."""
     bundle, manifest = prepare_survey_dataset(
         X_train,
         y_train,
-        dataset="cifar10",
+        dataset=dataset,
         seed=seed,
         X_test=X_test,
         y_test=y_test,
@@ -234,7 +313,7 @@ def prepare_image(
     # pilot).  Recording the estimator-side default here would misdescribe what
     # these artifacts actually are.
     _, preprocessing = fit_survey_image_preprocessing(
-        bundle.train.X, dataset="cifar10", train_augmentation="none"
+        bundle.train.X, dataset=dataset, train_augmentation="none"
     )
     manifest["preprocessing"] = preprocessing.to_manifest()
     # Raw uint8 NCHW arrays are stored; the frozen scaling is applied by the
@@ -331,6 +410,8 @@ def _load_dataset(dataset: str, raw_dir: Path):
         return load_cifar10(raw_dir)
     if dataset == "imdb":
         return load_imdb_texts(raw_dir)
+    if dataset == "adni":
+        return load_adni(raw_dir)
     raise ValueError(f"unknown dataset {dataset!r}")
 
 
@@ -384,8 +465,10 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 if dataset == "spambase":
                     prepare_tabular(dataset, *loaded, seed=seed, run_dir=run_dir, download=download)
-                elif dataset == "cifar10":
-                    prepare_image(*loaded, seed=seed, run_dir=run_dir, download=download)
+                elif dataset in ("cifar10", "adni"):
+                    prepare_image(
+                        *loaded, seed=seed, run_dir=run_dir, download=download, dataset=dataset
+                    )
                 else:
                     prepare_text(
                         *loaded,

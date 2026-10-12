@@ -32,7 +32,7 @@
 
 | 编号 | 任务 | 主责 / 复核 | 前置与当前状态 | 完成条件 |
 |---|---|---|---|---|
-| P1.2-R | 剩余数据集获取与许可 | **shuidisjtu**；HENG958 核对来源与交付 | MNIST、F-MNIST、20News、Connect-4 已有[原始收件记录](data/public_data_receipt_20261004.json)，须确认执行端可取用及许可；ADNI 尚需获准材料 | 五数据集逐项登记来源、版本、授权/使用范围、文件摘要与可访问位置；ADNI 未取得获批材料不得记作完成 |
+| P1.2-R | 剩余数据集获取与许可 | **shuidisjtu**；HENG958 核对来源与交付 | MNIST、F-MNIST、20News、Connect-4 已有[原始收件记录](data/public_data_receipt_20261004.json)，须确认执行端可取用及许可；ADNI 改用替代数据（Kaggle 4 类 Alzheimer MRI，非 ADNI），见 [替代数据记录](data/adni_substitute_receipt_20261012.json) | 五数据集逐项登记来源、版本、授权/使用范围、文件摘要与可访问位置；ADNI 槽位一律标注为替代数据，不得写成 ADNI 官方数据；Kaggle 页面许可为 Unknown，使用范围未确立 |
 | P1.4-R | 新数据预处理与正式 split | **shuidisjtu**；HENG958 复核 | 依 P1.2-R 逐数据集启动，旧 Pilot split 不覆盖 | 按协议准备五 seed 四角色、train-only 统计及索引隔离；锁定 20News 的 20→7 映射、Connect-4 编码和 MNIST/F-MNIST 输入规格，输出数据/划分 manifest |
 | P2.2 | Pilot 交付与审计收尾 | **shuidisjtu**；HENG958 独立重放与 C1–C6 复核 | Excel 对账已交付；原始计划、日志、manifest/权重与归档证据待核验 | 补齐证据和说明勘误，完成 O1–O10，按[复核包](delivery/p2_2_review.md)登记双方结论及输入/产物摘要；复核范围见 RV3/RV4/RV7 |
 | P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 除 `p3mix` 外，Survey 目标方法均已有代码级接入；五方法[来源与预算证据](p3_admission_evidence_20261005.md)、[公开对照草稿](p3_public_comparison_20261005.md)已补，均待审；`p3mix` 仅有数学组件，未注册完整 estimator | HENG958 完成 P3MIX 来源核验、完整 estimator/训练流程、注册与测试；并补齐已接入方法的来源、公式/行为对照、先验/标签预算与校准适用性；shuidisjtu 按 RV8 逐项复核 |
@@ -65,7 +65,7 @@
 ### 2.1 风险
 
 1. **GPU 与正式环境**：正式资源验收须使用批准配置、frozen-lock 环境、兼容的驱动/依赖和逐 run 资源记录；合成 CPU/CUDA 探针不能代替 P3.3-B。
-2. **数据与标签**：公开原始数据不等于许可、正式 split 或四角色验收；新数据和版本变化必须留来源、映射、授权范围与摘要，ADNI 未获批不得纳入。
+2. **数据与标签**：公开原始数据不等于许可、正式 split 或四角色验收；新数据和版本变化必须留来源、映射、授权范围与摘要，ADNI 官方数据未获批不得纳入；`adni` 槽位使用的是替代数据，须按 D1 的修订标注。
 3. **方法准入**：代码级接入、方法卡、smoke、资源 profile 或阶段批准均不等于正式准入；P3MIX 必须先完成完整 estimator，PULNS/LaGAM 等额外标签预算单独裁决。
 4. **存储峰值**：D25 回收发生在选模和 test 评测之后，只降低最终留存，不降低训练期间峰值；新候选按全部 epoch × component × candidate × retry 估算，不外推缩短探针。
 
@@ -84,7 +84,7 @@
 
 | # | 决策 | 内容 | 日期 |
 |---|---|---|---|
-| D1 | **ADNI 数据获取** | ADNI 仅在获批持有人提供授权材料后纳入；未取得不记作数据获取完成，执行任务见 P1.2-R。 | 2026-09-08 |
+| D1 | **ADNI 数据获取** | ADNI 官方数据仅在获批持有人提供授权材料后纳入，未取得不记作官方 ADNI 获取完成。**2026-10-12 修订**：经与学长、导师讨论，为避免流程过于耗时，`adni` 槽位改用 Kaggle 4 类 Alzheimer MRI 的 GitHub 转存（论文 2 的 Table B.1 称其 Alzheimer MRI，附录称 ADNI），固定在转存仓库 commit 与逐文件摘要；它不是 ADNI 数据，所有登记、报告与快照须写明「替代数据」；Kaggle 页面许可为 Unknown（2026-10-12 核对），同一受试者切片是否跨集未核实，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。 | 2026-09-08（修订 2026-10-12） |
 | D2 | 协议分工执行口径 | 研究团队准备四角色数据，工具箱 `fit` 消费已划分输入；工具箱不替代数据划分。 | 2026-09-08 |
 | D3 | 依赖锁与 CUDA 环境落地 | `uv.lock` 入库，PR 使用提交的锁，nightly 用 `--upgrade` 重新解析；正式 GPU 运行另核驱动与依赖身份，详见 [ADR-0012](../../adr/0012-dependency-release-policy.md)。 | 2026-10-05 |
 | D4 | issue #41 阶段 A/B 拆分 | 标签语义阶段 A 服务 Pilot 门禁，阶段 B 覆盖 pipeline/CLI/UI 收口；实现细节见[P2.0b 交付](delivery/p2_0b_delivery.md)。 | 2026-09-14 |
