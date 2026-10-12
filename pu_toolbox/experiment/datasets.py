@@ -101,7 +101,39 @@ _CATALOG = {
             ),
         ),
     ),
-    "adni": SurveyDatasetSpec("adni", "image", (0,), (1, 2, 3), False),
+    "adni": SurveyDatasetSpec(
+        "adni",
+        "image",
+        (0,),
+        (1, 2, 3),
+        False,
+        provenance=DatasetProvenance(
+            source_url="https://www.kaggle.com/datasets/tourist55/alzheimers-dataset-4-class-of-images",
+            version=(
+                "mirror github.com/Jahnabi19/AD-Dataset commit "
+                "d90729118954bbedfe481dea8a53b4f3ee5a21b2 (6400 images)"
+            ),
+            citation=(
+                "Kaggle 'Alzheimer's Dataset (4 class of Images)' (tourist55). The "
+                "reference paper's Table B.1 names it Alzheimer MRI and its appendix "
+                "describes it as ADNI (Jack Jr et al., 2008)."
+            ),
+            label_semantics=(
+                "stand-in for ADNI, not ADNI data: class ids 0-3 = NonDemented, "
+                "VeryMildDemented, ModerateDemented, MildDemented (the paper's Table "
+                "B.1 order); the positive class is NonDemented {0} against {1, 2, 3}, "
+                "as protocol 2.2 maps it. PU-Bench's own loader treats Moderate+Mild as "
+                "positive, which this protocol does not"
+            ),
+            license_checked_on="2026-10-12",
+            license_notes=(
+                "The mirror repository states no licence and is a personal copy. The "
+                'Kaggle page lists its License as "Unknown" (read by the project lead '
+                "on this date), so no terms are transcribed. Whether the images may "
+                "be redistributed is not established."
+            ),
+        ),
+    ),
     "imdb": SurveyDatasetSpec(
         "imdb",
         "text",

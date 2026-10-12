@@ -66,6 +66,8 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 即上文 `assets/Dateset_PU.png`）。数据版本或标签编码发生变化时，必须提供映射转换审计记录；
 不得因方法表现调整正负类定义。
 
+> **ADNI 槽位说明（2026-10-12）**：论文 2 的 Table B.1 把该数据集称为 Alzheimer MRI，类别编号为 NonDemented 0、VeryMildDemented 1、ModerateDemented 2、MildDemented 3，故 `0 vs 1,2,3` 即 NonDemented 为正类（先验 0.5）。本项目实际使用的是 Kaggle 4 类集的转存（共 6400 张），**不是 ADNI 官方数据**，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。PU-Bench 的加载器以 Moderate+Mild 为正类，与本协议不同，这里只借用其读取与预处理（灰度、缩放到 128×128），类别定义与切分按本协议。
+
 ### 2.3 PU 数据集生成
 
 1. 统一采用 OS 数据生成方式，保证基础训练数据的一致性。`os_or_ts` 表示算法使用的

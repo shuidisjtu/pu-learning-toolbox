@@ -56,6 +56,41 @@ def test_edge_local_receipt_is_not_publisher_checksum(tmp_path, monkeypatch):
     assert json.loads((target.parent / "provenance.json").read_text(encoding="utf-8")) == first
 
 
-def test_adni_not_allowed():
-    with pytest.raises(ValueError, match="ADNI"):
-        collector.resources("adni")
+def test_basic_adni_substitute_is_pinned_to_a_commit_and_a_digest():
+    entries = collector.resources("adni")
+    assert [name for name, *_ in entries] == [
+        "NonDemented.zip",
+        "VeryMildDemented.zip",
+        "ModerateDemented.zip",
+        "MildDemented.zip",
+    ]
+    for _, url, algorithm, digest in entries:
+        assert algorithm == "sha256"
+        assert len(digest) == 64
+        assert collector.ADNI_MIRROR_COMMIT in url
+        assert "/main/" not in url
+
+
+def test_edge_a_project_pinned_digest_is_not_reported_as_the_publisher_s(tmp_path, monkeypatch):
+    configure(monkeypatch, expected=hashlib.sha256(b"raw").hexdigest())
+    receipt = collector.collect("adni", tmp_path)
+    record = receipt["files"][0]
+    assert record["checksum_source"] == "project_pin"
+    assert not record["publisher_checksum_verified"]
+    assert record["pinned_sha256"] == hashlib.sha256(b"raw").hexdigest()
+
+
+def test_param_an_unknown_dataset_is_still_refused():
+    with pytest.raises(ValueError, match="unsupported"):
+        collector.resources("not_a_dataset")
+
+
+def test_determ_the_collection_time_is_kept_when_a_verified_download_is_reused(
+    tmp_path, monkeypatch
+):
+    configure(monkeypatch, expected=hashlib.sha256(b"raw").hexdigest())
+    first = collector.collect("adni", tmp_path)
+    second = collector.collect("adni", tmp_path)
+
+    assert first["collected_at"] == second["collected_at"]
+    assert first["mirror_url"].endswith(collector.ADNI_MIRROR_COMMIT)
