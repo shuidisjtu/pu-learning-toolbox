@@ -18,6 +18,7 @@ import numpy as np
 from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_canonical_hash
 
+from .datasets import survey_dataset_catalog
 from .feature_adapter import encoder_state_sha256
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
@@ -194,6 +195,47 @@ def array_digest(value: np.ndarray) -> str:
     return array_hash(value)
 
 
+#: Fields a dataset may override on the shared image spec.  Everything else (the network,
+#: its initialisation, normalisation, augmentation) is one choice for the whole protocol.
+_PER_DATASET_IMAGE_FIELDS = frozenset({"in_channels", "input_size", "small_input_stem"})
+
+
+def _validate_image_spec(backbone_specs: dict[str, Any]) -> None:
+    """Reject a malformed ``per_dataset`` block; a flat spec (v1) has none and passes."""
+    per_dataset = backbone_specs.get("image", {}).get("per_dataset")
+    if per_dataset is None:
+        return
+    if not isinstance(per_dataset, dict) or not per_dataset:
+        raise ValueError("survey protocol image per_dataset must be a non-empty object")
+    for dataset, override in per_dataset.items():
+        if not isinstance(override, dict) or not override:
+            raise ValueError(f"survey protocol image per_dataset[{dataset!r}] must be an object")
+        unknown = sorted(set(override) - _PER_DATASET_IMAGE_FIELDS)
+        if unknown:
+            raise ValueError(
+                f"survey protocol image per_dataset[{dataset!r}] may only override "
+                f"{sorted(_PER_DATASET_IMAGE_FIELDS)}, not {unknown}"
+            )
+
+
+def image_spec(protocol: dict[str, Any], dataset: str) -> dict[str, Any]:
+    """The image backbone spec that applies to *dataset*.
+
+    A flat spec (the shipped v1 matrix, written for CIFAR-10) applies to every dataset as
+    it is.  A spec with ``per_dataset`` merges that dataset's overrides over the shared
+    fields and has no spec at all for a dataset it does not list, so a dataset cannot
+    silently inherit another one's input size.
+    """
+    spec = protocol["backbone_specs"]["image"]
+    per_dataset = spec.get("per_dataset")
+    if per_dataset is None:
+        return copy.deepcopy(spec)
+    if dataset not in per_dataset:
+        raise ValueError(f"survey protocol has no image specification for dataset {dataset!r}")
+    shared = {key: value for key, value in spec.items() if key != "per_dataset"}
+    return copy.deepcopy({**shared, **per_dataset[dataset]})
+
+
 def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
     """Load and validate the matrix before data preparation or training."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -219,6 +261,7 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
     for key in ("budgets", "method_profiles", "backbone_specs", "c_tokens", "selection_spec"):
         if not isinstance(payload[key], dict) or not payload[key]:
             raise ValueError(f"survey protocol {key} must be a non-empty object")
+    _validate_image_spec(payload["backbone_specs"])
     if (
         not isinstance(payload["review_status"], str)
         or payload["review_status"] not in _REVIEW_STATUSES
@@ -464,10 +507,10 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     }
     adapter = config.get("adapter_manifest")
     image = config.get("image_manifest")
-    if row["dataset"] == "cifar10":
+    if survey_dataset_catalog()[row["dataset"]].modality == "image":
         if not image or image.get("initialization_seed") != seed:
-            raise ValueError("CIFAR unit requires seeded image preprocessing provenance")
-        spec = protocol["backbone_specs"]["image"]
+            raise ValueError("image unit requires seeded image preprocessing provenance")
+        spec = image_spec(protocol, row["dataset"])
         if (
             image.get("input_size") != spec["input_size"]
             or image["backbone"]["weights"] is not None

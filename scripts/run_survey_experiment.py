@@ -90,6 +90,7 @@ from sklearn.neural_network import MLPClassifier
 # TS/case-control assumption.
 from pu_toolbox.core.training_views import ROLES, RUN_VIEWS
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
+from pu_toolbox.experiment.datasets import survey_dataset_catalog
 from pu_toolbox.experiment.manifest import load_manifest, write_manifest
 from pu_toolbox.experiment.method_ledger import load_ledger
 from pu_toolbox.experiment.runner import ExperimentRunner
@@ -104,6 +105,17 @@ from pu_toolbox.experiment.strategies import (
 from pu_toolbox.experiment.training_views import resolve_training_view
 
 LEDGER_PATH = Path(__file__).resolve().parent.parent / "pu_toolbox/experiment/method_ledger.json"
+
+#: Every dataset the catalog knows.  Whether the loaded protocol has units for one is
+#: decided by ``resolve_unit``, so a dataset the protocol does not cover fails there with
+#: a clear message instead of being hidden from the option list.
+DATASET_CHOICES = tuple(sorted(survey_dataset_catalog()))
+
+
+def modality_of(dataset: str) -> str:
+    """``image`` / ``text`` / ``tabular``: what kind of input the dataset is."""
+    return survey_dataset_catalog()[dataset].modality
+
 
 # Label-view mechanisms this CLI can run (``--labeling-mechanism``): SCAR, the
 # survey's main row, plus the two SAR LBE variants of the pressure test.
@@ -482,7 +494,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=None,
         help="survey-v1.2 (v1/v1.1 aliases) or matrix JSON; otherwise technical smoke",
     )
-    parser.add_argument("--dataset", choices=("spambase", "imdb", "cifar10"), default=None)
+    parser.add_argument("--dataset", choices=DATASET_CHOICES, default=None)
     parser.add_argument(
         "--training-path",
         choices=("native_2d", "native_cnn", "cnn_feature_adapter"),
@@ -611,12 +623,14 @@ def _versioned_main(args, c_values, seed_values) -> int:
             source = DatasetBundle(*parts)
             image_manifest = adapter_manifest = encoder = None
             bundle = source
-            if args.dataset == "imdb" and any(
+            if modality_of(args.dataset) == "text" and any(
                 getattr(source, role).X.shape[1] != 384 for role in ROLES
             ):
-                raise ValueError("IMDB protocol requires SBERT 384-dimensional inputs")
-            if args.dataset == "cifar10":
-                bundle, encoder, image_manifest = prepare_image_bundle(source, protocol, seed)
+                raise ValueError("text datasets require SBERT 384-dimensional inputs")
+            if modality_of(args.dataset) == "image":
+                bundle, encoder, image_manifest = prepare_image_bundle(
+                    source, protocol, seed, dataset=args.dataset
+                )
                 if row["training_path"] == "cnn_feature_adapter":
                     bundle, adapter_manifest = cached_adapter(
                         bundle,

@@ -68,7 +68,9 @@ def _pinned_encoder():
 
 def test_basic_image_statistics_and_encoder_are_train_only():
     source = image_bundle()
-    prepared, encoder, manifest = prepare_image_bundle(source, load_protocol(), 0)
+    prepared, encoder, manifest = prepare_image_bundle(
+        source, load_protocol(), 0, dataset="cifar10"
+    )
     assert prepared.train.X.dtype == np.float32
     assert manifest["normalization"]["source"] == "train_only_channel_statistics"
     assert manifest["augmentation"]["train"]["name"] == "none"
@@ -78,9 +80,9 @@ def test_basic_image_statistics_and_encoder_are_train_only():
 
 def test_determ_encoder_seed_and_train_statistics_ignore_test_changes():
     source = image_bundle()
-    _, first, manifest = prepare_image_bundle(source, load_protocol(), 0)
+    _, first, manifest = prepare_image_bundle(source, load_protocol(), 0, dataset="cifar10")
     changed = replace(source, test=replace(source.test, X=np.zeros_like(source.test.X)))
-    _, second, other = prepare_image_bundle(changed, load_protocol(), 0)
+    _, second, other = prepare_image_bundle(changed, load_protocol(), 0, dataset="cifar10")
     assert manifest == other
     assert encoder_state_sha256(first) == encoder_state_sha256(second)
 
@@ -160,7 +162,7 @@ def test_param_non_protocol_image_size_rejected():
         }
     )
     with pytest.raises(ValueError, match="input size"):
-        prepare_image_bundle(source, load_protocol(), 0)
+        prepare_image_bundle(source, load_protocol(), 0, dataset="cifar10")
 
 
 def test_basic_neural_methods_share_mlp_blueprint():
@@ -203,7 +205,9 @@ def test_edge_oracle_rejects_single_class_and_zero_budget():
 @pytest.mark.gpu
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_basic_real_resnet_adapter_gpu_cache_smoke(tmp_path):
-    prepared, encoder, image = prepare_image_bundle(image_bundle(), load_protocol(), 0)
+    prepared, encoder, image = prepare_image_bundle(
+        image_bundle(), load_protocol(), 0, dataset="cifar10"
+    )
     before = encoder_state_sha256(encoder)
     first, one = cached_adapter(
         prepared, encoder, image, cache_dir=tmp_path, device="cuda", batch_size=2
