@@ -230,9 +230,10 @@ _CATALOG = {
                 "Newsweeder: Learning to filter netnews (ICML 1995), without his saying so."
             ),
             label_semantics=(
-                "the archive has 20 newsgroups; the mapping ids 0-6 below are the protocol's "
-                "seven classes, with {0, 1, 2, 3} against {4, 5, 6}. Which newsgroups form "
-                "each of the seven is not fixed yet (P1.4-R), so no 20-to-7 table is recorded"
+                "20 newsgroups are grouped by the prefix before the first dot: "
+                "class ids 0-6 = alt, comp, misc, rec, sci, soc, talk (paper Table B.1); "
+                "the positive classes are {0, 1, 2, 3} against {4, 5, 6}. "
+                "The bydate train/test boundary is retained without additional text cleaning"
             ),
             license_checked_on="2026-10-14",
             license_notes=(
