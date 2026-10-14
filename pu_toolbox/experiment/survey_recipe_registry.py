@@ -52,6 +52,7 @@ stage 2/3 maps these codes into audit findings.
 
 from __future__ import annotations
 
+import copy
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -386,6 +387,81 @@ def canonical_digest(registry: Mapping[str, Any]) -> str:
 def resolved_params_digest(snapshot: Mapping[str, Any]) -> str:
     """``resolved_params_sha256``: the digest of one candidate's snapshot."""
     return digest(snapshot)
+
+
+def bind_recipe_candidate(
+    registry: Mapping[str, Any],
+    protocol: Mapping[str, Any],
+    *,
+    method: str,
+    dataset: str,
+    training_path: str,
+    candidates: list[dict[str, Any]] | None = None,
+    constructor_overrides: Mapping[str, Any] | None = None,
+    expected_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Bind the current v1 single-outer-candidate run before training.
+
+    This produces identity, never approval: both lifecycles must already be
+    locked. The singular manifest candidate ID cannot truthfully describe a
+    multi-candidate PA/OA search; such a request is rejected until that artifact
+    contract is versioned. PUSB's internal CV remains inside its one outer
+    candidate and is represented by ``inner_search_id``.
+    """
+    from .survey_protocol import resolve_unit
+
+    if not isinstance(registry, Mapping) or not isinstance(registry.get("profiles"), Mapping):
+        raise ValueError("recipe registry and profiles must be objects")
+    findings = validate_registry(registry, protocol)
+    if findings:
+        raise ValueError(
+            "recipe registry is not runtime-bindable: "
+            + "; ".join(f"{f.code}: {f.message}" for f in findings)
+        )
+    if registry.get("recipe_lifecycle") != "locked":
+        raise ValueError(
+            "recipe registry must be locked before runtime binding; draft is not approval"
+        )
+    registry_sha256 = canonical_digest(registry)
+    if expected_sha256 is not None and registry_sha256 != expected_sha256:
+        raise ValueError("recipe registry changed since preflight: expected digest does not match")
+    profile = registry["profiles"].get(method)
+    if profile is None or profile.get("recipe_lifecycle") != "locked":
+        raise ValueError(f"recipe profile for {method!r} must exist and be locked")
+    resolve_unit(protocol, dataset, method, training_path)
+    scope = profile["scope"]
+    if dataset not in scope["datasets"] or training_path not in scope["training_paths"]:
+        raise ValueError("requested dataset/training_path is outside the locked recipe scope")
+    pool = profile["candidate_pool"]
+    if len(pool) != 1:
+        raise ValueError(
+            "runtime binding v1 requires one outer candidate; "
+            "multi-candidate identity needs a versioned contract"
+        )
+    actual = protocol["candidate_pool"] if candidates is None else candidates
+    if digest(actual) != digest(protocol["candidate_pool"]):
+        raise ValueError("runtime candidates disagree with the recipe's frozen protocol pool")
+    declared = protocol["method_profiles"][method]["params"]
+    if constructor_overrides is not None and not isinstance(constructor_overrides, Mapping):
+        raise ValueError("constructor overrides must be an object")
+    for key, value in (constructor_overrides or {}).items():
+        if key not in declared or digest(value) != digest(declared[key]):
+            raise ValueError(f"constructor override is outside the resolved recipe: {key}")
+    chosen = pool[0]
+    snapshot = resolve_candidate(profile, chosen, protocol)
+    binding = {
+        "recipe_binding_status": "registry_bound",
+        "recipe_registry_version": registry["recipe_registry_version"],
+        "recipe_registry_sha256": registry_sha256,
+        "recipe_profile_id": profile_id(profile),
+        "recipe_candidate_id": chosen["recipe_candidate_id"],
+        "resolved_params_sha256": resolved_params_digest(snapshot),
+        "inner_search_id": snapshot["inner_search_id"],
+    }
+    errors = validate_manifest_binding(binding, registry, protocol=protocol)
+    if errors:
+        raise ValueError("invalid prepared recipe binding: " + "; ".join(f.message for f in errors))
+    return copy.deepcopy(binding)
 
 
 def resolve_candidate(

@@ -474,6 +474,11 @@ tests/
       test_prepare_survey_splits_mnist.py # MNIST 家族输入校验与官方 test 隔离
       test_prepare_survey_splits_news.py # 20News 七前缀映射、原文与稳定排序
       test_prepare_survey_splits_wiring.py # 新数据集 CLI、来源证据与拒绝覆盖接线
+      test_pilot_recipe_resume.py       # 配方绑定续跑：旧记录、缺失字段与错配不得算完成
+      test_runner_recipe_binding.py     # runner 训练前锁定门禁、候选冻结与选择身份
+      test_survey_pilot_recipe_binding.py # pilot 配方预检、子进程摘要固定与计划记录
+      test_survey_recipe_binding.py     # 配方生命周期、范围、候选与内部 CV 绑定契约
+      test_survey_script_recipe_binding.py # 单次 CLI 绑定拒收、独立目录与旧制品保护
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

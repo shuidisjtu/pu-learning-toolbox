@@ -40,6 +40,7 @@ from .resources import (
     checkpoint_disk_requirement,
 )
 from .survey_protocol import unit_checkpoint_bytes, unit_checkpoint_profile
+from .survey_recipe_registry import REGISTRY_BOUND_MANIFEST_FIELDS
 from .training_views import validated_run_view
 
 #: The method every oracle unit runs under.  The run script substitutes it for
@@ -522,6 +523,7 @@ def completed_runs(
     results_root: str | Path,
     *,
     splits: dict[tuple[str, int], str] | None = None,
+    expected_recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
 ) -> dict[tuple[Any, ...], Path]:
     """Every completed run under ``results_root``, keyed by ``(identity, view)``.
 
@@ -540,6 +542,21 @@ def completed_runs(
     evidence of completion, and stopping the scan over it would block a resume
     over a file unrelated to the planned matrix.
     """
+    if expected_recipe_bindings is not None:
+        for expected in expected_recipe_bindings.values():
+            if (
+                not isinstance(expected, Mapping)
+                or expected.get("recipe_binding_status") != "registry_bound"
+                or any(field not in expected for field in REGISTRY_BOUND_MANIFEST_FIELDS)
+                or any(
+                    not isinstance(expected[field], str) or not expected[field]
+                    for field in REGISTRY_BOUND_MANIFEST_FIELDS
+                    if field != "inner_search_id"
+                )
+            ):
+                raise ValueError(
+                    "expected_recipe_bindings must contain complete registry-bound identities"
+                )
     done: dict[tuple[Any, ...], Path] = {}
     for path in sorted(Path(results_root).rglob("manifest.json")):
         try:
@@ -551,6 +568,10 @@ def completed_runs(
         identity = manifest_identity(payload)
         if identity is None:
             continue
+        if expected_recipe_bindings is not None:
+            expected = expected_recipe_bindings.get(identity)
+            if expected is None or not _matches_recipe_binding(payload, expected):
+                continue
         if splits is not None and not _ran_on_current_split(payload, identity, splits):
             continue
         try:
@@ -559,6 +580,36 @@ def completed_runs(
             continue
         done.setdefault((*identity, view), path)
     return done
+
+
+def _matches_recipe_binding(payload: dict[str, Any], expected: Mapping[str, Any]) -> bool:
+    """A bound request cannot resume a legacy, partial or different recipe."""
+
+    def matches(entry, fields):
+        return isinstance(entry, Mapping) and all(
+            k in entry and entry[k] == expected[k] for k in fields
+        )
+
+    if not matches(payload, expected):
+        return False
+    fields = ("recipe_binding_status", *REGISTRY_BOUND_MANIFEST_FIELDS)
+    candidates = payload.get("candidate_runs")
+    selections = payload.get("selection")
+    return (
+        isinstance(candidates, list)
+        and len(candidates) == 1
+        and matches(candidates[0], fields)
+        and type(candidates[0].get("candidate_index")) is int
+        and candidates[0]["candidate_index"] == 0
+        and isinstance(selections, Mapping)
+        and bool(selections)
+        and all(
+            matches(selection, fields)
+            and type(selection.get("candidate_index")) is int
+            and selection["candidate_index"] == 0
+            for selection in selections.values()
+        )
+    )
 
 
 def _ran_on_current_split(
@@ -576,6 +627,7 @@ def pending_runs(
     *,
     expected_views: Mapping[tuple[Any, ...], str],
     splits: dict[tuple[str, int], str] | None = None,
+    expected_recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
 ) -> tuple[tuple[PilotRun, ...], tuple[PilotRun, ...]]:
     """``(pending, completed)`` for the protocol's runs under ``results_root``.
 
@@ -600,7 +652,13 @@ def pending_runs(
             f"expected_views does not cover {len(missing)} planned run(s); "
             f"first missing: {missing[0]}"
         )
-    done = completed_runs(results_root, splits=splits)
+    if expected_recipe_bindings is not None:
+        missing_recipes = [run.key for run in planned if run.key not in expected_recipe_bindings]
+        if missing_recipes:
+            raise ValueError("expected_recipe_bindings does not cover every planned run")
+    done = completed_runs(
+        results_root, splits=splits, expected_recipe_bindings=expected_recipe_bindings
+    )
     pending = tuple(run for run in planned if (*run.key, expected_views[run.key]) not in done)
     completed = tuple(run for run in planned if (*run.key, expected_views[run.key]) in done)
     return pending, completed

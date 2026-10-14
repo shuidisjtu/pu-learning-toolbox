@@ -186,6 +186,18 @@ def base_registry(
     return value
 
 
+def locked_registry(method="upu", protocol=None):
+    """Synthetic declared lock for runtime tests; never a project sign-off."""
+    protocol = protocol or load_protocol()
+    value = base_registry(methods=(method,), protocol=protocol)
+    value["recipe_lifecycle"] = "locked"
+    for prof in value["profiles"].values():
+        prof["recipe_lifecycle"] = "locked"
+        for chosen in prof["candidate_pool"]:
+            chosen["resolved_snapshot"] = resolve_candidate(prof, chosen, protocol)
+    return value
+
+
 def protocol_with_outer_candidates(count: int, family: str = "minibatch") -> dict[str, Any]:
     """The frozen protocol with one budget family widened, for pool-size cases.
 

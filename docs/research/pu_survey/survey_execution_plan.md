@@ -3,7 +3,7 @@
 > 本文件只维护 Survey 的任务分工、验收边界、风险与留痕约定，以及仍影响执行的决策摘要。
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v1.json` 与 `survey_comparison_v3.json` 为准。
-> 状态核对日期：**2026-10-07**；合并基线：`4bfa59b`。
+> 状态核对日期：**2026-10-14**；远程核对基线：`3158a6c`；本地新增工程见对应交付记录。
 > 复核责任明确归属 **shuidisjtu** 或 **HENG958**；代理检查不能代替二人的签署。
 
 ## 1. 任务分工与验收
@@ -40,7 +40,7 @@
 | PN-CNN | 端到端 CNN PN 全监督 oracle baseline | **HENG958** 实现/训练；shuidisjtu 登记协议并复核 | `PilotOracleCNN` 已有代码和合成验证；旧协议 native CNN oracle 仍不可运行，真实 CIFAR 五 seed 未交付 | 按协议用真实 train PN 标签端到端训练 ResNet-18 与分类头，与对应 PU 共享 split/表征/预算；仅用 clean_val accuracy 作 OA 选模，每 dataset/seed 一次、五 seed；先完成新协议/存储预算登记与真实 CIFAR GPU smoke，再交付权重、指标和 manifest |
 | P3.3-A | 批准结构的资源 profile | **HENG958**；shuidisjtu 复核预算依据 | [扩展资源 receipt](data/candidate_extended_cnn_storage_probe_20261007.json) 已完成 7 recipe×3 seed 的独立 CPU 技术测量并通过 checker；仍是合成输入、非批准结构/正式上界，GPU 未测；现有记录不能外推正式数据集 | 测真实批准结构的序列化、内存/磁盘及保守配额；PUET 按 CPU 条款处理，不计入 GPU 覆盖 |
 | P3.3-B | 正式资源与持久化验收 | **HENG958**；shuidisjtu 复核制品 | 对应候选 P4.1-B 冻结绑定，正式协议批准，frozen-lock 环境与资源可用 | 多 seed CPU/GPU、OOM/重试、保存加载、selected checkpoint 对账及逐 run 环境/成本记录；仅验收批准范围 |
-| P4.1-A | 注册表绑定工程 | **shuidisjtu**；HENG958 复核接口与方法参数映射 | schema 与 draft 已有，可与算法、数据和 Pilot 复核并行 | 完成 runner/pilot 训练前绑定、manifest/审计/CI 消费及拒收边界；不把 draft 当 locked |
+| P4.1-A | 注册表绑定工程 | **shuidisjtu**；HENG958 复核接口与方法参数映射 | schema/draft、runner/CLI 训练前绑定、pilot 摘要固定/独立目录/续跑及 materialized draft CI 已接通，见[10-14 工程记录](delivery/p4_1_runtime_binding_20261014.md)；未冻结配方 | 继续正式白名单/审计/汇总消费与全字段删除拒收；版本化多外层候选身份、正式产物 CI 激活；不把 draft 当 locked 或代签 |
 | P4.1-B | 配方审阅与冻结 | **shuidisjtu**；HENG958 核对配置与实现一致性 | P4.1-A 就绪；候选/选模/标签预算与 P3.3-A 资源依据齐备 | 记录双方配置审阅结论、实际批准范围、正式 registry/resolved snapshot 与版本摘要；此为候选/预算批准，不代替 RV8 最终方法复核，不回填旧 manifest |
 | P4.2 | 主榜运行结果聚合与分析 | **shuidisjtu**；HENG958 复核深度结论 | 拟纳入数据、PN-CNN、方法准入、P3.3-B/P4.1-B 与正式运行制品均具备 | 22 项通过门禁，按机制、PA/OA、预算族及训练路径分层；区分文献事实/观测/推断，不生成跨数据集总排名 |
 | RV1 | Pilot 数据制品复核 | **HENG958**；shuidisjtu 提供材料 | P1.4 技术验收已通过 | 确认数据身份、四角色隔离和预处理证据，记录 HENG958 结论、索引摘要与基线 |

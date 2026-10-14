@@ -1574,6 +1574,14 @@ Survey 的版本化运行通过脚本 `--protocol survey-v1.2 --dataset ...` 启
 `config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
 预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
 
+配方绑定为显式 opt-in：版本化入口可传 `--recipe-registry <locked.json>`；
+runner 对应 `config["recipe_registry"]` 已加载对象及可选 `expected_recipe_registry_sha256`。
+运行前要求 registry/profile 都是 locked，检查协议/范围/候选/构造参数；draft 不放行。
+绑定身份写入 manifest 顶层、candidate_runs 与每项 selection。单次 CLI 增加
+`recipe_<registry摘要>/` 输出层，pilot 固定子进程摘要，并以完整预期身份判定续跑，不能借用 legacy 结果。
+v1 仅支持单外层候选（包括 PUSB 内部 CV）；不指定注册表则保留旧行为，不回填历史 manifest。
+范围、模块级绑定接口与后续审计缺口见[P4.1-A 工程记录](../../research/pu_survey/delivery/p4_1_runtime_binding_20261014.md)。
+
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
 `representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与
 `formal_eligible`/`formal_blockers`。无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。
