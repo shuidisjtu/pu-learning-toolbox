@@ -14,6 +14,8 @@ page names none", not "nobody looked", which is why the check date is required
 and the licence assertions below name the actual licence.
 """
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
@@ -66,10 +68,11 @@ def test_basic_a_dataset_without_reviewed_facts_still_reports_its_download():
     """The digest is verified locally, so it survives not having been reviewed."""
     X_source, y_source = _numeric(n_classes=10)
     X_test, y_test = _numeric(n_samples=100, n_classes=10)
+    unreviewed = replace(survey_dataset_catalog()["mnist"], provenance=None)
     _, manifest = prepare_survey_dataset(
         X_source,
         y_source,
-        dataset="mnist",
+        dataset=unreviewed,
         seed=0,
         X_test=X_test,
         y_test=y_test,
@@ -155,3 +158,39 @@ def test_basic_every_pilot_dataset_carries_reviewed_facts():
         assert provenance.version and provenance.citation and provenance.label_semantics
         assert provenance.license_notes
         assert bool(provenance.license_name) == bool(provenance.license_url)
+
+
+# The four datasets of P1.2-R: what each source page states, read on 2026-10-14.
+_P1_2_R_LICENCES = [
+    ("connect_4", "CC BY 4.0", "https://archive.ics.uci.edu/dataset/26/connect-4"),
+    ("fashion_mnist", "MIT", "https://github.com/zalandoresearch/fashion-mnist"),
+    ("mnist", "", "http://yann.lecun.com/exdb/mnist/"),
+    ("twenty_newsgroups", "", "http://qwone.com/~jason/20Newsgroups/"),
+]
+
+
+@pytest.mark.parametrize(("name", "licence", "source_url"), _P1_2_R_LICENCES)
+def test_param_the_p1_2_r_datasets_record_what_their_source_pages_state(name, licence, source_url):
+    provenance = survey_dataset_catalog()[name].provenance
+
+    assert provenance is not None
+    assert provenance.source_url == source_url
+    assert provenance.license_name == licence
+    assert provenance.license_checked_on == "2026-10-14"
+    assert provenance.version and provenance.citation and provenance.label_semantics
+    assert provenance.license_notes
+    assert bool(provenance.license_name) == bool(provenance.license_url)
+
+
+def test_edge_a_checksum_that_is_not_the_publishers_is_not_called_the_publishers():
+    """The MNIST and 20News digests come from torchvision and scikit-learn, not the sources."""
+    catalog = survey_dataset_catalog()
+    assert "torchvision" in catalog["mnist"].provenance.version
+    assert "scikit-learn" in catalog["twenty_newsgroups"].provenance.version
+    assert "no checksum" in catalog["connect_4"].provenance.version
+
+
+def test_basic_news_provenance_records_the_seven_prefix_mapping():
+    semantics = survey_dataset_catalog()["twenty_newsgroups"].provenance.label_semantics
+    assert "0-6 = alt, comp, misc, rec, sci, soc, talk" in semantics
+    assert "not fixed yet" not in semantics

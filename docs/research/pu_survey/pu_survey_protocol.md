@@ -66,6 +66,14 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 即上文 `assets/Dateset_PU.png`）。数据版本或标签编码发生变化时，必须提供映射转换审计记录；
 不得因方法表现调整正负类定义。
 
+**P1.4-R 输入编码口径（2026-10-14，运行前确定）**：
+
+- MNIST/F-MNIST 保留官方 train/test 边界及原始 uint8 像素，输入为单通道 `N×1×28×28`；不调整图像尺寸，通道统计只从 `train` 角色拟合。
+- 20News 使用 `bydate` 版本，按新闻组名称的首段前缀映射为 Alt(0)、Comp(1)、Misc(2)、Rec(3)、Sci(4)、Soc(5)、Talk(6)，依据 Table B.1（`assets/Dataset.png`）。目录和文件名稳定排序，`latin-1` 解码，不额外删除头部、页脚或引用；沿用 PU-Bench `data/News20_PU.py` 的 `remove=()` 口径，之后使用固定 revision 的 SBERT。
+- Connect-4 保留 `win/loss/draw` 标签语义，42 格按 `a1,a2,…,a6,b1,…,g6` 排列；每格固定 `b,o,x` 三列独热编码为 126 维。划分后仅以 `train` 拟合逐列 z-score，其余三角色复用参数，常量列使用零方差保护。这一步标准化是项目负责人确定的统一表格处理口径，与所核查 PU-Bench 加载器仅独热编码的路径有差异，不声明特征完全等价。
+
+以上只锁定输入读取与 split 预处理，不改冻结的 `survey_protocol_v1.json`，也不表示新数据集的主榜运行协议已经冻结。
+
 > **ADNI 槽位说明（2026-10-12）**：论文 2 的 Table B.1 把该数据集称为 Alzheimer MRI，类别编号为 NonDemented 0、VeryMildDemented 1、ModerateDemented 2、MildDemented 3，故 `0 vs 1,2,3` 即 NonDemented 为正类（先验 0.5）。本项目实际使用的是 Kaggle 4 类集的转存（共 6400 张），**不是 ADNI 官方数据**，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。PU-Bench 的加载器以 Moderate+Mild 为正类，与本协议不同，这里只借用其读取与预处理（灰度、缩放到 128×128），类别定义与切分按本协议。
 
 ### 2.3 PU 数据集生成

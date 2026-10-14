@@ -338,6 +338,12 @@ tests/
       test_prepare_p3_selection_budget_spec.py # 阶段/预算草稿再生成、类型严格一致与审批篡改拒绝
       test_check_survey_extended_cnn_storage.py # 新 CNN 资源证据身份、角色、预算与来源拒绝测试
       test_profile_survey_extended_cnn_storage.py # 独立进程资源测量、变体范围、内存去重与失败边界
+      _review_split_receipt_helpers.py  # 离线 split、索引及归档复核夹具
+      test_review_survey_split_receipt_cli.py # 复核脚本导入安全与 CLI 参数契约
+      test_review_survey_split_receipt_contracts.py # 数据集、seed 与角色复核契约
+      test_review_survey_split_receipt_encoding.py # 图像类型尺寸与表格特征维度拒绝测试
+      test_review_survey_split_receipt_integrity.py # 完整索引与归档篡改拒绝测试
+      test_review_survey_split_receipt_modalities.py # 模态统计与官方测试源先验复核
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -462,6 +468,12 @@ tests/
       test_survey_audit_exit_code.py    # A05: 退出码文件(单个 0 才核对;非 0/空/非整数/读不了为 fail;缺文件记未核对)
       test_survey_audit_docs.py         # A14/A16/A17: 快照与边界小节、self_pu 消融披露、隔离保护测试存在(只核证据在)
       test_prepare_survey_splits_adni.py # ADNI 替代数据:读取(类别序/垃圾文件/计数校验)、无官方测试集划分、多归档收据汇总
+      test_survey_image_spec.py         # 图像规格按数据集取(v1 平铺规格原样可读;per_dataset 覆盖与校验)、运行入口按模态而非数据集名分支
+      test_prepare_survey_splits_connect4.py # Connect-4 固定独热编码与标准化契约
+      test_prepare_survey_splits_inputs.py # 实际读取输入身份与原收据字节摘要
+      test_prepare_survey_splits_mnist.py # MNIST 家族输入校验与官方 test 隔离
+      test_prepare_survey_splits_news.py # 20News 七前缀映射、原文与稳定排序
+      test_prepare_survey_splits_wiring.py # 新数据集 CLI、来源证据与拒绝覆盖接线
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

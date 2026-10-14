@@ -148,7 +148,7 @@ def adapter_width(tmp_path_factory) -> int:
     below about the head that actually trains.
     """
     protocol = _cheap_epochs(copy.deepcopy(load_protocol()))
-    prepared, encoder, image = prepare_image_bundle(_cifar_source(), protocol, 0)
+    prepared, encoder, image = prepare_image_bundle(_cifar_source(), protocol, 0, dataset="cifar10")
     adapted, _ = cached_adapter(
         prepared,
         encoder,
@@ -238,7 +238,7 @@ def test_basic_real_native_cnn_checkpoint_holds_the_encoder_within_the_bound(tmp
     rather than assumed from the row's backbone name.
     """
     protocol = _cheap_epochs(copy.deepcopy(load_protocol()), epochs=1)
-    prepared, encoder, _ = prepare_image_bundle(_cifar_source(), protocol, 0)
+    prepared, encoder, _ = prepare_image_bundle(_cifar_source(), protocol, 0, dataset="cifar10")
     row = _native_cnn_row(protocol)
     model = assemble_model(
         protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu", encoder=encoder

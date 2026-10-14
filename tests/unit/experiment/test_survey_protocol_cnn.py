@@ -36,7 +36,7 @@ def _bound(tmp_path, device="cpu"):
     protocol["budgets"]["minibatch"]["epochs"] = 1
     path = tmp_path / "smoke_protocol.json"
     path.write_text(json.dumps(protocol))
-    prepared, encoder, image = prepare_image_bundle(source, protocol, 0)
+    prepared, encoder, image = prepare_image_bundle(source, protocol, 0, dataset="cifar10")
     row = resolve_unit(protocol, "cifar10", "nnpu")
     model = assemble_model(
         protocol, row, 3, seed=0, params={}, class_prior=0.3, device=device, encoder=encoder
