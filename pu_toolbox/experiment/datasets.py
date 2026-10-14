@@ -70,9 +70,65 @@ class SurveyDatasetSpec:
 
 
 _CATALOG = {
-    "mnist": SurveyDatasetSpec("mnist", "image", (0, 2, 4, 6, 8), (1, 3, 5, 7, 9), True),
+    "mnist": SurveyDatasetSpec(
+        "mnist",
+        "image",
+        (0, 2, 4, 6, 8),
+        (1, 3, 5, 7, 9),
+        True,
+        provenance=DatasetProvenance(
+            source_url="http://yann.lecun.com/exdb/mnist/",
+            version=(
+                "four IDX files, 60000 train + 10000 test 28x28 images, fetched from the "
+                "PyTorch S3 mirror (ossci-datasets); their md5 values are the ones torchvision "
+                "lists, not values published on LeCun's page"
+            ),
+            citation=(
+                "LeCun, Bottou, Bengio, Haffner (1998). Gradient-based learning applied to "
+                "document recognition. Proceedings of the IEEE 86(11), 2278-2324."
+            ),
+            label_semantics=(
+                "class ids 0-9 = the digits 0-9; the positive classes are the even digits, "
+                "{0, 2, 4, 6, 8}"
+            ),
+            license_checked_on="2026-10-14",
+            license_notes=(
+                "The original page now serves only a directory listing, and the project lead "
+                "found no licence on it or on its archived copy. No licence is transcribed. "
+                "The bytes come from a mirror whose own terms are not what this entry records."
+            ),
+        ),
+    ),
     "fashion_mnist": SurveyDatasetSpec(
-        "fashion_mnist", "image", (0, 2, 3, 4, 6), (1, 5, 7, 8, 9), True
+        "fashion_mnist",
+        "image",
+        (0, 2, 3, 4, 6),
+        (1, 5, 7, 8, 9),
+        True,
+        provenance=DatasetProvenance(
+            source_url="https://github.com/zalandoresearch/fashion-mnist",
+            version=(
+                "four IDX files, 60000 train + 10000 test 28x28 images, from "
+                "data/fashion/ of the repository's master branch; their md5 values are the "
+                "ones torchvision lists"
+            ),
+            citation=(
+                "Xiao, Rasul, Vollgraf (2017). Fashion-MNIST: a Novel Image Dataset for "
+                "Benchmarking Machine Learning Algorithms. arXiv:1708.07747."
+            ),
+            label_semantics=(
+                "class ids 0-9 = T-shirt/top, Trouser, Pullover, Dress, Coat, Sandal, Shirt, "
+                "Sneaker, Bag, Ankle boot; the positive classes are {0, 2, 3, 4, 6}"
+            ),
+            license_checked_on="2026-10-14",
+            license_name="MIT",
+            license_url="https://github.com/zalandoresearch/fashion-mnist/blob/master/LICENSE",
+            license_notes=(
+                "Read by the project lead from the repository's LICENSE file: 'The MIT "
+                "License (MIT) Copyright (c) 2017 Zalando SE'. The licence asks that the "
+                "copyright and permission notice be kept in copies."
+            ),
+        ),
     ),
     "cifar10": SurveyDatasetSpec(
         "cifar10",
@@ -158,7 +214,32 @@ _CATALOG = {
         ),
     ),
     "twenty_newsgroups": SurveyDatasetSpec(
-        "twenty_newsgroups", "text", (0, 1, 2, 3), (4, 5, 6), True
+        "twenty_newsgroups",
+        "text",
+        (0, 1, 2, 3),
+        (4, 5, 6),
+        True,
+        provenance=DatasetProvenance(
+            source_url="http://qwone.com/~jason/20Newsgroups/",
+            version=(
+                "20news-bydate.tar.gz, 11314 train + 7532 test = 18846 documents, fetched via "
+                "scikit-learn's figshare link; its sha256 is the one scikit-learn lists"
+            ),
+            citation=(
+                "The page credits the collection to Ken Lang, probably for Lang (1995), "
+                "Newsweeder: Learning to filter netnews (ICML 1995), without his saying so."
+            ),
+            label_semantics=(
+                "the archive has 20 newsgroups; the mapping ids 0-6 below are the protocol's "
+                "seven classes, with {0, 1, 2, 3} against {4, 5, 6}. Which newsgroups form "
+                "each of the seven is not fixed yet (P1.4-R), so no 20-to-7 table is recorded"
+            ),
+            license_checked_on="2026-10-14",
+            license_notes=(
+                "The page states no licence. The documents are Usenet posts, and nothing on "
+                "the page speaks for their authors."
+            ),
+        ),
     ),
     "spambase": SurveyDatasetSpec(
         "spambase",
@@ -180,7 +261,33 @@ _CATALOG = {
             license_notes=("The dataset page states the licence and its attribution requirement."),
         ),
     ),
-    "connect_4": SurveyDatasetSpec("connect_4", "tabular", ("win",), ("loss", "draw"), False),
+    "connect_4": SurveyDatasetSpec(
+        "connect_4",
+        "tabular",
+        ("win",),
+        ("loss", "draw"),
+        False,
+        provenance=DatasetProvenance(
+            source_url="https://archive.ics.uci.edu/dataset/26/connect-4",
+            version=(
+                "UCI repository id 26 (donated February 1995), connect+4.zip, 67557 rows; UCI "
+                "publishes no checksum, so the sha256 is this project's own"
+            ),
+            citation=(
+                "Tromp, J. (1995). Connect-4 [Dataset]. UCI Machine Learning Repository. "
+                "https://doi.org/10.24432/C59P43"
+            ),
+            label_semantics=(
+                "42 features a1-g6 in {x, o, b} (x = first player, o = second, b = blank); the "
+                "class is the game-theoretic outcome for the first player: win (the positive "
+                "class) against loss and draw"
+            ),
+            license_checked_on="2026-10-14",
+            license_name="CC BY 4.0",
+            license_url="https://creativecommons.org/licenses/by/4.0/legalcode",
+            license_notes="The dataset page states the licence and its attribution requirement.",
+        ),
+    ),
 }
 
 _ALIASES = {

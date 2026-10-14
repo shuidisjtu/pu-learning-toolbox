@@ -18,6 +18,7 @@
 |---|---|---|
 | P1.1 | 环境与 GPU 工程验证 | 已有目标设备 smoke；正式运行仍须 frozen-lock 环境 |
 | P1.2 | Pilot 三数据集获取与版本审计 | 来源、版本、标签映射与许可已登记；剩余数据见 P1.2-R |
+| P1.2-R | 剩余五数据集获取与许可登记 | **2026-10-14 完成（shuidisjtu 确认）**。MNIST、F-MNIST、20News、Connect-4 由 HENG958 搜集、shuidisjtu 核对，原始包校验通过且执行端可取用，见[收据](data/p1_2_r_raw_receipt_20261014.json)。ADNI 槽位使用非 ADNI 官方数据的 Kaggle 替代集，shuidisjtu 接受当前交付，见[替代数据记录](data/adni_substitute_receipt_20261012.json)；不据此代填 HENG958 的明确复核。许可核查结果保留，当前继续研究实验；未声明/Unknown 不代表无使用限制，公开发表或再分发前重新确认使用条件，不阻塞当前实验。 |
 | P1.3a | 方法台账 | 冻结 Pilot 为 7 个 PU 方法 + PN oracle；新增方法状态见 P3.1/RV8 |
 | P1.3b | Survey 脚本 | 四路输入、PA/OA、归档与 oracle 入口已有脚本级证据 |
 | P1.4 | Pilot 数据产物 | 15 split / 75 文件 / 3 归档技术核验通过；[证据](delivery/p1_4_review.md)，HENG958 复核见 RV1 |
@@ -32,7 +33,6 @@
 
 | 编号 | 任务 | 主责 / 复核 | 前置与当前状态 | 完成条件 |
 |---|---|---|---|---|
-| P1.2-R | 剩余数据集获取与许可 | **shuidisjtu**；HENG958 核对来源与交付 | MNIST、F-MNIST、20News、Connect-4 已有[原始收件记录](data/public_data_receipt_20261004.json)，须确认执行端可取用及许可；ADNI 改用替代数据（Kaggle 4 类 Alzheimer MRI，非 ADNI），见 [替代数据记录](data/adni_substitute_receipt_20261012.json) | 五数据集逐项登记来源、版本、授权/使用范围、文件摘要与可访问位置；ADNI 槽位一律标注为替代数据，不得写成 ADNI 官方数据；Kaggle 页面许可为 Unknown，使用范围未确立 |
 | P1.4-R | 新数据预处理与正式 split | **shuidisjtu**；HENG958 复核 | 依 P1.2-R 逐数据集启动，旧 Pilot split 不覆盖 | 按协议准备五 seed 四角色、train-only 统计及索引隔离；锁定 20News 的 20→7 映射、Connect-4 编码和 MNIST/F-MNIST 输入规格，输出数据/划分 manifest。**ADNI 替代数据已完成五 seed 划分与归档**（2026-10-12，[收据](data/adni_substitute_receipt_20261012.json)、[索引](data/adni_split_artifacts_index_20261012.json)），HENG958 复核待办 |
 | P2.2 | Pilot 交付与审计收尾 | **shuidisjtu**；HENG958 独立重放与 C1–C6 复核 | Excel 对账已交付；原始计划、日志、manifest/权重与归档证据待核验 | 补齐证据和说明勘误，完成 O1–O10，按[复核包](delivery/p2_2_review.md)登记双方结论及输入/产物摘要；复核范围见 RV3/RV4/RV7 |
 | P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 除 `p3mix` 外，Survey 目标方法均已有代码级接入；五方法[来源与预算证据](p3_admission_evidence_20261005.md)、[公开对照草稿](p3_public_comparison_20261005.md)已补，均待审；`p3mix` 仅有数学组件，未注册完整 estimator | HENG958 完成 P3MIX 来源核验、完整 estimator/训练流程、注册与测试；并补齐已接入方法的来源、公式/行为对照、先验/标签预算与校准适用性；shuidisjtu 按 RV8 逐项复核 |
