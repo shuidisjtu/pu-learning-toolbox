@@ -1,6 +1,6 @@
 # P4.1-A 训练前配方绑定工程（2026-10-14）
 
-本轮交付 runner、单次 CLI、pilot 预检/续跑与**已存在 draft 的 schema CI**。
+本轮交付 runner、单次 CLI、pilot 预检/续跑、批次审计/汇总配方消费与**已存在 draft 的 schema CI**。
 这不是 P4.1-B 配方批准，不生成正式 locked 注册表，不扩展旧 Pilot 的执行矩阵，
 不改任何历史 manifest 或实验结果，也不代填 HENG958/shuidisjtu 的审阅。
 
@@ -83,7 +83,63 @@ draft 丢失或 schema/协议不符则失败。其通过不意味着 locked。
 CLI 真实合成运行及 legacy 字节不变、pilot 摘要转发/计划、续跑身份丢失与嵌套错配。
 测试中的 locked 文件是临时 synthetic fixture，不是正式批准。
 
-本轮 **不把 P4.1-A 整体标为完成**：仍须接入正式批次白名单/审计与汇总的配方消费，
-保证有绑定义务的批次在所有字段被删除时也不能降级 legacy；
-还须完成多外层候选的版本化契约及正式冻结产物的 CI 激活。
+本轮 **不把 P4.1-A 整体标为完成**：批次白名单/审计/汇总配方消费已在下述扩展接入，
+正式阶段仍须采用外部 v2 义务并完成接口复核；还须完成多外层候选的版本化契约及正式冻结产物的 CI 激活。
 P4.1-B、P3.3 资源验收、RV8 方法准入和主榜制品的前置保持不变。
+
+## 同日续项：外部批次义务与数值消费
+
+新模块 `pu_toolbox/experiment/survey_recipe_audit.py` 接入
+`audit_survey_batches.py`、`summarize_survey_results.py` 和底层 `aggregate_survey_runs.py`。
+注册表身份和可比性不能只凭 manifest 自报，故新增白名单版本
+`survey-batch-roots-2`，每个 batch 必须显式声明 `recipe_policy`。
+
+绑定批次示意（仅接口示例，不是获批配置；将摘要替换为启动时固定的 canonical registry SHA256）：
+
+```json
+{
+  "schema_version": "survey-batch-roots-2",
+  "batches": [{
+    "name": "new-approved-batch",
+    "root": "/path/to/new-results",
+    "expected_manifests": 5,
+    "role": "formal",
+    "recipe_policy": "registry_bound",
+    "recipe_registry": "approved-locked-registry.json",
+    "recipe_registry_sha256": "<64 lowercase hex characters>"
+  }]
+}
+```
+
+- 注册表路径相对配置文件解析；摘要是 canonical 内容摘要，**不是文件原始字节哈希**。
+  不接受缺省推断的摘要，否则事后换一份 registry 会改变验收对象。
+- `registry_bound` 重算 registry/protocol、locked 状态、实际 method/dataset/path scope 和 resolved 参数，
+  逐字段核 root、唯一外层 candidate、每项 selection 与协议身份；显式 null 不能用缺字段代替。
+  候选记录的实际 `params` 也必须存在并等于冻结候选池，不能仅靠一份正确的身份摘要掩盖矛盾参数。
+  所有绑定字段被删除仍按外部义务拒收。draft 不能作为运行/验收批准。
+- v2 的 `legacy_unbound` 不得携带 registry 路径/摘要或任何嵌套绑定声明。
+  历史 B1–B4 的 v1 白名单及无绑定 manifest 无须迁移，输出字段/CSV 列保持原样，禁止回填旧制品。
+  v1 结果若携带绑定声明则要求提供 v2 外部义务，不根据文件名或目录名猜测。
+- 同份报告只消费一个 registry namespace；同一 registry 中不同方法的 profile/candidate 可以不同。
+  不同 registry 或 bound/legacy 混合输入会明确拒收，需分开生成报告，不在旧 row/cost key 下池化。
+- 审计报告新增独立、版本化 `recipe_audit` 扩展（`survey-recipe-batch-audit-1`），
+  **不新增 A18，不改写 A01–A17 含义或历史报告**。
+  配方拒收时 overall=fail，并在运行数值门槛前返回；不输出可排名行或成本合计。
+  身份缺失/矛盾的失败标为 `not_reproducible` 并列出受影响路径；仅不同 namespace 的混用标为 `refused`，
+  不把本来可复现的两份结果误记为字段缺失。summary coverage 同步不可复现计数。
+  扩展通过仍须接受原有 17 项检查，不能把配方通过读成正式主榜通过。
+- 成功 summary 的 JSON 行和 run 成本记录携带完整 `recipe_binding`，CSV 仅对扩展报告增加七个配方列；
+  Markdown 显示 batch namespace、方法 profile/candidate/resolved/inner 身份及拒收证据。
+- 底层 `aggregate(..., expected_recipe_bindings=...)` 只消费外部审计重算的完整方法身份。
+  独立旧聚合 CLI 没有 v2 外部义务输入，遇到绑定结果会拒收并指向白名单审计/汇总入口；
+  `--diagnostic` 不绕过该检查。历史 legacy 聚合行为不变。
+
+新增消费回归覆盖完整身份、根/嵌套/全部删除、错误协议/registry pin、draft/缺失注册表、
+跨方法正确绑定、跨批次同源接受/异源拒收、legacy 保留、CLI 失败产物与底层防绕过。
+临时 synthetic locked fixture 仅验证工程契约，不代表项目签署或正式制品验收。
+
+续项最终验证（Python 3.11、CPU）：新增 47 项测试；完整 fast suite
+`pytest tests/ -m 'not slow and not e2e'` 为 **3639 passed / 59 skipped / 0 failures / 0 errors**。
+格式、测试质量、文档链接/API 覆盖、项目元数据、MathJax、Skills 同步、baseline 配置、
+注释质量、目录结构/层依赖及 materialized draft checker 均通过；源码包与 wheel 离线构建成功，
+两种包内均确认包含新增消费模块。此处不声称跨平台 CI、slow/e2e、正式 GPU 或原始制品验收。

@@ -1580,7 +1580,12 @@ runner 对应 `config["recipe_registry"]` 已加载对象及可选 `expected_rec
 绑定身份写入 manifest 顶层、candidate_runs 与每项 selection。单次 CLI 增加
 `recipe_<registry摘要>/` 输出层，pilot 固定子进程摘要，并以完整预期身份判定续跑，不能借用 legacy 结果。
 v1 仅支持单外层候选（包括 PUSB 内部 CV）；不指定注册表则保留旧行为，不回填历史 manifest。
-范围、模块级绑定接口与后续审计缺口见[P4.1-A 工程记录](../../research/pu_survey/delivery/p4_1_runtime_binding_20261014.md)。
+批次审计/汇总采用 `survey-batch-roots-2` 外部白名单：每批显式声明 `recipe_policy`，
+绑定批次还须固定 registry 路径及 canonical 摘要；删除 manifest 所有绑定字段也不能降级 legacy。
+`recipe_audit` 为独立版本化扩展，不改历史 A01–A17；失败时不输出数值行，成功后仍执行原有门槛。
+同份报告不混合不同 registry 或 bound/legacy namespace；不同方法可在同一 registry 下使用不同 profile。
+JSON 行/成本及扩展 CSV 保留配方身份。独立旧聚合 CLI 遇到绑定结果会要求使用 v2 审计/汇总入口。
+完整契约与剩余多外层候选/正式冻结缺口见[P4.1-A 工程记录](../../research/pu_survey/delivery/p4_1_runtime_binding_20261014.md)。
 
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
 `representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与
