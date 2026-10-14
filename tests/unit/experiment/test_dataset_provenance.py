@@ -188,3 +188,9 @@ def test_edge_a_checksum_that_is_not_the_publishers_is_not_called_the_publishers
     assert "torchvision" in catalog["mnist"].provenance.version
     assert "scikit-learn" in catalog["twenty_newsgroups"].provenance.version
     assert "no checksum" in catalog["connect_4"].provenance.version
+
+
+def test_basic_news_provenance_records_the_seven_prefix_mapping():
+    semantics = survey_dataset_catalog()["twenty_newsgroups"].provenance.label_semantics
+    assert "0-6 = alt, comp, misc, rec, sci, soc, talk" in semantics
+    assert "not fixed yet" not in semantics
