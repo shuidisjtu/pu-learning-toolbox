@@ -1,0 +1,362 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-14",
+  "status": "raw_verified_not_formal_splits",
+  "formal_split_accepted": false,
+  "scope": "P1.2-R: MNIST, Fashion-MNIST, 20 Newsgroups, Connect-4 (ADNI is a separate receipt)",
+  "package": {
+    "name": "pu-raw-20261013",
+    "provided_by": "teammate, handed over 2026-10-13",
+    "verified_by": "verify_raw_data.py: OK, 18879 files match SHA256SUMS (2026-10-14)",
+    "sha256sums_sha256": "9d5b5d29e8e26d5c368ae36ac124e2995c9d231750e6ecaab0df53c6ed8fa860",
+    "manifest_sha256": "628487e58ccc30e363dc0441d13ec5e845aa5870d3e0d9d07022dc9173f1f705",
+    "earlier_receipt": "public_data_receipt_20261004.json (content identical, line endings differ)",
+    "local_copy": "data/raw/<dataset>/ (git-ignored); the package itself stays outside the repository"
+  },
+  "checksum_meaning": "'checksum_listed_by_third_party' is the value torchvision (MNIST, Fashion-MNIST) or scikit-learn (20 Newsgroups) lists for the file, not a value the dataset's own publisher posts. UCI posts no checksum for Connect-4, so its sha256 is only this project's own pin.",
+  "datasets": {
+    "mnist": {
+      "files": {
+        "train-images-idx3-ubyte.gz": {
+          "bytes": 9912422,
+          "sha256": "440fcabf73cc546fa21475e81ea370265605f56be210a4024d2ca8f203523609",
+          "retrieved_from": "https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "f68b3c2dcbeaaa9fbdd348bbdeb94873"
+          },
+          "checksum_matched": true
+        },
+        "train-labels-idx1-ubyte.gz": {
+          "bytes": 28881,
+          "sha256": "3552534a0a558bbed6aed32b30c495cca23d567ec52cac8be1a0730e8010255c",
+          "retrieved_from": "https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "d53e105ee54ea40749a09fcbcd1e9432"
+          },
+          "checksum_matched": true
+        },
+        "t10k-images-idx3-ubyte.gz": {
+          "bytes": 1648877,
+          "sha256": "8d422c7b0a1c1c79245a5bcf07fe86e33eeafee792b84584aec276f5a2dbc4e6",
+          "retrieved_from": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "9fb629c4189551a2d022fa330f9573f3"
+          },
+          "checksum_matched": true
+        },
+        "t10k-labels-idx1-ubyte.gz": {
+          "bytes": 4542,
+          "sha256": "f7ae60f92e00ec6debd23a6088c31dbd2371eca3ffa0defaefb259924204aec6",
+          "retrieved_from": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "ec29112dd5afa0611ce80d1b7f02629c"
+          },
+          "checksum_matched": true
+        }
+      },
+      "content": {
+        "train_shape": [
+          60000,
+          28,
+          28
+        ],
+        "test_shape": [
+          10000,
+          28,
+          28
+        ],
+        "dtype": "uint8",
+        "train_counts": [
+          5923,
+          6742,
+          5958,
+          6131,
+          5842,
+          5421,
+          5918,
+          6265,
+          5851,
+          5949
+        ],
+        "test_counts": [
+          980,
+          1135,
+          1032,
+          1010,
+          982,
+          892,
+          958,
+          1028,
+          974,
+          1009
+        ]
+      },
+      "binary_mapping": {
+        "positive": [
+          0,
+          2,
+          4,
+          6,
+          8
+        ],
+        "negative": [
+          1,
+          3,
+          5,
+          7,
+          9
+        ],
+        "has_official_test": true
+      },
+      "licence": {
+        "status": "not_stated_by_source",
+        "name": "",
+        "url": "",
+        "checked_on": "2026-10-14",
+        "notes": "The original page now serves only a directory listing, and the project lead found no licence on it or on its archived copy. No licence is transcribed. The bytes come from a mirror whose own terms are not what this entry records."
+      }
+    },
+    "fashion_mnist": {
+      "files": {
+        "train-images-idx3-ubyte.gz": {
+          "bytes": 26421880,
+          "sha256": "3aede38d61863908ad78613f6a32ed271626dd12800ba2636569512369268a84",
+          "retrieved_from": "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/train-images-idx3-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "8d4fb7e6c68d591d4c3dfef9ec88bf0d"
+          },
+          "checksum_matched": true
+        },
+        "train-labels-idx1-ubyte.gz": {
+          "bytes": 29515,
+          "sha256": "a04f17134ac03560a47e3764e11b92fc97de4d1bfaf8ba1a3aa29af54cc90845",
+          "retrieved_from": "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/train-labels-idx1-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "25c81989df183df01b3e8a0aad5dffbe"
+          },
+          "checksum_matched": true
+        },
+        "t10k-images-idx3-ubyte.gz": {
+          "bytes": 4422102,
+          "sha256": "346e55b948d973a97e58d2351dde16a484bd415d4595297633bb08f03db6a073",
+          "retrieved_from": "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-images-idx3-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "bef4ecab320f06d8554ea6380940ec79"
+          },
+          "checksum_matched": true
+        },
+        "t10k-labels-idx1-ubyte.gz": {
+          "bytes": 5148,
+          "sha256": "67da17c76eaffca5446c3361aaab5c3cd6d1c2608764d35dfb1850b086bf8dd5",
+          "retrieved_from": "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-labels-idx1-ubyte.gz",
+          "checksum_listed_by_third_party": {
+            "algorithm": "md5",
+            "value": "bb300cfdad3c16e7a12a480ee83cd310"
+          },
+          "checksum_matched": true
+        }
+      },
+      "content": {
+        "train_shape": [
+          60000,
+          28,
+          28
+        ],
+        "test_shape": [
+          10000,
+          28,
+          28
+        ],
+        "dtype": "uint8",
+        "train_counts": [
+          6000,
+          6000,
+          6000,
+          6000,
+          6000,
+          6000,
+          6000,
+          6000,
+          6000,
+          6000
+        ],
+        "test_counts": [
+          1000,
+          1000,
+          1000,
+          1000,
+          1000,
+          1000,
+          1000,
+          1000,
+          1000,
+          1000
+        ]
+      },
+      "binary_mapping": {
+        "positive": [
+          0,
+          2,
+          3,
+          4,
+          6
+        ],
+        "negative": [
+          1,
+          5,
+          7,
+          8,
+          9
+        ],
+        "has_official_test": true
+      },
+      "licence": {
+        "status": "stated",
+        "name": "MIT",
+        "url": "https://github.com/zalandoresearch/fashion-mnist/blob/master/LICENSE",
+        "checked_on": "2026-10-14",
+        "notes": "Read by the project lead from the repository's LICENSE file: 'The MIT License (MIT) Copyright (c) 2017 Zalando SE'. The licence asks that the copyright and permission notice be kept in copies."
+      }
+    },
+    "twenty_newsgroups": {
+      "files": {
+        "20news-bydate.tar.gz": {
+          "bytes": 14464277,
+          "sha256": "8f1b2514ca22a5ade8fbb9cfa5727df95fa587f4c87b786e15c759fa66d95610",
+          "retrieved_from": "https://ndownloader.figshare.com/files/5975967",
+          "checksum_listed_by_third_party": {
+            "algorithm": "sha256",
+            "value": "8f1b2514ca22a5ade8fbb9cfa5727df95fa587f4c87b786e15c759fa66d95610"
+          },
+          "checksum_matched": true
+        }
+      },
+      "content": {
+        "train_docs": 11314,
+        "test_docs": 7532,
+        "groups": 20,
+        "per_group": {
+          "train": {
+            "alt.atheism": 480,
+            "comp.graphics": 584,
+            "comp.os.ms-windows.misc": 591,
+            "comp.sys.ibm.pc.hardware": 590,
+            "comp.sys.mac.hardware": 578,
+            "comp.windows.x": 593,
+            "misc.forsale": 585,
+            "rec.autos": 594,
+            "rec.motorcycles": 598,
+            "rec.sport.baseball": 597,
+            "rec.sport.hockey": 600,
+            "sci.crypt": 595,
+            "sci.electronics": 591,
+            "sci.med": 594,
+            "sci.space": 593,
+            "soc.religion.christian": 599,
+            "talk.politics.guns": 546,
+            "talk.politics.mideast": 564,
+            "talk.politics.misc": 465,
+            "talk.religion.misc": 377
+          },
+          "test": {
+            "alt.atheism": 319,
+            "comp.graphics": 389,
+            "comp.os.ms-windows.misc": 394,
+            "comp.sys.ibm.pc.hardware": 392,
+            "comp.sys.mac.hardware": 385,
+            "comp.windows.x": 395,
+            "misc.forsale": 390,
+            "rec.autos": 396,
+            "rec.motorcycles": 398,
+            "rec.sport.baseball": 397,
+            "rec.sport.hockey": 399,
+            "sci.crypt": 396,
+            "sci.electronics": 393,
+            "sci.med": 396,
+            "sci.space": 394,
+            "soc.religion.christian": 398,
+            "talk.politics.guns": 364,
+            "talk.politics.mideast": 376,
+            "talk.politics.misc": 310,
+            "talk.religion.misc": 251
+          }
+        }
+      },
+      "binary_mapping": {
+        "positive": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "negative": [
+          4,
+          5,
+          6
+        ],
+        "has_official_test": true
+      },
+      "licence": {
+        "status": "not_stated_by_source",
+        "name": "",
+        "url": "",
+        "checked_on": "2026-10-14",
+        "notes": "The page states no licence. The documents are Usenet posts, and nothing on the page speaks for their authors."
+      }
+    },
+    "connect_4": {
+      "files": {
+        "connect+4.zip": {
+          "bytes": 399857,
+          "sha256": "81cc51ce1556f1f927bf0d6f3f16f61e277bb8647c5a49426d272b792a30a205",
+          "retrieved_from": "https://archive.ics.uci.edu/static/public/26/connect+4.zip",
+          "checksum_listed_by_third_party": null,
+          "checksum_matched": false
+        }
+      },
+      "content": {
+        "rows": 67557,
+        "columns": 43,
+        "class_counts": {
+          "win": 44473,
+          "draw": 6449,
+          "loss": 16635
+        },
+        "header_tail": [
+          "g6",
+          "outcome"
+        ]
+      },
+      "binary_mapping": {
+        "positive": [
+          "win"
+        ],
+        "negative": [
+          "loss",
+          "draw"
+        ],
+        "has_official_test": false
+      },
+      "licence": {
+        "status": "stated",
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "checked_on": "2026-10-14",
+        "notes": "The dataset page states the licence and its attribution requirement."
+      }
+    }
+  },
+  "open_items": [
+    "MNIST: the original page serves only a directory listing and no licence was found on it or on its archive; nothing is transcribed (read by the project lead, 2026-10-14).",
+    "20 Newsgroups: the 20-to-7 class mapping behind the protocol's {0,1,2,3} vs {4,5,6} is not fixed; it belongs to P1.4-R.",
+    "Connect-4 encoding (x/o/b to numbers) and the MNIST / F-MNIST input specification belong to P1.4-R.",
+    "Whether each dataset's licence permits the project's use is for the project lead and HENG958 to decide; this receipt records only what the source pages state."
+  ]
+}
