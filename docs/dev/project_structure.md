@@ -96,6 +96,7 @@ pu_toolbox/
       gen_pu.py                           # GenPU 两生成器三判别器与合成 PN
       holistic_pu.py                      # Holistic-PU 趋势与自然断点伪标签
       p3mix.py                            # P3Mix batch 数学组件, 未注册分类器
+      lbe_neural.py                       # 双网络 Adam generalized EM、稳定 E/M 目标与独立 CNN 适配
     research/
       __init__.py                         (公共导出聚合: 联合移位分类器/论文目标函数/JOINT_SHIFT_METHODS 工厂)
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
@@ -283,6 +284,8 @@ tests/
       test_pulns_cnn.py                 # PULNS CNN/奖励 probe 隔离、状态提取、最佳模型与全预算成本
       test_gen_pu_cnn.py                # GEN-PU 像素生成、四 CNN 隔离、G 梯度、六网络成本与快照回放
       test_lbe_review.py                # LBE 源公式、概率契约、重训失效与来源/校准复核
+      test_lbe_neural.py                # 神经 LBE 的预算、模板/随机性、序列化与 OS-only 边界
+      test_lbe_neural_math.py           # LBE 联合后验、完整似然梯度与极端 logits 独立数学对照
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -486,6 +489,7 @@ tests/
       test_survey_recipe_pool.py        # 池摘要、身份/索引闭集与参数搜索不越权契约
       test_survey_recipe_pool_consumers.py # 池义务重算及 JSON/CSV 逐 seed 选择身份
       test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
+      test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

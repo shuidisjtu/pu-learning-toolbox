@@ -38,6 +38,7 @@
   [`p21_workbook_review_20261004.md`](delivery/p21_workbook_review_20261004.md)。
 - P4.1-A：[`p4_1_runtime_binding_20261014.md`](delivery/p4_1_runtime_binding_20261014.md)：训练前绑定、pilot 摘要固定/续跑与 draft CI；不是正式配方冻结。
   [`p4_1_pool_binding_20261014.md`](delivery/p4_1_pool_binding_20261014.md)：版本化候选池、PA/OA 独立候选与 trajectory 身份；不批准新参数搜索。
+- LBE 独立神经变体：[`lbe_neural_integration_20261014.md`](delivery/lbe_neural_integration_20261014.md)，不替换冻结 linear `lbe`。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 

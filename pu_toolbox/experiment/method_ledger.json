@@ -11,7 +11,7 @@
   },
   "evidence_convention": "evidence 字段格式： 文件:行号 原文摘录。卡片内天然源与 registry 内标注共同构成。",
   "fillers": {
-    "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "pusb_kernel", "lbe", "vpu"],
+    "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "pusb_kernel", "lbe", "lbe_neural", "vpu"],
     "HENG958": ["nnpu", "self_pu"]
   },
   "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "pulda", "puet", "gradpu", "lagam", "pan", "rp", "pulns", "genpu", "holistic_pu"],
@@ -362,6 +362,48 @@
         "TS-OS 校准已接入（协议 §2.3）：ts 视图把无标签风险项的集合由 X_U 换成 X_U ∪ X_P，分母随之取 n_P + n_U；正例项、class prior、RBF 中心候选池与先验分位数阈值池都不变（中心池本就取自完整 X，故与 upu 不同、不随视图变化）。**CV 验证折固定保持 OS**，因此这是协议驱动的跨目标选参决策——用 OS 目标的验证值去选 TS 训练目标的超参数，不是论文结论，代价是选出的超参数可能偏向 OS 部署表现；被否决的替代（验证折并入该折自己的 P，同样 held-out 且更自洽）与理由见执行计划 D17。其正确性由独立 objective/gradient golden 与变异检验锁定，不靠真实跑批指标"
       ]
     },
+    "lbe_neural": {
+      "class": "NeuralLBEClassifier",
+      "review": {"owner": "shuidisjtu", "reviewer": "HENG958", "status": "pending_collaborator_review"},
+      "paper": {
+        "title": "Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
+        "authors": "Chen Gong, Qizhou Wang, Tongliang Liu, Bo Han, Jane You, Jian Yang, Dacheng Tao",
+        "venue": "IEEE TPAMI", "year": 2022
+      },
+      "code_version": {
+        "upstream_url": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
+        "source_status": "official_related（独立神经 EM；采用单独锁定的用户包 MLP 时序，不称旧官方配方重放；license needs_review）",
+        "user_supplied_archive_sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
+        "review_evidence": "docs/research/pu_survey/data/lbe_source_review_20261012.json"
+      },
+      "implementation_status": "NATIVE; experimental clean-room two-network Adam generalized EM; separate from frozen linear lbe",
+      "native_sampling_assumption": "os（single_training_set + selection_biased；单一 X/observed s 的联合观测似然，不复制 P 到 U）",
+      "run_view": "os-compatible", "calibration_applied": false, "calibration_hooked": false,
+      "calibration_applicability": "not_applicable_native_os_joint_likelihood",
+      "prior_semantics": "无需外部先验；class_prior 若传入仅校验，不参与该预训练/EM 配方，拟合后均值后验只是诊断",
+      "adaptation_level": "benchmark-adapted（双 MLP100/tanh；20+20 预训练、20 EM×40 M 更新、每次重抽10%训练行、wd=1e-3；稳定 logits、CPU 分批/梯度累积及注入 CNN 是工程适配，不是官方数值复现）",
+      "modality_backbone": {
+        "modalities": ["tabular", "image"],
+        "backbone": "双独立 MLP 或各自 deepcopy 的可训练 encoder+head；原始数据/固定 E posterior 留 CPU；每个 M step 分批累积后只做一次 Adam 更新",
+        "code_capability": {
+          "native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4],
+          "encoder_parameter": "encoder", "trains_encoder": true
+        }
+      },
+      "evidence": {
+        "native_sampling_assumption": "LBE.md §10; registry:lbe_neural",
+        "prior_semantics": "LBE.md §10; registry:lbe_neural",
+        "adaptation_level": "docs/research/pu_survey/delivery/lbe_neural_integration_20261014.md"
+      },
+      "uncertainty": [
+        "独立工程变体，待 HENG958 接口/方法学复核；不在冻结645-run协议或正式候选中，原 lbe 不变",
+        "用户包与旧官方包的预训练/正则化/small-loss配方不同；未复制、执行或再分发上游源码，license/版本归属仍未解除",
+        "稳定 BCE/log-space 后验与源 probability+epsilon 不逐位一致；CNN/小样本至少抽1行/分批BN与dropout语义为适配",
+        "不消费 clean_val/test/隐藏PN真值；不接 TS，不以训练似然作为 PA/OA 的通用选模准则",
+        "standalone 序列化保留双网络；runner epoch checkpoint 只承诺 classifier 推理，不支持恢复 propensity/optimizer 的继续EM训练",
+        "CPU合成测试不代表GPU资源、真实数据数值对齐、可辨识性或正式准入"
+      ]
+    },
     "lbe": {
       "class": "LBEClassifier",
       "paper": {
@@ -404,7 +446,7 @@
         "propensity 与 class posterior 分解需数据机制支持、局部最优风险（LBE.md:246）",
         "用户包 MLP 为20步预训练/wd=1e-3/不筛small-loss；旧官方包为100步/wd=1e-2/保留80%，不可混用；仅作源码核查，未执行、未复现公开数值",
         "用户包 LF demo 从训练真值选择 ROC 阈值，不能接入 PU-only PA；MLP demo 对全量数据归一化后切分且反复评测 test，迁移须保持 train-only 和独立选模；没有发现明确再分发 license",
-        "当前 estimator 仍为线性 EM，未新增神经网络或 CNN；新增迭代数/收敛/观测似然诊断，历史645-run不回填或改写"
+        "原 lbe estimator 仍为线性 EM；2026-10-14 独立 lbe_neural 变体另立台账/配方，不替换本项，历史645-run不回填或改写"
       ]
     },
     "nnpu": {

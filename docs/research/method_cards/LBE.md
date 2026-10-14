@@ -182,6 +182,8 @@ propensity 只对真实正类有意义。固定 `q_i` 后，正类相关样本�
 
 ## 6. 实现注记
 
+本节线性说明对应 `lbe` / `LBEClassifier`；独立的 `lbe_neural` 变体见 §10，不替换本节实现或历史结果。
+
 - 当前实现用线性 logistic 模型和交替 soft-label 更新近似论文的 EM + Adam 框架，不能直接宣称复现论文神经网络实验。
 - 当前 `class_prior=None` 时使用工程初始化值；这不是论文给出的普适先验估计器，也不能替代 ReCPE/penL1。
 - 实际论文使用其图模型对应的 likelihood parameterization；实现时应以论文完整公式和官方代码变量为最终核对依据。
@@ -240,7 +242,7 @@ S\sim Bernoulli(Y\cdot c(X)),
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_exact`/`official_related` 记录需以压缩包许可证和源码对应论文版本复核 |
-| Implementation status | `NATIVE`，当前为线性 clean-room EM |
+| Implementation status | `lbe` 为线性 clean-room EM；`lbe_neural` 为独立实验性双网络 generalized EM（§10），均不等于论文数值复现 |
 | 当前实现可声称 | 可运行 SAR 接口、类别后验、labeling propensity 和 latent posterior |
 | 当前实现不可声称 | 已复现论文的完整 Adam/深度网络实验、理论收敛条件或表格结果 |
 | 主要风险 | 潜变量模型可能存在局部最优；正类过少时两个 logistic 模型会互相补偿；propensity 与 class posterior 的分解需要数据机制支持 |
@@ -284,3 +286,27 @@ MLP demo 在切分前计算全量统计，`train.py` 的 `fea_norm` 未被训练
 本轮新增 32 项源码公式/接口/边界/确定性测试；连同台账契约与 pilot 拒收路由共 62 项定向回归通过。
 在基线 `25fc71d` 的线性实现与修复版上，用同一合成输入、默认及显式 0.3 初始化各运行 5 轮，
 类别概率和标记概率的最大差均为 0；这仅证明该回归样例未改变有效训练行为，不是正式数值复现。
+
+## 10. 2026-10-14 独立神经网络变体
+
+新增 `NeuralLBEClassifier` / `lbe_neural`（别名 `neural_lbe`），原 `lbe`、旧协议及历史数值不变。
+模块独立实现本卡 E/M 公式：在 log space 归一化联合概率；每轮 E 后验 detach，classifier 使用 soft BCE，
+propensity 使用后验加权的 observed-label BCE。每个 M 更新重抽训练行，不访问任何验证/test/隐藏类别真值。
+
+默认配方明确选用 **用户包 `86034d5b…` 的 MLP 变体**，并非将其当作旧官方包：
+MLP100/tanh，两个模型分别 20 次预训练，20 E × 40 M，重抽 10% 行，wd=1e-3；
+源配方差异沿用 §9。完整预训练共 40 次、EM 共 800 次 Adam 更新，classifier 快照仅按 20 个 EM 轮保存。
+源代码未复制、执行或再分发；公开来源归属/许可问题依然待审。
+
+稳定 BCE/logits（不同于 source probability+epsilon）、CPU 分批与梯度累积、微小样本至少抽一行、
+为两个网络分别复制并训练 CNN encoder，均为明确的 benchmark adaptations。
+对含 BN/dropout 的注入网络，分批/推理模式与源全批 MLP 的行为不能宣称相同。
+standalone 序列化保存两网络；runner 保存的是 classifier 推理快照，不承诺完整训练状态续跑。
+
+原生 **OS 联合观测似然** 不做 U∪P 风险校准；显式 TS fail-loud，台账与 fit 接口同时登记，
+不是将“有 os_or_ts 参数”当成已校准。`class_prior` 仅校验而不影响该源配方。
+潜变量局部最优/可辨识性和适配后的数值对齐均未由合成测试解决。
+
+实现/API/预算的[工程交付](../pu_survey/delivery/lbe_neural_integration_20261014.md)及
+[机器记录](../pu_survey/data/lbe_neural_engineering_20261014.json)保留 HENG958 独立复核、
+正式协议/配方/资源批准、GPU/真实数据与原始制品前置；不提前进入主榜。

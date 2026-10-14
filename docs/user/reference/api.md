@@ -74,6 +74,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
+| `lbe_neural`（`neural_lbe`） | `NeuralLBEClassifier` | bias-aware / torch | `pretrain_steps` / `n_em_iter` / `m_steps` / `encoder` | [LBE §10](../../research/method_cards/LBE.md#10-2026-10-14-独立神经网络变体) |
 | `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
 | `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
 | `split_pu`（`split-pu`） | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
@@ -614,6 +615,42 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 - 拟合后 `n_iter_` / `converged_` 记录实际 EM 轮数与后验停止条件；
   `observed_log_likelihood_history_` 记录每轮观测对数似然之和，不是含正则项的优化目标，亦不保证单调。
 - `predict_proba` 返回类别概率，`predict_label_proba` 返回被标记概率；所有预测入口均要求先成功拟合。
+
+#### `NeuralLBEClassifier`（注册名 `lbe_neural`，别名 `neural_lbe`）
+
+独立实验性双网络 generalized EM；**不替换 `lbe` 或冻结 Pilot**。
+
+```python
+NeuralLBEClassifier(model=None, *, propensity_model=None, encoder=None,
+                    hidden_dim=100, pretrain_steps=20, n_em_iter=20, m_steps=40,
+                    sample_fraction=0.1, batch_size=256, learning_rate=1e-3,
+                    weight_decay=1e-3, random_state=0, device=None)
+```
+
+| 参数 | 默认 | 契约 |
+|---|---|---|
+| `model` / `propensity_model` | `None` | 各自输出每行一个 raw logit；默认独立 MLP100/tanh；deepcopy，不修改模板 |
+| `encoder` | `None` | 4-D 图像必须显式提供；分别为两个网络 deepcopy 成独立可训练 encoder，输出二维特征 |
+| `hidden_dim` | `100` | 默认头的隐藏宽度，正整数 |
+| `pretrain_steps` | `20` | 每个网络的预训练 Adam 更新数，非负整数；0 是显式无预训练适配 |
+| `n_em_iter` / `m_steps` | `20` / `40` | 正整数；每轮 E 后验停止梯度，在该轮全部 M 更新中保持固定 |
+| `sample_fraction` | `0.1` | `(0,1]`，每个 M 更新重新抽取 `max(1,floor(N*fraction))` 个训练行，不放回 |
+| `batch_size` | `256` | 正整数，设备前向/梯度累积/预测分批上限；不是额外的 Adam 更新轴 |
+| `learning_rate` / `weight_decay` | `0.001` / `0.001` | 有限实数，分别正 / 非负 |
+| `random_state` / `device` | `0` / `None` | 隔离 NumPy RNG、保留 CPU/所选 CUDA RNG，不重置其它 CUDA 生成器；仅支持 CPU/CUDA，auto 由公共解析器决定 |
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`：
+只接受训练 PU 观测标签，至少两条 labeled P 和一条 U；不读取验证、test 或隐藏 PN 真值。
+`class_prior` 非空时校验 `(0,1)` 实数但不影响源配方；非空 `sample_weight` 与非 OS 视图拒收。
+输入/后验留 CPU，逐批累积行数加权梯度后每个 M step 只更新一次 Adam。
+默认共 840 次 optimizer 更新；`checkpoint_epoch_count=20` 是 EM 轮数，不能误记为 840 个权重快照。
+`epoch_callback` 每个 EM 轮末调用，完整预训练/EM 成本由 `optimizer_steps_` 和阶段 provenance 记录。
+
+`predict_proba` 返回类后验，`predict_label_proba` 返回类后验×propensity，`decision_function` 为类别 raw logit。
+`history_` / `observed_log_likelihood_history_` 仅为训练诊断，不保证单调或可辨识性，不作为通用 PA/OA 准则。
+standalone pickle 保留双网络；runner 的 epoch checkpoint 仅供 classifier 推理，不恢复 propensity 或 optimizer 继续训练。
+默认配方取自单独登记的用户包 MLP 变体，稳定 logits/分批/CNN 为适配；不是旧官方包或论文数值复现。
+来源、差异、校准边界和待复核项见[神经 LBE 交付](../../research/pu_survey/delivery/lbe_neural_integration_20261014.md)。
 
 ### 深度分类器
 

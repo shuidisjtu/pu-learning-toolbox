@@ -18,6 +18,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-14 独立算法收尾：新增 `lbe_neural` 双网络 Adam generalized-EM 变体，MLP/注入 CNN、分批梯度与预测、EM 推理快照、台账/OS-only 拒绝边界和测试同步；原 `lbe` 与冻结 Pilot 不变。采用单独登记的用户包时序，不称官方包/论文数值重放；HENG958 复核、正式协议/资源/配方及真实数据/GPU仍待办，见[交付](../research/pu_survey/delivery/lbe_neural_integration_20261014.md)。
+
 2026-10-04 后续准备：P4.1 冻结 pilot 注册表 draft 已物化并校验，8 个预集成方法准入 blocker 已形成机器清单；PULDA/PUET 的预算/视图/选择/存储草案与四角色 runner smoke 已补。见 [推进计划](../research/pu_survey/survey_execution_plan.md)。未修改冻结协议，未升级任何方法或配方为正式已签署。
 
 2026-10-04 后续：645-run Excel 已收到且原索引摘要一致，183 行 raw → summary 对账通过；315 次显存缺测、说明页 c/OS/TS/PA 术语勘误和若干低 AUC 诊断已披露。见 [表格层验收](../research/pu_survey/delivery/p21_workbook_review_20261004.md)；原始制品层仍待复核。
