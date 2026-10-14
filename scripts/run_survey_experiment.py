@@ -102,8 +102,9 @@ from pu_toolbox.experiment.strategies import (
     SCARGenerator,
     SupervisedTrainer,
 )
+from pu_toolbox.experiment.survey_recipe_binding import SCHEMA_VERSION as RECIPE_BINDING_V2
+from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
 from pu_toolbox.experiment.survey_recipe_registry import (
-    bind_recipe_candidate,
     canonical_digest,
     load_registry,
 )
@@ -502,6 +503,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--dataset", choices=DATASET_CHOICES, default=None)
     parser.add_argument("--recipe-registry", type=Path, help="explicit locked recipe registry JSON")
     parser.add_argument(
+        "--recipe-binding-schema-version", choices=(RECIPE_BINDING_V2,), default=None
+    )
+    parser.add_argument(
         "--recipe-registry-sha256",
         default=None,
         help="pin the registry digest resolved by a parent pilot preflight",
@@ -558,6 +562,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
     try:
         if args.recipe_registry_sha256 is not None and args.recipe_registry is None:
             raise ValueError("--recipe-registry-sha256 requires --recipe-registry")
+        if args.recipe_binding_schema_version is not None and args.recipe_registry is None:
+            raise ValueError("--recipe-binding-schema-version requires --recipe-registry")
         if args.dataset is None:
             raise ValueError("--protocol requires --dataset")
         if not seed_values or len(set(seed_values)) != len(seed_values):
@@ -593,7 +599,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
             validate_parameters(candidate, profile)
         if args.recipe_registry is not None:
             recipe_registry = load_registry(args.recipe_registry)
-            bind_recipe_candidate(
+            bind_recipe(
                 recipe_registry,
                 protocol,
                 method=method,
@@ -602,6 +608,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 candidates=candidates,
                 constructor_overrides=params,
                 expected_sha256=args.recipe_registry_sha256,
+                binding_schema_version=args.recipe_binding_schema_version,
             )
         ledger = load_ledger(LEDGER_PATH)
         register_all_builtin_methods()
@@ -635,7 +642,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
     )
     if recipe_registry is not None:
         # Bound and legacy requests must never overwrite one another's results.
-        out_root = out_root / f"recipe_{canonical_digest(recipe_registry)}"
+        prefix = "recipe_pool" if args.recipe_binding_schema_version is not None else "recipe"
+        out_root = out_root / f"{prefix}_{canonical_digest(recipe_registry)}"
     for seed in seed_values:
         # A template or a dataset root selects the actual per-seed split;
         # never relabel the same split as five different protocol seeds.
@@ -728,6 +736,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
             if recipe_registry is not None:
                 config["recipe_registry"] = recipe_registry
                 config["expected_recipe_registry_sha256"] = canonical_digest(recipe_registry)
+                if args.recipe_binding_schema_version is not None:
+                    config["recipe_binding_schema_version"] = args.recipe_binding_schema_version
             if args.oracle:
                 config.update(
                     {
@@ -795,7 +805,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.protocol is not None:
         return _versioned_main(args, c_values, seed_values)
-    if args.recipe_registry is not None or args.recipe_registry_sha256 is not None:
+    if (
+        args.recipe_registry is not None
+        or args.recipe_registry_sha256 is not None
+        or args.recipe_binding_schema_version is not None
+    ):
         print("error: --recipe-registry requires --protocol", file=sys.stderr)
         return 1
     if args.training_path is not None or args.dataset is not None:

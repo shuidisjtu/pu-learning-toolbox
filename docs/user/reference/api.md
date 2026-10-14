@@ -1587,6 +1587,13 @@ v1 仅支持单外层候选（包括 PUSB 内部 CV）；不指定注册表则�
 JSON 行/成本及扩展 CSV 保留配方身份。独立旧聚合 CLI 遇到绑定结果会要求使用 v2 审计/汇总入口。
 完整契约与剩余多外层候选/正式冻结缺口见[P4.1-A 工程记录](../../research/pu_survey/delivery/p4_1_runtime_binding_20261014.md)。
 
+显式配置 `recipe_binding_schema_version="survey-recipe-binding-2"` 或 CLI/pilot
+`--recipe-binding-schema-version survey-recipe-binding-2` 可采用[候选池身份契约](../../research/pu_survey/delivery/p4_1_pool_binding_20261014.md)：
+运行根记录完整候选池，candidate/PA/OA 各记实际身份，并核对失败排除后的 trajectory 索引。
+输出目录为独立 `recipe_pool_<SHA256>/`；外部 batch 白名单必须同步声明相同 schema。
+池格式仍要求 locked registry，不允许参数级候选覆盖，不改变冻结 Pilot 的单候选预算。
+JSON/CSV 保留逐 seed、逐选择准则的候选身份，不把池或整行写成一个假定的统一已选候选。
+
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
 `representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与
 `formal_eligible`/`formal_blockers`。无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。

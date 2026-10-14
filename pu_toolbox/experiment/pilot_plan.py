@@ -40,7 +40,7 @@ from .resources import (
     checkpoint_disk_requirement,
 )
 from .survey_protocol import unit_checkpoint_bytes, unit_checkpoint_profile
-from .survey_recipe_registry import REGISTRY_BOUND_MANIFEST_FIELDS
+from .survey_recipe_binding import matches_recipe_binding, validate_expected_binding
 from .training_views import validated_run_view
 
 #: The method every oracle unit runs under.  The run script substitutes it for
@@ -544,19 +544,7 @@ def completed_runs(
     """
     if expected_recipe_bindings is not None:
         for expected in expected_recipe_bindings.values():
-            if (
-                not isinstance(expected, Mapping)
-                or expected.get("recipe_binding_status") != "registry_bound"
-                or any(field not in expected for field in REGISTRY_BOUND_MANIFEST_FIELDS)
-                or any(
-                    not isinstance(expected[field], str) or not expected[field]
-                    for field in REGISTRY_BOUND_MANIFEST_FIELDS
-                    if field != "inner_search_id"
-                )
-            ):
-                raise ValueError(
-                    "expected_recipe_bindings must contain complete registry-bound identities"
-                )
+            validate_expected_binding(expected)
     done: dict[tuple[Any, ...], Path] = {}
     for path in sorted(Path(results_root).rglob("manifest.json")):
         try:
@@ -583,33 +571,8 @@ def completed_runs(
 
 
 def _matches_recipe_binding(payload: dict[str, Any], expected: Mapping[str, Any]) -> bool:
-    """A bound request cannot resume a legacy, partial or different recipe."""
-
-    def matches(entry, fields):
-        return isinstance(entry, Mapping) and all(
-            k in entry and entry[k] == expected[k] for k in fields
-        )
-
-    if not matches(payload, expected):
-        return False
-    fields = ("recipe_binding_status", *REGISTRY_BOUND_MANIFEST_FIELDS)
-    candidates = payload.get("candidate_runs")
-    selections = payload.get("selection")
-    return (
-        isinstance(candidates, list)
-        and len(candidates) == 1
-        and matches(candidates[0], fields)
-        and type(candidates[0].get("candidate_index")) is int
-        and candidates[0]["candidate_index"] == 0
-        and isinstance(selections, Mapping)
-        and bool(selections)
-        and all(
-            matches(selection, fields)
-            and type(selection.get("candidate_index")) is int
-            and selection["candidate_index"] == 0
-            for selection in selections.values()
-        )
-    )
+    """Compatibility alias for the shared, schema-aware identity matcher."""
+    return matches_recipe_binding(payload, expected)
 
 
 def _ran_on_current_split(

@@ -215,6 +215,18 @@ def protocol_with_outer_candidates(count: int, family: str = "minibatch") -> dic
     return protocol
 
 
+def pool_registry(count=3, method="upu"):
+    """Synthetic future pool, not approval or mutation of the shipped protocol."""
+    family = load_protocol()["method_profiles"][method]["budget"]
+    protocol = protocol_with_outer_candidates(count, family=family)
+    value = locked_registry(method, protocol)
+    prof = value["profiles"][method]
+    prof["candidate_pool"] = [candidate(f"{method}_test_{index}") for index in range(count)]
+    for chosen in prof["candidate_pool"]:
+        chosen["resolved_snapshot"] = resolve_candidate(prof, chosen, protocol)
+    return protocol, value
+
+
 def bound_manifest(
     registry_value: dict[str, Any],
     method: str = "nnpu",

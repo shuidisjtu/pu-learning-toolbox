@@ -81,8 +81,9 @@ from pu_toolbox.experiment.survey_protocol import (
     load_protocol,
     resolve_protocol_path,
 )
+from pu_toolbox.experiment.survey_recipe_binding import SCHEMA_VERSION as RECIPE_BINDING_V2
+from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
 from pu_toolbox.experiment.survey_recipe_registry import (
-    bind_recipe_candidate,
     canonical_digest,
     load_registry,
 )
@@ -290,6 +291,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--results", default="results/survey", help="where run trees live")
     parser.add_argument("--protocol", default="survey-v1", help="protocol version or path")
     parser.add_argument("--recipe-registry", type=Path, help="explicit locked recipe registry JSON")
+    parser.add_argument(
+        "--recipe-binding-schema-version", choices=(RECIPE_BINDING_V2,), default=None
+    )
     parser.add_argument(
         "--datasets",
         default=None,
@@ -591,6 +595,8 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
                 args.recipe_registry_sha256,
             ]
         )
+        if getattr(args, "recipe_binding_schema_version", None) is not None:
+            argv.extend(["--recipe-binding-schema-version", args.recipe_binding_schema_version])
     print(f"== {label}: {len(batch.covers)} run(s), seeds {list(batch.seeds)}")
     completed = subprocess.run(  # noqa: S603 - fixed script, arguments built here
         [sys.executable, str(UNIT_SCRIPT), *argv], check=False
@@ -606,6 +612,9 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.recipe_binding_schema_version is not None and args.recipe_registry is None:
+        print("error: --recipe-binding-schema-version requires --recipe-registry", file=sys.stderr)
+        return 1
     if args.plan_json and not args.dry_run:
         print(
             "error: --plan-json records the plan, and --dry-run is what produces one; "
@@ -666,13 +675,14 @@ def main(argv: list[str] | None = None) -> int:
             for run in planned:
                 unit_key = (run.dataset, run.method, run.training_path)
                 if unit_key not in by_unit:
-                    by_unit[unit_key] = bind_recipe_candidate(
+                    by_unit[unit_key] = bind_recipe(
                         registry,
                         source_protocol,
                         method=run.method,
                         dataset=run.dataset,
                         training_path=run.training_path,
                         expected_sha256=args.recipe_registry_sha256,
+                        binding_schema_version=args.recipe_binding_schema_version,
                     )
                     by_unit[unit_key].update(
                         {

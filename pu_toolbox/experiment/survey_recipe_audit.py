@@ -12,11 +12,12 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from .pilot_plan import _matches_recipe_binding
 from .survey_protocol import digest
+from .survey_recipe_binding import (
+    SCHEMA_VERSION as POOL_SCHEMA_VERSION,
+)
+from .survey_recipe_binding import bind_recipe, matches_recipe_binding, validate_expected_binding
 from .survey_recipe_registry import (
-    REGISTRY_BOUND_MANIFEST_FIELDS,
-    bind_recipe_candidate,
     canonical_digest,
     load_registry,
     manifest_has_binding_fields,
@@ -31,7 +32,12 @@ def validate_recipe_config(config: Mapping[str, Any], *, base_dir: Path) -> None
     """Validate and resolve explicit v2 obligations; never infer them from runs."""
     versioned = config.get("schema_version") == BATCH_SCHEMA_VERSION
     for batch in config["batches"]:
-        keys = {"recipe_policy", "recipe_registry", "recipe_registry_sha256"} & batch.keys()
+        keys = {
+            "recipe_policy",
+            "recipe_registry",
+            "recipe_registry_sha256",
+            "recipe_binding_schema_version",
+        } & batch.keys()
         if not versioned:
             if keys:
                 raise ValueError("recipe obligations require survey-batch-roots-2")
@@ -43,6 +49,11 @@ def validate_recipe_config(config: Mapping[str, Any], *, base_dir: Path) -> None
             if keys - {"recipe_policy"}:
                 raise ValueError("legacy batches must not declare a recipe registry")
             continue
+        if (
+            "recipe_binding_schema_version" in batch
+            and batch["recipe_binding_schema_version"] != POOL_SCHEMA_VERSION
+        ):
+            raise ValueError("unsupported recipe binding schema version in batch obligation")
         registry = batch.get("recipe_registry")
         pin = batch.get("recipe_registry_sha256")
         if not isinstance(registry, str) or not registry:
@@ -58,6 +69,8 @@ def validate_recipe_config(config: Mapping[str, Any], *, base_dir: Path) -> None
 
 def _claims_binding(payload: Mapping[str, Any]) -> bool:
     """Nested claims count too: deleting just the root must not evade the gate."""
+    if not isinstance(payload, Mapping):
+        return True
     if (
         "recipe_binding_status" in payload and payload["recipe_binding_status"] != "legacy_unbound"
     ) or manifest_has_binding_fields(payload):
@@ -88,25 +101,30 @@ def validate_consumed_bindings(
                 "recipe-bound aggregation requires the v2 batch audit/summary entry point"
             )
         return
-    fields = {
-        "recipe_binding_status",
-        *REGISTRY_BOUND_MANIFEST_FIELDS,
-        "protocol_version",
-        "protocol_sha256",
-    }
-    if not bindings or any(
-        not isinstance(value, Mapping)
-        or not fields.issubset(value)
-        or value.get("recipe_binding_status") != "registry_bound"
-        for value in bindings.values()
-    ):
+    if not bindings:
         raise ValueError("aggregation requires complete externally audited recipe identities")
-    if len({value["recipe_registry_sha256"] for value in bindings.values()}) != 1:
+    for value in bindings.values():
+        validate_expected_binding(value)
+        if not {"protocol_version", "protocol_sha256"}.issubset(value):
+            raise ValueError("aggregation requires complete externally audited recipe identities")
+    if (
+        len(
+            {
+                (value["recipe_registry_sha256"], value.get("recipe_binding_schema_version"))
+                for value in bindings.values()
+            }
+        )
+        != 1
+    ):
         raise ValueError("mixed recipe registries cannot share an aggregate")
     for payload in payloads:
-        method = (payload.get("execution_unit") or {}).get("method")
+        if not isinstance(payload, Mapping) or not isinstance(
+            payload.get("execution_unit"), Mapping
+        ):
+            raise ValueError("manifest execution_unit must be an object")
+        method = payload["execution_unit"].get("method")
         expected = bindings.get(method)
-        if expected is None or not _matches_recipe_binding(payload, expected):
+        if expected is None or not matches_recipe_binding(payload, expected):
             raise ValueError(
                 "manifest binding does not match the externally audited recipe identity"
             )
@@ -118,15 +136,23 @@ def _candidate_params_match(payload: Mapping[str, Any], protocol: Mapping[str, A
     """A correct identity hash cannot excuse different recorded training params."""
     candidates = payload.get("candidate_runs")
     pool = protocol.get("candidate_pool")
-    return (
-        isinstance(candidates, list)
-        and len(candidates) == 1
-        and isinstance(candidates[0], Mapping)
-        and "params" in candidates[0]
-        and isinstance(pool, list)
-        and len(pool) == 1
-        and digest(candidates[0]["params"]) == digest(pool[0])
-    )
+    if (
+        not isinstance(candidates, list)
+        or not isinstance(pool, list)
+        or len(candidates) != len(pool)
+    ):
+        return False
+    seen: set[int] = set()
+    for candidate in candidates:
+        if not isinstance(candidate, Mapping) or type(candidate.get("candidate_index")) is not int:
+            return False
+        index = candidate["candidate_index"]
+        if index in seen or index < 0 or index >= len(pool) or "params" not in candidate:
+            return False
+        if digest(candidate["params"]) != digest(pool[index]):
+            return False
+        seen.add(index)
+    return True
 
 
 def audit_recipe_batches(
@@ -157,7 +183,7 @@ def audit_recipe_batches(
             "not_reproducible_paths": sorted(str(entry["path"]) for entry in loaded),
         }
     batches: list[dict[str, Any]] = []
-    namespaces: set[tuple[str, str | None]] = set()
+    namespaces: set[tuple] = set()
     identities: dict[str, dict[str, Any]] = {}
     registries: dict[str, Any] = {}
     prepared: dict[tuple, dict[str, Any]] = {}
@@ -179,6 +205,15 @@ def audit_recipe_batches(
             for entry in members:
                 # An explicit legacy label is allowed, but registry fields are not.
                 payload = entry["payload"]
+                if not isinstance(payload, Mapping):
+                    failures.append(
+                        {
+                            "batch": batch["name"],
+                            "path": str(entry["path"]),
+                            "message": "manifest must be an object",
+                        }
+                    )
+                    continue
                 legacy = dict(payload)
                 if legacy.get("recipe_binding_status") == "legacy_unbound":
                     legacy.pop("recipe_binding_status")
@@ -192,8 +227,11 @@ def audit_recipe_batches(
                     )
             continue
         pin = batch.get("recipe_registry_sha256")
-        namespaces.add((policy, pin))
+        binding_version = batch.get("recipe_binding_schema_version")
+        namespaces.add((policy, pin, binding_version))
         record["recipe_registry_sha256"] = pin
+        if binding_version is not None:
+            record["recipe_binding_schema_version"] = binding_version
         try:
             registry_path = batch["recipe_registry"]
             if registry_path not in registries:
@@ -206,22 +244,33 @@ def audit_recipe_batches(
                 raise ValueError("batch registry must validate and already be locked")
             for entry in members:
                 payload = entry["payload"]
+                if not isinstance(payload, Mapping) or not isinstance(
+                    payload.get("execution_unit"), Mapping
+                ):
+                    raise ValueError("manifest execution_unit must be an object")
                 unit = payload.get("execution_unit", {})
-                key = (pin, unit.get("method"), unit.get("dataset"), unit.get("training_path"))
+                key = (
+                    pin,
+                    unit.get("method"),
+                    unit.get("dataset"),
+                    unit.get("training_path"),
+                    binding_version,
+                )
                 if key not in prepared:
-                    prepared[key] = bind_recipe_candidate(
+                    prepared[key] = bind_recipe(
                         registry,
                         protocol,
                         method=key[1],
                         dataset=key[2],
                         training_path=key[3],
                         expected_sha256=pin,
+                        binding_schema_version=binding_version,
                     )
                 expected = dict(prepared[key])
                 expected.update(
                     protocol_version=protocol["protocol_version"], protocol_sha256=digest(protocol)
                 )
-                if not _matches_recipe_binding(payload, expected) or not _candidate_params_match(
+                if not matches_recipe_binding(payload, expected) or not _candidate_params_match(
                     payload, protocol
                 ):
                     failures.append(
@@ -288,8 +337,14 @@ def recipe_audit_lines(report: Mapping[str, Any]) -> list[str]:
     for failure in extension["failures"]:
         lines.append(f"- 拒收 {failure.get('path', failure['batch'])}: {failure['message']}")
     for method, binding in sorted(extension["method_bindings"].items()):
-        lines.append(
-            f"- {method}: `{binding['recipe_profile_id']}` / `{binding['recipe_candidate_id']}`; "
-            f"resolved=`{binding['resolved_params_sha256']}`; inner=`{binding['inner_search_id']}`"
-        )
+        candidates = binding.get("recipe_candidates", [binding])
+        if "recipe_candidates_sha256" in binding:
+            lines.append(f"- {method} pool: `{binding['recipe_candidates_sha256']}`")
+        for candidate in candidates:
+            lines.append(
+                f"- {method}: `{candidate['recipe_profile_id']}` / "
+                f"`{candidate['recipe_candidate_id']}`; "
+                f"resolved=`{candidate['resolved_params_sha256']}`; "
+                f"inner=`{candidate['inner_search_id']}`"
+            )
     return lines

@@ -189,6 +189,7 @@ pu_toolbox/
     survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
     survey_artifacts.py                   # Survey 证据制品的集中式仓库相对路径映射与解析
     survey_recipe_audit.py                # 版本化批次配方义务、身份重算与聚合前拒收
+    survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -482,6 +483,9 @@ tests/
       test_survey_script_recipe_binding.py # 单次 CLI 绑定拒收、独立目录与旧制品保护
       test_survey_recipe_consumers.py   # 批次外部配方义务与审计/汇总的防降级、分源契约
       test_survey_recipe_gate.py        # 底层聚合器不能绕过配方身份或通过 diagnostic 放行
+      test_survey_recipe_pool.py        # 池摘要、身份/索引闭集与参数搜索不越权契约
+      test_survey_recipe_pool_consumers.py # 池义务重算及 JSON/CSV 逐 seed 选择身份
+      test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

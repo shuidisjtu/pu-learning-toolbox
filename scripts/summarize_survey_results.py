@@ -70,6 +70,10 @@ from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
     with_code_commit,
 )
 from pu_toolbox.experiment.survey_recipe_audit import recipe_audit_lines  # noqa: E402
+from pu_toolbox.experiment.survey_recipe_binding import (  # noqa: E402
+    SCHEMA_VERSION as RECIPE_POOL_VERSION,
+)
+from pu_toolbox.experiment.survey_recipe_binding import candidate_binding_at  # noqa: E402
 from pu_toolbox.experiment.survey_recipe_registry import (  # noqa: E402
     REGISTRY_BOUND_MANIFEST_FIELDS,
 )
@@ -446,10 +450,30 @@ def build_summary(config: dict[str, Any]) -> dict[str, Any]:
     report["rows"] = primary_rows
     if recipe_audit is not None:
         report["recipe_audit"] = recipe_audit
+        by_path = {str(entry["path"]): entry["payload"] for entry in loaded}
         for row in primary_rows:
             method = row["result_identity"]["method"]
             if method in recipe_audit["method_bindings"]:
                 row["recipe_binding"] = recipe_audit["method_bindings"][method]
+                if (
+                    row["recipe_binding"].get("recipe_binding_schema_version")
+                    == RECIPE_POOL_VERSION
+                ):
+                    selections = []
+                    for path in row["members"]:
+                        payload = by_path[path]
+                        selection = payload["selection"][row["row_key"]["selection_protocol"]]
+                        selections.append(
+                            {
+                                "seed": payload["seed"],
+                                "manifest": path,
+                                "run_index": selection["run_index"],
+                                "binding": candidate_binding_at(
+                                    row["recipe_binding"], selection["candidate_index"]
+                                ),
+                            }
+                        )
+                    row["recipe_selection_bindings"] = selections
         methods_by_cost = {
             cost_id(entry["payload"]): entry["payload"]["execution_unit"]["method"]
             for entry in loaded
@@ -636,6 +660,17 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> list[Path]:
         if "recipe_audit" in report
         else []
     )
+    if any(
+        binding.get("recipe_binding_schema_version") == RECIPE_POOL_VERSION
+        for binding in report.get("recipe_audit", {}).get("method_bindings", {}).values()
+    ):
+        recipe_columns.extend(
+            [
+                "recipe_binding_schema_version",
+                "recipe_candidates_sha256",
+                "recipe_selection_bindings_json",
+            ]
+        )
     with rows_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(
@@ -697,7 +732,12 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> list[Path]:
                     json.dumps(row["unrecorded_measurements"], ensure_ascii=False),
                     json.dumps(row["reasons"], ensure_ascii=False),
                 ]
-                + [row.get("recipe_binding", {}).get(key) for key in recipe_columns]
+                + [
+                    json.dumps(row.get("recipe_selection_bindings", []), ensure_ascii=False)
+                    if key == "recipe_selection_bindings_json"
+                    else row.get("recipe_binding", {}).get(key)
+                    for key in recipe_columns
+                ]
             )
     written.append(rows_path)
 

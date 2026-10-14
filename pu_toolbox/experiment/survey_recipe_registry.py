@@ -109,6 +109,13 @@ REGISTRY_BOUND_MANIFEST_FIELDS: tuple[str, ...] = (
     "inner_search_id",
 )
 
+#: Reserved by the versioned pool artifact contract, not by registry schema v1.
+POOL_BINDING_FIELDS: tuple[str, ...] = (
+    "recipe_binding_schema_version",
+    "recipe_candidates",
+    "recipe_candidates_sha256",
+)
+
 #: Key names that would mean a candidate was configured against the test split.
 #: Matched anywhere inside a candidate, at any depth.
 FORBIDDEN_TRUTH_KEYS: frozenset[str] = frozenset({"test", "test_labels", "test_truth"})
@@ -341,7 +348,9 @@ def manifest_has_binding_fields(manifest: Mapping[str, Any]) -> bool:
     field is claiming to be registry-bound, so a missing remainder is a defect
     rather than grounds to fall back to legacy.
     """
-    return any(field in manifest for field in REGISTRY_BOUND_MANIFEST_FIELDS)
+    return any(
+        field in manifest for field in (*REGISTRY_BOUND_MANIFEST_FIELDS, *POOL_BINDING_FIELDS)
+    )
 
 
 def digest_payload(registry: Mapping[str, Any]) -> dict[str, Any]:
@@ -408,6 +417,37 @@ def bind_recipe_candidate(
     contract is versioned. PUSB's internal CV remains inside its one outer
     candidate and is represented by ``inner_search_id``.
     """
+    profile, registry_sha256 = _prepare_recipe_profile(
+        registry,
+        protocol,
+        method=method,
+        dataset=dataset,
+        training_path=training_path,
+        candidates=candidates,
+        constructor_overrides=constructor_overrides,
+        expected_sha256=expected_sha256,
+    )
+    pool = profile["candidate_pool"]
+    if len(pool) != 1:
+        raise ValueError(
+            "runtime binding v1 requires one outer candidate; "
+            "multi-candidate identity needs a versioned contract"
+        )
+    return _candidate_binding(registry, protocol, profile, pool[0], registry_sha256)
+
+
+def _prepare_recipe_profile(
+    registry,
+    protocol,
+    *,
+    method,
+    dataset,
+    training_path,
+    candidates=None,
+    constructor_overrides=None,
+    expected_sha256=None,
+):
+    """Shared runtime validation; neither artifact version approves a recipe."""
     from .survey_protocol import resolve_unit
 
     if not isinstance(registry, Mapping) or not isinstance(registry.get("profiles"), Mapping):
@@ -432,12 +472,6 @@ def bind_recipe_candidate(
     scope = profile["scope"]
     if dataset not in scope["datasets"] or training_path not in scope["training_paths"]:
         raise ValueError("requested dataset/training_path is outside the locked recipe scope")
-    pool = profile["candidate_pool"]
-    if len(pool) != 1:
-        raise ValueError(
-            "runtime binding v1 requires one outer candidate; "
-            "multi-candidate identity needs a versioned contract"
-        )
     actual = protocol["candidate_pool"] if candidates is None else candidates
     if digest(actual) != digest(protocol["candidate_pool"]):
         raise ValueError("runtime candidates disagree with the recipe's frozen protocol pool")
@@ -447,7 +481,11 @@ def bind_recipe_candidate(
     for key, value in (constructor_overrides or {}).items():
         if key not in declared or digest(value) != digest(declared[key]):
             raise ValueError(f"constructor override is outside the resolved recipe: {key}")
-    chosen = pool[0]
+    return profile, registry_sha256
+
+
+def _candidate_binding(registry, protocol, profile, chosen, registry_sha256):
+    """One resolved candidate identity, independent of its trajectory position."""
     snapshot = resolve_candidate(profile, chosen, protocol)
     binding = {
         "recipe_binding_status": "registry_bound",
@@ -1389,6 +1427,14 @@ def _binding_form_verdict(manifest: Mapping[str, Any]) -> list[Finding] | None:
     remainder is a defect rather than grounds to fall back to legacy
     (D-P4.1-2).
     """
+    if any(field in manifest for field in POOL_BINDING_FIELDS):
+        return [
+            _finding(
+                "partial_recipe_binding",
+                "recipe_binding_schema_version",
+                "a pool or mixed-schema binding requires its versioned pool consumer",
+            )
+        ]
     status = manifest.get("recipe_binding_status")
     present = manifest_has_binding_fields(manifest)
     if status is not None and status not in RECIPE_BINDING_STATUS:

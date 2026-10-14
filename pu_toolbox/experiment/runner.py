@@ -29,7 +29,7 @@ from .protocols import route_training_view
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
 from .survey_comparison import run_comparison_units
 from .survey_protocol import runner_protocol_context
-from .survey_recipe_registry import bind_recipe_candidate
+from .survey_recipe_binding import bind_recipe, candidate_binding_at
 from .tracking import RunResult, RunTrajectory
 
 
@@ -95,7 +95,10 @@ def _recipe_context(
     """Bind an explicitly supplied registry; never retrofit an unbound run."""
     registry = config.get("recipe_registry")
     if registry is None:
-        if "expected_recipe_registry_sha256" in config:
+        if (
+            "expected_recipe_registry_sha256" in config
+            or config.get("recipe_binding_schema_version") is not None
+        ):
             raise ValueError("a pinned recipe digest requires a recipe registry")
         return {}
     request = config.get("survey_protocol")
@@ -106,7 +109,7 @@ def _recipe_context(
     protocol = load_protocol(request["path"])
     if digest(protocol) != protocol_context["protocol_sha256"]:
         raise ValueError("survey protocol changed during recipe preflight")
-    binding = bind_recipe_candidate(
+    binding = bind_recipe(
         copy.deepcopy(registry),
         protocol,
         method=request["method"],
@@ -115,6 +118,7 @@ def _recipe_context(
         candidates=config.get("candidates", [{}]),
         constructor_overrides=request.get("constructor_overrides"),
         expected_sha256=config.get("expected_recipe_registry_sha256"),
+        binding_schema_version=config.get("recipe_binding_schema_version"),
     )
     declared = protocol["method_profiles"][request["method"]]["params"]
     # The protocol names only some constructor fields. Everything else must
@@ -392,6 +396,9 @@ class ExperimentRunner:
         candidate_runs = []
         tuning_t0 = time.perf_counter()
         for candidate_index, params in enumerate(candidates):
+            candidate_recipe = (
+                candidate_binding_at(recipe_context, candidate_index) if recipe_context else {}
+            )
             errors = []
             attempt_resources = []
             for attempt in (1, 2):
@@ -433,7 +440,7 @@ class ExperimentRunner:
                 candidate_runs.append(
                     {
                         "candidate_index": candidate_index,
-                        **recipe_context,
+                        **candidate_recipe,
                         "trajectory_index": trajectory_index,
                         "params": _artifact_value(params),
                         "seed": self.seed,
@@ -458,7 +465,7 @@ class ExperimentRunner:
                 candidate_runs.append(
                     {
                         "candidate_index": candidate_index,
-                        **recipe_context,
+                        **candidate_recipe,
                         "trajectory_index": None,
                         "params": _artifact_value(params),
                         "seed": self.seed,
@@ -594,7 +601,10 @@ class ExperimentRunner:
                 item for item in candidate_runs if item["trajectory_index"] == artifact.run_index
             )
             payload["candidate_index"] = selected_run["candidate_index"]
-            payload.update(recipe_context)
+            if recipe_context:
+                payload.update(
+                    candidate_binding_at(recipe_context, selected_run["candidate_index"])
+                )
             if artifact.checkpoint_index is not None:
                 payload["checkpoint"] = (
                     trajectories[artifact.run_index]
