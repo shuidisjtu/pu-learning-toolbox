@@ -353,10 +353,17 @@
       }
     }
   },
+  "p1_2_r_acceptance": {
+    "status": "completed",
+    "confirmed_by": "shuidisjtu",
+    "confirmed_on": "2026-10-14",
+    "collection_and_review": "HENG958 collected these four datasets; shuidisjtu checked the delivery and accepts it. Execution-side access is confirmed.",
+    "research_use_decision": "shuidisjtu decided to continue current research experiments with the recorded licence findings; conditions of use must be checked again before publication or redistribution. No stated licence does not mean unrestricted use."
+  },
   "open_items": [
     "MNIST: the original page serves only a directory listing and no licence was found on it or on its archive; nothing is transcribed (read by the project lead, 2026-10-14).",
     "20 Newsgroups: the 20-to-7 class mapping behind the protocol's {0,1,2,3} vs {4,5,6} is not fixed; it belongs to P1.4-R.",
     "Connect-4 encoding (x/o/b to numbers) and the MNIST / F-MNIST input specification belong to P1.4-R.",
-    "Whether each dataset's licence permits the project's use is for the project lead and HENG958 to decide; this receipt records only what the source pages state."
+    "Before publication or redistribution, recheck the conditions of use, including datasets without a stated licence; this follow-up does not block current research experiments under shuidisjtu's decision."
   ]
 }
