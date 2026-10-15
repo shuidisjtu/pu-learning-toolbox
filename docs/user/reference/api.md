@@ -422,6 +422,21 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 
 `cpu_stream` 将完整训练/验证池留在 CPU，每次仅把不超过 `batch_size` 行送入设备；归一化扫描、诊断验证和预测同样分批。验证风险在 CPU 上以 float64 合并**全局** log-sum-exp 和正例均值，非各批风险平均，可能有浮点末位差异；旧 resident 归约保持不变。`data_device_policy_` / `training_data_device_` 记录实际策略/数据驻留设备。逐轮快照包含 encoder、分类头和归一化层，并记录推理批大小；不支持优化器续训。`PUPipeline(classifier="vpu", architecture="cnn", ...)` 可注入共享编码器，但不是获批的 Survey 图像配方。见[图像与分批交付](../../research/pu_survey/delivery/vpu_encoder_stream_20261015.md)。
 
+#### `CVIRClassifier`（注册名 `cvir`，别名 `conditional_value_ignoring_risk`）
+
+```python
+CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
+               warm_start_epochs=1, max_epochs=20, batch_size=128,
+               learning_rate=1e-3, random_state=None, device=None,
+               encoder=None, data_device_policy="auto")
+```
+
+`unlabeled_positive_prior` 必须显式给定 `(0,1)` 的 **U 内正类比例 α_U**；`fit(class_prior=...)` 始终拒绝，不自动换算总体 π。每轮先对原始 U 的分数稳定排序，保留 `max(1,floor((1-α_U)*n_U))` 个临时负例，再最小化论文 α_U 加权 BCE。默认一轮 PvU warm-start、固定20轮 CVIR；不是收敛停机、BBE 或 TEDⁿ。发布作者代码使用不同的 balanced CE/取整/loader/SGD/warm-start 时序，详见[来源复核](../../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+
+二维特征可直接输入；四维 NCHW 必须注入输出有限二维特征的 `torch.nn.Module` encoder，deepcopy 后联合训练并接 MLP 头。`data_device_policy="auto"` 无 encoder 时保留旧 resident，有 encoder 时使用 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident。CPU-stream 将全量数据留 CPU，只把不超过 batch_size 行送设备，排序/预测同样分批；仍需 O(n_U) CPU 排序空间，不是磁盘流式。`data_device_policy_` / `training_data_device_` 记录实际策略/驻留位置。
+
+`fit(..., sample_weight=None, epoch_callback=None)` 不接受非空 sample_weight，也没有 TS 校准接口。`optimizer_steps_` 计两阶段全部更新；`epoch_provenance_` 记录 `stage / stage_epoch / round_index / optimizer_steps`，`checkpoint_epoch_count` 为两阶段轮数之和。两阶段推理快照含 encoder/头与上下文，streamed 快照保留 batch_size；旧 resident replay 仍256。不支持训练续跑，上下文不代表 PA/OA 候选批准；fit 异常清除 fitted 标记。公共 pipeline 可用 `classifier="cvir", architecture="cnn"` 并通过 classifier_params 显式传 α_U；方法仍未获准加入冻结 Survey。
+
 #### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
 
 标签分布对齐 + 双向 margin + 伪标签 MixUp 的两阶段 PU 分类器，支持二维特征及注入 CNN 的四维图像。

@@ -705,33 +705,37 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/acmi-lab/PU_learning",
-        "source_status": "official_exact (paper Algorithm 2 is the implementation authority; this is not TEDn or BBE)"
+        "upstream_commit": "5e5e350dc0588de95a36eb952e3cf5382e786aec",
+        "source_status": "official_exact (作者 CVIR 代码存在并已锁定；此标签只表示来源可得性，不表示重放；本实现采用论文 Algorithm 2，和发布代码权重/取整/时序不同，不是 TEDn/BBE)"
       },
-      "implementation_status": "NATIVE, backend TORCH; fixed-alpha CVIR negative selection and weighted risk, dense tabular MLP; technical pre-integration only",
-      "native_sampling_assumption": "ts（独立 P 与边缘分布 U；原文 α 为 U 内正类比例；NeurIPS 2021 Algorithm 2, p5）",
+      "implementation_status": "NATIVE, backend TORCH; paper fixed-alpha weighted CVIR, 2-D MLP or injected trainable CNN with CPU-streamed batches; not author-code replay or formal admission",
+      "native_sampling_assumption": "ts（独立 P 与边缘分布 U；原文 α 为 U 内正类比例；NeurIPS 2021 §3 p4 / Algorithm 2 p6）",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
-      "adaptation_level": "benchmark-adapted（clean-room 表格 MLP、固定 epoch 和一次 PvU warm-start；未集成 BBE/TEDn、原文图像/文本 backbone）",
+      "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
+      "source_behavior_review_ref": "docs/research/pu_survey/data/cvir_source_review_20261015.json",
+      "checkpoint_accounting": {"epoch_bound": "warm_start_epochs + max_epochs", "bound_is_upper_limit": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false},
       "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "dense tabular MLP64",
+        "modalities": ["tabular", "image"],
+        "backbone": "default MLP64 or deepcopied trainable encoder + same MLP head; not author architecture; encoder inputs remain on CPU",
         "code_capability": {
-          "native_architectures": ["mlp"],
-          "input_ndims": [2],
-          "encoder_parameter": null,
-          "trains_encoder": false
+          "native_architectures": ["mlp", "cnn"],
+          "input_ndims": [2, 4],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
         }
       },
       "evidence": {
-        "native_sampling_assumption": "Garg et al., NeurIPS 2021 Algorithm 2 p5; cvir.py module docstring",
-        "prior_semantics": "Garg et al., NeurIPS 2021 p5 Algorithm 2 input α; cvir.py:fit rejects class_prior",
-        "adaptation_level": "Garg et al., NeurIPS 2021 §6 p8 architecture/protocol; cvir.py class docstring"
+        "native_sampling_assumption": "Garg et al., NeurIPS 2021 §3 p4 / Algorithm 2 p6; cvir_source_review_20261015.json",
+        "prior_semantics": "Garg et al., NeurIPS 2021 §3 and Algorithm 2 input α; cvir.py:fit rejects class_prior",
+        "adaptation_level": "cvir_source_review_20261015.json; admission/cvir_source_cnn_review_20261015.md; cvir.py"
       },
       "uncertainty": [
         "CVIR 的 α 是原始 U 池内混合比例，冻结 Survey driver 传的是总体 population π，两者在 OS 标记机制下通常不同；未建立可核的 α_U 转换，故不得纳入 Survey v1 矩阵或直接比较论文数值",
         "原文 TS/边缘 U 假设；目前估计器无 os_or_ts 接口，TS-OS 校准未接入。台账默认 os-compatible、calibration_applied=false；显式请求 ts 会被实验路由拒绝，不能把原始 P 并入负候选池",
         "有限样本保留数使用 floor((1-α)*n_U)，至少 1；默认 warm-start 一轮、固定 epoch，未实现收敛停机或 BBE/TEDn 先验估计",
+        "锁定作者代码实际用 balanced CE、n_U-int(α*n_U)、zip原始P/U loader后mask、SGD默认；CVIR分支不进入TEDn专用warm-start。当前保留论文加权与既有默认，不把公式符合或新增CNN工程能力称为源码重放；CNN的分开P/N forward与源合并forward在BN下尤其不同",
         "本地训练与公式 smoke 不等于公开行为对照、GPU 多 seed 验证或合作者复核"
       ]
     },

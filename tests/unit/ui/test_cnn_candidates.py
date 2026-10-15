@@ -40,4 +40,5 @@ def test_cnn_candidates_matches_current_declarations():
         "genpu",
         "lbe_neural",
         "vpu",
+        "cvir",
     }

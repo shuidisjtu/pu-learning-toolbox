@@ -73,7 +73,7 @@ pu_toolbox/
       nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
       pnu.py                              (native: 凸 PNU 半监督闭式解(平方损失, 对齐 pywsl, η 混合 P/NU))
       puet.py                             (native: PU Extra Trees nnPU/二次风险驱动的随机树集成，CPU)
-      cvir.py                             (CVIR 固定未标记正类先验的经典适配器，技术预集成)
+      cvir.py                             (CVIR 论文加权目标、注入 CNN/CPU 分批与两阶段成本快照)
     bias_aware/
       __init__.py                         (公共导出聚合)
       pusb.py                             (native: PUSB 选择偏差打分: LR 源分类器 + 可配置阈值(保序不保后验))
@@ -288,6 +288,7 @@ tests/
       test_lbe_neural_math.py           # LBE 联合后验、完整似然梯度与极端 logits 独立数学对照
       test_vpu_schedule.py              # VPU 源 Adam 重置边界、固定训练步数与默认兼容
       test_vpu_encoder_stream.py        # VPU 注入 CNN、全局流式诊断、设备批次与快照兼容
+      test_cvir_source_encoder.py       # CVIR 来源差异/独立梯度、CNN 分批、U 排序与阶段快照
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

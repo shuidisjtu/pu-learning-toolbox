@@ -157,13 +157,14 @@
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
-        "adaptation_level": "benchmark-adapted（clean-room 表格 MLP、固定 epoch 和一次 PvU warm-start；未集成 BBE/TEDn、原文图像/文本 backbone）"
+        "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
+        "source_behavior_review_ref": "docs/research/pu_survey/data/cvir_source_review_20261015.json"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "declared_scope": "technical 2-D or injected trainable CNN with CPU-streamed ranking/training/prediction; no author recipe replay or formal pilot claim",
       "specific_blockers": [
         "alpha_U_provenance_and_finite_sample_conversion",
         "explicit_ts_unsupported"

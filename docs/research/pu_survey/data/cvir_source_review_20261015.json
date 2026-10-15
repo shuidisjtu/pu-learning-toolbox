@@ -1,0 +1,134 @@
+{
+  "schema_version": "survey-cvir-source-engineering-review-1",
+  "method": "cvir",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "source": {
+    "repository": "https://github.com/acmi-lab/PU_learning",
+    "commit": "5e5e350dc0588de95a36eb952e3cf5382e786aec",
+    "working_tree_clean_when_inspected": true,
+    "executed_upstream_code": false,
+    "license": "Apache-2.0",
+    "file_sha256": {
+      "algorithm.py": "9f5885e5f78405d5f7e12e0cd0459c037ab877ec3c27d897300c3edea2e53706",
+      "train_PU.py": "fe47e2944729f89f1376ad3bd3d1367dbb78b1e5299033ecc633e0858245d0da",
+      "helper.py": "a39f7b69b8162864cacb567a9857edabb05423568f0032a4c6c5e311c0179d98",
+      "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "model_helper.py": "29bc134eb7322b55d25920fee4a67883c13c79c215b2bff820b432690b4d86cd",
+      "data_helper/CIFAR.py": "b5052cea327d321f99d45e43265cb9286569270533b7a7e532959b0198ed65ca",
+      "scripts/run_cifar.sh": "c072777d059d574a4512ab2b66c792690b2f717fc0d0b5913dcefb2339d55c40"
+    }
+  },
+  "paper": {
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf",
+    "alpha_definition": "section 3, printed page 4: positive mixture fraction within U",
+    "algorithm_2_printed_page": 6,
+    "objective": "alpha_U * mean positive loss + (1-alpha_U) * mean retained-negative loss",
+    "stopping": "convergence of training error; no finite-sample integer count rule specified"
+  },
+  "source_differences": [
+    {
+      "item": "risk_weights",
+      "source_location": "algorithm.py:233-236",
+      "source_value": "(mean positive CE + mean retained U CE) / 2",
+      "toolbox_value": "paper Algorithm 2 alpha-weighted BCE; warm-start uses the legacy unscaled sum",
+      "decision": "retain paper objective; source implementation is a different empirical weighting"
+    },
+    {
+      "item": "finite_count",
+      "source_location": "algorithm.py:274-276",
+      "source_value": "n_U - int(alpha_U * n_U) retained; np.argsort default tie ordering",
+      "toolbox_value": "max(1, floor((1-alpha_U) * n_U)) retained; stable tie ordering",
+      "decision": "retain documented finite-sample toolbox rule, record one-row discrepancy when noninteger"
+    },
+    {
+      "item": "warm_start_scope",
+      "source_location": "train_PU.py:116-123,193-208",
+      "source_value": "warm-start block requires warm_start and train_method == TEDn; CVIR skips it",
+      "toolbox_value": "default one PvU warm-start epoch before fixed-alpha CVIR",
+      "decision": "retain compatible toolbox default; warm_start_epochs=0 explicitly omits it"
+    },
+    {
+      "item": "batch_pairing",
+      "source_location": "algorithm.py:205-228",
+      "source_value": "zip P and original U loaders; mask retained U in each batch, skip empty mask, concatenate P and U for forward",
+      "toolbox_value": "shuffle P and retained U separately, max-length modulo-start batches, separate P/N forwards",
+      "decision": "engineering adaptation; especially not equivalent for BatchNorm or stochastic augmentation"
+    },
+    {
+      "item": "optimizer_and_budget",
+      "source_location": "train_PU.py:26-43,107-114,197",
+      "source_value": "CLI defaults SGD lr0.1/momentum0.9/wd0.0005, batch200, epochs5000; actual data loaders can override sizes, CIFAR script uses epochs2000; Adam optional",
+      "toolbox_value": "Adam lr0.001, no weight decay, batch128, warm1 + CVIR20 fixed epochs",
+      "decision": "neither default is the abstract paper convergence rule; not source recipe replay"
+    },
+    {
+      "item": "alpha_and_true_label_diagnostics",
+      "source_location": "helper.py:85-102; train_PU.py:73-74,199-202; algorithm.py:263-280",
+      "source_value": "alpha explicitly controls U mixture; CVIR uses supplied alpha, TEDn uses estimated alpha; ranking returns true-label rejection diagnostic; estimate-alpha defaults to computing extra validation estimators even for CVIR, not feeding them to its training alpha",
+      "toolbox_value": "explicit fixed alpha_U only; no true-label diagnostic, BBE or TEDn alternation",
+      "decision": "do not infer alpha_U from population pi or labeled fraction; no clean-label reads added; additional source diagnostic estimator costs are not included in toolbox CVIR"
+    },
+    {
+      "item": "beta_is_not_scar_label_frequency",
+      "source_location": "train_PU.py:40; helper.py:85-102,342-349,378-385",
+      "source_value": "beta controls n_P/(n_P+n_U); CIFAR U batch=int(P_batch*(1-beta)/beta); both U class counts are rounded separately",
+      "toolbox_value": "alpha_U supplied explicitly, P/U role sizes come from input; no beta constructor or beta-to-c substitution",
+      "decision": "source beta is not protocol c; verify actual finite-sample counts and branch-specific batch sizes before comparing"
+    }
+  ],
+  "source_cifar_recipe": {
+    "script_location": "scripts/run_cifar.sh:6-11,26-31",
+    "script_epochs": 2000,
+    "script_seed_list": [42, 1432, 8378],
+    "script_alpha": 0.5,
+    "script_architectures": ["ResNet", "AllConv"],
+    "resnet_entry": "model_helper.py:44-46 -> ResNet18(num_classes=2)",
+    "positive_class_ids": {"cifar_DogCat": [3], "cifar_binarized": [0, 1, 2, 3, 4]},
+    "class_mapping_location": "data_helper/CIFAR.py:12-16,31-35; DogCat negative class is 5",
+    "normalization_mean": [0.4914, 0.4822, 0.4465],
+    "normalization_std": [0.2023, 0.1994, 0.2010],
+    "transform_location": "helper.py:319-337,355-373",
+    "ranking_augmentation": "U train loader is reused for ranking, so RandomCrop(32,padding=4) and RandomHorizontalFlip also apply during source eval ranking; toolbox uses already supplied arrays without adding these transforms",
+    "validation_origin": "helper.py constructs validation P/U from train=False original CIFAR partition; not automatically equivalent to the project's four-role split",
+    "executed": false,
+    "toolbox_recipe_approved": false
+  },
+  "chosen_objective": "paper_algorithm_2_alpha_weighted",
+  "toolbox_defaults": {
+    "unlabeled_positive_prior": null,
+    "hidden_dim": 64,
+    "warm_start_epochs": 1,
+    "max_epochs": 20,
+    "batch_size": 128,
+    "learning_rate": 0.001,
+    "random_state": null,
+    "device": null,
+    "encoder": null,
+    "data_device_policy": "auto"
+  },
+  "engineering_scope": {
+    "inputs": "dense 2-D features or 4-D NCHW with independently cloned trainable encoder",
+    "data_policy": "auto preserves legacy resident 2-D; encoder uses CPU-streamed input; explicit cpu_stream available",
+    "device_batch_bound": "batch_size for each train, rank and predict forward in cpu_stream; full inputs and rank vector still occupy CPU memory",
+    "epoch_bound": "warm_start_epochs + max_epochs",
+    "stages": ["warm_start", "cvir"],
+    "cost": "optimizer_steps_ covers both stages; epoch_provenance_ and checkpoint training_context record stage, round and cumulative steps",
+    "training_resume_supported": false,
+    "gpu_resource_validation": "not_run"
+  },
+  "run_view": "os-compatible",
+  "calibration_applied": false,
+  "author_code_replay": false,
+  "formal_admission": false,
+  "candidate_protocol_ref": null,
+  "budget_ref": null,
+  "candidate_pool": null,
+  "blockers": [
+    "alpha_U_provenance_and_finite_sample_conversion",
+    "explicit_ts_unsupported",
+    "approved_shared_architecture_preprocessing_selection_and_budget",
+    "public_numeric_comparison_and_formal_multiseed_resource_evidence",
+    "method_owner_review"
+  ]
+}

@@ -111,6 +111,7 @@ def test_cnn_capability_consistent_with_signature():
 
 
 _EXPECTED_DECLARATIONS = {
+    "cvir": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "lbe_neural": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "infomax_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "weighted_contrastive_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),

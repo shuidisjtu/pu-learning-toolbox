@@ -54,6 +54,10 @@
 
 ### 1.3 执行边界
 
+2026-10-15 P3.1/P3.2 工程补记：[CVIR 来源差异与 CNN/CPU-stream](admission/cvir_source_cnn_review_20261015.md)
+保留论文加权目标与旧二维默认，披露发布代码差异，补图像/分批/两阶段成本快照；
+α_U 来源、TS 视图、正式共享规格与准入仍未批准，HENG958 复核待办。
+
 2026-10-14 P3.2 独立工程补记：[神经 LBE 变体](delivery/lbe_neural_integration_20261014.md)
 以 `lbe_neural` 另立双网络 Adam/CNN/分批及 OS-only 接线，原线性 `lbe` 和冻结矩阵不变。
 此为 shuidisjtu 侧独立技术补齐，HENG958 接口/方法学复核待办；不替代 P3.2 正式共享规格、
