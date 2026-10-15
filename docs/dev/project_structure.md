@@ -67,7 +67,7 @@ pu_toolbox/
       kldce.py                            (native: ACS + 原生 SMO + RBF kernel)
       kldce_smo.py                        (原生配对 SMO 求解器: 解析更新 + KKT 选择)
       dist_pu.py                          (native: Dist-PU 标签分布对齐: 正例监督+期望对齐+熵最小化, torch 可选 MLP)
-      vpu.py                              (native: VPU 变分风险+对数 MixUp 正则，先验无关的二维 MLP 适配)
+      vpu.py                              (native: VPU 变分风险/MixUp、可训练 CNN 与 CPU 数据分批适配)
       pulda.py                            (native: PULDA 分布对齐+双向 margin+EMA 伪标签 MixUp，两阶段二维 MLP 适配)
       upu.py                              (native: uPU 凸风险估计器(du Plessis'15): 双铰链/逻辑/平方损失三变体)
       nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
@@ -287,6 +287,7 @@ tests/
       test_lbe_neural.py                # 神经 LBE 的预算、模板/随机性、序列化与 OS-only 边界
       test_lbe_neural_math.py           # LBE 联合后验、完整似然梯度与极端 logits 独立数学对照
       test_vpu_schedule.py              # VPU 源 Adam 重置边界、固定训练步数与默认兼容
+      test_vpu_encoder_stream.py        # VPU 注入 CNN、全局流式诊断、设备批次与快照兼容
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

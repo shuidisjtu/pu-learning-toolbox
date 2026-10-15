@@ -1,5 +1,9 @@
 # P3 缺失方法技术预集成交接（2026-09-28）
 
+2026-10-15 VPU 后续工程补记：[源调度](vpu_schedule_review_20261015.md)与
+[注入 CNN / CPU-stream](../delivery/vpu_encoder_stream_20261015.md)已实现并同步台账；
+下文历史采样/校准结论保留，D22 选模、正式图像规格/资源及合作者复核仍待办。
+
 2026-10-07 补记：[阶段选模/预算草案](../p3_stage_budget_review_20261007.md)
 已补 PULDA/GradPU/Robust-PU/Split-PU 的可核快照上下文与五方法机器规格；
 GenPU/Holistic-PU 同样保留阶段 provenance。只补工程可观察性，不批准阶段候选，

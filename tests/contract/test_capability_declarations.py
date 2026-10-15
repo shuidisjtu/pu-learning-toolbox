@@ -122,7 +122,7 @@ _EXPECTED_DECLARATIONS = {
     "robust_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "split_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "lagam": (frozenset({"mlp"}), frozenset({2}), None, False),
-    "vpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "vpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "pulda": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "pan": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "genpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),

@@ -136,14 +136,14 @@
         "run_view": "ts-compatible",
         "calibration_applied": true,
         "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:vpu)",
-        "adaptation_level": "benchmark-adapted；clean-room MLP，非作者脚本/数值复现；默认 constant 与数据量推导步数不变，显式 source_reset_halving 在第20/40…轮前减半并重建 Adam，iterations_per_epoch 可固定为30；lr/网络/采样/默认预算仍不同，见 admission/vpu_schedule_review_20261015.md",
+        "adaptation_level": "benchmark-adapted；clean-room MLP/注入可训练 CNN，非作者网络/脚本/数值复现；默认 constant 与数据量推导步数不变，源重置调度/固定步数可选；encoder 强制 CPU 数据分批，旧二维 auto 保留 resident；见 delivery/vpu_encoder_stream_20261015.md",
         "training_recipe_review_ref": "docs/research/pu_survey/data/vpu_schedule_source_20261015.json"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "declared_scope": "technical 2-D or injected trainable CNN with CPU-streamed batches; not author image reproduction or formal pilot",
       "specific_blockers": [
         "D22_PA_selection_decision",
         "source_training_schedule_discrepancies"

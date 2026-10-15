@@ -396,13 +396,13 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, lear
 
 #### `VPUClassifier`（注册名 `vpu`，别名 `variational_pu`）
 
-无须类先验的变分 PU 分类器；仅支持稠密二维特征，默认网络为实验性工具箱适配。
+无须类先验的变分 PU 分类器；支持稠密二维特征及注入可训练编码器的四维 NCHW 图像，网络为实验性工具箱适配。
 
 ```python
 VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
               learning_rate=3e-4, regularization_weight=0.03, mixup_alpha=0.3,
               random_state=None, device=None, optimizer_schedule="constant",
-              iterations_per_epoch=None)
+              iterations_per_epoch=None, encoder=None, data_device_policy="auto")
 ```
 
 | 参数 | 类型 | 默认 | 说明 |
@@ -414,9 +414,13 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 | `mixup_alpha` | `float` | `0.3` | Beta 插值分布的两个同值形状参数 |
 | `optimizer_schedule` | `str` | `"constant"` | 显式 `"source_reset_halving"` 在第20/40…轮训练前学习率减半并重建 Adam，清空动量，不是 StepLR |
 | `iterations_per_epoch` | `int \| None` | `None` | 正整数固定每轮更新数；None 保留数据量推导，作者脚本为30，但本项目不默认采用 |
+| `encoder` | `torch.nn.Module \| None` | `None` | 四维图像必填；deepcopy 后端到端训练，须输出有限的二维特征，后接上述 MLP 头；不修改用户模板 |
+| `data_device_policy` | `str` | `"auto"` | 无 encoder 时 auto 保留旧 resident；有 encoder 时 auto 强制 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子与 torch 设备 |
 
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图或作为 Survey PA/OA 准则。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_` 新增 `learning_rate` / `optimizer_generation`；`optimizer_resets_` 记录实际 Adam 重建次数，`optimizer_steps_` 始终累计、不因重建清零。默认原有训练行为不变，失败重训会撤销 fitted 状态。详见 [VPU 方法卡](../../research/method_cards/VPU.md)和[源调度复核](../../research/pu_survey/admission/vpu_schedule_review_20261015.md)。
+
+`cpu_stream` 将完整训练/验证池留在 CPU，每次仅把不超过 `batch_size` 行送入设备；归一化扫描、诊断验证和预测同样分批。验证风险在 CPU 上以 float64 合并**全局** log-sum-exp 和正例均值，非各批风险平均，可能有浮点末位差异；旧 resident 归约保持不变。`data_device_policy_` / `training_data_device_` 记录实际策略/数据驻留设备。逐轮快照包含 encoder、分类头和归一化层，并记录推理批大小；不支持优化器续训。`PUPipeline(classifier="vpu", architecture="cnn", ...)` 可注入共享编码器，但不是获批的 Survey 图像配方。见[图像与分批交付](../../research/pu_survey/delivery/vpu_encoder_stream_20261015.md)。
 
 #### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
 

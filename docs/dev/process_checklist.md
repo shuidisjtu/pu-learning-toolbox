@@ -18,6 +18,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-15 P3.2 独立工程补齐：VPU 增加可训练 encoder 与 CPU-stream 数据策略，归一化/验证/推理及快照分批接通；旧二维默认 resident 保留。台账、准入草稿、UI 能力及契约同步；D22 选模、正式共享规格/资源/协议和 HENG958 复核仍待办，见[交付](../research/pu_survey/delivery/vpu_encoder_stream_20261015.md)。
+
 2026-10-15 VPU 来源切片：补显式可选的作者 Adam 重置/减半时序及固定轮内更新数，默认 constant/数据量推导、D21/D22 与旧结果不变；台账、准入草稿、源记录和测试同步，正式候选/预算未批准。见[复核](../research/pu_survey/admission/vpu_schedule_review_20261015.md)。
 
 2026-10-14 独立算法收尾：新增 `lbe_neural` 双网络 Adam generalized-EM 变体，MLP/注入 CNN、分批梯度与预测、EM 推理快照、台账/OS-only 拒绝边界和测试同步；原 `lbe` 与冻结 Pilot 不变。采用单独登记的用户包时序，不称官方包/论文数值重放；HENG958 复核、正式协议/资源/配方及真实数据/GPU仍待办，见[交付](../research/pu_survey/delivery/lbe_neural_integration_20261014.md)。

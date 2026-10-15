@@ -1,13 +1,15 @@
 # ruff: noqa: N803, N806
-"""Prior-free variational PU learning for dense tabular feature vectors.
+"""Prior-free variational PU learning with optional trainable image encoders.
 
 The objective follows Chen et al., NeurIPS 2020, Equations (6)--(9). The
 default MLP is a toolbox-sized technical adapter, not the paper's seven-layer
-tabular network or CIFAR CNN. PyTorch remains an optional fit-time dependency.
+tabular network or CIFAR CNN. Injected encoders are engineering adapters, not
+author architecture reproductions. PyTorch remains an optional fit dependency.
 """
 
 from __future__ import annotations
 
+import copy
 import math
 
 import numpy as np
@@ -56,7 +58,7 @@ def vpu_objective(
 
 
 class VPUClassifier(BasePUClassifier):
-    """Fit a prior-free VPU classifier on dense two-dimensional PU data."""
+    """Fit prior-free VPU on features or images with an injected encoder."""
 
     family = AlgorithmFamily.RISK_ESTIMATION
     label_semantics = "pu"
@@ -68,10 +70,10 @@ class VPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
 
     def __init__(
         self,
@@ -87,6 +89,8 @@ class VPUClassifier(BasePUClassifier):
         device: str | None = None,
         optimizer_schedule: str = "constant",
         iterations_per_epoch: int | None = None,
+        encoder=None,
+        data_device_policy: str = "auto",
     ) -> None:
         super().__init__()
         self.hidden_dim = hidden_dim
@@ -100,6 +104,13 @@ class VPUClassifier(BasePUClassifier):
         self.device = device
         self.optimizer_schedule = optimizer_schedule
         self.iterations_per_epoch = iterations_per_epoch
+        self.encoder = encoder
+        self.data_device_policy = data_device_policy
+
+    @property
+    def checkpoint_prediction_batch_size(self):
+        """Restore classifier normalization with the same inference chunks."""
+        return self.batch_size
 
     def fit(
         self,
@@ -112,6 +123,39 @@ class VPUClassifier(BasePUClassifier):
         epoch_callback=None,
         os_or_ts: str = "ts",
     ) -> VPUClassifier:
+        """Fit PU features/images, retaining D21/D22 view and diagnostic semantics.
+
+        Images require a cloned trainable encoder and CPU-streamed input.
+        Auto preserves legacy resident data for the no-encoder 2-D path;
+        explicit cpu_stream bounds device batches for either input type.
+        Every failure, including a later epoch or callback, invalidates fit.
+        """
+        self._is_fitted = False
+        try:
+            return self._fit_impl(
+                X,
+                y_pu,
+                class_prior=class_prior,
+                sample_weight=sample_weight,
+                pu_validation_data=pu_validation_data,
+                epoch_callback=epoch_callback,
+                os_or_ts=os_or_ts,
+            )
+        except Exception:
+            self._is_fitted = False
+            raise
+
+    def _fit_impl(
+        self,
+        X,
+        y_pu,
+        *,
+        class_prior,
+        sample_weight,
+        pu_validation_data,
+        epoch_callback,
+        os_or_ts,
+    ):
         """Minimize the variational objective using P and the marginal pool.
 
         ``os_or_ts`` selects the training view (protocol §2.3). The paper's
@@ -137,8 +181,16 @@ class VPUClassifier(BasePUClassifier):
 
         if sample_weight is not None:
             raise NotImplementedError("VPU does not implement sample_weight")
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="VPUClassifier")
-        X = _finite_features(X, name="X")
+        X, y_pu = validate_pu_X_y(
+            X,
+            y_pu,
+            accept_sparse=False,
+            allow_nd=self.encoder is not None,
+            estimator_name="VPUClassifier",
+        )
+        X = _finite_features(X, name="X", allow_nd=self.encoder is not None)
+        if self.encoder is not None and not isinstance(self.encoder, nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
         if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
             raise ValueError("class_prior, if supplied, must be in (0, 1)")
         if os_or_ts not in RUN_VIEWS:
@@ -159,13 +211,34 @@ class VPUClassifier(BasePUClassifier):
         loss_unlabeled = view.source_features[np.sort(view.loss_unlabeled_positions)]
         n_loss_unlabeled = len(loss_unlabeled)
 
-        validation = _prepare_pu_validation(pu_validation_data, X.shape[1])
+        validation = _prepare_pu_validation(
+            pu_validation_data,
+            X.shape[1],
+            input_shape=tuple(X.shape[1:]),
+            allow_nd=self.encoder is not None,
+        )
 
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
+        stream = self.data_device_policy == "cpu_stream" or self.encoder is not None
+        self.data_device_policy_ = "cpu_stream" if stream else "resident"
+        data_device = torch.device("cpu") if stream else device
+        self.training_data_device_ = str(data_device)
         layers = []
         width = X.shape[1]
+        self.encoder_ = None
+        if self.encoder is not None:
+            from ..deep._validation import validate_encoder_features
+
+            self.encoder_ = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
+            self.encoder_.requires_grad_(True).eval()
+            with torch.no_grad():
+                features = self.encoder_(torch.as_tensor(X[:1], device=device))
+                width = validate_encoder_features(features, encoder_param_name="encoder")
+                if features.shape[0] != 1:
+                    raise ValueError("encoder must preserve the batch dimension")
+            layers.append(self.encoder_)
         for _ in range(self.depth):
             layers.extend((nn.Linear(width, self.hidden_dim), nn.ReLU()))
             width = self.hidden_dim
@@ -178,14 +251,14 @@ class VPUClassifier(BasePUClassifier):
         self.model_ = nn.Sequential(*layers, calibration).to(device)
         phi = self.model_[:-1]
         optimizer = torch.optim.Adam(phi.parameters(), lr=self.learning_rate, betas=(0.5, 0.99))
-        x_data = torch.as_tensor(loss_unlabeled, device=device)
-        p_data = torch.as_tensor(positive, device=device)
+        x_data = torch.as_tensor(loss_unlabeled, device=data_device)
+        p_data = torch.as_tensor(positive, device=data_device)
         val_data = None
         if validation is not None:
             val_X, val_y = validation
             val_data = (
-                torch.as_tensor(val_X, device=device),
-                torch.as_tensor(val_X[val_y == 1], device=device),
+                torch.as_tensor(val_X, device=data_device),
+                torch.as_tensor(val_X[val_y == 1], device=data_device),
             )
         steps = max(
             math.ceil(n_loss_unlabeled / self.batch_size),
@@ -215,6 +288,7 @@ class VPUClassifier(BasePUClassifier):
         self.training_view_ = os_or_ts
         self.calibration_applied_ = view.calibration_applied
         self.n_features_in_ = X.shape[1]
+        self.input_shape_ = tuple(X.shape[1:])
         self._X_shape_ = X.shape
         self._class_prior = None
         self._is_fitted = False
@@ -232,17 +306,17 @@ class VPUClassifier(BasePUClassifier):
             for _ in range(steps):
                 p_idx = rng.choice(len(positive), size=batch_size, replace=True)
                 x_idx = rng.choice(n_loss_unlabeled, size=batch_size, replace=True)
-                p_batch = p_data[p_idx]
-                x_batch = x_data[x_idx]
+                p_batch = p_data[p_idx].to(device)
+                x_batch = x_data[x_idx].to(device)
                 mixing = torch.as_tensor(
                     np.clip(rng.beta(self.mixup_alpha, self.mixup_alpha), 1e-6, 1 - 1e-6),
                     dtype=torch.float32,
                     device=device,
                 )
                 mixed = mixing * p_batch + (1.0 - mixing) * x_batch
-                log_p = phi(p_batch).flatten()
-                log_x = phi(x_batch).flatten()
-                log_mixed = phi(mixed).flatten()
+                log_p = _log_phi(phi, p_batch)
+                log_x = _log_phi(phi, x_batch)
+                log_mixed = _log_phi(phi, mixed)
                 total, variational, consistency = vpu_objective(
                     log_p,
                     log_x,
@@ -265,22 +339,31 @@ class VPUClassifier(BasePUClassifier):
             self.model_.eval()
             with torch.no_grad():
                 max_log_phi = max(
-                    float(phi(x_data[start : start + self.batch_size]).max().cpu())
+                    float(
+                        _log_phi(phi, x_data[start : start + self.batch_size].to(device))
+                        .max()
+                        .cpu()
+                    )
                     for start in range(0, n_loss_unlabeled, self.batch_size)
                 )
                 calibration.bias.fill_(-max_log_phi - math.log(0.5))
                 self.max_log_phi_ = max_log_phi
                 if val_data is not None:
                     val_x, val_p = val_data
-                    val_log_x = phi(val_x).flatten()
-                    val_log_p = phi(val_p).flatten()
-                    val_risk = float(
-                        (
-                            torch.logsumexp(val_log_x, dim=0)
-                            - math.log(len(val_x))
-                            - val_log_p.mean()
-                        ).cpu()
-                    )
+                    if stream:
+                        val_risk = _stream_validation_risk(
+                            phi, val_x, val_p, self.batch_size, device
+                        )
+                    else:
+                        val_log_x = _log_phi(phi, val_x)
+                        val_log_p = _log_phi(phi, val_p)
+                        val_risk = float(
+                            (
+                                torch.logsumexp(val_log_x, dim=0)
+                                - math.log(len(val_x))
+                                - val_log_p.mean()
+                            ).cpu()
+                        )
                     self.history_["val_risk"].append(val_risk)
             self.history_["epoch"].append(epoch)
             for key, value in zip(
@@ -300,6 +383,14 @@ class VPUClassifier(BasePUClassifier):
         return self
 
     def _validate_parameters(self) -> None:
+        if not isinstance(self.data_device_policy, str) or self.data_device_policy not in {
+            "auto",
+            "resident",
+            "cpu_stream",
+        }:
+            raise ValueError("data_device_policy must be auto, resident or cpu_stream")
+        if self.encoder is not None and self.data_device_policy == "resident":
+            raise ValueError("injected encoders require CPU-streamed data, not resident")
         if not isinstance(self.optimizer_schedule, str) or self.optimizer_schedule not in {
             "constant",
             "source_reset_halving",
@@ -325,9 +416,9 @@ class VPUClassifier(BasePUClassifier):
     def _decision_function(self, X) -> np.ndarray:
         import torch
 
-        X = _finite_features(X, name="prediction X")
-        if X.shape[1] != self.n_features_in_:
-            raise ValueError("prediction X has the wrong feature dimension")
+        X = _finite_features(X, name="prediction X", allow_nd=self.encoder is not None)
+        if tuple(X.shape[1:]) != self.input_shape_:
+            raise ValueError("prediction X has the wrong feature dimension/input shape")
         self.model_.eval()
         with torch.no_grad():
             return (
@@ -356,10 +447,47 @@ class VPUClassifier(BasePUClassifier):
         return np.column_stack((1.0 - positive, positive))
 
 
-def _finite_features(X, *, name: str) -> np.ndarray:
+def _log_phi(phi, batch):
+    """Require one finite log-score per input row without detaching gradients."""
+    import torch
+
+    output = phi(batch)
+    if output.shape != (len(batch), 1):
+        raise ValueError("VPU network must preserve the batch dimension and output one score")
+    if not torch.isfinite(output).all():
+        raise FloatingPointError("VPU network produced non-finite log-scores")
+    return output.flatten()
+
+
+def _stream_validation_risk(phi, marginal, positive, batch_size, device):
+    """Reduce the global diagnostic in float64 CPU chunks, not batch means.
+
+    Caller sets eval/no_grad. Only one input/output chunk resides on the compute
+    device; logaddexp merges log-sums even when chunk sizes differ. This keeps
+    D22's full validation marginal rather than replacing it with U-only data.
+    """
+    import torch
+
+    log_sum = torch.tensor(-math.inf, dtype=torch.float64)
+    positive_sum = torch.tensor(0.0, dtype=torch.float64)
+    for start in range(0, len(marginal), batch_size):
+        scores = _log_phi(phi, marginal[start : start + batch_size].to(device))
+        log_sum = torch.logaddexp(log_sum, torch.logsumexp(scores.to("cpu", torch.float64), 0))
+    for start in range(0, len(positive), batch_size):
+        scores = _log_phi(phi, positive[start : start + batch_size].to(device))
+        positive_sum += scores.to("cpu", torch.float64).sum()
+    risk = float(log_sum - math.log(len(marginal)) - positive_sum / len(positive))
+    if not math.isfinite(risk):
+        raise FloatingPointError("VPU validation diagnostic became non-finite")
+    return risk
+
+
+def _finite_features(X, *, name: str, allow_nd: bool = False) -> np.ndarray:
     X = np.asarray(X)
-    if X.ndim != 2 or not np.issubdtype(X.dtype, np.number):
-        raise ValueError(f"{name} must be a dense 2-D numeric array")
+    if X.ndim not in ({2, 4} if allow_nd else {2}) or not np.issubdtype(X.dtype, np.number):
+        raise ValueError(f"{name} must be a dense 2-D array or 4-D images with an encoder")
+    if any(size == 0 for size in X.shape[1:]):
+        raise ValueError(f"{name} must have nonempty feature/image dimensions")
     if not np.isfinite(X).all():
         raise ValueError(f"{name} must contain only finite values")
     result = np.asarray(X, dtype=np.float32)
@@ -368,7 +496,7 @@ def _finite_features(X, *, name: str) -> np.ndarray:
     return result
 
 
-def _prepare_pu_validation(value, n_features: int):
+def _prepare_pu_validation(value, n_features: int, *, input_shape=None, allow_nd=False):
     if value is None:
         return None
     if hasattr(value, "view"):
@@ -379,10 +507,12 @@ def _prepare_pu_validation(value, n_features: int):
         X_val, y_val = value
     else:
         raise ValueError("pu_validation_data must be a PU-view part or (X_val, y_pu_val)")
-    X_val = _finite_features(X_val, name="pu_validation_data X")
+    X_val = _finite_features(X_val, name="pu_validation_data X", allow_nd=allow_nd)
     y_val = normalize_pu_labels(np.asarray(y_val))
     if len(X_val) != len(y_val) or X_val.shape[1] != n_features:
         raise ValueError("pu_validation_data shape does not match training X")
+    if input_shape is not None and tuple(X_val.shape[1:]) != input_shape:
+        raise ValueError("pu_validation_data input shape does not match training X")
     if not np.any(y_val == 1) or not np.any(y_val == 0):
         raise ValueError("pu_validation_data needs positive and unlabeled rows")
     return X_val, y_val
