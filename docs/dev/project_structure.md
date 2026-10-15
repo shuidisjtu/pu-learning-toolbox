@@ -286,6 +286,7 @@ tests/
       test_lbe_review.py                # LBE 源公式、概率契约、重训失效与来源/校准复核
       test_lbe_neural.py                # 神经 LBE 的预算、模板/随机性、序列化与 OS-only 边界
       test_lbe_neural_math.py           # LBE 联合后验、完整似然梯度与极端 logits 独立数学对照
+      test_vpu_schedule.py              # VPU 源 Adam 重置边界、固定训练步数与默认兼容
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

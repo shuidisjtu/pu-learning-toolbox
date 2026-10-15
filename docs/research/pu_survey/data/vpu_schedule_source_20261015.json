@@ -1,0 +1,59 @@
+{
+  "schema_version": "vpu-schedule-source-review-1",
+  "date": "2026-10-15",
+  "method": "vpu",
+  "review_status": "pending_method_owner_review",
+  "formal_admission": false,
+  "candidate_protocol_ref": null,
+  "source": {
+    "repository": "https://github.com/HC-Feynman/vpu",
+    "commit": "603bcc1e628795f57a5ac87e5b0b977273b7cf91",
+    "clean_worktree_verified": true,
+    "license": "MIT",
+    "files_sha256": {
+      "vpu.py": "636e36c9a1a2b0d244929134693917397b4ab4cd8e0a4a141c7cc3a18fd6855f",
+      "run.py": "b432b51a0dee5b6cffa4946acc405ea645dc05ab8fb087cf882c8363abec7954",
+      "LICENSE": "15b94b682420f25cb5751964deadcf006b1082e7550e9f27dc2cd6ce93ddee66"
+    },
+    "optimizer_reset_location": "vpu.py:36-41",
+    "fixed_iterations_location": "vpu.py:92; run.py:8",
+    "source_defaults_location": "run.py:9-14"
+  },
+  "toolbox_defaults": {
+    "optimizer_schedule": "constant",
+    "iterations_per_epoch": null,
+    "learning_rate": 0.0003,
+    "max_epochs": 100,
+    "batch_size": 128
+  },
+  "explicit_source_slices": {
+    "optimizer_schedule": "source_reset_halving",
+    "iterations_per_epoch": 30,
+    "learning_rate": 0.00003,
+    "max_epochs": 50,
+    "batch_size": 500
+  },
+  "schedule_semantics": {
+    "zero_based_reset_epochs": [19, 39],
+    "timing": "before training that epoch",
+    "gamma": 0.5,
+    "adam_betas": [0.5, 0.99],
+    "reset_adam_moments": true,
+    "fixed_budget_steps": "max_epochs * iterations_per_epoch when explicitly supplied"
+  },
+  "compatibility": {
+    "legacy_baseline": "32762bc",
+    "fixture": {"numpy_seed": 31, "shape": [24, 3], "n_positive": 9, "hidden_dim": 8, "depth": 1, "max_epochs": 3, "batch_size": 5, "random_state": 7, "device": "cpu"},
+    "scores_max_log_phi_existing_history_fields": "bitwise_equal_in_this_fixture",
+    "new_history_fields": ["learning_rate", "optimizer_generation"],
+    "failed_refit": "invalidates_fitted_flag"
+  },
+  "unchanged_boundaries": [
+    "TS marginal pool and OS ablation unchanged; no calibration-policy revision",
+    "validation variational risk remains source diagnostic, not Survey PA/OA selection",
+    "toolbox MLP and replacement batch sampler are not author network/data-loader replay",
+    "source slices are optional code capability, not approved candidates or formal budgets",
+    "native image architecture/augmentation, public numbers, resources and human review remain pending",
+    "no frozen protocol, comparison, historical manifest or result rewriting"
+  ]
+}

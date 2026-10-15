@@ -42,6 +42,8 @@
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
+- [`vpu_schedule_review_20261015.md`](admission/vpu_schedule_review_20261015.md)：VPU 可选源 Adam 重置调度与固定轮内训练步数，不改变默认或 D22 准则。
+
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。
 - [`pn_oracle_integration.md`](admission/pn_oracle_integration.md)：PN oracle 接入边界；端到端 CNN baseline 的实现与正式纳入分开记录。

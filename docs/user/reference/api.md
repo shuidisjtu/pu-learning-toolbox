@@ -401,7 +401,8 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, lear
 ```python
 VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
               learning_rate=3e-4, regularization_weight=0.03, mixup_alpha=0.3,
-              random_state=None, device=None)
+              random_state=None, device=None, optimizer_schedule="constant",
+              iterations_per_epoch=None)
 ```
 
 | 参数 | 类型 | 默认 | 说明 |
@@ -411,9 +412,11 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 | `learning_rate` | `float` | `3e-4` | Adam 学习率 |
 | `regularization_weight` | `float` | `0.03` | 对数 MixUp 一致性权重 |
 | `mixup_alpha` | `float` | `0.3` | Beta 插值分布的两个同值形状参数 |
+| `optimizer_schedule` | `str` | `"constant"` | 显式 `"source_reset_halving"` 在第20/40…轮训练前学习率减半并重建 Adam，清空动量，不是 StepLR |
+| `iterations_per_epoch` | `int \| None` | `None` | 正整数固定每轮更新数；None 保留数据量推导，作者脚本为30，但本项目不默认采用 |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子与 torch 设备 |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None)`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_`、`optimizer_steps_`、`max_log_phi_` 提供训练审计。详见 [VPU 方法卡](../../research/method_cards/VPU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图或作为 Survey PA/OA 准则。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_` 新增 `learning_rate` / `optimizer_generation`；`optimizer_resets_` 记录实际 Adam 重建次数，`optimizer_steps_` 始终累计、不因重建清零。默认原有训练行为不变，失败重训会撤销 fitted 状态。详见 [VPU 方法卡](../../research/method_cards/VPU.md)和[源调度复核](../../research/pu_survey/admission/vpu_schedule_review_20261015.md)。
 
 #### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
 

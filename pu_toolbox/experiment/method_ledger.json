@@ -841,7 +841,8 @@
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:vpu)",
-      "adaptation_level": "benchmark-adapted；clean-room MLP 版本，不宣称作者脚本或论文数值复现；上游的 20-epoch 学习率衰减未进入，lr 默认值相差一个数量级 (admission/vpu_sampling_audit.md §9, VPU.md:53)",
+      "adaptation_level": "benchmark-adapted；clean-room MLP，非作者脚本/数值复现；默认 constant 与数据量推导步数不变，显式 source_reset_halving 在第20/40…轮前减半并重建 Adam，iterations_per_epoch 可固定为30；lr/网络/采样/默认预算仍不同，见 admission/vpu_schedule_review_20261015.md",
+      "training_recipe_review_ref": "docs/research/pu_survey/data/vpu_schedule_source_20261015.json",
       "modality_backbone": {
         "modalities": [
           "tabular"
@@ -865,7 +866,7 @@
       },
       "uncertainty": [
         "当前只有工具箱 MLP（默认两层 MLP64），不是论文 UCI 七层 MLP300 或 CIFAR CNN；未完成共享 backbone、图像路径与公开数值对照 (VPU.md:49)",
-        "与上游的既有适配缺口：上游每 20 epoch 将学习率减半并重建优化器（vpu.py:39-41），本实现无此衰减；学习率默认值 3e-4 vs 上游 3e-5（run.py:11）相差一个数量级；max_epochs 100 vs 50、batch_size 128 vs 500，且每 epoch 迭代数由数据量推导而上游固定 val_iterations=30 (admission/vpu_sampling_audit.md §9)",
+        "2026-10-15 仅补可选源调度与固定轮内步数，不改变默认 constant / 自适应步数；作者在零基epoch19/39前重建Adam而非StepLR保留动量；默认lr=3e-4、epochs=100、batch=128仍不同于作者3e-5/50/500，网络与有放回采样仍为适配",
         "TS/OS 视图裁决由 shuidisjtu 单方技术审计（D21），合作者复核未获得",
         "VPU 输出是归一化分数，不是独立概率校准后验 (VPU.md:34)",
         "显式 os 对照是协议定义的消融（边缘池被限制到 p(x|s=0)），不是 VPU 在其原生假设下的运行；引用 OS 结果不得读作原生结果 (D21, admission/vpu_sampling_audit.md §6)",

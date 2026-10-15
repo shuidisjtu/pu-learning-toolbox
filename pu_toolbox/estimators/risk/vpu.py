@@ -85,6 +85,8 @@ class VPUClassifier(BasePUClassifier):
         mixup_alpha: float = 0.3,
         random_state: int | None = None,
         device: str | None = None,
+        optimizer_schedule: str = "constant",
+        iterations_per_epoch: int | None = None,
     ) -> None:
         super().__init__()
         self.hidden_dim = hidden_dim
@@ -96,6 +98,8 @@ class VPUClassifier(BasePUClassifier):
         self.mixup_alpha = mixup_alpha
         self.random_state = random_state
         self.device = device
+        self.optimizer_schedule = optimizer_schedule
+        self.iterations_per_epoch = iterations_per_epoch
 
     def fit(
         self,
@@ -124,6 +128,7 @@ class VPUClassifier(BasePUClassifier):
         which is a source diagnostic and does not follow the training view
         (decision D22).
         """
+        self._is_fitted = False
         try:
             import torch
             from torch import nn
@@ -186,6 +191,8 @@ class VPUClassifier(BasePUClassifier):
             math.ceil(n_loss_unlabeled / self.batch_size),
             math.ceil(len(positive) / self.batch_size),
         )
+        if self.iterations_per_epoch is not None:
+            steps = self.iterations_per_epoch
         batch_size = min(self.batch_size, n_loss_unlabeled)
         self.history_ = {
             "epoch": [],
@@ -194,8 +201,11 @@ class VPUClassifier(BasePUClassifier):
             "train_risk": [],
             "val_risk": [],
             "optimizer_steps": [],
+            "learning_rate": [],
+            "optimizer_generation": [],
         }
         self.optimizer_steps_ = 0
+        self.optimizer_resets_ = 0
         self.n_positive_ = len(positive)
         self.n_unlabeled_ = int(np.sum(y_pu == 0))
         #: The rows the marginal term actually acted on: ``D_U`` under ``os``,
@@ -211,6 +221,12 @@ class VPUClassifier(BasePUClassifier):
         self.device_ = device
 
         for epoch in range(self.max_epochs):
+            # Locked author vpu.py resets Adam *before* zero-based epochs
+            # 19, 39, ...; StepLR after epoch 20 would not reproduce this.
+            if self.optimizer_schedule == "source_reset_halving" and epoch % 20 == 19:
+                learning_rate = optimizer.param_groups[0]["lr"] / 2.0
+                optimizer = torch.optim.Adam(phi.parameters(), lr=learning_rate, betas=(0.5, 0.99))
+                self.optimizer_resets_ += 1
             totals = np.zeros(3, dtype=np.float64)
             self.model_.train()
             for _ in range(steps):
@@ -274,6 +290,8 @@ class VPUClassifier(BasePUClassifier):
             ):
                 self.history_[key].append(float(value))
             self.history_["optimizer_steps"].append(self.optimizer_steps_)
+            self.history_["learning_rate"].append(float(optimizer.param_groups[0]["lr"]))
+            self.history_["optimizer_generation"].append(self.optimizer_resets_)
             self._is_fitted = True
             if epoch_callback is not None:
                 epoch_callback(epoch, self)
@@ -282,6 +300,15 @@ class VPUClassifier(BasePUClassifier):
         return self
 
     def _validate_parameters(self) -> None:
+        if not isinstance(self.optimizer_schedule, str) or self.optimizer_schedule not in {
+            "constant",
+            "source_reset_halving",
+        }:
+            raise ValueError("optimizer_schedule must be 'constant' or 'source_reset_halving'")
+        if self.iterations_per_epoch is not None and (
+            type(self.iterations_per_epoch) is not int or self.iterations_per_epoch < 1
+        ):
+            raise ValueError("iterations_per_epoch must be None or a positive integer")
         for name in ("hidden_dim", "max_epochs", "batch_size"):
             value = getattr(self, name)
             if type(value) is not int or value < 1:
