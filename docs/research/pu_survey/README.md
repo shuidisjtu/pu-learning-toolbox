@@ -28,6 +28,7 @@
 
 - P1.4：[`p1_4_review.md`](delivery/p1_4_review.md)。
 - P1.4-R 独立重建诊断：[`split_rebuild_diagnostic_20261015.md`](delivery/split_rebuild_diagnostic_20261015.md)，平台字节归因不替代原收据/归档验收。
+- P1.4-R 独立重建部分复核：[`p1_4r_independent_rebuild_20261015.md`](reviews/p1_4r_independent_rebuild_20261015.md)，15/20 split语义已核，完整范围及原tar接收仍待完成。
 - P2.0：[`p2_0a_delivery.md`](delivery/p2_0a_delivery.md)、[`p2_0a_review.md`](delivery/p2_0a_review.md)、
   [`p2_0b_delivery.md`](delivery/p2_0b_delivery.md)、[`p2_0c_delivery.md`](delivery/p2_0c_delivery.md)、
   [`p2_0c_review.md`](delivery/p2_0c_review.md)、[`p2_0e_delivery.md`](delivery/p2_0e_delivery.md)。

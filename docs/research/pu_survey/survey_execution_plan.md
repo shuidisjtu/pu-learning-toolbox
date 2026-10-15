@@ -3,7 +3,7 @@
 > 本文件只维护 Survey 的任务分工、验收边界、风险与留痕约定，以及仍影响执行的决策摘要。
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v1.json` 与 `survey_comparison_v3.json` 为准。
-> 状态核对日期：**2026-10-14**；远程核对基线：`3158a6c`；本地新增工程见对应交付记录。
+> 状态核对日期：**2026-10-15**；远程核对基线：`3158a6c`；本地新增工程见对应交付记录。
 > 复核责任明确归属 **shuidisjtu** 或 **HENG958**；代理检查不能代替二人的签署。
 
 ## 1. 任务分工与验收
@@ -33,7 +33,7 @@
 
 | 编号 | 任务 | 主责 / 复核 | 前置与当前状态 | 完成条件 |
 |---|---|---|---|---|
-| P1.4-R | 新数据预处理与正式 split | **shuidisjtu**；HENG958 复核 | 依 P1.2-R 逐数据集启动，旧 Pilot split 不覆盖 | 按协议准备五 seed 四角色、train-only 统计及索引隔离；锁定 20News 的 20→7 映射、Connect-4 编码和 MNIST/F-MNIST 输入规格，输出数据/划分 manifest。**ADNI 替代数据已完成五 seed 划分与归档**（2026-10-12，[收据](data/adni_substitute_receipt_20261012.json)、[索引](data/adni_split_artifacts_index_20261012.json)），HENG958 复核待办 |
+| P1.4-R | 新数据预处理与正式 split | **shuidisjtu**；HENG958 复核 | 四新增数据集已于10-14交付生成/自动复核记录（20 split/100文件，[记录](p1_4r_split_delivery_20261014.md)）；原tar未在本执行端接收。10-15隔离独立重建三套15 split语义复核通过，20News原CPU编码进程仍运行，见[独立进度](reviews/p1_4r_independent_rebuild_20261015.md) | 完整四数据集独立重建/对账、新归档核验与原交付接收分开登记；不将ZIP平台字节诊断或本机新索引代替原tar验收。20→7映射、Connect-4编码与MNIST/F-MNIST规格已进入10-14交付，仍待HENG958复核。**ADNI替代数据五seed划分/归档已完成**（[收据](data/adni_substitute_receipt_20261012.json)、[索引](data/adni_split_artifacts_index_20261012.json)），复核待办；旧Pilot不覆盖 |
 | P2.2 | Pilot 交付与审计收尾 | **shuidisjtu**；HENG958 独立重放与 C1–C6 复核 | O1–O10 已于 2026-10-09 签署；10-12 新旧索引关联及 Excel 再对账见[收尾记录](reviews/p2_2_followup_20261012.md)；独立原始制品重放仍缺输入 | 补齐原始计划、日志、manifest/权重与归档证据；HENG958 完成 C1–C6 并按[复核包](delivery/p2_2_review.md)登记本人结论及摘要；不把负责人签署或表格对账当作双方验收 |
 | P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 除 `p3mix` 外，Survey 目标方法均已有代码级接入；五方法[来源与预算证据](p3_admission_evidence_20261005.md)、[公开对照草稿](p3_public_comparison_20261005.md)已补，均待审；`p3mix` 仅有数学组件，未注册完整 estimator | HENG958 完成 P3MIX 来源核验、完整 estimator/训练流程、注册与测试；并补齐已接入方法的来源、公式/行为对照、先验/标签预算与校准适用性；shuidisjtu 按 RV8 逐项复核 |
 | P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；正式共享规格、增强/调度差异与执行证据仍缺 | 接通获批图像/特征路径、分批训练预测、阶段预算及 checkpoint；明确与原论文适配差异，交付可追溯工程证据；资源验收见 P3.3-A/B |
