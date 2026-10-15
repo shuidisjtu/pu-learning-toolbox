@@ -233,6 +233,24 @@ def test_basic_determ_valid_workbook_reconstructs_183_rows(receipt):
     assert report["source_manifests_independently_verified"] is False
 
 
+@pytest.mark.parametrize("corrected", [False, True])
+def test_param_readme_definitions_use_all_columns_and_ignore_negated_history(receipt, corrected):
+    book, path, index, save = receipt
+    if corrected:
+        book["readme"].append(["原 Requested class-prior token 的命名错误已纠正。"])
+        book["readme"].append(["PA = proxy accuracy；不能仅叫 prior-aware。"])
+    else:
+        book["readme"].append(["c", "Requested class-prior token for the run."])
+        book["readme"].append(["run_view", "os = priors/oracle-free operating view."])
+        book["readme"].append(["pa_accuracy", "Test accuracy under PA (prior-aware) selection."])
+    save()
+    report = audit.audit_workbook(path, index)
+    assert report["ok"], report["problems"]
+    assert [r["field"] for r in report["readme_correction_requests"]] == (
+        [] if corrected else ["c", "run_view", "PA"]
+    )
+
+
 @pytest.mark.parametrize(
     "sheet,column,value,expected",
     [

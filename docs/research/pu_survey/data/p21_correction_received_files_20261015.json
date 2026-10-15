@@ -1,0 +1,27 @@
+{
+  "zip": {
+    "file": "P21P22\u4fee\u6b63\u540e\u7684\u7ed3\u679c\u8868\u53ca\u76f8\u5173\u6587\u4ef6.zip",
+    "bytes": 149496,
+    "sha256": "cd0989876b72495a6844e0b66fb99c9c91d8ff1a90e99e0dec9c3d0922803fc1"
+  },
+  "crc_verified": true,
+  "files": {
+    "flatten_p21p22_runs_corrected_20261008.py": {
+      "bytes": 47664,
+      "sha256": "763c3bb5594a70715c498400aa2a2f74df7890af50a8875336d2d5b5af228930"
+    },
+    "P2.1_results_645runs_20261008_corrected.xlsx": {
+      "bytes": 132230,
+      "sha256": "4bf8a6cafc6d6de52c047e9f74693a56f53cdf721c58eaa9f37bec1e052ff69b"
+    },
+    "P2.1_workbook_correction_20261008.md": {
+      "bytes": 11329,
+      "sha256": "8bfdd7b13af120c58d6b1b1ffe8ac4f1a32e5c94b4266de5ec5a71b10cd2d634"
+    },
+    "P2.1_workbook_correction_20261008.delivery.json": {
+      "bytes": 25334,
+      "sha256": "d167115b07b6816f3782705a1736aeea6a5a1689d92c0f5246f7fa4c83d553b2"
+    }
+  },
+  "uploaded_script_executed": false
+}

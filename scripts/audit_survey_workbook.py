@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -55,6 +56,47 @@ def batch_for(dataset, method, path):
     if dataset == "cifar10" and path == "cnn_feature_adapter":
         return "B3b" if method in {"dist_pu", "self_pu"} else "B3a"
     return "unknown"
+
+
+def readme_correction_requests(rows):
+    """Flag known affirmative legacy definitions, not quoted correction prose.
+
+    Consume two-column field dictionaries as well as single-cell definitions.
+    This is a narrow documentation diagnostic, not a general language checker
+    or a replacement for workbook identity/numeric gates.
+    """
+    stale = set()
+    for row in rows:
+        cells = [str(value).strip() if value is not None else "" for value in row]
+        if not cells:
+            continue
+        field = cells[0].lower()
+        definition = " ".join(cells[1:]).lower()
+        if field == "class-prior grid" or (
+            field == "c"
+            and re.match(r"(?:requested\s+)?class-prior\s+(?:token|grid)\b", definition)
+        ):
+            stale.add("c")
+        if field == "run_view" and re.search(r"\bos\s*=\s*priors/oracle-free\b", definition):
+            stale.add("run_view")
+        if (
+            field in {"pa", "pa_accuracy", "selection_protocol"}
+            and (
+                re.match(r"prior-aware\b", definition)
+                or re.search(r"\bpa\s*\(\s*prior-aware\s*\)", definition)
+            )
+        ) or re.match(r"pa\s*[:=]\s*prior-aware\b", field):
+            stale.add("PA")
+    corrections = {
+        "c": "label frequency P(S=1|Y=1), not class prior pi",
+        "run_view": "OS/TS describe sampling/risk inputs, not prior-free vs transfer",
+        "PA": "proxy accuracy on PU validation, not merely prior-aware",
+    }
+    return [
+        {"field": field, "correction": text}
+        for field, text in corrections.items()
+        if field in stale
+    ]
 
 
 def audit_workbook(path, index_path, protocol_path="survey-v1.2", *, workbook_index_path=None):
@@ -117,7 +159,8 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2", *, workbook_in
         "workbook size differs from release index",
     )
     runs, summary, coverage = records("runs"), records("P2.2 汇总"), records("coverage")
-    readme = "\n".join(str(row[0]) for row in workbook["readme"].values if row[0])
+    readme_rows = list(workbook["readme"].values)
+    readme = "\n".join(str(cell) for row in readme_rows for cell in row if cell is not None)
     for name in ("protocol_sha256", "comparison_sha256"):
         check(index["identity"][name] in readme, f"readme missing {name}")
     check(workbook_index["produced_by_commit"] in readme, "readme producer commit differs")
@@ -401,23 +444,7 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2", *, workbook_in
                 if row["auc_mean_percent"] is not None and row["auc_mean_percent"] < 50
             ],
         },
-        "readme_correction_requests": [
-            entry
-            for entry in [
-                {"field": "c", "correction": "label frequency P(S=1|Y=1), not class prior pi"},
-                {
-                    "field": "run_view",
-                    "correction": "OS/TS describe sampling/risk inputs, not prior-free vs transfer",
-                },
-                {
-                    "field": "PA",
-                    "correction": "proxy accuracy on PU validation, not merely prior-aware",
-                },
-            ]
-            if (entry["field"] == "c" and "class-prior token" in readme)
-            or (entry["field"] == "run_view" and "priors/oracle-free" in readme)
-            or (entry["field"] == "PA" and "prior-aware" in readme)
-        ],
+        "readme_correction_requests": readme_correction_requests(readme_rows),
         "source_manifests_independently_verified": False,
         "reconstructed_summary": rebuilt,
     }

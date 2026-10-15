@@ -26,6 +26,7 @@
 
 ### `delivery/`：阶段交付、批次快照与验收材料
 
+- P2.1/P2.2新修正包接收：[`p21_correction_receiving_20261015.md`](reviews/p21_correction_receiving_20261015.md)，三数据页保持、独立文件身份与说明审计；原训练制品/签署仍待。
 - Issue #41阶段B：[`label_semantics_stage_b_20261015.md`](delivery/label_semantics_stage_b_20261015.md)，公共入口门禁/展示/ADR；RV2仍待人工复核。
 - P1.4：[`p1_4_review.md`](delivery/p1_4_review.md)。
 - P1.4-R当前接收验收：[`p1_4r_receiving_acceptance_20261015.md`](reviews/p1_4r_receiving_acceptance_20261015.md)，五数据集25split/125文件/5原归档技术通过；人工复核与已知限制保留。

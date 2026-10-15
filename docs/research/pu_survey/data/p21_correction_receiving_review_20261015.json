@@ -1,0 +1,96 @@
+{
+  "schema_version": "p21-workbook-correction-receiving-review-1",
+  "scope": "New file receipt, exact data-sheet preservation and original-audit chain, not original result-tree acceptance",
+  "ok": true,
+  "received_work_root": "data/review-p21-correction-20261015-vNA7Jl",
+  "original_workbook": {
+    "bytes": 126370,
+    "sha256": "cafedc98d8983764625d7b32e62301aa8de87e7da9d772e185f6a135df9c1244"
+  },
+  "corrected_workbook": {
+    "bytes": 132230,
+    "sha256": "4bf8a6cafc6d6de52c047e9f74693a56f53cdf721c58eaa9f37bec1e052ff69b"
+  },
+  "delivery_sha256": "d167115b07b6816f3782705a1736aeea6a5a1689d92c0f5246f7fa4c83d553b2",
+  "generator_sha256": "763c3bb5594a70715c498400aa2a2f74df7890af50a8875336d2d5b5af228930",
+  "data_sheets": {
+    "runs": {
+      "data_rows": 645,
+      "columns": 30,
+      "cells_compared_including_headers": 19380,
+      "values_and_python_types_identical": true,
+      "formula_cells": 0
+    },
+    "P2.2 汇总": {
+      "data_rows": 183,
+      "columns": 19,
+      "cells_compared_including_headers": 3496,
+      "values_and_python_types_identical": true,
+      "formula_cells": 0
+    },
+    "coverage": {
+      "data_rows": 5,
+      "columns": 11,
+      "cells_compared_including_headers": 66,
+      "values_and_python_types_identical": true,
+      "formula_cells": 0
+    }
+  },
+  "changed_sheets": [
+    "readme"
+  ],
+  "frozen_original_audit_ok": true,
+  "strict_corrected_as_original_ok": false,
+  "strict_original_identity_rejections": [
+    "workbook sha256 differs from release index",
+    "workbook size differs from release index"
+  ],
+  "corrected_known_legacy_definition_flags": [],
+  "numeric_reports_identical_to_audited_original": true,
+  "runs": 645,
+  "summary_rows": 183,
+  "run_cost_groups": 129,
+  "summary_states": {
+    "formal": 180,
+    "partial": 3
+  },
+  "selection_rows": {
+    "OA": 129,
+    "PA": 54
+  },
+  "performance_observations": {
+    "auc_below_50_summary_rows": 31,
+    "supplied_diagnostic_row_keys_verified": true,
+    "new_rejection_threshold": false
+  },
+  "producer_gates_run": false,
+  "producer_tests_run": false,
+  "source_manifests_independently_verified": false,
+  "source_logs_or_checkpoints_received": false,
+  "uploaded_generator_executed": false,
+  "historical_workbook_or_indices_modified": false,
+  "formal_acceptance": false,
+  "human_review_status": "pending_collaborator_review",
+  "issues": [
+    {
+      "severity": "info",
+      "code": "new_file_identity",
+      "message": "Corrected XLSX remains a separate identity; original frozen index rejection retained"
+    },
+    {
+      "severity": "warning",
+      "code": "low_auc_observations",
+      "message": "31 existing low-AUC summary observations require original artifacts for causal review; no score flipping or new threshold"
+    },
+    {
+      "severity": "warning",
+      "code": "original_training_artifacts_missing",
+      "message": "Bundle contains no original manifests, plans, logs or selected weights; independent 645-run replay remains incomplete"
+    },
+    {
+      "severity": "warning",
+      "code": "human_review_pending",
+      "message": "HENG958 C1-C6/RV3-RV7 review and signatures remain pending"
+    }
+  ]
+}
