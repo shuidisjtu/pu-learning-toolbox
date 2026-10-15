@@ -27,6 +27,7 @@
 ### `delivery/`：阶段交付、批次快照与验收材料
 
 - P1.4：[`p1_4_review.md`](delivery/p1_4_review.md)。
+- P1.4-R 独立重建诊断：[`split_rebuild_diagnostic_20261015.md`](delivery/split_rebuild_diagnostic_20261015.md)，平台字节归因不替代原收据/归档验收。
 - P2.0：[`p2_0a_delivery.md`](delivery/p2_0a_delivery.md)、[`p2_0a_review.md`](delivery/p2_0a_review.md)、
   [`p2_0b_delivery.md`](delivery/p2_0b_delivery.md)、[`p2_0c_delivery.md`](delivery/p2_0c_delivery.md)、
   [`p2_0c_review.md`](delivery/p2_0c_review.md)、[`p2_0e_delivery.md`](delivery/p2_0e_delivery.md)。

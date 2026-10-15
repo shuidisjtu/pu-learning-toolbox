@@ -354,6 +354,7 @@ tests/
       test_review_survey_split_receipt_encoding.py # 图像类型尺寸与表格特征维度拒绝测试
       test_review_survey_split_receipt_integrity.py # 完整索引与归档篡改拒绝测试
       test_review_survey_split_receipt_modalities.py # 模态统计与官方测试源先验复核
+      test_diagnose_survey_split_rebuild.py # 重建 ZIP 平台字节诊断、不改严格验收与缺失/篡改拒绝
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -830,6 +831,7 @@ scripts/
   prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
   check_survey_extended_cnn_storage.py    # 新 CNN 资源记录只读身份/角色/阶段成本/源码校验
   profile_survey_extended_cnn_storage.py  # 七个新 CNN 工程变体的独立进程多种子资源探针
+  diagnose_survey_split_rebuild.py        (只读重建差异诊断：仅 ZIP 创建平台字节归因，不接受变更收据)
 ```
 
 ## 7. CI/CD（`.github/`）
