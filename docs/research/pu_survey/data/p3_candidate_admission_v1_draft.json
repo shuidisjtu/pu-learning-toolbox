@@ -178,15 +178,17 @@
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
-        "adaptation_level": "benchmark-adapted（官方图像 backbone/Faiss/增强/预算未进入）"
+        "adaptation_level": "benchmark-adapted（MLP/注入可训练 CNN，CPU-stream 图像/support/聚类/预测；默认虚拟 weight+bias，meta_update_bias=false 仅补作者 weight-only 参数范围；新 CNN 虚拟步用冻结 eval 特征，不改 BN/dropout；原 hard-observed 元标签、rho 端点及稳定 BCE 保留，非作者网络/Faiss/增强/预算重放）",
+        "source_behavior_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "declared_scope": "technical MLP or injected CNN with independent clean support and CPU-streaming; no PU-only UI/standard trainer eligibility or author replay",
       "specific_blockers": [
         "independent_clean_support_protocol",
+        "published_OS_vs_registry_TS_sampling_review",
         "PA_ineligible_label_budget_decision"
       ]
     }

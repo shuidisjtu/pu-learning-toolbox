@@ -671,28 +671,34 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/llong-cs/LaGAM",
-        "source_status": "official_exact (method card audits author training script)"
+        "upstream_commit": "362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8",
+        "source_status": "official_exact (作者源码可得并锁定；非复现声明，source_scope/EMA/损失/优化器等差异见 lagam_source_review_20261015.json)"
       },
-      "implementation_status": "NATIVE, backend TORCH; clean-support-gated tabular meta-label and contrastive adapter",
-      "native_sampling_assumption": "ts（P/U 两组训练并另需独立干净 support set；LaGAM.md:18-20）",
+      "implementation_status": "NATIVE, backend TORCH; explicit clean-support MLP or trainable injected CNN; CPU-streamed training/clustering/inference, head-only virtual meta update; not author replay or formal admission",
+      "native_sampling_assumption": "ts（registry 既有定位保留待审；发布代码 utils/utils_data.py:182-193 实际排除验证和已标记 P，为 OS split，冲突见 source_behavior_review_ref；不自动改签采样定位）",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
-      "adaptation_level": "benchmark-adapted（官方图像 backbone/Faiss/增强/预算未进入）",
+      "adaptation_level": "benchmark-adapted（MLP/注入可训练 CNN，CPU-stream 图像/support/聚类/预测；默认虚拟 weight+bias，meta_update_bias=false 仅补作者 weight-only 参数范围；新 CNN 虚拟步用冻结 eval 特征，不改 BN/dropout；原 hard-observed 元标签、rho 端点及稳定 BCE 保留，非作者网络/Faiss/增强/预算重放）",
+      "source_behavior_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json",
+      "sampling_review": {"registry_view": "ts", "source_split_view": "os", "review_status": "pending_method_owner_review", "registry_relabelled": false},
+      "checkpoint_accounting": {"epoch_bound": "max_epochs includes warmup_epochs", "bound_is_upper_limit": false, "optimizer_steps_attribute": "optimizer_steps_", "virtual_steps_attribute": "virtual_steps_", "formal_budget_approved": false},
       "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "dense tabular MLP128 + sklearn KMeans; requires independent clean support",
-        "code_capability": {"native_architectures": ["mlp"], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
+        "modalities": ["tabular", "image"],
+        "backbone": "default MLP128 or cloned trainable CNN + same MLP head/hidden contrastive features; sklearn KMeans; independent clean support required",
+        "code_capability": {"native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
       },
       "evidence": {
-        "native_sampling_assumption": "LaGAM.md:18-20; registry scenario=CASE_CONTROL",
+        "native_sampling_assumption": "registry scenario=CASE_CONTROL retained pending owner review; pinned utils/utils_data.py:182-193 contradicts this with OS source split",
         "prior_semantics": "LaGAM.md:20; lagam.py class_prior ignored",
-        "adaptation_level": "LaGAM.md:12-20"
+        "adaptation_level": "lagam_source_review_20261015.json; admission/lagam_source_cnn_review_20261015.md"
       },
       "uncertainty": [
         "必须由调用者提供独立干净 support set；标准 PU-only PA 不符合资格，OA 若复用 clean_val 会泄漏。Survey v1/runner 不传 support_data，不能进入冻结矩阵",
         "无可直接替换的同形未标记风险角色，且校准不能绕开 support 标签预算；无 os_or_ts 接口，显式 ts fail-loud",
-        "原生图像路径、公开数值对照、多 seed GPU 证据和合作者协议审阅未完成"
+        "已补注入 CNN 工程路径和 weight-only 虚拟范围开关；作者 projection head/Faiss/增强/SGD/学习率/400轮等未重放；原始数据与全量聚类特征仍占 CPU 内存，support 标签预算不消失；公开数值、多 seed GPU 和合作者协议审阅未完成",
+        "发布 split 从 U 排除已标记 P，为 OS；registry CASE_CONTROL/台账ts既有定位与之冲突，登记待审而不自动改签；本次论文/补充材料直接打开HTTP403，不新称全文独立审查；源码许可未发现",
+        "CNN 虚拟步冻结 eval 提取特征，防止真实 encoder 的 BN 缓冲或 dropout RNG 被 support 前向改变；不是源虚拟克隆的 train-mode 行为。数组共享内存拒绝只排除明显物理重叠，不能证明跨文件同样本/角色索引独立"
       ]
     },
     "cvir": {

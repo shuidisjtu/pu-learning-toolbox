@@ -18,6 +18,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-15 LaGAM 来源/工程补齐：记录发布 OS split 与 registry TS 待审冲突，新增可选 weight-only 虚拟范围、注入 CNN/CPU-stream 与 BN/dropout 隔离、阶段成本快照及 support 别名拒绝；原二维默认保留，UI/普通 trainer 仍缺独立 support 而拒绝，正式标签预算/协议/资源及 HENG958 复核未放行。见[复核](../research/pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+
 2026-10-15 CVIR 来源/工程补齐：锁定作者 commit 并披露论文/代码权重、取整、warm-start、loader 和优化器差异；保留论文加权与旧二维默认，新增注入 CNN/CPU-stream 排序训练预测、阶段成本/快照上下文；台账、准入草稿、UI 能力与测试同步。α_U/TS、正式图像规格/预算/资源及 HENG958 复核仍待办，见[复核](../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
 
 2026-10-15 P3.2 独立工程补齐：VPU 增加可训练 encoder 与 CPU-stream 数据策略，归一化/验证/推理及快照分批接通；旧二维默认 resident 保留。台账、准入草稿、UI 能力及契约同步；D22 选模、正式共享规格/资源/协议和 HENG958 复核仍待办，见[交付](../research/pu_survey/delivery/vpu_encoder_stream_20261015.md)。

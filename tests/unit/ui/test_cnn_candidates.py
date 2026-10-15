@@ -41,4 +41,5 @@ def test_cnn_candidates_matches_current_declarations():
         "lbe_neural",
         "vpu",
         "cvir",
+        "lagam",
     }

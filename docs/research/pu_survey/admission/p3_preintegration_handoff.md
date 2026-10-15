@@ -1,5 +1,9 @@
 # P3 缺失方法技术预集成交接（2026-09-28）
 
+2026-10-15 LaGAM 后续工程补记：[来源与 CNN/CPU-stream](lagam_source_cnn_review_20261015.md)
+补虚拟 weight-only、图像/support 分批和阶段成本；发布 OS split 与既有 registry TS
+定位冲突待负责人裁决，旧交接的标签预算/PA 禁入和正式资源/准入条件全部保留。
+
 2026-10-15 CVIR 后续工程补记：[锁定来源差异与 CNN/CPU-stream](cvir_source_cnn_review_20261015.md)
 已补取整/风险权重/时序判读、图像分批和阶段成本快照；下文历史口径保留，
 α_U 来源及 TS 方案、正式共享规格/资源与准入不因工程测试通过而解除。

@@ -1,0 +1,128 @@
+{
+  "schema_version": "survey-lagam-source-engineering-review-1",
+  "method": "lagam",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "source": {
+    "repository": "https://github.com/llong-cs/LaGAM",
+    "commit": "362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8",
+    "working_tree_clean_when_inspected": true,
+    "executed_upstream_code": false,
+    "copied_source_code": false,
+    "license": "not_found_in_pinned_checkout",
+    "paper_retrieval_this_review": "CVF paper/supplement direct open returned HTTP403; no new full-paper or numerical audit claimed",
+    "file_sha256": {
+      "train.py": "27d5df85d69d9fa2f8a2349cd87784802627a63bb4db6995fcc2174e098b47eb",
+      "utils/utils_loss.py": "b5fbae6ec7d13cf564c2f776d494b17f91752325afd47b655ae6ff10924b9af5",
+      "utils/utils_algo.py": "1f7c4cc22b51fdc9750692208768eca01d71ff3aa4174669ce2468e20560f0ae",
+      "models/models.py": "0fb5ab4bf88bd5eafae71f380fce94c272e97547ed805552716c421f5ea1bdf3",
+      "models/resnet.py": "acc2fdbb4b521032bf6cc9a0ec06533c7f8cd59ece2a78e5c351399c0b31af68",
+      "models/meta_layers.py": "c078554476aa5633c55f269e27f310267b192de0ef7dbffb7e8327c6cb6320e9",
+      "utils/utils_data.py": "07e84af4884938d77f38265d626ebc6aa1f5387523ecb0ddf001b0340616a23c",
+      "utils/Dataset.py": "d452055a0b59179130e98a793393eea345f9dfe032748fd5e6831c9ea12a7502",
+      "README.md": "f66481fc9329347fe9cf94ff5236d3301a21fb85e8935506b60416a276e535b7"
+    }
+  },
+  "sampling": {
+    "published_split_view": "os",
+    "source_location": "utils/utils_data.py:157-200; validation removed at182-185 and labeled P removed at187-193",
+    "existing_registry_view": "ts",
+    "existing_runtime_view": "os-compatible",
+    "decision": "pending_method_owner_review",
+    "action": "record conflict; do not silently relabel registry scenario or approve a TS loss replacement"
+  },
+  "source_differences": [
+    {
+      "item": "clean_support",
+      "source_location": "train.py:350-364; utils/utils_data.py:96-112",
+      "source_value": "true-label validation batch participates in meta update",
+      "toolbox_value": "explicit independent support_data required, both classes; standard trainer has no support bridge",
+      "decision": "PA-ineligible; OA requires support/selection disjointness and extra label budget; array alias rejection is not an index-proof"
+    },
+    {
+      "item": "virtual_parameter_scope",
+      "source_location": "train.py:338-348; models/meta_layers.py:60-71",
+      "source_value": "identifier-matching parameters with ndim>1, hence classifier weight only for documented identifier=classifier",
+      "toolbox_value": "meta_update_bias=true preserves legacy weight+bias; explicit false uses weight only",
+      "decision": "scope switch only, not complete author replay; virtual features detached; CNN uses frozen eval features without changing main BN/dropout state"
+    },
+    {
+      "item": "meta_target_and_ema",
+      "source_location": "train.py:294-295,316-334,366-376,427-446; utils/Dataset.py:32-33",
+      "source_value": "two perturbation columns on current soft labels; EMA uses epoch/epochs; update_targets persists only when not no_verbose",
+      "toolbox_value": "scalar constrained perturbation on original observed hard PU labels; persistent soft targets for actual training; endpoint rho uses epoch/(epochs-1), updates independent of console verbosity",
+      "decision": "retained explicit adaptation; scalar vs two-column direction verified only with the same stable loss, virtual scope and targets, not a claim that all source labels or loss details match"
+    },
+    {
+      "item": "loss_and_batch_guards",
+      "source_location": "utils/utils_loss.py:11-23; train.py:305-306; utils/utils_data.py:87-94",
+      "source_value": "probability clamp1e-4, unguarded class denominators, optional entropy0.1, skips all-zero-label batch, drop_last=true",
+      "toolbox_value": "log-sigmoid BCE, class masses clamp_min1, no entropy option, retains pure-U and final short batches",
+      "decision": "stable toolbox objective is not bitwise source BCELoss or batch scheduling"
+    },
+    {
+      "item": "representation_clustering_augmentation",
+      "source_location": "models/resnet.py:91-134; utils/utils_algo.py:142-204; train.py:382-406,475-488",
+      "source_value": "ResNet classifier and separate normalized128-D projection head; Faiss GPU KMeans20iter/5redo; image weak/strong transforms, cutoff and optional kNN after epoch50",
+      "toolbox_value": "MLP or trainable injected encoder + shared hidden features; sklearn KMeans10init, Gaussian feature/pixel noise; no separate source projection, cutoff, kNN or Faiss",
+      "decision": "engineering image adapter, not author architecture or augmentation replay; clustering embeddings still occupy host memory"
+    },
+    {
+      "item": "optimizer_budget_and_evaluation",
+      "source_location": "train.py:66,93-115,145,214-219,238-265; utils/utils_algo.py:54-67; README.md:CIFAR-10-1",
+      "source_value": "SGD lr0.001/momentum0.9/wd0.0001,400epochs includes20warmup; decay after250/300/350; per-epoch test best_acc monitor, optional saves final model",
+      "toolbox_value": "Adam lr0.001,no wd,20total includes2warmup; constant lr; no test metrics during fit; inference snapshots both stages",
+      "decision": "default recipe still differs; max_epochs includes warmup, optimizer/virtual/cluster counts audited separately; source best_acc is monitoring, saved model is final state"
+    }
+  ],
+  "toolbox_defaults": {
+    "hidden_dim": 128,
+    "warmup_epochs": 2,
+    "max_epochs": 20,
+    "batch_size": 64,
+    "support_batch_size": 32,
+    "num_clusters": 5,
+    "learning_rate": 0.001,
+    "meta_lr": 0.001,
+    "mix_weight": 1.0,
+    "contrastive_weight": 1.0,
+    "temperature": 0.07,
+    "noise_std": 0.05,
+    "rho_start": 0.95,
+    "rho_end": 0.8,
+    "random_state": null,
+    "device": null,
+    "encoder": null,
+    "data_device_policy": "auto",
+    "meta_update_bias": true
+  },
+  "engineering_scope": {
+    "inputs": "2-D features or 4-D NCHW with trainable independently cloned encoder; shape-matched independent support required",
+    "data_policy": "auto retains legacy resident 2-D; encoder requires CPU-stream; raw inputs/support/pseudo-labels/groups stay CPU",
+    "device_batch_bounds": {"training_cluster_predict": "batch_size", "support": "support_batch_size"},
+    "virtual_encoder_mode": "frozen eval with exact mode restoration; not source virtual clone's training-mode feature extraction",
+    "epoch_count": "max_epochs, including warmup_epochs",
+    "actual_update_count": "max_epochs * ceil(n_train/batch_size)",
+    "virtual_update_count": "(max_epochs-warmup_epochs) * ceil(n_train/batch_size)",
+    "clustering_pass_count": "max_epochs-warmup_epochs when contrastive_weight>0, otherwise0",
+    "checkpoint_stage_context": ["warmup", "meta"],
+    "checkpoint_training_resume_supported": false,
+    "support_role_identity_verified": false,
+    "gpu_resource_validation": "not_run"
+  },
+  "formal_admission": false,
+  "calibration_applied": false,
+  "pa_eligible": false,
+  "candidate_protocol_ref": null,
+  "budget_ref": null,
+  "candidate_pool": null,
+  "blockers": [
+    "independent_clean_support_protocol",
+    "PA_ineligible_label_budget_decision",
+    "published_OS_vs_registry_TS_sampling_review",
+    "source_license_and_full_paper_review",
+    "approved_shared_architecture_preprocessing_selection_and_budget",
+    "public_numeric_comparison_and_formal_multiseed_resource_evidence",
+    "method_owner_review"
+  ]
+}

@@ -54,6 +54,10 @@
 
 ### 1.3 执行边界
 
+2026-10-15 P3.1/P3.2 工程补记：[LaGAM 来源与 CNN/CPU-stream](admission/lagam_source_cnn_review_20261015.md)
+补 weight-only 范围、图像分批、BN/dropout 隔离和阶段成本；发布 OS 与 registry TS 的
+采样冲突明确待审，不改签该定位，不解除独立 clean support 标签预算/PA 禁入或正式准入。
+
 2026-10-15 P3.1/P3.2 工程补记：[CVIR 来源差异与 CNN/CPU-stream](admission/cvir_source_cnn_review_20261015.md)
 保留论文加权目标与旧二维默认，披露发布代码差异，补图像/分批/两阶段成本快照；
 α_U 来源、TS 视图、正式共享规格与准入仍未批准，HENG958 复核待办。

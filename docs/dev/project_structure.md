@@ -84,7 +84,7 @@ pu_toolbox/
       grad_pu.py                          (native: GradPU 输入梯度惩罚 + 未归一化正样本加权，二维 MLP)
       robust_pu.py                        (native: Robust-PU nnPU 预训练 + 自步加权伪负例，二维 MLP)
       split_pu.py                         (native: Split-PU nnPU teacher + 预测分歧分组 + 分支一致性，二维 MLP)
-      lagam.py                            (native: LaGAM 干净 support 元标签 + 潜在组对比，二维 MLP)
+      lagam.py                            (native: LaGAM 独立 support 元梯度、注入 CNN/CPU 分批与阶段成本)
       self_pu.py                          (native: SelfPUClassifier 双学生自步进+元重加权+蒸馏 (官方精确对齐))
       infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU 流水线, PU-SMI 目标)
       weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier 原型+SAT+momentum queue 加权对比 (WConPU 论文协议))
@@ -289,6 +289,8 @@ tests/
       test_vpu_schedule.py              # VPU 源 Adam 重置边界、固定训练步数与默认兼容
       test_vpu_encoder_stream.py        # VPU 注入 CNN、全局流式诊断、设备批次与快照兼容
       test_cvir_source_encoder.py       # CVIR 来源差异/独立梯度、CNN 分批、U 排序与阶段快照
+      test_lagam_encoder_stream.py      # LaGAM CNN/support 分批、BN/RNG 隔离、快照与预算拒绝
+      test_lagam_virtual_scope.py       # LaGAM 虚拟范围的独立有限差分、双列扰动及平局数学对照
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

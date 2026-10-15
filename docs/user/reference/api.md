@@ -685,10 +685,17 @@ LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
                 batch_size=64, support_batch_size=32, num_clusters=5,
                 learning_rate=1e-3, meta_lr=1e-3, mix_weight=1.0,
                 contrastive_weight=1.0, temperature=0.07, noise_std=0.05,
-                rho_start=0.95, rho_end=0.8, random_state=None, device=None)
+                rho_start=0.95, rho_end=0.8, random_state=None, device=None,
+                encoder=None, data_device_policy="auto", meta_update_bias=True)
 ```
 
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, support_data=(X_support, y_clean), epoch_callback=None)`；support set 必须独立、干净且包含两类，缺失时直接报错。非空 `sample_weight` 报错。详见 [LaGAM 方法卡](../../research/method_cards/LaGAM.md)。
+
+支持二维特征或注入可训练 encoder 的四维 NCHW，support 须同输入形状。encoder deepcopy 后接原 MLP，须输出有限二维特征；auto 无 encoder 时保留旧 resident，有 encoder 时强制 cpu_stream，也可显式 cpu_stream，拒绝 encoder+resident。CPU-stream 的输入、support、伪标签及组索引留 CPU，训练/聚类/推理每次 ≤batch_size 行、support ≤support_batch_size；全量聚类特征仍占 CPU 内存。
+
+`meta_update_bias=True` 保留原虚拟 weight+bias；False 只对齐作者 classifier weight-only 范围，不是整条来源重放。新 CNN 虚拟步以冻结 eval 提取特征、恢复逐模块模式，不改真实 BN/dropout；实际损失可训练 encoder。原硬观测元目标、稳定 BCE、rho 端点及 Gaussian 增强仍为适配，详见[来源复核](../../research/pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+
+`max_epochs` 包含 warmup；`checkpoint_epoch_count=max_epochs`。`optimizer_steps_`、`virtual_steps_`、`clustering_passes_` 分别计真实更新、虚拟二阶步与聚类次数；`epoch_provenance_` 与快照上下文区分 warmup/meta，不批准选模资格。图像快照保留推理批大小，无优化器续训。fit 普通异常会撤销 fitted。数组别名重叠将拒绝，但不证明不同副本的角色索引独立。PU-only UI/推荐器及标准 trainer 仍不会自动提供 support；新增 CNN 声明不等于这些入口已可训练。发布 OS split 与 registry TS 定位冲突待审，未新增 TS 接口。
 
 #### `SplitPUClassifier`（注册名 `split_pu`，别名 `split-pu`）
 
