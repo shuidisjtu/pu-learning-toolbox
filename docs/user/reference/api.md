@@ -46,7 +46,10 @@
 
 注册分类器必须显式声明 `label_semantics`：`"pu"` 的 `0` 是未标记，`"pn"` 的
 `0` 是真实负类，`"pnu"` 接受正/负/未标记三值主输入。第三方未声明估计器在
-experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 `"pn"`。
+experiment runner 和 PU 工作流中按 `"pu"` 保守处理；监督 oracle 必须显式声明 `"pn"`。
+runner按生成视图检查，`PUPipeline`固定要求主输入PU，并在构造、运行入口及实际clone/构造后
+检查；比较、调优和CLI/UI执行复用此门禁，CLI敏感性分析直接fit也检查。
+PNU直接三值fit保持可用，但不能用PNU模型绕过PU工作流的语义要求。
 数值集合相同不能证明标签含义相同，见[标签语义契约](../../dev/label_semantics_plan.md)。
 
 ### 注册表索引
@@ -1001,6 +1004,9 @@ report = pipe.fit_evaluate(
 （序列化进 `to_json()`）。
 
 ### classifier 选择语义
+
+以下入口只接受主输入声明 `label_semantics="pu"` 的分类器。显式PN/PNU错配在训练前失败，
+不通过标签数值猜测输入含义。`y_true`仅用于评价，不把主输入自动切换为PN。
 
 | `classifier=` | 行为 |
 |---|---|

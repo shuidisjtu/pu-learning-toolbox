@@ -119,6 +119,10 @@ def recommend_from_profile(
     if len(filtered) != len(all_methods):
         filters_applied["maturity"] = "excluded deprecated"
 
+    if any(m.label_semantics != "pu" for m in filtered):
+        filtered = [m for m in filtered if m.label_semantics == "pu"]
+        filters_applied["label_semantics"] = "pu (main training input)"
+
     # The ordinary recommender has no clean-support input. Returning such a
     # method would make an auto-selected PU-only workflow fail or, worse,
     # invite reuse of validation labels as training labels.

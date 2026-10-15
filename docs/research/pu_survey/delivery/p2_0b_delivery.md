@@ -7,6 +7,9 @@
 也不放行正式 P2.1 pilot。范围只含[标签语义方案](../../../dev/label_semantics_plan.md)的 P1+P2；
 pipeline/comparison 入口、CLI/UI 展示及 ADR 收口属阶段 B。
 
+2026-10-15补记：阶段B工程、展示与文档见[独立交付](label_semantics_stage_b_20261015.md)。
+本页阶段A的历史证据保留，新增入口门禁不代替HENG958的RV2复核或签署。
+
 ## 已实现
 
 1. `BasePUClassifier.label_semantics` 默认 `"pu"`，全部注册分类器都在自身类属性显式声明；

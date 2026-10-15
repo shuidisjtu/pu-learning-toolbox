@@ -12,6 +12,7 @@ from sklearn.base import clone
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import PipelineError, RegistryError
+from ..core.validation import validate_label_semantics
 from ..registry.registry import get_algorithm, list_algorithms
 
 _ALWAYS_PROVIDED = {"class_prior", "random_state"}
@@ -29,6 +30,7 @@ def resolve_classifier_name(
         ) from exc
     if not isinstance(cls, type) or not issubclass(cls, BasePUClassifier):
         raise PipelineError(f"{name!r} does not resolve to a PU classifier.")
+    validate_label_semantics(cls, "pu")
     missing = missing_required_params(cls, provided_params=provided_params)
     if missing:
         raise PipelineError(
@@ -113,6 +115,11 @@ def pick_first_instantiable(
         if not (isinstance(cls, type) and issubclass(cls, BasePUClassifier)):
             skipped.append({"name": candidate.name, "reason": "not a PU classifier"})
             continue
+        try:
+            validate_label_semantics(cls, "pu")
+        except ValueError as exc:
+            skipped.append({"name": candidate.name, "reason": str(exc)})
+            continue
         missing = missing_required_params(cls)
         if missing:
             skipped.append(
@@ -142,6 +149,7 @@ def fresh_estimator(
         estimator = clone(instance)
         if encoder is not None and declares_encoder_parameter(type(instance)):
             estimator.set_params(encoder=encoder)
+        validate_label_semantics(estimator, "pu")
         return estimator
     assert cls is not None
     kwargs: dict[str, Any] = dict(classifier_params)
@@ -157,11 +165,13 @@ def fresh_estimator(
     if "max_epochs" in signature.parameters and max_epochs is not None:
         kwargs["max_epochs"] = max_epochs
     try:
-        return cls(**kwargs)
+        estimator = cls(**kwargs)
     except (TypeError, ValueError) as exc:
         raise PipelineError(
             f"invalid classifier parameters for '{classifier_name}': {exc}"
         ) from exc
+    validate_label_semantics(estimator, "pu")
+    return estimator
 
 
 def validate_prior_param_types(

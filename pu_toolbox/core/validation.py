@@ -34,14 +34,14 @@ def validate_label_semantics(estimator: object, expected: str) -> None:
     if not isinstance(expected, str) or expected not in allowed:
         raise ValueError(f"expected label semantics must be one of {sorted(allowed)!r}")
     declared = getattr(estimator, "label_semantics", "pu")
+    name = estimator.__name__ if isinstance(estimator, type) else type(estimator).__name__
     if not isinstance(declared, str) or declared not in allowed:
         raise ValueError(
-            f"{type(estimator).__name__} has invalid label_semantics={declared!r}; "
-            f"expected one of {sorted(allowed)!r}."
+            f"{name} has invalid label_semantics={declared!r}; expected one of {sorted(allowed)!r}."
         )
     if declared != expected:
         raise ValueError(
-            f"{type(estimator).__name__} declares label_semantics={declared!r}, "
+            f"{name} declares label_semantics={declared!r}, "
             f"but this run requires {expected!r} labels. Set label_semantics={expected!r} "
             "on a compatible estimator; numeric label values cannot prove their meaning."
         )

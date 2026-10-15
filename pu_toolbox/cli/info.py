@@ -30,7 +30,7 @@ def build_info_parser(sub: argparse._SubParsersAction) -> None:
 def run_list_methods(args: argparse.Namespace) -> None:
     """Print a table of registered classifiers with auto-instantiability."""
     register_all_builtin_methods()
-    rows: list[tuple[str, str, str, str, str, str, str]] = []
+    rows: list[tuple[str, str, str, str, str, str, str, str]] = []
     for meta in list_algorithms():
         cls = _resolve_class(meta.name)
         if cls is None or not issubclass(cls, BasePUClassifier):
@@ -55,6 +55,7 @@ def run_list_methods(args: argparse.Namespace) -> None:
                     meta.implementation_status.value,
                     input_dims,
                     arch,
+                    meta.label_semantics,
                     auto_inst,
                 )
             )
@@ -67,12 +68,14 @@ def run_list_methods(args: argparse.Namespace) -> None:
     # Dynamic Name width so long canonical names and aliases stay aligned.
     name_width = max(len(row[0]) for row in rows) + 2
     print(
-        f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}{'Status':<8}{'Input':<7}{'Arch':<11}{'Auto-inst':<10}"
+        f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}{'Status':<8}"
+        f"{'Input':<7}{'Arch':<11}{'Labels':<8}{'Auto-inst':<10}"
     )
-    print("-" * (name_width + 64))
-    for name, family, prior, status, input_dims, arch, auto in rows:
+    print("-" * (name_width + 72))
+    for name, family, prior, status, input_dims, arch, labels, auto in rows:
         print(
-            f"{name:<{name_width}}{family:<22}{prior:<6}{status:<8}{input_dims:<7}{arch:<11}{auto:<10}"
+            f"{name:<{name_width}}{family:<22}{prior:<6}{status:<8}"
+            f"{input_dims:<7}{arch:<11}{labels:<8}{auto:<10}"
         )
 
 

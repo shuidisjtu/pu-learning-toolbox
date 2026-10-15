@@ -26,6 +26,7 @@
 
 ### `delivery/`：阶段交付、批次快照与验收材料
 
+- Issue #41阶段B：[`label_semantics_stage_b_20261015.md`](delivery/label_semantics_stage_b_20261015.md)，公共入口门禁/展示/ADR；RV2仍待人工复核。
 - P1.4：[`p1_4_review.md`](delivery/p1_4_review.md)。
 - P1.4-R 独立重建诊断：[`split_rebuild_diagnostic_20261015.md`](delivery/split_rebuild_diagnostic_20261015.md)，平台字节归因不替代原收据/归档验收。
 - P1.4-R 独立重建部分复核：[`p1_4r_independent_rebuild_20261015.md`](reviews/p1_4r_independent_rebuild_20261015.md)，15/20 split语义已核，完整范围及原tar接收仍待完成。

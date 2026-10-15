@@ -54,6 +54,10 @@
 
 ### 1.3 执行边界
 
+2026-10-15按远程Issue #41优先补记：[阶段B公共入口](delivery/label_semantics_stage_b_20261015.md)
+补齐pipeline、比较/调优、CLI/UI及敏感性分析语义门禁、展示和ADR；RV2本人复核仍待办。
+Issue #40的P4.1-A本地工程接线不等于P4.1-B冻结；Issue #88成本分类明确延期，不抢占Survey工作。
+
 2026-10-15 P3.1/P3.2 工程补记：[LaGAM 来源与 CNN/CPU-stream](admission/lagam_source_cnn_review_20261015.md)
 补 weight-only 范围、图像分批、BN/dropout 隔离和阶段成本；发布 OS 与 registry TS 的
 采样冲突明确待审，不改签该定位，不解除独立 clean support 标签预算/PA 禁入或正式准入。

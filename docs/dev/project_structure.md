@@ -382,6 +382,8 @@ tests/
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
       test_architecture_capability.py   # 架构能力校验 gate(能力/签名漂移 fail-loud)
       test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
+      test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
+      test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
     experiment/
       test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
       test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分

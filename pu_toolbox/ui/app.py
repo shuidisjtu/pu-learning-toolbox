@@ -57,6 +57,9 @@ def main() -> None:
     upload_columns = st.columns(3)
     feature_file = upload_columns[0].file_uploader("特征数据", type=["csv", "npy"])
     label_file = upload_columns[1].file_uploader("PU 标签（1/0 单列 CSV）", type=["csv"])
+    st.caption(
+        "训练标签：1＝已标记正例，0＝未标记，不是真实负类。真值标签仅用于评价，不替代 PU 输入。"
+    )
     truth_file = upload_columns[2].file_uploader("真实标签（可选，1/0 单列 CSV）", type=["csv"])
     if feature_file is None or label_file is None:
         st.info("请先上传特征数据和 PU 标签。CSV 第一行必须是非数字列名。")
@@ -158,6 +161,7 @@ def main() -> None:
         config_columns[2].markdown(
             f"族：`{selected['family']}`  \n"
             f"需要类先验：`{selected['requires_class_prior']}`  \n"
+            f"主输入标签语义：`{selected['label_semantics']}`  \n"
             f"GPU：`{selected['supports_gpu']}`"
         )
     elif selection_mode == "比较模型":

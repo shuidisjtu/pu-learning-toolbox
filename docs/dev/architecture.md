@@ -129,6 +129,7 @@
 **模块级依赖链**（代表性，层间单向；两条层内环见上）：
 
 - **标签语义链**：`core/labels.py`（纯元语：标签约定识别与重映射）→ `core/validation.py`（组装层：标签规范化 + X/y 一致性 + 样本量门槛与告警，返回值已是规范形）→ 各估计器 `fit` 入口
+- **主输入意图门禁**：`core/validation.py` 的 `validate_label_semantics` 由runner按生成视图、由PU工作流按PU主输入消费；pipeline解析/运行/实际clone检查覆盖比较、调优和CLI/UI，CLI敏感性直接fit单独检查。该门禁不替代取值校验或对象身份防泄漏，见[ADR 0020](../adr/0020-main-input-label-semantics.md)。
 - **数据画像链**：`preprocessing/profiling.py`（统计元语：`pu_data_summary`/`pnu_data_summary`/`scar_diagnostic`，向后兼容）→ `preprocessing/data_profiler.py`（聚合编排：`PUDataProfile` + 可行动 issues）→ `workflows`（pipeline 首步）/ `diagnostics`（报告）/ `advisor`（推荐）
 - **字段语义**：`core/tags.py` 是 registry 元数据字段与枚举的权威来源，registry/advisor 均以其为准
 - **设备与随机源入口**：`core/device.py` 的 `resolve_device` 是全工具箱唯一的设备归一化入口。
