@@ -33,7 +33,7 @@
 
 | 编号 | 任务 | 主责 / 复核 | 前置与当前状态 | 完成条件 |
 |---|---|---|---|---|
-| P1.4-R | 新数据预处理与正式 split | **shuidisjtu**；HENG958 复核 | 四数据集10-14来源方[交付](p1_4r_split_delivery_20261014.md)保留；10-15完整独立重建20split/100文件及四新归档技术核验通过，见[全量复核](reviews/p1_4r_full_rebuild_20261015.md)。原tar未接收；20个角色索引一致，60个NPZ仅ZIP平台字节不同，20个文本NPZ及20个manifest仍不同 | 新独立产物完整性不替代原tar接收，原文本数组/manifest字段等价性和HENG958签署仍待核；不放宽严格门禁或覆盖旧索引。20→7映射、Connect-4编码与MNIST/F-MNIST规格已登记，仍待人工复核。**ADNI替代数据五seed划分/归档已完成**（[收据](data/adni_substitute_receipt_20261012.json)、[索引](data/adni_split_artifacts_index_20261012.json)），复核待办；旧Pilot不覆盖 |
+| P1.4-R | 新数据预处理与正式 split | **shuidisjtu**；HENG958 复核 | **五数据集原交付已接收，技术验收通过**（10-15，25split/125文件/5归档），与原仓库索引一致；源标签/行/特征、四角色隔离及train-only预处理已核，见[接收验收](reviews/p1_4r_receiving_acceptance_20261015.md)。前三集manifest仅换行不同；20News原缓存身份已验证，与重建数值差异仅记录不判等价 | HENG958独立复核/签署待办；ADNI槽位明确为替代集，subject级隔离不可判、许可限制保留。不混用原接收与重建身份，不覆盖旧Pilot或冻结协议；新主榜协议/配方/资源仍另行批准 |
 | P2.2 | Pilot 交付与审计收尾 | **shuidisjtu**；HENG958 独立重放与 C1–C6 复核 | O1–O10 已于 2026-10-09 签署；10-12 新旧索引关联及 Excel 再对账见[收尾记录](reviews/p2_2_followup_20261012.md)；独立原始制品重放仍缺输入 | 补齐原始计划、日志、manifest/权重与归档证据；HENG958 完成 C1–C6 并按[复核包](delivery/p2_2_review.md)登记本人结论及摘要；不把负责人签署或表格对账当作双方验收 |
 | P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 除 `p3mix` 外，Survey 目标方法均已有代码级接入；五方法[来源与预算证据](p3_admission_evidence_20261005.md)、[公开对照草稿](p3_public_comparison_20261005.md)已补，均待审；`p3mix` 仅有数学组件，未注册完整 estimator | HENG958 完成 P3MIX 来源核验、完整 estimator/训练流程、注册与测试；并补齐已接入方法的来源、公式/行为对照、先验/标签预算与校准适用性；shuidisjtu 按 RV8 逐项复核 |
 | P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；正式共享规格、增强/调度差异与执行证据仍缺 | 接通获批图像/特征路径、分批训练预测、阶段预算及 checkpoint；明确与原论文适配差异，交付可追溯工程证据；资源验收见 P3.3-A/B |

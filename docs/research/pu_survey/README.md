@@ -28,8 +28,9 @@
 
 - Issue #41阶段B：[`label_semantics_stage_b_20261015.md`](delivery/label_semantics_stage_b_20261015.md)，公共入口门禁/展示/ADR；RV2仍待人工复核。
 - P1.4：[`p1_4_review.md`](delivery/p1_4_review.md)。
+- P1.4-R当前接收验收：[`p1_4r_receiving_acceptance_20261015.md`](reviews/p1_4r_receiving_acceptance_20261015.md)，五数据集25split/125文件/5原归档技术通过；人工复核与已知限制保留。
 - P1.4-R 独立重建诊断：[`split_rebuild_diagnostic_20261015.md`](delivery/split_rebuild_diagnostic_20261015.md)，平台字节归因不替代原收据/归档验收。
-- P1.4-R 完整独立重建：[`p1_4r_full_rebuild_20261015.md`](reviews/p1_4r_full_rebuild_20261015.md)，20split/100文件及四新归档技术已核；原tar、文本/manifest差异及人工复核待办。
+- P1.4-R 完整独立重建（接收前历史记录）：[`p1_4r_full_rebuild_20261015.md`](reviews/p1_4r_full_rebuild_20261015.md)，原交付现已接收，当前状态以上方接收验收为准。
 - P1.4-R 早期部分复核（历史截点）：[`p1_4r_independent_rebuild_20261015.md`](reviews/p1_4r_independent_rebuild_20261015.md)。
 - P2.0：[`p2_0a_delivery.md`](delivery/p2_0a_delivery.md)、[`p2_0a_review.md`](delivery/p2_0a_review.md)、
   [`p2_0b_delivery.md`](delivery/p2_0b_delivery.md)、[`p2_0c_delivery.md`](delivery/p2_0c_delivery.md)、
