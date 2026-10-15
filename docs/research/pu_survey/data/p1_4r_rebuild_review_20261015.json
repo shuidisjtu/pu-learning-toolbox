@@ -1,0 +1,152 @@
+{
+  "schema_version": "survey-independent-rebuild-review-1",
+  "observed_on": "2026-10-15",
+  "status": "full_rebuild_and_technical_audit_complete_pending_original_artifacts_and_review",
+  "review_status": "pending_collaborator_review",
+  "scope": "Four independently rebuilt datasets, five seeds, four roles; not original producer receipt or formal training",
+  "raw_root": "data/outgoing/raw-handoff-20261013/payload/data/raw",
+  "output_root": "data/review-p1_4r-20261015-GvAtLL",
+  "generation_code_commit": "9dead61",
+  "packaging_code_commit": "91991a0",
+  "diagnostic_tool_commit": "eac0149",
+  "generation_script_sha256": "dd1ada5dd1d87c7c6a367ffa125952c5cc5d5a36e87e60e77b8e15db75d6f6cc",
+  "semantic_audit_script_sha256": "58a08272e72b5f258bd4ef681dc20f17f854875c6b10bcc017b4ea17a3f1f097",
+  "reference_index": {
+    "path": "docs/research/pu_survey/data/p1_4r_split_artifacts_index_20261014.json",
+    "file_sha256": "d56db8ccdb9fe85a1ccc2a3841c6d3dac773ed00a5c7c2701b96fdfaf5558bda",
+    "expected_splits": 20,
+    "expected_role_files": 80,
+    "expected_manifests": 20
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "datasets": [
+    "connect_4",
+    "fashion_mnist",
+    "mnist",
+    "twenty_newsgroups"
+  ],
+  "independent_rebuild": {
+    "preparation_exit_codes": {
+      "mnist_fashion_mnist_connect_4": 0,
+      "twenty_newsgroups": 0
+    },
+    "pack_exit_code": 0,
+    "semantic_audit_exit_code": 0,
+    "integrity": {
+      "ok": true,
+      "problems": [],
+      "checked": {
+        "splits": 20,
+        "files": 100
+      }
+    },
+    "semantic_splits_checked": 20,
+    "test_file_hash_count": {
+      "mnist": 1,
+      "fashion_mnist": 1,
+      "twenty_newsgroups": 1,
+      "connect_4": 5
+    },
+    "artifacts_index": {
+      "path": "docs/research/pu_survey/data/p1_4r_rebuild_artifacts_index_20261015.json",
+      "file_sha256": "4e3880efb9e15c7e267754de385b49e7d5cd9fc47a7e092bec0f47ff0672cbc1"
+    },
+    "semantic_report": {
+      "path": "docs/research/pu_survey/data/p1_4r_rebuild_semantic_review_20261015.json",
+      "file_sha256": "a3455d5bdee56905097be0fb965f19fee0f74f7d66647366c50ce3a28fef3135"
+    },
+    "archives": {
+      "connect_4": {
+        "bytes": 8181760,
+        "file": "connect_4-splits.tar",
+        "sha256": "615bc7a8b9b8e048923ac774df5b693737138b0088e9dc05ee2944652925b250"
+      },
+      "fashion_mnist": {
+        "bytes": 159375360,
+        "file": "fashion_mnist-splits.tar",
+        "sha256": "1922e1201e74e6c4220aca1fa386699bd86a645a12e983dc2f7afae50b7627e9"
+      },
+      "mnist": {
+        "bytes": 62494720,
+        "file": "mnist-splits.tar",
+        "sha256": "f33f12988d6c9266d19b8f497766c781b0cc9c124f2ccb6a6e0d642eec2f3a16"
+      },
+      "twenty_newsgroups": {
+        "bytes": 154869760,
+        "file": "twenty_newsgroups-splits.tar",
+        "sha256": "f2502b419fa53198448c35973bbd0648be40d2187ab9d632e03a910534a1a66d"
+      }
+    },
+    "source_row_by_row_replay": "not_performed; draft shelved to prioritize updated Issue 41"
+  },
+  "original_reference_comparison": {
+    "diagnostic_report": {
+      "path": "docs/research/pu_survey/data/p1_4r_rebuild_original_diagnostic_20261015.json",
+      "file_sha256": "04e6708d84fa887f2009a157fa07f4de4357b50c1244a81ed047aa7002bc2e10"
+    },
+    "strict_unpacked_reference_ok": false,
+    "summary": {
+      "expected_splits": 20,
+      "role_files": {
+        "zip_creator_system_only": 60,
+        "different": 20
+      },
+      "manifests": {
+        "different": 20
+      },
+      "role_indices": {
+        "identical": 20
+      }
+    },
+    "diagnostic_exit_code": 2,
+    "files_rewritten": false,
+    "text_numeric_equivalence": "not_verified_without_original_arrays",
+    "manifest_field_equivalence": "not_verified_without_original_manifest_bytes"
+  },
+  "text_preparation": {
+    "dataset": "twenty_newsgroups",
+    "status_at_observation": "completed_five_splits_exit_0",
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "model_safetensors_sha256": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db",
+    "offline_encoding": true,
+    "gpu_used": false,
+    "equality_to_producer_embeddings": "not_verified",
+    "cache_key": "e8c44a01f2b44fca499476ce25e83dae95381a556a1ecb817847b3216f030a49",
+    "cache_sha256": "c692de4127abe1150816a3d3d5c16ddfbea8117cea267fa51e431b3834775c89",
+    "texts_sha256": "1772ee976bad50107fe61d1cac6267c8d8a26024803d2389753168936bd305af",
+    "encoded_text_count": 18846,
+    "embedding_dimension": 384
+  },
+  "actual_environment": {
+    "python_environment": "/tmp/pu-ci-locked-311",
+    "text_dependency_overlay": "/tmp/pu-p1_4r-text-site-VAzYyM",
+    "numpy": "2.4.6",
+    "scikit_learn": "1.9.0",
+    "torch": "2.13.0+cpu",
+    "sentence_transformers": "5.7.0",
+    "transformers": "5.16.1",
+    "huggingface_hub": "1.30.0",
+    "tokenizers": "0.23.2",
+    "safetensors": "0.8.0",
+    "formal_frozen_lock_environment": false,
+    "global_environment_modified": false
+  },
+  "original_archive_receipt_verified": false,
+  "formal_acceptance": false,
+  "historical_artifacts_overwritten": false,
+  "raw_data_uploaded": false,
+  "pending": [
+    "Obtain original producer archives/manifest bytes; verify against the unchanged 2026-10-14 index",
+    "Compare original and rebuilt 20News arrays before any numerical equivalence judgment",
+    "Resolve manifest field differences without normalizing away evidence",
+    "HENG958 independent review/signature remains required",
+    "New formal protocol/recipe/resource approval and frozen-lock execution are separate prerequisites"
+  ]
+}

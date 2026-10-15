@@ -61,3 +61,7 @@ uv run python scripts/review_survey_split_receipt.py \
 20News编码仍在进行。部分对账、实际环境和未关闭事项见
 [独立复核进度](reviews/p1_4r_independent_rebuild_20261015.md)。
 这是新增证据，不覆盖本交付的索引、归档摘要或原自动报告，也不代表原tar接收验收。
+
+随后四数据集已完整重建，20split/100文件及新四归档技术核验通过，
+见[全量独立复核](reviews/p1_4r_full_rebuild_20261015.md)。原tar接收、20News数组等价性、
+manifest字段对账和HENG958签署仍待办；上述原交付摘要不替换。

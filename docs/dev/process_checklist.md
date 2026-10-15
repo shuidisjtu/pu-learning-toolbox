@@ -18,6 +18,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-15 P1.4-R 完整独立重建：原20News CPU任务退出0，四数据集20split/100文件及四新归档通过自身索引/语义复核，并将新索引与完整报告独立留档。对原索引仍严格失败：20个角色索引一致，60个NPZ仅ZIP平台字节可归因，20个文本NPZ及全部manifest不同；未接收原tar，未代填签署，见[全量记录](../research/pu_survey/reviews/p1_4r_full_rebuild_20261015.md)。下方部分进度保留为历史截点。
+
 2026-10-15按远程Issue #41优先补齐阶段B：PUPipeline解析/运行/clone后的主输入语义门禁，比较/调优/CLI/UI消费，敏感性直接fit守卫，推荐器/UI过滤和CLI Labels列；ADR/API及用户文档同步。RV2本人复核仍待办，不关闭Issue或改冻结结果，见[交付](../research/pu_survey/delivery/label_semantics_stage_b_20261015.md)。
 
 2026-10-15 P1.4-R 状态补记：补回10-14四数据集20split/100文件的来源方交付，另记录本执行端三数据集15split语义复核及完整原索引差异；20News原CPU编码仍运行，原tar未接收。部分证据与待办见[独立复核进度](../research/pu_survey/reviews/p1_4r_independent_rebuild_20261015.md)，不勾选正式验收或人工签署。
