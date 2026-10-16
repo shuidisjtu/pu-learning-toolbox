@@ -1,0 +1,35 @@
+{
+  "schema_version": "survey-comparison-amendment-draft-1",
+  "status": "pending_heng958_review_not_an_active_matrix",
+  "bound_comparison_version": "survey-comparison-v3",
+  "bound_comparison_sha256": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
+  "evidence_ref": "docs/research/pu_survey/data/p41_p22_source_evidence_20261016.json",
+  "source_id": "pubench_2026",
+  "source_commit": "a9a62b05b0f222c72aff4df8992307376c78d682",
+  "affected_mapping_ids": [
+    "row_upu_cifar10",
+    "row_nnpu_cifar10",
+    "row_pusb_kernel_cifar10",
+    "row_dist_pu_cifar10",
+    "row_lbe_cifar10"
+  ],
+  "proposed_protocol_differences": [
+    {
+      "axis": "normalization_and_consumed_augmentation",
+      "proposal": "Expand the existing generic transforms difference: published uPU/nnPU/LBE paths consume weak random flips/reflection-padded crops with fixed CIFAR channel statistics. Dist-PU receives strong inputs but its update uses weak inputs in dist_loss. Do not claim every method consumes RandAugment merely because the dataset returns a strong view.",
+      "locations": ["data/datasets.py:19-20", "data/datasets.py:415-439", "train.py:207-230", "core/algorithms.py:779-791"],
+      "falsifier": "A different active call or referenced loss in the locked source actually consumes the strong input for one of these methods; scope that method separately."
+    },
+    {
+      "axis": "search_and_observation_budget",
+      "proposal": "Explicitly register paper C.3: 3 splits, 10 configurations per split, 20000 training iterations, evaluation every 100 iterations, unlike the project's frozen outer-candidate/epoch budget. Released sweep defaults to 20 configurations; CLI overrides and absent logs prevent inferring the paper's executed budget from that default.",
+      "locations": ["paper printed p19 C.3", "sweep.py:91-100", "sweep.py:145-155", "train.py:65-69"],
+      "falsifier": "Original experiment commands/logs demonstrate a different executed budget; retain the paper/released-default/executed layers separately."
+    }
+  ],
+  "do_not_change": ["anchor_values", "uncertainty_interpretation", "eligibility", "decision_rules", "historical_results", "human_signatures"],
+  "activation": "Review each affected mapping, then issue a versioned comparison revision with reason and bound identity. Never edit frozen v3 silently.",
+  "reviewer": null,
+  "review_date": null,
+  "review_verdict": null
+}

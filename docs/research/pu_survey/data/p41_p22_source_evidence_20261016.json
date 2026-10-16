@@ -1,0 +1,48 @@
+{
+  "schema_version": "survey-review-source-evidence-1",
+  "date": "2026-10-16",
+  "performed_by": "agent_technical_review_not_human_signature",
+  "baseline_commit": "397f8667c611afb446182cf5ebbeb533e1412c10",
+  "protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a",
+  "comparison_sha256": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
+  "nnpu_supplement": {
+    "url": "https://papers.nips.cc/paper_files/paper/2017/file/7cce53cf90577442771720a370c3c723-Supplemental.zip",
+    "zip_sha256": "5171c1bde977795b13ac69ca36b42bb5e0ea6f88917173b36f94ab86175e2bf0",
+    "pdf_member": "pu_nnre_supp.pdf",
+    "pdf_sha256": "746381f83c71ceb3d0021c84052e2d77b91cb4769df07f946858d94707f6dcc4",
+    "pdf_pages": 6,
+    "printed_pages": "12-17",
+    "inspection": "all pages text read; page 1 Figure 4 visually inspected",
+    "finding": "No directly transcribable CIFAR-10 accuracy/error value found in this official supplement; keep no anchor from this source, not a human acceptance or a universal claim about all versions/datasets."
+  },
+  "pubench": {
+    "repository": "wu-dd/PUBench",
+    "commit": "a9a62b05b0f222c72aff4df8992307376c78d682",
+    "checkout_clean": true,
+    "source_execution": false,
+    "file_sha256": {
+      "train.py": "8036909ab071d62ad0649ee23d6f30ff21ba9ce7cff0f1c27e50493da47f183e",
+      "data/datasets.py": "aaaf3d12224e58d6041e81d94433f00bce85e8f60a8910a39f809ef6f3da0a55",
+      "core/algorithms.py": "dc201bac612d8e1e3fea8624af41c3566960d84b81562a00e75b0ad65cde2de8",
+      "core/hparams_registry.py": "52d3f5c180485138e9d356ca52852f45aa5f7cc83ca0f804c954d408f54188e8",
+      "sweep.py": "e3034ca45538b10427af6a8b11dba88dd10cf5b75fefd5d36fd9fffd8b56a564"
+    },
+    "paper_url": "https://arxiv.org/pdf/2509.24228v2",
+    "paper_pdf_sha256": "de5a4cbf027aa5eb23289cd9270b34458300cf5c4c2d4735157e8f4303dc5883",
+    "paper_location": "printed page 19 C.3",
+    "paper_hparams_per_split": 10,
+    "released_sweep_default_hparams": 20,
+    "sweep_launch_exits_before_launcher": true,
+    "actual_paper_run_budget": "not_inferable_from_released_defaults_without_original_commands_or_logs"
+  },
+  "unchanged_review_state": {
+    "anchors_accepted": 18,
+    "anchors_pending": 36,
+    "mappings_accepted": 187,
+    "mappings_pending": 7,
+    "contradictions_pending": 4,
+    "pa_blocked": 54,
+    "numeric": 0,
+    "review_status": "pending_collaborator_review"
+  }
+}
