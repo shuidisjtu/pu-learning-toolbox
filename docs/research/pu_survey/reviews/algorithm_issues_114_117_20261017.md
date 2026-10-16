@@ -111,3 +111,10 @@ result = ExperimentRunner(
 
 最终表/图必须显示 “PULNS + extra clean support”，并给 support 正负数与标签总预算；
 `extra_clean_support` 独立分组，不与 PU-only 作不加限制的公平排名。
+
+## 门禁同步说明
+
+首次全仓快速回归仅有一项失败：P3 选模/预算草案仍绑定旧 PUET 源码摘要。
+独立重建比较确认只有 `methods.puet.implementation_sha256` 改变；已更新为修复后
+源码摘要，其余预算、候选、批准、签署和协议绑定逐项不变。保留漂移拒收测试，
+没有为通过门禁删除检查或把草案改为批准。

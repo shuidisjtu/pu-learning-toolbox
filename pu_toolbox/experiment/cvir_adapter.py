@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import math
+from numbers import Real
 
 from .checkpoints import EpochCheckpointTrainer
 from .protocols import Trainer
@@ -40,7 +41,7 @@ class CVIRKnownPriorTrainer(Trainer):
         if not isinstance(model.prior_source, str) or not model.prior_source.strip():
             raise ValueError("CVIR runner requires explicit alpha_U prior_source")
         alpha = model.unlabeled_positive_prior
-        if isinstance(alpha, bool) or not isinstance(alpha, int | float) or not 0 < alpha < 1:
+        if isinstance(alpha, bool) or not isinstance(alpha, Real) or not 0 < alpha < 1:
             raise ValueError("CVIR runner requires finite alpha_U in (0, 1)")
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):

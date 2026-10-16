@@ -65,7 +65,7 @@ def test_basic_manifest_separates_alpha_from_population_pi(tmp_path):
     assert len(result.manifest["candidate_runs"][0]["epoch_checkpoints"]) == 3
 
 
-@pytest.mark.parametrize("alpha", [None, True, "0.25", 0, 1, float("nan")])
+@pytest.mark.parametrize("alpha", [None, True, "0.25", 0, 1, float("nan"), 0.25 + 0.1j])
 def test_param_invalid_alpha_is_refused(alpha):
     part = parts()[0]
     with pytest.raises(ValueError, match="unlabeled_positive_prior"):
@@ -128,3 +128,7 @@ def test_edge_native_ts_requires_traceable_prior_and_sar_is_not_admitted():
         CVIRKnownPriorTrainer().validate_generation(
             {"mechanism": "sar_lbe_a"}, {"mechanism": "scar"}
         )
+    trajectory = CVIRKnownPriorTrainer().fit(
+        model(unlabeled_positive_prior=np.float32(0.25)), part.X, part.labels
+    )
+    assert trajectory.model.training_provenance_["unlabeled_positive_prior"] == 0.25

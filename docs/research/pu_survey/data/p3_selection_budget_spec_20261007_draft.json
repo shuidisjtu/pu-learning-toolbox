@@ -143,7 +143,7 @@
     "puet": {
       "class": "PUExtraTreesClassifier",
       "implementation_ref": "pu_toolbox/estimators/risk/puet.py",
-      "implementation_sha256": "f506a6922a055221cb03e4c8316783351089aae8db95d5aa83b858bb81b876f0",
+      "implementation_sha256": "f56a45cfb4fc8b50a6a161a8382195b56d60d41a4c3e2fd9ec63c8ef28ca9a54",
       "fit_named_parameters": [
         "X",
         "y_pu",

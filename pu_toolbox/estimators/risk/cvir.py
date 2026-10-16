@@ -11,6 +11,7 @@ Injected image encoders and CPU-streamed batches are engineering adapters.
 from __future__ import annotations
 
 import copy
+from numbers import Real
 
 import numpy as np
 
@@ -155,7 +156,7 @@ class CVIRClassifier(BasePUClassifier):
         alpha = self.unlabeled_positive_prior
         if (
             isinstance(alpha, (bool, np.bool_))
-            or not isinstance(alpha, int | float | np.number)
+            or not isinstance(alpha, Real)
             or not np.isfinite(alpha)
             or not 0 < alpha < 1
         ):
