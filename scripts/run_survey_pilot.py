@@ -81,6 +81,12 @@ from pu_toolbox.experiment.survey_protocol import (
     load_protocol,
     resolve_protocol_path,
 )
+from pu_toolbox.experiment.survey_recipe_binding import SCHEMA_VERSION as RECIPE_BINDING_V2
+from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
+from pu_toolbox.experiment.survey_recipe_registry import (
+    canonical_digest,
+    load_registry,
+)
 
 _SCRIPTS = Path(__file__).resolve().parent
 UNIT_SCRIPT = _SCRIPTS / "run_survey_experiment.py"
@@ -214,6 +220,7 @@ def _write_plan_snapshot(
     pending: tuple[PilotRun, ...],
     completed: tuple[PilotRun, ...],
     views: Mapping[tuple[Any, ...], str],
+    recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
 ) -> None:
     """Write what this request covers, in a form two hosts can be checked against.
 
@@ -269,6 +276,8 @@ def _write_plan_snapshot(
             for run in planned
         ],
     }
+    if recipe_bindings is not None:
+        payload["recipe_bindings"] = [dict(recipe_bindings[run.key]) for run in planned]
     Path(path).write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
@@ -281,6 +290,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--splits", default="data/splits", help="prepared split products root")
     parser.add_argument("--results", default="results/survey", help="where run trees live")
     parser.add_argument("--protocol", default="survey-v1", help="protocol version or path")
+    parser.add_argument("--recipe-registry", type=Path, help="explicit locked recipe registry JSON")
+    parser.add_argument(
+        "--recipe-binding-schema-version", choices=(RECIPE_BINDING_V2,), default=None
+    )
     parser.add_argument(
         "--datasets",
         default=None,
@@ -573,6 +586,17 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
         reclaim_unselected_checkpoints=args.reclaim_unselected_checkpoints,
     )
     label = f"{batch.dataset}/{batch.method}/{batch.training_path} ({batch.mechanism or 'oracle'})"
+    if getattr(args, "recipe_registry", None) is not None:
+        argv.extend(
+            [
+                "--recipe-registry",
+                str(args.recipe_registry),
+                "--recipe-registry-sha256",
+                args.recipe_registry_sha256,
+            ]
+        )
+        if getattr(args, "recipe_binding_schema_version", None) is not None:
+            argv.extend(["--recipe-binding-schema-version", args.recipe_binding_schema_version])
     print(f"== {label}: {len(batch.covers)} run(s), seeds {list(batch.seeds)}")
     completed = subprocess.run(  # noqa: S603 - fixed script, arguments built here
         [sys.executable, str(UNIT_SCRIPT), *argv], check=False
@@ -588,6 +612,9 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.recipe_binding_schema_version is not None and args.recipe_registry is None:
+        print("error: --recipe-binding-schema-version requires --recipe-registry", file=sys.stderr)
+        return 1
     if args.plan_json and not args.dry_run:
         print(
             "error: --plan-json records the plan, and --dry-run is what produces one; "
@@ -638,6 +665,37 @@ def main(argv: list[str] | None = None) -> int:
     #: flag: a request that named its matrix by path is narrowed by that matrix
     #: whether or not it also passed ``--datasets``, and the two reads below have
     #: to follow whatever narrowed them.
+    planned = planned_runs(protocol)
+    recipe_bindings = None
+    if args.recipe_registry is not None:
+        try:
+            registry = load_registry(args.recipe_registry)
+            args.recipe_registry_sha256 = canonical_digest(registry)
+            by_unit = {}
+            for run in planned:
+                unit_key = (run.dataset, run.method, run.training_path)
+                if unit_key not in by_unit:
+                    by_unit[unit_key] = bind_recipe(
+                        registry,
+                        source_protocol,
+                        method=run.method,
+                        dataset=run.dataset,
+                        training_path=run.training_path,
+                        expected_sha256=args.recipe_registry_sha256,
+                        binding_schema_version=args.recipe_binding_schema_version,
+                    )
+                    by_unit[unit_key].update(
+                        {
+                            "protocol_version": source_protocol["protocol_version"],
+                            "protocol_sha256": source_protocol_sha256,
+                        }
+                    )
+            recipe_bindings = {
+                run.key: by_unit[(run.dataset, run.method, run.training_path)] for run in planned
+            }
+        except (OSError, KeyError, TypeError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
     effective = _dataset_names(protocol)
     try:
         dims = _parse_pairs(args.input_dims, cast=int)
@@ -656,7 +714,6 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    planned = planned_runs(protocol)
     # Resolved once, before anything runs: a request the plan cannot satisfy is
     # refused here rather than at whichever batch happens to hit that method.
     try:
@@ -675,7 +732,13 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if args.dry_run:
-        pending, done = pending_runs(protocol, args.results, splits=splits, expected_views=views)
+        pending, done = pending_runs(
+            protocol,
+            args.results,
+            splits=splits,
+            expected_views=views,
+            expected_recipe_bindings=recipe_bindings,
+        )
         _print_plan(pending, done, estimate)
         _print_scope(scope)
         if args.plan_json:
@@ -692,6 +755,7 @@ def main(argv: list[str] | None = None) -> int:
                     pending=pending,
                     completed=done,
                     views=views,
+                    recipe_bindings=recipe_bindings,
                 )
             except OSError as exc:
                 print(
@@ -716,7 +780,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    pending, _ = pending_runs(protocol, args.results, splits=splits, expected_views=views)
+    pending, _ = pending_runs(
+        protocol,
+        args.results,
+        splits=splits,
+        expected_views=views,
+        expected_recipe_bindings=recipe_bindings,
+    )
     failed = False
     for batch in batches(pending):
         if failed and not args.keep_going:
@@ -727,7 +797,11 @@ def main(argv: list[str] | None = None) -> int:
     # batch can succeed and still leave runs behind, and the operator needs the
     # count that the manifests agree with.
     still_pending, now_done = pending_runs(
-        protocol, args.results, splits=splits, expected_views=views
+        protocol,
+        args.results,
+        splits=splits,
+        expected_views=views,
+        expected_recipe_bindings=recipe_bindings,
     )
     # A subset request reports a subset's count, so the count has to name the
     # subset: two hosts each reading "completed 215 of 215" would call the

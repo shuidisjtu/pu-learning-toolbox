@@ -21,7 +21,7 @@ from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.device import resolve_device_name
 from ..core.exceptions import PipelineError, RegistryError
 from ..core.tags import Backend, SampleWeightSupport, TrainingCost
-from ..core.validation import check_scalar_in_range
+from ..core.validation import check_scalar_in_range, validate_label_semantics
 from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
 from ..estimators.deep.vision import CNN_BACKBONES
 from ..model_selection.split import PUStratifiedKFold
@@ -196,6 +196,7 @@ class PUPipeline:
             validate_classifier_params(self._classifier_cls, self.classifier_params, classifier)
             self._classifier_name = classifier
         elif isinstance(classifier, BasePUClassifier):
+            validate_label_semantics(classifier, "pu")
             self._classifier_cls = None
             self._classifier_name = type(classifier).__name__
         elif classifier == "auto":
@@ -350,6 +351,8 @@ class PUPipeline:
         """
         if cancellation_token is not None:
             cancellation_token.raise_if_cancelled()
+        if self._classifier_name != "auto":
+            validate_label_semantics(self._classifier_cls or self.classifier, "pu")
         emit_progress(
             progress_callback,
             stage="prepare",

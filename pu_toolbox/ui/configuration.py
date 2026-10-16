@@ -6,6 +6,8 @@ import json
 from collections.abc import MutableMapping
 from typing import Any
 
+from pu_toolbox.core.validation import validate_label_semantics
+from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 from pu_toolbox.run_config import RunConfiguration
 
 
@@ -31,6 +33,9 @@ def apply_run_configuration(
 ) -> None:
     """Populate widget state from a validated portable configuration."""
     configured = {config.classifier, *config.comparison_classifiers}
+    register_all_builtin_methods()
+    for name in sorted(configured - {"auto"}):
+        validate_label_semantics(get_algorithm(name), "pu")
     needs_support = sorted(
         name
         for name in configured

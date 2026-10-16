@@ -78,27 +78,19 @@ def test_deterministic_comparison_preserves_input_order(monkeypatch):
     assert result.to_dict() == result.to_dict()
 
 
-def test_pnu_trial_reports_ternary_label_hint(rng):
-    X, y_pu, _ = make_scar_data(rng, n=100, separation=4.0)
-    result = PUModelComparator(classifiers=["upu", "pnu"], cv=2, random_state=42).fit(
-        X, y_pu, class_prior=0.4
-    )
-
-    pnu_trial = next(trial for trial in result.trials if trial.classifier == "pnu")
-    assert pnu_trial.status == "failed"
-    assert "{+1, -1, 0}" in pnu_trial.error
-    assert "Label vector must contain all of" in pnu_trial.error
-    assert next(trial for trial in result.trials if trial.classifier == "upu").status == "ok"
+def test_pnu_is_rejected_at_semantic_preflight_before_comparison():
+    with pytest.raises(ValueError, match="PNUClassifier.*label_semantics='pnu'.*requires 'pu'"):
+        PUModelComparator(classifiers=["upu", "pnu"], cv=2, random_state=42)
 
 
 def test_non_label_error_is_not_rewritten(rng, monkeypatch):
     """A non-PNU failure must keep its original error text (no false labeling)."""
     from pu_toolbox.model_selection import PUModelComparator
 
-    comparator = PUModelComparator(classifiers=["upu", "pnu"], cv=2, random_state=42)
+    comparator = PUModelComparator(classifiers=["upu", "elkan_noto"], cv=2, random_state=42)
 
     def broken_pipeline(name):
-        if name == "pnu":
+        if name == "elkan_noto":
 
             def fit_evaluate(*args, **kwargs):
                 raise ValueError("some unrelated optimizer failure")
@@ -116,9 +108,9 @@ def test_non_label_error_is_not_rewritten(rng, monkeypatch):
     comparator._pipeline = broken_pipeline  # type: ignore[method-assign]
     result = comparator.fit(*make_scar_data(rng, n=100, separation=4.0)[:2], class_prior=0.4)
 
-    pnu_trial = next(trial for trial in result.trials if trial.classifier == "pnu")
-    assert pnu_trial.status == "failed"
-    assert pnu_trial.error == "some unrelated optimizer failure"
-    assert "{+1, -1, 0}" not in pnu_trial.error
+    failed_trial = next(trial for trial in result.trials if trial.classifier == "elkan_noto")
+    assert failed_trial.status == "failed"
+    assert failed_trial.error == "some unrelated optimizer failure"
+    assert "{+1, -1, 0}" not in failed_trial.error
     upu_trial = next(trial for trial in result.trials if trial.classifier == "upu")
     assert upu_trial.status == "ok"

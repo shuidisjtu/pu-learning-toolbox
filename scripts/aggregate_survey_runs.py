@@ -82,6 +82,7 @@ from pu_toolbox.experiment.survey_protocol import (
     load_protocol,
     validate_comparable_manifests,
 )
+from pu_toolbox.experiment.survey_recipe_audit import validate_consumed_bindings
 from pu_toolbox.experiment.training_views import validated_run_view
 
 SCHEMA_VERSION = "1.1"
@@ -364,12 +365,21 @@ def _group_report(
     }
 
 
-def aggregate(paths: list[Path], *, protocol: dict, require_formal: bool = True) -> dict[str, Any]:
+def aggregate(
+    paths: list[Path],
+    *,
+    protocol: dict,
+    require_formal: bool = True,
+    expected_recipe_bindings: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Group, gate and report; never write anything back."""
     refused: list[dict] = []
     usable: list[tuple[Path, dict]] = []
-    for path in paths:
-        payload = load_manifest(path)
+    loaded = [(path, load_manifest(path)) for path in paths]
+    validate_consumed_bindings(
+        [payload for _, payload in loaded], expected_recipe_bindings, protocol=protocol
+    )
+    for path, payload in loaded:
         reason = _refusal_reason(payload)
         if reason is None:
             usable.append((path, payload))

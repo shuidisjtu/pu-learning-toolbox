@@ -38,4 +38,8 @@ def test_cnn_candidates_matches_current_declarations():
         "holistic_pu",
         "pulns",
         "genpu",
+        "lbe_neural",
+        "vpu",
+        "cvir",
+        "lagam",
     }

@@ -52,8 +52,10 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 ### 辅助命令
 
 - `list-methods`：列出全部注册算法（名称 / family / 是否需要先验 / 实现状态 /
-  输入维度 Input / 原生架构 Arch / 能否自动实例化，共 7 列；能力列由注册表
-  元数据驱动）。新算法注册后自动出现。
+  输入维度 Input / 原生架构 Arch / 主输入语义 Labels / 能否自动实例化，共 8 列；能力列由注册表
+  元数据驱动）。Labels为pu/pn/pnu，Auto-inst只表示能否构造，不代表PU工作流可用。
+  `run`、模型比较/调优和`sensitivity`训练前要求PU主输入；PNU不能用于这些二值PU入口。
+  新算法注册后自动出现。
 - `list-priors`：列出 `--prior-estimator` 可用的估计器（`km1`/`km2` 映射到
   `KernelMeanPriorEstimator(variant=...)`）。
 - `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 1.0] [--seed 42]`：

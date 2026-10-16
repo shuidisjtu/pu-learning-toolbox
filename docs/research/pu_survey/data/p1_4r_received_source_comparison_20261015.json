@@ -1,0 +1,980 @@
+{
+  "scope": "Raw row replay uses existing readers/transforms; text replay uses the received hash-verified reconstructed cache, not a second independent encoder",
+  "datasets_checked": 4,
+  "splits_checked": 20,
+  "role_files_checked": 80,
+  "numeric_tolerance_approved": false,
+  "files_rewritten": false,
+  "rows": [
+    {
+      "dataset": "mnist",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "50b6aa039dde01d8c7f8200ed54662a8ba28a26af43f07eda011da306ae45987",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "mnist",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "50b6aa039dde01d8c7f8200ed54662a8ba28a26af43f07eda011da306ae45987",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "mnist",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "50b6aa039dde01d8c7f8200ed54662a8ba28a26af43f07eda011da306ae45987",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "mnist",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "50b6aa039dde01d8c7f8200ed54662a8ba28a26af43f07eda011da306ae45987",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "mnist",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "50b6aa039dde01d8c7f8200ed54662a8ba28a26af43f07eda011da306ae45987",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "59389f6429e6259456b117b29419d55d79d567094c612f9a78d12a3443399082",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "59389f6429e6259456b117b29419d55d79d567094c612f9a78d12a3443399082",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "59389f6429e6259456b117b29419d55d79d567094c612f9a78d12a3443399082",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "59389f6429e6259456b117b29419d55d79d567094c612f9a78d12a3443399082",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "source_rows": 54000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 3000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 10000,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "59389f6429e6259456b117b29419d55d79d567094c612f9a78d12a3443399082",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "source_rows": 48640,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 2702,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 2703,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 13512,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "abf8d3d2f08c024337bb9641ca655af6f89d52c6c0abab79670aa087a39849bb",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "source_rows": 48640,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 2702,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 2703,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 13512,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "abf8d3d2f08c024337bb9641ca655af6f89d52c6c0abab79670aa087a39849bb",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "source_rows": 48640,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 2702,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 2703,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 13512,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "abf8d3d2f08c024337bb9641ca655af6f89d52c6c0abab79670aa087a39849bb",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "source_rows": 48640,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 2702,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 2703,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 13512,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "abf8d3d2f08c024337bb9641ca655af6f89d52c6c0abab79670aa087a39849bb",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "source_rows": 48640,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "pu_val": {
+          "source_rows": 2702,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "clean_val": {
+          "source_rows": 2703,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        },
+        "test": {
+          "source_rows": 13512,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": true,
+          "dtype_equal_rebuild": true
+        }
+      },
+      "raw_input_identity_sha256": "abf8d3d2f08c024337bb9641ca655af6f89d52c6c0abab79670aa087a39849bb",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": true,
+      "manifest_field_differences": []
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "source_rows": 10182,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.390014171600342e-07,
+            "rmse": 4.539789721246651e-08,
+            "element_count": 3909888
+          }
+        },
+        "pu_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.5331974029541016e-07,
+            "rmse": 4.543996433187592e-08,
+            "element_count": 217344
+          }
+        },
+        "clean_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.5331974029541016e-07,
+            "rmse": 4.568318472052615e-08,
+            "element_count": 217344
+          }
+        },
+        "test": {
+          "source_rows": 7532,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.243330866098404e-07,
+            "rmse": 4.533375155923254e-08,
+            "element_count": 2892288
+          }
+        }
+      },
+      "raw_input_identity_sha256": "14c678ac28285cf9c1264bc271225239f7e7b7230a54df8944fd5a27ccce8c18",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": false,
+      "manifest_field_differences": [
+        {
+          "path": "/preprocessing/cache_sha256",
+          "received": "4306b7da57d36da6d3be95d7a5d78e415dc633c6bf14b2206fc8f04de44b88c6",
+          "rebuilt": "c692de4127abe1150816a3d3d5c16ddfbea8117cea267fa51e431b3834775c89"
+        }
+      ]
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "source_rows": 10182,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.390014171600342e-07,
+            "rmse": 4.5427717094556406e-08,
+            "element_count": 3909888
+          }
+        },
+        "pu_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.905726432800293e-07,
+            "rmse": 4.5047999796143185e-08,
+            "element_count": 217344
+          }
+        },
+        "clean_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.691522240638733e-07,
+            "rmse": 4.5537882978245454e-08,
+            "element_count": 217344
+          }
+        },
+        "test": {
+          "source_rows": 7532,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.243330866098404e-07,
+            "rmse": 4.533375155923254e-08,
+            "element_count": 2892288
+          }
+        }
+      },
+      "raw_input_identity_sha256": "14c678ac28285cf9c1264bc271225239f7e7b7230a54df8944fd5a27ccce8c18",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": false,
+      "manifest_field_differences": [
+        {
+          "path": "/preprocessing/cache_sha256",
+          "received": "4306b7da57d36da6d3be95d7a5d78e415dc633c6bf14b2206fc8f04de44b88c6",
+          "rebuilt": "c692de4127abe1150816a3d3d5c16ddfbea8117cea267fa51e431b3834775c89"
+        }
+      ]
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "source_rows": 10182,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.390014171600342e-07,
+            "rmse": 4.5412536386697376e-08,
+            "element_count": 3909888
+          }
+        },
+        "pu_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.905726432800293e-07,
+            "rmse": 4.520012491453985e-08,
+            "element_count": 217344
+          }
+        },
+        "clean_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.3189932107925415e-07,
+            "rmse": 4.565936387207891e-08,
+            "element_count": 217344
+          }
+        },
+        "test": {
+          "source_rows": 7532,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.243330866098404e-07,
+            "rmse": 4.533375155923254e-08,
+            "element_count": 2892288
+          }
+        }
+      },
+      "raw_input_identity_sha256": "14c678ac28285cf9c1264bc271225239f7e7b7230a54df8944fd5a27ccce8c18",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": false,
+      "manifest_field_differences": [
+        {
+          "path": "/preprocessing/cache_sha256",
+          "received": "4306b7da57d36da6d3be95d7a5d78e415dc633c6bf14b2206fc8f04de44b88c6",
+          "rebuilt": "c692de4127abe1150816a3d3d5c16ddfbea8117cea267fa51e431b3834775c89"
+        }
+      ]
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "source_rows": 10182,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.390014171600342e-07,
+            "rmse": 4.5417478945553966e-08,
+            "element_count": 3909888
+          }
+        },
+        "pu_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.39349901676178e-07,
+            "rmse": 4.550612673957219e-08,
+            "element_count": 217344
+          }
+        },
+        "clean_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.5425106287002563e-07,
+            "rmse": 4.5265275886906143e-08,
+            "element_count": 217344
+          }
+        },
+        "test": {
+          "source_rows": 7532,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.243330866098404e-07,
+            "rmse": 4.533375155923254e-08,
+            "element_count": 2892288
+          }
+        }
+      },
+      "raw_input_identity_sha256": "14c678ac28285cf9c1264bc271225239f7e7b7230a54df8944fd5a27ccce8c18",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": false,
+      "manifest_field_differences": [
+        {
+          "path": "/preprocessing/cache_sha256",
+          "received": "4306b7da57d36da6d3be95d7a5d78e415dc633c6bf14b2206fc8f04de44b88c6",
+          "rebuilt": "c692de4127abe1150816a3d3d5c16ddfbea8117cea267fa51e431b3834775c89"
+        }
+      ]
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "source_rows": 10182,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.390014171600342e-07,
+            "rmse": 4.540325502529725e-08,
+            "element_count": 3909888
+          }
+        },
+        "pu_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.905726432800293e-07,
+            "rmse": 4.55389723167873e-08,
+            "element_count": 217344
+          }
+        },
+        "clean_val": {
+          "source_rows": 566,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 2.4959444999694824e-07,
+            "rmse": 4.548839370440114e-08,
+            "element_count": 217344
+          }
+        },
+        "test": {
+          "source_rows": 7532,
+          "source_features_and_labels_verified": true,
+          "indices_equal_rebuild": true,
+          "labels_equal_rebuild": true,
+          "features_equal_rebuild": false,
+          "dtype_equal_rebuild": true,
+          "numeric_difference_observation_only": {
+            "max_abs": 3.243330866098404e-07,
+            "rmse": 4.533375155923254e-08,
+            "element_count": 2892288
+          }
+        }
+      },
+      "raw_input_identity_sha256": "14c678ac28285cf9c1264bc271225239f7e7b7230a54df8944fd5a27ccce8c18",
+      "manifest_bytes_equal": false,
+      "manifest_equal_after_crlf_to_lf_in_memory": false,
+      "manifest_field_differences": [
+        {
+          "path": "/preprocessing/cache_sha256",
+          "received": "4306b7da57d36da6d3be95d7a5d78e415dc633c6bf14b2206fc8f04de44b88c6",
+          "rebuilt": "c692de4127abe1150816a3d3d5c16ddfbea8117cea267fa51e431b3834775c89"
+        }
+      ]
+    }
+  ]
+}

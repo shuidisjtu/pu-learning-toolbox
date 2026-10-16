@@ -10,6 +10,9 @@ non-zero.
 Separate from ``tests/unit/experiment/test_survey_recipe_registry*.py``,
 which cover the registry module's pure validators; this file covers the
 script's exit codes and its absent-file branch.
+
+2026-10-14: CI validates the already materialized draft with --require-present;
+the unmaterialized frozen default still stays out of CI, preserving R5.
 """
 
 from __future__ import annotations
@@ -39,6 +42,22 @@ def test_basic_absent_registry_declares_nothing_was_validated(tmp_path, capsys):
 
     assert code == 0
     assert "Nothing was validated" in out
+
+
+def test_edge_required_materialized_artifact_cannot_disappear_silently(tmp_path, capsys):
+    code, out, _ = _run(capsys, "--registry", str(tmp_path / "absent.json"), "--require-present")
+    assert code == 1
+    assert "Nothing was validated" in out
+
+
+def test_basic_committed_draft_schema_can_be_checked_without_claiming_a_lock(capsys):
+    path = (
+        Path(__file__).resolve().parents[3]
+        / "docs/research/pu_survey/data/survey_recipe_registry_v0_1_draft.json"
+    )
+    code, out, _ = _run(capsys, "--registry", str(path), "--require-present")
+    assert code == 0
+    assert "survey-recipes-v0.1-draft" in out
 
 
 def test_param_malformed_json_fails_main(tmp_path, capsys):

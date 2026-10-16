@@ -1,0 +1,66 @@
+{
+  "schema_version": "lbe-neural-engineering-1",
+  "date": "2026-10-14",
+  "method": "lbe_neural",
+  "class": "NeuralLBEClassifier",
+  "implementation": "independent_clean_room_neural_generalized_em",
+  "review_status": "pending_collaborator_review",
+  "protocol_binding": null,
+  "formal_admission": false,
+  "source": {
+    "review_ref": "docs/research/pu_survey/data/lbe_source_review_20261012.json",
+    "user_supplied_archive_sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
+    "train_py_sha256": "4a1186c53fcc579793c5f5c231094f921e3ac57a58a58e7c29673e9078551be2",
+    "em_py_sha256": "9066215c43c53d45b7f9111af7276822facffde9c58ed89325c3a8828a8b8b49",
+    "upstream_code_executed_or_redistributed": false,
+    "official_variant_attribution_confirmed": false,
+    "upstream_license_resolved": false
+  },
+  "constructor_defaults": {
+    "hidden_dim": 100,
+    "pretrain_steps": 20,
+    "n_em_iter": 20,
+    "m_steps": 40,
+    "sample_fraction": 0.1,
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "weight_decay": 0.001,
+    "random_state": 0,
+    "device": null
+  },
+  "default_schedule": {
+    "classifier_pretrain_optimizer_steps": 20,
+    "propensity_pretrain_optimizer_steps": 20,
+    "em_optimizer_steps": 800,
+    "total_optimizer_steps": 840,
+    "inference_checkpoint_components": ["model"],
+    "checkpoint_epoch_count": 20
+  },
+  "source_equation_refs": [
+    "LBE_MLP/em.py:3-16: normalized latent class joint probabilities",
+    "LBE_MLP/train.py:27-45: balanced observed-label classifier pretrain and detached propensity weights",
+    "LBE_MLP/train.py:62-81: detached E posterior, 40 M updates, fresh 10% sample, q-weighted propensity BCE"
+  ],
+  "calibration": {
+    "native_sampling_assumption": "os",
+    "calibration_applied": false,
+    "calibration_applicability": "not_applicable_native_os_joint_likelihood",
+    "ts_request": "raises_NotImplementedError"
+  },
+  "adaptations": [
+    "log-space posterior and stable BCE logits instead of source probability-space epsilon",
+    "CPU-resident arrays/posteriors, bounded device chunks and row-weighted gradient accumulation",
+    "at least one row in a sampled M update, including tiny synthetic data",
+    "independent cloned optional trainable CNN encoder for each network",
+    "no dataset reader, normalization, validation/test labels, repeated test diagnostics or hidden truth in fit",
+    "fixed EM-round callbacks; likelihood is a training diagnostic, not PA/OA selection",
+    "standalone serialization contains both networks; epoch snapshots support classifier inference only"
+  ],
+  "remaining": [
+    "HENG958 independent method/interface review",
+    "source attribution and redistribution license resolution",
+    "approved neural/CNN protocol, prior/label budget, resource profile and recipe binding",
+    "real-data and GPU measurements plus independently acquired artifacts",
+    "not an official-archive, paper-number or full training-state reproduction"
+  ]
+}

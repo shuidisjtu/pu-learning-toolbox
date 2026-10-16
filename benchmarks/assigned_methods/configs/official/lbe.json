@@ -36,8 +36,8 @@
     "source_checkout_required": true,
     "required_source_files": [
       "LBE_MLP/train.py",
-      "LBE_MLP/dataset/Australian.mat",
-      "LBE_MLP/dataset/breast.mat"
+      "LBE_MLP/datasets/Australian.mat",
+      "LBE_MLP/datasets/breast.mat"
     ],
     "data_root_required": false,
     "cuda_required": true,

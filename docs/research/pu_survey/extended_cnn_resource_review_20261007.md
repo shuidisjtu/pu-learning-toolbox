@@ -1,7 +1,7 @@
 # 新 CNN 路径资源证据准备（2026-10-07）
 
 承接[后续优先级](survey_execution_plan.md)的工程路径与预算/选模交接。
-状态：探针与只读检查器已实现，默认宽度多 seed 实测尚待执行；不是 P3.3 正式验收或容量批准。
+状态：默认宽度 7 recipe × 3 seed 的 21 个独立 CPU profile 已完成并通过只读 checker；不是 P3.3 正式验收或容量批准。
 不读取合作者 Excel/结果树，不改冻结协议、历史存储记录、结果、manifest 或签署。
 
 ## 1. 范围和执行入口
@@ -61,10 +61,28 @@ source bytes、校准/support 角色、阶段付出、快照来源与 LZO 恢复
 formal_admission=false、training_peak_upper_bound_proven=false。当前源码变化后需要重测，
 不能将旧记录说成当前实现资源证据；checker 的单元 fixture 不是测量结果。
 
-实测读数、后续台账引用与完整回归将在测量完成后单独登记。已有 P1-1/P1-2/五方法
-选模预算证据绑定不变，checkpoint writer 与算法源码不在本项修改范围内。
+实测原始 receipt：[candidate_extended_cnn_storage_probe_20261007.json](data/candidate_extended_cnn_storage_probe_20261007.json)；
+代码基线为合并后的 4bfa59b，receipt 内逐文件 SHA256 绑定实际源码。21/21 profile 通过
+check_survey_extended_cnn_storage.py，仍为合成 24 行输入、CPU 工程证据，不能外推正式
+GPU/数据集配额。已有 P1-1/P1-2/五方法选模预算证据绑定不变，checkpoint writer 与算法源码不在本项修改范围内。
 
-脚本工程验证：三份探针/检查器专项 **70 passed**；完整快层
+### 3.1 实测摘要（仅技术观察，不是批准上界）
+
+| recipe | profile 数 | VmHWM 范围（bytes） | 完整 estimator pickle（bytes） | epoch snapshot 总量（bytes） |
+|---|---:|---:|---:|---:|
+| pulns_clean_reward | 3 | 868,036,608–890,654,720 | 81,606,412–81,606,428 | —（无 epoch callback） |
+| genpu_identity | 3 | 1,582,485,504–1,594,871,808 | 204,108,234 | 81,586,618 |
+| genpu_tanh | 3 | 1,558,138,880–1,601,769,472 | 204,108,464 | 81,586,618 |
+| holistic_fixed_continue | 3 | 894,418,944–916,037,632 | 81,593,497 | 163,170,628 |
+| holistic_fixed_reinitialize | 3 | 926,896,128–934,662,144 | 81,593,501 | 163,170,628 |
+| holistic_lzo_continue | 3 | 941,469,696–989,036,544 | 81,594,153–81,594,368 | 163,170,628 |
+| holistic_lzo_reinitialize | 3 | 917,483,520–935,325,696 | 81,594,157–81,594,372 | 163,170,628 |
+
+这些 VmHWM 是独立 Linux 子进程生命周期高水位，包含导入和验证开销，precise_upper_bound=false；
+snapshot/pickle 是临时合成制品体积，不含正式 optimizer/RNG 续训状态。CPU receipt 的 CUDA 字段
+按协议为 null；本轮没有 GPU 证据。
+
+脚本工程验证：三份探针/检查器专项 **70 passed**；新增 receipt 的只读 checker **21/21 通过**；完整快层
 `pytest tests/ -m 'not slow and not e2e'` 为 **3252 passed / 59 skipped / 36 deselected**
 （161 warnings，238.51s）。11 项静态门禁通过，现有 P3 准入/公开对照/选模预算检查通过；
 不声明 slow/e2e 或本轮 GPU 通过，亦不把 fixture 中的变体例子当正式测量记录。

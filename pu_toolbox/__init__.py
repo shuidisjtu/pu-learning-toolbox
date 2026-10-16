@@ -26,6 +26,7 @@ from .estimators.deep.grad_pu import GradPUClassifier
 from .estimators.deep.holistic_pu import HolisticPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
 from .estimators.deep.lagam import LaGAMClassifier
+from .estimators.deep.lbe_neural import NeuralLBEClassifier
 from .estimators.deep.pan import PANClassifier
 from .estimators.deep.pulns import PULNSClassifier
 from .estimators.deep.robust_pu import RobustPUClassifier
@@ -71,6 +72,7 @@ __all__ = [
     "LDCEClassifier",
     "LLSVMClassifier",
     "NonNegativePUClassifier",
+    "NeuralLBEClassifier",
     "PANClassifier",
     "PULNSClassifier",
     "PNUClassifier",

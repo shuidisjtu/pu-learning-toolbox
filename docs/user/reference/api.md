@@ -46,7 +46,10 @@
 
 注册分类器必须显式声明 `label_semantics`：`"pu"` 的 `0` 是未标记，`"pn"` 的
 `0` 是真实负类，`"pnu"` 接受正/负/未标记三值主输入。第三方未声明估计器在
-experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 `"pn"`。
+experiment runner 和 PU 工作流中按 `"pu"` 保守处理；监督 oracle 必须显式声明 `"pn"`。
+runner按生成视图检查，`PUPipeline`固定要求主输入PU，并在构造、运行入口及实际clone/构造后
+检查；比较、调优和CLI/UI执行复用此门禁，CLI敏感性分析直接fit也检查。
+PNU直接三值fit保持可用，但不能用PNU模型绕过PU工作流的语义要求。
 数值集合相同不能证明标签含义相同，见[标签语义契约](../../dev/label_semantics_plan.md)。
 
 ### 注册表索引
@@ -74,6 +77,7 @@ experiment runner 中按 `"pu"` 保守处理；监督 oracle 必须显式声明 
 | `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
 | `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
+| `lbe_neural`（`neural_lbe`） | `NeuralLBEClassifier` | bias-aware / torch | `pretrain_steps` / `n_em_iter` / `m_steps` / `encoder` | [LBE §10](../../research/method_cards/LBE.md#10-2026-10-14-独立神经网络变体) |
 | `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
 | `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
 | `split_pu`（`split-pu`） | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
@@ -395,12 +399,13 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, lear
 
 #### `VPUClassifier`（注册名 `vpu`，别名 `variational_pu`）
 
-无须类先验的变分 PU 分类器；仅支持稠密二维特征，默认网络为实验性工具箱适配。
+无须类先验的变分 PU 分类器；支持稠密二维特征及注入可训练编码器的四维 NCHW 图像，网络为实验性工具箱适配。
 
 ```python
 VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
               learning_rate=3e-4, regularization_weight=0.03, mixup_alpha=0.3,
-              random_state=None, device=None)
+              random_state=None, device=None, optimizer_schedule="constant",
+              iterations_per_epoch=None, encoder=None, data_device_policy="auto")
 ```
 
 | 参数 | 类型 | 默认 | 说明 |
@@ -410,9 +415,30 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 | `learning_rate` | `float` | `3e-4` | Adam 学习率 |
 | `regularization_weight` | `float` | `0.03` | 对数 MixUp 一致性权重 |
 | `mixup_alpha` | `float` | `0.3` | Beta 插值分布的两个同值形状参数 |
+| `optimizer_schedule` | `str` | `"constant"` | 显式 `"source_reset_halving"` 在第20/40…轮训练前学习率减半并重建 Adam，清空动量，不是 StepLR |
+| `iterations_per_epoch` | `int \| None` | `None` | 正整数固定每轮更新数；None 保留数据量推导，作者脚本为30，但本项目不默认采用 |
+| `encoder` | `torch.nn.Module \| None` | `None` | 四维图像必填；deepcopy 后端到端训练，须输出有限的二维特征，后接上述 MLP 头；不修改用户模板 |
+| `data_device_policy` | `str` | `"auto"` | 无 encoder 时 auto 保留旧 resident；有 encoder 时 auto 强制 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子与 torch 设备 |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None)`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_`、`optimizer_steps_`、`max_log_phi_` 提供训练审计。详见 [VPU 方法卡](../../research/method_cards/VPU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图或作为 Survey PA/OA 准则。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_` 新增 `learning_rate` / `optimizer_generation`；`optimizer_resets_` 记录实际 Adam 重建次数，`optimizer_steps_` 始终累计、不因重建清零。默认原有训练行为不变，失败重训会撤销 fitted 状态。详见 [VPU 方法卡](../../research/method_cards/VPU.md)和[源调度复核](../../research/pu_survey/admission/vpu_schedule_review_20261015.md)。
+
+`cpu_stream` 将完整训练/验证池留在 CPU，每次仅把不超过 `batch_size` 行送入设备；归一化扫描、诊断验证和预测同样分批。验证风险在 CPU 上以 float64 合并**全局** log-sum-exp 和正例均值，非各批风险平均，可能有浮点末位差异；旧 resident 归约保持不变。`data_device_policy_` / `training_data_device_` 记录实际策略/数据驻留设备。逐轮快照包含 encoder、分类头和归一化层，并记录推理批大小；不支持优化器续训。`PUPipeline(classifier="vpu", architecture="cnn", ...)` 可注入共享编码器，但不是获批的 Survey 图像配方。见[图像与分批交付](../../research/pu_survey/delivery/vpu_encoder_stream_20261015.md)。
+
+#### `CVIRClassifier`（注册名 `cvir`，别名 `conditional_value_ignoring_risk`）
+
+```python
+CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
+               warm_start_epochs=1, max_epochs=20, batch_size=128,
+               learning_rate=1e-3, random_state=None, device=None,
+               encoder=None, data_device_policy="auto")
+```
+
+`unlabeled_positive_prior` 必须显式给定 `(0,1)` 的 **U 内正类比例 α_U**；`fit(class_prior=...)` 始终拒绝，不自动换算总体 π。每轮先对原始 U 的分数稳定排序，保留 `max(1,floor((1-α_U)*n_U))` 个临时负例，再最小化论文 α_U 加权 BCE。默认一轮 PvU warm-start、固定20轮 CVIR；不是收敛停机、BBE 或 TEDⁿ。发布作者代码使用不同的 balanced CE/取整/loader/SGD/warm-start 时序，详见[来源复核](../../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+
+二维特征可直接输入；四维 NCHW 必须注入输出有限二维特征的 `torch.nn.Module` encoder，deepcopy 后联合训练并接 MLP 头。`data_device_policy="auto"` 无 encoder 时保留旧 resident，有 encoder 时使用 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident。CPU-stream 将全量数据留 CPU，只把不超过 batch_size 行送设备，排序/预测同样分批；仍需 O(n_U) CPU 排序空间，不是磁盘流式。`data_device_policy_` / `training_data_device_` 记录实际策略/驻留位置。
+
+`fit(..., sample_weight=None, epoch_callback=None)` 不接受非空 sample_weight，也没有 TS 校准接口。`optimizer_steps_` 计两阶段全部更新；`epoch_provenance_` 记录 `stage / stage_epoch / round_index / optimizer_steps`，`checkpoint_epoch_count` 为两阶段轮数之和。两阶段推理快照含 encoder/头与上下文，streamed 快照保留 batch_size；旧 resident replay 仍256。不支持训练续跑，上下文不代表 PA/OA 候选批准；fit 异常清除 fitted 标记。公共 pipeline 可用 `classifier="cvir", architecture="cnn"` 并通过 classifier_params 显式传 α_U；方法仍未获准加入冻结 Survey。
 
 #### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
 
@@ -607,9 +633,49 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 |---|---|---|---|
 | `max_iter` | `int` | `1000` | 主优化最大迭代 |
 | `n_em_iter` | `int` | `20` | EM 迭代数 |
-| `C` | `float` | `1.0` | 正则化强度 |
+| `C` | `float` | `1.0` | 正则化强度的倒数，须有限且大于 0 |
 
 - 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
+- 当前为线性 logistic EM，不是作者双 MLP/Adam；`fit(class_prior=...)` 仅影响 U 后验初始化。
+- 拟合后 `n_iter_` / `converged_` 记录实际 EM 轮数与后验停止条件；
+  `observed_log_likelihood_history_` 记录每轮观测对数似然之和，不是含正则项的优化目标，亦不保证单调。
+- `predict_proba` 返回类别概率，`predict_label_proba` 返回被标记概率；所有预测入口均要求先成功拟合。
+
+#### `NeuralLBEClassifier`（注册名 `lbe_neural`，别名 `neural_lbe`）
+
+独立实验性双网络 generalized EM；**不替换 `lbe` 或冻结 Pilot**。
+
+```python
+NeuralLBEClassifier(model=None, *, propensity_model=None, encoder=None,
+                    hidden_dim=100, pretrain_steps=20, n_em_iter=20, m_steps=40,
+                    sample_fraction=0.1, batch_size=256, learning_rate=1e-3,
+                    weight_decay=1e-3, random_state=0, device=None)
+```
+
+| 参数 | 默认 | 契约 |
+|---|---|---|
+| `model` / `propensity_model` | `None` | 各自输出每行一个 raw logit；默认独立 MLP100/tanh；deepcopy，不修改模板 |
+| `encoder` | `None` | 4-D 图像必须显式提供；分别为两个网络 deepcopy 成独立可训练 encoder，输出二维特征 |
+| `hidden_dim` | `100` | 默认头的隐藏宽度，正整数 |
+| `pretrain_steps` | `20` | 每个网络的预训练 Adam 更新数，非负整数；0 是显式无预训练适配 |
+| `n_em_iter` / `m_steps` | `20` / `40` | 正整数；每轮 E 后验停止梯度，在该轮全部 M 更新中保持固定 |
+| `sample_fraction` | `0.1` | `(0,1]`，每个 M 更新重新抽取 `max(1,floor(N*fraction))` 个训练行，不放回 |
+| `batch_size` | `256` | 正整数，设备前向/梯度累积/预测分批上限；不是额外的 Adam 更新轴 |
+| `learning_rate` / `weight_decay` | `0.001` / `0.001` | 有限实数，分别正 / 非负 |
+| `random_state` / `device` | `0` / `None` | 隔离 NumPy RNG、保留 CPU/所选 CUDA RNG，不重置其它 CUDA 生成器；仅支持 CPU/CUDA，auto 由公共解析器决定 |
+
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`：
+只接受训练 PU 观测标签，至少两条 labeled P 和一条 U；不读取验证、test 或隐藏 PN 真值。
+`class_prior` 非空时校验 `(0,1)` 实数但不影响源配方；非空 `sample_weight` 与非 OS 视图拒收。
+输入/后验留 CPU，逐批累积行数加权梯度后每个 M step 只更新一次 Adam。
+默认共 840 次 optimizer 更新；`checkpoint_epoch_count=20` 是 EM 轮数，不能误记为 840 个权重快照。
+`epoch_callback` 每个 EM 轮末调用，完整预训练/EM 成本由 `optimizer_steps_` 和阶段 provenance 记录。
+
+`predict_proba` 返回类后验，`predict_label_proba` 返回类后验×propensity，`decision_function` 为类别 raw logit。
+`history_` / `observed_log_likelihood_history_` 仅为训练诊断，不保证单调或可辨识性，不作为通用 PA/OA 准则。
+standalone pickle 保留双网络；runner 的 epoch checkpoint 仅供 classifier 推理，不恢复 propensity 或 optimizer 继续训练。
+默认配方取自单独登记的用户包 MLP 变体，稳定 logits/分批/CNN 为适配；不是旧官方包或论文数值复现。
+来源、差异、校准边界和待复核项见[神经 LBE 交付](../../research/pu_survey/delivery/lbe_neural_integration_20261014.md)。
 
 ### 深度分类器
 
@@ -622,10 +688,17 @@ LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
                 batch_size=64, support_batch_size=32, num_clusters=5,
                 learning_rate=1e-3, meta_lr=1e-3, mix_weight=1.0,
                 contrastive_weight=1.0, temperature=0.07, noise_std=0.05,
-                rho_start=0.95, rho_end=0.8, random_state=None, device=None)
+                rho_start=0.95, rho_end=0.8, random_state=None, device=None,
+                encoder=None, data_device_policy="auto", meta_update_bias=True)
 ```
 
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, support_data=(X_support, y_clean), epoch_callback=None)`；support set 必须独立、干净且包含两类，缺失时直接报错。非空 `sample_weight` 报错。详见 [LaGAM 方法卡](../../research/method_cards/LaGAM.md)。
+
+支持二维特征或注入可训练 encoder 的四维 NCHW，support 须同输入形状。encoder deepcopy 后接原 MLP，须输出有限二维特征；auto 无 encoder 时保留旧 resident，有 encoder 时强制 cpu_stream，也可显式 cpu_stream，拒绝 encoder+resident。CPU-stream 的输入、support、伪标签及组索引留 CPU，训练/聚类/推理每次 ≤batch_size 行、support ≤support_batch_size；全量聚类特征仍占 CPU 内存。
+
+`meta_update_bias=True` 保留原虚拟 weight+bias；False 只对齐作者 classifier weight-only 范围，不是整条来源重放。新 CNN 虚拟步以冻结 eval 提取特征、恢复逐模块模式，不改真实 BN/dropout；实际损失可训练 encoder。原硬观测元目标、稳定 BCE、rho 端点及 Gaussian 增强仍为适配，详见[来源复核](../../research/pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+
+`max_epochs` 包含 warmup；`checkpoint_epoch_count=max_epochs`。`optimizer_steps_`、`virtual_steps_`、`clustering_passes_` 分别计真实更新、虚拟二阶步与聚类次数；`epoch_provenance_` 与快照上下文区分 warmup/meta，不批准选模资格。图像快照保留推理批大小，无优化器续训。fit 普通异常会撤销 fitted。数组别名重叠将拒绝，但不证明不同副本的角色索引独立。PU-only UI/推荐器及标准 trainer 仍不会自动提供 support；新增 CNN 声明不等于这些入口已可训练。发布 OS split 与 registry TS 定位冲突待审，未新增 TS 接口。
 
 #### `SplitPUClassifier`（注册名 `split_pu`，别名 `split-pu`）
 
@@ -931,6 +1004,9 @@ report = pipe.fit_evaluate(
 （序列化进 `to_json()`）。
 
 ### classifier 选择语义
+
+以下入口只接受主输入声明 `label_semantics="pu"` 的分类器。显式PN/PNU错配在训练前失败，
+不通过标签数值猜测输入含义。`y_true`仅用于评价，不把主输入自动切换为PN。
 
 | `classifier=` | 行为 |
 |---|---|
@@ -1569,6 +1645,26 @@ Survey 的版本化运行通过脚本 `--protocol survey-v1.2 --dataset ...` 启
 （`survey-v1`/`survey-v1.1` 保留为当前规格别名，实际版本写入 manifest）。
 `config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
 预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
+
+配方绑定为显式 opt-in：版本化入口可传 `--recipe-registry <locked.json>`；
+runner 对应 `config["recipe_registry"]` 已加载对象及可选 `expected_recipe_registry_sha256`。
+运行前要求 registry/profile 都是 locked，检查协议/范围/候选/构造参数；draft 不放行。
+绑定身份写入 manifest 顶层、candidate_runs 与每项 selection。单次 CLI 增加
+`recipe_<registry摘要>/` 输出层，pilot 固定子进程摘要，并以完整预期身份判定续跑，不能借用 legacy 结果。
+v1 仅支持单外层候选（包括 PUSB 内部 CV）；不指定注册表则保留旧行为，不回填历史 manifest。
+批次审计/汇总采用 `survey-batch-roots-2` 外部白名单：每批显式声明 `recipe_policy`，
+绑定批次还须固定 registry 路径及 canonical 摘要；删除 manifest 所有绑定字段也不能降级 legacy。
+`recipe_audit` 为独立版本化扩展，不改历史 A01–A17；失败时不输出数值行，成功后仍执行原有门槛。
+同份报告不混合不同 registry 或 bound/legacy namespace；不同方法可在同一 registry 下使用不同 profile。
+JSON 行/成本及扩展 CSV 保留配方身份。独立旧聚合 CLI 遇到绑定结果会要求使用 v2 审计/汇总入口。
+完整契约与剩余多外层候选/正式冻结缺口见[P4.1-A 工程记录](../../research/pu_survey/delivery/p4_1_runtime_binding_20261014.md)。
+
+显式配置 `recipe_binding_schema_version="survey-recipe-binding-2"` 或 CLI/pilot
+`--recipe-binding-schema-version survey-recipe-binding-2` 可采用[候选池身份契约](../../research/pu_survey/delivery/p4_1_pool_binding_20261014.md)：
+运行根记录完整候选池，candidate/PA/OA 各记实际身份，并核对失败排除后的 trajectory 索引。
+输出目录为独立 `recipe_pool_<SHA256>/`；外部 batch 白名单必须同步声明相同 schema。
+池格式仍要求 locked registry，不允许参数级候选覆盖，不改变冻结 Pilot 的单候选预算。
+JSON/CSV 保留逐 seed、逐选择准则的候选身份，不把池或整行写成一个假定的统一已选候选。
 
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
 `representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与

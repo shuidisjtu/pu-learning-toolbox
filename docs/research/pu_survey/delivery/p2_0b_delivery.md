@@ -1,11 +1,16 @@
 # P2.0b 交付：标签语义门禁（阶段 A）
 
+> **2026-10-16 当前验收**：用户接受阶段 A/B 技术复核证据，确认 RV2 完成并要求关闭 Issue #41，不再另要求人工签署。170 项相关测试及 PNU 三值直调通过，见[阶段 B 验收](label_semantics_stage_b_20261015.md)。下列日期记录保留历史口径，不再作为当前 RV2 待办。
+
 > **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](../reviews/pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
 
 状态：2026-09-18 完成工程实现与回归；**HENG958 独立复核/签署待办**。
 本交付不解除 `survey_protocol_v1.json` 的 `P2.0b_label_semantics_acceptance` 阻断项，
 也不放行正式 P2.1 pilot。范围只含[标签语义方案](../../../dev/label_semantics_plan.md)的 P1+P2；
 pipeline/comparison 入口、CLI/UI 展示及 ADR 收口属阶段 B。
+
+2026-10-15补记：阶段B工程、展示与文档见[独立交付](label_semantics_stage_b_20261015.md)。
+本页阶段A的历史证据保留，新增入口门禁不代替HENG958的RV2复核或签署。
 
 ## 已实现
 

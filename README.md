@@ -143,6 +143,8 @@ protocol gates are satisfied, results must be identified as a
 transfer are driven by `run_survey_pilot.py`, `aggregate_survey_runs.py`, and
 `survey_splits_archive.py` (see their docstrings and `docs/research/pu_survey/`).
 Received survey data can be checked read-only with `scripts/review_survey_split_receipt.py`;
+independent rebuild differences can be diagnosed without relaxing receipt verification with
+`scripts/diagnose_survey_split_rebuild.py` (see [scope and limits](docs/research/pu_survey/delivery/split_rebuild_diagnostic_20261015.md)).
 pilot delivery Excel can be reconciled with `scripts/audit_survey_workbook.py` (optional `openpyxl`).
 Missing public raw datasets can be collected with `scripts/collect_survey_public_data.py`;
 this does not prepare or approve formal survey splits and excludes access-controlled ADNI.

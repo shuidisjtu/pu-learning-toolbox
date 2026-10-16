@@ -7,8 +7,8 @@
 > 上游依据：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §2.4 第 10 条、
 > [experiment_layer.md](experiment_layer.md) §1 D4（既有视图与 trainer 声明守卫）、
 > 项目 CLAUDE.md「API 契约」条。
-> 状态日期：2026-09-18。阶段 A（P1+P2）已完成工程实现与回归，合作者独立复核/签署待办；
-> 阶段 B（P3+P4）仍待实施，详见 [P2.0b 交付记录](../research/pu_survey/delivery/p2_0b_delivery.md)。
+> 状态日期：2026-10-16。阶段 A/B 工程与功能复核通过，已确认 RV2 完成并关闭 Issue #41，不再另要求人工签署，
+> 见[阶段 B 验收](../research/pu_survey/delivery/label_semantics_stage_b_20261015.md)。历史设计与阶段记录保留。
 
 ## 1. 问题
 

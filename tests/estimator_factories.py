@@ -113,6 +113,19 @@ def _make_lbe():
     return LBEClassifier(n_em_iter=3)
 
 
+def _make_lbe_neural():
+    from pu_toolbox.estimators.deep.lbe_neural import NeuralLBEClassifier
+
+    return NeuralLBEClassifier(
+        hidden_dim=4,
+        pretrain_steps=1,
+        n_em_iter=2,
+        m_steps=2,
+        batch_size=16,
+        device="cpu",
+    )
+
+
 def _make_class_prior_estimation():
     from pu_toolbox.prior.pen_l1 import ClassPriorEstimator
 
@@ -343,6 +356,7 @@ FACTORY_MAP: dict[str, callable] = {
     "pusb": _make_pusb,
     "pusb_kernel": _make_pusb_kernel,
     "lbe": _make_lbe,
+    "lbe_neural": _make_lbe_neural,
     "class_prior_estimation": _make_class_prior_estimation,
     "recpe": _make_recpe,
     "self_pu": _make_self_pu,

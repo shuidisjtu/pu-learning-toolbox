@@ -7,6 +7,7 @@ strategy (Generator/Trainer/SelectionProtocol) per docs/dev/experiment_layer.md
 
 from __future__ import annotations
 
+import copy
 import inspect
 import tempfile
 import time
@@ -28,6 +29,7 @@ from .protocols import route_training_view
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
 from .survey_comparison import run_comparison_units
 from .survey_protocol import runner_protocol_context
+from .survey_recipe_binding import bind_recipe, candidate_binding_at
 from .tracking import RunResult, RunTrajectory
 
 
@@ -85,6 +87,55 @@ def _run_comparison(protocol_context: dict[str, Any], config: dict[str, Any]) ->
 def _comparison_entry(comparison: dict[str, Any]) -> dict[str, Any]:
     """Expose the comparison block, omitting it rather than writing an empty one."""
     return {"comparison": comparison} if comparison else {}
+
+
+def _recipe_context(
+    model, config: dict[str, Any], protocol_context: dict[str, Any]
+) -> dict[str, Any]:
+    """Bind an explicitly supplied registry; never retrofit an unbound run."""
+    registry = config.get("recipe_registry")
+    if registry is None:
+        if (
+            "expected_recipe_registry_sha256" in config
+            or config.get("recipe_binding_schema_version") is not None
+        ):
+            raise ValueError("a pinned recipe digest requires a recipe registry")
+        return {}
+    request = config.get("survey_protocol")
+    if request is None or protocol_context.get("execution_mode") != "versioned_pilot":
+        raise ValueError("recipe binding requires a versioned survey execution unit")
+    from .survey_protocol import digest, load_protocol
+
+    protocol = load_protocol(request["path"])
+    if digest(protocol) != protocol_context["protocol_sha256"]:
+        raise ValueError("survey protocol changed during recipe preflight")
+    binding = bind_recipe(
+        copy.deepcopy(registry),
+        protocol,
+        method=request["method"],
+        dataset=request["dataset"],
+        training_path=protocol_context["training_path"],
+        candidates=config.get("candidates", [{}]),
+        constructor_overrides=request.get("constructor_overrides"),
+        expected_sha256=config.get("expected_recipe_registry_sha256"),
+        binding_schema_version=config.get("recipe_binding_schema_version"),
+    )
+    declared = protocol["method_profiles"][request["method"]]["params"]
+    # The protocol names only some constructor fields. Everything else must
+    # remain a code default, except separately validated runtime inputs.
+    runtime = {"class_prior", "random_state", "device", "model", "backbone", "encoder"}
+    signature = inspect.signature(type(model).__init__).parameters
+    for name, value in model.get_params(deep=False).items():
+        if name in declared or name in runtime:
+            continue
+        parameter = signature.get(name)
+        if (
+            parameter is None
+            or parameter.default is inspect.Parameter.empty
+            or digest(value) != digest(parameter.default)
+        ):
+            raise ValueError(f"estimator parameter is outside the resolved recipe/defaults: {name}")
+    return binding
 
 
 class ExperimentRunner:
@@ -186,10 +237,19 @@ class ExperimentRunner:
         comparison: dict[str, Any] = {}
         selection_prior: float | None = None
         selection_prior_source: str | None = None
+        recipe_context: dict[str, Any] = {}
+        recipe_candidates = None
         try:
             protocol_context = runner_protocol_context(
                 model, bundle, self.config, self.seed, self.generator, self.protocols
             )
+            recipe_context = _recipe_context(model, self.config, protocol_context)
+            protocol_context.update(recipe_context)
+            if recipe_context:
+                # The candidate pool used after label generation must be the
+                # one that passed binding, even if a strategy mutates config.
+                recipe_candidates = copy.deepcopy(self.config.get("candidates", [{}]))
+                model = clone(model)
             # Resolved inside the preflight, not after it: a row the comparison
             # matrix does not cover is a preregistration defect, and a run that
             # produced results without stating what they may be compared against
@@ -217,6 +277,7 @@ class ExperimentRunner:
                         "execution_mode": "rejected_versioned_pilot",
                         "formal_eligible": False,
                         "formal_blockers": ["protocol_preflight_failure"],
+                        **recipe_context,
                         **_manifest_view_context(self.config),
                         **_comparison_entry(comparison),
                         "generation": {},
@@ -325,12 +386,19 @@ class ExperimentRunner:
 
         # 3. train the candidate pool. A failed attempt is retried once from
         #    a fresh clone; a twice-failed candidate is excluded from ranking.
-        candidates = self.config.get("candidates", [{}])
+        candidates = (
+            recipe_candidates
+            if recipe_candidates is not None
+            else self.config.get("candidates", [{}])
+        )
         trajectories = []
         failures = []
         candidate_runs = []
         tuning_t0 = time.perf_counter()
         for candidate_index, params in enumerate(candidates):
+            candidate_recipe = (
+                candidate_binding_at(recipe_context, candidate_index) if recipe_context else {}
+            )
             errors = []
             attempt_resources = []
             for attempt in (1, 2):
@@ -372,6 +440,7 @@ class ExperimentRunner:
                 candidate_runs.append(
                     {
                         "candidate_index": candidate_index,
+                        **candidate_recipe,
                         "trajectory_index": trajectory_index,
                         "params": _artifact_value(params),
                         "seed": self.seed,
@@ -396,6 +465,7 @@ class ExperimentRunner:
                 candidate_runs.append(
                     {
                         "candidate_index": candidate_index,
+                        **candidate_recipe,
                         "trajectory_index": None,
                         "params": _artifact_value(params),
                         "seed": self.seed,
@@ -531,6 +601,10 @@ class ExperimentRunner:
                 item for item in candidate_runs if item["trajectory_index"] == artifact.run_index
             )
             payload["candidate_index"] = selected_run["candidate_index"]
+            if recipe_context:
+                payload.update(
+                    candidate_binding_at(recipe_context, selected_run["candidate_index"])
+                )
             if artifact.checkpoint_index is not None:
                 payload["checkpoint"] = (
                     trajectories[artifact.run_index]

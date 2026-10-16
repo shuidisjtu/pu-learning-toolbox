@@ -26,7 +26,13 @@
 
 ### `delivery/`：阶段交付、批次快照与验收材料
 
+- P2.1/P2.2新修正包接收：[`p21_correction_receiving_20261015.md`](reviews/p21_correction_receiving_20261015.md)，三数据页保持、独立文件身份与说明审计；原训练制品/签署仍待。
+- Issue #41阶段B：[`label_semantics_stage_b_20261015.md`](delivery/label_semantics_stage_b_20261015.md)，公共入口门禁/展示/ADR；2026-10-16 用户确认 RV2 完成，Issue #41 可关闭。
 - P1.4：[`p1_4_review.md`](delivery/p1_4_review.md)。
+- P1.4-R当前接收验收：[`p1_4r_receiving_acceptance_20261015.md`](reviews/p1_4r_receiving_acceptance_20261015.md)，五数据集25split/125文件/5原归档技术通过；人工复核与已知限制保留。
+- P1.4-R 独立重建诊断：[`split_rebuild_diagnostic_20261015.md`](delivery/split_rebuild_diagnostic_20261015.md)，平台字节归因不替代原收据/归档验收。
+- P1.4-R 完整独立重建（接收前历史记录）：[`p1_4r_full_rebuild_20261015.md`](reviews/p1_4r_full_rebuild_20261015.md)，原交付现已接收，当前状态以上方接收验收为准。
+- P1.4-R 早期部分复核（历史截点）：[`p1_4r_independent_rebuild_20261015.md`](reviews/p1_4r_independent_rebuild_20261015.md)。
 - P2.0：[`p2_0a_delivery.md`](delivery/p2_0a_delivery.md)、[`p2_0a_review.md`](delivery/p2_0a_review.md)、
   [`p2_0b_delivery.md`](delivery/p2_0b_delivery.md)、[`p2_0c_delivery.md`](delivery/p2_0c_delivery.md)、
   [`p2_0c_review.md`](delivery/p2_0c_review.md)、[`p2_0e_delivery.md`](delivery/p2_0e_delivery.md)。
@@ -36,8 +42,16 @@
   [`p2_1_handoff_checklist.md`](delivery/p2_1_handoff_checklist.md)。
 - P2.2：[`p2_2_delivery.md`](delivery/p2_2_delivery.md)、[`p2_2_review.md`](delivery/p2_2_review.md)、
   [`p21_workbook_review_20261004.md`](delivery/p21_workbook_review_20261004.md)。
+- P4.1-A：[`p4_1_runtime_binding_20261014.md`](delivery/p4_1_runtime_binding_20261014.md)：训练前绑定、pilot 摘要固定/续跑与 draft CI；不是正式配方冻结。
+  [`p4_1_pool_binding_20261014.md`](delivery/p4_1_pool_binding_20261014.md)：版本化候选池、PA/OA 独立候选与 trajectory 身份；不批准新参数搜索。
+- LBE 独立神经变体：[`lbe_neural_integration_20261014.md`](delivery/lbe_neural_integration_20261014.md)，不替换冻结 linear `lbe`。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
+
+- [`vpu_schedule_review_20261015.md`](admission/vpu_schedule_review_20261015.md)：VPU 可选源 Adam 重置调度与固定轮内训练步数，不改变默认或 D22 准则。
+- [`vpu_encoder_stream_20261015.md`](delivery/vpu_encoder_stream_20261015.md)：VPU 注入 CNN 与 CPU 数据分批工程路径，非作者图像复现/正式准入。
+- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；α_U/TS 审批仍阻断。
+- [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；support 标签预算和发布 OS/registry TS 冲突保留待审。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。

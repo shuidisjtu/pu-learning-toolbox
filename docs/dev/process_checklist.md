@@ -18,6 +18,30 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-16：接受 Pilot 数据技术证据和阶段 A/B 标签语义功能复核，确认 RV1/RV2 完成，不再额外要求人工签署。标签语义相关 170 项测试及 PNU 三值直接训练通过，Issue #41 可关闭；见[阶段 B 验收](../research/pu_survey/delivery/label_semantics_stage_b_20261015.md)。下列日期记录保留历史状态，PR 的 Windows ZIP 测试问题单独处理。
+
+2026-10-15 P2.1/P2.2修正包接收：新表三数据页22942单元格与原表精确一致，645runs/183汇总不变；修复说明审计漏读第二列和否定引述误报，保留新表对旧索引的SHA/大小拒绝。相关25项、全仓快速3887项通过/58项跳过；原结果树及HENG958签署仍待，见[复核](../research/pu_survey/reviews/p21_correction_receiving_20261015.md)。
+
+2026-10-15 P1.4-R原交付接收验收：四集原ZIP与ADNI替代集tar已实际接收，25split/125文件/5归档对原仓库索引、语义和源行回放通过；20News原缓存重建摘要命中，与本地重建数值差异留痕、不追加容差。接收/预处理回归162项通过，人工复核、替代集subject/许可风险及新主榜批准仍保留。见[验收](../research/pu_survey/reviews/p1_4r_receiving_acceptance_20261015.md)；下方“原tar未接收”为早期历史截点，不是当前缺口。
+
+2026-10-15 P1.4-R 完整独立重建：原20News CPU任务退出0，四数据集20split/100文件及四新归档通过自身索引/语义复核，并将新索引与完整报告独立留档。对原索引仍严格失败：20个角色索引一致，60个NPZ仅ZIP平台字节可归因，20个文本NPZ及全部manifest不同；未接收原tar，未代填签署，见[全量记录](../research/pu_survey/reviews/p1_4r_full_rebuild_20261015.md)。下方部分进度保留为历史截点。
+
+2026-10-15按远程Issue #41优先补齐阶段B：PUPipeline解析/运行/clone后的主输入语义门禁，比较/调优/CLI/UI消费，敏感性直接fit守卫，推荐器/UI过滤和CLI Labels列；ADR/API及用户文档同步。RV2本人复核仍待办，不关闭Issue或改冻结结果，见[交付](../research/pu_survey/delivery/label_semantics_stage_b_20261015.md)。
+
+2026-10-15 P1.4-R 状态补记：补回10-14四数据集20split/100文件的来源方交付，另记录本执行端三数据集15split语义复核及完整原索引差异；20News原CPU编码仍运行，原tar未接收。部分证据与待办见[独立复核进度](../research/pu_survey/reviews/p1_4r_independent_rebuild_20261015.md)，不勾选正式验收或人工签署。
+
+2026-10-15 P1.4-R 独立重建诊断工具：保留原严格 verifier，仅旁路识别 NPZ 的 ZIP creator-system 字节差异；全索引分母、manifest 差异、路径/缺失/篡改/额外制品与拒绝退出码保持。不会用本机新归档或 creator-only 命中替代原交付接收，见[说明](../research/pu_survey/delivery/split_rebuild_diagnostic_20261015.md)。
+
+2026-10-15 LaGAM 来源/工程补齐：记录发布 OS split 与 registry TS 待审冲突，新增可选 weight-only 虚拟范围、注入 CNN/CPU-stream 与 BN/dropout 隔离、阶段成本快照及 support 别名拒绝；原二维默认保留，UI/普通 trainer 仍缺独立 support 而拒绝，正式标签预算/协议/资源及 HENG958 复核未放行。见[复核](../research/pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+
+2026-10-15 CVIR 来源/工程补齐：锁定作者 commit 并披露论文/代码权重、取整、warm-start、loader 和优化器差异；保留论文加权与旧二维默认，新增注入 CNN/CPU-stream 排序训练预测、阶段成本/快照上下文；台账、准入草稿、UI 能力与测试同步。α_U/TS、正式图像规格/预算/资源及 HENG958 复核仍待办，见[复核](../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+
+2026-10-15 P3.2 独立工程补齐：VPU 增加可训练 encoder 与 CPU-stream 数据策略，归一化/验证/推理及快照分批接通；旧二维默认 resident 保留。台账、准入草稿、UI 能力及契约同步；D22 选模、正式共享规格/资源/协议和 HENG958 复核仍待办，见[交付](../research/pu_survey/delivery/vpu_encoder_stream_20261015.md)。
+
+2026-10-15 VPU 来源切片：补显式可选的作者 Adam 重置/减半时序及固定轮内更新数，默认 constant/数据量推导、D21/D22 与旧结果不变；台账、准入草稿、源记录和测试同步，正式候选/预算未批准。见[复核](../research/pu_survey/admission/vpu_schedule_review_20261015.md)。
+
+2026-10-14 独立算法收尾：新增 `lbe_neural` 双网络 Adam generalized-EM 变体，MLP/注入 CNN、分批梯度与预测、EM 推理快照、台账/OS-only 拒绝边界和测试同步；原 `lbe` 与冻结 Pilot 不变。采用单独登记的用户包时序，不称官方包/论文数值重放；HENG958 复核、正式协议/资源/配方及真实数据/GPU仍待办，见[交付](../research/pu_survey/delivery/lbe_neural_integration_20261014.md)。
+
 2026-10-04 后续准备：P4.1 冻结 pilot 注册表 draft 已物化并校验，8 个预集成方法准入 blocker 已形成机器清单；PULDA/PUET 的预算/视图/选择/存储草案与四角色 runner smoke 已补。见 [推进计划](../research/pu_survey/survey_execution_plan.md)。未修改冻结协议，未升级任何方法或配方为正式已签署。
 
 2026-10-04 后续：645-run Excel 已收到且原索引摘要一致，183 行 raw → summary 对账通过；315 次显存缺测、说明页 c/OS/TS/PA 术语勘误和若干低 AUC 诊断已披露。见 [表格层验收](../research/pu_survey/delivery/p21_workbook_review_20261004.md)；原始制品层仍待复核。

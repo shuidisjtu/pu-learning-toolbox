@@ -46,9 +46,10 @@ L_{reg}=\mathbb E[(\log\tilde\Phi-\log\Phi_\theta(\tilde x))^2],
 
 ## 当前实现边界
 
-- `vpu`（别名 `variational_pu`）注册为实验性原生方法，支持稠密二维特征、CPU 和显式 CUDA；PyTorch 为可选依赖。默认两层 MLP64 适配工具箱，不是论文 UCI 的七层 MLP300 或 CIFAR CNN，因此未宣称论文精度复现。
+- `vpu`（别名 `variational_pu`）注册为实验性原生方法，支持稠密二维特征及注入可训练 encoder 的四维图像、CPU 和显式 CUDA；PyTorch 为可选依赖。默认两层 MLP64 适配工具箱，注入 encoder 后仍接该头，不是论文 UCI 的七层 MLP300 或 CIFAR CNN，因此未宣称论文精度复现。
 - mini-batch 从正样本池与**边缘池**分别有放回抽样；边缘池随训练视图变化（`ts` 为完整分区、`os` 为未标记行），正例池不随视图变化。优化器 Adam `betas=(0.5,0.99)`；每 epoch 的迭代数与批大小上界由**边缘池**的行数推出（`ts` 下与接线前的完整 `X` 相同）。每轮保存分量损失、总风险、可选 PU 验证风险和更新次数；归一化层包含在权重快照中，支持逐轮 checkpoint 恢复。
 - 训练、预测拒绝非有限值或错误维度；非空 `sample_weight` 明确报错。`predict_proba` 是 VPU 自身归一化分数，不是独立校准器。外推样本的归一化分数可能超过 1；概率接口会截到 `[0,1]`，而原始 `decision_function` 保留未截断值以便审计。
 - 2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke；2026-09-28 又通过全局 PyTorch 2.6.0+cu124 环境下的原生与 TS 特征路径单次 CUDA smoke。这些技术 smoke 不替代 frozen-lock 或正式多 seed GPU/资源验收。
-- **与上游的既有适配缺口（与训练视图无关，2026-09-28 亲验作者代码后登记）**：上游每 20 epoch 将学习率减半并重建优化器（`vpu.py:39-41`），本实现**无此衰减**；学习率默认值本实现为 `3e-4`，上游为 `3e-5`（`run.py:11`），相差一个数量级；`max_epochs` 100 vs 50、`batch_size` 128 vs 500，且每 epoch 迭代数由数据量推导而上游固定 `val_iterations=30`。加上网络规模差异，本实现**不是作者训练脚本的复现**。
-- 当前为 **P3.1 技术预集成**：采样假设已审计并裁决为原生 `ts`（2026-09-28，见审计记录），训练视图与方法台账已接入，但**共享 backbone、原生图像路径、公开数值对照、多 seed GPU/资源记录及双人复核均未完成**，且不进入冻结执行矩阵。不能列入正式 pilot 或 P3.1 验收完成项。
+- **与上游的适配差异（2026-10-15 补充）**：显式 `optimizer_schedule="source_reset_halving"` 已支持作者零基 epoch19/39…训练前减半并重建 Adam 的时序，`iterations_per_epoch=30` 可显式固定更新数；默认仍为 `constant` / 数据量推导，不静默改变已有运行。学习率默认 `3e-4` vs 作者 `3e-5`、epochs100 vs50、batch128 vs500，以及小型 MLP/有放回配对采样等差异仍保留；采用两个开关也**不是作者训练脚本或论文数值复现**。见[源调度复核](../pu_survey/admission/vpu_schedule_review_20261015.md)。
+- 2026-10-15 新增 **P3.2 工程接线**：encoder deepcopy 后联合训练，训练/验证池留 CPU、设备端逐批传输；归一化、验证、推理及权重恢复有分批契约。新路径不扁平化图像；验证使用全局 float64 归约，仍仅为 D22 source diagnostic。旧二维无 encoder 的 auto 路径保留 resident 与旧数值运算。见[交付](../pu_survey/delivery/vpu_encoder_stream_20261015.md)。
+- 当前仍为 **P3.1 技术预集成**：采样假设已审计并裁决为原生 `ts`（2026-09-28，见审计记录），训练视图与方法台账已接入，但**正式共享 backbone 规格、作者图像增强/网络、公开数值对照、多 seed GPU/资源记录及双人复核均未完成**，且不进入冻结执行矩阵。不能列入正式 pilot 或 P3.1 验收完成项。

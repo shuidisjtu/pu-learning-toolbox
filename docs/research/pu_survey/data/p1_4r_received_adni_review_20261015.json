@@ -1,0 +1,330 @@
+{
+  "integrity": {
+    "ok": true,
+    "problems": [],
+    "checked": {
+      "splits": 5,
+      "files": 25
+    }
+  },
+  "splits": [
+    {
+      "dataset": "adni",
+      "seed": 0,
+      "roles": {
+        "train": {
+          "shape": [
+            4608,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            1280,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "83d41d7548edf99af5f92a4a47770f77939a356a14d8cd489e351fb203b16568",
+      "channel_mean": [
+        0.2818079106230615
+      ],
+      "channel_std": [
+        0.328801592871672
+      ],
+      "channel_mean_max_error": 5.551115123125783e-16,
+      "channel_std_max_error": 0.0,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "adni",
+      "seed": 1,
+      "roles": {
+        "train": {
+          "shape": [
+            4608,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            1280,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "a1199cdd60392efbb3ccc1e1eb9e37dfc0e6951d2f21ef239f273d2592b8d309",
+      "channel_mean": [
+        0.28150808560481394
+      ],
+      "channel_std": [
+        0.32849923068022663
+      ],
+      "channel_mean_max_error": 3.3306690738754696e-16,
+      "channel_std_max_error": 5.551115123125783e-17,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "adni",
+      "seed": 2,
+      "roles": {
+        "train": {
+          "shape": [
+            4608,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            1280,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "93a6223b9fb8a136a850fb03617817c7439f0c90cf439b01e31d9c746892d24a",
+      "channel_mean": [
+        0.28174333456059
+      ],
+      "channel_std": [
+        0.3287460489014037
+      ],
+      "channel_mean_max_error": 5.551115123125783e-16,
+      "channel_std_max_error": 5.551115123125783e-17,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "adni",
+      "seed": 3,
+      "roles": {
+        "train": {
+          "shape": [
+            4608,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            1280,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "bf451f57129b382281545254da1298cc8fa3c5abd33639283d1feb1882802432",
+      "channel_mean": [
+        0.2818730074682942
+      ],
+      "channel_std": [
+        0.3287833573108394
+      ],
+      "channel_mean_max_error": 9.992007221626409e-16,
+      "channel_std_max_error": 5.551115123125783e-17,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    },
+    {
+      "dataset": "adni",
+      "seed": 4,
+      "roles": {
+        "train": {
+          "shape": [
+            4608,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "pu_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "clean_val": {
+          "shape": [
+            256,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        },
+        "test": {
+          "shape": [
+            1280,
+            1,
+            128,
+            128
+          ],
+          "dtype": "uint8",
+          "positive_rate": 0.5,
+          "finite": true
+        }
+      },
+      "issues": [],
+      "bundle_contract": "passed",
+      "population_prior": 0.5,
+      "manifest_sha256": "a3e912777ed228b1ef7f4064b78e7f49cb70307d0f608c210527bef9e25614b2",
+      "channel_mean": [
+        0.2819221538466417
+      ],
+      "channel_std": [
+        0.32884309257806904
+      ],
+      "channel_mean_max_error": 1.3877787807814457e-15,
+      "channel_std_max_error": 5.551115123125783e-17,
+      "channel_statistics_atol": 1.1920928955078125e-07
+    }
+  ],
+  "test_file_hash_count": {
+    "adni": 5
+  }
+}

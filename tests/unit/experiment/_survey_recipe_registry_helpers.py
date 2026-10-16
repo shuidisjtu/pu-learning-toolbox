@@ -186,6 +186,18 @@ def base_registry(
     return value
 
 
+def locked_registry(method="upu", protocol=None):
+    """Synthetic declared lock for runtime tests; never a project sign-off."""
+    protocol = protocol or load_protocol()
+    value = base_registry(methods=(method,), protocol=protocol)
+    value["recipe_lifecycle"] = "locked"
+    for prof in value["profiles"].values():
+        prof["recipe_lifecycle"] = "locked"
+        for chosen in prof["candidate_pool"]:
+            chosen["resolved_snapshot"] = resolve_candidate(prof, chosen, protocol)
+    return value
+
+
 def protocol_with_outer_candidates(count: int, family: str = "minibatch") -> dict[str, Any]:
     """The frozen protocol with one budget family widened, for pool-size cases.
 
@@ -201,6 +213,18 @@ def protocol_with_outer_candidates(count: int, family: str = "minibatch") -> dic
     protocol["budgets"][family]["outer_candidates"] = count
     protocol["candidate_pool"] = [{} for _ in range(count)]
     return protocol
+
+
+def pool_registry(count=3, method="upu"):
+    """Synthetic future pool, not approval or mutation of the shipped protocol."""
+    family = load_protocol()["method_profiles"][method]["budget"]
+    protocol = protocol_with_outer_candidates(count, family=family)
+    value = locked_registry(method, protocol)
+    prof = value["profiles"][method]
+    prof["candidate_pool"] = [candidate(f"{method}_test_{index}") for index in range(count)]
+    for chosen in prof["candidate_pool"]:
+        chosen["resolved_snapshot"] = resolve_candidate(prof, chosen, protocol)
+    return protocol, value
 
 
 def bound_manifest(

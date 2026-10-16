@@ -67,13 +67,13 @@ pu_toolbox/
       kldce.py                            (native: ACS + 原生 SMO + RBF kernel)
       kldce_smo.py                        (原生配对 SMO 求解器: 解析更新 + KKT 选择)
       dist_pu.py                          (native: Dist-PU 标签分布对齐: 正例监督+期望对齐+熵最小化, torch 可选 MLP)
-      vpu.py                              (native: VPU 变分风险+对数 MixUp 正则，先验无关的二维 MLP 适配)
+      vpu.py                              (native: VPU 变分风险/MixUp、可训练 CNN 与 CPU 数据分批适配)
       pulda.py                            (native: PULDA 分布对齐+双向 margin+EMA 伪标签 MixUp，两阶段二维 MLP 适配)
       upu.py                              (native: uPU 凸风险估计器(du Plessis'15): 双铰链/逻辑/平方损失三变体)
       nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
       pnu.py                              (native: 凸 PNU 半监督闭式解(平方损失, 对齐 pywsl, η 混合 P/NU))
       puet.py                             (native: PU Extra Trees nnPU/二次风险驱动的随机树集成，CPU)
-      cvir.py                             (CVIR 固定未标记正类先验的经典适配器，技术预集成)
+      cvir.py                             (CVIR 论文加权目标、注入 CNN/CPU 分批与两阶段成本快照)
     bias_aware/
       __init__.py                         (公共导出聚合)
       pusb.py                             (native: PUSB 选择偏差打分: LR 源分类器 + 可配置阈值(保序不保后验))
@@ -84,7 +84,7 @@ pu_toolbox/
       grad_pu.py                          (native: GradPU 输入梯度惩罚 + 未归一化正样本加权，二维 MLP)
       robust_pu.py                        (native: Robust-PU nnPU 预训练 + 自步加权伪负例，二维 MLP)
       split_pu.py                         (native: Split-PU nnPU teacher + 预测分歧分组 + 分支一致性，二维 MLP)
-      lagam.py                            (native: LaGAM 干净 support 元标签 + 潜在组对比，二维 MLP)
+      lagam.py                            (native: LaGAM 独立 support 元梯度、注入 CNN/CPU 分批与阶段成本)
       self_pu.py                          (native: SelfPUClassifier 双学生自步进+元重加权+蒸馏 (官方精确对齐))
       infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU 流水线, PU-SMI 目标)
       weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier 原型+SAT+momentum queue 加权对比 (WConPU 论文协议))
@@ -96,6 +96,7 @@ pu_toolbox/
       gen_pu.py                           # GenPU 两生成器三判别器与合成 PN
       holistic_pu.py                      # Holistic-PU 趋势与自然断点伪标签
       p3mix.py                            # P3Mix batch 数学组件, 未注册分类器
+      lbe_neural.py                       # 双网络 Adam generalized EM、稳定 E/M 目标与独立 CNN 适配
     research/
       __init__.py                         (公共导出聚合: 联合移位分类器/论文目标函数/JOINT_SHIFT_METHODS 工厂)
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
@@ -188,6 +189,8 @@ pu_toolbox/
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
     survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
     survey_artifacts.py                   # Survey 证据制品的集中式仓库相对路径映射与解析
+    survey_recipe_audit.py                # 版本化批次配方义务、身份重算与聚合前拒收
+    survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -280,6 +283,14 @@ tests/
       test_holistic_pu_lzo.py           # Holistic-PU 正例 mixup 终点选择、状态恢复与全预算成本测试
       test_pulns_cnn.py                 # PULNS CNN/奖励 probe 隔离、状态提取、最佳模型与全预算成本
       test_gen_pu_cnn.py                # GEN-PU 像素生成、四 CNN 隔离、G 梯度、六网络成本与快照回放
+      test_lbe_review.py                # LBE 源公式、概率契约、重训失效与来源/校准复核
+      test_lbe_neural.py                # 神经 LBE 的预算、模板/随机性、序列化与 OS-only 边界
+      test_lbe_neural_math.py           # LBE 联合后验、完整似然梯度与极端 logits 独立数学对照
+      test_vpu_schedule.py              # VPU 源 Adam 重置边界、固定训练步数与默认兼容
+      test_vpu_encoder_stream.py        # VPU 注入 CNN、全局流式诊断、设备批次与快照兼容
+      test_cvir_source_encoder.py       # CVIR 来源差异/独立梯度、CNN 分批、U 排序与阶段快照
+      test_lagam_encoder_stream.py      # LaGAM CNN/support 分批、BN/RNG 隔离、快照与预算拒绝
+      test_lagam_virtual_scope.py       # LaGAM 虚拟范围的独立有限差分、双列扰动及平局数学对照
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -343,6 +354,8 @@ tests/
       test_review_survey_split_receipt_encoding.py # 图像类型尺寸与表格特征维度拒绝测试
       test_review_survey_split_receipt_integrity.py # 完整索引与归档篡改拒绝测试
       test_review_survey_split_receipt_modalities.py # 模态统计与官方测试源先验复核
+      test_diagnose_survey_split_rebuild.py # 重建 ZIP 平台字节诊断、不改严格验收与缺失/篡改拒绝
+      test_audit_survey_workbook_readme.py # Excel双列说明读取、历史否定引述与诊断确定性
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -370,6 +383,8 @@ tests/
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
       test_architecture_capability.py   # 架构能力校验 gate(能力/签名漂移 fail-loud)
       test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
+      test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
+      test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
     experiment/
       test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
       test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
@@ -473,6 +488,17 @@ tests/
       test_prepare_survey_splits_mnist.py # MNIST 家族输入校验与官方 test 隔离
       test_prepare_survey_splits_news.py # 20News 七前缀映射、原文与稳定排序
       test_prepare_survey_splits_wiring.py # 新数据集 CLI、来源证据与拒绝覆盖接线
+      test_pilot_recipe_resume.py       # 配方绑定续跑：旧记录、缺失字段与错配不得算完成
+      test_runner_recipe_binding.py     # runner 训练前锁定门禁、候选冻结与选择身份
+      test_survey_pilot_recipe_binding.py # pilot 配方预检、子进程摘要固定与计划记录
+      test_survey_recipe_binding.py     # 配方生命周期、范围、候选与内部 CV 绑定契约
+      test_survey_script_recipe_binding.py # 单次 CLI 绑定拒收、独立目录与旧制品保护
+      test_survey_recipe_consumers.py   # 批次外部配方义务与审计/汇总的防降级、分源契约
+      test_survey_recipe_gate.py        # 底层聚合器不能绕过配方身份或通过 diagnostic 放行
+      test_survey_recipe_pool.py        # 池摘要、身份/索引闭集与参数搜索不越权契约
+      test_survey_recipe_pool_consumers.py # 池义务重算及 JSON/CSV 逐 seed 选择身份
+      test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
+      test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -808,6 +834,7 @@ scripts/
   prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
   check_survey_extended_cnn_storage.py    # 新 CNN 资源记录只读身份/角色/阶段成本/源码校验
   profile_survey_extended_cnn_storage.py  # 七个新 CNN 工程变体的独立进程多种子资源探针
+  diagnose_survey_split_rebuild.py        (只读重建差异诊断：仅 ZIP 创建平台字节归因，不接受变更收据)
 ```
 
 ## 7. CI/CD（`.github/`）

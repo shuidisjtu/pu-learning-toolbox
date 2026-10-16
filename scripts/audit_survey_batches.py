@@ -69,6 +69,12 @@ from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
     resolve_code_commit,
     with_code_commit,
 )
+from pu_toolbox.experiment.survey_recipe_audit import (  # noqa: E402
+    BATCH_SCHEMA_VERSION,
+    audit_recipe_batches,
+    recipe_audit_lines,
+    validate_recipe_config,
+)
 from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     STATUSES,
     group_key,
@@ -97,9 +103,9 @@ class ConfigError(ValueError):
 def load_config(path: str | Path) -> dict[str, Any]:
     """Read and validate the batch-root whitelist."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    if payload.get("schema_version") != CONFIG_SCHEMA_VERSION:
+    if payload.get("schema_version") not in {CONFIG_SCHEMA_VERSION, BATCH_SCHEMA_VERSION}:
         raise ConfigError(
-            f"config schema_version must be {CONFIG_SCHEMA_VERSION!r}, "
+            f"config schema_version must be {CONFIG_SCHEMA_VERSION!r} or {BATCH_SCHEMA_VERSION!r}, "
             f"got {payload.get('schema_version')!r}"
         )
     batches = payload.get("batches")
@@ -122,6 +128,10 @@ def load_config(path: str | Path) -> dict[str, Any]:
                 raise ConfigError(f"batch {batch.get('name')!r} needs {key!r} as a path string")
             # Relative to the config, so a config and its inputs can move together.
             batch[key] = str((Path(path).resolve().parent / batch[key]).resolve())
+    try:
+        validate_recipe_config(payload, base_dir=Path(path).resolve().parent)
+    except ValueError as exc:
+        raise ConfigError(str(exc)) from exc
     return payload
 
 
@@ -1284,6 +1294,14 @@ def build_audit(
         "manifests": dict(Counter(entry["batch"] for entry in loaded)),
         "total": len(loaded),
     }
+    recipe_audit = audit_recipe_batches(config, entries, protocol)
+    if recipe_audit is not None:
+        report["recipe_audit"] = recipe_audit
+        if recipe_audit["overall"] == "fail":
+            # This is an independent, versioned admission extension, not A18 or
+            # a changed meaning of A01. Do not call numeric gates on bad inputs.
+            report["overall"] = "fail"
+            return report
 
     inventories = {
         batch["name"]: load_checkpoint_inventory(batch["checkpoint_inventory"])
@@ -1364,7 +1382,10 @@ def build_audit(
     for members in sorted(buckets.values(), key=lambda group: str(group[0]["path"])):
         paths = [entry["path"] for entry in members]
         try:
-            outcome = gate.aggregate(paths, protocol=protocol, require_formal=False)
+            kwargs = {}
+            if recipe_audit is not None and recipe_audit["method_bindings"]:
+                kwargs["expected_recipe_bindings"] = recipe_audit["method_bindings"]
+            outcome = gate.aggregate(paths, protocol=protocol, require_formal=False, **kwargs)
         except (ValueError, OSError, json.JSONDecodeError) as exc:
             failures.append((paths, str(exc)))
             continue
@@ -1440,6 +1461,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
             continue
         lines.extend(["", f"## {check['check_id']} 证据（{len(check['evidence'])} 条）", ""])
         lines.extend(f"- `{item}`" for item in check["evidence"])
+    lines.extend(recipe_audit_lines(report))
     return "\n".join(lines) + "\n"
 
 

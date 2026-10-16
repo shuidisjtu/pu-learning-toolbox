@@ -249,6 +249,16 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="needs_review",
         training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000 + EM loop
     ),
+    AlgorithmMetadata(
+        name="lbe_neural",
+        aliases=["neural_lbe"],
+        paper="Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
+        supports_sparse=False,
+        supports_gpu=True,
+        upstream_url="https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
+        license="needs_review",
+        training_cost=Cost.MEDIUM,
+    ),
     # ── 12. Self-PU ────────────────────────────────────────────────
     AlgorithmMetadata(
         name="self_pu",
@@ -473,6 +483,7 @@ def _bind_native_classes() -> None:
         ("pusb", "..estimators.bias_aware.pusb", "PUSBClassifier"),
         ("pusb_kernel", "..estimators.bias_aware.pusb_kernel", "PUSBKernelClassifier"),
         ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),
+        ("lbe_neural", "..estimators.deep.lbe_neural", "NeuralLBEClassifier"),
         ("centroid_pu", "..estimators.risk.ldce", "LDCEClassifier"),
         ("kldce", "..estimators.risk.kldce", "KLDCEClassifier"),
         ("llsvm", "..estimators.classic.llsvm", "LLSVMClassifier"),

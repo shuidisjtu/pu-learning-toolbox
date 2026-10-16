@@ -136,13 +136,14 @@
         "run_view": "ts-compatible",
         "calibration_applied": true,
         "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:vpu)",
-        "adaptation_level": "benchmark-adapted；clean-room MLP 版本，不宣称作者脚本或论文数值复现；上游的 20-epoch 学习率衰减未进入，lr 默认值相差一个数量级 (admission/vpu_sampling_audit.md §9, VPU.md:53)"
+        "adaptation_level": "benchmark-adapted；clean-room MLP/注入可训练 CNN，非作者网络/脚本/数值复现；默认 constant 与数据量推导步数不变，源重置调度/固定步数可选；encoder 强制 CPU 数据分批，旧二维 auto 保留 resident；见 delivery/vpu_encoder_stream_20261015.md",
+        "training_recipe_review_ref": "docs/research/pu_survey/data/vpu_schedule_source_20261015.json"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "declared_scope": "technical 2-D or injected trainable CNN with CPU-streamed batches; not author image reproduction or formal pilot",
       "specific_blockers": [
         "D22_PA_selection_decision",
         "source_training_schedule_discrepancies"
@@ -156,13 +157,14 @@
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
-        "adaptation_level": "benchmark-adapted（clean-room 表格 MLP、固定 epoch 和一次 PvU warm-start；未集成 BBE/TEDn、原文图像/文本 backbone）"
+        "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
+        "source_behavior_review_ref": "docs/research/pu_survey/data/cvir_source_review_20261015.json"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "declared_scope": "technical 2-D or injected trainable CNN with CPU-streamed ranking/training/prediction; no author recipe replay or formal pilot claim",
       "specific_blockers": [
         "alpha_U_provenance_and_finite_sample_conversion",
         "explicit_ts_unsupported"
@@ -176,15 +178,17 @@
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
-        "adaptation_level": "benchmark-adapted（官方图像 backbone/Faiss/增强/预算未进入）"
+        "adaptation_level": "benchmark-adapted（MLP/注入可训练 CNN，CPU-stream 图像/support/聚类/预测；默认虚拟 weight+bias，meta_update_bias=false 仅补作者 weight-only 参数范围；新 CNN 虚拟步用冻结 eval 特征，不改 BN/dropout；原 hard-observed 元标签、rho 端点及稳定 BCE 保留，非作者网络/Faiss/增强/预算重放）",
+        "source_behavior_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D/frozen-feature subset only; no native image or formal pilot claim",
+      "declared_scope": "technical MLP or injected CNN with independent clean support and CPU-streaming; no PU-only UI/standard trainer eligibility or author replay",
       "specific_blockers": [
         "independent_clean_support_protocol",
+        "published_OS_vs_registry_TS_sampling_review",
         "PA_ineligible_label_budget_decision"
       ]
     }

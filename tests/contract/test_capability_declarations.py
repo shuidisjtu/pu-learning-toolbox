@@ -111,6 +111,8 @@ def test_cnn_capability_consistent_with_signature():
 
 
 _EXPECTED_DECLARATIONS = {
+    "cvir": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "lbe_neural": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "infomax_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "weighted_contrastive_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "self_pu": (frozenset({"mlp"}), frozenset({2, 4}), None, False),
@@ -120,8 +122,8 @@ _EXPECTED_DECLARATIONS = {
     "gradpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "robust_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "split_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
-    "lagam": (frozenset({"mlp"}), frozenset({2}), None, False),
-    "vpu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "lagam": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "vpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "pulda": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "pan": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "genpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),

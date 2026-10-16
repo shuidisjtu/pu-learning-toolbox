@@ -60,6 +60,7 @@ _EXPECTED_METHOD_KEYS = {
     "pusb",
     "pusb_kernel",
     "lbe",
+    "lbe_neural",
     "nnpu",
     "self_pu",
     "vpu",

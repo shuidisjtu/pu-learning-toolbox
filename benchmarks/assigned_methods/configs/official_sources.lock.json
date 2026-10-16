@@ -39,6 +39,22 @@
       "included_dataset_hashes": {
         "Australian.mat": "51ff9a18c818065aafc073c926263fddfb070cea0a84183234a1380a108f6a95",
         "breast.mat": "57dae4b0153798e004d6df60fdbc691bc55b1ba54d2c01bafaf2b56b663825ee"
+      },
+      "user_supplied_variant": {
+        "received_at": "2026-10-12",
+        "sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
+        "status": "source_reviewed_not_executed",
+        "provenance": "User-supplied archive; upstream identity and redistribution license not established. Not a replacement for the locked official archive.",
+        "evidence": "docs/research/pu_survey/data/lbe_source_review_20261012.json",
+        "mlp_recipe": {
+          "pretrain_steps_per_model": 20,
+          "weight_decay": 0.001,
+          "e_steps": 20,
+          "m_steps_per_e_step": 40,
+          "mini_batch_fraction": 0.1,
+          "small_loss_keep_fraction": 1.0,
+          "propensity_pretrain": "BCE(S,c) weighted by S+(1-S)*detached class posterior"
+        }
       }
     }
   }

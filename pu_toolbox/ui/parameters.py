@@ -43,9 +43,13 @@ def classifier_catalog() -> list[dict[str, Any]]:
             ):
                 continue
             parameters.append(parameter_schema(name, parameter))
-        ui_ready = not metadata.requires_clean_support and all(
-            not parameter["required"] or parameter["type"] in {"bool", "float", "int", "str"}
-            for parameter in parameters
+        ui_ready = (
+            metadata.label_semantics == "pu"
+            and not metadata.requires_clean_support
+            and all(
+                not parameter["required"] or parameter["type"] in {"bool", "float", "int", "str"}
+                for parameter in parameters
+            )
         )
         catalog.append(
             {
@@ -53,6 +57,7 @@ def classifier_catalog() -> list[dict[str, Any]]:
                 "family": metadata.family.value,
                 "requires_class_prior": metadata.requires_class_prior,
                 "requires_clean_support": metadata.requires_clean_support,
+                "label_semantics": metadata.label_semantics,
                 "supports_gpu": metadata.supports_gpu,
                 "ui_ready": ui_ready,
                 "parameters": parameters,

@@ -1,6 +1,6 @@
 # Method Card: LaGAM
 
-> 当前为二维表格特征的技术预集成，**不符合 PU-only PA 训练口径**，也未获 Survey P3.2 正式验收。
+> 当前为二维特征/注入 CNN 的技术预集成，**不符合 PU-only PA 训练口径**，也未获 Survey P3.2 正式验收。
 
 | 字段 | 内容 |
 |---|---|
@@ -13,7 +13,11 @@
 
 LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在组。每个训练批次对分类器层做一次可微虚拟更新，再用**独立干净 support set** 的分类损失对训练标签扰动求元梯度，从梯度方向产生 U 的候选标签；观测 P 恒固定为正，U 的候选标签经 EMA 更新。实际训练包含平衡 BCE、Beta(4,4) mixup、双视图 instance InfoNCE 和同潜在组对比损失。
 
-公开类 `LaGAMClassifier`，注册名 `lagam`（别名 `la_gam`），当前使用二维 MLP、Gaussian 双视图与 sklearn KMeans。支持 CPU/CUDA、随机种子、训练历史、epoch 回调与 `state_dict` 权重恢复；`decision_function` 为 raw logit。非空 `sample_weight` 会报错。官方的 ResNet 图像骨干、Faiss GPU 聚类、图像增强、classifier cutoff/kNN augment、400 epoch 调度未实现，**不得声称数值复现**。
+公开类 `LaGAMClassifier`，注册名 `lagam`（别名 `la_gam`），使用二维 MLP 或独立复制后联合训练的注入 CNN、Gaussian 双视图与 sklearn KMeans。支持 CPU/CUDA、随机种子、训练历史、epoch 回调与权重推理恢复；`decision_function` 为 raw logit。非空 `sample_weight` 会报错。作者 ResNet/projection 配方、Faiss GPU 聚类、图像增强、classifier cutoff/kNN augment、400 epoch 调度未重放，**不得声称数值复现**。
+
+2026-10-15 来源补记：发布源码的虚拟 classifier 更新筛选 ndim>1，因此不更新 bias。新增 `meta_update_bias=False` 仅对齐该参数范围，默认 True 保留旧行为。原硬观测元目标/稳定 BCE、EMA 端点时序、optimizer 等与作者仍不同；标量与两列扰动的等价只在同损失/目标/范围下成立。来源文件摘要与逐项边界见[来源/CNN 复核](../pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+
+新图像路径强制 CPU 数据分批，训练/聚类/预测 batch_size、support_batch_size 各自限流；CPU 仍需全量嵌入。CNN 虚拟步冻结 eval 特征并恢复模式，避免 support 更新真实 BN/dropout；实际分类/对比端到端训练。旧二维 auto 保留 resident。`optimizer_steps_` / `virtual_steps_` / `clustering_passes_` 分列成本；max_epochs 已含 warmup，两阶段快照上下文不是选模批准，也不支持训练续跑。
 
 ## 协议门禁：干净 support set
 
@@ -21,6 +25,8 @@ LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在
 
 注册元数据 `requires_clean_support=true`；普通 PU-only 推荐器会排除该方法，以免自动工作流挑中一个无法安全训练的候选。
 
+发布 `utils/utils_data.py:182-193` 从 U 排除已标记 P，属于 OS split；既有 registry CASE_CONTROL/台账 ts 定位与它冲突。本次明确登记待负责人复核，未自行改签该定位或加入 TS 校准。source_status=official_exact 只表示作者源码可得，不证明理论采样定位或数值重放。support 数组共享内存将拒绝，但不同副本的样本/角色独立仍须协议索引证据。
+
 ## 验证与待办
 
-单元测试覆盖平衡 BCE、二阶元标签方向、组对比损失、支持集 fail-closed、确定性与回调权重往返。2026-09-28 全局 PyTorch 2.6.0+cu124 环境下的 A6000 单次 CUDA smoke 通过，但不替代 frozen-lock 或多 seed 资源验收。方法台账已登记为 `run_view=os-compatible`、`calibration_applied=false`：当前没有同形的未标记风险输入可安全替换，而校准也不能消除独立干净 support set 的标签预算。标准 PA 不适用；正式接入仍需 support/选模集合互斥的协议扩展、公开数值对照、候选矩阵与合作者审阅。
+单元测试覆盖平衡 BCE、独立二阶元梯度、组对比损失、支持集 fail-closed、CNN 模式/缓冲、分批/成本及推理回放。2026-09-28 A6000 单次 CUDA smoke 为旧二维路径，不覆盖新 CNN，也不替代 frozen-lock 或多 seed 资源验收。台账仍为 `run_view=os-compatible`、`calibration_applied=false`：无安全的同形 U 风险替换，校准也不能消除独立 support 监督。标准 PA 不适用；仍需 support/选模互斥协议、采样定位、来源许可/全文、公开数值、候选矩阵及合作者审阅。

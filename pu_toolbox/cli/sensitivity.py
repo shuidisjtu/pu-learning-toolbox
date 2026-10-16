@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from ..core.validation import validate_label_semantics
 from ..diagnostics.sensitivity import analyze_pu_sensitivity
 from ..registry import get_algorithm, get_metadata
 from ..registry.builtin_methods import register_all_builtin_methods
@@ -68,6 +69,7 @@ def run_sensitivity(args: argparse.Namespace) -> None:
             "prior-free classifier (e.g. elkan_noto, nnpu, pusb)"
         )
     clf = get_algorithm(args.classifier)()
+    validate_label_semantics(clf, "pu")
     # Prior-free classifiers do not share one constructor signature. Apply
     # the CLI seed only when the sklearn-compatible parameter is declared.
     # This keeps repeated fixed-output audits byte-for-byte reproducible.

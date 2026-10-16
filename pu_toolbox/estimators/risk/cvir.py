@@ -1,13 +1,16 @@
-"""Conditional Value Ignoring Risk (CVIR), a tabular PyTorch adaptation.
+"""Conditional Value Ignoring Risk (CVIR), a paper-objective adaptation.
 
 Garg et al., NeurIPS 2021, Algorithm 2.  The supplied mixture proportion is
 the positive share *inside the unlabeled pool*.  BBE/TEDn prior estimation,
-image/text backbones and the paper's convergence stopping rule are not here.
+the author image/text recipe and convergence stopping rule are not here.
+Injected image encoders and CPU-streamed batches are engineering adapters.
 """
 
 # ruff: noqa: N803, N806, N812
 
 from __future__ import annotations
+
+import copy
 
 import numpy as np
 
@@ -45,10 +48,10 @@ def select_cvir_negatives(scores: np.ndarray, unlabeled_positive_prior: float) -
 class CVIRClassifier(BasePUClassifier):
     """Fit CVIR given the positive fraction within the original U pool.
 
-    ``class_prior`` is *not* accepted as a substitute for the required
-    ``unlabeled_positive_prior`` unless the caller has established that its U
-    pool is an independent sample of the population marginal.  The frozen
-    survey runner passes population pi, so this adapter is not in its matrix.
+    ``class_prior`` is always rejected. A caller who establishes that U is a
+    sample of the population marginal can pass that verified fraction through
+    ``unlabeled_positive_prior`` explicitly. The frozen survey runner passes
+    population pi, so this adapter is not in its matrix.
     """
 
     family = AlgorithmFamily.RISK_ESTIMATION
@@ -61,10 +64,11 @@ class CVIRClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
+    checkpoint_stages = ("warm_start", "cvir")
 
     def __init__(
         self,
@@ -77,6 +81,8 @@ class CVIRClassifier(BasePUClassifier):
         learning_rate: float = 1e-3,
         random_state: int | None = None,
         device: str | None = None,
+        encoder=None,
+        data_device_policy: str = "auto",
     ) -> None:
         super().__init__()
         self.unlabeled_positive_prior = unlabeled_positive_prior
@@ -87,6 +93,22 @@ class CVIRClassifier(BasePUClassifier):
         self.learning_rate = learning_rate
         self.random_state = random_state
         self.device = device
+        self.encoder = encoder
+        self.data_device_policy = data_device_policy
+
+    @property
+    def checkpoint_epoch_count(self):
+        """Warm-start and CVIR both emit one inference snapshot per epoch."""
+        return self.warm_start_epochs + self.max_epochs
+
+    @property
+    def checkpoint_prediction_batch_size(self):
+        """New streaming snapshots retain chunk size; legacy replay stays 256."""
+        return (
+            self.batch_size
+            if self.encoder is not None or self.data_device_policy == "cpu_stream"
+            else 256
+        )
 
     def fit(
         self,
@@ -97,9 +119,27 @@ class CVIRClassifier(BasePUClassifier):
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
     ) -> CVIRClassifier:
-        """Train on P and U; do not infer alpha_U from the observed P/U ratio."""
+        """Fit paper-weighted CVIR, not the balanced loss in released code.
+
+        Four-dimensional images require a trainable encoder. Auto keeps legacy
+        resident 2-D behavior or streams encoder input from CPU. alpha_U remains
+        explicit; no population-prior conversion or new TS route is inferred.
+        """
+        self._is_fitted = False
+        try:
+            return self._fit_impl(
+                X,
+                y_pu,
+                class_prior=class_prior,
+                sample_weight=sample_weight,
+                epoch_callback=epoch_callback,
+            )
+        except Exception:
+            self._is_fitted = False
+            raise
+
+    def _fit_impl(self, X, y_pu, *, class_prior, sample_weight, epoch_callback):
         import torch
-        from torch.nn import functional as F
 
         if sample_weight is not None:
             raise NotImplementedError("CVIR does not implement sample_weight")
@@ -118,12 +158,24 @@ class CVIRClassifier(BasePUClassifier):
                 raise ValueError(f"{name} must be an integer >= {lower}")
         if not np.isfinite(self.learning_rate) or self.learning_rate <= 0:
             raise ValueError("learning_rate must be finite and positive")
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="CVIRClassifier")
-        if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
-            raise ValueError("X must be finite numeric")
-        X = np.asarray(X, dtype=np.float32)
-        if not np.isfinite(X).all():
-            raise ValueError("X must remain finite after float32 conversion")
+        if not isinstance(self.data_device_policy, str) or self.data_device_policy not in {
+            "auto",
+            "resident",
+            "cpu_stream",
+        }:
+            raise ValueError("data_device_policy must be auto, resident or cpu_stream")
+        if self.encoder is not None and not isinstance(self.encoder, torch.nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
+        if self.encoder is not None and self.data_device_policy == "resident":
+            raise ValueError("injected encoders require CPU-streamed data, not resident")
+        X, y_pu = validate_pu_X_y(
+            X,
+            y_pu,
+            accept_sparse=False,
+            allow_nd=self.encoder is not None,
+            estimator_name="CVIRClassifier",
+        )
+        X = _finite_features(X, allow_nd=self.encoder is not None)
         p_idx = np.flatnonzero(y_pu == 1)
         u_idx = np.flatnonzero(y_pu == 0)
         if not len(u_idx):
@@ -132,18 +184,41 @@ class CVIRClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
-        model = torch.nn.Sequential(
-            torch.nn.Linear(X.shape[1], self.hidden_dim),
-            torch.nn.ReLU(),
-            torch.nn.Linear(self.hidden_dim, 1),
-        ).to(device)
-        data = torch.as_tensor(X, device=device)
+        stream = self.encoder is not None or self.data_device_policy == "cpu_stream"
+        self.data_device_policy_ = "cpu_stream" if stream else "resident"
+        data_device = torch.device("cpu") if stream else device
+        self.training_data_device_ = str(data_device)
+        layers, width = [], X.shape[1]
+        self.encoder_ = None
+        if self.encoder is not None:
+            from ..deep._validation import validate_encoder_features
+
+            self.encoder_ = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
+            self.encoder_.requires_grad_(True).eval()
+            with torch.no_grad():
+                features = self.encoder_(torch.as_tensor(X[:1], device=device))
+                width = validate_encoder_features(features, encoder_param_name="encoder")
+                if features.shape[0] != 1:
+                    raise ValueError("encoder must preserve the batch dimension")
+            layers.append(self.encoder_)
+        layers.extend(
+            (
+                torch.nn.Linear(width, self.hidden_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(self.hidden_dim, 1),
+            )
+        )
+        model = torch.nn.Sequential(*layers).to(device)
+        data = torch.as_tensor(X, device=data_device)
         optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
         self.model_ = model
         self.n_features_in_ = X.shape[1]
+        self.input_shape_ = tuple(X.shape[1:])
         self.n_positive_, self.n_unlabeled_ = len(p_idx), len(u_idx)
         self.unlabeled_positive_prior_ = float(alpha)
         self.history_ = {"warm_start_loss": [], "cvir_loss": [], "selected_negative_count": []}
+        self.optimizer_steps_ = 0
+        self.epoch_provenance_ = []
         self.selected_negative_indices_ = np.array([], dtype=int)
         self._is_fitted = False
 
@@ -161,57 +236,124 @@ class CVIRClassifier(BasePUClassifier):
                 n = negative_order[(step * self.batch_size) % len(negative_idx) :][
                     : self.batch_size
                 ]
-                positive_loss = F.softplus(-model(data[p]).reshape(-1)).mean()
-                negative_loss = F.softplus(model(data[n]).reshape(-1)).mean()
-                loss = (
-                    (alpha * positive_loss + (1 - alpha) * negative_loss)
-                    if reweight
-                    else (positive_loss + negative_loss)
+                loss = _cvir_objective(
+                    _logits(model, data[p].to(device)),
+                    _logits(model, data[n].to(device)),
+                    alpha,
+                    reweight=reweight,
                 )
                 if not torch.isfinite(loss):
                     raise FloatingPointError("CVIR loss became non-finite")
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                self.optimizer_steps_ += 1
                 losses.append(float(loss.detach()))
             return float(np.mean(losses))
 
-        epoch = 0
-        for _ in range(self.warm_start_epochs):
-            self.history_["warm_start_loss"].append(train_epoch(u_idx, reweight=False))
+        def completed(stage, stage_epoch):
+            self.checkpoint_stage_ = stage
+            self.checkpoint_stage_epoch_ = stage_epoch
+            self.checkpoint_round_ = stage_epoch if stage == "cvir" else None
+            self.epoch_provenance_.append(
+                dict(
+                    stage=stage,
+                    stage_epoch=stage_epoch,
+                    round_index=self.checkpoint_round_,
+                    optimizer_steps=self.optimizer_steps_,
+                )
+            )
             self._is_fitted = True
             if epoch_callback is not None:
-                epoch_callback(epoch, self)
-            epoch += 1
-        for _ in range(self.max_epochs):
+                epoch_callback(len(self.epoch_provenance_) - 1, self)
+
+        for epoch in range(self.warm_start_epochs):
+            self.history_["warm_start_loss"].append(train_epoch(u_idx, reweight=False))
+            completed("warm_start", epoch + 1)
+        for epoch in range(self.max_epochs):
             model.eval()
             with torch.no_grad():
-                scores = model(data[u_idx]).reshape(-1).cpu().numpy()
+                if stream:
+                    scores = np.concatenate(
+                        [
+                            _logits(model, data[u_idx[start : start + self.batch_size]].to(device))
+                            .cpu()
+                            .numpy()
+                            for start in range(0, len(u_idx), self.batch_size)
+                        ]
+                    )
+                else:
+                    scores = _logits(model, data[u_idx]).cpu().numpy()
             local_negative = select_cvir_negatives(scores, float(alpha))
             negative_idx = u_idx[local_negative]
             self.selected_negative_indices_ = negative_idx.copy()
             self.history_["selected_negative_count"].append(len(negative_idx))
             self.history_["cvir_loss"].append(train_epoch(negative_idx, reweight=True))
-            self._is_fitted = True
-            if epoch_callback is not None:
-                epoch_callback(epoch, self)
-            epoch += 1
+            completed("cvir", epoch + 1)
         self.classes_ = np.array([0, 1])
         return self
 
     def _decision_function(self, X: np.ndarray) -> np.ndarray:
         import torch
 
-        X = np.asarray(X)
-        if X.ndim != 2 or X.shape[1] != self.n_features_in_:
-            raise ValueError("CVIR prediction X must have fitted 2-D feature shape")
-        if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
-            raise ValueError("CVIR prediction X must be finite numeric")
+        X = _finite_features(X, allow_nd=self.encoder is not None)
+        if tuple(X.shape[1:]) != self.input_shape_:
+            raise ValueError("CVIR prediction X must have fitted feature/image shape")
         self.model_.eval()
         with torch.no_grad():
             device = next(self.model_.parameters()).device
-            scores = self.model_(torch.as_tensor(X, dtype=torch.float32, device=device))
-        return scores.reshape(-1).cpu().numpy()
+            if not len(X):
+                return np.empty(0, dtype=np.float32)
+            if self.data_device_policy_ == "cpu_stream":
+                return np.concatenate(
+                    [
+                        _logits(
+                            self.model_,
+                            torch.as_tensor(X[start : start + self.batch_size], device=device),
+                        )
+                        .cpu()
+                        .numpy()
+                        for start in range(0, len(X), self.batch_size)
+                    ]
+                )
+            return _logits(self.model_, torch.as_tensor(X, device=device)).cpu().numpy()
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0).astype(int)
+
+
+def _cvir_objective(positive_logits, negative_logits, alpha, *, reweight):
+    """Paper Algorithm 2 weighted BCE; legacy warm-start is the unscaled sum."""
+    from torch.nn import functional as F
+
+    positive_loss = F.softplus(-positive_logits).mean()
+    negative_loss = F.softplus(negative_logits).mean()
+    return (
+        alpha * positive_loss + (1 - alpha) * negative_loss
+        if reweight
+        else positive_loss + negative_loss
+    )
+
+
+def _logits(model, batch):
+    """Check per-row output without changing the differentiable scalar head."""
+    import torch
+
+    output = model(batch)
+    if output.shape != (len(batch), 1):
+        raise ValueError("CVIR network must preserve the batch dimension and output one logit")
+    if not torch.isfinite(output).all():
+        raise FloatingPointError("CVIR network produced non-finite logits")
+    return output.reshape(-1)
+
+
+def _finite_features(X, *, allow_nd):
+    X = np.asarray(X)
+    if X.ndim not in ({2, 4} if allow_nd else {2}) or any(size == 0 for size in X.shape[1:]):
+        raise ValueError("CVIR requires 2-D features or 4-D images with an encoder")
+    if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
+        raise ValueError("CVIR X must be finite numeric")
+    X = np.asarray(X, dtype=np.float32)
+    if not np.isfinite(X).all():
+        raise ValueError("CVIR X must remain finite after float32 conversion")
+    return X

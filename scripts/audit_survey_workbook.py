@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -57,11 +58,59 @@ def batch_for(dataset, method, path):
     return "unknown"
 
 
-def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
+def readme_correction_requests(rows):
+    """Flag known affirmative legacy definitions, not quoted correction prose.
+
+    Consume two-column field dictionaries as well as single-cell definitions.
+    This is a narrow documentation diagnostic, not a general language checker
+    or a replacement for workbook identity/numeric gates.
+    """
+    stale = set()
+    for row in rows:
+        cells = [str(value).strip() if value is not None else "" for value in row]
+        if not cells:
+            continue
+        field = cells[0].lower()
+        definition = " ".join(cells[1:]).lower()
+        if field == "class-prior grid" or (
+            field == "c"
+            and re.match(r"(?:requested\s+)?class-prior\s+(?:token|grid)\b", definition)
+        ):
+            stale.add("c")
+        if field == "run_view" and re.search(r"\bos\s*=\s*priors/oracle-free\b", definition):
+            stale.add("run_view")
+        if (
+            field in {"pa", "pa_accuracy", "selection_protocol"}
+            and (
+                re.match(r"prior-aware\b", definition)
+                or re.search(r"\bpa\s*\(\s*prior-aware\s*\)", definition)
+            )
+        ) or re.match(r"pa\s*[:=]\s*prior-aware\b", field):
+            stale.add("PA")
+    corrections = {
+        "c": "label frequency P(S=1|Y=1), not class prior pi",
+        "run_view": "OS/TS describe sampling/risk inputs, not prior-free vs transfer",
+        "PA": "proxy accuracy on PU validation, not merely prior-aware",
+    }
+    return [
+        {"field": field, "correction": text}
+        for field, text in corrections.items()
+        if field in stale
+    ]
+
+
+def audit_workbook(path, index_path, protocol_path="survey-v1.2", *, workbook_index_path=None):
     import openpyxl
 
     path = Path(path)
     index = json.loads(Path(index_path).read_text(encoding="utf-8"))
+    # A report rerun is not a workbook regeneration. Bind the workbook's
+    # producer separately, requiring identical registered inputs and table.
+    workbook_index = (
+        json.loads(Path(workbook_index_path).read_text(encoding="utf-8"))
+        if workbook_index_path is not None
+        else index
+    )
     protocol = load_protocol(resolve_protocol_path(protocol_path))
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     problems = []
@@ -69,6 +118,22 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
     def check(condition, message):
         if not condition:
             problems.append(message)
+
+    for field in ("protocol_sha256", "comparison_sha256"):
+        check(
+            workbook_index["identity"][field] == index["identity"][field],
+            f"workbook baseline {field} differs from analysis baseline",
+        )
+    for field in ("total", "batches"):
+        check(
+            workbook_index["inputs"][field] == index["inputs"][field],
+            f"workbook baseline inputs.{field} differs from analysis baseline",
+        )
+    for field in ("bytes", "sha256"):
+        check(
+            workbook_index["release_table"][field] == index["release_table"][field],
+            f"workbook baseline release_table.{field} differs from analysis baseline",
+        )
 
     def records(sheet):
         iterator = iter(workbook[sheet].values)
@@ -94,10 +159,11 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
         "workbook size differs from release index",
     )
     runs, summary, coverage = records("runs"), records("P2.2 汇总"), records("coverage")
-    readme = "\n".join(str(row[0]) for row in workbook["readme"].values if row[0])
+    readme_rows = list(workbook["readme"].values)
+    readme = "\n".join(str(cell) for row in readme_rows for cell in row if cell is not None)
     for name in ("protocol_sha256", "comparison_sha256"):
         check(index["identity"][name] in readme, f"readme missing {name}")
-    check(index["produced_by_commit"] in readme, "readme producer commit differs")
+    check(workbook_index["produced_by_commit"] in readme, "readme producer commit differs")
     expected = {
         (
             r.dataset,
@@ -332,6 +398,15 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
             "not source manifest audit"
         ),
         "input": {"filename": path.name, "bytes": path.stat().st_size, "sha256": received_hash},
+        "baseline_identity": {
+            "analysis_producer_commit": index["produced_by_commit"],
+            "workbook_producer_commit": workbook_index["produced_by_commit"],
+            "analysis_index_sha256": hashlib.sha256(Path(index_path).read_bytes()).hexdigest(),
+            "workbook_index_sha256": hashlib.sha256(
+                Path(workbook_index_path or index_path).read_bytes()
+            ).hexdigest(),
+            "note": "Index consistency only; source manifests and rerun artifacts not verified.",
+        },
         "ok": not problems,
         "problems": problems,
         "runs": len(runs),
@@ -369,23 +444,7 @@ def audit_workbook(path, index_path, protocol_path="survey-v1.2"):
                 if row["auc_mean_percent"] is not None and row["auc_mean_percent"] < 50
             ],
         },
-        "readme_correction_requests": [
-            entry
-            for entry in [
-                {"field": "c", "correction": "label frequency P(S=1|Y=1), not class prior pi"},
-                {
-                    "field": "run_view",
-                    "correction": "OS/TS describe sampling/risk inputs, not prior-free vs transfer",
-                },
-                {
-                    "field": "PA",
-                    "correction": "proxy accuracy on PU validation, not merely prior-aware",
-                },
-            ]
-            if (entry["field"] == "c" and "class-prior token" in readme)
-            or (entry["field"] == "run_view" and "priors/oracle-free" in readme)
-            or (entry["field"] == "PA" and "prior-aware" in readme)
-        ],
+        "readme_correction_requests": readme_correction_requests(readme_rows),
         "source_manifests_independently_verified": False,
         "reconstructed_summary": rebuilt,
     }
@@ -398,9 +457,16 @@ def main():
         "--index", type=Path, default=Path("docs/research/pu_survey/data/p2_2_artifacts_index.json")
     )
     parser.add_argument("--protocol", default="survey-v1.2")
+    parser.add_argument(
+        "--workbook-index",
+        type=Path,
+        help="Original workbook baseline when --index refers to a later report rerun",
+    )
     args = parser.parse_args()
     try:
-        report = audit_workbook(args.workbook, args.index, args.protocol)
+        report = audit_workbook(
+            args.workbook, args.index, args.protocol, workbook_index_path=args.workbook_index
+        )
     except (ImportError, KeyError, ValueError, OSError) as exc:
         parser.exit(1, f"error: workbook audit failed: {exc}\n")
     print(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False))

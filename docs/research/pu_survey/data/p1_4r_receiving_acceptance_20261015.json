@@ -1,0 +1,205 @@
+{
+  "schema_version": "survey-p1-4r-receiving-acceptance-1",
+  "recorded_on": "2026-10-15",
+  "task": "P1.4-R",
+  "technical_acceptance": "passed_with_recorded_limitations",
+  "human_review_status": "pending_heng958_independent_review",
+  "formal_acceptance": false,
+  "performed_by": "agent_technical_review_not_human_signature",
+  "code_commit": "1204e9cce4224735e82745997161c7f680f95513",
+  "remote_baseline": "3158a6c4632ef7c5676181e3414e65f381b34af8",
+  "received_work_root": "data/review-p1_4r-received-20261015-rndXxi",
+  "source_inputs": {
+    "four_dataset_wrapper": {
+      "file": "p1_4r_20261004.zip",
+      "bytes": 356877857,
+      "sha256": "1c2cbbe1716aaa02fa75a38b84fedf830b6ea7670c568a67ad146b972218c916"
+    },
+    "adni_archive": {
+      "file": "adni-splits.tar",
+      "bytes": 292147200,
+      "sha256": "ae1a3fefe30d35aa3ef5822bee9d26d9ac110d2dbd7244b4ddcd5bea9a48414e",
+      "members_checked": 25,
+      "repository_index_matched": true
+    },
+    "uploaded_adni_index": {
+      "file": "split_artifacts_index.json",
+      "bytes": 6480,
+      "sha256": "5f441142e112a89ef37db034861b2f8a0299c95305ffeb060d33b22c59fc6d0f",
+      "json_equal_published": true
+    }
+  },
+  "expected_scope": {
+    "datasets": [
+      "mnist",
+      "fashion_mnist",
+      "twenty_newsgroups",
+      "connect_4",
+      "adni"
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "splits": 25,
+    "role_npz_files": 100,
+    "manifests": 25,
+    "split_files": 125,
+    "archives": 5
+  },
+  "actual_scope": {
+    "splits": 25,
+    "split_files": 125,
+    "archives": 5
+  },
+  "original_archive_receipt_verified": true,
+  "archive_identities": {
+    "connect_4": {
+      "file": "connect_4-splits.tar",
+      "bytes": 8519680,
+      "sha256": "e720f6a4e7e5f64e182f553d73fe15ac5efc13a65dcd353f18cef638aeead5cd",
+      "members_checked": 25,
+      "repository_index_matched": true
+    },
+    "fashion_mnist": {
+      "file": "fashion_mnist-splits.tar",
+      "bytes": 159723520,
+      "sha256": "869f95795f0a36e87c37db00bb46e0b5650460d314e954fd6e9adc729070be86",
+      "members_checked": 25,
+      "repository_index_matched": true
+    },
+    "mnist": {
+      "file": "mnist-splits.tar",
+      "bytes": 62842880,
+      "sha256": "c237ac9596a7841dad1adcddf44e7974fe6bc5b02efd333fb7cce57d5f77e79c",
+      "members_checked": 25,
+      "repository_index_matched": true
+    },
+    "twenty_newsgroups": {
+      "file": "twenty_newsgroups-splits.tar",
+      "bytes": 155432960,
+      "sha256": "e6ac92e3b5a51ed074691f77e1c99a5309b085e0e51c93833c0fe81011415a8e",
+      "members_checked": 25,
+      "repository_index_matched": true
+    },
+    "adni": {
+      "file": "adni-splits.tar",
+      "bytes": 292147200,
+      "sha256": "ae1a3fefe30d35aa3ef5822bee9d26d9ac110d2dbd7244b4ddcd5bea9a48414e",
+      "members_checked": 25,
+      "repository_index_matched": true
+    }
+  },
+  "strict_integrity": {
+    "four": {
+      "ok": true,
+      "problems": [],
+      "checked": {
+        "splits": 20,
+        "files": 100
+      }
+    },
+    "adni": {
+      "ok": true,
+      "problems": [],
+      "checked": {
+        "splits": 5,
+        "files": 25
+      }
+    }
+  },
+  "semantic_checks": {
+    "splits_passed": 25,
+    "test_file_hash_count": {
+      "mnist": 1,
+      "fashion_mnist": 1,
+      "twenty_newsgroups": 1,
+      "connect_4": 5,
+      "adni": 5
+    }
+  },
+  "source_bound_replay": {
+    "four_dataset_splits": 20,
+    "adni_splits": 5,
+    "all_role_labels_and_source_id_coverage_verified": true,
+    "image_and_tabular_features_replayed_from_raw": true,
+    "text_features_verified_against_reconstructed_received_cache": true,
+    "text_cache_sha256": "4306b7da57d36da6d3be95d7a5d78e415dc633c6bf14b2206fc8f04de44b88c6",
+    "source_transform_scope": "Uses repository readers/transforms; not independent transform derivation or clinical subject identity verification"
+  },
+  "rebuild_comparison": {
+    "all_80_four_dataset_role_indices_and_labels_equal": true,
+    "exact_feature_role_files": 60,
+    "nonidentical_text_feature_role_files": 20,
+    "manifest_crlf_only_splits": 15,
+    "text_manifest_differing_fields": [
+      "/preprocessing/cache_sha256"
+    ],
+    "text_max_abs": 3.390014171600342e-7,
+    "text_max_role_rmse": 4.568318472052615e-8,
+    "numeric_tolerance_approved": false,
+    "action": "Keep received producer identities; do not overwrite or interchange with independently rebuilt artifacts"
+  },
+  "adni_substitute": {
+    "is_adni": false,
+    "source": {
+      "repository": "https://github.com/Jahnabi19/AD-Dataset",
+      "commit": "d90729118954bbedfe481dea8a53b4f3ee5a21b2",
+      "license": "none stated by the mirror; the Kaggle page lists License: Unknown (checked 2026-10-12 by shuidisjtu)"
+    },
+    "image_count": 6400,
+    "resized_duplicate_rows": 0,
+    "subject_level_leakage_checked": false,
+    "redistribution_rights_established": false
+  },
+  "evidence": [
+    {
+      "path": "docs/research/pu_survey/data/p1_4r_received_integrity_20261015.json",
+      "file_sha256": "9335cc3f1c44cfdc87671481faf91c3924d5ee37a202cab8011c49bbb937f832"
+    },
+    {
+      "path": "docs/research/pu_survey/data/p1_4r_received_four_review_20261015.json",
+      "file_sha256": "db23ed9e6f2abd3e8ca56a6fcf1f44c02ff9568a57c4da22ea4c9ce5c057d4ce"
+    },
+    {
+      "path": "docs/research/pu_survey/data/p1_4r_received_adni_review_20261015.json",
+      "file_sha256": "281cf77e6fa9dc86a81e7ddb9736bb1c2a323c896572e09554d2b404e979e988"
+    },
+    {
+      "path": "docs/research/pu_survey/data/p1_4r_received_source_comparison_20261015.json",
+      "file_sha256": "05df42a93d600f0c55718ce5426f2302780538f4d3fb9ae028288a7f505f7dfb"
+    },
+    {
+      "path": "docs/research/pu_survey/data/p1_4r_received_adni_source_20261015.json",
+      "file_sha256": "a5fc7aa441d59a98d72d91b40fde2b6603a8a48223e6772b236c6442a864633b"
+    },
+    {
+      "path": "docs/research/pu_survey/data/p1_4r_received_verification_jobs_20261015.json",
+      "file_sha256": "d8d2f553c30f818663a1ed54a889fba629ffa7ee9acdf0bfff27c77d673f50b5"
+    }
+  ],
+  "tests": {
+    "selected_tests": 162,
+    "passed": 162,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 25.712,
+    "scope": "Existing receipt, archive and preprocessing regression tests; actual data audits recorded separately"
+  },
+  "limitations": [
+    "No same-subject identifiers for Alzheimer MRI; subject-level leakage cannot be excluded",
+    "Substitute is not official ADNI; source licence/redistribution uncertainties remain recorded",
+    "Text rebuild arrays differ numerically; no new tolerance or numeric-equivalence verdict",
+    "New formal main-table protocol, recipe/resources and human review remain separate prerequisites"
+  ],
+  "historical_artifacts_overwritten": false,
+  "uploaded_collaborator_code_executed": false,
+  "raw_or_split_data_uploaded": false,
+  "supersedes_current_status_only": [
+    "Earlier records saying original four/ADNI archives were not received; their historical evidence is preserved"
+  ],
+  "next_independent_task": "Inspect and reconcile newly received P2.1/P2.2 correction bundle using repository auditors; do not execute uploaded flattener or infer raw result-tree receipt"
+}

@@ -19,7 +19,9 @@ Usage::
     uv run python scripts/check_survey_recipe_registry.py --registry path/to/registry.json
 
 Exit 0 when the registry is absent, or present and free of error-severity
-findings; 1 otherwise.
+findings; 1 otherwise. ``--require-present`` makes a missing *explicitly
+materialized* artifact an error (used for the committed draft in CI); it does
+not materialize or lock the future frozen registry.
 """
 
 from __future__ import annotations
@@ -44,6 +46,11 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_REGISTRY,
         help="registry JSON to validate (defaults to the freeze-stage path)",
     )
+    parser.add_argument(
+        "--require-present",
+        action="store_true",
+        help="fail if the named artifact is absent rather than skipping validation",
+    )
     args = parser.parse_args(argv)
 
     registry_path: Path = args.registry
@@ -53,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
             "Nothing was validated.  The registry is a freeze-stage deliverable "
             "(plan §11); this gate turns enforcing as soon as the file exists."
         )
-        return 0
+        return 1 if args.require_present else 0
 
     from pu_toolbox.experiment.survey_protocol import load_protocol
     from pu_toolbox.experiment.survey_recipe_registry import (
