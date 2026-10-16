@@ -116,6 +116,7 @@ pu-toolbox-ui
 ```bash
 uv run python scripts/prepare_survey_splits.py --help
 uv run python scripts/run_survey_experiment.py --help
+uv run python scripts/verify_survey_result_receipt.py --help
 
 # SCAR 实验行（PA + OA 选模）
 uv run python scripts/run_survey_experiment.py path/to/splits \
@@ -128,25 +129,26 @@ uv run python scripts/run_survey_experiment.py path/to/splits \
 
 需要总体类先验的方法，既要通过 `--class-prior` 满足入口门禁，也要通过
 `--model-params` 传入构造参数（uPU 示例见 `--help` 和脚本 docstring）。
-
 `--labeling-mechanism` 选择 PU 标签视图的生成方式（SCAR 或 SAR LBE 变体），
 它与 `--method` 相互独立：标记机制是实验自变量，因此 SAR 实验行可运行任意
-Survey 方法，并且只报告 OA。协议、当前执行状态和报告边界见
-[`docs/research/pu_survey/`](docs/research/pu_survey/)。在全部协议门禁满足前，
-结果必须标记为 `pilot / partial benchmark`。整批 pilot 运行、结果聚合与
-split 传输由 `run_survey_pilot.py`、`aggregate_survey_runs.py`、
-`survey_splits_archive.py` 驱动（语义见各自 docstring 与 `docs/research/pu_survey/`）。
+Survey 方法，并且只报告 OA。
 
-已完成批次集的审计与数值汇总由 `audit_survey_batches.py` 与
-`summarize_survey_results.py` 驱动。两者都接受批次根白名单，并且只写自己的 `--out-dir`：
-前者报告它能判定的每一条结构与公平性发现，对判不了的检查逐条记名、而不是记为通过；
-后者为每个可比行给出一个均值与样本标准差，成本按 run 记录，以免在两个选模协议之间重复计费。
-两者都不写结果树。
+在全部协议门禁满足前，结果必须标记为 `pilot / partial benchmark`。协议、执行状态和
+报告边界见 [`docs/research/pu_survey/`](docs/research/pu_survey/)。
 
-把预注册的文献对照附着到已完成的汇总上由 `compare_survey_results.py` 驱动：它读取该
-`summary.json`，并让每一行经冻结矩阵裁决。它报告矩阵为每个单元分配的类别，且只在矩阵授权、
-且本协议判定该行为 `formal` 时才做数值裁决；其余行一律列入未决而不参与比较——因此，
-没有规则的类别不能被读作「一致」。
+配套脚本（范围与限制见各脚本 docstring 和 Survey 文档）：
+
+| 阶段 | 脚本 |
+|---|---|
+| 数据与切分 | `collect_survey_public_data.py`（获取缺失的公开原始数据，不含受控访问的 ADNI）、`survey_splits_archive.py`（split 传输）、`review_survey_split_receipt.py`（只读接收检查）、`diagnose_survey_split_rebuild.py`（诊断重建差异，不放宽接收校验） |
+| 运行 | `run_survey_pilot.py`（整批 pilot）、`aggregate_survey_runs.py`、`verify_survey_result_receipt.py`（回放前校验已接收结果的字节） |
+| 审计与报告 | `audit_survey_batches.py`、`summarize_survey_results.py`、`compare_survey_results.py`（预注册文献对照）、`audit_survey_workbook.py`（交付 Excel，需可选依赖 `openpyxl`） |
+| 配方 | `prepare_survey_recipe_registry.py`、`check_survey_recipe_registry.py`（审阅与锁定前校验草稿） |
+| 资源探针 | `profile_survey_candidate_storage.py`、`profile_survey_cnn_storage.py`、`profile_survey_extended_cnn_storage.py`，配合 `check_survey_extended_cnn_storage.py` |
+| P3 准入证据 | `check_p3_admission_evidence.py`、`check_p3_public_comparison.py`、`prepare_p3_selection_budget_spec.py`、`prepare_p3_preintegration_extension.py` |
+
+这些脚本是技术检查与测量，均不批准候选、预算、正式 split 或数值裁决；审计与汇总脚本
+只写自己的 `--out-dir`，不写结果树。
 
 ## AI 工作流 Skill
 
