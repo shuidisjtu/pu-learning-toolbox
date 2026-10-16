@@ -188,7 +188,9 @@ class PUExtraTreesClassifier(BasePUClassifier):
                 rows = np.concatenate(
                     [
                         rng.choice(positive_rows, n_positive, replace=True),
-                        rng.choice(unlabeled_rows, n_unlabeled, replace=True),
+                        # Normalization is over the actual U-risk pool, including
+                        # calibrated P copies; bootstrap must preserve that mass.
+                        rng.choice(unlabeled_rows, len(unlabeled_rows), replace=True),
                     ]
                 )
             else:

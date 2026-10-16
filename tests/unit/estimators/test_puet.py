@@ -108,6 +108,37 @@ def test_determ_same_seed_repeats_with_or_without_group_bootstrap():
         np.testing.assert_array_equal(first.n_leaves_, second.n_leaves_)
 
 
+@pytest.mark.parametrize("view", ["os", "ts"])
+@pytest.mark.parametrize("bootstrap", [False, True])
+@pytest.mark.parametrize("sizes", [(4, 4), (2, 9), (9, 2)])
+@pytest.mark.parametrize("seed", [0, 7, 23])
+def test_edge_bootstrap_root_masses_and_constant_leaf(view, bootstrap, sizes, seed):
+    """Each tree keeps P mass=prior and U mass=1, including calibrated copies."""
+    n_p, n_u = sizes
+    X = np.zeros((n_p + n_u, 1))
+    y = np.r_[np.ones(n_p, int), np.zeros(n_u, int)]
+    observed = []
+
+    class InspectTrees(PUExtraTreesClassifier):
+        def _build_tree(self, features, labels, rows, **kwargs):
+            p = int(np.count_nonzero(labels[rows] == 1))
+            u = len(rows) - p
+            observed.append((p, u, kwargs["positive_weight"], kwargs["unlabeled_weight"]))
+            return super()._build_tree(features, labels, rows, **kwargs)
+
+    model = InspectTrees(class_prior=0.4, n_estimators=3, bootstrap=bootstrap, random_state=seed)
+    model.fit(X, y, os_or_ts=view)
+    expected_u = n_u + (n_p if view == "ts" else 0)
+    for p, u, pw, uw in observed:
+        assert (p, u) == (n_p, expected_u)
+        assert p * pw == pytest.approx(0.4)
+        assert u * uw == pytest.approx(1.0)
+        assert _nnpu_quadratic_node_risk(p, u, pw, uw) == pytest.approx(0.96)
+    assert len(observed) == 3
+    assert all(root.vote == -1 for root in model.trees_)
+    np.testing.assert_array_equal(model.predict(X), np.zeros(len(X), int))
+
+
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     [
