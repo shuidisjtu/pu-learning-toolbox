@@ -118,3 +118,25 @@ result = ExperimentRunner(
 独立重建比较确认只有 `methods.puet.implementation_sha256` 改变；已更新为修复后
 源码摘要，其余预算、候选、批准、签署和协议绑定逐项不变。保留漂移拒收测试，
 没有为通过门禁删除检查或把草案改为批准。
+
+## 最终工程验收
+
+在源码提交 `0fcf77d` 上，CPU 快层 `pytest tests/ -m 'not slow and not e2e'`：
+**4030 passed / 58 skipped / 0 failures / 0 errors**，300.358秒。
+收据 `/tmp/algorithms-114-117-fast-final.xml`；日志同名 `.log`，本机暂存、不作远程持久制品。
+此前定向组合170通过/3跳过；最终补充预算草案与先验/support/LaGAM组合72通过/1跳过。
+不将被跳过的 CUDA、可选依赖或未执行的 slow/e2e 称为已验收。
+
+CVIR/PULNS 在 seeds0/1/7 的原有直接调用路径与只读基线 `92efb4d` 做6组成对拟合，
+预测、选中负例、history 和实际更新数逐值完全一致；新增的是显式路径/来源/监督记录，
+不是偷偷改变既有默认优化配方。该对照使用合成输入，不是文献数值复现。
+
+格式、测试质量、文档链接、API、元数据、数学渲染、skills、baseline、注释、
+结构、分层与 recipe 草案门禁通过；recipe 草案摘要仍为 `54ecef2a…`，未冻结或批准。
+离线 sdist/wheel 构建通过；包内实现字节与 `0fcf77d` 一致。源码目录外导入 wheel，
+验证 PUET TS-bootstrap 负票、LaGAM OS 元数据及 CVIR alpha/population 分离成功。
+包中无原始数据、split 数组、checkpoint、Excel 或用户压缩包。
+
+旧冻结协议、v3 比较矩阵、uv.lock、645-run 与用户未提交制品未改；没有启动正式
+GPU/多数据集跑批，没有自动关闭 issue 或代签方法负责人。工程整改提交后供合作者复核，
+正式预算、PULNS 实际 support 制品及 CVIR 校准/配方批准仍按前述边界办理。
