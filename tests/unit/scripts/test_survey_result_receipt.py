@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -196,6 +198,21 @@ def test_edge_upload_mutation_is_rejected(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "lstat", changed)
     with pytest.raises(ValueError, match="changed during"):
         receipt._file_identity(path)
+
+
+def test_edge_handle_ctime_skew_is_not_a_change(tmp_path, monkeypatch):
+    path = tmp_path / "fresh.json"
+    path.write_bytes(b"{}")
+    original = os.fstat
+
+    def skewed(fd):
+        item = original(fd)
+        fields = {name: getattr(item, name) for name in dir(item) if name.startswith("st_")}
+        fields["st_ctime_ns"] += 1
+        return types.SimpleNamespace(**fields)
+
+    monkeypatch.setattr(os, "fstat", skewed)
+    assert receipt._file_identity(path)["bytes"] == 2
 
 
 def test_determ_verification_never_rewrites_source_bytes(tmp_path):
