@@ -13,6 +13,9 @@ script's exit codes and its absent-file branch.
 
 2026-10-14: CI validates the already materialized draft with --require-present;
 the unmaterialized frozen default still stays out of CI, preserving R5.
+
+2026-10-16: CI conditionally checks the production file only after it appears,
+using --require-present --require-locked. Absence skips that step, not a pass.
 """
 
 from __future__ import annotations
