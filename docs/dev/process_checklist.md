@@ -18,7 +18,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
-2026-10-16：用户接受 Pilot 数据技术证据和阶段 A/B 标签语义功能复核，确认 RV1/RV2 完成，不再额外要求人工签署。标签语义相关 170 项测试及 PNU 三值直接训练通过，Issue #41 可关闭；见[阶段 B 验收](../research/pu_survey/delivery/label_semantics_stage_b_20261015.md)。下列日期记录保留历史状态，PR 的 Windows ZIP 测试问题单独处理。
+2026-10-16：接受 Pilot 数据技术证据和阶段 A/B 标签语义功能复核，确认 RV1/RV2 完成，不再额外要求人工签署。标签语义相关 170 项测试及 PNU 三值直接训练通过，Issue #41 可关闭；见[阶段 B 验收](../research/pu_survey/delivery/label_semantics_stage_b_20261015.md)。下列日期记录保留历史状态，PR 的 Windows ZIP 测试问题单独处理。
 
 2026-10-15 P2.1/P2.2修正包接收：新表三数据页22942单元格与原表精确一致，645runs/183汇总不变；修复说明审计漏读第二列和否定引述误报，保留新表对旧索引的SHA/大小拒绝。相关25项、全仓快速3887项通过/58项跳过；原结果树及HENG958签署仍待，见[复核](../research/pu_survey/reviews/p21_correction_receiving_20261015.md)。
 
