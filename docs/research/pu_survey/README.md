@@ -30,6 +30,8 @@
   正式 CI 条件接线、原始制品分批接收、来源候选补记与 RV3–RV7 边界；不代替配方冻结/独立重放/本人签署。
 - 正式 registry CI：[`p4_1_production_ci_20261016.md`](delivery/p4_1_production_ci_20261016.md)，
   当前文件缺失时 skipped，真实冻结时须改为无条件必需存在。
+- P2.2 AutoDL 制品核对：[`p2_2_autodl_check_20261016.md`](reviews/p2_2_autodl_check_20261016.md)，归档摘要、PA/OA 选中权重与逐 epoch 记录；B2 退出码仍未找到。
+- P2.2 C2/C3 裁决：[`p2_2_c2_c3_ruling_20261016.md`](reviews/p2_2_c2_c3_ruling_20261016.md)，PA 准则锁定、54 条阻断映射解除（矩阵 v3 暂不更新）。
 - P2.1/P2.2新修正包接收：[`p21_correction_receiving_20261015.md`](reviews/p21_correction_receiving_20261015.md)，三数据页保持、独立文件身份与说明审计；原训练制品/签署仍待。
 - Issue #41阶段B：[`label_semantics_stage_b_20261015.md`](delivery/label_semantics_stage_b_20261015.md)，公共入口门禁/展示/ADR；2026-10-16 用户确认 RV2 完成，Issue #41 可关闭。
 - P1.4：[`p1_4_review.md`](delivery/p1_4_review.md)。
