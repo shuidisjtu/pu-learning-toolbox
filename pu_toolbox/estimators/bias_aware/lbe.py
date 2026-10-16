@@ -114,6 +114,9 @@ class LBEClassifier(BasePUClassifier):
         q = np.where(s == 1, 1.0, p0)
         self.converged_ = False
         self.observed_log_likelihood_history_ = []
+        self.posterior_max_delta_history_ = []
+        self.m_step_iterations_ = []
+        self.initial_class_prior_ = p0
         for iteration in range(self.n_em_iter):
             self._weighted_binary_fit(self.classifier_, X, q)
             p = np.clip(self.classifier_.predict_proba(X)[:, 1], 1e-5, 1 - 1e-5)
@@ -121,16 +124,35 @@ class LBEClassifier(BasePUClassifier):
             self.propensity_model_.fit(X, s, logisticregression__sample_weight=positive_weight)
             c = np.clip(self.propensity_model_.predict_proba(X)[:, 1], 1e-5, 1 - 1e-5)
             q_new = self._positive_posterior(s, p, c)
+            posterior_delta = float(np.max(np.abs(q_new - q)))
+            self.posterior_max_delta_history_.append(posterior_delta)
+            self.m_step_iterations_.append(
+                {
+                    "classifier": int(self.classifier_[-1].n_iter_[0]),
+                    "propensity": int(self.propensity_model_[-1].n_iter_[0]),
+                }
+            )
             self.observed_log_likelihood_history_.append(
                 float(np.sum(s * (np.log(p) + np.log(c)) + (1.0 - s) * np.log1p(-p * c)))
             )
             self.n_iter_ = iteration + 1
-            if np.max(np.abs(q_new - q)) < 1e-5:
+            if posterior_delta < 1e-5:
                 q = q_new
                 self.converged_ = True
                 break
             q = q_new
         self._latent_positive_probability_ = q
+        self.decomposition_diagnostics_ = {
+            "classifier_probability_mean": float(np.mean(p)),
+            "propensity_probability_mean": float(np.mean(c)),
+            "observed_label_rate": float(np.mean(s)),
+            "predicted_label_probability_mean": float(np.mean(p * c)),
+            "initial_prior_is_constraint": False,
+            "observed_likelihood_has_branch_exchange_symmetry": True,
+            "branch_semantics_identified_by_likelihood": False,
+            "note": "Identical logistic families with equal penalties admit branch exchange; "
+            "these train-only diagnostics do not identify which branch is the true class posterior.",
+        }
         self._class_prior = float(np.mean(p))
         self.classes_ = np.array([0, 1])
         self._X_shape_ = X.shape
