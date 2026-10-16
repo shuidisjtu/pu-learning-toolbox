@@ -139,6 +139,7 @@
         "pa_eligible": false,
         "source_behavior_review_ref": "docs/research/pu_survey/pulns_source_cnn_review_20261007.md"
       },
+      "extra_supervision_adapter_ref": "docs/research/pu_survey/data/pulns_dataset_adaptation_20261017.json",
       "candidate_protocol_ref": null,
       "budget_ref": null,
       "candidate_pool": null,

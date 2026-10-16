@@ -72,6 +72,15 @@ def build_extension(ledger, protocol):
                 "method": method,
                 "preparation_priority": priority,
                 "ledger_ref": f"pu_toolbox/experiment/method_ledger.json#methods.{method}",
+                **(
+                    {
+                        "extra_supervision_adapter_ref": entry["extra_supervision_adapter"][
+                            "dataset_rules_ref"
+                        ]
+                    }
+                    if "extra_supervision_adapter" in entry
+                    else {}
+                ),
                 "ledger_snapshot": {
                     key: entry[key]
                     for key in (

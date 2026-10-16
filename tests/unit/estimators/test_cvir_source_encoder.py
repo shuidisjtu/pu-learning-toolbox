@@ -221,7 +221,7 @@ def test_basic_cnn_does_not_add_population_prior_or_ts_calibration():
     from pu_toolbox.experiment.method_ledger import load_ledger
     from pu_toolbox.experiment.training_views import resolve_training_view
 
-    with pytest.raises(ValueError, match="no os_or_ts"):
+    with pytest.raises(ValueError, match="calibration_hooked=false"):
         resolve_training_view(
             load_ledger(), "cvir", "ts", is_oracle=False, estimator_class=CVIRClassifier
         )

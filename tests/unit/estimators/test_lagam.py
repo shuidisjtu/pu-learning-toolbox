@@ -157,6 +157,22 @@ def test_ledger_does_not_claim_calibration_or_pa_eligibility():
             ledger, "lagam", "ts", is_oracle=False, estimator_class=LaGAMClassifier
         )
 
+    # A future signature extension must not accidentally reopen TS calibration.
+    class FutureInterface(LaGAMClassifier):
+        def fit(self, x, y, *, os_or_ts="os"):
+            raise AssertionError("only inspecting the signature")
+
+    assert (
+        resolve_training_view(
+            ledger, "lagam", None, is_oracle=False, estimator_class=FutureInterface
+        )
+        == "os"
+    )
+    with pytest.raises(ValueError, match="declared native to 'os'"):
+        resolve_training_view(
+            ledger, "lagam", "ts", is_oracle=False, estimator_class=FutureInterface
+        )
+
 
 def test_registry_declares_support_and_pu_only_recommender_excludes_lagam():
     X, y, _ = _data()

@@ -83,7 +83,7 @@ def test_invalid_prior_or_unsupported_view_fails_loud():
         )
         == "os"
     )
-    with pytest.raises(ValueError, match="no os_or_ts parameter"):
+    with pytest.raises(ValueError, match="calibration_hooked=false"):
         resolve_training_view(
             load_ledger(), "cvir", "ts", is_oracle=False, estimator_class=CVIRClassifier
         )

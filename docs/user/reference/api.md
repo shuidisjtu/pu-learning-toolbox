@@ -1569,6 +1569,15 @@ JSON 严格编码（未定义值转 `null`）。
 
 ## 实验层（experiment）
 
+2026-10-17 独立探索适配器（不改变 frozen Survey/Pipeline/CLI）：
+`pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` 将 CVIR 的显式 α_U/来源
+与 PA 总体 π 分开，拒绝校准 TS/SAR；`CVIRClassifier.input_sampling="ts"` 只表示
+直接提供原生独立 P/边缘 U，不是 runner 风险校准。
+`pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer` 要求独立带标签支持集，
+训练前核实际四角色/先验估计/support IDs 及适用分组，显著记录额外监督，只允许终点 OA。
+缺来源/预算/身份或 ADNI 组证据时拒绝；不隐式挪用验证/测试。
+接口和限制见[整改与调用示例](../../research/pu_survey/reviews/algorithm_issues_114_117_20261017.md)。
+
 实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
 决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)
 §2.3-§2.4 与 [experiment_layer.md](../../dev/experiment_layer.md) §1）。本表只登记公共符号与一句话用途；参数契约与行为细节的真相源是各

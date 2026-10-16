@@ -1,0 +1,51 @@
+{
+  "schema_version": "pulns-extra-support-adaptation-1",
+  "issue": 116,
+  "date": "2026-10-17",
+  "formal_admission": false,
+  "official_source_search": {
+    "status": "not_found",
+    "meaning": "No verified author code/package located; not proof of nonexistence. Paper-independent adaptation, never official code replay.",
+    "checked": [
+      "https://ojs.aaai.org/index.php/AAAI/article/view/17064",
+      "https://cdn.aaai.org/ojs/17064/17064-13-20558-1-2-20210518.pdf",
+      "https://www.microsoft.com/en-us/research/publication/pulns-positive-unlabeled-learning-with-effective-negative-sample-selector/"
+    ],
+    "search_queries": ["PULNS github Luo", "PULNS Effective Negative Sample Selector code"],
+    "verified_author_repository": null
+  },
+  "paper_protocol": {
+    "mapping_ref": "Table 1, printed p8788",
+    "support_ref": "Reward, printed p8787; Experimental Setup, printed p8789",
+    "gamma": "positive fraction within U, not Survey label frequency c",
+    "support_sizes": {"cifar10": 500, "mnist": 500, "spambase": 100},
+    "support_class_counts": "paper sampling uses gamma; exact realized counts/rounding/seed/source order not verified without author code",
+    "paper_support_sizes_are_survey_defaults": false
+  },
+  "common_project_rule": {
+    "support_source": "Caller supplies a separately prepared clean DatasetPart; never implicitly use clean_val/test or split frozen arrays in place.",
+    "support_size": "Explicit actual count; both clean classes required, no silent oversampling or one-class fallback.",
+    "positive_negative_counts": "Count actual labels, persist both counts and total extra label budget in manifest.",
+    "sampling_seed": "If sampled externally, source description must identify its preparation recipe/seed; adapter does not randomly choose support or tune its size.",
+    "shortage": "Reject absent class/invalid IDs; obtain a new approved preparation instead of borrowing validation/test rows.",
+    "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
+    "identity": "Stable global IDs required; pairwise disjointness and digests; duplicate/subject groups additionally audited when applicable.",
+    "supervision_uses": ["training_reward", "internal_best_classifier_selection"],
+    "pool_effect": "Record original/remaining train counts and whether support removed training rows; no automatic repartition.",
+    "comparison_group": "extra_clean_support",
+    "pa_eligible": false,
+    "selection": "terminal OA only on separate clean_val; source internal best selection also uses support",
+    "training_view": "OS engineering adaptation, not author gamma sampling replay or TS-OS calibration",
+    "formal_support_artifacts_materialized": false
+  },
+  "datasets": [
+    {"dataset": "mnist", "survey_positive": [0,2,4,6,8], "survey_negative": [1,3,5,7,9], "paper_covered": true, "paper_positive": [0,2,4,6,8], "paper_negative": [1,3,5,7,9], "mapping_verdict": "matches Table 1", "support_rule": "common_project_rule; paper size500 is reference only"},
+    {"dataset": "fashion_mnist", "survey_positive": [0,2,3,4,6], "survey_negative": [1,5,7,8,9], "paper_covered": false, "paper_positive": null, "paper_negative": null, "mapping_verdict": "project adaptation; no author coverage claim", "support_rule": "common_project_rule; no paper-derived size"},
+    {"dataset": "cifar10", "survey_positive": [0,1,8,9], "survey_negative": [2,3,4,5,6,7], "paper_covered": true, "paper_positive": [0,1,8,9], "paper_negative": [2,3,4,5,6,7], "mapping_verdict": "matches Table 1 vehicle/animal classes", "support_rule": "common_project_rule; paper size500 is reference only"},
+    {"dataset": "adni", "survey_positive": [0], "survey_negative": [1,2,3], "paper_covered": false, "paper_positive": null, "paper_negative": null, "mapping_verdict": "project adaptation; local source is ADNI stand-in, not author data", "support_rule": "common_project_rule plus mandatory subject/group IDs; unavailable groups block execution"},
+    {"dataset": "imdb", "survey_positive": [1], "survey_negative": [0], "paper_covered": false, "paper_positive": null, "paper_negative": null, "mapping_verdict": "project adaptation; positive sentiment unchanged", "support_rule": "common_project_rule; no paper-derived size"},
+    {"dataset": "twenty_newsgroups", "survey_positive": [0,1,2,3], "survey_negative": [4,5,6], "paper_covered": false, "paper_positive": null, "paper_negative": null, "mapping_verdict": "project seven-supergroup adaptation, not author coverage", "support_rule": "common_project_rule; no paper-derived size"},
+    {"dataset": "spambase", "survey_positive": [1], "survey_negative": [0], "paper_covered": true, "paper_positive": null, "paper_negative": null, "mapping_verdict": "binary source mapping kept; paper Table 2 counts1813/2788 consistent, exact raw coding not independently confirmed by Table 1", "support_rule": "common_project_rule; paper size100 is reference only"},
+    {"dataset": "connect_4", "survey_positive": ["win"], "survey_negative": ["loss","draw"], "paper_covered": false, "paper_positive": null, "paper_negative": null, "mapping_verdict": "project adaptation; no author coverage claim", "support_rule": "common_project_rule; no paper-derived size"}
+  ]
+}

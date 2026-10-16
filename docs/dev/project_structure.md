@@ -164,6 +164,8 @@ pu_toolbox/
     launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
     deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
   experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试 + method_ledger.json 方法台账(见 docs/research/pu_survey/)
+    cvir_adapter.py                       # 显式 alpha_U 的独立 SCAR OS 实验接线，分离 PA 总体先验
+    pulns_adapter.py                      # 额外 clean support 的全角色/分组隔离、预算与终点 OA 门禁
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
@@ -391,6 +393,8 @@ tests/
       test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
       test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
     experiment/
+      test_cvir_known_prior_adapter.py  # CVIR alpha_U/总体 pi、候选角色、manifest 与路径拒收
+      test_pulns_support_adapter.py     # PULNS 全角色隔离、额外标签预算与 OA-only 拒收
       test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
       test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
       test_feature_adapter.py           # CNN 特征四路适配/哈希/fit 范围与 split/seed/预算公平门禁

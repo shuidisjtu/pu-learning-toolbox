@@ -83,6 +83,8 @@ class CVIRClassifier(BasePUClassifier):
         device: str | None = None,
         encoder=None,
         data_device_policy: str = "auto",
+        input_sampling: str = "os",
+        prior_source: str | None = None,
     ) -> None:
         super().__init__()
         self.unlabeled_positive_prior = unlabeled_positive_prior
@@ -95,6 +97,8 @@ class CVIRClassifier(BasePUClassifier):
         self.device = device
         self.encoder = encoder
         self.data_device_policy = data_device_policy
+        self.input_sampling = input_sampling
+        self.prior_source = prior_source
 
     @property
     def checkpoint_epoch_count(self):
@@ -149,8 +153,21 @@ class CVIRClassifier(BasePUClassifier):
                 "population prior and cannot be substituted without a verified marginal U pool"
             )
         alpha = self.unlabeled_positive_prior
-        if alpha is None or not np.isfinite(alpha) or not 0 < alpha < 1:
+        if (
+            isinstance(alpha, (bool, np.bool_))
+            or not isinstance(alpha, int | float | np.number)
+            or not np.isfinite(alpha)
+            or not 0 < alpha < 1
+        ):
             raise ValueError("unlabeled_positive_prior must be in (0, 1)")
+        if self.input_sampling not in ("os", "ts"):
+            raise ValueError("input_sampling must be os or ts; this is not TS-OS calibration")
+        if self.prior_source is not None and (
+            not isinstance(self.prior_source, str) or not self.prior_source.strip()
+        ):
+            raise ValueError("prior_source must be a non-empty description or None")
+        if self.input_sampling == "ts" and self.prior_source is None:
+            raise ValueError("native TS input requires an explicit alpha_U prior_source")
         for name in ("hidden_dim", "warm_start_epochs", "max_epochs", "batch_size"):
             value = getattr(self, name)
             lower = 0 if name == "warm_start_epochs" else 1
@@ -216,6 +233,27 @@ class CVIRClassifier(BasePUClassifier):
         self.input_shape_ = tuple(X.shape[1:])
         self.n_positive_, self.n_unlabeled_ = len(p_idx), len(u_idx)
         self.unlabeled_positive_prior_ = float(alpha)
+        # TS here means caller-supplied independent P/marginal U, not an OS
+        # partition whose risk role has silently been replaced by P union U.
+        self.training_provenance_ = {
+            "method": "cvir",
+            "input_sampling": self.input_sampling,
+            "path": "native_ts_input" if self.input_sampling == "ts" else "explicit_os_adaptation",
+            "calibration_applied": False,
+            "known_prior": True,
+            "unlabeled_positive_prior": float(alpha),
+            "prior_semantics": (
+                "distribution-level positive fraction in the supplied original U pool"
+            ),
+            "prior_source": self.prior_source or "caller_supplied_source_unverified",
+            "source_verified": False,
+            "empirical_unlabeled_positive_fraction": None,
+            "n_positive": len(p_idx),
+            "n_unlabeled_candidates": len(u_idx),
+            "positive_rows_added_to_candidates": 0,
+            "unlabeled_roles": ["warm_start", "ranking", "negative_retention", "weighted_loss"],
+            "formal_admission": False,
+        }
         self.history_ = {"warm_start_loss": [], "cvir_loss": [], "selected_negative_count": []}
         self.optimizer_steps_ = 0
         self.epoch_provenance_ = []

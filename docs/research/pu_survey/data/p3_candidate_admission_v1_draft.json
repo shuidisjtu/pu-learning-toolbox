@@ -154,6 +154,7 @@
       "preparation_priority": 7,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir",
       "ledger_snapshot": {
+        "calibration_hooked": false,
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",

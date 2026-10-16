@@ -43,6 +43,12 @@ def _manifest_c_context(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _extra_supervision_context(trainer) -> dict[str, Any]:
+    """Disclose opt-in extra training labels without changing legacy manifests."""
+    context = getattr(trainer, "supervision_context", None)
+    return {"extra_supervision": _artifact_value(context())} if callable(context) else {}
+
+
 def _require_view_routable(config: dict[str, Any], trainer, model) -> None:
     """Refuse a calibrated request some hop in the chain cannot carry.
 
@@ -256,6 +262,11 @@ class ExperimentRunner:
             # would leave P2.2 unable to adjudicate them at all.
             comparison = _run_comparison(protocol_context, self.config)
             _validate_model_capability(model, bundle, self.config.get("architecture"))
+            # Opt-in experimental adapters validate extra supervision/prior
+            # contracts against actual partitions, before generation or retries.
+            validate_experiment = getattr(trainer, "validate_experiment", None)
+            if callable(validate_experiment):
+                validate_experiment(model, bundle, self.config, self.protocols)
             # Last of the preflight checks, but still inside it: a protocol/config
             # mismatch or a capability defect is the more fundamental problem and a
             # missing prior would bury it -- while a PA run that got past this point
@@ -295,6 +306,9 @@ class ExperimentRunner:
         c = self.config.get("c", 0.1)
         y_view_train, meta_train = self.generator.generate(train.X, train.labels, c, self.seed)
         y_view_val, meta_val = self.generator.generate(pu_val.X, pu_val.labels, c, self.seed)
+        validate_generation = getattr(trainer, "validate_generation", None)
+        if callable(validate_generation):
+            validate_generation(meta_train, meta_val)
         # The generator declares the view it produces: "pu" for SCAR/SAR, and
         # "clean" for the PN oracle (real labels passed through).  Keeping the
         # declaration on the strategy keeps PA structurally excluded — a clean
@@ -447,6 +461,11 @@ class ExperimentRunner:
                         "attempts": attempt,
                         "status": status,
                         "resources": _candidate_resources(attempt_resources),
+                        **(
+                            {"training_provenance": _artifact_value(est.training_provenance_)}
+                            if hasattr(est, "training_provenance_")
+                            else {}
+                        ),
                     }
                 )
                 if errors:
@@ -499,6 +518,7 @@ class ExperimentRunner:
             manifest = {
                 **protocol_context,
                 "estimator_parameters": _artifact_value(model.get_params(deep=False)),
+                **_extra_supervision_context(trainer),
                 "seed": self.seed,
                 "split_ref": self.config.get("split_ref", {}),
                 **_manifest_c_context(self.config),
@@ -632,6 +652,7 @@ class ExperimentRunner:
         manifest = {
             **protocol_context,
             "estimator_parameters": _artifact_value(model.get_params(deep=False)),
+            **_extra_supervision_context(trainer),
             "seed": self.seed,
             "split_ref": self.config.get("split_ref", {}),
             **_manifest_c_context(self.config),

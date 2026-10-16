@@ -15,7 +15,11 @@
 
 ## 台账与校准
 
-原文的 U 是总体边缘分布，两样本 case-control 下才有 `α_U=π_population`。若 PU 数据来自单一总体并移走已标记 P，剩余 U 的正类比例通常不同；仅凭观测 P/U 行数不能无条件转换。因此注册信息虽写 `requires_class_prior=False`，**不代表本算法不需要先验**，而是公共总体先验门禁不适用于它；直接拟合时仍必须显式给出 `unlabeled_positive_prior`。实验方法台账登记原生 `ts`，但当前没有可证明正确的 `os_or_ts` 损失替换：把已知 P 并入 CVIR 的临时负例候选池可能误选 P，故 `run_view=os-compatible`、`calibration_applied=false`，实验路由显式请求 `ts` 会报错。冻结的 `survey_protocol_v1.json` 保持不变。
+原文 U 为总体边缘分布，原生 TS 下分布参数 `α_U=π_population`；这不意味着有限样本中实际正类比例恰好等于它。OS 移走标记 P 后，U 的先验通常不同，不能无条件拿总体 π 替代。`requires_class_prior=False` 只表示公共总体先验门禁不适用，不代表无需先验。
+
+2026-10-17 按 #117 明确三条路径：直接组件 `input_sampling="ts"` 接受调用方提供的独立 P/边缘 U，必须显式给 `unlabeled_positive_prior` 与 `prior_source`；它不执行 OS 校准，也不从 U 真值估算比例。默认 `input_sampling="os"` 保留既有训练行为，但只称 OS 工程适配。实验层新增 `CVIRKnownPriorTrainer`，要求显式 α_U/来源，仅允许 SCAR OS；总体 π 留给 PA，不转发到训练。两者数值和来源分开写 manifest，调用方来源声明不冒充统计验证。
+
+OS→TS 校准仍未支持：排序、保留数量及损失均作用于原始 U，不新增 P 候选。`calibration_hooked=false`，显式校准 `os_or_ts="ts"` 拒绝。没有预先断言简单合并必然足够或必然错误。`input_sampling="ts"` 与 `os_or_ts="ts"` 是不同契约；后者在 Survey 表示训练风险校准，不是直接组件接收原生 TS 数据。冻结协议/矩阵不变，正式准入仍需审批。
 
 ## 适配边界与下一步
 

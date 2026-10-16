@@ -169,6 +169,21 @@ class PULNSClassifier(BasePUClassifier):
             if np.intersect1d(train_ids, support_ids).size:
                 raise ValueError("clean support identities overlap PU training")
             self.support_isolation_status_ = "train_support_ids_disjoint"
+        self.training_provenance_ = {
+            "method": "pulns",
+            "extra_supervision": True,
+            "comparison_group": "extra_clean_support",
+            "support_samples": len(support_y),
+            "support_positive_labels": int(np.sum(support_y == 1)),
+            "support_negative_labels": int(np.sum(support_y == 0)),
+            "support_label_uses": ["training_reward", "internal_best_classifier_selection"],
+            "support_in_classifier_fit_rows": False,
+            "isolation_status": self.support_isolation_status_,
+            "all_role_isolation_verified": False,
+            "support_source": "direct_caller_source_unverified",
+            "pa_eligible": False,
+            "formal_admission": False,
+        }
         for name in (
             "hidden_dim",
             "pretrain_epochs",

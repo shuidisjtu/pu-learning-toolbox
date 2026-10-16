@@ -105,7 +105,9 @@
     "random_state": null,
     "device": null,
     "encoder": null,
-    "data_device_policy": "auto"
+    "data_device_policy": "auto",
+    "input_sampling": "os",
+    "prior_source": null
   },
   "engineering_scope": {
     "inputs": "dense 2-D features or 4-D NCHW with independently cloned trainable encoder",
