@@ -25,7 +25,7 @@ LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在
 
 注册元数据 `requires_clean_support=true`；普通 PU-only 推荐器会排除该方法，以免自动工作流挑中一个无法安全训练的候选。
 
-发布 `utils/utils_data.py:182-193` 从 U 排除已标记 P，属于 OS split；既有 registry CASE_CONTROL/台账 ts 定位与它冲突。本次明确登记待负责人复核，未自行改签该定位或加入 TS 校准。source_status=official_exact 只表示作者源码可得，不证明理论采样定位或数值重放。support 数组共享内存将拒绝，但不同副本的样本/角色独立仍须协议索引证据。
+发布 `utils/utils_data.py:182-193` 从 U 排除已标记 P，属于 OS split。2026-10-17 按 Issue #115 将 registry 改为 SINGLE_TRAINING_SET、台账改为 os，来源收据保留原冲突并补整改记录。此定位描述作者发布实验，不断言理论仅适用 OS；不新增 TS 接口或校准。source_status=official_exact 只表示作者源码可得，不证明数值重放。support 数组共享内存将拒绝，但不同副本的样本/角色独立仍须协议索引证据。
 
 ## 验证与待办
 

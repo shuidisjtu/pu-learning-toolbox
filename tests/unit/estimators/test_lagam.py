@@ -152,7 +152,7 @@ def test_ledger_does_not_claim_calibration_or_pa_eligibility():
         )
         == "os"
     )
-    with pytest.raises(ValueError, match="no os_or_ts parameter"):
+    with pytest.raises(ValueError, match="declared native to 'os'"):
         resolve_training_view(
             ledger, "lagam", "ts", is_oracle=False, estimator_class=LaGAMClassifier
         )
@@ -164,6 +164,11 @@ def test_registry_declares_support_and_pu_only_recommender_excludes_lagam():
     assert get_algorithm("lagam") is LaGAMClassifier
     assert get_algorithm("la_gam") is LaGAMClassifier
     assert get_metadata("lagam").requires_clean_support is True
+    from pu_toolbox.core.tags import Scenario
+    from pu_toolbox.experiment.method_ledger import native_sampling_assumption
+
+    assert tuple(get_metadata("lagam").scenario) == (Scenario.SINGLE_TRAINING_SET,)
+    assert native_sampling_assumption(load_ledger()["methods"]["lagam"]) == "os"
     result = recommend_methods(X, y, class_prior=0.4, top_k=100)
     assert "lagam" not in {candidate.name for candidate in result.candidates}
     assert result.filters_applied["clean_support_required"] == "excluded (not provided)"

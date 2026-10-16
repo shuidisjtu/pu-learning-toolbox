@@ -3,6 +3,11 @@
 状态：P3.1/P3.2 独立技术补齐，HENG958 实施；shuidisjtu 方法/接口复核待办。
 不是正式方法/预算批准，不改旧冻结协议、对照矩阵、结果或签署。
 
+2026-10-17 整改补记（#115）：按下述锁定作者代码，将当前 registry/台账采样
+定位统一为 OS；旧冲突是本记录的历史事实，机器收据 `sampling.resolution` 记录
+修正，不伪造原有签署。发布实验采用 OS 不等于理论仅支持 OS；默认 OS 无校准，
+显式 TS 继续拒绝，clean support/PA 限制不变。
+
 ## 来源证据与两项重要边界
 
 只读核对[作者仓库](https://github.com/llong-cs/LaGAM/tree/362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8)

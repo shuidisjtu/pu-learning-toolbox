@@ -127,7 +127,9 @@ class LaGAMClassifier(BasePUClassifier):
     family = AlgorithmFamily.DEEP_PU
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
-    scenario = (Scenario.CASE_CONTROL,)
+    # Pinned author experiments remove labeled P from U (single training set).
+    # This describes the released sampling recipe, not theoretical exclusivity.
+    scenario = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior = False
     requires_clean_support = True
     implementation_status = ImplementationStatus.NATIVE

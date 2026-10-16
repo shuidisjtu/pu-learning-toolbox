@@ -257,14 +257,16 @@ def test_basic_source_receipt_keeps_sampling_conflict_and_unsigned_budget():
     assert receipt["sampling"]["published_split_view"] == "os"
     assert receipt["sampling"]["existing_registry_view"] == "ts"
     assert receipt["sampling"]["decision"] == "pending_method_owner_review"
+    assert receipt["sampling"]["resolution"]["registry_view"] == "os"
+    assert receipt["sampling"]["resolution"]["human_signature"] is False
     assert not receipt["formal_admission"] and not receipt["calibration_applied"]
     assert receipt["owner_signatures"] == [] and receipt["candidate_protocol_ref"] is None
     from pu_toolbox.experiment.method_ledger import load_ledger
 
     review = load_ledger()["methods"]["lagam"]["sampling_review"]
     assert review == dict(
-        registry_view="ts",
+        registry_view="os",
         source_split_view="os",
-        review_status="pending_method_owner_review",
-        registry_relabelled=False,
+        review_status="source_aligned_metadata_corrected",
+        registry_relabelled=True,
     )

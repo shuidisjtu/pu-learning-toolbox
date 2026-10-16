@@ -175,6 +175,7 @@
       "preparation_priority": 8,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.lagam",
       "ledger_snapshot": {
+        "native_sampling_assumption": "os（锁定作者发布实验 utils/utils_data.py:182-193 排除验证和已标记 P；登记发布采样配方，不断言理论仅适用 OS；Issue #115）",
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
@@ -188,7 +189,6 @@
       "declared_scope": "technical MLP or injected CNN with independent clean support and CPU-streaming; no PU-only UI/standard trainer eligibility or author replay",
       "specific_blockers": [
         "independent_clean_support_protocol",
-        "published_OS_vs_registry_TS_sampling_review",
         "PA_ineligible_label_budget_decision"
       ]
     }

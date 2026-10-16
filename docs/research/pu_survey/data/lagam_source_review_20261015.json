@@ -29,7 +29,16 @@
     "existing_registry_view": "ts",
     "existing_runtime_view": "os-compatible",
     "decision": "pending_method_owner_review",
-    "action": "record conflict; do not silently relabel registry scenario or approve a TS loss replacement"
+    "action": "Historical conflict retained; metadata correction recorded in resolution, not a TS loss replacement or formal admission",
+    "resolution": {
+      "date": "2026-10-17",
+      "issue": 115,
+      "registry_view": "os",
+      "ledger_view": "os",
+      "basis": "Pinned author utils/utils_data.py:182-193 excludes validation and labeled P from U; released recipe, not theory-only-OS claim",
+      "human_signature": false,
+      "calibration_applied": false
+    }
   },
   "source_differences": [
     {
@@ -119,7 +128,6 @@
   "blockers": [
     "independent_clean_support_protocol",
     "PA_ineligible_label_budget_decision",
-    "published_OS_vs_registry_TS_sampling_review",
     "source_license_and_full_paper_review",
     "approved_shared_architecture_preprocessing_selection_and_budget",
     "public_numeric_comparison_and_formal_multiseed_resource_evidence",
