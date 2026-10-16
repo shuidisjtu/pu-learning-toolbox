@@ -52,8 +52,8 @@ def _support_hash(part):
     )
 
 
-class PULNSExtraSupportTrainer(Trainer):
-    """Explore PULNS with audited extra labels and terminal OA selection only.
+class _IndependentSupportTrainer(Trainer):
+    """Shared extra-label audit; subclasses provide the actual training path.
 
     ``support`` is a clean DatasetPart with stable global sample IDs. Groups
     must be supplied for every role when subject/duplicate groups exist. For
@@ -61,6 +61,14 @@ class PULNSExtraSupportTrainer(Trainer):
     ``prior_estimation_indices=[]`` explicitly declares no data-based prior
     estimation; otherwise its independent sample IDs are audited as a role.
     """
+
+    method_name = "pulns"
+    display_name = "PULNS"
+    support_uses = ("training_reward", "internal_best_classifier_selection")
+
+    @staticmethod
+    def estimator_type():
+        raise NotImplementedError("support adapter must declare its estimator")
 
     def __init__(
         self,
@@ -89,15 +97,17 @@ class PULNSExtraSupportTrainer(Trainer):
 
     def validate_experiment(self, model, bundle, config, protocols):
         """Validate actual runner role identities before spending any budget."""
-        from ..estimators.deep.pulns import PULNSClassifier
-
         self._prepared = False
-        if not isinstance(model, PULNSClassifier):
-            raise TypeError("PULNSExtraSupportTrainer requires PULNSClassifier")
+        if not isinstance(model, self.estimator_type()):
+            raise TypeError(f"{self.display_name} support adapter received a different estimator")
         if config.get("survey_protocol") is not None or config.get("os_or_ts") not in (None, "os"):
-            raise ValueError("PULNS support adapter is exploratory OS only, not frozen Survey")
+            raise ValueError(
+                f"{self.display_name} support adapter is exploratory OS only, not frozen Survey"
+            )
         if not protocols or any(type(p) is not ProtocolOA for p in protocols):
-            raise ValueError("extra-supervised PULNS requires OA only; not PU-only PA eligible")
+            raise ValueError(
+                f"extra-supervised {self.display_name} requires OA only; not PU-only PA eligible"
+            )
         if self.dataset not in survey_dataset_catalog():
             raise ValueError("dataset must name an approved Survey label mapping")
         declared_dataset = (config.get("split_ref") or {}).get("dataset")
@@ -155,18 +165,18 @@ class PULNSExtraSupportTrainer(Trainer):
         self._support_digest = _support_hash(support)
         self._train_features_sha = hashlib.sha256(bundle.train.X.tobytes(order="C")).hexdigest()
         self._audit = {
-            "method": "pulns",
+            "method": self.method_name,
             "dataset": self.dataset,
             "extra_supervision": True,
             "comparison_group": "extra_clean_support",
-            "display_label": "PULNS + extra clean support (not PU-only)",
+            "display_label": f"{self.display_name} + extra clean support (not PU-only)",
             "support_source": self.source,
             "support_samples": len(y),
             "preparation_seed": self.preparation_seed,
             "sampling_rule": self.sampling_rule,
             "support_positive_labels": int(np.sum(y == 1)),
             "support_negative_labels": int(np.sum(y == 0)),
-            "support_label_uses": ["training_reward", "internal_best_classifier_selection"],
+            "support_label_uses": list(self.support_uses),
             "support_in_classifier_fit_rows": False,
             "original_train_count": self.original_train_count,
             "remaining_train_count": len(bundle.train.X),
@@ -193,35 +203,28 @@ class PULNSExtraSupportTrainer(Trainer):
         }
         self._prepared = True
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
-        """Use only explicit support; never receive clean_val/test labels."""
-        from ..estimators.deep.pulns import PULNSClassifier
-
+    def _require_prepared(self, estimator, features, view):
+        """Recheck borrowed data just before each fit/retry, never trust stale audit."""
         if not getattr(self, "_prepared", False):
-            raise ValueError("PULNS support trainer must pass runner all-role preflight first")
-        if not isinstance(estimator, PULNSClassifier) or os_or_ts not in (None, "os"):
-            raise ValueError("PULNS support adapter accepts PULNS OS input only")
+            raise ValueError("support trainer must pass runner all-role preflight first")
+        if not isinstance(estimator, self.estimator_type()) or view not in (None, "os"):
+            raise ValueError(
+                f"{self.display_name} support adapter accepts its own OS estimator only"
+            )
         if (
             _support_hash(self.support) != self._support_digest
-            or hashlib.sha256(X.tobytes(order="C")).hexdigest() != self._train_features_sha
+            or hashlib.sha256(features.tobytes(order="C")).hexdigest() != self._train_features_sha
         ):
             raise ValueError("support or training features changed after isolation preflight")
-        estimator.fit(
-            X,
-            y,
-            support_data=(self.support.X, self.support.labels),
-            train_indices=np.asarray(self._roles["train"]),
-            support_indices=np.asarray(self._roles["support"]),
-        )
+
+    def _finish_provenance(self, estimator, observed):
         estimator.training_provenance_ = dict(self._audit)
-        estimator.training_provenance_["observed_labeled_positive_count"] = int(np.sum(y == 1))
-        estimator.training_provenance_["total_observed_training_label_budget"] = int(
-            np.sum(y == 1)
-        ) + len(self.support.labels)
-        estimator.training_provenance_["stage_optimizer_steps"] = dict(
-            estimator.stage_optimizer_steps_
+        estimator.training_provenance_["observed_labeled_positive_count"] = int(
+            np.sum(observed == 1)
         )
-        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
+        estimator.training_provenance_["total_observed_training_label_budget"] = int(
+            np.sum(observed == 1)
+        ) + len(self.support.labels)
 
     def supervision_context(self):
         """Prominent manifest disclosure, not buried in method footnotes."""
@@ -230,4 +233,30 @@ class PULNSExtraSupportTrainer(Trainer):
     def validate_generation(self, train_meta, val_meta):
         """Only the disclosed SCAR OS engineering path is admitted here."""
         if any(meta.get("mechanism") != "scar" for meta in (train_meta, val_meta)):
-            raise ValueError("PULNS exploratory support adapter supports SCAR only")
+            raise ValueError(f"{self.display_name} exploratory support adapter supports SCAR only")
+
+
+class PULNSExtraSupportTrainer(_IndependentSupportTrainer):
+    """PULNS terminal OA with independently audited extra reward labels."""
+
+    @staticmethod
+    def estimator_type():
+        from ..estimators.deep.pulns import PULNSClassifier
+
+        return PULNSClassifier
+
+    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+        """Use only explicit support; never receive clean_val/test labels."""
+        self._require_prepared(estimator, X, os_or_ts)
+        estimator.fit(
+            X,
+            y,
+            support_data=(self.support.X, self.support.labels),
+            train_indices=np.asarray(self._roles["train"]),
+            support_indices=np.asarray(self._roles["support"]),
+        )
+        self._finish_provenance(estimator, y)
+        estimator.training_provenance_["stage_optimizer_steps"] = dict(
+            estimator.stage_optimizer_steps_
+        )
+        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)

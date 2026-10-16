@@ -29,4 +29,11 @@ LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在
 
 ## 验证与待办
 
+2026-10-17 新增 `LaGAMCleanSupportTrainer`，仅供独立 SCAR OS/终点 OA；
+训练前核四角色、先验估计、support 的全局 IDs 与适用分组，支持集不得来自
+选模/test。实训回归确认虚拟元更新发生，manifest 显著标注额外监督/预算，
+修改 test 不影响训练或选模。旧 `EpochCheckpointTrainer`/frozen Survey 不变；
+这不是正式候选池准入，未替代实际数据支持集、来源配方与标签预算审批。
+详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
+
 单元测试覆盖平衡 BCE、独立二阶元梯度、组对比损失、支持集 fail-closed、CNN 模式/缓冲、分批/成本及推理回放。2026-09-28 A6000 单次 CUDA smoke 为旧二维路径，不覆盖新 CNN，也不替代 frozen-lock 或多 seed 资源验收。台账仍为 `run_view=os-compatible`、`calibration_applied=false`：无安全的同形 U 风险替换，校准也不能消除独立 support 监督。标准 PA 不适用；仍需 support/选模互斥协议、采样定位、来源许可/全文、公开数值、候选矩阵及合作者审阅。

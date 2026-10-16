@@ -1578,6 +1578,13 @@ JSON 严格编码（未定义值转 `null`）。
 缺来源/预算/身份或 ADNI 组证据时拒绝；不隐式挪用验证/测试。
 接口和限制见[整改与调用示例](../../research/pu_survey/reviews/algorithm_issues_114_117_20261017.md)。
 
+`pu_toolbox.experiment.clean_support_adapters.SelfPUCleanSupportTrainer` 和
+`LaGAMCleanSupportTrainer` 复用相同六角色/分组/额外标签预算审计，显式接通现有
+Self-PU clean-meta 与 LaGAM 元标签路径。构造参数与上述 PULNS adapter 相同；
+Self-PU 的支持集只用于元重加权与内部 teacher 选择，外部 OA 仍用独立 clean_val。
+仅探索性 SCAR OS、终点 OA，不是 PA、正式多 checkpoint 候选池或论文数值复现。
+调用示例与验收边界见[算法收尾记录](../../research/pu_survey/reviews/algorithm_completion_20261017.md)。
+
 实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
 决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)
 §2.3-§2.4 与 [experiment_layer.md](../../dev/experiment_layer.md) §1）。本表只登记公共符号与一句话用途；参数契约与行为细节的真相源是各

@@ -444,6 +444,14 @@ L=L_{SP+Reweight}+L_{students}+L_{teachers}.
 
 ## 8. 源码状态与复现风险
 
+2026-10-17 新增独立探索接线 `SelfPUCleanSupportTrainer`：显式带标签 support 经
+六角色 IDs/分组及标签预算审计后，作为 `validation_data` 启用现有 clean-meta
+重加权和内部 teacher 选择；外部 OA 另用不重叠 clean_val。实训回归确认元更新
+实际发生、test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终点 OA，
+不是 PA 或完整论文复现；旧试点仍是无 meta 消融，一致性项范围/图像 backbone
+差异保持登记。实际数据支持集与正式预算尚未批准。
+详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
+
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_exact` |

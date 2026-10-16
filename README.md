@@ -116,11 +116,15 @@ Repository research experiments use dedicated scripts rather than the general
 `PUPipeline` workflow. Prepare reproducible four-way splits and inspect the
 Survey runner with:
 
+The separate LBE diagnostic uses `scripts/_lbe_diagnostic_reference.py` as an
+unregistered SCAR-constrained reference, not a replacement for source LBE.
+
 ```bash
 uv run python scripts/prepare_survey_splits.py --help
 uv run python scripts/run_survey_experiment.py --help
 uv run python scripts/verify_survey_result_receipt.py --help
 uv run python scripts/run_lbe_comparison.py --help
+uv run python scripts/run_lbe_diagnostics.py --help
 
 # SCAR row (PA + OA selection)
 uv run python scripts/run_survey_experiment.py path/to/splits \

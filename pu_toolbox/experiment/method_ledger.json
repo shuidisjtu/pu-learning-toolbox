@@ -518,6 +518,16 @@
         "source_status": "official_exact"
       },
       "implementation_status": "NATIVE clean-room core；paper-like benchmark 待完成（Self-PU.md:399/450）",
+      "extra_supervision_adapter": {
+        "entry": "pu_toolbox.experiment.clean_support_adapters.SelfPUCleanSupportTrainer",
+        "scope": "opt-in exploratory SCAR OS, terminal OA after support teacher selection; frozen pilot remains no-meta ablation",
+        "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
+        "support_labels_affect": ["meta_reweighting", "internal_teacher_selection"],
+        "comparison_group": "extra_clean_support",
+        "pa_eligible": false,
+        "formal_support_artifacts_materialized": false,
+        "formal_admission": false
+      },
       "native_sampling_assumption": "ts（case_control; D=D_P∪D_U, x_i^p~p(x|Y=+1), x_i^u~p(x)，Self-PU.md:15/36-48, registry:self_pu）",
       "run_view": "ts-compatible",
       "calibration_applied": true,
@@ -539,12 +549,12 @@
         "adaptation_level": "Self-PU.md:437-439/449-450/454; 视图叠加与消融分支口径（Self-PU.md:407-409）"
       },
       "uncertainty": [
-        "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）",
+        "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）；2026-10-17 独立支持集 adapter 接通现有完整 meta 路径并经 CPU 实训回归，不改变旧试点消融或代表完整论文复现",
         "validation_data（clean-label 元重加权）与 pu_validation_data（仅 P/U 标签 nnPU risk 恢复 checkpoint）两入口严格分离（Self-PU.md:388-389）",
         "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）",
         "官方仓库当前规范地址为 VITA-Group/Self-PU；方法卡中的 TAMU-VITA 旧组织链接会重定向到同一仓库",
         "原生 CNN 未接入：依 dual_architecture_plan 阶段 3 长期搁置（元学习再加权依赖干净验证标签，encoder 适配不解决该前置条件）；需原生 CNN 时单独立项（issue #38，2026-09-14）",
-        "原生 case-control（ts）；TS-OS 校准已接入训练执行链（协议 §2.3，Self-PU.md:407-409）：ts 视图把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」，两侧按**实际行数**混合（α_P 是 batch 质量、不是 π；class prior 不重估）；trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签；复用正例批 logits，零额外前向、零额外 RNG；OS 路径与改造前一致（冻结基线，本切片实测逐位为 0 偏差）。**边界**：论文的一致性项本在 D−D_trust / D 全域求和，实现收窄为 U 批（视图无关的既有收窄）；Pilot 不向 PU 方法传 clean validation，故 Survey 中的 self_pu 恒为无 meta 的消融分支，含 meta 的分支只由单元测试覆盖。口径见执行计划 D19；ts 视图尚未经合作者复核"
+        "原生 case-control（ts）；TS-OS 校准已接入训练执行链（协议 §2.3，Self-PU.md:407-409）：ts 视图把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」，两侧按**实际行数**混合（α_P 是 batch 质量、不是 π；class prior 不重估）；trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签；复用正例批 logits，零额外前向、零额外 RNG；OS 路径与改造前一致（冻结基线，本切片实测逐位为 0 偏差）。**边界**：论文的一致性项本在 D−D_trust / D 全域求和，实现收窄为 U 批（视图无关的既有收窄）；Pilot 不向 PU 方法传 clean validation，故 Survey 中的 self_pu 恒为无 meta 的消融分支；新增独立支持集接线只做探索性 SCAR OS/OA，不扩大 frozen TS 或监督预算。口径见执行计划 D19；ts 视图尚未经合作者复核"
       ],
       "filler": "HENG958",
       "owner_review": {
@@ -684,6 +694,16 @@
         "source_status": "official_exact (作者源码可得并锁定；非复现声明，source_scope/EMA/损失/优化器等差异见 lagam_source_review_20261015.json)"
       },
       "implementation_status": "NATIVE, backend TORCH; explicit clean-support MLP or trainable injected CNN; CPU-streamed training/clustering/inference, head-only virtual meta update; not author replay or formal admission",
+      "extra_supervision_adapter": {
+        "entry": "pu_toolbox.experiment.clean_support_adapters.LaGAMCleanSupportTrainer",
+        "scope": "opt-in exploratory SCAR OS, terminal OA only; frozen Survey/Pipeline/CLI unchanged",
+        "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
+        "support_labels_affect": ["meta_label_disambiguation"],
+        "comparison_group": "extra_clean_support",
+        "pa_eligible": false,
+        "formal_support_artifacts_materialized": false,
+        "formal_admission": false
+      },
       "native_sampling_assumption": "os（锁定作者发布实验 utils/utils_data.py:182-193 排除验证和已标记 P；登记发布采样配方，不断言理论仅适用 OS；Issue #115）",
       "run_view": "os-compatible",
       "calibration_applied": false,
