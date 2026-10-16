@@ -1,7 +1,7 @@
 # ADR 0020：按声明检查主输入标签语义
 
 - 日期：2026-10-15
-- 状态：已实现，维护者复核待办
+- 状态：已实现，2026-10-16 用户接受技术复核证据，RV2 完成
 - 依据：[标签语义设计](../dev/label_semantics_plan.md)、[Issue #41](https://github.com/shuidisjtu/pu-learning-toolbox/issues/41)
 
 ## 背景

@@ -1,5 +1,25 @@
 # Issue #41 阶段B：公共入口标签语义门禁
 
+## 2026-10-16 RV2 验收结论
+
+**RV2 完成，Issue #41 可关闭。** 用户接受队友实现及本次功能复核证据，不再另要求人工签署；这是用户验收决定，不代填 HENG958 签名。下文 10-15 待审表述保留为历史状态。
+
+验收对象：PR #110 HEAD `8b4e7519d5c5dfb8a275de8884169d464a038704`，阶段 B 实现提交 `3e65e37f91a69d641672904620048255e7a59678`。本次在独立导出的 PR 源码副本中运行，确认导入路径指向副本，复用现有环境，不是正式 frozen-lock 环境。
+
+- 专项 **67 passed / 0 failed / 0 skipped**：两个新增语义入口测试模块、能力声明契约、标签校验、模型比较与身份防泄漏。
+- 兼容性 **103 passed / 0 failed / 0 skipped**：runner oracle 行为/拒绝路径、epoch checkpoint、Self-PU、调优、CLI sensitivity、推荐器及 Pipeline/模型配置集成。
+- 另用 30 行合成三值标签直接调用 PNU fit，预测分数有限；第三方 PU 默认、合法数值相等输入与 Self-PU 辅助验证边界保持。
+- 代码核查确认 Pipeline 解析、运行及实际构造/clone 后消费共享守卫；比较、调优和 CLI/UI 复用，敏感性直接 fit 单独检查；推荐、配置导入、Labels 展示与 ADR/API 一致，原 runner/trainer 和身份防泄漏判据未削弱。
+
+复现命令（在该 PR 源码检出中执行）：
+
+```bash
+uv run python -m pytest tests/unit/workflows/test_pipeline_label_semantics.py tests/unit/workflows/test_label_semantics_entrypoints.py tests/contract/test_capability_declarations.py tests/test_validation_labels.py tests/unit/model_selection/test_comparison.py tests/benchmarks/test_traditional_pu_leakage_audit.py
+uv run python -m pytest tests/unit/experiment/test_runner_oracle.py tests/unit/experiment/test_runner_oracle_guards.py tests/unit/experiment/test_epoch_checkpoints.py tests/unit/estimators/test_self_pu.py tests/unit/model_selection/test_tuning.py tests/unit/cli/test_sensitivity_cmd.py tests/unit/advisor/test_recommender.py tests/integration/test_pipeline.py tests/integration/test_model_configuration.py
+```
+
+未重跑全仓测试、未做浏览器交互或正式实验。PR 的 Windows ZIP 测试夹具失败另行处理，不属于标签语义缺陷；本验收不表示整个 PR 的 CI 已通过，不改变历史结果或冻结协议。
+
 ## 任务依据与状态
 
 2026-10-15已执行 `git fetch origin`，远程main仍为 `3158a6c`，本地包含该基线。
