@@ -63,7 +63,7 @@ _SKIP_REASONS: dict[str, str] = {
     "lagam": (
         "LaGAMClassifier.fit raises ValueError without an explicit clean support "
         "set (support_data=(X_support, y_clean)); the registry marks it "
-        "requires_clean_support=True with scenario CASE_CONTROL, so a plain "
+        "requires_clean_support=True, so a plain "
         "PU-labelled fixture cannot drive it"
     ),
 }

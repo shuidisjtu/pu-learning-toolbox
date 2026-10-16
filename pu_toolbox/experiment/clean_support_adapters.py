@@ -30,6 +30,7 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
     def validate_experiment(self, model, bundle, config, protocols):
         super().validate_experiment(model, bundle, config, protocols)
         if model.max_epochs <= model.self_paced_start:
+            self._prepared = False
             raise ValueError("Self-PU full-meta budget must reach a meta-active epoch")
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
@@ -78,6 +79,7 @@ class LaGAMCleanSupportTrainer(_IndependentSupportTrainer):
     def validate_experiment(self, model, bundle, config, protocols):
         super().validate_experiment(model, bundle, config, protocols)
         if model.max_epochs <= model.warmup_epochs:
+            self._prepared = False
             raise ValueError("LaGAM meta budget must extend beyond warmup")
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):

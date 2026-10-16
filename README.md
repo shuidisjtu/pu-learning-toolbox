@@ -114,10 +114,11 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 
 Repository research experiments use dedicated scripts rather than the general
 `PUPipeline` workflow. Prepare reproducible four-way splits and inspect the
-Survey runner with:
+Survey runner.
 
 The separate LBE diagnostic uses `scripts/_lbe_diagnostic_reference.py` as an
 unregistered SCAR-constrained reference, not a replacement for source LBE.
+Inspect the commands with:
 
 ```bash
 uv run python scripts/prepare_survey_splits.py --help

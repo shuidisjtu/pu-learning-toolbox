@@ -164,12 +164,14 @@ def test_edge_warmup_only_budget_refused_before_fit(method, monkeypatch):
         raise AssertionError("inactive meta budget must be rejected before fit")
 
     monkeypatch.setattr(type(model), "fit", never)
+    adapter = trainer(method, support)
     with pytest.raises(ValueError, match="budget"):
         ExperimentRunner(
             protocols=[ProtocolOA()],
             class_prior=0.5,
-            config={"trainer": trainer(method, support)},
+            config={"trainer": adapter},
         ).fit(model, *parts)
+    assert not adapter._prepared
 
 
 def test_basic_selfpu_meta_receives_only_explicit_support(monkeypatch):
