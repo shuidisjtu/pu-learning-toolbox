@@ -120,6 +120,7 @@ Survey runner with:
 uv run python scripts/prepare_survey_splits.py --help
 uv run python scripts/run_survey_experiment.py --help
 uv run python scripts/verify_survey_result_receipt.py --help
+uv run python scripts/run_lbe_comparison.py --help
 
 # SCAR row (PA + OA selection)
 uv run python scripts/run_survey_experiment.py path/to/splits \
