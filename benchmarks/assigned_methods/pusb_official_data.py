@@ -106,7 +106,7 @@ def construct_official_split(
 
     # The released script appends a constant feature while sklearn also fits an intercept.
     pn_design = np.column_stack((X, np.ones(len(X), dtype=float)))
-    pn_classifier = LogisticRegression(C=0.01, penalty="l2", max_iter=1000)
+    pn_classifier = LogisticRegression(C=0.01, l1_ratio=0, max_iter=1000)
     pn_classifier.fit(pn_design, y)
 
     permutation = rng.permutation(len(X))
