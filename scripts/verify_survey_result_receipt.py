@@ -36,11 +36,18 @@ def _file_identity(path: Path) -> dict[str, Any]:
             digest.update(chunk)
         after = os.fstat(stream.fileno())
     current = path.lstat()
-    keys = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+    keys = ("st_dev", "st_ino", "st_size", "st_mtime_ns")
     identities = [
         tuple(getattr(item, key) for key in keys) for item in (before, opened, after, current)
     ]
-    if any(value != identities[0] for value in identities[1:]):
+    # Windows (Python 3.12) can report a different ctime for a just-written file through a path
+    # stat than through an open handle, so ctime is only compared between like-for-like stats.
+    stable = (
+        all(value == identities[0] for value in identities[1:])
+        and before.st_ctime_ns == current.st_ctime_ns
+        and opened.st_ctime_ns == after.st_ctime_ns
+    )
+    if not stable:
         raise ValueError(f"file changed during verification: {path}")
     return {"bytes": before.st_size, "sha256": digest.hexdigest()}
 
