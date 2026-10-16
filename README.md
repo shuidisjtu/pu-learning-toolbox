@@ -132,72 +132,30 @@ uv run python scripts/run_survey_experiment.py path/to/splits \
 ```
 
 Methods that require the population class prior take `--class-prior` for the
-gate plus their constructor arguments via `--model-params` (see
-`--help` and the script docstring for a uPU example).
+gate plus their constructor arguments via `--model-params` (see `--help` and
+the script docstring for a uPU example). `--labeling-mechanism` selects how the
+PU label view is generated (SCAR or the SAR LBE variants) and is orthogonal to
+`--method`: the mechanism is the experiment's independent variable, so SAR rows
+run any survey method and report OA only.
 
-`--labeling-mechanism` picks how the PU label view is generated (SCAR or the
-SAR LBE variants) and is orthogonal to `--method`: the mechanism is the
-experiment's independent variable, so the SAR rows run any survey method and
-report OA only. See [`docs/research/pu_survey/`](docs/research/pu_survey/) for
-the protocol, current execution status, and reporting boundaries. Until all
-protocol gates are satisfied, results must be identified as a
-`pilot / partial benchmark`. Whole-pilot runs, result aggregation, and split
-transfer are driven by `run_survey_pilot.py`, `aggregate_survey_runs.py`, and
-`survey_splits_archive.py` (see their docstrings and `docs/research/pu_survey/`).
-Received survey data can be checked read-only with `scripts/review_survey_split_receipt.py`;
-independent rebuild differences can be diagnosed without relaxing receipt verification with
-`scripts/diagnose_survey_split_rebuild.py` (see [scope and limits](docs/research/pu_survey/delivery/split_rebuild_diagnostic_20261015.md)).
-pilot delivery Excel can be reconciled with `scripts/audit_survey_workbook.py` (optional `openpyxl`).
-Missing public raw datasets can be collected with `scripts/collect_survey_public_data.py`;
-this does not prepare or approve formal survey splits and excludes access-controlled ADNI.
-Survey recipe preparation uses `scripts/prepare_survey_recipe_registry.py`; validate a draft with
-`scripts/check_survey_recipe_registry.py --registry <draft.json>` before review and locking.
-Synthetic seven-method serialization (and PULDA checkpoint) storage can be probed with
-`scripts/profile_survey_candidate_storage.py` (`--method all --seeds 0 1 2`);
-this does not set formal budgets or audit GPU usage. The separate five-method handoff draft is
-generated read-only by `scripts/prepare_p3_preintegration_extension.py`, without approving candidates.
-CNN checkpoint/full-estimator sizes and CPU replay can be probed separately with
-`scripts/profile_survey_cnn_storage.py` (`--method all --seeds 0 1 2`);
-its synthetic measurements and optional process-local CUDA peaks are not formal resource budgets.
-New PULNS/GEN-PU/Holistic-PU CNN variants can be measured in fresh subprocesses with
-`scripts/profile_survey_extended_cnn_storage.py`; validate receipts read-only with
-`scripts/check_survey_extended_cnn_storage.py --record <receipt.json>`.
-See [the scope and resource handoff](docs/research/pu_survey/extended_cnn_resource_review_20261007.md);
-clean reward labels, absent PULNS epoch snapshots and pending formal budgets remain explicit.
-documentation consistency checks include `scripts/check_doc_links.py` and `scripts/check_api_docs.py`.
+Until all protocol gates are satisfied, results must be identified as a
+`pilot / partial benchmark`. The protocol, execution status and reporting
+boundaries are in [`docs/research/pu_survey/`](docs/research/pu_survey/).
 
-P3 preparation evidence for PULDA, PUET, Grad-PU, Robust-PU and Split-PU is documented in
-[the admission evidence handoff](docs/research/pu_survey/p3_admission_evidence_20261005.md).
-`scripts/check_p3_admission_evidence.py` checks code/ledger facts offline; optional
-`--source-dir METHOD=PATH` verifies pinned local source bytes without executing author code.
-Passing this technical check does not approve candidates, budgets or method-owner review.
+Supporting scripts (see each script's docstring and the Survey docs for scope and limits):
 
-Public result preparation is described in
-[the source comparison handoff](docs/research/pu_survey/p3_public_comparison_20261005.md).
-`scripts/check_p3_public_comparison.py` validates draft reading units, coverage and frozen-file
-bindings; optional local paper/source checks verify bytes. It issues no numeric verdicts,
-does not consume experiment artifacts and does not promote pending readings to accepted anchors.
+| Stage | Scripts |
+|---|---|
+| Data and splits | `collect_survey_public_data.py` (collect missing public raw data; excludes access-controlled ADNI), `survey_splits_archive.py` (split transfer), `review_survey_split_receipt.py` (read-only receipt check), `diagnose_survey_split_rebuild.py` (rebuild differences, without relaxing receipt verification) |
+| Runs | `run_survey_pilot.py` (whole pilot), `aggregate_survey_runs.py`, `verify_survey_result_receipt.py` (received result bytes, before replay) |
+| Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `audit_survey_workbook.py` (delivery Excel, optional `openpyxl`) |
+| Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a draft before review and locking) |
+| Resource probes | `profile_survey_candidate_storage.py`, `profile_survey_cnn_storage.py`, `profile_survey_extended_cnn_storage.py` with `check_survey_extended_cnn_storage.py` |
+| P3 admission evidence | `check_p3_admission_evidence.py`, `check_p3_public_comparison.py`, `prepare_p3_selection_budget_spec.py`, `prepare_p3_preintegration_extension.py` |
 
-Method-specific stage and budget preparation is documented in
-[the stage/budget review](docs/research/pu_survey/p3_stage_budget_review_20261007.md).
-`scripts/prepare_p3_selection_budget_spec.py` reads code/ledger facts and checks the pending draft;
-it does not approve checkpoint stages or recipes. New staged methods retain stage/round/update
-provenance in inference references; historical pilot references remain unchanged.
-
-Auditing and summarizing a finished batch set is driven by
-`audit_survey_batches.py` and `summarize_survey_results.py`. Both take a
-batch-root whitelist and write only to their `--out-dir`: the first reports every
-structural and fairness finding it can decide, and names the checks it cannot
-rather than recording them as passes; the second emits one mean and sample
-standard deviation per comparable row, with costs kept per run so they are not
-billed twice across the two selection protocols. Neither writes to a result tree.
-
-Attaching the pre-registered literature comparison to a finished summary is driven
-by `compare_survey_results.py`, which reads that `summary.json` and resolves each
-row through the frozen matrix. It reports the class the matrix assigns each unit
-and evaluates a numeric rule only where the matrix licenses one and our own
-protocol calls the row formal; every other row is listed as unresolved rather than
-compared, so a class without a rule cannot be read as agreement.
+These scripts are technical checks and measurements. None of them approves
+candidates, budgets, formal splits or numeric verdicts, and the audit and summary scripts only write to their own `--out-dir`,
+never to a result tree.
 
 ## AI workflow skill
 
