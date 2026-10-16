@@ -35,23 +35,25 @@
 
 ### 1.2 未完成任务
 
-| 编号 | 任务 | 主责 / 复核 | 前置与当前状态 | 完成条件 |
-|---|---|---|---|---|
-| P2.2 | Pilot 交付与审计收尾 | **shuidisjtu**；HENG958 独立重放与 C1–C6 复核 | O1–O10 已于10-09签署；10-15收到修正包，三数据页22942单元格与已审原表逐值/类型一致，645runs/183汇总保持，见[修正包复核](reviews/p21_correction_receiving_20261015.md)。原结果树、计划/日志/权重仍未随包交付 | 补齐原始计划、日志、manifest/权重与归档证据；HENG958完成C1–C6并按[复核包](delivery/p2_2_review.md)登记本人结论/摘要；原索引不改，新表不冒充旧发布身份，31条低AUC不事后翻转或设新阈值 |
-| P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 除 `p3mix` 外，Survey 目标方法均已有代码级接入；五方法[来源与预算证据](p3_admission_evidence_20261005.md)、[公开对照草稿](p3_public_comparison_20261005.md)已补，均待审；`p3mix` 仅有数学组件，未注册完整 estimator | HENG958 完成 P3MIX 来源核验、完整 estimator/训练流程、注册与测试；并补齐已接入方法的来源、公式/行为对照、先验/标签预算与校准适用性；shuidisjtu 按 RV8 逐项复核 |
-| P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；正式共享规格、增强/调度差异与执行证据仍缺 | 接通获批图像/特征路径、分批训练预测、阶段预算及 checkpoint；明确与原论文适配差异，交付可追溯工程证据；资源验收见 P3.3-A/B |
-| PN-CNN | 端到端 CNN PN 全监督 oracle baseline | **HENG958** 实现/训练；shuidisjtu 登记协议并复核 | `PilotOracleCNN` 已有代码和合成验证；旧协议 native CNN oracle 仍不可运行，真实 CIFAR 五 seed 未交付 | 按协议用真实 train PN 标签端到端训练 ResNet-18 与分类头，与对应 PU 共享 split/表征/预算；仅用 clean_val accuracy 作 OA 选模，每 dataset/seed 一次、五 seed；先完成新协议/存储预算登记与真实 CIFAR GPU smoke，再交付权重、指标和 manifest |
-| P3.3-A | 批准结构的资源 profile | **HENG958**；shuidisjtu 复核预算依据 | [扩展资源 receipt](data/candidate_extended_cnn_storage_probe_20261007.json) 已完成 7 recipe×3 seed 的独立 CPU 技术测量并通过 checker；仍是合成输入、非批准结构/正式上界，GPU 未测；现有记录不能外推正式数据集 | 测真实批准结构的序列化、内存/磁盘及保守配额；PUET 按 CPU 条款处理，不计入 GPU 覆盖 |
-| P3.3-B | 正式资源与持久化验收 | **HENG958**；shuidisjtu 复核制品 | 对应候选 P4.1-B 冻结绑定，正式协议批准，frozen-lock 环境与资源可用 | 多 seed CPU/GPU、OOM/重试、保存加载、selected checkpoint 对账及逐 run 环境/成本记录；仅验收批准范围 |
-| P4.1-A | 注册表绑定工程 | **shuidisjtu**；HENG958 复核接口与方法参数映射 | runner/CLI、pilot、外部白名单/审计/汇总、draft CI 及[版本化候选池身份](delivery/p4_1_pool_binding_20261014.md)已接通，含全字段删除拒收、PA/OA 独立候选与 trajectory 对账；未冻结配方 | 正式产物 CI 激活及接口复核；正式使用须采用外部 v2 白名单，不把 draft 当 locked 或代签；新增参数搜索仍需协议/registry 语义与预算批准 |
-| P4.1-B | 配方审阅与冻结 | **shuidisjtu**；HENG958 核对配置与实现一致性 | P4.1-A 就绪；候选/选模/标签预算与 P3.3-A 资源依据齐备 | 记录双方配置审阅结论、实际批准范围、正式 registry/resolved snapshot 与版本摘要；此为候选/预算批准，不代替 RV8 最终方法复核，不回填旧 manifest |
-| P4.2 | 主榜运行结果聚合与分析 | **shuidisjtu**；HENG958 复核深度结论 | 拟纳入数据、PN-CNN、方法准入、P3.3-B/P4.1-B 与正式运行制品均具备 | 22 项通过门禁，按机制、PA/OA、预算族及训练路径分层；区分文献事实/观测/推断，不生成跨数据集总排名 |
-| RV3 | 对照矩阵复核；C1/C2/C4 | **HENG958**；shuidisjtu 提供当前矩阵 | 对象为当前 v3，不沿用历史 v2 签署 | 回查来源、映射与论文/代码矛盾，闭合 36 个锚点/7 条映射待审项，记录逐项结论及绑定身份 |
-| RV4 | PA 准则裁决；C3 | **HENG958**；shuidisjtu 提供冻结准则 | 54 条 PA 映射仍受阻 | 给出维持或解除的依据并登记 HENG958 裁决；未解除前不得数值裁决，矩阵变更另留痕 |
-| RV5 | Pilot Self-PU 元重加权/消融口径复核 | **HENG958**；shuidisjtu 提供既有 Pilot 协议证据 | Pilot 实际为 ablation，不是完整版 | 确认 clean 标签监督、消融范围与 PA 资格，记录 HENG958 方法学结论，不将消融说成完整论文复现 |
-| RV6 | 五方法 TS 接线复核 | **HENG958**；shuidisjtu 提供既有接线证据 | `nnpu`/`upu`/`pusb_kernel`/`dist_pu`/`self_pu` 工程接线已有 | 逐方法确认校准作用范围与不变量，记录 HENG958 结论；路由回归不代替方法学复核 |
-| RV7 | Pilot 深度结果与 C5/C6 复核 | **HENG958**；shuidisjtu 提供原始制品 | Excel 不代替结果树、报告及权重核验 | 独立重放、核对深度结果与定性对照边界，复用 RV3/RV4 证据，登记 HENG958 结论与摘要；P2.2 签署按复核包落地 |
-| RV8 | 新增算法正式准入复核 | **shuidisjtu**；HENG958 提供实现证据 | 台账 12 条新增方法待复核，需适用的来源/规格/资源证据齐备 | shuidisjtu 逐方法确认 HENG958 的来源、适配、先验/标签预算、选模和资源证据，记录接受、有条件接受或退回及整改项；HENG958 不自审其新增算法 |
+「当前状态」列先写已有基础，再以 **待办：** 显式列出尚需完成的事项；「完成条件」只写验收口径与边界。
+
+| 编号 | 任务 | 主责 / 复核 | 前置 | 当前状态 | 完成条件 |
+|---|---|---|---|---|---|
+| P2.2 | Pilot 交付与审计收尾 | **shuidisjtu**；HENG958 独立重放与 C1–C6 复核 | P2.1 已完成（645/645） | O1–O10 已于 10-09 签署；10-15 收到修正包，三数据页 22942 单元格与已审原表逐值/类型一致，645 runs/183 汇总保持，见[修正包复核](reviews/p21_correction_receiving_20261015.md)。<br>**待办：** ① shuidisjtu 补齐原始计划、日志、manifest/权重与归档证据（原结果树、计划/日志/权重未随包交付）；② HENG958 完成 C1–C6，按[复核包](delivery/p2_2_review.md)登记本人结论/摘要 | 两项待办落地；原索引不改，新表不冒充旧发布身份；31 条低 AUC 不事后翻转或设新阈值 |
+| P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 无（与 P3.2 并行） | 除 `p3mix` 外，Survey 目标方法均已有代码级接入；五方法[来源与预算证据](p3_admission_evidence_20261005.md)、[公开对照草稿](p3_public_comparison_20261005.md)已补，均待审；`p3mix` 仅有数学组件，未注册完整 estimator。<br>**待办：** ① 完成 P3MIX 来源核验、完整 estimator/训练流程、注册与测试；② 补齐已接入方法的来源、公式/行为对照、先验/标签预算与校准适用性 | P3MIX 完整接入且各方法准入证据齐备；shuidisjtu 按 RV8 逐项复核 |
+| P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | 无（与 P3.1 并行） | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；各方法的补记见 §1.3。<br>**待办：** 确定正式共享规格；接通获批图像/特征路径、分批训练预测、阶段预算及 checkpoint；说明增强/调度与原论文的适配差异；补执行证据 | 交付可追溯工程证据；资源验收见 P3.3-A/B |
+| PN-CNN | 端到端 CNN PN 全监督 oracle baseline | **HENG958** 实现/训练；shuidisjtu 登记协议并复核 | 新协议与存储预算登记 | `PilotOracleCNN` 已有代码和合成验证；旧协议 native CNN oracle 仍不可运行；真实 CIFAR 五 seed 未交付。<br>**待办：** ① shuidisjtu 完成新协议/存储预算登记；② HENG958 完成真实 CIFAR GPU smoke；③ 交付五 seed 权重、指标和 manifest | 用真实 train PN 标签端到端训练 ResNet-18 与分类头，与对应 PU 共享 split/表征/预算；仅用 clean_val accuracy 作 OA 选模；每 dataset/seed 一次、五 seed |
+| P3.3-A | 批准结构的资源 profile | **HENG958**；shuidisjtu 复核预算依据 | P3.2 的批准结构 | [扩展资源 receipt](data/candidate_extended_cnn_storage_probe_20261007.json)已完成 7 recipe×3 seed 的独立 CPU 技术测量并通过 checker；仍是合成输入、非批准结构/正式上界，GPU 未测，不能外推正式数据集。<br>**待办：** 测真实批准结构的序列化、内存/磁盘及保守配额 | 测量覆盖批准结构；PUET 按 CPU 条款处理，不计入 GPU 覆盖 |
+| P3.3-B | 正式资源与持久化验收 | **HENG958**；shuidisjtu 复核制品 | 对应候选 P4.1-B 冻结绑定；正式协议批准；frozen-lock 环境与资源可用 | 未开始（前置未满足）。<br>**待办：** 多 seed CPU/GPU 运行；OOM/重试、保存加载、selected checkpoint 对账；逐 run 环境/成本记录 | 仅验收批准范围 |
+| P4.1-A | 注册表绑定工程 | **shuidisjtu**；HENG958 复核接口与方法参数映射 | 无（与 P2.2/RV3–RV7 并行） | runner/CLI、pilot、外部白名单/审计/汇总、draft CI 及[版本化候选池身份](delivery/p4_1_pool_binding_20261014.md)已接通，含全字段删除拒收、PA/OA 独立候选与 trajectory 对账；配方未冻结。<br>**待办：** ① 激活正式产物 CI；② HENG958 复核接口与方法参数映射 | 正式使用须采用外部 v2 白名单，不把 draft 当 locked 或代签；新增参数搜索仍需协议/registry 语义与预算批准 |
+| P4.1-B | 配方审阅与冻结 | **shuidisjtu**；HENG958 核对配置与实现一致性 | P4.1-A 就绪；候选/选模/标签预算与 P3.3-A 资源依据齐备 | 未开始（前置未满足）。<br>**待办：** 双方审阅配置；登记实际批准范围、正式 registry/resolved snapshot 与版本摘要 | 此为候选/预算批准，不代替 RV8 最终方法复核，不回填旧 manifest |
+| P4.2 | 主榜运行结果聚合与分析 | **shuidisjtu**；HENG958 复核深度结论 | 拟纳入数据、PN-CNN、方法准入、P3.3-B/P4.1-B 与正式运行制品均具备 | 未开始（前置未满足）。<br>**待办：** 聚合并分析主榜运行结果 | 22 项通过门禁；按机制、PA/OA、预算族及训练路径分层；区分文献事实/观测/推断，不生成跨数据集总排名 |
+| RV3 | 对照矩阵复核；C1/C2/C4 | **HENG958**；shuidisjtu 提供当前矩阵 | 对象为当前 v3，不沿用历史 v2 签署 | **待办：** 回查来源、映射与论文/代码矛盾，闭合 36 个锚点/7 条映射待审项 | 登记逐项结论及绑定身份 |
+| RV4 | PA 准则裁决；C3 | **HENG958**；shuidisjtu 提供冻结准则 | 冻结准则 | 54 条 PA 映射仍受阻。<br>**待办：** 给出维持或解除的依据 | 登记 HENG958 裁决；未解除前不得数值裁决，矩阵变更另留痕 |
+| RV5 | Pilot Self-PU 元重加权/消融口径复核 | **HENG958**；shuidisjtu 提供既有 Pilot 协议证据 | 既有 Pilot 协议证据 | Pilot 实际为 ablation，不是完整版。<br>**待办：** 确认 clean 标签监督、消融范围与 PA 资格 | 记录 HENG958 方法学结论；不将消融说成完整论文复现 |
+| RV6 | 五方法 TS 接线复核 | **HENG958**；shuidisjtu 提供既有接线证据 | 既有接线证据 | `nnpu`/`upu`/`pusb_kernel`/`dist_pu`/`self_pu` 工程接线已有。<br>**待办：** 逐方法确认校准作用范围与不变量 | 记录 HENG958 结论；路由回归不代替方法学复核 |
+| RV7 | Pilot 深度结果与 C5/C6 复核 | **HENG958**；shuidisjtu 提供原始制品 | 原始制品（Excel 不代替结果树、报告及权重核验）；复用 RV3/RV4 证据 | **待办：** 独立重放，核对深度结果与定性对照边界 | 登记 HENG958 结论与摘要；P2.2 签署按复核包落地 |
+| RV8 | 新增算法正式准入复核 | **shuidisjtu**；HENG958 提供实现证据 | 适用的来源/规格/资源证据齐备 | 台账 12 条新增方法待复核。<br>**待办：** 逐方法确认 HENG958 的来源、适配、先验/标签预算、选模和资源证据 | 记录接受、有条件接受或退回及整改项；HENG958 不自审其新增算法 |
 
 ### 1.3 执行边界
 
