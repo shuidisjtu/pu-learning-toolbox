@@ -21,7 +21,10 @@ Usage::
 Exit 0 when the registry is absent, or present and free of error-severity
 findings; 1 otherwise. ``--require-present`` makes a missing *explicitly
 materialized* artifact an error (used for the committed draft in CI); it does
-not materialize or lock the future frozen registry.
+not materialize or lock the future frozen registry. ``--require-locked`` also
+requires presence and checks the declared registry/profile lifecycle; it does
+not authenticate human approval. CI uses it only when the production artifact
+exists, leaving an unmaterialized production check skipped rather than green.
 """
 
 from __future__ import annotations
@@ -51,6 +54,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="fail if the named artifact is absent rather than skipping validation",
     )
+    parser.add_argument(
+        "--require-locked",
+        action="store_true",
+        help="require a present, locked registry with locked or excluded profiles",
+    )
     args = parser.parse_args(argv)
 
     registry_path: Path = args.registry
@@ -60,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
             "Nothing was validated.  The registry is a freeze-stage deliverable "
             "(plan §11); this gate turns enforcing as soon as the file exists."
         )
-        return 1 if args.require_present else 0
+        return 1 if args.require_present or args.require_locked else 0
 
     from pu_toolbox.experiment.survey_protocol import load_protocol
     from pu_toolbox.experiment.survey_recipe_registry import (
@@ -83,6 +91,19 @@ def main(argv: list[str] | None = None) -> int:
     if errors:
         print(f"Recipe registry check failed: {len(errors)} error(s) in {registry_path.name}")
         return 1
+
+    if args.require_locked:
+        unlocked = []
+        if registry.get("recipe_lifecycle") != "locked":
+            unlocked.append("recipe_lifecycle")
+        unlocked.extend(
+            f"profiles.{key}.recipe_lifecycle"
+            for key, profile in registry["profiles"].items()
+            if profile.get("recipe_lifecycle") not in {"locked", "excluded"}
+        )
+        if unlocked:
+            print(f"Registry declared lock check failed: {', '.join(unlocked)}")
+            return 1
 
     try:
         digest = canonical_digest(registry)
