@@ -26,7 +26,7 @@ def script():
 
 
 @pytest.fixture
-def tree(tmp_path):
+def tree(tmp_path, request):
     source, rebuilt = tmp_path / "source", tmp_path / "rebuilt"
     for seed in (0, 1):
         directory = source / "mnist" / f"split_{seed}"
@@ -47,18 +47,22 @@ def tree(tmp_path):
             role_sizes={role: 2 for role in indices},
         )
         (directory / "split_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    if hasattr(request, "param"):
+        for path in source.glob("*/*/*.npz"):
+            change_creator(path, system=request.param)
     index_path = tmp_path / "index.json"
     dump_index(build_index(source), index_path)
     shutil.copytree(source, rebuilt)
     return rebuilt, index_path
 
 
-def change_creator(path, system=0):
+def change_creator(path, system=None):
     data = bytearray(path.read_bytes())
     with zipfile.ZipFile(path) as archive:
         offset = archive.start_dir
         for _ in archive.infolist():
-            data[offset + 5] = system
+            current = data[offset + 5]
+            data[offset + 5] = (3 if current == 0 else 0) if system is None else system
             offset += 46 + sum(struct.unpack_from("<HHH", data, offset + 28))
     path.write_bytes(data)
 
@@ -72,10 +76,13 @@ def test_basic_byte_identical_rebuild_is_not_formal_archive_acceptance(script, t
     assert not result["original_archive_receipt_verified"] and not result["formal_acceptance"]
 
 
+@pytest.mark.parametrize("tree", [0, 3], indirect=True, ids=["windows", "unix"])
 def test_basic_determ_creator_only_diagnosed_without_writing_or_relaxing_cli(script, tree, capsys):
     root, index = tree
     for p in root.glob("*/*/*.npz"):
+        original_hash = file_hash(p)
         change_creator(p)
+        assert file_hash(p) != original_hash
     before = {str(p): file_hash(p) for p in root.glob("*/*/*")}
     result = script.diagnose(root, index)
     assert not result["strict_unpacked_reference_index"]["ok"]
@@ -134,10 +141,13 @@ def test_edge_corrupt_deflate_stream_is_a_finding_not_a_crash(script, tree):
     assert record["status"] == "different" and "zip_diagnostic_error" in record
 
 
+@pytest.mark.parametrize("tree", [0, 3], indirect=True, ids=["windows", "unix"])
 def test_param_uncompressed_diagnostic_size_is_bounded(script, tree, monkeypatch):
     root, index = tree
     p = root / "mnist/split_0/train.npz"
+    original_hash = file_hash(p)
     change_creator(p)
+    assert file_hash(p) != original_hash
     monkeypatch.setattr(script, "MAX_UNCOMPRESSED_BYTES", 1)
     result = script.diagnose(root, index)
     record = result["splits"][0]["files"]["train.npz"]
