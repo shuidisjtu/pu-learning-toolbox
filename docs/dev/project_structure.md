@@ -358,6 +358,9 @@ tests/
       test_audit_survey_workbook_readme.py # Excel双列说明读取、历史否定引述与诊断确定性
       test_recipe_production_gate.py    # 正式注册表条件 CI 与声明锁拒收/确定性
       test_survey_result_receipt.py     # 原始结果树分批字节身份与缺件/篡改拒收
+      _lbe_comparison_helpers.py        # 临时 LBE 对照的合成四路 fixture
+      test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
+      test_lbe_comparison_plan.py       # split/seed/预算身份与预检拒收
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -838,6 +841,7 @@ scripts/
   profile_survey_extended_cnn_storage.py  # 七个新 CNN 工程变体的独立进程多种子资源探针
   diagnose_survey_split_rebuild.py        (只读重建差异诊断：仅 ZIP 创建平台字节归因，不接受变更收据)
   verify_survey_result_receipt.py         # P2.2 原始结果树/报告的分批只读身份接收
+  run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
 ```
 
 ## 7. CI/CD（`.github/`）

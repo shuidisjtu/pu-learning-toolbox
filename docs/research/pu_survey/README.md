@@ -52,6 +52,8 @@
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
+- [线性/神经 LBE 临时成对实验](admission/lbe_comparison_exploration_20261016.md)：
+  已有四路二维分区、同标记、终点或显式 EM-round PA/OA 选择，独立探索性结果，不改旧 Pilot。
 - [`vpu_schedule_review_20261015.md`](admission/vpu_schedule_review_20261015.md)：VPU 可选源 Adam 重置调度与固定轮内训练步数，不改变默认或 D22 准则。
 - [`vpu_encoder_stream_20261015.md`](delivery/vpu_encoder_stream_20261015.md)：VPU 注入 CNN 与 CPU 数据分批工程路径，非作者图像复现/正式准入。
 - [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；α_U/TS 审批仍阻断。

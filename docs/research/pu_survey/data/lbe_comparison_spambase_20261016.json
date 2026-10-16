@@ -1,0 +1,97 @@
+{
+  "schema_version": "lbe-paired-exploration-receipt-1",
+  "date": "2026-10-16",
+  "dataset": "spambase",
+  "seeds": [0, 1, 2, 3, 4],
+  "c_tokens": ["0.1", "0.3", "0.5"],
+  "methods": ["lbe", "lbe_neural"],
+  "runs": 30,
+  "selection_scope": "terminal",
+  "mechanism": "scar",
+  "run_view": "os",
+  "smoke": false,
+  "formal_admission": false,
+  "budget_matched": false,
+  "population_prior": 0.39404477287546186,
+  "produced_by_commit": "4f190efa5d02308256df1c2ac27abb9524af575b",
+  "script_sha256": "40654beda59ea2a10bcb67e7539083eb99785c5dc0f6dd44cc6adac728d76288",
+  "worktree_dirty": true,
+  "dirty_note": "Pre-existing user-owned resource receipt whitespace and root uploads remained unstaged; executed script bytes match the produced_by_commit blob. Not a clean/frozen-lock formal run.",
+  "environment": {
+    "python": "3.11.12",
+    "numpy": "2.4.6",
+    "scikit_learn": "1.9.0",
+    "torch": "2.13.0+cpu",
+    "torch_cpu_threads": 1,
+    "cuda_used": false,
+    "dependency_lock_sha256": "7a7adf38905461b4fe0eeb73e613545cbde499a829155b7a793369a5bf22e0ed"
+  },
+  "local_artifact_root": "data/lbe-comparison-spambase-20261016-terminal",
+  "artifact_files": 139,
+  "artifact_tree_digest_recipe": "Sort all file paths relative to artifact root by POSIX spelling; SHA256 of UTF-8 concatenated <file_sha256><two spaces><relative_path><LF> lines. Includes trusted selected pickle bytes; not a cross-run deterministic serialization claim.",
+  "artifact_tree_sha256": "c4f08f519ce02bfbcc69f0660de74cd0a3498bb5d27b45219b8f5a447a58fc93",
+  "major_files_sha256": {
+    "plan.json": "0a752fb831153b5ed627ea3ef67ddc481ae77363816fff3798ed752e8632854c",
+    "environment.json": "a4b24f3548dd3a2770f5279932246a2c3ea58e8c248ff85db6f797a64d5a92de",
+    "summary.json": "7a09dcaffed2ce3971c0beb62a484721dbf149debd1e2115b59aa42868e8bd0e",
+    "summary.csv": "9b527b3f88d0112cae3e16953d62a3771721b60bc36819b7b0302fc8dc755579"
+  },
+  "published_csv": "docs/research/pu_survey/data/lbe_comparison_spambase_20261016.csv",
+  "published_csv_sha256": "33dc429ed6a73d33fa01c9ba66b88ed43727774cf6b81cefa3f4193e5b595da4",
+  "published_csv_note": "LF-normalized copy of original generated CRLF CSV; exact table values unchanged. Original raw SHA above refers to the local generated CSV, not this repository copy.",
+  "verification": {
+    "runs_verified": 30,
+    "selected_model_replays": 60,
+    "summary_all_fields_exactly_recomputed": true,
+    "warning_count": 0,
+    "retry_count": 0,
+    "job_local_path": "/tmp/verify_lbe_comparison_20261016.py",
+    "job_sha256": "a95cedd74418621fe162fc42dc47f2575c3608a3877486c8bd5810fd6c84c90e"
+  },
+  "fit_observations": {
+    "linear_runs": 15,
+    "linear_em_iterations_each": 20,
+    "linear_converged_true_count": 0,
+    "linear_non_decreasing_likelihood_history_count": 15,
+    "linear_history_diagnostic_note": "Read-only inspection of saved histories with decrease tolerance 1e-8; no additional fits or causal conclusion.",
+    "neural_runs": 15,
+    "neural_optimizer_steps_each": 840,
+    "neural_pretrain_steps_total_each": 40,
+    "neural_em_optimizer_steps_each": 800
+  },
+  "cost_observations": {
+    "unit": "runner elapsed seconds; includes selection/test, not equal-budget comparison",
+    "linear_total": 10.666129222139716,
+    "neural_total": 41.14737673290074,
+    "linear_mean_per_run": 0.7110752814759811,
+    "neural_mean_per_run": 2.7431584488600493
+  },
+  "delivery_checks": {
+    "full_fast_suite": {
+      "code_commit": "4f190efa5d02308256df1c2ac27abb9524af575b",
+      "passed": 3959,
+      "skipped": 58,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 292.309
+    },
+    "post_remote_merge_targeted_suite": {
+      "code_commit_short": "3ae8580",
+      "passed": 57,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 2.006,
+      "scope": "LBE comparison plan/execution and result receipt verifier; full fast suite was not rerun after the remote ctime-only verifier fix."
+    },
+    "offline_sdist_and_wheel_build": "passed using read-only cached build backend; no raw datasets, split arrays, selected pickle models or user archives included",
+    "remote_ci_status": "not_verified"
+  },
+  "limitations": [
+    "Only this dataset, source split, implementation, default recipe and terminal-model selection were measured.",
+    "Linear EM did not meet its own convergence tolerance in 20 rounds; simultaneous poor performance is not proof of a specific cause.",
+    "Different objectives/initialization, model capacities, regularization, internal scaling and optimizer budgets remain confounded.",
+    "No image/CNN, SAR or EM-round checkpoint-selection performance claim; those options were only unit tested.",
+    "No original Pilot values were rewritten, no signs flipped, no test-based tuning or universal superiority claim."
+  ]
+}
