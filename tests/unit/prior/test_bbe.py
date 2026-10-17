@@ -237,10 +237,12 @@ def test_edge_smallest_positive_delta_has_finite_selection_bounds():
 
 def test_basic_ledger_preserves_prior_and_admission_boundaries():
     root = Path(__file__).resolve().parents[3]
-    ledger = json.loads((root / "pu_toolbox/experiment/method_ledger.json").read_text())
+    ledger = json.loads(
+        (root / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
+    )
     cvir = ledger["methods"]["cvir"]
     extension = cvir["independent_extensions"]["bbe"]
-    review = json.loads((root / extension["review_ref"]).read_text())
+    review = json.loads((root / extension["review_ref"]).read_text(encoding="utf-8"))
     implementation = review["implementation"]
     assert not issubclass(BBEMixtureEstimator, BasePriorEstimator)
     assert extension["target"] == "alpha_U, not automatic population pi"

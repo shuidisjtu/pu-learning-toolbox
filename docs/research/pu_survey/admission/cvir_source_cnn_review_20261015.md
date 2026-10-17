@@ -3,6 +3,12 @@
 状态：P3.1/P3.2 独立技术补齐，HENG958 实施；shuidisjtu 方法/接口复核待办。
 不代签 RV8，不是作者程序重放或正式算法准入，不改冻结 Pilot 的结果和协议。
 
+2026-10-17 整改补记（#117）：本 Survey 的基础数据按协议 §2.3 始终是 OS，
+CVIR 的运行路径明确为 **OS adaptation + 显式 α_U/来源**（`CVIRKnownPriorTrainer`）；
+OS→TS 校准不属于本实验，也不是运行前置，显式 `os_or_ts="ts"` 继续拒绝。
+直接组件的 `input_sampling="ts"` 只声明调用方已提供独立原生 P/边缘 U，不用于本
+Survey 的 OS 数据。冻结协议/矩阵与正式准入状态不变。
+
 ## 来源锁定与判读
 
 [论文](https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf)
@@ -66,14 +72,15 @@ DogCat 正类为3、负类为5，不可凭数据集名字判断同任务。
 - fit/refit 异常清除 fitted 标记，不能把失败重训当成功；已完成 epoch 的 callback
   可预测并捕获快照。registry/UI 能力、API、台账与准入草稿同步。
 - `class_prior` 始终拒绝；即使 U 经证明为总体边缘，也必须通过显式
-  `unlabeled_positive_prior` 输入该已核比例。**没有新增 TS 校准接口**。
+  `unlabeled_positive_prior` 输入该已核比例。**没有新增 `os_or_ts` 风险校准接口**；
+  直接组件的 `input_sampling="ts"` 只声明调用方提供原生 P/边缘 U，不是本 Survey 的 OS 校准。
 
 ## 验证与待办
 
 新增 `test_cvir_source_encoder.py` 覆盖独立 BCE 读数/梯度、与发布 balanced CE 区别、
 取整反例、模板/编码器更新、设备批次上限、每轮训练前全局原始 U 排序、
 两个阶段/累计成本/快照回放、旧 resident/stream、clone/pickle、失败 refit、
-维度拒绝、公共 CNN pipeline 及 TS/总体先验拒绝。只使用合成 CPU 输入。
+维度拒绝、公共 CNN pipeline 及 `os_or_ts` 校准/总体先验拒绝。只使用合成 CPU 输入。
 
 验证结果：新增 **17 项测试通过**；CVIR/台账/能力/准入/UI/共享特征定向组合
 **63 passed / 6 skipped**。完整 Python3.11 CPU fast suite **3796 passed / 59 skipped /

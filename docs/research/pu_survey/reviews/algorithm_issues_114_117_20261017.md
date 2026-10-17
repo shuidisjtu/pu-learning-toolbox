@@ -33,8 +33,11 @@ registry 派生 scenario 统一为 SINGLE_TRAINING_SET、台账与准入草案�
   来源；α_U 是分布参数，不是从 U 真标签计算的有限样本比例，不声称来源已统计验证。
 - OS 工程适配：默认组件保持旧优化行为；独立实验注入 `CVIRKnownPriorTrainer`，
   必须给 α_U 和来源，仅 SCAR。PA 的总体 π 与训练 α_U 分开，前者绝不转发给 fit。
-- OS→TS 校准：未支持；显式校准请求拒绝，台账 calibration_hooked=false。
-  排序、保留与损失全部针对原始 U，无 P 偷换入候选；不预判简单合并必然够或不够。
+- OS→TS 校准：不属于本 Survey 的 OS 实验，也未实现；显式校准请求拒绝，
+  台账 calibration_hooked=false。排序、保留与损失全部针对原始 U，无 P 偷换入候选；
+  不预判简单合并必然够或不够。本 Survey 的基础数据按协议 §2.3 始终是 OS，
+  因此运行路径是上面的 OS 工程适配；`input_sampling=ts` 是直接组件的原生 TS
+  输入契约，不是 `os_or_ts` 训练视图校准，也不是 OS 运行的前置条件。
 
 候选 manifest 登记 input_sampling、path、known_prior、α_U、source、角色数量和
 calibration_applied=false；PA 的 population π/来源仍在 selection 中。
@@ -53,19 +56,24 @@ checkpoint 与 manifest，不只核布尔标志。没有把该适配器放进旧
 
 新增 opt-in `PULNSExtraSupportTrainer`，只供独立 SCAR OS、终点 OA 实验：
 
-- 调用者显式提供 clean support、来源、采样规则/seed、原训练量和是否扣除训练行。
-  类别不足直接拒绝，不补采、不借 clean_val/test。适配器本身不重新划分或随机挑 support。
+- 调用者显式提供 clean support、来源、采样规则/seed、support_origin、
+  原训练量和是否扣除训练行；carved 还必须给 train/pu_val/clean_val/test/prior_estimation
+  的原始/剩余/减少计数，且减少量之和等于 support 规模；train 减少与
+  support_removed_from_train 必须一致。support_source_verified
+  与 receipt 显式记录，默认是未核实调用方声明。类别不足直接拒绝，不补采、
+  不借 clean_val/test。适配器本身不重新划分或随机挑 support。
 - 训练前对实际 bundle 四角色、prior_estimation、support 核全局稳定 IDs、互斥及摘要；
   有受试者/重复组时核所有角色组互斥，ADNI 无组证据直接阻断。
 - support 只用于训练奖励与内部最优分类器，不进入 classifier 拟合行，但明确属于额外监督。
   顶层 extra_supervision、逐候选 provenance 登记额外正负标签、训练标签总量、
-  原/剩余训练数、用途及 `comparison_group=extra_clean_support`，不得并入 PU-only 排名。
+  逐角色 original/remaining/reduced 池效应、source verification scope、用途及
+  `comparison_group=extra_clean_support`，不得并入 PU-only 排名。
 - 只有独立 clean_val 做外部 OA；PA、校准 TS、SAR 和旧 frozen Survey 明确拒绝。
   普通 Pipeline/CLI/UI 不因此开放，直接组件仍可用，但缺全角色证据时不宣称隔离已验证。
 
 工程证据来自合成 CPU 输入，覆盖样本副本/跨角色 ID 重叠、重复组、来源/预算缺失、
 support 中途改变、PA 拒绝、test 真值/特征变化不影响训练与选择及保存加载。
-没有新增八集正式 support 制品；实际标签来源、预算/准备与正式协议仍需批准。
+没有新增八集正式 support 制品；实际逐集来源/规模、预算/准备与正式协议仍需批准。
 这项整改提供安全接口、逐集规则和明确不可执行边界，不伪造实际数据验收或人的签署。
 
 ## 独立实验调用

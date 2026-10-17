@@ -92,7 +92,8 @@ def test_basic_actual_method_training_extra_budget_and_selected_replay(method, t
     predictions = script.predict_saved_selection(saved, bundle.test.X)
     assert float(np.mean(predictions == bundle.test.labels)) == summary["test"]["OA"]["accuracy"]
     assert (
-        json.loads((output / "summary.json").read_text())["plan_sha256"] == summary["plan_sha256"]
+        json.loads((output / "summary.json").read_text(encoding="utf-8"))["plan_sha256"]
+        == summary["plan_sha256"]
     )
     assert len(list(output.glob("*.pkl"))) == 1
     with pytest.raises(FileExistsError):
@@ -163,7 +164,7 @@ def test_edge_warning_keeps_evidence_but_cannot_be_accepted(tmp_path, monkeypatc
     output = tmp_path / "warning"
     with pytest.raises(ValueError, match="require review"):
         script.execute(plan, output)
-    report = json.loads((output / "summary.json").read_text())
+    report = json.loads((output / "summary.json").read_text(encoding="utf-8"))
     assert report["warning_count"] == 1 and not report["accepted_engineering_run"]
 
 

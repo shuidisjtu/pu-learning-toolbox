@@ -1670,6 +1670,9 @@ JSON 严格编码（未定义值转 `null`）。
 直接提供原生独立 P/边缘 U，不是 runner 风险校准。
 `pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer` 要求独立带标签支持集，
 训练前核实际四角色/先验估计/support IDs 及适用分组，显著记录额外监督，只允许终点 OA。
+还要求 support_origin/original_role_counts（carved 时）与 support_source_verified/receipt；
+逐角色记录 original/remaining/reduced 池效应，train 减少须与 support_removed_from_train
+一致，默认来源为未核实调用方声明。
 缺来源/预算/身份或 ADNI 组证据时拒绝；不隐式挪用验证/测试。
 接口和限制见[整改与调用示例](../../research/pu_survey/reviews/algorithm_issues_114_117_20261017.md)。
 

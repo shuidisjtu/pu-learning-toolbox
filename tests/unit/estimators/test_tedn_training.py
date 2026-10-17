@@ -245,10 +245,12 @@ def test_edge_warm_start_snapshot_has_no_fake_alpha(monkeypatch):
 
 def test_basic_ledger_and_source_contract_preserve_admission_boundaries():
     root = Path(__file__).resolve().parents[3]
-    ledger = json.loads((root / "pu_toolbox/experiment/method_ledger.json").read_text())
+    ledger = json.loads(
+        (root / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
+    )
     cvir = ledger["methods"]["cvir"]
     extension = cvir["independent_extensions"]["tedn"]
-    review = json.loads((root / extension["review_ref"]).read_text())
+    review = json.loads((root / extension["review_ref"]).read_text(encoding="utf-8"))
     implementation = review["implementation"]
     assert extension["implementation"].endswith("tedn.py:TEDnClassifier")
     assert implementation["status"] == "end_to_end_training_engineering_implemented"

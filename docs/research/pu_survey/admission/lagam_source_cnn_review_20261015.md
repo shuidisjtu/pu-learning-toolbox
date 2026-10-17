@@ -21,9 +21,11 @@
    对 meta loss 求训练标签扰动梯度；`utils/utils_data.py:96-112` 确认其真值来源。
    标准 PU-only PA 不符合资格。OA 也须独立的 support/selection 划分及标签预算，
    不能自动把本项目 clean_val 作为 support。
-2. **采样定位有未决冲突**：`utils/utils_data.py:182-193` 从池中先移除验证，
-   再移除已标记 P，发布 split 是 OS。既有 registry 为 CASE_CONTROL/台账 ts；
-   本次明确登记冲突和待审项，**不自行改签 registry 定位或补 TS 风险替换**。
+2. **采样定位有未决冲突（历史；2026-10-17 #115 已纠正为 OS）**：
+   `utils/utils_data.py:182-193` 从池中先移除验证，再移除已标记 P，发布 split 是 OS。
+   既有 registry 为 CASE_CONTROL/台账 ts；本次明确登记冲突和待审项，
+   **不自行改签 registry 定位或补 TS 风险替换**。该段保留 2026-10-15 原始判断；
+   #115 随后按锁定源码完成 registry/台账 metadata 纠正。
    当前运行默认仍为 os-compatible、calibration_applied=false，显式 ts 拒绝。
 
 ## 源码—工具箱逐项对照

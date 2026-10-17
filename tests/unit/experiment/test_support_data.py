@@ -186,7 +186,7 @@ def test_edge_corrupted_or_inconsistent_artifacts_refused(tmp_path, kind):
     output = tmp_path / "product"
     save_support_dataset(bundle, support, metadata, output)
     path = output / "support_manifest.json"
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     if kind == "file":
         with (output / "support.npz").open("ab") as stream:
             stream.write(b"corrupted")

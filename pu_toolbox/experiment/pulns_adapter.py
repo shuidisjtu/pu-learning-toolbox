@@ -83,6 +83,10 @@ class _IndependentSupportTrainer(Trainer):
         preparation_seed,
         sampling_rule,
         role_groups=None,
+        support_origin=None,
+        original_role_counts=None,
+        support_source_verified=False,
+        support_source_receipt=None,
     ):
         self.support = support
         self.dataset = dataset
@@ -94,6 +98,10 @@ class _IndependentSupportTrainer(Trainer):
         self.role_groups = role_groups
         self.preparation_seed = preparation_seed
         self.sampling_rule = sampling_rule
+        self.support_origin = support_origin
+        self.original_role_counts = original_role_counts
+        self.support_source_verified = support_source_verified
+        self.support_source_receipt = support_source_receipt
 
     def validate_experiment(self, model, bundle, config, protocols):
         """Validate actual runner role identities before spending any budget."""
@@ -115,6 +123,15 @@ class _IndependentSupportTrainer(Trainer):
             raise ValueError("support dataset disagrees with the actual split reference")
         if not isinstance(self.source, str) or not self.source.strip():
             raise ValueError("independent support source must be recorded")
+        if type(self.support_source_verified) is not bool:
+            raise ValueError("support_source_verified must be an explicit bool")
+        if self.support_source_receipt is not None and (
+            not isinstance(self.support_source_receipt, str)
+            or not self.support_source_receipt.strip()
+        ):
+            raise ValueError("support_source_receipt must be a non-empty description or None")
+        if self.support_source_verified and self.support_source_receipt is None:
+            raise ValueError("verified support source requires a receipt")
         if self.preparation_seed is not None and type(self.preparation_seed) is not int:
             raise ValueError("support preparation_seed must be an integer or explicit None")
         if not isinstance(self.sampling_rule, str) or not self.sampling_rule.strip():
@@ -157,9 +174,69 @@ class _IndependentSupportTrainer(Trainer):
             raise ValueError("group IDs cannot be ignored under not_applicable")
         if type(self.support_removed_from_train) is not bool:
             raise ValueError("support_removed_from_train must be an explicit bool")
-        expected = len(bundle.train.X) + (len(X) if self.support_removed_from_train else 0)
+        pool_roles = (*ROLES, "prior_estimation")
+        current_counts = {name: len(roles[name]) for name in pool_roles}
+        if self.support_origin is None:
+            origin = "carved_from_original_pool" if self.support_removed_from_train else "external"
+        elif self.support_origin in ("external", "carved_from_original_pool"):
+            origin = self.support_origin
+        else:
+            raise ValueError("support_origin must be external or carved_from_original_pool")
+        if origin == "external":
+            if self.support_removed_from_train:
+                raise ValueError("external support cannot be removed from the training pool")
+            if self.original_role_counts is not None:
+                raise ValueError("external support must not declare original role counts")
+            original_counts = dict(current_counts)
+        elif self.original_role_counts is None:
+            if not self.support_removed_from_train:
+                raise ValueError(
+                    "carved support requires original_role_counts for every non-support role"
+                )
+            original_counts = dict(current_counts)
+            original_counts["train"] = current_counts["train"] + len(X)
+        else:
+            if not isinstance(self.original_role_counts, dict) or set(
+                self.original_role_counts
+            ) != set(pool_roles):
+                raise ValueError("original_role_counts must cover every non-support data role")
+            original_counts = {}
+            for name in pool_roles:
+                value = self.original_role_counts[name]
+                if type(value) is not int or value < current_counts[name]:
+                    raise ValueError(
+                        "original role counts must be integers at least the remaining counts"
+                    )
+                original_counts[name] = value
+            if sum(original_counts[name] - current_counts[name] for name in pool_roles) != len(X):
+                raise ValueError(
+                    "original role count reductions must equal the support sample count"
+                )
+            if self.support_removed_from_train and (
+                original_counts["train"] <= current_counts["train"]
+            ):
+                raise ValueError(
+                    "support_removed_from_train requires an original train count above remaining"
+                )
+            if not self.support_removed_from_train and (
+                original_counts["train"] > current_counts["train"]
+            ):
+                raise ValueError("original train reduction requires support_removed_from_train")
+        expected = (
+            original_counts["train"]
+            if self.original_role_counts is not None
+            else len(bundle.train.X) + (len(X) if self.support_removed_from_train else 0)
+        )
         if type(self.original_train_count) is not int or self.original_train_count != expected:
             raise ValueError("original_train_count does not match declared support pool effect")
+        role_pool_effect = {
+            name: {
+                "original_count": original_counts[name],
+                "remaining_count": current_counts[name],
+                "reduced_count": original_counts[name] - current_counts[name],
+            }
+            for name in pool_roles
+        }
         spec = survey_dataset_catalog()[self.dataset]
         self._roles = roles
         self._support_digest = _support_hash(support)
@@ -171,6 +248,14 @@ class _IndependentSupportTrainer(Trainer):
             "comparison_group": "extra_clean_support",
             "display_label": f"{self.display_name} + extra clean support (not PU-only)",
             "support_source": self.source,
+            "support_origin": origin,
+            "support_source_verified": self.support_source_verified,
+            "support_source_receipt": self.support_source_receipt,
+            "source_verification_scope": (
+                "verified_receipt"
+                if self.support_source_verified
+                else "caller_assertion_unverified"
+            ),
             "support_samples": len(y),
             "preparation_seed": self.preparation_seed,
             "sampling_rule": self.sampling_rule,
@@ -182,6 +267,8 @@ class _IndependentSupportTrainer(Trainer):
             "remaining_train_count": len(bundle.train.X),
             "support_removed_from_train": self.support_removed_from_train,
             "role_counts": {name: len(ids) for name, ids in roles.items()},
+            "role_pool_effect": role_pool_effect,
+            "support_pool_effect_consistent": True,
             "role_ids_sha256": canonical_hash(roles),
             "per_role_ids_sha256": {name: canonical_hash(ids) for name, ids in roles.items()},
             "support_sha256": self._support_digest,
@@ -204,13 +291,15 @@ class _IndependentSupportTrainer(Trainer):
         self._prepared = True
 
     def _require_prepared(self, estimator, features, view):
-        """Recheck borrowed data just before each fit/retry, never trust stale audit."""
+        """Recheck support flags/data and training features before each fit/retry."""
         if not getattr(self, "_prepared", False):
             raise ValueError("support trainer must pass runner all-role preflight first")
         if not isinstance(estimator, self.estimator_type()) or view not in (None, "os"):
             raise ValueError(
                 f"{self.display_name} support adapter accepts its own OS estimator only"
             )
+        if self.support.view != "clean" or self.support.for_selection is not False:
+            raise ValueError("support view or selection role changed after isolation preflight")
         if (
             _support_hash(self.support) != self._support_digest
             or hashlib.sha256(features.tobytes(order="C")).hexdigest() != self._train_features_sha

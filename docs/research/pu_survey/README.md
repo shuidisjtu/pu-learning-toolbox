@@ -51,6 +51,7 @@
 - P4.1-A：[`p4_1_runtime_binding_20261014.md`](delivery/p4_1_runtime_binding_20261014.md)：训练前绑定、pilot 摘要固定/续跑与 draft CI；不是正式配方冻结。
   [`p4_1_pool_binding_20261014.md`](delivery/p4_1_pool_binding_20261014.md)：版本化候选池、PA/OA 独立候选与 trajectory 身份；不批准新参数搜索。
 - LBE 独立神经变体：[`lbe_neural_integration_20261014.md`](delivery/lbe_neural_integration_20261014.md)，不替换冻结 linear `lbe`。
+- 独立 clean-support 制品与 CPU 入口：[`clean_support_workflow_20261017.md`](delivery/clean_support_workflow_20261017.md)：五数据集 train 内分拆、五角色收据、剩余 train-only 预处理与 Self-PU/LaGAM/PULNS 单候选 OA 回放；不批准正式预算。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
@@ -58,8 +59,8 @@
   已有四路二维分区、同标记、终点或显式 EM-round PA/OA 选择，独立探索性结果，不改旧 Pilot。
 - [`vpu_schedule_review_20261015.md`](admission/vpu_schedule_review_20261015.md)：VPU 可选源 Adam 重置调度与固定轮内训练步数，不改变默认或 D22 准则。
 - [`vpu_encoder_stream_20261015.md`](delivery/vpu_encoder_stream_20261015.md)：VPU 注入 CNN 与 CPU 数据分批工程路径，非作者图像复现/正式准入。
-- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；α_U/TS 审批仍阻断。
-- [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；support 标签预算和发布 OS/registry TS 冲突保留待审。
+- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；2026-10-17 #117 明确本 Survey 走 OS adaptation + 显式 α_U，OS→TS 校准不属于本实验；α_U 来源与正式预算/选模仍待审。
+- [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；2026-10-17 #115 已将 registry/台账采样定位纠正为 OS，support 标签预算与 PA 限制仍待审。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。
@@ -74,6 +75,10 @@
 - [`heng958_independent_review.md`](reviews/heng958_independent_review.md)：HENG958 负责范围的历史复核记录。
 - [`collaborator_followup_20261004.md`](reviews/collaborator_followup_20261004.md)：数据收集、CNN oracle、校准和交付边界的补全记录。
 - [`independent_progress_20261005.md`](reviews/independent_progress_20261005.md)：独立工程预集成和合成数据证据；不改变冻结矩阵或正式准入。
+- [`p3_1_acceptance_review_20261016.md`](reviews/p3_1_acceptance_review_20261016.md)：P3.1 逐方法技术验收复核；P3MIX 未完成，#114–#117 整改复核与保留条件。
+- [`algorithm_issues_114_117_20261017.md`](reviews/algorithm_issues_114_117_20261017.md)：#114–#117 工程整改、验证证据与独立实验调用边界。
+- [`algorithm_completion_20261017.md`](reviews/algorithm_completion_20261017.md)：新增算法收尾状态、fail-closed 预算与正式准入边界。
+- [`puet_adaptation_completion_20261017.md`](reviews/puet_adaptation_completion_20261017.md)：PUET 风险质量证据、适配回归与 `max_features` 越界登记；不改变训练代码或正式准入。
 
 ### `data/` 与 `assets/`
 
@@ -92,5 +97,6 @@
 - Holistic-PU：[来源与 CNN](holistic_source_cnn_review_20261007.md)、[后段初始化](holistic_stage_initialization_20261007.md)、[LZO 选择](holistic_lzo_selection_20261007.md)。
 - [PULNS 来源与 CNN](pulns_source_cnn_review_20261007.md)、[GEN-PU 来源与 CNN](genpu_source_cnn_review_20261007.md)。
 - [扩展 CNN 资源探针说明](extended_cnn_resource_review_20261007.md)：工具已交付，21 次实测尚未交付有效记录。
+- 2026-10-17 独立 BBE/TEDⁿ：[BBE](../method_cards/BBE.md)、[TEDn](../method_cards/TEDn.md)；native TS、显式 α_U，不接 CVIR/OS Survey。
 
 以上均为工程准备；正式资源预算、配方、数值验收和负责人签署仍按执行计划推进。
