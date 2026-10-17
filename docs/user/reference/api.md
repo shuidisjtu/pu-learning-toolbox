@@ -1590,6 +1590,8 @@ Self-PU 的支持集只用于元重加权与内部 teacher 选择，外部 OA �
 `load_support_dataset` 核对五角色、抽样、文件和收据。支持五个非文本/非分组数据集；
 原始来源真实性须由调用方保证，checksum 不等于预算批准。命令入口、支持范围与
 CPU 单候选回放见[支持集制品交付](../../research/pu_survey/delivery/clean_support_workflow_20261017.md)。
+制品另有 support_origin/完整原角色计数/未核验来源声明；实验入口按构造签名完整转发
+新审核分支的四个来源参数。旧 main 的制品层审计不冒充原生 adapter 审计，部分新契约拒绝。
 
 实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
 决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)

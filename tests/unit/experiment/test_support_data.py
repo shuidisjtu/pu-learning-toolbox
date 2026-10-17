@@ -60,6 +60,8 @@ def test_basic_five_datasets_roundtrip_without_frozen_split_impersonation(datase
     assert support.for_selection is False and extra.for_selection is False
     assert actual["support_adapter_options"]["support_removed_from_train"] is True
     assert actual["support_adapter_options"]["prior_estimation_indices"] == []
+    assert actual["support_source_audit"]["support_origin"] == "carved_from_original_pool"
+    assert actual["support_source_audit"]["support_source_verified"] is False
     for name in ("train", "pu_val", "clean_val", "test"):
         left, right = getattr(bundle, name), getattr(restored, name)
         np.testing.assert_array_equal(left.X, right.X)
@@ -177,7 +179,7 @@ def test_edge_single_class_draw_is_refused_without_resampling():
 
 
 @pytest.mark.parametrize(
-    "kind", ["receipt", "file", "missing_role", "filename", "lineage", "seed", "approval"]
+    "kind", ["receipt", "file", "missing_role", "filename", "lineage", "seed", "approval", "pool"]
 )
 def test_edge_corrupted_or_inconsistent_artifacts_refused(tmp_path, kind):
     bundle, support, metadata = prepare()
@@ -199,6 +201,8 @@ def test_edge_corrupted_or_inconsistent_artifacts_refused(tmp_path, kind):
             payload["support_adapter_options"]["original_train_count"] += 1
         elif kind == "seed":
             payload["support_adapter_options"]["preparation_seed"] = 9
+        elif kind == "pool":
+            payload["support_source_audit"]["original_role_counts"]["clean_val"] += 1
         else:
             payload["budget_approval"] = "approved"
         if kind != "receipt":

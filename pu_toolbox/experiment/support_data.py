@@ -159,6 +159,15 @@ def prepare_support_dataset(
             "raw_source_X_sha256": array_hash(features),
             "raw_source_y_sha256": array_hash(np.asarray(labels)),
         },
+        support_source_audit={
+            "support_origin": "carved_from_original_pool",
+            "original_role_counts": {
+                **{name: len(getattr(original, name).X) for name in ROLES},
+                "prior_estimation": 0,
+            },
+            "support_source_verified": False,
+            "support_source_receipt": source,
+        },
         support_adapter_options={
             "dataset": dataset,
             "source": source,
@@ -232,6 +241,19 @@ def _validate_product(bundle, support, manifest):
         or manifest["indices_sha256"] != strict_canonical_hash(manifest["indices"])
     ):
         raise ValueError("support adapter options disagree with lineage")
+    source_audit = manifest["support_source_audit"]
+    expected_counts = {
+        **{name: len(getattr(bundle, name).X) for name in ROLES},
+        "train": len(original),
+        "prior_estimation": 0,
+    }
+    if (
+        source_audit["support_origin"] != "carved_from_original_pool"
+        or source_audit["original_role_counts"] != expected_counts
+        or source_audit["support_source_verified"] is not False
+        or source_audit["support_source_receipt"] != manifest["source"]
+    ):
+        raise ValueError("support source audit disagrees with raw/role lineage")
     preparation_seed = options["preparation_seed"]
     if type(preparation_seed) is not int or not 0 <= preparation_seed < 2**32:
         raise ValueError("support preparation seed must be an unsigned 32-bit integer")

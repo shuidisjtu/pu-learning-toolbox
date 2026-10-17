@@ -71,6 +71,10 @@ def test_basic_actual_method_training_extra_budget_and_selected_replay(method, t
     assert summary["formal_admission"] is False
     assert set(summary["test"]) == {"OA"} and plan["candidate_count"] == 1
     assert summary["extra_supervision"]["support_removed_from_train"]
+    assert summary["support_product_audit"]["support_source_verified"] is False
+    effects = summary["support_product_audit"]["role_pool_effect"]
+    assert effects["train"]["reduced_count"] == 40
+    assert all(row["reduced_count"] == 0 for name, row in effects.items() if name != "train")
     provenance = summary["training_provenance"]
     assert provenance["support_samples"] == 40
     assert provenance["total_observed_training_label_budget"] == (
@@ -186,3 +190,50 @@ def test_basic_cli_defaults_to_nontraining_plan(tmp_path, capsys, monkeypatch):
     assert json.loads(capsys.readouterr().out)["protocols"] == ["OA"]
     assert script.main(args + ["--execute"]) == 1
     assert "error:" in capsys.readouterr().err
+
+
+def test_basic_new_audit_constructor_contract_receives_all_source_fields(tmp_path, monkeypatch):
+    original = script.PULNSExtraSupportTrainer
+
+    class NewAuditTrainer(original):
+        def __init__(
+            self,
+            support,
+            *,
+            support_origin,
+            original_role_counts,
+            support_source_verified,
+            support_source_receipt,
+            **kwargs,
+        ):
+            self.source_fields = dict(
+                support_origin=support_origin,
+                original_role_counts=original_role_counts,
+                support_source_verified=support_source_verified,
+                support_source_receipt=support_source_receipt,
+            )
+            super().__init__(support, **kwargs)
+
+        def validate_experiment(self, model, bundle, config, protocols):
+            super().validate_experiment(model, bundle, config, protocols)
+            self._audit.update(self.source_fields)
+
+    root = product(tmp_path)
+    monkeypatch.setattr(script, "PULNSExtraSupportTrainer", NewAuditTrainer)
+    plan = script.build_plan(root, method="pulns", c_token="0.5", parameters=parameters("pulns"))
+    assert plan["support_product_audit"]["native_adapter_source_audit"] is True
+    assert plan["extra_supervision"]["support_origin"] == "carved_from_original_pool"
+    assert plan["extra_supervision"]["original_role_counts"]["train"] == 288
+
+
+def test_edge_partial_future_audit_contract_is_rejected(tmp_path, monkeypatch):
+    original = script.PULNSExtraSupportTrainer
+
+    class PartialAuditTrainer(original):
+        def __init__(self, support, *, support_origin, **kwargs):
+            super().__init__(support, **kwargs)
+
+    root = product(tmp_path)
+    monkeypatch.setattr(script, "PULNSExtraSupportTrainer", PartialAuditTrainer)
+    with pytest.raises(ValueError, match="partial"):
+        script.build_plan(root, method="pulns", c_token="0.5", parameters=parameters("pulns"))

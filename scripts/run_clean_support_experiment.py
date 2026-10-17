@@ -9,6 +9,7 @@ extra-supervised exploratory OA is allowed; no automatic budget or GPU choice.
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import pickle
 import subprocess
@@ -78,7 +79,14 @@ def _objects(method, parameters, prior, seed, support, metadata):
 
         model = PULNSClassifier(random_state=seed, **parameters)
         adapter = PULNSExtraSupportTrainer
-    return model, adapter(support, **metadata["support_adapter_options"])
+    options = dict(metadata["support_adapter_options"])
+    source_audit = metadata["support_source_audit"]
+    signature = inspect.signature(adapter).parameters
+    accepted = set(source_audit).intersection(signature)
+    if accepted and accepted != set(source_audit):
+        raise ValueError("partial support-source audit contract; refusing to drop required fields")
+    options.update({key: source_audit[key] for key in accepted})
+    return model, adapter(support, **options)
 
 
 def build_plan(directory, *, method, c_token, parameters):
@@ -128,6 +136,19 @@ def build_plan(directory, *, method, c_token, parameters):
         "population_prior": prior,
         "label_view_sha256": generation,
         "extra_supervision": trainer.supervision_context(),
+        "support_product_audit": {
+            **metadata["support_source_audit"],
+            "role_pool_effect": {
+                name: {
+                    "original_count": count,
+                    "remaining_count": metadata["role_sizes"].get(name, 0),
+                    "reduced_count": count - metadata["role_sizes"].get(name, 0),
+                }
+                for name, count in metadata["support_source_audit"]["original_role_counts"].items()
+            },
+            "native_adapter_source_audit": "support_origin" in trainer.supervision_context(),
+            "source_verification_scope": "caller_assertion_unverified",
+        },
         "source_files_sha256": {name: file_hash(root / name) for name in sources},
         "formal_admission": False,
         "budget_approval": "not_granted_by_runner",
@@ -254,6 +275,7 @@ def execute(plan, output):
         "test": result.test_metrics,
         "selection": result.manifest["selection"],
         "extra_supervision": result.manifest["extra_supervision"],
+        "support_product_audit": plan["support_product_audit"],
         "training_provenance": result.manifest["candidate_runs"][0]["training_provenance"],
         "warning_count": len(caught),
         "warnings": [

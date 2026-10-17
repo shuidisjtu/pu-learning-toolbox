@@ -4,6 +4,8 @@
 
 本轮 fetch 后本地/远程均为 `e84a76c`，无新提交。GitHub issue API 返回403且
 本机 gh 未登录，无法据此断言无新 issue；按执行计划及上一轮算法收尾依赖推进。
+收尾阶段再次 fetch 发现合作者新分支 `fix/p3-1-pulns-support-audit` 的 `adb00c4`，
+main 仍未前进。分支的新要求按下节兼容，不擅自合并未审分支或代填其签署。
 P3MIX 正确官方 PDF 本轮仍转验证页，未取得新的原始论文/补充包，不重复冒充集成完成。
 
 本交付补齐上轮支持集 adapter 之后的**制品准备和可复现实验入口**。只验证独立工程
@@ -135,3 +137,30 @@ CLI 默认不写不训、三种方法真实小型 CPU 训练、额外标签预�
 后续依次为：取得 P3MIX 原始全文/补充包；确定真实 support 的来源/标签预算及正式
 共享规格，运行实际数据；补文本/分组政策和获批 CNN 接线；最后按 P3.3/P4.1 的
 正式前置进行资源、多 seed 与方法准入验收。不可代签合作者复核或改写旧 Pilot 结果。
+
+## 4. 合作者新审核分支的对齐
+
+读取 `adb00c4f3ef535ce4582d73c7c1e3fac6c5c527b` 的 P3.1 审核及 PULNS 源码后，
+按其最新要求补齐制品的 `support_source_audit`：
+
+- 明确 `support_origin=carved_from_original_pool`，不把 train 划出部分冒称外部队列。
+- 原 train/pu_val/clean_val/test/prior_estimation 数量全部登记；本入口仅缩减 train，
+  减少量必须等于支持集大小，其他角色减少量均为0。
+- 明确 `support_source_verified=false`；raw 文件摘要一致不等于来源真实性/授权/标注
+  预算已获独立核验。不借 source receipt 字符串把来源宣称升级为已验收。
+- 计划和每run summary 总是记录完整 `support_product_audit`。当前 main 的旧 adapter
+  构造契约不接收新字段时，保留上述制品层审计并显式记
+  `native_adapter_source_audit=false`，不伪造原生 adapter 已完成新审计。
+  当合作者分支合入并提供完整四个新参数时，自动显式传递全部字段；只出现部分契约
+  则拒绝，不静默丢字段。这样不需要复制或抢先合并对方 adapter 修改。
+
+除可独立运行的构造兼容/部分契约拒绝回归外，本机还从 Git 对象只读载入上述 commit
+的真实 PULNS adapter，在隔离内存模块与 `/tmp` 合成制品上验证了一次完整 PULNS
+训练和 OA 模型回放。新 adapter 原生记录：原 train288、剩余248、support40；
+其余角色池不缩减，来源验证仍为 false。读取的 adapter 源码 SHA-256 为
+`2095ec4a32ce1c15815c8b2cff526f6add0b88bb6a776da47e07e7786b81ee0b`。
+这是未合并分支接口的工程兼容性检查，不是其正式批准、主榜实验或合作者独立签署；
+该临时探针不冒充正式环境/源绑定结果。
+
+新审核记录也明确本 Survey 的 CVIR 为 OS adaptation + 显式 α_U，OS→TS 不属于
+本实验，因此不再把新增 OS→TS 校准列为本轮必须完成的任务；正式配方/预算等前置不变。
