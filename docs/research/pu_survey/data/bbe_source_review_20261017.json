@@ -1,0 +1,106 @@
+{
+  "schema_version": "survey-bbe-source-engineering-review-1",
+  "method": "bbe_standalone",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "paper": {
+    "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf",
+    "target": "alpha_U: positive fraction in marginal unlabeled mixture, not generic OS population pi",
+    "bbe_location": "Algorithm 1, printed page 4; accompanying upper-tail definition in section 4",
+    "tedn_location": "Algorithm 3, printed page 7; not implemented here",
+    "criterion": "q_U(c)/q_P(c) + (1+gamma)/q_P(c) * (sqrt(log(4/delta)/(2*n_U)) + sqrt(log(4/delta)/(2*n_P)))",
+    "return": "q_U(c_hat)/q_P(c_hat), not the selection upper bound",
+    "identifiability": "the empirical tail-ratio target need not equal true alpha_U without the paper's pure-positive-bin/identifiability conditions"
+  },
+  "source": {
+    "repository": "https://github.com/acmi-lab/PU_learning",
+    "commit": "5e5e350dc0588de95a36eb952e3cf5382e786aec",
+    "working_tree_clean_when_inspected": true,
+    "executed_upstream_code": false,
+    "license": "Apache-2.0",
+    "file_sha256": {
+      "estimator.py": "5df3c26a2a597c9defa830660dc5a799f95d4f520eb6ffb748c7b78b8dd3bed3",
+      "train_PU.py": "fe47e2944729f89f1376ad3bd3d1367dbb78b1e5299033ecc633e0858245d0da"
+    }
+  },
+  "source_differences": [
+    {
+      "item": "candidate_thresholds_and_ties",
+      "source_location": "estimator.py:99-110",
+      "source_value": "only strict descending gaps among U scores; skips the last U entry and tied entries; requires j>1 and i>1",
+      "toolbox_value": "all distinct empirical tails from P/U union plus zero; include >= threshold ties; require only positive P tail mass",
+      "decision": "paper upper-tail semantics; do not claim pinned author-code replay"
+    },
+    {
+      "item": "unlabeled_tail_count",
+      "source_location": "estimator.py:108-112",
+      "source_value": "uses zero-based i as U tail count at sorted_u_probs[i], while P count includes >= threshold",
+      "toolbox_value": "both role counts use inclusive >= threshold",
+      "decision": "paper Algorithm 1 criterion; independently transcribed scalar counting oracle in tests"
+    },
+    {
+      "item": "empty_candidate_fallback",
+      "source_location": "estimator.py:119-126",
+      "source_value": "returns estimate 0 when no candidate passes filters",
+      "toolbox_value": "nonempty valid scores always admit c=0 with ratio 1; empty inputs raise",
+      "decision": "do not synthesize zero evidence from absent candidates"
+    },
+    {
+      "item": "true_unlabeled_labels",
+      "source_location": "estimator.py:74,80,97,105-106",
+      "source_value": "requires U targets and reads them for an unused counter; the returned estimate does not depend on that counter",
+      "toolbox_value": "no clean-label parameter or read",
+      "decision": "remove unnecessary dependency, not an allegation of alpha-label leakage in the source"
+    },
+    {
+      "item": "transform_and_budget",
+      "source_location": "train_PU.py:117-142,193-225",
+      "source_value": "deep score transform, warm-start and per-epoch BBE for TEDn",
+      "toolbox_value": "standalone one-time PvU scoring fit, internal within-role holdout, default train-only scaling plus balanced logistic max_iter1000; cloneable supplied scoring model supported",
+      "decision": "2-D engineering path only; no TEDn alternation, original recipe or approved formal budget"
+    }
+  ],
+  "implementation": {
+    "module": "pu_toolbox/prior/bbe.py",
+    "statistic": "best_bin_estimate",
+    "end_to_end": "BBEMixtureEstimator",
+    "result": "BBEResult",
+    "test_ref": "tests/unit/prior/test_bbe.py",
+    "runtime_input": "dense 2-D; observed y_pu roles 1=P and 0=U; explicit input_sampling=ts required",
+    "holdout_policy": "ceil(holdout_fraction*n_role), independent permutation of each observed role, require both train and holdout nonempty",
+    "default_holdout_fraction": 0.2,
+    "default_delta": 0.1,
+    "default_gamma": 0.01,
+    "result_receipt": "all thresholds, role counts, ratios, selection bounds, selected index and parameters",
+    "data_receipt": "train/holdout input positions and role counts; optional unique string sample IDs checked; external source/group isolation remains caller responsibility",
+    "sampling_design_verified": false,
+    "clean_labels_read": false,
+    "population_prior_conversion": null,
+    "calibration_applied": false,
+    "calibration_hooked": false,
+    "registered_as_population_prior_estimator": false,
+    "wired_to_existing_cvir": false,
+    "tedn_implemented": false,
+    "author_code_replay": false,
+    "formal_admission": false,
+    "frozen_results_modified": false
+  },
+  "engineering_acceptance": {
+    "scope": "CPU synthetic contracts and packaging, not real-data prior accuracy or formal admission",
+    "python": "3.11.12",
+    "module_sha256": "ffb7c23fa9b63a0a4305dd2f11fd11334053808ea4d90d4e82cb932c3935f07e",
+    "test_sha256": "fa01ce4bd346b21891736c825a7ed0fb3112f2e6d12b2fb957102a052128baab",
+    "targeted_tests": {"passed": 73, "failed": 0, "skipped": 0},
+    "fast_suite": {"passed": 4200, "failed": 0, "errors": 0, "skipped": 58, "seconds": 296.799},
+    "static_gates_passed": 12,
+    "admission_evidence_checker_passed": true,
+    "in_memory_mutants_detected": ["raw_ratio_selection", "exclusive_tails", "heldout_training_leakage"],
+    "large_statistic_smoke": {"synthetic_scores": 250000, "candidate_thresholds": 250001, "seconds": 0.218, "finite_selection_bounds": true},
+    "wheel_sdist_built": true,
+    "outside_checkout_wheel_fit_and_pickle_replay": true,
+    "private_archives_arrays_checkpoints_in_packages": false,
+    "gpu_used": false,
+    "owner_approval_implied": false
+  }
+}

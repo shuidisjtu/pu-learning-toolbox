@@ -42,6 +42,7 @@ pu_toolbox/
     recpe.py                              (native: ReCPEEstimator 重分组类先验估计，默认 KM2 基估计器)
     pen_l1.py                             (native: ClassPriorEstimator 罚 L1 闭式先验，theta 网格搜索)
     kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 核均值混合比例估计)
+    bbe.py                                (standalone: BBE α_U 统计量与隔离留出 PvU 评分，不注册为总体先验)
   utils/
     __init__.py                           (公共导出聚合)
     basis.py                              (shared: build_linear_basis/build_rbf_basis 基函数构造与中心子采样)
@@ -317,6 +318,7 @@ tests/
       test_recpe.py                     # ReCPE 特有逻辑(copy fraction 边界、自定义基分类器/基估计器、默认 KM2 基、置信区间 None、密度比分位数)
       test_pen_l1.py                    # penL1 特有逻辑(自动 σ=中位数带宽、先验分离带/低先验带、估计有界)
       test_kernel_mean.py               # KM1/KM2 kernel-mean 类先验估计
+      test_bbe.py                       # BBE 独立尾部公式、置信准则、重复分数与训练/留出隔离
     preprocessing/
       test_pu_labeling.py               # PU/PNU 标签生成(6 公共函数、统一分发器、参数校验与确定性)
       test_selection_bias.py            # SCAR/SAR propensity、标记率校准与合成数据
@@ -797,6 +799,7 @@ docs/
       PAN.md                              # PAN 双网络风险与 CNN 接入边界
       PULNS.md                            # PULNS 选择器与独立 clean support 标签预算
       RP.md                               # RankPruning PU-only rho0=0 来源与 OOF 校准
+      BBE.md                              # BBE 原始来源差异、独立 α_U 接口与留出/采样边界
     traditional_pu/
       traditional_pu_metric_contract.md   # 传统 PU 七算法单域指标、基线与统计契约
       traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约

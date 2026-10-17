@@ -41,6 +41,42 @@
 
 ## 分类器与估计器
 
+### 独立 BBE 混合比例入口（不注册为总体先验）
+
+`from pu_toolbox.prior import BBEMixtureEstimator, BBEResult, best_bin_estimate`。
+此组件估计 **α_U**，不是 OS 工作流的总体 π，不提供自动先验注册名。
+
+`BBEMixtureEstimator(*, input_sampling=None, holdout_fraction=0.2, delta=0.1,
+gamma=0.01, classifier=None, random_state=None)`：调用前必须显式设
+`input_sampling="ts"`，自行保证独立 P 与边缘 U 的采样设计。`fit(X, y_pu,
+*, sample_ids=None)` 接受密集二维特征与一维观察角色（1=P、0=U），内部按角色
+随机留出指定比例（向上取整，训练/留出每个角色都须非空）。默认 train-only
+StandardScaler + balanced LogisticRegression(max_iter=1000)；注入 classifier
+须可 clone，提供 `fit`/`predict_proba` 与 `classes_={0,1}`。
+可选 sample_ids 为逐行唯一非空字符串；不证明跨来源/组/外部角色隔离。
+返回 self；`estimate_unlabeled_prior()` 返回 float α_U；未拟合抛 NotFittedError。
+失败 refit 清除旧估计。`train_indices_`、`holdout_indices_` 与 `provenance_`
+可审计内部隔离，不接受 clean U 标签。
+
+`best_bin_estimate(positive_scores, unlabeled_scores, *, delta=0.1, gamma=0.01)`
+返回不可变 `BBEResult`。输入均为非空一维有限 [0,1] 分数，高分表示正类；
+评分器须独立于这些留出样本。delta/gamma 严格在 (0,1)。按论文完整经验上尾
+与上界准则选阈值，返回原始比值、不夹紧；同准则取最低阈值。
+结果含 `alpha_u`、`threshold`、`selected_index`、`thresholds`、`positive_counts`、
+`unlabeled_counts`、`ratios`、`selection_upper_bounds`、`n_positive`、`n_unlabeled`、
+`delta`、`gamma`。选择上界不等于任意输入下 α_U 的置信区间，0/1 估计不自动
+改写为 CVIR 可用内点。非有限/形状/概率/采样模式错误抛 ValueError。
+
+```python
+from pu_toolbox.prior import BBEMixtureEstimator
+
+model = BBEMixtureEstimator(input_sampling="ts", random_state=42).fit(X, y_pu)
+alpha_u = model.estimate_unlabeled_prior()
+```
+
+只补独立二维工程路径；没有 TEDⁿ、原深度配方、OS→TS 转换、自动写入总体 π
+或正式数值准入。来源差异与可辨识性前提见 [BBE 方法卡](../../research/method_cards/BBE.md)。
+
 所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
 `get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。
 

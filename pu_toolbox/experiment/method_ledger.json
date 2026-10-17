@@ -776,6 +776,18 @@
       "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
       "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
       "source_behavior_review_ref": "docs/research/pu_survey/data/cvir_source_review_20261015.json",
+      "independent_extensions": {
+        "bbe": {
+          "status": "standalone paper Algorithm 1 plus internal-holdout 2-D PvU scoring pipeline; not wired into CVIR",
+          "implementation": "pu_toolbox/prior/bbe.py:BBEMixtureEstimator",
+          "review_ref": "docs/research/pu_survey/data/bbe_source_review_20261017.json",
+          "target": "alpha_U, not automatic population pi",
+          "calibration_applied": false,
+          "calibration_hooked": false,
+          "formal_admission": false
+        },
+        "tedn": {"status": "not_implemented"}
+      },
       "checkpoint_accounting": {"epoch_bound": "warm_start_epochs + max_epochs", "bound_is_upper_limit": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false},
       "modality_backbone": {
         "modalities": ["tabular", "image"],
