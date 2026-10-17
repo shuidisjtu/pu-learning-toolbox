@@ -35,7 +35,7 @@ CNN 正式适配、资源 profile、配方冻结分别留给 P3.2、P3.3、P4.1�
 `test_edge_bootstrap_root_masses_and_constant_leaf`，JUnit 记录 36 tests / 0 failures /
 0 errors；其代码改动与首轮复现方向一致。`#115`–`#117`、PULNS/CVIR/Self-PU 新适配器及
 队友自报的 4030/4056 项全量通过尚未由本轮独立重跑。P3MIX 仍未交付完整 estimator，
-P3.1 仍未整体验收。后续 PULDA 审核在新基线上继续；旧行号需按 `e84a76c` 重新定位。
+P3.1 仍未整体验收。后续 PULDA 审核在新基线上继续；旧行号需按 `92595ca` 重新定位。
 2026-10-17：PUET、LaGAM、CVIR 与 PULNS 完整复核已完成并计入下文；**#114、#115、#117
 已按用户指示关闭；#116 已按用户指示关闭（接口/审计交付，实际 support 制品/预算前置保留）**。
 

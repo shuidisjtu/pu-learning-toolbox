@@ -79,6 +79,10 @@ manifest 顶层 `extra_supervision` 与每候选 provenance 显著登记额外�
 MNIST/CIFAR 对应原论文映射，Spambase 保留本项目 spam-positive 定义且明确原文编码未独立证实；
 其他五集属项目扩展。没有把作者 γ 当 c、改旧 split 或默认套作者支持集大小。
 2026-10-17 再查正式论文/机构页面与源码关键词，仍未确认官方代码，继续按论文独立适配。
+2026-10-17 main 合并后另补共享 `pu_toolbox.experiment.support_data` 与
+`prepare_clean_support.py`/`run_clean_support_experiment.py`：五数据集 train 内
+support 分拆、五角色收据、剩余 train-only 预处理及 CPU 单候选 OA 回放；仍不批准
+实际 support 大小/标签预算，ADNI/文本/正式 CNN 未开放。
 当前只有合成接口/隔离证据，没有新增八集正式 support 制品；实际额外标签的来源/预算与
 数据准备仍须明确批准，不能因接口齐全就清空正式准入条件。
 UI 将此方法标为 ui_ready=false，不列入手动/比较与当前图像支持提示；导入配置也在改变
