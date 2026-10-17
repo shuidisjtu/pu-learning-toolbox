@@ -71,3 +71,19 @@ pytest tests/unit/estimators/test_puet.py \
 仍待：正式候选/CPU预算与存储、方法特定 PA/OA 资格、正式共享规格与必要公开数值、
 负责人审阅。GPU 条款对 CPU 树方法的适用性仍按既有任务边界处理，不代为批准。
 P3MIX 完整原始来源与 estimator 缺口没有被本轮 PUET 补项替代或宣布完成。
+
+## 本轮验收
+
+- 专项与来源/预算/准入契约138项通过；全量快速集4127 passed / 58 skipped，
+  290.67秒，零 failure/error（Python3.11.12、CPU，not slow and not e2e）。
+  XML确认实际执行36个 bootstrap 质量、8个适配及7个检查器变异用例。
+  保留既有 pipeline 成本、Self-PU 消融和优化器收敛等测试 warning，不称零 warning。
+- 12项静态门禁通过；来源检查实际复核锁定 checkout 的3份文件，禁用 torch
+  导入后同样通过。公开对照/预算草稿检查通过，不授予任何 numeric 判定或正式预算。
+- sdist/wheel 构建成功；源码目录外验证 wheel 中的 TS bootstrap、越界特征数和
+  新台账契约。包内无原始数据、模型、上传压缩包或 Excel；未发布 PyPI。
+- 相对 `f996126` 核对 PUET 训练源码、冻结协议、三版旧对照矩阵、uv.lock 与
+  pyproject.toml 均无差异；用户原有存储探针改动及上传制品未提交或覆盖。
+
+以上是本地工程证据，不是已完成全部新增算法、作者实验重放、正式准入签署或远程
+多系统 CI 全绿的声明。持续目标保留 P3MIX 来源、真实支持集与协议审批等阻断。
