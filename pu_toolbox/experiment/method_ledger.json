@@ -105,6 +105,9 @@
       "pa_eligible": false,
       "extra_supervision_adapter": {
         "entry": "pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer",
+        "support_artifact_preparer": "scripts/prepare_clean_support.py",
+        "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
+        "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
         "scope": "opt-in exploratory SCAR OS, terminal OA only; frozen Survey/Pipeline/CLI unchanged",
         "dataset_rules_ref": "docs/research/pu_survey/data/pulns_dataset_adaptation_20261017.json",
         "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
@@ -520,6 +523,9 @@
       "implementation_status": "NATIVE clean-room core；paper-like benchmark 待完成（Self-PU.md:399/450）",
       "extra_supervision_adapter": {
         "entry": "pu_toolbox.experiment.clean_support_adapters.SelfPUCleanSupportTrainer",
+        "support_artifact_preparer": "scripts/prepare_clean_support.py",
+        "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
+        "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
         "scope": "opt-in exploratory SCAR OS, terminal OA after support teacher selection; frozen pilot remains no-meta ablation",
         "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
         "support_labels_affect": ["meta_reweighting", "internal_teacher_selection"],
@@ -696,6 +702,9 @@
       "implementation_status": "NATIVE, backend TORCH; explicit clean-support MLP or trainable injected CNN; CPU-streamed training/clustering/inference, head-only virtual meta update; not author replay or formal admission",
       "extra_supervision_adapter": {
         "entry": "pu_toolbox.experiment.clean_support_adapters.LaGAMCleanSupportTrainer",
+        "support_artifact_preparer": "scripts/prepare_clean_support.py",
+        "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
+        "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
         "scope": "opt-in exploratory SCAR OS, terminal OA only; frozen Survey/Pipeline/CLI unchanged",
         "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
         "support_labels_affect": ["meta_label_disambiguation"],

@@ -1585,6 +1585,12 @@ Self-PU 的支持集只用于元重加权与内部 teacher 选择，外部 OA �
 仅探索性 SCAR OS、终点 OA，不是 PA、正式多 checkpoint 候选池或论文数值复现。
 调用示例与验收边界见[算法收尾记录](../../research/pu_survey/reviews/algorithm_completion_20261017.md)。
 
+`pu_toolbox.experiment.support_data.prepare_support_dataset` 从原始数组按显式预算准备
+独立支持集，重新拟合剩余 train 的预处理；`save_support_dataset` 仅写新目录，
+`load_support_dataset` 核对五角色、抽样、文件和收据。支持五个非文本/非分组数据集；
+原始来源真实性须由调用方保证，checksum 不等于预算批准。命令入口、支持范围与
+CPU 单候选回放见[支持集制品交付](../../research/pu_survey/delivery/clean_support_workflow_20261017.md)。
+
 实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
 决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)
 §2.3-§2.4 与 [experiment_layer.md](../../dev/experiment_layer.md) §1）。本表只登记公共符号与一句话用途；参数契约与行为细节的真相源是各

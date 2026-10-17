@@ -194,6 +194,7 @@ pu_toolbox/
     survey_recipe_audit.py                # 版本化批次配方义务、身份重算与聚合前拒收
     survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
+    support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -365,6 +366,8 @@ tests/
       test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
       test_lbe_comparison_plan.py       # split/seed/预算身份与预检拒收
       test_lbe_diagnostics.py           # LBE 分支对称性、独立 SCAR 梯度与诊断计划
+      test_clean_support_execution.py   # 三方法 CPU 实训、显式预算、OA 模型回放与告警拒收
+      test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -511,6 +514,7 @@ tests/
       test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
       test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
       test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
+      test_support_data.py              # 五数据集支持集抽样、train-only 预处理和制品损坏/身份回归
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -851,6 +855,8 @@ scripts/
   run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
   run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断
   _lbe_diagnostic_reference.py            # 不注册的 SCAR 约束解析梯度诊断参考
+  prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
+  run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
 ```
 
 ## 7. CI/CD（`.github/`）
