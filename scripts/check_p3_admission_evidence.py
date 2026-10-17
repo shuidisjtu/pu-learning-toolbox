@@ -29,6 +29,17 @@ SELECTION = {
     "fit_receives_validation_labels": False,
     "checkpoint_eligibility": "pending_method_owner_review",
 }
+PUET_BOOTSTRAP_RISK = {
+    "scope": "per_tree_root",
+    "positive_resample_count": "n_P",
+    "unlabeled_resample_count": "effective_U_risk_pool_size",
+    "positive_total_weight": "population_pi",
+    "unlabeled_total_weight": 1.0,
+    "ts_unlabeled_pool": "U_plus_positive_role_copies",
+}
+PUET_MASS_TEST = (
+    "tests/unit/estimators/test_puet.py::test_edge_bootstrap_root_masses_and_constant_leaf"
+)
 
 
 def require(condition, message):
@@ -107,6 +118,15 @@ def validate_evidence(evidence, ledger, protocol, *, root=ROOT):
                 canonical(row["calibration"][key]) == canonical(entry[key]), f"view drift: {method}"
             )
         require(row["calibration"]["source_equivalence_claim"] is False, "calibration overclaim")
+        if method == "puet":
+            for fact in (
+                row["calibration"].get("bootstrap_risk_contract"),
+                entry.get("bootstrap_risk_contract"),
+            ):
+                require(
+                    canonical(fact) == canonical(PUET_BOOTSTRAP_RISK), "PUET bootstrap mass drift"
+                )
+            require(PUET_MASS_TEST in row["source_behavior_tests"], "missing PUET mass regression")
         budget = row["budget"]
         require(budget["formal_budget_approved"] is False, "budget approval overclaim")
         for key in ("approved_candidate_pool", "approved_storage_bytes"):

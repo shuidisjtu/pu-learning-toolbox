@@ -288,12 +288,17 @@ PUExtraTreesClassifier(class_prior, *, n_estimators=100, max_depth=None,
 | `class_prior` | `float` | 必填 | 总体正类先验 $\pi\in(0,1)$；可由 `fit(..., class_prior=...)` 覆盖 |
 | `n_estimators` / `max_depth` | `int` / `int \| None` | `100` / `None` | 树数 / 最大深度 |
 | `min_samples_leaf` | `int` | `1` | 每个子叶至少包含的 P/U 样本总数 |
-| `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | 每节点候选特征数，`sqrt` 向上取整 |
+| `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | 每节点候选特征数，`sqrt` 向上取整；正整数超出输入维数时截断到该维数，不修改构造参数；非作者等价行为 |
 | `max_candidates` | `int` | `1` | 每候选特征随机阈值数 |
 | `bootstrap` | `bool` | `False` | 是否分别对 P/U 进行有放回重采样；作者代码默认不重采样 |
 | `random_state` | `int \| None` | `None` | 森林随机种子 |
 
 `decision_function` 为 $[-1,1]$ 投票边际，不是校准概率；零边际判负类。仅实现论文 nnPU/quadratic 变体，非完整论文基准。非空 `sample_weight` 报错。
+
+`bootstrap=True` 对 P 抽 n_P 行，对实际 U 风险池抽该池大小的行（OS: n_U，TS:
+n_U+n_P），每树根风险质量 P=总体π、U=1；不把原 U 行数错误用于 TS 风险池。
+min_samples_leaf 同时约束两个子节点；阈值取完整 min/max 区间；仅接受 gain>1e-12。
+这些明确的工程适配不表示作者完整流程复现。
 
 - 文档：[PUET 方法卡](../../research/method_cards/PUET.md)
 

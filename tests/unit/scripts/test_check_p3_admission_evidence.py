@@ -131,3 +131,35 @@ def test_param_cli_bad_source_or_unverified_author_code_exits_one(source_dir, ca
 def test_edge_missing_evidence_returns_json_error_not_traceback(tmp_path, capsys):
     assert check.main(["--evidence", str(tmp_path / "absent.json")]) == 1
     assert json.loads(capsys.readouterr().out)["ok"] is False
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "evidence_mass",
+        "ledger_mass",
+        "both_mass",
+        "missing_mass",
+        "bool_mass",
+        "sample_count",
+        "drop_mass_test",
+    ],
+)
+def test_param_puet_mass_and_regression_reference_cannot_drift(fault):
+    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    row = evidence["methods"]["puet"]
+    fact = row["calibration"]["bootstrap_risk_contract"]
+    if fault in ("evidence_mass", "both_mass"):
+        fact["unlabeled_total_weight"] = 0.5
+    if fault in ("ledger_mass", "both_mass"):
+        ledger["methods"]["puet"]["bootstrap_risk_contract"]["unlabeled_total_weight"] = 0.5
+    elif fault == "missing_mass":
+        del row["calibration"]["bootstrap_risk_contract"]
+    elif fault == "bool_mass":
+        fact["unlabeled_total_weight"] = True
+    elif fault == "sample_count":
+        fact["unlabeled_resample_count"] = "original_n_U_even_in_TS"
+    elif fault == "drop_mass_test":
+        row["source_behavior_tests"].remove(check.PUET_MASS_TEST)
+    with pytest.raises(ValueError, match="PUET"):
+        check.validate_evidence(evidence, ledger, protocol)

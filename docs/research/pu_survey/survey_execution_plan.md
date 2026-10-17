@@ -58,6 +58,10 @@
 
 ### 1.3 执行边界
 
+2026-10-17 按合作者 `adb00c4` 的非阻断审核补齐 PUET
+[风险质量登记与适配回归](reviews/puet_adaptation_completion_20261017.md)：不改训练代码，
+同步台账/校准证据/预算草稿并锁住边界行为；不合并审核分支或代填正式准入。
+
 2026-10-17 独立支持集制品与 CPU 探索入口已补，见
 [交付与命令](delivery/clean_support_workflow_20261017.md)：五数据集 raw 重建、显式
 support 大小/seed、剩余 train-only 预处理与三方法单候选 OA 实验回放。仅合成测试，

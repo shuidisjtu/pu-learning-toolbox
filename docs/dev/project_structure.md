@@ -295,6 +295,7 @@ tests/
       test_cvir_source_encoder.py       # CVIR 来源差异/独立梯度、CNN 分批、U 排序与阶段快照
       test_lagam_encoder_stream.py      # LaGAM CNN/support 分批、BN/RNG 隔离、快照与预算拒绝
       test_lagam_virtual_scope.py       # LaGAM 虚拟范围的独立有限差分、双列扰动及平局数学对照
+      test_puet_adaptation_contract.py  # PUET 子叶约束、完整阈值、负增益拒绝与越界特征数适配回归
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

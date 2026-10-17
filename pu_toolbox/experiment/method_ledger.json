@@ -626,6 +626,14 @@
         "source_status": "official_related (clean-room nnPU quadratic branch only)"
       },
       "implementation_status": "NATIVE, backend NUMPY; randomized forest with closed-form nnPU quadratic node risk",
+      "bootstrap_risk_contract": {
+        "scope": "per_tree_root",
+        "positive_resample_count": "n_P",
+        "unlabeled_resample_count": "effective_U_risk_pool_size",
+        "positive_total_weight": "population_pi",
+        "unlabeled_total_weight": 1.0,
+        "ts_unlabeled_pool": "U_plus_positive_role_copies"
+      },
       "native_sampling_assumption": "ts（可靠 P 与总体边缘 U 分别贡献节点风险质量；PUET.md:9-16）",
       "run_view": "ts-compatible",
       "calibration_applied": true,
@@ -642,9 +650,10 @@
         "adaptation_level": "PUET.md:43-47"
       },
       "uncertainty": [
-        "TS-OS 校准把 P 行复制为 U 风险角色的树行，原 P 行仍为正例；U 权重分母由 n_U 变为 n_P+n_U；bootstrap 分组保持分离。逐 run manifest 记录实际视图",
+        "TS-OS 校准把 P 行复制为 U 风险角色的树行，原 P 行仍为正例；U 权重分母由 n_U 变为 n_P+n_U；Issue #114 后 bootstrap 的 U 抽样数等于实际 U 风险池大小，每棵树根质量 P=population_pi、U=1；OS 抽 n_U、TS 抽 n_U+n_P。逐 run manifest 记录实际视图",
         "PUET 是 CPU 树方法，P3.2 的 GPU 条款不适用；正式任务分组调整需合作者复核",
         "锁定作者源码的随机叶 tie、裁边阈值区间、零/负增益划分、父节点 min_samples_leaf，与工具箱负类 tie、完整区间、严格正增益和子节点最小样本约束不同；仅 nnPU/quadratic，不声称完整源码重放；详见 admission_evidence_ref",
+        "正整数 max_features 超过输入维数时保留既有截断到 n_features 的工程行为，不改构造参数；作者 tree.py:199-207 打印提示并返回 None、不完成拟合；差异已登记并回归，不声称上游等价",
         "未完成共享规格下的公开数值对照、正式执行矩阵及合作者复核"
       ]
     },

@@ -13,7 +13,7 @@
     "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
     "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "22d4cb75833af7f3ebfe4a59ee282d942606fe76f30e3829e40279b45d8fd758"
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "e1c0f89b1c2d5ae723abf700cc1a4616853b3f5f48df22154022eda4996cae71"
   },
   "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
   "storage_contract": {
@@ -178,7 +178,15 @@
         "scope": "node_U_risk_mass_only",
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "source_equivalence_claim": false
+        "source_equivalence_claim": false,
+        "bootstrap_risk_contract": {
+          "scope": "per_tree_root",
+          "positive_resample_count": "n_P",
+          "unlabeled_resample_count": "effective_U_risk_pool_size",
+          "positive_total_weight": "population_pi",
+          "unlabeled_total_weight": 1.0,
+          "ts_unlabeled_pool": "U_plus_positive_role_copies"
+        }
       },
       "budget_fact": {
         "default_snapshot_count": null,
