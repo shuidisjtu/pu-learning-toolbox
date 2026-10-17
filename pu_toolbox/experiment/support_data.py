@@ -276,6 +276,7 @@ def save_support_dataset(bundle, support, manifest, directory):
     """Write five NPZs and a new receipt exclusively; refuse existing output."""
     _validate_product(bundle, support, manifest)
     payload = json.loads(json.dumps(manifest, allow_nan=False))
+    payload.pop("receipt_sha256", None)
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=False)
     files = {}

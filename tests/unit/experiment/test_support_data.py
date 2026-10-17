@@ -225,6 +225,15 @@ def test_edge_repeated_write_and_mutation_are_refused(tmp_path):
     assert not (tmp_path / "invalid").exists()
 
 
+def test_basic_loaded_receipt_can_be_resaved_to_a_new_directory(tmp_path):
+    bundle, support, metadata = prepare()
+    saved = save_support_dataset(bundle, support, metadata, tmp_path / "original")
+    loaded, extra, receipt = load_support_dataset(tmp_path / "original")
+    copied = save_support_dataset(loaded, extra, receipt, tmp_path / "copy")
+    assert copied == saved
+    assert load_support_dataset(tmp_path / "copy")[2] == saved
+
+
 def test_edge_duplicate_ids_cannot_hide_behind_copied_arrays(tmp_path):
     bundle, support, receipt = prepare()
     invalid = DatasetPart(
