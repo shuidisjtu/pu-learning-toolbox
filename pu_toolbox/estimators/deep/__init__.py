@@ -11,6 +11,7 @@ from .pulns import PULNSClassifier
 from .robust_pu import RobustPUClassifier
 from .self_pu import SelfPUClassifier
 from .split_pu import SplitPUClassifier
+from .tedn import TEDnClassifier
 from .vision import build_encoder, build_wconpu_augmentation, build_wconpu_backbone
 from .weighted_contrastive_pu import WeightedContrastivePUClassifier
 
@@ -27,6 +28,7 @@ __all__ = [
     "RobustPUClassifier",
     "SelfPUClassifier",
     "SplitPUClassifier",
+    "TEDnClassifier",
     "WeightedContrastivePUClassifier",
     "build_encoder",
     "build_wconpu_augmentation",

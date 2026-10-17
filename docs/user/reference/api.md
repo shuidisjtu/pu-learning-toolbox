@@ -74,8 +74,62 @@ model = BBEMixtureEstimator(input_sampling="ts", random_state=42).fit(X, y_pu)
 alpha_u = model.estimate_unlabeled_prior()
 ```
 
-只补独立二维工程路径；没有 TEDⁿ、原深度配方、OS→TS 转换、自动写入总体 π
+本 BBE 组件只补独立二维工程路径；不含 TEDⁿ 分类器、原深度配方、OS→TS 转换、自动写入总体 π
 或正式数值准入。来源差异与可辨识性前提见 [BBE 方法卡](../../research/method_cards/BBE.md)。
+
+### 独立 TEDⁿ 分类器（未注册 CLI/UI）
+
+`from pu_toolbox.estimators.deep import TEDnClassifier`。
+
+`TEDnClassifier(*, input_sampling=None, holdout_fraction=0.2, delta=0.1,
+gamma=0.01, hidden_dim=64, warm_start_epochs=5, max_epochs=20, batch_size=128,
+learning_rate=0.001, convergence_tol=0.0001, convergence_patience=5,
+random_state=None, device=None, encoder=None)`。
+
+必须显式设 `input_sampling="ts"`，由调用方提供独立 P 与边缘 U；没有 OS 校准入口。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, sample_ids=None,
+epoch_callback=None)` 返回 self，支持二维密集特征；注入可训练 encoder 时也支持
+四维 NCHW。观察 PU 角色沿用核心标准化（1=P，0 或 -1=U），不是真负标签。
+holdout_fraction、delta、gamma 严格在 (0,1)，按观察角色 ceil 留出；训练/留出均非空。
+hidden_dim、max_epochs、batch_size、convergence_patience 为正整数，warm_start_epochs
+为非负整数，learning_rate 有限且正，convergence_tol 有限且非负。
+sample_ids 为可选逐行唯一非空字符串；encoder 深拷贝后联合训练，输出二维特征。
+不新增拟合输入预处理器，外部预处理和跨组/外部角色隔离仍需独立核查。
+
+每个 TEDⁿ round 在更新前用内部留出分数 BBE 估 α_U，然后仅排序训练 U、
+丢弃 floor(α_U*n_U_train)，用 P/保留U平均 BCE 的**未加权和**训练一轮。
+α_U=0 保留全部；α_U=1 抛 ValueError，使 fit 无效，不夹紧或强留一行。
+warm-start 后每轮更新后的训练错分率和（P 错分率+保留U负类错分率）用于停止：
+连续 convergence_patience 次绝对变化≤convergence_tol，或达到 max_epochs。
+此停止阈值是工程选择，不等价于正式收敛证明或选模许可。
+
+`predict` 在 logit 0 切分，`decision_function` 高分表示正类；不提供校准 predict_proba。
+`estimate_unlabeled_prior()` 返回最后一轮更新前的 α_U，非最终模型新估计。
+拟合前、失败后或尚无 TEDn round 的 warm-start 回调中读取先验抛 NotFittedError。
+class_prior 非空抛 ValueError，sample_weight 非空抛 NotImplementedError；
+核心输入校验可能抛 ValidationError，其余参数/形状/概率错误抛 ValueError/TypeError。
+fit 内部校验/训练或 callback 抛出 Exception 时不裸重试，并使拟合状态无效。
+
+可审计属性：`train_positive_indices_`、`train_unlabeled_indices_`、
+`holdout_positive_indices_`、`holdout_unlabeled_indices_`、`selected_negative_indices_`、
+`history_`、`bbe_history_`、`training_provenance_`、`epoch_provenance_`、
+`optimizer_steps_`、`n_iter_`（TEDn轮数）、`epochs_completed_`、`converged_`、`stop_reason_`。
+`history_` 含 warm_start_loss/tedn_loss/alpha_u/selected_negative_count/training_error；
+`bbe_history_` 每轮含更新前累计步、α_U、阈值、两尾部计数、上界、留出数量和δ/γ。
+`checkpoint_epoch_count=warm_start_epochs+max_epochs` 仅为上限；每个实际完成 epoch
+回调 `(从0开始的累计epoch, self)`，stages 为 warm_start/tedn，推理快照不支持续训。
+CPU 保存完整输入；train P/N 合并 forward 最多2*batch_size，eval/predict 最多batch_size。
+
+```python
+from pu_toolbox.estimators.deep import TEDnClassifier
+
+model = TEDnClassifier(input_sampling="ts", random_state=42, device="cpu").fit(X, y_pu)
+scores = model.decision_function(X_new)
+```
+
+这是独立 native-TS 工程实现，不替换现有 CVIR/总体先验，不进入冻结矩阵。
+重复使用留出并经 α 反馈更新模型，不宣称逐轮有效置信区间。
+原配方、真实数值、GPU 多seed和负责人准入仍待验收，见 [TEDn 方法卡](../../research/method_cards/TEDn.md)。
 
 所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
 `get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。

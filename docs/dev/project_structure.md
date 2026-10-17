@@ -98,6 +98,7 @@ pu_toolbox/
       holistic_pu.py                      # Holistic-PU 趋势与自然断点伪标签
       p3mix.py                            # P3Mix batch 数学组件, 未注册分类器
       lbe_neural.py                       # 双网络 Adam generalized EM、稳定 E/M 目标与独立 CNN 适配
+      tedn.py                             # TEDn 完整交替训练、内部留出 BBE、未加权目标与训练误差停止
     research/
       __init__.py                         (公共导出聚合: 联合移位分类器/论文目标函数/JOINT_SHIFT_METHODS 工厂)
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
@@ -297,6 +298,8 @@ tests/
       test_lagam_encoder_stream.py      # LaGAM CNN/support 分批、BN/RNG 隔离、快照与预算拒绝
       test_lagam_virtual_scope.py       # LaGAM 虚拟范围的独立有限差分、双列扰动及平局数学对照
       test_puet_adaptation_contract.py  # PUET 子叶约束、完整阈值、负增益拒绝与越界特征数适配回归
+      test_tedn.py                      # TEDn 公式梯度、原生 TS 契约与真实 BBE 合成训练
+      test_tedn_training.py             # TEDn 更新前估计、CNN 留出隔离、收敛与 checkpoint 回放
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -800,6 +803,7 @@ docs/
       PULNS.md                            # PULNS 选择器与独立 clean support 标签预算
       RP.md                               # RankPruning PU-only rho0=0 来源与 OOF 校准
       BBE.md                              # BBE 原始来源差异、独立 α_U 接口与留出/采样边界
+      TEDn.md                             # TEDn 交替训练时序、来源差异与独立 TS 工程边界
     traditional_pu/
       traditional_pu_metric_contract.md   # 传统 PU 七算法单域指标、基线与统计契约
       traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约

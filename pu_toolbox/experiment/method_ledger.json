@@ -786,7 +786,21 @@
           "calibration_hooked": false,
           "formal_admission": false
         },
-        "tedn": {"status": "not_implemented"}
+        "tedn": {
+          "status": "standalone end-to-end Algorithm 3 engineering path: warm-start, per-round held-out BBE, discard, unweighted update and training-error stop; not registered or wired into CVIR",
+          "implementation": "pu_toolbox/estimators/deep/tedn.py:TEDnClassifier",
+          "review_ref": "docs/research/pu_survey/data/tedn_source_review_20261017.json",
+          "native_sampling_assumption": "explicit ts input, caller sampling assertion unverified",
+          "target": "alpha_U estimated before each round, never generic population pi",
+          "native_architectures": ["mlp", "cnn"],
+          "input_ndims": [2, 4],
+          "epoch_bound": "warm_start_epochs+max_epochs (upper limit; early convergence supported)",
+          "optimizer_accounting": "all warm/tedn steps, per-epoch context and pre-update BBE receipts",
+          "calibration_applied": false,
+          "calibration_hooked": false,
+          "formal_admission": false,
+          "method_owner_review": "pending"
+        }
       },
       "checkpoint_accounting": {"epoch_bound": "warm_start_epochs + max_epochs", "bound_is_upper_limit": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false},
       "modality_backbone": {

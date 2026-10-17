@@ -59,5 +59,5 @@ StandardScaler 和 balanced LogisticRegression（max_iter=1000）；留出行仅
 `selection_upper_bounds` 是选阈值准则，不是任意输入上获保证的 α_U 置信区间。
 默认分类器、拆分比例和有限优化预算都是明确工程选择，未获正式实验预算批准。
 合成 CPU 测试不代表公开数据数值复现、真实先验校准、GPU 验收或负责人签署。
-后续可独立实现 TEDⁿ，但必须另外核对 Algorithm 3 的 warm-start、估计时点、
-训练目标、停止和完整成本，不能把固定 α 的 CVIR 换名为 TEDⁿ。
+另有独立的 [TEDⁿ 分类器](TEDn.md)，复用此统计量实现 warm-start、逐轮估计/丢弃、
+未加权训练与训练误差停止；本 BBE 估计器仍不包含交替分类器，也不改变固定 α 的 CVIR。
