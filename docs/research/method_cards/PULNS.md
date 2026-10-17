@@ -64,10 +64,15 @@ REINFORCE 顺序激活图仍随 |U| 增长，模型/probe/最佳状态与 suppor
 `pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer`；普通 Pipeline/CLI/旧 Survey
 仍不接通。该适配器在训练前核真实 bundle 的 train/pu_val/clean_val/test、独立
 prior_estimation 与 support 全角色稳定 IDs；有受试者/重复组时核全部组，ADNI 无组证据拒绝。
-必须声明 support 来源、采样规则/seed、原训练量与是否扣除训练行；不自动借用验证/测试。
+必须声明 support 来源、采样规则/seed、support_origin（external 或 carved_from_original_pool）、
+原训练量与是否扣除训练行；carved 还必须给 train/pu_val/clean_val/test/prior_estimation
+的原始/剩余/减少计数，且减少量之和等于 support 样本数；train 是否有减少必须与
+support_removed_from_train 一致。support_source_verified
+与 receipt 显式记录；默认是未核实调用方声明。不自动借用验证/测试。
 只允许 SCAR OS、独立 clean_val 上终点 OA；support 仍参与内部 best 选择。
 manifest 顶层 `extra_supervision` 与每候选 provenance 显著登记额外正负标签数、用途、
-实际 label budget、角色摘要和 `comparison_group=extra_clean_support`，禁止作为 PU-only PA 排名。
+实际 label budget、角色摘要、逐角色池效应和 `comparison_group=extra_clean_support`，
+禁止作为 PU-only PA 排名。
 
 八数据集映射/作者覆盖/支持集规则见
 [逐数据集适配表](../pu_survey/data/pulns_dataset_adaptation_20261017.json)。

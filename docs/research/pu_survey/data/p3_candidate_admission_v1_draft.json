@@ -165,10 +165,9 @@
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D or injected trainable CNN with CPU-streamed ranking/training/prediction; no author recipe replay or formal pilot claim",
+      "declared_scope": "technical 2-D or injected trainable CNN with CPU-streamed ranking/training/prediction; Survey path is OS adaptation with explicit alpha_U, OS-to-TS calibration is out of scope and not required; no author recipe replay or formal pilot claim",
       "specific_blockers": [
-        "alpha_U_provenance_and_finite_sample_conversion",
-        "explicit_ts_unsupported"
+        "alpha_U_provenance_and_finite_sample_conversion"
       ]
     },
     {

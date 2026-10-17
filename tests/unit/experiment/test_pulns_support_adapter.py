@@ -82,6 +82,15 @@ def test_basic_manifest_prominently_accounts_extra_labels_and_preserves_pickle(t
         train=20, pu_val=8, clean_val=6, test=6, prior_estimation=0, support=6
     )
     assert audit["support_label_uses"] == ["training_reward", "internal_best_classifier_selection"]
+    assert audit["support_origin"] == "external"
+    assert audit["support_source_verified"] is False
+    assert audit["source_verification_scope"] == "caller_assertion_unverified"
+    assert audit["role_pool_effect"]["train"] == {
+        "original_count": 20,
+        "remaining_count": 20,
+        "reduced_count": 0,
+    }
+    assert audit["support_pool_effect_consistent"] is True
     assert audit["source_recipe_replay"] is False and not result.manifest["formal_eligible"]
     provenance = result.manifest["candidate_runs"][0]["training_provenance"]
     assert provenance["total_observed_training_label_budget"] == 11
@@ -187,6 +196,14 @@ def test_basic_train_pool_reduction_and_prior_role_are_recorded():
     audit = result.manifest["extra_supervision"]
     assert audit["support_removed_from_train"] and audit["original_train_count"] == 26
     assert audit["remaining_train_count"] == 20 and audit["prior_estimation_used"]
+    assert audit["support_origin"] == "carved_from_original_pool"
+    assert audit["role_pool_effect"]["train"] == {
+        "original_count": 26,
+        "remaining_count": 20,
+        "reduced_count": 6,
+    }
+    assert audit["role_pool_effect"]["pu_val"]["reduced_count"] == 0
+    assert audit["support_pool_effect_consistent"] is True
 
 
 def test_basic_dataset_plan_covers_approved_mappings_and_keeps_admission_closed():
@@ -219,3 +236,120 @@ def test_edge_incomplete_group_map_and_sar_generation_are_rejected():
         run(adapter(support, group_policy="grouped", role_groups={"support": []}), roles)
     with pytest.raises(ValueError, match="SCAR only"):
         adapter(support).validate_generation({"mechanism": "sar_lbe_a"}, {"mechanism": "scar"})
+
+
+def test_basic_carved_support_records_multi_role_pool_effect():
+    roles, support = inputs()
+    original = {
+        "train": 22,
+        "pu_val": 10,
+        "clean_val": 8,
+        "test": 6,
+        "prior_estimation": 0,
+    }
+    result = run(
+        adapter(
+            support,
+            support_origin="carved_from_original_pool",
+            original_role_counts=original,
+            original_train_count=22,
+            support_removed_from_train=True,
+        ),
+        roles,
+    )
+    effect = result.manifest["extra_supervision"]["role_pool_effect"]
+    assert {name: row["reduced_count"] for name, row in effect.items()} == {
+        "train": 2,
+        "pu_val": 2,
+        "clean_val": 2,
+        "test": 0,
+        "prior_estimation": 0,
+    }
+    assert sum(row["reduced_count"] for row in effect.values()) == 6
+    assert result.manifest["extra_supervision"]["support_pool_effect_consistent"] is True
+
+
+def test_edge_carved_pool_effect_must_equal_support_size():
+    roles, support = inputs()
+    with pytest.raises(ValueError, match="reductions must equal"):
+        run(
+            adapter(
+                support,
+                support_origin="carved_from_original_pool",
+                original_role_counts={
+                    "train": 21,
+                    "pu_val": 9,
+                    "clean_val": 7,
+                    "test": 6,
+                    "prior_estimation": 0,
+                },
+                original_train_count=21,
+                support_removed_from_train=True,
+            ),
+            roles,
+        )
+    with pytest.raises(ValueError, match="original train reduction requires"):
+        run(
+            adapter(
+                support,
+                support_origin="carved_from_original_pool",
+                original_role_counts={
+                    "train": 22,
+                    "pu_val": 10,
+                    "clean_val": 8,
+                    "test": 6,
+                    "prior_estimation": 0,
+                },
+                original_train_count=22,
+                support_removed_from_train=False,
+            ),
+            roles,
+        )
+
+
+def test_edge_external_support_cannot_reduce_train_or_declare_original_counts():
+    roles, support = inputs()
+    with pytest.raises(ValueError, match="external support cannot"):
+        run(adapter(support, support_origin="external", support_removed_from_train=True), roles)
+    with pytest.raises(ValueError, match="external support must not"):
+        run(
+            adapter(
+                support,
+                support_origin="external",
+                original_role_counts={
+                    "train": 20,
+                    "pu_val": 8,
+                    "clean_val": 6,
+                    "test": 6,
+                    "prior_estimation": 0,
+                },
+            ),
+            roles,
+        )
+
+
+def test_basic_verified_source_requires_receipt_and_records_scope():
+    roles, support = inputs()
+    with pytest.raises(ValueError, match="receipt"):
+        run(adapter(support, support_source_verified=True), roles)
+    result = run(
+        adapter(
+            support,
+            support_source_verified=True,
+            support_source_receipt="cohort.json#sha256=abc",
+        ),
+        roles,
+    )
+    audit = result.manifest["extra_supervision"]
+    assert audit["support_source_verified"] is True
+    assert audit["source_verification_scope"] == "verified_receipt"
+    assert audit["support_source_receipt"] == "cohort.json#sha256=abc"
+
+
+def test_edge_support_role_flags_mutation_after_preflight_is_rejected():
+    roles, support = inputs()
+    trainer = adapter(support)
+    trainer.validate_experiment(model(), DatasetBundle(*roles), {}, [ProtocolOA()])
+    trainer.support = DatasetPart(support.X, support.labels, "pu", support.indices, False)
+    with pytest.raises(ValueError, match="view or selection role changed"):
+        trainer.fit(model(), roles[0].X, roles[0].labels)

@@ -19,7 +19,7 @@
 
 2026-10-17 按 #117 明确三条路径：直接组件 `input_sampling="ts"` 接受调用方提供的独立 P/边缘 U，必须显式给 `unlabeled_positive_prior` 与 `prior_source`；它不执行 OS 校准，也不从 U 真值估算比例。默认 `input_sampling="os"` 保留既有训练行为，但只称 OS 工程适配。实验层新增 `CVIRKnownPriorTrainer`，要求显式 α_U/来源，仅允许 SCAR OS；总体 π 留给 PA，不转发到训练。两者数值和来源分开写 manifest，调用方来源声明不冒充统计验证。
 
-OS→TS 校准仍未支持：排序、保留数量及损失均作用于原始 U，不新增 P 候选。`calibration_hooked=false`，显式校准 `os_or_ts="ts"` 拒绝。没有预先断言简单合并必然足够或必然错误。`input_sampling="ts"` 与 `os_or_ts="ts"` 是不同契约；后者在 Survey 表示训练风险校准，不是直接组件接收原生 TS 数据。冻结协议/矩阵不变，正式准入仍需审批。
+**本 Survey 的基础数据按协议 §2.3 始终是 OS**，因此本次运行走上面的 OS 工程适配，不需要 OS→TS 校准；后者不属于本实验，不是运行前置。OS→TS 校准也未实现：排序、保留数量及损失均作用于原始 U，不新增 P 候选。`calibration_hooked=false`，显式校准 `os_or_ts="ts"` 拒绝；这是范围边界，不是 OS 运行的前置。没有预先断言简单合并 P 与 U 必然足够或必然错误。`input_sampling="ts"` 与 `os_or_ts="ts"` 是不同契约：前者只让直接组件声明调用方已提供原生 P/边缘 U，后者在 Survey 表示训练风险校准。冻结协议/矩阵不变，正式准入仍需审批。
 
 ## 适配边界与下一步
 
@@ -27,4 +27,4 @@ OS→TS 校准仍未支持：排序、保留数量及损失均作用于原始 U�
 
 新工程路径 deepcopy encoder 联合训练；原始图像留 CPU，全局 U 排序、训练与预测均分批上设备。旧二维 auto 保留 resident 的全量排序/预测。CPU-stream 仍需主机完整输入和 O(n_U) 排序分数，不是磁盘流式；不同 forward 批形可能带来末位误差。`optimizer_steps_` 与 `epoch_provenance_` 记录两阶段全部成本；快照包含 encoder/头及阶段上下文，不支持优化器续训，也不批准任何阶段选模资格。
 
-本实现没有 BBE 先验估计与 TEDⁿ 交替过程，没有论文图像/文本配方、原始训练预算、公开数值复现或多 seed GPU 证据。2026-09-28 的 RTX A6000 单次 CUDA 技术 smoke 仍是旧二维路径，不覆盖新 CNN，也不是 frozen-lock 或多 seed 验收。需先由合作者复核 `α_U` 来源与 TS-OS 方案，再决定是否扩展 Survey 的先验字段、选模/视图协议与执行矩阵。新的工程测试只证明合成 CPU 契约，不能读作论文数值复现。
+本实现没有 BBE 先验估计与 TEDⁿ 交替过程，没有论文图像/文本配方、原始训练预算、公开数值复现或多 seed GPU 证据。2026-09-28 的 RTX A6000 单次 CUDA 技术 smoke 仍是旧二维路径，不覆盖新 CNN，也不是 frozen-lock 或多 seed 验收。需先由合作者复核 `α_U` 来源，再决定是否扩展 Survey 的先验字段、选模/视图协议与执行矩阵；OS→TS 校准不是本实验的前置。新的工程测试只证明合成 CPU 契约，不能读作论文数值复现。

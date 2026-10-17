@@ -86,10 +86,12 @@ Issue #40的P4.1-A本地工程接线不等于P4.1-B冻结；Issue #88成本分�
 2026-10-15 P3.1/P3.2 工程补记：[LaGAM 来源与 CNN/CPU-stream](admission/lagam_source_cnn_review_20261015.md)
 补 weight-only 范围、图像分批、BN/dropout 隔离和阶段成本；发布 OS 与 registry TS 的
 采样冲突明确待审，不改签该定位，不解除独立 clean support 标签预算/PA 禁入或正式准入。
+（2026-10-17 #115 已按锁定源码将 registry/台账纠正为 OS；support/PA 限制不变。）
 
 2026-10-15 P3.1/P3.2 工程补记：[CVIR 来源差异与 CNN/CPU-stream](admission/cvir_source_cnn_review_20261015.md)
 保留论文加权目标与旧二维默认，披露发布代码差异，补图像/分批/两阶段成本快照；
-α_U 来源、TS 视图、正式共享规格与准入仍未批准，HENG958 复核待办。
+α_U 来源、正式共享规格与准入仍未批准，HENG958 复核待办。
+（2026-10-17 #117 明确本 Survey 走 OS adaptation + 显式 α_U；OS→TS 校准不属于本实验，不是运行前置。）
 
 2026-10-14 P3.2 独立工程补记：[神经 LBE 变体](delivery/lbe_neural_integration_20261014.md)
 以 `lbe_neural` 另立双网络 Adam/CNN/分批及 OS-only 接线，原线性 `lbe` 和冻结矩阵不变。

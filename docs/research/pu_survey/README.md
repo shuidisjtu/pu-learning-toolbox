@@ -58,8 +58,8 @@
   已有四路二维分区、同标记、终点或显式 EM-round PA/OA 选择，独立探索性结果，不改旧 Pilot。
 - [`vpu_schedule_review_20261015.md`](admission/vpu_schedule_review_20261015.md)：VPU 可选源 Adam 重置调度与固定轮内训练步数，不改变默认或 D22 准则。
 - [`vpu_encoder_stream_20261015.md`](delivery/vpu_encoder_stream_20261015.md)：VPU 注入 CNN 与 CPU 数据分批工程路径，非作者图像复现/正式准入。
-- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；α_U/TS 审批仍阻断。
-- [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；support 标签预算和发布 OS/registry TS 冲突保留待审。
+- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；2026-10-17 #117 明确本 Survey 走 OS adaptation + 显式 α_U，OS→TS 校准不属于本实验；α_U 来源与正式预算/选模仍待审。
+- [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；2026-10-17 #115 已将 registry/台账采样定位纠正为 OS，support 标签预算与 PA 限制仍待审。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。
@@ -74,6 +74,9 @@
 - [`heng958_independent_review.md`](reviews/heng958_independent_review.md)：HENG958 负责范围的历史复核记录。
 - [`collaborator_followup_20261004.md`](reviews/collaborator_followup_20261004.md)：数据收集、CNN oracle、校准和交付边界的补全记录。
 - [`independent_progress_20261005.md`](reviews/independent_progress_20261005.md)：独立工程预集成和合成数据证据；不改变冻结矩阵或正式准入。
+- [`p3_1_acceptance_review_20261016.md`](reviews/p3_1_acceptance_review_20261016.md)：P3.1 逐方法技术验收复核；P3MIX 未完成，#114–#117 整改复核与保留条件。
+- [`algorithm_issues_114_117_20261017.md`](reviews/algorithm_issues_114_117_20261017.md)：#114–#117 工程整改、验证证据与独立实验调用边界。
+- [`algorithm_completion_20261017.md`](reviews/algorithm_completion_20261017.md)：新增算法收尾状态、fail-closed 预算与正式准入边界。
 
 ### `data/` 与 `assets/`
 

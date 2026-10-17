@@ -121,6 +121,13 @@
   },
   "run_view": "os-compatible",
   "calibration_applied": false,
+  "survey_runtime_scope": {
+    "protocol_basis": "pu_survey_protocol.md §2.3: base data is always OS; os_or_ts is a training-view flag, not a data resampling scenario",
+    "primary_path": "OS adaptation with explicit alpha_U and prior_source via CVIRKnownPriorTrainer; population pi is not forwarded to fit",
+    "native_ts_component": "direct estimator input_sampling=ts is caller-supplied independent P/marginal U; not this Survey's OS experiment",
+    "os_to_ts_calibration": "out of scope for this Survey and not implemented; explicit os_or_ts=ts is rejected; not a prerequisite for the OS path",
+    "manifest_scope": "training_provenance records input_sampling, path, known_prior, alpha_U, prior_source, source_verified=false, empirical fraction null, unlabeled role counts and calibration_applied=false"
+  },
   "author_code_replay": false,
   "formal_admission": false,
   "candidate_protocol_ref": null,
@@ -128,7 +135,6 @@
   "candidate_pool": null,
   "blockers": [
     "alpha_U_provenance_and_finite_sample_conversion",
-    "explicit_ts_unsupported",
     "approved_shared_architecture_preprocessing_selection_and_budget",
     "public_numeric_comparison_and_formal_multiseed_resource_evidence",
     "method_owner_review"
