@@ -10,7 +10,7 @@
     "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
     "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "22d4cb75833af7f3ebfe4a59ee282d942606fe76f30e3829e40279b45d8fd758"
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "e1c0f89b1c2d5ae723abf700cc1a4616853b3f5f48df22154022eda4996cae71"
   },
   "reference_scope": "historical_pilot_context_not_new_method_recipe",
   "numeric_policy": {

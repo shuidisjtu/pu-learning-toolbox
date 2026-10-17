@@ -63,3 +63,15 @@ nonnegative/quadratic CIFAR accuracy79.74(0.37)，5次拟合；不是邻列 logi
 我方要求 gain>1e-12。上游 `min_samples_leaf` 在该处只检查父节点，我方约束两个子节点。
 这四项是明确的适配，不由节点风险公式一致推出完整树等价；森林多数票并列均取负类。
 新增 tie/零增益/CPU 非 epoch 预算测试，不能把树数套用神经快照预算。
+
+## 2026-10-17 审核补项
+
+Issue #114 修复后，bootstrap 的 U 抽样数等于**实际 U 风险池大小**：OS 抽 n_U，
+TS 抽 n_U+n_P（含 P 角色副本）；逐树根质量保持 P=总体π、U=1，P 仍抽 n_P。
+已有36组 OS/TS×bootstrap×P/U数量×seed 回归现纳入机器来源证据包；这不是新增校准。
+
+新增独立回归分别锁住子节点最小样本约束、完整阈值区间、严格负增益拒绝，而不只测
+零增益。正整数 max_features 超过输入维数时，保留工具箱既有“截断到 n_features、
+不修改构造参数”的行为；作者 tree.py:199-207 则打印提示并返回 None，不完成拟合，
+不是抛 ValueError。差异已显式登记，不为对齐作者而静默改变现有配置。
+算例、证据与边界见[补项记录](../pu_survey/reviews/puet_adaptation_completion_20261017.md)。

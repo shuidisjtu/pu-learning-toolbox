@@ -11,7 +11,7 @@
 | P3MIX | 完整来源、epoch/pool 时序、E/C 变体与分类器 | 正确官方 PDF/API 仍受访问限制；已请求用户提供论文/补充包，不把二手实现或索引摘要当全文验收 |
 | Self-PU / LaGAM | 独立 clean support 与外部 OA 隔离的显式实验接线 | 接线与真实元更新 CPU 回归通过；实际支持集/正式标签预算仍待确认 |
 | PULNS 实际支持集 | 已有安全接口后的实际数据与预算 | 需明确支持集来源/预算；本轮不在旧 frozen split 上偷偷取标签 |
-| CVIR 扩展 | 固定alpha路径已接；BBE/TEDn是独立可选扩展 | 本 Survey 走 OS adaptation + 显式 α_U；OS→TS 不属于本实验，正式预算/选模/数值仍需核验，不能把新增字段当校准完成 |
+| CVIR 扩展 | 固定alpha路径已接；独立 BBE 与完整 TEDn 交替训练工程入口已补，均为独立可选扩展 | [BBE](../../method_cards/BBE.md) / [TEDn](../../method_cards/TEDn.md)；显式 α_U，不接公共总体先验或 CVIR 默认路径；本 Survey 走 OS adaptation + 显式 α_U，OS→TS 不属于本实验；未注册 TEDn 至 CLI/UI，正式预算/选模/数值待核 |
 | 原论文配方差异 | GEN-PU/Holistic/Robust/Split等差异保留 | 先按来源登记，正式采用哪个目标/配方需负责人批准 |
 | CNN oracle / GPU验收 | 正式协议、资源与多seed运行 | 10-17查询8张A6000均有占用；不抢卡，未经批准不启动正式200轮/5seed跑批 |
 
@@ -126,6 +126,10 @@ Self-PU 元更新核对入参确为 support，并拒绝仅 warmup 的预算。�
 
 ## 工程验收与交接
 
+同日后续：[独立支持集制品与 CPU 入口](../delivery/clean_support_workflow_20261017.md)
+补齐 raw 重建、剩余 train 预处理、制品复验和三方法终点 OA 回放；以下计数对应
+前一轮 `e84a76c` 验收，不把本轮新测试或合成训练冒充真实数据/正式批准。
+
 - 最终本地快速测试集4056项通过、58项跳过、零失败/错误（Python3.11.12，
   CPU；`not slow and not e2e`，296.34秒）。CUDA/可选依赖及不适用接口等跳过
   不作为 GPU 证据；GitHub 多系统/版本 CI 仍以推送后实际执行为准。
@@ -143,3 +147,63 @@ Self-PU 元更新核对入参确为 support，并拒绝仅 warmup 的预算。�
 ②确认独立 support 来源、组身份、样本量/标签预算，重新做相应 train-only
 预处理与 split 收据，再跑 Self-PU/LaGAM/PULNS；③在获准资源/正式配置下做
 CNN oracle 和新增方法 GPU 多 seed 验收。上述依赖未满足前，不登记正式完成。
+
+## BBE 独立扩展技术验收
+
+同步基线 `c4210fd`，远程 main 无新增；没有合并仍未入 main 的合作者分支。
+补齐 `BBEMixtureEstimator`：二维 PvU 评分模型、观察角色内随机训练/留出拆分、
+train-only 标准化、留出上尾计数和论文上界阈值选择，而非仅补一个公式函数。
+结果保留全候选与计数，可单独使用固定评分器的独立留出分数。
+来源采用原论文 Algorithm 1，与锁定作者实现的计数/候选差异逐项登记；
+见[方法卡](../../method_cards/BBE.md)与[来源/验收收据](../data/bbe_source_review_20261017.json)。
+
+- 73项专项测试通过：独立标量公式、惩罚而非原始最小比值选阈值、含等号重复分数、
+  零分母/端点、极小 δ 数值稳定性、反序类别列、clone 与 train/holdout 隔离、
+  train-only 标准化、固定种子、失败 refit 清理和台账/准入边界。
+- 最终全量 fast suite：4200通过、58跳过，零失败/错误，296.799秒。
+  全量日志仍有既有代价/消融/solver 警告，不宣称全仓零 warning。
+- 12项静态门禁及准入证据 checker 通过；3个仅在内存构造的回归突变均被测试抓住，
+  不修改生产文件、不执行作者源码。25万条合成分数统计 smoke 约0.218秒，
+  只作可运行性证据，不是先验精度、扩展性保证或正式资源预算。
+- sdist/wheel 构建通过；校验 wheel 源码与当前模块/导出字节一致，源码目录外拟合、
+  train/holdout 隔离与 pickle 回放通过；未夹带用户私有压缩包、数组或 checkpoint。
+
+先验语义仍为显式 **α_U**，不注册到总体 π 接口、不接线现有 CVIR，
+`calibration_applied/hooked=false`；拆分位置隔离不能证明真实数据来源/组身份。
+本次不改冻结协议、矩阵、645-run、负责人签署、CVIR 训练目标或默认预算，
+不启动正式实验/GPU，不登记真实先验校准或数值准入。
+
+BBE 交付后的下一项 TEDⁿ 已继续补齐独立工程路径，见 [TEDn 方法卡](../../method_cards/TEDn.md)。
+P3MIX 原始来源、实际 support 预算和正式 GPU 验收的前置阻断保持，
+不因新增 BBE/TEDn 自动放行。
+
+## TEDⁿ 独立交替训练技术验收
+
+同步基线 `a68a241`；提交前再次 fetch，远程 main 无新增。新增独立
+`TEDnClassifier`，完整实现内部 P/U 留出、warm-start、每轮更新前 BBE、
+仅训练 U 的排序/丢弃、未加权更新和训练误差停止，支持 MLP 与注入式 CNN。
+论文页8明确 TEDn 不用估计 α 重加权，不能直接复用固定先验 CVIR 的加权目标。
+发布源码的 BBE 计数、半和、两logit、时序、loader/BN 配方差异逐项披露，
+见[来源/验收收据](../data/tedn_source_review_20261017.json)。
+
+- TEDn专项67项通过，真实 BBE 的 MLP 两个合成种子和 CNN 端到端路径均跑通。
+  CNN 合成 smoke 用显式 warm3/round4、hidden8、batch64、lr.03，共89优化步；
+  不是默认配方或真实数据数值复现。固定 α 的受控测试仅验收编排，不冒充 BBE 精度。
+- 时序测试在前一 epoch 回调中独立重算下轮留出分数/排序，验证估计发生在更新前；
+  CNN 记录实际训练行与 BN 次数，留出行不进入梯度或训练模式；固定 α 后扰动
+  留出特征，权重、训练误差和停止统计完全不变。累计成本包含全部 warm 与 TEDn。
+- 覆盖 α=0 全保留、α=1 fail-loud/拟合无效、无估计的 warm-start 回调、
+  warm0/1/2阶段快照、动态 α、
+  训练误差提前停止、callback失败不重试、所有阶段权重回放与 pickle 等价。
+  五种仅内存构造的错误均被抓住，不修改生产源码、不执行作者代码。
+- 邻接 BBE/CVIR/实验适配测试177通过、1跳过；最终全量 fast suite
+  **4267通过、58跳过、零失败/错误**，300.538秒。仍有既有代价/消融/solver 警告，
+  不宣称全仓零 warning。12项静态门禁和准入证据 checker 通过。
+- wheel/sdist 构建通过；源码目录外实际 wheel 的 CNN+BBE 训练与 pickle 精确回放
+  通过；禁用 torch 的导入/构造也通过。模块和台账入包，没有私有压缩包、数组或模型。
+
+真实采样、外部预处理与组身份未由内部位置隔离自动证明；重复使用留出并反馈 α
+不额外保证逐轮置信区间。没有 OS→TS 校准、CLI/UI 注册、正式预算/数值准入，
+没有替换既有 CVIR/BBE、冻结矩阵或历史签署，也未启动 GPU/正式跑批。
+P3MIX 完整原始来源、实际 support 来源/标签预算与正式资源批准仍是下一阶段前置，
+本次不能将这些事项登记为已完成。

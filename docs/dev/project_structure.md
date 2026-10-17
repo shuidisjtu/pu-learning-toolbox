@@ -42,6 +42,7 @@ pu_toolbox/
     recpe.py                              (native: ReCPEEstimator 重分组类先验估计，默认 KM2 基估计器)
     pen_l1.py                             (native: ClassPriorEstimator 罚 L1 闭式先验，theta 网格搜索)
     kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 核均值混合比例估计)
+    bbe.py                                (standalone: BBE α_U 统计量与隔离留出 PvU 评分，不注册为总体先验)
   utils/
     __init__.py                           (公共导出聚合)
     basis.py                              (shared: build_linear_basis/build_rbf_basis 基函数构造与中心子采样)
@@ -97,6 +98,7 @@ pu_toolbox/
       holistic_pu.py                      # Holistic-PU 趋势与自然断点伪标签
       p3mix.py                            # P3Mix batch 数学组件, 未注册分类器
       lbe_neural.py                       # 双网络 Adam generalized EM、稳定 E/M 目标与独立 CNN 适配
+      tedn.py                             # TEDn 完整交替训练、内部留出 BBE、未加权目标与训练误差停止
     research/
       __init__.py                         (公共导出聚合: 联合移位分类器/论文目标函数/JOINT_SHIFT_METHODS 工厂)
       joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
@@ -194,6 +196,7 @@ pu_toolbox/
     survey_recipe_audit.py                # 版本化批次配方义务、身份重算与聚合前拒收
     survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
+    support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -294,6 +297,9 @@ tests/
       test_cvir_source_encoder.py       # CVIR 来源差异/独立梯度、CNN 分批、U 排序与阶段快照
       test_lagam_encoder_stream.py      # LaGAM CNN/support 分批、BN/RNG 隔离、快照与预算拒绝
       test_lagam_virtual_scope.py       # LaGAM 虚拟范围的独立有限差分、双列扰动及平局数学对照
+      test_puet_adaptation_contract.py  # PUET 子叶约束、完整阈值、负增益拒绝与越界特征数适配回归
+      test_tedn.py                      # TEDn 公式梯度、原生 TS 契约与真实 BBE 合成训练
+      test_tedn_training.py             # TEDn 更新前估计、CNN 留出隔离、收敛与 checkpoint 回放
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -315,6 +321,7 @@ tests/
       test_recpe.py                     # ReCPE 特有逻辑(copy fraction 边界、自定义基分类器/基估计器、默认 KM2 基、置信区间 None、密度比分位数)
       test_pen_l1.py                    # penL1 特有逻辑(自动 σ=中位数带宽、先验分离带/低先验带、估计有界)
       test_kernel_mean.py               # KM1/KM2 kernel-mean 类先验估计
+      test_bbe.py                       # BBE 独立尾部公式、置信准则、重复分数与训练/留出隔离
     preprocessing/
       test_pu_labeling.py               # PU/PNU 标签生成(6 公共函数、统一分发器、参数校验与确定性)
       test_selection_bias.py            # SCAR/SAR propensity、标记率校准与合成数据
@@ -365,6 +372,8 @@ tests/
       test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
       test_lbe_comparison_plan.py       # split/seed/预算身份与预检拒收
       test_lbe_diagnostics.py           # LBE 分支对称性、独立 SCAR 梯度与诊断计划
+      test_clean_support_execution.py   # 三方法 CPU 实训、显式预算、OA 模型回放与告警拒收
+      test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -511,6 +520,7 @@ tests/
       test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
       test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
       test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
+      test_support_data.py              # 五数据集支持集抽样、train-only 预处理和制品损坏/身份回归
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -792,6 +802,8 @@ docs/
       PAN.md                              # PAN 双网络风险与 CNN 接入边界
       PULNS.md                            # PULNS 选择器与独立 clean support 标签预算
       RP.md                               # RankPruning PU-only rho0=0 来源与 OOF 校准
+      BBE.md                              # BBE 原始来源差异、独立 α_U 接口与留出/采样边界
+      TEDn.md                             # TEDn 交替训练时序、来源差异与独立 TS 工程边界
     traditional_pu/
       traditional_pu_metric_contract.md   # 传统 PU 七算法单域指标、基线与统计契约
       traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约
@@ -851,6 +863,8 @@ scripts/
   run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
   run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断
   _lbe_diagnostic_reference.py            # 不注册的 SCAR 约束解析梯度诊断参考
+  prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
+  run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
 ```
 
 ## 7. CI/CD（`.github/`）

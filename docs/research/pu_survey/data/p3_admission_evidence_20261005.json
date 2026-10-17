@@ -202,11 +202,24 @@
         "scope": "node_U_risk_mass_only",
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "source_equivalence_claim": false
+        "source_equivalence_claim": false,
+        "bootstrap_risk_contract": {
+          "scope": "per_tree_root",
+          "positive_resample_count": "n_P",
+          "unlabeled_resample_count": "effective_U_risk_pool_size",
+          "positive_total_weight": "population_pi",
+          "unlabeled_total_weight": 1.0,
+          "ts_unlabeled_pool": "U_plus_positive_role_copies"
+        }
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_param_puet_node_risk_matches_scalar_closed_form",
-        "tests/unit/estimators/test_p3_budget_selection_evidence.py::test_edge_puet_ties_and_zero_gain_keep_deterministic_negative_leaf"
+        "tests/unit/estimators/test_p3_budget_selection_evidence.py::test_edge_puet_ties_and_zero_gain_keep_deterministic_negative_leaf",
+        "tests/unit/estimators/test_puet.py::test_edge_bootstrap_root_masses_and_constant_leaf",
+        "tests/unit/estimators/test_puet_adaptation_contract.py::test_basic_param_child_minimum_rejects_positive_gain_singleton",
+        "tests/unit/estimators/test_puet_adaptation_contract.py::test_edge_full_threshold_interval_is_not_author_trimmed_interval",
+        "tests/unit/estimators/test_puet_adaptation_contract.py::test_edge_strictly_negative_nnpu_gain_keeps_parent_leaf",
+        "tests/unit/estimators/test_puet_adaptation_contract.py::test_determ_oversized_feature_budget_clips_without_mutating_parameter"
       ],
       "adaptation_differences": [
         {
@@ -244,6 +257,15 @@
             "line_end": 319
           },
           "meaning": "Upstream checks parent size only here; toolbox also rejects children below min_samples_leaf."
+        },
+        {
+          "id": "integer_max_features_overflow",
+          "source_location": {
+            "path": "tree.py",
+            "line_start": 199,
+            "line_end": 207
+          },
+          "meaning": "Upstream prints an invalid-feature-budget message and returns None without fitting; toolbox preserves its positive-integer clipping to n_features without mutating the constructor parameter. Not source-equivalent."
         },
         {
           "id": "branch_and_RNG_scope",

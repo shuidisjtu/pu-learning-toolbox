@@ -39,6 +39,12 @@ P3.1 仍未整体验收。后续 PULDA 审核在新基线上继续；旧行号�
 2026-10-17：PUET、LaGAM、CVIR 与 PULNS 完整复核已完成并计入下文；**#114、#115、#117
 已按用户指示关闭；#116 已按用户指示关闭（接口/审计交付，实际 support 制品/预算前置保留）**。
 
+2026-10-17 main 合并后增量：`origin/main` 已到 `92595ca`（`e84a76c..92595ca`
+共 7 个提交）。本分支合并后解决 `CVIR.md` 与 `algorithm_completion_20261017.md`
+两处同段文档冲突，代码无冲突；新增内容为 PUET 证据/适配补项、独立 clean-support
+制品与 CPU 入口、BBE 与 TEDⁿ 独立工程路径。对本文件结论的影响见
+[main 合并后增量复核](#2026-10-17-main-合并后增量复核)。
+
 ## 确认的实现问题：PUET TS bootstrap
 
 位置：`pu_toolbox/estimators/risk/puet.py:173`、`:191`、`:255`。
@@ -119,15 +125,20 @@ PUET 定向测试 **76 passed / 0 failed**（含 source behavior、budget、runn
 
 ### 保留条件
 
-1. **证据同步（非阻断）**：`p3_admission_evidence_20261005.json` 的
-   `methods.puet.source_behavior_tests` 尚未列入上述 36 组回归；方法卡/台账
-   尚未显式写明“bootstrap 抽样数 = U 风险池大小、U 质量=1”及 Issue #114。
-2. **适配测试缺口（非阻断）**：`min_samples_leaf` 子节点约束、裁边阈值区间、
-   负增益拒绝尚未各有独立回归；现有测试覆盖 tie 与零增益。
-3. **API 小差异**：作者源码对 `max_features > n_features` 拒绝拟合，本实现静默截断；
-   建议 fail-loud 或登记。
+1. **证据同步（已补齐，2026-10-17）**：`32db08c` 已将 36 组回归纳入
+   `methods.puet.source_behavior_tests`，并把 `bootstrap_risk_contract` 同步到
+   证据包/台账/预算草稿；`c4210fd` 另补来源与适配验收记录。
+2. **适配测试缺口（已补齐，2026-10-17）**：`test_puet_adaptation_contract.py`
+   独立覆盖子节点 `min_samples_leaf`、完整阈值区间、严格负增益及越界
+   `max_features`；不再只依赖 tie/零增益测试。
+3. **API 小差异（已登记）**：作者源码对 `max_features > n_features` 打印提示并
+   返回 `None`，本实现保留正整数截断且不修改构造参数；差异已写入证据包，未为
+   对齐作者而改变既有配置。
 4. **正式准入前置**：候选池、CPU 树预算/存储、PA/OA 阶段资格、公开数值对照、
    frozen-lock/资源验收与负责人签署仍待 P3.2/P3.3/P4.1。本轮不据此宣布 P3.1 完成。
+
+2026-10-17 main 合并后复核：上述 1–3 已由 `32db08c`/`c4210fd` 补齐；未改变
+PUET 训练代码、默认配置或正式准入。
 
 ## 2026-10-17 LaGAM #115 修复复核
 
@@ -172,13 +183,17 @@ PUET 定向测试 **76 passed / 0 failed**（含 source behavior、budget、runn
 - 非阻断项：来源收据/准入草案中的 `explicit_ts_unsupported` 已移除并改为范围说明；
   OS adapter 测试建议补 retained negative count；台账 uncertainty 第一句偏历史，
   本轮未改台账。
+- 2026-10-17 main 合并后：新增独立 BBE/TEDⁿ 工程路径（`a68a241`、`92595ca`），
+  二者均为 native TS/显式 α_U，不接入本 CVIR、OS Survey 或 CLI/UI；不改变本
+  Survey 的 OS adaptation 结论，也不把 OS→TS 校准重新列为前置。
 - 正式条件：α_U 来源/有限样本口径、候选/预算/选模、公开数值、资源与负责人审阅。
 - Issue #117 已按用户指示关闭。
 
 ## 2026-10-17 PULNS #116 复核
 
-**结论：#116 的接口/审计/披露层已交付；实际逐数据集 support 制品与规模仍待批准。**
-审核基线 `e84a76c`。
+**结论：#116 的接口/审计/披露层已交付；共享 support 准备/CPU 入口已补，但实际
+逐数据集 support 规模与正式预算仍待批准。**
+审核基线 `e84a76c`；2026-10-17 main 合并后补充共享工作流复核。
 
 - 官方源码：独立检索未确认 PULNS 作者仓库/发布包；PULSNAR 是不同算法；
   按论文独立适配，`not_found` 登记合理。
@@ -190,14 +205,52 @@ PUET 定向测试 **76 passed / 0 failed**（含 source behavior、budget、runn
   original/remaining/reduced 池效应；carved 的减少量之和必须等于 support 规模。
 - 来源：`support_source_verified` / receipt / `source_verification_scope`；
   默认是未核实的调用方声明。
+- 2026-10-17 main 合并后：新增共享 `support_data.py` 与
+  `prepare_clean_support.py` / `run_clean_support_experiment.py`，支持
+  Spambase/Connect-4/MNIST/F-MNIST/CIFAR-10 的 train 内 support 切分、五角色收据、
+  剩余 train-only 预处理和 CPU 单候选 OA 回放。制品层记录 `support_origin`、
+  完整原角色计数和未核验来源；adapter 签名完整时转发本 PR 的四个审计参数，
+  部分契约拒绝。该路径仍是探索性工程入口，不批准实际 support 大小/标签预算，
+  ADNI/文本/正式 CNN 未开放。
 - 测试：PULNS/共享 support adapter 及 runner 定向 **74 passed / 0 failed /
   8 deselected**（7 个文件；排除 resnet18 与 GPU）；新增 carved 训练减少量必须
   与 `support_removed_from_train` 一致的反例。1 个 resnet18 用例因本机
   缺 `torchvision` 未运行，属环境缺失，不是 #116 逻辑缺陷。
 - 保留：八集实际 support 来源/规模/制品、正式预算、资源与负责人审阅仍未完成；
-  标准 PU-only PA 不接受。
+  共享入口只提供准备/回放能力，不构成预算批准；标准 PU-only PA 不接受。
 - Issue #116 已按用户指示关闭；关闭仅指接口/审计交付，不解除正式 support 制品/
   预算与准入前置。
+
+## 2026-10-17 main 合并后增量复核
+
+合并基线 `origin/main` `92595ca`；解决 `CVIR.md`、`algorithm_completion_20261017.md`
+两处同段冲突，`survey_execution_plan.md` 与 `api.md` 自动合并。代码无冲突。
+
+- **PUET**：`32db08c` 补齐 36 组 bootstrap 证据、子节点/阈值区间/负增益适配回归和
+  越界 `max_features` 登记；`c4210fd` 补验收记录。本文件前述保留条件 1–3 关闭，
+  正式候选/预算/选模/公开数值/负责人审阅仍阻断。
+- **PULNS / clean support**：`8bf8d54`/`ab239fd`/`f996126` 提供五数据集 support
+  制品准备与 CPU 单候选 OA 入口；制品记录 `support_origin`、完整角色池效应和未核实
+  来源，并在 adapter 签名完整时转发四个新参数，部分契约拒绝。它是探索性工程入口，
+  没有批准实际 support 大小/标签预算，也没有执行真实数据或正式 CNN/GPU 验收；
+  #116 的“接口/审计交付”结论保留，正式制品/预算前置不变。
+- **BBE/TEDⁿ**：`a68a241`/`92595ca` 新增独立 native-TS 工程路径，分别估计 α_U 和
+  执行 transform-estimate-discard；不接入 CVIR、OS Survey、总体 π 或 CLI/UI，
+  不属于原 P3.1 13 方法表，不改变 P3.1 结论。
+- **Windows 编码**：合并后发现 BBE/TEDn 两个契约测试用默认 `read_text()` 读中文
+  台账，在 GBK 环境失败；已改为显式 `encoding="utf-8"`，断言与生产代码未变。
+
+合并后定向测试（CPU，JUnit 本机收据）：
+
+| 组 | 结果 |
+|---|---|
+| PUET 证据/适配/预算/准入 | 138 passed / 0 failed / 0 skipped |
+| BBE + TEDⁿ | 140 passed / 0 failed / 0 skipped |
+| clean-support 制品/入口 | 56 passed / 0 failed / 0 skipped |
+| PULNS/共享 adapter/runner | 74 passed / 0 failed / 8 deselected |
+
+全仓本地快速回归仍受本机缺 `torchvision` 与 Windows symlink 权限限制，未作为
+合并通过证据；以 PR CI 复跑为准。P3MIX 仍未交付完整 estimator，P3.1 仍未整体验收。
 
 ## 逐方法验收建议
 
@@ -208,19 +261,22 @@ PUET 定向测试 **76 passed / 0 failed**（含 source behavior、budget、runn
 | 方法 | 技术验收建议 | 需要保留或解决的条件 |
 |---|---|---|
 | P3MIX | 退回补交完整交付 | 目前是 slides 对应的 batch/pool/loss 组件；完整论文/源码流程、estimator、训练时序、注册和端到端测试未齐。组件测试通过不能算方法完成 |
-| PUET | 修复已验证；有条件接受工程证据（2026-10-17） | #114 已关闭；36 组回归通过，OS/默认路径无漂移；仅实现 nnPU/quadratic 及已披露适配；证据同步、CPU 树预算、候选/选模/公开数值另定 |
+| PUET | 修复已验证；有条件接受工程证据（2026-10-17） | #114 已关闭；36 组回归、证据同步、子节点/阈值区间/负增益与 `max_features` 越界登记已由 `32db08c`/`c4210fd` 补齐；CPU 树预算、候选/选模/公开数值与负责人审阅另定 |
 | PULDA | 有条件接受工程证据 | 作者全文来源仍有缺口；EMA/梯度及角色测试可复验，但尾批、P 抽样、MixUp 和阶段预算不等于源流程；不得据作者 test-best 报告方式引入本项目 test 选模 |
 | Grad-PU | 有条件接受工程证据 | 官方源码未确认；保留论文目标独立实现身份，不称逐行复现；梯度惩罚/二阶图及无 BN 约束、TS 插值范围须作为适配规格 |
 | Robust-PU | 有条件接受适配子集 | nnPU warmup 需要总体 prior，组合不能称 prior-free；TS 只作用 warmup；内部固定预算/末轮与源 clean-val best/restart/scheduler 不同 |
 | Split-PU | 有条件接受适配子集 | TS 只作用 teacher；Gaussian/余弦替代图像增强/SimSiam、easy 损失归一化等差异保留；论文 teacher50/代码20/本实现10不混为统一配方 |
 | PAN | 有条件接受工程证据 | 原论文目标的 C/D 独立实现，官方源码未确认；OS-only、拒绝 TS；C 推断快照不代表 D/优化器续训恢复 |
 | RP | 有条件接受 PU 特例证据 | 固定 rho0=0，不称一般双向噪声算法；OS-only；手工 frac_pos2neg 须登记来源或固定默认估计，禁止由 test 真值提供 |
-| PULNS | 独立 support 变体接口/审计已交付；实际 support 制品待批准（2026-10-17） | #116：adapter 已接 OA-only SCAR OS，六角色 ID/组隔离、support_origin/角色池效应、source 验证范围与额外标签预算已记录；实际八集 support 来源/规模/制品、正式预算与准入仍待批准；标准 PU-only PA 不接受 |
+| PULNS | 独立 support 变体接口/审计已交付；共享准备/CPU 入口已补，实际 support 制品待批准（2026-10-17） | #116：adapter 已接 OA-only SCAR OS，六角色 ID/组隔离、support_origin/角色池效应、source 验证范围与额外标签预算已记录；`8bf8d54`/`ab239fd`/`f996126` 已补五数据集分拆、收据和 CPU 单候选回放，但实际八集 support 规模/正式预算/准入仍待批准；标准 PU-only PA 不接受 |
 | GEN-PU | 论文目标适配有条件接受 | prior-weighted minimax 与作者 demo 的非饱和/未加权 Du 明确不同；须选择正式目标身份，登记 prior 来源、TS 池和 PN 阶段候选资格 |
 | Holistic-PU | 工程变体有条件接受 | 论文 signed 全时序/variance 与发布邻差/Jenks 不等价；默认 fixed+continue、新增 LZO 正例 CE/reinitialize 的正式 recipe 仍须选择，不称完整作者重放 |
-| CVIR | OS adaptation 已接好；α_U 语义明确；正式准入仍待定（2026-10-17） | 本 Survey 走 `CVIRKnownPriorTrainer` + 显式 α_U/来源，population π 只给 PA；OS→TS 校准不属于本实验，不列为 blocker；有限样本转换、候选/预算、公开数值与资源另定 |
+| CVIR | OS adaptation 已接好；α_U 语义明确；正式准入仍待定（2026-10-17） | 本 Survey 走 `CVIRKnownPriorTrainer` + 显式 α_U/来源，population π 只给 PA；OS→TS 校准不属于本实验，不列为 blocker；独立 BBE/TEDⁿ 另行交付但不接入 CVIR；有限样本转换、候选/预算、公开数值与资源另定 |
 | LaGAM | 采样身份已裁决为 OS；方法准入仍暂缓/有条件（2026-10-17） | #115 已修复：registry/ledger/类 scenario 与锁定源码一致；默认 OS、显式 TS 拒绝。clean support 仍是额外训练监督，标准 PU-only PA 不适用；support/标签预算、weight-only 等适配、来源许可/全文、公开数值与资源另定 |
 | VPU（既有） | 沿用 D21/D22，不新增准入 | 原生 TS、OS 消融、验证变分风险仅作 diagnostic；源调度选项不解除 D22 的 PA 选模待决项或正式 recipe 前置 |
+
+BBE/TEDⁿ 是 main 合并后新增的独立 native-TS 扩展，不在上述 13 方法表；
+不纳入 P3.1 方法准入计数，正式预算/数值/负责人审阅另列。
 
 以上多数限制已在交付中披露，不作为“隐瞒缺陷”。首轮确认的新实现缺陷仅为上述 PUET 路径，
 该路径已由 #114 修复并在 2026-10-17 复核通过；未发现其它缺陷不等于证明不存在。

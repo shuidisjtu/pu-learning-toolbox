@@ -41,6 +41,96 @@
 
 ## 分类器与估计器
 
+### 独立 BBE 混合比例入口（不注册为总体先验）
+
+`from pu_toolbox.prior import BBEMixtureEstimator, BBEResult, best_bin_estimate`。
+此组件估计 **α_U**，不是 OS 工作流的总体 π，不提供自动先验注册名。
+
+`BBEMixtureEstimator(*, input_sampling=None, holdout_fraction=0.2, delta=0.1,
+gamma=0.01, classifier=None, random_state=None)`：调用前必须显式设
+`input_sampling="ts"`，自行保证独立 P 与边缘 U 的采样设计。`fit(X, y_pu,
+*, sample_ids=None)` 接受密集二维特征与一维观察角色（1=P、0=U），内部按角色
+随机留出指定比例（向上取整，训练/留出每个角色都须非空）。默认 train-only
+StandardScaler + balanced LogisticRegression(max_iter=1000)；注入 classifier
+须可 clone，提供 `fit`/`predict_proba` 与 `classes_={0,1}`。
+可选 sample_ids 为逐行唯一非空字符串；不证明跨来源/组/外部角色隔离。
+返回 self；`estimate_unlabeled_prior()` 返回 float α_U；未拟合抛 NotFittedError。
+失败 refit 清除旧估计。`train_indices_`、`holdout_indices_` 与 `provenance_`
+可审计内部隔离，不接受 clean U 标签。
+
+`best_bin_estimate(positive_scores, unlabeled_scores, *, delta=0.1, gamma=0.01)`
+返回不可变 `BBEResult`。输入均为非空一维有限 [0,1] 分数，高分表示正类；
+评分器须独立于这些留出样本。delta/gamma 严格在 (0,1)。按论文完整经验上尾
+与上界准则选阈值，返回原始比值、不夹紧；同准则取最低阈值。
+结果含 `alpha_u`、`threshold`、`selected_index`、`thresholds`、`positive_counts`、
+`unlabeled_counts`、`ratios`、`selection_upper_bounds`、`n_positive`、`n_unlabeled`、
+`delta`、`gamma`。选择上界不等于任意输入下 α_U 的置信区间，0/1 估计不自动
+改写为 CVIR 可用内点。非有限/形状/概率/采样模式错误抛 ValueError。
+
+```python
+from pu_toolbox.prior import BBEMixtureEstimator
+
+model = BBEMixtureEstimator(input_sampling="ts", random_state=42).fit(X, y_pu)
+alpha_u = model.estimate_unlabeled_prior()
+```
+
+本 BBE 组件只补独立二维工程路径；不含 TEDⁿ 分类器、原深度配方、OS→TS 转换、自动写入总体 π
+或正式数值准入。来源差异与可辨识性前提见 [BBE 方法卡](../../research/method_cards/BBE.md)。
+
+### 独立 TEDⁿ 分类器（未注册 CLI/UI）
+
+`from pu_toolbox.estimators.deep import TEDnClassifier`。
+
+`TEDnClassifier(*, input_sampling=None, holdout_fraction=0.2, delta=0.1,
+gamma=0.01, hidden_dim=64, warm_start_epochs=5, max_epochs=20, batch_size=128,
+learning_rate=0.001, convergence_tol=0.0001, convergence_patience=5,
+random_state=None, device=None, encoder=None)`。
+
+必须显式设 `input_sampling="ts"`，由调用方提供独立 P 与边缘 U；没有 OS 校准入口。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, sample_ids=None,
+epoch_callback=None)` 返回 self，支持二维密集特征；注入可训练 encoder 时也支持
+四维 NCHW。观察 PU 角色沿用核心标准化（1=P，0 或 -1=U），不是真负标签。
+holdout_fraction、delta、gamma 严格在 (0,1)，按观察角色 ceil 留出；训练/留出均非空。
+hidden_dim、max_epochs、batch_size、convergence_patience 为正整数，warm_start_epochs
+为非负整数，learning_rate 有限且正，convergence_tol 有限且非负。
+sample_ids 为可选逐行唯一非空字符串；encoder 深拷贝后联合训练，输出二维特征。
+不新增拟合输入预处理器，外部预处理和跨组/外部角色隔离仍需独立核查。
+
+每个 TEDⁿ round 在更新前用内部留出分数 BBE 估 α_U，然后仅排序训练 U、
+丢弃 floor(α_U*n_U_train)，用 P/保留U平均 BCE 的**未加权和**训练一轮。
+α_U=0 保留全部；α_U=1 抛 ValueError，使 fit 无效，不夹紧或强留一行。
+warm-start 后每轮更新后的训练错分率和（P 错分率+保留U负类错分率）用于停止：
+连续 convergence_patience 次绝对变化≤convergence_tol，或达到 max_epochs。
+此停止阈值是工程选择，不等价于正式收敛证明或选模许可。
+
+`predict` 在 logit 0 切分，`decision_function` 高分表示正类；不提供校准 predict_proba。
+`estimate_unlabeled_prior()` 返回最后一轮更新前的 α_U，非最终模型新估计。
+拟合前、失败后或尚无 TEDn round 的 warm-start 回调中读取先验抛 NotFittedError。
+class_prior 非空抛 ValueError，sample_weight 非空抛 NotImplementedError；
+核心输入校验可能抛 ValidationError，其余参数/形状/概率错误抛 ValueError/TypeError。
+fit 内部校验/训练或 callback 抛出 Exception 时不裸重试，并使拟合状态无效。
+
+可审计属性：`train_positive_indices_`、`train_unlabeled_indices_`、
+`holdout_positive_indices_`、`holdout_unlabeled_indices_`、`selected_negative_indices_`、
+`history_`、`bbe_history_`、`training_provenance_`、`epoch_provenance_`、
+`optimizer_steps_`、`n_iter_`（TEDn轮数）、`epochs_completed_`、`converged_`、`stop_reason_`。
+`history_` 含 warm_start_loss/tedn_loss/alpha_u/selected_negative_count/training_error；
+`bbe_history_` 每轮含更新前累计步、α_U、阈值、两尾部计数、上界、留出数量和δ/γ。
+`checkpoint_epoch_count=warm_start_epochs+max_epochs` 仅为上限；每个实际完成 epoch
+回调 `(从0开始的累计epoch, self)`，stages 为 warm_start/tedn，推理快照不支持续训。
+CPU 保存完整输入；train P/N 合并 forward 最多2*batch_size，eval/predict 最多batch_size。
+
+```python
+from pu_toolbox.estimators.deep import TEDnClassifier
+
+model = TEDnClassifier(input_sampling="ts", random_state=42, device="cpu").fit(X, y_pu)
+scores = model.decision_function(X_new)
+```
+
+这是独立 native-TS 工程实现，不替换现有 CVIR/总体先验，不进入冻结矩阵。
+重复使用留出并经 α 反馈更新模型，不宣称逐轮有效置信区间。
+原配方、真实数值、GPU 多seed和负责人准入仍待验收，见 [TEDn 方法卡](../../research/method_cards/TEDn.md)。
+
 所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
 `get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。
 
@@ -288,12 +378,17 @@ PUExtraTreesClassifier(class_prior, *, n_estimators=100, max_depth=None,
 | `class_prior` | `float` | 必填 | 总体正类先验 $\pi\in(0,1)$；可由 `fit(..., class_prior=...)` 覆盖 |
 | `n_estimators` / `max_depth` | `int` / `int \| None` | `100` / `None` | 树数 / 最大深度 |
 | `min_samples_leaf` | `int` | `1` | 每个子叶至少包含的 P/U 样本总数 |
-| `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | 每节点候选特征数，`sqrt` 向上取整 |
+| `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | 每节点候选特征数，`sqrt` 向上取整；正整数超出输入维数时截断到该维数，不修改构造参数；非作者等价行为 |
 | `max_candidates` | `int` | `1` | 每候选特征随机阈值数 |
 | `bootstrap` | `bool` | `False` | 是否分别对 P/U 进行有放回重采样；作者代码默认不重采样 |
 | `random_state` | `int \| None` | `None` | 森林随机种子 |
 
 `decision_function` 为 $[-1,1]$ 投票边际，不是校准概率；零边际判负类。仅实现论文 nnPU/quadratic 变体，非完整论文基准。非空 `sample_weight` 报错。
+
+`bootstrap=True` 对 P 抽 n_P 行，对实际 U 风险池抽该池大小的行（OS: n_U，TS:
+n_U+n_P），每树根风险质量 P=总体π、U=1；不把原 U 行数错误用于 TS 风险池。
+min_samples_leaf 同时约束两个子节点；阈值取完整 min/max 区间；仅接受 gain>1e-12。
+这些明确的工程适配不表示作者完整流程复现。
 
 - 文档：[PUET 方法卡](../../research/method_cards/PUET.md)
 
@@ -1587,6 +1682,14 @@ Self-PU clean-meta 与 LaGAM 元标签路径。构造参数与上述 PULNS adapt
 Self-PU 的支持集只用于元重加权与内部 teacher 选择，外部 OA 仍用独立 clean_val。
 仅探索性 SCAR OS、终点 OA，不是 PA、正式多 checkpoint 候选池或论文数值复现。
 调用示例与验收边界见[算法收尾记录](../../research/pu_survey/reviews/algorithm_completion_20261017.md)。
+
+`pu_toolbox.experiment.support_data.prepare_support_dataset` 从原始数组按显式预算准备
+独立支持集，重新拟合剩余 train 的预处理；`save_support_dataset` 仅写新目录，
+`load_support_dataset` 核对五角色、抽样、文件和收据。支持五个非文本/非分组数据集；
+原始来源真实性须由调用方保证，checksum 不等于预算批准。命令入口、支持范围与
+CPU 单候选回放见[支持集制品交付](../../research/pu_survey/delivery/clean_support_workflow_20261017.md)。
+制品另有 support_origin/完整原角色计数/未核验来源声明；实验入口按构造签名完整转发
+新审核分支的四个来源参数。旧 main 的制品层审计不冒充原生 adapter 审计，部分新契约拒绝。
 
 实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
 决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)

@@ -1,0 +1,145 @@
+{
+  "schema_version": "survey-tedn-source-engineering-review-1",
+  "method": "tedn_standalone",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "paper": {
+    "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf",
+    "algorithm_location": "Algorithm 3, printed page 7",
+    "unweighted_loss_location": "printed page 8, paragraph explicitly explaining why TEDn does not reweight losses by estimated alpha",
+    "sequence": "split P/U into train/holdout; warm-start PvU; each round BBE on holdout before ranking/discarding train U and one unweighted training epoch",
+    "stopping": "training error on P and current retained U until convergence; paper does not prescribe numeric tolerance/patience",
+    "target": "alpha_U from original marginal U, not a generic OS population pi"
+  },
+  "source": {
+    "repository": "https://github.com/acmi-lab/PU_learning",
+    "commit": "5e5e350dc0588de95a36eb952e3cf5382e786aec",
+    "working_tree_clean_when_inspected": true,
+    "executed_upstream_code": false,
+    "license": "Apache-2.0",
+    "file_sha256": {
+      "algorithm.py": "9f5885e5f78405d5f7e12e0cd0459c037ab877ec3c27d897300c3edea2e53706",
+      "train_PU.py": "fe47e2944729f89f1376ad3bd3d1367dbb78b1e5299033ecc633e0858245d0da",
+      "estimator.py": "5df3c26a2a597c9defa830660dc5a799f95d4f520eb6ffb748c7b78b8dd3bed3",
+      "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    }
+  },
+  "source_differences": [
+    {
+      "item": "objective",
+      "location": "paper Algorithm 3 line 7 and printed page 8; algorithm.py:145,233-236",
+      "source_value": "half the sum of the two CE role means; unlike CVIR paper Algorithm 2, no alpha weighting",
+      "toolbox_value": "paper Algorithm 3 unweighted sum of two BCE role means, single positive-oriented logit",
+      "decision": "do not reuse fixed-alpha CVIR's weighted objective; half/sum scaling and two/one-logit parameterization prevent exact source-replay claims"
+    },
+    {
+      "item": "estimation_timing",
+      "location": "paper Algorithm 3 line 11; train_PU.py:128-142,193-225",
+      "source_value": "warm-start estimates after every warm epoch and after each discard epoch; next round consumes previous estimate; initial alpha is zero if no warm-start executes",
+      "toolbox_value": "only after warm-start, then before each round's rank/update, including warm_start_epochs=0",
+      "decision": "paper Algorithm 3 ordering; do not reuse a fixed alpha or consume an uninitialized zero estimate"
+    },
+    {
+      "item": "bbe_statistic",
+      "location": "estimator.py:64-126",
+      "source_value": "partial U-gap candidates and zero-based U count, possible zero fallback",
+      "toolbox_value": "paper Algorithm 1 inclusive empirical tails with complete candidate enumeration",
+      "decision": "reuse independently audited BBE; see bbe_source_review_20261017.json"
+    },
+    {
+      "item": "finite_count_and_endpoints",
+      "location": "algorithm.py:274-280",
+      "source_value": "n_U-int(alpha*n_U) retained; argsort default ties; diagnostic divides by discarded count (zero possible)",
+      "toolbox_value": "n_U-floor(alpha_U*n_U), stable ties; alpha_U=0 keeps all, alpha_U=1 raises before a TEDn update",
+      "decision": "source-compatible count rounding, explicit empty-role failure rather than clipping, forced retention or silent warm-start-only success"
+    },
+    {
+      "item": "batching",
+      "location": "algorithm.py:205-228",
+      "source_value": "zip original P/U loaders, filter retained rows within original U minibatch, skip empty minibatches, concatenate P/N for forward",
+      "toolbox_value": "shuffle actual train P and retained U into role batches, cycle shorter batch list to cover longer role, concatenate P/N for forward",
+      "decision": "bounded engineering adapter; not equivalent BN populations or per-row visitation to the source zip/mask recipe"
+    },
+    {
+      "item": "holdout_and_diagnostics",
+      "location": "train_PU.py:124-140,210-223; helper.py dataset-specific loaders; algorithm.py:263-280",
+      "source_value": "dataset-specific validation loaders, clean-target accuracy/rejection diagnostics and extra MPE estimators",
+      "toolbox_value": "internal observed-role holdout, no clean U targets, external selection data or extra estimator diagnostics",
+      "decision": "follow paper internal split; no original test/validation partition or clean labels repurposed for training"
+    },
+    {
+      "item": "optimizer_model_and_stopping",
+      "location": "train_PU.py:26-43,107-114; paper Algorithm 3 convergence loop",
+      "source_value": "SGD defaults lr0.1/momentum0.9/wd0.0005, optional Adam, source data-specific networks, fixed CLI epoch budget",
+      "toolbox_value": "MLP64 or cloned injected encoder plus MLP head, Adam lr0.001, warm5+at_most20 rounds; absolute train-error change <=1e-4 for 5 consecutive changes",
+      "decision": "explicit finite engineering convergence criterion and hard cap, no approved formal budget or original image/text recipe replay"
+    }
+  ],
+  "implementation": {
+    "module": "pu_toolbox/estimators/deep/tedn.py",
+    "class": "TEDnClassifier",
+    "status": "end_to_end_training_engineering_implemented",
+    "input_ndims": [2, 4],
+    "native_architectures": ["mlp", "cnn"],
+    "input_sampling": "explicit ts required; declared design remains caller-unverified",
+    "registered_in_cli_ui_or_os_pipeline": false,
+    "wired_to_existing_cvir": false,
+    "fixed_population_prior_accepted": false,
+    "bb_estimates": "new estimate before every TEDn update, from shared internal P/U holdout only",
+    "holdout_split": "within observed roles random permutation, ceil(fraction*n_role), nonempty train and holdout",
+    "preprocessing": "no fitted input preprocessor added; caller owns external preprocessing provenance",
+    "endpoint_policy": "zero keeps all U; one fails loud and invalidates fit; no clipping/one-row fallback",
+    "stop_metric": "mean(logit_P<0)+mean(logit_retained_U>=0), after update in eval mode",
+    "checkpoint_epoch_bound": "warm_start_epochs+max_epochs, upper bound only",
+    "optimizer_accounting": "optimizer_steps_ includes all warm-start and TEDn steps; per-epoch context and pre-update BBE receipt",
+    "memory_policy": "full input remains CPU; train concatenated forward <=2*batch_size, eval <=batch_size; only selected-bin receipt retained per round",
+    "snapshot": "inference weights only, no optimizer/RNG resume",
+    "holdout_adaptive_reuse": "repeated alpha feedback does not certify sequential confidence intervals",
+    "clean_labels_read": false,
+    "external_selection_data_read": false,
+    "calibration_applied": false,
+    "calibration_hooked": false,
+    "author_code_replay": false,
+    "formal_admission": false,
+    "test_refs": ["tests/unit/estimators/test_tedn.py", "tests/unit/estimators/test_tedn_training.py"]
+  },
+  "engineering_acceptance": {
+    "baseline_commit": "a68a241",
+    "scope": "CPU synthetic source/temporal/isolation contracts, not formal numerical reproduction",
+    "python": "3.11.12",
+    "module_sha256": "4314a756c43bb51ac0526274c6daca66b30b9cfadf811a82a630f8773b85b093",
+    "test_sha256": {
+      "tests/unit/estimators/test_tedn.py": "88269426a6d67a9434f47b2a9603e9e1dd0d13bb264ecf79016bb888257d823a",
+      "tests/unit/estimators/test_tedn_training.py": "03a9a52de08022d33a957494947e0563ccd7b98485241ca9644e7c4ff76b3d43"
+    },
+    "targeted_tests": {"passed": 67, "failed": 0, "skipped": 0},
+    "neighbor_tests": {"passed": 177, "failed": 0, "skipped": 1},
+    "fast_suite": {"passed": 4267, "failed": 0, "errors": 0, "skipped": 58, "seconds": 300.538},
+    "static_gates_passed": 12,
+    "admission_evidence_checker_passed": true,
+    "in_memory_mutants_detected": ["alpha_weighted_tedn_loss", "freeze_first_alpha", "heldout_rows_in_training", "training_scores_in_bbe", "force_one_negative_at_alpha_one"],
+    "real_bbe_mlp_synthetic_seeds": [0, 7],
+    "real_bbe_cnn_synthetic_cpu_smoke": {
+      "split_seed": 7,
+      "encoder_init_seed": 12,
+      "warm_start_epochs": 3,
+      "tedn_rounds": 4,
+      "hidden_dim": 8,
+      "batch_size": 64,
+      "learning_rate": 0.03,
+      "alpha_history": [0.275, 0.2692307692307693, 0.275, 0.2692307692307693],
+      "optimizer_steps": 89,
+      "default_recipe_used": false,
+      "formal_numeric_comparison": false
+    },
+    "controlled_alpha_orchestration_tests_are_not_bbe_accuracy_evidence": true,
+    "wheel_sdist_built": true,
+    "outside_checkout_wheel_actual_cnn_bbe_and_pickle_replay": true,
+    "outside_checkout_torch_blocked_import_and_construction": true,
+    "private_archives_arrays_checkpoints_in_packages": false,
+    "gpu_used": false,
+    "existing_cvir_bbe_implementation_or_frozen_result_files_modified": false,
+    "owner_approval_implied": false
+  }
+}

@@ -126,6 +126,8 @@ uv run python scripts/run_survey_experiment.py --help
 uv run python scripts/verify_survey_result_receipt.py --help
 uv run python scripts/run_lbe_comparison.py --help
 uv run python scripts/run_lbe_diagnostics.py --help
+uv run python scripts/prepare_clean_support.py --help
+uv run python scripts/run_clean_support_experiment.py --help
 
 # SCAR row (PA + OA selection)
 uv run python scripts/run_survey_experiment.py path/to/splits \
