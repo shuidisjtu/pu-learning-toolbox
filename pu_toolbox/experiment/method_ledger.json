@@ -818,6 +818,7 @@
         "tedn": {
           "status": "standalone end-to-end Algorithm 3 engineering path: warm-start, per-round held-out BBE, discard, unweighted update and training-error stop; not registered or wired into CVIR",
           "implementation": "pu_toolbox/estimators/deep/tedn.py:TEDnClassifier",
+          "inference_state_review_ref": "docs/research/pu_survey/admission/tedn_scoring_modes_20261019.md",
           "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
           "review_ref": "docs/research/pu_survey/data/tedn_source_review_20261017.json",
           "native_sampling_assumption": "explicit ts input, caller sampling assertion unverified",

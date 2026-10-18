@@ -2,6 +2,8 @@
 
 import copy
 import pickle
+from dataclasses import replace
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -18,9 +20,20 @@ from pu_toolbox import (  # noqa: E402
     RobustPUClassifier,
     SplitPUClassifier,
 )
+from pu_toolbox.estimators.deep.tedn import TEDnClassifier  # noqa: E402
 
 pytestmark = pytest.mark.unit
-METHODS = ("pulda", "gradpu", "robust_pu", "split_pu", "genpu", "holistic_pu", "pulns", "lagam")
+METHODS = (
+    "pulda",
+    "gradpu",
+    "robust_pu",
+    "split_pu",
+    "genpu",
+    "holistic_pu",
+    "pulns",
+    "lagam",
+    "tedn",
+)
 
 
 def fitted_model(method):
@@ -91,6 +104,20 @@ def fitted_model(method):
             )
         support = np.random.RandomState(19).normal(size=(8, 3)).astype(np.float32)
         return model.fit(features, labels, support_data=(support, np.tile([0, 1], 4))), features
+    elif method == "tedn":
+        import pu_toolbox.estimators.deep.tedn as implementation
+
+        original = implementation.best_bin_estimate
+        model = TEDnClassifier(
+            input_sampling="ts", warm_start_epochs=1, max_epochs=1, batch_size=4, **kwargs
+        )
+        # Isolate inference-mode behavior from small-sample mixture estimation.
+        with patch.object(
+            implementation,
+            "best_bin_estimate",
+            lambda *args, **options: replace(original(*args, **options), alpha_u=0.2),
+        ):
+            return model.fit(features, labels), features
     else:
         model = GradPUClassifier(max_epochs=1, batch_size=4, **kwargs)
     return model.fit(features, labels), features

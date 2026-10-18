@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-19 独立 TEDn 补[内部/公开评分模式保护](admission/tedn_scoring_modes_20261019.md)：
+空输入及评分成功/异常均不覆盖调用者逐层模式；真实BBE/时序测试保留，
+不改 α_U 目标、留出规则、采样、CVIR 或冻结结果，不解除正式准入前置。
+
 2026-10-19 算法生命周期续批补[五扩展候选失败拟合保护](reviews/extended_candidate_fit_failure_20261019.md)：
 GEN-PU/Holistic-PU/LaGAM/PULNS/TEDn 的未知/缺失参数、异常和取消均撤销公开拟合状态；
 仅复用共享guard，不改训练方法体、目标、支持集、校准、预算或历史结果。

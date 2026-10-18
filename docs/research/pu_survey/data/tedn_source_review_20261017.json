@@ -3,6 +3,7 @@
   "method": "tedn_standalone",
   "review_status": "pending_method_owner_review",
   "owner_signatures": [],
+  "inference_followup_ref": "docs/research/pu_survey/admission/tedn_scoring_modes_20261019.md",
   "paper": {
     "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
     "url": "https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf",

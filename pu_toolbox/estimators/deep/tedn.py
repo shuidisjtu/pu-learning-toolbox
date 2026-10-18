@@ -443,10 +443,13 @@ class TEDnClassifier(BasePUClassifier):
     def _score_data(self, data, indices, device):
         import torch
 
-        self.model_.eval()
-        with torch.no_grad():
-            return (
-                np.concatenate(
+        if not len(indices):
+            return np.empty(0, dtype=np.float32)
+        modes = [(module, module.training) for module in self.model_.modules()]
+        try:
+            self.model_.eval()
+            with torch.no_grad():
+                return np.concatenate(
                     [
                         _logits(
                             self.model_, data[indices[start : start + self.batch_size]].to(device)
@@ -456,9 +459,9 @@ class TEDnClassifier(BasePUClassifier):
                         for start in range(0, len(indices), self.batch_size)
                     ]
                 )
-                if len(indices)
-                else np.empty(0, dtype=np.float32)
-            )
+        finally:
+            for module, training in modes:
+                module.training = training
 
     def _decision_function(self, X):
         import torch
