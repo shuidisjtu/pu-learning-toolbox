@@ -68,7 +68,7 @@ class PANClassifier(BasePUClassifier):
     scenario = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior = False
     implementation_status = ImplementationStatus.NATIVE
-    source_status = SourceStatus.NOT_FOUND
+    source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED

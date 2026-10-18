@@ -80,3 +80,16 @@ max_epochs 推断快照和 optimizer_steps_ 成本，补 raw-score 梯度惩罚�
 论文配方/验证标签与网格、阶段选模准入仍待审；不伪造作者源码 commit 或数值复现资格。
 
 已有公式 golden test、参数/边界、随机性、接口/注册、训练轨迹及权重往返测试。方法台账已登记；`fit(os_or_ts="ts")` 的 U 风险及输入梯度插值中的边缘角色逐批取 `U∪P`，正例权重、超参数与训练先验口径不变；逐 run 实际视图以 manifest 为准。2026-09-28 全局 PyTorch 2.6.0+cu124 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 通过；不替代 frozen-lock、多 seed 或正式资源验收。正式 P3.2 仍需：冻结矩阵之外的候选规格、原生图像骨干与论文基准（若决定宣称复现）、多 seed 资源记录及合作者审阅。
+
+2026-10-18 复核：论文全文已核对（AAAI 2023，8 页，SHA-256
+`c9ec9499389007546c5e3020edd98a8e17f221511b380663fc65efedeeca9244`）；
+未找到作者代码，按 paper-only 复核。Eq. (5)–(7)、未归一化正例权重、tanh 前
+raw-score 梯度惩罚、β 线性调度和阈值 0 与实现一致；本轮未发现新的公式/实现缺陷。
+图像路径按方案 B 使用现有 `cnn13_no_bn`（method-private），不进入标准
+ResNet-18 主榜；BN fail-closed 保留，详见
+[#120](https://github.com/shuidisjtu/pu-learning-toolbox/issues/120)。
+2026-10-18 用户接受 paper-only 身份：不要求作者代码，不称源码复现或
+source-faithful。学习率调度、batch 语义、网络/epoch、TS/SAR 声明与证据补全
+见 [#121](https://github.com/shuidisjtu/pu-learning-toolbox/issues/121)。
+有条件接受工程证据，但固定学习率与论文调度差异、阶段/预算/资源/公开数值
+仍未解决；不构成正式 Survey 准入。

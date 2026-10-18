@@ -120,3 +120,23 @@ pytest -q tests/unit/experiment/test_checkpoint_training_context.py \
 3. 不依赖实验数据的来源缺口和算法组件仍可继续；P3MIX 需先取得完整原始来源，
    原图增强/SimSiam/调度的缺口不能用已通过的留痕测试代替。
 4. 正式资源与公开数值对账仍需批准配置、真实结果和原始制品；不在本批自动跑批或代签。
+
+## 6. 2026-10-18 PULDA 负责人决定（仅 PULDA）
+
+本文件总体仍为 **draft / pending_method_owner_review**；以下只登记 shuidisjtu
+2026-10-18 交互确认的 PULDA 四项决定，其他四方法与正式准入不变。
+
+| 项 | 决定 |
+|---|---|
+| PA/OA 阶段资格 | 仅 `pu_mixup`；`warmup` 只作诊断，不进入 PA/OA 候选 |
+| 训练预算 | 原生 60+60；P/U 16/128；两阶段 cosine `T_max=pu_epochs=60`；120 个快照；不早停；`pu_mixup` 内 60 个 epoch 全部可选 |
+| 候选池 | 单一默认配置；`class_prior=π_population` 固定，不扫描先验 |
+| 分类阈值 | 固定 logit 0（当前 `_predict` 默认，等价于 sigmoid 0.5）；阈值候选集 `{0}`；PA/OA 只选 checkpoint，不调阈值 |
+
+边界：若全局 epoch cap 小于 120，PULDA 需另立等半缩放版本并标
+`benchmark-adapted`；当前决定是作者默认预算口径，整体方法/表征仍不等同
+source-faithful。其他方法是否调阈值仍待全局阈值政策；共享表示、存储/资源、
+公开数值、证据包补全和正式准入仍未完成。机器草案
+`p3_selection_budget_spec_20261007_draft.json` 的
+`formal_decisions` 保持 `null`，`admitted=false`；不据此生成新版本
+protocol/registry，也不改台账、冻结协议或 v3 矩阵。

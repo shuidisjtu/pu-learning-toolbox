@@ -15,7 +15,7 @@ from pu_toolbox.experiment.survey_artifacts import survey_artifact_ref
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 
 METHOD_BLOCKERS = {
-    "pan": ["official_source_review", "adversarial_budget_and_inference_only_snapshot_spec"],
+    "pan": ["adversarial_budget_and_inference_only_snapshot_spec"],
     "rp": ["oof_plus_refit_budget", "estimated_prior_degeneracy_handling"],
     "pulns": [
         "independent_clean_support_budget_and_five_role_isolation",

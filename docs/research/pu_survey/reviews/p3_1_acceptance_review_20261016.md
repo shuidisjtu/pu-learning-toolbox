@@ -5,7 +5,8 @@
 **P3.1 暂不整体验收通过。** P3MIX 仍未交付完整 estimator；首轮另确认 PUET 的
 TS + bootstrap 风险归一化缺陷。**2026-10-17 复核：#114 修复已独立验证通过，PUET
 实现层面转为“有条件接受工程证据”，正式准入仍未完成。** 其余条目按下表列出技术证据及待决条件。
-这是代理技术审核与验收建议，不是 shuidisjtu/HENG958 本人签署，不修改正式准入位。
+这是代理技术审核与验收建议；除明确标注“shuidisjtu 授权代录”的 PULDA 小节外，
+不代表 shuidisjtu/HENG958 本人签署，不修改正式准入位。
 
 审核基线：首轮 `92efb4dfbdf8b7a776ea87989aa1c54ed5fea8b6`；2026-10-17 同步至
 `e84a76c`（`92efb4d..e84a76c` 共 8 个提交），后续复核以新基线为准，下列首轮结论保留为历史。
@@ -221,6 +222,136 @@ PUET 训练代码、默认配置或正式准入。
 - Issue #116 已按用户指示关闭；关闭仅指接口/审计交付，不解除正式 support 制品/
   预算与准入前置。
 
+## 2026-10-18 PULDA 复核（论文已获取）
+
+**结论：实现身份为 PULDA（oracle/known-prior），不是 PULDA\*（BBE 估计先验）。
+代码级未发现新 bug；方法身份与适配已按用户授权代录，正式准入与 stage/budget 仍未签署。**
+
+- 论文：TPAMI 2023, Vol. 45, No. 12, pp. 15345–15363；本地 19 页 PDF，
+  SHA-256 `a2cffd8e0b3275aebf8ab89a29bea11a07b598f252f228df479c8db0e16c4070`。
+  已核对 Eq. (19)–(20)、(31) 与 Algorithm 1。
+- 协议 §3 第 2 条：主实验可向需要总体类先验的算法传入真实 `π_population`，结果标注
+  `known-prior`（oracle-prior）。因此固定先验 PULDA 符合本 Survey 主实验；
+  PULDA\* 的 BBE 先验估计属于单独变体/敏感性实验，不在本轮实现范围。
+- 来源：锁定 `jiangyangby/PULDA` @ `7b3dcad95bd7caa0a9477af37a05764fbe6e27bc`；
+  7 个来源文件 SHA-256 与证据包一致，`check_p3_admission_evidence.py` 返回 `ok=true`。
+- 损失与 EMA：工具箱 `LDA`、two-way margin、EMA 与作者源码在 4 个随机批次上逐值一致
+  （差值 0.0）；PULDA 及 P3 来源/预算/准入定向测试 **164 passed / 0 failed /
+  7 GPU deselected**。
+- MixUp 的 paper/source 差异：论文 Eq. (31) 使用当前模型预测
+  `σ(f(x1))`、`σ(f(x2))` 作为目标；作者发布代码使用持久伪标签并强制 P 目标为 1；
+  工具箱跟随作者代码。按用户 2026-10-18 决定，尊重队友实现，仅在复核文档登记，
+  等训练结果出现明显错误时再处理。
+- U/P 与 TS 适配：工具箱风险损失逐批使用 `U∪P`，MixUp/伪标签仍使用原始 U；
+  作者代码则把 P 副本物理并入 U。按用户决定，尊重当前实现与协议适配，
+  不声称作者数据池/MixUp/RNG 完整重放。
+- 证据补全项（不阻断本次方法身份签署）：来源证据未纳入
+  `customized/mixup.py` 与 `dataTools/mixupDataset.py` 的 SHA-256；
+  `source_behavior_tests` 尚未列入公式、TS 角色和 CNN 两阶段测试；
+  `p3_public_comparison` 的 PULDA 条目仍标 `full_text_unavailable`。正式证据更新时补齐。
+- **shuidisjtu 签署（授权代录，2026-10-18）**：确认 PULDA 方法身份为
+  known-prior/oracle-prior PULDA；接受作者代码的 MixUp、U/P 池与 TS 校准适配。
+  本签署不包含 PULDA\* 实现、warmup/pu_mixup 阶段资格、60+60 预算、候选/资源规格
+  或正式 Survey 准入；这些仍按后续单独讨论处理。
+
+### 2026-10-18 PULDA stage/budget 负责人决定
+
+以下四项由 shuidisjtu 于 2026-10-18 交互确认，覆盖 PULDA 的两个
+`owner_questions`，并登记候选池与阈值选择；不改变上一小节方法身份签署的历史范围，
+也不构成正式准入：
+
+| 项 | 决定 | 边界 |
+|---|---|---|
+| PA/OA 阶段资格 | 仅 `pu_mixup`；`warmup` 只作诊断保留，不进入 PA/OA 候选 | 其他阶段方法仍 pending，需按同一全局规则统一 |
+| 训练预算 | 原生 `warmup_epochs=60` + `pu_epochs=60`；P/U batch 16/128；两阶段 cosine 均 `T_max=pu_epochs=60`；120 个快照；不早停；`pu_mixup` 内 60 个 epoch 全部可选 | 若全局 epoch cap < 120，另立等半缩放版本并标 `benchmark-adapted` |
+| 候选池 | 单一默认配置（draft `constructor_defaults`）；`class_prior=π_population` 固定，不扫描先验 | 共享表示、存储/资源、公开数值仍待定 |
+| 分类阈值 | 固定 logit 0（当前 `_predict` 默认，等价于 sigmoid 0.5）；阈值候选集 `{0}`；PA/OA 只选 checkpoint，不调阈值 | 其他方法是否调阈值仍待全局阈值政策；本项不改变训练梯度 |
+
+图像表征同日决定：按协议 §2.5 使用 ResNet-18；PULDA 采用**端到端
+ResNet-18**（注入 `encoder` 可训练），不走 feature-adapter，结果标为
+`end-to-end CNN` / `benchmark-adapted`，不声称作者 CNN 或论文数值复现。
+共享初始化、BN、每 epoch 增强、输入/归一化、表格 MLP 共享规格与资源
+profile 由 [#119](https://github.com/shuidisjtu/pu-learning-toolbox/issues/119)
+与队友确认；`approved_representation_ref` 仍为 `null`。
+
+机器草案 `p3_selection_budget_spec_20261007_draft.json` 的
+`formal_decisions` 仍为 `null`，`admitted=false`；未生成或签署新版本
+protocol/registry，未修改台账、冻结协议或 v3 矩阵。该决定不等于 P3.1 整体完成。
+
+## 2026-10-18 Grad-PU 复核（论文已获取，无官方代码）
+
+**结论：本轮未发现新的公式/实现缺陷；有条件接受工程证据。图像路径按方案 B
+使用 `cnn13_no_bn`（method-private），不进入标准 ResNet-18 主榜；正式准入仍受
+调度/配方、阶段预算、资源证据和 paper-only 来源边界阻断。**
+
+- 论文：AAAI 2023, 37(6), 7296–7303；本地 8 页 PDF，
+  SHA-256 `c9ec9499389007546c5e3020edd98a8e17f221511b380663fc65efedeeca9244`。
+  用户确认未找到作者代码；`source_status=not_found`，本轮按 paper-only 复核，
+  不称源码复现。
+- 公式：Eq. (5)–(7) 与实现一致：tanh 前 raw score 的输入梯度惩罚、未归一化正例权重
+  `1 - β log((1+g)/2)`、P/U 绝对损失、β 从 0 线性升至 `beta_max`；`class_prior`
+  不参与目标；阈值固定 0。
+- TS：`fit(os_or_ts="ts")` 的 U 风险与插值边缘角色逐批取 `U∪P`；作者实验是
+  remaining U，TS 不是原实验重放；该差异已登记。
+- 测试：GradPU estimator 25 项（23 passed / 2 CUDA skipped）；P3 source/checkpoint/
+  feature-adapter 24 passed；contract/evidence 78 passed；0 failed。
+- 图像路径决定（2026-10-18）：采用方案 B，GradPU 使用现有 `cnn13_no_bn`
+  作为 method-private 图像路径，不进入标准 ResNet-18 主榜；详见
+  [#120](https://github.com/shuidisjtu/pu-learning-toolbox/issues/120)。
+  论文明确移除 BatchNorm（印刷页 7300），实现继续 BN fail-closed；共享
+  BN-free ResNet-18 不作为当前方案。
+- paper-only 身份：用户 2026-10-18 接受；不要求作者代码，不称源码复现或
+  source-faithful。学习率调度、batch 语义、网络/epoch、TS/SAR 声明与证据
+  补全见 [#121](https://github.com/shuidisjtu/pu-learning-toolbox/issues/121)。
+- 其他适配差异：论文 MLP 4×300 vs 本实现 MLP128×1；CNN13 no-BN vs
+  `cnn13_no_bn`；batch250 vs 256；学习率逐渐降到 0.1× vs 固定学习率；
+  100/200 epoch vs 默认 200；论文 500 validation vs 外部 PA/OA。均为
+  `benchmark-adapted`，不得称论文配方复现。
+- 阶段/预算：`checkpoint_stages=("pu",)`，默认 200 个快照；PA/OA 资格、候选池、
+  存储/资源、公开数值未批准；`admitted=false`。
+
+**本轮不签署正式准入。**
+
+## 2026-10-18 Robust-PU 复核（论文与官方源码已获取）
+
+**结论：SPL 权重、阈值调度和加权 BCE 与官方默认实现一致；本轮未发现新的公式
+缺陷。正式 CLI 默认按 ledger 解析为 `ts`，population π 与 `U∪P` 风险池一致，
+正式协议路径没有先验问题；裸 estimator 或显式 `os` 覆盖才需要 π_U。有条件接受
+适配子集；正式准入仍受来源证据、阶段/资源/公开数值边界阻断。**
+
+- 论文/源码：KDD 2023，`arXiv:2308.00279`；本地 11 页 PDF，
+  SHA-256 `844eb4d3033aa55201a2b972063b4354061182a321533e785695e85b5c7c6bf4`。
+  锁定 `woriazzc/Robust-PU` @ `34d950f2c6e56510855a922acb5f84b6459773ef`。
+- 默认 SPL：Welsch 权重、logistic hardness、linear scheduler、`alpha_p/n=0.1`、
+  `max_thresh=2.0`、`grow_steps=10`、`phi=0`、batch 64、pre-lr 1e-3、lr 1e-4；
+  与当前 constructor 默认值一致，hard/linear 子集也已对照。
+- `class_prior`：官方 `utils.py:66-119` 定义为 **U 内正类比例**；方法卡采用该语义。
+  正式 CLI（`run_survey_experiment.py`）的 `--os-or-ts` 默认 None，按 ledger
+  `native_sampling_assumption=ts` 解析为 `ts`；runner 传 population π，U 风险取
+  `U∪P`，因此正式协议路径一致。裸 `fit(os_or_ts="os")` 或显式
+  `--os-or-ts os` 覆盖时，U 风险只取原始 U，应传 π_U；当前 estimator 不自动
+  换算，这是 OS 调用边界，不是正式 TS 路径的缺陷。
+- 预训练 batching：官方 `pre_train` 用拼接 P+U 的 DataLoader（batch 64）；
+  本实现分开抽取 P/U 批并取 `steps=max(ceil(P/B),ceil(U/B))`，更新次数和批次组成
+  与官方不同。episode 内用 `array_split` 而非 DataLoader 尾批，也有轻微差异。
+  按 2026-10-18 用户决定，尊重当前实现，保留为 `benchmark-adapted`，不要求逐行
+  对齐官方；evidence 仍应补记。
+- 预算：论文是 pre-train 100 epoch / 每次迭代 20 epoch；官方 parser 默认 400/100；
+  本实现默认 10/20。按用户决定保留当前 10/20，正式预算表登记为
+  `benchmark-adapted`，不称论文配方。
+- moving weights：官方全局缓存随每轮 shuffle 重排时可能错位；本实现绑定原始行索引，
+  属于有意的修复。默认 `phi=0` 时官方无跨轮缓存，差异不影响默认路径；`phi>0`
+  时保留为适配披露，不声称官方脚本逐行等价。
+- 测试：estimator 25 项（23 passed / 2 CUDA skipped）；P3 source/checkpoint
+  13 项 passed；0 failed。
+- 来源证据：证据包只列 `main.py`、`spl_utills.py`、`lossFunc.py`；方法卡依赖的
+  `utils.py`（先验语义）和 `models.py`（架构）未纳入摘要；`paper_review_ref` 仍为
+  `null`；`source_behavior_tests` 只有两项；源码换行哈希口径也需统一。许可证仍未确认。
+- 其他小边界：`pretrain_epochs=0` 时仍强制要求 `class_prior`（实际不再使用）；
+  `phi=1` 被拒绝；`hardness`/`scheduler`/`spl_type`/`restart` 只实现子集。
+  这些是 API/适配边界，不改变公式；当前正式流程有 prior，故不阻断。
+- 阶段/预算/选模/资源/公开数值仍待批准；`admitted=false`。
+
 ## 2026-10-17 main 合并后增量复核
 
 合并基线 `origin/main` `92595ca`；解决 `CVIR.md`、`algorithm_completion_20261017.md`
@@ -262,7 +393,7 @@ PUET 训练代码、默认配置或正式准入。
 |---|---|---|
 | P3MIX | 退回补交完整交付 | 目前是 slides 对应的 batch/pool/loss 组件；完整论文/源码流程、estimator、训练时序、注册和端到端测试未齐。组件测试通过不能算方法完成 |
 | PUET | 修复已验证；有条件接受工程证据（2026-10-17） | #114 已关闭；36 组回归、证据同步、子节点/阈值区间/负增益与 `max_features` 越界登记已由 `32db08c`/`c4210fd` 补齐；CPU 树预算、候选/选模/公开数值与负责人审阅另定 |
-| PULDA | 有条件接受工程证据 | 作者全文来源仍有缺口；EMA/梯度及角色测试可复验，但尾批、P 抽样、MixUp 和阶段预算不等于源流程；不得据作者 test-best 报告方式引入本项目 test 选模 |
+| PULDA | 论文已核对；实现身份为 known-prior PULDA；方法身份/适配已授权代录（2026-10-18） | 非 PULDA\*；损失/EMA 与作者源码一致；paper Eq. (31) 与作者持久伪标签 MixUp 的差异已登记；接受作者代码的 MixUp/U/TS 适配；stage/budget、候选/资源与正式准入另议；不得用 test-best 选模 |
 | Grad-PU | 有条件接受工程证据 | 官方源码未确认；保留论文目标独立实现身份，不称逐行复现；梯度惩罚/二阶图及无 BN 约束、TS 插值范围须作为适配规格 |
 | Robust-PU | 有条件接受适配子集 | nnPU warmup 需要总体 prior，组合不能称 prior-free；TS 只作用 warmup；内部固定预算/末轮与源 clean-val best/restart/scheduler 不同 |
 | Split-PU | 有条件接受适配子集 | TS 只作用 teacher；Gaussian/余弦替代图像增强/SimSiam、easy 损失归一化等差异保留；论文 teacher50/代码20/本实现10不混为统一配方 |
@@ -358,3 +489,40 @@ tests/unit/estimators/test_gen_pu_cnn.py -m "not gpu" -o addopts= -q
 
 结论：论文目标差异已由用户裁决；本轮未发现新的实现 bug。
 正式 recipe（包括归一化、生成器输出域、训练阶段与选模预算）及公开数值准入仍另行验收。
+
+## 2026-10-18 PAN 复核（官方源码已定位）
+
+**结论：原 `source_status=not_found` 是检索遗漏；作者相关源码为
+`morning-dews/PAN@5be703639e4c1eb2c63d869ba150d84ebf0c116e`，`source_status` 改为
+`official_related`。论文 Eq.(7) 与作者 `main.py` 的 PAN 目标/采样不一致；按用户决定，
+保留当前 paper-faithful 实现并登记源码差异，正式 Survey 采样跟随论文的
+single-training-set/OS。正式准入仍未完成。**
+
+- 来源：仓库 README 写“Code for paper Predictive Adversarial Learning from Positive
+  and Unlabeled Data”；论文正文未直接给该链接；仓库无 LICENSE；`main.py` SHA-256
+  `fde2d2b01d4a04cbafbbde82d3e18765f3f8f86b15cef3aeda7a43be346e8ba9`。
+- 本机 benchmark：`F:\Temp\PU-Bench` @ `2d95a19`（`train/pan/core.py`、
+  `config/methods/pan.yaml`、fixture `scenarios: [case-control]`）；
+  `F:\Temp\PUBench` @ `a9a62b0`（`core/algorithms.py:1694`、`hparams_registry.py:82`）。
+- 论文 vs 作者 `main.py:351-423`：论文 U 项是 `log(1-D(u))`；源码是
+  `max(log(1-D(u_h))-log(1-mean(D(u_h))), 0)`，只取前 `n_P` 个 U；源码用
+  `eps=1e-2`、对 P/U_h/U 分别求和，C 更新复用同一 batch；论文 Algorithm 1 写重新
+  采样 U，Eq.(7) 用期望。源码默认 `n_epochs=200`、Adam `betas=(0.5,0.999)`、
+  `weight_decay=1e-3`；当前实现为 100 epochs、默认 betas、无 wd。源码
+  `PuDataIterator` 按数据集 P/U 比例组 batch，论文写 1:1，当前实现 1:1。
+- 采样：源码 `cfg/*/uPU` 全部 `overlap=True`，U 为完整训练池（含被标注正例），
+  P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 也是 `case-control`。
+  论文 §5.1 Step 2 / 脚注 5 是 single-training-set、U 为剩余正负样本。当前实现跟随
+  论文。
+- 实现：`pan.py` 的 Eq.(7) 符号/梯度隔离、prior 忽略、显式 ts 拒绝、C/D 独立
+  encoder、fold 隔离和 checkpoint 均有测试覆盖；本轮不改 `pan.py`。
+- 测试：PAN + pipeline/fold/contract/storage 定向组 **79 passed / 0 failed /
+  0 skipped / 4 deselected**（2 GPU + 2 resnet18，`tmp/pan-review-clean.xml`）；
+  PAN estimator 两文件 **16 tests / 0 failed / 2 CUDA skipped**（`tmp/pan-gpu.xml`）。
+  首次未排除 resnet18 的 2 个失败均为 GenPU/Holistic 用例缺 `torchvision`，与 PAN 无关。
+- 2026-10-18 决定（shuidisjtu）：`official_related`；保留 paper-faithful 实现；
+  正式采样与论文一致；更新方法卡/扩展草稿/台账/review；新建
+  [Issue #123](https://github.com/shuidisjtu/pu-learning-toolbox/issues/123)。
+- 剩余阻断：`adversarial_budget_and_inference_only_snapshot_spec`（C-only snapshot、
+  D/optimizer 预算、当前源码资源重测）、PA/OA 阶段资格、公开数值、负责人审阅；
+  `admitted=false`，P3.1 仍未整体验收。

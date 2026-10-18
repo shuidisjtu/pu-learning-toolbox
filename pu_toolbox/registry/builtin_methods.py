@@ -401,7 +401,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         paper="Predictive Adversarial Learning from Positive and Unlabeled Data",
         supports_sparse=False,
         supports_gpu=True,
-        upstream_url=None,
+        upstream_url="https://github.com/morning-dews/PAN",
         license="needs_review",
         training_cost=Cost.HIGH,
     ),
