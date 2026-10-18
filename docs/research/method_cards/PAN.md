@@ -84,3 +84,7 @@ probe 与非活动网络使用 eval/no-grad，因此 C/D 的 BN 只由各自更�
 保存加载、权重恢复与 GPU；`tests/integration/test_pan_pipeline_cnn.py` 验证公开 pipeline
 的 native_cnn provenance，`test_cv_fold_isolation.py` 验证两个对抗 encoder 跨折均不泄漏。
 这是可训练 CNN 接口，不宣称论文完整结构、预处理/增强、训练预算或公开表格重现。
+
+2026-10-18 [来源/推理状态补交](../pu_survey/admission/pan_source_inference_review_20261018.md)：
+九文件原始摘要、实际交替梯度和采样测试已补；仅修复预测后逐层恢复 train/eval 模式，
+不改 `fit`/论文目标或 OS/先验决定。机器包、台账与扩展草稿同步，仍待负责人复核。

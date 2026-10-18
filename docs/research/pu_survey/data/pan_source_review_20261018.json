@@ -1,0 +1,99 @@
+{
+  "schema_version": "survey-pan-source-engineering-review-1",
+  "method": "pan",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "formal_admission": false,
+  "primary_source": {
+    "url": "https://ojs.aaai.org/index.php/AAAI/article/view/16953/16760",
+    "doi": "10.1609/aaai.v35i9.16953",
+    "locations": "Eq.7 PDF p4 / printed7809; Algorithm1 and sampling footnote5 PDF p5 / printed7810; recipe and best-epoch reporting PDF p6 / printed7811",
+    "read_as": "official publisher PDF text; screenshot retrieval unavailable, no local PDF-byte verification claimed"
+  },
+  "source": {
+    "repository": "https://github.com/morning-dews/PAN",
+    "commit": "5be703639e4c1eb2c63d869ba150d84ebf0c116e",
+    "source_status": "official_related",
+    "identity_basis": "README identifies paper; no direct paper-to-code link verified, not official_exact",
+    "working_tree_clean_when_inspected": true,
+    "executed_upstream_code": false,
+    "files": [
+      {"path": "main.py", "sha256": "fde2d2b01d4a04cbafbbde82d3e18765f3f8f86b15cef3aeda7a43be346e8ba9"},
+      {"path": "helper/pu_learning_dataset.py", "sha256": "d1c077ed86c838ace17ada7ada0fdfec3f475d03ddefcf67e279d58f394b5541"},
+      {"path": "helper/cifar10_dataset.py", "sha256": "c0d64ee423811a415e4e2774235789fa649c96cc33c1adaf7a5e1ef3794b7ce2"},
+      {"path": "helper/mnist_dataset.py", "sha256": "9524d9b82aea7a4a98cf53719bd96e70222ef20f23357b84ec8d16b8cb4c8d00"},
+      {"path": "cfg/cifar10/uPU", "sha256": "ca7010b528e826920d4a2f4e1ee623a319c627b2df49143d0dd396703add267a"},
+      {"path": "cfg/mnist/uPU", "sha256": "fa1ac93e41105ed5fc04b7a95a9aa9e8624a340e004ddf0f6998d1c58a6fbf06"},
+      {"path": "cfg/news/uPU", "sha256": "0f105017d56c058223b76cb507d36adecf6415a63827da1998ae35d1d9ebefe3"},
+      {"path": "cfg/sddd/uPU", "sha256": "ef6b5797fc5e5cb31c95ff63a28c552211ac13cc410612cef31463ff941ab508"},
+      {"path": "README.md", "sha256": "f5a36b3ac93539438f55aa01375723ee15da07ec9b8b4556e2bad2a2e46b7f63"}
+    ],
+    "digest_policy": "sha256_raw_bytes",
+    "license_observation": {
+      "status": "unknown",
+      "tracked_license_file_found": false,
+      "explicit_notice_found_in_tracked_python_or_README": false,
+      "permission_inferred_from_public_repository": false,
+      "upstream_code_or_weights_copied_executed_or_redistributed": false,
+      "copy_claim_scope": "No vendoring into toolbox or distributions; read-only audit checkout remains outside the repository",
+      "registry_needs_review_unchanged": true
+    }
+  },
+  "implementation_ref": "pu_toolbox/estimators/deep/pan.py",
+  "implementation_sha256": "95fcec117956b706ade32d1b8531b1376d92d735f1abe2f2c85829d4d8e5ef06",
+  "implementation_digest_policy": "utf8_text_universal_newlines_sha256",
+  "calibration": {
+    "run_view": "os-compatible",
+    "calibration_applied": false,
+    "population_prior_enters_target": false,
+    "source_equivalence_claim": false
+  },
+  "retained_target": {
+    "identity": "paper_Eq7_not_related_source_max_margin",
+    "pool_reduction": "separate_P_and_U_means; Algorithm1 sums differ by common fixed batch factor, not identical Adam updates claimed",
+    "alternation": "one_D_ascent_then_one_C_descent; fresh_native_U_for_C; updated_D_reward_detached",
+    "CNN_inactive_network": "eval_and_no_grad; only active network changes BN/dropout state",
+    "inference": "C_only; all module training flags restored individually after success, forward failure or cancellation",
+    "prior": "optional validated fit prior is ignored; explicit ts rejected"
+  },
+  "source_protocol_facts": {
+    "configuration_used": "main.py:226-249 always loads cfg/<dataset>/uPU and its PuDataset/iterator, even for PAN",
+    "overlap": "all four cfg/*/uPU:6 overlap=True; helper/pu_learning_dataset.py:228-243 appends P copies, marks original full pool U; not the paper remaining-U construction",
+    "iterator": "helper/pu_learning_dataset.py:83-106,123-176: role proportions from original P/U sizes; reuses/shuffles across wraps; not project equal-role independent replacement draws",
+    "budget_source": "cfg/*/uPU max_epoch=200 drives iterator; main CLI n_epochs is printed, not the iterator loop bound; CLI batch_size is not the dataset iterator batch source",
+    "cifar": "helper/cifar10_dataset.py:11-13,60-63: positive IDs0,1,8,9; /255 only; cfg batch500, labeled1000",
+    "mnist": "helper/mnist_dataset.py:10-28: legacy fetch_mldata, first60000/rest10000, /255, even positive; cfg batch3000, labeled3000",
+    "text_and_sddd": "cfg/news/uPU batch300 labeled3000; cfg/sddd/uPU batch300 labeled2000; their loader/feature pipelines not independently audited here",
+    "optimizer": "main.py:25-27,271-272: CLI lr1e-4, betas(.5,.999), weight_decay1e-3; adjust_lr call commented at474-475",
+    "published_artifact_limits": "main.py:14-16 and41: torch imports commented and unconditional CUDA set_device; source not executed or certified standalone-runnable",
+    "reporting": "main.py:472-523 evaluates test each epoch; variable acc computes disagreement error and big_acc is its minimum; smoothed F1 uses +1 in precision/recall denominators; source logs not project PA/OA validation selection"
+  },
+  "source_objective_differences": [
+    {"location": "main.py:351-385", "difference": "U_h first n_P rows, max-margin log U term with detached mean, eps1e-2 and sums; adversarial coefficient1e-4 vs project default1.0; project preserves paper expectation target"},
+    {"location": "main.py:355-364,410-423", "difference": "same saved score_R/score_D graph and minibatch reused for both backward calls; not project fresh-U, updated-D detached reward; no claim that a current torch runtime can replay that graph"},
+    {"location": "main.py:53-174", "difference": "source-specific MLP/CNN with BN/dropout/sigmoid, not project MLP128 or injected independent raw-logit C/D encoders"}
+  ],
+  "behavior_test_refs": [
+    "tests/unit/estimators/test_pan_source_contract.py::test_basic_param_separate_pool_means_and_analytic_gradients_match_equation7",
+    "tests/unit/estimators/test_pan_source_contract.py::test_determ_actual_adam_steps_use_fresh_native_u_and_updated_detached_discriminator",
+    "tests/unit/estimators/test_pan_source_contract.py::test_edge_prediction_uses_classifier_not_adversary",
+    "tests/unit/estimators/test_pan_source_contract.py::test_basic_source_review_binds_current_code_tests_ledger_and_non_admission",
+    "tests/unit/estimators/test_pan_prediction_modes.py::test_basic_determ_prediction_preserves_every_layer_mode_weights_buffers_and_rng",
+    "tests/unit/estimators/test_pan_prediction_modes.py::test_edge_forward_failure_restores_mixed_modes_and_preserves_exception",
+    "tests/unit/estimators/test_pan_prediction_modes.py::test_param_empty_or_invalid_shape_does_not_mutate_modes",
+    "tests/unit/estimators/test_pan_prediction_modes.py::test_determ_pickle_preserves_mixed_modes_before_and_after_prediction"
+  ],
+  "engineering_scope": {
+    "fit_body_or_objective_changed": false,
+    "prediction_child_mode_restoration_fixed": true,
+    "historical_probe_or_frozen_result_changed": false,
+    "new_real_data_or_GPU_run": false,
+    "numeric_reproduction_or_formal_recipe_approval": false
+  },
+  "remaining_blockers": [
+    "method_owner_review",
+    "approved_training_budget_and_representation",
+    "PA_OA_stage_threshold_and_resource_spec",
+    "public_numeric_comparison_and_formal_admission"
+  ]
+}

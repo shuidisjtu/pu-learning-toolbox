@@ -99,5 +99,6 @@
 - [扩展 CNN 资源探针说明](extended_cnn_resource_review_20261007.md)：工具已交付，21 次实测尚未交付有效记录。
 - 2026-10-17 独立 BBE/TEDⁿ：[BBE](../method_cards/BBE.md)、[TEDn](../method_cards/TEDn.md)；native TS、显式 α_U，不接 CVIR/OS Survey。
 - 2026-10-18 [五候选方法失败重训状态整改](reviews/candidate_fit_failure_20261018.md)：异常/取消后禁止旧或部分模型公开推理，成功训练与校准口径不变。
+- 2026-10-18 [PAN 来源与推理模式补证](admission/pan_source_inference_review_20261018.md)：保持论文目标/OS，补九文件与实际交替梯度，仅修推理的逐层模式恢复。
 
 以上均为工程准备；正式资源预算、配方、数值验收和负责人签署仍按执行计划推进。

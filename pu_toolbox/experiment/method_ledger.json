@@ -135,7 +135,18 @@
         "authors": "Wenpeng Hu, Ran Le, Bing Liu, Feng Ji, Jinwen Ma, Dongyan Zhao, Rui Yan",
         "venue": "AAAI", "year": 2021
       },
-      "code_version": {"upstream_url": "https://github.com/morning-dews/PAN", "upstream_commit": "5be703639e4c1eb2c63d869ba150d84ebf0c116e", "source_status": "official_related（README 写 Code for paper；论文正文未直接给链接；无 LICENSE；2026-10-18 复核）", "source_files_sha256": {"main.py": "fde2d2b01d4a04cbafbbde82d3e18765f3f8f86b15cef3aeda7a43be346e8ba9"}},
+      "code_version": {"upstream_url": "https://github.com/morning-dews/PAN", "upstream_commit": "5be703639e4c1eb2c63d869ba150d84ebf0c116e", "source_status": "official_related（README 写 Code for paper；论文正文未直接给链接；无 LICENSE；2026-10-18 复核）", "source_files_sha256": {
+        "main.py": "fde2d2b01d4a04cbafbbde82d3e18765f3f8f86b15cef3aeda7a43be346e8ba9",
+        "helper/pu_learning_dataset.py": "d1c077ed86c838ace17ada7ada0fdfec3f475d03ddefcf67e279d58f394b5541",
+        "helper/cifar10_dataset.py": "c0d64ee423811a415e4e2774235789fa649c96cc33c1adaf7a5e1ef3794b7ce2",
+        "helper/mnist_dataset.py": "9524d9b82aea7a4a98cf53719bd96e70222ef20f23357b84ec8d16b8cb4c8d00",
+        "cfg/cifar10/uPU": "ca7010b528e826920d4a2f4e1ee623a319c627b2df49143d0dd396703add267a",
+        "cfg/mnist/uPU": "fa1ac93e41105ed5fc04b7a95a9aa9e8624a340e004ddf0f6998d1c58a6fbf06",
+        "cfg/news/uPU": "0f105017d56c058223b76cb507d36adecf6415a63827da1998ae35d1d9ebefe3",
+        "cfg/sddd/uPU": "ef6b5797fc5e5cb31c95ff63a28c552211ac13cc410612cef31463ff941ab508",
+        "README.md": "f5a36b3ac93539438f55aa01375723ee15da07ec9b8b4556e2bad2a2e46b7f63"
+      }},
+      "source_behavior_review_ref": "docs/research/pu_survey/data/pan_source_review_20261018.json",
       "implementation_status": "NATIVE; experimental MLP or injected end-to-end CNN with independent C/D encoders; not formal survey admission or paper numeric reproduction",
       "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）",
       "run_view": "os-compatible", "calibration_applied": false,
