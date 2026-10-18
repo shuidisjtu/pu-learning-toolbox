@@ -24,8 +24,10 @@ Hou et al., IJCAI 2018，DOI 10.24963/ijcai.2018/312；[原论文](https://www.i
 | generator | 论文 minimax，Gn 的 Dn 项反号 | `pun_demo_main.py:271-297` 非饱和 BCE：Gp 对 Dp/Du target=1；Gn 对 Dn=0、Du=1 |
 | 最终 PN | 本组件采用目标总体先验加权 risk（工程选择） | `gpn_classifier.py:219-226` 等权 P/N BCE |
 
-因此登记 `official_related` + `benchmark-adapted`，不称代码逐行复现。正式协议需选择目标口径，
-本组件不能替负责人决定论文/代码哪个用于数值对照。
+因此登记 `official_related` + `benchmark-adapted`，不称代码逐行复现。
+2026-10-18 决定（shuidisjtu）：正式目标采用论文 Eq. (3)–(11) 的带先验权重
+minimax/anti-GAN；作者 demo 仅作差异对照，不作为正式目标或数值复现依据。
+作者归档未发现 LICENSE，登记为 `license=unknown`，不复制、执行或再分发归档。
 
 ## 当前组件与校准
 

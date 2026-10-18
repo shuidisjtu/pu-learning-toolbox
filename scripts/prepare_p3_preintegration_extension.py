@@ -25,9 +25,7 @@ METHOD_BLOCKERS = {
         "CNN_representation_and_sequential_policy_resource_spec",
     ],
     "genpu": [
-        "paper_minimax_vs_author_nonsaturating_demo_decision",
         "prior_weighted_Du_and_synthetic_PN_spec",
-        "source_license_review",
         "six_network_GAN_plus_PN_selection_and_storage_spec",
         "dense_pixel_output_domain_and_four_CNN_encoder_recipe",
         "generator_step_discriminator_mode_and_native_image_resource_spec",

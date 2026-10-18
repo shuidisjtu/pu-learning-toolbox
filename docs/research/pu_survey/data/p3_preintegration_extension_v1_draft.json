@@ -172,7 +172,7 @@
         "code_version": {
           "upstream_url": "https://qibinzhao.github.io/assets/publications/IJCAI_2018_HouMing/gen_pu_demo.zip",
           "upstream_sha256": "a0975a3da5979febbd0504d5ee5b2638b4f9074a66e72d45198278933f54e6c0",
-          "source_status": "official_related（作者主页 Code 页明确链接的源码归档，2026-10-05 下载锁定摘要；不复制/执行归档代码和权重；授权未明确）"
+          "source_status": "official_related（作者主页 Code 页明确链接的源码归档，2026-10-05 下载锁定摘要；2026-10-18 复核未发现 LICENSE，登记 license=unknown；不复制/执行/再分发归档代码和权重）"
         },
         "modality_backbone": {
           "modalities": [
@@ -202,9 +202,7 @@
       "admitted": false,
       "owner_decisions": {},
       "specific_blockers": [
-        "paper_minimax_vs_author_nonsaturating_demo_decision",
         "prior_weighted_Du_and_synthetic_PN_spec",
-        "source_license_review",
         "six_network_GAN_plus_PN_selection_and_storage_spec",
         "dense_pixel_output_domain_and_four_CNN_encoder_recipe",
         "generator_step_discriminator_mode_and_native_image_resource_spec"
