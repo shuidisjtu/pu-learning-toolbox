@@ -841,9 +841,18 @@
       "code_version": {
         "upstream_url": "https://github.com/woriazzc/Robust-PU",
         "upstream_commit": "34d950f2c6e56510855a922acb5f84b6459773ef",
-        "source_status": "official_exact (method card audited commit 34d950f2c6e56510855a922acb5f84b6459773ef)"
+        "source_status": "official_exact (paper explicitly links the pinned repository; availability, not exact source replay)",
+        "license_observed": "unknown; no LICENSE/COPYING/NOTICE file or explicit code license notice found in locked tree; registry needs_review remains"
       },
       "implementation_status": "NATIVE, backend TORCH; nnPU warm-up plus self-paced weighted BCE on MLP or trainable injected CNN; technical pre-integration only",
+      "source_behavior_review_ref": "docs/research/pu_survey/data/robustpu_source_review_20261018.json",
+      "runtime_prior_contract": {
+        "calibrated_ts_input": "population_pi",
+        "explicit_os_input": "supplied_U_positive_fraction",
+        "automatic_prior_conversion": false,
+        "prior_used_in": "nnPU_pretrain_only",
+        "post_pretrain_pseudo_negative_pool": "original_U_only"
+      },
       "checkpoint_accounting": {"epoch_bound": "pretrain_epochs + episodes", "bound_is_upper_limit": true, "inner_epochs_emit_extra_snapshots": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false},
       "native_sampling_assumption": "ts（P 与边缘分布 U 分别采样；Robust-PU.md:13-17，registry:robust_pu）",
       "run_view": "ts-compatible",

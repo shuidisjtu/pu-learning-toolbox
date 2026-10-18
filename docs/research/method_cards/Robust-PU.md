@@ -70,4 +70,40 @@ population π 与 `U∪P` 风险池一致；裸 `fit(os_or_ts="os")` 或显式 O
 parser 400/100、本实现 10/20）和 moving-weight 对齐差异按用户 2026-10-18
 决定尊重当前实现，作为 `benchmark-adapted` 保留，不作为整改要求；正式预算表
 登记 10/20 选择。来源证据（`utils.py`/`models.py` 摘要、paper ref、source
-behavior tests、换行哈希）和正式准入仍未完成。
+behavior tests、换行哈希）已按下节补交；正式准入仍未完成。
+
+## 2026-10-18 来源与行为补交（不改训练）
+
+按 [P3.1 复核](../pu_survey/reviews/p3_1_acceptance_review_20261016.md) 补齐
+`utils.py`、`models.py`、README 与原三文件的锁定摘要，新增
+[机器可读来源核查](../pu_survey/data/robustpu_source_review_20261018.json)。
+六文件同时留原始字节与 UTF-8 统一换行文本摘要；可选源码 checker 两者都验，
+文本归一化不放松原始字节校验，也不忽略代码/空白改动。
+核查的11个 tracked 路径没有 LICENSE/COPYING/NOTICE 文件，README/代码未发现明确
+许可证声明，继续登记 unknown 观察及 registry `needs_review`，不推断公开即授权。
+只读来源，不复制、执行或再分发作者程序；论文许可证不替代代码许可。
+
+新增独立标量/真实优化步对照：不同温度的 logistic hardness 与三种 SPL、nnPU
+两分支优化梯度和显示风险的区别、加权 BCE **除行数而非权重和**、逐原始行移动
+权重在 shuffle/inner epochs 中的绑定、每 episode 重建 optimizer、正反向线性阈值
+初值/封顶。测试见 `test_robust_pu_source_contract.py`；不调用作者函数作为 oracle。
+
+补记不能据公式一致消除的差异：
+
+- `utils.py:176–178` 训练与验证分别从同一 X_train 调 `get_pu_data`，没有排除已抽训练行，
+  因而**可能重叠**；没有实际源 run 身份，不能声称论文发生了重叠。项目仍保持四角色隔离。
+- `models.py:4–29` 的 MLP100 显式 Xavier-normal/零 bias，不等于本项目 Linear 默认初始化；
+  `:32–106` 是9个 Conv/BN 与三层 FC，并非本项目注入的共享 CNN。
+- 源验证/测试都是按给定 U 先验再采样；U 正例数 `int(n_U*pi_U)` 有有限样本取整。
+  `class_prior` 裸 OS 调用应为所给 U 的比例；实验 TS 路径按既定裁决用 population π，
+  不自动从标记比例换算。先验只用于 nnPU，SPL 伪负例永远是原始 U。
+- 逐批 P/U 循环与 `array_split` 尾批属于既有适配；逐批拼接的角色比例不能据此
+  冒充全池均匀抽样或精确分布等价。保留 `source_equivalence_claim=false`。
+- 源支持 P/N 各自 grow_steps/调度类型，本版共用 grow_steps 且仅 linear。
+  BCEWithLogits 在普通数值域与源 BCE(sigmoid) 公式等价，不承诺饱和数值逐位相同。
+- nnPU 预训练的优化梯度保持 correction 分支，但本项目 `pretrain_risk` 历史记录
+  clipped reporting risk；作者 pre_train 记录优化 loss。负风险分支的两者不能混读。
+
+台账、校准调用契约、准入证据和预算/公开对照**草稿**同步；checker 锁住必需来源、
+梯度测试与先验契约，并拒绝将 unknown 许可偷改成开放许可或代填准入。
+这是代理工程补交，不变更负责人结论、训练默认值、阶段资格、冻结结果或正式预算。

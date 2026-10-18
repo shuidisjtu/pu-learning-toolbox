@@ -40,6 +40,33 @@ PUET_BOOTSTRAP_RISK = {
 PUET_MASS_TEST = (
     "tests/unit/estimators/test_puet.py::test_edge_bootstrap_root_masses_and_constant_leaf"
 )
+ROBUST_REVIEW_REF = "docs/research/pu_survey/data/robustpu_source_review_20261018.json"
+ROBUST_SOURCE_FILES = {
+    "main.py",
+    "spl_utills.py",
+    "lossFunc.py",
+    "utils.py",
+    "models.py",
+    "README.md",
+}
+ROBUST_PRIOR_CONTRACT = {
+    "calibrated_ts_input": "population_pi",
+    "explicit_os_input": "supplied_U_positive_fraction",
+    "automatic_prior_conversion": False,
+    "prior_used_in": "nnPU_pretrain_only",
+    "post_pretrain_pseudo_negative_pool": "original_U_only",
+}
+ROBUST_BEHAVIOR_TESTS = {
+    "tests/unit/estimators/test_robust_pu_source_contract.py::" + name
+    for name in (
+        "test_basic_temperature_hardness_weights_match_independent_scalar_formula",
+        "test_edge_nnpu_optimization_branches_match_source_not_clipped_risk_gradients",
+        "test_basic_actual_episode_bce_gradient_is_row_mean_not_weight_normalized",
+        "test_determ_moving_weights_follow_original_rows_through_shuffle_and_inner_epochs",
+        "test_edge_actual_linear_schedule_starts_at_zero_and_caps_both_directions",
+        "test_param_invalid_retained_subset_contract_is_not_silently_expanded",
+    )
+}
 
 
 def require(condition, message):
@@ -85,6 +112,68 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, allow_nan=False)
 
 
+def _validate_robust_source_review(row, entry, root):
+    """Require the requested source/behavior/prior evidence, never owner approval."""
+    source = row["source"]
+    require(
+        source.get("paper_review_ref")
+        == entry.get("source_behavior_review_ref")
+        == ROBUST_REVIEW_REF,
+        "Robust-PU source review reference drift",
+    )
+    review = json.loads(repo_file(ROBUST_REVIEW_REF, root).read_text(encoding="utf-8"))
+    require(
+        review["schema_version"] == "survey-robustpu-source-engineering-review-1"
+        and review["method"] == "robust_pu"
+        and review["review_status"] == "pending_method_owner_review"
+        and review["owner_signatures"] == [],
+        "Robust-PU source review identity or approval overclaim",
+    )
+    facts = review["source"]
+    require(
+        facts["repository"] == source["repository"] and facts["commit"] == source["commit"],
+        "Robust-PU source review provenance drift",
+    )
+    digests = {record["path"]: record["sha256"] for record in source["files"]}
+    require(set(digests) >= ROBUST_SOURCE_FILES, "Robust-PU incomplete source files")
+    require(canonical(digests) == canonical(facts["file_sha256"]), "Robust-PU review digest drift")
+    text_digests = source.get("normalized_text_sha256", {})
+    require(
+        source.get("normalized_text_digest_policy")
+        == facts.get("normalized_text_digest_policy")
+        == "utf8_text_universal_newlines_sha256"
+        and set(text_digests) == set(digests)
+        and all(re.fullmatch(r"[0-9a-f]{64}", v) is not None for v in text_digests.values())
+        and canonical(text_digests) == canonical(facts.get("normalized_text_sha256")),
+        "Robust-PU normalized text digest drift",
+    )
+    require(facts["executed_upstream_code"] is False, "Robust-PU author-code execution overclaim")
+    license_fact = facts["license_observation"]
+    require(
+        license_fact["status"] == "unknown"
+        and license_fact["tracked_license_file_found"] is False
+        and license_fact["explicit_code_license_notice_found"] is False
+        and license_fact["permission_inferred_from_public_repository"] is False
+        and license_fact["author_code_copied_executed_or_redistributed"] is False,
+        "Robust-PU license observation/permission drift",
+    )
+    for fact in (
+        row["calibration"].get("prior_input_contract"),
+        entry.get("runtime_prior_contract"),
+        review.get("prior_input_contract"),
+    ):
+        require(
+            canonical(fact) == canonical(ROBUST_PRIOR_CONTRACT), "Robust-PU prior contract drift"
+        )
+    require(
+        set(row["source_behavior_tests"]) >= ROBUST_BEHAVIOR_TESTS
+        and set(review["behavior_test_refs"]) >= ROBUST_BEHAVIOR_TESTS,
+        "Robust-PU missing source behavior regression",
+    )
+    for key in ("formal_admission", "formal_budget_approved", "source_equivalence_claim"):
+        require(review["engineering_scope"][key] is False, "Robust-PU source acceptance overclaim")
+
+
 def validate_evidence(evidence, ledger, protocol, *, root=ROOT):
     """Validate technical consistency only; leave all formal decisions pending."""
     from pu_toolbox.experiment.survey_protocol import digest
@@ -127,6 +216,8 @@ def validate_evidence(evidence, ledger, protocol, *, root=ROOT):
                     canonical(fact) == canonical(PUET_BOOTSTRAP_RISK), "PUET bootstrap mass drift"
                 )
             require(PUET_MASS_TEST in row["source_behavior_tests"], "missing PUET mass regression")
+        if method == "robust_pu":
+            _validate_robust_source_review(row, entry, root)
         budget = row["budget"]
         require(budget["formal_budget_approved"] is False, "budget approval overclaim")
         for key in ("approved_candidate_pool", "approved_storage_bytes"):
@@ -200,6 +291,19 @@ def validate_source_checkout(source, directory):
             hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"],
             "source byte mismatch",
         )
+        text_digests = source.get("normalized_text_sha256")
+        if text_digests is not None:
+            require(
+                set(text_digests) == {row["path"] for row in source["files"]}
+                and source.get("normalized_text_digest_policy")
+                == "utf8_text_universal_newlines_sha256",
+                "source text digest coverage/policy mismatch",
+            )
+            require(
+                hashlib.sha256(path.read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+                == text_digests[record["path"]],
+                "source normalized text mismatch",
+            )
     return len(source["files"])
 
 

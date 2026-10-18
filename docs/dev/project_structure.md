@@ -300,6 +300,7 @@ tests/
       test_puet_adaptation_contract.py  # PUET 子叶约束、完整阈值、负增益拒绝与越界特征数适配回归
       test_tedn.py                      # TEDn 公式梯度、原生 TS 契约与真实 BBE 合成训练
       test_tedn_training.py             # TEDn 更新前估计、CNN 留出隔离、收敛与 checkpoint 回放
+      test_robust_pu_source_contract.py # Robust-PU 独立公式/真实梯度、逐行移动权重与源调度子集
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

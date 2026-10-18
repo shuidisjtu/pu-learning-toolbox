@@ -163,3 +163,117 @@ def test_param_puet_mass_and_regression_reference_cannot_drift(fault):
         row["source_behavior_tests"].remove(check.PUET_MASS_TEST)
     with pytest.raises(ValueError, match="PUET"):
         check.validate_evidence(evidence, ledger, protocol)
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "drop_utils",
+        "drop_models",
+        "drop_readme",
+        "paper_ref",
+        "ledger_ref",
+        "digest",
+        "row_prior",
+        "ledger_prior",
+        "both_prior",
+        "automatic_conversion",
+        "drop_gradient_test",
+    ],
+)
+def test_param_robust_requested_source_behavior_and_prior_evidence_cannot_disappear(fault):
+    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    row, entry = evidence["methods"]["robust_pu"], ledger["methods"]["robust_pu"]
+    if fault.startswith("drop_") and fault != "drop_gradient_test":
+        name = {"drop_utils": "utils.py", "drop_models": "models.py", "drop_readme": "README.md"}[
+            fault
+        ]
+        row["source"]["files"] = [r for r in row["source"]["files"] if r["path"] != name]
+    elif fault == "paper_ref":
+        row["source"]["paper_review_ref"] = None
+    elif fault == "ledger_ref":
+        entry["source_behavior_review_ref"] = None
+    elif fault == "digest":
+        row["source"]["files"][-1]["sha256"] = "a" * 64
+    elif fault in ("row_prior", "both_prior"):
+        row["calibration"]["prior_input_contract"]["explicit_os_input"] = "population_pi"
+        if fault == "both_prior":
+            entry["runtime_prior_contract"]["explicit_os_input"] = "population_pi"
+    elif fault == "ledger_prior":
+        entry["runtime_prior_contract"]["prior_used_in"] = "all_training"
+    elif fault == "automatic_conversion":
+        row["calibration"]["prior_input_contract"]["automatic_prior_conversion"] = True
+    else:
+        row["source_behavior_tests"].remove(
+            next(t for t in check.ROBUST_BEHAVIOR_TESTS if "actual_episode_bce_gradient" in t)
+        )
+    with pytest.raises(ValueError, match="Robust-PU"):
+        check.validate_evidence(evidence, ledger, protocol)
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "license",
+        "permission",
+        "execution",
+        "signature",
+        "formal",
+        "digest",
+        "prior",
+        "test_ref",
+    ],
+)
+def test_param_robust_review_cannot_grant_permission_or_self_sign(tmp_path, monkeypatch, fault):
+    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    review = json.loads((ROOT / check.ROBUST_REVIEW_REF).read_text(encoding="utf-8"))
+    if fault == "license":
+        review["source"]["license_observation"]["status"] = "MIT"
+    elif fault == "permission":
+        review["source"]["license_observation"]["permission_inferred_from_public_repository"] = True
+    elif fault == "execution":
+        review["source"]["executed_upstream_code"] = True
+    elif fault == "signature":
+        review["owner_signatures"] = ["invented acceptance"]
+    elif fault == "formal":
+        review["engineering_scope"]["formal_admission"] = True
+    elif fault == "digest":
+        review["source"]["file_sha256"]["utils.py"] = "a" * 64
+    elif fault == "prior":
+        review["prior_input_contract"]["post_pretrain_pseudo_negative_pool"] = "U_plus_P"
+    else:
+        review["behavior_test_refs"] = []
+    path = tmp_path / "review.json"
+    path.write_text(json.dumps(review), encoding="utf-8")
+    original = check.repo_file
+
+    def repo_file(reference, root):
+        return path if reference == check.ROBUST_REVIEW_REF else original(reference, root)
+
+    monkeypatch.setattr(check, "repo_file", repo_file)
+    with pytest.raises(ValueError, match="Robust-PU"):
+        check.validate_evidence(evidence, ledger, protocol)
+
+
+def test_edge_source_text_digest_is_additional_not_raw_byte_relaxation(tmp_path, monkeypatch):
+    payload = b"raise RuntimeError('never execute')\r\n"
+    path = tmp_path / "source.py"
+    path.write_bytes(payload)
+    commit = "a" * 40
+    raw_digest = hashlib.sha256(payload).hexdigest()
+    text_digest = hashlib.sha256(payload.replace(b"\r\n", b"\n")).hexdigest()
+    source = {
+        "commit": commit,
+        "files": [{"path": "source.py", "sha256": raw_digest}],
+        "normalized_text_digest_policy": "utf8_text_universal_newlines_sha256",
+        "normalized_text_sha256": {"source.py": text_digest},
+    }
+    monkeypatch.setattr(check.subprocess, "run", lambda *a, **kw: SimpleNamespace(stdout=commit))
+    assert check.validate_source_checkout(source, tmp_path) == 1
+    source["normalized_text_sha256"]["source.py"] = "0" * 64
+    with pytest.raises(ValueError, match="normalized text"):
+        check.validate_source_checkout(source, tmp_path)
+    source["normalized_text_sha256"]["source.py"] = text_digest
+    path.write_bytes(payload.replace(b"\r\n", b"\n"))
+    with pytest.raises(ValueError, match="source byte"):
+        check.validate_source_checkout(source, tmp_path)

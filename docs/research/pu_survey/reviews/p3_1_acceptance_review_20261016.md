@@ -76,8 +76,10 @@ BBE/TEDⁿ 是 main 合并后新增的独立 native-TS 扩展，不在上述 13 
 - 预训练 batching 与 episode 尾批处理、预算 10/20（论文 100/20，官方 parser
   400/100）保留为 `benchmark-adapted`；moving weights 绑定原始行索引是有意修复，
   默认 `phi=0` 不受影响。
-- 来源证据仍需补记 `utils.py`、`models.py`、`paper_review_ref`、
-  `source_behavior_tests` 与许可证。
+- 上轮要求的 `utils.py`、`models.py`、`paper_review_ref`、行为对照与许可证观察
+  已由代理在 2026-10-18 [补交来源证据](../data/robustpu_source_review_20261018.json)，
+  含实际优化步梯度/权重身份测试；训练不改，工程补交仍待负责人审阅，
+  不自动替换本节“有条件接受适配子集”结论或正式准入。
 
 ### Split-PU
 

@@ -13,7 +13,7 @@
     "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
     "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "e1c0f89b1c2d5ae723abf700cc1a4616853b3f5f48df22154022eda4996cae71"
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "8435136b9d89ea4fa0e3b60f8e71b349cffb3997beee36829bf262f4d488ec05"
   },
   "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
   "storage_contract": {
@@ -401,7 +401,14 @@
         "scope": "nnPU_pretrain_only",
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "source_equivalence_claim": false
+        "source_equivalence_claim": false,
+        "prior_input_contract": {
+          "calibrated_ts_input": "population_pi",
+          "explicit_os_input": "supplied_U_positive_fraction",
+          "automatic_prior_conversion": false,
+          "prior_used_in": "nnPU_pretrain_only",
+          "post_pretrain_pseudo_negative_pool": "original_U_only"
+        }
       },
       "budget_fact": {
         "default_snapshot_count": 30,

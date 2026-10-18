@@ -395,9 +395,30 @@
           {
             "path": "lossFunc.py",
             "sha256": "6bc8cf1f05b576959ab0e57a776416821e794816329755318e018bf5325bf26a"
+          },
+          {
+            "path": "utils.py",
+            "sha256": "cb5911627879e2847d2cf8b7ea931c0be96c9f7d3313cd0a45e5ecd19901daf9"
+          },
+          {
+            "path": "models.py",
+            "sha256": "210558b16199e8d9f0f0479b2826b69fbeafbbaa917744caad0c6fe7f92abcd1"
+          },
+          {
+            "path": "README.md",
+            "sha256": "b232ca974b0449c1bc6b7991469dbacbcc16386e852d59892245cc12cb428921"
           }
         ],
-        "paper_review_ref": null
+        "paper_review_ref": "docs/research/pu_survey/data/robustpu_source_review_20261018.json",
+        "normalized_text_digest_policy": "utf8_text_universal_newlines_sha256",
+        "normalized_text_sha256": {
+          "main.py": "68ba9e54cf9c1840369955a90e387bd2b685365242e9e5ddaed204e702778bec",
+          "spl_utills.py": "ff5e53230fe163de69b7d1516b7db92e48d257eaef044ad9769eeb154a2dc449",
+          "lossFunc.py": "6bc8cf1f05b576959ab0e57a776416821e794816329755318e018bf5325bf26a",
+          "utils.py": "cb5911627879e2847d2cf8b7ea931c0be96c9f7d3313cd0a45e5ecd19901daf9",
+          "models.py": "5e086540911a1d237b7f7f84b8f12b0852933d70073d6894776931455b56a407",
+          "README.md": "f6acf5ca3499dff47d08d9ec52e1d44c3a27e88489cba2cc9b246b65678efdb2"
+        }
       },
       "budget": {
         "unit": "pretrain_epochs_and_episodes_with_inner_epochs",
@@ -413,11 +434,24 @@
         "scope": "nnPU_pretrain_only",
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "source_equivalence_claim": false
+        "source_equivalence_claim": false,
+        "prior_input_contract": {
+          "calibrated_ts_input": "population_pi",
+          "explicit_os_input": "supplied_U_positive_fraction",
+          "automatic_prior_conversion": false,
+          "prior_used_in": "nnPU_pretrain_only",
+          "post_pretrain_pseudo_negative_pool": "original_U_only"
+        }
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_param_robust_spl_rules_match_scalar_boundaries_and_detach",
-        "tests/unit/experiment/test_multistage_candidate_accounting.py::test_basic_optimizer_counter_matches_instrumented_all_stage_updates_and_resets"
+        "tests/unit/experiment/test_multistage_candidate_accounting.py::test_basic_optimizer_counter_matches_instrumented_all_stage_updates_and_resets",
+        "tests/unit/estimators/test_robust_pu_source_contract.py::test_basic_temperature_hardness_weights_match_independent_scalar_formula",
+        "tests/unit/estimators/test_robust_pu_source_contract.py::test_edge_nnpu_optimization_branches_match_source_not_clipped_risk_gradients",
+        "tests/unit/estimators/test_robust_pu_source_contract.py::test_basic_actual_episode_bce_gradient_is_row_mean_not_weight_normalized",
+        "tests/unit/estimators/test_robust_pu_source_contract.py::test_determ_moving_weights_follow_original_rows_through_shuffle_and_inner_epochs",
+        "tests/unit/estimators/test_robust_pu_source_contract.py::test_edge_actual_linear_schedule_starts_at_zero_and_caps_both_directions",
+        "tests/unit/estimators/test_robust_pu_source_contract.py::test_param_invalid_retained_subset_contract_is_not_silently_expanded"
       ],
       "adaptation_differences": [
         {
