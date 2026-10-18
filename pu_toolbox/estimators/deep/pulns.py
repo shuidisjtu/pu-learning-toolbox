@@ -435,8 +435,8 @@ class PULNSClassifier(BasePUClassifier):
         if not len(X):
             return np.empty(0, dtype=np.float32)
         modes = [(layer, layer.training) for layer in network.modules()]
-        network.eval()
         try:
+            network.eval()
             with torch.no_grad():
                 return np.concatenate(
                     [

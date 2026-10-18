@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-19 P3.2 续批补[GEN-PU/Holistic-PU/PULNS eval 转换异常保护](admission/candidate_eval_transition_20261019.md)：
+原有逐层恢复覆盖到 eval 本身抛异常的路径，目标/正常训练/校准/支持集和批准边界不变；
+台账新增工程证据指针，不代填正式准入或重测历史资源。
+
 2026-10-19 P3.2 续批补[Split-PU 评分状态恢复](admission/splitpu_inference_modes_20261019.md)：
 分批评分成功/前向异常/eval 切换异常均恢复逐层模式；不裁决 #122 的 JSD、prior 或
 混合比例，不改历史结果/资源 probe，不代签准入。

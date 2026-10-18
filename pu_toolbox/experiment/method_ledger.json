@@ -42,6 +42,7 @@
   "methods": {
     "holistic_pu": {
       "class": "HolisticPUClassifier",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
       "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Beyond Myopia: Learning from Positive and Unlabeled Data through Holistic Predictive Trends", "authors": "Xinrui Wang, Wenhai Wan, Chuanxing Geng, Shaoyuan Li, Songcan Chen", "venue": "NeurIPS", "year": 2023},
       "code_version": {"upstream_url": "https://github.com/wxr99/HolisticPU", "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3", "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；2026-10-18 复核未发现 LICENSE，登记 license=unknown；不复制/执行/再分发作者代码）"},
@@ -61,6 +62,7 @@
     },
     "genpu": {
       "class": "GenPUClassifier",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
       "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Generative Adversarial Positive-Unlabelled Learning", "authors": "Ming Hou, Brahim Chaib-draa, Chao Li, Qibin Zhao", "venue": "IJCAI", "year": 2018},
       "code_version": {
@@ -89,6 +91,7 @@
     },
     "pulns": {
       "class": "PULNSClassifier",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
       "paper": {
         "title": "PULNS: Positive-Unlabeled Learning with Effective Negative Sample Selector",
         "authors": "Chuan Luo, Pu Zhao, Chen Chen, Bo Qiao, Chao Du, Hongyu Zhang, Wei Wu, Shaowei Cai, Bing He, Saravanakumar Rajmohan, Qingwei Lin",

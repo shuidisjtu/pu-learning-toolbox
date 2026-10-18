@@ -438,8 +438,8 @@ class GenPUClassifier(BasePUClassifier):
         if not len(X):
             return np.empty(0, dtype=np.float32)
         modes = [(layer, layer.training) for layer in self.model_.modules()]
-        self.model_.eval()
         try:
+            self.model_.eval()
             with torch.no_grad():
                 return np.concatenate(
                     [
