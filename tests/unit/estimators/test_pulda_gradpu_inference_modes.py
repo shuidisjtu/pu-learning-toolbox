@@ -12,6 +12,7 @@ from pu_toolbox import (  # noqa: E402
     GenPUClassifier,
     GradPUClassifier,
     HolisticPUClassifier,
+    LaGAMClassifier,
     PULDAClassifier,
     PULNSClassifier,
     RobustPUClassifier,
@@ -19,7 +20,7 @@ from pu_toolbox import (  # noqa: E402
 )
 
 pytestmark = pytest.mark.unit
-METHODS = ("pulda", "gradpu", "robust_pu", "split_pu", "genpu", "holistic_pu", "pulns")
+METHODS = ("pulda", "gradpu", "robust_pu", "split_pu", "genpu", "holistic_pu", "pulns", "lagam")
 
 
 def fitted_model(method):
@@ -32,6 +33,8 @@ def fitted_model(method):
         torch.nn.BatchNorm1d(3) if method != "gradpu" else torch.nn.Identity(),
     )
     kwargs = dict(encoder=encoder, hidden_dim=4, random_state=3, device="cpu")
+    if method == "lagam_resident":
+        kwargs["encoder"] = None
     if method == "pulda":
         model = PULDAClassifier(
             class_prior=0.4,
@@ -72,10 +75,20 @@ def fitted_model(method):
         )
     elif method == "holistic_pu":
         model = HolisticPUClassifier(warmup_epochs=3, max_epochs=1, batch_size=4, **kwargs)
-    elif method == "pulns":
-        model = PULNSClassifier(
-            pretrain_epochs=1, episodes=1, classifier_epochs=1, batch_size=4, **kwargs
-        )
+    elif method in {"pulns", "lagam", "lagam_resident"}:
+        if method == "pulns":
+            model = PULNSClassifier(
+                pretrain_epochs=1, episodes=1, classifier_epochs=1, batch_size=4, **kwargs
+            )
+        else:
+            model = LaGAMClassifier(
+                warmup_epochs=1,
+                max_epochs=2,
+                batch_size=4,
+                support_batch_size=4,
+                num_clusters=2,
+                **kwargs,
+            )
         support = np.random.RandomState(19).normal(size=(8, 3)).astype(np.float32)
         return model.fit(features, labels, support_data=(support, np.tile([0, 1], 4))), features
     else:
@@ -179,4 +192,37 @@ def test_determ_pickle_retains_mixed_modes_and_predictions(method):
         restored.decision_function(features), model.decision_function(features)
     )
     assert [layer.training for layer in restored.model_.modules()] == before
+    assert [layer.training for layer in model.model_.modules()] == before
+
+
+@pytest.mark.parametrize("fault", ["none", "forward", "eval"])
+def test_edge_lagam_resident_scoring_restores_modes_on_all_exits(monkeypatch, fault):
+    model, features = fitted_model("lagam_resident")
+    assert model.data_device_policy_ == "resident"
+    expected = model.decision_function(features)
+    before = set_mixed_modes(model, True)
+    sentinel = RuntimeError("resident inference failure")
+    calls = []
+
+    def fail(*args, **kwargs):
+        calls.append(1)
+        raise sentinel
+
+    handle = None
+    if fault == "forward":
+        handle = model.model_.register_forward_pre_hook(fail)
+    elif fault == "eval":
+        monkeypatch.setattr(model.model_[1], "train", fail)
+    try:
+        if fault == "none":
+            np.testing.assert_array_equal(model.decision_function(features), expected)
+        else:
+            with pytest.raises(RuntimeError) as error:
+                model.decision_function(features)
+            assert error.value is sentinel and calls == [1]
+    finally:
+        if handle is not None:
+            handle.remove()
+    assert [layer.training for layer in model.model_.modules()] == before
+    assert model.decision_function(features[:0]).shape == (0,)
     assert [layer.training for layer in model.model_.modules()] == before

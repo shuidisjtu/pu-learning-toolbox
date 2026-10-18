@@ -481,28 +481,33 @@ class LaGAMClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("LaGAM prediction features overflow float32")
-        self.model_.eval()
-        device = next(self.model_.parameters()).device
-        with torch.no_grad():
-            if not len(X):
-                return np.empty(0, dtype=np.float32)
-            if self.data_device_policy_ == "cpu_stream":
-                return np.concatenate(
-                    [
-                        _score(
-                            self.model_,
-                            torch.as_tensor(X[start : start + self.batch_size], device=device),
-                        )
-                        .cpu()
-                        .numpy()
-                        for start in range(0, len(X), self.batch_size)
-                    ]
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        modes = [(module, module.training) for module in self.model_.modules()]
+        try:
+            self.model_.eval()
+            device = next(self.model_.parameters()).device
+            with torch.no_grad():
+                if self.data_device_policy_ == "cpu_stream":
+                    return np.concatenate(
+                        [
+                            _score(
+                                self.model_,
+                                torch.as_tensor(X[start : start + self.batch_size], device=device),
+                            )
+                            .cpu()
+                            .numpy()
+                            for start in range(0, len(X), self.batch_size)
+                        ]
+                    )
+                return (
+                    _score(self.model_, torch.as_tensor(X, dtype=torch.float32, device=device))
+                    .cpu()
+                    .numpy()
                 )
-            return (
-                _score(self.model_, torch.as_tensor(X, dtype=torch.float32, device=device))
-                .cpu()
-                .numpy()
-            )
+        finally:
+            for module, training in modes:
+                module.training = training
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0).astype(int)
