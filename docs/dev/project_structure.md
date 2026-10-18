@@ -364,6 +364,7 @@ tests/
       test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
       test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
       test_prepare_p3_selection_budget_spec.py # 阶段/预算草稿再生成、类型严格一致与审批篡改拒绝
+      test_prepare_candidate_image_resource_plan.py # 图像资源只读预检、快照成本、缺证据拒绝与无 torch 边界
       test_check_survey_extended_cnn_storage.py # 新 CNN 资源证据身份、角色、预算与来源拒绝测试
       test_profile_survey_extended_cnn_storage.py # 独立进程资源测量、变体范围、内存去重与失败边界
       _review_split_receipt_helpers.py  # 离线 split、索引及归档复核夹具
@@ -866,6 +867,7 @@ scripts/
   check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
   check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决
   prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
+  prepare_candidate_image_resource_plan.py (PULDA/GradPU 默认快照数与空间预检，不训练、不加载制品或批准资源)
   check_survey_extended_cnn_storage.py    # 新 CNN 资源记录只读身份/角色/阶段成本/源码校验
   profile_survey_extended_cnn_storage.py  # 七个新 CNN 工程变体的独立进程多种子资源探针
   diagnose_survey_split_rebuild.py        (只读重建差异诊断：仅 ZIP 创建平台字节归因，不接受变更收据)
