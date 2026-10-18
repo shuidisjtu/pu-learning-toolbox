@@ -44,7 +44,7 @@
       "class": "HolisticPUClassifier",
       "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Beyond Myopia: Learning from Positive and Unlabeled Data through Holistic Predictive Trends", "authors": "Xinrui Wang, Wenhai Wan, Chuanxing Geng, Shaoyuan Li, Songcan Chen", "venue": "NeurIPS", "year": 2023},
-      "code_version": {"upstream_url": "https://github.com/wxr99/HolisticPU", "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3", "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；license 待复核）"},
+      "code_version": {"upstream_url": "https://github.com/wxr99/HolisticPU", "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3", "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；2026-10-18 复核未发现 LICENSE，登记 license=unknown；不复制/执行/再分发作者代码）"},
       "implementation_status": "NATIVE; experimental MLP or injected trainable CNN balanced resampling + paper pairwise trend/variance partition + pseudo-PN fit; explicit continue/reinitialize and fixed/lzo_positive_loss engineering recipes; terminal state/prefix restoration with full executed cost; both-stage inference checkpoints, not author replay or formal admission",
       "native_sampling_assumption": "os（标准 CIFAR 分支 dataset/cifar.py:74-93 的 p_u_split 用 setdiff1d 排除已标记 P；非 lt_p_u_split 的独立长尾抽样分支）",
       "run_view": "os-compatible", "calibration_applied": false, "calibration_hooked": false,

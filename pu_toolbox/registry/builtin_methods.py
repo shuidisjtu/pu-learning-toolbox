@@ -392,7 +392,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_sparse=False,
         supports_gpu=True,
         upstream_url="https://github.com/wxr99/HolisticPU",
-        license="needs_review",
+        license="unknown",
         training_cost=Cost.HIGH,
     ),
     AlgorithmMetadata(

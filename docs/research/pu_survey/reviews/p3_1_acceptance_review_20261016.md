@@ -33,7 +33,7 @@
 | RP | 有条件接受 PU 特例证据 | 固定 `rho0=0`，不称一般双向噪声算法；OS-only；`frac_pos2neg` 须登记来源或固定默认估计，禁止由 test 真值提供 |
 | PULNS | 接口/审计已交付，正式 support 待批 | 仅 SCAR OS + 终点 OA；标准 PU-only PA 不接受；八集 support 来源/规模/标签预算待定 |
 | GEN-PU | 论文目标已定，有条件接受 | 正式目标采用论文 prior-weighted minimax；作者 demo 仅差异对照；先验来源、TS 池、PN 阶段资格与正式 recipe 待定；归档未发现 LICENSE，登记 `unknown` |
-| Holistic-PU | 工程变体有条件接受 | 论文 signed 全时序/variance 与发布代码的邻差/Jenks 不等价；正式 recipe 仍须选择 |
+| Holistic-PU | 当前实现保留，有条件接受 | 论文 pairwise/variance 路径；默认 fixed + continue；作者变体仅对照；`license=unknown`；LZO/初始化/存储 recipe 与公开数值待定 |
 | CVIR | OS adaptation 已接，准入待定 | 显式 α_U；population π 只给 PA；OS→TS 校准不属于本实验；α_U 有限样本口径、候选/预算与公开数值待定 |
 | LaGAM | OS 身份已裁决，准入暂缓 | clean support 是额外训练监督，标准 PU-only PA 不适用；support/标签预算、许可与公开数值待定 |
 | VPU（既有） | 沿用 D21/D22 | 不新增准入；原生 TS、OS 消融与验证变分风险仅作 diagnostic |
@@ -118,6 +118,10 @@ BBE/TEDⁿ 是 main 合并后新增的独立 native-TS 扩展，不在上述 13 
   对照；未发现新的实现 bug。作者归档未发现 LICENSE，登记 `license=unknown`，
   不复制、执行或再分发。正式 recipe（网络/归一化、生成器输出域、四份 CNN、
   六网络预算/选模）与公开数值另行验收。
+- **Holistic-PU**：2026-10-18 决定在未发现明确缺陷的前提下尊重当前实现；
+  保留论文 trend 路径、默认 fixed warmup 与 continue 初始化，作者变体仅作对照。
+  作者仓库未发现 LICENSE，登记 `license=unknown`；LZO/finetune、初始化 recipe、
+  LZO 选模隔离与 trajectory/storage blocker 仍保留。
 - **LBE / Self-PU / 独立 support / BBE / TEDⁿ** 的收尾状态与预算边界见
   [algorithm_completion_20261017.md](algorithm_completion_20261017.md)。
 - 首轮流水账中的测试数量、commit 与临时 XML 不再保留；需要时从 git 历史追溯。
