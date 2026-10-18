@@ -11,7 +11,12 @@ OS/TS 适用性或预算，也不由技术快照记录决定正式阶段资格�
 
 Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_files/paper/2023/file/d5c0f9585592bad5251133813893a6c0-Paper-Conference.pdf)
 式 (1)、(4)/(5)、(8)、§2.4 的最终 CE。[作者仓库](https://github.com/wxr99/HolisticPU/tree/4d4ce7d6ba29722995d308293374c0f475d988d3)
-已锁定 `4d4ce7d6ba29722995d308293374c0f475d988d3`。独立实现，不执行/复制作者代码，未确认许可证。
+已锁定 `4d4ce7d6ba29722995d308293374c0f475d988d3`。独立实现，不执行/复制作者代码。
+2026-10-18 决定（shuidisjtu）：在未发现明确实现缺陷的前提下，尊重当前实现；
+正式结果保留论文 pairwise/variance 路径、默认 fixed warmup 与 continue 初始化，
+`author_adjacent`/`author_sse`、`lzo_positive_loss`、`reinitialize` 仅作显式变体。
+作者仓库未发现 LICENSE，登记 `license=unknown`；不复制、执行或再分发。
+fixed/LZO/finetune、初始化 recipe、LZO 选模隔离与 trajectory/storage blocker 仍保留。
 
 ## 组件路径与来源分歧
 

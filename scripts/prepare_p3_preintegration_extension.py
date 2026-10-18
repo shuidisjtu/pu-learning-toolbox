@@ -31,11 +31,9 @@ METHOD_BLOCKERS = {
         "generator_step_discriminator_mode_and_native_image_resource_spec",
     ],
     "holistic_pu": [
-        "paper_pairwise_variance_vs_author_adjacent_Jenks_decision",
         "fixed_warmup_vs_LZO_and_finetune_spec",
         "pseudo_pn_initialization_variant_recipe_decision",
         "lzo_positive_loss_recipe_and_external_selection_isolation",
-        "source_license_review",
         "trajectory_and_model_selection_storage_spec",
     ],
 }

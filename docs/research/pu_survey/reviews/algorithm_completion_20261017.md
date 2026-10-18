@@ -12,7 +12,7 @@
 | Self-PU / LaGAM | 独立 clean support 与外部 OA 隔离的显式实验接线 | 接线与真实元更新 CPU 回归通过；实际支持集/正式标签预算仍待确认 |
 | PULNS 实际支持集 | 已有安全接口后的实际数据与预算 | 需明确支持集来源/预算；本轮不在旧 frozen split 上偷偷取标签 |
 | CVIR 扩展 | 固定alpha路径已接；独立 BBE 与完整 TEDn 交替训练工程入口已补，均为独立可选扩展 | [BBE](../../method_cards/BBE.md) / [TEDn](../../method_cards/TEDn.md)；显式 α_U，不接公共总体先验或 CVIR 默认路径；本 Survey 走 OS adaptation + 显式 α_U，OS→TS 不属于本实验；未注册 TEDn 至 CLI/UI，正式预算/选模/数值待核 |
-| 原论文配方差异 | GEN-PU/Holistic/Robust/Split等差异保留 | GEN-PU 已于 2026-10-18 采用论文目标；Holistic/Robust/Split 等正式目标/配方仍需负责人批准 |
+| 原论文配方差异 | GEN-PU/Holistic/Robust/Split等差异保留 | GEN-PU 已于 2026-10-18 采用论文目标；Holistic-PU 保留当前实现（论文 trend 路径 + fixed/continue）；Robust/Split 等正式目标/配方仍需负责人批准 |
 | CNN oracle / GPU验收 | 正式协议、资源与多seed运行 | 10-17查询8张A6000均有占用；不抢卡，未经批准不启动正式200轮/5seed跑批 |
 
 ## LBE：诊断计划与解释边界
