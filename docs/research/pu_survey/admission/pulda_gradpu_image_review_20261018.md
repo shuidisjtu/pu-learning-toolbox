@@ -69,6 +69,10 @@ prior 来源/数值、`training_view_` / `calibration_applied_`、PA/OA 策略�
 
 ## 验收与仍待办
 
+后续独立补齐：见[合作者待确认清单与资源预检](candidate_image_owner_decisions_20261018.md)。
+资源预检从当前源码读取120/200快照数，计算候选/重试/并行文件需求；缺实测样本不判空间充足。
+它不训练、不导入 torch、不反序列化 checkpoint，不替代本节未完成的完整峰值 profile。
+
 新增测试：`test_pulda_augmentation.py`、`test_candidate_image.py`。
 第一轮16项通过：增强调用角色与次数、两阶段/MixUp 顺序、非法输出与失败重训、
 clone/pickle/模板隔离、同 seed 与 RNG 隔离、真实共享 ResNet-18 的 BN/权重更新、

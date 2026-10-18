@@ -87,6 +87,9 @@
 
 ## 当前阅读入口
 
+合作者待回复：[PULDA / GradPU 图像配方决策清单](admission/candidate_image_owner_decisions_20261018.md)
+（#119 的初始化、BN、增强、MLP、warmup 选项；附只读资源预检命令，不代签正式准入）。
+
 1. 先读 [`survey_execution_plan.md`](survey_execution_plan.md) 了解任务主责和未完成项。
 2. 需要协议口径时读 [`pu_survey_protocol.md`](pu_survey_protocol.md)。
 3. 需要交付证据、候选准入或独立复核时进入对应子目录，不在本索引重复复制结论。

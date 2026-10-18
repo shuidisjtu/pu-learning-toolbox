@@ -63,6 +63,11 @@
 
 ### 1.3 执行边界
 
+2026-10-18 独立续批：[合作者图像配方待确认清单](admission/candidate_image_owner_decisions_20261018.md)
+已按初始化/BN/增强/MLP/warmup 分项，可直接回复；新增只读资源预检按源码默认
+120/200快照和候选/重试/并发估算文件空间，缺少实测样本不放行。
+不训练、不加载制品，完整 CPU/GPU 峰值 profile、正式配方/接线及准入仍待办。
+
 2026-10-18 优先核对远程 #119/#120 并补[PULDA/GradPU 图像技术接线](admission/pulda_gradpu_image_review_20261018.md)：
 PULDA 增加逐训练 batch 增强与共享 seeded ResNet-18 回归；GradPU 固定技术入口为
 cnn13_no_bn/private，均记录初始化/归一化/训练路径。未改冻结矩阵或台账准入位；
