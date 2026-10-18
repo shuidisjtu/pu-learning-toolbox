@@ -31,6 +31,7 @@ pu_toolbox/
     tags.py                               (shared: Scenario/Assumption/ImplementationStatus 等类型化枚举)
     device.py                             (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
     training_views.py                     (shared: TrainingView/build_training_view——P/原始 U/损失 U 角色与来源索引的中立构造，不认识台账·方法名·manifest)
+    fit_state.py                          # opt-in 失败拟合状态失效保护
   preprocessing/
     __init__.py                           (公共导出聚合)
     pu_labeling.py                        (make_scar_labels/make_pu_labels 等造 PU/PNU 标签及高斯合成数据)
@@ -301,6 +302,7 @@ tests/
       test_tedn.py                      # TEDn 公式梯度、原生 TS 契约与真实 BBE 合成训练
       test_tedn_training.py             # TEDn 更新前估计、CNN 留出隔离、收敛与 checkpoint 回放
       test_robust_pu_source_contract.py # Robust-PU 独立公式/真实梯度、逐行移动权重与源调度子集
+      test_candidate_fit_failures.py    # 五候选算法失败重训/回调与成功路径不变性
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -397,6 +399,7 @@ tests/
       test_device.py                    # resolve_device 设备解析共享助手测试
       test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
       test_random.py                    # check_random_state 种子归一化助手直接测试(含与内联构造的双向差异)
+      test_fit_state.py                 # 拟合状态保护的异常、取消与签名契约
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)

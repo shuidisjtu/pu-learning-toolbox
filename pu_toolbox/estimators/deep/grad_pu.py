@@ -15,6 +15,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -145,6 +146,7 @@ class GradPUClassifier(BasePUClassifier):
         self.random_state = random_state
         self.device = device
 
+    @invalidate_failed_fit
     def fit(
         self,
         X: np.ndarray,

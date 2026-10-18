@@ -14,6 +14,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ...core.base import BasePUClassifier
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -111,6 +112,7 @@ class PUExtraTreesClassifier(BasePUClassifier):
         self.bootstrap = bootstrap
         self.random_state = random_state
 
+    @invalidate_failed_fit
     def fit(
         self,
         X: np.ndarray,

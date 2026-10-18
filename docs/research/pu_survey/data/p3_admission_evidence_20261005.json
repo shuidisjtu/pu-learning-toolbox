@@ -99,6 +99,9 @@
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_basic_pulda_ema_three_batches_matches_scalar_source_and_gradient",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",
         "tests/unit/estimators/test_p3_budget_selection_evidence.py::test_basic_determ_pulda_unequal_phases_keep_tail_and_report_real_steps"
       ],
       "adaptation_differences": [
@@ -214,6 +217,9 @@
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_param_puet_node_risk_matches_scalar_closed_form",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_puet_tree_failure_invalidates_without_replacing_old_diagnostics",
         "tests/unit/estimators/test_p3_budget_selection_evidence.py::test_edge_puet_ties_and_zero_gain_keep_deterministic_negative_leaf",
         "tests/unit/estimators/test_puet.py::test_edge_bootstrap_root_masses_and_constant_leaf",
         "tests/unit/estimators/test_puet_adaptation_contract.py::test_basic_param_child_minimum_rejects_positive_gain_singleton",
@@ -326,6 +332,9 @@
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_basic_gradpu_raw_gradient_penalty_matches_scalar_and_second_derivative",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",
         "tests/unit/estimators/test_grad_pu.py::test_ts_calibrates_unlabeled_risk_and_gradient_interpolation"
       ],
       "adaptation_differences": [
@@ -445,6 +454,9 @@
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_param_robust_spl_rules_match_scalar_boundaries_and_detach",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",
         "tests/unit/experiment/test_multistage_candidate_accounting.py::test_basic_optimizer_counter_matches_instrumented_all_stage_updates_and_resets",
         "tests/unit/estimators/test_robust_pu_source_contract.py::test_basic_temperature_hardness_weights_match_independent_scalar_formula",
         "tests/unit/estimators/test_robust_pu_source_contract.py::test_edge_nnpu_optimization_branches_match_source_not_clipped_risk_gradients",
@@ -569,6 +581,9 @@
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_basic_splitpu_js_matches_scalar_bernoulli_source_and_detaches_teacher",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
+        "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",
         "tests/unit/experiment/test_multistage_candidate_accounting.py::test_determ_snapshots_respect_budget_bound_and_early_stop_without_changing_fit"
       ],
       "adaptation_differences": [

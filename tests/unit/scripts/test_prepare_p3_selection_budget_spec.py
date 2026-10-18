@@ -65,6 +65,15 @@ def test_basic_budget_units_stage_scope_and_approvals_are_separate():
     assert tree["budget_fact"]["trees_per_default_fit"] == 100
     assert tree["budget_fact"]["optimizer_steps_expression"] is None
     assert tree["checkpoint_fact"]["single_final_fit_without_epoch_callback"] is True
+    contract = generated["fit_failure_contract"]
+    assert contract["scope"] == list(prepare.METHODS)
+    assert contract["helper_ref"] == prepare.FIT_GUARD_REF
+    assert contract["helper_sha256"] == prepare.source_digest(ROOT / prepare.FIT_GUARD_REF)
+    assert contract["invalidate_before_argument_binding"] is True
+    assert contract["invalidate_on"] == "BaseException_then_reraise_same_object"
+    assert contract["successful_fit_and_callback_visibility_owned_by_estimator"] is True
+    assert contract["learned_attributes_or_external_artifacts_rolled_back"] is False
+    assert contract["training_retry_or_resume_added"] is False
 
 
 @pytest.mark.parametrize(
@@ -85,6 +94,8 @@ def test_basic_budget_units_stage_scope_and_approvals_are_separate():
         "source",
         "binding",
         "ghost",
+        "fit_guard_source",
+        "fit_rollback",
     ],
 )
 def test_param_modified_specs_are_rejected_without_false_approval(tmp_path, fault, capsys):
@@ -123,6 +134,12 @@ def test_param_modified_specs_are_rejected_without_false_approval(tmp_path, faul
         row["implementation_sha256"] = "0" * 64
     elif fault == "binding":
         recorded["bound_files_sha256"]["uv.lock"] = "0" * 64
+    elif fault == "fit_guard_source":
+        recorded["fit_failure_contract"]["helper_sha256"] = "0" * 64
+    elif fault == "fit_rollback":
+        recorded["fit_failure_contract"]["learned_attributes_or_external_artifacts_rolled_back"] = (
+            True
+        )
     else:
         recorded["methods"]["ghost"] = copy.deepcopy(row)
     path = tmp_path / "tampered.json"
@@ -132,7 +149,7 @@ def test_param_modified_specs_are_rejected_without_false_approval(tmp_path, faul
     assert receipt["ok"] is False and "draft drift" in receipt["error"]
 
 
-@pytest.mark.parametrize("fault", ["spec_ref", "old_admission", "calibration", "class"])
+@pytest.mark.parametrize("fault", ["spec_ref", "old_admission", "calibration", "class", "fit_ref"])
 def test_param_bad_upstream_facts_cannot_generate_a_consistent_draft(fault):
     ledger, protocol = load_ledger(), load_protocol()
     if fault == "spec_ref":
@@ -141,6 +158,8 @@ def test_param_bad_upstream_facts_cannot_generate_a_consistent_draft(fault):
         protocol["method_profiles"]["pulda"] = {}
     elif fault == "calibration":
         ledger["methods"]["pulda"]["calibration_applied"] = False
+    elif fault == "fit_ref":
+        ledger["methods"]["pulda"]["fit_failure_review_ref"] = "wrong.md"
     else:
         ledger["methods"]["pulda"]["class"] = "WrongClass"
     with pytest.raises(ValueError):
@@ -153,6 +172,7 @@ def test_param_bad_upstream_facts_cannot_generate_a_consistent_draft(fault):
         ("class M:\n def fit(self, X, y, **kwargs): pass\n", "silently"),
         ("class M:\n def fit(self, X, y, *, clean_val=None): pass\n", "role leak"),
         ("class M:\n checkpoint_stages = ['warmup']\n def fit(self, X, y): pass\n", "nonliteral"),
+        ("class M:\n def fit(self, X, y): pass\n", "missing failed-fit"),
     ],
 )
 def test_param_ast_role_and_stage_interface_checks_are_fail_closed(tmp_path, text, match):
@@ -165,3 +185,15 @@ def test_param_ast_role_and_stage_interface_checks_are_fail_closed(tmp_path, tex
 def test_edge_missing_check_input_returns_json_not_traceback(tmp_path, capsys):
     assert prepare.main(["--check", str(tmp_path / "missing.json")]) == 1
     assert json.loads(capsys.readouterr().out)["ok"] is False
+
+
+def test_edge_shared_helper_changes_invalidate_recorded_spec_without_training(monkeypatch):
+    original = prepare.source_digest
+
+    def modified_helper(path):
+        return "0" * 64 if path == ROOT / prepare.FIT_GUARD_REF else original(path)
+
+    monkeypatch.setattr(prepare, "source_digest", modified_helper)
+    generated = prepare.build_spec(load_ledger(), load_protocol())
+    assert generated["fit_failure_contract"]["helper_sha256"] == "0" * 64
+    assert generated != _recorded()

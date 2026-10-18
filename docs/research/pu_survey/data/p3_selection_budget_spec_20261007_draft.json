@@ -13,9 +13,26 @@
     "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
     "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "8435136b9d89ea4fa0e3b60f8e71b349cffb3997beee36829bf262f4d488ec05"
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "94769bcacaf214fb75c54c5c41cf736693b10da29752df71fffa689a5f341b9d"
   },
   "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
+  "fit_failure_contract": {
+    "review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
+    "helper_ref": "pu_toolbox/core/fit_state.py",
+    "helper_sha256": "6729de40c3c3b38d56139520bdc313237e0d8c09d8c44af13e4988ae67399310",
+    "scope": [
+      "pulda",
+      "puet",
+      "gradpu",
+      "robust_pu",
+      "split_pu"
+    ],
+    "invalidate_before_argument_binding": true,
+    "invalidate_on": "BaseException_then_reraise_same_object",
+    "successful_fit_and_callback_visibility_owned_by_estimator": true,
+    "learned_attributes_or_external_artifacts_rolled_back": false,
+    "training_retry_or_resume_added": false
+  },
   "storage_contract": {
     "weights_only_inference_snapshots": true,
     "reclaim_reduces_training_peak": false,
@@ -28,7 +45,7 @@
     "pulda": {
       "class": "PULDAClassifier",
       "implementation_ref": "pu_toolbox/estimators/risk/pulda.py",
-      "implementation_sha256": "a51f0be19ee64f2cb4c240a2580805346e7c0f3bea7270cfc54dd32a02ff4110",
+      "implementation_sha256": "8728c2da4b22a5bc21fc39ef8efc0942bf69a79c0ec06bf0ba9639285239892a",
       "fit_named_parameters": [
         "X",
         "y_pu",
@@ -143,7 +160,7 @@
     "puet": {
       "class": "PUExtraTreesClassifier",
       "implementation_ref": "pu_toolbox/estimators/risk/puet.py",
-      "implementation_sha256": "f56a45cfb4fc8b50a6a161a8382195b56d60d41a4c3e2fd9ec63c8ef28ca9a54",
+      "implementation_sha256": "6aacad5300060704decc69092a6f72f380845e3baebb3b94b12e2ecbc5b6dfac",
       "fit_named_parameters": [
         "X",
         "y_pu",
@@ -240,7 +257,7 @@
     "gradpu": {
       "class": "GradPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
-      "implementation_sha256": "c823ec5a678c7f6c081f828cc26d6ea4e265348a5e7a0f3d42f1f6ab62f58535",
+      "implementation_sha256": "4402381a3e19782c5d985385650eebb37151cc0ee596652490e43e102afb533b",
       "fit_named_parameters": [
         "X",
         "y_pu",
@@ -346,7 +363,7 @@
     "robust_pu": {
       "class": "RobustPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/robust_pu.py",
-      "implementation_sha256": "4e69aadcd972589d4f65d6a52c9af677d24d19651834517dffeb2af6421c0f5e",
+      "implementation_sha256": "2928e54334a59ff1e9d564fd39f6c603c29868372b6a7c8ce60d53d48d3e99d3",
       "fit_named_parameters": [
         "X",
         "y_pu",
@@ -470,7 +487,7 @@
     "split_pu": {
       "class": "SplitPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/split_pu.py",
-      "implementation_sha256": "c6d2404bf6164490d78f74be6b4a7492ffef31b8270422ed2cecbd6cccd20dfa",
+      "implementation_sha256": "10622a26b895ddf713d50596aaccfc1ebc506ca1e607b25e2ad5547b9923800e",
       "fit_named_parameters": [
         "X",
         "y_pu",

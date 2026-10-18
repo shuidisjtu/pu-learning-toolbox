@@ -33,6 +33,8 @@ from scripts.check_p3_public_comparison import (
 from scripts.check_p3_public_comparison import DRAFT_REF as COMPARISON_REF
 
 DRAFT_REF = "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json"
+FIT_GUARD_REF = "pu_toolbox/core/fit_state.py"
+FIT_REVIEW_REF = "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md"
 STAGES = {
     "pulda": ("warmup", "pu_mixup"),
     "puet": (),
@@ -83,6 +85,13 @@ def _interface(path, class_name):
         ):
             stages = ast.literal_eval(node.value)
     require(isinstance(stages, tuple), "nonliteral stage declaration")
+    require(
+        any(
+            isinstance(node, ast.Name) and node.id == "invalidate_failed_fit"
+            for node in fit.decorator_list
+        ),
+        "missing failed-fit invalidation guard",
+    )
     return parameters[1:], stages
 
 
@@ -130,6 +139,7 @@ def build_spec(ledger, protocol, *, root=ROOT):
     validate_draft(comparison, ledger, protocol, root=root)
     require(set(evidence["methods"]) == set(METHODS), "evidence scope drift")
     require(comparison["numeric_policy"]["enabled"] is False, "public comparison must stay draft")
+    repo_file(FIT_REVIEW_REF, root)
     methods = {}
     for method in METHODS:
         entry, old = ledger["methods"][method], evidence["methods"][method]
@@ -137,6 +147,7 @@ def build_spec(ledger, protocol, *, root=ROOT):
         require(entry["selection_budget_spec_ref"] == DRAFT_REF, "ledger spec ref drift")
         require(entry["admission_evidence_ref"] == EVIDENCE_REF, "ledger evidence ref drift")
         require(entry["public_comparison_ref"] == COMPARISON_REF, "ledger comparison ref drift")
+        require(entry["fit_failure_review_ref"] == FIT_REVIEW_REF, "fit review ref drift")
         require(old["class"] == entry["class"], "class identity drift")
         path = repo_file(old["implementation_ref"], root)
         defaults, properties = constructor_facts(path, entry["class"])
@@ -211,6 +222,17 @@ def build_spec(ledger, protocol, *, root=ROOT):
                 "checkpoint_writer_sha256": source_digest(
                     repo_file("pu_toolbox/experiment/checkpoints.py", root)
                 ),
+                "fit_failure_contract": {
+                    "review_ref": FIT_REVIEW_REF,
+                    "helper_ref": FIT_GUARD_REF,
+                    "helper_sha256": source_digest(repo_file(FIT_GUARD_REF, root)),
+                    "scope": list(METHODS),
+                    "invalidate_before_argument_binding": True,
+                    "invalidate_on": "BaseException_then_reraise_same_object",
+                    "successful_fit_and_callback_visibility_owned_by_estimator": True,
+                    "learned_attributes_or_external_artifacts_rolled_back": False,
+                    "training_retry_or_resume_added": False,
+                },
                 "storage_contract": {
                     "weights_only_inference_snapshots": True,
                     "reclaim_reduces_training_peak": False,

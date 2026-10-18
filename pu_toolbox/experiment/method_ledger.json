@@ -573,6 +573,7 @@
     },
     "pulda": {
       "class": "PULDAClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
@@ -612,6 +613,7 @@
     },
     "puet": {
       "class": "PUExtraTreesClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
@@ -660,6 +662,7 @@
     },
     "gradpu": {
       "class": "GradPUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
@@ -829,6 +832,7 @@
     },
     "robust_pu": {
       "class": "RobustPUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
@@ -883,6 +887,7 @@
     },
     "split_pu": {
       "class": "SplitPUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
       "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
