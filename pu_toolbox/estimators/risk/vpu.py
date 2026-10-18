@@ -419,10 +419,13 @@ class VPUClassifier(BasePUClassifier):
         X = _finite_features(X, name="prediction X", allow_nd=self.encoder is not None)
         if tuple(X.shape[1:]) != self.input_shape_:
             raise ValueError("prediction X has the wrong feature dimension/input shape")
-        self.model_.eval()
-        with torch.no_grad():
-            return (
-                np.concatenate(
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        modes = [(module, module.training) for module in self.model_.modules()]
+        try:
+            self.model_.eval()
+            with torch.no_grad():
+                return np.concatenate(
                     [
                         self.model_(
                             torch.as_tensor(X[start : start + self.batch_size], device=self.device_)
@@ -433,9 +436,9 @@ class VPUClassifier(BasePUClassifier):
                         for start in range(0, len(X), self.batch_size)
                     ]
                 )
-                if len(X)
-                else np.empty(0, dtype=np.float32)
-            )
+        finally:
+            for module, training in modes:
+                module.training = training
 
     def _predict(self, X) -> np.ndarray:
         return (self._decision_function(X) >= 0).astype(int)

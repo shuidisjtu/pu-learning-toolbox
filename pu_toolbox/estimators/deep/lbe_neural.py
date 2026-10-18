@@ -319,27 +319,26 @@ class NeuralLBEClassifier(BasePUClassifier):
     def _logits(self, network, data):
         import torch
 
-        training = network.training
-        network.eval()
+        if not len(data):
+            return torch.empty(0, dtype=torch.float32)
+        modes = [(module, module.training) for module in network.modules()]
         try:
+            network.eval()
             with torch.no_grad():
-                return (
-                    torch.cat(
-                        [
-                            self._scores(
-                                network,
-                                data[start : start + self.batch_size].to(
-                                    next(network.parameters()).device
-                                ),
-                            ).cpu()
-                            for start in range(0, len(data), self.batch_size)
-                        ]
-                    )
-                    if len(data)
-                    else torch.empty(0)
+                return torch.cat(
+                    [
+                        self._scores(
+                            network,
+                            data[start : start + self.batch_size].to(
+                                next(network.parameters()).device
+                            ),
+                        ).cpu()
+                        for start in range(0, len(data), self.batch_size)
+                    ]
                 )
         finally:
-            network.train(training)
+            for module, training in modes:
+                module.training = training
 
     def _update(self, optimizer, data, indices, loss_fn):
         import torch

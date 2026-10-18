@@ -400,6 +400,7 @@
     },
     "lbe_neural": {
       "class": "NeuralLBEClassifier",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
       "review": {"owner": "shuidisjtu", "reviewer": "HENG958", "status": "pending_collaborator_review"},
       "paper": {
         "title": "Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
@@ -961,6 +962,7 @@
     },
     "vpu": {
       "class": "VPUClassifier",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
       "paper": {
         "title": "A Variational Approach for Learning from Positive and Unlabeled Data",
         "authors": "Hui Chen, Fangqing Liu, Yin Wang, Liyue Zhao, Hao Wu",

@@ -15,10 +15,12 @@ from pu_toolbox import (  # noqa: E402
     GradPUClassifier,
     HolisticPUClassifier,
     LaGAMClassifier,
+    NeuralLBEClassifier,
     PULDAClassifier,
     PULNSClassifier,
     RobustPUClassifier,
     SplitPUClassifier,
+    VPUClassifier,
 )
 from pu_toolbox.estimators.deep.tedn import TEDnClassifier  # noqa: E402
 
@@ -33,6 +35,8 @@ METHODS = (
     "pulns",
     "lagam",
     "tedn",
+    "vpu",
+    "lbe_neural",
 )
 
 
@@ -104,6 +108,12 @@ def fitted_model(method):
             )
         support = np.random.RandomState(19).normal(size=(8, 3)).astype(np.float32)
         return model.fit(features, labels, support_data=(support, np.tile([0, 1], 4))), features
+    elif method == "vpu":
+        model = VPUClassifier(max_epochs=1, batch_size=4, iterations_per_epoch=1, **kwargs)
+    elif method == "lbe_neural":
+        model = NeuralLBEClassifier(
+            pretrain_steps=1, n_em_iter=1, m_steps=1, sample_fraction=0.5, batch_size=4, **kwargs
+        )
     elif method == "tedn":
         import pu_toolbox.estimators.deep.tedn as implementation
 
@@ -253,3 +263,47 @@ def test_edge_lagam_resident_scoring_restores_modes_on_all_exits(monkeypatch, fa
     assert [layer.training for layer in model.model_.modules()] == before
     assert model.decision_function(features[:0]).shape == (0,)
     assert [layer.training for layer in model.model_.modules()] == before
+
+
+@pytest.mark.parametrize("fault", ["none", "forward", "eval"])
+def test_edge_neural_lbe_label_probability_restores_both_networks(monkeypatch, fault):
+    model, features = fitted_model("lbe_neural")
+    expected = model.predict_label_proba(features)
+    set_mixed_modes(model, True)
+    model.propensity_model_.train(False)
+    for index, layer in enumerate(model.propensity_model_.modules()):
+        if index % 2:
+            layer.training = True
+    before = [
+        (layer, layer.training)
+        for network in (model.model_, model.propensity_model_)
+        for layer in network.modules()
+    ]
+    sentinel = RuntimeError("propensity inference failure")
+
+    def fail(*args, **kwargs):
+        raise sentinel
+
+    handle = None
+    if fault == "forward":
+        handle = model.propensity_model_.register_forward_pre_hook(fail)
+    elif fault == "eval":
+        dropout = next(
+            layer
+            for layer in model.propensity_model_.modules()
+            if isinstance(layer, torch.nn.Dropout)
+        )
+        monkeypatch.setattr(dropout, "train", fail)
+    try:
+        if fault == "none":
+            np.testing.assert_array_equal(model.predict_label_proba(features), expected)
+        else:
+            with pytest.raises(RuntimeError) as error:
+                model.predict_label_proba(features)
+            assert error.value is sentinel
+    finally:
+        if handle is not None:
+            handle.remove()
+    assert all(layer.training == mode for layer, mode in before)
+    assert model.predict_label_proba(features[:0]).shape == (0,)
+    assert all(layer.training == mode for layer, mode in before)
