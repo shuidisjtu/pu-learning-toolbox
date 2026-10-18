@@ -424,6 +424,7 @@ tests/
       test_feature_adapter.py           # CNN 特征四路适配/哈希/fit 范围与 split/seed/预算公平门禁
       test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
       test_candidate_image.py           # PULDA/GradPU seeded 共享/私有图像路径、BN 与非正式 manifest
+      test_candidate_image_receipt.py   # 图像实际fit收据、输入/模板/参数绑定及失配时训练前拒绝
       test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测；跨排列同条目、重复文本共享行
       test_training_views.py            # 实验层边界适配器: TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与 manifest 哈希
       test_manifest.py                  # manifest 往返与必填键 fail-loud

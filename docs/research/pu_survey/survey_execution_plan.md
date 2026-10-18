@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-18 图像技术入口补[实际fit收据](admission/candidate_image_training_receipt_20261018.md)：
+训练前绑定像素/模板/seed/增强/prior，记录fit参数、实际epoch/更新数与代码摘要。
+不接冻结runner，不证明四角色/标签预算/锁环境或快照持久化，正式准入仍false。
+
 2026-10-18 独立修复[PULDA/GradPU推理逐模块模式恢复](admission/pulda_gradpu_inference_modes_20261018.md)：
 修复预测覆盖混合Dropout/BN模式的实际缺陷，含前向/eval切换异常恢复，不改变训练
 策略、默认数值、校准/预算或正式准入；旧资源probe不回填为新源码实测。
