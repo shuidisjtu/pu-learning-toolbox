@@ -63,6 +63,11 @@
 
 ### 1.3 执行边界
 
+2026-10-18 独立核查 #122：[Split-PU现状反例与决策清单](admission/splitpu_122_characterization_20261018.md)
+补JSD权重反转会连带改变分母的标量核对，以及真实teacher批次插桩：全量union的
+population比例不保证均衡batch并集恢复该比例。只补测试与文档，不擅自改目标、
+prior、采样或台账；正式方向/归一化、比例采样或近似接受仍待负责人决定。
+
 2026-10-18 优先整改 #121：[GradPU 调度与真实batch运行声明](admission/gradpu_training_recipe_review_20261018.md)
 保留常量LR默认，补显式线性/余弦、实际batch/更新成本与SAR/TS边界的每候选manifest，
 完善CNN/回放/fold证据。正式曲线/总batch语义/候选与阶段仍待确认，不改冻结协议、

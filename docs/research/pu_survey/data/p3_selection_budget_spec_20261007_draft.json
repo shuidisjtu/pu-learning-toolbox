@@ -13,7 +13,7 @@
     "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
     "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "84e54fcc4c5e340b418fd7d0ab9b98a22c9c3e4dc54e3cbe068b5f05ebe4c440"
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "75c5dba7a20444327723db6d7d9508a52d7b399d1608a6318d7d018ea2aea2f4"
   },
   "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
   "fit_failure_contract": {
@@ -542,7 +542,9 @@
         "scope": "nnPU_teacher_only",
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "source_equivalence_claim": false
+        "source_equivalence_claim": false,
+        "role_union_guarantees_population_mixture": false,
+        "sampling_review_ref": "docs/research/pu_survey/admission/splitpu_122_characterization_20261018.md"
       },
       "budget_fact": {
         "default_snapshot_count": 40,

@@ -588,14 +588,18 @@
         "scope": "nnPU_teacher_only",
         "run_view": "ts-compatible",
         "calibration_applied": true,
-        "source_equivalence_claim": false
+        "source_equivalence_claim": false,
+        "role_union_guarantees_population_mixture": false,
+        "sampling_review_ref": "docs/research/pu_survey/admission/splitpu_122_characterization_20261018.md"
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_basic_splitpu_js_matches_scalar_bernoulli_source_and_detaches_teacher",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",
-        "tests/unit/experiment/test_multistage_candidate_accounting.py::test_determ_snapshots_respect_budget_bound_and_early_stop_without_changing_fit"
+        "tests/unit/experiment/test_multistage_candidate_accounting.py::test_determ_snapshots_respect_budget_bound_and_early_stop_without_changing_fit",
+        "tests/unit/estimators/test_split_pu_review_characterization.py::test_basic_determ_teacher_batch_union_does_not_restore_population_mixture",
+        "tests/unit/estimators/test_split_pu_review_characterization.py::test_basic_source_direction_paper_direction_and_simple_weight_flip_are_three_objectives"
       ],
       "adaptation_differences": [
         {

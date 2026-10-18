@@ -14,7 +14,7 @@ step 插桩、早停快照/回放和失败不重试见 `test_multistage_candidat
 | 论文 | Xu 等，*Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning*，ACM MM 2022；[arXiv:2211.16756](https://arxiv.org/abs/2211.16756) |
 | 官方代码 | [`loadder/SplitPU_MM2022`](https://github.com/loadder/SplitPU_MM2022)，核对 commit `82fb9730597a65a12156736419d4588675bc24d5` |
 | 源码位置 | `main.py`、`splitpu_utils.py:split/train_splitpu`、`utils.py:JSDLoss/hard_loss/sim_loss`、`nnpu_utils.py:train_nnpu` |
-| 先验 | `class_prior` 为 U 分布正类比例，只用于 nnPU teacher 预训练 |
+| 先验 | 仅用于nnPU teacher；TS目标为population π。显式OS需区分U内π_U与population风险，不自动换算；mini-batch比例前提见下文#122补充 |
 
 ## 训练阶段
 
@@ -49,6 +49,12 @@ affine/编码器仍有梯度，模式随后恢复；不复制/丢弃行，不改
 低层解析梯度与 CUDA 回放由 `test_split_pu_cnn.py` 和共享 integration 测试覆盖。
 
 ## 差异与门禁
+
+2026-10-18 根据 #122 补[方向/归一化与mini-batch反例](../pu_survey/admission/splitpu_122_characterization_20261018.md)：
+当前teacher权重0.7跟随源码；仅将其改成0.3还会改变归一化分母，并非自动对齐论文式。
+TS逐batch风险角色U∪P已实现，但均衡P/U抽样不保证总体混合比例；合成插桩显示
+全量union阳性比例0.4而实际teacher风险池为0.673913。正式采样/加权或近似接受
+仍待负责人决定；本轮只补证据与文档，不改变目标/采样、默认值或历史冻结结果。
 
 - 官方使用 CIFAR CNN、图像弱/强增强和带 predictor 的高层 SimSiam 一致性；本版仍以 Gaussian 弱/强扰动和余弦一致性替代，不含官方 SimSiam 投影/predictor。默认 MLP 用隐层特征，注入 CNN 用真实中间/最终编码特征；低层选择和相同模板初始化各阶段均属**显式工程适配**，不可直接拿论文准确率作数值裁决。
 - 官方代码训练中反复读取测试标签报告准确率；本实现的 `fit` 无真实标签入口，不使用 test set 决定阶段或权重。PA/OA 由外部 runner 分开执行。

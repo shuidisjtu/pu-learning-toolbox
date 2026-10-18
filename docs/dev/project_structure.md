@@ -284,6 +284,7 @@ tests/
       test_pulda_augmentation.py        # PULDA 两阶段逐批增强、MixUp 顺序、拒绝与模板隔离
       test_grad_pu_cnn.py               # GradPU 原图二阶梯度、无 BN 编码器与权重回放
       test_grad_pu_training_recipe.py   # GradPU 实际Adam调度、batch/更新数及运行声明
+      test_split_pu_review_characterization.py # Split-PU #122 的JSD方向/分母与mini-batch总体混合反例
       test_robust_pu_cnn.py             # Robust-PU CNN 阶段、BN 隔离与 CPU 权重/快照回放
       test_split_pu_cnn.py              # Split-PU 多层 CNN 蒸馏、阶段隔离与快照回放
       test_p3_budget_selection_evidence.py # 五方法预算计数、来源适配和选择签名边界
