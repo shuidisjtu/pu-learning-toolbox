@@ -536,7 +536,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.vpu",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "formal_admission": false
@@ -583,7 +583,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.lbe_neural",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false
@@ -630,7 +630,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pan",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false
@@ -671,7 +671,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false
@@ -712,7 +712,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.rp",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false
