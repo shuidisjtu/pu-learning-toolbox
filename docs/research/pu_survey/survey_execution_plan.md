@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-19 续批收尾见[任务/发布验收与后续](reviews/candidate_followup_summary_20261019.md)：
+逐项修复评分模式、15候选失败拟合和机器证据绑定；另修临时LBE脚本的Git/cwd溯源。
+短预算Spambase wheel回归不判方法效果，不覆盖旧产物或正式跑批，P3MIX仍待全文。
+
 2026-10-19 补[15候选生命周期机器门禁](reviews/candidate_fit_contracts_20261019.md)：
 只读AST/源码摘要绑定公开fit参数、共享guard、工程审阅引用和原校准口径；
 静态CI核对工程草稿，删guard/漂移/伪准入均拒收，不替代行为测试或正式配方冻结。

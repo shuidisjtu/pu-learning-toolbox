@@ -386,6 +386,7 @@ tests/
       test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
       test_lbe_comparison_plan.py       # split/seed/预算身份与预检拒收
       test_lbe_diagnostics.py           # LBE 分支对称性、独立 SCAR 梯度与诊断计划
+      test_source_provenance.py         # 临时实验脚本Git工作目录与实际加载实现身份
       test_clean_support_execution.py   # 三方法 CPU 实训、显式预算、OA 模型回放与告警拒收
       test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
     advisor/
@@ -882,6 +883,7 @@ scripts/
   run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
   run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断
   _lbe_diagnostic_reference.py            # 不注册的 SCAR 约束解析梯度诊断参考
+  _source_provenance.py                   # 临时实验脚本仓库与实际加载源码身份分离
   prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
 ```

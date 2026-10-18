@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
-import subprocess
 import warnings
 from pathlib import Path
 
 import numpy as np
 from _lbe_diagnostic_reference import SCARFixedPropensityDiagnostic
+from _source_provenance import source_provenance
 from run_lbe_comparison import ComparisonTrainer, build_plan, load_split
 from sklearn.metrics import roc_auc_score
 
@@ -101,18 +102,24 @@ def execute(plan, output):
         raise ValueError("output must not overlap source splits")
     output.mkdir(parents=True, exist_ok=False)
     write_json(output / "plan.json", plan)
+    provenance = source_provenance(
+        __file__,
+        {
+            "lbe": inspect.getfile(LBEClassifier),
+            "scar_diagnostic": inspect.getfile(SCARFixedPropensityDiagnostic),
+        },
+    )
     write_json(
         output / "environment.json",
         {
             **runtime_environment(),
             "training_device": "cpu",
-            "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+            "commit": provenance["script_checkout_commit"],
+            "source_provenance": provenance,
             "script_sha256": file_hash(Path(__file__)),
             "reference_sha256": file_hash(Path(__file__).with_name("_lbe_diagnostic_reference.py")),
-            "lock_sha256": file_hash("uv.lock"),
-            "worktree_dirty": bool(
-                subprocess.check_output(["git", "status", "--porcelain"], text=True)
-            ),
+            "lock_sha256": file_hash(Path(__file__).resolve().parents[1] / "uv.lock"),
+            "worktree_dirty": provenance["script_checkout_dirty"],
         },
     )
     rows = []

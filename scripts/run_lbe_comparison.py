@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import inspect
 import json
 import math
 import pickle
@@ -19,6 +20,7 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+from _source_provenance import source_provenance
 
 from pu_toolbox import LBEClassifier, NeuralLBEClassifier
 from pu_toolbox.core.training_views import ROLES
@@ -454,17 +456,19 @@ def main(argv=None):
         args.out_dir.mkdir(parents=True, exist_ok=False)
         created = True
         _write_json(args.out_dir / "plan.json", plan)
-        commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-        ).stdout.strip()
-        status = subprocess.run(
-            ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
-        ).stdout
+        provenance = source_provenance(
+            __file__,
+            {
+                "lbe": inspect.getfile(LBEClassifier),
+                "lbe_neural": inspect.getfile(NeuralLBEClassifier),
+            },
+        )
         _write_json(
             args.out_dir / "environment.json",
             {
-                "code_commit": commit,
-                "worktree_dirty": bool(status),
+                "code_commit": provenance["script_checkout_commit"],
+                "worktree_dirty": provenance["script_checkout_dirty"],
+                "source_provenance": provenance,
                 "environment": runtime_environment(),
                 "torch_cpu_threads": torch.get_num_threads(),
                 "script_sha256": file_hash(Path(__file__)),
