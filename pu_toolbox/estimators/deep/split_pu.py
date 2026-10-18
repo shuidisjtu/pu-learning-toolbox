@@ -154,15 +154,16 @@ def _batched_score(model, data, batch_size, device):
     """Detached CPU scores without a full-data GPU tensor or BN updates."""
     import torch
 
-    was_training = model.training
-    model.eval()
+    modes = [(module, module.training) for module in model.modules()]
     try:
+        model.eval()
         with torch.no_grad():
             return torch.cat(
                 [_score(model, batch.to(device)).cpu() for batch in data.split(batch_size)]
             )
     finally:
-        model.train(was_training)
+        for module, training in modes:
+            module.training = training
 
 
 class SplitPUClassifier(BasePUClassifier):

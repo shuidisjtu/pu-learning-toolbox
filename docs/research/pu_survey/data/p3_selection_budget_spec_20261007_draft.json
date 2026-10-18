@@ -490,7 +490,7 @@
     "split_pu": {
       "class": "SplitPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/split_pu.py",
-      "implementation_sha256": "10622a26b895ddf713d50596aaccfc1ebc506ca1e607b25e2ad5547b9923800e",
+      "implementation_sha256": "544d49b14e9bf90386f401847da5b4f201bfafd48765a2d5c044c71c2c450dfd",
       "fit_named_parameters": [
         "X",
         "y_pu",

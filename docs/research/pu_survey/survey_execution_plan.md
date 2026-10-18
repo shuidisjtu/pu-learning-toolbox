@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-19 P3.2 续批补[Split-PU 评分状态恢复](admission/splitpu_inference_modes_20261019.md)：
+分批评分成功/前向异常/eval 切换异常均恢复逐层模式；不裁决 #122 的 JSD、prior 或
+混合比例，不改历史结果/资源 probe，不代签准入。
+
 2026-10-19 跳过待补全文的 P3MIX，推进 P3.2 的
 [Robust-PU 推理模式恢复](admission/robustpu_inference_modes_20261019.md)：
 成功及异常路径均恢复逐层 BN/Dropout 模式；不改 fit、校准、目标、预算或冻结结果，

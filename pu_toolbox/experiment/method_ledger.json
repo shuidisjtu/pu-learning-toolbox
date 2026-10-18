@@ -905,6 +905,7 @@
     },
     "split_pu": {
       "class": "SplitPUClassifier",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/splitpu_inference_modes_20261019.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
