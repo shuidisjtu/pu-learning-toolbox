@@ -14,6 +14,13 @@
 
 PULDA 是 Dist-PU 的扩展，需要类先验 $\pi$。发布仓库只提供 CIFAR-10 入口和自定义 CNN；锁定提交的 `losses/factory.py` 还导入了仓库中不存在的 `entropyMinimization` 模块。因此本实现以现存 `distributionLoss.py`、`twoWaySigmoidLoss.py`、`customized/mixup.py` 和 `train.py` 为可审计依据，不把“能够导入工具箱组件”等同于原仓库端到端复现。
 
+2026-10-18 论文全文已取得并核对（TPAMI 2023, 19 页，
+SHA-256 `a2cffd8e0b3275aebf8ab89a29bea11a07b598f252f228df479c8db0e16c4070`）。
+论文区分 PULDA（oracle class prior，目标 `R_lab(f)`）与 PULDA\*（BBE 估计先验，
+目标 `R_lab(f,h)`）；本实现对应 PULDA。协议 §3 第 2 条允许主实验向需要总体 prior
+的算法传入真实 `π_population` 并标注 known-prior（oracle-prior），因此固定先验变体
+符合本 Survey 主实验；PULDA\* 的 BBE 流程不在本轮实现范围。
+
 ## 核心目标
 
 令 $p_i=\sigma(f_\theta(x_i))$，$d_T(a,b)=\mathrm{softplus}_T(a-b)+\mathrm{softplus}_T(b-a)$。发布代码的标签分布项为
@@ -43,13 +50,18 @@ L_{LDA}+L_{2way}+w_{mix}L_{BCE}^{mix}.
 
 每次更新后用该批次更新前的模型分数刷新其持久伪标签，对齐作者训练顺序。
 
+论文 Eq. (31) 的 MixUp 目标是当前模型对原始样本的预测 `σ(f(x1))`、`σ(f(x2))`；
+作者发布代码实际使用持久伪标签并强制 P 目标为 1，工具箱跟随作者代码。该
+paper/source 差异保留登记；按 2026-10-18 用户决定，尊重队友实现，等训练结果出现
+明显错误时再处理。
+
 ## 当前实现与边界
 
 - 注册名 `pulda`，别名 `label_distribution_alignment`；支持稠密二维数值特征、注入 encoder 的四维图像、CPU 和显式 CUDA。默认两层 MLP64 是工具箱技术适配，不是作者 CIFAR CNN。
 - 默认值对齐发布脚本的关键训练量：预热/PU 各 60 epoch、P/U 批次 16/128、温度 3.5、EMA 0.85/0.5、margin 0.6、MixUp 权重 4.2、Beta 参数 11；优化器为两阶段 Adam + cosine schedule。
 - `decision_function` 返回原始 logit，`predict` 在 0 阈值分类，`predict_proba` 仅为 sigmoid 分数，未经过独立概率校准。非空 `sample_weight` 明确报错。
 - 已有公式 golden、两阶段轨迹、确定性、类先验覆盖、注册/pipeline 与逐 epoch 权重恢复测试；2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke，2026-09-28 又通过全局 PyTorch 2.6.0+cu124 环境下的原生与 TS 特征路径单次 CUDA smoke。这些技术 smoke 不替代 frozen-lock 或正式多 seed GPU/资源验收。
-- 当前为 **P3.1 技术预集成**。方法台账已登记；`fit(os_or_ts="ts")` 的 LDA 与 two-way margin 的 U 期望角色逐批取 `U∪P`，EMA 同步该角色。正例项、总体先验、MixUp 物理池和持久伪标签索引不变；默认视图为 `ts-compatible`，逐 run 实际值以 manifest 为准。冻结 Survey 执行矩阵尚未登记，且共享 backbone/正式 CIFAR 规格、公开数值对照、多 seed 资源记录与合作者复核仍未完成，不得进入正式榜。
+- 当前为 **P3.1 技术预集成**。方法台账已登记；`fit(os_or_ts="ts")` 的 LDA 与 two-way margin 的 U 期望角色逐批取 `U∪P`，EMA 同步该角色。正例项、总体先验、MixUp 物理池和持久伪标签索引不变；默认视图为 `ts-compatible`，逐 run 实际值以 manifest 为准。方法身份/适配已于 2026-10-18 复核；冻结 Survey 执行矩阵尚未登记，共享 backbone/正式 CIFAR 规格、公开数值对照、多 seed 资源记录与正式准入仍未完成，不得进入正式榜。
 
 ## 原生 CNN 工程路径（2026-10-05）
 
@@ -69,7 +81,8 @@ warmup/pu_mixup 快照保留阶段内位置与累计更新数；当前技术 sel
 哪些阶段可获正式 PA/OA 资格仍 null，训练目标、校准范围和默认预算未改。
 
 P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)已沿用代码协议；
-全文访问受限，未登记 PULDA 数字，不以 Dist-PU 数值代替，也不声称原论文没有结果。
+论文全文现已取得，但 PULDA 条目仍标为 `full_text_unavailable`，数字登记待证据更新，
+不以 Dist-PU 数值代替，也不声称原论文没有结果。
 
 见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。锁定作者
 `dataTools/PUSampler.py:15-41` 丢弃 U 尾批并循环抽 P；本实现保留尾批、P 有放回抽样，
@@ -79,3 +92,29 @@ P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)已沿�
 `dataTools/factory.py:14` 的 ImageNet 统计亦非我方 train-only 统计。
 上游 U 的擦标签 P 副本构造不使 TS 风险角色并集等于完整 MixUp/RNG 流程重放。
 新增三批 EMA 梯度对照与不等阶段/尾批更新计数测试；正式阶段准入、候选和预算仍待审。
+
+2026-10-18 复核：按用户决定，尊重当前“风险损失逐批 `U∪P`、MixUp/伪标签保留原始 U”
+的协议适配，不声称作者数据池/MixUp/RNG 完整重放。PULDA 方法身份 =
+known-prior/oracle-prior PULDA；PULDA\* 的 BBE 先验估计不在本轮。
+stage/budget、候选/资源和正式准入仍单独讨论。
+
+**shuidisjtu 签署（授权代录，2026-10-18）**：仅确认上述方法身份与适配；
+不包含 PULDA\*、warmup/pu_mixup 阶段资格、60+60 预算、候选/资源规格或正式 Survey 准入。
+
+2026-10-18 阶段/预算/阈值决定（与上述签署分开记录）：PA/OA 仅允许
+`pu_mixup` 阶段；`warmup` 只作诊断。正式预算采用原生 60+60、P/U
+16/128、两阶段 cosine `T_max=pu_epochs=60`；120 个快照、不早停，
+`pu_mixup` 内 60 个 epoch 全部可选。候选池为单一默认配置，
+`class_prior=π_population` 固定，不扫描先验。分类阈值固定为 logit 0
+（当前实现默认，等价于 sigmoid 0.5），阈值候选集为 `{0}`，PA/OA
+只选 checkpoint、不调阈值。该决定是作者默认预算口径，
+但整体方法/表征仍是 benchmark-adapted；共享表示、存储/资源、
+公开数值和正式 Survey 准入仍未批准；机器草案的
+`formal_decisions` 仍为 `null`。
+
+2026-10-18 图像表征决定：按协议 §2.5 使用 ResNet-18；PULDA 采用
+**端到端 ResNet-18**（注入 `encoder` 可训练），不走 feature-adapter，
+结果标为 `end-to-end CNN` / `benchmark-adapted`，不声称作者 CNN 或论文
+数值复现。共享初始化、BN、每 epoch 增强、输入/归一化及表格 MLP 共享规格
+待 [#119](https://github.com/shuidisjtu/pu-learning-toolbox/issues/119)
+与队友确认；本决定不改变阶段/预算/阈值，也不构成正式准入。

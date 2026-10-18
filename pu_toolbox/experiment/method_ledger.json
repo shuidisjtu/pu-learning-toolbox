@@ -135,12 +135,12 @@
         "authors": "Wenpeng Hu, Ran Le, Bing Liu, Feng Ji, Jinwen Ma, Dongyan Zhao, Rui Yan",
         "venue": "AAAI", "year": 2021
       },
-      "code_version": {"upstream_url": null, "source_status": "not_found（2026-10-05 未定位到作者代码；按原论文式 7/Algorithm 1 独立实现）"},
+      "code_version": {"upstream_url": "https://github.com/morning-dews/PAN", "upstream_commit": "5be703639e4c1eb2c63d869ba150d84ebf0c116e", "source_status": "official_related（README 写 Code for paper；论文正文未直接给链接；无 LICENSE；2026-10-18 复核）", "source_files_sha256": {"main.py": "fde2d2b01d4a04cbafbbde82d3e18765f3f8f86b15cef3aeda7a43be346e8ba9"}},
       "implementation_status": "NATIVE; experimental MLP or injected end-to-end CNN with independent C/D encoders; not formal survey admission or paper numeric reproduction",
-      "native_sampling_assumption": "os（原论文印刷页 7810 脚注 5 明确 single-training-set，P 从总体正类标记、U 为剩余正负样本）",
+      "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）",
       "run_view": "os-compatible", "calibration_applied": false,
       "prior_semantics": "无；目标不需要外部类先验，兼容 fit 参数仅校验后忽略",
-      "adaptation_level": "benchmark-adapted（论文公式独立实现；二维 MLP 或注入 CNN 编码器的 C/D 两份独立副本；两编码器均端到端训练，默认 CNN linear heads；不声称作者图像/文本架构复现）",
+      "adaptation_level": "paper-faithful benchmark-adapted（论文 Eq.7/Algorithm 1 独立实现；二维 MLP 或注入 CNN 编码器的 C/D 两份独立副本；官方源码 morning-dews/PAN@5be7036 的 max-margin U 项/eps=1e-2/sums/overlap=True/Adam betas+wd 差异已登记，不声称 source-faithful；不声称作者图像/文本架构复现）",
       "modality_backbone": {
         "modalities": ["tabular", "image"], "backbone": "独立 classifier C 与 discriminator D；默认 MLP128 或共享初始模板的两份独立可训练 CNN+head；预测只使用 C",
         "code_capability": {"native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
@@ -148,9 +148,10 @@
       "evidence": {
         "native_sampling_assumption": "PAN.md §抽样与校准；论文 §5.1，印刷页 7810 脚注 5",
         "prior_semantics": "PAN.md；原论文 §5.1 明确无需先验",
-        "adaptation_level": "PAN.md；pan.py 的 Eq.7 objective / alternating update；test_pan_cnn.py、test_pan_pipeline_cnn.py 与 test_cv_fold_isolation.py 的双编码器/原生 CNN/折隔离证据"
+        "adaptation_level": "PAN.md；pan.py 的 Eq.7 objective / alternating update；test_pan_cnn.py、test_pan_pipeline_cnn.py 与 test_cv_fold_isolation.py 的双编码器/原生 CNN/折隔离证据",
+        "source_review": "PAN.md §源码差异（2026-10-18）；morning-dews/PAN@5be7036 main.py:351-423；PU-Bench train/pan/core.py；PUBench core/algorithms.py:1694"
       },
-      "uncertainty": ["显式 ts fail-loud：原生 OS 不套用 case-control U∪P 校准", "source_status not_found 是本次检索状态而非证明不存在代码", "未进入旧冻结协议；参数/训练预算、共享架构、公开数值和 GPU 资源验收仍待独立登记；epoch 权重只恢复 C 的推理，不支持对抗训练续跑"]
+      "uncertainty": ["显式 ts fail-loud：原生 OS 不套用 case-control U∪P 校准", "source_status=official_related 是 2026-10-18 复核结果；作者源码目标/采样与论文 Eq.7/single-training-set 不同，当前实现保留 paper-faithful 并登记差异", "未进入旧冻结协议；参数/训练预算、共享架构、公开数值和 GPU 资源验收仍待独立登记；epoch 权重只恢复 C 的推理，不支持对抗训练续跑"]
     },
     "rp": {
       "class": "RankPruningClassifier",

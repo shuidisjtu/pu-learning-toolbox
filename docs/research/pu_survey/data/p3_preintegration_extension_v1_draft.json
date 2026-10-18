@@ -16,14 +16,18 @@
       "preparation_priority": 1,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pan",
       "ledger_snapshot": {
-        "native_sampling_assumption": "os（原论文印刷页 7810 脚注 5 明确 single-training-set，P 从总体正类标记、U 为剩余正负样本）",
+        "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）",
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无；目标不需要外部类先验，兼容 fit 参数仅校验后忽略",
-        "adaptation_level": "benchmark-adapted（论文公式独立实现；二维 MLP 或注入 CNN 编码器的 C/D 两份独立副本；两编码器均端到端训练，默认 CNN linear heads；不声称作者图像/文本架构复现）",
+        "adaptation_level": "paper-faithful benchmark-adapted（论文 Eq.7/Algorithm 1 独立实现；二维 MLP 或注入 CNN 编码器的 C/D 两份独立副本；官方源码 morning-dews/PAN@5be7036 的 max-margin U 项/eps=1e-2/sums/overlap=True/Adam betas+wd 差异已登记，不声称 source-faithful；不声称作者图像/文本架构复现）",
         "code_version": {
-          "upstream_url": null,
-          "source_status": "not_found（2026-10-05 未定位到作者代码；按原论文式 7/Algorithm 1 独立实现）"
+          "upstream_url": "https://github.com/morning-dews/PAN",
+          "upstream_commit": "5be703639e4c1eb2c63d869ba150d84ebf0c116e",
+          "source_status": "official_related（README 写 Code for paper；论文正文未直接给链接；无 LICENSE；2026-10-18 复核）",
+          "source_files_sha256": {
+            "main.py": "fde2d2b01d4a04cbafbbde82d3e18765f3f8f86b15cef3aeda7a43be346e8ba9"
+          }
         },
         "modality_backbone": {
           "modalities": [
@@ -51,7 +55,6 @@
       "admitted": false,
       "owner_decisions": {},
       "specific_blockers": [
-        "official_source_review",
         "adversarial_budget_and_inference_only_snapshot_spec"
       ],
       "storage_evidence_ref": "docs/research/pu_survey/data/candidate_storage_probe_20261005.json",

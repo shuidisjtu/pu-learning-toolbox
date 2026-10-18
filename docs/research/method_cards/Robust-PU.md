@@ -61,3 +61,13 @@ PA/OA 外置不能消除阶段初始化差异；正式选模/候选预算和未�
 ## 验证与剩余门禁
 
 本地单元测试覆盖权重公式、参数错误、接口、确定性、checkpoint、权重往返和 CPU 训练。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU 预训练的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。后续自步伪负例仍只取原始 U；若跳过预训练（`pretrain_epochs=0`），请求 `ts` 会显式报错，避免 manifest 误记校准。台账默认 `ts-compatible`，每次实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过；这不替代 frozen-lock、多 seed 或正式资源验收。正式 P3.2 仍需公开论文数值对照、Survey 矩阵接入及合作者复核；本技术预集成不得混入冻结 pilot 或主榜。
+
+2026-10-18 复核：论文（KDD 2023，`arXiv:2308.00279`）与官方源码已获取；
+SPL 默认 Welsch 权重、logistic hardness、linear scheduler、加权 BCE 与官方默认
+实现一致，本轮未发现新的公式缺陷。正式 CLI 默认按 ledger 解析为 `ts`，
+population π 与 `U∪P` 风险池一致；裸 `fit(os_or_ts="os")` 或显式 OS 覆盖需传
+π_U，当前 estimator 不自动换算。预训练 batching、预算（论文 100/20、官方
+parser 400/100、本实现 10/20）和 moving-weight 对齐差异按用户 2026-10-18
+决定尊重当前实现，作为 `benchmark-adapted` 保留，不作为整改要求；正式预算表
+登记 10/20 选择。来源证据（`utils.py`/`models.py` 摘要、paper ref、source
+behavior tests、换行哈希）和正式准入仍未完成。
