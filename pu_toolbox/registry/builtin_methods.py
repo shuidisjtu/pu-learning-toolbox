@@ -379,7 +379,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_sparse=False,
         supports_gpu=True,
         upstream_url="https://qibinzhao.github.io/assets/publications/IJCAI_2018_HouMing/gen_pu_demo.zip",
-        license="needs_review",
+        license="unknown",
         training_cost=Cost.HIGH,
     ),
     AlgorithmMetadata(

@@ -32,7 +32,7 @@
 | PAN | 有条件接受工程证据 | `official_related`；保留 paper-faithful 实现；论文/源码差异见 #123；对抗训练预算与快照规格待定 |
 | RP | 有条件接受 PU 特例证据 | 固定 `rho0=0`，不称一般双向噪声算法；OS-only；`frac_pos2neg` 须登记来源或固定默认估计，禁止由 test 真值提供 |
 | PULNS | 接口/审计已交付，正式 support 待批 | 仅 SCAR OS + 终点 OA；标准 PU-only PA 不接受；八集 support 来源/规模/标签预算待定 |
-| GEN-PU | 论文目标适配有条件接受 | prior-weighted minimax 与作者 demo 的非饱和/未加权 Du 不同；正式目标身份、先验来源、TS 池与 PN 阶段资格待定 |
+| GEN-PU | 论文目标已定，有条件接受 | 正式目标采用论文 prior-weighted minimax；作者 demo 仅差异对照；先验来源、TS 池、PN 阶段资格与正式 recipe 待定；归档未发现 LICENSE，登记 `unknown` |
 | Holistic-PU | 工程变体有条件接受 | 论文 signed 全时序/variance 与发布代码的邻差/Jenks 不等价；正式 recipe 仍须选择 |
 | CVIR | OS adaptation 已接，准入待定 | 显式 α_U；population π 只给 PA；OS→TS 校准不属于本实验；α_U 有限样本口径、候选/预算与公开数值待定 |
 | LaGAM | OS 身份已裁决，准入暂缓 | clean support 是额外训练监督，标准 PU-only PA 不适用；support/标签预算、许可与公开数值待定 |
@@ -114,8 +114,10 @@ BBE/TEDⁿ 是 main 合并后新增的独立 native-TS 扩展，不在上述 13 
   标签预算与正式准入仍待批准。
 - 上述整改的工程证据与调用边界见
   [algorithm_issues_114_117_20261017.md](algorithm_issues_114_117_20261017.md)。
-- **GEN-PU**：用户已选择论文目标，作者 demo 仅作差异对照；未发现新的实现 bug，
-  正式 recipe（归一化、生成器输出域、训练阶段与选模预算）另行验收。
+- **GEN-PU**：2026-10-18 决定正式目标采用论文 Eq. (3)–(11)，作者 demo 仅作差异
+  对照；未发现新的实现 bug。作者归档未发现 LICENSE，登记 `license=unknown`，
+  不复制、执行或再分发。正式 recipe（网络/归一化、生成器输出域、四份 CNN、
+  六网络预算/选模）与公开数值另行验收。
 - **LBE / Self-PU / 独立 support / BBE / TEDⁿ** 的收尾状态与预算边界见
   [algorithm_completion_20261017.md](algorithm_completion_20261017.md)。
 - 首轮流水账中的测试数量、commit 与临时 XML 不再保留；需要时从 git 历史追溯。

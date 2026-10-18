@@ -85,8 +85,10 @@ formal_admission=false，检查器的 source_files_checked 为空，不声称重
 无快层失败；slow/e2e、不可用 CUDA 与缺失可选依赖不据此宣称通过。
 uv.lock、冻结协议/对照矩阵、既有 P1-1/P1-2 制品、checkpoint writer 与五方法预算绑定源码未改。
 
-仍待：批准 identity/tanh 与归一化、四份 CNN/head/初始化、G 步模式与 paper/demo 目标口径；
-六网络预算/阶段候选资格、真实数据公开数值对照、授权和方法负责人复核。
+仍待：批准 identity/tanh 与归一化、四份 CNN/head/初始化、G 步模式；
+六网络预算/阶段候选资格、真实数据公开数值对照和方法负责人复核。
+论文目标已于 2026-10-18 确定，作者 demo 仅作差异对照；归档未发现 LICENSE，
+登记 `license=unknown`，不复制、执行或再分发。
 双像素 MLP 的输出参数随 C*H*W 增长，四份 CNN 加独立优化器、PN 训练时仍保留五个 GAN 网络，
 其峰值显存/CPU/disk 必须重新测量；旧二维 CPU/GPU/storage 探针不可外推到本路径。
 
