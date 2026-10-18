@@ -224,7 +224,7 @@
         "code_version": {
           "upstream_url": "https://github.com/wxr99/HolisticPU",
           "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3",
-          "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；license 待复核）"
+          "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；2026-10-18 复核未发现 LICENSE，登记 license=unknown；不复制/执行/再分发作者代码）"
         },
         "modality_backbone": {
           "modalities": [
@@ -256,11 +256,9 @@
       "admitted": false,
       "owner_decisions": {},
       "specific_blockers": [
-        "paper_pairwise_variance_vs_author_adjacent_Jenks_decision",
         "fixed_warmup_vs_LZO_and_finetune_spec",
         "pseudo_pn_initialization_variant_recipe_decision",
         "lzo_positive_loss_recipe_and_external_selection_isolation",
-        "source_license_review",
         "trajectory_and_model_selection_storage_spec"
       ],
       "storage_evidence_ref": "docs/research/pu_survey/data/candidate_storage_probe_20261005.json",

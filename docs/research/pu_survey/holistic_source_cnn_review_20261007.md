@@ -78,3 +78,11 @@ head 为 Linear→ReLU→Linear。一份 deepcopy 编码器随 balanced warmup �
 同时为 GEN-PU/PULNS 补原生训练路径或来源行为证据。P3MIX 的 OpenReview 官方 API
 本轮仍返回 HTTP403，保留 batch 组件未注册状态；这不阻断其它方法自主推进。
 正式候选、图像配方、预算/存储、多 seed GPU、公开数值及负责人签署仍未完成。
+
+## 5. 2026-10-18 决定
+
+在未发现明确实现缺陷的前提下，尊重当前实现：分类器保留论文 pairwise/variance
+路径，默认 fixed warmup 与 continue 初始化不变；`author_adjacent`/`author_sse`、
+`lzo_positive_loss`、`reinitialize` 继续作为显式变体。作者仓库未发现 LICENSE，
+登记 `license=unknown`；不复制、执行或再分发。固定/LZO/finetune、初始化 recipe、
+LZO 选模隔离与 trajectory/storage blocker 仍保留。
