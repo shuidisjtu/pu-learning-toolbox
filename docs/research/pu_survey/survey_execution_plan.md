@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-19 生命周期再补[VPU/神经LBE/PAN/CVIR/RP失败拟合保护](reviews/remaining_candidate_fit_failure_20261019.md)：
+参数绑定前失效及取消后禁用公开预测；RP在禁止Torch导入的独立进程验证，
+不改算法/校准/先验/预算、不注册新正式方法、不删除用户制品。
+
 2026-10-19 P3.2 续批补[VPU/神经LBE评分状态保护](admission/vpu_lbe_scoring_modes_20261019.md)：
 公开预测、神经LBE内部E-step和标记概率两分支评分均恢复逐层模式；不改原线性LBE、
 VPU归一化/校准或神经LBE的OS联合似然/更新预算，正式准入和资源证据不变。

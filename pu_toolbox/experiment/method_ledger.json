@@ -136,6 +136,7 @@
     },
     "pan": {
       "class": "PANClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "paper": {
         "title": "Predictive Adversarial Learning from Positive and Unlabeled Data",
         "authors": "Wenpeng Hu, Ran Le, Bing Liu, Feng Ji, Jinwen Ma, Dongyan Zhao, Rui Yan",
@@ -172,6 +173,7 @@
     },
     "rp": {
       "class": "RankPruningClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "paper": {
         "title": "Learning with Confident Examples: Rank Pruning for Robust Classification with Noisy Labels",
         "authors": "Curtis G. Northcutt, Tailin Wu, Isaac L. Chuang", "venue": "UAI", "year": 2017
@@ -400,6 +402,7 @@
     },
     "lbe_neural": {
       "class": "NeuralLBEClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
       "review": {"owner": "shuidisjtu", "reviewer": "HENG958", "status": "pending_collaborator_review"},
       "paper": {
@@ -780,6 +783,7 @@
     },
     "cvir": {
       "class": "CVIRClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "paper": {
         "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
         "authors": "Saurabh Garg, Yifan Wu, Alexander J. Smola, Sivaraman Balakrishnan, Zachary C. Lipton",
@@ -962,6 +966,7 @@
     },
     "vpu": {
       "class": "VPUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
       "paper": {
         "title": "A Variational Approach for Learning from Positive and Unlabeled Data",

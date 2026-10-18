@@ -17,6 +17,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -115,6 +116,7 @@ class CVIRClassifier(BasePUClassifier):
             else 256
         )
 
+    @invalidate_failed_fit
     def fit(
         self,
         X: np.ndarray,

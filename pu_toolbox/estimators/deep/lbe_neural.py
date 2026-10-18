@@ -17,6 +17,7 @@ from scipy.special import expit
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -162,6 +163,7 @@ class NeuralLBEClassifier(BasePUClassifier):
         """Keep inference chunks identical when classifier snapshots are restored."""
         return self.batch_size
 
+    @invalidate_failed_fit
     def fit(
         self, X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os"
     ):

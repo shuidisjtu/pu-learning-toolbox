@@ -16,6 +16,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.labels import normalize_pu_labels
 from ...core.tags import (
     AlgorithmFamily,
@@ -112,6 +113,7 @@ class VPUClassifier(BasePUClassifier):
         """Restore classifier normalization with the same inference chunks."""
         return self.batch_size
 
+    @invalidate_failed_fit
     def fit(
         self,
         X,

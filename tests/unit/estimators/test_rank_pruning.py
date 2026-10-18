@@ -2,6 +2,8 @@
 """RP confident counts, author strict rank ties, OOF isolation and weighting."""
 
 import pickle
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -23,6 +25,79 @@ def data():
     rng = np.random.RandomState(8)
     X = np.r_[rng.normal(2, 0.5, (12, 3)), rng.normal(2, 0.5, (6, 3)), rng.normal(-2, 0.5, (18, 3))]
     return X, np.r_[np.ones(12, int), np.zeros(24, int)]
+
+
+@pytest.mark.parametrize("keyword", ["y_true", "support_labels", "test_data", "missing_labels"])
+def test_param_binding_failure_invalidates_previous_fit(keyword):
+    features, labels = data()
+    model = RankPruningClassifier(random_state=3, min_retained=2).fit(features, labels)
+    with pytest.raises(TypeError):
+        if keyword == "missing_labels":
+            model.fit(features)
+        else:
+            model.fit(features, labels, **{keyword: labels})
+    for name in ("predict", "predict_proba", "decision_function", "score_samples"):
+        with pytest.raises(NotFittedError):
+            getattr(model, name)(features)
+
+
+def test_basic_determ_guard_preserves_rp_folds_weights_and_refit():
+    features, labels = data()
+    model = RankPruningClassifier(random_state=3, min_retained=2)
+    reference = clone(model)
+    model.fit(features, labels)
+    type(reference).fit.__wrapped__(reference, features, labels)
+    expected = reference.predict_proba(features)
+    np.testing.assert_array_equal(model.predict_proba(features), expected)
+    np.testing.assert_array_equal(model.retained_indices_, reference.retained_indices_)
+    np.testing.assert_array_equal(model.final_sample_weights_, reference.final_sample_weights_)
+    for actual, other in zip(model.cv_fold_indices_, reference.cv_fold_indices_, strict=True):
+        for role in ("train", "heldout"):
+            np.testing.assert_array_equal(actual[role], other[role])
+    with pytest.raises(TypeError):
+        model.fit(features, labels, y_true=labels)
+    assert not model._is_fitted
+    model.fit(features, labels)
+    restored = pickle.loads(pickle.dumps(model))
+    np.testing.assert_array_equal(restored.predict_proba(features), expected)
+
+
+def test_edge_rp_lifecycle_guard_does_not_require_torch():
+    script = """
+import importlib.abc
+import sys
+class NoTorch(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'torch' or fullname.startswith('torch.'):
+            raise ImportError('torch deliberately unavailable')
+sys.meta_path.insert(0, NoTorch())
+import numpy as np
+from pu_toolbox.estimators.classic.rank_pruning import RankPruningClassifier
+from pu_toolbox.core.exceptions import NotFittedError
+rng = np.random.RandomState(8)
+x = np.r_[rng.normal(2, .5, (12, 3)), rng.normal(2, .5, (6, 3)), rng.normal(-2, .5, (18, 3))]
+y = np.r_[np.ones(12, int), np.zeros(24, int)]
+model = RankPruningClassifier(random_state=3, min_retained=2).fit(x, y)
+assert model.predict(x).shape == (36,)
+try:
+    model.fit(x, y, y_true=y)
+except TypeError:
+    pass
+else:
+    raise AssertionError('unknown labels accepted')
+assert not model._is_fitted
+try:
+    model.predict(x)
+except NotFittedError:
+    pass
+else:
+    raise AssertionError('failed refit left usable predictions')
+assert 'torch' not in sys.modules
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, timeout=60, check=False
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.math

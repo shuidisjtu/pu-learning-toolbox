@@ -14,14 +14,18 @@ from pu_toolbox import (  # noqa: E402
     GenPUClassifier,
     HolisticPUClassifier,
     LaGAMClassifier,
+    NeuralLBEClassifier,
+    PANClassifier,
     PULNSClassifier,
+    VPUClassifier,
 )
 from pu_toolbox.core.base import BasePUClassifier  # noqa: E402
 from pu_toolbox.core.exceptions import NotFittedError  # noqa: E402
 from pu_toolbox.estimators.deep.tedn import TEDnClassifier  # noqa: E402
+from pu_toolbox.estimators.risk.cvir import CVIRClassifier  # noqa: E402
 
 pytestmark = pytest.mark.unit
-METHODS = ("genpu", "holistic_pu", "lagam", "pulns", "tedn")
+METHODS = ("genpu", "holistic_pu", "lagam", "pulns", "tedn", "vpu", "lbe_neural", "pan", "cvir")
 
 
 def case(method, monkeypatch):
@@ -44,6 +48,18 @@ def case(method, monkeypatch):
             else LaGAMClassifier(
                 warmup_epochs=1, max_epochs=2, num_clusters=2, support_batch_size=4, **common
             )
+        )
+    elif method == "vpu":
+        model = VPUClassifier(max_epochs=1, iterations_per_epoch=1, **common)
+    elif method == "lbe_neural":
+        model = NeuralLBEClassifier(
+            pretrain_steps=1, n_em_iter=1, m_steps=1, sample_fraction=0.5, **common
+        )
+    elif method == "pan":
+        model = PANClassifier(max_epochs=1, **common)
+    elif method == "cvir":
+        model = CVIRClassifier(
+            unlabeled_positive_prior=0.3, warm_start_epochs=1, max_epochs=1, **common
         )
     else:
         import pu_toolbox.estimators.deep.tedn as implementation

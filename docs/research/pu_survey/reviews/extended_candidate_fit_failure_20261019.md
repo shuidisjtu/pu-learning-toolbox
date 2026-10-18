@@ -1,5 +1,8 @@
 # 五扩展候选失败拟合保护（2026-10-19）
 
+同日后续：[另五候选生命周期保护](remaining_candidate_fit_failure_20261019.md)。
+本页保留本批五方法/50项新增测试的验收记录，不把后续扩展计数回填。
+
 承接原五方法的[生命周期修复](candidate_fit_failure_20261018.md)，范围扩至
 GEN-PU、Holistic-PU、LaGAM、PULNS及独立TEDn；不是新算法或正式准入。
 

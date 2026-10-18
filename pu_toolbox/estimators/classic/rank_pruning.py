@@ -16,6 +16,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.utils.validation import check_array
 
 from ...core.base import BasePUClassifier
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -115,6 +116,7 @@ class RankPruningClassifier(BasePUClassifier):
             raise ValueError("base_estimator probabilities must sum to one")
         return probabilities[:, int(np.flatnonzero(classes == 1)[0])]
 
+    @invalidate_failed_fit
     def fit(self, X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os"):
         self._is_fitted = False
         if sample_weight is not None:
