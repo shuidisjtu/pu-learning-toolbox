@@ -8,7 +8,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox import GradPUClassifier, PULDAClassifier  # noqa: E402
+from pu_toolbox import GradPUClassifier, PULDAClassifier, RobustPUClassifier  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -20,7 +20,7 @@ def fitted_model(method):
     encoder = torch.nn.Sequential(
         torch.nn.Linear(3, 3),
         torch.nn.Dropout(0.2),
-        torch.nn.BatchNorm1d(3) if method == "pulda" else torch.nn.Identity(),
+        torch.nn.BatchNorm1d(3) if method != "gradpu" else torch.nn.Identity(),
     )
     kwargs = dict(encoder=encoder, hidden_dim=4, random_state=3, device="cpu")
     if method == "pulda":
@@ -30,6 +30,15 @@ def fitted_model(method):
             pu_epochs=1,
             positive_batch_size=2,
             unlabeled_batch_size=4,
+            **kwargs,
+        )
+    elif method == "robust_pu":
+        model = RobustPUClassifier(
+            class_prior=0.4,
+            pretrain_epochs=1,
+            episodes=1,
+            inner_epochs=1,
+            batch_size=4,
             **kwargs,
         )
     else:
@@ -45,7 +54,7 @@ def set_mixed_modes(model, root_training):
     return [layer.training for layer in model.model_.modules()]
 
 
-@pytest.mark.parametrize("method", ["pulda", "gradpu"])
+@pytest.mark.parametrize("method", ["pulda", "gradpu", "robust_pu"])
 @pytest.mark.parametrize("root_training", [True, False])
 def test_basic_prediction_is_eval_only_and_restores_all_children(method, root_training):
     model, features = fitted_model(method)
@@ -71,7 +80,7 @@ def test_basic_prediction_is_eval_only_and_restores_all_children(method, root_tr
         torch.testing.assert_close(value, weights[name], rtol=0, atol=0)
 
 
-@pytest.mark.parametrize("method", ["pulda", "gradpu"])
+@pytest.mark.parametrize("method", ["pulda", "gradpu", "robust_pu"])
 @pytest.mark.parametrize("failure_call", [1, 2])
 def test_edge_forward_failure_restores_modes_and_propagates_same_exception(method, failure_call):
     model, features = fitted_model(method)
@@ -95,7 +104,7 @@ def test_edge_forward_failure_restores_modes_and_propagates_same_exception(metho
     assert [layer.training for layer in model.model_.modules()] == before
 
 
-@pytest.mark.parametrize("method", ["pulda", "gradpu"])
+@pytest.mark.parametrize("method", ["pulda", "gradpu", "robust_pu"])
 def test_edge_eval_transition_failure_also_restores_partial_mode_changes(method, monkeypatch):
     model, features = fitted_model(method)
     before = set_mixed_modes(model, True)
@@ -114,7 +123,7 @@ def test_edge_eval_transition_failure_also_restores_partial_mode_changes(method,
     assert [layer.training for layer in model.model_.modules()] == before
 
 
-@pytest.mark.parametrize("method", ["pulda", "gradpu"])
+@pytest.mark.parametrize("method", ["pulda", "gradpu", "robust_pu"])
 def test_param_empty_or_invalid_prediction_keeps_modes_unchanged(method):
     model, features = fitted_model(method)
     before = set_mixed_modes(model, False)
@@ -124,7 +133,7 @@ def test_param_empty_or_invalid_prediction_keeps_modes_unchanged(method):
     assert [layer.training for layer in model.model_.modules()] == before
 
 
-@pytest.mark.parametrize("method", ["pulda", "gradpu"])
+@pytest.mark.parametrize("method", ["pulda", "gradpu", "robust_pu"])
 def test_determ_pickle_retains_mixed_modes_and_predictions(method):
     model, features = fitted_model(method)
     before = set_mixed_modes(model, True)

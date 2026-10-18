@@ -867,6 +867,7 @@
       },
       "implementation_status": "NATIVE, backend TORCH; nnPU warm-up plus self-paced weighted BCE on MLP or trainable injected CNN; technical pre-integration only",
       "source_behavior_review_ref": "docs/research/pu_survey/data/robustpu_source_review_20261018.json",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/robustpu_inference_modes_20261019.md",
       "runtime_prior_contract": {
         "calibrated_ts_input": "population_pi",
         "explicit_os_input": "supplied_U_positive_fraction",

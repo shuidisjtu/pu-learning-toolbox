@@ -366,7 +366,7 @@
     "robust_pu": {
       "class": "RobustPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/robust_pu.py",
-      "implementation_sha256": "2928e54334a59ff1e9d564fd39f6c603c29868372b6a7c8ce60d53d48d3e99d3",
+      "implementation_sha256": "757cab34444aa8166a00ec770a1e30ad2ba61863d811e41e41de10bcc5d19957",
       "fit_named_parameters": [
         "X",
         "y_pu",

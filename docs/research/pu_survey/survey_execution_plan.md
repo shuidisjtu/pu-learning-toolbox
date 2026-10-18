@@ -63,6 +63,11 @@
 
 ### 1.3 执行边界
 
+2026-10-19 跳过待补全文的 P3MIX，推进 P3.2 的
+[Robust-PU 推理模式恢复](admission/robustpu_inference_modes_20261019.md)：
+成功及异常路径均恢复逐层 BN/Dropout 模式；不改 fit、校准、目标、预算或冻结结果，
+来源/台账与当前草稿摘要同步，历史资源证据不冒充重新测量。
+
 2026-10-18 图像技术入口补[实际fit收据](admission/candidate_image_training_receipt_20261018.md)：
 训练前绑定像素/模板/seed/增强/prior，记录fit参数、实际epoch/更新数与代码摘要。
 不接冻结runner，不证明四角色/标签预算/锁环境或快照持久化，正式准入仍false。

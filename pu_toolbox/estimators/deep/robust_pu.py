@@ -405,10 +405,10 @@ class RobustPUClassifier(BasePUClassifier):
             raise ValueError("Robust-PU prediction X must remain finite after float32 conversion")
         if not len(X):
             return np.empty(0, dtype=np.float32)
-        was_training = self.model_.training
-        self.model_.eval()
-        device = next(self.model_.parameters()).device
+        modes = [(module, module.training) for module in self.model_.modules()]
         try:
+            self.model_.eval()
+            device = next(self.model_.parameters()).device
             with torch.no_grad():
                 return np.concatenate(
                     [
@@ -422,7 +422,8 @@ class RobustPUClassifier(BasePUClassifier):
                     ]
                 )
         finally:
-            self.model_.train(was_training)
+            for module, training in modes:
+                module.training = training
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0).astype(int)

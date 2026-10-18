@@ -106,6 +106,16 @@
     "formal_budget_approved": false,
     "numeric_comparison_enabled": false
   },
+  "inference_followup": {
+    "date": "2026-10-19",
+    "review_ref": "docs/research/pu_survey/admission/robustpu_inference_modes_20261019.md",
+    "test_ref": "tests/unit/estimators/test_pulda_gradpu_inference_modes.py",
+    "scope": "Robust-PU prediction restores every module mode on success, forward failure and eval transition failure",
+    "training_fit_changed": false,
+    "prior_or_calibration_changed": false,
+    "historical_acceptance_and_resource_receipts_remeasured": false,
+    "formal_admission": false
+  },
   "engineering_acceptance": {
     "source_completion_commit": "5ae320e",
     "remote_review_sync": ["d2062c8", "832cf22", "4256a04", "19f16b7"],
