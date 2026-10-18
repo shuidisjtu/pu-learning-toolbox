@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-19 补[15候选生命周期机器门禁](reviews/candidate_fit_contracts_20261019.md)：
+只读AST/源码摘要绑定公开fit参数、共享guard、工程审阅引用和原校准口径；
+静态CI核对工程草稿，删guard/漂移/伪准入均拒收，不替代行为测试或正式配方冻结。
+
 2026-10-19 生命周期再补[VPU/神经LBE/PAN/CVIR/RP失败拟合保护](reviews/remaining_candidate_fit_failure_20261019.md)：
 参数绑定前失效及取消后禁用公开预测；RP在禁止Torch导入的独立进程验证，
 不改算法/校准/先验/预算、不注册新正式方法、不删除用户制品。

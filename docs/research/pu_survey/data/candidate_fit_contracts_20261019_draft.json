@@ -1,0 +1,721 @@
+{
+  "schema_version": "candidate-fit-contracts-engineering-draft-1",
+  "scope": "AST declarations and source identity; runtime behavior belongs to tests",
+  "source_digest_policy": "utf8_text_universal_newlines_sha256",
+  "guard_ref": "pu_toolbox/core/fit_state.py",
+  "guard_sha256": "6729de40c3c3b38d56139520bdc313237e0d8c09d8c44af13e4988ae67399310",
+  "checker_ref": "scripts/check_candidate_fit_contracts.py",
+  "checker_sha256": "6da13fdc64eb25e3204bc7467d86055a20218c6b66559e823a1f7fb23af62674",
+  "invalidates_before_argument_binding": true,
+  "exception_boundary": "BaseException_reraise_no_retry",
+  "rollback_of_models_or_external_artifacts": false,
+  "formal_admission": false,
+  "owner_signatures": [],
+  "methods": {
+    "pulda": {
+      "class": "PULDAClassifier",
+      "implementation_ref": "pu_toolbox/estimators/risk/pulda.py",
+      "implementation_sha256": "c3df46c38c3411b07157944d1544c0ed92d2f895e4bd6ec36bc72e178048da35",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pulda",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
+      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "formal_admission": false
+    },
+    "puet": {
+      "class": "PUExtraTreesClassifier",
+      "implementation_ref": "pu_toolbox/estimators/risk/puet.py",
+      "implementation_sha256": "6aacad5300060704decc69092a6f72f380845e3baebb3b94b12e2ecbc5b6dfac",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.puet",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
+      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "formal_admission": false
+    },
+    "gradpu": {
+      "class": "GradPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
+      "implementation_sha256": "81099e253016b6cd9ac01605ed608dd2b92129034035825f04a35946b2c4992b",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.gradpu",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
+      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "formal_admission": false
+    },
+    "robust_pu": {
+      "class": "RobustPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/robust_pu.py",
+      "implementation_sha256": "757cab34444aa8166a00ec770a1e30ad2ba61863d811e41e41de10bcc5d19957",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.robust_pu",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
+      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "formal_admission": false
+    },
+    "split_pu": {
+      "class": "SplitPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/split_pu.py",
+      "implementation_sha256": "544d49b14e9bf90386f401847da5b4f201bfafd48765a2d5c044c71c2c450dfd",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.split_pu",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
+      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "formal_admission": false
+    },
+    "genpu": {
+      "class": "GenPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/gen_pu.py",
+      "implementation_sha256": "bc857dac957f0c0def95198590e832b3387d38b068c63fa567c4a0260f8bac2b",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.genpu",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "formal_admission": false
+    },
+    "holistic_pu": {
+      "class": "HolisticPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/holistic_pu.py",
+      "implementation_sha256": "71525830d48828b1aadccf78d48682553b14aa1eb5554ebe3171b9f2f5e55126",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.holistic_pu",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "lagam": {
+      "class": "LaGAMClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/lagam.py",
+      "implementation_sha256": "f498244b82c639ebef9f4fd2106e8fe4ce60645184befb6ed6cdb7be83e0b4cf",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "support_data",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.lagam",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "pulns": {
+      "class": "PULNSClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/pulns.py",
+      "implementation_sha256": "01213abe6ce260bed9a838e6e2cfc55bde65d14a2b497b533fa090bf6e3ad294",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        },
+        {
+          "name": "support_data",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "train_indices",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "support_indices",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pulns",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "tedn": {
+      "class": "TEDnClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/tedn.py",
+      "implementation_sha256": "ead0ff65813dc657b5e0cd71d184bf737d46013eb13bb101d2ecb12423b17688",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_ids",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir.independent_extensions.tedn",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
+      "run_view": "explicit ts input, caller sampling assertion unverified",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "vpu": {
+      "class": "VPUClassifier",
+      "implementation_ref": "pu_toolbox/estimators/risk/vpu.py",
+      "implementation_sha256": "7cd7083bfd572788d78acf98767baf9998f4da73a4d9fe164e82d35562bef666",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "pu_validation_data",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "ts"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.vpu",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "formal_admission": false
+    },
+    "lbe_neural": {
+      "class": "NeuralLBEClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/lbe_neural.py",
+      "implementation_sha256": "ec29d2a039d15b117535c5b8f7b9c1bd85329dcf97ff86d8078b61f1527668a3",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.lbe_neural",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "pan": {
+      "class": "PANClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/pan.py",
+      "implementation_sha256": "be47c704c432f22b9a49bae3eacdf105131de50564c1ba6b577818374de14afa",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pan",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "cvir": {
+      "class": "CVIRClassifier",
+      "implementation_ref": "pu_toolbox/estimators/risk/cvir.py",
+      "implementation_sha256": "68695a5ed440af8c31adff2986d105ba3d5acf89d8e4d701cfbd79ff2ddc85cc",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "rp": {
+      "class": "RankPruningClassifier",
+      "implementation_ref": "pu_toolbox/estimators/classic/rank_pruning.py",
+      "implementation_sha256": "75b28c9f714bdbd33720f6dedc392af3a13a9a4792c39de9da5b02c00aa72b9e",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.rp",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "86648507a390d900c5677c4f00a088243ad138f66eebb991bac9ff5926b20fea",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    }
+  }
+}

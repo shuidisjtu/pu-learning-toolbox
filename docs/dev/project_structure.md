@@ -364,6 +364,7 @@ tests/
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
       test_profile_survey_candidate_storage.py # 七方法存储探针和恢复边界
       test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
+      test_check_candidate_fit_contracts.py # 全候选guard/签名/源码证据及无Torch门禁
       test_profile_survey_cnn_storage.py # CNN 快照体积、恢复、来源身份和输入边界
       test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
       test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
@@ -868,6 +869,7 @@ scripts/
   collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
   profile_survey_candidate_storage.py     # 七方法多 seed 合成存储与恢复探针
   prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
+  check_candidate_fit_contracts.py        # 15候选失败拟合guard及源码绑定核验
   profile_survey_cnn_storage.py           # 五方法 CNN 存储探针与多 seed 恢复；非正式预算
   check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
   check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决

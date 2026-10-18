@@ -106,6 +106,9 @@ jobs:
       - name: Test quality gate
         run: uv run --python "3.11" python scripts/check_test_quality.py
 
+      - name: Candidate failed-fit contracts (engineering only)
+        run: uv run --python "3.11" python scripts/check_candidate_fit_contracts.py --check docs/research/pu_survey/data/candidate_fit_contracts_20261019_draft.json
+
       - name: Doc consistency check
         run: uv run --python "3.11" python scripts/check_doc_links.py
 
