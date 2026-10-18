@@ -10,6 +10,8 @@ numbers are not claimed by this implementation.
 from __future__ import annotations
 
 import copy
+import math
+from numbers import Real
 
 import numpy as np
 
@@ -128,6 +130,8 @@ class GradPUClassifier(BasePUClassifier):
         batch_size: int = 256,
         max_epochs: int = 200,
         learning_rate: float = 1e-3,
+        lr_schedule: str = "constant",
+        lr_final_ratio: float = 0.1,
         weight_decay: float = 5e-4,
         encoder=None,
         random_state: int | None = None,
@@ -141,6 +145,8 @@ class GradPUClassifier(BasePUClassifier):
         self.batch_size = batch_size
         self.max_epochs = max_epochs
         self.learning_rate = learning_rate
+        self.lr_schedule = lr_schedule
+        self.lr_final_ratio = lr_final_ratio
         self.weight_decay = weight_decay
         self.encoder = encoder
         self.random_state = random_state
@@ -185,6 +191,21 @@ class GradPUClassifier(BasePUClassifier):
                 raise ValueError(f"{name} must be finite and non-negative")
         if not np.isfinite(self.learning_rate) or self.learning_rate <= 0:
             raise ValueError("learning_rate must be finite and positive")
+        if not isinstance(self.lr_schedule, str) or self.lr_schedule not in {
+            "constant",
+            "linear",
+            "cosine",
+        }:
+            raise ValueError("lr_schedule must be constant, linear or cosine")
+        if (
+            isinstance(self.lr_final_ratio, bool)
+            or not isinstance(self.lr_final_ratio, Real)
+            or not np.isfinite(self.lr_final_ratio)
+            or not 0 < self.lr_final_ratio <= 1
+        ):
+            raise ValueError("lr_final_ratio must be finite and in (0, 1]")
+        if self.lr_schedule != "constant" and self.learning_rate * self.lr_final_ratio <= 0:
+            raise ValueError("learning_rate * lr_final_ratio must remain positive")
         if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
             raise ValueError("class_prior, if supplied, must be in (0, 1)")
 
@@ -258,6 +279,7 @@ class GradPUClassifier(BasePUClassifier):
             "train_risk": [],
             "beta": [],
             "optimizer_steps": [],
+            "learning_rate": [],
         }
         self.optimizer_steps_ = 0
         self.n_positive_ = len(positive)
@@ -270,8 +292,81 @@ class GradPUClassifier(BasePUClassifier):
         self._X_shape_ = X.shape
         self._class_prior = None  # accepted for API compatibility, never used by Eq. 7
         self._is_fitted = False
+        # Plain JSON facts are picked up by ExperimentRunner's existing
+        # training_provenance hook, independently of candidate overrides.
+        batch_maxima = dict.fromkeys(
+            (
+                "positive",
+                "native_unlabeled",
+                "risk_unlabeled",
+                "physical_P_plus_U",
+                "GP_interpolation",
+            ),
+            0,
+        )
+        self.training_provenance_ = {
+            "schema_version": "gradpu-training-facts-1",
+            "identity": "paper-only/benchmark-adapted",
+            "source_faithful": False,
+            "source_reproduction": False,
+            "learning_rate": {
+                "policy": self.lr_schedule,
+                "initial": float(self.learning_rate),
+                "configured_final_ratio": float(self.lr_final_ratio),
+                "epoch_used_rates": self.history_["learning_rate"],
+                "curve_is_specified_by_paper": False,
+                "single_epoch_policy": "use_initial_rate",
+                "actual_last_ratio": None,
+            },
+            "batch": {
+                "semantics": "independent_per_branch_P_and_native_U_shorter_loader_cycles",
+                "configured_per_branch_size": self.batch_size,
+                "steps_per_epoch": n_steps,
+                "epochs": self.max_epochs,
+                "n_positive": len(positive),
+                "n_native_unlabeled": len(unlabeled),
+                "observed_max_rows": batch_maxima,
+                "optimizer_steps": 0,
+                "paper_batch_250_semantics_resolved": False,
+            },
+            "training_view": os_or_ts,
+            "calibration_applied": bool(view.calibration_applied),
+            "calibration_scope": "U_risk_and_raw_input_gradient_interpolation",
+            "TS_is_paper_experiment_replay": False,
+            "hyperparameters": {
+                "alpha": float(self.alpha),
+                "beta_max": float(self.beta_max),
+                "weight_decay": float(self.weight_decay),
+                "default_head_hidden_dim": self.hidden_dim if self.model is None else None,
+                "custom_score_model": self.model is not None,
+                "injected_encoder": self.encoder is not None,
+                "input_ndim": X.ndim,
+            },
+            "assumptions": {
+                "SCAR_theory": True,
+                "selection_bias_scope": "positive_label_selection_bias_partial_match",
+                "general_SAR_theoretical_guarantee": False,
+            },
+            "formal_candidate_pool": None,
+            "PA_OA_stage_eligibility": None,
+            "formal_resource_approval": False,
+            "formal_admission": False,
+        }
 
         for epoch in range(self.max_epochs):
+            progress = epoch / max(1, self.max_epochs - 1)
+            if self.lr_schedule == "linear":
+                factor = (1.0 - progress) + self.lr_final_ratio * progress
+            elif self.lr_schedule == "cosine":
+                factor = (
+                    self.lr_final_ratio
+                    + (1.0 - self.lr_final_ratio) * (1.0 + math.cos(math.pi * progress)) / 2.0
+                )
+            else:
+                factor = 1.0
+            used_lr = float(self.learning_rate * factor)
+            for group in optimizer.param_groups:
+                group["lr"] = used_lr
             p_order = rng.permutation(len(positive))
             u_order = rng.permutation(len(unlabeled))
             p_batches = [
@@ -321,6 +416,14 @@ class GradPUClassifier(BasePUClassifier):
                     raw_mixed = _one_score_per_row(raw_model(mixed), size)
                 else:
                     mixed = raw_mixed = None
+                for name, rows in (
+                    ("positive", len(p_batch)),
+                    ("native_unlabeled", len(u_batch)),
+                    ("risk_unlabeled", len(risk_u_batch)),
+                    ("physical_P_plus_U", len(p_batch) + len(u_batch)),
+                    ("GP_interpolation", 0 if mixed is None else len(mixed)),
+                ):
+                    batch_maxima[name] = max(batch_maxima[name], rows)
                 loss, parts = gradpu_objective(
                     raw_p,
                     raw_u,
@@ -343,6 +446,11 @@ class GradPUClassifier(BasePUClassifier):
                 self.history_[key].append(value / n_steps)
             self.history_["beta"].append(float(beta))
             self.history_["optimizer_steps"].append(self.optimizer_steps_)
+            self.history_["learning_rate"].append(used_lr)
+            self.training_provenance_["batch"]["optimizer_steps"] = self.optimizer_steps_
+            self.training_provenance_["learning_rate"]["actual_last_ratio"] = float(
+                used_lr / self.learning_rate
+            )
             self.checkpoint_stage_ = "pu"
             self.checkpoint_stage_epoch_ = epoch + 1
             self.checkpoint_round_ = None

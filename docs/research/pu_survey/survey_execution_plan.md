@@ -63,6 +63,11 @@
 
 ### 1.3 执行边界
 
+2026-10-18 优先整改 #121：[GradPU 调度与真实batch运行声明](admission/gradpu_training_recipe_review_20261018.md)
+保留常量LR默认，补显式线性/余弦、实际batch/更新成本与SAR/TS边界的每候选manifest，
+完善CNN/回放/fold证据。正式曲线/总batch语义/候选与阶段仍待确认，不改冻结协议、
+矩阵、台账准入位，不替代200快照资源实测。
+
 2026-10-18 独立续批：[合作者图像配方待确认清单](admission/candidate_image_owner_decisions_20261018.md)
 已按初始化/BN/增强/MLP/warmup 分项，可直接回复；新增只读资源预检按源码默认
 120/200快照和候选/重试/并发估算文件空间，缺少实测样本不放行。

@@ -67,6 +67,12 @@ P/U 数据留 CPU、优化批次上卡；预测分批 eval 并恢复模式，完
 
 ## 验证状态与后续门禁
 
+2026-10-18 根据 #121 补[实际调度/batch/运行声明](../pu_survey/admission/gradpu_training_recipe_review_20261018.md)：
+保留固定LR默认，显式支持epoch线性/余弦至初值0.1倍；曲线不是论文给定。
+记录实际Adam LR、分支batch、TS风险/GP行数、更新数及SAR部分匹配边界，
+经 `training_provenance_` 写入runner每候选manifest。补齐CNN/回放/fold证据；
+正式学习率、batch语义、候选池和阶段资格仍未决定，完整资源profile未执行。
+
 2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
 pu 阶段快照保留局部位置和累计 optimizer 更新数；梯度插值/二阶梯度与 TS 风险逻辑不改。
 新引用不批准阶段或候选，不构成论文图像配方复现。

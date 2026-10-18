@@ -303,6 +303,8 @@
         "batch_size": 256,
         "max_epochs": 200,
         "learning_rate": 0.001,
+        "lr_schedule": "constant",
+        "lr_final_ratio": 0.1,
         "weight_decay": 0.0005,
         "encoder": null,
         "random_state": null,
@@ -336,7 +338,15 @@
         "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",
-        "tests/unit/estimators/test_grad_pu.py::test_ts_calibrates_unlabeled_risk_and_gradient_interpolation"
+        "tests/unit/estimators/test_grad_pu.py::test_ts_calibrates_unlabeled_risk_and_gradient_interpolation",
+        "tests/unit/estimators/test_grad_pu_cnn.py::test_basic_cnn_updates_encoder_and_interpolates_original_images",
+        "tests/unit/estimators/test_grad_pu_cnn.py::test_input_gradient_norm_matches_linear_image_equation_and_backpropagates_conv_weights",
+        "tests/unit/estimators/test_grad_pu_cnn.py::test_determ_clone_seed_pickle_and_epoch_weights_roundtrip",
+        "tests/unit/estimators/test_grad_pu_cnn.py::test_basic_explicit_no_bn_backbone_does_not_rewrite_default",
+        "tests/integration/test_pan_pipeline_cnn.py::test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak",
+        "tests/unit/estimators/test_grad_pu_training_recipe.py::test_basic_actual_adam_rates_not_only_logged_schedule",
+        "tests/unit/estimators/test_grad_pu_training_recipe.py::test_basic_batch_semantics_match_real_objective_calls_and_short_tail",
+        "tests/unit/experiment/test_p3_new_methods_runner_smoke.py::test_basic_gradpu_manifest_records_actual_candidate_policy_batch_and_scope"
       ],
       "adaptation_differences": [
         {
@@ -347,7 +357,7 @@
         {
           "id": "paper_recipe",
           "source_location": null,
-          "meaning": "Paper p7300: four-layer MLP300 or CNN13 without BN, batch250 and decaying learning rate; toolbox MLP128/batch256/fixed LR and explicit cnn13_no_bn adaptation differ."
+          "meaning": "Paper p7300: MLP300x4 or CNN13 without BN, unresolved batch250 semantics and an unspecified decay curve ending at 0.1 initial LR. Toolbox retains MLP128/per-branch batch256/constant LR by default, with explicit optional linear/cosine epoch schedules. These curves and cnn13_no_bn are benchmark adaptations, not paper recipes."
         },
         {
           "id": "sampling_and_selection",

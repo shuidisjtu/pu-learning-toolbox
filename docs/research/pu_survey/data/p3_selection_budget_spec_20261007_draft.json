@@ -13,7 +13,7 @@
     "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
     "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "c2fa2241051ea550b453690119d51dd16bb223d6584df39288148a9d2a0735eb"
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "84e54fcc4c5e340b418fd7d0ab9b98a22c9c3e4dc54e3cbe068b5f05ebe4c440"
   },
   "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
   "fit_failure_contract": {
@@ -258,7 +258,7 @@
     "gradpu": {
       "class": "GradPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
-      "implementation_sha256": "4402381a3e19782c5d985385650eebb37151cc0ee596652490e43e102afb533b",
+      "implementation_sha256": "3951cac276321d172f440ca74663001c976d944b3732e54dca1a77a5518110f7",
       "fit_named_parameters": [
         "X",
         "y_pu",
@@ -275,6 +275,8 @@
         "batch_size": 256,
         "max_epochs": 200,
         "learning_rate": 0.001,
+        "lr_schedule": "constant",
+        "lr_final_ratio": 0.1,
         "weight_decay": 0.0005,
         "encoder": null,
         "random_state": null,

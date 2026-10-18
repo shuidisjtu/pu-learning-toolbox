@@ -857,6 +857,7 @@ CPU 保存图像/标签/原行自步权重，仅训练批次移到设备；预�
 ```python
 GradPUClassifier(model=None, *, hidden_dim=128, alpha=0.1, beta_max=1.0,
                  batch_size=256, max_epochs=200, learning_rate=1e-3,
+                 lr_schedule="constant", lr_final_ratio=0.1,
                  weight_decay=5e-4, encoder=None, random_state=None, device=None)
 ```
 
@@ -868,9 +869,17 @@ GradPUClassifier(model=None, *, hidden_dim=128, alpha=0.1, beta_max=1.0,
 | `alpha` / `beta_max` | `float` | `0.1` / `1.0` | 输入梯度惩罚强度 / 正样本加权上限 |
 | `batch_size` / `max_epochs` | `int` | `256` / `200` | 每组批大小 / 训练轮数 |
 | `learning_rate` / `weight_decay` | `float` | `1e-3` / `5e-4` | Adam 优化参数 |
+| `lr_schedule` / `lr_final_ratio` | `str` / `float` | `"constant"` / `0.1` | 显式选 `linear` / `cosine`，按epoch衰减至初值乘 `(0,1]` 终值比例；默认常量不变，单epoch始终用初值；曲线是工具箱选项，不是论文给定曲线 |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子 / PyTorch 设备 |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None)` 接受先验以适配统一接口，但论文目标不使用它；非 `None` 的 `sample_weight` 报错。`decision_function` 是 $[-1,1]$ 分数而非校准概率，预测阈值为 0。当前为论文公式导出的表格版组件，尚未进入正式 Survey 实验矩阵。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")` 接受先验以适配统一接口，但论文目标不使用它；非 `None` 的 `sample_weight` 报错。`decision_function` 是 $[-1,1]$ 分数而非校准概率，预测阈值为 0。支持二维特征/无BN注入图像路径，尚未进入正式 Survey 实验矩阵。
+
+`batch_size` 为 P、原始U各自上限，短分支按批次循环；每轮更新数为
+`max(ceil(n_P/B),ceil(n_U/B))`。OS物理行数最多2B；TS的U风险最多2B，
+加P项累计前向最多3B，GP插值最多2B，不是物理训练集扩为3B。
+`history_["learning_rate"]` 记录实际epoch使用值；`training_provenance_` 记录策略、
+实际batch最大值、更新数及TS/SAR边界，runner自动保存至
+`candidate_runs[].training_provenance`，不宣称一般SAR理论保证。
 
 - 文档：[GradPU 方法卡](../../research/method_cards/GradPU.md)
 

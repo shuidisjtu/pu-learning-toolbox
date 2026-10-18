@@ -101,6 +101,43 @@ def test_basic_new_methods_four_role_runner_and_manifest(tmp_path, name, view, r
         assert all(artifact.checkpoint_index is not None for artifact in result.selections.values())
 
 
+@pytest.mark.parametrize("schedule", ["constant", "linear", "cosine"])
+def test_basic_gradpu_manifest_records_actual_candidate_policy_batch_and_scope(tmp_path, schedule):
+    pytest.importorskip("torch")
+    from pu_toolbox import GradPUClassifier
+
+    path = tmp_path / "gradpu-manifest.json"
+    model = GradPUClassifier(hidden_dim=4, max_epochs=3, batch_size=5, alpha=0.0, device="cpu")
+    result = ExperimentRunner(
+        seed=0,
+        class_prior=0.5,
+        manifest_path=str(path),
+        config={
+            "method": "gradpu",
+            "c": 0.5,
+            "os_or_ts": "ts",
+            "candidates": [{"lr_schedule": schedule}],
+        },
+    ).fit(model, *parts())
+    manifest = json.loads(path.read_text())
+    facts = manifest["candidate_runs"][0]["training_provenance"]
+    assert facts["learning_rate"]["policy"] == schedule
+    assert facts["learning_rate"]["actual_last_ratio"] == pytest.approx(
+        1 if schedule == "constant" else 0.1
+    )
+    batch = facts["batch"]
+    assert batch["optimizer_steps"] == batch["steps_per_epoch"] * 3
+    assert (
+        batch["observed_max_rows"]["risk_unlabeled"]
+        > batch["observed_max_rows"]["native_unlabeled"]
+    )
+    assert facts["calibration_applied"] and manifest["calibration_applied"]
+    assert not facts["assumptions"]["general_SAR_theoretical_guarantee"]
+    assert facts["formal_candidate_pool"] is None and not facts["formal_admission"]
+    assert set(result.test_metrics) == {"PA", "OA"}
+    assert manifest.get("execution_mode") != "versioned_pilot"
+
+
 def test_seed_determinism_in_rank_pruning_four_role_runner():
     metrics = []
     for _ in range(2):
