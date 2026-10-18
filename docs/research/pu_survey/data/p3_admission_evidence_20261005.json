@@ -100,6 +100,8 @@
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_basic_pulda_ema_three_batches_matches_scalar_source_and_gradient",
+        "tests/unit/estimators/test_pulda_gradpu_inference_modes.py::test_basic_prediction_is_eval_only_and_restores_all_children",
+        "tests/unit/estimators/test_pulda_gradpu_inference_modes.py::test_edge_eval_transition_failure_also_restores_partial_mode_changes",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",
@@ -335,6 +337,8 @@
       },
       "source_behavior_tests": [
         "tests/unit/estimators/test_p3_source_behavior.py::test_basic_gradpu_raw_gradient_penalty_matches_scalar_and_second_derivative",
+        "tests/unit/estimators/test_pulda_gradpu_inference_modes.py::test_basic_prediction_is_eval_only_and_restores_all_children",
+        "tests/unit/estimators/test_pulda_gradpu_inference_modes.py::test_edge_eval_transition_failure_also_restores_partial_mode_changes",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_param_unsupported_sample_weight_invalidates_previous_fit",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_basic_determ_guarded_success_matches_unwrapped_training_and_cost",
         "tests/unit/estimators/test_candidate_fit_failures.py::test_edge_callback_exception_invalidates_partial_stage_without_retry",

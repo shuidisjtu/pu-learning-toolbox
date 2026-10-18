@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-18 独立修复[PULDA/GradPU推理逐模块模式恢复](admission/pulda_gradpu_inference_modes_20261018.md)：
+修复预测覆盖混合Dropout/BN模式的实际缺陷，含前向/eval切换异常恢复，不改变训练
+策略、默认数值、校准/预算或正式准入；旧资源probe不回填为新源码实测。
+
 2026-10-18 独立核查 #122：[Split-PU现状反例与决策清单](admission/splitpu_122_characterization_20261018.md)
 补JSD权重反转会连带改变分母的标量核对，以及真实teacher批次插桩：全量union的
 population比例不保证均衡batch并集恢复该比例。只补测试与文档，不擅自改目标、

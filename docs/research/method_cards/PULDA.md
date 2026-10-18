@@ -65,6 +65,9 @@ paper/source 差异保留登记；按 2026-10-18 用户决定，尊重队友实�
 
 ## 原生 CNN 工程路径（2026-10-05）
 
+2026-10-18 修复[逐子模块推理模式恢复](../pu_survey/admission/pulda_gradpu_inference_modes_20261018.md)：
+预测及异常退出不再覆盖调用者单独设置的Dropout/BN模式；不改变训练BN策略或默认数值。
+
 2026-10-18 根据 #119 补[共享图像接线](../pu_survey/admission/pulda_gradpu_image_review_20261018.md)：
 可选 `train_transform` 在两个阶段逐训练 batch 重新采样，先增强、再 MixUp、最后
 encoder 内归一化；推理和伪标签扫描不增强。新增独立技术构造入口使用同 seed

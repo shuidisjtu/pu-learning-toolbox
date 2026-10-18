@@ -565,9 +565,9 @@ class PULDAClassifier(BasePUClassifier):
             raise ValueError("prediction X has the wrong feature dimension or input shape")
         if not len(X):
             return np.empty(0, dtype=np.float32)
-        was_training = self.model_.training
-        self.model_.eval()
+        modes = [(layer, layer.training) for layer in self.model_.modules()]
         try:
+            self.model_.eval()
             with torch.no_grad():
                 return np.concatenate(
                     [
@@ -583,7 +583,8 @@ class PULDAClassifier(BasePUClassifier):
                     ]
                 )
         finally:
-            self.model_.train(was_training)
+            for layer, training in modes:
+                layer.training = training
 
     def _predict(self, X):
         return (self._decision_function(X) >= 0).astype(int)

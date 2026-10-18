@@ -50,6 +50,9 @@ w_P(x;\beta)=1-\beta\log\frac{1+g_\theta(x)}{2},
 
 ### 原生图像工程路径
 
+2026-10-18 修复[逐子模块推理模式恢复](../pu_survey/admission/pulda_gradpu_inference_modes_20261018.md)：
+预测及异常退出保留混合子模式、RNG和参数标志，不改变无BN拒绝或训练目标。
+
 2026-10-18 根据 #120 补[无 BN/private 图像接线](../pu_survey/admission/pulda_gradpu_image_review_20261018.md)：
 独立技术构造入口固定 `cnn13_no_bn`、train-only 归一化、seed/hash 和可训练状态，
 仅单列 method-private/no-BN CNN，保留 BN fail-closed 与 paper-only 身份。

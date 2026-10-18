@@ -474,10 +474,10 @@ class GradPUClassifier(BasePUClassifier):
             raise ValueError("GradPU prediction X must contain finite values")
         if not len(X):
             return np.empty(0, dtype=np.float32)
-        was_training = self.model_.training
-        self.model_.eval()
-        device = next(self.model_.parameters()).device
+        modes = [(layer, layer.training) for layer in self.model_.modules()]
         try:
+            self.model_.eval()
+            device = next(self.model_.parameters()).device
             with torch.no_grad():
                 return np.concatenate(
                     [
@@ -497,7 +497,8 @@ class GradPUClassifier(BasePUClassifier):
                     ]
                 )
         finally:
-            self.model_.train(was_training)
+            for layer, training in modes:
+                layer.training = training
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0.0).astype(int)
