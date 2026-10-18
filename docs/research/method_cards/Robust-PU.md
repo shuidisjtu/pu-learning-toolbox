@@ -103,6 +103,8 @@ behavior tests、换行哈希）已按下节补交；正式准入仍未完成。
   BCEWithLogits 在普通数值域与源 BCE(sigmoid) 公式等价，不承诺饱和数值逐位相同。
 - nnPU 预训练的优化梯度保持 correction 分支，但本项目 `pretrain_risk` 历史记录
   clipped reporting risk；作者 pre_train 记录优化 loss。负风险分支的两者不能混读。
+- 论文式(9)写加权和，作者代码/本项目用逐 batch 行均值。固定比例不改变该批
+  目标的 argmin，但不能据此宣称有限优化预算、变长尾批或学习率下数值轨迹相同。
 
 台账、校准调用契约、准入证据和预算/公开对照**草稿**同步；checker 锁住必需来源、
 梯度测试与先验契约，并拒绝将 unknown 许可偷改成开放许可或代填准入。

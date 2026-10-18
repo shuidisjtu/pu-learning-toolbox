@@ -6,7 +6,7 @@
   "primary_source": {
     "url": "https://arxiv.org/pdf/2308.00279v1",
     "doi": "10.1145/3580305.3599491",
-    "locations": "section 3, Algorithm 1, equations 1/3/4/8; PDF pages 4-5 (1-based)",
+    "locations": "section 3, Algorithm 1, equations 1/3/4/8-9; PDF pages 4-5 (1-based)",
     "paper_code_link": "page 1 explicitly links woriazzc/Robust-PU"
   },
   "source": {
@@ -76,6 +76,7 @@
   },
   "adaptation_differences": [
     "Toolbox keeps last warmup state and fixed episode budget; no clean-validation training input or internal early stop",
+    "Paper equation9 writes weighted sums; source and toolbox use a batch row mean; constant-scale argmin equivalence does not certify identical finite-budget optimizer steps or variable-tail behavior",
     "Source pretrain logs the optimization loss; toolbox pretrain_risk records clipped nnPU reporting risk, which differs in the negative-risk correction branch",
     "Stable BCEWithLogits replaces source BCE(sigmoid); saturated finite-precision behavior is not claimed identical",
     "Source warmup uses a shuffled joint PU loader; toolbox separately cycles P/U batches and concatenates their scores for ts risk only; per-step mixture weights/tails are not a claim of exact global-pool sampling equivalence",
@@ -104,5 +105,30 @@
     "formal_admission": false,
     "formal_budget_approved": false,
     "numeric_comparison_enabled": false
+  },
+  "engineering_acceptance": {
+    "source_completion_commit": "5ae320e",
+    "remote_review_sync": ["d2062c8", "832cf22", "4256a04", "19f16b7"],
+    "merge_commit": "f3017cd",
+    "python": "3.11.12",
+    "implementation_sha256_unchanged_from_4256a04": "4e69aadcd972589d4f65d6a52c9af677d24d19651834517dffeb2af6421c0f5e",
+    "test_sha256": "36e35f70549311087e8c26385c20c8c95230b959ca25478d57c4542800f5afd6",
+    "checker_sha256": "1c46933c70f362265d143f653c869aedd5c7a468b7e7382196664932a98d3e94",
+    "checker_test_sha256": "3141407168b8c2919356d2ca1fc8aa18ec8736f025e210b8a14556ccd304eec6",
+    "behavior_tests": {"passed": 24, "failed": 0, "skipped": 0},
+    "behavior_and_checker_tests": {"passed": 72, "failed": 0, "skipped": 0},
+    "neighbor_tests": {"passed": 179, "failed": 0, "skipped": 2},
+    "premerge_fast_suite": {"passed": 4316, "failed": 0, "errors": 0, "skipped": 58, "seconds": 296.733},
+    "postmerge_fast_suite": {"passed": 4316, "failed": 0, "errors": 0, "skipped": 58, "seconds": 290.582},
+    "postmerge_static_gates_passed": 12,
+    "locked_source_files_checked_raw_and_normalized": 6,
+    "torch_blocked_source_checker_passed": true,
+    "in_memory_mutants_detected": ["weight_sum_normalization", "row_weight_misalignment", "schedule_starts_at_one", "gradient_through_spl_weights"],
+    "wheel_sdist_built": true,
+    "outside_checkout_wheel_ts_fit_optimizer_steps": 23,
+    "outside_checkout_wheel_pickle_exact_replay": true,
+    "private_archives_arrays_checkpoints_in_packages": false,
+    "gpu_used": false,
+    "owner_approval_implied": false
   }
 }
