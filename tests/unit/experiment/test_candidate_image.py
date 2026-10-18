@@ -107,3 +107,30 @@ def test_edge_no_silent_prior_augmentation_or_backbone_substitution():
     _, augmented = preprocessing("simaugment")
     with pytest.raises(ValueError, match="train_augmentation"):
         build_candidate_image_classifier("gradpu", augmented, seed=0)
+
+
+@pytest.mark.parametrize(
+    "prior", [True, False, 0, 1, -0.1, float("nan"), float("inf"), "0.4", np.array([0.4])]
+)
+def test_param_invalid_population_prior_is_refused_before_encoder_allocation(monkeypatch, prior):
+    import pu_toolbox.experiment.candidate_image as module
+
+    _, spec = preprocessing()
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("invalid prior must fail before constructing a backbone")
+
+    monkeypatch.setattr(module, "build_survey_image_encoder", forbidden)
+    with pytest.raises(ValueError, match="class_prior"):
+        module.build_candidate_image_classifier("pulda", spec, seed=0, class_prior=prior)
+
+
+def test_edge_numpy_prior_produces_strict_json_without_claiming_validation_of_source():
+    _, spec = preprocessing()
+    model, record = build_candidate_image_classifier(
+        "pulda", spec, seed=0, class_prior=np.float32(0.4)
+    )
+    assert type(record["prior_contract"]["value"]) is float
+    assert model.class_prior == float(np.float32(0.4))
+    json.dumps(record, allow_nan=False)
+    assert record["prior_contract"]["source"] == "caller_supplied_population_prior"

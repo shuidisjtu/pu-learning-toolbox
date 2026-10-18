@@ -14,6 +14,12 @@
 显式 opt-in 的技术构造入口，返回 `(estimator, image_setup)`。不注册正式配方，
 不修改冻结协议、对照矩阵、方法台账、历史 feature cache 或正式准入位。
 
+后续边界修复：构造骨干前校验PULDA的population prior，拒绝bool、非有限值、
+闭区间端点/越界、字符串及数组；合法NumPy实数标量规范为Python float，
+保证构造记录可输出严格JSON。未验证调用者所给prior的真实来源，不估计/换算prior。
+该边界新增10项回归修复前全部失败，修复后与增强/模式恢复相关专项共40项通过、
+0跳过，JUnit `/tmp/candidate-prior-final.xml`；没有改变合法Python浮点输入的模型规格。
+
 - PULDA：调用 `build_survey_image_encoder`，每次在隔离的 CPU RNG 下用同 seed
   构造随机 ResNet-18。初始化不依赖前一个方法消耗的 RNG，记录模板 state hash；
   fit 再 deepcopy 模板，全部参数可训练，BN 随训练更新，评估不更新。

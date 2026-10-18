@@ -7,7 +7,8 @@ No existing pilot, feature cache or leaderboard is modified by this helper.
 
 from __future__ import annotations
 
-from numbers import Integral
+import math
+from numbers import Integral, Real
 
 from .feature_adapter import encoder_state_sha256
 from .image import (
@@ -32,12 +33,21 @@ def build_candidate_image_classifier(
     refused until a method-specific policy is decided. Each construction resets
     the CPU torch seed in a fork, independent of previous methods' RNG use.
     """
-    if method not in {"pulda", "gradpu"}:
+    if not isinstance(method, str) or method not in {"pulda", "gradpu"}:
         raise ValueError("method must be 'pulda' or 'gradpu'")
     if isinstance(seed, bool) or not isinstance(seed, Integral) or not 0 <= seed < 2**32:
         raise ValueError("seed must be an integer in [0, 2**32)")
     if method == "pulda" and class_prior is None:
         raise ValueError("PULDA requires the population class_prior")
+    if method == "pulda":
+        if (
+            isinstance(class_prior, bool)
+            or not isinstance(class_prior, Real)
+            or not math.isfinite(float(class_prior))
+            or not 0 < float(class_prior) < 1
+        ):
+            raise ValueError("population class_prior must be a finite real number in (0, 1)")
+        class_prior = float(class_prior)
     if method == "gradpu" and class_prior is not None:
         raise ValueError("GradPU does not use a class_prior")
     if method == "gradpu" and preprocessing.train_augmentation != "none":
