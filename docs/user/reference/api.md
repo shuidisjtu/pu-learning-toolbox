@@ -546,7 +546,7 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
                 warmup_weight_decay=5e-4, weight_decay=1e-4,
                 temperature=3.5, unlabeled_ema=0.85, margin_ema=0.5,
                 margin=0.6, mixup_weight=4.2, mixup_alpha=11.0, encoder=None,
-                random_state=0, device=None)
+                train_transform=None, random_state=0, device=None)
 ```
 
 | 参数 | 类型 | 默认 | 说明 |
@@ -554,6 +554,7 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
 | `class_prior` | `float` | 必填 | 真实正类比例，须在 `(0,1)`；`fit(class_prior=...)` 可覆盖 |
 | `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | 工具箱 MLP 的隐层宽度与层数 |
 | `encoder` | `torch.nn.Module \| None` | `None` | 可选特征编码器；四维图像必须提供，deepcopy 后端到端训练，后接上述 MLP 头 |
+| `train_transform` | `torch.nn.Module \| None` | `None` | 仅四维训练图像；deepcopy 后在两阶段每个 P/U 批次重新采样增强，随后做输入 MixUp，再由 encoder 内归一化；预测和伪标签扫描不调用 |
 | `warmup_epochs` / `pu_epochs` | `int` / `int` | `60` / `60` | 分布对齐预热与伪标签 MixUp 阶段轮数，二者不能同时为 0 |
 | `positive_batch_size` / `unlabeled_batch_size` | `int` / `int` | `16` / `128` | 每批 P/U 数量 |
 | `warmup_learning_rate` / `learning_rate` | `float` / `float` | `1e-4` / `1e-3` | 两阶段 Adam 初始学习率 |

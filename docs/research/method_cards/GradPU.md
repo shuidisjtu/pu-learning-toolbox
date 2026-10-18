@@ -50,6 +50,11 @@ w_P(x;\beta)=1-\beta\log\frac{1+g_\theta(x)}{2},
 
 ### 原生图像工程路径
 
+2026-10-18 根据 #120 补[无 BN/private 图像接线](../pu_survey/admission/pulda_gradpu_image_review_20261018.md)：
+独立技术构造入口固定 `cnn13_no_bn`、train-only 归一化、seed/hash 和可训练状态，
+仅单列 method-private/no-BN CNN，保留 BN fail-closed 与 paper-only 身份。
+真实默认宽度 CNN 的短测不替代200快照资源 profile；正式 recipe/runner 分层仍待接线。
+
 `encoder` 经 deepcopy 解冻训练，输出有限二维特征，后接默认 MLP 或用户原始分数头。
 四维图像缺 encoder 时拒绝；含 BatchNorm 时仍明确拒绝。
 显式骨干 `cnn13_no_bn` 是工具箱现有13卷积布局的独立无 BN 变体，**不改默认 cnn13**，

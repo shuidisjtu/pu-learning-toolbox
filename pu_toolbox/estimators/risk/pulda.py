@@ -220,6 +220,7 @@ class PULDAClassifier(BasePUClassifier):
         mixup_weight: float = 4.2,
         mixup_alpha: float = 11.0,
         encoder=None,
+        train_transform=None,
         random_state: int | None = 0,
         device: str | None = None,
     ) -> None:
@@ -242,6 +243,7 @@ class PULDAClassifier(BasePUClassifier):
         self.mixup_weight = mixup_weight
         self.mixup_alpha = mixup_alpha
         self.encoder = encoder
+        self.train_transform = train_transform
         self.random_state = random_state
         self.device = device
 
@@ -274,6 +276,11 @@ class PULDAClassifier(BasePUClassifier):
             raise ValueError("PULDA 4-D images require an encoder; images are not flattened")
         if self.encoder is not None and not isinstance(self.encoder, nn.Module):
             raise TypeError("encoder must be a torch.nn.Module")
+        if self.train_transform is not None:
+            if X.ndim != 4:
+                raise ValueError("train_transform requires 4-D image inputs")
+            if not isinstance(self.train_transform, nn.Module):
+                raise TypeError("train_transform must be a torch.nn.Module")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
         prior = self.class_prior if class_prior is None else class_prior
         check_scalar_in_range(prior, 0.0, 1.0, "class_prior", inclusive=False)
@@ -282,6 +289,11 @@ class PULDAClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
+        self.train_transform_ = (
+            None
+            if self.train_transform is None
+            else copy.deepcopy(self.train_transform).to(device).requires_grad_(False)
+        )
         layers = []
         width = X.shape[1]
         self.encoder_ = None
@@ -416,6 +428,23 @@ class PULDAClassifier(BasePUClassifier):
             indices = np.concatenate((p_idx, u_idx))
             batch_x = tx[indices].to(self.device_)
             batch_y = ty[indices].to(self.device_)
+            if self.train_transform_ is not None:
+                # Fresh views on every training batch in both phases. MixUp
+                # reuses these views; evaluation and pseudo-label scans do not.
+                with torch.no_grad():
+                    transformed = self.train_transform_(batch_x.clone())
+                if (
+                    not isinstance(transformed, torch.Tensor)
+                    or transformed.shape != batch_x.shape
+                    or transformed.device != batch_x.device
+                    or transformed.dtype != batch_x.dtype
+                    or not torch.isfinite(transformed).all()
+                ):
+                    raise ValueError(
+                        "train_transform must return finite images with unchanged shape, "
+                        "dtype and device"
+                    )
+                batch_x = transformed.detach()
             logits = self.model_(batch_x).flatten().clamp(-10, 10)
             # Distribution and two-way margin have a marginal-U role.  In
             # the calibrated view the same P logits enter that role too;

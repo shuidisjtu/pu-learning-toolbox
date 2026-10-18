@@ -42,6 +42,7 @@
         "mixup_weight": 4.2,
         "mixup_alpha": 11.0,
         "encoder": null,
+        "train_transform": null,
         "random_state": 0,
         "device": null
       },

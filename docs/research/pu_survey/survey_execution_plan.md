@@ -63,6 +63,11 @@
 
 ### 1.3 执行边界
 
+2026-10-18 优先核对远程 #119/#120 并补[PULDA/GradPU 图像技术接线](admission/pulda_gradpu_image_review_20261018.md)：
+PULDA 增加逐训练 batch 增强与共享 seeded ResNet-18 回归；GradPU 固定技术入口为
+cnn13_no_bn/private，均记录初始化/归一化/训练路径。未改冻结矩阵或台账准入位；
+#119 尚待 BN/增强/MLP 决定，正式 recipe/runner 分层和完整120/200快照资源实测仍待办。
+
 2026-10-18 RP 新增[PU 特例来源与实际 OOF 拟合证据](admission/rp_source_review_20261018.md)：
 补四文件双摘要、独立公式/排序和逐次拟合隔离/重权/成本测试；仅修正正例均值
 上溢舍入导致的空 confident/NaN，数学算法、OS/先验/校准、默认值不改；

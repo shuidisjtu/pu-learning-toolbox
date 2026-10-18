@@ -174,6 +174,7 @@ pu_toolbox/
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
     feature_adapter.py                    (CNN 二维特征适配、encoder/特征哈希与榜单公平性分组门禁)
     image.py                              (train-only 图像统计、缩放、ResNet-18/增强配置与哈希留痕)
+    candidate_image.py                    (PULDA 共享 ResNet-18 / GradPU 私有无 BN 图像技术构造，非正式准入)
     text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存；键按去重语料而非排列，故同一文本跨 seed 同值)
     training_views.py                     (survey 边界适配器: 台账门禁与路由裁决、旧 run_view 词表在出口现算、manifest 留痕；角色构造委托 core.training_views)
     manifest.py                           (manifest 写入/加载与必填键校验)
@@ -280,6 +281,7 @@ tests/
       test_p3mix.py                     # P3Mix 作者 slides 公式与边界
       test_pan_cnn.py                   # PAN 双编码器 CNN 更新、隔离与 checkpoint 回放
       test_pulda_cnn.py                 # PULDA CNN 两阶段训练、CPU 图像驻留与权重回放
+      test_pulda_augmentation.py        # PULDA 两阶段逐批增强、MixUp 顺序、拒绝与模板隔离
       test_grad_pu_cnn.py               # GradPU 原图二阶梯度、无 BN 编码器与权重回放
       test_robust_pu_cnn.py             # Robust-PU CNN 阶段、BN 隔离与 CPU 权重/快照回放
       test_split_pu_cnn.py              # Split-PU 多层 CNN 蒸馏、阶段隔离与快照回放
@@ -417,6 +419,7 @@ tests/
       test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
       test_feature_adapter.py           # CNN 特征四路适配/哈希/fit 范围与 split/seed/预算公平门禁
       test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
+      test_candidate_image.py           # PULDA/GradPU seeded 共享/私有图像路径、BN 与非正式 manifest
       test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测；跨排列同条目、重复文本共享行
       test_training_views.py            # 实验层边界适配器: TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与 manifest 哈希
       test_manifest.py                  # manifest 往返与必填键 fail-loud

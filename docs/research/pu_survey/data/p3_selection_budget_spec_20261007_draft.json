@@ -13,7 +13,7 @@
     "pu_toolbox/experiment/survey_comparison_v1.json": "6569793f31fed4b114037802bef42a267c3849f0634b633f2abc28c53a3321d3",
     "pu_toolbox/experiment/survey_comparison_v2.json": "583eb66c8cd28f8f7f9832c6f0d2df3a69de826e47680921f376f0214714bce1",
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
-    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "94769bcacaf214fb75c54c5c41cf736693b10da29752df71fffa689a5f341b9d"
+    "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "c2fa2241051ea550b453690119d51dd16bb223d6584df39288148a9d2a0735eb"
   },
   "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
   "fit_failure_contract": {
@@ -45,7 +45,7 @@
     "pulda": {
       "class": "PULDAClassifier",
       "implementation_ref": "pu_toolbox/estimators/risk/pulda.py",
-      "implementation_sha256": "8728c2da4b22a5bc21fc39ef8efc0942bf69a79c0ec06bf0ba9639285239892a",
+      "implementation_sha256": "465c3f8fff7c3e3d8d577552db3a64b7f1161dfa0701fdd126ddc2e002d369fa",
       "fit_named_parameters": [
         "X",
         "y_pu",
@@ -72,6 +72,7 @@
         "mixup_weight": 4.2,
         "mixup_alpha": 11.0,
         "encoder": null,
+        "train_transform": null,
         "random_state": 0,
         "device": null
       },
