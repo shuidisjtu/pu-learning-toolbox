@@ -79,11 +79,17 @@
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无需外部；估计 rho1 与观测比例推导的 pi，外部 fit 先验仅校验后忽略",
-        "adaptation_level": "benchmark-adapted（独立 sklearn 适配；CV clone/固定随机种子；默认保留每类至少 10 个，与作者严格阈值和 ties 保留相同）",
+        "adaptation_level": "benchmark-adapted（独立 sklearn 适配；CV clone/固定随机种子；默认保留每类至少 10 个，与作者严格阈值和 ties 保留相同；正例均值用 max(P) 仅修正上溢舍入，避免空 confident/NaN，非逐位源复现）",
         "code_version": {
           "upstream_url": "https://github.com/cgnorthcutt/rankpruning",
           "upstream_commit": "40ae17cc50fcfeec8d7a345a1c5426036d2bdb1a",
-          "source_status": "official_related（作者代码核查；仅 clean-positive PU 特例的独立适配，非通用双向噪声 PN）"
+          "source_status": "official_related（作者代码核查；仅 clean-positive PU 特例的独立适配，非通用双向噪声 PN）",
+          "source_files_sha256": {
+            "rankpruning/rankpruning.py": "1891f73ba5cfe960b5d4377c5dbb7581e65f44f9bb20dbbe099b344172773342",
+            "LICENSE": "3532f0d8789e2fe36fd6025ecfe9ba68634899d0362971d5052cd1aeefd17ac0",
+            "README.md": "210d7f4d552a640938ccd56fdb998fe5676455c5a923277209731b83908061e8",
+            "setup.py": "2544431c5f33f224b156fe29a06271ca06d7d52422fcb6000669713b8a2fba26"
+          }
         },
         "modality_backbone": {
           "modalities": [
@@ -98,7 +104,8 @@
             "encoder_parameter": null,
             "trains_encoder": false
           }
-        }
+        },
+        "source_behavior_review_ref": "docs/research/pu_survey/data/rp_source_review_20261018.json"
       },
       "candidate_protocol_ref": null,
       "budget_ref": null,

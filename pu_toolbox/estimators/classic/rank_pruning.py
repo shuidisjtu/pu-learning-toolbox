@@ -38,7 +38,10 @@ def confident_positive_noise_rate(labels, probabilities):
         raise ValueError("confident counts require both binary labels and finite probabilities")
     if np.any((probabilities < 0) | (probabilities > 1)):
         raise ValueError("probabilities must be in [0, 1]")
-    threshold = probabilities[labels == 1].mean()
+    positive_scores = probabilities[labels == 1]
+    # A rounded mean of constant scores (e.g. three 0.1s) can exceed
+    # their maximum. Enforce the mean's upper bound, keeping >= inclusive.
+    threshold = min(positive_scores.mean(), positive_scores.max())
     confident = probabilities >= threshold
     return min(float(np.sum(confident & (labels == 0)) / confident.sum()), 0.9999)
 

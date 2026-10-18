@@ -100,5 +100,6 @@
 - 2026-10-17 独立 BBE/TEDⁿ：[BBE](../method_cards/BBE.md)、[TEDn](../method_cards/TEDn.md)；native TS、显式 α_U，不接 CVIR/OS Survey。
 - 2026-10-18 [五候选方法失败重训状态整改](reviews/candidate_fit_failure_20261018.md)：异常/取消后禁止旧或部分模型公开推理，成功训练与校准口径不变。
 - 2026-10-18 [PAN 来源与推理模式补证](admission/pan_source_inference_review_20261018.md)：保持论文目标/OS，补九文件与实际交替梯度，仅修推理的逐层模式恢复。
+- 2026-10-18 [RP 来源与实际 OOF 补证](admission/rp_source_review_20261018.md)：四文件双摘要、剪枝/重权/实际拟合隔离与成本；修常数概率的均值舍入 NaN，不改数学算法/默认或正式准入。
 
 以上均为工程准备；正式资源预算、配方、数值验收和负责人签署仍按执行计划推进。

@@ -1,0 +1,103 @@
+{
+  "schema_version": "survey-rp-source-engineering-review-1",
+  "method": "rp",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "formal_admission": false,
+  "primary_source": {
+    "url": "https://auai.org/uai2017/proceedings/papers/35.pdf",
+    "locations": "PDF p2 Table1 noise meanings; p4 Eq2-3 thresholds/confident counts; p5 Algorithm1 and Eq9-10 pruning/reweighting; 10-page proceedings PDF",
+    "scope": "PU specialization rho0=0 only; theoretical guarantees retain their population/identifiability conditions, not finite-run guarantees"
+  },
+  "source": {
+    "repository": "https://github.com/cgnorthcutt/rankpruning",
+    "commit": "40ae17cc50fcfeec8d7a345a1c5426036d2bdb1a",
+    "source_status": "official_related",
+    "working_tree_clean_when_inspected": true,
+    "executed_upstream_code": false,
+    "files": [
+      {"path": "rankpruning/rankpruning.py", "sha256": "1891f73ba5cfe960b5d4377c5dbb7581e65f44f9bb20dbbe099b344172773342"},
+      {"path": "LICENSE", "sha256": "3532f0d8789e2fe36fd6025ecfe9ba68634899d0362971d5052cd1aeefd17ac0"},
+      {"path": "README.md", "sha256": "210d7f4d552a640938ccd56fdb998fe5676455c5a923277209731b83908061e8"},
+      {"path": "setup.py", "sha256": "2544431c5f33f224b156fe29a06271ca06d7d52422fcb6000669713b8a2fba26"}
+    ],
+    "raw_digest_policy": "sha256_raw_bytes_including_line_endings",
+    "normalized_text_digest_policy": "utf8_text_universal_newlines_sha256",
+    "normalized_text_sha256": {
+      "rankpruning/rankpruning.py": "1891f73ba5cfe960b5d4377c5dbb7581e65f44f9bb20dbbe099b344172773342",
+      "LICENSE": "de17f2094aa7fb0e46e098237dd8fe1cd7be129968d0fbdb69234660ba5dccaf",
+      "README.md": "210d7f4d552a640938ccd56fdb998fe5676455c5a923277209731b83908061e8",
+      "setup.py": "2544431c5f33f224b156fe29a06271ca06d7d52422fcb6000669713b8a2fba26"
+    },
+    "license_observation": {
+      "declared_license": "MIT",
+      "copyright_notice": "2017 cgnorthcutt",
+      "location": "LICENSE and setup.py license field",
+      "registry_license_changed": false,
+      "author_code_vendored_executed_or_redistributed": false
+    },
+    "deprecation": "README recommends cleanlab; toolbox keeps the historical RP baseline, not a replacement by modern cleanlab"
+  },
+  "implementation_ref": "pu_toolbox/estimators/classic/rank_pruning.py",
+  "implementation_sha256": "d55d4eee5fd695490a4b3fd62cd928bbdc8f933710811eeeddfe1ae6a4516ba9",
+  "implementation_digest_policy": "utf8_text_universal_newlines_sha256",
+  "calibration": {
+    "run_view": "os-compatible",
+    "calibration_applied": false,
+    "fixed_rho0": 0.0,
+    "external_population_prior_used": false,
+    "source_equivalence_claim": false
+  },
+  "retained_source_behavior": {
+    "confident_counts": "rankpruning/rankpruning.py:99-134: mathematical threshold=positive observed-label mean, inclusive >= for confident positive; rho1=count_U_confident/count_all_confident; cap0.9999; toolbox adds explicit mean upper-bound roundoff guard",
+    "CV_aggregation": "rankpruning/rankpruning.py:211-247: estimate rates on each holdout, then mean finite per-fold rates, not pooled OOF counts",
+    "PU_identity": "rankpruning/rankpruning.py:645-681: pulearning=True forces rho0=0; general default need not be PU; toolbox always specializes to PU",
+    "prior_inverse_noise": "rankpruning/rankpruning.py:374-389: py1=ps1/(1-rho1) for rho0=0; inverse pi0 clipped0..0.9999, py1 not clipped; toolbox invalid-prior diagnostic does not become a public class prior",
+    "strict_pruning": "rankpruning/rankpruning.py:453-484: integer truncation, MIN_NUM_PER_CLASS=10, partition at k, strict > high-score U cutoff; ties retained, P untouched under pi1=0",
+    "reweight": "rankpruning/rankpruning.py:686-699: one final refit on retained rows, P weight1/(1-rho1), U weight1 under PU",
+    "supplied_noise": "rankpruning/rankpruning.py:653-678: known rho1 does not eliminate OOF predictions when probabilities are absent; toolbox still performs all internal folds"
+  },
+  "adaptation_differences": [
+    "Toolbox clones the base estimator for every fold and final fit, fixes splitter random_state; source reuses self.clf and does not set StratifiedKFold random_state; not bitwise author replay",
+    "Toolbox accepts only PU observed labels and fixes rho0=0, not general two-way noisy-PN; no external precomputed probabilities or arbitrary confidence thresholds interface",
+    "Toolbox reads positive column by classes_ (including reversed order), validates finite normalized binary probabilities; source assumes [:,1]",
+    "Toolbox returns a two-column predict_proba and fixed0.5 probability prediction; source public probability is a positive vector and predict delegates to the base classifier",
+    "Default min_retained10 matches source; other explicit min_retained values are toolbox parameterizations, not approved formal search candidates",
+    "Real-valued mean cannot exceed max(P), but source np.mean can round upward on constant0.1/0.2; toolbox bounds only that overshoot by max(P), preserving >= and normal finite thresholds; source NaN-fold omission is not replayed as a new toolbox threshold mode",
+    "Only dense2D CPU interface is registered; paper CNN experiments and author Keras helper are not reproduced"
+  ],
+  "cost_contract": {
+    "successful_fit_calls": "n_cv_folds+1",
+    "fold_fits_use_external_sample_weight": false,
+    "final_fit_uses_internal_inverse_noise_weights": true,
+    "known_rho1_skips_oof_fits": false,
+    "fit_call_count_is_wall_time_or_equal_sized_T": false,
+    "formal_budget_approved": false
+  },
+  "behavior_test_refs": [
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_basic_param_pruning_matches_independent_full_sort_and_inverse_noise",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_edge_confident_count_boundary_is_inclusive_and_caps_near_one",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_determ_actual_crossfits_are_fresh_heldout_only_then_one_exact_weighted_refit",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_edge_degenerate_prior_is_diagnostic_not_clipped_to_a_valid_prior",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_param_invalid_base_probability_contract_fails_before_use",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_edge_base_fit_failure_is_not_retried_and_cannot_expose_previous_model",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_basic_determ_default_logistic_path_and_clone_repeat_without_external_prior",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_edge_constant_score_roundoff_cannot_empty_the_confident_positive_set",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_edge_real_dummy_prior_cv_handles_nonbinary_constant_probability",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_determ_nonconstant_counts_remain_bitwise_equal_to_previous_mean_formula",
+    "tests/unit/estimators/test_rank_pruning_source_contract.py::test_basic_source_review_binds_code_ledger_and_pu_only_non_admission"
+  ],
+  "engineering_scope": {
+    "mathematical_algorithm_or_defaults_changed": false,
+    "mean_roundoff_guard_added": true,
+    "historical_probe_or_frozen_result_changed": false,
+    "new_real_data_or_GPU_run": false,
+    "numeric_reproduction_or_formal_recipe_approval": false
+  },
+  "remaining_blockers": [
+    "method_owner_review",
+    "frac_pos2neg_provenance_or_fixed_default_estimation_policy",
+    "approved_internal_CV_plus_refit_budget_and_representation",
+    "PA_OA_selection_and_public_numeric_comparison"
+  ]
+}
