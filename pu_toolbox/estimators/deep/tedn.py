@@ -18,6 +18,7 @@ import numpy as np
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
 from ...core.exceptions import NotFittedError
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -166,6 +167,7 @@ class TEDnClassifier(BasePUClassifier):
     def checkpoint_prediction_batch_size(self):
         return self.batch_size
 
+    @invalidate_failed_fit
     def fit(
         self,
         X: np.ndarray,

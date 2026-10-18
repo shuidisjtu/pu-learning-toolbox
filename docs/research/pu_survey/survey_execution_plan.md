@@ -63,6 +63,10 @@
 
 ### 1.3 执行边界
 
+2026-10-19 算法生命周期续批补[五扩展候选失败拟合保护](reviews/extended_candidate_fit_failure_20261019.md)：
+GEN-PU/Holistic-PU/LaGAM/PULNS/TEDn 的未知/缺失参数、异常和取消均撤销公开拟合状态；
+仅复用共享guard，不改训练方法体、目标、支持集、校准、预算或历史结果。
+
 2026-10-19 P3.2 续批补[LaGAM resident/CPU-stream 推理模式保护](admission/lagam_inference_modes_20261019.md)：
 恢复逐层模式并让空输入不触发 eval；不改元更新、虚拟步、支持集/PA 边界、采样或目标。
 来源记录与台账补工程引用，正式配方/资源及合作者审阅仍待。

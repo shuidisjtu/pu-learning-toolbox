@@ -308,6 +308,7 @@ tests/
       test_tedn_training.py             # TEDn 更新前估计、CNN 留出隔离、收敛与 checkpoint 回放
       test_robust_pu_source_contract.py # Robust-PU 独立公式/真实梯度、逐行移动权重与源调度子集
       test_candidate_fit_failures.py    # 五候选算法失败重训/回调与成功路径不变性
+      test_extended_candidate_fit_failures.py # 五扩展候选参数绑定/取消与成功重训状态保护
       test_pan_prediction_modes.py      # PAN 推理逐层模式/BN/RNG 隔离与异常恢复
       test_pan_source_contract.py       # PAN 独立解析梯度、真实交替采样与来源绑定
       test_rank_pruning_source_contract.py # RP 独立排序/计数、真实 OOF 隔离与最终重权成本

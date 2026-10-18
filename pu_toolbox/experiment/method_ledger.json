@@ -42,6 +42,7 @@
   "methods": {
     "holistic_pu": {
       "class": "HolisticPUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
       "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Beyond Myopia: Learning from Positive and Unlabeled Data through Holistic Predictive Trends", "authors": "Xinrui Wang, Wenhai Wan, Chuanxing Geng, Shaoyuan Li, Songcan Chen", "venue": "NeurIPS", "year": 2023},
@@ -62,6 +63,7 @@
     },
     "genpu": {
       "class": "GenPUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
       "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
       "paper": {"title": "Generative Adversarial Positive-Unlabelled Learning", "authors": "Ming Hou, Brahim Chaib-draa, Chao Li, Qibin Zhao", "venue": "IJCAI", "year": 2018},
@@ -91,6 +93,7 @@
     },
     "pulns": {
       "class": "PULNSClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
       "paper": {
         "title": "PULNS: Positive-Unlabeled Learning with Effective Negative Sample Selector",
@@ -752,6 +755,7 @@
       "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
       "adaptation_level": "benchmark-adapted（MLP/注入可训练 CNN，CPU-stream 图像/support/聚类/预测；默认虚拟 weight+bias，meta_update_bias=false 仅补作者 weight-only 参数范围；新 CNN 虚拟步用冻结 eval 特征，不改 BN/dropout；原 hard-observed 元标签、rho 端点及稳定 BCE 保留，非作者网络/Faiss/增强/预算重放）",
       "source_behavior_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/lagam_inference_modes_20261019.md",
       "sampling_review": {"registry_view": "os", "source_split_view": "os", "review_status": "source_aligned_metadata_corrected", "registry_relabelled": true},
       "checkpoint_accounting": {"epoch_bound": "max_epochs includes warmup_epochs", "bound_is_upper_limit": false, "optimizer_steps_attribute": "optimizer_steps_", "virtual_steps_attribute": "virtual_steps_", "formal_budget_approved": false},
@@ -814,6 +818,7 @@
         "tedn": {
           "status": "standalone end-to-end Algorithm 3 engineering path: warm-start, per-round held-out BBE, discard, unweighted update and training-error stop; not registered or wired into CVIR",
           "implementation": "pu_toolbox/estimators/deep/tedn.py:TEDnClassifier",
+          "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
           "review_ref": "docs/research/pu_survey/data/tedn_source_review_20261017.json",
           "native_sampling_assumption": "explicit ts input, caller sampling assertion unverified",
           "target": "alpha_U estimated before each round, never generic population pi",

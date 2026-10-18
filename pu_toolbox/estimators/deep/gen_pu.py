@@ -14,6 +14,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -151,6 +152,7 @@ class GenPUClassifier(BasePUClassifier):
         """Only synthetic-PN classifier epochs have deployable classifier weights."""
         return self.classifier_epochs
 
+    @invalidate_failed_fit
     def fit(
         self, X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None
     ):
