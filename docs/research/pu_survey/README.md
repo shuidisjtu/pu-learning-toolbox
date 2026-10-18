@@ -75,7 +75,7 @@
 - [`heng958_independent_review.md`](reviews/heng958_independent_review.md)：HENG958 负责范围的历史复核记录。
 - [`collaborator_followup_20261004.md`](reviews/collaborator_followup_20261004.md)：数据收集、CNN oracle、校准和交付边界的补全记录。
 - [`independent_progress_20261005.md`](reviews/independent_progress_20261005.md)：独立工程预集成和合成数据证据；不改变冻结矩阵或正式准入。
-- [`p3_1_acceptance_review_20261016.md`](reviews/p3_1_acceptance_review_20261016.md)：P3.1 逐方法技术验收复核；P3MIX 未完成，#114–#117 整改复核与保留条件。
+- [`p3_1_acceptance_review_20261016.md`](reviews/p3_1_acceptance_review_20261016.md)：P3.1 逐方法技术验收复核（2026-10-18 汇总）；P3MIX 未完成，#114–#117 与近期五方法复核结论。
 - [`algorithm_issues_114_117_20261017.md`](reviews/algorithm_issues_114_117_20261017.md)：#114–#117 工程整改、验证证据与独立实验调用边界。
 - [`algorithm_completion_20261017.md`](reviews/algorithm_completion_20261017.md)：新增算法收尾状态、fail-closed 预算与正式准入边界。
 - [`puet_adaptation_completion_20261017.md`](reviews/puet_adaptation_completion_20261017.md)：PUET 风险质量证据、适配回归与 `max_features` 越界登记；不改变训练代码或正式准入。
