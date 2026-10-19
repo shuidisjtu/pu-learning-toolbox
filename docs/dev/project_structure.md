@@ -278,7 +278,8 @@ tests/
       test_rank_pruning.py              # Rank Pruning OOF、剪枝与噪声权重
       test_gen_pu.py                    # GenPU anti-GAN 方向与风险池校准
       test_holistic_pu.py               # Holistic-PU 论文/代码分歧与训练
-      test_p3mix.py                     # P3Mix 原文公式、训练变体及工程边界
+      test_p3mix.py                     # P3Mix 训练变体、检查点及工程边界
+      test_p3mix_math.py                # P3Mix 原文公式与纯候选/MixUp 辅助
       test_pan_cnn.py                   # PAN 双编码器 CNN 更新、隔离与 checkpoint 回放
       test_pulda_cnn.py                 # PULDA CNN 两阶段训练、CPU 图像驻留与权重回放
       test_pulda_augmentation.py        # PULDA 两阶段逐批增强、MixUp 顺序、拒绝与模板隔离

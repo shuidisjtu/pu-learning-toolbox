@@ -4,8 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[3]
 ANCHORS_PATH = ROOT / "docs/research/pu_survey/data/p3mix_literature_anchors_20261019.json"
+
+pytestmark = pytest.mark.unit
 
 
 def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_results():

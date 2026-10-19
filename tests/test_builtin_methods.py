@@ -122,20 +122,6 @@ class TestBuiltinRegistration:
         assert get_metadata("kldce").name == "kldce"
         assert "kldce" not in get_metadata("centroid_pu").aliases
 
-    def test_tedn_is_registered_as_an_experimental_native_ts_estimator(self):
-        from pu_toolbox import TEDnClassifier as PublicTEDnClassifier
-        from pu_toolbox.estimators.deep import TEDnClassifier
-        from pu_toolbox.registry import get_algorithm, get_metadata
-
-        register_all_builtin_methods()
-        metadata = get_metadata("tedn")
-        assert get_algorithm("tedn") is TEDnClassifier is PublicTEDnClassifier
-        assert get_algorithm("transform-estimate-discard") is TEDnClassifier
-        assert [item.value for item in metadata.scenario] == ["case_control"]
-        assert metadata.maturity.value == "experimental"
-        assert metadata.source_status.value == "official_exact"
-        assert metadata.requires_class_prior is False
-
     def test_basic_list_by_family(self):
         """Family filter is consistent with the registry (counts free)."""
         register_all_builtin_methods()

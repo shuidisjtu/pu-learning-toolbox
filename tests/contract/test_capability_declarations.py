@@ -129,6 +129,8 @@ _EXPECTED_DECLARATIONS = {
     "genpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "holistic_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "pulns": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "p3mix": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
+    "tedn": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
 }
 
 
@@ -141,6 +143,22 @@ def test_deep_capability_declarations():
         assert cls.input_ndims == ndims, name
         assert cls.encoder_parameter == enc_param, name
         assert cls.trains_encoder == trains, name
+
+
+@pytest.mark.contract
+def test_basic_tedn_registration_is_experimental_native_ts():
+    from pu_toolbox import TEDnClassifier as PublicTEDnClassifier
+    from pu_toolbox.estimators.deep import TEDnClassifier
+    from pu_toolbox.registry import get_algorithm, get_metadata
+
+    register_all_builtin_methods()
+    metadata = get_metadata("tedn")
+    assert get_algorithm("tedn") is TEDnClassifier is PublicTEDnClassifier
+    assert get_algorithm("transform-estimate-discard") is TEDnClassifier
+    assert [item.value for item in metadata.scenario] == ["case_control"]
+    assert metadata.maturity.value == "experimental"
+    assert metadata.source_status.value == "official_exact"
+    assert metadata.requires_class_prior is False
 
 
 _CAPABILITY_FIELDS = {"native_architectures", "input_ndims", "encoder_parameter", "trains_encoder"}
