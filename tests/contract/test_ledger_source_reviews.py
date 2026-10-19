@@ -59,6 +59,29 @@ def test_ts_calibration_methods_link_to_their_scope_reviews(
 
 
 @pytest.mark.contract
+def test_ledger_source_and_calibration_review_refs_resolve_inside_repository(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """Every method and hooked calibration has a real, repository-local audit target."""
+    root = _ROOT.resolve()
+    for name, entry in ledger_methods.items():
+        source_ref = entry.get("source_behavior_review_ref")
+        assert isinstance(source_ref, str) and source_ref, name
+        source_path = (root / source_ref).resolve()
+        assert source_path.is_relative_to(root) and source_path.is_file(), (
+            f"{name}: invalid source_behavior_review_ref {source_ref!r}"
+        )
+
+        if entry["calibration_hooked"]:
+            calibration_ref = entry.get("calibration_review_ref")
+            assert isinstance(calibration_ref, str) and calibration_ref, name
+            calibration_path = (root / calibration_ref).resolve()
+            assert calibration_path.is_relative_to(root) and calibration_path.is_file(), (
+                f"{name}: invalid calibration_review_ref {calibration_ref!r}"
+            )
+
+
+@pytest.mark.contract
 def test_self_pu_population_scope_source_review_is_registered(
     ledger_methods: dict[str, dict],
 ) -> None:
