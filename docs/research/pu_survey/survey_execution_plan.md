@@ -103,8 +103,9 @@ clean-room estimator 与作者锁定程序差异不只在 backbone/batch size，
 二者是否独立；当前实现复制 student 初始化 teacher。已把这一点从“论文未说明初始化”更正为
 “初始化关系未定义、实现选择待方法负责人确认”；同时登记式(8)在 agreement 处以 `1−1e−7`
 截顶来避免 `log(0)`，并补测饱和目标有限性、float state EMA 与整型 BN buffer 同步；端到端
-回归确认 epoch 末 candidate pool 正好对应训练 P 中预测熵最高的 top-k。P3MIX 单测现为24项，
-来源/准入门禁保持通过且 `formal_admission=false`。
+回归确认 epoch 末 candidate pool 正好对应训练 P 中预测熵最高的 top-k。另补两 epoch 前向轨迹
+回归，锁定候选池 eval 刷新后 student 每轮恢复 train 模式，避免 dropout/BatchNorm 在后续 epoch
+沿用 eval 状态。来源/准入门禁保持通过且 `formal_admission=false`。
 
 2026-10-19 全仓契约回归补齐 P3MIX/TEDn 集成缺口：两者纳入所有可训练方法的基准 factory，
 同步 CNN UI 候选声明；P3MIX 加入权威 API 参考，GradPU 预算草稿源摘要同步。另修隔离 CNN

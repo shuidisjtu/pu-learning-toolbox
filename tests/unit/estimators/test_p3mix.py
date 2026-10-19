@@ -83,6 +83,43 @@ def test_basic_epoch_pool_refresh_matches_top_entropy_over_training_positives():
     np.testing.assert_array_equal(estimator.candidate_training_positions_, expected)
 
 
+def test_basic_training_mode_is_restored_after_each_eval_mode_pool_refresh():
+    torch = pytest.importorskip("torch")
+
+    class ModeRecordingModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.linear = torch.nn.Linear(3, 1)
+            self.forward_training_modes = []
+
+        def forward(self, features):
+            self.forward_training_modes.append(self.training)
+            return self.linear(features)
+
+    features = np.random.RandomState(31).normal(size=(12, 3)).astype(np.float32)
+    labels = np.r_[np.ones(4, dtype=int), np.zeros(8, dtype=int)]
+    estimator = P3MixClassifier(
+        model=ModeRecordingModel(), max_epochs=2, batch_size=4, pool_size=2, random_state=9
+    ).fit(features, labels)
+
+    # Initial shape validation and per-epoch top-k refreshes run in eval mode.
+    # Each epoch's two optimization batches must run in train mode; in
+    # particular, epoch 2 must not inherit eval mode from epoch 1's refresh.
+    assert estimator.model_.forward_training_modes == [
+        False,
+        True,
+        True,
+        True,
+        True,
+        False,
+        True,
+        True,
+        True,
+        True,
+        False,
+    ]
+
+
 def test_edge_training_contract_rejects_ts_and_failed_refit_invalidates_old_model():
     pytest.importorskip("torch")
     from pu_toolbox.core.exceptions import NotFittedError
