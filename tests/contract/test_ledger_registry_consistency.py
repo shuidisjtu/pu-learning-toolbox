@@ -378,6 +378,30 @@ def test_self_pu_locked_source_behavior_audit_is_linked_and_keeps_test_isolated(
 
 
 @pytest.mark.contract
+def test_existing_candidate_source_audits_are_explicitly_linked_from_ledger(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """Keep the existing source/behavior evidence discoverable per candidate."""
+    expected = {
+        "pulda": ("docs/research/method_cards/PULDA.md", "entropyMinimization"),
+        "puet": ("docs/research/method_cards/PUET.md", "tree.py:293-298"),
+        "gradpu": (
+            "docs/research/pu_survey/admission/gradpu_source_review_20261005.md",
+            "pending_method_owner_review",
+        ),
+        "split_pu": ("docs/research/method_cards/Split-PU.md", "测试监控不是 test-best 选模"),
+        "vpu": ("docs/research/pu_survey/admission/vpu_sampling_audit.md", "including positive and unlabeled"),
+    }
+    for name, (relative_path, marker) in expected.items():
+        method = ledger_methods[name]
+        assert method["source_behavior_review_ref"] == relative_path
+        assert method["evidence"]["source_behavior_review"]
+        review_path = _ROOT / relative_path
+        assert review_path.is_file()
+        assert marker in review_path.read_text(encoding="utf-8")
+
+
+@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:

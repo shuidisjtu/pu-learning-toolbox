@@ -172,6 +172,10 @@ metadata、方法卡、API 与 ledger，并加行数范围回归。论文和剩�
 不为源码逐行贴合而引入测试集训练/选模。台账、方法卡和契约已同步；论文数值复现仍需原始数据划分/验证与选择记录，RV5 仍待 HENG958。
 详见[Self-PU 固定源码行为复核](admission/selfpu_source_behavior_review_20261019.md)。
 
+2026-10-19 来源证据索引补齐：扫描发现 PULDA、PUET、GradPU、Split-PU、VPU 已有的论文/作者源码行为材料
+未统一绑定到 ledger `source_behavior_review_ref`。现分别链接对应 method card、GradPU 来源复核及 VPU 采样审计，
+并用契约测试核对字段与证据文件身份；该同步只改善可追溯性，不把来源材料升级为方法签署、数值复现或正式准入。
+
 2026-10-19 P3.2 CNN feature adapter 模式恢复：[专项记录](admission/feature_adapter_inference_modes_20261019.md)。
 修复特征抽取只保留根模块模式且 eval 转换位于异常保护外的问题；39 项相关测试中 34 通过、
 5 项 CUDA 因环境无设备跳过。只验证模式与异常安全，不代表 GPU/真实数据资源验收或正式准入。

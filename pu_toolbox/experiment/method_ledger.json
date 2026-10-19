@@ -709,6 +709,7 @@
     },
     "pulda": {
       "class": "PULDAClassifier",
+      "source_behavior_review_ref": "docs/research/method_cards/PULDA.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
@@ -740,7 +741,8 @@
       "evidence": {
         "native_sampling_assumption": "PULDA.md:10-15; registry scenario=CASE_CONTROL",
         "prior_semantics": "PULDA.md:10; pulda.py distribution/margin targets",
-        "adaptation_level": "PULDA.md 原生 CNN 工程路径；test_pulda_cnn.py / test_cv_fold_isolation.py / test_pan_pipeline_cnn.py；非上游完整训练复现"
+        "adaptation_level": "PULDA.md 原生 CNN 工程路径；test_pulda_cnn.py / test_cv_fold_isolation.py / test_pan_pipeline_cnn.py；非上游完整训练复现",
+        "source_behavior_review": "PULDA.md：锁定作者损失/两阶段流程、缺失 entropyMinimization 源依赖、采样/调度/选模差异与实现边界"
       },
       "uncertainty": [
         "TS-OS 校准仅替换 LDA 和 two-way margin 的 U 期望角色为逐 batch U∪P，EMA 跟随该角色；正例期望、总体 π、MixUp 物理池与伪标签持久索引不变。实际视图以逐 run manifest 为准",
@@ -751,6 +753,7 @@
     },
     "puet": {
       "class": "PUExtraTreesClassifier",
+      "source_behavior_review_ref": "docs/research/method_cards/PUET.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
@@ -790,7 +793,8 @@
       "evidence": {
         "native_sampling_assumption": "PUET.md:9-16; registry scenario=CASE_CONTROL",
         "prior_semantics": "PUET.md:10/24; puet.py node risk",
-        "adaptation_level": "PUET.md:43-47"
+        "adaptation_level": "PUET.md:43-47",
+        "source_behavior_review": "PUET.md：作者 nnPU/quadratic 子集、节点与树分裂适配及边界差异"
       },
       "uncertainty": [
         "TS-OS 校准把 P 行复制为 U 风险角色的树行，原 P 行仍为正例；U 权重分母由 n_U 变为 n_P+n_U；Issue #114 后 bootstrap 的 U 抽样数等于实际 U 风险池大小，每棵树根质量 P=population_pi、U=1；OS 抽 n_U、TS 抽 n_U+n_P。逐 run manifest 记录实际视图",
@@ -802,6 +806,7 @@
     },
     "gradpu": {
       "class": "GradPUClassifier",
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/gradpu_source_review_20261005.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
       "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
@@ -833,7 +838,8 @@
       "evidence": {
         "native_sampling_assumption": "GradPU.md:10-17; registry scenario=CASE_CONTROL plus SELECTION_BIASED",
         "prior_semantics": "GradPU.md:12; grad_pu.py fit discards class_prior",
-        "adaptation_level": "GradPU.md:57-64"
+        "adaptation_level": "GradPU.md:57-64",
+        "source_behavior_review": "gradpu_source_review_20261005.md：论文来源事实、无已确认作者代码、实验采样与工具箱适配边界"
       },
       "uncertainty": [
         "TS-OS 校准使 U 风险和输入梯度插值的边缘角色在逐 mini-batch 取 U∪P；正例权重不变，类先验仍不进入目标；逐 run manifest 记录实际视图",
@@ -1105,6 +1111,7 @@
     },
     "split_pu": {
       "class": "SplitPUClassifier",
+      "source_behavior_review_ref": "docs/research/method_cards/Split-PU.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/splitpu_inference_modes_20261019.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
@@ -1143,7 +1150,8 @@
       "evidence": {
         "native_sampling_assumption": "Split-PU.md:9-13; registry:split_pu",
         "prior_semantics": "Split-PU.md:9; split_pu.py:223-231",
-        "adaptation_level": "Split-PU.md:29-34"
+        "adaptation_level": "Split-PU.md:29-34",
+        "source_behavior_review": "Split-PU.md：锁定源码阶段/损失、TS 角色与测试集监控和模型选择边界"
       },
       "uncertainty": [
         "TS-OS 校准只作用于 nnPU teacher 的未标记风险：ts 时逐 batch 使用 U∪P，正例风险和先验不变；后续 temporary、easy/hard 及 student 仍只使用原始 U，保证已知 P 不被分入伪负例；逐 run 实际视图以 manifest 为准",
@@ -1153,6 +1161,7 @@
     },
     "vpu": {
       "class": "VPUClassifier",
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/vpu_sampling_audit.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
       "paper": {
@@ -1197,7 +1206,8 @@
       "evidence": {
         "native_sampling_assumption": "VPU.md:40; admission/vpu_sampling_audit.md §2-§5; registry:vpu",
         "prior_semantics": "VPU.md:34; registry:vpu",
-        "adaptation_level": "VPU.md:53; admission/vpu_sampling_audit.md §9"
+        "adaptation_level": "VPU.md:53; admission/vpu_sampling_audit.md §9",
+        "source_behavior_review": "vpu_sampling_audit.md：锁定作者 x_loader/P∪U 边缘池与目标、MixUp、优化器和验证口径逐项核查"
       },
       "uncertainty": [
         "已有工具箱 MLP（默认两层 MLP64）及注入 CNN 工程路径，不是论文 UCI 七层 MLP300/CIFAR CNN；正式共享 backbone 规格、增强与公开数值对照未完成；CPU-stream 验证风险以全局 float64 归约，可能有浮点末位差异，不改旧 resident 归约",
