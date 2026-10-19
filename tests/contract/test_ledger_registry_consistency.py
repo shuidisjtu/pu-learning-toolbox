@@ -349,7 +349,7 @@ def test_self_pu_official_source_pin_is_registered_without_reproduction_claim(
     assert source_lock["commit"] == expected_commit
     assert method["code_version"]["upstream_commit"] == expected_commit
     assert expected_commit in method["code_version"]["source_status"]
-    assert "official_exact" == method["code_version"]["source_status"].split("（", 1)[0]
+    assert method["code_version"]["source_status"].split("（", 1)[0] == "official_exact"
     assert "观察到的 master commit" in "\n".join(method["uncertainty"])
     review_path = _ROOT / "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md"
     assert method["source_version_review_ref"] == review_path.relative_to(_ROOT).as_posix()
@@ -390,7 +390,10 @@ def test_existing_candidate_source_audits_are_explicitly_linked_from_ledger(
             "pending_method_owner_review",
         ),
         "split_pu": ("docs/research/method_cards/Split-PU.md", "测试监控不是 test-best 选模"),
-        "vpu": ("docs/research/pu_survey/admission/vpu_sampling_audit.md", "including positive and unlabeled"),
+        "vpu": (
+            "docs/research/pu_survey/admission/vpu_sampling_audit.md",
+            "including positive and unlabeled",
+        ),
     }
     for name, (relative_path, marker) in expected.items():
         method = ledger_methods[name]
