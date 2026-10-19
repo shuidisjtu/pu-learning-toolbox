@@ -109,12 +109,14 @@ def p3mix_heuristic_batch(
     alpha=0.5,
     random_state=0,
 ):
-    """Slide 11/12's heuristic partners and lambda'=max(lambda,1-lambda).
+    """Equations (4)-(6): heuristic partners and lambda'=max(lambda,1-lambda).
 
     candidate_features must come exclusively from labeled P in the training
     partition; this pure array helper cannot verify that provenance by itself.
     Marginal U has inclusive 1-gamma <= probability <= gamma; all other
     partners are drawn uniformly from this minibatch's P+U, including self.
+    Features and candidates share a floating dtype before partner selection,
+    preserving fractional candidate values even when features are integers.
     Returns diagnostics as well as mixed features and soft labels.
     """
     features = np.asarray(features)
@@ -156,6 +158,9 @@ def p3mix_heuristic_batch(
         else (labels == 0) & (probabilities >= 1 - gamma) & (probabilities <= gamma)
     )
     rng = np.random.RandomState(random_state)
+    mix_dtype = np.result_type(features.dtype, candidates.dtype, np.float32)
+    features = features.astype(mix_dtype, copy=False)
+    candidates = candidates.astype(mix_dtype, copy=False)
     partners = rng.randint(0, len(features), size=len(features))
     partner_features = features[partners].copy()
     partner_labels = labels[partners].astype(float)
@@ -164,9 +169,6 @@ def p3mix_heuristic_batch(
     candidate_positions[marginal] = selected
     partner_features[marginal] = candidates[selected]
     partner_labels[marginal] = 1.0
-    mix_dtype = np.result_type(features.dtype, np.float32)
-    features = features.astype(mix_dtype, copy=False)
-    partner_features = partner_features.astype(mix_dtype, copy=False)
     lambdas = rng.beta(alpha, alpha, size=len(features))
     lambdas = np.maximum(lambdas, 1 - lambdas)
     feature_lambdas = lambdas.astype(mix_dtype).reshape(
@@ -441,6 +443,7 @@ class P3MixClassifier(BasePUClassifier):
         p_idx, u_idx = view.positive_positions.copy(), view.native_unlabeled_positions.copy()
         self.train_positive_indices_, self.train_unlabeled_indices_ = p_idx, u_idx
         self.optimizer_steps_, self.epochs_completed_ = 0, 0
+        self.positive_rows_seen_, self.unlabeled_rows_seen_ = 0, 0
         self.history_ = {
             key: []
             for key in (
@@ -466,6 +469,11 @@ class P3MixClassifier(BasePUClassifier):
             "candidate_initialization": "uniform_random_without_replacement",
             "candidate_refresh": "top_k_binary_entropy_after_each_epoch",
             "batch_construction": "independent_shuffled_P_and_U_batches_with_shorter_role_cycled",
+            "batch_construction_is_engineering_choice": True,
+            "observed_positive_rows": len(p_idx),
+            "observed_unlabeled_rows": len(u_idx),
+            "positive_rows_seen": 0,
+            "unlabeled_rows_seen": 0,
             "configured_batch_size_per_role": self.batch_size,
             "maximum_rows_per_training_forward": 2 * self.batch_size,
             "beta": float(self.beta),
@@ -501,6 +509,7 @@ class P3MixClassifier(BasePUClassifier):
             )
             epoch_losses, mix_losses, elr_losses = [], [], []
             marginal_total = corrected_total = 0
+            positive_rows_seen = unlabeled_rows_seen = 0
             for step in range(max(len(p_batches), len(u_batches))):
                 p = p_batches[step % len(p_batches)]
                 u = u_batches[step % len(u_batches)]
@@ -556,6 +565,8 @@ class P3MixClassifier(BasePUClassifier):
                 loss.backward()
                 self.optimizer_.step()
                 self.optimizer_steps_ += 1
+                positive_rows_seen += len(p)
+                unlabeled_rows_seen += len(u)
                 epoch_losses.append(float(loss.detach().cpu()))
                 mix_losses.append(float(mix_loss.detach().cpu()))
                 elr_losses.append(float(early_loss.detach().cpu()))
@@ -581,6 +592,12 @@ class P3MixClassifier(BasePUClassifier):
             self.model_.train()
             self.epochs_completed_ = epoch
             self.checkpoint_stage_epoch_ = epoch
+            self.positive_rows_seen_ += positive_rows_seen
+            self.unlabeled_rows_seen_ += unlabeled_rows_seen
+            self.training_provenance_.update(
+                positive_rows_seen=self.positive_rows_seen_,
+                unlabeled_rows_seen=self.unlabeled_rows_seen_,
+            )
             self.history_["loss"].append(float(np.mean(epoch_losses)))
             self.history_["mixup_loss"].append(float(np.mean(mix_losses)))
             self.history_["early_learning_loss"].append(float(np.mean(elr_losses)))
@@ -588,7 +605,14 @@ class P3MixClassifier(BasePUClassifier):
             self.history_["corrected_count"].append(corrected_total)
             self.history_["candidate_count"].append(len(candidate_idx))
             self.epoch_provenance_.append(
-                {"epoch": epoch, "optimizer_steps": self.optimizer_steps_}
+                {
+                    "epoch": epoch,
+                    "optimizer_steps": self.optimizer_steps_,
+                    "positive_rows_seen": positive_rows_seen,
+                    "unlabeled_rows_seen": unlabeled_rows_seen,
+                    "positive_rows_reused": positive_rows_seen - len(p_idx),
+                    "unlabeled_rows_reused": unlabeled_rows_seen - len(u_idx),
+                }
             )
             if epoch_callback is not None:
                 epoch_callback(epoch, self)

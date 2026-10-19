@@ -18,9 +18,11 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 
 `pu_toolbox/estimators/deep/p3mix.py` 现提供已注册 `P3MixClassifier`，`variant` 为 `base`、`e`、`c`。完整路径包含 MLP 与显式注入 CNN encoder、训练 P 独占候选身份、随机初始化池、逐 epoch 熵 top-k 刷新、边缘 U mixup、两组独立损失、EMA teacher 和高置信标签修正。类先验不参与训练，clean validation/test 标签不读取；仅支持原文 OS 单训练集合视图，TS 校准明确拒绝。
 
-论文没有规定默认 backbone、batch 划分、学习率、epoch、EMA 衰减。因此 toolbox 对应默认值是工程接口，不能当成原文 recipe；如需论文数值复现，应先锁定所用数据切分、backbone、训练预算、选模准则和 E 的 EMA/eta 搜索。来源代码状态在 registry/ledger 登为未找到；NATIVE 表示本地独立实现。
+论文 Table 1 指定了各图像任务的 backbone；Algorithm 1 第 3 行要求合并 P∪U shuffle 后切批。工具箱默认 MLP 和分别 shuffle P/U、循环较短角色的 batching 都是工程适配，后者会增加较短角色的行使用次数。论文未给出完整学习率、epoch、batch size 或 EMA 衰减；如需论文数值复现，应先锁定数据切分、backbone、训练预算、选模准则和 E 的 EMA/eta 搜索。`training_provenance_` 保存原始角色大小与累计行使用次数，`epoch_provenance_` 逐轮披露角色使用/重复次数，便于核对实际训练量。来源代码状态在 registry/ledger 登为未找到；NATIVE 表示本地独立实现。
 
 数值超参数要求有限实数，拒绝 bool 和字符串；`gamma∈[0.5,1]`、`teacher_decay∈[0,1)`、`early_learning_weight≥0`（E 变体须 `>0`），而 `learning_rate`、`beta`、`mixup_alpha` 须大于零。整数预算参数拒绝 bool。
+
+公开 mixup helper 先将输入与候选提升到共同浮点 dtype，再替换伙伴并混合；整数输入搭配带小数候选时保留候选数值。二维特征与四维图像均有凸组合和输入不变性回归。
 
 `tests/unit/estimators/test_p3mix.py` 覆盖 batch 方程、边界、epoch 末训练 P top-k 熵池刷新、身份、三变体短拟合、EMA 参数/缓冲更新、CNN encoder 实际更新、推断、失败重训和注册信息。当前实现和测试属于工程集成证据，尚无公开 benchmark 行为对照、GPU 多 seed 复现或合作者签署。
 

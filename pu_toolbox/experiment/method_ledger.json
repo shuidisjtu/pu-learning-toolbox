@@ -82,7 +82,7 @@
       "admitted": false,
       "owner_decisions": {},
       "specific_blockers": [
-        "paper_unspecified_backbone_batching_learning_rate_and_teacher_decay",
+        "paper_image_backbones_differ_and_complete_training_recipe_pending",
         "official_source_code_and_exact_training_recipe_not_found",
         "formal_dataset_protocol_selection_budget_and_resource_profile_pending",
         "method_owner_review_pending"
@@ -90,10 +90,11 @@
       "evidence": {
         "native_sampling_assumption": "30_who_is_your_right_mixup_partne.pdf, §2 and Algorithm 1, pp. 3–5",
         "prior_semantics": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8); no class-prior input",
-        "adaptation_level": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8), Algorithm 1; docs/research/method_cards/P3MIX.md"
+        "adaptation_level": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8), Algorithm 1; docs/research/method_cards/P3MIX.md",
+        "mixup_numerics_and_role_exposure": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md: 2026-10-20 common floating dtype and observed P/U row-use receipts; tests/unit/estimators/test_p3mix_math.py and tests/unit/estimators/test_p3mix.py"
       },
       "uncertainty": [
-        "Paper does not specify a complete optimizer/backbone/batch-construction schedule or numerical teacher EMA decay; exposed defaults are engineering choices and require a frozen recipe before comparison.",
+        "Paper Table 1 specifies image backbones and Algorithm 1 line 3 shuffles merged P∪U. Toolbox default MLP and independent P/U batches with the shorter role cycled are engineering adaptations; per-epoch and cumulative role-exposure receipts disclose repeated rows. Learning rate, epochs, batch size, and numerical teacher EMA decay are not fully specified; a frozen recipe is required before comparison.",
         "Paper §2.1 updates the top-k candidate pool once per epoch; the initial pool is described as random. The implementation initializes it uniformly from observed training P, then refreshes it from training P only.",
         "P3Mix-E uses the printed log(1-<f, target>) regularizer with EMA teacher probabilities; implementation caps agreement at 1-1e-7 to avoid log(0). It updates EMA at epoch end as Algorithm 1 orders it. Algorithm 1 says initialize both student Θ and teacher eΘ randomly but does not state whether independently; implementation copies student into teacher as an explicit engineering choice. Paper does not specify EMA decay.",
         "The paper reports 5 runs and class accuracy anchors, but local benchmark data, exact split identities, and author code are not established by this integration. No result is added to the frozen comparison matrix.",

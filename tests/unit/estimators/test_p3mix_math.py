@@ -95,6 +95,25 @@ def test_edge_gamma_half_has_empty_marginal_set_as_paper_states():
     assert not result["marginal_mask"].any()
 
 
+@pytest.mark.parametrize("feature_dtype", [np.int64, np.float32])
+@pytest.mark.parametrize("sample_shape", [(2,), (1, 2, 2)])
+def test_edge_mixed_dtypes_preserve_fractional_candidate_features(feature_dtype, sample_shape):
+    features = np.arange(2 * np.prod(sample_shape)).reshape((2, *sample_shape))
+    features = features.astype(feature_dtype)
+    candidates = np.full((1, *sample_shape), 10.7500000001, dtype=np.float64)
+    originals = features.copy(), candidates.copy()
+
+    result = p3mix_heuristic_batch(features, [1, 0], [0.5, 0.5], candidates, random_state=3)
+
+    weight = result["lambdas"][1]
+    expected = weight * features[1].astype(np.float64) + (1 - weight) * candidates[0]
+    np.testing.assert_allclose(result["features"][1], expected, rtol=1e-14, atol=1e-14)
+    assert result["features"].dtype == np.float64
+    assert result["candidate_partner_positions"][1] == 0
+    np.testing.assert_array_equal(features, originals[0])
+    np.testing.assert_array_equal(candidates, originals[1])
+
+
 @pytest.mark.math
 def test_separate_group_means_and_stopped_soft_target_gradients():
     torch = pytest.importorskip("torch")

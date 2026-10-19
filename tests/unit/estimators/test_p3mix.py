@@ -120,6 +120,54 @@ def test_basic_training_mode_is_restored_after_each_eval_mode_pool_refresh():
     ]
 
 
+@pytest.mark.parametrize("positive_count,unlabeled_count", [(5, 10), (10, 5), (8, 8)])
+def test_basic_role_exposure_receipt_matches_rows_actually_forwarded(
+    positive_count, unlabeled_count
+):
+    torch = pytest.importorskip("torch")
+
+    class RowRecordingModel(torch.nn.Linear):
+        def __init__(self):
+            super().__init__(1, 1)
+            self.seen_rows = []
+
+        def forward(self, features):
+            if self.training and not torch.is_grad_enabled():
+                self.seen_rows.append(features[:, 0].detach().cpu().numpy().copy())
+            return super().forward(features)
+
+    features = np.arange(positive_count + unlabeled_count, dtype=np.float32)[:, None]
+    labels = np.r_[np.ones(positive_count, dtype=int), np.zeros(unlabeled_count, dtype=int)]
+    observed_epochs = []
+
+    def observe_epoch(_epoch, fitted):
+        rows = np.concatenate(fitted.model_.seen_rows).astype(int)
+        fitted.model_.seen_rows.clear()
+        counts = np.bincount(rows, minlength=len(features))
+        assert np.all(counts > 0)
+        p_seen = int(counts[:positive_count].sum())
+        u_seen = int(counts[positive_count:].sum())
+        receipt = fitted.epoch_provenance_[-1]
+        assert receipt["positive_rows_seen"] == p_seen
+        assert receipt["unlabeled_rows_seen"] == u_seen
+        assert receipt["positive_rows_reused"] == p_seen - positive_count
+        assert receipt["unlabeled_rows_reused"] == u_seen - unlabeled_count
+        observed_epochs.append((p_seen, u_seen))
+
+    estimator = P3MixClassifier(
+        model=RowRecordingModel(), max_epochs=2, batch_size=4, pool_size=2, random_state=11
+    ).fit(features, labels, epoch_callback=observe_epoch)
+
+    assert len(observed_epochs) == 2
+    if positive_count != unlabeled_count:
+        assert any(p > positive_count or u > unlabeled_count for p, u in observed_epochs)
+    total_p, total_u = np.sum(observed_epochs, axis=0)
+    assert estimator.positive_rows_seen_ == estimator.training_provenance_["positive_rows_seen"]
+    assert estimator.unlabeled_rows_seen_ == estimator.training_provenance_["unlabeled_rows_seen"]
+    assert (estimator.positive_rows_seen_, estimator.unlabeled_rows_seen_) == (total_p, total_u)
+    assert estimator.training_provenance_["batch_construction_is_engineering_choice"] is True
+
+
 def test_edge_training_contract_rejects_ts_and_failed_refit_invalidates_old_model():
     pytest.importorskip("torch")
     from pu_toolbox.core.exceptions import NotFittedError
