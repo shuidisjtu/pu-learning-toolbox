@@ -644,6 +644,8 @@
     },
     "self_pu": {
       "class": "SelfPUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/admission/selfpu_lifecycle_20261020.md",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/selfpu_lifecycle_20261020.md",
       "source_version_review_ref": "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md",
       "source_behavior_review_ref": "docs/research/pu_survey/admission/selfpu_source_behavior_review_20261019.md",
       "paper": {

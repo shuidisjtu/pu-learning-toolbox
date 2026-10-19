@@ -468,6 +468,12 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 工具箱 clean-support adapter 使用显式 support 并保持外部 OA/test 隔离，**不得为贴近该源码数据流而将 test 接入训练或选模**。
 逐行证据及范围见[锁定源码行为复核](../pu_survey/admission/selfpu_source_behavior_review_20261019.md)。
 
+2026-10-20 [生命周期与评分补核](../pu_survey/admission/selfpu_lifecycle_20261020.md)：
+未拟合/失败重训后的概率评分统一拒绝，绑定失败、回调异常和取消撤销公开 fitted 状态；
+选中 teacher 的评分及 PU validation risk helper 恢复逐子模块模式，空输入不访问 teacher。
+OS/TS、两种一致性范围和 clean/PU/ablation 选择路径均与未包装训练对照；既有风险目标、
+teacher 选择和冻结消融保持原行为，额外 support 与正式预算仍待原有批准。
+
 参考资料：
 
 1. Chen et al., *Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training*, ICML 2020, PMLR 119:1510–1519。

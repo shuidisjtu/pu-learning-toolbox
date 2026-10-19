@@ -14,6 +14,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.labels import normalize_pu_labels
 from ...core.tags import (
     AlgorithmFamily,
@@ -503,6 +504,7 @@ class SelfPUClassifier(BasePUClassifier):
             statistics,
         )
 
+    @invalidate_failed_fit
     def fit(
         self,
         X: np.ndarray,
@@ -1018,6 +1020,8 @@ class SelfPUClassifier(BasePUClassifier):
         return self
 
     def _logits(self, X: np.ndarray) -> np.ndarray:
+        self._check_is_fitted()
+
         import torch
 
         X = np.asarray(X, dtype=np.float32)
@@ -1025,12 +1029,19 @@ class SelfPUClassifier(BasePUClassifier):
             raise ValueError(f"X must have sample shape {self.input_shape_}.")
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
-        self.best_teacher_.eval()
-        with torch.no_grad():
-            logits = _as_logits(
-                self.best_teacher_(torch.as_tensor(X, dtype=torch.float32, device=self.device_))
-            )
-        return logits.cpu().numpy()
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        modes = [(module, module.training) for module in self.best_teacher_.modules()]
+        try:
+            self.best_teacher_.eval()
+            with torch.no_grad():
+                logits = _as_logits(
+                    self.best_teacher_(torch.as_tensor(X, dtype=torch.float32, device=self.device_))
+                )
+            return logits.cpu().numpy()
+        finally:
+            for module, training in modes:
+                module.training = training
 
     def _decision_function(self, X: np.ndarray) -> np.ndarray:
         return self._logits(X)
@@ -1097,15 +1108,20 @@ def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, class_prio
     """Evaluate one teacher with nnPU risk using PU labels only."""
     import torch
 
-    model.eval()
-    with torch.no_grad():
-        scores = _as_logits(model(X_val))
-        positive = torch.as_tensor(y_pu_val == 1, device=scores.device)
-        unlabeled = ~positive
-        positive_risk = class_prior * torch.sigmoid(-scores[positive]).mean()
-        negative_risk = (
-            torch.sigmoid(scores[unlabeled]).mean()
-            - class_prior * torch.sigmoid(scores[positive]).mean()
-        )
-        risk = positive_risk + torch.clamp(negative_risk, min=0.0)
-    return float(risk.cpu())
+    modes = [(module, module.training) for module in model.modules()]
+    try:
+        model.eval()
+        with torch.no_grad():
+            scores = _as_logits(model(X_val))
+            positive = torch.as_tensor(y_pu_val == 1, device=scores.device)
+            unlabeled = ~positive
+            positive_risk = class_prior * torch.sigmoid(-scores[positive]).mean()
+            negative_risk = (
+                torch.sigmoid(scores[unlabeled]).mean()
+                - class_prior * torch.sigmoid(scores[positive]).mean()
+            )
+            risk = positive_risk + torch.clamp(negative_risk, min=0.0)
+        return float(risk.cpu())
+    finally:
+        for module, training in modes:
+            module.training = training

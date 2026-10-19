@@ -165,6 +165,12 @@ P/U 训练行复用、实际 U 先验、/255、Adam WeightDecay(0.005)、学习�
 59 跳过/0 失败或错误（481.880 秒），15 项静态/证据门禁通过。未执行的正式 registry
 条件门禁、slow/e2e 与 GPU 不计作通过；既有警告保留，完整记录见上述 nnPU 来源审计。
 
+2026-10-20 Self-PU 生命周期补核：修复 `predict_proba` 绕过拟合检查、失败/取消重训仍暴露
+旧 teacher，以及公开评分/PU validation helper 遗留 eval 模式的问题。补齐逐模块异常恢复和
+空输入，验证 OS/TS × 两种一致性范围 × clean/PU/ablation 的成功训练等价，并继续运行既有
+TS golden 与 support/checkpoint 回归。台账、方法卡和[工程记录](admission/selfpu_lifecycle_20261020.md)
+同步；不改变 Pilot 消融、监督预算、#38 原生 CNN 范围或 RV5/RV6 方法学前置。
+
 2026-10-19 KLDCE 来源/行为独立核查：确认生产 `fit` 调用原生广义 pair-SMO，SLSQP 仅保留为
 固定质心联合 QP oracle；发现并修正模块/类 docstring 的过期 solver 描述。源码在拼接 `[α;γ]`
 上全局选对，而非附录 Algorithm 1 按两组分别选对，且 ACS 块更新顺序不同；方法卡、来源审计和
