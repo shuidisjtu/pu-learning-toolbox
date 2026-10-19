@@ -19,6 +19,9 @@
     "LBE_LF/breast/EStep.m": "6c63940b914ce30270d1b0b503677b6e9f150baf11bee684f9048ed96bf67b21",
     "LBE_LF/breast/LBE_LF_Main.m": "ccb024c69da65f0ffec47015f969efcdf6c24cb5ba611bd23fe61a3f46021c67",
     "LBE_LF/breast/MStep_Adam.m": "a0a5a807815a54d44d8d6f7530d124d9a7c00fe5da6283ccbf2763b3629fc0ad",
+    "LBE_LF/breast/MStep_GD.m": "c9c7bd17fc85e13c79b78ef7914e2907e3ac1fb2b5d7ae2842a70232e2a6a3f2",
+    "LBE_LF/toydata/LBE_LF_Main.m": "d946113fd13c3e6acbb31193fb98e5909ae99df4b312554ad3f39f017fd29a07",
+    "LBE_LF/toydata/MStep_Adam.m": "ea896ff75884e6df182b0676e105740c4aea1f7e506a1b2a543df29bddbfdb76",
     "LBE_MLP/datasets/Australian.mat": "51ff9a18c818065aafc073c926263fddfb070cea0a84183234a1380a108f6a95",
     "LBE_MLP/datasets/breast.mat": "57dae4b0153798e004d6df60fdbc691bc55b1ba54d2c01bafaf2b56b663825ee"
   },
@@ -41,6 +44,19 @@
     {"status": "confirmed", "claim": "M-step classifier uses soft target q; propensity BCE is weighted by q, not all rows equally", "location": "LBE_MLP/train.py:74-78"},
     {"status": "confirmed", "claim": "MLP E posterior is detached for 40 M updates; 20 E rounds; a fresh 10% sample is drawn per M update", "location": "LBE_MLP/train.py:62-81"},
     {"status": "confirmed", "claim": "Toolbox linear penalized logistic solve is an adaptation, not Adam/MLP or MATLAB optimizer replay", "location": "pu_toolbox/estimators/bias_aware/lbe.py"}
+  ],
+  "source_behavior_findings_20261019": [
+    {
+      "status": "confirmed_source_control_flow_not_executed",
+      "claim": "Both LBE_LF main scripts call MStep_Adam and leave MStep_GD commented out. The active Adam update overwrites its incoming Theta1/Theta2 before the first gradient update: breast sets both to random vectors; toydata refits Theta1 with glmfit(TrainingFeature,PIndicator) and randomizes Theta2. Thus the passed prior-EM parameter values are not used as the Adam starting point in these source branches.",
+      "locations": [
+        "LBE_LF/breast/LBE_LF_Main.m:52-53",
+        "LBE_LF/breast/MStep_Adam.m:5-7,14",
+        "LBE_LF/toydata/LBE_LF_Main.m:63-64",
+        "LBE_LF/toydata/MStep_Adam.m:5-7,14-15"
+      ],
+      "interpretation": "Records observed source behavior only; the archive was not executed. It is not a claim that the paper's mathematical M-step requires warm-starting, and it does not change the toolbox's clean-room lbe/lbe_neural implementations or official source lock."
+    }
   ],
   "protocol_hazards": [
     {"location": "LBE_LF/breast/LBE_LF_Main.m:62-66", "issue": "ROC threshold uses clean training truth; forbidden for PU-only PA"},

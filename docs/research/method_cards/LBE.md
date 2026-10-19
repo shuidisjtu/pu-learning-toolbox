@@ -268,6 +268,8 @@ E-step 的联合概率归一化与本项目
 **不需要把 U 当负类或给 propensity 去掉权重**。线性 penalized logistic 解法与作者 Adam/MLP
 的优化轨迹、初始化、预算并不等价；本轮仍未新增神经网络路径或复现论文表格。
 
+2026-10-19 对同一包内 `LBE_LF` 脚本做了额外静态控制流核查（未执行 MATLAB）：breast 与 toydata 主入口均实际调用 `MStep_Adam`，并将 `MStep`/GD 调用注释掉；两份被调用的 Adam 函数都会覆盖传入的 `Theta1/Theta2`，但初始化不同——breast 两者均重置为随机向量，toydata 的 `Theta1` 重新由 `glmfit(TrainingFeature,PIndicator)` 拟合、`Theta2` 随机化。故该源码分支每个 M-step 不以外层传入参数作为 Adam 起点。GD 替代实现也有自己的初始化代码，但不是主入口启用的分支。逐文件摘要及位置记于[机器来源复核记录](../pu_survey/data/lbe_source_review_20261012.json) 的 `source_behavior_findings_20261019`。这只描述该用户包的实际控制流，不推断论文公式要求 warm-start，也不改变 `lbe` / `lbe_neural` 的实现、官方来源锁或历史实验。
+
 已修复：
 
 - 所有概率预测入口要求成功拟合；重训失败后不能继续假装旧模型有效；

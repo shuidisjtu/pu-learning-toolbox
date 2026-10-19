@@ -470,6 +470,7 @@
       "class": "NeuralLBEClassifier",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
+      "source_behavior_review_ref": "docs/research/pu_survey/data/lbe_source_review_20261012.json",
       "review": {"owner": "shuidisjtu", "reviewer": "HENG958", "status": "pending_collaborator_review"},
       "paper": {
         "title": "Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
@@ -504,6 +505,7 @@
       "uncertainty": [
         "独立工程变体，待 HENG958 接口/方法学复核；不在冻结645-run协议或正式候选中，原 lbe 不变",
         "用户包与旧官方包的预训练/正则化/small-loss配方不同；未复制、执行或再分发上游源码，license/版本归属仍未解除",
+        "用户包 LBE_LF 的 breast/toydata 主入口调用 Adam 时会覆盖传入的 Theta 参数、且两者重初始化规则不同；这是未执行 MATLAB 源码的已记录控制流，不是本项目 lbe_neural 的算法声明或源码重放；见 lbe_source_review_20261012.json",
         "稳定 BCE/log-space 后验与源 probability+epsilon 不逐位一致；CNN/小样本至少抽1行/分批BN与dropout语义为适配",
         "不消费 clean_val/test/隐藏PN真值；不接 TS，不以训练似然作为 PA/OA 的通用选模准则",
         "standalone 序列化保留双网络；runner epoch checkpoint 只承诺 classifier 推理，不支持恢复 propensity/optimizer 的继续EM训练",

@@ -160,6 +160,19 @@ def test_basic_source_variants_remain_distinct_and_preflight_uses_actual_dataset
     assert lock["sha256"] != lock["user_supplied_variant"]["sha256"]
     assert lock["user_supplied_variant"]["sha256"] == receipt["archive"]["sha256"]
     assert lock["user_supplied_variant"]["mlp_recipe"]["pretrain_steps_per_model"] == 20
+    lf_adam = receipt["files_sha256"]["LBE_LF/toydata/MStep_Adam.m"]
+    assert len(lf_adam) == 64
+    finding = receipt["source_behavior_findings_20261019"][0]
+    assert finding["status"] == "confirmed_source_control_flow_not_executed"
+    assert "overwrites its incoming Theta1/Theta2" in finding["claim"]
+    assert "LBE_LF/breast/MStep_Adam.m:5-7,14" in finding["locations"]
+    assert "LBE_LF/toydata/MStep_Adam.m:5-7,14-15" in finding["locations"]
+    ledger = json.loads((root / "pu_toolbox/experiment/method_ledger.json").read_text())
+    neural = ledger["methods"]["lbe_neural"]
+    assert neural["source_behavior_review_ref"] == (
+        "docs/research/pu_survey/data/lbe_source_review_20261012.json"
+    )
+    assert any("覆盖传入的 Theta 参数" in item for item in neural["uncertainty"])
     config = json.loads(
         (root / "benchmarks/assigned_methods/configs/official/lbe.json").read_text()
     )
