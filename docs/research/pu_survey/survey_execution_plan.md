@@ -128,10 +128,12 @@ registry/fit 接口契约回归验证，默认 TS/OS 路由未改变。
 VPU归一化/校准或神经LBE的OS联合似然/更新预算，正式准入和资源证据不变。
 
 2026-10-19 LBE 用户源码包静态复核补记：[机器记录](data/lbe_source_review_20261012.json)
-固定了此前未登记的 `LBE_LF` Adam/GD 更新器摘要，并核对 breast 与 toydata 主入口。
+确认作者发表页当前直链包与既有官方 SHA-256 锁一致，用户上传包为不同变体；固定了此前未登记的
+`LBE_LF` Adam/GD 更新器摘要，并核对 breast 与 toydata 主入口。
 两入口实际调用 Adam、注释 GD；被调用的 Adam 每次覆盖传入参数，且 breast 与 toydata
 初始化规则不同。该发现仅描述未执行的用户归档控制流，更新方法卡与 `lbe_neural` 台账的不确定项；
-不改变当前 clean-room 算法、旧官方来源锁、校准状态或历史实验，方法负责人复核仍待。
+网页 research-only/商业许可声明不等于明确软件许可证；不改变当前 clean-room 算法、旧官方来源锁、
+校准状态或历史实验，方法负责人复核仍待。
 
 2026-10-19 独立 TEDn 补[内部/公开评分模式保护](admission/tedn_scoring_modes_20261019.md)：
 空输入及评分成功/异常均不覆盖调用者逐层模式；真实BBE/时序测试保留，

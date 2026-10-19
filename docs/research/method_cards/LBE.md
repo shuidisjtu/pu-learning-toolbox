@@ -241,7 +241,7 @@ S\sim Bernoulli(Y\cdot c(X)),
 
 | 字段 | 内容 |
 |---|---|
-| Source status | `official_exact`/`official_related` 记录需以压缩包许可证和源码对应论文版本复核 |
+| Source status | 作者发表页当前直接链接包于 2026-10-19 复核，SHA-256 与旧官方锁一致；用户另提供包为不同变体、来源版本未证实。发表页只写明 research-only / 商用需许可，不构成明确软件许可证；详见[机器来源记录](../pu_survey/data/lbe_source_review_20261012.json) |
 | Implementation status | `lbe` 为线性 clean-room EM；`lbe_neural` 为独立实验性双网络 generalized EM（§10），均不等于论文数值复现 |
 | 当前实现可声称 | 可运行 SAR 接口、类别后验、labeling propensity 和 latent posterior |
 | 当前实现不可声称 | 已复现论文的完整 Adam/深度网络实验、理论收敛条件或表格结果 |
@@ -252,7 +252,7 @@ S\sim Bernoulli(Y\cdot c(X)),
 收到的 `Instance-Dependent PU Learning via Graphical Model(1).rar` 同时包含
 `LBE_MLP` 与 `LBE_LF`；源码/数据逐文件摘要、公式结论、配方差异和问题位置见
 [机器可读复核记录](../pu_survey/data/lbe_source_review_20261012.json)。未执行作者代码或将其复制进仓库，
-没有发现明确再分发许可证；该包的官方版本归属尚不能确认，不能直接覆盖旧官方来源锁。
+没有发现明确软件许可证。2026-10-19 对作者发表页当前 code 链接只读下载并比对摘要，确认其与旧官方锁 `79cc2c36…` 字节相同；用户包 `86034d5b…` 为不同变体，来源版本仍不能确认，不能覆盖官方来源锁。
 
 | 项 | 旧官方锁 `79cc2c36…` | 新用户包 `86034d5b…` |
 |---|---|---|

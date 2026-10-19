@@ -12,6 +12,18 @@
     "executed": false,
     "copied_into_repository": false
   },
+  "official_upstream_verification_20261019": {
+    "official_publication_page": "https://gcatnjust.github.io/ChenGong/publications.html",
+    "official_code_link": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
+    "download_method": "Read-only download to /tmp for SHA-256 comparison; not extracted or executed",
+    "download_bytes": 40945,
+    "download_sha256": "79cc2c3635a6bcefef1d12832cc9e29be4c0c42a6c31ce6e7b44c6aeac504c6a",
+    "matches_locked_official_sha256": true,
+    "matches_user_supplied_archive": false,
+    "user_supplied_sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
+    "license_interpretation": "The author's publication page says listed papers and code are research-only and commercial use requires permission; this is not an explicit software license grant. license_found remains false / needs_review.",
+    "interpretation": "The current author-linked archive matches the existing locked official artifact. The separate user-supplied archive remains a distinct variant of unconfirmed upstream provenance and must not replace the lock."
+  },
   "files_sha256": {
     "LBE_MLP/em.py": "9066215c43c53d45b7f9111af7276822facffde9c58ed89325c3a8828a8b8b49",
     "LBE_MLP/reader.py": "c349a03d43e6d3777560309a950967e2d6e6597016577949f9a31ebeb24d0aae",

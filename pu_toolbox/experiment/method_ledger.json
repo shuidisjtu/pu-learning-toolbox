@@ -522,7 +522,7 @@
       },
       "code_version": {
         "upstream_url": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
-        "source_status": "official_exact（指官方来源锁，不是实现等价；2026-10-12 用户包与旧官方包 hash/配方不同，分别留档；两模型 EM 公式确认，license 仍 needs_review）",
+        "source_status": "official_exact（2026-10-19 对作者发表页当前链接只读下载，SHA-256 与 official_archive_sha256 锁一致；不代表 clean-room 实现等价；用户包 hash/配方不同且 upstream variant 未确认；两模型 EM 公式确认，页面 research-only 商用需许可提示不是明确软件许可证，license 仍 needs_review）",
         "official_archive_sha256": "79cc2c3635a6bcefef1d12832cc9e29be4c0c42a6c31ce6e7b44c6aeac504c6a",
         "user_supplied_archive_sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
         "review_evidence": "docs/research/pu_survey/data/lbe_source_review_20261012.json"
