@@ -14,7 +14,8 @@ checkpoint 及适配差异可追溯。本次补 VPU 尚缺的注入编码器与�
 ## 已实现的接口与语义
 
 - `encoder=None` 为兼容默认；二维特征仍可直接训练。
-- 四维 NCHW 必须提供 `torch.nn.Module` encoder；深拷贝后参与 Adam，
+- 四维 NCHW 必须提供 `torch.nn.Module` encoder；深拷贝后对全部参数执行
+  `requires_grad_(True)` 并参与 Adam（会覆盖模板中的冻结设置），
   输出有限的 `(N, feature_dim)` 特征，再接工具箱 MLP/LogSigmoid 头。
   原用户模板不被训练或修改，图像不自动 flatten 成二维输入。
 - `data_device_policy="auto"`：无 encoder 保留旧 resident；有 encoder 使用 cpu_stream。

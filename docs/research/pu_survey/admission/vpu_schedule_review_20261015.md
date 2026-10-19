@@ -7,7 +7,8 @@
 ## 来源与准确语义
 
 独立检查本机干净的 `HC-Feynman/vpu` @ `603bcc1e628795f57a5ac87e5b0b977273b7cf91`，
-HEAD 与原锁一致，工作区无改动；MIT 许可与 `vpu.py`、`run.py` 字节摘要见
+HEAD 与原锁一致，工作区无改动；MIT 许可与 `vpu.py`、`run.py` 的 **git blob 摘要**
+（`git show <commit>:<path> | sha256sum`，不是 CRLF 工作区字节）见
 [机器记录](../data/vpu_schedule_source_20261015.json)。仅阅读，未执行上游代码。
 
 - [vpu.py:36–41](https://github.com/HC-Feynman/vpu/blob/603bcc1e628795f57a5ac87e5b0b977273b7cf91/vpu.py#L36)：

@@ -66,6 +66,7 @@
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。
 - [`pn_oracle_integration.md`](admission/pn_oracle_integration.md)：PN oracle 接入边界；端到端 CNN baseline 的实现与正式纳入分开记录。
 - [`vpu_sampling_audit.md`](admission/vpu_sampling_audit.md)：VPU 采样假设、视图和 PA 选模边界。
+- [`vpu_d21_d22_review_20261018.md`](admission/vpu_d21_d22_review_20261018.md)：VPU D21/D22 只读复核；D21 成立，D22 裁决不变；“与上游一致”的验证 P 项采样表述已更正为已登记差异；不改代码、不新增准入。
 - [`gradpu_source_review_20261005.md`](admission/gradpu_source_review_20261005.md)：GradPU 来源与协议复核准备。
 - [`candidate_cnn_storage_review_20261005.md`](admission/candidate_cnn_storage_review_20261005.md)：CNN 存储工程证据；不等于正式预算或 P3.3 验收。
 

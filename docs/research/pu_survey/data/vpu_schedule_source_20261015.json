@@ -15,6 +15,7 @@
       "run.py": "b432b51a0dee5b6cffa4946acc405ea645dc05ab8fb087cf882c8363abec7954",
       "LICENSE": "15b94b682420f25cb5751964deadcf006b1082e7550e9f27dc2cd6ce93ddee66"
     },
+    "files_sha256_target": "git blob at the locked commit, not the worktree bytes: verify with `git show <commit>:<path> | sha256sum`. A checkout with core.autocrlf=true (CRLF) has different worktree hashes.",
     "optimizer_reset_location": "vpu.py:36-41",
     "fixed_iterations_location": "vpu.py:92; run.py:8",
     "source_defaults_location": "run.py:9-14"
