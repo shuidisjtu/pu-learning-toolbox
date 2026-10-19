@@ -11,7 +11,7 @@
 | Venue | AAAI 2023, 37(6), 7296–7303 |
 | DOI | [10.1609/aaai.v37i6.25889](https://doi.org/10.1609/aaai.v37i6.25889) |
 | 原文 | [AAAI 论文及 PDF](https://ojs.aaai.org/index.php/AAAI/article/view/25889) |
-| 官方代码 | 尚未核实到可用的官方实现；`source_status=not_found` |
+| 官方代码 | 截至 2026-10-19，AAAI 正式论文页只列 PDF，按标题/作者检索未确认作者仓库；`source_status=not_found`。范围与不作绝对不存在推断的说明见[来源核查记录](../pu_survey/admission/gradpu_source_review_20261005.md) |
 | 类先验 | 目标函数不使用；`fit(class_prior=...)` 仅为统一接口兼容 |
 | 数据 | 可靠正样本 P 与未标记样本 U；不需要负类真值 |
 

@@ -772,7 +772,7 @@
       },
       "code_version": {
         "upstream_url": null,
-        "source_status": "not_found (official implementation not verified; primary paper linked in GradPU.md)"
+        "source_status": "not_found (2026-10-19 rechecked the official AAAI article page, which lists only the PDF, and searched the paper title/author names with GitHub terms without confirming an author repository; see docs/research/pu_survey/data/gradpu_source_review_20261005.json. This does not prove no public, private, or unindexed implementation exists.)"
       },
       "implementation_status": "NATIVE, backend TORCH; paper Eq. 5-7 clean-room MLP or injected no-BatchNorm CNN, raw-image second-order gradient penalty",
       "source_protocol_review_ref": "docs/research/pu_survey/data/gradpu_source_review_20261005.json",

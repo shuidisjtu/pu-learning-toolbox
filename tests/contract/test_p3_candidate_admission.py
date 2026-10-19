@@ -73,6 +73,16 @@ def test_p3_special_label_and_view_restrictions_remain_explicit():
     assert gradpu_review["review_status"] == "pending_method_owner_review"
     assert gradpu_review["owner_signatures"] == []
     assert gradpu_review["source_status"] == "not_found"
+    source_check = gradpu_review["source_verification"]
+    assert source_check["checked_date"] == "2026-10-19"
+    assert source_check["confirmed_author_repository"] is None
+    assert source_check["official_page_downloads_observed"] == ["PDF"]
+    assert "does not prove" in source_check["interpretation"]
+    ledger_path = ROOT / "pu_toolbox/experiment/method_ledger.json"
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    status = ledger["methods"]["gradpu"]["code_version"]["source_status"]
+    assert "2026-10-19 rechecked" in status
+    assert "does not prove" in status
     decisions = gradpu_review["engineering_decisions"]
     assert decisions["retain_batchnorm_rejection"] is True
     assert decisions["TS_run_is_paper_experiment_replay"] is False

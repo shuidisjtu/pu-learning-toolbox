@@ -4,6 +4,18 @@
   "review_status": "pending_method_owner_review",
   "owner_signatures": [],
   "source_status": "not_found",
+  "source_verification": {
+    "checked_date": "2026-10-19",
+    "official_publication_page": "https://ojs.aaai.org/index.php/AAAI/article/view/25889",
+    "official_page_downloads_observed": ["PDF"],
+    "confirmed_author_repository": null,
+    "search_scope": [
+      "exact paper title with GitHub/repository terms",
+      "GradPU with author names and GitHub terms",
+      "official AAAI publication page downloads"
+    ],
+    "interpretation": "No confirmed public author-code entry was found in this check; this does not prove that no public, private, or unindexed implementation exists."
+  },
   "paper_only_identity_ref": "https://github.com/shuidisjtu/pu-learning-toolbox/issues/121",
   "author_code_required_for_paper_only_identity": false,
   "engineering_recipe_review_ref": "docs/research/pu_survey/admission/gradpu_training_recipe_review_20261018.md",

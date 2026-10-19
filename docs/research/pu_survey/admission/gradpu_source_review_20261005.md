@@ -25,6 +25,10 @@ AAAI [原文 PDF](https://ojs.aaai.org/index.php/AAAI/article/download/25889/256
 后续 CNN 必须显式无 BatchNorm，验证原图像梯度、二阶反传、fold 隔离和回放；
 不能为兼容默认 CNN13 而静默删层或关闭梯度惩罚。
 
-本次再检索仍未确认本文作者源码，保留 not_found。检索得到的
+2026-10-19 对 [AAAI 正式论文页](https://ojs.aaai.org/index.php/AAAI/article/view/25889)
+复查时，下载项只列出论文 PDF，没有可确认的作者代码/补充材料入口；再以论文全名、
+作者名和 GitHub/repository 词组检索，仍未确认作者仓库。机器范围与日期记于 JSON 的
+`source_verification`。因此目前仍保留 `source_status=not_found`，其含义仅为本次核查未找到
+可确认的公开作者代码入口，不证明作者从未发布、私有持有或存在未索引实现。检索得到的
 [yunhe20/Grad-PU](https://github.com/yunhe20/Grad-PU) 属点云上采样工作，不是本论文来源。
 没有复制/执行外部源码或权重；正式预算、源码授权和负责人接受继续待办。
