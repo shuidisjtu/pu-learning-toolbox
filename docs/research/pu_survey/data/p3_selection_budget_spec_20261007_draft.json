@@ -15,7 +15,7 @@
     "pu_toolbox/experiment/survey_comparison_v3.json": "340e18ce8fda933ccf3582e9d522aee7aac7aadfdf467737c7cb15a25dee1f4c",
     "docs/research/pu_survey/data/p3_admission_evidence_20261005.json": "5a9957c8d7ff11d9074d2b94bcbb6d89124392dbf1e595b57a42b9efe8cd9a57"
   },
-  "checkpoint_writer_sha256": "aaf522a631fe4e736c48d5906b68e555fd5656d5e8d0f1e1f7f9ac51027b9d51",
+  "checkpoint_writer_sha256": "2909b8a8b34f2389bcd7c9d34664f7c621031500a710af12214f10e7a61cda3a",
   "fit_failure_contract": {
     "review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
     "helper_ref": "pu_toolbox/core/fit_state.py",

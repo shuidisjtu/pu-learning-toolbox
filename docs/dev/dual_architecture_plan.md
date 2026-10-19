@@ -57,7 +57,7 @@ LIBSVM 的 problem/parameter/model 分离、训练前参数校验、统一 train
 | `cnn_feature_adapter` | CNN 提取特征后运行传统算法；不是原生 CNN |
 | `tabular_only` | 当前正式实现只接受二维表格特征 |
 
-当前建议分类：
+初始推进分类（保留设计顺序；已实施状态见 §5，完整能力名单以 registry 为准）：
 
 - `native_mlp` + `native_cnn`：`infomax_pu`、`weighted_contrastive_pu`；
 - 优先评估 encoder 适配：`nnpu`、`dist_pu`；
@@ -218,6 +218,15 @@ eval probe 得 representation_dim 后组合为单一
 泛指原有默认网络）；head 维度不匹配不预校验、由 torch 前向自然报错
 （与现状 model 语义一致，YAGNI）；新测试全放新文件，既有测试与红线
 文件零改动；gpu 测试经 `pytest.mark.gpu` 注册，无 CUDA 自动 skip。
+
+**Dist-PU 后续接入（2026-10-20）**：新增可选 `encoder`，仅在显式
+`training_recipe="author_staged"` + `distribution_loss="author_histogram"` 下接受；
+默认 clean-room 全量 MLP 保留，避免隐式改损失或把全量目标当作 mini-batch 目标。
+注入网络 deepcopy/解冻训练，完整输入/标签/伪标签留 CPU，两阶段、扫描和预测均有批次界限；
+单行尾批以 BN 运行统计处理，记录该工程差异。Pipeline/CV、UI 能力列表、方法台账及 API
+同步，旧 MLP pickle 缺失的可选参数按构造缺省迁移；冻结 Pilot 的 Dist-PU 图像行仍走原
+feature-adapter。详见[接入与验收记录](../research/pu_survey/admission/distpu_encoder_stream_20261020.md)。
+这只完成该路径的技术接入，不表示正式共享图像规格、预算、GPU/多 seed 资源或方法学复核。
 
 ### 阶段 3：逐个评估复杂深度算法
 

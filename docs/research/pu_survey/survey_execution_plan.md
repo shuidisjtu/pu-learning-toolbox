@@ -176,6 +176,14 @@ TS golden 与 support/checkpoint 回归。台账、方法卡和[工程记录](ad
 之前拒绝；保留现有数值范围和合法端点，新增 RNG/分配隔离、NaN 重训失效与 NumPy 标量
 成功路径回归。台账和 API 同步上述工程记录，既有成功训练协议与正式审批范围不扩展。
 
+2026-10-20 P3.2 Dist-PU encoder 接入：依据双架构计划阶段 2 的后续项，提供显式
+`author_staged + author_histogram` 的 encoder/四维图像路径，两个阶段均更新独立副本，
+输入/标签/伪标签常驻 CPU，训练/扫描/推理分批并保留 singleton 尾批。新增 CV/Pipeline、
+OS/TS 物理角色/RNG、BN/输入/模板隔离、旧 MLP pickle 与阶段快照回归；默认 clean-room
+及冻结 Pilot 的 fullbatch/feature-adapter 路径保持原定义。registry 能力、台账、UI 提示与
+API 同步，见[工程接入记录](admission/distpu_encoder_stream_20261020.md)。正式图像规格、
+BN/增强、候选/阶段资格、预算/资源与 RV6 仍待，未新增冻结执行单元或主榜准入。
+
 2026-10-19 KLDCE 来源/行为独立核查：确认生产 `fit` 调用原生广义 pair-SMO，SLSQP 仅保留为
 固定质心联合 QP oracle；发现并修正模块/类 docstring 的过期 solver 描述。源码在拼接 `[α;γ]`
 上全局选对，而非附录 Algorithm 1 按两组分别选对，且 ACS 块更新顺序不同；方法卡、来源审计和

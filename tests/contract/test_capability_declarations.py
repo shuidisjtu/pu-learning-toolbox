@@ -117,7 +117,7 @@ _EXPECTED_DECLARATIONS = {
     "weighted_contrastive_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "self_pu": (frozenset({"mlp"}), frozenset({2, 4}), None, False),
     "nnpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
-    "dist_pu": (frozenset({"mlp"}), frozenset({2}), None, False),
+    "dist_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "dgpu": (frozenset({"mlp"}), frozenset({2}), None, False),
     "gradpu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),
     "robust_pu": (frozenset({"mlp", "cnn"}), frozenset({2, 4}), "encoder", True),

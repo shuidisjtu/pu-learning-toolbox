@@ -186,7 +186,7 @@ H(q)=-q\log q-(1-q)\log(1-q).
 ## 6. 实现注记
 
 - 默认 `clean_room` 路径使用全量张量训练，`batch_size` 不生效；显式 `author_staged` 才使用真实 mini-batch。
-- 当前项目实现使用 toolbox 小型 MLP，不应直接与论文的图像 backbone 结果比较。
+- 当前默认使用 toolbox 小型 MLP；显式 staged encoder 路径也是独立工程适配，不应直接与论文的图像 backbone 结果比较。
 - 默认 clean-room 路径使用工程化随机 Mixup；author-staged 则显式暴露 `alpha`、mixed entropy 和 mixup BCE 系数，并按来源 Beta mixup；两者不可混称。
 - 数值稳定性：
   - 两条路径的熵项都在 sigmoid 前限制 logits 到 `[-10, 10]`；clean-room 的 `log` 内另有 `1e-6`，author-staged 按来源定义直接对受限概率取 `log`；
@@ -241,6 +241,8 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 ### 8.1 锁定作者程序的训练行为差异
 
+本节记录 2026-10-19 的 MLP 适配交付；2026-10-20 的显式 encoder 扩展见 §8.2。
+
 2026-10-19 对锁定作者提交 `cb74be1a87176fd38270873c06374e53905b7354` 完成只读交叉核对，
 见[来源行为审计](../pu_survey/admission/dist_pu_source_behavior_review_20261019.md)。作者 `train.py`
 不是仅将上述几项核心损失放入一个训练循环：程序先做 60 epoch warm-up，再做 60 epoch Dist-PU；
@@ -268,3 +270,19 @@ mini-batch。拟合后的 `training_provenance_` 会逐 run 记录训练路径�
 OS/TS 角色适配、优化步数与 epoch 数。`author_staged` 不重放作者 test accuracy 选模，也不改变默认训练路径、
 历史 Pilot 或正式准入。仍待完成的是正式数据/backbone/PA-OA 选择协议、批准预算与资源验收；不得把 MLP 短拟合
 或该适配器称作论文数值复现。
+
+### 8.2 显式 encoder 与 CPU-stream（2026-10-20）
+
+新增可选 `encoder=None`。显式 `author_staged + author_histogram` 路径可接收二维特征或
+四维 NCHW 图像，deepcopy/解冻 encoder 后接 MLP head，两个阶段都训练 encoder；
+clean-room 默认仍是原全量 MLP，不隐式切换损失或训练 recipe。Registry、台账和 Pipeline
+能力声明同步为 MLP/CNN；四维输入缺 encoder 或 encoder 搭配 clean-room 均提前拒绝。
+
+输入/标签/持久伪标签留在 CPU，训练与推理按 `batch_size` 搬运，encoder 的初始伪标签
+扫描按 `min(128,batch_size)`；普通 MLP 仍保留原 128 行扫描。单行尾批保留，BN 使用运行
+统计；prototype、in-place 输入、CV 副本与评分模式均作隔离。额外 provenance 披露这些
+工程决定；旧 MLP pickle 回填缺失可选参数，原模型参数和已保存结果不作改写。
+
+冻结 Pilot 的 fullbatch/mlp128/CIFAR feature-adapter 路径保持原定义；新 CNN 结构、
+阶段资格、预算与资源仍需新协议登记和复核。具体接口、UI 限制与验证见
+[Dist-PU encoder 接入记录](../pu_survey/admission/distpu_encoder_stream_20261020.md)。

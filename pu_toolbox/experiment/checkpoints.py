@@ -95,7 +95,9 @@ class SnapshotPredictor:
             return np.concatenate(
                 [
                     self.model_(
-                        torch.as_tensor(X[start : start + self.batch_size], device=self.device)
+                        torch.as_tensor(
+                            X[start : start + self.batch_size].copy(), device=self.device
+                        )
                     )
                     .reshape(-1)
                     .cpu()

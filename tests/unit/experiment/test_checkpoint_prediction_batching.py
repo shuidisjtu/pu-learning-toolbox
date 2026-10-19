@@ -6,7 +6,11 @@ import pytest
 import torch
 from torch import nn
 
-from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer, load_epoch_checkpoint
+from pu_toolbox.experiment.checkpoints import (
+    EpochCheckpointTrainer,
+    SnapshotPredictor,
+    load_epoch_checkpoint,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -79,3 +83,40 @@ def test_basic_candidate_declares_its_actual_inference_chunk_size(method):
         else {"batch_size": 7}
     )
     assert get_algorithm(method)(**kwargs).checkpoint_prediction_batch_size == 7
+
+
+@pytest.mark.parametrize("sample_shape", [(4,), (1, 2, 2)])
+def test_edge_inplace_snapshot_forward_cannot_rewrite_validation_inputs(sample_shape):
+    features = (np.arange(-10, 10, dtype=np.float32) / 8).reshape((5, *sample_shape))
+    before = features.copy()
+    network = nn.Sequential(nn.ReLU(inplace=True), nn.Flatten(), nn.Linear(4, 1))
+    with torch.no_grad():
+        network[-1].weight.fill_(1)
+        network[-1].bias.zero_()
+    predictor = SnapshotPredictor(network, device="cpu", batch_size=2)
+    sizes = []
+    network.register_forward_pre_hook(lambda _module, inputs: sizes.append(len(inputs[0])))
+    expected = np.maximum(before, 0).reshape(5, -1).sum(axis=1)
+
+    np.testing.assert_array_equal(predictor.decision_function(features), expected)
+    np.testing.assert_array_equal(features, before)
+    assert sizes == [2, 2, 1]
+    np.testing.assert_array_equal(predictor.decision_function(features), expected)
+    np.testing.assert_array_equal(features, before)
+
+
+def test_edge_failed_inplace_snapshot_forward_leaves_caller_array_unchanged():
+    failure = RuntimeError("snapshot forward interrupted")
+
+    class MutatingFailure(nn.Module):
+        def forward(self, features):
+            features.relu_()
+            raise failure
+
+    features = np.array([[-2, 3], [-4, 1]], dtype=np.float32)
+    before = features.copy()
+    predictor = SnapshotPredictor(MutatingFailure(), device="cpu", batch_size=1)
+    with pytest.raises(RuntimeError) as caught:
+        predictor.decision_function(features)
+    assert caught.value is failure
+    np.testing.assert_array_equal(features, before)

@@ -319,6 +319,7 @@ tests/
       test_nnpu_lifecycle.py            # nnPU 失败重训失效、评分逐层模式恢复与成功训练等价
       test_self_pu_lifecycle.py         # Self-PU 失败重训失效、teacher 评分隔离与 OS/TS 选择路径等价
       test_self_pu_parameters.py        # Self-PU 有限实数/整数预算边界、RNG 早失败隔离与 NumPy 标量兼容
+      test_dist_pu_encoder.py           # Dist-PU encoder 两阶段/CPU-stream、singleton BN、旧 MLP 与快照兼容
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -577,6 +578,7 @@ tests/
     test_pan_pipeline_cnn.py            # PAN/PULDA 原生 CNN 流水线、种子复验与架构门禁
     test_iris_smoke.py                  # Iris 冒烟回归: 22 个 native 分类器可训练性与预测接口(不断言准确率)
     test_pulns_cnn_support.py           # PULNS 内置 CNN 与独立奖励集、公共工作流不借用测试标签
+    test_dist_pu_pipeline_cnn.py        # Dist-PU 显式 CNN/CV 副本隔离与冻结 feature-adapter 路径保留
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）

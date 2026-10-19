@@ -17,10 +17,13 @@
 | 伪标签时序 | PU 阶段在初始化时以模型更新伪标签；每个 batch 使用当前伪标签，强制已标记 P 目标为 1，优化后再写回当前批行预测。 | `author_staged` 在 warm-up 后按训练行身份初始化，并在每个 PU batch 读取/写回当前行的持久伪标签；`clean_room` 仍无持久伪标签。 | staged 复现来源状态依赖；不宣称精确复放原始 DataLoader/RNG 序列。 |
 | 优化器与日程 | warm-up Adam 使用 `warm_up_lr`、`warm_up_weight_decay`；进入 PU 阶段后重建 Adam，使用另一组学习率/权重衰减，并采用余弦 scheduler。动态 `co_entropy` 按 epoch 递增。 | `author_staged` 使用两套 Adam/weight decay 与动态熵；默认 `clean_room` 仍是旧单 Adam/fixed weights。 | 只有 staged 路径适配分阶段优化器日程。 |
 | scheduler 计步 | 两阶段均用 `CosineAnnealingLR(..., T_max=pu_epochs)`。warm-up 的 `utils.train()` 在完整 DataLoader 循环后调用一次 `scheduler.step()`；PU 阶段 `train_mixup()` 则在每个 mini-batch optimizer step 后调用。 | `author_staged` 分别按 epoch 和 batch step，且记录实际 scheduler step counts；默认 `clean_room` 无 scheduler。 | cadence 不同：warm-up 每 epoch 一步，PU 每 batch 一步。不能把两阶段都概括成 batch cadence，也不能将 `T_max=pu_epochs` 当成两阶段统一的 epoch 级 scheduler 语义。 |
-| 结构与数据 | 作者代码按 CIFAR-10、Fashion-MNIST、Alzheimer 构造不同网络/数据处理；仓库 README 给出其环境。 | 当前类为二维输入的小型 MLP，不含作者图像 backbone、数据增强或数据 loader。 | 不得将当前 clean-room 输出与论文图像结果宣称为复现。 |
+| 结构与数据 | 作者代码按 CIFAR-10、Fashion-MNIST、Alzheimer 构造不同网络/数据处理；仓库 README 给出其环境。 | 默认类仍为二维小型 MLP；2026-10-20 新增 staged + 显式 encoder/CPU-stream 路径，不含作者图像 backbone、数据增强或数据 loader。 | 不得将当前 clean-room 或注入 encoder 的输出与论文图像结果宣称为复现。 |
 | 选模 | 官方 `train.py` 每 epoch 在 test loader 上计算 accuracy，并以最高 accuracy 记录 best。 | estimator 本身不读取 test/clean 标签；由实验层选模。 | 不能照抄官方 test-based 选择；项目实验仍须遵循本仓库预注册的 PA/OA 规则。 |
 
 ## 2026-10-19 author_staged 适配补记
+
+本节为 10-19 的 MLP 交付截点。10-20 新增[显式 encoder 与 CPU-stream 路径](distpu_encoder_stream_20261020.md)，
+保留本节两阶段目标与时序；它没有移植作者图像模型/预处理或取得正式规格批准。
 
 新增 `training_recipe="author_staged"` 与 `distribution_loss="author_histogram"` 的显式组合，保留默认
 `clean_room` 路径。来源逐项根据锁定 `train.py`、`utils.py`、`losses/factory.py`、

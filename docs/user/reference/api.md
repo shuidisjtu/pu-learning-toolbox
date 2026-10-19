@@ -490,7 +490,7 @@ LLSVMClassifier(*, alpha=2.0, beta=1.0, gamma=10.0, squash_scale=10.0, reg_lambd
 
 #### `DistPUClassifier`（注册名 `dist_pu`，别名 `distpu`）
 
-Dist-PU 小 MLP 分类器。默认保留 clean-room 单阶段全量路径；显式组合 `training_recipe="author_staged"` 与 `distribution_loss="author_histogram"` 可运行来源审计的两阶段 mini-batch 适配流程。该适配不移植作者数据集/backbone/预处理，也不复制作者用 test accuracy 选模。
+Dist-PU 默认保留 clean-room 单阶段全量 MLP；显式组合 `training_recipe="author_staged"` 与 `distribution_loss="author_histogram"` 可运行来源审计的两阶段 mini-batch 适配，并可注入可训练 encoder 处理四维图像。该适配不移植作者数据集/backbone/预处理，也不复制作者用 test accuracy 选模。
 
 ```python
 DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, learning_rate=1e-3,
@@ -501,7 +501,7 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, lear
                  pu_learning_rate=5e-5, pu_weight_decay=1e-3,
                  warmup_entropy_weight=0.002, pu_entropy_weight=0.004,
                  mixup_alpha=6.0, mixup_entropy_weight=0.04, mixup_bce_weight=5.0,
-                 random_state=0, device=None)
+                 random_state=0, device=None, encoder=None)
 ```
 
 | 参数 | 类型 | 默认 | 说明 |
@@ -522,8 +522,10 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, lear
 | `warmup_entropy_weight` / `pu_entropy_weight` | `float` | `0.002` / `0.004` | warm-up 固定熵权重；PU 阶段按来源余弦公式从 0 增至上限 |
 | `mixup_alpha` / `mixup_entropy_weight` / `mixup_bce_weight` | `float` | `6.0` / `0.04` / `5.0` | PU 阶段 Beta mixup、混合输出熵项及双目标 BCE 权重 |
 | `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 种子与 torch 设备 |
+| `encoder` | `nn.Module \| None` | `None` | 仅 staged/histogram 路径支持；deepcopy 后端到端训练，须输出有限二维特征；图像输入必填，不作静默 flatten |
 
-- `author_staged` 是与锁定 `train.py` 高层训练时序对齐的 MLP 适配，不代表作者源程序重放、图像结果复现或正式准入；完整限制见 [Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)。
+- 注入 encoder 时输入/标签常驻 CPU、训练/推理分批；伪标签扫描 batch 为 `min(128,batch_size)`，单行尾批 BN 使用运行统计。普通 MLP 的扫描与默认训练保持原行为；评分恢复逐层模式，旧 pickle 补齐缺失可选参数。
+- `author_staged` 是与锁定 `train.py` 高层训练时序对齐的工程适配，不代表作者源程序重放、图像结果复现或正式准入；冻结 Pilot 仍用原 fullbatch/feature-adapter，完整限制见 [Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)。
 
 #### `VPUClassifier`（注册名 `vpu`，别名 `variational_pu`）
 

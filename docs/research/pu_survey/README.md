@@ -70,6 +70,7 @@
 - [`gradpu_source_review_20261005.md`](admission/gradpu_source_review_20261005.md)：GradPU 来源与协议复核准备。
 - [`kldce_source_behavior_review_20261019.md`](admission/kldce_source_behavior_review_20261019.md)：KLDCE 生产 SMO 与论文附录差异、作者代码来源状态核查；不代表方法负责人签署。
 - [Self-PU 生命周期、参数与评分补核](admission/selfpu_lifecycle_20261020.md)：失败重训/概率拟合检查、有限参数/整数预算早失败、逐子模块模式恢复及 OS/TS × 一致性范围 × 选择路径回归。
+- [Dist-PU 显式 encoder 与 CPU-stream](admission/distpu_encoder_stream_20261020.md)：staged/histogram opt-in 图像训练、分批界限、CV/模板隔离、旧 MLP 与冻结 feature-adapter 兼容；正式规格和资源仍待。
 - [`candidate_cnn_storage_review_20261005.md`](admission/candidate_cnn_storage_review_20261005.md)：CNN 存储工程证据；不等于正式预算或 P3.3 验收。
 
 ### `reviews/`：独立复核和阶段性工程记录

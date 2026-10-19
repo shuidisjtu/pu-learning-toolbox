@@ -106,7 +106,7 @@ def test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak
 
 def test_param_edge_cnn_not_silently_enabled_for_mlp_only_algorithms():
     with pytest.raises(PipelineError, match="cnn"):
-        PUPipeline(classifier="dist_pu", architecture="cnn", cv=2, max_epochs=1)
+        PUPipeline(classifier="upu", architecture="cnn", cv=2, max_epochs=1)
 
 
 @pytest.mark.parametrize("backbone", ["cnn13", "resnet18"])

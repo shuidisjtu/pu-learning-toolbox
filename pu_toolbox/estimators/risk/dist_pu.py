@@ -10,6 +10,7 @@ two-stage training procedure. PyTorch remains an optional dependency.
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 import numpy as np
@@ -161,7 +162,12 @@ def _entropy_minimization(scores: Any) -> Any:
 
 
 class DistPUClassifier(BasePUClassifier):
-    """Train a small MLP with clean-room or author-code histogram alignment."""
+    """MLP alignment or opt-in staged alignment with a trainable encoder.
+
+    Injected encoders require ``author_staged`` + ``author_histogram`` so
+    image training streams CPU-resident inputs in bounded mini-batches.
+    The historical clean-room MLP objective remains the default.
+    """
 
     family = AlgorithmFamily.RISK_ESTIMATION
     label_semantics = "pu"
@@ -173,10 +179,10 @@ class DistPUClassifier(BasePUClassifier):
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
     sample_weight_support = SampleWeightSupport.IGNORED
-    native_architectures = frozenset({"mlp"})
-    input_ndims = frozenset({2})
-    encoder_parameter = None
-    trains_encoder = False
+    native_architectures = frozenset({"mlp", "cnn"})
+    input_ndims = frozenset({2, 4})
+    encoder_parameter = "encoder"
+    trains_encoder = True
 
     def __init__(
         self,
@@ -204,6 +210,7 @@ class DistPUClassifier(BasePUClassifier):
         mixup_bce_weight: float = 5.0,
         random_state: int | None = 0,
         device: str | None = None,
+        encoder: Any | None = None,
     ) -> None:
         super().__init__()
         self.class_prior = class_prior
@@ -229,6 +236,17 @@ class DistPUClassifier(BasePUClassifier):
         self.mixup_bce_weight = mixup_bce_weight
         self.random_state = random_state
         self.device = device
+        self.encoder = encoder
+
+    def __setstate__(self, state):
+        """Keep MLP estimator pickles made before encoder injection readable."""
+        import inspect
+
+        super().__setstate__(state)
+        for name, parameter in inspect.signature(DistPUClassifier.__init__).parameters.items():
+            if parameter.default is not inspect.Parameter.empty:
+                self.__dict__.setdefault(name, parameter.default)
+        self.__dict__.setdefault("encoder_", None)
 
     @invalidate_failed_fit
     def fit(
@@ -245,13 +263,15 @@ class DistPUClassifier(BasePUClassifier):
 
         Parameters
         ----------
-        X : array-like of shape (n_samples, n_features)
-            Feature matrix.  Must be dense.
+        X : array-like of shape (n_samples, n_features) or (n_samples, C, H, W)
+            Dense features, or images with an explicit constructor encoder.
+            Encoders require author_staged + author_histogram, are cloned
+            and trained end to end, and must return finite 2-D features.
         y_pu : array-like of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
         class_prior : float, optional
             Override the constructor's ``class_prior``.  Must be in (0, 1).
-        distribution_loss : {"expectation", "author_histogram"}
+        distribution_loss (constructor setting) : {"expectation", "author_histogram"}
             Select the default clean-room mean-squared alignment or the
             author's one-bin polar histogram L1 terms. The histogram option
             does not reproduce the author's complete two-stage recipe.
@@ -271,7 +291,9 @@ class DistPUClassifier(BasePUClassifier):
             sequence is unaffected.  Both regularizers come from the same
             forward pass, so the view changes only which rows they average over.
         epoch_callback : callable, optional
-            Called as ``epoch_callback(epoch, self)`` after each optimizer step.
+            Called as ``epoch_callback(epoch, self)`` after each completed epoch.
+            Labels are zero-based for clean_room and one-based cumulative
+            for author_staged, whose checkpoint context also records stage.
 
         Returns
         -------
@@ -282,7 +304,17 @@ class DistPUClassifier(BasePUClassifier):
             from torch import nn
         except ImportError as exc:
             raise ImportError("DistPUClassifier requires the optional 'torch' dependency") from exc
-        X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="DistPUClassifier")
+        if self.encoder is not None and not isinstance(self.encoder, nn.Module):
+            raise TypeError("encoder must be a torch.nn.Module")
+        X, y_pu = validate_pu_X_y(
+            X,
+            y_pu,
+            accept_sparse=False,
+            allow_nd=self.encoder is not None,
+            estimator_name="DistPUClassifier",
+        )
+        if X.ndim not in ({2, 4} if self.encoder is not None else {2}):
+            raise ValueError("Dist-PU accepts 2-D features or 4-D images with an encoder")
         # Before any RNG use: an invalid view must not perturb the torch seed.
         if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
@@ -294,6 +326,11 @@ class DistPUClassifier(BasePUClassifier):
             raise ValueError("distribution_loss must be 'expectation' or 'author_histogram'")
         if self.training_recipe not in {"clean_room", "author_staged"}:
             raise ValueError("training_recipe must be 'clean_room' or 'author_staged'")
+        if self.encoder is not None and self.training_recipe != "author_staged":
+            raise ValueError(
+                "encoder requires training_recipe='author_staged' and "
+                "distribution_loss='author_histogram' for mini-batch training"
+            )
         if self.training_recipe == "author_staged":
             if self.distribution_loss != "author_histogram":
                 raise ValueError(
@@ -329,13 +366,33 @@ class DistPUClassifier(BasePUClassifier):
             if self.mixup_alpha <= 0:
                 raise ValueError("mixup_alpha must be positive")
         X = np.asarray(X, dtype=np.float32)
+        if not np.isfinite(X).all():
+            raise ValueError("X must remain finite after float32 conversion")
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
         device = resolve_device(self.device)
         self.device_ = device
-        self.model_ = nn.Sequential(
-            nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
-        ).to(device)
+        self.input_shape_ = tuple(X.shape[1:])
+        self.n_features_in_ = X.shape[1]
+        if self.encoder is None:
+            self.encoder_ = None
+            self.model_ = nn.Sequential(
+                nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
+            ).to(device)
+        else:
+            from ..deep._validation import validate_encoder_features
+
+            self.encoder_ = copy.deepcopy(self.encoder).to(device, dtype=torch.float32)
+            self.encoder_.requires_grad_(True).eval()
+            with torch.no_grad():
+                width = validate_encoder_features(
+                    self.encoder_(torch.as_tensor(X[:1].copy(), device=device)),
+                    encoder_param_name="encoder",
+                )
+            head = nn.Sequential(
+                nn.Linear(width, self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
+            )
+            self.model_ = nn.Sequential(self.encoder_, head).to(device, dtype=torch.float32)
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
         data_device = "cpu" if self.training_recipe == "author_staged" else device
         tx = torch.as_tensor(X, device=data_device)
@@ -442,7 +499,7 @@ class DistPUClassifier(BasePUClassifier):
         return self.batch_size
 
     def _fit_author_staged(self, tx, ty, p_mask, u_mask, pi, os_or_ts, epoch_callback, torch):
-        """Run the locked two-stage author recipe on this estimator's MLP.
+        """Run audited staged losses on an MLP or explicit encoder adapter.
 
         This mirrors the author's optimizer/loss/pseudo-label/scheduler
         sequence, while remaining an engineering adapter: it does not port
@@ -465,7 +522,9 @@ class DistPUClassifier(BasePUClassifier):
         self.calibration_applied_ = os_or_ts == "ts"
         self.training_provenance_ = {
             "method": "dist_pu",
-            "implementation_path": "author_staged_mlp_adapter",
+            "implementation_path": "author_staged_encoder_adapter"
+            if self.encoder is not None
+            else "author_staged_mlp_adapter",
             "training_recipe": "author_staged",
             "distribution_loss": "author_histogram",
             "upstream_source_lock": "cb74be1a87176fd38270873c06374e53905b7354",
@@ -490,7 +549,9 @@ class DistPUClassifier(BasePUClassifier):
             "mixup_entropy_weight": float(self.mixup_entropy_weight),
             "mixup_bce_weight": float(self.mixup_bce_weight),
             "pseudo_label_initialization": "model scores after warmup, indexed by training-row identity",
-            "pseudo_label_inference_batch_size": 128,
+            "pseudo_label_inference_batch_size": min(128, self.batch_size)
+            if self.encoder is not None
+            else 128,
             "pseudo_label_update": "pre_optimizer_update_scores written only to current minibatch identities",
             "mixup_lambda": "Beta(alpha, alpha), no max(lambda, 1-lambda) bias",
             "mixup_partner": "uniform random permutation within current minibatch",
@@ -502,6 +563,16 @@ class DistPUClassifier(BasePUClassifier):
             "architecture_scope": "toolbox MLP adapter; upstream dataset-specific architectures not reproduced",
             "data_device_policy": "CPU-resident features/labels; only active mini-batches moved to the training device",
         }
+        if self.encoder is not None:
+            self.training_provenance_.update(
+                architecture_scope="injected trainable encoder + toolbox MLP head; not upstream dataset-specific architectures",
+                encoder_template_cloned=True,
+                encoder_trained=True,
+                input_shape=list(tx.shape[1:]),
+                maximum_rows_per_device_forward=self.batch_size,
+                singleton_batchnorm_policy="running_statistics_for_singleton_training_batches",
+                encoder_input_isolation="batch_clone_before_model_forward",
+            )
 
         warmup_optimizer = torch.optim.Adam(
             self.model_.parameters(),
@@ -520,7 +591,7 @@ class DistPUClassifier(BasePUClassifier):
                 indices = permutation[start : start + self.batch_size]
                 batch_x = tx[indices].to(device)
                 labels = ty[indices].to(device)
-                logits = self.model_(batch_x).reshape(-1)
+                logits = self._staged_logits(batch_x)
                 scores = torch.sigmoid(torch.clamp(logits, min=-10.0, max=10.0))
                 hist_loss = _author_histogram_batch_loss(
                     logits,
@@ -550,9 +621,10 @@ class DistPUClassifier(BasePUClassifier):
         self.model_.eval()
         pseudo_labels = torch.empty(n_samples, dtype=torch.float32)
         with torch.no_grad():
-            for start in range(0, n_samples, 128):
-                stop = min(start + 128, n_samples)
-                logits = self.model_(tx[start:stop].to(device)).reshape(-1)
+            pseudo_batch_size = self.training_provenance_["pseudo_label_inference_batch_size"]
+            for start in range(0, n_samples, pseudo_batch_size):
+                stop = min(start + pseudo_batch_size, n_samples)
+                logits = self._staged_logits(tx[start:stop].to(device))
                 pseudo_labels[start:stop] = torch.sigmoid(logits).cpu()
         self.pseudo_labels_ = pseudo_labels
 
@@ -585,9 +657,9 @@ class DistPUClassifier(BasePUClassifier):
                 mixed_x = lam * batch_x + (1.0 - lam) * batch_x[mix_permutation]
                 target_a = targets
                 target_b = targets[mix_permutation]
-                mixed_logits = self.model_(mixed_x).reshape(-1)
+                mixed_logits = self._staged_logits(mixed_x)
                 mixed_scores = torch.sigmoid(torch.clamp(mixed_logits, min=-10.0, max=10.0))
-                raw_logits = torch.clamp(self.model_(batch_x).reshape(-1), min=-10.0, max=10.0)
+                raw_logits = torch.clamp(self._staged_logits(batch_x), min=-10.0, max=10.0)
                 raw_scores = torch.sigmoid(raw_logits)
 
                 base_loss = _author_histogram_batch_loss(
@@ -642,6 +714,28 @@ class DistPUClassifier(BasePUClassifier):
         self.device_ = device
         return self
 
+    def _staged_logits(self, inputs):
+        """Keep legacy MLP math and retain singleton encoder batches with frozen BN."""
+        if self.encoder is None:
+            return self.model_(inputs).reshape(-1)
+        import torch
+
+        modes = [(module, module.training) for module in self.model_.modules()]
+        try:
+            if len(inputs) == 1:
+                for module in self.model_.modules():
+                    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+                        module.eval()
+            logits = self.model_(inputs.clone())
+            if logits.shape not in ((len(inputs),), (len(inputs), 1)):
+                raise ValueError("Dist-PU model must return one logit per row")
+            if not torch.isfinite(logits).all():
+                raise FloatingPointError("Dist-PU encoder model produced nonfinite logits")
+            return logits.reshape(-1)
+        finally:
+            for module, training in modes:
+                module.training = training
+
     def _record_author_epoch(self, stage, stage_epoch, loss, epoch_callback):
         self.checkpoint_stage_ = stage
         self.checkpoint_stage_epoch_ = stage_epoch
@@ -660,15 +754,41 @@ class DistPUClassifier(BasePUClassifier):
             epoch_callback(self.epochs_completed_, self)
 
     def _decision_function(self, X):
-        import torch
+        self._check_is_fitted()
 
-        with torch.no_grad():
-            return (
-                self.model_(torch.as_tensor(np.asarray(X, dtype=np.float32), device=self.device_))
-                .squeeze(1)
-                .cpu()
-                .numpy()
-            )
+        import torch
+        from sklearn.utils.validation import check_array
+
+        X = check_array(X, dtype=np.float32, allow_nd=True, ensure_min_samples=0)
+        expected_shape = tuple(self._X_shape_[1:])
+        if tuple(X.shape[1:]) != expected_shape:
+            raise ValueError(f"X must have sample shape {expected_shape}")
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        modes = [(module, module.training) for module in self.model_.modules()]
+        try:
+            self.model_.eval()
+            with torch.no_grad():
+                if self.encoder is None:
+                    return (
+                        self.model_(torch.as_tensor(X, device=self.device_))
+                        .squeeze(1)
+                        .cpu()
+                        .numpy()
+                    )
+                return np.concatenate(
+                    [
+                        self._staged_logits(
+                            torch.as_tensor(X[start : start + self.batch_size], device=self.device_)
+                        )
+                        .cpu()
+                        .numpy()
+                        for start in range(0, len(X), self.batch_size)
+                    ]
+                )
+        finally:
+            for module, training in modes:
+                module.training = training
 
     def _predict(self, X):
         return (self._decision_function(X) >= 0).astype(int)

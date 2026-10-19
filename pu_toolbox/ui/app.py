@@ -156,6 +156,9 @@ def main() -> None:
             for name, item in catalog_by_name.items()
             if item["ui_ready"] and (not image_mode or name in cnn_names)
         )
+        if image_mode and "dist_pu" in choices:
+            # Its CNN recipe must be explicitly configured, so keep prior defaults first.
+            choices = [name for name in choices if name != "dist_pu"] + ["dist_pu"]
         classifier = config_columns[1].selectbox("分类器", choices, key="classifier")
         selected = catalog_by_name[classifier]
         config_columns[2].markdown(
@@ -177,6 +180,8 @@ def main() -> None:
             and not any(parameter["required"] for parameter in item["parameters"])
             and (not image_mode or name in cnn_names)
         )
+        if image_mode and "dist_pu" in choices:
+            choices = [name for name in choices if name != "dist_pu"] + ["dist_pu"]
         comparison_classifiers = config_columns[1].multiselect(
             "待比较模型",
             choices,
@@ -186,6 +191,17 @@ def main() -> None:
         config_columns[2].caption("所有模型使用相同的先验、CV、指标和随机种子。")
     if image_mode:
         st.info("图像输入使用 CNN 模式，目前支持：" + "、".join(sorted(cnn_names)) + "。")
+        if classifier == "dist_pu":
+            st.info(
+                "Dist-PU 的 CNN 路径需要在模型参数中显式设置 "
+                'training_recipe="author_staged" 和 distribution_loss="author_histogram"；'
+                "warmup_epochs 与 pu_epochs 分别控制两阶段训练轮数。"
+            )
+        elif "dist_pu" in comparison_classifiers:
+            st.warning(
+                "图像比较模式尚不能为 Dist-PU 单独设置两阶段参数，默认配置会拒绝 CNN 拟合。"
+                "请从比较列表移除 Dist-PU，或切换手动模式配置后运行。"
+            )
 
     settings = st.columns(4)
     cv = settings[0].number_input("交叉验证折数", min_value=2, max_value=20, value=5, key="cv")
