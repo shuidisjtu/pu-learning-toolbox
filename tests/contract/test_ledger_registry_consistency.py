@@ -312,6 +312,25 @@ def test_nnpu_source_behavior_review_tracks_branch_and_batch_differences(
 
 
 @pytest.mark.contract
+def test_lbe_source_review_ref_binds_official_archive_identity_and_behavior(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The audited author bundle is traceable without implying clean-room equivalence."""
+    method = ledger_methods["lbe"]
+    expected = "docs/research/pu_survey/data/lbe_source_review_20261012.json"
+    assert method["source_behavior_review_ref"] == expected
+    assert method["evidence"]["source_behavior_review"] == expected
+    review = json.loads((_ROOT / expected).read_text(encoding="utf-8"))
+    source = review["official_upstream_verification_20261019"]
+    assert source["matches_locked_official_sha256"] is True
+    assert source["download_sha256"] == method["code_version"]["official_archive_sha256"]
+    assert source["matches_user_supplied_archive"] is False
+    assert review["equation_findings"]
+    assert method["implementation_status"].startswith("NATIVE")
+    assert "不代表 clean-room 实现等价" in method["code_version"]["source_status"]
+
+
+@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:
