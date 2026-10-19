@@ -589,6 +589,8 @@
     },
     "nnpu": {
       "class": "NonNegativePUClassifier",
+      "fit_failure_review_ref": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md",
       "paper": {
         "title": "Positive-Unlabeled Learning with Non-Negative Risk Estimator",
         "authors": "Ryuichi Kiryo, Gang Niu, Marthinus C. du Plessis, Masashi Sugiyama",

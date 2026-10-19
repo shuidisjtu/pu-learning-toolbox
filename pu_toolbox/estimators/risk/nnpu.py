@@ -27,6 +27,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -156,6 +157,7 @@ class NonNegativePUClassifier(BasePUClassifier):
 
     # ── fit ──────────────────────────────────────────────────────────
 
+    @invalidate_failed_fit
     def fit(
         self,
         X: np.ndarray,
@@ -510,12 +512,18 @@ class NonNegativePUClassifier(BasePUClassifier):
         import torch
 
         self._check_is_fitted()
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
         X_t = torch.tensor(X, dtype=torch.float32)
         device = next(self.model_.parameters()).device
-        self.model_.eval()
-        with torch.no_grad():
-            scores = self.model_(X_t.to(device)).squeeze(-1).cpu().numpy()
-        return scores
+        modes = [(module, module.training) for module in self.model_.modules()]
+        try:
+            self.model_.eval()
+            with torch.no_grad():
+                return self.model_(X_t.to(device)).squeeze(-1).cpu().numpy()
+        finally:
+            for module, training in modes:
+                module.training = training
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """Binary labels: 1 if g(x) >= 0 else 0."""

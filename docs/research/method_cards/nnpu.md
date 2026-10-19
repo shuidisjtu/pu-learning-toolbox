@@ -342,3 +342,5 @@ L_{\mathrm{opt}}=
 | 复现风险 | 论文实验为深度模型协议（200 epochs、Adam/AdaGrad、$`\ell_2`$ 正则）；先验必须外部提供，设错直接改变风险分解；训练与评估须区分报告值（公式 (6)）与优化量（Algorithm 1 分支规则），`max` 误实现会静默偏离论文算法 |
 
 2026-10-20 补核：来源锁保存上述 commit 的 `pu_loss.py`、`train.py`、`dataset.py`、`model.py`、`README.md`、`LICENSE` 六文件 Git blob SHA-256。发布代码的 CIFAR preset 使用 P=1000、U=50000（已标记 P 同时出现在整体 U 中）、仅 /255、Adam lr=1e-5 和 WeightDecay(0.005)；可见主程序监控逐 epoch test error，但没有本项目 PA/OA 的独立验证/选中 checkpoint 链路。详细行号与 toolbox 差异见上述审计；来源字节核验不等于跨框架训练或论文数值复现。
+
+本地生命周期补核：失败/取消重训及未知 fit 参数现在撤销公开拟合状态，避免沿用旧模型；评分在成功或异常后恢复逐子模块 BN/Dropout 模式，空输入不访问模型。回归确认成功训练分数/history、签名、clone/pickle 与 TS 路由保持兼容，模型参数及外部 checkpoint 不作事务回滚。详见上述审计的本地生命周期段落。

@@ -29,4 +29,14 @@
 - 上述测试支撑 toolbox 内部数学与协议不变量；官方 commit 和关键文件字节现已绑定，但没有执行两套框架的逐步数值对照，因此不证明完整训练轨迹或 NIPS 表格数值已重现。
 - 2026-10-20 来源/registry 契约、assigned preflight、nnPU estimator、TS 视图与 loss 专项共 69 项通过，0 跳过、失败或错误；两条极大 β 的预期 warning 来自现有边界用例。JUnit 在本机 `/tmp/nnpu-source-snapshot-20261020.xml`；六文件的 Git blob/工作区摘要一致性和文档链接门禁均通过。
 
+## 本地生命周期补核（2026-10-20）
+
+独立复现了两项 toolbox 状态问题：成功拟合后以非法先验重训会抛出异常，但旧 `_is_fitted=True` 仍允许预测；评分则递归执行 `eval()`，覆盖调用方的混合 BN/Dropout 模式并永久保留。前者也影响参数绑定失败、epoch 回调异常或取消，后者在前向或部分 `eval()` 失败时同样会遗留状态。
+
+`NonNegativePUClassifier.fit` 现使用既有 `invalidate_failed_fit`：参数绑定前撤销公开拟合状态，异常/取消原样传播，成功后仍由 estimator 自行设置完成状态。该保护不回滚模型权重、history 或回调写出的外部制品。评分逐子模块保存/直接恢复 training 标志，覆盖正常前向、前向异常和部分 eval 转换异常；空输入直接返回空分数，不访问模型。fit 成功路径的目标、梯度、步数、epoch 编号、默认值和 TS 路由保持原行为；`predict_proba` 仍不提供。
+
+回归位于 `tests/unit/estimators/test_nnpu_lifecycle.py`：校验非法先验/未知参数后旧预测失效、四种回调异常只传播一次、后续成功重训、与未包装训练的分数/history 一致、签名/clone/pickle，以及混合模式和 BN buffers 在评分后不变。候选专用的 16 方法源码身份草稿不因此扩展为全方法准入或训练批准。
+
+生命周期、既有 nnPU/loss/TS、encoder、checkpoint 与管线专项共 107 项通过、4 项 CUDA 测试跳过，0 失败或错误（本机 JUnit `/tmp/nnpu-lifecycle-20261020.xml`）。当前工作区全仓快速回归 `python -m pytest tests/ -m 'not slow and not e2e'` 共 4973 项通过、59 项跳过、0 失败/错误，用时 481.880 秒，JUnit `/tmp/pu-independent-followup-fast-20261020.xml`。15 项本地静态/证据门禁通过；可选条件未实际执行的正式 registry 门禁、GPU 与 slow/e2e 不计作验收。现有 NVML、代价/消融、收敛及非正式 checkpoint 容量警告仍存在，不声明零 warning。
+
 结论：nnPU 核心校正梯度与论文/锁定官方实现一致；PyTorch 实现、P/U loader 组成与 TS 校准均是需披露的适配层。2026-10-20 已补齐六个关键上游文件的 hash，原文档与台账中“未锁定 commit”“未保存上游 hash”的旧限制同步撤除；完整 Chainer 运行复现、逐步数值对照及相同实验协议证据仍未交付。该记录不改算法默认值、冻结结果、准入或 owner review 状态。
