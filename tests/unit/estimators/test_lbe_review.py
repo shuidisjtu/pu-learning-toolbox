@@ -151,10 +151,14 @@ def test_determ_clone_pickle_and_label_conventions(observations):
 def test_basic_source_variants_remain_distinct_and_preflight_uses_actual_dataset_directory():
     root = Path(__file__).resolve().parents[3]
     lock = json.loads(
-        (root / "benchmarks/assigned_methods/configs/official_sources.lock.json").read_text()
+        (root / "benchmarks/assigned_methods/configs/official_sources.lock.json").read_text(
+            encoding="utf-8"
+        )
     )["sources"]["lbe"]
     receipt = json.loads(
-        (root / "docs/research/pu_survey/data/lbe_source_review_20261012.json").read_text()
+        (root / "docs/research/pu_survey/data/lbe_source_review_20261012.json").read_text(
+            encoding="utf-8"
+        )
     )
     assert lock["sha256"] == receipt["comparison_to_official_lock"]["official_sha256"]
     assert lock["sha256"] != lock["user_supplied_variant"]["sha256"]
@@ -163,9 +167,7 @@ def test_basic_source_variants_remain_distinct_and_preflight_uses_actual_dataset
     assert upstream["download_sha256"] == lock["sha256"]
     assert upstream["matches_locked_official_sha256"] is True
     assert upstream["matches_user_supplied_archive"] is False
-    assert upstream["license_interpretation"].startswith(
-        "The author's publication page says"
-    )
+    assert upstream["license_interpretation"].startswith("The author's publication page says")
     assert lock["user_supplied_variant"]["mlp_recipe"]["pretrain_steps_per_model"] == 20
     lf_adam = receipt["files_sha256"]["LBE_LF/toydata/MStep_Adam.m"]
     assert len(lf_adam) == 64
@@ -174,17 +176,20 @@ def test_basic_source_variants_remain_distinct_and_preflight_uses_actual_dataset
     assert "overwrites its incoming Theta1/Theta2" in finding["claim"]
     assert "LBE_LF/breast/MStep_Adam.m:5-7,14" in finding["locations"]
     assert "LBE_LF/toydata/MStep_Adam.m:5-7,14-15" in finding["locations"]
-    ledger = json.loads((root / "pu_toolbox/experiment/method_ledger.json").read_text())
+    ledger = json.loads(
+        (root / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
+    )
     neural = ledger["methods"]["lbe_neural"]
-    assert "2026-10-19 对作者发表页当前链接" in ledger["methods"]["lbe"]["code_version"][
-        "source_status"
-    ]
+    assert (
+        "2026-10-19 对作者发表页当前链接"
+        in ledger["methods"]["lbe"]["code_version"]["source_status"]
+    )
     assert neural["source_behavior_review_ref"] == (
         "docs/research/pu_survey/data/lbe_source_review_20261012.json"
     )
     assert any("覆盖传入的 Theta 参数" in item for item in neural["uncertainty"])
     config = json.loads(
-        (root / "benchmarks/assigned_methods/configs/official/lbe.json").read_text()
+        (root / "benchmarks/assigned_methods/configs/official/lbe.json").read_text(encoding="utf-8")
     )
     assert config["runner"]["pretrain_steps_per_model"] == 100
     for source in config["execution_requirements"]["required_source_files"]:

@@ -168,14 +168,13 @@ def test_self_pu_population_scope_source_review_is_registered(
     """The reviewed paper-aligned scope is documented without changing pilot default."""
     method = ledger_methods["self_pu"]
     review_path = (
-        _ROOT
-        / "docs/research/pu_survey/admission/selfpu_consistency_scope_review_20261019.md"
+        _ROOT / "docs/research/pu_survey/admission/selfpu_consistency_scope_review_20261019.md"
     )
     assert "distillation_scope=paper_population" in method["implementation_status"]
     assert method["calibration_applied"] is True
     assert method["calibration_hooked"] is True
-    assert method["evidence"]["consistency_scope_review"] == str(
-        review_path.relative_to(_ROOT)
+    assert (
+        method["evidence"]["consistency_scope_review"] == review_path.relative_to(_ROOT).as_posix()
     )
     uncertainty = "\n".join(method["uncertainty"])
     assert "distillation_scope=untrusted_u" in uncertainty
