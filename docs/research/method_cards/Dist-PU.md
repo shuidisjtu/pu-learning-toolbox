@@ -238,8 +238,9 @@ H(q)=-q\log q-(1-q)\log(1-q).
 不是仅将上述几项核心损失放入一个训练循环：程序先做 60 epoch warm-up，再做 60 epoch Dist-PU；
 使用 batch_size 256 的 shuffled DataLoader；PU 阶段每个 batch 基于持久伪标签做 mixup，优化后更新当前行
 伪标签；进入 PU 阶段会重建 Adam、切换学习率/weight decay，并运行余弦调度和逐 epoch 熵系数日程。
-作者把 `CosineAnnealingLR` 的 `T_max` 设为 `pu_epochs`，但在 warm-up 和 PU 阶段均逐 mini-batch 调度，
-所以官方 scheduler 的实际计步单位是 batch，不应误读成每 epoch 一次。
+作者把两个阶段的 `CosineAnnealingLR` 都设为 `T_max=pu_epochs`，但计步 cadence 不同：warm-up 的
+`utils.train()` 在每个 epoch 的 DataLoader 循环结束后 step 一次；PU 阶段 `train_mixup()` 在每个
+mini-batch 更新后 step。源码位置与差异见[来源行为审计](../pu_survey/admission/dist_pu_source_behavior_review_20261019.md)。
 作者 `distributionLoss.py` 使用 batch 内直方图分布距离，目标为 P 直方图与单点正类 proxy 的距离，加上
 `1/(2*pi)` 加权的 U 直方图与边缘先验混合 proxy 的距离；不等同于本卡 §3 的单样本均值平方对齐 clean-room
 目标。estimator 现提供显式 `distribution_loss="author_histogram"` 选项，逐项实现作者

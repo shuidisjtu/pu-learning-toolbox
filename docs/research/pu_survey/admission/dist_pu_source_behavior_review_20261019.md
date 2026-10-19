@@ -16,7 +16,7 @@
 | 损失 | warm-up 使用基础损失；PU 阶段在原批次上计算 `base_loss`，加动态熵项，并对 mixup 输出计算熵和 soft-target Mixup BCE。 | 默认 `expectation` 为正例 BCE、均值平方对齐、熵和预测均值 Mixup；`author_histogram` 仅替换分布损失组件为 P/U histogram L1，其他训练阶段与熵/Mixup路径仍是 toolbox 当前实现。 | histogram 项已可选复用；整体仍不是作者完整算法流程。 |
 | 伪标签时序 | PU 阶段在初始化时以模型更新伪标签；每个 batch 使用当前伪标签，强制已标记 P 目标为 1，优化后再写回该批未标记行预测。 | 每个 epoch 从当前模型输出生成 mixup soft targets；没有持久的逐样本伪标签状态。 | 对训练历史的依赖和梯度输入不同。 |
 | 优化器与日程 | warm-up Adam 使用 `warm_up_lr`、`warm_up_weight_decay`；进入 PU 阶段后重建 Adam，使用另一组学习率/权重衰减，并采用余弦 scheduler。动态 `co_entropy` 按 epoch 递增。 | 一个 Adam，无 weight decay 参数/阶段切换/scheduler；熵权重固定。 | 当前 estimator 不是作者训练 schedule 的重放。 |
-| scheduler 计步 | `CosineAnnealingLR(..., T_max=pu_epochs)`；warm-up 的 `utils.train()` 与 PU 的 `train_mixup()` 都在每个 mini-batch optimizer step 后调用 `scheduler.step()`。 | 没有 scheduler。 | 作者程序的 scheduler 计数单位是 batch，不能把默认 `pu_epochs=60` 简写成 60 次 epoch 级衰减。 |
+| scheduler 计步 | 两阶段均用 `CosineAnnealingLR(..., T_max=pu_epochs)`。warm-up 的 `utils.train()` 在完整 DataLoader 循环后调用一次 `scheduler.step()`；PU 阶段 `train_mixup()` 则在每个 mini-batch optimizer step 后调用。 | 没有 scheduler。 | cadence 不同：warm-up 每 epoch 一步，PU 每 batch 一步。不能把两阶段都概括成 batch cadence，也不能将 `T_max=pu_epochs` 当成两阶段统一的 epoch 级 scheduler 语义。 |
 | 结构与数据 | 作者代码按 CIFAR-10、Fashion-MNIST、Alzheimer 构造不同网络/数据处理；仓库 README 给出其环境。 | 当前类为二维输入的小型 MLP，不含作者图像 backbone、数据增强或数据 loader。 | 不得将当前 clean-room 输出与论文图像结果宣称为复现。 |
 | 选模 | 官方 `train.py` 每 epoch 在 test loader 上计算 accuracy，并以最高 accuracy 记录 best。 | estimator 本身不读取 test/clean 标签；由实验层选模。 | 不能照抄官方 test-based 选择；项目实验仍须遵循本仓库预注册的 PA/OA 规则。 |
 
@@ -25,6 +25,10 @@
 label-distribution loss，`frac_prior=1/(2*prior)`。因此，方法卡 §3 的均值平方对齐目标是论文直觉/clean-room
 抽象，不等同于作者发布程序的 histogram loss。作者源码同时设置 `co_mu=0.002`、`co_entropy=0.004`、
 `alpha=6`、`co_mix_entropy=0.04`、`co_mixup=5`，并非工具箱类当前固定默认值。
+
+scheduler 的代码位置：[warm-up `utils.py::train()` 第 14–30 行](https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective/blob/cb74be1a87176fd38270873c06374e53905b7354/utils.py#L14-L30)
+在 batch 循环外 step；[PU `train.py::train_mixup()` 第 909–958 行](https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective/blob/cb74be1a87176fd38270873c06374e53905b7354/train.py#L909-L958)
+在 batch 循环内 step。scheduler 两次分别于 `train.py` 第 837–840 行和 896–899 行创建，均传入 `pu_epochs`。
 
 ## 结论与整改边界
 

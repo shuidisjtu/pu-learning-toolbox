@@ -150,6 +150,16 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 # every run and flagged as removable once the category is covered, so
 # the list stays honest and shrinkable.
 PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
+    "test_dist_pu_source_review.py": {
+        "determ": (
+            "checks fixed source references and ledger text; it does not run a stochastic algorithm"
+        ),
+        "edge": (
+            "source metadata has no runtime input boundary; source verifier behavior "
+            "is tested separately"
+        ),
+        "param": "static audit fixture with no callable parameter-validation surface",
+    },
     "test_p3mix_literature_anchors.py": {
         "determ": "the test reads a fixed JSON anchor file and hashes; no RNG or seed state",
         "edge": (

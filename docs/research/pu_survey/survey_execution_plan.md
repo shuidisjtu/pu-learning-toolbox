@@ -83,7 +83,7 @@ clean-room estimator 与作者锁定程序差异不只在 backbone/batch size，
 校准、冻结结果或准入。完整作者流程若适配，须另立显式 recipe 并采用本项目批准的 PA/OA 选模，
 不得复制作者用 test accuracy 选模的行为；正式数据/结构/预算仍待协议审批。
 该差异还通过拟合后的 `training_provenance_` 输出到 run manifest，显式披露 batch_size 未生效和实际优化步数。
-进一步核对 `utils.train()` 与 `train_mixup()` 确认作者 cosine scheduler 在每个 mini-batch 后 step，虽 `T_max=pu_epochs`；详细复核记录该 batch 级计步，不按 epoch 级调度重写。
+补充核对 `utils.train()` 与 `train_mixup()` 后更正 scheduler cadence：warm-up 每个 epoch 末 step 一次，PU 阶段每个 mini-batch 后 step；两者均设 `T_max=pu_epochs`。详见来源审计中的锁定 commit 行号链接。此前“两阶段都逐 batch step”的记录已更正。
 另补 Dist-PU author histogram loss 可选数学组件（默认 clean-room expectation 与旧结果行为不变），测试覆盖 `num_bins=1` polar/L1 golden 及 TS 下 P∪U 的 marginal-role 目标；组件不代表完整作者两阶段程序、正式配方或新准入。
 
 同日验收补记：P3Mix estimator、registry、候选扩展脚本、台账一致性与准入契约专项测试通过；
