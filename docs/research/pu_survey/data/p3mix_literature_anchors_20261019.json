@@ -1,5 +1,5 @@
 {
-  "schema_version": "p3mix-literature-anchors-2",
+  "schema_version": "p3mix-literature-anchors-3",
   "review_status": "pending_method_owner_review",
   "source": {
     "file": "30_who_is_your_right_mixup_partne.pdf",
@@ -33,6 +33,54 @@
     },
     "backbone": "7-layer CNN",
     "protocol_source": "§3.1, printed pp. 5-6; Table 1"
+  },
+  "project_protocol_comparison": {
+    "scope": "Read-only comparability audit against the frozen Pilot protocol and its indexed CIFAR-10 split manifests. This is not a new experiment, protocol amendment, comparison-matrix entry, or numeric verdict.",
+    "frozen_protocol": {
+      "file": "pu_toolbox/experiment/survey_protocol_v1.json",
+      "sha256": "e0263cc4410a37f4c8c29f84e248f988a7dd9878af124b13a9be78e07376a855",
+      "version": "survey-v1.2",
+      "seeds": [0, 1, 2, 3, 4],
+      "scar_c_tokens": ["0.1", "0.3", "0.5"],
+      "selection": {"PA": "pu_val_proxy_accuracy", "OA": "clean_val_accuracy"},
+      "image_backbones": {
+        "native_cnn": "ResNet-18 small-input stem, end-to-end, random initialization",
+        "feature_adapter": "random-initialized frozen ResNet-18 features"
+      },
+      "image_normalization": "train-only channel statistics",
+      "train_augmentation": "none"
+    },
+    "indexed_split_evidence": {
+      "index_file": "docs/research/pu_survey/data/split_artifacts_index.json",
+      "index_sha256": "42a9b4a0768e8380d0966a76e474aeda065971a8affce0cd9ca29f680e1de4e3",
+      "manifest_sha256_by_seed": {
+        "0": "d532d1c69340204829b5ea311382f032a4eaf487fa324a1bbdb99e34178b8230",
+        "1": "1a8168c508b7f50d821411e33c894d30a7553fc64e75a4260ff01c326095d3d8",
+        "2": "540e3f13c91d48203b074cc3e9ddba413259e9ff1966d19e05683640696d9abd",
+        "3": "2c716385abb2f91f16bd63d9a873341f7192d136972158a525ddaf57540a61c2",
+        "4": "ba3bc04fcfda8a2e2ffb3f1f168e51e3a329371a7751705556f92d155c7abc88"
+      },
+      "artifact_retained_in_repository": false,
+      "observed_per_split": {
+        "positive_class_indices": [0, 1, 8, 9],
+        "train_rows": 45000,
+        "train_true_positive_rows": 18000,
+        "pu_val_rows": 2500,
+        "clean_val_rows": 2500,
+        "test_rows": 10000
+      }
+    },
+    "expected_labeled_positive_count_by_c": {"0.1": 1800, "0.3": 5400, "0.5": 9000},
+    "assessment": {
+      "CIFAR-10-1_positive_mapping": "matches the frozen Pilot positive class definition",
+      "CIFAR-10-2_positive_mapping": "complementary to the frozen Pilot; not the same positive-label task",
+      "fixed_positive_budget": "does_not_match: paper reports 1000 labeled positives; Pilot SCAR counts vary with c",
+      "validation_and_selection": "does_not_match_or_cannot_be_aligned: paper reports 500 validation instances without sampling frame, class composition, or selection use; Pilot has separate 2500-row pu_val and clean_val roles and explicit PA/OA selection",
+      "backbone_and_preprocessing": "does_not_match: paper reports a 7-layer CNN; Pilot uses end-to-end or frozen random ResNet-18, train-only channel statistics, and no augmentation",
+      "repeats": "both report/use five runs or seeds, but paper does not bind them to the Pilot split identities",
+      "direct_numeric_comparison_eligible": false,
+      "status": "source_comparison_only_pending_method_owner_review"
+    }
   },
   "comparison_baseline_provenance": {
     "scope": "Appendix A source statements for Table 2 baselines; these identify cited public repositories or in-house implementation, not immutable revisions or the exact code used for the five reported runs.",

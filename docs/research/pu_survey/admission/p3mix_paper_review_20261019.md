@@ -32,7 +32,17 @@ Table 2 还报告八种 PU 比较方法（accuracy, mean ± standard deviation�
 
 数据与协议出处：§3.1 印刷页 5 说明沿用 CIFAR-10 默认 0–9 标签，按 (0,1,8,9) 与 (2,3,4,5,6,7) 构造两种互反任务；每个数据集随机抽取训练集中的 1,000 个正例，并报告使用 500 个 validation instances。**论文未说明这 500 个样本的抽样框、类别组成或如何用于模型/超参选择**，因此不能推断为固定比例 clean validation，也不能直接映射为本项目 PA/OA 选模口径。表 1（p. 6）指定 CIFAR-10 backbone 为 7-layer CNN。表 2 的 supervised 行是全监督参照，不是 PU 可比方法。论文在该处没有列出每次运行的数值或置信区间，所以不能从 mean±std 还原 seed 级观测。
 
-与本项目的对应关系仅是**候选外部锚点**：CIFAR-10-1 正类映射与本项目 `{0,1,8,9}` 一致，但论文 7-layer CNN 与本项目 ResNet-18 小图 stem 不同；论文的 1,000 个已标记正例、validation 构造、训练/预处理细节和本项目 split/label budget/选模口径须逐项核对后才能判断可比性。Table 2/3 的相同 E/C 数字是同一论文中的重复报告，不是两份独立实验。Table 2 的 `Supervised` 两个 CIFAR 行也记录为全监督参照（91.3 ± 0.3），但其训练样本量/标签预算未充分说明；它们不是 PU 方法、不是同预算对照，也不等同于本项目 PN oracle。上述值只补入本来源审计文档，**不新增或改写** `survey_comparison_v1.json`、冻结协议、既有 anchor、Pilot 结果或准入状态。
+与本项目的对应关系仅是**候选外部锚点**。冻结协议字节摘要为 `e0263cc4…`，CIFAR split index 摘要为 `42a9b4a0…`；可机器核对的差异清单见锚点 JSON 的 `project_protocol_comparison`。主要对照如下：
+
+| 维度 | P3Mix 论文 | 本项目冻结 Pilot | 可比性判定 |
+|---|---|---|---|
+| 正类定义 | CIFAR-10-1 `{0,1,8,9}`；CIFAR-10-2 `{2,3,4,5,6,7}` | 单一正类 `{0,1,8,9}` | 仅 CIFAR-10-1 映射相同；CIFAR-10-2 是互补的正类任务 |
+| 标记正例预算 | 固定 1,000 | SCAR `c={0.1,0.3,0.5}`；本地五个索引 split 各有 18,000 个训练正例，对应 1,800 / 5,400 / 9,000 个标记正例 | 均不相同；c 轴不能被当成固定 `n_P=1000` |
+| 训练/验证角色 | 论文称有 500 个 validation instances，但未说明抽样框、类别组成或选模用途 | 训练 45,000；独立 `pu_val` 与 `clean_val` 各 2,500；PA 使用 PU proxy accuracy，OA 使用 clean-label accuracy | 划分和选择协议不一致，论文验证用途无法映射 |
+| Backbone / 预处理 | 7-layer CNN；其 Table 2/3 运行的完整预处理/增强绑定未在本审计中确立 | 端到端 ResNet-18 或随机冻结 ResNet-18 特征；train-only 通道统计；无增强 | 模型和预处理路径不同，不作逐数对照 |
+| 重复设计 | 5 次运行，未给本 Pilot split 身份 | 五个 split seed（0–4） | 重复数相同不代表同一 split 或配对重复 |
+
+因此**不可直接做数值裁决**；本次只是把协议差异结构化，不新增或改写 `survey_comparison_v1.json`、冻结协议、既有 anchor、Pilot 结果或准入状态。Table 2/3 的相同 E/C 数字是同一论文中的重复报告，不是两份独立实验。Table 2 的 `Supervised` 两个 CIFAR 行也记录为全监督参照（91.3 ± 0.3），但其训练样本量/标签预算未充分说明；它们不是 PU 方法、不是同预算对照，也不等同于本项目 PN oracle。
 
 ## 工程接入状态
 
