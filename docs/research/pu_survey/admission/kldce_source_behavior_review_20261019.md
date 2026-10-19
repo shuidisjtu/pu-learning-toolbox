@@ -10,6 +10,8 @@
 
 2026-10-19 来源身份更正：仓库此前曾把作者页 `CEGE_PAMI20.rar` 写成 KLDCE 的 `upstream_url`，与“未找到 KLDCE 官方代码”的方法卡结论相矛盾。该压缩包实际是 CEGE 会议早期版本，属于相关线性 LDCE 家族的历史材料，不是 TPAMI 终稿 KLDCE 实现；因此 KLDCE registry/ledger 的来源状态已改为 `not_found`、`upstream_url=null`。线性 `centroid_pu` 的相关 archive 注记不变。`not_found` 只表示本次审阅未找到可确认的 KLDCE 作者实现，不证明其他位置不存在实现。
 
+2026-10-19 补查作者维护的[出版物目录](https://gcatnjust.github.io/ChenGong/publications.html)：TPAMI 2019 条目列出该论文及 paper 链接，没有 code 链接；同一目录对若干其他论文会明确列出 `[code]`。这支持“作者目录当前未提供 KLDCE 官方实现入口”的有限结论，但不能证明作者从未在其他位置发布代码，也不改变 `not_found` 的非绝对含义。目录把论文版权归属出版社，并注明页面所列代码仅供研究、商业使用需许可；该声明不是 KLDCE 软件许可证，不能据此推定存在或缺少具体代码授权。
+
 ## 当前实现行为
 
 | 项目 | 代码证据 | 核查结论 |

@@ -256,4 +256,4 @@ KLDCE 与 LDCE 共享同一论文实验协议与数据集（5 折、$`h\in\{0.2,
 4. **Gao et al. (AAAI 2016), LICS** — LDCE 质心平滑的直接来源，给出了 MoM、椭球约束与交替优化的完整线性伪代码。[AAAI 论文](https://cdn.aaai.org/ojs/10293/10293-13-13821-1-2-20201228.pdf)
 5. **Shi et al. (IJCAI 2018)** — LDCE 前身版本，可核对线性推导；它不含 KLDCE，不能替代补充材料。[IJCAI 论文](https://www.ijcai.org/proceedings/2018/0373.pdf)
 
-来源区分（2026-10-19 更正）：作者页上的 `CEGE_PAMI20.rar` 是 CEGE 会议早期版本，历史上用于说明线性 LDCE 家族的来源差异（见 [`LDCE.md`](LDCE.md)），不是 KLDCE 的官方实现。KLDCE registry/ledger 不再将该包登记为其 `upstream_url`；这只表示本次未找到 KLDCE 作者代码，不推断代码在其他位置不存在。
+来源区分（2026-10-19 更正）：作者页上的 `CEGE_PAMI20.rar` 是 CEGE 会议早期版本，历史上用于说明线性 LDCE 家族的来源差异（见 [`LDCE.md`](LDCE.md)），不是 KLDCE 的官方实现。作者维护的[出版物目录](https://gcatnjust.github.io/ChenGong/publications.html)对 TPAMI 2019 论文只列 paper、未列 code；核查细节见[来源与行为复核](../pu_survey/admission/kldce_source_behavior_review_20261019.md)。KLDCE registry/ledger 不再将该包登记为其 `upstream_url`；这只表示本次未找到可确认的 KLDCE 作者代码，不推断代码在其他位置不存在。
