@@ -142,6 +142,11 @@ ledger 已披露，契约测试锁定该差异。KLDCE/台账测试、JSON、文
 将其 source status 从 `official_exact` 调整为 `official_related`，同步代码、ledger、方法卡和契约测试；
 PUSBKernel 与 Pilot 行不变，冻结结果/矩阵/准入均不变。
 
+2026-10-19 PUSBKernel 来源/行为交叉核查：为官方锁定 RBF 路径登记中心池、风险/梯度、网格 CV、
+分位数阈值及 TS 校准的实现映射和测试范围；明确官方正则公式/梯度 2 倍矛盾的 clean-room 裁决、
+冻结预测阈值与批次分位数 API 的区别、TS 训练/OS 验证导致的跨目标选参，以及 IJCNN1/45-cell
+结果的 `paper_claim=false` 边界。契约审计链接写入台账；不改算法、Pilot 数值、矩阵或准入。
+
 2026-10-19 Self-PU 一致性范围补齐：按正式论文式 (13)/(16) 将 clean-support full-meta
 探索路径显式设为 student `D-D_trust`（P + 未信任 U）及 teacher 全 `D`（P + 全部 U）；
 估计器默认仍 `untrusted_u`，冻结 Pilot 无 meta 消融/历史轨迹不变。同步更新训练 history、

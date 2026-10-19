@@ -261,6 +261,23 @@ def test_pusb_linear_baseline_source_scope_is_registered(
 
 
 @pytest.mark.contract
+def test_pusb_kernel_source_behavior_review_is_registered(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The kernel adaptation and its paper-reproduction limits are traceable."""
+    method = ledger_methods["pusb_kernel"]
+    expected = "docs/research/pu_survey/admission/pusb_kernel_source_behavior_review_20261019.md"
+    review_path = _ROOT / expected
+    assert method["source_behavior_review_ref"] == expected
+    assert method["evidence"]["source_behavior_review"] == expected
+    assert review_path.is_file()
+    review = review_path.read_text(encoding="utf-8")
+    assert "跨目标选参" in review
+    assert "paper_claim=false" in review
+    assert "不改算法、冻结矩阵、实验产物或准入状态" in review
+
+
+@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:

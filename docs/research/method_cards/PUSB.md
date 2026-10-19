@@ -256,3 +256,5 @@ repetitions = 100
 | 主要风险 | 观察到的 P 受到 `e(x)` 加权；直接来源分类会把 selection preference 与 class posterior 混合 |
 
 `PUSBClassifier` 的模型输出是观测来源标签 `S` 的逻辑回归分数，不是论文声称的部分识别排序函数，也不是校准后的 `P(Y=1|X)`。逐项来源/行为结论见[线性基线审计](../pu_survey/admission/pusb_linear_baseline_review_20261019.md)。
+
+`PUSBKernelClassifier` 的 source lock、RBF 风险、调参、阈值及 TS 适配映射见[核路径来源/行为审计](../pu_survey/admission/pusb_kernel_source_behavior_review_20261019.md)；官方来源锁定不代表完整 Table 2 复现或 TS 方案已获方法学签署。

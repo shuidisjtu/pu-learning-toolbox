@@ -474,7 +474,8 @@
       "evidence": {
         "native_sampling_assumption": "PUSB.md:15/27-28; registry:pusb_kernel",
         "prior_semantics": "PUSB.md:16/230; registry:pusb_kernel requires_class_prior=True",
-        "adaptation_level": "PUSB.md:145/167; registry:pusb_kernel source_status=OFFICIAL_RELATED"
+        "adaptation_level": "PUSB.md:145/167; registry:pusb_kernel source_status=OFFICIAL_RELATED",
+        "source_behavior_review": "docs/research/pu_survey/admission/pusb_kernel_source_behavior_review_20261019.md"
       },
       "uncertainty": [
         "官方目标与梯度在正则项上相差系数 2，适配器采用与官方梯度一致的 0.5*λ‖b‖²（PUSB.md:167, ADR-0014 #10）",
@@ -482,7 +483,8 @@
         "CV 折内类别覆盖：官方折分配在低 c / 小样本下可能使某折缺 P 或 U，folds 校验会直接拒绝该候选（pusb_kernel.py:204-214）",
         "Table 2 审计：72 单元仅 45 个满足声明样本量，不可声称复现六数据集比较（PUSB.md:174）",
         "TS-OS 校准已接入（协议 §2.3）：ts 视图把无标签风险项的集合由 X_U 换成 X_U ∪ X_P，分母随之取 n_P + n_U；正例项、class prior、RBF 中心候选池与先验分位数阈值池都不变（中心池本就取自完整 X，故与 upu 不同、不随视图变化）。**CV 验证折固定保持 OS**，因此这是协议驱动的跨目标选参决策——用 OS 目标的验证值去选 TS 训练目标的超参数，不是论文结论，代价是选出的超参数可能偏向 OS 部署表现；被否决的替代（验证折并入该折自己的 P，同样 held-out 且更自洽）与理由见执行计划 D17。其正确性由独立 objective/gradient golden 与变异检验锁定，不靠真实跑批指标"
-      ]
+      ],
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/pusb_kernel_source_behavior_review_20261019.md"
     },
     "lbe_neural": {
       "class": "NeuralLBEClassifier",
