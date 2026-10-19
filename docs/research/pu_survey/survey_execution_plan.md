@@ -125,6 +125,11 @@ API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻�
 切换异常均加回归；不改训练目标、权重、选模、预算或冻结协议。真实 CIFAR/GPU 五 seed 仍待
 新协议与存储预算获批。
 
+2026-10-19 P3MIX 参数边界加固：estimator 与公开 batch/loss helper 统一拒绝 bool、字符串及
+非有限数值，避免 Python 将 bool 隐式当作整数或非法输入泄漏为原始类型异常；方法卡和 API
+同步声明范围，候选 fit 合约草稿中的源码摘要随实现更新。专项 estimator/math 回归、格式与
+候选 fit 合约门禁通过；不改变论文锚点、实验配方、正式准入或既有结果。
+
 2026-10-19 Self-PU 一致性范围补齐：按正式论文式 (13)/(16) 将 clean-support full-meta
 探索路径显式设为 student `D-D_trust`（P + 未信任 U）及 teacher 全 `D`（P + 全部 U）；
 估计器默认仍 `untrusted_u`，冻结 Pilot 无 meta 消融/历史轨迹不变。同步更新训练 history、

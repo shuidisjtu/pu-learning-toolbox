@@ -45,6 +45,15 @@ def p3mix_candidate_positions(positive_probabilities, *, pool_size):
     return np.argsort(-entropy, kind="stable")[: min(pool_size, len(probabilities))]
 
 
+def _is_finite_real(value):
+    """Reject bools and nonnumeric scalars before range comparisons."""
+    return (
+        not isinstance(value, bool | np.bool_)
+        and isinstance(value, Real | np.integer | np.floating)
+        and bool(np.isfinite(value))
+    )
+
+
 def p3mix_training_candidate_pool(
     features, pu_labels, predicted_probabilities, sample_indices, *, pool_size
 ):
@@ -135,9 +144,9 @@ def p3mix_heuristic_batch(
         or not np.isfinite(candidates).all()
     ):
         raise ValueError("candidate_features must be finite and match feature shape")
-    if not np.isfinite(gamma) or not 0.5 <= gamma <= 1:
+    if not _is_finite_real(gamma) or not 0.5 <= gamma <= 1:
         raise ValueError("gamma must be in [0.5,1]")
-    if not np.isfinite(alpha) or alpha <= 0:
+    if not _is_finite_real(alpha) or alpha <= 0:
         raise ValueError("alpha must be finite and positive")
     marginal = (labels == 0) & (probabilities >= 1 - gamma) & (probabilities <= gamma)
     rng = np.random.RandomState(random_state)
@@ -188,7 +197,7 @@ def p3mix_batch_loss(logits, soft_labels, original_pu_labels, *, unlabeled_weigh
         or not (observed == 0).any()
     ):
         raise ValueError("P3Mix loss requires both observed P and U")
-    if not np.isfinite(unlabeled_weight) or unlabeled_weight <= 0:
+    if not _is_finite_real(unlabeled_weight) or unlabeled_weight <= 0:
         raise ValueError("unlabeled_weight must be finite and positive")
     losses = functional.binary_cross_entropy_with_logits(
         logits, soft_labels.detach(), reduction="none"
@@ -360,18 +369,13 @@ class P3MixClassifier(BasePUClassifier):
                 raise ValueError(f"{name} must be a valid positive integer")
         for name in ("learning_rate", "beta", "mixup_alpha"):
             value = getattr(self, name)
-            if (
-                isinstance(value, bool | np.bool_)
-                or not isinstance(value, Real)
-                or not np.isfinite(value)
-                or value <= 0
-            ):
+            if not _is_finite_real(value) or value <= 0:
                 raise ValueError(f"{name} must be finite and positive")
-        if not np.isfinite(self.gamma) or not 0.5 <= self.gamma <= 1:
+        if not _is_finite_real(self.gamma) or not 0.5 <= self.gamma <= 1:
             raise ValueError("gamma must be in [0.5, 1]")
-        if not np.isfinite(self.early_learning_weight) or self.early_learning_weight < 0:
+        if not _is_finite_real(self.early_learning_weight) or self.early_learning_weight < 0:
             raise ValueError("early_learning_weight must be finite and nonnegative")
-        if not np.isfinite(self.teacher_decay) or not 0 <= self.teacher_decay < 1:
+        if not _is_finite_real(self.teacher_decay) or not 0 <= self.teacher_decay < 1:
             raise ValueError("teacher_decay must be in [0, 1)")
         if self.variant == "e" and self.early_learning_weight <= 0:
             raise ValueError("P3Mix-E requires early_learning_weight > 0")

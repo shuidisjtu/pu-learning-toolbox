@@ -250,6 +250,12 @@ def test_basic_explicit_cnn_encoder_trains_without_mutating_template():
     [
         ({"variant": "x"}, "variant"),
         ({"gamma": 0.4}, "gamma"),
+        ({"gamma": True}, "gamma"),
+        ({"gamma": "0.9"}, "gamma"),
+        ({"early_learning_weight": True}, "early_learning_weight"),
+        ({"early_learning_weight": "1.0"}, "early_learning_weight"),
+        ({"teacher_decay": False}, "teacher_decay"),
+        ({"teacher_decay": "0.9"}, "teacher_decay"),
         ({"pool_size": 0}, "pool_size"),
     ],
 )

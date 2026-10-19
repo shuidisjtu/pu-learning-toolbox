@@ -107,6 +107,16 @@ def test_invalid_inputs_fail_closed():
         p3mix_heuristic_batch([[1, 2]], [1], [0.5], [])
     with pytest.raises(ValueError, match="gamma"):
         p3mix_heuristic_batch([[1, 2]], [1], [0.5], [[1, 2]], gamma=0.4)
+    for gamma, alpha in ((True, 1.0), (0.9, True), ("0.9", 1.0), (0.9, "1.0")):
+        with pytest.raises(ValueError):
+            p3mix_heuristic_batch([[1, 2]], [1], [0.5], [[1, 2]], gamma=gamma, alpha=alpha)
+    torch = pytest.importorskip("torch")
+    logits = torch.tensor([0.0, 0.0])
+    targets = torch.tensor([1.0, 0.0])
+    observed = torch.tensor([1, 0])
+    for weight in (True, "1.0"):
+        with pytest.raises(ValueError, match="unlabeled_weight"):
+            p3mix_batch_loss(logits, targets, observed, unlabeled_weight=weight)
 
 
 @pytest.mark.math

@@ -88,6 +88,9 @@ teacher_decay=0.99, model=None, encoder=None, random_state=0, device=None)`。
 只实现论文 OS 训练视图，显式 TS 会拒绝；`class_prior` 经校验但不参与训练，外部
 `sample_weight` 不支持。默认仅接受二维特征；图像使用时须注入可训练 encoder，形状为
 NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不是论文 recipe。
+数值参数要求有限实数并拒绝 bool/字符串：`gamma∈[0.5,1]`、`teacher_decay∈[0,1)`、
+`early_learning_weight≥0`（E 变体须 `>0`），`learning_rate`、`beta`、`mixup_alpha>0`。
+`hidden_dim`、`max_epochs`、`batch_size`、`pool_size` 须为正整数，bool 不接受。
 完整来源、参数边界及文献结果见 [P3Mix 方法卡](../../research/method_cards/P3MIX.md)。
 
 ### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
