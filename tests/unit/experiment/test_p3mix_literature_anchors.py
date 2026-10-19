@@ -46,6 +46,12 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
     assert "in-house Python implementation" in provenance["methods"]["PULNS"][
         "implementation_claim"
     ]
+    assert "https://github.com/weitongseu/MixPUL" in provenance["methods"]["MIXPUL"][
+        "repository_identity_note"
+    ]
+    assert "does not establish the exact revision" in provenance["methods"]["MIXPUL"][
+        "repository_identity_note"
+    ]
     assert provenance["methods"]["Supervised"]["label_budget"].startswith(
         "not sufficiently specified"
     )

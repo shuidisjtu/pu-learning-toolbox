@@ -76,7 +76,8 @@
         "implementation_claim": "paper says public code was used",
         "repository_as_cited": "https://github.com/Stomach-ache/MixPUL",
         "appendix_reference": "footnote 10",
-        "suggested_settings": {"alpha": 1.0, "beta": 1.0, "eta": 1.0}
+        "suggested_settings": {"alpha": 1.0, "beta": 1.0, "eta": 1.0},
+        "repository_identity_note": "The cited URL currently redirects to https://github.com/weitongseu/MixPUL, whose page identifies code for Learning from Positive and Unlabeled Data: An Interpolation-based Approach; the redirect does not establish the exact revision used for the paper's results."
       },
       "PULNS": {
         "implementation_claim": "authors report an in-house Python implementation with a 3-layer MLP selector suggested by the PULNS paper",
