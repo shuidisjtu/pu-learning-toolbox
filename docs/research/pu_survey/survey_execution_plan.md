@@ -51,8 +51,8 @@
 
 | 编号 | 任务 | 主责 / 复核 | 前置 | 当前状态 | 完成条件 |
 |---|---|---|---|---|---|
-| P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 无（与 P3.2 并行） | 2026-10-19 根据用户提供的 14 页 ICLR 2022 全文完成 P3Mix/P3Mix-E/P3Mix-C 来源核对、可训练 estimator、注册、OS-only 台账与方法卡。CIFAR-10 文献读数另有[机器可读来源锚点](data/p3mix_literature_anchors_20261019.json)，绑定论文摘要与表格页码，保持待审且不改冻结矩阵。专项 estimator、registry、候选扩展、台账一致性及准入契约测试通过；P3 admission evidence/public comparison 门禁通过。recipe registry 属冻结阶段产物，当前文件不存在；`--require-present` 运行报告 deferred/skipped，不能记作已验证。验收记录见 §1.3 当日记录及[逐项原文交叉表](admission/p3mix_paper_review_20261019.md)。仍无方法负责人复核、正式配方/预算、资源验收或准入。其他新增方法来源/行为/先验/校准证据按既有链接待审。<br>**待办：** ① 方法负责人按 RV8 核对论文公式、未指定工程细节及实现；② 补齐批准协议的公开对照与资源证据；③ 其余已接入方法逐项复核 | P3MIX 工程集成经测试，适配与论文未指定项透明记录，负责人按 RV8 完成复核；新增准入另需协议/预算/资源批准，不由代码接入自动触发 |
-| P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | 无（与 P3.1 并行） | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；各方法的补记见 §1.3。<br>**待办：** 确定正式共享规格；接通获批图像/特征路径、分批训练预测、阶段预算及 checkpoint；说明增强/调度与原论文的适配差异；补执行证据 | 交付可追溯工程证据；资源验收见 P3.3-A/B |
+| P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 无（与 P3.2 并行） | 2026-10-19 根据用户提供的 14 页 ICLR 2022 全文完成 P3Mix/P3Mix-E/P3Mix-C 来源核对、可训练 estimator、注册、OS-only 台账与方法卡。CIFAR-10 文献读数另有[机器可读来源锚点](data/p3mix_literature_anchors_20261019.json)，绑定论文摘要与表格页码，保持待审且不改冻结矩阵。专项 estimator、registry、候选扩展、台账一致性及准入契约测试通过；P3 admission evidence/public comparison 门禁通过。recipe registry 属冻结阶段产物，当前文件不存在；`--require-present` 运行报告 deferred/skipped，不能记作已验证。验收记录见 §1.3 当日记录及[逐项原文交叉表](admission/p3mix_paper_review_20261019.md)。2026-10-19 已把 TS 校准作用范围审计链接纳入台账；本轮新增补核 11 个方法，VPU 保留既有单方采样审计，当前 12/12 个 `calibration_hooked=true` 方法均有审计引用。全部仍待 HENG958 逐方法确认，不代表签署。正式配方/预算、资源验收、准入和其他新增方法逐项复核也未完成。<br>**待办：** ① 方法负责人按 RV8 核对论文公式、未指定工程细节及实现；② 补齐批准协议的公开对照与资源证据；③ 其余已接入方法逐项复核 | P3MIX 工程集成经测试，适配与论文未指定项透明记录，负责人按 RV8 完成复核；新增准入另需协议/预算/资源批准，不由代码接入自动触发 |
+| P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | 无（与 P3.1 并行） | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；2026-10-19 复跑 19 个 CNN/encoder、图像协议、候选训练收据及分批预测测试文件，退出码 0；9 项 CUDA-only 测试因本机无 CUDA 跳过，不能据此声称 GPU 验收。各方法的补记见 §1.3。<br>**待办：** 确定正式共享规格；获批图像/特征路径、分批训练预测、阶段预算及 checkpoint 的跨方法统一验收；说明增强/调度与原论文的适配差异；完成执行证据与合作者复核 | 交付可追溯工程证据；资源验收见 P3.3-A/B |
 | PN-CNN | 端到端 CNN PN 全监督 oracle baseline | **HENG958** 实现/训练；shuidisjtu 登记协议并复核 | 新协议与存储预算登记 | `PilotOracleCNN` 已有代码和合成验证；旧协议 native CNN oracle 仍不可运行；真实 CIFAR 五 seed 未交付。<br>**待办：** ① shuidisjtu 完成新协议/存储预算登记；② HENG958 完成真实 CIFAR GPU smoke；③ 交付五 seed 权重、指标和 manifest | 用真实 train PN 标签端到端训练 ResNet-18 与分类头，与对应 PU 共享 split/表征/预算；仅用 clean_val accuracy 作 OA 选模；每 dataset/seed 一次、五 seed |
 | P3.3-A | 批准结构的资源 profile | **HENG958**；shuidisjtu 复核预算依据 | P3.2 的批准结构 | [扩展资源 receipt](data/candidate_extended_cnn_storage_probe_20261007.json)已完成 7 recipe×3 seed 的独立 CPU 技术测量并通过 checker；仍是合成输入、非批准结构/正式上界，GPU 未测，不能外推正式数据集。<br>**待办：** 测真实批准结构的序列化、内存/磁盘及保守配额 | 测量覆盖批准结构；PUET 按 CPU 条款处理，不计入 GPU 覆盖 |
 | P3.3-B | 正式资源与持久化验收 | **HENG958**；shuidisjtu 复核制品 | 对应候选 P4.1-B 冻结绑定；正式协议批准；frozen-lock 环境与资源可用 | 未开始（前置未满足）。<br>**待办：** 多 seed CPU/GPU 运行；OOM/重试、保存加载、selected checkpoint 对账；逐 run 环境/成本记录 | 仅验收批准范围 |
@@ -129,6 +129,12 @@ API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻�
 非有限数值，避免 Python 将 bool 隐式当作整数或非法输入泄漏为原始类型异常；方法卡和 API
 同步声明范围，候选 fit 合约草稿中的源码摘要随实现更新。专项 estimator/math 回归、格式与
 候选 fit 合约门禁通过；不改变论文锚点、实验配方、正式准入或既有结果。
+
+2026-10-19 KLDCE 来源/行为独立核查：确认生产 `fit` 调用原生广义 pair-SMO，SLSQP 仅保留为
+固定质心联合 QP oracle；发现并修正模块/类 docstring 的过期 solver 描述。源码在拼接 `[α;γ]`
+上全局选对，而非附录 Algorithm 1 按两组分别选对，且 ACS 块更新顺序不同；方法卡、来源审计和
+ledger 已披露，契约测试锁定该差异。KLDCE/台账测试、JSON、文档链接及 diff 检查通过；不改
+求解策略、冻结结果或准入，仍待 RV8 方法负责人复核。
 
 2026-10-19 Self-PU 一致性范围补齐：按正式论文式 (13)/(16) 将 clean-support full-meta
 探索路径显式设为 student `D-D_trust`（P + 未信任 U）及 teacher 全 `D`（P + 全部 U）；

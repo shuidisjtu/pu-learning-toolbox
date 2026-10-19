@@ -162,6 +162,47 @@ def test_calibration_applied_is_a_json_boolean(ledger_methods: dict[str, dict]) 
 
 
 @pytest.mark.contract
+def test_ts_calibration_methods_link_to_their_scope_reviews(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """Audited TS hooks stay linked to the applicable non-signing review."""
+    review_refs = {
+        **dict.fromkeys(
+            {"nnpu", "upu", "pusb_kernel", "dist_pu", "self_pu"},
+            "docs/research/pu_survey/reviews/rv6_ts_calibration_technical_review_20261019.md",
+        ),
+        **dict.fromkeys(
+            {"pulda", "puet", "gradpu"},
+            "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019.md",
+        ),
+        **dict.fromkeys(
+            {"robust_pu", "split_pu", "genpu"},
+            "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019b.md",
+        ),
+        "vpu": "docs/research/pu_survey/admission/vpu_sampling_audit.md",
+    }
+    display_names = {
+        "pulda": "PULDA",
+        "puet": "PUET",
+        "gradpu": "GradPU",
+        "robust_pu": "Robust-PU",
+        "split_pu": "Split-PU",
+        "genpu": "GEN-PU",
+    }
+    for name, expected in review_refs.items():
+        review_path = _ROOT / expected
+        assert review_path.is_file()
+        review = review_path.read_text(encoding="utf-8")
+        assert ledger_methods[name]["calibration_review_ref"] == expected
+        assert f"`{name}`" in review or display_names.get(name, "") in review
+        non_signing = "签署" in review and any(
+            phrase in review for phrase in ("不代表", "不代替", "不是")
+        )
+        single_party_audit = "单方技术审计" in review and "合作者复核未获得" in review
+        assert non_signing or single_party_audit
+
+
+@pytest.mark.contract
 def test_self_pu_population_scope_source_review_is_registered(
     ledger_methods: dict[str, dict],
 ) -> None:
@@ -183,6 +224,21 @@ def test_self_pu_population_scope_source_review_is_registered(
     assert "式 (13)" in review and "式 (16)" in review
     assert 'distillation_scope="untrusted_u"' in review
     assert 'distillation_scope="paper_population"' in review
+
+
+@pytest.mark.contract
+def test_kldce_source_behavior_review_is_registered(ledger_methods: dict[str, dict]) -> None:
+    """KLDCE source audit discloses its generalized pair-SMO adaptation."""
+    method = ledger_methods["kldce"]
+    expected = "docs/research/pu_survey/admission/kldce_source_behavior_review_20261019.md"
+    review_path = _ROOT / expected
+    assert method["source_behavior_review_ref"] == expected
+    assert method["evidence"]["source_behavior_review"] == expected
+    assert review_path.is_file()
+    review = review_path.read_text(encoding="utf-8")
+    assert "不是附录 Algorithm 1 中 α/γ 两组分别选择" in review
+    assert "不可称作逐行或逐组复现" in review
+    assert "不改变冻结矩阵、历史结果或准入状态" in review
 
 
 @pytest.mark.contract

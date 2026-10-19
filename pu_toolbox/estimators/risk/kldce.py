@@ -12,21 +12,18 @@ Implements the kernelized LDCE classifier (RBF kernel) from:
 The method alternates between two subproblems in an ACS (Alternating
 Convex Search) outer loop:
 
-1. **Fixed centroid μ**: solve a joint dual QP over α and γ via
-   ``scipy.optimize.minimize`` (QP oracle).
+1. **Fixed centroid μ**: solve the joint dual QP over α and γ with the
+   generalized paired-SMO solver in :mod:`kldce_smo`, based on the appendix
+   pair-update equations.
 2. **Fixed α, γ**: update the centroid μ under the ellipsoid constraint
    using the RBF Taylor expansion (Appendix Eq. 33–35).
 
-**Delivery strategy (first version):**
-- ACS outer loop + scipy QP oracle for the fixed-μ dual QP.
-- RBF kernel only (centroid update relies on Gaussian Taylor expansion).
-- Appendix-native SMO solver deferred to a follow-up PR.
-
-**Note on QP oracle vs paper Algorithm 1:**
-The paper's Algorithm 1 first updates μ, then runs SMO on α/γ.
-Here we first fix μ and solve the joint QP, then update μ — both are
-valid block-coordinate orderings within ACS, but this implementation
-is NOT a line-by-line reproduction of Algorithm 1.
+The SLSQP implementation is retained as a QP oracle for numerical
+cross-checks; it is not the production fit solver. This implementation
+updates the fixed-μ dual before the centroid, whereas paper Algorithm 1
+updates the centroid before its SMO loop. It is therefore an ACS block
+ordering adaptation, not a line-by-line reproduction. Only the RBF kernel
+is supported because the centroid update uses the Gaussian Taylor result.
 """
 
 from __future__ import annotations
@@ -816,7 +813,8 @@ class KLDCEClassifier(BasePUClassifier):
     -----
     - First version supports RBF kernel only (centroid update is
       Gaussian-Taylor-specific).
-    - The QP oracle uses scipy SLSQP, not the paper's native SMO.
+    - ``fit`` uses a generalized paired-SMO solver based on appendix update
+      equations; scipy SLSQP is retained only as a numerical QP oracle.
     - ``predict_proba`` is not implemented (raises NotImplementedError).
     """
 
