@@ -325,6 +325,8 @@ P/U 输入
 | 结果声明 | `run_manifest.json` 固定 `paper_claim=false`，当前结果不能标记为论文结果 |
 | 主要风险 | 自动先验估计的误差会传播给下游分类器；clean-room 表示与论文网络结果的比较需谨慎 |
 
+论文对类别分组 ID、数值 batch size 和 KM 子变体的逐项来源核对见[InfoMax 来源歧义审计](../pu_survey/admission/infomax_source_ambiguity_review_20261019.md)。该核查确认这些细节在全文中未被指定，不是待从作者结果反推的已知参数。
+
 参考资料：
 
 1. Sakai, Niu, Sugiyama. *Information-Theoretic Representation Learning for Positive-Unlabeled Classification*. Neural Computation 33(1), 2021.

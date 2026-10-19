@@ -304,6 +304,14 @@ class TestOfficialDataBenchmark:
         assert parameters["representation_gradient_noise"] == pytest.approx(0.01)
         assert parameters["prior_estimator"]["name"] == "kernel_mean"
         assert parameters["prior_estimator"]["parameters"]["variant"] == "km1"
+        assert config["paper_claim"] is False
+        assert config["dataset"]["positive_classes"] == [0, 1, 2, 3, 4]
+        assert config["dataset"]["partition_status"].startswith("paper states")
+        assert parameters["representation_batch_size"] == 256
+        gaps = " ".join(config["known_gaps"])
+        assert "does not identify" in gaps
+        assert "does not report batch size" in gaps
+        assert "does not identify KM1 versus KM2" in gaps
         report = environment_preflight(config, data_root=".", download=False)
         assert report["ready"]
         assert not any("backbone" in item for item in report["warnings"])
@@ -318,6 +326,16 @@ class TestOfficialDataBenchmark:
             prior_config = load_official_data_config(config_path)
             assert prior_config["dataset"]["class_prior"] == pytest.approx(prior)
             assert prior_config["dataset"]["unlabeled_class_prior"] == pytest.approx(prior)
+            assert prior_config["paper_claim"] is False
+            assert prior_config["dataset"]["positive_classes"] == [0, 1, 2, 3, 4]
+            assert prior_config["dataset"]["partition_status"].startswith("paper states")
+            prior_parameters = prior_config["methods"]["infomax_pu"]["parameters"]
+            assert prior_parameters["representation_batch_size"] == 256
+            assert prior_parameters["prior_estimator"]["parameters"]["variant"] == "km1"
+            gaps = " ".join(prior_config["known_gaps"])
+            assert "does not identify" in gaps
+            assert "does not report batch size" in gaps
+            assert "does not identify KM1 versus KM2" in gaps
 
             result_dir = results_root / f"infomax_fashion_protocol_pi{suffix}_full"
             resolved = json.loads((result_dir / "resolved_config.json").read_text("utf-8"))

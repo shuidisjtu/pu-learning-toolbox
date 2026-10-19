@@ -11,7 +11,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 - [ ] Phase 3 官方数据/历史环境全量运行（依赖外部官方数据与历史环境，非工具箱缺口）
 - [ ] Phase 6 WConPU 官方视觉 + DGPU EDM paper-like 全量（依赖 CUDA/授权数据）
-- [ ] InfoMax 未公开类别分组、batch size 与 KM 变体核对
+- [x] InfoMax 类别分组、batch size 与 KM 变体来源核对：原文仅说明 MNIST/Fashion-MNIST 各分成两组、表示学习按 4:1 mini-batch 交替更新，并采用 KM；未给类别 ID、数值 batch size 或 KM1/KM2。现配置 `[0,1,2,3,4]`、256、KM1 均保留为 provisional 工程选择，结果 `paper_claim=false`；详见[来源审计](../research/pu_survey/admission/infomax_source_ambiguity_review_20261019.md)。
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
 ## 发布状态
