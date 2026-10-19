@@ -9,10 +9,12 @@ import pytest
 
 pytest.importorskip("torch")
 
+from pu_toolbox.core.tags import Assumption, Scenario
 from pu_toolbox.estimators.research import (  # noqa: E402
     JOINT_SHIFT_METHODS,
     DynamicJointShiftPUClassifier,
     JointShiftPUBaseline,
+    JointShiftPUClassifier,
     build_joint_shift_estimator,
 )
 
@@ -33,6 +35,19 @@ def _data(seed=21):
 def _fit(model, data):
     Xs, ys, Xt, yt = data
     return model.fit(Xs, ys, X_target=Xt, y_target_pu=yt, class_prior=0.4, target_class_prior=0.6)
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        JointShiftPUClassifier(),
+        DynamicJointShiftPUClassifier(),
+        JointShiftPUBaseline(strategy="trpu"),
+    ],
+)
+def test_basic_joint_shift_metadata_separates_domain_shift_from_pu_sampling(model):
+    assert model.assumption == (Assumption.SCAR,)
+    assert model.scenario == (Scenario.SINGLE_TRAINING_SET,)
 
 
 @pytest.mark.parametrize("strategy", ["trpu", "tepu", "fine_tune", "mmd"])

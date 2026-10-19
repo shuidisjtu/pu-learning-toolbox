@@ -831,6 +831,7 @@ docs/
     distribution_shift/
       distribution_shift_metric_contract.md # 分布漂移审计、跨域评估与部署监控指标契约
       joint_shift_research_protocol.md    # JointShift 研究型算法评估协议与声明边界
+      joint_shift_metadata_review_20261019.md # issue #69：JointShift 域漂移与 PU 采样元数据裁决
     pu_survey/
       assets/
         Dataset.png                       # 8 数据集类别标签与索引（Table B.1）

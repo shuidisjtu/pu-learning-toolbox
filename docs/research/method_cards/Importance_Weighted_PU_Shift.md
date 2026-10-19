@@ -10,6 +10,11 @@
 - 复现等级：公开公式的 clean-room research 实现
 - 作者源码：论文 reproducibility checklist 标明 proprietary，未公开
 
+元数据将源域与目标域各自的 pooled P/U 输入标记为 `SINGLE_TRAINING_SET`，标记机制假设为
+`SCAR`。两域间的联合分布漂移是该方法研究的目标，不应把它编码成 `Scenario.SELECTION_BIASED`
+（后者用于 PU 标记选择偏差语义）；作者论文页也明确该方法使用训练域与测试域的 PU 数据，且不预设漂移类型。
+该标签裁决及三类 joint-shift estimator 的回归见[元数据审计记录](../distribution_shift/joint_shift_metadata_review_20261019.md)。
+
 因此本实现可以核对公开公式与训练顺序，但不能声明 `official_exact` 或论文数值复现。
 
 ## 权重目标

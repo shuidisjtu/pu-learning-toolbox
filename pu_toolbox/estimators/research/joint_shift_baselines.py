@@ -82,7 +82,7 @@ class JointShiftPUBaseline(BasePUClassifier):
 
     family = AlgorithmFamily.BIAS_AWARE
     assumption = (Assumption.SCAR,)
-    scenario = (Scenario.SELECTION_BIASED,)
+    scenario = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior = True
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.NOT_FOUND

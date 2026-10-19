@@ -16,6 +16,10 @@ scope:
 契约。当前实现用于公开公式、训练顺序、边界条件和可重复性验证；作者源码未公开，
 不得声明 `official_exact` 或论文数值复现。
 
+元数据把源域/目标域各自的 pooled P/U 采样记作 `SINGLE_TRAINING_SET`，并将域内标记假设
+记作 SCAR；源/目标之间的 `P(X,Y)` 漂移由本研究协议表达，不复用表示标记选择偏差的
+`SELECTION_BIASED` 场景标签。此项修正及回归见[元数据审计记录](joint_shift_metadata_review_20261019.md)。
+
 公开 Wisconsin benchmark 是工具箱自定义的 concept-shift smoke 协议，不是论文原始
 七个实验设置，所有产物必须保持 `paper_claim=false`。
 

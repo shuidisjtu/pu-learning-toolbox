@@ -49,7 +49,7 @@
 | [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与实施结果（含各阶段设计决策要点） |
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
 | [dev/label_semantics_plan.md](dev/label_semantics_plan.md) | 标签语义契约：`label_semantics` 能力声明、检查点与实施计划（值层不可判定性、与防泄漏守卫的分工） |
-| [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界 |
+| [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界、`joint_shift_metadata_review_20261019.md` issue #69 元数据裁决 |
 | [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：协议、执行计划、各 Phase 交付与复核记录——详见 [pu_survey/README.md](research/pu_survey/README.md) |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）关键设计机制：可注入策略接口、视图/轨迹语义、P0 已知局限 |
 | [dev/single_source_map.md](dev/single_source_map.md) | 单源地图：九个概念的权威真相源、消费者与重复判定（审计快照） |
