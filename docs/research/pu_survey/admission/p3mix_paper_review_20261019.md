@@ -17,7 +17,7 @@
 
 ## 公开数值锚点（来源记录，不并入冻结矩阵）
 
-同一组 CIFAR-10 读数已另存为可机器读取的[锚点清单](../data/p3mix_literature_anchors_20261019.json)，其中绑定本地 PDF SHA-256、表格位置、指标单位、五次运行与协议事实。清单保持 `pending_method_owner_review`，且明确不改冻结矩阵；E/C 在 Table 2 与 Table 3 的重复列出被记为同篇论文内的重复报告，不视作独立样本。
+Table 2 的 CIFAR-10 比较读数及 Table 3 的 P3Mix 消融读数已另存为可机器读取的[锚点清单](../data/p3mix_literature_anchors_20261019.json)，其中绑定本地 PDF SHA-256、表格位置、指标单位、五次运行与协议事实。清单保持 `pending_method_owner_review`，且明确不改冻结矩阵；E/C 在 Table 2 与 Table 3 的重复列出被记为同篇论文内的重复报告，不视作独立样本。
 
 原文 §3.1–3.2 称每个数据集/方法独立运行 5 次，表 2 与表 3 的指标为 classification accuracy（mean ± standard deviation）。CIFAR-10 的两种合成 PU 任务及原文值如下（百分数）：
 
@@ -28,9 +28,11 @@
 | CIFAR-10-1 | `{0,1,8,9}` | Table 2, p. 6 | — | 88.2 ± 0.4 | 88.7 ± 0.4 | 91.3 ± 0.3 |
 | CIFAR-10-2 | `{2,3,4,5,6,7}` | Table 2, p. 6 | — | 84.7 ± 0.5 | 87.9 ± 0.5 | 91.3 ± 0.3 |
 
+Table 2 还报告八种 PU 比较方法（accuracy, mean ± standard deviation；按 CIFAR-10-1 / CIFAR-10-2 顺序）：uPU `76.5 ± 2.5 / 71.6 ± 1.4`；nnPU `84.7 ± 2.4 / 83.7 ± 0.6`；nnPU+mixup `87.2 ± 0.6 / 85.8 ± 1.2`；Self-PU `85.1 ± 0.8 / 83.9 ± 2.6`；PAN `87.0 ± 0.3 / 82.8 ± 1.0`；VPU `86.8 ± 1.2 / 82.5 ± 1.1`；MIXPUL `87.0 ± 1.9 / 87.0 ± 1.1`；PULNS `87.2 ± 0.6 / 83.7 ± 2.9`。Table 2 指向 Appendix A 提供 baseline 实现细节，但本记录不声称 toolbox 复现了各比较方法的作者代码。
+
 数据与协议出处：§3.1 印刷页 5 说明沿用 CIFAR-10 默认 0–9 标签，按 (0,1,8,9) 与 (2,3,4,5,6,7) 构造两种互反任务；每个数据集随机抽取训练集中的 1,000 个正例，并报告使用 500 个 validation instances。**论文未说明这 500 个样本的抽样框、类别组成或如何用于模型/超参选择**，因此不能推断为固定比例 clean validation，也不能直接映射为本项目 PA/OA 选模口径。表 1（p. 6）指定 CIFAR-10 backbone 为 7-layer CNN。表 2 的 supervised 行是全监督参照，不是 PU 可比方法。论文在该处没有列出每次运行的数值或置信区间，所以不能从 mean±std 还原 seed 级观测。
 
-与本项目的对应关系仅是**候选外部锚点**：CIFAR-10-1 正类映射与本项目 `{0,1,8,9}` 一致，但论文 7-layer CNN 与本项目 ResNet-18 小图 stem 不同；论文的 1,000 个已标记正例、validation 构造、训练/预处理细节和本项目 split/label budget/选模口径须逐项核对后才能判断可比性。Table 2/3 的相同 E/C 数字是同一论文中的重复报告，不是两份独立实验。上述值只补入本来源审计文档，**不新增或改写** `survey_comparison_v1.json`、冻结协议、既有 anchor、Pilot 结果或准入状态。
+与本项目的对应关系仅是**候选外部锚点**：CIFAR-10-1 正类映射与本项目 `{0,1,8,9}` 一致，但论文 7-layer CNN 与本项目 ResNet-18 小图 stem 不同；论文的 1,000 个已标记正例、validation 构造、训练/预处理细节和本项目 split/label budget/选模口径须逐项核对后才能判断可比性。Table 2/3 的相同 E/C 数字是同一论文中的重复报告，不是两份独立实验。Table 2 的 `Supervised` 两个 CIFAR 行也记录为全监督参照（91.3 ± 0.3），但其训练样本量/标签预算未充分说明；它们不是 PU 方法、不是同预算对照，也不等同于本项目 PN oracle。上述值只补入本来源审计文档，**不新增或改写** `survey_comparison_v1.json`、冻结协议、既有 anchor、Pilot 结果或准入状态。
 
 ## 工程接入状态
 

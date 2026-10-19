@@ -41,7 +41,7 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
         "spread": "standard_deviation",
         "repeats": 5,
     }
-    assert len(record["anchors"]) == 6
+    assert len(record["anchors"]) == 24
 
     by_key = {(row["task"], row["variant"]): row for row in record["anchors"]}
     expected = {
@@ -51,8 +51,41 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
         ("CIFAR-10-2", "P3Mix-E"): (84.7, 0.5),
         ("CIFAR-10-1", "P3Mix-C"): (88.7, 0.4),
         ("CIFAR-10-2", "P3Mix-C"): (87.9, 0.5),
+        ("CIFAR-10-1", "uPU"): (76.5, 2.5),
+        ("CIFAR-10-2", "uPU"): (71.6, 1.4),
+        ("CIFAR-10-1", "nnPU"): (84.7, 2.4),
+        ("CIFAR-10-2", "nnPU"): (83.7, 0.6),
+        ("CIFAR-10-1", "nnPU+mixup"): (87.2, 0.6),
+        ("CIFAR-10-2", "nnPU+mixup"): (85.8, 1.2),
+        ("CIFAR-10-1", "Self-PU"): (85.1, 0.8),
+        ("CIFAR-10-2", "Self-PU"): (83.9, 2.6),
+        ("CIFAR-10-1", "PAN"): (87.0, 0.3),
+        ("CIFAR-10-2", "PAN"): (82.8, 1.0),
+        ("CIFAR-10-1", "VPU"): (86.8, 1.2),
+        ("CIFAR-10-2", "VPU"): (82.5, 1.1),
+        ("CIFAR-10-1", "MIXPUL"): (87.0, 1.9),
+        ("CIFAR-10-2", "MIXPUL"): (87.0, 1.1),
+        ("CIFAR-10-1", "PULNS"): (87.2, 0.6),
+        ("CIFAR-10-2", "PULNS"): (83.7, 2.9),
+        ("CIFAR-10-1", "Supervised"): (91.3, 0.3),
+        ("CIFAR-10-2", "Supervised"): (91.3, 0.3),
     }
     assert {key: (row["mean"], row["spread"]) for key, row in by_key.items()} == expected
     for variant in ("P3Mix-E", "P3Mix-C"):
         for task in ("CIFAR-10-1", "CIFAR-10-2"):
             assert len(by_key[(task, variant)]["locations"]) == 2
+
+    for variant in ("uPU", "nnPU", "nnPU+mixup", "Self-PU", "PAN", "VPU", "MIXPUL", "PULNS"):
+        for task in ("CIFAR-10-1", "CIFAR-10-2"):
+            anchor = by_key[(task, variant)]
+            assert anchor["method_type"] == "pu_method_comparison"
+            assert len(anchor["locations"]) == 1
+            assert anchor["locations"][0]["table"] == 2
+
+    for task in ("CIFAR-10-1", "CIFAR-10-2"):
+        supervised = by_key[(task, "Supervised")]
+        assert (supervised["mean"], supervised["spread"]) == (91.3, 0.3)
+        assert supervised["method_type"] == "fully_supervised_reference"
+        assert len(supervised["locations"]) == 1
+        assert supervised["locations"][0]["table"] == 2
+        assert "label budget" in supervised["protocol_note"]

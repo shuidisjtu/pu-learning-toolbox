@@ -88,12 +88,160 @@
         {"table": 2, "pdf_page_1_based": 6, "printed_page": 6},
         {"table": 3, "pdf_page_1_based": 7, "printed_page": 7}
       ]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "uPU",
+      "method_type": "pu_method_comparison",
+      "mean": 76.5,
+      "spread": 2.5,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "uPU",
+      "method_type": "pu_method_comparison",
+      "mean": 71.6,
+      "spread": 1.4,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "nnPU",
+      "method_type": "pu_method_comparison",
+      "mean": 84.7,
+      "spread": 2.4,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "nnPU",
+      "method_type": "pu_method_comparison",
+      "mean": 83.7,
+      "spread": 0.6,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "nnPU+mixup",
+      "method_type": "pu_method_comparison",
+      "mean": 87.2,
+      "spread": 0.6,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "nnPU+mixup",
+      "method_type": "pu_method_comparison",
+      "mean": 85.8,
+      "spread": 1.2,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "Self-PU",
+      "method_type": "pu_method_comparison",
+      "mean": 85.1,
+      "spread": 0.8,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "Self-PU",
+      "method_type": "pu_method_comparison",
+      "mean": 83.9,
+      "spread": 2.6,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "PAN",
+      "method_type": "pu_method_comparison",
+      "mean": 87.0,
+      "spread": 0.3,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "PAN",
+      "method_type": "pu_method_comparison",
+      "mean": 82.8,
+      "spread": 1.0,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "VPU",
+      "method_type": "pu_method_comparison",
+      "mean": 86.8,
+      "spread": 1.2,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "VPU",
+      "method_type": "pu_method_comparison",
+      "mean": 82.5,
+      "spread": 1.1,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "MIXPUL",
+      "method_type": "pu_method_comparison",
+      "mean": 87.0,
+      "spread": 1.9,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "MIXPUL",
+      "method_type": "pu_method_comparison",
+      "mean": 87.0,
+      "spread": 1.1,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "PULNS",
+      "method_type": "pu_method_comparison",
+      "mean": 87.2,
+      "spread": 0.6,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "PULNS",
+      "method_type": "pu_method_comparison",
+      "mean": 83.7,
+      "spread": 2.9,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "Supervised",
+      "method_type": "fully_supervised_reference",
+      "mean": 91.3,
+      "spread": 0.3,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}],
+      "protocol_note": "The paper labels this row Supervised but does not sufficiently specify its training sample count or label budget for a matched-budget comparison."
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "Supervised",
+      "method_type": "fully_supervised_reference",
+      "mean": 91.3,
+      "spread": 0.3,
+      "locations": [{"table": 2, "pdf_page_1_based": 6, "printed_page": 6}],
+      "protocol_note": "The paper labels this row Supervised but does not sufficiently specify its training sample count or label budget for a matched-budget comparison."
     }
   ],
   "caveats": [
     "Repeated E/C values in Tables 2 and 3 are duplicate reports in the same paper, not independent experiments.",
     "Section 3.1 reports 500 validation instances but does not specify their sampling frame, class composition, or how they are used for model/parameter selection; do not infer these from the reported accuracy tables.",
     "These anchors do not establish comparability with the toolbox ResNet-18 pilot: backbone, split construction, selection rule, and full training recipe differ or remain unresolved.",
+    "Table 2 baseline rows are source-reported comparisons; Appendix A is referenced for implementation details, but the table alone does not establish exact source-code reproduction by this project.",
+    "The two Supervised rows are non-PU full-supervision references. Their label/sample budget is not sufficiently documented for matched-budget comparison; do not treat them as PU-method anchors or as the project PN oracle result.",
     "The paper reports five independent runs but does not provide per-run observations, so seed-level values cannot be reconstructed from mean and standard deviation."
   ],
   "references": {

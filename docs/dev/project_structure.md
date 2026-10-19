@@ -821,7 +821,7 @@ docs/
       CVIR.md                             # CVIR 固定未标记正类先验的经典适配器（技术预集成）
       GEN-PU.md                           # Gen-PU 三判别器/双生成器来源、视图和适配边界
       Holistic-PU.md                      # Holistic-PU 趋势分组与伪 PN 适配边界
-      P3MIX.md                            # P3MIX 来源限制与未注册批组件
+      P3MIX.md                            # P3MIX 原文映射、完整 estimator 与准入边界
       PAN.md                              # PAN 双网络风险与 CNN 接入边界
       PULNS.md                            # PULNS 选择器与独立 clean support 标签预算
       RP.md                               # RankPruning PU-only rho0=0 来源与 OOF 校准
