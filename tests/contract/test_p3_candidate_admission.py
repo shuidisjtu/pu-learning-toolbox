@@ -77,6 +77,12 @@ def test_p3_special_label_and_view_restrictions_remain_explicit():
     assert source_check["checked_date"] == "2026-10-19"
     assert source_check["confirmed_author_repository"] is None
     assert source_check["official_page_downloads_observed"] == ["PDF"]
+    published_pdf = source_check["published_pdf"]
+    assert published_pdf["page_count"] == 8
+    assert published_pdf["appendix_sections_referenced_in_main_text"] == [2, 3]
+    assert published_pdf["appendix_pages_in_published_pdf"] is False
+    assert source_check["official_supplementary_download_observed"] is False
+    assert "must not be inferred" in source_check["supplementary_check_interpretation"]
     assert "does not prove" in source_check["interpretation"]
     ledger_path = ROOT / "pu_toolbox/experiment/method_ledger.json"
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))

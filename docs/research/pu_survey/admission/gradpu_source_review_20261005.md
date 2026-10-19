@@ -14,8 +14,12 @@ AAAI [原文 PDF](https://ojs.aaai.org/index.php/AAAI/article/download/25889/256
 - 正类为 MNIST 奇数、FashionMNIST 偶数索引、CIFAR 交通工具。
 - 同页目标实现说明使用 tanh 前的输入梯度，beta 线性增长。
 
-上述为人工来源读数，不由测试自动证明。未添加任何数值锚点；附录预处理、网格和
-验证标签使用细节仍待补充材料核查。
+上述为人工来源读数，不由测试自动证明。未添加任何数值锚点。官方发表页的下载列表
+仅列主论文 PDF；该 PDF 共 8 页，正文虽引用 Appendix Sections 2/3，但没有附录页或
+独立补充文件链接。因此附录预处理、其余 protocol、完整网格和 validation 标签使用
+细节仍未核实，不能从正文的“500 validation instances”或“using a validation set”外推。
+机器记录新增该官方附件检查及其有限解释；它证明的是当前官方发表页未提供补件，
+不证明作者从未在其他位置发布。
 
 ## 接入影响
 

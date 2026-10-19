@@ -8,6 +8,14 @@
     "checked_date": "2026-10-19",
     "official_publication_page": "https://ojs.aaai.org/index.php/AAAI/article/view/25889",
     "official_page_downloads_observed": ["PDF"],
+    "published_pdf": {
+      "url": "https://ojs.aaai.org/index.php/AAAI/article/download/25889/25661",
+      "page_count": 8,
+      "appendix_sections_referenced_in_main_text": [2, 3],
+      "appendix_pages_in_published_pdf": false
+    },
+    "official_supplementary_download_observed": false,
+    "supplementary_check_interpretation": "The official article page lists only the eight-page main PDF. The paper refers to Appendix Sections 2 and 3, but no supplementary download is exposed there; their details remain unverified and must not be inferred from the main text.",
     "confirmed_author_repository": null,
     "search_scope": [
       "exact paper title with GitHub/repository terms",
