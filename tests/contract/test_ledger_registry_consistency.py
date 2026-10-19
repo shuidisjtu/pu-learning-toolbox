@@ -337,6 +337,26 @@ def test_lbe_source_review_ref_binds_official_archive_identity_and_behavior(
 
 
 @pytest.mark.contract
+def test_self_pu_official_source_pin_gap_is_explicit(ledger_methods: dict[str, dict]) -> None:
+    """An official repository attribution must not imply a pinned source snapshot."""
+    method = ledger_methods["self_pu"]
+    lock_path = _ROOT / "benchmarks/assigned_methods/configs/official_sources.lock.json"
+    source_lock = json.loads(lock_path.read_text(encoding="utf-8"))["sources"]["self_pu"]
+    assert source_lock["status"] == "partial"
+    assert source_lock["commit"] is None
+    assert method["code_version"]["upstream_commit"] is None
+    assert "immutable commit 未锁定" in method["code_version"]["source_status"]
+    assert "official_exact" == method["code_version"]["source_status"].split("（", 1)[0]
+    assert "官方仓库当前可见分支为 master" in "\n".join(method["uncertainty"])
+    review_path = _ROOT / "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md"
+    assert method["source_version_review_ref"] == review_path.relative_to(_ROOT).as_posix()
+    assert method["evidence"]["source_version_review"] == review_path.relative_to(_ROOT).as_posix()
+    review = review_path.read_text(encoding="utf-8")
+    assert "status=partial" in review
+    assert "臆造 commit、日期" in review
+
+
+@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:
