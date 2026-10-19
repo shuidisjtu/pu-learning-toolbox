@@ -140,7 +140,6 @@ UNLIMITED_FILES: dict[str, str] = {
 # cover all 4 categories (basic / param / edge / determ).
 CONTRACT_COVERED_FILES: dict[str, str] = {
     "test_bias_aware.py": "algorithm covered by contract tests",
-    "test_dist_pu.py": "algorithm covered by contract tests",
     "test_import.py": "smoke imports",
     "test_kldce_property.py": "algorithm covered by contract tests",
 }

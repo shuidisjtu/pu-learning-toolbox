@@ -187,7 +187,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         supports_gpu=True,
         upstream_url="https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
         license="MIT",
-        training_cost=Cost.MEDIUM,  # torch, 100 epochs
+        training_cost=Cost.MEDIUM,  # torch; optional two-stage 120-epoch mini-batch adapter
     ),
     # ── 9a. Variational PU (experimental tabular adapter) ───────────
     AlgorithmMetadata(

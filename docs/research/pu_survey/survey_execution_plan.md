@@ -78,13 +78,14 @@ NATIVE 与 OS 训练，不启用 TS、不改冻结矩阵/候选准入/历史结�
 2026-10-19 对冻结来源中的 Dist-PU 作者仓库补做训练行为交叉核对：toolbox 当前全量张量
 clean-room estimator 与作者锁定程序差异不只在 backbone/batch size，还包括两阶段 warm-up/PU、
 持久批次伪标签、histogram distribution loss、分阶段 Adam/余弦日程及熵系数调度。来源状态
-`official_exact` 仅表示作者来源已锁定，不表示实现行为忠实；已同步方法卡与台账，详细审计见
-[Dist-PU 来源行为复核](admission/dist_pu_source_behavior_review_20261019.md)。本轮不改变算法默认值、
-校准、冻结结果或准入。完整作者流程若适配，须另立显式 recipe 并采用本项目批准的 PA/OA 选模，
-不得复制作者用 test accuracy 选模的行为；正式数据/结构/预算仍待协议审批。
+`official_exact` 仅表示作者来源已锁定，不表示实现行为忠实；详细审计见
+[Dist-PU 来源行为复核](admission/dist_pu_source_behavior_review_20261019.md)。随后新增显式 `author_staged`
+适配路径（见下方补记）；默认 clean-room 训练目标/参数更新不变，但公开 `batch_size` 默认值从 128 调为 256，
+仅 staged 路径使用该值，clean-room 仍忽略它。两种路径均不改校准原则、冻结结果或历史 Pilot，也不照搬作者
+test accuracy 选模；正式数据/结构/预算仍待协议审批。
 该差异还通过拟合后的 `training_provenance_` 输出到 run manifest，显式披露 batch_size 未生效和实际优化步数。
 补充核对 `utils.train()` 与 `train_mixup()` 后更正 scheduler cadence：warm-up 每个 epoch 末 step 一次，PU 阶段每个 mini-batch 后 step；两者均设 `T_max=pu_epochs`。详见来源审计中的锁定 commit 行号链接。此前“两阶段都逐 batch step”的记录已更正。
-另补 Dist-PU author histogram loss 可选数学组件（默认 clean-room expectation 与旧结果行为不变），测试覆盖 `num_bins=1` polar/L1 golden 及 TS 下 P∪U 的 marginal-role 目标；组件不代表完整作者两阶段程序、正式配方或新准入。
+另补 Dist-PU `author_histogram` 目标组件及显式 `training_recipe="author_staged"` 适配：覆盖来源两阶段 mini-batch、持久伪标签、分阶段 Adam、warm-up epoch/PU batch scheduler cadence、动态熵与双目标 Mixup；TS 角色映射仍遵循项目校准规则。默认 clean-room 路径与历史结果保持不变；专项测试覆盖 histogram golden、两阶段步数/epoch checkpoint 身份、校准映射和失败重训失效。适配采用 CPU 常驻输入与 batch transfer，仍使用 toolbox MLP/调用方 prior；不移植作者数据/图像模型/预处理/split，不照搬 test accuracy 选模，也不构成正式 recipe、数值复现或新准入。其余数据、结构、PA/OA 选择、预算和资源仍须协议审批。
 
 同日验收补记：P3Mix estimator、registry、候选扩展脚本、台账一致性与准入契约专项测试通过；
 `check_p3_admission_evidence.py` 与 `check_p3_public_comparison.py` 通过。

@@ -356,13 +356,13 @@
         "source_status": "official_exact (locked commit cb74be1a87176fd38270873c06374e53905b7354; identifies upstream source only, not toolbox training fidelity)"
       },
       "source_behavior_review_ref": "docs/research/pu_survey/admission/dist_pu_source_behavior_review_20261019.md",
-      "implementation_status": "NATIVE; clean-room 单阶段小型 MLP；支持 expectation 默认目标和 author_histogram 可选作者分布损失组件，后者非完整作者两阶段流程（PyTorch optional dependency）",
+      "implementation_status": "NATIVE; 默认 clean-room 单阶段全量小型 MLP；另有 author_staged + author_histogram 显式 opt-in 的两阶段 mini-batch/persistent-pseudo-label 适配（PyTorch optional dependency）；不复现作者数据、backbone、预处理或 test-based 选模",
       "native_sampling_assumption": "ts（case_control; X_P~p_P(x), X_U~p(x)=πp_P+(1-π)p_N; Dist-PU.md:14/24-30, registry:dist_pu）",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "calibration_hooked": true,
       "prior_semantics": "population π（R_lab 以「角色集合均值 = π」对齐；该 identity 的角色集**随视图变化**——os 下是 X_U，ts 下是 X_U ∪ X_P，目标始终是总体 π、不因观测 P/U 比例重估；Dist-PU.md:15/57/96, registry:dist_pu）",
-      "adaptation_level": "benchmark-adapted（clean-room 重写；仅 author_histogram 组件按锁定 distributionLoss.py 对齐；作者两阶段/批训练/伪标签/调度/backbone/增强/data split/完整超参搜索未整体重放，Dist-PU.md:231-232）",
+      "adaptation_level": "benchmark-adapted（默认 clean-room 重写；opt-in author_staged 依据锁定 train.py/utils.py/dataTools/mixupDataset.py/losses 适配两阶段损失、持久伪标签和 scheduler cadence；仍使用 toolbox MLP/调用方 prior，不复现作者数据集模型/增强/splits或 test-based 选模，非作者程序重放，Dist-PU.md:231-245）",
       "modality_backbone": {
         "modalities": ["tabular"],
         "backbone": "小型 MLP（原生）",
@@ -376,12 +376,18 @@
       "evidence": {
         "native_sampling_assumption": "Dist-PU.md:14/24-30; registry:dist_pu",
         "prior_semantics": "Dist-PU.md:15/57/96; registry:dist_pu",
-        "adaptation_level": "Dist-PU.md:229-232; optional author histogram component and its non-replay boundary: dist_pu_source_behavior_review_20261019.md"
+        "adaptation_level": "Dist-PU.md:228-265; author histogram/staged adapter and its non-replay boundary: dist_pu_source_behavior_review_20261019.md"
+      },
+      "checkpoint_accounting": {
+        "epoch_bound": "warmup_epochs + pu_epochs for author_staged; epochs for clean_room",
+        "bound_is_upper_limit": true,
+        "optimizer_steps_attribute": "optimizer_steps_",
+        "formal_budget_approved": false
       },
       "uncertainty": [
-        "默认 expectation 目标为 clean-room；author_histogram 选项只实现锁定 distributionLoss.py 的 num_bins=1 polar L1 目标组件，不改变既有单阶段/全量训练。作者完整程序仍有 warm-up+PU 两阶段、batch_size=256、持久批次伪标签/更新、分阶段 Adam 与 cosine/熵系数日程；warm-up scheduler 在每 epoch 末 step，PU scheduler 在每批后 step，T_max 均为 pu_epochs。本类 batch_size 未生效，不宣称作者训练流程重放；当前熵/Mixup不等于完整 alpha/gamma/nu 配方，详见 dist_pu_source_behavior_review_20261019.md",
+        "默认 expectation/单阶段全量 clean-room 路径保持旧训练目标与更新轨迹；其中 batch_size 未生效，author_histogram 在 clean-room 下仅换 histogram loss 组件。新增 author_staged 必须与 author_histogram 同用，适配 warm-up+PU 两阶段、batch_size=256、持久批次伪标签/更新、分阶段 Adam/weight decay、warm-up scheduler 每 epoch 末 step，PU scheduler 每 batch 后 step、熵/mixup 系数。仍非完整作者程序重放：只用 toolbox MLP/调用方 prior，不含官方 dataset-specific backbone/preprocessing/data split/augmentation，且不照搬 test accuracy 选模。详见 dist_pu_source_behavior_review_20261019.md",
         "不应直接与论文图像 backbone 结果比较（Dist-PU.md:185）；pilot 图像模态须走 cnn_feature_adapter 并强制分组",
-        "TS-OS 校准已接入（协议 §2.3）：ts 视图把 alignment 与 entropy 的**角色集合**由 X_U 换成 X_U ∪ X_P（分母随之取 n_P + n_U）；正例项、class prior、Mixup 物理池（本已消费完整 X）、RNG 调用序列、epoch 与 checkpoint 契约一概不变。alignment 的目标仍是总体 π，不因观测 P/U 比例重估；该口径的量化依据是**本次 Spambase split_0 制品观测**（不是 Dist-PU 的一般性质，换 seed/数据集/c 数值会不同），见执行计划 D18。其正确性由独立数学 golden、结构测试与五处变异注入锁定，不靠真实跑批指标"
+        "TS-OS 校准已接入（协议 §2.3）：`clean_room` 的 ts 视图把 alignment 与 entropy 角色集合由 X_U 换成 X_U∪X_P；`author_staged` 按同一项目规则将当前 batch 的 marginal histogram/entropy roles 扩为 P∪U，正例 histogram term 仍只用 observed P，alignment target 仍是总体 π。两路径均不复制物理训练行；clean_room Mixup 仍用完整 X，author_staged Mixup 仍限当前 batch，TS 不改变各自的 Mixup pool/RNG 调用形状。优化目标的适配依据与协议选择详见来源复核和执行计划 D18/D20，不将 histogram 源程序等同于原生 TS。该口径的量化依据是本次 Spambase split_0 制品观测（不是 Dist-PU 的一般性质，换 seed/数据集/c 数值会不同）。数学 golden、结构回归和校准路由测试不依赖真实跑批指标"
       ]
     },
     "pusb": {

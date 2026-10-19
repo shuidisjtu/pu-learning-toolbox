@@ -16,6 +16,7 @@ import numpy as np
 
 from ...core.base import BasePUClassifier
 from ...core.device import resolve_device
+from ...core.fit_state import invalidate_failed_fit
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
@@ -114,6 +115,51 @@ def _histogram_distribution_loss(
     return p_loss, u_loss
 
 
+def _author_histogram_batch_loss(
+    logits: Any,
+    labels: Any,
+    class_prior: float,
+    *,
+    include_positive_in_unlabeled: bool = False,
+    clamp_logits: bool = True,
+) -> Any:
+    """Apply the locked author's P/U histogram objective to one minibatch.
+
+    The upstream loss returns a zero contribution for an absent P or U role;
+    this matters for shuffled mini-batches even though the full training set
+    must contain both roles.
+    """
+    import torch
+    from torch.nn import functional
+
+    logits = logits.reshape(-1)
+    scores = (
+        torch.sigmoid(torch.clamp(logits, min=-10.0, max=10.0))
+        if clamp_logits
+        else torch.sigmoid(logits)
+    )
+    labels = labels.reshape(-1)
+    positive_scores = scores[labels == 1]
+    unlabeled_scores = scores if include_positive_in_unlabeled else scores[labels == 0]
+    loss = scores.new_zeros(())
+    if positive_scores.numel():
+        histogram = _polar_histogram(positive_scores)
+        proxy = scores.new_tensor([0.0, 1.0])
+        loss = loss + functional.l1_loss(histogram, proxy, reduction="mean")
+    if unlabeled_scores.numel():
+        histogram = _polar_histogram(unlabeled_scores)
+        proxy = scores.new_tensor([1.0 - class_prior, class_prior])
+        loss = loss + functional.l1_loss(histogram, proxy, reduction="mean") / (2.0 * class_prior)
+    return loss
+
+
+def _entropy_minimization(scores: Any) -> Any:
+    """Match the author entropy objective on finite, nonempty probabilities."""
+    if scores.numel() == 0:
+        return scores.new_zeros(())
+    return -(scores * scores.log() + (1.0 - scores) * (1.0 - scores).log()).mean()
+
+
 class DistPUClassifier(BasePUClassifier):
     """Train a small MLP with clean-room or author-code histogram alignment."""
 
@@ -138,12 +184,24 @@ class DistPUClassifier(BasePUClassifier):
         *,
         hidden_dim: int = 64,
         epochs: int = 100,
-        batch_size: int = 128,
+        batch_size: int = 256,
         learning_rate: float = 1e-3,
         alignment_weight: float = 1.0,
         entropy_weight: float = 0.05,
         mixup_weight: float = 0.1,
         distribution_loss: str = "expectation",
+        training_recipe: str = "clean_room",
+        warmup_epochs: int = 60,
+        pu_epochs: int = 60,
+        warmup_learning_rate: float = 5e-4,
+        warmup_weight_decay: float = 5e-3,
+        pu_learning_rate: float = 5e-5,
+        pu_weight_decay: float = 1e-3,
+        warmup_entropy_weight: float = 2e-3,
+        pu_entropy_weight: float = 4e-3,
+        mixup_alpha: float = 6.0,
+        mixup_entropy_weight: float = 4e-2,
+        mixup_bce_weight: float = 5.0,
         random_state: int | None = 0,
         device: str | None = None,
     ) -> None:
@@ -157,9 +215,22 @@ class DistPUClassifier(BasePUClassifier):
         self.entropy_weight = entropy_weight
         self.mixup_weight = mixup_weight
         self.distribution_loss = distribution_loss
+        self.training_recipe = training_recipe
+        self.warmup_epochs = warmup_epochs
+        self.pu_epochs = pu_epochs
+        self.warmup_learning_rate = warmup_learning_rate
+        self.warmup_weight_decay = warmup_weight_decay
+        self.pu_learning_rate = pu_learning_rate
+        self.pu_weight_decay = pu_weight_decay
+        self.warmup_entropy_weight = warmup_entropy_weight
+        self.pu_entropy_weight = pu_entropy_weight
+        self.mixup_alpha = mixup_alpha
+        self.mixup_entropy_weight = mixup_entropy_weight
+        self.mixup_bce_weight = mixup_bce_weight
         self.random_state = random_state
         self.device = device
 
+    @invalidate_failed_fit
     def fit(
         self,
         X,
@@ -221,17 +292,66 @@ class DistPUClassifier(BasePUClassifier):
             raise ValueError("epochs must be >= 1 and hidden_dim must be >= 1")
         if self.distribution_loss not in {"expectation", "author_histogram"}:
             raise ValueError("distribution_loss must be 'expectation' or 'author_histogram'")
+        if self.training_recipe not in {"clean_room", "author_staged"}:
+            raise ValueError("training_recipe must be 'clean_room' or 'author_staged'")
+        if self.training_recipe == "author_staged":
+            if self.distribution_loss != "author_histogram":
+                raise ValueError(
+                    "training_recipe='author_staged' requires distribution_loss='author_histogram'"
+                )
+            if type(self.batch_size) is not int or self.batch_size < 1:
+                raise ValueError("batch_size must be a positive integer")
+            for name in ("warmup_epochs", "pu_epochs"):
+                value = getattr(self, name)
+                if type(value) is not int or value < 1:
+                    raise ValueError(f"{name} must be a positive integer")
+            for name in (
+                "warmup_learning_rate",
+                "warmup_weight_decay",
+                "pu_learning_rate",
+                "pu_weight_decay",
+                "warmup_entropy_weight",
+                "pu_entropy_weight",
+                "mixup_alpha",
+                "mixup_entropy_weight",
+                "mixup_bce_weight",
+            ):
+                value = getattr(self, name)
+                if (
+                    isinstance(value, bool | np.bool_)
+                    or not isinstance(value, int | float | np.integer | np.floating)
+                    or not np.isfinite(value)
+                    or value < 0
+                ):
+                    raise ValueError(f"{name} must be finite and nonnegative")
+            if self.warmup_learning_rate <= 0 or self.pu_learning_rate <= 0:
+                raise ValueError("staged training learning rates must be positive")
+            if self.mixup_alpha <= 0:
+                raise ValueError("mixup_alpha must be positive")
         X = np.asarray(X, dtype=np.float32)
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
         device = resolve_device(self.device)
+        self.device_ = device
         self.model_ = nn.Sequential(
             nn.Linear(X.shape[1], self.hidden_dim), nn.ReLU(), nn.Linear(self.hidden_dim, 1)
         ).to(device)
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
-        tx = torch.as_tensor(X, device=device)
-        ty = torch.as_tensor(y_pu, device=device)
+        data_device = "cpu" if self.training_recipe == "author_staged" else device
+        tx = torch.as_tensor(X, device=data_device)
+        ty = torch.as_tensor(y_pu, device=data_device)
         p_mask, u_mask = ty == 1, ty == 0
+        if self.training_recipe == "author_staged":
+            return self._fit_author_staged(
+                tx,
+                ty,
+                p_mask,
+                u_mask,
+                pi,
+                os_or_ts,
+                epoch_callback,
+                torch,
+            )
         # ── TS-OS calibration (protocol §2.3) ─────────────────────────────
         # The unlabeled role is carried by the unlabeled rows under the OS view
         # and by the whole training matrix under the calibrated (ts) view: the
@@ -304,6 +424,240 @@ class DistPUClassifier(BasePUClassifier):
         self.training_provenance_["epochs_completed"] = self.epochs_completed_
         self.device_ = device
         return self
+
+    @property
+    def checkpoint_stages(self):
+        if self.training_recipe == "author_staged":
+            return ("warmup", "dist_pu")
+        return None
+
+    @property
+    def checkpoint_epoch_count(self):
+        if self.training_recipe == "author_staged":
+            return self.warmup_epochs + self.pu_epochs
+        return self.epochs
+
+    @property
+    def checkpoint_prediction_batch_size(self):
+        return self.batch_size
+
+    def _fit_author_staged(self, tx, ty, p_mask, u_mask, pi, os_or_ts, epoch_callback, torch):
+        """Run the locked two-stage author recipe on this estimator's MLP.
+
+        This mirrors the author's optimizer/loss/pseudo-label/scheduler
+        sequence, while remaining an engineering adapter: it does not port
+        their image models, datasets, preprocessing, or test-set selection.
+        """
+        from torch.nn import functional
+
+        n_samples = len(tx)
+        device = self.device_
+        if n_samples < 2 or not bool(p_mask.any()) or not bool(u_mask.any()):
+            raise ValueError("author_staged requires at least one observed P and one U row")
+        self.optimizer_steps_ = 0
+        self.epochs_completed_ = 0
+        self.loss_history_ = []
+        self.stage_loss_history_ = {"warmup": [], "dist_pu": []}
+        self.epoch_provenance_ = []
+        self.checkpoint_stage_ = "warmup"
+        self.checkpoint_stage_epoch_ = 0
+        self.checkpoint_round_ = None
+        self.calibration_applied_ = os_or_ts == "ts"
+        self.training_provenance_ = {
+            "method": "dist_pu",
+            "implementation_path": "author_staged_mlp_adapter",
+            "training_recipe": "author_staged",
+            "distribution_loss": "author_histogram",
+            "upstream_source_lock": "cb74be1a87176fd38270873c06374e53905b7354",
+            "upstream_training_recipe_reproduced": False,
+            "upstream_source_replay": False,
+            "run_view": os_or_ts,
+            "calibration_applied": self.calibration_applied_,
+            "optimizer": "Adam",
+            "batch_size": self.batch_size,
+            "batch_size_parameter_effective": True,
+            "warmup_epochs": self.warmup_epochs,
+            "pu_epochs": self.pu_epochs,
+            "warmup_learning_rate": float(self.warmup_learning_rate),
+            "warmup_weight_decay": float(self.warmup_weight_decay),
+            "pu_learning_rate": float(self.pu_learning_rate),
+            "pu_weight_decay": float(self.pu_weight_decay),
+            "warmup_scheduler": "CosineAnnealingLR(T_max=pu_epochs), step once after each epoch",
+            "pu_scheduler": "CosineAnnealingLR(T_max=pu_epochs, eta_min=0.7*lr), step after each minibatch",
+            "warmup_entropy_weight": float(self.warmup_entropy_weight),
+            "pu_entropy_weight_max": float(self.pu_entropy_weight),
+            "mixup_alpha": float(self.mixup_alpha),
+            "mixup_entropy_weight": float(self.mixup_entropy_weight),
+            "mixup_bce_weight": float(self.mixup_bce_weight),
+            "pseudo_label_initialization": "model scores after warmup, indexed by training-row identity",
+            "pseudo_label_inference_batch_size": 128,
+            "pseudo_label_update": "pre_optimizer_update_scores written only to current minibatch identities",
+            "mixup_lambda": "Beta(alpha, alpha), no max(lambda, 1-lambda) bias",
+            "mixup_partner": "uniform random permutation within current minibatch",
+            "mixup_pool": "current minibatch; no full-dataset mixup in staged path",
+            "class_prior_used": float(pi),
+            "clean_labels_read": False,
+            "test_labels_read": False,
+            "formal_admission": False,
+            "architecture_scope": "toolbox MLP adapter; upstream dataset-specific architectures not reproduced",
+            "data_device_policy": "CPU-resident features/labels; only active mini-batches moved to the training device",
+        }
+
+        warmup_optimizer = torch.optim.Adam(
+            self.model_.parameters(),
+            lr=self.warmup_learning_rate,
+            weight_decay=self.warmup_weight_decay,
+        )
+        warmup_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            warmup_optimizer, T_max=self.pu_epochs
+        )
+        np_rng = np.random.RandomState(self.random_state)
+        self.model_.train()
+        for epoch in range(self.warmup_epochs):
+            permutation = torch.randperm(n_samples)
+            batch_losses = []
+            for start in range(0, n_samples, self.batch_size):
+                indices = permutation[start : start + self.batch_size]
+                batch_x = tx[indices].to(device)
+                labels = ty[indices].to(device)
+                logits = self.model_(batch_x).reshape(-1)
+                scores = torch.sigmoid(torch.clamp(logits, min=-10.0, max=10.0))
+                hist_loss = _author_histogram_batch_loss(
+                    logits,
+                    labels,
+                    pi,
+                    include_positive_in_unlabeled=self.calibration_applied_,
+                    clamp_logits=False,
+                )
+                entropy_scores = scores if self.calibration_applied_ else scores[labels == 0]
+                loss = hist_loss + self.warmup_entropy_weight * _entropy_minimization(
+                    entropy_scores
+                )
+                if not torch.isfinite(loss):
+                    raise FloatingPointError("Dist-PU warm-up objective became nonfinite")
+                warmup_optimizer.zero_grad()
+                loss.backward()
+                warmup_optimizer.step()
+                self.optimizer_steps_ += 1
+                batch_losses.append(float(loss.detach().cpu()))
+            warmup_scheduler.step()
+            self._record_author_epoch(
+                "warmup", epoch + 1, float(np.mean(batch_losses)), epoch_callback
+            )
+
+        # Match MixupDataset.update_psudos(): inference in stable source row
+        # order, with pseudo-labels subsequently indexed by each row identity.
+        self.model_.eval()
+        pseudo_labels = torch.empty(n_samples, dtype=torch.float32)
+        with torch.no_grad():
+            for start in range(0, n_samples, 128):
+                stop = min(start + 128, n_samples)
+                logits = self.model_(tx[start:stop].to(device)).reshape(-1)
+                pseudo_labels[start:stop] = torch.sigmoid(logits).cpu()
+        self.pseudo_labels_ = pseudo_labels
+
+        pu_optimizer = torch.optim.Adam(
+            self.model_.parameters(),
+            lr=self.pu_learning_rate,
+            weight_decay=self.pu_weight_decay,
+        )
+        pu_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            pu_optimizer,
+            T_max=self.pu_epochs,
+            eta_min=0.7 * self.pu_learning_rate,
+        )
+        self.model_.train()
+        for epoch in range(self.pu_epochs):
+            co_entropy = (
+                1.0 - np.cos((epoch / self.pu_epochs) * (np.pi / 2.0))
+            ) * self.pu_entropy_weight
+            permutation = torch.randperm(n_samples)
+            batch_losses = []
+            for start in range(0, n_samples, self.batch_size):
+                indices = permutation[start : start + self.batch_size]
+                batch_x = tx[indices].to(device)
+                labels = ty[indices].to(device)
+                targets = self.pseudo_labels_[indices].to(device).clone()
+                targets[labels == 1] = 1.0
+
+                lam = float(np_rng.beta(self.mixup_alpha, self.mixup_alpha))
+                mix_permutation = torch.randperm(len(indices), device=device)
+                mixed_x = lam * batch_x + (1.0 - lam) * batch_x[mix_permutation]
+                target_a = targets
+                target_b = targets[mix_permutation]
+                mixed_logits = self.model_(mixed_x).reshape(-1)
+                mixed_scores = torch.sigmoid(torch.clamp(mixed_logits, min=-10.0, max=10.0))
+                raw_logits = torch.clamp(self.model_(batch_x).reshape(-1), min=-10.0, max=10.0)
+                raw_scores = torch.sigmoid(raw_logits)
+
+                base_loss = _author_histogram_batch_loss(
+                    raw_logits,
+                    labels,
+                    pi,
+                    include_positive_in_unlabeled=self.calibration_applied_,
+                )
+                entropy_scores = (
+                    raw_scores if self.calibration_applied_ else raw_scores[labels == 0]
+                )
+                loss = (
+                    base_loss
+                    + co_entropy * _entropy_minimization(entropy_scores)
+                    + self.mixup_entropy_weight * _entropy_minimization(mixed_scores)
+                    + self.mixup_bce_weight
+                    * (
+                        lam * functional.binary_cross_entropy(mixed_scores, target_a)
+                        + (1.0 - lam) * functional.binary_cross_entropy(mixed_scores, target_b)
+                    )
+                )
+                if not torch.isfinite(loss):
+                    raise FloatingPointError("Dist-PU PU-stage objective became nonfinite")
+                pu_optimizer.zero_grad()
+                loss.backward()
+                pu_optimizer.step()
+                with torch.no_grad():
+                    # The source scores were evaluated before optimizer.step().
+                    self.pseudo_labels_[indices] = raw_scores.detach().cpu()
+                pu_scheduler.step()
+                self.optimizer_steps_ += 1
+                batch_losses.append(float(loss.detach().cpu()))
+            self._record_author_epoch(
+                "dist_pu", epoch + 1, float(np.mean(batch_losses)), epoch_callback
+            )
+
+        self.model_.eval()
+        self.classes_ = np.array([0, 1])
+        self._class_prior, self._X_shape_, self._is_fitted = pi, tuple(tx.shape), True
+        warmup_steps = self.warmup_epochs
+        pu_steps = self.pu_epochs * int(np.ceil(n_samples / self.batch_size))
+        self.training_provenance_["scheduler_step_counts"] = {
+            "warmup": int(warmup_scheduler.last_epoch),
+            "dist_pu": int(pu_scheduler.last_epoch),
+        }
+        self.training_provenance_["expected_scheduler_step_counts"] = {
+            "warmup": warmup_steps,
+            "dist_pu": pu_steps,
+        }
+        self.training_provenance_["optimizer_steps"] = self.optimizer_steps_
+        self.training_provenance_["epochs_completed"] = self.epochs_completed_
+        self.device_ = device
+        return self
+
+    def _record_author_epoch(self, stage, stage_epoch, loss, epoch_callback):
+        self.checkpoint_stage_ = stage
+        self.checkpoint_stage_epoch_ = stage_epoch
+        self.epochs_completed_ += 1
+        self.loss_history_.append(loss)
+        self.stage_loss_history_[stage].append(loss)
+        self.epoch_provenance_.append(
+            {
+                "epoch": self.epochs_completed_,
+                "stage": stage,
+                "stage_epoch": stage_epoch,
+                "optimizer_steps": self.optimizer_steps_,
+            }
+        )
+        if epoch_callback is not None:
+            epoch_callback(self.epochs_completed_, self)
 
     def _decision_function(self, X):
         import torch

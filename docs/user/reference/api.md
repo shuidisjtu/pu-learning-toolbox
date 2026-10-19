@@ -487,12 +487,17 @@ LLSVMClassifier(*, alpha=2.0, beta=1.0, gamma=10.0, squash_scale=10.0, reg_lambd
 
 #### `DistPUClassifier`（注册名 `dist_pu`，别名 `distpu`）
 
-Dist-PU clean-room 小 MLP 分类器；`distribution_loss="author_histogram"` 可选启用作者 histogram 损失组件，但不切换为完整作者训练流程。
+Dist-PU 小 MLP 分类器。默认保留 clean-room 单阶段全量路径；显式组合 `training_recipe="author_staged"` 与 `distribution_loss="author_histogram"` 可运行来源审计的两阶段 mini-batch 适配流程。该适配不移植作者数据集/backbone/预处理，也不复制作者用 test accuracy 选模。
 
 ```python
-DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, learning_rate=1e-3,
+DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, learning_rate=1e-3,
                  alignment_weight=1.0, entropy_weight=0.05, mixup_weight=0.1,
-                 distribution_loss="expectation",
+                 distribution_loss="expectation", training_recipe="clean_room",
+                 warmup_epochs=60, pu_epochs=60,
+                 warmup_learning_rate=5e-4, warmup_weight_decay=5e-3,
+                 pu_learning_rate=5e-5, pu_weight_decay=1e-3,
+                 warmup_entropy_weight=0.002, pu_entropy_weight=0.004,
+                 mixup_alpha=6.0, mixup_entropy_weight=0.04, mixup_bce_weight=5.0,
                  random_state=0, device=None)
 ```
 
@@ -501,15 +506,21 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, lear
 | `class_prior` | `float` | 必填 | 类先验 |
 | `hidden_dim` | `int` | `64` | 隐藏层维度 |
 | `epochs` | `int` | `100` | 训练轮数 |
-| `batch_size` | `int` | `128` | 兼容保留；当前单阶段全量路径不使用该参数 |
+| `batch_size` | `int` | `256` | `clean_room` 路径忽略；`author_staged` 路径用于两阶段 mini-batch |
 | `learning_rate` | `float` | `1e-3` | 学习率 |
 | `alignment_weight` | `float` | `1.0` | 分布对齐损失权重 |
 | `entropy_weight` | `float` | `0.05` | 熵损失权重 |
 | `mixup_weight` | `float` | `0.1` | Mixup 损失权重 |
-| `distribution_loss` | `str` | `"expectation"` | `"expectation"` 为默认 clean-room 均值平方对齐；`"author_histogram"` 仅复现锁定作者代码的 one-bin polar/L1 P/U histogram 损失组件，不代表两阶段/mini-batch 作者流程 |
+| `distribution_loss` | `str` | `"expectation"` | `"expectation"` 为默认 clean-room 均值平方对齐；`"author_histogram"` 使用锁定作者代码的 one-bin polar/L1 P/U histogram 目标；作者适配路径必须选此项 |
+| `training_recipe` | `str` | `"clean_room"` | `"clean_room"` 保留旧单阶段全量路径；`"author_staged"` opt-in 执行 warm-up + PU mini-batch 适配 |
+| `warmup_epochs` / `pu_epochs` | `int` | `60` / `60` | 作者适配路径的两阶段 epoch 数；scheduler 的 source cadence 分别为 epoch 与 batch |
+| `warmup_learning_rate` / `warmup_weight_decay` | `float` | `5e-4` / `5e-3` | warm-up Adam 参数 |
+| `pu_learning_rate` / `pu_weight_decay` | `float` | `5e-5` / `1e-3` | PU 阶段重建 Adam 后的参数 |
+| `warmup_entropy_weight` / `pu_entropy_weight` | `float` | `0.002` / `0.004` | warm-up 固定熵权重；PU 阶段按来源余弦公式从 0 增至上限 |
+| `mixup_alpha` / `mixup_entropy_weight` / `mixup_bce_weight` | `float` | `6.0` / `0.04` / `5.0` | PU 阶段 Beta mixup、混合输出熵项及双目标 BCE 权重 |
 | `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 种子与 torch 设备 |
 
-- 文档：[Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)
+- `author_staged` 是与锁定 `train.py` 高层训练时序对齐的 MLP 适配，不代表作者源程序重放、图像结果复现或正式准入；完整限制见 [Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)。
 
 #### `VPUClassifier`（注册名 `vpu`，别名 `variational_pu`）
 

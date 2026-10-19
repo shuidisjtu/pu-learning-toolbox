@@ -377,6 +377,22 @@ def test_histogram_loss_matches_independent_one_bin_polar_literals():
 
 
 @pytest.mark.unit
+def test_author_staged_batch_histogram_matches_source_and_handles_missing_role():
+    logits = torch.logit(torch.tensor([0.8, 0.9, 0.2, 0.8], dtype=torch.float64))
+    labels = torch.tensor([1, 1, 0, 0])
+    os_loss = dist_pu_module._author_histogram_batch_loss(logits, labels, 0.4)
+    ts_loss = dist_pu_module._author_histogram_batch_loss(
+        logits, labels, 0.4, include_positive_in_unlabeled=True
+    )
+    assert float(os_loss) == pytest.approx(0.15 + 0.125, abs=1e-12)
+    assert float(ts_loss) == pytest.approx(0.15 + 0.34375, abs=1e-12)
+
+    p_only = dist_pu_module._author_histogram_batch_loss(logits[:2], labels[:2], 0.4)
+    u_only = dist_pu_module._author_histogram_batch_loss(logits[2:], labels[2:], 0.4)
+    assert torch.isfinite(p_only) and torch.isfinite(u_only)
+
+
+@pytest.mark.unit
 def test_histogram_ts_role_includes_observed_positives_without_changing_prior():
     p_loss, u_loss = dist_pu_module._histogram_distribution_loss(
         torch.tensor([0.8, 0.9], dtype=torch.float64),

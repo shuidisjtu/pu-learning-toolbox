@@ -157,7 +157,7 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 1. 校验 P/U 非空，校验 0 < pi < 1。
 2. 初始化 MLP 和 Adam optimizer。
-3. 每轮训练：
+3. 默认 `training_recipe="clean_room"` 每轮训练：
    a. 计算所有 P/U 的 logits 和 sigmoid outputs；
    b. 计算 P 上的正类 BCE；
    c. 计算 U 上的均值对齐损失 (mean(q_U)-pi)^2；
@@ -167,6 +167,10 @@ H(q)=-q\log q-(1-q)\log(1-q).
 4. 保存训练记录与模型参数。
 5. 用 sigmoid(logit) 输出预测概率，用 logit 的符号输出预测标签。
 ```
+
+显式 opt-in `training_recipe="author_staged"` 且 `distribution_loss="author_histogram"` 时，切换到两阶段来源适配：
+先执行 warm-up histogram + U entropy；再重建 Adam/scheduler，初始化并按训练行身份更新持久伪标签，逐 batch
+计算 histogram、动态 U entropy、mixup entropy 与双目标 BCE。详见 §8.1；该路径不改变默认 clean-room 结果。
 
 ---
 
@@ -181,14 +185,14 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 ## 6. 实现注记
 
-- 当前项目实现使用全量张量训练，`batch_size` 是兼容性参数，尚未复现论文的 batch-level training protocol。
-- 当前实现使用小型 MLP，不应直接与论文的图像 backbone 结果比较。
-- 当前实现使用随机 `lambda`，并对构造 soft target 使用 stop-gradient；这是工程侧简化，尚未暴露论文中的完整 `alpha/gamma/nu` 超参数协议。
+- 默认 `clean_room` 路径使用全量张量训练，`batch_size` 不生效；显式 `author_staged` 才使用真实 mini-batch。
+- 当前项目实现使用 toolbox 小型 MLP，不应直接与论文的图像 backbone 结果比较。
+- 默认 clean-room 路径使用工程化随机 Mixup；author-staged 则显式暴露 `alpha`、mixed entropy 和 mixup BCE 系数，并按来源 Beta mixup；两者不可混称。
 - 数值稳定性：
-  - logits 在熵计算前限制在 `[-10, 10]`，避免 `log(0)` 和指数溢出；
-  - sigmoid 输出的熵计算在 `log` 内加 `1e-6`——**这不是数值守卫**（真正的兜底是上面的 clamp，概率被夹在 `[4.5e-5, 0.99995]`），重构时须逐字符保留其位置，不得因「看起来没用」而删改；
+  - 两条路径的熵项都在 sigmoid 前限制 logits 到 `[-10, 10]`；clean-room 的 `log` 内另有 `1e-6`，author-staged 按来源定义直接对受限概率取 `log`；
+  - clean-room 中的 `1e-6` **不是数值守卫**（真正的兜底是上面的 clamp，概率被夹在 `[4.5e-5, 0.99995]`），重构时须逐字符保留其位置，不得因「看起来没用」而删改；
   - 推理时 sigmoid 输入限制在 `[-40, 40]`；
-  - `random_state` 只控制 PyTorch 初始化和 Mixup 随机性；GPU 上的完全确定性仍需额外配置。
+  - `random_state` 控制网络初始化、batch permutation 与 Beta mixup 抽样；不同训练路径/设备的全序列 bitwise replay 不作保证，GPU 上完全确定性仍需额外配置。
 
 结果记录（benchmark 数字与官方配置 commit 锁以 benchmarks 产物为准）：
 
@@ -215,9 +219,13 @@ H(q)=-q\log q-(1-q)\log(1-q).
 | `mixup_weight` | 论文 `nu` 的工程化参数 |
 | `learning_rate` | 参考论文训练习惯 |
 
+上表仅描述默认 clean-room 路径的映射。`author_staged` 使用独立参数 `warmup_*`、`pu_*`、`mixup_alpha`、
+`mixup_entropy_weight` 和 `mixup_bce_weight`；其默认值按锁定作者脚本可见配置设置，但仍是 MLP adapter 的
+工程配置，不代表原始数据集 recipe 或已批准的超参搜索。
+
 ### 7.2 论文实验
 
-论文实验使用 Fashion-MNIST、CIFAR-10 与 Alzheimer 三个 benchmark，官方协议含 backbone、mini-batch、数据增强与两阶段训练；当前实现仅覆盖 clean-room 档，不得与论文图像 backbone 结果直接比较。
+论文实验使用 Fashion-MNIST、CIFAR-10 与 Alzheimer 三个 benchmark，官方协议含数据集专属 backbone、mini-batch、数据处理与两阶段训练；toolbox 不得与论文图像 backbone 结果直接比较。
 
 ---
 
@@ -227,8 +235,8 @@ H(q)=-q\log q-(1-q)\log(1-q).
 |---|---|
 | Source status | `official_exact` |
 | Implementation status | `NATIVE`，PyTorch optional dependency |
-| 当前实现 | clean-room 小型 MLP；默认均值平方期望对齐；可显式选 author histogram loss 组件 |
-| 尚未对齐 | 作者完整两阶段/持久伪标签程序、官方 backbone、mini-batch、图像增强、数据 split、完整超参数搜索 |
+| 当前实现 | 默认 clean-room 小型 MLP；另有显式 `training_recipe="author_staged"` + `distribution_loss="author_histogram"` 的两阶段 mini-batch 适配 |
+| 尚未对齐 | 官方 dataset-specific backbone/预处理/augmentation、公开 benchmark 重放、完整超参数搜索及作者 test-based 选模（后者不得照搬） |
 | 主要风险 | `pi` 错误会直接改变 U 集分布约束；熵权重过大可能强化确认偏差；全量训练与官方 batch 训练结果不可直接比较 |
 
 ### 8.1 锁定作者程序的训练行为差异
@@ -241,17 +249,22 @@ H(q)=-q\log q-(1-q)\log(1-q).
 作者把两个阶段的 `CosineAnnealingLR` 都设为 `T_max=pu_epochs`，但计步 cadence 不同：warm-up 的
 `utils.train()` 在每个 epoch 的 DataLoader 循环结束后 step 一次；PU 阶段 `train_mixup()` 在每个
 mini-batch 更新后 step。源码位置与差异见[来源行为审计](../pu_survey/admission/dist_pu_source_behavior_review_20261019.md)。
-作者 `distributionLoss.py` 使用 batch 内直方图分布距离，目标为 P 直方图与单点正类 proxy 的距离，加上
+作者 `losses/factory.py::create_loss()` 的 warm-up 默认使用直方图损失加 `co_mu=0.002` 的 U 熵；PU 阶段把
+`entropy=0`，用同一基础直方图损失另加动态熵与 mixup 项。作者 `distributionLoss.py` 使用 batch 内直方图分布距离，目标为 P 直方图与单点正类 proxy 的距离，加上
 `1/(2*pi)` 加权的 U 直方图与边缘先验混合 proxy 的距离；不等同于本卡 §3 的单样本均值平方对齐 clean-room
 目标。estimator 现提供显式 `distribution_loss="author_histogram"` 选项，逐项实现作者
 `LabelDistributionLoss(num_bins=1, proxy="polar", dist="L1")` 的 P/U histogram 项；TS 时仅按项目
 协议将 P 并入 marginal-role histogram，不改 `pi` target。该选项仍运行现有单阶段全量训练，并保留当前熵/
-Mixup工程路径；不等同作者完整两阶段流程，默认值仍是既有 `expectation`。作者脚本每个 epoch 在 test loader
+Mixup工程路径；默认值仍是既有 `expectation`。另增加 opt-in `training_recipe="author_staged"`，默认复用作者
+warm-up/PU 两阶段长度、Adam/weight decay、batch size、熵权重、mixup 系数和分阶段 scheduler cadence；持久伪标签
+按训练行身份初始化与批次更新；CPU 常驻完整输入，只逐 batch 搬运到训练设备，伪标签按 128 行 chunks 初始化。
+该适配仍使用 toolbox MLP、调用方传入 prior，并且不复现原作者的数据、图像模型、
+增强和训练/test split，故 `upstream_training_recipe_reproduced=false`。作者脚本每个 epoch 在 test loader
 上按 accuracy 记录 best，这种选择不能移入本项目。
 
 因此，本卡和台账中的 `official_exact` 仅表示已锁定作者来源身份，不表示 toolbox estimator 忠实重放作者
-训练程序。当前 estimator 继续限定为 clean-room 小型 MLP 目标探索；`batch_size` 是未生效的兼容参数，不应
-解读为批训练能力。拟合后的 `training_provenance_` 会逐 run 显式记录实际 OS/TS 视图、校准状态、全量单阶段
-路径、无效 `batch_size`、优化步数与 epoch 数，避免 manifest 把参数配置误读为实际批训练。完整两阶段适配若推进，
-必须另立显式 recipe/路径，沿用本项目获批的 PA/OA 选择，不复刻
-作者 test-based 选模；此项仍无正式图像协议、预算或资源验收。
+训练程序。默认仍是 clean-room 小型 MLP；其 `batch_size` 不生效。只有 `author_staged` 中该参数才控制真实
+mini-batch。拟合后的 `training_provenance_` 会逐 run 记录训练路径、两阶段参数、scheduler 实际步数、伪标签时序、
+OS/TS 角色适配、优化步数与 epoch 数。`author_staged` 不重放作者 test accuracy 选模，也不改变默认训练路径、
+历史 Pilot 或正式准入。仍待完成的是正式数据/backbone/PA-OA 选择协议、批准预算与资源验收；不得把 MLP 短拟合
+或该适配器称作论文数值复现。
