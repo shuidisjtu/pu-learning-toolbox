@@ -298,14 +298,16 @@
       "evidence": {
         "native_sampling_assumption": "Convex_Formulation_for_PU_DATA_Learning.md:17 case_control（P 和 U 分别收集）; Convex_Formulation_for_PU_DATA_Learning.md:16 要求 P 为 p(x|y=1) 的 i.i.d. 抽样（SCAR）; registry:upu",
         "prior_semantics": "Convex_Formulation_for_PU_DATA_Learning.md:19/68; registry:upu requires_class_prior=True",
-        "adaptation_level": "Convex_Formulation_for_PU_DATA_Learning.md:495-499; registry:upu"
+        "adaptation_level": "Convex_Formulation_for_PU_DATA_Learning.md:495-499; registry:upu",
+        "source_behavior_review": "docs/research/pu_survey/admission/upu_source_behavior_review_20261019.md"
       },
       "uncertainty": [
         "API 默认 loss=\"squared\"（upu.py:93）与方法卡推荐变体 C-DH（double hinge，Convex_Formulation_for_PU_DATA_Learning.md:15）不一致，pilot 候选池需明确 loss 选择",
         "卡末（Convex_Formulation_for_PU_DATA_Learning.md:460）明确不要把后起 nnPU 的 non-negative correction 视为本文目标",
         "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts；全量求解下把承担无标签风险角色的集合换成 D_U ∪ D_P，RBF 中心候选池跟随视图、中心数量不变）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
         "ts 视图路径尚未经合作者复核（协议 §2.3）；按 D20 的单方技术验收放行，manifest 已不再挂 ts_view_collaborator_review 阻断正式资格——**放行不等于合作者已复核**，呈报时不得读作已签署"
-      ]
+      ],
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/upu_source_behavior_review_20261019.md"
     },
     "kldce": {
       "class": "KLDCEClassifier",

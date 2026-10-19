@@ -147,6 +147,11 @@ PUSBKernel 与 Pilot 行不变，冻结结果/矩阵/准入均不变。
 冻结预测阈值与批次分位数 API 的区别、TS 训练/OS 验证导致的跨目标选参，以及 IJCNN1/45-cell
 结果的 `paper_claim=false` 边界。契约审计链接写入台账；不改算法、Pilot 数值、矩阵或准入。
 
+2026-10-19 uPU 来源/行为核查：逐层登记 ICML 2015 风险结构、pywsl 官方 bundle 的能力边界、toolbox
+Squared/C-DH/C-LL 路径与 TS-OS 角色扩展；确认 `official_sources.lock.json` 尚无 pywsl immutable
+revision，审计中保留该 pin 缺口而不臆造版本。公式/梯度/视图测试覆盖实现不变量，不证明官方代码
+逐行一致或论文数值复现；未改 loss 默认、冻结结果或正式准入。
+
 2026-10-19 Self-PU 一致性范围补齐：按正式论文式 (13)/(16) 将 clean-support full-meta
 探索路径显式设为 student `D-D_trust`（P + 未信任 U）及 teacher 全 `D`（P + 全部 U）；
 估计器默认仍 `untrusted_u`，冻结 Pilot 无 meta 消融/历史轨迹不变。同步更新训练 history、

@@ -278,6 +278,23 @@ def test_pusb_kernel_source_behavior_review_is_registered(
 
 
 @pytest.mark.contract
+def test_upu_source_behavior_review_discloses_source_pin_gap(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """uPU loss variants and official bundle version limits remain traceable."""
+    method = ledger_methods["upu"]
+    expected = "docs/research/pu_survey/admission/upu_source_behavior_review_20261019.md"
+    review_path = _ROOT / expected
+    assert method["source_behavior_review_ref"] == expected
+    assert method["evidence"]["source_behavior_review"] == expected
+    assert review_path.is_file()
+    review = review_path.read_text(encoding="utf-8")
+    assert "没有 `pywsl` immutable commit" in review
+    assert "C-DH" in review and "C-LL" in review and "squared" in review
+    assert "不伪造版本号" in review
+
+
+@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:

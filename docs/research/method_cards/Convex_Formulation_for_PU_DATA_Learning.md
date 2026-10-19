@@ -497,5 +497,5 @@ Input:
 | License | MIT |
 | 包含方法 | `pywsl` 由 Sugiyama Lab 维护；uPU 仅提供 Squared Loss 闭式解（NumPy + scipy），不含 double hinge（C-DH）和 logistic（C-LL）；nnPU / PNU / PU-SKC / PNU-AUC 等其他方法见仓库 README |
 | Implementation basis | 论文式 (8)、式 (9)、Table 1、式 (2) CV |
-| 参考实现 | 官方关联代码库 `pywsl` 作算法参考；本卡公式以论文原文为权威来源 |
+| 参考实现 | 官方关联代码库 `pywsl` 作算法参考；本卡公式以论文原文为权威来源。`pywsl` 当前尚未在仓库 `official_sources.lock.json` 固定 immutable revision，见[uPU 来源/行为审计](../pu_survey/admission/upu_source_behavior_review_20261019.md) |
 | Reproduction risk | solver 选择、CV 网格、预处理、basis-center 策略均未由论文完整规定 |
