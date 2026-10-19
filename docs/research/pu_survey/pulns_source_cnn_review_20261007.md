@@ -99,3 +99,5 @@ Table 3（印刷页 8788）将 test **error rate** 的均值按百分数报告�
 | 0.6 | 11.73 (0.014) | 6.54 (0.016) | 22.39 (0.013) |
 
 **尺度注意：**原表 caption 称括号项是 standard deviation，但没有清楚声明括号数值与百分数均值同为百分点，还是以 `[0,1]` 比例表示；两种读法会相差 100 倍。这里保留原始印刷值，不转换、不计算误差带、不并入任何冻结对照矩阵。以上是论文层外部锚点，不是本项目复现；γ、P/U/test 规模、backbone 与未知的 preprocessing/selection protocol 均须先满足对应矩阵协议，才可判数值可比。
+
+Table 3 中全部七个 benchmark × 三个 γ 的 PULNS 均值和原样括号值已另存为[机器可读来源锚点](data/pulns_literature_anchors_20261019.json)。锚点把 mean 的 `%` 单位与 standard-deviation 数值分开登记；不替原文裁定括号单位，也不改冻结矩阵。官方 PDF 的在线内容已核对，但当前环境无法从 shell 取得字节副本，因此机器记录如实保留 `content_sha256=null`，以 DOI、官方 PDF URL、Table 3 和印刷页定位来源。

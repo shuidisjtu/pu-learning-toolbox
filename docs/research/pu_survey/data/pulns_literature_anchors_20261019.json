@@ -1,0 +1,80 @@
+{
+  "schema_version": "pulns-literature-anchors-1",
+  "review_status": "pending_method_owner_review",
+  "scope": "PULNS Table 3 source anchors only; not a project run, comparison-matrix update, numerical verdict, or formal admission.",
+  "source": {
+    "title": "PULNS: Positive-Unlabeled Learning with Effective Negative Sample Selector",
+    "venue": "AAAI",
+    "year": 2021,
+    "doi": "10.1609/aaai.v35i10.17064",
+    "official_pdf_url": "https://cdn.aaai.org/ojs/17064/17064-13-20558-1-2-20210518.pdf",
+    "table": 3,
+    "printed_page": 8788,
+    "pdf_page_index": 5,
+    "content_sha256": null,
+    "digest_unavailable_reason": "Primary PDF was read through the official online PDF source; shell egress could not retrieve a local byte copy for hashing.",
+    "artifact_retained_in_repository": false
+  },
+  "protocol": {
+    "benchmark_count": 7,
+    "gamma_values": [0.2, 0.4, 0.6],
+    "gamma_definition": "positive fraction within U; not labeled-positive frequency c",
+    "p_and_u_sizes": {
+      "cifar10": {"n_p": 2000, "n_u": 4000},
+      "mnist": {"n_p": 2000, "n_u": 4000},
+      "mushrooms": {"n_p": 400, "n_u": 800},
+      "shuttle": {"n_p": 400, "n_u": 800},
+      "spambase": {"n_p": 400, "n_u": 800},
+      "usps": {"n_p": 400, "n_u": 800},
+      "landsat": {"n_p": 400, "n_u": 800}
+    },
+    "validation_count": {"cifar10": 500, "mnist": 500, "other_benchmarks": 100},
+    "test_count": {"cifar10": 5000, "mnist": 5000, "other_benchmarks": 1000},
+    "independent_runs": 20,
+    "metric": "test binary-classification error rate",
+    "mean_unit": "percent",
+    "spread_name": "standard deviation",
+    "spread_unit": "unresolved_by_paper_caption"
+  },
+  "interpretation": {
+    "caption": "For each cell x (y), x and y denote average test error rate (%) and standard deviation, respectively.",
+    "mean_is_percent": true,
+    "spread_is_standard_deviation": true,
+    "spread_unit_claimed_as_percent": false,
+    "spread_unit_claimed_as_fraction": false,
+    "decision": "Preserve the printed spread values without unit conversion. The caption explicitly marks the mean in percent but does not explicitly attach a unit to the standard deviation; do not pool or compare its uncertainty until this is resolved."
+  },
+  "anchors": [
+    {"dataset": "cifar10", "gamma": 0.2, "mean_error_percent": 7.98, "spread_printed": 0.007},
+    {"dataset": "mnist", "gamma": 0.2, "mean_error_percent": 3.63, "spread_printed": 0.006},
+    {"dataset": "mushrooms", "gamma": 0.2, "mean_error_percent": 3.13, "spread_printed": 0.011},
+    {"dataset": "shuttle", "gamma": 0.2, "mean_error_percent": 2.74, "spread_printed": 0.017},
+    {"dataset": "spambase", "gamma": 0.2, "mean_error_percent": 9.59, "spread_printed": 0.076},
+    {"dataset": "usps", "gamma": 0.2, "mean_error_percent": 5.43, "spread_printed": 0.008},
+    {"dataset": "landsat", "gamma": 0.2, "mean_error_percent": 4.22, "spread_printed": 0.026},
+    {"dataset": "cifar10", "gamma": 0.4, "mean_error_percent": 11.44, "spread_printed": 0.011},
+    {"dataset": "mnist", "gamma": 0.4, "mean_error_percent": 5.27, "spread_printed": 0.009},
+    {"dataset": "mushrooms", "gamma": 0.4, "mean_error_percent": 4.30, "spread_printed": 0.024},
+    {"dataset": "shuttle", "gamma": 0.4, "mean_error_percent": 4.43, "spread_printed": 0.016},
+    {"dataset": "spambase", "gamma": 0.4, "mean_error_percent": 15.70, "spread_printed": 0.014},
+    {"dataset": "usps", "gamma": 0.4, "mean_error_percent": 8.53, "spread_printed": 0.010},
+    {"dataset": "landsat", "gamma": 0.4, "mean_error_percent": 7.03, "spread_printed": 0.009},
+    {"dataset": "cifar10", "gamma": 0.6, "mean_error_percent": 11.73, "spread_printed": 0.014},
+    {"dataset": "mnist", "gamma": 0.6, "mean_error_percent": 6.54, "spread_printed": 0.016},
+    {"dataset": "mushrooms", "gamma": 0.6, "mean_error_percent": 5.72, "spread_printed": 0.026},
+    {"dataset": "shuttle", "gamma": 0.6, "mean_error_percent": 5.39, "spread_printed": 0.039},
+    {"dataset": "spambase", "gamma": 0.6, "mean_error_percent": 22.39, "spread_printed": 0.013},
+    {"dataset": "usps", "gamma": 0.6, "mean_error_percent": 7.71, "spread_printed": 0.012},
+    {"dataset": "landsat", "gamma": 0.6, "mean_error_percent": 8.03, "spread_printed": 0.015}
+  ],
+  "comparison_boundary": {
+    "frozen_comparison_matrix_modified": false,
+    "pilot_results_modified": false,
+    "direct_numeric_comparison_eligible": false,
+    "reasons": [
+      "Paper gamma is the positive fraction within U, not the project's SCAR c axis.",
+      "P/U budgets, validation/test sizes, repeats, backbones, and training/selection details do not align as a shared protocol.",
+      "The printed standard-deviation unit is unresolved."
+    ]
+  }
+}

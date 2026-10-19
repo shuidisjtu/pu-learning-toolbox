@@ -218,7 +218,8 @@ tests/
     test_layer_boundaries.py            # 下层对 experiment 层的依赖边界 ratchet(静态 AST 扫描抓函数内导入 + 子进程导入图抓传递依赖)
     test_registry_dynamic_import.py     # registry 经 importlib 按名字动态加载 estimators/prior 的向上边(Core→Algorithms/Estimation): 静态 AST 扫描与子进程导入图都看不见的已裁决例外, 由注册表观测量钉住
     conftest.py                         # contract 测试共享 fixture(ledger_methods: 加载台账并注册内置方法)
-    test_ledger_source_reviews.py       # 来源/行为审计复核文档的台账登记与引用契约(11 条)
+    test_ledger_source_reviews.py       # 来源/行为审计复核文档的台账登记与引用契约(15 条)
+    test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)

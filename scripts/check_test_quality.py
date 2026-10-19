@@ -167,6 +167,14 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
         "param": "the test takes no parameters; it asserts the shipped fixture",
     },
+    "test_pulns_literature_anchors.py": {
+        "determ": "the test reads fixed literature metadata and values; no RNG or seed state",
+        "edge": (
+            "the shipped anchor record is a fixed artifact; malformed-record boundaries are "
+            "not a runtime input surface here"
+        ),
+        "param": "static source-audit fixture with no callable parameter-validation surface",
+    },
     "test_review_survey_split_receipt_cli.py": {
         "edge": (
             "only the import/argparse surface is exercised; input-boundary cases of "
