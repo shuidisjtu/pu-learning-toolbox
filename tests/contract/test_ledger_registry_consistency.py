@@ -308,7 +308,13 @@ def test_nnpu_source_behavior_review_tracks_branch_and_batch_differences(
     review = review_path.read_text(encoding="utf-8")
     assert "反传 `-γ r`" in review
     assert "合并的 `XYtrain`" in review
-    assert "尚无该仓库 immutable commit" in review
+    commit = "a92c5365c07490c871e338c07f6e31d3eae2ca37"
+    lock_path = _ROOT / "benchmarks/assigned_methods/configs/official_sources.lock.json"
+    source_lock = json.loads(lock_path.read_text(encoding="utf-8"))["sources"]["nnpu"]
+    assert source_lock["commit"] == commit
+    assert method["code_version"]["upstream_commit"] == commit
+    assert commit in review
+    assert "尚无该仓库 immutable commit" not in review
 
 
 @pytest.mark.contract

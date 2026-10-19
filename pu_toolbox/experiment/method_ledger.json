@@ -592,7 +592,8 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/kiryor/nnPUlearning",
-        "source_status": "official_exact（官方 Chainer 实现，MIT；本项目为 clean-room native PyTorch，nnpu.md:339）"
+        "upstream_commit": "a92c5365c07490c871e338c07f6e31d3eae2ca37",
+        "source_status": "official_exact（官方 Chainer 实现，MIT；来源锁 a92c5365c07490c871e338c07f6e31d3eae2ca37；本项目为 clean-room native PyTorch，nnpu.md:339）"
       },
       "implementation_status": "NATIVE, backend TORCH（支持 GPU），接口按 BasePUClassifier 契约（nnpu.md:340）",
       "native_sampling_assumption": "ts（两样本：可靠正例 P + 边缘分布无标签 U；X_p~p_p(x)、X_u~p(x)，nnpu.md:13/38-39, registry:nnpu）",

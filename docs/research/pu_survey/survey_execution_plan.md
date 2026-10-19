@@ -154,7 +154,8 @@ revision，审计中保留该 pin 缺口而不臆造版本。公式/梯度/视�
 
 2026-10-19 nnPU 来源/行为核查：对照论文 Algorithm 1、官方 Chainer `pu_loss.py`/`train.py` 与
 toolbox PyTorch branch/backward，确认校正分支 `−γr` 与报告量分离；同时指出论文成对 P/U mini-batch、
-官方合并 `SerialIterator` 和 toolbox 双 loader 的采样/更新轨迹并非同一实现，且官方 revision 尚未锁定。
+官方合并 `SerialIterator` 和 toolbox 双 loader 的采样/更新轨迹并非同一实现；官方 revision
+`a92c5365c07490c871e338c07f6e31d3eae2ca37` 现已登记来源锁，该锁不构成逐行适配或数值复现。
 审计引用入台账并补契约测试；不改算法、默认超参、TS 审阅状态或正式结果。
 
 2026-10-19 Self-PU 一致性范围补齐：按正式论文式 (13)/(16) 将 clean-support full-meta

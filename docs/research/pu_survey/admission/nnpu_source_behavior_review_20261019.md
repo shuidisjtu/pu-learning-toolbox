@@ -5,7 +5,7 @@
 ## 来源与可复核版本
 
 - 原论文：[NIPS 2017 PDF](https://papers.nips.cc/paper/2017/file/7cce53cf90577442771720a370c3c723-Paper.pdf)。式 (6) 定义报告的非负风险；Algorithm 1（印刷第 4 页）对每对 mini-batch `X_p^i, X_u^i` 计算负风险分支 `r_i`，按 `r_i ≥ -β` 使用完整 uPU 梯度，否则沿 `-∇r_i` 更新并用 `γη` 折扣步长。
-- 作者代码：[kiryor/nnPUlearning](https://github.com/kiryor/nnPUlearning)，论文 §5 明确给出仓库地址。可直接阅读的 [`pu_loss.py`](https://github.com/kiryor/nnPUlearning/blob/master/pu_loss.py) 将报告值 `self.loss` 与反传用 `self.x_out` 分开：校正分支报告 `R_p^+ - β`，反传 `-γ r`；官方 [`train.py`](https://github.com/kiryor/nnPUlearning/blob/master/train.py) 用 Chainer `SerialIterator` 迭代合并的 `XYtrain`。本仓库 `official_sources.lock.json` 尚无该仓库 immutable commit，故以上 URL 指向可变 `master`，是源码行为线索而非版本锁证明。
+- 作者代码：[kiryor/nnPUlearning](https://github.com/kiryor/nnPUlearning)，论文 §5 明确给出仓库地址。GitHub 提交历史显示观察到的最新 `master` revision 为 [`a92c5365c07490c871e338c07f6e31d3eae2ca37`](https://github.com/kiryor/nnPUlearning/commit/a92c5365c07490c871e338c07f6e31d3eae2ca37)，提交日期 2022-12-13，提交只改动 `dataset.py`；现已写入 `benchmarks/assigned_methods/configs/official_sources.lock.json`。锁定文件 [`pu_loss.py`](https://github.com/kiryor/nnPUlearning/blob/a92c5365c07490c871e338c07f6e31d3eae2ca37/pu_loss.py) 将报告值 `self.loss` 与反传用 `self.x_out` 分开：校正分支报告 `R_p^+ - β`，反传 `-γ r`；[`train.py`](https://github.com/kiryor/nnPUlearning/blob/a92c5365c07490c871e338c07f6e31d3eae2ca37/train.py) 用 Chainer `SerialIterator` 迭代合并的 `XYtrain`。来源 pin 证明审计目标可复核，不意味着 toolbox 逐行重放或数值复现。
 
 ## 对照结论
 
@@ -24,4 +24,4 @@
 - `tests/unit/estimators/test_nnpu_ts_view.py` 检验 TS mini-batch 角色替换及视图 gate。
 - 上述测试支撑 toolbox 内部数学与协议不变量；由于官方仓库未锁定 commit，不能证明这些分支来自某一固定 Chainer 代码版本，更不能证明完整 NIPS 表格数值已重现。
 
-结论：nnPU 核心校正梯度与论文/可见官方实现一致；PyTorch 实现、P/U loader 组成与 TS 校准均是需披露的适配层。应补官方源码 immutable commit/hash 后再做版本化文件级复核。该记录不改算法默认值、冻结结果、准入或 owner review 状态。
+结论：nnPU 核心校正梯度与论文/锁定官方实现一致；PyTorch 实现、P/U loader 组成与 TS 校准均是需披露的适配层。官方 commit 已锁定，但没有单独保存上游文件 hash 或进行完整 Chainer 运行复现；这仍不是作者数值复现。该记录不改算法默认值、冻结结果、准入或 owner review 状态。

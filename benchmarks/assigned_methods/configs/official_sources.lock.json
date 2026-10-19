@@ -24,6 +24,14 @@
       "commit_date": "2022-06-19T10:29:18+08:00",
       "status": "locked"
     },
+    "nnpu": {
+      "kind": "git",
+      "url": "https://github.com/kiryor/nnPUlearning",
+      "commit": "a92c5365c07490c871e338c07f6e31d3eae2ca37",
+      "commit_date": "2022-12-13",
+      "status": "locked",
+      "note": "Latest upstream master commit observed in GitHub history; this commit changes dataset.py only. The lock identifies the official source snapshot, not line-by-line fidelity of the toolbox clean-room PyTorch implementation."
+    },
     "pusb": {
       "kind": "git",
       "url": "https://github.com/MasaKat0/PUlearning",
