@@ -59,7 +59,7 @@
   已有四路二维分区、同标记、终点或显式 EM-round PA/OA 选择，独立探索性结果，不改旧 Pilot。
 - [`vpu_schedule_review_20261015.md`](admission/vpu_schedule_review_20261015.md)：VPU 可选源 Adam 重置调度与固定轮内训练步数，不改变默认或 D22 准则。
 - [`vpu_encoder_stream_20261015.md`](delivery/vpu_encoder_stream_20261015.md)：VPU 注入 CNN 与 CPU 数据分批工程路径，非作者图像复现/正式准入。
-- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；2026-10-17 #117 明确本 Survey 走 OS adaptation + 显式 α_U，OS→TS 校准不属于本实验；α_U 来源与正式预算/选模仍待审。
+- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；2026-10-19 更正：原生 TS 方法应走 TS-compatible 校准；CVIR 当前走 OS adaptation + 显式 α_U，校准待接入；α_U 来源与正式预算/选模仍待审。
 - [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；2026-10-17 #115 已将 registry/台账采样定位纠正为 OS，support 标签预算与 PA 限制仍待审。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。

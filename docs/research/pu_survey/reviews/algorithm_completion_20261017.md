@@ -11,7 +11,7 @@
 | P3MIX | 完整来源、epoch/pool 时序、E/C 变体与分类器 | 正确官方 PDF/API 仍受访问限制；已请求用户提供论文/补充包，不把二手实现或索引摘要当全文验收 |
 | Self-PU / LaGAM | 独立 clean support 与外部 OA 隔离的显式实验接线 | 接线与真实元更新 CPU 回归通过；实际支持集/正式标签预算仍待确认 |
 | PULNS 实际支持集 | 已有安全接口后的实际数据与预算 | 需明确支持集来源/预算；本轮不在旧 frozen split 上偷偷取标签 |
-| CVIR 扩展 | 固定alpha路径已接；独立 BBE 与完整 TEDn 交替训练工程入口已补，均为独立可选扩展 | [BBE](../../method_cards/BBE.md) / [TEDn](../../method_cards/TEDn.md)；显式 α_U，不接公共总体先验或 CVIR 默认路径；本 Survey 走 OS adaptation + 显式 α_U，OS→TS 不属于本实验；TEDn 的实验级注册状态见下方更正，正式预算/选模/数值待核 |
+| CVIR 扩展 | 固定alpha路径已接；独立 BBE 与完整 TEDn 交替训练工程入口已补，均为独立可选扩展 | [BBE](../../method_cards/BBE.md) / [TEDn](../../method_cards/TEDn.md)；显式 α_U，不接公共总体先验或 CVIR 默认路径；本 Survey 走 OS adaptation + 显式 α_U；2026-10-19 更正：原生 TS 方法应走 TS-compatible 校准，CVIR 校准待接入；TEDn 的实验级注册状态见下方更正，正式预算/选模/数值待核 |
 | 原论文配方差异 | GEN-PU/Holistic/Robust/Split等差异保留 | GEN-PU 已于 2026-10-18 采用论文目标；Holistic-PU 保留当前实现（论文 trend 路径 + fixed/continue）；Robust/Split 等正式目标/配方仍需负责人批准 |
 | CNN oracle / GPU验收 | 正式协议、资源与多seed运行 | 10-17查询8张A6000均有占用；不抢卡，未经批准不启动正式200轮/5seed跑批 |
 
@@ -207,7 +207,7 @@ P3MIX 原始来源、实际 support 预算和正式 GPU 验收的前置阻断保
   通过；禁用 torch 的导入/构造也通过。模块和台账入包，没有私有压缩包、数组或模型。
 
 真实采样、外部预处理与组身份未由内部位置隔离自动证明；重复使用留出并反馈 α
-不额外保证逐轮置信区间。没有 OS→TS 校准、CLI/UI 注册、正式预算/数值准入，
+不额外保证逐轮置信区间。没有 TS-compatible 校准、CLI/UI 注册、正式预算/数值准入，
 没有替换既有 CVIR/BBE、冻结矩阵或历史签署，也未启动 GPU/正式跑批。
 P3MIX 完整原始来源、实际 support 来源/标签预算与正式资源批准仍是下一阶段前置，
 本次不能将这些事项登记为已完成。
@@ -216,7 +216,7 @@ P3MIX 完整原始来源、实际 support 来源/标签预算与正式资源批�
 
 上段“没有 CLI/UI 注册”是当时的交付截点。之后已将 `TEDnClassifier` 暴露于顶层 API，
 并注册实验级 `tedn` CLI/UI 元数据；构造器要求显式声明 `input_sampling="ts"`，UI
-提示 case-control 采样前提。注册并不验证调用方的数据设计，也不提供 OS→TS 校准；TEDⁿ
+提示 case-control 采样前提。注册并不验证调用方的数据设计，也不提供 TS-compatible 校准；TEDⁿ
 仍不进入冻结矩阵或正式准入，recipe、资源与负责人审核待完成。详见
 [TEDn 方法卡](../../method_cards/TEDn.md)及执行计划 §1.3。
 

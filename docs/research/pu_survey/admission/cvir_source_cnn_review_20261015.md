@@ -3,11 +3,16 @@
 状态：P3.1/P3.2 独立技术补齐，HENG958 实施；shuidisjtu 方法/接口复核待办。
 不代签 RV8，不是作者程序重放或正式算法准入，不改冻结 Pilot 的结果和协议。
 
-2026-10-17 整改补记（#117）：本 Survey 的基础数据按协议 §2.3 始终是 OS，
-CVIR 的运行路径明确为 **OS adaptation + 显式 α_U/来源**（`CVIRKnownPriorTrainer`）；
-OS→TS 校准不属于本实验，也不是运行前置，显式 `os_or_ts="ts"` 继续拒绝。
-直接组件的 `input_sampling="ts"` 只声明调用方已提供独立原生 P/边缘 U，不用于本
-Survey 的 OS 数据。冻结协议/矩阵与正式准入状态不变。
+2026-10-17 整改补记（#117）：本 Survey 的基础数据按协议 §2.3 始终按 OS 抽样，
+CVIR 的运行路径当时明确为 **OS adaptation + 显式 α_U/来源**（`CVIRKnownPriorTrainer`），
+并显式拒绝 `os_or_ts="ts"`。
+
+**2026-10-19 更正**：原记“OS→TS 校准不属于本实验”表述有误。本实验不为 TS 方法重新
+独立抽样 TS 数据；原生 TS 方法使用 **TS-compatible 校准**（训练视图逐 mini-batch 执行
+$D_U \leftarrow D_U \cup D_P$）。CVIR 为原生 TS，应走校准视图；当前显式拒绝
+`os_or_ts="ts"` 是实现缺口，待方法负责人接入后再复核。直接组件的 `input_sampling="ts"`
+仍只声明调用方已提供原生 P/边缘 U，不用于本 Survey 的 OS 数据。冻结协议/矩阵与正式
+准入状态不变。
 
 ## 来源锁定与判读
 

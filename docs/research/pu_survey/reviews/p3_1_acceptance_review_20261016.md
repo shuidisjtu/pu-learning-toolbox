@@ -34,7 +34,7 @@
 | PULNS | 接口/审计已交付，正式 support 待批 | 仅 SCAR OS + 终点 OA；标准 PU-only PA 不接受；八集 support 来源/规模/标签预算待定 |
 | GEN-PU | 论文目标已定，有条件接受 | 正式目标采用论文 prior-weighted minimax；作者 demo 仅差异对照；先验来源、TS 池、PN 阶段资格与正式 recipe 待定；归档未发现 LICENSE，登记 `unknown` |
 | Holistic-PU | 当前实现保留，有条件接受 | 论文 pairwise/variance 路径；默认 fixed + continue；作者变体仅对照；`license=unknown`；LZO/初始化/存储 recipe 与公开数值待定 |
-| CVIR | OS adaptation 已接，准入待定 | 显式 α_U；population π 只给 PA；OS→TS 校准不属于本实验；α_U 有限样本口径、候选/预算与公开数值待定 |
+| CVIR | OS adaptation 已接，准入待定 | 显式 α_U；population π 只给 PA；2026-10-19 更正：原生 TS 方法应走 TS-compatible 校准，CVIR 校准待接入；α_U 有限样本口径、候选/预算与公开数值待定 |
 | LaGAM | OS 身份已裁决，准入暂缓 | clean support 是额外训练监督，标准 PU-only PA 不适用；support/标签预算、许可与公开数值待定 |
 | VPU（既有） | 沿用 D21/D22 | 不新增准入；原生 TS、OS 消融与验证变分风险仅作 diagnostic |
 
@@ -125,7 +125,7 @@ shuidisjtu 的 RV8 复核、正式协议预算、资源 profile 与 GPU 多 seed
 - **#115 LaGAM**：发布代码先移除 validation、再从 U 移除 labeled P，采样身份
   裁决为 OS；registry/台账/类 `scenario` 已同步。
 - **#117 CVIR**：本 Survey 走 `CVIRKnownPriorTrainer` + 显式 α_U；population π
-  只给 PA，OS→TS 校准不属于本实验。
+  只给 PA；2026-10-19 更正：原生 TS 方法应走 TS-compatible 校准，CVIR 校准待接入。
 - **#116 PULNS**：额外 support 的接口/审计/披露已交付；实际 support 制品、
   标签预算与正式准入仍待批准。
 - 上述整改的工程证据与调用边界见
