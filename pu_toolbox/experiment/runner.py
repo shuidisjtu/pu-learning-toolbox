@@ -28,7 +28,12 @@ from .manifest import write_manifest
 from .protocols import route_training_view
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
 from .survey_comparison import run_comparison_units
-from .survey_protocol import runner_protocol_context
+from .survey_protocol import (
+    load_protocol,
+    resolve_unit,
+    runner_protocol_context,
+    unit_checkpoint_bytes,
+)
 from .survey_recipe_binding import bind_recipe, candidate_binding_at
 from .tracking import RunResult, RunTrajectory
 
@@ -275,7 +280,11 @@ class ExperimentRunner:
             selection_prior, selection_prior_source = self._resolve_selection_prior()
             _require_selection_prior(self.protocols, self.generator, selection_prior)
             disk_preflight = self._checkpoint_disk_preflight(
-                model, trainer, protocol_context, declared_components
+                model,
+                trainer,
+                protocol_context,
+                declared_components,
+                input_dim=int(bundle.train.X.shape[1]),
             )
             _enforce_disk_preflight(disk_preflight, protocol_context.get("execution_mode"))
         except (ValueError, TypeError, KeyError) as exc:
@@ -689,13 +698,20 @@ class ExperimentRunner:
         return trainer
 
     def _checkpoint_disk_preflight(
-        self, model, trainer, protocol_context: dict, declared_components: tuple[str, ...]
+        self,
+        model,
+        trainer,
+        protocol_context: dict,
+        declared_components: tuple[str, ...],
+        *,
+        input_dim: int | None = None,
     ) -> dict[str, Any]:
         """Measure the checkpoint storage this run needs.
 
         Returns the payload so both the rejection manifest and the resource
-        summary record what was measured, not only what was decided.  Empty
-        when the run writes no checkpoints or cannot be sized.
+        summary record what was measured, not only what was decided. Empty
+        when the run writes no checkpoints or a non-formal run cannot be sized;
+        formal runs must have a protocol-bound storage estimate.
         """
         if not _captures_checkpoints(self.config, trainer, model):
             return {}
@@ -708,11 +724,51 @@ class ExperimentRunner:
             or getattr(model, "checkpoint_epoch_count", None)
             or getattr(model, "max_epochs", None)
         )
+        formal = protocol_context.get("execution_mode") == "versioned_pilot"
+        if formal:
+            request = self.config.get("survey_protocol") or {}
+            if not request.get("path") or input_dim is None:
+                raise ValueError(
+                    "cannot estimate checkpoint disk usage for versioned pilot; "
+                    "missing protocol path or input dimension. Refusing to train "
+                    "without the protocol-bound storage estimate."
+                )
+            protocol = load_protocol(request["path"])
+            row = resolve_unit(
+                protocol,
+                request["dataset"],
+                request["method"],
+                request.get("training_path"),
+            )
+            bound_bytes = unit_checkpoint_bytes(protocol, row, input_dim=input_dim)
+            if bound_bytes is None:
+                raise ValueError(
+                    "cannot estimate checkpoint disk usage for versioned pilot; "
+                    "the bound execution unit has no checkpoint storage profile."
+                )
+            if bytes_per_component is not None and bytes_per_component != bound_bytes:
+                raise ValueError(
+                    "checkpoint_bytes_per_component disagrees with the "
+                    "protocol-bound storage profile."
+                )
+            bytes_per_component = bound_bytes
         if bytes_per_component is None or not epochs:
-            # Sizing is unknowable here: the networks are built inside fit, so
-            # an unfitted estimator reports no parameters, and a wrong constant
-            # would refuse tiny runs or wave large ones through.  Unknown is not
-            # the same as "cannot fit", so it warns rather than blocking.
+            missing = []
+            if bytes_per_component is None:
+                missing.append("checkpoint_bytes_per_component")
+            if not epochs:
+                missing.append("checkpoint epoch count")
+            if formal:
+                raise ValueError(
+                    "cannot estimate checkpoint disk usage for versioned pilot; "
+                    "missing "
+                    + " and ".join(missing)
+                    + ". Refusing to train without the protocol-bound storage estimate."
+                )
+            # For non-formal technical runs, sizing may be unknowable: networks
+            # are built inside fit, so an unfitted estimator reports no
+            # parameters. Unknown is not the same as "cannot fit", so retain
+            # the existing warning-and-continue behavior outside formal runs.
             warnings.warn(
                 "checkpoint disk usage cannot be estimated; skipping the pre-run disk check.",
                 stacklevel=2,

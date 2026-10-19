@@ -160,6 +160,16 @@ B4 的 checkpoint 预算是**百 GB 量级**（项目内部估算约 280 GB，�
   2. 门禁与格式检查（`check_format.py`、`check_test_quality.py`、`check_doc_links.py`）通过；
   3. B3b 首个 run 产出后，实测抽查：盘上仅存选中权重、manifest 标记正确、test 指标与预期一致。
 
+### 9.1 正式运行的未知容量估算拒绝（2026-10-19）
+
+正式 `versioned_pilot` 在捕获逐 epoch checkpoint 时，runner 从绑定协议、执行单元和
+实际输入维数推导 checkpoint 单组件容量，不依赖调用方自报值。若协议没有适用的存储
+profile、epoch 数不可得，或调用方提供的容量值低于/偏离协议值，runner 必须在训练前
+拒绝并写入 `rejected_versioned_pilot` manifest；不能把“无法估算”当作“空间充足”而跳过
+门禁。非正式技术 smoke 仍保留原有 warning-and-continue 行为，以免阻断无正式资源规格的
+自定义 estimator 探测。该防护不修改存储估算公式、协议预算、checkpoint 回收或历史结果。
+回归覆盖见 `tests/unit/experiment/test_checkpoint_disk_preflight.py`。
+
 ## 10. 未决事项
 
 - **B4 分批粒度**：本方案把单 run 占用降到峰值量级，但 B4 仍须先跑 dry-run 取准确的

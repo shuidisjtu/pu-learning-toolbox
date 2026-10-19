@@ -100,7 +100,7 @@ def _bound_self_pu(survey_script, tmp_path):  # noqa: F811
         "c": 0.5,
         "c_requested_token": "0.5",
         "split_ref": {"dataset": "spambase", "seed": 0},
-        "checkpoint_bytes_per_component": 1024,
+        "checkpoint_bytes_per_component": unit_checkpoint_bytes(protocol, row, input_dim=3),
         "survey_protocol": {
             "path": str(PROTOCOL_PATH),
             "dataset": "spambase",
@@ -270,12 +270,47 @@ def test_param_the_guard_admits_a_host_the_inflated_estimate_refused(free_gib, r
 def test_edge_unknown_component_size_warns_instead_of_refusing(tmp_path, monkeypatch):
     """An unsizable run is not a run that cannot fit.
 
-    The guard protects the formal pilot path, which always knows the size from
-    the protocol.  Refusing when the size is merely unknown would block custom
-    estimators for no safety gain.
+    An unbound technical smoke run may use a custom estimator with no storage
+    profile, so unknown size warns rather than blocking that non-formal path.
     """
     monkeypatch.setattr(resources, "disk_free_bytes", lambda directory: 0)
     with pytest.warns(UserWarning, match="disk"):
         manifest = _smoke_run(tmp_path, _PerEpochNetwork(), config={"c": 0.5})
     assert "checkpoint_disk_preflight" not in manifest["resources"]
     assert manifest["failures"] == []
+
+
+def test_basic_versioned_pilot_derives_protocol_size_when_config_omits_it(
+    tmp_path, monkeypatch, survey_script
+):  # noqa: F811
+    """Omitting the config value uses the protocol profile, not an unknown bypass."""
+    model, parts, config = _bound_self_pu(survey_script, tmp_path)
+    config.pop("checkpoint_bytes_per_component")
+    monkeypatch.setattr(resources, "disk_free_bytes", lambda directory: 0)
+    manifest_path = tmp_path / "manifest.json"
+    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
+
+    with pytest.raises(ValueError, match="insufficient disk"):
+        runner.fit(model, *parts)
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["execution_mode"] == "rejected_versioned_pilot"
+    assert manifest["failures"][0]["stage"] == "protocol_preflight"
+    assert manifest["resources"]["checkpoint_disk_preflight"]["required_bytes"] > 0
+    assert not (tmp_path / "checkpoints").exists()
+
+
+def test_edge_versioned_pilot_rejects_configured_size_below_protocol_bound(tmp_path, survey_script):  # noqa: F811
+    """An understated caller-supplied estimate cannot bypass formal preflight."""
+    model, parts, config = _bound_self_pu(survey_script, tmp_path)
+    config["checkpoint_bytes_per_component"] = 1
+    manifest_path = tmp_path / "manifest.json"
+    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
+
+    with pytest.raises(ValueError, match="disagrees with the protocol-bound"):
+        runner.fit(model, *parts)
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["execution_mode"] == "rejected_versioned_pilot"
+    assert manifest["failures"][0]["stage"] == "protocol_preflight"
+    assert not (tmp_path / "checkpoints").exists()
