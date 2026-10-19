@@ -190,8 +190,8 @@ class HolisticPUClassifier(BasePUClassifier):
         }:
             raise ValueError("warmup_selection must be fixed or lzo_positive_loss")
         if (
-            isinstance(self.lzo_alpha, (bool, np.bool_))
-            or not isinstance(self.lzo_alpha, (int, float, np.integer, np.floating))
+            isinstance(self.lzo_alpha, bool | np.bool_)
+            or not isinstance(self.lzo_alpha, int | float | np.integer | np.floating)
             or not np.isfinite(self.lzo_alpha)
             or self.lzo_alpha <= 0
         ):
@@ -445,7 +445,7 @@ class HolisticPUClassifier(BasePUClassifier):
             if hasattr(value, "_metadata"):
                 copied._metadata = copy.deepcopy(value._metadata)
             return copied
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return type(value)(HolisticPUClassifier._cpu_state_copy(item) for item in value)
         return copy.deepcopy(value)
 

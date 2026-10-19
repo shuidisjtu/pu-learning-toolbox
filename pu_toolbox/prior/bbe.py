@@ -26,7 +26,7 @@ from ..core.exceptions import NotFittedError
 
 
 def _unit_parameter(value: float, name: str) -> float:
-    if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real):
+    if isinstance(value, bool | np.bool_) or not isinstance(value, Real):
         raise ValueError(f"{name} must be a real number strictly between 0 and 1")
     value = float(value)
     if not 0 < value < 1:

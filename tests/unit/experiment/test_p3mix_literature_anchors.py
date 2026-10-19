@@ -33,15 +33,17 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
     split_index_path = ROOT / project["indexed_split_evidence"]["index_file"]
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
     split_index = json.loads(split_index_path.read_text(encoding="utf-8"))
-    assert hashlib.sha256(protocol_path.read_bytes()).hexdigest() == project[
-        "frozen_protocol"
-    ]["sha256"]
+    assert (
+        hashlib.sha256(protocol_path.read_bytes()).hexdigest()
+        == project["frozen_protocol"]["sha256"]
+    )
     assert project["frozen_protocol"]["version"] == protocol["protocol_version"]
     assert project["frozen_protocol"]["seeds"] == protocol["seeds"]
     assert project["frozen_protocol"]["scar_c_tokens"] == protocol["c_tokens"]["scar"]
-    assert hashlib.sha256(split_index_path.read_bytes()).hexdigest() == project[
-        "indexed_split_evidence"
-    ]["index_sha256"]
+    assert (
+        hashlib.sha256(split_index_path.read_bytes()).hexdigest()
+        == project["indexed_split_evidence"]["index_sha256"]
+    )
     indexed_cifar = split_index["datasets"]["cifar10"]
     assert project["indexed_split_evidence"]["manifest_sha256_by_seed"] == {
         str(int(key.removeprefix("split_"))): value["manifest_sha256"]
@@ -49,9 +51,10 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
         if key.startswith("split_")
     }
     assert project["expected_labeled_positive_count_by_c"] == {
-        c: int(project["indexed_split_evidence"]["observed_per_split"][
-            "train_true_positive_rows"
-        ] * float(c))
+        c: int(
+            project["indexed_split_evidence"]["observed_per_split"]["train_true_positive_rows"]
+            * float(c)
+        )
         for c in project["frozen_protocol"]["scar_c_tokens"]
     }
     assert project["assessment"]["direct_numeric_comparison_eligible"] is False
@@ -66,21 +69,31 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
     assert any("sampling frame" in caveat for caveat in record["caveats"])
     provenance = record["comparison_baseline_provenance"]
     assert set(provenance["methods"]) == {
-        "uPU", "nnPU", "nnPU+mixup", "Self-PU", "PAN", "VPU", "MIXPUL", "PULNS", "Supervised"
+        "uPU",
+        "nnPU",
+        "nnPU+mixup",
+        "Self-PU",
+        "PAN",
+        "VPU",
+        "MIXPUL",
+        "PULNS",
+        "Supervised",
     }
     assert provenance["methods"]["uPU"]["repository_as_cited"] == (
         "https://github.com/kiryor/nnPUlearning"
     )
     assert provenance["methods"]["PULNS"]["repository_as_cited"] is None
-    assert "in-house Python implementation" in provenance["methods"]["PULNS"][
-        "implementation_claim"
-    ]
-    assert "https://github.com/weitongseu/MixPUL" in provenance["methods"]["MIXPUL"][
-        "repository_identity_note"
-    ]
-    assert "does not establish the exact revision" in provenance["methods"]["MIXPUL"][
-        "repository_identity_note"
-    ]
+    assert (
+        "in-house Python implementation" in provenance["methods"]["PULNS"]["implementation_claim"]
+    )
+    assert (
+        "https://github.com/weitongseu/MixPUL"
+        in provenance["methods"]["MIXPUL"]["repository_identity_note"]
+    )
+    assert (
+        "does not establish the exact revision"
+        in provenance["methods"]["MIXPUL"]["repository_identity_note"]
+    )
     assert provenance["methods"]["Supervised"]["label_budget"].startswith(
         "not sufficiently specified"
     )

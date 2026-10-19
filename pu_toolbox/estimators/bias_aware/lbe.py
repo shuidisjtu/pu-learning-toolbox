@@ -86,20 +86,20 @@ class LBEClassifier(BasePUClassifier):
         for name in ("max_iter", "n_em_iter"):
             value = getattr(self, name)
             if (
-                isinstance(value, (bool, np.bool_))
-                or not isinstance(value, (int, np.integer))
+                isinstance(value, bool | np.bool_)
+                or not isinstance(value, int | np.integer)
                 or value < 1
             ):
                 raise ValueError(f"{name} must be a positive integer")
         if (
-            isinstance(self.C, (bool, np.bool_))
+            isinstance(self.C, bool | np.bool_)
             or not isinstance(self.C, Real)
             or not np.isfinite(self.C)
             or self.C <= 0
         ):
             raise ValueError("C must be finite and positive")
         if class_prior is not None and (
-            isinstance(class_prior, (bool, np.bool_)) or not isinstance(class_prior, Real)
+            isinstance(class_prior, bool | np.bool_) or not isinstance(class_prior, Real)
         ):
             raise ValueError("class_prior must be a scalar in (0, 1)")
         s = (y_pu == 1).astype(float)

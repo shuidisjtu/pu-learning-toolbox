@@ -157,7 +157,7 @@ class CVIRClassifier(BasePUClassifier):
             )
         alpha = self.unlabeled_positive_prior
         if (
-            isinstance(alpha, (bool, np.bool_))
+            isinstance(alpha, bool | np.bool_)
             or not isinstance(alpha, Real)
             or not np.isfinite(alpha)
             or not 0 < alpha < 1

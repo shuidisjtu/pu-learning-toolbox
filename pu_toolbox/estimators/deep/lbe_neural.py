@@ -186,8 +186,8 @@ class NeuralLBEClassifier(BasePUClassifier):
         for name in ("hidden_dim", "n_em_iter", "m_steps", "batch_size", "pretrain_steps"):
             value = getattr(self, name)
             if (
-                isinstance(value, (bool, np.bool_))
-                or not isinstance(value, (int, np.integer))
+                isinstance(value, bool | np.bool_)
+                or not isinstance(value, int | np.integer)
                 or value < (0 if name == "pretrain_steps" else 1)
             ):
                 raise ValueError(
@@ -203,7 +203,7 @@ class NeuralLBEClassifier(BasePUClassifier):
             if name == "class_prior" and value is None:
                 continue
             if (
-                isinstance(value, (bool, np.bool_))
+                isinstance(value, bool | np.bool_)
                 or not isinstance(value, Real)
                 or not np.isfinite(value)
             ):
@@ -218,8 +218,8 @@ class NeuralLBEClassifier(BasePUClassifier):
             ):
                 raise ValueError(f"{name} is outside its allowed range")
         if self.random_state is not None and (
-            isinstance(self.random_state, (bool, np.bool_))
-            or not isinstance(self.random_state, (int, np.integer))
+            isinstance(self.random_state, bool | np.bool_)
+            or not isinstance(self.random_state, int | np.integer)
             or not 0 <= self.random_state < 2**32
         ):
             raise ValueError("random_state must be None or an integer in [0, 2**32)")
