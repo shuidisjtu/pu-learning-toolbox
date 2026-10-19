@@ -474,6 +474,11 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 OS/TS、两种一致性范围和 clean/PU/ablation 选择路径均与未包装训练对照；既有风险目标、
 teacher 选择和冻结消融保持原行为，额外 support 与正式预算仍待原有批准。
 
+同轮参数加固：所有实数系数必须是有限实数标量，拒绝 bool/字符串/数组/复数及 NaN/Inf；
+预算和阶段位置必须为整数（支持 NumPy 标量），种子为 None 或 32-bit 无符号范围整数，
+`require_validation` 必须为布尔值。校验在 RNG/模型构造前完成，避免 NaN 损失权重产生
+已拟合但概率全 NaN 的模型；原有区间、阶段顺序、零权重及比例闭端点语义保持。
+
 参考资料：
 
 1. Chen et al., *Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training*, ICML 2020, PMLR 119:1510–1519。

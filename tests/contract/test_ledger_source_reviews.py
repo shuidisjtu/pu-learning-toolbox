@@ -72,6 +72,20 @@ def test_ledger_source_and_calibration_review_refs_resolve_inside_repository(
             f"{name}: invalid source_behavior_review_ref {source_ref!r}"
         )
 
+        for field in (
+            "fit_failure_review_ref",
+            "inference_state_review_ref",
+            "parameter_validation_review_ref",
+        ):
+            if field not in entry:
+                continue
+            reference = entry[field]
+            assert isinstance(reference, str) and reference, (name, field)
+            review_path = (root / reference).resolve()
+            assert review_path.is_relative_to(root) and review_path.is_file(), (
+                f"{name}: invalid {field} {reference!r}"
+            )
+
         if entry["calibration_hooked"]:
             calibration_ref = entry.get("calibration_review_ref")
             assert isinstance(calibration_ref, str) and calibration_ref, name

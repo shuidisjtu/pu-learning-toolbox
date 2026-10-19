@@ -69,7 +69,7 @@
 - [`vpu_d21_d22_review_20261018.md`](admission/vpu_d21_d22_review_20261018.md)：VPU D21/D22 只读复核；D21 成立，D22 裁决不变；“与上游一致”的验证 P 项采样表述已更正为已登记差异；不改代码、不新增准入。
 - [`gradpu_source_review_20261005.md`](admission/gradpu_source_review_20261005.md)：GradPU 来源与协议复核准备。
 - [`kldce_source_behavior_review_20261019.md`](admission/kldce_source_behavior_review_20261019.md)：KLDCE 生产 SMO 与论文附录差异、作者代码来源状态核查；不代表方法负责人签署。
-- [Self-PU 生命周期与评分补核](admission/selfpu_lifecycle_20261020.md)：失败重训/概率拟合检查、逐子模块模式恢复及 OS/TS × 一致性范围 × 选择路径回归。
+- [Self-PU 生命周期、参数与评分补核](admission/selfpu_lifecycle_20261020.md)：失败重训/概率拟合检查、有限参数/整数预算早失败、逐子模块模式恢复及 OS/TS × 一致性范围 × 选择路径回归。
 - [`candidate_cnn_storage_review_20261005.md`](admission/candidate_cnn_storage_review_20261005.md)：CNN 存储工程证据；不等于正式预算或 P3.3 验收。
 
 ### `reviews/`：独立复核和阶段性工程记录

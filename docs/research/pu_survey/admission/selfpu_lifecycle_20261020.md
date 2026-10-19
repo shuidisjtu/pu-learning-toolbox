@@ -1,4 +1,4 @@
-# Self-PU 生命周期与评分状态补核（2026-10-20）
+# Self-PU 生命周期、参数与评分状态补核（2026-10-20）
 
 范围：P3.1/P3.2 的独立工程收尾，使用本地合成数组验证 toolbox 的公开状态和评分副作用。
 来源论文与锁定作者代码的差异仍以[原行为审计](selfpu_source_behavior_review_20261019.md)为准。
@@ -38,9 +38,32 @@ PU validation helper 的模式保护保留原训练行为。
 `/tmp/selfpu-lifecycle-integration-20261020.xml`。这不是全仓重跑、正式数据或 GPU 资源验收。
 既有消融与非正式 checkpoint 容量警告仍保留。
 
+## 非有限参数导致静默 NaN 的整改
+
+进一步复现：`student_loss_weight=NaN` 可通过原有 `<0` 检查，完成拟合并将整个概率矩阵
+污染为 NaN，同时保留 `_is_fitted=True`。这类输入不是合法 recipe；错误必须在训练开始前暴露。
+
+`_validate_parameters` 现先校验所有十三项实数参数的标量类型与有限性，拒绝 bool、字符串、
+数组、复数、NaN/Inf 和不能表示为有限浮点数的超大整数，再执行原有区间限制。三个正整数
+预算和四个非负整数阶段位置接受 Python/NumPy 整数，拒绝 bool 和浮点预算；阶段顺序仍按
+原条件约束。`require_validation` 只接受布尔值，种子为 None 或 `[0,2**32-1]` 中的整数。
+全部校验在 torch seed、NumPy generator、张量/模型构造和 optimizer 之前完成。
+
+`tests/unit/estimators/test_self_pu_parameters.py` 用异常前后 RNG 状态及禁止模型构造的探针
+验证早失败；另验证 NaN 系数重训后的旧概率不可用、修正参数后可重训、Python/NumPy
+标量成功路径一致，以及零权重、比例闭端点、合法 EMA 与种子边界仍可训练。该修复不改变
+默认数值、损失分解、TS 角色、teacher 选择或正式 recipe 候选；有限参数本身也不证明收敛。
+
+参数/lifecycle/TS golden/视图不变量与上述 support/checkpoint/台账关联专项共 439 项通过、
+4 项 CUDA 测试跳过，0 失败或错误（7.956 秒）；JUnit 在本机
+`/tmp/selfpu-parameter-integration-20261020.xml`。保留既有 warning，该轮未重跑全仓测试。
+
 ## 台账和后续边界
 
 台账新增 `fit_failure_review_ref` / `inference_state_review_ref` 指向本记录，方法卡与执行计划同步。
+参数加固另以 `parameter_validation_review_ref` 指向本记录，公开 API 说明同步参数类型与范围。
+通用台账契约核对已声明的失败拟合、推理状态和参数校验记录均解析为仓库内实际文件；
+来源/registry 契约另行复跑 29 项通过，避免把缺失或越界引用当作已交付工程证据。
 候选专用的 16 方法 AST 草稿保持其原有范围；Self-PU 的生命周期由上述运行回归独立覆盖。
 额外 clean support 的真实来源、标签预算、角色身份及正式准入仍须按原协议处理；Pilot
 仍是无 meta 消融。原生 CNN 接入仍按 #38 的既有范围暂停，本修复不改变架构能力声明。

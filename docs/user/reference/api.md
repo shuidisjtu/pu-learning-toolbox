@@ -956,6 +956,9 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
 - `fit(..., validation_data=...)` 提供 clean validation 时启用元重加权与验证基教师选择。
 - `fit(..., pu_validation_data=...)` 只接收 P/U 标签，逐 epoch 记录两个 teacher 的 nnPU risk，
   并恢复 PU 验证风险最低的 teacher checkpoint；它不启用需要真实标签的元重加权。
+- 实数参数要求有限标量，拒绝 bool、字符串、数组、复数及 NaN/Inf；预算/阶段参数要求整数，
+  `require_validation` 为布尔值，`random_state` 为 None 或 `[0,2**32-1]` 整数，支持 NumPy 标量。
+  非法设置在随机种子与模型构造前抛 `ValueError`；失败重训后须重新成功拟合才能评分。
 - 文档：[Self-PU 方法卡](../../research/method_cards/Self-PU.md) · 示例：[10_self_pu.py](../../../examples/minimal/10_self_pu.py)
 
 #### `InfoMaxPUClassifier`（注册名 `infomax_pu`）

@@ -171,6 +171,11 @@ P/U 训练行复用、实际 U 先验、/255、Adam WeightDecay(0.005)、学习�
 TS golden 与 support/checkpoint 回归。台账、方法卡和[工程记录](admission/selfpu_lifecycle_20261020.md)
 同步；不改变 Pilot 消融、监督预算、#38 原生 CNN 范围或 RV5/RV6 方法学前置。
 
+同轮 Self-PU 参数加固：复现 NaN loss weight 通过校验并生成全 NaN 概率后，补齐十三项
+实数系数的有限标量、七项预算/阶段整数及布尔/种子类型边界。非法输入在 RNG/模型分配
+之前拒绝；保留现有数值范围和合法端点，新增 RNG/分配隔离、NaN 重训失效与 NumPy 标量
+成功路径回归。台账和 API 同步上述工程记录，既有成功训练协议与正式审批范围不扩展。
+
 2026-10-19 KLDCE 来源/行为独立核查：确认生产 `fit` 调用原生广义 pair-SMO，SLSQP 仅保留为
 固定质心联合 QP oracle；发现并修正模块/类 docstring 的过期 solver 描述。源码在拼接 `[α;γ]`
 上全局选对，而非附录 Algorithm 1 按两组分别选对，且 ACS 块更新顺序不同；方法卡、来源审计和

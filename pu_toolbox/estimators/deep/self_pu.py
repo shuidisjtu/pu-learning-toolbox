@@ -8,6 +8,7 @@ import copy
 import math
 import warnings
 from dataclasses import dataclass
+from numbers import Integral, Real
 from typing import Any, Literal
 
 import numpy as np
@@ -278,6 +279,10 @@ class SelfPUClassifier(BasePUClassifier):
     restore a checkpoint without exposing clean labels. Without clean labels,
     fitting emits a warning and runs the explicit self-paced + distillation
     ablation.
+
+    Numeric coefficients must be finite real scalars; integer budgets reject
+    booleans and fractional types. Invalid settings fail before RNG seeding
+    or model allocation, including when refitting a previously fitted model.
     """
 
     family = AlgorithmFamily.DEEP_PU
@@ -354,14 +359,50 @@ class SelfPUClassifier(BasePUClassifier):
         self.device = device
 
     def _validate_parameters(self, class_prior: float) -> None:
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
-        for name, value in (
-            ("hidden_dim", self.hidden_dim),
-            ("max_epochs", self.max_epochs),
-            ("batch_size", self.batch_size),
+        real_parameters = {"class_prior": class_prior}
+        for name in (
+            "max_trust_ratio",
+            "pace_1",
+            "pace_2",
+            "meta_step_size",
+            "reweight_gamma",
+            "distillation_alpha",
+            "ema_decay",
+            "student_loss_weight",
+            "teacher_loss_weight",
+            "learning_rate",
+            "weight_decay",
+            "threshold",
         ):
-            if value < 1:
-                raise ValueError(f"{name} must be >= 1.")
+            real_parameters[name] = getattr(self, name)
+        for name, value in real_parameters.items():
+            if isinstance(value, bool | np.bool_) or not isinstance(value, Real):
+                raise ValueError(f"{name} must be a finite real scalar.")
+            try:
+                finite = math.isfinite(value)
+            except (OverflowError, TypeError):
+                finite = False
+            if not finite:
+                raise ValueError(f"{name} must be a finite real scalar.")
+
+        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+        for name in (
+            "hidden_dim",
+            "max_epochs",
+            "batch_size",
+            "warmup_epochs",
+            "self_paced_start",
+            "self_paced_end",
+            "distill_start",
+        ):
+            value = getattr(self, name)
+            minimum = 1 if name in {"hidden_dim", "max_epochs", "batch_size"} else 0
+            if (
+                isinstance(value, bool | np.bool_)
+                or not isinstance(value, Integral)
+                or value < minimum
+            ):
+                raise ValueError(f"{name} must be an integer >= {minimum}.")
         if not (
             0
             <= self.warmup_epochs
@@ -389,17 +430,27 @@ class SelfPUClassifier(BasePUClassifier):
             if value < 0.0 or not upper_ok:
                 interval = "[0, 1]" if name == "reweight_gamma" else "[0, 1)"
                 raise ValueError(f"{name} must be in {interval}.")
-        if (
-            self.meta_step_size <= 0
-            or self.learning_rate <= 0
-            or self.weight_decay < 0
-            or self.distillation_alpha < 0
-            or self.student_loss_weight < 0
-            or self.teacher_loss_weight < 0
+        for name in ("meta_step_size", "learning_rate"):
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive.")
+        for name in (
+            "weight_decay",
+            "distillation_alpha",
+            "student_loss_weight",
+            "teacher_loss_weight",
         ):
-            raise ValueError("Learning, loss, and regularization parameters are out of range.")
+            if getattr(self, name) < 0:
+                raise ValueError(f"{name} must be nonnegative.")
         if not 0.0 < self.threshold < 1.0:
             raise ValueError("threshold must be in (0, 1).")
+        if not isinstance(self.require_validation, bool | np.bool_):
+            raise ValueError("require_validation must be a boolean.")
+        if self.random_state is not None and (
+            isinstance(self.random_state, bool | np.bool_)
+            or not isinstance(self.random_state, Integral)
+            or not 0 <= self.random_state <= 2**32 - 1
+        ):
+            raise ValueError("random_state must be None or an integer in [0, 2**32 - 1].")
         if not isinstance(self.distillation_scope, str) or self.distillation_scope not in {
             "untrusted_u",
             "paper_population",

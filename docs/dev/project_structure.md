@@ -318,6 +318,7 @@ tests/
       test_rank_pruning_source_contract.py # RP 独立排序/计数、真实 OOF 隔离与最终重权成本
       test_nnpu_lifecycle.py            # nnPU 失败重训失效、评分逐层模式恢复与成功训练等价
       test_self_pu_lifecycle.py         # Self-PU 失败重训失效、teacher 评分隔离与 OS/TS 选择路径等价
+      test_self_pu_parameters.py        # Self-PU 有限实数/整数预算边界、RNG 早失败隔离与 NumPy 标量兼容
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
