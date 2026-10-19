@@ -19,6 +19,7 @@
         "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）",
         "run_view": "os-compatible",
         "calibration_applied": false,
+        "calibration_hooked": false,
         "prior_semantics": "无；目标不需要外部类先验，兼容 fit 参数仅校验后忽略",
         "adaptation_level": "paper-faithful benchmark-adapted（论文 Eq.7/Algorithm 1 独立实现；二维 MLP 或注入 CNN 编码器的 C/D 两份独立副本；官方源码 morning-dews/PAN@5be7036 的 max-margin U 项/eps=1e-2/sums/overlap=True/Adam betas+wd 差异已登记，不声称 source-faithful；不声称作者图像/文本架构复现）",
         "code_version": {
@@ -78,6 +79,7 @@
         "native_sampling_assumption": "os（观测 s 的随机漏标：rho1=P(s=0|Y=1)，rho0=0；总体样本中估计观测比例）",
         "run_view": "os-compatible",
         "calibration_applied": false,
+        "calibration_hooked": false,
         "prior_semantics": "无需外部；估计 rho1 与观测比例推导的 pi，外部 fit 先验仅校验后忽略",
         "adaptation_level": "benchmark-adapted（独立 sklearn 适配；CV clone/固定随机种子；默认保留每类至少 10 个，与作者严格阈值和 ties 保留相同；正例均值用 max(P) 仅修正上溢舍入，避免空 confident/NaN，非逐位源复现）",
         "code_version": {

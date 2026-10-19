@@ -33,6 +33,8 @@
 - [PULDA 出版入口](https://ieeexplore.ieee.org/document/10264106)仍需浏览器验证；方法卡记录
   2026-10-18 已取得并核对 19 页全文及摘要。本工作区当前未保留该 PDF，因此本清单没有
   独立重读表格、也不补录未经本次源文件核验的读数；不拿 Dist-PU 的 91.88±0.52 当 PULDA 结果。
+  2026-10-19 通过[第一作者主页](https://jiangyangby.github.io/publications/)重试 PDF 入口，
+  仍转入 IEEE 的 JavaScript/机器人验证页；精确 PDF 尚未重新取得，锚点保持缺席，不能据此推断论文没有可登记数值。
 
 逐条推翻条件：读数、行列、单位、重复数或所列协议与原表/正文不同；提供原页或
 仓库+commit+文件行号即可提出更正。GradPU 的 90.5 / 92.9 属相邻 Sup. 列，不是 GradPU；

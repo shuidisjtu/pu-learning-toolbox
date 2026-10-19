@@ -72,6 +72,11 @@ def test_deterministic_json_mapping_and_catalog():
     assert input_sampling["required"] is True
     assert input_sampling["kind"] == "choice"
     assert input_sampling["choices"] == ["ts"]
+    gradpu = next(item for item in catalog if item["name"] == "gradpu")
+    lr_schedule = next(p for p in gradpu["parameters"] if p["name"] == "lr_schedule")
+    assert lr_schedule["kind"] == "choice"
+    assert lr_schedule["default_value"] == "constant"
+    assert lr_schedule["choices"] == ["constant", "linear", "cosine"]
 
 
 @pytest.mark.parametrize(

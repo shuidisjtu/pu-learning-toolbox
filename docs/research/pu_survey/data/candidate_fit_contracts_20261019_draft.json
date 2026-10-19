@@ -5,7 +5,7 @@
   "guard_ref": "pu_toolbox/core/fit_state.py",
   "guard_sha256": "6729de40c3c3b38d56139520bdc313237e0d8c09d8c44af13e4988ae67399310",
   "checker_ref": "scripts/check_candidate_fit_contracts.py",
-  "checker_sha256": "afca454953ed97bba41e6ee8d7f54a68d9c00ad24de9ee6ea9bec43c8ddd4e78",
+  "checker_sha256": "6c575685d750678cfcc9e8a5f1f0ca790fcee240daed91092fdedf252db1059d",
   "invalidates_before_argument_binding": true,
   "exception_boundary": "BaseException_reraise_no_retry",
   "rollback_of_models_or_external_artifacts": false,
@@ -57,6 +57,7 @@
       "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "puet": {
@@ -98,12 +99,13 @@
       "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "gradpu": {
       "class": "GradPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
-      "implementation_sha256": "81099e253016b6cd9ac01605ed608dd2b92129034035825f04a35946b2c4992b",
+      "implementation_sha256": "cbcb9690c4b69a982e3ecdfd1a923b348fd11ca4f769c791f06a3ad7354184c3",
       "fit_parameters": [
         {
           "name": "X",
@@ -145,6 +147,7 @@
       "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "robust_pu": {
@@ -192,6 +195,7 @@
       "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "split_pu": {
@@ -239,6 +243,7 @@
       "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "genpu": {
@@ -286,6 +291,7 @@
       "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "holistic_pu": {
@@ -333,6 +339,7 @@
       "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "lagam": {
@@ -380,6 +387,7 @@
       "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "pulns": {
@@ -439,6 +447,7 @@
       "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "tedn": {
@@ -484,8 +493,9 @@
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir.independent_extensions.tedn",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
       "review_document_sha256": "5bb0cab7a11c8303640f39785e5f2bd6d71aeb8b2980c7c0490ab1204ab18e1b",
-      "run_view": "explicit ts input, caller sampling assertion unverified",
+      "run_view": "ts-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "vpu": {
@@ -539,6 +549,7 @@
       "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "lbe_neural": {
@@ -586,6 +597,7 @@
       "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "pan": {
@@ -633,6 +645,7 @@
       "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "cvir": {
@@ -674,6 +687,7 @@
       "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "rp": {
@@ -715,6 +729,7 @@
       "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     },
     "p3mix": {
@@ -762,6 +777,7 @@
       "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
+      "calibration_hooked": false,
       "formal_admission": false
     }
   }

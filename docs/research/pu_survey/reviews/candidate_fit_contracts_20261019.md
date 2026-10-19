@@ -28,8 +28,11 @@ python scripts/check_candidate_fit_contracts.py --check \
   PULNS/LaGAM的显式support_data保留，不伪称PU-only。
 - 绑定实现、共享guard、检查器及工程审阅文档的规范化文本SHA；
   Windows/Linux统一换行，不以CRLF差异伪造源码变化。
-- 保存参数名称/位置/关键字类别、必填或默认值，以及台账view/calibration事实；
-  不自动换算prior、改风险角色、增加标签预算或放行阶段。
+- 保存参数名称/位置/关键字类别、必填或默认值，以及台账view、
+  `calibration_applied` 和 `calibration_hooked`。16个候选必须显式声明 hook；
+  applied=true 必须有 hook，hook=true 必须公开 `os_or_ts` fit 参数；未校准但标记为
+  TS-compatible 的 TEDn 必须明确 `not_applicable_native_ts`。不自动换算prior、改风险角色、
+  增加标签预算或放行阶段。
 - 拒绝缺失/越出仓库的证据文件和假批准字段；formal_admission始终false、签署为空。
 
 这是AST声明及身份核对，不是任意Python的安全验证或训练行为证明。
@@ -40,7 +43,8 @@ BaseException传播、无重试、签名透明、失效后拒绝公开预测等�
 ## 工程验收
 
 检查器专项27项通过、零跳过/失败/错误，5.825秒（旧15候选截点）；更新为16候选后的
-专项结果以本轮测试运行记录为准。包括逐方法删guard的反例、
+专项结果以本轮测试运行记录为准。包括逐方法删guard的反例、校准 hook 缺失/矛盾/接口缺失
+及 native-TS 声明缺失的反例、
 guard import/额外clean角色/kwargs/重复装饰/越界引用拒收、源码变化与CRLF、
 陈旧/伪准入记录和CLI，以及禁止Torch导入的独立进程。
 原协议、矩阵、历史资源/结果和负责人签署保持不动；全仓最终验收在本轮结束记录。

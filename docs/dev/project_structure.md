@@ -539,6 +539,7 @@ tests/
       test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
       test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
       test_support_data.py              # 五数据集支持集抽样、train-only 预处理和制品损坏/身份回归
+      test_p3mix_literature_anchors.py  # <<< 新文件,补注释
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

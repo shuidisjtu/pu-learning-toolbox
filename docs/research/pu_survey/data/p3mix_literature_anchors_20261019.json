@@ -1,0 +1,97 @@
+{
+  "schema_version": "p3mix-literature-anchors-1",
+  "review_status": "pending_method_owner_review",
+  "source": {
+    "file": "30_who_is_your_right_mixup_partne.pdf",
+    "sha256": "8599cffab378b0e3dfb7586a55cef482587b7b29f187619833c00b0545d5f528",
+    "artifact_retained_in_repository": false,
+    "title": "Who Is Your Right Mixup Partner in Positive and Unlabeled Learning?",
+    "venue": "ICLR",
+    "year": 2022,
+    "openreview_id": "NH29920YEmj"
+  },
+  "scope": "Source-audit anchors only. Not a new experimental result, numeric verdict, admission, or addition to the frozen survey comparison matrix.",
+  "metric": {
+    "name": "classification_accuracy",
+    "unit": "percent",
+    "spread": "standard_deviation",
+    "repeats": 5
+  },
+  "protocol": {
+    "dataset": "CIFAR-10",
+    "tasks": {
+      "CIFAR-10-1": {"positive_class_indices": [0, 1, 8, 9]},
+      "CIFAR-10-2": {"positive_class_indices": [2, 3, 4, 5, 6, 7]}
+    },
+    "labeled_positive_count": 1000,
+    "validation_count": 500,
+    "backbone": "7-layer CNN",
+    "protocol_source": "§3.1, printed pp. 5-6; Table 1"
+  },
+  "anchors": [
+    {
+      "task": "CIFAR-10-1",
+      "variant": "P3Mix",
+      "mean": 87.0,
+      "spread": 1.1,
+      "locations": [{"table": 3, "pdf_page_1_based": 7, "printed_page": 7}]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "P3Mix",
+      "mean": 84.3,
+      "spread": 0.6,
+      "locations": [{"table": 3, "pdf_page_1_based": 7, "printed_page": 7}]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "P3Mix-E",
+      "mean": 88.2,
+      "spread": 0.4,
+      "locations": [
+        {"table": 2, "pdf_page_1_based": 6, "printed_page": 6},
+        {"table": 3, "pdf_page_1_based": 7, "printed_page": 7}
+      ]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "P3Mix-E",
+      "mean": 84.7,
+      "spread": 0.5,
+      "locations": [
+        {"table": 2, "pdf_page_1_based": 6, "printed_page": 6},
+        {"table": 3, "pdf_page_1_based": 7, "printed_page": 7}
+      ]
+    },
+    {
+      "task": "CIFAR-10-1",
+      "variant": "P3Mix-C",
+      "mean": 88.7,
+      "spread": 0.4,
+      "locations": [
+        {"table": 2, "pdf_page_1_based": 6, "printed_page": 6},
+        {"table": 3, "pdf_page_1_based": 7, "printed_page": 7}
+      ]
+    },
+    {
+      "task": "CIFAR-10-2",
+      "variant": "P3Mix-C",
+      "mean": 87.9,
+      "spread": 0.5,
+      "locations": [
+        {"table": 2, "pdf_page_1_based": 6, "printed_page": 6},
+        {"table": 3, "pdf_page_1_based": 7, "printed_page": 7}
+      ]
+    }
+  ],
+  "caveats": [
+    "Repeated E/C values in Tables 2 and 3 are duplicate reports in the same paper, not independent experiments.",
+    "These anchors do not establish comparability with the toolbox ResNet-18 pilot: backbone, split construction, selection rule, and full training recipe differ or remain unresolved.",
+    "The paper reports five independent runs but does not provide per-run observations, so seed-level values cannot be reconstructed from mean and standard deviation."
+  ],
+  "references": {
+    "method_review": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md",
+    "method_card": "docs/research/method_cards/P3MIX.md",
+    "frozen_comparison_matrix_modified": false
+  }
+}

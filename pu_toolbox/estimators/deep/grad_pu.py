@@ -12,6 +12,7 @@ from __future__ import annotations
 import copy
 import math
 from numbers import Real
+from typing import Literal
 
 import numpy as np
 
@@ -130,7 +131,7 @@ class GradPUClassifier(BasePUClassifier):
         batch_size: int = 256,
         max_epochs: int = 200,
         learning_rate: float = 1e-3,
-        lr_schedule: str = "constant",
+        lr_schedule: Literal["constant", "linear", "cosine"] = "constant",
         lr_final_ratio: float = 0.1,
         weight_decay: float = 5e-4,
         encoder=None,

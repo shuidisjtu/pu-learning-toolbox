@@ -106,10 +106,17 @@ def build_contracts(*, root=ROOT):
     for method, module in METHODS.items():
         if method == "tedn":
             entry = facts["methods"]["cvir"]["independent_extensions"]["tedn"]
+            route_entry = facts["methods"]["tedn"]
+            for field in ("calibration_applied", "calibration_hooked"):
+                require(
+                    entry.get(field) == route_entry.get(field),
+                    "TEDn independent-extension calibration drift: " + field,
+                )
             class_name = "TEDnClassifier"
             ledger_ref = LEDGER + "#methods.cvir.independent_extensions.tedn"
         else:
             entry = facts["methods"][method]
+            route_entry = entry
             class_name = entry["class"]
             ledger_ref = LEDGER + "#methods." + method
         implementation = "pu_toolbox/estimators/" + module
@@ -134,6 +141,20 @@ def build_contracts(*, root=ROOT):
         require(len(classes) == 1, "missing/duplicate candidate class: " + method)
         review_ref = entry.get("fit_failure_review_ref")
         review = repo_file(root, review_ref)
+        calibration_hooked = route_entry.get("calibration_hooked")
+        require(type(calibration_hooked) is bool, "missing/invalid calibration_hooked: " + method)
+        calibration_applied = route_entry["calibration_applied"]
+        require(type(calibration_applied) is bool, "bad calibration flag: " + method)
+        require(
+            not calibration_applied or calibration_hooked,
+            "calibration_applied=true without an explicit fit hook: " + method,
+        )
+        run_view = route_entry.get("run_view", entry.get("run_view"))
+        if not calibration_hooked and run_view == "ts-compatible":
+            require(
+                route_entry.get("calibration_applicability") == "not_applicable_native_ts",
+                "uncalibrated TS-compatible method lacks native-TS applicability: " + method,
+            )
         methods[method] = {
             "class": class_name,
             "implementation_ref": implementation,
@@ -142,11 +163,19 @@ def build_contracts(*, root=ROOT):
             "ledger_ref": ledger_ref,
             "fit_failure_review_ref": review_ref,
             "review_document_sha256": source_digest(review),
-            "run_view": entry.get("run_view", entry.get("native_sampling_assumption")),
-            "calibration_applied": entry["calibration_applied"],
+            "run_view": run_view or entry.get("native_sampling_assumption"),
+            "calibration_applied": calibration_applied,
+            "calibration_hooked": calibration_hooked,
             "formal_admission": False,
         }
-        require(type(methods[method]["calibration_applied"]) is bool, "bad calibration flag")
+        if calibration_hooked:
+            require(
+                any(
+                    parameter["name"] == "os_or_ts"
+                    for parameter in methods[method]["fit_parameters"]
+                ),
+                "calibration_hooked=true without a public os_or_ts fit parameter: " + method,
+            )
     result = {
         "schema_version": "candidate-fit-contracts-engineering-draft-1",
         "scope": "AST declarations and source identity; runtime behavior belongs to tests",

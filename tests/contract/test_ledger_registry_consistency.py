@@ -153,10 +153,11 @@ def test_upstream_url_is_a_bare_http_url(ledger_methods: dict[str, dict]) -> Non
 
 @pytest.mark.contract
 def test_calibration_applied_is_a_json_boolean(ledger_methods: dict[str, dict]) -> None:
-    """``calibration_applied`` is a JSON boolean, not a string with prose."""
+    """Calibration state/hook are explicit JSON booleans, not prose or omissions."""
     for name, entry in ledger_methods.items():
-        value = entry["calibration_applied"]
-        assert isinstance(value, bool), f"{name}: {type(value).__name__} {value!r}"
+        for field in ("calibration_applied", "calibration_hooked"):
+            value = entry[field]
+            assert isinstance(value, bool), f"{name}.{field}: {type(value).__name__} {value!r}"
 
 
 @pytest.mark.contract
@@ -166,14 +167,16 @@ def test_ledger_calibration_claims_have_a_real_fit_hook(
     """A TS default must have an explicit estimator view parameter."""
     for name, entry in ledger_methods.items():
         calibrated = entry["calibration_applied"]
+        hooked = entry["calibration_hooked"]
         if calibrated:
             assert entry["run_view"] == "ts-compatible", name
+            assert hooked, name
         elif entry["run_view"] == "ts-compatible":
             assert native_sampling_assumption(entry) == "ts", name
             assert entry.get("calibration_applicability") == "not_applicable_native_ts", name
         else:
             assert entry["run_view"] == "os-compatible", name
-        if calibrated:
+        if hooked:
             assert native_sampling_assumption(entry) in {"ts", "both"}, name
             parameters = inspect.signature(get_algorithm(name).fit).parameters
             assert "os_or_ts" in parameters, name

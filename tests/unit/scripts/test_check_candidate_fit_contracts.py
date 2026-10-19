@@ -38,6 +38,10 @@ def test_basic_determ_record_matches_current_sources_without_authorization():
     assert report["rollback_of_models_or_external_artifacts"] is False
     assert report["methods"]["tedn"]["ledger_ref"].endswith("independent_extensions.tedn")
     assert report["methods"]["pulns"]["calibration_applied"] is False
+    assert report["methods"]["pulda"]["calibration_hooked"] is True
+    assert report["methods"]["p3mix"]["calibration_hooked"] is False
+    assert report["methods"]["tedn"]["calibration_hooked"] is False
+    assert report["methods"]["tedn"]["run_view"] == "ts-compatible"
     for method, row in report["methods"].items():
         assert row["formal_admission"] is False
         assert len(row["implementation_sha256"]) == 64
@@ -46,6 +50,33 @@ def test_basic_determ_record_matches_current_sources_without_authorization():
         assert "y_true" not in names and "test_data" not in names
         if method in {"pulns", "lagam"}:
             assert "support_data" in names  # extra supervision stays explicit
+
+
+@pytest.mark.parametrize(
+    "method,field,value,error",
+    [
+        ("robust_pu", "calibration_hooked", None, "calibration_hooked"),
+        ("genpu", "calibration_hooked", False, "without an explicit fit hook"),
+        ("tedn", "calibration_hooked", True, "TEDn independent-extension calibration drift"),
+        ("tedn", "calibration_applicability", None, "native-TS applicability"),
+    ],
+)
+def test_param_calibration_hook_contract_is_explicit(checkout, method, field, value, error):
+    path = checkout / checker.LEDGER
+    facts = json.loads(path.read_text(encoding="utf-8"))
+    if method != "tedn":
+        entry = facts["methods"][method]
+    elif field == "calibration_applicability":
+        entry = facts["methods"]["tedn"]
+    else:
+        entry = facts["methods"]["cvir"]["independent_extensions"]["tedn"]
+    if value is None:
+        entry.pop(field)
+    else:
+        entry[field] = value
+    path.write_text(json.dumps(facts), encoding="utf-8")
+    with pytest.raises(ValueError, match=error):
+        checker.build_contracts(root=checkout)
 
 
 @pytest.mark.parametrize("method", list(checker.METHODS))
@@ -58,7 +89,9 @@ def test_edge_missing_guard_on_any_candidate_is_rejected(checkout, method):
         checker.build_contracts(root=checkout)
 
 
-@pytest.mark.parametrize("fault", ["import", "clean_role", "kwargs", "duplicate", "reference"])
+@pytest.mark.parametrize(
+    "fault", ["import", "clean_role", "kwargs", "duplicate", "reference", "missing_ts_hook"]
+)
 def test_param_invalid_contracts_are_not_silently_accepted(checkout, fault):
     path = checkout / "pu_toolbox/estimators/deep/gen_pu.py"
     source = path.read_text(encoding="utf-8")
@@ -72,11 +105,13 @@ def test_param_invalid_contracts_are_not_silently_accepted(checkout, fault):
         source = source.replace(
             "@invalidate_failed_fit", "@invalidate_failed_fit\n    @invalidate_failed_fit"
         )
-    else:
+    elif fault == "reference":
         ledger_path = checkout / checker.LEDGER
         facts = json.loads(ledger_path.read_text(encoding="utf-8"))
         facts["methods"]["genpu"]["fit_failure_review_ref"] = "../outside.md"
         ledger_path.write_text(json.dumps(facts), encoding="utf-8")
+    else:
+        source = source.replace('os_or_ts="os", ', "")
     path.write_text(source, encoding="utf-8")
     with pytest.raises(ValueError):
         checker.build_contracts(root=checkout)

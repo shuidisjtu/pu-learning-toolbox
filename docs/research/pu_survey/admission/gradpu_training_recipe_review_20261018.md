@@ -64,3 +64,11 @@ JUnit `/tmp/gradpu121-final-targeted.xml`。两项跳过为未执行的CUDA测�
 三个seed、MLP/注入CNN、OS/TS共12条默认固定LR路径，与修改前自有代码的原损失
 轨迹、预测和更新数逐bit一致。新增策略以实际Adam step拦截验证，不只检查日志。
 来源/默认值、公开对照和预算草稿核验通过，保留所有正式批准字段为空或false。
+
+## 2026-10-19 参数界面同步
+
+将 `lr_schedule` 的公开类型从任意字符串收窄为 `Literal["constant", "linear", "cosine"]`，
+使动态参数 UI 能展示合法选项下拉框，而不是要求用户手工输入字符串。默认值仍为
+`constant`，训练逻辑、既有选项、学习率轨迹及正式搜索空间均未改变；UI catalog 回归
+核对选项及默认值，候选 fit-contract 草稿同步绑定新的 GradPU 源码摘要。这只是可用性和
+类型契约修正，不代表 #121 的调度/预算选择已获合作者批准。

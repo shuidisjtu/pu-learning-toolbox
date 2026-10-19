@@ -17,6 +17,8 @@
 
 ## 公开数值锚点（来源记录，不并入冻结矩阵）
 
+同一组 CIFAR-10 读数已另存为可机器读取的[锚点清单](../data/p3mix_literature_anchors_20261019.json)，其中绑定本地 PDF SHA-256、表格位置、指标单位、五次运行与协议事实。清单保持 `pending_method_owner_review`，且明确不改冻结矩阵；E/C 在 Table 2 与 Table 3 的重复列出被记为同篇论文内的重复报告，不视作独立样本。
+
 原文 §3.1–3.2 称每个数据集/方法独立运行 5 次，表 2 与表 3 的指标为 classification accuracy（mean ± standard deviation）。CIFAR-10 的两种合成 PU 任务及原文值如下（百分数）：
 
 | 原文任务 | 正类映射 | 来源表 | P3Mix | P3Mix-E | P3Mix-C | Supervised |
