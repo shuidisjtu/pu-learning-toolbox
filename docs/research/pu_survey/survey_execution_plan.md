@@ -99,7 +99,7 @@ PULDA、PUET、GradPU、Robust-PU、Split-PU；`check_p3_public_comparison.py` �
 PU CIFAR-10 锚点与两条非 PU 全监督参照由 `test_p3mix_literature_anchors.py` 单独核对，候选 fit 生命周期由
 `check_candidate_fit_contracts.py` 纳入；以上均是技术一致性证据，不替代 RV8 或正式准入。
 
-2026-10-19 依据全文新增[P3MIX 文献锚点机器记录](data/p3mix_literature_anchors_20261019.json)，绑定上传 PDF 摘要、Table 2/3 页码、CIFAR 类别映射、1000 个标记正例、500 个验证样本和五次运行的 accuracy 均值/标准差；随后补齐 Table 2 八种 PU 比较方法及两条 Supervised 全监督参照，并显式保留未充分说明的训练样本/标签预算限制。该记录只用于来源审计，E/C 重复报告不视作独立实验；保持待负责人复核，不写入冻结矩阵或实验结果，也不改变准入状态。
+2026-10-19 依据全文新增[P3MIX 文献锚点机器记录](data/p3mix_literature_anchors_20261019.json)，绑定上传 PDF 摘要、Table 2/3 页码、CIFAR 类别映射、1000 个标记正例、500 个验证样本和五次运行的 accuracy 均值/标准差；随后补齐 Table 2 八种 PU 比较方法及两条 Supervised 全监督参照，并登记 Appendix A 的基线代码来源/自编实现与未固定的 revision、验证/选模和 split/seed 绑定限制。该记录只用于来源审计，E/C 重复报告不视作独立实验；保持待负责人复核，不写入冻结矩阵或实验结果，也不改变准入状态。
 
 2026-10-19 P3MIX 生命周期同步：将完整 estimator 纳入16候选 `check_candidate_fit_contracts.py`
 静态身份门禁；补未知 fit 参数绑定失败和 epoch 中断后的失效回归，更新台账工程引用及机器草稿。

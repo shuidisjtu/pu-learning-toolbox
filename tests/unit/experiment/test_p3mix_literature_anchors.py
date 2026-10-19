@@ -18,7 +18,7 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
     record = json.loads(ANCHORS_PATH.read_text(encoding="utf-8"))
     source_path = ROOT / record["source"]["file"]
 
-    assert record["schema_version"] == "p3mix-literature-anchors-1"
+    assert record["schema_version"] == "p3mix-literature-anchors-2"
     assert record["review_status"] == "pending_method_owner_review"
     assert record["source"]["sha256"] == EXPECTED_PDF_SHA256
     assert record["source"]["openreview_id"] == EXPECTED_OPENREVIEW_ID
@@ -35,6 +35,21 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
         "selection_use": "not specified in the paper",
     }
     assert any("sampling frame" in caveat for caveat in record["caveats"])
+    provenance = record["comparison_baseline_provenance"]
+    assert set(provenance["methods"]) == {
+        "uPU", "nnPU", "nnPU+mixup", "Self-PU", "PAN", "VPU", "MIXPUL", "PULNS", "Supervised"
+    }
+    assert provenance["methods"]["uPU"]["repository_as_cited"] == (
+        "https://github.com/kiryor/nnPUlearning"
+    )
+    assert provenance["methods"]["PULNS"]["repository_as_cited"] is None
+    assert "in-house Python implementation" in provenance["methods"]["PULNS"][
+        "implementation_claim"
+    ]
+    assert provenance["methods"]["Supervised"]["label_budget"].startswith(
+        "not sufficiently specified"
+    )
+    assert len(provenance["unresolved_protocol"]) == 2
     assert record["metric"] == {
         "name": "classification_accuracy",
         "unit": "percent",
