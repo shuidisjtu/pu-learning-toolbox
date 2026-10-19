@@ -33,11 +33,12 @@ registry 派生 scenario 统一为 SINGLE_TRAINING_SET、台账与准入草案�
   来源；α_U 是分布参数，不是从 U 真标签计算的有限样本比例，不声称来源已统计验证。
 - OS 工程适配：默认组件保持旧优化行为；独立实验注入 `CVIRKnownPriorTrainer`，
   必须给 α_U 和来源，仅 SCAR。PA 的总体 π 与训练 α_U 分开，前者绝不转发给 fit。
-- OS→TS 校准：不属于本 Survey 的 OS 实验，也未实现；显式校准请求拒绝，
-  台账 calibration_hooked=false。排序、保留与损失全部针对原始 U，无 P 偷换入候选；
-  不预判简单合并必然够或不够。本 Survey 的基础数据按协议 §2.3 始终是 OS，
-  因此运行路径是上面的 OS 工程适配；`input_sampling=ts` 是直接组件的原生 TS
-  输入契约，不是 `os_or_ts` 训练视图校准，也不是 OS 运行的前置条件。
+- TS-compatible 校准（2026-10-19 更正）：原记“OS→TS 校准不属于本 Survey 的 OS 实验”
+  有误。基础数据始终按 OS 抽样，不为 TS 方法重新抽样；原生 TS 方法使用
+  TS-compatible 校准（逐 mini-batch 执行 $D_U \leftarrow D_U \cup D_P$）。CVIR 为原生 TS，
+  应走校准视图；当前未实现、显式请求拒绝，台账 `calibration_hooked=false`，属待实现的
+  缺口。排序、保留与损失目前全部针对原始 U，无 P 接入候选；不预判简单合并必然够或不够。
+  `input_sampling=ts` 是直接组件的原生 TS 输入契约，与 `os_or_ts` 训练视图校准不同。
 
 候选 manifest 登记 input_sampling、path、known_prior、α_U、source、角色数量和
 calibration_applied=false；PA 的 population π/来源仍在 selection 中。

@@ -74,7 +74,7 @@ model = BBEMixtureEstimator(input_sampling="ts", random_state=42).fit(X, y_pu)
 alpha_u = model.estimate_unlabeled_prior()
 ```
 
-本 BBE 组件只补独立二维工程路径；不含 TEDⁿ 分类器、原深度配方、OS→TS 转换、自动写入总体 π
+本 BBE 组件只补独立二维工程路径；不含 TEDⁿ 分类器、原深度配方、TS-compatible 校准、自动写入总体 π
 或正式数值准入。来源差异与可辨识性前提见 [BBE 方法卡](../../research/method_cards/BBE.md)。
 
 ### P3Mix 分类器（实验级注册；原生 OS）

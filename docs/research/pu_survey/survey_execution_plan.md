@@ -20,7 +20,7 @@
 二维 PvU 内部留出估计入口；目标显式为 α_U，不接 OS 总体先验或现有 CVIR，
 不改冻结矩阵。另补独立 [TEDⁿ](../method_cards/TEDn.md) 完整交替训练工程路径；
 截至 2026-10-19，TEDn 已实验级注册至 API/registry/CLI/UI，要求调用方显式声明原生
-`input_sampling="ts"`，但不做 OS→TS 校准，也不自动验证采样设计。真实数据数值验收、
+`input_sampling="ts"`，但不执行 TS-compatible 校准（要求调用方声明原生 TS 数据），也不自动验证采样设计。真实数据数值验收、
 正式预算和准入仍未完成。
 
 | 编号 | 任务 | 证据 |
@@ -354,7 +354,8 @@ Issue #40的P4.1-A本地工程接线不等于P4.1-B冻结；Issue #88成本分�
 2026-10-15 P3.1/P3.2 工程补记：[CVIR 来源差异与 CNN/CPU-stream](admission/cvir_source_cnn_review_20261015.md)
 保留论文加权目标与旧二维默认，披露发布代码差异，补图像/分批/两阶段成本快照；
 α_U 来源、正式共享规格与准入仍未批准，HENG958 复核待办。
-（2026-10-17 #117 明确本 Survey 走 OS adaptation + 显式 α_U；OS→TS 校准不属于本实验，不是运行前置。）
+（2026-10-17 #117 曾记本 Survey 走 OS adaptation + 显式 α_U；2026-10-19 更正：基础数据始终
+按 OS 抽样，原生 TS 方法使用 TS-compatible 校准，CVIR 校准待接入。）
 
 2026-10-14 P3.2 独立工程补记：[神经 LBE 变体](delivery/lbe_neural_integration_20261014.md)
 以 `lbe_neural` 另立双网络 Adam/CNN/分批及 OS-only 接线，原线性 `lbe` 和冻结矩阵不变。
