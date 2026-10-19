@@ -160,7 +160,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         ),
         supports_sparse=False,
         supports_gpu=False,
-        upstream_url="https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
+        upstream_url=None,
         license="unknown",
         training_cost=Cost.MEDIUM,  # 100 iterations, QP oracle on RBF
     ),

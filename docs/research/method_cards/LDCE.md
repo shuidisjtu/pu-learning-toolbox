@@ -223,9 +223,9 @@ m\leftarrow\hat m+\hat S^{-1}w\sqrt{\frac{b}{w^\top\hat S^{-1}w}}.
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_related` |
-| Official code | `https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar` |
+| Author-linked related archive (early CEGE, not final LDCE/KLDCE code) | `https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar` |
 | License | `needs_review` |
 | Integration basis | clean-room（方法卡先行），官方源码仅作算法参考 |
 
-- `.rar` 压缩包无 license 声明，仅作算法参考，不直接复用代码；代码对应的是 **CEGE 会议早期版本**，并非 PAMI 终稿的 LDCE 算法（详见 ADR-0014 #7），论文 Algorithm 1（MoM 质心）和 Algorithm 2（交替优化）均需从零实现。
+- `.rar` 压缩包无 license 声明，且对应 **CEGE 会议早期版本**，并非 PAMI 终稿的 LDCE 算法（详见 ADR-0014 #7），不直接复用或作为终稿实现证据；论文 Algorithm 1（MoM 质心）和 Algorithm 2（交替优化）均需从零实现。该 archive 仅登记在线性 `centroid_pu` 来源注记中，不是核化 `kldce` 的上游代码。
 - 线性 LDCE 已实现（NATIVE）；核化版 KLDCE 见 [`KLDCE.md`](KLDCE.md)。

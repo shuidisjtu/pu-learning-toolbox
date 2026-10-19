@@ -148,6 +148,10 @@ API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻�
 ledger 已披露，契约测试锁定该差异。KLDCE/台账测试、JSON、文档链接及 diff 检查通过；不改
 求解策略、冻结结果或准入，仍待 RV8 方法负责人复核。
 
+同日来源身份补正：`CEGE_PAMI20.rar` 是相关线性 LDCE 家族的早期会议版本，不是 KLDCE 作者实现。
+KLDCE registry/ledger 来源状态现为 `not_found` 且 `upstream_url=null`；该 archive 仍只关联
+线性 `centroid_pu`，不会据此推断任何其它未知实现不存在。
+
 2026-10-19 PUSB 线性项来源/行为核查：确认 `PUSBClassifier` 是直接拟合观测 P/U 来源标签的
 `StandardScaler + LogisticRegression` 附加基线，`predict_proba` 是来源标签概率，非论文后验排序
 算法或校准后验；官方论文来源与 PUSBKernel RBF 适配不应被误读为该线性 estimator 的 exact 实现。

@@ -320,8 +320,8 @@
         "year": 2021
       },
       "code_version": {
-        "upstream_url": "https://gcatnjust.github.io/ChenGong/code/CEGE_PAMI20.rar",
-        "source_status": "official_related（无官方代码；论文正文 + 在线补充附录为唯一权威，KLDCE.md:233）"
+        "upstream_url": null,
+        "source_status": "not_found（未找到可确认的 KLDCE 作者实现；CEGE_PAMI20.rar 是线性 LDCE 家族的早期会议版本，不能作为核化 PAMI 方法的源码身份；论文正文与在线补充附录是当前唯一方法来源）"
       },
       "implementation_status": "NATIVE; 广义 pair-SMO 已接入 fit（解析可行 pair steps、KKT 检查）；在联合 [α;γ] 变量中全局选对，不是附录 Algorithm 1 的分组逐步复现；SLSQP oracle 对照校验; 2026-08-25 质心单调回滚并定格 inner_tol=1e-6（KLDCE.md §8）",
       "native_sampling_assumption": "os（censoring PU，单一 i.i.d. 训练样本内 P 与污染负类混合；SCAR 型 censoring，KLDCE.md:13/31/37, registry:kldce）",
@@ -343,7 +343,7 @@
       "evidence": {
         "native_sampling_assumption": "KLDCE.md:13/31/37; registry:kldce scenario=SINGLE_TRAINING_SET",
         "prior_semantics": "KLDCE.md:16/46; registry:kldce",
-        "adaptation_level": "KLDCE.md:233-234; registry:kldce source_status=OFFICIAL_RELATED",
+        "adaptation_level": "KLDCE.md:233-234; registry:kldce source_status=NOT_FOUND; CEGE archive belongs only to related early linear LDCE lineage",
         "source_behavior_review": "docs/research/pu_survey/admission/kldce_source_behavior_review_20261019.md"
       },
       "uncertainty": [

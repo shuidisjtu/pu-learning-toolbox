@@ -230,7 +230,7 @@ KLDCE 与 LDCE 共享同一论文实验协议与数据集（5 折、$`h\in\{0.2,
 
 | 字段 | 内容 |
 |---|---|
-| Source status | `official_related`：无官方代码，论文正文 + 在线补充附录为唯一权威 |
+| Source status | `not_found`：未找到可确认的 KLDCE 作者实现；论文正文 + 在线补充附录为唯一权威 |
 | 实现状态（2026-10-19 核查） | 原生广义 pair-SMO 已接入 `fit`，SLSQP oracle 保留作数值对照；内层对拼接的 `[α;γ]` 联合变量全局选 pair，**不是**附录 Algorithm 1 按 α/γ 两组分别选对的逐步复现；ACS 块更新顺序也与附录不同。实现和边界见[来源/行为审计](../pu_survey/admission/kldce_source_behavior_review_20261019.md)。质心回滚、`inner_tol=1e-6` 与 ACS 判据见 §6。 |
 | Registry | `kldce` 独立注册（2026-08-05），详见 ADR-0014 #6 |
 | 复现风险 | 正文未规定 KKT 违反度定义、可行区间展开式、缓存策略、容差与停止判据（见 §5）；当前 generalized pair-SMO 使用附录解析更新思想，但在拼接 `[α;γ]` 上全局选对，非 Algorithm 1 分组式逐步复现；SLSQP oracle 对照的是固定质心联合 QP，不能证明逐步行为相等。质心单调回滚（§3.2/§6）也是论文未覆盖的实现决策；精确 Gram 矩阵 $`O(n^2)`$ 内存 |
@@ -255,3 +255,5 @@ KLDCE 与 LDCE 共享同一论文实验协议与数据集（5 折、$`h\in\{0.2,
 3. **Chang & Lin, LIBSVM** — 可生产实现的 SMO、核缓存、收敛与数值细节。只复用框架，不复用其标准 C-SVC 对偶公式。[官方论文](https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf)；[官方实现](https://www.csie.ntu.edu.tw/~cjlin/libsvm/)
 4. **Gao et al. (AAAI 2016), LICS** — LDCE 质心平滑的直接来源，给出了 MoM、椭球约束与交替优化的完整线性伪代码。[AAAI 论文](https://cdn.aaai.org/ojs/10293/10293-13-13821-1-2-20201228.pdf)
 5. **Shi et al. (IJCAI 2018)** — LDCE 前身版本，可核对线性推导；它不含 KLDCE，不能替代补充材料。[IJCAI 论文](https://www.ijcai.org/proceedings/2018/0373.pdf)
+
+来源区分（2026-10-19 更正）：作者页上的 `CEGE_PAMI20.rar` 是 CEGE 会议早期版本，历史上用于说明线性 LDCE 家族的来源差异（见 [`LDCE.md`](LDCE.md)），不是 KLDCE 的官方实现。KLDCE registry/ledger 不再将该包登记为其 `upstream_url`；这只表示本次未找到 KLDCE 作者代码，不推断代码在其他位置不存在。

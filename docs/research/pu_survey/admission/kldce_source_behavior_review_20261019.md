@@ -8,6 +8,8 @@
 - 论文 §2–3 定义 censoring PU：单一 i.i.d. 总体样本，正例以概率 `η` 被隐去，负例不会变成观测正例；式 (1)–(3) 给出噪声与类先验关系。作者稿 PDF 第 2–3 页（PDF 页序）对应上述定义。
 - 核化 KLDCE 与 appendix SMO 的逐式说明以当前[方法卡](../../method_cards/KLDCE.md)记录的正文 §6.2、在线补充附录 Algorithm 1 和式 (21)–(40) 为来源索引。公开稿正文能核对方法设定，但不能单独代替在线附录中的 SMO 规格。
 
+2026-10-19 来源身份更正：仓库此前曾把作者页 `CEGE_PAMI20.rar` 写成 KLDCE 的 `upstream_url`，与“未找到 KLDCE 官方代码”的方法卡结论相矛盾。该压缩包实际是 CEGE 会议早期版本，属于相关线性 LDCE 家族的历史材料，不是 TPAMI 终稿 KLDCE 实现；因此 KLDCE registry/ledger 的来源状态已改为 `not_found`、`upstream_url=null`。线性 `centroid_pu` 的相关 archive 注记不变。`not_found` 只表示本次审阅未找到可确认的 KLDCE 作者实现，不证明其他位置不存在实现。
+
 ## 当前实现行为
 
 | 项目 | 代码证据 | 核查结论 |

@@ -825,7 +825,7 @@ class KLDCEClassifier(BasePUClassifier):
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior: bool = False
     implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
-    source_status: SourceStatus = SourceStatus.OFFICIAL_RELATED
+    source_status: SourceStatus = SourceStatus.NOT_FOUND
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.RESEARCH
     sample_weight_support: SampleWeightSupport = SampleWeightSupport.IGNORED

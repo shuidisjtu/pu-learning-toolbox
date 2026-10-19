@@ -86,14 +86,23 @@ def test_self_pu_population_scope_source_review_is_registered(
 def test_kldce_source_behavior_review_is_registered(ledger_methods: dict[str, dict]) -> None:
     """KLDCE source audit discloses its generalized pair-SMO adaptation."""
     method = ledger_methods["kldce"]
+    metadata = get_metadata("kldce")
+    linear_metadata = get_metadata("centroid_pu")
     expected = "docs/research/pu_survey/admission/kldce_source_behavior_review_20261019.md"
     review_path = _ROOT / expected
+    assert metadata.source_status.value == "not_found"
+    assert metadata.upstream_url is None
+    assert method["code_version"]["source_status"].startswith("not_found")
+    assert method["code_version"]["upstream_url"] is None
+    assert linear_metadata.source_status.value == "official_related"
+    assert linear_metadata.upstream_url.endswith("/CEGE_PAMI20.rar")
     assert method["source_behavior_review_ref"] == expected
     assert method["evidence"]["source_behavior_review"] == expected
     assert review_path.is_file()
     review = review_path.read_text(encoding="utf-8")
     assert "不是附录 Algorithm 1 中 α/γ 两组分别选择" in review
     assert "不可称作逐行或逐组复现" in review
+    assert "CEGE_PAMI20.rar" in review and "不是 TPAMI 终稿 KLDCE 实现" in review
     assert "不改变冻结矩阵、历史结果或准入状态" in review
 
 
