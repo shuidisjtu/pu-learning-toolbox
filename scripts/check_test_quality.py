@@ -413,6 +413,14 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "error path (a ledger key absent from the registry) is the key-set test"
         ),
     },
+    "test_ledger_source_reviews.py": {
+        "basic": (
+            "static review-reference registrations over fixed JSON/Markdown; behavioral "
+            "coverage of each method lives in its own estimator and pipeline suites"
+        ),
+        "edge": "fixed evidence identities; no callable input boundary in this contract",
+        "param": "static review-reference contract; nothing under test takes validated parameters",
+    },
     "test_bundle.py": {
         "determ": (
             "validate_bundle is a pure function (no randomness, no seed state); "
