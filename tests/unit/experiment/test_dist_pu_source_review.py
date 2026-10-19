@@ -17,7 +17,7 @@ def test_dist_pu_source_identity_is_not_misread_as_training_fidelity():
     review = ROOT / entry["source_behavior_review_ref"]
     assert review.is_file()
     content = review.read_text(encoding="utf-8")
-    for behavior in ("warm-up", "伪标签时序", "histogram", "test loader"):
+    for behavior in ("warm-up", "伪标签时序", "histogram", "test loader", "scheduler 计步"):
         assert behavior in content
     assert any("batch_size 未生效" in item for item in entry["uncertainty"])
     assert "clean-room" in entry["implementation_status"]

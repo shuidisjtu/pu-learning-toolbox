@@ -16,6 +16,7 @@
 | 损失 | warm-up 使用基础损失；PU 阶段在原批次上计算 `base_loss`，加动态熵项，并对 mixup 输出计算熵和 soft-target Mixup BCE。 | 实现包含正例 BCE、均值对齐平方项、逐样本二元熵与预测均值目标 Mixup BCE。 | 两者是不同的算法/目标实现，不是仅仅 backbone 不同。 |
 | 伪标签时序 | PU 阶段在初始化时以模型更新伪标签；每个 batch 使用当前伪标签，强制已标记 P 目标为 1，优化后再写回该批未标记行预测。 | 每个 epoch 从当前模型输出生成 mixup soft targets；没有持久的逐样本伪标签状态。 | 对训练历史的依赖和梯度输入不同。 |
 | 优化器与日程 | warm-up Adam 使用 `warm_up_lr`、`warm_up_weight_decay`；进入 PU 阶段后重建 Adam，使用另一组学习率/权重衰减，并采用余弦 scheduler。动态 `co_entropy` 按 epoch 递增。 | 一个 Adam，无 weight decay 参数/阶段切换/scheduler；熵权重固定。 | 当前 estimator 不是作者训练 schedule 的重放。 |
+| scheduler 计步 | `CosineAnnealingLR(..., T_max=pu_epochs)`；warm-up 的 `utils.train()` 与 PU 的 `train_mixup()` 都在每个 mini-batch optimizer step 后调用 `scheduler.step()`。 | 没有 scheduler。 | 作者程序的 scheduler 计数单位是 batch，不能把默认 `pu_epochs=60` 简写成 60 次 epoch 级衰减。 |
 | 结构与数据 | 作者代码按 CIFAR-10、Fashion-MNIST、Alzheimer 构造不同网络/数据处理；仓库 README 给出其环境。 | 当前类为二维输入的小型 MLP，不含作者图像 backbone、数据增强或数据 loader。 | 不得将当前 clean-room 输出与论文图像结果宣称为复现。 |
 | 选模 | 官方 `train.py` 每 epoch 在 test loader 上计算 accuracy，并以最高 accuracy 记录 best。 | estimator 本身不读取 test/clean 标签；由实验层选模。 | 不能照抄官方 test-based 选择；项目实验仍须遵循本仓库预注册的 PA/OA 规则。 |
 
@@ -42,4 +43,5 @@ label-distribution loss，`frac_prior=1/(2*prior)`。因此，方法卡 §3 的�
 - 作者锁定训练入口：[`train.py` @ `cb74be1`](https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective/blob/cb74be1a87176fd38270873c06374e53905b7354/train.py)
 - 作者分布损失：[`losses/distributionLoss.py` @ `cb74be1`](https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective/blob/cb74be1a87176fd38270873c06374e53905b7354/losses/distributionLoss.py)
 - 作者熵定义：[`losses/entropyMinimization.py` @ `cb74be1`](https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective/blob/cb74be1a87176fd38270873c06374e53905b7354/losses/entropyMinimization.py)
+- 作者 scheduler 更新位置：[`utils.py` @ `cb74be1`](https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective/blob/cb74be1a87176fd38270873c06374e53905b7354/utils.py) 与 `train.py::train_mixup()`。
 - 本地实现与登记：[Dist-PU 方法卡](../../method_cards/Dist-PU.md)、`pu_toolbox/estimators/risk/dist_pu.py`、`pu_toolbox/experiment/method_ledger.json`。

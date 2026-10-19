@@ -238,6 +238,8 @@ H(q)=-q\log q-(1-q)\log(1-q).
 不是仅将上述几项核心损失放入一个训练循环：程序先做 60 epoch warm-up，再做 60 epoch Dist-PU；
 使用 batch_size 256 的 shuffled DataLoader；PU 阶段每个 batch 基于持久伪标签做 mixup，优化后更新当前行
 伪标签；进入 PU 阶段会重建 Adam、切换学习率/weight decay，并运行余弦调度和逐 epoch 熵系数日程。
+作者把 `CosineAnnealingLR` 的 `T_max` 设为 `pu_epochs`，但在 warm-up 和 PU 阶段均逐 mini-batch 调度，
+所以官方 scheduler 的实际计步单位是 batch，不应误读成每 epoch 一次。
 作者 `distributionLoss.py` 使用 batch 内直方图分布距离，目标为 P 直方图与单点正类 proxy 的距离，加上
 `1/(2*pi)` 加权的 U 直方图与边缘先验混合 proxy 的距离；不等同于本卡 §3 的单样本均值平方对齐 clean-room
 目标。作者脚本每个 epoch 在 test loader 上按 accuracy 记录 best，这种选择不能移入本项目。
