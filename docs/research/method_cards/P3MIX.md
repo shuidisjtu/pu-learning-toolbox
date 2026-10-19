@@ -24,6 +24,8 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 
 公开 mixup helper 先将输入与候选提升到共同浮点 dtype，再替换伙伴并混合；整数输入搭配带小数候选时保留候选数值。二维特征与四维图像均有凸组合和输入不变性回归。
 
+角色行次只统计优化 batch 的原始 P/U 主样本，不另计 mixup 伙伴、池刷新或 teacher forward；它披露的是 batching 复用量，不能当作完整计算量或资源上界。
+
 `tests/unit/estimators/test_p3mix.py` 覆盖 batch 方程、边界、epoch 末训练 P top-k 熵池刷新、身份、三变体短拟合、EMA 参数/缓冲更新、CNN encoder 实际更新、推断、失败重训和注册信息。当前实现和测试属于工程集成证据，尚无公开 benchmark 行为对照、GPU 多 seed 复现或合作者签署。
 
 ## 当前状态与准入边界
