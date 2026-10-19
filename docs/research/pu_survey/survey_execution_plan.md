@@ -175,6 +175,8 @@ metadata、方法卡、API 与 ledger，并加行数范围回归。论文和剩�
 2026-10-19 来源证据索引补齐：扫描发现 PULDA、PUET、GradPU、Split-PU、VPU 已有的论文/作者源码行为材料
 未统一绑定到 ledger `source_behavior_review_ref`。现分别链接对应 method card、GradPU 来源复核及 VPU 采样审计，
 并用契约测试核对字段与证据文件身份；该同步只改善可追溯性，不把来源材料升级为方法签署、数值复现或正式准入。
+同轮候选 fit 生命周期门禁也发现 P3Mix `implementation_sha256` 落后于已提交的 γ=0.5 边界修复；只刷新该草稿摘要，
+实现本身及冻结协议/实验结果不变。
 
 2026-10-19 P3.2 CNN feature adapter 模式恢复：[专项记录](admission/feature_adapter_inference_modes_20261019.md)。
 修复特征抽取只保留根模块模式且 eval 转换位于异常保护外的问题；39 项相关测试中 34 通过、
