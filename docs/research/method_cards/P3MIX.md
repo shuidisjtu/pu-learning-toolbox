@@ -12,7 +12,7 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 - P3Mix-E 在式 (8) 中加入 teacher 正则 `mean log(1 - <f(x;Theta), y_tilde>)`；teacher 对 mixup 后样本给目标，并在 Algorithm 1 的每个 epoch 末按 EMA 更新。实现把 agreement 截至 `1-1e-7`，避免完全一致时 `log(0)`。Algorithm 1 写明 Θ 与 eΘ 均随机初始化，但未说明二者是否独立；本实现复制 student 初始化 teacher，是待复核的工程选择。
 - P3Mix-C 在 mixup 前，将 `f(x;Theta) > gamma` 的 U 伪负标签改为正类。E 与 C 是论文定义的两个独立变体，不合并为一个方法。
 
-正文实验设置（§3.1，第 6 页）说明 Adam、alpha=1、k=100、beta ∈ {0.8, 0.9, 1.0}、gamma ∈ {0.85, 0.9, 0.95}；P3Mix-E 的 eta 在 {1,2,3,4,5} 中选。Fashion-MNIST 用 LeNet-5，CIFAR-10 与 STL-10 用 7-layer CNN；每个数据集 5 次独立运行，另有 500 个验证样本。论文未给出完整学习率/epoch/batch 配置或 mean-teacher EMA 衰减；Algorithm 1 说 Θ/eΘ 均随机初始化，但未说明是否独立，本工具箱使用 student 副本并将其标为工程选择。论文也没有作者代码地址。结果表是公开文献锚点，不代表本项目复现结果；CIFAR-10 结构化读数、PDF 摘要和重复表格位置见[机器可读来源锚点](../pu_survey/data/p3mix_literature_anchors_20261019.json)，状态仍为待负责人复核，不并入冻结对照矩阵。
+正文实验设置（§3.1，第 6 页）说明 Adam、alpha=1、k=100、beta ∈ {0.8, 0.9, 1.0}、gamma ∈ {0.85, 0.9, 0.95}；P3Mix-E 的 eta 在 {1,2,3,4,5} 中选。Fashion-MNIST 用 LeNet-5，CIFAR-10 与 STL-10 用 7-layer CNN；每个数据集 5 次独立运行，另报告 500 个验证样本，但未说明验证样本的抽样框、类别组成或选模用途。论文未给出完整学习率/epoch/batch 配置或 mean-teacher EMA 衰减；Algorithm 1 说 Θ/eΘ 均随机初始化，但未说明是否独立，本工具箱使用 student 副本并将其标为工程选择。论文也没有作者代码地址。结果表是公开文献锚点，不代表本项目复现结果；CIFAR-10 结构化读数、PDF 摘要和重复表格位置见[机器可读来源锚点](../pu_survey/data/p3mix_literature_anchors_20261019.json)，状态仍为待负责人复核，不并入冻结对照矩阵。
 
 ## Toolbox 实现
 

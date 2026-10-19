@@ -96,6 +96,7 @@
         "Paper §2.1 updates the top-k candidate pool once per epoch; the initial pool is described as random. The implementation initializes it uniformly from observed training P, then refreshes it from training P only.",
         "P3Mix-E uses the printed log(1-<f, target>) regularizer with EMA teacher probabilities; implementation caps agreement at 1-1e-7 to avoid log(0). It updates EMA at epoch end as Algorithm 1 orders it. Algorithm 1 says initialize both student Θ and teacher eΘ randomly but does not state whether independently; implementation copies student into teacher as an explicit engineering choice. Paper does not specify EMA decay.",
         "The paper reports 5 runs and class accuracy anchors, but local benchmark data, exact split identities, and author code are not established by this integration. No result is added to the frozen comparison matrix.",
+        "Section 3.1 reports 500 validation instances but does not identify their sampling frame, class composition, or model/parameter-selection use; do not map this to clean-label validation or PA/OA without further evidence.",
         "No TS calibration hook, formal survey admission, approved resource profile, or GPU multi-seed result is claimed. P3Mix-E and P3Mix-C are independent paper variants, not a combined variant."
       ]
     },

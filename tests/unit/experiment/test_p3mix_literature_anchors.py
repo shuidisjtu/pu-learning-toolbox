@@ -25,6 +25,13 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
         assert record["source"]["sha256"] == digest
     assert record["scope"].startswith("Source-audit anchors only")
     assert record["references"]["frozen_comparison_matrix_modified"] is False
+    assert record["protocol"]["validation_definition"] == {
+        "count": 500,
+        "sampling_frame": "not specified in the paper",
+        "class_composition": "not specified in the paper",
+        "selection_use": "not specified in the paper",
+    }
+    assert any("sampling frame" in caveat for caveat in record["caveats"])
     assert record["metric"] == {
         "name": "classification_accuracy",
         "unit": "percent",

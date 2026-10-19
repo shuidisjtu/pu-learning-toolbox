@@ -25,6 +25,12 @@
     },
     "labeled_positive_count": 1000,
     "validation_count": 500,
+    "validation_definition": {
+      "count": 500,
+      "sampling_frame": "not specified in the paper",
+      "class_composition": "not specified in the paper",
+      "selection_use": "not specified in the paper"
+    },
     "backbone": "7-layer CNN",
     "protocol_source": "§3.1, printed pp. 5-6; Table 1"
   },
@@ -86,6 +92,7 @@
   ],
   "caveats": [
     "Repeated E/C values in Tables 2 and 3 are duplicate reports in the same paper, not independent experiments.",
+    "Section 3.1 reports 500 validation instances but does not specify their sampling frame, class composition, or how they are used for model/parameter selection; do not infer these from the reported accuracy tables.",
     "These anchors do not establish comparability with the toolbox ResNet-18 pilot: backbone, split construction, selection rule, and full training recipe differ or remain unresolved.",
     "The paper reports five independent runs but does not provide per-run observations, so seed-level values cannot be reconstructed from mean and standard deviation."
   ],

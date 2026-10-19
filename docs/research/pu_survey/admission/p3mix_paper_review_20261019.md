@@ -28,7 +28,7 @@
 | CIFAR-10-1 | `{0,1,8,9}` | Table 2, p. 6 | — | 88.2 ± 0.4 | 88.7 ± 0.4 | 91.3 ± 0.3 |
 | CIFAR-10-2 | `{2,3,4,5,6,7}` | Table 2, p. 6 | — | 84.7 ± 0.5 | 87.9 ± 0.5 | 91.3 ± 0.3 |
 
-数据与协议出处：§3.1 印刷页 5 说明沿用 CIFAR-10 默认 0–9 标签，按 (0,1,8,9) 与 (2,3,4,5,6,7) 构造两种互反任务；每个数据集随机抽取训练集中的 1,000 个正例，并使用 500 个 validation instances。表 1（p. 6）指定 CIFAR-10 backbone 为 7-layer CNN。表 2 的 supervised 行是全监督参照，不是 PU 可比方法。论文在该处没有列出每次运行的数值或置信区间，所以不能从 mean±std 还原 seed 级观测。
+数据与协议出处：§3.1 印刷页 5 说明沿用 CIFAR-10 默认 0–9 标签，按 (0,1,8,9) 与 (2,3,4,5,6,7) 构造两种互反任务；每个数据集随机抽取训练集中的 1,000 个正例，并报告使用 500 个 validation instances。**论文未说明这 500 个样本的抽样框、类别组成或如何用于模型/超参选择**，因此不能推断为固定比例 clean validation，也不能直接映射为本项目 PA/OA 选模口径。表 1（p. 6）指定 CIFAR-10 backbone 为 7-layer CNN。表 2 的 supervised 行是全监督参照，不是 PU 可比方法。论文在该处没有列出每次运行的数值或置信区间，所以不能从 mean±std 还原 seed 级观测。
 
 与本项目的对应关系仅是**候选外部锚点**：CIFAR-10-1 正类映射与本项目 `{0,1,8,9}` 一致，但论文 7-layer CNN 与本项目 ResNet-18 小图 stem 不同；论文的 1,000 个已标记正例、validation 构造、训练/预处理细节和本项目 split/label budget/选模口径须逐项核对后才能判断可比性。Table 2/3 的相同 E/C 数字是同一论文中的重复报告，不是两份独立实验。上述值只补入本来源审计文档，**不新增或改写** `survey_comparison_v1.json`、冻结协议、既有 anchor、Pilot 结果或准入状态。
 
@@ -44,4 +44,5 @@
 
 - HENG958 按 RV8 复核本交叉表、batching/网络/优化器/EMA 工程决定和实现边界；审阅状态仍 pending。
 - 正式数据/label map、PA/OA 选模规则、P3Mix 训练预算、超参搜索范围和资源规格须单独登记批准。
+- 论文只报告 500 个 validation instances，未给抽样框、标签组成和选模用途；正式 recipe 不得把它直接解释为 clean-label validation 或 PA/OA 验证集。
 - 需要实际执行批准后的公开数据复现与多 seed/GPU 资源验收；本轮不改 `survey_protocol_v1.json`、冻结矩阵或 645-run 结果。
