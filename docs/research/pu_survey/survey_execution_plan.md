@@ -106,6 +106,12 @@ CIFAR-10 锚点由 `test_p3mix_literature_anchors.py` 单独核对，候选 fit 
 另加强显式 CNN encoder 回归：确认拟合会更新 estimator 内 encoder 权重、但不改调用方模板。
 59项候选门禁、P3MIX 与台账一致性测试通过，正式准入仍 false；历史实验与冻结协议未改。
 
+2026-10-19 来源锁/方法台账交叉契约补齐：Dist-PU 与 PUSB kernel 的已锁定作者 commit
+此前仅见于来源锁/行为审计或 Dist-PU 说明文字，现同步为台账结构化 `upstream_commit`；
+契约测试逐项绑定 nnPU、Dist-PU、PUSB kernel、Self-PU 的锁定 commit 与行为审计，并断言线性
+`pusb` 不继承 kernel 来源 pin。RECPE 与先验估计来源仍在来源锁中，但不是算法台账方法，不强行映射。
+台账 JSON、来源/台账契约、Dist-PU/PUSB kernel estimator 测试通过；不表示逐行复现或正式准入。
+
 原文复审补记：Algorithm 1 第 1 行明确将 student Θ 与 teacher eΘ 均随机初始化，但未说明
 二者是否独立；当前实现复制 student 初始化 teacher。已把这一点从“论文未说明初始化”更正为
 “初始化关系未定义、实现选择待方法负责人确认”；同时登记式(8)在 agreement 处以 `1−1e−7`

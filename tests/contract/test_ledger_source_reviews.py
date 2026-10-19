@@ -134,6 +134,62 @@ def test_pusb_kernel_source_behavior_review_is_registered(
 
 
 @pytest.mark.contract
+@pytest.mark.parametrize(
+    ("method_name", "lock_key", "expected_commit", "review_ref"),
+    [
+        (
+            "nnpu",
+            "nnpu",
+            "a92c5365c07490c871e338c07f6e31d3eae2ca37",
+            "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md",
+        ),
+        (
+            "dist_pu",
+            "dist_pu",
+            "cb74be1a87176fd38270873c06374e53905b7354",
+            "docs/research/pu_survey/admission/dist_pu_source_behavior_review_20261019.md",
+        ),
+        (
+            "pusb_kernel",
+            "pusb",
+            "3401b77ccdd653d39f4f3a6258a42c7938fa9ede",
+            "docs/research/pu_survey/admission/pusb_kernel_source_behavior_review_20261019.md",
+        ),
+        (
+            "self_pu",
+            "self_pu",
+            "a0e332ae4f8110e2490d597876e36bf837e1060f",
+            "docs/research/pu_survey/admission/selfpu_source_behavior_review_20261019.md",
+        ),
+    ],
+)
+def test_method_upstream_pin_matches_locked_source_and_behavior_review(
+    ledger_methods: dict[str, dict],
+    method_name: str,
+    lock_key: str,
+    expected_commit: str,
+    review_ref: str,
+) -> None:
+    """Structured method pins stay aligned with the frozen source lock and audit."""
+    lock_path = _ROOT / "benchmarks/assigned_methods/configs/official_sources.lock.json"
+    source_lock = json.loads(lock_path.read_text(encoding="utf-8"))["sources"][lock_key]
+    method = ledger_methods[method_name]
+    assert source_lock["status"] == "locked"
+    assert source_lock["commit"] == expected_commit
+    assert method["code_version"]["upstream_commit"] == expected_commit
+    assert method["source_behavior_review_ref"] == review_ref
+    assert expected_commit in (_ROOT / review_ref).read_text(encoding="utf-8")
+
+
+@pytest.mark.contract
+def test_linear_pusb_does_not_inherit_kernel_source_commit(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The related upstream repository pin belongs to the kernel method, not baseline."""
+    assert "upstream_commit" not in ledger_methods["pusb"]["code_version"]
+
+
+@pytest.mark.contract
 def test_upu_source_behavior_review_discloses_source_pin_gap(
     ledger_methods: dict[str, dict],
 ) -> None:

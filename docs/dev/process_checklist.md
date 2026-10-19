@@ -22,6 +22,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 2026-10-19 Self-PU / 候选来源审计：锁定作者 commit 的 `train_2s2t_mix.py` 将 `split=test` 输入用于负预测熵 meta 更新，并按测试真值准确率选 checkpoint；来源行为与工具箱 clean-support 隔离路径已分别记录。PULDA、PUET、GradPU、Split-PU、VPU 的既有来源材料也已补齐 ledger 机器引用；相关契约、16 候选生命周期及 P3 证据门禁通过。以上是来源/工程审计，不构成论文数值复现、RV5/RV8 签署或准入。见[Self-PU 来源行为复核](../research/pu_survey/admission/selfpu_source_behavior_review_20261019.md)与[执行计划](../research/pu_survey/survey_execution_plan.md)。
 
+2026-10-19 来源锁/台账交叉契约：Dist-PU、PUSB kernel 与锁定作者 commit 建立结构化台账字段和契约，覆盖 nnPU、Dist-PU、PUSB kernel、Self-PU 四项；线性 `pusb` 明确不继承 kernel pin。测试通过；不构成代码忠实度认定或正式准入。详见[执行计划](../research/pu_survey/survey_execution_plan.md)。
+
 2026-10-16 P4.1-A/P2.2/RV3–RV7：新增正式 registry 条件 CI 与 require-locked 声明门禁；正式文件未物化时 skipped，冻结时须改为必需存在。补原结果树分批字节/路径/摘要接收检查、nnPU supplement 取证和 PUBench 增强/搜索预算候选补记；不代签、不改 v3/旧结果，原结果树独立重放仍待，见[推进记录](../research/pu_survey/reviews/p41_p22_progress_20261016.md)。
 
 2026-10-16：接受 Pilot 数据技术证据和阶段 A/B 标签语义功能复核，确认 RV1/RV2 完成，不再额外要求人工签署。标签语义相关 170 项测试及 PNU 三值直接训练通过，Issue #41 可关闭；见[阶段 B 验收](../research/pu_survey/delivery/label_semantics_stage_b_20261015.md)。下列日期记录保留历史状态，PR 的 Windows ZIP 测试问题单独处理。

@@ -361,6 +361,7 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
+        "upstream_commit": "cb74be1a87176fd38270873c06374e53905b7354",
         "source_status": "official_exact (locked commit cb74be1a87176fd38270873c06374e53905b7354; identifies upstream source only, not toolbox training fidelity)"
       },
       "source_behavior_review_ref": "docs/research/pu_survey/admission/dist_pu_source_behavior_review_20261019.md",
@@ -453,7 +454,8 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/MasaKat0/PUlearning",
-        "source_status": "official_related (registry:pusb_kernel)"
+        "upstream_commit": "3401b77ccdd653d39f4f3a6258a42c7938fa9ede",
+        "source_status": "official_related (locked author repository commit; source relevance does not imply line-by-line reproduction)"
       },
       "implementation_status": "NATIVE, backend NUMPY；clean-room RBF 核适配器：复刻官方基选择（中心一次选取）、shuffled-fold CV、PU 目标与先验分位数规则，暴露 sklearn 估计器 API（pusb_kernel.py:3-9, PUSB.md:145）",
       "native_sampling_assumption": "ts（两集合视图 P_+^obs=p(x|y=1,s=1) 与 P_U=p(x)；原生标注机制为 SAR（e(x) 随 x 变化），PUSB.md:15/27-28, registry:pusb_kernel）",
