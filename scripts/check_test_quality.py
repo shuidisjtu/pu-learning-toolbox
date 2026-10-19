@@ -150,6 +150,14 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 # every run and flagged as removable once the category is covered, so
 # the list stays honest and shrinkable.
 PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
+    "test_p3mix_literature_anchors.py": {
+        "determ": "the test reads a fixed JSON anchor file and hashes; no RNG or seed state",
+        "edge": (
+            "the shipped anchor record is a fixed artifact; malformed-record boundaries are "
+            "not a runtime input surface here"
+        ),
+        "param": "the test takes no parameters; it asserts the shipped fixture",
+    },
     "test_review_survey_split_receipt_cli.py": {
         "edge": (
             "only the import/argparse surface is exercised; input-boundary cases of "
@@ -336,13 +344,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "determ": (
             "export-contract test compares structure and forward shape only, "
             "never trained weights (random init); no RNG/seed dependence"
-        ),
-    },
-    "test_capability_declarations.py": {
-        "basic": (
-            "declaration-consistency contract tests (legality / registry-sync / "
-            "derivation / signature); fit-predict behavioral smoke is covered by "
-            "test_classifier_baseline.py and the algorithm unit suites"
         ),
     },
     "test_cli_deep_save_model.py": {

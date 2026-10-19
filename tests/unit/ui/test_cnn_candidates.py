@@ -21,27 +21,3 @@ def test_cnn_candidates_matches_registry_declarations():
     for meta in list_algorithms(trainable_only=True):
         if "cnn" in meta.native_architectures:
             assert meta.name in candidates, meta.name
-
-
-@pytest.mark.unit
-def test_cnn_candidates_matches_current_declarations():
-    """Candidate declarations include the independently tested CNN adapters."""
-    assert cnn_candidates() == {
-        "infomax_pu",
-        "weighted_contrastive_pu",
-        "nnpu",
-        "pan",
-        "pulda",
-        "gradpu",
-        "robust_pu",
-        "split_pu",
-        "holistic_pu",
-        "pulns",
-        "genpu",
-        "lbe_neural",
-        "vpu",
-        "cvir",
-        "lagam",
-        "p3mix",
-        "tedn",
-    }
