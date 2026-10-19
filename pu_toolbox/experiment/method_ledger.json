@@ -638,6 +638,7 @@
     "self_pu": {
       "class": "SelfPUClassifier",
       "source_version_review_ref": "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md",
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/selfpu_source_behavior_review_20261019.md",
       "paper": {
         "title": "Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training",
         "authors": "Xuxi Chen, Wuyang Chen, Tianlong Chen, Ye Yuan, Chen Gong, Kewei Chen, Zhangyang Wang",
@@ -685,7 +686,8 @@
         "prior_semantics": "Self-PU.md:16/29-32/419; registry:self_pu",
         "adaptation_level": "Self-PU.md:437-439/449-450/454; 视图叠加与消融分支口径（Self-PU.md:407-409）",
         "consistency_scope_review": "docs/research/pu_survey/admission/selfpu_consistency_scope_review_20261019.md",
-        "source_version_review": "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md"
+        "source_version_review": "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md",
+        "source_behavior_review": "docs/research/pu_survey/admission/selfpu_source_behavior_review_20261019.md"
       },
       "uncertainty": [
         "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）；2026-10-17 独立支持集 adapter 接通现有完整 meta 路径并经 CPU 实训回归，不改变旧试点消融或代表完整论文复现",
@@ -693,6 +695,7 @@
         "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）",
         "官方仓库当前规范地址为 VITA-Group/Self-PU；方法卡中的 TAMU-VITA 旧组织链接会重定向到同一仓库",
         "official_sources.lock.json 固定的是 2026-10-19 观察到的 master commit；official_exact 只表示作者来源身份已确认，不表示工具箱实现逐行等价或论文数值复现",
+        "锁定官方 train_2s2t_mix.py 将 split=test loader 用作 meta 输入；外层负预测熵目标使用测试特征，且逐 epoch test 真值准确率选 checkpoint。工具箱 clean-support 路径不得照搬该测试集使用；见 selfpu_source_behavior_review_20261019.md",
         "原生 CNN 未接入：依 dual_architecture_plan 阶段 3 长期搁置（元学习再加权依赖干净验证标签，encoder 适配不解决该前置条件）；需原生 CNN 时单独立项（issue #38，2026-09-14）",
         "原生 case-control（ts）；TS-OS 校准已接入训练执行链（协议 §2.3，Self-PU.md:407-409）：ts 视图把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」，两侧按**实际行数**混合（α_P 是 batch 质量、不是 π；class prior 不重估）；trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签；复用正例批 logits，零额外前向、零额外 RNG；OS 路径与改造前一致（冻结基线，本切片实测逐位为 0 偏差）。**一致性范围更新（2026-10-19）**：默认 `distillation_scope=untrusted_u` 保持历史 U-only；独立 clean-support full-meta adapter 显式使用 `paper_population`，student 覆盖 P+未信任 U、teacher 覆盖 P+全部 U，见 Self-PU.md §6 及 admission/selfpu_consistency_scope_review_20261019.md。TS 不修改该定义域。Pilot 不向 PU 方法传 clean validation，仍为无 meta 消融；新增支持集接线只做探索性 SCAR OS/OA，不扩大 frozen TS 或监督预算。ts 视图的方法学复核仍待合作者"
       ],

@@ -360,6 +360,24 @@ def test_self_pu_official_source_pin_is_registered_without_reproduction_claim(
 
 
 @pytest.mark.contract
+def test_self_pu_locked_source_behavior_audit_is_linked_and_keeps_test_isolated(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """Bind the source behavior finding to the exact locked official revision."""
+    method = ledger_methods["self_pu"]
+    expected = "docs/research/pu_survey/admission/selfpu_source_behavior_review_20261019.md"
+    assert method["source_behavior_review_ref"] == expected
+    assert method["evidence"]["source_behavior_review"] == expected
+    review = (_ROOT / expected).read_text(encoding="utf-8")
+    commit = "a0e332ae4f8110e2490d597876e36bf837e1060f"
+    assert commit in review
+    assert "split='test'" in review
+    assert "负预测熵目标" in review
+    assert "测试标签参与 checkpoint 选择" in review
+    assert "不得为追求" in review and "测试样本重新接入训练" in review
+
+
+@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:

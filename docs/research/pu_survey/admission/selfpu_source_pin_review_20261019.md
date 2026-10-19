@@ -30,3 +30,9 @@
 - [官方仓库](https://github.com/VITA-Group/Self-PU)；官方 README 包含方法身份、训练入口与 MIT 标记。
 - [arXiv 论文摘要](https://arxiv.org/abs/2006.11280)；摘要中的作者代码链接为 TAMU-VITA 旧组织路径。
 - 本地核验记录：`benchmarks/assigned_methods/configs/official_sources.lock.json`。
+
+## 后续行为核查
+
+本记录仅限来源身份与版本 pin；2026-10-19 后续对固定 SHA 的训练数据流与 meta 目标另作
+[源码行为复核](selfpu_source_behavior_review_20261019.md)。该复核发现上游训练入口把 `split=test`
+数据用于熵 meta 更新和逐 epoch test 准确率选模；不据此宣称论文使用同一协议，也不把该行为引入工具箱。

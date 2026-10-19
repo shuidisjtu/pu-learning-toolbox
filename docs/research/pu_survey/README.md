@@ -83,6 +83,7 @@
 - [`infomax_source_ambiguity_review_20261019.md`](admission/infomax_source_ambiguity_review_20261019.md)：InfoMax 类别分组、batch size 与 KM 变体的论文来源核对；临时配置值不冒充论文事实。
 - [`selfpu_consistency_scope_review_20261019.md`](admission/selfpu_consistency_scope_review_20261019.md)：Self-PU 论文式 (13)/(16) 定义域核对及显式 full-meta consistency 适配；默认冻结消融路径不变。
 - [`selfpu_source_pin_review_20261019.md`](admission/selfpu_source_pin_review_20261019.md)：官方仓库/MIT 核实、来源 commit pin 与 clean-room 实现边界。
+- [`selfpu_source_behavior_review_20261019.md`](admission/selfpu_source_behavior_review_20261019.md)：固定官方 commit 的 meta/test 数据流核查；区分上游源码行为、论文定义与工具箱隔离协议。
 - [`algorithm_issues_114_117_20261017.md`](reviews/algorithm_issues_114_117_20261017.md)：#114–#117 工程整改、验证证据与独立实验调用边界。
 - [`algorithm_completion_20261017.md`](reviews/algorithm_completion_20261017.md)：新增算法收尾状态、fail-closed 预算与正式准入边界。
 - [`puet_adaptation_completion_20261017.md`](reviews/puet_adaptation_completion_20261017.md)：PUET 风险质量证据、适配回归与 `max_features` 越界登记；不改变训练代码或正式准入。

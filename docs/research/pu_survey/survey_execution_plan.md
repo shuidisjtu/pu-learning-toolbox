@@ -166,6 +166,12 @@ metadata、方法卡、API 与 ledger，并加行数范围回归。论文和剩�
 官方仓库/MIT 与 `master` commit `a0e332ae4f8110e2490d597876e36bf837e1060f` 已登记来源锁，
 详见[Self-PU 来源版本核对](admission/selfpu_source_pin_review_20261019.md)；该 pin 不等于工具箱实现逐行等价。
 
+2026-10-19 Self-PU 固定作者源码行为审计：只读核查已锁定 commit `a0e332ae4f8110e2490d597876e36bf837e1060f`；
+作者 `train_2s2t_mix.py` 将 `split=test` loader 同时用于 meta 与逐 epoch validate，meta 外层目标是测试批输入上的负预测熵，
+随后又按测试真值准确率选择最佳 checkpoint。该发现不等同于论文定义/报告协议；工具箱 clean-support adapter 继续隔离外部 OA/test，
+不为源码逐行贴合而引入测试集训练/选模。台账、方法卡和契约已同步；论文数值复现仍需原始数据划分/验证与选择记录，RV5 仍待 HENG958。
+详见[Self-PU 固定源码行为复核](admission/selfpu_source_behavior_review_20261019.md)。
+
 2026-10-19 P3.2 CNN feature adapter 模式恢复：[专项记录](admission/feature_adapter_inference_modes_20261019.md)。
 修复特征抽取只保留根模块模式且 eval 转换位于异常保护外的问题；39 项相关测试中 34 通过、
 5 项 CUDA 因环境无设备跳过。只验证模式与异常安全，不代表 GPU/真实数据资源验收或正式准入。

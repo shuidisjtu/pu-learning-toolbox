@@ -462,6 +462,12 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 | 最大风险 | self-calibration 依赖真实验证标签；trusted set 错误会造成确认偏差；meta gradient 增加显存和实现复杂度 |
 | 复现风险 | 官方实验使用图像 backbone、特定数据协议、五次运行（报告 mean/std）；正式复现还需记录官方预处理和数据划分；不能用线性模型 smoke test 宣称复现论文结果 |
 
+**锁定源码的额外数据流风险：** 在 commit `a0e332ae4f8110e2490d597876e36bf837e1060f`，`train_2s2t_mix.py`
+用 `split='test'` 构造的数据集同时供 `train_with_meta` 和逐 epoch `validate` 使用；meta 外层目标是测试批输入上的负预测熵，
+测试真值不进入该熵梯度，但会进入逐 epoch 准确率比较与最佳 checkpoint 选择。此处是源码可见行为，不等同于论文定义或论文报告协议。
+工具箱 clean-support adapter 使用显式 support 并保持外部 OA/test 隔离，**不得为贴近该源码数据流而将 test 接入训练或选模**。
+逐行证据及范围见[锁定源码行为复核](../pu_survey/admission/selfpu_source_behavior_review_20261019.md)。
+
 参考资料：
 
 1. Chen et al., *Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training*, ICML 2020, PMLR 119:1510–1519。
