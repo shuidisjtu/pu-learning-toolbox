@@ -95,6 +95,12 @@ NATIVE 与 OS 训练，不启用 TS、不改冻结矩阵/候选准入/历史结�
 回归确认 epoch 末 candidate pool 正好对应训练 P 中预测熵最高的 top-k。P3MIX 单测现为24项，
 来源/准入门禁保持通过且 `formal_admission=false`。
 
+2026-10-19 全仓契约回归补齐 P3MIX/TEDn 集成缺口：两者纳入所有可训练方法的基准 factory，
+同步 CNN UI 候选声明；P3MIX 加入权威 API 参考，GradPU 预算草稿源摘要同步。另修隔离 CNN
+资源子进程未安装工作树时的导入路径，并澄清 `calibration_hooked=false` 的 TS 拒绝说明，
+不把 TEDn 原生 TS 描述为 OS 原生。针对最初发现的失败用例、资源子进程回归均复验通过，
+API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻结矩阵或历史结果。
+
 2026-10-19 P3.2 oracle 推理状态修复：`PilotOracleCNN` 预测原先只恢复根模块模式，递归 `train()`
 会覆盖 encoder 内 BN/Dropout 的混合状态。现按模块记录/恢复，正常前向、模型前向异常和 `eval()`
 切换异常均加回归；不改训练目标、权重、选模、预算或冻结协议。真实 CIFAR/GPU 五 seed 仍待
