@@ -407,7 +407,7 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/MasaKat0/PUlearning",
-        "source_status": "official_exact (registry:pusb)"
+        "source_status": "official_related (locked paper repository is relevant to PUSB, but this linear P/U LogisticRegression baseline is not claimed as the official algorithm)"
       },
       "implementation_status": "NATIVE；linear baseline（StandardScaler + LogisticRegression 附加工程基线，PUSB.md:143/251）",
       "native_sampling_assumption": "ts（两集合视图 P_+^obs=p(x|y=1,s=1) 与 P_U=p(x)；原生标注机制为 SAR（e(x) 随 x 变化），PUSB.md:15/27-28, registry:pusb）",
@@ -429,7 +429,8 @@
       "evidence": {
         "native_sampling_assumption": "PUSB.md:15/27-28; registry:pusb",
         "prior_semantics": "PUSB.md:16; registry:pusb requires_class_prior=False",
-        "adaptation_level": "PUSB.md:143; registry:pusb source_status=OFFICIAL_EXACT"
+        "adaptation_level": "PUSB.md:143; registry:pusb source_status=OFFICIAL_RELATED",
+        "source_behavior_review": "docs/research/pu_survey/admission/pusb_linear_baseline_review_20261019.md"
       },
       "uncertainty": [
         "Table 2 审计：72 单元仅 45 个满足声明样本量，不可声称复现六数据集比较（PUSB.md:174）",
@@ -437,7 +438,8 @@
         "predict_proba 非校准后验（PUSB.md:175）",
         "pilot 行采用 pusb_kernel（2026-09-14 决策，issue #42）；pusb 为附加工程基线不入榜",
         "原生 case-control（ts）；线性 PUSB 训练信号将 U 直接作为负类，不存在可替换的未标记风险输入，按 survey_execution_plan.md 决策 D20② 判定 TS-OS 校准不适用（run_view=os-compatible、calibration_applied=false）；该附加基线不入 Pilot，Pilot 使用 pusb_kernel 并已单独接线"
-      ]
+      ],
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/pusb_linear_baseline_review_20261019.md"
     },
     "pusb_kernel": {
       "class": "PUSBKernelClassifier",

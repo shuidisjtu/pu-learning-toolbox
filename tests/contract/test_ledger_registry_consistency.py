@@ -242,6 +242,25 @@ def test_kldce_source_behavior_review_is_registered(ledger_methods: dict[str, di
 
 
 @pytest.mark.contract
+def test_pusb_linear_baseline_source_scope_is_registered(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The linear P/U baseline cannot inherit the kernel method's exact-source claim."""
+    method = ledger_methods["pusb"]
+    expected = "docs/research/pu_survey/admission/pusb_linear_baseline_review_20261019.md"
+    review_path = _ROOT / expected
+    assert get_metadata("pusb").source_status.value == "official_related"
+    assert ledger_methods["pusb"]["code_version"]["source_status"].startswith("official_related")
+    assert method["source_behavior_review_ref"] == expected
+    assert method["evidence"]["source_behavior_review"] == expected
+    assert get_metadata("pusb_kernel").source_status.value == "official_related"
+    assert review_path.is_file()
+    review = review_path.read_text(encoding="utf-8")
+    assert "观测来源标签的概率" in review
+    assert "冻结实验结果、比较矩阵和准入状态不变" in review
+
+
+@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:

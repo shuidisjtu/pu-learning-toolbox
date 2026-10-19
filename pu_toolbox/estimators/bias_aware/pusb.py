@@ -1,11 +1,10 @@
 # ruff: noqa: N803, N806, E501
 
-"""Selection-biased PU scoring estimator (PUSB).
+"""A linear P/U source-classification baseline for selection-biased PU data.
 
-The paper identifies the posterior ordering under selected-at-random
-sampling.  This lightweight implementation exposes that ordering as a
-calibrated score and keeps the decision threshold configurable; it does not
-claim to identify the posterior probability itself.
+This baseline fits a logistic classifier to the observed P-vs-U indicator. It
+is not the paper's partially identified scoring algorithm and its sigmoid
+output is not a calibrated estimate of the latent class posterior.
 """
 
 from __future__ import annotations
@@ -30,14 +29,14 @@ from ...core.validation import validate_pu_X_y
 
 
 class PUSBClassifier(BasePUClassifier):
-    """Learn a selection-bias-robust posterior ordering from P/U data."""
+    """Fit a linear observed-P-vs-U baseline; not a paper-faithful PUSB model."""
 
     family = AlgorithmFamily.BIAS_AWARE
     label_semantics = "pu"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     implementation_status = ImplementationStatus.NATIVE
-    source_status = SourceStatus.OFFICIAL_EXACT
+    source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH
     sample_weight_support = SampleWeightSupport.SUPPORTED

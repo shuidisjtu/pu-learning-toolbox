@@ -249,8 +249,10 @@ repetitions = 100
 
 | 字段 | 内容 |
 |---|---|
-| Source status | `official_exact`：作者源码已锁定；该字段表示源码可获得性，不表示 toolbox 逐行复制 |
+| Source status (per registry entry) | `pusb` 线性 P/U LogisticRegression 附加基线为 `official_related`；`pusb_kernel` 锁定作者仓库且为 `official_related` 的 RBF 适配。`official_exact` 仅可描述来源仓库/算法出处可核，不能表示线性基线等价于论文算法。 |
 | Implementation status | `NATIVE`；linear baseline 与 official-aligned kernel 双实现 |
 | 当前实现可声称 | 统一接口、核 PU 目标/CV/分位数规则、IJCNN1 仓库扩展，以及 Table 2 的 45 单元/4500-trial 严格可行子集 |
 | 当前实现不可声称 | 已复现论文 Table 2 六数据集比较表 |
 | 主要风险 | 观察到的 P 受到 `e(x)` 加权；直接来源分类会把 selection preference 与 class posterior 混合 |
+
+`PUSBClassifier` 的模型输出是观测来源标签 `S` 的逻辑回归分数，不是论文声称的部分识别排序函数，也不是校准后的 `P(Y=1|X)`。逐项来源/行为结论见[线性基线审计](../pu_survey/admission/pusb_linear_baseline_review_20261019.md)。

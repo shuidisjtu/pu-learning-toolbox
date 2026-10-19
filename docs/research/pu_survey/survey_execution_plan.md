@@ -136,6 +136,12 @@ API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻�
 ledger 已披露，契约测试锁定该差异。KLDCE/台账测试、JSON、文档链接及 diff 检查通过；不改
 求解策略、冻结结果或准入，仍待 RV8 方法负责人复核。
 
+2026-10-19 PUSB 线性项来源/行为核查：确认 `PUSBClassifier` 是直接拟合观测 P/U 来源标签的
+`StandardScaler + LogisticRegression` 附加基线，`predict_proba` 是来源标签概率，非论文后验排序
+算法或校准后验；官方论文来源与 PUSBKernel RBF 适配不应被误读为该线性 estimator 的 exact 实现。
+将其 source status 从 `official_exact` 调整为 `official_related`，同步代码、ledger、方法卡和契约测试；
+PUSBKernel 与 Pilot 行不变，冻结结果/矩阵/准入均不变。
+
 2026-10-19 Self-PU 一致性范围补齐：按正式论文式 (13)/(16) 将 clean-support full-meta
 探索路径显式设为 student `D-D_trust`（P + 未信任 U）及 teacher 全 `D`（P + 全部 U）；
 估计器默认仍 `untrusted_u`，冻结 Pilot 无 meta 消融/历史轨迹不变。同步更新训练 history、
