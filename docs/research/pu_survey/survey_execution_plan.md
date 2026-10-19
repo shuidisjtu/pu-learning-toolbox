@@ -113,6 +113,9 @@ CIFAR-10 锚点由 `test_p3mix_literature_anchors.py` 单独核对，候选 fit 
 台账 JSON、来源/台账契约、Dist-PU/PUSB kernel estimator 测试通过；不表示逐行复现或正式准入。
 后续对照最新 VPU D21/D22 复核，又将已有完整作者 commit `603bcc1e…` 同步至 VPU 台账，
 并以调度来源 JSON、方法卡和只读复核记录约束其一致性；该 pin 只标识来源快照，不解除方法复核或准入。
+随后只读核对 `t-sakai-kure/pywsl`，解析并登记 uPU bundle commit `79a5bf104a53cb6d3498918e435bd88ac5331543`
+（2020-04-03；README 声明 ICML 2015 uPU；`PU_SL` 是固定二次闭式路径）。来源锁、台账与来源审计已同步，
+明确 pin 不表示其他损失分支/实验等价；未执行或复制上游源码，uPU 方法学复核与配方前置不变。
 
 原文复审补记：Algorithm 1 第 1 行明确将 student Θ 与 teacher eΘ 均随机初始化，但未说明
 二者是否独立；当前实现复制 student 初始化 teacher。已把这一点从“论文未说明初始化”更正为

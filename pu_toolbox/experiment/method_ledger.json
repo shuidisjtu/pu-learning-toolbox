@@ -275,7 +275,8 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/t-sakai-kure/pywsl",
-        "source_status": "official_bundle (registry:upu; 卡注明官方代码库仅作算法参考，公式以论文原文为权威)"
+        "upstream_commit": "79a5bf104a53cb6d3498918e435bd88ac5331543",
+        "source_status": "official_bundle (pinned pywsl snapshot; package declares ICML 2015 uPU support, but does not imply equivalence for all toolbox loss branches)"
       },
       "implementation_status": "NATIVE, backend NUMPY; C-DH SLSQP / C-LL L-BFGS / Squared 闭式解 (Convex_Formulation_for_PU_DATA_Learning.md:495)",
       "native_sampling_assumption": "ts",

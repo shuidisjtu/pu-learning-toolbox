@@ -17,6 +17,15 @@
       "commit_date": "2023-07-29T20:02:58+04:00",
       "status": "locked"
     },
+    "upu": {
+      "kind": "git",
+      "url": "https://github.com/t-sakai-kure/pywsl",
+      "commit": "79a5bf104a53cb6d3498918e435bd88ac5331543",
+      "commit_date": "2020-04-03T21:47:42+09:00",
+      "observed_at": "2026-10-19",
+      "status": "locked",
+      "note": "README declares ICML 2015 uPU support; commit is the immutable repository snapshot, not proof that every toolbox loss branch or experiment matches the package. PU_SL uses the fixed quadratic closed-form path; see the versioned source behavior audit."
+    },
     "dist_pu": {
       "kind": "git",
       "url": "https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",

@@ -209,10 +209,10 @@ def test_vpu_upstream_pin_matches_schedule_and_behavior_audits(
 
 
 @pytest.mark.contract
-def test_upu_source_behavior_review_discloses_source_pin_gap(
+def test_upu_source_behavior_review_binds_locked_bundle_without_overclaim(
     ledger_methods: dict[str, dict],
 ) -> None:
-    """uPU loss variants and official bundle version limits remain traceable."""
+    """The uPU bundle snapshot is pinned without implying every loss is upstream."""
     method = ledger_methods["upu"]
     expected = "docs/research/pu_survey/admission/upu_source_behavior_review_20261019.md"
     review_path = _ROOT / expected
@@ -220,9 +220,15 @@ def test_upu_source_behavior_review_discloses_source_pin_gap(
     assert method["evidence"]["source_behavior_review"] == expected
     assert review_path.is_file()
     review = review_path.read_text(encoding="utf-8")
-    assert "没有 `pywsl` immutable commit" in review
+    commit = "79a5bf104a53cb6d3498918e435bd88ac5331543"
+    lock_path = _ROOT / "benchmarks/assigned_methods/configs/official_sources.lock.json"
+    source_lock = json.loads(lock_path.read_text(encoding="utf-8"))["sources"]["upu"]
+    assert source_lock["status"] == "locked"
+    assert source_lock["commit"] == commit
+    assert method["code_version"]["upstream_commit"] == commit
+    assert "PU_SL" in review and "pu_mr.py:12-20,26-47" in review
     assert "C-DH" in review and "C-LL" in review and "squared" in review
-    assert "不伪造版本号" in review
+    assert "不代表 toolbox 的所有 loss 分支或实验与其等价" in review
 
 
 @pytest.mark.contract
