@@ -128,7 +128,7 @@ class TestCliGate:
             [str(data_dir), "--method", "kldce", "--os-or-ts", "ts", "--seeds", "0"]
         )
         assert rc == 1
-        assert "does not apply" in capsys.readouterr().err
+        assert "calibration_hooked=false" in capsys.readouterr().err
 
     def test_cli_refuses_ts_for_the_oracle(self, survey_script, tmp_path, capsys):
         data_dir = tmp_path / "splits"

@@ -344,6 +344,30 @@ def _make_pulns():
     )
 
 
+def _make_p3mix():
+    from pu_toolbox import P3MixClassifier
+
+    return P3MixClassifier(
+        hidden_dim=8, max_epochs=1, batch_size=32, pool_size=8, random_state=42, device="cpu"
+    )
+
+
+def _make_tedn():
+    from pu_toolbox import TEDnClassifier
+
+    return TEDnClassifier(
+        input_sampling="ts",
+        holdout_fraction=0.25,
+        hidden_dim=8,
+        warm_start_epochs=1,
+        max_epochs=1,
+        batch_size=32,
+        convergence_patience=1,
+        random_state=42,
+        device="cpu",
+    )
+
+
 FACTORY_MAP: dict[str, callable] = {
     "elkan_noto": _make_elkan_noto,
     "llsvm": _make_llsvm,
@@ -376,6 +400,8 @@ FACTORY_MAP: dict[str, callable] = {
     "pan": _make_pan,
     "rp": _make_rp,
     "pulns": _make_pulns,
+    "p3mix": _make_p3mix,
+    "tedn": _make_tedn,
 }
 
 

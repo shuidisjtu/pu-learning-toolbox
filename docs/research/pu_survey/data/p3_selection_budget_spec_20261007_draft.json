@@ -258,7 +258,7 @@
     "gradpu": {
       "class": "GradPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
-      "implementation_sha256": "81099e253016b6cd9ac01605ed608dd2b92129034035825f04a35946b2c4992b",
+      "implementation_sha256": "cbcb9690c4b69a982e3ecdfd1a923b348fd11ca4f769c791f06a3ad7354184c3",
       "fit_named_parameters": [
         "X",
         "y_pu",

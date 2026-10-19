@@ -23,6 +23,15 @@ def test_param_edge_explicit_negative_calibration_disables_default_and_requested
         resolve_training_view(ledger, "pulns", "ts", is_oracle=False, estimator_class=cls)
 
 
+def test_basic_native_ts_method_is_not_misdescribed_as_os_when_calibration_is_missing():
+    ledger = load_ledger()
+    with pytest.raises(ValueError) as error:
+        resolve_training_view(ledger, "tedn", "ts", is_oracle=False)
+    assert "calibration_hooked=false" in str(error.value)
+    assert "native to 'ts' sampling" in str(error.value)
+    assert "OS-to-TS risk-role substitution hook" in str(error.value)
+
+
 def test_basic_genpu_real_risk_hook_selects_ts_and_old_frozen_methods_are_unchanged():
     register_all_builtin_methods()
     ledger = load_ledger()

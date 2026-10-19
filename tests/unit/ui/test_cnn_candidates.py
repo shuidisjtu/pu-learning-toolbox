@@ -42,4 +42,6 @@ def test_cnn_candidates_matches_current_declarations():
         "vpu",
         "cvir",
         "lagam",
+        "p3mix",
+        "tedn",
     }

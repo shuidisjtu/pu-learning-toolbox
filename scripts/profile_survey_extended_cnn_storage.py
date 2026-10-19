@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -94,7 +95,18 @@ def profile_recipes(
                 if name != "method":
                     command.extend(["--" + name.replace("_", "-"), value])
             result = subprocess.run(
-                command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", timeout=300
+                command,
+                cwd=ROOT,
+                env={
+                    **os.environ,
+                    "PYTHONPATH": os.pathsep.join(
+                        part for part in (str(ROOT), os.environ.get("PYTHONPATH", "")) if part
+                    ),
+                },
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=300,
             )
             if result.returncode:
                 raise RuntimeError(

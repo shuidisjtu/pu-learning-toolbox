@@ -245,7 +245,9 @@ def resolve_training_view(
         if requested == "ts":
             raise ValueError(
                 f"method {method!r} explicitly declares calibration_hooked=false; "
-                "the calibrated (ts) training-risk substitution is not implemented."
+                f"the method is declared native to {native!r} sampling; the requested "
+                "calibrated (ts) view requires an OS-to-TS risk-role substitution hook, "
+                "which is not implemented."
             )
         if requested is None:
             return "os"

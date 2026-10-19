@@ -77,6 +77,19 @@ alpha_u = model.estimate_unlabeled_prior()
 本 BBE 组件只补独立二维工程路径；不含 TEDⁿ 分类器、原深度配方、OS→TS 转换、自动写入总体 π
 或正式数值准入。来源差异与可辨识性前提见 [BBE 方法卡](../../research/method_cards/BBE.md)。
 
+### P3Mix 分类器（实验级注册；原生 OS）
+
+`from pu_toolbox import P3MixClassifier`。`P3MixClassifier(*, variant="base",
+hidden_dim=128, max_epochs=100, batch_size=128, learning_rate=0.001, beta=1.0,
+gamma=0.9, pool_size=100, mixup_alpha=1.0, early_learning_weight=1.0,
+teacher_decay=0.99, model=None, encoder=None, random_state=0, device=None)`。
+`variant` 可选 `base`、`e`、`c`，分别对应 P3Mix、P3Mix-E、P3Mix-C；E 与 C 是互斥变体。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
+只实现论文 OS 训练视图，显式 TS 会拒绝；`class_prior` 经校验但不参与训练，外部
+`sample_weight` 不支持。默认仅接受二维特征；图像使用时须注入可训练 encoder，形状为
+NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不是论文 recipe。
+完整来源、参数边界及文献结果见 [P3Mix 方法卡](../../research/method_cards/P3MIX.md)。
+
 ### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
 
 `from pu_toolbox import TEDnClassifier`，亦可从 `pu_toolbox.estimators.deep` 导入。
@@ -183,6 +196,7 @@ PNU直接三值fit保持可用，但不能用PNU模型绕过PU工作流的语义
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
 | `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
 | `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
+| `p3mix` | `P3MixClassifier` | deep | `variant` / `beta` / `gamma` / `pool_size` / `encoder` | [P3MIX](../../research/method_cards/P3MIX.md) |
 | `dgpu` | `DGPUClassifier` | deep | `class_prior` / `generator` / `model` / `hidden_dim` | [DGPU](../../research/method_cards/DGPU.md) |
 | —（`km1` / `km2` variant） | `KernelMeanPriorEstimator` | class-prior | `variant="km1"/"km2"` 等（Kernel-mean 类先验，`PUPipeline` 的 `prior_estimator` 支持） | [Kernel_Mean](../../research/method_cards/Kernel_Mean_Class_Prior.md) |
 
