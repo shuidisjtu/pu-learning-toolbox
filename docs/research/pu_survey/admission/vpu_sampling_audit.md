@@ -56,7 +56,7 @@ L_{var}=\log\mathbb E_{x\sim f}[\Phi_\theta(x)]-\mathbb E_{x\sim f_P}[\log\Phi_\
 | 归一化 | `vpu.py:175-179` 取 X 池上最大 $\log\Phi$ | `max_log_phi_` 取边缘池最大 $\log\Phi$ | ✅ |
 | 判决阈值 | `vpu.py:194` `log_phi > log(0.5)` | `decision_function` 的 0 阈值 | ✅（边界 `>` 与 `>=` 之别） |
 
-**3.5 MixUp 写法看似不同、实则分布等价，必须主动说明。** 作者写 `data = lam * data_x + (1 - lam) * data_p_perm`（`vpu.py:128`），工具箱写 `mixed = mixing * p_batch + (1 - mixing) * x_batch`。令 `mixing = 1 - lam` 即逐项相同，而 $\mathrm{Beta}(\alpha,\alpha)$ 对称、`lam` 与 `1-lam` 同分布；作者对 P 端做了 `randperm`（`vpu.py:124-125`）而工具箱不置换，但两侧样本本就独立抽取，配对联合分布一致。已数值核验：`data`、`log_target` 与正则损失逐项 `allclose`（float32 量级约 `3e-8`）。**这是参数化差异，不是语义差异**；并排读代码时不得判为缺陷。
+**3.5 MixUp 写法看似不同、实则分布等价，必须主动说明。** 作者写 `data = lam * data_x + (1 - lam) * data_p_perm`（`vpu.py:128`），工具箱写 `mixed = mixing * p_batch + (1 - mixing) * x_batch`。令 `mixing = 1 - lam` 即逐项相同，而 $\mathrm{Beta}(\alpha,\alpha)$ 对称、`lam` 与 `1-lam` 同分布；作者对 P 端做了 `randperm`（`vpu.py:124-125`）而工具箱不置换，但两侧样本本就独立抽取，配对联合分布一致。已数值核验：`data`、`log_target` 与正则损失逐项 `allclose`（float32 量级约 `3e-8`）。**这是参数化差异，不是语义差异**；并排读代码时不得判为缺陷。工具箱另对 Beta 采样做 `np.clip(..., 1e-6, 1 - 1e-6)`（`pu_toolbox/estimators/risk/vpu.py:311-315`），作者直接使用原始 `lam`（`vpu.py:126-128`）；这是数值保护，分布差异可忽略，同样登记为参数化差异。
 
 ## 4. 对照实现（PU-Bench）
 
@@ -93,21 +93,21 @@ PU-Bench 的 VPU 套件（本地对照库，见 §3 环境说明）由未参与�
 
 **词汇澄清**：本项目的 `ts` / `CASE_CONTROL` 指的是协议 §2.3 的**视图语义**（边缘池包含正例、即 TS-OS 校准），而**不是**要求数据本身按两样本独立抽样生成——协议 §2.3 第 1 条明写基础数据恒为 OS。VPU 属于前者。
 
-## 8. 验证路径：当前与上游一致，且存在一个未决问题
+## 8. 验证路径：函数形式一致、P 项采样来源不同，且存在一个未决问题
 
-**当前事实（本审计核对的代码状态，不是设计意图）**：上游与本工具箱**都把验证变分风险对整份验证分区连同其正例子集求值**，即验证边缘池为 $U_{val}\cup P_{val}$。
+**当前事实（本审计核对的代码状态，不是设计意图）**：上游与本工具箱的验证风险**函数形式一致**——都是 `logsumexp(验证边缘池)/n - mean(log Φ(验证正例))`；但两边的 **P 项采样来源不同**。2026-10-18 只读复核更正了本节的早期表述（见 [复核记录](vpu_d21_d22_review_20261018.md) F1）。
 
-- 作者侧：`vpu.py:210` 把 `val_x_loader` 描述为「the whole validation set (including positive and unlabeled data)」，`dataset/dataset_cifar.py:114`/`:133-134` 取整个验证分区；`cal_val_var`（`vpu.py:204-237`）同时消费 `val_x_loader` 与 `val_p_loader`。
-- PU-Bench 侧：`PU-Bench: train/vpu/trainer.py:112-138`、`:165-189` 同构。
-- **工具箱侧：同样如此**——`pu_toolbox/estimators/risk/vpu.py:152-158` 把整个 `val_X` 作为验证边缘池，`:222-231` 对它求变分风险。
+- 作者侧：`vpu.py:210` 把 `val_x_loader` 描述为「the whole validation set (including positive and unlabeled data)」，`dataset/dataset_cifar.py:114`、`:134` 取整个验证分区；`cal_val_var`（`vpu.py:204-237`）同时消费 `val_x_loader` 与 `val_p_loader`。**但 `val_p_loader` 并不是 `val_x_loader` 的正例子集**：`dataset_cifar.py:13-22` 的 `get_val_labeled` 用 `base_dataset.targets`（全量 50000 clean 类标签）和 `np.where(labels == i)[0]` 抽正例，传入的 `val_idxs` 只被 shuffle、未参与筛选；构造见 `:116-118`、`:133`。因此上游 P 项来自全量数据集（约 90% 是训练行），且使用了 clean 标签。
+- PU-Bench 侧：`PU-Bench: train/vpu/trainer.py:112-138`、`:165-189` 原文引用保留；本次未重新验证其 P 项是否也存在同样的抽样来源差异，故不作为逐样本一致的依据。
+- **工具箱侧**：`pu_toolbox/estimators/risk/vpu.py:256-262` 把整个验证 PU 分区 `val_X` 作为边缘池，P 项取其中的已标记正例 `val_X[val_y == 1]`；`:351-366`（resident）或 `:462-482`（stream）求变分风险。不读取 clean 标签，也不含训练行。
 
-**故当前不存在「与上游的验证口径分歧」**；本审计早先版本曾如此断言，属把尚未发生的设计决策写成既成事实，已更正。
+**故不能写成「与上游逐样本一致、不存在口径分歧」**：函数形式一致，但 P 项的样本来源、分区与标签信息不同；工具箱做法更符合协议 §2.3 的 source diagnostic 边界。本审计早先版本曾把尚未核实的抽样写成既成事实，已按 2026-10-18 复核更正。
 
 **不得引用 D17②/D19⑥ 来支持此处。** 决策 D17② 明文「只冻结 `pusb_kernel`，不推广到其他方法」，D19⑥ 只冻结 `self_pu`——两者**都不覆盖 VPU**。把它们的「验证保持 OS」口径搬到这里，是对 D 记录的误用。
 
-**裁决（2026-09-28，决策 D22）：走方向 1——保持与上游一致。**
+**裁决（2026-09-28，决策 D22）：走方向 1——保留上游目标的函数形式；定位为 source diagnostic。**
 
-- VPU 的验证变分风险在本项目内定位为 **source diagnostic**：允许按上游定义（合并边缘池）计算、记录并作 os/ts 对照；**不得**充当 PA/OA 选模准则。
+- VPU 的验证变分风险在本项目内定位为 **source diagnostic**：允许按上游目标的函数形式计算（工具箱使用验证 PU 分区的边缘池与其中的已标记正例）、记录并作 os/ts 对照；**不得**充当 PA/OA 选模准则。
 - 协议 §2.3 据此新增「适用范围」段，明确该条约束的是**参与选参或裁决**的验证视图——**规则本身未被修改**，不存在对 VPU 的例外。
 - 若将来 VPU 进入执行矩阵且需要 PA 选模，**必须另行裁决**：或改用符合 §2.3 的 OS 验证视图（此时即成为对上游的显式分歧，须按 D17② 的论证结构自行成文），或为该行指定其它 PA 机制。
 - `survey_protocol_v1.json` **不改**：改它会变更协议摘要并触发 D12 式的绑定重绑级联，而 VPU 不在执行矩阵内、无执行影响。
@@ -130,7 +130,8 @@ PU-Bench 的 VPU 套件（本地对照库，见 §3 环境说明）由未参与�
 ## 10. 残留不确定性
 
 - 上述 §9 全部条目；
-- **§8 的验证路径**：已由决策 D22 裁决为「保持与上游一致 + 定位 source diagnostic，不作 PA/OA 选模准则」，协议 §2.3 的适用范围随之写明。**残留条件**：将来 VPU 进入执行矩阵且需要 PA 选模时，必须另行裁决（D22 ③(c)）；
+- **§8 的验证路径**：已由决策 D22 裁决为「保持上游目标 + 定位 source diagnostic，不作 PA/OA 选模准则」，协议 §2.3 的适用范围随之写明。**残留条件**：将来 VPU 进入执行矩阵且需要 PA 选模时，必须另行裁决（D22 ③(c)）；
+- **上游验证 P 项的采样来源已更正（2026-10-18）**：上游 `val_p_loader` 由 `dataset_cifar.py:13-22` 从全量 clean 类标签抽样，不是 `val_x_loader` 的正例子集；工具箱使用验证 PU 分区的已标记正例。函数形式一致，但采样口径存在已登记差异，详见[只读复核](vpu_d21_d22_review_20261018.md) F1；
 - 本审计为**单方技术审计**，无合作者复核；
 - 作者仓库亲验限于 cifar10 路径；`dataset_avila.py` / `dataset_grid.py` / `dataset_pageblocks.py` 的池构造未逐一核验（结构同源，但未亲验逐字）；
 - VPU 输出是归一化分数，不是独立概率校准后验；
@@ -141,8 +142,8 @@ PU-Bench 的 VPU 套件（本地对照库，见 §3 环境说明）由未参与�
 | 层 | 载体 | 位置 |
 |---|---|---|
 | 论文事实 | 论文式 (6)；方法卡 | `method_cards/VPU.md:21-22` |
-| 作者实现 | `HC-Feynman/vpu @ 603bcc1`（亲验） | `vpu.py:79`、`:158`、`:21`、`:110-118`、`:34`/`:41`、`:121`、`:124-129`、`:175-179`、`:194`、`:204-237`；`dataset/dataset_cifar.py:32-40`、`:102`、`:114`、`:131-134`；`run.py:8-14`、`:22`、`:67`、`:71-75` |
+| 作者实现 | `HC-Feynman/vpu @ 603bcc1`（亲验） | `vpu.py:79`、`:158`、`:21`、`:110-118`、`:34`/`:41`、`:121`、`:124-129`、`:175-179`、`:194`、`:204-237`；`dataset/dataset_cifar.py:13-22`、`:32-40`、`:102`、`:114`、`:116-118`、`:131-134`；`run.py:8-14`、`:22`、`:67`、`:71-75` |
 | 对照实现 | `PU-Bench`（本地对照库） | `train/vpu/losses.py:12-14`；`train/vpu/trainer.py:13`、`:90-98`、`:112-138`、`:165-189`；`config/methods/vpu.yaml:6-12`、`:14`、`:16`、`:23` |
 | 数据事实 | 协议 §2.3；决策 D18② | `pu_survey_protocol.md` §2.3 第 1 条；`survey_execution_plan.md` 决策 D18② |
-| 工具箱现状 | 训练侧 | `pu_toolbox/estimators/risk/vpu.py:128`、`:129-130`、`:170`、`:182-183` |
-| 工具箱现状 | 验证侧（§8 未决问题的证据） | `pu_toolbox/estimators/risk/vpu.py:152-158`、`:222-231` |
+| 工具箱现状 | 训练侧 | `pu_toolbox/estimators/risk/vpu.py:123-131`、`:169-173`、`:182-183`、`:209-212`、`:320-326`、`:340-350`、`:416-441` |
+| 工具箱现状 | 验证侧（§8 的证据） | `pu_toolbox/estimators/risk/vpu.py:214-219`、`:256-262`、`:351-366`、`:462-482` |
