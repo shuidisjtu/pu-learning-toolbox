@@ -36,10 +36,10 @@
       "kind": "git",
       "url": "https://github.com/VITA-Group/Self-PU",
       "branch_observed": "master",
-      "commit": null,
+      "commit": "a0e332ae4f8110e2490d597876e36bf837e1060f",
       "observed_at": "2026-10-19",
-      "status": "partial",
-      "note": "Official repository and MIT license confirmed, but no immutable commit was captured. Do not treat the moving master branch as a versioned source snapshot; see docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md."
+      "status": "locked",
+      "note": "Read-only ls-remote resolved refs/heads/master to this immutable commit. The pin identifies the official source snapshot, not line-by-line fidelity of the toolbox clean-room implementation; review docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md."
     },
     "pusb": {
       "kind": "git",

@@ -646,8 +646,8 @@
       },
       "code_version": {
         "upstream_url": "https://github.com/VITA-Group/Self-PU",
-        "upstream_commit": null,
-        "source_status": "official_exact（作者仓库与 MIT license 已确认；immutable commit 未锁定，见 selfpu_source_pin_review_20261019.md）"
+        "upstream_commit": "a0e332ae4f8110e2490d597876e36bf837e1060f",
+        "source_status": "official_exact（作者仓库/MIT license 已确认，来源锁 commit a0e332ae4f8110e2490d597876e36bf837e1060f；不代表工具箱 clean-room 实现逐行等价）"
       },
       "implementation_status": "NATIVE clean-room core；显式 distillation_scope=paper_population 路径覆盖论文 D-D_trust / D 一致性域，默认 untrusted_u 保持历史消融不变；paper-like benchmark 待完成（Self-PU.md:399/450）",
       "extra_supervision_adapter": {
@@ -692,7 +692,7 @@
         "validation_data（clean-label 元重加权）与 pu_validation_data（仅 P/U 标签 nnPU risk 恢复 checkpoint）两入口严格分离（Self-PU.md:388-389）",
         "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）",
         "官方仓库当前规范地址为 VITA-Group/Self-PU；方法卡中的 TAMU-VITA 旧组织链接会重定向到同一仓库",
-        "官方仓库当前可见分支为 master，但本仓库未锁定 immutable commit；official_exact 只表示作者来源已确认，不表示源码快照已版本化",
+        "official_sources.lock.json 固定的是 2026-10-19 观察到的 master commit；official_exact 只表示作者来源身份已确认，不表示工具箱实现逐行等价或论文数值复现",
         "原生 CNN 未接入：依 dual_architecture_plan 阶段 3 长期搁置（元学习再加权依赖干净验证标签，encoder 适配不解决该前置条件）；需原生 CNN 时单独立项（issue #38，2026-09-14）",
         "原生 case-control（ts）；TS-OS 校准已接入训练执行链（协议 §2.3，Self-PU.md:407-409）：ts 视图把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」，两侧按**实际行数**混合（α_P 是 batch 质量、不是 π；class prior 不重估）；trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签；复用正例批 logits，零额外前向、零额外 RNG；OS 路径与改造前一致（冻结基线，本切片实测逐位为 0 偏差）。**一致性范围更新（2026-10-19）**：默认 `distillation_scope=untrusted_u` 保持历史 U-only；独立 clean-support full-meta adapter 显式使用 `paper_population`，student 覆盖 P+未信任 U、teacher 覆盖 P+全部 U，见 Self-PU.md §6 及 admission/selfpu_consistency_scope_review_20261019.md。TS 不修改该定义域。Pilot 不向 PU 方法传 clean validation，仍为无 meta 消融；新增支持集接线只做探索性 SCAR OS/OA，不扩大 frozen TS 或监督预算。ts 视图的方法学复核仍待合作者"
       ],

@@ -337,23 +337,26 @@ def test_lbe_source_review_ref_binds_official_archive_identity_and_behavior(
 
 
 @pytest.mark.contract
-def test_self_pu_official_source_pin_gap_is_explicit(ledger_methods: dict[str, dict]) -> None:
-    """An official repository attribution must not imply a pinned source snapshot."""
+def test_self_pu_official_source_pin_is_registered_without_reproduction_claim(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """Pin the official source snapshot without implying toolbox reproduction."""
     method = ledger_methods["self_pu"]
     lock_path = _ROOT / "benchmarks/assigned_methods/configs/official_sources.lock.json"
     source_lock = json.loads(lock_path.read_text(encoding="utf-8"))["sources"]["self_pu"]
-    assert source_lock["status"] == "partial"
-    assert source_lock["commit"] is None
-    assert method["code_version"]["upstream_commit"] is None
-    assert "immutable commit 未锁定" in method["code_version"]["source_status"]
+    expected_commit = "a0e332ae4f8110e2490d597876e36bf837e1060f"
+    assert source_lock["status"] == "locked"
+    assert source_lock["commit"] == expected_commit
+    assert method["code_version"]["upstream_commit"] == expected_commit
+    assert expected_commit in method["code_version"]["source_status"]
     assert "official_exact" == method["code_version"]["source_status"].split("（", 1)[0]
-    assert "官方仓库当前可见分支为 master" in "\n".join(method["uncertainty"])
+    assert "观察到的 master commit" in "\n".join(method["uncertainty"])
     review_path = _ROOT / "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md"
     assert method["source_version_review_ref"] == review_path.relative_to(_ROOT).as_posix()
     assert method["evidence"]["source_version_review"] == review_path.relative_to(_ROOT).as_posix()
     review = review_path.read_text(encoding="utf-8")
-    assert "status=partial" in review
-    assert "臆造 commit、日期" in review
+    assert expected_commit in review
+    assert "不表示工具箱 clean-room 实现与上游逐行相同" in review
 
 
 @pytest.mark.contract

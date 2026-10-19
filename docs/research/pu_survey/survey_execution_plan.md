@@ -163,8 +163,8 @@ toolbox PyTorch branch/backward，确认校正分支 `−γr` 与报告量分离
 估计器默认仍 `untrusted_u`，冻结 Pilot 无 meta 消融/历史轨迹不变。同步更新训练 history、
 metadata、方法卡、API 与 ledger，并加行数范围回归。论文和剩余工程差异、额外 clean-support
 预算/真实制品/正式准入阻断见[来源交叉审计](admission/selfpu_consistency_scope_review_20261019.md)。
-官方仓库身份与 MIT 标记已确认，但缺 immutable commit；版本 pin 状态为 partial，详见
-[Self-PU 来源版本核对](admission/selfpu_source_pin_review_20261019.md)，不将 `official_exact` 误读为代码快照锁定。
+官方仓库/MIT 与 `master` commit `a0e332ae4f8110e2490d597876e36bf837e1060f` 已登记来源锁，
+详见[Self-PU 来源版本核对](admission/selfpu_source_pin_review_20261019.md)；该 pin 不等于工具箱实现逐行等价。
 
 2026-10-19 P3.2 CNN feature adapter 模式恢复：[专项记录](admission/feature_adapter_inference_modes_20261019.md)。
 修复特征抽取只保留根模块模式且 eval 转换位于异常保护外的问题；39 项相关测试中 34 通过、

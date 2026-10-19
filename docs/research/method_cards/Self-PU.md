@@ -457,7 +457,7 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 |---|---|
 | Source status | `official_exact` |
 | Implementation status | `NATIVE` clean-room core；paper-like benchmark 待完成 |
-| Official code | [`VITA-Group/Self-PU`](https://github.com/VITA-Group/Self-PU)（官方仓库、MIT；当前来源锁只记录仓库与观察分支，**未锁定 immutable commit**，不构成版本化代码复核） |
+| Official code | [`VITA-Group/Self-PU`](https://github.com/VITA-Group/Self-PU)（官方仓库、MIT；已锁定 `a0e332ae4f8110e2490d597876e36bf837e1060f`；来源 pin 不代表工具箱 clean-room 实现逐行等价） |
 | 依赖 | PyTorch、数据增强/图像 backbone、clean validation protocol |
 | 最大风险 | self-calibration 依赖真实验证标签；trusted set 错误会造成确认偏差；meta gradient 增加显存和实现复杂度 |
 | 复现风险 | 官方实验使用图像 backbone、特定数据协议、五次运行（报告 mean/std）；正式复现还需记录官方预处理和数据划分；不能用线性模型 smoke test 宣称复现论文结果 |
@@ -466,5 +466,5 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 
 1. Chen et al., *Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training*, ICML 2020, PMLR 119:1510–1519。
 2. 官方论文页面：[PMLR](https://proceedings.mlr.press/v119/chen20b.html)。
-3. 官方代码：[VITA-Group/Self-PU](https://github.com/VITA-Group/Self-PU)；论文摘要中的 TAMU-VITA 路径为旧组织地址。来源仓库身份与 MIT 标记已确认，但本项目尚未锁定 immutable commit，见[来源版本核对](../pu_survey/admission/selfpu_source_pin_review_20261019.md)。
+3. 官方代码：[VITA-Group/Self-PU](https://github.com/VITA-Group/Self-PU)；论文摘要中的 TAMU-VITA 路径为旧组织地址。来源 revision 与工程差异见[来源版本核对](../pu_survey/admission/selfpu_source_pin_review_20261019.md)。
 4. nnPU 风险实现与理论：[Kiryo et al., 2017](https://arxiv.org/abs/1703.00593)。

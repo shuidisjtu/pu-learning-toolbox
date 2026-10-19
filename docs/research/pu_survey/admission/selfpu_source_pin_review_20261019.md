@@ -10,13 +10,13 @@
 - 官方论文摘要指向作者代码 `TAMU-VITA/Self-PU`；该旧组织路径目前对应规范仓库
   [`VITA-Group/Self-PU`](https://github.com/VITA-Group/Self-PU)。官方仓库 README 自述为 ICML 2020
   Self-PU，且 GitHub 页面标出 MIT license。
-- 2026-10-19 只读查看仓库页面可确认其当前展示分支为 `master`。本轮无法读取提交历史的
-  immutable SHA：浏览器未能取回 commits 页，终端也无法建立到 GitHub 的只读连接；没有据此
-  臆造 commit、日期或文件摘要。
-- `benchmarks/assigned_methods/configs/official_sources.lock.json` 因而将 `self_pu` 登记为
-  `status=partial`、`commit=null`。台账 `official_exact` 只表示作者仓库来源已识别，不表示
-  某一源码快照已锁定。需要版本化源码审计时，应先取得 commit SHA，再对照论文和方法卡中的
-  关键文件/训练入口。
+- 2026-10-19 只读页面确认当前展示分支为 `master`；随后 `git ls-remote` 对公开仓库只读查询
+  `refs/heads/master`，返回 commit `a0e332ae4f8110e2490d597876e36bf837e1060f`。该 SHA 写入
+  `benchmarks/assigned_methods/configs/official_sources.lock.json` 和方法台账。未取得 commit
+  日期或保存上游文件 hash，因此不扩张为文件级内容校验。
+- 该锁固定 2026-10-19 观察到的官方源码快照；台账 `official_exact` 只表示作者来源身份已确认，
+  不表示工具箱 clean-room 实现与上游逐行相同。后续行为复核应引用该 SHA 下的具体文件，而非
+  浮动 `master`。
 
 ## 实验与实现边界
 
