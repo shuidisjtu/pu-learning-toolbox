@@ -93,6 +93,12 @@ test accuracy 选模；正式数据/结构/预算仍待协议审批。
 没有验证任何配方。训练/生命周期测试已纳入本地验收，
 不改变上一段列明的负责人复核、正式配方/预算、资源验收与准入前置。
 
+2026-10-19 门禁范围澄清：`check_p3_admission_evidence.py` 的 `methods_checked` 是
+PULDA、PUET、GradPU、Robust-PU、Split-PU；`check_p3_public_comparison.py` 检查的是
+既有 12 条文献读数/15 个覆盖单元，**两者均不校验 P3MIX 文献锚点**。P3MIX 的六条
+CIFAR-10 锚点由 `test_p3mix_literature_anchors.py` 单独核对，候选 fit 生命周期由
+`check_candidate_fit_contracts.py` 纳入；以上均是技术一致性证据，不替代 RV8 或正式准入。
+
 2026-10-19 依据全文新增[P3MIX 文献锚点机器记录](data/p3mix_literature_anchors_20261019.json)，绑定上传 PDF 摘要、Table 2/3 页码、CIFAR 类别映射、1000 个标记正例、500 个验证样本和五次运行的 accuracy 均值/标准差。该记录只用于来源审计，E/C 重复报告不视作独立实验；保持待负责人复核，不写入冻结矩阵或实验结果，也不改变准入状态。
 
 2026-10-19 P3MIX 生命周期同步：将完整 estimator 纳入16候选 `check_candidate_fit_contracts.py`
