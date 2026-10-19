@@ -297,7 +297,7 @@
     "holistic_pu": {
       "class": "HolisticPUClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/holistic_pu.py",
-      "implementation_sha256": "71525830d48828b1aadccf78d48682553b14aa1eb5554ebe3171b9f2f5e55126",
+      "implementation_sha256": "e6142c77fa1e7114609e16ba044615900dfdda821a53e08d5d1f125c20de8379",
       "fit_parameters": [
         {
           "name": "X",
@@ -555,7 +555,7 @@
     "lbe_neural": {
       "class": "NeuralLBEClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/lbe_neural.py",
-      "implementation_sha256": "ec29d2a039d15b117535c5b8f7b9c1bd85329dcf97ff86d8078b61f1527668a3",
+      "implementation_sha256": "ced7cc609b3bf95f68516799526b0b742fb1518c471d354946d527a3b9daaaa2",
       "fit_parameters": [
         {
           "name": "X",
@@ -651,7 +651,7 @@
     "cvir": {
       "class": "CVIRClassifier",
       "implementation_ref": "pu_toolbox/estimators/risk/cvir.py",
-      "implementation_sha256": "68695a5ed440af8c31adff2986d105ba3d5acf89d8e4d701cfbd79ff2ddc85cc",
+      "implementation_sha256": "aeb9723ff9a9be940372801963d27ccbdf125d323c7ddc5cb5a3c1693a2c280d",
       "fit_parameters": [
         {
           "name": "X",
