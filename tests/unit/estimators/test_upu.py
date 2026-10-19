@@ -153,6 +153,26 @@ class TestUPUClassifier:
         risk = pu_zero_one_risk(y_pu, clf.decision_function(X), clf.class_prior_)
         assert np.isfinite(risk)
 
+    def test_source_quadratic_solution_matches_after_regularizer_scaling(self):
+        """The pinned pywsl PU_SL equation matches with the same basis and λ/2."""
+        phi_p = np.array([[1.0, 0.2], [0.4, -0.7], [0.6, 1.1]])
+        phi_u = np.array([[0.1, 0.9], [-0.8, 0.3], [1.2, -0.2], [0.5, 0.4]])
+        pi = 0.35
+        source_lambda = 0.4
+        clf = UPUClassifier(
+            class_prior=pi,
+            loss="squared",
+            fit_intercept=False,
+            reg_lambda=source_lambda / 2.0,
+        )
+
+        clf._fit_squared(phi_p, phi_u, len(phi_p), len(phi_u), pi)
+        source_hessian = phi_u.T @ phi_u / len(phi_u) + source_lambda * np.eye(phi_u.shape[1])
+        source_rhs = 2.0 * pi * phi_p.mean(axis=0) - phi_u.mean(axis=0)
+        expected = np.linalg.solve(source_hessian, source_rhs)
+
+        np.testing.assert_allclose(clf.coef_, expected, rtol=1e-12, atol=1e-12)
+
 
 # ═════════════════════════════════════════════════════════════════════
 # Separable boundary (§9.1)

@@ -304,6 +304,7 @@
       },
       "uncertainty": [
         "API 默认 loss=\"squared\"（upu.py:93）与方法卡推荐变体 C-DH（double hinge，Convex_Formulation_for_PU_DATA_Learning.md:15）不一致，pilot 候选池需明确 loss 选择",
+        "已锁定 pywsl@79a5bf1；其 PU_SL 平方闭式方程仅在同一设计矩阵且 reg_lambda=源码 lam/2 时与工具箱系数解代数对应。默认 basis、截距/正则语义及 RBF 中心抽样不同；官方 pu_sl 调参 helper 有静态可见实现错误，不声称 source-faithful，详见 upu_source_behavior_review_20261019.md",
         "卡末（Convex_Formulation_for_PU_DATA_Learning.md:460）明确不要把后起 nnPU 的 non-negative correction 视为本文目标",
         "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts；全量求解下把承担无标签风险角色的集合换成 D_U ∪ D_P，RBF 中心候选池跟随视图、中心数量不变）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
         "ts 视图路径尚未经合作者复核（协议 §2.3）；按 D20 的单方技术验收放行，manifest 已不再挂 ts_view_collaborator_review 阻断正式资格——**放行不等于合作者已复核**，呈报时不得读作已签署"

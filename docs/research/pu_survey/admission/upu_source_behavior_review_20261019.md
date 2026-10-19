@@ -12,7 +12,9 @@
 | 项目 | 论文/官方范围 | toolbox 实现与核查 |
 |---|---|---|
 | 风险结构 | SCAR、总体先验 π 已知；正例项为 `−π E_P[g]`，U 项为 `E_U[ℓ(−g)]`；凸性要求论文指定的 linear-odd/convex 损失关系 | `UPUClassifier` 与 `UPULoss` 分别对 P/U 风险按各自样本数取均值；先验必填。数学 golden/梯度测试覆盖 squared/logistic。 |
-| 损失分支 | 论文重点为 double hinge；锁定 `PU_SL` 提供无 loss 选择器的固定平方型闭式路径（`pu_mr.py:12-20,26-47`） | toolbox 另实现 C-DH 的 SLSQP QP 及 C-LL 的 L-BFGS，属论文推导 clean-room 扩展，不是该源码路径的直接复刻。默认 `loss="squared"`，方法卡与台账记录其与论文主推 C-DH 不同，pilot recipe 必须显式选型。 |
+| 平方型闭式目标 | `PU_SL.fit` 解 `(E_U[φφᵀ] + λ_src I)w = 2πE_P[φ] − E_U[φ]`（`pu_mr.py:42-47`） | `_fit_squared` 解 `(.5 E_U[φφᵀ] + λ_tool I)w = πE_P[φ] − .5E_U[φ]`；两边同乘 2 可知**同一设计矩阵下** `λ_tool=λ_src/2` 时系数相同。新增有限维代数回归锁定此对应关系，不运行上游代码。 |
+| 损失分支 | 论文重点为 double hinge；锁定 `PU_SL` 只有固定平方型闭式路径（`pu_mr.py:12-20,26-47`） | toolbox 另实现 C-DH 的 SLSQP QP 及 C-LL 的 L-BFGS，属论文推导 clean-room 扩展，不是该源码路径的直接复刻。默认 `loss="squared"`，方法卡与台账记录其与论文主推 C-DH 不同，pilot recipe 必须显式选型。 |
+| basis、截距与默认值 | `PU_SL` 默认 Gaussian、`sigma=.1`、`lam=1`、`n_basis=200`；`basis='lm'` 用 `homo_coord` 附加常数列，正则矩阵为 `λI`（含常数项）（`pu_mr.py:14-20,33-47`; `comcalc.py::homo_coord`） | toolbox 默认 linear、`reg_lambda=1e-3`；平方路径不拟合 intercept，且只正则化系数。RBF 核函数指数形式一致，但中心池按训练视图构造，抽样 RNG/顺序不承诺重放作者实现。函数/目标代数等价不等于默认配方相同。 |
 | 正则与偏置 | 正则作用于模型系数；intercept 不惩罚 | 代码对 `α` 正则、不惩罚 intercept；方法卡列出的线性/RBF basis、solver 和数值参数是工程规格，不应读作论文全部固定。 |
 | 视图校准 | 原文 case-control U 为总体边缘；项目 TS-OS 规则把承担 U 风险角色的数据由 `D_U` 扩为 `D_U∪D_P` | `fit(os_or_ts="ts")` 只替换 U 风险角色；π 与 P 项不变。RBF center pool 跟随 view，但中心数按校准前 `n_U` 截断；sample_weight 被忽略，因此不需互斥门。TS 是项目协议层适配，不是原文独立算法结论。 |
 | 选模与验证 | 原文实验用论文指定的 PU zero-one CV 和其设置 | 本 estimator 无内置 validation/test 接口；项目正式候选/选模流程由 protocol 控制。方法卡记录 loss 默认及超参方案与论文原始实验并不完全一致。 |
@@ -22,6 +24,6 @@
 - `tests/unit/losses/test_upu_loss.py` 覆盖风险手算 golden、先验作用、logistic/squared 梯度及有限差分。
 - `tests/unit/estimators/test_upu.py` 与 `test_upu_ts_view.py` 覆盖拟合、solver/参数、视图角色、RBF centers 与校准前后容量约束。
 - 测试证明本实现与登记公式及工程不变量一致，不证明 `pywsl` 某个特定源码版本的逐行一致性，也不证明完整 ICML 2015 数据/调参/结果已复现。
-- 来源治理缺口已补为可复核的 Git commit pin；该旧快照含 MIT 许可并声明 PyPI 版本 0.1.4，但来源锁没有把浮动 PyPI 最新包等同此提交。接下来可在不执行源码的前提下做逐文件目标对读；本次 pin 本身不代表 uPU loss 全族 source-faithful。
+- 来源治理缺口已补为可复核的 Git commit pin；该旧快照含 MIT 许可并声明 PyPI 版本 0.1.4，但来源锁没有把浮动 PyPI 最新包等同此提交。逐文件公式核对后，只在共用设计矩阵且 `lambda_tool=lambda_source/2` 时确认平方解代数一致；默认 basis、截距/正则语义、RBF 中心抽样不一致。`pu_sl` 调参 helper 第 98 行把 `np.empty` 以多个位置参数调用、第 114/119 行含变量名不一致、第 128 行引用未定义 `tmp`，静态上有明显执行缺陷；它不是 demo 使用的 `PU_SL` sklearn estimator，未执行该 helper。
 
-结论：`official_bundle` 应理解为官方关联软件中有 uPU 实现，不等于 toolbox 三种 loss 都有官方源码对应。Squared 分支、C-DH/C-LL 适配、TS calibration 需分层披露。该核查不改算法参数、冻结结果、准入或正式 recipe。
+结论：`official_bundle` 应理解为官方关联软件中有 uPU 实现，不等于 toolbox 三种 loss 都有官方源码对应。Squared 分支存在有限的闭式公式对应，但 basis/default/参数差异仍阻止整体复现声明；C-DH/C-LL 适配、TS calibration 需分层披露。该核查不改算法参数、冻结结果、准入或正式 recipe。

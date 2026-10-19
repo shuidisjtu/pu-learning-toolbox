@@ -227,6 +227,8 @@ def test_upu_source_behavior_review_binds_locked_bundle_without_overclaim(
     assert source_lock["commit"] == commit
     assert method["code_version"]["upstream_commit"] == commit
     assert "PU_SL" in review and "pu_mr.py:12-20,26-47" in review
+    assert "λ_tool=λ_src/2" in review
+    assert "`np.empty` 以多个位置参数调用" in review
     assert "C-DH" in review and "C-LL" in review and "squared" in review
     assert "不代表 toolbox 的所有 loss 分支或实验与其等价" in review
 

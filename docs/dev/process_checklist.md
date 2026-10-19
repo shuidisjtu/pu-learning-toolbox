@@ -26,7 +26,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 同日依据最新 VPU D21/D22 复核，将已有作者 commit pin 从审计/方法卡提升为台账结构化字段，并由来源 JSON 与复核材料契约核对；VPU 采样/校准结论及未准入状态不变。
 
-同日只读锁定 uPU 官方关联 `pywsl` commit `79a5bf104a53cb6d3498918e435bd88ac5331543`，核对 README、`PU_SL` 路径和 MIT 包元数据；来源身份写入 source lock/台账，未将 pin 扩大解释为所有 uPU 损失变体或实验复现。
+同日只读锁定 uPU 官方关联 `pywsl` commit `79a5bf104a53cb6d3498918e435bd88ac5331543`，核对 README、`PU_SL` 路径和 MIT 包元数据；完成固定平方闭式方程的缩放对应审计与回归测试，记录默认 basis/截距差异及 `pu_sl` helper 静态缺陷。source lock/台账/审计已同步，未执行上游代码或声称其他 uPU 损失变体、实验已复现。
 
 2026-10-16 P4.1-A/P2.2/RV3–RV7：新增正式 registry 条件 CI 与 require-locked 声明门禁；正式文件未物化时 skipped，冻结时须改为必需存在。补原结果树分批字节/路径/摘要接收检查、nnPU supplement 取证和 PUBench 增强/搜索预算候选补记；不代签、不改 v3/旧结果，原结果树独立重放仍待，见[推进记录](../research/pu_survey/reviews/p41_p22_progress_20261016.md)。
 
