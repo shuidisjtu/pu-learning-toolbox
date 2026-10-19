@@ -16,13 +16,17 @@
 并非同一方向；若仅把参数改成 0.3，helper 自身分母也变成 `-0.7 log(0.7)`，仍不等于
 论文印刷式。已有非对称概率的标量测试证明这三种定义给出不同目标。
 
-作者仓库的既有来源收据仍指向 `loadder/SplitPU_MM2022`
-@ `82fb9730597a65a12156736419d4588675bc24d5`，并记录 `utils.py` SHA-256
-`05fc493d26dcfbd51d016284b1f371132fe87f6b4492a20fc0492441a92e7dfe`；
-该收据在此前检查中将源码当前实现登记为 teacher 系数 0.7。此次联网尝试未能重新取得
-该 GitHub commit 的文件，因此**论文公式已独立核实，源码字节未在本轮重验**；不能把
-旧收据说成本轮重放。决定采用论文式、作者代码式，还是另立变体，仍需方法负责人对照
-原仓库并裁决。代码/默认值/台账校准声明本轮均未更改。
+2026-10-19 再次核对作者仓库：本机只读检出 `/tmp/pu-split-upstream` 的 HEAD 为
+`82fb9730597a65a12156736419d4588675bc24d5`，工作树干净；`utils.py` SHA-256 为
+`05fc493d26dcfbd51d016284b1f371132fe87f6b4492a20fc0492441a92e7dfe`，与既有来源锁一致。
+[`JSDLoss` 源码](https://github.com/loadder/SplitPU_MM2022/blob/82fb9730597a65a12156736419d4588675bc24d5/utils.py#L100-L123)
+把 `distribs` 排为 `[target] + preds`，将权重 `[0.7, 0.3]` 依次赋给 teacher target、student
+prediction；归一化项为 `-1 / (0.3 log(0.3))`。调用处
+[`splitpu_utils.py:116`](https://github.com/loadder/SplitPU_MM2022/blob/82fb9730597a65a12156736419d4588675bc24d5/splitpu_utils.py#L116)
+显式使用 `JSDLoss(weight=0.7, reduction='sum')`。因此已核实：锁定作者代码确为 teacher
+系数 0.7；论文 Eq. (6) 则为 student 系数 0.7、teacher 系数 0.3，作者代码和论文印刷式
+不一致。该复核是对锁定代码的静态读取，不执行作者程序或权重。采用论文式、作者代码式，
+还是另立变体，仍须方法负责人裁决；本轮不改训练代码、默认值、台账校准声明或历史结果。
 
 ## 1. 只把teacher权重改成0.3，仍不等于issue所引论文式
 
