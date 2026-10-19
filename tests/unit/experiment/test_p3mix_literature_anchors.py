@@ -8,6 +8,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 ANCHORS_PATH = ROOT / "docs/research/pu_survey/data/p3mix_literature_anchors_20261019.json"
+EXPECTED_PDF_SHA256 = "8599cffab378b0e3dfb7586a55cef482587b7b29f187619833c00b0545d5f528"
+EXPECTED_OPENREVIEW_ID = "NH29920YEmj"
 
 pytestmark = pytest.mark.unit
 
@@ -18,7 +20,8 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
 
     assert record["schema_version"] == "p3mix-literature-anchors-1"
     assert record["review_status"] == "pending_method_owner_review"
-    assert len(record["source"]["sha256"]) == 64
+    assert record["source"]["sha256"] == EXPECTED_PDF_SHA256
+    assert record["source"]["openreview_id"] == EXPECTED_OPENREVIEW_ID
     assert record["source"]["artifact_retained_in_repository"] is False
     if source_path.is_file():
         digest = hashlib.sha256(source_path.read_bytes()).hexdigest()
