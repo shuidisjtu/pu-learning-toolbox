@@ -32,6 +32,10 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
         if model.max_epochs <= model.self_paced_start:
             self._prepared = False
             raise ValueError("Self-PU full-meta budget must reach a meta-active epoch")
+        # The explicitly extra-supervision, full-meta path follows the paper's
+        # population-wide consistency domains.  The estimator default remains
+        # the historical U-only ablation path used by the frozen pilot.
+        model.set_params(distillation_scope="paper_population")
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         self._require_prepared(estimator, X, os_or_ts)
@@ -58,6 +62,7 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
                 "executed_epochs": len(estimator.history_["epoch"]),
                 "selection_scope": "terminal_after_support_teacher_selection",
                 "paper_full_reproduction": False,
+                "distillation_scope": estimator.distillation_scope_,
             }
         )
         return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)

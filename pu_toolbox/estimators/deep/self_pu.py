@@ -8,7 +8,7 @@ import copy
 import math
 import warnings
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
@@ -316,6 +316,7 @@ class SelfPUClassifier(BasePUClassifier):
         ema_decay: float = 0.99,
         student_loss_weight: float = 1.0,
         teacher_loss_weight: float = 1.0,
+        distillation_scope: Literal["untrusted_u", "paper_population"] = "untrusted_u",
         batch_size: int = 256,
         learning_rate: float = 1e-3,
         weight_decay: float = 0.0,
@@ -342,6 +343,7 @@ class SelfPUClassifier(BasePUClassifier):
         self.ema_decay = ema_decay
         self.student_loss_weight = student_loss_weight
         self.teacher_loss_weight = teacher_loss_weight
+        self.distillation_scope = distillation_scope
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
@@ -397,6 +399,11 @@ class SelfPUClassifier(BasePUClassifier):
             raise ValueError("Learning, loss, and regularization parameters are out of range.")
         if not 0.0 < self.threshold < 1.0:
             raise ValueError("threshold must be in (0, 1).")
+        if not isinstance(self.distillation_scope, str) or self.distillation_scope not in {
+            "untrusted_u",
+            "paper_population",
+        }:
+            raise ValueError("distillation_scope must be 'untrusted_u' or 'paper_population'.")
 
     @staticmethod
     def _validate_clean_validation(validation_data: Any, input_shape: tuple[int, ...]):
@@ -697,12 +704,40 @@ class SelfPUClassifier(BasePUClassifier):
             x_unlabeled = tx[unlabeled_batch]
 
             with torch.no_grad():
-                cached_student_probabilities = [
-                    torch.sigmoid(_as_logits(student(x_unlabeled))) for student in students
-                ]
-                cached_teacher_probabilities = [
-                    torch.sigmoid(_as_logits(teacher(x_unlabeled))) for teacher in teachers
-                ]
+                if self.distillation_scope == "paper_population":
+                    x_population_batch = torch.cat([x_positive, x_unlabeled], dim=0)
+                    cached_student_population_probabilities = [
+                        torch.sigmoid(_as_logits(student(x_population_batch)))
+                        for student in students
+                    ]
+                    cached_teacher_population_probabilities = [
+                        torch.sigmoid(_as_logits(teacher(x_population_batch)))
+                        for teacher in teachers
+                    ]
+                    n_positive_batch = len(positive_batch)
+                    cached_student_positive_probabilities = [
+                        values[:n_positive_batch]
+                        for values in cached_student_population_probabilities
+                    ]
+                    cached_student_probabilities = [
+                        values[n_positive_batch:]
+                        for values in cached_student_population_probabilities
+                    ]
+                    cached_teacher_positive_probabilities = [
+                        values[:n_positive_batch]
+                        for values in cached_teacher_population_probabilities
+                    ]
+                    cached_teacher_probabilities = [
+                        values[n_positive_batch:]
+                        for values in cached_teacher_population_probabilities
+                    ]
+                else:
+                    cached_student_probabilities = [
+                        torch.sigmoid(_as_logits(student(x_unlabeled))) for student in students
+                    ]
+                    cached_teacher_probabilities = [
+                        torch.sigmoid(_as_logits(teacher(x_unlabeled))) for teacher in teachers
+                    ]
 
             for index, (student, teacher, manager, optimizer) in enumerate(
                 zip(
@@ -786,18 +821,53 @@ class SelfPUClassifier(BasePUClassifier):
                 student_consistency = torch.zeros((), device=device)
                 teacher_consistency = torch.zeros((), device=device)
                 active_fraction = torch.zeros((), device=device)
+                student_consistency_rows = 0
+                teacher_consistency_rows = 0
                 if epoch >= self.distill_start:
-                    current_probability = torch.sigmoid(untrusted_logits)
-                    peer_probability = cached_student_probabilities[1 - index][untrusted_mask]
+                    current_untrusted_probability = torch.sigmoid(untrusted_logits)
+                    peer_untrusted_probability = cached_student_probabilities[1 - index][
+                        untrusted_mask
+                    ]
+                    if self.distillation_scope == "paper_population":
+                        current_probability = torch.cat(
+                            [torch.sigmoid(positive_logits), current_untrusted_probability]
+                        )
+                        peer_probability = torch.cat(
+                            [
+                                cached_student_positive_probabilities[1 - index],
+                                peer_untrusted_probability,
+                            ]
+                        )
+                        positive_sample_risk = resolved_prior * torch.sigmoid(-positive_logits)
+                        consistency_risk = torch.cat([positive_sample_risk, pu_losses])
+                        teacher_current_probability = torch.cat(
+                            [torch.sigmoid(positive_logits), torch.sigmoid(unlabeled_logits)]
+                        )
+                        teacher_target_probability = torch.cat(
+                            [
+                                cached_teacher_positive_probabilities[index],
+                                cached_teacher_probabilities[index],
+                            ]
+                        )
+                        student_consistency_rows = len(current_probability)
+                        teacher_consistency_rows = len(teacher_current_probability)
+                    else:
+                        current_probability = current_untrusted_probability
+                        peer_probability = peer_untrusted_probability
+                        consistency_risk = pu_losses
+                        teacher_current_probability = torch.sigmoid(unlabeled_logits)
+                        teacher_target_probability = cached_teacher_probabilities[index]
+                        student_consistency_rows = len(current_probability)
+                        teacher_consistency_rows = len(teacher_current_probability)
                     student_consistency, active_fraction = hard_distillation_loss(
                         current_probability,
                         peer_probability,
-                        pu_losses,
+                        consistency_risk,
                         alpha=self.distillation_alpha,
                     )
                     teacher_consistency = F.mse_loss(
-                        torch.sigmoid(unlabeled_logits),
-                        cached_teacher_probabilities[index],
+                        teacher_current_probability,
+                        teacher_target_probability,
                     )
                     total_loss = (
                         total_loss
@@ -819,6 +889,12 @@ class SelfPUClassifier(BasePUClassifier):
                     "calibrated_ce": float(calibrated_ce.detach().cpu()),
                     "student_consistency": float(student_consistency.detach().cpu()),
                     "teacher_consistency": float(teacher_consistency.detach().cpu()),
+                    "distillation_scope": self.distillation_scope,
+                    "student_consistency_rows": student_consistency_rows,
+                    "teacher_consistency_rows": teacher_consistency_rows,
+                    "positive_rows_in_batch": len(positive_batch),
+                    "untrusted_u_rows": int(untrusted_mask.sum().item()),
+                    "unlabeled_rows_in_batch": len(unlabeled_batch),
                     "total_loss": float(total_loss.detach().cpu()),
                     "negative_risk": float(negative_risk.detach().cpu()),
                 }
@@ -839,6 +915,12 @@ class SelfPUClassifier(BasePUClassifier):
                         "hard_sample_fraction": float(active_fraction.detach().cpu()),
                         "student_mse": float(student_consistency.detach().cpu()),
                         "teacher_mse": float(teacher_consistency.detach().cpu()),
+                        "scope": self.distillation_scope,
+                        "student_rows": student_consistency_rows,
+                        "teacher_rows": teacher_consistency_rows,
+                        "positive_rows_in_batch": len(positive_batch),
+                        "untrusted_u_rows": int(untrusted_mask.sum().item()),
+                        "unlabeled_rows_in_batch": len(unlabeled_batch),
                     }
                 )
             for scheduler in schedulers:
@@ -929,6 +1011,7 @@ class SelfPUClassifier(BasePUClassifier):
         self.n_features_in_ = X.shape[1] if X.ndim == 2 else int(np.prod(input_shape))
         self.device_ = device
         self.calibration_mode_ = "clean_validation_meta" if tx_val is not None else "ablation"
+        self.distillation_scope_ = self.distillation_scope
         self._class_prior = self.class_prior_
         self._X_shape_ = X.shape
         self._is_fitted = True
@@ -967,6 +1050,7 @@ class SelfPUClassifier(BasePUClassifier):
             metadata.update(
                 {
                     "calibration_mode": self.calibration_mode_,
+                    "distillation_scope": self.distillation_scope_,
                     "best_teacher_index": self.best_teacher_index_,
                     "teacher_selection_basis": self.teacher_selection_basis_,
                     "teacher_selection_metrics": list(self.teacher_selection_metrics_),

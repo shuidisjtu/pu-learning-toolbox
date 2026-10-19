@@ -405,7 +405,7 @@ L=L_{SP+Reweight}+L_{students}+L_{teachers}.
 - **hard sample mining**：`alpha` 越小，触发蒸馏的样本越多；实现必须记录每轮的 active hard-sample fraction。
 - **reweight_gamma 核对**：`gamma` 为 CE 权重总量约束因子，论文使用小于 1 的约束因子；需与官方源码核对。
 - **训练视图叠加（协议 §2.3，实验层叠加而非算法语义）**：`fit(..., os_or_ts=...)` 默认 `"os"`。`"ts"`（方法原生 case-control 采样）把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」：trusted 行由伪标签监督、两个视图下都不入负角色；P 则在同一 epoch 内既供正例项与校正项，又按其 batch 行数质量进入负项——身份未被改写，只是多担一个角色。混合系数取两批**实际行数**，不是固定 1/2，**也不是** class prior：$`\pi`$ 只出现在校正项 $`\pi R_P^-`$，P 不按 $`\pi`$ 重加权、$`\pi`$ 不重估。U 侧若已被元权重重整，该混合是质量守恒的扩展而**不等于**普通并集均值（元权重非均匀时亦然）；$`\alpha_U`$ 无需进入 meta 探针——列 1 的逐列归一化会抵消一致缩放。trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签。复用正例批已算出的 logits：相对 `"os"` **零额外前向、零额外 RNG**。直接调用 estimator 时默认 OS；Survey 未显式覆盖时的默认视图由 resolver 依台账原生假设与 `fit` 签名决定（本方法台账已是原生 TS，故接线后其默认行转 `ts` ；按 D20 单方放行，manifest 不再挂 `ts_view_collaborator_review`，但该路径的方法学复核仍未获得，呈报不得读作已签署）。
-- **一致性项的实现收窄（视图无关）**：论文的 $`L_{students}`$ 在 $`D-D_{trust}`$ 上、$`L_{teachers}`$ 在 $`D`$ 上求和（§3.4），两者都含 $`D_P`$；本实现只对 U 批求一致性。这是既有收窄，TS 校准**不**改它（保持一致性的单变量对照），也不得据此声称论文的一致性项是 U-only。
+- **一致性范围的显式实现选择（视图无关）**：论文式 (13) 的 student consistency 定义域是各自的 $`D-D_{trust}`$（含已标记 P 与未信任 U），式 (16) 的 teacher consistency 定义域是整个 $`D=D_P\cup D_U`$（含 trusted U）。历史默认 `distillation_scope="untrusted_u"` 仍只计算未信任 U，确保冻结 Pilot/旧消融路径行为不变；新增 `"paper_population"` 路径按论文定义覆盖 P+未信任 U（student）与 P+全部 U（teacher）。student hard mining 在该路径对 P 使用 $`\pi_p\ell_P^+`$、对 U 使用逐行未标记负损失作风险代理；这是将论文的 $`L_{nnPU}(x)`$ 行级条件落到项目的非负 PU 风险分解上，仍非作者实现重放。TS 校准**不**更改一致性集合或权重，只改变 PU 负风险的角色集合。
 - **Survey 中该方法是消融分支**：冻结实验层不向 PU 方法传 clean validation（协议 §2.4 把 `clean_val` 留给 OA oracle），故 Pilot 里的 `self_pu` 恒为 `calibration_mode_="ablation"`——无 self-calibrated 元重加权，选模走 PU-validation nnPU risk。引用 Pilot 结果时不得读成「含 meta 的完整 Self-PU」；§8 新增独立支持集探索接线已有 CPU 实训回归，尚未完成真实数据的正式验收，不改变此冻结口径。
 
 ---
@@ -445,11 +445,12 @@ L=L_{SP+Reweight}+L_{students}+L_{teachers}.
 ## 8. 源码状态与复现风险
 
 2026-10-17 新增独立探索接线 `SelfPUCleanSupportTrainer`：显式带标签 support 经
-六角色 IDs/分组及标签预算审计后，作为 `validation_data` 启用现有 clean-meta
-重加权和内部 teacher 选择；外部 OA 另用不重叠 clean_val。实训回归确认元更新
-实际发生、test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终点 OA，
-不是 PA 或完整论文复现；旧试点仍是无 meta 消融，一致性项范围/图像 backbone
-差异保持登记。实际数据支持集与正式预算尚未批准。
+六角色 IDs/分组及标签预算审计后，作为 `validation_data` 启用 clean-meta
+重加权和内部 teacher 选择；外部 OA 另用不重叠 clean_val。2026-10-19 按论文式 (13)/(16)
+将该显式 full-meta 路径的一致性范围补为 student=P+未信任 U、teacher=P+全部 U；
+旧默认仍为 U-only，不改变冻结 Pilot/既有消融。实训回归确认元更新实际发生、
+test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终点 OA，不是 PA 或完整论文复现；
+图像 backbone、优化与数据协议仍有差异。实际数据支持集与正式预算尚未批准。
 详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
 
 | 字段 | 内容 |

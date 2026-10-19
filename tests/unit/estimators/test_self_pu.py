@@ -144,6 +144,13 @@ class TestSelfPUClassifier:
         assert any(item["calibration_active"] for item in classifier.reweight_history_)
         assert any(item["active"] for item in classifier.distillation_history_)
         assert classifier.get_pu_metadata()["implementation_status"] == "native"
+        active_distillation = [item for item in classifier.distillation_history_ if item["active"]]
+        assert all(item["scope"] == "untrusted_u" for item in active_distillation)
+        assert all(item["student_rows"] == item["untrusted_u_rows"] for item in active_distillation)
+        assert all(
+            item["teacher_rows"] == item["unlabeled_rows_in_batch"] for item in active_distillation
+        )
+        assert classifier.get_pu_metadata()["distillation_scope"] == "untrusted_u"
         checkpoint = classifier.get_training_checkpoint()
         assert len(checkpoint["student_states"]) == 2
         assert len(checkpoint["teacher_states"]) == 2
@@ -155,6 +162,26 @@ class TestSelfPUClassifier:
             "training",
             "validation",
         }
+
+    def test_basic_paper_population_distillation_covers_untrusted_population(self, self_pu_data):
+        X, y_pu, X_val, y_val = self_pu_data
+        classifier = _small_classifier(
+            distill_start=1,
+            distillation_scope="paper_population",
+        ).fit(X, y_pu, validation_data=(X_val, y_val))
+
+        active_distillation = [item for item in classifier.distillation_history_ if item["active"]]
+        assert active_distillation
+        assert all(item["scope"] == "paper_population" for item in active_distillation)
+        assert all(
+            item["student_rows"] == item["positive_rows_in_batch"] + item["untrusted_u_rows"]
+            for item in active_distillation
+        )
+        assert all(
+            item["teacher_rows"] == item["positive_rows_in_batch"] + item["unlabeled_rows_in_batch"]
+            for item in active_distillation
+        )
+        assert classifier.get_pu_metadata()["distillation_scope"] == "paper_population"
 
     def test_edge_missing_validation_is_explicit_ablation(self, self_pu_data):
         X, y_pu, _, _ = self_pu_data
@@ -212,6 +239,8 @@ class TestSelfPUClassifier:
         X, y_pu, X_val, y_val = self_pu_data
         with pytest.raises(ValueError, match="class_prior"):
             _small_classifier(class_prior=1.0).fit(X, y_pu)
+        with pytest.raises(ValueError, match="distillation_scope"):
+            _small_classifier(distillation_scope="all_data").fit(X, y_pu)
         with pytest.raises(ValueError, match="Require 0 <="):
             _small_classifier(warmup_epochs=2, self_paced_start=1).fit(X, y_pu)
         with pytest.raises(ValueError, match="validation_data is required"):

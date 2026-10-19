@@ -106,10 +106,12 @@ def test_basic_actual_meta_training_and_saved_provenance(method, tmp_path):
     fitted = result.selected_models["OA"]
     if method == "self_pu":
         assert fitted.calibration_mode_ == "clean_validation_meta"
+        assert fitted.distillation_scope_ == "paper_population"
         assert len(fitted.reweight_history_) > 0
         assert fitted.teacher_selection_basis_ == "clean_validation_accuracy"
         assert metadata["meta_reweight_records"] == len(fitted.reweight_history_)
         assert metadata["active_meta_reweight_records"] > 0
+        assert metadata["distillation_scope"] == "paper_population"
         assert any(row["calibration_active"] for row in fitted.reweight_history_)
     else:
         assert fitted.virtual_steps_ > 0

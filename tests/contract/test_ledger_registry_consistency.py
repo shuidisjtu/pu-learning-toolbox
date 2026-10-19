@@ -52,6 +52,7 @@ from pu_toolbox.registry import get_algorithm, get_metadata, register_all_builti
 _LEDGER_PATH = (
     Path(__file__).resolve().parents[2] / "pu_toolbox" / "experiment" / "method_ledger.json"
 )
+_ROOT = Path(__file__).resolve().parents[2]
 
 _EXPECTED_METHOD_KEYS = {
     "upu",
@@ -158,6 +159,31 @@ def test_calibration_applied_is_a_json_boolean(ledger_methods: dict[str, dict]) 
         for field in ("calibration_applied", "calibration_hooked"):
             value = entry[field]
             assert isinstance(value, bool), f"{name}.{field}: {type(value).__name__} {value!r}"
+
+
+@pytest.mark.contract
+def test_self_pu_population_scope_source_review_is_registered(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """The reviewed paper-aligned scope is documented without changing pilot default."""
+    method = ledger_methods["self_pu"]
+    review_path = (
+        _ROOT
+        / "docs/research/pu_survey/admission/selfpu_consistency_scope_review_20261019.md"
+    )
+    assert "distillation_scope=paper_population" in method["implementation_status"]
+    assert method["calibration_applied"] is True
+    assert method["calibration_hooked"] is True
+    assert method["evidence"]["consistency_scope_review"] == str(
+        review_path.relative_to(_ROOT)
+    )
+    uncertainty = "\n".join(method["uncertainty"])
+    assert "distillation_scope=untrusted_u" in uncertainty
+    assert "paper_population" in uncertainty
+    review = review_path.read_text(encoding="utf-8")
+    assert "式 (13)" in review and "式 (16)" in review
+    assert 'distillation_scope="untrusted_u"' in review
+    assert 'distillation_scope="paper_population"' in review
 
 
 @pytest.mark.contract

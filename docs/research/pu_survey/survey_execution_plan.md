@@ -119,6 +119,12 @@ API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻�
 切换异常均加回归；不改训练目标、权重、选模、预算或冻结协议。真实 CIFAR/GPU 五 seed 仍待
 新协议与存储预算获批。
 
+2026-10-19 Self-PU 一致性范围补齐：按正式论文式 (13)/(16) 将 clean-support full-meta
+探索路径显式设为 student `D-D_trust`（P + 未信任 U）及 teacher 全 `D`（P + 全部 U）；
+估计器默认仍 `untrusted_u`，冻结 Pilot 无 meta 消融/历史轨迹不变。同步更新训练 history、
+metadata、方法卡、API 与 ledger，并加行数范围回归。论文和剩余工程差异、额外 clean-support
+预算/真实制品/正式准入阻断见[来源交叉审计](admission/selfpu_consistency_scope_review_20261019.md)。
+
 2026-10-19 P3.2 CNN feature adapter 模式恢复：[专项记录](admission/feature_adapter_inference_modes_20261019.md)。
 修复特征抽取只保留根模块模式且 eval 转换位于异常保护外的问题；39 项相关测试中 34 通过、
 5 项 CUDA 因环境无设备跳过。只验证模式与异常安全，不代表 GPU/真实数据资源验收或正式准入。

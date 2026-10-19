@@ -421,7 +421,7 @@ tests/
       test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
       test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
     experiment/
-      test_dist_pu_source_review.py    # 锁定作者来源身份与 toolbox 训练流程差异/未准入边界
+      test_dist_pu_source_review.py     # 锁定作者来源身份与 toolbox 训练流程差异/未准入边界
       test_cvir_known_prior_adapter.py  # CVIR alpha_U/总体 pi、候选角色、manifest 与路径拒收
       test_pulns_support_adapter.py     # PULNS 全角色隔离、额外标签预算与 OA-only 拒收
       test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验

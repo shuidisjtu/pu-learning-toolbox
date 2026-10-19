@@ -922,7 +922,8 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
                  self_paced_start=10, self_paced_end=50, distill_start=50, max_epochs=200,
                  max_trust_ratio=0.25, pace_1=0.2, pace_2=0.3, meta_step_size=1e-3,
                  reweight_gamma=1/16, distillation_alpha=10.0, ema_decay=0.99,
-                 student_loss_weight=1.0, teacher_loss_weight=1.0, batch_size=256,
+                 student_loss_weight=1.0, teacher_loss_weight=1.0,
+                 distillation_scope="untrusted_u", batch_size=256,
                  learning_rate=1e-3, weight_decay=0.0, threshold=0.5,
                  require_validation=False, random_state=None, device=None)
 ```
@@ -943,6 +944,7 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
 | `distillation_alpha` | `float` | `10.0` | 蒸馏损失权重 |
 | `ema_decay` | `float` | `0.99` | 教师模型 EMA 衰减 |
 | `student_loss_weight` / `teacher_loss_weight` | `float` | `1.0` / `1.0` | 学生/教师损失权重 |
+| `distillation_scope` | `{"untrusted_u", "paper_population"}` | `"untrusted_u"` | 一致性损失覆盖范围；独立 clean-support full-meta adapter 自动使用论文总体范围，历史 Pilot 默认不变 |
 | `batch_size` / `learning_rate` / `weight_decay` | `int` / `float` / `float` | `256` / `1e-3` / `0.0` | 训练设置 |
 | `threshold` | `float` | `0.5` | 决策阈值（未调谐，见方法卡） |
 | `require_validation` | `bool` | `False` | 是否要求 `fit` 传 `validation_data`（教师选择需要） |
