@@ -193,6 +193,10 @@ def test_linear_pusb_calibration_exclusion_matches_d20(ledger_methods: dict[str,
     assert "P2 前须确认" not in " ".join(linear["uncertainty"])
     assert kernel["calibration_applied"] is True
     assert kernel["calibration_hooked"] is True
+    card = _LEDGER_PATH.parents[2] / "docs/research/method_cards/PUSB.md"
+    card_text = card.read_text(encoding="utf-8")
+    assert "D20② 判定为不适用" in card_text
+    assert "Pilot 使用独立的 `pusb_kernel`" in card_text
 
 
 @pytest.mark.contract

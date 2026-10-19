@@ -142,6 +142,8 @@ g(x)=\tilde\phi(x)^T b,
 
 当前 linear baseline 对 P/U 来源标签训练 `StandardScaler + LogisticRegression`，对新样本输出来源分类器的 decision score，以 `sigmoid(score)` 提供工程侧 `predict_proba`，按概率阈值产生二元预测。它提供 selection-biased PU 的统一接口和可运行 baseline，不能用于声称“已经完成 PUSB 论文复现”。
 
+该线性基线不接入 Survey 的 OS→TS 校准：训练目标把整个 U 直接当作来源分类器的负类，没有可单独替换的“未标记风险”输入；按执行计划 D20② 判定为不适用。它是附加工程基线，不入 Pilot；Pilot 使用独立的 `pusb_kernel` 注册项，该核方法的校准接线与复核状态见下文。
+
 ### 4.2 Official-aligned RBF 适配器
 
 超参数选择复刻官方结构：中心从全训练集选择一次，样本随机分配到折，遍历 `sigma` 与 `lambda` 网格，累加验证 PU 风险，按网格顺序稳定打破平局，最后在全训练集重训。决策阈值的双语义与梯度系数兼容修正见 §6。
