@@ -421,7 +421,7 @@
         "决策阈值双语义：公共 predict 冻结训练先验分位数 vs predict_with_prior_quantile 复刻官方批次分位数（PUSB.md:169-172）",
         "predict_proba 非校准后验（PUSB.md:175）",
         "pilot 行采用 pusb_kernel（2026-09-14 决策，issue #42）；pusb 为附加工程基线不入榜",
-        "原生 case-control（ts）；TS-OS 校准尚未接入训练执行链（run_view=os-compatible、calibration_applied=false），P2 前须确认训练接口允许替换未标记损失输入（协议 §2.3）"
+        "原生 case-control（ts）；线性 PUSB 训练信号将 U 直接作为负类，不存在可替换的未标记风险输入，按 survey_execution_plan.md 决策 D20② 判定 TS-OS 校准不适用（run_view=os-compatible、calibration_applied=false）；该附加基线不入 Pilot，Pilot 使用 pusb_kernel 并已单独接线"
       ]
     },
     "pusb_kernel": {

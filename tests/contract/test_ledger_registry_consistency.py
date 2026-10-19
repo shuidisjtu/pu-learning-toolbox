@@ -183,6 +183,19 @@ def test_ledger_calibration_claims_have_a_real_fit_hook(
 
 
 @pytest.mark.contract
+def test_linear_pusb_calibration_exclusion_matches_d20(ledger_methods: dict[str, dict]) -> None:
+    """The excluded linear baseline is distinct from the calibrated Pilot kernel method."""
+    linear = ledger_methods["pusb"]
+    kernel = ledger_methods["pusb_kernel"]
+    assert linear["calibration_applied"] is False
+    assert linear["calibration_hooked"] is False
+    assert "D20②" in " ".join(linear["uncertainty"])
+    assert "P2 前须确认" not in " ".join(linear["uncertainty"])
+    assert kernel["calibration_applied"] is True
+    assert kernel["calibration_hooked"] is True
+
+
+@pytest.mark.contract
 def test_prior_semantics_consistent_with_registry_class_prior(
     ledger_methods: dict[str, dict],
 ) -> None:
