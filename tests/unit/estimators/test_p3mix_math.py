@@ -83,6 +83,18 @@ def test_determ_marginal_candidates_modified_mixup_and_no_mutation():
         np.testing.assert_array_equal(result[name], repeated[name])
 
 
+def test_edge_gamma_half_has_empty_marginal_set_as_paper_states():
+    features = np.arange(6.0).reshape(3, 2)
+    result = p3mix_heuristic_batch(
+        features,
+        [1, 0, 0],
+        [0.5, 0.5, 0.6],
+        [[10.0, 20.0]],
+        gamma=0.5,
+    )
+    assert not result["marginal_mask"].any()
+
+
 @pytest.mark.math
 def test_separate_group_means_and_stopped_soft_target_gradients():
     torch = pytest.importorskip("torch")

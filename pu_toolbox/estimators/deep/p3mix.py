@@ -148,7 +148,13 @@ def p3mix_heuristic_batch(
         raise ValueError("gamma must be in [0.5,1]")
     if not _is_finite_real(alpha) or alpha <= 0:
         raise ValueError("alpha must be finite and positive")
-    marginal = (labels == 0) & (probabilities >= 1 - gamma) & (probabilities <= gamma)
+    # The paper explicitly states that gamma=0.5 yields an empty set, even
+    # though the closed interval in Eq. (6) collapses to the singleton 0.5.
+    marginal = (
+        np.zeros(len(labels), dtype=bool)
+        if gamma == 0.5
+        else (labels == 0) & (probabilities >= 1 - gamma) & (probabilities <= gamma)
+    )
     rng = np.random.RandomState(random_state)
     partners = rng.randint(0, len(features), size=len(features))
     partner_features = features[partners].copy()

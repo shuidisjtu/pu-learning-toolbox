@@ -337,6 +337,6 @@ L_{\mathrm{opt}}=
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_exact` |
-| Official code | [`kiryor/nnPUlearning`](https://github.com/kiryor/nnPUlearning)（官方 Chainer 实现，MIT；本项目为 clean-room native PyTorch） |
+| Official code | [`kiryor/nnPUlearning`](https://github.com/kiryor/nnPUlearning)（官方 Chainer 实现，MIT；本项目为 clean-room native PyTorch）。本仓库尚未锁定该上游 immutable revision；损失分支及 loader 差异见[nnPU 来源/行为审计](../pu_survey/admission/nnpu_source_behavior_review_20261019.md)。 |
 | 实现状态 | native 实现（backend TORCH，支持 GPU）；接口按 `BasePUClassifier` 契约 |
 | 复现风险 | 论文实验为深度模型协议（200 epochs、Adam/AdaGrad、$`\ell_2`$ 正则）；先验必须外部提供，设错直接改变风险分解；训练与评估须区分报告值（公式 (6)）与优化量（Algorithm 1 分支规则），`max` 误实现会静默偏离论文算法 |

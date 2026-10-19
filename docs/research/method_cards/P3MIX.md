@@ -7,7 +7,7 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 - 基础 P3Mix 将 U 暂按伪负例处理，使用式 (1)–(3) 的分组目标 `mean_P + beta * mean_U`，对两组分别求均值。
 - 式 (4) 使用 `lambda' = max(lambda, 1-lambda)`，`lambda ~ Beta(alpha, alpha)`；软标签随特征一起混合。
 - 式 (5) 对边缘伪负例从正例候选池均匀选 mixup 伙伴，其余 P/U 行从当前 P∪U 小批次均匀抽取伙伴。
-- 式 (6) 的边缘条件是 `1-gamma <= f(x;Theta) <= gamma`，含端点；gamma ∈ [0.5, 1]。
+- 式 (6) 的边缘条件是 `1-gamma <= f(x;Theta) <= gamma`，区间端点含入；但原文紧接着明确规定 γ=0.5 时集合为空（即使预测值恰为 0.5），γ=1 时包含全部 U。实现对 γ=0.5 采用该显式退化规则，其余范围按闭区间处理。
 - 式 (7) 每个 epoch 结束时，以训练 P 上预测 Bernoulli 熵最高的 top-k 行刷新候选池；Algorithm 1 初始候选池随机初始化。
 - P3Mix-E 在式 (8) 中加入 teacher 正则 `mean log(1 - <f(x;Theta), y_tilde>)`；teacher 对 mixup 后样本给目标，并在 Algorithm 1 的每个 epoch 末按 EMA 更新。实现把 agreement 截至 `1-1e-7`，避免完全一致时 `log(0)`。Algorithm 1 写明 Θ 与 eΘ 均随机初始化，但未说明二者是否独立；本实现复制 student 初始化 teacher，是待复核的工程选择。
 - P3Mix-C 在 mixup 前，将 `f(x;Theta) > gamma` 的 U 伪负标签改为正类。E 与 C 是论文定义的两个独立变体，不合并为一个方法。

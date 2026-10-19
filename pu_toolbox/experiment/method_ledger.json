@@ -613,14 +613,17 @@
       "evidence": {
         "native_sampling_assumption": "nnpu.md:13/38-39; registry:nnpu",
         "prior_semantics": "nnpu.md:14/26-27/44; registry:nnpu",
-        "adaptation_level": "nnpu.md:339-340; registry:nnpu"
+        "adaptation_level": "nnpu.md:339-340; registry:nnpu",
+        "source_behavior_review": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md"
       },
       "uncertainty": [
         "先验必须外部提供；训练时必须保持 Algorithm 1 的分支梯度，不能对 max(0,r) 直接反传播（nnpu.md:341）",
         "官方实现为 Chainer，本项目为原生 PyTorch clean-room 实现；实验数值只能在共享协议下对照，不能宣称逐行复现",
+        "来源/行为审计显示论文成对 P/U mini-batch 与官方合并 Chainer SerialIterator 的批次构成不同，且官方上游尚未锁定 immutable revision；差异和限制见 nnpu_source_behavior_review_20261019.md",
         "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts，逐 mini-batch 执行 D_U ∪ D_P）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
         "ts 视图路径尚未经合作者复核（协议 §2.3）；按 D20 的单方技术验收放行，manifest 已不再挂 ts_view_collaborator_review 阻断正式资格——**放行不等于合作者已复核**，呈报时不得读作已签署"
       ],
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md",
       "filler": "HENG958",
       "owner_review": {
         "status": "completed",
