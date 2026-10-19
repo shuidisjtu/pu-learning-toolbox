@@ -111,6 +111,8 @@ CIFAR-10 锚点由 `test_p3mix_literature_anchors.py` 单独核对，候选 fit 
 契约测试逐项绑定 nnPU、Dist-PU、PUSB kernel、Self-PU 的锁定 commit 与行为审计，并断言线性
 `pusb` 不继承 kernel 来源 pin。RECPE 与先验估计来源仍在来源锁中，但不是算法台账方法，不强行映射。
 台账 JSON、来源/台账契约、Dist-PU/PUSB kernel estimator 测试通过；不表示逐行复现或正式准入。
+后续对照最新 VPU D21/D22 复核，又将已有完整作者 commit `603bcc1e…` 同步至 VPU 台账，
+并以调度来源 JSON、方法卡和只读复核记录约束其一致性；该 pin 只标识来源快照，不解除方法复核或准入。
 
 原文复审补记：Algorithm 1 第 1 行明确将 student Θ 与 teacher eΘ 均随机初始化，但未说明
 二者是否独立；当前实现复制 student 初始化 teacher。已把这一点从“论文未说明初始化”更正为

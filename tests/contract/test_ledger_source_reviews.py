@@ -190,6 +190,25 @@ def test_linear_pusb_does_not_inherit_kernel_source_commit(
 
 
 @pytest.mark.contract
+def test_vpu_upstream_pin_matches_schedule_and_behavior_audits(
+    ledger_methods: dict[str, dict],
+) -> None:
+    """VPU's structured source pin stays bound to its immutable audit snapshot."""
+    method = ledger_methods["vpu"]
+    schedule_path = _ROOT / "docs/research/pu_survey/data/vpu_schedule_source_20261015.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    expected_commit = "603bcc1e628795f57a5ac87e5b0b977273b7cf91"
+    assert schedule["source"]["commit"] == expected_commit
+    assert method["code_version"]["upstream_commit"] == expected_commit
+    assert expected_commit in (_ROOT / "docs/research/method_cards/VPU.md").read_text(
+        encoding="utf-8"
+    )
+    assert expected_commit in (
+        _ROOT / "docs/research/pu_survey/admission/vpu_d21_d22_review_20261018.md"
+    ).read_text(encoding="utf-8")
+
+
+@pytest.mark.contract
 def test_upu_source_behavior_review_discloses_source_pin_gap(
     ledger_methods: dict[str, dict],
 ) -> None:
