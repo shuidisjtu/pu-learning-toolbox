@@ -133,18 +133,21 @@ def test_runner_oa_checkpoint_recovery_and_reclaim(tmp_path):
         }
     )
     encoder = nn.Sequential(nn.Conv2d(3, 2, 1), nn.AdaptiveAvgPool2d(1), nn.Flatten())
-    result = ExperimentRunner(
-        generator=CleanLabelGenerator(),
-        protocols=[ProtocolOA()],
-        manifest_path=str(tmp_path / "manifest.json"),
-        config={"trainer": SupervisedTrainer(), "reclaim_unselected_checkpoints": True},
-    ).fit(
-        PilotOracleCNN(encoder=encoder, max_epochs=3, batch_size=4, random_state=0),
-        bundle.train,
-        bundle.pu_val,
-        bundle.clean_val,
-        bundle.test,
-    )
+    # This unbound technical smoke deliberately has no checkpoint-size profile:
+    # it may proceed with a warning, unlike versioned_pilot which fails closed.
+    with pytest.warns(UserWarning, match="checkpoint disk usage cannot be estimated"):
+        result = ExperimentRunner(
+            generator=CleanLabelGenerator(),
+            protocols=[ProtocolOA()],
+            manifest_path=str(tmp_path / "manifest.json"),
+            config={"trainer": SupervisedTrainer(), "reclaim_unselected_checkpoints": True},
+        ).fit(
+            PilotOracleCNN(encoder=encoder, max_epochs=3, batch_size=4, random_state=0),
+            bundle.train,
+            bundle.pu_val,
+            bundle.clean_val,
+            bundle.test,
+        )
     assert set(result.manifest["selection"]) == {"OA"}
     references = result.manifest["candidate_runs"][0]["epoch_checkpoints"]
     assert len(references) == 3
