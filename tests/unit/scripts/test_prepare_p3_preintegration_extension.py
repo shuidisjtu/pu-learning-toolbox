@@ -61,7 +61,7 @@ def test_basic_determ_generated_extension_matches_recorded_draft_and_sources():
         }
 
 
-def test_edge_null_candidates_empty_signatures_no_p3mix_registration_or_source_mutation():
+def test_edge_null_candidates_empty_signatures_keep_p3mix_unadmitted_and_source_immutable():
     facts, protocol = ledger(), load_protocol()
     before = copy.deepcopy((facts, protocol))
     report = draft.build_extension(facts, protocol)
@@ -69,7 +69,9 @@ def test_edge_null_candidates_empty_signatures_no_p3mix_registration_or_source_m
         assert entry["admitted"] is False
         assert entry["candidate_pool"] is None and entry["budget_ref"] is None
         assert entry["candidate_protocol_ref"] is None and entry["owner_decisions"] == {}
-    assert report["unregistered_components"][0]["registered"] is False
+    p3mix = report["registered_components_not_admitted"][0]
+    assert p3mix["registered"] is True and p3mix["admitted"] is False
+    assert "method_owner_review_pending" in p3mix["blockers"]
     pulns = next(row for row in report["candidates"] if row["method"] == "pulns")
     assert pulns["ledger_snapshot"]["requires_clean_support"] is True
     assert pulns["ledger_snapshot"]["pa_eligible"] is False

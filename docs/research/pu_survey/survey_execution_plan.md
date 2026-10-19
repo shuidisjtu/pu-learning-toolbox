@@ -49,7 +49,7 @@
 
 | 编号 | 任务 | 主责 / 复核 | 前置 | 当前状态 | 完成条件 |
 |---|---|---|---|---|---|
-| P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 无（与 P3.2 并行） | 除 `p3mix` 外，Survey 目标方法均已有代码级接入；五方法[来源与预算证据](p3_admission_evidence_20261005.md)、[公开对照草稿](p3_public_comparison_20261005.md)已补，均待审；`p3mix` 仅有数学组件，未注册完整 estimator。<br>**待办：** ① 完成 P3MIX 来源核验、完整 estimator/训练流程、注册与测试；② 补齐已接入方法的来源、公式/行为对照、先验/标签预算与校准适用性 | P3MIX 完整接入且各方法准入证据齐备；shuidisjtu 按 RV8 逐项复核 |
+| P3.1 | P3MIX 完整集成与新增方法准入证据 | **HENG958**；shuidisjtu 复核 | 无（与 P3.2 并行） | 2026-10-19 根据用户提供的 14 页 ICLR 2022 全文完成 P3Mix/P3Mix-E/P3Mix-C 来源核对、可训练 estimator、注册、OS-only 台账与方法卡。专项 estimator、registry、候选扩展、台账一致性及准入契约测试通过；P3 admission evidence/public comparison 门禁通过。recipe registry 属冻结阶段产物，当前文件不存在；`--require-present` 运行报告 deferred/skipped，不能记作已验证。验收记录见 §1.3 当日记录及[逐项原文交叉表](admission/p3mix_paper_review_20261019.md)。仍无方法负责人复核、正式配方/预算、资源验收或准入。其他新增方法来源/行为/先验/校准证据按既有链接待审。<br>**待办：** ① 方法负责人按 RV8 核对论文公式、未指定工程细节及实现；② 补齐批准协议的公开对照与资源证据；③ 其余已接入方法逐项复核 | P3MIX 工程集成经测试，适配与论文未指定项透明记录，负责人按 RV8 完成复核；新增准入另需协议/预算/资源批准，不由代码接入自动触发 |
 | P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | 无（与 P3.1 并行） | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；各方法的补记见 §1.3。<br>**待办：** 确定正式共享规格；接通获批图像/特征路径、分批训练预测、阶段预算及 checkpoint；说明增强/调度与原论文的适配差异；补执行证据 | 交付可追溯工程证据；资源验收见 P3.3-A/B |
 | PN-CNN | 端到端 CNN PN 全监督 oracle baseline | **HENG958** 实现/训练；shuidisjtu 登记协议并复核 | 新协议与存储预算登记 | `PilotOracleCNN` 已有代码和合成验证；旧协议 native CNN oracle 仍不可运行；真实 CIFAR 五 seed 未交付。<br>**待办：** ① shuidisjtu 完成新协议/存储预算登记；② HENG958 完成真实 CIFAR GPU smoke；③ 交付五 seed 权重、指标和 manifest | 用真实 train PN 标签端到端训练 ResNet-18 与分类头，与对应 PU 共享 split/表征/预算；仅用 clean_val accuracy 作 OA 选模；每 dataset/seed 一次、五 seed |
 | P3.3-A | 批准结构的资源 profile | **HENG958**；shuidisjtu 复核预算依据 | P3.2 的批准结构 | [扩展资源 receipt](data/candidate_extended_cnn_storage_probe_20261007.json)已完成 7 recipe×3 seed 的独立 CPU 技术测量并通过 checker；仍是合成输入、非批准结构/正式上界，GPU 未测，不能外推正式数据集。<br>**待办：** 测真实批准结构的序列化、内存/磁盘及保守配额 | 测量覆盖批准结构；PUET 按 CPU 条款处理，不计入 GPU 覆盖 |
@@ -59,13 +59,46 @@
 | P4.2 | 主榜运行结果聚合与分析 | **shuidisjtu**；HENG958 复核深度结论 | 拟纳入数据、PN-CNN、方法准入、P3.3-B/P4.1-B 与正式运行制品均具备 | 未开始（前置未满足）。<br>**待办：** 聚合并分析主榜运行结果 | 22 项通过门禁；按机制、PA/OA、预算族及训练路径分层；区分文献事实/观测/推断，不生成跨数据集总排名 |
 | RV5 | Pilot Self-PU 元重加权/消融口径复核 | **HENG958**；shuidisjtu 提供既有 Pilot 协议证据 | 既有 Pilot 协议证据 | Pilot 实际为 ablation，不是完整版。<br>**待办：** 确认 clean 标签监督、消融范围与 PA 资格 | 记录 HENG958 方法学结论；不将消融说成完整论文复现 |
 | RV6 | 五方法 TS 接线复核 | **HENG958**；shuidisjtu 提供既有接线证据 | 既有接线证据 | `nnpu`/`upu`/`pusb_kernel`/`dist_pu`/`self_pu` 工程接线已有。<br>**待办：** 逐方法确认校准作用范围与不变量 | 记录 HENG958 结论；路由回归不代替方法学复核 |
-| RV8 | 新增算法正式准入复核 | **shuidisjtu**；HENG958 提供实现证据 | 适用的来源/规格/资源证据齐备 | 台账 12 条新增方法待复核。<br>**待办：** 逐方法确认 HENG958 的来源、适配、先验/标签预算、选模和资源证据 | 记录接受、有条件接受或退回及整改项；HENG958 不自审其新增算法 |
+| RV8 | 新增算法正式准入复核 | **shuidisjtu**；HENG958 提供实现证据 | 适用的来源/规格/资源证据齐备 | 台账 14 条新增/扩展方法待复核（含独立 native-TS TEDn 与 P3MIX）。<br>**待办：** 逐方法确认 HENG958 的来源、适配、先验/标签预算、选模和资源证据 | 记录接受、有条件接受或退回及整改项；HENG958 不自审其新增算法 |
 
 ### 1.3 执行边界
 
 2026-10-19 续批收尾见[任务/发布验收与后续](reviews/candidate_followup_summary_20261019.md)：
 逐项修复评分模式、15候选失败拟合和机器证据绑定；另修临时LBE脚本的Git/cwd溯源。
-短预算Spambase wheel回归不判方法效果，不覆盖旧产物或正式跑批，P3MIX仍待全文。
+短预算Spambase wheel回归不判方法效果，不覆盖旧产物或正式跑批。
+
+2026-10-19 用户补入 `30_who_is_your_right_mixup_partne.pdf` 后完成 P3MIX 全文核对与
+[完整实现交付](../method_cards/P3MIX.md)，并建立[逐项原文复核交叉表](admission/p3mix_paper_review_20261019.md)：式(1)–(8)、Algorithm 1、pool epoch 更新和独立
+P3Mix-E/C 已接入训练类、registry、ledger、方法卡与专项测试。文中没有作者仓库链接，也未
+指定完整优化器/批次/backbone/teacher decay 配方；当前默认均标作工程选择。只声明代码级
+NATIVE 与 OS 训练，不启用 TS、不改冻结矩阵/候选准入/历史结果，RV8 负责人复核及正式预算仍待。
+
+同日验收补记：P3Mix estimator、registry、候选扩展脚本、台账一致性与准入契约专项测试通过；
+`check_p3_admission_evidence.py` 与 `check_p3_public_comparison.py` 通过。
+`check_survey_recipe_registry.py --require-present` 因冻结阶段文件不存在而报告 deferred/skipped，
+没有验证任何配方。训练/生命周期测试已纳入本地验收，
+不改变上一段列明的负责人复核、正式配方/预算、资源验收与准入前置。
+
+2026-10-19 P3MIX 生命周期同步：将完整 estimator 纳入16候选 `check_candidate_fit_contracts.py`
+静态身份门禁；补未知 fit 参数绑定失败和 epoch 中断后的失效回归，更新台账工程引用及机器草稿。
+另加强显式 CNN encoder 回归：确认拟合会更新 estimator 内 encoder 权重、但不改调用方模板。
+59项候选门禁、P3MIX 与台账一致性测试通过，正式准入仍 false；历史实验与冻结协议未改。
+
+原文复审补记：Algorithm 1 第 1 行明确将 student Θ 与 teacher eΘ 均随机初始化，但未说明
+二者是否独立；当前实现复制 student 初始化 teacher。已把这一点从“论文未说明初始化”更正为
+“初始化关系未定义、实现选择待方法负责人确认”；同时登记式(8)在 agreement 处以 `1−1e−7`
+截顶来避免 `log(0)`，并补测饱和目标有限性、float state EMA 与整型 BN buffer 同步；端到端
+回归确认 epoch 末 candidate pool 正好对应训练 P 中预测熵最高的 top-k。P3MIX 单测现为24项，
+来源/准入门禁保持通过且 `formal_admission=false`。
+
+2026-10-19 P3.2 oracle 推理状态修复：`PilotOracleCNN` 预测原先只恢复根模块模式，递归 `train()`
+会覆盖 encoder 内 BN/Dropout 的混合状态。现按模块记录/恢复，正常前向、模型前向异常和 `eval()`
+切换异常均加回归；不改训练目标、权重、选模、预算或冻结协议。真实 CIFAR/GPU 五 seed 仍待
+新协议与存储预算获批。
+
+2026-10-19 P3.2 CNN feature adapter 模式恢复：[专项记录](admission/feature_adapter_inference_modes_20261019.md)。
+修复特征抽取只保留根模块模式且 eval 转换位于异常保护外的问题；39 项相关测试中 34 通过、
+5 项 CUDA 因环境无设备跳过。只验证模式与异常安全，不代表 GPU/真实数据资源验收或正式准入。
 
 2026-10-19 补[15候选生命周期机器门禁](reviews/candidate_fit_contracts_20261019.md)：
 只读AST/源码摘要绑定公开fit参数、共享guard、工程审阅引用和原校准口径；
@@ -98,6 +131,11 @@ GEN-PU/Holistic-PU/LaGAM/PULNS/TEDn 的未知/缺失参数、异常和取消均�
 2026-10-19 P3.2 续批补[Split-PU 评分状态恢复](admission/splitpu_inference_modes_20261019.md)：
 分批评分成功/前向异常/eval 切换异常均恢复逐层模式；不裁决 #122 的 JSD、prior 或
 混合比例，不改历史结果/资源 probe，不代签准入。
+
+2026-10-19 #122 来源补核：[Split-PU 现状记录](admission/splitpu_122_characterization_20261018.md)
+新增 arXiv 正文 Eq. (6) 的独立核对：`rho=0.7` 权重落在 student，teacher 系数为0.3，
+仅反转实现参数仍会更换归一化分母。该结论确认论文侧公式；锁定作者源码的字节本轮无法重取，
+既有源码摘要保留为历史证据，须负责人对照并裁决；没有改 JSD、prior、采样或校准行为。
 
 2026-10-19 跳过待补全文的 P3MIX，推进 P3.2 的
 [Robust-PU 推理模式恢复](admission/robustpu_inference_modes_20261019.md)：
@@ -162,6 +200,12 @@ support 大小/seed、剩余 train-only 预处理与三方法单候选 OA 实验
 2026-10-17 算法收尾新任务：线性 LBE 可解释性诊断 → P3MIX 完整来源/实现 →
 完整 Self-PU/独立支持集接线与验收，见[推进与前置清单](reviews/algorithm_completion_20261017.md)。
 未获批准的标签预算/正式 GPU 配方不因用户要求工程收尾而自动放行。
+
+2026-10-19 PULNS 独立来源复核补记：重新核对 AAAI 正式全文未发现作者代码仓库链接，保持
+`not_found` 而不外推源码不存在；补录 CIFAR-10/MNIST 类别映射、P/U 与 γ 协议以及 Table 3
+公开 error-rate 锚点。括号 SD 尺度仍有原文单位歧义，锚点仅用于来源审计，不并入冻结矩阵；
+台账保持 `ts` 原生采样语义、无 TS-OS 校准及 clean-support/PA blocker。详见
+[PULNS 来源与 CNN 复核](pulns_source_cnn_review_20261007.md) §2026-10-19。
 
 2026-10-17 新增算法整改：#114 PUET bootstrap 风险归一化、#115 LaGAM OS 元数据、
 #117 CVIR 先验/路径及 #116 PULNS 支持集/额外监督独立适配，见

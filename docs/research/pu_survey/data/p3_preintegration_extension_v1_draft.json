@@ -125,14 +125,14 @@
       "preparation_priority": 3,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pulns",
       "ledger_snapshot": {
-        "native_sampling_assumption": "ts（原论文 §Experimental Setup 对 P 与给定正类比例 gamma 的 U 分别抽样；另有干净奖励验证集）",
+        "native_sampling_assumption": "ts（原论文 §Experimental Setup 印刷页8788：P与U分别抽样，gamma是U内正类比例而非标记率c；CIFAR-10/MNIST设置|P|=2000、|U|=4000，并需独立含真值正负的奖励验证集）",
         "run_view": "os-compatible",
         "calibration_applied": false,
         "prior_semantics": "无外部先验；需要独立带正负真值的 support_data 计算终端奖励和内部最优分类器，PA-ineligible",
-        "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 或注入 CNN 最后隐层作状态，分类器/独立 probe 均端到端训练编码器；CNN 特征分批提取并在 CPU 缓存，顺序 policy 图仍随 U 增长；工程架构/Adam 重置/预算，不声称完整作者 CNN 数值复现）",
+        "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 或注入 CNN 最后隐层作状态，分类器/独立 probe 均端到端训练编码器；CNN 特征分批提取并在 CPU 缓存，顺序 policy 图仍随 U 增长；工程架构/Adam 重置/预算，不声称完整作者 CNN 数值复现；论文 Table 3 数值和 SD 单位歧义仅作外部来源锚点，见 pulns_source_cnn_review_20261007.md，不并入冻结矩阵）",
         "code_version": {
           "upstream_url": null,
-          "source_status": "not_found（2026-10-07 复核论文/作者机构页面与关键词检索仍未确认作者 PULNS 仓库；不等于证明源码不存在；论文独立适配）"
+          "source_status": "not_found（2026-10-19 复核 AAAI 正式全文与论文页，论文未提供可确认作者仓库/源码链接；不等于证明源码不存在；论文独立适配，证据见 docs/research/pu_survey/pulns_source_cnn_review_20261007.md）"
         },
         "modality_backbone": {
           "modalities": [
@@ -282,15 +282,16 @@
       "gpu_evidence_ref": "docs/research/pu_survey/reviews/independent_progress_20261005.md"
     }
   ],
-  "unregistered_components": [
+  "registered_components_not_admitted": [
     {
       "method": "p3mix",
       "component_ref": "pu_toolbox/estimators/deep/p3mix.py",
-      "registered": false,
+      "registered": true,
+      "admitted": false,
       "blockers": [
-        "full_primary_source",
-        "epoch_pool_schedule",
-        "E_C_variants"
+        "method_owner_review_pending",
+        "formal_recipe_and_budget_pending",
+        "resource_profile_and_multiseed_validation_pending"
       ]
     }
   ]

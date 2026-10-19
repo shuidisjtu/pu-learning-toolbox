@@ -32,6 +32,7 @@ METHODS = {
     "pan": "deep/pan.py",
     "cvir": "risk/cvir.py",
     "rp": "classic/rank_pruning.py",
+    "p3mix": "deep/p3mix.py",
 }
 
 

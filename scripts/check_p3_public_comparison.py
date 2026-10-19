@@ -31,6 +31,8 @@ from scripts.check_p3_admission_evidence import (
 )
 
 DRAFT_REF = "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json"
+PULDA_PAPER_REVIEW_REF = "docs/research/method_cards/PULDA.md"
+PULDA_PAPER_SHA256 = "a2cffd8e0b3275aebf8ab89a29bea11a07b598f252f228df479c8db0e16c4070"
 BOUND_FILES = (
     "uv.lock",
     "pu_toolbox/experiment/survey_protocol_v1.json",
@@ -139,10 +141,26 @@ def validate_draft(draft, ledger, protocol, *, root=ROOT):
             "missing source boundaries",
         )
         if method == "pulda":
-            require(profile["paper_status"] == "full_text_unavailable", "unverified PULDA paper")
             require(
-                profile["paper_file"] is None and profile["paper_sha256"] is None,
-                "invented PULDA bytes",
+                profile["paper_status"] == "full_text_reviewed_anchor_pending",
+                "stale PULDA paper status",
+            )
+            require(
+                profile["paper_file"] is None
+                and profile["paper_sha256"] == PULDA_PAPER_SHA256
+                and profile["paper_review_ref"] == PULDA_PAPER_REVIEW_REF
+                and profile["paper_pages"] == 19
+                and profile["paper_location"] is None
+                and profile["metric"] is None
+                and profile["uncertainty_kind"] is None
+                and profile["spread_unit"] is None
+                and profile["n_repeats"] is None,
+                "PULDA source receipt/anchor boundary drift",
+            )
+            review_text = repo_file(profile["paper_review_ref"], root).read_text(encoding="utf-8")
+            require(
+                profile["paper_sha256"] in review_text and "19 页" in review_text,
+                "PULDA source receipt missing from review",
             )
         else:
             require(profile["paper_status"] == "table_visually_checked", "missing visual review")
@@ -239,6 +257,11 @@ def validate_draft(draft, ledger, protocol, *, root=ROOT):
             and "new_result_artifacts_and_owner_review_missing" in cell["blockers"],
             "missing blockers",
         )
+        if key[0] == "pulda":
+            require(
+                "paper_anchor_not_in_inventory" in cell["blockers"],
+                "missing PULDA anchor blocker",
+            )
         counts[disposition] += 1
     require(cells == {(m, d) for m in METHODS for d in DATASETS}, "incomplete coverage")
     require(

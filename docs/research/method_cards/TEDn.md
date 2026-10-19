@@ -3,9 +3,10 @@
 Garg et al., NeurIPS 2021，*Mixture Proportion Estimation and PU Learning:
 A Modern Approach*。[Algorithm 3 印刷页7与页8说明](https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf)。
 
-新增 `pu_toolbox.estimators.deep.TEDnClassifier`，包含完整 warm-start、逐轮 BBE、
-排序丢弃、神经网络更新与停止过程。它不是固定先验 CVIR，也不是仅有公式组件。
-这是独立原生 TS 工程路径，尚未注册 CLI/UI/OS pipeline，未进入冻结矩阵或正式准入。
+新增 `TEDnClassifier`，现可从 `pu_toolbox`、`pu_toolbox.estimators.deep` 导入，
+也已注册为实验级 `tedn` 方法。它包含完整 warm-start、逐轮 BBE、排序丢弃、神经网络
+更新与停止过程；不是固定先验 CVIR，也不是仅有公式组件。注册只开放 estimator/API、
+CLI 参数入口及 UI 的显式 case-control 配置，不表示进入 OS 转换路径、冻结矩阵或正式准入。
 
 ## 数据与时序
 
@@ -48,7 +49,7 @@ BBE 返回0时保留全部 U；返回1时负类角色为空，明确报错并使
 ## 使用
 
 ```python
-from pu_toolbox.estimators.deep import TEDnClassifier
+from pu_toolbox import TEDnClassifier
 
 # 角色 1=P、0=U，独立 P 与边缘 U；没有 U 的真实标签。
 model = TEDnClassifier(input_sampling="ts", random_state=42, device="cpu")

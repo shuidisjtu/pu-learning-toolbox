@@ -27,11 +27,13 @@ from .estimators.deep.holistic_pu import HolisticPUClassifier
 from .estimators.deep.infomax_pu import InfoMaxPUClassifier
 from .estimators.deep.lagam import LaGAMClassifier
 from .estimators.deep.lbe_neural import NeuralLBEClassifier
+from .estimators.deep.p3mix import P3MixClassifier
 from .estimators.deep.pan import PANClassifier
 from .estimators.deep.pulns import PULNSClassifier
 from .estimators.deep.robust_pu import RobustPUClassifier
 from .estimators.deep.self_pu import SelfPUClassifier
 from .estimators.deep.split_pu import SplitPUClassifier
+from .estimators.deep.tedn import TEDnClassifier
 from .estimators.deep.vision import build_encoder
 from .estimators.deep.weighted_contrastive_pu import WeightedContrastivePUClassifier
 from .estimators.risk.dist_pu import DistPUClassifier
@@ -74,6 +76,7 @@ __all__ = [
     "NonNegativePUClassifier",
     "NeuralLBEClassifier",
     "PANClassifier",
+    "P3MixClassifier",
     "PULNSClassifier",
     "PNUClassifier",
     "PUExtraTreesClassifier",
@@ -94,6 +97,7 @@ __all__ = [
     "ShiftComparisonReport",
     "SelfPUClassifier",
     "SplitPUClassifier",
+    "TEDnClassifier",
     "UPUClassifier",
     "VPUClassifier",
     "WeightedContrastivePUClassifier",

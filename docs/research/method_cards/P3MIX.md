@@ -1,37 +1,27 @@
-# Method Card: P3MIX（组件阶段，未注册）
+# Method Card: P3Mix（完整工程实现，待方法复核与正式准入）
 
-Li et al., ICLR 2022，[官方报告页](https://iclr.cc/virtual/2022/poster/5904)、
-[作者 slides](https://iclr.cc/media/iclr-2022/Slides/5904.pdf)，第 10–12 页。
-完整论文正确 OpenReview ID 为 `NH29920YEmj`（`2` 后是数字 `0`，不是字母 `O`）；
-[论文入口](https://openreview.net/forum?id=NH29920YEmj)由 ICLR 官方报告页链接。
-2026-10-05 记录的 `NH2992OYEmj`/403 是当时记录，不作为正确入口不可访问的证明。
-2026-10-07 正确入口及 PDF 当前返回浏览器验证页，仍未取得全文；作者代码尚未核实。
-不以其它 benchmark 的改写代替作者来源，也不将名称相似的 mixup 当完整方法。
+Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Positive and Unlabeled Learning?” ICLR 2022. 正文与附录来源为本地用户提供的 `30_who_is_your_right_mixup_partne.pdf`（14页）；正确 OpenReview 入口为 [NH29920YEmj](https://openreview.net/forum?id=NH29920YEmj)。本轮首次逐页核对原文 §2、式 (1)–(8)、Algorithm 1、实验设置与附录。PDF 本身没有作者代码链接；当前未确认作者实现仓库，不将独立实现称为作者源码复现。
 
-本轮也核对了作者 Lei Feng 的[论文页](https://lfeng1995.github.io/research.html)及
-[Code & Data 页](https://lfeng1995.github.io/codedata.html)：论文页收录该题名，代码页本轮未找到
-对应 P3Mix 入口。此为检索状态，不证明作者实现不存在。未绕过验证、执行未知代码或加载制品；
-搜索索引摘要不替代全文 Algorithm/附录，现有组件与未注册状态保持不变。
+## 论文方法核对
 
-## 本阶段交付
+- 基础 P3Mix 将 U 暂按伪负例处理，使用式 (1)–(3) 的分组目标 `mean_P + beta * mean_U`，对两组分别求均值。
+- 式 (4) 使用 `lambda' = max(lambda, 1-lambda)`，`lambda ~ Beta(alpha, alpha)`；软标签随特征一起混合。
+- 式 (5) 对边缘伪负例从正例候选池均匀选 mixup 伙伴，其余 P/U 行从当前 P∪U 小批次均匀抽取伙伴。
+- 式 (6) 的边缘条件是 `1-gamma <= f(x;Theta) <= gamma`，含端点；gamma ∈ [0.5, 1]。
+- 式 (7) 每个 epoch 结束时，以训练 P 上预测 Bernoulli 熵最高的 top-k 行刷新候选池；Algorithm 1 初始候选池随机初始化。
+- P3Mix-E 在式 (8) 中加入 teacher 正则 `mean log(1 - <f(x;Theta), y_tilde>)`；teacher 对 mixup 后样本给目标，并在 Algorithm 1 的每个 epoch 末按 EMA 更新。实现把 agreement 截至 `1-1e-7`，避免完全一致时 `log(0)`。Algorithm 1 写明 Θ 与 eΘ 均随机初始化，但未说明二者是否独立；本实现复制 student 初始化 teacher，是待复核的工程选择。
+- P3Mix-C 在 mixup 前，将 `f(x;Theta) > gamma` 的 U 伪负标签改为正类。E 与 C 是论文定义的两个独立变体，不合并为一个方法。
 
-`estimators/deep/p3mix.py` 有三个可核查的 batch 数学组件及训练候选池身份门禁，不是 estimator：
+正文实验设置（§3.1，第 6 页）说明 Adam、alpha=1、k=100、beta ∈ {0.8, 0.9, 1.0}、gamma ∈ {0.85, 0.9, 0.95}；P3Mix-E 的 eta 在 {1,2,3,4,5} 中选。Fashion-MNIST 用 LeNet-5，CIFAR-10 与 STL-10 用 7-layer CNN；每个数据集 5 次独立运行，另有 500 个验证样本。论文未给出完整学习率/epoch/batch 配置或 mean-teacher EMA 衰减；Algorithm 1 说 Θ/eΘ 均随机初始化，但未说明是否独立，本工具箱使用 student 副本并将其标为工程选择。论文也没有作者代码地址。结果表是公开文献锚点，不代表本项目复现结果。
 
-- 正例预测熵的 top-k candidate pool，熵端点有限，等熵按原行顺序。
-- U 的 marginal 条件为闭区间 `1−gamma <= f(x) <= gamma`；marginal 从候选 P
-  均匀选伙伴，其它行从当前 P/U minibatch 均匀选伙伴。
-- `lambda'=max(lambda,1−lambda)` 混合特征与软标签；目标为独立 `mean_P + beta*mean_U`，
-  不按 P/U 行数合并成一个均值，软目标停止梯度。
+## Toolbox 实现
 
-候选数组必须由训练已标记 P 生成；`p3mix_training_candidate_pool` 从明确的训练 PU 标签中
-仅选 P，保留唯一整数样本身份，不选高熵 U；这是工程防泄漏门禁，不是新增论文公式。
-纯 batch 函数仍不能核实候选调用者的身份声明，完整训练接口还需把分区门禁接入；调用者
-不得把隐藏 PN 真值传作观察标签。`tests/unit/estimators/test_p3mix.py` 检查公式、闭区间边界、来源选择、可重复性、
-不改输入、分组损失和“不注册未完成分类器”。
+`pu_toolbox/estimators/deep/p3mix.py` 现提供已注册 `P3MixClassifier`，`variant` 为 `base`、`e`、`c`。完整路径包含 MLP 与显式注入 CNN encoder、训练 P 独占候选身份、随机初始化池、逐 epoch 熵 top-k 刷新、边缘 U mixup、两组独立损失、EMA teacher 和高置信标签修正。类先验不参与训练，clean validation/test 标签不读取；仅支持原文 OS 单训练集合视图，TS 校准明确拒绝。
 
-## 未完成与准入边界
+论文没有规定默认 backbone、batch 划分、学习率、epoch、EMA 衰减。因此 toolbox 对应默认值是工程接口，不能当成原文 recipe；如需论文数值复现，应先锁定所用数据切分、backbone、训练预算、选模准则和 E 的 EMA/eta 搜索。来源代码状态在 registry/ledger 登为未找到；NATIVE 表示本地独立实现。
 
-完整 epoch/pool 更新时序、论文 P/U 构造、公开训练预算和源码版本仍待完整原文核查。
-P3Mix-E 的 mean-teacher/early-learning、P3Mix-C 的高置信修正均未实现；不把基础 mixup 冒充它们。
-无 registry 或方法台账“完成”条目、无 TS-OS 校准、无 GPU/正式跑批声明。
-后续先补来源，再实现完整 estimator、身份/标签预算门禁、台账与资源检查。
+`tests/unit/estimators/test_p3mix.py` 覆盖 batch 方程、边界、epoch 末训练 P top-k 熵池刷新、身份、三变体短拟合、EMA 参数/缓冲更新、CNN encoder 实际更新、推断、失败重训和注册信息。当前实现和测试属于工程集成证据，尚无公开 benchmark 行为对照、GPU 多 seed 复现或合作者签署。
+
+## 当前状态与准入边界
+
+P3Mix 已由“仅数学组件、未注册”推进为可训练的实验级分类器并写入工具箱 registry 与方法台账。Survey 冻结矩阵、P3 候选准入草稿和正式实验配方未因此改变；没有签署准入、正式预算或资源 profile。P3.1 仍需方法负责人复核论文映射和工程适配，并补齐按正式协议的 benchmark/资源验证后，才可考虑准入。

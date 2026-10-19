@@ -30,6 +30,11 @@ Split-PU 论文teacher50/代码20、Robust-PU混合单位与非oracle PN均单�
 
 2026-10-05 补记：PAN、RP、PULNS、GenPU、Holistic-PU 已补独立组件、方法卡、台账、共享特征与单元/契约测试；四个新增深度方法 CUDA smoke 已通过，P3MIX 仅完成 batch 组件，未注册 estimator，详见[独立推进记录](../reviews/independent_progress_20261005.md)。PULNS 有额外干净 support 监督，不具备标准 PU-only PA 资格；本次不更改下文的历史证据或正式准入状态。
 
+2026-10-19 当前状态更正：上述 P3MIX 描述保留为 10-05 历史截点。用户随后提供完整论文，
+已完成 P3Mix/P3Mix-E/P3Mix-C 来源核对、classifier/registry/ledger 接入及专项测试；当前状态
+见[原文交叉表](p3mix_paper_review_20261019.md)和[执行计划](../survey_execution_plan.md)。
+正式准入仍待 RV8、协议预算及资源验收，不回写本 handoff 的历史证据。
+
 2026-10-04 补记：8 方法的准备顺序和逐项准入 blocker 已整理为 [机器清单](../data/p3_candidate_admission_v1_draft.json)，任务顺序与 P4.1 绑定见[执行计划](../survey_execution_plan.md) §1.2。这不改变本交接的正式准入边界。
 
 本文件只汇总**正式跑批之前**可以独立核查的工程证据。它不是 `survey_protocol_v1.json` 的修订、不是合作者签署，也不改变 P2.1/P3.1/P3.2 的正式验收状态。冻结矩阵仍只有 7 个 PU 方法和 PN oracle；新增条目仅在 `pu_toolbox/experiment/method_ledger.json` 中登记。

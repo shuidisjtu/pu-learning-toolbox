@@ -64,5 +64,12 @@ c=0.1/0.3/0.5、单线程CPU、terminal、`--smoke`，分别在仓库内/外运�
 最终sdist→wheel再次离线构建通过，17个实现/guard/台账文件在两包中与源码一致，
 sdist包含新溯源辅助脚本；最终wheel与上述仓库外回归实际导入包SHA一致。
 包版本仍为1.11.0，不代表本轮已上传PyPI或发布release。
+
+## 后续状态更正（2026-10-19）
+
+本报告中“等待用户补充全文”的 P3MIX bullet 只代表形成报告时的状态。用户随后提供 14 页
+PDF；P3Mix/P3Mix-E/P3Mix-C 原文核对、classifier、registry/ledger 与专项测试现已完成，
+详见[原文交叉表](../admission/p3mix_paper_review_20261019.md)及[当前执行计划](../survey_execution_plan.md)。
+RV8、正式配方/预算和资源验收仍待完成；该更正不改变正式准入状态。
 最终包在本机 `/tmp/pu-candidate-release-rZtu4g/final`，构建后仅补写本验收文档。
 以上为本地验证，远程Actions结果须以推送后实际运行结论为准。

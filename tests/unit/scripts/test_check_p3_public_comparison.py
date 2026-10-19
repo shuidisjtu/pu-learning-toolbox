@@ -30,8 +30,7 @@ def test_basic_determ_inventory_receipt_is_read_only_and_never_a_verdict(capsys)
     receipt = check.validate_draft(draft, ledger, protocol)
     assert receipt["readings_checked"] == 12 and receipt["coverage_cells"] == 15
     assert receipt["dispositions"] == {
-        "source_unavailable": 3,
-        "no_observed_reading": 7,
+        "no_observed_reading": 10,
         "protocol_mismatch": 5,
     }
     assert receipt["numeric_verdicts"] == [] and receipt["formal_admission"] is False
@@ -68,6 +67,8 @@ def test_basic_determ_inventory_receipt_is_read_only_and_never_a_verdict(capsys)
         "eligible",
         "missing_reading",
         "PULDA_bytes",
+        "PULDA_status",
+        "PULDA_review_ref",
         "ledger_ref",
         "old_admission",
     ],
@@ -115,6 +116,10 @@ def test_param_false_acceptance_units_identity_and_missing_evidence_fail_closed(
         draft["readings"].pop()
     elif fault == "PULDA_bytes":
         draft["source_profiles"]["pulda"]["paper_sha256"] = "0" * 64
+    elif fault == "PULDA_status":
+        draft["source_profiles"]["pulda"]["paper_status"] = "full_text_unavailable"
+    elif fault == "PULDA_review_ref":
+        draft["source_profiles"]["pulda"]["paper_review_ref"] = "missing.md"
     elif fault == "ledger_ref":
         ledger["methods"]["pulda"]["public_comparison_ref"] = "another.json"
     else:
@@ -160,6 +165,10 @@ def test_edge_normalization_rejects_invalid_units_and_non_finite_inputs(fault):
 
 def test_basic_local_paper_check_verifies_bytes_without_loading_pdf_code(tmp_path):
     profiles = copy.deepcopy(facts()["source_profiles"])
+    pulda = profiles["pulda"]
+    assert pulda["paper_status"] == "full_text_reviewed_anchor_pending"
+    assert pulda["paper_file"] is None and pulda["paper_location"] is None
+    assert pulda["paper_pages"] == 19 and pulda["paper_sha256"] == check.PULDA_PAPER_SHA256
     data = b"%PDF-1.7\nsynthetic inert fixture, not a real paper\n"
     for profile in profiles.values():
         if profile["paper_file"] is not None:

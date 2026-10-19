@@ -47,7 +47,8 @@ def classifier_catalog() -> list[dict[str, Any]]:
             metadata.label_semantics == "pu"
             and not metadata.requires_clean_support
             and all(
-                not parameter["required"] or parameter["type"] in {"bool", "float", "int", "str"}
+                not parameter["required"]
+                or parameter["kind"] in {"bool", "choice", "float", "int", "str"}
                 for parameter in parameters
             )
         )
@@ -55,6 +56,7 @@ def classifier_catalog() -> list[dict[str, Any]]:
             {
                 "name": metadata.name,
                 "family": metadata.family.value,
+                "scenario": [scenario.value for scenario in metadata.scenario],
                 "requires_class_prior": metadata.requires_class_prior,
                 "requires_clean_support": metadata.requires_clean_support,
                 "label_semantics": metadata.label_semantics,

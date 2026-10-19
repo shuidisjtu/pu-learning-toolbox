@@ -14,7 +14,7 @@
     "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "pusb_kernel", "lbe", "lbe_neural", "vpu"],
     "HENG958": ["nnpu", "self_pu"]
   },
-  "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "pulda", "puet", "gradpu", "lagam", "pan", "rp", "pulns", "genpu", "holistic_pu"],
+  "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "tedn", "pulda", "puet", "gradpu", "lagam", "pan", "rp", "pulns", "genpu", "holistic_pu", "p3mix"],
   "technical_resource_evidence": [
     {
       "id": "candidate_cnn_storage_probe_20261005",
@@ -40,6 +40,64 @@
     }
   ],
   "methods": {
+    "p3mix": {
+      "class": "P3MixClassifier",
+      "paper": {
+        "title": "Who Is Your Right Mixup Partner in Positive and Unlabeled Learning?",
+        "authors": "Changchun Li, Ximing Li, Lei Feng, Jihong Ouyang",
+        "venue": "ICLR",
+        "year": 2022
+      },
+      "code_version": {
+        "upstream_url": null,
+        "source_status": "not_found（已核对用户提供的14页ICLR 2022全文；论文正文/附录未给作者代码地址；不等于证明作者实现不存在；本实现独立依据原文公式和Algorithm 1）"
+      },
+      "source_behavior_review_ref": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "implementation_status": "NATIVE; experimental OS PU classifier with paper P3Mix, P3Mix-E and P3Mix-C variants; MLP or injected trainable CNN encoder; engineering defaults are not a paper recipe or formal admission",
+      "native_sampling_assumption": "os（原文 §2/Algorithm 1 对单一训练集合 P∪U 分批；没有TS风险替换）",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "calibration_hooked": false,
+      "prior_semantics": "无外部先验；class_prior 仅保留兼容参数并校验，不参与训练",
+      "adaptation_level": "benchmark-adapted（按原文式(1)–(8)与Algorithm 1实现分类器、每epoch top-k 熵池刷新及互斥E/C变体；论文未指定的MLP、优化器学习率、批次构成、EMA decay以公开参数作为工程选择；非作者代码重放或正式数值复现）",
+      "modality_backbone": {
+        "modalities": ["tabular", "image"],
+        "backbone": "二维输入默认MLP；图像输入要求调用者注入独立deepcopy并端到端训练的CNN encoder",
+        "code_capability": {
+          "native_architectures": ["mlp", "cnn"],
+          "input_ndims": [2, 4],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
+        }
+      },
+      "checkpoint_accounting": {
+        "epoch_bound": "max_epochs",
+        "bound_is_upper_limit": true,
+        "optimizer_steps_attribute": "optimizer_steps_",
+        "formal_budget_approved": false
+      },
+      "admitted": false,
+      "owner_decisions": {},
+      "specific_blockers": [
+        "paper_unspecified_backbone_batching_learning_rate_and_teacher_decay",
+        "official_source_code_and_exact_training_recipe_not_found",
+        "formal_dataset_protocol_selection_budget_and_resource_profile_pending",
+        "method_owner_review_pending"
+      ],
+      "evidence": {
+        "native_sampling_assumption": "30_who_is_your_right_mixup_partne.pdf, §2 and Algorithm 1, pp. 3–5",
+        "prior_semantics": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8); no class-prior input",
+        "adaptation_level": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8), Algorithm 1; docs/research/method_cards/P3MIX.md"
+      },
+      "uncertainty": [
+        "Paper does not specify a complete optimizer/backbone/batch-construction schedule or numerical teacher EMA decay; exposed defaults are engineering choices and require a frozen recipe before comparison.",
+        "Paper §2.1 updates the top-k candidate pool once per epoch; the initial pool is described as random. The implementation initializes it uniformly from observed training P, then refreshes it from training P only.",
+        "P3Mix-E uses the printed log(1-<f, target>) regularizer with EMA teacher probabilities; implementation caps agreement at 1-1e-7 to avoid log(0). It updates EMA at epoch end as Algorithm 1 orders it. Algorithm 1 says initialize both student Θ and teacher eΘ randomly but does not state whether independently; implementation copies student into teacher as an explicit engineering choice. Paper does not specify EMA decay.",
+        "The paper reports 5 runs and class accuracy anchors, but local benchmark data, exact split identities, and author code are not established by this integration. No result is added to the frozen comparison matrix.",
+        "No TS calibration hook, formal survey admission, approved resource profile, or GPU multi-seed result is claimed. P3Mix-E and P3Mix-C are independent paper variants, not a combined variant."
+      ]
+    },
     "holistic_pu": {
       "class": "HolisticPUClassifier",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
@@ -100,13 +158,13 @@
         "authors": "Chuan Luo, Pu Zhao, Chen Chen, Bo Qiao, Chao Du, Hongyu Zhang, Wei Wu, Shaowei Cai, Bing He, Saravanakumar Rajmohan, Qingwei Lin",
         "venue": "AAAI", "year": 2021
       },
-      "code_version": {"upstream_url": null, "source_status": "not_found（2026-10-07 复核论文/作者机构页面与关键词检索仍未确认作者 PULNS 仓库；不等于证明源码不存在；论文独立适配）"},
+      "code_version": {"upstream_url": null, "source_status": "not_found（2026-10-19 复核 AAAI 正式全文与论文页，论文未提供可确认作者仓库/源码链接；不等于证明源码不存在；论文独立适配，证据见 docs/research/pu_survey/pulns_source_cnn_review_20261007.md）"},
       "implementation_status": "NATIVE; experimental MLP or injected trainable CNN RL selector/classifier; independent reward probe and full stage cost; requires clean support, not PU-only or formal survey admission",
-      "native_sampling_assumption": "ts（原论文 §Experimental Setup 对 P 与给定正类比例 gamma 的 U 分别抽样；另有干净奖励验证集）",
+      "native_sampling_assumption": "ts（原论文 §Experimental Setup 印刷页8788：P与U分别抽样，gamma是U内正类比例而非标记率c；CIFAR-10/MNIST设置|P|=2000、|U|=4000，并需独立含真值正负的奖励验证集）",
       "run_view": "os-compatible", "calibration_applied": false,
       "calibration_hooked": false,
       "prior_semantics": "无外部先验；需要独立带正负真值的 support_data 计算终端奖励和内部最优分类器，PA-ineligible",
-      "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 或注入 CNN 最后隐层作状态，分类器/独立 probe 均端到端训练编码器；CNN 特征分批提取并在 CPU 缓存，顺序 policy 图仍随 U 增长；工程架构/Adam 重置/预算，不声称完整作者 CNN 数值复现）",
+      "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 或注入 CNN 最后隐层作状态，分类器/独立 probe 均端到端训练编码器；CNN 特征分批提取并在 CPU 缓存，顺序 policy 图仍随 U 增长；工程架构/Adam 重置/预算，不声称完整作者 CNN 数值复现；论文 Table 3 数值和 SD 单位歧义仅作外部来源锚点，见 pulns_source_cnn_review_20261007.md，不并入冻结矩阵）",
       "requires_clean_support": true,
       "pa_eligible": false,
       "extra_supervision_adapter": {
@@ -860,6 +918,73 @@
         "有限样本保留数使用 floor((1-α)*n_U)，至少 1；默认 warm-start 一轮、固定 epoch，未实现收敛停机或 BBE/TEDn 先验估计",
         "锁定作者代码实际用 balanced CE、n_U-int(α*n_U)、zip原始P/U loader后mask、SGD默认；CVIR分支不进入TEDn专用warm-start。当前保留论文加权与既有默认，不把公式符合或新增CNN工程能力称为源码重放；CNN的分开P/N forward与源合并forward在BN下尤其不同",
         "本地训练与公式 smoke 不等于公开行为对照、GPU 多 seed 验证或合作者复核"
+      ]
+    },
+    "tedn": {
+      "class": "TEDnClassifier",
+      "paper": {
+        "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
+        "authors": "Saurabh Garg, Yifan Wu, Alexander J. Smola, Sivaraman Balakrishnan, Zachary C. Lipton",
+        "venue": "NeurIPS 2021",
+        "year": 2021
+      },
+      "code_version": {
+        "upstream_url": "https://github.com/acmi-lab/PU_learning",
+        "upstream_commit": "5e5e350dc0588de95a36eb952e3cf5382e786aec",
+        "source_status": "official_exact (locked source receipt and license recorded in tedn_source_review_20261017.json)",
+        "license_observed": "Apache-2.0"
+      },
+      "implementation_status": "NATIVE, backend TORCH; standalone experimental Algorithm 3 path with internal P/U holdout BBE, explicit native-TS declaration, MLP or injected trainable CNN; not author-code replay or formal admission",
+      "source_behavior_review_ref": "docs/research/pu_survey/data/tedn_source_review_20261017.json",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/tedn_scoring_modes_20261019.md",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
+      "native_sampling_assumption": "ts（原文 P 与总体边缘 U 独立采样；显式 input_sampling='ts' 由调用方声明且尚未自动验证，TEDn.md / tedn_source_review_20261017.json）",
+      "run_view": "ts-compatible",
+      "calibration_applied": false,
+      "calibration_hooked": false,
+      "calibration_applicability": "not_applicable_native_ts",
+      "runtime_input_contract": {
+        "required_constructor_parameter": "input_sampling='ts'",
+        "class_prior": "rejected; TEDn estimates alpha_U internally",
+        "external_clean_labels": "not accepted",
+        "os_to_ts_conversion": false,
+        "caller_sampling_assertion_verified": false
+      },
+      "prior_semantics": "内部 BBE 估计原始边缘 U 的 α_U；不是人口 π，不接受 class_prior，估计值仅用于逐轮丢弃 U，不按 α_U 加权风险",
+      "adaptation_level": "benchmark-adapted（clean-room Algorithm 3 训练入口；复用已单独审计的 BBE；单 logit/MLP或注入CNN、Adam、有限收敛容差和分批策略为工程适配，非作者配方重放）",
+      "modality_backbone": {
+        "modalities": ["tabular", "image"],
+        "backbone": "默认 MLP64；可注入 deepcopy 后端到端训练的 CNN encoder + MLP head",
+        "code_capability": {
+          "native_architectures": ["mlp", "cnn"],
+          "input_ndims": [2, 4],
+          "encoder_parameter": "encoder",
+          "trains_encoder": true
+        }
+      },
+      "checkpoint_accounting": {
+        "epoch_bound": "warm_start_epochs + max_epochs",
+        "bound_is_upper_limit": true,
+        "optimizer_steps_attribute": "optimizer_steps_",
+        "formal_budget_approved": false
+      },
+      "admitted": false,
+      "owner_decisions": {},
+      "specific_blockers": [
+        "method_owner_review_pending",
+        "formal_recipe_selection_and_compute_budget_pending",
+        "independent_ts_sampling_design_not_verified",
+        "no_public_numeric_reproduction_or_formal_resource_profile"
+      ],
+      "evidence": {
+        "native_sampling_assumption": "NeurIPS 2021 Algorithm 3 / TEDn.md; explicit input_sampling='ts' declaration",
+        "prior_semantics": "tedn_source_review_20261017.json; bbe_source_review_20261017.json",
+        "adaptation_level": "tedn_source_review_20261017.json; TEDn.md; tests/unit/estimators/test_tedn.py"
+      },
+      "uncertainty": [
+        "No OS-to-TS calibration exists or is claimed; TEDn is native TS only. The constructor requires the caller to declare input_sampling='ts', but this does not verify actual sampling or group identity.",
+        "The BBE estimate targets alpha_U, not a generic population class prior. The toolbox rejects class_prior and uses alpha_U only for discarding, following Algorithm 3's unweighted role objective.",
+        "The training estimator is now registry discoverable, but formal survey admission, frozen-matrix inclusion, source-recipe reproduction, approved budgets, resource validation, and method-owner review remain pending."
       ]
     },
     "robust_pu": {

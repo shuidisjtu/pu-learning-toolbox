@@ -97,7 +97,7 @@ pu_toolbox/
       pulns.py                            # PULNS RL 负例选择, 独立 clean support
       gen_pu.py                           # GenPU 两生成器三判别器与合成 PN
       holistic_pu.py                      # Holistic-PU 趋势与自然断点伪标签
-      p3mix.py                            # P3Mix batch 数学组件, 未注册分类器
+      p3mix.py                            # P3Mix/P3Mix-E/P3Mix-C 实验级分类器与 mixup 组件
       lbe_neural.py                       # 双网络 Adam generalized EM、稳定 E/M 目标与独立 CNN 适配
       tedn.py                             # TEDn 完整交替训练、内部留出 BBE、未加权目标与训练误差停止
     research/
@@ -278,7 +278,7 @@ tests/
       test_rank_pruning.py              # Rank Pruning OOF、剪枝与噪声权重
       test_gen_pu.py                    # GenPU anti-GAN 方向与风险池校准
       test_holistic_pu.py               # Holistic-PU 论文/代码分歧与训练
-      test_p3mix.py                     # P3Mix 作者 slides 公式与边界
+      test_p3mix.py                     # P3Mix 原文公式、训练变体及工程边界
       test_pan_cnn.py                   # PAN 双编码器 CNN 更新、隔离与 checkpoint 回放
       test_pulda_cnn.py                 # PULDA CNN 两阶段训练、CPU 图像驻留与权重回放
       test_pulda_augmentation.py        # PULDA 两阶段逐批增强、MixUp 顺序、拒绝与模板隔离

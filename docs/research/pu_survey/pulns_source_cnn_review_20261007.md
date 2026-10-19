@@ -83,3 +83,19 @@ formal_admission=false，本轮这些检查未重下载上游来源文件。
 
 下一步继续 GEN-PU 的双生成器/三判别器图像架构来源、PULNS新路径资源与独立支持集交接；
 不以当前训练接线清空原始制品/负责人协议阻断。
+
+## 2026-10-19 官方全文复核补记：来源边界与公开数值
+
+重新核对[AAAI 正式论文页](https://ojs.aaai.org/index.php/AAAI/article/view/17064)及其[官方 PDF](https://cdn.aaai.org/ojs/17064/17064-13-20558-1-2-20210518.pdf)：全文未出现作者代码仓库/源码链接，论文只在脚注列举 uPU、nnPU、PUSB、PUbN 等基线代码。故 `upstream_url=null`、`source_status=not_found` 仍成立；这是“该论文没有提供可确认代码入口”的来源审计结论，不证明作者从未发布或私下持有实现，也不将第三方复现标作官方源码。
+
+论文 Table 1（印刷页 8788）给出 CIFAR-10 正类为 airplane/truck/automobile/ship、负类为其余六类；按 torchvision 常见标签编号对应 `{0,1,8,9}`，与项目 CIFAR-10 映射一致。MNIST 正类 `{0,2,4,6,8}` 也与项目一致。Spambase 是二分类，Table 1 没有说明正类编码；Table 2 的 1,813/2,788 类别计数本身不能证明与项目 spam-positive 编码一致。实验设置（印刷页 8788）给 CIFAR-10/MNIST 设 `|P|=2000`、`|U|=4000`、validation 500、test 5000；γ 是**U 内正类比例**，不是标记率 c；每个 benchmark/γ 独立运行 20 次。CIFAR 使用 CNN，其余 benchmark 使用单隐藏层 100 单元 MLP，未提供足以认定为本项目 backbone/预处理的完整配方。
+
+Table 3（印刷页 8788）将 test **error rate** 的均值按百分数报告，括号列为标准差。PULNS 数值按原表抄录，暂不做单位换算：
+
+| γ（U 内正类比例） | CIFAR-10 | MNIST | Spambase |
+|---:|---:|---:|---:|
+| 0.2 | 7.98 (0.007) | 3.63 (0.006) | 9.59 (0.076) |
+| 0.4 | 11.44 (0.011) | 5.27 (0.009) | 15.70 (0.014) |
+| 0.6 | 11.73 (0.014) | 6.54 (0.016) | 22.39 (0.013) |
+
+**尺度注意：**原表 caption 称括号项是 standard deviation，但没有清楚声明括号数值与百分数均值同为百分点，还是以 `[0,1]` 比例表示；两种读法会相差 100 倍。这里保留原始印刷值，不转换、不计算误差带、不并入任何冻结对照矩阵。以上是论文层外部锚点，不是本项目复现；γ、P/U/test 规模、backbone 与未知的 preprocessing/selection protocol 均须先满足对应矩阵协议，才可判数值可比。

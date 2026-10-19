@@ -31,7 +31,9 @@ def test_basic_determ_record_matches_current_sources_without_authorization():
     report = checker.build_contracts()
     assert report == checker.build_contracts()
     assert report == json.loads((checker.ROOT / RECORD).read_text(encoding="utf-8"))
-    assert len(report["methods"]) == 15
+    assert len(report["methods"]) == 16
+    assert report["methods"]["p3mix"]["class"] == "P3MixClassifier"
+    assert report["methods"]["p3mix"]["calibration_applied"] is False
     assert report["formal_admission"] is False and report["owner_signatures"] == []
     assert report["rollback_of_models_or_external_artifacts"] is False
     assert report["methods"]["tedn"]["ledger_ref"].endswith("independent_extensions.tedn")
@@ -138,4 +140,4 @@ runpy.run_path('scripts/check_candidate_fit_contracts.py', run_name='__main__')
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert len(json.loads(result.stdout)["methods"]) == 15
+    assert len(json.loads(result.stdout)["methods"]) == 16

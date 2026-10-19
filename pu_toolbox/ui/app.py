@@ -160,10 +160,15 @@ def main() -> None:
         selected = catalog_by_name[classifier]
         config_columns[2].markdown(
             f"族：`{selected['family']}`  \n"
+            f"数据场景：`{', '.join(selected['scenario'])}`  \n"
             f"需要类先验：`{selected['requires_class_prior']}`  \n"
             f"主输入标签语义：`{selected['label_semantics']}`  \n"
             f"GPU：`{selected['supports_gpu']}`"
         )
+        if selected["scenario"] == ["case_control"]:
+            st.warning(
+                "此方法要求独立采样的正例 P 与总体边缘分布 U；只有数据确实符合该设计时才运行。"
+            )
     elif selection_mode == "比较模型":
         choices = sorted(
             name

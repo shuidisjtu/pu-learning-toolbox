@@ -96,9 +96,9 @@ def adapt_image_bundle_to_features(
         raise ValueError("source image shape must match across all four dataset roles.")
     torch, module = _resolve_torch_encoder(encoder, device)
     state_before = encoder_state_sha256(module)
-    was_training = bool(module.training)
-    module.eval()
+    module_modes = [(child, child.training) for child in module.modules()]
     try:
+        module.eval()
         role_features = {
             role: _extract_features(
                 torch,
@@ -110,7 +110,8 @@ def adapt_image_bundle_to_features(
             for role in ROLES
         }
     finally:
-        module.train(was_training)
+        for child, was_training in module_modes:
+            child.training = was_training
     state_after = encoder_state_sha256(module)
     if state_before != state_after:
         raise RuntimeError("CNN feature extraction mutated the encoder state.")

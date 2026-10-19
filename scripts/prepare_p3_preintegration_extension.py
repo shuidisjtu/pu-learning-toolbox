@@ -126,12 +126,17 @@ def build_extension(ledger, protocol):
                     "method_owner_review",
                 ],
                 "candidates": candidates,
-                "unregistered_components": [
+                "registered_components_not_admitted": [
                     {
                         "method": "p3mix",
                         "component_ref": "pu_toolbox/estimators/deep/p3mix.py",
-                        "registered": False,
-                        "blockers": ["full_primary_source", "epoch_pool_schedule", "E_C_variants"],
+                        "registered": True,
+                        "admitted": False,
+                        "blockers": [
+                            "method_owner_review_pending",
+                            "formal_recipe_and_budget_pending",
+                            "resource_profile_and_multiseed_validation_pending",
+                        ],
                     }
                 ],
             },

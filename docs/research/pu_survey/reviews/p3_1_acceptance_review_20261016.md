@@ -8,7 +8,7 @@
 ## 结论与范围
 
 - **P3.1 暂不整体验收通过。** 八方法草稿与后增五方法草稿共覆盖 13 个方法，
-  正式准入均未签署；P3MIX 仍未交付完整 estimator。既有 VPU 另列，不新增准入。
+  正式准入均未签署；P3MIX 已于 2026-10-19 补齐全文核对与完整 estimator，但尚未完成方法负责人复核、正式配方/预算、资源验收或准入（见本文补记）。既有 VPU 另列，不新增准入。
 - 复核区分四层：**论文目标、作者源码行为、工具箱实现、P3.1 验收结论**。
   四者不一致时明确采用哪一层；适配实现统一标 `benchmark-adapted`，
   不称论文复现或源码逐行复现。
@@ -23,11 +23,11 @@
 
 | 方法 | 复核结论 | 关键边界与未决项 |
 |---|---|---|
-| P3MIX | 退回补交 | 目前只有 slides 对应的 batch/pool/loss 组件；完整论文/源码流程、estimator、训练时序、注册与端到端测试未齐 |
+| P3MIX | 2026-10-19 追加工程交付，负责人复核待办 | 原始汇总时只有 slides 组件；2026-10-19 用户补入全文后，已完成原文核对、P3Mix/P3Mix-E/P3Mix-C estimator、训练时序、registry/ledger 与专项测试。工程复核和正式准入前置仍未完成，详见本文末尾追加记录 |
 | PUET | 有条件接受工程证据 | #114 修复已验证；CPU 树预算、候选/选模、公开数值与负责人审阅待定 |
 | PULDA | known-prior PULDA，非 PULDA\* | 损失/EMA 与作者源码一致；MixUp 与 TS 池差异按适配登记；stage/budget 已定；共享表征（#119）与正式准入待定 |
 | Grad-PU | 有条件接受工程证据 | paper-only；Eq. (5)–(7) 与实现一致；TS 池与配方为适配；图像走 method-private `cnn13_no_bn`（#120）；证据边界见 #121 |
-| Robust-PU | 有条件接受适配子集 | 默认 SPL 与官方实现一致；正式 `ts` 路径先验正确；预训练 batching 与预算为适配；来源证据待补 |
+| Robust-PU | 有条件接受适配子集 | 默认 SPL 与官方实现一致；正式 `ts` 路径先验正确；预训练 batching 与预算为适配；来源/行为证据已于 2026-10-18 补交，仍待负责人审阅 |
 | Split-PU | 有条件接受适配子集 | TS 只作用于 teacher；JSD 权重方向与 `class_prior` 的 OS/TS 语义待裁决（#122）；其他适配保留 |
 | PAN | 有条件接受工程证据 | `official_related`；保留 paper-faithful 实现；论文/源码差异见 #123；对抗训练预算与快照规格待定 |
 | RP | 有条件接受 PU 特例证据 | 固定 `rho0=0`，不称一般双向噪声算法；OS-only；`frac_pos2neg` 须登记来源或固定默认估计，禁止由 test 真值提供 |
@@ -40,6 +40,20 @@
 
 BBE/TEDⁿ 是 main 合并后新增的独立 native-TS 扩展，不在上述 13 方法表，
 不纳入 P3.1 方法准入计数。
+
+## 2026-10-19 P3MIX 全文与工程交付补记
+
+用户提供 `30_who_is_your_right_mixup_partne.pdf`（ICLR 2022，14页）后，逐页核对 §2、
+式 (1)–(8)、Algorithm 1、§3.1 与附录。当前完整训练路径覆盖三种互斥 variant：基础
+P3Mix、EMA mean-teacher 正则 P3Mix-E、以及高置信伪负例标签修正 P3Mix-C；另有每 epoch
+top-k 熵候选池刷新、初始随机 P pool、OS-only 训练与显式不支持 TS 校准。实现和短拟合
+测试见 `pu_toolbox/estimators/deep/p3mix.py` 与 `tests/unit/estimators/test_p3mix.py`。
+
+核查发现论文正文列出 Adam、alpha=1、k=100、beta/gamma/eta 搜索范围及五次运行，但未
+指定完整学习率、batch/backbone训练细节或 mean-teacher EMA decay；论文未给作者代码链接。
+因此本地实现标为 NATIVE 独立适配，作者代码状态为 not_found，工程默认不冒充论文 recipe。
+尚未据此添加公开结果复现值或修改 Survey 冻结矩阵；OS-only/未校准登记，P3.1 整体验收、
+shuidisjtu 的 RV8 复核、正式协议预算、资源 profile 与 GPU 多 seed 结果仍待完成。
 
 ## 近期五项复核的关键差异
 

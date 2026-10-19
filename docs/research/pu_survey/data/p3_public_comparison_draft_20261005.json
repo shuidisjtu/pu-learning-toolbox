@@ -24,9 +24,11 @@
     "pulda": {
       "paper_url": "https://ieeexplore.ieee.org/document/10264106",
       "paper_file": null,
-      "paper_sha256": null,
-      "paper_status": "full_text_unavailable",
+      "paper_sha256": "a2cffd8e0b3275aebf8ab89a29bea11a07b598f252f228df479c8db0e16c4070",
+      "paper_status": "full_text_reviewed_anchor_pending",
       "paper_location": null,
+      "paper_review_ref": "docs/research/method_cards/PULDA.md",
+      "paper_pages": 19,
       "method_variant": "PULDA",
       "metric": null,
       "uncertainty_kind": null,
@@ -55,7 +57,7 @@
         "dataTools/cifar10.py:21-31"
       ],
       "unresolved": [
-        "full_paper_numeric_tables_and_uncertainty",
+        "numeric_anchor_extraction_and_uncertainty_registration",
         "paper_code_protocol_correspondence"
       ],
       "additional_source_files": [
@@ -554,10 +556,11 @@
       "method": "pulda",
       "dataset": "spambase",
       "reading_ids": [],
-      "disposition": "source_unavailable",
+      "disposition": "no_observed_reading",
       "numeric_eligible": false,
       "blockers": [
         "not_evidence_of_no_public_result_anywhere",
+        "paper_anchor_not_in_inventory",
         "new_method_not_in_frozen_pilot",
         "new_result_artifacts_and_owner_review_missing"
       ]
@@ -566,10 +569,11 @@
       "method": "pulda",
       "dataset": "imdb",
       "reading_ids": [],
-      "disposition": "source_unavailable",
+      "disposition": "no_observed_reading",
       "numeric_eligible": false,
       "blockers": [
         "not_evidence_of_no_public_result_anywhere",
+        "paper_anchor_not_in_inventory",
         "new_method_not_in_frozen_pilot",
         "new_result_artifacts_and_owner_review_missing"
       ]
@@ -578,10 +582,11 @@
       "method": "pulda",
       "dataset": "cifar10",
       "reading_ids": [],
-      "disposition": "source_unavailable",
+      "disposition": "no_observed_reading",
       "numeric_eligible": false,
       "blockers": [
         "not_evidence_of_no_public_result_anywhere",
+        "paper_anchor_not_in_inventory",
         "new_method_not_in_frozen_pilot",
         "new_result_artifacts_and_owner_review_missing"
       ]

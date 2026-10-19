@@ -5,7 +5,7 @@
   "guard_ref": "pu_toolbox/core/fit_state.py",
   "guard_sha256": "6729de40c3c3b38d56139520bdc313237e0d8c09d8c44af13e4988ae67399310",
   "checker_ref": "scripts/check_candidate_fit_contracts.py",
-  "checker_sha256": "6da13fdc64eb25e3204bc7467d86055a20218c6b66559e823a1f7fb23af62674",
+  "checker_sha256": "afca454953ed97bba41e6ee8d7f54a68d9c00ad24de9ee6ea9bec43c8ddd4e78",
   "invalidates_before_argument_binding": true,
   "exception_boundary": "BaseException_reraise_no_retry",
   "rollback_of_models_or_external_artifacts": false,
@@ -54,7 +54,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pulda",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "formal_admission": false
@@ -95,7 +95,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.puet",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "formal_admission": false
@@ -142,7 +142,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.gradpu",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "formal_admission": false
@@ -189,7 +189,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.robust_pu",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "formal_admission": false
@@ -236,7 +236,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.split_pu",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "review_document_sha256": "d3abbac823754c042f537d7236987ee97094359888527ffbdc2f786bafbb7c68",
+      "review_document_sha256": "96e4e99b5a7e3929edabcab5cba2c63ca35fa63d733fd780ab1f1ad15ae45400",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "formal_admission": false
@@ -444,7 +444,7 @@
     "tedn": {
       "class": "TEDnClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/tedn.py",
-      "implementation_sha256": "ead0ff65813dc657b5e0cd71d184bf737d46013eb13bb101d2ecb12423b17688",
+      "implementation_sha256": "d20611c63880a96f06eff47388152e5a599a067eb9155179688a47f2f75c38ca",
       "fit_parameters": [
         {
           "name": "X",
@@ -536,7 +536,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.vpu",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
+      "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "ts-compatible",
       "calibration_applied": true,
       "formal_admission": false
@@ -583,7 +583,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.lbe_neural",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
+      "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false
@@ -630,7 +630,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.pan",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
+      "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false
@@ -671,7 +671,7 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
+      "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false
@@ -712,7 +712,54 @@
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.rp",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "review_document_sha256": "4fbec79d60bbc73be742365d6008383605fe8cfa30cf88007bdf490f7906c97b",
+      "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "formal_admission": false
+    },
+    "p3mix": {
+      "class": "P3MixClassifier",
+      "implementation_ref": "pu_toolbox/estimators/deep/p3mix.py",
+      "implementation_sha256": "09ad6e1d2bd0ad5c6db4c2734049c46ad06a347d2679236da728e60a98098f67",
+      "fit_parameters": [
+        {
+          "name": "X",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "y_pu",
+          "kind": "positional_or_keyword",
+          "required": true
+        },
+        {
+          "name": "class_prior",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "sample_weight",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
+        }
+      ],
+      "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.p3mix",
+      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
       "formal_admission": false

@@ -122,6 +122,20 @@ class TestBuiltinRegistration:
         assert get_metadata("kldce").name == "kldce"
         assert "kldce" not in get_metadata("centroid_pu").aliases
 
+    def test_tedn_is_registered_as_an_experimental_native_ts_estimator(self):
+        from pu_toolbox import TEDnClassifier as PublicTEDnClassifier
+        from pu_toolbox.estimators.deep import TEDnClassifier
+        from pu_toolbox.registry import get_algorithm, get_metadata
+
+        register_all_builtin_methods()
+        metadata = get_metadata("tedn")
+        assert get_algorithm("tedn") is TEDnClassifier is PublicTEDnClassifier
+        assert get_algorithm("transform-estimate-discard") is TEDnClassifier
+        assert [item.value for item in metadata.scenario] == ["case_control"]
+        assert metadata.maturity.value == "experimental"
+        assert metadata.source_status.value == "official_exact"
+        assert metadata.requires_class_prior is False
+
     def test_basic_list_by_family(self):
         """Family filter is consistent with the registry (counts free)."""
         register_all_builtin_methods()
@@ -318,7 +332,9 @@ class TestBuiltinRegistration:
         and LaGAM (a second-order meta-gradient every epoch), PAN (two-network
         adversarial updates), PULNS (sequential policy/probe/classifier), GenPU
         (five-network GAN plus PN), Holistic-PU (warmup/trajectory/pseudo-label
-        training); short-epoch deep methods stay MEDIUM.
+        training), P3Mix (per-epoch pool refresh and teacher variant), and
+        TEDn (warm-start plus iterative estimate-discard); short-epoch deep
+        methods stay MEDIUM.
 
         Pinned so a re-classification is a deliberate edit rather than a side
         effect of registering a method.
@@ -346,4 +362,6 @@ class TestBuiltinRegistration:
             "pulns",
             "genpu",
             "holistic_pu",
+            "p3mix",
+            "tedn",
         }

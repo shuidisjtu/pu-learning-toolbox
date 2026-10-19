@@ -6,6 +6,7 @@ from .grad_pu import GradPUClassifier
 from .holistic_pu import HolisticPUClassifier
 from .infomax_pu import InfoMaxPUClassifier, InfoMaxPURepresentation
 from .lagam import LaGAMClassifier
+from .p3mix import P3MixClassifier
 from .pan import PANClassifier
 from .pulns import PULNSClassifier
 from .robust_pu import RobustPUClassifier
@@ -24,6 +25,7 @@ __all__ = [
     "InfoMaxPURepresentation",
     "LaGAMClassifier",
     "PANClassifier",
+    "P3MixClassifier",
     "PULNSClassifier",
     "RobustPUClassifier",
     "SelfPUClassifier",

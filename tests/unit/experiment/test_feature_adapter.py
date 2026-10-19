@@ -77,6 +77,68 @@ def test_basic_adapter_preserves_roles_and_returns_2d_features():
     assert len(manifest["feature_sha256"]) == 4
 
 
+def test_basic_adapter_restores_per_module_modes_after_successful_extraction():
+    source = _bundle()
+    encoder = nn.Sequential(
+        nn.Flatten(), nn.BatchNorm1d(16), nn.Dropout(0.2), nn.Linear(16, 3, bias=False)
+    )
+    encoder.train()
+    encoder[1].eval()
+    encoder[2].train()
+    encoder[3].eval()
+    before = [module.training for module in encoder.modules()]
+
+    adapted, _ = adapt_image_bundle_to_features(
+        source,
+        encoder,
+        feature_version="mixed-mode-v1",
+        backbone_manifest={"name": "tiny-mixed-mode-encoder"},
+        batch_size=3,
+    )
+
+    assert adapted.train.X.shape == (8, 3)
+    assert [module.training for module in encoder.modules()] == before
+
+
+def test_edge_adapter_restores_modes_after_forward_and_eval_transition_errors(monkeypatch):
+    source = _bundle()
+    encoder = nn.Sequential(
+        nn.Flatten(), nn.BatchNorm1d(16), nn.Dropout(0.2), nn.Linear(16, 3, bias=False)
+    )
+    encoder.train()
+    encoder[1].eval()
+    encoder[2].train()
+    encoder[3].eval()
+    before = [module.training for module in encoder.modules()]
+    common = {
+        "feature_version": "mode-error-v1",
+        "backbone_manifest": {"name": "tiny-mode-error-encoder"},
+        "batch_size": 3,
+    }
+
+    def fail_forward(_inputs):
+        raise RuntimeError("feature encoder forward interrupted")
+
+    monkeypatch.setattr(encoder, "forward", fail_forward)
+    with pytest.raises(RuntimeError, match="feature encoder forward interrupted"):
+        adapt_image_bundle_to_features(source, encoder, **common)
+    assert [module.training for module in encoder.modules()] == before
+
+    monkeypatch.undo()
+    child = encoder[1]
+    original_train = child.train
+
+    def fail_eval_transition(mode=True):
+        if not mode:
+            raise RuntimeError("feature encoder eval interrupted")
+        return original_train(mode)
+
+    monkeypatch.setattr(child, "train", fail_eval_transition)
+    with pytest.raises(RuntimeError, match="feature encoder eval interrupted"):
+        adapt_image_bundle_to_features(source, encoder, **common)
+    assert [module.training for module in encoder.modules()] == before
+
+
 def test_determ_same_encoder_and_bundle_produce_same_feature_hashes():
     torch.manual_seed(8)
     encoder_a = _encoder()

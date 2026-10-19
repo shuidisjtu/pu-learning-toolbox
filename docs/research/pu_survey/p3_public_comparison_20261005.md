@@ -22,7 +22,7 @@
 | Split-PU，Table 1，PDF6，Ours 行 | CIFAR-10，n_P=500 / 1000 / 3000 | accuracy 89.18±0.12 / 90.51±0.10 / 92.51±0.10 | SD，百分点，5 repetitions |
 | Robust-PU，Table 3，PDF7，ours 行 | CIFAR-10，π_U=0.2 / 0.4 / 0.6 | error 7.58 (.004) / 10.26 (.006) / 10.73 (.005) | 10 trials；均值为百分数，代码 std 为分数 |
 | Robust-PU，同表 spambase 列 | spambase，π_U=0.2 / 0.4 / 0.6 | error 6.40 (.006) / 9.79 (.014) / 11.25 (.009) | 同上；不把 π_U 当 c |
-| PULDA | 全文尚未取得 | 不登记数值 | 未知，不意味着原论文没有数值 |
+| PULDA | 2026-10-18 已有全文审阅记录（19页；见方法卡所记 SHA-256）；本 P1-2 清单尚未登记其数值锚点 | 不登记本清单读数 | anchor extraction 与离散度口径待补；不意味着原论文没有数值 |
 
 主要出处：
 
@@ -30,9 +30,9 @@
 - [GradPU 原论文](https://ojs.aaai.org/index.php/AAAI/article/download/25889/25661)，印刷7300–7301。
 - [Split-PU arXiv v1](https://arxiv.org/pdf/2211.16756v1)，§4 和 Table 1。
 - [Robust-PU arXiv v1](https://arxiv.org/pdf/2308.00279v1)，§4 和 Table 3。
-- [PULDA 出版入口](https://ieeexplore.ieee.org/document/10264106)及
-  [作者列出的全文入口](https://qianqianxu010.github.io/publications/)，本次均受 JavaScript/访问校验限制；
-  只沿用锁定作者代码，不拿 Dist-PU 的 91.88±0.52 当 PULDA 的结果。
+- [PULDA 出版入口](https://ieeexplore.ieee.org/document/10264106)仍需浏览器验证；方法卡记录
+  2026-10-18 已取得并核对 19 页全文及摘要。本工作区当前未保留该 PDF，因此本清单没有
+  独立重读表格、也不补录未经本次源文件核验的读数；不拿 Dist-PU 的 91.88±0.52 当 PULDA 结果。
 
 逐条推翻条件：读数、行列、单位、重复数或所列协议与原表/正文不同；提供原页或
 仓库+commit+文件行号即可提出更正。GradPU 的 90.5 / 92.9 属相邻 Sup. 列，不是 GradPU；
@@ -51,7 +51,7 @@ PUET 的 79.86 属 logistic 列，不是本适配的 quadratic；Split-PU 表内
 | GradPU | P1000/3000、validation500、剩余 U；CNN13 无 BN、batch250、衰减 LR；3 runs | 不能把 TS 风险并集当原数据流程；确认验证标签、选模与 deviation 定义，补源码/完整配方 |
 | Robust-PU | 扫 U 内 π，不扫 c；CIFAR P2000/U4000、spambase P400/U800；10 trials；代码两阶段 clean-val best | π_U 与总体 π 分开；干净验证预算和阶段初始化与 PA 不等价；图像、预算和指标转换单列 |
 | Split-PU | P500/1000/3000 后剩余 U；CNN13、真实弱强增强/SimSiam、5次重复；code 返回末轮权重 | 同数据与 stage recipe；Gaussian/余弦和 easy 组归一化不是源配方；外置 PA/OA 未由 test 监控建立 |
-| PULDA | 代码固定 P1000、总体 U，ImageNet 统计、自定义 CNN、test 最高准确率报告 | 先取得原表及论文实验协议；不可推断论文数值等同锁定代码，更不可与 Dist-PU 混用 |
+| PULDA | 代码固定 P1000、总体 U，ImageNet 统计、自定义 CNN、test 最高准确率报告；全文已审但本库存未抽取原表 | 从已审全文补数值、离散度与实验协议；不可推断论文数值等同锁定代码，更不可与 Dist-PU 混用 |
 
 以上含未知项，未核 normalization、阈值网格或 split 身份时就写未知，不将未知记作一致。
 所有方法 CIFAR 正类 `{0,1,8,9}` 有来源支持，但**这一项一致不推出其它项一致**。
@@ -89,8 +89,9 @@ PUET 的 79.86 属 logistic 列，不是本适配的 quadratic；Split-PU 表内
 这与源码身份校验是两套口径：源码摘要另见 P1-3 预算规格的源码文本策略。
 
 - 5 格有已核原表读数，但协议不匹配；
-- 7 格在本批审阅范围中未登记读数；**不宣称全世界没有对应结果**；
-- 3 格 PULDA 全文来源暂不可读。
+- 10 格在本清单未登记读数；**不宣称全世界没有对应结果**，其中 PULDA 三格对应的全文已有
+  方法卡审阅记录，但数值锚点尚未录入；
+- PULDA 记录的原始 PDF 不在当前工作区，机器检查只能核对审阅记录里的摘要/页数指针，不能重验 PDF 字节。
 
 均不能数值裁决。覆盖不是按 seed/c/PA-OA 展开、不是正式结果单元或幽灵 run；
 新方法尚不在冻结 pilot，不存在可与这些数字配对的新方法正式结果。
@@ -105,6 +106,7 @@ pytest -q tests/unit/scripts/test_check_p3_public_comparison.py \
 
 如已合法取得相同版本 PDF，可加 `--paper-dir /path/to/papers`，文件名
 `puet.pdf`、`gradpu.pdf`、`robust_pu.pdf`、`split_pu.pdf`；检查真实摘要，不解析/运行文档内容。
+PULDA 当前只绑定方法卡中的历史全文审阅记录；若需复验/抽取数值，须重新提供与登记 SHA 匹配的 PDF。
 作者 checkout 可加 `--source-dir method=/path/to/source`，承接 P1-1 的 commit 与摘要，
 另核 PULDA cifar10 和 Split-PU dataset 文件。本机已核四篇PDF及四仓库共19个登记文件，
 P1-1 的17文件记录保留。checker 不下载、不训练、不接收私有 Excel 或实验权重。

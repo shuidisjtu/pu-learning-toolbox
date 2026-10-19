@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import copy
 from numbers import Real
+from typing import Literal
 
 import numpy as np
 
@@ -45,7 +46,7 @@ def select_tedn_negatives(scores: np.ndarray, alpha_u: float) -> np.ndarray:
     if not np.isfinite(scores).all():
         raise ValueError("scores must be finite")
     if (
-        isinstance(alpha_u, (bool, np.bool_))
+        isinstance(alpha_u, bool | np.bool_)
         or not isinstance(alpha_u, Real)
         or not 0 <= alpha_u <= 1
     ):
@@ -127,7 +128,7 @@ class TEDnClassifier(BasePUClassifier):
     def __init__(
         self,
         *,
-        input_sampling: str | None = None,
+        input_sampling: Literal["ts"],
         holdout_fraction: float = 0.2,
         delta: float = 0.1,
         gamma: float = 0.01,
@@ -225,7 +226,7 @@ class TEDnClassifier(BasePUClassifier):
         for name in ("learning_rate", "convergence_tol"):
             value = getattr(self, name)
             if (
-                isinstance(value, (bool, np.bool_))
+                isinstance(value, bool | np.bool_)
                 or not isinstance(value, Real)
                 or not np.isfinite(value)
                 or value < 0

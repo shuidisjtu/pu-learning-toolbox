@@ -77,16 +77,18 @@ alpha_u = model.estimate_unlabeled_prior()
 本 BBE 组件只补独立二维工程路径；不含 TEDⁿ 分类器、原深度配方、OS→TS 转换、自动写入总体 π
 或正式数值准入。来源差异与可辨识性前提见 [BBE 方法卡](../../research/method_cards/BBE.md)。
 
-### 独立 TEDⁿ 分类器（未注册 CLI/UI）
+### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
 
-`from pu_toolbox.estimators.deep import TEDnClassifier`。
+`from pu_toolbox import TEDnClassifier`，亦可从 `pu_toolbox.estimators.deep` 导入。
 
-`TEDnClassifier(*, input_sampling=None, holdout_fraction=0.2, delta=0.1,
+`TEDnClassifier(*, input_sampling="ts", holdout_fraction=0.2, delta=0.1,
 gamma=0.01, hidden_dim=64, warm_start_epochs=5, max_epochs=20, batch_size=128,
 learning_rate=0.001, convergence_tol=0.0001, convergence_patience=5,
 random_state=None, device=None, encoder=None)`。
 
-必须显式设 `input_sampling="ts"`，由调用方提供独立 P 与边缘 U；没有 OS 校准入口。
+构造时必须显式设 `input_sampling="ts"`，由调用方提供独立 P 与边缘 U；没有 OS 校准入口。
+CLI 可用 `--classifier tedn --classifier-param input_sampling=ts`；UI 会将其标为 case-control
+并要求显式配置该参数。该声明不会自动验证数据采样设计。
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, sample_ids=None,
 epoch_callback=None)` 返回 self，支持二维密集特征；注入可训练 encoder 时也支持
 四维 NCHW。观察 PU 角色沿用核心标准化（1=P，0 或 -1=U），不是真负标签。
@@ -127,7 +129,7 @@ model = TEDnClassifier(input_sampling="ts", random_state=42, device="cpu").fit(X
 scores = model.decision_function(X_new)
 ```
 
-这是独立 native-TS 工程实现，不替换现有 CVIR/总体先验，不进入冻结矩阵。
+这是独立 native-TS 工程实现，不替换现有 CVIR/总体先验，不进入冻结矩阵或正式准入。
 重复使用留出并经 α 反馈更新模型，不宣称逐轮有效置信区间。
 原配方、真实数值、GPU 多seed和负责人准入仍待验收，见 [TEDn 方法卡](../../research/method_cards/TEDn.md)。
 
@@ -171,6 +173,7 @@ PNU直接三值fit保持可用，但不能用PNU模型绕过PU工作流的语义
 | `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
 | `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
 | `split_pu`（`split-pu`） | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
+| `tedn`（`transform_estimate_discard`） | `TEDnClassifier` | risk / torch | `input_sampling="ts"`（必填）/ `holdout_fraction` / `warm_start_epochs` / `max_epochs` | [TEDⁿ](../../research/method_cards/TEDn.md) |
 | `lagam`（`la_gam`） | `LaGAMClassifier` | deep | `support_data`（fit 必传）/ `warmup_epochs` / `num_clusters` | [LaGAM](../../research/method_cards/LaGAM.md) |
 | `pan`（`predictive_adversarial_pu`） | `PANClassifier` | deep | `encoder` / `model` / `discriminator` / `adversarial_weight` / `max_epochs` | [PAN](../../research/method_cards/PAN.md) |
 | `genpu`（`gen_pu`） | `GenPUClassifier` | deep | `class_prior` / `latent_dim` / `max_epochs` / `classifier_epochs` | [GEN-PU](../../research/method_cards/GEN-PU.md) |

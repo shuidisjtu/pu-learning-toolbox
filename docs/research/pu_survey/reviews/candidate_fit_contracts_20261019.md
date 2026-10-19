@@ -1,14 +1,15 @@
-# 15候选生命周期机器门禁（2026-10-19）
+# 16候选生命周期机器门禁（2026-10-19；P3MIX补记）
 
 补P3.1/P3.2工程证据与P4.1-A接口核验的衔接，不批准正式配置或算法准入。
 前批修复虽已在台账留痕，原机器预算草稿只核五方法；新增只读入口
-`scripts/check_candidate_fit_contracts.py`，统一检查15候选的声明与当前身份。
+`scripts/check_candidate_fit_contracts.py`，统一检查16候选的声明与当前身份。
 
 ## 覆盖与命令
 
 PULDA、PUET、GradPU、Robust-PU、Split-PU、GEN-PU、Holistic-PU、LaGAM、PULNS、
-独立TEDn、VPU、神经LBE、PAN、CVIR及RP。TEDn仍在台账CVIR的独立扩展下，
-没有新增正式注册。P3MIX没有完整estimator，不被编造成已覆盖候选。
+独立TEDn、VPU、神经LBE、PAN、CVIR、RP及P3MIX。TEDn仍在台账CVIR的独立扩展下，
+没有新增正式注册。2026-10-19 用户提供完整论文后，P3MIX 已有独立完整 estimator；其静态
+fit 声明现纳入本门禁，具体失败重训回归见专项测试及[补充记录](remaining_candidate_fit_failure_20261019.md)。
 
 ```bash
 python scripts/check_candidate_fit_contracts.py
@@ -38,8 +39,8 @@ BaseException传播、无重试、签名透明、失效后拒绝公开预测等�
 
 ## 工程验收
 
-检查器专项27项通过、零跳过/失败/错误，5.825秒；
-JUnit `/tmp/candidate-fit-contracts-tests.xml`。包括逐方法删guard的15项反例、
+检查器专项27项通过、零跳过/失败/错误，5.825秒（旧15候选截点）；更新为16候选后的
+专项结果以本轮测试运行记录为准。包括逐方法删guard的反例、
 guard import/额外clean角色/kwargs/重复装饰/越界引用拒收、源码变化与CRLF、
 陈旧/伪准入记录和CLI，以及禁止Torch导入的独立进程。
 原协议、矩阵、历史资源/结果和负责人签署保持不动；全仓最终验收在本轮结束记录。

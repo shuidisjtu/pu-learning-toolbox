@@ -56,6 +56,43 @@ def test_seed_determinism_for_end_to_end_supervised_encoder():
     np.testing.assert_array_equal(scores[0], scores[1])
 
 
+def test_basic_prediction_restores_per_module_modes_on_success_and_forward_error(monkeypatch):
+    encoder = nn.Sequential(nn.Conv2d(3, 2, 1), nn.BatchNorm2d(2), nn.Dropout2d(0.2), nn.Flatten())
+    X = np.random.RandomState(21).normal(size=(8, 3, 4, 4)).astype("float32")
+    y = np.array([0, 1] * 4)
+    model = PilotOracleCNN(encoder=encoder, max_epochs=1, batch_size=4, random_state=7).fit(X, y)
+    modules = list(model.model_.modules())
+    modules[0].training = True
+    modules[1].training = False
+    modules[2].training = True
+    before = [module.training for module in modules]
+
+    assert model.decision_function(X[:2]).shape == (2,)
+    assert [module.training for module in modules] == before
+
+    def fail_forward(_inputs):
+        raise RuntimeError("oracle forward interrupted")
+
+    monkeypatch.setattr(model.model_[0], "forward", fail_forward)
+    with pytest.raises(RuntimeError, match="oracle forward interrupted"):
+        model.decision_function(X[:2])
+    assert [module.training for module in modules] == before
+
+    monkeypatch.undo()
+    child = model.model_[0]
+    original_train = child.train
+
+    def fail_eval_transition(mode=True):
+        if not mode:
+            raise RuntimeError("oracle eval transition interrupted")
+        return original_train(mode)
+
+    monkeypatch.setattr(child, "train", fail_eval_transition)
+    with pytest.raises(RuntimeError, match="oracle eval transition interrupted"):
+        model.decision_function(X[:2])
+    assert [module.training for module in modules] == before
+
+
 def test_param_edge_cnn_rejects_flattened_input_and_missing_encoder():
     X = np.ones((4, 3, 4, 4), dtype="float32")
     y = np.array([0, 1, 0, 1])

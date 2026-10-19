@@ -11,7 +11,7 @@
 | P3MIX | 完整来源、epoch/pool 时序、E/C 变体与分类器 | 正确官方 PDF/API 仍受访问限制；已请求用户提供论文/补充包，不把二手实现或索引摘要当全文验收 |
 | Self-PU / LaGAM | 独立 clean support 与外部 OA 隔离的显式实验接线 | 接线与真实元更新 CPU 回归通过；实际支持集/正式标签预算仍待确认 |
 | PULNS 实际支持集 | 已有安全接口后的实际数据与预算 | 需明确支持集来源/预算；本轮不在旧 frozen split 上偷偷取标签 |
-| CVIR 扩展 | 固定alpha路径已接；独立 BBE 与完整 TEDn 交替训练工程入口已补，均为独立可选扩展 | [BBE](../../method_cards/BBE.md) / [TEDn](../../method_cards/TEDn.md)；显式 α_U，不接公共总体先验或 CVIR 默认路径；本 Survey 走 OS adaptation + 显式 α_U，OS→TS 不属于本实验；未注册 TEDn 至 CLI/UI，正式预算/选模/数值待核 |
+| CVIR 扩展 | 固定alpha路径已接；独立 BBE 与完整 TEDn 交替训练工程入口已补，均为独立可选扩展 | [BBE](../../method_cards/BBE.md) / [TEDn](../../method_cards/TEDn.md)；显式 α_U，不接公共总体先验或 CVIR 默认路径；本 Survey 走 OS adaptation + 显式 α_U，OS→TS 不属于本实验；TEDn 的实验级注册状态见下方更正，正式预算/选模/数值待核 |
 | 原论文配方差异 | GEN-PU/Holistic/Robust/Split等差异保留 | GEN-PU 已于 2026-10-18 采用论文目标；Holistic-PU 保留当前实现（论文 trend 路径 + fixed/continue）；Robust/Split 等正式目标/配方仍需负责人批准 |
 | CNN oracle / GPU验收 | 正式协议、资源与多seed运行 | 10-17查询8张A6000均有占用；不抢卡，未经批准不启动正式200轮/5seed跑批 |
 
@@ -177,6 +177,10 @@ BBE 交付后的下一项 TEDⁿ 已继续补齐独立工程路径，见 [TEDn �
 P3MIX 原始来源、实际 support 预算和正式 GPU 验收的前置阻断保持，
 不因新增 BBE/TEDn 自动放行。
 
+## 2026-10-19 P3MIX 来源补齐与状态更正
+
+本记录前文关于“尚未取得全文、等待用户提供论文”的内容是 2026-10-17 的历史截点，现由用户补入的完整论文 PDF 更新。P3Mix、P3Mix-E、P3Mix-C 的逐项来源核对与实现边界见[原文交叉表](../admission/p3mix_paper_review_20261019.md)，实现和方法能力见[方法卡](../../method_cards/P3MIX.md)。专项测试和 P3 准入证据门禁已通过；作者代码链接未在论文中给出，故仅记录“本文未发现”，不推断作者无代码。正式 recipe/预算、方法负责人 RV8 复核、资源验收与新增准入仍未完成；此补记不回写旧 Pilot 或历史实验记录。
+
 ## TEDⁿ 独立交替训练技术验收
 
 同步基线 `a68a241`；提交前再次 fetch，远程 main 无新增。新增独立
@@ -207,6 +211,14 @@ P3MIX 原始来源、实际 support 预算和正式 GPU 验收的前置阻断保
 没有替换既有 CVIR/BBE、冻结矩阵或历史签署，也未启动 GPU/正式跑批。
 P3MIX 完整原始来源、实际 support 来源/标签预算与正式资源批准仍是下一阶段前置，
 本次不能将这些事项登记为已完成。
+
+### 2026-10-19 TEDⁿ 注册状态更正
+
+上段“没有 CLI/UI 注册”是当时的交付截点。之后已将 `TEDnClassifier` 暴露于顶层 API，
+并注册实验级 `tedn` CLI/UI 元数据；构造器要求显式声明 `input_sampling="ts"`，UI
+提示 case-control 采样前提。注册并不验证调用方的数据设计，也不提供 OS→TS 校准；TEDⁿ
+仍不进入冻结矩阵或正式准入，recipe、资源与负责人审核待完成。详见
+[TEDn 方法卡](../../method_cards/TEDn.md)及执行计划 §1.3。
 
 ## 2026-10-18 最新复核同步与 Robust-PU 来源补交
 

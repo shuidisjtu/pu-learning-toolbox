@@ -76,6 +76,8 @@ _EXPECTED_METHOD_KEYS = {
     "holistic_pu",
     "rp",
     "pulns",
+    "p3mix",
+    "tedn",
 }
 
 # Ledger notes open their annotation with either an ASCII or a full-width
@@ -164,7 +166,13 @@ def test_ledger_calibration_claims_have_a_real_fit_hook(
     """A TS default must have an explicit estimator view parameter."""
     for name, entry in ledger_methods.items():
         calibrated = entry["calibration_applied"]
-        assert entry["run_view"] == ("ts-compatible" if calibrated else "os-compatible"), name
+        if calibrated:
+            assert entry["run_view"] == "ts-compatible", name
+        elif entry["run_view"] == "ts-compatible":
+            assert native_sampling_assumption(entry) == "ts", name
+            assert entry.get("calibration_applicability") == "not_applicable_native_ts", name
+        else:
+            assert entry["run_view"] == "os-compatible", name
         if calibrated:
             assert native_sampling_assumption(entry) in {"ts", "both"}, name
             parameters = inspect.signature(get_algorithm(name).fit).parameters

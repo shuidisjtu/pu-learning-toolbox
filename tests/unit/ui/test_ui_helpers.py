@@ -65,6 +65,13 @@ def test_deterministic_json_mapping_and_catalog():
     loss = next(parameter for parameter in upu["parameters"] if parameter["name"] == "loss")
     assert loss["kind"] == "choice"
     assert loss["choices"] == ["double_hinge", "logistic", "squared"]
+    tedn = next(item for item in catalog if item["name"] == "tedn")
+    assert tedn["ui_ready"] is True
+    assert tedn["scenario"] == ["case_control"]
+    input_sampling = next(p for p in tedn["parameters"] if p["name"] == "input_sampling")
+    assert input_sampling["required"] is True
+    assert input_sampling["kind"] == "choice"
+    assert input_sampling["choices"] == ["ts"]
 
 
 @pytest.mark.parametrize(

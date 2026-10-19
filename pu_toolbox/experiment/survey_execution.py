@@ -129,9 +129,9 @@ class PilotOracleMLP(ClassifierMixin, BaseEstimator):
     def decision_function(self, X):
         import torch
 
-        was_training = self.model_.training
-        self.model_.eval()
+        module_modes = [(module, module.training) for module in self.model_.modules()]
         try:
+            self.model_.eval()
             with torch.no_grad():
                 scores = [
                     self.model_(
@@ -147,7 +147,8 @@ class PilotOracleMLP(ClassifierMixin, BaseEstimator):
                 ]
             return np.concatenate(scores) if scores else np.empty(0, dtype=np.float32)
         finally:
-            self.model_.train(was_training)
+            for module, was_training in module_modes:
+                module.training = was_training
 
     def predict(self, X):
         return (self.decision_function(X) >= 0).astype(int)
