@@ -14,6 +14,16 @@ EXPECTED_OPENREVIEW_ID = "NH29920YEmj"
 pytestmark = pytest.mark.unit
 
 
+def _sha256_lf(path: Path) -> str:
+    """Hash a text file by its LF-canonical bytes.
+
+    Recorded anchors are git-blob digests.  A Windows checkout with
+    ``core.autocrlf=true`` rewrites LF to CRLF, so hashing raw bytes would
+    fail only on Windows even though the tracked content is unchanged.
+    """
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_results():
     record = json.loads(ANCHORS_PATH.read_text(encoding="utf-8"))
     source_path = ROOT / record["source"]["file"]
@@ -33,17 +43,11 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
     split_index_path = ROOT / project["indexed_split_evidence"]["index_file"]
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
     split_index = json.loads(split_index_path.read_text(encoding="utf-8"))
-    assert (
-        hashlib.sha256(protocol_path.read_bytes()).hexdigest()
-        == project["frozen_protocol"]["sha256"]
-    )
+    assert _sha256_lf(protocol_path) == project["frozen_protocol"]["sha256"]
     assert project["frozen_protocol"]["version"] == protocol["protocol_version"]
     assert project["frozen_protocol"]["seeds"] == protocol["seeds"]
     assert project["frozen_protocol"]["scar_c_tokens"] == protocol["c_tokens"]["scar"]
-    assert (
-        hashlib.sha256(split_index_path.read_bytes()).hexdigest()
-        == project["indexed_split_evidence"]["index_sha256"]
-    )
+    assert _sha256_lf(split_index_path) == project["indexed_split_evidence"]["index_sha256"]
     indexed_cifar = split_index["datasets"]["cifar10"]
     assert project["indexed_split_evidence"]["manifest_sha256_by_seed"] == {
         str(int(key.removeprefix("split_"))): value["manifest_sha256"]
