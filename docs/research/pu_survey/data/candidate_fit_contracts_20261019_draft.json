@@ -735,7 +735,7 @@
     "p3mix": {
       "class": "P3MixClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/p3mix.py",
-      "implementation_sha256": "4e2786f30630fd03ba4c544bdcc7a79230100c7f67a20abc50439aa1bd27378b",
+      "implementation_sha256": "eb939c575807fbfb967548f1d57dc4b86d4c36c6730771d06f4d4f31e3de665b",
       "fit_parameters": [
         {
           "name": "X",

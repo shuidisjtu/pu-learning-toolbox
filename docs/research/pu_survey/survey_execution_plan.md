@@ -143,6 +143,13 @@ API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻�
 同步声明范围，候选 fit 合约草稿中的源码摘要随实现更新。专项 estimator/math 回归、格式与
 候选 fit 合约门禁通过；不改变论文锚点、实验配方、正式准入或既有结果。
 
+2026-10-20 P3MIX 全文后续接入验收：再次核对上传 PDF 的摘要与式 (4)/Algorithm 1；修复
+自定义 in-place 网络对原始 mixup、teacher 及评分输入的污染，保留当前 batch 私有副本。
+新增三变体的二维/四维逐位等价与异常隔离回归，以及真实卷积的公开 Pipeline 两折 CV、
+全量 refit、pickle 和四角色 PA/OA checkpoint 选模/回收测试，合成 CPU 专项 61 项通过。
+台账来源、推理隔离证据与当前源码摘要同步，详情见[原文交叉表](admission/p3mix_paper_review_20261019.md)。
+不改正式候选、冻结协议或结果；负责人复核、完整配方和多 seed/GPU 资源验收仍待。
+
 2026-10-20 P3MIX 数值与采样成本补核：修复公开 mixup helper 在整数输入中写入浮点候选时
 截断小数的问题，以共同浮点 dtype 保留式 (4) 的凸组合；classifier 的 float32 默认路径保持
 原训练行为。重新核对 Algorithm 1 第 3 行的合并 shuffle，明确当前分角色 shuffle/循环较短组

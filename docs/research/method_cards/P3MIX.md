@@ -30,4 +30,27 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 
 ## 当前状态与准入边界
 
+2026-10-20 再核 PDF 后补齐输入隔离：各次 student/teacher 前向使用私有当前 batch，encoder
+probe 使用独立行副本，避免自定义 in-place 网络污染式 (4) 输入或验证/测试评分数组。
+三变体均补充实际卷积的公开 `PUPipeline` 两折 CV+全量 refit、pickle、四角色 PA/OA
+checkpoint 与回收回归，详情见[原文交叉表追加记录](../pu_survey/admission/p3mix_paper_review_20261019.md)。
+这是技术接入验收，新增临时 batch 内存仍需在正式资源 profile 中实测。
+
+下面为显式短预算 CPU 接口示例，不是论文配方；`X_images` 为 NCHW，`s_observed` 为观测
+PU 标签。工程 backbone 不是论文的 7-layer CNN，正式选模与超参仍须独立批准。
+示例中的总体先验供 Pipeline 的 PU 风险评价使用，不进入 P3MIX 的训练目标。
+
+```python
+from pu_toolbox import PUPipeline
+
+pipeline = PUPipeline(
+    classifier="p3mix", architecture="cnn", backbone="cnn13", device="cpu",
+    classifier_params={
+        "variant": "c", "max_epochs": 2, "batch_size": 16, "pool_size": 100,
+    },
+    cv=2, random_state=0,
+)
+# report = pipeline.fit_evaluate(X_images, s_observed, class_prior=pi_population)
+```
+
 P3Mix 已由“仅数学组件、未注册”推进为可训练的实验级分类器并写入工具箱 registry 与方法台账。Survey 冻结矩阵、P3 候选准入草稿和正式实验配方未因此改变；没有签署准入、正式预算或资源 profile。P3.1 仍需方法负责人复核论文映射和工程适配，并补齐按正式协议的 benchmark/资源验证后，才可考虑准入。

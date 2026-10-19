@@ -185,7 +185,7 @@ def p3mix_heuristic_batch(
 
 
 def p3mix_batch_loss(logits, soft_labels, original_pu_labels, *, unlabeled_weight):
-    """Slide 10's separate mean_P + beta*mean_U, not a pooled-size mean."""
+    """Paper Eq. (2)'s separate mean_P + beta*mean_U, not a pooled-size mean."""
     import torch
     from torch.nn import functional
 
@@ -216,7 +216,9 @@ def p3mix_batch_loss(logits, soft_labels, original_pu_labels, *, unlabeled_weigh
 def _p3mix_logits(model, X):
     import torch
 
-    logits = model(X)
+    # A custom network may start with an in-place operation. Keep raw x for
+    # Eq. (4), teacher inputs and caller-owned scoring arrays unchanged.
+    logits = model(X.clone())
     if logits.shape not in ((len(X),), (len(X), 1)):
         raise ValueError("P3Mix model must return one logit per row")
     logits = logits.reshape(-1)
@@ -409,7 +411,7 @@ class P3MixClassifier(BasePUClassifier):
             encoder.requires_grad_(True).eval()
             with torch.no_grad():
                 width = validate_encoder_features(
-                    encoder(torch.as_tensor(X[:1], device=self.device_)),
+                    encoder(torch.as_tensor(X[:1].copy(), device=self.device_)),
                     encoder_param_name="encoder",
                 )
             head = (
@@ -476,6 +478,7 @@ class P3MixClassifier(BasePUClassifier):
             "unlabeled_rows_seen": 0,
             "configured_batch_size_per_role": self.batch_size,
             "maximum_rows_per_training_forward": 2 * self.batch_size,
+            "forward_input_isolation": "private_tensor_clone",
             "beta": float(self.beta),
             "gamma": float(self.gamma),
             "mixup_alpha": float(self.mixup_alpha),

@@ -60,6 +60,39 @@ Table 2 还报告八种 PU 比较方法（accuracy, mean ± standard deviation�
 
 本轮 P3MIX estimator/math、文献锚点、候选源码绑定及台账来源/registry 一致性专项共 106 项通过，0 跳过、失败或错误；JUnit 在本机 `/tmp/p3mix-source-followup-20261020.xml`。格式、文档链接、测试质量及候选源码绑定门禁通过。该测试范围不包含正式数据训练、GPU 验收或作者结果重放。
 
+## 2026-10-20 PDF 再核与输入隔离补齐
+
+再次读取用户提供的 14 页 PDF，SHA-256 与本表登记一致，未发生版本替换。原文式 (4)
+混合的是原始样本，Algorithm 1 第 9 行还要求 teacher 接收相同的混合样本。自定义网络若以
+in-place 操作起始，原实现会在原始打分、encoder 宽度 probe 或 student forward 中改写
+待用输入；CPU 推理的 tensor 还可能与调用方验证/测试数组共享内存。
+
+现将每次 `_p3mix_logits` 前向输入 clone，encoder probe 使用独立行副本：原始 x、mixup
+输入和 teacher 输入互不污染，推理失败也不改写调用方数组。`training_provenance_` 新增
+`forward_input_isolation="private_tensor_clone"`。复制仅涉及当前前向 batch，不转移全量训练
+输入到 GPU；会增加当前 batch 的临时内存，不能套用旧版本资源峰值作为当前上界。
+没有调整目标、采样、EMA 时序、超参缺省、TS 拒绝或准入状态。
+
+- [输入隔离回归](../../../../tests/unit/estimators/test_p3mix_input_isolation.py)：三个变体 ×
+  二维自定义模型/四维 encoder，对照相同权重的 in-place 与非 in-place 网络；逐位核对
+  训练损失、student/teacher 权重、候选池身份、重复概率，并确认输入不变。另覆盖前向
+  改写输入后抛错时的数组与逐层模式恢复。修复前测试确实复现评分数组被改写，不是只核对元数据。
+- [公开 CNN 接入回归](../../../../tests/integration/test_p3mix_pipeline_cnn.py)：微型真实卷积
+  （不是 Flatten-only）覆盖三个变体的两折 CV + 全量 refit、冻结模板的独立解冻副本、
+  实际权重更新及 pickle 回放。另以四角色 runner 验证训练只接收 train 的观测 PU 标签、
+  PA/OA 独立 checkpoint 选模、阶段身份及可选未选中 checkpoint 回收，四套原数组不变。
+- 两个新文件分别执行 8、10 个用例；与既有 estimator/math 合计 61 项通过。以上均为
+  合成 CPU 小预算工程验证，不是论文数值复现、正式数据实验、GPU 资源验收或方法负责人签署。
+- 加入文献锚点、候选 fit 来源绑定和台账一致性后，专项共 124 项通过，0 跳过、失败或错误
+  （本机 JUnit：`/tmp/p3mix-pdf-followup-20261020.xml`）。对本项目修复前 `8c9c208` 的默认
+  MLP 另做 3 个 seed × 三个变体共 9 组两 epoch 对照；损失、student/teacher 权重、候选
+  池身份、更新次数与预测逐位一致，最大概率差为 0。仅证明这些短预算配置的兼容性，
+  不代表上游作者代码或正式数据实验重放。
+- 最终全仓快速回归 `pytest tests/ -m 'not slow and not e2e'`：5,274 项通过、59 项条件
+  跳过，0 失败/错误，共 5,333 项（本机 JUnit：`/tmp/p3mix-final-fast-20261020.xml`）。
+  跳过包括无 CUDA、无概率接口和需要独立 clean support 的用例，不能算作 GPU 或正式协议
+  验收。仓库 CI 静态门禁在本机通过；远程多平台 CI 结果须以推送后的工作流为准。
+
 ## 未解除的前置
 
 - HENG958 按 RV8 复核本交叉表、batching/网络/优化器/EMA 工程决定和实现边界；审阅状态仍 pending。
