@@ -363,6 +363,33 @@ def test_basic_regularizers_match_independently_computed_literals(path, alignmen
 
 
 @pytest.mark.unit
+def test_histogram_loss_matches_independent_one_bin_polar_literals():
+    p_loss, u_loss = dist_pu_module._histogram_distribution_loss(
+        torch.tensor([0.8, 0.9], dtype=torch.float64),
+        torch.tensor([0.2, 0.8], dtype=torch.float64),
+        0.4,
+        include_positive_in_unlabeled=False,
+    )
+    # P histogram=(.15,.85), target=(0,1): mean L1=.15.
+    # U histogram=(.5,.5), target=(.6,.4): mean L1=.1, divided by 2*pi=.8.
+    assert float(p_loss) == pytest.approx(0.15, abs=1e-12)
+    assert float(u_loss) == pytest.approx(0.125, abs=1e-12)
+
+
+@pytest.mark.unit
+def test_histogram_ts_role_includes_observed_positives_without_changing_prior():
+    p_loss, u_loss = dist_pu_module._histogram_distribution_loss(
+        torch.tensor([0.8, 0.9], dtype=torch.float64),
+        torch.tensor([0.2, 0.8], dtype=torch.float64),
+        0.4,
+        include_positive_in_unlabeled=True,
+    )
+    # Union histogram=(.325,.675), still compared to the same pi=.4 proxy.
+    assert float(p_loss) == pytest.approx(0.15, abs=1e-12)
+    assert float(u_loss) == pytest.approx(0.34375, abs=1e-12)
+
+
+@pytest.mark.unit
 def test_edge_the_ts_role_set_is_the_whole_training_matrix():
     """Recover each view's role mean from its alignment and compare it with the
     mean over the row set the protocol says that view must use."""

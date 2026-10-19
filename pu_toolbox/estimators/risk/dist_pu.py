@@ -2,10 +2,10 @@
 
 """Dist-PU label-distribution alignment classifier.
 
-The implementation follows the paper's three train-time signals: positive
-supervision, unlabeled expectation alignment, and entropy minimisation.  A
-small Mixup term is included when ``mixup_weight`` is non-zero.  PyTorch is an
-optional dependency and is imported only when ``fit`` is called.
+The default is the historical clean-room expectation-alignment objective. An
+explicit ``distribution_loss="author_histogram"`` option adds the locked
+author-code one-bin polar histogram loss, without claiming to reproduce its
+two-stage training procedure. PyTorch remains an optional dependency.
 """
 
 from __future__ import annotations
@@ -63,8 +63,59 @@ def _distribution_regularizers(
     return alignment, entropy
 
 
+def _polar_histogram(probs: Any) -> Any:
+    """Reproduce the official Dist-PU one-bin polar score histogram.
+
+    The locked source constructs two bins centered at 0 and 1 (`num_bins=1`),
+    uses triangular membership with width 1, then averages membership over
+    rows. For probabilities in [0, 1], each row contributes `(1-q, q)`.
+    """
+    import torch
+
+    if probs.ndim != 1 or probs.numel() == 0:
+        raise ValueError("Dist-PU histogram requires nonempty one-dimensional probabilities")
+    if not torch.isfinite(probs).all() or torch.any((probs < 0) | (probs > 1)):
+        raise ValueError("Dist-PU histogram probabilities must be finite and in [0, 1]")
+    centers = probs.new_tensor([0.0, 1.0])
+    distances = torch.abs(probs[:, None] - centers[None, :])
+    memberships = torch.clamp(1.0 - distances, min=0.0)
+    return memberships.mean(dim=0)
+
+
+def _histogram_distribution_loss(
+    positive_probs: Any,
+    unlabeled_probs: Any,
+    class_prior: float,
+    *,
+    include_positive_in_unlabeled: bool,
+) -> tuple[Any, Any]:
+    """Author-code histogram loss terms for the positive and marginal roles.
+
+    Mirrors `LabelDistributionLoss(num_bins=1, proxy='polar', dist='L1')`:
+    P targets `[0, 1]`, U targets `[1-pi, pi]`, and U loss weight `1/(2*pi)`.
+    """
+    import torch
+
+    if positive_probs.ndim != 1 or positive_probs.numel() == 0:
+        raise ValueError("Dist-PU histogram loss requires observed positive rows")
+    marginal_probs = (
+        torch.cat((unlabeled_probs, positive_probs))
+        if include_positive_in_unlabeled
+        else unlabeled_probs
+    )
+    if marginal_probs.ndim != 1 or marginal_probs.numel() == 0:
+        raise ValueError("Dist-PU histogram loss requires marginal-role rows")
+    p_histogram = _polar_histogram(positive_probs)
+    u_histogram = _polar_histogram(marginal_probs)
+    p_proxy = positive_probs.new_tensor([0.0, 1.0])
+    u_proxy = positive_probs.new_tensor([1.0 - class_prior, class_prior])
+    p_loss = (p_histogram - p_proxy).abs().mean()
+    u_loss = (u_histogram - u_proxy).abs().mean() / (2.0 * class_prior)
+    return p_loss, u_loss
+
+
 class DistPUClassifier(BasePUClassifier):
-    """Train a small MLP using Dist-PU's label-distribution objective."""
+    """Train a small MLP with clean-room or author-code histogram alignment."""
 
     family = AlgorithmFamily.RISK_ESTIMATION
     label_semantics = "pu"
@@ -92,6 +143,7 @@ class DistPUClassifier(BasePUClassifier):
         alignment_weight: float = 1.0,
         entropy_weight: float = 0.05,
         mixup_weight: float = 0.1,
+        distribution_loss: str = "expectation",
         random_state: int | None = 0,
         device: str | None = None,
     ) -> None:
@@ -104,6 +156,7 @@ class DistPUClassifier(BasePUClassifier):
         self.alignment_weight = alignment_weight
         self.entropy_weight = entropy_weight
         self.mixup_weight = mixup_weight
+        self.distribution_loss = distribution_loss
         self.random_state = random_state
         self.device = device
 
@@ -127,6 +180,10 @@ class DistPUClassifier(BasePUClassifier):
             PU labels.  +1 = labeled positive, 0 = unlabeled.
         class_prior : float, optional
             Override the constructor's ``class_prior``.  Must be in (0, 1).
+        distribution_loss : {"expectation", "author_histogram"}
+            Select the default clean-room mean-squared alignment or the
+            author's one-bin polar histogram L1 terms. The histogram option
+            does not reproduce the author's complete two-stage recipe.
         sample_weight : ignored (present for sklearn compatibility; PU risk estimators do not use instance weights)
         os_or_ts : {"os", "ts"}, default "os"
             Training data view (survey protocol §2.3).  ``"ts"`` applies the
@@ -162,6 +219,8 @@ class DistPUClassifier(BasePUClassifier):
         check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
         if self.epochs < 1 or self.hidden_dim < 1:
             raise ValueError("epochs must be >= 1 and hidden_dim must be >= 1")
+        if self.distribution_loss not in {"expectation", "author_histogram"}:
+            raise ValueError("distribution_loss must be 'expectation' or 'author_histogram'")
         X = np.asarray(X, dtype=np.float32)
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
@@ -186,6 +245,7 @@ class DistPUClassifier(BasePUClassifier):
         self.training_provenance_ = {
             "method": "dist_pu",
             "implementation_path": "clean_room_single_stage_full_batch",
+            "distribution_loss": self.distribution_loss,
             "upstream_source_lock": "cb74be1a87176fd38270873c06374e53905b7354",
             "upstream_training_recipe_reproduced": False,
             "run_view": os_or_ts,
@@ -204,11 +264,27 @@ class DistPUClassifier(BasePUClassifier):
             optimizer.zero_grad()
             logits = self.model_(tx).squeeze(1).clamp(-10, 10)
             probs = torch.sigmoid(logits)
-            positive_loss = bce(logits[p_mask], torch.ones_like(logits[p_mask]))
-            alignment, entropy = _distribution_regularizers(
-                probs, u_mask, pi, include_positive_in_unlabeled=calibrated_view
-            )
-            loss = positive_loss + self.alignment_weight * alignment + self.entropy_weight * entropy
+            if self.distribution_loss == "expectation":
+                positive_loss = bce(logits[p_mask], torch.ones_like(logits[p_mask]))
+                alignment, entropy = _distribution_regularizers(
+                    probs, u_mask, pi, include_positive_in_unlabeled=calibrated_view
+                )
+                loss = positive_loss + self.alignment_weight * alignment
+            else:
+                p_hist_loss, u_hist_loss = _histogram_distribution_loss(
+                    probs[p_mask],
+                    probs[u_mask],
+                    pi,
+                    include_positive_in_unlabeled=calibrated_view,
+                )
+                entropy_probs = probs if calibrated_view else probs[u_mask]
+                loss = p_hist_loss + self.alignment_weight * u_hist_loss
+                alignment = u_hist_loss
+                entropy = -(
+                    entropy_probs * (entropy_probs + 1e-6).log()
+                    + (1 - entropy_probs) * (1 - entropy_probs + 1e-6).log()
+                ).mean()
+            loss = loss + self.entropy_weight * entropy
             if self.mixup_weight > 0 and len(X) > 1:
                 perm = torch.randperm(len(X), device=device)
                 lam = torch.rand((), device=device)

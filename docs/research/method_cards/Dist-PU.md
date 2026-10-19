@@ -227,8 +227,8 @@ H(q)=-q\log q-(1-q)\log(1-q).
 |---|---|
 | Source status | `official_exact` |
 | Implementation status | `NATIVE`，PyTorch optional dependency |
-| 当前实现 | 论文核心损失的 clean-room 小型 MLP 版本 |
-| 尚未对齐 | 官方 backbone、mini-batch、图像增强、数据 split、完整超参数搜索 |
+| 当前实现 | clean-room 小型 MLP；默认均值平方期望对齐；可显式选 author histogram loss 组件 |
+| 尚未对齐 | 作者完整两阶段/持久伪标签程序、官方 backbone、mini-batch、图像增强、数据 split、完整超参数搜索 |
 | 主要风险 | `pi` 错误会直接改变 U 集分布约束；熵权重过大可能强化确认偏差；全量训练与官方 batch 训练结果不可直接比较 |
 
 ### 8.1 锁定作者程序的训练行为差异
@@ -242,7 +242,11 @@ H(q)=-q\log q-(1-q)\log(1-q).
 所以官方 scheduler 的实际计步单位是 batch，不应误读成每 epoch 一次。
 作者 `distributionLoss.py` 使用 batch 内直方图分布距离，目标为 P 直方图与单点正类 proxy 的距离，加上
 `1/(2*pi)` 加权的 U 直方图与边缘先验混合 proxy 的距离；不等同于本卡 §3 的单样本均值平方对齐 clean-room
-目标。作者脚本每个 epoch 在 test loader 上按 accuracy 记录 best，这种选择不能移入本项目。
+目标。estimator 现提供显式 `distribution_loss="author_histogram"` 选项，逐项实现作者
+`LabelDistributionLoss(num_bins=1, proxy="polar", dist="L1")` 的 P/U histogram 项；TS 时仅按项目
+协议将 P 并入 marginal-role histogram，不改 `pi` target。该选项仍运行现有单阶段全量训练，并保留当前熵/
+Mixup工程路径；不等同作者完整两阶段流程，默认值仍是既有 `expectation`。作者脚本每个 epoch 在 test loader
+上按 accuracy 记录 best，这种选择不能移入本项目。
 
 因此，本卡和台账中的 `official_exact` 仅表示已锁定作者来源身份，不表示 toolbox estimator 忠实重放作者
 训练程序。当前 estimator 继续限定为 clean-room 小型 MLP 目标探索；`batch_size` 是未生效的兼容参数，不应

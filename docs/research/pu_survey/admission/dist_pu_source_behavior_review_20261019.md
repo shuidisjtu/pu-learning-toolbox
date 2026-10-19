@@ -13,7 +13,7 @@
 |---|---|---|---|
 | 训练阶段 | `train.py` 先执行 `warm_up()`，再执行 `dist_PU()`；默认各 60 epochs。 | 单一全量张量训练循环，没有阶段切换。 | 参数更新轨迹与论文官方程序不同。 |
 | 数据批次 | `train_loader` 用 `batch_size=256`、shuffle；每批一次优化器更新。 | `batch_size` 当前不参与训练，每 epoch 对全量矩阵一次更新。 | 参数名不能被解释成已实现 mini-batch。 |
-| 损失 | warm-up 使用基础损失；PU 阶段在原批次上计算 `base_loss`，加动态熵项，并对 mixup 输出计算熵和 soft-target Mixup BCE。 | 实现包含正例 BCE、均值对齐平方项、逐样本二元熵与预测均值目标 Mixup BCE。 | 两者是不同的算法/目标实现，不是仅仅 backbone 不同。 |
+| 损失 | warm-up 使用基础损失；PU 阶段在原批次上计算 `base_loss`，加动态熵项，并对 mixup 输出计算熵和 soft-target Mixup BCE。 | 默认 `expectation` 为正例 BCE、均值平方对齐、熵和预测均值 Mixup；`author_histogram` 仅替换分布损失组件为 P/U histogram L1，其他训练阶段与熵/Mixup路径仍是 toolbox 当前实现。 | histogram 项已可选复用；整体仍不是作者完整算法流程。 |
 | 伪标签时序 | PU 阶段在初始化时以模型更新伪标签；每个 batch 使用当前伪标签，强制已标记 P 目标为 1，优化后再写回该批未标记行预测。 | 每个 epoch 从当前模型输出生成 mixup soft targets；没有持久的逐样本伪标签状态。 | 对训练历史的依赖和梯度输入不同。 |
 | 优化器与日程 | warm-up Adam 使用 `warm_up_lr`、`warm_up_weight_decay`；进入 PU 阶段后重建 Adam，使用另一组学习率/权重衰减，并采用余弦 scheduler。动态 `co_entropy` 按 epoch 递增。 | 一个 Adam，无 weight decay 参数/阶段切换/scheduler；熵权重固定。 | 当前 estimator 不是作者训练 schedule 的重放。 |
 | scheduler 计步 | `CosineAnnealingLR(..., T_max=pu_epochs)`；warm-up 的 `utils.train()` 与 PU 的 `train_mixup()` 都在每个 mini-batch optimizer step 后调用 `scheduler.step()`。 | 没有 scheduler。 | 作者程序的 scheduler 计数单位是 batch，不能把默认 `pu_epochs=60` 简写成 60 次 epoch 级衰减。 |
@@ -32,9 +32,12 @@ label-distribution loss，`frac_prior=1/(2*prior)`。因此，方法卡 §3 的�
 也不应以尚未使用的 `batch_size` 暗示已支持批训练。作者训练流程的忠实适配需要独立 opt-in 路径和明确
 的模型/数据/优化器接口；其中 test-loader 选模必须替换为项目批准的验证选择协议，不能复制作者 test 泄漏。
 
-另给既有 estimator 增加 run-level `training_provenance_`：明确记录实际视图/校准、单阶段全量实现、
-`batch_size` 未生效、每 epoch optimizer step 数、实际训练 epoch 数及非作者 recipe 身份。该元数据不改变损失、
-默认参数、优化轨迹、校准角色、历史 pilot、冻结矩阵或资源预算；本轮对应执行回归通过。
+另给既有 estimator 增加显式 `distribution_loss="author_histogram"` 组件，复现锁定源码
+`LabelDistributionLoss(num_bins=1, proxy='polar', dist='L1')` 的 P/U histogram 项；默认
+`expectation` 路径与既有损失保持不变。新组件仍复用单阶段全量训练、当前熵/Mixup 与项目 OS/TS 角色接线，
+不能称为完整作者程序重放。拟合后的 `training_provenance_` 记录实际视图/校准、分布损失模式、未生效的
+`batch_size`、优化步数/epoch 及 `upstream_training_recipe_reproduced=false`；对应数学和短拟合回归通过。
+正式准入、历史 pilot、冻结矩阵和预算均不变。
 后续若实现完整两阶段适配，必须作为新显式 recipe/路径，单独测算阶段和 checkpoint 成本，并保持旧 clean-room
 路径可重现；正式数据、backbone、PA/OA 选择和预算仍须走协议审批。
 

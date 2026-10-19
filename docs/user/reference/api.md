@@ -175,7 +175,7 @@ PNU直接三值fit保持可用，但不能用PNU模型绕过PU工作流的语义
 | `centroid_pu`（`ldce`） | `LDCEClassifier` | risk | `flip_probability` / `reg_strength` / `centroid_radius` | [LDCE](../../research/method_cards/LDCE.md) |
 | `kldce`（`kernelized_ldce`） | `KLDCEClassifier` | risk | `flip_probability` / `sigma` / `reg_strength` | [KLDCE](../../research/method_cards/KLDCE.md) |
 | `llsvm` | `LLSVMClassifier` | risk | `alpha` / `beta` / `gamma` / `reg_lambda` / `max_epochs` | [LLSVM](../../research/method_cards/LLSVM.md) |
-| `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
+| `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` / `distribution_loss` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
 | `vpu`（`variational_pu`） | `VPUClassifier` | risk | `hidden_dim` / `max_epochs` / `regularization_weight` / `mixup_alpha` | [VPU](../../research/method_cards/VPU.md) |
 | `pulda`（`label_distribution_alignment`） | `PULDAClassifier` | risk | `class_prior` / `warmup_epochs` / `pu_epochs` / `margin` / `mixup_weight` | [PULDA](../../research/method_cards/PULDA.md) |
 | `cvir`（`conditional_value_ignoring_risk`） | `CVIRClassifier` | risk | `unlabeled_positive_prior`（U 内比例）/ `hidden_dim` / `max_epochs` / `warm_start_epochs` | [CVIR](../../research/method_cards/CVIR.md) |
@@ -487,11 +487,12 @@ LLSVMClassifier(*, alpha=2.0, beta=1.0, gamma=10.0, squash_scale=10.0, reg_lambd
 
 #### `DistPUClassifier`（注册名 `dist_pu`，别名 `distpu`）
 
-Dist-PU 小 MLP 分类器（标签分布目标）。
+Dist-PU clean-room 小 MLP 分类器；`distribution_loss="author_histogram"` 可选启用作者 histogram 损失组件，但不切换为完整作者训练流程。
 
 ```python
 DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, learning_rate=1e-3,
                  alignment_weight=1.0, entropy_weight=0.05, mixup_weight=0.1,
+                 distribution_loss="expectation",
                  random_state=0, device=None)
 ```
 
@@ -500,11 +501,12 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=128, lear
 | `class_prior` | `float` | 必填 | 类先验 |
 | `hidden_dim` | `int` | `64` | 隐藏层维度 |
 | `epochs` | `int` | `100` | 训练轮数 |
-| `batch_size` | `int` | `128` | mini-batch 大小 |
+| `batch_size` | `int` | `128` | 兼容保留；当前单阶段全量路径不使用该参数 |
 | `learning_rate` | `float` | `1e-3` | 学习率 |
 | `alignment_weight` | `float` | `1.0` | 分布对齐损失权重 |
 | `entropy_weight` | `float` | `0.05` | 熵损失权重 |
 | `mixup_weight` | `float` | `0.1` | Mixup 损失权重 |
+| `distribution_loss` | `str` | `"expectation"` | `"expectation"` 为默认 clean-room 均值平方对齐；`"author_histogram"` 仅复现锁定作者代码的 one-bin polar/L1 P/U histogram 损失组件，不代表两阶段/mini-batch 作者流程 |
 | `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 种子与 torch 设备 |
 
 - 文档：[Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)

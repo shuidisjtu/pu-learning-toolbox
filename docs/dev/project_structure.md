@@ -68,7 +68,7 @@ pu_toolbox/
       ldce.py                             (native: 线性 LDCE(切断PU): MoM 质心+椭球约束, m-更新与次梯度 w 交替)
       kldce.py                            (native: ACS + 原生 SMO + RBF kernel)
       kldce_smo.py                        (原生配对 SMO 求解器: 解析更新 + KKT 选择)
-      dist_pu.py                          (native: Dist-PU 标签分布对齐: 正例监督+期望对齐+熵最小化, torch 可选 MLP)
+      dist_pu.py                          (native: clean-room expectation 默认目标+可选作者 polar histogram 损失组件，单阶段 MLP, torch 可选)
       vpu.py                              (native: VPU 变分风险/MixUp、可训练 CNN 与 CPU 数据分批适配)
       pulda.py                            (native: PULDA 分布对齐+双向 margin+EMA 伪标签 MixUp，两阶段二维 MLP 适配)
       upu.py                              (native: uPU 凸风险估计器(du Plessis'15): 双铰链/逻辑/平方损失三变体)
@@ -268,7 +268,7 @@ tests/
       test_upu_ts_view.py               # UPUClassifier 的 TS-OS 训练视图(独立重推 golden、solver 池与分母、RBF 中心池)
       test_pusb_kernel_ts_view.py       # PUSBKernelClassifier 的 TS-OS 训练视图(独立重推 golden、角色集与分母、OS 冻结基线)
       test_pusb_kernel_view_invariants.py # PUSBKernel 视图不变量(中心/fold/阈值池不变、角色重合但不复制物理样本)
-      test_dist_pu_ts_view.py           # DistPU 视图的数学期望与 OS 冻结基线(独立算式 golden、逐 tensor 容差、改造前后逐位等价)
+      test_dist_pu_ts_view.py           # DistPU OS/TS 视图、expectation 冻结基线与 author-histogram 独立 golden
       test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
       test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
       test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
