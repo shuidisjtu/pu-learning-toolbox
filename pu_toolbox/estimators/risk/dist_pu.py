@@ -180,6 +180,24 @@ class DistPUClassifier(BasePUClassifier):
         # back.  Only that role set changes; the positive term, the class prior,
         # the Mixup pool and the RNG stream are untouched.
         calibrated_view = os_or_ts == "ts"
+        self.calibration_applied_ = calibrated_view
+        self.optimizer_steps_ = 0
+        self.epochs_completed_ = 0
+        self.training_provenance_ = {
+            "method": "dist_pu",
+            "implementation_path": "clean_room_single_stage_full_batch",
+            "upstream_source_lock": "cb74be1a87176fd38270873c06374e53905b7354",
+            "upstream_training_recipe_reproduced": False,
+            "run_view": os_or_ts,
+            "calibration_applied": calibrated_view,
+            "optimizer": "Adam",
+            "optimizer_steps_per_epoch": 1,
+            "batch_size_parameter_effective": False,
+            "configured_batch_size_not_used": repr(self.batch_size),
+            "mixup_pool": "entire_training_matrix",
+            "class_prior_used": float(pi),
+            "formal_admission": False,
+        }
         self.loss_history_ = []
         bce = nn.BCEWithLogitsLoss()
         for epoch in range(self.epochs):
@@ -199,11 +217,15 @@ class DistPUClassifier(BasePUClassifier):
                 loss = loss + self.mixup_weight * bce(self.model_(mix_x).squeeze(1), mix_y)
             loss.backward()
             optimizer.step()
+            self.optimizer_steps_ += 1
+            self.epochs_completed_ = epoch + 1
             self.loss_history_.append(float(loss.detach().cpu()))
             if epoch_callback is not None:
                 epoch_callback(epoch, self)
         self.classes_ = np.array([0, 1])
         self._class_prior, self._X_shape_, self._is_fitted = pi, X.shape, True
+        self.training_provenance_["optimizer_steps"] = self.optimizer_steps_
+        self.training_provenance_["epochs_completed"] = self.epochs_completed_
         self.device_ = device
         return self
 

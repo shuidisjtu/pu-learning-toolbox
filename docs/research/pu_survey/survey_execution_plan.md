@@ -82,6 +82,7 @@ clean-room estimator 与作者锁定程序差异不只在 backbone/batch size，
 [Dist-PU 来源行为复核](admission/dist_pu_source_behavior_review_20261019.md)。本轮不改变算法默认值、
 校准、冻结结果或准入。完整作者流程若适配，须另立显式 recipe 并采用本项目批准的 PA/OA 选模，
 不得复制作者用 test accuracy 选模的行为；正式数据/结构/预算仍待协议审批。
+该差异还通过拟合后的 `training_provenance_` 输出到 run manifest，显式披露 batch_size 未生效和实际优化步数。
 
 同日验收补记：P3Mix estimator、registry、候选扩展脚本、台账一致性与准入契约专项测试通过；
 `check_p3_admission_evidence.py` 与 `check_p3_public_comparison.py` 通过。

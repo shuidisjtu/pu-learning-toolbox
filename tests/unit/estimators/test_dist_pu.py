@@ -1,5 +1,7 @@
 # ruff: noqa: E402, N806
 
+import json
+
 import numpy as np
 import pytest
 
@@ -26,6 +28,26 @@ def test_basic_fit_predict_output_shapes(rng):
     assert model.predict(X).shape == (len(X),)
     assert model.predict_proba(X).shape == (len(X), 2)
     assert np.isfinite(model.loss_history_).all()
+    assert model.training_provenance_["implementation_path"] == "clean_room_single_stage_full_batch"
+    assert model.training_provenance_["batch_size_parameter_effective"] is False
+    assert model.training_provenance_["configured_batch_size_not_used"] == "128"
+    assert model.training_provenance_["optimizer_steps_per_epoch"] == 1
+    assert model.training_provenance_["optimizer_steps"] == 2
+    assert model.training_provenance_["upstream_training_recipe_reproduced"] is False
+    json.dumps(model.training_provenance_)
+
+
+@pytest.mark.unit
+def test_training_provenance_records_calibrated_view_without_changing_prior(rng):
+    X, y = _data(rng)
+    model = DistPUClassifier(0.3, hidden_dim=8, epochs=1, random_state=3).fit(
+        X, y, os_or_ts="ts"
+    )
+    assert model.calibration_applied_ is True
+    assert model.training_provenance_["run_view"] == "ts"
+    assert model.training_provenance_["calibration_applied"] is True
+    assert model.training_provenance_["class_prior_used"] == pytest.approx(0.3)
+    assert model.training_provenance_["mixup_pool"] == "entire_training_matrix"
 
 
 # ── param validation ───────────────────────────────────────────

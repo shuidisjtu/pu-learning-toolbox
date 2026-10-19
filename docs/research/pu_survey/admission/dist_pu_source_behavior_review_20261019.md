@@ -31,7 +31,9 @@ label-distribution loss，`frac_prior=1/(2*prior)`。因此，方法卡 §3 的�
 也不应以尚未使用的 `batch_size` 暗示已支持批训练。作者训练流程的忠实适配需要独立 opt-in 路径和明确
 的模型/数据/优化器接口；其中 test-loader 选模必须替换为项目批准的验证选择协议，不能复制作者 test 泄漏。
 
-本轮仅澄清来源及实现差异，不改变 estimator、默认参数、校准逻辑、历史 pilot、冻结矩阵或资源预算。
+另给既有 estimator 增加 run-level `training_provenance_`：明确记录实际视图/校准、单阶段全量实现、
+`batch_size` 未生效、每 epoch optimizer step 数、实际训练 epoch 数及非作者 recipe 身份。该元数据不改变损失、
+默认参数、优化轨迹、校准角色、历史 pilot、冻结矩阵或资源预算；本轮对应执行回归通过。
 后续若实现完整两阶段适配，必须作为新显式 recipe/路径，单独测算阶段和 checkpoint 成本，并保持旧 clean-room
 路径可重现；正式数据、backbone、PA/OA 选择和预算仍须走协议审批。
 

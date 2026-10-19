@@ -244,5 +244,7 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 因此，本卡和台账中的 `official_exact` 仅表示已锁定作者来源身份，不表示 toolbox estimator 忠实重放作者
 训练程序。当前 estimator 继续限定为 clean-room 小型 MLP 目标探索；`batch_size` 是未生效的兼容参数，不应
-解读为批训练能力。完整两阶段适配若推进，必须另立显式 recipe/路径，沿用本项目获批的 PA/OA 选择，不复刻
+解读为批训练能力。拟合后的 `training_provenance_` 会逐 run 显式记录实际 OS/TS 视图、校准状态、全量单阶段
+路径、无效 `batch_size`、优化步数与 epoch 数，避免 manifest 把参数配置误读为实际批训练。完整两阶段适配若推进，
+必须另立显式 recipe/路径，沿用本项目获批的 PA/OA 选择，不复刻
 作者 test-based 选模；此项仍无正式图像协议、预算或资源验收。
