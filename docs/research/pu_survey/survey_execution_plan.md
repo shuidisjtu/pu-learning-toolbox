@@ -75,6 +75,14 @@ P3Mix-E/C 已接入训练类、registry、ledger、方法卡与专项测试。�
 指定完整优化器/批次/backbone/teacher decay 配方；当前默认均标作工程选择。只声明代码级
 NATIVE 与 OS 训练，不启用 TS、不改冻结矩阵/候选准入/历史结果，RV8 负责人复核及正式预算仍待。
 
+2026-10-19 对冻结来源中的 Dist-PU 作者仓库补做训练行为交叉核对：toolbox 当前全量张量
+clean-room estimator 与作者锁定程序差异不只在 backbone/batch size，还包括两阶段 warm-up/PU、
+持久批次伪标签、histogram distribution loss、分阶段 Adam/余弦日程及熵系数调度。来源状态
+`official_exact` 仅表示作者来源已锁定，不表示实现行为忠实；已同步方法卡与台账，详细审计见
+[Dist-PU 来源行为复核](admission/dist_pu_source_behavior_review_20261019.md)。本轮不改变算法默认值、
+校准、冻结结果或准入。完整作者流程若适配，须另立显式 recipe 并采用本项目批准的 PA/OA 选模，
+不得复制作者用 test accuracy 选模的行为；正式数据/结构/预算仍待协议审批。
+
 同日验收补记：P3Mix estimator、registry、候选扩展脚本、台账一致性与准入契约专项测试通过；
 `check_p3_admission_evidence.py` 与 `check_p3_public_comparison.py` 通过。
 `check_survey_recipe_registry.py --require-present` 因冻结阶段文件不存在而报告 deferred/skipped，

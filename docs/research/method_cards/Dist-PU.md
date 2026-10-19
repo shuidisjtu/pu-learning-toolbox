@@ -230,3 +230,19 @@ H(q)=-q\log q-(1-q)\log(1-q).
 | 当前实现 | 论文核心损失的 clean-room 小型 MLP 版本 |
 | 尚未对齐 | 官方 backbone、mini-batch、图像增强、数据 split、完整超参数搜索 |
 | 主要风险 | `pi` 错误会直接改变 U 集分布约束；熵权重过大可能强化确认偏差；全量训练与官方 batch 训练结果不可直接比较 |
+
+### 8.1 锁定作者程序的训练行为差异
+
+2026-10-19 对锁定作者提交 `cb74be1a87176fd38270873c06374e53905b7354` 完成只读交叉核对，
+见[来源行为审计](../pu_survey/admission/dist_pu_source_behavior_review_20261019.md)。作者 `train.py`
+不是仅将上述几项核心损失放入一个训练循环：程序先做 60 epoch warm-up，再做 60 epoch Dist-PU；
+使用 batch_size 256 的 shuffled DataLoader；PU 阶段每个 batch 基于持久伪标签做 mixup，优化后更新当前行
+伪标签；进入 PU 阶段会重建 Adam、切换学习率/weight decay，并运行余弦调度和逐 epoch 熵系数日程。
+作者 `distributionLoss.py` 使用 batch 内直方图分布距离，目标为 P 直方图与单点正类 proxy 的距离，加上
+`1/(2*pi)` 加权的 U 直方图与边缘先验混合 proxy 的距离；不等同于本卡 §3 的单样本均值平方对齐 clean-room
+目标。作者脚本每个 epoch 在 test loader 上按 accuracy 记录 best，这种选择不能移入本项目。
+
+因此，本卡和台账中的 `official_exact` 仅表示已锁定作者来源身份，不表示 toolbox estimator 忠实重放作者
+训练程序。当前 estimator 继续限定为 clean-room 小型 MLP 目标探索；`batch_size` 是未生效的兼容参数，不应
+解读为批训练能力。完整两阶段适配若推进，必须另立显式 recipe/路径，沿用本项目获批的 PA/OA 选择，不复刻
+作者 test-based 选模；此项仍无正式图像协议、预算或资源验收。
