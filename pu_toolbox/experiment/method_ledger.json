@@ -627,7 +627,7 @@
       "uncertainty": [
         "先验必须外部提供；训练时必须保持 Algorithm 1 的分支梯度，不能对 max(0,r) 直接反传播（nnpu.md:341）",
         "官方实现为 Chainer，本项目为原生 PyTorch clean-room 实现；实验数值只能在共享协议下对照，不能宣称逐行复现",
-        "来源/行为审计显示论文成对 P/U mini-batch 与官方合并 Chainer SerialIterator 的批次构成不同，且官方上游尚未锁定 immutable revision；差异和限制见 nnpu_source_behavior_review_20261019.md",
+        "来源/行为审计显示论文成对 P/U mini-batch 与官方合并 Chainer SerialIterator 的批次构成不同。官方 a92c5365c07490c871e338c07f6e31d3eae2ca37 及六个关键文件的 Git blob SHA-256 已核验并登记来源锁；只读核查未执行 Chainer。源码 exp-cifar 复用训练 P 到整体 U、采用 /255 与 Adam WeightDecay(0.005)，不同于本项目隔离 split/train-only 统计与默认无 weight decay；见 nnpu_source_behavior_review_20261019.md",
         "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts，逐 mini-batch 执行 D_U ∪ D_P）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
         "ts 视图路径尚未经合作者复核（协议 §2.3）；按 D20 的单方技术验收放行，manifest 已不再挂 ts_view_collaborator_review 阻断正式资格——**放行不等于合作者已复核**，呈报时不得读作已签署"
       ],

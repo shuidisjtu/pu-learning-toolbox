@@ -150,6 +150,12 @@ API/预算/目录/文档/格式门禁通过；不改正式预算、准入、冻�
 身份核对，覆盖 P 少、U 少和等长三种情形。方法卡、台账及源码绑定草稿同步；RV8、正式
 配方/预算与资源验收仍待，详情见[P3MIX 原文交叉表](admission/p3mix_paper_review_20261019.md)。
 
+2026-10-20 nnPU 来源补核：在官方锁定 commit 的干净检出上核验六个关键文件与 Git blob
+字节，SHA-256 记入来源锁；同步移除台账/审计的“尚未锁定”旧描述。补明 CIFAR preset 的
+P/U 训练行复用、实际 U 先验、/255、Adam WeightDecay(0.005)、学习率和测试 error 监控与
+本项目协议的差异。仅静态阅读，没有执行作者 Chainer 程序或改写冻结实验；RV6 方法学
+复核及同协议数值复现前置保持原状态，见[nnPU 来源审计](admission/nnpu_source_behavior_review_20261019.md)。
+
 2026-10-19 KLDCE 来源/行为独立核查：确认生产 `fit` 调用原生广义 pair-SMO，SLSQP 仅保留为
 固定质心联合 QP oracle；发现并修正模块/类 docstring 的过期 solver 描述。源码在拼接 `[α;γ]`
 上全局选对，而非附录 Algorithm 1 按两组分别选对，且 ACS 块更新顺序不同；方法卡、来源审计和

@@ -340,3 +340,5 @@ L_{\mathrm{opt}}=
 | Official code | [`kiryor/nnPUlearning`](https://github.com/kiryor/nnPUlearning/tree/a92c5365c07490c871e338c07f6e31d3eae2ca37)（官方 Chainer 实现，MIT；immutable revision 见 `benchmarks/assigned_methods/configs/official_sources.lock.json`；本项目为 clean-room native PyTorch）。损失分支及 loader 差异见[nnPU 来源/行为审计](../pu_survey/admission/nnpu_source_behavior_review_20261019.md)。 |
 | 实现状态 | native 实现（backend TORCH，支持 GPU）；接口按 `BasePUClassifier` 契约 |
 | 复现风险 | 论文实验为深度模型协议（200 epochs、Adam/AdaGrad、$`\ell_2`$ 正则）；先验必须外部提供，设错直接改变风险分解；训练与评估须区分报告值（公式 (6)）与优化量（Algorithm 1 分支规则），`max` 误实现会静默偏离论文算法 |
+
+2026-10-20 补核：来源锁保存上述 commit 的 `pu_loss.py`、`train.py`、`dataset.py`、`model.py`、`README.md`、`LICENSE` 六文件 Git blob SHA-256。发布代码的 CIFAR preset 使用 P=1000、U=50000（已标记 P 同时出现在整体 U 中）、仅 /255、Adam lr=1e-5 和 WeightDecay(0.005)；可见主程序监控逐 epoch test error，但没有本项目 PA/OA 的独立验证/选中 checkpoint 链路。详细行号与 toolbox 差异见上述审计；来源字节核验不等于跨框架训练或论文数值复现。

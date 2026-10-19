@@ -39,6 +39,18 @@
       "commit": "a92c5365c07490c871e338c07f6e31d3eae2ca37",
       "commit_date": "2022-12-13",
       "status": "locked",
+      "snapshot_verified_at": "2026-10-20",
+      "working_tree_clean_when_inspected": true,
+      "executed_upstream_code": false,
+      "file_digest_policy": "sha256_git_blob_bytes",
+      "file_sha256": {
+        "pu_loss.py": "de53eb9d23a5349e6621c82f2da6c82963293f38ba029f2cf4fb11d0e6e6cf95",
+        "train.py": "0c88db130e771924457ac138cea36e15346952a94dd7ec6960d76f2ea7e94284",
+        "dataset.py": "c050c2c865a7e55ab16fbb2c3dfe2e31f66e2a92f47f99c03dafc577a1609756",
+        "model.py": "41b9bf36fd78ec3c55f779d86228360a98b8eb8cd976a2c9576854e7652e3409",
+        "README.md": "ccaf6ec2309201374e296ea803e6fc9604e4edbc267779ef84b336a42d329e78",
+        "LICENSE": "79413b697043995a43d879f79e07e8d59c1238151b7052fcda23932ac1f0e0f5"
+      },
       "note": "Latest upstream master commit observed in GitHub history; this commit changes dataset.py only. The lock identifies the official source snapshot, not line-by-line fidelity of the toolbox clean-room PyTorch implementation."
     },
     "self_pu": {
