@@ -61,6 +61,7 @@
 - [`vpu_encoder_stream_20261015.md`](delivery/vpu_encoder_stream_20261015.md)：VPU 注入 CNN 与 CPU 数据分批工程路径，非作者图像复现/正式准入。
 - [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；2026-10-19 更正：原生 TS 方法应走 TS-compatible 校准；CVIR 当前走 OS adaptation + 显式 α_U，校准待接入；α_U 来源与正式预算/选模仍待审。
 - [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；2026-10-17 #115 已将 registry/台账采样定位纠正为 OS，support 标签预算与 PA 限制仍待审。
+- [LaGAM 全文与实现交叉复核](admission/lagam_paper_review_20261020.md)：补齐原文获取；登记零梯度、β/簇数来源分歧与 support 子类配额，绑定数值行为测试；保留默认实现及未签署/未准入状态。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。

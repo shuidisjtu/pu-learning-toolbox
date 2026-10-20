@@ -895,6 +895,7 @@
       "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
       "adaptation_level": "benchmark-adapted（MLP/注入可训练 CNN，CPU-stream 图像/support/聚类/预测；默认虚拟 weight+bias，meta_update_bias=false 仅补作者 weight-only 参数范围；新 CNN 虚拟步用冻结 eval 特征，不改 BN/dropout；原 hard-observed 元标签、rho 端点及稳定 BCE 保留，非作者网络/Faiss/增强/预算重放）",
       "source_behavior_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json",
+      "source_protocol_review_ref": "docs/research/pu_survey/data/lagam_paper_review_20261020.json",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/lagam_inference_modes_20261019.md",
       "sampling_review": {"registry_view": "os", "source_split_view": "os", "review_status": "source_aligned_metadata_corrected", "registry_relabelled": true},
@@ -913,7 +914,8 @@
         "必须由调用者提供独立干净 support set；标准 PU-only PA 不符合资格，OA 若复用 clean_val 会泄漏。Survey v1/runner 不传 support_data，不能进入冻结矩阵",
         "无可直接替换的同形未标记风险角色，且校准不能绕开 support 标签预算；无 os_or_ts 接口，显式 ts fail-loud",
         "已补注入 CNN 工程路径和 weight-only 虚拟范围开关；作者 projection head/Faiss/增强/SGD/学习率/400轮等未重放；原始数据与全量聚类特征仍占 CPU 内存，support 标签预算不消失；公开数值、多 seed GPU 和合作者协议审阅未完成",
-        "Issue #115 已按发布源码将 registry/台账纠正为 OS；不推断理论上仅适用 OS，不登记 TS 校准；原来源记录的论文/补充材料 HTTP403 限制保留，源码许可未发现",
+        "Issue #115 已按发布源码将 registry/台账纠正为 OS；不推断理论上仅适用 OS，不登记 TS 校准；原 HTTP403 记录保留，10-20 已读取全文并补 source_protocol_review_ref；源码许可仍未发现",
+        "全文新增待裁决项：正文式(10)零梯度含等号，补充Algorithm1严格大于；补充Table15的beta默认0与发布代码直接加对比项无法直接对应；论文统一100簇而README CIFAR-10显式5簇。当前实现不静默改缺省，不将全文获取等同于RV8或配方批准",
         "CNN 虚拟步冻结 eval 提取特征，防止真实 encoder 的 BN 缓冲或 dropout RNG 被 support 前向改变；不是源虚拟克隆的 train-mode 行为。数组共享内存拒绝只排除明显物理重叠，不能证明跨文件同样本/角色索引独立"
       ]
     },

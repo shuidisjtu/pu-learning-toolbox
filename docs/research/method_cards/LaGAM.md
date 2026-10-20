@@ -19,6 +19,14 @@ LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在
 
 新图像路径强制 CPU 数据分批，训练/聚类/预测 batch_size、support_batch_size 各自限流；CPU 仍需全量嵌入。CNN 虚拟步冻结 eval 特征并恢复模式，避免 support 更新真实 BN/dropout；实际分类/对比端到端训练。旧二维 auto 保留 resident。`optimizer_steps_` / `virtual_steps_` / `clustering_passes_` 分列成本；max_epochs 已含 warmup，两阶段快照上下文不是选模批准，也不支持训练续跑。
 
+2026-10-20 已补[正文/补充材料交叉复核](../pu_survey/admission/lagam_paper_review_20261020.md)，
+不覆盖旧 HTTP403 历史。新登记三项待裁决差异：正文零梯度投影含等号而补充伪代码不含；
+补充 Table 15 的 β 默认 0 与发布代码直接加入对比损失无法直接对应；补充统一100簇而
+README 的 CIFAR-10 命令指定5簇。当前梯度零时 U 取0、`contrastive_weight=1`、
+`num_clusters=5` 保持不变，不声称完整 LGA（当前无 cutoff/kNN）或论文默认配方。
+正文普通 BCE 均值也不同于当前平衡稳定 BCE；support 按原始子类配额采样不能等同于
+当前 preparer 的均匀抽样。全文已获取不等于 RV8 签署或正式数值验收。
+
 ## 协议门禁：干净 support set
 
 `fit(X, y_pu, *, support_data=(X_support, y_clean))` 要求调用方显式提供**独立于 PU 训练池、选模验证集和测试集**的带真值 0/1 标签 support set，且两类均非空。没有该参数会直接报错；训练器不会从隐藏真值或 `clean_val` 自动提取。官方 `train.py` 明确从 `valid_loader` 取真值标签做元更新，因此标准 PA 口径不允许它参赛；标准 OA 若把同一 clean validation set 同时用于训练元更新和选模也会泄漏，需要另设不重叠 support/selection 分割与标签预算。这超出当前冻结的 Survey v1 矩阵，必须先获得协议扩展和合作者审阅。现有 `EpochCheckpointTrainer` 也不传 `support_data`，因此不能把这项技术预集成包装成已接通正式 runner。
@@ -36,4 +44,4 @@ LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在
 这不是正式候选池准入，未替代实际数据支持集、来源配方与标签预算审批。
 详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
 
-单元测试覆盖平衡 BCE、独立二阶元梯度、组对比损失、支持集 fail-closed、CNN 模式/缓冲、分批/成本及推理回放。2026-09-28 A6000 单次 CUDA smoke 为旧二维路径，不覆盖新 CNN，也不替代 frozen-lock 或多 seed 资源验收。台账仍为 `run_view=os-compatible`、`calibration_applied=false`：无安全的同形 U 风险替换，校准也不能消除独立 support 监督。标准 PA 不适用；仍需 support/选模互斥协议、来源许可/全文、公开数值、候选矩阵及合作者审阅。
+单元测试覆盖平衡 BCE、独立二阶元梯度、组对比损失、支持集 fail-closed、CNN 模式/缓冲、分批/成本及推理回放。2026-09-28 A6000 单次 CUDA smoke 为旧二维路径，不覆盖新 CNN，也不替代 frozen-lock 或多 seed 资源验收。台账仍为 `run_view=os-compatible`、`calibration_applied=false`：无安全的同形 U 风险替换，校准也不能消除独立 support 监督。标准 PA 不适用；全文获取已补，仍需 support/选模互斥协议、来源许可、论文/代码差异与完整配方裁决、公开数值、候选矩阵及合作者审阅。

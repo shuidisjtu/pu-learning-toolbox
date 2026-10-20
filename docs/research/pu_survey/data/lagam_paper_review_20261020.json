@@ -1,0 +1,145 @@
+{
+  "schema_version": "lagam-paper-behavior-review-1",
+  "method": "lagam",
+  "review_status": "pending_method_owner_review",
+  "owner_signatures": [],
+  "scope": "Independent paper/code/implementation crosswalk, not a numeric reproduction or protocol amendment",
+  "review_ref": "docs/research/pu_survey/admission/lagam_paper_review_20261020.md",
+  "previous_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json",
+  "sources": {
+    "paper": {
+      "url": "https://openaccess.thecvf.com/content/CVPR2024/papers/Long_Positive-Unlabeled_Learning_by_Latent_Group-Aware_Meta_Disambiguation_CVPR_2024_paper.pdf",
+      "sha256": "31c76526cfa5797d836e2b0108e385334902d8bdc77043658efaea4f887f1420",
+      "pdf_pages": 10,
+      "printed_page_offset": 23137
+    },
+    "supplement": {
+      "url": "https://openaccess.thecvf.com/content/CVPR2024/supplemental/Long_Positive-Unlabeled_Learning_by_CVPR_2024_supplemental.pdf",
+      "sha256": "989d49b00699e6d1796c5498a2ff5e9a3a3aa96bea29183c65231e3cc2ea6378",
+      "pdf_pages": 7
+    },
+    "upstream": {
+      "repository": "https://github.com/llong-cs/LaGAM",
+      "commit": "362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8",
+      "file_sha256": {
+        "train.py": "27d5df85d69d9fa2f8a2349cd87784802627a63bb4db6995fcc2174e098b47eb",
+        "utils/utils_loss.py": "b5fbae6ec7d13cf564c2f776d494b17f91752325afd47b655ae6ff10924b9af5",
+        "utils/utils_data.py": "07e84af4884938d77f38265d626ebc6aa1f5387523ecb0ddf001b0340616a23c",
+        "README.md": "f66481fc9329347fe9cf94ff5236d3301a21fb85e8935506b60416a276e535b7"
+      },
+      "executed_upstream_code": false,
+      "copied_source_code": false,
+      "license": "not_found_in_previously_inspected_pinned_checkout"
+    },
+    "retrieval": {
+      "date": "2026-10-20",
+      "method": "HTTPS PDF bytes parsed in memory; pinned raw source read only",
+      "pdf_artifacts_committed": false,
+      "historical_20261015_http403_record_preserved": true
+    }
+  },
+  "findings": [
+    {
+      "id": "classification_normalization",
+      "paper_location": "main PDF p3 / printed23140, Eq(1) and definition of L_cls",
+      "paper_value": "ordinary mean of per-example binary cross entropy",
+      "code_location": "utils/utils_loss.py:11-23",
+      "code_value": "sum of two label-mass-normalized class losses with probability clipping",
+      "toolbox_value": "balanced log-sigmoid loss; each class mass clamped to at least1; no entropy term",
+      "verdict": "explicit_adaptation_not_equivalent_to_paper_mean_or_all_source_cases"
+    },
+    {
+      "id": "lga_positive_pairs",
+      "paper_location": "main PDF p3-4 / printed23140-23141, Eq(2)-(5)",
+      "paper_value": "instance pairs plus (same cluster intersect same binary prediction) union local neighbors",
+      "code_location": "utils/utils_loss.py:87-164; train.py:399-408",
+      "code_value": "instance loss plus optional cluster/cutoff/neighbor terms; neighbor gate epoch>50",
+      "toolbox_value": "normalized hidden features; instance loss plus same-cluster term when groups supplied; no cutoff or neighbors",
+      "verdict": "partial_hierarchical_objective_not_full_lga"
+    },
+    {
+      "id": "meta_target_and_parameter_scope",
+      "paper_location": "main PDF p4-5 / printed23141-23142, Eq(6)-(11), implementation details; supplement p3 Eq(17)",
+      "paper_value": "differentiate support loss through virtual head update at current pseudo-labels, then project and EMA",
+      "code_location": "train.py:316-376,427-446",
+      "code_value": "two-column perturbation of current soft targets; virtual named weight-only update; dataset EMA persistence gated by not no_verbose",
+      "toolbox_value": "scalar perturbation of original observed hard PU labels; persistent EMA for actual training; weight+bias default, explicit meta_update_bias=false for weight-only",
+      "verdict": "same_loss_target_scope_direction_equivalence_only_not_whole_algorithm_equivalence"
+    },
+    {
+      "id": "zero_gradient_projection",
+      "paper_location": "main PDF p5 / printed23142 Eq(10); supplement p1 Algorithm1 line11",
+      "paper_value": "main Eq(10) uses delta>=0; supplement Algorithm1 uses delta>0",
+      "code_location": "train.py:366-369",
+      "code_value": "argmax of two negative perturbation gradients; tied columns choose class0; observed P overridden to1",
+      "toolbox_value": "negative scalar support gradient chooses1 strictly; zero chooses0 for U, observed P stays1",
+      "verdict": "paper_internal_boundary_conflict_retained_default_not_silently_changed"
+    },
+    {
+      "id": "contrastive_coefficient",
+      "paper_location": "main PDF p5 / printed23142 Eq(12); supplement p6 C.4 Table15",
+      "paper_value": "Eq(12) multiplies L_cont by beta; Table15 and C.4 call beta=0 default while claiming strong contrastive learning",
+      "code_location": "train.py:147-169,397-408; utils/utils_loss.py:119-164",
+      "code_value": "using_cont default1; add loss_cont at coefficient1; no beta argument in inspected train.py",
+      "toolbox_value": "contrastive_weight default1 directly multiplies combined contrastive loss; zero disables it",
+      "verdict": "unresolved_paper_code_recipe_conflict_no_inferred_beta_mapping"
+    },
+    {
+      "id": "cluster_count",
+      "paper_location": "main PDF p8 / printed23145 Table6; supplement p1 A.3",
+      "paper_value": "100 clusters for all datasets",
+      "code_location": "train.py:151; README.md:9,15,21,27,33,39",
+      "code_value": "argument default100; README CIFAR-10 commands override5, CIFAR-100 and STL-10 use100",
+      "toolbox_value": "num_clusters default5, independent of dataset",
+      "verdict": "paper_code_recipe_conflict_toolbox_default_not_universal_source_recipe"
+    },
+    {
+      "id": "support_supervision_and_sampling",
+      "paper_location": "main PDF p4-5 / printed23141-23142; supplement p1 Table7, p3-4 B.3, p6-7 C.4 Table16",
+      "paper_value": "clean PN support disjoint from training; default500; smallest-support analysis uses original subcategory knowledge",
+      "code_location": "utils/utils_data.py:60-64,96-112,157-200; train.py:350-364",
+      "code_value": "select validation per original category from raw training pool, remove before labeled P and U; clean labels enter meta-gradient",
+      "toolbox_value": "caller supplies independent both-class support; exploratory preparer samples uniformly without original-subcategory quotas; no formal approval",
+      "verdict": "extra_supervision_remains_and_uniform_support_not_source_sampling_replay"
+    }
+  ],
+  "cifar10_released_split": {
+    "basis": "README CIFAR-10-1 command plus utils/utils_data.py:157-200; assumes complete balanced original training classes",
+    "original_train_count": 50000,
+    "original_class_count": 10,
+    "positive_original_classes": [0, 1, 8, 9],
+    "support_count": 500,
+    "support_per_original_class": 50,
+    "support_positive_count": 200,
+    "support_negative_count": 300,
+    "labeled_positive_count": 1000,
+    "labeled_per_positive_original_class": 250,
+    "remaining_pu_train_count": 49500,
+    "unlabeled_count": 48500,
+    "view": "os",
+    "observed_pilot_or_author_result": false
+  },
+  "boundaries": {
+    "run_view": "os-compatible",
+    "calibration_hooked": false,
+    "calibration_applied": false,
+    "requires_clean_support": true,
+    "pa_eligible_under_frozen_protocol": false,
+    "formal_admission": false,
+    "candidate_protocol_ref": null,
+    "budget_ref": null,
+    "frozen_comparison_modified": false,
+    "historical_results_modified": false,
+    "protocol_draft_accepted": false,
+    "numerical_reproduction_claimed": false,
+    "gpu_resource_validation": "not_run"
+  },
+  "remaining_blockers": [
+    "method_owner_resolution_of_zero_boundary_beta_and_cluster_recipe",
+    "approved_independent_support_sampling_roles_and_unique_label_budget",
+    "source_license",
+    "full_source_architecture_augmentation_optimizer_recipe_or_explicit_adaptation_approval",
+    "approved_shared_architecture_and_multiseed_resource_evidence",
+    "public_numeric_comparison_with_matching_protocol"
+  ]
+}

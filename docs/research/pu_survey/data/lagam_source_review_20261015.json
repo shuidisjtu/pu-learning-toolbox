@@ -4,6 +4,7 @@
   "review_status": "pending_method_owner_review",
   "owner_signatures": [],
   "inference_followup_ref": "docs/research/pu_survey/admission/lagam_inference_modes_20261019.md",
+  "paper_followup_ref": "docs/research/pu_survey/data/lagam_paper_review_20261020.json",
   "source": {
     "repository": "https://github.com/llong-cs/LaGAM",
     "commit": "362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8",

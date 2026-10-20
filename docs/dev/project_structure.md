@@ -220,6 +220,7 @@ tests/
     conftest.py                         # contract 测试共享 fixture(ledger_methods: 加载台账并注册内置方法)
     test_ledger_source_reviews.py       # 来源/行为审计复核文档的台账登记与引用契约(15 条)
     test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
+    test_lagam_paper_review.py          # LaGAM 全文身份、来源分歧和未签署准入边界
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -322,6 +323,7 @@ tests/
       test_dist_pu_encoder.py           # Dist-PU encoder 两阶段/CPU-stream、singleton BN、旧 MLP 与快照兼容
       test_p3mix_input_isolation.py     # 三变体原地网络输入隔离与异常模式恢复
       test_cvir_input_modes.py          # CVIR原地输入隔离、推理模式及参数提前失败
+      test_lagam_paper_behavior.py      # LaGAM 独立 BCE/对比参考式、零梯度与硬标签元步
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
