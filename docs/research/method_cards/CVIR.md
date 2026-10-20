@@ -1,5 +1,9 @@
 # Method Card: CVIR
 
+2026-10-20 工程补核：修复 resident/streamed 评分覆盖逐层模式及 in-place encoder
+改写输入的问题，提前拒绝非法学习率/回调与复数输入；见[输入/推理验收](../pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+默认训练目标、原始 U 候选、α_U、TS 校准缺口与正式准入边界均不变。
+
 > 技术预集成，不是 BBE/TEDⁿ 的实现，也不是 Survey v1 正式跑批方法。
 
 ## 来源与核心口径

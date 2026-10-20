@@ -561,7 +561,8 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
                warm_start_epochs=1, max_epochs=20, batch_size=128,
                learning_rate=1e-3, random_state=None, device=None,
-               encoder=None, data_device_policy="auto")
+               encoder=None, data_device_policy="auto",
+               input_sampling="os", prior_source=None)
 ```
 
 `unlabeled_positive_prior` 必须显式给定 `(0,1)` 的 **U 内正类比例 α_U**；`fit(class_prior=...)` 始终拒绝，不自动换算总体 π。每轮先对原始 U 的分数稳定排序，保留 `max(1,floor((1-α_U)*n_U))` 个临时负例，再最小化论文 α_U 加权 BCE。默认一轮 PvU warm-start、固定20轮 CVIR；不是收敛停机、BBE 或 TEDⁿ。发布作者代码使用不同的 balanced CE/取整/loader/SGD/warm-start 时序，详见[来源复核](../../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
@@ -569,6 +570,13 @@ CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
 二维特征可直接输入；四维 NCHW 必须注入输出有限二维特征的 `torch.nn.Module` encoder，deepcopy 后联合训练并接 MLP 头。`data_device_policy="auto"` 无 encoder 时保留旧 resident，有 encoder 时使用 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident。CPU-stream 将全量数据留 CPU，只把不超过 batch_size 行送设备，排序/预测同样分批；仍需 O(n_U) CPU 排序空间，不是磁盘流式。`data_device_policy_` / `training_data_device_` 记录实际策略/驻留位置。
 
 `fit(..., sample_weight=None, epoch_callback=None)` 不接受非空 sample_weight，也没有 TS 校准接口。`optimizer_steps_` 计两阶段全部更新；`epoch_provenance_` 记录 `stage / stage_epoch / round_index / optimizer_steps`，`checkpoint_epoch_count` 为两阶段轮数之和。两阶段推理快照含 encoder/头与上下文，streamed 快照保留 batch_size；旧 resident replay 仍256。不支持训练续跑，上下文不代表 PA/OA 候选批准；fit 异常清除 fitted 标记。公共 pipeline 可用 `classifier="cvir", architecture="cnn"` 并通过 classifier_params 显式传 α_U；方法仍未获准加入冻结 Survey。
+
+`input_sampling="ts"` 只声明调用方已提供原生独立 P/边缘 U，必须同时提供非空
+`prior_source`；不执行 OS→TS 风险校准，不是 Survey 的 `os_or_ts="ts"`。
+学习率须为有限正实数（不接受 bool/字符串），回调必须可调用；特征必须为有限实数。
+encoder 的 probe/前向输入隔离，避免 in-place 网络改写训练或评分数组；公开评分保持
+各层原模式，前向或 eval 异常也恢复，空评分不触发网络。额外当前 batch 副本不是
+已测资源上界，正式内存/GPU 资源仍须独立验收。
 
 #### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
 

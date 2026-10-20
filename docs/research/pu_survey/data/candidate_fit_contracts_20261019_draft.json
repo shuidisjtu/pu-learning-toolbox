@@ -651,7 +651,7 @@
     "cvir": {
       "class": "CVIRClassifier",
       "implementation_ref": "pu_toolbox/estimators/risk/cvir.py",
-      "implementation_sha256": "aeb9723ff9a9be940372801963d27ccbdf125d323c7ddc5cb5a3c1693a2c280d",
+      "implementation_sha256": "64a8bb3d16dc0138c3a375d3af6432dd55f8bc2137f5ef5c06c7b34bb52af7b0",
       "fit_parameters": [
         {
           "name": "X",

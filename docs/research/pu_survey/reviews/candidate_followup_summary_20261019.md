@@ -73,3 +73,33 @@ PDF；P3Mix/P3Mix-E/P3Mix-C 原文核对、classifier、registry/ledger 与专�
 RV8、正式配方/预算和资源验收仍待完成；该更正不改变正式准入状态。
 最终包在本机 `/tmp/pu-candidate-release-rZtu4g/final`，构建后仅补写本验收文档。
 以上为本地验证，远程Actions结果须以推送后实际运行结论为准。
+
+## 2026-10-20 收尾与暂停
+
+用户要求立即整理当前部分并提交推送，随后等待新任务，不再自动扩展算法工作。
+本轮未改旧冻结协议、比较矩阵、645-run 结果、负责人签署或正式准入。
+
+- `8c9c208`（已推送）：Dist-PU 增加显式 staged/histogram encoder 路径，支持 CPU-stream、
+  CV 副本隔离、单行尾批及模型回放；默认 MLP 和冻结 Pilot 的 feature-adapter 不变。
+  共享 checkpoint 评分输入隔离同时补齐，历史资源测量保留原源码身份。
+- `d3f3ea7`（已推送）：再次核对 P3MIX PDF，修复 in-place 网络污染 raw/mixup/teacher/
+  评分输入，补三变体真实卷积 CV、pickle、四角色 PA/OA checkpoint 与回收回归；
+  台账和源码摘要同步。该截点完整快测 5,274 通过、59 跳过、0 失败/错误。
+- 当前 CVIR 收尾：resident/CPU-stream 评分逐层模式恢复，覆盖部分 eval/前向失败和空
+  输入；隔离 probe 与前向输入；提前校验学习率、selector α_U、回调及复数输入。
+  [来源/技术记录](../admission/cvir_source_cnn_review_20261015.md)、方法卡、API、台账与
+  当前候选源码摘要同步。36 组合法配置与修复前实现逐位一致。
+
+CVIR 首轮全仓回归暴露旧 CNN 测试依赖全局随机初始化：某些模板可使 encoder 梯度为零，
+权重变化断言受前序测试影响。现固定测试模板自身的 seed 并隔离 RNG；没有放宽权重更新
+断言，也没有为测试更改算法目标。该失败记录保留，最终回归结果另行追加。
+
+未完成事项继续保留：CVIR 的 TS-compatible 校准、各方法 RV8 复核、完整正式配方/
+标签预算与数据来源、批准结构的资源 profile、多 seed/GPU 对照和正式准入。
+本轮不启动新实验，不处理用户新增的协议草稿、PDF、Excel、压缩包或原始数据；
+以上用户制品不随代码提交。
+
+最终收尾完整快测 `not slow and not e2e`：**5,302 通过、59 条件跳过、0 失败/错误**，
+共 5,361 项（本机 JUnit：`/tmp/cvir-final-fast-fixed-20261020.xml`）。静态质量门禁、
+候选源码绑定与台账一致性通过；36 组兼容性对照为零偏差。未执行正式数据/GPU 跑批，
+不把本地通过当作远程多平台 CI 已通过。本次推送后停止持续推进，等待用户新任务。

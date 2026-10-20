@@ -920,6 +920,8 @@
     "cvir": {
       "class": "CVIRClassifier",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
+      "inference_state_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",
+      "parameter_validation_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",
       "paper": {
         "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
         "authors": "Saurabh Garg, Yifan Wu, Alexander J. Smola, Sivaraman Balakrishnan, Zachary C. Lipton",
@@ -988,7 +990,8 @@
       "evidence": {
         "native_sampling_assumption": "Garg et al., NeurIPS 2021 §3 p4 / Algorithm 2 p6; cvir_source_review_20261015.json",
         "prior_semantics": "Garg et al., NeurIPS 2021 §3 and Algorithm 2 input α; cvir.py:fit rejects class_prior",
-        "adaptation_level": "cvir_source_review_20261015.json; admission/cvir_source_cnn_review_20261015.md; cvir.py"
+        "adaptation_level": "cvir_source_review_20261015.json; admission/cvir_source_cnn_review_20261015.md; cvir.py",
+        "input_and_inference_isolation": "admission/cvir_source_cnn_review_20261015.md: 2026-10-20 private forward inputs, per-module mode restoration and pre-training validation; tests/unit/estimators/test_cvir_input_modes.py; not a TS-calibration or formal resource result"
       },
       "uncertainty": [
         "CVIR 的 α 是原始 U 池内混合比例，冻结 Survey driver 传的是总体 population π，两者在 OS 标记机制下通常不同；未建立可核的 α_U 转换，故不得纳入 Survey v1 矩阵或直接比较论文数值",

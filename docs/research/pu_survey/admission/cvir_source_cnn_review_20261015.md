@@ -14,6 +14,40 @@ $D_U \leftarrow D_U \cup D_P$）。CVIR 为原生 TS，应走校准视图；当�
 仍只声明调用方已提供原生 P/边缘 U，不用于本 Survey 的 OS 数据。冻结协议/矩阵与正式
 准入状态不变。
 
+## 2026-10-20 输入与推理状态补核
+
+本轮承接 P3.2 现有 CNN 技术路径验收，不改变上述待接入的 TS-compatible 校准。
+修复前回归确认公开评分把每个子模块的 `training` 强制改为 false；自定义 in-place
+encoder 还可通过宽度 probe 改写调用方训练数据，以及通过评分改写验证/测试数组。
+
+- resident / cpu_stream 推理均临时使用 eval，成功、前向异常或 eval 切换本身部分失败后
+  恢复每个子模块原始模式；空输入先校验 fitted/shape，再直接返回，不触发网络。
+- encoder probe 使用独立行副本；统一 logits 前向 clone 当前输入 batch，使训练/排序
+  来源、调用方评分数组不被 in-place 操作改写。新增 provenance
+  `forward_input_isolation="private_tensor_clone"`；会增加当前 batch 临时内存，旧测量
+  不构成当前峰值或正式资源上界。未改 resident 全量评分/CPU-stream 分批策略。
+- 学习率及公开负例 selector 的 α_U 须为有限实数，拒绝 bool、字符串、容器与非法区间；
+  非 callable 回调在 RNG/网络构造前拒绝。复数输入不再悄悄舍弃虚部转为 float32。
+- [回归文件](../../../../tests/unit/estimators/test_cvir_input_modes.py)覆盖逐层模式、
+  部分 eval 失败、前向改写后失败、空评分、真实 BN/Dropout 卷积的 buffer 不变性、
+  二维/四维 in-place 对照及提前失败。历史来源、默认数值配方、两阶段时序、风险权重、
+  原始 U 排序/保留身份、总体 π 拒绝与 `calibration_hooked=false` 不变。
+
+本轮不执行作者程序、真实数据训练或 GPU 跑批，不改冻结协议/结果/历史来源测量，
+不代签方法负责人、正式配方或算法准入。
+
+专项 CVIR/encoder/known-prior adapter/候选失败拟合回归 155 项通过、1 项无 CUDA 跳过，
+0 失败/错误（本机 JUnit：`/tmp/cvir-input-modes-focused-20261020.xml`）。另对本项目
+修复前提交 `d3f3ea7` 做 36 组合法 MLP 配置短预算对照：3 seed × warm0/1/2 ×
+OS/native-TS 输入声明 × resident/CPU-stream。损失、权重、保留行身份、全部阶段更新
+次数与分数逐位一致，最大分数差为 0；原生 TS 仅是兼容性测试参数，不证明合成数据
+满足 case-control 分布，也不是 OS→TS 校准或作者程序重放。最终全仓结果另行追加。
+
+收尾复测：旧 CNN 更新断言的模板现以独立 seed 初始化，避免全局随机模板造成零梯度，
+未放宽断言。最终完整快速回归共 5,361 项：5,302 通过、59 条件跳过、0 失败/错误
+（`/tmp/cvir-final-fast-fixed-20261020.xml`）。不含 slow/e2e，跳过不算 GPU/正式协议
+验收。静态质量、源码/台账及配方草稿门禁在本机通过；远程多平台 CI 以推送后为准。
+
 ## 来源锁定与判读
 
 [论文](https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf)

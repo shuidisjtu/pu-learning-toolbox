@@ -321,6 +321,7 @@ tests/
       test_self_pu_parameters.py        # Self-PU 有限实数/整数预算边界、RNG 早失败隔离与 NumPy 标量兼容
       test_dist_pu_encoder.py           # Dist-PU encoder 两阶段/CPU-stream、singleton BN、旧 MLP 与快照兼容
       test_p3mix_input_isolation.py     # 三变体原地网络输入隔离与异常模式恢复
+      test_cvir_input_modes.py          # CVIR原地输入隔离、推理模式及参数提前失败
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

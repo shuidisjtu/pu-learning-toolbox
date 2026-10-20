@@ -183,6 +183,11 @@ TS golden 与 support/checkpoint 回归。台账、方法卡和[工程记录](ad
 之前拒绝；保留现有数值范围和合法端点，新增 RNG/分配隔离、NaN 重训失效与 NumPy 标量
 成功路径回归。台账和 API 同步上述工程记录，既有成功训练协议与正式审批范围不扩展。
 
+2026-10-20 P3.2 CVIR 技术验收补核：[输入/推理状态记录](admission/cvir_source_cnn_review_20261015.md)
+补 resident/CPU-stream 逐层模式恢复、空评分与异常路径、in-place 输入隔离，以及
+学习率/selector/callback/复数输入边界；实际 BN/Dropout 卷积与二维/四维对照回归。
+不改 α_U、默认目标/配方、排序保留身份或 TS 拒绝；校准接入、正式资源与负责人复核仍待。
+
 2026-10-20 P3.2 Dist-PU encoder 接入：依据双架构计划阶段 2 的后续项，提供显式
 `author_staged + author_histogram` 的 encoder/四维图像路径，两个阶段均更新独立副本，
 输入/标签/伪标签常驻 CPU，训练/扫描/推理分批并保留 singleton 尾批。新增 CV/Pipeline、

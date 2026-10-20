@@ -41,7 +41,12 @@ def select_cvir_negatives(scores: np.ndarray, unlabeled_positive_prior: float) -
     scores = np.asarray(scores)
     if scores.ndim != 1 or not len(scores) or not np.isfinite(scores).all():
         raise ValueError("scores must be a non-empty finite one-dimensional array")
-    if not np.isfinite(unlabeled_positive_prior) or not 0 < unlabeled_positive_prior < 1:
+    if (
+        isinstance(unlabeled_positive_prior, bool | np.bool_)
+        or not isinstance(unlabeled_positive_prior, Real)
+        or not np.isfinite(unlabeled_positive_prior)
+        or not 0 < unlabeled_positive_prior < 1
+    ):
         raise ValueError("unlabeled_positive_prior must be in (0, 1)")
     count = max(1, int(np.floor((1 - unlabeled_positive_prior) * len(scores))))
     return np.argsort(scores, kind="stable")[:count]
@@ -150,6 +155,8 @@ class CVIRClassifier(BasePUClassifier):
 
         if sample_weight is not None:
             raise NotImplementedError("CVIR does not implement sample_weight")
+        if epoch_callback is not None and not callable(epoch_callback):
+            raise TypeError("epoch_callback must be callable or None")
         if class_prior is not None:
             raise ValueError(
                 "CVIR needs unlabeled_positive_prior=alpha_U; class_prior is the "
@@ -176,7 +183,12 @@ class CVIRClassifier(BasePUClassifier):
             lower = 0 if name == "warm_start_epochs" else 1
             if type(value) is not int or value < lower:
                 raise ValueError(f"{name} must be an integer >= {lower}")
-        if not np.isfinite(self.learning_rate) or self.learning_rate <= 0:
+        if (
+            isinstance(self.learning_rate, bool | np.bool_)
+            or not isinstance(self.learning_rate, Real)
+            or not np.isfinite(self.learning_rate)
+            or self.learning_rate <= 0
+        ):
             raise ValueError("learning_rate must be finite and positive")
         if not isinstance(self.data_device_policy, str) or self.data_device_policy not in {
             "auto",
@@ -216,7 +228,7 @@ class CVIRClassifier(BasePUClassifier):
             self.encoder_ = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
             self.encoder_.requires_grad_(True).eval()
             with torch.no_grad():
-                features = self.encoder_(torch.as_tensor(X[:1], device=device))
+                features = self.encoder_(torch.as_tensor(X[:1].copy(), device=device))
                 width = validate_encoder_features(features, encoder_param_name="encoder")
                 if features.shape[0] != 1:
                     raise ValueError("encoder must preserve the batch dimension")
@@ -255,6 +267,7 @@ class CVIRClassifier(BasePUClassifier):
             "n_unlabeled_candidates": len(u_idx),
             "positive_rows_added_to_candidates": 0,
             "unlabeled_roles": ["warm_start", "ranking", "negative_retention", "weighted_loss"],
+            "forward_input_isolation": "private_tensor_clone",
             "formal_admission": False,
         }
         self.history_ = {"warm_start_loss": [], "cvir_loss": [], "selected_negative_count": []}
@@ -337,27 +350,33 @@ class CVIRClassifier(BasePUClassifier):
     def _decision_function(self, X: np.ndarray) -> np.ndarray:
         import torch
 
+        self._check_is_fitted()
         X = _finite_features(X, allow_nd=self.encoder is not None)
         if tuple(X.shape[1:]) != self.input_shape_:
             raise ValueError("CVIR prediction X must have fitted feature/image shape")
-        self.model_.eval()
-        with torch.no_grad():
-            device = next(self.model_.parameters()).device
-            if not len(X):
-                return np.empty(0, dtype=np.float32)
-            if self.data_device_policy_ == "cpu_stream":
-                return np.concatenate(
-                    [
-                        _logits(
-                            self.model_,
-                            torch.as_tensor(X[start : start + self.batch_size], device=device),
-                        )
-                        .cpu()
-                        .numpy()
-                        for start in range(0, len(X), self.batch_size)
-                    ]
-                )
-            return _logits(self.model_, torch.as_tensor(X, device=device)).cpu().numpy()
+        if not len(X):
+            return np.empty(0, dtype=np.float32)
+        modes = [(module, module.training) for module in self.model_.modules()]
+        try:
+            self.model_.eval()
+            with torch.no_grad():
+                device = next(self.model_.parameters()).device
+                if self.data_device_policy_ == "cpu_stream":
+                    return np.concatenate(
+                        [
+                            _logits(
+                                self.model_,
+                                torch.as_tensor(X[start : start + self.batch_size], device=device),
+                            )
+                            .cpu()
+                            .numpy()
+                            for start in range(0, len(X), self.batch_size)
+                        ]
+                    )
+                return _logits(self.model_, torch.as_tensor(X, device=device)).cpu().numpy()
+        finally:
+            for module, training in modes:
+                module.training = training
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         return (self._decision_function(X) >= 0).astype(int)
@@ -380,7 +399,9 @@ def _logits(model, batch):
     """Check per-row output without changing the differentiable scalar head."""
     import torch
 
-    output = model(batch)
+    # Keep training/ranking sources and caller-owned scoring arrays intact even
+    # when an injected encoder applies an in-place operation to its input.
+    output = model(batch.clone())
     if output.shape != (len(batch), 1):
         raise ValueError("CVIR network must preserve the batch dimension and output one logit")
     if not torch.isfinite(output).all():
@@ -392,8 +413,8 @@ def _finite_features(X, *, allow_nd):
     X = np.asarray(X)
     if X.ndim not in ({2, 4} if allow_nd else {2}) or any(size == 0 for size in X.shape[1:]):
         raise ValueError("CVIR requires 2-D features or 4-D images with an encoder")
-    if not np.issubdtype(X.dtype, np.number) or not np.isfinite(X).all():
-        raise ValueError("CVIR X must be finite numeric")
+    if X.dtype.kind not in "iuf" or not np.isfinite(X).all():
+        raise ValueError("CVIR X must be finite real numeric")
     X = np.asarray(X, dtype=np.float32)
     if not np.isfinite(X).all():
         raise ValueError("CVIR X must remain finite after float32 conversion")

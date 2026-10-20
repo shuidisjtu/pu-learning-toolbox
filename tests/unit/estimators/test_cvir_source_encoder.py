@@ -91,7 +91,12 @@ def test_edge_finite_count_differs_from_author_discard_floor_without_default_cha
 
 
 def test_basic_cnn_is_copied_jointly_trained_and_all_device_forwards_are_bounded():
-    encoder = ImageEncoder()
+    # Fix the fixture's own initialization, independently of earlier tests.
+    # Some random templates drive every head ReLU inactive, giving a valid
+    # zero encoder gradient and making a weight-update assertion vacuous.
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(0)
+        encoder = ImageEncoder()
     before = copy.deepcopy(encoder.state_dict())
     X, y = data()
     expected = None
