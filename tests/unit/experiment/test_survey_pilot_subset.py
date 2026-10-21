@@ -319,7 +319,7 @@ def test_basic_the_scope_reaches_execution_without_rewriting_the_protocol(
         "cnn_feature_adapter"
     }
     for call in unit_calls:
-        assert call[call.index("--protocol") + 1] == "survey-v1"
+        assert call[call.index("--protocol") + 1] == "survey-v2.0"
 
 
 def test_param_a_name_that_covers_nothing_is_refused_before_any_batch(

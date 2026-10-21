@@ -115,7 +115,7 @@ def test_basic_real_runner_manifest_passes_recipe_consumers(survey_script, summa
             [
                 str(source),
                 "--protocol",
-                "survey-v1.2",
+                "survey-v2.0",
                 "--dataset",
                 "spambase",
                 "--method",

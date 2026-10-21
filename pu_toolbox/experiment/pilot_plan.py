@@ -704,7 +704,7 @@ def batch_command(
     *,
     splits_root: str | Path,
     out_root: str | Path,
-    protocol: str = "survey-v1",
+    protocol: str = "survey-v2.0",
     class_prior: float | None = None,
     device: str | None = None,
     adapter_cache: str | None = None,

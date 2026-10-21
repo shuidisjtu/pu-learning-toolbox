@@ -143,8 +143,10 @@ def test_edge_a_subset_is_validated_against_the_protocol_the_request_names(
 
 
 def test_param_a_protocol_name_resolves_to_the_matrix_it_denotes(tmp_path):
+    v1 = PROTOCOL_PATH.with_name("survey_protocol_v1.json")
     for alias in ("survey-v1", "survey-v1.1", "survey-v1.2"):
-        assert resolve_protocol_path(alias) == PROTOCOL_PATH
+        assert resolve_protocol_path(alias) == v1
+    assert resolve_protocol_path("survey-v2.0") == PROTOCOL_PATH
     custom = tmp_path / "custom.json"
     assert resolve_protocol_path(str(custom)) == custom.resolve()
 

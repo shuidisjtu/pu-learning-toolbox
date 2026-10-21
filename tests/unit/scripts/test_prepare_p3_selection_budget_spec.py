@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from pu_toolbox.experiment.method_ledger import load_ledger
-from pu_toolbox.experiment.survey_protocol import load_protocol
+from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
 
 ROOT = Path(__file__).resolve().parents[3]
 SPEC = importlib.util.spec_from_file_location(
@@ -19,12 +19,17 @@ SPEC.loader.exec_module(prepare)
 pytestmark = pytest.mark.unit
 
 
+def dated_protocol():
+    """The frozen protocol this 2026-10-07 draft was prepared against."""
+    return load_protocol(resolve_protocol_path(prepare.DATED_PROTOCOL))
+
+
 def _recorded():
     return json.loads((ROOT / prepare.DRAFT_REF).read_text(encoding="utf-8"))
 
 
 def test_basic_determ_spec_matches_current_ast_and_preserves_input(capsys):
-    ledger, protocol = load_ledger(), load_protocol()
+    ledger, protocol = load_ledger(), dated_protocol()
     before = copy.deepcopy((ledger, protocol))
     generated = prepare.build_spec(ledger, protocol)
     assert generated == _recorded()
@@ -151,7 +156,7 @@ def test_param_modified_specs_are_rejected_without_false_approval(tmp_path, faul
 
 @pytest.mark.parametrize("fault", ["spec_ref", "old_admission", "calibration", "class", "fit_ref"])
 def test_param_bad_upstream_facts_cannot_generate_a_consistent_draft(fault):
-    ledger, protocol = load_ledger(), load_protocol()
+    ledger, protocol = load_ledger(), dated_protocol()
     if fault == "spec_ref":
         ledger["methods"]["pulda"]["selection_budget_spec_ref"] = "wrong.json"
     elif fault == "old_admission":
@@ -194,6 +199,6 @@ def test_edge_shared_helper_changes_invalidate_recorded_spec_without_training(mo
         return "0" * 64 if path == ROOT / prepare.FIT_GUARD_REF else original(path)
 
     monkeypatch.setattr(prepare, "source_digest", modified_helper)
-    generated = prepare.build_spec(load_ledger(), load_protocol())
+    generated = prepare.build_spec(load_ledger(), dated_protocol())
     assert generated["fit_failure_contract"]["helper_sha256"] == "0" * 64
     assert generated != _recorded()

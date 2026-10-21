@@ -33,6 +33,9 @@ from scripts.check_p3_public_comparison import (
 from scripts.check_p3_public_comparison import DRAFT_REF as COMPARISON_REF
 
 DRAFT_REF = "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json"
+#: This draft and the evidence it validates were prepared against the frozen
+#: pilot protocol; keep binding survey-v1.2 after the canonical move to v2.0.
+DATED_PROTOCOL = "survey-v1.2"
 FIT_GUARD_REF = "pu_toolbox/core/fit_state.py"
 FIT_REVIEW_REF = "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md"
 STAGES = {
@@ -254,13 +257,13 @@ def build_spec(ledger, protocol, *, root=ROOT):
 def main(argv=None):
     """Print the draft or a readonly consistency receipt; no file writes."""
     from pu_toolbox.experiment.method_ledger import load_ledger
-    from pu_toolbox.experiment.survey_protocol import load_protocol
+    from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", type=Path, metavar="DRAFT_JSON")
     args = parser.parse_args(argv)
     try:
-        generated = build_spec(load_ledger(), load_protocol())
+        generated = build_spec(load_ledger(), load_protocol(resolve_protocol_path(DATED_PROTOCOL)))
         if args.check is not None:
             recorded = json.loads(args.check.read_text(encoding="utf-8"))
             require(

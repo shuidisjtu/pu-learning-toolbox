@@ -18,6 +18,8 @@ from typing import Any
 
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 from pu_toolbox.experiment.survey_recipe_registry import (
+    BASE_REF_PREFIX,
+    BUDGET_BINDING_PREFIX,
     SCHEMA_VERSION,
     SELECTION_SPEC_REF,
     canonical_digest,
@@ -92,7 +94,7 @@ def inner_search(method: str = "pusb_kernel") -> dict[str, Any]:
     """
     return {
         "inner_search_id": f"{method}_sigma_reg_cv",
-        "grid_ref": f"survey_protocol_v1.method_profiles.{method}.params",
+        "grid_ref": f"{BASE_REF_PREFIX}{method}.params",
     }
 
 
@@ -125,13 +127,13 @@ def profile(
             "datasets": sorted({row["dataset"] for row in unit_rows(protocol, method)}),
             "training_paths": training_paths(protocol, method),
         },
-        "base_ref": f"survey_protocol_v1.method_profiles.{method}",
+        "base_ref": f"{BASE_REF_PREFIX}{method}",
         "selection_spec_ref": SELECTION_SPEC_REF,
         "source_refs": [DEFAULT_REF],
         "fixed_overrides": {},
         "candidate_pool": [candidate(f"{method}_default_v1")],
         "inner_search": None,
-        "budget_binding_ref": f"survey_protocol_v1.budgets.{budget_family(protocol, method)}",
+        "budget_binding_ref": f"{BUDGET_BINDING_PREFIX}{budget_family(protocol, method)}",
         "review": {"reviewers": [], "open_questions": []},
     }
     value.update(overrides)

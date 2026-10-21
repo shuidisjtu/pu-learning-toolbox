@@ -15,7 +15,7 @@ from pu_toolbox.experiment.survey_recipe_registry import build_draft_registry
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--protocol", default="survey-v1.2")
+    parser.add_argument("--protocol", default="survey-v2.0")
     args = parser.parse_args()
     try:
         registry = build_draft_registry(load_protocol(resolve_protocol_path(args.protocol)))

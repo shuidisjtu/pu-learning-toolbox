@@ -64,7 +64,7 @@ def test_param_coverage_gate_follows_the_matrix_contents_not_its_path(
     copy_path = tmp_path / "matrix.json"
     copy_path.write_text(PROTOCOL_PATH.read_text(encoding="utf-8"))
     args = _args(tmp_path / "missing", tmp_path / "out")
-    args[args.index("survey-v1.2")] = str(copy_path)
+    args[args.index("survey-v2.0")] = str(copy_path)
 
     assert survey_script.main(args) == 1
     assert "ghost_unit_mapping" in capsys.readouterr().err
@@ -74,7 +74,7 @@ def _args(data, out):
     return [
         str(data),
         "--protocol",
-        "survey-v1.2",
+        "survey-v2.0",
         "--dataset",
         "spambase",
         "--method",
@@ -93,7 +93,7 @@ def test_basic_versioned_cli_records_protocol_and_actual_budget(survey_script, t
     _splits(data)
     assert survey_script.main(_args(data, out)) == 0
     payload = json.loads(run_manifest(out, "c_0.5", "seed_0").read_text(encoding="utf-8"))
-    assert payload["protocol_version"] == "survey-v1.2"
+    assert payload["protocol_version"] == "survey-v2.0"
     assert payload["budget"]["unit"] == "one_closed_form_fit"
     assert payload["formal_eligible"] is False
     assert payload["training_path"] == "native_2d"
@@ -122,7 +122,7 @@ def test_edge_oracle_native_cnn_cannot_silently_run_mlp(survey_script, tmp_path,
     args = [
         str(tmp_path / "missing"),
         "--protocol",
-        "survey-v1",
+        "survey-v2.0",
         "--dataset",
         "cifar10",
         "--oracle",

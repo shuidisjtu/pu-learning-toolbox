@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import pytest
 
 from pu_toolbox.experiment.method_ledger import load_ledger
-from pu_toolbox.experiment.survey_protocol import load_protocol
+from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
 
 ROOT = Path(__file__).resolve().parents[3]
 SPEC = importlib.util.spec_from_file_location(
@@ -21,12 +21,17 @@ SPEC.loader.exec_module(check)
 pytestmark = pytest.mark.unit
 
 
+def dated_protocol():
+    """The frozen protocol this 2026-10-05 evidence was prepared against."""
+    return load_protocol(resolve_protocol_path(check.DATED_PROTOCOL))
+
+
 def facts():
     return json.loads((ROOT / check.EVIDENCE_REF).read_text(encoding="utf-8"))
 
 
 def test_basic_determ_live_evidence_matches_code_ledger_and_repeated_cli(capsys):
-    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    evidence, ledger, protocol = facts(), load_ledger(), dated_protocol()
     before = copy.deepcopy((evidence, ledger, protocol))
     receipt = check.validate_evidence(evidence, ledger, protocol)
     assert receipt["ok"] and receipt["formal_admission"] is False
@@ -57,7 +62,7 @@ def test_basic_determ_live_evidence_matches_code_ledger_and_repeated_cli(capsys)
     ],
 )
 def test_param_mutated_defaults_roles_source_and_admission_fail_closed(fault):
-    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    evidence, ledger, protocol = facts(), load_ledger(), dated_protocol()
     pulda = evidence["methods"]["pulda"]
     if fault == "default":
         pulda["constructor_defaults"]["pu_epochs"] += 1
@@ -146,7 +151,7 @@ def test_edge_missing_evidence_returns_json_error_not_traceback(tmp_path, capsys
     ],
 )
 def test_param_puet_mass_and_regression_reference_cannot_drift(fault):
-    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    evidence, ledger, protocol = facts(), load_ledger(), dated_protocol()
     row = evidence["methods"]["puet"]
     fact = row["calibration"]["bootstrap_risk_contract"]
     if fault in ("evidence_mass", "both_mass"):
@@ -182,7 +187,7 @@ def test_param_puet_mass_and_regression_reference_cannot_drift(fault):
     ],
 )
 def test_param_robust_requested_source_behavior_and_prior_evidence_cannot_disappear(fault):
-    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    evidence, ledger, protocol = facts(), load_ledger(), dated_protocol()
     row, entry = evidence["methods"]["robust_pu"], ledger["methods"]["robust_pu"]
     if fault.startswith("drop_") and fault != "drop_gradient_test":
         name = {"drop_utils": "utils.py", "drop_models": "models.py", "drop_readme": "README.md"}[
@@ -225,7 +230,7 @@ def test_param_robust_requested_source_behavior_and_prior_evidence_cannot_disapp
     ],
 )
 def test_param_robust_review_cannot_grant_permission_or_self_sign(tmp_path, monkeypatch, fault):
-    evidence, ledger, protocol = facts(), load_ledger(), load_protocol()
+    evidence, ledger, protocol = facts(), load_ledger(), dated_protocol()
     review = json.loads((ROOT / check.ROBUST_REVIEW_REF).read_text(encoding="utf-8"))
     if fault == "license":
         review["source"]["license_observation"]["status"] = "MIT"

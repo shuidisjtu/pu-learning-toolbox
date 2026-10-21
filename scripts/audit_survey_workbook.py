@@ -456,7 +456,11 @@ def main():
     parser.add_argument(
         "--index", type=Path, default=Path("docs/research/pu_survey/data/p2_2_artifacts_index.json")
     )
-    parser.add_argument("--protocol", default="survey-v1.2")
+    parser.add_argument(
+        "--protocol",
+        default="survey-v1.2",
+        help="frozen pilot protocol by default; pass survey-v2.0 for v2 workbooks",
+    )
     parser.add_argument(
         "--workbook-index",
         type=Path,

@@ -1,7 +1,7 @@
 # tests/unit/experiment/test_survey_image_spec.py
 """The image backbone spec is chosen per dataset, and v1 (one flat spec) is read unchanged.
 
-``survey_protocol_v1.json`` carries a single flat ``backbone_specs.image`` written for
+``survey_protocol_v2.json`` carries a single flat ``backbone_specs.image`` written for
 CIFAR-10.  A later protocol may add ``per_dataset``: overrides merged over the shared
 fields.  The runner then decides "is this an image dataset" from the catalog's modality
 instead of comparing the dataset name with ``"cifar10"``.

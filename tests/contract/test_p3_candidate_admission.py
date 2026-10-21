@@ -5,11 +5,20 @@ from pathlib import Path
 
 import pytest
 
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol
+from pu_toolbox.experiment.survey_protocol import (
+    digest,
+    load_protocol,
+    resolve_protocol_path,
+)
 
 pytestmark = pytest.mark.contract
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _dated_protocol():
+    """The frozen protocol the 2026-10-05 candidate-admission draft cites."""
+    return load_protocol(resolve_protocol_path("survey-v1.2"))
 
 
 def test_basic_p3_admission_draft_matches_ledger_and_remains_unadmitted():
@@ -21,7 +30,7 @@ def test_basic_p3_admission_draft_matches_ledger_and_remains_unadmitted():
     ledger = json.loads(
         (ROOT / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
     )
-    protocol = load_protocol()
+    protocol = _dated_protocol()
     candidates = proposal["candidates"]
     methods = [row["method"] for row in candidates]
     assert len(methods) == len(set(methods)) == 8
