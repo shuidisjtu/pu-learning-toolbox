@@ -118,6 +118,27 @@ def test_edge_strict_threshold_ties_and_minimum_retention_match_author_code():
     assert not rank_pruning_pu_mask(y, probabilities, 0.5)[0].any()
 
 
+def test_edge_degenerate_prior_is_clamped_and_flagged():
+    # 8 observed positives in 10 rows give ps1=0.8; rho1=0.5 pushes the estimated
+    # prior to 1.6, so pi0 must clamp and removals stay bounded by min_retained.
+    y = np.array([1] * 8 + [0] * 2)
+    probabilities = np.array([0.9] * 7 + [0.85, 0.6, 0.2])
+    mask, prior, pi0 = rank_pruning_pu_mask(y, probabilities, 0.5, min_retained=2)
+    assert prior == pytest.approx(1.6)
+    assert pi0 == pytest.approx(0.9999)
+    assert not mask.any()
+    mask, _, _ = rank_pruning_pu_mask(y, probabilities, 0.5, min_retained=1)
+    np.testing.assert_array_equal(mask, [False] * 8 + [True, False])
+
+    features, labels = data()
+    model = RankPruningClassifier(random_state=3, frac_pos2neg=0.9, min_retained=5)
+    model.fit(features, labels)
+    assert model.estimated_prior_ == pytest.approx((12 / 36) / 0.1)
+    assert model.pi0_ == pytest.approx(0.9999)
+    assert model.prior_diagnostic_ == "incompatible_noise_model_estimate_not_a_valid_prior"
+    assert model.retained_indices_.size >= 5
+
+
 def test_fit_crossfit_isolation_reweighting_pickle_and_registry():
     X, y = data()
     fitted = clone(RankPruningClassifier(random_state=3, min_retained=2))
