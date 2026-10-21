@@ -218,7 +218,7 @@ P3MIX 完整原始来源、实际 support 来源/标签预算与正式资源批�
 并注册实验级 `tedn` CLI/UI 元数据；构造器要求显式声明 `input_sampling="ts"`，UI
 提示 case-control 采样前提。注册并不验证调用方的数据设计，也不提供 TS-compatible 校准；TEDⁿ
 仍不进入冻结矩阵或正式准入，recipe、资源与负责人审核待完成。详见
-[TEDn 方法卡](../../method_cards/TEDn.md)及执行计划 §1.3。
+[TEDn 方法卡](../../method_cards/TEDn.md)及执行计划 §1.4。
 
 ## 2026-10-18 最新复核同步与 Robust-PU 来源补交
 

@@ -1,85 +1,82 @@
 # PU 调研实验执行计划（pilot → 主榜）
 
-> 本文件只维护 Survey 的任务分工、验收边界、风险与留痕约定，以及仍影响执行的决策摘要。
+> 本文件维护 Survey 的实验能力、缺口、预算/资源口径与执行边界，以及仍影响执行的决策摘要。
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
-> 状态核对日期：**2026-10-21**；RV1/RV2 验收基线为 PR #110 的 `8b4e751`。
-> 复核责任明确归属 **shuidisjtu** 或 **HENG958**；
-> RV1/RV2 与 P1.4-R 已由用户接受技术复核证据并确认完成，见对应验收记录。
-> P2.2 的 C1–C6 经用户 2026-10-16 决定调整范围：仅执行 C2/C3，其余按通过处理（未逐项核查），见 P2.2 与 RV3/RV4/RV7。
+> 状态核对日期：**2026-10-21**
 
-## 1. 任务分工与验收
+## 1. 实验能力与缺口
 
-**HENG958** 负责新增算法、CNN 适配与训练、资源测量；**shuidisjtu** 负责数据、实验协议、
-注册表与结果审计，并复核 HENG958 的新增实现。HENG958 复核 shuidisjtu 交付的既有 Pilot 材料。
-每项任务只有一名主责；工程 smoke、单方放行或代码存在不等于正式准入。
+> 本节按“PU Survey 实验设施是否满足实验要求”组织；任务编号只作关联。判定标准：命令可执行
+> 并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。状态日期：2026-10-21。
 
-### 1.1 已完成的工程交付
+### 1.1 能力矩阵
 
-2026-10-17 算法独立扩展：[BBE](../method_cards/BBE.md) 已补论文统计量与
-二维 PvU 内部留出估计入口；目标显式为 α_U，不接 OS 总体先验或现有 CVIR，
-不改冻结矩阵。另补独立 [TEDⁿ](../method_cards/TEDn.md) 完整交替训练工程路径；
-截至 2026-10-19，TEDn 已实验级注册至 API/registry/CLI/UI，要求调用方显式声明原生
-`input_sampling="ts"`，但不执行 TS-compatible 校准（要求调用方声明原生 TS 数据），也不自动验证采样设计。真实数据数值验收、
-正式预算和准入仍未完成。
+| 能力 | 现在能用？ | 缺什么 | 补完后怎么算可用 |
+|---|---|---|---|
+| 8 数据集四路 split | **是** | — | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
+| clean support（5 数据集） | **否** | 5 份 support 产物与五角色校验 | `prepare_clean_support.py --write` 产出，manifest 角色完整 |
+| 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
+| 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
+| 图像/共享 backbone | **部分** | runner 接线、PULDA 120 / GradPU 200 峰值估算 | 端到端 smoke + 单 run 峰值记录 |
+| PA/OA 选模 | **是**（8 方法） | `PA+clean-support` 路径 | 选模产物与 manifest 对账 |
+| 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
+| 22 方法主榜 | **否** | 上述缺口 + 预算冻结 | P4.2 门禁 |
 
-| 编号 | 任务 | 证据 |
-|---|---|---|
-| P1.1 | 环境与 GPU 工程验证 | 已有目标设备 smoke；正式运行仍须 frozen-lock 环境 |
-| P1.2 | Pilot 三数据集获取与版本审计 | 来源、版本、标签映射与许可已登记；剩余数据见 P1.2-R |
-| P1.2-R | 剩余五数据集获取与许可登记 | **2026-10-14 完成（shuidisjtu 确认）**。MNIST、F-MNIST、20News、Connect-4 由 HENG958 搜集、shuidisjtu 核对，原始包校验通过且执行端可取用，见[收据](data/p1_2_r_raw_receipt_20261014.json)。ADNI 槽位使用非 ADNI 官方数据的 Kaggle 替代集，shuidisjtu 接受当前交付，见[替代数据记录](data/adni_substitute_receipt_20261012.json)；不据此代填 HENG958 的明确复核。许可核查结果保留，当前继续研究实验；未声明/Unknown 不代表无使用限制，公开发表或再分发前重新确认使用条件，不阻塞当前实验。 |
-| P1.3a | 方法台账 | 冻结 Pilot 为 7 个 PU 方法 + PN oracle；新增方法状态见 P3.1/RV8 |
-| P1.3b | Survey 脚本 | 四路输入、PA/OA、归档与 oracle 入口已有脚本级证据 |
-| P1.4 | Pilot 数据产物 | 15 split / 75 文件 / 3 归档技术核验通过；[证据](delivery/p1_4_review.md)，HENG958 复核见 RV1 |
-| P1.4-R | 8 数据集预处理与正式 split | **2026-10-16 完成（用户确认）**。实验所需 8 个数据集均已完成预处理与划分，由 shuidisjtu 与 HENG958 分别负责部分数据集的收集并互相验收对方产物；`data/` 下产物满足实验协议，不再另要求 HENG958 签署。五数据集原交付 10-15 接收验收通过（25 split/125 文件/5 归档，与原仓库索引一致；源标签/行/特征、四角色隔离及 train-only 预处理已核），见[接收验收](reviews/p1_4r_receiving_acceptance_20261015.md)。已知限制：ADNI 槽位为替代集，subject 级隔离不可判、许可限制保留；前三集 manifest 仅换行不同；20News 原缓存身份已验证，与重建数值差异仅记录不判等价；不混用原接收与重建身份，不覆盖旧 Pilot 或冻结协议；新主榜协议/配方/资源仍另行批准 |
-| P2.0a | Pilot 共享规格与 oracle 对齐 | shuidisjtu 已签署；[交付](delivery/p2_0a_delivery.md)、[复核](delivery/p2_0a_review.md) |
-| P2.0b | 标签语义门禁 | 单方技术放行；[交付](delivery/p2_0b_delivery.md)，HENG958 复核见 RV2 |
-| P2.0c | 对照预注册 | 锚点与规则已冻结；[复核记录](delivery/p2_0c_review.md)，C2 裁决见 RV3，其余 C 项见 P2.2 范围调整 |
-| P2.0d | SAR-OA 路径 | HENG958 已复核（2026-09-16） |
-| P2.0e | 五方法 TS-OS 校准接入 | 工程已接线；[交付](delivery/p2_0e_delivery.md)，HENG958 方法学复核见 RV6 |
-| P2.1 | Pilot 跑批 | 645/645 完成；[交接](delivery/p2_1_handoff_checklist.md)，结果复核由 P2.2 负责人收尾覆盖，RV7 已关闭 |
-| P2.2 | Pilot 交付与审计收尾 | **2026-10-16 收尾完成（shuidisjtu）**。三个分析入口在干净的 `7ee6a30` 检出上重跑，645 份 manifest 树摘要与 10 个产物同基准一致（3 个 JSON 仅 `generated_at` 不同）；AutoDL 上五批归档摘要、PA/OA 选中权重（存在、sha256 一致、CPU 可加载）与逐 epoch 选择记录核对通过，B4 非选中 epoch 权重已回收但选中权重完好，见[核对记录](reviews/p2_2_autodl_check_20261016.md)；C2/C3 已裁决，见 RV3/RV4。范围按用户 10-16 决定：C1/C4/C5/C6 按通过处理（未逐项核查，无 HENG958 签署）。已知限制：B2 退出码仍未找到（日志显示 215/215 完成），保留“未核对”；B1 回收披露与本次所见未调和；负责人侧复验不写成合作者独立复核；原索引不改，新表不冒充旧发布身份，31 条低 AUC 不事后翻转或设新阈值 |
-| P3.1 | P3MIX 完整集成与新增方法准入证据 | **2026-10-21 收口（shuidisjtu）**：`survey-v2.0` 落库；13 方法 [v2 delta](reviews/p3_1_v2_delta_20261021.md) 与 #119–#126 处置完成；[RV8](reviews/rv8_method_admission_20261021.md) 14 条签署。Split-PU JSD（#122）与 GEN-PU recipe（#126）作保留项；正式准入待 P3.3/P4.1-B |
-| RV1 | Pilot 数据制品复核 | **2026-10-16 完成（用户确认）**；接受数据身份、四角色隔离及预处理技术证据，见[验收记录](delivery/p1_4_review.md)；不再另要求 HENG958 签署 |
-| RV2 | 标签语义门禁复核 | **2026-10-16 完成（用户确认）**；170 项相关测试及 PNU 三值直调通过，见[验收记录](delivery/label_semantics_stage_b_20261015.md)；Issue #41 可关闭 |
-| RV3 | PA 阻断映射 eligibility；C2 | **2026-10-16 完成（shuidisjtu 裁决）**；54 条 `blocked_pending_pa_criterion` 解除，归类与其 OA 对应映射一致，不新增数值裁决，见[裁决记录](reviews/p2_2_c2_c3_ruling_20261016.md)。**机器矩阵 v3 暂不更新**，以裁决记录为准，正式使用对照前须另发 v4；36 个锚点、7 条映射、4 条 contradictions 保持 `pending_review`，对照陈述继续视为未复核 |
-| RV4 | PA 准则裁决；C3 | **2026-10-16 完成（shuidisjtu 裁决）**；锁定 `pu_val` proxy accuracy 准则（Def. 1 OS 分支），依据为试点 54 个配对单元的 PA/OA 差异，见[裁决记录](reviews/p2_2_c2_c3_ruling_20261016.md)；锁定不等于 PA 单元获得数值裁决 |
-| RV7 | Pilot 深度结果与 C5/C6 复核 | **2026-10-16 按范围调整关闭（用户决定）**；C5/C6 按通过处理，**未做独立重放或逐项核查**，也无 HENG958 签署，见 P2.2 与[复核包](delivery/p2_2_review.md) §2.3。深度结果仍以 P2.2 的三个分析入口重跑为证据 |
-| RV8 | 新增算法正式准入复核 | **2026-10-21 完成（shuidisjtu 签署）**：14 条（13 方法 + TEDn）均为有条件接受，无退回；共通前置为 P3.3/P4.1-B，个例保留项见[记录](reviews/rv8_method_admission_20261021.md). |
+### 1.2 缺口任务
 
-### 1.2 未完成任务
+| 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
+|---|---|---|---|---|
+| clean support 产物 | PULNS、LaGAM、Self-PU 完整版 | 5 数据集 support 生成与校验（100/500） | shuidisjtu | 产物 + 五角色 manifest |
+| 13 方法不在协议 | 13 方法不能进 survey | protocol v3：补 13 个 `method_profiles` 与 `execution_units` | shuidisjtu 起草，HENG958 核对 | `--method` 可跑 |
+| 13 方法预算未冻结 | 可比性 | 冻结 epochs/batch/candidates/seeds | shuidisjtu | P4.1-B 记录 |
+| 图像 runner 未接 | PULDA/GradPU 不能进主榜 | 接 runner + 单 run 峰值估算 | HENG958 | smoke + profile |
+| CVIR 校准未决 | TS 主表 | A2 裁决 + 实现 | HENG958 | 校准或“不适用” |
+| Self-PU 完整版 | 方法完整 | clean-support 单元 | HENG958 | 单元 + 跑通 |
+| GEN-PU recipe | 方法完整 | 4 个 blocker | HENG958 | 冻结 |
+| `PA+clean-support` | PULNS/LaGAM | 路径实现 | HENG958 | 跑通 |
+| PN-CNN | oracle | 真实 GPU smoke + 5 seed | HENG958 | 交付 |
+| RV5/RV6 | Pilot 复核 | 方法学结论 | HENG958 | 结论记录 |
 
-「当前状态」列先写已有基础，再以 **待办：** 显式列出尚需完成的事项；「完成条件」只写验收口径与边界。
+### 1.3 预算与资源
 
-| 编号 | 任务 | 主责 / 复核 | 前置 | 当前状态 | 完成条件 |
-|---|---|---|---|---|---|
-| P3.2 | CNN/共享特征适配与算法收尾 | **HENG958**；shuidisjtu 复核 | P3.1 收口 | 多方法已有 CNN/特征工程路径；Holistic-PU、PULNS、GEN-PU 新路径及[阶段预算证据](p3_stage_budget_review_20261007.md)已补；2026-10-19 复跑 19 个 CNN/encoder、图像协议、候选训练收据及分批预测测试文件，退出码 0；9 项 CUDA-only 测试因本机无 CUDA 跳过，不能据此声称 GPU 验收。另将非正式 oracle checkpoint smoke 的“大小不可估计”告警显式断言为预期行为；配套门禁确认 versioned pilot 在缺少协议绑定容量估算时 fail-closed。各方法的适配例外见 §1.3.4。<br>**待办：** 确定正式共享规格；获批图像/特征路径、分批训练预测、阶段预算及 checkpoint 的跨方法统一验收；说明增强/调度与原论文的适配差异；完成执行证据与合作者复核；补齐批准协议的公开数值对照与其余已接入方法逐项复核 | 交付可追溯工程证据；资源验收见 P3.3-A/B |
-| PN-CNN | 端到端 CNN PN 全监督 oracle baseline | **HENG958** 实现/训练；shuidisjtu 登记协议并复核 | 新协议与存储预算登记 | `PilotOracleCNN` 已有代码和合成验证；旧协议 native CNN oracle 仍不可运行；真实 CIFAR 五 seed 未交付。<br>**待办：** ① shuidisjtu 完成新协议/存储预算登记；② HENG958 完成真实 CIFAR GPU smoke；③ 交付五 seed 权重、指标和 manifest | 用真实 train PN 标签端到端训练 ResNet-18 与分类头，与对应 PU 共享 split/表征/预算；仅用 clean_val accuracy 作 OA 选模；每 dataset/seed 一次、五 seed |
-| P3.3-A | 批准结构的资源 profile | **HENG958**；shuidisjtu 复核预算依据 | P3.2 的批准结构 | [扩展资源 receipt](data/candidate_extended_cnn_storage_probe_20261007.json)已完成 7 recipe×3 seed 的独立 CPU 技术测量并通过 checker；仍是合成输入、非批准结构/正式上界，GPU 未测，不能外推正式数据集。<br>**待办：** 测真实批准结构的序列化、内存/磁盘及保守配额 | 测量覆盖批准结构；PUET 按 CPU 条款处理，不计入 GPU 覆盖 |
-| P3.3-B | 正式资源与持久化验收 | **HENG958**；shuidisjtu 复核制品 | 对应候选 P4.1-B 冻结绑定；正式协议批准；frozen-lock 环境与资源可用 | 未开始（前置未满足）。<br>**待办：** 多 seed CPU/GPU 运行；OOM/重试、保存加载、selected checkpoint 对账；逐 run 环境/成本记录 | 仅验收批准范围 |
-| P4.1-A | 注册表绑定工程 | **shuidisjtu**；HENG958 复核接口与方法参数映射 | 无（与 RV5/RV6 并行） | runner/CLI、pilot、外部白名单/审计/汇总、draft CI 及[版本化候选池身份](delivery/p4_1_pool_binding_20261014.md)已接通，含全字段删除拒收、PA/OA 独立候选与 trajectory 对账。正式 registry 的条件 CI 已接入：[draft schema 无条件检查；正式 v1 文件出现时执行 `--require-present --require-locked`](delivery/p4_1_production_ci_20261016.md)。冻结前该文件不存在，故正式门禁尚未实际验证，配方也未冻结。<br>**待办：** ① 冻结正式 registry 时将 CI 条件改为无条件 fail-closed，并核对真实 CI 结果；② HENG958 复核接口与方法参数映射 | 正式使用须采用外部 v2 白名单，不把 draft 当 locked 或代签；新增参数搜索仍需协议/registry 语义与预算批准 |
-| P4.1-B | 配方审阅与冻结 | **shuidisjtu**；HENG958 核对配置与实现一致性 | P4.1-A 就绪；候选/选模/标签预算与 P3.3-A 资源依据齐备 | 未开始（前置未满足）。<br>**待办：** 双方审阅配置；登记实际批准范围、正式 registry/resolved snapshot 与版本摘要 | 此为候选/预算批准，不代替 RV8 最终方法复核，不回填旧 manifest |
-| P4.2 | 主榜运行结果聚合与分析 | **shuidisjtu**；HENG958 复核深度结论 | 拟纳入数据、PN-CNN、方法准入、P3.3-B/P4.1-B 与正式运行制品均具备 | 未开始（前置未满足）。<br>**待办：** 聚合并分析主榜运行结果 | 22 项通过门禁；按机制、PA/OA、预算族及训练路径分层；区分文献事实/观测/推断，不生成跨数据集总排名 |
-| RV5 | Pilot Self-PU 元重加权/消融口径复核 | **HENG958**；shuidisjtu 提供既有 Pilot 协议证据 | 既有 Pilot 协议证据 | Pilot 实际为 ablation，不是完整版。<br>**待办：** 确认 clean 标签监督、消融范围与 PA 资格 | 记录 HENG958 方法学结论；不将消融说成完整论文复现 |
-| RV6 | 五方法 TS 接线复核 | **HENG958**；shuidisjtu 提供既有接线证据 | 既有接线证据 | `nnpu`/`upu`/`pusb_kernel`/`dist_pu`/`self_pu` 工程接线已有；2026-10-19 已补[逐方法作用范围/不变量技术核验](reviews/rv6_ts_calibration_technical_review_20261019.md)，五方法及公共路由专项测试通过。**待办：** HENG958 确认 mini-batch 校准、PUSBKernel 的 TS 训练/OS 验证选择口径，以及分布损失/加权负风险的适配结论 | 记录 HENG958 逐方法结论；工程技术建议和路由回归均不代替方法学复核 |
+**预算（必须冻结，P4.1-B）**
 
-### 1.3 执行边界
+- `budgets`：每方法 epochs、optimizer steps、batch size、outer candidates；
+- `seeds`：0–4；
+- `c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
+- 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 
-本节只列仍约束执行的边界与例外；逐方法来源、行为与配方细节见方法卡与 `admission/`，
-处置见 [13 方法 v2 delta](reviews/p3_1_v2_delta_20261021.md) 与
-[RV8 记录](reviews/rv8_method_admission_20261021.md)。2026-10-14–20 的逐日工程流水
-已归档在 git 历史与上述记录，不再逐条重复。
+这些参数保持统一与不变是为了维护实验的公平性。冻结后不按运行批次临时改。
 
-#### 1.3.1 冻结与版本
+**资源**
+
+- CPU/GPU 时间默认不限，不作门禁；
+- 单 run 峰值磁盘/内存按方法实测或按参数×快照估算；P2.1 pilot 的 B4 任务参考为 8.34 GiB → 选后
+  42.5 MiB；
+- 只保留选中 checkpoint，其余按 D25 回收；按组清理，不保留全过程权重；
+- P3.3 因此只做“峰值估算 + 保留规则 + 一次 smoke”，不再作为“资源批准”门。
+
+**分批执行**
+
+- 按 method、dataset、training-path（含 backbone）或 labeling mechanism 分组跑，
+  `run_survey_pilot.py --methods/--datasets/--training-paths` 原生支持；
+- 每组 manifest 绑定同一协议/比较摘要，汇总时按
+  `(comparability_group, run_view, mechanism)` 分区；
+- 不要求同批跑完，也不要求一次性占用全部磁盘；汇总只在最后统一做。
+
+### 1.4 执行边界
+
+#### 1.4.1 冻结与版本
 
 - 协议以 `survey_protocol_v2.json`（`survey-v2.0`）为准；`survey_protocol_v1.json` 与
   `survey_comparison_v1..v3.json` 仅作历史绑定，对照矩阵以 `survey_comparison_v4.json` 为准。
 - 冻结文件只在版本化提案中修改；新数据、方法或配方登记新协议，不覆盖旧 645-run 结果、
   旧 manifest 或历史签署。
-- **P3.1 完成 ≠ 正式准入**；正式准入仍待 P3.3 资源、P4.1-B 预算/配方冻结与 P4.2 门禁。
+- **P3.1 完成 ≠ 正式准入**；正式准入仍待预算冻结与主榜门禁。
 
-#### 1.3.2 数据、角色与标签预算
+#### 1.4.2 数据、角色与标签预算
 
 - train / pu_val / clean_val / test 四角色严格隔离；test 不参与先验、候选、阈值或
   checkpoint 选择。
@@ -89,14 +86,14 @@
 - ADNI 槽位为替代数据，subject 级隔离与许可限制保留；未声明/未知许可不阻塞研究实验，
   公开发表或再分发前重新确认。
 
-#### 1.3.3 选模与 PA/OA
+#### 1.4.3 选模与 PA/OA
 
 - PA 只在 `pu_val` 上用 proxy accuracy 选配置；OA 只在 `clean_val` 上选；两者不混用。
 - `PA+clean-support` 与纯 PU PA 同表另列，不参与纯 PU 优势比较；PULNS/LaGAM 只报 OA
   或 `PA+clean-support`。
 - checkpoint 完成后离线独立选择；推理快照不用于续训 optimizer。
 
-#### 1.3.4 来源与复现声明
+#### 1.4.4 来源与复现声明
 
 - `official_exact` 只表示作者来源已锁定，不表示逐行一致或数值复现；`official_related`
   表示相关来源；无来源保持 paper-only。所有适配统一标 `benchmark-adapted`。
@@ -107,7 +104,7 @@
 | 方法 | 已登记差异 | 处置 |
 |---|---|---|
 | Dist-PU | clean-room 全量目标与作者两阶段、scheduler、直方图目标不同 | 另有显式 `author_staged` 路径；默认 clean-room 不变 |
-| Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | #122 待方法负责人裁决 |
+| Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | #122 待HENG958裁决 |
 | PAN | 论文 Eq. (7) 与源码目标、采样不一致 | 保留 paper-faithful；正式采样跟随论文 OS |
 | CVIR | `α_U` 为 U 内比例；原生 TS 未接校准 | TS 主表门未闭合，P3.2 决定 |
 | Grad-PU | 论文要求移除 BN | `cnn13_no_bn` 单列 method-private，附 SHOULD 共享对照 |
@@ -115,45 +112,34 @@
 | GEN-PU / Holistic-PU | 作者归档未发现 LICENSE | `license=unknown`；不复制、执行或再分发 |
 | KLDCE / PUSB 线性 | 求解器或来源身份与论文/官方路径不同 | 方法卡与台账已披露，不改求解策略 |
 
-#### 1.3.5 资源与预算
+### 1.5 推进顺序（2026-10-21）
 
-- 正式资源验收使用批准结构、frozen-lock 环境与逐 run 记录；合成输入、缩短 smoke 或旧
-  backbone 探针不能替代 P3.3-B。
-- PULDA 120、GradPU 200 快照与正式候选的存储/峰值尚未实测；正式候选池、epoch/batch
-  与资源配额在 P3.3/P4.1-B 批准前保持 `null`/`false`。
-
-#### 1.3.6 推进顺序（2026-10-21）
-
-1. **P3.2**：共享规格、`PA+clean-support` 路径、CVIR 校准/`α_U` 结论、support 制品。
-2. **P3.3-A**：批准结构的资源 profile。
-3. **P4.1-B**：候选/预算与配方冻结。
-4. **P3.3-B**：正式多 seed 资源与持久化验收。
-5. **P4.2**：主榜聚合；22 项门禁全部通过后才发布。
-
-#### 1.3.7 留痕
-
-- 每项任务只有一名主责；证据、结论、身份与日期由主责记录，代理检查不代替签署。
-- 退回项另记整改；Issue/PR 记录作为处置留痕，不把工程通过写成方法准入。
+1. **P3.2**（HENG958）：共享规格、`PA+clean-support`、CVIR、Self-PU、GEN-PU。
+2. **clean support 产物**（shuidisjtu）：5 数据集，可与 P3.2 并行。
+3. **protocol v3**（shuidisjtu + HENG958）：13 方法 profiles/units，解锁 13 方法单跑。
+4. **P4.1-B**：预算/配方冻结。
+5. **分组跑批 + 汇总**：按 method/dataset/path/mechanism，边跑边清。
+6. **P3.3 smoke + P4.2**：峰值验证与主榜。
 
 ## 2. 风险与留痕约定
 
 ### 2.1 风险
 
-1. **GPU 与正式环境**：正式资源验收须使用批准配置、frozen-lock 环境、兼容的驱动/依赖和逐 run 资源记录；合成 CPU/CUDA 探针不能代替 P3.3-B。
+1. **运行环境**：正式运行仍须 frozen-lock 环境、兼容的驱动/依赖和逐 run 身份记录；合成探针不能代替真实 smoke。
 2. **数据与标签**：公开原始数据不等于许可、正式 split 或四角色验收；新数据和版本变化必须留来源、映射、授权范围与摘要，ADNI 官方数据未获批不得纳入；`adni` 槽位使用的是替代数据，须按 D1 的修订标注。
 3. **方法准入**：代码级接入、方法卡、smoke、资源 profile 或阶段批准均不等于正式准入；P3.1 收口与 RV8 签署仍不等于正式准入，PULNS/LaGAM 等额外标签预算单独裁决。
-4. **存储峰值**：D25 回收发生在选模和 test 评测之后，只降低最终留存，不降低训练期间峰值；新候选按全部 epoch × component × candidate × retry 估算，不外推缩短探针。
+4. **存储峰值**：按 D29 只保留选中 checkpoint 并按组清理；D25 回收不降低训练期峰值，单 run 峰值仍按全部 epoch × component × candidate × retry 估算，不外推缩短探针。
 
 ### 2.2 留痕约定
 
 - Artifact 固化代码/依赖身份、Python/PyTorch/CUDA/GPU、方法/数据配置、注册表版本、seed、split/label manifest、选择 artifact 与结果 schema；缺必要身份的结果不得进入主表。
 - 历史 Pilot 的代码 commit 和依赖锁身份由批次计划/证据包承载，不要求逐 run manifest 重复记录；P4.1-A 未完成前不把 draft 当 locked，不回填历史 manifest。
 - 工程资源探针记录实际源码摘要；旧读数对应测量时源码，后续修复不自动构成重测证据。
-- 2026-10-07 扩展 CNN receipt 已绑定 `4bfa59b` 基线及逐文件 SHA256；其 21 条 profile 仅证明当前合成 CPU 路径可复核，不解除 P3.3-A/B 的批准结构、GPU、OOM/重试或正式制品前置。
+- 2026-10-07 扩展 CNN receipt 已绑定 `4bfa59b` 基线及逐文件 SHA256；其 21 条 profile 仅证明当前合成 CPU 路径可复核，不解除 P3.3 的峰值估算与保留规则验证。
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
-- 新阶段进展只更新本节任务表；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
+- 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D26）
+## 附录 A. 决策账本（D1–D29）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -186,3 +172,6 @@
 | D24 | **放行三个 manifest 正式资格阻断位（承接 D12/D20 的做法）** | ①② 移除旧 Linux 环境偏差、Self-PU clean-meta OA 集成与 PA 待签署三个静态正式阻断；保留逐 epoch 独立选模的动态阻断、`protocol_deviation` 和 Self-PU 消融标记，不代替 HENG958 对 PA/Self-PU 协议的复核。③ 摘要 `c019a87d…` → `287c2f45…`，版本仍为 `survey-v1.2`，矩阵与 README 同步重绑。④(a) 54 条 PA 映射仍不能数值裁决；(b) 历史制品不改写；(c) 同一 `(dataset, seed, c)` 单元整组重跑，不混新旧摘要；(d) 不放行方法学复核。 | 2026-09-28 |
 | D25 | **逐 epoch checkpoint 回收：保留选中、回收其余（容量治理）** | ② PA/OA 选模与 test 评测后、manifest 前，仅逐文件回收未选中权重；保留选中权重与全部 epoch 元数据，原 `path`/`sha256` 加 `reclaimed`，不改成 `path=null`。③ 复现范围为“选中权重＋全部选择记录”，不关闭 capture，不降低训练期峰值。④ 选模、阈值与 test 指标不变，B3a 无需重跑；**B3a/B3b 全量留存、B4 起启用回收**，见[交付记录](architecture/epoch_checkpoint_delivery.md) §4。⑤ 不动动态阻断，默认关闭，不放行方法学复核。 | 2026-09-30 |
 | D26 | **F13 修复：聚合分组补上 mechanism 维度** | 聚合键由 D13 扩展为 `(comparability_group, run_view, mechanism)`，避免 SCAR/SAR 在相同 c 下混组。只改聚合分区，下层公平性与可比性校验不变；实际视图/机制作为分组维度，不改协议 group 值。实现与验收见[P2.2 交付](delivery/p2_2_delivery.md)；D13 的覆盖率格网问题未由本修复解决。。 | 2026-09-30 |
+| D27 | **分批执行与统一汇总** | 最终实验按 method、dataset、training-path 或 labeling mechanism 分组跑，不要求同批或一次性跑完；每组 manifest 绑定同一协议/比较摘要，汇总按 `(comparability_group, run_view, mechanism)` 分区。分组不改变可比性。 | 2026-10-21 |
+| D28 | **计算资源不设上限** | CPU/GPU 时间默认不限，不作为跑批门禁；正式运行仍须 frozen-lock 环境与逐 run 身份记录。 | 2026-10-21 |
+| D29 | **存储与 checkpoint 保留** | 只保留选中 checkpoint（P2.1 B4 口径），未选中按 D25 回收；按组清理，不保留全过程权重；单 run 峰值按参数×快照估算。仅个别方法超限时再优化。 | 2026-10-21 |
