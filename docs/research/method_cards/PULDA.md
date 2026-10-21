@@ -71,8 +71,10 @@ paper/source 差异保留登记；按 2026-10-18 用户决定，尊重队友实�
 2026-10-18 根据 #119 补[共享图像接线](../pu_survey/admission/pulda_gradpu_image_review_20261018.md)：
 可选 `train_transform` 在两个阶段逐训练 batch 重新采样，先增强、再 MixUp、最后
 encoder 内归一化；推理和伪标签扫描不增强。新增独立技术构造入口使用同 seed
-ResNet-18，并验证训练 BN 与模板隔离；默认仍不启用增强。统一增强/BN/表格 MLP、
-正式 recipe/runner 与120快照资源实测仍未验收，不构成正式准入。
+ResNet-18，并验证训练 BN 与模板隔离；默认仍不启用增强。2026-10-21 #119 决定：
+端到端组训练 BN；共享增强不启用（协议 `train_augmentation=none`），PULDA 输入 MixUp
+保留；MLP64/分类头 method-private；warmup 保持 LDA。正式 recipe/runner 与 120 快照
+资源实测仍待 P3.2/P3.3，不构成正式准入。
 
 `encoder=nn.Module` 输出须为有限二维特征；其 deepcopy 被解冻训练，调用方原模板和不同 CV 折
 互不影响，后接原 MLP 头。四维图像缺 encoder 时拒绝，不静默 flatten。probe 在 eval 下执行。
