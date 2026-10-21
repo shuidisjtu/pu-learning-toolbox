@@ -1,8 +1,7 @@
 # PU 调研实验协议
 
 > 本协议为**实验方案要求纲要**：规定实验目标、数据与划分、选模协议、结果分组与交付验收，
-> 具有长期参考价值。本协议来自调研工作区实验要求 v2（原始稿存于外部工作区，未入版本控制）；
-> **修订在仓库内维护**；原始上下文与修订历程仍保存在外部工作区。
+> 具有长期参考价值。
 >
 > 相关文档：实验层设计与实现现状见 [experiment_layer.md](../../dev/experiment_layer.md)；
 > 执行状态与进度审计见 [survey_execution_plan.md](survey_execution_plan.md)；
@@ -15,7 +14,7 @@
 > 见 §1.2、§2.3、§2.4、§2.5、§3、§4、§5。
 >
 > 本次新增条款的复核状态见 `pu_toolbox/experiment/survey_protocol_v2.json` 的
-> `review_items`：训练期 clean support 统一口径与 Self-PU 完整变体范围两项待合作者复核，
+> `review_items`：训练期 clean support 统一口径与 Self-PU 完整变体范围两项待HENG958复核，
 > 其余按已确认记录（2026-10-21）。
 
 ## 0. 参考文献
@@ -76,13 +75,12 @@
 F-MNIST `0,2,3,4,6 vs 1,5,7,8,9`，CIFAR-10 `0,1,8,9 vs 2--7`，ADNI `0 vs 1,2,3`，
 Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2 Table B.2，
 即上文 `assets/Dateset_PU.png`）。数据版本或标签编码发生变化时，必须提供映射转换审计记录；
-不得因方法表现调整正负类定义。
 
 **P1.4-R 输入编码口径（2026-10-14，运行前确定）**：
 
 - MNIST/F-MNIST 保留官方 train/test 边界及原始 uint8 像素，输入为单通道 `N×1×28×28`；不调整图像尺寸，通道统计只从 `train` 角色拟合。
 - 20News 使用 `bydate` 版本，按新闻组名称的首段前缀映射为 Alt(0)、Comp(1)、Misc(2)、Rec(3)、Sci(4)、Soc(5)、Talk(6)，依据 Table B.1（`assets/Dataset.png`）。目录和文件名稳定排序，`latin-1` 解码，不额外删除头部、页脚或引用；沿用 PU-Bench `data/News20_PU.py` 的 `remove=()` 口径，之后使用固定 revision 的 SBERT。
-- Connect-4 保留 `win/loss/draw` 标签语义，42 格按 `a1,a2,…,a6,b1,…,g6` 排列；每格固定 `b,o,x` 三列独热编码为 126 维。划分后仅以 `train` 拟合逐列 z-score，其余三角色复用参数，常量列使用零方差保护。这一步标准化是项目负责人确定的统一表格处理口径，与所核查 PU-Bench 加载器仅独热编码的路径有差异，不声明特征完全等价。
+- Connect-4 保留 `win/loss/draw` 标签语义，42 格按 `a1,a2,…,a6,b1,…,g6` 排列；每格固定 `b,o,x` 三列独热编码为 126 维。划分后仅以 `train` 拟合逐列 z-score，其余三角色复用参数，常量列使用零方差保护。这一步标准化是shuidisjtu确定的统一表格处理口径，与所核查 PU-Bench 加载器仅独热编码的路径有差异，不声明特征完全等价。
 
 以上只锁定输入读取与 split 预处理，不改冻结的 `survey_protocol_v1.json`，也不表示新数据集的主榜运行协议已经冻结。
 
@@ -94,7 +92,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    **训练数据视图**：`os` 表示原始 OS 视图；`ts` 表示对原生 TS 方法启用 TS-OS 校准后的
    TS-compatible 视图。基础数据始终是 OS，而不是在 `ts` 时重新独立抽样 TS 数据。
 
-   > TS-OS 校准不是一次性改变数据文件，而是在训练期间对每个 mini-batch 执行
+   > TS-OS 校准是在训练期间对每个 mini-batch 执行
    > $`D_{U}^{k} \leftarrow D_{U}^{k}\cup D_{P}^{k}`$：正例批次仍用于正例损失，同时被并入 TS 方法的
    > 未标记损失输入。验证集和测试集保持原始 OS 协议，不进行该合并。默认 `os_or_ts=os`；
    > 仅对已经在方法台账中标注为原生 TS、且训练接口允许替换未标记损失输入的方法设置
@@ -107,7 +105,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    > 该量在方法 card 中因此须同时记录其上游定义与本条限制（见决策 D22）。
 
    > **校准的通用表述**：「训练期未标记风险项的作用集合为 $`D_U \cup D_P`$」是本协议对
-   > 校准的操作定义。非 mini-batch 方法的等价实现视为校准，例如 PUET 树模型在 TS 视图下
+   > 校准的操作定义。非 mini-batch 方法的等价实现也视为校准，例如 PUET 树模型在 TS 视图下
    > 把正例行同时复制为未标记风险角色（“逐树根”实现）；协议不要求形式上的 mini-batch。
    >
    > **校准不适用**：原生 TS、但不存在可替换未标记风险项的方法（如 PULNS 的奖励式训练、
