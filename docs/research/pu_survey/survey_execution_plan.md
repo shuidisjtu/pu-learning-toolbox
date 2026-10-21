@@ -5,8 +5,8 @@
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
 > 状态核对日期：**2026-10-21**；RV1/RV2 验收基线为 PR #110 的 `8b4e751`。
-> 复核责任明确归属 **shuidisjtu** 或 **HENG958**；代理检查不能代替二人的签署。
-> RV1/RV2 与 P1.4-R 已由用户接受技术复核证据并确认完成，不再要求额外人工签署，见对应验收记录。
+> 复核责任明确归属 **shuidisjtu** 或 **HENG958**；
+> RV1/RV2 与 P1.4-R 已由用户接受技术复核证据并确认完成，见对应验收记录。
 > P2.2 的 C1–C6 经用户 2026-10-16 决定调整范围：仅执行 C2/C3，其余按通过处理（未逐项核查），见 P2.2 与 RV3/RV4/RV7。
 
 ## 1. 任务分工与验收
@@ -46,7 +46,7 @@
 | RV3 | PA 阻断映射 eligibility；C2 | **2026-10-16 完成（shuidisjtu 裁决）**；54 条 `blocked_pending_pa_criterion` 解除，归类与其 OA 对应映射一致，不新增数值裁决，见[裁决记录](reviews/p2_2_c2_c3_ruling_20261016.md)。**机器矩阵 v3 暂不更新**，以裁决记录为准，正式使用对照前须另发 v4；36 个锚点、7 条映射、4 条 contradictions 保持 `pending_review`，对照陈述继续视为未复核 |
 | RV4 | PA 准则裁决；C3 | **2026-10-16 完成（shuidisjtu 裁决）**；锁定 `pu_val` proxy accuracy 准则（Def. 1 OS 分支），依据为试点 54 个配对单元的 PA/OA 差异，见[裁决记录](reviews/p2_2_c2_c3_ruling_20261016.md)；锁定不等于 PA 单元获得数值裁决 |
 | RV7 | Pilot 深度结果与 C5/C6 复核 | **2026-10-16 按范围调整关闭（用户决定）**；C5/C6 按通过处理，**未做独立重放或逐项核查**，也无 HENG958 签署，见 P2.2 与[复核包](delivery/p2_2_review.md) §2.3。深度结果仍以 P2.2 的三个分析入口重跑为证据 |
-| RV8 | 新增算法正式准入复核 | **2026-10-21 完成（shuidisjtu 签署）**：14 条（13 方法 + TEDn）均为有条件接受，无退回；共通前置为 P3.3/P4.1-B，个例保留项见[记录](reviews/rv8_method_admission_20261021.md)。HENG958 未自审其新增算法 |
+| RV8 | 新增算法正式准入复核 | **2026-10-21 完成（shuidisjtu 签署）**：14 条（13 方法 + TEDn）均为有条件接受，无退回；共通前置为 P3.3/P4.1-B，个例保留项见[记录](reviews/rv8_method_admission_20261021.md). |
 
 ### 1.2 未完成任务
 
