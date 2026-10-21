@@ -2,6 +2,7 @@
 
 # ruff: noqa: N803, N806
 
+import copy
 import inspect
 import pickle
 from contextlib import nullcontext
@@ -241,3 +242,25 @@ def test_edge_empty_and_invalid_prediction_leave_teacher_untouched(monkeypatch):
     with pytest.raises(ValueError, match="NaN or Inf"):
         model.predict_proba(np.full((1, 4), np.nan, dtype=np.float32))
     assert [module.training for module in teacher.modules()] == modes
+
+
+def test_edge_inplace_backbone_cannot_mutate_fit_or_scoring_inputs():
+    torch = pytest.importorskip("torch")
+    features, labels, validation, clean_labels = data()
+    originals = features.copy(), validation.copy(), clean_labels.copy()
+    reference_backbone = torch.nn.Sequential(torch.nn.ReLU(), torch.nn.Linear(4, 1))
+    inplace_backbone = copy.deepcopy(reference_backbone)
+    inplace_backbone[0].inplace = True
+    reference = estimator(backbone=reference_backbone).fit(
+        features, labels, validation_data=(validation, clean_labels)
+    )
+    actual = estimator(backbone=inplace_backbone).fit(
+        features, labels, validation_data=(validation, clean_labels)
+    )
+
+    np.testing.assert_array_equal(features, originals[0])
+    np.testing.assert_array_equal(validation, originals[1])
+    np.testing.assert_array_equal(clean_labels, originals[2])
+    assert actual.history_ == reference.history_
+    np.testing.assert_array_equal(actual.predict_proba(features), reference.predict_proba(features))
+    np.testing.assert_array_equal(features, originals[0])

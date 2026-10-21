@@ -150,3 +150,11 @@ def test_edge_empty_prediction_does_not_call_model_or_change_modes(monkeypatch):
     monkeypatch.setattr(fitted.model_, "eval", fail)
     assert fitted.decision_function(features[:0]).shape == (0,)
     assert fitted.model_.training is before
+
+
+def test_edge_empty_wrong_feature_shape_is_rejected_before_short_circuit():
+    pytest.importorskip("torch")
+    features, labels = data()
+    fitted = estimator().fit(features, labels)
+    with pytest.raises(ValueError, match=r"sample shape \(3,\)"):
+        fitted.decision_function(np.empty((0, 5), dtype=np.float32))

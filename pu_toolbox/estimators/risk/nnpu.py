@@ -512,6 +512,10 @@ class NonNegativePUClassifier(BasePUClassifier):
         import torch
 
         self._check_is_fitted()
+        X = np.asarray(X)
+        expected_shape = tuple(self._X_shape_[1:])
+        if X.ndim != len(self._X_shape_) or tuple(X.shape[1:]) != expected_shape:
+            raise ValueError(f"X must have sample shape {expected_shape}")
         if not len(X):
             return np.empty(0, dtype=np.float32)
         X_t = torch.tensor(X, dtype=torch.float32)
