@@ -8,7 +8,7 @@
 | 文档 / 数据 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | Survey 协议要求：数据集、四角色输入、OS/TS 视图、PA/OA 选模、PN oracle 与主榜门禁 |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 唯一任务分工真相源：已完成交付、未完成任务、主责/复核、依赖、风险、留痕与决策摘要 |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力与缺口真相源：现在能跑什么、缺什么、预算/资源口径、执行边界与决策摘要 |
 | `pu_toolbox/experiment/method_ledger.json` | 方法台账真相源：方法身份、来源、视图、校准、适配和待复核状态 |
 | `pu_toolbox/experiment/survey_protocol_v2.json` | 机器可读执行协议，当前 `survey-v2.0`；`review_items` 登记本次修订的接受/待复核状态 |
 | `pu_toolbox/experiment/survey_protocol_v1.json` | 冻结归档的 `survey-v1.2` 矩阵，供带日期的 P3 证据与历史对照矩阵绑定 |
@@ -109,7 +109,7 @@
 后续复核：[GradPU #121 调度/batch声明](admission/gradpu_training_recipe_review_20261018.md)；
 [Split-PU #122 JSD分母与实际mini-batch反例](admission/splitpu_122_characterization_20261018.md)。
 
-1. 先读 [`survey_execution_plan.md`](survey_execution_plan.md) 了解任务主责和未完成项。
+1. 先读 [`survey_execution_plan.md`](survey_execution_plan.md) 了解现在能跑什么、缺什么。
 2. 需要协议口径时读 [`pu_survey_protocol.md`](pu_survey_protocol.md)。
 3. 需要交付证据、候选准入或独立复核时进入对应子目录，不在本索引重复复制结论。
 ## 新增工程证据（2026-10-07 合并）
