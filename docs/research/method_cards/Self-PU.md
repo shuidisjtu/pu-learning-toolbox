@@ -471,6 +471,9 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 2026-10-20 [生命周期与评分补核](../pu_survey/admission/selfpu_lifecycle_20261020.md)：
 未拟合/失败重训后的概率评分统一拒绝，绑定失败、回调异常和取消撤销公开 fitted 状态；
 选中 teacher 的评分及 PU validation risk helper 恢复逐子模块模式，空输入不访问 teacher。
+2026-10-21 补输入隔离：所有 student/teacher/base_model 前向与 meta 验证均使用私有 clone，
+in-place backbone 不再改写调用方 X/validation 或训练张量；每个前向增加当前 batch 的临时
+内存，旧资源峰值不再作为当前版本上界。
 OS/TS、两种一致性范围和 clean/PU/ablation 选择路径均与未包装训练对照；既有风险目标、
 teacher 选择和冻结消融保持原行为，额外 support 与正式预算仍待原有批准。
 

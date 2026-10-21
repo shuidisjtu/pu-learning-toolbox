@@ -12,7 +12,11 @@ import json
 from pathlib import Path
 
 from pu_toolbox.experiment.survey_artifacts import survey_artifact_ref
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol
+from pu_toolbox.experiment.survey_protocol import digest, load_protocol, resolve_protocol_path
+
+#: The recorded draft was prepared against the frozen pilot protocol; keep
+#: binding survey-v1.2 after the canonical protocol moved to survey-v2.0.
+DATED_PROTOCOL = "survey-v1.2"
 
 METHOD_BLOCKERS = {
     "pan": ["adversarial_budget_and_inference_only_snapshot_spec"],
@@ -154,7 +158,13 @@ def main():
     )
     args = parser.parse_args()
     ledger = json.loads(args.ledger.read_text(encoding="utf-8"))
-    print(json.dumps(build_extension(ledger, load_protocol()), ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            build_extension(ledger, load_protocol(resolve_protocol_path(DATED_PROTOCOL))),
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

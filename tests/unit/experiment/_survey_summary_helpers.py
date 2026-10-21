@@ -31,6 +31,7 @@ _HEX = "0123456789abcdef"
 
 #: The digest a manifest must report for the protocol check to pass.
 FROZEN_PROTOCOL_SHA256 = digest(load_protocol())
+PROTOCOL_VERSION = load_protocol()["protocol_version"]
 
 
 def _digest(marker: str) -> str:
@@ -81,7 +82,7 @@ def manifest(
     label_view = {"mechanism": mechanism, "c_requested": c, "label_view_sha256": _digest("c")}
     payload = {
         "execution_mode": "versioned_pilot",
-        "protocol_version": "survey-v1.2",
+        "protocol_version": PROTOCOL_VERSION,
         "protocol_sha256": FROZEN_PROTOCOL_SHA256,
         "execution_unit": {
             "method": method,

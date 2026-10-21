@@ -19,6 +19,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE_REF = "docs/research/pu_survey/data/p3_admission_evidence_20261005.json"
+#: The dated P3 evidence bound the frozen pilot protocol.  It keeps validating
+#: against survey-v1.2 after the canonical protocol moved to survey-v2.0; a
+#: refresh under v2 is a separate, recorded decision rather than a silent edit.
+DATED_PROTOCOL = "survey-v1.2"
 METHODS = ("pulda", "puet", "gradpu", "robust_pu", "split_pu")
 SELECTION = {
     "training_role": "train",
@@ -310,7 +314,7 @@ def validate_source_checkout(source, directory):
 def main(argv=None):
     """Emit a read-only JSON consistency receipt or an explicit error and exit one."""
     from pu_toolbox.experiment.method_ledger import load_ledger
-    from pu_toolbox.experiment.survey_protocol import load_protocol
+    from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--evidence", type=Path, default=ROOT / EVIDENCE_REF)
@@ -318,7 +322,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         evidence = json.loads(args.evidence.read_text(encoding="utf-8"))
-        receipt = validate_evidence(evidence, load_ledger(), load_protocol())
+        receipt = validate_evidence(
+            evidence,
+            load_ledger(),
+            load_protocol(resolve_protocol_path(DATED_PROTOCOL)),
+        )
         checked = {}
         for item in args.source_dir:
             method, separator, directory = item.partition("=")

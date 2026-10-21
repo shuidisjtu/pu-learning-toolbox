@@ -1,7 +1,7 @@
 """Pre-registered external comparison for the survey pilot.
 
 This is a second truth source, deliberately separate from
-``survey_protocol_v1.json``: the execution matrix says what will be run, this
+``survey_protocol_v2.json``: the execution matrix says what will be run, this
 says what the numbers may later be compared against, and how.  Nothing here
 runs training or reads results; the module only freezes the audit rules.
 
@@ -40,7 +40,7 @@ from typing import Any
 
 from pu_toolbox.utils.serialization import strict_canonical_hash
 
-COMPARISON_PATH = Path(__file__).with_name("survey_comparison_v3.json")
+COMPARISON_PATH = Path(__file__).with_name("survey_comparison_v4.json")
 
 #: The six eligibility classes, in canonical order.  A comparison file that
 #: declares anything else (an extra class, a missing one) is rejected rather
@@ -140,7 +140,7 @@ def load_comparison_protocol(
     """Load and validate the comparison rules before any result is produced.
 
     ``survey`` is the execution protocol this file must be bound to; when it is
-    omitted the shipped ``survey_protocol_v1.json`` is loaded.  The binding is
+    omitted the shipped ``survey_protocol_v2.json`` is loaded.  The binding is
     checked both ways (version and digest) so a protocol bump cannot silently
     leave the comparison pointing at stale rules.
     """

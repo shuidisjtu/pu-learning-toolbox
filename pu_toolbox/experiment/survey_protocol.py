@@ -21,18 +21,30 @@ from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_cano
 from .datasets import survey_dataset_catalog
 from .feature_adapter import encoder_state_sha256
 
-PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v1.json")
-#: The names the shipped matrix answers to.  They all denote PROTOCOL_PATH: the
-#: version is a property of the file's contents, and the file is replaced rather
-#: than multiplied when it changes, so naming an older version gets the current
-#: one.  A caller that resolves a name and a caller that resolves a path have to
-#: agree about which matrix "survey-v1.2" is, which is why this list has one home.
-PROTOCOL_ALIASES = ("survey-v1", "survey-v1.1", "survey-v1.2")
+PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v2.json")
+#: The canonical matrix files.  A version bump adds a file and keeps the old one:
+#: dated P3 evidence and the archived comparison matrices pin the bytes they were
+#: prepared against, so re-reading the old version must stay possible.  Names
+#: resolve to the file carrying that version -- a command written against
+#: survey-v1.2 keeps re-running the v1.2 matrix rather than silently moving to
+#: the current one.  A caller that resolves a name and a caller that resolves a
+#: path have to agree about which matrix a version is, which is why this mapping
+#: has one home.
+PROTOCOL_PATHS: dict[str, Path] = {
+    "survey-v1": Path(__file__).with_name("survey_protocol_v1.json"),
+    "survey-v1.1": Path(__file__).with_name("survey_protocol_v1.json"),
+    "survey-v1.2": Path(__file__).with_name("survey_protocol_v1.json"),
+    "survey-v2.0": PROTOCOL_PATH,
+}
+PROTOCOL_ALIASES = tuple(PROTOCOL_PATHS)
 
 
 def resolve_protocol_path(value: str | Path) -> Path:
     """The matrix file *value* denotes: a shipped name, or the path it gives."""
-    return PROTOCOL_PATH if str(value) in PROTOCOL_ALIASES else Path(value).resolve()
+    name = str(value)
+    if name in PROTOCOL_PATHS:
+        return PROTOCOL_PATHS[name]
+    return Path(value).resolve()
 
 
 #: One end-to-end ResNet-18 checkpoint component, rounded up from the 44 MB
@@ -236,6 +248,39 @@ def image_spec(protocol: dict[str, Any], dataset: str) -> dict[str, Any]:
     return copy.deepcopy({**shared, **per_dataset[dataset]})
 
 
+def _validate_review_items(items: Any) -> None:
+    """Reject a malformed review ledger; an absent ledger is the v1 shape.
+
+    ``review_items`` records, per changed part of a protocol revision, whether it
+    inherits acceptance or still waits for collaborator review.  The top-level
+    ``review_status`` cannot express that mixture, so a revision that changes
+    only some sections keeps ``accepted`` and lists the exceptions here.
+    """
+    if items is None:
+        return
+    if not isinstance(items, list) or not items:
+        raise ValueError("survey protocol review_items must be a non-empty object list")
+    seen: set[str] = set()
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError("survey protocol review_items must be an object list")
+        for key in ("item_id", "title", "origin"):
+            if not isinstance(item.get(key), str) or not item[key]:
+                raise ValueError(f"survey protocol review item missing {key}")
+        if item["item_id"] in seen:
+            raise ValueError(f"duplicate survey protocol review item: {item['item_id']}")
+        seen.add(item["item_id"])
+        sections = item.get("sections")
+        if (
+            not isinstance(sections, list)
+            or not sections
+            or any(not isinstance(section, str) or not section for section in sections)
+        ):
+            raise ValueError("survey protocol review item sections must be non-empty strings")
+        if item.get("status") not in _REVIEW_STATUSES:
+            raise ValueError("survey protocol review item status is not recognized")
+
+
 def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
     """Load and validate the matrix before data preparation or training."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -267,6 +312,7 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
         or payload["review_status"] not in _REVIEW_STATUSES
     ):
         raise ValueError("survey protocol review_status is not recognized")
+    _validate_review_items(payload.get("review_items"))
     if payload["selection_spec_kind"] != "descriptive_documentation":
         raise ValueError("selection_spec_kind must be descriptive_documentation")
     seeds = payload["seeds"]
@@ -547,7 +593,7 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     # blocked_pending_pa_criterion.
     if deviations:
         blockers.append("protocol_deviation")
-    return {
+    context = {
         "execution_mode": "versioned_pilot",
         "protocol_version": protocol["protocol_version"],
         "protocol_sha256": digest(protocol),
@@ -570,6 +616,11 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         if row["method"] == "self_pu"
         else "shared_spec_engineering",
     }
+    if "review_items" in protocol:
+        context["protocol_pending_review_items"] = [
+            item["item_id"] for item in protocol["review_items"] if item["status"] != "accepted"
+        ]
+    return context
 
 
 def budget_fairness_fields(budget: dict) -> dict[str, Any]:

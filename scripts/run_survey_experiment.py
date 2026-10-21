@@ -498,7 +498,10 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--protocol",
         default=None,
-        help="survey-v1.2 (v1/v1.1 aliases) or matrix JSON; otherwise technical smoke",
+        help=(
+            "survey-v2.0 (v1/v1.1/v1.2 aliases resolve to their own files) "
+            "or matrix JSON; otherwise technical smoke"
+        ),
     )
     parser.add_argument("--dataset", choices=DATASET_CHOICES, default=None)
     parser.add_argument("--recipe-registry", type=Path, help="explicit locked recipe registry JSON")

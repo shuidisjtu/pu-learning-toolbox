@@ -83,7 +83,7 @@ def test_param_inner_search_is_registered_as_identity_and_enforced_both_ways():
                 "pusb_kernel",
                 inner_search={
                     "inner_search_id": "pusb_kernel_sigma_reg_cv",
-                    "grid_ref": "survey_protocol_v1.method_profiles.lbe.params",
+                    "grid_ref": "survey_protocol_v2.method_profiles.lbe.params",
                 },
             )
         }

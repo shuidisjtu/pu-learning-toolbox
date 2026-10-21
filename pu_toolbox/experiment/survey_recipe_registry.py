@@ -6,11 +6,11 @@ which version":
 
 ``builtin_methods.py``      estimator registration, capabilities, prior needs
 ``method_ledger.json``      paper/official-code provenance, adaptation level
-``survey_protocol_v1.json`` budgets, execution matrix, frozen pilot values
+``survey_protocol_v2.json`` budgets, execution matrix, frozen pilot values
 ``benchmarks/*/configs``    historical benchmark and tuning configs
 
 The registry is the missing *binding* layer (plan §1.2), and it holds identity,
-not values.  A profile points at ``survey_protocol_v1.method_profiles.<method>``
+not values.  A profile points at ``survey_protocol_v2.method_profiles.<method>``
 via ``base_ref``; parameter values stay in the protocol, where they already are
 single-sourced.  v1 therefore rejects every parameter-level override outright:
 a non-empty ``overrides`` is a protocol change, not a recipe choice
@@ -92,10 +92,10 @@ CANDIDATE_ROLES: tuple[str, ...] = ("current_protocol_binding",)
 
 #: The one selection-policy entry point.  The registry quotes this reference and
 #: copies no PA/OA, checkpoint or threshold literal of its own (D-P4.1-1).
-SELECTION_SPEC_REF = "survey_protocol_v1.selection_spec"
+SELECTION_SPEC_REF = "survey_protocol_v2.selection_spec"
 
-BASE_REF_PREFIX = "survey_protocol_v1.method_profiles."
-BUDGET_BINDING_PREFIX = "survey_protocol_v1.budgets."
+BASE_REF_PREFIX = "survey_protocol_v2.method_profiles."
+BUDGET_BINDING_PREFIX = "survey_protocol_v2.budgets."
 
 #: Top-level manifest fields a registry-bound run must carry (D-P4.1-9).  They
 #: belong on the manifest's top level and never inside ``representation``, whose
@@ -314,7 +314,7 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
         "source_evidence": {
             "frozen_protocol": {
                 "type": "in_repo",
-                "file": "pu_toolbox/experiment/survey_protocol_v1.json",
+                "file": "pu_toolbox/experiment/survey_protocol_v2.json",
             },
             "project_method_ledger": {
                 "type": "in_repo",

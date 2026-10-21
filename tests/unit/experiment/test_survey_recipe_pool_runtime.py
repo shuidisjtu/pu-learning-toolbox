@@ -147,7 +147,7 @@ def test_basic_cli_single_pool_has_a_separate_namespace(survey_script, summary_c
     args = [
         str(source),
         "--protocol",
-        "survey-v1.2",
+        "survey-v2.0",
         "--dataset",
         "spambase",
         "--method",

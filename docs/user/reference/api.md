@@ -1821,8 +1821,9 @@ PN oracle 的 `CleanLabelGenerator` 维持既有字段（`mechanism` / `c_realiz
 首次失败后成功的候选标为 `recovered`；再次失败则标为 `excluded` 并从 PA/OA 选模池排除。
 manifest 的 `candidate_runs` 保存候选到有效 trajectory 的映射，`failures` 保存异常类型与消息；
 
-Survey 的版本化运行通过脚本 `--protocol survey-v1.2 --dataset ...` 启动
-（`survey-v1`/`survey-v1.1` 保留为当前规格别名，实际版本写入 manifest）。
+Survey 的版本化运行通过脚本 `--protocol survey-v2.0 --dataset ...` 启动
+（`survey-v1`/`survey-v1.1`/`survey-v1.2` 解析到冻结的 v1.2 矩阵，`survey-v2.0` 解析到当前矩阵；
+版本名与文件一一对应，实际版本写入 manifest）。
 `config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
 预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
 
@@ -1848,7 +1849,9 @@ JSON/CSV 保留逐 seed、逐选择准则的候选身份，不把池或整行写
 
 额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
 `representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与
-`formal_eligible`/`formal_blockers`。无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。
+`formal_eligible`/`formal_blockers`。协议声明 `review_items` 时，运行还记录
+`protocol_pending_review_items`（仍未通过合作者复核的条目 id；不改变正式资格判定）。
+无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。
 `survey_protocol.validate_comparable_manifests` 默认拒绝非正式结果及路径/预算/表征/标记不一致。
 构造参数/候选覆盖锁定字段会在训练前失败；绑定运行的协议预检失败也写拒绝 manifest。
 

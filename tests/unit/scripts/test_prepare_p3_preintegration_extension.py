@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from pu_toolbox.experiment.survey_artifacts import survey_artifact_ref
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol
+from pu_toolbox.experiment.survey_protocol import digest, load_protocol, resolve_protocol_path
 
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location(
@@ -17,6 +17,11 @@ spec = importlib.util.spec_from_file_location(
 draft = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(draft)
 pytestmark = pytest.mark.unit
+
+
+def dated_protocol():
+    """The frozen protocol this recorded handoff was prepared against."""
+    return load_protocol(resolve_protocol_path(draft.DATED_PROTOCOL))
 
 
 def ledger():
@@ -33,19 +38,19 @@ def test_edge_unicode_ledger_read_is_independent_of_windows_default_encoding(mon
         return original(path, *args, **kwargs)
 
     monkeypatch.setattr(Path, "read_text", windows_default)
-    assert len(draft.build_extension(ledger(), load_protocol())["candidates"]) == 5
+    assert len(draft.build_extension(ledger(), dated_protocol())["candidates"]) == 5
 
 
 def test_basic_determ_generated_extension_matches_recorded_draft_and_sources():
-    report = draft.build_extension(ledger(), load_protocol())
+    report = draft.build_extension(ledger(), dated_protocol())
     recorded = json.loads(
         (ROOT / "docs/research/pu_survey/data/p3_preintegration_extension_v1_draft.json").read_text(
             encoding="utf-8"
         )
     )
     assert report == recorded
-    assert draft.build_extension(ledger(), load_protocol()) == report
-    assert report["frozen_protocol_sha256"] == digest(load_protocol())
+    assert draft.build_extension(ledger(), dated_protocol()) == report
+    assert report["frozen_protocol_sha256"] == digest(dated_protocol())
     assert len(report["candidates"]) == 5
     for entry in report["candidates"]:
         assert entry["storage_evidence_ref"] == survey_artifact_ref(
@@ -62,7 +67,7 @@ def test_basic_determ_generated_extension_matches_recorded_draft_and_sources():
 
 
 def test_edge_null_candidates_empty_signatures_keep_p3mix_unadmitted_and_source_immutable():
-    facts, protocol = ledger(), load_protocol()
+    facts, protocol = ledger(), dated_protocol()
     before = copy.deepcopy((facts, protocol))
     report = draft.build_extension(facts, protocol)
     for entry in report["candidates"]:
@@ -111,7 +116,7 @@ def test_edge_null_candidates_empty_signatures_keep_p3mix_unadmitted_and_source_
 
 @pytest.mark.parametrize("fault", ["missing_method", "missing_fact", "bad_flag", "old_admission"])
 def test_param_inconsistent_source_or_old_admission_fails_closed(fault):
-    facts, protocol = ledger(), load_protocol()
+    facts, protocol = ledger(), dated_protocol()
     if fault == "missing_method":
         del facts["methods"]["pan"]
     elif fault == "missing_fact":

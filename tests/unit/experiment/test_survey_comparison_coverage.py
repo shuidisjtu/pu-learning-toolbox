@@ -1,5 +1,5 @@
 # ruff: noqa: N803, N806
-"""Coverage of the pre-registered comparison matrix against survey-v1.2."""
+"""Coverage of the pre-registered comparison matrix against survey-v2.0."""
 
 import json
 from collections import Counter
@@ -16,7 +16,7 @@ from pu_toolbox.experiment.survey_protocol import load_protocol
 
 pytestmark = pytest.mark.unit
 
-#: Pinned for survey-v1.2.  A protocol bump must change this deliberately, not
+#: Pinned for survey-v2.0.  A protocol bump must change this deliberately, not
 #: silently: 18 runnable PU rows x (3 SCAR c x PA/OA + 2 SAR mechanisms x 2 c x OA)
 #: + 3 c-independent oracle units + 4 non-runnable rows.
 EXPECTED_UNITS = 187
@@ -179,7 +179,7 @@ def test_edge_typoed_token_is_caught_either_way(survey, comparison):
 def test_basic_shipped_file_binds_the_pinned_protocol_and_excludes_preintegration(survey):
     assert COMPARISON_PATH.is_file()
     shipped = load_comparison_protocol(survey=survey)
-    assert shipped["comparison_version"] == "survey-comparison-v3"
+    assert shipped["comparison_version"] == "survey-comparison-v4"
     # Grad-PU and PUET are not in the survey matrix, so they must not be pre-registered.
     blob = json.dumps(shipped).lower()
     for absent in ("grad_pu", "gradpu", "puet"):

@@ -1,0 +1,663 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "survey-v2.0",
+  "review_status": "accepted",
+  "review_items": [
+    {
+      "item_id": "v2_p1_pa_oa_selection",
+      "title": "PA results use pu_val-selected configurations only; OA uses clean_val",
+      "sections": [
+        "1.2"
+      ],
+      "origin": "A1",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p2_calibration_definition",
+      "title": "Calibration operational definition, 'not applicable' category and common approximations",
+      "sections": [
+        "2.3"
+      ],
+      "origin": "A2",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p3_sampling_adjudication",
+      "title": "Sampling-assumption adjudication: paper first, reference code only when silent",
+      "sections": [
+        "2.3"
+      ],
+      "origin": "A2",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p4_clean_support_policy",
+      "title": "Training-time clean support: source, size, label budget, coverage and PA path",
+      "sections": [
+        "2.4"
+      ],
+      "origin": "A3",
+      "status": "pending_collaborator_review"
+    },
+    {
+      "item_id": "v2_p5_architecture_exception",
+      "title": "Architecture-exception criterion and the SHOULD shared-architecture comparison",
+      "sections": [
+        "2.5"
+      ],
+      "origin": "A4",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p6_canonical_prior",
+      "title": "Canonical prior pi and the per-view pi_U conversion",
+      "sections": [
+        "3"
+      ],
+      "origin": "A5",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p7_ledger_fields",
+      "title": "Ledger records the adjudication basis, prior semantics and calibration applicability",
+      "sections": [
+        "4"
+      ],
+      "origin": "A6",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p8_clean_support_presentation",
+      "title": "PA+clean-support is listed separately in the SCAR-PA table",
+      "sections": [
+        "5"
+      ],
+      "origin": "A7",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p9_pa_default",
+      "title": "Main table defaults to PA selection; OA configurations are recorded for reference",
+      "sections": [
+        "5"
+      ],
+      "origin": "Q2",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21",
+      "note": "decision record only; no body text change"
+    },
+    {
+      "item_id": "v2_p10_self_pu_scope",
+      "title": "method_profiles.self_pu stays the no-meta ablation; the full variant needs new units",
+      "sections": [
+        "2.4"
+      ],
+      "origin": "decision",
+      "status": "pending_collaborator_review",
+      "note": "decision record only; no execution-unit change"
+    }
+  ],
+  "result_scope": "pilot / partial benchmark",
+  "selection_spec": {
+    "checkpoint_schema_version": "1.0",
+    "training": "one fixed-budget fit per candidate; snapshots before internal restoration",
+    "epoch_selection": "independent_offline_per_protocol",
+    "self_pu_components": "both EMA teachers at every epoch",
+    "pa_criterion": "pu_val_proxy_accuracy (Wang et al. 2026 Def. 1, OS branch); per-checkpoint val-side min-max threshold grid; population class prior required; collaborator acceptance pending; methods requiring training-time clean support report a separate PA+clean-support variant in the same SCAR-PA table, annotated and excluded from pure-PU PA advantage comparisons.",
+    "oa_criterion": "clean_val_accuracy; per-checkpoint val-side min-max threshold grid",
+    "tie_breaking": "earliest candidate, then earliest epoch/component, then earliest threshold",
+    "checkpoint_format": "weights_only; inference snapshots, not optimizer resume"
+  },
+  "selection_spec_kind": "descriptive_documentation",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "c_tokens": {
+    "scar": [
+      "0.1",
+      "0.3",
+      "0.5"
+    ],
+    "sar_lbe_a": [
+      "0.05",
+      "0.5"
+    ],
+    "sar_lbe_b": [
+      "0.05",
+      "0.5"
+    ]
+  },
+  "candidate_pool": [
+    {}
+  ],
+  "backbone_specs": {
+    "mlp128": {
+      "hidden_dims": [
+        128
+      ],
+      "activation": "relu",
+      "output_dim": 1,
+      "initialization": "seeded_random",
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "image": {
+      "name": "resnet18",
+      "weights": null,
+      "initialization": "seeded_random",
+      "in_channels": 3,
+      "input_size": [
+        32,
+        32
+      ],
+      "small_input_stem": true,
+      "normalization": "train_only_channel_statistics",
+      "train_augmentation": "none",
+      "adapter_encoder_fit": "none",
+      "adapter_shared_scope": "dataset/split/seed; independent of method/c/mechanism",
+      "adapter_cache_schema": "1.0"
+    }
+  },
+  "budgets": {
+    "closed_form": {
+      "unit": "one_closed_form_fit",
+      "outer_candidates": 1
+    },
+    "minibatch": {
+      "unit": "epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "two_student_sampled": {
+      "unit": "two_student_sampled_epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "optimizer_steps_per_epoch": 2,
+      "sampled_examples_per_step_max": 512,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "fullbatch": {
+      "unit": "full_train_gradient_steps",
+      "epochs": 200,
+      "batch_size": "full_train; estimator batch_size is unused",
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "alternating": {
+      "unit": "alternating_solver",
+      "max_acs_iter": 50,
+      "max_inner_iter": 2000,
+      "outer_candidates": 1
+    },
+    "kernel_cv": {
+      "unit": "kernel_cv_fit",
+      "outer_candidates": 1,
+      "internal_cv_folds": 5,
+      "internal_hyperparameter_pairs": 72,
+      "max_iter": 200,
+      "internal_search_counts_in_total_cost": true
+    },
+    "em": {
+      "unit": "em_fit",
+      "n_em_iter": 20,
+      "max_iter": 1000,
+      "outer_candidates": 1
+    }
+  },
+  "method_profiles": {
+    "upu": {
+      "budget": "closed_form",
+      "params": {
+        "loss": "squared",
+        "basis": "linear",
+        "fit_intercept": false,
+        "max_iter": 1000
+      },
+      "model_family": "linear",
+      "group": "classical"
+    },
+    "nnpu": {
+      "budget": "minibatch",
+      "params": {
+        "max_epochs": 200,
+        "batch_size": 256,
+        "patience": 201,
+        "optimizer": null
+      },
+      "model_family": "mlp128",
+      "group": "minibatch"
+    },
+    "kldce": {
+      "budget": "alternating",
+      "params": {
+        "max_acs_iter": 50,
+        "max_inner_iter": 2000
+      },
+      "model_family": "kernel",
+      "group": "classical"
+    },
+    "dist_pu": {
+      "budget": "fullbatch",
+      "params": {
+        "hidden_dim": 128,
+        "epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001
+      },
+      "model_family": "mlp128",
+      "group": "fullbatch"
+    },
+    "pusb_kernel": {
+      "budget": "kernel_cv",
+      "params": {
+        "n_basis": 300,
+        "cv": 5,
+        "max_iter": 200,
+        "sigma_grid": [
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          2,
+          5,
+          10,
+          20
+        ],
+        "reg_grid": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          5
+        ]
+      },
+      "model_family": "kernel",
+      "group": "classical"
+    },
+    "lbe": {
+      "budget": "em",
+      "params": {
+        "max_iter": 1000,
+        "n_em_iter": 20
+      },
+      "model_family": "linear_em",
+      "group": "classical"
+    },
+    "self_pu": {
+      "budget": "two_student_sampled",
+      "params": {
+        "hidden_dim": 128,
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001,
+        "require_validation": false
+      },
+      "model_family": "mlp128",
+      "group": "two_student_sampled"
+    },
+    "pn_oracle": {
+      "budget": "minibatch",
+      "params": {
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001
+      },
+      "model_family": "mlp128",
+      "group": "minibatch"
+    }
+  },
+  "execution_units": [
+    {
+      "dataset": "spambase",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "alternating",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": false,
+      "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
+    },
+    {
+      "dataset": "spambase",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "alternating",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": false,
+      "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
+    },
+    {
+      "dataset": "imdb",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "kldce",
+      "training_path": "cnn_feature_adapter",
+      "budget": "alternating",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": false,
+      "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
+    },
+    {
+      "dataset": "cifar10",
+      "method": "dist_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pusb_kernel",
+      "training_path": "cnn_feature_adapter",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "lbe",
+      "training_path": "cnn_feature_adapter",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "self_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": false,
+      "non_runnable_reason": "CNN oracle is Phase 2, not runnable in this pilot binding"
+    }
+  ],
+  "formal_blockers": [
+    "per_epoch_independent_PA_OA_checkpoint_selection"
+  ],
+  "decisions": [
+    "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
+    "Native CNN and adapter rankings are strictly separate.",
+    "Full-batch Dist-PU is not budget-equivalent to mini-batch methods; unmatched oracle remains separate.",
+    "Classical methods have no MLP backbone; no neural oracle is claimed to be backbone-matched.",
+    "CNN oracle remains Phase 2; unsupported row fails before training.",
+    "Completed-epoch weights are selected independently offline; inference checkpoints do not resume optimizer training.",
+    "PA selects on the generated pu_val view by proxy accuracy (Wang et al. 2026 Definition 1, OS branch) over the same per-checkpoint val-side min-max threshold grid OA uses; the population class prior pi is required per run (from the run's class_prior, else the split artifact's class_prior.population) and a run without it fails loudly. Formal SCAR PA acceptance remains pending the collaborator's signature.",
+    "KLDCE is non-runnable until flip_probability is bound at runtime; flip_probability = 1 - c is valid only under SCAR, while SAR requires a separate reject/value/deviation decision.",
+    "Self-PU uses two sampled optimizer steps per epoch, not a full traversal, and has no budget-matched mini-batch oracle; its comparability group is separate.",
+    "selection_spec is descriptive documentation; runner behavior is enforced by code and checkpoint tests, not by dynamically consuming this prose field.",
+    "Implementing the PA criterion does not by itself unblock the pre-registered PA units: the 54 blocked_pending_pa_criterion mappings stay blocked until the P2.0c review rules on them.",
+    "Sampling-assumption adjudication follows the paper first; the reference code is used only when the paper is silent, and paper/code differences are registered.",
+    "Native-TS methods use TS-compatible calibration (D_U <- D_U union D_P) on OS data; this is not TS data resampling.",
+    "The canonical prior is population pi; pi_U = pi under the ts view and pi_U = (pi*n - n_L)/(n - n_L) under the SCAR os view.",
+    "Architecture exceptions are limited to architectures or recipes required by the method mechanism or the paper; author-code implementation choices are not exceptions.",
+    "The main table defaults to PA selection; OA configurations are recorded for reference (Q2).",
+    "Architecture-exception methods remain single-listed; a shared-architecture comparison run SHOULD be provided when feasible, and its absence is noted in the result table/method card (Q1).",
+    "PA+clean-support results are listed in the same SCAR-PA table with an explicit annotation and are excluded from pure-PU PA advantage comparisons (Q3).",
+    "Training-time clean support is required by PULNS, LaGAM, and the full Self-PU branch; the no-clean Self-PU path is an explicit ablation. Support is disjoint from the remaining train, pu_val, clean_val, and test; this round carves it from train and removes it, sized 100 for Spambase and 500 otherwise, and its positive and negative labels count toward the training-time label budget (approved 2026-10-21).",
+    "This round covers Spambase, Connect-4, MNIST, F-MNIST, and CIFAR-10 only; IMDB, 20News, and ADNI are excluded from PA+clean-support.",
+    "The formal PA+clean-support runner is a P3.2 implementation gate; until it lands, only OA clean-support results are reported. Existing self_pu execution units retain the no-meta ablation profile; full Self-PU rows require new clean-support units in P3.2.",
+    "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant will use a separate profile and units when the P3.2 support runner lands."
+  ]
+}

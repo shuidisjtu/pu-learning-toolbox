@@ -218,7 +218,7 @@ class TestViewScopedPaths:
             "--dataset",
             "spambase",
             "--protocol",
-            "survey-v1.2",
+            "survey-v2.0",
             "--seeds",
             "0",
             "--c",

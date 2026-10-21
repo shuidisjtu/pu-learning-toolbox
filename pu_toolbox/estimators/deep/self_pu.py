@@ -271,6 +271,11 @@ def _as_logits(output: Any) -> Any:
     raise ValueError("backbone must return shape (n_samples,) or (n_samples, 1).")
 
 
+def _forward(module: Any, inputs: Any) -> Any:
+    """Call a module on a private copy so in-place backbones cannot mutate inputs."""
+    return module(inputs.clone())
+
+
 class SelfPUClassifier(BasePUClassifier):
     """Self-PU classifier with two paced students and EMA teachers.
 
@@ -543,7 +548,7 @@ class SelfPUClassifier(BasePUClassifier):
             name: parameter - self.meta_step_size * gradient
             for (name, parameter), gradient in zip(named_parameters.items(), gradients, strict=True)
         }
-        validation_logits = _as_logits(functional_call(model, updated, (X_val,)))
+        validation_logits = _as_logits(functional_call(model, updated, (X_val.clone(),)))
         validation_loss = F.binary_cross_entropy_with_logits(validation_logits, y_val)
         meta_gradient = torch.autograd.grad(validation_loss, meta)[0]
         weights_np, statistics = calibrate_meta_weights(
@@ -663,7 +668,7 @@ class SelfPUClassifier(BasePUClassifier):
 
         base_model = self._make_model(input_shape, device)
         with torch.no_grad():
-            _as_logits(base_model(tx[:1]))
+            _as_logits(_forward(base_model, tx[:1]))
         self.student_1_ = copy.deepcopy(base_model)
         self.student_2_ = copy.deepcopy(base_model)
         self.teacher_1_ = copy.deepcopy(base_model)
@@ -728,7 +733,9 @@ class SelfPUClassifier(BasePUClassifier):
                 student.eval()
                 with torch.no_grad():
                     probabilities = (
-                        torch.sigmoid(_as_logits(student(tx[unlabeled_global]))).cpu().numpy()
+                        torch.sigmoid(_as_logits(_forward(student, tx[unlabeled_global])))
+                        .cpu()
+                        .numpy()
                     )
                 final_size = int(math.floor(pace_ratio * len(unlabeled_global)))
                 target = dynamic_trust_target(
@@ -760,11 +767,11 @@ class SelfPUClassifier(BasePUClassifier):
                 if self.distillation_scope == "paper_population":
                     x_population_batch = torch.cat([x_positive, x_unlabeled], dim=0)
                     cached_student_population_probabilities = [
-                        torch.sigmoid(_as_logits(student(x_population_batch)))
+                        torch.sigmoid(_as_logits(_forward(student, x_population_batch)))
                         for student in students
                     ]
                     cached_teacher_population_probabilities = [
-                        torch.sigmoid(_as_logits(teacher(x_population_batch)))
+                        torch.sigmoid(_as_logits(_forward(teacher, x_population_batch)))
                         for teacher in teachers
                     ]
                     n_positive_batch = len(positive_batch)
@@ -786,10 +793,12 @@ class SelfPUClassifier(BasePUClassifier):
                     ]
                 else:
                     cached_student_probabilities = [
-                        torch.sigmoid(_as_logits(student(x_unlabeled))) for student in students
+                        torch.sigmoid(_as_logits(_forward(student, x_unlabeled)))
+                        for student in students
                     ]
                     cached_teacher_probabilities = [
-                        torch.sigmoid(_as_logits(teacher(x_unlabeled))) for teacher in teachers
+                        torch.sigmoid(_as_logits(_forward(teacher, x_unlabeled)))
+                        for teacher in teachers
                     ]
 
             for index, (student, teacher, manager, optimizer) in enumerate(
@@ -802,8 +811,8 @@ class SelfPUClassifier(BasePUClassifier):
                 )
             ):
                 student.train()
-                positive_logits = _as_logits(student(x_positive))
-                unlabeled_logits = _as_logits(student(x_unlabeled))
+                positive_logits = _as_logits(_forward(student, x_positive))
+                unlabeled_logits = _as_logits(_forward(student, x_unlabeled))
                 # Computed once: under the calibrated view the same tensor feeds
                 # both the correction term and the positive side of the marginal.
                 positive_negative_losses = torch.sigmoid(positive_logits)
@@ -1022,7 +1031,7 @@ class SelfPUClassifier(BasePUClassifier):
             with torch.no_grad():
                 for teacher in teachers:
                     prediction = (
-                        torch.sigmoid(_as_logits(teacher(tx_val))) >= self.threshold
+                        torch.sigmoid(_as_logits(_forward(teacher, tx_val))) >= self.threshold
                     ).float()
                     teacher_metrics.append(float((prediction == ty_val).float().mean().cpu()))
             self.teacher_selection_basis_ = "clean_validation_accuracy"
@@ -1041,8 +1050,8 @@ class SelfPUClassifier(BasePUClassifier):
         else:
             with torch.no_grad():
                 for teacher in teachers:
-                    p_scores = _as_logits(teacher(tx[positive_global]))
-                    u_scores = _as_logits(teacher(tx[unlabeled_global]))
+                    p_scores = _as_logits(_forward(teacher, tx[positive_global]))
+                    u_scores = _as_logits(_forward(teacher, tx[unlabeled_global]))
                     p_plus = torch.sigmoid(-p_scores).mean()
                     p_minus = torch.sigmoid(p_scores).mean()
                     u_minus = torch.sigmoid(u_scores).mean()
@@ -1087,7 +1096,10 @@ class SelfPUClassifier(BasePUClassifier):
             self.best_teacher_.eval()
             with torch.no_grad():
                 logits = _as_logits(
-                    self.best_teacher_(torch.as_tensor(X, dtype=torch.float32, device=self.device_))
+                    _forward(
+                        self.best_teacher_,
+                        torch.as_tensor(X, dtype=torch.float32, device=self.device_),
+                    )
                 )
             return logits.cpu().numpy()
         finally:
@@ -1163,7 +1175,7 @@ def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, class_prio
     try:
         model.eval()
         with torch.no_grad():
-            scores = _as_logits(model(X_val))
+            scores = _as_logits(_forward(model, X_val))
             positive = torch.as_tensor(y_pu_val == 1, device=scores.device)
             unlabeled = ~positive
             positive_risk = class_prior * torch.sigmoid(-scores[positive]).mean()

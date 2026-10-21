@@ -184,7 +184,7 @@ pu_toolbox/
     strategies.py                         (内置策略: SCAR/SAR-LBE 生成、PA/OA 选模、Trainer 三实现、select_threshold)
     tracking.py                           (运行留痕数据类: EpochRecord/RunTrajectory/SelectionArtifact/RunResult)
     survey_execution.py                   (P2.0a 共享模型/图像装配、随机冻结 adapter 校验缓存与原空间 SAR 标记)
-    survey_protocol.py                    (survey_protocol_v1.json 消费、--protocol 名/路径统一解析、参数预算锁、正式资格与比较门禁)
+    survey_protocol.py                    (survey_protocol_v2.json 消费、--protocol 版本名/路径统一解析、参数预算锁、正式资格与比较门禁、review_items 待复核登记)
     checkpoints.py                        # 逐 epoch 权重快照、摘要校验与独立推理恢复
     survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
@@ -461,6 +461,7 @@ tests/
       test_survey_protocol.py           # 执行矩阵、runner 参数锁、比较公平性与正式结果阻断
       test_survey_protocol_validation.py # 执行矩阵审核字段/KLDCE 可运行性/Self-PU 独立预算门禁
       test_survey_protocol_cnn.py       # 真实 ResNet CPU 一 epoch smoke 与 encoder provenance 门禁
+      test_survey_protocol_review.py    # v1 归档字节绑定、v2 review_items 接受/待复核登记
       test_survey_script_protocol.py    # 版本化脚本、split/seed 对应、oracle 去重与 CIFAR 缓存命中
       test_checkpoint_selection.py      # PA/OA 不同 epoch 选择、无泄漏与独立恢复反例
       test_epoch_checkpoints.py         # 回调、权重快照、CPU/CUDA 保存加载与深度方法覆盖

@@ -3,10 +3,10 @@
   "recipe_registry_version": "survey-recipes-v0.1-draft",
   "recipe_lifecycle": "draft",
   "protocol_basis": {
-    "protocol_version": "survey-v1.2",
-    "protocol_sha256": "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a"
+    "protocol_version": "survey-v2.0",
+    "protocol_sha256": "0033d8105c98a4b053381a708d9dcbc46cc00c1f4e16cf21655a475c553a8956"
   },
-  "selection_spec_ref": "survey_protocol_v1.selection_spec",
+  "selection_spec_ref": "survey_protocol_v2.selection_spec",
   "profiles": {
     "upu": {
       "method": "upu",
@@ -24,8 +24,8 @@
           "native_2d"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.upu",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.upu",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "project_method_ledger"
@@ -44,7 +44,7 @@
         }
       ],
       "inner_search": null,
-      "budget_binding_ref": "survey_protocol_v1.budgets.closed_form",
+      "budget_binding_ref": "survey_protocol_v2.budgets.closed_form",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -69,8 +69,8 @@
           "native_cnn"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.nnpu",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.nnpu",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "project_method_ledger"
@@ -89,7 +89,7 @@
         }
       ],
       "inner_search": null,
-      "budget_binding_ref": "survey_protocol_v1.budgets.minibatch",
+      "budget_binding_ref": "survey_protocol_v2.budgets.minibatch",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -114,8 +114,8 @@
           "native_2d"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.kldce",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.kldce",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "project_method_ledger"
@@ -123,7 +123,7 @@
       "fixed_overrides": {},
       "candidate_pool": null,
       "inner_search": null,
-      "budget_binding_ref": "survey_protocol_v1.budgets.alternating",
+      "budget_binding_ref": "survey_protocol_v2.budgets.alternating",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -149,8 +149,8 @@
           "native_2d"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.dist_pu",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.dist_pu",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "project_method_ledger"
@@ -169,7 +169,7 @@
         }
       ],
       "inner_search": null,
-      "budget_binding_ref": "survey_protocol_v1.budgets.fullbatch",
+      "budget_binding_ref": "survey_protocol_v2.budgets.fullbatch",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -194,8 +194,8 @@
           "native_2d"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.pusb_kernel",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.pusb_kernel",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "project_method_ledger"
@@ -215,9 +215,9 @@
       ],
       "inner_search": {
         "inner_search_id": "pusb_kernel_internal_cv_v1",
-        "grid_ref": "survey_protocol_v1.method_profiles.pusb_kernel.params"
+        "grid_ref": "survey_protocol_v2.method_profiles.pusb_kernel.params"
       },
-      "budget_binding_ref": "survey_protocol_v1.budgets.kernel_cv",
+      "budget_binding_ref": "survey_protocol_v2.budgets.kernel_cv",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -242,8 +242,8 @@
           "native_2d"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.lbe",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.lbe",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "project_method_ledger"
@@ -262,7 +262,7 @@
         }
       ],
       "inner_search": null,
-      "budget_binding_ref": "survey_protocol_v1.budgets.em",
+      "budget_binding_ref": "survey_protocol_v2.budgets.em",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -287,8 +287,8 @@
           "native_2d"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.self_pu",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.self_pu",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "project_method_ledger"
@@ -307,7 +307,7 @@
         }
       ],
       "inner_search": null,
-      "budget_binding_ref": "survey_protocol_v1.budgets.two_student_sampled",
+      "budget_binding_ref": "survey_protocol_v2.budgets.two_student_sampled",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -333,8 +333,8 @@
           "native_cnn"
         ]
       },
-      "base_ref": "survey_protocol_v1.method_profiles.pn_oracle",
-      "selection_spec_ref": "survey_protocol_v1.selection_spec",
+      "base_ref": "survey_protocol_v2.method_profiles.pn_oracle",
+      "selection_spec_ref": "survey_protocol_v2.selection_spec",
       "source_refs": [
         "frozen_protocol",
         "pn_oracle_spec"
@@ -353,7 +353,7 @@
         }
       ],
       "inner_search": null,
-      "budget_binding_ref": "survey_protocol_v1.budgets.minibatch",
+      "budget_binding_ref": "survey_protocol_v2.budgets.minibatch",
       "review": {
         "reviewers": [],
         "open_questions": [
@@ -366,7 +366,7 @@
   "source_evidence": {
     "frozen_protocol": {
       "type": "in_repo",
-      "file": "pu_toolbox/experiment/survey_protocol_v1.json"
+      "file": "pu_toolbox/experiment/survey_protocol_v2.json"
     },
     "project_method_ledger": {
       "type": "in_repo",

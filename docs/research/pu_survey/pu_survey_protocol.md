@@ -9,6 +9,15 @@
 > 与双架构计划的关系见 [dual_architecture_plan.md §7](../../dev/dual_architecture_plan.md)；
 > 算法方法实现状态与台账见 [METHOD_CARDS](../method_cards/)。
 
+> **修订记录 2026-10-21**：Q1–Q3 与训练期 clean support（§2.4）定稿；新增采样假设
+> 判定顺序（论文优先）与“校准不适用”类别；明确先验规范定义与视图换算；
+> clean support 统一按 `PA+clean-support` 同表另列；明确架构例外判定标准与配方登记。
+> 见 §1.2、§2.3、§2.4、§2.5、§3、§4、§5。
+>
+> 本次新增条款的复核状态见 `pu_toolbox/experiment/survey_protocol_v2.json` 的
+> `review_items`：训练期 clean support 统一口径与 Self-PU 完整变体范围两项待合作者复核，
+> 其余按已确认记录（2026-10-21）。
+
 ## 0. 参考文献
 
 1. *Accessible, Realistic, and Fair Evaluation of Positive-Unlabeled Learning Algorithms*
@@ -35,6 +44,9 @@
   标签测试集上汇报 Accuracy 的五次重复均值与标准差。AUC、F1 score、Precision、Recall
   仅作为最终测试阶段的附加指标记录在日志中；它们不参与超参数或 checkpoint 选择，也不与
   PA/OA 合成为单一分数。
+  PA 与 OA 的候选超参数、checkpoint 与阈值必须分别来自各自的协议：PA 结果只能使用在
+  `pu_val` 上选出的配置，OA 结果使用在 `clean_val` 上选出的配置；不得用 OA 选出的配置
+  报告 PA 结果。
 - 目标 1 中"特定情况"指原始数据集本身、数据抽样方式、backbone、测试指标、class prior、
   标注概率、以及其它相关参数：例如参考文献 2 中研究的训练时间和峰值 GPU 内存。
 - 目标 2 中的"标记频率"是指真实正例中被标注为正例标签的平均比例，即参考文献 1、2 中的
@@ -94,6 +106,24 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    > 但**不得**充当 PA/OA 选模准则；确需以其选模时，必须改用符合本条的 OS 视图并单独成文。
    > 该量在方法 card 中因此须同时记录其上游定义与本条限制（见决策 D22）。
 
+   > **校准的通用表述**：「训练期未标记风险项的作用集合为 $`D_U \cup D_P`$」是本协议对
+   > 校准的操作定义。非 mini-batch 方法的等价实现视为校准，例如 PUET 树模型在 TS 视图下
+   > 把正例行同时复制为未标记风险角色（“逐树根”实现）；协议不要求形式上的 mini-batch。
+   >
+   > **校准不适用**：原生 TS、但不存在可替换未标记风险项的方法（如 PULNS 的奖励式训练、
+   > PUSB 的 D20② 判定），可以 `os` 视图运行；须在方法卡与台账论证“为何不存在可替换的
+   > 未标记风险项”并登记，与“应校准而未校准”区分。未标记风险项可替换的原生 TS 方法必须
+   > 校准（CVIR 据此重新裁决，除非另有论证）。
+   >
+   > **共性近似（在此统一登记，不在各方法卡重复）**：
+   > - 校准视图下 $`D_P \subset D_U'`$，P 与 U 不独立，与严格 case-control 有差异；
+   > - mini-batch 均衡抽样下 $`U \cup P`$ 不精确等于总体混合比例（见 #122 表征）。
+
+   > **采样假设判定顺序**：方法原生假设（`native_sampling_assumption`）以原始论文为准；
+   > 论文与参考代码不一致时仍以论文为准，并在方法卡/台账登记差异；论文未明确时以参考
+   > 代码为准，并登记“论文未声明、按代码判定”。该顺序只用于采样假设判定，不自动适用于
+   > 损失公式、超参数等其他论文/代码差异（后者逐案裁决）。
+
 2. 原始数据集生成 PU 数据集时，对正标签的观测采用标记频率 **label ratio / label frequency**
    $`c\in\{0.1,0.3,0.5\}`$。研究 $`c`$ 时固定同一数据集的总体类先验 $`\pi`$、数据划分、标注机制及
    其余实验参数；具体 OS 标记方式见参考文献 1。SCAR 以 $`n_{L}=\mathrm{round}(c n_{+})`$ 为
@@ -116,8 +146,18 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
 1. `train` 仅含 PU 标签，用于训练；`pu_val` 仅含标记正例与未标记样本，供 PA 选模；
    `clean_val` 含真实标签，仅供 OA oracle 对照；`test` 含真实标签，但不得参与模型选择。
-2. PA 执行不得向模型或回调暴露 `clean_val`/`test`，OA 才注入 `clean_val`。无法移除真实
-   验证标签依赖的方法标为 `PA-ineligible`，仅进入 OA/补充表。
+2. PA 执行不得向模型或回调暴露 `clean_val`/`test`，OA 才注入 `clean_val`。算法显式声明
+   训练期需要 clean 标签时，按“真实标签知悉最小化”原则提供所需 clean support，并在
+   方法卡/台账备注来源与规模；这类方法最终须同时报告 PA 与 OA 两种选模协议下的结果，其 PA 结果
+   标注为 `PA + 训练期 clean support`（建议标签 `PA+clean-support`），与纯 PU 的 PA
+   同表另列，不参与纯 PU 的 PA 优势比较。clean support 与 train、pu_val、clean_val、
+   test 的角色成员互斥；本轮从四路 split 后的 train 中均匀抽取并从 train 移除，
+   登记为 benchmark-adapted 而非原文复现；规模为 Spambase 100、其余 500；
+   support 正负标签均计入训练期真实标签预算
+   （`budget_approval=approved_by_protocol_owner_20261021`）。本轮仅覆盖 Spambase、
+   Connect-4、MNIST、F-MNIST、CIFAR-10；IMDB、20News、ADNI 排除。`PA+clean-support`
+   的正式执行路径作为 P3.2 实现门；路径完成前只报 OA，不把 OA 冒充 PA。PA 运行下
+   不得复用 `clean_val`/`test` 作为 clean support。
 
 **（二）切分与重生成规则**
 
@@ -196,6 +236,12 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 6. 所有可学习预处理统计量仅在该 seed 的 `train` 拟合并冻结，图像增强仅用于训练。文本须记录
    `all-MiniLM-L6-v2` 的模型 revision、384 维输出及 embedding cache hash。
 
+**“算法本身有要求”的判定标准**：仅当论文把该架构/配方作为方法的一部分、或方法机制
+依赖它时，才构成统一架构的例外；仅为作者代码的实现选择（可替换的 backbone、优化器等）
+不构成例外，统一改用本协议 §2.5 的共享架构。构成例外的方法须在方法卡/台账登记论文
+依据与证据，并按第 4–5 条单列报告；应尽量（SHOULD，非准入硬门槛）另提供一份共享
+架构的运行结果作对照，未提供时在结果表/方法卡注明缺失原因。
+
 #### 与双架构扩展计划的关系
 
 双架构计划的结论：**双架构计划不是文本 SBERT 向量或表格 MLP 路径的前置条件；它是完成图像
@@ -209,6 +255,25 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    完整二元化数据池（分层划分前的完整池）的正例经验比例，故其为所有 seed 共享的常量；它是
    数据生成 metadata，不从 PU 标签、`train`、`U` 或 `test` 子集反推。扫描标记频率 $`c`$ 时固定
    每个数据集的 $`\pi_{population}`$，并在每次运行的 metadata 中记录三者及实际实现的 $`c`$；
+
+   **规范先验**：以 $`\pi=\pi_{population}=P(Y=1)`$ 为唯一规范先验。需要未标记池先验的
+   方法按训练视图换算：
+
+   | 视图 | 未标记池 | $`\pi_U`$ |
+   |---|---|---|
+   | `ts`（校准后） | $`D_U \cup D_P`$，近似总体边缘 | $`\pi_U = \pi`$ |
+   | `os`（SCAR，标记频率 $`c`$） | 仅未标记部分 | $`\pi_U = \pi(1-c)/(1-\pi c)`$ |
+
+   本实验采用 $`n_L=\mathrm{round}(c n_+)`$ 固定抽样，可用
+   $`\pi_U = (\pi n - n_L)/(n - n_L)`$ 计算（$`n`$ 为 train 总样本数），与上式等价，
+   只依赖 known-prior 设定下的 $`\pi`$ 与 PU 标签计数。
+
+   Survey 实验层须保证每个方法实际训练所用视图与其先验匹配：`ts` 视图传 $`\pi`$，
+   `os` 视图下需要未标记池比例的方法传换算后的 $`\pi_U`$。调用方只提供 $`\pi`$；
+   视图与先验的对应关系由实验层记录到 run metadata。工具箱独立调用场景的 API 设计
+   推迟，不在本协议范围。先验估计器须在台账登记其输出量语义（如标记频率 $`c`$、
+   混合比例），并转换为 $`\pi`$ 后再进入下游。
+
 2. 主实验可向需要总体类先验的算法和 PA 传入真实 $`\pi_{population}`$，但结果必须标注为
    `known-prior`（oracle-prior）设定。不得将 $`\pi_{U}`$ 或 $`\pi_{train}`$ 不加区分地传入所有名为
    `class_prior` 的参数；具体参数语义以算法原文和官方实现为准；
@@ -230,6 +295,11 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 `run_view`（OS/TS-compatible）、`calibration_applied`、`prior_semantics`、`adaptation_level`
 （`source-faithful`/`benchmark-adapted`）、支持模态与 backbone。
 
+`native_sampling_assumption` 的判定依据按 §2.3 的判定顺序登记（论文 / 代码 / 论文未声明、
+按代码判定），并记录论文与代码的差异。`prior_semantics` 须写明参数语义是 $`\pi`$、
+$`\pi_U`$ 还是无需先验；`calibration_applied=false` 的原生 TS 方法须同时登记属于
+“校准不适用”还是“应校准而未校准”。
+
 每个"数据集 × 方法"须通过可运行、先验语义确认、OS/TS 状态明确与 backbone 路径可比四项门禁后
 才能进入主榜；未通过者公开列出原因。完整主榜以 22 个目标方法全部通过相应门禁为发布条件；
 在此之前只可发布明确标为 `pilot / partial benchmark` 的部分结果。
@@ -242,7 +312,9 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 
 1. 结果固定分为四组，且不混合排名：SCAR--PA 主榜、SCAR--OA oracle 对照、SAR--OA 压力测试
    （LBE-A、LBE-B 分开）和 PN oracle。每组按数据集、训练路径（表格 `native_2d`／端到端 CNN／
-   feature-adapter）和原生假设分层；跨数据集只比较趋势，不生成总排名；
+   feature-adapter）和原生假设分层；跨数据集只比较趋势，不生成总排名。
+   `PA+clean-support` 与纯 PU 的 PA 同表另列并显式标注，不参与纯 PU 的 PA 优势比较；
+   其 support 来源、规模与标签预算按 §2.4 第 2 条登记。
 2. "具有优势"仅在同一数据集、$`c`$、协议和训练路径内，以独立 `test` Accuracy 五次重复均值
    比较；同步报告标准差、单配置训练成本、完整调参成本和峰值显存。暂不预设显著性检验门槛；
 3. 所有方法在同一数据集、$`c`$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/

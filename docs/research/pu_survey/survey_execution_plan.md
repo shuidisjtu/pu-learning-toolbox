@@ -2,7 +2,8 @@
 
 > 本文件只维护 Survey 的任务分工、验收边界、风险与留痕约定，以及仍影响执行的决策摘要。
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
-> `pu_toolbox/experiment/survey_protocol_v1.json` 与 `survey_comparison_v3.json` 为准。
+> `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
+> `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
 > 状态核对日期：**2026-10-19**；RV1/RV2 验收基线为 PR #110 的 `8b4e751`。
 > 复核责任明确归属 **shuidisjtu** 或 **HENG958**；代理检查不能代替二人的签署。
 > RV1/RV2 与 P1.4-R 已由用户接受技术复核证据并确认完成，不再要求额外人工签署，见对应验收记录。
