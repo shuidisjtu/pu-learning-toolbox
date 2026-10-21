@@ -22,6 +22,8 @@ Northcutt, Wu, Chuang, UAI 2017：[原文](https://auai.org/uai2017/proceedings/
 `frac_pos2neg`，但排序仍使用 OOF。按 U 中概率最高的样本删去估计噪声数，默认每类至少留 10 个；
 作者使用严格概率阈值，ties 保留，因此实际删除数可能小于预算。P 完全保留。
 最终在保留集重新拟合，P 权重 1/(1−ρ₁)，U 权重 1。内部重权不是外部 sample_weight 支持。
+外部 `class_prior` 只做范围校验后被忽略（π/ρ₁ 均由内部估计）；手工 `frac_pos2neg`
+同样只做范围校验，来源须由调用方登记，禁止由 test 真值或 test 驱动调参产生。
 
 ## 校准与实现差异
 
