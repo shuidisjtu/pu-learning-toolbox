@@ -200,6 +200,7 @@ pu_toolbox/
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
     support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
+    genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -223,6 +224,7 @@ tests/
     test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
     test_lagam_paper_review.py          # LaGAM 全文身份、来源分歧和未签署准入边界
     test_clean_support_materialization_receipt.py # 本机制品清单的覆盖/摘要与非正式边界（CI 不读 raw）
+    test_genpu_recipe_validation_receipt.py # GEN-PU 双 batch GPU 收据摘要、成本与非正式范围契约
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -406,6 +408,7 @@ tests/
       test_clean_support_execution.py   # 三方法 CPU 实训、显式预算、OA 模型回放与告警拒收
       test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
       test_clean_support_checkpoint_execution.py # support 双轨 CLI、计划身份及选中模型回放
+      test_genpu_recipe_execution.py    # GEN-PU 计划摘要、实际双轨 CLI、选后回收与模型回放
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -563,6 +566,7 @@ tests/
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
       test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
+      test_genpu_recipe.py              # GEN-PU 配方早拒绝、六网络真实成本与默认训练逐位对照
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -913,6 +917,7 @@ scripts/
   _source_provenance.py                   # 临时实验脚本仓库与实际加载源码身份分离
   prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
+  run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
 ```
 
 ## 7. CI/CD（`.github/`）

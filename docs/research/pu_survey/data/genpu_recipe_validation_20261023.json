@@ -1,0 +1,594 @@
+{
+  "schema_version": "genpu-recipe-validation-receipt-v1",
+  "date": "2026-10-23",
+  "scope": "single_candidate_real_CIFAR_predeclared_subset_GPU_engineering_only",
+  "formal_admission": false,
+  "formal_budget_approved": false,
+  "owner_signatures": [],
+  "full_dataset_or_multiseed_effectiveness_verified": false,
+  "artifact_root": "data/genpu-cifar-smoke-20261023-p2ecu5tn",
+  "artifacts_in_git": false,
+  "input_receipt": {
+    "scope": "predeclared_real_raw_subset_engineering_only",
+    "raw_dir": "data/cifar-ranged-20261022-3ow3dxtc",
+    "raw_files_sha256": {
+      "cifar-10-batches-py/data_batch_1": "54636561a3ce25bd3e19253c6b0d8538147b0ae398331ac4a2d86c6d987368cd",
+      "cifar-10-batches-py/data_batch_2": "766b2cef9fbc745cf056b3152224f7cf77163b330ea9a15f9392beb8b89bc5a8",
+      "cifar-10-batches-py/data_batch_3": "0f00d98ebfb30b3ec0ad19f9756dc2630b89003e10525f5e148445e82aa6a1f9",
+      "cifar-10-batches-py/data_batch_4": "3f7bb240661948b8f4d53e36ec720d8306f5668bd0071dcb4e6c947f78e9682b",
+      "cifar-10-batches-py/data_batch_5": "d91802434d8376bbaeeadf58a737e3a1b12ac839077e931237e0dcd43adcb154",
+      "cifar-10-batches-py/test_batch": "f53d8d457504f7cff4ea9e021afcf0e0ad8e24a91f3fc42091b8adef61157831"
+    },
+    "roles": {
+      "train": {
+        "source_rows": [
+          0,
+          24
+        ],
+        "global_id_offset": 0,
+        "count": 24,
+        "positives": 8,
+        "sha256": "3cb6592acb66913c80353f1dd0eb384dd1e0e5cc1a8a1e095f1ffff950f8f383"
+      },
+      "pu_val": {
+        "source_rows": [
+          24,
+          32
+        ],
+        "global_id_offset": 0,
+        "count": 8,
+        "positives": 3,
+        "sha256": "529e540d515e038c2e650ff336450425520de2843d7714c8c1202d5870987042"
+      },
+      "clean_val": {
+        "source_rows": [
+          32,
+          40
+        ],
+        "global_id_offset": 0,
+        "count": 8,
+        "positives": 2,
+        "sha256": "5cff42fc0bfee99f38b7dfda935ca516be7233bba039ce11981201e1efae68ff"
+      },
+      "test": {
+        "source_rows": [
+          0,
+          16
+        ],
+        "global_id_offset": 50000,
+        "count": 16,
+        "positives": 9,
+        "sha256": "a16126696881de69b49cd40b680330a7b16d49e840ceefe2d164e5b785809d10"
+      }
+    },
+    "formal_admission": false,
+    "full_survey_split": false,
+    "label_based_resampling": false,
+    "helper_sha256": "b3d216e117fcd5871a311bb0c022b07292caeb90a1c5cfb47214fca3e1865939",
+    "prior": 0.4,
+    "prior_source": "CIFAR-10 full balanced class mapping {0,1,8,9}; not subset/test estimate"
+  },
+  "recipe": {
+    "schema_version": "genpu-engineering-recipe-v1",
+    "method": "genpu",
+    "formal_admission": false,
+    "formal_budget_approved": false,
+    "owner_signatures": [],
+    "adaptation": "benchmark-adapted_not_paper_numerical_reproduction",
+    "parameters": {
+      "class_prior": 0.4,
+      "random_state": 0,
+      "device": "cuda",
+      "hidden_dim": 256,
+      "latent_dim": 100,
+      "max_epochs": 1,
+      "classifier_epochs": 3,
+      "batch_size": 8,
+      "learning_rate": 0.0003,
+      "positive_weight": 1.0,
+      "negative_weight": 1.0,
+      "unlabeled_weight": 1.0,
+      "generator_output": "identity"
+    },
+    "run_view": "ts-compatible",
+    "objective": "paper_minimax_prior_weighted",
+    "synthetic_pn_risk": "pi*mean(softplus(-C(Gp(z))))+(1-pi)*mean(softplus(C(Gn(z))))",
+    "sampling": "Du_real_uniform_full_train_union; P_uniform_with_replacement",
+    "optimizer": {
+      "name": "Adam",
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "weight_decay": 0
+    },
+    "generator": {
+      "hidden_layers": [
+        256,
+        256
+      ],
+      "activation": "LeakyReLU(0.2)",
+      "output": "identity"
+    },
+    "heads": {
+      "Dp": [],
+      "Dn": [],
+      "Du": [
+        256,
+        256
+      ],
+      "PN": [
+        256,
+        256
+      ]
+    },
+    "initialization": "seeded_torch_defaults; four_encoder_copies_from_same_untrained_template; fresh_PN",
+    "encoder_initial_state_sha256": "43fa88257e0ef1bb15701eab97ca5f52008307c12a52e7f516bde1cdc08ae7bc",
+    "image_preprocessing": {
+      "schema_version": "1.0",
+      "dataset": "cifar10",
+      "input_layout": "NCHW",
+      "input_size": [
+        32,
+        32
+      ],
+      "in_channels": 3,
+      "source_dtype": "uint8",
+      "scaling_policy": "integer_divide_255",
+      "normalization": {
+        "source": "train_only_channel_statistics",
+        "mean": [
+          0.4741622729526777,
+          0.4406240526604203,
+          0.4019127628504104
+        ],
+        "std": [
+          0.25278183029225026,
+          0.24731861074828368,
+          0.2612329966400563
+        ]
+      },
+      "backbone": {
+        "name": "resnet18",
+        "weights": null,
+        "initialization": "random",
+        "small_input_stem": true,
+        "first_layer": {
+          "in_channels": 3,
+          "kernel_size": [
+            3,
+            3
+          ],
+          "stride": [
+            1,
+            1
+          ],
+          "padding": [
+            1,
+            1
+          ],
+          "maxpool": false
+        }
+      },
+      "augmentation": {
+        "train": {
+          "name": "none"
+        },
+        "pu_val": {
+          "name": "none"
+        },
+        "clean_val": {
+          "name": "none"
+        },
+        "test": {
+          "name": "none"
+        }
+      },
+      "train_data_sha256": "abd1877807291fd4a483c74708a1f948e7596ad70a308918194bc707ad1c9d23",
+      "configuration_sha256": "819f77ae824fbad2e70d17ec0e70fd71c455e81dc09eea16430868f91d023c0c"
+    },
+    "generator_step_D_mode": "weights_frozen_eval_BN_dropout; input_gradients_enabled; finally_restore",
+    "selection": {
+      "protocols": [
+        "PA",
+        "OA"
+      ],
+      "eligible_stage": "synthetic_pn",
+      "epochs": "all_completed_PN_epochs",
+      "GAN_eligible": false
+    },
+    "retention": "selected_PN_weights_only; all_epoch_metadata; no_GAN_or_optimizer_resume",
+    "recipe_sha256": "1a82865f2ff03c730ce96b2de6bbdf52a55e0fb8371f5fddabc0a2c0f0be2f96"
+  },
+  "plan_sha256": "e0a0200a570cfec5beae8ddcd728fb10c878016fa447d0f3424404eb6f869434",
+  "prior_source": "CIFAR-10 balanced ten-class population, positive classes 0,1,8,9; fixed before subset selection",
+  "label_view_sha256": {
+    "train": "3a98992144bcaeed829a1283cb7e9364957fb56ca94cd8e07c3b0573850a7e3c",
+    "pu_val": "dbc8f07e18b4e335087f3f8ee77f76acf49fe4383e972341aeb3593fbc9057fa"
+  },
+  "source_files_sha256": {
+    "scripts/run_genpu_recipe.py": "614228edd58522329bd73cdcd69b4344b94aeaaa85bdfb98ad26888006e67336",
+    "pu_toolbox/experiment/genpu_recipe.py": "a55402005ff9cc3e6def443d133fe1c0c07010aba4e7fd8e55e7683daefc2463",
+    "pu_toolbox/estimators/deep/gen_pu.py": "bc857dac957f0c0def95198590e832b3387d38b068c63fa567c4a0260f8bac2b",
+    "pu_toolbox/experiment/image.py": "ded5ef8f973486ba79f525e89c9efeb79b2ce2db912e8ad304715dbd7ea5f450",
+    "pu_toolbox/estimators/deep/vision.py": "00630828971f0d3750584b9c53bb15953fc750c93d67841b48089b8f2d4c6d25",
+    "pu_toolbox/experiment/checkpoints.py": "2909b8a8b34f2389bcd7c9d34664f7c621031500a710af12214f10e7a61cda3a",
+    "pu_toolbox/experiment/runner.py": "ac7167fcdbdc68fed953370bca1430dedd8286675b763ac77f12df6d9934f83a",
+    "pu_toolbox/experiment/strategies.py": "8eb66a9dec0cc3c006822d0e506b7e44344fac548947e0eca99d2f4ec0a72dfe",
+    "pu_toolbox/experiment/method_ledger.json": "df748151eeac8c3ae19c64458046acfd6ca64e93f5de2382fa3dad6c3371a759",
+    "uv.lock": "7a7adf38905461b4fe0eeb73e613545cbde499a829155b7a793369a5bf22e0ed"
+  },
+  "measurement_environment": {
+    "code_commit": "cefd2b6d2d18d19fa8974db5d22df6f2a3d37702",
+    "dirty_worktree": true,
+    "frozen_lock_environment_verified": false,
+    "physical_GPU_index": 7,
+    "environment": {
+      "python_version": "3.12.2",
+      "python_implementation": "CPython",
+      "platform": "Linux-5.15.0-179-generic-x86_64-with-glibc2.35",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "numpy_version": "1.26.4",
+      "scikit_learn_version": "1.7.1",
+      "torch_version": "2.6.0+cu124",
+      "cuda_available": true,
+      "cuda_runtime_version": "12.4",
+      "cudnn_version": 90100,
+      "gpu_devices": [
+        {
+          "index": 0,
+          "name": "NVIDIA RTX A6000",
+          "total_memory_bytes": 51033931776
+        }
+      ],
+      "gpu_driver_version": "550.54.14",
+      "executable": "/opt/miniconda3/bin/python"
+    }
+  },
+  "stage_optimizer_steps": {
+    "positive_discriminator": 3,
+    "negative_discriminator": 3,
+    "unlabeled_discriminator": 3,
+    "positive_generator": 3,
+    "negative_generator": 3,
+    "synthetic_pn": 9
+  },
+  "optimizer_steps": 24,
+  "six_network_state_bytes": {
+    "positive_generator_": 3524608,
+    "negative_generator_": 3524608,
+    "positive_discriminator_": 44715964,
+    "negative_discriminator_": 44715964,
+    "unlabeled_discriminator_": 45503420,
+    "model_": 45503420
+  },
+  "checkpoint_bytes": [
+    45542038,
+    45542038,
+    45542038
+  ],
+  "fit_peak_cuda_allocated_bytes": 872768512,
+  "peak_scope": "successful_candidate_fit; torch_allocated_not_reserved_or_other_processes",
+  "process_lifetime_peak_rss_bytes": 1781649408,
+  "checkpoint_peak_payload_bytes": 136626114,
+  "retained_checkpoint_bytes": 45542038,
+  "retained_checkpoint_count": 1,
+  "reclaimed_checkpoint_count": 2,
+  "disk_preflight": {
+    "required_bytes": 402653184,
+    "free_bytes": 6978642837504,
+    "missing_bytes": 0,
+    "directory": "/data2/user/zihenglin/pu-learning-toolbox/data/genpu-cifar-smoke-20261023-p2ecu5tn/results/checkpoints",
+    "ready": true
+  },
+  "selection": {
+    "PA": {
+      "protocol": "PA",
+      "run_index": 0,
+      "epoch": 1,
+      "threshold": 0.1,
+      "metrics": {
+        "val_proxy_accuracy": 0.925,
+        "val_score_min": -1.386061429977417,
+        "val_score_scale": 1.0881030559539795,
+        "class_prior": 0.4
+      },
+      "checkpoint_index": 0,
+      "candidate_index": 0,
+      "checkpoint": {
+        "schema_version": "1.1",
+        "format": "torch_weights_only",
+        "epoch_position": 1,
+        "epoch_label": 0,
+        "component": "model",
+        "path": "/data2/user/zihenglin/pu-learning-toolbox/data/genpu-cifar-smoke-20261023-p2ecu5tn/results/checkpoints/attempt-f5diqgkf/epoch_0001_model.pt",
+        "sha256": "c5b720532b85bf91fcc6a697a3c7d73e0855764fa4a541f118c1514d49e8d4f7",
+        "device": "cuda:0",
+        "score_cutoff": 0.0,
+        "prediction_batch_size": 8,
+        "persistent": true,
+        "reclaimed": false,
+        "training_resume_supported": false,
+        "validation_metrics": {
+          "PA": {
+            "val_proxy_accuracy": 0.925,
+            "threshold": 0.1,
+            "val_score_min": -1.386061429977417,
+            "val_score_scale": 1.0881030559539795,
+            "class_prior": 0.4
+          },
+          "OA": {
+            "val_accuracy": 0.625,
+            "threshold": 0.7000000000000001,
+            "val_score_min": -1.2783063650131226,
+            "val_score_scale": 1.0105366706848145
+          }
+        },
+        "training_context": {
+          "stage": "synthetic_pn",
+          "stage_epoch": 1,
+          "round_index": null,
+          "optimizer_steps": 18
+        }
+      },
+      "class_prior": {
+        "population": 0.4,
+        "source": "runner.class_prior"
+      }
+    },
+    "OA": {
+      "protocol": "OA",
+      "run_index": 0,
+      "epoch": 1,
+      "threshold": 0.7000000000000001,
+      "metrics": {
+        "val_accuracy": 0.625,
+        "val_score_min": -1.2783063650131226,
+        "val_score_scale": 1.0105366706848145
+      },
+      "checkpoint_index": 0,
+      "candidate_index": 0,
+      "checkpoint": {
+        "schema_version": "1.1",
+        "format": "torch_weights_only",
+        "epoch_position": 1,
+        "epoch_label": 0,
+        "component": "model",
+        "path": "/data2/user/zihenglin/pu-learning-toolbox/data/genpu-cifar-smoke-20261023-p2ecu5tn/results/checkpoints/attempt-f5diqgkf/epoch_0001_model.pt",
+        "sha256": "c5b720532b85bf91fcc6a697a3c7d73e0855764fa4a541f118c1514d49e8d4f7",
+        "device": "cuda:0",
+        "score_cutoff": 0.0,
+        "prediction_batch_size": 8,
+        "persistent": true,
+        "reclaimed": false,
+        "training_resume_supported": false,
+        "validation_metrics": {
+          "PA": {
+            "val_proxy_accuracy": 0.925,
+            "threshold": 0.1,
+            "val_score_min": -1.386061429977417,
+            "val_score_scale": 1.0881030559539795,
+            "class_prior": 0.4
+          },
+          "OA": {
+            "val_accuracy": 0.625,
+            "threshold": 0.7000000000000001,
+            "val_score_min": -1.2783063650131226,
+            "val_score_scale": 1.0105366706848145
+          }
+        },
+        "training_context": {
+          "stage": "synthetic_pn",
+          "stage_epoch": 1,
+          "round_index": null,
+          "optimizer_steps": 18
+        }
+      },
+      "class_prior": {
+        "population": 0.4,
+        "source": "runner.class_prior"
+      }
+    }
+  },
+  "test_metrics_engineering_only": {
+    "PA": {
+      "accuracy": 0.5,
+      "auc": 0.20634920634920634,
+      "auc_unavailable_reason": null
+    },
+    "OA": {
+      "accuracy": 0.3125,
+      "auc": 0.20634920634920634,
+      "auc_unavailable_reason": null
+    }
+  },
+  "warning_count": 0,
+  "retry_count": 0,
+  "selected_models_replayed": true,
+  "accepted_engineering_run": true,
+  "local_artifact_files_sha256": {
+    "plan.json": "8a4225c41ed54f381c8ae6b8ad31875f47db0f966e989e26c6b929695c6dbca2",
+    "manifest.json": "6aa1005beb506913a2194e79b9cd21dae9ebc9c0bea42a8183f14c905e604296",
+    "environment.json": "af6fae8d8498b1bc914d41a606b82221a85dd9baa8c82c9dbc1fc833242eaba9",
+    "selected_PA.pkl": "0ba85ae5276ef078588cb1ae9f7bc183f3cbfd93ee73bdf79ae8dfc5736673f0",
+    "selected_OA.pkl": "42731e7b8d61d905169f02119345337b28a910e9cc2764c87e8c58f3fe1d7256",
+    "summary.json": "d297c32914d91bf0d7282897aba93e5cf8cc32f7fa32d849334c2bba629ea731"
+  },
+  "remaining_formal_gates": [
+    "protocol_v3_execution_units_and_comparison_binding",
+    "P4.1-B_budget_and_recipe_freeze",
+    "full_dataset_budget_resource_profile_and_numerical_validation"
+  ],
+  "batch256_profile": {
+    "artifact_root": "data/genpu-cifar-smoke-20261023-p2ecu5tn/results-batch256",
+    "recipe": {
+      "schema_version": "genpu-engineering-recipe-v1",
+      "method": "genpu",
+      "formal_admission": false,
+      "formal_budget_approved": false,
+      "owner_signatures": [],
+      "adaptation": "benchmark-adapted_not_paper_numerical_reproduction",
+      "parameters": {
+        "class_prior": 0.4,
+        "random_state": 0,
+        "device": "cuda",
+        "hidden_dim": 256,
+        "latent_dim": 100,
+        "max_epochs": 1,
+        "classifier_epochs": 3,
+        "batch_size": 256,
+        "learning_rate": 0.0003,
+        "positive_weight": 1.0,
+        "negative_weight": 1.0,
+        "unlabeled_weight": 1.0,
+        "generator_output": "identity"
+      },
+      "run_view": "ts-compatible",
+      "objective": "paper_minimax_prior_weighted",
+      "synthetic_pn_risk": "pi*mean(softplus(-C(Gp(z))))+(1-pi)*mean(softplus(C(Gn(z))))",
+      "sampling": "Du_real_uniform_full_train_union; P_uniform_with_replacement",
+      "optimizer": {
+        "name": "Adam",
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "weight_decay": 0
+      },
+      "generator": {
+        "hidden_layers": [
+          256,
+          256
+        ],
+        "activation": "LeakyReLU(0.2)",
+        "output": "identity"
+      },
+      "heads": {
+        "Dp": [],
+        "Dn": [],
+        "Du": [
+          256,
+          256
+        ],
+        "PN": [
+          256,
+          256
+        ]
+      },
+      "initialization": "seeded_torch_defaults; four_encoder_copies_from_same_untrained_template; fresh_PN",
+      "encoder_initial_state_sha256": "43fa88257e0ef1bb15701eab97ca5f52008307c12a52e7f516bde1cdc08ae7bc",
+      "image_preprocessing": {
+        "schema_version": "1.0",
+        "dataset": "cifar10",
+        "input_layout": "NCHW",
+        "input_size": [
+          32,
+          32
+        ],
+        "in_channels": 3,
+        "source_dtype": "uint8",
+        "scaling_policy": "integer_divide_255",
+        "normalization": {
+          "source": "train_only_channel_statistics",
+          "mean": [
+            0.4741622729526777,
+            0.4406240526604203,
+            0.4019127628504104
+          ],
+          "std": [
+            0.25278183029225026,
+            0.24731861074828368,
+            0.2612329966400563
+          ]
+        },
+        "backbone": {
+          "name": "resnet18",
+          "weights": null,
+          "initialization": "random",
+          "small_input_stem": true,
+          "first_layer": {
+            "in_channels": 3,
+            "kernel_size": [
+              3,
+              3
+            ],
+            "stride": [
+              1,
+              1
+            ],
+            "padding": [
+              1,
+              1
+            ],
+            "maxpool": false
+          }
+        },
+        "augmentation": {
+          "train": {
+            "name": "none"
+          },
+          "pu_val": {
+            "name": "none"
+          },
+          "clean_val": {
+            "name": "none"
+          },
+          "test": {
+            "name": "none"
+          }
+        },
+        "train_data_sha256": "abd1877807291fd4a483c74708a1f948e7596ad70a308918194bc707ad1c9d23",
+        "configuration_sha256": "819f77ae824fbad2e70d17ec0e70fd71c455e81dc09eea16430868f91d023c0c"
+      },
+      "generator_step_D_mode": "weights_frozen_eval_BN_dropout; input_gradients_enabled; finally_restore",
+      "selection": {
+        "protocols": [
+          "PA",
+          "OA"
+        ],
+        "eligible_stage": "synthetic_pn",
+        "epochs": "all_completed_PN_epochs",
+        "GAN_eligible": false
+      },
+      "retention": "selected_PN_weights_only; all_epoch_metadata; no_GAN_or_optimizer_resume",
+      "recipe_sha256": "fc2e2de50b02ab7f7c2dda3947ea463db8ac3f9cb56512f6b44e1fe3643d0031"
+    },
+    "plan_sha256": "e68813bf89ccb2d53cf7a2e5fe8910efac126e1bd33ac8e6e7d97d2c6bd679f1",
+    "input_files_sha256": {
+      "train": "3cb6592acb66913c80353f1dd0eb384dd1e0e5cc1a8a1e095f1ffff950f8f383",
+      "pu_val": "529e540d515e038c2e650ff336450425520de2843d7714c8c1202d5870987042",
+      "clean_val": "5cff42fc0bfee99f38b7dfda935ca516be7233bba039ce11981201e1efae68ff",
+      "test": "a16126696881de69b49cd40b680330a7b16d49e840ceefe2d164e5b785809d10"
+    },
+    "stage_optimizer_steps": {
+      "positive_discriminator": 1,
+      "negative_discriminator": 1,
+      "unlabeled_discriminator": 1,
+      "positive_generator": 1,
+      "negative_generator": 1,
+      "synthetic_pn": 3
+    },
+    "optimizer_steps": 8,
+    "fit_peak_cuda_allocated_bytes": 8652706816,
+    "checkpoint_peak_payload_bytes": 136626114,
+    "retained_checkpoint_bytes": 45542038,
+    "retained_checkpoint_count": 1,
+    "reclaimed_checkpoint_count": 2,
+    "process_lifetime_peak_rss_bytes": 1854537728,
+    "selected_models_replayed": true,
+    "warning_count": 0,
+    "retry_count": 0,
+    "accepted_engineering_run": true,
+    "local_artifact_files_sha256": {
+      "plan.json": "be7df14c7212b2ccd988b128ac8f9934c963ffd2746689f0da6afa68416e433d",
+      "manifest.json": "3cdbf2e542f5973a4cf81d7e11e2b068b94e97e6351cb743b35617ed441eaacc",
+      "environment.json": "af6fae8d8498b1bc914d41a606b82221a85dd9baa8c82c9dbc1fc833242eaba9",
+      "selected_PA.pkl": "3cdf954a836339118c8ca863ac83113a4d9918c278dd439aaa6451b25cb0a8f5",
+      "selected_OA.pkl": "8b1674da7c29d7e97093c00b010d228dde8e912736bbfc2d2d036085a4f8aabd",
+      "summary.json": "5901bfec621371cf9bc2b617bda8d450399445b0c5a0eb8256365e533fc12288"
+    },
+    "full_dataset_or_multiseed_effectiveness_verified": false
+  },
+  "receipt_sha256": "03f6eca61007c8ed5a2283af7deec56117a8fbfb6501721ec12edd79def3caee"
+}

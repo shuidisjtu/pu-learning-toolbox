@@ -4,7 +4,7 @@
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
-> 状态核对日期：**2026-10-22**（已对齐 20261021 任务交接与 PN-CNN 5 seed 暂缓指令）
+> 状态核对日期：**2026-10-23**（已补 GEN-PU 单候选配方及真实 CIFAR 短 GPU 验证；PN-CNN 5 seed 继续暂缓）
 
 ## 1. 实验能力与缺口
 
@@ -20,6 +20,7 @@
 | 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
 | 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
 | 图像/共享 backbone | **部分** | runner 接线、PULDA 120 / GradPU 200 峰值估算 | 端到端 smoke + 单 run 峰值记录 |
+| GEN-PU 独立工程 recipe | **是** | 正式 v3/预算冻结与对应全量资源、数值验收 | 已有真实 CIFAR 固定小子集、标准宽度 ResNet-18 双 batch GPU manifest/回放，不作正式主榜 |
 | PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS 独立 support 的工程双轨另已接通 | 正式 support units/预算与对应验收；真实 Spambase 短 CPU 已验 | 选模产物与 manifest 对账 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | 22 方法主榜 | **否** | 上述缺口 + 预算冻结 | P4.2 门禁 |
@@ -34,7 +35,7 @@
 | 图像 runner 未接 | PULDA/GradPU 不能进主榜 | 接 runner + 单 run 峰值估算 | HENG958 | smoke + profile |
 | CVIR 正式接线 | TS 主表 | 已补独立校准/先验换算；待 v3 units/runner、预算与真实验收 | HENG958 | 正式单元 + 跑通 |
 | Self-PU 完整版 | 方法完整 | 已有显式 SCAR OS full-meta checkpoint 双轨工程路径；待正式 clean-support 单元、适用视图与验收 | HENG958 | 单元 + 跑通 |
-| GEN-PU recipe | 方法完整 | 4 个 blocker | HENG958 | 冻结 |
+| GEN-PU recipe | 方法完整 | 四项已有工程规格、单候选命令及短 GPU 收据；正式 v3/预算与全量验收待闭合，不自动关 #126 | HENG958 | 正式绑定；当前工程交付见 §1.5 |
 | `PA+clean-support` | PULNS/LaGAM | 两方法独立工程路径及真实 Spambase CPU 已通；待正式 units/预算与对应验收 | HENG958 | 正式单元命令与 manifest 对账 |
 | PN-CNN | oracle | 5 seed 实验暂缓，协议定稿后再安排；独立真实 CIFAR GPU smoke 仍未交付，本轮不启动 | HENG958 | 定稿后另行安排，不标完成 |
 | v2_p4 / v2_p10 / #122 / RV5 / RV6 | 协议与 Pilot 复核 | 先回复五项复核；已有技术意见见本日记录，人工接受/裁决未代填 | HENG958 | 结论记录；v2 review_items 由 shuidisjtu 更新 |
@@ -132,6 +133,13 @@
 **PN-CNN 的 5 seed 实验单独暂缓**：按用户 2026-10-22 指令，协议定稿后再安排；
 不启动、不补造结果、不标记完成。该指令不取消其他方法或 support 制品的 seeds 0–4，
 也不删除 PN-CNN 已有实现、历史证据或协议中的 oracle 角色要求。
+
+2026-10-23：[GEN-PU recipe 与真实图像 GPU 交付](delivery/genpu_recipe_20261023.md)。
+四项 blocker 已逐项落实工程配方/阶段与成本守卫；实际单候选命令产出 PA/OA manifest，
+全宽 ResNet-18、真实 CIFAR 预固定小子集，batch8/256 短 GPU 验证均0告警/0重试并回放。
+仅记录本机工程规格，不改 frozen JSON/台账或签署，不代替 v3/P4.1-B 正式预算与全量验收。
+#126 未关闭；下一实现优先补 PULDA/GradPU 图像 runner 与120/200峰值，
+Self-PU 正式 TS/full-meta 与 support units 继续同 v3 对接；PN-CNN 5 seed 暂缓不变。
 
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
