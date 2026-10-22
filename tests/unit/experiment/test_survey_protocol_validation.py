@@ -34,6 +34,25 @@ def test_basic_kldce_is_explicitly_non_runnable_for_all_three_datasets():
             resolve_unit(protocol, row["dataset"], "kldce")
 
 
+def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_but_protocol_stays_draft():
+    draft_path = (
+        Path(__file__).resolve().parents[3]
+        / "pu_toolbox"
+        / "experiment"
+        / "survey_protocol_v3_draft.json"
+    )
+    protocol = load_protocol(draft_path)
+
+    row = resolve_unit(protocol, "cifar10", "pn_oracle", "native_cnn")
+
+    assert row["runnable"] is True
+    assert row["oracle_alignment"] == "shared_resnet18_end_to_end_and_minibatch_budget"
+    assert "non_runnable_reason" not in row
+    assert protocol["review_status"] != "accepted"
+    budget_blocker = "P4.1-B method-specific budgets and candidate recipes are not frozen."
+    assert budget_blocker in protocol["formal_blockers"]
+
+
 @pytest.mark.parametrize(
     "key",
     [

@@ -1054,9 +1054,8 @@
       "backbone": "resnet18_end_to_end",
       "representation": "resnet18_random_initialization",
       "comparability_group": "cifar10/native_cnn/native_cnn",
-      "oracle_alignment": "cnn_oracle_phase2_not_available",
-      "runnable": false,
-      "non_runnable_reason": "CNN oracle is Phase 2, not runnable in this pilot binding"
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
     },
     {
       "budget": "draft_p3mix",
@@ -1602,7 +1601,7 @@
     "Native CNN and adapter rankings are strictly separate.",
     "Full-batch Dist-PU is not budget-equivalent to mini-batch methods; unmatched oracle remains separate.",
     "Classical methods have no MLP backbone; no neural oracle is claimed to be backbone-matched.",
-    "CNN oracle remains Phase 2; unsupported row fails before training.",
+    "CIFAR-10 native-CNN PN oracle passed a real-GPU two-epoch smoke on 2026-10-22; runnable denotes implementation capability, not frozen protocol admission or completed five-seed results.",
     "Completed-epoch weights are selected independently offline; inference checkpoints do not resume optimizer training.",
     "PA selects on the generated pu_val view by proxy accuracy (Wang et al. 2026 Definition 1, OS branch) over the same per-checkpoint val-side min-max threshold grid OA uses; the population class prior pi is required per run (from the run's class_prior, else the split artifact's class_prior.population) and a run without it fails loudly. Formal SCAR PA acceptance remains pending the collaborator's signature.",
     "KLDCE binds flip_probability = 1 - c for SCAR only and is rebuilt for each c; all SAR requests are rejected. Its execution rows still require approved protocol and dataset-specific budget/resource gates.",

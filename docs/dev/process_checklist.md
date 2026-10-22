@@ -18,6 +18,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-22 PN 图像 oracle：修复 `PilotOracleCNN` encoder 能力声明，显式/推断 CNN runner 回归通过；真实 CIFAR seed 0 的 native-CNN 与 feature-adapter 两条 GPU 2-epoch smoke、权重恢复和缓存验证完成，制品已本机备份。v3 草案仅解锁实现可用标志，历史协议与正式门禁不变；全预算五 seed 等协议定稿后执行。见 [PN oracle 状态](../research/pu_survey/admission/pn_oracle_integration.md)。
+
 2026-10-19 P3MIX：用户补入完整论文后，P3Mix/P3Mix-E/P3Mix-C 来源核对、可训练实现、注册、台账、方法卡及专项门禁已完成；仍需 HENG958 按 RV8 复核，并完成正式配方/预算与资源验收，代码接入不代表准入。详见[交付与原文交叉表](../research/pu_survey/admission/p3mix_paper_review_20261019.md)。
 
 2026-10-19 Self-PU / 候选来源审计：锁定作者 commit 的 `train_2s2t_mix.py` 将 `split=test` 输入用于负预测熵 meta 更新，并按测试真值准确率选 checkpoint；来源行为与工具箱 clean-support 隔离路径已分别记录。PULDA、PUET、GradPU、Split-PU、VPU 的既有来源材料也已补齐 ledger 机器引用；相关契约、16 候选生命周期及 P3 证据门禁通过。以上是来源/工程审计，不构成论文数值复现、RV5/RV8 签署或准入。见[Self-PU 来源行为复核](../research/pu_survey/admission/selfpu_source_behavior_review_20261019.md)与[执行计划](../research/pu_survey/survey_execution_plan.md)。
