@@ -4,7 +4,7 @@
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
-> 状态核对日期：**2026-10-22**（本日增量为 clean-support/CVIR 接线及真实 support 制品）
+> 状态核对日期：**2026-10-22**（已对齐 20261021 任务交接与 PN-CNN 5 seed 暂缓指令）
 
 ## 1. 实验能力与缺口
 
@@ -20,7 +20,7 @@
 | 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
 | 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
 | 图像/共享 backbone | **部分** | runner 接线、PULDA 120 / GradPU 200 峰值估算 | 端到端 smoke + 单 run 峰值记录 |
-| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS 独立 support 的工程双轨另已接通 | 正式 support units/预算与真实数据验收 | 选模产物与 manifest 对账 |
+| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS 独立 support 的工程双轨另已接通 | 正式 support units/预算与对应验收；真实 Spambase 短 CPU 已验 | 选模产物与 manifest 对账 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | 22 方法主榜 | **否** | 上述缺口 + 预算冻结 | P4.2 门禁 |
 
@@ -35,9 +35,9 @@
 | CVIR 正式接线 | TS 主表 | 已补独立校准/先验换算；待 v3 units/runner、预算与真实验收 | HENG958 | 正式单元 + 跑通 |
 | Self-PU 完整版 | 方法完整 | 已有显式 SCAR OS full-meta checkpoint 双轨工程路径；待正式 clean-support 单元、适用视图与验收 | HENG958 | 单元 + 跑通 |
 | GEN-PU recipe | 方法完整 | 4 个 blocker | HENG958 | 冻结 |
-| `PA+clean-support` | PULNS/LaGAM | 两方法工程路径已接通；待真实 support、正式 units 与验收 | HENG958 | 跑通 |
-| PN-CNN | oracle | 真实 GPU smoke + 5 seed | HENG958 | 交付 |
-| RV5/RV6 | Pilot 复核 | 方法学结论 | HENG958 | 结论记录 |
+| `PA+clean-support` | PULNS/LaGAM | 两方法独立工程路径及真实 Spambase CPU 已通；待正式 units/预算与对应验收 | HENG958 | 正式单元命令与 manifest 对账 |
+| PN-CNN | oracle | 5 seed 实验暂缓，协议定稿后再安排；独立真实 CIFAR GPU smoke 仍未交付，本轮不启动 | HENG958 | 定稿后另行安排，不标完成 |
+| v2_p4 / v2_p10 / #122 / RV5 / RV6 | 协议与 Pilot 复核 | 先回复五项复核；已有技术意见见本日记录，人工接受/裁决未代填 | HENG958 | 结论记录；v2 review_items 由 shuidisjtu 更新 |
 
 ### 1.3 预算与资源
 
@@ -112,14 +112,26 @@
 | GEN-PU / Holistic-PU | 作者归档未发现 LICENSE | `license=unknown`；不复制、执行或再分发 |
 | KLDCE / PUSB 线性 | 求解器或来源身份与论文/官方路径不同 | 方法卡与台账已披露，不改求解策略 |
 
-### 1.5 推进顺序（2026-10-21）
+### 1.5 推进顺序（2026-10-22 对齐任务交接）
 
-1. **P3.2**（HENG958）：共享规格、`PA+clean-support`、CVIR、Self-PU、GEN-PU。
-2. **clean support 产物**（shuidisjtu）：本机 5 数据集 × 5 seed 已补齐并验收；跨机传递按收据对账。
-3. **protocol v3**（shuidisjtu + HENG958）：13 方法 profiles/units，解锁 13 方法单跑。
-4. **P4.1-B**：预算/配方冻结。
-5. **分组跑批 + 汇总**：按 method/dataset/path/mechanism，边跑边清。
-6. **P3.3 smoke + P4.2**：峰值验证与主榜。
+以用户提供的 `heng958_tasks_20261021.md` 为本轮任务交接依据；逐项技术意见、证据与
+未解除的边界见[20261021 任务复核回复](reviews/heng958_task_review_20261022.md)。
+
+1. **先回复五项 review**（HENG958）：`v2_p4`、`v2_p10`、#122、RV5、RV6；
+   前两项接受后，由 shuidisjtu 更新 v2 `review_items`，本轮不代签或修改冻结 JSON。
+2. **Issue 收尾**：#126 四项 GEN-PU recipe/blocker 逐项给结论；#88 对照 RV8 区分已接受
+   的证据与 #122 等残余项；#122 按明确裁决处理，不能只改 JSD 参数或因测试通过而关闭。
+3. **P3.2 剩余实现**：GEN-PU recipe、PULDA/GradPU 图像 runner 与 120/200 快照峰值、
+   Self-PU 完整分支及 `PA+clean-support` 正式接线。CVIR 独立校准、25 份 support、
+   三方法真实 Spambase 短 CPU 已交付，不重复做；正式 units/预算/对应验收仍待。
+4. **protocol v3**（shuidisjtu + HENG958，与上项可并行）：13 方法 profiles/units，
+   含 Self-PU 完整分支的新单元和正式 support 消费；跨机数据按已有收据核验。
+5. **P4.1-B**：冻结预算/配方；随后 P3.3 核对单 run 峰值、选后保留和 smoke。
+6. **分组跑批 + 汇总、P4.2 主榜门禁**：只运行满足协议/预算/配方前置的单元。
+
+**PN-CNN 的 5 seed 实验单独暂缓**：按用户 2026-10-22 指令，协议定稿后再安排；
+不启动、不补造结果、不标记完成。该指令不取消其他方法或 support 制品的 seeds 0–4，
+也不删除 PN-CNN 已有实现、历史证据或协议中的 oracle 角色要求。
 
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
@@ -196,3 +208,4 @@ v2 pending review、正式 v3/预算边界保持。
 | D27 | **分批执行与统一汇总** | 最终实验按 method、dataset、training-path 或 labeling mechanism 分组跑，不要求同批或一次性跑完；每组 manifest 绑定同一协议/比较摘要，汇总按 `(comparability_group, run_view, mechanism)` 分区。分组不改变可比性。 | 2026-10-21 |
 | D28 | **计算资源不设上限** | CPU/GPU 时间默认不限，不作为跑批门禁；正式运行仍须 frozen-lock 环境与逐 run 身份记录。 | 2026-10-21 |
 | D29 | **存储与 checkpoint 保留** | 只保留选中 checkpoint（P2.1 B4 口径），未选中按 D25 回收；按组清理，不保留全过程权重；单 run 峰值按参数×快照估算。仅个别方法超限时再优化。 | 2026-10-21 |
+| D30 | **PN-CNN 5 seed 暂缓** | 用户要求 P3.2 中 PN-CNN 的 5 seed 实验等协议定稿后再安排；不视为完成或永久取消，不影响其他方法/support 的五 seed 口径，不改冻结协议及历史结果。 | 2026-10-22 |

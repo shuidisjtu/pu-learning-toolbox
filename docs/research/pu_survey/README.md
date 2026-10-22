@@ -79,6 +79,7 @@
 
 ### `reviews/`：独立复核和阶段性工程记录
 
+- [20261021 任务交接复核回复](reviews/heng958_task_review_20261022.md)：v2_p4/v2_p10、#122、RV5/RV6 技术意见、issue 收尾边界与 PN-CNN 5 seed 暂缓；不代替本人签署或修改冻结协议。
 - [`pilot_independent_review_20261004.md`](reviews/pilot_independent_review_20261004.md)：Pilot 的代理技术复核，不代替签署。
 - [`heng958_independent_review.md`](reviews/heng958_independent_review.md)：HENG958 负责范围的历史复核记录。
 - [`collaborator_followup_20261004.md`](reviews/collaborator_followup_20261004.md)：数据收集、CNN oracle、校准和交付边界的补全记录。
@@ -105,11 +106,14 @@
 
 ## 当前阅读入口
 
-合作者待回复：[PULDA / GradPU 图像配方决策清单](admission/candidate_image_owner_decisions_20261018.md)
-（#119 的初始化、BN、增强、MLP、warmup 选项；附只读资源预检命令，不代签正式准入）。
+当前交接：[20261021 任务复核回复](reviews/heng958_task_review_20261022.md)；
+先处理五项 review 与 #126/#88/#122 收尾，再推进 P3.2，具体排序只看执行计划。
+PN-CNN 的 5 seed 实验按用户指令暂缓至协议定稿，不取消其他任务的五 seed 要求。
 
-后续复核：[GradPU #121 调度/batch声明](admission/gradpu_training_recipe_review_20261018.md)；
-[Split-PU #122 JSD分母与实际mini-batch反例](admission/splitpu_122_characterization_20261018.md)。
+[PULDA / GradPU #119/#120 配方决策](admission/candidate_image_owner_decisions_20261018.md)及
+[GradPU #121 调度/batch 声明](admission/gradpu_training_recipe_review_20261018.md)保留作证据，
+不再因历史“待回复”文字重开已收尾项；
+[Split-PU #122 JSD 分母与 mini-batch 反例](admission/splitpu_122_characterization_20261018.md)仍有待决事项。
 
 1. 先读 [`survey_execution_plan.md`](survey_execution_plan.md) 了解现在能跑什么、缺什么。
 2. 需要协议口径时读 [`pu_survey_protocol.md`](pu_survey_protocol.md)。
