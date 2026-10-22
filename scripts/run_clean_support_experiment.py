@@ -4,7 +4,8 @@
 Default dry-run pins product, method parameters and SCAR label identities.
 --execute writes a new result directory. Default terminal OA stays unchanged;
 explicit meta_checkpoints enables audited PA+clean-support / OA selection for
-Self-PU and LaGAM, with a required storage estimate. No implicit GPU choice.
+Self-PU, LaGAM and completed PULNS episodes, with a required storage estimate.
+No implicit GPU choice.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPACleanSupport, SCARGenerator
 from pu_toolbox.experiment.support_checkpoints import (
     LaGAMCleanSupportCheckpointTrainer,
+    PULNSCleanSupportCheckpointTrainer,
     SelfPUCleanSupportCheckpointTrainer,
 )
 from pu_toolbox.experiment.support_data import load_support_dataset
@@ -85,13 +87,11 @@ def _objects(method, parameters, prior, seed, support, metadata, *, checkpoint_s
         model = PULNSClassifier(random_state=seed, **parameters)
         adapter = PULNSExtraSupportTrainer
     if checkpoint_selection:
-        if method == "pulns":
-            raise ValueError("PULNS episode checkpoint adapter is not connected yet")
-        adapter = (
-            SelfPUCleanSupportCheckpointTrainer
-            if method == "self_pu"
-            else LaGAMCleanSupportCheckpointTrainer
-        )
+        adapter = {
+            "self_pu": SelfPUCleanSupportCheckpointTrainer,
+            "lagam": LaGAMCleanSupportCheckpointTrainer,
+            "pulns": PULNSCleanSupportCheckpointTrainer,
+        }[method]
     options = dict(metadata["support_adapter_options"])
     source_audit = metadata["support_source_audit"]
     signature = inspect.signature(adapter).parameters

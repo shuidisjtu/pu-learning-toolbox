@@ -3,12 +3,14 @@
 import numpy as np
 
 from pu_toolbox.estimators.deep.lagam import LaGAMClassifier
+from pu_toolbox.estimators.deep.pulns import PULNSClassifier
 from pu_toolbox.estimators.deep.self_pu import SelfPUClassifier
 from pu_toolbox.experiment.bundle import DatasetPart
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPACleanSupport
 from pu_toolbox.experiment.support_checkpoints import (
     LaGAMCleanSupportCheckpointTrainer,
+    PULNSCleanSupportCheckpointTrainer,
     SelfPUCleanSupportCheckpointTrainer,
 )
 
@@ -32,6 +34,16 @@ def inputs():
 
 
 def model(method):
+    if method == "pulns":
+        return PULNSClassifier(
+            hidden_dim=4,
+            batch_size=8,
+            pretrain_epochs=1,
+            episodes=3,
+            classifier_epochs=1,
+            random_state=0,
+            device="cpu",
+        )
     common = dict(hidden_dim=4, batch_size=8, max_epochs=3, random_state=0, device="cpu")
     if method == "self_pu":
         return SelfPUClassifier(
@@ -46,11 +58,11 @@ def model(method):
 
 
 def adapter(method, support):
-    cls = (
-        SelfPUCleanSupportCheckpointTrainer
-        if method == "self_pu"
-        else LaGAMCleanSupportCheckpointTrainer
-    )
+    cls = {
+        "self_pu": SelfPUCleanSupportCheckpointTrainer,
+        "lagam": LaGAMCleanSupportCheckpointTrainer,
+        "pulns": PULNSCleanSupportCheckpointTrainer,
+    }[method]
     return cls(
         support,
         dataset="spambase",

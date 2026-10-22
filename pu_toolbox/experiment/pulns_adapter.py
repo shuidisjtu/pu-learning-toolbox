@@ -341,15 +341,23 @@ class PULNSExtraSupportTrainer(_IndependentSupportTrainer):
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         """Use only explicit support; never receive clean_val/test labels."""
         self._require_prepared(estimator, X, os_or_ts)
+        self._fit_support_estimator(estimator, X, y, class_prior=class_prior)
+        self._finish_support_fit(estimator, y)
+        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
+
+    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+        callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
         estimator.fit(
             X,
             y,
             support_data=(self.support.X, self.support.labels),
             train_indices=np.asarray(self._roles["train"]),
             support_indices=np.asarray(self._roles["support"]),
+            **callbacks,
         )
+
+    def _finish_support_fit(self, estimator, y):
         self._finish_provenance(estimator, y)
         estimator.training_provenance_["stage_optimizer_steps"] = dict(
             estimator.stage_optimizer_steps_
         )
-        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)

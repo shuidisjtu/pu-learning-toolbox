@@ -677,11 +677,14 @@ PULNSClassifier(*, hidden_dim=32, pretrain_epochs=10, episodes=20,
 ```
 
 论文 RL 负例选择的实验适配；`fit(..., support_data=(X_support,y_clean),
-train_indices=None, support_indices=None, os_or_ts="os")`。需独立真实正负 support，
+train_indices=None, support_indices=None, os_or_ts="os", epoch_callback=None)`。需独立真实正负 support，
 不能复用 clean_val/test；支持集为训练奖励，PA-ineligible。提供双方 IDs 时验证互斥，
 否则隔离状态未验证。拒绝 ts/非空 sample_weight。`history_` 记录 reward probe、实际 classifier
 accuracy、policy loss 和负例数，两个最优/基线分别存为 `best_support_accuracy_`、`reward_baseline_`。
-不提供 epoch_callback；当前 pickle round-trip 不是正式 episode checkpoint 规格验收。
+`epoch_callback(episode, fitted)` 每完成一个 RL episode 调用一次（0-based），记录当前
+classifier，早于最终按 support 选择的 best 恢复；不记录 pretrain/内部 classifier epochs，
+不改变原始默认选择。`checkpoint_epoch_count=episodes`，`checkpoint_stages=("episode",)`；
+weights-only 只含 classifier，不含 selector/optimizer，不能据此续训。
 二维 MLP 或显式注入 `encoder` 的4-D NCHW；不静默 flatten。每次 fit deepcopy 并解冻编码器，
 CNN 预训练、奖励 probe 和实际分类器均端到端更新；selector 状态来自最后 hidden_dim 隐层，
 状态/奖励停止梯度，policy 更新不反传编码器。CNN 状态分批提取、在 CPU 缓存，顺序 policy 图
@@ -1750,6 +1753,9 @@ SCAR OS，要求 runner 配置正整数 `checkpoint_bytes_per_component`；选�
 两个 teacher 流供独立选择；不改旧 terminal OA 或 Self-PU 默认消融。CLI 显式
 `--selection-scope meta_checkpoints` 才启用，默认仍 terminal；详见
 [接线与命令](../../research/pu_survey/delivery/clean_support_checkpoints_20261022.md)。
+同日新增 `PULNSCleanSupportCheckpointTrainer`，复用相同审计与双轨选择，但候选为
+完成 episode 的 classifier（不含 reward probe），记录 `captured_episodes`；
+同一 CLI 的 `--method pulns --selection-scope meta_checkpoints` 显式启用。
 
 `pu_toolbox.experiment.support_data.prepare_support_dataset` 从原始数组按显式预算准备
 独立支持集，重新拟合剩余 train 的预处理；`save_support_dataset` 仅写新目录，

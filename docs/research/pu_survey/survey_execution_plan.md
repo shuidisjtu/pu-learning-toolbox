@@ -20,7 +20,7 @@
 | 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
 | 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
 | 图像/共享 backbone | **部分** | runner 接线、PULDA 120 / GradPU 200 峰值估算 | 端到端 smoke + 单 run 峰值记录 |
-| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM 独立 support 的工程双轨另已接通 | PULNS 路径、正式 support units/预算与验收 | 选模产物与 manifest 对账 |
+| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS 独立 support 的工程双轨另已接通 | 正式 support units/预算与真实数据验收 | 选模产物与 manifest 对账 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | 22 方法主榜 | **否** | 上述缺口 + 预算冻结 | P4.2 门禁 |
 
@@ -35,7 +35,7 @@
 | CVIR 校准未决 | TS 主表 | A2 裁决 + 实现 | HENG958 | 校准或“不适用” |
 | Self-PU 完整版 | 方法完整 | 已有显式 SCAR OS full-meta checkpoint 双轨工程路径；待正式 clean-support 单元、适用视图与验收 | HENG958 | 单元 + 跑通 |
 | GEN-PU recipe | 方法完整 | 4 个 blocker | HENG958 | 冻结 |
-| `PA+clean-support` | PULNS/LaGAM | LaGAM 工程路径已接通；PULNS episode 与正式 units 尚待 | HENG958 | 跑通 |
+| `PA+clean-support` | PULNS/LaGAM | 两方法工程路径已接通；待真实 support、正式 units 与验收 | HENG958 | 跑通 |
 | PN-CNN | oracle | 真实 GPU smoke + 5 seed | HENG958 | 交付 |
 | RV5/RV6 | Pilot 复核 | 方法学结论 | HENG958 | 结论记录 |
 
@@ -125,7 +125,9 @@
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
 `PA+clean-support`/OA 独立选择、容量估算和选后回收；旧终点 OA/默认消融不变。
 CLI 可显式执行单候选 CPU 工程链，不代表正式单位、真实数据/GPU/预算验收；
-v2 两个 pending review 项保留，PULNS episode 接线与 P3.2 其他缺口仍待。
+同日第二批补齐 PULNS episode 回调和同一双轨 CLI；只保存完成 episode 的实际 classifier，
+不把 reward probe/内部训练当作额外选择 epoch。v2 两个 pending review 项保留，
+正式 units、数据与 P3.2 其他缺口仍待。
 
 ## 2. 风险与留痕约定
 

@@ -39,8 +39,9 @@ policy loss 为 `−sum(v_i log π(a_i|s_i))`；终端奖励不随剩余步数�
 ## 接口和证据
 
 公开 `PULNSClassifier`，注册 `pulns` / `negative_selector_pu`，二维 MLP 或显式注入 CNN 的4-D图像/CPU/CUDA；
-真实支持集、clone、pickle 和模型 sigmoid 分数，非空 sample_weight 报错。不提供逐 epoch
-callback，也不把完整 episode 中的多次训练伪装成一次 epoch。
+真实支持集、clone、pickle 和模型 sigmoid 分数，非空 sample_weight 报错。2026-10-22
+新增完成 episode 的 `epoch_callback`：一次 RL episode 一次回调，不把内部多次训练伪装成
+普通 epoch。回调暴露当前 classifier，最终仍按 support 恢复原内部 best；默认目标/预算不变。
 公式 golden、支持标签/身份门禁、分类器 batch 不含 support、probe baseline 与返回模型隔离、
 固定种子和保存加载见 `tests/unit/estimators/test_pulns.py`。
 正式 Survey 尚未准入，需要独立 clean-support 标签预算、协议/保存与来源复核；不能直接跑旧 pilot。
@@ -87,5 +88,12 @@ support 分拆、五角色收据、剩余 train-only 预处理及 CPU 单候选 
 数据准备仍须明确批准，不能因接口齐全就清空正式准入条件。
 UI 将此方法标为 ui_ready=false，不列入手动/比较与当前图像支持提示；导入配置也在改变
 widget状态前拒绝需要独立support的调用，仍可通过直接estimator接口显式训练。
+
+2026-10-22 补 `PULNSCleanSupportCheckpointTrainer`：显式 SCAR OS，复用独立 support /
+全角色审计，记录每个完成 episode 的 classifier weights-only 快照，再分别以
+`PA+clean-support` 和 OA 选择候选、快照、阈值。只含 classifier，不保存 reward probe /
+selector / optimizer，不用于训练恢复；旧 terminal OA 保留。CLI、容量预检、选后回收及
+回放见[交付记录](../pu_survey/delivery/clean_support_checkpoints_20261022.md)。
+台账保持无 TS 校准/纯 PU PA 不适用，额外监督 PA 不是正式准入或已批准的执行单元。
 新增 `tests/unit/estimators/test_pulns_cnn.py` 和 `tests/integration/test_pulns_cnn_support.py`
 核端到端更新、probe/模板/模式/BN隔离、资源形态、累计成本、seed/refit/pickle及内置backbone。

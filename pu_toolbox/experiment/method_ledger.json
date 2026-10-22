@@ -176,6 +176,17 @@
       "pa_eligible": false,
       "extra_supervision_adapter": {
         "entry": "pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer",
+        "checkpoint_variant": {
+          "entry": "pu_toolbox.experiment.support_checkpoints.PULNSCleanSupportCheckpointTrainer",
+          "review_ref": "docs/research/pu_survey/delivery/clean_support_checkpoints_20261022.md",
+          "scope": "explicit exploratory SCAR OS, completed episode classifiers before internal best restoration; no reward-probe snapshots",
+          "selection_protocols": ["PA+clean-support", "OA"],
+          "requires_clean_support": true,
+          "pa_eligible": false,
+          "pa_clean_support_eligible": true,
+          "formal_admission": false,
+          "protocol_review_complete": false
+        },
         "support_artifact_preparer": "scripts/prepare_clean_support.py",
         "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
         "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
@@ -197,7 +208,15 @@
         "prior_semantics": "PULNS.md；印刷页 8787 明确奖励验证集需要真实正/负标签",
         "adaptation_level": "PULNS.md；Algorithm 1 与折扣 REINFORCE；独立 clean support 参数不可用选模验证集隐式替代"
       },
-      "uncertainty": ["原生 TS 但没有可安全同形替换的未标记风险项，当前不启用 U∪P 校准；显式 ts fail-loud；默认 OS 仅是工程输入，不声称原生假设对齐", "需要独立干净 support set，禁止复用 PA/OA selection 或 test；只提供数组时隔离未验证，提供双方 sample IDs 可核对 train/support 互斥；完整四角色/support 隔离需新协议", "REINFORCE 每 U 逐行图构造，负例集合可能为空；空集合跳过分类器更新，不强制捏造负例", "预训练、reward-probe、policy 和实际 classifier 的累计更新分别计入 stage_optimizer_steps_；返回较早最优网络不倒退 optimizer_steps_/history；probe 与实际分类器最优权重/BN 不混淆", "无 epoch checkpoint 接口；当前通过 pickle 保存整个可信模型，正式资源/保存规格尚未批准；未进入旧冻结协议", "CNN 仅为工程原生路径，不是已确认作者 CNN；编码器须输出有限二维且保留 batch；原模板独立，singleton BN 采用运行统计；CNN hidden 缓存为 CPU n_train×hidden_dim，但 policy activation graph、probe/模型/最佳权重及额外奖励 forwards 仍需资源规格；旧二维探针不可外推", "公共 Pipeline/CLI/Survey 当前没有独立 support 角色传参，因此仍不能直接 fit_evaluate/run 该方法；架构接线不等于支持标签预算已开放；不隐式复用 selection/test"]
+      "uncertainty": [
+        "原生 TS 但没有可安全同形替换的未标记风险项，当前不启用 U∪P 校准；显式 ts fail-loud；默认 OS 仅是工程输入，不声称原生假设对齐",
+        "需要独立干净 support set，禁止复用 PA/OA selection 或 test；只提供数组时隔离未验证，提供双方 sample IDs 可核对 train/support 互斥；完整四角色/support 隔离需新协议",
+        "REINFORCE 每 U 逐行图构造，负例集合可能为空；空集合跳过分类器更新，不强制捏造负例",
+        "预训练、reward-probe、policy 和实际 classifier 的累计更新分别计入 stage_optimizer_steps_；返回较早最优网络不倒退 optimizer_steps_/history；probe 与实际分类器最优权重/BN 不混淆",
+        "2026-10-22 已补完成 episode 的 epoch_callback 与 weights-only 快照：每 episode 一份当前 classifier，发生在最终内部 best 恢复之前；不保存 reward probe 或 selector，不支持训练恢复。旧终点 OA 保留；新 PA+clean-support/OA 仅显式探索接线，正式资源与执行单元仍待",
+        "CNN 仅为工程原生路径，不是已确认作者 CNN；编码器须输出有限二维且保留 batch；原模板独立，singleton BN 采用运行统计；CNN hidden 缓存为 CPU n_train×hidden_dim，但 policy activation graph、probe/模型/最佳权重及额外奖励 forwards 仍需资源规格；旧二维探针不可外推",
+        "公共 Pipeline/CLI/Survey 当前没有独立 support 角色传参，因此仍不能直接 fit_evaluate/run 该方法；架构接线不等于支持标签预算已开放；不隐式复用 selection/test"
+      ]
     },
     "pan": {
       "class": "PANClassifier",

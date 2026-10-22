@@ -12,6 +12,7 @@ from sklearn.base import clone
 
 from .checkpoints import EpochCheckpointTrainer
 from .clean_support_adapters import LaGAMCleanSupportTrainer, SelfPUCleanSupportTrainer
+from .pulns_adapter import PULNSExtraSupportTrainer
 from .strategies import ProtocolOA, ProtocolPACleanSupport
 
 
@@ -29,7 +30,7 @@ class _SupportFitBinding:
         self.adapter._require_prepared(self.estimator, X, os_or_ts)
 
         def completed_meta_epoch(epoch, fitted):
-            active = (
+            active = self.adapter.method_name == "pulns" or (
                 epoch > fitted.self_paced_start
                 if self.adapter.method_name == "self_pu"
                 else epoch >= fitted.warmup_epochs
@@ -80,17 +81,17 @@ class _SupportCheckpointSelection:
             ):
                 raise ValueError("full-meta candidate cannot change support or population scope")
             candidate = clone(model).set_params(**parameters)
-            if self.method_name == "self_pu":
+            if self.method_name == "pulns":
+                start, count = 0, candidate.episodes
+            elif self.method_name == "self_pu":
                 start = candidate.self_paced_start
+                count = candidate.max_epochs
             else:
                 start = candidate.warmup_epochs
-            if (
-                type(candidate.max_epochs) is not int
-                or type(start) is not int
-                or not 0 <= start < candidate.max_epochs
-            ):
+                count = candidate.max_epochs
+            if type(count) is not int or type(start) is not int or not 0 <= start < count:
                 raise ValueError("every support candidate must reach a meta-active epoch")
-            epoch_bounds.append(candidate.max_epochs)
+            epoch_bounds.append(count)
         super().validate_experiment(model, bundle, config, protocols)
         self._checkpoint_epoch_bound = max(epoch_bounds)
         self._checkpoint_bytes_per_component = size
@@ -99,7 +100,7 @@ class _SupportCheckpointSelection:
                 "pa_clean_support_eligible": True,
                 "pa_eligible": False,
                 "selection_protocols": [p.name for p in protocols],
-                "selection_scope": "completed_meta_epochs",
+                "selection_scope": self._selection_scope(),
                 "warmup_snapshots_eligible": False,
                 "formal_admission": False,
                 "budget_approval": "not_granted_by_adapter",
@@ -117,6 +118,9 @@ class _SupportCheckpointSelection:
     def checkpoint_epoch_bound(self):
         return self._checkpoint_epoch_bound
 
+    def _selection_scope(self):
+        return "completed_episodes" if self.method_name == "pulns" else "completed_meta_epochs"
+
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         self._require_prepared(estimator, X, os_or_ts)
         if not getattr(self, "_checkpoint_configured", False):
@@ -130,8 +134,10 @@ class _SupportCheckpointSelection:
         self._finish_support_fit(estimator, y)
         estimator.training_provenance_.update(
             {
-                "selection_scope": "completed_meta_epochs",
-                "captured_meta_epochs": [row.epoch for row in trajectory.epochs],
+                "selection_scope": self._selection_scope(),
+                ("captured_episodes" if self.method_name == "pulns" else "captured_meta_epochs"): [
+                    row.epoch for row in trajectory.epochs
+                ],
                 "captured_components": sorted({row.component for row in trajectory.checkpoints}),
                 "checkpoint_training_resume_supported": False,
                 "checkpoint_bytes_per_component_estimate": self._checkpoint_bytes_per_component,
@@ -154,3 +160,7 @@ class SelfPUCleanSupportCheckpointTrainer(_SupportCheckpointSelection, SelfPUCle
 
 class LaGAMCleanSupportCheckpointTrainer(_SupportCheckpointSelection, LaGAMCleanSupportTrainer):
     """SCAR OS LaGAM; select completed post-warmup classifier snapshots."""
+
+
+class PULNSCleanSupportCheckpointTrainer(_SupportCheckpointSelection, PULNSExtraSupportTrainer):
+    """SCAR OS PULNS; select completed episode classifiers, not reward probes."""

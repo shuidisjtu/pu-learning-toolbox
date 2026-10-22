@@ -17,7 +17,7 @@ from pu_toolbox.experiment.bundle import DatasetPart  # noqa: E402
 pytestmark = pytest.mark.unit
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 def test_basic_real_meta_checkpoints_both_protocols_candidates_and_reclaim(method, tmp_path):
     result = run(method, tmp_path, candidates=[{"learning_rate": 0.01}, {"learning_rate": 0.02}])
     manifest = result.manifest
@@ -29,19 +29,22 @@ def test_basic_real_meta_checkpoints_both_protocols_candidates_and_reclaim(metho
     assert not disclosure["formal_admission"] and not manifest["formal_eligible"]
     assert disclosure["comparison_group"] == "extra_clean_support"
     assert disclosure["protocol_pending_review_items"][0] == "v2_p4_clean_support_policy"
-    expected_epochs = [1, 2, 3] if method == "self_pu" else [1, 2]
+    expected_epochs = {"self_pu": [1, 2, 3], "lagam": [1, 2], "pulns": [0, 1, 2]}[method]
     components = {"teacher_1", "teacher_2"} if method == "self_pu" else {"model"}
     all_checkpoints = []
     for candidate in manifest["candidate_runs"]:
         provenance = candidate["training_provenance"]
-        assert provenance["captured_meta_epochs"] == expected_epochs
+        key = "captured_episodes" if method == "pulns" else "captured_meta_epochs"
+        assert provenance[key] == expected_epochs
         assert set(provenance["captured_components"]) == components
         assert provenance["total_observed_training_label_budget"] == 16
         if method == "self_pu":
             assert provenance["active_meta_reweight_records"] > 0
             assert provenance["distillation_scope"] == "paper_population"
-        else:
+        elif method == "lagam":
             assert provenance["virtual_steps"] > 0
+        else:
+            assert provenance["stage_optimizer_steps"]["policy"] == 3
         checkpoints = candidate["epoch_checkpoints"]
         assert len(checkpoints) == len(expected_epochs) * len(components)
         assert {p["component"] for p in checkpoints} == components
@@ -60,7 +63,7 @@ def test_basic_real_meta_checkpoints_both_protocols_candidates_and_reclaim(metho
     assert json.loads((tmp_path / "manifest.json").read_text())["extra_supervision"] == disclosure
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 def test_determ_selected_snapshots_pickle_replay_affine_threshold_and_metrics(method, tmp_path):
     parts, _ = inputs()
     result = run(method, tmp_path)
@@ -78,7 +81,7 @@ def test_determ_selected_snapshots_pickle_replay_affine_threshold_and_metrics(me
         assert artifact.checkpoint_index is not None and artifact.epoch is not None
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 @pytest.mark.parametrize("role", ["test", "clean_val", "pu_val"])
 def test_determ_selection_roles_do_not_leak_into_training_or_other_protocol(method, role, tmp_path):
     parts, support = inputs()
@@ -113,7 +116,7 @@ def test_edge_meta_only_epoch_set_excludes_warmup(method, tmp_path):
     assert provenance["captured_meta_epochs"] == ([2, 3] if method == "self_pu" else [1, 2])
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 def test_determ_repeated_fixed_seed_keeps_exact_selection_and_scores(method, tmp_path):
     one, two = run(method, tmp_path / "one"), run(method, tmp_path / "two")
     for name in one.selections:

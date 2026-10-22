@@ -393,7 +393,7 @@
     "pulns": {
       "class": "PULNSClassifier",
       "implementation_ref": "pu_toolbox/estimators/deep/pulns.py",
-      "implementation_sha256": "01213abe6ce260bed9a838e6e2cfc55bde65d14a2b497b533fa090bf6e3ad294",
+      "implementation_sha256": "bd505f48a2e7b1f9aea9abe17a40cac335c7d84de897209beef20645aa94b0fa",
       "fit_parameters": [
         {
           "name": "X",
@@ -437,6 +437,12 @@
         },
         {
           "name": "support_indices",
+          "kind": "keyword_only",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "epoch_callback",
           "kind": "keyword_only",
           "required": false,
           "default": null

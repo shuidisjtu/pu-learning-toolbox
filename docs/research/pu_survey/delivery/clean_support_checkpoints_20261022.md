@@ -16,7 +16,7 @@
   外部 PA/OA 各自从两个 teacher 流选择，不能复用最终 support 选出的 teacher 冒充双轨选择。
 - LaGAM 只记录完成 warmup 之后的 meta epoch。warmup 不属于本探索方案的候选池；
   这是显式工程选择，不是已批准正式阶段资格。PULNS 的 episode checkpoint 暂未接通，
-  仍可用旧终点 OA 入口。
+  这是第一批截点；同日第二批已补齐，见末节。旧终点 OA 入口始终保留。
 - 每个外部协议独立选择 candidate、checkpoint/component、阈值及验证仿射；
   原 PA proxy criterion 不变，PA 只见 PU validation；OA 只见 clean validation。
 - 复用 weights-only writer，记录逐快照身份、实际字节与全部选择信息；选择完成后，
@@ -35,13 +35,13 @@
 将上面的 LaGAM 参数保存到自己的 JSON 后，在仓库根运行：
 
 ```bash
-python scripts/run_clean_support_experiment.py \
+PYTHONPATH=. python scripts/run_clean_support_experiment.py \
   --artifact-dir path/to/independent-support-product \
   --method lagam --c 0.5 --parameters path/to/parameters.json \
   --selection-scope meta_checkpoints --checkpoint-bytes-per-component 65536
 
 # 显式执行一次，输出目录不得存在：
-python scripts/run_clean_support_experiment.py \
+PYTHONPATH=. python scripts/run_clean_support_experiment.py \
   --artifact-dir path/to/independent-support-product \
   --method lagam --c 0.5 --parameters path/to/parameters.json \
   --selection-scope meta_checkpoints --checkpoint-bytes-per-component 65536 \
@@ -85,7 +85,7 @@ Self-PU native-TS 校准的正式 full-meta 接线也不能用本 OS-only 路径
 CLI 覆盖 dry-run、实际制品加载/训练/两模型回放、计划改动拒绝；原终点 OA 测试继续执行。
 没有读取用户私有 Excel、压缩包或启动真实数据/GPU 跑批。
 
-剩余：PULNS episode 接线、真实 support 制品、正式 profiles/units、Self-PU 全量正式
+第一批后的剩余项：PULNS episode 接线（随后第二批已补齐）、真实 support 制品、正式 profiles/units、Self-PU 全量正式
 协议路径、图像/CNN 规格与真实 smoke；CVIR 校准及其他方法 recipe 仍按执行计划推进。
 本工程交付不等于 P3.2 整体完成。测试结果在本批验收后另附，不外推远程 CI 已通过。
 
@@ -97,3 +97,49 @@ XML `/tmp/support-checkpoint-full-fast-fixed-20261022.xml`。
 格式、文档/API、目录/层依赖、测试质量、数学渲染、元数据、skills/注释、baseline、
 候选 fit 来源绑定和 materialized draft registry 门禁通过。CUDA 条件跳过及未执行的
 slow/e2e 不计通过；既有 solver/代价/消融/NVML 告警保留，不声称 GPU 或远程 CI 验收。
+
+## 同日第二批：PULNS completed-episode 接线
+
+新增 `PULNSClassifier.fit(..., epoch_callback=None)`，默认 None 不改变原轨迹。
+每个 episode 的 classifier 更新、support 评估和 history 完成后调用一次，标签从0开始；
+不额外回调预训练或内部 classifier epoch，不保存 reward probe / selector。
+回调发生在最终恢复 support-best 模型之前，因此各快照真实代表该 episode 的当前
+classifier，不会把同一内部 best 重复包装成各 episode。正常终点仍保持原 support-best。
+回调异常/取消由原 failed-fit guard 撤销公开拟合状态；不重试裸 fit 或悄悄省略回调。
+
+`PULNSCleanSupportCheckpointTrainer` 接入同一角色审计、容量预检、weights-only writer、
+`PA+clean-support`/OA 独立选择与选后回收。API provenance 用
+`selection_scope=completed_episodes`、`captured_episodes`，history/stage cost 保持实际
+所有 pretrain/reward-probe/policy/classifier 更新，不将 snapshot 数当成训练步数。
+CLI 同样显式用 `--selection-scope meta_checkpoints`（这个模式名也覆盖 RL episodes），
+支持 `--method pulns`，但参数须换成 PULNS 的显式预算，例如：
+
+```json
+{"device":"cpu","hidden_dim":4,"batch_size":32,"pretrain_epochs":1,"episodes":3,"classifier_epochs":1}
+```
+
+上述仍只是合成 CPU 小模型示例，不批准正式100/500支持集、训练预算或GPU规格。
+纯 PU PA 不适用、TS 校准不适用、原终点 OA、v2 pending 和 formal_admission=false 均保留。
+本轮同步当前候选 fit 契约的 PULNS 源码 SHA/新增 callback 签名，不重写历史资源测量。
+新增 callback 默认兼容、阶段/时序、单 episode、早失败、异常/取消与隐式 support 拒绝回归；
+共享双轨和 CLI 测试扩展到三种方法。正式数据、完整协议单元和 P3.2 其他事项仍未完成。
+
+第二批最终验收：专项 **226 passed / 2 CUDA-only skipped / 0 failures / 0 errors**
+（228项、17.334秒），XML `/tmp/pulns-support-final-target-20261022.xml`。
+完整快测 **5,408 passed / 59 skipped / 0 failures / 0 errors**
+（5,467项、321.600秒），XML `/tmp/pulns-support-full-fast-20261022.xml`。
+对本项目修改前 `5c7d331` 的 PULNS 另做3个 seed × 1/2 episodes 共6组对照，
+默认分数、history、selected-negative IDs、classifier/selector 全部权重及阶段更新数逐位一致。
+仅证明这些合成配置的默认兼容，不是作者代码或论文数值复现。
+
+另以真实独立 Python CLI 子进程执行三种方法：从同一400行合成输入建立5角色产品，
+各执行一次双轨 CPU 训练，均保存两份选中模型并验证分数、阈值与结果回放；
+均为0捕获warning、0重试。制品仅在本机 `/tmp/pu-support-cli-20261022-v3vsmjdc`，
+不提交数组、pickle 或权重；临时目录不保证长期保留。环境为当时的 dirty checkout，
+各计划绑定实际源码摘要，不冒充 frozen-lock、正式 Spambase 或 GPU 实验。
+
+两批实现分别提交推送；本地静态、候选来源契约、baseline、draft registry、P3准入证据/
+公开对照检查通过，后两者是既有记录的机器检查，未重新读取上游代码/论文或做新数值裁决。
+没有改冻结协议/比较矩阵、旧645-run、负责人签署或用户制品；没有启动真实数据/GPU跑批。
+当前仍是独立探索入口，adapter 继续拒绝 versioned Survey；正式接入还需 v3 单元、
+绑定 runner/适用训练视图、真实 support、预算冻结与对应验收，不是只加JSON就自动准入。

@@ -83,6 +83,8 @@ class PULNSClassifier(BasePUClassifier):
     input_ndims = frozenset({2, 4})
     encoder_parameter = "encoder"
     trains_encoder = True
+    epoch_components = ("model",)
+    checkpoint_stages = ("episode",)
 
     def __init__(
         self,
@@ -114,6 +116,15 @@ class PULNSClassifier(BasePUClassifier):
         self.random_state = random_state
         self.device = device
 
+    @property
+    def checkpoint_epoch_count(self):
+        """One inference snapshot per completed RL episode, not per inner epoch."""
+        return self.episodes
+
+    @property
+    def checkpoint_prediction_batch_size(self):
+        return self.batch_size
+
     @invalidate_failed_fit
     def fit(
         self,
@@ -126,11 +137,14 @@ class PULNSClassifier(BasePUClassifier):
         support_data=None,
         train_indices=None,
         support_indices=None,
+        epoch_callback=None,
     ):
         import torch
         from torch import nn
 
         self._is_fitted = False
+        if epoch_callback is not None and not callable(epoch_callback):
+            raise ValueError("epoch_callback must be callable or None")
         if sample_weight is not None:
             raise NotImplementedError("PULNS does not implement sample_weight")
         if support_data is None:
@@ -312,6 +326,14 @@ class PULNSClassifier(BasePUClassifier):
             self.history_["policy_loss"].append(float(loss.detach().cpu()))
             self.history_["selected_negatives"].append(len(selected))
             self.history_["optimizer_steps"].append(self.optimizer_steps_)
+            self.checkpoint_stage_ = "episode"
+            self.checkpoint_stage_epoch_ = episode + 1
+            self.checkpoint_round_ = None
+            if epoch_callback is not None:
+                # Record the current completed episode before restoring the
+                # internally support-selected best model at the end of fit.
+                self._is_fitted = True
+                epoch_callback(episode, self)
         self.model_.load_state_dict(best)
         self.model_.eval()
         self.selector_.eval()

@@ -19,7 +19,7 @@ from pu_toolbox.experiment.tracking import RunTrajectory  # noqa: E402
 pytestmark = pytest.mark.unit
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 @pytest.mark.parametrize(
     "protocols",
     [
@@ -34,7 +34,7 @@ def test_param_plain_pa_or_duplicate_protocol_names_refused(method, protocols, t
     assert not (tmp_path / "checkpoints").exists()
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 @pytest.mark.parametrize("role", [0, 1, 2, 3])
 def test_edge_role_overlap_remains_refused_before_writing(method, role, tmp_path):
     parts, support = inputs()
@@ -66,7 +66,7 @@ def test_basic_named_pa_requires_support_disclosure_and_keeps_clean_view_guard()
         ProtocolPACleanSupport().select([tagged], parts[2], class_prior=0.5)
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 def test_edge_support_mutation_after_preflight_revokes_fit(method, tmp_path):
     parts, support = inputs()
     trainer = adapter(method, support)

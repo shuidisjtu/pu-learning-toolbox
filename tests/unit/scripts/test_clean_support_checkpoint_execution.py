@@ -39,6 +39,15 @@ def product(tmp_path):
 
 
 def parameters(method):
+    if method == "pulns":
+        return {
+            "device": "cpu",
+            "hidden_dim": 4,
+            "batch_size": 32,
+            "pretrain_epochs": 1,
+            "episodes": 3,
+            "classifier_epochs": 1,
+        }
     common = {
         "device": "cpu",
         "hidden_dim": 4,
@@ -53,7 +62,7 @@ def parameters(method):
     )
 
 
-@pytest.mark.parametrize("method", ["self_pu", "lagam"])
+@pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
 def test_basic_actual_cpu_meta_checkpoints_both_selected_models_and_replay(method, tmp_path):
     plan = script.build_plan(
         product(tmp_path),

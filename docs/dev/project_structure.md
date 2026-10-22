@@ -325,6 +325,7 @@ tests/
       test_p3mix_input_isolation.py     # 三变体原地网络输入隔离与异常模式恢复
       test_cvir_input_modes.py          # CVIR原地输入隔离、推理模式及参数提前失败
       test_lagam_paper_behavior.py      # LaGAM 独立 BCE/对比参考式、零梯度与硬标签元步
+      test_pulns_checkpoints.py         # PULNS episode 回调、默认兼容、失败失效和内部 best 恢复
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
