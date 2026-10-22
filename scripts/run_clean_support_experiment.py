@@ -2,8 +2,9 @@
 """One explicit CPU/MLP clean-support experiment, not a formal Survey recipe.
 
 Default dry-run pins product, method parameters and SCAR label identities.
---execute writes a new result directory and a selected OA model. Only explicit
-extra-supervised exploratory OA is allowed; no automatic budget or GPU choice.
+--execute writes a new result directory. Default terminal OA stays unchanged;
+explicit meta_checkpoints enables audited PA+clean-support / OA selection for
+Self-PU and LaGAM, with a required storage estimate. No implicit GPU choice.
 """
 
 from __future__ import annotations
@@ -26,7 +27,11 @@ from pu_toolbox.experiment.clean_support_adapters import (
 from pu_toolbox.experiment.pulns_adapter import PULNSExtraSupportTrainer
 from pu_toolbox.experiment.resources import runtime_environment
 from pu_toolbox.experiment.runner import ExperimentRunner
-from pu_toolbox.experiment.strategies import ProtocolOA, SCARGenerator
+from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPACleanSupport, SCARGenerator
+from pu_toolbox.experiment.support_checkpoints import (
+    LaGAMCleanSupportCheckpointTrainer,
+    SelfPUCleanSupportCheckpointTrainer,
+)
 from pu_toolbox.experiment.support_data import load_support_dataset
 from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
 
@@ -44,7 +49,7 @@ _BUDGETS = {
 }
 
 
-def _objects(method, parameters, prior, seed, support, metadata):
+def _objects(method, parameters, prior, seed, support, metadata, *, checkpoint_selection=False):
     if method not in METHODS or not isinstance(parameters, dict):
         raise ValueError("choose a supported method and an explicit parameter object")
     parameters = json.loads(json.dumps(parameters, allow_nan=False))
@@ -79,6 +84,14 @@ def _objects(method, parameters, prior, seed, support, metadata):
 
         model = PULNSClassifier(random_state=seed, **parameters)
         adapter = PULNSExtraSupportTrainer
+    if checkpoint_selection:
+        if method == "pulns":
+            raise ValueError("PULNS episode checkpoint adapter is not connected yet")
+        adapter = (
+            SelfPUCleanSupportCheckpointTrainer
+            if method == "self_pu"
+            else LaGAMCleanSupportCheckpointTrainer
+        )
     options = dict(metadata["support_adapter_options"])
     source_audit = metadata["support_source_audit"]
     signature = inspect.signature(adapter).parameters
@@ -89,8 +102,21 @@ def _objects(method, parameters, prior, seed, support, metadata):
     return model, adapter(support, **options)
 
 
-def build_plan(directory, *, method, c_token, parameters):
-    """Resolve one terminal OA candidate; never fit, tune or inspect test scores."""
+def build_plan(
+    directory,
+    *,
+    method,
+    c_token,
+    parameters,
+    selection_scope="terminal",
+    checkpoint_bytes_per_component=None,
+):
+    """Resolve one explicit candidate; terminal OA remains the default."""
+    if selection_scope not in ("terminal", "meta_checkpoints"):
+        raise ValueError("selection_scope must be terminal or meta_checkpoints")
+    checkpoints = selection_scope == "meta_checkpoints"
+    if not checkpoints and checkpoint_bytes_per_component is not None:
+        raise ValueError("checkpoint sizing requires explicit meta_checkpoints scope")
     if c_token not in ("0.1", "0.3", "0.5"):
         raise ValueError("c must be the canonical SCAR token 0.1/0.3/0.5")
     bundle, support, metadata = load_support_dataset(directory)
@@ -99,9 +125,14 @@ def build_plan(directory, *, method, c_token, parameters):
             "CPU/MLP runner requires tabular products; CNN needs a separate specification"
         )
     prior, seed = metadata["class_prior"]["population"], metadata["seed"]
-    model, trainer = _objects(method, parameters, prior, seed, support, metadata)
+    model, trainer = _objects(
+        method, parameters, prior, seed, support, metadata, checkpoint_selection=checkpoints
+    )
     config = {"c": float(c_token), "os_or_ts": "os", "split_ref": {"dataset": metadata["dataset"]}}
-    trainer.validate_experiment(model, bundle, config, [ProtocolOA()])
+    protocols = [ProtocolPACleanSupport(), ProtocolOA()] if checkpoints else [ProtocolOA()]
+    if checkpoints:
+        config["checkpoint_bytes_per_component"] = checkpoint_bytes_per_component
+    trainer.validate_experiment(model, bundle, config, protocols)
     generation = {}
     for role in ("train", "pu_val"):
         part = getattr(bundle, role)
@@ -124,8 +155,15 @@ def build_plan(directory, *, method, c_token, parameters):
         "scripts/run_clean_support_experiment.py",
         "uv.lock",
     )
-    return {
-        "schema_version": "clean-support-cpu-oa-plan-v1",
+    if checkpoints:
+        sources += (
+            "pu_toolbox/experiment/support_checkpoints.py",
+            "pu_toolbox/experiment/checkpoints.py",
+        )
+    plan = {
+        "schema_version": "clean-support-cpu-checkpoint-plan-v1"
+        if checkpoints
+        else "clean-support-cpu-oa-plan-v1",
         "method": method,
         "artifact_dir": str(Path(directory).resolve()),
         "product_receipt_sha256": metadata["receipt_sha256"],
@@ -153,15 +191,21 @@ def build_plan(directory, *, method, c_token, parameters):
         "formal_admission": False,
         "budget_approval": "not_granted_by_runner",
         "comparison_group": "extra_clean_support",
-        "protocols": ["OA"],
+        "protocols": [p.name for p in protocols],
         "candidate_count": 1,
-        "selection_scope": "terminal",
+        "selection_scope": selection_scope,
         "test_used_for_selection": False,
         "training_device": "cpu",
         "limitation": (
             "independent exploratory MLP; not source replay, GPU or formal budget evidence"
         ),
     }
+    if checkpoints:
+        plan["checkpoint_bytes_per_component"] = checkpoint_bytes_per_component
+        plan["checkpoint_epoch_upper_bound"] = trainer.checkpoint_epoch_bound()
+        plan["reclaim_unselected_checkpoints"] = True
+        plan["plan_payload_sha256"] = strict_canonical_hash(plan)
+    return plan
 
 
 def _write_json(path, payload):
@@ -172,7 +216,7 @@ def _write_json(path, payload):
 
 
 def predict_saved_selection(saved, features):
-    """Apply the OA validation affine/threshold unchanged to replay predictions."""
+    """Apply the selected validation affine/threshold unchanged to predictions."""
     model, selection = saved["model"], saved["selection"]
     if selection["threshold"] is None:
         return model.predict(features)
@@ -184,12 +228,20 @@ def predict_saved_selection(saved, features):
 
 
 def execute(plan, output):
-    """Recheck the frozen plan; save only the one selected OA model and receipt."""
+    """Recheck the explicit plan; save selected models and auditable receipts."""
+    if plan.get("selection_scope") == "meta_checkpoints" and plan.get(
+        "plan_payload_sha256"
+    ) != strict_canonical_hash(
+        {key: value for key, value in plan.items() if key != "plan_payload_sha256"}
+    ):
+        raise ValueError("checkpoint plan changed after planning")
     actual = build_plan(
         plan["artifact_dir"],
         method=plan["method"],
         c_token=plan["c_token"],
         parameters=plan["parameters_requested"],
+        selection_scope=plan["selection_scope"],
+        checkpoint_bytes_per_component=plan.get("checkpoint_bytes_per_component"),
     )
     if strict_canonical_hash(actual) != strict_canonical_hash(plan):
         raise ValueError("support product, code or parameters changed after planning")
@@ -221,11 +273,21 @@ def execute(plan, output):
         plan["seed"],
         support,
         metadata,
+        checkpoint_selection=plan["selection_scope"] == "meta_checkpoints",
+    )
+    checkpoints = plan["selection_scope"] == "meta_checkpoints"
+    checkpoint_options = (
+        {
+            "checkpoint_bytes_per_component": plan["checkpoint_bytes_per_component"],
+            "reclaim_unselected_checkpoints": True,
+        }
+        if checkpoints
+        else {}
     )
     runner = ExperimentRunner(
         seed=plan["seed"],
         class_prior=plan["population_prior"],
-        protocols=[ProtocolOA()],
+        protocols=[ProtocolPACleanSupport(), ProtocolOA()] if checkpoints else [ProtocolOA()],
         manifest_path=str(directory / "manifest.json"),
         config={
             "c": float(plan["c_token"]),
@@ -236,6 +298,7 @@ def execute(plan, output):
                 "support_receipt_sha256": metadata["receipt_sha256"],
             },
             "candidates": [{}],
+            **checkpoint_options,
         },
     )
     with warnings.catch_warnings(record=True) as caught:
@@ -247,25 +310,31 @@ def execute(plan, output):
     }
     if generation != plan["label_view_sha256"]:
         raise ValueError("executed SCAR marking differs from plan")
-    saved = {"model": result.selected_models["OA"], "selection": result.manifest["selection"]["OA"]}
-    model_path = directory / "selected_OA.pkl"
-    with model_path.open("xb") as stream:
-        pickle.dump(saved, stream, protocol=pickle.HIGHEST_PROTOCOL)
-    # Only our just-generated trusted model is loaded; never arbitrary external pickles.
-    with model_path.open("rb") as stream:
-        restored = pickle.load(stream)
-    expected = predict_saved_selection(saved, bundle.test.X)
-    predicted = predict_saved_selection(restored, bundle.test.X)
-    scores_equal = np.array_equal(
-        saved["model"].decision_function(bundle.test.X),
-        restored["model"].decision_function(bundle.test.X),
-    )
-    if (
-        not scores_equal
-        or not np.array_equal(expected, predicted)
-        or float(np.mean(predicted == bundle.test.labels)) != result.test_metrics["OA"]["accuracy"]
-    ):
-        raise ValueError("selected OA model does not replay its recorded test accuracy")
+    selected_files = []
+    for protocol, fitted in result.selected_models.items():
+        saved = {"model": fitted, "selection": result.manifest["selection"][protocol]}
+        model_path = directory / f"selected_{protocol}.pkl"
+        selected_files.append(model_path.name)
+        with model_path.open("xb") as stream:
+            pickle.dump(saved, stream, protocol=pickle.HIGHEST_PROTOCOL)
+        # Only our just-generated trusted models, never arbitrary external pickles.
+        with model_path.open("rb") as stream:
+            restored = pickle.load(stream)
+        expected = predict_saved_selection(saved, bundle.test.X)
+        predicted = predict_saved_selection(restored, bundle.test.X)
+        scores_equal = np.array_equal(
+            saved["model"].decision_function(bundle.test.X),
+            restored["model"].decision_function(bundle.test.X),
+        )
+        if (
+            not scores_equal
+            or not np.array_equal(expected, predicted)
+            or float(np.mean(predicted == bundle.test.labels))
+            != result.test_metrics[protocol]["accuracy"]
+        ):
+            raise ValueError(
+                f"selected {protocol} model does not replay its recorded test accuracy"
+            )
     summary = {
         "method": plan["method"],
         "formal_admission": False,
@@ -293,7 +362,7 @@ def execute(plan, output):
                 "plan.json",
                 "environment.json",
                 "manifest.json",
-                "selected_OA.pkl",
+                *selected_files,
             )
         },
     }
@@ -311,13 +380,22 @@ def main(argv=None):
     parser.add_argument("--parameters", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument(
+        "--selection-scope", choices=["terminal", "meta_checkpoints"], default="terminal"
+    )
+    parser.add_argument("--checkpoint-bytes-per-component", type=int)
     args = parser.parse_args(argv)
     try:
         if args.execute and args.out_dir is None:
             raise ValueError("--execute requires a new --out-dir")
         parameters = json.loads(args.parameters.read_text(encoding="utf-8"))
         plan = build_plan(
-            args.artifact_dir, method=args.method, c_token=args.c, parameters=parameters
+            args.artifact_dir,
+            method=args.method,
+            c_token=args.c,
+            parameters=parameters,
+            selection_scope=args.selection_scope,
+            checkpoint_bytes_per_component=args.checkpoint_bytes_per_component,
         )
         payload = execute(plan, args.out_dir) if args.execute else plan
         print(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False))

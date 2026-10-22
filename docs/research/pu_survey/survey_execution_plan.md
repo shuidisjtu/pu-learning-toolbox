@@ -4,12 +4,12 @@
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
-> 状态核对日期：**2026-10-21**
+> 状态核对日期：**2026-10-22**（本日增量为 clean-support 工程接线）
 
 ## 1. 实验能力与缺口
 
 > 本节按“PU Survey 实验设施是否满足实验要求”组织；任务编号只作关联。判定标准：命令可执行
-> 并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。状态日期：2026-10-21。
+> 并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。基础状态日期：2026-10-21；本日工程增量见 §1.5。
 
 ### 1.1 能力矩阵
 
@@ -20,7 +20,7 @@
 | 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
 | 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
 | 图像/共享 backbone | **部分** | runner 接线、PULDA 120 / GradPU 200 峰值估算 | 端到端 smoke + 单 run 峰值记录 |
-| PA/OA 选模 | **是**（8 方法） | `PA+clean-support` 路径 | 选模产物与 manifest 对账 |
+| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM 独立 support 的工程双轨另已接通 | PULNS 路径、正式 support units/预算与验收 | 选模产物与 manifest 对账 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | 22 方法主榜 | **否** | 上述缺口 + 预算冻结 | P4.2 门禁 |
 
@@ -33,9 +33,9 @@
 | 13 方法预算未冻结 | 可比性 | 冻结 epochs/batch/candidates/seeds | shuidisjtu | P4.1-B 记录 |
 | 图像 runner 未接 | PULDA/GradPU 不能进主榜 | 接 runner + 单 run 峰值估算 | HENG958 | smoke + profile |
 | CVIR 校准未决 | TS 主表 | A2 裁决 + 实现 | HENG958 | 校准或“不适用” |
-| Self-PU 完整版 | 方法完整 | clean-support 单元 | HENG958 | 单元 + 跑通 |
+| Self-PU 完整版 | 方法完整 | 已有显式 SCAR OS full-meta checkpoint 双轨工程路径；待正式 clean-support 单元、适用视图与验收 | HENG958 | 单元 + 跑通 |
 | GEN-PU recipe | 方法完整 | 4 个 blocker | HENG958 | 冻结 |
-| `PA+clean-support` | PULNS/LaGAM | 路径实现 | HENG958 | 跑通 |
+| `PA+clean-support` | PULNS/LaGAM | LaGAM 工程路径已接通；PULNS episode 与正式 units 尚待 | HENG958 | 跑通 |
 | PN-CNN | oracle | 真实 GPU smoke + 5 seed | HENG958 | 交付 |
 | RV5/RV6 | Pilot 复核 | 方法学结论 | HENG958 | 结论记录 |
 
@@ -120,6 +120,12 @@
 4. **P4.1-B**：预算/配方冻结。
 5. **分组跑批 + 汇总**：按 method/dataset/path/mechanism，边跑边清。
 6. **P3.3 smoke + P4.2**：峰值验证与主榜。
+
+2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
+Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
+`PA+clean-support`/OA 独立选择、容量估算和选后回收；旧终点 OA/默认消融不变。
+CLI 可显式执行单候选 CPU 工程链，不代表正式单位、真实数据/GPU/预算验收；
+v2 两个 pending review 项保留，PULNS episode 接线与 P3.2 其他缺口仍待。
 
 ## 2. 风险与留痕约定
 

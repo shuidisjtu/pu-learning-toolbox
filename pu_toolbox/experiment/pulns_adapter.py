@@ -112,10 +112,7 @@ class _IndependentSupportTrainer(Trainer):
             raise ValueError(
                 f"{self.display_name} support adapter is exploratory OS only, not frozen Survey"
             )
-        if not protocols or any(type(p) is not ProtocolOA for p in protocols):
-            raise ValueError(
-                f"extra-supervised {self.display_name} requires OA only; not PU-only PA eligible"
-            )
+        self._validate_selection_protocols(protocols)
         if self.dataset not in survey_dataset_catalog():
             raise ValueError("dataset must name an approved Survey label mapping")
         declared_dataset = (config.get("split_ref") or {}).get("dataset")
@@ -289,6 +286,13 @@ class _IndependentSupportTrainer(Trainer):
             "formal_admission": False,
         }
         self._prepared = True
+
+    def _validate_selection_protocols(self, protocols):
+        """Legacy terminal adapters remain OA-only; explicit variants may override."""
+        if not protocols or any(type(p) is not ProtocolOA for p in protocols):
+            raise ValueError(
+                f"extra-supervised {self.display_name} requires OA only; not PU-only PA eligible"
+            )
 
     def _require_prepared(self, estimator, features, view):
         """Recheck support flags/data and training features before each fit/retry."""

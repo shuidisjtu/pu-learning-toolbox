@@ -199,6 +199,7 @@ pu_toolbox/
     survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
     support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
+    support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -401,6 +402,7 @@ tests/
       test_source_provenance.py         # 临时实验脚本Git工作目录与实际加载实现身份
       test_clean_support_execution.py   # 三方法 CPU 实训、显式预算、OA 模型回放与告警拒收
       test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
+      test_clean_support_checkpoint_execution.py # support 双轨 CLI、计划身份及选中模型回放
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -554,6 +556,9 @@ tests/
       test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
       test_support_data.py              # 五数据集支持集抽样、train-only 预处理和制品损坏/身份回归
       test_p3mix_literature_anchors.py  # <<< 新文件,补注释
+      _support_checkpoint_helpers.py    # support 双轨选择的合成 CPU 角色/方法 fixture
+      test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
+      test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

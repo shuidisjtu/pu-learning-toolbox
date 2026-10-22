@@ -1741,6 +1741,16 @@ Self-PU 的支持集只用于元重加权与内部 teacher 选择，外部 OA �
 仅探索性 SCAR OS、终点 OA，不是 PA、正式多 checkpoint 候选池或论文数值复现。
 调用示例与验收边界见[算法收尾记录](../../research/pu_survey/reviews/algorithm_completion_20261017.md)。
 
+2026-10-22 新增显式 checkpoint 变体：
+`pu_toolbox.experiment.support_checkpoints.SelfPUCleanSupportCheckpointTrainer` /
+`LaGAMCleanSupportCheckpointTrainer`，构造审计参数同旧 adapter。只用于 exploratory
+SCAR OS，要求 runner 配置正整数 `checkpoint_bytes_per_component`；选择协议为
+`pu_toolbox.experiment.strategies.ProtocolPACleanSupport`（输出 `PA+clean-support`）
+与/或 `ProtocolOA`，拒绝普通 PA。只记录完成 meta-active 的 epoch，Self-PU 同时保留
+两个 teacher 流供独立选择；不改旧 terminal OA 或 Self-PU 默认消融。CLI 显式
+`--selection-scope meta_checkpoints` 才启用，默认仍 terminal；详见
+[接线与命令](../../research/pu_survey/delivery/clean_support_checkpoints_20261022.md)。
+
 `pu_toolbox.experiment.support_data.prepare_support_dataset` 从原始数组按显式预算准备
 独立支持集，重新拟合剩余 train 的预处理；`save_support_dataset` 仅写新目录，
 `load_support_dataset` 核对五角色、抽样、文件和收据。支持五个非文本/非分组数据集；

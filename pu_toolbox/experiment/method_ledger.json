@@ -671,6 +671,17 @@
         "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
         "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
         "scope": "opt-in exploratory SCAR OS, terminal OA after support teacher selection; frozen pilot remains no-meta ablation",
+        "checkpoint_variant": {
+          "entry": "pu_toolbox.experiment.support_checkpoints.SelfPUCleanSupportCheckpointTrainer",
+          "review_ref": "docs/research/pu_survey/delivery/clean_support_checkpoints_20261022.md",
+          "scope": "explicit exploratory SCAR OS, completed meta-active epochs, both EMA teacher streams",
+          "selection_protocols": ["PA+clean-support", "OA"],
+          "requires_clean_support": true,
+          "pa_eligible": false,
+          "pa_clean_support_eligible": true,
+          "formal_admission": false,
+          "protocol_review_complete": false
+        },
         "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
         "support_labels_affect": ["meta_reweighting", "internal_teacher_selection"],
         "comparison_group": "extra_clean_support",
@@ -877,6 +888,17 @@
       "implementation_status": "NATIVE, backend TORCH; explicit clean-support MLP or trainable injected CNN; CPU-streamed training/clustering/inference, head-only virtual meta update; not author replay or formal admission",
       "extra_supervision_adapter": {
         "entry": "pu_toolbox.experiment.clean_support_adapters.LaGAMCleanSupportTrainer",
+        "checkpoint_variant": {
+          "entry": "pu_toolbox.experiment.support_checkpoints.LaGAMCleanSupportCheckpointTrainer",
+          "review_ref": "docs/research/pu_survey/delivery/clean_support_checkpoints_20261022.md",
+          "scope": "explicit exploratory SCAR OS, completed post-warmup classifier snapshots",
+          "selection_protocols": ["PA+clean-support", "OA"],
+          "requires_clean_support": true,
+          "pa_eligible": false,
+          "pa_clean_support_eligible": true,
+          "formal_admission": false,
+          "protocol_review_complete": false
+        },
         "support_artifact_preparer": "scripts/prepare_clean_support.py",
         "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
         "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",

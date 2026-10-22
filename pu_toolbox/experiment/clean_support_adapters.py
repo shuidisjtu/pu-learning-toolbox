@@ -39,13 +39,22 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         self._require_prepared(estimator, X, os_or_ts)
+        self._fit_support_estimator(estimator, X, y, class_prior=class_prior)
+        self._finish_support_fit(estimator, y)
+        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
+
+    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+        callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
         estimator.fit(
             X,
             y,
             class_prior=class_prior,
             validation_data=(self.support.X, self.support.labels),
             os_or_ts="os",
+            **callbacks,
         )
+
+    def _finish_support_fit(self, estimator, y):
         active_records = sum(row["calibration_active"] for row in estimator.reweight_history_)
         if estimator.calibration_mode_ != "clean_validation_meta" or active_records == 0:
             raise ValueError("Self-PU support path unexpectedly ran an ablation")
@@ -65,7 +74,6 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
                 "distillation_scope": estimator.distillation_scope_,
             }
         )
-        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
 
 
 class LaGAMCleanSupportTrainer(_IndependentSupportTrainer):
@@ -89,7 +97,15 @@ class LaGAMCleanSupportTrainer(_IndependentSupportTrainer):
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         self._require_prepared(estimator, X, os_or_ts)
-        estimator.fit(X, y, support_data=(self.support.X, self.support.labels))
+        self._fit_support_estimator(estimator, X, y, class_prior=class_prior)
+        self._finish_support_fit(estimator, y)
+        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
+
+    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+        callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
+        estimator.fit(X, y, support_data=(self.support.X, self.support.labels), **callbacks)
+
+    def _finish_support_fit(self, estimator, y):
         if estimator.virtual_steps_ == 0:
             raise ValueError("LaGAM support path executed no virtual meta update")
         self._finish_provenance(estimator, y)
@@ -101,4 +117,3 @@ class LaGAMCleanSupportTrainer(_IndependentSupportTrainer):
                 "paper_full_reproduction": False,
             }
         )
-        return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)

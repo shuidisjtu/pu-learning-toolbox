@@ -713,8 +713,12 @@ class ExperimentRunner:
         when the run writes no checkpoints or a non-formal run cannot be sized;
         formal runs must have a protocol-bound storage estimate.
         """
-        if not _captures_checkpoints(self.config, trainer, model):
+        custom_recorder = getattr(trainer, "records_epoch_checkpoints", False) is True
+        if not _captures_checkpoints(self.config, trainer, model) and not custom_recorder:
             return {}
+        checkpoint_root = _checkpoint_root(self.config, self.manifest_path)
+        if custom_recorder:
+            trainer.bind_checkpoint_directory(checkpoint_root)
         budget = protocol_context.get("budget") or {}
         bytes_per_component = self.config.get("checkpoint_bytes_per_component")
         # A bound unit knows its epoch cap from the protocol; an unbound one
@@ -724,6 +728,8 @@ class ExperimentRunner:
             or getattr(model, "checkpoint_epoch_count", None)
             or getattr(model, "max_epochs", None)
         )
+        if custom_recorder:
+            epochs = trainer.checkpoint_epoch_bound()
         formal = protocol_context.get("execution_mode") == "versioned_pilot"
         if formal:
             request = self.config.get("survey_protocol") or {}
@@ -781,7 +787,7 @@ class ExperimentRunner:
                 components=len(declared_components),
                 candidates=len(self.config.get("candidates", [{}])),
             ),
-            directory=_checkpoint_root(self.config, self.manifest_path) or tempfile.gettempdir(),
+            directory=checkpoint_root or tempfile.gettempdir(),
         )
 
     def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer):

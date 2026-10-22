@@ -445,7 +445,7 @@ class ProtocolPA(SelectionProtocol):
                 record_validation(
                     traj,
                     checkpoint_index,
-                    "PA",
+                    self.name,
                     {
                         "val_proxy_accuracy": value,
                         "threshold": threshold,
@@ -461,7 +461,7 @@ class ProtocolPA(SelectionProtocol):
                     best_min, best_scale = affine
                     best_epoch, best_checkpoint = epoch, checkpoint_index
         return SelectionArtifact(
-            protocol="PA",
+            protocol=self.name,
             run_index=best_run,
             epoch=best_epoch,
             threshold=best_threshold,
@@ -473,6 +473,25 @@ class ProtocolPA(SelectionProtocol):
             },
             checkpoint_index=best_checkpoint,
         )
+
+
+class ProtocolPACleanSupport(ProtocolPA):
+    """PU-view PA selection, separately named for audited extra-support training.
+
+    The criterion and validation view are exactly PA's, not a clean-label
+    proxy. Only an explicit audited checkpoint adapter opts a trajectory in.
+    """
+
+    name = "PA+clean-support"
+
+    def select(self, trajectories, val_part, threshold_candidates=None, *, class_prior=None):
+        if not trajectories or any(
+            getattr(trajectory.model, "training_provenance_", {}).get("pa_clean_support_eligible")
+            is not True
+            for trajectory in trajectories
+        ):
+            raise ValueError("PA+clean-support requires an audited support trajectory")
+        return super().select(trajectories, val_part, threshold_candidates, class_prior=class_prior)
 
 
 # ---------------------------------------------------------------------------
