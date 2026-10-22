@@ -4,7 +4,7 @@
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
-> 状态核对日期：**2026-10-22**（本日增量为 clean-support、CVIR 独立工程接线）
+> 状态核对日期：**2026-10-22**（本日增量为 clean-support/CVIR 接线及真实 support 制品）
 
 ## 1. 实验能力与缺口
 
@@ -16,7 +16,7 @@
 | 能力 | 现在能用？ | 缺什么 | 补完后怎么算可用 |
 |---|---|---|---|
 | 8 数据集四路 split | **是** | — | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
-| clean support（5 数据集） | **否** | 5 份 support 产物与五角色校验 | `prepare_clean_support.py --write` 产出，manifest 角色完整 |
+| clean support（5 数据集） | **是（本机）** | 跨机器传递须按收据核验；正式消费另需 v3/预算 | 25 份五角色制品已生成/回读验证，见本日交付 |
 | 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
 | 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
 | 图像/共享 backbone | **部分** | runner 接线、PULDA 120 / GradPU 200 峰值估算 | 端到端 smoke + 单 run 峰值记录 |
@@ -28,7 +28,7 @@
 
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
-| clean support 产物 | PULNS、LaGAM、Self-PU 完整版 | 5 数据集 support 生成与校验（100/500） | shuidisjtu | 产物 + 五角色 manifest |
+| clean support 正式消费 | PULNS、LaGAM、Self-PU 完整版 | 本机 25 份已齐；待跨机收据核验、正式 units/预算绑定 | shuidisjtu | 正式消费 manifest 与五角色制品对账 |
 | 13 方法不在协议 | 13 方法不能进 survey | protocol v3：补 13 个 `method_profiles` 与 `execution_units` | shuidisjtu 起草，HENG958 核对 | `--method` 可跑 |
 | 13 方法预算未冻结 | 可比性 | 冻结 epochs/batch/candidates/seeds | shuidisjtu | P4.1-B 记录 |
 | 图像 runner 未接 | PULDA/GradPU 不能进主榜 | 接 runner + 单 run 峰值估算 | HENG958 | smoke + profile |
@@ -115,7 +115,7 @@
 ### 1.5 推进顺序（2026-10-21）
 
 1. **P3.2**（HENG958）：共享规格、`PA+clean-support`、CVIR、Self-PU、GEN-PU。
-2. **clean support 产物**（shuidisjtu）：5 数据集，可与 P3.2 并行。
+2. **clean support 产物**（shuidisjtu）：本机 5 数据集 × 5 seed 已补齐并验收；跨机传递按收据对账。
 3. **protocol v3**（shuidisjtu + HENG958）：13 方法 profiles/units，解锁 13 方法单跑。
 4. **P4.1-B**：预算/配方冻结。
 5. **分组跑批 + 汇总**：按 method/dataset/path/mechanism，边跑边清。
@@ -133,6 +133,14 @@ CLI 可显式执行单候选 CPU 工程链，不代表正式单位、真实数�
 U∪P 全局排序/截断和按 PU 计数换算先验，保留默认 OS 与旧显式 α_U adapter。
 独立 SCAR 工程入口可记录 PA/OA checkpoint 选择，仍拒绝 versioned Survey/SAR；
 尚未解锁正式 CVIR 单元、配方预算或真实数据/GPU 结果。
+
+同日数据补齐：[五数据集 clean-support 制品](delivery/clean_support_materialization_20261022.md)。
+Spambase/Connect-4/MNIST/F-MNIST/CIFAR-10 的 seeds 0–4 共 25 份已在本机生成并按 raw
+逐行/五角色摘要/剩余 train 预处理验收（100/500，support_seed=split_seed）。
+Self-PU/LaGAM/PULNS 的真实 Spambase 单 seed 短 CPU 双轨 CLI 也已跑通并回放，
+不等于正式配方、多 seed/GPU 或论文效果验收。制品不入 Git，只登记
+[摘要清单](data/clean_support_materialization_20261022.json)，跨机器传递仍须核验；
+v2 pending review、正式 v3/预算边界保持。
 
 ## 2. 风险与留痕约定
 

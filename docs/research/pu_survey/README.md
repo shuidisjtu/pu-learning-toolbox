@@ -54,6 +54,7 @@
 - LBE 独立神经变体：[`lbe_neural_integration_20261014.md`](delivery/lbe_neural_integration_20261014.md)，不替换冻结 linear `lbe`。
 - 独立 clean-support 制品与 CPU 入口：[`clean_support_workflow_20261017.md`](delivery/clean_support_workflow_20261017.md)：五数据集 train 内分拆、五角色收据、剩余 train-only 预处理与 Self-PU/LaGAM/PULNS 单候选 OA 回放；不批准正式预算。
 - [Clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)：Self-PU/LaGAM 的 meta-active 与 PULNS 的 episode 快照、显式 PA+clean-support/OA、容量预检和选后回收；默认终点 OA 保留，非正式准入。
+- [五数据集真实 support 制品](delivery/clean_support_materialization_20261022.md)：本机 25 份五角色制品、逐 raw 映射/剩余 train 预处理核验、三方法真实 Spambase CPU 工程链；Git 仅登记清单，不含 NPZ/原始数据，不等于正式预算或 GPU 结果。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 

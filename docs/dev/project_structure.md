@@ -222,6 +222,7 @@ tests/
     test_ledger_source_reviews.py       # 来源/行为审计复核文档的台账登记与引用契约(15 条)
     test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
     test_lagam_paper_review.py          # LaGAM 全文身份、来源分歧和未签署准入边界
+    test_clean_support_materialization_receipt.py # 本机制品清单的覆盖/摘要与非正式边界（CI 不读 raw）
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
