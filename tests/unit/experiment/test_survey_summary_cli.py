@@ -80,6 +80,38 @@ def test_basic_a_complete_tree_yields_one_row_per_selection_protocol(summary_cli
     ]
     assert report["coverage"]["manifests"] == len(grid)
     assert report["coverage"]["not_reproducible"] == 0
+    row = report["rows"][0]
+    for count, name in enumerate(("f1", "precision", "recall"), start=1):
+        row["additional_metrics"][name].update(
+            mean=count / 10, mean_percent=count * 10, n_observed=count, n_seeds=5
+        )
+
+    cells = summary_cli._row_line(row).strip("| ").split(" | ")
+    columns = dict(zip(summary_cli._COLUMNS, cells, strict=True))
+
+    for count, name in enumerate(("F1", "Precision", "Recall"), start=1):
+        assert columns[f"{name} 均值%"] == f"{count * 10:.2f}"
+        assert columns[f"{name} n"] == f"{count}/5"
+
+
+def test_edge_legacy_manifests_explain_unrecorded_additional_metrics(summary_cli, tmp_path):
+    runs = _five_seeds()
+    for payload in runs.values():
+        for block in payload["test_results"].values():
+            block.pop("f1", None)
+            block.pop("precision", None)
+            block.pop("recall", None)
+    tree = write_tree(tmp_path / "legacy", runs)
+
+    _, report, _ = _run_summary(summary_cli, tmp_path, tree)
+
+    row = next(r for r in report["rows"] if r["row_key"]["selection_protocol"] == "OA")
+    metric = row["additional_metrics"]["f1"]
+    assert metric["n_observed"] == 0
+    assert metric["unavailable_seeds"] == [0, 1, 2, 3, 4]
+    assert metric["unavailable_reasons"] == {
+        str(seed): "Legacy manifest does not record this metric." for seed in range(5)
+    }
 
 
 def test_basic_the_header_carries_the_batch_readiness_beside_the_row_statuses(

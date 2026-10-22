@@ -89,6 +89,19 @@ def test_basic_an_additional_metric_aggregates_over_the_seeds_that_ran():
     assert block["unavailable_seeds"] == []
 
 
+def test_basic_each_logged_additional_metric_uses_seed_mean_and_sample_std():
+    for metric_name in ("f1", "precision", "recall"):
+        block = aggregate_additional_metric(
+            [(0, 0.2), (1, 0.4), (2, 0.6)],
+            metric_name=metric_name,
+            ran_seeds=[0, 1, 2],
+        )
+        assert block["mean"] == pytest.approx(0.4)
+        assert block["std"] == pytest.approx(0.2)
+        assert block["n_observed"] == 3
+        assert block["unavailable_seeds"] == []
+
+
 def test_edge_an_unavailable_observation_is_not_a_missing_seed():
     # Seed 1 ran -- the primary metric has it -- but this metric is NaN, which the
     # manifest's own auc_unavailable_reason documents.  Reporting it as a missing

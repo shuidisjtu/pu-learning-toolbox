@@ -264,6 +264,37 @@ def test_auc_does_not_hide_model_scoring_errors():
         runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
 
 
+def test_basic_additional_binary_metrics_record_undefined_precision_with_reason():
+    from pu_toolbox.experiment.runner import _binary_test_metrics
+
+    metrics = _binary_test_metrics(np.array([1, 0, 1]), np.array([0, 0, 0]))
+
+    assert metrics["precision"] is None
+    assert "predicted no positive" in metrics["precision_unavailable_reason"]
+    assert metrics["recall"] == 0.0
+    assert metrics["f1"] == 0.0
+
+
+@pytest.mark.parametrize(
+    "predicted, expected_f1, expected_precision",
+    [([0, 1], 0.0, 0.0), ([0, 0], None, None)],
+)
+def test_edge_additional_binary_metrics_return_null_when_test_has_no_positives(
+    predicted, expected_f1, expected_precision
+):
+    from pu_toolbox.experiment.runner import _binary_test_metrics
+
+    metrics = _binary_test_metrics(np.array([0, 0]), np.array(predicted))
+
+    assert metrics["recall"] is None
+    assert metrics["f1"] == expected_f1
+    assert metrics["precision"] == expected_precision
+    assert metrics["recall_unavailable_reason"]
+    if expected_f1 is None:
+        assert metrics["precision_unavailable_reason"]
+        assert metrics["f1_unavailable_reason"]
+
+
 def test_candidate_failures_retry_once_and_exclude_from_selection(tmp_path):
     train, pu_val, clean_val, test = make_bundle()
 

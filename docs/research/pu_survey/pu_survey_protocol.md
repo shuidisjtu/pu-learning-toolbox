@@ -40,9 +40,10 @@
   设计，在这三类算法之外额外设置全监督学习基准结果 oracle 上界。
 - 目标 1 中"算法具有优势"通过两套**独立**的模型选择协议评判：PA（主 PU 协议）与 OA
   （使用真实验证标签的 oracle 对照）。每套协议分别选择超参数和 checkpoint，再在独立真实
-  标签测试集上汇报 Accuracy 的五次重复均值与标准差。AUC、F1 score、Precision、Recall
-  仅作为最终测试阶段的附加指标记录在日志中；它们不参与超参数或 checkpoint 选择，也不与
-  PA/OA 合成为单一分数。
+   标签测试集上汇报 Accuracy 的五次重复均值与标准差。AUC、F1 score、Precision、Recall
+   仅作为最终测试阶段的附加指标记录在 run manifest 并汇总；它们不参与超参数或 checkpoint
+   选择，也不与 PA/OA 合成为单一分数。F1/Precision/Recall 以正类标签 `1` 计算；某指标在
+   测试标签或预测退化时无定义，记录 `null` 及原因，不填零或丢弃该次运行。
   PA 与 OA 的候选超参数、checkpoint 与阈值必须分别来自各自的协议：PA 结果只能使用在
   `pu_val` 上选出的配置，OA 结果使用在 `clean_val` 上选出的配置；不得用 OA 选出的配置
   报告 PA 结果。

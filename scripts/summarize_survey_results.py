@@ -39,6 +39,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -98,9 +99,9 @@ from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     unrecorded_measurements,
 )
 
-#: Metrics a manifest actually carries.  F1 / Precision / Recall are logged by
-#: the protocol but are not in the manifest, so this tool does not claim them.
-CARRIED_METRICS = ("accuracy", "auc")
+#: Test metrics persisted by the runner. Accuracy is the comparison metric;
+#: all remaining metrics are descriptive and never used for selection/ranking.
+CARRIED_METRICS = ("accuracy", "auc", "f1", "precision", "recall")
 
 #: The metric the pre-registered comparison is decided on and therefore the one a
 #: row's leaderboard standing rests on (protocol §1.2).  The rest are protocol
@@ -169,6 +170,8 @@ def collect_observations(
                 value = block.get(metric)
                 if value is not None:
                     bucket.setdefault(metric, []).append((entry, float(value)))
+                elif metric in ADDITIONAL_METRICS:
+                    bucket.setdefault(metric, []).append((entry, float("nan")))
     return rows, runs, refusals
 
 
@@ -199,6 +202,22 @@ def build_rows(
             )
             for name in ADDITIONAL_METRICS
         }
+        for name, metric_summary in additional.items():
+            unavailable_reasons = {}
+            for entry, value in bucket.get(name, []):
+                if math.isfinite(value):
+                    continue
+                seed = str(entry["payload"]["seed"])
+                test_block = entry["payload"].get("test_results", {}).get(protocol, {})
+                reason = test_block.get(f"{name}_unavailable_reason")
+                if reason is None:
+                    reason = (
+                        "Legacy manifest does not record this metric."
+                        if name not in test_block
+                        else "Manifest records this metric as unavailable without a reason."
+                    )
+                unavailable_reasons[seed] = reason
+            metric_summary["unavailable_reasons"] = unavailable_reasons
         candidates: set[str] = set()
         reasons: set[str] = set()
 
@@ -318,15 +337,7 @@ def empty_summary(*, protocol: dict[str, Any]) -> dict[str, Any]:
         "run_costs": [],
         "refusals": [],
         "checks": [],
-        "not_recorded": {
-            "metrics": [
-                name for name in ("f1", "precision", "recall") if name not in CARRIED_METRICS
-            ],
-            "reason": (
-                "protocol §1.2 logs these as additional test-stage metrics; the manifest "
-                "carries accuracy and auc only, so P2.2 does not report them"
-            ),
-        },
+        "not_recorded": {"metrics": [], "reason": None},
         "overall": "pass",
     }
 
@@ -510,6 +521,12 @@ _COLUMNS: tuple[str, ...] = (
     "样本标准差",
     "AUC 均值%",
     "AUC n",
+    "F1 均值%",
+    "F1 n",
+    "Precision 均值%",
+    "Precision n",
+    "Recall 均值%",
+    "Recall n",
     "缺失 seed",
     "reasons",
 )
@@ -548,6 +565,17 @@ def _row_line(row: dict[str, Any]) -> str:
                 std,
                 auc_mean,
                 auc_n,
+                *[
+                    value
+                    for name in ("f1", "precision", "recall")
+                    for value in (
+                        "—"
+                        if row["additional_metrics"][name]["mean"] is None
+                        else f"{row['additional_metrics'][name]['mean_percent']:.2f}",
+                        f"{row['additional_metrics'][name]['n_observed']}/"
+                        f"{row['additional_metrics'][name]['n_seeds']}",
+                    )
+                ],
                 str(metric["missing_seeds"]),
                 ", ".join(row["reasons"]) or "—",
             )
@@ -694,6 +722,17 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> list[Path]:
                 "auc_n_observed",
                 "auc_n_seeds",
                 "auc_unavailable_seeds",
+                *[
+                    field
+                    for name in ("f1", "precision", "recall")
+                    for field in (
+                        f"{name}_mean_fraction",
+                        f"{name}_std_fraction",
+                        f"{name}_n_observed",
+                        f"{name}_n_seeds",
+                        f"{name}_unavailable_seeds",
+                    )
+                ],
                 "tuning_cost_seconds",
                 "peak_gpu_memory_bytes",
                 "unrecorded_measurements",
@@ -704,6 +743,7 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> list[Path]:
         for row in report["rows"]:
             identity, metric = row["result_identity"], row["metric"]
             auc = row["additional_metrics"]["auc"]
+            secondary = row["additional_metrics"]
             cost = costs.get(row["cost_id"], {})
             tuning = cost.get("tuning_cost_seconds") or {}
             writer.writerow(
@@ -727,6 +767,17 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> list[Path]:
                     auc["n_observed"],
                     auc["n_seeds"],
                     json.dumps(auc["unavailable_seeds"]),
+                    *[
+                        value
+                        for name in ("f1", "precision", "recall")
+                        for value in (
+                            secondary[name]["mean"],
+                            secondary[name]["std"],
+                            secondary[name]["n_observed"],
+                            secondary[name]["n_seeds"],
+                            json.dumps(secondary[name]["unavailable_seeds"]),
+                        )
+                    ],
                     tuning.get("sum"),
                     cost.get("peak_gpu_memory_bytes"),
                     json.dumps(row["unrecorded_measurements"], ensure_ascii=False),

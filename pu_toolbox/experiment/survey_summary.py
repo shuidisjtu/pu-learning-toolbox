@@ -431,6 +431,7 @@ def aggregate_additional_metric(
         "n_observed": len(ordered),
         "seeds_observed": sorted(values),
         "unavailable_seeds": sorted(set(ran) - set(values)),
+        "unavailable_reasons": {},
     }
 
 

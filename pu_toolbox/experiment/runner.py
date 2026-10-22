@@ -644,10 +644,12 @@ class ExperimentRunner:
             else:
                 pred = est.predict(test.X)
             auc, auc_unavailable_reason = _auc(est, test)
+            additional_metrics = _binary_test_metrics(test.labels, pred)
             test_metrics[name] = {
                 "accuracy": float(np.mean(pred == test.labels)),
                 "auc": auc,
                 "auc_unavailable_reason": auc_unavailable_reason,
+                **additional_metrics,
             }
 
         # After test scoring and PA/OA selection, before any reference() call:
@@ -949,6 +951,48 @@ def _auc(est, test: DatasetPart) -> tuple[float, str | None]:
     # Score-generation and metric bugs are not an expected availability case:
     # let them surface instead of silently converting them to NaN.
     return float(pu_auc_roc(test.labels, est.decision_function(test.X))), None
+
+
+def _binary_test_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, Any]:
+    """Additional binary metrics for final test reporting, never model selection."""
+    truth = np.asarray(y_true).astype(int)
+    predicted = np.asarray(y_pred).astype(int)
+    if (
+        truth.shape != predicted.shape
+        or not np.isin(truth, (0, 1)).all()
+        or not np.isin(predicted, (0, 1)).all()
+    ):
+        raise ValueError("final binary metrics require aligned {0, 1} labels and predictions")
+
+    true_positive = int(np.count_nonzero((truth == 1) & (predicted == 1)))
+    false_positive = int(np.count_nonzero((truth == 0) & (predicted == 1)))
+    false_negative = int(np.count_nonzero((truth == 1) & (predicted == 0)))
+    precision_denominator = true_positive + false_positive
+    recall_denominator = true_positive + false_negative
+    precision = true_positive / precision_denominator if precision_denominator else None
+    recall = true_positive / recall_denominator if recall_denominator else None
+    f1_denominator = 2 * true_positive + false_positive + false_negative
+    f1 = 2 * true_positive / f1_denominator if f1_denominator else None
+    return {
+        "precision": precision,
+        "precision_unavailable_reason": (
+            "Precision is undefined because the model predicted no positive examples."
+            if precision is None
+            else None
+        ),
+        "recall": recall,
+        "recall_unavailable_reason": (
+            "Recall is undefined because the test labels contain no positive examples."
+            if recall is None
+            else None
+        ),
+        "f1": f1,
+        "f1_unavailable_reason": (
+            "F1 is undefined because neither the test labels nor predictions contain positives."
+            if f1 is None
+            else None
+        ),
+    }
 
 
 def _validate_model_capability(
