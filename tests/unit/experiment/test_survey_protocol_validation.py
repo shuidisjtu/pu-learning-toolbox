@@ -2,10 +2,15 @@
 
 import copy
 import json
+from pathlib import Path
 
 import pytest
 
-from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_unit
+from pu_toolbox.experiment.survey_protocol import (
+    bind_runtime_parameters,
+    load_protocol,
+    resolve_unit,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -110,3 +115,27 @@ def test_determ_review_matrix_and_kldce_rejection_are_stable():
     for protocol in (first, second):
         with pytest.raises(ValueError, match="flip_probability"):
             resolve_unit(protocol, "spambase", "kldce")
+
+
+def test_kldce_runtime_binding_is_scar_only_and_uses_realized_c():
+    draft_path = (
+        Path(__file__).resolve().parents[3]
+        / "pu_toolbox"
+        / "experiment"
+        / "survey_protocol_v3_draft.json"
+    )
+    profile = load_protocol(draft_path)["method_profiles"]["kldce"]
+
+    assert bind_runtime_parameters("kldce", {}, profile, mechanism="scar", c_realized=0.1) == {
+        "flip_probability": pytest.approx(0.9)
+    }
+    with pytest.raises(ValueError, match="supports labeling mechanisms"):
+        bind_runtime_parameters("kldce", {}, profile, mechanism="sar_lbe_a", c_realized=0.5)
+    with pytest.raises(ValueError, match="cannot be overridden"):
+        bind_runtime_parameters(
+            "kldce", {"flip_probability": 0.4}, profile, mechanism="scar", c_realized=0.6
+        )
+    with pytest.raises(ValueError, match="supports labeling mechanisms"):
+        bind_runtime_parameters(
+            "kldce", {"flip_probability": 0.4}, profile, mechanism="sar_lbe_b", c_realized=0.5
+        )
