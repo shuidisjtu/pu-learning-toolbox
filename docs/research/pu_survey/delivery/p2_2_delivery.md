@@ -45,6 +45,34 @@ manifest 和可选 source。identity 必须由矩阵/manifest 适配器核对，
 本层**尚未接入现有 CLI**，不消费不完整 v3 草案作为最终矩阵，也不替代原 provenance/
 fairness/comparison 门禁；冻结后的矩阵生成、身份适配与报告接线另行完成，旧接口不变。
 
+**额外 support 结果汇总（2026-10-22）**：我方负责汇总接线，队友负责原任务清单中的
+完整版 Self-PU 单元与方法正式路径，不重复实现。已记录版本化身份的输入按独立
+`PA+clean-support` 行读取，selector 为 `pa+clean-support`，不折回 `pa`。
+所有额外 support 行保留逐 seed 监督信息，暂为非 formal，不能参与纯 PU PA 优势比较；
+PA/OA 共享训练成本只计一次，缺 seed 与附加指标不可用分别报告。
+
+独立探索入口产生的 manifest 没有冻结协议/执行单元，不能补造身份塞进旧正式审计。
+可显式使用 `summarize_survey_results.py --clean-support` 做诊断汇总，配置仍为
+`survey-batch-roots-1`，另须明确 `expected_seeds`（例如 `[0,1,2,3,4]`）。
+仅接受记录 extra supervision、`execution_mode=technical_smoke`、`formal_eligible=false`
+且无 execution_unit 的独立输入；依据记录的参数（去除重复实验 random_state）和 support
+规格生成**报告本地**分组，不代表数据集、配方或正式可比性获批。
+输出沿用 summary JSON/Markdown/CSV、coverage CSV 和 refusals JSON，额外标记
+`report_mode=independent_clean_support_diagnostic`、`formal_readiness_assessed=false`，
+协议版本/摘要为空，保留原 manifest 的 canonical 摘要及额外监督信息，不写回原制品。
+该模式不运行或替代冻结审计/对照门禁，`overall=pass` 仅指汇总成功，不代表正式准入。
+原正式入口、冻结期望网格和 comparison matrix 不变；正式报告接线仍依赖最终协议。
+本轮实验层回归 1,525 项通过，最终定向/层依赖检查 56 项通过，均为零失败/错误/跳过；
+格式、文档链接、结构清单及测试质量门禁通过。另对已备份的三方法合成 CPU manifest
+实际汇总，得到 6 行诊断结果、3 组训练成本，明确缺 seed 1–4，不重新训练；
+本机输出 `tmp/clean_support_summary_receipt_20261022/`。这些检查不覆盖全仓旧的
+Windows symlink 权限失败，也不改写上一轮全仓结果。
+
+```bash
+uv run python scripts/summarize_survey_results.py \
+  --config path/to/support_roots.json --out-dir path/to/new-summary --clean-support
+```
+
 **制品分发的决定（2026-10-03）**：不打包上网盘。合作者同时具备仓库权限与数据盘权限，
 分析产物按 §7 自行复现即可，本文件与基准文件承载口径与比对基准；645 行交付表是唯一需要
 送达的实体文件，由执行方直接发送。基准文件里登记了它的摘要，接收端可比对。

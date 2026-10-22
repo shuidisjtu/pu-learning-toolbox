@@ -1962,6 +1962,17 @@ NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。`aggregate_r
 路径导入。其中 `result_labeling_mechanism` 承担矩阵词汇与 manifest 词汇之间的翻译——矩阵把 c-independent
 行记作 `c_independent`，而 manifest 记作 `pn_oracle`——该翻译只在出口使用，不参与分榜。
 
+`RESULT_SELECTION_PROTOCOLS` 另含原始键 `PA+clean-support`；
+`manifest_selection_protocol` 将规范化 selector `pa+clean-support` 映射回该键，
+不能直接整体大写或折回纯 PA。`uses_clean_support` 根据显式监督记录/协议键识别额外监督，
+不按方法名猜测；对应汇总行保留 `extra_supervision_by_seed` 并暂不授 formal。
+`SELECTION_PROTOCOLS` 的旧 PA/OA 期望网格不变。
+
+独立探索产物可显式用汇总 CLI 的 `--clean-support` 模式读取，配置必须提供
+`expected_seeds`。该模式只输出诊断结果，原协议身份为空，不授正式或纯 PU 比较资格；
+同一训练的两轨成本不重复计入。输入范围、报告本地分组及输出说明见
+[P2.2 交付记录](../../research/pu_survey/delivery/p2_2_delivery.md)。
+
 ### P2.2 报告身份块（`survey_provenance`）
 
 三份报告（批次审计 / 数值汇总 / 文献对照附着）各自携带**同一形状**的身份块：输入结果根、代码 commit

@@ -16,7 +16,7 @@ from numbers import Real
 from typing import Any
 
 from .survey_protocol import digest
-from .survey_summary import RESULT_IDENTITY_FIELDS
+from .survey_summary import RESULT_IDENTITY_FIELDS, manifest_selection_protocol
 
 IDENTITY_FIELDS = (
     *RESULT_IDENTITY_FIELDS,
@@ -45,8 +45,7 @@ def _identity_key(cell: Mapping[str, Any]) -> str:
     for field in set(IDENTITY_FIELDS) - {"seed", "calibration_applied"}:
         if not isinstance(identity[field], str) or not identity[field].strip():
             raise ValueError(f"coverage identity {field} must be a nonempty string")
-    if identity["selection_protocol"] not in {"pa", "oa"}:
-        raise ValueError("coverage selection_protocol must be pa or oa")
+    manifest_selection_protocol(identity["selection_protocol"])
     return digest(dict(identity))
 
 
@@ -133,7 +132,7 @@ def reconcile_result_coverage(
             result["status"] = "missing"
         else:
             manifest = observation["manifest"]
-            protocol = cell["identity"]["selection_protocol"].upper()
+            protocol = manifest_selection_protocol(cell["identity"]["selection_protocol"])
             block = manifest.get("test_results", {}).get(protocol)
             result.update(
                 source=observation.get("source"),

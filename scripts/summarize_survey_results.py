@@ -37,6 +37,7 @@ Run:  uv run python scripts/summarize_survey_results.py --config <config.json> -
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import json
 import math
@@ -81,8 +82,8 @@ from pu_toolbox.experiment.survey_recipe_registry import (  # noqa: E402
 from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     METRIC_UNIT,
     REPORT_TIERS,
+    RESULT_SELECTION_PROTOCOLS,
     SCHEMA_VERSION,
-    SELECTION_PROTOCOLS,
     SummaryError,
     aggregate_additional_metric,
     aggregate_metric,
@@ -97,6 +98,7 @@ from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     summarize_costs,
     tier_of,
     unrecorded_measurements,
+    uses_clean_support,
 )
 
 #: Test metrics persisted by the runner. Accuracy is the comparison metric;
@@ -161,7 +163,11 @@ def collect_observations(
         runs.setdefault(cost_id(payload), []).append(
             (payload["seed"], payload.get("resources") or {})
         )
-        for protocol in SELECTION_PROTOCOLS:
+        if uses_clean_support(payload) and any(
+            "PA" in (payload.get(key) or {}) for key in ("selection", "test_results")
+        ):
+            raise SummaryError("extra supervision cannot be reported as pure PA")
+        for protocol in RESULT_SELECTION_PROTOCOLS:
             block = (payload.get("test_results") or {}).get(protocol)
             if not isinstance(block, dict) or block.get(PRIMARY_METRIC) is None:
                 continue
@@ -189,6 +195,9 @@ def build_rows(
         members = bucket[PRIMARY_METRIC]
         group, view, mechanism, method, protocol, c_token = key
         manifest = members[0][0]["payload"]
+        support_flags = {uses_clean_support(entry["payload"]) for entry, _ in members}
+        if len(support_flags) != 1:
+            raise SummaryError("cannot merge different supervision scopes in one report row")
         metric_block = aggregate_metric(
             ((entry["payload"]["seed"], value) for entry, value in members),
             metric_name=PRIMARY_METRIC,
@@ -220,6 +229,9 @@ def build_rows(
             metric_summary["unavailable_reasons"] = unavailable_reasons
         candidates: set[str] = set()
         reasons: set[str] = set()
+        if uses_clean_support(manifest):
+            candidates.add("partial")
+            reasons.add("extra_clean_support")
 
         blockers = sorted(
             {
@@ -284,6 +296,12 @@ def build_rows(
                 "members": sorted(str(entry["path"]) for entry, _ in members),
             }
         )
+        if uses_clean_support(manifest):
+            built[-1]["pure_pu_comparison_eligible"] = False
+            built[-1]["extra_supervision_by_seed"] = {
+                str(entry["payload"]["seed"]): dict(entry["payload"].get("extra_supervision") or {})
+                for entry, _ in members
+            }
     return built
 
 
@@ -342,6 +360,111 @@ def empty_summary(*, protocol: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_clean_support_summary(config: dict[str, Any]) -> dict[str, Any]:
+    """Read independent support manifests as diagnostics, never frozen results.
+
+    Report-only grouping is derived from recorded parameters, not a fabricated
+    Survey execution unit. Sources are never modified or passed to formal gates.
+    """
+    seeds = config.get("expected_seeds")
+    if (
+        not isinstance(seeds, list)
+        or not seeds
+        or any(type(seed) is not int or seed < 0 for seed in seeds)
+        or len(set(seeds)) != len(seeds)
+    ):
+        raise SummaryError("clean-support mode requires explicit unique expected_seeds")
+    entries = audit.discover_batches(config)
+    if not entries or any("payload" not in entry for entry in entries):
+        raise SummaryError("clean-support input roots must exist and contain manifests")
+    normalized = []
+    for entry in entries:
+        source = entry["payload"]
+        supervision = source.get("extra_supervision") or {}
+        if (
+            supervision.get("extra_supervision") is not True
+            or source.get("execution_mode") != "technical_smoke"
+            or source.get("formal_eligible") is not False
+            or source.get("execution_unit") is not None
+        ):
+            raise SummaryError("clean-support mode accepts only independent technical_smoke inputs")
+        method, dataset = supervision.get("method"), supervision.get("dataset")
+        if not all(isinstance(name, str) and name.strip() for name in (method, dataset)):
+            raise SummaryError("clean-support input needs recorded method and dataset")
+        parameters = source.get("estimator_parameters")
+        if not isinstance(parameters, dict):
+            raise SummaryError("clean-support input needs estimator_parameters")
+        if any(
+            not set(source.get(key) or {}) <= {"PA+clean-support", "OA"}
+            for key in ("selection", "test_results")
+        ):
+            raise SummaryError(
+                "clean-support diagnostics cannot contain pure PA or unknown protocols"
+            )
+        parameters = {key: value for key, value in parameters.items() if key != "random_state"}
+        signature = digest(
+            {
+                "parameters": parameters,
+                "support": {
+                    key: supervision.get(key)
+                    for key in (
+                        "support_samples",
+                        "preparation_seed",
+                        "support_source",
+                        "selection_scope",
+                        "support_label_uses",
+                        "comparison_group",
+                        "support_source_verified",
+                    )
+                },
+            }
+        )
+        payload = copy.deepcopy(source)
+        # These are report-local dimensions, explicitly not protocol provenance.
+        payload["execution_unit"] = {
+            "method": method,
+            "dataset": dataset,
+            "comparability_group": f"independent-clean-support/{dataset}/{method}/{signature}",
+        }
+        payload["training_path"] = "independent_support"
+        normalized.append({**entry, "payload": payload, "role": PROBE_ROLE})
+    observations, runs, refusals = collect_observations(normalized, metrics=CARRIED_METRICS)
+    costs = build_run_costs(runs, expected_seeds=seeds)
+    rows = build_rows(
+        observations,
+        expected_seeds=seeds,
+        gate_reasons={},
+        unrecorded_by_run={row["cost_id"]: row["unrecorded_measurements"] for row in costs},
+    )
+    report = empty_summary(protocol={})
+    report.update(
+        protocol_version=None,
+        protocol_sha256=None,
+        report_mode="independent_clean_support_diagnostic",
+        formal_readiness_assessed=False,
+        rows=rows,
+        run_costs=costs,
+        refusals=refusals,
+        batches=sorted({entry["batch"] for entry in normalized}),
+        input_manifest_sha256={str(entry["path"]): digest(entry["payload"]) for entry in entries},
+        provenance=build_provenance(
+            protocol_version=None,
+            protocol_sha256=None,
+            result_roots=input_result_roots(config),
+            source_roots=recorded_source_roots(config),
+        ),
+    )
+    report["coverage"].update(
+        manifests=len(normalized),
+        rows=len(rows),
+        run_costs=len(costs),
+        rows_by_tier={
+            tier: sum(tier_of(row["status"]) == tier for row in rows) for tier in REPORT_TIERS
+        },
+    )
+    return report
+
+
 def build_summary(config: dict[str, Any]) -> dict[str, Any]:
     """Audit, gate per group, and summarize.  Never reads a clock."""
     protocol = load_protocol()
@@ -389,7 +512,13 @@ def build_summary(config: dict[str, Any]) -> dict[str, Any]:
     comparison = load_comparison_protocol()
     loaded = [entry for entry in entries if "payload" in entry]
     for entry in loaded:
-        status, reasons, _ = audit.preflight_status(entry["payload"], comparison=comparison)
+        # Preserve readable support results without pretending the old comparison
+        # matrix admitted them. The audit still reports matrix conflicts, and
+        # build_rows keeps all extra-support rows out of the formal tier.
+        status, reasons, _ = audit.preflight_status(
+            entry["payload"],
+            comparison=None if uses_clean_support(entry["payload"]) else comparison,
+        )
         entry["status"] = status
         entry["reasons"] = reasons
 
@@ -604,6 +733,15 @@ def _render_markdown(report: dict[str, Any]) -> str:
         "",
         f"- 协议：`{report['protocol_version']}` / `{report['protocol_sha256']}`",
     ]
+    if report.get("report_mode") == "independent_clean_support_diagnostic":
+        lines.extend(
+            [
+                "",
+                "独立 clean-support 诊断汇总；非正式结果，不参与纯 PU PA 优势比较。",
+                "分组是报告本地身份，未绑定冻结 Survey 协议；overall 不表示正式准入。",
+                "",
+            ]
+        )
     # Identity before numbers: these rows are only reproducible against a named
     # checkout and a named input tree.
     lines.extend(render_provenance_lines(report.get("provenance")))
@@ -819,9 +957,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", required=True, help="batch-root whitelist JSON")
     parser.add_argument("--out-dir", required=True, help="where the summary artifacts go")
+    parser.add_argument(
+        "--clean-support",
+        action="store_true",
+        help="diagnostic-only independent support inputs; requires config expected_seeds",
+    )
     args = parser.parse_args(argv)
     try:
-        report = build_summary(audit.load_config(args.config))
+        config = audit.load_config(args.config)
+        report = (
+            build_clean_support_summary(config) if args.clean_support else build_summary(config)
+        )
     except (AuditError, SummaryError, audit.ConfigError, OSError, json.JSONDecodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

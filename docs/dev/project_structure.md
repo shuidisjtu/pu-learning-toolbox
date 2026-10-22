@@ -524,6 +524,7 @@ tests/
       test_survey_result_coverage.py    # 整行缺失/未完成/指标缺失/排除与资格问题分开；PN c-independent、机制/视图/预算/路径不混格
       test_survey_summary_boundaries.py # 报告行拒绝合并的边界: 视图/机制/训练路径/协议不同即不同行
       test_survey_summary_cli.py        # 审计/汇总两入口端到端: 产出什么, 以及不得产出什么
+      test_survey_summary_clean_support.py # 独立 support 双轨汇总、额外监督隔离、诊断入口与正式门禁
       test_survey_summary_comparison.py # 接入预注册矩阵的适配器契约: 字段名取自矩阵、资格类别为其六类之一
       test_survey_summary_states.py     # 报告的两套闭集词表: 行身份(c_token/oracle)与状态(status/优先级/理由)
       test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径

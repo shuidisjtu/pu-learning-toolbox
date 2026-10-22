@@ -192,6 +192,26 @@ def test_basic_lbe_variants_and_training_views_are_distinct_expected_cells():
     assert report["counts"] == {"complete": 1, "missing": 3}
 
 
+def test_basic_clean_support_protocol_keeps_its_manifest_key_and_is_not_pure_pa():
+    cells = expand_expected_cells(
+        [_row(selection_protocol=name) for name in ("pa", "pa+clean-support", "oa")],
+        seeds=[0],
+    )
+    block = {
+        "PA": {"accuracy": 0.6},
+        "PA+clean-support": {"accuracy": 0.7},
+        "OA": {"accuracy": 0.8},
+    }
+    observations = [_observation(cell, selection=block, test_results=block) for cell in cells]
+    report = reconcile_result_coverage(cells, observations)
+    assert [cell["value"] for cell in report["cells"]] == [0.6, 0.7, 0.8]
+    wrong_keys = {"PA": block["PA"], "PA+CLEAN-SUPPORT": block["PA+clean-support"]}
+    report = reconcile_result_coverage(
+        [cells[1]], [_observation(cells[1], selection=wrong_keys, test_results=wrong_keys)]
+    )
+    assert report["counts"] == {"incomplete": 1}
+
+
 def test_edge_empty_matrix_is_not_reported_as_complete_and_exclusions_need_reasons():
     assert reconcile_result_coverage([], [])["coverage_complete"] is False
     cells = expand_expected_cells([_row()], seeds=[0])
