@@ -1,5 +1,11 @@
 # Method Card: CVIR
 
+2026-10-22 P3.2 补齐：新增显式 `fit(os_or_ts="ts")` 的训练风险池校准，
+以及 `CVIRPopulationPriorTrainer` 的总体 π → 实际风险池先验换算。
+默认 OS/独立 native-TS 与旧 `CVIRKnownPriorTrainer` 不变；
+见[交付、差异理由与验证范围](../pu_survey/delivery/cvir_calibration_20261022.md)。
+这是独立工程入口，尚未接入正式 protocol v3 或 Survey 跑批。
+
 2026-10-20 工程补核：修复 resident/streamed 评分覆盖逐层模式及 in-place encoder
 改写输入的问题，提前拒绝非法学习率/回调与复数输入；见[输入/推理验收](../pu_survey/admission/cvir_source_cnn_review_20261015.md)。
 默认训练目标、原始 U 候选、α_U、TS 校准缺口与正式准入边界均不变。
@@ -13,7 +19,7 @@
 | 论文 | Garg 等，*Mixture Proportion Estimation and PU Learning: A Modern Approach*，NeurIPS 2021，[原文 Algorithm 2，印刷页6](https://proceedings.neurips.cc/paper_files/paper/2021/file/47b4f1bfdf6d298682e610ad74b37dca-Paper.pdf) |
 | 官方仓库 | [`acmi-lab/PU_learning`](https://github.com/acmi-lab/PU_learning)，锁定 `5e5e350dc0588de95a36eb952e3cf5382e786aec`，Apache-2.0 |
 | 本项目入口 | `CVIRClassifier`，注册名 `cvir`，二维 MLP 或注入可训练 CNN 的四维图像，PyTorch |
-| 必需先验 | `unlabeled_positive_prior = α_U = P(Y=1 \mid X\in U)`，即原始未标记池的混合比例 |
+| 必需先验 | `unlabeled_positive_prior` 为实际风险池的混合比例；默认是原始 U 的 α_U，显式校准后为总体 π |
 
 算法每轮先按当前正类分数给**原始 U** 排序，保留分数最低的约 `1−α_U` 部分为临时负例；随后按 `α_U·L_P + (1−α_U)·L_N` 更新模型。保留数有限样本下取 `max(1, floor((1−α_U)·n_U))`，相同分数稳定排序。默认先做一轮 P-v-U warm-start，再运行固定 20 轮 CVIR；这两个预算是本工具箱适配选择，原文 Algorithm 2 使用收敛停机。`class_prior` 参数会显式拒绝，避免把公共接口传来的总体 `π` 无声当作 `α_U`。
 
@@ -23,7 +29,23 @@
 
 2026-10-17 按 #117 明确三条路径：直接组件 `input_sampling="ts"` 接受调用方提供的独立 P/边缘 U，必须显式给 `unlabeled_positive_prior` 与 `prior_source`；它不执行 OS 校准，也不从 U 真值估算比例。默认 `input_sampling="os"` 保留既有训练行为，但只称 OS 工程适配。实验层新增 `CVIRKnownPriorTrainer`，要求显式 α_U/来源，仅允许 SCAR OS；总体 π 留给 PA，不转发到训练。两者数值和来源分开写 manifest，调用方来源声明不冒充统计验证。
 
-**本 Survey 的基础数据按协议 §2.3 始终按 OS 抽样**；不为原生 TS 方法重新独立抽样 TS 数据。按 2026-10-19 协议规则，原生 TS 方法应使用 **TS-compatible 校准**（训练视图逐 mini-batch 执行 $D_U \leftarrow D_U \cup D_P$），CVIR 属于此类，因此其正式 Survey 路径应为校准视图，而不是把 OS 工程适配当作已完成口径。当前实现尚未接入该校准：排序、保留数量及损失仍只作用于原始 U，`calibration_hooked=false`，显式 `os_or_ts="ts"` 仍被拒绝；这是待实现的缺口（2026-10-19 更正），不是“校准不属于本实验”。在接入并复核前，CVIR 保持技术预集成、准入待定。没有预先断言简单合并 P 与 U 必然足够或必然错误。`input_sampling="ts"` 与 `os_or_ts="ts"` 是不同契约：前者只让直接组件声明调用方已提供原生 P/边缘 U，后者在 Survey 表示训练风险校准。冻结协议/矩阵不变，正式准入仍需审批。
+**本 Survey 的基础数据按协议 §2.3 始终按 OS 抽样**；不为原生 TS 方法重新独立抽样 TS 数据。
+2026-10-22 已接入显式 **TS-compatible 校准**：先将训练风险池替换为原始 `U∪P`
+（稳定次序 U 后 P），再按同一混合先验做全局排序、截断和临时负例训练；P 的正例项保留。
+warm-start 的风险池同步替换。不能在筛完负例之后追加 P，那会改变 CVIR 的非线性截断目标。
+这是协议 §2.3 允许的全局池实现，不等同独立 TS 抽样；不改变 PA/OA 验证或 test 视图。
+`calibration_hooked=true` 表示接口已实现，台账默认 `calibration_applied=false` 保留，逐 run
+按请求记录实际值。`input_sampling="ts"` 仍只声明调用方提供原生 P/边缘 U，不能同时请求
+`os_or_ts="ts"` 再校准一次。
+
+新 `CVIRPopulationPriorTrainer` 只允许 SCAR、显式 known-prior 来源和未预置 α_U/source
+的 estimator，防止覆盖独立声明。按协议 §3，OS 用 `(π*n−n_L)/(n−n_L)`，校准 TS 用 π；
+只读观测 PU 计数，不读隐藏训练真值，不用请求的 c 代替实际 n_L，不裁剪不可能/端点先验。
+选择侧的 PA 仍使用总体 π；训练侧由 adapter 绑定风险池先验，
+不传给 `estimator.fit(class_prior=...)`。
+拟合期间临时绑定 α/source，成功或异常均恢复构造参数；实际值保留在 fitted 属性与 manifest。
+原生 TS 直接调用和旧 OS adapter 不变。正式协议/预算、真实数据与 GPU 验收仍待，
+不改冻结矩阵/历史结果，不把工程一致性称为论文效果复现。
 
 ## 适配边界与下一步
 
@@ -36,4 +58,8 @@
 不自动提供总体 π，不改变这里的固定先验训练行为。另补独立 [TEDⁿ](TEDn.md)
 端到端工程路径（未加权目标、内部留出动态估计、MLP/注入 CNN、训练误差停止）；
 它没有接入本 CVIR 或冻结 Survey。
-仍无论文图像/文本配方、原始训练预算、公开数值复现或多 seed GPU 证据。2026-09-28 的 RTX A6000 单次 CUDA 技术 smoke 仍是旧二维路径，不覆盖新 CNN，也不是 frozen-lock 或多 seed 验收。需先由合作者复核 `α_U` 来源，再决定是否扩展 Survey 的先验字段、选模/视图协议与执行矩阵；TS-compatible 校准是原生 TS 方法在 OS 数据上的既定路径，CVIR 的接入状态待实现与复核（2026-10-19 更正）。新的工程测试只证明合成 CPU 契约，不能读作论文数值复现。
+仍无论文图像/文本配方、原始训练预算、公开数值复现或多 seed GPU 证据。2026-09-28 的
+RTX A6000 单次 CUDA 技术 smoke 仍是旧二维路径，不覆盖新 CNN，也不是 frozen-lock
+或多 seed 验收。先验换算/训练视图的独立工程接入已补齐；正式 protocol v3 profiles/units、
+runner 绑定、配方预算与真实来源的运行验收仍待。新的测试只证明合成 CPU 契约，
+不能读作论文数值复现。

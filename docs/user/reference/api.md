@@ -565,11 +565,23 @@ CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
                input_sampling="os", prior_source=None)
 ```
 
-`unlabeled_positive_prior` 必须显式给定 `(0,1)` 的 **U 内正类比例 α_U**；`fit(class_prior=...)` 始终拒绝，不自动换算总体 π。每轮先对原始 U 的分数稳定排序，保留 `max(1,floor((1-α_U)*n_U))` 个临时负例，再最小化论文 α_U 加权 BCE。默认一轮 PvU warm-start、固定20轮 CVIR；不是收敛停机、BBE 或 TEDⁿ。发布作者代码使用不同的 balanced CE/取整/loader/SGD/warm-start 时序，详见[来源复核](../../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+`unlabeled_positive_prior` 必须显式给定 `(0,1)` 的风险池正类比例；默认 OS 和独立 native-TS
+输入均指 **原始 U 内的 α_U**。`fit(class_prior=...)` 始终拒绝，不自动换算总体 π。
+默认每轮对原始 U 的分数稳定排序，保留 `max(1,floor((1-α_U)*n_U))` 个临时负例，
+再最小化论文 α_U 加权 BCE。一轮 PvU warm-start、固定20轮 CVIR；不是收敛停机、BBE
+或 TEDⁿ。发布作者代码的 balanced CE/取整/loader/SGD/warm-start 时序不同，详见
+[来源复核](../../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
 
 二维特征可直接输入；四维 NCHW 必须注入输出有限二维特征的 `torch.nn.Module` encoder，deepcopy 后联合训练并接 MLP 头。`data_device_policy="auto"` 无 encoder 时保留旧 resident，有 encoder 时使用 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident。CPU-stream 将全量数据留 CPU，只把不超过 batch_size 行送设备，排序/预测同样分批；仍需 O(n_U) CPU 排序空间，不是磁盘流式。`data_device_policy_` / `training_data_device_` 记录实际策略/驻留位置。
 
-`fit(..., sample_weight=None, epoch_callback=None)` 不接受非空 sample_weight，也没有 TS 校准接口。`optimizer_steps_` 计两阶段全部更新；`epoch_provenance_` 记录 `stage / stage_epoch / round_index / optimizer_steps`，`checkpoint_epoch_count` 为两阶段轮数之和。两阶段推理快照含 encoder/头与上下文，streamed 快照保留 batch_size；旧 resident replay 仍256。不支持训练续跑，上下文不代表 PA/OA 候选批准；fit 异常清除 fitted 标记。公共 pipeline 可用 `classifier="cvir", architecture="cnn"` 并通过 classifier_params 显式传 α_U；方法仍未获准加入冻结 Survey。
+`fit(..., sample_weight=None, epoch_callback=None, os_or_ts="os")` 不接受非空 sample_weight。
+显式 `ts` 先把训练风险池替换为 `U∪P`（U 后 P），再全局排序/截断，P 正例项保留；
+warm-start 同步使用该池。此时显式先验对应恢复后的风险池 π，而非原始 U 的 α_U。
+不改变验证/test，不宣称独立 TS 抽样；拒绝 native TS 输入再叠加校准。
+`optimizer_steps_` 计两阶段全部更新；`epoch_provenance_` 记录
+`stage / stage_epoch / round_index / optimizer_steps`，`checkpoint_epoch_count` 为两阶段轮数之和。
+推理快照含 encoder/头与上下文，不支持优化器续训，阶段上下文不批准正式 PA/OA 候选资格；
+fit 异常清除 fitted 标记。公共 pipeline 可注入 CNN 并显式提供先验；不构成冻结 Survey 准入。
 
 `input_sampling="ts"` 只声明调用方已提供原生独立 P/边缘 U，必须同时提供非空
 `prior_source`；不执行 OS→TS 风险校准，不是 Survey 的 `os_or_ts="ts"`。
@@ -1729,6 +1741,11 @@ JSON 严格编码（未定义值转 `null`）。
 `pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` 将 CVIR 的显式 α_U/来源
 与 PA 总体 π 分开，拒绝校准 TS/SAR；`CVIRClassifier.input_sampling="ts"` 只表示
 直接提供原生独立 P/边缘 U，不是 runner 风险校准。
+2026-10-22 新增 `CVIRPopulationPriorTrainer(population_prior_source=...)`，独立支持 SCAR
+OS/TS-compatible 工程双轨：构造 α_U/source 必须为空，由适配器按实际 PU 计数换算 OS
+风险先验，校准 TS 则绑定 π。总体 π 不传入 estimator 的 fit；实际先验/公式/计数/来源
+写 manifest，构造参数在 fit 后恢复。必须提供 checkpoint 字节上界，拒绝正式 Survey/SAR。
+详见[校准接线与边界](../../research/pu_survey/delivery/cvir_calibration_20261022.md)。
 `pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer` 要求独立带标签支持集，
 训练前核实际四角色/先验估计/support IDs 及适用分组，显著记录额外监督，只允许终点 OA。
 还要求 support_origin/original_role_counts（carved 时）与 support_source_verified/receipt；

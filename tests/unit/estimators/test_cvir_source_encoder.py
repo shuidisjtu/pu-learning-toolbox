@@ -218,18 +218,20 @@ def test_edge_late_callback_error_invalidates_fit_and_invalid_refit_drops_old_fi
         fitted.predict(X)
 
 
-def test_basic_cnn_does_not_add_population_prior_or_ts_calibration():
+def test_basic_cnn_keeps_population_prior_gate_with_explicit_ts_calibration():
     X, y = data()
     with pytest.raises(ValueError, match="population prior"):
         model(encoder=ImageEncoder()).fit(X, y, class_prior=0.3)
-    assert "os_or_ts" not in inspect.signature(CVIRClassifier.fit).parameters
+    assert inspect.signature(CVIRClassifier.fit).parameters["os_or_ts"].default == "os"
     from pu_toolbox.experiment.method_ledger import load_ledger
     from pu_toolbox.experiment.training_views import resolve_training_view
 
-    with pytest.raises(ValueError, match="calibration_hooked=false"):
+    assert (
         resolve_training_view(
             load_ledger(), "cvir", "ts", is_oracle=False, estimator_class=CVIRClassifier
         )
+        == "ts"
+    )
 
 
 def test_basic_source_receipt_pins_distinctions_not_source_replay_or_admission():

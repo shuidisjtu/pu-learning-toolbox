@@ -962,6 +962,7 @@
     },
     "cvir": {
       "class": "CVIRClassifier",
+      "calibration_review_ref": "docs/research/pu_survey/delivery/cvir_calibration_20261022.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",
       "parameter_validation_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",
@@ -980,15 +981,16 @@
       "native_sampling_assumption": "ts（独立 P 与边缘分布 U；原文 α 为 U 内正类比例；NeurIPS 2021 §3 p4 / Algorithm 2 p6）",
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
+      "calibration_hooked": true,
       "runtime_input_contract": {
         "native_ts": "direct estimator input_sampling=ts; caller supplies independent P and marginal U with explicit alpha_U/source; no OS conversion",
         "os": "CVIRKnownPriorTrainer with input_sampling=os, explicit alpha_U and prior_source; known-prior exploratory adaptation, not native TS equivalence",
         "population_pi_forwarded_to_fit": false,
-        "os_to_ts_calibration": "unsupported; explicit calibrated TS request rejected",
+        "os_to_ts_calibration": "explicit fit(os_or_ts=ts) restores train U union P before global ranking/retention; CVIRPopulationPriorTrainer binds population pi to the actual risk view; exploratory SCAR only",
+        "population_prior_adapter": "CVIRPopulationPriorTrainer; constructor alpha/source must be unset; os alpha=(pi*n-n_L)/(n-n_L), ts alpha=pi; population class_prior never forwarded to estimator.fit",
         "provenance": "candidate_runs[].training_provenance; source traceable but caller assertion not independently verified"
       },
-      "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
+      "prior_semantics": "unlabeled_positive_prior=所用风险池的正类比例；默认 OS/native-TS 仍显式给原始 U 的 α_U。CVIRPopulationPriorTrainer 按协议§3换算：OS为(pi*n-n_L)/(n-n_L)，TS校准为pi；requires_class_prior=False，estimator.fit仍拒绝总体class_prior；先验来源声明不等于分布/有限样本比例验证",
       "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
       "source_behavior_review_ref": "docs/research/pu_survey/data/cvir_source_review_20261015.json",
       "independent_extensions": {
@@ -1034,11 +1036,12 @@
         "native_sampling_assumption": "Garg et al., NeurIPS 2021 §3 p4 / Algorithm 2 p6; cvir_source_review_20261015.json",
         "prior_semantics": "Garg et al., NeurIPS 2021 §3 and Algorithm 2 input α; cvir.py:fit rejects class_prior",
         "adaptation_level": "cvir_source_review_20261015.json; admission/cvir_source_cnn_review_20261015.md; cvir.py",
-        "input_and_inference_isolation": "admission/cvir_source_cnn_review_20261015.md: 2026-10-20 private forward inputs, per-module mode restoration and pre-training validation; tests/unit/estimators/test_cvir_input_modes.py; not a TS-calibration or formal resource result"
+        "input_and_inference_isolation": "admission/cvir_source_cnn_review_20261015.md: 2026-10-20 private forward inputs, per-module mode restoration and pre-training validation; tests/unit/estimators/test_cvir_input_modes.py; not a TS-calibration or formal resource result",
+        "ts_calibration": "delivery/cvir_calibration_20261022.md; test_cvir_calibration.py and test_cvir_population_adapter.py; global train risk pool substitution before truncation; engineering evidence, not paper numerical reproduction or formal admission"
       },
       "uncertainty": [
-        "CVIR 的 α 是原始 U 池内混合比例，冻结 Survey driver 传的是总体 population π，两者在 OS 标记机制下通常不同；未建立可核的 α_U 转换，故不得纳入 Survey v1 矩阵或直接比较论文数值",
-        "原文 TS/边缘 U 假设；独立组件 input_sampling=ts 需调用方提供原生 P/边缘U与alpha来源；OS适配仅处理原始U全部角色。OS→TS 校准未验证，calibration_hooked=false，显式校准ts拒绝；不预判简单合并必然足够或必然错误",
+        "2026-10-22 已补协议§3的 known-prior换算与显式SCAR工程adapter；正式protocol v3 profiles/units/runner接线、配方预算、真实数据与GPU验收仍未完成，不修改冻结Survey v1/v2或历史结果",
+        "OS→TS-compatible用训练U∪P替换全局排序/保留风险池，P项保持独立；这是协议校准，不是原文独立TS抽样。有限样本混合与批次采样近似仍按协议§2.3，不能把工程对照当成论文效果复现或数据生成正确性证明",
         "有限样本保留数使用 floor((1-α)*n_U)，至少 1；默认 warm-start 一轮、固定 epoch，未实现收敛停机或 BBE/TEDn 先验估计",
         "锁定作者代码实际用 balanced CE、n_U-int(α*n_U)、zip原始P/U loader后mask、SGD默认；CVIR分支不进入TEDn专用warm-start。当前保留论文加权与既有默认，不把公式符合或新增CNN工程能力称为源码重放；CNN的分开P/N forward与源合并forward在BN下尤其不同",
         "本地训练与公式 smoke 不等于公开行为对照、GPU 多 seed 验证或合作者复核"

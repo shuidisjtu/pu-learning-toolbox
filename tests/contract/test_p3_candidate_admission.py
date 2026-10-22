@@ -68,7 +68,13 @@ def test_p3_special_label_and_view_restrictions_remain_explicit():
     )
     rows = {row["method"]: row for row in proposal["candidates"]}
     assert "D22_PA_selection_decision" in rows["vpu"]["specific_blockers"]
-    assert "alpha_U_provenance_and_finite_sample_conversion" in rows["cvir"]["specific_blockers"]
+    cvir = rows["cvir"]
+    assert "alpha_U_provenance_and_finite_sample_conversion" not in cvir["specific_blockers"]
+    assert "protocol_v3_profiles_units_and_runner_binding" in cvir["specific_blockers"]
+    assert "formal_recipe_budget_and_real_data_prior_provenance" in cvir["specific_blockers"]
+    assert "real_data_gpu_acceptance" in cvir["specific_blockers"]
+    assert cvir["ledger_snapshot"]["calibration_hooked"] is True
+    assert (ROOT / cvir["calibration_delivery_ref"]).is_file()
     assert "PA_ineligible_label_budget_decision" in rows["lagam"]["specific_blockers"]
     assert rows["cvir"]["ledger_snapshot"]["calibration_applied"] is False
     assert rows["lagam"]["ledger_snapshot"]["calibration_applied"] is False

@@ -167,7 +167,7 @@ pu_toolbox/
     launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
     deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
   experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试 + method_ledger.json 方法台账(见 docs/research/pu_survey/)
-    cvir_adapter.py                       # 显式 alpha_U 的独立 SCAR OS 实验接线，分离 PA 总体先验
+    cvir_adapter.py                       # 显式 alpha_U OS 与总体 pi/视图先验换算的独立 CVIR 接线
     pulns_adapter.py                      # 额外 clean support 的全角色/分组隔离、预算与终点 OA 门禁
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
@@ -277,7 +277,7 @@ tests/
       test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
       test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
       test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
-      test_cvir.py                      # CVIR 负例保留顺序、先验与显式 TS 拒绝测试
+      test_cvir.py                      # CVIR 负例保留顺序、先验门禁与显式 TS 路由
       test_pan.py                       # PAN 公式、梯度隔离与保存加载
       test_pulns.py                     # PULNS 奖励、support 隔离与空负例
       test_rank_pruning.py              # Rank Pruning OOF、剪枝与噪声权重
@@ -326,6 +326,7 @@ tests/
       test_cvir_input_modes.py          # CVIR原地输入隔离、推理模式及参数提前失败
       test_lagam_paper_behavior.py      # LaGAM 独立 BCE/对比参考式、零梯度与硬标签元步
       test_pulns_checkpoints.py         # PULNS episode 回调、默认兼容、失败失效和内部 best 恢复
+      test_cvir_calibration.py          # CVIR 训练风险池校准、角色展开逐位对照与失败/回放边界
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -560,6 +561,7 @@ tests/
       _support_checkpoint_helpers.py    # support 双轨选择的合成 CPU 角色/方法 fixture
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
+      test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

@@ -4,7 +4,7 @@
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
-> 状态核对日期：**2026-10-22**（本日增量为 clean-support 工程接线）
+> 状态核对日期：**2026-10-22**（本日增量为 clean-support、CVIR 独立工程接线）
 
 ## 1. 实验能力与缺口
 
@@ -32,7 +32,7 @@
 | 13 方法不在协议 | 13 方法不能进 survey | protocol v3：补 13 个 `method_profiles` 与 `execution_units` | shuidisjtu 起草，HENG958 核对 | `--method` 可跑 |
 | 13 方法预算未冻结 | 可比性 | 冻结 epochs/batch/candidates/seeds | shuidisjtu | P4.1-B 记录 |
 | 图像 runner 未接 | PULDA/GradPU 不能进主榜 | 接 runner + 单 run 峰值估算 | HENG958 | smoke + profile |
-| CVIR 校准未决 | TS 主表 | A2 裁决 + 实现 | HENG958 | 校准或“不适用” |
+| CVIR 正式接线 | TS 主表 | 已补独立校准/先验换算；待 v3 units/runner、预算与真实验收 | HENG958 | 正式单元 + 跑通 |
 | Self-PU 完整版 | 方法完整 | 已有显式 SCAR OS full-meta checkpoint 双轨工程路径；待正式 clean-support 单元、适用视图与验收 | HENG958 | 单元 + 跑通 |
 | GEN-PU recipe | 方法完整 | 4 个 blocker | HENG958 | 冻结 |
 | `PA+clean-support` | PULNS/LaGAM | 两方法工程路径已接通；待真实 support、正式 units 与验收 | HENG958 | 跑通 |
@@ -106,7 +106,7 @@
 | Dist-PU | clean-room 全量目标与作者两阶段、scheduler、直方图目标不同 | 另有显式 `author_staged` 路径；默认 clean-room 不变 |
 | Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | #122 待HENG958裁决 |
 | PAN | 论文 Eq. (7) 与源码目标、采样不一致 | 保留 paper-faithful；正式采样跟随论文 OS |
-| CVIR | `α_U` 为 U 内比例；原生 TS 未接校准 | TS 主表门未闭合，P3.2 决定 |
+| CVIR | 原始 U 的 α_U 与总体 π 不同；已补全局风险池校准与视图先验换算的独立工程入口 | 正式 v3/预算、真实数据/GPU 仍待，不把工程对照当论文数值复现 |
 | Grad-PU | 论文要求移除 BN | `cnn13_no_bn` 单列 method-private，附 SHOULD 共享对照 |
 | PULNS / LaGAM | clean support 是额外监督；PA 不适用 | 只报 OA 或 `PA+clean-support`；P3.2 |
 | GEN-PU / Holistic-PU | 作者归档未发现 LICENSE | `license=unknown`；不复制、执行或再分发 |
@@ -128,6 +128,11 @@ CLI 可显式执行单候选 CPU 工程链，不代表正式单位、真实数�
 同日第二批补齐 PULNS episode 回调和同一双轨 CLI；只保存完成 episode 的实际 classifier，
 不把 reward probe/内部训练当作额外选择 epoch。v2 两个 pending review 项保留，
 正式 units、数据与 P3.2 其他缺口仍待。
+
+同日后续：[CVIR 校准与先验](delivery/cvir_calibration_20261022.md)。新增显式训练
+U∪P 全局排序/截断和按 PU 计数换算先验，保留默认 OS 与旧显式 α_U adapter。
+独立 SCAR 工程入口可记录 PA/OA checkpoint 选择，仍拒绝 versioned Survey/SAR；
+尚未解锁正式 CVIR 单元、配方预算或真实数据/GPU 结果。
 
 ## 2. 风险与留痕约定
 
