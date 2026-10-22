@@ -18,6 +18,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ### 未发布（Survey P2 实施与复核记录）
 
+2026-10-22 新矩阵覆盖准备：新增独立纯函数，按显式期望/排除格与规范化观测逐 seed 对账，整行缺失、未完成、指标缺失和资格问题分开呈现；PN c-independent、机制、视图、路径与预算不混格。仅完成准备层及 fixture 验证，尚未接入 CLI，不以覆盖齐全代替正式资格；最终矩阵适配与接线仍待 v3 定稿。见 [P2.2 覆盖准备](../research/pu_survey/delivery/p2_2_delivery.md)。
+
 2026-10-22 PN 图像 oracle：修复 `PilotOracleCNN` encoder 能力声明，显式/推断 CNN runner 回归通过；真实 CIFAR seed 0 的 native-CNN 与 feature-adapter 两条 GPU 2-epoch smoke、权重恢复和缓存验证完成，制品已本机备份。v3 草案仅解锁实现可用标志，历史协议与正式门禁不变；全预算五 seed 等协议定稿后执行。见 [PN oracle 状态](../research/pu_survey/admission/pn_oracle_integration.md)。
 
 2026-10-19 P3MIX：用户补入完整论文后，P3Mix/P3Mix-E/P3Mix-C 来源核对、可训练实现、注册、台账、方法卡及专项门禁已完成；仍需 HENG958 按 RV8 复核，并完成正式配方/预算与资源验收，代码接入不代表准入。详见[交付与原文交叉表](../research/pu_survey/admission/p3mix_paper_review_20261019.md)。

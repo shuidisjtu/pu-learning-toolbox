@@ -32,6 +32,19 @@
 
 **最终测试指标接线（2026-10-22）**：runner 的每个 PA/OA 独立选择结果在 test 上记录 Accuracy、AUC、F1、Precision、Recall；F1/Precision/Recall 以正类 `1` 计算。P2.2 汇总将 Accuracy 保持为唯一比较主指标，其余四项均给 seed 均值、样本标准差、有效计数和不可用 seed/原因，不进入选择或排名。退化输入下指标记 `null` 与原因，不能补零。既有 645-run 制品没有 F1/Precision/Recall 原始值，历史数值不会由汇总器重建；新指标从之后按新版 runner 产生的 manifest 获取。
 
+**新矩阵覆盖准备（2026-10-22）**：`survey_result_coverage.py` 提供独立纯函数
+`expand_expected_cells(rows, seeds=...)` 与 `reconcile_result_coverage(expected_cells, observations)`。
+调用方须从最终执行矩阵生成规范化 identity：既有七维 result selector，加 seed、backbone、
+comparability_group、run_view、calibration_applied、selection_path 和 budget_identity；
+行级输入尚不含 seed，排除格显式带 `excluded_reason`。观测使用相同 identity 并附 runner
+manifest 和可选 source。identity 必须由矩阵/manifest 适配器核对，不能将实际观测重命名来填格。
+核对层保留整行/seed 缺失、未完成、指标不可用、协议偏差、正式 blocker、明确排除及超范围
+观测；附加指标缺失不冒充主指标缺失。`coverage_complete` 只表示预期主指标制品齐全，
+含明确排除，不代表可比或正式可排名；协议偏差和正式 blocker 即使有数值仍单独呈现，
+`formal_readiness_assessed` 固定为 false。PN 保持 c-independent，展示时广播另行处理。
+本层**尚未接入现有 CLI**，不消费不完整 v3 草案作为最终矩阵，也不替代原 provenance/
+fairness/comparison 门禁；冻结后的矩阵生成、身份适配与报告接线另行完成，旧接口不变。
+
 **制品分发的决定（2026-10-03）**：不打包上网盘。合作者同时具备仓库权限与数据盘权限，
 分析产物按 §7 自行复现即可，本文件与基准文件承载口径与比对基准；645 行交付表是唯一需要
 送达的实体文件，由执行方直接发送。基准文件里登记了它的摘要，接收端可比对。
