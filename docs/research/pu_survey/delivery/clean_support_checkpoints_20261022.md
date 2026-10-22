@@ -146,3 +146,51 @@ CLI 同样显式用 `--selection-scope meta_checkpoints`（这个模式名也覆
 没有改冻结协议/比较矩阵、旧645-run、负责人签署或用户制品；没有启动真实数据/GPU跑批。
 当前仍是独立探索入口，adapter 继续拒绝 versioned Survey；正式接入还需 v3 单元、
 绑定 runner/适用训练视图、真实 support、预算冻结与对应验收，不是只加JSON就自动准入。
+
+## 合并端独立验收与正式接入待办（2026-10-22）
+
+`db87274` 将上述两笔提交合入 `feature/survey-protocol-v3-methods`，保留本分支的
+PN-CNN 能力修复、五项最终 test 指标及显式结果覆盖准备层；自动合并无冲突。
+本轮未启动或连接 AutoDL，未运行正式实验、改动冻结 split 或推送远程。
+
+合并端专项（PULNS callback、support 守卫/双轨、CLI、结果覆盖准备）**108 passed / 0 skipped /
+0 failures / 0 errors**，JUnit 为本机 `tmp/support_merge_target_20261022.xml`。
+全仓快测 `pytest tests/ -m "not slow and not e2e"` 为 **5,454 passed / 31 skipped /
+1 failure / 0 errors**（5,486项），JUnit 为 `tmp/support_merge_fast_20261022.xml`；
+唯一失败是未被本次合并修改的
+`test_diagnose_survey_split_rebuild.py::test_param_symlink_rebuild_file_is_rejected`，
+在 fixture 创建符号链接时出现 Windows `WinError 1314`，未进入产品诊断逻辑。
+单独复跑同样失败，不将此全仓结果报告为通过，也未为消除此环境限制改动无关测试。
+格式、文档链接、目录清单、测试质量与 diff 检查通过。
+
+合并端另以实际 Python CLI 子进程运行 Self-PU、LaGAM、PULNS 各一次。输入是固定
+400 行、5 维合成数据，support=40；使用上文的小 CPU/MLP 参数，不是 Spambase
+原始数据或正式100/500标签预算。三个输出均为 `accepted_engineering_run=true`，
+0 warning、0 retry；`PA+clean-support`/OA 各自选中模型、分数/阈值/test accuracy
+回放及选中制品摘要校验通过，两轨都记录 Accuracy/AUC/F1/Precision/Recall。
+验收模式为 `synthetic_cpu_merge_acceptance`、`formal_eligible=false`；驱动、计划、
+manifest、权重、两模型和收据留在本机 `tmp/support_merge_cli_receipt_20261022/`，不提交。
+
+真实数据准备另只做 `prepare_clean_support.py` **dry-run**：五数据集均为 split seed 0、
+support seed 0，Spambase=100，其余=500；原始读取、划分与准备逻辑均成功完成。
+support seed 0 只是明确记录的工程探测参数，不是冻结决策，未按标签构成挑选 seed。
+本轮不加 `--write`，因此没有五角色产品收据，不能据此把真实 support 标成已交付；
+也未覆盖五 seed 或训练真实数据。五份输出保留为本机
+`tmp/support_merge_dryrun_<dataset>_20261022.json`。
+
+正式接入最小剩余项：
+
+1. 确认 support seed/规模和标签预算，生成独立五角色产品、校验并绑定真实产品收据；
+   原四路冻结 split 保持不变。IMDb/20News/ADNI 未因本批接线获得 support 资格。
+2. 完整 Self-PU 新建独立 profile/unit、预算与比较身份，不覆盖当前 `require_validation=false`
+   的 no-meta profile；绑定真实 support 和显式 checkpoint 双轨，不沿用默认 terminal OA。
+3. 冻结候选/阶段/存储预算并接入 versioned Survey。当前 adapter 明确拒绝该入口，
+   不能只将草案 PULNS/LaGAM 的 `runnable` 翻转为 true。
+4. 当前工程链仅 SCAR/OS、CLI 仅 CPU/2D。TS 校准或不适用结论、native-CNN runner/
+   图像规格/峰值估算及真实 smoke 分别验收，不能由本轮合成测试代替。
+5. `PA+clean-support` 保留独立结果身份，不冒充纯 PA。现有
+   `survey_result_coverage.py` 仅接受 `pa/oa` 且读取时直接转大写，
+   P2.2 summary/CLI 也只枚举 PA/OA；冻结后的矩阵适配、键映射、汇总与 comparison
+   必须补齐，并排除其参与纯 PU PA 优势比较。本轮不隐式改变旧工具行为。
+
+以上是工程整合与输入准备验证，不代签 v2 review、预算或 v3 正式准入。

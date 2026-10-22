@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。新接入的 GradPU、PUET、VPU、PULDA、Robust-PU、Split-PU、LaGAM 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收；LaGAM 需独立干净 support set，当前 runner 不可用。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。新接入的 GradPU、PUET、VPU、PULDA、Robust-PU、Split-PU、LaGAM 仍属实验性子集，未完成 Survey P3.1/P3.2 正式验收；LaGAM 需独立干净 support set，正式 Survey runner 尚未接通，独立探索入口状态见下方记录。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## 阶段历史（已闭环）
@@ -17,6 +17,8 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 ## 发布状态
 
 ### 未发布（Survey P2 实施与复核记录）
+
+2026-10-22 support 双轨整合：`db87274` 合并队友 `5c7d331`/`456f1f4`，三方法合成 CPU 的实际 CLI 子进程、双轨选中模型回放和五项 test 指标验证通过，零告警/重试。五数据集 seed 0 的真实 support 准备 dry-run 均通过，未写产品、未批准 support seed/预算、未训练真实数据。完整版 Self-PU 独立单元、正式 runner/视图/CNN 与 `PA+clean-support` 汇总接线仍待办，见[合并端验收](../research/pu_survey/delivery/clean_support_checkpoints_20261022.md)。
 
 2026-10-22 新矩阵覆盖准备：新增独立纯函数，按显式期望/排除格与规范化观测逐 seed 对账，整行缺失、未完成、指标缺失和资格问题分开呈现；PN c-independent、机制、视图、路径与预算不混格。仅完成准备层及 fixture 验证，尚未接入 CLI，不以覆盖齐全代替正式资格；最终矩阵适配与接线仍待 v3 定稿。见 [P2.2 覆盖准备](../research/pu_survey/delivery/p2_2_delivery.md)。
 
