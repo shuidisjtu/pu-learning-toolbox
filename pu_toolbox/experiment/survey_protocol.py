@@ -667,6 +667,21 @@ def budget_fairness_fields(budget: dict) -> dict[str, Any]:
     safe because these values are only ever compared within one comparability
     group, where every member is subject to the same placeholder.
     """
+    from .survey_staged_budget import FIELD, validate_contract
+
+    if FIELD in budget:
+        contract = budget[FIELD]
+        validate_contract(contract)
+        params = contract["parameter_values"]
+        # The legacy gate projects one batch knob. PULDA iterates over U;
+        # its P/U pair is one setting, not two search candidates. The detailed
+        # staged comparison below checks *both* knobs and all paid stages.
+        batches = (
+            (params["unlabeled_batch_size"],)
+            if contract["algorithm_id"] == "pulda"
+            else (params["batch_size"],)
+        )
+        return {"max_epochs": contract["checkpoint_epoch_count"], "batch_size_candidates": batches}
     return {
         "max_epochs": _positive_int(budget.get("epochs")),
         "batch_size_candidates": (_positive_int(budget.get("batch_size")),),
@@ -699,7 +714,20 @@ def validate_comparable_manifests(manifests: list[dict], *, require_formal: bool
         raise ValueError("formal aggregation blocked; inspect formal_blockers")
     expected = manifests[0]
     expected_budget = budget_fairness_fields(expected.get("budget", {}))
+    from .survey_staged_budget import FIELD, validate_contract
+
     for item in manifests[1:]:
+        left = expected.get("budget", {}).get(FIELD)
+        right = item.get("budget", {}).get(FIELD)
+        if (left is None) != (right is None):
+            raise ValueError("comparison mismatch: staged and legacy budgets cannot be mixed")
+        if left is not None:
+            validate_contract(right)
+            # Equal snapshot caps do not imply equal paid GAN/episode work or
+            # stopping rules. Byte bounds are resource guards, not training knobs.
+            for field in ("schema_version", "algorithm_id", "parameter_values"):
+                if digest(left[field]) != digest(right[field]):
+                    raise ValueError(f"comparison mismatch: staged budget.{field}")
         for key in (
             "protocol_version",
             "protocol_sha256",

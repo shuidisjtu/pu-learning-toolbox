@@ -1,4 +1,4 @@
-"""Explicit GEN-PU/PULDA draft budgets and verification of paid trajectories.
+"""Explicit method-specific draft budgets and verification of paid trajectories.
 
 No budget values are supplied here: callers must declare them in a versioned
 profile. The schema does not grant formal admission or change native training.
@@ -11,6 +11,7 @@ from pathlib import Path
 
 from ..core.training_views import build_training_view
 from ..utils.serialization import strict_canonical_hash
+from . import survey_episodic_budget as episodic
 
 FIELD = "staged_budget"
 SCHEMA = "survey-staged-budget-1"
@@ -35,6 +36,7 @@ PARAMETERS = {
         "warmup_weight_decay",
         "weight_decay",
     ),
+    **episodic.PARAMETERS,
 }
 _INTS = {
     "max_epochs",
@@ -51,6 +53,8 @@ _INTS = {
 
 
 def _schedule(algorithm, params):
+    if algorithm in episodic.PARAMETERS:
+        return episodic.schedule(algorithm, params)
     if algorithm == "genpu":
         return [("synthetic_pn", params["classifier_epochs"])]
     return [("warmup", params["warmup_epochs"]), ("pu_mixup", params["pu_epochs"])]
@@ -69,16 +73,21 @@ def validate_contract(contract):
             "checkpoint_bytes_per_component",
             "eligible_stages",
         }
-        or contract.get("schema_version") != SCHEMA
+        or contract.get("schema_version") not in (SCHEMA, episodic.SCHEMA)
     ):
         raise ValueError("invalid staged budget schema or fields")
     algorithm = contract["algorithm_id"]
     if not isinstance(algorithm, str) or algorithm not in PARAMETERS:
-        raise ValueError("staged budget supports GEN-PU/PULDA only")
+        raise ValueError("unsupported staged budget algorithm")
+    is_episodic = algorithm in episodic.PARAMETERS
+    if contract["schema_version"] != (episodic.SCHEMA if is_episodic else SCHEMA):
+        raise ValueError("staged budget schema does not support this algorithm")
     params = contract["parameter_values"]
     if not isinstance(params, dict) or set(params) != set(PARAMETERS[algorithm]):
         raise ValueError("staged budget must declare every method-specific parameter")
-    for name, value in params.items():
+    if is_episodic:
+        episodic.validate_parameters(algorithm, params)
+    for name, value in () if is_episodic else params.items():
         minimum = 0 if name in ("warmup_epochs", "warmup_weight_decay", "weight_decay") else 1
         if name in _INTS:
             valid = type(value) is int and value >= minimum
@@ -123,7 +132,7 @@ def validate_protocol_budgets(protocol):
         algorithm = profile.get("algorithm")
         budget = protocol["budgets"].get(profile.get("budget"), {})
         if explicit and algorithm in PARAMETERS and FIELD not in budget:
-            raise ValueError("GEN-PU/PULDA draft profile requires a staged budget")
+            raise ValueError("method-specific draft profile requires a staged budget")
         if FIELD not in budget:
             continue
         contract = budget[FIELD]
@@ -177,6 +186,10 @@ def validate_estimator(model, contract):
     if type(model) is not get_algorithm(contract["algorithm_id"]):
         raise ValueError("staged budget estimator class mismatch")
     actual = model.get_params(deep=False)
+    if any(actual.get(name) is not None for name in ("model", "encoder", "train_transform")):
+        raise ValueError(
+            "staged native_2d budget requires the native model without injected modules"
+        )
     for name, value in contract["parameter_values"].items():
         if strict_canonical_hash(actual.get(name)) != strict_canonical_hash(value):
             raise ValueError(f"estimator differs from staged budget parameter: {name}")
@@ -187,6 +200,8 @@ def validate_estimator(model, contract):
 def verify_trajectory(model, trajectory, contract, features, labels, view):
     """Reject incomplete/wrong-stage/over-bound snapshots before PA/OA selection."""
     validate_estimator(model, contract)
+    if contract["schema_version"] == episodic.SCHEMA:
+        return episodic.verify_trajectory(model, trajectory, contract, features, labels, view)
     algorithm = contract["algorithm_id"]
     params = contract["parameter_values"]
     training = build_training_view(features, labels, requested_view=view or "os")
@@ -250,3 +265,11 @@ def verify_trajectory(model, trajectory, contract, features, labels, view):
         "checkpoint_bytes": sizes,
         "formal_budget_approved": False,
     }
+
+
+def checkpoint_coverage(trajectory, budget):
+    """Complete actual trajectories may be shorter than a native splitter cap."""
+    contract = budget.get(FIELD)
+    if contract is not None and contract["schema_version"] == episodic.SCHEMA:
+        return episodic.checkpoint_coverage(trajectory, contract)
+    return bool(trajectory.checkpoints) and len(trajectory.epochs) == checkpoint_epochs(budget)

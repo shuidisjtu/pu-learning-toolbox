@@ -165,6 +165,14 @@ GEN-PU 不再把 GAN 轮数当 PN 快照数，PULDA 计入两段但不把 TS 并
 其他方法族、native CNN、正式预算/阶段资格及五角色/registry/comparison 仍未完成；
 不据此把 P4.1-B 或13方法正式可跑标成完成。
 
+同日后续补[Robust-PU/Split-PU/Holistic-PU 阶段预算](delivery/episodic_budget_20261024.md)：
+schema 2 已接通三方法 native_2d draft 的实际 CLI/pilot 与成本收据，
+Robust episode 内多轮不多造快照；Split 预留 cap、核验原生早停和逐 round 覆盖并可续跑；
+Holistic LZO 回选状态仍完整计入已执行 warmup 和前向，OS/TS 边界保持。
+阶段预算汇总不再投影成占位1；同快照数也须核对内层/GAN等全部显式参数。
+连同前批共5方法具有阶段预算工程接线，不等于5份正式配方批准；
+五角色、其他方法族、图像正式绑定、新 registry/comparison 与数值验收仍待。
+
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
 `PA+clean-support`/OA 独立选择、容量估算和选后回收；旧终点 OA/默认消融不变。

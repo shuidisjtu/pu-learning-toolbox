@@ -244,6 +244,7 @@ def build_proposal(*, root=ROOT):
             "pu_toolbox/experiment/survey_protocol.py",
             "pu_toolbox/experiment/survey_profile_identity.py",
             "pu_toolbox/experiment/survey_staged_budget.py",
+            "pu_toolbox/experiment/survey_episodic_budget.py",
             "pu_toolbox/experiment/pilot_plan.py",
             "pu_toolbox/experiment/runner.py",
             "scripts/run_survey_experiment.py",

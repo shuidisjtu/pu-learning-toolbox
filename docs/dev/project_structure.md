@@ -205,6 +205,7 @@ pu_toolbox/
     survey_v3_proposal.py                 # v3 源码绑定的22算法/变体与阻断单元请求，不批准预算
     survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
+    survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -584,6 +585,9 @@ tests/
       test_profile_identity_execution.py # profile 双轨/原生快照、实际子进程与完整来源续跑
       test_survey_profile_identity.py   # 显式身份映射、旧路径兼容与错误/越权绑定拒绝
       test_survey_staged_budget.py      # 阶段预算/角色/容量与原生权重对照，拒绝错误正式绑定
+      _episodic_budget_helpers.py       # 三方法临时小预算草案与确定性合成训练夹具
+      test_survey_episodic_budget.py    # 三方法真实 CLI/续跑、原生权重及停止/LZO 成本拒绝
+      test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

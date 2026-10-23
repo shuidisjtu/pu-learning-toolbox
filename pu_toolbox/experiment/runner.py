@@ -36,7 +36,7 @@ from .survey_protocol import (
 )
 from .survey_recipe_binding import bind_recipe, candidate_binding_at
 from .survey_staged_budget import FIELD as STAGED_BUDGET_FIELD
-from .survey_staged_budget import checkpoint_epochs, verify_trajectory
+from .survey_staged_budget import checkpoint_coverage, checkpoint_epochs, verify_trajectory
 from .tracking import RunResult, RunTrajectory
 
 
@@ -278,6 +278,13 @@ class ExperimentRunner:
                 _captures_checkpoints(self.config, trainer, model)
             ):
                 raise ValueError("staged budget requires the native checkpoint recorder")
+            staged = protocol_context.get("budget", {}).get(STAGED_BUDGET_FIELD)
+            if staged is not None:
+                from .survey_episodic_budget import validate_view
+
+                validate_view(
+                    staged["algorithm_id"], staged["parameter_values"], self.config.get("os_or_ts")
+                )
             _validate_model_capability(model, bundle, self.config.get("architecture"))
             # Opt-in experimental adapters validate extra supervision/prior
             # contracts against actual partitions, before generation or retries.
@@ -866,10 +873,7 @@ def _checkpoint_context(context, trajectories):
     blockers = list(context["formal_blockers"])
     expected = checkpoint_epochs(context["budget"])
     complete = (
-        all(
-            trajectory.checkpoints and len(trajectory.epochs) == expected
-            for trajectory in trajectories
-        )
+        all(checkpoint_coverage(trajectory, context["budget"]) for trajectory in trajectories)
         if expected is not None
         else all(
             not trajectory.checkpoints and len(trajectory.epochs) == 1

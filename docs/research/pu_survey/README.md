@@ -61,6 +61,7 @@
 - [v3 profile/unit 接入请求](delivery/survey_v3_proposal_20261023.md)：精确22算法/23 profile与184个阻断组合、源码观察和缺口校验；独立 planning schema，不是可执行协议或预算批准。
 - [Profile / 算法身份分离](delivery/profile_identity_20261024.md)：显式草案的模型、CLI、批次与续跑绑定；旧 v2 不变，新身份强制工程验证、正式五角色/预算/比较绑定仍待。
 - [GEN-PU / PULDA 阶段预算](delivery/staged_budget_20261024.md)：二维草案的阶段/六网络成本、快照容量与训练后收据；不填正式预算，不变更原生算法。
+- [Robust / Split / Holistic 阶段预算](delivery/episodic_budget_20261024.md)：episode 内多轮、原生 splitter 停止上界与 LZO 已付成本；实际 CLI/续跑与原生权重验证，不等于正式准入。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
