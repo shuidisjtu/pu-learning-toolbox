@@ -1,0 +1,2695 @@
+{
+  "schema_version": "survey-v3-profile-unit-proposal-1",
+  "status": "planning_only_not_executable_protocol",
+  "proposed_protocol_version": "survey-v3.0",
+  "formal_admission": false,
+  "owner_signatures": [],
+  "source_hash_policy": "UTF8_universal_newlines_not_GPU_raw_bytes",
+  "basis": {
+    "protocol_ref": "pu_toolbox/experiment/survey_protocol_v2.json",
+    "protocol_sha256": "0033d8105c98a4b053381a708d9dcbc46cc00c1f4e16cf21655a475c553a8956",
+    "inherited_review_items": [
+      {
+        "item_id": "v2_p1_pa_oa_selection",
+        "title": "PA results use pu_val-selected configurations only; OA uses clean_val",
+        "sections": [
+          "1.2"
+        ],
+        "origin": "A1",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21"
+      },
+      {
+        "item_id": "v2_p2_calibration_definition",
+        "title": "Calibration operational definition, 'not applicable' category and common approximations",
+        "sections": [
+          "2.3"
+        ],
+        "origin": "A2",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21"
+      },
+      {
+        "item_id": "v2_p3_sampling_adjudication",
+        "title": "Sampling-assumption adjudication: paper first, reference code only when silent",
+        "sections": [
+          "2.3"
+        ],
+        "origin": "A2",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21"
+      },
+      {
+        "item_id": "v2_p4_clean_support_policy",
+        "title": "Training-time clean support: source, size, label budget, coverage and PA path",
+        "sections": [
+          "2.4"
+        ],
+        "origin": "A3",
+        "status": "pending_collaborator_review"
+      },
+      {
+        "item_id": "v2_p5_architecture_exception",
+        "title": "Architecture-exception criterion and the SHOULD shared-architecture comparison",
+        "sections": [
+          "2.5"
+        ],
+        "origin": "A4",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21"
+      },
+      {
+        "item_id": "v2_p6_canonical_prior",
+        "title": "Canonical prior pi and the per-view pi_U conversion",
+        "sections": [
+          "3"
+        ],
+        "origin": "A5",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21"
+      },
+      {
+        "item_id": "v2_p7_ledger_fields",
+        "title": "Ledger records the adjudication basis, prior semantics and calibration applicability",
+        "sections": [
+          "4"
+        ],
+        "origin": "A6",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21"
+      },
+      {
+        "item_id": "v2_p8_clean_support_presentation",
+        "title": "PA+clean-support is listed separately in the SCAR-PA table",
+        "sections": [
+          "5"
+        ],
+        "origin": "A7",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21"
+      },
+      {
+        "item_id": "v2_p9_pa_default",
+        "title": "Main table defaults to PA selection; OA configurations are recorded for reference",
+        "sections": [
+          "5"
+        ],
+        "origin": "Q2",
+        "status": "accepted",
+        "confirmed_on": "2026-10-21",
+        "note": "decision record only; no body text change"
+      },
+      {
+        "item_id": "v2_p10_self_pu_scope",
+        "title": "method_profiles.self_pu stays the no-meta ablation; the full variant needs new units",
+        "sections": [
+          "2.4"
+        ],
+        "origin": "decision",
+        "status": "pending_collaborator_review",
+        "note": "decision record only; no execution-unit change"
+      }
+    ],
+    "inherited_execution_units": [
+      {
+        "dataset": "spambase",
+        "method": "upu",
+        "training_path": "native_2d",
+        "budget": "closed_form",
+        "model_family": "linear",
+        "backbone": "none",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "spambase",
+        "method": "nnpu",
+        "training_path": "native_2d",
+        "budget": "minibatch",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/minibatch",
+        "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+        "runnable": true
+      },
+      {
+        "dataset": "spambase",
+        "method": "kldce",
+        "training_path": "native_2d",
+        "budget": "alternating",
+        "model_family": "kernel",
+        "backbone": "none",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": false,
+        "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
+      },
+      {
+        "dataset": "spambase",
+        "method": "dist_pu",
+        "training_path": "native_2d",
+        "budget": "fullbatch",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/fullbatch",
+        "oracle_alignment": "requires_separate_fullbatch_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "spambase",
+        "method": "pusb_kernel",
+        "training_path": "native_2d",
+        "budget": "kernel_cv",
+        "model_family": "kernel",
+        "backbone": "none",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "spambase",
+        "method": "lbe",
+        "training_path": "native_2d",
+        "budget": "em",
+        "model_family": "linear_em",
+        "backbone": "none",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "spambase",
+        "method": "self_pu",
+        "training_path": "native_2d",
+        "budget": "two_student_sampled",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/two_student_sampled",
+        "oracle_alignment": "no_matched_two_student_sampling_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "spambase",
+        "method": "pn_oracle",
+        "training_path": "native_2d",
+        "budget": "minibatch",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "train_zscore",
+        "comparability_group": "spambase/native_2d/minibatch",
+        "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+        "runnable": true
+      },
+      {
+        "dataset": "imdb",
+        "method": "upu",
+        "training_path": "native_2d",
+        "budget": "closed_form",
+        "model_family": "linear",
+        "backbone": "none",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "imdb",
+        "method": "nnpu",
+        "training_path": "native_2d",
+        "budget": "minibatch",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/minibatch",
+        "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+        "runnable": true
+      },
+      {
+        "dataset": "imdb",
+        "method": "kldce",
+        "training_path": "native_2d",
+        "budget": "alternating",
+        "model_family": "kernel",
+        "backbone": "none",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": false,
+        "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
+      },
+      {
+        "dataset": "imdb",
+        "method": "dist_pu",
+        "training_path": "native_2d",
+        "budget": "fullbatch",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/fullbatch",
+        "oracle_alignment": "requires_separate_fullbatch_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "imdb",
+        "method": "pusb_kernel",
+        "training_path": "native_2d",
+        "budget": "kernel_cv",
+        "model_family": "kernel",
+        "backbone": "none",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "imdb",
+        "method": "lbe",
+        "training_path": "native_2d",
+        "budget": "em",
+        "model_family": "linear_em",
+        "backbone": "none",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "imdb",
+        "method": "self_pu",
+        "training_path": "native_2d",
+        "budget": "two_student_sampled",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/two_student_sampled",
+        "oracle_alignment": "no_matched_two_student_sampling_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "imdb",
+        "method": "pn_oracle",
+        "training_path": "native_2d",
+        "budget": "minibatch",
+        "model_family": "mlp128",
+        "backbone": "mlp128",
+        "representation": "sbert384",
+        "comparability_group": "imdb/native_2d/minibatch",
+        "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "upu",
+        "training_path": "cnn_feature_adapter",
+        "budget": "closed_form",
+        "model_family": "linear",
+        "backbone": "resnet18_random_frozen",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/cnn_feature_adapter/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "nnpu",
+        "training_path": "native_cnn",
+        "budget": "minibatch",
+        "model_family": "resnet18_linear",
+        "backbone": "resnet18_end_to_end",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/native_cnn/native_cnn",
+        "oracle_alignment": "cnn_oracle_phase2_not_available",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "kldce",
+        "training_path": "cnn_feature_adapter",
+        "budget": "alternating",
+        "model_family": "kernel",
+        "backbone": "resnet18_random_frozen",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/cnn_feature_adapter/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": false,
+        "non_runnable_reason": "KLDCE requires flip_probability; survey protocol has no mechanism-safe binding"
+      },
+      {
+        "dataset": "cifar10",
+        "method": "dist_pu",
+        "training_path": "cnn_feature_adapter",
+        "budget": "fullbatch",
+        "model_family": "mlp128",
+        "backbone": "resnet18_random_frozen",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/cnn_feature_adapter/fullbatch",
+        "oracle_alignment": "requires_separate_fullbatch_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "pusb_kernel",
+        "training_path": "cnn_feature_adapter",
+        "budget": "kernel_cv",
+        "model_family": "kernel",
+        "backbone": "resnet18_random_frozen",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/cnn_feature_adapter/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "lbe",
+        "training_path": "cnn_feature_adapter",
+        "budget": "em",
+        "model_family": "linear_em",
+        "backbone": "resnet18_random_frozen",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/cnn_feature_adapter/classical",
+        "oracle_alignment": "no_matched_neural_backbone_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "self_pu",
+        "training_path": "cnn_feature_adapter",
+        "budget": "two_student_sampled",
+        "model_family": "mlp128",
+        "backbone": "resnet18_random_frozen",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/cnn_feature_adapter/two_student_sampled",
+        "oracle_alignment": "no_matched_two_student_sampling_oracle",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "pn_oracle",
+        "training_path": "cnn_feature_adapter",
+        "budget": "minibatch",
+        "model_family": "mlp128",
+        "backbone": "resnet18_random_frozen",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/cnn_feature_adapter/minibatch",
+        "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+        "runnable": true
+      },
+      {
+        "dataset": "cifar10",
+        "method": "pn_oracle",
+        "training_path": "native_cnn",
+        "budget": "minibatch",
+        "model_family": "resnet18_linear",
+        "backbone": "resnet18_end_to_end",
+        "representation": "resnet18_random_initialization",
+        "comparability_group": "cifar10/native_cnn/native_cnn",
+        "oracle_alignment": "cnn_oracle_phase2_not_available",
+        "runnable": false,
+        "non_runnable_reason": "CNN oracle is Phase 2, not runnable in this pilot binding"
+      }
+    ]
+  },
+  "scope": {
+    "existing_v2_algorithms": [
+      "upu",
+      "nnpu",
+      "kldce",
+      "dist_pu",
+      "pusb_kernel",
+      "lbe",
+      "self_pu",
+      "pn_oracle"
+    ],
+    "p3_1_algorithms": [
+      "p3mix",
+      "puet",
+      "pulda",
+      "gradpu",
+      "robust_pu",
+      "split_pu",
+      "pan",
+      "rp",
+      "pulns",
+      "genpu",
+      "holistic_pu",
+      "cvir",
+      "lagam"
+    ],
+    "additional_target_algorithms": [
+      "vpu"
+    ],
+    "target_algorithms": [
+      "upu",
+      "nnpu",
+      "kldce",
+      "dist_pu",
+      "pusb_kernel",
+      "lbe",
+      "self_pu",
+      "pn_oracle",
+      "p3mix",
+      "puet",
+      "pulda",
+      "gradpu",
+      "robust_pu",
+      "split_pu",
+      "pan",
+      "rp",
+      "pulns",
+      "genpu",
+      "holistic_pu",
+      "cvir",
+      "lagam",
+      "vpu"
+    ],
+    "registered_outside_target_scope": [
+      "lbe_neural",
+      "pusb",
+      "tedn"
+    ],
+    "variants_do_not_increase_algorithm_count": [
+      "self_pu_full_meta"
+    ]
+  },
+  "datasets": {
+    "adni": {
+      "modality": "image"
+    },
+    "cifar10": {
+      "modality": "image"
+    },
+    "connect_4": {
+      "modality": "tabular"
+    },
+    "fashion_mnist": {
+      "modality": "image"
+    },
+    "imdb": {
+      "modality": "text"
+    },
+    "mnist": {
+      "modality": "image"
+    },
+    "spambase": {
+      "modality": "tabular"
+    },
+    "twenty_newsgroups": {
+      "modality": "text"
+    }
+  },
+  "method_profile_requests": {
+    "upu": {
+      "algorithm": "upu",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "closed_form",
+        "params": {
+          "loss": "squared",
+          "basis": "linear",
+          "fit_intercept": false,
+          "max_iter": 1000
+        },
+        "model_family": "linear",
+        "group": "classical"
+      },
+      "implementation_facts": {
+        "class": "UPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/upu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "loss": "squared",
+            "reg_lambda": 0.001,
+            "basis": "linear",
+            "kernel_width": null,
+            "n_centers": null,
+            "fit_intercept": true,
+            "max_iter": 1000,
+            "tol": 1e-06,
+            "random_state": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（requires_class_prior=True；训练时需要 π=p(y=1)，Convex_Formulation_for_PU_DATA_Learning.md:19/68, registry:upu）",
+          "adaptation_level": "benchmark-adapted（重写：官方 pywsl 仅提供 Squared Loss 闭式解，Convex_Formulation_for_PU_DATA_Learning.md:498）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "线性参数模型 g(x)=αᵀφ(x)+b，basis 可选 Gaussian/linear/polynomial (Convex_Formulation_for_PU_DATA_Learning.md:188-194)",
+            "code_capability": {
+              "native_architectures": [],
+              "input_ndims": [
+                2
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "ts"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "nnpu": {
+      "algorithm": "nnpu",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "minibatch",
+        "params": {
+          "max_epochs": 200,
+          "batch_size": 256,
+          "patience": 201,
+          "optimizer": null
+        },
+        "model_family": "mlp128",
+        "group": "minibatch"
+      },
+      "implementation_facts": {
+        "class": "NonNegativePUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/nnpu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "model": null,
+            "encoder": null,
+            "class_prior": null,
+            "loss": "sigmoid",
+            "beta": 0.0,
+            "gamma": 1.0,
+            "optimizer": null,
+            "batch_size": 256,
+            "max_epochs": 200,
+            "patience": 20,
+            "random_state": null,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（必填；本文不负责估计类别先验，nnpu.md:14/26-27/44, registry:nnpu）",
+          "adaptation_level": "benchmark-adapted（clean-room 重写；跨框架（Chainer→PyTorch）而非逐行适配，nnpu.md:339-340）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "mlp/cnn 双架构（encoder 可选注入；encoder=None 时默认 nn.Linear(d,1)）",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（两样本：可靠正例 P + 边缘分布无标签 U；X_p~p_p(x)、X_u~p(x)，nnpu.md:13/38-39, registry:nnpu）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "kldce": {
+      "algorithm": "kldce",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "alternating",
+        "params": {
+          "max_acs_iter": 50,
+          "max_inner_iter": 2000
+        },
+        "model_family": "kernel",
+        "group": "classical"
+      },
+      "implementation_facts": {
+        "class": "KLDCEClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/kldce.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "sigma": "scale",
+            "reg_strength": 1.0,
+            "centroid_radius": 1.0,
+            "mom_groups": 10,
+            "covariance_ridge": 0.0,
+            "max_acs_iter": 50,
+            "max_inner_iter": 2000,
+            "inner_tol": 1e-06,
+            "tol": 1e-06,
+            "random_state": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "估计器（requires_class_prior=False；正类先验 p=k/[n(1-h)] 由 h 与观测正例比例估计，KLDCE.md:16/46, registry:kldce）",
+          "adaptation_level": "重写（论文正文 + 附录为唯一权威；广义 pair-SMO/ACS 顺序为实现适配，KLDCE.md §8 与来源审计）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "RBF 核 K(x,z)=exp(-‖x-z‖²/(2σ²))（KLDCE.md:13/52）",
+            "code_capability": {
+              "native_architectures": [],
+              "input_ndims": [
+                2
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "os（censoring PU，单一 i.i.d. 训练样本内 P 与污染负类混合；SCAR 型 censoring，KLDCE.md:13/31/37, registry:kldce）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "dist_pu": {
+      "algorithm": "dist_pu",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "fullbatch",
+        "params": {
+          "hidden_dim": 128,
+          "epochs": 200,
+          "batch_size": 256,
+          "learning_rate": 0.001
+        },
+        "model_family": "mlp128",
+        "group": "fullbatch"
+      },
+      "implementation_facts": {
+        "class": "DistPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/dist_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "hidden_dim": 64,
+            "epochs": 100,
+            "batch_size": 256,
+            "learning_rate": 0.001,
+            "alignment_weight": 1.0,
+            "entropy_weight": 0.05,
+            "mixup_weight": 0.1,
+            "distribution_loss": "expectation",
+            "training_recipe": "clean_room",
+            "warmup_epochs": 60,
+            "pu_epochs": 60,
+            "warmup_learning_rate": 0.0005,
+            "warmup_weight_decay": 0.005,
+            "pu_learning_rate": 5e-05,
+            "pu_weight_decay": 0.001,
+            "warmup_entropy_weight": 0.002,
+            "pu_entropy_weight": 0.004,
+            "mixup_alpha": 6.0,
+            "mixup_entropy_weight": 0.04,
+            "mixup_bce_weight": 5.0,
+            "random_state": 0,
+            "device": null,
+            "encoder": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（R_lab 以「角色集合均值 = π」对齐；该 identity 的角色集**随视图变化**——os 下是 X_U，ts 下是 X_U ∪ X_P，目标始终是总体 π、不因观测 P/U 比例重估；Dist-PU.md:15/57/96, registry:dist_pu）",
+          "adaptation_level": "benchmark-adapted（默认 clean-room 重写；opt-in author_staged 依据锁定 train.py/utils.py/dataTools/mixupDataset.py/losses 适配两阶段损失、持久伪标签和 scheduler cadence；使用 toolbox MLP 或显式 encoder+MLP/调用方 prior，不复现作者数据集模型/增强/splits或 test-based 选模，非作者程序重放，Dist-PU.md:231-245）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "默认小型 MLP；显式 author_staged + author_histogram 可注入 deepcopy 后解冻训练的 encoder + 同构 MLP 头；冻结 Pilot 图像仍用原 cnn_feature_adapter",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（case_control; X_P~p_P(x), X_U~p(x)=πp_P+(1-π)p_N; Dist-PU.md:14/24-30, registry:dist_pu）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "pusb_kernel": {
+      "algorithm": "pusb_kernel",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "kernel_cv",
+        "params": {
+          "n_basis": 300,
+          "cv": 5,
+          "max_iter": 200,
+          "sigma_grid": [
+            0.01,
+            0.05,
+            0.1,
+            0.5,
+            1,
+            2,
+            5,
+            10,
+            20
+          ],
+          "reg_grid": [
+            0.001,
+            0.005,
+            0.01,
+            0.05,
+            0.1,
+            0.5,
+            1,
+            5
+          ]
+        },
+        "model_family": "kernel",
+        "group": "classical"
+      },
+      "implementation_facts": {
+        "class": "PUSBKernelClassifier",
+        "implementation_ref": "pu_toolbox/estimators/bias_aware/pusb_kernel.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "n_basis": 300,
+            "cv": 5,
+            "random_state": 2018,
+            "max_iter": 200,
+            "tol": 1e-05
+          },
+          "unevaluated_expressions": {
+            "sigma_grid": "_OFFICIAL_SIGMA_GRID",
+            "reg_grid": "_OFFICIAL_REG_GRID"
+          },
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（必填：PU 风险与分位数规则中的 π，PUSB.md:16/230, registry:pusb_kernel）",
+          "adaptation_level": "source-faithful（official-aligned RBF 核适配器，clean-room 依据官方发布代码；registry 为 OFFICIAL_RELATED）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "RBF 核（n_basis=300 中心 + 官方 σ/λ 网格 CV，PUSB.md:221-230）",
+            "code_capability": {
+              "native_architectures": [],
+              "input_ndims": [
+                2
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "ts（两集合视图 P_+^obs=p(x|y=1,s=1) 与 P_U=p(x)；原生标注机制为 SAR（e(x) 随 x 变化），PUSB.md:15/27-28, registry:pusb_kernel）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "lbe": {
+      "algorithm": "lbe",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "em",
+        "params": {
+          "max_iter": 1000,
+          "n_em_iter": 20
+        },
+        "model_family": "linear_em",
+        "group": "classical"
+      },
+      "implementation_facts": {
+        "class": "LBEClassifier",
+        "implementation_ref": "pu_toolbox/estimators/bias_aware/lbe.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "max_iter": 1000,
+            "n_em_iter": 20,
+            "C": 1.0
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "无/可选（class_prior 仅作 U latent posterior 初始化先验；不是独立的先验估计器，LBE.md:17/234, registry:lbe）",
+          "adaptation_level": "benchmark-adapted（clean-room 重写；线性 logistic + 交替 soft-label 近似论文 EM+Adam 框架，不能宣称复现论文神经网络实验，LBE.md:185/243）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "linear logistic（两份样本副本 + 权重 q_i、1-q_i 调用 sklearn logistic regression，LBE.md:185/188）",
+            "code_capability": {
+              "native_architectures": [],
+              "input_ndims": [
+                2
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "os（single_training_set + selection_biased；输入单一样本 X/s，s=1 为 labeled positive；SAR 型 instance-dependent labeling，LBE.md:15-16/159-160, registry:lbe）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "self_pu": {
+      "algorithm": "self_pu",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "two_student_sampled",
+        "params": {
+          "hidden_dim": 128,
+          "max_epochs": 200,
+          "batch_size": 256,
+          "learning_rate": 0.001,
+          "require_validation": false
+        },
+        "model_family": "mlp128",
+        "group": "two_student_sampled"
+      },
+      "implementation_facts": {
+        "class": "SelfPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/self_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "backbone": null,
+            "hidden_dim": 128,
+            "warmup_epochs": 10,
+            "self_paced_start": 10,
+            "self_paced_end": 50,
+            "distill_start": 50,
+            "max_epochs": 200,
+            "max_trust_ratio": 0.25,
+            "pace_1": 0.2,
+            "pace_2": 0.3,
+            "meta_step_size": 0.001,
+            "distillation_alpha": 10.0,
+            "ema_decay": 0.99,
+            "student_loss_weight": 1.0,
+            "teacher_loss_weight": 1.0,
+            "distillation_scope": "untrusted_u",
+            "batch_size": 256,
+            "learning_rate": 0.001,
+            "weight_decay": 0.0,
+            "threshold": 0.5,
+            "require_validation": false,
+            "random_state": null,
+            "device": null
+          },
+          "unevaluated_expressions": {
+            "reweight_gamma": "1 / 16"
+          },
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（论文沿用 π_p 已知设定，Self-PU.md:16/29-32/419, registry:self_pu）；TS 下 α_P 是 batch 行数质量而非 π——P 不按 π 重加权、π 不重估",
+          "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:437-439/449-450/454）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）；不支持 native CNN（mlp-only；input_ndims {2,4} 按模板\"支持输入维度\"口径声明，4D 展平为估计器层实际支持、非 CNN 能力，2026-09-14 审阅 P1#1；survey 图像行走 cnn_feature_adapter）",
+            "code_capability": {
+              "native_architectures": [
+                "mlp"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "ts（case_control; D=D_P∪D_U, x_i^p~p(x|Y=+1), x_i^u~p(x)，Self-PU.md:15/36-48, registry:self_pu）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "pn_oracle": {
+      "algorithm": "pn_oracle",
+      "profile_kind": "inherited_v2",
+      "inherited_profile": {
+        "budget": "minibatch",
+        "params": {
+          "max_epochs": 200,
+          "batch_size": 256,
+          "learning_rate": 0.001
+        },
+        "model_family": "mlp128",
+        "group": "minibatch"
+      },
+      "implementation_facts": null,
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "p3mix": {
+      "algorithm": "p3mix",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "P3MixClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/p3mix.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "variant": "base",
+            "hidden_dim": 128,
+            "max_epochs": 100,
+            "batch_size": 128,
+            "learning_rate": 0.001,
+            "beta": 1.0,
+            "gamma": 0.9,
+            "pool_size": 100,
+            "mixup_alpha": 1.0,
+            "early_learning_weight": 1.0,
+            "teacher_decay": 0.99,
+            "model": null,
+            "encoder": null,
+            "random_state": 0,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "无外部先验；class_prior 仅保留兼容参数并校验，不参与训练",
+          "adaptation_level": "benchmark-adapted（按原文式(1)–(8)与Algorithm 1实现分类器、每epoch top-k 熵池刷新及互斥E/C变体；论文未指定的MLP、优化器学习率、批次构成、EMA decay以公开参数作为工程选择；非作者代码重放或正式数值复现）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "二维输入默认MLP；图像输入要求调用者注入独立deepcopy并端到端训练的CNN encoder",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "os（原文 §2/Algorithm 1 对单一训练集合 P∪U 分批；没有TS风险替换）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "puet": {
+      "algorithm": "puet",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "PUExtraTreesClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/puet.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "n_estimators": 100,
+            "max_depth": null,
+            "min_samples_leaf": 1,
+            "max_features": "sqrt",
+            "max_candidates": 1,
+            "bootstrap": false,
+            "random_state": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（节点正类风险质量 π·n_P,node/n_P；PUET.md:10/24）",
+          "adaptation_level": "benchmark-adapted（仅作者 nnPU/quadratic 分支；非论文完整实验协议）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "randomized Extra Trees, no neural backbone, CPU only",
+            "code_capability": {
+              "native_architectures": [],
+              "input_ndims": [
+                2
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "ts（可靠 P 与总体边缘 U 分别贡献节点风险质量；PUET.md:9-16）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "pulda": {
+      "algorithm": "pulda",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "PULDAClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/pulda.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "hidden_dim": 64,
+            "depth": 2,
+            "warmup_epochs": 60,
+            "pu_epochs": 60,
+            "positive_batch_size": 16,
+            "unlabeled_batch_size": 128,
+            "warmup_learning_rate": 0.0001,
+            "learning_rate": 0.001,
+            "warmup_weight_decay": 0.0005,
+            "weight_decay": 0.0001,
+            "temperature": 3.5,
+            "unlabeled_ema": 0.85,
+            "margin_ema": 0.5,
+            "margin": 0.6,
+            "mixup_weight": 4.2,
+            "mixup_alpha": 11.0,
+            "encoder": null,
+            "train_transform": null,
+            "random_state": 0,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（分布对齐目标固定为总体正类先验；PULDA.md:10）",
+          "adaptation_level": "benchmark-adapted（二维 MLP 或独立 deepcopy 后训练的注入 CNN+MLP head；图像分批搬入 GPU、eval 分批刷新伪标签；非作者 CIFAR CNN/完整预处理和数值复现）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "dense MLP64 or injected trainable CNN + same MLP head",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（P 为可靠正类、U 为总体边缘分布；PULDA.md:10-15）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": "docs/research/pu_survey/delivery/candidate_image_runner_20261023.md",
+      "requires_clean_support": false
+    },
+    "gradpu": {
+      "algorithm": "gradpu",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "GradPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/grad_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "model": null,
+            "hidden_dim": 128,
+            "alpha": 0.1,
+            "beta_max": 1.0,
+            "batch_size": 256,
+            "max_epochs": 200,
+            "learning_rate": 0.001,
+            "lr_schedule": "constant",
+            "lr_final_ratio": 0.1,
+            "weight_decay": 0.0005,
+            "encoder": null,
+            "random_state": null,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "无（目标不使用 class_prior，fit 仅接口兼容；GradPU.md:12）",
+          "adaptation_level": "benchmark-adapted（MLP128 或注入无 BatchNorm CNN+MLP头；显式 cnn13_no_bn 为工具箱13卷积变体，不是作者未公开完整架构；论文预处理/调参/学习率规格未复现）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "MLP128 or injected no-BatchNorm CNN with MLP/raw-score head; explicit cnn13_no_bn adapter",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（P 与总体边缘 U 分别贡献风险和插值梯度惩罚；GradPU.md:10-17）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": "docs/research/pu_survey/delivery/candidate_image_runner_20261023.md",
+      "requires_clean_support": false
+    },
+    "robust_pu": {
+      "algorithm": "robust_pu",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "RobustPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/robust_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "class_prior": null,
+            "model": null,
+            "encoder": null,
+            "hidden_dim": 100,
+            "pretrain_epochs": 10,
+            "episodes": 20,
+            "inner_epochs": 1,
+            "batch_size": 64,
+            "pretrain_lr": 0.001,
+            "learning_rate": 0.0001,
+            "alpha_p": 0.1,
+            "alpha_n": 0.1,
+            "max_thresh_p": 2.0,
+            "max_thresh_n": 2.0,
+            "grow_steps": 10,
+            "spl_type": "welsch",
+            "temper_p": 1.0,
+            "temper_n": 1.0,
+            "phi": 0.0,
+            "random_state": null,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU 预训练；Robust-PU.md:13, registry:robust_pu）",
+          "adaptation_level": "benchmark-adapted（MLP 或注入可训练 CNN+MLP/raw-logit头；图像批次上卡、原行权重在 CPU 计算；非官方 CIFAR CNN/增强/scheduler/完整预算复现）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "MLP100 or injected trainable CNN + MLP/raw-logit head",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（P 与边缘分布 U 分别采样；Robust-PU.md:13-17，registry:robust_pu）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "split_pu": {
+      "algorithm": "split_pu",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "SplitPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/split_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "class_prior": null,
+            "encoder": null,
+            "encoder_feature_layer": null,
+            "hidden_dim": 100,
+            "teacher_epochs": 10,
+            "split_epochs": 10,
+            "student_epochs": 10,
+            "rounds": 2,
+            "batch_size": 64,
+            "learning_rate": 0.001,
+            "agreement_threshold": 0.92,
+            "js_teacher_weight": 0.7,
+            "hard_weight": 0.3,
+            "feature_weight": 0.3,
+            "similarity_weight": 0.1,
+            "noise_std": 0.05,
+            "random_state": null,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU teacher 训练；Split-PU.md:9, registry:split_pu）",
+          "adaptation_level": "benchmark-adapted（MLP 或独立训练的注入 CNN：真实中间层 MSE/最终编码特征余弦；CPU 池分批上设备；Gaussian 扰动及余弦替代官方图像增强/SimSiam，非论文完整 CNN 配方）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "dense MLP100 or injected CNN encoder + MLP head; intermediate module feature and final encoder vector",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（P 与边缘分布 U 分别采样；Split-PU.md:9-13，registry:split_pu）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "pan": {
+      "algorithm": "pan",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "PANClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/pan.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "hidden_dim": 128,
+            "max_epochs": 100,
+            "batch_size": 64,
+            "learning_rate": 0.0001,
+            "adversarial_weight": 1.0,
+            "model": null,
+            "discriminator": null,
+            "encoder": null,
+            "random_state": 0,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "无；目标不需要外部类先验，兼容 fit 参数仅校验后忽略",
+          "adaptation_level": "paper-faithful benchmark-adapted（论文 Eq.7/Algorithm 1 独立实现；二维 MLP 或注入 CNN 编码器的 C/D 两份独立副本；官方源码 morning-dews/PAN@5be7036 的 max-margin U 项/eps=1e-2/sums/overlap=True/Adam betas+wd 差异已登记，不声称 source-faithful；不声称作者图像/文本架构复现）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "独立 classifier C 与 discriminator D；默认 MLP128 或共享初始模板的两份独立可训练 CNN+head；预测只使用 C",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "rp": {
+      "algorithm": "rp",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "RankPruningClassifier",
+        "implementation_ref": "pu_toolbox/estimators/classic/rank_pruning.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "base_estimator": null,
+            "n_cv_folds": 3,
+            "frac_pos2neg": null,
+            "min_retained": 10,
+            "random_state": 0
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "无需外部；估计 rho1 与观测比例推导的 pi，外部 fit 先验仅校验后忽略",
+          "adaptation_level": "benchmark-adapted（独立 sklearn 适配；CV clone/固定随机种子；默认保留每类至少 10 个，与作者严格阈值和 ties 保留相同；正例均值用 max(P) 仅修正上溢舍入，避免空 confident/NaN，非逐位源复现）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "默认 LogisticRegression；可注入支持 predict_proba 和 sample_weight 的 sklearn 二分类器",
+            "code_capability": {
+              "native_architectures": [],
+              "input_ndims": [
+                2
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "os（观测 s 的随机漏标：rho1=P(s=0|Y=1)，rho0=0；总体样本中估计观测比例）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "pulns": {
+      "algorithm": "pulns",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "PULNSClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/pulns.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "hidden_dim": 32,
+            "pretrain_epochs": 10,
+            "episodes": 20,
+            "classifier_epochs": 1,
+            "batch_size": 128,
+            "learning_rate": 0.001,
+            "selector_learning_rate": 0.001,
+            "discount": 0.9,
+            "terminal_weight": 1.0,
+            "encoder": null,
+            "random_state": 0,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "无外部先验；需要独立带正负真值的 support_data 计算终端奖励和内部最优分类器，PA-ineligible",
+          "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 或注入 CNN 最后隐层作状态，分类器/独立 probe 均端到端训练编码器；CNN 特征分批提取并在 CPU 缓存，顺序 policy 图仍随 U 增长；工程架构/Adam 重置/预算，不声称完整作者 CNN 数值复现；论文 Table 3 数值和 SD 单位歧义仅作外部来源锚点，见 pulns_source_cnn_review_20261007.md，不并入冻结矩阵）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "MLP 或独立 deepcopy 的可训练 CNN + hidden_dim 隐层/score head；selector 输入为当前样本/负例质心/正例质心，64-32-1；原始图像/奖励数据留 CPU",
+            "code_capability": {
+              "native_architectures": [
+                "cnn",
+                "mlp"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（原论文 §Experimental Setup 印刷页8788：P与U分别抽样，gamma是U内正类比例而非标记率c；CIFAR-10/MNIST设置|P|=2000、|U|=4000，并需独立含真值正负的奖励验证集）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": "docs/research/pu_survey/delivery/clean_support_materialization_20261022.md",
+      "requires_clean_support": true
+    },
+    "genpu": {
+      "algorithm": "genpu",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "GenPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/gen_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "class_prior": null,
+            "hidden_dim": 128,
+            "latent_dim": 100,
+            "max_epochs": 100,
+            "classifier_epochs": 100,
+            "batch_size": 64,
+            "learning_rate": 0.0003,
+            "positive_weight": 1.0,
+            "negative_weight": 1.0,
+            "unlabeled_weight": 1.0,
+            "encoder": null,
+            "generator_output": "identity",
+            "random_state": 0,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π；论文式 (3) 正负生成分布与 Du 假样本混合权重，最终合成 PN risk 同按 π 加权；需要明确总体先验，fit/构造冲突 fail-loud",
+          "adaptation_level": "benchmark-adapted（按论文带先验权重的 minimax/anti-GAN 独立实现；与官方 demo 的非饱和 generator 和无先验 Du 配方不同；图像生成器仍为稠密像素 MLP，输出显式 NCHW，三个判别器和新建 PN 各有独立可训练 CNN；G 步冻结 D 权重/BN/dropout 而保留输入梯度；默认 identity 兼容，显式 tanh 要求训练数据已在 [-1,1]；不合并成 source-faithful）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "二维特征 MLP 或显式 NCHW 双稠密像素 generator；Dp/Dn/Du/最终 PN 分别 deepcopy 外部 CNN 模板并端到端训练；原始数据留 CPU，仅批次送设备；非作者 Table 1 的全 MLP 实验",
+            "code_capability": {
+              "native_architectures": [
+                "cnn",
+                "mlp"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（论文 §2.1/§3.2 的 U 为总体边缘 p(x)；发布 MNIST demo 实际从 U 排除已标记 P，差异单列）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": "docs/research/pu_survey/delivery/genpu_recipe_20261023.md",
+      "requires_clean_support": false
+    },
+    "holistic_pu": {
+      "algorithm": "holistic_pu",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "HolisticPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/holistic_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "hidden_dim": 64,
+            "warmup_epochs": 30,
+            "max_epochs": 100,
+            "batch_size": 64,
+            "learning_rate": 0.001,
+            "trend_scale": 2.0,
+            "encoder": null,
+            "pseudo_pn_initialization": "continue",
+            "warmup_selection": "fixed",
+            "lzo_alpha": 0.5,
+            "lzo_validation_size": null,
+            "random_state": 0,
+            "device": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "无需外部先验；趋势伪标签估计 U 内正类比例仅为诊断；class_prior 若传入只校验，不影响训练",
+          "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；MLP/注入 CNN；默认 fixed warmup，显式 lzo_positive_loss 用训练正例固定 mixup/全预算 CE argmin/最早平局，恢复终点和轨迹前缀但计全部成本；默认 continue，显式 reinitialize 重建网络/Adam；发布邻差/Jenks/渐进目标/增强配方未照搬，不声称完整源数值复现）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后默认继续分类器/Adam，reinitialize 可重建全部网络/优化器；原始数据留 CPU",
+            "code_capability": {
+              "native_architectures": [
+                "cnn",
+                "mlp"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "os（标准 CIFAR 分支 dataset/cifar.py:74-93 的 p_u_split 用 setdiff1d 排除已标记 P；非 lt_p_u_split 的独立长尾抽样分支）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "cvir": {
+      "algorithm": "cvir",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "CVIRClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/cvir.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "unlabeled_positive_prior": null,
+            "hidden_dim": 64,
+            "warm_start_epochs": 1,
+            "max_epochs": 20,
+            "batch_size": 128,
+            "learning_rate": 0.001,
+            "random_state": null,
+            "device": null,
+            "encoder": null,
+            "data_device_policy": "auto",
+            "input_sampling": "os",
+            "prior_source": null
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "unlabeled_positive_prior=所用风险池的正类比例；默认 OS/native-TS 仍显式给原始 U 的 α_U。CVIRPopulationPriorTrainer 按协议§3换算：OS为(pi*n-n_L)/(n-n_L)，TS校准为pi；requires_class_prior=False，estimator.fit仍拒绝总体class_prior；先验来源声明不等于分布/有限样本比例验证",
+          "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "default MLP64 or deepcopied trainable encoder + same MLP head; not author architecture; encoder inputs remain on CPU",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（独立 P 与边缘分布 U；原文 α 为 U 内正类比例；NeurIPS 2021 §3 p4 / Algorithm 2 p6）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": "docs/research/pu_survey/delivery/cvir_calibration_20261022.md",
+      "requires_clean_support": false
+    },
+    "lagam": {
+      "algorithm": "lagam",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "LaGAMClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/lagam.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "hidden_dim": 128,
+            "warmup_epochs": 2,
+            "max_epochs": 20,
+            "batch_size": 64,
+            "support_batch_size": 32,
+            "num_clusters": 5,
+            "learning_rate": 0.001,
+            "meta_lr": 0.001,
+            "mix_weight": 1.0,
+            "contrastive_weight": 1.0,
+            "temperature": 0.07,
+            "noise_std": 0.05,
+            "rho_start": 0.95,
+            "rho_end": 0.8,
+            "random_state": null,
+            "device": null,
+            "encoder": null,
+            "data_device_policy": "auto",
+            "meta_update_bias": true
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "os-compatible",
+          "calibration_applied": false,
+          "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
+          "adaptation_level": "benchmark-adapted（MLP/注入可训练 CNN，CPU-stream 图像/support/聚类/预测；默认虚拟 weight+bias，meta_update_bias=false 仅补作者 weight-only 参数范围；新 CNN 虚拟步用冻结 eval 特征，不改 BN/dropout；原 hard-observed 元标签、rho 端点及稳定 BCE 保留，非作者网络/Faiss/增强/预算重放）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "default MLP128 or cloned trainable CNN + same MLP head/hidden contrastive features; sklearn KMeans; independent clean support required",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "os（锁定作者发布实验 utils/utils_data.py:182-193 排除验证和已标记 P；登记发布采样配方，不断言理论仅适用 OS；Issue #115）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md",
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": "docs/research/pu_survey/delivery/clean_support_materialization_20261022.md",
+      "requires_clean_support": true
+    },
+    "vpu": {
+      "algorithm": "vpu",
+      "profile_kind": "new_algorithm_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "VPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/risk/vpu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "hidden_dim": 64,
+            "depth": 2,
+            "max_epochs": 100,
+            "batch_size": 128,
+            "learning_rate": 0.0003,
+            "regularization_weight": 0.03,
+            "mixup_alpha": 0.3,
+            "random_state": null,
+            "device": null,
+            "optimizer_schedule": "constant",
+            "iterations_per_epoch": null,
+            "encoder": null,
+            "data_device_policy": "auto"
+          },
+          "unevaluated_expressions": {},
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:vpu)",
+          "adaptation_level": "benchmark-adapted；clean-room MLP/注入可训练 CNN，非作者网络/脚本/数值复现；默认 constant 与数据量推导步数不变，源重置调度/固定步数可选；encoder 强制 CPU 数据分批，旧二维 auto 保留 resident；见 delivery/vpu_encoder_stream_20261015.md",
+          "modality_backbone": {
+            "modalities": [
+              "tabular",
+              "image"
+            ],
+            "backbone": "默认小型 MLP；可 deepcopy 注入可训练 encoder，输出二维特征后接 MLP 头；非作者七层 MLP300/CIFAR CNN",
+            "code_capability": {
+              "native_architectures": [
+                "mlp",
+                "cnn"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": "encoder",
+              "trains_encoder": true
+            }
+          },
+          "native_sampling_assumption": "ts（边缘项要求总体边缘分布：论文式 (6) 的 f 即训练总体边缘；作者 x_loader 覆盖正例与未标记且 P 池是 X 池的子集，故边缘池 = D_U ∪ D_P。四层证据与逐行核对见 admission/vpu_sampling_audit.md，裁决 D21；both 可辩但需改 registry，本切片不做。VPU.md:40, registry:vpu）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": null,
+      "requires_clean_support": false
+    },
+    "self_pu_full_meta": {
+      "algorithm": "self_pu",
+      "profile_kind": "separate_full_meta_variant_request",
+      "inherited_profile": null,
+      "implementation_facts": {
+        "class": "SelfPUClassifier",
+        "implementation_ref": "pu_toolbox/estimators/deep/self_pu.py",
+        "constructor_observations": {
+          "literal_defaults": {
+            "backbone": null,
+            "hidden_dim": 128,
+            "warmup_epochs": 10,
+            "self_paced_start": 10,
+            "self_paced_end": 50,
+            "distill_start": 50,
+            "max_epochs": 200,
+            "max_trust_ratio": 0.25,
+            "pace_1": 0.2,
+            "pace_2": 0.3,
+            "meta_step_size": 0.001,
+            "distillation_alpha": 10.0,
+            "ema_decay": 0.99,
+            "student_loss_weight": 1.0,
+            "teacher_loss_weight": 1.0,
+            "distillation_scope": "untrusted_u",
+            "batch_size": 256,
+            "learning_rate": 0.001,
+            "weight_decay": 0.0,
+            "threshold": 0.5,
+            "require_validation": false,
+            "random_state": null,
+            "device": null
+          },
+          "unevaluated_expressions": {
+            "reweight_gamma": "1 / 16"
+          },
+          "defaults_are_approved_budget": false
+        },
+        "ledger_snapshot": {
+          "run_view": "ts-compatible",
+          "calibration_applied": true,
+          "prior_semantics": "population π（论文沿用 π_p 已知设定，Self-PU.md:16/29-32/419, registry:self_pu）；TS 下 α_P 是 batch 行数质量而非 π——P 不按 π 重加权、π 不重估",
+          "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:437-439/449-450/454）",
+          "modality_backbone": {
+            "modalities": [
+              "tabular"
+            ],
+            "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）；不支持 native CNN（mlp-only；input_ndims {2,4} 按模板\"支持输入维度\"口径声明，4D 展平为估计器层实际支持、非 CNN 能力，2026-09-14 审阅 P1#1；survey 图像行走 cnn_feature_adapter）",
+            "code_capability": {
+              "native_architectures": [
+                "mlp"
+              ],
+              "input_ndims": [
+                2,
+                4
+              ],
+              "encoder_parameter": null,
+              "trains_encoder": false
+            }
+          },
+          "native_sampling_assumption": "ts（case_control; D=D_P∪D_U, x_i^p~p(x|Y=+1), x_i^u~p(x)，Self-PU.md:15/36-48, registry:self_pu）"
+        }
+      },
+      "proposed_params": null,
+      "proposed_budget": null,
+      "proposed_candidates": null,
+      "proposed_stage_eligibility": null,
+      "formal_admission": false,
+      "evidence_review_basis": null,
+      "evidence_review_is_formal_admission": false,
+      "engineering_delivery_ref": "docs/research/pu_survey/delivery/selfpu_ts_support_20261023.md",
+      "requires_clean_support": true,
+      "required_semantics": {
+        "require_validation": true,
+        "distillation_scope": "paper_population"
+      },
+      "available_engineering_training_views": [
+        "os",
+        "ts"
+      ],
+      "formal_training_view": null
+    }
+  },
+  "execution_unit_requests": [
+    {
+      "profile_id": "upu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "nnpu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "kldce",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "dist_pu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "pusb_kernel",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "lbe",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "self_pu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "pn_oracle",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "p3mix",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "puet",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "pulda",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "gradpu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "robust_pu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "split_pu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "pan",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "rp",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "pulns",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "genpu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "holistic_pu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "cvir",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "lagam",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "vpu",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter",
+          "native_cnn"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    },
+    {
+      "profile_id": "self_pu_full_meta",
+      "datasets": [
+        "adni",
+        "cifar10",
+        "connect_4",
+        "fashion_mnist",
+        "imdb",
+        "mnist",
+        "spambase",
+        "twenty_newsgroups"
+      ],
+      "path_options_by_modality": {
+        "tabular": [
+          "native_2d"
+        ],
+        "text": [
+          "native_2d"
+        ],
+        "image": [
+          "cnn_feature_adapter"
+        ]
+      },
+      "path_options_are_code_feasibility_not_approved_architecture": true,
+      "runnable": false
+    }
+  ],
+  "common_blockers": [
+    "versioned_profiles_units_and_comparison_binding",
+    "formal_budget_candidates_seed_grid_and_stage_eligibility",
+    "actual_runner_and_representation_binding"
+  ],
+  "later_acceptance_checks_not_pretraining_approval": [
+    "matching_resource_peak_D25_and_smoke_record",
+    "preregistered_numerical_comparison_and_main_table_gates"
+  ],
+  "oracle_implementation": {
+    "ref": "pu_toolbox/experiment/survey_execution.py",
+    "classes": [
+      "PilotOracleMLP",
+      "PilotOracleCNN"
+    ]
+  },
+  "support_policy_datasets": [
+    "spambase",
+    "connect_4",
+    "mnist",
+    "fashion_mnist",
+    "cifar10"
+  ],
+  "deferred_experiments": {
+    "pn_oracle/native_cnn/five_seed": "deferred_until_protocol_final_per_user"
+  },
+  "specific_blockers": {
+    "split_pu": [
+      "issue_122_JSD_TS_batch_and_ledger_pointer_decisions"
+    ],
+    "vpu": [
+      "VPU_PA_selection_spec_not_variational_diagnostic"
+    ],
+    "cvir": [
+      "formal_TS_pool_and_per_view_prior_binding"
+    ],
+    "gradpu": [
+      "private_no_BN_group_and_SHOULD_shared_comparison_binding"
+    ]
+  },
+  "source_files_sha256": {
+    "docs/research/pu_survey/delivery/candidate_image_runner_20261023.md": "92d3d638fcebabfc6b117cf7b3bc4caa22c05a2619c946f83cbb017d1a15c24a",
+    "docs/research/pu_survey/delivery/clean_support_materialization_20261022.md": "91c6a1a3499a8e9a6bd4124893381f5ab374937731df18ca14d7c213773fd7de",
+    "docs/research/pu_survey/delivery/cvir_calibration_20261022.md": "d1063ec6c8eaa198b22a0b41afcc66fa0e70dd049c85381a5a2a1ee8656ee6cb",
+    "docs/research/pu_survey/delivery/genpu_recipe_20261023.md": "1a6c100d3d767f9bf822814591ab8ad2b7c2eb1035b8116cfc1cbef3ca5c6729",
+    "docs/research/pu_survey/delivery/selfpu_ts_support_20261023.md": "3d5ca2a5009d9ee23ca0df1f3055a19d20224c0835432f387999788ac990a6bd",
+    "docs/research/pu_survey/reviews/rv8_method_admission_20261021.md": "47b74d3a30630dbe19bf603c5e5e1138d32fa6e017c21fe0dcb60d25ed87a8f3",
+    "pu_toolbox/estimators/bias_aware/lbe.py": "05ebebe6c195ff95cdb0d47edec3d35ed5f5ad3946596efec2308c0cf8fb5695",
+    "pu_toolbox/estimators/bias_aware/pusb_kernel.py": "9eb4c407de5b63d57d8cbd27f559887dbedb6ae8faf8a9657ea91961abe2fd0f",
+    "pu_toolbox/estimators/classic/rank_pruning.py": "75b28c9f714bdbd33720f6dedc392af3a13a9a4792c39de9da5b02c00aa72b9e",
+    "pu_toolbox/estimators/deep/gen_pu.py": "bc857dac957f0c0def95198590e832b3387d38b068c63fa567c4a0260f8bac2b",
+    "pu_toolbox/estimators/deep/grad_pu.py": "cbcb9690c4b69a982e3ecdfd1a923b348fd11ca4f769c791f06a3ad7354184c3",
+    "pu_toolbox/estimators/deep/holistic_pu.py": "e6142c77fa1e7114609e16ba044615900dfdda821a53e08d5d1f125c20de8379",
+    "pu_toolbox/estimators/deep/lagam.py": "f498244b82c639ebef9f4fd2106e8fe4ce60645184befb6ed6cdb7be83e0b4cf",
+    "pu_toolbox/estimators/deep/p3mix.py": "eb939c575807fbfb967548f1d57dc4b86d4c36c6730771d06f4d4f31e3de665b",
+    "pu_toolbox/estimators/deep/pan.py": "be47c704c432f22b9a49bae3eacdf105131de50564c1ba6b577818374de14afa",
+    "pu_toolbox/estimators/deep/pulns.py": "bd505f48a2e7b1f9aea9abe17a40cac335c7d84de897209beef20645aa94b0fa",
+    "pu_toolbox/estimators/deep/robust_pu.py": "757cab34444aa8166a00ec770a1e30ad2ba61863d811e41e41de10bcc5d19957",
+    "pu_toolbox/estimators/deep/self_pu.py": "97c77264653d86b2be88bc7338b304ed8a8e58b50a62d7c5e6534a5cd39caf2c",
+    "pu_toolbox/estimators/deep/split_pu.py": "544d49b14e9bf90386f401847da5b4f201bfafd48765a2d5c044c71c2c450dfd",
+    "pu_toolbox/estimators/risk/cvir.py": "0f421c7753977099b8c2ed9060cdeefc43c214c1e0340f344dbef7caccdace1a",
+    "pu_toolbox/estimators/risk/dist_pu.py": "c6265d4e0b7e8eb57edc3d883f98ba281ada3dac8e5b9cbba9e61d08e03c6384",
+    "pu_toolbox/estimators/risk/kldce.py": "17da8f99ba72f5e284057db4d9134734459141e90ed3af4a1c4437605040b403",
+    "pu_toolbox/estimators/risk/nnpu.py": "113d79952a2d84509369f21c47bd5f196d8ecaf31cafbefc58759a178cad01f6",
+    "pu_toolbox/estimators/risk/puet.py": "6aacad5300060704decc69092a6f72f380845e3baebb3b94b12e2ecbc5b6dfac",
+    "pu_toolbox/estimators/risk/pulda.py": "c3df46c38c3411b07157944d1544c0ed92d2f895e4bd6ec36bc72e178048da35",
+    "pu_toolbox/estimators/risk/upu.py": "975446c2a17d1aade116acf9378314b4755dda079cbd59dd2c6331fffe519fcb",
+    "pu_toolbox/estimators/risk/vpu.py": "7cd7083bfd572788d78acf98767baf9998f4da73a4d9fe164e82d35562bef666",
+    "pu_toolbox/experiment/datasets.py": "0886aeebb753fad8ee289428e92428d58fab0766151f64d3a7e9769980181dd2",
+    "pu_toolbox/experiment/method_ledger.json": "df748151eeac8c3ae19c64458046acfd6ca64e93f5de2382fa3dad6c3371a759",
+    "pu_toolbox/experiment/support_data.py": "fbcf3ae1c3c4e116a36fedf6248ee433afbc15377b93d2e3cf45f86a7ef1d712",
+    "pu_toolbox/experiment/survey_execution.py": "45f494e802c75e9e70d07d92ff1d7f162678441c242b0263bc57136fe9b6e06a",
+    "pu_toolbox/experiment/survey_protocol_v2.json": "7d96c5898ae702f918553dea99e80d704d52ce22e214aafc77c8bcd5b77d39ba",
+    "pu_toolbox/experiment/survey_v3_proposal.py": "896c36194cb8ab4844d96b7846d837f674139ef1904dc23c155b8e086abf6de9",
+    "scripts/prepare_survey_v3_proposal.py": "a9b1268bb9dab09c06f9216e87e53d1b450dff8aef073a6935a9d9796a56bbed"
+  },
+  "proposal_sha256": "1d57e682223658b4bea8d1e9cf33bdb9fa361ccb44c4dd77c661fb14b5dee49a"
+}

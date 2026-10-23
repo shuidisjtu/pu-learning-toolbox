@@ -18,7 +18,7 @@
 | 8 数据集四路 split | **是** | — | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
 | clean support（5 数据集） | **是（本机）** | 跨机器传递须按收据核验；正式消费另需 v3/预算 | 25 份五角色制品已生成/回读验证，见本日交付 |
 | 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
-| 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
+| 13 个 P3.1 方法单跑 | **否** | 已有来源绑定的 v3 接入请求；仍缺可执行 profiles/units、预算与 runner 绑定 | runner 接受 `--method <13 方法>` |
 | 图像/共享 backbone | **部分（独立工程链已通）** | 正式 v3/预算/阶段资格与对应验收；GradPU 私有无BN单列 | 小子集120/200快照及双轨 manifest 已实测，非正式主榜 |
 | GEN-PU 独立工程 recipe | **是** | 正式 v3/预算冻结与对应全量资源、数值验收 | 已有真实 CIFAR 固定小子集、标准宽度 ResNet-18 双 batch GPU manifest/回放，不作正式主榜 |
 | PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS support 工程双轨另已接通，Self-PU 含显式 TS | 正式 support units/预算与对应验收；真实 Spambase 短 CPU 已验 | 选模产物与 manifest 对账 |
@@ -145,6 +145,12 @@
 真实 Spambase 同制品/标记/参数的短 OS/TS 运行均0告警/0重试并回放；
 不修改原生风险、不宣称校准效果改善。下一步正式 full-meta/support units 与13方法 profiles/units
 继续同 v3 对接，冻结正式预算/阶段资格；PN-CNN 5 seed 暂缓不变。
+
+本日另补[v3 profile/unit 接入请求与校验](delivery/survey_v3_proposal_20261023.md)：
+范围按 RV8 对齐（13方法含P3MIX、不含VPU；VPU另补，TEDn不计13），22目标算法、
+Self-PU 完整版单列后23 profile、8数据集184个阻断请求。该 planning schema 不可执行，
+不改 v2 基线/默认，未填正式预算或签署；下一步仍是 profile identity、正式五角色/配方、
+多阶段预算校验和新版本 registry/comparison 的实际接线，不能把生成草案标成13方法可跑。
 
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、

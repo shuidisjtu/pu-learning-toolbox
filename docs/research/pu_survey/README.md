@@ -58,6 +58,7 @@
 - [GEN-PU 单候选工程 recipe](delivery/genpu_recipe_20261023.md)：#126 四项工程规格、实际 PA/OA manifest、真实 CIFAR 预固定小子集与全宽 ResNet-18 的 batch8/256 GPU 峰值/回放；正式 v3/预算及全量验收仍待，不自动关 issue。
 - [PULDA/GradPU 图像 runner](delivery/candidate_image_runner_20261023.md)：四角色双轨入口、真实 CIFAR 小子集完整120/200快照、实际峰值/回收与选中模型回放；正式 v3/预算仍待。
 - [Self-PU full-meta TS 入口](delivery/selfpu_ts_support_20261023.md)：显式 clean-support TS 双 teacher 选择、真实 Spambase 同条件短 OS/TS 运行与校准事实记录；默认 OS/旧消融和正式准入边界不变。
+- [v3 profile/unit 接入请求](delivery/survey_v3_proposal_20261023.md)：精确22算法/23 profile与184个阻断组合、源码观察和缺口校验；独立 planning schema，不是可执行协议或预算批准。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
