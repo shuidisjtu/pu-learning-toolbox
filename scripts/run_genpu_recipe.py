@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import pickle
-import resource
 import subprocess
 import sys
 import time
@@ -23,7 +22,7 @@ from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.genpu_recipe import GenPURecipeTrainer, build_genpu_recipe
 from pu_toolbox.experiment.image import fit_survey_image_preprocessing, transform_survey_images
-from pu_toolbox.experiment.resources import runtime_environment
+from pu_toolbox.experiment.resources import process_lifetime_peak_rss_bytes, runtime_environment
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA, SCARGenerator
 from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
@@ -264,8 +263,7 @@ def execute(plan, output):
         "retained_checkpoint_bytes": sum(Path(path).stat().st_size for path in retained),
         "retained_checkpoint_count": len(retained),
         "reclaimed_checkpoint_count": sum(row["reclaimed"] for row in checkpoints),
-        "process_lifetime_peak_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        * (1 if sys.platform == "darwin" else 1024),
+        "process_lifetime_peak_rss_bytes": process_lifetime_peak_rss_bytes(),
         "elapsed_seconds_including_selection_replay": time.perf_counter() - started,
         "warning_count": len(caught),
         "retry_count": len(result.failures),

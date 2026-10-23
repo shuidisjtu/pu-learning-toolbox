@@ -64,7 +64,10 @@ def test_basic_actual_plan_manifest_retention_and_two_model_replays(tmp_path):
     assert set(summary["selection"]) == {"PA", "OA"}
     assert len(manifest["candidate_runs"]) == 1
     assert all((output / f"selected_{name}.pkl").is_file() for name in ("PA", "OA"))
-    assert summary["process_lifetime_peak_rss_bytes"] > 0
+    if sys.platform == "win32":
+        assert summary["process_lifetime_peak_rss_bytes"] is None
+    else:
+        assert summary["process_lifetime_peak_rss_bytes"] > 0
     with pytest.raises(FileExistsError):
         script.execute(planned, output)
 

@@ -201,6 +201,7 @@ pu_toolbox/
     support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
     genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
+    candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -225,6 +226,7 @@ tests/
     test_lagam_paper_review.py          # LaGAM 全文身份、来源分歧和未签署准入边界
     test_clean_support_materialization_receipt.py # 本机制品清单的覆盖/摘要与非正式边界（CI 不读 raw）
     test_genpu_recipe_validation_receipt.py # GEN-PU 双 batch GPU 收据摘要、成本与非正式范围契约
+    test_candidate_image_validation_receipt.py # 图像120/200快照 GPU 摘要、成本及非正式边界契约
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -409,6 +411,7 @@ tests/
       test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
       test_clean_support_checkpoint_execution.py # support 双轨 CLI、计划身份及选中模型回放
       test_genpu_recipe_execution.py    # GEN-PU 计划摘要、实际双轨 CLI、选后回收与模型回放
+      test_candidate_image_execution.py # 图像 CLI 计划绑定、PA/OA 回放与非正式边界
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -567,6 +570,8 @@ tests/
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
       test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
       test_genpu_recipe.py              # GEN-PU 配方早拒绝、六网络真实成本与默认训练逐位对照
+      test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝
+      test_process_peak_rss.py          # 进程 RSS 单位、平台不支持与稳定计数处理
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -918,6 +923,7 @@ scripts/
   prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
   run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
+  run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
 ```
 
 ## 7. CI/CD（`.github/`）

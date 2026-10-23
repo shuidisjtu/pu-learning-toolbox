@@ -19,6 +19,17 @@ import numpy as np
 DEFAULT_CHECKPOINT_ATTEMPTS = 2
 
 
+def process_lifetime_peak_rss_bytes() -> int | None:
+    """Read Unix process-lifetime RSS; unsupported platforms report unavailable."""
+    try:
+        import resource
+    except ImportError:
+        return None
+    return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * (
+        1 if sys.platform == "darwin" else 1024
+    )
+
+
 def aggregate_resource_usage(manifests: Iterable[dict]) -> dict[str, Any]:
     """Aggregate per-seed manifests into the protocol's full tuning cost."""
     items = list(manifests)
