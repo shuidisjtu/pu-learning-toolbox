@@ -30,6 +30,7 @@ split has been replaced, costs a repeated run rather than a hole in the pilot.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,6 +39,18 @@ from typing import Any
 from .resources import (
     DEFAULT_CHECKPOINT_ATTEMPTS,
     checkpoint_disk_requirement,
+)
+from .survey_profile_identity import (
+    FIELD as PROFILE_IDENTITY_FIELD,
+)
+from .survey_profile_identity import (
+    SCHEMA as PROFILE_IDENTITY_SCHEMA,
+)
+from .survey_profile_identity import (
+    has_profile_identities,
+    profile_algorithm,
+    profile_manifest_identity,
+    valid_manifest_profile_identity,
 )
 from .survey_protocol import unit_checkpoint_bytes, unit_checkpoint_profile
 from .survey_recipe_binding import matches_recipe_binding, validate_expected_binding
@@ -358,6 +371,8 @@ def manifest_identity(payload: dict[str, Any]) -> tuple[Any, ...] | None:
     """
     if payload.get("execution_mode") != COMPLETED_MODE:
         return None
+    if not valid_manifest_profile_identity(payload):
+        return None
     selection = payload.get("selection")
     if not isinstance(selection, dict) or not selection:
         return None
@@ -524,6 +539,7 @@ def completed_runs(
     *,
     splits: dict[tuple[str, int], str] | None = None,
     expected_recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
+    expected_profile_identities: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
 ) -> dict[tuple[Any, ...], Path]:
     """Every completed run under ``results_root``, keyed by ``(identity, view)``.
 
@@ -545,6 +561,25 @@ def completed_runs(
     if expected_recipe_bindings is not None:
         for expected in expected_recipe_bindings.values():
             validate_expected_binding(expected)
+    if expected_profile_identities is not None:
+        for identity, expected in expected_profile_identities.items():
+            if (
+                not isinstance(identity, tuple)
+                or len(identity) != 6
+                or not isinstance(expected, Mapping)
+                or set(expected)
+                != {PROFILE_IDENTITY_FIELD, "profile_id", "algorithm_id", "protocol_sha256"}
+                or expected.get(PROFILE_IDENTITY_FIELD) != PROFILE_IDENTITY_SCHEMA
+                or expected.get("profile_id") != identity[1]
+                or not isinstance(expected.get("algorithm_id"), str)
+                or not expected.get("algorithm_id")
+                or not isinstance(expected.get("protocol_sha256"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", expected["protocol_sha256"])
+            ):
+                raise ValueError(
+                    "expected profile identities must contain complete "
+                    "profile/algorithm/protocol bindings"
+                )
     done: dict[tuple[Any, ...], Path] = {}
     for path in sorted(Path(results_root).rglob("manifest.json")):
         try:
@@ -556,6 +591,14 @@ def completed_runs(
         identity = manifest_identity(payload)
         if identity is None:
             continue
+        if expected_profile_identities is not None:
+            expected = expected_profile_identities.get(identity)
+            if (
+                type(payload.get("seed")) is not int
+                or expected is None
+                or any(payload.get(key) != value for key, value in expected.items())
+            ):
+                continue
         if expected_recipe_bindings is not None:
             expected = expected_recipe_bindings.get(identity)
             if expected is None or not _matches_recipe_binding(payload, expected):
@@ -591,6 +634,7 @@ def pending_runs(
     expected_views: Mapping[tuple[Any, ...], str],
     splits: dict[tuple[str, int], str] | None = None,
     expected_recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
+    source_protocol_sha256: str | None = None,
 ) -> tuple[tuple[PilotRun, ...], tuple[PilotRun, ...]]:
     """``(pending, completed)`` for the protocol's runs under ``results_root``.
 
@@ -619,8 +663,27 @@ def pending_runs(
         missing_recipes = [run.key for run in planned if run.key not in expected_recipe_bindings]
         if missing_recipes:
             raise ValueError("expected_recipe_bindings does not cover every planned run")
+    profile_identities = None
+    if has_profile_identities(protocol):
+        from .survey_protocol import digest
+
+        if source_protocol_sha256 is not None and (
+            not isinstance(source_protocol_sha256, str)
+            or re.fullmatch(r"[0-9a-f]{64}", source_protocol_sha256) is None
+        ):
+            raise ValueError("source protocol SHA must be a complete lowercase SHA256")
+        profile_identities = {
+            run.key: {
+                **profile_manifest_identity(protocol, run.method),
+                "protocol_sha256": source_protocol_sha256 or digest(protocol),
+            }
+            for run in planned
+        }
     done = completed_runs(
-        results_root, splits=splits, expected_recipe_bindings=expected_recipe_bindings
+        results_root,
+        splits=splits,
+        expected_recipe_bindings=expected_recipe_bindings,
+        expected_profile_identities=profile_identities,
     )
     pending = tuple(run for run in planned if (*run.key, expected_views[run.key]) not in done)
     completed = tuple(run for run in planned if (*run.key, expected_views[run.key]) in done)
@@ -809,7 +872,7 @@ def _run_checkpoint_bytes(
     return checkpoint_disk_requirement(
         bytes_per_component=component,
         epochs=int(epochs),
-        components=len(_declared_components(method)),
+        components=len(_declared_components(profile_algorithm(protocol, method))),
         candidates=candidates,
         attempts=attempts,
     )

@@ -2685,11 +2685,17 @@
     "pu_toolbox/estimators/risk/vpu.py": "7cd7083bfd572788d78acf98767baf9998f4da73a4d9fe164e82d35562bef666",
     "pu_toolbox/experiment/datasets.py": "0886aeebb753fad8ee289428e92428d58fab0766151f64d3a7e9769980181dd2",
     "pu_toolbox/experiment/method_ledger.json": "df748151eeac8c3ae19c64458046acfd6ca64e93f5de2382fa3dad6c3371a759",
+    "pu_toolbox/experiment/pilot_plan.py": "eeadea8e35457344144bb108fad0cd7b87447adca27a19c34df995a8b8af1154",
+    "pu_toolbox/experiment/runner.py": "1bb09d6990c33b5bb21a05a7f5ed1a57e9656355fbafac455033167b8b2312a7",
     "pu_toolbox/experiment/support_data.py": "fbcf3ae1c3c4e116a36fedf6248ee433afbc15377b93d2e3cf45f86a7ef1d712",
-    "pu_toolbox/experiment/survey_execution.py": "45f494e802c75e9e70d07d92ff1d7f162678441c242b0263bc57136fe9b6e06a",
+    "pu_toolbox/experiment/survey_execution.py": "ad1a2116f8084ddb61e807520e68e35ba845366e9c54ede0a7f949682cd11ae8",
+    "pu_toolbox/experiment/survey_profile_identity.py": "cce10635a43a0e2e8fe8c465b9671df9f5838a1a72c1376e460fafcfa5d2bb42",
+    "pu_toolbox/experiment/survey_protocol.py": "e0d9af5e4911d1ac77e35f4e0d028d23761bd9de8eccf70f4d7c98e8aa450295",
     "pu_toolbox/experiment/survey_protocol_v2.json": "7d96c5898ae702f918553dea99e80d704d52ce22e214aafc77c8bcd5b77d39ba",
-    "pu_toolbox/experiment/survey_v3_proposal.py": "896c36194cb8ab4844d96b7846d837f674139ef1904dc23c155b8e086abf6de9",
-    "scripts/prepare_survey_v3_proposal.py": "a9b1268bb9dab09c06f9216e87e53d1b450dff8aef073a6935a9d9796a56bbed"
+    "pu_toolbox/experiment/survey_v3_proposal.py": "c375f84b68e0b10bc6c7dd2ca53d11cfd78fff6e2ed102877272fb7ed9442736",
+    "scripts/prepare_survey_v3_proposal.py": "a9b1268bb9dab09c06f9216e87e53d1b450dff8aef073a6935a9d9796a56bbed",
+    "scripts/run_survey_experiment.py": "02861ace6f4a5f2bfe6236bfce2e2e969171f1b7ce00c166aa3db27d8dff80de",
+    "scripts/run_survey_pilot.py": "61f7ab78143fb1b3e2ccf8ef4b75bd706a1e042c7f23f822f8aaa6fa46d2a24e"
   },
-  "proposal_sha256": "1d57e682223658b4bea8d1e9cf33bdb9fa361ccb44c4dd77c661fb14b5dee49a"
+  "proposal_sha256": "b9bbfee489ad57e8c27bbf93734479983df08b594f70a6fe88c94da2b55b27d8"
 }

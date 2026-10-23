@@ -152,6 +152,13 @@ Self-PU 完整版单列后23 profile、8数据集184个阻断请求。该 planni
 不改 v2 基线/默认，未填正式预算或签署；下一步仍是 profile identity、正式五角色/配方、
 多阶段预算校验和新版本 registry/comparison 的实际接线，不能把生成草案标成13方法可跑。
 
+2026-10-24 已补[profile 与算法身份分离](delivery/profile_identity_20261024.md)：
+显式 draft schema 下的模型、先验/视图、CLI、批次规划及完整来源摘要续跑已接通；
+同算法多 profile 不污染 registry、不覆盖输出。旧 v2 保持，新扩展强制工程验证，
+不挪用旧 comparison/registry；full-meta/support 与 CVIR 在缺正式适配时仍提前拒绝。
+下一步转入方法族预算/阶段资格、五角色适配和新版本 registry/comparison；
+未把这些工程测试或184个请求标成正式准入，PN-CNN 5 seed 仍暂缓。
+
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
 `PA+clean-support`/OA 独立选择、容量估算和选后回收；旧终点 OA/默认消融不变。

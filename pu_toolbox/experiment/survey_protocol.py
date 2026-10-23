@@ -20,6 +20,13 @@ from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_cano
 
 from .datasets import survey_dataset_catalog
 from .feature_adapter import encoder_state_sha256
+from .survey_profile_identity import (
+    has_profile_identities,
+    profile_algorithm,
+    profile_manifest_identity,
+    require_four_role_profile,
+    validate_profile_identities,
+)
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v2.json")
 #: The canonical matrix files.  A version bump adds a file and keeps the old one:
@@ -306,6 +313,7 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
     for key in ("budgets", "method_profiles", "backbone_specs", "c_tokens", "selection_spec"):
         if not isinstance(payload[key], dict) or not payload[key]:
             raise ValueError(f"survey protocol {key} must be a non-empty object")
+    validate_profile_identities(payload)
     _validate_image_spec(payload["backbone_specs"])
     if (
         not isinstance(payload["review_status"], str)
@@ -419,17 +427,18 @@ def _model_identity(model, method: str) -> None:
 
 
 def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
-    _model_identity(model, row["method"])
+    algorithm = profile.get("algorithm", row["method"])
+    _model_identity(model, algorithm)
     params = model.get_params(deep=False)
     for name, value in profile["params"].items():
         if name not in params or digest(params[name]) != digest(value):
             raise ValueError(f"estimator disagrees with protocol-locked parameter: {name}")
     if "random_state" in params and params["random_state"] != seed:
         raise ValueError("estimator random_state must equal the survey run seed")
-    if row["method"] in {"nnpu", "self_pu"}:
+    if algorithm in {"nnpu", "self_pu"}:
         from .survey_execution import validate_score_model
 
-        network = params["model"] if row["method"] == "nnpu" else params["backbone"]
+        network = params["model"] if algorithm == "nnpu" else params["backbone"]
         validate_score_model(network, row["model_family"])
     if row["training_path"] == "native_cnn" and params.get("encoder") is None:
         raise ValueError("native_cnn survey unit requires the bound ResNet-18 encoder")
@@ -483,6 +492,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         protocol, request["dataset"], request["method"], request.get("training_path")
     )
     profile = protocol["method_profiles"][row["method"]]
+    require_four_role_profile(protocol, row["method"])
+    algorithm = profile_algorithm(protocol, row["method"])
     for name in _LOCKED_CONFIG:
         if name in config:
             raise ValueError(f"use the execution matrix, not a config override for {name}")
@@ -577,6 +588,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
             raise ValueError("adapter manifest does not match the actual input features")
         representation["adapter"] = copy.deepcopy(adapter)
     blockers = list(protocol["formal_blockers"])
+    if has_profile_identities(protocol):
+        blockers.append("profile_identity_extension_engineering_only")
     if protocol["review_status"] != "accepted" and "collaborator_review" not in blockers:
         blockers.append("collaborator_review")
     # Three blockers used to be appended here for protocol reasons.  D24
@@ -613,9 +626,12 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         "selection_checkpoint_scope": "pending_actual_trajectory_verification",
         "oracle_alignment": row["oracle_alignment"],
         "method_variant": "without_clean_validation_meta_reweighting"
-        if row["method"] == "self_pu"
+        if algorithm == "self_pu"
         else "shared_spec_engineering",
     }
+    context.update(profile_manifest_identity(protocol, row["method"]))
+    if has_profile_identities(protocol):
+        context["comparison_registration_status"] = "missing_versioned_profile_mapping"
     if "review_items" in protocol:
         context["protocol_pending_review_items"] = [
             item["item_id"] for item in protocol["review_items"] if item["status"] != "accepted"
