@@ -21,7 +21,7 @@
 | 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
 | 图像/共享 backbone | **部分（独立工程链已通）** | 正式 v3/预算/阶段资格与对应验收；GradPU 私有无BN单列 | 小子集120/200快照及双轨 manifest 已实测，非正式主榜 |
 | GEN-PU 独立工程 recipe | **是** | 正式 v3/预算冻结与对应全量资源、数值验收 | 已有真实 CIFAR 固定小子集、标准宽度 ResNet-18 双 batch GPU manifest/回放，不作正式主榜 |
-| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS 独立 support 的工程双轨另已接通 | 正式 support units/预算与对应验收；真实 Spambase 短 CPU 已验 | 选模产物与 manifest 对账 |
+| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS support 工程双轨另已接通，Self-PU 含显式 TS | 正式 support units/预算与对应验收；真实 Spambase 短 CPU 已验 | 选模产物与 manifest 对账 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | 22 方法主榜 | **否** | 上述缺口 + 预算冻结 | P4.2 门禁 |
 
@@ -34,7 +34,7 @@
 | 13 方法预算未冻结 | 可比性 | 冻结 epochs/batch/candidates/seeds | shuidisjtu | P4.1-B 记录 |
 | 图像正式单元未接 | PULDA/GradPU 不能进主榜 | 独立 runner/小子集120/200峰值已交付；待 v3/预算/阶段绑定 | HENG958 | 正式单元与对应 smoke/profile |
 | CVIR 正式接线 | TS 主表 | 已补独立校准/先验换算；待 v3 units/runner、预算与真实验收 | HENG958 | 正式单元 + 跑通 |
-| Self-PU 完整版 | 方法完整 | 已有显式 SCAR OS full-meta checkpoint 双轨工程路径；待正式 clean-support 单元、适用视图与验收 | HENG958 | 单元 + 跑通 |
+| Self-PU 完整版 | 方法完整 | 显式 SCAR OS/TS full-meta 工程双轨已实跑；待正式 clean-support 单元、适用视图/预算与验收 | HENG958 | 正式单元 + 跑通 |
 | GEN-PU recipe | 方法完整 | 四项已有工程规格、单候选命令及短 GPU 收据；正式 v3/预算与全量验收待闭合，不自动关 #126 | HENG958 | 正式绑定；当前工程交付见 §1.5 |
 | `PA+clean-support` | PULNS/LaGAM | 两方法独立工程路径及真实 Spambase CPU 已通；待正式 units/预算与对应验收 | HENG958 | 正式单元命令与 manifest 对账 |
 | PN-CNN | oracle | 5 seed 实验暂缓，协议定稿后再安排；独立真实 CIFAR GPU smoke 仍未交付，本轮不启动 | HENG958 | 定稿后另行安排，不标完成 |
@@ -141,8 +141,10 @@
 #126 未关闭；本日后续已补[PULDA/GradPU 图像 runner 与120/200峰值](delivery/candidate_image_runner_20261023.md)：
 标准宽度 ResNet-18/CNN13-no-BN、固定 CIFAR 小子集各1 seed，0告警/0重试，
 双轨选择回放、选后2份快照；完整快照数量不冒充全量数据/默认batch/正式预算验收。
-下一步 Self-PU 正式 TS/full-meta 与 support units 继续同 v3 对接，
-以及13方法 profiles/units、正式预算/阶段资格；PN-CNN 5 seed 暂缓不变。
+同日后续已补[Self-PU 显式 TS/full-meta 工程双轨](delivery/selfpu_ts_support_20261023.md)，
+真实 Spambase 同制品/标记/参数的短 OS/TS 运行均0告警/0重试并回放；
+不修改原生风险、不宣称校准效果改善。下一步正式 full-meta/support units 与13方法 profiles/units
+继续同 v3 对接，冻结正式预算/阶段资格；PN-CNN 5 seed 暂缓不变。
 
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、

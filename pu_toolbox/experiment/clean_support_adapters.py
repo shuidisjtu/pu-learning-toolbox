@@ -76,6 +76,57 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
         )
 
 
+class _SelfPUTSCleanSupportTrainer(SelfPUCleanSupportTrainer):
+    """Internal explicit TS fit binding; exposed via the checkpoint variant only."""
+
+    def _validate_training_view(self, view):
+        if view != "ts":
+            raise ValueError("Self-PU TS clean-support requires explicit os_or_ts=ts")
+
+    def validate_experiment(self, model, bundle, config, protocols):
+        self._prepared = False
+        if config.get("recipe_registry") is not None:
+            raise ValueError("Self-PU TS clean-support is not a versioned Survey recipe")
+        super().validate_experiment(model, bundle, config, protocols)
+        self._audit.update(
+            {
+                "training_view": "ts",
+                "calibration_applied": True,
+                "calibration_scope": "negative_marginal_row_mass_blend_only",
+                "native_U_identity_pools_unchanged": True,
+                "population_mixture_restoration_verified": False,
+                "formal_admission": False,
+            }
+        )
+
+    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+        callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
+        estimator.fit(
+            X,
+            y,
+            class_prior=class_prior,
+            validation_data=(self.support.X, self.support.labels),
+            os_or_ts="ts",
+            **callbacks,
+        )
+
+    def _finish_support_fit(self, estimator, y):
+        super()._finish_support_fit(estimator, y)
+        # A record is appended only after that student's optimizer.step().
+        estimator.training_provenance_.update(
+            {
+                "student_optimizer_steps": {
+                    str(student): sum(
+                        row["student"] == student for row in estimator.training_history_
+                    )
+                    for student in (1, 2)
+                },
+                "optimizer_steps": len(estimator.training_history_),
+                "optimizer_step_scope": "student_updates_only_not_virtual_meta_probes_or_EMA",
+            }
+        )
+
+
 class LaGAMCleanSupportTrainer(_IndependentSupportTrainer):
     """LaGAM's clean-support meta labels, separate from external OA selection."""
 

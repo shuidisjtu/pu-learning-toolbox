@@ -114,5 +114,6 @@ python examples/minimal/10_self_pu.py
 
 ## 下一步
 
+- 已有独立 support 制品时，可用[显式 TS full-meta 双轨入口](../../research/pu_survey/delivery/selfpu_ts_support_20261023.md)；它记录额外标签预算并使用 `PA+clean-support`/OA，非纯 PU PA 或正式 Survey 配方。
 - 在完整实验流程中使用该分类器：[pipeline.md](pipeline.md)（传 `SelfPUClassifier` 实例）
 - 生成诊断报告：[diagnostic_reports.md](diagnostic_reports.md)

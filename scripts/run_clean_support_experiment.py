@@ -5,7 +5,8 @@ Default dry-run pins product, method parameters and SCAR label identities.
 --execute writes a new result directory. Default terminal OA stays unchanged;
 explicit meta_checkpoints enables audited PA+clean-support / OA selection for
 Self-PU, LaGAM and completed PULNS episodes, with a required storage estimate.
-No implicit GPU choice.
+Self-PU alone additionally accepts explicit TS with meta_checkpoints; default
+OS/terminal and other methods are unchanged. No implicit GPU choice.
 """
 
 from __future__ import annotations
@@ -26,13 +27,14 @@ from pu_toolbox.experiment.clean_support_adapters import (
     SelfPUCleanSupportTrainer,
 )
 from pu_toolbox.experiment.pulns_adapter import PULNSExtraSupportTrainer
-from pu_toolbox.experiment.resources import runtime_environment
+from pu_toolbox.experiment.resources import process_lifetime_peak_rss_bytes, runtime_environment
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPACleanSupport, SCARGenerator
 from pu_toolbox.experiment.support_checkpoints import (
     LaGAMCleanSupportCheckpointTrainer,
     PULNSCleanSupportCheckpointTrainer,
     SelfPUCleanSupportCheckpointTrainer,
+    SelfPUTSCleanSupportCheckpointTrainer,
 )
 from pu_toolbox.experiment.support_data import load_support_dataset
 from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
@@ -51,9 +53,23 @@ _BUDGETS = {
 }
 
 
-def _objects(method, parameters, prior, seed, support, metadata, *, checkpoint_selection=False):
+def _objects(
+    method,
+    parameters,
+    prior,
+    seed,
+    support,
+    metadata,
+    *,
+    checkpoint_selection=False,
+    training_view="os",
+):
     if method not in METHODS or not isinstance(parameters, dict):
         raise ValueError("choose a supported method and an explicit parameter object")
+    if training_view not in ("os", "ts") or (
+        training_view == "ts" and (method != "self_pu" or not checkpoint_selection)
+    ):
+        raise ValueError("TS requires explicit Self-PU meta_checkpoints scope")
     parameters = json.loads(json.dumps(parameters, allow_nan=False))
     if parameters.get("device") != "cpu":
         raise ValueError("this entry point requires explicit device=cpu; no GPU fallback")
@@ -92,6 +108,8 @@ def _objects(method, parameters, prior, seed, support, metadata, *, checkpoint_s
             "lagam": LaGAMCleanSupportCheckpointTrainer,
             "pulns": PULNSCleanSupportCheckpointTrainer,
         }[method]
+        if training_view == "ts":
+            adapter = SelfPUTSCleanSupportCheckpointTrainer
     options = dict(metadata["support_adapter_options"])
     source_audit = metadata["support_source_audit"]
     signature = inspect.signature(adapter).parameters
@@ -110,6 +128,7 @@ def build_plan(
     parameters,
     selection_scope="terminal",
     checkpoint_bytes_per_component=None,
+    training_view="os",
 ):
     """Resolve one explicit candidate; terminal OA remains the default."""
     if selection_scope not in ("terminal", "meta_checkpoints"):
@@ -126,9 +145,20 @@ def build_plan(
         )
     prior, seed = metadata["class_prior"]["population"], metadata["seed"]
     model, trainer = _objects(
-        method, parameters, prior, seed, support, metadata, checkpoint_selection=checkpoints
+        method,
+        parameters,
+        prior,
+        seed,
+        support,
+        metadata,
+        checkpoint_selection=checkpoints,
+        training_view=training_view,
     )
-    config = {"c": float(c_token), "os_or_ts": "os", "split_ref": {"dataset": metadata["dataset"]}}
+    config = {
+        "c": float(c_token),
+        "os_or_ts": training_view,
+        "split_ref": {"dataset": metadata["dataset"]},
+    }
     protocols = [ProtocolPACleanSupport(), ProtocolOA()] if checkpoints else [ProtocolOA()]
     if checkpoints:
         config["checkpoint_bytes_per_component"] = checkpoint_bytes_per_component
@@ -151,6 +181,7 @@ def build_plan(
         "pu_toolbox/experiment/support_data.py",
         "pu_toolbox/experiment/runner.py",
         "pu_toolbox/experiment/strategies.py",
+        "pu_toolbox/experiment/resources.py",
         "pu_toolbox/experiment/method_ledger.json",
         "scripts/run_clean_support_experiment.py",
         "uv.lock",
@@ -160,10 +191,15 @@ def build_plan(
             "pu_toolbox/experiment/support_checkpoints.py",
             "pu_toolbox/experiment/checkpoints.py",
         )
+    schema = "clean-support-cpu-oa-plan-v1"
+    if checkpoints:
+        schema = (
+            "clean-support-cpu-ts-checkpoint-plan-v1"
+            if training_view == "ts"
+            else "clean-support-cpu-checkpoint-plan-v1"
+        )
     plan = {
-        "schema_version": "clean-support-cpu-checkpoint-plan-v1"
-        if checkpoints
-        else "clean-support-cpu-oa-plan-v1",
+        "schema_version": schema,
         "method": method,
         "artifact_dir": str(Path(directory).resolve()),
         "product_receipt_sha256": metadata["receipt_sha256"],
@@ -194,6 +230,7 @@ def build_plan(
         "protocols": [p.name for p in protocols],
         "candidate_count": 1,
         "selection_scope": selection_scope,
+        "training_view": training_view,
         "test_used_for_selection": False,
         "training_device": "cpu",
         "limitation": (
@@ -242,6 +279,7 @@ def execute(plan, output):
         parameters=plan["parameters_requested"],
         selection_scope=plan["selection_scope"],
         checkpoint_bytes_per_component=plan.get("checkpoint_bytes_per_component"),
+        training_view=plan["training_view"],
     )
     if strict_canonical_hash(actual) != strict_canonical_hash(plan):
         raise ValueError("support product, code or parameters changed after planning")
@@ -274,6 +312,7 @@ def execute(plan, output):
         support,
         metadata,
         checkpoint_selection=plan["selection_scope"] == "meta_checkpoints",
+        training_view=plan["training_view"],
     )
     checkpoints = plan["selection_scope"] == "meta_checkpoints"
     checkpoint_options = (
@@ -291,7 +330,7 @@ def execute(plan, output):
         manifest_path=str(directory / "manifest.json"),
         config={
             "c": float(plan["c_token"]),
-            "os_or_ts": "os",
+            "os_or_ts": plan["training_view"],
             "trainer": trainer,
             "split_ref": {
                 "dataset": metadata["dataset"],
@@ -339,6 +378,9 @@ def execute(plan, output):
         "method": plan["method"],
         "formal_admission": False,
         "comparison_group": "extra_clean_support",
+        "training_view": plan["training_view"],
+        "run_view": result.manifest["run_view"],
+        "calibration_applied": result.manifest["calibration_applied"],
         "plan_sha256": strict_canonical_hash(plan),
         "product_receipt_sha256": metadata["receipt_sha256"],
         "test": result.test_metrics,
@@ -346,6 +388,8 @@ def execute(plan, output):
         "extra_supervision": result.manifest["extra_supervision"],
         "support_product_audit": plan["support_product_audit"],
         "training_provenance": result.manifest["candidate_runs"][0]["training_provenance"],
+        "resources": result.manifest["resources"],
+        "process_lifetime_peak_rss_bytes": process_lifetime_peak_rss_bytes(),
         "warning_count": len(caught),
         "warnings": [
             {"category": item.category.__name__, "message": str(item.message)} for item in caught
@@ -353,7 +397,8 @@ def execute(plan, output):
         "retry_count": len(result.failures),
         "selected_model_replay_verified": True,
         "pickle_security": (
-            "load only own-generated trusted models; replay uses OA affine/threshold"
+            "load only own-generated trusted models; "
+            "replay uses each protocol's validation affine/threshold"
         ),
         "accepted_engineering_run": not caught and not result.failures,
         "files_sha256": {
@@ -366,6 +411,18 @@ def execute(plan, output):
             )
         },
     }
+    if checkpoints:
+        rows = result.manifest["candidate_runs"][0]["epoch_checkpoints"]
+        retained = {row["path"] for row in rows if not row["reclaimed"]}
+        summary["checkpoint_storage"] = {
+            "scope": "weights_only_not_pickle_JSON_optimizer_or_RAM",
+            "peak_payload_bytes": summary["training_provenance"][
+                "checkpoint_bytes_written_this_attempt"
+            ],
+            "retained_bytes": sum(Path(path).stat().st_size for path in retained),
+            "retained_count": len(retained),
+            "reclaimed_count": sum(row["reclaimed"] for row in rows),
+        }
     _write_json(directory / "summary.json", summary)
     if not summary["accepted_engineering_run"]:
         raise ValueError("warnings/retries require review; artifacts retained, not accepted")
@@ -384,6 +441,7 @@ def main(argv=None):
         "--selection-scope", choices=["terminal", "meta_checkpoints"], default="terminal"
     )
     parser.add_argument("--checkpoint-bytes-per-component", type=int)
+    parser.add_argument("--training-view", choices=["os", "ts"], default="os")
     args = parser.parse_args(argv)
     try:
         if args.execute and args.out_dir is None:
@@ -396,6 +454,7 @@ def main(argv=None):
             parameters=parameters,
             selection_scope=args.selection_scope,
             checkpoint_bytes_per_component=args.checkpoint_bytes_per_component,
+            training_view=args.training_view,
         )
         payload = execute(plan, args.out_dir) if args.execute else plan
         print(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False))
