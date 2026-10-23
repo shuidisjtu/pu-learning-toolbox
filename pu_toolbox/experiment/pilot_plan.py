@@ -861,7 +861,9 @@ def _run_checkpoint_bytes(
     twice as much.  A run that succeeds first time occupies one attempt's
     worth, which is the quantity that accumulates across the pilot.
     """
-    epochs = protocol["budgets"][unit["budget"]].get("epochs")
+    from .survey_staged_budget import checkpoint_epochs
+
+    epochs = checkpoint_epochs(protocol["budgets"][unit["budget"]])
     if not epochs:
         return 0  # closed-form and kernel units keep no per-epoch state
     component = unit_checkpoint_bytes(

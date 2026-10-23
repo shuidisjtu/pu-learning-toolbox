@@ -141,7 +141,13 @@ def _checkpoint_storage(protocol: dict, row: dict, *, input_dim: int) -> tuple[i
     architecture raises, because a silently guessed size is a figure the pre-run
     guard would then hold a host to.
     """
-    if not protocol["budgets"][row["budget"]].get("epochs"):
+    from .survey_staged_budget import FIELD, checkpoint_epochs, validate_contract
+
+    budget = protocol["budgets"][row["budget"]]
+    if FIELD in budget:
+        validate_contract(budget[FIELD])
+        return budget[FIELD]["checkpoint_bytes_per_component"], "explicit_staged_budget_bound"
+    if not checkpoint_epochs(budget):
         return None, "no_epoch_budget"
     profile = _CONSTANT_COMPONENT_PROFILES.get(_profile_key(row))
     if profile is not None:
@@ -375,6 +381,9 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
             raise ValueError(f"unknown survey budget: {row['budget']}")
         if row["method"] not in payload["method_profiles"]:
             raise ValueError(f"unknown method profile: {row['method']}")
+    from .survey_staged_budget import validate_protocol_budgets
+
+    validate_protocol_budgets(payload)
     digest(payload)  # also reject non-finite values
     return payload
 
@@ -446,6 +455,11 @@ def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
 
 def _validate_budget(model, budget: dict) -> None:
     """Declared artifact budgets must describe the estimator that actually trains."""
+    from .survey_staged_budget import FIELD, validate_estimator
+
+    if FIELD in budget:
+        validate_estimator(model, budget[FIELD])
+        return
     params = model.get_params(deep=False)
     if "optimizer_steps_per_epoch" in budget and (
         type(model).__name__ != "SelfPUClassifier" or budget["optimizer_steps_per_epoch"] != 2

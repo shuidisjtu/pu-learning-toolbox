@@ -159,6 +159,12 @@ Self-PU 完整版单列后23 profile、8数据集184个阻断请求。该 planni
 下一步转入方法族预算/阶段资格、五角色适配和新版本 registry/comparison；
 未把这些工程测试或184个请求标成正式准入，PN-CNN 5 seed 仍暂缓。
 
+同日补[GEN-PU/PULDA 显式阶段预算](delivery/staged_budget_20261024.md)：
+二维 draft 的预算参数、原生架构身份、实际快照容量和阶段/优化器成本收据已接通；
+GEN-PU 不再把 GAN 轮数当 PN 快照数，PULDA 计入两段但不把 TS 并集误计为额外 batch。
+其他方法族、native CNN、正式预算/阶段资格及五角色/registry/comparison 仍未完成；
+不据此把 P4.1-B 或13方法正式可跑标成完成。
+
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
 `PA+clean-support`/OA 独立选择、容量估算和选后回收；旧终点 OA/默认消融不变。

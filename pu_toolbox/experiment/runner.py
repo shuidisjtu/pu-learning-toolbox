@@ -35,6 +35,8 @@ from .survey_protocol import (
     unit_checkpoint_bytes,
 )
 from .survey_recipe_binding import bind_recipe, candidate_binding_at
+from .survey_staged_budget import FIELD as STAGED_BUDGET_FIELD
+from .survey_staged_budget import checkpoint_epochs, verify_trajectory
 from .tracking import RunResult, RunTrajectory
 
 
@@ -272,6 +274,10 @@ class ExperimentRunner:
             # produced results without stating what they may be compared against
             # would leave P2.2 unable to adjudicate them at all.
             comparison = _run_comparison(protocol_context, self.config)
+            if STAGED_BUDGET_FIELD in protocol_context.get("budget", {}) and not (
+                _captures_checkpoints(self.config, trainer, model)
+            ):
+                raise ValueError("staged budget requires the native checkpoint recorder")
             _validate_model_capability(model, bundle, self.config.get("architecture"))
             # Opt-in experimental adapters validate extra supervision/prior
             # contracts against actual partitions, before generation or retries.
@@ -443,6 +449,19 @@ class ExperimentRunner:
                     validate_label_semantics(est, expected_semantics)
                     trajectory = self._train(est, train_view, pu_val_view, trainer)
                     _validate_trajectory(trajectory, pu_val_view, declared_components)
+                    staged = protocol_context.get("budget", {}).get(STAGED_BUDGET_FIELD)
+                    staged_receipt = (
+                        verify_trajectory(
+                            est,
+                            trajectory,
+                            staged,
+                            train_view.X,
+                            train_view.labels,
+                            self.config.get("os_or_ts"),
+                        )
+                        if staged is not None
+                        else None
+                    )
                 except Exception as exc:  # noqa: BLE001 - recorded retry boundary
                     errors.append(_exception_record(exc, attempt))
                     attempt_resources.append(
@@ -476,6 +495,7 @@ class ExperimentRunner:
                         "attempts": attempt,
                         "status": status,
                         "resources": _candidate_resources(attempt_resources),
+                        **({"staged_budget_receipt": staged_receipt} if staged_receipt else {}),
                         **(
                             {"training_provenance": _artifact_value(est.training_provenance_)}
                             if hasattr(est, "training_provenance_")
@@ -730,7 +750,7 @@ class ExperimentRunner:
         # A bound unit knows its epoch cap from the protocol; an unbound one
         # only from the estimator's own budget.
         epochs = (
-            budget.get("epochs")
+            checkpoint_epochs(budget)
             or getattr(model, "checkpoint_epoch_count", None)
             or getattr(model, "max_epochs", None)
         )
@@ -844,7 +864,7 @@ def _checkpoint_context(context, trajectories):
         return context
     context = dict(context)
     blockers = list(context["formal_blockers"])
-    expected = context["budget"].get("epochs")
+    expected = checkpoint_epochs(context["budget"])
     complete = (
         all(
             trajectory.checkpoints and len(trajectory.epochs) == expected
