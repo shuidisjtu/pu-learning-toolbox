@@ -1,5 +1,11 @@
 # Method Card: GEN-PU
 
+2026-10-24 #126 四项配方**已冻结**（[裁决记录](../pu_survey/admission/genpu_126_adjudication_20261024.md)）：
+论文先验加权 minimax/anti-GAN；`Du` 假样本按 `π/(1−π)` 混合、最终 PN 为同先验加权 softplus；
+identity 输出、两层 256/latent 100 稠密生成器、`Dp`/`Dn` 线性头、`Du`/PN 两层 256、四份独立
+seeded ResNet-18 stem；G 步冻结 D 参数与 BN/dropout 但保留输入梯度。三个 λ 取 1.0，
+先验加权在 `Du` 混合与 PN 风险里，不在这三个权重上。全量资源与数值 parity 不在冻结范围。
+
 2026-10-23 补[单候选工程 recipe 与真实 CIFAR GPU 验证](../pu_survey/delivery/genpu_recipe_20261023.md)：
 固定目标/网络/阶段资格，显式预算，六网络成本对账，PA/OA 独立选模、选后回收与两模型回放。
 这不是正式 v3 准入、P4.1-B 预算冻结或论文数值复现；估计器默认行为未改。

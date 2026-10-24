@@ -1,0 +1,724 @@
+{
+  "schema_version": "p3.2-clean-support-materialization-engineering-v1",
+  "status": "locally_verified_data_products_not_formal_admission",
+  "generated_at": "2026-10-24T23:27:17.217479+08:00",
+  "artifact_root": "data/clean-support-20261024-u5axe92t",
+  "artifact_location": "this_server_only_not_in_git",
+  "formal_admission": false,
+  "formal_budget_approved": false,
+  "owner_signatures": [],
+  "protocol_policy_ref": "pu_toolbox/experiment/survey_protocol_v3.json",
+  "protocol_policy_sha256": "e8621d3c0e18afbf68fc3572bd467a23a86055603621ae7dcb96c93fde66a762",
+  "protocol_pending_review_items": [],
+  "protocol_pending_resolution": "v2_p4_clean_support_policy and v2_p10_self_pu_scope were accepted in survey-v3.0; see docs/research/pu_survey/delivery/v3_freeze_20261024.md",
+  "protocol_binding": "policy_basis_only_not_a_versioned_execution_unit",
+  "rebuild_of": "docs/research/pu_survey/data/clean_support_materialization_20261022.json",
+  "rebuild_of_receipt_sha256": "a805eae0d6888089553d551c686a9c527060e8ef28abb0a69288d69d07cce20a",
+  "rebuild_disposition": "same raw bytes and same preparer code, rebuilt on this machine; membership equals the 2026-10-22 record 25/25 while receipts and NPZ digests differ because this machine recompressed the arrays under numpy 2.4.6 and embeds its own provenance download timestamps; these are new receipts, not a transfer of the old ones",
+  "datasets": [
+    "spambase",
+    "connect_4",
+    "mnist",
+    "fashion_mnist",
+    "cifar10"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "support_sizes": {
+    "spambase": 100,
+    "connect_4": 500,
+    "mnist": 500,
+    "fashion_mnist": 500,
+    "cifar10": 500
+  },
+  "support_seed_policy": "support_seed equals split_seed, predeclared before label inspection",
+  "coverage": {
+    "expected_products": 25,
+    "observed_products": 25,
+    "complete": true,
+    "missing": []
+  },
+  "validation": {
+    "membership_matches_20261022_manifest": "25/25 role sizes and support label counts",
+    "receipt_and_file_digests": "load_support_dataset re-verified 25/25 after the move into the artifact root",
+    "raw_reader_unchanged": "the 9 reader files still hash to the 2026-10-22 recorded digests",
+    "canonical_cli_reproduction": "spambase seed0: public CLI rebuild reproduces the batch receipt and all five NPZ digests byte for byte (receipt match True, file digests match True)",
+    "preparation_source_files_unchanged": "LF-normalised digests equal the 2026-10-22 record; this checkout has core.autocrlf=true so raw working-tree digests differ",
+    "source_assertion_is_human_signature": false,
+    "scope": "data preparation and CPU engineering link only; no formal budget, no GPU batch, no method admission"
+  },
+  "preparation_source_files_sha256": {
+    "scripts/prepare_clean_support.py": "3c17825b809d0cdd53353a0de65c6c410ce5826f5d612526f848ca802a785063",
+    "scripts/prepare_survey_splits.py": "dd1ada5dd1d87c7c6a367ffa125952c5cc5d5a36e87e60e77b8e15db75d6f6cc",
+    "pu_toolbox/experiment/support_data.py": "fbcf3ae1c3c4e116a36fedf6248ee433afbc15377b93d2e3cf45f86a7ef1d712",
+    "pu_toolbox/experiment/datasets.py": "0886aeebb753fad8ee289428e92428d58fab0766151f64d3a7e9769980181dd2",
+    "pu_toolbox/experiment/image.py": "ded5ef8f973486ba79f525e89c9efeb79b2ce2db912e8ad304715dbd7ea5f450"
+  },
+  "local_materialization_audit": {
+    "batch_started_code_commit": "b9ed6f6013fcd11e5c85c79f460a1b80cba5e9c7",
+    "batch_started_code_tree_dirty": false,
+    "preparer_entry_point": "scripts/prepare_clean_support.py",
+    "driver": "tmp/rebuild_clean_support_20261024.py (ephemeral; staging build, then moved into data/)",
+    "python": "3.11.15",
+    "numpy": "2.4.6",
+    "sklearn": "1.9.0",
+    "note": "data/ refuses writes from this interpreter, so products were built under tmp/ and moved into the artifact root by the shell before re-verification"
+  },
+  "source_readers": {
+    "spambase": {
+      "raw_dir": "data/raw",
+      "reader_files_sha256": {
+        "spambase.data": "b1ef93de71f97714d3d7d4f58fc9f718da7bbc8ac8a150eff2778616a8097b12"
+      }
+    },
+    "connect_4": {
+      "raw_dir": "data/raw",
+      "reader_files_sha256": {
+        "connect-4.data": "063152e6eadbb424c7ef4645df76e493a43812edd9c992400983da4fa54f8cba"
+      }
+    },
+    "mnist": {
+      "raw_dir": "data/raw",
+      "reader_files_sha256": {
+        "raw_arrays.npz": "39b9b1ffaa0ba4d8995a616551f0966941fe02a3fe79ba4a9db7373db16d53ad"
+      }
+    },
+    "fashion_mnist": {
+      "raw_dir": "data/raw",
+      "reader_files_sha256": {
+        "raw_arrays.npz": "0b8ff0e3b709c3fd455824f1614f38914bdc7bc07a0eeb7d70ca917322511f1d"
+      }
+    },
+    "cifar10": {
+      "raw_dir": "data/raw",
+      "reader_files_sha256": {
+        "cifar-10-batches-py/data_batch_1": "54636561a3ce25bd3e19253c6b0d8538147b0ae398331ac4a2d86c6d987368cd",
+        "cifar-10-batches-py/data_batch_2": "766b2cef9fbc745cf056b3152224f7cf77163b330ea9a15f9392beb8b89bc5a8",
+        "cifar-10-batches-py/data_batch_3": "0f00d98ebfb30b3ec0ad19f9756dc2630b89003e10525f5e148445e82aa6a1f9",
+        "cifar-10-batches-py/data_batch_4": "3f7bb240661948b8f4d53e36ec720d8306f5668bd0071dcb4e6c947f78e9682b",
+        "cifar-10-batches-py/data_batch_5": "d91802434d8376bbaeeadf58a737e3a1b12ac839077e931237e0dcd43adcb154",
+        "cifar-10-batches-py/test_batch": "f53d8d457504f7cff4ea9e021afcf0e0ad8e24a91f3fc42091b8adef61157831"
+      }
+    }
+  },
+  "products": [
+    {
+      "dataset": "spambase",
+      "seed": 0,
+      "support_seed": 0,
+      "directory": "data/clean-support-20261024-u5axe92t/spambase/split_0",
+      "receipt_sha256": "a15995227fee6a1c72ca28272cbd21a5421cfce207e75d33b6ab203b31850d0e",
+      "support_manifest_file_sha256": "7a1624e19f4231763eafa4d798358c77bb33b7bb1ee1334dcdb1f8e0644ee3f2",
+      "role_sizes": {
+        "train": 3212,
+        "pu_val": 184,
+        "clean_val": 184,
+        "test": 921,
+        "support": 100
+      },
+      "support_positive": 46,
+      "support_negative": 54,
+      "bytes": 439706
+    },
+    {
+      "dataset": "spambase",
+      "seed": 1,
+      "support_seed": 1,
+      "directory": "data/clean-support-20261024-u5axe92t/spambase/split_1",
+      "receipt_sha256": "b8d433625d11bcaffe7482eddde73f072260eafba336ae0527892c89e00acf01",
+      "support_manifest_file_sha256": "f1f65b00ca62b4ab17096d521eca7f7fe9f61c9607a438a31ed5aac9655c2e8e",
+      "role_sizes": {
+        "train": 3212,
+        "pu_val": 184,
+        "clean_val": 184,
+        "test": 921,
+        "support": 100
+      },
+      "support_positive": 48,
+      "support_negative": 52,
+      "bytes": 440527
+    },
+    {
+      "dataset": "spambase",
+      "seed": 2,
+      "support_seed": 2,
+      "directory": "data/clean-support-20261024-u5axe92t/spambase/split_2",
+      "receipt_sha256": "6a818f3aef314198d2adaa1d8659b6762008a00dae21be463e0b15dc670f1c3e",
+      "support_manifest_file_sha256": "6105299bc37de7d1fb27df5940cdd6aa8ced264fdbef9aa9f3309804f8080d05",
+      "role_sizes": {
+        "train": 3212,
+        "pu_val": 184,
+        "clean_val": 184,
+        "test": 921,
+        "support": 100
+      },
+      "support_positive": 39,
+      "support_negative": 61,
+      "bytes": 440367
+    },
+    {
+      "dataset": "spambase",
+      "seed": 3,
+      "support_seed": 3,
+      "directory": "data/clean-support-20261024-u5axe92t/spambase/split_3",
+      "receipt_sha256": "7733f76361578ced192644996a9d5c291b85c6e88350ae94d5aa4d67513ce887",
+      "support_manifest_file_sha256": "97ce5937d3423399f1ecc90f17bca60c54140ffd19b61f858fa2e2da55f8294b",
+      "role_sizes": {
+        "train": 3212,
+        "pu_val": 184,
+        "clean_val": 184,
+        "test": 921,
+        "support": 100
+      },
+      "support_positive": 37,
+      "support_negative": 63,
+      "bytes": 439505
+    },
+    {
+      "dataset": "spambase",
+      "seed": 4,
+      "support_seed": 4,
+      "directory": "data/clean-support-20261024-u5axe92t/spambase/split_4",
+      "receipt_sha256": "61095417efdea722002b6aaa544eafc5facd57066db65548079e51dd7075f472",
+      "support_manifest_file_sha256": "24247cae52043413d789a0fdf15ff740aec145608659a95e940e263fcd0a7de8",
+      "role_sizes": {
+        "train": 3212,
+        "pu_val": 184,
+        "clean_val": 184,
+        "test": 921,
+        "support": 100
+      },
+      "support_positive": 35,
+      "support_negative": 65,
+      "bytes": 439028
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 0,
+      "support_seed": 0,
+      "directory": "data/clean-support-20261024-u5axe92t/connect_4/split_0",
+      "receipt_sha256": "7a2afb17336602f21abb3f1c4f333a7dd68915f36d97c0b968d8b42e60a8e304",
+      "support_manifest_file_sha256": "d6d532f6f19fcafd71cc2d023ecc21b97d5106dbbe0b3b1f88cb7b982c4e3e3e",
+      "role_sizes": {
+        "train": 48140,
+        "pu_val": 2702,
+        "clean_val": 2703,
+        "test": 13512,
+        "support": 500
+      },
+      "support_positive": 320,
+      "support_negative": 180,
+      "bytes": 3445779
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 1,
+      "support_seed": 1,
+      "directory": "data/clean-support-20261024-u5axe92t/connect_4/split_1",
+      "receipt_sha256": "022001448648b86a8ca7ba2b3ee7c915d7829d7cb08b289c82163c49b1e0671d",
+      "support_manifest_file_sha256": "0629076cb8467eeffde1e2db19308cd7ba18b8d2b35878194e0fadce39777a30",
+      "role_sizes": {
+        "train": 48140,
+        "pu_val": 2702,
+        "clean_val": 2703,
+        "test": 13512,
+        "support": 500
+      },
+      "support_positive": 334,
+      "support_negative": 166,
+      "bytes": 3446067
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 2,
+      "support_seed": 2,
+      "directory": "data/clean-support-20261024-u5axe92t/connect_4/split_2",
+      "receipt_sha256": "69cbcf7e7a51bdb794437858216c796d84936f06f3daec25603ef575f91d9397",
+      "support_manifest_file_sha256": "66fa677d015fee895e1d7e6978b55237664f0dd8d7a5c3b3f13166764297aa48",
+      "role_sizes": {
+        "train": 48140,
+        "pu_val": 2702,
+        "clean_val": 2703,
+        "test": 13512,
+        "support": 500
+      },
+      "support_positive": 326,
+      "support_negative": 174,
+      "bytes": 3446677
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 3,
+      "support_seed": 3,
+      "directory": "data/clean-support-20261024-u5axe92t/connect_4/split_3",
+      "receipt_sha256": "d1858845b9494da1751f9aa66011cac839e34c6274887e9bc0b4247b67f4df84",
+      "support_manifest_file_sha256": "1f66b62e0f2b05f46d12b74c52f2df59fa60ad35cb88fd19c7c170b18b407ec1",
+      "role_sizes": {
+        "train": 48140,
+        "pu_val": 2702,
+        "clean_val": 2703,
+        "test": 13512,
+        "support": 500
+      },
+      "support_positive": 323,
+      "support_negative": 177,
+      "bytes": 3447757
+    },
+    {
+      "dataset": "connect_4",
+      "seed": 4,
+      "support_seed": 4,
+      "directory": "data/clean-support-20261024-u5axe92t/connect_4/split_4",
+      "receipt_sha256": "540983500b5d3f954657c521f408febd7693b6c8d710a1d75b9490e0cb81b00d",
+      "support_manifest_file_sha256": "738fb5ee035d00269c9009f0fcf87f611305521195d9981224ec92df16f8084e",
+      "role_sizes": {
+        "train": 48140,
+        "pu_val": 2702,
+        "clean_val": 2703,
+        "test": 13512,
+        "support": 500
+      },
+      "support_positive": 334,
+      "support_negative": 166,
+      "bytes": 3444769
+    },
+    {
+      "dataset": "mnist",
+      "seed": 0,
+      "support_seed": 0,
+      "directory": "data/clean-support-20261024-u5axe92t/mnist/split_0",
+      "receipt_sha256": "ede2a5d884bbd4c9fb6bda19b788870e88c238c8d51eb36b2b70b6cfb7a27cce",
+      "support_manifest_file_sha256": "5af5a4a8031fa60c135b4480fbe7b4b7d1e66a2f882f38c7b940aa977d2ec20d",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 241,
+      "support_negative": 259,
+      "bytes": 14421652
+    },
+    {
+      "dataset": "mnist",
+      "seed": 1,
+      "support_seed": 1,
+      "directory": "data/clean-support-20261024-u5axe92t/mnist/split_1",
+      "receipt_sha256": "fab23b5e8ce576b36449ad3aac92c168170ccdb70eddeb5701c515071a9dfe27",
+      "support_manifest_file_sha256": "4885c62b405175882b0e46a2647537fb400c5db6786c748dc027bf38eda33b57",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 242,
+      "support_negative": 258,
+      "bytes": 14421844
+    },
+    {
+      "dataset": "mnist",
+      "seed": 2,
+      "support_seed": 2,
+      "directory": "data/clean-support-20261024-u5axe92t/mnist/split_2",
+      "receipt_sha256": "2ef0895d6ad74029daeeb4b19f82cad17adc290c060707574c27f0b039655119",
+      "support_manifest_file_sha256": "0da92c3b4aa036d106107c54bc9c8a9a20743cb5141a948223b42cfac2116ee7",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 248,
+      "support_negative": 252,
+      "bytes": 14422349
+    },
+    {
+      "dataset": "mnist",
+      "seed": 3,
+      "support_seed": 3,
+      "directory": "data/clean-support-20261024-u5axe92t/mnist/split_3",
+      "receipt_sha256": "856e23a8de0a7a9066d94d1a61bf154a21e7598f1d1537ab0b0868fa7c34d687",
+      "support_manifest_file_sha256": "60d4194b8e07f66db6435f7ecea99ddc125b8ff5cee6870e41c207a9c9623e35",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 240,
+      "support_negative": 260,
+      "bytes": 14422393
+    },
+    {
+      "dataset": "mnist",
+      "seed": 4,
+      "support_seed": 4,
+      "directory": "data/clean-support-20261024-u5axe92t/mnist/split_4",
+      "receipt_sha256": "d6edc640d7c03237f512ee09ead2036e7507c6412c1a75d9e5b944b16096e8b5",
+      "support_manifest_file_sha256": "3895e317a6cfed2ac9c43609aad85fac5eb52edf1a0cac9802279db1db72b92d",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 256,
+      "support_negative": 244,
+      "bytes": 14422578
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 0,
+      "support_seed": 0,
+      "directory": "data/clean-support-20261024-u5axe92t/fashion_mnist/split_0",
+      "receipt_sha256": "e6c6a9cc561f1c6ba9134b4f741ea449c19c8d85c9cce7e02d738262e945f986",
+      "support_manifest_file_sha256": "7dd142c1f65ae2c1bdf3ee130bcf062a7d86127c01d5c22cc8ca76fcec72adcc",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 253,
+      "support_negative": 247,
+      "bytes": 33796964
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 1,
+      "support_seed": 1,
+      "directory": "data/clean-support-20261024-u5axe92t/fashion_mnist/split_1",
+      "receipt_sha256": "f74ccf4a84fc69140dc073bfb860ec882208eddfe9025038a81207b9682ecf1e",
+      "support_manifest_file_sha256": "e7dd5012445b49698e4ca42b3d12b4172a63f05bc830fee84398391d51412bef",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 262,
+      "support_negative": 238,
+      "bytes": 33797891
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 2,
+      "support_seed": 2,
+      "directory": "data/clean-support-20261024-u5axe92t/fashion_mnist/split_2",
+      "receipt_sha256": "ce094c7074f7c2651d0088b1d22bc8c4cd1ab5a92d0107f846dd935a04d24732",
+      "support_manifest_file_sha256": "b7fe89eed744446635ba4c46797b15c413bf6b001897cd7c2244abc3bc2bea60",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 247,
+      "support_negative": 253,
+      "bytes": 33796675
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 3,
+      "support_seed": 3,
+      "directory": "data/clean-support-20261024-u5axe92t/fashion_mnist/split_3",
+      "receipt_sha256": "d100c34293250bfd26a8f1dd6516040d08c9704cdb9716e092507e0db389706d",
+      "support_manifest_file_sha256": "123092d74fd0bf69b665eba1433990d4ac24007de1f2cfe6abb38da6e740b33d",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 250,
+      "support_negative": 250,
+      "bytes": 33798861
+    },
+    {
+      "dataset": "fashion_mnist",
+      "seed": 4,
+      "support_seed": 4,
+      "directory": "data/clean-support-20261024-u5axe92t/fashion_mnist/split_4",
+      "receipt_sha256": "5b60a83f6d2565ea2d695e59074f41548eb9984c5687b129e4a16f25141174ec",
+      "support_manifest_file_sha256": "7dc599fdfad0d0bb91f12d179007f17bdcf84bd047afd966a988a7fbe6f2ea5a",
+      "role_sizes": {
+        "train": 53500,
+        "pu_val": 3000,
+        "clean_val": 3000,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 264,
+      "support_negative": 236,
+      "bytes": 33797457
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 0,
+      "support_seed": 0,
+      "directory": "data/clean-support-20261024-u5axe92t/cifar10/split_0",
+      "receipt_sha256": "9cd91b3177f133fb87cee18a36e4586942c8cf34e5ba1fee2ed2fa9a5f945592",
+      "support_manifest_file_sha256": "a23733fafa52b7f7fd4fb2bc48531e9fc1272d6ba9c5e29a01717e40a3aff734",
+      "role_sizes": {
+        "train": 44500,
+        "pu_val": 2500,
+        "clean_val": 2500,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 204,
+      "support_negative": 296,
+      "bytes": 172009817
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 1,
+      "support_seed": 1,
+      "directory": "data/clean-support-20261024-u5axe92t/cifar10/split_1",
+      "receipt_sha256": "4824f0ecd5ba105331b3d7681f4498e5a50c545edd0ae043a2eb382f925dff53",
+      "support_manifest_file_sha256": "263147c42d501cebf2200f03c6667308af1fe0b790d4e483c66d36930d50bc56",
+      "role_sizes": {
+        "train": 44500,
+        "pu_val": 2500,
+        "clean_val": 2500,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 202,
+      "support_negative": 298,
+      "bytes": 172008661
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 2,
+      "support_seed": 2,
+      "directory": "data/clean-support-20261024-u5axe92t/cifar10/split_2",
+      "receipt_sha256": "50e8ebaacd4c11556cc60f70a54ccdd9aacecb62d6f894b4d69ab5f76bfe8669",
+      "support_manifest_file_sha256": "1a15b1e3d2d83d8b901588c07eae6cf906a4d27f22efcf18f9f60631f4e65513",
+      "role_sizes": {
+        "train": 44500,
+        "pu_val": 2500,
+        "clean_val": 2500,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 210,
+      "support_negative": 290,
+      "bytes": 172011326
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 3,
+      "support_seed": 3,
+      "directory": "data/clean-support-20261024-u5axe92t/cifar10/split_3",
+      "receipt_sha256": "98d8ee1f2bf24d57c0dfdb85fb4183bb040022ef5604d5a8c5a975d5b964ace6",
+      "support_manifest_file_sha256": "32e85f5b69e920efff17549e57cdfe7e71ac6624017eb6bb933887a474cc846a",
+      "role_sizes": {
+        "train": 44500,
+        "pu_val": 2500,
+        "clean_val": 2500,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 195,
+      "support_negative": 305,
+      "bytes": 172018898
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 4,
+      "support_seed": 4,
+      "directory": "data/clean-support-20261024-u5axe92t/cifar10/split_4",
+      "receipt_sha256": "272ede72d434f4a107e3e27c5a5d4a6dc661544f677b36d23fdece17db39b35d",
+      "support_manifest_file_sha256": "abc01d3933ed3868eadd809e2ff329f84ba7ed5797a7ffb858ed7c68d0389839",
+      "role_sizes": {
+        "train": 44500,
+        "pu_val": 2500,
+        "clean_val": 2500,
+        "test": 10000,
+        "support": 500
+      },
+      "support_positive": 185,
+      "support_negative": 315,
+      "bytes": 172008634
+    }
+  ],
+  "product_total_bytes": 1120586182,
+  "real_cpu_smoke": {
+    "formal_admission": false,
+    "formal_budget_approved": false,
+    "paper_numerical_comparison": false,
+    "device": "cpu",
+    "dataset": "spambase",
+    "seed": 0,
+    "support_dir": "data\\clean-support-20261024-u5axe92t\\spambase\\split_0",
+    "note": "one seed, default protocol budget, PA+clean-support and OA only prove that the rebuilt artifact loads through the survey CLI; they are not effect findings",
+    "results": {
+      "self_pu_full_meta": {
+        "manifest": "tmp/smoke-support-self_pu_full_meta/ts/c_0.5/seed_0/manifest.json",
+        "training_path": "native_2d",
+        "elapsed_seconds": 8.02,
+        "results": {
+          "PA+clean-support": {
+            "accuracy": 0.9011943539630836,
+            "auc": 0.9563227583755444,
+            "auc_unavailable_reason": null,
+            "precision": 0.9146341463414634,
+            "precision_unavailable_reason": null,
+            "recall": 0.8264462809917356,
+            "recall_unavailable_reason": null,
+            "f1": 0.8683068017366136,
+            "f1_unavailable_reason": null
+          },
+          "OA": {
+            "accuracy": 0.9022801302931596,
+            "auc": 0.9572558428863415,
+            "auc_unavailable_reason": null,
+            "precision": 0.8421052631578947,
+            "precision_unavailable_reason": null,
+            "recall": 0.9256198347107438,
+            "recall_unavailable_reason": null,
+            "f1": 0.8818897637795275,
+            "f1_unavailable_reason": null
+          }
+        },
+        "formal_eligible": false,
+        "formal_blockers": [
+          "per_epoch_independent_PA_OA_checkpoint_selection",
+          "CVIR, LaGAM, PULNS, KLDCE, P3MIX, PAN, PUET, RP, VPU and the GradPU native-2d path still lack a frozen main-chain budget or runner.",
+          "cifar10 rows for GEN-PU, PULDA, Robust-PU, Split-PU and Holistic-PU are withheld until their native/adapted image runners are wired into the survey command.",
+          "profile_identity_extension_engineering_only",
+          "protocol_deviation"
+        ],
+        "split_ref_source": "data/clean-support-20261024-u5axe92t/spambase/split_0/support_manifest.json",
+        "split_ref_identity": {
+          "schema_version": "independent-clean-support-v1",
+          "dataset": "spambase",
+          "seed": 0,
+          "role_sizes": {
+            "train": 3212,
+            "pu_val": 184,
+            "clean_val": 184,
+            "test": 921,
+            "support": 100
+          }
+        }
+      },
+      "lagam": {
+        "manifest": "tmp/smoke-support-b/os/c_0.5/seed_0/manifest.json",
+        "training_path": "native_2d",
+        "elapsed_seconds": 17.36,
+        "results": {
+          "PA+clean-support": {
+            "accuracy": 0.9261672095548317,
+            "auc": 0.9701758543400772,
+            "auc_unavailable_reason": null,
+            "precision": 0.9019073569482289,
+            "precision_unavailable_reason": null,
+            "recall": 0.9118457300275482,
+            "recall_unavailable_reason": null,
+            "f1": 0.9068493150684932,
+            "f1_unavailable_reason": null
+          },
+          "OA": {
+            "accuracy": 0.9272529858849077,
+            "auc": 0.969351382841119,
+            "auc_unavailable_reason": null,
+            "precision": 0.9043715846994536,
+            "precision_unavailable_reason": null,
+            "recall": 0.9118457300275482,
+            "recall_unavailable_reason": null,
+            "f1": 0.9080932784636488,
+            "f1_unavailable_reason": null
+          }
+        },
+        "formal_eligible": false,
+        "formal_blockers": [
+          "per_epoch_independent_PA_OA_checkpoint_selection",
+          "CVIR, LaGAM, PULNS, KLDCE, P3MIX, PAN, PUET, RP, VPU and the GradPU native-2d path still lack a frozen main-chain budget or runner.",
+          "cifar10 rows for GEN-PU, PULDA, Robust-PU, Split-PU and Holistic-PU are withheld until their native/adapted image runners are wired into the survey command.",
+          "profile_identity_extension_engineering_only",
+          "protocol_deviation"
+        ],
+        "split_ref_source": "data/clean-support-20261024-u5axe92t/spambase/split_0/support_manifest.json",
+        "split_ref_identity": {
+          "schema_version": "independent-clean-support-v1",
+          "dataset": "spambase",
+          "seed": 0,
+          "role_sizes": {
+            "train": 3212,
+            "pu_val": 184,
+            "clean_val": 184,
+            "test": 921,
+            "support": 100
+          }
+        }
+      },
+      "pulns": {
+        "manifest": "tmp/smoke-support-pulns/os/c_0.5/seed_0/manifest.json",
+        "training_path": "native_2d",
+        "elapsed_seconds": 30.57,
+        "results": {
+          "PA+clean-support": {
+            "accuracy": 0.9337676438653637,
+            "auc": 0.9755916940667674,
+            "auc_unavailable_reason": null,
+            "precision": 0.9314285714285714,
+            "precision_unavailable_reason": null,
+            "recall": 0.8980716253443526,
+            "recall_unavailable_reason": null,
+            "f1": 0.9144460028050491,
+            "f1_unavailable_reason": null
+          },
+          "OA": {
+            "accuracy": 0.9348534201954397,
+            "auc": 0.9755225766955972,
+            "auc_unavailable_reason": null,
+            "precision": 0.8955613577023499,
+            "precision_unavailable_reason": null,
+            "recall": 0.9449035812672176,
+            "recall_unavailable_reason": null,
+            "f1": 0.9195710455764075,
+            "f1_unavailable_reason": null
+          }
+        },
+        "formal_eligible": false,
+        "formal_blockers": [
+          "CVIR, LaGAM, PULNS, KLDCE, P3MIX, PAN, PUET, RP, VPU and the GradPU native-2d path still lack a frozen main-chain budget or runner.",
+          "cifar10 rows for GEN-PU, PULDA, Robust-PU, Split-PU and Holistic-PU are withheld until their native/adapted image runners are wired into the survey command.",
+          "profile_identity_extension_engineering_only",
+          "protocol_deviation"
+        ],
+        "split_ref_source": "data/clean-support-20261024-u5axe92t/spambase/split_0/support_manifest.json",
+        "split_ref_identity": {
+          "schema_version": "independent-clean-support-v1",
+          "dataset": "spambase",
+          "seed": 0,
+          "role_sizes": {
+            "train": 3212,
+            "pu_val": 184,
+            "clean_val": 184,
+            "test": 921,
+            "support": 100
+          }
+        }
+      }
+    }
+  },
+  "receipt_sha256": "3c04ec8c04a52ffa30a90baafdba6d6346eca179bbbd4a6de19f6cedbd62b686"
+}
