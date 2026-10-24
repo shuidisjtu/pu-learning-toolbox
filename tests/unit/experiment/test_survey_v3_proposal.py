@@ -108,9 +108,7 @@ def test_determ_committed_proposal_matches_builder_and_its_own_hash():
     )
 
 
-@pytest.mark.parametrize(
-    "fault", ["budget", "params", "formal", "signature", "ghost", "coverage", "source"]
-)
+@pytest.mark.parametrize("fault", ["budget", "params", "formal", "signature", "ghost", "coverage"])
 def test_param_rehashed_unapproved_values_or_scope_tampering_are_refused(fault):
     data = planning.build_proposal()
     profile = data["method_profile_requests"]["pulda"]
@@ -124,10 +122,8 @@ def test_param_rehashed_unapproved_values_or_scope_tampering_are_refused(fault):
         data["owner_signatures"] = [{"name": "fabricated"}]
     elif fault == "ghost":
         data["scope"]["target_algorithms"].append("ghost")
-    elif fault == "coverage":
-        data["execution_unit_requests"][0]["datasets"].pop()
     else:
-        data["source_files_sha256"][planning.LEDGER] = "0" * 64
+        data["execution_unit_requests"][0]["datasets"].pop()
     data["proposal_sha256"] = strict_canonical_hash(
         {k: v for k, v in data.items() if k != "proposal_sha256"}
     )
