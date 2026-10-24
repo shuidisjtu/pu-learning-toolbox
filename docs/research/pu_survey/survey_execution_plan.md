@@ -40,7 +40,7 @@
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
 | v3 ↔ comparison/registry 绑定 | 结果进不了比较矩阵 | 版本化 profile 映射，重绑 comparison | shuidisjtu | 运行不再记 `missing_versioned_profile_mapping` |
 | P4.1-B 正式预算冻结 | 没有正式准入 | 5 方法阶段预算转正；其余方法族补冻结预算 | shuidisjtu 起草，HENG958 核对 | P4.1-B 记录 |
-| recipe registry 仍停在 v0.1 draft | 只覆盖 upu/nnpu/kldce/dist_pu/pusb_kernel/lbe/self_pu/pn_oracle 且绑 `survey-v2.0`；v3 中需要 recipe 的 5 个方法（GEN-PU、GradPU、PAN、VPU、Holistic-PU）无登记 | 把 recipe 登记扩到 v3 并纳入这 5 个方法 | shuidisjtu 打包，HENG958 出配方数值 | registry 绑 v3，每方法有 recipe 摘要与证据 |
+| recipe registry 仍停在 v0.1 draft | 只覆盖 upu/nnpu/kldce/dist_pu/pusb_kernel/lbe/self_pu/pn_oracle 且绑 `survey-v2.0`；v3 中需要 recipe 的 5 个方法（GEN-PU、GradPU、PAN、VPU、Holistic-PU）无登记（GEN-PU 的配方值已冻结在[裁决记录](admission/genpu_126_adjudication_20261024.md)，只差打包） | 把 registry schema 扩到 v3 并纳入这 5 个方法 | shuidisjtu 打包，HENG958 出其余方法配方数值 | registry 绑 v3，每方法有 recipe 摘要与证据 |
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
 | 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
 | GPU 机时实测 | 无法排 AutoDL 正式批次 | GradPU 首跑、三个 adapter 行真实 CIFAR 单 seed、PN-CNN 单 seed 计时与资源峰值 | shuidisjtu | 实测表反推机时 |
@@ -223,6 +223,10 @@ Holistic LZO 回选状态仍完整计入已执行 warmup 和前向，OS/TS 边�
 `data_dir`、`--split-ref` 指向制品自身 manifest；用 `data/splits/*` 配对会因 train 已移除
 support 而被拒。三个 clean-support 方法已在重建制品上跑通单 seed CPU 链路，仍非正式批次。
 
+同日 #122 与 #126 相继裁决：[Split-PU JSD/TS batch/台账指针](admission/splitpu_122_adjudication_20261024.md)
+与 [GEN-PU 四项配方冻结](admission/genpu_126_adjudication_20261024.md)。两者都只冻结决定与已登记差异，
+正式准入、全量资源与数值 parity 仍按 §1.2 的缺口处理；v3 里对应的陈旧措辞已原地修正。
+
 ## 2. 风险与留痕约定
 
 ### 2.1 风险
@@ -241,7 +245,7 @@ support 而被拒。三个 clean-support 方法已在重建制品上跑通单 se
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D33）
+## 附录 A. 决策账本（D1–D34）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -281,3 +285,4 @@ support 而被拒。三个 clean-support 方法已在重建制品上跑通单 se
 | D31 | **v3 冻结即执行协议** | `survey_protocol_v3.json`（`survey-v3.0`）转正为执行协议，runnable 40/64；`survey-v2.0` 保留为 645-run pilot 的历史绑定；`survey_comparison_v4.json` 仍绑 v2，v3 结果在版本化 profile 映射落地前不进比较矩阵。`runnable` 只表示实现能力，正式准入另需清 `formal_blockers` 与 P4.1-B 冻结。 | 2026-10-24 |
 | D32 | **clean-support 制品重建口径** | 10-22 的 25 份制品不在本机时，用同一 raw 字节与同一准备入口在本机重建，成员须与旧记录 25/25 一致；重压缩与 provenance 时间戳会改变摘要，因此记为新收据、不冒充旧批次的跨机副本；主 CLI 以制品目录作 `data_dir`、`--split-ref` 指向制品自身 manifest，用 `data/splits/*` 配对会被拒。 | 2026-10-24 |
 | D33 | **Split-PU #122 三项裁决** | ① JSD 保持锁定源码 `teacher=0.7` 与现有归一化分母，论文 Eq. (6) 方向作已登记差异，不另立变体（只改权重会引入约 1.4466 倍缩放）；② TS 均衡 batch 的并集比例登记为 benchmark 近似，本轮不按 π 加权；③ 台账指针授权修正但推迟到下一次版本化台账更新。Split-PU 两行翻牌、#122 可关。见[裁决记录](admission/splitpu_122_adjudication_20261024.md)。 | 2026-10-24 |
+| D34 | **GEN-PU #126 配方冻结** | 认定 2026-10-23 单候选工程 recipe 的四项工程规格即正式配方：论文先验加权 minimax/anti-GAN（`Du` 假样本 `π/(1−π)`、PN 先验加权 softplus）、`genpu` 阶段预算 100 快照、identity 输出 + 两层 256/latent 100 生成器 + `Dp`/`Dn` 线性头 + `Du`/PN 两层 256 + 四份 seeded ResNet-18、G 步冻结 D 的 BN/dropout 保留输入梯度；λ=1 与先验加权不冲突。全量资源实测与数值 parity 不在冻结范围，#126 关单。见[裁决记录](admission/genpu_126_adjudication_20261024.md)。 | 2026-10-24 |

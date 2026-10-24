@@ -56,7 +56,7 @@
 - [Clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)：Self-PU/LaGAM 的 meta-active 与 PULNS 的 episode 快照、显式 PA+clean-support/OA、容量预检和选后回收；默认终点 OA 保留，非正式准入。
 - [五数据集真实 support 制品](delivery/clean_support_materialization_20261022.md)：本机 25 份五角色制品、逐 raw 映射/剩余 train 预处理核验、三方法真实 Spambase CPU 工程链；Git 仅登记清单，不含 NPZ/原始数据，不等于正式预算或 GPU 结果。
 - [25 份 clean-support 本机重建](delivery/clean_support_rebuild_20261024.md)：同 raw 字节/同源码重建，成员 25/25 与 10-22 记录一致但收据是新的；给出主 CLI 的 `--support-dir` 正确配对方式与三方法 CPU 冒烟。
-- [GEN-PU 单候选工程 recipe](delivery/genpu_recipe_20261023.md)：#126 四项工程规格、实际 PA/OA manifest、真实 CIFAR 预固定小子集与全宽 ResNet-18 的 batch8/256 GPU 峰值/回放；正式 v3/预算及全量验收仍待，不自动关 issue。
+- [GEN-PU 单候选工程 recipe](delivery/genpu_recipe_20261023.md)：#126 四项工程规格、实际 PA/OA manifest、真实 CIFAR 预固定小子集与全宽 ResNet-18 的 batch8/256 GPU 峰值/回放；四项已于 2026-10-24 冻结为正式配方并关 #126，全量资源与数值 parity 仍待。
 - [PULDA/GradPU 图像 runner](delivery/candidate_image_runner_20261023.md)：四角色双轨入口、真实 CIFAR 小子集完整120/200快照、实际峰值/回收与选中模型回放；正式 v3/预算仍待。
 - [Self-PU full-meta TS 入口](delivery/selfpu_ts_support_20261023.md)：显式 clean-support TS 双 teacher 选择、真实 Spambase 同条件短 OS/TS 运行与校准事实记录；默认 OS/旧消融和正式准入边界不变。
 - [v3 profile/unit 接入请求](delivery/survey_v3_proposal_20261023.md)：精确22算法/23 profile与184个阻断组合、源码观察和缺口校验；独立 planning schema，不是可执行协议或预算批准。
@@ -74,6 +74,7 @@
 - [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；2026-10-17 #115 已将 registry/台账采样定位纠正为 OS，support 标签预算与 PA 限制仍待审。
 - [LaGAM 全文与实现交叉复核](admission/lagam_paper_review_20261020.md)：补齐原文获取；登记零梯度、β/簇数来源分歧与 support 子类配额，绑定数值行为测试；保留默认实现及未签署/未准入状态。
 - [Split-PU #122 三项裁决](admission/splitpu_122_adjudication_20261024.md)：JSD 保持源码 0.7、TS 均衡 batch 登记 benchmark 近似、台账指针推迟到版本化更新；两行翻牌、#122 可关，冻结 v3 里的陈旧措辞已原地修正（版本号不变）。
+- [GEN-PU #126 配方冻结](admission/genpu_126_adjudication_20261024.md)：认定 10-23 四项工程规格为正式配方（先验加权目标、100 快照预算、identity+四份 ResNet-18、G 步模式）；全量资源与数值 parity 不在冻结范围，#126 关单。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。

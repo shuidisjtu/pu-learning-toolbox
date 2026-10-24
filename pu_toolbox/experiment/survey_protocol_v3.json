@@ -851,9 +851,10 @@
       "budget": "genpu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
-        "status": "provisional_or_unresolved",
+        "status": "resolved_by_adjudication",
         "findings": [
-          "Equal positive/negative/unlabeled weights are constructor defaults and conflict with the planned paper-style prior-weighted recipe; #126 must settle the recipe before activation."
+          "Recipe frozen on 2026-10-24 by owner decision (docs/research/pu_survey/admission/genpu_126_adjudication_20261024.md): the paper prior-weighted minimax/anti-GAN objective is kept, Du fake samples are weighted pi/(1-pi), and the final PN risk is prior-weighted softplus.",
+          "The frozen recipe fixes identity output, a two-layer-256/latent-100 dense generator, linear Dp/Dn heads, two-layer-256 Du/PN heads, four independently seeded ResNet-18 stems, and the G-step freeze of D parameters/BN/dropout with input gradients kept. The three lambda weights stay 1.0: prior weighting lives in the Du mixture and the PN risk, not in those knobs. Full-data resource measurement and numeric parity remain outside this decision."
         ]
       },
       "algorithm": "genpu"
@@ -1933,7 +1934,7 @@
         "Requires clean support and the formal support path. No imdb unit is included because imdb is outside the approved support-dataset list."
       ],
       "genpu": [
-        "Equal positive/negative/unlabeled weights are constructor defaults and conflict with the planned paper-style prior-weighted recipe; #126 must settle the recipe before activation."
+        "Recipe frozen on 2026-10-24 (docs/research/pu_survey/admission/genpu_126_adjudication_20261024.md); full-data resources and numeric parity stay outside the freeze."
       ],
       "holistic_pu": [
         "Stage selection, initialization and storage values are constructor defaults; the P3.2 recipe blockers remain open."

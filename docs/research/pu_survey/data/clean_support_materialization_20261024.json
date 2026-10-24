@@ -8,7 +8,7 @@
   "formal_budget_approved": false,
   "owner_signatures": [],
   "protocol_policy_ref": "pu_toolbox/experiment/survey_protocol_v3.json",
-  "protocol_policy_sha256": "c2e55c0a1a225335cdb0d7c12228a6b5d4a6da11be1e6adb8de375018082a53d",
+  "protocol_policy_sha256": "e8621d3c0e18afbf68fc3572bd467a23a86055603621ae7dcb96c93fde66a762",
   "protocol_pending_review_items": [],
   "protocol_pending_resolution": "v2_p4_clean_support_policy and v2_p10_self_pu_scope were accepted in survey-v3.0; see docs/research/pu_survey/delivery/v3_freeze_20261024.md",
   "protocol_binding": "policy_basis_only_not_a_versioned_execution_unit",
@@ -720,5 +720,5 @@
       }
     }
   },
-  "receipt_sha256": "6deb1641bdaecb210e712eeaf6e99828d3eee2ec7ee62e4a4bb7412fc02fbb22"
+  "receipt_sha256": "3c04ec8c04a52ffa30a90baafdba6d6346eca179bbbd4a6de19f6cedbd62b686"
 }
