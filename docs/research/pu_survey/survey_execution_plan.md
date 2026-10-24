@@ -40,6 +40,7 @@
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
 | v3 ↔ comparison/registry 绑定 | 结果进不了比较矩阵 | 版本化 profile 映射，重绑 comparison | shuidisjtu | 运行不再记 `missing_versioned_profile_mapping` |
 | P4.1-B 正式预算冻结 | 没有正式准入 | 5 方法阶段预算转正；其余方法族补冻结预算 | shuidisjtu 起草，HENG958 核对 | P4.1-B 记录 |
+| recipe registry 仍停在 v0.1 draft | 只覆盖 upu/nnpu/kldce/dist_pu/pusb_kernel/lbe/self_pu/pn_oracle 且绑 `survey-v2.0`；v3 中需要 recipe 的 5 个方法（GEN-PU、GradPU、PAN、VPU、Holistic-PU）无登记 | 把 recipe 登记扩到 v3 并纳入这 5 个方法 | shuidisjtu 打包，HENG958 出配方数值 | registry 绑 v3，每方法有 recipe 摘要与证据 |
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
 | 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
 | GPU 机时实测 | 无法排 AutoDL 正式批次 | GradPU 首跑、三个 adapter 行真实 CIFAR 单 seed、PN-CNN 单 seed 计时与资源峰值 | shuidisjtu | 实测表反推机时 |
