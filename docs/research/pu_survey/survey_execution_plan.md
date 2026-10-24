@@ -45,7 +45,6 @@
 | 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
 | GPU 机时实测 | 无法排 AutoDL 正式批次 | GradPU 首跑、三个 adapter 行真实 CIFAR 单 seed、PN-CNN 单 seed 计时与资源峰值 | shuidisjtu | 实测表反推机时 |
 | PA 准则正式放行 | PA 行仍带 `per_epoch_independent_PA_OA_checkpoint_selection` | P2.0c 规则落地 | HENG958 | 阻断位移除 |
-| #122 Split-PU 裁决 | Split-PU 口径未定 | 负责人裁决 JSD 方向/分母与 TS 比例口径 | HENG958 | 裁决记录（测试全绿不等于关闭） |
 | PN-CNN 5 seed | oracle 行 | 协议定稿后再安排（D30） | — | 另行安排，不标完成 |
 
 ### 1.3 预算与资源
@@ -89,9 +88,9 @@ P4.1-B 完成前不把 draft 预算当 locked 预算。
 - 比较矩阵 `survey_comparison_v4.json` 仍绑 `survey-v2.0`：v3 结果在版本化 profile 映射落地前
   不进比较矩阵（运行逐条记 `missing_versioned_profile_mapping`）。
 - `runnable` 只表示实现能力，不是正式准入。v3 的 `formal_blockers` 未清、P4.1-B 预算未冻结。
-  v3 中 `formal_blockers` 与 `draft_scope.limitations` 的措辞仍早于最后两笔接线（图像行、
-  clean-support 行），与 `execution_units` 已不一致；在真实运行对齐之前按“未验证”处理，
-  不据此改准入。
+  v3 中 `formal_blockers`、`draft_scope.limitations` 与 split_pu 的两处 `configuration_review`
+  措辞仍早于最后两笔接线和 #122 裁决，与 `execution_units`/已裁决状态不一致；在真实运行对齐
+  之前按“未验证”处理，不据此改准入。这些陈旧措辞留到下一次版本化协议更新一并修正。
 - 冻结文件只在版本化提案中修改；新数据、方法或配方登记新协议，不覆盖旧 645-run 结果、
   旧 manifest 或历史签署。
 - **P3.1 完成 ≠ 正式准入**；正式准入仍待预算冻结与主榜门禁。
@@ -129,7 +128,7 @@ P4.1-B 完成前不把 draft 预算当 locked 预算。
 | 方法 | 已登记差异 | 处置 |
 |---|---|---|
 | Dist-PU | clean-room 全量目标与作者两阶段、scheduler、直方图目标不同 | 另有显式 `author_staged` 路径；默认 clean-room 不变 |
-| Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | #122 待HENG958裁决 |
+| Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | 已裁决（2026-10-24）：保持源码 0.7、batch 记 benchmark 近似、台账指针待版本化修正，见[裁决记录](admission/splitpu_122_adjudication_20261024.md) |
 | PAN | 论文 Eq. (7) 与源码目标、采样不一致 | 保留 paper-faithful；正式采样跟随论文 OS |
 | CVIR | 原始 U 的 α_U 与总体 π 不同；已补全局风险池校准与视图先验换算的独立工程入口 | v3 已声明 3 个单元但全 blocked；预算/runner 与真实数据/GPU 仍待，不把工程对照当论文数值复现 |
 | Grad-PU | 论文要求移除 BN | `cnn13_no_bn` 单列 method-private，附 SHOULD 共享对照 |
@@ -242,7 +241,7 @@ support 而被拒。三个 clean-support 方法已在重建制品上跑通单 se
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D32）
+## 附录 A. 决策账本（D1–D33）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -281,3 +280,4 @@ support 而被拒。三个 clean-support 方法已在重建制品上跑通单 se
 | D30 | **PN-CNN 5 seed 暂缓** | 用户要求 P3.2 中 PN-CNN 的 5 seed 实验等协议定稿后再安排；不视为完成或永久取消，不影响其他方法/support 的五 seed 口径，不改冻结协议及历史结果。 | 2026-10-22 |
 | D31 | **v3 冻结即执行协议** | `survey_protocol_v3.json`（`survey-v3.0`）转正为执行协议，runnable 40/64；`survey-v2.0` 保留为 645-run pilot 的历史绑定；`survey_comparison_v4.json` 仍绑 v2，v3 结果在版本化 profile 映射落地前不进比较矩阵。`runnable` 只表示实现能力，正式准入另需清 `formal_blockers` 与 P4.1-B 冻结。 | 2026-10-24 |
 | D32 | **clean-support 制品重建口径** | 10-22 的 25 份制品不在本机时，用同一 raw 字节与同一准备入口在本机重建，成员须与旧记录 25/25 一致；重压缩与 provenance 时间戳会改变摘要，因此记为新收据、不冒充旧批次的跨机副本；主 CLI 以制品目录作 `data_dir`、`--split-ref` 指向制品自身 manifest，用 `data/splits/*` 配对会被拒。 | 2026-10-24 |
+| D33 | **Split-PU #122 三项裁决** | ① JSD 保持锁定源码 `teacher=0.7` 与现有归一化分母，论文 Eq. (6) 方向作已登记差异，不另立变体（只改权重会引入约 1.4466 倍缩放）；② TS 均衡 batch 的并集比例登记为 benchmark 近似，本轮不按 π 加权；③ 台账指针授权修正但推迟到下一次版本化台账更新。Split-PU 两行翻牌、#122 可关。见[裁决记录](admission/splitpu_122_adjudication_20261024.md)。 | 2026-10-24 |
