@@ -11,10 +11,15 @@ from pu_toolbox.utils.serialization import strict_canonical_hash
 pytestmark = pytest.mark.contract
 ROOT = Path(__file__).resolve().parents[2]
 RECEIPT = ROOT / "docs/research/pu_survey/data/clean_support_materialization_20261022.json"
+REBUILD = ROOT / "docs/research/pu_survey/data/clean_support_materialization_20261024.json"
 
 
 def receipt():
     return json.loads(RECEIPT.read_text(encoding="utf-8"))
+
+
+def rebuild_receipt():
+    return json.loads(REBUILD.read_text(encoding="utf-8"))
 
 
 def test_basic_coverage_is_exactly_five_datasets_times_five_seeds():
@@ -90,3 +95,41 @@ def test_determ_canonical_receipt_digest_and_relative_artifact_paths():
     assert cifar["bytes"] == 170498071
     assert cifar["publisher_checksum"] == "c58f30108f718f92721af3b95e74349a"
     assert cifar["publisher_checksum_verified"] is True
+
+
+def test_basic_rebuild_reproduces_membership_but_carries_new_receipts():
+    baseline = receipt()
+    data = rebuild_receipt()
+    identity = data.pop("receipt_sha256")
+    assert strict_canonical_hash(data) == identity
+    assert data["rebuild_of"] == (
+        "docs/research/pu_survey/data/clean_support_materialization_20261022.json"
+    )
+    assert data["rebuild_of_receipt_sha256"] == baseline["receipt_sha256"]
+    assert data["formal_admission"] is data["formal_budget_approved"] is False
+    assert data["owner_signatures"] == []
+    assert data["protocol_pending_review_items"] == []
+    assert "accepted in survey-v3.0" in data["protocol_pending_resolution"]
+    assert data["validation"]["canonical_cli_reproduction"].startswith("spambase seed0:")
+    assert data["coverage"] == {
+        "expected_products": 25,
+        "observed_products": 25,
+        "complete": True,
+        "missing": [],
+    }
+    assert data["product_total_bytes"] == sum(row["bytes"] for row in data["products"])
+    recorded = {(row["dataset"], row["seed"]): row for row in baseline["products"]}
+    observed = {(row["dataset"], row["seed"]): row for row in data["products"]}
+    assert set(observed) == set(recorded) and len(observed) == 25
+    for key, row in observed.items():
+        old = recorded[key]
+        assert row["support_seed"] == row["seed"]
+        assert row["role_sizes"] == old["role_sizes"]
+        assert (row["support_positive"], row["support_negative"]) == (
+            old["support_positive"],
+            old["support_negative"],
+        )
+        assert row["receipt_sha256"] != old["receipt_sha256"]
+        directory = Path(row["directory"])
+        assert not directory.is_absolute() and ".." not in directory.parts
+        assert directory == Path(data["artifact_root"]) / row["dataset"] / f"split_{row['seed']}"

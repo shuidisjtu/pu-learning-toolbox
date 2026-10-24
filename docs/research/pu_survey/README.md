@@ -55,6 +55,7 @@
 - 独立 clean-support 制品与 CPU 入口：[`clean_support_workflow_20261017.md`](delivery/clean_support_workflow_20261017.md)：五数据集 train 内分拆、五角色收据、剩余 train-only 预处理与 Self-PU/LaGAM/PULNS 单候选 OA 回放；不批准正式预算。
 - [Clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)：Self-PU/LaGAM 的 meta-active 与 PULNS 的 episode 快照、显式 PA+clean-support/OA、容量预检和选后回收；默认终点 OA 保留，非正式准入。
 - [五数据集真实 support 制品](delivery/clean_support_materialization_20261022.md)：本机 25 份五角色制品、逐 raw 映射/剩余 train 预处理核验、三方法真实 Spambase CPU 工程链；Git 仅登记清单，不含 NPZ/原始数据，不等于正式预算或 GPU 结果。
+- [25 份 clean-support 本机重建](delivery/clean_support_rebuild_20261024.md)：同 raw 字节/同源码重建，成员 25/25 与 10-22 记录一致但收据是新的；给出主 CLI 的 `--support-dir` 正确配对方式与三方法 CPU 冒烟。
 - [GEN-PU 单候选工程 recipe](delivery/genpu_recipe_20261023.md)：#126 四项工程规格、实际 PA/OA manifest、真实 CIFAR 预固定小子集与全宽 ResNet-18 的 batch8/256 GPU 峰值/回放；正式 v3/预算及全量验收仍待，不自动关 issue。
 - [PULDA/GradPU 图像 runner](delivery/candidate_image_runner_20261023.md)：四角色双轨入口、真实 CIFAR 小子集完整120/200快照、实际峰值/回收与选中模型回放；正式 v3/预算仍待。
 - [Self-PU full-meta TS 入口](delivery/selfpu_ts_support_20261023.md)：显式 clean-support TS 双 teacher 选择、真实 Spambase 同条件短 OS/TS 运行与校准事实记录；默认 OS/旧消融和正式准入边界不变。
