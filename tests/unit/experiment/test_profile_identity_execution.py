@@ -69,7 +69,7 @@ def test_basic_real_unit_cli_writes_profile_algorithm_and_correct_native_ledger(
     code, output = execute(survey_script, tmp_path, draft())
     assert code == 0
     path = next(output.rglob("manifest.json"))
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding="utf-8"))
     assert manifest["profile_id"] == manifest["execution_unit"]["method"] == "upu_recipe"
     assert manifest["algorithm_id"] == "upu" and FIELD in manifest
     assert not manifest["formal_eligible"]
@@ -77,7 +77,7 @@ def test_basic_real_unit_cli_writes_profile_algorithm_and_correct_native_ledger(
     assert set(manifest["selection"]) == {"PA", "OA"}
     assert manifest["comparison_registration_status"] == "missing_versioned_profile_mapping"
     assert "comparison" not in manifest
-    ledger = json.loads((path.parent / "method_ledger_entry.json").read_text())
+    ledger = json.loads((path.parent / "method_ledger_entry.json").read_text(encoding="utf-8"))
     assert ledger["class"] == "UPUClassifier"
 
 
@@ -237,7 +237,7 @@ def test_determ_real_nnpu_profile_matches_plain_native_epoch_weights(survey_scri
         survey_script, tmp_path, protocol, "nnpu_recipe", prepare=enough_validation_labels
     )
     assert code == 0
-    manifest = json.loads(next(output.rglob("manifest.json")).read_text())
+    manifest = json.loads(next(output.rglob("manifest.json")).read_text(encoding="utf-8"))
     parts = survey_script.load_split_parts(tmp_path / "input")
     observed, _ = SCARGenerator().generate(parts[0].X, parts[0].labels, 0.5, 0)
     val_observed, _ = SCARGenerator().generate(parts[1].X, parts[1].labels, 0.5, 0)
@@ -314,7 +314,7 @@ def test_basic_actual_pilot_process_and_second_pass_resume_are_profile_aware(tmp
         str(snapshot),
     ]
     assert pilot.main([*args, "--dry-run"]) == 0
-    plan = json.loads(snapshot.read_text())
+    plan = json.loads(snapshot.read_text(encoding="utf-8"))
     assert plan["profile_identities"]["upu_recipe"]["algorithm_id"] == "upu"
     assert plan["totals"]["pending"] == 1
     assert pilot.main(args[:-2]) == 0  # --plan-json is deliberately dry-run only.
@@ -324,7 +324,7 @@ def test_basic_actual_pilot_process_and_second_pass_resume_are_profile_aware(tmp
 
     monkeypatch.setattr(pilot, "_run_batch", forbidden)
     assert pilot.main([*args, "--dry-run"]) == 0
-    plan = json.loads(snapshot.read_text())
+    plan = json.loads(snapshot.read_text(encoding="utf-8"))
     assert plan["totals"]["completed"] == 1 and plan["totals"]["pending"] == 0
 
 
@@ -336,7 +336,7 @@ def test_edge_cleared_blockers_cannot_promote_engineering_profile(survey_script,
     protocol["formal_blockers"] = []
     code, output = execute(survey_script, tmp_path, protocol)
     assert code == 0
-    manifest = json.loads(next(output.rglob("manifest.json")).read_text())
+    manifest = json.loads(next(output.rglob("manifest.json")).read_text(encoding="utf-8"))
     assert not manifest["formal_eligible"]
     assert "profile_identity_extension_engineering_only" in manifest["formal_blockers"]
     with pytest.raises(ValueError, match="formal"):
