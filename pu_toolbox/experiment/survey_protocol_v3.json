@@ -199,6 +199,14 @@
       "parameter_values": {
         "hidden_dim": 64
       }
+    },
+    "genpu_native_cnn": {
+      "algorithm_id": "genpu",
+      "architecture": "resnet18_small_image"
+    },
+    "pulda_native_cnn": {
+      "algorithm_id": "pulda",
+      "architecture": "resnet18_small_image"
     }
   },
   "budgets": {
@@ -1639,6 +1647,30 @@
       "training_path": "native_cnn",
       "method": "vpu",
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+    },
+    {
+      "dataset": "cifar10",
+      "method": "genpu",
+      "training_path": "native_cnn",
+      "budget": "genpu",
+      "model_family": "genpu_native_cnn",
+      "backbone": "genpu_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/native_cnn/genpu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pulda",
+      "training_path": "native_cnn",
+      "budget": "pulda",
+      "model_family": "pulda_native_cnn",
+      "backbone": "pulda_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/native_cnn/pulda",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
     }
   ],
   "formal_blockers": [

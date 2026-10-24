@@ -2693,11 +2693,11 @@
     "pu_toolbox/experiment/survey_profile_identity.py": "2e1e724c987ad8d08921e2e634280b2dda79cfff2b6e3f5c14ccb51d190788cf",
     "pu_toolbox/experiment/survey_protocol.py": "c44bd0081f52d58284a6fa3b99541a9799bdc46e74963e3aa6af56d51fd89c0c",
     "pu_toolbox/experiment/survey_protocol_v2.json": "7d96c5898ae702f918553dea99e80d704d52ce22e214aafc77c8bcd5b77d39ba",
-    "pu_toolbox/experiment/survey_staged_budget.py": "b499dec1f0f274a5d01d70628510752f1fd11940dfb39c7251b4bec5becc61b1",
+    "pu_toolbox/experiment/survey_staged_budget.py": "33fdaf79f4820b4bdf5cf57b285c937804c26443d28f7c8abd6dbad023168e91",
     "pu_toolbox/experiment/survey_v3_proposal.py": "c8bbfe00770f6a482739b598a4ed61d2bb07501f5cecfb0507de6140e1adf970",
     "scripts/prepare_survey_v3_proposal.py": "a9b1268bb9dab09c06f9216e87e53d1b450dff8aef073a6935a9d9796a56bbed",
     "scripts/run_survey_experiment.py": "6098a9415766dabeadb29e93dbd23dc545826619b653210de436909935757497",
     "scripts/run_survey_pilot.py": "61f7ab78143fb1b3e2ccf8ef4b75bd706a1e042c7f23f822f8aaa6fa46d2a24e"
   },
-  "proposal_sha256": "e56d506ff13848e5daeeb0033afdde0453e502fb1bbf56ac261f216de536a38d"
+  "proposal_sha256": "2ee09e3bdaecfc457f904c546025db5ff24be7ab34e3c9a7bb6eeeb6da7fb4b8"
 }

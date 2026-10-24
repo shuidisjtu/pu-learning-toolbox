@@ -151,21 +151,26 @@ def validate_protocol_budgets(protocol):
         if row["budget"] != profile.get("budget"):
             raise ValueError("unit and profile staged budget must match")
         algorithm = profile["algorithm"]
-        if row["training_path"] != "native_2d" or (
-            row["model_family"] != f"{algorithm}_native"
-            or row["backbone"] != f"{algorithm}_native_mlp"
-        ):
-            raise ValueError("staged draft requires its own native_2d architecture identity")
-        expected = {
-            "algorithm_id": algorithm,
-            "parameter_values": {
-                key: profile["params"][key]
-                for key in ("hidden_dim", "latent_dim")
-                if key in profile["params"]
-            },
-        }
-        if algorithm == "pulda":
-            expected["parameter_values"]["depth"] = profile["params"]["depth"]
+        path = row["training_path"]
+        if path not in ("native_2d", "native_cnn"):
+            raise ValueError("staged budgets attach to native training paths only")
+        family = f"{algorithm}_native" if path == "native_2d" else f"{algorithm}_native_cnn"
+        backbone = family if path == "native_cnn" else f"{algorithm}_native_mlp"
+        if row["model_family"] != family or row["backbone"] != backbone:
+            raise ValueError("staged draft requires its own native architecture identity")
+        if path == "native_cnn":
+            expected = {"algorithm_id": algorithm, "architecture": "resnet18_small_image"}
+        else:
+            expected = {
+                "algorithm_id": algorithm,
+                "parameter_values": {
+                    key: profile["params"][key]
+                    for key in ("hidden_dim", "latent_dim")
+                    if key in profile["params"]
+                },
+            }
+            if algorithm == "pulda":
+                expected["parameter_values"]["depth"] = profile["params"]["depth"]
         if protocol["backbone_specs"].get(row["backbone"]) != expected:
             raise ValueError("staged native architecture spec differs from profile")
 
