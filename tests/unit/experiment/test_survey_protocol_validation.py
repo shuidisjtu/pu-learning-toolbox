@@ -34,23 +34,26 @@ def test_basic_kldce_is_explicitly_non_runnable_for_all_three_datasets():
             resolve_unit(protocol, row["dataset"], "kldce")
 
 
-def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_but_protocol_stays_draft():
-    draft_path = (
+def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_under_frozen_protocol():
+    protocol_path = (
         Path(__file__).resolve().parents[3]
         / "pu_toolbox"
         / "experiment"
-        / "survey_protocol_v3_draft.json"
+        / "survey_protocol_v3.json"
     )
-    protocol = load_protocol(draft_path)
+    protocol = load_protocol(protocol_path)
 
     row = resolve_unit(protocol, "cifar10", "pn_oracle", "native_cnn")
 
     assert row["runnable"] is True
     assert row["oracle_alignment"] == "shared_resnet18_end_to_end_and_minibatch_budget"
     assert "non_runnable_reason" not in row
-    assert protocol["review_status"] != "accepted"
-    budget_blocker = "P4.1-B method-specific budgets and candidate recipes are not frozen."
-    assert budget_blocker in protocol["formal_blockers"]
+    assert protocol["review_status"] == "accepted"
+    remaining_blocker = (
+        "CVIR, LaGAM, PULNS, KLDCE, P3MIX, PAN, PUET, RP, VPU and the GradPU "
+        "native-2d path still lack a frozen main-chain budget or runner."
+    )
+    assert remaining_blocker in protocol["formal_blockers"]
 
 
 @pytest.mark.parametrize(
@@ -137,13 +140,13 @@ def test_determ_review_matrix_and_kldce_rejection_are_stable():
 
 
 def test_kldce_runtime_binding_is_scar_only_and_uses_realized_c():
-    draft_path = (
+    protocol_path = (
         Path(__file__).resolve().parents[3]
         / "pu_toolbox"
         / "experiment"
-        / "survey_protocol_v3_draft.json"
+        / "survey_protocol_v3.json"
     )
-    profile = load_protocol(draft_path)["method_profiles"]["kldce"]
+    profile = load_protocol(protocol_path)["method_profiles"]["kldce"]
 
     assert bind_runtime_parameters("kldce", {}, profile, mechanism="scar", c_realized=0.1) == {
         "flip_probability": pytest.approx(0.9)

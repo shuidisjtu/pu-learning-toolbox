@@ -1,7 +1,7 @@
-"""Explicit draft-only profile identity, separate from registered algorithms.
+"""Explicit profile identity, separate from registered algorithms.
 
 No registry aliases are registered. Legacy protocols keep method == algorithm;
-only the named draft extension can attach an algorithm to a recipe/profile ID.
+only a protocol carrying this schema can attach an algorithm to a profile ID.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import re
 
 SCHEMA = "survey-profile-identity-1"
 FIELD = "profile_identity_schema_version"
-DRAFT_VERSION = "survey-v3.0-draft"
+PROTOCOL_VERSION = "survey-v3.0"
 MANIFEST_FIELDS = (FIELD, "profile_id", "algorithm_id")
 _NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
 
@@ -26,12 +26,12 @@ def validate_profile_identities(protocol):
         profiles = protocol.get("method_profiles", {})
         if any(isinstance(value, dict) and "algorithm" in value for value in profiles.values()):
             raise ValueError(
-                "profile algorithm mappings require the explicit draft identity schema"
+                "profile algorithm mappings require the explicit profile identity schema"
             )
         return
     profiles = protocol["method_profiles"]
-    if protocol[FIELD] != SCHEMA or protocol.get("protocol_version") != DRAFT_VERSION:
-        raise ValueError("profile identity schema requires explicit survey-v3.0-draft")
+    if protocol[FIELD] != SCHEMA or protocol.get("protocol_version") != PROTOCOL_VERSION:
+        raise ValueError("profile identity schema requires explicit survey-v3.0")
     from ..core.base import BasePUClassifier
     from ..core.exceptions import RegistryError
     from ..registry import get_algorithm, get_algorithm_registry, register_all_builtin_methods
@@ -149,7 +149,7 @@ def valid_manifest_profile_identity(payload):
     """Check new artifact shape, not its algorithm mapping against a source matrix."""
     if not has_profile_identities(payload):
         return True
-    if payload[FIELD] != SCHEMA or payload.get("protocol_version") != DRAFT_VERSION:
+    if payload[FIELD] != SCHEMA or payload.get("protocol_version") != PROTOCOL_VERSION:
         return False
     unit = payload.get("execution_unit")
     if not isinstance(unit, dict) or type(payload.get("seed")) is not int:

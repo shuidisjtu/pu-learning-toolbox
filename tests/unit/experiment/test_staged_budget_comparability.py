@@ -17,7 +17,7 @@ pytestmark = pytest.mark.unit
 
 def manifest():
     return {
-        "protocol_version": "survey-v3.0-draft",
+        "protocol_version": "survey-v3.0",
         "protocol_sha256": "same-source",
         "seed": 0,
         "training_path": "native_2d",

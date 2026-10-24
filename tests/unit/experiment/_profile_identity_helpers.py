@@ -3,7 +3,7 @@
 import copy
 import json
 
-from pu_toolbox.experiment.survey_profile_identity import DRAFT_VERSION, FIELD, SCHEMA
+from pu_toolbox.experiment.survey_profile_identity import FIELD, PROTOCOL_VERSION, SCHEMA
 from pu_toolbox.experiment.survey_protocol import load_protocol
 
 
@@ -20,7 +20,7 @@ def draft(algorithm="upu", profile_id=None):
     for row in rows:
         row["method"] = profile_id
     protocol.update(
-        protocol_version=DRAFT_VERSION,
+        protocol_version=PROTOCOL_VERSION,
         method_profiles={profile_id: profile},
         execution_units=rows,
         seeds=[0],
