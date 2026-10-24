@@ -359,8 +359,26 @@ def expand_unit_requests(proposal):
     return rows
 
 
-def validate_proposal(proposal, *, root=ROOT):
-    """Reject stale sources, ghosts, missing cells, or fabricated authorizations."""
-    if strict_canonical_hash(proposal) != strict_canonical_hash(build_proposal(root=root)):
-        raise ValueError("proposal differs from current sources/scope or inserts unapproved values")
+def validate_proposal(proposal, *, root=ROOT, check_sources=False):
+    """Reject ghosts, missing cells, or fabricated authorizations.
+
+    Source digests drift whenever a module the builder parses changes, which is
+    normal development rather than a claim about the proposal. Content, scope and
+    the recorded hash stay pinned; ``check_sources=True`` additionally demands the
+    artifact's source digests be current, for a deliberate provenance audit.
+    """
+    built = build_proposal(root=root)
+    volatile = ("source_files_sha256", "proposal_sha256")
+    if check_sources:
+        if strict_canonical_hash(proposal) != strict_canonical_hash(built):
+            raise ValueError(
+                "proposal differs from current sources/scope or inserts unapproved values"
+            )
+    else:
+        content = {key: value for key, value in proposal.items() if key not in volatile}
+        expected = {key: value for key, value in built.items() if key not in volatile}
+        if strict_canonical_hash(content) != strict_canonical_hash(expected):
+            raise ValueError(
+                "proposal differs from current sources/scope or inserts unapproved values"
+            )
     return expand_unit_requests(proposal)

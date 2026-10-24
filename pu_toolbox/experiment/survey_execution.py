@@ -223,8 +223,15 @@ class SourceSpaceGenerator:
         }
 
 
-def prepare_image_bundle(bundle: DatasetBundle, protocol: dict, seed: int, *, dataset: str):
-    """Fit only train statistics; normalization stays inside the encoder."""
+def prepare_image_bundle(
+    bundle: DatasetBundle, protocol: dict, seed: int, *, dataset: str, with_preprocessing=False
+):
+    """Fit only train statistics; normalization stays inside the encoder.
+
+    ``with_preprocessing`` returns the fitted preprocessing object as a fourth
+    element for callers that must build their own architecture (GradPU's private
+    CNN13 cannot reuse the shared ResNet-18 encoder).
+    """
     import torch
 
     spec = image_spec(protocol, dataset)
@@ -256,6 +263,8 @@ def prepare_image_bundle(bundle: DatasetBundle, protocol: dict, seed: int, *, da
     metadata = preprocessing.to_manifest()
     metadata["initialization_seed"] = seed
     metadata["encoder_state_sha256"] = encoder_state_sha256(encoder)
+    if with_preprocessing:
+        return prepared, encoder, metadata, preprocessing
     return prepared, encoder, metadata
 
 
@@ -353,6 +362,7 @@ def assemble_model(
     class_prior: float | None,
     device: str,
     encoder=None,
+    preprocessing=None,
 ):
     """Instantiate matrix defaults; constructor/candidate overrides cannot change locks."""
     profile = protocol["method_profiles"][row["method"]]
@@ -388,5 +398,19 @@ def assemble_model(
             network = score_model(512 if encoder is not None else input_dim, row["model_family"])
         constructor["model" if algorithm == "nnpu" else "backbone"] = network
     if row["training_path"] == "native_cnn":
-        constructor["encoder"] = encoder
+        if algorithm == "gradpu":
+            # GradPU trains its own CNN13 without BN; the shared ResNet-18
+            # encoder is a different architecture and would silently retag it.
+            if preprocessing is None:
+                raise ValueError("GradPU native CNN requires the fitted image preprocessing")
+            from ..estimators.deep.vision import build_wconpu_backbone
+
+            constructor["encoder"] = build_wconpu_backbone(
+                "cnn13_no_bn",
+                in_channels=preprocessing.in_channels,
+                normalization_mean=preprocessing.normalization_mean,
+                normalization_std=preprocessing.normalization_std,
+            )
+        else:
+            constructor["encoder"] = encoder
     return cls(**constructor)

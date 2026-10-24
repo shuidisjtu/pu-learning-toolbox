@@ -16,6 +16,11 @@ from pu_toolbox.experiment.survey_v3_proposal import (
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", type=Path)
+    parser.add_argument(
+        "--strict-sources",
+        action="store_true",
+        help="also require the artifact's source digests to be current (provenance audit)",
+    )
     output_mode = parser.add_mutually_exclusive_group()
     output_mode.add_argument("--summary", action="store_true")
     output_mode.add_argument("--units", action="store_true")
@@ -24,7 +29,11 @@ def main(argv=None):
         proposal = (
             json.loads(args.check.read_text(encoding="utf-8")) if args.check else build_proposal()
         )
-        rows = validate_proposal(proposal) if args.check else expand_unit_requests(proposal)
+        rows = (
+            validate_proposal(proposal, check_sources=args.strict_sources)
+            if args.check
+            else expand_unit_requests(proposal)
+        )
         if args.summary:
             output = {
                 "proposal_sha256": proposal["proposal_sha256"],

@@ -144,6 +144,12 @@ def _checkpoint_storage(protocol: dict, row: dict, *, input_dim: int) -> tuple[i
     from .survey_staged_budget import FIELD, checkpoint_epochs, validate_contract
 
     budget = protocol["budgets"][row["budget"]]
+    declared = budget.get("checkpoint_bytes_per_component")
+    if type(declared) is int and declared > 0:
+        # Methods that checkpoint more than the bare MLP (two teacher networks, a
+        # fitted meta head) declare the measured per-component bound themselves;
+        # the parametric MLP estimate below would under-count them.
+        return declared, "explicit_budget_bound"
     if FIELD in budget:
         validate_contract(budget[FIELD])
         return budget[FIELD]["checkpoint_bytes_per_component"], "explicit_staged_budget_bound"
@@ -498,7 +504,7 @@ def _validate_budget(model, budget: dict) -> None:
     ):
         raise ValueError("two-student budget must describe two Self-PU updates per epoch")
     if "epochs" in budget:
-        actual = params.get("max_epochs", params.get("epochs"))
+        actual = params.get("max_epochs", params.get("epochs", params.get("episodes")))
         if actual != budget["epochs"]:
             raise ValueError("declared epoch budget does not match actual estimator epochs")
     for name in (
@@ -538,7 +544,9 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         protocol, request["dataset"], request["method"], request.get("training_path")
     )
     profile = protocol["method_profiles"][row["method"]]
-    require_four_role_profile(protocol, row["method"])
+    require_four_role_profile(
+        protocol, row["method"], clean_support=bool(config.get("clean_support_provided"))
+    )
     algorithm = profile_algorithm(protocol, row["method"])
     for name in _LOCKED_CONFIG:
         if name in config:
@@ -598,7 +606,14 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         "sar_lbe_a": "SARLBEAGenerator",
         "sar_lbe_b": "SARLBEBGenerator",
     }[mechanism]
-    expected_names = {"PA", "OA"} if mechanism == "scar" else {"OA"}
+    if mechanism == "scar":
+        # The audited extra-support path names its PA protocol separately, so the
+        # unit records PA+clean-support instead of plain PA.
+        expected_names = (
+            {"PA+clean-support", "OA"} if config.get("clean_support_provided") else {"PA", "OA"}
+        )
+    else:
+        expected_names = {"OA"}
     if row["method"] == "pn_oracle":
         expected_generator, expected_names = "CleanLabelGenerator", {"OA"}
     from .survey_execution import SourceSpaceGenerator
@@ -660,11 +675,17 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         ):
             raise ValueError("image manifest disagrees with locked size/initialization")
         representation["image_preprocessing"] = copy.deepcopy(image)
-        if (
-            row["training_path"] == "native_cnn"
-            and encoder_state_sha256(model.encoder) != image["encoder_state_sha256"]
-        ):
-            raise ValueError("native CNN encoder state does not match its image manifest")
+        if row["training_path"] == "native_cnn":
+            actual_encoder = encoder_state_sha256(model.encoder)
+            declared_architecture = (
+                protocol["backbone_specs"].get(row.get("backbone"), {}).get("architecture")
+            )
+            if actual_encoder != image["encoder_state_sha256"]:
+                # GradPU trains a method-private CNN13 rather than the shared
+                # ResNet-18; record that encoder instead of claiming the shared one.
+                if declared_architecture != "cnn13_no_bn":
+                    raise ValueError("native CNN encoder state does not match its image manifest")
+                representation["method_private_encoder_state_sha256"] = actual_encoder
     if row["training_path"] == "cnn_feature_adapter":
         if not adapter or adapter.get("training_path") != "cnn_feature_adapter":
             raise ValueError("cnn_feature_adapter unit requires its actual adapter manifest")

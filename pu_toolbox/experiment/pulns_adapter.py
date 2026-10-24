@@ -108,9 +108,10 @@ class _IndependentSupportTrainer(Trainer):
         self._prepared = False
         if not isinstance(model, self.estimator_type()):
             raise TypeError(f"{self.display_name} support adapter received a different estimator")
-        if config.get("survey_protocol") is not None:
+        if config.get("survey_protocol") is not None and not config.get("clean_support_provided"):
             raise ValueError(
-                f"{self.display_name} support adapter is exploratory only, not frozen Survey"
+                f"{self.display_name} support adapter requires an explicit audited "
+                "clean-support opt-in for versioned Survey runs"
             )
         self._validate_training_view(config.get("os_or_ts"))
         self._validate_selection_protocols(protocols)

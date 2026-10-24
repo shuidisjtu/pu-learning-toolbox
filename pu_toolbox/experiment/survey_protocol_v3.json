@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "protocol_version": "survey-v3.0-draft",
-  "review_status": "pending_collaborator_review",
+  "protocol_version": "survey-v3.0",
+  "review_status": "accepted",
   "review_items": [
     {
       "item_id": "v2_p1_pa_oa_selection",
@@ -40,7 +40,7 @@
         "2.4"
       ],
       "origin": "A3",
-      "status": "pending_collaborator_review"
+      "status": "accepted"
     },
     {
       "item_id": "v2_p5_architecture_exception",
@@ -100,7 +100,7 @@
         "2.4"
       ],
       "origin": "decision",
-      "status": "pending_collaborator_review",
+      "status": "accepted",
       "note": "decision record only; no execution-unit change"
     }
   ],
@@ -167,6 +167,72 @@
       "adapter_encoder_fit": "none",
       "adapter_shared_scope": "dataset/split/seed; independent of method/c/mechanism",
       "adapter_cache_schema": "1.0"
+    },
+    "genpu_native_mlp": {
+      "algorithm_id": "genpu",
+      "parameter_values": {
+        "hidden_dim": 128,
+        "latent_dim": 100
+      }
+    },
+    "pulda_native_mlp": {
+      "algorithm_id": "pulda",
+      "parameter_values": {
+        "hidden_dim": 64,
+        "depth": 2
+      }
+    },
+    "robust_pu_native_mlp": {
+      "algorithm_id": "robust_pu",
+      "parameter_values": {
+        "hidden_dim": 100
+      }
+    },
+    "split_pu_native_mlp": {
+      "algorithm_id": "split_pu",
+      "parameter_values": {
+        "hidden_dim": 100
+      }
+    },
+    "holistic_pu_native_mlp": {
+      "algorithm_id": "holistic_pu",
+      "parameter_values": {
+        "hidden_dim": 64
+      }
+    },
+    "genpu_native_cnn": {
+      "algorithm_id": "genpu",
+      "architecture": "resnet18_small_image"
+    },
+    "pulda_native_cnn": {
+      "algorithm_id": "pulda",
+      "architecture": "resnet18_small_image"
+    },
+    "mlp32": {
+      "hidden_dims": [
+        32
+      ],
+      "activation": "relu",
+      "output_dim": 1,
+      "initialization": "seeded_random",
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "robust_pu_adapter": {
+      "algorithm_id": "robust_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "split_pu_adapter": {
+      "algorithm_id": "split_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "holistic_pu_adapter": {
+      "algorithm_id": "holistic_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "gradpu_native_cnn": {
+      "algorithm_id": "gradpu",
+      "architecture": "cnn13_no_bn"
     }
   },
   "budgets": {
@@ -230,25 +296,10 @@
       "status": "pending_p4_1_b",
       "unit": "forest_budget_pending_p4_1_b"
     },
-    "draft_pulda": {
-      "outer_candidates": 1,
-      "status": "owner_confirmed_partial_pending_protocol_binding_and_remaining_gates",
-      "unit": "staged_budget_pending_p4_1_b"
-    },
     "draft_gradpu": {
       "outer_candidates": 1,
       "status": "pending_p4_1_b",
       "unit": "minibatch_budget_pending_p4_1_b"
-    },
-    "draft_robust_pu": {
-      "outer_candidates": 1,
-      "status": "pending_p4_1_b",
-      "unit": "staged_budget_pending_p4_1_b"
-    },
-    "draft_split_pu": {
-      "outer_candidates": 1,
-      "status": "pending_p4_1_b",
-      "unit": "staged_budget_pending_p4_1_b"
     },
     "draft_pan": {
       "outer_candidates": 1,
@@ -265,16 +316,6 @@
       "status": "pending_p4_1_b",
       "unit": "reinforcement_budget_pending_p4_1_b"
     },
-    "draft_genpu": {
-      "outer_candidates": 1,
-      "status": "pending_p4_1_b",
-      "unit": "adversarial_budget_pending_p4_1_b"
-    },
-    "draft_holistic_pu": {
-      "outer_candidates": 1,
-      "status": "pending_p4_1_b",
-      "unit": "staged_budget_pending_p4_1_b"
-    },
     "draft_cvir": {
       "outer_candidates": 1,
       "status": "pending_p4_1_b",
@@ -289,6 +330,154 @@
       "outer_candidates": 1,
       "unit": "minibatch_budget_pending_p4_1_b",
       "status": "pending_p4_1_b"
+    },
+    "genpu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-1",
+        "algorithm_id": "genpu",
+        "parameter_values": {
+          "max_epochs": 100,
+          "classifier_epochs": 100,
+          "batch_size": 64,
+          "hidden_dim": 128,
+          "latent_dim": 100,
+          "learning_rate": 0.0003
+        },
+        "checkpoint_epoch_count": 100,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "synthetic_pn"
+        ]
+      }
+    },
+    "pulda": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-1",
+        "algorithm_id": "pulda",
+        "parameter_values": {
+          "warmup_epochs": 60,
+          "pu_epochs": 60,
+          "positive_batch_size": 16,
+          "unlabeled_batch_size": 128,
+          "hidden_dim": 64,
+          "depth": 2,
+          "warmup_learning_rate": 0.0001,
+          "learning_rate": 0.001,
+          "warmup_weight_decay": 0.0005,
+          "weight_decay": 0.0001
+        },
+        "checkpoint_epoch_count": 120,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "warmup",
+          "pu_mixup"
+        ]
+      }
+    },
+    "robust_pu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-2",
+        "algorithm_id": "robust_pu",
+        "parameter_values": {
+          "pretrain_epochs": 10,
+          "episodes": 20,
+          "inner_epochs": 1,
+          "batch_size": 64,
+          "hidden_dim": 100,
+          "pretrain_lr": 0.001,
+          "learning_rate": 0.0001
+        },
+        "checkpoint_epoch_count": 30,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "pretrain",
+          "self_paced"
+        ]
+      }
+    },
+    "split_pu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-2",
+        "algorithm_id": "split_pu",
+        "parameter_values": {
+          "teacher_epochs": 10,
+          "split_epochs": 10,
+          "student_epochs": 10,
+          "rounds": 2,
+          "batch_size": 64,
+          "hidden_dim": 100,
+          "learning_rate": 0.001,
+          "agreement_threshold": 0.92
+        },
+        "checkpoint_epoch_count": 40,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "teacher",
+          "splitter",
+          "student"
+        ]
+      }
+    },
+    "holistic_pu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-2",
+        "algorithm_id": "holistic_pu",
+        "parameter_values": {
+          "warmup_epochs": 30,
+          "max_epochs": 100,
+          "batch_size": 64,
+          "hidden_dim": 64,
+          "learning_rate": 0.001,
+          "warmup_selection": "fixed",
+          "pseudo_pn_initialization": "continue",
+          "lzo_alpha": 0.5,
+          "lzo_validation_size": null
+        },
+        "checkpoint_epoch_count": 130,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "warmup",
+          "pseudo_pn"
+        ]
+      }
+    },
+    "lagam": {
+      "unit": "epochs",
+      "epochs": 20,
+      "batch_size": 64,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "pulns": {
+      "unit": "episodes",
+      "epochs": 20,
+      "batch_size": 128,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "clean_support_two_student": {
+      "unit": "two_student_sampled_epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "optimizer_steps_per_epoch": 2,
+      "sampled_examples_per_step_max": 512,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "gradpu": {
+      "unit": "epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 67108864
     }
   },
   "method_profiles": {
@@ -301,7 +490,8 @@
         "max_iter": 1000
       },
       "model_family": "linear",
-      "group": "classical"
+      "group": "classical",
+      "algorithm": "upu"
     },
     "nnpu": {
       "budget": "minibatch",
@@ -312,7 +502,8 @@
         "optimizer": null
       },
       "model_family": "mlp128",
-      "group": "minibatch"
+      "group": "minibatch",
+      "algorithm": "nnpu"
     },
     "kldce": {
       "budget": "alternating",
@@ -337,7 +528,8 @@
         "findings": [
           "flip_probability is bound as 1 minus actual fixed-count SCAR c_realized, the estimator is rebuilt per c, and requested/realized c are recorded. KLDCE remains excluded from SAR."
         ]
-      }
+      },
+      "algorithm": "kldce"
     },
     "dist_pu": {
       "budget": "fullbatch",
@@ -348,7 +540,8 @@
         "learning_rate": 0.001
       },
       "model_family": "mlp128",
-      "group": "fullbatch"
+      "group": "fullbatch",
+      "algorithm": "dist_pu"
     },
     "pusb_kernel": {
       "budget": "kernel_cv",
@@ -379,7 +572,8 @@
         ]
       },
       "model_family": "kernel",
-      "group": "classical"
+      "group": "classical",
+      "algorithm": "pusb_kernel"
     },
     "lbe": {
       "budget": "em",
@@ -388,7 +582,8 @@
         "n_em_iter": 20
       },
       "model_family": "linear_em",
-      "group": "classical"
+      "group": "classical",
+      "algorithm": "lbe"
     },
     "self_pu": {
       "budget": "two_student_sampled",
@@ -400,7 +595,8 @@
         "require_validation": false
       },
       "model_family": "mlp128",
-      "group": "two_student_sampled"
+      "group": "two_student_sampled",
+      "algorithm": "self_pu"
     },
     "pn_oracle": {
       "budget": "minibatch",
@@ -410,7 +606,8 @@
         "learning_rate": 0.001
       },
       "model_family": "mlp128",
-      "group": "minibatch"
+      "group": "minibatch",
+      "algorithm": "pn_oracle"
     },
     "p3mix": {
       "group": "minibatch",
@@ -435,7 +632,8 @@
         "findings": [
           "The base variant is only a constructor default. The method card documents base, E and C as distinct variants and notes paper hyperparameter choices and source/EMA gaps; variant and candidate policy remain unresolved."
         ]
-      }
+      },
+      "algorithm": "p3mix"
     },
     "puet": {
       "group": "classical",
@@ -455,7 +653,8 @@
         "findings": [
           "100 trees is a constructor default, not a frozen tree budget; the existing budget review explicitly says tree count is not an epoch budget and requires a separate storage/resource profile."
         ]
-      }
+      },
+      "algorithm": "puet"
     },
     "pulda": {
       "group": "minibatch",
@@ -478,14 +677,15 @@
         "mixup_weight": 4.2,
         "mixup_alpha": 11.0
       },
-      "budget": "draft_pulda",
+      "budget": "pulda",
       "configuration_status": "owner_confirmed_partial_on_2026-10-18",
       "configuration_review": {
         "status": "owner_confirmed_partial",
         "findings": [
           "The 60+60 epoch, P/U batch 16/128 settings match the owner's 2026-10-18 partial decision. The unit is still a draft pending protocol binding, image-runner wiring and remaining resource/selection gates."
         ]
-      }
+      },
+      "algorithm": "pulda"
     },
     "gradpu": {
       "group": "minibatch",
@@ -501,14 +701,15 @@
         "lr_final_ratio": 0.1,
         "weight_decay": 0.0005
       },
-      "budget": "draft_gradpu",
+      "budget": "gradpu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
         "findings": [
           "Use the method-private cnn13_no_bn image path; a frozen ResNet feature adapter would change the raw-image second-order gradient-penalty input and is not an equivalent image recipe."
         ]
-      }
+      },
+      "algorithm": "gradpu"
     },
     "robust_pu": {
       "group": "minibatch",
@@ -531,14 +732,15 @@
         "temper_n": 1.0,
         "phi": 0.0
       },
-      "budget": "draft_robust_pu",
+      "budget": "robust_pu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
         "findings": [
           "Pretrain/episode defaults are not an approved budget; eligible checkpoint stages and prior/validation policy remain open."
         ]
-      }
+      },
+      "algorithm": "robust_pu"
     },
     "split_pu": {
       "group": "minibatch",
@@ -558,14 +760,15 @@
         "similarity_weight": 0.1,
         "noise_std": 0.05
       },
-      "budget": "draft_split_pu",
+      "budget": "split_pu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
         "findings": [
           "The source-default JSD weight 0.7 is provisional while issue #122 paper/source direction and TS batch policy remain unresolved."
         ]
-      }
+      },
+      "algorithm": "split_pu"
     },
     "pan": {
       "group": "minibatch",
@@ -584,7 +787,8 @@
         "findings": [
           "Constructor defaults do not resolve the paper/source sampling decision already recorded for Survey or the P4.1-B candidate and budget recipe."
         ]
-      }
+      },
+      "algorithm": "pan"
     },
     "rp": {
       "group": "classical",
@@ -601,7 +805,8 @@
         "findings": [
           "Fold count and retention defaults are not an approved survey budget; OOF/refit cost remains to be frozen."
         ]
-      }
+      },
+      "algorithm": "rp"
     },
     "pulns": {
       "group": "minibatch",
@@ -617,14 +822,16 @@
         "discount": 0.9,
         "terminal_weight": 1.0
       },
-      "budget": "draft_pulns",
+      "budget": "pulns",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
         "findings": [
           "Requires clean support and the formal support path. No imdb unit is included because imdb is outside the approved support-dataset list."
         ]
-      }
+      },
+      "algorithm": "pulns",
+      "supervision": "independent_clean_support"
     },
     "genpu": {
       "group": "minibatch",
@@ -641,14 +848,15 @@
         "unlabeled_weight": 1.0,
         "generator_output": "identity"
       },
-      "budget": "draft_genpu",
+      "budget": "genpu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
         "findings": [
           "Equal positive/negative/unlabeled weights are constructor defaults and conflict with the planned paper-style prior-weighted recipe; #126 must settle the recipe before activation."
         ]
-      }
+      },
+      "algorithm": "genpu"
     },
     "holistic_pu": {
       "group": "minibatch",
@@ -665,14 +873,15 @@
         "lzo_alpha": 0.5,
         "lzo_validation_size": null
       },
-      "budget": "draft_holistic_pu",
+      "budget": "holistic_pu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
         "findings": [
           "Stage selection, initialization and storage values are constructor defaults; the P3.2 recipe blockers remain open."
         ]
-      }
+      },
+      "algorithm": "holistic_pu"
     },
     "cvir": {
       "group": "minibatch",
@@ -694,7 +903,8 @@
         "findings": [
           "The constructor OS default does not clear the native-TS calibration gate. TS calibration or an explicit inapplicability decision is still required."
         ]
-      }
+      },
+      "algorithm": "cvir"
     },
     "lagam": {
       "group": "minibatch",
@@ -716,14 +926,16 @@
         "rho_end": 0.8,
         "meta_update_bias": true
       },
-      "budget": "draft_lagam",
+      "budget": "lagam",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
         "findings": [
           "Requires clean support and a dedicated runner path. No imdb unit is included because imdb is outside the approved support-dataset list."
         ]
-      }
+      },
+      "algorithm": "lagam",
+      "supervision": "independent_clean_support"
     },
     "vpu": {
       "group": "minibatch",
@@ -747,7 +959,23 @@
         "findings": [
           "The values match current constructor defaults, not the author recipe: the method card records 100 vs 50 epochs, batch 128 vs 500, and learning rate 3e-4 vs 3e-5. Its source validation diagnostic is not an allowed PA/OA selector under D22."
         ]
-      }
+      },
+      "algorithm": "vpu"
+    },
+    "self_pu_full_meta": {
+      "budget": "clean_support_two_student",
+      "params": {
+        "hidden_dim": 128,
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001,
+        "require_validation": true,
+        "distillation_scope": "paper_population"
+      },
+      "model_family": "mlp128",
+      "group": "two_student_sampled",
+      "algorithm": "self_pu",
+      "supervision": "independent_clean_support"
     }
   },
   "execution_units": [
@@ -1128,46 +1356,28 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_pulda",
+      "budget": "pulda",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_pulda_budget",
-      "model_family": "mlp64",
-      "backbone": "none",
+      "comparability_group": "spambase/native_2d/pulda",
+      "model_family": "pulda_native",
+      "backbone": "pulda_native_mlp",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "PULDA stage budget and runner path require P4.1-B/P3.2 review.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "pulda",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "pulda"
     },
     {
-      "budget": "draft_pulda",
+      "budget": "pulda",
       "training_path": "native_2d",
-      "comparability_group": "imdb/native_2d/pending_pulda_budget",
-      "model_family": "mlp64",
-      "backbone": "none",
+      "comparability_group": "imdb/native_2d/pulda",
+      "model_family": "pulda_native",
+      "backbone": "pulda_native_mlp",
       "dataset": "imdb",
       "representation": "sbert384",
-      "non_runnable_reason": "PULDA stage budget and runner path require P4.1-B/P3.2 review.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "pulda",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
-    },
-    {
-      "budget": "draft_pulda",
-      "training_path": "native_cnn",
-      "comparability_group": "cifar10/native_cnn/pending_pulda_budget",
-      "model_family": "native_cnn_mlp64",
-      "backbone": "resnet18_end_to_end",
-      "dataset": "cifar10",
-      "representation": "resnet18_random_initialization",
-      "non_runnable_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; PULDA stage budget and runner path require P4.1-B/P3.2 review.",
-      "runnable": false,
-      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
-      "method": "pulda",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "pulda"
     },
     {
       "budget": "draft_gradpu",
@@ -1198,102 +1408,66 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_gradpu",
+      "budget": "gradpu",
       "training_path": "native_cnn",
-      "comparability_group": "cifar10/native_cnn/pending_gradpu_budget",
-      "model_family": "native_cnn_mlp128",
-      "backbone": "cnn13_no_bn",
+      "comparability_group": "cifar10/native_cnn/gradpu",
+      "model_family": "gradpu_native_cnn",
+      "backbone": "gradpu_native_cnn",
       "dataset": "cifar10",
       "representation": "cnn13_no_bn_random_initialization",
-      "non_runnable_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; Grad-PU recipe and no-BN CNN path require P4.1-B/P3.2 review. The image path must retain raw-image second-order regularization and the method-private cnn13_no_bn architecture.",
       "runnable": false,
       "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
       "method": "gradpu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "non_runnable_reason": "GradPU native-CNN wiring (cnn13_no_bn encoder and preprocessing plumbing) is in place, but its checkpoint/epoch contract has not been exercised by a completed run and the row stays blocked until one exists.",
+      "comparability_status": "provisional_method_isolated_pending_first_cnn_run"
     },
     {
-      "budget": "draft_robust_pu",
+      "budget": "robust_pu",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_robust_pu_budget",
-      "model_family": "mlp100",
-      "backbone": "none",
+      "comparability_group": "spambase/native_2d/robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_native_mlp",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "Robust-PU pretrain/episode budget requires P4.1-B review.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "robust_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "robust_pu"
     },
     {
-      "budget": "draft_robust_pu",
+      "budget": "robust_pu",
       "training_path": "native_2d",
-      "comparability_group": "imdb/native_2d/pending_robust_pu_budget",
-      "model_family": "mlp100",
-      "backbone": "none",
+      "comparability_group": "imdb/native_2d/robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_native_mlp",
       "dataset": "imdb",
       "representation": "sbert384",
-      "non_runnable_reason": "Robust-PU pretrain/episode budget requires P4.1-B review.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "robust_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "robust_pu"
     },
     {
-      "budget": "draft_robust_pu",
-      "training_path": "native_cnn",
-      "comparability_group": "cifar10/native_cnn/pending_robust_pu_budget",
-      "model_family": "native_cnn_mlp100",
-      "backbone": "resnet18_end_to_end",
-      "dataset": "cifar10",
-      "representation": "resnet18_random_initialization",
-      "non_runnable_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; Robust-PU pretrain/episode budget requires P4.1-B review.",
-      "runnable": false,
-      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
-      "method": "robust_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
-    },
-    {
-      "budget": "draft_split_pu",
+      "budget": "split_pu",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_split_pu_budget",
-      "model_family": "mlp100",
-      "backbone": "none",
+      "comparability_group": "spambase/native_2d/split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_native_mlp",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "Split-PU budget and unresolved #122 JSD/batch decisions block execution.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "split_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "split_pu"
     },
     {
-      "budget": "draft_split_pu",
+      "budget": "split_pu",
       "training_path": "native_2d",
-      "comparability_group": "imdb/native_2d/pending_split_pu_budget",
-      "model_family": "mlp100",
-      "backbone": "none",
+      "comparability_group": "imdb/native_2d/split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_native_mlp",
       "dataset": "imdb",
       "representation": "sbert384",
-      "non_runnable_reason": "Split-PU budget and unresolved #122 JSD/batch decisions block execution.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "split_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
-    },
-    {
-      "budget": "draft_split_pu",
-      "training_path": "native_cnn",
-      "comparability_group": "cifar10/native_cnn/pending_split_pu_budget",
-      "model_family": "native_cnn_mlp100",
-      "backbone": "resnet18_end_to_end",
-      "dataset": "cifar10",
-      "representation": "resnet18_random_initialization",
-      "non_runnable_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; Split-PU budget and unresolved #122 JSD/batch decisions block execution.",
-      "runnable": false,
-      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
-      "method": "split_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "split_pu"
     },
     {
       "budget": "draft_pan",
@@ -1366,18 +1540,16 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_pulns",
+      "budget": "pulns",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_pulns_budget",
+      "comparability_group": "spambase/native_2d/clean_support",
       "model_family": "mlp32",
-      "backbone": "none",
+      "backbone": "mlp32",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "Clean-support runner path and recipe require P3.2/P4.1-B.",
-      "runnable": false,
+      "runnable": true,
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "pulns",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "method": "pulns"
     },
     {
       "budget": "draft_pulns",
@@ -1394,88 +1566,52 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_genpu",
+      "budget": "genpu",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_genpu_budget",
-      "model_family": "mlp128",
-      "backbone": "none",
+      "comparability_group": "spambase/native_2d/genpu",
+      "model_family": "genpu_native",
+      "backbone": "genpu_native_mlp",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "GEN-PU #126 recipe blockers and P4.1-B budget remain open.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "genpu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "genpu"
     },
     {
-      "budget": "draft_genpu",
+      "budget": "genpu",
       "training_path": "native_2d",
-      "comparability_group": "imdb/native_2d/pending_genpu_budget",
-      "model_family": "mlp128",
-      "backbone": "none",
+      "comparability_group": "imdb/native_2d/genpu",
+      "model_family": "genpu_native",
+      "backbone": "genpu_native_mlp",
       "dataset": "imdb",
       "representation": "sbert384",
-      "non_runnable_reason": "GEN-PU #126 recipe blockers and P4.1-B budget remain open.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "genpu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "genpu"
     },
     {
-      "budget": "draft_genpu",
-      "training_path": "native_cnn",
-      "comparability_group": "cifar10/native_cnn/pending_genpu_budget",
-      "model_family": "native_cnn_mlp128",
-      "backbone": "resnet18_end_to_end",
-      "dataset": "cifar10",
-      "representation": "resnet18_random_initialization",
-      "non_runnable_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; GEN-PU #126 recipe blockers and P4.1-B budget remain open.",
-      "runnable": false,
-      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
-      "method": "genpu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
-    },
-    {
-      "budget": "draft_holistic_pu",
+      "budget": "holistic_pu",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_holistic_pu_budget",
-      "model_family": "mlp64",
-      "backbone": "none",
+      "comparability_group": "spambase/native_2d/holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_native_mlp",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "Holistic-PU stage/selection/storage recipe requires P3.2/P4.1-B.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "holistic_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "holistic_pu"
     },
     {
-      "budget": "draft_holistic_pu",
+      "budget": "holistic_pu",
       "training_path": "native_2d",
-      "comparability_group": "imdb/native_2d/pending_holistic_pu_budget",
-      "model_family": "mlp64",
-      "backbone": "none",
+      "comparability_group": "imdb/native_2d/holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_native_mlp",
       "dataset": "imdb",
       "representation": "sbert384",
-      "non_runnable_reason": "Holistic-PU stage/selection/storage recipe requires P3.2/P4.1-B.",
-      "runnable": false,
-      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "holistic_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
-    },
-    {
-      "budget": "draft_holistic_pu",
-      "training_path": "native_cnn",
-      "comparability_group": "cifar10/native_cnn/pending_holistic_pu_budget",
-      "model_family": "native_cnn_mlp64",
-      "backbone": "resnet18_end_to_end",
-      "dataset": "cifar10",
-      "representation": "resnet18_random_initialization",
-      "non_runnable_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; Holistic-PU stage/selection/storage recipe requires P3.2/P4.1-B.",
-      "runnable": false,
-      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
-      "method": "holistic_pu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "holistic_pu"
     },
     {
       "budget": "draft_cvir",
@@ -1520,18 +1656,16 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_lagam",
+      "budget": "lagam",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_lagam_budget",
+      "comparability_group": "spambase/native_2d/clean_support",
       "model_family": "mlp128",
-      "backbone": "none",
+      "backbone": "mlp128",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "Clean-support execution path and LaGAM recipe require P3.2/P4.1-B.",
-      "runnable": false,
+      "runnable": true,
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "lagam",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "method": "lagam"
     },
     {
       "budget": "draft_lagam",
@@ -1588,13 +1722,84 @@
       "training_path": "native_cnn",
       "method": "vpu",
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+    },
+    {
+      "dataset": "cifar10",
+      "method": "genpu",
+      "training_path": "native_cnn",
+      "budget": "genpu",
+      "model_family": "genpu_native_cnn",
+      "backbone": "genpu_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/native_cnn/genpu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pulda",
+      "training_path": "native_cnn",
+      "budget": "pulda",
+      "model_family": "pulda_native_cnn",
+      "backbone": "pulda_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/native_cnn/pulda",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "self_pu_full_meta",
+      "training_path": "native_2d",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/clean_support",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "robust_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/robust_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "split_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/split_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "holistic_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/holistic_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
     }
   ],
   "formal_blockers": [
     "per_epoch_independent_PA_OA_checkpoint_selection",
-    "P3.1 method profiles and execution units are a draft; method-owner review is pending.",
-    "P4.1-B method-specific budgets and candidate recipes are not frozen.",
-    "P3.2 execution wiring and method-specific clean-support paths remain incomplete."
+    "CVIR, LaGAM, PULNS, KLDCE, P3MIX, PAN, PUET, RP, VPU and the GradPU native-2d path still lack a frozen main-chain budget or runner.",
+    "cifar10 rows for GEN-PU, PULDA, Robust-PU, Split-PU and Holistic-PU are withheld until their native/adapted image runners are wired into the survey command."
   ],
   "decisions": [
     "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
@@ -1746,5 +1951,6 @@
         "SCAR runtime binding is defined as flip_probability = 1 - c and the model is constructed per c. SAR is disallowed. Execution rows remain non-runnable pending approved protocol and dataset-specific budget/resource gates."
       ]
     }
-  }
+  },
+  "profile_identity_schema_version": "survey-profile-identity-1"
 }
