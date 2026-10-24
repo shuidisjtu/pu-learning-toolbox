@@ -675,11 +675,17 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         ):
             raise ValueError("image manifest disagrees with locked size/initialization")
         representation["image_preprocessing"] = copy.deepcopy(image)
-        if (
-            row["training_path"] == "native_cnn"
-            and encoder_state_sha256(model.encoder) != image["encoder_state_sha256"]
-        ):
-            raise ValueError("native CNN encoder state does not match its image manifest")
+        if row["training_path"] == "native_cnn":
+            actual_encoder = encoder_state_sha256(model.encoder)
+            declared_architecture = (
+                protocol["backbone_specs"].get(row.get("backbone"), {}).get("architecture")
+            )
+            if actual_encoder != image["encoder_state_sha256"]:
+                # GradPU trains a method-private CNN13 rather than the shared
+                # ResNet-18; record that encoder instead of claiming the shared one.
+                if declared_architecture != "cnn13_no_bn":
+                    raise ValueError("native CNN encoder state does not match its image manifest")
+                representation["method_private_encoder_state_sha256"] = actual_encoder
     if row["training_path"] == "cnn_feature_adapter":
         if not adapter or adapter.get("training_path") != "cnn_feature_adapter":
             raise ValueError("cnn_feature_adapter unit requires its actual adapter manifest")

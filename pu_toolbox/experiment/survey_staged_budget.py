@@ -152,14 +152,21 @@ def validate_protocol_budgets(protocol):
             raise ValueError("unit and profile staged budget must match")
         algorithm = profile["algorithm"]
         path = row["training_path"]
-        if path not in ("native_2d", "native_cnn"):
-            raise ValueError("staged budgets attach to native training paths only")
-        family = f"{algorithm}_native" if path == "native_2d" else f"{algorithm}_native_cnn"
-        backbone = family if path == "native_cnn" else f"{algorithm}_native_mlp"
+        if path not in ("native_2d", "native_cnn", "cnn_feature_adapter"):
+            raise ValueError("staged budgets attach to native or adapter training paths only")
+        if path == "native_2d":
+            family, backbone = f"{algorithm}_native", f"{algorithm}_native_mlp"
+        elif path == "native_cnn":
+            family = backbone = f"{algorithm}_native_cnn"
+        else:
+            family, backbone = f"{algorithm}_native", f"{algorithm}_adapter"
         if row["model_family"] != family or row["backbone"] != backbone:
             raise ValueError("staged draft requires its own native architecture identity")
         if path == "native_cnn":
-            expected = {"algorithm_id": algorithm, "architecture": "resnet18_small_image"}
+            architecture = "cnn13_no_bn" if algorithm == "gradpu" else "resnet18_small_image"
+            expected = {"algorithm_id": algorithm, "architecture": architecture}
+        elif path == "cnn_feature_adapter":
+            expected = {"algorithm_id": algorithm, "architecture": "resnet18_random_frozen"}
         else:
             expected = {
                 "algorithm_id": algorithm,

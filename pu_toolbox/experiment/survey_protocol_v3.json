@@ -217,6 +217,22 @@
       "initialization": "seeded_random",
       "optimizer": "adam",
       "learning_rate": 0.001
+    },
+    "robust_pu_adapter": {
+      "algorithm_id": "robust_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "split_pu_adapter": {
+      "algorithm_id": "split_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "holistic_pu_adapter": {
+      "algorithm_id": "holistic_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "gradpu_native_cnn": {
+      "algorithm_id": "gradpu",
+      "architecture": "cnn13_no_bn"
     }
   },
   "budgets": {
@@ -453,6 +469,15 @@
       "optimizer": "adam",
       "learning_rate": 0.001,
       "checkpoint_bytes_per_component": 8388608
+    },
+    "gradpu": {
+      "unit": "epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 67108864
     }
   },
   "method_profiles": {
@@ -676,7 +701,7 @@
         "lr_final_ratio": 0.1,
         "weight_decay": 0.0005
       },
-      "budget": "draft_gradpu",
+      "budget": "gradpu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
@@ -1383,18 +1408,18 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_gradpu",
+      "budget": "gradpu",
       "training_path": "native_cnn",
-      "comparability_group": "cifar10/native_cnn/pending_gradpu_budget",
-      "model_family": "native_cnn_mlp128",
-      "backbone": "cnn13_no_bn",
+      "comparability_group": "cifar10/native_cnn/gradpu",
+      "model_family": "gradpu_native_cnn",
+      "backbone": "gradpu_native_cnn",
       "dataset": "cifar10",
       "representation": "cnn13_no_bn_random_initialization",
-      "non_runnable_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; Grad-PU recipe and no-BN CNN path require P4.1-B/P3.2 review. The image path must retain raw-image second-order regularization and the method-private cnn13_no_bn architecture.",
       "runnable": false,
       "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
       "method": "gradpu",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "non_runnable_reason": "GradPU native-CNN wiring (cnn13_no_bn encoder and preprocessing plumbing) is in place, but its checkpoint/epoch contract has not been exercised by a completed run and the row stays blocked until one exists.",
+      "comparability_status": "provisional_method_isolated_pending_first_cnn_run"
     },
     {
       "budget": "robust_pu",
@@ -1731,6 +1756,42 @@
       "backbone": "mlp128",
       "representation": "train_zscore",
       "comparability_group": "spambase/native_2d/clean_support",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "robust_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/robust_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "split_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/split_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "holistic_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/holistic_pu",
       "oracle_alignment": "no_matched_neural_backbone_oracle",
       "runnable": true
     }

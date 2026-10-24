@@ -766,15 +766,15 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 support_path = Path(str(args.support_dir).replace("{seed}", str(seed)))
                 support_bundle, support_part, support_manifest = load_support_dataset(support_path)
                 _require_same_support_split(source, support_bundle)
-            image_manifest = adapter_manifest = encoder = None
+            image_manifest = adapter_manifest = encoder = preprocessing = None
             bundle = source
             if modality_of(args.dataset) == "text" and any(
                 getattr(source, role).X.shape[1] != 384 for role in ROLES
             ):
                 raise ValueError("text datasets require SBERT 384-dimensional inputs")
             if modality_of(args.dataset) == "image":
-                bundle, encoder, image_manifest = prepare_image_bundle(
-                    source, protocol, seed, dataset=args.dataset
+                bundle, encoder, image_manifest, preprocessing = prepare_image_bundle(
+                    source, protocol, seed, dataset=args.dataset, with_preprocessing=True
                 )
                 if row["training_path"] == "cnn_feature_adapter":
                     bundle, adapter_manifest = cached_adapter(
@@ -816,6 +816,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     class_prior=prior,
                     device=args.device,
                     encoder=encoder,
+                    preprocessing=preprocessing,
                 )
             except (KeyError, TypeError, ValueError, ImportError) as exc:
                 print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
