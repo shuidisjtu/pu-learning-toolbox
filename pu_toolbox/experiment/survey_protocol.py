@@ -20,6 +20,13 @@ from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_cano
 
 from .datasets import survey_dataset_catalog
 from .feature_adapter import encoder_state_sha256
+from .survey_profile_identity import (
+    has_profile_identities,
+    profile_algorithm,
+    profile_manifest_identity,
+    require_four_role_profile,
+    validate_profile_identities,
+)
 
 PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v2.json")
 #: The canonical matrix files.  A version bump adds a file and keeps the old one:
@@ -134,7 +141,13 @@ def _checkpoint_storage(protocol: dict, row: dict, *, input_dim: int) -> tuple[i
     architecture raises, because a silently guessed size is a figure the pre-run
     guard would then hold a host to.
     """
-    if not protocol["budgets"][row["budget"]].get("epochs"):
+    from .survey_staged_budget import FIELD, checkpoint_epochs, validate_contract
+
+    budget = protocol["budgets"][row["budget"]]
+    if FIELD in budget:
+        validate_contract(budget[FIELD])
+        return budget[FIELD]["checkpoint_bytes_per_component"], "explicit_staged_budget_bound"
+    if not checkpoint_epochs(budget):
         return None, "no_epoch_budget"
     profile = _CONSTANT_COMPONENT_PROFILES.get(_profile_key(row))
     if profile is not None:
@@ -306,6 +319,7 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
     for key in ("budgets", "method_profiles", "backbone_specs", "c_tokens", "selection_spec"):
         if not isinstance(payload[key], dict) or not payload[key]:
             raise ValueError(f"survey protocol {key} must be a non-empty object")
+    validate_profile_identities(payload)
     _validate_image_spec(payload["backbone_specs"])
     if (
         not isinstance(payload["review_status"], str)
@@ -367,6 +381,9 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
             raise ValueError(f"unknown survey budget: {row['budget']}")
         if row["method"] not in payload["method_profiles"]:
             raise ValueError(f"unknown method profile: {row['method']}")
+    from .survey_staged_budget import validate_protocol_budgets
+
+    validate_protocol_budgets(payload)
     digest(payload)  # also reject non-finite values
     return payload
 
@@ -419,17 +436,18 @@ def _model_identity(model, method: str) -> None:
 
 
 def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
-    _model_identity(model, row["method"])
+    algorithm = profile.get("algorithm", row["method"])
+    _model_identity(model, algorithm)
     params = model.get_params(deep=False)
     for name, value in profile["params"].items():
         if name not in params or digest(params[name]) != digest(value):
             raise ValueError(f"estimator disagrees with protocol-locked parameter: {name}")
     if "random_state" in params and params["random_state"] != seed:
         raise ValueError("estimator random_state must equal the survey run seed")
-    if row["method"] in {"nnpu", "self_pu"}:
+    if algorithm in {"nnpu", "self_pu"}:
         from .survey_execution import validate_score_model
 
-        network = params["model"] if row["method"] == "nnpu" else params["backbone"]
+        network = params["model"] if algorithm == "nnpu" else params["backbone"]
         validate_score_model(network, row["model_family"])
     if row["training_path"] == "native_cnn" and params.get("encoder") is None:
         raise ValueError("native_cnn survey unit requires the bound ResNet-18 encoder")
@@ -437,6 +455,11 @@ def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
 
 def _validate_budget(model, budget: dict) -> None:
     """Declared artifact budgets must describe the estimator that actually trains."""
+    from .survey_staged_budget import FIELD, validate_estimator
+
+    if FIELD in budget:
+        validate_estimator(model, budget[FIELD])
+        return
     params = model.get_params(deep=False)
     if "optimizer_steps_per_epoch" in budget and (
         type(model).__name__ != "SelfPUClassifier" or budget["optimizer_steps_per_epoch"] != 2
@@ -483,6 +506,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         protocol, request["dataset"], request["method"], request.get("training_path")
     )
     profile = protocol["method_profiles"][row["method"]]
+    require_four_role_profile(protocol, row["method"])
+    algorithm = profile_algorithm(protocol, row["method"])
     for name in _LOCKED_CONFIG:
         if name in config:
             raise ValueError(f"use the execution matrix, not a config override for {name}")
@@ -577,6 +602,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
             raise ValueError("adapter manifest does not match the actual input features")
         representation["adapter"] = copy.deepcopy(adapter)
     blockers = list(protocol["formal_blockers"])
+    if has_profile_identities(protocol):
+        blockers.append("profile_identity_extension_engineering_only")
     if protocol["review_status"] != "accepted" and "collaborator_review" not in blockers:
         blockers.append("collaborator_review")
     # Three blockers used to be appended here for protocol reasons.  D24
@@ -613,9 +640,12 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         "selection_checkpoint_scope": "pending_actual_trajectory_verification",
         "oracle_alignment": row["oracle_alignment"],
         "method_variant": "without_clean_validation_meta_reweighting"
-        if row["method"] == "self_pu"
+        if algorithm == "self_pu"
         else "shared_spec_engineering",
     }
+    context.update(profile_manifest_identity(protocol, row["method"]))
+    if has_profile_identities(protocol):
+        context["comparison_registration_status"] = "missing_versioned_profile_mapping"
     if "review_items" in protocol:
         context["protocol_pending_review_items"] = [
             item["item_id"] for item in protocol["review_items"] if item["status"] != "accepted"
@@ -637,6 +667,21 @@ def budget_fairness_fields(budget: dict) -> dict[str, Any]:
     safe because these values are only ever compared within one comparability
     group, where every member is subject to the same placeholder.
     """
+    from .survey_staged_budget import FIELD, validate_contract
+
+    if FIELD in budget:
+        contract = budget[FIELD]
+        validate_contract(contract)
+        params = contract["parameter_values"]
+        # The legacy gate projects one batch knob. PULDA iterates over U;
+        # its P/U pair is one setting, not two search candidates. The detailed
+        # staged comparison below checks *both* knobs and all paid stages.
+        batches = (
+            (params["unlabeled_batch_size"],)
+            if contract["algorithm_id"] == "pulda"
+            else (params["batch_size"],)
+        )
+        return {"max_epochs": contract["checkpoint_epoch_count"], "batch_size_candidates": batches}
     return {
         "max_epochs": _positive_int(budget.get("epochs")),
         "batch_size_candidates": (_positive_int(budget.get("batch_size")),),
@@ -669,7 +714,20 @@ def validate_comparable_manifests(manifests: list[dict], *, require_formal: bool
         raise ValueError("formal aggregation blocked; inspect formal_blockers")
     expected = manifests[0]
     expected_budget = budget_fairness_fields(expected.get("budget", {}))
+    from .survey_staged_budget import FIELD, validate_contract
+
     for item in manifests[1:]:
+        left = expected.get("budget", {}).get(FIELD)
+        right = item.get("budget", {}).get(FIELD)
+        if (left is None) != (right is None):
+            raise ValueError("comparison mismatch: staged and legacy budgets cannot be mixed")
+        if left is not None:
+            validate_contract(right)
+            # Equal snapshot caps do not imply equal paid GAN/episode work or
+            # stopping rules. Byte bounds are resource guards, not training knobs.
+            for field in ("schema_version", "algorithm_id", "parameter_values"):
+                if digest(left[field]) != digest(right[field]):
+                    raise ValueError(f"comparison mismatch: staged budget.{field}")
         for key in (
             "protocol_version",
             "protocol_sha256",

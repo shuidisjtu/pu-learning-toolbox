@@ -167,7 +167,7 @@ pu_toolbox/
     launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
     deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
   experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试 + method_ledger.json 方法台账(见 docs/research/pu_survey/)
-    cvir_adapter.py                       # 显式 alpha_U 的独立 SCAR OS 实验接线，分离 PA 总体先验
+    cvir_adapter.py                       # 显式 alpha_U OS 与总体 pi/视图先验换算的独立 CVIR 接线
     pulns_adapter.py                      # 额外 clean support 的全角色/分组隔离、预算与终点 OA 门禁
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
@@ -200,6 +200,12 @@ pu_toolbox/
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
     support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
+    genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
+    candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
+    survey_v3_proposal.py                 # v3 源码绑定的22算法/变体与阻断单元请求，不批准预算
+    survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
+    survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
+    survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -222,6 +228,10 @@ tests/
     test_ledger_source_reviews.py       # 来源/行为审计复核文档的台账登记与引用契约(15 条)
     test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
     test_lagam_paper_review.py          # LaGAM 全文身份、来源分歧和未签署准入边界
+    test_clean_support_materialization_receipt.py # 本机制品清单的覆盖/摘要与非正式边界（CI 不读 raw）
+    test_genpu_recipe_validation_receipt.py # GEN-PU 双 batch GPU 收据摘要、成本与非正式范围契约
+    test_candidate_image_validation_receipt.py # 图像120/200快照 GPU 摘要、成本及非正式边界契约
+    test_selfpu_ts_support_receipt.py   # Self-PU 同条件 OS/TS 短运行摘要、预算与非正式边界
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -277,7 +287,7 @@ tests/
       test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
       test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
       test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
-      test_cvir.py                      # CVIR 负例保留顺序、先验与显式 TS 拒绝测试
+      test_cvir.py                      # CVIR 负例保留顺序、先验门禁与显式 TS 路由
       test_pan.py                       # PAN 公式、梯度隔离与保存加载
       test_pulns.py                     # PULNS 奖励、support 隔离与空负例
       test_rank_pruning.py              # Rank Pruning OOF、剪枝与噪声权重
@@ -326,6 +336,7 @@ tests/
       test_cvir_input_modes.py          # CVIR原地输入隔离、推理模式及参数提前失败
       test_lagam_paper_behavior.py      # LaGAM 独立 BCE/对比参考式、零梯度与硬标签元步
       test_pulns_checkpoints.py         # PULNS episode 回调、默认兼容、失败失效和内部 best 恢复
+      test_cvir_calibration.py          # CVIR 训练风险池校准、角色展开逐位对照与失败/回放边界
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -404,6 +415,10 @@ tests/
       test_clean_support_execution.py   # 三方法 CPU 实训、显式预算、OA 模型回放与告警拒收
       test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
       test_clean_support_checkpoint_execution.py # support 双轨 CLI、计划身份及选中模型回放
+      test_genpu_recipe_execution.py    # GEN-PU 计划摘要、实际双轨 CLI、选后回收与模型回放
+      test_candidate_image_execution.py # 图像 CLI 计划绑定、PA/OA 回放与非正式边界
+      test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
+      test_prepare_survey_v3_proposal.py # v3 请求CLI只读、范围摘要与无torch规划
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -560,6 +575,19 @@ tests/
       _support_checkpoint_helpers.py    # support 双轨选择的合成 CPU 角色/方法 fixture
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
+      test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
+      test_genpu_recipe.py              # GEN-PU 配方早拒绝、六网络真实成本与默认训练逐位对照
+      test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝
+      test_process_peak_rss.py          # 进程 RSS 单位、平台不支持与稳定计数处理
+      test_selfpu_ts_support.py         # 显式 TS clean-meta 四网络对照、角色与失败守卫
+      test_survey_v3_proposal.py        # v3算法/变体范围、来源漂移、未授权预算与协议拒绝
+      _profile_identity_helpers.py      # 临时身份草案与矩阵写入测试夹具，不提供正式预算
+      test_profile_identity_execution.py # profile 双轨/原生快照、实际子进程与完整来源续跑
+      test_survey_profile_identity.py   # 显式身份映射、旧路径兼容与错误/越权绑定拒绝
+      test_survey_staged_budget.py      # 阶段预算/角色/容量与原生权重对照，拒绝错误正式绑定
+      _episodic_budget_helpers.py       # 三方法临时小预算草案与确定性合成训练夹具
+      test_survey_episodic_budget.py    # 三方法真实 CLI/续跑、原生权重及停止/LZO 成本拒绝
+      test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -910,6 +938,9 @@ scripts/
   _source_provenance.py                   # 临时实验脚本仓库与实际加载源码身份分离
   prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
+  run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
+  run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
+  prepare_survey_v3_proposal.py           # 输出/核对v3 profile与单元请求，保留未批准和不可执行边界
 ```
 
 ## 7. CI/CD（`.github/`）

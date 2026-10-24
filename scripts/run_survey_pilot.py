@@ -76,6 +76,12 @@ from pu_toolbox.experiment.pilot_plan import (
     select_execution_units,
     split_digests,
 )
+from pu_toolbox.experiment.survey_profile_identity import (
+    has_profile_identities,
+    profile_algorithm,
+    profile_manifest_identity,
+    require_four_role_profile,
+)
 from pu_toolbox.experiment.survey_protocol import (
     digest,
     load_protocol,
@@ -276,6 +282,10 @@ def _write_plan_snapshot(
             for run in planned
         ],
     }
+    if has_profile_identities(protocol):
+        payload["profile_identities"] = {
+            run.method: profile_manifest_identity(protocol, run.method) for run in planned
+        }
     if recipe_bindings is not None:
         payload["recipe_bindings"] = [dict(recipe_bindings[run.key]) for run in planned]
     Path(path).write_text(
@@ -506,7 +516,7 @@ def _missing_priors(
         run.dataset
         for run in runs
         if not run.is_oracle
-        and get_metadata(run.method).requires_class_prior
+        and get_metadata(profile_algorithm(protocol, run.method)).requires_class_prior
         and run.dataset not in priors
     }
     return sorted(missing)
@@ -515,6 +525,8 @@ def _missing_priors(
 def expected_run_views(
     runs: tuple[PilotRun, ...],
     requested: str | None,
+    *,
+    protocol: dict | None = None,
 ) -> dict[tuple[Any, ...], str]:
     """The view every planned run will execute under, keyed by run identity.
 
@@ -550,10 +562,13 @@ def expected_run_views(
     for run in runs:
         cache_key = (run.method, run.is_oracle)
         if cache_key not in resolved:
+            algorithm = (
+                profile_algorithm(protocol, run.method) if protocol is not None else run.method
+            )
             estimator_class = None
             if not run.is_oracle:
                 try:
-                    estimator_class = get_algorithm(run.method)
+                    estimator_class = get_algorithm(algorithm)
                 except RegistryError as exc:
                     raise ValueError(
                         f"the protocol marks {run.dataset}/{run.method}/"
@@ -563,7 +578,7 @@ def expected_run_views(
                     ) from exc
             resolved[cache_key] = resolve_training_view(
                 ledger,
-                run.method,
+                algorithm,
                 requested,
                 is_oracle=run.is_oracle,
                 estimator_class=estimator_class,
@@ -652,6 +667,11 @@ def main(argv: list[str] | None = None) -> int:
     #: on a copy, after this read -- a request that shrank its own protocol
     #: would have its runs writing a digest no reader of the plan could match.
     source_protocol_sha256 = digest(source_protocol)
+    profile_resume = (
+        {"source_protocol_sha256": source_protocol_sha256}
+        if has_profile_identities(source_protocol)
+        else {}
+    )
     #: Narrowed here, before anything reads the matrix, for the reason
     #: ``--datasets`` was: the plan, the storage a host is sized against, the
     #: resume check and the batches have to describe one shard.  A filter that
@@ -666,6 +686,12 @@ def main(argv: list[str] | None = None) -> int:
     #: whether or not it also passed ``--datasets``, and the two reads below have
     #: to follow whatever narrowed them.
     planned = planned_runs(protocol)
+    try:
+        for run in planned:
+            require_four_role_profile(protocol, run.method)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     recipe_bindings = None
     if args.recipe_registry is not None:
         try:
@@ -717,7 +743,11 @@ def main(argv: list[str] | None = None) -> int:
     # Resolved once, before anything runs: a request the plan cannot satisfy is
     # refused here rather than at whichever batch happens to hit that method.
     try:
-        views = expected_run_views(planned, args.os_or_ts)
+        views = expected_run_views(
+            planned,
+            args.os_or_ts,
+            **({"protocol": protocol} if has_profile_identities(protocol) else {}),
+        )
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -738,6 +768,7 @@ def main(argv: list[str] | None = None) -> int:
             splits=splits,
             expected_views=views,
             expected_recipe_bindings=recipe_bindings,
+            **profile_resume,
         )
         _print_plan(pending, done, estimate)
         _print_scope(scope)
@@ -786,6 +817,7 @@ def main(argv: list[str] | None = None) -> int:
         splits=splits,
         expected_views=views,
         expected_recipe_bindings=recipe_bindings,
+        **profile_resume,
     )
     failed = False
     for batch in batches(pending):
@@ -802,6 +834,7 @@ def main(argv: list[str] | None = None) -> int:
         splits=splits,
         expected_views=views,
         expected_recipe_bindings=recipe_bindings,
+        **profile_resume,
     )
     # A subset request reports a subset's count, so the count has to name the
     # subset: two hosts each reading "completed 215 of 215" would call the

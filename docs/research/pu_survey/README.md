@@ -54,6 +54,14 @@
 - LBE 独立神经变体：[`lbe_neural_integration_20261014.md`](delivery/lbe_neural_integration_20261014.md)，不替换冻结 linear `lbe`。
 - 独立 clean-support 制品与 CPU 入口：[`clean_support_workflow_20261017.md`](delivery/clean_support_workflow_20261017.md)：五数据集 train 内分拆、五角色收据、剩余 train-only 预处理与 Self-PU/LaGAM/PULNS 单候选 OA 回放；不批准正式预算。
 - [Clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)：Self-PU/LaGAM 的 meta-active 与 PULNS 的 episode 快照、显式 PA+clean-support/OA、容量预检和选后回收；默认终点 OA 保留，非正式准入。
+- [五数据集真实 support 制品](delivery/clean_support_materialization_20261022.md)：本机 25 份五角色制品、逐 raw 映射/剩余 train 预处理核验、三方法真实 Spambase CPU 工程链；Git 仅登记清单，不含 NPZ/原始数据，不等于正式预算或 GPU 结果。
+- [GEN-PU 单候选工程 recipe](delivery/genpu_recipe_20261023.md)：#126 四项工程规格、实际 PA/OA manifest、真实 CIFAR 预固定小子集与全宽 ResNet-18 的 batch8/256 GPU 峰值/回放；正式 v3/预算及全量验收仍待，不自动关 issue。
+- [PULDA/GradPU 图像 runner](delivery/candidate_image_runner_20261023.md)：四角色双轨入口、真实 CIFAR 小子集完整120/200快照、实际峰值/回收与选中模型回放；正式 v3/预算仍待。
+- [Self-PU full-meta TS 入口](delivery/selfpu_ts_support_20261023.md)：显式 clean-support TS 双 teacher 选择、真实 Spambase 同条件短 OS/TS 运行与校准事实记录；默认 OS/旧消融和正式准入边界不变。
+- [v3 profile/unit 接入请求](delivery/survey_v3_proposal_20261023.md)：精确22算法/23 profile与184个阻断组合、源码观察和缺口校验；独立 planning schema，不是可执行协议或预算批准。
+- [Profile / 算法身份分离](delivery/profile_identity_20261024.md)：显式草案的模型、CLI、批次与续跑绑定；旧 v2 不变，新身份强制工程验证、正式五角色/预算/比较绑定仍待。
+- [GEN-PU / PULDA 阶段预算](delivery/staged_budget_20261024.md)：二维草案的阶段/六网络成本、快照容量与训练后收据；不填正式预算，不变更原生算法。
+- [Robust / Split / Holistic 阶段预算](delivery/episodic_budget_20261024.md)：episode 内多轮、原生 splitter 停止上界与 LZO 已付成本；实际 CLI/续跑与原生权重验证，不等于正式准入。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
@@ -61,7 +69,7 @@
   已有四路二维分区、同标记、终点或显式 EM-round PA/OA 选择，独立探索性结果，不改旧 Pilot。
 - [`vpu_schedule_review_20261015.md`](admission/vpu_schedule_review_20261015.md)：VPU 可选源 Adam 重置调度与固定轮内训练步数，不改变默认或 D22 准则。
 - [`vpu_encoder_stream_20261015.md`](delivery/vpu_encoder_stream_20261015.md)：VPU 注入 CNN 与 CPU 数据分批工程路径，非作者图像复现/正式准入。
-- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 论文/代码权重与取整差异、注入 CNN/CPU-stream 和阶段快照；2026-10-19 更正：原生 TS 方法应走 TS-compatible 校准；CVIR 当前走 OS adaptation + 显式 α_U，校准待接入；α_U 来源与正式预算/选模仍待审。
+- [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 历史来源/图像复核。2026-10-22 已补[独立校准与先验接线](delivery/cvir_calibration_20261022.md)：全局训练 U∪P 先排序后截断、按实际视图换算先验与 PA/OA 工程选模；正式 v3/配方预算、真实数据/GPU 仍待。
 - [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；2026-10-17 #115 已将 registry/台账采样定位纠正为 OS，support 标签预算与 PA 限制仍待审。
 - [LaGAM 全文与实现交叉复核](admission/lagam_paper_review_20261020.md)：补齐原文获取；登记零梯度、β/簇数来源分歧与 support 子类配额，绑定数值行为测试；保留默认实现及未签署/未准入状态。
 
@@ -78,6 +86,7 @@
 
 ### `reviews/`：独立复核和阶段性工程记录
 
+- [20261021 任务交接复核回复](reviews/heng958_task_review_20261022.md)：v2_p4/v2_p10、#122、RV5/RV6 技术意见、issue 收尾边界与 PN-CNN 5 seed 暂缓；不代替本人签署或修改冻结协议。
 - [`pilot_independent_review_20261004.md`](reviews/pilot_independent_review_20261004.md)：Pilot 的代理技术复核，不代替签署。
 - [`heng958_independent_review.md`](reviews/heng958_independent_review.md)：HENG958 负责范围的历史复核记录。
 - [`collaborator_followup_20261004.md`](reviews/collaborator_followup_20261004.md)：数据收集、CNN oracle、校准和交付边界的补全记录。
@@ -104,11 +113,14 @@
 
 ## 当前阅读入口
 
-合作者待回复：[PULDA / GradPU 图像配方决策清单](admission/candidate_image_owner_decisions_20261018.md)
-（#119 的初始化、BN、增强、MLP、warmup 选项；附只读资源预检命令，不代签正式准入）。
+当前交接：[20261021 任务复核回复](reviews/heng958_task_review_20261022.md)；
+先处理五项 review 与 #126/#88/#122 收尾，再推进 P3.2，具体排序只看执行计划。
+PN-CNN 的 5 seed 实验按用户指令暂缓至协议定稿，不取消其他任务的五 seed 要求。
 
-后续复核：[GradPU #121 调度/batch声明](admission/gradpu_training_recipe_review_20261018.md)；
-[Split-PU #122 JSD分母与实际mini-batch反例](admission/splitpu_122_characterization_20261018.md)。
+[PULDA / GradPU #119/#120 配方决策](admission/candidate_image_owner_decisions_20261018.md)及
+[GradPU #121 调度/batch 声明](admission/gradpu_training_recipe_review_20261018.md)保留作证据，
+不再因历史“待回复”文字重开已收尾项；
+[Split-PU #122 JSD 分母与 mini-batch 反例](admission/splitpu_122_characterization_20261018.md)仍有待决事项。
 
 1. 先读 [`survey_execution_plan.md`](survey_execution_plan.md) 了解现在能跑什么、缺什么。
 2. 需要协议口径时读 [`pu_survey_protocol.md`](pu_survey_protocol.md)。

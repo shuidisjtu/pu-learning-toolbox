@@ -11,7 +11,11 @@ from pathlib import Path
 from sklearn.base import clone
 
 from .checkpoints import EpochCheckpointTrainer
-from .clean_support_adapters import LaGAMCleanSupportTrainer, SelfPUCleanSupportTrainer
+from .clean_support_adapters import (
+    LaGAMCleanSupportTrainer,
+    SelfPUCleanSupportTrainer,
+    _SelfPUTSCleanSupportTrainer,
+)
 from .pulns_adapter import PULNSExtraSupportTrainer
 from .strategies import ProtocolOA, ProtocolPACleanSupport
 
@@ -125,8 +129,18 @@ class _SupportCheckpointSelection:
         self._require_prepared(estimator, X, os_or_ts)
         if not getattr(self, "_checkpoint_configured", False):
             raise ValueError("runner checkpoint preflight must bind the checkpoint directory")
+        try:
+            return self._fit_checkpoint_trajectory(estimator, X, y, class_prior, os_or_ts)
+        except BaseException:
+            # Post-fit byte/provenance refusal must not expose a fitted success.
+            estimator._is_fitted = False
+            if hasattr(estimator, "training_provenance_"):
+                del estimator.training_provenance_
+            raise
+
+    def _fit_checkpoint_trajectory(self, estimator, X, y, class_prior, os_or_ts):
         trajectory = EpochCheckpointTrainer(checkpoint_dir=self._checkpoint_dir).fit(
-            _SupportFitBinding(estimator, self), X, y, class_prior=class_prior, os_or_ts="os"
+            _SupportFitBinding(estimator, self), X, y, class_prior=class_prior, os_or_ts=os_or_ts
         )
         sizes = [Path(row.path).stat().st_size for row in trajectory.checkpoints]
         if max(sizes) > self._checkpoint_bytes_per_component:
@@ -156,6 +170,12 @@ class _SupportCheckpointSelection:
 
 class SelfPUCleanSupportCheckpointTrainer(_SupportCheckpointSelection, SelfPUCleanSupportTrainer):
     """SCAR OS full-meta Self-PU; independently select both EMA teacher streams."""
+
+
+class SelfPUTSCleanSupportCheckpointTrainer(
+    _SupportCheckpointSelection, _SelfPUTSCleanSupportTrainer
+):
+    """Explicit SCAR TS-compatible full-meta, not a formally admitted unit."""
 
 
 class LaGAMCleanSupportCheckpointTrainer(_SupportCheckpointSelection, LaGAMCleanSupportTrainer):

@@ -237,6 +237,9 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
     historical manifests. Parameter values remain in the protocol. Only its
     existing empty-override candidates can be registered by schema v1.
     """
+    from .survey_profile_identity import require_legacy_recipe_identity
+
+    require_legacy_recipe_identity(protocol)
     pool = protocol.get("candidate_pool")
     if (
         not isinstance(pool, Sequence)
@@ -515,6 +518,9 @@ def resolve_candidate(
     It is *generated*, never hand-edited -- ``validate_registry`` recomputes it
     and compares, which is what makes a checked-in snapshot auditable.
     """
+    from .survey_profile_identity import require_legacy_recipe_identity
+
+    require_legacy_recipe_identity(protocol)
     method = profile["method"]
     unit = protocol["method_profiles"][method]
     budget_name = unit["budget"]
@@ -562,6 +568,16 @@ def validate_registry(registry: Mapping[str, Any], protocol: Mapping[str, Any]) 
     mistake ``survey_audit.matrix_conflicts`` documents for the comparison
     matrix.
     """
+    from .survey_profile_identity import has_profile_identities
+
+    if has_profile_identities(protocol):
+        return [
+            _finding(
+                "protocol_basis_mismatch",
+                "protocol_basis",
+                "registry v1 cannot bind draft profile identities",
+            )
+        ]
     findings: list[Finding] = []
 
     if registry.get("schema_version") != SCHEMA_VERSION:

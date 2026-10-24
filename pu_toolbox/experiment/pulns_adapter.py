@@ -108,10 +108,11 @@ class _IndependentSupportTrainer(Trainer):
         self._prepared = False
         if not isinstance(model, self.estimator_type()):
             raise TypeError(f"{self.display_name} support adapter received a different estimator")
-        if config.get("survey_protocol") is not None or config.get("os_or_ts") not in (None, "os"):
+        if config.get("survey_protocol") is not None:
             raise ValueError(
-                f"{self.display_name} support adapter is exploratory OS only, not frozen Survey"
+                f"{self.display_name} support adapter is exploratory only, not frozen Survey"
             )
+        self._validate_training_view(config.get("os_or_ts"))
         self._validate_selection_protocols(protocols)
         if self.dataset not in survey_dataset_catalog():
             raise ValueError("dataset must name an approved Survey label mapping")
@@ -294,14 +295,18 @@ class _IndependentSupportTrainer(Trainer):
                 f"extra-supervised {self.display_name} requires OA only; not PU-only PA eligible"
             )
 
+    def _validate_training_view(self, view):
+        """Keep existing adapters OS-only; explicit variants must opt in."""
+        if view not in (None, "os"):
+            raise ValueError(f"{self.display_name} support adapter is exploratory OS only")
+
     def _require_prepared(self, estimator, features, view):
         """Recheck support flags/data and training features before each fit/retry."""
         if not getattr(self, "_prepared", False):
             raise ValueError("support trainer must pass runner all-role preflight first")
-        if not isinstance(estimator, self.estimator_type()) or view not in (None, "os"):
-            raise ValueError(
-                f"{self.display_name} support adapter accepts its own OS estimator only"
-            )
+        if not isinstance(estimator, self.estimator_type()):
+            raise ValueError(f"{self.display_name} support adapter accepts its own estimator only")
+        self._validate_training_view(view)
         if self.support.view != "clean" or self.support.for_selection is not False:
             raise ValueError("support view or selection role changed after isolation preflight")
         if (

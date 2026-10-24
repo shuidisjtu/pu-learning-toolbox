@@ -154,10 +154,10 @@
       "preparation_priority": 7,
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir",
       "ledger_snapshot": {
-        "calibration_hooked": false,
+        "calibration_hooked": true,
         "run_view": "os-compatible",
         "calibration_applied": false,
-        "prior_semantics": "unlabeled_positive_prior=α_U，U 内正类比例；不是自动提供的总体 π。requires_class_prior=False 只表示不能使用公共总体先验门禁，拟合仍要求显式 α_U；若独立 case-control U 确为总体边缘分布，才有 α_U=π",
+        "prior_semantics": "unlabeled_positive_prior=所用风险池的正类比例；默认 OS/native-TS 仍显式给原始 U 的 α_U。CVIRPopulationPriorTrainer 按协议§3换算：OS为(pi*n-n_L)/(n-n_L)，TS校准为pi；requires_class_prior=False，estimator.fit仍拒绝总体class_prior；先验来源声明不等于分布/有限样本比例验证",
         "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
         "source_behavior_review_ref": "docs/research/pu_survey/data/cvir_source_review_20261015.json"
       },
@@ -165,9 +165,12 @@
       "budget_ref": null,
       "candidate_pool": null,
       "admitted": false,
-      "declared_scope": "technical 2-D or injected trainable CNN with CPU-streamed ranking/training/prediction; Survey path is OS adaptation with explicit alpha_U, OS-to-TS calibration is out of scope and not required; no author recipe replay or formal pilot claim",
+      "declared_scope": "2026-10-22 engineering update: explicit calibrated train U union P before global ranking/retention; opt-in SCAR population-prior binding with OS count conversion and TS pi; old explicit-alpha OS/native-TS paths unchanged; formal protocol v3/runner, budget and real-data/GPU acceptance remain pending; no author recipe replay or formal admission",
+      "calibration_delivery_ref": "docs/research/pu_survey/delivery/cvir_calibration_20261022.md",
       "specific_blockers": [
-        "alpha_U_provenance_and_finite_sample_conversion"
+        "protocol_v3_profiles_units_and_runner_binding",
+        "formal_recipe_budget_and_real_data_prior_provenance",
+        "real_data_gpu_acceptance"
       ]
     },
     {

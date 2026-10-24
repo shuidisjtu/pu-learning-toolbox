@@ -1,5 +1,8 @@
 # 候选图像实际训练收据（技术入口，非正式配方）
 
+> 2026-10-23：本训练局部收据语义保持；另有[独立四角色图像 runner](../delivery/candidate_image_runner_20261023.md)
+> 复用相同校验，补实际双轨选择/回放及120/200快照小子集资源记录，仍非正式 Survey 准入。
+
 补齐 #119/#120 的技术审计接线，不替代正式runner、四角色验证、配方冻结或准入。
 仅构造时的 `image_setup` 不证明后续fit实际使用同一输入/模板/配置；新增
 `pu_toolbox.experiment.candidate_image.fit_candidate_image_classifier` 负责绑定后再fit，

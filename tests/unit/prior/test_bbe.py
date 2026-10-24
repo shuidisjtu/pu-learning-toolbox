@@ -247,7 +247,7 @@ def test_basic_ledger_preserves_prior_and_admission_boundaries():
     assert not issubclass(BBEMixtureEstimator, BasePriorEstimator)
     assert extension["target"] == "alpha_U, not automatic population pi"
     assert cvir["calibration_applied"] is False
-    assert cvir["calibration_hooked"] is False
+    assert cvir["calibration_hooked"] is True
     for key in ("calibration_applied", "calibration_hooked", "formal_admission"):
         assert extension[key] is False
         assert implementation[key] is False

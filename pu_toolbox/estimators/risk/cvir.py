@@ -28,6 +28,7 @@ from ...core.tags import (
     Scenario,
     SourceStatus,
 )
+from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 
 
@@ -53,12 +54,14 @@ def select_cvir_negatives(scores: np.ndarray, unlabeled_positive_prior: float) -
 
 
 class CVIRClassifier(BasePUClassifier):
-    """Fit CVIR given the positive fraction within the original U pool.
+    """Fit CVIR given the positive fraction within the selected risk pool.
 
     ``class_prior`` is always rejected. A caller who establishes that U is a
     sample of the population marginal can pass that verified fraction through
     ``unlabeled_positive_prior`` explicitly. The frozen survey runner passes
-    population pi, so this adapter is not in its matrix.
+    population pi, so an explicit experiment adapter must bind the risk prior.
+    ``os_or_ts='ts'`` restores training P to the risk pool before global ranking;
+    this is an OS-to-TS-compatible adaptation, not independent TS sampling.
     """
 
     family = AlgorithmFamily.RISK_ESTIMATION
@@ -130,12 +133,13 @@ class CVIRClassifier(BasePUClassifier):
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
+        os_or_ts: str = "os",
     ) -> CVIRClassifier:
         """Fit paper-weighted CVIR, not the balanced loss in released code.
 
         Four-dimensional images require a trainable encoder. Auto keeps legacy
         resident 2-D behavior or streams encoder input from CPU. alpha_U remains
-        explicit; no population-prior conversion or new TS route is inferred.
+        explicit; population-prior conversion belongs to the experiment layer.
         """
         self._is_fitted = False
         try:
@@ -145,12 +149,13 @@ class CVIRClassifier(BasePUClassifier):
                 class_prior=class_prior,
                 sample_weight=sample_weight,
                 epoch_callback=epoch_callback,
+                os_or_ts=os_or_ts,
             )
         except Exception:
             self._is_fitted = False
             raise
 
-    def _fit_impl(self, X, y_pu, *, class_prior, sample_weight, epoch_callback):
+    def _fit_impl(self, X, y_pu, *, class_prior, sample_weight, epoch_callback, os_or_ts):
         import torch
 
         if sample_weight is not None:
@@ -178,6 +183,10 @@ class CVIRClassifier(BasePUClassifier):
             raise ValueError("prior_source must be a non-empty description or None")
         if self.input_sampling == "ts" and self.prior_source is None:
             raise ValueError("native TS input requires an explicit alpha_U prior_source")
+        if os_or_ts not in ("os", "ts"):
+            raise ValueError("os_or_ts must be os or ts")
+        if os_or_ts == "ts" and self.input_sampling != "os":
+            raise ValueError("OS-to-TS calibration requires input_sampling=os, not native TS input")
         for name in ("hidden_dim", "warm_start_epochs", "max_epochs", "batch_size"):
             value = getattr(self, name)
             lower = 0 if name == "warm_start_epochs" else 1
@@ -212,6 +221,10 @@ class CVIRClassifier(BasePUClassifier):
         u_idx = np.flatnonzero(y_pu == 0)
         if not len(u_idx):
             raise ValueError("CVIR needs original unlabeled rows")
+        view = build_training_view(X, y_pu, requested_view=os_or_ts)
+        # Torch indexes via a temporary tensor; do not hand it the view's
+        # intentionally read-only NumPy positions (undefined-write warning).
+        risk_idx = view.loss_unlabeled_positions.copy()
 
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
@@ -248,24 +261,36 @@ class CVIRClassifier(BasePUClassifier):
         self.input_shape_ = tuple(X.shape[1:])
         self.n_positive_, self.n_unlabeled_ = len(p_idx), len(u_idx)
         self.unlabeled_positive_prior_ = float(alpha)
-        # TS here means caller-supplied independent P/marginal U, not an OS
-        # partition whose risk role has silently been replaced by P union U.
+        calibrated = view.calibration_applied
         self.training_provenance_ = {
             "method": "cvir",
             "input_sampling": self.input_sampling,
-            "path": "native_ts_input" if self.input_sampling == "ts" else "explicit_os_adaptation",
-            "calibration_applied": False,
+            "path": (
+                "os_to_ts_calibrated"
+                if calibrated
+                else "native_ts_input"
+                if self.input_sampling == "ts"
+                else "explicit_os_adaptation"
+            ),
+            "calibration_applied": calibrated,
             "known_prior": True,
             "unlabeled_positive_prior": float(alpha),
             "prior_semantics": (
-                "distribution-level positive fraction in the supplied original U pool"
+                "population positive prior for the restored training U union P risk pool"
+                if calibrated
+                else "distribution-level positive fraction in the supplied original U pool"
             ),
             "prior_source": self.prior_source or "caller_supplied_source_unverified",
             "source_verified": False,
             "empirical_unlabeled_positive_fraction": None,
             "n_positive": len(p_idx),
-            "n_unlabeled_candidates": len(u_idx),
-            "positive_rows_added_to_candidates": 0,
+            "n_unlabeled_candidates": len(risk_idx),
+            "n_original_unlabeled": len(u_idx),
+            "positive_rows_added_to_candidates": len(p_idx) if calibrated else 0,
+            "risk_pool": "original_U_union_P" if calibrated else "original_U",
+            "risk_pool_order": "original_U_then_P" if calibrated else "original_U",
+            "calibration_scope": "train_global_pool_before_truncation" if calibrated else None,
+            "native_ts_independence_verified": False,
             "unlabeled_roles": ["warm_start", "ranking", "negative_retention", "weighted_loss"],
             "forward_input_isolation": "private_tensor_clone",
             "formal_admission": False,
@@ -322,7 +347,7 @@ class CVIRClassifier(BasePUClassifier):
                 epoch_callback(len(self.epoch_provenance_) - 1, self)
 
         for epoch in range(self.warm_start_epochs):
-            self.history_["warm_start_loss"].append(train_epoch(u_idx, reweight=False))
+            self.history_["warm_start_loss"].append(train_epoch(risk_idx, reweight=False))
             completed("warm_start", epoch + 1)
         for epoch in range(self.max_epochs):
             model.eval()
@@ -330,16 +355,18 @@ class CVIRClassifier(BasePUClassifier):
                 if stream:
                     scores = np.concatenate(
                         [
-                            _logits(model, data[u_idx[start : start + self.batch_size]].to(device))
+                            _logits(
+                                model, data[risk_idx[start : start + self.batch_size]].to(device)
+                            )
                             .cpu()
                             .numpy()
-                            for start in range(0, len(u_idx), self.batch_size)
+                            for start in range(0, len(risk_idx), self.batch_size)
                         ]
                     )
                 else:
-                    scores = _logits(model, data[u_idx]).cpu().numpy()
+                    scores = _logits(model, data[risk_idx]).cpu().numpy()
             local_negative = select_cvir_negatives(scores, float(alpha))
-            negative_idx = u_idx[local_negative]
+            negative_idx = risk_idx[local_negative]
             self.selected_negative_indices_ = negative_idx.copy()
             self.history_["selected_negative_count"].append(len(negative_idx))
             self.history_["cvir_loss"].append(train_epoch(negative_idx, reweight=True))

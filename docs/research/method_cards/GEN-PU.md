@@ -1,5 +1,9 @@
 # Method Card: GEN-PU
 
+2026-10-23 补[单候选工程 recipe 与真实 CIFAR GPU 验证](../pu_survey/delivery/genpu_recipe_20261023.md)：
+固定目标/网络/阶段资格，显式预算，六网络成本对账，PA/OA 独立选模、选后回收与两模型回放。
+这不是正式 v3 准入、P4.1-B 预算冻结或论文数值复现；估计器默认行为未改。
+
 2026-10-07 补[像素生成/CNN 来源复核](../pu_survey/genpu_source_cnn_review_20261007.md)：
 双稠密 generator 显式输出 NCHW；三判别器和新建最终 PN 使用四份独立可训练 CNN。
 原论文 Table 1 及作者 demo 均是稠密网络，本接口是工程图像适配，不是作者 CNN 重放。
@@ -59,4 +63,6 @@ Dp/Dn 的真实池始终是 P；默认 OS 明确不是论文原生边缘池。�
 
 `tests/unit/estimators/test_gen_pu.py`：概率公式 golden、anti-GAN 梯度方向、极端 logit 稳定性、
 训练池角色、固定种子、两阶段 optimizer 数、clone/pickle 与先验 fail-loud。
-新增 GPU smoke 待独立执行；不借用其它方法的历史 GPU 记录，不进入冻结 pilot。
+2026-10-23 已有本方法独立真实 CIFAR 预声明小子集的标准宽度 ResNet-18 GPU smoke，
+见上方交付及[机器收据](../pu_survey/data/genpu_recipe_validation_20261023.json)；
+不借用其它方法的历史 GPU 记录，不进入冻结 pilot，不据此声称全量/多 seed 效果验收。

@@ -453,6 +453,13 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 图像 backbone、优化与数据协议仍有差异。实际数据支持集与正式预算尚未批准。
 详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
 
+2026-10-23：另有显式 `SelfPUTSCleanSupportCheckpointTrainer`，通过
+`run_clean_support_experiment.py --training-view ts --selection-scope meta_checkpoints`
+接既有 TS 负边缘校准、完整 clean-meta 与双 teacher 的 `PA+clean-support`/OA 离线选择。
+默认 OS/旧消融不变；真实 Spambase 同制品/同标记的短 OS/TS 命令均回放通过。
+这是工程接线，不是新数学目标、正式 profile/unit、预算批准或校准效果证明；
+阶段/风险质量边界与证据见[本批交付](../pu_survey/delivery/selfpu_ts_support_20261023.md)。
+
 | 字段 | 内容 |
 |---|---|
 | Source status | `official_exact` |

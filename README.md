@@ -128,6 +128,8 @@ uv run python scripts/run_lbe_comparison.py --help
 uv run python scripts/run_lbe_diagnostics.py --help
 uv run python scripts/prepare_clean_support.py --help
 uv run python scripts/run_clean_support_experiment.py --help
+uv run python scripts/run_genpu_recipe.py --help
+uv run python scripts/run_candidate_image_experiment.py --help
 
 # SCAR row (PA + OA selection)
 uv run python scripts/run_survey_experiment.py path/to/splits \
@@ -157,6 +159,9 @@ Supporting scripts (see each script's docstring and the Survey docs for scope an
 | Runs | `run_survey_pilot.py` (whole pilot), `aggregate_survey_runs.py`, `verify_survey_result_receipt.py` (received result bytes, before replay) |
 | Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `audit_survey_workbook.py` (delivery Excel, optional `openpyxl`), `_source_provenance.py` (internal helper separating script-checkout identity from the implementation actually loaded; not a standalone CLI) |
 | Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a draft before review and locking) |
+| v3 intake | `prepare_survey_v3_proposal.py` (source-bound profile/unit requests with unresolved budgets; not an execution protocol) |
+| Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay; not formal Survey admission) |
+| Independent support runs | `run_clean_support_experiment.py` (Self-PU/LaGAM/PULNS extra-label audit; explicit Self-PU TS meta-checkpoints, not a formal recipe) |
 | Resource probes | `profile_survey_candidate_storage.py`, `profile_survey_cnn_storage.py`, `profile_survey_extended_cnn_storage.py` with `check_survey_extended_cnn_storage.py`; `prepare_candidate_image_resource_plan.py` is a read-only estimate from configured candidate defaults, not a measured resource profile |
 | P3 admission evidence | `check_p3_admission_evidence.py`, `check_p3_public_comparison.py`, `prepare_p3_selection_budget_spec.py`, `prepare_p3_preintegration_extension.py`, `check_candidate_fit_contracts.py` (AST/source-bound engineering guard; not method admission) |
 

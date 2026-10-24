@@ -657,7 +657,7 @@
     "cvir": {
       "class": "CVIRClassifier",
       "implementation_ref": "pu_toolbox/estimators/risk/cvir.py",
-      "implementation_sha256": "64a8bb3d16dc0138c3a375d3af6432dd55f8bc2137f5ef5c06c7b34bb52af7b0",
+      "implementation_sha256": "0f421c7753977099b8c2ed9060cdeefc43c214c1e0340f344dbef7caccdace1a",
       "fit_parameters": [
         {
           "name": "X",
@@ -686,6 +686,12 @@
           "kind": "keyword_only",
           "required": false,
           "default": null
+        },
+        {
+          "name": "os_or_ts",
+          "kind": "keyword_only",
+          "required": false,
+          "default": "os"
         }
       ],
       "ledger_ref": "pu_toolbox/experiment/method_ledger.json#methods.cvir",
@@ -693,7 +699,7 @@
       "review_document_sha256": "0d65ecded27192ae7392a276d069d13b45f666a6988d4bf44705f154688e271b",
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
+      "calibration_hooked": true,
       "formal_admission": false
     },
     "rp": {

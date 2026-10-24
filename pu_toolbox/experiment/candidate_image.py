@@ -143,25 +143,15 @@ def build_candidate_image_classifier(
     }
 
 
-def fit_candidate_image_classifier(
-    estimator, image_setup, train_images, s_train, *, os_or_ts="ts", epoch_callback=None
-):
-    """Fit only a bound technical image setup and return an actual training receipt.
-
-    Inputs must be the exact float32 train pixels returned by preprocessing,
-    with observed PU labels. No clean validation/test data is accepted. This
-    helper neither selects checkpoints nor writes artifacts or authorizes runs.
-    Hashing scans CPU inputs twice; it is opt-in and not part of default fit.
-    A rejected/failed receipt does not roll back estimator or callback artifacts.
-    """
+def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train):
+    """Share the existing bound-input checks with the checkpoint runner."""
     import numpy as np
 
     from pu_toolbox.core.validation import validate_pu_X_y
     from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
     from pu_toolbox.estimators.risk.pulda import PULDAClassifier
-    from pu_toolbox.utils.serialization import array_hash, file_hash
+    from pu_toolbox.utils.serialization import array_hash
 
-    started = time.perf_counter()
     if not isinstance(image_setup, dict):
         raise ValueError("image_setup must be a construction record")
     setup = copy.deepcopy(image_setup)
@@ -234,7 +224,15 @@ def fit_candidate_image_classifier(
     }
     # Refuse unsupported/nonfinite parameter encodings before starting fit.
     json.dumps(parameters, allow_nan=False)
-    estimator.fit(features, labels, os_or_ts=os_or_ts, epoch_callback=epoch_callback)
+    return setup, features, labels, input_hash, label_hash, parameters
+
+
+def _candidate_image_training_receipt(estimator, bound_inputs, started):
+    """Verify inputs after training and retain the original receipt semantics."""
+    from pu_toolbox.utils.serialization import array_hash, file_hash
+
+    setup, features, labels, input_hash, label_hash, parameters = bound_inputs
+    method = setup["method"]
     if array_hash(features) != input_hash or array_hash(labels) != label_hash:
         raise RuntimeError("training inputs changed during fit; no valid receipt produced")
     source = "estimators/risk/pulda.py" if method == "pulda" else "estimators/deep/grad_pu.py"
@@ -268,4 +266,21 @@ def fit_candidate_image_classifier(
         "ready_for_formal_run": False,
     }
     json.dumps(receipt, allow_nan=False)
-    return estimator, receipt
+    return receipt
+
+
+def fit_candidate_image_classifier(
+    estimator, image_setup, train_images, s_train, *, os_or_ts="ts", epoch_callback=None
+):
+    """Fit only a bound technical image setup and return an actual training receipt.
+
+    Inputs must be the exact float32 train pixels returned by preprocessing,
+    with observed PU labels. No clean validation/test data is accepted. This
+    helper neither selects checkpoints nor writes artifacts or authorizes runs.
+    Hashing scans CPU inputs twice; it is opt-in and not part of default fit.
+    A rejected/failed receipt does not roll back estimator or callback artifacts.
+    """
+    started = time.perf_counter()
+    bound = _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
+    estimator.fit(bound[1], bound[2], os_or_ts=os_or_ts, epoch_callback=epoch_callback)
+    return estimator, _candidate_image_training_receipt(estimator, bound, started)

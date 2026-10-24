@@ -4,7 +4,7 @@
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
 > `pu_toolbox/experiment/survey_protocol_v2.json` 与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 保留为历史冻结绑定。
-> 状态核对日期：**2026-10-22**（本日增量为 clean-support 工程接线）
+> 状态核对日期：**2026-10-23**（已补 GEN-PU 配方与 PULDA/GradPU 独立图像 runner、真实 CIFAR 小子集120/200快照；PN-CNN 5 seed 继续暂缓）
 
 ## 1. 实验能力与缺口
 
@@ -16,11 +16,12 @@
 | 能力 | 现在能用？ | 缺什么 | 补完后怎么算可用 |
 |---|---|---|---|
 | 8 数据集四路 split | **是** | — | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
-| clean support（5 数据集） | **否** | 5 份 support 产物与五角色校验 | `prepare_clean_support.py --write` 产出，manifest 角色完整 |
+| clean support（5 数据集） | **是（本机）** | 跨机器传递须按收据核验；正式消费另需 v3/预算 | 25 份五角色制品已生成/回读验证，见本日交付 |
 | 协议内 8 方法单跑 | **是**（接口就绪） | 本轮未实跑 | 单方法跑通并产出 manifest |
-| 13 个 P3.1 方法单跑 | **否** | `method_profiles` 与 `execution_units`（protocol v3） | runner 接受 `--method <13 方法>` |
-| 图像/共享 backbone | **部分** | runner 接线、PULDA 120 / GradPU 200 峰值估算 | 端到端 smoke + 单 run 峰值记录 |
-| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS 独立 support 的工程双轨另已接通 | 正式 support units/预算与真实数据验收 | 选模产物与 manifest 对账 |
+| 13 个 P3.1 方法单跑 | **否** | 已有来源绑定的 v3 接入请求；仍缺可执行 profiles/units、预算与 runner 绑定 | runner 接受 `--method <13 方法>` |
+| 图像/共享 backbone | **部分（独立工程链已通）** | 正式 v3/预算/阶段资格与对应验收；GradPU 私有无BN单列 | 小子集120/200快照及双轨 manifest 已实测，非正式主榜 |
+| GEN-PU 独立工程 recipe | **是** | 正式 v3/预算冻结与对应全量资源、数值验收 | 已有真实 CIFAR 固定小子集、标准宽度 ResNet-18 双 batch GPU manifest/回放，不作正式主榜 |
+| PA/OA 选模 | **是**（8 方法）；Self-PU/LaGAM/PULNS support 工程双轨另已接通，Self-PU 含显式 TS | 正式 support units/预算与对应验收；真实 Spambase 短 CPU 已验 | 选模产物与 manifest 对账 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | 22 方法主榜 | **否** | 上述缺口 + 预算冻结 | P4.2 门禁 |
 
@@ -28,16 +29,16 @@
 
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
-| clean support 产物 | PULNS、LaGAM、Self-PU 完整版 | 5 数据集 support 生成与校验（100/500） | shuidisjtu | 产物 + 五角色 manifest |
+| clean support 正式消费 | PULNS、LaGAM、Self-PU 完整版 | 本机 25 份已齐；待跨机收据核验、正式 units/预算绑定 | shuidisjtu | 正式消费 manifest 与五角色制品对账 |
 | 13 方法不在协议 | 13 方法不能进 survey | protocol v3：补 13 个 `method_profiles` 与 `execution_units` | shuidisjtu 起草，HENG958 核对 | `--method` 可跑 |
 | 13 方法预算未冻结 | 可比性 | 冻结 epochs/batch/candidates/seeds | shuidisjtu | P4.1-B 记录 |
-| 图像 runner 未接 | PULDA/GradPU 不能进主榜 | 接 runner + 单 run 峰值估算 | HENG958 | smoke + profile |
-| CVIR 校准未决 | TS 主表 | A2 裁决 + 实现 | HENG958 | 校准或“不适用” |
-| Self-PU 完整版 | 方法完整 | 已有显式 SCAR OS full-meta checkpoint 双轨工程路径；待正式 clean-support 单元、适用视图与验收 | HENG958 | 单元 + 跑通 |
-| GEN-PU recipe | 方法完整 | 4 个 blocker | HENG958 | 冻结 |
-| `PA+clean-support` | PULNS/LaGAM | 两方法工程路径已接通；待真实 support、正式 units 与验收 | HENG958 | 跑通 |
-| PN-CNN | oracle | 真实 GPU smoke + 5 seed | HENG958 | 交付 |
-| RV5/RV6 | Pilot 复核 | 方法学结论 | HENG958 | 结论记录 |
+| 图像正式单元未接 | PULDA/GradPU 不能进主榜 | 独立 runner/小子集120/200峰值已交付；待 v3/预算/阶段绑定 | HENG958 | 正式单元与对应 smoke/profile |
+| CVIR 正式接线 | TS 主表 | 已补独立校准/先验换算；待 v3 units/runner、预算与真实验收 | HENG958 | 正式单元 + 跑通 |
+| Self-PU 完整版 | 方法完整 | 显式 SCAR OS/TS full-meta 工程双轨已实跑；待正式 clean-support 单元、适用视图/预算与验收 | HENG958 | 正式单元 + 跑通 |
+| GEN-PU recipe | 方法完整 | 四项已有工程规格、单候选命令及短 GPU 收据；正式 v3/预算与全量验收待闭合，不自动关 #126 | HENG958 | 正式绑定；当前工程交付见 §1.5 |
+| `PA+clean-support` | PULNS/LaGAM | 两方法独立工程路径及真实 Spambase CPU 已通；待正式 units/预算与对应验收 | HENG958 | 正式单元命令与 manifest 对账 |
+| PN-CNN | oracle | 5 seed 实验暂缓，协议定稿后再安排；独立真实 CIFAR GPU smoke 仍未交付，本轮不启动 | HENG958 | 定稿后另行安排，不标完成 |
+| v2_p4 / v2_p10 / #122 / RV5 / RV6 | 协议与 Pilot 复核 | 先回复五项复核；已有技术意见见本日记录，人工接受/裁决未代填 | HENG958 | 结论记录；v2 review_items 由 shuidisjtu 更新 |
 
 ### 1.3 预算与资源
 
@@ -106,20 +107,71 @@
 | Dist-PU | clean-room 全量目标与作者两阶段、scheduler、直方图目标不同 | 另有显式 `author_staged` 路径；默认 clean-room 不变 |
 | Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | #122 待HENG958裁决 |
 | PAN | 论文 Eq. (7) 与源码目标、采样不一致 | 保留 paper-faithful；正式采样跟随论文 OS |
-| CVIR | `α_U` 为 U 内比例；原生 TS 未接校准 | TS 主表门未闭合，P3.2 决定 |
+| CVIR | 原始 U 的 α_U 与总体 π 不同；已补全局风险池校准与视图先验换算的独立工程入口 | 正式 v3/预算、真实数据/GPU 仍待，不把工程对照当论文数值复现 |
 | Grad-PU | 论文要求移除 BN | `cnn13_no_bn` 单列 method-private，附 SHOULD 共享对照 |
 | PULNS / LaGAM | clean support 是额外监督；PA 不适用 | 只报 OA 或 `PA+clean-support`；P3.2 |
 | GEN-PU / Holistic-PU | 作者归档未发现 LICENSE | `license=unknown`；不复制、执行或再分发 |
 | KLDCE / PUSB 线性 | 求解器或来源身份与论文/官方路径不同 | 方法卡与台账已披露，不改求解策略 |
 
-### 1.5 推进顺序（2026-10-21）
+### 1.5 推进顺序（2026-10-22 对齐任务交接）
 
-1. **P3.2**（HENG958）：共享规格、`PA+clean-support`、CVIR、Self-PU、GEN-PU。
-2. **clean support 产物**（shuidisjtu）：5 数据集，可与 P3.2 并行。
-3. **protocol v3**（shuidisjtu + HENG958）：13 方法 profiles/units，解锁 13 方法单跑。
-4. **P4.1-B**：预算/配方冻结。
-5. **分组跑批 + 汇总**：按 method/dataset/path/mechanism，边跑边清。
-6. **P3.3 smoke + P4.2**：峰值验证与主榜。
+以用户提供的 `heng958_tasks_20261021.md` 为本轮任务交接依据；逐项技术意见、证据与
+未解除的边界见[20261021 任务复核回复](reviews/heng958_task_review_20261022.md)。
+
+1. **先回复五项 review**（HENG958）：`v2_p4`、`v2_p10`、#122、RV5、RV6；
+   前两项接受后，由 shuidisjtu 更新 v2 `review_items`，本轮不代签或修改冻结 JSON。
+2. **Issue 收尾**：#126 四项 GEN-PU recipe/blocker 逐项给结论；#88 对照 RV8 区分已接受
+   的证据与 #122 等残余项；#122 按明确裁决处理，不能只改 JSD 参数或因测试通过而关闭。
+3. **P3.2 剩余实现**：GEN-PU recipe、PULDA/GradPU 图像 runner 与 120/200 快照峰值、
+   Self-PU 完整分支及 `PA+clean-support` 正式接线。CVIR 独立校准、25 份 support、
+   三方法真实 Spambase 短 CPU 已交付，不重复做；正式 units/预算/对应验收仍待。
+4. **protocol v3**（shuidisjtu + HENG958，与上项可并行）：13 方法 profiles/units，
+   含 Self-PU 完整分支的新单元和正式 support 消费；跨机数据按已有收据核验。
+5. **P4.1-B**：冻结预算/配方；随后 P3.3 核对单 run 峰值、选后保留和 smoke。
+6. **分组跑批 + 汇总、P4.2 主榜门禁**：只运行满足协议/预算/配方前置的单元。
+
+**PN-CNN 的 5 seed 实验单独暂缓**：按用户 2026-10-22 指令，协议定稿后再安排；
+不启动、不补造结果、不标记完成。该指令不取消其他方法或 support 制品的 seeds 0–4，
+也不删除 PN-CNN 已有实现、历史证据或协议中的 oracle 角色要求。
+
+2026-10-23：[GEN-PU recipe 与真实图像 GPU 交付](delivery/genpu_recipe_20261023.md)。
+四项 blocker 已逐项落实工程配方/阶段与成本守卫；实际单候选命令产出 PA/OA manifest，
+全宽 ResNet-18、真实 CIFAR 预固定小子集，batch8/256 短 GPU 验证均0告警/0重试并回放。
+仅记录本机工程规格，不改 frozen JSON/台账或签署，不代替 v3/P4.1-B 正式预算与全量验收。
+#126 未关闭；本日后续已补[PULDA/GradPU 图像 runner 与120/200峰值](delivery/candidate_image_runner_20261023.md)：
+标准宽度 ResNet-18/CNN13-no-BN、固定 CIFAR 小子集各1 seed，0告警/0重试，
+双轨选择回放、选后2份快照；完整快照数量不冒充全量数据/默认batch/正式预算验收。
+同日后续已补[Self-PU 显式 TS/full-meta 工程双轨](delivery/selfpu_ts_support_20261023.md)，
+真实 Spambase 同制品/标记/参数的短 OS/TS 运行均0告警/0重试并回放；
+不修改原生风险、不宣称校准效果改善。下一步正式 full-meta/support units 与13方法 profiles/units
+继续同 v3 对接，冻结正式预算/阶段资格；PN-CNN 5 seed 暂缓不变。
+
+本日另补[v3 profile/unit 接入请求与校验](delivery/survey_v3_proposal_20261023.md)：
+范围按 RV8 对齐（13方法含P3MIX、不含VPU；VPU另补，TEDn不计13），22目标算法、
+Self-PU 完整版单列后23 profile、8数据集184个阻断请求。该 planning schema 不可执行，
+不改 v2 基线/默认，未填正式预算或签署；下一步仍是 profile identity、正式五角色/配方、
+多阶段预算校验和新版本 registry/comparison 的实际接线，不能把生成草案标成13方法可跑。
+
+2026-10-24 已补[profile 与算法身份分离](delivery/profile_identity_20261024.md)：
+显式 draft schema 下的模型、先验/视图、CLI、批次规划及完整来源摘要续跑已接通；
+同算法多 profile 不污染 registry、不覆盖输出。旧 v2 保持，新扩展强制工程验证，
+不挪用旧 comparison/registry；full-meta/support 与 CVIR 在缺正式适配时仍提前拒绝。
+下一步转入方法族预算/阶段资格、五角色适配和新版本 registry/comparison；
+未把这些工程测试或184个请求标成正式准入，PN-CNN 5 seed 仍暂缓。
+
+同日补[GEN-PU/PULDA 显式阶段预算](delivery/staged_budget_20261024.md)：
+二维 draft 的预算参数、原生架构身份、实际快照容量和阶段/优化器成本收据已接通；
+GEN-PU 不再把 GAN 轮数当 PN 快照数，PULDA 计入两段但不把 TS 并集误计为额外 batch。
+其他方法族、native CNN、正式预算/阶段资格及五角色/registry/comparison 仍未完成；
+不据此把 P4.1-B 或13方法正式可跑标成完成。
+
+同日后续补[Robust-PU/Split-PU/Holistic-PU 阶段预算](delivery/episodic_budget_20261024.md)：
+schema 2 已接通三方法 native_2d draft 的实际 CLI/pilot 与成本收据，
+Robust episode 内多轮不多造快照；Split 预留 cap、核验原生早停和逐 round 覆盖并可续跑；
+Holistic LZO 回选状态仍完整计入已执行 warmup 和前向，OS/TS 边界保持。
+阶段预算汇总不再投影成占位1；同快照数也须核对内层/GAN等全部显式参数。
+连同前批共5方法具有阶段预算工程接线，不等于5份正式配方批准；
+五角色、其他方法族、图像正式绑定、新 registry/comparison 与数值验收仍待。
 
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
@@ -128,6 +180,19 @@ CLI 可显式执行单候选 CPU 工程链，不代表正式单位、真实数�
 同日第二批补齐 PULNS episode 回调和同一双轨 CLI；只保存完成 episode 的实际 classifier，
 不把 reward probe/内部训练当作额外选择 epoch。v2 两个 pending review 项保留，
 正式 units、数据与 P3.2 其他缺口仍待。
+
+同日后续：[CVIR 校准与先验](delivery/cvir_calibration_20261022.md)。新增显式训练
+U∪P 全局排序/截断和按 PU 计数换算先验，保留默认 OS 与旧显式 α_U adapter。
+独立 SCAR 工程入口可记录 PA/OA checkpoint 选择，仍拒绝 versioned Survey/SAR；
+尚未解锁正式 CVIR 单元、配方预算或真实数据/GPU 结果。
+
+同日数据补齐：[五数据集 clean-support 制品](delivery/clean_support_materialization_20261022.md)。
+Spambase/Connect-4/MNIST/F-MNIST/CIFAR-10 的 seeds 0–4 共 25 份已在本机生成并按 raw
+逐行/五角色摘要/剩余 train 预处理验收（100/500，support_seed=split_seed）。
+Self-PU/LaGAM/PULNS 的真实 Spambase 单 seed 短 CPU 双轨 CLI 也已跑通并回放，
+不等于正式配方、多 seed/GPU 或论文效果验收。制品不入 Git，只登记
+[摘要清单](data/clean_support_materialization_20261022.json)，跨机器传递仍须核验；
+v2 pending review、正式 v3/预算边界保持。
 
 ## 2. 风险与留痕约定
 
@@ -183,3 +248,4 @@ CLI 可显式执行单候选 CPU 工程链，不代表正式单位、真实数�
 | D27 | **分批执行与统一汇总** | 最终实验按 method、dataset、training-path 或 labeling mechanism 分组跑，不要求同批或一次性跑完；每组 manifest 绑定同一协议/比较摘要，汇总按 `(comparability_group, run_view, mechanism)` 分区。分组不改变可比性。 | 2026-10-21 |
 | D28 | **计算资源不设上限** | CPU/GPU 时间默认不限，不作为跑批门禁；正式运行仍须 frozen-lock 环境与逐 run 身份记录。 | 2026-10-21 |
 | D29 | **存储与 checkpoint 保留** | 只保留选中 checkpoint（P2.1 B4 口径），未选中按 D25 回收；按组清理，不保留全过程权重；单 run 峰值按参数×快照估算。仅个别方法超限时再优化。 | 2026-10-21 |
+| D30 | **PN-CNN 5 seed 暂缓** | 用户要求 P3.2 中 PN-CNN 的 5 seed 实验等协议定稿后再安排；不视为完成或永久取消，不影响其他方法/support 的五 seed 口径，不改冻结协议及历史结果。 | 2026-10-22 |

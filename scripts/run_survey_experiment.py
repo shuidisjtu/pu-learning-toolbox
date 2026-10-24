@@ -439,7 +439,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         description="Run one PU-survey method on user-prepared four-way splits."
     )
     parser.add_argument("data_dir", help="directory with train/pu_val/clean_val/test .npz files")
-    parser.add_argument("--method", default=None, help="registered algorithm name (default: upu)")
+    parser.add_argument(
+        "--method",
+        default=None,
+        help="algorithm name or explicit versioned profile ID (default: upu)",
+    )
     parser.add_argument(
         "--oracle",
         action="store_true",
@@ -545,6 +549,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
         cached_adapter,
         prepare_image_bundle,
     )
+    from pu_toolbox.experiment.survey_profile_identity import (
+        profile_algorithm,
+        require_four_role_profile,
+    )
     from pu_toolbox.experiment.survey_protocol import (
         digest,
         load_protocol,
@@ -592,6 +600,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
             # a run against, and its units resolve, or do not, one by one.
             validate_comparison_coverage(protocol, load_comparison_protocol(survey=protocol))
         row = resolve_unit(protocol, args.dataset, method, args.training_path)
+        algorithm = profile_algorithm(protocol, method)
+        require_four_role_profile(protocol, method)
         profile = protocol["method_profiles"][method]
         params = json.loads(args.model_params)
         validate_parameters(params, profile)
@@ -620,19 +630,19 @@ def _versioned_main(args, c_values, seed_values) -> int:
             if args.oracle
             else resolve_class_prior(
                 ledger,
-                method,
+                algorithm,
                 args.class_prior,
-                requires_class_prior=get_metadata(method).requires_class_prior,
+                requires_class_prior=get_metadata(algorithm).requires_class_prior,
             )
         )
         if "class_prior" in params and params["class_prior"] != prior:
             raise ValueError("constructor class_prior disagrees with --class-prior")
         os_or_ts = resolve_training_view(
             ledger,
-            method,
+            algorithm,
             args.os_or_ts,
             is_oracle=args.oracle,
-            estimator_class=None if args.oracle else get_algorithm(method),
+            estimator_class=None if args.oracle else get_algorithm(algorithm),
         )
     except (OSError, KeyError, TypeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -776,7 +786,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 if c_value is not None:
                     _record_c_token(run_dir / "manifest.json", c_value.token)
                 if not args.oracle:
-                    _write_ledger_entry(run_dir, ledger["methods"][method], os_or_ts)
+                    _write_ledger_entry(run_dir, ledger["methods"][algorithm], os_or_ts)
             except Exception as exc:  # noqa: BLE001 - user-facing run boundary
                 print(f"error: survey run failed: {exc}", file=sys.stderr)
                 return 1

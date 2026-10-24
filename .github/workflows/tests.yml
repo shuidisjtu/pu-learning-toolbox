@@ -134,6 +134,12 @@ jobs:
         if: ${{ hashFiles('pu_toolbox/experiment/survey_recipe_registry_v1.json') != '' }}
         run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --require-present --require-locked
 
+      - name: V3 profile/unit proposal sources (planning only)
+        run: >-
+          uv run --python "3.11" python scripts/prepare_survey_v3_proposal.py
+          --check docs/research/pu_survey/data/survey_v3_profile_unit_proposal_20261023.json
+          --summary
+
       - name: Comment quality gate
         run: uv run --python "3.11" python scripts/check_comment_quality.py
 

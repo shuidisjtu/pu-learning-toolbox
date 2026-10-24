@@ -354,9 +354,12 @@ def assemble_model(
 ):
     """Instantiate matrix defaults; constructor/candidate overrides cannot change locks."""
     profile = protocol["method_profiles"][row["method"]]
+    from .survey_profile_identity import profile_algorithm
+
+    algorithm = profile_algorithm(protocol, row["method"])
     validate_parameters(params, profile)
     constructor = {**profile["params"], **params}
-    if row["method"] == "pn_oracle":
+    if algorithm == "pn_oracle":
         if row["training_path"] == "native_cnn":
             if encoder is None:
                 raise ValueError("CNN oracle requires an explicit image encoder")
@@ -365,7 +368,7 @@ def assemble_model(
     from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 
     register_all_builtin_methods()
-    cls = get_algorithm(row["method"])
+    cls = get_algorithm(algorithm)
     import inspect
 
     accepted = inspect.signature(cls).parameters
@@ -375,13 +378,13 @@ def assemble_model(
         constructor["device"] = device
     if "class_prior" in accepted:
         constructor["class_prior"] = class_prior
-    if row["method"] in {"nnpu", "self_pu"}:
+    if algorithm in {"nnpu", "self_pu"}:
         import torch
 
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(seed)
             network = score_model(512 if encoder is not None else input_dim, row["model_family"])
-        constructor["model" if row["method"] == "nnpu" else "backbone"] = network
+        constructor["model" if algorithm == "nnpu" else "backbone"] = network
     if row["training_path"] == "native_cnn":
         constructor["encoder"] = encoder
     return cls(**constructor)

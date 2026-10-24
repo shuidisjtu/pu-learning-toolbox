@@ -260,7 +260,8 @@ def test_basic_ledger_and_source_contract_preserve_admission_boundaries():
     assert implementation["wired_to_existing_cvir"] is False
     assert implementation["fixed_population_prior_accepted"] is False
     assert review["owner_signatures"] == []
-    assert cvir["calibration_applied"] is cvir["calibration_hooked"] is False
+    assert cvir["calibration_applied"] is False
+    assert cvir["calibration_hooked"] is True
 
 
 def test_basic_cnn_real_bbe_alternation_without_stub():

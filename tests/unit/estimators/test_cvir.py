@@ -81,12 +81,14 @@ def test_invalid_prior_or_unsupported_view_fails_loud():
         resolve_training_view(
             load_ledger(), "cvir", None, is_oracle=False, estimator_class=CVIRClassifier
         )
-        == "os"
+        == "ts"
     )
-    with pytest.raises(ValueError, match="calibration_hooked=false"):
+    assert (
         resolve_training_view(
             load_ledger(), "cvir", "ts", is_oracle=False, estimator_class=CVIRClassifier
         )
+        == "ts"
+    )
 
 
 @pytest.mark.parametrize("params", [{"max_epochs": 0}, {"batch_size": 0}, {"learning_rate": 0}])

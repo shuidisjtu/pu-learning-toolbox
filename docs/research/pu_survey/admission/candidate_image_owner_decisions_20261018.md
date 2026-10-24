@@ -1,5 +1,10 @@
 # 给合作者：PULDA / GradPU 图像配方待确认清单
 
+> 2026-10-23 时间截点补记：以下保留2026-10-18原始交接状态，不代表当前 issue 状态。
+> #119/#120/#121 已按[20261021任务复核](../reviews/heng958_task_review_20261022.md)处置，
+> 不因旧表重开。独立图像 runner/完整120/200小子集快照已见
+> [本日交付](../delivery/candidate_image_runner_20261023.md)；正式 v3/预算边界仍保留。
+
 状态：**待合作者确认，未签署、未正式准入**。
 2026-10-18 再次读取远程：[#119](https://github.com/shuidisjtu/pu-learning-toolbox/issues/119)
 和 [#120](https://github.com/shuidisjtu/pu-learning-toolbox/issues/120) 均 OPEN、0评论；

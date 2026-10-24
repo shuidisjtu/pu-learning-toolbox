@@ -107,10 +107,14 @@ def test_edge_os_runner_refuses_unsupported_paths_before_fit(overrides, view, mo
     )
     with pytest.raises(ValueError):
         runner.fit(model(**overrides), *parts())
-    with pytest.raises(ValueError, match="calibration_hooked=false"):
+    # The generic component now supports calibration, but this old explicit-U
+    # adapter still refuses it: it has no population-to-risk prior binding.
+    assert (
         resolve_training_view(
             load_ledger(), "cvir", "ts", is_oracle=False, estimator_class=CVIRClassifier
         )
+        == "ts"
+    )
 
 
 def test_determ_prior_provenance_does_not_change_training():

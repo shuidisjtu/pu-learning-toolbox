@@ -1,5 +1,8 @@
 # Clean-support 独立 checkpoint 双轨接线（2026-10-22）
 
+> 2026-10-23 补记：下文保留原 OS 交付截点；另新增[Self-PU 显式 TS full-meta 入口](selfpu_ts_support_20261023.md)。
+> 原 OS adapter/default 不变，LaGAM/PULNS 不随之启用 TS；正式 v3/预算仍待。
+
 ## 本批交付
 
 按最新执行计划 §1.5 推进 P3.2；不重开 P3.1/RV8，不启动正式数据跑批。
