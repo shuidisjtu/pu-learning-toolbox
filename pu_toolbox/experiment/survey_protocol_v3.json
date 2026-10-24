@@ -207,6 +207,16 @@
     "pulda_native_cnn": {
       "algorithm_id": "pulda",
       "architecture": "resnet18_small_image"
+    },
+    "mlp32": {
+      "hidden_dims": [
+        32
+      ],
+      "activation": "relu",
+      "output_dim": 1,
+      "initialization": "seeded_random",
+      "optimizer": "adam",
+      "learning_rate": 0.001
     }
   },
   "budgets": {
@@ -414,6 +424,35 @@
           "pseudo_pn"
         ]
       }
+    },
+    "lagam": {
+      "unit": "epochs",
+      "epochs": 20,
+      "batch_size": 64,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "pulns": {
+      "unit": "episodes",
+      "epochs": 20,
+      "batch_size": 128,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "clean_support_two_student": {
+      "unit": "two_student_sampled_epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "optimizer_steps_per_epoch": 2,
+      "sampled_examples_per_step_max": 512,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
     }
   },
   "method_profiles": {
@@ -758,7 +797,7 @@
         "discount": 0.9,
         "terminal_weight": 1.0
       },
-      "budget": "draft_pulns",
+      "budget": "pulns",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
@@ -862,7 +901,7 @@
         "rho_end": 0.8,
         "meta_update_bias": true
       },
-      "budget": "draft_lagam",
+      "budget": "lagam",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
         "status": "provisional_or_unresolved",
@@ -897,6 +936,21 @@
         ]
       },
       "algorithm": "vpu"
+    },
+    "self_pu_full_meta": {
+      "budget": "clean_support_two_student",
+      "params": {
+        "hidden_dim": 128,
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001,
+        "require_validation": true,
+        "distillation_scope": "paper_population"
+      },
+      "model_family": "mlp128",
+      "group": "two_student_sampled",
+      "algorithm": "self_pu",
+      "supervision": "independent_clean_support"
     }
   },
   "execution_units": [
@@ -1461,18 +1515,16 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_pulns",
+      "budget": "pulns",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_pulns_budget",
+      "comparability_group": "spambase/native_2d/clean_support",
       "model_family": "mlp32",
-      "backbone": "none",
+      "backbone": "mlp32",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "Clean-support runner path and recipe require P3.2/P4.1-B.",
-      "runnable": false,
+      "runnable": true,
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "pulns",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "method": "pulns"
     },
     {
       "budget": "draft_pulns",
@@ -1579,18 +1631,16 @@
       "comparability_status": "provisional_method_isolated_pending_p4_1_b"
     },
     {
-      "budget": "draft_lagam",
+      "budget": "lagam",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/pending_lagam_budget",
+      "comparability_group": "spambase/native_2d/clean_support",
       "model_family": "mlp128",
-      "backbone": "none",
+      "backbone": "mlp128",
       "dataset": "spambase",
       "representation": "train_zscore",
-      "non_runnable_reason": "Clean-support execution path and LaGAM recipe require P3.2/P4.1-B.",
-      "runnable": false,
+      "runnable": true,
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
-      "method": "lagam",
-      "comparability_status": "provisional_method_isolated_pending_p4_1_b"
+      "method": "lagam"
     },
     {
       "budget": "draft_lagam",
@@ -1669,6 +1719,18 @@
       "backbone": "pulda_native_cnn",
       "representation": "train_zscore",
       "comparability_group": "cifar10/native_cnn/pulda",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "self_pu_full_meta",
+      "training_path": "native_2d",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/clean_support",
       "oracle_alignment": "no_matched_neural_backbone_oracle",
       "runnable": true
     }

@@ -73,6 +73,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import math
 import sys
@@ -97,12 +98,14 @@ from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import (
     CleanLabelGenerator,
     ProtocolOA,
+    ProtocolPACleanSupport,
     SARLBEAGenerator,
     SARLBEBGenerator,
     SCARGenerator,
     SupervisedTrainer,
     scar_realized_rate,
 )
+from pu_toolbox.experiment.support_data import load_support_dataset
 from pu_toolbox.experiment.survey_recipe_binding import SCHEMA_VERSION as RECIPE_BINDING_V2
 from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
 from pu_toolbox.experiment.survey_recipe_registry import (
@@ -209,6 +212,59 @@ def _resolve_labeling_protocols(mechanism: str) -> list | None:
     if mechanism in SAR_MECHANISMS:
         return [ProtocolOA()]
     return None
+
+
+SUPPORT_ALGORITHMS = ("self_pu", "lagam", "pulns")
+
+
+def _support_trainer(algorithm, view, support, manifest):
+    """Checkpoint-selection adapter for an audited clean-support profile.
+
+    Only the checkpoint variants set ``pa_clean_support_eligible``, which
+    ``ProtocolPACleanSupport`` refuses without: a terminal-only adapter would
+    silently run as plain PA.
+    """
+    from pu_toolbox.experiment.support_checkpoints import (
+        LaGAMCleanSupportCheckpointTrainer,
+        PULNSCleanSupportCheckpointTrainer,
+        SelfPUCleanSupportCheckpointTrainer,
+        SelfPUTSCleanSupportCheckpointTrainer,
+    )
+
+    if algorithm not in SUPPORT_ALGORITHMS:
+        raise ValueError(f"{algorithm} has no audited clean-support training adapter")
+    trainer = {
+        "lagam": LaGAMCleanSupportCheckpointTrainer,
+        "pulns": PULNSCleanSupportCheckpointTrainer,
+        "self_pu": (
+            SelfPUTSCleanSupportCheckpointTrainer
+            if view == "ts"
+            else SelfPUCleanSupportCheckpointTrainer
+        ),
+    }[algorithm]
+    options = dict(manifest["support_adapter_options"])
+    audit = manifest.get("support_source_audit", {})
+    accepted = set(audit).intersection(inspect.signature(trainer).parameters)
+    if accepted and accepted != set(audit):
+        raise ValueError("partial support-source audit contract; refusing to drop required fields")
+    options.update({key: audit[key] for key in accepted})
+    return trainer(support, **options)
+
+
+def _require_same_support_split(source, support_bundle) -> None:
+    """The support artifact must describe the split the four roles came from.
+
+    A mismatched artifact would train on another split's support without any
+    error: the receipt only proves the artifact is intact, not that it belongs
+    to this split.
+    """
+    for role in ROLES:
+        loaded = getattr(source, role)
+        supplied = getattr(support_bundle, role)
+        if loaded.X.shape != supplied.X.shape or not np.array_equal(
+            loaded.indices, supplied.indices
+        ):
+            raise ValueError(f"support artifact {role} does not match the loaded split")
 
 
 def _validate_labeling_request(*, mechanism: str, is_oracle: bool, c_values: list[CValue]) -> None:
@@ -524,6 +580,15 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=None,
         help="select a matrix row; CIFAR oracle requires an explicit path",
     )
+    parser.add_argument(
+        "--support-dir",
+        type=Path,
+        default=None,
+        help=(
+            "audited clean-support artifact directory, required exactly by profiles that "
+            "declare independent_clean_support supervision"
+        ),
+    )
     parser.add_argument("--device", default="cpu", help="execution device (default: cpu)")
     parser.add_argument("--adapter-cache", default="data/cache/survey_adapter")
     parser.add_argument("--extraction-batch-size", type=int, default=64)
@@ -603,8 +668,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
             validate_comparison_coverage(protocol, load_comparison_protocol(survey=protocol))
         row = resolve_unit(protocol, args.dataset, method, args.training_path)
         algorithm = profile_algorithm(protocol, method)
-        require_four_role_profile(protocol, method)
         profile = protocol["method_profiles"][method]
+        needs_support = profile.get("supervision") == "independent_clean_support"
+        if needs_support != (args.support_dir is not None):
+            raise ValueError(
+                "--support-dir is required exactly by independent clean-support profiles"
+            )
+        require_four_role_profile(protocol, method, clean_support=needs_support)
         params = json.loads(args.model_params)
         validate_parameters(params, profile)
         candidates = _load_json_maybe(args.candidates, default=protocol["candidate_pool"])
@@ -691,6 +761,11 @@ def _versioned_main(args, c_values, seed_values) -> int:
             if split_ref.get("seed") != seed:
                 raise ValueError("split manifest seed does not match the requested run seed")
             source = DatasetBundle(*parts)
+            support_part = support_manifest = None
+            if needs_support:
+                support_path = Path(str(args.support_dir).replace("{seed}", str(seed)))
+                support_bundle, support_part, support_manifest = load_support_dataset(support_path)
+                _require_same_support_split(source, support_bundle)
             image_manifest = adapter_manifest = encoder = None
             bundle = source
             if modality_of(args.dataset) == "text" and any(
@@ -803,6 +878,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
                         "broadcast_c_values": [value.value for value in c_values],
                     }
                 )
+            elif needs_support:
+                config["trainer"] = _support_trainer(
+                    algorithm, os_or_ts, support_part, support_manifest
+                )
+                # The runner re-reads the protocol and re-applies the same gate; it can
+                # only relax it when the caller declares that support was supplied.
+                config["clean_support_provided"] = True
             else:
                 config["c_requested_token"] = c_value.token
             run_dir = _run_directory(
@@ -818,9 +900,15 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     model,
                     tuple(getattr(bundle, role) for role in ROLES),
                     generator=generator,
-                    protocols=[ProtocolOA()]
-                    if args.oracle
-                    else _resolve_labeling_protocols(args.labeling_mechanism),
+                    protocols=(
+                        [ProtocolPACleanSupport(), ProtocolOA()]
+                        if needs_support
+                        else (
+                            [ProtocolOA()]
+                            if args.oracle
+                            else _resolve_labeling_protocols(args.labeling_mechanism)
+                        )
+                    ),
                     seed=seed,
                     c=None if c_value is None else c_value.value,
                     class_prior=prior,

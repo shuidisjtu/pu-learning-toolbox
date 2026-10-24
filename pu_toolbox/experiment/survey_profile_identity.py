@@ -118,17 +118,22 @@ def profile_manifest_identity(protocol, profile_id):
     }
 
 
-def require_four_role_profile(protocol, profile_id):
-    """Do not use an alias to bypass the still-missing formal support adapter."""
+def require_four_role_profile(protocol, profile_id, *, clean_support=False):
+    """Do not use an alias to bypass the still-missing formal support adapter.
+
+    ``clean_support`` is set only when the caller supplies an audited five-role
+    artifact; without it these profiles must not run through the generic path.
+    """
     if not has_profile_identities(protocol):
         return
     algorithm = profile_algorithm(protocol, profile_id)
     profile = protocol["method_profiles"][profile_id]
-    if (
+    support_profile = (
         algorithm in ("pulns", "lagam")
         or profile.get("supervision") == "independent_clean_support"
         or (algorithm == "self_pu" and profile["params"].get("require_validation") is True)
-    ):
+    )
+    if support_profile and not clean_support:
         raise ValueError(
             "clean-support profile requires the versioned five-role adapter; "
             "four-role execution unavailable"
