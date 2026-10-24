@@ -88,9 +88,9 @@ P4.1-B 完成前不把 draft 预算当 locked 预算。
 - 比较矩阵 `survey_comparison_v4.json` 仍绑 `survey-v2.0`：v3 结果在版本化 profile 映射落地前
   不进比较矩阵（运行逐条记 `missing_versioned_profile_mapping`）。
 - `runnable` 只表示实现能力，不是正式准入。v3 的 `formal_blockers` 未清、P4.1-B 预算未冻结。
-  v3 中 `formal_blockers`、`draft_scope.limitations` 与 split_pu 的两处 `configuration_review`
-  措辞仍早于最后两笔接线和 #122 裁决，与 `execution_units`/已裁决状态不一致；在真实运行对齐
-  之前按“未验证”处理，不据此改准入。这些陈旧措辞留到下一次版本化协议更新一并修正。
+  `formal_blockers`、`draft_scope`、`decisions` 与 split_pu 的 `configuration_review` 曾在冻结后
+  落后于接线与 #122 裁决；这些措辞已于 2026-10-24 原地修正（版本号仍为 `survey-v3.0`，未改
+  `execution_units` 与预算），正式准入状态不变。
 - 冻结文件只在版本化提案中修改；新数据、方法或配方登记新协议，不覆盖旧 645-run 结果、
   旧 manifest 或历史签署。
 - **P3.1 完成 ≠ 正式准入**；正式准入仍待预算冻结与主榜门禁。

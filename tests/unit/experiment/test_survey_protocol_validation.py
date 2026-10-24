@@ -50,8 +50,8 @@ def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_under_frozen_p
     assert "non_runnable_reason" not in row
     assert protocol["review_status"] == "accepted"
     remaining_blocker = (
-        "CVIR, LaGAM, PULNS, KLDCE, P3MIX, PAN, PUET, RP, VPU and the GradPU "
-        "native-2d path still lack a frozen main-chain budget or runner."
+        "CVIR, KLDCE, P3MIX, PAN, PUET, RP, VPU, the GradPU native-2d path, and the "
+        "cifar10 rows for LaGAM and PULNS still lack a frozen main-chain budget or runner."
     )
     assert remaining_blocker in protocol["formal_blockers"]
 

@@ -73,7 +73,7 @@
 - [`cvir_source_cnn_review_20261015.md`](admission/cvir_source_cnn_review_20261015.md)：CVIR 历史来源/图像复核。2026-10-22 已补[独立校准与先验接线](delivery/cvir_calibration_20261022.md)：全局训练 U∪P 先排序后截断、按实际视图换算先验与 PA/OA 工程选模；正式 v3/配方预算、真实数据/GPU 仍待。
 - [`lagam_source_cnn_review_20261015.md`](admission/lagam_source_cnn_review_20261015.md)：LaGAM 虚拟范围/CNN/分批与阶段成本；2026-10-17 #115 已将 registry/台账采样定位纠正为 OS，support 标签预算与 PA 限制仍待审。
 - [LaGAM 全文与实现交叉复核](admission/lagam_paper_review_20261020.md)：补齐原文获取；登记零梯度、β/簇数来源分歧与 support 子类配额，绑定数值行为测试；保留默认实现及未签署/未准入状态。
-- [Split-PU #122 三项裁决](admission/splitpu_122_adjudication_20261024.md)：JSD 保持源码 0.7、TS 均衡 batch 登记 benchmark 近似、台账指针推迟到版本化更新；两行翻牌、#122 可关，冻结协议里的陈旧措辞留待下次版本化更新。
+- [Split-PU #122 三项裁决](admission/splitpu_122_adjudication_20261024.md)：JSD 保持源码 0.7、TS 均衡 batch 登记 benchmark 近似、台账指针推迟到版本化更新；两行翻牌、#122 可关，冻结 v3 里的陈旧措辞已原地修正（版本号不变）。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。

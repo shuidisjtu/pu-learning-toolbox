@@ -23,11 +23,10 @@ target/pred 并保留分母，并联动实现、测试、方法卡与版本登�
   `cifar10/cnn_feature_adapter` 行同批翻牌。
 - **#122 可以关闭**；`#88` 的残余项里不再有 JSD 方向，只剩 LaGAM support 正式路径与共通配方前置。
 
-## 尚未落到冻结文件的部分（不静默改 v3.0）
+## 落点
 
-- `survey_protocol_v3.json` 的 `method_profiles.split_pu.configuration_review.findings` 与
-  `configuration_audit.method_findings.split_pu` 仍写着
-  "provisional while issue #122 ... remain unresolved"。这两处随下一次版本化协议更新修正，
-  与同一文件里 `formal_blockers`/`draft_scope` 的陈旧措辞一并处理（见
-  [执行计划 §1.4.1](../survey_execution_plan.md)）。
-- 台账指针按上表推迟；在版本化更新前，引用台账时应以本记录的 `:221` 为准。
+- `survey_protocol_v3.json` 的两处 `configuration_review`（`method_profiles.split_pu` 与
+  `configuration_audit.method_findings.split_pu`）**已于 2026-10-24 原地改为已裁决**；同一笔
+  顺便修正了 `formal_blockers`、`decisions`、`draft_scope` 里落后于接线与裁决的措辞。
+  版本号仍是 `survey-v3.0`，未改 `execution_units` 与预算——只让散文与单元状态一致。
+- 台账指针按上表推迟；在版本化台账更新前，引用台账时应以本记录的 `:221` 为准。

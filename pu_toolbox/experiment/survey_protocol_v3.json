@@ -763,9 +763,9 @@
       "budget": "split_pu",
       "configuration_status": "provisional_constructor_defaults",
       "configuration_review": {
-        "status": "provisional_or_unresolved",
+        "status": "resolved_by_adjudication",
         "findings": [
-          "The source-default JSD weight 0.7 is provisional while issue #122 paper/source direction and TS batch policy remain unresolved."
+          "The source-default JSD weight 0.7 is confirmed by the 2026-10-24 #122 adjudication: keep the locked source direction and its normalization denominator, register the paper Eq. (6) direction as a difference, and register the TS balanced-batch union ratio as a benchmark approximation. The ledger pointer fix is deferred to a versioned ledger update."
         ]
       },
       "algorithm": "split_pu"
@@ -1798,8 +1798,8 @@
   ],
   "formal_blockers": [
     "per_epoch_independent_PA_OA_checkpoint_selection",
-    "CVIR, LaGAM, PULNS, KLDCE, P3MIX, PAN, PUET, RP, VPU and the GradPU native-2d path still lack a frozen main-chain budget or runner.",
-    "cifar10 rows for GEN-PU, PULDA, Robust-PU, Split-PU and Holistic-PU are withheld until their native/adapted image runners are wired into the survey command."
+    "CVIR, KLDCE, P3MIX, PAN, PUET, RP, VPU, the GradPU native-2d path, and the cifar10 rows for LaGAM and PULNS still lack a frozen main-chain budget or runner.",
+    "Formal admission still awaits the P4.1-B budget freeze and the versioned profile-to-comparison mapping."
   ],
   "decisions": [
     "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
@@ -1822,18 +1822,18 @@
     "PA+clean-support results are listed in the same SCAR-PA table with an explicit annotation and are excluded from pure-PU PA advantage comparisons (Q3).",
     "Training-time clean support is required by PULNS, LaGAM, and the full Self-PU branch; the no-clean Self-PU path is an explicit ablation. Support is disjoint from the remaining train, pu_val, clean_val, and test; this round carves it from train and removes it, sized 100 for Spambase and 500 otherwise, and its positive and negative labels count toward the training-time label budget (approved 2026-10-21).",
     "This round covers Spambase, Connect-4, MNIST, F-MNIST, and CIFAR-10 only; IMDB, 20News, and ADNI are excluded from PA+clean-support.",
-    "The formal PA+clean-support runner is a P3.2 implementation gate; until it lands, only OA clean-support results are reported. Existing self_pu execution units retain the no-meta ablation profile; full Self-PU rows require new clean-support units in P3.2.",
-    "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant will use a separate profile and units when the P3.2 support runner lands."
+    "The formal PA+clean-support runner landed with the 2026-10-24 v3 freeze; support-dependent rows report PA+clean-support alongside OA, annotated and excluded from pure-PU PA advantage comparisons. Existing self_pu execution units retain the no-meta ablation profile.",
+    "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant uses the separate self_pu_full_meta profile and its own support unit."
   ],
   "draft_scope": {
     "limitations": [
       "Added method values are provisional constructor defaults unless explicitly marked as owner-confirmed partial.",
-      "Every added execution unit is non-runnable until its method-specific budget, recipe and runner gates close.",
+      "An execution unit is runnable only after its method-specific budget, recipe and runner gates close; 40 of 64 units are runnable as of the 2026-10-24 freeze.",
       "Only the current v2 pilot dataset matrix (spambase, imdb, cifar10) is represented; this is not full eight-dataset coverage.",
-      "Clean support is absent. Support-dependent PULNS/LaGAM units are limited to the approved support dataset scope."
+      "Clean support products exist for the five support datasets (rebuilt on 2026-10-24); the frozen support unit scope is spambase, with the remaining support datasets awaiting dedicated units."
     ],
     "basis": "P3.1 v2 delta, method ledger, estimator constructor defaults, and current v2 dataset/path matrix",
-    "status": "configuration_reviewed_proposal_not_execution_ready"
+    "status": "accepted_protocol_with_open_units"
   },
   "configuration_audit": {
     "status": "configuration_reviewed_open",
@@ -1921,7 +1921,7 @@
         "Pretrain/episode defaults are not an approved budget; eligible checkpoint stages and prior/validation policy remain open."
       ],
       "split_pu": [
-        "The source-default JSD weight 0.7 is provisional while issue #122 paper/source direction and TS batch policy remain unresolved."
+        "The source-default JSD weight 0.7 is confirmed by the 2026-10-24 #122 adjudication: keep the locked source direction and its normalization denominator, register the paper Eq. (6) direction as a difference, and register the TS balanced-batch union ratio as a benchmark approximation. The ledger pointer fix is deferred to a versioned ledger update."
       ],
       "pan": [
         "Constructor defaults do not resolve the paper/source sampling decision already recorded for Survey or the P4.1-B candidate and budget recipe."
