@@ -163,6 +163,8 @@ class PilotOracleCNN(PilotOracleMLP):
 
     input_ndims = frozenset({4})
     native_architectures = frozenset({"cnn"})
+    encoder_parameter = "encoder"
+    trains_encoder = True
 
     def __init__(
         self,

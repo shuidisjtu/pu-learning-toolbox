@@ -114,7 +114,8 @@ def test_assembly_support_is_separate_from_frozen_matrix_admission():
     assert "class_prior" not in model.get_params()
 
 
-def test_runner_oa_checkpoint_recovery_and_reclaim(tmp_path):
+@pytest.mark.parametrize("architecture", [None, "cnn"])
+def test_runner_oa_checkpoint_recovery_and_reclaim(tmp_path, architecture):
     from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
     from pu_toolbox.experiment.runner import ExperimentRunner
     from pu_toolbox.experiment.strategies import CleanLabelGenerator, ProtocolOA, SupervisedTrainer
@@ -140,7 +141,11 @@ def test_runner_oa_checkpoint_recovery_and_reclaim(tmp_path):
             generator=CleanLabelGenerator(),
             protocols=[ProtocolOA()],
             manifest_path=str(tmp_path / "manifest.json"),
-            config={"trainer": SupervisedTrainer(), "reclaim_unselected_checkpoints": True},
+            config={
+                "trainer": SupervisedTrainer(),
+                "reclaim_unselected_checkpoints": True,
+                "architecture": architecture,
+            },
         ).fit(
             PilotOracleCNN(encoder=encoder, max_epochs=3, batch_size=4, random_state=0),
             bundle.train,

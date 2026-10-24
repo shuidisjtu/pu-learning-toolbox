@@ -421,6 +421,38 @@ def validate_parameters(params: dict, profile: dict) -> None:
             raise ValueError(f"protocol-locked budget parameter cannot be overridden: {name}")
 
 
+def bind_runtime_parameters(
+    method: str, params: dict, profile: dict, *, mechanism: str, c_realized: float
+) -> dict:
+    """Bind explicitly declared mechanism-dependent constructor parameters."""
+    allowed_mechanisms = profile.get("labeling_mechanisms")
+    if allowed_mechanisms is not None and mechanism not in allowed_mechanisms:
+        raise ValueError(
+            f"method {method!r} supports labeling mechanisms {allowed_mechanisms}, "
+            f"not {mechanism!r}"
+        )
+
+    bound = dict(params)
+    bindings = profile.get("runtime_parameters", {})
+    if not isinstance(bindings, dict):
+        raise ValueError(f"method profile {method!r} runtime_parameters must be an object")
+    for name, binding in bindings.items():
+        if name in bound:
+            raise ValueError(f"runtime-bound parameter cannot be overridden: {name}")
+        if binding != {
+            "source": "c_realized",
+            "transform": "one_minus",
+            "mechanism": "scar",
+        }:
+            raise ValueError(f"unsupported runtime binding for {method}.{name}")
+        if mechanism != "scar":
+            raise ValueError(f"runtime binding {method}.{name} is defined for SCAR only")
+        if not 0.0 < float(c_realized) < 1.0:
+            raise ValueError("SCAR c must be in (0, 1) for the runtime parameter binding")
+        bound[name] = 1.0 - float(c_realized)
+    return bound
+
+
 def _model_identity(model, method: str) -> None:
     if method == "pn_oracle":
         from .survey_execution import PilotOracleMLP
@@ -511,14 +543,56 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     for name in _LOCKED_CONFIG:
         if name in config:
             raise ValueError(f"use the execution matrix, not a config override for {name}")
-    _validate_model(model, profile, row, seed)
-    _validate_budget(model, protocol["budgets"][row["budget"]])
     expected_architecture = "cnn" if row["training_path"] == "native_cnn" else "mlp"
     if config.get("architecture") != expected_architecture:
         raise ValueError("architecture disagrees with the bound survey training_path")
     mechanism = request["mechanism"]
     if mechanism not in protocol["c_tokens"]:
         raise ValueError("unknown protocol labeling mechanism")
+    if (
+        profile.get("labeling_mechanisms") is not None
+        and mechanism not in profile["labeling_mechanisms"]
+    ):
+        raise ValueError(f"method {row['method']!r} does not support mechanism {mechanism!r}")
+    _validate_model(model, profile, row, seed)
+    _validate_budget(model, protocol["budgets"][row["budget"]])
+    token = config.get("c_requested_token")
+    c_off_grid = row["method"] != "pn_oracle" and (
+        token not in protocol["c_tokens"][mechanism] or float(token) != config.get("c")
+    )
+    binding_inputs = config.get("runtime_binding_inputs", {})
+    if profile.get("runtime_parameters"):
+        from .strategies import scar_realized_rate
+
+        expected_c_realized = scar_realized_rate(bundle.train.labels, float(config["c"]))
+        if binding_inputs != {"c_realized": expected_c_realized}:
+            raise ValueError("runtime binding inputs disagree with fixed-count SCAR generation")
+    elif binding_inputs:
+        raise ValueError("unexpected runtime binding inputs for this method")
+    runtime_expected = (
+        bind_runtime_parameters(
+            row["method"],
+            request.get("constructor_overrides", {}),
+            profile,
+            mechanism=mechanism,
+            c_realized=float(binding_inputs.get("c_realized", config.get("c"))),
+        )
+        if row["method"] != "pn_oracle"
+        else {}
+    )
+    runtime_bindings_expected = {
+        name: runtime_expected[name] for name in profile.get("runtime_parameters", {})
+    }
+    for name in profile.get("runtime_parameters", {}):
+        if name not in model.get_params(deep=False) or digest(
+            model.get_params(deep=False)[name]
+        ) != digest(runtime_expected[name]):
+            raise ValueError(f"estimator disagrees with runtime-bound parameter: {name}")
+    if (
+        row["method"] != "pn_oracle"
+        and config.get("runtime_parameters", {}) != runtime_bindings_expected
+    ):
+        raise ValueError("manifest runtime parameters disagree with the mechanism binding")
     expected_generator = {
         "scar": "SCARGenerator",
         "sar_lbe_a": "SARLBEAGenerator",
@@ -543,6 +617,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     for candidate in candidates:
         validate_parameters(candidate, profile)
     deviations = []
+    if c_off_grid:
+        deviations.append("c")
     if digest(protocol) != digest(load_protocol()):
         deviations.append("noncanonical_protocol_matrix")
     if candidates != protocol["candidate_pool"]:
@@ -553,10 +629,6 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         deviations.append("seed_subset")
     if request.get("c_tokens") != protocol["c_tokens"][mechanism]:
         deviations.append("c_grid")
-    if row["method"] != "pn_oracle":
-        token = config.get("c_requested_token")
-        if token not in protocol["c_tokens"][mechanism] or float(token) != config.get("c"):
-            deviations.append("c")
     split_ref = config.get("split_ref", {})
     if split_ref.get("dataset") != row["dataset"] or split_ref.get("seed") != seed:
         deviations.append("split_dataset_or_seed")
@@ -625,6 +697,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         "protocol_version": protocol["protocol_version"],
         "protocol_sha256": digest(protocol),
         "execution_unit": row,
+        "runtime_binding_inputs": binding_inputs,
+        "runtime_parameters": runtime_bindings_expected,
         "adaptation_level": "benchmark-adapted",
         "backbone": {"name": row["backbone"], "specs": protocol["backbone_specs"]},
         "budget": {

@@ -37,6 +37,12 @@ def _n_labeled(y_true: np.ndarray, c: float) -> int:
     return min(n_pos, max(1, int(np.round(n_pos * c))))
 
 
+def scar_realized_rate(y_true: np.ndarray, c: float) -> float:
+    """Return the exact positive-label fraction induced by fixed-count SCAR."""
+    n_pos = int(np.sum(np.asarray(y_true) == 1))
+    return _n_labeled(y_true, c) / n_pos if n_pos else 0.0
+
+
 def _flatten_features(X: np.ndarray) -> np.ndarray:
     """Return the ``(n_samples, -1)`` view of *X* (2-D input is unchanged).
 

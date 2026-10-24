@@ -2,10 +2,15 @@
 
 import copy
 import json
+from pathlib import Path
 
 import pytest
 
-from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_unit
+from pu_toolbox.experiment.survey_protocol import (
+    bind_runtime_parameters,
+    load_protocol,
+    resolve_unit,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -27,6 +32,25 @@ def test_basic_kldce_is_explicitly_non_runnable_for_all_three_datasets():
     for row in rows:
         with pytest.raises(ValueError, match="flip_probability"):
             resolve_unit(protocol, row["dataset"], "kldce")
+
+
+def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_but_protocol_stays_draft():
+    draft_path = (
+        Path(__file__).resolve().parents[3]
+        / "pu_toolbox"
+        / "experiment"
+        / "survey_protocol_v3_draft.json"
+    )
+    protocol = load_protocol(draft_path)
+
+    row = resolve_unit(protocol, "cifar10", "pn_oracle", "native_cnn")
+
+    assert row["runnable"] is True
+    assert row["oracle_alignment"] == "shared_resnet18_end_to_end_and_minibatch_budget"
+    assert "non_runnable_reason" not in row
+    assert protocol["review_status"] != "accepted"
+    budget_blocker = "P4.1-B method-specific budgets and candidate recipes are not frozen."
+    assert budget_blocker in protocol["formal_blockers"]
 
 
 @pytest.mark.parametrize(
@@ -110,3 +134,27 @@ def test_determ_review_matrix_and_kldce_rejection_are_stable():
     for protocol in (first, second):
         with pytest.raises(ValueError, match="flip_probability"):
             resolve_unit(protocol, "spambase", "kldce")
+
+
+def test_kldce_runtime_binding_is_scar_only_and_uses_realized_c():
+    draft_path = (
+        Path(__file__).resolve().parents[3]
+        / "pu_toolbox"
+        / "experiment"
+        / "survey_protocol_v3_draft.json"
+    )
+    profile = load_protocol(draft_path)["method_profiles"]["kldce"]
+
+    assert bind_runtime_parameters("kldce", {}, profile, mechanism="scar", c_realized=0.1) == {
+        "flip_probability": pytest.approx(0.9)
+    }
+    with pytest.raises(ValueError, match="supports labeling mechanisms"):
+        bind_runtime_parameters("kldce", {}, profile, mechanism="sar_lbe_a", c_realized=0.5)
+    with pytest.raises(ValueError, match="cannot be overridden"):
+        bind_runtime_parameters(
+            "kldce", {"flip_probability": 0.4}, profile, mechanism="scar", c_realized=0.6
+        )
+    with pytest.raises(ValueError, match="supports labeling mechanisms"):
+        bind_runtime_parameters(
+            "kldce", {"flip_probability": 0.4}, profile, mechanism="sar_lbe_b", c_realized=0.5
+        )

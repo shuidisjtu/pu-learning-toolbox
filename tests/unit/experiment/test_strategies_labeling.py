@@ -10,6 +10,7 @@ from pu_toolbox.experiment.strategies import (
     SARLBEAGenerator,
     SARLBEBGenerator,
     SCARGenerator,
+    scar_realized_rate,
 )
 
 pytestmark = pytest.mark.unit
@@ -33,6 +34,14 @@ def test_scar_deterministic_seed():
     a, _ = SCARGenerator().generate(X, y, 0.5, seed=7)
     b, _ = SCARGenerator().generate(X, y, 0.5, seed=7)
     assert np.array_equal(a, b)
+
+
+def test_scar_realized_rate_includes_fixed_count_rounding_and_minimum_clamp():
+    y_true = np.array([1] * 10 + [0] * 10)
+    y_pu, meta = SCARGenerator().generate(np.zeros((20, 2)), y_true, 0.05, seed=3)
+    assert y_pu.sum() == 1
+    assert scar_realized_rate(y_true, 0.05) == 0.1
+    assert meta["c_realized"] == 0.1
 
 
 def test_lbe_a_uses_posterior_scores():

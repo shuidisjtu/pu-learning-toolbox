@@ -117,6 +117,7 @@ REASONS: tuple[str, ...] = (
     "pending_collaborator_review",
     # scope notes
     "probe_only",
+    "extra_clean_support",
 )
 
 #: The seven ``result_identity`` fields the matrix selects on, in its own order.
@@ -138,6 +139,26 @@ METRIC_UNIT = "fraction"
 #: that walks the results, and the audit that has to ask about a run's c axis even
 #: when the run recorded no results at all.
 SELECTION_PROTOCOLS: tuple[str, ...] = ("PA", "OA")
+
+# Additional result keys do not expand the frozen protocol's expected grid.
+RESULT_SELECTION_PROTOCOLS: tuple[str, ...] = (*SELECTION_PROTOCOLS, "PA+clean-support")
+
+
+def uses_clean_support(manifest: Mapping[str, Any]) -> bool:
+    """Recognize extra supervision without inferring it from a method name."""
+    audit = manifest.get("extra_supervision") or {}
+    return audit.get("extra_supervision") is True or any(
+        "PA+clean-support" in (manifest.get(key) or {}) for key in ("selection", "test_results")
+    )
+
+
+def manifest_selection_protocol(protocol: str) -> str:
+    """Resolve a normalized selector without uppercasing the support suffix."""
+    names = {name.lower(): name for name in RESULT_SELECTION_PROTOCOLS}
+    if protocol not in names:
+        raise SummaryError(f"unknown selection_protocol: {protocol!r}")
+    return names[protocol]
+
 
 #: The metric the pre-registered matrix selects on.  Protocol §1.2 makes Accuracy
 #: the comparison's metric and the others additional, so this is a fact about the
@@ -431,6 +452,7 @@ def aggregate_additional_metric(
         "n_observed": len(ordered),
         "seeds_observed": sorted(values),
         "unavailable_seeds": sorted(set(ran) - set(values)),
+        "unavailable_reasons": {},
     }
 
 

@@ -192,6 +192,7 @@ pu_toolbox/
     method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
     survey_audit.py                       (P2.2 批次审计: 逐 manifest 判完整性/可复现/可交付, 畸形 manifest 记为 finding 而非异常, 检查携带 scope 与 members)
     survey_summary.py                     (P2.2 数值汇总: manifest → 交付行(每行一均值+样本标准差), 状态闭集 STATUSES 与优先级裁决, 缺值按代价分四类读)
+    survey_result_coverage.py             # 新矩阵覆盖准备：显式期望/排除格与规范化观测对账；不推断最终矩阵、不授予正式资格
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
     survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
     survey_artifacts.py                   # Survey 证据制品的集中式仓库相对路径映射与解析
@@ -520,8 +521,10 @@ tests/
       _survey_summary_helpers.py        # 审计/汇总入口测试共用夹具: manifest 树、config、两入口 CLI 构造器
       test_survey_audit.py              # 审计器不得把畸形 manifest 变成异常: 预检是输入纯函数且从不抛出
       test_survey_audit_scope.py        # finding 能说"问题在哪"的边界: 组级拒绝整组点名、scope/members 校验
+      test_survey_result_coverage.py    # 整行缺失/未完成/指标缺失/排除与资格问题分开；PN c-independent、机制/视图/预算/路径不混格
       test_survey_summary_boundaries.py # 报告行拒绝合并的边界: 视图/机制/训练路径/协议不同即不同行
       test_survey_summary_cli.py        # 审计/汇总两入口端到端: 产出什么, 以及不得产出什么
+      test_survey_summary_clean_support.py # 独立 support 双轨汇总、额外监督隔离、诊断入口与正式门禁
       test_survey_summary_comparison.py # 接入预注册矩阵的适配器契约: 字段名取自矩阵、资格类别为其六类之一
       test_survey_summary_states.py     # 报告的两套闭集词表: 行身份(c_token/oracle)与状态(status/优先级/理由)
       test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径

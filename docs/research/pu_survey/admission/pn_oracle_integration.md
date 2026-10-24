@@ -1,5 +1,19 @@
 # PN oracle 接入（决策与口径记录）
 
+2026-10-22 补充：已在 AutoDL 的 P2.1 镜像环境（Python 3.10.8、Torch 2.13.0+cu130）
+使用既有 CIFAR-10 `split_0` 完成 `native_cnn` 和 `cnn_feature_adapter` 两条路径的真实 GPU
+**2-epoch 技术 smoke**，不是 200-epoch／五 seed baseline。两条路径均以真实 PN 标签训练、
+仅在 clean_val 上执行 OA 选模，并验证选中 checkpoint 恢复后的 test Accuracy 与 manifest
+一致；adapter 另验证缓存生成/命中一致及 encoder 不变。能力回归本地和实例各 51 项通过，
+另有 4 项 GPU checkpoint 回归通过。smoke 暴露的 `PilotOracleCNN` encoder 能力声明缺失
+已修复并补显式/推断 CNN 架构回归。
+
+v3 草案的 CIFAR native-CNN PN 行现标为 `runnable: true`，仅表示实现能力可用；
+draft/review、正式 registry/recipe/comparison 绑定门禁不变。历史 v1/v2 禁用行不回写。
+原始权重、manifest、技术验收与环境身份、补丁、JUnit 和传输校验记录已回传本机留档；
+独立技术入口的 manifest 保持 `formal_eligible: false`。用户决定全预算五 seed 随协议定稿后
+的正式实验执行，实例已关机；本次未产出正式 Survey 结果。
+
 2026-10-04 补充：端到端 `PilotOracleCNN` 已实现并通过真实标签/OA/checkpoint 合成图像 runner 测试；
 历史冻结矩阵仍不含该行，真实 CIFAR GPU 数值尚未完成。详见[本次补全](../reviews/collaborator_followup_20261004.md)。
 下文分阶段决定保留为历史记录，不因实现完成回写原有跑批状态。

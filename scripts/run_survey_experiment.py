@@ -101,6 +101,7 @@ from pu_toolbox.experiment.strategies import (
     SARLBEBGenerator,
     SCARGenerator,
     SupervisedTrainer,
+    scar_realized_rate,
 )
 from pu_toolbox.experiment.survey_recipe_binding import SCHEMA_VERSION as RECIPE_BINDING_V2
 from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
@@ -554,6 +555,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         require_four_role_profile,
     )
     from pu_toolbox.experiment.survey_protocol import (
+        bind_runtime_parameters,
         digest,
         load_protocol,
         resolve_protocol_path,
@@ -610,6 +612,24 @@ def _versioned_main(args, c_values, seed_values) -> int:
             raise ValueError("survey candidates must be a non-empty list")
         for candidate in candidates:
             validate_parameters(candidate, profile)
+            if not args.oracle:
+                for c_value in c_values:
+                    bind_runtime_parameters(
+                        method,
+                        candidate,
+                        profile,
+                        mechanism=args.labeling_mechanism,
+                        c_realized=c_value.value,
+                    )
+        if not args.oracle:
+            for c_value in c_values:
+                bind_runtime_parameters(
+                    method,
+                    params,
+                    profile,
+                    mechanism=args.labeling_mechanism,
+                    c_realized=c_value.value,
+                )
         if args.recipe_registry is not None:
             recipe_registry = load_registry(args.recipe_registry)
             bind_recipe(
@@ -691,20 +711,40 @@ def _versioned_main(args, c_values, seed_values) -> int:
                         device=args.device,
                     )
                     encoder = None
-            model = assemble_model(
-                protocol,
-                row,
-                bundle.train.X.shape[1],
-                seed=seed,
-                params=params,
-                class_prior=prior,
-                device=args.device,
-                encoder=encoder,
-            )
         except (OSError, KeyError, TypeError, ValueError, ImportError) as exc:
             print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
             return 1
         for c_value in [None] if args.oracle else c_values:
+            runtime_binding_inputs = {}
+            if c_value is not None:
+                runtime_binding_inputs = {
+                    "c_realized": scar_realized_rate(bundle.train.labels, c_value.value)
+                }
+            runtime_params = (
+                params
+                if c_value is None
+                else bind_runtime_parameters(
+                    method,
+                    params,
+                    profile,
+                    mechanism=args.labeling_mechanism,
+                    c_realized=runtime_binding_inputs.get("c_realized", c_value.value),
+                )
+            )
+            try:
+                model = assemble_model(
+                    protocol,
+                    row,
+                    bundle.train.X.shape[1],
+                    seed=seed,
+                    params=runtime_params,
+                    class_prior=prior,
+                    device=args.device,
+                    encoder=encoder,
+                )
+            except (KeyError, TypeError, ValueError, ImportError) as exc:
+                print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
+                return 1
             generator = (
                 CleanLabelGenerator()
                 if args.oracle
@@ -740,6 +780,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     "c_tokens": [value.token for value in c_values],
                     "split_ref_overridden": args.split_ref is not None,
                     "constructor_overrides": params,
+                    "runtime_parameters": {
+                        name: runtime_params[name] for name in profile.get("runtime_parameters", {})
+                    },
+                    "runtime_binding_inputs": runtime_binding_inputs,
                 },
                 "adapter_manifest": adapter_manifest,
                 "image_manifest": image_manifest,
