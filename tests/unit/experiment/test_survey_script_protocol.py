@@ -35,6 +35,33 @@ def _ghosted_comparison(monkeypatch):
     )
 
 
+def _ghosted_v3_matrix(monkeypatch):
+    """Stand in for the v3-bound matrix with one mapping that covers no unit."""
+    payload = json.loads(
+        survey_comparison.resolve_comparison_path("survey-v3.0").read_text(encoding="utf-8")
+    )
+    ghost = copy.deepcopy(payload["mappings"][0])
+    ghost["mapping_id"] = "ghost_unit_mapping"
+    ghost["result_selector"]["c_token"] = "0.9"
+    payload["mappings"].append(ghost)
+    monkeypatch.setattr(
+        survey_comparison, "load_comparison_protocol", lambda *args, **kwargs: payload
+    )
+
+
+def test_param_coverage_gate_checks_the_matrix_of_the_protocols_own_version(
+    survey_script, tmp_path, capsys, monkeypatch
+):
+    """A v3 run is checked against v5; one shipped default made it skip the gate."""
+    _ghosted_v3_matrix(monkeypatch)
+    args = _args(tmp_path / "missing", tmp_path / "out")
+    args[args.index("survey-v2.0")] = "survey-v3.0"
+    args[args.index("upu")] = "nnpu"
+
+    assert survey_script.main(args) == 1
+    assert "ghost_unit_mapping" in capsys.readouterr().err
+
+
 def test_param_comparison_coverage_defect_aborts_before_any_split_is_read(
     survey_script, tmp_path, capsys, monkeypatch
 ):

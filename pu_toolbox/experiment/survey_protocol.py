@@ -710,8 +710,9 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     # Removing a blocker from formal eligibility is NOT a collaborator review:
     # reports must not read these units as signed off.  The standing caveat
     # lives in the decision records, the method ledger's uncertainty notes and
-    # the method cards; the P2.0c matrix still classifies every PA mapping as
-    # blocked_pending_pa_criterion.
+    # the method cards.  The PA mappings are no longer blocked in the matrix:
+    # D41 adjudicated all 54 as no_direct_anchor in survey-comparison-v5, which
+    # records that no report anchors them rather than that a criterion is owed.
     if deviations:
         blockers.append("protocol_deviation")
     context = {

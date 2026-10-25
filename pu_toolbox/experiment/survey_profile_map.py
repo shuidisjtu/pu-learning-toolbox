@@ -1,6 +1,6 @@
 """Versioned profile -> comparison-matrix mapping for ``survey-v3.0``.
 
-``survey_comparison_v4.json`` selects its entries by ``method``, and under the
+The comparison matrix selects its entries by ``method``, and under the
 profile-identity schema the execution unit's ``method`` is a *profile* ID rather
 than an algorithm.  With no map between the two, every v3 manifest could only
 record that it had no lookup path (``missing_versioned_profile_mapping``), and a
@@ -16,9 +16,9 @@ own record (plan D31/D37), not a silent downgrade performed here.
 Design notes
 ------------
 **Inheritance plus explicit deviations, never a second entry.**  ``self_pu`` and
-``self_pu_full_meta`` are one algorithm with two supervision contracts, and
-``survey_comparison_v4.json`` describes the no-meta ablation.  Re-keying all 194
-mappings by profile would restate each entry once per profile and let the copies
+``self_pu_full_meta`` are one algorithm with two supervision contracts, and the
+matrix describes the no-meta ablation.  Re-keying every mapping by profile
+would restate each entry once per profile and let the copies
 drift; inheriting one entry and recording the profile's own departure keeps a
 single source of truth and makes the difference between "same row" and "same
 number" visible.
@@ -54,10 +54,17 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .survey_comparison import SELECTOR_FIELDS, load_comparison_protocol, resolve_comparison_unit
+from .survey_comparison import (
+    SELECTOR_FIELDS,
+    comparison_for_protocol,
+    resolve_comparison_unit,
+)
 from .survey_protocol import digest, load_protocol, resolve_protocol_path
 
-MAP_PATH = Path(__file__).with_name("survey_comparison_profile_map_v1.json")
+#: The effective map: the one bound to the protocol and matrix the runs use.
+#: v1 stays on disk as the frozen artifact it is (it binds the v2-bound v4
+#: matrix); loading it is still possible by path, never by default.
+MAP_PATH = Path(__file__).with_name("survey_comparison_profile_map_v2.json")
 
 SCHEMA_VERSION = "survey-comparison-profile-map-1"
 
@@ -206,8 +213,16 @@ def bound_protocol(profile_map: dict[str, Any]) -> dict[str, Any]:
 
 
 def bound_comparison(profile_map: dict[str, Any]) -> dict[str, Any]:
-    """Load the shipped comparison; its own digest binding is checked by the callers."""
-    return load_comparison_protocol()
+    """The matrix the bound protocol resolves to, by that protocol's version.
+
+    One protocol version has exactly one matrix, so the map does not get to
+    pick a different one: reading the shipped default instead is how a v5 map
+    ended up validating against v4.  The map's own ``bound_comparison`` is
+    then proven to name this file by :func:`validate_profile_map`, which turns
+    a map written against the superseded matrix into a clear mismatch rather
+    than a silently re-adjudicated result.
+    """
+    return comparison_for_protocol(bound_protocol(profile_map))
 
 
 def resolve_profile_mapping(

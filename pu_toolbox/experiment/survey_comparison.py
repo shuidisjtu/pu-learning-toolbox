@@ -41,6 +41,19 @@ from typing import Any
 from pu_toolbox.utils.serialization import strict_canonical_hash
 
 COMPARISON_PATH = Path(__file__).with_name("survey_comparison_v4.json")
+#: The shipped matrices, keyed by the protocol version each one was frozen
+#: against.  A version resolves to the file carrying *its* binding: a
+#: survey-v3.0 run reads the v3-bound matrix rather than whichever file
+#: happens to be newest, so a historical version keeps re-reading the rules it
+#: was pre-registered under.  ``survey_protocol.PROTOCOL_PATHS`` makes the same
+#: promise for the protocols, and the two tables are what keep them aligned.
+COMPARISON_PATHS: dict[str, Path] = {
+    "survey-v1": Path(__file__).with_name("survey_comparison_v3.json"),
+    "survey-v1.1": Path(__file__).with_name("survey_comparison_v3.json"),
+    "survey-v1.2": Path(__file__).with_name("survey_comparison_v3.json"),
+    "survey-v2.0": COMPARISON_PATH,
+    "survey-v3.0": Path(__file__).with_name("survey_comparison_v5.json"),
+}
 
 #: The six eligibility classes, in canonical order.  A comparison file that
 #: declares anything else (an extra class, a missing one) is rejected rather
@@ -143,7 +156,8 @@ def load_comparison_protocol(
     """Load and validate the comparison rules before any result is produced.
 
     ``survey`` is the execution protocol this file must be bound to; when it is
-    omitted the shipped ``survey_protocol_v2.json`` is loaded.  The binding is
+    omitted the protocol the file itself declares is loaded, so a matrix cannot
+    be read under a protocol it was never frozen against.  The binding is
     checked both ways (version and digest) so a protocol bump cannot silently
     leave the comparison pointing at stale rules.
     """
@@ -207,6 +221,28 @@ def load_comparison_protocol(
     return payload
 
 
+def resolve_comparison_path(value: str | Path) -> Path:
+    """The matrix file *value* denotes: a shipped version name, or the path it gives."""
+    name = str(value)
+    if name in COMPARISON_PATHS:
+        return COMPARISON_PATHS[name]
+    return Path(value).resolve()
+
+
+def comparison_for_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
+    """The shipped matrix bound to *protocol*, selected by the protocol version.
+
+    The version -- not the path the caller happens to hold, and not the default
+    file -- picks the matrix, so a v3 run cannot pick up the v2-bound rules the
+    way it could while the default was a single hardcoded path.  The binding is
+    then verified against the protocol itself: a registry entry pointing at the
+    wrong matrix raises here, instead of producing a plausible-looking verdict.
+    """
+    return load_comparison_protocol(
+        resolve_comparison_path(protocol["protocol_version"]), survey=protocol
+    )
+
+
 def _validate_binding(bound: Any, survey: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(bound, dict):
         raise ValueError("bound_survey_protocol must be an object")
@@ -214,9 +250,12 @@ def _validate_binding(bound: Any, survey: dict[str, Any] | None) -> dict[str, An
         if not isinstance(bound.get(key), str) or not bound[key]:
             raise ValueError(f"bound_survey_protocol missing {key}")
     if survey is None:
-        from .survey_protocol import load_protocol
+        from .survey_protocol import load_protocol, resolve_protocol_path
 
-        survey = load_protocol()
+        # Read the protocol this matrix declares rather than the shipped
+        # default: the default moves on with every protocol bump, and loading
+        # it here is what let a v3 run quietly record a v2-bound block.
+        survey = load_protocol(resolve_protocol_path(bound["protocol_version"]))
     if bound["protocol_version"] != survey["protocol_version"]:
         raise ValueError(
             "bound survey protocol_version disagrees with the execution protocol: "
@@ -769,7 +808,11 @@ def comparison_context(
     inherits is the one its base algorithm registered.
     """
     if comparison is None:
-        comparison = load_comparison_protocol()
+        # A caller that knows the protocol gets the matrix bound to it; only a
+        # caller that names neither keeps the historical default.
+        comparison = (
+            comparison_for_protocol(survey) if survey is not None else load_comparison_protocol()
+        )
     profile_fields: dict[str, Any] = {}
     if profile_id is None:
         resolved = resolve_comparison_unit(result_identity, comparison=comparison)
@@ -853,6 +896,16 @@ def run_comparison_units(
             # already carries that status, so an empty block says the same thing
             # without borrowing the base algorithm's pre-registered row.
             return {}
+    if comparison is None:
+        from .survey_protocol import load_protocol, resolve_protocol_path
+
+        # Resolve through the *shipped* matrix of this protocol version, not the
+        # caller-supplied one: a narrowed copy still records the pre-registered
+        # entry its unit lands on, and the noncanonical matrix is already on the
+        # manifest as a deviation.
+        comparison = comparison_for_protocol(
+            load_protocol(resolve_protocol_path(survey["protocol_version"]))
+        )
     row = protocol_context["execution_unit"]
     units = [unit for unit in expected_result_units(survey) if _is_run_unit(unit, row, config)]
     entries: dict[str, dict[str, Any]] = {}

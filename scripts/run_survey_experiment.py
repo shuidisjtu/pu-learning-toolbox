@@ -603,10 +603,33 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _coverage_profile_map(protocol) -> dict | None:
+    """The versioned profile map, when the protocol carries profile identities.
+
+    The matrix is keyed on the algorithm a profile inherits (D40), so the
+    coverage check has to translate profiles before it can see the units that
+    are registered.  A protocol that declares profiles and has no map binding
+    it cannot be checked at all: reporting that as "units without a mapping"
+    would blame the matrix for a missing lookup path.
+    """
+    from pu_toolbox.experiment.survey_profile_identity import has_profile_identities
+    from pu_toolbox.experiment.survey_profile_map import load_profile_map, profile_map_binds
+
+    if not has_profile_identities(protocol):
+        return None
+    profile_map = load_profile_map()
+    if not profile_map_binds(profile_map, protocol):
+        raise ValueError(
+            "no versioned profile map binds this protocol matrix; the coverage "
+            "gate cannot translate its profiles into comparison units"
+        )
+    return profile_map
+
+
 def _versioned_main(args, c_values, seed_values) -> int:
     """Execute a bound pilot unit; no mutation of the generic smoke path."""
     from pu_toolbox.experiment.survey_comparison import (
-        load_comparison_protocol,
+        comparison_for_protocol,
         validate_comparison_coverage,
     )
     from pu_toolbox.experiment.survey_execution import (
@@ -651,7 +674,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
         if args.extraction_batch_size < 1:
             raise ValueError("extraction batch size must be positive")
         protocol = load_protocol(protocol_path)
-        if digest(protocol) == digest(load_protocol()):
+        shipped = load_protocol(resolve_protocol_path(protocol["protocol_version"]))
+        if digest(protocol) == digest(shipped):
             # Prove the pre-registered pair covers every unit it must, here
             # rather than per run.  A ghost mapping, a unit covered twice and a
             # mapping that covers nothing are properties of the two files, and
@@ -659,13 +683,19 @@ def _versioned_main(args, c_values, seed_values) -> int:
             # they would surface as a unit that quietly carries no comparison
             # entry, long after the runs that could have revealed it were paid
             # for.  Keyed on the matrix contents rather than on its path, so a
-            # copy of the shipped file is still checked: a run's comparison
-            # block is resolved against the shipped comparison either way, and
-            # nothing about the copy makes that resolution safer.  A genuinely
-            # different matrix is not checked -- the comparison file is bound to
-            # the shipped protocol by digest, so there is nothing to prove such
-            # a run against, and its units resolve, or do not, one by one.
-            validate_comparison_coverage(protocol, load_comparison_protocol(survey=protocol))
+            # copy of the shipped file is still checked.
+            #
+            # The baseline is the shipped matrix of *this* protocol version:
+            # while one default served every version, a v3 run never reached
+            # this gate, so the units v5 registers were never proven to cover
+            # the protocol before a run paid for them.  A genuinely different
+            # matrix is still not checked -- it has no pre-registered rules to
+            # be checked against, and its units resolve, or do not, one by one.
+            validate_comparison_coverage(
+                protocol,
+                comparison_for_protocol(protocol),
+                profile_map=_coverage_profile_map(protocol),
+            )
         row = resolve_unit(protocol, args.dataset, method, args.training_path)
         algorithm = profile_algorithm(protocol, method)
         profile = protocol["method_profiles"][method]
