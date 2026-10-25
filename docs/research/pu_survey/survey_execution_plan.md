@@ -44,7 +44,7 @@
 | P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | **已完成**：论文核对确认 PU-Bench Table 1 四个方法全报；12 条锚点已写入 `survey_comparison_v5.json`（OA 单元、`magnitude_and_trend`），profile map v2 把四个 profile 转 `mapped` | shuidisjtu | 已满足：v5 于 2026-10-25 接管运行链路，随后由 v6 接替（锚点不变） |
 | P4.2b：3 个无基准方法只做定性交代 | `genpu`、`pulns`、`split_pu` 不在任何统一基准里，各自论文的数据集/指标口径不同 | **已完成**：71 个单元在 `survey_comparison_v6.json` 记为 70 `no_direct_anchor` + 1 `non_runnable`（pulns/cifar10），profile 映射 v3 转 `mapped`；不为凑锚点改数据集/指标 | shuidisjtu | 已满足：三条 profile 有明确 eligibility 与非空理由，摘要中只作背景展示 |
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
-| 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
+| 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | **进行中**：connect_4 与 twenty_newsgroups 已各加 4 个可运行方法（原地扩充，见[交付记录](delivery/dataset_coverage_20261025.md)）；mnist/fashion_mnist/adni 要先补 `backbone_specs.image.per_dataset` 与图像预处理 | shuidisjtu | 每数据集至少一行 runnable（5 个中已满足 2 个） |
 | GPU 机时实测 | 无法排 AutoDL 正式批次 | 已完成：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）；仍缺 GradPU 首跑与 PN-CNN 单 seed 计时 | shuidisjtu | 实测表反推机时 |
 | PN-CNN 5 seed | oracle 行 | 协议定稿后再安排（D30） | — | 另行安排，不标完成 |
 

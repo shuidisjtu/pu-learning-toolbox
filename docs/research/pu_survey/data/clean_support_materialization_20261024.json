@@ -8,8 +8,8 @@
   "formal_budget_approved": false,
   "owner_signatures": [],
   "protocol_policy_ref": "pu_toolbox/experiment/survey_protocol_v3.json",
-  "protocol_policy_sha256": "ef8c2eb472392bf7614db2739b774bd597b37259cd0c49d09e5a37224b2e68b8",
-  "protocol_policy_sha256_note": "refreshed 2026-10-25 after the survey-v3.0 prose cleanup (dropped the selection_spec sentence that kept the 54 PA mappings blocked until a P2.0c review, which comparison v5 re-adjudicated as no_direct_anchor under D41, and updated the formal_blockers sentence that still awaited comparison v5); the clean-support policy sections this manifest was materialized under (c_tokens, support sizes, seeds, split policy) are unchanged, no product was rebuilt, and the artifacts' own receipts are untouched",
+  "protocol_policy_sha256": "e2132a797a6b5a32cdf8511c8e85f604cf691553c27af6d3487181678f5344b1",
+  "protocol_policy_sha256_note": "refreshed 2026-10-25 after the in-place protocol revisions of the day (PA re-adjudication, dataset rows, and version-neutral formal_blockers wording); the clean-support policy sections this manifest was materialized under (c_tokens, support sizes, seeds, split policy) are unchanged, no product was rebuilt",
   "protocol_pending_review_items": [],
   "protocol_pending_resolution": "v2_p4_clean_support_policy and v2_p10_self_pu_scope were accepted in survey-v3.0; see docs/research/pu_survey/delivery/v3_freeze_20261024.md",
   "protocol_binding": "policy_basis_only_not_a_versioned_execution_unit",
@@ -721,5 +721,5 @@
       }
     }
   },
-  "receipt_sha256": "00f093c92c62bd82e5b1f548e510ef974e418a69270c837fd35b69a15c2ffefd"
+  "receipt_sha256": "4c93461b56397af43cbce6b760b268ef3cf03c2f851061566472543f70b03bc2"
 }

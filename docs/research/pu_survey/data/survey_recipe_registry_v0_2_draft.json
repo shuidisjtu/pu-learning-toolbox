@@ -4,7 +4,7 @@
   "recipe_lifecycle": "draft",
   "protocol_basis": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "d70bbf4c66c3017b295629ba0262cce4fdf1de14bf6e1792b8b42ea878add87c"
+    "protocol_sha256": "f0334b10c8926a54a0565c094d3db6482ba2a36cb47afa7bf1af9a11e28f35a4"
   },
   "selection_spec_ref": "survey_protocol_v3.selection_spec",
   "profiles": {
@@ -16,8 +16,10 @@
       "scope": {
         "datasets": [
           "cifar10",
+          "connect_4",
           "imdb",
-          "spambase"
+          "spambase",
+          "twenty_newsgroups"
         ],
         "training_paths": [
           "cnn_feature_adapter",
@@ -62,8 +64,10 @@
       "scope": {
         "datasets": [
           "cifar10",
+          "connect_4",
           "imdb",
-          "spambase"
+          "spambase",
+          "twenty_newsgroups"
         ],
         "training_paths": [
           "native_2d",
@@ -190,8 +194,10 @@
       "scope": {
         "datasets": [
           "cifar10",
+          "connect_4",
           "imdb",
-          "spambase"
+          "spambase",
+          "twenty_newsgroups"
         ],
         "training_paths": [
           "cnn_feature_adapter",
@@ -239,8 +245,10 @@
       "scope": {
         "datasets": [
           "cifar10",
+          "connect_4",
           "imdb",
-          "spambase"
+          "spambase",
+          "twenty_newsgroups"
         ],
         "training_paths": [
           "cnn_feature_adapter",

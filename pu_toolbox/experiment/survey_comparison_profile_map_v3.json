@@ -3,11 +3,11 @@
   "map_version": "survey-profile-map-v3",
   "bound_survey_protocol": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "d70bbf4c66c3017b295629ba0262cce4fdf1de14bf6e1792b8b42ea878add87c"
+    "protocol_sha256": "f0334b10c8926a54a0565c094d3db6482ba2a36cb47afa7bf1af9a11e28f35a4"
   },
   "bound_comparison": {
     "comparison_version": "survey-comparison-v6",
-    "comparison_sha256": "7ba76ef3d189a13df997a62b5063882cc79371e9eb271a21620e2af4ba225735"
+    "comparison_sha256": "17db3aca3f13b92ee895931c6073d6fccc0c2bcf2ba20117d95fd01efe350c21"
   },
   "profiles": {
     "cvir": {
