@@ -5,7 +5,7 @@
 状态：工程预注册与技术审计修订完成，**合作者尚未签署**。原先 54 个锚点与 194 条映射均经
 shuidisjtu 自审；本轮来源复核后，36 个锚点与 7 条行级映射回退 `pending_review`，
 现为 18/54 锚点、187/194 映射自审接受。`review_status` 仍为 `pending_collaborator_review`，
-正式独立复核待合作者确认，具体判定、来源与摘要见 [复核包](p2_0c_review.md)。
+正式独立复核待合作者确认，具体判定、来源与摘要见复核包（已归档于 tag `survey-docs-archive-20261025`）。
 本交付**不产生实验结果**，也不证明任何算法复现成功——它冻结的是结果出来之后如何进行正确性审计。
 上游要求见 [执行计划](../survey_execution_plan.md) P2.0c；对照矩阵的机器可读真相源是
 `pu_toolbox/experiment/survey_comparison_v3.json`，本文件解释其中的判读与边界，不另行维护一份参数表。

@@ -42,7 +42,7 @@
 
 > **补记（2026-10-09）**：交接清单第 10 项引用本节，称「未获方法学合作者复核」已披露，但本节原文只披露了消融变体。
 > 此处补上：该变体与 `self_pu` 元重加权的方法学合作者复核**未获**，P2.2 复核包仍待签署，
-> 见 [`p2_2_review.md`](p2_2_review.md) §3 与 [`p2_2_delivery.md`](p2_2_delivery.md) §8。本快照其余内容未改。
+> 见 `p2_2_review.md`（已归档于 tag `survey-docs-archive-20261025`）§3 与 [`p2_2_delivery.md`](p2_2_delivery.md) §8。本快照其余内容未改。
 
 ## 3. 门禁层
 
@@ -255,7 +255,7 @@ B3a 的归档为 `B3a_cifar10_adapter_classical_oracle_20261001_161352.tar.gz`
 > **更正（2026-10-01）**：本节原写「**两批的全量归档目前只存在于 AutoDL 数据盘**，本地只
 > 取回了 manifest 子集。实例释放即丢失——这是归档方案里显式承担的取舍，不是疏漏」。
 > 两处需更正，完整记录见
-> [`p2_1_b5_review_checklist.md`](p2_1_b5_review_checklist.md) §2.1：
+> `p2_1_b5_review_checklist.md`（已归档于 tag `survey-docs-archive-20261025`）§2.1：
 >
 > - 该句**对 B3a 而言从来就不成立**——实测两侧 B3a 目录此前均为**空目录**，B3a 的 B 层当时
 >   只有数据盘结果树一个副本。该缺口已于同日补做归档闭合（见上）。

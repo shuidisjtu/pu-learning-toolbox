@@ -192,7 +192,7 @@ GEN-PU/探针/runner **32 passed / 1 deselected**。
 
 ### 新存储证据与回归
 
-保留旧合成快照，新增 [v2 探针](../data/candidate_storage_probe_20261005_v2.json)：
+保留旧合成快照，新增 v2 探针（`candidate_storage_probe_20261005_v2.json`，已归档于 tag `survey-docs-archive-20261025`）：
 7 方法 × seeds 0/1/2，48×3 CPU，同样不作速度排名或正式资源上界。
 每 seed：PAN 两轮分类器权重共 4016 bytes、完整 pickle 4931 bytes；
 Holistic-PU 四轮权重共 8032 bytes、pickle 4782 bytes；

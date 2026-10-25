@@ -211,7 +211,7 @@ profile、其余 8 个 `excluded`，运行链已验证；此后新增 runnable �
 也不删除 PN-CNN 已有实现、历史证据或协议中的 oracle 角色要求。
 
 以下按日期记录推进过程（最新在下）；逐项技术意见与未解除的边界见各日复核文档，
-2026-10-21 交接的技术复核回复见[heng958 任务复核](reviews/heng958_task_review_20261022.md)。
+2026-10-21 交接的技术复核回复见 heng958 任务复核（`heng958_task_review_20261022.md`，已归档于 tag `survey-docs-archive-20261025`）。
 
 2026-10-22 P3.2 工程补记：[clean-support checkpoint 双轨](delivery/clean_support_checkpoints_20261022.md)。
 Self-PU/LaGAM 的显式 SCAR OS 路径已接通真实 meta、完成 meta epoch/teacher 快照、
@@ -245,7 +245,7 @@ Self-PU/LaGAM/PULNS 的真实 Spambase 单 seed 短 CPU 双轨 CLI 也已跑通�
 不修改原生风险、不宣称校准效果改善。下一步正式 full-meta/support units 与13方法 profiles/units
 继续同 v3 对接，冻结正式预算/阶段资格；PN-CNN 5 seed 暂缓不变。
 
-本日另补[v3 profile/unit 接入请求与校验](delivery/survey_v3_proposal_20261023.md)：
+本日另补 v3 profile/unit 接入请求与校验（`survey_v3_proposal_20261023.md`，已归档于 tag `survey-docs-archive-20261025`）：
 范围按 RV8 对齐（13方法含P3MIX、不含VPU；VPU另补，TEDn不计13），22目标算法、
 Self-PU 完整版单列后23 profile、8数据集184个阻断请求。该 planning schema 不可执行，
 不改 v2 基线/默认，未填正式预算或签署；下一步仍是 profile identity、正式五角色/配方、
