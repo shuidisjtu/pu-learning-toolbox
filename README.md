@@ -161,7 +161,7 @@ Supporting scripts (see each script's docstring and the Survey docs for scope an
 | v3 intake | `prepare_survey_v3_proposal.py` (source-bound profile/unit requests with unresolved budgets; not an execution protocol) |
 | Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay; not formal Survey admission) |
 | Independent support runs | `run_clean_support_experiment.py` (Self-PU/LaGAM/PULNS extra-label audit; explicit Self-PU TS meta-checkpoints, not a formal recipe) |
-| Resource probes | `profile_survey_candidate_storage.py`, `profile_survey_cnn_storage.py`, `profile_survey_extended_cnn_storage.py` with `check_survey_extended_cnn_storage.py`; `prepare_candidate_image_resource_plan.py` is a read-only estimate from configured candidate defaults, not a measured resource profile |
+| Resource estimate | `prepare_candidate_image_resource_plan.py` is a read-only estimate from configured candidate defaults, not a measured resource profile |
 | P3 admission evidence | `check_p3_admission_evidence.py`, `check_p3_public_comparison.py`, `prepare_p3_selection_budget_spec.py`, `prepare_p3_preintegration_extension.py`, `check_candidate_fit_contracts.py` (AST/source-bound engineering guard; not method admission) |
 
 These scripts are technical checks and measurements. None of them approves

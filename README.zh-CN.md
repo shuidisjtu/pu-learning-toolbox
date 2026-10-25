@@ -144,7 +144,7 @@ Survey 方法，并且只报告 OA。
 | 运行 | `run_survey_pilot.py`（整批 pilot）、`aggregate_survey_runs.py` |
 | 审计与报告 | `audit_survey_batches.py`、`summarize_survey_results.py`、`compare_survey_results.py`（预注册文献对照）、`_source_provenance.py`（内部辅助工具，区分脚本检出身份与实际加载实现；不是独立 CLI） |
 | 配方 | `prepare_survey_recipe_registry.py`、`check_survey_recipe_registry.py`（审阅与锁定前校验草稿） |
-| 资源探针 | `profile_survey_candidate_storage.py`、`profile_survey_cnn_storage.py`、`profile_survey_extended_cnn_storage.py`，配合 `check_survey_extended_cnn_storage.py`；`prepare_candidate_image_resource_plan.py` 按候选默认值只读估算，不是实测资源 profile |
+| 资源估算 | `prepare_candidate_image_resource_plan.py` 按候选默认值只读估算，不是实测资源 profile |
 | P3 准入证据 | `check_p3_admission_evidence.py`、`check_p3_public_comparison.py`、`prepare_p3_selection_budget_spec.py`、`prepare_p3_preintegration_extension.py`、`check_candidate_fit_contracts.py`（绑定 AST/源码的工程门禁，不等于方法准入） |
 
 这些脚本是技术检查与测量，均不批准候选、预算、正式 split 或数值裁决；审计与汇总脚本
