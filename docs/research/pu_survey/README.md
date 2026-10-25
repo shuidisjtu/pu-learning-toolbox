@@ -64,6 +64,7 @@
 - [GEN-PU / PULDA 阶段预算](delivery/staged_budget_20261024.md)：二维草案的阶段/六网络成本、快照容量与训练后收据；不填正式预算，不变更原生算法。
 - [Robust / Split / Holistic 阶段预算](delivery/episodic_budget_20261024.md)：episode 内多轮、原生 splitter 停止上界与 LZO 已付成本；实际 CLI/续跑与原生权重验证，不等于正式准入。
 - [GEN-PU 配方宽度对齐](delivery/genpu_width_alignment_20261025.md)：协议 128（构造器默认）→ 256（冻结配方）、标签 `mlp128` → `mlp256`，并补测两条 native-2d 行的逐组件体积；64 MiB 上界仍成立，正式预算容量预检与 GPU 峰值仍待。
+- [GEN-PU 正式预算容量](delivery/genpu_formal_capacity_20261025.md)：100 GAN + 100 PN、batch 64 在 32 GiB vGPU 上约 2.7 h，峰值 2.55 GiB，逐组件 43.4 MiB、100 份快照 4.55 GB；本机 T600 单轮超过 20 分钟，不可行。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
