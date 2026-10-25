@@ -384,7 +384,6 @@ tests/
       test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
       test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
-      test_check_candidate_fit_contracts.py # 全候选guard/签名/源码证据及无Torch门禁
       test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
       test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
       test_prepare_p3_selection_budget_spec.py # 阶段/预算草稿再生成、类型严格一致与审批篡改拒绝
@@ -425,6 +424,7 @@ tests/
       test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
       test_random.py                    # check_random_state 种子归一化助手直接测试(含与内联构造的双向差异)
       test_fit_state.py                 # 拟合状态保护的异常、取消与签名契约
+      test_fit_guard_coverage.py        # 16 个候选 fit 保留共享失败守卫且不声明 clean 角色（纯 AST，无源码哈希）
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
@@ -910,7 +910,6 @@ scripts/
   prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)
   collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
   prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
-  check_candidate_fit_contracts.py        # 15候选失败拟合guard及源码绑定核验
   check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
   check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决
   prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
