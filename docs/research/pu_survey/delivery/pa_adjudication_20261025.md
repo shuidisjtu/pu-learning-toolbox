@@ -1,56 +1,70 @@
 # 54 条 PA 映射裁定（2026-10-25，D41）
 
+> **2026-10-25 更正**：本记录的第一版把 18 个 `proxy_acc` 锚点从 OA 单元迁到 PA 单元。
+> 读完两篇参考文献 PDF 后判定该方向**错误**，已按下文重写。错因见 §4。矩阵侧尚未落地，
+> 因此没有产生任何需要回滚的制品，只需修正裁定本身。
+
 D38 记的是「PA 准则不再是外部依赖，剩下的是我方重新裁定这 54 条映射」。本记录给出裁定结果、
 依据，以及为什么它落在 comparison v5 而不是现在改矩阵。
 
-## 裁定结论
+## 1. 裁定结论
 
 54 条 `blocked_pending_pa_criterion` = 6 方法 × 3 数据集 × 3 个 `c`，**全部是 `pa` 选模单元**：
 
 |  | 条数 | 新 eligibility | 锚点 |
 |---|---:|---|---|
-| 有 `proxy_acc` 锚点的 c=0.1 PA 单元 | 18 | `magnitude_and_trend` | 从同格 OA 单元**迁入** |
-| 其余 PA 单元（c=0.3/0.5 与 SAR 行） | 36 | `no_direct_anchor` | 无 |
-| 让出锚点的 c=0.1 OA 单元 | 18 | `no_direct_anchor` | 迁出 |
+| 全部 PA 单元（c=0.1/0.3/0.5 与 SAR 行） | 54 | `no_direct_anchor` | 无 |
 
-`blocked_pending_pa_criterion` 在 v5 里归零。
+`blocked_pending_pa_criterion` 在 v5 里归零。**18 条 c=0.1 的 OA 单元维持现状**
+（`magnitude_and_trend` + 各自锚点），不做迁移。
 
-## 依据：锚点挂错了单元
+## 2. 依据：两篇参考文献怎么选模
 
-裁定前先查了 v4 的 28 个 `proxy_acc` / `pa` 锚点：
+P4.2a 的前置是核对两篇基准论文是否真的报了这四个方法。核对结果见
+[p42a_paper_check_20261025](p42a_paper_check_20261025.md)，与本次裁定相关的有两条：
 
-- 18 个是 c=0.1 的单元锚点（6 方法 × 3 数据集），来源是 PU-Bench Table 1，**用 proxy accuracy
-  选出的数字**；这正是 R9 准则（`strategies.proxy_accuracy`，Wang et al. 2026 Def 1 的 OS 分支）
-  的口径。
-- 10 个是 cifar10 的 row-level 锚点，挂在 row-level 映射上，不受本次影响。
+- **Chen et al.（PU-Bench）Table 1** 确实报了 `pulda` / `robust_pu` / `holistic_pu` / `lagam`，
+  8 数据集、`c=0.1`、SCAR、accuracy mean±std。但它的选模是
+  **「validation-set macro-F1 最高的 checkpoint」**（正文 §3 与 §D.2.1 两处都这么写），
+  而该验证集是**带真标签**的（Table B.2 把 `Validation` 列在 PN 划分统计里；Wang et al. 附录 A
+  直接指出「they assumed that the validation set had true labels, which is unrealistic」）。
+- **Wang et al.** 的 17 个方法里只有 `Robust-PU` / `Holistic-PU`，没有 `pulda` / `lagam`；
+  数据集是 CIFAR-10 / ImageNette / USPS / Letter，且**按 PA / PAUC / OA 三种准则分别报数**。
 
-这 18 个锚点现在挂在我们的 **OA** 单元上（`unit_*_c0.1_oa`，`magnitude_and_trend`）。但 OA 用
-clean 标签选模，与来源的 proxy accuracy 不是同一个准则——**能对上口径的是我们的 PA 单元**，
-而 PA 单元反而是 `blocked` 且一个锚点都没有。所以这不是"给 PA 补个锚点"，是**把锚点挪到
-准则对得上的那个单元上**。
+结论：**Chen 的数字来自真标签选模**，与我们的 **OA**（clean_val 真标签选模）同类，
+与 **PA**（PU 视图 proxy accuracy）不同类。所以：
 
-`validate_comparison_coverage` 强制「一个锚点只能被一条映射引用」，因此迁移是唯一形式，
-同一个已发表数字不会在 PA 和 OA 两侧各算一次。
+- Chen 的锚点归属 OA 单元是对的（v4 现状就是如此），PA 单元拿不到任何 Chen 锚点；
+- Wang 确实有 PA 口径的数字，但只有两个方法、且其 CIFAR-10 正类子集（Case 1 `{0,1,2,8,9}` /
+  Case 2 `{2,3,5,7,9}`，π=0.3、20k 子集）与我们（`{0,1,8,9}`、π=0.4、45k）都不同——
+  v4 已经把它们用在 `row_*_cifar10` 行级映射（`magnitude_and_trend`），这是它们该在的位置，
+  不能升格为单元级锚点。
 
-## 为什么不是 `numeric`
+## 3. 附带发现：18 个 Chen 锚点的协议标签是错的
 
-来源与我们的口径仍有实质差异，任何一条都足以拒绝 `numeric`：
+v4 里 18 个 `pu_bench_table1_*_c01_accuracy` 的 `selection_protocol` 写作 `proxy_acc`。
+按 Chen 正文与 Wang 附录 A，来源实际是**真标签验证集的 macro-F1**。这不是裁定问题，是
+**锚点元数据错误**：它让「我们的 OA 单元 vs 人家的 proxy-acc 数字」看起来像同类比较。
 
-- backbone：基准是逐模态 CNN/MLP，我们是冻结 ResNet-18 特征 + MLP 头（cifar10）或 mlp128（2d）；
-- 验证划分：基准 0.01，我们 10–20%；
-- 候选池与预算：我们的是 v3 声明的阶段预算，不是基准的调参过程。
+处理：在 v5 里把这 18 条的 `selection_protocol` 改成实情（真标签验证 + macro-F1 准则），
+并把「选模准则 macro-F1 vs 我们的 accuracy」「验证集 1%（Nv=37/250/500）vs 10–20%」写进对应
+映射的 `protocol_differences`。`magnitude_and_trend` 的判定不变——差异只会更清楚，不会更小。
 
-所以按 `magnitude_and_trend` 记录，与这些单元此前在 OA 侧得到的对待一致，不升级承诺。
+## 4. 错因
 
-## 为什么不现在改矩阵
+第一版只读了 v4 的元数据：看到锚点标的 `proxy_acc`、又看到它挂在 OA 单元上，就认定「锚点挂错单元」。
+实际相反——**挂对了单元，标错了协议**。教训：锚点的 `selection_protocol` 是二手记录，
+涉及 eligibility 归属时必须回原文核实，不能拿矩阵自己的字段当证据链的起点。
+
+## 5. 为什么不现在改矩阵
 
 - **v5 现在绑不了 v3**：`validate_comparison_coverage(survey=v3, comparison=…)` 按 v3 的
   `execution_units` 枚举全部单元，包含 `self_pu_full_meta` 与 7 个 P4.2 缺口 profile；这些条目
   还没有映射，覆盖率门禁会直接失败。v5 必须与 P4.2a/b 一起出。
 - **原地改 v4 会追溯改写历史**：645-run 的裁决是按当时的矩阵做的，改 v4 等于让既有结论变质，
-  违反「历史制品不改写」。所以裁定规则先记录（D41），应用留给 v5。
+  违反「历史制品不改写」。裁定规则先记录（D41），应用留给 v5。
 
-## 同时做的：v3 静态阻断位按现状清理
+## 6. 同时做的：v3 静态阻断位按现状清理
 
 `formal_blockers` 三条 → 两条：
 
@@ -66,7 +80,7 @@ clean 标签选模，与来源的 proxy accuracy 不是同一个准则——**�
 没有任何 `formal_eligible` 因此翻转为 true：v3 的 profile 身份协议每次运行仍会由
 `profile_identity_extension_engineering_only` 挡住。
 
-## 摘要连带刷新（协议就地改，版本仍 `survey-v3.0`）
+## 7. 摘要连带刷新（协议就地改，版本仍 `survey-v3.0`）
 
 | 绑定 | 旧 → 新 |
 |---|---|
@@ -74,10 +88,9 @@ clean 标签选模，与来源的 proxy accuracy 不是同一个准则——**�
 | v3 原始字节摘要（clean-support 清单 `protocol_policy_sha256`） | `57abbcb1…` → `b3ea7e5d…` |
 | clean-support 清单 `receipt_sha256` | `79e92d10…` → `1577b39e…` |
 
-25 份 clean-support 制品未重建，其自身 `support_manifest.json` 的收据也未改；清单里写明
-"policy 段落（c_tokens、support 规模、seeds、split 策略）未变，只是提示摘要在动"。
+25 份 clean-support 制品未重建，其自身 `support_manifest.json` 的收据也未改。
 
-## 验证
+## 8. 验证
 
 - `check_survey_recipe_registry.py --require-present --require-locked` 通过（registry sha `d79d48ed…`）；
 - v0.2 草稿门禁通过（`a4eb856a…`）；`check_survey_profile_map.py --require-present` 通过
@@ -85,7 +98,7 @@ clean 标签选模，与来源的 proxy accuracy 不是同一个准则——**�
 - `tests/unit/experiment` 与 `tests/integration/test_survey_recipe_binding_v3.py` 全绿；
 - 已生成工作簿的 `formal_blockers` 列是**运行当时**（10-25 早于本次清理）的文本，属历史记录，不改写。
 
-## 未完成
+## 9. 未完成
 
-- 54 条裁定在 comparison v5 里应用；v5 同时绑 v3 并收录 P4.2a/b 条目。
-- P4.2a 仍需先核对两篇基准论文表格是否真报那 4 个方法。
+- 54 条裁定在 comparison v5 里应用；v5 同时绑 v3 并收录 P4.2a/b 条目（Chen 的 4 方法锚点挂 OA 单元）。
+- 18 个 Chen 锚点的 `selection_protocol` 元数据修正，同批做。
