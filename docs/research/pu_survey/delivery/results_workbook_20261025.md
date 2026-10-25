@@ -60,8 +60,14 @@ CIFAR 三行跑的是**完整 split**（train 45,000 / test 10,000），不是�
 
 - 网格：`tmp/run_spambase_grid_20261025.py`（本机 CPU）；远端批次脚本
   `tmp/run_cifar_adapter_20261025.sh`。
-- 工作簿：`tmp/build_results_workbook_20261025.py`，全部数值从 manifest 重算，不手抄；
-  每行的原始 manifest 路径在 `evidence_manifest` 列。
+- 收据：`data/workbook_runs_20261025.json`（31 条 run，入库）。它由
+  `tmp/make_workbook_receipt_20261025.py` 从原始 manifest 生成，保留 selection / resources /
+  test_results 等审计字段，去掉占体积 40% 的 `candidate_runs` 逐 epoch 轨迹（只留摘要），
+  并把重复 9 次的 clean-support `split_ref` 按摘要去重。每份 manifest 的原路径、字节数与
+  `manifest_sha256` 都在条目里，被删去的轨迹与 `split_ref` 各有 `*_sha256`。
+- 工作簿：`tmp/build_results_workbook_20261025.py`，**只读这份收据**、不读 manifest、不手抄，
+  因此原始 manifest 不入库也能重建；`runs` 的 `evidence` 列就是收据里的 run key。
+- 原始 manifest 留在 `tmp/wb_20261025/` 与 `tmp/wb_cifar_20261025/`（本地证据，不入 git）。
 
 ## 未完成
 
