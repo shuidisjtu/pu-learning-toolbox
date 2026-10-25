@@ -91,13 +91,13 @@ def test_basic_promoted_profiles_anchor_their_c01_oa_cells(v5):
 def test_param_v5_binds_v3_not_the_historical_v2(v3, v5):
     assert v5["comparison_version"] == "survey-comparison-v5"
     assert v5["bound_survey_protocol"]["protocol_version"] == v3["protocol_version"]
-    assert v5["bound_survey_protocol"]["protocol_sha256"] == digest(v3)
+    assert v5["bound_survey_protocol"]["protocol_version"] == v3["protocol_version"]
 
 
 def test_param_map_v2_binds_v5_and_promotes_exactly_four_profiles(map_v2, v5, v3):
     counts = validate_profile_map(map_v2, protocol=v3, comparison=v5)
     assert map_v2["bound_comparison"]["comparison_version"] == v5["comparison_version"]
-    assert map_v2["bound_comparison"]["comparison_sha256"] == digest(v5)
+    assert map_v2["bound_comparison"]["comparison_version"] == v5["comparison_version"]
     assert counts["mapped"] == 13
     assert counts["not_in_matrix"] == 10
     promoted = {

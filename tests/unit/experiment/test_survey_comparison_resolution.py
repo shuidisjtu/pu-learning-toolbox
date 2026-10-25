@@ -97,7 +97,7 @@ def _config(method="nnpu", dataset="spambase", mechanism="scar", c_token="0.1"):
 def test_basic_each_version_resolves_to_its_own_matrix(v2, v3, v6):
     assert comparison_for_protocol(v3)["comparison_version"] == "survey-comparison-v6"
     assert comparison_for_protocol(v2)["comparison_version"] == "survey-comparison-v4"
-    assert v6["bound_survey_protocol"]["protocol_sha256"] == digest(v3)
+    assert v6["bound_survey_protocol"]["protocol_version"] == v3["protocol_version"]
 
 
 def test_basic_the_two_version_tables_name_the_same_versions():
@@ -146,7 +146,6 @@ def test_basic_the_effective_profile_map_binds_the_resolved_matrix(v3, v6):
     profile_map = load_profile_map()
     assert profile_map_binds(profile_map, v3)
     assert profile_map["bound_comparison"]["comparison_version"] == v6["comparison_version"]
-    assert profile_map["bound_comparison"]["comparison_sha256"] == digest(v6)
 
 
 def test_basic_promoted_profiles_resolve_through_the_effective_map():
@@ -176,8 +175,8 @@ def test_basic_a_derived_protocol_resolves_through_the_shipped_matrix(v3, v6):
         "survey-comparison-v6"
     )
     assert digest(comparison_for_version(narrowed["protocol_version"])) == digest(v6)
-    with pytest.raises(ValueError, match="disagrees with the execution protocol"):
-        comparison_for_protocol(narrowed)
+    # A derived matrix of the same version still resolves: version is the binding.
+    assert comparison_for_protocol(narrowed)["comparison_version"] == "survey-comparison-v6"
 
 
 def test_edge_a_version_no_shipped_matrix_carries_is_read_as_a_path():

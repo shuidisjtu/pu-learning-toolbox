@@ -101,7 +101,8 @@ def test_basic_internal_kernel_cv_is_not_mistaken_for_an_outer_candidate_pool():
 
 
 def test_param_protocol_basis_mismatch_rejects_before_binding():
+    # The registry binds by version; its recorded digest is provenance.
     value = locked_registry()
-    value["protocol_basis"]["protocol_sha256"] = "0" * 64
+    value["protocol_basis"]["protocol_version"] = "survey-v1.2"
     with pytest.raises(ValueError, match="protocol_basis_mismatch"):
         bind(value)

@@ -19,7 +19,6 @@ from pu_toolbox.experiment.survey_comparison import (
     validate_comparison_coverage,
 )
 from pu_toolbox.experiment.survey_profile_map import (
-    digest,
     load_profile_map,
     validate_profile_map,
 )
@@ -97,7 +96,7 @@ def test_param_map_v3_promotes_exactly_those_three_profiles(v3, v6, map_v3):
     assert counts["mapped"] == 16
     assert counts["not_in_matrix"] == 7
     assert map_v3["bound_comparison"]["comparison_version"] == "survey-comparison-v6"
-    assert map_v3["bound_comparison"]["comparison_sha256"] == digest(v6)
+    assert map_v3["bound_comparison"]["comparison_version"] == v6["comparison_version"]
     map_v2 = load_profile_map(MAP_V2_PATH)
     promoted = {
         profile

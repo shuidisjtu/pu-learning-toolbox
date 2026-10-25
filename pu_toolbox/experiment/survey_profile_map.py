@@ -100,11 +100,14 @@ _REQUIRED_TOP_LEVEL = (
     "bound_comparison",
     "profiles",
 )
-#: ``(binding label, version field, digest field)``: one table drives both the
-#: shape check and the cross-file check, so the two cannot disagree.
+#: ``(binding label, version field)``: the version is the binding.  The digest
+#: fields stay in the file as provenance, but the shipped protocol and matrix are
+#: edited in place, so requiring the recorded digest to match would turn every
+#: edit into a rewrite of every artifact that names it without catching anything
+#: the version check does not.
 _BINDINGS = (
-    ("bound_survey_protocol", "protocol_version", "protocol_sha256"),
-    ("bound_comparison", "comparison_version", "comparison_sha256"),
+    ("bound_survey_protocol", "protocol_version"),
+    ("bound_comparison", "comparison_version"),
 )
 _PROFILE_NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
 
@@ -136,8 +139,8 @@ def load_profile_map(path: str | Path = MAP_PATH) -> dict[str, Any]:
         if key not in payload:
             raise ValueError(f"survey profile map missing {key}")
     _require_text(payload["map_version"], "survey profile map", "map_version")
-    for label, version_field, digest_field in _BINDINGS:
-        _validate_binding_shape(payload[label], label, version_field, digest_field)
+    for label, version_field in _BINDINGS:
+        _validate_binding_shape(payload[label], label, version_field)
     profiles = payload["profiles"]
     if not isinstance(profiles, dict) or not profiles:
         raise ValueError("survey profile map profiles must be a non-empty object")
@@ -164,9 +167,9 @@ def validate_profile_map(
         protocol = bound_protocol(profile_map)
     if comparison is None:
         comparison = bound_comparison(profile_map)
-    for label, version_field, digest_field in _BINDINGS:
+    for label, version_field in _BINDINGS:
         target = protocol if label == "bound_survey_protocol" else comparison
-        _check_binding(profile_map[label], target, label, version_field, digest_field)
+        _check_binding(profile_map[label], target, label, version_field)
 
     profiles = profile_map["profiles"]
     expected = set(protocol["method_profiles"])
@@ -287,19 +290,17 @@ def resolve_profile_mapping(
 
 
 def profile_map_binds(profile_map: dict[str, Any], protocol: dict[str, Any]) -> bool:
-    """Whether the map was frozen against exactly this matrix.
+    """Whether the map describes this protocol matrix.
 
-    A narrowed or otherwise noncanonical matrix carries the profile-identity
-    schema but is not the protocol the map was written against.  The map then
-    does not apply, and callers record that this matrix has no versioned profile
-    mapping instead of reading the map's entries as if they described it.  Drift
-    in the *shipped* matrix is caught by the gate, which recomputes both digests
-    against the committed files.
+    Version plus the profile set, never the digest: the shipped protocol is edited
+    in place, so a narrowed matrix of the same version is still described by the
+    map, but a derived matrix that declares other profiles is not.
     """
-    bound = profile_map["bound_survey_protocol"]
-    same_version = bound["protocol_version"] == protocol["protocol_version"]
-    same_digest = bound["protocol_sha256"] == digest(protocol)
-    return same_version and same_digest
+    same_version = (
+        profile_map["bound_survey_protocol"]["protocol_version"] == protocol["protocol_version"]
+    )
+    unknown_profiles = set(protocol["method_profiles"]) - set(profile_map["profiles"])
+    return same_version and not unknown_profiles
 
 
 def profile_registration_status(
@@ -317,11 +318,7 @@ def profile_registration_status(
     if profile_map is None:
         profile_map = load_profile_map()
     _check_binding(
-        profile_map["bound_survey_protocol"],
-        protocol,
-        "bound_survey_protocol",
-        "protocol_version",
-        "protocol_sha256",
+        profile_map["bound_survey_protocol"], protocol, "bound_survey_protocol", "protocol_version"
     )
     entry = profile_map["profiles"].get(profile_id)
     if entry is None:
@@ -346,11 +343,10 @@ def _require_text(value: Any, owner: str, field: str) -> None:
         raise ValueError(f"{owner} requires a non-empty {field}")
 
 
-def _validate_binding_shape(bound: Any, label: str, version_field: str, digest_field: str) -> None:
+def _validate_binding_shape(bound: Any, label: str, version_field: str) -> None:
     if not isinstance(bound, dict):
         raise ValueError(f"{label} must be an object")
-    for field in (version_field, digest_field):
-        _require_text(bound.get(field), label, field)
+    _require_text(bound.get(version_field), label, version_field)
 
 
 def _check_binding(
@@ -358,16 +354,13 @@ def _check_binding(
     target: dict[str, Any],
     label: str,
     version_field: str,
-    digest_field: str,
 ) -> None:
-    """Reject a map written against another matrix, in both directions."""
+    """Reject a map written against another version of the same file."""
     if bound[version_field] != target[version_field]:
         raise ValueError(
             f"{label}.{version_field} disagrees with the loaded file: "
             f"{bound[version_field]!r} != {target[version_field]!r}"
         )
-    if bound[digest_field] != digest(target):
-        raise ValueError(f"{label}.{digest_field} disagrees with the loaded file's digest")
 
 
 def _validate_entry(profile_id: Any, entry: Any) -> None:

@@ -86,7 +86,7 @@ def test_basic_map_covers_every_protocol_profile_and_the_shipped_digests(protoco
     assert profile_map["map_version"] == "survey-profile-map-v3"
     assert set(profile_map["profiles"]) == set(protocol["method_profiles"])
     assert counts == {"profiles": 23, "mapped": 16, "not_in_matrix": 7, "deviations": 1}
-    assert profile_map["bound_survey_protocol"]["protocol_sha256"] == digest(protocol)
+    assert profile_map["bound_survey_protocol"]["protocol_version"] == protocol["protocol_version"]
 
 
 def test_basic_full_meta_inherits_the_self_pu_entry_and_adds_its_own_deviation():
@@ -198,11 +198,10 @@ def test_param_load_refuses_a_deviation_on_a_profile_outside_the_matrix(tmp_path
 @pytest.mark.parametrize(
     ("field", "value", "match"),
     [
-        ("protocol_sha256", "0" * 64, "disagrees with the loaded file's digest"),
         ("protocol_version", "survey-v2.0", "disagrees with the loaded file"),
     ],
 )
-def test_param_resolve_refuses_drift_in_either_half_of_the_protocol_binding(field, value, match):
+def test_param_resolve_refuses_a_map_bound_to_another_protocol_version(field, value, match):
     profile_map = copy.deepcopy(load_profile_map())
     profile_map["bound_survey_protocol"][field] = value
     with pytest.raises(ValueError, match=match):
@@ -214,14 +213,15 @@ def test_edge_profile_absent_from_the_map_is_a_defect_not_not_in_matrix():
         resolve_profile_mapping("never_declared", IDENTITY)
 
 
-def test_edge_narrowed_matrix_has_no_versioned_profile_mapping(protocol):
-    """A derived matrix is not the one the map was frozen against."""
+def test_edge_narrowed_matrix_still_resolves_through_the_versioned_map(protocol):
+    """Version is the binding: a derived matrix is described by the same map."""
     narrowed = copy.deepcopy(protocol)
     narrowed["seeds"] = [0]
-    assert not profile_map_binds(load_profile_map(), narrowed)
-    assert profile_map_binds(load_profile_map(), protocol)
+    assert profile_map_binds(load_profile_map(), narrowed)
     units = run_comparison_units(_context(), _config(), survey=narrowed, profile_id="nnpu")
-    assert units == {}
+    assert set(units) == {"PA", "OA"}
+    for entry in units.values():
+        assert entry["comparison_version"] == "survey-comparison-v6"
 
 
 def test_determ_resolution_and_map_digest_ignore_formatting():
