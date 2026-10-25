@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """P4.1 central recipe registry gate: schema, protocol basis and digest.
 
-Validates the frozen registry against the loaded survey protocol and recomputes
-its digest, so that "which recipe did this survey adopt" is answered by a file
+Validates the frozen registry against the protocol its ``protocol_basis`` names and
+recomputes its digest, so that "which recipe did this survey adopt" is answered by a file
 the repository can check rather than by a reviewer's memory.
 
 Staging
 -------
-The registry JSON is a *freeze-stage* deliverable (plan §11): until it lands,
-this gate has nothing to read.  A missing file is therefore reported as such and
-exits 0 -- but it says so on stdout rather than printing a pass, because a gate
-that reads green while checking nothing is how a gap disappears from a report.
+The registry JSON was a *freeze-stage* deliverable (plan §11): until it landed,
+this gate had nothing to read.  That staging branch stays because the default
+path is still the production file: a missing file is reported as such and exits
+0 -- but it says so on stdout rather than printing a pass, because a gate that
+reads green while checking nothing is how a gap disappears from a report.
 The moment the file appears the run becomes enforcing, with no flag to flip.
 
 Usage::
@@ -20,11 +21,12 @@ Usage::
 
 Exit 0 when the registry is absent, or present and free of error-severity
 findings; 1 otherwise. ``--require-present`` makes a missing *explicitly
-materialized* artifact an error (used for the committed draft in CI); it does
-not materialize or lock the future frozen registry. ``--require-locked`` also
-requires presence and checks the declared registry/profile lifecycle; it does
-not authenticate human approval. CI uses it only when the production artifact
-exists, leaving an unmaterialized production check skipped rather than green.
+materialized* artifact an error (used for the committed drafts and the frozen
+registry in CI); it does not materialize or lock anything itself.
+``--require-locked`` also requires presence and checks the declared
+registry/profile lifecycle; it does not authenticate human approval.  Since the
+frozen registry is committed, CI runs that check unconditionally: absence is a
+failure, not a skipped step.
 """
 
 from __future__ import annotations
@@ -70,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1 if args.require_present or args.require_locked else 0
 
-    from pu_toolbox.experiment.survey_protocol import load_protocol
+    from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
     from pu_toolbox.experiment.survey_recipe_registry import (
         canonical_digest,
         load_registry,
@@ -83,7 +85,28 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Registry check failed: {error}")
         return 1
 
-    findings = validate_registry(registry, load_protocol())
+    # The registry names the protocol it was drafted against, so the matrix is
+    # loaded from that basis: validating a v3 registry against the v2 default
+    # would report every v3 reference as drift instead of checking the binding.
+    # A payload that names no version is already invalid on its own terms, so
+    # it falls back to the default and gets the ordinary "missing basis" report
+    # rather than failing here on protocol selection.
+    basis = registry.get("protocol_basis")
+    basis_version = basis.get("protocol_version") if isinstance(basis, dict) else None
+    try:
+        protocol = (
+            load_protocol(resolve_protocol_path(basis_version))
+            if isinstance(basis_version, str) and basis_version
+            else load_protocol()
+        )
+    except (OSError, ValueError) as error:
+        print(
+            "Registry check failed: cannot load the protocol named by "
+            f"protocol_basis.protocol_version ({basis_version!r}) -- {error}"
+        )
+        return 1
+
+    findings = validate_registry(registry, protocol)
     errors = [finding for finding in findings if finding.severity == "error"]
     for finding in findings:
         print(f"  [{finding.severity}] {finding.code} at {finding.path}: {finding.message}")
@@ -117,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"Recipe registry check passed: {registry.get('recipe_registry_version')} "
         f"({len(registry.get('profiles') or {})} profile(s), {len(findings)} warning(s))\n"
+        f"  protocol basis: {protocol.get('protocol_version')}\n"
         f"  registry sha256: {digest}"
     )
     return 0

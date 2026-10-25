@@ -1,0 +1,65 @@
+{
+  "schema_version": "genpu-width-alignment-engineering-v1",
+  "generated_at": "2026-10-25T09:52:17+08:00",
+  "decision": "owner decision 2026-10-25: the GEN-PU profile binds the frozen recipe width (256), not the constructor default (128); the profile label reads mlp256 so profile, staged budget, backbone spec and genpu_recipe.py name the same architecture",
+  "formal_admission": false,
+  "paper_numerical_comparison": false,
+  "protocol_policy_ref": "pu_toolbox/experiment/survey_protocol_v3.json",
+  "protocol_policy_file_sha256": "57abbcb10a72c02e12f41ad6504d40db84558c8fa7a492fd3e69b435705b2116",
+  "protocol_canonical_digest": "44128fcb2184dc8b2eb5c93230ef00d934e43aedc25bac504bb4a0b63d9d85ac",
+  "protocol_version": "survey-v3.0",
+  "bound_basis": {
+    "field": "budgets.genpu.staged_budget.checkpoint_bytes_per_component",
+    "declared_bytes": 67108864,
+    "note": "the bound was declared on 2026-10-24 from a run of the 256 recipe; it was never derived from a 128-wide model"
+  },
+  "bound_holds_for_width_256": {
+    "cifar10_native_cnn": {
+      "max_component_bytes": 45542038,
+      "source": "docs/research/pu_survey/delivery/genpu_recipe_20261023.md and docs/research/pu_survey/data/genpu_recipe_validation_20261023.json (recipe.parameters.hidden_dim = 256)",
+      "measured_here": false
+    },
+    "rows_measured_here": [
+      {
+        "dataset": "spambase",
+        "input_dim": 57,
+        "hidden_dim": 256,
+        "checkpoint_files": 6,
+        "per_component_bytes": [
+          326593,
+          326593,
+          326593,
+          326593,
+          326593,
+          326593
+        ],
+        "max_component_bytes": 326593,
+        "declared_bound_bytes": 67108864,
+        "headroom": 205.482,
+        "within_bound": true
+      },
+      {
+        "dataset": "imdb",
+        "input_dim": 384,
+        "hidden_dim": 256,
+        "checkpoint_files": 3,
+        "per_component_bytes": [
+          661441,
+          661441,
+          661441
+        ],
+        "max_component_bytes": 661441,
+        "declared_bound_bytes": 67108864,
+        "headroom": 101.459,
+        "within_bound": true
+      }
+    ]
+  },
+  "method": "ExperimentRunner -> GenPURecipeTrainer -> epoch checkpoints on the production path, CPU, synthetic four-role SCAR arrays (24/16/12/12 rows), 1 GAN + 3 PN epochs, batch 8, seed 0, c=0.5, reclaim_unselected_checkpoints=False",
+  "what_this_is_not": "not a formal-budget or full-data measurement, not effect evidence, and not a numeric parity check; the formal budget is 100 GAN + 100 PN epochs at batch 64",
+  "open_items": [
+    "rerun the capacity precheck at the formal 100-epoch budget before the first formal GEN-PU run",
+    "the GPU-resident peak is unchanged by the width change only for the image path; a formal TS run still needs its own peak measurement"
+  ],
+  "receipt_sha256": "40bf7551a7a86bda3a7d0acf1d753f49217bad0345e35a04da5aaf560e01d5dc"
+}

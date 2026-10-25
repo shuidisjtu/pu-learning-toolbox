@@ -63,6 +63,7 @@
 - [Profile / 算法身份分离](delivery/profile_identity_20261024.md)：显式草案的模型、CLI、批次与续跑绑定；旧 v2 不变，新身份强制工程验证、正式五角色/预算/比较绑定仍待。
 - [GEN-PU / PULDA 阶段预算](delivery/staged_budget_20261024.md)：二维草案的阶段/六网络成本、快照容量与训练后收据；不填正式预算，不变更原生算法。
 - [Robust / Split / Holistic 阶段预算](delivery/episodic_budget_20261024.md)：episode 内多轮、原生 splitter 停止上界与 LZO 已付成本；实际 CLI/续跑与原生权重验证，不等于正式准入。
+- [GEN-PU 配方宽度对齐](delivery/genpu_width_alignment_20261025.md)：协议 128（构造器默认）→ 256（冻结配方）、标签 `mlp128` → `mlp256`，并补测两条 native-2d 行的逐组件体积；64 MiB 上界仍成立，正式预算容量预检与 GPU 峰值仍待。
 
 ### `admission/`：候选方法、CNN、资源和准入证据
 
@@ -75,6 +76,7 @@
 - [LaGAM 全文与实现交叉复核](admission/lagam_paper_review_20261020.md)：补齐原文获取；登记零梯度、β/簇数来源分歧与 support 子类配额，绑定数值行为测试；保留默认实现及未签署/未准入状态。
 - [Split-PU #122 三项裁决](admission/splitpu_122_adjudication_20261024.md)：JSD 保持源码 0.7、TS 均衡 batch 登记 benchmark 近似、台账指针推迟到版本化更新；两行翻牌、#122 可关，冻结 v3 里的陈旧措辞已原地修正（版本号不变）。
 - [GEN-PU #126 配方冻结](admission/genpu_126_adjudication_20261024.md)：认定 10-23 四项工程规格为正式配方（先验加权目标、100 快照预算、identity+四份 ResNet-18、G 步模式）；全量资源与数值 parity 不在冻结范围，#126 关单。
+- [P4.1-B 配方注册表冻结](admission/p4_1b_registry_freeze_20261025.md)：`survey-recipes-v1.0` 绑 `survey-v3.0`，15 个 runnable profile 锁 `locked`、8 个带理由排除，覆盖 40 个 runnable 单元；快照可重算、手改即拒，CI 生产步骤由跳过转为真跑；本机 T600 已跑通两方法的运行链绑定。不构成方法准入，不回溯绑定历史制品。
 
 - [`p3_preintegration_handoff.md`](admission/p3_preintegration_handoff.md)：P3 预集成交接及正式准入边界。
 - [`p3_pulda_puet_admission_spec_draft.md`](admission/p3_pulda_puet_admission_spec_draft.md)：PULDA/PUET 准入规格草案。

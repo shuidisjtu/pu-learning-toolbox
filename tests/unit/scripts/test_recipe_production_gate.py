@@ -68,11 +68,14 @@ def test_edge_declared_lock_does_not_bypass_snapshot_validation(tmp_path, capsys
     assert "resolved_snapshot_mismatch" in capsys.readouterr().out
 
 
-def test_basic_ci_keeps_production_activation_separate_from_draft():
+def test_basic_ci_runs_both_drafts_and_the_frozen_production_lock():
     workflow = (Path(__file__).resolve().parents[3] / ".github/workflows/tests.yml").read_text()
-    assert "hashFiles('pu_toolbox/experiment/survey_recipe_registry_v1.json') != ''" in workflow
-    assert "--require-present --require-locked" in workflow
     assert "survey_recipe_registry_v0_1_draft.json --require-present" in workflow
+    assert "survey_recipe_registry_v0_2_draft.json --require-present" in workflow
+    # The registry is committed, so the step is unconditional: absence must fail
+    # (--require-present) rather than silently skipping a check that once ran.
+    assert "hashFiles('pu_toolbox/experiment/survey_recipe_registry_v1.json')" not in workflow
+    assert "--require-present --require-locked" in workflow
 
 
 def test_determ_production_check_reports_identical_digest_without_rewriting(tmp_path, capsys):

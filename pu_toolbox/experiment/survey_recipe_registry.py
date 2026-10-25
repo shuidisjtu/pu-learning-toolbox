@@ -63,6 +63,10 @@ from .survey_artifacts import survey_artifact_ref
 from .survey_protocol import digest
 
 SCHEMA_VERSION = "survey-recipe-registry-1.0"
+#: Schema for a protocol that carries explicit profile identities.  The legacy
+#: schema references ``method == algorithm``; v3 separates the profile ID from
+#: the algorithm, so the registry names a profile and records its algorithm.
+SCHEMA_VERSION_PROFILE_IDENTITY = "survey-recipe-registry-2.0"
 
 #: Recipe review lifecycle.  Independent closed set -- see D-P4.1-3, which pairs
 #: each value with the existing status it is *not* allowed to be confused with.
@@ -96,6 +100,45 @@ SELECTION_SPEC_REF = "survey_protocol_v2.selection_spec"
 
 BASE_REF_PREFIX = "survey_protocol_v2.method_profiles."
 BUDGET_BINDING_PREFIX = "survey_protocol_v2.budgets."
+
+
+@dataclass(frozen=True)
+class ProtocolRefs:
+    """Where one protocol's recipes point, and which schema can bind it.
+
+    The prefixes are not cosmetic: a registry row that references the wrong
+    matrix is exactly the drift the registry exists to prevent, so both the
+    builder and the validator take them from the loaded protocol instead of
+    hardcoding one version.
+    """
+
+    schema_version: str
+    selection_spec_ref: str
+    base_ref_prefix: str
+    budget_binding_prefix: str
+    protocol_file: str
+
+
+def protocol_refs(protocol: Mapping[str, Any]) -> ProtocolRefs:
+    """The reference set for the protocol's own identity schema."""
+    from .survey_profile_identity import has_profile_identities
+
+    if has_profile_identities(protocol):
+        return ProtocolRefs(
+            schema_version=SCHEMA_VERSION_PROFILE_IDENTITY,
+            selection_spec_ref="survey_protocol_v3.selection_spec",
+            base_ref_prefix="survey_protocol_v3.method_profiles.",
+            budget_binding_prefix="survey_protocol_v3.budgets.",
+            protocol_file="pu_toolbox/experiment/survey_protocol_v3.json",
+        )
+    return ProtocolRefs(
+        schema_version=SCHEMA_VERSION,
+        selection_spec_ref=SELECTION_SPEC_REF,
+        base_ref_prefix=BASE_REF_PREFIX,
+        budget_binding_prefix=BUDGET_BINDING_PREFIX,
+        protocol_file="pu_toolbox/experiment/survey_protocol_v2.json",
+    )
+
 
 #: Top-level manifest fields a registry-bound run must carry (D-P4.1-9).  They
 #: belong on the manifest's top level and never inside ``representation``, whose
@@ -230,16 +273,25 @@ def profile_id(profile: Mapping[str, Any]) -> str:
     return f"{profile.get('method')}/{profile.get('variant_id')}"
 
 
-def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
+def build_draft_registry(
+    protocol: Mapping[str, Any], *, recipe_registry_version: str | None = None
+) -> dict[str, Any]:
     """Materialize current protocol bindings without signing or changing recipes.
 
     This is a preparation artifact, not permission to run new methods or bind
     historical manifests. Parameter values remain in the protocol. Only its
-    existing empty-override candidates can be registered by schema v1.
-    """
-    from .survey_profile_identity import require_legacy_recipe_identity
+    existing empty-override candidates can be registered.
 
-    require_legacy_recipe_identity(protocol)
+    A protocol carrying explicit profile identities (``survey-v3.0``) is drafted
+    at schema 2.0: the profile key is the profile ID and each row records the
+    algorithm it maps to, because v3 no longer equates the two.
+    """
+    from .survey_profile_identity import has_profile_identities, require_legacy_recipe_identity
+
+    refs = protocol_refs(protocol)
+    identities = has_profile_identities(protocol)
+    if not identities:
+        require_legacy_recipe_identity(protocol)
     pool = protocol.get("candidate_pool")
     if (
         not isinstance(pool, Sequence)
@@ -247,8 +299,8 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
         or not pool
         or any(not isinstance(candidate, Mapping) or bool(candidate) for candidate in pool)
     ):
-        raise ValueError("Registry v1 draft requires non-empty, override-free protocol candidates.")
-    refs = ["frozen_protocol", "project_method_ledger"]
+        raise ValueError("Registry draft requires non-empty, override-free protocol candidates.")
+    refs_source = ["frozen_protocol", "project_method_ledger"]
     profiles: dict[str, Any] = {}
     for method, declared in protocol["method_profiles"].items():
         rows = [row for row in protocol["execution_units"] if row["method"] == method]
@@ -260,20 +312,24 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
         if budget.get("internal_hyperparameter_pairs") is not None:
             inner = {
                 "inner_search_id": f"{method}_internal_cv_v1",
-                "grid_ref": f"{BASE_REF_PREFIX}{method}.params",
+                "grid_ref": f"{refs.base_ref_prefix}{method}.params",
             }
-        method_refs = refs if method != "pn_oracle" else ["frozen_protocol", "pn_oracle_spec"]
+        algorithm = declared.get("algorithm", method)
+        if algorithm == "pn_oracle":
+            method_refs = ["frozen_protocol", "pn_oracle_spec"]
+        else:
+            method_refs = refs_source
         profile: dict[str, Any] = {
             "method": method,
-            "recipe_family": "oracle" if method == "pn_oracle" else "pu",
+            "recipe_family": "oracle" if algorithm == "pn_oracle" else "pu",
             "variant_id": f"survey_shared_{method}",
             "recipe_lifecycle": "draft" if runnable else "excluded",
             "scope": {
                 "datasets": sorted({row["dataset"] for row in rows}),
                 "training_paths": sorted({row["training_path"] for row in rows}),
             },
-            "base_ref": f"{BASE_REF_PREFIX}{method}",
-            "selection_spec_ref": SELECTION_SPEC_REF,
+            "base_ref": f"{refs.base_ref_prefix}{method}",
+            "selection_spec_ref": refs.selection_spec_ref,
             "source_refs": list(method_refs),
             "fixed_overrides": {},
             "candidate_pool": [
@@ -289,7 +345,7 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
             if runnable
             else None,
             "inner_search": inner,
-            "budget_binding_ref": f"{BUDGET_BINDING_PREFIX}{declared['budget']}",
+            "budget_binding_ref": f"{refs.budget_binding_prefix}{declared['budget']}",
             "review": {
                 "reviewers": [],
                 "open_questions": [
@@ -298,6 +354,8 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
                 ],
             },
         }
+        if identities:
+            profile["algorithm"] = algorithm
         if not runnable:
             reasons = sorted(
                 {row.get("non_runnable_reason", "No runnable execution unit") for row in rows}
@@ -305,19 +363,20 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
             profile["exclusion_reason"] = "; ".join(reasons)
         profiles[method] = profile
     registry = {
-        "schema_version": SCHEMA_VERSION,
-        "recipe_registry_version": "survey-recipes-v0.1-draft",
+        "schema_version": refs.schema_version,
+        "recipe_registry_version": recipe_registry_version
+        or ("survey-recipes-v0.2-draft" if identities else "survey-recipes-v0.1-draft"),
         "recipe_lifecycle": "draft",
         "protocol_basis": {
             "protocol_version": protocol["protocol_version"],
             "protocol_sha256": digest(protocol),
         },
-        "selection_spec_ref": SELECTION_SPEC_REF,
+        "selection_spec_ref": refs.selection_spec_ref,
         "profiles": profiles,
         "source_evidence": {
             "frozen_protocol": {
                 "type": "in_repo",
-                "file": "pu_toolbox/experiment/survey_protocol_v2.json",
+                "file": refs.protocol_file,
             },
             "project_method_ledger": {
                 "type": "in_repo",
@@ -333,6 +392,7 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
             "source_evidence_required": True,
             "test_truth_forbidden": True,
             "parameter_overrides_forbidden_in_v1": True,
+            **({"profile_identity_binding": True} if identities else {}),
         },
     }
     findings = validate_registry(registry, protocol)
@@ -340,6 +400,53 @@ def build_draft_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
     if errors:
         raise ValueError(
             "Draft registry failed validation: " + "; ".join(f.message for f in errors)
+        )
+    return registry
+
+
+#: The one open question a frozen profile keeps: it constrains how historical
+#: artifacts are read, so locking this profile does not answer it.
+_LEGACY_UNBOUND_QUESTION = (
+    "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+)
+
+
+def build_locked_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
+    """Freeze the draft: runnable profiles lock, every other profile stays excluded.
+
+    This is the scope the owner set on 2026-10-25 (plan D35's neighbour in the
+    v3 freeze): a profile with runnable execution units is bound to the protocol
+    as adopted, and a profile without them is recorded as excluded with its
+    reason.  Locking therefore adds nothing that is not already in the protocol
+    -- the snapshots are *computed* here so that a locked one can be recomputed
+    and compared, which is what makes a checked-in registry auditable.
+
+    No reviewer identity is written: the project decided not to require
+    signatures, so the record of who approved the scope lives in the freeze
+    document rather than being implied by an empty ``reviewers`` list.
+    """
+    registry = build_draft_registry(protocol, recipe_registry_version="survey-recipes-v1.0")
+    registry["recipe_lifecycle"] = "locked"
+    for profile in registry["profiles"].values():
+        if profile["recipe_lifecycle"] == "excluded":
+            continue
+        profile["recipe_lifecycle"] = "locked"
+        for candidate in profile["candidate_pool"]:
+            candidate["resolved_snapshot"] = resolve_candidate(profile, candidate, protocol)
+        profile["review"] = {
+            "reviewers": [],
+            "open_questions": [_LEGACY_UNBOUND_QUESTION],
+            "decision": (
+                "locked 2026-10-25: runnable profiles bind the frozen protocol, "
+                "excluded profiles stay excluded (docs/research/pu_survey/admission/"
+                "p4_1b_registry_freeze_20261025.md)"
+            ),
+        }
+    findings = validate_registry(registry, protocol)
+    errors = [finding for finding in findings if finding.severity == "error"]
+    if errors:
+        raise ValueError(
+            "Locked registry failed validation: " + "; ".join(f.message for f in errors)
         )
     return registry
 
@@ -518,26 +625,39 @@ def resolve_candidate(
     It is *generated*, never hand-edited -- ``validate_registry`` recomputes it
     and compares, which is what makes a checked-in snapshot auditable.
     """
-    from .survey_profile_identity import require_legacy_recipe_identity
+    from .survey_profile_identity import has_profile_identities
 
-    require_legacy_recipe_identity(protocol)
+    refs = protocol_refs(protocol)
+    if not has_profile_identities(protocol):
+        from .survey_profile_identity import require_legacy_recipe_identity
+
+        require_legacy_recipe_identity(protocol)
     method = profile["method"]
     unit = protocol["method_profiles"][method]
     budget_name = unit["budget"]
     inner_search = profile.get("inner_search")
-    return {
+    expected_base = f"{refs.base_ref_prefix}{method}"
+    if profile.get("base_ref") != expected_base:
+        raise ValueError(
+            f"profile base_ref {profile.get('base_ref')!r} does not reference the loaded "
+            f"protocol (expected {expected_base!r})"
+        )
+    snapshot = {
         "recipe_profile_id": profile_id(profile),
         "recipe_candidate_id": candidate["recipe_candidate_id"],
         "recipe_family": profile["recipe_family"],
         "method": method,
         "base_ref": profile["base_ref"],
-        "budget_binding_ref": f"{BUDGET_BINDING_PREFIX}{budget_name}",
+        "budget_binding_ref": f"{refs.budget_binding_prefix}{budget_name}",
         "model_family": unit["model_family"],
         "params": dict(unit["params"]),
         "budget_declaration": dict(protocol["budgets"][budget_name]),
         "inner_search_id": inner_search.get("inner_search_id") if inner_search else None,
         "overrides": dict(candidate.get("overrides") or {}),
     }
+    if has_profile_identities(protocol):
+        snapshot["algorithm"] = unit.get("algorithm")
+    return snapshot
 
 
 def _truth_keys(value: Any, path: str) -> list[Finding]:
@@ -570,24 +690,34 @@ def validate_registry(registry: Mapping[str, Any], protocol: Mapping[str, Any]) 
     """
     from .survey_profile_identity import has_profile_identities
 
-    if has_profile_identities(protocol):
-        return [
-            _finding(
-                "protocol_basis_mismatch",
-                "protocol_basis",
-                "registry v1 cannot bind draft profile identities",
-            )
-        ]
+    refs = protocol_refs(protocol)
+    identities = has_profile_identities(protocol)
     findings: list[Finding] = []
 
-    if registry.get("schema_version") != SCHEMA_VERSION:
-        findings.append(
+    declared_schema = registry.get("schema_version")
+    if declared_schema not in {SCHEMA_VERSION, SCHEMA_VERSION_PROFILE_IDENTITY}:
+        return [
             _finding(
                 "unsupported_schema_version",
                 "schema_version",
-                f"expected {SCHEMA_VERSION!r}, got {registry.get('schema_version')!r}",
+                f"expected {SCHEMA_VERSION!r} or {SCHEMA_VERSION_PROFILE_IDENTITY!r}, "
+                f"got {declared_schema!r}",
             )
-        )
+        ]
+    if declared_schema != refs.schema_version:
+        # A legacy-schema registry cannot name a v3 profile, and a 2.0 registry
+        # has nothing to point at in a legacy protocol.  Stop at the basis
+        # conflict rather than reporting every reference it invalidates.
+        return [
+            _finding(
+                "protocol_basis_mismatch",
+                "schema_version",
+                f"registry schema {declared_schema!r} cannot bind "
+                f"{protocol.get('protocol_version')!r} "
+                f"(needs {refs.schema_version!r})",
+            )
+        ]
+    findings: list[Finding] = []
     if not registry.get("recipe_registry_version"):
         findings.append(
             _finding(
@@ -605,12 +735,12 @@ def validate_registry(registry: Mapping[str, Any], protocol: Mapping[str, Any]) 
                 f"got {registry.get('recipe_lifecycle')!r}",
             )
         )
-    if registry.get("selection_spec_ref") != SELECTION_SPEC_REF:
+    if registry.get("selection_spec_ref") != refs.selection_spec_ref:
         findings.append(
             _finding(
                 "selection_spec_ref_mismatch",
                 "selection_spec_ref",
-                f"the only selection-policy entry point is {SELECTION_SPEC_REF!r}",
+                f"the only selection-policy entry point is {refs.selection_spec_ref!r}",
             )
         )
     findings.extend(_validate_protocol_basis(registry, protocol))
@@ -629,6 +759,8 @@ def validate_registry(registry: Mapping[str, Any], protocol: Mapping[str, Any]) 
                 method=method,
                 profile=profile,
                 protocol=protocol,
+                refs=refs,
+                identities=identities,
                 seen_methods=seen_methods,
                 seen_profile_ids=seen_profile_ids,
                 seen_candidate_ids=seen_candidate_ids,
@@ -677,6 +809,8 @@ def _validate_profile(
     method: str,
     profile: Any,
     protocol: Mapping[str, Any],
+    refs: ProtocolRefs,
+    identities: bool,
     seen_methods: set[str],
     seen_profile_ids: set[str],
     seen_candidate_ids: set[str],
@@ -732,7 +866,7 @@ def _validate_profile(
         )
         return findings
 
-    expected_base = f"{BASE_REF_PREFIX}{method}"
+    expected_base = f"{refs.base_ref_prefix}{method}"
     if profile.get("base_ref") != expected_base:
         findings.append(
             _finding(
@@ -741,26 +875,39 @@ def _validate_profile(
                 f"must reference the frozen protocol profile {expected_base!r}",
             )
         )
-    if profile.get("selection_spec_ref") != SELECTION_SPEC_REF:
+    if identities:
+        expected_algorithm = method_profiles[method].get("algorithm")
+        if profile.get("algorithm") != expected_algorithm:
+            findings.append(
+                _finding(
+                    "algorithm_mismatch",
+                    f"{path}.algorithm",
+                    f"profile declares {profile.get('algorithm')!r}, the protocol maps "
+                    f"{method!r} to {expected_algorithm!r}",
+                )
+            )
+    if profile.get("selection_spec_ref") != refs.selection_spec_ref:
         findings.append(
             _finding(
                 "selection_spec_ref_mismatch",
                 f"{path}.selection_spec_ref",
-                f"must be {SELECTION_SPEC_REF!r}",
+                f"must be {refs.selection_spec_ref!r}",
             )
         )
-    findings.extend(_validate_budget_binding(path, profile, method_profiles[method], protocol))
+    findings.extend(
+        _validate_budget_binding(path, profile, method_profiles[method], protocol, refs)
+    )
     findings.extend(_validate_scope(path, profile, method, protocol))
     if profile.get("fixed_overrides"):
         findings.append(
             _finding(
                 "fixed_overrides_forbidden",
                 f"{path}.fixed_overrides",
-                "v1 registers identity only; a non-empty override is a protocol change",
+                "the registry registers identity only; a non-empty override is a protocol change",
             )
         )
-    findings.extend(_validate_candidates(path, profile, protocol, seen_candidate_ids))
-    findings.extend(_validate_inner_search(path, profile, protocol, method_profiles[method]))
+    findings.extend(_validate_candidates(path, profile, protocol, seen_candidate_ids, refs))
+    findings.extend(_validate_inner_search(path, profile, protocol, method_profiles[method], refs))
     findings.extend(_validate_oracle(path, profile))
     return findings
 
@@ -770,11 +917,12 @@ def _validate_budget_binding(
     profile: Mapping[str, Any],
     unit: Mapping[str, Any],
     protocol: Mapping[str, Any],
+    refs: ProtocolRefs,
 ) -> list[Finding]:
     """The budget binding must name the family the execution units actually use."""
     findings: list[Finding] = []
     budget_name = unit.get("budget")
-    expected = f"{BUDGET_BINDING_PREFIX}{budget_name}"
+    expected = f"{refs.budget_binding_prefix}{budget_name}"
     if profile.get("budget_binding_ref") != expected:
         findings.append(
             _finding(
@@ -788,6 +936,10 @@ def _validate_budget_binding(
         for row in protocol.get("execution_units", [])
         if row.get("method") == profile.get("method")
     ]
+    if refs.schema_version == SCHEMA_VERSION_PROFILE_IDENTITY:
+        # A blocked row may declare a placeholder ``draft_*`` budget; only the
+        # runnable rows belong to the adopted recipe the profile freezes.
+        units = [row for row in units if row.get("runnable") is True]
     drifted = sorted({str(row.get("budget")) for row in units if row.get("budget") != budget_name})
     if drifted:
         findings.append(
@@ -860,6 +1012,7 @@ def _validate_candidates(
     profile: Mapping[str, Any],
     protocol: Mapping[str, Any],
     seen_candidate_ids: set[str],
+    refs: ProtocolRefs,
 ) -> list[Finding]:
     """The candidate pool: identity only, counted against the frozen budget.
 
@@ -913,6 +1066,7 @@ def _validate_candidates(
                 profile,
                 protocol,
                 seen_candidate_ids,
+                refs,
             )
         )
     return findings
@@ -1018,6 +1172,7 @@ def _validate_one_candidate(
     profile: Mapping[str, Any],
     protocol: Mapping[str, Any],
     seen_candidate_ids: set[str],
+    refs: ProtocolRefs,
 ) -> list[Finding]:
     """One candidate's identity, role, overrides and snapshot."""
     if not isinstance(candidate, Mapping):
@@ -1061,7 +1216,9 @@ def _validate_one_candidate(
             )
         )
     findings.extend(_truth_keys(candidate, candidate_path))
-    findings.extend(_validate_candidate_snapshot(candidate_path, candidate, profile, protocol))
+    findings.extend(
+        _validate_candidate_snapshot(candidate_path, candidate, profile, protocol, refs)
+    )
     return findings
 
 
@@ -1070,6 +1227,7 @@ def _validate_candidate_snapshot(
     candidate: Mapping[str, Any],
     profile: Mapping[str, Any],
     protocol: Mapping[str, Any],
+    refs: ProtocolRefs,
 ) -> list[Finding]:
     """A locked registry must carry the expansion, and it must still match.
 
@@ -1091,7 +1249,7 @@ def _validate_candidate_snapshot(
         ]
     if not isinstance(snapshot, Mapping):
         return []
-    expected = _expected_snapshot(profile, candidate, protocol)
+    expected = _expected_snapshot(profile, candidate, protocol, refs)
     if expected is None or digest(expected) == digest(snapshot):
         return []
     return [
@@ -1104,13 +1262,16 @@ def _validate_candidate_snapshot(
 
 
 def _expected_snapshot(
-    profile: Mapping[str, Any], candidate: Mapping[str, Any], protocol: Mapping[str, Any]
+    profile: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    protocol: Mapping[str, Any],
+    refs: ProtocolRefs,
 ) -> dict[str, Any] | None:
     """``resolve_candidate`` guarded for a profile whose refs are already broken."""
     method = profile.get("method")
     if method not in (protocol.get("method_profiles") or {}):
         return None
-    if profile.get("base_ref") != f"{BASE_REF_PREFIX}{method}":
+    if profile.get("base_ref") != f"{refs.base_ref_prefix}{method}":
         return None
     if not candidate.get("recipe_candidate_id"):
         return None
@@ -1125,6 +1286,7 @@ def _validate_inner_search(
     profile: Mapping[str, Any],
     protocol: Mapping[str, Any],
     unit: Mapping[str, Any],
+    refs: ProtocolRefs,
 ) -> list[Finding]:
     """Inner search is registered as identity and a pointer, never as a grid.
 
@@ -1174,7 +1336,7 @@ def _validate_inner_search(
                 "an inner search needs a stable identity for the manifest to carry",
             )
         )
-    expected_grid = f"{BASE_REF_PREFIX}{profile.get('method')}.params"
+    expected_grid = f"{refs.base_ref_prefix}{profile.get('method')}.params"
     if inner.get("grid_ref") != expected_grid:
         findings.append(
             _finding(
@@ -1555,7 +1717,7 @@ def _validate_bound_candidate(
             )
         )
     if protocol is not None:
-        expected = _expected_snapshot(profile, candidate, protocol)
+        expected = _expected_snapshot(profile, candidate, protocol, protocol_refs(protocol))
         if expected is not None and manifest["resolved_params_sha256"] != resolved_params_digest(
             expected
         ):

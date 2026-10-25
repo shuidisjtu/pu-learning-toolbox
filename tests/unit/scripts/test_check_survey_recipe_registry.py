@@ -1,11 +1,12 @@
 """Failure paths of the recipe-registry gate's ``main()``.
 
-R5 of the stage-7 rulings: this gate stays out of CI while the registry is
-unmaterialised -- an absent file is *reported* as "nothing was validated"
-and exits 0 -- so wiring it in would be an always-passing check.  The
-compensation is that its failure paths are pinned here instead: a payload
-that is not a registry, or one the schema rejects, must make ``main()``
-non-zero.
+R5 of the stage-7 rulings held while the registry was unmaterialised: an absent
+file is *reported* as "nothing was validated" and exits 0, so wiring that state
+into CI would be an always-passing check.  Since 2026-10-25 both drafts and the
+frozen registry are materialized, so CI calls the gate with ``--require-present``
+(and ``--require-locked`` for the freeze) and R5 no longer describes it.  The
+failure paths stay pinned here: a payload that is not a registry, or one the
+schema rejects, must make ``main()`` non-zero.
 
 Separate from ``tests/unit/experiment/test_survey_recipe_registry*.py``,
 which cover the registry module's pure validators; this file covers the
@@ -16,6 +17,11 @@ the unmaterialized frozen default still stays out of CI, preserving R5.
 
 2026-10-16: CI conditionally checks the production file only after it appears,
 using --require-present --require-locked. Absence skips that step, not a pass.
+
+2026-10-25: the gate loads the protocol named by the registry's own
+``protocol_basis`` instead of the v2 default, because a v3 draft validated
+against v2 would report every v3 reference as drift.  CI now also checks the
+materialized v3 draft.
 """
 
 from __future__ import annotations
@@ -61,6 +67,64 @@ def test_basic_committed_draft_schema_can_be_checked_without_claiming_a_lock(cap
     code, out, _ = _run(capsys, "--registry", str(path), "--require-present")
     assert code == 0
     assert "survey-recipes-v0.1-draft" in out
+
+
+def test_basic_v3_draft_is_checked_against_the_protocol_it_names(capsys):
+    path = (
+        Path(__file__).resolve().parents[3]
+        / "docs/research/pu_survey/data/survey_recipe_registry_v0_2_draft.json"
+    )
+    code, out, _ = _run(capsys, "--registry", str(path), "--require-present")
+    assert code == 0
+    assert "survey-recipes-v0.2-draft" in out
+    assert "protocol basis: survey-v3.0" in out
+
+
+def _v3_draft() -> dict:
+    path = (
+        Path(__file__).resolve().parents[3]
+        / "docs/research/pu_survey/data/survey_recipe_registry_v0_2_draft.json"
+    )
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_param_v3_draft_cannot_be_validated_against_a_v2_basis(tmp_path, capsys):
+    registry = _v3_draft()
+    registry["protocol_basis"]["protocol_version"] = "survey-v2.0"
+    payload = tmp_path / "registry.json"
+    payload.write_text(json.dumps(registry), encoding="utf-8")
+
+    code, out, _ = _run(capsys, "--registry", str(payload))
+
+    assert code == 1
+    assert "protocol_basis_mismatch" in out
+
+
+def test_edge_v3_reference_is_checked_against_v3_not_the_v2_default(tmp_path, capsys):
+    # A v2 selection-policy ref is exactly what the v2 default would accept; the
+    # finding proves the gate validated against the registry's own protocol.
+    registry = _v3_draft()
+    registry["profiles"]["genpu"]["selection_spec_ref"] = "survey_protocol_v2.selection_spec"
+    payload = tmp_path / "registry.json"
+    payload.write_text(json.dumps(registry), encoding="utf-8")
+
+    code, out, _ = _run(capsys, "--registry", str(payload))
+
+    assert code == 1
+    assert "selection_spec_ref_mismatch" in out
+
+
+def test_edge_unknown_protocol_basis_fails_without_a_traceback(tmp_path, capsys):
+    registry = _v3_draft()
+    registry["protocol_basis"]["protocol_version"] = "survey-v9.9"
+    payload = tmp_path / "registry.json"
+    payload.write_text(json.dumps(registry), encoding="utf-8")
+
+    code, out, _ = _run(capsys, "--registry", str(payload))
+
+    assert code == 1
+    assert "cannot load the protocol named by protocol_basis.protocol_version" in out
+    assert "survey-v9.9" in out
 
 
 def test_param_malformed_json_fails_main(tmp_path, capsys):

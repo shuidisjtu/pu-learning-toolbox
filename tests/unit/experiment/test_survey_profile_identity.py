@@ -19,6 +19,7 @@ from pu_toolbox.experiment.survey_profile_identity import (
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
 from pu_toolbox.experiment.survey_recipe_registry import (
+    BASE_REF_PREFIX,
     build_draft_registry,
     resolve_candidate,
     validate_registry,
@@ -168,18 +169,21 @@ def test_edge_full_meta_class_can_be_constructed_but_not_run_via_four_roles():
         require_four_role_profile(protocol, "self_pu_full_meta")
 
 
-def test_edge_registry_v1_does_not_invent_v2_references_for_new_profiles():
+def test_edge_registry_schema_binds_only_its_own_protocol_identity():
     old = load_protocol()
     registry = build_draft_registry(old)
     new = draft()
-    with pytest.raises(ValueError, match="registry v1"):
-        build_draft_registry(new)
+    v3_registry = build_draft_registry(new)
+    assert v3_registry["schema_version"] == "survey-recipe-registry-2.0"
+    assert v3_registry["profiles"]["upu_recipe"]["algorithm"] == "upu"
+    assert validate_registry(v3_registry, new) == []
     findings = validate_registry(registry, new)
     assert len(findings) == 1 and findings[0].code == "protocol_basis_mismatch"
     with pytest.raises(ValueError, match="protocol_basis_mismatch"):
         bind_recipe(
             registry, new, method="upu_recipe", dataset="spambase", training_path="native_2d"
         )
-    profile = registry["profiles"]["upu"]
-    with pytest.raises(ValueError, match="registry v1"):
+    profile = copy.deepcopy(v3_registry["profiles"]["upu_recipe"])
+    profile["base_ref"] = f"{BASE_REF_PREFIX}{profile['method']}"
+    with pytest.raises(ValueError, match="base_ref"):
         resolve_candidate(profile, profile["candidate_pool"][0], new)

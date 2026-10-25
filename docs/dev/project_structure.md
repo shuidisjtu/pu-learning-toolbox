@@ -591,6 +591,7 @@ tests/
       _episodic_budget_helpers.py       # 三方法临时小预算草案与确定性合成训练夹具
       test_survey_episodic_budget.py    # 三方法真实 CLI/续跑、原生权重及停止/LZO 成本拒绝
       test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
+      test_survey_recipe_registry_locked.py # P4.1-B 冻结：范围、快照可重算、手改与未锁定绑定被拒
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -622,6 +623,7 @@ tests/
     test_pulns_cnn_support.py           # PULNS 内置 CNN 与独立奖励集、公共工作流不借用测试标签
     test_dist_pu_pipeline_cnn.py        # Dist-PU 显式 CNN/CV 副本隔离与冻结 feature-adapter 路径保留
     test_p3mix_pipeline_cnn.py          # 三变体真实卷积CV及四角色checkpoint选模回收
+    test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）

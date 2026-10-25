@@ -1,0 +1,1533 @@
+{
+  "schema_version": "survey-recipe-registry-2.0",
+  "recipe_registry_version": "survey-recipes-v1.0",
+  "recipe_lifecycle": "locked",
+  "protocol_basis": {
+    "protocol_version": "survey-v3.0",
+    "protocol_sha256": "44128fcb2184dc8b2eb5c93230ef00d934e43aedc25bac504bb4a0b63d9d85ac"
+  },
+  "selection_spec_ref": "survey_protocol_v3.selection_spec",
+  "profiles": {
+    "upu": {
+      "method": "upu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_upu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.upu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "upu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "upu/survey_shared_upu",
+            "recipe_candidate_id": "upu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "upu",
+            "base_ref": "survey_protocol_v3.method_profiles.upu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.closed_form",
+            "model_family": "linear",
+            "params": {
+              "loss": "squared",
+              "basis": "linear",
+              "fit_intercept": false,
+              "max_iter": 1000
+            },
+            "budget_declaration": {
+              "unit": "one_closed_form_fit",
+              "outer_candidates": 1
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "upu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.closed_form",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "upu"
+    },
+    "nnpu": {
+      "method": "nnpu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_nnpu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.nnpu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "nnpu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "nnpu/survey_shared_nnpu",
+            "recipe_candidate_id": "nnpu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "nnpu",
+            "base_ref": "survey_protocol_v3.method_profiles.nnpu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.minibatch",
+            "model_family": "mlp128",
+            "params": {
+              "max_epochs": 200,
+              "batch_size": 256,
+              "patience": 201,
+              "optimizer": null
+            },
+            "budget_declaration": {
+              "unit": "epochs",
+              "epochs": 200,
+              "batch_size": 256,
+              "outer_candidates": 1,
+              "optimizer": "adam",
+              "learning_rate": 0.001
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "nnpu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.minibatch",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "nnpu"
+    },
+    "kldce": {
+      "method": "kldce",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_kldce",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.kldce",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.alternating",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "kldce",
+      "exclusion_reason": "SCAR flip_probability binding is defined; KLDCE row remains pending approved v3 protocol and dataset-specific budget/resource gate"
+    },
+    "dist_pu": {
+      "method": "dist_pu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_dist_pu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.dist_pu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "dist_pu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "dist_pu/survey_shared_dist_pu",
+            "recipe_candidate_id": "dist_pu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "dist_pu",
+            "base_ref": "survey_protocol_v3.method_profiles.dist_pu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.fullbatch",
+            "model_family": "mlp128",
+            "params": {
+              "hidden_dim": 128,
+              "epochs": 200,
+              "batch_size": 256,
+              "learning_rate": 0.001
+            },
+            "budget_declaration": {
+              "unit": "full_train_gradient_steps",
+              "epochs": 200,
+              "batch_size": "full_train; estimator batch_size is unused",
+              "outer_candidates": 1,
+              "optimizer": "adam",
+              "learning_rate": 0.001
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "dist_pu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.fullbatch",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "dist_pu"
+    },
+    "pusb_kernel": {
+      "method": "pusb_kernel",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_pusb_kernel",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.pusb_kernel",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "pusb_kernel_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "pusb_kernel/survey_shared_pusb_kernel",
+            "recipe_candidate_id": "pusb_kernel_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "pusb_kernel",
+            "base_ref": "survey_protocol_v3.method_profiles.pusb_kernel",
+            "budget_binding_ref": "survey_protocol_v3.budgets.kernel_cv",
+            "model_family": "kernel",
+            "params": {
+              "n_basis": 300,
+              "cv": 5,
+              "max_iter": 200,
+              "sigma_grid": [
+                0.01,
+                0.05,
+                0.1,
+                0.5,
+                1,
+                2,
+                5,
+                10,
+                20
+              ],
+              "reg_grid": [
+                0.001,
+                0.005,
+                0.01,
+                0.05,
+                0.1,
+                0.5,
+                1,
+                5
+              ]
+            },
+            "budget_declaration": {
+              "unit": "kernel_cv_fit",
+              "outer_candidates": 1,
+              "internal_cv_folds": 5,
+              "internal_hyperparameter_pairs": 72,
+              "max_iter": 200,
+              "internal_search_counts_in_total_cost": true
+            },
+            "inner_search_id": "pusb_kernel_internal_cv_v1",
+            "overrides": {},
+            "algorithm": "pusb_kernel"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": {
+        "inner_search_id": "pusb_kernel_internal_cv_v1",
+        "grid_ref": "survey_protocol_v3.method_profiles.pusb_kernel.params"
+      },
+      "budget_binding_ref": "survey_protocol_v3.budgets.kernel_cv",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "pusb_kernel"
+    },
+    "lbe": {
+      "method": "lbe",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_lbe",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.lbe",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "lbe_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "lbe/survey_shared_lbe",
+            "recipe_candidate_id": "lbe_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "lbe",
+            "base_ref": "survey_protocol_v3.method_profiles.lbe",
+            "budget_binding_ref": "survey_protocol_v3.budgets.em",
+            "model_family": "linear_em",
+            "params": {
+              "max_iter": 1000,
+              "n_em_iter": 20
+            },
+            "budget_declaration": {
+              "unit": "em_fit",
+              "n_em_iter": 20,
+              "max_iter": 1000,
+              "outer_candidates": 1
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "lbe"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.em",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "lbe"
+    },
+    "self_pu": {
+      "method": "self_pu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_self_pu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.self_pu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "self_pu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "self_pu/survey_shared_self_pu",
+            "recipe_candidate_id": "self_pu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "self_pu",
+            "base_ref": "survey_protocol_v3.method_profiles.self_pu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.two_student_sampled",
+            "model_family": "mlp128",
+            "params": {
+              "hidden_dim": 128,
+              "max_epochs": 200,
+              "batch_size": 256,
+              "learning_rate": 0.001,
+              "require_validation": false
+            },
+            "budget_declaration": {
+              "unit": "two_student_sampled_epochs",
+              "epochs": 200,
+              "batch_size": 256,
+              "optimizer_steps_per_epoch": 2,
+              "sampled_examples_per_step_max": 512,
+              "outer_candidates": 1,
+              "optimizer": "adam",
+              "learning_rate": 0.001
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "self_pu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.two_student_sampled",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "self_pu"
+    },
+    "pn_oracle": {
+      "method": "pn_oracle",
+      "recipe_family": "oracle",
+      "variant_id": "survey_shared_pn_oracle",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.pn_oracle",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "pn_oracle_spec"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "pn_oracle_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "pn_oracle/survey_shared_pn_oracle",
+            "recipe_candidate_id": "pn_oracle_protocol_binding_v1_0",
+            "recipe_family": "oracle",
+            "method": "pn_oracle",
+            "base_ref": "survey_protocol_v3.method_profiles.pn_oracle",
+            "budget_binding_ref": "survey_protocol_v3.budgets.minibatch",
+            "model_family": "mlp128",
+            "params": {
+              "max_epochs": 200,
+              "batch_size": 256,
+              "learning_rate": 0.001
+            },
+            "budget_declaration": {
+              "unit": "epochs",
+              "epochs": 200,
+              "batch_size": 256,
+              "outer_candidates": 1,
+              "optimizer": "adam",
+              "learning_rate": 0.001
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "pn_oracle"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "pn_oracle_spec"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.minibatch",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "pn_oracle"
+    },
+    "p3mix": {
+      "method": "p3mix",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_p3mix",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.p3mix",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.draft_p3mix",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "p3mix",
+      "exclusion_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; P3MIX has no owner-approved recipe; P4.1-B and method-specific runner validation are pending.; P3MIX has no owner-approved recipe; P4.1-B and method-specific runner validation are pending."
+    },
+    "puet": {
+      "method": "puet",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_puet",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.puet",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.draft_puet",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "puet",
+      "exclusion_reason": "PUET tree budget and feature-path resource profile are pending."
+    },
+    "pulda": {
+      "method": "pulda",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_pulda",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.pulda",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "pulda_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "pulda/survey_shared_pulda",
+            "recipe_candidate_id": "pulda_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "pulda",
+            "base_ref": "survey_protocol_v3.method_profiles.pulda",
+            "budget_binding_ref": "survey_protocol_v3.budgets.pulda",
+            "model_family": "mlp64",
+            "params": {
+              "hidden_dim": 64,
+              "depth": 2,
+              "warmup_epochs": 60,
+              "pu_epochs": 60,
+              "positive_batch_size": 16,
+              "unlabeled_batch_size": 128,
+              "warmup_learning_rate": 0.0001,
+              "learning_rate": 0.001,
+              "warmup_weight_decay": 0.0005,
+              "weight_decay": 0.0001,
+              "temperature": 3.5,
+              "unlabeled_ema": 0.85,
+              "margin_ema": 0.5,
+              "margin": 0.6,
+              "mixup_weight": 4.2,
+              "mixup_alpha": 11.0
+            },
+            "budget_declaration": {
+              "staged_budget": {
+                "schema_version": "survey-staged-budget-1",
+                "algorithm_id": "pulda",
+                "parameter_values": {
+                  "warmup_epochs": 60,
+                  "pu_epochs": 60,
+                  "positive_batch_size": 16,
+                  "unlabeled_batch_size": 128,
+                  "hidden_dim": 64,
+                  "depth": 2,
+                  "warmup_learning_rate": 0.0001,
+                  "learning_rate": 0.001,
+                  "warmup_weight_decay": 0.0005,
+                  "weight_decay": 0.0001
+                },
+                "checkpoint_epoch_count": 120,
+                "checkpoint_bytes_per_component": 67108864,
+                "eligible_stages": [
+                  "warmup",
+                  "pu_mixup"
+                ]
+              }
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "pulda"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.pulda",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "pulda"
+    },
+    "gradpu": {
+      "method": "gradpu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_gradpu",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.gradpu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.gradpu",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "gradpu",
+      "exclusion_reason": "Grad-PU recipe and no-BN CNN path require P4.1-B/P3.2 review.; GradPU native-CNN wiring (cnn13_no_bn encoder and preprocessing plumbing) is in place, but its checkpoint/epoch contract has not been exercised by a completed run and the row stays blocked until one exists."
+    },
+    "robust_pu": {
+      "method": "robust_pu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_robust_pu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.robust_pu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "robust_pu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "robust_pu/survey_shared_robust_pu",
+            "recipe_candidate_id": "robust_pu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "robust_pu",
+            "base_ref": "survey_protocol_v3.method_profiles.robust_pu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.robust_pu",
+            "model_family": "mlp100",
+            "params": {
+              "hidden_dim": 100,
+              "pretrain_epochs": 10,
+              "episodes": 20,
+              "inner_epochs": 1,
+              "batch_size": 64,
+              "pretrain_lr": 0.001,
+              "learning_rate": 0.0001,
+              "alpha_p": 0.1,
+              "alpha_n": 0.1,
+              "max_thresh_p": 2.0,
+              "max_thresh_n": 2.0,
+              "grow_steps": 10,
+              "spl_type": "welsch",
+              "temper_p": 1.0,
+              "temper_n": 1.0,
+              "phi": 0.0
+            },
+            "budget_declaration": {
+              "staged_budget": {
+                "schema_version": "survey-staged-budget-2",
+                "algorithm_id": "robust_pu",
+                "parameter_values": {
+                  "pretrain_epochs": 10,
+                  "episodes": 20,
+                  "inner_epochs": 1,
+                  "batch_size": 64,
+                  "hidden_dim": 100,
+                  "pretrain_lr": 0.001,
+                  "learning_rate": 0.0001
+                },
+                "checkpoint_epoch_count": 30,
+                "checkpoint_bytes_per_component": 67108864,
+                "eligible_stages": [
+                  "pretrain",
+                  "self_paced"
+                ]
+              }
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "robust_pu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.robust_pu",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "robust_pu"
+    },
+    "split_pu": {
+      "method": "split_pu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_split_pu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.split_pu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "split_pu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "split_pu/survey_shared_split_pu",
+            "recipe_candidate_id": "split_pu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "split_pu",
+            "base_ref": "survey_protocol_v3.method_profiles.split_pu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.split_pu",
+            "model_family": "mlp100",
+            "params": {
+              "hidden_dim": 100,
+              "teacher_epochs": 10,
+              "split_epochs": 10,
+              "student_epochs": 10,
+              "rounds": 2,
+              "batch_size": 64,
+              "learning_rate": 0.001,
+              "agreement_threshold": 0.92,
+              "js_teacher_weight": 0.7,
+              "hard_weight": 0.3,
+              "feature_weight": 0.3,
+              "similarity_weight": 0.1,
+              "noise_std": 0.05
+            },
+            "budget_declaration": {
+              "staged_budget": {
+                "schema_version": "survey-staged-budget-2",
+                "algorithm_id": "split_pu",
+                "parameter_values": {
+                  "teacher_epochs": 10,
+                  "split_epochs": 10,
+                  "student_epochs": 10,
+                  "rounds": 2,
+                  "batch_size": 64,
+                  "hidden_dim": 100,
+                  "learning_rate": 0.001,
+                  "agreement_threshold": 0.92
+                },
+                "checkpoint_epoch_count": 40,
+                "checkpoint_bytes_per_component": 67108864,
+                "eligible_stages": [
+                  "teacher",
+                  "splitter",
+                  "student"
+                ]
+              }
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "split_pu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.split_pu",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "split_pu"
+    },
+    "pan": {
+      "method": "pan",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_pan",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.pan",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.draft_pan",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "pan",
+      "exclusion_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; PAN recipe and candidate budget require P4.1-B review.; PAN recipe and candidate budget require P4.1-B review."
+    },
+    "rp": {
+      "method": "rp",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_rp",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.rp",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.draft_rp",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "rp",
+      "exclusion_reason": "RP fold/retained-sample budget requires P4.1-B review."
+    },
+    "pulns": {
+      "method": "pulns",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_pulns",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.pulns",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "pulns_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "pulns/survey_shared_pulns",
+            "recipe_candidate_id": "pulns_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "pulns",
+            "base_ref": "survey_protocol_v3.method_profiles.pulns",
+            "budget_binding_ref": "survey_protocol_v3.budgets.pulns",
+            "model_family": "mlp32",
+            "params": {
+              "hidden_dim": 32,
+              "pretrain_epochs": 10,
+              "episodes": 20,
+              "classifier_epochs": 1,
+              "batch_size": 128,
+              "learning_rate": 0.001,
+              "selector_learning_rate": 0.001,
+              "discount": 0.9,
+              "terminal_weight": 1.0
+            },
+            "budget_declaration": {
+              "unit": "episodes",
+              "epochs": 20,
+              "batch_size": 128,
+              "outer_candidates": 1,
+              "optimizer": "adam",
+              "learning_rate": 0.001,
+              "checkpoint_bytes_per_component": 8388608
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "pulns"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.pulns",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "pulns"
+    },
+    "genpu": {
+      "method": "genpu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_genpu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.genpu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "genpu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "genpu/survey_shared_genpu",
+            "recipe_candidate_id": "genpu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "genpu",
+            "base_ref": "survey_protocol_v3.method_profiles.genpu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.genpu",
+            "model_family": "mlp256",
+            "params": {
+              "hidden_dim": 256,
+              "latent_dim": 100,
+              "max_epochs": 100,
+              "classifier_epochs": 100,
+              "batch_size": 64,
+              "learning_rate": 0.0003,
+              "positive_weight": 1.0,
+              "negative_weight": 1.0,
+              "unlabeled_weight": 1.0,
+              "generator_output": "identity"
+            },
+            "budget_declaration": {
+              "staged_budget": {
+                "schema_version": "survey-staged-budget-1",
+                "algorithm_id": "genpu",
+                "parameter_values": {
+                  "max_epochs": 100,
+                  "classifier_epochs": 100,
+                  "batch_size": 64,
+                  "hidden_dim": 256,
+                  "latent_dim": 100,
+                  "learning_rate": 0.0003
+                },
+                "checkpoint_epoch_count": 100,
+                "checkpoint_bytes_per_component": 67108864,
+                "eligible_stages": [
+                  "synthetic_pn"
+                ]
+              }
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "genpu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.genpu",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "genpu"
+    },
+    "holistic_pu": {
+      "method": "holistic_pu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_holistic_pu",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "cnn_feature_adapter",
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.holistic_pu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "holistic_pu_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "holistic_pu/survey_shared_holistic_pu",
+            "recipe_candidate_id": "holistic_pu_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "holistic_pu",
+            "base_ref": "survey_protocol_v3.method_profiles.holistic_pu",
+            "budget_binding_ref": "survey_protocol_v3.budgets.holistic_pu",
+            "model_family": "mlp64",
+            "params": {
+              "hidden_dim": 64,
+              "warmup_epochs": 30,
+              "max_epochs": 100,
+              "batch_size": 64,
+              "learning_rate": 0.001,
+              "trend_scale": 2.0,
+              "pseudo_pn_initialization": "continue",
+              "warmup_selection": "fixed",
+              "lzo_alpha": 0.5,
+              "lzo_validation_size": null
+            },
+            "budget_declaration": {
+              "staged_budget": {
+                "schema_version": "survey-staged-budget-2",
+                "algorithm_id": "holistic_pu",
+                "parameter_values": {
+                  "warmup_epochs": 30,
+                  "max_epochs": 100,
+                  "batch_size": 64,
+                  "hidden_dim": 64,
+                  "learning_rate": 0.001,
+                  "warmup_selection": "fixed",
+                  "pseudo_pn_initialization": "continue",
+                  "lzo_alpha": 0.5,
+                  "lzo_validation_size": null
+                },
+                "checkpoint_epoch_count": 130,
+                "checkpoint_bytes_per_component": 67108864,
+                "eligible_stages": [
+                  "warmup",
+                  "pseudo_pn"
+                ]
+              }
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "holistic_pu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.holistic_pu",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "holistic_pu"
+    },
+    "cvir": {
+      "method": "cvir",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_cvir",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.cvir",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.draft_cvir",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "cvir",
+      "exclusion_reason": "CVIR TS calibration gate and training recipe remain open.; Method-specific native-CNN runner and checkpoint-storage profile are not implemented; CVIR TS calibration gate and training recipe remain open."
+    },
+    "lagam": {
+      "method": "lagam",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_lagam",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.lagam",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "lagam_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "lagam/survey_shared_lagam",
+            "recipe_candidate_id": "lagam_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "lagam",
+            "base_ref": "survey_protocol_v3.method_profiles.lagam",
+            "budget_binding_ref": "survey_protocol_v3.budgets.lagam",
+            "model_family": "mlp128",
+            "params": {
+              "hidden_dim": 128,
+              "warmup_epochs": 2,
+              "max_epochs": 20,
+              "batch_size": 64,
+              "support_batch_size": 32,
+              "num_clusters": 5,
+              "learning_rate": 0.001,
+              "meta_lr": 0.001,
+              "mix_weight": 1.0,
+              "contrastive_weight": 1.0,
+              "temperature": 0.07,
+              "noise_std": 0.05,
+              "rho_start": 0.95,
+              "rho_end": 0.8,
+              "meta_update_bias": true
+            },
+            "budget_declaration": {
+              "unit": "epochs",
+              "epochs": 20,
+              "batch_size": 64,
+              "outer_candidates": 1,
+              "optimizer": "adam",
+              "learning_rate": 0.001,
+              "checkpoint_bytes_per_component": 8388608
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "lagam"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.lagam",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "lagam"
+    },
+    "vpu": {
+      "method": "vpu",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_vpu",
+      "recipe_lifecycle": "excluded",
+      "scope": {
+        "datasets": [
+          "cifar10",
+          "imdb",
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d",
+          "native_cnn"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.vpu",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": null,
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.draft_vpu",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Method-owner review and explicit sign-off are required before locking.",
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ]
+      },
+      "algorithm": "vpu",
+      "exclusion_reason": "Method-specific native-CNN runner and checkpoint-storage profile are not implemented; VPU has no frozen protocol budget/profile; protocol §4 also restricts its source validation diagnostic from PA/OA selection.; VPU has no frozen protocol budget/profile; protocol §4 also restricts its source validation diagnostic from PA/OA selection."
+    },
+    "self_pu_full_meta": {
+      "method": "self_pu_full_meta",
+      "recipe_family": "pu",
+      "variant_id": "survey_shared_self_pu_full_meta",
+      "recipe_lifecycle": "locked",
+      "scope": {
+        "datasets": [
+          "spambase"
+        ],
+        "training_paths": [
+          "native_2d"
+        ]
+      },
+      "base_ref": "survey_protocol_v3.method_profiles.self_pu_full_meta",
+      "selection_spec_ref": "survey_protocol_v3.selection_spec",
+      "source_refs": [
+        "frozen_protocol",
+        "project_method_ledger"
+      ],
+      "fixed_overrides": {},
+      "candidate_pool": [
+        {
+          "recipe_candidate_id": "self_pu_full_meta_protocol_binding_v1_0",
+          "candidate_role": "current_protocol_binding",
+          "overrides": {},
+          "resolved_snapshot": {
+            "recipe_profile_id": "self_pu_full_meta/survey_shared_self_pu_full_meta",
+            "recipe_candidate_id": "self_pu_full_meta_protocol_binding_v1_0",
+            "recipe_family": "pu",
+            "method": "self_pu_full_meta",
+            "base_ref": "survey_protocol_v3.method_profiles.self_pu_full_meta",
+            "budget_binding_ref": "survey_protocol_v3.budgets.clean_support_two_student",
+            "model_family": "mlp128",
+            "params": {
+              "hidden_dim": 128,
+              "max_epochs": 200,
+              "batch_size": 256,
+              "learning_rate": 0.001,
+              "require_validation": true,
+              "distillation_scope": "paper_population"
+            },
+            "budget_declaration": {
+              "unit": "two_student_sampled_epochs",
+              "epochs": 200,
+              "batch_size": 256,
+              "optimizer_steps_per_epoch": 2,
+              "sampled_examples_per_step_max": 512,
+              "outer_candidates": 1,
+              "optimizer": "adam",
+              "learning_rate": 0.001,
+              "checkpoint_bytes_per_component": 8388608
+            },
+            "inner_search_id": null,
+            "overrides": {},
+            "algorithm": "self_pu"
+          },
+          "source_refs": [
+            "frozen_protocol",
+            "project_method_ledger"
+          ]
+        }
+      ],
+      "inner_search": null,
+      "budget_binding_ref": "survey_protocol_v3.budgets.clean_support_two_student",
+      "review": {
+        "reviewers": [],
+        "open_questions": [
+          "Historical pilot manifests remain legacy_unbound; never backfill a binding."
+        ],
+        "decision": "locked 2026-10-25: runnable profiles bind the frozen protocol, excluded profiles stay excluded (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+      },
+      "algorithm": "self_pu"
+    }
+  },
+  "source_evidence": {
+    "frozen_protocol": {
+      "type": "in_repo",
+      "file": "pu_toolbox/experiment/survey_protocol_v3.json"
+    },
+    "project_method_ledger": {
+      "type": "in_repo",
+      "file": "pu_toolbox/experiment/method_ledger.json"
+    },
+    "pn_oracle_spec": {
+      "type": "in_repo",
+      "file": "docs/research/pu_survey/admission/pn_oracle_integration.md"
+    }
+  },
+  "validation": {
+    "recipe_candidate_ids_unique": true,
+    "source_evidence_required": true,
+    "test_truth_forbidden": true,
+    "parameter_overrides_forbidden_in_v1": true,
+    "profile_identity_binding": true
+  }
+}
