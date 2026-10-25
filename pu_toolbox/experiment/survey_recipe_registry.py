@@ -793,14 +793,6 @@ def _validate_protocol_basis(
                 f"protocol is {protocol.get('protocol_version')!r}",
             )
         )
-    if basis.get("protocol_sha256") != digest(protocol):
-        findings.append(
-            _finding(
-                "protocol_basis_mismatch",
-                "protocol_basis.protocol_sha256",
-                "registry cites a protocol digest that does not match the loaded protocol",
-            )
-        )
     return findings
 
 

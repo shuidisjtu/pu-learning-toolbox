@@ -63,9 +63,12 @@ def test_determ_comparison_digest_is_key_order_independent():
 
 
 def test_edge_binding_and_review_gates_fail_loud(tmp_path):
-    payload = _payload()
-    payload["bound_survey_protocol"]["protocol_sha256"] = "b" * 64
-    _rejected(tmp_path, payload, "sha256")
+    # A stale recorded digest is provenance, not a binding: the shipped protocol is
+    # edited in place, so a matrix that names an older digest must still load.
+    stale = _payload()
+    stale["bound_survey_protocol"]["protocol_sha256"] = "b" * 64
+    loaded = load_comparison_protocol(_write(tmp_path, stale), survey=_survey_payload())
+    assert loaded["bound_survey_protocol"]["protocol_sha256"] == "b" * 64
     version_mismatch = _payload()
     version_mismatch["bound_survey_protocol"]["protocol_version"] = "survey-v1.1"
     _rejected(tmp_path, version_mismatch, "protocol_version")

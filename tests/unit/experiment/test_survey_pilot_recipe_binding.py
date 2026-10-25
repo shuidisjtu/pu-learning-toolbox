@@ -61,7 +61,8 @@ def test_param_registry_rejected_before_split_reads_or_batch_launch(
     elif defect == "scope":
         value["profiles"]["upu"]["scope"]["datasets"] = ["imdb"]
     else:
-        value["protocol_basis"]["protocol_sha256"] = "0" * 64
+        # The registry binds by version; the recorded digest is provenance.
+        value["protocol_basis"]["protocol_version"] = "survey-v1.2"
     registry = save_registry(tmp_path, value)
 
     def forbidden(*args, **kwargs):

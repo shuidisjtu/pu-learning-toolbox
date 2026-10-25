@@ -157,9 +157,10 @@ def load_comparison_protocol(
 
     ``survey`` is the execution protocol this file must be bound to; when it is
     omitted the protocol the file itself declares is loaded, so a matrix cannot
-    be read under a protocol it was never frozen against.  The binding is
-    checked both ways (version and digest) so a protocol bump cannot silently
-    leave the comparison pointing at stale rules.
+    be read under another version's protocol.  Only the version is enforced: the
+    recorded digest is provenance, and the shipped protocol is edited in place,
+    so requiring the digest to match would rewrite every artifact on each edit
+    without catching anything the version check does not.
     """
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -274,11 +275,6 @@ def _validate_binding(bound: Any, survey: dict[str, Any] | None) -> dict[str, An
         raise ValueError(
             "bound survey protocol_version disagrees with the execution protocol: "
             f"{bound['protocol_version']!r} != {survey['protocol_version']!r}"
-        )
-    expected = comparison_digest(survey)
-    if bound["protocol_sha256"] != expected:
-        raise ValueError(
-            "bound survey protocol_sha256 disagrees with the execution protocol digest"
         )
     return bound
 

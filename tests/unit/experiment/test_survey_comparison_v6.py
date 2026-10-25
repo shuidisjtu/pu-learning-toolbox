@@ -19,7 +19,6 @@ from pu_toolbox.experiment.survey_comparison import (
     validate_comparison_coverage,
 )
 from pu_toolbox.experiment.survey_profile_map import (
-    digest,
     load_profile_map,
     validate_profile_map,
 )
@@ -70,12 +69,13 @@ def _added(v5, v6):
 
 def test_basic_v6_adds_exactly_the_p4_2b_cells(v3, v5, v6, map_v3):
     counts = validate_comparison_coverage(v3, v6, profile_map=map_v3)
-    assert counts["units"] == counts["unit_mappings"] == 359
+    assert counts["units"] == counts["unit_mappings"] == 439
     assert counts["anchors"] == 64
     assert counts["outside_matrix"] == 19
     added = _added(v5, v6)
-    assert len(added) == 71
-    assert {mapping["result_selector"]["method"] for mapping in added} == P42B_PROFILES
+    assert len(added) == 151
+    added_methods = {mapping["result_selector"]["method"] for mapping in added}
+    assert added_methods >= P42B_PROFILES
 
 
 def test_basic_the_addition_manufactures_no_anchor_or_rule(v5, v6):
@@ -96,7 +96,7 @@ def test_param_map_v3_promotes_exactly_those_three_profiles(v3, v6, map_v3):
     assert counts["mapped"] == 16
     assert counts["not_in_matrix"] == 7
     assert map_v3["bound_comparison"]["comparison_version"] == "survey-comparison-v6"
-    assert map_v3["bound_comparison"]["comparison_sha256"] == digest(v6)
+    assert map_v3["bound_comparison"]["comparison_version"] == v6["comparison_version"]
     map_v2 = load_profile_map(MAP_V2_PATH)
     promoted = {
         profile

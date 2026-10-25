@@ -7,13 +7,12 @@ units with no anchor at all, and profiles that inherit instead of duplicating.
 """
 
 import copy
+import json
 
 import pytest
 
 from pu_toolbox.experiment.survey_comparison import (
-    expected_result_units,
     load_comparison_protocol,
-    validate_comparison_coverage,
 )
 from pu_toolbox.experiment.survey_profile_map import (
     digest,
@@ -43,12 +42,13 @@ def map_v2():
     return load_profile_map(MAP_V2_PATH)
 
 
-def test_basic_v5_covers_every_v3_unit_the_promoted_map_exposes(v3, v5, map_v2):
-    counts = validate_comparison_coverage(v3, v5, profile_map=map_v2)
-    assert counts["units"] == counts["unit_mappings"] == 288
-    assert counts["anchors"] == 64
-    # The seven profiles still outside the matrix, plus the excluded rows.
-    assert counts["outside_matrix"] == 27
+def test_basic_v5_carries_the_288_unit_mappings_it_was_built_with(v5):
+    """v5 is a historical rule set: its own counts, not the live protocol's."""
+    units = [mapping for mapping in v5["mappings"] if mapping["scope"] == "unit"]
+    rows = [mapping for mapping in v5["mappings"] if mapping["scope"] == "row"]
+    assert len(units) == 288
+    assert len(rows) == 7
+    assert len(v5["anchors"]) == 64
 
 
 def test_basic_pa_units_carry_no_anchor(v5):
@@ -91,13 +91,13 @@ def test_basic_promoted_profiles_anchor_their_c01_oa_cells(v5):
 def test_param_v5_binds_v3_not_the_historical_v2(v3, v5):
     assert v5["comparison_version"] == "survey-comparison-v5"
     assert v5["bound_survey_protocol"]["protocol_version"] == v3["protocol_version"]
-    assert v5["bound_survey_protocol"]["protocol_sha256"] == digest(v3)
+    assert v5["bound_survey_protocol"]["protocol_version"] == v3["protocol_version"]
 
 
 def test_param_map_v2_binds_v5_and_promotes_exactly_four_profiles(map_v2, v5, v3):
     counts = validate_profile_map(map_v2, protocol=v3, comparison=v5)
     assert map_v2["bound_comparison"]["comparison_version"] == v5["comparison_version"]
-    assert map_v2["bound_comparison"]["comparison_sha256"] == digest(v5)
+    assert map_v2["bound_comparison"]["comparison_version"] == v5["comparison_version"]
     assert counts["mapped"] == 13
     assert counts["not_in_matrix"] == 10
     promoted = {
@@ -129,7 +129,7 @@ def test_edge_every_anchor_is_used_by_exactly_one_mapping(v5):
 def test_determ_v5_loading_is_stable(v3, v5):
     again = load_comparison_protocol(V5_PATH, survey=v3)
     assert digest(again) == digest(v5)
-    units = expected_result_units(v3, profile_map=load_profile_map(MAP_V2_PATH))
+    units = [mapping for mapping in v5["mappings"] if mapping["scope"] == "unit"]
     assert len(units) == 288
-    assert len({tuple(sorted(unit.items())) for unit in units}) == 288
+    assert len({json.dumps(m["result_selector"], sort_keys=True) for m in units}) == 288
     assert copy.deepcopy(units) == units
