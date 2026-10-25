@@ -207,6 +207,7 @@ pu_toolbox/
     survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
     survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
+    survey_profile_map.py                 # 版本化 profile → 比较条目映射：继承/显式偏差/not_in_matrix 与协议+矩阵双绑定
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -574,7 +575,7 @@ tests/
       test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
       test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
       test_support_data.py              # 五数据集支持集抽样、train-only 预处理和制品损坏/身份回归
-      test_p3mix_literature_anchors.py  # <<< 新文件,补注释
+      test_p3mix_literature_anchors.py  # P3Mix 论文锚点哈希与文献值和 pilot 数据分离，PDF/OpenReview 身份被钉住
       _support_checkpoint_helpers.py    # support 双轨选择的合成 CPU 角色/方法 fixture
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
@@ -592,6 +593,8 @@ tests/
       test_survey_episodic_budget.py    # 三方法真实 CLI/续跑、原生权重及停止/LZO 成本拒绝
       test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
       test_survey_recipe_registry_locked.py # P4.1-B 冻结：范围、快照可重算、手改与未锁定绑定被拒
+      test_survey_profile_map.py        # 映射全函数覆盖、继承偏差与三态状态，绑定漂移、kldce 反查与窄化矩阵降级
+      test_survey_comparison_v5.py      # v5 覆盖 v3 288 单元：D41 PA 无锚点、P4.2a 四方法锚点与锚点唯一归属
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -946,6 +949,7 @@ scripts/
   run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
   prepare_survey_v3_proposal.py           # 输出/核对v3 profile与单元请求，保留未批准和不可执行边界
+  check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
 ```
 
 ## 7. CI/CD（`.github/`）

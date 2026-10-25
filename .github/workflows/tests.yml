@@ -136,6 +136,9 @@ jobs:
       - name: Production recipe registry (frozen lock)
         run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --require-present --require-locked
 
+      - name: Profile to comparison mapping (frozen binding)
+        run: uv run --python "3.11" python scripts/check_survey_profile_map.py --require-present
+
       - name: V3 profile/unit proposal sources (planning only)
         run: >-
           uv run --python "3.11" python scripts/prepare_survey_v3_proposal.py

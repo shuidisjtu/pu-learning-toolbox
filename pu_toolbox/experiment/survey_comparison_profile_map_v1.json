@@ -1,0 +1,160 @@
+{
+  "schema_version": "survey-comparison-profile-map-1",
+  "map_version": "survey-profile-map-v1",
+  "bound_survey_protocol": {
+    "protocol_version": "survey-v3.0",
+    "protocol_sha256": "50a96eb1e0d5f1095541e38bb7393b2451d91c79a419b1c4cf66d496ac6a81ac"
+  },
+  "bound_comparison": {
+    "comparison_version": "survey-comparison-v4",
+    "comparison_sha256": "7a20b1274b8d22352013cb352cb49d1dcb4149d0b86aabb2be4a455ae22c3d77"
+  },
+  "profiles": {
+    "cvir": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "dist_pu": {
+      "registration": "mapped",
+      "inherits": "dist_pu",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "genpu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "P4.2 main-table gate pending"
+    },
+    "gradpu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "holistic_pu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "P4.2 main-table gate pending"
+    },
+    "kldce": {
+      "registration": "mapped",
+      "inherits": "kldce",
+      "deviations": [],
+      "rationale": "the registry excludes this profile from running under survey-v3.0, but the matrix still holds its three non-runnable marker rows, so the profile is mapped rather than outside the matrix"
+    },
+    "lagam": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "P4.2 main-table gate pending"
+    },
+    "lbe": {
+      "registration": "mapped",
+      "inherits": "lbe",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "nnpu": {
+      "registration": "mapped",
+      "inherits": "nnpu",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "p3mix": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "pan": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "pn_oracle": {
+      "registration": "mapped",
+      "inherits": "pn_oracle",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "puet": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "pulda": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "P4.2 main-table gate pending"
+    },
+    "pulns": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "P4.2 main-table gate pending"
+    },
+    "pusb_kernel": {
+      "registration": "mapped",
+      "inherits": "pusb_kernel",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "robust_pu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "P4.2 main-table gate pending"
+    },
+    "rp": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "self_pu": {
+      "registration": "mapped",
+      "inherits": "self_pu",
+      "deviations": [],
+      "rationale": "profile is the no-meta ablation the v4 entry describes"
+    },
+    "self_pu_full_meta": {
+      "registration": "mapped",
+      "inherits": "self_pu",
+      "deviations": [
+        {
+          "axis": "supervision",
+          "ours": "clean_validation_labels_for_meta_weights",
+          "mapped": "validation_U_for_meta_target",
+          "against": "pu_bench_table1",
+          "note": "the paper's full self-calibrated training uses clean validation labels; PU-Bench's controlled entry uses unlabeled validation inputs instead"
+        }
+      ],
+      "rationale": "same algorithm as self_pu with the paper's clean-validation self-calibration, so it inherits the entry and deviates only from the PU-Bench meta target"
+    },
+    "split_pu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "P4.2 main-table gate pending"
+    },
+    "upu": {
+      "registration": "mapped",
+      "inherits": "upu",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "vpu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    }
+  }
+}

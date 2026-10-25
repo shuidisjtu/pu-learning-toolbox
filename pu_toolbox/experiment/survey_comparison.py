@@ -79,7 +79,7 @@ _PN_ORACLE = "pn_oracle"
 _UNIT_SELECTION_PROTOCOLS = ("pa", "oa")
 _SAR_MECHANISMS = ("sar_lbe_a", "sar_lbe_b")
 _RESULT_UNITS = frozenset({"fraction", "percentage_points"})
-_SELECTOR_FIELDS = (
+SELECTOR_FIELDS = (
     "method",
     "dataset",
     "labeling_mechanism",
@@ -88,6 +88,9 @@ _SELECTOR_FIELDS = (
     "metric",
     "training_path",
 )
+#: The profile map resolves the same selector with ``method`` substituted, so it
+#: imports this tuple instead of restating it.
+_SELECTOR_FIELDS = SELECTOR_FIELDS
 _REQUIRED_TOP_LEVEL = (
     "schema_version",
     "comparison_version",
@@ -456,7 +459,9 @@ def _selector_key(selector: dict[str, str]) -> tuple[str, ...]:
     return tuple(selector[field] for field in _SELECTOR_FIELDS)
 
 
-def expected_result_units(survey: dict[str, Any]) -> tuple[dict[str, str], ...]:
+def expected_result_units(
+    survey: dict[str, Any], *, profile_map: dict[str, Any] | None = None
+) -> tuple[dict[str, str], ...]:
     """Enumerate every pilot result unit the comparison matrix must cover.
 
     Derived from the execution protocol, never hand-listed, so a protocol bump
@@ -464,12 +469,27 @@ def expected_result_units(survey: dict[str, Any]) -> tuple[dict[str, str], ...]:
     SCAR c-grid times PA/OA plus the SAR c-grids (OA only); each PN oracle row
     yields one c-independent unit; each non-runnable row yields one marker unit
     instead of fabricated c/mechanism expansions.
+
+    ``profile_map`` translates each row's profile to the algorithm whose entry
+    the matrix registers (plan D40): a ``mapped`` profile inherits that entry, so
+    two profiles of one algorithm must *not* produce two entries, and repeating
+    them would let the same anchor be counted twice.  Rows whose profile is
+    ``not_in_matrix`` are outside the matrix and are dropped here; they are
+    counted by :func:`validate_comparison_coverage` instead of silently vanishing.
     """
     c_tokens = survey["c_tokens"]
     units: list[dict[str, str]] = []
     for row in survey["execution_units"]:
+        profile = row["method"]
+        if profile_map is not None:
+            registration = profile_map["profiles"].get(profile)
+            if registration is None:
+                raise ValueError(f"profile has no entry in the survey profile map: {profile!r}")
+            if registration["registration"] != "mapped":
+                continue
+            profile = registration["inherits"]
         identity = {
-            "method": row["method"],
+            "method": profile,
             "dataset": row["dataset"],
             "training_path": row["training_path"],
             "metric": _COMPARISON_METRIC,
@@ -515,11 +535,26 @@ def expected_result_units(survey: dict[str, Any]) -> tuple[dict[str, str], ...]:
                         "selection_protocol": "oa",
                     }
                 )
-    return tuple(units)
+    if profile_map is None:
+        return tuple(units)
+    # Two profiles of one algorithm inherit the same entry (D40), so they expand
+    # to the same units; dedupe on the selector while keeping first-seen order so
+    # the enumeration stays a set rather than a multiset.
+    seen: set[tuple[str, ...]] = set()
+    unique: list[dict[str, str]] = []
+    for unit in units:
+        key = _selector_key(unit)
+        if key not in seen:
+            seen.add(key)
+            unique.append(unit)
+    return tuple(unique)
 
 
 def validate_comparison_coverage(
-    survey: dict[str, Any], comparison: dict[str, Any]
+    survey: dict[str, Any],
+    comparison: dict[str, Any],
+    *,
+    profile_map: dict[str, Any] | None = None,
 ) -> dict[str, int]:
     """Prove the matrix covers every result unit exactly once.
 
@@ -529,7 +564,7 @@ def validate_comparison_coverage(
     row).  Anchors must land on exactly one mapping so the same published
     number is never counted as two independent observations.
     """
-    expected = expected_result_units(survey)
+    expected = expected_result_units(survey, profile_map=profile_map)
     unit_index: dict[tuple[str, ...], str] = {}
     for mapping in comparison["mappings"]:
         if mapping["scope"] != "unit":
@@ -555,9 +590,27 @@ def validate_comparison_coverage(
             f"{len(orphan)} unit-level mapping(s) cover no expected result unit: {orphan[:3]}"
         )
 
-    rows = {
-        (row["method"], row["dataset"], row["training_path"]) for row in survey["execution_units"]
-    }
+    if profile_map is None:
+        rows = {
+            (row["method"], row["dataset"], row["training_path"])
+            for row in survey["execution_units"]
+        }
+        outside_matrix = 0
+    else:
+        # A row named by a profile outside the matrix has no algorithm identity
+        # to check a row-level mapping against, so it is counted, not matched.
+        rows = set()
+        outside_matrix = 0
+        for row in survey["execution_units"]:
+            registration = profile_map["profiles"].get(row["method"])
+            if registration is None:
+                raise ValueError(
+                    f"profile has no entry in the survey profile map: {row['method']!r}"
+                )
+            if registration["registration"] != "mapped":
+                outside_matrix += 1
+                continue
+            rows.add((registration["inherits"], row["dataset"], row["training_path"]))
     row_level = [mapping for mapping in comparison["mappings"] if mapping["scope"] == "row"]
     for mapping in row_level:
         selector = mapping["result_selector"]
@@ -590,6 +643,7 @@ def validate_comparison_coverage(
         "unit_mappings": len(unit_index),
         "row_mappings": len(row_level),
         "anchors": len(anchor_use),
+        "outside_matrix": outside_matrix,
     }
 
 
@@ -699,16 +753,39 @@ _ESCALATING_CONCLUSION = "unexplained_warning"
 
 
 def comparison_context(
-    result_identity: dict[str, str], *, comparison: dict[str, Any] | None = None
+    result_identity: dict[str, str],
+    *,
+    comparison: dict[str, Any] | None = None,
+    profile_id: str | None = None,
+    survey: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Fields a run manifest records so every result row states its comparison.
     Only the version, digest and resolved mapping id belong in the run
     manifest: the actual mean/spread across seeds and any literature verdict
     are aggregation work (P2.2), not run work (P2.1).
+
+    ``profile_id`` switches the lookup to the versioned profile map: under the
+    profile-identity schema the unit's ``method`` is a profile, and the entry it
+    inherits is the one its base algorithm registered.
     """
     if comparison is None:
         comparison = load_comparison_protocol()
-    resolved = resolve_comparison_unit(result_identity, comparison=comparison)
+    profile_fields: dict[str, Any] = {}
+    if profile_id is None:
+        resolved = resolve_comparison_unit(result_identity, comparison=comparison)
+    else:
+        from .survey_profile_map import resolve_profile_mapping
+
+        resolved = resolve_profile_mapping(
+            profile_id, result_identity, protocol=survey, comparison=comparison
+        )
+        profile_fields = {
+            "profile_id": profile_id,
+            "profile_map_version": resolved["profile_map_version"],
+            "profile_map_sha256": resolved["profile_map_sha256"],
+            "profile_registration": resolved["profile_registration"],
+            "profile_deviation_count": resolved["deviation_count"],
+        }
     return {
         "comparison_version": comparison["comparison_version"],
         "comparison_sha256": comparison_digest(comparison),
@@ -716,6 +793,7 @@ def comparison_context(
         "eligibility": resolved["eligibility"],
         "review_status": comparison["review_status"],
         "comparison_blockers": list(comparison["formal_blockers"]),
+        **profile_fields,
     }
 
 
@@ -725,6 +803,7 @@ def run_comparison_units(
     *,
     survey: dict[str, Any] | None = None,
     comparison: dict[str, Any] | None = None,
+    profile_id: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     """The comparison entries one run's manifest records, keyed by selection protocol.
 
@@ -753,6 +832,27 @@ def run_comparison_units(
         from .survey_protocol import load_protocol
 
         survey = load_protocol(config["survey_protocol"]["path"])
+    if profile_id is not None:
+        from .survey_profile_map import (
+            STATUS_NOT_IN_MATRIX,
+            load_profile_map,
+            profile_map_binds,
+            profile_registration_status,
+        )
+
+        profile_map = load_profile_map()
+        if not profile_map_binds(profile_map, survey):
+            # A narrowed or otherwise noncanonical matrix has no versioned
+            # profile mapping; the manifest's registration status already says so.
+            return {}
+        registration = profile_registration_status(
+            profile_id, protocol=survey, profile_map=profile_map
+        )
+        if registration["comparison_registration_status"] == STATUS_NOT_IN_MATRIX:
+            # A profile outside the matrix has no entry to record.  Its manifest
+            # already carries that status, so an empty block says the same thing
+            # without borrowing the base algorithm's pre-registered row.
+            return {}
     row = protocol_context["execution_unit"]
     units = [unit for unit in expected_result_units(survey) if _is_run_unit(unit, row, config)]
     entries: dict[str, dict[str, Any]] = {}
@@ -763,7 +863,9 @@ def run_comparison_units(
         key = unit["selection_protocol"].upper()
         if key in entries:
             raise ValueError(f"a run produces at most one result unit per protocol, got two {key}")
-        entries[key] = comparison_context(unit, comparison=comparison)
+        entries[key] = comparison_context(
+            unit, comparison=comparison, profile_id=profile_id, survey=survey
+        )
     return entries
 
 

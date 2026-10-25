@@ -95,11 +95,18 @@ def _run_comparison(protocol_context: dict[str, Any], config: dict[str, Any]) ->
     if protocol_context.get("execution_mode") != "versioned_pilot":
         return {}
     from .survey_profile_identity import has_profile_identities
+    from .survey_profile_map import profile_map_available
 
-    # A profile is not its base algorithm's frozen comparison row. The draft
-    # extension is always engineering-only until a new comparison binds it.
+    # A profile is not its base algorithm's frozen comparison row: its units
+    # resolve through the versioned profile map.  Until that map exists the
+    # manifest records only that no lookup path was available, so nothing here
+    # may borrow the base algorithm's entry.
     if has_profile_identities(protocol_context):
-        return {}
+        if not profile_map_available():
+            return {}
+        return run_comparison_units(
+            protocol_context, config, profile_id=protocol_context["profile_id"]
+        )
     return run_comparison_units(protocol_context, config)
 
 
