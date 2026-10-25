@@ -123,7 +123,6 @@ Inspect the commands with:
 ```bash
 uv run python scripts/prepare_survey_splits.py --help
 uv run python scripts/run_survey_experiment.py --help
-uv run python scripts/verify_survey_result_receipt.py --help
 uv run python scripts/run_lbe_comparison.py --help
 uv run python scripts/run_lbe_diagnostics.py --help
 uv run python scripts/prepare_clean_support.py --help
@@ -155,9 +154,9 @@ Supporting scripts (see each script's docstring and the Survey docs for scope an
 
 | Stage | Scripts |
 |---|---|
-| Data and splits | `collect_survey_public_data.py` (collect missing public raw data; excludes access-controlled ADNI), `survey_splits_archive.py` (split transfer), `review_survey_split_receipt.py` (read-only receipt check), `diagnose_survey_split_rebuild.py` (rebuild differences, without relaxing receipt verification) |
-| Runs | `run_survey_pilot.py` (whole pilot), `aggregate_survey_runs.py`, `verify_survey_result_receipt.py` (received result bytes, before replay) |
-| Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `audit_survey_workbook.py` (delivery Excel, optional `openpyxl`), `_source_provenance.py` (internal helper separating script-checkout identity from the implementation actually loaded; not a standalone CLI) |
+| Data and splits | `collect_survey_public_data.py` (collect missing public raw data; excludes access-controlled ADNI), `survey_splits_archive.py` (split transfer) |
+| Runs | `run_survey_pilot.py` (whole pilot), `aggregate_survey_runs.py` |
+| Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `_source_provenance.py` (internal helper separating script-checkout identity from the implementation actually loaded; not a standalone CLI) |
 | Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a draft before review and locking) |
 | v3 intake | `prepare_survey_v3_proposal.py` (source-bound profile/unit requests with unresolved budgets; not an execution protocol) |
 | Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay; not formal Survey admission) |

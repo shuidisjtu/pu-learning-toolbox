@@ -386,8 +386,6 @@ tests/
       test_check_project_metadata.py    # 项目元数据门禁失败路径: 拼装仓库跑 main(), 逐项变异须非零退出
       test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
       test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
-      test_review_survey_split_receipt.py # P1.4 只读接收复核的失败关闭与 CLI 测试
-      test_audit_survey_workbook.py     # 交付 Excel 独立对账的篡改、覆盖与舍入测试
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
       test_profile_survey_candidate_storage.py # 七方法存储探针和恢复边界
       test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
@@ -399,16 +397,7 @@ tests/
       test_prepare_candidate_image_resource_plan.py # 图像资源只读预检、快照成本、缺证据拒绝与无 torch 边界
       test_check_survey_extended_cnn_storage.py # 新 CNN 资源证据身份、角色、预算与来源拒绝测试
       test_profile_survey_extended_cnn_storage.py # 独立进程资源测量、变体范围、内存去重与失败边界
-      _review_split_receipt_helpers.py  # 离线 split、索引及归档复核夹具
-      test_review_survey_split_receipt_cli.py # 复核脚本导入安全与 CLI 参数契约
-      test_review_survey_split_receipt_contracts.py # 数据集、seed 与角色复核契约
-      test_review_survey_split_receipt_encoding.py # 图像类型尺寸与表格特征维度拒绝测试
-      test_review_survey_split_receipt_integrity.py # 完整索引与归档篡改拒绝测试
-      test_review_survey_split_receipt_modalities.py # 模态统计与官方测试源先验复核
-      test_diagnose_survey_split_rebuild.py # 重建 ZIP 平台字节诊断、不改严格验收与缺失/篡改拒绝
-      test_audit_survey_workbook_readme.py # Excel双列说明读取、历史否定引述与诊断确定性
       test_recipe_production_gate.py    # 正式注册表条件 CI 与声明锁拒收/确定性
-      test_survey_result_receipt.py     # 原始结果树分批字节身份与缺件/篡改拒收
       _lbe_comparison_helpers.py        # 临时 LBE 对照的合成四路 fixture
       test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
       test_lbe_comparison_plan.py       # split/seed/预算身份与预检拒收
@@ -926,8 +915,6 @@ scripts/
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
   generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
-  review_survey_split_receipt.py          (P1.4 接收端只读校验：归档摘要、四角色契约与预处理统计)
-  audit_survey_workbook.py                (只读交付 Excel 身份、协议覆盖与逐 seed 汇总对账)
   prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)
   collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
   profile_survey_candidate_storage.py     # 七方法多 seed 合成存储与恢复探针
@@ -940,8 +927,6 @@ scripts/
   prepare_candidate_image_resource_plan.py (PULDA/GradPU 默认快照数与空间预检，不训练、不加载制品或批准资源)
   check_survey_extended_cnn_storage.py    # 新 CNN 资源记录只读身份/角色/阶段成本/源码校验
   profile_survey_extended_cnn_storage.py  # 七个新 CNN 工程变体的独立进程多种子资源探针
-  diagnose_survey_split_rebuild.py        (只读重建差异诊断：仅 ZIP 创建平台字节归因，不接受变更收据)
-  verify_survey_result_receipt.py         # P2.2 原始结果树/报告的分批只读身份接收
   run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
   run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断
   _lbe_diagnostic_reference.py            # 不注册的 SCAR 约束解析梯度诊断参考

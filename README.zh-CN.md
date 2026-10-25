@@ -116,7 +116,6 @@ pu-toolbox-ui
 ```bash
 uv run python scripts/prepare_survey_splits.py --help
 uv run python scripts/run_survey_experiment.py --help
-uv run python scripts/verify_survey_result_receipt.py --help
 uv run python scripts/run_lbe_comparison.py --help
 
 # SCAR 实验行（PA + OA 选模）
@@ -141,9 +140,9 @@ Survey 方法，并且只报告 OA。
 
 | 阶段 | 脚本 |
 |---|---|
-| 数据与切分 | `collect_survey_public_data.py`（获取缺失的公开原始数据，不含受控访问的 ADNI）、`survey_splits_archive.py`（split 传输）、`review_survey_split_receipt.py`（只读接收检查）、`diagnose_survey_split_rebuild.py`（诊断重建差异，不放宽接收校验） |
-| 运行 | `run_survey_pilot.py`（整批 pilot）、`aggregate_survey_runs.py`、`verify_survey_result_receipt.py`（回放前校验已接收结果的字节） |
-| 审计与报告 | `audit_survey_batches.py`、`summarize_survey_results.py`、`compare_survey_results.py`（预注册文献对照）、`audit_survey_workbook.py`（交付 Excel，需可选依赖 `openpyxl`）、`_source_provenance.py`（内部辅助工具，区分脚本检出身份与实际加载实现；不是独立 CLI） |
+| 数据与切分 | `collect_survey_public_data.py`（获取缺失的公开原始数据，不含受控访问的 ADNI）、`survey_splits_archive.py`（split 传输） |
+| 运行 | `run_survey_pilot.py`（整批 pilot）、`aggregate_survey_runs.py` |
+| 审计与报告 | `audit_survey_batches.py`、`summarize_survey_results.py`、`compare_survey_results.py`（预注册文献对照）、`_source_provenance.py`（内部辅助工具，区分脚本检出身份与实际加载实现；不是独立 CLI） |
 | 配方 | `prepare_survey_recipe_registry.py`、`check_survey_recipe_registry.py`（审阅与锁定前校验草稿） |
 | 资源探针 | `profile_survey_candidate_storage.py`、`profile_survey_cnn_storage.py`、`profile_survey_extended_cnn_storage.py`，配合 `check_survey_extended_cnn_storage.py`；`prepare_candidate_image_resource_plan.py` 按候选默认值只读估算，不是实测资源 profile |
 | P3 准入证据 | `check_p3_admission_evidence.py`、`check_p3_public_comparison.py`、`prepare_p3_selection_budget_spec.py`、`prepare_p3_preintegration_extension.py`、`check_candidate_fit_contracts.py`（绑定 AST/源码的工程门禁，不等于方法准入） |
