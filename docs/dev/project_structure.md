@@ -203,7 +203,6 @@ pu_toolbox/
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
     genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
     candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
-    survey_v3_proposal.py                 # v3 源码绑定的22算法/变体与阻断单元请求，不批准预算
     survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
     survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
@@ -400,7 +399,6 @@ tests/
       test_genpu_recipe_execution.py    # GEN-PU 计划摘要、实际双轨 CLI、选后回收与模型回放
       test_candidate_image_execution.py # 图像 CLI 计划绑定、PA/OA 回放与非正式边界
       test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
-      test_prepare_survey_v3_proposal.py # v3 请求CLI只读、范围摘要与无torch规划
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -566,7 +564,6 @@ tests/
       test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝
       test_process_peak_rss.py          # 进程 RSS 单位、平台不支持与稳定计数处理
       test_selfpu_ts_support.py         # 显式 TS clean-meta 四网络对照、角色与失败守卫
-      test_survey_v3_proposal.py        # v3算法/变体范围、来源漂移、未授权预算与协议拒绝
       _profile_identity_helpers.py      # 临时身份草案与矩阵写入测试夹具，不提供正式预算
       test_profile_identity_execution.py # profile 双轨/原生快照、实际子进程与完整来源续跑
       test_survey_profile_identity.py   # 显式身份映射、旧路径兼容与错误/越权绑定拒绝
@@ -922,7 +919,6 @@ scripts/
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
   run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
-  prepare_survey_v3_proposal.py           # 输出/核对v3 profile与单元请求，保留未批准和不可执行边界
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
 ```
 

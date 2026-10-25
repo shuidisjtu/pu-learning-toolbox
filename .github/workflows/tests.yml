@@ -130,12 +130,6 @@ jobs:
       - name: Profile to comparison mapping (frozen binding)
         run: uv run --python "3.11" python scripts/check_survey_profile_map.py --require-present
 
-      - name: V3 profile/unit proposal sources (planning only)
-        run: >-
-          uv run --python "3.11" python scripts/prepare_survey_v3_proposal.py
-          --check docs/research/pu_survey/data/survey_v3_profile_unit_proposal_20261023.json
-          --summary
-
       - name: Comment quality gate
         run: uv run --python "3.11" python scripts/check_comment_quality.py
 
