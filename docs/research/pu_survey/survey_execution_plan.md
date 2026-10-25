@@ -14,7 +14,8 @@
 > 有预算/runner，能产出合规 manifest，当前 **40 / 64**）、**formal**（清掉 `formal_blockers`
 > 并绑进比较矩阵，当前 **0**；配方注册表已于 D36 冻结、profile 映射已于 D40 落地，但阻断位未清，
 > 两者都不等于准入）、
-> **evidence**（已有真实数据读数，目前只有单 seed 工程 smoke，没有正式多 seed/GPU 批次）。
+> **evidence**（已有真实数据读数，目前只有单 seed 工程 smoke；32 GiB vGPU 上已跑完一次
+> GEN-PU 正式预算 100+100，2026-10-25，仍无正式多 seed 批次）。
 > 判定标准：命令可执行并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。
 > 状态核对日期：2026-10-25。
 
@@ -44,7 +45,7 @@
 | P4.2b：3 个无基准方法只做定性交代 | `genpu`、`pulns`、`split_pu` 不在任何统一基准里，各自论文的数据集/指标口径不同 | 记为 `no_direct_anchor` / `background_only`，不产出数值锚点（用户 2026-10-25 定） | shuidisjtu | 3 个 profile 有明确 eligibility 与非空理由，摘要中只作背景展示 |
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
 | 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
-| GPU 机时实测 | 无法排 AutoDL 正式批次 | GradPU 首跑、三个 adapter 行真实 CIFAR 单 seed、PN-CNN 单 seed 计时与资源峰值 | shuidisjtu | 实测表反推机时 |
+| GPU 机时实测 | 无法排 AutoDL 正式批次 | 已完成：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）；仍缺 GradPU 首跑与 PN-CNN 单 seed 计时 | shuidisjtu | 实测表反推机时 |
 | PA 映射待重新裁定（不是缺实现） | 54 条 PA 映射仍为 `blocked_pending_pa_criterion`；v3 `formal_blockers` 仍列 `per_epoch_independent_PA_OA_checkpoint_selection` | P2.0c 已交付、R9 准则本体已实现（2026-09-20）、签署要求已于 2026-10-24 取消；剩下的是我方重新裁定这 54 条并把阻断位措辞改成现状 | shuidisjtu | 54 条映射有确定 eligibility，协议阻断位与实际一致 |
 | PN-CNN 5 seed | oracle 行 | 协议定稿后再安排（D30） | — | 另行安排，不标完成 |
 
