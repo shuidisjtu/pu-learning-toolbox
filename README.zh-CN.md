@@ -143,7 +143,7 @@ Survey 方法，并且只报告 OA。
 | 数据与切分 | `collect_survey_public_data.py`（获取缺失的公开原始数据，不含受控访问的 ADNI）、`survey_splits_archive.py`（split 传输） |
 | 运行 | `run_survey_pilot.py`（整批 pilot）、`aggregate_survey_runs.py` |
 | 审计与报告 | `audit_survey_batches.py`、`summarize_survey_results.py`、`compare_survey_results.py`（预注册文献对照）、`_source_provenance.py`（内部辅助工具，区分脚本检出身份与实际加载实现；不是独立 CLI） |
-| 配方 | `prepare_survey_recipe_registry.py`、`check_survey_recipe_registry.py`（审阅与锁定前校验草稿） |
+| 配方 | `prepare_survey_recipe_registry.py`、`check_survey_recipe_registry.py`（校验注册表；CI 检查冻结的锁） |
 | 资源估算 | `prepare_candidate_image_resource_plan.py` 按候选默认值只读估算，不是实测资源 profile |
 | P3 准入证据 | `check_p3_admission_evidence.py`、`check_p3_public_comparison.py`、`prepare_p3_selection_budget_spec.py`、`prepare_p3_preintegration_extension.py`（工程草稿，不等于方法准入） |
 
@@ -179,7 +179,7 @@ uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # 基线配置与源码默认参数一致性
 uv run python scripts/check_format.py        # 格式门禁（ruff check + format --check，全目录）
 uv run python scripts/check_comment_quality.py  # 注释卫生：遗留标记 / 裸 TBD；行尾注释在已迁移分区为 error，未迁移分区为 advisory 并在通过时自报
-uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry 门禁：刻意不接入 CI——注册表物化前它不可能变红（任何输入都走 return 0），接入等于新增一道永远通过的检查，与架构原则 §3.2 相抵；注册表落地那一笔再接
+uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry 门禁；CI 对冻结的注册表以 --require-present --require-locked 运行
 uv run python scripts/generate_structure.py --check    # 结构文档一致性(--update 重新生成)
 uv run python scripts/generate_layer_deps.py --check  # architecture.md §2.1 分层表（--update 重新生成）
 ```

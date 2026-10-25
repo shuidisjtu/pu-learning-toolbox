@@ -2,26 +2,19 @@
 
 R5 of the stage-7 rulings held while the registry was unmaterialised: an absent
 file is *reported* as "nothing was validated" and exits 0, so wiring that state
-into CI would be an always-passing check.  Since 2026-10-25 both drafts and the
-frozen registry are materialized, so CI calls the gate with ``--require-present``
-(and ``--require-locked`` for the freeze) and R5 no longer describes it.  The
-failure paths stay pinned here: a payload that is not a registry, or one the
-schema rejects, must make ``main()`` non-zero.
+into CI would be an always-passing check.  Since 2026-10-25 the frozen registry is
+materialized, so CI calls the gate with ``--require-present --require-locked`` and
+R5 no longer describes it.  The failure paths stay pinned here: a payload that is
+not a registry, or one the schema rejects, must make ``main()`` non-zero.
 
 Separate from ``tests/unit/experiment/test_survey_recipe_registry*.py``,
 which cover the registry module's pure validators; this file covers the
 script's exit codes and its absent-file branch.
 
-2026-10-14: CI validates the already materialized draft with --require-present;
-the unmaterialized frozen default still stays out of CI, preserving R5.
-
-2026-10-16: CI conditionally checks the production file only after it appears,
-using --require-present --require-locked. Absence skips that step, not a pass.
-
-2026-10-25: the gate loads the protocol named by the registry's own
-``protocol_basis`` instead of the v2 default, because a v3 draft validated
-against v2 would report every v3 reference as drift.  CI now also checks the
-materialized v3 draft.
+The gate loads the protocol named by the registry's own ``protocol_basis`` instead
+of the v2 default, because a v3 registry validated against v2 would report every
+v3 reference as drift.  The tests below generate a v3 draft instead of reading a
+committed one.
 """
 
 from __future__ import annotations
@@ -31,6 +24,9 @@ import sys
 from pathlib import Path
 
 import pytest
+
+from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
+from pu_toolbox.experiment.survey_recipe_registry import build_draft_registry
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
@@ -59,33 +55,20 @@ def test_edge_required_materialized_artifact_cannot_disappear_silently(tmp_path,
     assert "Nothing was validated" in out
 
 
-def test_basic_committed_draft_schema_can_be_checked_without_claiming_a_lock(capsys):
-    path = (
-        Path(__file__).resolve().parents[3]
-        / "docs/research/pu_survey/data/survey_recipe_registry_v0_1_draft.json"
-    )
-    code, out, _ = _run(capsys, "--registry", str(path), "--require-present")
-    assert code == 0
-    assert "survey-recipes-v0.1-draft" in out
+def _v3_draft() -> dict:
+    """A draft generated from the v3 protocol, the same way the checked-in lock is derived."""
+    return build_draft_registry(load_protocol(resolve_protocol_path("survey-v3.0")))
 
 
-def test_basic_v3_draft_is_checked_against_the_protocol_it_names(capsys):
-    path = (
-        Path(__file__).resolve().parents[3]
-        / "docs/research/pu_survey/data/survey_recipe_registry_v0_2_draft.json"
-    )
-    code, out, _ = _run(capsys, "--registry", str(path), "--require-present")
+def test_basic_generated_draft_is_checked_against_the_protocol_it_names(tmp_path, capsys):
+    payload = tmp_path / "draft.json"
+    payload.write_text(json.dumps(_v3_draft()), encoding="utf-8")
+
+    code, out, _ = _run(capsys, "--registry", str(payload), "--require-present")
+
     assert code == 0
     assert "survey-recipes-v0.2-draft" in out
     assert "protocol basis: survey-v3.0" in out
-
-
-def _v3_draft() -> dict:
-    path = (
-        Path(__file__).resolve().parents[3]
-        / "docs/research/pu_survey/data/survey_recipe_registry_v0_2_draft.json"
-    )
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def test_param_v3_draft_cannot_be_validated_against_a_v2_basis(tmp_path, capsys):

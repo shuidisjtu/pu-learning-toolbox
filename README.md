@@ -157,7 +157,7 @@ Supporting scripts (see each script's docstring and the Survey docs for scope an
 | Data and splits | `collect_survey_public_data.py` (collect missing public raw data; excludes access-controlled ADNI), `survey_splits_archive.py` (split transfer) |
 | Runs | `run_survey_pilot.py` (whole pilot), `aggregate_survey_runs.py` |
 | Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `_source_provenance.py` (internal helper separating script-checkout identity from the implementation actually loaded; not a standalone CLI) |
-| Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a draft before review and locking) |
+| Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a registry; CI checks the frozen lock) |
 | v3 intake | `prepare_survey_v3_proposal.py` (source-bound profile/unit requests with unresolved budgets; not an execution protocol) |
 | Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay; not formal Survey admission) |
 | Independent support runs | `run_clean_support_experiment.py` (Self-PU/LaGAM/PULNS extra-label audit; explicit Self-PU TS meta-checkpoints, not a formal recipe) |
@@ -198,7 +198,7 @@ uv run python scripts/check_skill_sync.py
 uv run python scripts/check_baseline_configs.py    # baseline config vs source defaults
 uv run python scripts/check_format.py        # ruff check + format --check (full scope)
 uv run python scripts/check_comment_quality.py  # comment hygiene: legacy markers / bare TBD; trailing comments are errors inside migrated (strict) partitions, advisory elsewhere (self-reported on pass)
-uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry gate: deliberately NOT wired into CI -- before the registry is materialised it cannot fail (every input returns 0), so wiring it would add an always-passing check, against architecture principles §3.2; wire it in the commit that lands the registry
+uv run python scripts/check_survey_recipe_registry.py  # P4.1 recipe registry gate; CI runs it against the frozen registry with --require-present --require-locked
 uv run python scripts/generate_structure.py --check    # structure document consistency (--update to regenerate)
 uv run python scripts/generate_layer_deps.py --check  # architecture.md §2.1 layer table (--update to regenerate)
 ```
