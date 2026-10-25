@@ -1,0 +1,65 @@
+{
+  "schema_version": "genpu-formal-capacity-engineering-v1",
+  "generated_at": "2026-10-25T11:49:47+08:00",
+  "purpose": "size the declared formal budget (100 GAN + 100 PN epochs, batch 64) before running it: per-epoch cost, peak GPU memory and per-component checkpoint bytes, measured on the production recipe path rather than inferred",
+  "formal_admission": false,
+  "paper_numerical_comparison": false,
+  "source_split": "data/splits/cifar10/split_0 on the AutoDL instance (45,000 train rows; test class-prior 0.4 for positives {0,1,8,9}); the same four-role layout as the local split",
+  "measured_environment": {
+    "gpu": "NVIDIA vGPU-32GB",
+    "gpu_total_bytes": 33794359296,
+    "gpu_driver": "580.76.05",
+    "torch": "2.13.0+cu130",
+    "python": "3.10.8"
+  },
+  "declared_budget": {
+    "protocol_version": "survey-v3.0",
+    "gan_epochs": 100,
+    "pn_epochs": 100,
+    "batch_size": 64,
+    "checkpoint_epoch_count": 100,
+    "checkpoint_bytes_per_component": 67108864,
+    "eligible_stages": [
+      "synthetic_pn"
+    ]
+  },
+  "measurement": {
+    "runs": [
+      {
+        "gan_epochs": 2,
+        "pn_epochs": 1,
+        "elapsed_seconds": 175.17399152368307,
+        "peak_gpu_allocated_bytes": 2731042304,
+        "in_process_peak_bytes": 2731042304,
+        "checkpoint_files": 1,
+        "max_component_bytes": 45542453,
+        "within_bound": true,
+        "failures": []
+      },
+      {
+        "gan_epochs": 1,
+        "pn_epochs": 2,
+        "elapsed_seconds": 116.01589695736766,
+        "peak_gpu_allocated_bytes": 2741134848,
+        "in_process_peak_bytes": 2741134848,
+        "checkpoint_files": 2,
+        "max_component_bytes": 45542453,
+        "within_bound": true,
+        "failures": []
+      }
+    ],
+    "seconds_per_gan_epoch": 78.11,
+    "seconds_per_pn_epoch": 18.95,
+    "extrapolated_full_budget_seconds": 9706.3,
+    "extrapolated_full_budget_hours": 2.7,
+    "peak_gpu_memory_bytes": 2741134848,
+    "max_component_bytes": 45542453,
+    "declared_bound_bytes": 67108864,
+    "within_bound": true,
+    "headroom_over_bound": 1.474,
+    "extrapolated_disk_single_candidate_one_attempt_bytes": 4554245300
+  },
+  "local_gpu_verdict": "not feasible on the local T600: at batch 64 it held 2.8 GiB of 4 GiB at 97% utilisation and had not completed one GAN epoch in ~20 minutes, so the formal budget would need 20+ hours there; the probe was aborted and moved to the 32 GiB instance",
+  "what_this_is_not": "not a training result: the probe runs are (2 GAN, 1 PN) and (1 GAN, 2 PN) to solve for per-epoch cost, and the full-budget run is a separate receipt",
+  "receipt_sha256": "b0337295bd816f8165df6d86efcb2e898a335e33b3b4b95211a5ceaed1288e00"
+}
