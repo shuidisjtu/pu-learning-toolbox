@@ -741,12 +741,36 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     }
     context.update(profile_manifest_identity(protocol, row["method"]))
     if has_profile_identities(protocol):
-        context["comparison_registration_status"] = "missing_versioned_profile_mapping"
+        context.update(_profile_registration_context(protocol, row["method"]))
     if "review_items" in protocol:
         context["protocol_pending_review_items"] = [
             item["item_id"] for item in protocol["review_items"] if item["status"] != "accepted"
         ]
     return context
+
+
+def _profile_registration_context(protocol: dict[str, Any], profile_id: str) -> dict[str, Any]:
+    """The profile's comparison registration, or the honest "no mapping" marker.
+
+    A missing map and a matrix the map was not frozen against (a narrowed draft,
+    or the canonical file after an unreviewed edit) both fall back to
+    ``missing_versioned_profile_mapping``: in neither case does a mapping describe
+    this matrix.  A map that *does* bind the matrix but omits this profile is a
+    defect and is raised, so "not mapped yet" cannot survive the file landing.
+    """
+    from .survey_profile_map import (
+        load_profile_map,
+        profile_map_available,
+        profile_map_binds,
+        profile_registration_status,
+    )
+
+    if not profile_map_available():
+        return {"comparison_registration_status": "missing_versioned_profile_mapping"}
+    profile_map = load_profile_map()
+    if not profile_map_binds(profile_map, protocol):
+        return {"comparison_registration_status": "missing_versioned_profile_mapping"}
+    return profile_registration_status(profile_id, protocol=protocol, profile_map=profile_map)
 
 
 def budget_fairness_fields(budget: dict) -> dict[str, Any]:

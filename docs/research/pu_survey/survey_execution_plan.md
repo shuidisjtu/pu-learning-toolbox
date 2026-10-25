@@ -5,14 +5,15 @@
 > `pu_toolbox/experiment/survey_protocol_v3.json`（执行协议）与 `survey_comparison_v4.json` 为准；
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（比较矩阵仍绑它），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
-> 状态核对日期：**2026-10-24**（v3 协议已冻结、runnable 40/64；25 份 clean-support 制品本机重建；GEN-PU 配方与 PULDA/GradPU 图像 runner 已补；PN-CNN 5 seed 继续暂缓）
+> 状态核对日期：**2026-10-25**（v3 协议已冻结、runnable 40/64；25 份 clean-support 制品本机重建；GEN-PU 配方与 PULDA/GradPU 图像 runner 已补；PN-CNN 5 seed 继续暂缓；profile → 比较矩阵映射已落地，见 D40）
 
 ## 1. 实验能力与缺口
 
 > 本节按“PU Survey 实验设施现在能做什么”组织；任务编号只作关联。状态分三层，避免把工程接线
 > 当结果：**runnable**（`survey_protocol_v3.json` 的 `execution_units` 标 `runnable=true`，
 > 有预算/runner，能产出合规 manifest，当前 **40 / 64**）、**formal**（清掉 `formal_blockers`
-> 并绑进比较矩阵，当前 **0**；配方注册表已于 D36 冻结，但冻结配方不等于准入）、
+> 并绑进比较矩阵，当前 **0**；配方注册表已于 D36 冻结、profile 映射已于 D40 落地，但阻断位未清，
+> 两者都不等于准入）、
 > **evidence**（已有真实数据读数，目前只有单 seed 工程 smoke，没有正式多 seed/GPU 批次）。
 > 判定标准：命令可执行并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。
 > 状态核对日期：2026-10-25。
@@ -29,7 +30,7 @@
 | clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase seed0 三方法已跑通） | 5 数据集正式 units/预算 | 正式 support 批次 manifest 与制品对账 |
 | PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射仍待重新裁定 | 54 条映射裁定后 `blocked_pending_pa_criterion` 清空 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
-| v3 ↔ comparison/registry 绑定 | **否** | 运行逐条记 `missing_versioned_profile_mapping`；`survey_comparison_v4.json` 仍绑 `survey-v2.0` | 版本化 profile 映射落地，结果进比较矩阵 |
+| v3 ↔ comparison/registry 绑定 | **部分** | 版本化 profile 映射已落地（`survey-profile-map-v1`：9 mapped / 14 not_in_matrix），运行记录注册状态而不再统一记 `missing_versioned_profile_mapping`；仍缺 P4.2a/b 条目与 comparison v5 | 映射生效且门禁通过；7 个 runnable profile 在 v5 里 `mapped` 后结果才进矩阵 |
 | 22 方法主榜 | **否** | 24 个 blocked 单元 + 只有 3 个数据集 + 上一条绑定；缺口拆成 §1.2 的 P4.2a（4 个有基准覆盖）与 P4.2b（3 个只做定性交代） | P4.2 门禁 |
 
 ### 1.2 缺口任务
@@ -39,7 +40,6 @@
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
-| v3 ↔ comparison/registry 绑定 | 结果进不了比较矩阵 | 版本化 profile 映射，重绑 comparison | shuidisjtu | 运行不再记 `missing_versioned_profile_mapping` |
 | P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | 先核对两篇基准论文的表格是否真的报这 4 个方法；通过后补 anchor + mapping + protocol differences，出 comparison v5 重绑 v3 | shuidisjtu | 4 个 profile 在映射文件中为 `mapped`，v5 绑 v3 且门禁通过 |
 | P4.2b：3 个无基准方法只做定性交代 | `genpu`、`pulns`、`split_pu` 不在任何统一基准里，各自论文的数据集/指标口径不同 | 记为 `no_direct_anchor` / `background_only`，不产出数值锚点（用户 2026-10-25 定） | shuidisjtu | 3 个 profile 有明确 eligibility 与非空理由，摘要中只作背景展示 |
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
@@ -91,8 +91,11 @@ draft 令牌当锁定预算。
 - 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 40/64）。
   `survey_protocol_v2.json`（`survey-v2.0`）继续是 645-run pilot 的历史绑定，不被覆盖；
   `survey_protocol_v1.json` 与 `survey_comparison_v1..v3.json` 仅作历史绑定。
-- 比较矩阵 `survey_comparison_v4.json` 仍绑 `survey-v2.0`：v3 结果在版本化 profile 映射落地前
-  不进比较矩阵（运行逐条记 `missing_versioned_profile_mapping`）。
+- 比较矩阵 `survey_comparison_v4.json` 仍绑 `survey-v2.0`（D31）。profile → 比较条目的解析由
+  `survey_comparison_profile_map_v1.json`（`survey-profile-map-v1`，同时绑 v3 协议摘要与 v4 矩阵摘要）
+  给出：v3 运行据此记录 `comparison_registration_status`（`mapped_inherited` /
+  `mapped_with_profile_deviations` / `not_in_matrix`），`mapped` 的 profile 按继承条目解析每个结果单元；
+  7 个 runnable profile 仍是 `not_in_matrix`，要等 P4.2a/b 出 comparison v5 才进矩阵（D40）。
 - `runnable` 只表示实现能力，不是正式准入。v3 的 `formal_blockers` 未清；配方注册表已冻结
   （D36，`survey-recipes-v1.0` 绑 `survey-v3.0`），但冻结的是**配方绑定**，15 个 locked profile
   之外的方法仍无配方、正式 GPU 预算与效果结论都不在这里。
@@ -101,7 +104,8 @@ draft 令牌当锁定预算。
   `execution_units` 与预算），正式准入状态不变。
 - 冻结文件只在版本化提案中修改；新数据、方法或配方登记新协议，不覆盖旧 645-run 结果、
   旧 manifest 或历史签署。
-- **P3.1 完成 ≠ 正式准入**；正式准入仍待 `formal_blockers` 清除、版本化 profile 映射与主榜门禁。
+- **P3.1 完成 ≠ 正式准入**；正式准入仍待 `formal_blockers` 清除与主榜门禁（版本化 profile 映射
+  已于 2026-10-25 落地，见 D40）。
 
 #### 1.4.2 数据、角色与标签预算
 
@@ -305,7 +309,7 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D39）
+## 附录 A. 决策账本（D1–D40）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -351,3 +355,4 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 | D37 | **P4.2 拆两档：4 个补基准条目，3 个只做定性交代** | v3 有 7 个 runnable profile 在 `survey_comparison_v4.json` 里没有条目，按原料分两档。① P4.2a：`pulda`、`robust_pu`、`holistic_pu` 在两个已引用基准（`pu_bench_2026`、`pubench_2026`）的代码里都有实现，`lagam` 在 PU-Bench 里有；因此可复用现有 source 补 anchor 与 mapping，不新引入论文。前置是核对基准**论文表格**确实报了这些行——仓库只有代码与 README，没有结果表，代码实现不等于论文报告。② P4.2b：`genpu`、`pulns`、`split_pu` 不在任何统一基准里（PU-Bench 的 `cgenpu` 是变体，不是 genpu；`nnpusb` 不是 Split-PU），各自论文的数据集/指标口径与矩阵不一致，按用户 2026-10-25 决定记 `no_direct_anchor`/`background_only`，只做定性交代，不为凑锚点改数据集或指标。两档都归我方，队友任务单不含这两项，避免分散其 blocked 单元的工时。 | 2026-10-25 |
 | D38 | **PA 准则的账面更正：不再作为外部依赖** | P2.0c（54 条 PA 映射的对照预注册）早已交付，R9 的准则本体也已于 2026-09-20 实现（proxy accuracy，Wang et al. 2026 Def 1 的 OS 分支 + 与 OA 同构的阈值网格与归一化 + π 必传预检，PR #65），当时遗留的只有"合作者签署"与"54 条映射裁决"。签署要求已于 2026-10-24 取消，因此剩下的仅是**我方重新裁定这 54 条映射**并把 `per_epoch_independent_PA_OA_checkpoint_selection` 的措辞改成现状；不再把"PA 准则放行"列为队友编码任务或外部依赖。裁定前 PA 行仍不得做数值裁决，这一约束不变。 | 2026-10-25 |
 | D39 | **汇总口径：诊断优先，锚点为辅** | 用户 2026-10-25 定：实验的最终产物是**我们自己的读数**，汇总用于判断"某方法在哪、为什么异常"——例如论文声称多种模态上都稳定，而我们的实现只在单一数据集成立，就提示估计器实现可能有问题——**不强制对照论文数值**。因此新增 §1.4.5：诊断信号按**协议已固定的维度**设计——机制（SCAR/SAR，§2.3）、视图（OS/TS，§2.3）、backbone/表征（§2.5）、class prior 语义（§3）、`c` 敏感性（§2.3）、PN oracle 对齐与四组不混排（§5）、PA/OA 差距（§1）、seed 方差、跨数据集趋势（§2.5）、外部锚点——每行标注协议依据与"异常的形态"，使异常有可检查的落点；每个单元必须标出依据哪几类信号，`no_direct_anchor` 单元只用内部信号表述，禁止写成"与论文一致/不一致"。环境按"固定镜像与规格的实例组"实现（平台文档保证同镜像同规格环境一致），正式批次登记 `frozen_lock_environment_verified=true` 与镜像/驱动/依赖版本，不视为跑批前置障碍。 | 2026-10-25 |
+| D40 | **profile → 比较条目走"继承 + 显式偏差"；`not_in_matrix` 只管矩阵，不管可运行性** | v3 的 `execution_units.method` 是 profile ID，而 `survey_comparison_v4.json` 用 method 选择器、没有 profile 维度，因此新增 `survey_comparison_profile_map_v1.json`（`survey-profile-map-v1`）作为 profile 的全函数映射：23 profile = 9 mapped / 14 not_in_matrix（7 个 P4.2 缺口 + 7 个非 runnable）。mapped profile 继承其算法的既有条目，profile 特有差异以 `deviations` 记录并标 `against` 锚点族——论文 `chen_table7` 与受控实现 `pu_bench_table1` 的偏差可以是相反方向的，`self_pu_full_meta` 就是"无 meta 偏差于论文、有偏差于受控实现"，混写会让读者分不清"和谁不同"。`not_in_matrix` 只陈述矩阵没有条目：`kldce` 被注册表 `excluded` 却在 v4 有三条 non-runnable 标记行，故记 mapped；若按"不可运行"把它记为 not_in_matrix，这三行在反查门禁里就成了没有任何 profile 可达的孤立条目。本文件不改 `eligibility`——能否数值裁决仍归 v4（D38 的 PA 阻断不受影响），映射只回答"继承哪条"。协议或矩阵摘要变更必须同步刷新双绑定，CI 以 `scripts/check_survey_profile_map.py --require-present` 强制；历史 manifest 不改写。 | 2026-10-25 |

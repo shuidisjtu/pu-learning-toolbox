@@ -79,7 +79,7 @@ _PN_ORACLE = "pn_oracle"
 _UNIT_SELECTION_PROTOCOLS = ("pa", "oa")
 _SAR_MECHANISMS = ("sar_lbe_a", "sar_lbe_b")
 _RESULT_UNITS = frozenset({"fraction", "percentage_points"})
-_SELECTOR_FIELDS = (
+SELECTOR_FIELDS = (
     "method",
     "dataset",
     "labeling_mechanism",
@@ -88,6 +88,9 @@ _SELECTOR_FIELDS = (
     "metric",
     "training_path",
 )
+#: The profile map resolves the same selector with ``method`` substituted, so it
+#: imports this tuple instead of restating it.
+_SELECTOR_FIELDS = SELECTOR_FIELDS
 _REQUIRED_TOP_LEVEL = (
     "schema_version",
     "comparison_version",
@@ -699,16 +702,39 @@ _ESCALATING_CONCLUSION = "unexplained_warning"
 
 
 def comparison_context(
-    result_identity: dict[str, str], *, comparison: dict[str, Any] | None = None
+    result_identity: dict[str, str],
+    *,
+    comparison: dict[str, Any] | None = None,
+    profile_id: str | None = None,
+    survey: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Fields a run manifest records so every result row states its comparison.
     Only the version, digest and resolved mapping id belong in the run
     manifest: the actual mean/spread across seeds and any literature verdict
     are aggregation work (P2.2), not run work (P2.1).
+
+    ``profile_id`` switches the lookup to the versioned profile map: under the
+    profile-identity schema the unit's ``method`` is a profile, and the entry it
+    inherits is the one its base algorithm registered.
     """
     if comparison is None:
         comparison = load_comparison_protocol()
-    resolved = resolve_comparison_unit(result_identity, comparison=comparison)
+    profile_fields: dict[str, Any] = {}
+    if profile_id is None:
+        resolved = resolve_comparison_unit(result_identity, comparison=comparison)
+    else:
+        from .survey_profile_map import resolve_profile_mapping
+
+        resolved = resolve_profile_mapping(
+            profile_id, result_identity, protocol=survey, comparison=comparison
+        )
+        profile_fields = {
+            "profile_id": profile_id,
+            "profile_map_version": resolved["profile_map_version"],
+            "profile_map_sha256": resolved["profile_map_sha256"],
+            "profile_registration": resolved["profile_registration"],
+            "profile_deviation_count": resolved["deviation_count"],
+        }
     return {
         "comparison_version": comparison["comparison_version"],
         "comparison_sha256": comparison_digest(comparison),
@@ -716,6 +742,7 @@ def comparison_context(
         "eligibility": resolved["eligibility"],
         "review_status": comparison["review_status"],
         "comparison_blockers": list(comparison["formal_blockers"]),
+        **profile_fields,
     }
 
 
@@ -725,6 +752,7 @@ def run_comparison_units(
     *,
     survey: dict[str, Any] | None = None,
     comparison: dict[str, Any] | None = None,
+    profile_id: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     """The comparison entries one run's manifest records, keyed by selection protocol.
 
@@ -753,6 +781,27 @@ def run_comparison_units(
         from .survey_protocol import load_protocol
 
         survey = load_protocol(config["survey_protocol"]["path"])
+    if profile_id is not None:
+        from .survey_profile_map import (
+            STATUS_NOT_IN_MATRIX,
+            load_profile_map,
+            profile_map_binds,
+            profile_registration_status,
+        )
+
+        profile_map = load_profile_map()
+        if not profile_map_binds(profile_map, survey):
+            # A narrowed or otherwise noncanonical matrix has no versioned
+            # profile mapping; the manifest's registration status already says so.
+            return {}
+        registration = profile_registration_status(
+            profile_id, protocol=survey, profile_map=profile_map
+        )
+        if registration["comparison_registration_status"] == STATUS_NOT_IN_MATRIX:
+            # A profile outside the matrix has no entry to record.  Its manifest
+            # already carries that status, so an empty block says the same thing
+            # without borrowing the base algorithm's pre-registered row.
+            return {}
     row = protocol_context["execution_unit"]
     units = [unit for unit in expected_result_units(survey) if _is_run_unit(unit, row, config)]
     entries: dict[str, dict[str, Any]] = {}
@@ -763,7 +812,9 @@ def run_comparison_units(
         key = unit["selection_protocol"].upper()
         if key in entries:
             raise ValueError(f"a run produces at most one result unit per protocol, got two {key}")
-        entries[key] = comparison_context(unit, comparison=comparison)
+        entries[key] = comparison_context(
+            unit, comparison=comparison, profile_id=profile_id, survey=survey
+        )
     return entries
 
 
