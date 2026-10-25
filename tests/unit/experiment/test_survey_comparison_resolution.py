@@ -18,6 +18,7 @@ from pu_toolbox.experiment.survey_comparison import (
     COMPARISON_PATHS,
     comparison_digest,
     comparison_for_protocol,
+    comparison_for_version,
     load_comparison_protocol,
     resolve_comparison_path,
     run_comparison_units,
@@ -159,6 +160,18 @@ def test_basic_the_coverage_gate_checks_the_resolved_matrix(v3):
     assert counts["units"] == counts["unit_mappings"] == 288
     assert counts["anchors"] == 64
     assert counts["outside_matrix"] == 27
+
+
+def test_basic_a_derived_protocol_resolves_through_the_shipped_matrix(v3, v5):
+    """A narrowed matrix still records the entry its units land on (v5)."""
+    narrowed = copy.deepcopy(v3)
+    narrowed["seeds"] = [0]
+    assert comparison_for_version(narrowed["protocol_version"])["comparison_version"] == (
+        "survey-comparison-v5"
+    )
+    assert digest(comparison_for_version(narrowed["protocol_version"])) == digest(v5)
+    with pytest.raises(ValueError, match="disagrees with the execution protocol"):
+        comparison_for_protocol(narrowed)
 
 
 def test_edge_a_version_no_shipped_matrix_carries_is_read_as_a_path():

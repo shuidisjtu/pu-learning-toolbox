@@ -57,10 +57,14 @@ from pu_toolbox.experiment.survey_audit import (  # noqa: E402
 )
 from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
     comparison_digest,
+    comparison_for_version,
     expected_result_units,
-    load_comparison_protocol,
 )
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol  # noqa: E402
+from pu_toolbox.experiment.survey_protocol import (  # noqa: E402
+    digest,
+    load_protocol,
+    resolve_protocol_path,
+)
 from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
     build_provenance,
     input_result_roots,
@@ -1249,14 +1253,18 @@ def build_audit(
     config: dict[str, Any],
     *,
     entries: list[dict[str, Any]] | None = None,
+    protocol: dict[str, Any] | None = None,
     repo_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
     """Run every check this entry point can decide, and name the ones it cannot.
 
     ``entries`` is accepted so a caller that also summarizes does not walk and
     load the tree twice; the audit is a pure function of what it is handed.
+    ``protocol`` selects the matrix the tree was run under, so a v3 tree is
+    audited against v5 instead of being failed against the v2 default.
     """
-    protocol = load_protocol()
+    if protocol is None:
+        protocol = load_protocol()
     frozen = digest(protocol)
     report = empty_report()
     report["protocol_version"] = protocol.get("protocol_version")
@@ -1321,7 +1329,7 @@ def build_audit(
     # The frozen matrix is loaded once and handed to the preflight: the loader
     # re-validates every mapping and anchor, which is too much work to repeat 610
     # times for the same answer.
-    comparison = load_comparison_protocol()
+    comparison = comparison_for_version(protocol["protocol_version"])
     # The matrix is part of this report's identity: the preflight verdicts below
     # depend on it, so which matrix produced them belongs next to the protocol.
     report["provenance"] = build_provenance(
@@ -1485,10 +1493,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", required=True, help="batch-root whitelist JSON")
     parser.add_argument("--out-dir", required=True, help="where audit.json / audit.md go")
+    parser.add_argument(
+        "--protocol",
+        default="survey-v2.0",
+        help="protocol matrix the tree was run under (shipped name or path)",
+    )
     args = parser.parse_args(argv)
     try:
         config = load_config(args.config)
-        report = build_audit(config)
+        report = build_audit(config, protocol=load_protocol(resolve_protocol_path(args.protocol)))
     except (AuditError, ConfigError, OSError, json.JSONDecodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

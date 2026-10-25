@@ -60,9 +60,13 @@ import audit_survey_batches as audit  # noqa: E402
 from pu_toolbox.experiment.survey_audit import PROBE_ROLE, AuditError  # noqa: E402
 from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
     comparison_digest,
-    load_comparison_protocol,
+    comparison_for_version,
 )
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol  # noqa: E402
+from pu_toolbox.experiment.survey_protocol import (  # noqa: E402
+    digest,
+    load_protocol,
+    resolve_protocol_path,
+)
 from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
     build_provenance,
     input_result_roots,
@@ -465,9 +469,17 @@ def build_clean_support_summary(config: dict[str, Any]) -> dict[str, Any]:
     return report
 
 
-def build_summary(config: dict[str, Any]) -> dict[str, Any]:
-    """Audit, gate per group, and summarize.  Never reads a clock."""
-    protocol = load_protocol()
+def build_summary(
+    config: dict[str, Any], *, protocol: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Audit, gate per group, and summarize.  Never reads a clock.
+
+    ``protocol`` names the matrix the tree was run under; the default keeps the
+    historical shipped protocol, and the comparison matrix is then resolved from
+    whichever protocol was passed so the summary and the matrix cannot disagree.
+    """
+    if protocol is None:
+        protocol = load_protocol()
     expected_seeds = list(protocol.get("seeds", []))
     if not expected_seeds:
         # Every row would read as incomplete against an empty seed list, so this
@@ -490,12 +502,12 @@ def build_summary(config: dict[str, Any]) -> dict[str, Any]:
     except audit.ConfigError as exc:
         report = empty_summary(protocol=protocol)
         report["provenance"] = provenance
-        report["checks"] = audit.build_audit(config)["checks"]
+        report["checks"] = audit.build_audit(config, protocol=protocol)["checks"]
         report["overall"] = "fail"
         report["error"] = str(exc)
         return report
 
-    audit_report = audit.build_audit(config, entries=entries)
+    audit_report = audit.build_audit(config, entries=entries, protocol=protocol)
     recipe_audit = audit_report.get("recipe_audit")
     if recipe_audit is not None and recipe_audit["overall"] == "fail":
         report = empty_summary(protocol=protocol)
@@ -509,7 +521,7 @@ def build_summary(config: dict[str, Any]) -> dict[str, Any]:
         return report
     # Loaded once: the loader re-validates the whole matrix on every call, and a
     # per-manifest call would repeat that 610 times for the same answer.
-    comparison = load_comparison_protocol()
+    comparison = comparison_for_version(protocol["protocol_version"])
     loaded = [entry for entry in entries if "payload" in entry]
     for entry in loaded:
         # Preserve readable support results without pretending the old comparison
@@ -962,11 +974,19 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="diagnostic-only independent support inputs; requires config expected_seeds",
     )
+    parser.add_argument(
+        "--protocol",
+        default="survey-v2.0",
+        help="protocol matrix the tree was run under (shipped name or path)",
+    )
     args = parser.parse_args(argv)
     try:
         config = audit.load_config(args.config)
+        protocol = load_protocol(resolve_protocol_path(args.protocol))
         report = (
-            build_clean_support_summary(config) if args.clean_support else build_summary(config)
+            build_clean_support_summary(config)
+            if args.clean_support
+            else build_summary(config, protocol=protocol)
         )
     except (AuditError, SummaryError, audit.ConfigError, OSError, json.JSONDecodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)

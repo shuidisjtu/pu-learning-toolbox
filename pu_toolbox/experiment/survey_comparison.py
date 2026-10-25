@@ -243,6 +243,20 @@ def comparison_for_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def comparison_for_version(version: str) -> dict[str, Any]:
+    """The shipped matrix of *version*, for callers holding a derived protocol.
+
+    A narrowed or in-memory protocol carries the same version but a different
+    digest, and no matrix was frozen against it; resolving through the shipped
+    file of that version is what lets such a run still record the
+    pre-registered entry it lands on.  :func:`comparison_for_protocol` stays
+    strict for callers that must prove they hold the frozen matrix.
+    """
+    from .survey_protocol import load_protocol, resolve_protocol_path
+
+    return comparison_for_protocol(load_protocol(resolve_protocol_path(version)))
+
+
 def _validate_binding(bound: Any, survey: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(bound, dict):
         raise ValueError("bound_survey_protocol must be an object")
@@ -791,6 +805,34 @@ COMPARISON_CONCLUSIONS = (
 _ESCALATING_CONCLUSION = "unexplained_warning"
 
 
+def _resolve_entry(
+    result_identity: dict[str, str],
+    *,
+    comparison: dict[str, Any],
+    profile_id: str | None,
+    survey: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Resolve one result unit through the matrix, or through the profile map.
+
+    A profile outside the matrix raises rather than returning a half-filled
+    entry: there is no mapping to record, and borrowing the base algorithm's
+    entry is exactly the substitution D40 forbids.
+    """
+    if profile_id is None:
+        return resolve_comparison_unit(result_identity, comparison=comparison)
+    from .survey_profile_map import resolve_profile_mapping
+
+    resolved = resolve_profile_mapping(
+        profile_id, result_identity, protocol=survey, comparison=comparison
+    )
+    if resolved.get("status") == "not_in_matrix":
+        raise ValueError(
+            f"profile {profile_id!r} is outside the comparison matrix: "
+            f"{resolved['profile_rationale']}"
+        )
+    return resolved
+
+
 def comparison_context(
     result_identity: dict[str, str],
     *,
@@ -814,14 +856,10 @@ def comparison_context(
             comparison_for_protocol(survey) if survey is not None else load_comparison_protocol()
         )
     profile_fields: dict[str, Any] = {}
-    if profile_id is None:
-        resolved = resolve_comparison_unit(result_identity, comparison=comparison)
-    else:
-        from .survey_profile_map import resolve_profile_mapping
-
-        resolved = resolve_profile_mapping(
-            profile_id, result_identity, protocol=survey, comparison=comparison
-        )
+    resolved = _resolve_entry(
+        result_identity, comparison=comparison, profile_id=profile_id, survey=survey
+    )
+    if profile_id is not None:
         profile_fields = {
             "profile_id": profile_id,
             "profile_map_version": resolved["profile_map_version"],
@@ -897,15 +935,10 @@ def run_comparison_units(
             # without borrowing the base algorithm's pre-registered row.
             return {}
     if comparison is None:
-        from .survey_protocol import load_protocol, resolve_protocol_path
-
-        # Resolve through the *shipped* matrix of this protocol version, not the
-        # caller-supplied one: a narrowed copy still records the pre-registered
-        # entry its unit lands on, and the noncanonical matrix is already on the
-        # manifest as a deviation.
-        comparison = comparison_for_protocol(
-            load_protocol(resolve_protocol_path(survey["protocol_version"]))
-        )
+        # Resolve through the *shipped* matrix of this protocol version: a
+        # narrowed copy still records the pre-registered entry its unit lands on,
+        # and the noncanonical matrix is already on the manifest as a deviation.
+        comparison = comparison_for_version(survey["protocol_version"])
     row = protocol_context["execution_unit"]
     units = [unit for unit in expected_result_units(survey) if _is_run_unit(unit, row, config)]
     entries: dict[str, dict[str, Any]] = {}
@@ -944,17 +977,32 @@ def _is_run_unit(unit: dict[str, str], row: dict[str, Any], config: dict[str, An
 
 
 def build_comparison_report(
-    result_summary: dict[str, Any], *, comparison: dict[str, Any] | None = None
+    result_summary: dict[str, Any],
+    *,
+    comparison: dict[str, Any] | None = None,
+    profile_id: str | None = None,
+    survey: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the aggregation-side comparison artifact for one result unit.
     Never touches the result summary: this layer annotates, it does not
     re-measure, so the original metrics and any ranking stay exactly as
     produced.  A unit that cannot be adjudicated still gets a report -- the
     point is that its reason is recorded rather than left implicit.
+
+    ``profile_id`` resolves the unit through the versioned profile map, the
+    same way a run does; an aggregation over v3 rows therefore reads the
+    entry the profile inherits instead of looking the profile up as a method.
     """
     if comparison is None:
-        comparison = load_comparison_protocol()
-    resolved = resolve_comparison_unit(result_summary["result_identity"], comparison=comparison)
+        comparison = (
+            comparison_for_protocol(survey) if survey is not None else load_comparison_protocol()
+        )
+    resolved = _resolve_entry(
+        result_summary["result_identity"],
+        comparison=comparison,
+        profile_id=profile_id,
+        survey=survey,
+    )
     report: dict[str, Any] = {
         "mapping_id": resolved["mapping_id"],
         "eligibility": resolved["eligibility"],
