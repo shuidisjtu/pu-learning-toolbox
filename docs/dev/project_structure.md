@@ -594,6 +594,7 @@ tests/
       test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
       test_survey_recipe_registry_locked.py # P4.1-B 冻结：范围、快照可重算、手改与未锁定绑定被拒
       test_survey_profile_map.py        # 映射全函数覆盖、继承偏差与三态状态，绑定漂移、kldce 反查与窄化矩阵降级
+      test_survey_comparison_v5.py      # v5 覆盖 v3 288 单元：D41 PA 无锚点、P4.2a 四方法锚点与锚点唯一归属
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

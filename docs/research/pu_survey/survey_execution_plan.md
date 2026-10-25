@@ -31,7 +31,7 @@
 | clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase seed0 三方法已跑通） | 5 数据集正式 units/预算 | 正式 support 批次 manifest 与制品对账 |
 | PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定规则已定（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA），尚未应用到矩阵 | comparison v5 应用 D41 后 v4 的 `blocked_pending_pa_criterion` 清空 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
-| v3 ↔ comparison/registry 绑定 | **部分** | 版本化 profile 映射已落地（`survey-profile-map-v1`：9 mapped / 14 not_in_matrix），运行记录注册状态而不再统一记 `missing_versioned_profile_mapping`；仍缺 P4.2a/b 条目与 comparison v5 | 映射生效且门禁通过；7 个 runnable profile 在 v5 里 `mapped` 后结果才进矩阵 |
+| v3 ↔ comparison/registry 绑定 | **部分** | profile 映射已落地（v1：9 mapped；v2 随 v5 起 13 mapped）；`survey_comparison_v5.json` 已产出并绑 v3、过覆盖率门禁，但**运行链路仍走 v4**（默认加载器未按协议版本切换）| 按协议版本解析矩阵后，v3 运行自动用 v5 |
 | 22 方法主榜 | **否** | 24 个 blocked 单元 + 只有 3 个数据集 + 上一条绑定；缺口拆成 §1.2 的 P4.2a（4 个有基准覆盖）与 P4.2b（3 个只做定性交代） | P4.2 门禁 |
 
 ### 1.2 缺口任务
@@ -41,7 +41,7 @@
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
-| P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | 先核对两篇基准论文的表格是否真的报这 4 个方法；通过后补 anchor + mapping + protocol differences，出 comparison v5 重绑 v3 | shuidisjtu | 4 个 profile 在映射文件中为 `mapped`，v5 绑 v3 且门禁通过 |
+| P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | **已完成**：论文核对确认 PU-Bench Table 1 四个方法全报；12 条锚点已写入 `survey_comparison_v5.json`（OA 单元、`magnitude_and_trend`），profile map v2 把四个 profile 转 `mapped` | shuidisjtu | 已满足；剩余是把 v5 接进运行链路 |
 | P4.2b：3 个无基准方法只做定性交代 | `genpu`、`pulns`、`split_pu` 不在任何统一基准里，各自论文的数据集/指标口径不同 | 记为 `no_direct_anchor` / `background_only`，不产出数值锚点（用户 2026-10-25 定） | shuidisjtu | 3 个 profile 有明确 eligibility 与非空理由，摘要中只作背景展示 |
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
 | 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
