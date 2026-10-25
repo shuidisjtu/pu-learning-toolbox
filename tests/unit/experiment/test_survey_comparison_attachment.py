@@ -19,7 +19,8 @@ import sys
 import pytest
 from _survey_summary_helpers import SCRIPTS_DIR, manifest
 
-from pu_toolbox.experiment.survey_comparison import ELIGIBILITY_CLASSES
+from pu_toolbox.experiment.survey_comparison import ELIGIBILITY_CLASSES, comparison_for_protocol
+from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, digest, load_protocol
 from pu_toolbox.experiment.survey_summary import RESULT_IDENTITY_FIELDS, matrix_selector
 
 if str(SCRIPTS_DIR) not in sys.path:
@@ -203,3 +204,59 @@ def test_determ_the_attachment_is_a_pure_function_of_the_summary_it_is_handed():
     assert first == second
     assert first["coverage"]["by_eligibility"]["numeric"] == 1
     assert first["coverage"]["by_eligibility"][attach.UNRESOLVED] == 1
+
+
+def _v3_identity(method, **overrides):
+    """A v3 row: the identity method is a profile, not an algorithm."""
+    identity = {
+        "method": method,
+        "dataset": "spambase",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_2d",
+    }
+    identity.update(overrides)
+    return identity
+
+
+def test_basic_a_v3_row_resolves_through_the_versioned_profile_map():
+    """The row names a profile; the entry it inherits is the base algorithm's."""
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    entry = attach.compare_row(
+        _row(identity=_v3_identity("pulda")),
+        comparison=comparison_for_protocol(protocol),
+        protocol=protocol,
+    )
+
+    assert entry["context"]["comparison_version"] == "survey-comparison-v5"
+    assert entry["context"]["profile_registration"] == "mapped"
+    assert entry["mapping_id"] is not None
+
+
+def test_param_a_profile_outside_the_matrix_records_no_entry():
+    """Outside the matrix is a stated gap, never the base algorithm's row."""
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    entry = attach.compare_row(
+        _row(identity=_v3_identity("genpu")),
+        comparison=comparison_for_protocol(protocol),
+        protocol=protocol,
+    )
+
+    assert entry["mapping_id"] is None
+    assert entry["context"] is None
+    assert "outside the comparison matrix" in entry["note"]
+
+
+def test_param_the_summary_matrix_is_resolved_by_its_own_version():
+    """A v3 summary is read against v5; a digest that disagrees is refused."""
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    resolved = attach._summary_protocol(
+        {"protocol_version": "survey-v3.0", "protocol_sha256": digest(protocol)}
+    )
+    assert resolved["protocol_version"] == "survey-v3.0"
+    with pytest.raises(ValueError, match="disagrees with the shipped matrix"):
+        attach._summary_protocol({"protocol_version": "survey-v3.0", "protocol_sha256": "0" * 64})
+    with pytest.raises(ValueError, match="does not record the protocol"):
+        attach._summary_protocol({"rows": []})

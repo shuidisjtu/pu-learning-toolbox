@@ -41,6 +41,19 @@ from typing import Any
 from pu_toolbox.utils.serialization import strict_canonical_hash
 
 COMPARISON_PATH = Path(__file__).with_name("survey_comparison_v4.json")
+#: The shipped matrices, keyed by the protocol version each one was frozen
+#: against.  A version resolves to the file carrying *its* binding: a
+#: survey-v3.0 run reads the v3-bound matrix rather than whichever file
+#: happens to be newest, so a historical version keeps re-reading the rules it
+#: was pre-registered under.  ``survey_protocol.PROTOCOL_PATHS`` makes the same
+#: promise for the protocols, and the two tables are what keep them aligned.
+COMPARISON_PATHS: dict[str, Path] = {
+    "survey-v1": Path(__file__).with_name("survey_comparison_v3.json"),
+    "survey-v1.1": Path(__file__).with_name("survey_comparison_v3.json"),
+    "survey-v1.2": Path(__file__).with_name("survey_comparison_v3.json"),
+    "survey-v2.0": COMPARISON_PATH,
+    "survey-v3.0": Path(__file__).with_name("survey_comparison_v5.json"),
+}
 
 #: The six eligibility classes, in canonical order.  A comparison file that
 #: declares anything else (an extra class, a missing one) is rejected rather
@@ -143,7 +156,8 @@ def load_comparison_protocol(
     """Load and validate the comparison rules before any result is produced.
 
     ``survey`` is the execution protocol this file must be bound to; when it is
-    omitted the shipped ``survey_protocol_v2.json`` is loaded.  The binding is
+    omitted the protocol the file itself declares is loaded, so a matrix cannot
+    be read under a protocol it was never frozen against.  The binding is
     checked both ways (version and digest) so a protocol bump cannot silently
     leave the comparison pointing at stale rules.
     """
@@ -207,6 +221,42 @@ def load_comparison_protocol(
     return payload
 
 
+def resolve_comparison_path(value: str | Path) -> Path:
+    """The matrix file *value* denotes: a shipped version name, or the path it gives."""
+    name = str(value)
+    if name in COMPARISON_PATHS:
+        return COMPARISON_PATHS[name]
+    return Path(value).resolve()
+
+
+def comparison_for_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
+    """The shipped matrix bound to *protocol*, selected by the protocol version.
+
+    The version -- not the path the caller happens to hold, and not the default
+    file -- picks the matrix, so a v3 run cannot pick up the v2-bound rules the
+    way it could while the default was a single hardcoded path.  The binding is
+    then verified against the protocol itself: a registry entry pointing at the
+    wrong matrix raises here, instead of producing a plausible-looking verdict.
+    """
+    return load_comparison_protocol(
+        resolve_comparison_path(protocol["protocol_version"]), survey=protocol
+    )
+
+
+def comparison_for_version(version: str) -> dict[str, Any]:
+    """The shipped matrix of *version*, for callers holding a derived protocol.
+
+    A narrowed or in-memory protocol carries the same version but a different
+    digest, and no matrix was frozen against it; resolving through the shipped
+    file of that version is what lets such a run still record the
+    pre-registered entry it lands on.  :func:`comparison_for_protocol` stays
+    strict for callers that must prove they hold the frozen matrix.
+    """
+    from .survey_protocol import load_protocol, resolve_protocol_path
+
+    return comparison_for_protocol(load_protocol(resolve_protocol_path(version)))
+
+
 def _validate_binding(bound: Any, survey: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(bound, dict):
         raise ValueError("bound_survey_protocol must be an object")
@@ -214,9 +264,12 @@ def _validate_binding(bound: Any, survey: dict[str, Any] | None) -> dict[str, An
         if not isinstance(bound.get(key), str) or not bound[key]:
             raise ValueError(f"bound_survey_protocol missing {key}")
     if survey is None:
-        from .survey_protocol import load_protocol
+        from .survey_protocol import load_protocol, resolve_protocol_path
 
-        survey = load_protocol()
+        # Read the protocol this matrix declares rather than the shipped
+        # default: the default moves on with every protocol bump, and loading
+        # it here is what let a v3 run quietly record a v2-bound block.
+        survey = load_protocol(resolve_protocol_path(bound["protocol_version"]))
     if bound["protocol_version"] != survey["protocol_version"]:
         raise ValueError(
             "bound survey protocol_version disagrees with the execution protocol: "
@@ -752,6 +805,34 @@ COMPARISON_CONCLUSIONS = (
 _ESCALATING_CONCLUSION = "unexplained_warning"
 
 
+def _resolve_entry(
+    result_identity: dict[str, str],
+    *,
+    comparison: dict[str, Any],
+    profile_id: str | None,
+    survey: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Resolve one result unit through the matrix, or through the profile map.
+
+    A profile outside the matrix raises rather than returning a half-filled
+    entry: there is no mapping to record, and borrowing the base algorithm's
+    entry is exactly the substitution D40 forbids.
+    """
+    if profile_id is None:
+        return resolve_comparison_unit(result_identity, comparison=comparison)
+    from .survey_profile_map import resolve_profile_mapping
+
+    resolved = resolve_profile_mapping(
+        profile_id, result_identity, protocol=survey, comparison=comparison
+    )
+    if resolved.get("status") == "not_in_matrix":
+        raise ValueError(
+            f"profile {profile_id!r} is outside the comparison matrix: "
+            f"{resolved['profile_rationale']}"
+        )
+    return resolved
+
+
 def comparison_context(
     result_identity: dict[str, str],
     *,
@@ -769,16 +850,16 @@ def comparison_context(
     inherits is the one its base algorithm registered.
     """
     if comparison is None:
-        comparison = load_comparison_protocol()
-    profile_fields: dict[str, Any] = {}
-    if profile_id is None:
-        resolved = resolve_comparison_unit(result_identity, comparison=comparison)
-    else:
-        from .survey_profile_map import resolve_profile_mapping
-
-        resolved = resolve_profile_mapping(
-            profile_id, result_identity, protocol=survey, comparison=comparison
+        # A caller that knows the protocol gets the matrix bound to it; only a
+        # caller that names neither keeps the historical default.
+        comparison = (
+            comparison_for_protocol(survey) if survey is not None else load_comparison_protocol()
         )
+    profile_fields: dict[str, Any] = {}
+    resolved = _resolve_entry(
+        result_identity, comparison=comparison, profile_id=profile_id, survey=survey
+    )
+    if profile_id is not None:
         profile_fields = {
             "profile_id": profile_id,
             "profile_map_version": resolved["profile_map_version"],
@@ -853,6 +934,11 @@ def run_comparison_units(
             # already carries that status, so an empty block says the same thing
             # without borrowing the base algorithm's pre-registered row.
             return {}
+    if comparison is None:
+        # Resolve through the *shipped* matrix of this protocol version: a
+        # narrowed copy still records the pre-registered entry its unit lands on,
+        # and the noncanonical matrix is already on the manifest as a deviation.
+        comparison = comparison_for_version(survey["protocol_version"])
     row = protocol_context["execution_unit"]
     units = [unit for unit in expected_result_units(survey) if _is_run_unit(unit, row, config)]
     entries: dict[str, dict[str, Any]] = {}
@@ -891,17 +977,32 @@ def _is_run_unit(unit: dict[str, str], row: dict[str, Any], config: dict[str, An
 
 
 def build_comparison_report(
-    result_summary: dict[str, Any], *, comparison: dict[str, Any] | None = None
+    result_summary: dict[str, Any],
+    *,
+    comparison: dict[str, Any] | None = None,
+    profile_id: str | None = None,
+    survey: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the aggregation-side comparison artifact for one result unit.
     Never touches the result summary: this layer annotates, it does not
     re-measure, so the original metrics and any ranking stay exactly as
     produced.  A unit that cannot be adjudicated still gets a report -- the
     point is that its reason is recorded rather than left implicit.
+
+    ``profile_id`` resolves the unit through the versioned profile map, the
+    same way a run does; an aggregation over v3 rows therefore reads the
+    entry the profile inherits instead of looking the profile up as a method.
     """
     if comparison is None:
-        comparison = load_comparison_protocol()
-    resolved = resolve_comparison_unit(result_summary["result_identity"], comparison=comparison)
+        comparison = (
+            comparison_for_protocol(survey) if survey is not None else load_comparison_protocol()
+        )
+    resolved = _resolve_entry(
+        result_summary["result_identity"],
+        comparison=comparison,
+        profile_id=profile_id,
+        survey=survey,
+    )
     report: dict[str, Any] = {
         "mapping_id": resolved["mapping_id"],
         "eligibility": resolved["eligibility"],

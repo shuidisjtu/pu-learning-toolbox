@@ -30,8 +30,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 #: Where the frozen map lives.  Named once so the gate, the resolver and the
-#: delivery record cannot disagree about the path.
-DEFAULT_MAP = PROJECT_ROOT / "pu_toolbox" / "experiment" / "survey_comparison_profile_map_v1.json"
+#: delivery record cannot disagree about the path.  v2 is the effective map;
+#: v1 stays on disk as the artifact written while v4 was still current, and its
+#: resolution path is superseded rather than maintained.
+DEFAULT_MAP = PROJECT_ROOT / "pu_toolbox" / "experiment" / "survey_comparison_profile_map_v2.json"
 
 
 def main(argv: list[str] | None = None) -> int:

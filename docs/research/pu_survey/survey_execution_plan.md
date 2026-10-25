@@ -29,9 +29,9 @@
 | 5 方法阶段预算（GEN-PU/PULDA/Robust/Split/Holistic） | **是（已冻结）** | 逐 seed 成本收据与 manifest 对账 | 阶段快照/成本收据与运行 manifest 对账 |
 | 图像三条路径 | **部分**：GEN-PU/PULDA 原生 CNN 与 Robust/Split/Holistic 的 `cnn_feature_adapter` 已标 runnable；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | 行翻 runnable 并出真实 CIFAR manifest |
 | clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase seed0 三方法已跑通） | 5 数据集正式 units/预算 | 正式 support 批次 manifest 与制品对账 |
-| PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定规则已定（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA），尚未应用到矩阵 | comparison v5 应用 D41 后 v4 的 `blocked_pending_pa_criterion` 清空 |
+| PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA） | v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
-| v3 ↔ comparison/registry 绑定 | **部分** | profile 映射已落地（v1：9 mapped；v2 随 v5 起 13 mapped）；`survey_comparison_v5.json` 已产出并绑 v3、过覆盖率门禁，但**运行链路仍走 v4**（默认加载器未按协议版本切换）| 按协议版本解析矩阵后，v3 运行自动用 v5 |
+| v3 ↔ comparison/registry 绑定 | **是** | profile 映射 v2 已生效（13 mapped / 10 not_in_matrix）；比较矩阵按**协议版本**解析，v3 运行自动用 `survey_comparison_v5.json`（2026-10-25 接线）| v3 运行 manifest 的 `comparison_version` / `comparison_sha256` 是 v5 摘要，覆盖率门禁在 v3 上也真跑 |
 | 22 方法主榜 | **否** | 24 个 blocked 单元 + 只有 3 个数据集 + 上一条绑定；缺口拆成 §1.2 的 P4.2a（4 个有基准覆盖）与 P4.2b（3 个只做定性交代） | P4.2 门禁 |
 
 ### 1.2 缺口任务
@@ -41,12 +41,11 @@
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
-| P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | **已完成**：论文核对确认 PU-Bench Table 1 四个方法全报；12 条锚点已写入 `survey_comparison_v5.json`（OA 单元、`magnitude_and_trend`），profile map v2 把四个 profile 转 `mapped` | shuidisjtu | 已满足；剩余是把 v5 接进运行链路 |
+| P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | **已完成**：论文核对确认 PU-Bench Table 1 四个方法全报；12 条锚点已写入 `survey_comparison_v5.json`（OA 单元、`magnitude_and_trend`），profile map v2 把四个 profile 转 `mapped` | shuidisjtu | 已满足：v5 于 2026-10-25 接管运行链路 |
 | P4.2b：3 个无基准方法只做定性交代 | `genpu`、`pulns`、`split_pu` 不在任何统一基准里，各自论文的数据集/指标口径不同 | 记为 `no_direct_anchor` / `background_only`，不产出数值锚点（用户 2026-10-25 定） | shuidisjtu | 3 个 profile 有明确 eligibility 与非空理由，摘要中只作背景展示 |
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
 | 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
 | GPU 机时实测 | 无法排 AutoDL 正式批次 | 已完成：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）；仍缺 GradPU 首跑与 PN-CNN 单 seed 计时 | shuidisjtu | 实测表反推机时 |
-| PA 映射的矩阵落地（裁定已定，不是缺实现） | 54 条 PA 映射在 v4 里仍是 `blocked_pending_pa_criterion`；v3 阻断位已按现状清理（D41），但矩阵本身还没改 | D41 已定裁定：54 条 PA 全部 `no_direct_anchor`；P4.2a 的 4 个方法锚点（Chen Table 1）挂 **OA** 单元、`magnitude_and_trend`；18 个 Chen 锚点的 `selection_protocol` 元数据在 v5 修正 | shuidisjtu | v5 中不再有 `blocked_pending_pa_criterion`，锚点各归属一条映射且不重复 |
 | PN-CNN 5 seed | oracle 行 | 协议定稿后再安排（D30） | — | 另行安排，不标完成 |
 
 ### 1.3 预算与资源
@@ -92,11 +91,12 @@ draft 令牌当锁定预算。
 - 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 40/64）。
   `survey_protocol_v2.json`（`survey-v2.0`）继续是 645-run pilot 的历史绑定，不被覆盖；
   `survey_protocol_v1.json` 与 `survey_comparison_v1..v3.json` 仅作历史绑定。
-- 比较矩阵 `survey_comparison_v4.json` 仍绑 `survey-v2.0`（D31）。profile → 比较条目的解析由
-  `survey_comparison_profile_map_v1.json`（`survey-profile-map-v1`，同时绑 v3 协议摘要与 v4 矩阵摘要）
-  给出：v3 运行据此记录 `comparison_registration_status`（`mapped_inherited` /
+- 比较矩阵按**协议版本**解析：`survey-v2.0` → `survey_comparison_v4.json`，`survey-v3.0` →
+  `survey_comparison_v5.json`（`survey-v4` 之外的版本各自钉住自己的矩阵，历史版本可重读）。profile →
+  比较条目的解析由生效的 `survey_comparison_profile_map_v2.json`（`survey-profile-map-v2`，绑 v3 协议摘要
+  与 v5 矩阵摘要）给出：v3 运行据此记录 `comparison_registration_status`（`mapped_inherited` /
   `mapped_with_profile_deviations` / `not_in_matrix`），`mapped` 的 profile 按继承条目解析每个结果单元；
-  7 个 runnable profile 仍是 `not_in_matrix`，要等 P4.2a/b 出 comparison v5 才进矩阵（D40）。
+  3 个 runnable profile（`genpu`/`pulns`/`split_pu`）仍是 `not_in_matrix`，等 P4.2b 定性交代（D40）。
 - `runnable` 只表示实现能力，不是正式准入。v3 的 `formal_blockers` 未清；配方注册表已冻结
   （D36，`survey-recipes-v1.0` 绑 `survey-v3.0`），但冻结的是**配方绑定**，15 个 locked profile
   之外的方法仍无配方、正式 GPU 预算与效果结论都不在这里。

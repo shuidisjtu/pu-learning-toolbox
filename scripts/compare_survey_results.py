@@ -50,7 +50,15 @@ from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
     build_comparison_report,
     comparison_context,
     comparison_digest,
-    load_comparison_protocol,
+    comparison_for_version,
+)
+from pu_toolbox.experiment.survey_profile_identity import (  # noqa: E402
+    has_profile_identities,
+)
+from pu_toolbox.experiment.survey_protocol import (  # noqa: E402
+    digest,
+    load_protocol,
+    resolve_protocol_path,
 )
 from pu_toolbox.experiment.survey_provenance import (  # noqa: E402
     build_provenance,
@@ -83,15 +91,25 @@ def is_adjudicated(entry: dict[str, Any]) -> bool:
     return entry["report"] is not None and entry["report"]["status"] in ADJUDICATED_STATUSES
 
 
-def compare_row(row: dict[str, Any], *, comparison: dict[str, Any]) -> dict[str, Any]:
+def compare_row(
+    row: dict[str, Any],
+    *,
+    comparison: dict[str, Any],
+    protocol: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """One report row's standing against the frozen matrix.
 
     ``context`` is always present once the row resolves -- it is the library's
     identity-level statement and costs nothing.  ``report`` is present only when the
     row is both numeric and formal; otherwise ``note`` says which of the two gates
     stopped it, so a reader can tell a coverage gap from a withholding.
+
+    ``protocol`` switches the lookup to the versioned profile map when the run
+    recorded profile identities: the row's ``method`` is then a profile, and the
+    entry it inherits is the one its base algorithm registered.
     """
     identity = row["result_identity"]
+    profile_id = identity["method"] if protocol and has_profile_identities(protocol) else None
     entry: dict[str, Any] = {
         "result_identity": identity,
         "row_key": row["row_key"],
@@ -103,7 +121,9 @@ def compare_row(row: dict[str, Any], *, comparison: dict[str, Any]) -> dict[str,
         "note": None,
     }
     try:
-        context = comparison_context(identity, comparison=comparison)
+        context = comparison_context(
+            identity, comparison=comparison, profile_id=profile_id, survey=protocol
+        )
     except ValueError as exc:
         entry["note"] = str(exc)
         return entry
@@ -117,7 +137,12 @@ def compare_row(row: dict[str, Any], *, comparison: dict[str, Any]) -> dict[str,
         )
         return entry
     try:
-        entry["report"] = build_comparison_report(to_result_summary(row), comparison=comparison)
+        entry["report"] = build_comparison_report(
+            to_result_summary(row),
+            comparison=comparison,
+            profile_id=profile_id,
+            survey=protocol,
+        )
     except (SummaryError, ValueError) as exc:
         # A row the matrix calls numeric that cannot produce a summary -- fewer than
         # two repeats, a missing spread, an uncertain anchor -- is a finding, not a
@@ -170,9 +195,17 @@ def _carried_provenance(summary: dict[str, Any], *, comparison: dict[str, Any]) 
     )
 
 
-def build_comparison(summary: dict[str, Any], *, comparison: dict[str, Any]) -> dict[str, Any]:
+def build_comparison(
+    summary: dict[str, Any],
+    *,
+    comparison: dict[str, Any],
+    protocol: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Resolve every row, then report what could and could not be compared."""
-    rows = [compare_row(row, comparison=comparison) for row in summary.get("rows", [])]
+    rows = [
+        compare_row(row, comparison=comparison, protocol=protocol)
+        for row in summary.get("rows", [])
+    ]
     by_class = Counter(entry["eligibility"] for entry in rows)
     by_status = Counter(entry["report"]["status"] for entry in rows if entry["report"] is not None)
     return {
@@ -375,6 +408,30 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> list[Path]:
     return written
 
 
+def _summary_protocol(summary: dict[str, Any]) -> dict[str, Any]:
+    """The protocol matrix the summary was produced under, resolved by version.
+
+    The matrix is chosen from the summary's own identity rather than from a
+    default: a v3 summary adjudicated against the v2-bound matrix would read
+    every profile row as unresolved and never say why.
+    """
+    version, recorded = summary.get("protocol_version"), summary.get("protocol_sha256")
+    if not version or not recorded:
+        raise ValueError(
+            "summary does not record the protocol it was produced under: a "
+            "clean-support diagnostic has no versioned protocol, and no matrix "
+            "can be chosen for it"
+        )
+    protocol = load_protocol(resolve_protocol_path(version))
+    actual = digest(protocol)
+    if actual != recorded:
+        raise ValueError(
+            "summary protocol digest disagrees with the shipped matrix for "
+            f"{version}: {recorded[:12]}... != {actual[:12]}..."
+        )
+    return protocol
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--summary", required=True, help="summary.json to attach the matrix to")
@@ -382,7 +439,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         summary = json.loads(Path(args.summary).read_text(encoding="utf-8"))
-        report = build_comparison(summary, comparison=load_comparison_protocol())
+        protocol = _summary_protocol(summary)
+        report = build_comparison(
+            summary,
+            comparison=comparison_for_version(protocol["protocol_version"]),
+            protocol=protocol,
+        )
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

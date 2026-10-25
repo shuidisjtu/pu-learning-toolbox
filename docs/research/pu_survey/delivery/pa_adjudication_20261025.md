@@ -102,3 +102,20 @@ v4 里 18 个 `pu_bench_table1_*_c01_accuracy` 的 `selection_protocol` 写作 `
 
 - 54 条裁定在 comparison v5 里应用；v5 同时绑 v3 并收录 P4.2a/b 条目（Chen 的 4 方法锚点挂 OA 单元）。
 - 18 个 Chen 锚点的 `selection_protocol` 元数据修正，同批做。
+
+## 10. 后续清理（2026-10-25 晚）：删除过期表述
+
+v5 接管运行链路后，协议 `selection_spec` 里那句「54 条 `blocked_pending_pa_criterion` 映射保持 blocked
+直到 P2.0c 裁定」已与实际矩阵相反（v5 中它们全是 `no_direct_anchor`），删除；同一笔把
+`formal_blockers` 里「仍在等 comparison v5」改写为「等 multi-seed 批次」，其余表述不动。
+
+| 绑定 | 旧 → 新 |
+|---|---|
+| v3 规范摘要（registry / v0.2 草稿 / profile map 的 `bound_survey_protocol`） | `50a96eb1…` → `d70bbf4c…` |
+| v3 原始字节摘要（clean-support 清单 `protocol_policy_sha256`） | `b3ea7e5d…` → `ef8c2eb4…` |
+| clean-support 清单 `receipt_sha256` | `1577b39e…` → `00f093c9…` |
+| comparison v5 的 `bound_survey_protocol` | 随规范摘要刷新，v5 摘要 → `ad8e78c7…` |
+| profile map v2 的 `bound_comparison` | 随 v5 摘要刷新，map 摘要 → `01aa9d92…` |
+
+v1/v2 协议（历史绑定）不含这次清理，其摘要不变；已产出的 manifest 与工作簿保留运行当时的
+`formal_blockers` 文本，不改写。25 份 clean-support 制品未重建。

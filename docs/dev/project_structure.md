@@ -497,6 +497,7 @@ tests/
       test_survey_comparison_classification.py # 已发布矩阵的资格分类: PA 阻断/不可运行/PN/双路径分榜
       test_survey_comparison_report.py  # manifest comparison 上下文、聚合报告与三档调查结论
       test_survey_comparison_run_wiring.py # 跑批侧接线: 一次 run 按选择协议解析映射、覆盖缺陷拒绝开跑
+      test_survey_comparison_resolution.py # 矩阵按协议版本解析: v3→v5 / v2→v4、绑定双向校验与运行侧记账
       _survey_comparison_helpers.py     # 对照测试共享夹具: 来源/锚点/映射/结果构造与写盘拒收
       test_dataset_provenance.py        # 制品追溯: 目录内已复核事实、许可逐条按官方页原文、下载来源与摘要
       test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性

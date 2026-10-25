@@ -80,10 +80,12 @@ def _config(method="nnpu", dataset="spambase", mechanism="scar", c_token="0.1"):
 
 
 def test_basic_map_covers_every_protocol_profile_and_the_shipped_digests(protocol):
+    """v2 is the effective map: 13 profiles inherit an entry, 10 sit outside it."""
     profile_map = load_profile_map()
     counts = validate_profile_map(profile_map, protocol=protocol)
+    assert profile_map["map_version"] == "survey-profile-map-v2"
     assert set(profile_map["profiles"]) == set(protocol["method_profiles"])
-    assert counts == {"profiles": 23, "mapped": 9, "not_in_matrix": 14, "deviations": 1}
+    assert counts == {"profiles": 23, "mapped": 13, "not_in_matrix": 10, "deviations": 1}
     assert profile_map["bound_survey_protocol"]["protocol_sha256"] == digest(protocol)
 
 
