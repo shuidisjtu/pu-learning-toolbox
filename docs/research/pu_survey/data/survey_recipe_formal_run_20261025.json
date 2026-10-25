@@ -1,0 +1,168 @@
+{
+  "schema_version": "genpu-formal-run-engineering-v1",
+  "generated_at": "2026-10-25T14:34:33+08:00",
+  "purpose": "the first run at the declared formal budget (100 GAN + 100 PN epochs, batch 64) on the real cifar10 split: does the declared budget complete, does every snapshot stay inside the 64 MiB per-component bound, and do retention and the manifest record it",
+  "formal_admission": false,
+  "paper_numerical_comparison": false,
+  "single_seed": true,
+  "recipe": {
+    "recipe_sha256": "1abfdf92be5e18573f47c411c137a424f2c05fce025702d27bb8cca4e71b2a6e",
+    "parameters": {
+      "class_prior": 0.4,
+      "random_state": 0,
+      "device": "cuda",
+      "hidden_dim": 256,
+      "latent_dim": 100,
+      "max_epochs": 100,
+      "classifier_epochs": 100,
+      "batch_size": 64,
+      "learning_rate": 0.0003,
+      "positive_weight": 1.0,
+      "negative_weight": 1.0,
+      "unlabeled_weight": 1.0,
+      "generator_output": "identity"
+    },
+    "plan_sha256": "a82e8fe2ca23758ba056bcdeb048ac5dce628d518cb5ba6895cec61211ac3e07"
+  },
+  "budget_as_run": {
+    "gan_epochs": 100,
+    "pn_epochs": 100,
+    "batch_size": 64,
+    "checkpoint_bytes_per_component": 67108864,
+    "declared_checkpoint_epoch_count": 100
+  },
+  "input": {
+    "dataset": "cifar10",
+    "input_directory": "/root/autodl-tmp/pu-survey-data/splits/cifar10/split_0",
+    "role_sizes": {
+      "train": 45000,
+      "pu_val": 2500,
+      "clean_val": 2500,
+      "test": 10000
+    },
+    "input_files_sha256": {
+      "train": "5f5be739c1edfcc57135663ccd26f8bf3e0e4d1719bf1cc30b7a57373b643ecb",
+      "pu_val": "bc4f73e3aa4691bb754dd42752bf63293c4cd6f46e38ef0bdaef6e5a0f8dcbd0",
+      "clean_val": "8407c64d7be1d333792e0fc9eedb33fe0d731cb5d0be5440e113c0be171389f8",
+      "test": "082c36e9bce7c774fd8d1811d36ae951879e3b4ed8635ce68e0ce7ef54d54dd1"
+    },
+    "label_view_sha256": {
+      "train": "af07e164112a244e2ed42b9dc124c47e20fb804f2c492010f011325d1406e6e5",
+      "pu_val": "d5a588cf2481c1f46ff01ad08ba9ec2675d5e5991d7c569cb83d7278061941e7"
+    },
+    "source_files_sha256": {
+      "scripts/run_genpu_recipe.py": "e72dbf7c1a5d61bad389d0b98dd8821ed910431a21123e4375a6fd58d558620e",
+      "pu_toolbox/experiment/genpu_recipe.py": "a55402005ff9cc3e6def443d133fe1c0c07010aba4e7fd8e55e7683daefc2463",
+      "pu_toolbox/estimators/deep/gen_pu.py": "bc857dac957f0c0def95198590e832b3387d38b068c63fa567c4a0260f8bac2b",
+      "pu_toolbox/experiment/image.py": "ded5ef8f973486ba79f525e89c9efeb79b2ce2db912e8ad304715dbd7ea5f450",
+      "pu_toolbox/estimators/deep/vision.py": "00630828971f0d3750584b9c53bb15953fc750c93d67841b48089b8f2d4c6d25",
+      "pu_toolbox/experiment/checkpoints.py": "2909b8a8b34f2389bcd7c9d34664f7c621031500a710af12214f10e7a61cda3a",
+      "pu_toolbox/experiment/runner.py": "b658ccc459f126096e5d9f4b88a09ae26d4640e68f313ef24be68d262b537bb0",
+      "pu_toolbox/experiment/strategies.py": "f92d9c180d537c1f23adaea380bb9998f589da82195b58b86cb1a39905d3840c",
+      "pu_toolbox/experiment/method_ledger.json": "df748151eeac8c3ae19c64458046acfd6ca64e93f5de2382fa3dad6c3371a759",
+      "uv.lock": "7a7adf38905461b4fe0eeb73e613545cbde499a829155b7a793369a5bf22e0ed"
+    },
+    "prior_source": "CIFAR-10 balanced population; positives 0,1,8,9",
+    "prior_source_verified": false,
+    "c_token": "0.5"
+  },
+  "environment": {
+    "gpu": "NVIDIA vGPU-32GB",
+    "commit": "726abd2737230eda85de4b365882bb7d0f56d273",
+    "worktree_dirty": false,
+    "python": "3.10.8",
+    "torch": "2.13.0+cu130",
+    "numpy": "2.2.6",
+    "scikit_learn": "1.7.2",
+    "cuda_available": true,
+    "frozen_lock_environment_verified": false
+  },
+  "execution": {
+    "elapsed_seconds": 9597.610590878874,
+    "elapsed_seconds_including_selection_replay": 9605.154543232173,
+    "peak_gpu_memory_bytes": 2731042304,
+    "process_lifetime_peak_rss_bytes": 2813968384,
+    "candidate_status": "succeeded",
+    "warning_count": 0,
+    "retry_count": 0,
+    "failures": [],
+    "accepted_engineering_run": true
+  },
+  "snapshots": {
+    "recorded": 100,
+    "sized": 100,
+    "min_bytes": 45542453,
+    "max_bytes": 45542453,
+    "total_bytes": 4554245300,
+    "retained": 2,
+    "retained_bytes": 91084906,
+    "reclaimed": 98,
+    "reclaimed_flags_in_manifest": 98,
+    "declared_bound_bytes": 67108864,
+    "within_bound": true
+  },
+  "selection": {
+    "PA": {
+      "epoch": 14,
+      "threshold": 1.0,
+      "metrics": {
+        "val_proxy_accuracy": 1.0196,
+        "val_score_min": 1.010303020477295,
+        "val_score_scale": 0.0003851652145385742,
+        "class_prior": 0.4
+      },
+      "checkpoint_index": 13,
+      "class_prior": {
+        "population": 0.4,
+        "source": "runner.class_prior"
+      }
+    },
+    "OA": {
+      "epoch": 68,
+      "threshold": 0.9,
+      "metrics": {
+        "val_accuracy": 0.6304,
+        "val_score_min": 1.6795637607574463,
+        "val_score_scale": 0.0004897117614746094
+      },
+      "checkpoint_index": 67,
+      "class_prior": {
+        "population": 0.4,
+        "source": "runner.class_prior"
+      }
+    }
+  },
+  "test_metrics": {
+    "PA": {
+      "accuracy": 0.6192,
+      "auc": 0.5918345208333333,
+      "auc_unavailable_reason": null,
+      "precision": 0.5297951582867784,
+      "precision_unavailable_reason": null,
+      "recall": 0.42675,
+      "recall_unavailable_reason": null,
+      "f1": 0.47272223760731097,
+      "f1_unavailable_reason": null
+    },
+    "OA": {
+      "accuracy": 0.6332,
+      "auc": 0.5494198541666666,
+      "auc_unavailable_reason": null,
+      "precision": 0.6192528735632183,
+      "precision_unavailable_reason": null,
+      "recall": 0.2155,
+      "recall_unavailable_reason": null,
+      "f1": 0.31973293768545996,
+      "f1_unavailable_reason": null
+    }
+  },
+  "artifacts_sha256": {
+    "plan.json": "0617a167daa038caeeac81e35538f2eabf6e7b61cac300685257cc3f0f0e92db",
+    "manifest.json": "7d5d99ab50184b7eec8223c6d09df9427771ed546defcd9d7bb3c6d360e72077",
+    "environment.json": "026ffedbc30e796f2b17c3265d67a564da01b05d2e2c27eb9b13a26a434c30cc",
+    "selected_PA.pkl": "3242260d26304ab7536bd6bae331f653d7976c1494729cd6e45b6c7f78825275",
+    "selected_OA.pkl": "79fea92c32bedf7fd9f382bc8bf533471a9d0c8a1c395076453b261db1680068"
+  },
+  "what_this_is_not": "not effect evidence: one seed, benchmark-adapted recipe, no multi-seed run, no comparison-matrix binding; the selection/test metrics are a link check",
+  "receipt_sha256": "64a0722a00827d2d8234e01a1636980f647841c376fe030bf003770a4a99060c"
+}
