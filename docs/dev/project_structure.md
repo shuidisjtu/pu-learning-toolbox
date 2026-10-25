@@ -623,6 +623,7 @@ tests/
     test_pulns_cnn_support.py           # PULNS 内置 CNN 与独立奖励集、公共工作流不借用测试标签
     test_dist_pu_pipeline_cnn.py        # Dist-PU 显式 CNN/CV 副本隔离与冻结 feature-adapter 路径保留
     test_p3mix_pipeline_cnn.py          # 三变体真实卷积CV及四角色checkpoint选模回收
+    test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）

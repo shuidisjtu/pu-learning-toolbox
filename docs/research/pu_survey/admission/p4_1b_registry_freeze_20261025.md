@@ -41,6 +41,28 @@ uv run python scripts/prepare_survey_recipe_registry.py --protocol survey-v3.0 -
 钉住，并逐条重算快照；`tests/unit/scripts/test_check_survey_recipe_registry.py` 钉住 gate 的失败路径。
 CI 里两道：v0.2 草稿（schema 2.0 草稿）与生产注册表（`--require-locked`）。
 
+## 运行链绑定
+
+本机 T600（CUDA 可用）用主 CLI 跑两个 v3 单元，都带
+`--recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1.json`：
+
+| 方法 | 数据 | manifest 绑定 |
+|---|---|---|
+| `nnpu` | spambase `split_0`、c=0.5、seed0、π=0.3 | `recipe_registry_sha256 6d4e7bce…`、`nnpu/survey_shared_nnpu`、`inner_search_id null` |
+| `pusb_kernel` | 同上 | `pusb_kernel/survey_shared_pusb_kernel`、`inner_search_id pusb_kernel_internal_cv_v1` |
+
+绑定字段同时出现在 manifest 顶层、每条 `candidate_runs` 和 PA/OA 两个 `selection` 条目；输出目录名带
+注册表摘要（`recipe_<sha256>`），两个注册表不会互相覆盖结果。负向检查三条：
+
+- `--recipe-registry-sha256` 传错 → 退出 1，`recipe registry changed since preflight`；
+- 把绑定 manifest 直接送进聚合、不给外部重算的期望 → `recipe-bound aggregation requires the v2
+  batch audit/summary entry point`；
+- 改 `resolved_params_sha256` → `validate_consumed_bindings` 拒绝。
+
+集成测试 `tests/integration/test_survey_recipe_binding_v3.py` 把这条链固化为回归：用合成四角色数据
+跑一次真实 CLI，断言 6 个绑定字段与两条 selection 一致、通过聚合 gate，并验证篡改与"无期望聚合"
+都被拒。机器字段见[收据](../data/survey_recipe_binding_20261025.json)，运行目录留在 `tmp/` 不提交。
+
 ## 它不证明什么
 
 - **不是方法准入**。注册表只回答"这个 runnable 单元的配方是什么"；v3 的 40/64 不变，
@@ -58,3 +80,4 @@ CI 里两道：v0.2 草稿（schema 2.0 草稿）与生产注册表（`--require
 | `build_locked_registry(v3)` 与提交文件逐字段一致 | 通过 |
 | 手改快照（`hidden_dim` 改回 128） | 被 `resolved_snapshot_mismatch` 拒绝 |
 | draft 注册表直接运行时绑定 | 被拒（`must be locked before runtime binding`） |
+| 本机 T600 真实 CLI 绑定（`nnpu`、`pusb_kernel`） | 6 个绑定字段与两条 selection 一致；错误摘要/篡改/无期望聚合均被拒 |

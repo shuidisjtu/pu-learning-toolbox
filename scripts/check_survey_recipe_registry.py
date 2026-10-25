@@ -7,10 +7,11 @@ the repository can check rather than by a reviewer's memory.
 
 Staging
 -------
-The registry JSON is a *freeze-stage* deliverable (plan §11): until it lands,
-this gate has nothing to read.  A missing file is therefore reported as such and
-exits 0 -- but it says so on stdout rather than printing a pass, because a gate
-that reads green while checking nothing is how a gap disappears from a report.
+The registry JSON was a *freeze-stage* deliverable (plan §11): until it landed,
+this gate had nothing to read.  That staging branch stays because the default
+path is still the production file: a missing file is reported as such and exits
+0 -- but it says so on stdout rather than printing a pass, because a gate that
+reads green while checking nothing is how a gap disappears from a report.
 The moment the file appears the run becomes enforcing, with no flag to flip.
 
 Usage::
@@ -20,11 +21,12 @@ Usage::
 
 Exit 0 when the registry is absent, or present and free of error-severity
 findings; 1 otherwise. ``--require-present`` makes a missing *explicitly
-materialized* artifact an error (used for the committed draft in CI); it does
-not materialize or lock the future frozen registry. ``--require-locked`` also
-requires presence and checks the declared registry/profile lifecycle; it does
-not authenticate human approval. CI uses it only when the production artifact
-exists, leaving an unmaterialized production check skipped rather than green.
+materialized* artifact an error (used for the committed drafts and the frozen
+registry in CI); it does not materialize or lock anything itself.
+``--require-locked`` also requires presence and checks the declared
+registry/profile lifecycle; it does not authenticate human approval.  Since the
+frozen registry is committed, CI runs that check unconditionally: absence is a
+failure, not a skipped step.
 """
 
 from __future__ import annotations

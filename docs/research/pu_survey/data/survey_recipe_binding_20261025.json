@@ -1,0 +1,92 @@
+{
+  "schema_version": "survey-recipe-binding-engineering-v1",
+  "generated_at": "2026-10-25T10:23:49+08:00",
+  "purpose": "P4.1-B run-chain binding: a v3 unit launched through the main CLI with --recipe-registry carries the frozen identity on the manifest, every candidate run and both selection entries, and the aggregation gate accepts it only against externally recomputed expectations",
+  "formal_admission": false,
+  "paper_numerical_comparison": false,
+  "environment": {
+    "device": "cuda",
+    "gpu": "NVIDIA T600 Laptop GPU 4095 MiB",
+    "note": "single seed, default budget; this proves the wiring, not an effect"
+  },
+  "protocol_policy_ref": "pu_toolbox/experiment/survey_protocol_v3.json",
+  "protocol_file_sha256": "57abbcb10a72c02e12f41ad6504d40db84558c8fa7a492fd3e69b435705b2116",
+  "protocol_canonical_digest": "44128fcb2184dc8b2eb5c93230ef00d934e43aedc25bac504bb4a0b63d9d85ac",
+  "recipe_registry_ref": "pu_toolbox/experiment/survey_recipe_registry_v1.json",
+  "recipe_registry_sha256": "6d4e7bcec629a4a05d4e3167b3fcd3596562b549b6c7fa3b4a02a36cb3c536c7",
+  "runs": [
+    {
+      "method": "nnpu",
+      "dataset": "spambase",
+      "training_path": "native_2d",
+      "seed": 0,
+      "c": "0.5",
+      "class_prior_requested": 0.3,
+      "run_view": "ts-compatible",
+      "candidate_run_count": 1,
+      "selection_protocols": [
+        "OA",
+        "PA"
+      ],
+      "manifest_file_sha256": "75ff95ba31157f886c00cc963d2f0a44628e464150088bd23cac0f14c30675cc",
+      "manifest_canonical_digest": "9ddb2cf2799df05dab5257095a62ef052230c86ba2259a83cdcc63efb5ecb6d2",
+      "recipe_binding_status": "registry_bound",
+      "recipe_registry_version": "survey-recipes-v1.0",
+      "recipe_registry_sha256": "6d4e7bcec629a4a05d4e3167b3fcd3596562b549b6c7fa3b4a02a36cb3c536c7",
+      "recipe_profile_id": "nnpu/survey_shared_nnpu",
+      "recipe_candidate_id": "nnpu_protocol_binding_v1_0",
+      "resolved_params_sha256": "8cd57cc490f0ba4e2a6fbc070f0de19a336c0ffc885f057c8be825cb15600948",
+      "inner_search_id": null,
+      "profile_identity_schema_version": "survey-profile-identity-1",
+      "profile_id": "nnpu",
+      "algorithm_id": "nnpu",
+      "protocol_version": "survey-v3.0",
+      "protocol_sha256": "44128fcb2184dc8b2eb5c93230ef00d934e43aedc25bac504bb4a0b63d9d85ac"
+    },
+    {
+      "method": "pusb_kernel",
+      "dataset": "spambase",
+      "training_path": "native_2d",
+      "seed": 0,
+      "c": "0.5",
+      "class_prior_requested": 0.3,
+      "run_view": "ts-compatible",
+      "candidate_run_count": 1,
+      "selection_protocols": [
+        "OA",
+        "PA"
+      ],
+      "manifest_file_sha256": "fdb7649118995c61da9b73d6c4a6176e2cd43307e1867ccb74fa272ad74533ae",
+      "manifest_canonical_digest": "1030204bb451429e47667fc16453a74ab22db17b9b013f91835f326e5c59889a",
+      "recipe_binding_status": "registry_bound",
+      "recipe_registry_version": "survey-recipes-v1.0",
+      "recipe_registry_sha256": "6d4e7bcec629a4a05d4e3167b3fcd3596562b549b6c7fa3b4a02a36cb3c536c7",
+      "recipe_profile_id": "pusb_kernel/survey_shared_pusb_kernel",
+      "recipe_candidate_id": "pusb_kernel_protocol_binding_v1_0",
+      "resolved_params_sha256": "ecb4f98aac15860d38764f66ee16b22ecfe44cf583e790d767732bdaa9228af2",
+      "inner_search_id": "pusb_kernel_internal_cv_v1",
+      "profile_identity_schema_version": "survey-profile-identity-1",
+      "profile_id": "pusb_kernel",
+      "algorithm_id": "pusb_kernel",
+      "protocol_version": "survey-v3.0",
+      "protocol_sha256": "44128fcb2184dc8b2eb5c93230ef00d934e43aedc25bac504bb4a0b63d9d85ac"
+    }
+  ],
+  "negative_checks": [
+    {
+      "check": "wrong --recipe-registry-sha256",
+      "command_exit_code": 1,
+      "message": "recipe registry changed since preflight: expected digest does not match"
+    },
+    {
+      "check": "aggregate a bound manifest without expectations",
+      "result": "ValueError: recipe-bound aggregation requires the v2 batch audit/summary entry point"
+    },
+    {
+      "check": "tampered resolved_params_sha256",
+      "result": "ValueError from validate_consumed_bindings"
+    }
+  ],
+  "artifacts": "run directories stay in tmp/ and are not committed; the manifest digests above identify them without shipping weights",
+  "receipt_sha256": "61e6339fb88b5861fbaa3105e324c8ef5bb1390c1939f5ea928caeaa9aa7a2cb"
+}
