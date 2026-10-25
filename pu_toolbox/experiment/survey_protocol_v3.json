@@ -171,7 +171,7 @@
     "genpu_native_mlp": {
       "algorithm_id": "genpu",
       "parameter_values": {
-        "hidden_dim": 128,
+        "hidden_dim": 256,
         "latent_dim": 100
       }
     },
@@ -339,7 +339,7 @@
           "max_epochs": 100,
           "classifier_epochs": 100,
           "batch_size": 64,
-          "hidden_dim": 128,
+          "hidden_dim": 256,
           "latent_dim": 100,
           "learning_rate": 0.0003
         },
@@ -835,9 +835,9 @@
     },
     "genpu": {
       "group": "minibatch",
-      "model_family": "mlp128",
+      "model_family": "mlp256",
       "params": {
-        "hidden_dim": 128,
+        "hidden_dim": 256,
         "latent_dim": 100,
         "max_epochs": 100,
         "classifier_epochs": 100,
@@ -849,12 +849,13 @@
         "generator_output": "identity"
       },
       "budget": "genpu",
-      "configuration_status": "provisional_constructor_defaults",
+      "configuration_status": "owner_confirmed_frozen_2026-10-24",
       "configuration_review": {
         "status": "resolved_by_adjudication",
         "findings": [
           "Recipe frozen on 2026-10-24 by owner decision (docs/research/pu_survey/admission/genpu_126_adjudication_20261024.md): the paper prior-weighted minimax/anti-GAN objective is kept, Du fake samples are weighted pi/(1-pi), and the final PN risk is prior-weighted softplus.",
-          "The frozen recipe fixes identity output, a two-layer-256/latent-100 dense generator, linear Dp/Dn heads, two-layer-256 Du/PN heads, four independently seeded ResNet-18 stems, and the G-step freeze of D parameters/BN/dropout with input gradients kept. The three lambda weights stay 1.0: prior weighting lives in the Du mixture and the PN risk, not in those knobs. Full-data resource measurement and numeric parity remain outside this decision."
+          "The frozen recipe fixes identity output, a two-layer-256/latent-100 dense generator, linear Dp/Dn heads, two-layer-256 Du/PN heads, four independently seeded ResNet-18 stems, and the G-step freeze of D parameters/BN/dropout with input gradients kept. The three lambda weights stay 1.0: prior weighting lives in the Du mixture and the PN risk, not in those knobs. Full-data resource measurement and numeric parity remain outside this decision.",
+          "2026-10-25 owner decision: hidden_dim 128 was the constructor default left in place at freeze time, not the frozen recipe. It is now bound to the receipt value, so profile params, the genpu staged budget, the genpu_native_mlp backbone spec and genpu_recipe.py all say 256, and the profile label reads mlp256 instead of mlp128. genpu_recipe.GenPURecipeTrainer rejects any other width, so 128 was a value that could never have run."
         ]
       },
       "algorithm": "genpu"

@@ -591,6 +591,7 @@ tests/
       _episodic_budget_helpers.py       # 三方法临时小预算草案与确定性合成训练夹具
       test_survey_episodic_budget.py    # 三方法真实 CLI/续跑、原生权重及停止/LZO 成本拒绝
       test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
+      test_survey_recipe_registry_locked.py # P4.1-B 冻结：范围、快照可重算、手改与未锁定绑定被拒
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

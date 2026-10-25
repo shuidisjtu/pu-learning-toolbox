@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """P4.1 central recipe registry gate: schema, protocol basis and digest.
 
-Validates the frozen registry against the loaded survey protocol and recomputes
-its digest, so that "which recipe did this survey adopt" is answered by a file
+Validates the frozen registry against the protocol its ``protocol_basis`` names and
+recomputes its digest, so that "which recipe did this survey adopt" is answered by a file
 the repository can check rather than by a reviewer's memory.
 
 Staging
@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1 if args.require_present or args.require_locked else 0
 
-    from pu_toolbox.experiment.survey_protocol import load_protocol
+    from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path
     from pu_toolbox.experiment.survey_recipe_registry import (
         canonical_digest,
         load_registry,
@@ -83,7 +83,28 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Registry check failed: {error}")
         return 1
 
-    findings = validate_registry(registry, load_protocol())
+    # The registry names the protocol it was drafted against, so the matrix is
+    # loaded from that basis: validating a v3 registry against the v2 default
+    # would report every v3 reference as drift instead of checking the binding.
+    # A payload that names no version is already invalid on its own terms, so
+    # it falls back to the default and gets the ordinary "missing basis" report
+    # rather than failing here on protocol selection.
+    basis = registry.get("protocol_basis")
+    basis_version = basis.get("protocol_version") if isinstance(basis, dict) else None
+    try:
+        protocol = (
+            load_protocol(resolve_protocol_path(basis_version))
+            if isinstance(basis_version, str) and basis_version
+            else load_protocol()
+        )
+    except (OSError, ValueError) as error:
+        print(
+            "Registry check failed: cannot load the protocol named by "
+            f"protocol_basis.protocol_version ({basis_version!r}) -- {error}"
+        )
+        return 1
+
+    findings = validate_registry(registry, protocol)
     errors = [finding for finding in findings if finding.severity == "error"]
     for finding in findings:
         print(f"  [{finding.severity}] {finding.code} at {finding.path}: {finding.message}")
@@ -117,6 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"Recipe registry check passed: {registry.get('recipe_registry_version')} "
         f"({len(registry.get('profiles') or {})} profile(s), {len(findings)} warning(s))\n"
+        f"  protocol basis: {protocol.get('protocol_version')}\n"
         f"  registry sha256: {digest}"
     )
     return 0

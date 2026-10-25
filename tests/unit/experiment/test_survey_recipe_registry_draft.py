@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol
+from pu_toolbox.experiment.survey_protocol import digest, load_protocol, resolve_protocol_path
 from pu_toolbox.experiment.survey_recipe_registry import (
     build_draft_registry,
     canonical_digest,
@@ -64,14 +64,20 @@ def test_oracle_is_separate_and_historical_manifests_remain_unbound():
     assert manifest == before
 
 
-def test_determ_generated_draft_matches_checked_in_artifact():
+@pytest.mark.parametrize(
+    ("artifact", "protocol_version"),
+    [
+        ("survey_recipe_registry_v0_1_draft.json", "survey-v2.0"),
+        ("survey_recipe_registry_v0_2_draft.json", "survey-v3.0"),
+    ],
+)
+def test_determ_generated_draft_matches_checked_in_artifact(artifact, protocol_version):
     root = Path(__file__).resolve().parents[3]
     recorded = json.loads(
-        (root / "docs/research/pu_survey/data/survey_recipe_registry_v0_1_draft.json").read_text(
-            encoding="utf-8"
-        )
+        (root / "docs/research/pu_survey/data" / artifact).read_text(encoding="utf-8")
     )
-    generated = build_draft_registry(load_protocol())
+    protocol = load_protocol(resolve_protocol_path(protocol_version))
+    generated = build_draft_registry(protocol)
     assert generated == recorded
     assert canonical_digest(generated) == canonical_digest(recorded)
     for evidence in recorded["source_evidence"].values():

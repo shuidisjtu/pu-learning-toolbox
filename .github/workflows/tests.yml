@@ -130,8 +130,10 @@ jobs:
       - name: Materialized recipe draft schema (not a production lock)
         run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --registry docs/research/pu_survey/data/survey_recipe_registry_v0_1_draft.json --require-present
 
-      - name: Production recipe registry (skipped until materialized)
-        if: ${{ hashFiles('pu_toolbox/experiment/survey_recipe_registry_v1.json') != '' }}
+      - name: Materialized v3 recipe draft schema (not a production lock)
+        run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --registry docs/research/pu_survey/data/survey_recipe_registry_v0_2_draft.json --require-present
+
+      - name: Production recipe registry (frozen lock)
         run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --require-present --require-locked
 
       - name: V3 profile/unit proposal sources (planning only)

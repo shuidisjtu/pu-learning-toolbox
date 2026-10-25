@@ -245,7 +245,7 @@ support 而被拒。三个 clean-support 方法已在重建制品上跑通单 se
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D34）
+## 附录 A. 决策账本（D1–D36）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -286,3 +286,5 @@ support 而被拒。三个 clean-support 方法已在重建制品上跑通单 se
 | D32 | **clean-support 制品重建口径** | 10-22 的 25 份制品不在本机时，用同一 raw 字节与同一准备入口在本机重建，成员须与旧记录 25/25 一致；重压缩与 provenance 时间戳会改变摘要，因此记为新收据、不冒充旧批次的跨机副本；主 CLI 以制品目录作 `data_dir`、`--split-ref` 指向制品自身 manifest，用 `data/splits/*` 配对会被拒。 | 2026-10-24 |
 | D33 | **Split-PU #122 三项裁决** | ① JSD 保持锁定源码 `teacher=0.7` 与现有归一化分母，论文 Eq. (6) 方向作已登记差异，不另立变体（只改权重会引入约 1.4466 倍缩放）；② TS 均衡 batch 的并集比例登记为 benchmark 近似，本轮不按 π 加权；③ 台账指针授权修正但推迟到下一次版本化台账更新。Split-PU 两行翻牌、#122 可关。见[裁决记录](admission/splitpu_122_adjudication_20261024.md)。 | 2026-10-24 |
 | D34 | **GEN-PU #126 配方冻结** | 认定 2026-10-23 单候选工程 recipe 的四项工程规格即正式配方：论文先验加权 minimax/anti-GAN（`Du` 假样本 `π/(1−π)`、PN 先验加权 softplus）、`genpu` 阶段预算 100 快照、identity 输出 + 两层 256/latent 100 生成器 + `Dp`/`Dn` 线性头 + `Du`/PN 两层 256 + 四份 seeded ResNet-18、G 步冻结 D 的 BN/dropout 保留输入梯度；λ=1 与先验加权不冲突。全量资源实测与数值 parity 不在冻结范围，#126 关单。见[裁决记录](admission/genpu_126_adjudication_20261024.md)。 | 2026-10-24 |
+| D35 | **GEN-PU 配方宽度对齐（128 → 256）** | v3 里 128 是构造器默认值被留在冻结时，不是任何一次运行的参数，且 `GenPURecipeTrainer` 会把它判为配方变更；不改就等于用不可执行的数字冒充冻结配方，registry 锁定时 `resolved_snapshot` 也会记 128。就地改协议三处 `hidden_dim` 为 256（profile params、`genpu` 阶段预算、`genpu_native_mlp` 规格），profile 标签 `mlp128` → `mlp256`，`configuration_status` 标为冻结；`execution_units` 的 `genpu_native*` 身份不变。64 MiB 逐组件上界原本就按 256 实测声明，补测 spambase/imdb 两条 native-2d 行后仍在界内（cifar10 45.5 MB、imdb 646 KiB、spambase 319 KiB）。clean-support 清单刷新 `protocol_policy_sha256`，制品未重建。见[对齐记录](delivery/genpu_width_alignment_20261025.md)与[机器收据](data/genpu_width_measure_20261025.json)。 | 2026-10-25 |
+| D36 | **P4.1-B 配方注册表冻结** | `pu_toolbox/experiment/survey_recipe_registry_v1.json`（`survey-recipes-v1.0`，schema 2.0）绑定 `survey-v3.0`；按既定范围，15 个有 runnable 单元的 profile 锁 `locked`、8 个标 `excluded` 并保留理由，覆盖全部 40 个 runnable 单元。每个 candidate 的 `resolved_snapshot` 由生成器展开、gate 重算比对，手改参数即报 `resolved_snapshot_mismatch`；`review.reviewers` 保持空数组，项目不要求签署。gate 改为按注册表自身 `protocol_basis` 选协议，CI 生产步骤由"待物化则跳过"转为真跑（`--require-present --require-locked`），并新增 v0.2 草稿步骤。不构成方法准入、不回溯绑定历史制品、不代表数值 parity。见[冻结记录](admission/p4_1b_registry_freeze_20261025.md)。 | 2026-10-25 |
