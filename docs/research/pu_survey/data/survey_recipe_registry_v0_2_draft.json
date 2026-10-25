@@ -4,7 +4,7 @@
   "recipe_lifecycle": "draft",
   "protocol_basis": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "50a96eb1e0d5f1095541e38bb7393b2451d91c79a419b1c4cf66d496ac6a81ac"
+    "protocol_sha256": "d70bbf4c66c3017b295629ba0262cce4fdf1de14bf6e1792b8b42ea878add87c"
   },
   "selection_spec_ref": "survey_protocol_v3.selection_spec",
   "profiles": {

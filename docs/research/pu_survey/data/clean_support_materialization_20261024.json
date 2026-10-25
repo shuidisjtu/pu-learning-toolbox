@@ -8,8 +8,8 @@
   "formal_budget_approved": false,
   "owner_signatures": [],
   "protocol_policy_ref": "pu_toolbox/experiment/survey_protocol_v3.json",
-  "protocol_policy_sha256": "b3ea7e5dfb1b3cbdee35c32375feaebe787f8672352cb3c1fab11de28759787b",
-  "protocol_policy_sha256_note": "refreshed 2026-10-25 after the D41 formal_blockers rewording in survey-v3.0 (dropped the stale static PA/OA checkpoint blocker, which the runner now applies per run from the actual checkpoint trajectories, and rewrote the completed P4.1-B/profile-mapping sentence); the clean-support policy sections this manifest was materialized under (c_tokens, support sizes, seeds, split policy) are unchanged, no product was rebuilt, and the artifacts' own receipts are untouched",
+  "protocol_policy_sha256": "ef8c2eb472392bf7614db2739b774bd597b37259cd0c49d09e5a37224b2e68b8",
+  "protocol_policy_sha256_note": "refreshed 2026-10-25 after the survey-v3.0 prose cleanup (dropped the selection_spec sentence that kept the 54 PA mappings blocked until a P2.0c review, which comparison v5 re-adjudicated as no_direct_anchor under D41, and updated the formal_blockers sentence that still awaited comparison v5); the clean-support policy sections this manifest was materialized under (c_tokens, support sizes, seeds, split policy) are unchanged, no product was rebuilt, and the artifacts' own receipts are untouched",
   "protocol_pending_review_items": [],
   "protocol_pending_resolution": "v2_p4_clean_support_policy and v2_p10_self_pu_scope were accepted in survey-v3.0; see docs/research/pu_survey/delivery/v3_freeze_20261024.md",
   "protocol_binding": "policy_basis_only_not_a_versioned_execution_unit",
@@ -721,5 +721,5 @@
       }
     }
   },
-  "receipt_sha256": "1577b39e04c7eb45a784596b5f5f62065fae3f57e7aa78af23ce399186dd0c52"
+  "receipt_sha256": "00f093c92c62bd82e5b1f548e510ef974e418a69270c837fd35b69a15c2ffefd"
 }

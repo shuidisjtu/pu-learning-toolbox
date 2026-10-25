@@ -1800,7 +1800,7 @@
   ],
   "formal_blockers": [
     "CVIR, KLDCE, P3MIX, PAN, PUET, RP, VPU, the GradPU native-2d path, and the cifar10 rows for LaGAM and PULNS still lack a frozen main-chain budget or runner.",
-    "Formal admission still awaits comparison v5 (the PA proxy-accuracy anchor re-attribution plus the P4.2 entries for seven runnable profiles) and a multi-seed batch; the P4.1-B budget freeze and the versioned profile-to-comparison mapping landed on 2026-10-25 (D40). Per-run per-epoch checkpoint independence is no longer a static protocol blocker: the runner adds and discharges it from the actual checkpoint trajectories (D41)."
+    "Formal admission still awaits a multi-seed batch; the P4.1-B budget freeze, the versioned profile-to-comparison mapping and comparison v5 (the PA re-adjudication plus the P4.2a anchors) landed on 2026-10-25, and v5 is the matrix a v3 run reads (D40/D41). Per-run per-epoch checkpoint independence is no longer a static protocol blocker: the runner adds and discharges it from the actual checkpoint trajectories (D41)."
   ],
   "decisions": [
     "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
@@ -1813,7 +1813,6 @@
     "KLDCE binds flip_probability = 1 - c for SCAR only and is rebuilt for each c; all SAR requests are rejected. Its execution rows still require approved protocol and dataset-specific budget/resource gates.",
     "Self-PU uses two sampled optimizer steps per epoch, not a full traversal, and has no budget-matched mini-batch oracle; its comparability group is separate.",
     "selection_spec is descriptive documentation; runner behavior is enforced by code and checkpoint tests, not by dynamically consuming this prose field.",
-    "Implementing the PA criterion does not by itself unblock the pre-registered PA units: the 54 blocked_pending_pa_criterion mappings stay blocked until the P2.0c review rules on them.",
     "Sampling-assumption adjudication follows the paper first; the reference code is used only when the paper is silent, and paper/code differences are registered.",
     "Native-TS methods use TS-compatible calibration (D_U <- D_U union D_P) on OS data; this is not TS data resampling.",
     "The canonical prior is population pi; pi_U = pi under the ts view and pi_U = (pi*n - n_L)/(n - n_L) under the SCAR os view.",
