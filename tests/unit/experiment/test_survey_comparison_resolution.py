@@ -61,8 +61,14 @@ def v2():
 
 
 @pytest.fixture(scope="module")
-def v5(v3):
+def v6(v3):
     return comparison_for_protocol(v3)
+
+
+@pytest.fixture(scope="module")
+def v5():
+    """The superseded artifact, still loadable by path for its own reader."""
+    return load_comparison_protocol(V5_PATH)
 
 
 def _context(method="nnpu", dataset="spambase", training_path="native_2d"):
@@ -88,10 +94,10 @@ def _config(method="nnpu", dataset="spambase", mechanism="scar", c_token="0.1"):
     }
 
 
-def test_basic_each_version_resolves_to_its_own_matrix(v2, v3, v5):
-    assert comparison_for_protocol(v3)["comparison_version"] == "survey-comparison-v5"
+def test_basic_each_version_resolves_to_its_own_matrix(v2, v3, v6):
+    assert comparison_for_protocol(v3)["comparison_version"] == "survey-comparison-v6"
     assert comparison_for_protocol(v2)["comparison_version"] == "survey-comparison-v4"
-    assert v5["bound_survey_protocol"]["protocol_sha256"] == digest(v3)
+    assert v6["bound_survey_protocol"]["protocol_sha256"] == digest(v3)
 
 
 def test_basic_the_two_version_tables_name_the_same_versions():
@@ -116,13 +122,13 @@ def test_basic_a_matrix_declares_the_protocol_it_binds(v5):
     assert digest(load_comparison_protocol(V5_PATH)) == digest(v5)
 
 
-def test_basic_v3_run_records_v5_in_every_entry(v5):
+def test_basic_v3_run_records_v6_in_every_entry(v6):
     """The runner's own call: no survey and no matrix given, both resolved."""
     units = run_comparison_units(_context(), _config(), profile_id="nnpu")
     assert set(units) == {"PA", "OA"}
     for entry in units.values():
-        assert entry["comparison_version"] == "survey-comparison-v5"
-        assert entry["comparison_sha256"] == comparison_digest(v5)
+        assert entry["comparison_version"] == "survey-comparison-v6"
+        assert entry["comparison_sha256"] == comparison_digest(v6)
         assert entry["profile_registration"] == "mapped"
     assert units["PA"]["eligibility"] == "no_direct_anchor"
 
@@ -135,12 +141,12 @@ def test_basic_v2_run_keeps_the_v2_bound_matrix(v2):
         assert entry["comparison_version"] == "survey-comparison-v4"
 
 
-def test_basic_the_effective_profile_map_binds_the_resolved_matrix(v3, v5):
-    assert MAP_PATH.name.endswith("_v2.json")
+def test_basic_the_effective_profile_map_binds_the_resolved_matrix(v3, v6):
+    assert MAP_PATH.name.endswith("_v3.json")
     profile_map = load_profile_map()
     assert profile_map_binds(profile_map, v3)
-    assert profile_map["bound_comparison"]["comparison_version"] == v5["comparison_version"]
-    assert profile_map["bound_comparison"]["comparison_sha256"] == digest(v5)
+    assert profile_map["bound_comparison"]["comparison_version"] == v6["comparison_version"]
+    assert profile_map["bound_comparison"]["comparison_sha256"] == digest(v6)
 
 
 def test_basic_promoted_profiles_resolve_through_the_effective_map():
@@ -153,23 +159,23 @@ def test_basic_promoted_profiles_resolve_through_the_effective_map():
 
 
 def test_basic_the_coverage_gate_checks_the_resolved_matrix(v3):
-    """The 288 units of v5 are proven to cover v3, before any run pays for them."""
+    """The 359 units of v6 are proven to cover v3, before any run pays for them."""
     counts = validate_comparison_coverage(
         v3, comparison_for_protocol(v3), profile_map=load_profile_map()
     )
-    assert counts["units"] == counts["unit_mappings"] == 288
+    assert counts["units"] == counts["unit_mappings"] == 359
     assert counts["anchors"] == 64
-    assert counts["outside_matrix"] == 27
+    assert counts["outside_matrix"] == 19
 
 
-def test_basic_a_derived_protocol_resolves_through_the_shipped_matrix(v3, v5):
-    """A narrowed matrix still records the entry its units land on (v5)."""
+def test_basic_a_derived_protocol_resolves_through_the_shipped_matrix(v3, v6):
+    """A narrowed matrix still records the entry its units land on (v6)."""
     narrowed = copy.deepcopy(v3)
     narrowed["seeds"] = [0]
     assert comparison_for_version(narrowed["protocol_version"])["comparison_version"] == (
-        "survey-comparison-v5"
+        "survey-comparison-v6"
     )
-    assert digest(comparison_for_version(narrowed["protocol_version"])) == digest(v5)
+    assert digest(comparison_for_version(narrowed["protocol_version"])) == digest(v6)
     with pytest.raises(ValueError, match="disagrees with the execution protocol"):
         comparison_for_protocol(narrowed)
 

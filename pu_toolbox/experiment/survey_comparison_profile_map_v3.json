@@ -1,0 +1,160 @@
+{
+  "schema_version": "survey-comparison-profile-map-1",
+  "map_version": "survey-profile-map-v3",
+  "bound_survey_protocol": {
+    "protocol_version": "survey-v3.0",
+    "protocol_sha256": "d70bbf4c66c3017b295629ba0262cce4fdf1de14bf6e1792b8b42ea878add87c"
+  },
+  "bound_comparison": {
+    "comparison_version": "survey-comparison-v6",
+    "comparison_sha256": "7ba76ef3d189a13df997a62b5063882cc79371e9eb271a21620e2af4ba225735"
+  },
+  "profiles": {
+    "cvir": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "dist_pu": {
+      "registration": "mapped",
+      "inherits": "dist_pu",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "genpu": {
+      "registration": "mapped",
+      "inherits": "genpu",
+      "deviations": [],
+      "rationale": "P4.2b: registered as no_direct_anchor -- the paper reports MNIST/USPS dense-net generators (Table 1) and PU-Bench's cgenpu is a variant of the method, not this row, so no spambase/imdb/cifar10 cell has a published number"
+    },
+    "gradpu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "holistic_pu": {
+      "registration": "mapped",
+      "inherits": "holistic_pu",
+      "deviations": [],
+      "rationale": "PU-Bench Table 1 reports Holistic-PU on all three datasets v3 runs (D41/P4.2a)"
+    },
+    "kldce": {
+      "registration": "mapped",
+      "inherits": "kldce",
+      "deviations": [],
+      "rationale": "the registry excludes this profile from running under survey-v3.0, but the matrix still holds its three non-runnable marker rows, so the profile is mapped rather than outside the matrix"
+    },
+    "lagam": {
+      "registration": "mapped",
+      "inherits": "lagam",
+      "deviations": [],
+      "rationale": "PU-Bench Table 1 reports LaGAM-PU on all three datasets v3 runs (D41/P4.2a)"
+    },
+    "lbe": {
+      "registration": "mapped",
+      "inherits": "lbe",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "nnpu": {
+      "registration": "mapped",
+      "inherits": "nnpu",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "p3mix": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "pan": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "pn_oracle": {
+      "registration": "mapped",
+      "inherits": "pn_oracle",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "puet": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "pulda": {
+      "registration": "mapped",
+      "inherits": "pulda",
+      "deviations": [],
+      "rationale": "PU-Bench Table 1 reports PULDA on all three datasets v3 runs (D41/P4.2a)"
+    },
+    "pulns": {
+      "registration": "mapped",
+      "inherits": "pulns",
+      "deviations": [],
+      "rationale": "P4.2b: registered as no_direct_anchor -- the paper reports test error over a gamma axis with its own true-label validation set as a training signal, not our SCAR c grid and accuracy"
+    },
+    "pusb_kernel": {
+      "registration": "mapped",
+      "inherits": "pusb_kernel",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "robust_pu": {
+      "registration": "mapped",
+      "inherits": "robust_pu",
+      "deviations": [],
+      "rationale": "PU-Bench Table 1 reports Robust-PU on all three datasets v3 runs (D41/P4.2a)"
+    },
+    "rp": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    },
+    "self_pu": {
+      "registration": "mapped",
+      "inherits": "self_pu",
+      "deviations": [],
+      "rationale": "profile is the no-meta ablation the v4 entry describes"
+    },
+    "self_pu_full_meta": {
+      "registration": "mapped",
+      "inherits": "self_pu",
+      "deviations": [
+        {
+          "axis": "supervision",
+          "ours": "clean_validation_labels_for_meta_weights",
+          "mapped": "validation_U_for_meta_target",
+          "against": "pu_bench_table1",
+          "note": "the paper's full self-calibrated training uses clean validation labels; PU-Bench's controlled entry uses unlabeled validation inputs instead"
+        }
+      ],
+      "rationale": "same algorithm as self_pu with the paper's clean-validation self-calibration, so it inherits the entry and deviates only from the PU-Bench meta target"
+    },
+    "split_pu": {
+      "registration": "mapped",
+      "inherits": "split_pu",
+      "deviations": [],
+      "rationale": "P4.2b: registered as no_direct_anchor -- the paper reports CIFAR-10 accuracy at fixed n_P with official weak/strong augmentation and test-label monitoring, none of which this row reproduces"
+    },
+    "upu": {
+      "registration": "mapped",
+      "inherits": "upu",
+      "deviations": [],
+      "rationale": "the profile ID names the algorithm the matrix already registers, so it inherits that entry unchanged"
+    },
+    "vpu": {
+      "registration": "not_in_matrix",
+      "inherits": null,
+      "deviations": [],
+      "rationale": "method not runnable under survey-v3.0"
+    }
+  }
+}
