@@ -230,7 +230,7 @@ def test_basic_a_v3_row_resolves_through_the_versioned_profile_map():
         protocol=protocol,
     )
 
-    assert entry["context"]["comparison_version"] == "survey-comparison-v5"
+    assert entry["context"]["comparison_version"] == "survey-comparison-v6"
     assert entry["context"]["profile_registration"] == "mapped"
     assert entry["mapping_id"] is not None
 
@@ -239,7 +239,7 @@ def test_param_a_profile_outside_the_matrix_records_no_entry():
     """Outside the matrix is a stated gap, never the base algorithm's row."""
     protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
     entry = attach.compare_row(
-        _row(identity=_v3_identity("genpu")),
+        _row(identity=_v3_identity("gradpu")),
         comparison=comparison_for_protocol(protocol),
         protocol=protocol,
     )

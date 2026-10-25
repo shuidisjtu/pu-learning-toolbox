@@ -80,12 +80,12 @@ def _config(method="nnpu", dataset="spambase", mechanism="scar", c_token="0.1"):
 
 
 def test_basic_map_covers_every_protocol_profile_and_the_shipped_digests(protocol):
-    """v2 is the effective map: 13 profiles inherit an entry, 10 sit outside it."""
+    """v3 is the effective map: 16 profiles inherit an entry, 7 sit outside it."""
     profile_map = load_profile_map()
     counts = validate_profile_map(profile_map, protocol=protocol)
-    assert profile_map["map_version"] == "survey-profile-map-v2"
+    assert profile_map["map_version"] == "survey-profile-map-v3"
     assert set(profile_map["profiles"]) == set(protocol["method_profiles"])
-    assert counts == {"profiles": 23, "mapped": 13, "not_in_matrix": 10, "deviations": 1}
+    assert counts == {"profiles": 23, "mapped": 16, "not_in_matrix": 7, "deviations": 1}
     assert profile_map["bound_survey_protocol"]["protocol_sha256"] == digest(protocol)
 
 
@@ -114,10 +114,10 @@ def test_basic_kldce_maps_onto_its_non_runnable_marker_rows():
 
 
 def test_basic_not_in_matrix_returns_a_reason_and_no_entry():
-    resolved = resolve_profile_mapping("genpu", IDENTITY)
+    resolved = resolve_profile_mapping("gradpu", IDENTITY)
     assert resolved["status"] == "not_in_matrix"
     assert resolved["deviation_count"] == 0
-    assert resolved["profile_rationale"] == "P4.2 main-table gate pending"
+    assert resolved["profile_rationale"] == "method not runnable under survey-v3.0"
     assert "mapping_id" not in resolved
 
 
@@ -129,7 +129,9 @@ def test_basic_registration_status_separates_the_three_manifest_states(protocol)
 
     assert status("self_pu") == "mapped_inherited"
     assert status("self_pu_full_meta") == "mapped_with_profile_deviations"
-    assert status("genpu") == "not_in_matrix"
+    # P4.2b registered the three unbenchmarked methods, so genpu is mapped now.
+    assert status("genpu") == "mapped_inherited"
+    assert status("gradpu") == "not_in_matrix"
     assert status("cvir") == "not_in_matrix"
 
 
@@ -184,7 +186,7 @@ def test_param_load_refuses_a_deviation_outside_the_closed_vocabularies(
 
 def test_param_load_refuses_a_deviation_on_a_profile_outside_the_matrix(tmp_path):
     profile_map = copy.deepcopy(load_profile_map())
-    profile_map["profiles"]["genpu"]["deviations"] = copy.deepcopy(
+    profile_map["profiles"]["gradpu"]["deviations"] = copy.deepcopy(
         profile_map["profiles"]["self_pu_full_meta"]["deviations"]
     )
     path = tmp_path / "map.json"

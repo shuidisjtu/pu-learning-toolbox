@@ -62,9 +62,9 @@ from .survey_comparison import (
 from .survey_protocol import digest, load_protocol, resolve_protocol_path
 
 #: The effective map: the one bound to the protocol and matrix the runs use.
-#: v1 stays on disk as the frozen artifact it is (it binds the v2-bound v4
-#: matrix); loading it is still possible by path, never by default.
-MAP_PATH = Path(__file__).with_name("survey_comparison_profile_map_v2.json")
+#: v1 and v2 stay on disk as the frozen artifacts they are (bound to v4 and to
+#: v5 respectively); loading them is still possible by path, never by default.
+MAP_PATH = Path(__file__).with_name("survey_comparison_profile_map_v3.json")
 
 SCHEMA_VERSION = "survey-comparison-profile-map-1"
 
