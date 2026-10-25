@@ -27,7 +27,7 @@
 | 5 方法阶段预算（GEN-PU/PULDA/Robust/Split/Holistic） | **是（已冻结）** | 逐 seed 成本收据与 manifest 对账 | 阶段快照/成本收据与运行 manifest 对账 |
 | 图像三条路径 | **部分**：GEN-PU/PULDA 原生 CNN 与 Robust/Split/Holistic 的 `cnn_feature_adapter` 已标 runnable；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | 行翻 runnable 并出真实 CIFAR manifest |
 | clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase seed0 三方法已跑通） | 5 数据集正式 units/预算 | 正式 support 批次 manifest 与制品对账 |
-| PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | PA 准则正式放行（`per_epoch_independent_PA_OA_checkpoint_selection`） | P2.0c 规则落地后解除阻断 |
+| PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射仍待重新裁定 | 54 条映射裁定后 `blocked_pending_pa_criterion` 清空 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | v3 ↔ comparison/registry 绑定 | **否** | 运行逐条记 `missing_versioned_profile_mapping`；`survey_comparison_v4.json` 仍绑 `survey-v2.0` | 版本化 profile 映射落地，结果进比较矩阵 |
 | 22 方法主榜 | **否** | 24 个 blocked 单元 + 只有 3 个数据集 + 上一条绑定；缺口拆成 §1.2 的 P4.2a（4 个有基准覆盖）与 P4.2b（3 个只做定性交代） | P4.2 门禁 |
@@ -45,7 +45,7 @@
 | support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
 | 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | 补这些数据集的 units 与预算 | shuidisjtu | 每数据集至少一行 runnable |
 | GPU 机时实测 | 无法排 AutoDL 正式批次 | GradPU 首跑、三个 adapter 行真实 CIFAR 单 seed、PN-CNN 单 seed 计时与资源峰值 | shuidisjtu | 实测表反推机时 |
-| PA 准则正式放行 | PA 行仍带 `per_epoch_independent_PA_OA_checkpoint_selection` | P2.0c 规则落地 | HENG958 | 阻断位移除 |
+| PA 映射待重新裁定（不是缺实现） | 54 条 PA 映射仍为 `blocked_pending_pa_criterion`；v3 `formal_blockers` 仍列 `per_epoch_independent_PA_OA_checkpoint_selection` | P2.0c 已交付、R9 准则本体已实现（2026-09-20）、签署要求已于 2026-10-24 取消；剩下的是我方重新裁定这 54 条并把阻断位措辞改成现状 | shuidisjtu | 54 条映射有确定 eligibility，协议阻断位与实际一致 |
 | PN-CNN 5 seed | oracle 行 | 协议定稿后再安排（D30） | — | 另行安排，不标完成 |
 
 ### 1.3 预算与资源
@@ -152,7 +152,8 @@ draft 令牌当锁定预算。
    LaGAM/PULNS 的 cifar10 行，逐条补预算/runner 翻 runnable。
 2. **v3 ↔ comparison 的版本化 profile 映射**（shuidisjtu）：先落地 profile map，让 15 个 runnable
    profile 各自有明确归类（`mapped` / `not_in_matrix`），否则 v3 结果一律记
-   `missing_versioned_profile_mapping`。
+   `missing_versioned_profile_mapping`；同批重新裁定 54 条 `blocked_pending_pa_criterion` 映射并清理
+   `per_epoch_independent_PA_OA_checkpoint_selection` 阻断位（准则本体早已实现，签署要求已取消）。
 3. **P4.2a**（shuidisjtu）：核对两篇基准论文表格是否覆盖 `pulda`/`robust_pu`/`holistic_pu`/`lagam`，
    通过后补锚点与映射、出 comparison v5；这 4 个届时由 `not_in_matrix` 转 `mapped`。
 4. **P4.2b**（shuidisjtu）：`genpu`/`pulns`/`split_pu` 记 `no_direct_anchor`/`background_only`，
@@ -268,7 +269,7 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D37）
+## 附录 A. 决策账本（D1–D38）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -312,3 +313,4 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 | D35 | **GEN-PU 配方宽度对齐（128 → 256）** | v3 里 128 是构造器默认值被留在冻结时，不是任何一次运行的参数，且 `GenPURecipeTrainer` 会把它判为配方变更；不改就等于用不可执行的数字冒充冻结配方，registry 锁定时 `resolved_snapshot` 也会记 128。就地改协议三处 `hidden_dim` 为 256（profile params、`genpu` 阶段预算、`genpu_native_mlp` 规格），profile 标签 `mlp128` → `mlp256`，`configuration_status` 标为冻结；`execution_units` 的 `genpu_native*` 身份不变。64 MiB 逐组件上界原本就按 256 实测声明，补测 spambase/imdb 两条 native-2d 行后仍在界内（cifar10 45.5 MB、imdb 646 KiB、spambase 319 KiB）。clean-support 清单刷新 `protocol_policy_sha256`，制品未重建。见[对齐记录](delivery/genpu_width_alignment_20261025.md)与[机器收据](data/genpu_width_measure_20261025.json)。 | 2026-10-25 |
 | D36 | **P4.1-B 配方注册表冻结** | `pu_toolbox/experiment/survey_recipe_registry_v1.json`（`survey-recipes-v1.0`，schema 2.0）绑定 `survey-v3.0`；按既定范围，15 个有 runnable 单元的 profile 锁 `locked`、8 个标 `excluded` 并保留理由，覆盖全部 40 个 runnable 单元。每个 candidate 的 `resolved_snapshot` 由生成器展开、gate 重算比对，手改参数即报 `resolved_snapshot_mismatch`；`review.reviewers` 保持空数组，项目不要求签署。gate 改为按注册表自身 `protocol_basis` 选协议，CI 生产步骤由"待物化则跳过"转为真跑（`--require-present --require-locked`），并新增 v0.2 草稿步骤。不构成方法准入、不回溯绑定历史制品、不代表数值 parity。运行链已用本机 T600 跑通 spambase 的 `nnpu` 与 `pusb_kernel` 绑定（含 `inner_search_id`），错误摘要、篡改与无期望聚合均被拒，并有集成测试固化。见[冻结记录](admission/p4_1b_registry_freeze_20261025.md)。 | 2026-10-25 |
 | D37 | **P4.2 拆两档：4 个补基准条目，3 个只做定性交代** | v3 有 7 个 runnable profile 在 `survey_comparison_v4.json` 里没有条目，按原料分两档。① P4.2a：`pulda`、`robust_pu`、`holistic_pu` 在两个已引用基准（`pu_bench_2026`、`pubench_2026`）的代码里都有实现，`lagam` 在 PU-Bench 里有；因此可复用现有 source 补 anchor 与 mapping，不新引入论文。前置是核对基准**论文表格**确实报了这些行——仓库只有代码与 README，没有结果表，代码实现不等于论文报告。② P4.2b：`genpu`、`pulns`、`split_pu` 不在任何统一基准里（PU-Bench 的 `cgenpu` 是变体，不是 genpu；`nnpusb` 不是 Split-PU），各自论文的数据集/指标口径与矩阵不一致，按用户 2026-10-25 决定记 `no_direct_anchor`/`background_only`，只做定性交代，不为凑锚点改数据集或指标。两档都归我方，队友任务单不含这两项，避免分散其 blocked 单元的工时。 | 2026-10-25 |
+| D38 | **PA 准则的账面更正：不再作为外部依赖** | P2.0c（54 条 PA 映射的对照预注册）早已交付，R9 的准则本体也已于 2026-09-20 实现（proxy accuracy，Wang et al. 2026 Def 1 的 OS 分支 + 与 OA 同构的阈值网格与归一化 + π 必传预检，PR #65），当时遗留的只有"合作者签署"与"54 条映射裁决"。签署要求已于 2026-10-24 取消，因此剩下的仅是**我方重新裁定这 54 条映射**并把 `per_epoch_independent_PA_OA_checkpoint_selection` 的措辞改成现状；不再把"PA 准则放行"列为队友编码任务或外部依赖。裁定前 PA 行仍不得做数值裁决，这一约束不变。 | 2026-10-25 |
