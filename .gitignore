@@ -66,6 +66,11 @@ demo_data/
 # only, root-anchored so a package that ships its own tmp/ is unaffected.
 /tmp/
 
+# The documented local test run redirects $env:TEMP here, and pytest leaves a
+# `pytest-of-<user>/` tree behind: root-anchored so it cannot be added by a
+# blanket `git add -A`.
+/pytest-tmp/
+
 # Survey experiment data: raw downloads and prepared splits (never distributed).
 # Root-anchored so it does not also swallow docs/research/pu_survey/data/, which
 # holds the tracked delivery index -- metadata, not experiment data.
