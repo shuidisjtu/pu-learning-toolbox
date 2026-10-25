@@ -3,7 +3,7 @@
   "map_version": "survey-profile-map-v1",
   "bound_survey_protocol": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "44128fcb2184dc8b2eb5c93230ef00d934e43aedc25bac504bb4a0b63d9d85ac"
+    "protocol_sha256": "50a96eb1e0d5f1095541e38bb7393b2451d91c79a419b1c4cf66d496ac6a81ac"
   },
   "bound_comparison": {
     "comparison_version": "survey-comparison-v4",

@@ -1799,9 +1799,8 @@
     }
   ],
   "formal_blockers": [
-    "per_epoch_independent_PA_OA_checkpoint_selection",
     "CVIR, KLDCE, P3MIX, PAN, PUET, RP, VPU, the GradPU native-2d path, and the cifar10 rows for LaGAM and PULNS still lack a frozen main-chain budget or runner.",
-    "Formal admission still awaits the P4.1-B budget freeze and the versioned profile-to-comparison mapping."
+    "Formal admission still awaits comparison v5 (the PA proxy-accuracy anchor re-attribution plus the P4.2 entries for seven runnable profiles) and a multi-seed batch; the P4.1-B budget freeze and the versioned profile-to-comparison mapping landed on 2026-10-25 (D40). Per-run per-epoch checkpoint independence is no longer a static protocol blocker: the runner adds and discharges it from the actual checkpoint trajectories (D41)."
   ],
   "decisions": [
     "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
