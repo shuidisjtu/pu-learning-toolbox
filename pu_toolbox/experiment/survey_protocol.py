@@ -460,11 +460,13 @@ def bind_runtime_parameters(
     return bound
 
 
-def _model_identity(model, method: str) -> None:
+def _model_identity(model, method: str, training_path: str) -> None:
     if method == "pn_oracle":
-        from .survey_execution import PilotOracleMLP
+        from .survey_execution import PilotOracleCNN, PilotOracleMLP
 
-        expected = PilotOracleMLP
+        # PilotOracleCNN subclasses PilotOracleMLP, so the exact-type check below needs the
+        # class the training path asks for; one expectation for both rejects every CNN oracle.
+        expected = PilotOracleCNN if training_path == "native_cnn" else PilotOracleMLP
     else:
         from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 
@@ -476,7 +478,7 @@ def _model_identity(model, method: str) -> None:
 
 def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
     algorithm = profile.get("algorithm", row["method"])
-    _model_identity(model, algorithm)
+    _model_identity(model, algorithm, row["training_path"])
     params = model.get_params(deep=False)
     for name, value in profile["params"].items():
         if name not in params or digest(params[name]) != digest(value):

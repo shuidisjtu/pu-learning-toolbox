@@ -158,3 +158,29 @@ def test_runner_oa_checkpoint_recovery_and_reclaim(tmp_path, architecture):
     assert len(references) == 3
     assert sum(not reference["reclaimed"] for reference in references) == 1
     assert len(list(tmp_path.rglob("*.pt"))) == 1
+
+
+@pytest.mark.parametrize("dataset", ["cifar10", "mnist", "fashion_mnist", "adni"])
+def test_basic_the_native_cnn_oracle_passes_the_protocol_model_check(dataset):
+    from pu_toolbox.experiment.survey_protocol import _validate_model, resolve_protocol_path
+
+    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    row = resolve_unit(protocol, dataset, "pn_oracle", "native_cnn")
+    profile = protocol["method_profiles"][row["method"]]
+    model = assemble_model(
+        protocol, row, 512, seed=0, params={}, class_prior=None, device="cpu", encoder=nn.Identity()
+    )
+    _validate_model(model, profile, row, 0)
+
+
+def test_edge_the_mlp_oracle_is_still_refused_on_the_native_cnn_row():
+    from pu_toolbox.experiment.survey_execution import PilotOracleMLP
+    from pu_toolbox.experiment.survey_protocol import _validate_model, resolve_protocol_path
+
+    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    row = resolve_unit(protocol, "cifar10", "pn_oracle", "native_cnn")
+    profile = protocol["method_profiles"][row["method"]]
+    mlp = PilotOracleMLP(**profile["params"], random_state=0, device="cpu")
+
+    with pytest.raises(ValueError, match="does not match estimator class"):
+        _validate_model(mlp, profile, row, 0)
