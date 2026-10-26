@@ -88,6 +88,17 @@
         "rationale of 146 existing connect_4/twenty_newsgroups/image unit mappings corrected: the benchmark papers do include these datasets, this matrix just transcribes no anchor"
       ],
       "affects": "no anchor value, mapping or decision rule changes"
+    },
+    {
+      "revision": 8,
+      "from_version": "survey-comparison-v6",
+      "date": "2026-10-26",
+      "reason": "Dataset coverage slice 3: connect_4 and twenty_newsgroups receive every runnable row of their template datasets (spambase and imdb), so their cells are registered as no_direct_anchor. In place by instruction: the version stays v6.",
+      "changed": [
+        "19 execution rows added for connect_4/twenty_newsgroups",
+        "162 unit mappings added: no_direct_anchor"
+      ],
+      "affects": "no anchor value, mapping or decision rule changes"
     }
   ],
   "review_status": "pending_collaborator_review",
@@ -18696,6 +18707,3408 @@
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "the benchmark papers include adni but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_connect_4_native_2d_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_connect_4_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "connect_4",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include connect_4 but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_dist_pu_twenty_newsgroups_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "dist_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_self_pu_twenty_newsgroups_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "self_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_twenty_newsgroups_native_2d_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulda_twenty_newsgroups_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulda",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_robust_pu_twenty_newsgroups_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "robust_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_split_pu_twenty_newsgroups_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "split_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_genpu_twenty_newsgroups_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "genpu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_holistic_pu_twenty_newsgroups_native_2d_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "holistic_pu",
+        "dataset": "twenty_newsgroups",
+        "training_path": "native_2d",
+        "metric": "accuracy",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
     }
   ],
   "contradictions": [

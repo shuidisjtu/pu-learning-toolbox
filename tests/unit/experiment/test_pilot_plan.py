@@ -387,6 +387,26 @@ def test_param_an_mlp_unit_without_its_dimension_is_refused():
 # --- the driver --------------------------------------------------------------
 
 
+def test_basic_every_dataset_with_a_native_2d_row_has_a_default_feature_dimension():
+    """A dataset the protocol runs natively but the driver cannot size stops the plan."""
+    from pu_toolbox.experiment.survey_protocol import resolve_protocol_path
+
+    spec = importlib.util.spec_from_file_location(
+        "run_survey_pilot_dims", _SCRIPTS / "run_survey_pilot.py"
+    )
+    driver = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(driver)
+    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+
+    native = {
+        row["dataset"]
+        for row in protocol["execution_units"]
+        if row["runnable"] and row["training_path"] == "native_2d"
+    }
+
+    assert native <= set(driver.DEFAULT_INPUT_DIMS)
+
+
 def test_basic_the_driver_reports_the_plan_without_running_anything(tmp_path, capsys):
     spec = importlib.util.spec_from_file_location(
         "run_survey_pilot", _SCRIPTS / "run_survey_pilot.py"

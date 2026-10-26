@@ -158,11 +158,11 @@ def test_basic_promoted_profiles_resolve_through_the_effective_map():
 
 
 def test_basic_the_coverage_gate_checks_the_resolved_matrix(v3):
-    """The 775 units of v6 are proven to cover v3, before any run pays for them."""
+    """The 937 units of v6 are proven to cover v3, before any run pays for them."""
     counts = validate_comparison_coverage(
         v3, comparison_for_protocol(v3), profile_map=load_profile_map()
     )
-    assert counts["units"] == counts["unit_mappings"] == 775
+    assert counts["units"] == counts["unit_mappings"] == 937
     assert counts["anchors"] == 64
     assert counts["outside_matrix"] == 19
 

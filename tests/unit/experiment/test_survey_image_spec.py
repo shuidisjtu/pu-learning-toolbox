@@ -164,6 +164,28 @@ def test_basic_each_image_dataset_carries_every_runnable_cifar10_row(dataset):
     assert runnable(dataset) == runnable("cifar10")
 
 
+@pytest.mark.parametrize(
+    ("dataset", "template", "support_methods"),
+    [("connect_4", "spambase", True), ("twenty_newsgroups", "imdb", False)],
+)
+def test_basic_each_tabular_dataset_carries_every_runnable_row_of_its_template(
+    dataset, template, support_methods
+):
+    rows = load_protocol(resolve_protocol_path("survey-v3.0"))["execution_units"]
+    support = {"lagam", "pulns", "self_pu_full_meta"}
+
+    def runnable(name):
+        return {
+            (r["method"], r["training_path"], r["budget"], r["backbone"])
+            for r in rows
+            if r["dataset"] == name
+            and r["runnable"]
+            and (support_methods or r["method"] not in support)
+        }
+
+    assert runnable(dataset) == runnable(template)
+
+
 def test_basic_a_v3_image_dataset_prepares_at_its_own_size():
     protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
 

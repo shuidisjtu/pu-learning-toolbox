@@ -100,7 +100,7 @@ UNIT_SCRIPT = _SCRIPTS / "run_survey_experiment.py"
 #: Feature dimensions the MLP backbones size against.  Image rows name a
 #: ResNet and need none.  These are the prepared splits' widths: Spambase's 57
 #: columns, SBERT's 384.
-DEFAULT_INPUT_DIMS = {"spambase": 57, "imdb": 384}
+DEFAULT_INPUT_DIMS = {"spambase": 57, "imdb": 384, "connect_4": 126, "twenty_newsgroups": 384}
 
 _GIB = 1024**3
 
