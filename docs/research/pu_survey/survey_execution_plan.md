@@ -2,22 +2,23 @@
 
 > 本文件维护 Survey 的实验能力、缺口、预算/资源口径与执行边界，以及仍影响执行的决策摘要。
 > 实验协议和比较矩阵分别以 [`pu_survey_protocol.md`](pu_survey_protocol.md)、
-> `pu_toolbox/experiment/survey_protocol_v3.json`（执行协议）与 `survey_comparison_v4.json` 为准；
-> `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（比较矩阵仍绑它），
+> `pu_toolbox/experiment/survey_protocol_v3.json`（执行协议）与 `survey_comparison_v6.json`（比较矩阵，v3 运行自动使用）为准；
+> `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
-> 状态核对日期：**2026-10-25**（v3 协议已冻结、runnable 40/64；25 份 clean-support 制品本机重建；GEN-PU 配方与 PULDA/GradPU 图像 runner 已补；PN-CNN 5 seed 继续暂缓；profile → 比较矩阵映射已落地，见 D40）
+> 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
+> 状态核对日期：**2026-10-26**（v3 协议 72 个单元，runnable 48 / blocked 24，覆盖 5/8 数据集；25 份 clean-support 制品本机重建；GEN-PU 配方与 PULDA/GradPU 图像 runner 已补；PN-CNN 5 seed 已分配 HENG958，见 D45；profile → 比较矩阵映射已落地，见 D40）
 
 ## 1. 实验能力与缺口
 
 > 本节按“PU Survey 实验设施现在能做什么”组织；任务编号只作关联。状态分三层，避免把工程接线
 > 当结果：**runnable**（`survey_protocol_v3.json` 的 `execution_units` 标 `runnable=true`，
-> 有预算/runner，能产出合规 manifest，当前 **40 / 64**）、**formal**（清掉 `formal_blockers`
+> 有预算/runner，能产出合规 manifest，当前 **48 / 72**）、**formal**（清掉 `formal_blockers`
 > 并绑进比较矩阵，当前 **0**；配方注册表已于 D36 冻结、profile 映射已于 D40 落地，但阻断位未清，
 > 两者都不等于准入）、
 > **evidence**（已有真实数据读数，目前只有单 seed 工程 smoke；32 GiB vGPU 上已跑完一次
 > GEN-PU 正式预算 100+100，2026-10-25，仍无正式多 seed 批次）。
 > 判定标准：命令可执行并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。
-> 状态核对日期：2026-10-25。
+> 状态核对日期：2026-10-26。
 
 ### 1.1 能力矩阵
 
@@ -25,14 +26,14 @@
 |---|---|---|---|
 | 8 数据集四路 split | **是** | — | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
 | clean-support 制品（5 数据集 × seeds 0–4） | **是（本机，2026-10-24 重建）** | 无；收据属新批次，跨机传递仍须按收据核验 | 25 份逐份 `load_support_dataset` 通过并登记[机器清单](data/clean_support_materialization_20261024.json) |
-| 协议内单跑（v3 40 个单元） | **是** | 覆盖面只有 spambase/imdb/cifar10 | `--protocol survey_protocol_v3.json` 跑通并产出 manifest |
+| 协议内单跑（v3 48 个 runnable 单元） | **是** | 覆盖 spambase/imdb/cifar10/connect_4/twenty_newsgroups 五个数据集；mnist/fashion_mnist/adni 尚无单元 | `--protocol survey_protocol_v3.json` 跑通并产出 manifest |
 | 5 方法阶段预算（GEN-PU/PULDA/Robust/Split/Holistic） | **是（已冻结）** | 逐 seed 成本收据与 manifest 对账 | 阶段快照/成本收据与运行 manifest 对账 |
 | 图像三条路径 | **部分**：GEN-PU/PULDA 原生 CNN 与 Robust/Split/Holistic 的 `cnn_feature_adapter` 已标 runnable；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | 行翻 runnable 并出真实 CIFAR manifest |
 | clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase seed0 三方法已跑通） | 5 数据集正式 units/预算 | 正式 support 批次 manifest 与制品对账 |
 | PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA） | v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
 | 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
 | v3 ↔ comparison/registry 绑定 | **是** | profile 映射 v3 已生效（16 mapped / 7 not_in_matrix）；比较矩阵按**协议版本**解析，v3 运行自动用 `survey_comparison_v6.json`（2026-10-25 接线，P4.2b 升到 v6）| v3 运行 manifest 的 `comparison_version` / `comparison_sha256` 是 v6 摘要，覆盖率门禁在 v3 上也真跑 |
-| 22 方法主榜 | **否** | 24 个 blocked 单元 + 只有 3 个数据集；P4.2a（4 个基准方法锚点）与 P4.2b（3 个定性交代）均已落地，剩余缺口是数据集覆盖与 blocked 单元 | 数据集补齐 + blocked 单元清零后出主表 |
+| 22 方法主榜 | **否** | 24 个 blocked 单元 + 8 个数据集中 3 个（mnist/fashion_mnist/adni）无单元 + connect_4/twenty_newsgroups 只有 4 个方法；P4.2a（4 个基准方法锚点）与 P4.2b（3 个定性交代）均已落地，剩余缺口是数据集覆盖与 blocked 单元 | 数据集补齐 + blocked 单元清零后出主表 |
 
 ### 1.2 缺口任务
 
@@ -43,10 +44,12 @@
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
 | P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | **已完成**：论文核对确认 PU-Bench Table 1 四个方法全报；10 条锚点已写入 `survey_comparison_v5.json`（PULDA / Robust / Holistic 各 3，LaGAM 1）（OA 单元、`magnitude_and_trend`），profile map v2 把四个 profile 转 `mapped` | shuidisjtu | 已满足：v5 于 2026-10-25 接管运行链路，随后由 v6 接替（锚点不变） |
 | P4.2b：3 个无基准方法只做定性交代 | `genpu`、`pulns`、`split_pu` 不在任何统一基准里，各自论文的数据集/指标口径不同 | **已完成**：71 个单元在 `survey_comparison_v6.json` 记为 70 `no_direct_anchor` + 1 `non_runnable`（pulns/cifar10），profile 映射 v3 转 `mapped`；不为凑锚点改数据集/指标 | shuidisjtu | 已满足：三条 profile 有明确 eligibility 与非空理由，摘要中只作背景展示 |
-| support 正式 units（5 数据集） | v3 只有 spambase 的 LaGAM/PULNS/Self-PU full-meta 三行 | 为三方法补 connect_4/mnist/fashion_mnist/cifar10 单元 | HENG958 | 5 数据集 support manifest 与制品对账 |
-| 数据集覆盖（v3 仅 3 个） | 主榜缺 connect_4/mnist/fashion_mnist/adni/twenty_newsgroups | **进行中**：connect_4 与 twenty_newsgroups 已各加 4 个可运行方法（原地扩充，见交付记录）；mnist/fashion_mnist/adni 要先补 `backbone_specs.image.per_dataset` 与图像预处理。这 4 个方法是按 spambase 已有的 native_2d runnable 行选的，只换数据集、不新造预算；`backbone_specs.image` 目前是 32×32×3 的平铺规格，补 `per_dataset` 时 cifar10 / mnist / fashion_mnist 三条都要写，漏 cifar10 会使其被规格校验拒绝 | shuidisjtu | 每数据集至少一行 runnable（5 个中已满足 2 个） |
+| support 正式 units（5 数据集） | LaGAM/PULNS 在 v3 只有 spambase（runnable）与 cifar10（blocked）两行，Self-PU full-meta 只有 spambase | 为三方法补 connect_4/mnist/fashion_mnist 单元；LaGAM/PULNS 的 cifar10 行并入上面的 24 个 blocked 单元 | shuidisjtu | 5 数据集 support manifest 与制品对账 |
+| 数据集覆盖（v3 有 5 个，缺 3 个） | 主榜缺 mnist/fashion_mnist/adni；connect_4 与 twenty_newsgroups 只有 4 个方法，其余 18 个待补 | **进行中**：connect_4 与 twenty_newsgroups 已各加 4 个可运行方法（原地扩充）；mnist/fashion_mnist/adni 要先补 `backbone_specs.image.per_dataset` 与图像预处理。这 4 个方法是按 spambase 已有的 native_2d runnable 行选的，只换数据集、不新造预算；`backbone_specs.image` 目前是 32×32×3 的平铺规格，补 `per_dataset` 时 cifar10 / mnist / fashion_mnist 三条都要写，漏 cifar10 会使其被规格校验拒绝 | shuidisjtu | 每数据集至少一行 runnable（5 个中已满足 2 个） |
 | GPU 机时实测 | 无法排 AutoDL 正式批次 | 已完成：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）；仍缺 GradPU 首跑与 PN-CNN 单 seed 计时 | shuidisjtu | 实测表反推机时 |
-| PN-CNN 5 seed | oracle 行 | 协议定稿后再安排（D30） | — | 另行安排，不标完成 |
+| PN-CNN 5 seed | `pn_oracle` cifar10 / native_cnn 行 | 已解除暂缓并分配（D45 取代 D30） | HENG958 | 5 seed 合规 manifest + 峰值记录 |
+| PN oracle 其余数据集 | 现有 oracle 行只有 spambase/imdb/cifar10 | 补 connect_4/twenty_newsgroups/mnist/fashion_mnist/adni | shuidisjtu | 每数据集一行 runnable |
+| xlsx 导出器与诊断卡工具 | 全库只有单 seed 工程核对表，没有入库的四组拆分/±std/成本导出器，也没有 §1.4.5 信号的诊断卡工具 | 写入库的导出器与诊断卡生成器 | shuidisjtu | 能从 manifest 一条命令生成交付物 A 的工作簿与诊断卡 |
 
 ### 1.3 预算与资源
 
@@ -88,7 +91,7 @@ draft 令牌当锁定预算。
 
 #### 1.4.1 冻结与版本
 
-- 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 40/64）。
+- 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 48/72）。
   `survey_protocol_v2.json`（`survey-v2.0`）继续是 645-run pilot 的历史绑定，不被覆盖；
   `survey_protocol_v1.json` 与 `survey_comparison_v1..v3.json` 仅作历史绑定。
 - 比较矩阵按**协议版本**解析：`survey-v2.0` → `survey_comparison_v4.json`，`survey-v3.0` →
@@ -187,28 +190,23 @@ draft 令牌当锁定预算。
 
 ### 1.5 推进顺序与推进记录
 
-**当前推进顺序**（2026-10-25，与 §1.2 的缺口一一对应）：
+**当前推进顺序**（2026-10-26，与 §1.2 的缺口一一对应；分工同 [README](README.md) §3）：
 
-1. **24 个 blocked 单元**（HENG958）：CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU/GradPU 全行与
-   LaGAM/PULNS 的 cifar10 行，逐条补预算/runner 翻 runnable。
-2. **v3 ↔ comparison 的版本化 profile 映射**（shuidisjtu）：先落地 profile map，让 15 个 runnable
-   profile 各自有明确归类（`mapped` / `not_in_matrix`），否则 v3 结果一律记
-   `missing_versioned_profile_mapping`；同批重新裁定 54 条 `blocked_pending_pa_criterion` 映射并清理
-   `per_epoch_independent_PA_OA_checkpoint_selection` 阻断位（准则本体早已实现，签署要求已取消）。
-3. **P4.2a**（shuidisjtu）：核对两篇基准论文表格是否覆盖 `pulda`/`robust_pu`/`holistic_pu`/`lagam`，
-   通过后补锚点与映射、出 comparison v5；这 4 个届时由 `not_in_matrix` 转 `mapped`。
-4. **P4.2b**（shuidisjtu）：`genpu`/`pulns`/`split_pu` 记 `no_direct_anchor`，
-   只做定性交代，不为凑锚点改数据集或指标口径。
-5. **GPU 机时实测**（shuidisjtu）：先测后开机，只跑算得清的 AutoDL 批次。
-6. **分组跑批 + 汇总、主榜门禁**：只运行满足协议/预算/配方/映射前置的单元；汇总按 §1.4.5 的
-   诊断口径出"方法 × 数据集主表 + 诊断卡"，不以"与论文数值一致"作为验收标准。
+1. **24 个 blocked 单元翻 runnable**（HENG958）：KLDCE/CVIR/P3MIX/PAN/VPU/GradPU 各 3 行
+   （spambase、imdb、cifar10）、PUET/RP 各 2 行（spambase、imdb）、LaGAM/PULNS 各 1 行（cifar10）；
+   含 GradPU 首次真实运行。**PN-CNN 5 seed**（HENG958）。
+2. **数据集与方法补齐**（shuidisjtu）：mnist/fashion_mnist/adni 补 `backbone_specs.image.per_dataset`
+   与图像预处理后加单元；connect_4/twenty_newsgroups 补其余 18 个方法；PN oracle 补五个数据集。
+3. **汇总工具**（shuidisjtu）：入库的 xlsx 导出器（四组拆分、附加指标、±std、成本）与诊断卡工具。
+4. **正式 5 seed × c 网格跑批 → 汇总 → 写结论**（合流）：只运行满足协议/预算/配方/映射前置的单元；
+   汇总按 §1.4.5 的诊断口径出"方法 × 数据集主表 + 诊断卡"，不以"与论文数值一致"作为验收标准。
+   GPU 机时不设限，按 method / dataset / training-path / 机制分批（D28）。
 
-P4.1-B 已于 2026-10-25 完成（D36），不再是待办项：`survey-recipes-v1.0` 冻结 15 个 runnable
-profile、其余 8 个 `excluded`，运行链已验证；此后新增 runnable 单元须同批更新注册表。
+profile 映射（D40）、P4.2a/b（D37）、GPU 机时实测、P4.1-B 注册表冻结（D36）均已完成，不再是待办项；
+此后新增 runnable 单元须同批更新注册表。
 
-**PN-CNN 的 5 seed 实验单独暂缓**：按用户 2026-10-22 指令，协议定稿后再安排；
-不启动、不补造结果、不标记完成。该指令不取消其他方法或 support 制品的 seeds 0–4，
-也不删除 PN-CNN 已有实现、历史证据或协议中的 oracle 角色要求。
+**PN-CNN 的 5 seed 实验**曾按用户 2026-10-22 指令暂缓（D30），现已解除并分配给 HENG958（D45）。
+该实验仍不得补造结果；它也不影响其他方法或 support 制品的 seeds 0–4。
 
 以下按日期记录推进过程（最新在下）；逐项技术意见与未解除的边界见各日复核文档，
 2026-10-21 交接的技术复核回复见 heng958 任务复核（`heng958_task_review_20261022.md`，已归档于 tag `survey-docs-archive-20261025`）。
@@ -311,7 +309,7 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D43）
+## 附录 A. 决策账本（D1–D45）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -347,7 +345,7 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 | D27 | **分批执行与统一汇总** | 最终实验按 method、dataset、training-path 或 labeling mechanism 分组跑，不要求同批或一次性跑完；每组 manifest 绑定同一协议/比较摘要，汇总按 `(comparability_group, run_view, mechanism)` 分区。分组不改变可比性。 | 2026-10-21 |
 | D28 | **计算资源不设上限** | CPU/GPU 时间默认不限，不作为跑批门禁；正式运行仍须 frozen-lock 环境与逐 run 身份记录。 | 2026-10-21 |
 | D29 | **存储与 checkpoint 保留** | 只保留选中 checkpoint（P2.1 B4 口径），未选中按 D25 回收；按组清理，不保留全过程权重；单 run 峰值按参数×快照估算。仅个别方法超限时再优化。 | 2026-10-21 |
-| D30 | **PN-CNN 5 seed 暂缓** | 用户要求 P3.2 中 PN-CNN 的 5 seed 实验等协议定稿后再安排；不视为完成或永久取消，不影响其他方法/support 的五 seed 口径，不改冻结协议及历史结果。 | 2026-10-22 |
+| D30 | **PN-CNN 5 seed 暂缓** | 用户要求 P3.2 中 PN-CNN 的 5 seed 实验等协议定稿后再安排；不视为完成或永久取消，不影响其他方法/support 的五 seed 口径，不改冻结协议及历史结果。**已由 D45 取代。** | 2026-10-22 |
 | D31 | **v3 冻结即执行协议** | `survey_protocol_v3.json`（`survey-v3.0`）转正为执行协议，runnable 40/64；`survey-v2.0` 保留为 645-run pilot 的历史绑定；`survey_comparison_v4.json` 仍绑 v2，v3 结果在版本化 profile 映射落地前不进比较矩阵。`runnable` 只表示实现能力，正式准入另需清 `formal_blockers` 与 P4.1-B 冻结。冻结时另有两点：Robust-PU / Split-PU / Holistic-PU 在 cifar10 上只走 `cnn_feature_adapter`，因为 CNN13 / ResNet 的原生实现不存在，adapter 是唯一可比的图像路径；clean-support 类 checkpoint 含双 teacher 或 meta 头，按参数量估算的 MLP 体积偏低，故 `clean_support_two_student`、`lagam`、`pulns` 显式声明 8 MiB 逐组件上界（MLP），最宽的 CNN13 用 64 MiB。 | 2026-10-24 |
 | D32 | **clean-support 制品重建口径** | 10-22 的 25 份制品不在本机时，用同一 raw 字节与同一准备入口在本机重建，成员须与旧记录 25/25 一致；重压缩与 provenance 时间戳会改变摘要，因此记为新收据、不冒充旧批次的跨机副本；主 CLI 以制品目录作 `data_dir`、`--split-ref` 指向制品自身 manifest，用 `data/splits/*` 配对会被拒。CIFAR 制品回读后有约 1e-11 的浮点差异，验收按原始 HWC 布局重算；25 份合计约 1.04 GiB。 | 2026-10-24 |
 | D33 | **Split-PU #122 三项裁决** | ① JSD 保持锁定源码 `teacher=0.7` 与现有归一化分母，论文 Eq. (6) 方向作已登记差异，不另立变体（只改权重会引入约 1.4466 倍缩放）；② TS 均衡 batch 的并集比例登记为 benchmark 近似，本轮不按 π 加权；③ 台账指针授权修正但推迟到下一次版本化台账更新。Split-PU 两行翻牌、#122 可关。见裁决记录。台账 `prior_semantics` 指针的目标应由 `split_pu.py:223-231` 改为 `:221`，待下一次版本化台账更新时修正。 | 2026-10-24 |
@@ -361,3 +359,5 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 | D41 | **54 条 PA 映射裁定：全部 `no_direct_anchor`；v3 的静态阻断位改为按运行证据动态判定** | 54 条 `blocked_pending_pa_criterion` 是 6 方法 × 3 数据集 × 3 个 c 的全部 `pa` 选模单元。读两篇基准 PDF 后核定选模口径：Chen 等（PU-Bench）Table 1 确实报了 `pulda`/`robust_pu`/`holistic_pu`/`lagam`（8 数据集、`c=0.1`、SCAR、accuracy mean±std），但其 checkpoint 是「**带真标签的验证集上 macro-F1 最优**」（正文 §3 与 §D.2.1 两处，Table B.2 的 `Validation` 列属 PN 统计；Wang 等附录 A 亦指出该验证集带真标签），属 oracle 家族，对应我们的 **OA** 而非 PA；Wang 等只报 `Robust-PU`/`Holistic-PU`，且其 CIFAR-10 用 20k 子集、π=0.3、正类子集与我们不同，PA/PAUC 数字 v4 已用在 `row_*_cifar10` 行级映射。因此 54 条 PA 单元在两篇里都没有「本数据集 + proxy accuracy 选模」的数字，**全部记 `no_direct_anchor`**；18 条 c=0.1 的 OA 单元维持 `magnitude_and_trend` 与各自锚点不动。附带发现：这 18 个 Chen 锚点在 v4 里标 `selection_protocol: proxy_acc` 属**元数据错误**（实为真标签验证 + macro-F1），v5 修正并把准则/验证集差异写进 `protocol_differences`。**应用载体是 comparison v5**：v5 还要绑 v3 并收录 P4.2a/b 条目（`self_pu_full_meta` 与 7 个 runnable profile 在 v3 的单元枚举里必须有映射，否则覆盖率门禁直接失败），因此本次不新建中间版本，也不原地改 v4（那会追溯改写 645-run 的裁决，违反"历史制品不改写"）。同一笔清理 v3 的静态阻断位：删掉 `per_epoch_independent_PA_OA_checkpoint_selection`（准则本体 2026-09-20 已实现，且该项已由 `runner._checkpoint_context` 依据每次运行的真实 checkpoint 轨迹动态加减；静态列表再留一条会让 runner 永远摘不掉），并把"等 P4.1-B 冻结与 profile 映射"改写成现状（两者均已于 2026-10-25 完成，剩下 v5 与多 seed 批次）。协议就地改、版本仍 `survey-v3.0`，规范摘要 `44128fcb…` → `50a96eb1…`，连带刷新 recipe registry 与 v0.2 草稿的 `protocol_basis`、clean-support 清单的 `protocol_policy_sha256`（原始字节 `57abbcb1…` → `b3ea7e5d…`）与其 `receipt_sha256`；25 份制品本身未重建、其自身收据未改。**本记录第一版曾裁定把 18 个 `proxy_acc` 锚点迁到 PA 单元；读完两篇论文原文后更正为上文的裁定，错因（拿矩阵自身的元数据当证据起点）记在交付记录 §4。** 见裁定记录与论文核对。两处更正与补记：① 上文「12 条锚点」「v4 已用在 `row_*_cifar10` 行级映射」均与 v6 不符——v6 的 P4.2a 锚点实为 10 条（PULDA / Robust / Holistic 各 3，LaGAM 1），行级映射只有 upu、nnpu、pusb_kernel、dist_pu、lbe、self_pu。② Wang 等 CIFAR-10 的 Robust-PU / Holistic-PU 读数（PA / PAUC / OA）未登记为锚点，其 c 值未核：Robust-PU Case1 85.57 / 85.61 / 85.91，Case2 78.94 / 78.43 / 79.60；Holistic-PU Case1 50.20 / 50.00 / 81.81，Case2 55.60 / 56.04 / 71.18。 | 2026-10-25 |
 | D42 | **协议与矩阵原地演进；绑定只校验版本** | 用户 2026-10-25 定：`survey_protocol_v3.json` 与生效比较矩阵（现 `survey_comparison_v6.json`）**原地扩充**，不再新增版本号产物；历史版本文件留在盘上、可显式加载，不重建。摘要绑定随之简化为**只校验版本**（矩阵 ↔ 协议、profile 映射 ↔ 协议/矩阵、recipe registry ↔ 协议）：摘要字段保留为来源记录，不再要求相等，因此原地改不再需要刷新任何摘要（生成式 registry 只在内容真正变化时重建）。profile 映射仍要求覆盖协议声明的 profile 集合，否则视为「不是这份矩阵」。运行约束：改协议要避开在飞的批次，否则同批 manifest 的 `protocol_sha256` 会分成两半、`check_protocol` 判不一致。已知残留：`comparison_for_protocol` / `comparison_for_version` 双入口可并为一个。 | 2026-10-25 |
 | D43 | **P3.1 宽口径范围；图像 runner 120/200 快照的实测口径** | ① 范围：P3.1 宽口径为 13 个方法 = RV8 评审的 14 条减 TEDn（TEDn 只走 RV8、不计入 13），含 P3MIX、不含 VPU（VPU 另补）；对应 22 个目标算法、23 个 profile（含 `self_pu_full_meta`）。RV8 于 2026-10-21 由 shuidisjtu 签署 14 条全部「有条件接受」，2026-10-24 起不再要求签署。② PULDA 120 份 / GradPU 200 份快照在真实 CIFAR 24 行子集上的工程实测（各 1 seed，数字在 `data/candidate_image_validation_20261023.json`）：单份 44,900,758 / 40,974,252 B，回收前合计约 5.02 / 7.63 GiB，选后各留 2 份；fit 的 CUDA allocated 峰值约 437 / 254 MiB，RSS 峰值约 2.72 / 2.29 GiB；磁盘预检 1 候选 × 2 次尝试，分别 15 / 25 GiB。口径：是 allocated 不是 reserved，RSS 为进程生命周期而非 fit 增量，**不代表全量数据、默认 batch 或多 seed 的峰值**；所有已完成的 warmup 与 pu_mixup 快照都进入选择；该子集上 proxy accuracy 可超出 [0,1]。 | 2026-10-26 |
+| D44 | **终点线与交付物定义** | 最终交付物两部分：A 结果文件（四组工作簿，5 seed 均值±标准差，加按 §1.4.5 的结论分析）；B 代码功能（协议 §2.4（四）第 7–11 条逐条对应可运行命令或文件，加从四路 split 到汇总表的复现命令序列）。两者共同过协议 §5 验收线；22 个目标方法未全部过四项门禁时，标 `pilot / partial benchmark` 发布。mnist / fashion_mnist / adni 为必做数据集。§5.6 的代码 commit 与依赖锁由批次层承载（每批一份证据包，run 引用批次身份）；协议 §5.6 第 6 条措辞待改，并须确认批次层确有写入 commit 与 `uv.lock` 哈希的代码。交付物、完成定义与分工见 [README](README.md)。 | 2026-10-26 |
+| D45 | **PN-CNN 5 seed 解除暂缓，分配 HENG958** | 取代 D30：协议已定稿，`pn_oracle` 的 cifar10 / native_cnn 5 seed 由 HENG958 承担，与 24 个 blocked 单元并行。验收同其他单元：合规 manifest + 峰值记录；不补造结果。 | 2026-10-26 |
