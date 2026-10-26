@@ -203,7 +203,6 @@ pu_toolbox/
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
     genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
     candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
-    survey_v3_proposal.py                 # v3 源码绑定的22算法/变体与阻断单元请求，不批准预算
     survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
     survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
@@ -223,17 +222,12 @@ tests/
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
     test_ledger_registry_consistency.py # 台账↔registry 字段/校准/采样一致性契约(+ HENG958 负责人复核、行号引用禁令)
     test_public_exports.py              # 公共导出契约: 包 __init__ 的 __all__ 声明名必须真实存在(星号导入不炸), 补 check_api_docs 覆盖不到的漂移
-    test_p3_candidate_admission.py      # P3 准入草稿与台账同步、冻结矩阵隔离契约
     test_layer_boundaries.py            # 下层对 experiment 层的依赖边界 ratchet(静态 AST 扫描抓函数内导入 + 子进程导入图抓传递依赖)
     test_registry_dynamic_import.py     # registry 经 importlib 按名字动态加载 estimators/prior 的向上边(Core→Algorithms/Estimation): 静态 AST 扫描与子进程导入图都看不见的已裁决例外, 由注册表观测量钉住
     conftest.py                         # contract 测试共享 fixture(ledger_methods: 加载台账并注册内置方法)
     test_ledger_source_reviews.py       # 来源/行为审计复核文档的台账登记与引用契约(15 条)
     test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
     test_lagam_paper_review.py          # LaGAM 全文身份、来源分歧和未签署准入边界
-    test_clean_support_materialization_receipt.py # 本机制品清单的覆盖/摘要与非正式边界（CI 不读 raw）
-    test_genpu_recipe_validation_receipt.py # GEN-PU 双 batch GPU 收据摘要、成本与非正式范围契约
-    test_candidate_image_validation_receipt.py # 图像120/200快照 GPU 摘要、成本及非正式边界契约
-    test_selfpu_ts_support_receipt.py   # Self-PU 同条件 OS/TS 短运行摘要、预算与非正式边界
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -386,29 +380,9 @@ tests/
       test_check_project_metadata.py    # 项目元数据门禁失败路径: 拼装仓库跑 main(), 逐项变异须非零退出
       test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
       test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
-      test_review_survey_split_receipt.py # P1.4 只读接收复核的失败关闭与 CLI 测试
-      test_audit_survey_workbook.py     # 交付 Excel 独立对账的篡改、覆盖与舍入测试
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
-      test_profile_survey_candidate_storage.py # 七方法存储探针和恢复边界
-      test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
-      test_check_candidate_fit_contracts.py # 全候选guard/签名/源码证据及无Torch门禁
-      test_profile_survey_cnn_storage.py # CNN 快照体积、恢复、来源身份和输入边界
-      test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
-      test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
-      test_prepare_p3_selection_budget_spec.py # 阶段/预算草稿再生成、类型严格一致与审批篡改拒绝
       test_prepare_candidate_image_resource_plan.py # 图像资源只读预检、快照成本、缺证据拒绝与无 torch 边界
-      test_check_survey_extended_cnn_storage.py # 新 CNN 资源证据身份、角色、预算与来源拒绝测试
-      test_profile_survey_extended_cnn_storage.py # 独立进程资源测量、变体范围、内存去重与失败边界
-      _review_split_receipt_helpers.py  # 离线 split、索引及归档复核夹具
-      test_review_survey_split_receipt_cli.py # 复核脚本导入安全与 CLI 参数契约
-      test_review_survey_split_receipt_contracts.py # 数据集、seed 与角色复核契约
-      test_review_survey_split_receipt_encoding.py # 图像类型尺寸与表格特征维度拒绝测试
-      test_review_survey_split_receipt_integrity.py # 完整索引与归档篡改拒绝测试
-      test_review_survey_split_receipt_modalities.py # 模态统计与官方测试源先验复核
-      test_diagnose_survey_split_rebuild.py # 重建 ZIP 平台字节诊断、不改严格验收与缺失/篡改拒绝
-      test_audit_survey_workbook_readme.py # Excel双列说明读取、历史否定引述与诊断确定性
       test_recipe_production_gate.py    # 正式注册表条件 CI 与声明锁拒收/确定性
-      test_survey_result_receipt.py     # 原始结果树分批字节身份与缺件/篡改拒收
       _lbe_comparison_helpers.py        # 临时 LBE 对照的合成四路 fixture
       test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
       test_lbe_comparison_plan.py       # split/seed/预算身份与预检拒收
@@ -420,7 +394,6 @@ tests/
       test_genpu_recipe_execution.py    # GEN-PU 计划摘要、实际双轨 CLI、选后回收与模型回放
       test_candidate_image_execution.py # 图像 CLI 计划绑定、PA/OA 回放与非正式边界
       test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
-      test_prepare_survey_v3_proposal.py # v3 请求CLI只读、范围摘要与无torch规划
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -444,6 +417,7 @@ tests/
       test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
       test_random.py                    # check_random_state 种子归一化助手直接测试(含与内联构造的双向差异)
       test_fit_state.py                 # 拟合状态保护的异常、取消与签名契约
+      test_fit_guard_coverage.py        # 16 个候选 fit 保留共享失败守卫且不声明 clean 角色（纯 AST，无源码哈希）
     workflows/
       test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
       test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
@@ -585,7 +559,6 @@ tests/
       test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝
       test_process_peak_rss.py          # 进程 RSS 单位、平台不支持与稳定计数处理
       test_selfpu_ts_support.py         # 显式 TS clean-meta 四网络对照、角色与失败守卫
-      test_survey_v3_proposal.py        # v3算法/变体范围、来源漂移、未授权预算与协议拒绝
       _profile_identity_helpers.py      # 临时身份草案与矩阵写入测试夹具，不提供正式预算
       test_profile_identity_execution.py # profile 双轨/原生快照、实际子进程与完整来源续跑
       test_survey_profile_identity.py   # 显式身份映射、旧路径兼容与错误/越权绑定拒绝
@@ -926,22 +899,9 @@ scripts/
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
   generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
-  review_survey_split_receipt.py          (P1.4 接收端只读校验：归档摘要、四角色契约与预处理统计)
-  audit_survey_workbook.py                (只读交付 Excel 身份、协议覆盖与逐 seed 汇总对账)
   prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)
   collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
-  profile_survey_candidate_storage.py     # 七方法多 seed 合成存储与恢复探针
-  prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
-  check_candidate_fit_contracts.py        # 15候选失败拟合guard及源码绑定核验
-  profile_survey_cnn_storage.py           # 五方法 CNN 存储探针与多 seed 恢复；非正式预算
-  check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
-  check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决
-  prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
   prepare_candidate_image_resource_plan.py (PULDA/GradPU 默认快照数与空间预检，不训练、不加载制品或批准资源)
-  check_survey_extended_cnn_storage.py    # 新 CNN 资源记录只读身份/角色/阶段成本/源码校验
-  profile_survey_extended_cnn_storage.py  # 七个新 CNN 工程变体的独立进程多种子资源探针
-  diagnose_survey_split_rebuild.py        (只读重建差异诊断：仅 ZIP 创建平台字节归因，不接受变更收据)
-  verify_survey_result_receipt.py         # P2.2 原始结果树/报告的分批只读身份接收
   run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
   run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断
   _lbe_diagnostic_reference.py            # 不注册的 SCAR 约束解析梯度诊断参考
@@ -950,7 +910,6 @@ scripts/
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
   run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
-  prepare_survey_v3_proposal.py           # 输出/核对v3 profile与单元请求，保留未批准和不可执行边界
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
 ```
 

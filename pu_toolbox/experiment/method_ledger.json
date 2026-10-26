@@ -17,30 +17,6 @@
     "HENG958": ["nnpu", "self_pu"]
   },
   "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "tedn", "pulda", "puet", "gradpu", "lagam", "pan", "rp", "pulns", "genpu", "holistic_pu", "p3mix"],
-  "technical_resource_evidence": [
-    {
-      "id": "candidate_cnn_storage_probe_20261005",
-      "methods": ["pulda", "gradpu", "robust_pu", "split_pu", "pan"],
-      "cpu_record": "docs/research/pu_survey/data/candidate_cnn_storage_probe_20261005.json",
-      "cuda_record": "docs/research/pu_survey/data/candidate_cnn_cuda_probe_20261005.json",
-      "cuda_methods": ["pulda"],
-      "review_ref": "docs/research/pu_survey/admission/candidate_cnn_storage_review_20261005.md",
-      "scope": "default-width CNN, reduced synthetic input/head/stages, engineering evidence only",
-      "formal_budget_approved": false,
-      "protocol_binding": null
-    },
-    {
-      "id": "candidate_extended_cnn_storage_probe_20261007",
-      "methods": ["pulns", "genpu", "holistic_pu"],
-      "cpu_record": "docs/research/pu_survey/data/candidate_extended_cnn_storage_probe_20261007.json",
-      "cuda_record": null,
-      "cuda_methods": [],
-      "review_ref": "docs/research/pu_survey/extended_cnn_resource_review_20261007.md",
-      "scope": "default-width CNN13, synthetic 24-row 3x32x32 inputs, 7 recipes x 3 seeds, isolated CPU processes; engineering evidence only",
-      "formal_budget_approved": false,
-      "protocol_binding": null
-    }
-  ],
   "methods": {
     "p3mix": {
       "class": "P3MixClassifier",
@@ -119,7 +95,6 @@
       "modality_backbone": {"modalities": ["tabular", "image"], "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后默认继续分类器/Adam，reinitialize 可重建全部网络/优化器；原始数据留 CPU",
         "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}},
       "source_behavior_review_ref": "docs/research/pu_survey/holistic_source_cnn_review_20261007.md",
-      "technical_resource_evidence_ref": "candidate_extended_cnn_storage_probe_20261007",
       "stage_initialization_review_ref": "docs/research/pu_survey/holistic_stage_initialization_20261007.md",
       "warmup_selection_review_ref": "docs/research/pu_survey/holistic_lzo_selection_20261007.md",
       "evidence": {"native_sampling_assumption": "Holistic-PU.md；固定 commit dataset/cifar.py:86 的 setdiff1d，限标准分支", "prior_semantics": "Holistic-PU.md；论文 §2.4 按趋势划分，无外部先验；当前 estimated_unlabeled_prior_ 只作诊断", "adaptation_level": "Holistic-PU.md；train.py 尾部邻差评分、jenkspy 与 utils/misc.py:101-105；公式及独立暴力分割测试 test_holistic_pu.py"},
@@ -148,7 +123,6 @@
         "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
       },
       "source_behavior_review_ref": "docs/research/pu_survey/genpu_source_cnn_review_20261007.md",
-      "technical_resource_evidence_ref": "candidate_extended_cnn_storage_probe_20261007",
       "evidence": {
         "native_sampling_assumption": "GEN-PU.md；论文 §2.1 U~p(x)，官方 utils/data_wrapper.py:160-168 排除已标记正例",
         "prior_semantics": "GEN-PU.md；原论文式 (3)-(11)、Proposition 1 的 Du 混合项；官方 demo pun_demo_main.py:249-263 未加该权重",
@@ -202,7 +176,6 @@
         "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
       },
       "source_behavior_review_ref": "docs/research/pu_survey/pulns_source_cnn_review_20261007.md",
-      "technical_resource_evidence_ref": "candidate_extended_cnn_storage_probe_20261007",
       "evidence": {
         "native_sampling_assumption": "PULNS.md；原论文 §Experimental Setup 印刷页 8788，P/U 分别抽样",
         "prior_semantics": "PULNS.md；印刷页 8787 明确奖励验证集需要真实正/负标签",
@@ -755,9 +728,6 @@
       "class": "PULDAClassifier",
       "source_behavior_review_ref": "docs/research/method_cards/PULDA.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
-      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
-      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Positive-Unlabeled Learning with Label Distribution Alignment",
         "authors": "Yangbangyan Jiang, Qianqian Xu, Yunrui Zhao, Zhiyong Yang, Peisong Wen, Xiaochun Cao, Qingming Huang",
@@ -799,9 +769,6 @@
       "class": "PUExtraTreesClassifier",
       "source_behavior_review_ref": "docs/research/method_cards/PUET.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
-      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
-      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Positive-Unlabeled Learning using Random Forests via Recursive Greedy Risk Minimization",
         "authors": "Jonathan Wilton, Abigail M. Y. Koay, Ryan K. L. Ko, Miao Xu, Nan Ye",
@@ -852,9 +819,6 @@
       "class": "GradPUClassifier",
       "source_behavior_review_ref": "docs/research/pu_survey/admission/gradpu_source_review_20261005.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
-      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
-      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "GradPU: Positive-Unlabeled Learning via Gradient Penalty and Positive Upweighting",
         "authors": "Songmin Dai, Xiaoqiang Li, Yue Zhou, Xichen Ye, Tong Liu",
@@ -1117,9 +1081,6 @@
     "robust_pu": {
       "class": "RobustPUClassifier",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
-      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
-      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Robust Positive-Unlabeled Learning via Noise Negative Sample Self-correction",
         "authors": "Zhangchi Zhu, Lu Wang, Pu Zhao, Chao Du, Wei Zhang, Hang Dong, Bo Qiao, Qingwei Lin, Saravan Rajmohan, Dongmei Zhang",
@@ -1177,9 +1138,6 @@
       "source_behavior_review_ref": "docs/research/method_cards/Split-PU.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/splitpu_inference_modes_20261019.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "selection_budget_spec_ref": "docs/research/pu_survey/data/p3_selection_budget_spec_20261007_draft.json",
-      "public_comparison_ref": "docs/research/pu_survey/data/p3_public_comparison_draft_20261005.json",
-      "admission_evidence_ref": "docs/research/pu_survey/data/p3_admission_evidence_20261005.json",
       "paper": {
         "title": "Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",
         "authors": "Chengming Xu, Chen Liu, Siqian Yang, Yabiao Wang, Shijie Zhang, Lijie Jia, Yanwei Fu",

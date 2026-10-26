@@ -5,15 +5,15 @@
 
 ## 范围与来源
 
-入口 `scripts/profile_survey_cnn_storage.py`，五方法 × 三种子（0/1/2），CPU，24 条合成
+入口 scripts/profile_survey_cnn_storage.py，五方法 × 三种子（0/1/2），CPU，24 条合成
 NCHW 输入（3×8×8），CNN13 的默认 base_channels=64，GradPU 使用显式 cnn13_no_bn。
 使用固定 0.5/0.5 通道归一化、小 head4、缩短阶段轮次；不是 CIFAR train-only 统计、
 论文增强、正式训练预算或 frozen-lock 验收。8×8 用于工程冒烟，不登记为正式数据集。
 全阶段 weights-only 快照均在 CPU 恢复为有限预测，最终快照与 fitted estimator 分数一致；
 完整 estimator 仅反序列化本次自己生成的可信 pickle。临时目录退出后自动清理，仅保留 JSON。
 
-机器记录：[CPU 15 组](../data/candidate_cnn_storage_probe_20261005.json)、
-[CUDA 单组](../data/candidate_cnn_cuda_probe_20261005.json)。每组保留参数、视图、输入尺寸、
+机器记录：CPU 15 组、
+CUDA 单组。每组保留参数、视图、输入尺寸、
 Python/PyTorch 版本、基线 commit 与实际源码 SHA256；训练前后来源摘要变化即拒绝记录。
 基线 commit 为 19c68c2，新探针当时尚未提交，所以**实际源码以逐文件摘要识别**，
 不能仅凭 code_commit 宣称整个工作区当时干净或代码已冻结。

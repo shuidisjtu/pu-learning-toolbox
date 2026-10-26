@@ -8,18 +8,41 @@ This is never a full-resource profile, formal recipe or run authorization.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import shutil
 from pathlib import Path
-
-from scripts.check_p3_admission_evidence import constructor_facts
 
 ROOT = Path(__file__).resolve().parents[1]
 METHODS = {
     "pulda": ("pu_toolbox/estimators/risk/pulda.py", "PULDAClassifier", "resnet18"),
     "gradpu": ("pu_toolbox/estimators/deep/grad_pu.py", "GradPUClassifier", "cnn13_no_bn"),
 }
+
+
+def constructor_facts(path, class_name):
+    """Read literal constructor defaults and property returns without importing torch."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    klass = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == class_name)
+    init = next(n for n in klass.body if isinstance(n, ast.FunctionDef) and n.name == "__init__")
+    args = init.args
+    pairs = (
+        list(zip(args.args[-len(args.defaults) :], args.defaults, strict=True))
+        if args.defaults
+        else []
+    )
+    pairs += list(zip(args.kwonlyargs, args.kw_defaults, strict=True))
+    defaults = {arg.arg: ast.literal_eval(value) for arg, value in pairs if value is not None}
+    properties = {
+        node.name: ast.unparse(node.body[-1].value).replace("self.", "")
+        for node in klass.body
+        if isinstance(node, ast.FunctionDef)
+        and node.decorator_list
+        and any(isinstance(d, ast.Name) and d.id == "property" for d in node.decorator_list)
+        and isinstance(node.body[-1], ast.Return)
+    }
+    return defaults, properties
 
 
 def _positive_integer(value, name):

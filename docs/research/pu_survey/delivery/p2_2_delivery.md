@@ -1,10 +1,10 @@
 # P2.2 Pilot 聚合与审计（交付记录）
 
-> **2026-10-15修正工作簿**：接收与三数据页保持性已独立验证，见[复核](../reviews/p21_correction_receiving_20261015.md)。新旧字节身份分开，原结果树/人工复核限制不由本包解除。
+> **2026-10-15修正工作簿**：接收与三数据页保持性已独立验证，见复核。新旧字节身份分开，原结果树/人工复核限制不由本包解除。
 
-> **2026-10-04 表格层收件验收**：645 行 Excel 与登记摘要完全一致；从 raw 重算 183 行均值、样本 SD、AUC 与成本通过，见 [独立对账](p21_workbook_review_20261004.md)。原始制品门禁与人工签署仍待完成。
+> **2026-10-04 表格层收件验收**：645 行 Excel 与登记摘要完全一致；从 raw 重算 183 行均值、样本 SD、AUC 与成本通过，见 独立对账。原始制品门禁与人工签署仍待完成。
 
-> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 [独立技术复核](../reviews/pilot_independent_review_20261004.md)。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
+> **2026-10-04 复核入口**：当前 v3 与 pilot 的代理技术检查、来源读数、文档纠错及未决输入见 独立技术复核。历史结论与本人签署保留；本轮不解除 pending_collaborator_review，也不将工具回归冒报为正式 645 次结果重算。
 
 - 日期：2026-10-03
 - 定位：把 P2.1 五批（645 runs）的运行制品推进为可审计、可分层的 P2.2 交付。**不含**跨数据集总排名
@@ -26,8 +26,8 @@
 | 批次白名单 | 五批根目录 + 期望 manifest 数的 JSON，由 `--config` 传入 | 执行机（不含在本仓库） |
 | 报告身份块 | `pu_toolbox/experiment/survey_provenance.py`（三份报告共用，见 `api.md` 同名一节） | 仓库 |
 | 原始制品 | `01_audit` / `02_summary` / `03_comparison` / `04_evidence` | 执行机分析工作区，**在仓库外** |
-| 复核包 | [`p2_2_review.md`](p2_2_review.md)（双栏清单与签署模板） | 仓库 |
-| 比对基准 | [`data/p2_2_artifacts_index.json`](../data/p2_2_artifacts_index.json) | 仓库 |
+| 复核包 | `p2_2_review.md`（双栏清单与签署模板） | 仓库 |
+| 比对基准 | `data/p2_2_artifacts_index.json` | 仓库 |
 | 645 行交付表 | 逐 run 原始数据（含三项成本与环境身份）加 P2.2 派生层 | **在仓库外，由执行方直接发送** |
 
 **最终测试指标接线（2026-10-22）**：runner 的每个 PA/OA 独立选择结果在 test 上记录 Accuracy、AUC、F1、Precision、Recall；F1/Precision/Recall 以正类 `1` 计算。P2.2 汇总将 Accuracy 保持为唯一比较主指标，其余四项均给 seed 均值、样本标准差、有效计数和不可用 seed/原因，不进入选择或排名。退化输入下指标记 `null` 与原因，不能补零。既有 645-run 制品没有 F1/Precision/Recall 原始值，历史数值不会由汇总器重建；新指标从之后按新版 runner 产生的 manifest 获取。
@@ -183,7 +183,7 @@ B3a/B3b 的日志与退出码、B2/B3a/B3b 的摘要文件随后从执行机取�
 - **A17**：`ISOLATION_TESTS` 列出的 3 个隔离保护测试须存在（测试视图不能交给选模协议、PA 不接触 clean 标签）。审计不运行它们，它们是否通过由测试套件与 CI 负责。
 
 **重跑记录（2026-10-09，分支 `feature/p2-2-rerun-baseline` 的 `7ee6a30`，干净检出）**：用接线后的代码重跑三个入口，登记在
-[`data/p2_2_artifacts_index_20261009.json`](../data/p2_2_artifacts_index_20261009.json)，**不覆盖** `40826a2` 那份基线。
+`data/p2_2_artifacts_index_20261009.json`，**不覆盖** `40826a2` 那份基线。
 证据从执行机取回：五批运行日志、`<批名>_exit_code.txt`（B2 没有）、B2/B3a/B3b 的 `.sha256`；
 B1/B2/B4 的日志与本机备份逐字节相同。取件包 `rerun_evidence.tar.gz` 的 sha256 为 `f32feb6e…80ba`。
 
@@ -219,9 +219,9 @@ uv run python scripts/compare_survey_results.py --summary <02_summary/summary.js
    因此**报告是产出它的那次 checkout 的函数**：换了 commit 或输入根，报告就会不同。
    比对时必须先核身份块，再比数值。
 
-**原始比对基准**在 [`data/p2_2_artifacts_index.json`](../data/p2_2_artifacts_index.json)；
-2026-10-09 接线重跑用[新索引](../data/p2_2_artifacts_index_20261009.json)，不要与原始 Excel 的生产 commit 混用。
-表格跨基准对账命令与独立验收剩余输入见[收尾记录](../reviews/p2_2_followup_20261012.md)。先比
+**原始比对基准**在 `data/p2_2_artifacts_index.json`；
+2026-10-09 接线重跑用新索引，不要与原始 Excel 的生产 commit 混用。
+表格跨基准对账命令与独立验收剩余输入见收尾记录。先比
 `inputs.total.tree_sha256`（确认读的是同一批字节），再比 `artifacts` 的逐文件摘要。
 Markdown 与 CSV 不含时间戳，故同一输入、同一 checkout 下逐字节可复现；JSON 里带 `generated_at`，
 比对时须先移除该字段。

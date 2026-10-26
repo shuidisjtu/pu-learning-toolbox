@@ -53,11 +53,11 @@ W_N(S)=W_U(S)-W_P(S).
 CPU 单次森林 fit、100棵默认树与独立模型存储，不伪造神经 epoch/provenance 或 GPU 验收。
 正式预算、表示、GPU 条款豁免仍待决定。
 
-P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)登记原表 Table2
+P1-2 公开对照准备（`p3_public_comparison_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）登记原表 Table2
 nonnegative/quadratic CIFAR accuracy79.74(0.37)，5次拟合；不是邻列 logistic79.86。
 原图3072维/固定P1000/全体训练U与共享冻结特征、c扫描、PA/OA不同，数字保持 pending。
 
-见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。作者 `tree.py:293-298`
+见五方法证据包（`p3_admission_evidence_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）。作者 `tree.py:293-298`
 在叶节点质量并列时随机投票；我方固定负类。作者 `tree.py:347-348` 按第二小/第二大
 值裁边抽阈值，我方用完整 min/max 区间。作者 `tree.py:357-363` 未要求正风险下降；
 我方要求 gain>1e-12。上游 `min_samples_leaf` 在该处只检查父节点，我方约束两个子节点。

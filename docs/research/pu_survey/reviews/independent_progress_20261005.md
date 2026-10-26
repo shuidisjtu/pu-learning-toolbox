@@ -8,7 +8,7 @@
 | 内容 | 实际交付 | 明确边界 |
 |---|---|---|
 | PULDA 两阶段磁盘估算 | 新增 `checkpoint_epoch_count=warmup_epochs+pu_epochs`，runner 的无显式 epoch 预算分支可识别；显式协议预算优先 | 回收只减少最终留存，不减少跑批峰值；正式候选预算仍待确定 |
-| PULDA / PUET 存储探针 | `scripts/profile_survey_candidate_storage.py` 输出严格 JSON；PULDA 两阶段权重恢复与两方法可信内存 pickle 恢复均逐预测比较 | 合成 48×3 特征、CPU、短预算；不是真实 CIFAR 存储上界或正式 GPU 资源审计 |
+| PULDA / PUET 存储探针 | scripts/profile_survey_candidate_storage.py 输出严格 JSON；PULDA 两阶段权重恢复与两方法可信内存 pickle 恢复均逐预测比较 | 合成 48×3 特征、CPU、短预算；不是真实 CIFAR 存储上界或正式 GPU 资源审计 |
 | PAN | 原论文式 (7) 的 D 最大化 / C 最小化、梯度隔离、稳定 logit 形式；独立 MLP 分类器和判别器 | 2-D 特征；原生 OS；拒绝未实现的 TS 风险替换；不是原论文图像数值复现 |
 | Rank Pruning (`rp`) | 官方相关实现的 PU 特例：折内 OOF 噪声估计后求平均、排序剪枝、最终正例逆噪声权重 | 固定负标签噪声 `rho0=0`；不冒充一般双向标签噪声算法；原生 OS，未实现 TS |
 | PULNS | 3 块状态、Bernoulli 动作、截断 log-odds 奖励、折扣回报及 REINFORCE；策略更新后重新选负例；reward probe 与最终 best classifier 分开 | 显式独立 clean support；支持身份交集检查，无身份时隔离仅由调用者保证；额外标签预算使普通 PU-only PA-ineligible |
@@ -118,8 +118,8 @@ CUDA_VISIBLE_DEVICES=6 PU_REQUIRE_CUDA=1 pytest -q -m gpu \
 
 ### 后续独立工作
 
-新增五方法准入交接草稿：[机器清单](../data/p3_preintegration_extension_v1_draft.json)，
-由 `scripts/prepare_p3_preintegration_extension.py` 只读生成，**6 passed**。
+新增五方法准入交接草稿：机器清单，
+由 scripts/prepare_p3_preintegration_extension.py 只读生成，**6 passed**。
 每方法直接引用台账来源/版本、原生假设、默认视图和适配差异，明确方法特有待决项；
 PULNS 的独立标签预算及 PA-ineligible 不被省略，P3MIX 明确列为未注册组件。
 预算/候选池/新协议为空、admitted=false、负责人决定为空；没有修改原八方法准入草稿或冻结矩阵。
@@ -192,7 +192,7 @@ GEN-PU/探针/runner **32 passed / 1 deselected**。
 
 ### 新存储证据与回归
 
-保留旧合成快照，新增 [v2 探针](../data/candidate_storage_probe_20261005_v2.json)：
+保留旧合成快照，新增 v2 探针（`candidate_storage_probe_20261005_v2.json`，已归档于 tag `survey-docs-archive-20261025`）：
 7 方法 × seeds 0/1/2，48×3 CPU，同样不作速度排名或正式资源上界。
 每 seed：PAN 两轮分类器权重共 4016 bytes、完整 pickle 4931 bytes；
 Holistic-PU 四轮权重共 8032 bytes、pickle 4782 bytes；
@@ -405,7 +405,7 @@ protocol_binding=null；关联契约/方法台账/UI 专项 **31 passed**。
 ## P1-1：五方法来源、预算与选模工程准备
 
 本次按 PULDA → PUET → Grad-PU → Robust-PU → Split-PU 补齐证据，见
-[交付说明](../p3_admission_evidence_20261005.md)和[机器包](../data/p3_admission_evidence_20261005.json)。
+交付说明和机器包。
 四个作者仓库的 17 个文件均已按 commit/字节摘要核验；Grad-PU 保持未确认源码。
 只读检查器核对当前构造默认值、checkpoint 上界、视图、证据引用和未准入状态，
 可另行检查本地作者源码，但不下载或执行外部代码。
@@ -421,8 +421,8 @@ formal_admission=false。方法卡、台账、八方法草稿、索引和路线�
 
 ## P1-2：公开结果库存与可比性准备
 
-见[交付说明](../p3_public_comparison_20261005.md)和
-[机器草稿](../data/p3_public_comparison_draft_20261005.json)。四篇原论文表格已渲染核列，
+见交付说明和
+机器草稿。四篇原论文表格已渲染核列，
 登记12条本人方法数值（不是其它方法的转载/邻列oracle），PULDA 全文受限明确保留未知。
 五方法×三数据集15格中5格有读数但协议不符、7格仅在本批未观察到读数、3格来源不可读；
 不是冻结 run 覆盖、更不是文献穷举；无新方法结果可作数值裁决。

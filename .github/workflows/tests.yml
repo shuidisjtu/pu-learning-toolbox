@@ -106,9 +106,6 @@ jobs:
       - name: Test quality gate
         run: uv run --python "3.11" python scripts/check_test_quality.py
 
-      - name: Candidate failed-fit contracts (engineering only)
-        run: uv run --python "3.11" python scripts/check_candidate_fit_contracts.py --check docs/research/pu_survey/data/candidate_fit_contracts_20261019_draft.json
-
       - name: Doc consistency check
         run: uv run --python "3.11" python scripts/check_doc_links.py
 
@@ -127,23 +124,11 @@ jobs:
       - name: Baseline config consistency check
         run: uv run --python "3.11" python scripts/check_baseline_configs.py
 
-      - name: Materialized recipe draft schema (not a production lock)
-        run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --registry docs/research/pu_survey/data/survey_recipe_registry_v0_1_draft.json --require-present
-
-      - name: Materialized v3 recipe draft schema (not a production lock)
-        run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --registry docs/research/pu_survey/data/survey_recipe_registry_v0_2_draft.json --require-present
-
       - name: Production recipe registry (frozen lock)
         run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --require-present --require-locked
 
       - name: Profile to comparison mapping (frozen binding)
         run: uv run --python "3.11" python scripts/check_survey_profile_map.py --require-present
-
-      - name: V3 profile/unit proposal sources (planning only)
-        run: >-
-          uv run --python "3.11" python scripts/prepare_survey_v3_proposal.py
-          --check docs/research/pu_survey/data/survey_v3_profile_unit_proposal_20261023.json
-          --summary
 
       - name: Comment quality gate
         run: uv run --python "3.11" python scripts/check_comment_quality.py

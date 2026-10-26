@@ -91,14 +91,14 @@ ResNet-18，并验证训练 BN 与模板隔离；默认仍不启用增强。2026
 warmup/pu_mixup 快照保留阶段内位置与累计更新数；当前技术 selector 仍遍历两阶段。
 哪些阶段可获正式 PA/OA 资格仍 null，训练目标、校准范围和默认预算未改。
 
-P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)现将 PULDA 状态更正为
+P1-2 公开对照准备（`p3_public_comparison_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）现将 PULDA 状态更正为
 `full_text_reviewed_anchor_pending`。全文曾于 2026-10-18 核对并记录上述摘要，但该 PDF
 不在当前工作区；2026-10-19 从[第一作者主页](https://jiangyangby.github.io/publications/)
 重查，其 PDF 入口指向[IEEE 原文页](https://ieeexplore.ieee.org/document/10264106)，本轮浏览器
 只能取得 JS/机器人验证页，无法重读表格。故目前不登记数值锚点；不以 Dist-PU 数字替代，
 也不将“本地未能重新取得”解释为原论文没有结果。要抽取锚点需重新提供与上述 SHA-256 匹配的 PDF。
 
-见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。锁定作者
+见五方法证据包（`p3_admission_evidence_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）。锁定作者
 `dataTools/PUSampler.py:15-41` 丢弃 U 尾批并循环抽 P；本实现保留尾批、P 有放回抽样，
 同 epoch 不保证相同更新数。作者 `train.py:120` warmup cosine 用 pu_epochs，
 本实现亦用 max(1, pu_epochs)，不是独立的 warmup 长度；不等阶段测试锁住此耦合事实。

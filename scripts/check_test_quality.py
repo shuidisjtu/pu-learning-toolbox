@@ -175,40 +175,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
         "param": "static source-audit fixture with no callable parameter-validation surface",
     },
-    "test_review_survey_split_receipt_cli.py": {
-        "edge": (
-            "only the import/argparse surface is exercised; input-boundary cases of "
-            "the audit live in test_review_survey_split_receipt_contracts.py and "
-            "test_review_survey_split_receipt_encoding.py"
-        ),
-        "param": (
-            "the CLI exposes only dataset/seed selection, asserted by the basic test; "
-            "refusal paths of those values are audited per dataset in "
-            "test_review_survey_split_receipt_modalities.py"
-        ),
-    },
-    "test_review_survey_split_receipt_contracts.py": {
-        "basic": (
-            "this file carries only the fail-closed corruption cases; the accepting "
-            "path is asserted in test_review_survey_split_receipt_modalities.py"
-        ),
-        "determ": "the audit is a pure function of the split files on disk (no RNG)",
-    },
-    "test_review_survey_split_receipt_encoding.py": {
-        "basic": (
-            "this file carries only the encoding rejections; the accepting path is "
-            "asserted in test_review_survey_split_receipt_modalities.py"
-        ),
-        "determ": "the audit is a pure function of the split files on disk (no RNG)",
-    },
-    "test_review_survey_split_receipt_modalities.py": {
-        "determ": "the audit is a pure function of the split files on disk (no RNG)",
-    },
-    "test_p3_candidate_admission.py": {
-        "determ": "static draft JSON versus ledger/protocol identity; no stochastic execution",
-        "param": "static admission facts; schema/ledger API error paths have separate tests",
-        "edge": "fixed admission artifacts; malformed inputs tested by recipe/ledger validators",
-    },
     "test_multistage_disk_preflight.py": {
         "determ": "pure budget arithmetic; disk errors: test_checkpoint_disk_preflight.py",
     },

@@ -2,7 +2,7 @@
 
 状态：**draft / pending_method_owner_review**。承接
 [后续优先级](survey_execution_plan.md) 第2项及
-[公开对照准备](p3_public_comparison_20261005.md)，不是执行路线编号 P1.3。
+公开对照准备，不是执行路线编号 P1.3。
 本批补实际 checkpoint 留痕与五方法机器规格；不决定新方法的正式候选池、预算或阶段资格。
 原始 pilot 制品、负责人签署和公开数值验收的阻断全部保留。
 
@@ -34,7 +34,7 @@
 
 ## 2. 五方法规格与待决问题
 
-[机器草案](data/p3_selection_budget_spec_20261007_draft.json) 记录当前 constructor 默认值、
+机器草案 记录当前 constructor 默认值、
 fit 角色接口、阶段、表征/校准事实、实现与 writer 源码摘要、默认快照计数及实际更新公式。
 读 P1-1/P1-2 证据并核冻结文件，不把旧结果重绑新版本。
 

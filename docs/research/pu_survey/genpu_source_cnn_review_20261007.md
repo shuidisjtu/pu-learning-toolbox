@@ -92,7 +92,7 @@ uv.lock、冻结协议/对照矩阵、既有 P1-1/P1-2 制品、checkpoint write
 双像素 MLP 的输出参数随 C*H*W 增长，四份 CNN 加独立优化器、PN 训练时仍保留五个 GAN 网络，
 其峰值显存/CPU/disk 必须重新测量；旧二维 CPU/GPU/storage 探针不可外推到本路径。
 
-[单独扩展草稿](data/p3_preintegration_extension_v1_draft.json)增加这些 blockers 和来源指针，
+单独扩展草稿增加这些 blockers 和来源指针，
 candidate protocol/budget/pool 仍 null、admitted=false、owner_decisions 为空。
 工程通过不清空 P3.3/P4.1 正式阻断，不改 frozen-lock、旧矩阵与结果；Excel 未入库。
 

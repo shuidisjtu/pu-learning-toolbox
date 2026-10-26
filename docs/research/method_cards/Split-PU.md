@@ -55,7 +55,7 @@ affine/编码器仍有梯度，模式随后恢复；不复制/丢弃行，不改
 TS逐batch风险角色U∪P已实现，但均衡P/U抽样不保证总体混合比例；合成插桩显示
 全量union阳性比例0.4而实际teacher风险池为0.673913。
 
-**2026-10-24 已裁决**（[#122 三项裁决](../pu_survey/admission/splitpu_122_adjudication_20261024.md)）：
+**2026-10-24 已裁决**（#122 三项裁决）：
 JSD 保持源码 `teacher=0.7` 与现有归一化分母，论文 Eq. (6) 方向作为已登记差异；
 TS 均衡 batch 的并集比例**登记为 benchmark 近似**，本轮不按 π 加权；
 台账指针授权修正但推迟到下一次版本化台账更新。本轮只固化决定，不改变目标/采样、
@@ -72,12 +72,12 @@ TS 均衡 batch 的并集比例**登记为 benchmark 近似**，本轮不按 π 
 teacher/splitter/student 快照保留局部 epoch、student round 与累计更新数，
 实际 splitter 早停后不假造快照；恢复/回收不丢阶段。正式阶段及轮次资格仍待批准。
 
-P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)核 Table1 Ours
+P1-2 公开对照准备（`p3_public_comparison_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）核 Table1 Ours
 n_P500/1000/3000 accuracy89.18±0.12/90.51±0.10/92.51±0.10，5次重复，全部 pending。
 原论文PDF6 teacher50轮与锁定 main.py:14 teacher20轮不同，无日志确定哪一配方产出表格；
 本版默认10轮又是独立适配，不能只按同名epoch或论文数字宣布复现。
 
-见[五方法证据包](../pu_survey/p3_admission_evidence_20261005.md)。上游
+见五方法证据包（`p3_admission_evidence_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）。上游
 `splitpu_utils.py:162-165` 用 `(sum_P BCE+sum_easy JSD)/(n_P+n_easy)`；本版为
 `mean_P BCE+mean_easy JSD`，相对组权重不一致，不能仅凭 JS 公式一致声称训练等价。
 上游 teacher20/splitter最多50/student100每轮及不同阶段 LR/weight_decay，不是我方10/10/10。

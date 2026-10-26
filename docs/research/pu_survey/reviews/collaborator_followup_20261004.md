@@ -60,7 +60,7 @@ MNIST/Fashion 为单通道 28×28，而冻结 pilot 图像规格为三通道 32�
 
 ## 4. 目前真正可配对的校准证据
 
-来源为 [P2.0e 交付](../delivery/p2_0e_delivery.md) §6/§7 的 Spambase split_0、c=0.1、seed=0，
+来源为 P2.0e 交付 §6/§7 的 Spambase split_0、c=0.1、seed=0，
 同参数、同总体先验的两个视图。原始路径在 F:/Temp/lab；本机尚无这些旧原始制品。
 以下仅复算已记录数字，差值单位为百分点（TS−OS），不是重新训练或原始制品重放：
 
@@ -98,7 +98,7 @@ Self-PU 为消融；nnPU 的 backbone、归一化、标记预算、验证选模�
 固定 π 不等于固定标记频率 c；±的含义必须逐来源核实。对照矩阵中直接数值裁决资格当前为零。
 继续检查 AUC<50 的分数方向/selected checkpoint/训练曲线，不能自动翻转 AUC 修结果。
 完整复核事实与 PUSB 离散度、nnPU 补充材料、PUBench 论文/代码矛盾等未决项见
-[独立复核](pilot_independent_review_20261004.md)与 [Excel 验收](../delivery/p21_workbook_review_20261004.md)。
+独立复核与 Excel 验收。
 
 ## 6. checkpoint 与实验逻辑后续
 

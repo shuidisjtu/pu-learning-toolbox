@@ -1,7 +1,6 @@
 """Preparation must register existing declarations without promoting their status."""
 
 import copy
-import json
 from pathlib import Path
 
 import pytest
@@ -64,23 +63,15 @@ def test_oracle_is_separate_and_historical_manifests_remain_unbound():
     assert manifest == before
 
 
-@pytest.mark.parametrize(
-    ("artifact", "protocol_version"),
-    [
-        ("survey_recipe_registry_v0_1_draft.json", "survey-v2.0"),
-        ("survey_recipe_registry_v0_2_draft.json", "survey-v3.0"),
-    ],
-)
-def test_determ_generated_draft_matches_checked_in_artifact(artifact, protocol_version):
+@pytest.mark.parametrize("protocol_version", ["survey-v2.0", "survey-v3.0"])
+def test_determ_generated_draft_is_stable_and_its_evidence_files_exist(protocol_version):
     root = Path(__file__).resolve().parents[3]
-    recorded = json.loads(
-        (root / "docs/research/pu_survey/data" / artifact).read_text(encoding="utf-8")
-    )
     protocol = load_protocol(resolve_protocol_path(protocol_version))
-    generated = build_draft_registry(protocol)
-    assert generated == recorded
-    assert canonical_digest(generated) == canonical_digest(recorded)
-    for evidence in recorded["source_evidence"].values():
+    first = build_draft_registry(protocol)
+    second = build_draft_registry(protocol)
+    assert first == second
+    assert canonical_digest(first) == canonical_digest(second)
+    for evidence in first["source_evidence"].values():
         assert (root / evidence["file"]).is_file()
 
 
