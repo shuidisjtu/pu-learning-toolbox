@@ -190,18 +190,30 @@ def checkpoint_epochs(budget):
     return budget.get("epochs")
 
 
-def validate_estimator(model, contract):
-    """Validate the actual class and parameters without constructing or training."""
+def validate_estimator(model, contract, *, architecture="mlp"):
+    """Validate the actual class and parameters without constructing or training.
+
+    ``architecture`` is the run's training architecture.  A ``native_cnn`` row (``"cnn"``)
+    is the native estimator driving the one image encoder the protocol binds, so that
+    ``encoder`` is required there; every other injected module is still refused.
+    """
     from ..registry import get_algorithm
 
     validate_contract(contract)
     if type(model) is not get_algorithm(contract["algorithm_id"]):
         raise ValueError("staged budget estimator class mismatch")
     actual = model.get_params(deep=False)
-    if any(actual.get(name) is not None for name in ("model", "encoder", "train_transform")):
+    refused = (
+        ("model", "train_transform")
+        if architecture == "cnn"
+        else ("model", "encoder", "train_transform")
+    )
+    if any(actual.get(name) is not None for name in refused):
         raise ValueError(
             "staged native_2d budget requires the native model without injected modules"
         )
+    if architecture == "cnn" and actual.get("encoder") is None:
+        raise ValueError("staged native_cnn budget requires the bound encoder")
     for name, value in contract["parameter_values"].items():
         if strict_canonical_hash(actual.get(name)) != strict_canonical_hash(value):
             raise ValueError(f"estimator differs from staged budget parameter: {name}")
@@ -209,9 +221,9 @@ def validate_estimator(model, contract):
         raise ValueError("estimator staged checkpoint count mismatch")
 
 
-def verify_trajectory(model, trajectory, contract, features, labels, view):
+def verify_trajectory(model, trajectory, contract, features, labels, view, *, architecture="mlp"):
     """Reject incomplete/wrong-stage/over-bound snapshots before PA/OA selection."""
-    validate_estimator(model, contract)
+    validate_estimator(model, contract, architecture=architecture)
     if contract["schema_version"] == episodic.SCHEMA:
         return episodic.verify_trajectory(model, trajectory, contract, features, labels, view)
     algorithm = contract["algorithm_id"]

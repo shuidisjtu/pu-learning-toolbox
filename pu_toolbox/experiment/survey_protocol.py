@@ -494,12 +494,12 @@ def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
         raise ValueError("native_cnn survey unit requires the bound ResNet-18 encoder")
 
 
-def _validate_budget(model, budget: dict) -> None:
+def _validate_budget(model, budget: dict, architecture: str = "mlp") -> None:
     """Declared artifact budgets must describe the estimator that actually trains."""
     from .survey_staged_budget import FIELD, validate_estimator
 
     if FIELD in budget:
-        validate_estimator(model, budget[FIELD])
+        validate_estimator(model, budget[FIELD], architecture=architecture)
         return
     params = model.get_params(deep=False)
     if "optimizer_steps_per_epoch" in budget and (
@@ -566,7 +566,7 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     ):
         raise ValueError(f"method {row['method']!r} does not support mechanism {mechanism!r}")
     _validate_model(model, profile, row, seed)
-    _validate_budget(model, protocol["budgets"][row["budget"]])
+    _validate_budget(model, protocol["budgets"][row["budget"]], expected_architecture)
     token = config.get("c_requested_token")
     c_off_grid = row["method"] != "pn_oracle" and (
         token not in protocol["c_tokens"][mechanism] or float(token) != config.get("c")
