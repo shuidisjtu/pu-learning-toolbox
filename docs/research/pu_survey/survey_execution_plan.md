@@ -24,16 +24,16 @@
 
 | 能力 | 现在能用？ | 缺什么 | 补完后怎么算可用 |
 |---|---|---|---|
-| 8 数据集四路 split | **是** | — | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
-| clean-support 制品（5 数据集 × seeds 0–4） | **是（本机，2026-10-24 重建）** | 无；收据属新批次，跨机传递仍须按收据核验 | 25 份逐份 `load_support_dataset` 通过并登记[机器清单](data/clean_support_materialization_20261024.json) |
-| 协议内单跑（v3 48 个 runnable 单元） | **是** | 覆盖 spambase/imdb/cifar10/connect_4/twenty_newsgroups 五个数据集；mnist/fashion_mnist/adni 尚无单元 | `--protocol survey_protocol_v3.json` 跑通并产出 manifest |
+| 8 数据集四路 split | **是** | | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
+| clean-support 制品（5 数据集 × seeds 0–4） | **是（本机，2026-10-24 重建）** | | 25 份逐份 `load_support_dataset` 通过并登记[机器清单](data/clean_support_materialization_20261024.json)；收据属新批次，跨机传递仍须按收据核验 |
+| 协议内单跑（v3 48 个 runnable 单元） | **是** | mnist/fashion_mnist/adni 尚无单元 | `--protocol survey_protocol_v3.json` 跑通并产出 manifest；现覆盖 spambase/imdb/cifar10/connect_4/twenty_newsgroups |
 | 5 方法阶段预算（GEN-PU/PULDA/Robust/Split/Holistic） | **是（已冻结）** | 逐 seed 成本收据与 manifest 对账 | 阶段快照/成本收据与运行 manifest 对账 |
 | 图像三条路径 | **部分**：GEN-PU/PULDA 原生 CNN 与 Robust/Split/Holistic 的 `cnn_feature_adapter` 已标 runnable；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | 行翻 runnable 并出真实 CIFAR manifest |
 | clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase seed0 三方法已跑通） | 5 数据集正式 units/预算 | 正式 support 批次 manifest 与制品对账 |
-| PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA） | v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
-| 分组跑 + 汇总 | **是** | — | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
-| v3 ↔ comparison/registry 绑定 | **是** | profile 映射 v3 已生效（16 mapped / 7 not_in_matrix）；比较矩阵按**协议版本**解析，v3 运行自动用 `survey_comparison_v6.json`（2026-10-25 接线，P4.2b 升到 v6）| v3 运行 manifest 的 `comparison_version` / `comparison_sha256` 是 v6 摘要，覆盖率门禁在 v3 上也真跑 |
-| 22 方法主榜 | **否** | 24 个 blocked 单元 + 8 个数据集中 3 个（mnist/fashion_mnist/adni）无单元 + connect_4/twenty_newsgroups 只有 4 个方法；P4.2a（4 个基准方法锚点）与 P4.2b（3 个定性交代）均已落地，剩余缺口是数据集覆盖与 blocked 单元 | 数据集补齐 + blocked 单元清零后出主表 |
+| PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA）；v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
+| 分组跑 + 汇总 | **是** | | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
+| v3 ↔ comparison/registry 绑定 | **是** | | v3 运行 manifest 的 `comparison_version` / `comparison_sha256` 是 v6 摘要，覆盖率门禁在 v3 上也真跑；profile 映射 v3 已生效（16 mapped / 7 not_in_matrix），比较矩阵按**协议版本**解析，v3 运行自动用 `survey_comparison_v6.json`（2026-10-25 接线，P4.2b 升到 v6） |
+| 22 方法主榜 | **否** | 24 个 blocked 单元；mnist/fashion_mnist/adni 无单元；connect_4/twenty_newsgroups 只有 4 个方法 | 数据集补齐 + blocked 单元清零后出主表（P4.2a 的 4 个基准方法锚点与 P4.2b 的 3 个定性交代均已落地） |
 
 ### 1.2 缺口任务
 
