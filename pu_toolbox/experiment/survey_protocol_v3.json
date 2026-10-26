@@ -166,7 +166,41 @@
       "train_augmentation": "none",
       "adapter_encoder_fit": "none",
       "adapter_shared_scope": "dataset/split/seed; independent of method/c/mechanism",
-      "adapter_cache_schema": "1.0"
+      "adapter_cache_schema": "1.0",
+      "per_dataset": {
+        "cifar10": {
+          "in_channels": 3,
+          "input_size": [
+            32,
+            32
+          ],
+          "small_input_stem": true
+        },
+        "mnist": {
+          "in_channels": 1,
+          "input_size": [
+            28,
+            28
+          ],
+          "small_input_stem": true
+        },
+        "fashion_mnist": {
+          "in_channels": 1,
+          "input_size": [
+            28,
+            28
+          ],
+          "small_input_stem": true
+        },
+        "adni": {
+          "in_channels": 1,
+          "input_size": [
+            128,
+            128
+          ],
+          "small_input_stem": false
+        }
+      }
     },
     "genpu_native_mlp": {
       "algorithm_id": "genpu",
@@ -1890,6 +1924,150 @@
       "backbone": "mlp128",
       "representation": "sbert384",
       "comparability_group": "twenty_newsgroups/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/native_cnn",
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/native_cnn",
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/native_cnn/native_cnn",
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/minibatch",
       "oracle_alignment": "shared_mlp128_and_minibatch_budget",
       "runnable": true
     }

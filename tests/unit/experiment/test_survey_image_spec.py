@@ -26,6 +26,7 @@ from pu_toolbox.experiment.survey_protocol import (
     ROLES,
     image_spec,
     load_protocol,
+    resolve_protocol_path,
 )
 
 pytestmark = pytest.mark.unit
@@ -127,6 +128,35 @@ def test_determ_the_same_dataset_and_seed_give_the_same_manifest(tmp_path):
     second = prepare_image_bundle(changed, copy.deepcopy(protocol), 0, dataset="adni")[2]
 
     assert first == second
+
+
+@pytest.mark.parametrize(
+    ("dataset", "channels", "size", "small_stem"),
+    [
+        ("cifar10", 3, 32, True),
+        ("mnist", 1, 28, True),
+        ("fashion_mnist", 1, 28, True),
+        ("adni", 1, 128, False),
+    ],
+)
+def test_basic_the_shipped_v3_protocol_specifies_every_image_dataset(
+    dataset, channels, size, small_stem
+):
+    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+
+    spec = image_spec(protocol, dataset)
+
+    assert (spec["in_channels"], spec["input_size"]) == (channels, [size, size])
+    assert spec["small_input_stem"] is small_stem
+
+
+def test_basic_a_v3_image_dataset_prepares_at_its_own_size():
+    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+
+    prepared, _, manifest = prepare_image_bundle(_bundle(1, 28), protocol, 0, dataset="mnist")
+
+    assert prepared.train.X.shape[1:] == (1, 28, 28)
+    assert manifest["backbone"]["first_layer"]["maxpool"] is False
 
 
 def test_basic_the_dataset_option_offers_every_catalog_dataset(runner_script):

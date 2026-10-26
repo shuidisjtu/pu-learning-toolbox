@@ -4,7 +4,7 @@
   "recipe_lifecycle": "locked",
   "protocol_basis": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "f0334b10c8926a54a0565c094d3db6482ba2a36cb47afa7bf1af9a11e28f35a4"
+    "protocol_sha256": "6baca74cc2b970ce98643123fc366e9afeffa3cbb3ccbd838c7692744be90eeb"
   },
   "selection_spec_ref": "survey_protocol_v3.selection_spec",
   "profiles": {
@@ -15,9 +15,12 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
           "connect_4",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase",
           "twenty_newsgroups"
         ],
@@ -84,9 +87,12 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
           "connect_4",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase",
           "twenty_newsgroups"
         ],
@@ -503,8 +509,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [

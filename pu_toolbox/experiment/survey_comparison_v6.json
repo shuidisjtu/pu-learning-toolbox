@@ -76,6 +76,17 @@
         "80 unit mappings added: no_direct_anchor"
       ],
       "affects": "no anchor value, mapping or decision rule changes"
+    },
+    {
+      "revision": 7,
+      "from_version": "survey-comparison-v6",
+      "date": "2026-10-26",
+      "reason": "Dataset coverage slice 2 (pilot): mnist, fashion_mnist and adni become runnable for nnpu, upu and the PN oracle, so their cells are registered as no_direct_anchor. In place by instruction: the version stays v6.",
+      "changed": [
+        "12 execution rows added for mnist/fashion_mnist/adni",
+        "66 unit mappings added: no_direct_anchor"
+      ],
+      "affects": "no anchor value, mapping or decision rule changes"
     }
   ],
   "review_status": "pending_collaborator_review",
@@ -11628,6 +11639,1392 @@
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "no benchmark reports twenty_newsgroups for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_mnist_native_cnn_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_mnist_cnn_feature_adapter_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_mnist_native_cnn_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "mnist",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_mnist_cnn_feature_adapter_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "mnist",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_fashion_mnist_native_cnn_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_fashion_mnist_cnn_feature_adapter_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_fashion_mnist_native_cnn_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_fashion_mnist_cnn_feature_adapter_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports fashion_mnist for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_nnpu_adni_native_cnn_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "nnpu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_upu_adni_cnn_feature_adapter_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "upu",
+        "dataset": "adni",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_adni_native_cnn_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "adni",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pn_oracle_adni_cnn_feature_adapter_c_independent_c_independent_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pn_oracle",
+        "dataset": "adni",
+        "labeling_mechanism": "c_independent",
+        "c_token": "c_independent",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "cnn_feature_adapter"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "no benchmark reports adni for this method; the cell is registered without an anchor and is shown as background only"
     }
   ],
   "contradictions": [
