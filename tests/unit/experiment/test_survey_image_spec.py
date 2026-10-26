@@ -150,6 +150,20 @@ def test_basic_the_shipped_v3_protocol_specifies_every_image_dataset(
     assert spec["small_input_stem"] is small_stem
 
 
+@pytest.mark.parametrize("dataset", ["mnist", "fashion_mnist", "adni"])
+def test_basic_each_image_dataset_carries_every_runnable_cifar10_row(dataset):
+    rows = load_protocol(resolve_protocol_path("survey-v3.0"))["execution_units"]
+
+    def runnable(name):
+        return {
+            (r["method"], r["training_path"], r["budget"], r["backbone"])
+            for r in rows
+            if r["dataset"] == name and r["runnable"]
+        }
+
+    assert runnable(dataset) == runnable("cifar10")
+
+
 def test_basic_a_v3_image_dataset_prepares_at_its_own_size():
     protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
 

@@ -4,7 +4,7 @@
   "recipe_lifecycle": "locked",
   "protocol_basis": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "6baca74cc2b970ce98643123fc366e9afeffa3cbb3ccbd838c7692744be90eeb"
+    "protocol_sha256": "eaa78c0c74c6a74aa6296bbe102841a42ca495d0e91c9d536ec6d80ce9ec9e81"
   },
   "selection_spec_ref": "survey_protocol_v3.selection_spec",
   "profiles": {
@@ -199,8 +199,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -270,9 +273,12 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
           "connect_4",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase",
           "twenty_newsgroups"
         ],
@@ -366,9 +372,12 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
           "connect_4",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase",
           "twenty_newsgroups"
         ],
@@ -435,8 +444,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -653,8 +665,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -788,8 +803,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -884,8 +902,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -1125,8 +1146,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -1213,8 +1237,11 @@
       "recipe_lifecycle": "locked",
       "scope": {
         "datasets": [
+          "adni",
           "cifar10",
+          "fashion_mnist",
           "imdb",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
