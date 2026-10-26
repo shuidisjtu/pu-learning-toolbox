@@ -69,7 +69,7 @@ CI 里两道：v0.2 草稿（schema 2.0 草稿）与生产注册表（`--require
   `formal_blockers` 未清，正式 GPU 预算与效果结论都不在这里。
 - **不回溯绑定历史制品**。旧 pilot manifest 仍是 `legacy_unbound`，`review` 里那条开放问题保留：
   不给历史结果补绑。
-- **不代表数值 parity**。GEN-PU 的 256 宽配方已对齐（见[宽度对齐记录](../delivery/genpu_width_alignment_20261025.md)），
+- **不代表数值 parity**。GEN-PU 的 256 宽配方已对齐（见宽度对齐记录），
   但全量资源与数值 parity 仍未做。
 
 ## 验收

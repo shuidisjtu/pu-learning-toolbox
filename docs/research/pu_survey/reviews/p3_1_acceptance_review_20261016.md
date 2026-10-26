@@ -157,9 +157,9 @@ P3.1 按宽口径（13 方法）完成收口；本节更新历史“待审/RV8 �
 2026-10-16/10-18 的历史截点。
 
 - 协议：`survey-v2.0` 已落库并合入 `main`（`e60b3f5`）；13 方法 delta 见
-  [p3_1_v2_delta_20261021.md](p3_1_v2_delta_20261021.md)。
+  p3_1_v2_delta_20261021.md。
 - 处置：#119–#126 已完成阶段 C 处置（关闭 5 项，保留 #122/#126），见 delta 表 §7。
 - RV8：14 条（13 方法 + TEDn）由 shuidisjtu 签署，均为有条件接受，见
-  [rv8_method_admission_20261021.md](rv8_method_admission_20261021.md)。
+  rv8_method_admission_20261021.md。
 - 边界：**P3.1 完成 ≠ 正式准入**。正式准入仍待 P3.3 资源 profile、P4.1-B 预算/配方
   冻结与 P4.2 全部 22 方法门禁；`admitted=false` 与冻结文件未改。

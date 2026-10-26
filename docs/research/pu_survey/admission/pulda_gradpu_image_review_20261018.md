@@ -47,7 +47,7 @@
 
 ## 如何使用与保存记录
 
-后续新增[绑定实际fit的训练收据入口](candidate_image_training_receipt_20261018.md)：
+后续新增绑定实际fit的训练收据入口：
 检查像素/模板/seed/增强/prior与构造记录一致后再训练，记录实际参数、成本及代码摘要。
 这不是正式runner/选模/资源或四角色隔离验收，原前置均保留。
 
@@ -79,7 +79,7 @@ prior 来源/数值、`training_view_` / `calibration_applied_`、PA/OA 策略�
 
 ## 验收与仍待办
 
-后续独立补齐：见[合作者待确认清单与资源预检](candidate_image_owner_decisions_20261018.md)。
+后续独立补齐：见合作者待确认清单与资源预检。
 资源预检从当前源码读取120/200快照数，计算候选/重试/并行文件需求；缺实测样本不判空间充足。
 它不训练、不导入 torch、不反序列化 checkpoint，不替代本节未完成的完整峰值 profile。
 

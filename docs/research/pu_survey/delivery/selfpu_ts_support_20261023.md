@@ -70,7 +70,7 @@ TS 是项目已有质量守恒校准扩展，不描述成原论文/作者程序�
 数据是完整已准备 Spambase 角色，但训练仅单 seed/3轮/小 MLP，不是正式预算、多 seed 或论文数值复现。
 加载器核对产品摘要/IDs/预算，不在本次运行重读 raw；
 `support_source_verified=false`、`raw_label_mapping_verified=false` 保留，不能拿已有 raw 审计文档
-偷偷把运行中的来源断言升级为本次重新核验。既有 raw 逐行材料见[数据交付](clean_support_materialization_20261022.md)。
+偷偷把运行中的来源断言升级为本次重新核验。既有 raw 逐行材料见数据交付。
 基线 `6de2daf` 加本轮 dirty 源码，以实际逐文件 SHA 绑定，不倒填之后的提交/环境锁。
 
 ## 复用命令

@@ -30,8 +30,8 @@ PA/OA 选模。回调正在执行时的推理能力与旧行为相同；`fit` �
 ## 台账与来源绑定
 
 - 五方法台账新增本页引用，原 `run_view` / `calibration_applied` 等不变。
-- [工程证据](../data/p3_admission_evidence_20261005.json)登记失败状态及成功路径回归。
-- [阶段预算草稿](../data/p3_selection_budget_spec_20261007_draft.json)刷新当前五份实现的
+- 工程证据登记失败状态及成功路径回归。
+- 阶段预算草稿刷新当前五份实现的
   SHA，并额外绑定共享 guard 的 SHA；离线 AST 检查缺失装饰器时失败。
 - 历史来源复核和资源探测的旧 SHA 仍对应其注明的旧提交；本次不改写历史，也不宣称
   已在新源码上重新测量真实 CPU/GPU 峰值。Robust-PU 的历史来源补交仍对应

@@ -56,7 +56,7 @@ P 不删除。保留源行为：推导总体比例可能 `>=1`，不能静默夹
 
 ## 同步与复现
 
-台账补四文件摘要和来源引用，[扩展草稿](../data/p3_preintegration_extension_v1_draft.json)
+台账补四文件摘要和来源引用，扩展草稿
 按原生成器再核一致；`run_view=os-compatible` / `calibration_applied=false` 不变。
 不支持 TS 替换，不给 P 添加伪 U；`fit` 不接具名隐藏 y 或 PA/OA 角色，外部 population π
 仅校验后忽略。调用方仍须保证所传标签是真实的观测 s，接口不能识别冒充 s 的隐藏真值。
