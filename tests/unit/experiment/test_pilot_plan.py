@@ -387,26 +387,6 @@ def test_param_an_mlp_unit_without_its_dimension_is_refused():
 # --- the driver --------------------------------------------------------------
 
 
-def test_basic_every_dataset_with_a_native_2d_row_has_a_default_feature_dimension():
-    """A dataset the protocol runs natively but the driver cannot size stops the plan."""
-    from pu_toolbox.experiment.survey_protocol import resolve_protocol_path
-
-    spec = importlib.util.spec_from_file_location(
-        "run_survey_pilot_dims", _SCRIPTS / "run_survey_pilot.py"
-    )
-    driver = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(driver)
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
-
-    native = {
-        row["dataset"]
-        for row in protocol["execution_units"]
-        if row["runnable"] and row["training_path"] == "native_2d"
-    }
-
-    assert native <= set(driver.DEFAULT_INPUT_DIMS)
-
-
 def test_basic_the_driver_reports_the_plan_without_running_anything(tmp_path, capsys):
     spec = importlib.util.spec_from_file_location(
         "run_survey_pilot", _SCRIPTS / "run_survey_pilot.py"
@@ -419,25 +399,3 @@ def test_basic_the_driver_reports_the_plan_without_running_anything(tmp_path, ca
     assert "planned: 645 run(s)" in printed
     assert "pending:   645" in printed
     assert "peak per run" in printed
-
-
-@pytest.mark.parametrize("dataset", ["cifar10", "mnist", "fashion_mnist", "adni"])
-def test_basic_every_image_row_is_sized_without_a_feature_dimension(dataset):
-    """Only native_2d rows size a network from the input width.
-
-    The guard used to key off a backbone name starting with ``resnet18``, so the
-    GEN-PU/PULDA native CNNs and the three adapter profiles, which carry their own
-    backbone names, were refused for a number the image path never reads.
-    """
-    from pu_toolbox.experiment.survey_protocol import resolve_protocol_path
-
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
-    protocol["execution_units"] = [
-        row
-        for row in protocol["execution_units"]
-        if row["dataset"] == dataset and row["training_path"] != "native_2d"
-    ]
-
-    estimate = estimate_checkpoint_bytes(protocol, input_dims={})
-
-    assert estimate["units"] == sum(row["runnable"] for row in protocol["execution_units"])

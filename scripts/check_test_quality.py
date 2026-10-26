@@ -249,6 +249,17 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "lives; this file's own boundary inputs are its parameter refusals"
         ),
     },
+    "test_pilot_plan_dimensions.py": {
+        "determ": "reads the shipped protocol and a constant table -- no randomness, no seed state",
+        "edge": (
+            "the boundary of the planner's sizing guard (an MLP unit with no "
+            "dimension supplied) is asserted in test_pilot_plan.py"
+        ),
+        "param": (
+            "the planner's refusal of a missing feature dimension is asserted in "
+            "test_pilot_plan.py; here the dimensions are only checked for coverage"
+        ),
+    },
     "test_survey_script_view.py": {
         "basic": (
             "asserted through resolve_training_view's return value; the CLI's "

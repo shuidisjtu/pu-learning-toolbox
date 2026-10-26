@@ -476,6 +476,7 @@ tests/
       test_dataset_provenance.py        # 制品追溯: 目录内已复核事实、许可逐条按官方页原文、下载来源与摘要
       test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
+      test_pilot_plan_dimensions.py     # 规划器定尺寸: 每个 native_2d 数据集有默认特征维度、图像行不索要特征维度
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
       _survey_pilot_helpers.py          # 驱动测试共享夹具: 脚本动态加载、subprocess 记录与 split 目录树
       test_survey_pilot_request_scope.py # 请求范围: --protocol 决定计划与批次、无关数据集的坏 splits 不阻断分片、快照写失败报错、未知名按本矩阵列值
