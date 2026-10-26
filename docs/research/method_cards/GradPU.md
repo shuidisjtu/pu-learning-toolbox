@@ -82,7 +82,7 @@ P/U 数据留 CPU、优化批次上卡；预测分批 eval 并恢复模式，完
 pu 阶段快照保留局部位置和累计 optimizer 更新数；梯度插值/二阶梯度与 TS 风险逻辑不改。
 新引用不批准阶段或候选，不构成论文图像配方复现。
 
-P1-2 [公开对照准备](../pu_survey/p3_public_comparison_20261005.md)核 Table1 GradPU
+P1-2 公开对照准备（`p3_public_comparison_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）核 Table1 GradPU
 CIFAR n_P1000/3000 为90.1±0.2/91.9±0.1，不是相邻 Sup. 列90.5/92.9。
 三 runs 的 deviation 暂不强定 SD/SEM，validation标签/选模尚待补充材料；全部 pending。
 
@@ -91,7 +91,7 @@ CIFAR n_P1000/3000 为90.1±0.2/91.9±0.1，不是相邻 Sup. 列90.5/92.9。
 理论 U~p(x) 与发布实验分开登记；TS 校准不是原实验协议直接重放。
 作者代码仍未确认，补充材料和正式无 BatchNorm 图像规格继续待办；工程路径见上节。
 
-五方法[准入证据包](../pu_survey/p3_admission_evidence_20261005.md)已登记当前完整构造默认值、
+五方法准入证据包（`p3_admission_evidence_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）已登记当前完整构造默认值、
 max_epochs 推断快照和 optimizer_steps_ 成本，补 raw-score 梯度惩罚的标量/二阶反传对照。
 论文配方/验证标签与网格、阶段选模准入仍待审；不伪造作者源码 commit 或数值复现资格。
 

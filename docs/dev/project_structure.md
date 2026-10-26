@@ -222,7 +222,6 @@ tests/
     test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
     test_ledger_registry_consistency.py # 台账↔registry 字段/校准/采样一致性契约(+ HENG958 负责人复核、行号引用禁令)
     test_public_exports.py              # 公共导出契约: 包 __init__ 的 __all__ 声明名必须真实存在(星号导入不炸), 补 check_api_docs 覆盖不到的漂移
-    test_p3_candidate_admission.py      # P3 准入草稿与台账同步、冻结矩阵隔离契约
     test_layer_boundaries.py            # 下层对 experiment 层的依赖边界 ratchet(静态 AST 扫描抓函数内导入 + 子进程导入图抓传递依赖)
     test_registry_dynamic_import.py     # registry 经 importlib 按名字动态加载 estimators/prior 的向上边(Core→Algorithms/Estimation): 静态 AST 扫描与子进程导入图都看不见的已裁决例外, 由注册表观测量钉住
     conftest.py                         # contract 测试共享 fixture(ledger_methods: 加载台账并注册内置方法)
@@ -382,10 +381,6 @@ tests/
       test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
       test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
-      test_prepare_p3_preintegration_extension.py # 五方法准入草稿及来源门禁
-      test_check_p3_admission_evidence.py # P3 工程证据一致性、篡改拒绝和只读来源检查
-      test_check_p3_public_comparison.py # 公开对照草稿、单位、覆盖、篡改拒绝与只读核验
-      test_prepare_p3_selection_budget_spec.py # 阶段/预算草稿再生成、类型严格一致与审批篡改拒绝
       test_prepare_candidate_image_resource_plan.py # 图像资源只读预检、快照成本、缺证据拒绝与无 torch 边界
       test_recipe_production_gate.py    # 正式注册表条件 CI 与声明锁拒收/确定性
       _lbe_comparison_helpers.py        # 临时 LBE 对照的合成四路 fixture
@@ -906,10 +901,6 @@ scripts/
   generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
   prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)
   collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
-  prepare_p3_preintegration_extension.py  # 五方法只读准入交接草稿生成器
-  check_p3_admission_evidence.py          # 五方法准入证据只读检查；不批准预算或签署
-  check_p3_public_comparison.py           # 公开读数单位与覆盖检查；不输出正式数值裁决
-  prepare_p3_selection_budget_spec.py     (五方法选模预算 AST 草稿生成/只读核验，不批准阶段)
   prepare_candidate_image_resource_plan.py (PULDA/GradPU 默认快照数与空间预检，不训练、不加载制品或批准资源)
   run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
   run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断

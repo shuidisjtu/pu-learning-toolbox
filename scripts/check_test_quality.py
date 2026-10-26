@@ -175,11 +175,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
         "param": "static source-audit fixture with no callable parameter-validation surface",
     },
-    "test_p3_candidate_admission.py": {
-        "determ": "static draft JSON versus ledger/protocol identity; no stochastic execution",
-        "param": "static admission facts; schema/ledger API error paths have separate tests",
-        "edge": "fixed admission artifacts; malformed inputs tested by recipe/ledger validators",
-    },
     "test_multistage_disk_preflight.py": {
         "determ": "pure budget arithmetic; disk errors: test_checkpoint_disk_preflight.py",
     },
