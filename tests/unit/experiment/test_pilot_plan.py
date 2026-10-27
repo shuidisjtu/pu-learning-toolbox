@@ -394,7 +394,9 @@ def test_basic_the_driver_reports_the_plan_without_running_anything(tmp_path, ca
     driver = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(driver)
 
-    assert driver.main(["--dry-run", "--results", str(tmp_path / "none")]) == 0
+    # The 645-run figure is the v2 pilot's; the driver's own default is v3.
+    argv = ["--dry-run", "--results", str(tmp_path / "none"), "--protocol", "survey-v2.0"]
+    assert driver.main(argv) == 0
     printed = capsys.readouterr().out
     assert "planned: 645 run(s)" in printed
     assert "pending:   645" in printed

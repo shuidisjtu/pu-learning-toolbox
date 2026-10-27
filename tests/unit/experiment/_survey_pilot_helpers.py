@@ -24,13 +24,40 @@ _SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
 ALL_PRIORS = ["--class-prior", "spambase=0.39,imdb=0.5,cifar10=0.1"]
 
 
-@pytest.fixture
-def driver():
+def _load_driver():
     spec = importlib.util.spec_from_file_location(
         "run_survey_pilot", _SCRIPTS / "run_survey_pilot.py"
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture
+def raw_driver():
+    """The script exactly as shipped, so its own ``--protocol`` default is what runs."""
+    return _load_driver()
+
+
+@pytest.fixture
+def driver():
+    """The script with ``--protocol survey-v2.0`` filled in when the call names none.
+
+    The driver's default moved to ``survey-v3.0``, but these suites are built around
+    the v2 pilot matrix -- its 645 runs and its three-dataset prior set -- so they
+    ask for it by name.  A test that names a protocol keeps it, and the default
+    itself is pinned through ``raw_driver`` in ``test_survey_pilot_driver_protocol``.
+    """
+    module = _load_driver()
+    shipped_main = module.main
+
+    def _main_under_v2(argv=None):
+        args = list(argv or [])
+        if "--protocol" not in args:
+            args += ["--protocol", "survey-v2.0"]
+        return shipped_main(args)
+
+    module.main = _main_under_v2
     return module
 
 
