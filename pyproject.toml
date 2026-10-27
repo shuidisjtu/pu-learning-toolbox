@@ -37,6 +37,7 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.3",
     "tomli>=2.0; python_version < '3.11'",
+    "openpyxl>=3.1",
 ]
 torch = [
     "torch>=2.0",
@@ -53,6 +54,9 @@ research = [
     "tqdm>=4.0",
     "sentence-transformers>=3.0,<6",
 ]
+report = [
+    "openpyxl>=3.1",
+]
 ui = [
     "streamlit>=1.38",
 ]
@@ -63,6 +67,7 @@ all = [
     "lightning>=2.0",
     "tqdm>=4.0",
     "streamlit>=1.38",
+    "openpyxl>=3.1",
     "sentence-transformers>=3.0,<6",
 ]
 

@@ -33,6 +33,7 @@
 | clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase、connect_4 seed0 三方法已跑通） | 5 数据集正式 units/预算；`clean_support` 组内 PULNS 为 `mlp32`、另两个为 `mlp128`，聚合门禁按 backbone 名称精确比较，该组聚合仍被拒（D47，待定） | 正式 support 批次 manifest 与制品对账 |
 | PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA）；v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
 | 分组跑 + 汇总 | **是** | | `--methods/--datasets/--training-paths` 分批 + 汇总入口；`aggregate_survey_runs.py` 现默认按 `survey-v3.0` 读（`--protocol` 可改，D47） |
+| 交付物 A 导出（工作簿 + 诊断卡） | **是（接线与版式；尚无 5 seed 数据）** | 5 seed 正式批次；诊断卡里的类先验语义、跨数据集趋势、外部锚点偏差、原生适用/假设违背分组、排名颠倒五项当前算不了（见 D48） | `uv run python scripts/export_survey_results.py --config <批次配置> --out-dir <目录>` 出 `survey_results.xlsx`（四组各一页 + diagnostic / coverage / readme）与 `diagnostic_cards.md/json`；缺 seed 的行只进 coverage；已用 2026-10-26/27 主机的 36 份单 seed manifest 验证（全部进 coverage、结论页为空，符合「单 seed 不进结论表」） |
 | v3 ↔ comparison/registry 绑定 | **是** | | v3 运行 manifest 的 `comparison_version` / `comparison_sha256` 是 v6 摘要，覆盖率门禁在 v3 上也真跑；profile 映射 v3 已生效（16 mapped / 7 not_in_matrix），比较矩阵按**协议版本**解析，v3 运行自动用 `survey_comparison_v6.json`（2026-10-25 接线，P4.2b 升到 v6） |
 | 22 方法主榜 | **否** | 24 个 blocked 单元；还没有任何 5 seed 正式批次 | blocked 单元清零并跑完 5 seed 批次后出主表（8 个数据集的单元已补齐；P4.2a 的 4 个基准方法锚点与 P4.2b 的 3 个定性交代均已落地） |
 
@@ -46,7 +47,6 @@
 | support 正式 units（5 数据集） | LaGAM/PULNS/Self-PU full-meta 现有 spambase 与 connect_4 的 runnable 行；LaGAM/PULNS 另有 cifar10（blocked）行，mnist/fashion_mnist 没有 | 为三方法补 mnist/fashion_mnist 单元（需图像路径的 support 装配）；LaGAM/PULNS 的 cifar10 行并入上面的 24 个 blocked 单元 | shuidisjtu | 5 数据集 support manifest 与制品对账 |
 | GPU 机时实测（GradPU 首跑） | 无法排 GradPU 的 AutoDL 正式批次 | 其余机时已实测：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）、2026-10-26/27 主机上 oracle 原生 CNN 单 seed 计时（共用 22 核配额下，不代表独占机时）；仍缺 GradPU 首跑 | HENG958 | 实测表反推机时 |
 | PN-CNN 5 seed | `pn_oracle` cifar10 / native_cnn 行 | 已解除暂缓并分配（D45 取代 D30） | HENG958 | 5 seed 合规 manifest + 峰值记录 |
-| xlsx 导出器与诊断卡工具 | 全库只有单 seed 工程核对表，没有入库的四组拆分/±std/成本导出器，也没有 §1.4.5 信号的诊断卡工具 | 写入库的导出器与诊断卡生成器 | shuidisjtu | 能从 manifest 一条命令生成交付物 A 的工作簿与诊断卡 |
 
 ### 1.3 预算与资源
 
@@ -194,12 +194,14 @@ draft 令牌当锁定预算。
    含 GradPU 首次真实运行。**PN-CNN 5 seed**（HENG958）。
 2. **support 方法补 mnist/fashion_mnist**（shuidisjtu）：数据集与 runnable 行的补齐已完成（D46），
    LaGAM/PULNS/Self-PU full-meta 在两个图像数据集上的 support 装配除外。
-3. **汇总工具**（shuidisjtu）：入库的 xlsx 导出器（四组拆分、附加指标、±std、成本）与诊断卡工具。
+3. **汇总工具**（shuidisjtu）：xlsx 导出器与诊断卡工具已入库（D48），等 5 seed 批次出数后用
+   `scripts/export_survey_results.py` 一条命令生成交付物 A；诊断卡算不了的五项信号见 D48。
 4. **正式 5 seed × c 网格跑批 → 汇总 → 写结论**（合流）：只运行满足协议/预算/配方/映射前置的单元；
    汇总按 §1.4.5 的诊断口径出"方法 × 数据集主表 + 诊断卡"，不以"与论文数值一致"作为验收标准。
    GPU 机时不设限，按 method / dataset / training-path / 机制分批（D28）。
 
-profile 映射（D40）、P4.2a/b（D37）、GPU 机时实测、P4.1-B 注册表冻结（D36）均已完成，不再是待办项；
+profile 映射（D40）、P4.2a/b（D37）、P4.1-B 注册表冻结（D36）均已完成，不再是待办项；GPU 机时实测只剩
+GradPU 首跑（HENG958，见 §1.2）；
 此后新增 runnable 单元须同批更新注册表。
 
 **PN-CNN 的 5 seed 实验**曾按用户 2026-10-22 指令暂缓（D30），现已解除并分配给 HENG958（D45）。
@@ -306,7 +308,7 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D47）
+## 附录 A. 决策账本（D1–D48）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -360,3 +362,4 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 | D45 | **PN-CNN 5 seed 解除暂缓，分配 HENG958** | 取代 D30：协议已定稿，`pn_oracle` 的 cifar10 / native_cnn 5 seed 由 HENG958 承担，与 24 个 blocked 单元并行。验收同其他单元：合规 manifest + 峰值记录；不补造结果。 | 2026-10-26 |
 | D46 | **五个数据集补单元：取模板数据集全部 runnable 行** | ① mnist / fashion_mnist / adni 对 cifar10 的 13 个 runnable 行，connect_4 对 spambase、twenty_newsgroups 对 imdb；support 三方法（LAGAM / PULNS / Self-PU full-meta）只落 connect_4，因 support 策略不覆盖 20news。结果：v3 协议 130 单元，106 runnable / 24 blocked；126 格有单元、102 格 runnable。原地演进，版本号不变（D42）。② 三个图像数据集写 `per_dataset` 规格：adni 用标准 stem，28×28 的 mnist / fashion_mnist 与 cifar10 用小 stem。③ 比较矩阵 v6 新增映射全部为 `no_direct_anchor`；更正 146 条理由：论文含这些数据集，只是本矩阵没转录锚点，「no benchmark reports」不实。④ 沿途修复四个缺陷：原生 CNN 的 PN oracle 过不了协议身份校验（`PilotOracleCNN` 继承 `PilotOracleMLP`，类型严格比较）；规划器仅 native_2d 行才读特征维度，不再因 backbone 名不以 resnet18 开头而索要；staged 预算的 `validate_estimator` 拒绝一切注入 encoder，而主 CLI 给每个 native_cnn 行注入，使 GEN-PU / PULDA 原生 CNN 行从未跑通，现按 architecture 放行 encoder，仍拒绝 model / train_transform；规划器缺 connect_4=126、twenty_newsgroups=384 的默认维度。⑤ 主机单 seed 运行只作接线证据，不作效果结论；整个仓库仍无 5 seed 正式批次。开启回收后每 run 约 44 MB，容量按并发数规划。 | 2026-10-26 |
 | D47 | **clean_support 组内 backbone 宽度不同不拆组；汇总入口默认用 v3.0** | ① `{spambase, connect_4}/native_2d/clean_support` 组里 PULNS 用 `mlp32`（方法卡登记的工程适配配方，默认 MLP32），LaGAM / Self-PU full-meta 用 `mlp128`。协议 §2.5 对表格数据集规定的是 MLP 这一类 backbone，同组方法共享的是表征（`train_zscore`）与训练预算，所以不为宽度差异拆组；结果表须注明 PULNS 的隐层宽度为 32。**遗留**：`validate_comparable_manifests` 目前按 backbone 名称精确比较，该组聚合仍被拒（`comparison mismatch: backbone`，connect_4 三个 support run 实测复现；spambase 同配置，尚未跑过），门禁如何处理待定。② `aggregate_survey_runs.py` 原先固定读 `survey-v2.0`，而 v3 的 run 按 v2 的 seeds 判定；现新增 `--protocol`，默认 `survey-v3.0`。 | 2026-10-27 |
+| D48 | **交付物 A 导出器与诊断卡的口径** | ① 依赖：xlsx 用 `openpyxl>=3.1`（用户选定），放入 `dev` 与新 `report` extra 及 `all`，仅 `scripts/export_survey_results.py` 与 `survey_workbook.py` 使用。② 版式：`survey_workbook.py` 只重排汇总报告、不重算任何数；四组各一页（SCAR-PA / SCAR-OA / SAR-OA 且 LBE-A、LBE-B 分块 / PN-oracle），`PA+clean-support` 在 SCAR-PA 页另列一块；不设名次列、不出总排名；缺 seed 或非 formal/partial 的行只进 coverage，探针运行与 SAR 下 PA、PN oracle 下 PA 进 diagnostic；未知机制或选模协议报错而非丢弃。③ 诊断卡：`survey_diagnostics.py` 按 §1.4.5 逐方法算七个信号（机制 SCAR→SAR、视图 OS↔TS、训练路径、c 敏感性、PN oracle 对齐、PA/OA 差距、seed 方差），观测一律标「本实验观测」、待查方向标「推断」，标记不判定实现有错；单 seed 或缺 seed 的行不进任何信号。阈值（c 断崖 10 点、OS↔TS 无效应 0.5 点、训练路径差 5 点、PA/OA 差 5 点、oracle 差距波动 15 点）是卡自带的提示用启发式，不是协议数字，改动须同步测试。④ 算不了的五项（每张卡都列出）：类先验语义（需 manifest 的 `c_realized` 与三种先验，汇总报告不带）、跨数据集趋势（需论文声称的方向）、外部锚点偏差（需比较矩阵，且 `no_direct_anchor` 不得读成一致/不一致）、原生适用/假设违背分组（台账无结构化字段，故 mechanism_scar_to_sar 只覆盖「SAR 反而更好」一半）、与其他方法的排名颠倒（需例外方法标记与同组排名，故 backbone_path 只显示同一方法两条路径的差距）；不静默跳过。探针运行即使缺 seed 也进 diagnostic，不进 coverage。⑤ 入口：`export_survey_results.py` 接批次配置（先建汇总，`--protocol` 默认 `survey-v3.0`）或现成 `summary.json`，写 `survey_results.xlsx`、`diagnostic_cards.md/json`。⑥ 协议入口：用户确认「现在以 survey-v3.0 为准」，`summarize_survey_results.py` 与 `audit_survey_batches.py` 的 `--protocol` 默认改为 `survey-v3.0`（与 D47 的 `aggregate_survey_runs.py` 一致）；库函数的 `protocol=None` 仍回落到 v2 默认，v2 夹具的旧测试显式传 `--protocol survey-v2.0`。**未改**：`run_survey_pilot.py`（启动训练，改默认会变 dry-run 计划数与实际要跑的单元）、`prepare_survey_recipe_registry.py`、`run_lbe_comparison.py`、`check_survey_recipe_registry.py`，待确认。 | 2026-10-27 |
