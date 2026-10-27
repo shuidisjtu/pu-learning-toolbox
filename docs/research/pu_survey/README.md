@@ -32,7 +32,8 @@
   blocked 方法在这些数据集上还没有行，随其模板行一起翻 runnable。
   LaGAM / PULNS / Self-PU full-meta 的 support 策略不覆盖 twenty_newsgroups；除 spambase 与 connect_4 的
   行之外，mnist 与 fashion_mnist 也有 support 行（图像路径，见 D49）。这些 support 单元现在由批次驱动
-  用 `--support-root` 规划执行（D50），并且三个 profile 只跑 SCAR：SAR 的 4 个格子已从计划和比较矩阵撤回。
+  用 `--support-root` 规划执行（D50），三个 profile 只跑 SCAR（SAR 的 4 个格子已从计划和比较矩阵撤回），
+  并且三个方法各自一个 `comparability_group`、结果表逐方法并列（D51）。
 - 现有 xlsx 是 31 个 run、单 seed 的**工程核对表**，不是交付物 A。
 - 现有 runnable 单元的正式批次（5 seed × 全部 c 与机制）约 3320 个 run（其中 mnist / fashion_mnist /
   cifar10 三个图像数据集 1275 个，按 `planned_runs` 实测，support 单元已含在内）；GPU 机时不设限，按 method / dataset /
