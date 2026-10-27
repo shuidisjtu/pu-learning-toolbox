@@ -7,10 +7,13 @@ assembled here once instead of three times.
 
 **This is not the per-manifest identity check.**  Protocol §5 clause 6 asks for
 reproducibility of a *result*, which the survey runner satisfies through the
-batch plan and the evidence packet: that identity is recorded once per batch
-rather than once per manifest, which is what ``survey_audit.BATCH_IDENTITY_FIELDS``
-names.  The block here answers a different question, asked of a *report*: which
-checkout and which input tree was read when this report was written?  A reader who
+batch evidence packet (:mod:`pu_toolbox.experiment.batch_evidence`): that identity
+is recorded once per batch rather than once per manifest, which is what
+``survey_audit.BATCH_IDENTITY_FIELDS`` names.  The plan snapshot names the runs a
+request covers; it does not carry a commit.
+
+The block here answers a different question, asked of a *report*: which checkout
+and which input tree was read when this report was written?  A reader who
 conflates the two will look for a commit in every manifest and find none.
 
 **Why the git call is not in the builders.**  ``build_audit`` and
@@ -32,6 +35,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 #: The two states the ``code_commit_state`` field may take.  ``unavailable`` is a first-class
@@ -46,15 +50,19 @@ _GIT_COMMIT: tuple[str, ...] = ("git", "rev-parse", "HEAD")
 _GIT_STATUS: tuple[str, ...] = ("git", "status", "--porcelain")
 
 
-def _git_output(argv: tuple[str, ...]) -> str | None:
+def _git_output(argv: tuple[str, ...], *, cwd: str | Path | None = None) -> str | None:
     """The stripped stdout of *argv*, or ``None`` when git cannot be read.
 
     Not fatal, and deliberately loud about it: a report is still worth writing
     without a commit, but silence would read as "there was nothing to record".
+
+    ``cwd`` is what a caller names when the question is about a specific checkout
+    rather than the process's own directory -- reading one repository's commit
+    beside another repository's lock file would describe neither.
     """
     try:
-        result = subprocess.run(argv, capture_output=True, text=True, check=True)
-    except (OSError, subprocess.CalledProcessError):
+        result = subprocess.run(argv, capture_output=True, text=True, check=True, cwd=cwd)
+    except (OSError, subprocess.CalledProcessError, ValueError):
         print(
             f"warning: {' '.join(argv)} failed; the report records no code identity",
             file=sys.stderr,
@@ -152,7 +160,7 @@ def with_code_commit(
     return stamped
 
 
-def resolve_code_commit() -> tuple[str | None, bool | None]:
+def resolve_code_commit(cwd: str | Path | None = None) -> tuple[str | None, bool | None]:
     """``(commit, worktree_dirty)`` for the current checkout, or ``(None, None)``.
 
     The one function here that touches the process table.  ``dirty`` is reported
@@ -160,11 +168,16 @@ def resolve_code_commit() -> tuple[str | None, bool | None]:
     work tree names a commit that does not contain the code that produced it, and
     a reader who is not told will take it as a complete identity.  ``None`` means
     the question could not be asked, which is not the same answer as ``False``.
+
+    ``cwd`` names the checkout to ask about.  It defaults to the process's own
+    directory, which is what a report entry point wants; an artifact that also
+    reads a lock file from a known checkout passes that checkout instead, so the
+    two halves of its identity cannot come from different repositories.
     """
-    commit = _git_output(_GIT_COMMIT)
+    commit = _git_output(_GIT_COMMIT, cwd=cwd)
     if commit is None:
         return None, None
-    status = _git_output(_GIT_STATUS)
+    status = _git_output(_GIT_STATUS, cwd=cwd)
     return commit, None if status is None else bool(status)
 
 

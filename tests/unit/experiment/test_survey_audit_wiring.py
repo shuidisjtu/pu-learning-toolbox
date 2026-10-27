@@ -18,6 +18,8 @@ from _survey_summary_helpers import (
     write_tree,
 )
 
+from pu_toolbox.experiment import batch_evidence
+
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 checks = importlib.import_module("audit_survey_batches")
@@ -152,3 +154,60 @@ def test_basic_the_entry_point_wires_a05_and_a11_from_the_config(audit_cli, tmp_
     by_id = {check["check_id"]: check for check in report["checks"]}
     assert by_id["A05"]["result"] == "pass"
     assert by_id["A11"]["result"] == "pass"
+
+
+def _packet(root):
+    """Write one batch packet under *root* and return (payload, manifest block)."""
+    payload = batch_evidence.build_evidence(
+        unit={
+            "dataset": "spambase",
+            "method": "nnpu",
+            "training_path": "native_2d",
+            "mechanism": "scar",
+        },
+        seeds=(0,),
+        c_tokens=("0.1",),
+        protocol_version="survey-v2.0",
+        protocol_sha256="a" * 64,
+        code={
+            "code_commit": "b" * 40,
+            "code_commit_dirty": False,
+            "code_commit_state": "recorded",
+        },
+        lock={"path": "uv.lock", "sha256": "c" * 64, "state": "recorded"},
+        environment={"python_version": "3.10.8"},
+    )
+    path = batch_evidence.write(root / batch_evidence.DIRECTORY, payload)
+    return payload, batch_evidence.manifest_block(payload, path)
+
+
+def _evidence_check(audit_cli, tmp_path, payloads):
+    root = write_tree(tmp_path / "B1", payloads)
+    config_path = write_config(tmp_path / "config.json", config_for({"B1": (root, len(payloads))}))
+    audit_cli.main(["--config", str(config_path), "--out-dir", str(tmp_path / "out")])
+    report = json.loads((tmp_path / "out" / "audit.json").read_text(encoding="utf-8"))
+    return root, {check["check_id"]: check for check in report["checks"]}["E01"]
+
+
+def test_basic_e01_passes_over_a_packet_that_is_still_there(audit_cli, tmp_path):
+    _, block = _packet(tmp_path / "B1")
+    payload = manifest(seed=0)
+    payload["batch"] = block
+
+    _, check = _evidence_check(audit_cli, tmp_path, {"run0": payload})
+
+    assert check["result"] == "pass"
+    assert check["observed"]["cited"] == 1
+    assert check["observed"]["uncited"] == 0
+
+
+def test_edge_e01_fails_when_a_cited_packet_is_gone(audit_cli, tmp_path):
+    _, block = _packet(tmp_path / "B1")
+    payload = manifest(seed=0)
+    payload["batch"] = dict(block, evidence_file="a_packet_that_never_was.json")
+
+    root, check = _evidence_check(audit_cli, tmp_path, {"run0": payload})
+
+    assert check["result"] == "fail"
+    assert "a_packet_that_never_was.json" in check["evidence"][0]
+    assert (root / batch_evidence.DIRECTORY).is_dir()

@@ -61,7 +61,8 @@ def test_basic_bound_audit_and_summary_keep_full_identity(summary_cli, audit_cli
     config, _ = _config(tmp_path, payloads, registry)
     report = summary_cli.build_summary(config)
     assert report["recipe_audit"]["overall"] == "pass"
-    assert len(report["checks"]) == 17
+    # 17 analytic checks plus E01, the batch-evidence citation check (D52).
+    assert len(report["checks"]) == 18
     assert len(report["rows"]) == 2
     for row in report["rows"]:
         assert row["recipe_binding"]["recipe_registry_sha256"] == canonical_digest(registry)
