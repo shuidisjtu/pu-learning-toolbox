@@ -4,7 +4,7 @@
   "recipe_lifecycle": "locked",
   "protocol_basis": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "154bd29c6cda1acb63ce85a15bfa03aa8f97209181a4fd94cebfc16c82b46374"
+    "protocol_sha256": "7b63c34a048d81f8eb70ab104d811d3c5c32bef20ee3fe0fa17a25ae4dce8c6e"
   },
   "selection_spec_ref": "survey_protocol_v3.selection_spec",
   "profiles": {

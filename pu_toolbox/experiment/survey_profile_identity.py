@@ -118,6 +118,30 @@ def profile_manifest_identity(protocol, profile_id):
     }
 
 
+def is_clean_support_profile(protocol, profile_id) -> bool:
+    """Whether a profile trains on the audited five-role clean-support product.
+
+    One predicate, because three readers have to agree about it: the unit script
+    decides from it whether ``--support-dir`` is required, the batch driver
+    decides from it where a run's data comes from, and
+    :func:`require_four_role_profile` refuses it without the artifact.  A driver
+    that planned a support unit the script then refused (or the reverse) would be
+    two different matrices wearing one protocol's name.
+
+    A protocol without the profile-identity schema declares no support contract,
+    so it answers ``False`` -- the same answer the four-role gate gives it.
+    """
+    if not has_profile_identities(protocol):
+        return False
+    algorithm = profile_algorithm(protocol, profile_id)
+    profile = protocol["method_profiles"][profile_id]
+    return (
+        algorithm in ("pulns", "lagam")
+        or profile.get("supervision") == "independent_clean_support"
+        or (algorithm == "self_pu" and profile["params"].get("require_validation") is True)
+    )
+
+
 def require_four_role_profile(protocol, profile_id, *, clean_support=False):
     """Do not use an alias to bypass the still-missing formal support adapter.
 
@@ -127,13 +151,7 @@ def require_four_role_profile(protocol, profile_id, *, clean_support=False):
     if not has_profile_identities(protocol):
         return
     algorithm = profile_algorithm(protocol, profile_id)
-    profile = protocol["method_profiles"][profile_id]
-    support_profile = (
-        algorithm in ("pulns", "lagam")
-        or profile.get("supervision") == "independent_clean_support"
-        or (algorithm == "self_pu" and profile["params"].get("require_validation") is True)
-    )
-    if support_profile and not clean_support:
+    if is_clean_support_profile(protocol, profile_id) and not clean_support:
         raise ValueError(
             "clean-support profile requires the versioned five-role adapter; "
             "four-role execution unavailable"

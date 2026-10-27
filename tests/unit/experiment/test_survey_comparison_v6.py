@@ -70,13 +70,17 @@ def _added(v5, v6):
 def test_basic_v6_adds_exactly_the_p4_2b_cells(v3, v5, v6, map_v3):
     #: The totals are the matrix as shipped, so every later in-place slice moves
     #: them: 937 -> 977 with the six clean-support image units (40 native-CNN
-    #: cells; the two adapter units resolve to cells self_pu already carries).
+    #: cells; the two adapter units resolve to cells self_pu already carries),
+    #: then 945 once the 32 SAR cells of the SCAR-only support profiles were
+    #: withdrawn (D50).
     counts = validate_comparison_coverage(v3, v6, profile_map=map_v3)
-    assert counts["units"] == counts["unit_mappings"] == 977
+    assert counts["units"] == counts["unit_mappings"] == 945
     assert counts["anchors"] == 64
     assert counts["outside_matrix"] == 19
     added = _added(v5, v6)
-    assert len(added) == 689
+    #: 689 cells were new in v6 before D50; withdrawing the SCAR-only profiles'
+    #: SAR mappings removed 28 of those (the rest of the 32 predate v6).
+    assert len(added) == 661
     added_methods = {mapping["result_selector"]["method"] for mapping in added}
     assert added_methods >= P42B_PROFILES
 

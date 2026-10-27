@@ -125,6 +125,22 @@ def test_basic_native_cnn_support_is_bound_as_scaled_images(monkeypatch, tmp_pat
     assert len(support.indices) == SUPPORT_SIZE
 
 
+def test_param_support_sar_units_select_on_oa_only():
+    """SAR is OA-only for every method, the clean-support path included.
+
+    The support path adds ``PA+clean-support`` beside OA, and doing that for a
+    SAR mechanism made the runner refuse the pairing -- the first thing the batch
+    driver reached once support units became plannable.
+    """
+    sar = script._support_selection_protocols("sar_lbe_a")
+    scar = script._support_selection_protocols("scar")
+    assert [type(protocol).__name__ for protocol in sar] == ["ProtocolOA"]
+    assert [type(protocol).__name__ for protocol in scar] == [
+        "ProtocolPACleanSupport",
+        "ProtocolOA",
+    ]
+
+
 def test_param_adapter_support_is_bound_as_encoder_features(monkeypatch, tmp_path):
     product = image_product(tmp_path / "product")
     support = run_unit(

@@ -199,6 +199,39 @@ def _checkpoint_storage(protocol: dict, row: dict, *, input_dim: int) -> tuple[i
     )
 
 
+def profile_mechanisms(protocol: dict[str, Any], method: str) -> tuple[str, ...] | None:
+    """The labeling mechanisms a profile runs, or ``None`` when it runs them all.
+
+    A profile that lists them is saying the others are not merely unrun but not
+    schedulable: its adapter refuses them outright, so planning one buys a batch
+    that produces nothing.  ``bind_runtime_parameters`` already enforced the same
+    list at run time; the plan and the comparison expansion read it here so they
+    cannot schedule a cell the runner will reject.
+
+    Read from the unit's profile ID rather than from its algorithm: two profiles
+    of one algorithm may differ in which mechanism they were wired for.
+    """
+    declared = (protocol.get("method_profiles") or {}).get(method, {}).get("labeling_mechanisms")
+    if declared is None:
+        return None
+    return tuple(declared)
+
+
+def role_indices_digest(indices: dict[str, Any]) -> str:
+    """The digest a run manifest records for the four-role split it trained on.
+
+    One definition, because the resume check compares this figure with the one
+    read back from another artifact's receipt: two spellings of "the same split"
+    would make every run on that artifact look like it ran on data that is gone.
+    It covers the four roles only -- the support set is a fifth partition whose
+    membership the receipt records, and folding it in here would silently change
+    the figure every existing manifest already carries.
+    """
+    return digest(
+        {role: json_scalars(np.asarray(indices[role]), name=f"{role} indices") for role in ROLES}
+    )
+
+
 def unit_checkpoint_bytes(protocol: dict, row: dict, *, input_dim: int) -> int | None:
     """Bytes one per-epoch checkpoint component costs for this execution unit.
 
@@ -679,13 +712,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     representation = {
         "name": row["representation"],
         "feature_sha256": {role: array_digest(getattr(bundle, role).X) for role in ROLES},
-        "split_sha256": digest(
-            {
-                role: json_scalars(
-                    np.asarray(getattr(bundle, role).indices), name=f"{role} indices"
-                )
-                for role in ROLES
-            }
+        "split_sha256": role_indices_digest(
+            {role: getattr(bundle, role).indices for role in ROLES}
         ),
     }
     adapter = config.get("adapter_manifest")

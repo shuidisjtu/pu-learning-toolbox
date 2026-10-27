@@ -48,11 +48,18 @@ from .survey_profile_identity import (
 )
 from .survey_profile_identity import (
     has_profile_identities,
+    is_clean_support_profile,
     profile_algorithm,
     profile_manifest_identity,
     valid_manifest_profile_identity,
 )
-from .survey_protocol import unit_checkpoint_bytes, unit_checkpoint_profile
+from .survey_protocol import (
+    ROLES,
+    profile_mechanisms,
+    role_indices_digest,
+    unit_checkpoint_bytes,
+    unit_checkpoint_profile,
+)
 from .survey_recipe_binding import matches_recipe_binding, validate_expected_binding
 from .training_views import validated_run_view
 
@@ -117,6 +124,7 @@ def planned_runs(protocol: dict[str, Any]) -> tuple[PilotRun, ...]:
         if unit.get("runnable") is not True:
             continue
         oracle = unit["method"] == PN_ORACLE
+        allowed = profile_mechanisms(protocol, unit["method"])
         for seed in seeds:
             if oracle:
                 runs.append(
@@ -126,6 +134,8 @@ def planned_runs(protocol: dict[str, Any]) -> tuple[PilotRun, ...]:
                 )
                 continue
             for mechanism, tokens in protocol["c_tokens"].items():
+                if allowed is not None and mechanism not in allowed:
+                    continue
                 for token in tokens:
                     runs.append(
                         PilotRun(
@@ -521,6 +531,67 @@ def population_priors(
     return found
 
 
+def clean_support_methods(protocol: dict[str, Any]) -> frozenset[str]:
+    """The profiles this matrix runs on the five-role clean-support product.
+
+    Read from the protocol, never from a method list: a profile that starts or
+    stops being a support path has to move the driver's data source with it.
+    """
+    return frozenset(
+        profile_id
+        for profile_id in (protocol.get("method_profiles") or {})
+        if is_clean_support_profile(protocol, profile_id)
+    )
+
+
+def support_products(
+    root: str | Path, dataset_seeds: Iterable[tuple[str, int]]
+) -> dict[tuple[str, int], tuple[Path, str]]:
+    """The audited product each planned support run reads, or a refusal naming it.
+
+    A support run's data is not the four-role split under ``splits_root``: the
+    artifact carved its support rows out of train and removed them, so it is a
+    different product with a different index digest -- and a plan that read the
+    plain split would train on support rows it claims to have excluded.  The
+    convention ``<root>/<dataset>/split_<seed>`` is only a locator; what makes it
+    safe is proving the receipt names the dataset and seed it was planned for,
+    because a mistyped root otherwise reproduces another seed's support silently.
+
+    Returns ``(directory, index digest)`` per ``(dataset, seed)``: the directory
+    the run script is handed, and the digest a completed manifest of that run has
+    to record before the driver will count it as done.
+    """
+    found: dict[tuple[str, int], tuple[Path, str]] = {}
+    for dataset, seed in sorted(set(dataset_seeds)):
+        directory = Path(root) / dataset / f"split_{seed}"
+        manifest_path = directory / "support_manifest.json"
+        try:
+            payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ValueError(
+                f"clean-support product for {dataset} seed {seed} is unreadable at "
+                f"{manifest_path}: {exc}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ValueError(f"clean-support receipt is not an object: {manifest_path}")
+        if payload.get("dataset") != dataset or payload.get("seed") != seed:
+            raise ValueError(
+                f"clean-support product at {manifest_path} declares dataset/seed "
+                f"{payload.get('dataset')!r}/{payload.get('seed')!r}, not {dataset!r}/{seed}"
+            )
+        digest = payload.get("indices_sha256")
+        indices = payload.get("indices")
+        if not isinstance(indices, dict) or any(role not in indices for role in ROLES):
+            raise ValueError(
+                f"clean-support product at {manifest_path} records no four-role indices, so "
+                "no run on it can be told from a run on a rebuilt one"
+            )
+        if not isinstance(digest, str) or not digest:
+            raise ValueError(f"clean-support product at {manifest_path} records no receipt digest")
+        found[(dataset, seed)] = (directory, role_indices_digest(indices))
+    return found
+
+
 def manifest_resume_key(payload: dict[str, Any]) -> tuple[Any, ...] | None:
     """The run *and view* a manifest records, or ``None`` when it records neither.
 
@@ -538,6 +609,8 @@ def completed_runs(
     results_root: str | Path,
     *,
     splits: dict[tuple[str, int], str] | None = None,
+    support_splits: dict[tuple[str, int], str] | None = None,
+    support_methods: frozenset[str] = frozenset(),
     expected_recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
     expected_profile_identities: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
 ) -> dict[tuple[Any, ...], Path]:
@@ -547,6 +620,12 @@ def completed_runs(
     than the one on disk is not completed: it ran on data this pilot no longer
     has.  A split the mapping does not cover counts as not done too -- the
     driver re-running a run is recoverable, a hole in the matrix is not.
+
+    ``support_splits`` is the same evidence for the profiles in
+    ``support_methods``, whose data is the five-role product rather than the
+    four-role split.  The two maps are kept apart on purpose: a support run that
+    recorded the plain split's digest trained on data it claims to have excluded,
+    so it must not satisfy the plan just because *some* current digest matched.
 
     The key carries the view the run recorded, so the OS and TS manifests of one
     unit stay separate entries instead of collapsing to whichever path sorted
@@ -603,7 +682,9 @@ def completed_runs(
             expected = expected_recipe_bindings.get(identity)
             if expected is None or not _matches_recipe_binding(payload, expected):
                 continue
-        if splits is not None and not _ran_on_current_split(payload, identity, splits):
+        if (splits is not None or support_splits is not None) and not _ran_on_current_split(
+            payload, identity, splits, support_splits, support_methods
+        ):
             continue
         try:
             view = validated_run_view(payload)
@@ -619,12 +700,26 @@ def _matches_recipe_binding(payload: dict[str, Any], expected: Mapping[str, Any]
 
 
 def _ran_on_current_split(
-    payload: dict[str, Any], identity: tuple[Any, ...], splits: dict[tuple[str, int], str]
+    payload: dict[str, Any],
+    identity: tuple[Any, ...],
+    splits: dict[tuple[str, int], str] | None,
+    support_splits: dict[tuple[str, int], str] | None,
+    support_methods: frozenset[str],
 ) -> bool:
-    dataset, _, _, _, _, seed = identity
+    """Whether the manifest ran on the product this run would read now.
+
+    Which product that is follows from the method: a support profile reads the
+    five-role artifact, everything else the four-role split.  A map that was not
+    supplied for that kind leaves the run unchecked rather than failed -- callers
+    that hold only one kind of product still resume, and the driver supplies both.
+    """
+    dataset, method, _, _, _, seed = identity
+    expected = support_splits if method in support_methods else splits
+    if expected is None:
+        return True
     representation = payload.get("representation")
     recorded = representation.get("split_sha256") if isinstance(representation, dict) else None
-    return isinstance(recorded, str) and recorded == splits.get((dataset, seed))
+    return isinstance(recorded, str) and recorded == expected.get((dataset, seed))
 
 
 def pending_runs(
@@ -633,6 +728,7 @@ def pending_runs(
     *,
     expected_views: Mapping[tuple[Any, ...], str],
     splits: dict[tuple[str, int], str] | None = None,
+    support_splits: dict[tuple[str, int], str] | None = None,
     expected_recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
     source_protocol_sha256: str | None = None,
 ) -> tuple[tuple[PilotRun, ...], tuple[PilotRun, ...]]:
@@ -682,6 +778,8 @@ def pending_runs(
     done = completed_runs(
         results_root,
         splits=splits,
+        support_splits=support_splits,
+        support_methods=clean_support_methods(protocol),
         expected_recipe_bindings=expected_recipe_bindings,
         expected_profile_identities=profile_identities,
     )
@@ -774,6 +872,7 @@ def batch_command(
     extraction_batch_size: int | None = None,
     os_or_ts: str | None = None,
     reclaim_unselected_checkpoints: bool = False,
+    support_root: str | Path | None = None,
 ) -> list[str]:
     """The unit script's arguments for one batch.
 
@@ -783,9 +882,26 @@ def batch_command(
     them: the unit script's own defaults stay in force otherwise, and inventing
     a device or a class prior here is exactly the sort of quiet divergence the
     driver exists to avoid.
+
+    ``support_root`` switches this batch's data source: a five-role run reads
+    ``<root>/<dataset>/split_{seed}`` as its ``data_dir`` and its support
+    directory, and references that directory's own receipt.  ``{seed}`` is left
+    in place deliberately -- the script substitutes it per run, which is what
+    lets one command cover the batch's whole seed set.
     """
+    if support_root is not None:
+        data_dir = str(Path(support_root) / batch.dataset / "split_{seed}")
+        support_args = [
+            "--support-dir",
+            data_dir,
+            "--split-ref",
+            str(Path(data_dir) / "support_manifest.json"),
+        ]
+    else:
+        data_dir = str(Path(splits_root) / batch.dataset)
+        support_args = []
     argv = [
-        str(Path(splits_root) / batch.dataset),
+        data_dir,
         "--dataset",
         batch.dataset,
         "--training-path",
@@ -796,6 +912,7 @@ def batch_command(
         str(out_root),
         "--seeds",
         ",".join(str(seed) for seed in batch.seeds),
+        *support_args,
     ]
     if batch.method == PN_ORACLE:
         # An oracle is defined by a clean label view: no method, no mechanism,

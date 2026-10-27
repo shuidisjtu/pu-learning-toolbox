@@ -542,6 +542,7 @@ tests/
       test_prepare_survey_splits_adni.py # ADNI 替代数据:读取(类别序/垃圾文件/计数校验)、无官方测试集划分、多归档收据汇总
       test_survey_image_spec.py         # 图像规格按数据集取(v1 平铺规格原样可读;per_dataset 覆盖与校验)、运行入口按模态而非数据集名分支
       test_survey_image_support.py      # support 部分与四路角色走同一套 train 拟合预处理与同一个冻结 encoder
+      test_survey_pilot_support.py      # 批次驱动的 support 轴:--support-root 的拒绝与读取、按 seed 占位、续跑按数据来源校验
       test_prepare_survey_splits_connect4.py # Connect-4 固定独热编码与标准化契约
       test_prepare_survey_splits_inputs.py # 实际读取输入身份与原收据字节摘要
       test_prepare_survey_splits_mnist.py # MNIST 家族输入校验与官方 test 隔离

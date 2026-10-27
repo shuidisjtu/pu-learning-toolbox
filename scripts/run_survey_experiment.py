@@ -217,6 +217,19 @@ def _resolve_labeling_protocols(mechanism: str) -> list | None:
 SUPPORT_ALGORITHMS = ("self_pu", "lagam", "pulns")
 
 
+def _support_selection_protocols(mechanism: str) -> list:
+    """Selection protocols a clean-support unit runs under, per mechanism.
+
+    The support path adds ``PA+clean-support`` beside OA for SCAR, and only for
+    SCAR: SAR is OA-only for every method (protocol §2.3), and handing the runner
+    the PA protocol there makes it refuse the pairing -- which is what it did the
+    first time a batch driver could reach a support unit's SAR cell.
+    """
+    if mechanism in SAR_MECHANISMS:
+        return [ProtocolOA()]
+    return [ProtocolPACleanSupport(), ProtocolOA()]
+
+
 def _support_trainer(algorithm, view, support, manifest):
     """Checkpoint-selection adapter for an audited clean-support profile.
 
@@ -549,8 +562,9 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--split-ref",
         default=None,
         help=(
-            "JSON file with the split reference recorded in every manifest "
-            "(default: reference the data_dir's own split_manifest.json)"
+            "JSON file with the split reference recorded in every manifest; "
+            "'{seed}' is substituted per run (default: reference the data_dir's own "
+            "split_manifest.json)"
         ),
     )
     parser.add_argument(
@@ -640,6 +654,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         prepare_image_support,
     )
     from pu_toolbox.experiment.survey_profile_identity import (
+        is_clean_support_profile,
         profile_algorithm,
         require_four_role_profile,
     )
@@ -700,7 +715,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         row = resolve_unit(protocol, args.dataset, method, args.training_path)
         algorithm = profile_algorithm(protocol, method)
         profile = protocol["method_profiles"][method]
-        needs_support = profile.get("supervision") == "independent_clean_support"
+        needs_support = is_clean_support_profile(protocol, method)
         if needs_support != (args.support_dir is not None):
             raise ValueError(
                 "--support-dir is required exactly by independent clean-support profiles"
@@ -786,7 +801,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
             data_dir = data_dir / f"split_{seed}"
         try:
             parts = load_split_parts(data_dir)
-            split_ref = resolve_split_ref(data_dir, args.split_ref)
+            # ``{seed}`` is the same placeholder ``--data-dir`` and ``--support-dir``
+            # accept, so one batch command can cover a multi-seed run of a product
+            # whose receipt lives beside each seed's arrays.
+            split_ref_arg = (
+                None if args.split_ref is None else args.split_ref.replace("{seed}", str(seed))
+            )
+            split_ref = resolve_split_ref(data_dir, split_ref_arg)
             if split_ref.get("dataset") != args.dataset:
                 raise ValueError("split manifest dataset does not match --dataset")
             if split_ref.get("seed") != seed:
@@ -947,7 +968,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     tuple(getattr(bundle, role) for role in ROLES),
                     generator=generator,
                     protocols=(
-                        [ProtocolPACleanSupport(), ProtocolOA()]
+                        _support_selection_protocols(args.labeling_mechanism)
                         if needs_support
                         else (
                             [ProtocolOA()]
