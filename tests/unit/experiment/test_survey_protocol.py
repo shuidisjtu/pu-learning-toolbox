@@ -11,6 +11,7 @@ from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.survey_execution import assemble_model
 from pu_toolbox.experiment.survey_protocol import (
     PROTOCOL_PATH,
+    PROTOCOL_PATHS,
     digest,
     load_protocol,
     resolve_unit,
@@ -50,6 +51,24 @@ def test_basic_matrix_covers_seven_methods_and_oracle():
     assert "pusb_kernel" in protocol["method_profiles"]
     assert "pusb" not in protocol["method_profiles"]
     assert protocol["budgets"]["kernel_cv"]["internal_hyperparameter_pairs"] == 72
+
+
+def test_basic_a_clean_support_group_names_exactly_one_method():
+    """The three support recipes cannot share one leaderboard (D51).
+
+    They differ in backbone, batch size and epoch cap by design, and the
+    comparability gate refuses a group that mixes those fields -- taking the whole
+    aggregation down with it. One group per method states that they are reported
+    side by side and never averaged across methods.
+    """
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    members: dict[str, set[str]] = {}
+    for unit in protocol["execution_units"]:
+        if "clean_support" in unit["comparability_group"]:
+            members.setdefault(unit["comparability_group"], set()).add(unit["method"])
+    assert members
+    mixed = {group: sorted(names) for group, names in members.items() if len(names) != 1}
+    assert mixed == {}
 
 
 def test_determ_protocol_digest_is_key_order_independent():

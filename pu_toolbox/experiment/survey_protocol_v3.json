@@ -1587,7 +1587,7 @@
     {
       "budget": "pulns",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/clean_support",
+      "comparability_group": "spambase/native_2d/clean_support_pulns",
       "model_family": "mlp32",
       "backbone": "mlp32",
       "dataset": "spambase",
@@ -1703,7 +1703,7 @@
     {
       "budget": "lagam",
       "training_path": "native_2d",
-      "comparability_group": "spambase/native_2d/clean_support",
+      "comparability_group": "spambase/native_2d/clean_support_lagam",
       "model_family": "mlp128",
       "backbone": "mlp128",
       "dataset": "spambase",
@@ -1800,7 +1800,7 @@
       "model_family": "mlp128",
       "backbone": "mlp128",
       "representation": "train_zscore",
-      "comparability_group": "spambase/native_2d/clean_support",
+      "comparability_group": "spambase/native_2d/clean_support_self_pu_full_meta",
       "oracle_alignment": "no_matched_neural_backbone_oracle",
       "runnable": true
     },
@@ -2479,7 +2479,7 @@
     {
       "budget": "pulns",
       "training_path": "native_2d",
-      "comparability_group": "connect_4/native_2d/clean_support",
+      "comparability_group": "connect_4/native_2d/clean_support_pulns",
       "model_family": "mlp32",
       "backbone": "mlp32",
       "dataset": "connect_4",
@@ -2515,7 +2515,7 @@
     {
       "budget": "lagam",
       "training_path": "native_2d",
-      "comparability_group": "connect_4/native_2d/clean_support",
+      "comparability_group": "connect_4/native_2d/clean_support_lagam",
       "model_family": "mlp128",
       "backbone": "mlp128",
       "dataset": "connect_4",
@@ -2532,7 +2532,7 @@
       "model_family": "mlp128",
       "backbone": "mlp128",
       "representation": "train_zscore",
-      "comparability_group": "connect_4/native_2d/clean_support",
+      "comparability_group": "connect_4/native_2d/clean_support_self_pu_full_meta",
       "oracle_alignment": "no_matched_neural_backbone_oracle",
       "runnable": true
     },
@@ -2640,7 +2640,7 @@
       "model_family": "native_cnn_mlp128",
       "backbone": "resnet18_end_to_end",
       "representation": "resnet18_random_initialization",
-      "comparability_group": "mnist/native_cnn/clean_support",
+      "comparability_group": "mnist/native_cnn/clean_support_lagam",
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
       "runnable": true
     },
@@ -2652,7 +2652,7 @@
       "model_family": "native_cnn_mlp128",
       "backbone": "resnet18_end_to_end",
       "representation": "resnet18_random_initialization",
-      "comparability_group": "fashion_mnist/native_cnn/clean_support",
+      "comparability_group": "fashion_mnist/native_cnn/clean_support_lagam",
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
       "runnable": true
     },
@@ -2664,7 +2664,7 @@
       "model_family": "native_cnn_mlp32",
       "backbone": "resnet18_end_to_end",
       "representation": "resnet18_random_initialization",
-      "comparability_group": "mnist/native_cnn/clean_support",
+      "comparability_group": "mnist/native_cnn/clean_support_pulns",
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
       "runnable": true
     },
@@ -2676,7 +2676,7 @@
       "model_family": "native_cnn_mlp32",
       "backbone": "resnet18_end_to_end",
       "representation": "resnet18_random_initialization",
-      "comparability_group": "fashion_mnist/native_cnn/clean_support",
+      "comparability_group": "fashion_mnist/native_cnn/clean_support_pulns",
       "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
       "runnable": true
     },
@@ -2688,7 +2688,7 @@
       "model_family": "mlp128",
       "backbone": "resnet18_random_frozen",
       "representation": "resnet18_random_initialization",
-      "comparability_group": "mnist/cnn_feature_adapter/clean_support",
+      "comparability_group": "mnist/cnn_feature_adapter/clean_support_self_pu_full_meta",
       "oracle_alignment": "no_matched_two_student_sampling_oracle",
       "runnable": true
     },
@@ -2700,7 +2700,7 @@
       "model_family": "mlp128",
       "backbone": "resnet18_random_frozen",
       "representation": "resnet18_random_initialization",
-      "comparability_group": "fashion_mnist/cnn_feature_adapter/clean_support",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/clean_support_self_pu_full_meta",
       "oracle_alignment": "no_matched_two_student_sampling_oracle",
       "runnable": true
     }
