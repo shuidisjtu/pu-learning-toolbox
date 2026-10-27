@@ -63,6 +63,7 @@ from pathlib import Path
 from typing import Any
 
 from pu_toolbox.core.training_views import RUN_VIEWS
+from pu_toolbox.experiment import batch_evidence
 from pu_toolbox.experiment.pilot_plan import (
     Batch,
     PilotRun,
@@ -416,6 +417,84 @@ def _unit_out_root(results_root: Path, batch: Batch) -> Path:
     return results_root / batch.dataset / batch.method / batch.training_path
 
 
+def _write_batch_evidence(
+    batch: Batch, args: argparse.Namespace, identity: Mapping[str, Any]
+) -> Path:
+    """Record what this invocation is before it runs, and where the record went.
+
+    Written ahead of the unit script on purpose: a batch that fails half way
+    still says which checkout and which lock attempted it, and its runs cite
+    this packet when they succeed.  A packet is content-addressed, so the
+    resume of a batch under the same commit rewrites the same file.
+    """
+    payload = batch_evidence.build_evidence(
+        unit={
+            "dataset": batch.dataset,
+            "method": batch.method,
+            "training_path": batch.training_path,
+            "mechanism": batch.mechanism,
+        },
+        seeds=batch.seeds,
+        c_tokens=batch.tokens,
+        protocol_version=identity["protocol_version"],
+        protocol_sha256=identity["protocol_sha256"],
+        recipe_registry=identity["recipe_registry"],
+        code=identity["code"],
+        lock=identity["lock"],
+        environment=identity["environment"],
+    )
+    return batch_evidence.write(_evidence_dir(Path(args.results)), payload)
+
+
+def _evidence_dir(results_root: Path) -> Path:
+    """Where the packets live: beside the run trees, never inside one of them.
+
+    Sibling rather than nested so a reader of the results root can tell the
+    evidence apart from the datasets, and so a run tree globbed for manifests
+    never walks into the evidence.
+    """
+    return results_root / batch_evidence.DIRECTORY
+
+
+def _batch_identity(
+    protocol: Mapping[str, Any],
+    protocol_sha256: str,
+    recipe_registry: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """What every packet of this invocation records, probed once before the first batch.
+
+    The commit, the lock and the software stack cannot change between the
+    batches of one invocation, and re-probing them per batch would cost a git
+    call and a CUDA probe each time.  A plan with nothing pending probes
+    nothing: a resume has no batch to record evidence for.
+
+    A commit that could not be read is recorded as ``unavailable`` rather than
+    guessed, and said out loud here because a reproducer that cannot check out
+    the code cannot repeat the result whatever else the packet holds.
+    """
+    identity = {
+        "protocol_version": protocol["protocol_version"],
+        "protocol_sha256": protocol_sha256,
+        "recipe_registry": recipe_registry,
+        "code": batch_evidence.code_identity(),
+        "lock": batch_evidence.dependency_lock(),
+        "environment": batch_evidence.environment_identity(),
+    }
+    if identity["code"]["code_commit_state"] != batch_evidence.CODE_COMMIT_RECORDED:
+        print(
+            "warning: the batch evidence records no code commit (the checkout's git "
+            "identity is unavailable), so a reproducer cannot check out what ran",
+            file=sys.stderr,
+        )
+    if identity["lock"]["state"] != "recorded":
+        print(
+            "warning: the batch evidence records no dependency lock, so a reproducer "
+            "cannot rebuild the environment the batch ran in",
+            file=sys.stderr,
+        )
+    return identity
+
+
 def _counts(runs: tuple[PilotRun, ...]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for run in runs:
@@ -610,6 +689,7 @@ def _run_batch(
     priors: dict[str, float],
     *,
     support_methods: frozenset[str],
+    identity: Mapping[str, Any],
 ) -> bool:
     argv = batch_command(
         batch,
@@ -625,6 +705,14 @@ def _run_batch(
         support_root=args.support_root if batch.method in support_methods else None,
     )
     label = f"{batch.dataset}/{batch.method}/{batch.training_path} ({batch.mechanism or 'oracle'})"
+    try:
+        evidence = _write_batch_evidence(batch, args, identity)
+    except (OSError, ValueError) as exc:
+        print(f"error: {label}: cannot record the batch evidence: {exc}", file=sys.stderr)
+        return False
+    # The unit script re-reads this packet and refuses a batch it does not
+    # describe, so the reference a manifest carries was checked, not copied.
+    argv.extend(["--batch-evidence", str(evidence)])
     if getattr(args, "recipe_registry", None) is not None:
         argv.extend(
             [
@@ -637,6 +725,7 @@ def _run_batch(
         if getattr(args, "recipe_binding_schema_version", None) is not None:
             argv.extend(["--recipe-binding-schema-version", args.recipe_binding_schema_version])
     print(f"== {label}: {len(batch.covers)} run(s), seeds {list(batch.seeds)}")
+    print(f"   evidence: {evidence}")
     completed = subprocess.run(  # noqa: S603 - fixed script, arguments built here
         [sys.executable, str(UNIT_SCRIPT), *argv], check=False
     )
@@ -749,10 +838,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     recipe_bindings = None
+    recipe_registry_identity = None
     if args.recipe_registry is not None:
         try:
             registry = load_registry(args.recipe_registry)
             args.recipe_registry_sha256 = canonical_digest(registry)
+            recipe_registry_identity = {
+                "version": registry.get("recipe_registry_version"),
+                "sha256": args.recipe_registry_sha256,
+            }
             by_unit = {}
             for run in planned:
                 unit_key = (run.dataset, run.method, run.training_path)
@@ -884,10 +978,24 @@ def main(argv: list[str] | None = None) -> int:
         **profile_resume,
     )
     failed = False
+    identity: dict[str, Any] | None = None
     for batch in batches(pending):
         if failed and not args.keep_going:
             break
-        failed = not _run_batch(batch, args, priors, support_methods=support_methods) or failed
+        if identity is None:
+            identity = _batch_identity(
+                source_protocol, source_protocol_sha256, recipe_registry_identity
+            )
+        failed = (
+            not _run_batch(
+                batch,
+                args,
+                priors,
+                support_methods=support_methods,
+                identity=identity,
+            )
+            or failed
+        )
 
     # Reported from the records rather than from the loop's own bookkeeping: a
     # batch can succeed and still leave runs behind, and the operator needs the

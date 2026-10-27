@@ -184,7 +184,8 @@ def test_basic_cli_single_pool_has_a_separate_namespace(survey_script, summary_c
     )
     report = summary_cli.build_summary(config)
     assert report["recipe_audit"]["overall"] == "pass"
-    assert len(report["checks"]) == 17
+    # 17 analytic checks plus E01, the batch-evidence citation check (D52).
+    assert len(report["checks"]) == 18
     assert len(report["rows"]) == 2
     assert all(row["recipe_selection_bindings"] for row in report["rows"])
 

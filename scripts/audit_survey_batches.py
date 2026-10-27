@@ -30,6 +30,7 @@ import json
 import re
 import sys
 from collections import Counter
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -87,6 +88,7 @@ from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     normalize_c_token,
     result_labeling_mechanism,
 )
+from pu_toolbox.utils.serialization import file_hash  # noqa: E402
 
 CONFIG_SCHEMA_VERSION = "survey-batch-roots-1"
 
@@ -212,6 +214,78 @@ def check_coverage(config: dict[str, Any], entries: list[dict[str, Any]]) -> dic
         expected={"total": formal_expected},
         evidence=missing_roots,
         reasons=["missing_manifest_field"] if missing_roots else [],
+    )
+
+
+def check_batch_evidence(config: dict[str, Any], entries: list[dict[str, Any]]) -> dict[str, Any]:
+    """E01: every cited batch packet exists beside its run trees and still matches.
+
+    Protocol §5 clause 6 carries the code commit and the dependency lock in one
+    packet per batch (D44, D52), and a manifest only copies the packet's name and
+    digest.  Nothing in the manifest's own fields can tell whether that packet
+    still exists, so a results tree copied without ``batch_evidence/`` -- or a
+    packet edited afterwards -- is detectable here and nowhere else.
+
+    Its own id prefix rather than an A-number: the P4.1 delivery record closed
+    that range ("不新增 A18") and this check belongs to a separate extension, the
+    way the recipe audit did.
+
+    Manifests that cite no packet are counted, not failed: everything written
+    before D52 predates the packet, is not rewritten, and would otherwise turn
+    every historical tree into a finding.  The count is what tells a reader how
+    much of a tree cannot cite evidence for its code.
+    """
+    roots = {batch["name"]: Path(batch["root"]) for batch in config["batches"]}
+    cited = uncited = 0
+    missing: list[str] = []
+    mismatched: list[str] = []
+    members: list[str] = []
+    for entry in entries:
+        payload = entry.get("payload")
+        if payload is None:
+            # A missing root is A02's finding; there is nothing to cite here.
+            continue
+        block = payload.get("batch")
+        if not isinstance(block, Mapping):
+            uncited += 1
+            continue
+        cited += 1
+        name = block.get("evidence_file")
+        root = roots.get(entry["batch"])
+        if not isinstance(name, str) or root is None:
+            mismatched.append(f"{entry['path']}: the batch block names no packet")
+            members.append(str(entry["path"]))
+            continue
+        packet = root / "batch_evidence" / name
+        if not packet.is_file():
+            missing.append(f"{entry['path']}: {name}")
+            members.append(str(entry["path"]))
+            continue
+        if file_hash(packet) != block.get("evidence_sha256"):
+            mismatched.append(f"{entry['path']}: {name}")
+            members.append(str(entry["path"]))
+    problems = missing + mismatched
+    if problems:
+        result, severity = "fail", "error"
+        message = (
+            f"{len(missing)} cited packet(s) missing and {len(mismatched)} no longer "
+            f"matching their manifest"
+        )
+    elif cited:
+        result, severity = "pass", "info"
+        message = f"{cited} manifest(s) cite a batch packet that is present and unchanged"
+    else:
+        result, severity = "not_applicable", "info"
+        message = "no manifest cites a batch packet; every run here predates D52"
+    return make_check(
+        check_id="E01",
+        result=result,
+        severity=severity,
+        scope="global",
+        message=message,
+        observed={"cited": cited, "uncited": uncited},
+        evidence=problems[:20],
+        members=members,
     )
 
 
@@ -1370,6 +1444,7 @@ def build_audit(
     checks.extend(
         [
             check_selection(loaded),
+            check_batch_evidence(config, loaded),
             check_view_mechanism(loaded),
             check_result_completeness(loaded, protocol=protocol),
             check_reclaim(loaded, inventories=inventories),

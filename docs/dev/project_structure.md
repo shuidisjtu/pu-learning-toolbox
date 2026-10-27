@@ -195,6 +195,7 @@ pu_toolbox/
     survey_result_coverage.py             # 新矩阵覆盖准备：显式期望/排除格与规范化观测对账；不推断最终矩阵、不授予正式资格
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
     survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
+    batch_evidence.py                     # §5.6 批次证据包: 内容寻址的 commit/uv.lock/协议/环境身份, 读回校验 run 与包同批, 装配 manifest 引用块
     survey_workbook.py                    # 交付工作簿版式: 汇总报告 → 协议 §5.1 四组各一页 + diagnostic/coverage/readme，不排名、缺 seed 行只进 coverage（纯函数，需 openpyxl）
     survey_diagnostics.py                 # 方法诊断卡: 汇总报告按执行计划 §1.4.5 信号逐方法出观测与异常标记，列出算不了的信号，标记只是提示（纯函数）
     survey_artifacts.py                   # Survey 证据制品的集中式仓库相对路径映射与解析
@@ -480,6 +481,7 @@ tests/
       test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
       test_pilot_plan_dimensions.py     # 规划器定尺寸: 每个 native_2d 数据集有默认特征维度、图像行不索要特征维度
+      test_batch_evidence.py            # 批次证据包: 两个身份字段、内容寻址与篡改检出、同批校验、换 commit 各留一份
       test_survey_pilot_driver_protocol.py # 驱动的协议默认: 不传 --protocol 即按 survey-v3.0 做计划，显式指定仍生效，未知文件报错而非静默回落
       test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
       _survey_pilot_helpers.py          # 驱动测试共享夹具: 脚本动态加载、subprocess 记录与 split 目录树
@@ -543,6 +545,7 @@ tests/
       test_survey_image_spec.py         # 图像规格按数据集取(v1 平铺规格原样可读;per_dataset 覆盖与校验)、运行入口按模态而非数据集名分支
       test_survey_image_support.py      # support 部分与四路角色走同一套 train 拟合预处理与同一个冻结 encoder
       test_survey_pilot_support.py      # 批次驱动的 support 轴:--support-root 的拒绝与读取、按 seed 占位、续跑按数据来源校验
+      test_survey_pilot_batch_evidence.py # 驱动写证据包: 每批一份并转交 argv、dry-run 不写、二次运行不新增、机制各自成包
       test_prepare_survey_splits_connect4.py # Connect-4 固定独热编码与标准化契约
       test_prepare_survey_splits_inputs.py # 实际读取输入身份与原收据字节摘要
       test_prepare_survey_splits_mnist.py # MNIST 家族输入校验与官方 test 隔离
