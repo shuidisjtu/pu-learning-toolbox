@@ -150,18 +150,35 @@ def test_basic_the_shipped_v3_protocol_specifies_every_image_dataset(
     assert spec["small_input_stem"] is small_stem
 
 
-@pytest.mark.parametrize("dataset", ["mnist", "fashion_mnist", "adni"])
-def test_basic_each_image_dataset_carries_every_runnable_cifar10_row(dataset):
-    rows = load_protocol(resolve_protocol_path("survey-v3.0"))["execution_units"]
+@pytest.mark.parametrize(
+    ("dataset", "support_rows"),
+    [("mnist", True), ("fashion_mnist", True), ("adni", False)],
+)
+def test_basic_each_image_dataset_carries_every_runnable_cifar10_row(dataset, support_rows):
+    """D46's template rule, plus the clean-support rows D49 gave the two that admit them.
 
-    def runnable(name):
+    The support rows are deliberately not part of the template: cifar10's LaGAM and
+    PULNS rows are blocked on a budget and it has no ``self_pu_full_meta`` row, so a
+    whole-set comparison would force the template to grow. The exclusion is asserted
+    rather than assumed, so a support row appearing on adni -- which the protocol
+    excludes from PA+clean-support -- still fails here.
+    """
+    rows = load_protocol(resolve_protocol_path("survey-v3.0"))["execution_units"]
+    support = {"lagam", "pulns", "self_pu_full_meta"}
+
+    def runnable(name, *, without_support):
         return {
             (r["method"], r["training_path"], r["budget"], r["backbone"])
             for r in rows
-            if r["dataset"] == name and r["runnable"]
+            if r["dataset"] == name
+            and r["runnable"]
+            and not (without_support and r["method"] in support)
         }
 
-    assert runnable(dataset) == runnable("cifar10")
+    template = runnable("cifar10", without_support=True)
+    assert runnable(dataset, without_support=True) == template
+    extra = runnable(dataset, without_support=False) - template
+    assert len(extra) == (3 if support_rows else 0)
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@
   "recipe_lifecycle": "locked",
   "protocol_basis": {
     "protocol_version": "survey-v3.0",
-    "protocol_sha256": "ba5a6905a16dfd6af161cde34eab34bbaa02f5cb4352aee973db877315677182"
+    "protocol_sha256": "154bd29c6cda1acb63ce85a15bfa03aa8f97209181a4fd94cebfc16c82b46374"
   },
   "selection_spec_ref": "survey_protocol_v3.selection_spec",
   "profiles": {
@@ -1084,6 +1084,8 @@
         "datasets": [
           "cifar10",
           "connect_4",
+          "fashion_mnist",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -1387,6 +1389,8 @@
         "datasets": [
           "cifar10",
           "connect_4",
+          "fashion_mnist",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
@@ -1505,9 +1509,12 @@
       "scope": {
         "datasets": [
           "connect_4",
+          "fashion_mnist",
+          "mnist",
           "spambase"
         ],
         "training_paths": [
+          "cnn_feature_adapter",
           "native_2d"
         ]
       },

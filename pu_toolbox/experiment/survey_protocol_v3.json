@@ -2622,6 +2622,78 @@
       "runnable": true,
       "oracle_alignment": "no_matched_neural_backbone_oracle",
       "method": "holistic_pu"
+    },
+    {
+      "dataset": "mnist",
+      "method": "lagam",
+      "training_path": "native_cnn",
+      "budget": "lagam",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/clean_support",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "lagam",
+      "training_path": "native_cnn",
+      "budget": "lagam",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/clean_support",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pulns",
+      "training_path": "native_cnn",
+      "budget": "pulns",
+      "model_family": "native_cnn_mlp32",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/clean_support",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pulns",
+      "training_path": "native_cnn",
+      "budget": "pulns",
+      "model_family": "native_cnn_mlp32",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/clean_support",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "self_pu_full_meta",
+      "training_path": "cnn_feature_adapter",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/clean_support",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "self_pu_full_meta",
+      "training_path": "cnn_feature_adapter",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/clean_support",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
     }
   ],
   "formal_blockers": [
@@ -2649,7 +2721,8 @@
     "Training-time clean support is required by PULNS, LaGAM, and the full Self-PU branch; the no-clean Self-PU path is an explicit ablation. Support is disjoint from the remaining train, pu_val, clean_val, and test; this round carves it from train and removes it, sized 100 for Spambase and 500 otherwise, and its positive and negative labels count toward the training-time label budget (approved 2026-10-21).",
     "This round covers Spambase, Connect-4, MNIST, F-MNIST, and CIFAR-10 only; IMDB, 20News, and ADNI are excluded from PA+clean-support.",
     "The formal PA+clean-support runner landed with the 2026-10-24 v3 freeze; support-dependent rows report PA+clean-support alongside OA, annotated and excluded from pure-PU PA advantage comparisons. Existing self_pu execution units retain the no-meta ablation profile.",
-    "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant uses the separate self_pu_full_meta profile and its own support unit."
+    "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant uses the separate self_pu_full_meta profile and its own support unit.",
+    "Clean-support units on the two image datasets take the shared ResNet-18 end to end for LaGAM and PULNS; Self-PU full-meta takes the frozen feature adapter because its estimator has no native CNN (D5), matching its existing mnist/fashion_mnist rows. The support part is carried through the same image preprocessing, so it is no longer handed to the estimator as raw uint8 pixels or as 4-D images on a 2-D path."
   ],
   "draft_scope": {
     "limitations": [

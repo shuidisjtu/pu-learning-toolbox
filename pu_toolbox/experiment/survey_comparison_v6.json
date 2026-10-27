@@ -99,6 +99,17 @@
         "162 unit mappings added: no_direct_anchor"
       ],
       "affects": "no anchor value, mapping or decision rule changes"
+    },
+    {
+      "revision": 9,
+      "from_version": "survey-comparison-v6",
+      "date": "2026-10-27",
+      "reason": "Clean-support coverage: mnist and fashion_mnist receive the LaGAM and PULNS native-CNN cells and the Self-PU full-meta adapter cells, so the six new runnable support units resolve an entry. The four native-CNN rows are registered as no_direct_anchor; the two adapter rows inherit the existing self_pu adapter cells through the profile map (D40) and are not restated.",
+      "changed": [
+        "40 unit mappings added: 4 native-CNN support rows x (3 SCAR x PA/OA + 4 SAR OA)",
+        "0 anchor values, decision rules or dataset/metric changes"
+      ],
+      "affects": "no anchor value, mapping or decision rule changes"
     }
   ],
   "review_status": "pending_collaborator_review",
@@ -22109,6 +22120,846 @@
       "eligibility": "no_direct_anchor",
       "anchor_ids": [],
       "rationale": "the benchmark papers include twenty_newsgroups but this matrix transcribes no anchor for it; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_mnist_native_cnn_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_lagam_fashion_mnist_native_cnn_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "lagam",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_mnist_native_cnn_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_scar_01_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_scar_01_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.1",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_scar_03_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_scar_03_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.3",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_scar_05_pa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "pa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_scar_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "scar",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_sar_lbe_a_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_sar_lbe_a_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_a",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_sar_lbe_b_005_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.05",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
+    },
+    {
+      "mapping_id": "unit_pulns_fashion_mnist_native_cnn_sar_lbe_b_05_oa",
+      "scope": "unit",
+      "result_selector": {
+        "method": "pulns",
+        "dataset": "fashion_mnist",
+        "labeling_mechanism": "sar_lbe_b",
+        "c_token": "0.5",
+        "selection_protocol": "oa",
+        "metric": "accuracy",
+        "training_path": "native_cnn"
+      },
+      "protocol_differences": [],
+      "review_state": "accepted",
+      "verified_by": [
+        "shuidisjtu"
+      ],
+      "eligibility": "no_direct_anchor",
+      "anchor_ids": [],
+      "rationale": "the benchmark papers include fashion_mnist but this matrix transcribes no anchor for this method; the cell is registered without an anchor and is shown as background only"
     }
   ],
   "contradictions": [
