@@ -299,7 +299,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--splits", default="data/splits", help="prepared split products root")
     parser.add_argument("--results", default="results/survey", help="where run trees live")
-    parser.add_argument("--protocol", default="survey-v2.0", help="protocol version or path")
+    parser.add_argument("--protocol", default="survey-v3.0", help="protocol version or path")
     parser.add_argument("--recipe-registry", type=Path, help="explicit locked recipe registry JSON")
     parser.add_argument(
         "--recipe-binding-schema-version", choices=(RECIPE_BINDING_V2,), default=None
