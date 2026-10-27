@@ -69,12 +69,14 @@ from pu_toolbox.experiment.pilot_plan import (
     PilotScope,
     batch_command,
     batches,
+    clean_support_methods,
     estimate_checkpoint_bytes,
     pending_runs,
     planned_runs,
     population_priors,
     select_execution_units,
     split_digests,
+    support_products,
 )
 from pu_toolbox.experiment.survey_profile_identity import (
     has_profile_identities,
@@ -227,6 +229,7 @@ def _write_plan_snapshot(
     completed: tuple[PilotRun, ...],
     views: Mapping[tuple[Any, ...], str],
     recipe_bindings: Mapping[tuple[Any, ...], Mapping[str, Any]] | None = None,
+    support_root: str | None = None,
 ) -> None:
     """Write what this request covers, in a form two hosts can be checked against.
 
@@ -253,6 +256,10 @@ def _write_plan_snapshot(
         "protocol_version": protocol["protocol_version"],
         "source_protocol_sha256": source_protocol_sha256,
         "datasets": _planned_datasets(planned),
+        #: Where the five-role products were read from, when some of this plan
+        #: needed them.  A shard whose support half came from another root is a
+        #: different shard, and this is the only field that would say so.
+        "support_root": support_root,
         #: Sorted rather than as typed, so two hosts spelling one request
         #: differently still write the same bytes -- the same reason the plan is
         #: recorded in matrix order and the datasets are sorted.
@@ -298,6 +305,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--splits", default="data/splits", help="prepared split products root")
+    parser.add_argument(
+        "--support-root",
+        default=None,
+        help=(
+            "root of the audited five-role clean-support products, laid out as "
+            "<root>/<dataset>/split_<seed>. Support profiles read their data from "
+            "there and are refused without it, because the four-role split still "
+            "holds the support rows the run has to exclude"
+        ),
+    )
     parser.add_argument("--results", default="results/survey", help="where run trees live")
     parser.add_argument("--protocol", default="survey-v3.0", help="protocol version or path")
     parser.add_argument("--recipe-registry", type=Path, help="explicit locked recipe registry JSON")
@@ -587,7 +604,13 @@ def expected_run_views(
     return views
 
 
-def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float]) -> bool:
+def _run_batch(
+    batch: Batch,
+    args: argparse.Namespace,
+    priors: dict[str, float],
+    *,
+    support_methods: frozenset[str],
+) -> bool:
     argv = batch_command(
         batch,
         splits_root=args.splits,
@@ -599,6 +622,7 @@ def _run_batch(batch: Batch, args: argparse.Namespace, priors: dict[str, float])
         extraction_batch_size=args.extraction_batch_size,
         os_or_ts=args.os_or_ts,
         reclaim_unselected_checkpoints=args.reclaim_unselected_checkpoints,
+        support_root=args.support_root if batch.method in support_methods else None,
     )
     label = f"{batch.dataset}/{batch.method}/{batch.training_path} ({batch.mechanism or 'oracle'})"
     if getattr(args, "recipe_registry", None) is not None:
@@ -686,9 +710,41 @@ def main(argv: list[str] | None = None) -> int:
     #: whether or not it also passed ``--datasets``, and the two reads below have
     #: to follow whatever narrowed them.
     planned = planned_runs(protocol)
+    support_methods = clean_support_methods(protocol)
+    support_runs = tuple(run for run in planned if run.method in support_methods)
+    #: A support plan without the artifacts is refused here, not at the batch
+    #: that happens to reach one: the four-role split still holds the rows the run
+    #: must exclude, so "run it from the splits root" is not a slower answer but
+    #: the wrong data.  Excluding the profiles by hand with --methods is the
+    #: supported way to ask for a shard that does not cover them.
+    if support_runs and args.support_root is None:
+        named = sorted({f"{run.dataset}/{run.method}" for run in support_runs})
+        print(
+            f"error: {len(support_runs)} planned run(s) are clean-support profiles "
+            f"({', '.join(named[:3])}{' ...' if len(named) > 3 else ''}), and their data "
+            "comes from the audited five-role products, not from --splits. Pass "
+            "--support-root, or narrow the request with --methods to the profiles you "
+            "want.",
+            file=sys.stderr,
+        )
+        return 1
+    support_splits = None
+    if args.support_root is not None:
+        try:
+            support_splits = {
+                key: digest
+                for key, (_, digest) in support_products(
+                    args.support_root, {(run.dataset, run.seed) for run in support_runs}
+                ).items()
+            }
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
     try:
         for run in planned:
-            require_four_role_profile(protocol, run.method)
+            require_four_role_profile(
+                protocol, run.method, clean_support=run.method in support_methods
+            )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -766,12 +822,18 @@ def main(argv: list[str] | None = None) -> int:
             protocol,
             args.results,
             splits=splits,
+            support_splits=support_splits,
             expected_views=views,
             expected_recipe_bindings=recipe_bindings,
             **profile_resume,
         )
         _print_plan(pending, done, estimate)
         _print_scope(scope)
+        if support_runs:
+            print(
+                f"  support: {len(support_runs)} run(s) read {len(support_splits)} "
+                f"five-role product(s) under {args.support_root}"
+            )
         if args.plan_json:
             # Refused rather than traced back: an unwritable path is an operator
             # mistake -- a typo, or a directory that was never made -- and this
@@ -787,6 +849,7 @@ def main(argv: list[str] | None = None) -> int:
                     completed=done,
                     views=views,
                     recipe_bindings=recipe_bindings,
+                    support_root=args.support_root,
                 )
             except OSError as exc:
                 print(
@@ -815,6 +878,7 @@ def main(argv: list[str] | None = None) -> int:
         protocol,
         args.results,
         splits=splits,
+        support_splits=support_splits,
         expected_views=views,
         expected_recipe_bindings=recipe_bindings,
         **profile_resume,
@@ -823,7 +887,7 @@ def main(argv: list[str] | None = None) -> int:
     for batch in batches(pending):
         if failed and not args.keep_going:
             break
-        failed = not _run_batch(batch, args, priors) or failed
+        failed = not _run_batch(batch, args, priors, support_methods=support_methods) or failed
 
     # Reported from the records rather than from the loop's own bookkeeping: a
     # batch can succeed and still leave runs behind, and the operator needs the
@@ -832,6 +896,7 @@ def main(argv: list[str] | None = None) -> int:
         protocol,
         args.results,
         splits=splits,
+        support_splits=support_splits,
         expected_views=views,
         expected_recipe_bindings=recipe_bindings,
         **profile_resume,
