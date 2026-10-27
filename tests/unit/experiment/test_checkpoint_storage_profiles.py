@@ -44,6 +44,7 @@ from pu_toolbox.experiment.survey_execution import (
 )
 from pu_toolbox.experiment.survey_protocol import (
     ADAPTER_HEAD_COMPONENT_BYTES,
+    PROTOCOL_PATHS,
     RESNET18_COMPONENT_BYTES,
     ROLES,
     load_protocol,
@@ -180,6 +181,27 @@ def test_basic_adapter_rows_do_not_cost_a_full_resnet():
 
     assert end_to_end == RESNET18_COMPONENT_BYTES
     assert adapter < end_to_end
+
+
+def test_basic_a_support_budget_does_not_under_size_its_native_cnn_row():
+    """A declared bound is evidence for the network it was measured on.
+
+    The support budgets declare 8 MiB because D31 measured the MLP heads of the
+    support paths.  Running one of those budgets end to end trains -- and saves --
+    the shared ResNet-18, so the architecture's bound has to win; the MLP row of
+    the same budget keeps its tighter figure instead of reserving five times more.
+    """
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    declared = protocol["budgets"]["lagam"]["checkpoint_bytes_per_component"]
+
+    mlp = resolve_unit(protocol, "spambase", "lagam", "native_2d")
+    end_to_end = resolve_unit(protocol, "mnist", "lagam", "native_cnn")
+
+    assert unit_checkpoint_bytes(protocol, mlp, input_dim=57) == declared
+    assert unit_checkpoint_bytes(protocol, end_to_end, input_dim=1) == RESNET18_COMPONENT_BYTES
+    assert unit_checkpoint_profile(protocol, end_to_end, input_dim=1) == (
+        "native_cnn_full_resnet18"
+    )
 
 
 # --- the bound, against what the training path really writes ------------------
