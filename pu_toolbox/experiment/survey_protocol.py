@@ -55,6 +55,12 @@ def resolve_protocol_path(value: str | Path) -> Path:
     return Path(value).resolve()
 
 
+def _canonical_matrix_matches_version(protocol: dict) -> bool:
+    """Compare with this version's shipped matrix, never the legacy default."""
+    path = PROTOCOL_PATHS.get(protocol.get("protocol_version"))
+    return path is not None and digest(protocol) == digest(load_protocol(path))
+
+
 #: One end-to-end ResNet-18 checkpoint component, rounded up from the 44 MB
 #: measured in epoch_checkpoint_delivery.md -- which is where the 200-epoch
 #: budget's 8-9 GB per candidate per seed comes from.  It sizes the rows that
@@ -692,7 +698,7 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     deviations = []
     if c_off_grid:
         deviations.append("c")
-    if digest(protocol) != digest(load_protocol()):
+    if not _canonical_matrix_matches_version(protocol):
         deviations.append("noncanonical_protocol_matrix")
     if candidates != protocol["candidate_pool"]:
         deviations.append("candidate_pool")
