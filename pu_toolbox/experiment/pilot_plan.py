@@ -53,7 +53,13 @@ from .survey_profile_identity import (
     profile_manifest_identity,
     valid_manifest_profile_identity,
 )
-from .survey_protocol import profile_mechanisms, unit_checkpoint_bytes, unit_checkpoint_profile
+from .survey_protocol import (
+    ROLES,
+    profile_mechanisms,
+    role_indices_digest,
+    unit_checkpoint_bytes,
+    unit_checkpoint_profile,
+)
 from .survey_recipe_binding import matches_recipe_binding, validate_expected_binding
 from .training_views import validated_run_view
 
@@ -574,12 +580,15 @@ def support_products(
                 f"{payload.get('dataset')!r}/{payload.get('seed')!r}, not {dataset!r}/{seed}"
             )
         digest = payload.get("indices_sha256")
-        if not isinstance(digest, str) or not digest:
+        indices = payload.get("indices")
+        if not isinstance(indices, dict) or any(role not in indices for role in ROLES):
             raise ValueError(
-                f"clean-support product at {manifest_path} records no index digest, so a "
-                "run on it cannot be told from a run on a rebuilt one"
+                f"clean-support product at {manifest_path} records no four-role indices, so "
+                "no run on it can be told from a run on a rebuilt one"
             )
-        found[(dataset, seed)] = (directory, digest)
+        if not isinstance(digest, str) or not digest:
+            raise ValueError(f"clean-support product at {manifest_path} records no receipt digest")
+        found[(dataset, seed)] = (directory, role_indices_digest(indices))
     return found
 
 

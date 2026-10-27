@@ -217,6 +217,21 @@ def profile_mechanisms(protocol: dict[str, Any], method: str) -> tuple[str, ...]
     return tuple(declared)
 
 
+def role_indices_digest(indices: dict[str, Any]) -> str:
+    """The digest a run manifest records for the four-role split it trained on.
+
+    One definition, because the resume check compares this figure with the one
+    read back from another artifact's receipt: two spellings of "the same split"
+    would make every run on that artifact look like it ran on data that is gone.
+    It covers the four roles only -- the support set is a fifth partition whose
+    membership the receipt records, and folding it in here would silently change
+    the figure every existing manifest already carries.
+    """
+    return digest(
+        {role: json_scalars(np.asarray(indices[role]), name=f"{role} indices") for role in ROLES}
+    )
+
+
 def unit_checkpoint_bytes(protocol: dict, row: dict, *, input_dim: int) -> int | None:
     """Bytes one per-epoch checkpoint component costs for this execution unit.
 
@@ -697,13 +712,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     representation = {
         "name": row["representation"],
         "feature_sha256": {role: array_digest(getattr(bundle, role).X) for role in ROLES},
-        "split_sha256": digest(
-            {
-                role: json_scalars(
-                    np.asarray(getattr(bundle, role).indices), name=f"{role} indices"
-                )
-                for role in ROLES
-            }
+        "split_sha256": role_indices_digest(
+            {role: getattr(bundle, role).indices for role in ROLES}
         ),
     }
     adapter = config.get("adapter_manifest")

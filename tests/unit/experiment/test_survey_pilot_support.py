@@ -30,7 +30,7 @@ from pu_toolbox.experiment.pilot_plan import (
     planned_runs,
     support_products,
 )
-from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, load_protocol
+from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, ROLES, load_protocol
 
 pytestmark = pytest.mark.unit
 
@@ -72,21 +72,23 @@ def batch(*, seeds=(0,)) -> Batch:
     )
 
 
-def support_product(root: Path, *, seed=0, declared_seed=None, digest=SUPPORT_DIGEST) -> Path:
+def support_product(
+    root: Path, *, seed=0, declared_seed=None, digest=SUPPORT_DIGEST, indices=True
+) -> Path:
     """A product directory, optionally with a receipt that misnames its own seed."""
     directory = root / "mnist" / f"split_{seed}"
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "support_manifest.json").write_text(
-        json.dumps(
-            {
-                "dataset": "mnist",
-                "seed": seed if declared_seed is None else declared_seed,
-                "indices_sha256": digest,
-                "role_sizes": {"train": 10, "support": 5},
-            }
-        ),
-        encoding="utf-8",
-    )
+    payload = {
+        "dataset": "mnist",
+        "seed": seed if declared_seed is None else declared_seed,
+        "indices_sha256": digest,
+        "role_sizes": {"train": 10, "support": 5},
+    }
+    if indices:
+        payload["indices"] = {
+            role: list(range(index * 4, index * 4 + 4)) for index, role in enumerate(ROLES)
+        }
+    (directory / "support_manifest.json").write_text(json.dumps(payload), encoding="utf-8")
     return root
 
 
@@ -206,9 +208,16 @@ def test_edge_a_receipt_naming_another_seed_is_refused(tmp_path):
         support_products(tmp_path / "support", {("mnist", 0)})
 
 
-def test_edge_a_receipt_without_an_index_digest_is_refused(tmp_path):
+def test_edge_a_receipt_without_the_four_role_indices_is_refused(tmp_path):
+    """Without them the run's own digest cannot be recomputed, so it cannot be resumed."""
+    support_product(tmp_path / "support", indices=False)
+    with pytest.raises(ValueError, match="no four-role indices"):
+        support_products(tmp_path / "support", {("mnist", 0)})
+
+
+def test_edge_a_receipt_without_its_own_digest_is_refused(tmp_path):
     support_product(tmp_path / "support", digest="")
-    with pytest.raises(ValueError, match="no index digest"):
+    with pytest.raises(ValueError, match="no receipt digest"):
         support_products(tmp_path / "support", {("mnist", 0)})
 
 
