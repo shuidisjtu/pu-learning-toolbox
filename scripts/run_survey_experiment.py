@@ -637,6 +637,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         assemble_model,
         cached_adapter,
         prepare_image_bundle,
+        prepare_image_support,
     )
     from pu_toolbox.experiment.survey_profile_identity import (
         profile_algorithm,
@@ -806,6 +807,20 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 bundle, encoder, image_manifest, preprocessing = prepare_image_bundle(
                     source, protocol, seed, dataset=args.dataset, with_preprocessing=True
                 )
+                if support_part is not None:
+                    # The support part is not one of the four roles, so the bundle
+                    # prepares it nowhere: as loaded it is still raw uint8 pixels
+                    # (native CNN reads them as if scaled) or the wrong rank (the
+                    # adapter trains on the encoder's 2-D features).  Both paths
+                    # need the frozen encoder, which is cleared after the adapter.
+                    support_part = prepare_image_support(
+                        support_part,
+                        training_path=row["training_path"],
+                        preprocessing=preprocessing,
+                        encoder=encoder,
+                        batch_size=args.extraction_batch_size,
+                        device=args.device,
+                    )
                 if row["training_path"] == "cnn_feature_adapter":
                     bundle, adapter_manifest = cached_adapter(
                         bundle,

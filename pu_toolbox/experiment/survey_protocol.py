@@ -93,6 +93,17 @@ _CONSTANT_COMPONENT_PROFILES: dict[tuple[str, str, str], tuple[int, str]] = {
         RESNET18_COMPONENT_BYTES,
         "native_cnn_full_resnet18",
     ),
+    # A clean-support method running its MLP-era budget on the shared ResNet-18
+    # trains -- and checkpoints -- the encoder, so the figure is the whole network
+    # rather than the head that budget's own declaration was measured on.
+    ("native_cnn", "resnet18_end_to_end", "native_cnn_mlp128"): (
+        RESNET18_COMPONENT_BYTES,
+        "native_cnn_full_resnet18",
+    ),
+    ("native_cnn", "resnet18_end_to_end", "native_cnn_mlp32"): (
+        RESNET18_COMPONENT_BYTES,
+        "native_cnn_full_resnet18",
+    ),
 }
 _LOCKED_CONFIG = ("backbone", "budget", "representation", "training_path", "comparability_group")
 _REVIEW_STATUSES = frozenset({"pending_collaborator_review", "changes_requested", "accepted"})
@@ -150,6 +161,17 @@ def _checkpoint_storage(protocol: dict, row: dict, *, input_dim: int) -> tuple[i
         # Methods that checkpoint more than the bare MLP (two teacher networks, a
         # fitted meta head) declare the measured per-component bound themselves;
         # the parametric MLP estimate below would under-count them.
+        #
+        # That declaration is measured on the network the budget was frozen for,
+        # though, and one budget can be run on more than one training path: the
+        # clean-support budgets were sized on MLP heads and a native-CNN row runs
+        # them end to end, where the checkpoint holds the whole shared ResNet-18.
+        # The architecture's own bound therefore acts as a floor rather than a
+        # competitor -- whichever figure is larger covers both claims, while an
+        # MLP row of the same budget keeps its tighter measured number.
+        profile = _CONSTANT_COMPONENT_PROFILES.get(_profile_key(row))
+        if profile is not None and profile[0] > declared:
+            return profile
         return declared, "explicit_budget_bound"
     if FIELD in budget:
         validate_contract(budget[FIELD])

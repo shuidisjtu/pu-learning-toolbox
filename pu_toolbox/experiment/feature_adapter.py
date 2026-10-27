@@ -287,6 +287,32 @@ def _extract_features(torch, encoder, X, *, batch_size: int, device: str) -> np.
     return features
 
 
+def extract_image_features(encoder, X, *, batch_size: int = 64, device: str = "cpu") -> np.ndarray:
+    """Map one image partition into a frozen adapter's 2-D feature space.
+
+    ``adapt_image_bundle_to_features`` prepares the four dataset roles together;
+    the clean-support set is not one of them, it arrives from its own artifact as
+    raw uint8 images.  On the adapter path the training rows are 2-D features, so
+    a support part left in image space is not merely unscaled, it has the wrong
+    rank.  This is the same extraction under the same guarantees: evaluation
+    mode, no gradients, and a bit-identical encoder afterwards.
+    """
+    torch, module = _resolve_torch_encoder(encoder, device)
+    state_before = encoder_state_sha256(module)
+    module_modes = [(child, child.training) for child in module.modules()]
+    try:
+        module.eval()
+        features = _extract_features(
+            torch, module, np.asarray(X), batch_size=batch_size, device=device
+        )
+    finally:
+        for child, was_training in module_modes:
+            child.training = was_training
+    if state_before != encoder_state_sha256(module):
+        raise RuntimeError("CNN feature extraction mutated the encoder state.")
+    return features
+
+
 def encoder_state_sha256(encoder) -> str:
     digest = hashlib.sha256()
     state = encoder.state_dict()

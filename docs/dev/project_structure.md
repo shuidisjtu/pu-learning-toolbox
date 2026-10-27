@@ -396,6 +396,7 @@ tests/
       test_genpu_recipe_execution.py    # GEN-PU 计划摘要、实际双轨 CLI、选后回收与模型回放
       test_candidate_image_execution.py # 图像 CLI 计划绑定、PA/OA 回放与非正式边界
       test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
+      test_survey_image_support_execution.py # 运行入口把 support 部分按图像路径装配(原生 CNN 缩放、adapter 特征、表格原样)
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -540,6 +541,7 @@ tests/
       test_survey_audit_docs.py         # A14/A16/A17: 快照与边界小节、self_pu 消融披露、隔离保护测试存在(只核证据在)
       test_prepare_survey_splits_adni.py # ADNI 替代数据:读取(类别序/垃圾文件/计数校验)、无官方测试集划分、多归档收据汇总
       test_survey_image_spec.py         # 图像规格按数据集取(v1 平铺规格原样可读;per_dataset 覆盖与校验)、运行入口按模态而非数据集名分支
+      test_survey_image_support.py      # support 部分与四路角色走同一套 train 拟合预处理与同一个冻结 encoder
       test_prepare_survey_splits_connect4.py # Connect-4 固定独热编码与标准化契约
       test_prepare_survey_splits_inputs.py # 实际读取输入身份与原收据字节摘要
       test_prepare_survey_splits_mnist.py # MNIST 家族输入校验与官方 test 隔离
