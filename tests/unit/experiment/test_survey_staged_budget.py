@@ -18,6 +18,7 @@ from pu_toolbox.experiment.survey_staged_budget import (
     SCHEMA,
     checkpoint_epochs,
     validate_contract,
+    validate_estimator,
     verify_trajectory,
 )
 
@@ -279,3 +280,49 @@ def test_edge_zero_warmup_keeps_only_pu_snapshots_without_phantom_cost(tmp_path)
     receipt = verify_trajectory(model, trajectory, contract, features, labels, "ts")
     assert receipt["checkpoint_epoch_count"] == 2 and receipt["optimizer_steps"] == 4
     assert receipt["stage_optimizer_steps"] == {"warmup": 0, "pu_mixup": 4}
+
+
+def _model_with_encoder(algorithm):
+    from torch import nn
+
+    protocol = matrix(algorithm)
+    row = protocol["execution_units"][0]
+    model = assemble_model(
+        protocol, row, 4, seed=0, params={}, class_prior=0.4, device="cpu", encoder=None
+    )
+    model.set_params(encoder=nn.Identity())
+    return model, protocol["budgets"]["explicit_stages"][FIELD]
+
+
+@pytest.mark.parametrize("algorithm", ["genpu", "pulda"])
+def test_edge_native_2d_still_rejects_an_injected_encoder(algorithm):
+    model, contract = _model_with_encoder(algorithm)
+
+    with pytest.raises(ValueError, match="without injected modules"):
+        validate_estimator(model, contract)
+
+
+@pytest.mark.parametrize("algorithm", ["genpu", "pulda"])
+def test_basic_native_cnn_accepts_its_bound_encoder(algorithm):
+    model, contract = _model_with_encoder(algorithm)
+
+    validate_estimator(model, contract, architecture="cnn")
+
+
+@pytest.mark.parametrize("algorithm", ["genpu", "pulda"])
+def test_edge_native_cnn_without_the_encoder_is_refused(algorithm):
+    model, contract = _model_with_encoder(algorithm)
+    model.set_params(encoder=None)
+
+    with pytest.raises(ValueError, match="bound encoder"):
+        validate_estimator(model, contract, architecture="cnn")
+
+
+def test_edge_native_cnn_still_rejects_any_other_injected_module():
+    from torch import nn
+
+    model, contract = _model_with_encoder("pulda")
+    model.set_params(train_transform=nn.Identity())
+
+    with pytest.raises(ValueError, match="without injected modules"):
+        validate_estimator(model, contract, architecture="cnn")

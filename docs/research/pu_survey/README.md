@@ -25,10 +25,14 @@
 
 ## 2. 当前进度（2026-10-26，按协议 JSON 实测）
 
-- `survey_protocol_v3.json`：72 个执行单元，48 个 runnable，24 个 blocked。22 方法 × 8 数据集 = 176 格，
-  其中 70 格有单元、46 格 runnable。
+- `survey_protocol_v3.json`：130 个执行单元，106 个 runnable，24 个 blocked，8 个数据集都已有单元。
+  22 方法 × 8 数据集 = 176 格，其中 126 格有单元、102 格 runnable。
+- 每个数据集都带齐其模板数据集的全部 runnable 行（见 D46）：mnist、fashion_mnist、adni 对 cifar10，
+  connect_4 对 spambase，twenty_newsgroups 对 imdb；每个方法族已在 GPU 上真跑过 1 个 seed、接线核对通过。
+  blocked 方法在这些数据集上还没有行，随其模板行一起翻 runnable。
+  LaGAM / PULNS / Self-PU full-meta 的 support 策略不覆盖 twenty_newsgroups，只落在 connect_4。
 - 现有 xlsx 是 31 个 run、单 seed 的**工程核对表**，不是交付物 A。
-- 现有 runnable 单元的正式批次（5 seed × 全部 c 与机制）约 1560 个 run；GPU 机时不设限，按 method / dataset /
+- 现有 runnable 单元的正式批次（5 seed × 全部 c 与机制）约 3350 个 run（其中三个图像数据集 1185 个，`run_survey_pilot.py --dry-run --datasets mnist,fashion_mnist,adni` 实测）；GPU 机时不设限，按 method / dataset /
   training-path / 机制分批跑，最后统一汇总。
 
 ## 3. 剩余工作
@@ -37,9 +41,7 @@
 |---|---|
 | 24 个 blocked 单元翻 runnable：KLDCE / CVIR / P3MIX / PAN / VPU / GradPU 各 3 行（spambase、imdb、cifar10）、PUET / RP 各 2 行（spambase、imdb）、LaGAM / PULNS 各 1 行（cifar10）；含 GradPU 首次真实运行 | HENG958 |
 | PN-CNN 5 seed（`pn_oracle` cifar10 / native_cnn） | HENG958 |
-| mnist、fashion_mnist、adni 补 `backbone_specs.image.per_dataset` 与图像预处理，再加单元与比较矩阵映射 | shuidisjtu |
-| connect_4、twenty_newsgroups 补齐其余 18 个方法 | shuidisjtu |
-| PN oracle 补 connect_4、twenty_newsgroups、mnist、fashion_mnist、adni | shuidisjtu |
+| LaGAM / PULNS / Self-PU full-meta 补 mnist、fashion_mnist 的 support 单元（support 策略覆盖这两个数据集，目前只有 spambase 与 connect_4 的行） | shuidisjtu |
 | 入库的 xlsx 导出器（四组拆分、附加指标、±std、成本）与诊断卡工具（§1.4.5 信号）；全库目前都没有 | shuidisjtu |
 | 正式 5 seed × c 网格跑批 → 汇总 → 写结论；协议 §5.6 第 6 条措辞改为「批次证据包 + run 引用批次身份」，并确认批次层确有写入 commit 与 `uv.lock` 哈希的代码 | 合流 |
 | 官方示例脚本归位或在 `api.md` 登记；写一页从原始数据到汇总表的命令序列 | shuidisjtu |
@@ -51,7 +53,7 @@
 | 文档 / 数据 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | 协议：数据集、四角色输入、OS / TS 视图、PA / OA 选模、PN oracle 与主榜门禁 |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D45）** |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D47）** |
 | `pu_toolbox/experiment/survey_protocol_v3.json` | 机器可读执行协议（`survey-v3.0`，原地演进，见 D42） |
 | `pu_toolbox/experiment/method_ledger.json` | 方法台账：身份、来源、视图、校准、适配、待复核状态 |
 | `pu_toolbox/experiment/survey_comparison_v6.json` | 比较矩阵（v3 运行自动使用）；`survey_comparison_profile_map_v3.json` 给出 profile → 条目映射 |

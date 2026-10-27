@@ -6,34 +6,35 @@
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
 > 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
-> 状态核对日期：**2026-10-26**（v3 协议 72 个单元，runnable 48 / blocked 24，覆盖 5/8 数据集；25 份 clean-support 制品本机重建；GEN-PU 配方与 PULDA/GradPU 图像 runner 已补；PN-CNN 5 seed 已分配 HENG958，见 D45；profile → 比较矩阵映射已落地，见 D40）
+> 状态核对日期：**2026-10-27**（v3 协议 130 个单元，runnable 106 / blocked 24，8 个数据集都已有单元；25 份 clean-support 制品本机重建；GEN-PU 配方与 PULDA/GradPU 图像 runner 已补；PN-CNN 5 seed 已分配 HENG958，见 D45；profile → 比较矩阵映射已落地，见 D40）
 
 ## 1. 实验能力与缺口
 
 > 本节按“PU Survey 实验设施现在能做什么”组织；任务编号只作关联。状态分三层，避免把工程接线
 > 当结果：**runnable**（`survey_protocol_v3.json` 的 `execution_units` 标 `runnable=true`，
-> 有预算/runner，能产出合规 manifest，当前 **48 / 72**）、**formal**（清掉 `formal_blockers`
+> 有预算/runner，能产出合规 manifest，当前 **106 / 130**）、**formal**（清掉 `formal_blockers`
 > 并绑进比较矩阵，当前 **0**；配方注册表已于 D36 冻结、profile 映射已于 D40 落地，但阻断位未清，
 > 两者都不等于准入）、
 > **evidence**（已有真实数据读数，目前只有单 seed 工程 smoke；32 GiB vGPU 上已跑完一次
-> GEN-PU 正式预算 100+100，2026-10-25，仍无正式多 seed 批次）。
+> GEN-PU 正式预算 100+100，2026-10-25；2026-10-26/27 又在 AutoDL 主机跑了 5 个数据集的单 seed
+> 接线验证，仍无正式多 seed 批次）。
 > 判定标准：命令可执行并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。
-> 状态核对日期：2026-10-26。
+> 状态核对日期：2026-10-27。
 
 ### 1.1 能力矩阵
 
-| 能力 | 现在能用？ | 缺什么 | 补完后怎么算可用 |
+| 能力 | 现在能用？ | 缺什么 | 可用判据 / 现状证据 |
 |---|---|---|---|
 | 8 数据集四路 split | **是** | | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
 | clean-support 制品（5 数据集 × seeds 0–4） | **是（本机，2026-10-24 重建）** | | 25 份逐份 `load_support_dataset` 通过并登记[机器清单](data/clean_support_materialization_20261024.json)；收据属新批次，跨机传递仍须按收据核验 |
-| 协议内单跑（v3 48 个 runnable 单元） | **是** | mnist/fashion_mnist/adni 尚无单元 | `--protocol survey_protocol_v3.json` 跑通并产出 manifest；现覆盖 spambase/imdb/cifar10/connect_4/twenty_newsgroups |
+| 协议内单跑（v3 106 个 runnable 单元） | **是** | | `--protocol survey_protocol_v3.json` 跑通并产出 manifest；现覆盖全部 8 个数据集。2026-10-26/27 在 AutoDL 主机对 mnist / fashion_mnist / adni / connect_4 / twenty_newsgroups 做了单 seed 接线验证，39 份 manifest 全部产出，汇总入口读通（不覆盖全部格，不是效果结论，见 D46） |
 | 5 方法阶段预算（GEN-PU/PULDA/Robust/Split/Holistic） | **是（已冻结）** | 逐 seed 成本收据与 manifest 对账 | 阶段快照/成本收据与运行 manifest 对账 |
-| 图像三条路径 | **部分**：GEN-PU/PULDA 原生 CNN 与 Robust/Split/Holistic 的 `cnn_feature_adapter` 已标 runnable；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | 行翻 runnable 并出真实 CIFAR manifest |
-| clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase seed0 三方法已跑通） | 5 数据集正式 units/预算 | 正式 support 批次 manifest 与制品对账 |
+| 图像三条路径 | **是（GradPU 除外）**：cifar10、mnist、fashion_mnist、adni 各有 13 个 runnable 行；GEN-PU/PULDA 原生 CNN 在 mnist、adni 上已真跑通（staged 预算拒绝注入 encoder 的缺陷已修，见 D46），Robust/Split/Holistic 等 `cnn_feature_adapter` 在 adni 上已跑通；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | GradPU 行翻 runnable 并出真实 CIFAR manifest |
+| clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase、connect_4 seed0 三方法已跑通） | 5 数据集正式 units/预算；`clean_support` 组内 PULNS 为 `mlp32`、另两个为 `mlp128`，聚合门禁按 backbone 名称精确比较，该组聚合仍被拒（D47，待定） | 正式 support 批次 manifest 与制品对账 |
 | PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA）；v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
-| 分组跑 + 汇总 | **是** | | `--methods/--datasets/--training-paths` 分批 + 汇总入口 |
+| 分组跑 + 汇总 | **是** | | `--methods/--datasets/--training-paths` 分批 + 汇总入口；`aggregate_survey_runs.py` 现默认按 `survey-v3.0` 读（`--protocol` 可改，D47） |
 | v3 ↔ comparison/registry 绑定 | **是** | | v3 运行 manifest 的 `comparison_version` / `comparison_sha256` 是 v6 摘要，覆盖率门禁在 v3 上也真跑；profile 映射 v3 已生效（16 mapped / 7 not_in_matrix），比较矩阵按**协议版本**解析，v3 运行自动用 `survey_comparison_v6.json`（2026-10-25 接线，P4.2b 升到 v6） |
-| 22 方法主榜 | **否** | 24 个 blocked 单元；mnist/fashion_mnist/adni 无单元；connect_4/twenty_newsgroups 只有 4 个方法 | 数据集补齐 + blocked 单元清零后出主表（P4.2a 的 4 个基准方法锚点与 P4.2b 的 3 个定性交代均已落地） |
+| 22 方法主榜 | **否** | 24 个 blocked 单元；还没有任何 5 seed 正式批次 | blocked 单元清零并跑完 5 seed 批次后出主表（8 个数据集的单元已补齐；P4.2a 的 4 个基准方法锚点与 P4.2b 的 3 个定性交代均已落地） |
 
 ### 1.2 缺口任务
 
@@ -42,13 +43,9 @@
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
-| P4.2a：4 个有基准覆盖的方法无比较条目 | `pulda`、`robust_pu`、`holistic_pu`、`lagam` 在 v3 可跑，但矩阵里没有锚点 | **已完成**：论文核对确认 PU-Bench Table 1 四个方法全报；10 条锚点已写入 `survey_comparison_v5.json`（PULDA / Robust / Holistic 各 3，LaGAM 1）（OA 单元、`magnitude_and_trend`），profile map v2 把四个 profile 转 `mapped` | shuidisjtu | 已满足：v5 于 2026-10-25 接管运行链路，随后由 v6 接替（锚点不变） |
-| P4.2b：3 个无基准方法只做定性交代 | `genpu`、`pulns`、`split_pu` 不在任何统一基准里，各自论文的数据集/指标口径不同 | **已完成**：71 个单元在 `survey_comparison_v6.json` 记为 70 `no_direct_anchor` + 1 `non_runnable`（pulns/cifar10），profile 映射 v3 转 `mapped`；不为凑锚点改数据集/指标 | shuidisjtu | 已满足：三条 profile 有明确 eligibility 与非空理由，摘要中只作背景展示 |
-| support 正式 units（5 数据集） | LaGAM/PULNS 在 v3 只有 spambase（runnable）与 cifar10（blocked）两行，Self-PU full-meta 只有 spambase | 为三方法补 connect_4/mnist/fashion_mnist 单元；LaGAM/PULNS 的 cifar10 行并入上面的 24 个 blocked 单元 | shuidisjtu | 5 数据集 support manifest 与制品对账 |
-| 数据集覆盖（v3 有 5 个，缺 3 个） | 主榜缺 mnist/fashion_mnist/adni；connect_4 与 twenty_newsgroups 只有 4 个方法，其余 18 个待补 | **进行中**：connect_4 与 twenty_newsgroups 已各加 4 个可运行方法（原地扩充）；mnist/fashion_mnist/adni 要先补 `backbone_specs.image.per_dataset` 与图像预处理。这 4 个方法是按 spambase 已有的 native_2d runnable 行选的，只换数据集、不新造预算；`backbone_specs.image` 目前是 32×32×3 的平铺规格，补 `per_dataset` 时 cifar10 / mnist / fashion_mnist 三条都要写，漏 cifar10 会使其被规格校验拒绝 | shuidisjtu | 每数据集至少一行 runnable（5 个中已满足 2 个） |
-| GPU 机时实测 | 无法排 AutoDL 正式批次 | 已完成：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）；仍缺 GradPU 首跑与 PN-CNN 单 seed 计时 | shuidisjtu | 实测表反推机时 |
+| support 正式 units（5 数据集） | LaGAM/PULNS/Self-PU full-meta 现有 spambase 与 connect_4 的 runnable 行；LaGAM/PULNS 另有 cifar10（blocked）行，mnist/fashion_mnist 没有 | 为三方法补 mnist/fashion_mnist 单元（需图像路径的 support 装配）；LaGAM/PULNS 的 cifar10 行并入上面的 24 个 blocked 单元 | shuidisjtu | 5 数据集 support manifest 与制品对账 |
+| GPU 机时实测（GradPU 首跑） | 无法排 GradPU 的 AutoDL 正式批次 | 其余机时已实测：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）、2026-10-26/27 主机上 oracle 原生 CNN 单 seed 计时（共用 22 核配额下，不代表独占机时）；仍缺 GradPU 首跑 | HENG958 | 实测表反推机时 |
 | PN-CNN 5 seed | `pn_oracle` cifar10 / native_cnn 行 | 已解除暂缓并分配（D45 取代 D30） | HENG958 | 5 seed 合规 manifest + 峰值记录 |
-| PN oracle 其余数据集 | 现有 oracle 行只有 spambase/imdb/cifar10 | 补 connect_4/twenty_newsgroups/mnist/fashion_mnist/adni | shuidisjtu | 每数据集一行 runnable |
 | xlsx 导出器与诊断卡工具 | 全库只有单 seed 工程核对表，没有入库的四组拆分/±std/成本导出器，也没有 §1.4.5 信号的诊断卡工具 | 写入库的导出器与诊断卡生成器 | shuidisjtu | 能从 manifest 一条命令生成交付物 A 的工作簿与诊断卡 |
 
 ### 1.3 预算与资源
@@ -91,7 +88,7 @@ draft 令牌当锁定预算。
 
 #### 1.4.1 冻结与版本
 
-- 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 48/72）。
+- 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 106/130）。
   `survey_protocol_v2.json`（`survey-v2.0`）继续是 645-run pilot 的历史绑定，不被覆盖；
   `survey_protocol_v1.json` 与 `survey_comparison_v1..v3.json` 仅作历史绑定。
 - 比较矩阵按**协议版本**解析：`survey-v2.0` → `survey_comparison_v4.json`，`survey-v3.0` →
@@ -179,7 +176,7 @@ draft 令牌当锁定预算。
 - 每个单元必须标出它依据的是上表哪几类信号；没有标依据的单元不出结论。
 - 汇总表按 §5 的四组拆分（SCAR–PA 主榜、SCAR–OA 对照、SAR–OA 压力测试（LBE-A/B 分开）、
   PN oracle），并保留按数据集、训练路径、原生假设的分层；不合并总排名。
-- `no_direct_anchor` 的单元（当前 111 条）**不得**用"与论文一致/不一致"表述，只能引用内部信号；
+- `no_direct_anchor` 的单元（当前 904 条单元映射）**不得**用"与论文一致/不一致"表述，只能引用内部信号；
   否则"没有参照"会被读成"没有问题"。
 - 单 seed 读数不进结论表；5 seed 的均值±标准差才是主表单位。
 - 分区键不变（`comparability_group`、`run_view`、`mechanism`，D13/D26）。
@@ -195,8 +192,8 @@ draft 令牌当锁定预算。
 1. **24 个 blocked 单元翻 runnable**（HENG958）：KLDCE/CVIR/P3MIX/PAN/VPU/GradPU 各 3 行
    （spambase、imdb、cifar10）、PUET/RP 各 2 行（spambase、imdb）、LaGAM/PULNS 各 1 行（cifar10）；
    含 GradPU 首次真实运行。**PN-CNN 5 seed**（HENG958）。
-2. **数据集与方法补齐**（shuidisjtu）：mnist/fashion_mnist/adni 补 `backbone_specs.image.per_dataset`
-   与图像预处理后加单元；connect_4/twenty_newsgroups 补其余 18 个方法；PN oracle 补五个数据集。
+2. **support 方法补 mnist/fashion_mnist**（shuidisjtu）：数据集与 runnable 行的补齐已完成（D46），
+   LaGAM/PULNS/Self-PU full-meta 在两个图像数据集上的 support 装配除外。
 3. **汇总工具**（shuidisjtu）：入库的 xlsx 导出器（四组拆分、附加指标、±std、成本）与诊断卡工具。
 4. **正式 5 seed × c 网格跑批 → 汇总 → 写结论**（合流）：只运行满足协议/预算/配方/映射前置的单元；
    汇总按 §1.4.5 的诊断口径出"方法 × 数据集主表 + 诊断卡"，不以"与论文数值一致"作为验收标准。
@@ -309,7 +306,7 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D45）
+## 附录 A. 决策账本（D1–D47）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -361,3 +358,5 @@ gate 改按注册表自身 `protocol_basis` 选协议，CI 两道草稿 + 一道
 | D43 | **P3.1 宽口径范围；图像 runner 120/200 快照的实测口径** | ① 范围：P3.1 宽口径为 13 个方法 = RV8 评审的 14 条减 TEDn（TEDn 只走 RV8、不计入 13），含 P3MIX、不含 VPU（VPU 另补）；对应 22 个目标算法、23 个 profile（含 `self_pu_full_meta`）。RV8 于 2026-10-21 由 shuidisjtu 签署 14 条全部「有条件接受」，2026-10-24 起不再要求签署。② PULDA 120 份 / GradPU 200 份快照在真实 CIFAR 24 行子集上的工程实测（各 1 seed，数字在 `data/candidate_image_validation_20261023.json`）：单份 44,900,758 / 40,974,252 B，回收前合计约 5.02 / 7.63 GiB，选后各留 2 份；fit 的 CUDA allocated 峰值约 437 / 254 MiB，RSS 峰值约 2.72 / 2.29 GiB；磁盘预检 1 候选 × 2 次尝试，分别 15 / 25 GiB。口径：是 allocated 不是 reserved，RSS 为进程生命周期而非 fit 增量，**不代表全量数据、默认 batch 或多 seed 的峰值**；所有已完成的 warmup 与 pu_mixup 快照都进入选择；该子集上 proxy accuracy 可超出 [0,1]。 | 2026-10-26 |
 | D44 | **终点线与交付物定义** | 最终交付物两部分：A 结果文件（四组工作簿，5 seed 均值±标准差，加按 §1.4.5 的结论分析）；B 代码功能（协议 §2.4（四）第 7–11 条逐条对应可运行命令或文件，加从四路 split 到汇总表的复现命令序列）。两者共同过协议 §5 验收线；22 个目标方法未全部过四项门禁时，标 `pilot / partial benchmark` 发布。mnist / fashion_mnist / adni 为必做数据集。§5.6 的代码 commit 与依赖锁由批次层承载（每批一份证据包，run 引用批次身份）；协议 §5.6 第 6 条措辞待改，并须确认批次层确有写入 commit 与 `uv.lock` 哈希的代码。交付物、完成定义与分工见 [README](README.md)。 | 2026-10-26 |
 | D45 | **PN-CNN 5 seed 解除暂缓，分配 HENG958** | 取代 D30：协议已定稿，`pn_oracle` 的 cifar10 / native_cnn 5 seed 由 HENG958 承担，与 24 个 blocked 单元并行。验收同其他单元：合规 manifest + 峰值记录；不补造结果。 | 2026-10-26 |
+| D46 | **五个数据集补单元：取模板数据集全部 runnable 行** | ① mnist / fashion_mnist / adni 对 cifar10 的 13 个 runnable 行，connect_4 对 spambase、twenty_newsgroups 对 imdb；support 三方法（LAGAM / PULNS / Self-PU full-meta）只落 connect_4，因 support 策略不覆盖 20news。结果：v3 协议 130 单元，106 runnable / 24 blocked；126 格有单元、102 格 runnable。原地演进，版本号不变（D42）。② 三个图像数据集写 `per_dataset` 规格：adni 用标准 stem，28×28 的 mnist / fashion_mnist 与 cifar10 用小 stem。③ 比较矩阵 v6 新增映射全部为 `no_direct_anchor`；更正 146 条理由：论文含这些数据集，只是本矩阵没转录锚点，「no benchmark reports」不实。④ 沿途修复四个缺陷：原生 CNN 的 PN oracle 过不了协议身份校验（`PilotOracleCNN` 继承 `PilotOracleMLP`，类型严格比较）；规划器仅 native_2d 行才读特征维度，不再因 backbone 名不以 resnet18 开头而索要；staged 预算的 `validate_estimator` 拒绝一切注入 encoder，而主 CLI 给每个 native_cnn 行注入，使 GEN-PU / PULDA 原生 CNN 行从未跑通，现按 architecture 放行 encoder，仍拒绝 model / train_transform；规划器缺 connect_4=126、twenty_newsgroups=384 的默认维度。⑤ 主机单 seed 运行只作接线证据，不作效果结论；整个仓库仍无 5 seed 正式批次。开启回收后每 run 约 44 MB，容量按并发数规划。 | 2026-10-26 |
+| D47 | **clean_support 组内 backbone 宽度不同不拆组；汇总入口默认用 v3.0** | ① `{spambase, connect_4}/native_2d/clean_support` 组里 PULNS 用 `mlp32`（方法卡登记的工程适配配方，默认 MLP32），LaGAM / Self-PU full-meta 用 `mlp128`。协议 §2.5 对表格数据集规定的是 MLP 这一类 backbone，同组方法共享的是表征（`train_zscore`）与训练预算，所以不为宽度差异拆组；结果表须注明 PULNS 的隐层宽度为 32。**遗留**：`validate_comparable_manifests` 目前按 backbone 名称精确比较，该组聚合仍被拒（`comparison mismatch: backbone`，connect_4 三个 support run 实测复现；spambase 同配置，尚未跑过），门禁如何处理待定。② `aggregate_survey_runs.py` 原先固定读 `survey-v2.0`，而 v3 的 run 按 v2 的 seeds 判定；现新增 `--protocol`，默认 `survey-v3.0`。 | 2026-10-27 |

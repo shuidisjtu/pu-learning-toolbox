@@ -460,11 +460,13 @@ def bind_runtime_parameters(
     return bound
 
 
-def _model_identity(model, method: str) -> None:
+def _model_identity(model, method: str, training_path: str) -> None:
     if method == "pn_oracle":
-        from .survey_execution import PilotOracleMLP
+        from .survey_execution import PilotOracleCNN, PilotOracleMLP
 
-        expected = PilotOracleMLP
+        # PilotOracleCNN subclasses PilotOracleMLP, so the exact-type check below needs the
+        # class the training path asks for; one expectation for both rejects every CNN oracle.
+        expected = PilotOracleCNN if training_path == "native_cnn" else PilotOracleMLP
     else:
         from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
 
@@ -476,7 +478,7 @@ def _model_identity(model, method: str) -> None:
 
 def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
     algorithm = profile.get("algorithm", row["method"])
-    _model_identity(model, algorithm)
+    _model_identity(model, algorithm, row["training_path"])
     params = model.get_params(deep=False)
     for name, value in profile["params"].items():
         if name not in params or digest(params[name]) != digest(value):
@@ -492,12 +494,12 @@ def _validate_model(model, profile: dict, row: dict, seed: int) -> None:
         raise ValueError("native_cnn survey unit requires the bound ResNet-18 encoder")
 
 
-def _validate_budget(model, budget: dict) -> None:
+def _validate_budget(model, budget: dict, architecture: str = "mlp") -> None:
     """Declared artifact budgets must describe the estimator that actually trains."""
     from .survey_staged_budget import FIELD, validate_estimator
 
     if FIELD in budget:
-        validate_estimator(model, budget[FIELD])
+        validate_estimator(model, budget[FIELD], architecture=architecture)
         return
     params = model.get_params(deep=False)
     if "optimizer_steps_per_epoch" in budget and (
@@ -564,7 +566,7 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     ):
         raise ValueError(f"method {row['method']!r} does not support mechanism {mechanism!r}")
     _validate_model(model, profile, row, seed)
-    _validate_budget(model, protocol["budgets"][row["budget"]])
+    _validate_budget(model, protocol["budgets"][row["budget"]], expected_architecture)
     token = config.get("c_requested_token")
     c_off_grid = row["method"] != "pn_oracle" and (
         token not in protocol["c_tokens"][mechanism] or float(token) != config.get("c")

@@ -985,11 +985,13 @@ def _unit_of(protocol: dict[str, Any], run: PilotRun) -> dict[str, Any]:
 def _input_dim(input_dims: dict[str, int], unit: dict[str, Any], method: str) -> int:
     """The dimension an MLP backbone sizes against; unused by image rows.
 
-    Image units name a ResNet and size from a protocol constant, so the value
-    returned for them is never read -- asking the caller to supply one anyway
-    would demand a number nothing consumes.
+    Only ``native_2d`` rows size a network from the input width.  Image rows
+    (``native_cnn``, ``cnn_feature_adapter``) size from protocol constants, so the
+    value returned for them is never read -- asking the caller to supply one anyway
+    would demand a number nothing consumes.  The path decides this, not the backbone
+    name: the native CNNs and adapter profiles carry names of their own.
     """
-    if str(unit["backbone"]).startswith("resnet18"):
+    if unit["training_path"] != "native_2d":
         return 0
     if unit["dataset"] not in input_dims:
         raise ValueError(

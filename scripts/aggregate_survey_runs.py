@@ -80,6 +80,7 @@ from pu_toolbox.experiment.survey_protocol import (
     budget_fairness_fields,
     digest,
     load_protocol,
+    resolve_protocol_path,
     validate_comparable_manifests,
 )
 from pu_toolbox.experiment.survey_recipe_audit import validate_consumed_bindings
@@ -449,6 +450,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
+    parser.add_argument(
+        "--protocol",
+        default="survey-v3.0",
+        help="protocol matrix the tree was run under (shipped name or path)",
+    )
     return parser.parse_args(argv)
 
 
@@ -459,7 +465,8 @@ def main(argv: list[str] | None = None) -> int:
         if not paths:
             print(f"error: no manifests under {args.out_root}", file=sys.stderr)
             return 1
-        report = aggregate(paths, protocol=load_protocol(), require_formal=not args.diagnostic)
+        protocol = load_protocol(resolve_protocol_path(args.protocol))
+        report = aggregate(paths, protocol=protocol, require_formal=not args.diagnostic)
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

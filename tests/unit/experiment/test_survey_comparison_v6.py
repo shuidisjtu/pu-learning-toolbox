@@ -69,11 +69,11 @@ def _added(v5, v6):
 
 def test_basic_v6_adds_exactly_the_p4_2b_cells(v3, v5, v6, map_v3):
     counts = validate_comparison_coverage(v3, v6, profile_map=map_v3)
-    assert counts["units"] == counts["unit_mappings"] == 439
+    assert counts["units"] == counts["unit_mappings"] == 937
     assert counts["anchors"] == 64
     assert counts["outside_matrix"] == 19
     added = _added(v5, v6)
-    assert len(added) == 151
+    assert len(added) == 649
     added_methods = {mapping["result_selector"]["method"] for mapping in added}
     assert added_methods >= P42B_PROFILES
 

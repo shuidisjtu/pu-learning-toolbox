@@ -472,6 +472,7 @@ class ExperimentRunner:
                             train_view.X,
                             train_view.labels,
                             self.config.get("os_or_ts"),
+                            architecture=self.config.get("architecture") or "mlp",
                         )
                         if staged is not None
                         else None
