@@ -526,6 +526,8 @@ def expected_result_units(
     ``not_in_matrix`` are outside the matrix and are dropped here; they are
     counted by :func:`validate_comparison_coverage` instead of silently vanishing.
     """
+    from .survey_protocol import profile_mechanisms
+
     c_tokens = survey["c_tokens"]
     units: list[dict[str, str]] = []
     for row in survey["execution_units"]:
@@ -574,7 +576,10 @@ def expected_result_units(
                         "selection_protocol": protocol,
                     }
                 )
+        allowed = profile_mechanisms(survey, row["method"])
         for mechanism in _SAR_MECHANISMS:
+            if allowed is not None and mechanism not in allowed:
+                continue
             for c_token in c_tokens[mechanism]:
                 units.append(
                     {

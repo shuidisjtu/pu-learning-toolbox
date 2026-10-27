@@ -27,6 +27,7 @@ from pu_toolbox.experiment.pilot_plan import (
     batch_command,
     clean_support_methods,
     completed_runs,
+    planned_runs,
     support_products,
 )
 from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, load_protocol
@@ -214,6 +215,27 @@ def test_edge_a_receipt_without_an_index_digest_is_refused(tmp_path):
 def test_edge_a_missing_product_is_refused_by_path(tmp_path):
     with pytest.raises(ValueError, match="unreadable at"):
         support_products(tmp_path / "support", {("mnist", 0)})
+
+
+def test_basic_a_scar_only_profile_plans_no_sar_cell(v3):
+    """The support adapters refuse SAR outright, so no batch may be bought for it.
+
+    Declaring the restriction on the profile is what makes the plan and the
+    comparison expansion agree with the runner: before it, the plan held four SAR
+    cells per support unit, and the first real driver batch aborted with
+    "exploratory support adapter supports SCAR only".
+    """
+    planned = planned_runs(v3)
+    support_mechanisms = {
+        run.mechanism for run in planned if run.method in ("lagam", "pulns", "self_pu_full_meta")
+    }
+    assert support_mechanisms == {"scar"}
+    # The no-meta ablation is a separate profile and does run the SAR cells.
+    assert {run.mechanism for run in planned if run.method == "self_pu"} >= {
+        "scar",
+        "sar_lbe_a",
+    }
+    assert len(planned) == 3320
 
 
 def test_determ_each_kind_of_run_is_held_to_its_own_product(v3, tmp_path):

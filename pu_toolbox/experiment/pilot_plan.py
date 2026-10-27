@@ -53,7 +53,7 @@ from .survey_profile_identity import (
     profile_manifest_identity,
     valid_manifest_profile_identity,
 )
-from .survey_protocol import unit_checkpoint_bytes, unit_checkpoint_profile
+from .survey_protocol import profile_mechanisms, unit_checkpoint_bytes, unit_checkpoint_profile
 from .survey_recipe_binding import matches_recipe_binding, validate_expected_binding
 from .training_views import validated_run_view
 
@@ -118,6 +118,7 @@ def planned_runs(protocol: dict[str, Any]) -> tuple[PilotRun, ...]:
         if unit.get("runnable") is not True:
             continue
         oracle = unit["method"] == PN_ORACLE
+        allowed = profile_mechanisms(protocol, unit["method"])
         for seed in seeds:
             if oracle:
                 runs.append(
@@ -127,6 +128,8 @@ def planned_runs(protocol: dict[str, Any]) -> tuple[PilotRun, ...]:
                 )
                 continue
             for mechanism, tokens in protocol["c_tokens"].items():
+                if allowed is not None and mechanism not in allowed:
+                    continue
                 for token in tokens:
                     runs.append(
                         PilotRun(

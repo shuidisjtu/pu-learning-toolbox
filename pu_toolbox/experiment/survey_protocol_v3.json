@@ -865,7 +865,10 @@
         ]
       },
       "algorithm": "pulns",
-      "supervision": "independent_clean_support"
+      "supervision": "independent_clean_support",
+      "labeling_mechanisms": [
+        "scar"
+      ]
     },
     "genpu": {
       "group": "minibatch",
@@ -971,7 +974,10 @@
         ]
       },
       "algorithm": "lagam",
-      "supervision": "independent_clean_support"
+      "supervision": "independent_clean_support",
+      "labeling_mechanisms": [
+        "scar"
+      ]
     },
     "vpu": {
       "group": "minibatch",
@@ -1011,7 +1017,10 @@
       "model_family": "mlp128",
       "group": "two_student_sampled",
       "algorithm": "self_pu",
-      "supervision": "independent_clean_support"
+      "supervision": "independent_clean_support",
+      "labeling_mechanisms": [
+        "scar"
+      ]
     }
   },
   "execution_units": [

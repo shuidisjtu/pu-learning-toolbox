@@ -199,6 +199,24 @@ def _checkpoint_storage(protocol: dict, row: dict, *, input_dim: int) -> tuple[i
     )
 
 
+def profile_mechanisms(protocol: dict[str, Any], method: str) -> tuple[str, ...] | None:
+    """The labeling mechanisms a profile runs, or ``None`` when it runs them all.
+
+    A profile that lists them is saying the others are not merely unrun but not
+    schedulable: its adapter refuses them outright, so planning one buys a batch
+    that produces nothing.  ``bind_runtime_parameters`` already enforced the same
+    list at run time; the plan and the comparison expansion read it here so they
+    cannot schedule a cell the runner will reject.
+
+    Read from the unit's profile ID rather than from its algorithm: two profiles
+    of one algorithm may differ in which mechanism they were wired for.
+    """
+    declared = (protocol.get("method_profiles") or {}).get(method, {}).get("labeling_mechanisms")
+    if declared is None:
+        return None
+    return tuple(declared)
+
+
 def unit_checkpoint_bytes(protocol: dict, row: dict, *, input_dim: int) -> int | None:
     """Bytes one per-epoch checkpoint component costs for this execution unit.
 
