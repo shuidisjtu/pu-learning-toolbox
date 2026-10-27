@@ -54,7 +54,12 @@ def _run_summary(summary_cli, tmp_path, tree, *, expected=5, extra_config=None):
         config.update(extra_config)
     config_path = write_config(tmp_path / "roots.json", config)
     out_dir = tmp_path / "out"
-    code = summary_cli.main(["--config", str(config_path), "--out-dir", str(out_dir)])
+    # These trees are built from the v2 pilot's c grid and frozen digest, so they are
+    # read under v2 on purpose; the entry point's own default is pinned in
+    # test_survey_report_entry_protocol.py.
+    code = summary_cli.main(
+        ["--config", str(config_path), "--out-dir", str(out_dir), "--protocol", "survey-v2.0"]
+    )
     report = json.loads((out_dir / "summary.json").read_text(encoding="utf-8"))
     return code, report, out_dir
 

@@ -195,6 +195,8 @@ pu_toolbox/
     survey_result_coverage.py             # 新矩阵覆盖准备：显式期望/排除格与规范化观测对账；不推断最终矩阵、不授予正式资格
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
     survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
+    survey_workbook.py                    # 交付工作簿版式: 汇总报告 → 协议 §5.1 四组各一页 + diagnostic/coverage/readme，不排名、缺 seed 行只进 coverage（纯函数，需 openpyxl）
+    survey_diagnostics.py                 # 方法诊断卡: 汇总报告按执行计划 §1.4.5 信号逐方法出观测与异常标记，列出算不了的信号，标记只是提示（纯函数）
     survey_artifacts.py                   # Survey 证据制品的集中式仓库相对路径映射与解析
     survey_recipe_audit.py                # 版本化批次配方义务、身份重算与聚合前拒收
     survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
@@ -518,6 +520,10 @@ tests/
       test_survey_recipe_registry.py    # recipe registry 的 schema/候选池/摘要规则
       test_survey_recipe_registry_manifest.py # manifest recipe 绑定校验（fail-closed + legacy 兼容）
       test_survey_recipe_registry_sources.py # recipe registry 来源证据引用规则
+      test_survey_workbook.py           # 工作簿版式: 行落哪一页、clean support 另列、LBE-A/B 分块、缺 seed 进 coverage、未知机制报错而非丢弃
+      test_survey_diagnostics.py        # 诊断卡信号: 各信号何时标记与不标记、缺 seed 行不入信号、算不了的信号列明、渲染不称与论文一致
+      test_survey_report_entry_protocol.py # 审计/汇总入口的协议默认: 不传 --protocol 即按 survey-v3.0 读，显式指定仍生效，未知文件报错而非静默回落
+      test_export_survey_results_cli.py # 导出入口端到端: 配置/summary.json 到工作簿与诊断卡、坏输入报错且不写半截文件
       test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
       test_p3_feature_adapter_smoke.py  # P3 预集成方法的共享冻结特征工程 smoke
       test_p3_pulda_puet_runner_smoke.py # PULDA/PUET 四角色、TS 与 PA/OA 技术 smoke
@@ -896,6 +902,7 @@ scripts/
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
   audit_survey_batches.py                 # P2.2 批次审计入口: 按白名单根逐批出审计, 判不了的记 not_run 而非 pass, 只写 --out-dir
   summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
+  export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json（不重算任何数）
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
