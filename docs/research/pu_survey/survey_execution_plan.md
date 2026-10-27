@@ -23,7 +23,7 @@
 
 ### 1.1 能力矩阵
 
-| 能力 | 现在能用？ | 缺什么 | 补完后怎么算可用 |
+| 能力 | 现在能用？ | 缺什么 | 可用判据 / 现状证据 |
 |---|---|---|---|
 | 8 数据集四路 split | **是** | | `run_survey_pilot.py --dry-run` 能列出单元并读取 split |
 | clean-support 制品（5 数据集 × seeds 0–4） | **是（本机，2026-10-24 重建）** | | 25 份逐份 `load_support_dataset` 通过并登记[机器清单](data/clean_support_materialization_20261024.json)；收据属新批次，跨机传递仍须按收据核验 |
