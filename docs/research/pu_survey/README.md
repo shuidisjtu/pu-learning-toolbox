@@ -53,7 +53,7 @@
 | 文档 / 数据 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | 协议：数据集、四角色输入、OS / TS 视图、PA / OA 选模、PN oracle 与主榜门禁 |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D46）** |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D47）** |
 | `pu_toolbox/experiment/survey_protocol_v3.json` | 机器可读执行协议（`survey-v3.0`，原地演进，见 D42） |
 | `pu_toolbox/experiment/method_ledger.json` | 方法台账：身份、来源、视图、校准、适配、待复核状态 |
 | `pu_toolbox/experiment/survey_comparison_v6.json` | 比较矩阵（v3 运行自动使用）；`survey_comparison_profile_map_v3.json` 给出 profile → 条目映射 |
