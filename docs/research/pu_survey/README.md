@@ -21,7 +21,8 @@
   seed / split manifest 留痕；加上从四路 split 到汇总表的复现命令序列。
 
 **共同验收线**：协议 §5。22 个目标方法全部过四项门禁则发完整主榜；否则标 `pilot / partial benchmark`。
-§5.6 的代码 commit 与依赖锁**由批次层承载**（每个批次一份证据包，run 引用批次身份）。
+§5.6 的代码 commit 与依赖锁**由批次层承载**：每批一份证据包落在 `<results>/batch_evidence/`，
+run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，命令见 [runbook](runbook.md) 第 4 节）。
 
 ## 2. 当前进度（2026-10-27，按协议 JSON 实测）
 
@@ -45,8 +46,8 @@
 |---|---|
 | 24 个 blocked 单元翻 runnable：KLDCE / CVIR / P3MIX / PAN / VPU / GradPU 各 3 行（spambase、imdb、cifar10）、PUET / RP 各 2 行（spambase、imdb）、LaGAM / PULNS 各 1 行（cifar10）；含 GradPU 首次真实运行 | HENG958 |
 | PN-CNN 5 seed（`pn_oracle` cifar10 / native_cnn） | HENG958 |
-| 正式 5 seed × c 网格跑批 → 汇总 → 写结论；协议 §5.6 第 6 条措辞改为「批次证据包 + run 引用批次身份」，并确认批次层确有写入 commit 与 `uv.lock` 哈希的代码 | 合流 |
-| 官方示例脚本归位或在 `api.md` 登记；写一页从原始数据到汇总表的命令序列 | shuidisjtu |
+| 正式 5 seed × c 网格跑批 → 汇总 → 写结论（§5.6 第 6 条措辞与批次层写入 commit / `uv.lock` 哈希的代码已于 D52 落地） | 合流 |
+| 官方示例脚本归位或在 `api.md` 登记（命令序列已见 [runbook](runbook.md)） | shuidisjtu |
 
 ## 4. 文档地图
 
@@ -55,11 +56,12 @@
 | 文档 / 数据 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | 协议：数据集、四角色输入、OS / TS 视图、PA / OA 选模、PN oracle 与主榜门禁 |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D48）** |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D52）** |
 | `pu_toolbox/experiment/survey_protocol_v3.json` | 机器可读执行协议（`survey-v3.0`，原地演进，见 D42） |
 | `pu_toolbox/experiment/method_ledger.json` | 方法台账：身份、来源、视图、校准、适配、待复核状态 |
 | `pu_toolbox/experiment/survey_comparison_v6.json` | 比较矩阵（v3 运行自动使用）；`survey_comparison_profile_map_v3.json` 给出 profile → 条目映射 |
 | `pu_toolbox/experiment/survey_recipe_registry_v1.json` | 配方注册表（15 个 locked profile，8 个 excluded），CI 强制校验 |
+| [`runbook.md`](runbook.md) | 从 `data/raw` 到工作簿的命令序列：split / support 制品 / 批次 / 证据包 / 汇总 / 复现 |
 | [`../method_cards/`](../method_cards/) | 各方法的公式、复现状态与实现边界 |
 
 v1 / v2 协议与 v1–v5 比较矩阵留在盘上，只作历史绑定。
