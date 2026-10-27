@@ -20,8 +20,12 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 from ..utils.serialization import array_hash, json_scalars
-from .bundle import DatasetBundle, validate_bundle
-from .feature_adapter import adapt_image_bundle_to_features, encoder_state_sha256
+from .bundle import DatasetBundle, DatasetPart, validate_bundle
+from .feature_adapter import (
+    adapt_image_bundle_to_features,
+    encoder_state_sha256,
+    extract_image_features,
+)
 from .image import (
     build_survey_image_encoder,
     fit_survey_image_preprocessing,
@@ -266,6 +270,57 @@ def prepare_image_bundle(
     if with_preprocessing:
         return prepared, encoder, metadata, preprocessing
     return prepared, encoder, metadata
+
+
+def prepare_image_support(
+    support: DatasetPart,
+    *,
+    training_path: str,
+    preprocessing,
+    encoder=None,
+    batch_size: int = 64,
+    device: str = "cpu",
+) -> DatasetPart:
+    """Carry the clean-support part into the space the four roles were prepared into.
+
+    ``prepare_image_bundle`` rewrites the four dataset roles and nothing else.  The
+    support set is not one of them -- it arrives from its own artifact -- so on an
+    image dataset it still holds the raw uint8 pixels while every role it trains
+    alongside holds float32 ``[0, 1]``.  The support trainers compare shape and
+    rank, never dtype, so a native-CNN fit would take a support batch in
+    ``[0, 255]`` as if it were already scaled.  On the adapter path the mismatch
+    is rank rather than scale: the training rows are the frozen encoder's 2-D
+    features while the support part is still 4-D images, which the trainers refuse
+    outright.  Either way the conversion has to happen before the trainer is bound,
+    and it has to use the fitted preprocessing, not a second fit.
+
+    ``role="train"`` is the scaling contract the support shares: these rows were
+    drawn from train and removed from it, so they carry the train partition's
+    pixels and, like the rest of train, no augmentation.
+
+    Labels, indices and the clean/``for_selection=False`` identity pass through
+    unchanged -- this changes representation, never membership.
+    """
+    if training_path not in ("native_cnn", "cnn_feature_adapter"):
+        raise ValueError(
+            "image support assembly covers native_cnn and cnn_feature_adapter, "
+            f"not {training_path!r}"
+        )
+    X = np.asarray(support.X)
+    if X.ndim != 4 or len(X) == 0:
+        raise ValueError("image support requires non-empty NCHW images")
+    prepared = transform_survey_images(X, preprocessing, role="train")
+    if training_path == "cnn_feature_adapter":
+        if encoder is None:
+            raise ValueError("cnn_feature_adapter support requires the frozen encoder")
+        prepared = extract_image_features(encoder, prepared, batch_size=batch_size, device=device)
+    return DatasetPart(
+        prepared,
+        support.labels,
+        support.view,
+        support.indices,
+        support.for_selection,
+    )
 
 
 def cached_adapter(
