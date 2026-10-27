@@ -45,3 +45,24 @@ def test_param_script_is_reachable_as_json(aggregate_script, tmp_path, capsys):
     assert aggregate_script.main([str(root), "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["groups"][0]["dataset"] == "spambase"
+
+
+def test_basic_cli_reads_the_tree_under_the_current_protocol_by_default(
+    aggregate_script, tmp_path, capsys
+):
+    """The shipped trees are v3.0 runs; a v2.0 default would judge them by the wrong seeds."""
+    root = write_tree(tmp_path, {"a": manifest(method="upu")})
+    assert aggregate_script.main([str(root), "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["protocol_version"] == "survey-v3.0"
+
+
+def test_param_cli_takes_the_protocol_a_tree_was_run_under(aggregate_script, tmp_path, capsys):
+    root = write_tree(tmp_path, {"a": manifest(method="upu")})
+    assert aggregate_script.main([str(root), "--json", "--protocol", "survey-v2.0"]) == 0
+    assert json.loads(capsys.readouterr().out)["protocol_version"] == "survey-v2.0"
+
+
+def test_param_cli_rejects_an_unknown_protocol_file(aggregate_script, tmp_path, capsys):
+    root = write_tree(tmp_path, {"a": manifest(method="upu")})
+    assert aggregate_script.main([str(root), "--protocol", str(tmp_path / "nope.json")]) == 1
+    assert "error:" in capsys.readouterr().err
