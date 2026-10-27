@@ -217,6 +217,19 @@ def _resolve_labeling_protocols(mechanism: str) -> list | None:
 SUPPORT_ALGORITHMS = ("self_pu", "lagam", "pulns")
 
 
+def _support_selection_protocols(mechanism: str) -> list:
+    """Selection protocols a clean-support unit runs under, per mechanism.
+
+    The support path adds ``PA+clean-support`` beside OA for SCAR, and only for
+    SCAR: SAR is OA-only for every method (protocol §2.3), and handing the runner
+    the PA protocol there makes it refuse the pairing -- which is what it did the
+    first time a batch driver could reach a support unit's SAR cell.
+    """
+    if mechanism in SAR_MECHANISMS:
+        return [ProtocolOA()]
+    return [ProtocolPACleanSupport(), ProtocolOA()]
+
+
 def _support_trainer(algorithm, view, support, manifest):
     """Checkpoint-selection adapter for an audited clean-support profile.
 
@@ -955,7 +968,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     tuple(getattr(bundle, role) for role in ROLES),
                     generator=generator,
                     protocols=(
-                        [ProtocolPACleanSupport(), ProtocolOA()]
+                        _support_selection_protocols(args.labeling_mechanism)
                         if needs_support
                         else (
                             [ProtocolOA()]
