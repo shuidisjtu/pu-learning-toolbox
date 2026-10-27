@@ -23,16 +23,19 @@
 **共同验收线**：协议 §5。22 个目标方法全部过四项门禁则发完整主榜；否则标 `pilot / partial benchmark`。
 §5.6 的代码 commit 与依赖锁**由批次层承载**（每个批次一份证据包，run 引用批次身份）。
 
-## 2. 当前进度（2026-10-26，按协议 JSON 实测）
+## 2. 当前进度（2026-10-27，按协议 JSON 实测）
 
-- `survey_protocol_v3.json`：130 个执行单元，106 个 runnable，24 个 blocked，8 个数据集都已有单元。
-  22 方法 × 8 数据集 = 176 格，其中 126 格有单元、102 格 runnable。
+- `survey_protocol_v3.json`：136 个执行单元，112 个 runnable，24 个 blocked，8 个数据集都已有单元。
+  22 方法 × 8 数据集 = 176 格，其中 132 格有单元、108 格 runnable。
 - 每个数据集都带齐其模板数据集的全部 runnable 行（见 D46）：mnist、fashion_mnist、adni 对 cifar10，
   connect_4 对 spambase，twenty_newsgroups 对 imdb；每个方法族已在 GPU 上真跑过 1 个 seed、接线核对通过。
   blocked 方法在这些数据集上还没有行，随其模板行一起翻 runnable。
-  LaGAM / PULNS / Self-PU full-meta 的 support 策略不覆盖 twenty_newsgroups，只落在 connect_4。
+  LaGAM / PULNS / Self-PU full-meta 的 support 策略不覆盖 twenty_newsgroups；除 spambase 与 connect_4 的
+  行之外，mnist 与 fashion_mnist 也有 support 行（图像路径，见 D49）。这些 support 单元只能逐单元跑，
+  批次驱动规划不了它们（见 §3）。
 - 现有 xlsx 是 31 个 run、单 seed 的**工程核对表**，不是交付物 A。
-- 现有 runnable 单元的正式批次（5 seed × 全部 c 与机制）约 3350 个 run（其中三个图像数据集 1185 个，`run_survey_pilot.py --dry-run --datasets mnist,fashion_mnist,adni` 实测）；GPU 机时不设限，按 method / dataset /
+- 现有 runnable 单元的正式批次（5 seed × 全部 c 与机制）约 3560 个 run（其中 mnist / fashion_mnist /
+  cifar10 三个图像数据集 1395 个，按 `planned_runs` 实测；不含只能逐单元跑的 support 单元）；GPU 机时不设限，按 method / dataset /
   training-path / 机制分批跑，最后统一汇总。
 
 ## 3. 剩余工作
@@ -41,7 +44,7 @@
 |---|---|
 | 24 个 blocked 单元翻 runnable：KLDCE / CVIR / P3MIX / PAN / VPU / GradPU 各 3 行（spambase、imdb、cifar10）、PUET / RP 各 2 行（spambase、imdb）、LaGAM / PULNS 各 1 行（cifar10）；含 GradPU 首次真实运行 | HENG958 |
 | PN-CNN 5 seed（`pn_oracle` cifar10 / native_cnn） | HENG958 |
-| LaGAM / PULNS / Self-PU full-meta 补 mnist、fashion_mnist 的 support 单元（support 策略覆盖这两个数据集，目前只有 spambase 与 connect_4 的行） | shuidisjtu |
+| support 单元进不了正式批次驱动（`run_survey_pilot.py` 对 support profile 直接拒绝，也没有 `--support-dir`／制品 `data_dir` 通道）；12 个 support 单元目前只能逐单元用 `run_survey_experiment.py` 跑，`--datasets mnist` 这类整数据集分片也会被拒 | shuidisjtu |
 | 正式 5 seed × c 网格跑批 → 汇总 → 写结论；协议 §5.6 第 6 条措辞改为「批次证据包 + run 引用批次身份」，并确认批次层确有写入 commit 与 `uv.lock` 哈希的代码 | 合流 |
 | 官方示例脚本归位或在 `api.md` 登记；写一页从原始数据到汇总表的命令序列 | shuidisjtu |
 
