@@ -58,7 +58,17 @@ def test_basic_the_entry_point_wires_a04_from_the_config(audit_cli, tmp_path):
     config = config_for({"B1": (root, 2)})
     config["batches"][0]["plan"] = plan.name
     config_path = write_config(tmp_path / "config.json", config)
-    audit_cli.main(["--config", str(config_path), "--out-dir", str(tmp_path / "out")])
+    # The plan is frozen against the v2 digest, so the tree is read under v2 here.
+    audit_cli.main(
+        [
+            "--config",
+            str(config_path),
+            "--out-dir",
+            str(tmp_path / "out"),
+            "--protocol",
+            "survey-v2.0",
+        ]
+    )
     report = json.loads((tmp_path / "out" / "audit.json").read_text(encoding="utf-8"))
     by_id = {check["check_id"]: check for check in report["checks"]}
     assert by_id["A04"]["result"] == "pass"

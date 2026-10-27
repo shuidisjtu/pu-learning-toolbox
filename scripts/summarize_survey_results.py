@@ -976,7 +976,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--protocol",
-        default="survey-v2.0",
+        default="survey-v3.0",
         help="protocol matrix the tree was run under (shipped name or path)",
     )
     args = parser.parse_args(argv)
