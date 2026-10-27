@@ -156,7 +156,7 @@ Supporting scripts (see each script's docstring and the Survey docs for scope an
 |---|---|
 | Data and splits | `collect_survey_public_data.py` (collect missing public raw data; excludes access-controlled ADNI), `survey_splits_archive.py` (split transfer) |
 | Runs | `run_survey_pilot.py` (whole pilot), `aggregate_survey_runs.py` |
-| Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `_source_provenance.py` (internal helper separating script-checkout identity from the implementation actually loaded; not a standalone CLI) |
+| Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `export_survey_results.py` (delivery workbook and per-method diagnostic cards; needs the `report` extra), `_source_provenance.py` (internal helper separating script-checkout identity from the implementation actually loaded; not a standalone CLI) |
 | Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a registry; CI checks the frozen lock) |
 | Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay; not formal Survey admission) |
 | Independent support runs | `run_clean_support_experiment.py` (Self-PU/LaGAM/PULNS extra-label audit; explicit Self-PU TS meta-checkpoints, not a formal recipe) |
