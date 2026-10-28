@@ -326,9 +326,10 @@ $`\pi_U`$ 还是无需先验；`calibration_applied=false` 的原生 TS 方法�
    全过程最大已分配 GPU memory；
 5. NaN、OOM、接口不兼容或超时仅允许以相同 seed 重试一次；仍失败则记录失败并从该条件排名
    排除。修改参数后重跑视为新候选配置，须按同一条件对全部方法一致处理；
-6. 每个运行 artifact 必须固化：代码 commit、依赖锁文件、Python/PyTorch/CUDA/GPU 信息、方法
-   和数据配置、中心超参数注册表版本、seed、split/label manifest、选择 artifact 和结果 schema
-   版本。缺失任一项的结果标记为不可复现，不进入汇总主表；
+6. 每个运行 artifact 必须固化：Python/PyTorch/CUDA/GPU 信息、方法和数据配置、中心超参数注册表
+   版本、seed、split/label manifest、选择 artifact 和结果 schema 版本；代码 commit 与依赖锁文件
+   由**批次证据包**携带（一批一份，run 在 manifest 的 `batch` 块里引用它，见
+   [runbook](runbook.md) 第 4 节）。缺失任一项的结果标记为不可复现，不进入汇总主表；
 7. 在上述条件满足后，再结合各方法局限性、可结合/改进点以及三类方法的优缺点分析实验结果。
    任何解释必须区分"文献事实""本实验观测"和"推断"。
 

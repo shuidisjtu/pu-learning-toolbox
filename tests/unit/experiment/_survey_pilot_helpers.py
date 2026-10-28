@@ -63,12 +63,22 @@ def driver():
 
 @pytest.fixture
 def unit_calls(driver, monkeypatch):
-    """Capture what the driver would have executed instead of executing it."""
-    recorded: list[list[str]] = []
+    """Capture what the driver would have executed instead of executing it.
 
-    def _record(argv, check=False):
-        recorded.append(list(argv))
-        return subprocess.CompletedProcess(argv, 0)
+    Patching ``subprocess.run`` is process-wide, so the stand-in also answers the
+    driver's provenance probes (``git rev-parse``, and ``nvidia-smi`` when a GPU
+    is visible).  Those get an empty stdout rather than an error: the probes
+    already treat an unreadable identity as ``unavailable``, and recording them
+    would make ``unit_calls`` mean something other than the unit script's argv.
+    """
+    recorded: list[list[str]] = []
+    unit_script = str(_SCRIPTS / "run_survey_experiment.py")
+
+    def _record(argv, check=False, **kwargs):
+        arguments = [str(argument) for argument in argv]
+        if unit_script in arguments:
+            recorded.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
 
     monkeypatch.setattr(driver.subprocess, "run", _record)
     return recorded

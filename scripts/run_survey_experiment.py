@@ -90,6 +90,7 @@ from sklearn.neural_network import MLPClassifier
 # calibration and is gated on the method ledger declaring a native
 # TS/case-control assumption.
 from pu_toolbox.core.training_views import ROLES, RUN_VIEWS
+from pu_toolbox.experiment import batch_evidence
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.datasets import survey_dataset_catalog
 from pu_toolbox.experiment.manifest import load_manifest, write_manifest
@@ -326,17 +327,64 @@ def _run_directory(
     return root / f"c_{c_value.token}" / f"seed_{seed}"
 
 
-def _record_c_token(manifest_path: Path, token: str) -> None:
-    """Add the requested c spelling to a manifest of a run that succeeded.
+def _record_run_context(
+    manifest_path: Path, *, c_token: str | None, batch: dict[str, Any] | None
+) -> None:
+    """Add what only the CLI knows to a manifest of a run that succeeded.
 
     The runner's manifest schema is a fixed whitelist and never serialises
     arbitrary config, so the CLI's own spelling of ``c`` — the one that names
-    the output directory — is written back here rather than smuggled through
-    the runner.
+    the output directory — and the batch packet this invocation cites are
+    written back here rather than smuggled through the runner.
     """
     payload = load_manifest(manifest_path)
-    payload["c_requested_token"] = token
+    if c_token is not None:
+        payload["c_requested_token"] = c_token
+    if batch is not None:
+        payload["batch"] = dict(batch)
     write_manifest(manifest_path, payload)
+
+
+def _batch_reference(
+    path: str,
+    *,
+    dataset: str,
+    method: str,
+    training_path: str,
+    mechanism: str | None,
+    seeds: tuple[int, ...],
+    c_tokens: tuple[str, ...],
+    protocol_sha256: str,
+) -> dict[str, Any]:
+    """The packet this invocation belongs to, checked against this request.
+
+    Reading the packet back instead of trusting the driver is what makes the
+    reference in every manifest worth reading: a packet that describes another
+    unit, another seed set or another protocol matrix stops the batch before it
+    trains, rather than labelling its results with an identity that was never
+    true of them.
+    """
+    payload = batch_evidence.load(path)
+    batch_evidence.require_matches(
+        payload,
+        unit={
+            "dataset": dataset,
+            "method": method,
+            "training_path": training_path,
+            "mechanism": mechanism,
+        },
+        seeds=seeds,
+        c_tokens=c_tokens,
+        protocol_sha256=protocol_sha256,
+    )
+    # The request checks alone would accept yesterday's packet for today's
+    # batch: same unit, same seeds, code that has since changed.
+    batch_evidence.require_same_checkout(
+        payload,
+        code=batch_evidence.code_identity(),
+        lock=batch_evidence.dependency_lock(),
+    )
+    return batch_evidence.manifest_block(payload, path)
 
 
 class OracleMLP(MLPClassifier):
@@ -614,6 +662,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
             "selection and test scoring are finished (default: keep them all)"
         ),
     )
+    parser.add_argument(
+        "--batch-evidence",
+        default=None,
+        help=(
+            "path to the batch evidence packet the pilot wrote for this invocation "
+            "(protocol §5.6). It is read back and checked against this request, and "
+            "the identity it carries is recorded in every manifest written here; a "
+            "packet that does not describe this batch stops the run before training"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -675,6 +733,9 @@ def _versioned_main(args, c_values, seed_values) -> int:
     # describing different matrices.
     protocol_path = resolve_protocol_path(args.protocol)
     recipe_registry = None
+    #: Verified before any training and repeated in every manifest this
+    #: invocation writes, so a manifest's batch reference is a checked claim.
+    batch_block: dict[str, Any] | None = None
     # These gates precede loading splits, building encoders and creating output directories.
     try:
         if args.recipe_registry_sha256 is not None and args.recipe_registry is None:
@@ -714,6 +775,17 @@ def _versioned_main(args, c_values, seed_values) -> int:
             )
         row = resolve_unit(protocol, args.dataset, method, args.training_path)
         algorithm = profile_algorithm(protocol, method)
+        if args.batch_evidence is not None:
+            batch_block = _batch_reference(
+                args.batch_evidence,
+                dataset=args.dataset,
+                method=method,
+                training_path=row["training_path"],
+                mechanism=None if args.oracle else args.labeling_mechanism,
+                seeds=tuple(seed_values),
+                c_tokens=() if args.oracle else tuple(value.token for value in c_values),
+                protocol_sha256=digest(protocol),
+            )
         profile = protocol["method_profiles"][method]
         needs_support = is_clean_support_profile(protocol, method)
         if needs_support != (args.support_dir is not None):
@@ -855,6 +927,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         except (OSError, KeyError, TypeError, ValueError, ImportError) as exc:
             print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
             return 1
+        warned_about_evidence = False
         for c_value in [None] if args.oracle else c_values:
             runtime_binding_inputs = {}
             if c_value is not None:
@@ -954,6 +1027,19 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 config["clean_support_provided"] = True
             else:
                 config["c_requested_token"] = c_value.token
+            if args.batch_evidence is None and not warned_about_evidence:
+                # Said once, right before the first run trains: a versioned
+                # manifest without a batch block is not a protocol §5.6 artifact,
+                # and the driver is the only caller that writes the packet this
+                # run cites.  Placed after every pre-training gate so a run those
+                # refuse still has its stderr starting with "error: ".
+                print(
+                    "warning: no --batch-evidence was given, so this run records no batch "
+                    "identity; formal batches are driven by run_survey_pilot.py, which "
+                    "writes the packet and passes it here",
+                    file=sys.stderr,
+                )
+                warned_about_evidence = True
             run_dir = _run_directory(
                 out_root,
                 mechanism=args.labeling_mechanism,
@@ -982,8 +1068,11 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     config=config,
                     manifest_path=run_dir / "manifest.json",
                 )
-                if c_value is not None:
-                    _record_c_token(run_dir / "manifest.json", c_value.token)
+                _record_run_context(
+                    run_dir / "manifest.json",
+                    c_token=None if c_value is None else c_value.token,
+                    batch=batch_block,
+                )
                 if not args.oracle:
                     _write_ledger_entry(run_dir, ledger["methods"][algorithm], os_or_ts)
             except Exception as exc:  # noqa: BLE001 - user-facing run boundary
@@ -997,6 +1086,17 @@ def _versioned_main(args, c_values, seed_values) -> int:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     data_dir = Path(args.data_dir)
+
+    # A packet names the protocol matrix it was planned against, so it has no
+    # meaning on the unbound smoke path: accepting one there would write a
+    # batch identity into manifests that carry no protocol to check it against.
+    if args.batch_evidence is not None and args.protocol is None:
+        print(
+            "error: --batch-evidence belongs to a versioned pilot run; pass "
+            "--protocol survey-v3.0 or leave the flag out",
+            file=sys.stderr,
+        )
+        return 1
 
     # Request gates first: a bad --c spelling or an impossible (mechanism,
     # oracle) combination must fail before any split is read, any directory
@@ -1172,7 +1272,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         if c_value is not None:
             # Only a completed run's manifest earns the annotation.
-            _record_c_token(manifest_path, c_value.token)
+            _record_run_context(manifest_path, c_token=c_value.token, batch=None)
         completed_runs += 1
         c_label = "c_independent" if c is None else f"c={c}"
         print(f"[{method}] {c_label} seed={seed} -> {manifest_path}")
