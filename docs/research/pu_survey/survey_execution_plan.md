@@ -151,7 +151,7 @@ TS，显式 TS 请求不被改写，TS registry 门禁不放宽。没有改损�
 | Dist-PU | clean-room 全量目标与作者两阶段、scheduler、直方图目标不同 | 另有显式 `author_staged` 路径；默认 clean-room 不变 |
 | Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | 已裁决（2026-10-24）：保持源码 0.7、batch 记 benchmark 近似、台账指针待版本化修正，见裁决记录 |
 | PAN | 论文 Eq. (7) 与源码目标、采样不一致 | 保留 paper-faithful；正式采样跟随论文 OS |
-| CVIR | 原始 U 的 α_U 与总体 π 不同；已补全局风险池校准与视图先验换算的独立工程入口 | v3 已声明 3 个单元但全 blocked；预算/runner 与真实数据/GPU 仍待，不把工程对照当论文数值复现 |
+| CVIR | 原始 U 的 α_U 与总体 π 不同；已补全局风险池校准、视图先验换算及显式 opt-in 的 SCAR 命令行入口 | v3 已声明 3 个单元但全 blocked；正式配方/版本化 runner 与真实数据/GPU 仍待，不把独立 CLI 工程对照当论文数值复现 |
 | Grad-PU | 论文要求移除 BN | `cnn13_no_bn` 单列 method-private，附 SHOULD 共享对照 |
 | PULNS / LaGAM | clean support 是额外监督；PA 不适用 | 只报 OA 或 `PA+clean-support`；主 CLI 已接通，正式批次待 P4.1-B |
 | GEN-PU / Holistic-PU | 作者归档未发现 LICENSE | `license=unknown`；不复制、执行或再分发 |

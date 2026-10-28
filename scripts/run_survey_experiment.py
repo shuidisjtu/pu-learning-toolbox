@@ -603,6 +603,20 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--seeds", default="0", help="comma-separated seeds")
     parser.add_argument("--class-prior", type=float, default=None, help="population class prior π")
     parser.add_argument(
+        "--cvir-population-prior-source",
+        default=None,
+        help=(
+            "opt in to the exploratory CVIR population-prior adapter; describe the "
+            "source of --class-prior (SCAR only, without --protocol)"
+        ),
+    )
+    parser.add_argument(
+        "--checkpoint-bytes-per-component",
+        type=int,
+        default=None,
+        help="measured positive checkpoint byte upper bound for exploratory CVIR only",
+    )
+    parser.add_argument(
         "--candidates",
         default=None,
         help="JSON file with the candidate hyper-parameter pool (default: [{}])",
@@ -1084,9 +1098,46 @@ def _versioned_main(args, c_values, seed_values) -> int:
     return 0
 
 
+def _validate_cvir_cli_request(args: argparse.Namespace) -> bool:
+    """Require explicit prior semantics; never turn a draft into a frozen recipe.
+
+    These request-only gates precede split loading and output creation. Model
+    and candidate contracts are then checked by the existing adapter itself.
+    """
+    opted_in = args.cvir_population_prior_source is not None
+    has_bound = args.checkpoint_bytes_per_component is not None
+    if not opted_in and not has_bound:
+        if args.method == "cvir" and args.protocol is None and not args.oracle:
+            raise ValueError(
+                "exploratory CVIR requires --cvir-population-prior-source and "
+                "--checkpoint-bytes-per-component; population pi is not alpha_U"
+            )
+        return False
+    if args.protocol is not None or args.oracle or args.method != "cvir":
+        raise ValueError("CVIR adapter flags require --method cvir without --protocol/--oracle")
+    if not opted_in or not args.cvir_population_prior_source.strip():
+        raise ValueError("CVIR requires a nonempty --cvir-population-prior-source")
+    if not has_bound or args.checkpoint_bytes_per_component <= 0:
+        raise ValueError("CVIR requires positive --checkpoint-bytes-per-component")
+    if args.labeling_mechanism != "scar":
+        raise ValueError("CVIR exploratory population adapter supports SCAR only")
+    if (
+        args.class_prior is None
+        or not math.isfinite(args.class_prior)
+        or not 0 < args.class_prior < 1
+    ):
+        raise ValueError("CVIR requires a finite population --class-prior in (0, 1)")
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     data_dir = Path(args.data_dir)
+    try:
+        cvir_population_adapter = _validate_cvir_cli_request(args)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     # A packet names the protocol matrix it was planned against, so it has no
     # meaning on the unbound smoke path: accepting one there would write a
@@ -1211,14 +1262,40 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {exc}", file=sys.stderr)
             return 1
         try:
-            model = get_algorithm(method)(**json.loads(args.model_params))
-        except (RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            model_params = json.loads(args.model_params)
+            if not isinstance(model_params, dict):
+                raise ValueError("--model-params must be a JSON object")
+            if cvir_population_adapter:
+                model_params.setdefault("device", args.device)
+            model = get_algorithm(method)(**model_params)
+        except (RegistryError, KeyError, TypeError, ValueError) as exc:
             print(f"error: cannot create method '{method}': {exc}", file=sys.stderr)
             return 1
         generator = _resolve_labeling_generator(args.labeling_mechanism)
         protocols = _resolve_labeling_protocols(args.labeling_mechanism)
         ledger_entry = ledger["methods"].get(method)
         config_extra = {}
+        if cvir_population_adapter:
+            from pu_toolbox.experiment.cvir_adapter import CVIRPopulationPriorTrainer
+
+            adapter = CVIRPopulationPriorTrainer(
+                population_prior_source=args.cvir_population_prior_source
+            )
+            config_extra = {
+                "trainer": adapter,
+                "checkpoint_bytes_per_component": args.checkpoint_bytes_per_component,
+                "reclaim_unselected_checkpoints": args.reclaim_unselected_checkpoints,
+            }
+            try:
+                adapter.validate_experiment(
+                    model,
+                    None,
+                    {"candidates": candidates, "os_or_ts": os_or_ts, **config_extra},
+                    protocols,
+                )
+            except (TypeError, ValueError) as exc:
+                print(f"error: invalid CVIR candidate contract: {exc}", file=sys.stderr)
+                return 1
 
     config: dict[str, Any] = {
         "candidates": candidates,
@@ -1237,6 +1314,24 @@ def main(argv: list[str] | None = None) -> int:
         config["broadcast_c_values"] = [item.value for item in c_values]
     else:
         run_specs = [(item, seed) for item in c_values for seed in seed_values]
+    if cvir_population_adapter:
+        # No partial batch should overwrite an earlier alpha/view receipt, or
+        # start before discovering that a later requested output already exists.
+        if not seed_values or len(seed_values) != len(set(seed_values)):
+            print("error: CVIR requires nonempty, distinct seeds", file=sys.stderr)
+            return 1
+        for c_value, seed in run_specs:
+            run_dir = _run_directory(
+                out_root,
+                mechanism=args.labeling_mechanism,
+                c_value=c_value,
+                seed=seed,
+                is_oracle=False,
+                run_view=os_or_ts,
+            )
+            if run_dir.exists() and (not run_dir.is_dir() or any(run_dir.iterdir())):
+                print(f"error: refusing to overwrite CVIR evidence: {run_dir}", file=sys.stderr)
+                return 1
     completed_runs = 0
     for c_value, seed in run_specs:
         c = None if c_value is None else c_value.value
@@ -1279,6 +1374,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[{method}] {c_label} seed={seed} -> {manifest_path}")
         for protocol, metrics_value in metrics.items():
             print(f"  {protocol}: {metrics_value}")
+
+    if cvir_population_adapter and completed_runs:
+        print("Exploratory CVIR evidence only; no frozen recipe or formal admission is implied.")
 
     if args.oracle and completed_runs:
         # Written only after every planned run succeeded: a calibration file

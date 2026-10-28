@@ -952,6 +952,7 @@
         "population_pi_forwarded_to_fit": false,
         "os_to_ts_calibration": "explicit fit(os_or_ts=ts) restores train U union P before global ranking/retention; CVIRPopulationPriorTrainer binds population pi to the actual risk view; exploratory SCAR only",
         "population_prior_adapter": "CVIRPopulationPriorTrainer; constructor alpha/source must be unset; os alpha=(pi*n-n_L)/(n-n_L), ts alpha=pi; population class_prior never forwarded to estimator.fit",
+        "exploratory_cli": "scripts/run_survey_experiment.py --method cvir --cvir-population-prior-source SOURCE --class-prior PI --checkpoint-bytes-per-component BYTES; SCAR only, no --protocol; OS/TS use the existing population-prior adapter; existing nonempty run directories are not overwritten",
         "provenance": "candidate_runs[].training_provenance; source traceable but caller assertion not independently verified"
       },
       "prior_semantics": "unlabeled_positive_prior=所用风险池的正类比例；默认 OS/native-TS 仍显式给原始 U 的 α_U。CVIRPopulationPriorTrainer 按协议§3换算：OS为(pi*n-n_L)/(n-n_L)，TS校准为pi；requires_class_prior=False，estimator.fit仍拒绝总体class_prior；先验来源声明不等于分布/有限样本比例验证",
