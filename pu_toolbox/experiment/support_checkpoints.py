@@ -3,7 +3,8 @@
 
 Reuse the audited support adapters and weights-only writer. A private fit
 binding supplies only support; external selection/test data never enters fit.
-Completed meta-active epochs are candidates, not warmup or terminal fallbacks.
+Versioned Survey runs include every completed epoch; exploratory runs retain
+their explicitly scoped meta-only candidate pool.
 """
 
 from pathlib import Path
@@ -39,7 +40,7 @@ class _SupportFitBinding:
                 if self.adapter.method_name == "self_pu"
                 else epoch >= fitted.warmup_epochs
             )
-            if active:
+            if self.adapter._capture_all_epochs or active:
                 epoch_callback(epoch, fitted)
 
         self.adapter._fit_support_estimator(
@@ -65,6 +66,7 @@ class _SupportCheckpointSelection:
         # Revoke all earlier preparation even if a new checkpoint option fails.
         self._prepared = False
         self._checkpoint_configured = False
+        self._capture_all_epochs = config.get("survey_protocol") is not None
         if config.get("capture_epoch_checkpoints", True) is not True:
             raise ValueError("support checkpoint selection cannot disable checkpoint capture")
         size = config.get("checkpoint_bytes_per_component")
@@ -105,7 +107,7 @@ class _SupportCheckpointSelection:
                 "pa_eligible": False,
                 "selection_protocols": [p.name for p in protocols],
                 "selection_scope": self._selection_scope(),
-                "warmup_snapshots_eligible": False,
+                "warmup_snapshots_eligible": self._capture_all_epochs,
                 "formal_admission": False,
                 "budget_approval": "not_granted_by_adapter",
                 "protocol_policy_basis": "survey-v2.0",
@@ -123,7 +125,9 @@ class _SupportCheckpointSelection:
         return self._checkpoint_epoch_bound
 
     def _selection_scope(self):
-        return "completed_episodes" if self.method_name == "pulns" else "completed_meta_epochs"
+        if self.method_name == "pulns":
+            return "completed_episodes"
+        return "completed_epochs" if self._capture_all_epochs else "completed_meta_epochs"
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         self._require_prepared(estimator, X, os_or_ts)
@@ -164,6 +168,18 @@ class _SupportCheckpointSelection:
                 ),
             }
         )
+        if self._capture_all_epochs and self.method_name != "pulns":
+            estimator.training_provenance_["captured_epochs"] = [
+                row.epoch for row in trajectory.epochs
+            ]
+            start = (
+                estimator.self_paced_start
+                if self.method_name == "self_pu"
+                else estimator.warmup_epochs - 1
+            )
+            estimator.training_provenance_["captured_meta_epochs"] = [
+                row.epoch for row in trajectory.epochs if row.epoch > start
+            ]
         trajectory.model = estimator
         return trajectory
 

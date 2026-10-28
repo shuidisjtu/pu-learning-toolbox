@@ -24,7 +24,7 @@
 §5.6 的代码 commit 与依赖锁**由批次层承载**：每批一份证据包落在 `<results>/batch_evidence/`，
 run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，命令见 [runbook](runbook.md) 第 4 节）。
 
-## 2. 当前进度（2026-10-27，按协议 JSON 实测）
+## 2. 当前进度（2026-10-28，按协议 JSON 实测）
 
 - `survey_protocol_v3.json`：136 个执行单元，112 个 runnable，24 个 blocked，8 个数据集都已有单元。
   22 方法 × 8 数据集 = 176 格，其中 132 格有单元、108 格 runnable。
@@ -36,6 +36,7 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
   用 `--support-root` 规划执行（D50），三个 profile 只跑 SCAR（SAR 的 4 个格子已从计划和比较矩阵撤回），
   并且三个方法各自一个 `comparability_group`、结果表逐方法并列（D51）。
 - 现有 xlsx 是 31 个 run、单 seed 的**工程核对表**，不是交付物 A。
+- 2026-10-28 在 RTX 4090 上完成 spambase 三个 support 方法的 45 个 run（5 seed × 3 个 c），已备份原始证据。审计发现 LaGAM / Self-PU 的 warmup 候选被过滤，与协议的全 epoch 要求不符；D53 修实现并要求新目录重跑，旧结果仅作 partial，不回写历史 manifest。
 - 现有 runnable 单元的正式批次（5 seed × 全部 c 与机制）约 3320 个 run（其中 mnist / fashion_mnist /
   cifar10 三个图像数据集 1275 个，按 `planned_runs` 实测，support 单元已含在内）；GPU 机时不设限，按 method / dataset /
   training-path / 机制分批跑，最后统一汇总。
@@ -56,7 +57,7 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 | 文档 / 数据 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | 协议：数据集、四角色输入、OS / TS 视图、PA / OA 选模、PN oracle 与主榜门禁 |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D52）** |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D53）** |
 | `pu_toolbox/experiment/survey_protocol_v3.json` | 机器可读执行协议（`survey-v3.0`，原地演进，见 D42） |
 | `pu_toolbox/experiment/method_ledger.json` | 方法台账：身份、来源、视图、校准、适配、待复核状态 |
 | `pu_toolbox/experiment/survey_comparison_v6.json` | 比较矩阵（v3 运行自动使用）；`survey_comparison_profile_map_v3.json` 给出 profile → 条目映射 |

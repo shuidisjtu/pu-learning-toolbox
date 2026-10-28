@@ -44,6 +44,7 @@ if _SCRIPTS_DIR not in sys.path:
 
 import aggregate_survey_runs as gate  # noqa: E402
 
+from pu_toolbox.experiment import batch_evidence  # noqa: E402
 from pu_toolbox.experiment.manifest import load_manifest  # noqa: E402
 from pu_toolbox.experiment.survey_audit import (  # noqa: E402
     PROBE_ROLE,
@@ -842,7 +843,11 @@ def check_result_completeness(
         row_paths.setdefault(row, set()).add(str(entry["path"]))
         for name in sorted(payload.get("test_results") or {}):
             rows.setdefault(row, set()).add(
-                (normalize_c_token(payload), matrix_selection_protocol(name), int(payload["seed"]))
+                (
+                    normalize_c_token(payload),
+                    "pa" if name == "PA+clean-support" else matrix_selection_protocol(name),
+                    int(payload["seed"]),
+                )
             )
         if payload.get("protocol_deviation"):
             deviations.setdefault("/".join(row), []).append(
@@ -1226,20 +1231,72 @@ def _documentation_check(
     )
 
 
-def check_snapshots(config: dict[str, Any], repo_root: Path) -> dict[str, Any]:
-    """A14: each batch has its stage snapshot, and the snapshot has its boundary section.
+def _packet_snapshot_problem(batch: dict[str, Any], entries: list[dict[str, Any]]) -> str | None:
+    """A new batch replaces a legacy stage document only with verified D52 packets."""
+    members = [entry for entry in entries if entry.get("batch") == batch["name"]]
+    if not members:
+        return "no stage snapshot or cited batch evidence is available"
+    for entry in members:
+        payload = entry.get("payload") or {}
+        block = payload.get("batch")
+        if not isinstance(block, Mapping):
+            return "every new-batch manifest must cite its evidence packet"
+        name = block.get("evidence_file")
+        if not isinstance(name, str) or Path(name).name != name:
+            return "the cited evidence packet must be a filename"
+        path = Path(batch["root"]) / batch_evidence.DIRECTORY / name
+        try:
+            packet = batch_evidence.load(path)
+            if batch_evidence.manifest_block(packet, path) != block:
+                return "the evidence citation no longer matches its packet"
+            unit = payload["execution_unit"]
+            oracle = bool(payload.get("c_independent"))
+            batch_evidence.require_matches(
+                packet,
+                unit={
+                    "dataset": unit["dataset"],
+                    "method": unit["method"],
+                    "training_path": payload["training_path"],
+                    "mechanism": None if oracle else mechanism_of(payload),
+                },
+                seeds=packet["seeds"],
+                c_tokens=packet["c_tokens"],
+                protocol_sha256=payload["protocol_sha256"],
+            )
+            if payload["seed"] not in packet["seeds"] or (
+                not oracle and normalize_c_token(payload) not in packet["c_tokens"]
+            ):
+                return "the evidence packet does not cover this manifest's seed or c"
+            if packet["protocol_version"] != payload["protocol_version"]:
+                return "the evidence packet names another protocol version"
+        except (KeyError, OSError, ValueError, TypeError) as exc:
+            return f"cannot verify cited batch evidence: {exc}"
+    return None
+
+
+def check_snapshots(
+    config: dict[str, Any], repo_root: Path, *, entries: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """A14: legacy batches keep stage snapshots; new batches cite verified D52 evidence.
 
     Only the file and the "本快照不含" heading are looked for; whether the wording under
     it is right, or the snapshot final (B4's title still says draft), is a reviewer's call.
+    A new batch has no historical stage document, so every delivered manifest
+    must instead cite an unchanged content-addressed packet describing that run.
     """
     findings: list[str] = []
     drafts: list[str] = []
     found: list[str] = []
+    packet_batches: list[str] = []
     for batch in config["batches"]:
         name = batch["name"]
         filename = SNAPSHOT_FILES.get(name)
         if filename is None:
-            findings.append(f"{name}: no stage snapshot is registered for this batch")
+            problem = _packet_snapshot_problem(batch, entries or [])
+            if problem:
+                findings.append(f"{name}: {problem}")
+            else:
+                packet_batches.append(name)
             continue
         text, problem = _read_text(repo_root / DELIVERY_DIR / filename)
         if problem:
@@ -1255,11 +1312,16 @@ def check_snapshots(config: dict[str, Any], repo_root: Path) -> dict[str, Any]:
         findings,
         ok_message=(
             f"{len(found)} batch snapshot(s) present with their boundary section; "
+            f"{len(packet_batches)} new batch(es) carry verified D52 evidence; "
             "the wording itself is not judged"
             + (f"; still titled draft: {drafts}" if drafts else "")
         ),
         fail_message=f"{len(findings)} snapshot problem(s)",
-        observed={"snapshots_found": sorted(found), "titled_draft": sorted(drafts)},
+        observed={
+            "snapshots_found": sorted(found),
+            "titled_draft": sorted(drafts),
+            "packet_batches": sorted(packet_batches),
+        },
     )
 
 
@@ -1504,7 +1566,7 @@ def build_audit(
 
     checks.extend(
         [
-            check_snapshots(config, repo_root),
+            check_snapshots(config, repo_root, entries=loaded),
             check_ablation_disclosure(loaded, repo_root),
             check_isolation_tests(repo_root),
         ]

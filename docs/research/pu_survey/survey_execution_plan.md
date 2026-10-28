@@ -337,13 +337,14 @@ P4.2b 起为每个 support 单元排了 4 个 SAR 格子。按用户裁定，三
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D51）
+## 附录 A. 决策账本（D1–D53）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
 
 | # | 决策 | 内容 | 日期 |
 |---|---|---|---|
+| D53 | **support 全 epoch 候选与新批次审计修复** | 2026-10-28 RTX 4090 的 spambase 三方法 45 run 已备份；审计发现 LaGAM / Self-PU 只捕获 meta 阶段，与协议 §2.4「所有 epoch」不符。用户裁定修实现遵守现行协议：版本化 support 保存 warmup 在内的全部 epoch，Self-PU 双 teacher 分别参与 PA+clean-support / OA，训练预算与 coverage 严格度不变；显式探索 meta-only 入口保持原义。另修 v3 canonical 比较误用 v2、support c token 漏设及合法制品收据被标 override；审计查询复用 profile 继承并适配 PA+clean-support，但报告仍保留额外监督身份；新批次以验证过的 D52 包满足 A14，旧 B1–B4 文档检查保留。旧 manifest / 包不回写；修复后在新结果根重跑，再做分片。 | 2026-10-28 |
 | D1 | **ADNI 数据获取** | ADNI 官方数据仅在获批持有人提供授权材料后纳入，未取得不记作官方 ADNI 获取完成。**2026-10-12 修订**：经与学长、导师讨论，为避免流程过于耗时，`adni` 槽位改用 Kaggle 4 类 Alzheimer MRI 的 GitHub 转存（论文 2 的 Table B.1 称其 Alzheimer MRI，附录称 ADNI），固定在转存仓库 commit 与逐文件摘要；它不是 ADNI 数据，所有登记、报告与快照须写明「替代数据」；Kaggle 页面许可为 Unknown（2026-10-12 核对），同一受试者切片是否跨集未核实，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。 | 2026-09-08（修订 2026-10-12） |
 | D2 | 协议分工执行口径 | 研究团队准备四角色数据，工具箱 `fit` 消费已划分输入；工具箱不替代数据划分。 | 2026-09-08 |
 | D3 | 依赖锁与 CUDA 环境落地 | `uv.lock` 入库，PR 使用提交的锁，nightly 用 `--upgrade` 重新解析；正式 GPU 运行另核驱动与依赖身份，详见 [ADR-0012](../../adr/0012-dependency-release-policy.md)。 | 2026-10-05 |

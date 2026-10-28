@@ -131,3 +131,19 @@ def test_determ_a_check_is_a_pure_function_of_the_entries_it_is_handed():
     assert checks.check_result_completeness(entries, protocol=load_protocol()) == first
     # It reads; it does not annotate the entries it was handed.
     assert entries == snapshot
+
+
+def test_basic_support_selection_satisfies_the_pa_grid_without_renaming_results():
+    protocol = checks.load_protocol(checks.resolve_protocol_path("survey-v3.0"))
+    entries = []
+    for token in protocol["c_tokens"]["scar"]:
+        for seed in protocol["seeds"]:
+            payload = manifest(method="lagam", c=float(token), seed=seed)
+            payload["test_results"]["PA+clean-support"] = payload["test_results"].pop("PA")
+            entries.append(_entry(payload))
+
+    check = checks.check_result_completeness(entries, protocol=protocol)
+
+    assert check["result"] == "pass"
+    assert check["observed"]["missing_units"] == 0
+    assert all("PA+clean-support" in entry["payload"]["test_results"] for entry in entries)
