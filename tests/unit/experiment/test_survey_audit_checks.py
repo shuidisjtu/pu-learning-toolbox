@@ -168,6 +168,8 @@ def _admission_entries(tmp_path):
                 profile_identity_schema_version="survey-profile-identity-1",
                 profile_id="lagam",
                 algorithm_id="lagam",
+                run_view="os-compatible",
+                calibration_applied=False,
                 estimator_parameters=protocol["method_profiles"]["lagam"]["params"],
                 budget=protocol["budgets"][unit["budget"]],
                 formal_eligible=False,
@@ -213,7 +215,7 @@ def test_basic_admission_reassessment_discharges_only_verified_legacy_progress(t
     assert entries == original
 
 
-@pytest.mark.parametrize("problem", ["audit", "grid", "epoch", "protocol", "unknown"])
+@pytest.mark.parametrize("problem", ["audit", "grid", "epoch", "protocol", "unknown", "ts"])
 def test_param_admission_reassessment_preserves_unsatisfied_or_unknown_blockers(tmp_path, problem):
     protocol, entries, passed = _admission_entries(tmp_path)
     if problem == "audit":
@@ -224,6 +226,10 @@ def test_param_admission_reassessment_preserves_unsatisfied_or_unknown_blockers(
         entries[0]["payload"]["candidate_runs"][0]["epoch_checkpoints"].pop()
     elif problem == "protocol":
         protocol["seeds"] = [0, 1]
+    elif problem == "ts":
+        entries[0]["payload"].update(
+            profile_id="self_pu_full_meta", run_view="ts-compatible", calibration_applied=True
+        )
     else:
         entries[0]["payload"]["formal_blockers"].append("new_unknown_gate")
 
@@ -233,6 +239,8 @@ def test_param_admission_reassessment_preserves_unsatisfied_or_unknown_blockers(
     assert first["remaining_blockers"]
     if problem == "unknown":
         assert first["remaining_blockers"] == ["new_unknown_gate"]
+    if problem == "ts":
+        assert "full_meta_ts_adapter_not_admitted" in first["requirements_not_met"]
 
 
 def test_determ_admission_reassessment_is_stable_and_records_source_bytes(tmp_path):

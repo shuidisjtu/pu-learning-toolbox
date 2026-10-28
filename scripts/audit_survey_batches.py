@@ -1434,6 +1434,11 @@ def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -
     if profile_id not in {"lagam", "pulns", "self_pu_full_meta"}:
         return ["profile_outside_reassessment_scope"]
     profile = protocol["method_profiles"][profile_id]
+    if profile_id == "self_pu_full_meta" and (
+        payload.get("run_view") == "ts-compatible"
+        or payload.get("extra_supervision", {}).get("training_view") == "ts"
+    ):
+        return ["full_meta_ts_adapter_not_admitted"]
     budget = protocol["budgets"][profile["budget"]]
     recorded_params = payload.get("estimator_parameters", {})
     if any(recorded_params.get(key) != value for key, value in profile["params"].items()):
@@ -1531,14 +1536,17 @@ def reassess_admission(
             local.append("profile_or_checkpoint_evidence_invalid")
         per_run[str(entry["path"])] = local
     # A completed row needs every member's trajectory, not only its own seed.
-    if any(per_run.values()):
-        problems.append("row_member_evidence_incomplete")
+    incomplete_groups = {
+        group_key(entry["payload"]) for entry in entries if per_run[str(entry["path"])]
+    }
     runs = {}
     for entry in entries:
         path = str(entry["path"])
         payload = entry["payload"]
         recorded = list(payload.get("formal_blockers", []))
         reasons = sorted(set(problems + per_run[path]))
+        if group_key(payload) in incomplete_groups:
+            reasons.append("row_member_evidence_incomplete")
         discharged = [
             value for value in recorded if not reasons and value in _REASSESSABLE_BLOCKERS
         ]
