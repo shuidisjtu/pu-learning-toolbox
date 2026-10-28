@@ -116,7 +116,8 @@ def test_basic_runtime_comparison_keys_match_support_selections(method, support)
     assert set(entries) == {"PA+clean-support" if support else "PA", "OA"}
 
 
-def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_path):
+@pytest.mark.parametrize("method", ["lagam", "self_pu_full_meta"])
+def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_path, method):
     product = tabular_product(tmp_path / "product")
     output = tmp_path / "runs"
     script.main(
@@ -127,7 +128,7 @@ def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_pat
             "--dataset",
             "spambase",
             "--method",
-            "lagam",
+            method,
             "--training-path",
             "native_2d",
             "--seeds",
@@ -151,6 +152,8 @@ def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_pat
     manifest = json.loads(manifests[0].read_text())
     assert set(manifest["test_results"]) == {"PA+clean-support", "OA"}
     assert set(manifest["comparison"]) == set(manifest["test_results"])
+    assert manifest["run_view"] == "os-compatible"
+    assert manifest["calibration_applied"] is False
     support = manifest["extra_supervision"]
     assert support["protocol_policy_basis"] == "survey-v3.0"
     assert support["protocol_pending_review_items"] == []

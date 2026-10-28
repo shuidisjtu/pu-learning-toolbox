@@ -6,20 +6,19 @@
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
 > 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
-> 状态核对日期：**2026-10-27**（v3 协议 130 个单元，runnable 106 / blocked 24，8 个数据集都已有单元；25 份 clean-support 制品本机重建；GEN-PU 配方与 PULDA/GradPU 图像 runner 已补；PN-CNN 5 seed 已分配 HENG958，见 D45；profile → 比较矩阵映射已落地，见 D40）
+> 状态核对日期：**2026-10-28**（v3 协议 136 个单元，runnable 112 / blocked 24；本机前批完成 205 run，其余 3115 run 已排后台续跑；运行完成不等于正式准入）
 
 ## 1. 实验能力与缺口
 
 > 本节按“PU Survey 实验设施现在能做什么”组织；任务编号只作关联。状态分三层，避免把工程接线
 > 当结果：**runnable**（`survey_protocol_v3.json` 的 `execution_units` 标 `runnable=true`，
-> 有预算/runner，能产出合规 manifest，当前 **106 / 130**）、**formal**（清掉 `formal_blockers`
+> 有预算/runner，能产出合规 manifest，当前 **112 / 136**）、**formal**（清掉 `formal_blockers`
 > 并绑进比较矩阵，当前 **0**；配方注册表已于 D36 冻结、profile 映射已于 D40 落地，但阻断位未清，
 > 两者都不等于准入）、
-> **evidence**（已有真实数据读数，目前只有单 seed 工程 smoke；32 GiB vGPU 上已跑完一次
-> GEN-PU 正式预算 100+100，2026-10-25；2026-10-26/27 又在 AutoDL 主机跑了 5 个数据集的单 seed
-> 接线验证，仍无正式多 seed 批次）。
+> **evidence**（已有单 seed 接线证据与本机 205 run 的五 seed 观测批次；2026-10-28 已启动其余网格。
+> 当前环境并非经核验的冻结环境，正式多 seed 验收仍未完成）。
 > 判定标准：命令可执行并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。
-> 状态核对日期：2026-10-27。
+> 状态核对日期：2026-10-28。
 
 ### 1.1 能力矩阵
 
@@ -44,10 +43,10 @@
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
-| support 正式 units（5 数据集） | 12 个 runnable support 单元已齐（spambase / connect_4 / mnist / fashion_mnist × 三方法；图像数据集见 D49），批次驱动也已接通 `--support-root`（D50）。剩下的是**执行**：mnist 与 fashion_mnist 只跑过单 seed、且只跑了 `c=0.1`，spambase 只跑过 seed0 三个方法，connect_4 只有 seed0 三方法；正式 5 seed × c 网格未跑 | 把 support 单元的正式批次排进 5 seed 跑批（命令见 D50①，`--support-root <root>`） | 合流 | 12 个单元的 5 seed 合规 manifest |
+| support 正式 units（5 数据集） | 12 个 runnable support 单元已齐；本机 mnist / fashion_mnist 的 LaGAM / PULNS 共 60 run 已完成，Spambase / Connect-4 三方法及两个图像集的 full-meta 已排队；完成后仍须核对环境与准入 | 执行剩余 120 run，再验收 12 单元；不把单 seed 接线当全量完成 | 合流 | 12 个单元的 5 seed 合规 manifest |
 | LaGAM/PULNS 的 cifar10 support 行 | 仍是 24 个 blocked 单元的一部分（`pending_*_budget`），与 mnist/fashion_mnist 已翻 runnable 的情况不同 | 并入上面的 blocked 单元任务 | HENG958 | 单元 runnable 且产出 manifest |
 | GPU 机时实测（GradPU 首跑） | 无法排 GradPU 的 AutoDL 正式批次 | 其余机时已实测：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）、2026-10-26/27 主机上 oracle 原生 CNN 单 seed 计时（共用 22 核配额下，不代表独占机时）；仍缺 GradPU 首跑 | HENG958 | 实测表反推机时 |
-| PN-CNN 5 seed | `pn_oracle` cifar10 / native_cnn 行 | 已解除暂缓并分配（D45 取代 D30） | HENG958 | 5 seed 合规 manifest + 峰值记录 |
+| PN-CNN 5 seed 验收 | cifar10 / mnist / fashion_mnist 原生 CNN 各 5 seed 已完成，本机有 manifest 与资源记录 | 验收现有产物，不重复启动已完成格；其他 oracle 行已排队 | HENG958 | 5 seed 合规 manifest + 峰值记录 |
 
 ### 1.3 预算与资源
 
@@ -89,7 +88,7 @@ draft 令牌当锁定预算。
 
 #### 1.4.1 冻结与版本
 
-- 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 106/130）。
+- 执行协议为 `survey_protocol_v3.json`（`survey-v3.0`，`accepted`；runnable 112/136）。
   `survey_protocol_v2.json`（`survey-v2.0`）继续是 645-run pilot 的历史绑定，不被覆盖；
   `survey_protocol_v1.json` 与 `survey_comparison_v1..v3.json` 仅作历史绑定。
 - 比较矩阵按**协议版本**解析：`survey-v2.0` → `survey_comparison_v4.json`，`survey-v3.0` →
@@ -138,7 +137,22 @@ draft 令牌当锁定预算。
   表示相关来源；无来源保持 paper-only。所有适配统一标 `benchmark-adapted`。
 - 不照搬作者 test accuracy 选模。Self-PU 作者代码用 test split 做 meta 更新并按测试
   真值选 checkpoint 的事实已登记；工具箱 clean-support 路径不复制该行为。
-- 仍影响执行的例外：
+2026-10-28 Self-PU full-meta 路由修复：底层 `self_pu` 的算法默认视图是 TS，但现有版本化
+full-meta clean-support 适配器是 OS；沿用算法默认会误入拒绝 registry 的 TS 探索适配器。
+现按独立 full-meta profile 默认选已有 OS 路径，CLI 与续跑规划共用同一解析；纯 PU 消融版仍按原默认
+TS，显式 TS 请求不被改写，TS registry 门禁不放宽。没有改损失、预算、协议或注册表。
+验证范围：真实 Spambase seed0 / c=0.1、冻结 200 epochs、380 条活跃 meta 记录与双轨选模；
+单元测试检查路由一致性与既有 TS 拒绝条件，不据此宣称图像全网格完成或论文数值复现。
+
+2026-10-28 AutoDL 视图核验与重跑：此前 full-meta 沿底层 `self_pu` 默认进入 TS 探索适配器，
+实际启用了负风险项的正例质量混合，不能作为已批准的 OS full-meta 数值。用户确认需重跑，
+本轮明确按现有版本化 full-meta OS 适配路径执行（不是冻结 Pilot `self_pu` 消融），
+显式 `--os-or-ts os` 并绑定 locked registry；保留 200 epochs、五 seed、三个 c 和独立双轨选模。
+TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读保留，不换标签冒充 OS。
+这是 full-meta profile 的本轮执行选择，不修改底层算法原生 TS 台账或其消融默认，
+也不声称证明了 full-meta TS meta 加权下的总体混合恢复；LaGAM/PULNS 无需重跑。
+
+仍影响执行的例外：
 
 | 方法 | 已登记差异 | 处置 |
 |---|---|---|
