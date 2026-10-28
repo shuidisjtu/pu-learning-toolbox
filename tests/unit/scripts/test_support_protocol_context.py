@@ -93,3 +93,66 @@ def test_determ_support_context_keeps_the_same_protocol_digest(monkeypatch, tmp_
     two = context(monkeypatch, tmp_path / "two")
     assert one["protocol_sha256"] == two["protocol_sha256"]
     assert json.dumps(one["protocol_deviation"]) == json.dumps(two["protocol_deviation"])
+
+
+@pytest.mark.parametrize("method", ["lagam", "pulns", "self_pu_full_meta"])
+@pytest.mark.parametrize("support", [False, True])
+def test_basic_runtime_comparison_keys_match_support_selections(method, support):
+    from pu_toolbox.experiment.survey_comparison import run_comparison_units
+    from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, load_protocol
+
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    unit = {"dataset": "spambase", "method": method, "training_path": "native_2d"}
+    entries = run_comparison_units(
+        {"execution_unit": unit},
+        {
+            "clean_support_provided": support,
+            "c_requested_token": "0.1",
+            "survey_protocol": {**unit, "mechanism": "scar"},
+        },
+        survey=protocol,
+        profile_id=method,
+    )
+    assert set(entries) == {"PA+clean-support" if support else "PA", "OA"}
+
+
+def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_path):
+    product = tabular_product(tmp_path / "product")
+    output = tmp_path / "runs"
+    script.main(
+        [
+            str(product),
+            "--protocol",
+            "survey-v3.0",
+            "--dataset",
+            "spambase",
+            "--method",
+            "lagam",
+            "--training-path",
+            "native_2d",
+            "--seeds",
+            "0",
+            "--c",
+            "0.3",
+            "--class-prior",
+            "0.5",
+            "--support-dir",
+            str(product),
+            "--split-ref",
+            str(product / "support_manifest.json"),
+            "--device",
+            "cpu",
+            "--out-dir",
+            str(output),
+        ]
+    )
+    manifests = list(output.rglob("manifest.json"))
+    assert len(manifests) == 1
+    manifest = json.loads(manifests[0].read_text())
+    assert set(manifest["test_results"]) == {"PA+clean-support", "OA"}
+    assert set(manifest["comparison"]) == set(manifest["test_results"])
+    assert manifest["selection_checkpoint_scope"] == "independent_per_epoch"
+    assert not {"c", "noncanonical_protocol_matrix", "split_ref_override"}.intersection(
+        manifest["protocol_deviation"]
+    )
+    assert all(run["status"] == "succeeded" for run in manifest["candidate_runs"])
