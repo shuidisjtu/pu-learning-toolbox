@@ -77,6 +77,11 @@ draft 令牌当锁定预算。
 
 **分批执行**
 
+- 本机后台排程已补单次 fit 拆分：仅拆未启动组，运行中旧组保持原进程及完整身份归属；
+  5 秒轮询，低负载自有卡经连续采样后最多两个进程，不向含外部进程的卡追加任务。
+  训练仍使用原固定源码/配方；监控 `PHASE` 区分 GEN-PU 的 `GAN/prePN` 与 PN 快照，
+  不把无快照当作等待。脚本：`run_survey_parallel_queue.py` / `monitor_survey_queue.py`。
+
 - 按 method、dataset、training-path（含 backbone）或 labeling mechanism 分组跑，
   `run_survey_pilot.py --methods/--datasets/--training-paths` 原生支持，v3 单元用
   `run_survey_experiment.py --protocol ...` 逐单元执行；

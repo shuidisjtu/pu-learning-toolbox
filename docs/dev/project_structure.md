@@ -205,6 +205,7 @@ pu_toolbox/
     support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
     genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
+    queue_scheduling.py                   # 单次 fit 拆分、运行中归属保护与低负载 GPU 有界并发策略
     candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
     survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
@@ -447,6 +448,9 @@ tests/
       test_prepare_survey_splits.py     # 1.4 切分产物流水线(tabular/image/text 三路径假数据)
       test_survey_script.py             # run_survey_experiment.py 端到端冒烟/先验强制/缺文件报错
       test_survey_script_cvir.py        # CVIR 显式 CLI 先验换算、视图、快照容量/回收与已有证据保护
+      test_queue_scheduling.py          # 单次调度身份守恒、运行中批次保护与 GPU 并发上限
+      test_queue_service.py             # 控制器交接、PID 复用/退出核验与失败回滚，不向训练发信号
+      test_queue_monitor.py             # 活跃 fit 阶段、历史快照排除、共享标记与终端宽高
       _survey_script_helpers.py         # 脚本测试共享夹具: 动态加载与基础/SAR 两套四路 split
       test_survey_script_sar.py         # SAR 机制 CLI: OA-only/c token 门禁/审计字段/确定性
       test_strategies_labeling.py       # SCAR/SAR-LBE 生成(固定计数/posterior 正例池/seed 确定性)
@@ -927,6 +931,8 @@ scripts/
   prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
   run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
+  run_survey_parallel_queue.py            # Linux 后台控制器安全接管、单次 fit 排程与有界同卡并发
+  monitor_survey_queue.py                 # 只读终端监控、活动阶段/共享卡/单次 fit 与分页
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
 ```
