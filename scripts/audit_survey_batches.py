@@ -1477,12 +1477,157 @@ def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -
     return []
 
 
+def _partitioned_grid_problems(
+    entries: list[dict[str, Any]], *, protocol: dict[str, Any], config: dict[str, Any]
+) -> list[str]:
+    """Prove a single execution unit's complete grid and its batch identities."""
+    if not entries:
+        return ["partition_grid_empty"]
+    roots = {item["name"]: Path(item["root"]) for item in config.get("batches", [])}
+    problems: set[str] = set()
+    identities = []
+    cells = []
+    first = entries[0]["payload"]
+    unit = first["execution_unit"]
+    mechanism = mechanism_of(first)
+    expected_unit = {
+        "dataset": unit["dataset"],
+        "method": unit["method"],
+        "training_path": first["training_path"],
+        "mechanism": mechanism,
+    }
+    expected_seeds = set(protocol["seeds"])
+    expected_tokens = set(protocol["c_tokens"].get(mechanism, []))
+    if not expected_seeds or not expected_tokens:
+        return ["partition_grid_unsupported"]
+    expected = {(seed, token) for seed in expected_seeds for token in expected_tokens}
+    for entry in entries:
+        payload = entry["payload"]
+        try:
+            cell = (payload["seed"], normalize_c_token(payload))
+            cells.append(cell)
+            if payload["execution_unit"] != unit or mechanism_of(payload) != mechanism:
+                problems.add("partition_unit_mismatch")
+            if payload.get("run_view") != first.get("run_view"):
+                problems.add("partition_view_mismatch")
+            if not set(payload.get("protocol_deviation", [])) <= {"seed_subset", "c_grid"}:
+                problems.add("partition_other_deviation")
+            block = payload["batch"]
+            name = block["evidence_file"]
+            if not isinstance(name, str) or Path(name).name != name:
+                raise ValueError("invalid packet name")
+            path = roots[entry["batch"]] / batch_evidence.DIRECTORY / name
+            packet = batch_evidence.load(path)
+            if batch_evidence.manifest_block(packet, path) != block:
+                raise ValueError("packet citation mismatch")
+            batch_evidence.require_matches(
+                packet,
+                unit=expected_unit,
+                seeds=packet["seeds"],
+                c_tokens=packet["c_tokens"],
+                protocol_sha256=digest(protocol),
+            )
+            seeds, tokens = packet["seeds"], packet["c_tokens"]
+            if (
+                not seeds
+                or len(seeds) != len(set(seeds))
+                or not set(seeds) <= expected_seeds
+                or not tokens
+                or len(tokens) != len(set(tokens))
+                or not set(tokens) <= expected_tokens
+                or cell[0] not in seeds
+                or cell[1] not in tokens
+                or packet["run_count"] != len(seeds) * len(tokens)
+                or packet["protocol_version"] != protocol["protocol_version"]
+            ):
+                raise ValueError("packet grid mismatch")
+            expected_deviations = set()
+            if seeds != protocol["seeds"]:
+                expected_deviations.add("seed_subset")
+            if tokens != protocol["c_tokens"][mechanism]:
+                expected_deviations.add("c_grid")
+            if set(payload.get("protocol_deviation", [])) != expected_deviations:
+                raise ValueError("recorded partition deviations disagree with the packet")
+            if expected_deviations and "protocol_deviation" not in payload.get(
+                "formal_blockers", []
+            ):
+                raise ValueError("partition deviation has no recorded blocker")
+            env = packet["environment"]
+            hardware = env["hardware"]
+            threads = env["thread_environment"]
+            required_env = (
+                "python_version",
+                "python_implementation",
+                "platform",
+                "torch_version",
+                "cuda_available",
+                "cuda_runtime_version",
+                "cudnn_version",
+                "gpu_devices",
+                "gpu_driver_version",
+                "numpy_version",
+                "scikit_learn_version",
+            )
+            if (
+                env.get("state") != "recorded"
+                or any(k not in env for k in required_env)
+                or not hardware.get("machine")
+                or not hardware.get("processor")
+                or not hardware.get("cpu_count")
+                or not all(
+                    env.get(key)
+                    for key in (
+                        "python_version",
+                        "python_implementation",
+                        "platform",
+                        "numpy_version",
+                        "scikit_learn_version",
+                    )
+                )
+                or (
+                    env.get("cuda_available")
+                    and (
+                        not env.get("gpu_devices")
+                        or not env.get("gpu_driver_version")
+                        or not env.get("cuda_runtime_version")
+                    )
+                )
+                or set(threads) != {"OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"}
+                or packet["code_commit_state"] != "recorded"
+                or not packet["code_commit"]
+                or packet["code_commit_dirty"] is not False
+                or packet["dependency_lock"].get("state") != "recorded"
+                or not packet["dependency_lock"].get("sha256")
+            ):
+                raise ValueError("incomplete runtime identity")
+            identities.append(
+                (
+                    packet["code_commit"],
+                    packet["dependency_lock"],
+                    env,
+                    packet.get("recipe_registry"),
+                )
+            )
+        except (KeyError, TypeError, ValueError, OSError):
+            problems.add("partition_batch_evidence_invalid")
+    if len(cells) != len(expected) or set(cells) != expected:
+        problems.add("partition_grid_incomplete_or_duplicate")
+    if (
+        not identities
+        or len(identities) != len(entries)
+        or any(identity != identities[0] for identity in identities[1:])
+    ):
+        problems.add("partition_runtime_identity_mismatch")
+    return sorted(problems)
+
+
 def reassess_admission(
     entries: list[dict[str, Any]],
     *,
     protocol: dict[str, Any],
     checks: list[dict[str, Any]],
     fairness_passed: bool = True,
+    config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Re-adjudicate exact historical blockers without changing recorded evidence.
 
@@ -1510,16 +1655,44 @@ def reassess_admission(
             problems.append("five_seed_c_grid_incomplete")
     except (KeyError, TypeError, ValueError):
         problems.append("five_seed_c_grid_invalid")
+    partition_problems: dict[tuple, list[str]] = {}
+    partition_groups: dict[tuple, list[dict[str, Any]]] = {}
+    for entry in entries:
+        payload = entry["payload"]
+        unit = payload["execution_unit"]
+        key = (
+            unit["dataset"],
+            unit["method"],
+            payload["training_path"],
+            mechanism_of(payload),
+            payload.get("run_view"),
+        )
+        partition_groups.setdefault(key, []).append(entry)
+    for key, members in partition_groups.items():
+        if any(member["payload"].get("protocol_deviation") for member in members):
+            partition_problems[key] = (
+                _partitioned_grid_problems(members, protocol=canonical, config=config)
+                if config is not None
+                else ["partition_config_missing"]
+            )
     per_run: dict[str, list[str]] = {}
     for entry in entries:
         payload = entry["payload"]
         local = []
         profile_id = payload.get("profile_id")
+        unit = payload["execution_unit"]
+        partition_key = (
+            unit["dataset"],
+            unit["method"],
+            payload["training_path"],
+            mechanism_of(payload),
+            payload.get("run_view"),
+        )
+        local.extend(partition_problems.get(partition_key, []))
         if (
             not valid_manifest_profile_identity(payload)
             or payload.get("protocol_sha256") != canonical_sha
-            or payload.get("execution_unit") not in canonical["execution_units"]
-            or payload.get("protocol_deviation")
+            or unit not in canonical["execution_units"]
         ):
             local.append("manifest_protocol_identity_or_deviation")
         try:
@@ -1543,12 +1716,30 @@ def reassess_admission(
     for entry in entries:
         path = str(entry["path"])
         payload = entry["payload"]
+        unit = payload["execution_unit"]
+        partition_key = (
+            unit["dataset"],
+            unit["method"],
+            payload["training_path"],
+            mechanism_of(payload),
+            payload.get("run_view"),
+        )
         recorded = list(payload.get("formal_blockers", []))
         reasons = sorted(set(problems + per_run[path]))
         if group_key(payload) in incomplete_groups:
             reasons.append("row_member_evidence_incomplete")
         discharged = [
-            value for value in recorded if not reasons and value in _REASSESSABLE_BLOCKERS
+            value
+            for value in recorded
+            if not reasons
+            and (
+                value in _REASSESSABLE_BLOCKERS
+                or (
+                    value == "protocol_deviation"
+                    and payload.get("protocol_deviation")
+                    and partition_key in partition_problems
+                )
+            )
         ]
         remaining = [value for value in recorded if value not in discharged]
         source_sha = file_hash(Path(path)) if Path(path).is_file() else None
@@ -1563,6 +1754,7 @@ def reassess_admission(
             "remaining_blockers": remaining,
             "eligible": not remaining and not reasons,
             "requirements_not_met": reasons,
+            "partition_grid_checked": partition_key in partition_problems,
             "registry_verification": "posthoc_canonical_profile_and_budget",
             "runtime_recipe_binding": payload.get("recipe_binding_status", "legacy_unbound"),
         }
@@ -1768,13 +1960,18 @@ def build_audit(
         protocol=protocol,
         checks=checks,
         fairness_passed=not failures and not refused_total,
+        config=config,
     )
     receipts = verify_support_receipts(config, loaded)
     for path, decision in reassessment["runs"].items():
         decision["support_receipt_verified"] = receipts[path]
     report["admission_reassessment"] = reassessment
     for members in buckets.values():
-        if any(reassessment["runs"][str(entry["path"])]["remaining_blockers"] for entry in members):
+        if any(
+            (decision := reassessment["runs"][str(entry["path"])])["remaining_blockers"]
+            or (decision["partition_grid_checked"] and not decision["eligible"])
+            for entry in members
+        ):
             blocked_groups += 1
     formal_ready = not failures and not refused_total and not blocked_groups
     checks.append(

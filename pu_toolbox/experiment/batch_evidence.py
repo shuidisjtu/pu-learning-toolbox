@@ -81,6 +81,9 @@ _ENVIRONMENT_KEYS = (
     "cuda_runtime_version",
     "cudnn_version",
     "gpu_devices",
+    "gpu_driver_version",
+    "numpy_version",
+    "scikit_learn_version",
 )
 
 #: The keys each half of the identity may carry, so a caller cannot smuggle a
@@ -163,6 +166,29 @@ def environment_identity() -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001 - a probe must not stop a batch
         return {"state": "unavailable", "reason": f"{type(exc).__name__}: {exc}"}
     environment = {key: measured.get(key) for key in _ENVIRONMENT_KEYS}
+    processor = measured.get("processor")
+    if not processor:
+        try:
+            with Path("/proc/cpuinfo").open(encoding="utf-8") as cpuinfo:
+                processor = next(
+                    (
+                        line.split(":", 1)[1].strip()
+                        for line in cpuinfo
+                        if line.startswith("model name") and ":" in line
+                    ),
+                    None,
+                )
+        except OSError:
+            pass
+    environment["hardware"] = {
+        "machine": measured.get("machine"),
+        "processor": processor,
+        "cpu_count": os.cpu_count(),
+    }
+    environment["thread_environment"] = {
+        key: os.environ.get(key)
+        for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")
+    }
     environment["state"] = "recorded"
     return environment
 

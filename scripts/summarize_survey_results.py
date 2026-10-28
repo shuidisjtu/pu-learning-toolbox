@@ -296,6 +296,13 @@ def build_rows(
                 )
             }
         )
+        if any(
+            (decision := entry.get("admission_reassessment", {})).get("partition_grid_checked")
+            and not decision.get("eligible")
+            for entry, _ in members
+        ):
+            candidates.add("partial")
+            reasons.add("formal_blockers_present")
         if blockers:
             status, codes = status_for_gate_block(blockers)
             candidates.add(status)
