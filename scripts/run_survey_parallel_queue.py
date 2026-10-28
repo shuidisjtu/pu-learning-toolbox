@@ -152,116 +152,99 @@ def load_legacy(path):
     return module
 
 
-def reconcile_children(state, old_pid, gpu_devices):
-    """Close the old controller's spawn-to-status-write crash window."""
+def reconcile_workers(state, gpu_devices):
+    """Discover owned workers after controller exit, including unsaved spawns."""
     jobs = state["jobs"]
-    children = Path(f"/proc/{old_pid}/task/{old_pid}/children").read_text().split()
-    for raw_pid in children:
-        pid = int(raw_pid)
-        argv = command_line(pid)
-        if not argv:
+    by_root = {j["root"]: j for j in jobs}
+    seen = {}
+    for proc in Path("/proc").iterdir():
+        if not proc.name.isdigit():
             continue
-        job = None
-        if "--out-dir" in argv:
-            root = argv[argv.index("--out-dir") + 1]
-            job = next((j for j in jobs if j["root"] == root), None)
-        elif "--worker" in argv:
-            request = read(argv[argv.index("--worker") + 1])
-            job = next((j for j in jobs if j["label"] == request["label"]), None)
-        if job is None:
-            if any("python" in Path(arg).name for arg in argv[:1]):
-                raise ValueError("unrecognized Python child during handoff")
+        try:
+            if proc.stat().st_uid != os.getuid():
+                continue
+            pid = int(proc.name)
+            argv = command_line(pid)
+            job = None
+            if "--out-dir" in argv:
+                job = by_root.get(argv[argv.index("--out-dir") + 1])
+            elif "--worker" in argv:
+                request_path = Path(argv[argv.index("--worker") + 1])
+                if request_path.is_relative_to(state["queue_root"]):
+                    job = by_root.get(read(request_path)["root"])
+            if job is None:
+                continue
+            if job["root"] in seen and seen[job["root"]] != pid:
+                raise ValueError("multiple live workers own one output")
+            seen[job["root"]] = pid
+            if job["status"] not in ("pending", "running"):
+                raise ValueError("live worker disagrees with terminal state")
+            if job["status"] == "pending":
+                env = dict(
+                    pair.split(b"=", 1)
+                    for pair in proc.joinpath("environ").read_bytes().split(bytes([0]))
+                    if b"=" in pair
+                )
+                uuid = env.get(b"CUDA_VISIBLE_DEVICES", b"").decode()
+                gpu = next(
+                    (
+                        {"index": i, "uuid": d["uuid"]}
+                        for i, d in gpu_devices.items()
+                        if d["uuid"] == uuid
+                    ),
+                    {},
+                )
+                job.update(
+                    status="running",
+                    pid=pid,
+                    gpu=gpu,
+                    started_at=now(),
+                    log=str(Path(state["queue_root"]) / (job["label"] + ".log")),
+                    recovered_spawn_window=True,
+                )
+        except (FileNotFoundError, ProcessLookupError):
             continue
-        if job["status"] not in ("pending", "running"):
-            raise ValueError("live child disagrees with saved terminal state")
-        if job["status"] == "pending":
-            env = dict(
-                pair.split(b"=", 1)
-                for pair in Path(f"/proc/{pid}/environ").read_bytes().split(b"\0")
-                if b"=" in pair
-            )
-            uuid = env.get(b"CUDA_VISIBLE_DEVICES", b"").decode()
-            gpu = next(
-                (
-                    {"index": i, "uuid": d["uuid"]}
-                    for i, d in gpu_devices.items()
-                    if d["uuid"] == uuid
-                ),
-                {},
-            )
+    for job in jobs:
+        if job["status"] == "pending" and (
+            any(Path(job["root"]).rglob("manifest.json")) or any(Path(job["root"]).rglob("*.pt"))
+        ):
+            job["log"] = str(Path(state["queue_root"]) / (job["label"] + ".log"))
+            success = successful_artifacts(job) and terminal_marker(job)
             job.update(
-                status="running",
-                pid=pid,
-                gpu=gpu,
-                started_at=now(),
-                log=str(Path(state["queue_root"]) / (job["label"] + ".log")),
-                recovered_spawn_window=True,
+                status="completed" if success else "failed",
+                ended_at=now(),
+                exit_code=None,
+                exit_verification="orphan_artifact_reconciliation",
             )
+        if job["status"] == "running":
+            identity = process_identity(job["pid"])
+            if identity:
+                if identity["state"] != "Z" and seen.get(job["root"]) != job["pid"]:
+                    raise ValueError("saved worker PID is no longer the expected process")
+                job["process_start_ticks"] = identity["start_ticks"]
+            job["adopted"] = True
     return jobs
 
 
-def takeover(queue, legacy_path):
-    """Stop only a verified controller, leaving every training session intact."""
+def takeover(queue, legacy_path, *, allow_orphans=False):
+    """Terminate only a verified controller; never signal a training worker.
+
+    tmux may immediately continue its stopped foreground pane, so SIGSTOP is
+    not a reliable snapshot lock. Exit the controller, then reconcile ALL live
+    owned workers and partial outputs before admitting any new fit.
+    """
     state_path = queue / "queue_status.json"
     state = read(state_path)
     old_pid = state["scheduler"]["supervisor_pid"]
     identity = process_identity(old_pid)
     argv = command_line(old_pid)
-    if identity is None or "--run" not in argv or str(legacy_path) not in argv:
-        raise ValueError("refuse takeover: legacy controller identity is not verified")
-    state["queue_root"] = str(queue)
-    stopped = False
-    try:
-        os.kill(old_pid, signal.SIGSTOP)
-        stopped = True
-        # SIGSTOP cannot be caught; wait until state confirms delivery before
-        # trusting the on-disk snapshot or looking for a spawn-window child.
-        for _ in range(100):
-            current = process_identity(old_pid)
-            if (
-                current
-                and current["start_ticks"] == identity["start_ticks"]
-                and current["state"] == "T"
-            ):
-                break
-            time.sleep(0.02)
-        else:
-            raise ValueError("controller did not reach a stable handoff boundary")
-        state = read(state_path)
-        state["queue_root"] = str(queue)
-        reconcile_children(state, old_pid, devices())
+    if identity is not None and identity["state"] != "Z":
+        if "--run" not in argv or str(legacy_path) not in argv:
+            raise ValueError("refuse takeover: legacy controller identity is not verified")
         validate_fit_ownership(state["jobs"])
-        for job in state["jobs"]:
-            if job["status"] != "running":
-                continue
-            ident = process_identity(job["pid"])
-            if ident:
-                args = command_line(job["pid"])
-                if ident["state"] != "Z" and not (job["root"] in args or "--worker" in args):
-                    raise ValueError("worker PID identity changed during handoff")
-                job["process_start_ticks"] = ident["start_ticks"]
-            job["adopted"] = True
-        jobs, parents = split_pending_jobs(state["jobs"], queue)
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        backup = queue / f"pre_parallel_handoff_{stamp}.json"
-        if backup.exists():
-            raise ValueError("handoff backup already exists")
-        save(backup, state)
-        save(
-            queue / "parallel_split_plan.json",
-            {
-                "created_at": now(),
-                "parents": parents,
-                "old_controller": {"pid": old_pid, **identity},
-                "backup": str(backup),
-                "preserved_fit_count": sum(j["expected_runs"] for j in jobs),
-            },
-        )
-        # Terminate this exact controller only. Its workers have independent
-        # sessions (start_new_session=True); no signal targets a process group.
+        # Only this exact PID receives a signal. The children were created
+        # with start_new_session=True and survive their controller's exit.
         os.kill(old_pid, signal.SIGTERM)
-        os.kill(old_pid, signal.SIGCONT)
-        stopped = False
         for _ in range(100):
             current = process_identity(old_pid)
             if current is None or current["state"] == "Z":
@@ -269,14 +252,29 @@ def takeover(queue, legacy_path):
             time.sleep(0.02)
         else:
             raise RuntimeError("legacy controller did not exit; do not dispatch")
-        return jobs
-    finally:
-        if stopped and process_identity(old_pid) == identity:
-            os.kill(old_pid, signal.SIGCONT)
-        elif stopped:
-            current = process_identity(old_pid)
-            if current and current["start_ticks"] == identity["start_ticks"]:
-                os.kill(old_pid, signal.SIGCONT)
+    elif not allow_orphans:
+        raise ValueError("refuse takeover: legacy controller identity is not verified")
+    state = read(state_path)
+    state["queue_root"] = str(queue)
+    reconcile_workers(state, devices())
+    validate_fit_ownership(state["jobs"])
+    jobs, parents = split_pending_jobs(state["jobs"], queue)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = queue / f"pre_parallel_handoff_{stamp}.json"
+    if backup.exists():
+        raise ValueError("handoff backup already exists")
+    save(backup, state)
+    save(
+        queue / "parallel_split_plan.json",
+        {
+            "created_at": now(),
+            "parents": parents,
+            "old_controller": {"pid": old_pid, "identity": identity},
+            "backup": str(backup),
+            "preserved_fit_count": sum(j["expected_runs"] for j in jobs),
+        },
+    )
+    return jobs
 
 
 def spawn(job, gpu, queue, legacy_path):
@@ -339,7 +337,7 @@ def poll_job(job, process=None):
     return successful_artifacts(job) and terminal_marker(job), None, "terminal_marker_and_artifacts"
 
 
-def run(queue, legacy_path):
+def run(queue, legacy_path, *, recover=False):
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     log = (queue / "parallel_supervisor.log").open("a", buffering=1)
     os.dup2(log.fileno(), 1)
@@ -355,7 +353,7 @@ def run(queue, legacy_path):
             raise ValueError("training checkout is dirty; refusing queue takeover")
     # Policy code may evolve independently; training code and all frozen files
     # remain pinned to the original checkout recorded in every worker request.
-    jobs = takeover(queue, legacy_path)
+    jobs = takeover(queue, legacy_path, allow_orphans=recover)
     lock = (queue / "supervisor.lock").open("a")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     helpers = legacy.helper()
@@ -451,9 +449,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--queue", type=Path, required=True)
     parser.add_argument("--legacy-worker", type=Path, required=True)
-    parser.add_argument("--takeover", action="store_true", required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--takeover", action="store_true")
+    mode.add_argument(
+        "--recover", action="store_true", help="adopt orphans only if old controller exited"
+    )
     args = parser.parse_args()
-    run(args.queue.resolve(), args.legacy_worker.resolve())
+    run(args.queue.resolve(), args.legacy_worker.resolve(), recover=args.recover)
 
 
 if __name__ == "__main__":

@@ -50,6 +50,8 @@ def test_basic_determ_split_preserves_exact_keys_inputs_and_parent(tmp_path):
     assert set(validate_fit_ownership(a)) == set(map(tuple, parent["expected_keys"]))
     assert all(j["expected_runs"] == 1 and len(j["seeds"]) == len(j["c_tokens"]) == 1 for j in a)
     assert all(j["parent_label"] == parent["label"] for j in a)
+    recovered, _ = split_pending_jobs(a, tmp_path / "output")
+    assert recovered == a
 
 
 @pytest.mark.parametrize("state", ["running", "completed", "failed", "blocked"])

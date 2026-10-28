@@ -108,32 +108,28 @@ def takeover_fixture(service, tmp_path, monkeypatch):
     monkeypatch.setattr(service, "process_identity", lambda pid: dict(identity))
     monkeypatch.setattr(service, "command_line", lambda pid: ["python", str(legacy), "--run"])
     monkeypatch.setattr(service, "devices", lambda: {})
-    monkeypatch.setattr(service, "reconcile_children", lambda *args: [])
+    monkeypatch.setattr(service, "reconcile_workers", lambda *args: [])
     return legacy, signals
 
 
 def test_basic_handoff_signals_only_controller_and_archives_state(service, tmp_path, monkeypatch):
     legacy, signals = takeover_fixture(service, tmp_path, monkeypatch)
     assert service.takeover(tmp_path, legacy) == []
-    assert signals == [
-        (123, service.signal.SIGSTOP),
-        (123, service.signal.SIGTERM),
-        (123, service.signal.SIGCONT),
-    ]
+    assert signals == [(123, service.signal.SIGTERM)]
     assert list(tmp_path.glob("pre_parallel_handoff_*.json"))
     assert (tmp_path / "parallel_split_plan.json").exists()
 
 
-def test_edge_failed_handoff_resumes_original_controller(service, tmp_path, monkeypatch):
+def test_edge_invalid_ownership_never_stops_original_controller(service, tmp_path, monkeypatch):
     legacy, signals = takeover_fixture(service, tmp_path, monkeypatch)
 
     def reject(*args):
         raise ValueError("invalid ownership")
 
-    monkeypatch.setattr(service, "split_pending_jobs", reject)
+    monkeypatch.setattr(service, "validate_fit_ownership", reject)
     with pytest.raises(ValueError, match="invalid ownership"):
         service.takeover(tmp_path, legacy)
-    assert signals == [(123, service.signal.SIGSTOP), (123, service.signal.SIGCONT)]
+    assert signals == []
     assert not list(tmp_path.glob("pre_parallel_handoff_*.json"))
 
 
@@ -155,7 +151,7 @@ def test_basic_real_process_handoff_preserves_independent_worker(service, tmp_pa
     request = dict(
         label="probe",
         root=root,
-        status="running",
+        status="pending",
         dataset="probe",
         method="probe",
         path="native_2d",
@@ -207,6 +203,7 @@ def test_basic_real_process_handoff_preserves_independent_worker(service, tmp_pa
         controller.wait(timeout=3)
         assert controller.returncode == -service.signal.SIGTERM
         assert jobs[0]["pid"] == child_pid and jobs[0]["adopted"]
+        assert jobs[0]["recovered_spawn_window"]
         current = service.process_identity(child_pid)
         assert current["start_ticks"] == child_identity["start_ticks"] and current["state"] != "Z"
     finally:

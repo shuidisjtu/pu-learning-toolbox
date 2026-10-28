@@ -36,7 +36,7 @@ def split_pending_jobs(jobs, output):
     validate_fit_ownership(jobs)
     result, parents = [], []
     for job in jobs:
-        if job["status"] != "pending":
+        if job["status"] != "pending" or job.get("parent_label"):
             result.append(copy.deepcopy(job))
             continue
         if any(Path(job["root"]).rglob("manifest.json")) or any(Path(job["root"]).rglob("*.pt")):

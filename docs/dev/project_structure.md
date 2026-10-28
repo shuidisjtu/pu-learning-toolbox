@@ -449,7 +449,7 @@ tests/
       test_survey_script.py             # run_survey_experiment.py 端到端冒烟/先验强制/缺文件报错
       test_survey_script_cvir.py        # CVIR 显式 CLI 先验换算、视图、快照容量/回收与已有证据保护
       test_queue_scheduling.py          # 单次调度身份守恒、运行中批次保护与 GPU 并发上限
-      test_queue_service.py             # 控制器交接、PID 复用/退出核验与失败回滚，不向训练发信号
+      test_queue_service.py             # 控制器交接、PID 复用/退出核验与孤儿接管，不向训练发信号
       test_queue_monitor.py             # 活跃 fit 阶段、历史快照排除、共享标记与终端宽高
       _survey_script_helpers.py         # 脚本测试共享夹具: 动态加载与基础/SAR 两套四路 split
       test_survey_script_sar.py         # SAR 机制 CLI: OA-only/c token 门禁/审计字段/确定性
