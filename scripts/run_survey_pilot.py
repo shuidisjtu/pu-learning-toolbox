@@ -83,6 +83,7 @@ from pu_toolbox.experiment.survey_profile_identity import (
     has_profile_identities,
     profile_algorithm,
     profile_manifest_identity,
+    profile_training_view_request,
     require_four_role_profile,
 )
 from pu_toolbox.experiment.survey_protocol import (
@@ -675,7 +676,11 @@ def expected_run_views(
             resolved[cache_key] = resolve_training_view(
                 ledger,
                 algorithm,
-                requested,
+                (
+                    profile_training_view_request(protocol, run.method, requested)
+                    if protocol is not None
+                    else requested
+                ),
                 is_oracle=run.is_oracle,
                 estimator_class=estimator_class,
             )

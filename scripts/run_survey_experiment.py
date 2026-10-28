@@ -107,6 +107,7 @@ from pu_toolbox.experiment.strategies import (
     scar_realized_rate,
 )
 from pu_toolbox.experiment.support_data import load_support_dataset
+from pu_toolbox.experiment.survey_profile_identity import profile_training_view_request
 from pu_toolbox.experiment.survey_recipe_binding import SCHEMA_VERSION as RECIPE_BINDING_V2
 from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
 from pu_toolbox.experiment.survey_recipe_registry import (
@@ -848,7 +849,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         os_or_ts = resolve_training_view(
             ledger,
             algorithm,
-            args.os_or_ts,
+            profile_training_view_request(protocol, method, args.os_or_ts),
             is_oracle=args.oracle,
             estimator_class=None if args.oracle else get_algorithm(algorithm),
         )

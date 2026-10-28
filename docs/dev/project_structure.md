@@ -585,6 +585,7 @@ tests/
       test_survey_comparison_v5.py      # v5 覆盖 v3 288 单元：D41 PA 无锚点、P4.2a 四方法锚点与锚点唯一归属
       test_survey_comparison_v6.py      # v6 增 71 个 P4.2b 单元（no_direct_anchor/非运行标记）且只升三条 profile
       test_survey_canonical_version.py  # 各协议与自身 canonical 比较，保留真实子集/改参偏差
+      test_survey_full_meta_view.py     # full-meta 默认 OS、CLI/续跑一致与消融/显式 TS 兼容
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
