@@ -115,6 +115,27 @@ class _SupportCheckpointSelection:
                 + (["v2_p10_self_pu_scope"] if self.method_name == "self_pu" else []),
             }
         )
+        request = config.get("survey_protocol") or {}
+        if request.get("path"):
+            from .survey_protocol import load_protocol
+
+            protocol = load_protocol(request["path"])
+            pending = [
+                item["item_id"]
+                for item in protocol.get("review_items", [])
+                if item["status"] != "accepted"
+            ]
+            self._audit.update(
+                protocol_policy_basis=protocol["protocol_version"],
+                protocol_pending_review_items=pending,
+            )
+            if any(
+                item["item_id"] == "v2_p4_clean_support_policy" and item["status"] == "accepted"
+                for item in protocol.get("review_items", [])
+            ):
+                self._audit["budget_approval"] = "approved_by_protocol_owner_20261021"
+            # A trainer records policy approval; batch admission belongs to the audit.
+            self._audit["formal_admission_scope"] = "not_adjudicated_by_adapter"
 
     def bind_checkpoint_directory(self, root):
         """Called by runner preflight; the measured root is the writer's root."""

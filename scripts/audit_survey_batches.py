@@ -62,6 +62,10 @@ from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
     comparison_for_version,
     expected_result_units,
 )
+from pu_toolbox.experiment.survey_profile_identity import (  # noqa: E402
+    valid_manifest_profile_identity,
+)
+from pu_toolbox.experiment.survey_profile_map import profile_registration_status  # noqa: E402
 from pu_toolbox.experiment.survey_protocol import (  # noqa: E402
     digest,
     load_protocol,
@@ -81,6 +85,10 @@ from pu_toolbox.experiment.survey_recipe_audit import (  # noqa: E402
     recipe_audit_lines,
     validate_recipe_config,
 )
+from pu_toolbox.experiment.survey_recipe_registry import (  # noqa: E402
+    load_registry,
+    validate_registry,
+)
 from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     STATUSES,
     group_key,
@@ -92,6 +100,41 @@ from pu_toolbox.experiment.survey_summary import (  # noqa: E402
 from pu_toolbox.utils.serialization import file_hash  # noqa: E402
 
 CONFIG_SCHEMA_VERSION = "survey-batch-roots-1"
+
+# Historical global progress notes are not evidence against an individual completed row.
+# Keep this allowlist exact: future or run-specific blockers require their own adjudication.
+_REASSESSABLE_BLOCKERS = frozenset(
+    {
+        (
+            "CVIR, KLDCE, P3MIX, PAN, PUET, RP, VPU, the GradPU native-2d path, and the "
+            "cifar10 rows for LaGAM and PULNS still lack a frozen main-chain budget or runner."
+        ),
+        (
+            "Formal admission still awaits a multi-seed batch; the P4.1-B budget freeze, the "
+            "versioned profile-to-comparison mapping and the comparison matrix "
+            "(PA re-adjudication, P4.2a/P4.2b entries and the added datasets) "
+            "landed on 2026-10-25 (D40/D41). "
+            "Per-run per-epoch checkpoint independence is no longer a static protocol blocker: "
+            "the runner adds and discharges it from the actual checkpoint trajectories (D41)."
+        ),
+        "profile_identity_extension_engineering_only",
+    }
+)
+REASSESSMENT_CHECKS = (
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A09",
+    "A10",
+    "A12",
+    "A14",
+    "A17",
+    "E01",
+)
 
 #: Optional per-batch inputs, each a path.  A check whose key is absent reports
 #: ``not_run`` rather than passing, so adding a key can only add evidence.
@@ -1385,6 +1428,180 @@ def check_isolation_tests(repo_root: Path) -> dict[str, Any]:
     )
 
 
+def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -> list[str]:
+    """Require every frozen epoch and component, including warmup checkpoints."""
+    profile_id = payload.get("profile_id")
+    if profile_id not in {"lagam", "pulns", "self_pu_full_meta"}:
+        return ["profile_outside_reassessment_scope"]
+    profile = protocol["method_profiles"][profile_id]
+    budget = protocol["budgets"][profile["budget"]]
+    recorded_params = payload.get("estimator_parameters", {})
+    if any(recorded_params.get(key) != value for key, value in profile["params"].items()):
+        return ["estimator_parameters_not_frozen"]
+    candidates = payload.get("candidate_runs", [])
+    if payload.get("selection_checkpoint_scope") != "independent_per_epoch":
+        return ["checkpoint_scope_not_independent"]
+    if len(candidates) != budget["outer_candidates"]:
+        return ["candidate_pool_incomplete"]
+    if any(payload.get("budget", {}).get(key) != value for key, value in budget.items()):
+        return ["frozen_budget_mismatch"]
+    count = budget["epochs"]
+    components = {"teacher_1", "teacher_2"} if profile_id == "self_pu_full_meta" else {"model"}
+    start = 1 if profile_id == "self_pu_full_meta" else 0
+    expected = {
+        (label, component) for label in range(start, start + count) for component in components
+    }
+    for candidate in candidates:
+        params = candidate.get("params")
+        if candidate.get("status") != "succeeded" or not isinstance(params, dict):
+            return ["candidate_not_succeeded"]
+        if any(profile["params"].get(key) != value for key, value in params.items()):
+            return ["candidate_params_not_frozen"]
+        refs = candidate.get("epoch_checkpoints", [])
+        observed = {(ref.get("epoch_label"), ref.get("component")) for ref in refs}
+        if len(refs) != len(expected) or observed != expected:
+            return ["checkpoint_trajectory_incomplete"]
+        provenance_key = "captured_episodes" if profile_id == "pulns" else "captured_epochs"
+        captured = candidate.get("training_provenance", {}).get(provenance_key, [])
+        if captured != list(range(start, start + count)):
+            return ["captured_epoch_provenance_incomplete"]
+        if any(
+            not {"OA", "PA+clean-support"} <= set(ref.get("validation_metrics", {})) for ref in refs
+        ):
+            return ["checkpoint_validation_incomplete"]
+    return []
+
+
+def reassess_admission(
+    entries: list[dict[str, Any]],
+    *,
+    protocol: dict[str, Any],
+    checks: list[dict[str, Any]],
+    fairness_passed: bool = True,
+) -> dict[str, Any]:
+    """Re-adjudicate exact historical blockers without changing recorded evidence.
+
+    Registry validation here is posthoc protocol/budget verification. It never
+    claims that a legacy run had a runtime recipe binding.
+    """
+    canonical = load_protocol(resolve_protocol_path("survey-v3.0"))
+    canonical_sha = digest(canonical)
+    results = {item["check_id"]: item["result"] for item in checks}
+    problems = [
+        f"audit_{name}_not_passed" for name in REASSESSMENT_CHECKS if results.get(name) != "pass"
+    ]
+    if any(item.get("result") == "fail" for item in checks) or not fairness_passed:
+        problems.append("audit_or_fairness_failed")
+    if digest(protocol) != canonical_sha or protocol.get("review_status") != "accepted":
+        problems.append("protocol_not_canonical_accepted_v3")
+    registry_path = REPO_ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1.json"
+    registry = load_registry(registry_path)
+    if registry.get("recipe_lifecycle") != "locked" or any(
+        item.severity == "error" for item in validate_registry(registry, canonical)
+    ):
+        problems.append("locked_registry_invalid")
+    try:
+        if check_result_completeness(entries, protocol=canonical)["result"] != "pass":
+            problems.append("five_seed_c_grid_incomplete")
+    except (KeyError, TypeError, ValueError):
+        problems.append("five_seed_c_grid_invalid")
+    per_run: dict[str, list[str]] = {}
+    for entry in entries:
+        payload = entry["payload"]
+        local = []
+        profile_id = payload.get("profile_id")
+        if (
+            not valid_manifest_profile_identity(payload)
+            or payload.get("protocol_sha256") != canonical_sha
+            or payload.get("execution_unit") not in canonical["execution_units"]
+            or payload.get("protocol_deviation")
+        ):
+            local.append("manifest_protocol_identity_or_deviation")
+        try:
+            registration = profile_registration_status(profile_id, protocol=canonical)
+            if registration["comparison_registration_status"] == "not_in_matrix" or any(
+                payload.get(key) != value for key, value in registration.items()
+            ):
+                local.append("profile_registration_mismatch")
+            recipe = registry["profiles"][profile_id]
+            if recipe.get("recipe_lifecycle") != "locked":
+                local.append("profile_recipe_not_locked")
+            local.extend(_checkpoint_reassessment_problems(payload, canonical))
+        except (KeyError, TypeError, ValueError):
+            local.append("profile_or_checkpoint_evidence_invalid")
+        per_run[str(entry["path"])] = local
+    # A completed row needs every member's trajectory, not only its own seed.
+    if any(per_run.values()):
+        problems.append("row_member_evidence_incomplete")
+    runs = {}
+    for entry in entries:
+        path = str(entry["path"])
+        payload = entry["payload"]
+        recorded = list(payload.get("formal_blockers", []))
+        reasons = sorted(set(problems + per_run[path]))
+        discharged = [
+            value for value in recorded if not reasons and value in _REASSESSABLE_BLOCKERS
+        ]
+        remaining = [value for value in recorded if value not in discharged]
+        source_sha = file_hash(Path(path)) if Path(path).is_file() else None
+        if source_sha is None:
+            reasons.append("manifest_source_bytes_missing")
+            discharged, remaining = [], recorded
+        runs[path] = {
+            "manifest_sha256": source_sha,
+            "recorded_formal_eligible": payload.get("formal_eligible"),
+            "recorded_blockers": recorded,
+            "discharged_blockers": discharged,
+            "remaining_blockers": remaining,
+            "eligible": not remaining and not reasons,
+            "requirements_not_met": reasons,
+            "registry_verification": "posthoc_canonical_profile_and_budget",
+            "runtime_recipe_binding": payload.get("recipe_binding_status", "legacy_unbound"),
+        }
+    return {
+        "schema_version": "survey-admission-reassessment-1",
+        "protocol_version": canonical["protocol_version"],
+        "protocol_sha256": canonical_sha,
+        "recipe_registry_sha256": file_hash(registry_path),
+        "required_checks": list(REASSESSMENT_CHECKS),
+        "runs": runs,
+    }
+
+
+def verify_support_receipts(config: dict, entries: list[dict]) -> dict[str, bool]:
+    """Re-read the five-role products without asserting upstream source replay."""
+    from pu_toolbox.experiment.support_data import load_support_dataset
+
+    roots = {}
+    for batch in config["batches"]:
+        if batch.get("plan"):
+            try:
+                plan = json.loads(Path(batch["plan"]).read_text(encoding="utf-8"))
+                if plan.get("support_root"):
+                    roots[batch["name"]] = Path(plan["support_root"])
+            except (OSError, ValueError):
+                pass
+    cache = {}
+    verified = {}
+    for entry in entries:
+        payload = entry["payload"]
+        unit = payload.get("execution_unit", {})
+        root = roots.get(entry["batch"])
+        key = (root, unit.get("dataset"), payload.get("seed"))
+        if key not in cache:
+            try:
+                if root is None:
+                    raise ValueError("no support root in the audited plan")
+                _, _, receipt = load_support_dataset(root / str(key[1]) / f"split_{key[2]}")
+                cache[key] = receipt
+            except (OSError, ValueError, KeyError, TypeError):
+                cache[key] = None
+        verified[str(entry["path"])] = cache[key] is not None and cache[key] == payload.get(
+            "split_ref"
+        )
+    return verified
+
+
 def build_audit(
     config: dict[str, Any],
     *,
@@ -1512,6 +1729,9 @@ def build_audit(
             check_reclaim(loaded, inventories=inventories),
             check_status_labels(loaded),
             check_probe_separation(loaded, protocol=protocol),
+            check_snapshots(config, repo_root, entries=loaded),
+            check_ablation_disclosure(loaded, repo_root),
+            check_isolation_tests(repo_root),
         ]
     )
 
@@ -1535,11 +1755,18 @@ def build_audit(
             failures.append((paths, str(exc)))
             continue
         refused_total += len(outcome["refused"])
-        # A unit whose manifests carry formal blockers is what makes the gate's
-        # batch-wide `formal_ready` false.  Recorded here because a reader would
-        # otherwise see per-row "formal" verdicts beside a batch the gate holds
-        # back, and read one of the two as wrong.
-        if any(unit["blockers"] for unit in outcome["groups"][0]["units"]):
+    reassessment = reassess_admission(
+        loaded,
+        protocol=protocol,
+        checks=checks,
+        fairness_passed=not failures and not refused_total,
+    )
+    receipts = verify_support_receipts(config, loaded)
+    for path, decision in reassessment["runs"].items():
+        decision["support_receipt_verified"] = receipts[path]
+    report["admission_reassessment"] = reassessment
+    for members in buckets.values():
+        if any(reassessment["runs"][str(entry["path"])]["remaining_blockers"] for entry in members):
             blocked_groups += 1
     formal_ready = not failures and not refused_total and not blocked_groups
     checks.append(
@@ -1562,14 +1789,6 @@ def build_audit(
                 "formal_ready": formal_ready,
             },
         )
-    )
-
-    checks.extend(
-        [
-            check_snapshots(config, repo_root, entries=loaded),
-            check_ablation_disclosure(loaded, repo_root),
-            check_isolation_tests(repo_root),
-        ]
     )
 
     report["checks"] = checks

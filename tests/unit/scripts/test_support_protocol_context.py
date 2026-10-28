@@ -151,8 +151,30 @@ def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_pat
     manifest = json.loads(manifests[0].read_text())
     assert set(manifest["test_results"]) == {"PA+clean-support", "OA"}
     assert set(manifest["comparison"]) == set(manifest["test_results"])
+    support = manifest["extra_supervision"]
+    assert support["protocol_policy_basis"] == "survey-v3.0"
+    assert support["protocol_pending_review_items"] == []
+    assert support["budget_approval"] == "approved_by_protocol_owner_20261021"
     assert manifest["selection_checkpoint_scope"] == "independent_per_epoch"
     assert not {"c", "noncanonical_protocol_matrix", "split_ref_override"}.intersection(
         manifest["protocol_deviation"]
     )
     assert all(run["status"] == "succeeded" for run in manifest["candidate_runs"])
+
+
+def test_edge_receipt_reassessment_rejects_changed_support_arrays(tmp_path):
+    import audit_survey_batches as audit
+
+    product = tabular_product(tmp_path / "products" / "spambase" / "split_0")
+    receipt = json.loads((product / "support_manifest.json").read_text())
+    plan = tmp_path / "plan.json"
+    plan.write_text(json.dumps({"support_root": str(tmp_path / "products")}))
+    config = {"batches": [{"name": "support", "plan": str(plan)}]}
+    entry = {
+        "path": "run.json",
+        "batch": "support",
+        "payload": {"execution_unit": {"dataset": "spambase"}, "seed": 0, "split_ref": receipt},
+    }
+    assert audit.verify_support_receipts(config, [entry]) == {"run.json": True}
+    (product / "support.npz").write_bytes(b"changed")
+    assert audit.verify_support_receipts(config, [entry]) == {"run.json": False}
