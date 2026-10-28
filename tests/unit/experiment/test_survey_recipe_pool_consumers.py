@@ -94,8 +94,13 @@ def test_basic_summary_preserves_per_seed_pa_oa_choice_in_json_csv_markdown(
 ):
     protocol, _, config, _ = _inputs(tmp_path)
     # Synthetic future protocol in memory only, never the frozen file or matrix.
-    monkeypatch.setattr(audit_cli, "load_protocol", lambda: protocol)
-    monkeypatch.setattr(summary_cli, "load_protocol", lambda: protocol)
+    original_loader = audit_cli.load_protocol
+
+    def load_test_protocol(path=None):
+        return protocol if path is None else original_loader(path)
+
+    monkeypatch.setattr(audit_cli, "load_protocol", load_test_protocol)
+    monkeypatch.setattr(summary_cli, "load_protocol", load_test_protocol)
     report = summary_cli.build_summary(config)
     assert report["recipe_audit"]["overall"] == "pass"
     assert len(report["rows"]) == 2

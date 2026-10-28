@@ -948,6 +948,8 @@ def run_comparison_units(
         # manifest's own selection keys; two would mean one of them silently
         # overwrote the other.
         key = unit["selection_protocol"].upper()
+        if key == "PA" and config.get("clean_support_provided"):
+            key = "PA+clean-support"
         if key in entries:
             raise ValueError(f"a run produces at most one result unit per protocol, got two {key}")
         entries[key] = comparison_context(

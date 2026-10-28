@@ -44,6 +44,7 @@ if _SCRIPTS_DIR not in sys.path:
 
 import aggregate_survey_runs as gate  # noqa: E402
 
+from pu_toolbox.experiment import batch_evidence  # noqa: E402
 from pu_toolbox.experiment.manifest import load_manifest  # noqa: E402
 from pu_toolbox.experiment.survey_audit import (  # noqa: E402
     PROBE_ROLE,
@@ -61,6 +62,10 @@ from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
     comparison_for_version,
     expected_result_units,
 )
+from pu_toolbox.experiment.survey_profile_identity import (  # noqa: E402
+    valid_manifest_profile_identity,
+)
+from pu_toolbox.experiment.survey_profile_map import profile_registration_status  # noqa: E402
 from pu_toolbox.experiment.survey_protocol import (  # noqa: E402
     digest,
     load_protocol,
@@ -80,6 +85,10 @@ from pu_toolbox.experiment.survey_recipe_audit import (  # noqa: E402
     recipe_audit_lines,
     validate_recipe_config,
 )
+from pu_toolbox.experiment.survey_recipe_registry import (  # noqa: E402
+    load_registry,
+    validate_registry,
+)
 from pu_toolbox.experiment.survey_summary import (  # noqa: E402
     STATUSES,
     group_key,
@@ -91,6 +100,41 @@ from pu_toolbox.experiment.survey_summary import (  # noqa: E402
 from pu_toolbox.utils.serialization import file_hash  # noqa: E402
 
 CONFIG_SCHEMA_VERSION = "survey-batch-roots-1"
+
+# Historical global progress notes are not evidence against an individual completed row.
+# Keep this allowlist exact: future or run-specific blockers require their own adjudication.
+_REASSESSABLE_BLOCKERS = frozenset(
+    {
+        (
+            "CVIR, KLDCE, P3MIX, PAN, PUET, RP, VPU, the GradPU native-2d path, and the "
+            "cifar10 rows for LaGAM and PULNS still lack a frozen main-chain budget or runner."
+        ),
+        (
+            "Formal admission still awaits a multi-seed batch; the P4.1-B budget freeze, the "
+            "versioned profile-to-comparison mapping and the comparison matrix "
+            "(PA re-adjudication, P4.2a/P4.2b entries and the added datasets) "
+            "landed on 2026-10-25 (D40/D41). "
+            "Per-run per-epoch checkpoint independence is no longer a static protocol blocker: "
+            "the runner adds and discharges it from the actual checkpoint trajectories (D41)."
+        ),
+        "profile_identity_extension_engineering_only",
+    }
+)
+REASSESSMENT_CHECKS = (
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A09",
+    "A10",
+    "A12",
+    "A14",
+    "A17",
+    "E01",
+)
 
 #: Optional per-batch inputs, each a path.  A check whose key is absent reports
 #: ``not_run`` rather than passing, so adding a key can only add evidence.
@@ -842,7 +886,11 @@ def check_result_completeness(
         row_paths.setdefault(row, set()).add(str(entry["path"]))
         for name in sorted(payload.get("test_results") or {}):
             rows.setdefault(row, set()).add(
-                (normalize_c_token(payload), matrix_selection_protocol(name), int(payload["seed"]))
+                (
+                    normalize_c_token(payload),
+                    "pa" if name == "PA+clean-support" else matrix_selection_protocol(name),
+                    int(payload["seed"]),
+                )
             )
         if payload.get("protocol_deviation"):
             deviations.setdefault("/".join(row), []).append(
@@ -1226,20 +1274,72 @@ def _documentation_check(
     )
 
 
-def check_snapshots(config: dict[str, Any], repo_root: Path) -> dict[str, Any]:
-    """A14: each batch has its stage snapshot, and the snapshot has its boundary section.
+def _packet_snapshot_problem(batch: dict[str, Any], entries: list[dict[str, Any]]) -> str | None:
+    """A new batch replaces a legacy stage document only with verified D52 packets."""
+    members = [entry for entry in entries if entry.get("batch") == batch["name"]]
+    if not members:
+        return "no stage snapshot or cited batch evidence is available"
+    for entry in members:
+        payload = entry.get("payload") or {}
+        block = payload.get("batch")
+        if not isinstance(block, Mapping):
+            return "every new-batch manifest must cite its evidence packet"
+        name = block.get("evidence_file")
+        if not isinstance(name, str) or Path(name).name != name:
+            return "the cited evidence packet must be a filename"
+        path = Path(batch["root"]) / batch_evidence.DIRECTORY / name
+        try:
+            packet = batch_evidence.load(path)
+            if batch_evidence.manifest_block(packet, path) != block:
+                return "the evidence citation no longer matches its packet"
+            unit = payload["execution_unit"]
+            oracle = bool(payload.get("c_independent"))
+            batch_evidence.require_matches(
+                packet,
+                unit={
+                    "dataset": unit["dataset"],
+                    "method": unit["method"],
+                    "training_path": payload["training_path"],
+                    "mechanism": None if oracle else mechanism_of(payload),
+                },
+                seeds=packet["seeds"],
+                c_tokens=packet["c_tokens"],
+                protocol_sha256=payload["protocol_sha256"],
+            )
+            if payload["seed"] not in packet["seeds"] or (
+                not oracle and normalize_c_token(payload) not in packet["c_tokens"]
+            ):
+                return "the evidence packet does not cover this manifest's seed or c"
+            if packet["protocol_version"] != payload["protocol_version"]:
+                return "the evidence packet names another protocol version"
+        except (KeyError, OSError, ValueError, TypeError) as exc:
+            return f"cannot verify cited batch evidence: {exc}"
+    return None
+
+
+def check_snapshots(
+    config: dict[str, Any], repo_root: Path, *, entries: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """A14: legacy batches keep stage snapshots; new batches cite verified D52 evidence.
 
     Only the file and the "本快照不含" heading are looked for; whether the wording under
     it is right, or the snapshot final (B4's title still says draft), is a reviewer's call.
+    A new batch has no historical stage document, so every delivered manifest
+    must instead cite an unchanged content-addressed packet describing that run.
     """
     findings: list[str] = []
     drafts: list[str] = []
     found: list[str] = []
+    packet_batches: list[str] = []
     for batch in config["batches"]:
         name = batch["name"]
         filename = SNAPSHOT_FILES.get(name)
         if filename is None:
-            findings.append(f"{name}: no stage snapshot is registered for this batch")
+            problem = _packet_snapshot_problem(batch, entries or [])
+            if problem:
+                findings.append(f"{name}: {problem}")
+            else:
+                packet_batches.append(name)
             continue
         text, problem = _read_text(repo_root / DELIVERY_DIR / filename)
         if problem:
@@ -1255,11 +1355,16 @@ def check_snapshots(config: dict[str, Any], repo_root: Path) -> dict[str, Any]:
         findings,
         ok_message=(
             f"{len(found)} batch snapshot(s) present with their boundary section; "
+            f"{len(packet_batches)} new batch(es) carry verified D52 evidence; "
             "the wording itself is not judged"
             + (f"; still titled draft: {drafts}" if drafts else "")
         ),
         fail_message=f"{len(findings)} snapshot problem(s)",
-        observed={"snapshots_found": sorted(found), "titled_draft": sorted(drafts)},
+        observed={
+            "snapshots_found": sorted(found),
+            "titled_draft": sorted(drafts),
+            "packet_batches": sorted(packet_batches),
+        },
     )
 
 
@@ -1321,6 +1426,380 @@ def check_isolation_tests(repo_root: Path) -> dict[str, Any]:
         fail_message=f"{len(findings)} isolation guard test(s) missing",
         observed={"tests": [f"{path}::{name}" for path, name in ISOLATION_TESTS]},
     )
+
+
+def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -> list[str]:
+    """Require every frozen epoch and component, including warmup checkpoints."""
+    profile_id = payload.get("profile_id")
+    if profile_id not in {"lagam", "pulns", "self_pu_full_meta"}:
+        return ["profile_outside_reassessment_scope"]
+    profile = protocol["method_profiles"][profile_id]
+    if profile_id == "self_pu_full_meta" and (
+        payload.get("run_view") == "ts-compatible"
+        or payload.get("extra_supervision", {}).get("training_view") == "ts"
+    ):
+        return ["full_meta_ts_adapter_not_admitted"]
+    budget = protocol["budgets"][profile["budget"]]
+    recorded_params = payload.get("estimator_parameters", {})
+    if any(recorded_params.get(key) != value for key, value in profile["params"].items()):
+        return ["estimator_parameters_not_frozen"]
+    candidates = payload.get("candidate_runs", [])
+    if payload.get("selection_checkpoint_scope") != "independent_per_epoch":
+        return ["checkpoint_scope_not_independent"]
+    if len(candidates) != budget["outer_candidates"]:
+        return ["candidate_pool_incomplete"]
+    if any(payload.get("budget", {}).get(key) != value for key, value in budget.items()):
+        return ["frozen_budget_mismatch"]
+    count = budget["epochs"]
+    components = {"teacher_1", "teacher_2"} if profile_id == "self_pu_full_meta" else {"model"}
+    start = 1 if profile_id == "self_pu_full_meta" else 0
+    expected = {
+        (label, component) for label in range(start, start + count) for component in components
+    }
+    for candidate in candidates:
+        params = candidate.get("params")
+        if candidate.get("status") != "succeeded" or not isinstance(params, dict):
+            return ["candidate_not_succeeded"]
+        if any(profile["params"].get(key) != value for key, value in params.items()):
+            return ["candidate_params_not_frozen"]
+        refs = candidate.get("epoch_checkpoints", [])
+        observed = {(ref.get("epoch_label"), ref.get("component")) for ref in refs}
+        if len(refs) != len(expected) or observed != expected:
+            return ["checkpoint_trajectory_incomplete"]
+        provenance_key = "captured_episodes" if profile_id == "pulns" else "captured_epochs"
+        captured = candidate.get("training_provenance", {}).get(provenance_key, [])
+        if captured != list(range(start, start + count)):
+            return ["captured_epoch_provenance_incomplete"]
+        if any(
+            not {"OA", "PA+clean-support"} <= set(ref.get("validation_metrics", {})) for ref in refs
+        ):
+            return ["checkpoint_validation_incomplete"]
+    return []
+
+
+def _partitioned_grid_problems(
+    entries: list[dict[str, Any]], *, protocol: dict[str, Any], config: dict[str, Any]
+) -> list[str]:
+    """Prove a single execution unit's complete grid and its batch identities."""
+    if not entries:
+        return ["partition_grid_empty"]
+    roots = {item["name"]: Path(item["root"]) for item in config.get("batches", [])}
+    problems: set[str] = set()
+    identities = []
+    cells = []
+    first = entries[0]["payload"]
+    unit = first["execution_unit"]
+    mechanism = mechanism_of(first)
+    expected_unit = {
+        "dataset": unit["dataset"],
+        "method": unit["method"],
+        "training_path": first["training_path"],
+        "mechanism": mechanism,
+    }
+    expected_seeds = set(protocol["seeds"])
+    expected_tokens = set(protocol["c_tokens"].get(mechanism, []))
+    if not expected_seeds or not expected_tokens:
+        return ["partition_grid_unsupported"]
+    expected = {(seed, token) for seed in expected_seeds for token in expected_tokens}
+    for entry in entries:
+        payload = entry["payload"]
+        try:
+            cell = (payload["seed"], normalize_c_token(payload))
+            cells.append(cell)
+            if payload["execution_unit"] != unit or mechanism_of(payload) != mechanism:
+                problems.add("partition_unit_mismatch")
+            if payload.get("run_view") != first.get("run_view"):
+                problems.add("partition_view_mismatch")
+            if not set(payload.get("protocol_deviation", [])) <= {"seed_subset", "c_grid"}:
+                problems.add("partition_other_deviation")
+            block = payload["batch"]
+            name = block["evidence_file"]
+            if not isinstance(name, str) or Path(name).name != name:
+                raise ValueError("invalid packet name")
+            path = roots[entry["batch"]] / batch_evidence.DIRECTORY / name
+            packet = batch_evidence.load(path)
+            if batch_evidence.manifest_block(packet, path) != block:
+                raise ValueError("packet citation mismatch")
+            batch_evidence.require_matches(
+                packet,
+                unit=expected_unit,
+                seeds=packet["seeds"],
+                c_tokens=packet["c_tokens"],
+                protocol_sha256=digest(protocol),
+            )
+            seeds, tokens = packet["seeds"], packet["c_tokens"]
+            if (
+                not seeds
+                or len(seeds) != len(set(seeds))
+                or not set(seeds) <= expected_seeds
+                or not tokens
+                or len(tokens) != len(set(tokens))
+                or not set(tokens) <= expected_tokens
+                or cell[0] not in seeds
+                or cell[1] not in tokens
+                or packet["run_count"] != len(seeds) * len(tokens)
+                or packet["protocol_version"] != protocol["protocol_version"]
+            ):
+                raise ValueError("packet grid mismatch")
+            expected_deviations = set()
+            if seeds != protocol["seeds"]:
+                expected_deviations.add("seed_subset")
+            if tokens != protocol["c_tokens"][mechanism]:
+                expected_deviations.add("c_grid")
+            if set(payload.get("protocol_deviation", [])) != expected_deviations:
+                raise ValueError("recorded partition deviations disagree with the packet")
+            if expected_deviations and "protocol_deviation" not in payload.get(
+                "formal_blockers", []
+            ):
+                raise ValueError("partition deviation has no recorded blocker")
+            env = packet["environment"]
+            hardware = env["hardware"]
+            threads = env["thread_environment"]
+            required_env = (
+                "python_version",
+                "python_implementation",
+                "platform",
+                "torch_version",
+                "cuda_available",
+                "cuda_runtime_version",
+                "cudnn_version",
+                "gpu_devices",
+                "gpu_driver_version",
+                "numpy_version",
+                "scikit_learn_version",
+            )
+            if (
+                env.get("state") != "recorded"
+                or any(k not in env for k in required_env)
+                or not hardware.get("machine")
+                or not hardware.get("processor")
+                or not hardware.get("cpu_count")
+                or not all(
+                    env.get(key)
+                    for key in (
+                        "python_version",
+                        "python_implementation",
+                        "platform",
+                        "numpy_version",
+                        "scikit_learn_version",
+                    )
+                )
+                or (
+                    env.get("cuda_available")
+                    and (
+                        not env.get("gpu_devices")
+                        or not env.get("gpu_driver_version")
+                        or not env.get("cuda_runtime_version")
+                    )
+                )
+                or set(threads) != {"OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"}
+                or packet["code_commit_state"] != "recorded"
+                or not packet["code_commit"]
+                or packet["code_commit_dirty"] is not False
+                or packet["dependency_lock"].get("state") != "recorded"
+                or not packet["dependency_lock"].get("sha256")
+            ):
+                raise ValueError("incomplete runtime identity")
+            identities.append(
+                (
+                    packet["code_commit"],
+                    packet["dependency_lock"],
+                    env,
+                    packet.get("recipe_registry"),
+                )
+            )
+        except (KeyError, TypeError, ValueError, OSError):
+            problems.add("partition_batch_evidence_invalid")
+    if len(cells) != len(expected) or set(cells) != expected:
+        problems.add("partition_grid_incomplete_or_duplicate")
+    if (
+        not identities
+        or len(identities) != len(entries)
+        or any(identity != identities[0] for identity in identities[1:])
+    ):
+        problems.add("partition_runtime_identity_mismatch")
+    return sorted(problems)
+
+
+def reassess_admission(
+    entries: list[dict[str, Any]],
+    *,
+    protocol: dict[str, Any],
+    checks: list[dict[str, Any]],
+    fairness_passed: bool = True,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Re-adjudicate exact historical blockers without changing recorded evidence.
+
+    Registry validation here is posthoc protocol/budget verification. It never
+    claims that a legacy run had a runtime recipe binding.
+    """
+    canonical = load_protocol(resolve_protocol_path("survey-v3.0"))
+    canonical_sha = digest(canonical)
+    results = {item["check_id"]: item["result"] for item in checks}
+    problems = [
+        f"audit_{name}_not_passed" for name in REASSESSMENT_CHECKS if results.get(name) != "pass"
+    ]
+    if any(item.get("result") == "fail" for item in checks) or not fairness_passed:
+        problems.append("audit_or_fairness_failed")
+    if digest(protocol) != canonical_sha or protocol.get("review_status") != "accepted":
+        problems.append("protocol_not_canonical_accepted_v3")
+    registry_path = REPO_ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1.json"
+    registry = load_registry(registry_path)
+    if registry.get("recipe_lifecycle") != "locked" or any(
+        item.severity == "error" for item in validate_registry(registry, canonical)
+    ):
+        problems.append("locked_registry_invalid")
+    try:
+        if check_result_completeness(entries, protocol=canonical)["result"] != "pass":
+            problems.append("five_seed_c_grid_incomplete")
+    except (KeyError, TypeError, ValueError):
+        problems.append("five_seed_c_grid_invalid")
+    partition_problems: dict[tuple, list[str]] = {}
+    partition_groups: dict[tuple, list[dict[str, Any]]] = {}
+    for entry in entries:
+        payload = entry["payload"]
+        unit = payload["execution_unit"]
+        key = (
+            unit["dataset"],
+            unit["method"],
+            payload["training_path"],
+            mechanism_of(payload),
+            payload.get("run_view"),
+        )
+        partition_groups.setdefault(key, []).append(entry)
+    for key, members in partition_groups.items():
+        if any(member["payload"].get("protocol_deviation") for member in members):
+            partition_problems[key] = (
+                _partitioned_grid_problems(members, protocol=canonical, config=config)
+                if config is not None
+                else ["partition_config_missing"]
+            )
+    per_run: dict[str, list[str]] = {}
+    for entry in entries:
+        payload = entry["payload"]
+        local = []
+        profile_id = payload.get("profile_id")
+        unit = payload["execution_unit"]
+        partition_key = (
+            unit["dataset"],
+            unit["method"],
+            payload["training_path"],
+            mechanism_of(payload),
+            payload.get("run_view"),
+        )
+        local.extend(partition_problems.get(partition_key, []))
+        if (
+            not valid_manifest_profile_identity(payload)
+            or payload.get("protocol_sha256") != canonical_sha
+            or unit not in canonical["execution_units"]
+        ):
+            local.append("manifest_protocol_identity_or_deviation")
+        try:
+            registration = profile_registration_status(profile_id, protocol=canonical)
+            if registration["comparison_registration_status"] == "not_in_matrix" or any(
+                payload.get(key) != value for key, value in registration.items()
+            ):
+                local.append("profile_registration_mismatch")
+            recipe = registry["profiles"][profile_id]
+            if recipe.get("recipe_lifecycle") != "locked":
+                local.append("profile_recipe_not_locked")
+            local.extend(_checkpoint_reassessment_problems(payload, canonical))
+        except (KeyError, TypeError, ValueError):
+            local.append("profile_or_checkpoint_evidence_invalid")
+        per_run[str(entry["path"])] = local
+    # A completed row needs every member's trajectory, not only its own seed.
+    incomplete_groups = {
+        group_key(entry["payload"]) for entry in entries if per_run[str(entry["path"])]
+    }
+    runs = {}
+    for entry in entries:
+        path = str(entry["path"])
+        payload = entry["payload"]
+        unit = payload["execution_unit"]
+        partition_key = (
+            unit["dataset"],
+            unit["method"],
+            payload["training_path"],
+            mechanism_of(payload),
+            payload.get("run_view"),
+        )
+        recorded = list(payload.get("formal_blockers", []))
+        reasons = sorted(set(problems + per_run[path]))
+        if group_key(payload) in incomplete_groups:
+            reasons.append("row_member_evidence_incomplete")
+        discharged = [
+            value
+            for value in recorded
+            if not reasons
+            and (
+                value in _REASSESSABLE_BLOCKERS
+                or (
+                    value == "protocol_deviation"
+                    and payload.get("protocol_deviation")
+                    and partition_key in partition_problems
+                )
+            )
+        ]
+        remaining = [value for value in recorded if value not in discharged]
+        source_sha = file_hash(Path(path)) if Path(path).is_file() else None
+        if source_sha is None:
+            reasons.append("manifest_source_bytes_missing")
+            discharged, remaining = [], recorded
+        runs[path] = {
+            "manifest_sha256": source_sha,
+            "recorded_formal_eligible": payload.get("formal_eligible"),
+            "recorded_blockers": recorded,
+            "discharged_blockers": discharged,
+            "remaining_blockers": remaining,
+            "eligible": not remaining and not reasons,
+            "requirements_not_met": reasons,
+            "partition_grid_checked": partition_key in partition_problems,
+            "registry_verification": "posthoc_canonical_profile_and_budget",
+            "runtime_recipe_binding": payload.get("recipe_binding_status", "legacy_unbound"),
+        }
+    return {
+        "schema_version": "survey-admission-reassessment-1",
+        "protocol_version": canonical["protocol_version"],
+        "protocol_sha256": canonical_sha,
+        "recipe_registry_sha256": file_hash(registry_path),
+        "required_checks": list(REASSESSMENT_CHECKS),
+        "runs": runs,
+    }
+
+
+def verify_support_receipts(config: dict, entries: list[dict]) -> dict[str, bool]:
+    """Re-read the five-role products without asserting upstream source replay."""
+    from pu_toolbox.experiment.support_data import load_support_dataset
+
+    roots = {}
+    for batch in config["batches"]:
+        if batch.get("plan"):
+            try:
+                plan = json.loads(Path(batch["plan"]).read_text(encoding="utf-8"))
+                if plan.get("support_root"):
+                    roots[batch["name"]] = Path(plan["support_root"])
+            except (OSError, ValueError):
+                pass
+    cache = {}
+    verified = {}
+    for entry in entries:
+        payload = entry["payload"]
+        unit = payload.get("execution_unit", {})
+        root = roots.get(entry["batch"])
+        key = (root, unit.get("dataset"), payload.get("seed"))
+        if key not in cache:
+            try:
+                if root is None:
+                    raise ValueError("no support root in the audited plan")
+                _, _, receipt = load_support_dataset(root / str(key[1]) / f"split_{key[2]}")
+                cache[key] = receipt
+            except (OSError, ValueError, KeyError, TypeError):
+                cache[key] = None
+        verified[str(entry["path"])] = cache[key] is not None and cache[key] == payload.get(
+            "split_ref"
+        )
+    return verified
 
 
 def build_audit(
@@ -1450,6 +1929,9 @@ def build_audit(
             check_reclaim(loaded, inventories=inventories),
             check_status_labels(loaded),
             check_probe_separation(loaded, protocol=protocol),
+            check_snapshots(config, repo_root, entries=loaded),
+            check_ablation_disclosure(loaded, repo_root),
+            check_isolation_tests(repo_root),
         ]
     )
 
@@ -1473,11 +1955,23 @@ def build_audit(
             failures.append((paths, str(exc)))
             continue
         refused_total += len(outcome["refused"])
-        # A unit whose manifests carry formal blockers is what makes the gate's
-        # batch-wide `formal_ready` false.  Recorded here because a reader would
-        # otherwise see per-row "formal" verdicts beside a batch the gate holds
-        # back, and read one of the two as wrong.
-        if any(unit["blockers"] for unit in outcome["groups"][0]["units"]):
+    reassessment = reassess_admission(
+        loaded,
+        protocol=protocol,
+        checks=checks,
+        fairness_passed=not failures and not refused_total,
+        config=config,
+    )
+    receipts = verify_support_receipts(config, loaded)
+    for path, decision in reassessment["runs"].items():
+        decision["support_receipt_verified"] = receipts[path]
+    report["admission_reassessment"] = reassessment
+    for members in buckets.values():
+        if any(
+            (decision := reassessment["runs"][str(entry["path"])])["remaining_blockers"]
+            or (decision["partition_grid_checked"] and not decision["eligible"])
+            for entry in members
+        ):
             blocked_groups += 1
     formal_ready = not failures and not refused_total and not blocked_groups
     checks.append(
@@ -1500,14 +1994,6 @@ def build_audit(
                 "formal_ready": formal_ready,
             },
         )
-    )
-
-    checks.extend(
-        [
-            check_snapshots(config, repo_root),
-            check_ablation_disclosure(loaded, repo_root),
-            check_isolation_tests(repo_root),
-        ]
     )
 
     report["checks"] = checks

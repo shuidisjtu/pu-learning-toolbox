@@ -47,9 +47,22 @@ uv run python scripts/run_survey_pilot.py \
 `--dry-run` 打印 planned / completed / pending、还要跑几个批、checkpoint 峰值，以及先验读到了什么；`--plan-json <file>` 把展开后的每个 run 写成文件，两台机器分片时用它核对两片不重叠。
 计划里有 support 单元却没给 `--support-root` 时，驱动在任何批开始前报错并点名；这时要么补上制品，要么用 `--methods` 把 support 方法排除出去。
 
+### 子批次与续跑接收边界
+
+2026-10-28 用户确认完整 seed × c 网格可以由多次合规子批次组成；分批本身不是实质偏离。
+审计对历史 `seed_subset` / `c_grid` 仅在完整无重复网格、每份引用包可核验、代码与依赖、
+软硬件及线程环境一致且其他正式门禁均通过时，输出派生重裁定；原始 manifest 不修改。
+新批次包记录 CPU 型号和数量、GPU 驱动、软件版本及线程环境。缺字段的旧包不能仅凭相同的
+已有字段自动认定环境一致。该重裁定目前适用于已有 clean-support 重审范围；原始单 run
+正式聚合入口不消费派生裁定，应使用审计和汇总报告，不能直接宣称原 manifest 已被改写。
+
 ## 4. 正式批次
 
 同一条命令去掉 `--dry-run`。分片用 `--datasets` / `--methods` / `--training-paths`，三者取交集；命名了一个矩阵里没有的东西、或交集为空，会被拒绝而不是"缩小成空"。
+
+版本化 support 批次依协议记录所有已完成 epoch，包括 LaGAM / Self-PU 的 warmup；分别独立评估 PA+clean-support 与 OA，Self-PU 同时记录两条 teacher 流。旧探索入口的显式 meta-only 候选池保持原义。D53 之前已过滤 warmup 的批次不可补造缺失快照或回写证据，须以修复后的代码在新结果目录重跑。
+
+协议 §2.4 已批准的独立 support 不构成自动降级理由：来源、角色隔离、规模与标签预算核验通过后，`PA+clean-support` 是正式实验数据的独立报告部分，与纯 PU PA 同表另列，禁止混入纯 PU 优势比较。准备器/adapter 的 `formal_admission=False` 表示该组件不自行授予整批准入，不能覆盖已批准的协议政策；最终资格由完整批次审计判定。旧 manifest 保持只读，过时资格声明应在新复审报告中记录解除依据，未知或真实 blocker 保留。
 
 产物：
 

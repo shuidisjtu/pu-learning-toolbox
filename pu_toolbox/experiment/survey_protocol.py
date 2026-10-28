@@ -692,7 +692,8 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     deviations = []
     if c_off_grid:
         deviations.append("c")
-    if digest(protocol) != digest(load_protocol()):
+    canonical_path = PROTOCOL_PATHS.get(protocol["protocol_version"])
+    if canonical_path is None or digest(protocol) != digest(load_protocol(canonical_path)):
         deviations.append("noncanonical_protocol_matrix")
     if candidates != protocol["candidate_pool"]:
         deviations.append("candidate_pool")

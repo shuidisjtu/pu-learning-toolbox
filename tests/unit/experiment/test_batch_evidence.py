@@ -204,3 +204,33 @@ def test_determ_another_commit_keeps_both_packets(tmp_path):
     assert first != second
     assert {be.load(first)["code_commit"], be.load(second)["code_commit"]} == {COMMIT, "e" * 40}
     assert len(list((tmp_path / be.DIRECTORY).iterdir())) == 2
+
+
+def test_basic_environment_identity_records_partition_runtime_context(monkeypatch):
+    monkeypatch.setattr(
+        be,
+        "runtime_environment",
+        lambda: {
+            "machine": "x86_64",
+            "processor": "test-cpu",
+            "python_version": "3.11",
+            "python_implementation": "CPython",
+            "platform": "test",
+            "torch_version": None,
+            "cuda_available": False,
+            "cuda_runtime_version": None,
+            "cudnn_version": None,
+            "gpu_devices": [],
+            "gpu_driver_version": None,
+            "numpy_version": "1",
+            "scikit_learn_version": "1",
+        },
+    )
+    monkeypatch.setenv("OMP_NUM_THREADS", "4")
+    monkeypatch.delenv("MKL_NUM_THREADS", raising=False)
+    result = be.environment_identity()
+    assert result["hardware"]["processor"] == "test-cpu"
+    assert result["hardware"]["cpu_count"] > 0
+    assert result["thread_environment"]["OMP_NUM_THREADS"] == "4"
+    assert result["thread_environment"]["MKL_NUM_THREADS"] is None
+    assert result["gpu_driver_version"] is None

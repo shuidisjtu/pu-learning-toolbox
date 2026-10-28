@@ -63,6 +63,7 @@ from pu_toolbox.experiment.survey_comparison import (  # noqa: E402
     comparison_for_version,
 )
 from pu_toolbox.experiment.survey_protocol import (  # noqa: E402
+    PROTOCOL_PATHS,
     digest,
     load_protocol,
     resolve_protocol_path,
@@ -185,6 +186,47 @@ def collect_observations(
     return rows, runs, refusals
 
 
+def _approved_clean_support(manifest: dict[str, Any], *, receipt_verified: bool = False) -> bool:
+    """Check the accepted policy and actual support isolation, never grant pure PA."""
+    version = manifest.get("protocol_version")
+    if version not in PROTOCOL_PATHS:
+        return False
+    protocol = load_protocol(PROTOCOL_PATHS[version])
+    if manifest.get("protocol_sha256") != digest(protocol):
+        return False
+    accepted = {
+        item["item_id"] for item in protocol.get("review_items", []) if item["status"] == "accepted"
+    }
+    if not {"v2_p4_clean_support_policy", "v2_p8_clean_support_presentation"} <= accepted:
+        return False
+    unit = manifest.get("execution_unit") or {}
+    if unit not in protocol["execution_units"]:
+        return False
+    profile = protocol["method_profiles"].get(unit.get("method"), {})
+    if profile.get("supervision") != "independent_clean_support":
+        return False
+    dataset = unit.get("dataset")
+    if dataset not in {"spambase", "connect_4", "mnist", "fashion_mnist", "cifar10"}:
+        return False
+    support = manifest.get("extra_supervision") or {}
+    label_counts = [
+        support.get(name) for name in ("support_positive_labels", "support_negative_labels")
+    ]
+    return (
+        all(
+            support.get(field) is True
+            for field in (
+                "all_role_isolation_verified",
+                "support_removed_from_train",
+            )
+        )
+        and (support.get("support_source_verified") is True or receipt_verified)
+        and support.get("support_samples") == (100 if dataset == "spambase" else 500)
+        and all(type(count) is int and count >= 0 for count in label_counts)
+        and sum(label_counts) == support["support_samples"]
+    )
+
+
 def build_rows(
     rows: dict[tuple, dict[str, list]],
     *,
@@ -233,7 +275,15 @@ def build_rows(
             metric_summary["unavailable_reasons"] = unavailable_reasons
         candidates: set[str] = set()
         reasons: set[str] = set()
-        if uses_clean_support(manifest):
+        if uses_clean_support(manifest) and not all(
+            _approved_clean_support(
+                entry["payload"],
+                receipt_verified=entry.get("admission_reassessment", {}).get(
+                    "support_receipt_verified", False
+                ),
+            )
+            for entry, _ in members
+        ):
             candidates.add("partial")
             reasons.add("extra_clean_support")
 
@@ -241,9 +291,18 @@ def build_rows(
             {
                 blocker
                 for entry, _ in members
-                for blocker in (entry["payload"].get("formal_blockers") or [])
+                for blocker in entry.get("admission_reassessment", {}).get(
+                    "remaining_blockers", entry["payload"].get("formal_blockers") or []
+                )
             }
         )
+        if any(
+            (decision := entry.get("admission_reassessment", {})).get("partition_grid_checked")
+            and not decision.get("eligible")
+            for entry, _ in members
+        ):
+            candidates.add("partial")
+            reasons.add("formal_blockers_present")
         if blockers:
             status, codes = status_for_gate_block(blockers)
             candidates.add(status)
@@ -305,6 +364,12 @@ def build_rows(
             built[-1]["extra_supervision_by_seed"] = {
                 str(entry["payload"]["seed"]): dict(entry["payload"].get("extra_supervision") or {})
                 for entry, _ in members
+            }
+        if any("admission_reassessment" in entry for entry, _ in members):
+            built[-1]["admission_reassessment_by_seed"] = {
+                str(entry["payload"]["seed"]): entry["admission_reassessment"]
+                for entry, _ in members
+                if "admission_reassessment" in entry
             }
     return built
 
@@ -508,6 +573,12 @@ def build_summary(
         return report
 
     audit_report = audit.build_audit(config, entries=entries, protocol=protocol)
+    reassessment = audit_report.get("admission_reassessment")
+    if reassessment is not None:
+        for entry in entries:
+            decision = reassessment["runs"].get(str(entry["path"]))
+            if decision is not None:
+                entry["admission_reassessment"] = decision
     recipe_audit = audit_report.get("recipe_audit")
     if recipe_audit is not None and recipe_audit["overall"] == "fail":
         report = empty_summary(protocol=protocol)
@@ -524,9 +595,8 @@ def build_summary(
     comparison = comparison_for_version(protocol["protocol_version"])
     loaded = [entry for entry in entries if "payload" in entry]
     for entry in loaded:
-        # Preserve readable support results without pretending the old comparison
-        # matrix admitted them. The audit still reports matrix conflicts, and
-        # build_rows keeps all extra-support rows out of the formal tier.
+        # Support selection retains its own identity. The audit checks its
+        # matrix mapping, policy and evidence before formal eligibility.
         status, reasons, _ = audit.preflight_status(
             entry["payload"],
             comparison=None if uses_clean_support(entry["payload"]) else comparison,
@@ -578,6 +648,8 @@ def build_summary(
     # module's own use of the same mapping.
     checks = audit_report["checks"]
     report = empty_summary(protocol=protocol)
+    if reassessment is not None:
+        report["admission_reassessment"] = reassessment
     # The matrix is part of this report's identity: the row statuses below were
     # resolved against it, so which matrix produced them belongs next to the
     # protocol digest.

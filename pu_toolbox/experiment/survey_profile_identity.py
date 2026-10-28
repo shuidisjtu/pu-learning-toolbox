@@ -142,6 +142,25 @@ def is_clean_support_profile(protocol, profile_id) -> bool:
     )
 
 
+def profile_training_view_request(protocol, profile_id, requested):
+    """Use the full-meta profile's OS adapter, not the ablation's TS default.
+
+    The canonical Self-PU algorithm defaults to TS, but the versioned full-meta
+    adapter is OS-only. Its separate TS adapter remains exploratory and rejects
+    registry bindings. Resolve the *profile* before the algorithm in both CLI
+    and resume planning; never change an explicit request or a legacy default.
+    This routes an existing benchmark adaptation, not a paper reproduction or
+    permission to admit the exploratory TS path.
+    """
+    if (
+        requested is None
+        and is_clean_support_profile(protocol, profile_id)
+        and profile_algorithm(protocol, profile_id) == "self_pu"
+    ):
+        return "os"
+    return requested
+
+
 def require_four_role_profile(protocol, profile_id, *, clean_support=False):
     """Do not use an alias to bypass the still-missing formal support adapter.
 

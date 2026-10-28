@@ -16,6 +16,7 @@ The reclaim, label and probe-separation checks have their own file,
 
 import copy
 import importlib
+import json
 import sys
 from pathlib import Path
 
@@ -131,3 +132,121 @@ def test_determ_a_check_is_a_pure_function_of_the_entries_it_is_handed():
     assert checks.check_result_completeness(entries, protocol=load_protocol()) == first
     # It reads; it does not annotate the entries it was handed.
     assert entries == snapshot
+
+
+def test_basic_support_selection_satisfies_the_pa_grid_without_renaming_results():
+    protocol = checks.load_protocol(checks.resolve_protocol_path("survey-v3.0"))
+    entries = []
+    for token in protocol["c_tokens"]["scar"]:
+        for seed in protocol["seeds"]:
+            payload = manifest(method="lagam", c=float(token), seed=seed)
+            payload["test_results"]["PA+clean-support"] = payload["test_results"].pop("PA")
+            entries.append(_entry(payload))
+
+    check = checks.check_result_completeness(entries, protocol=protocol)
+
+    assert check["result"] == "pass"
+    assert check["observed"]["missing_units"] == 0
+    assert all("PA+clean-support" in entry["payload"]["test_results"] for entry in entries)
+
+
+def _admission_entries(tmp_path):
+    protocol = checks.load_protocol(checks.resolve_protocol_path("survey-v3.0"))
+    unit = next(
+        row
+        for row in protocol["execution_units"]
+        if row["method"] == "lagam" and row["dataset"] == "spambase"
+    )
+    entries = []
+    for token in protocol["c_tokens"]["scar"]:
+        for seed in protocol["seeds"]:
+            payload = manifest(method="lagam", c=float(token), seed=seed)
+            payload.update(
+                protocol_version=protocol["protocol_version"],
+                protocol_sha256=checks.digest(protocol),
+                execution_unit=unit,
+                profile_identity_schema_version="survey-profile-identity-1",
+                profile_id="lagam",
+                algorithm_id="lagam",
+                run_view="os-compatible",
+                calibration_applied=False,
+                estimator_parameters=protocol["method_profiles"]["lagam"]["params"],
+                budget=protocol["budgets"][unit["budget"]],
+                formal_eligible=False,
+                formal_blockers=[
+                    *protocol["formal_blockers"],
+                    "profile_identity_extension_engineering_only",
+                ],
+                protocol_deviation=[],
+                selection_checkpoint_scope="independent_per_epoch",
+                candidate_runs=[
+                    {
+                        "status": "succeeded",
+                        "params": {},
+                        "training_provenance": {"captured_epochs": list(range(20))},
+                        "epoch_checkpoints": [
+                            {
+                                "epoch_position": epoch + 1,
+                                "epoch_label": epoch,
+                                "component": "model",
+                                "validation_metrics": {"PA+clean-support": {}, "OA": {}},
+                            }
+                            for epoch in range(20)
+                        ],
+                    }
+                ],
+            )
+            payload.update(checks.profile_registration_status("lagam", protocol=protocol))
+            path = tmp_path / f"{token}_{seed}.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            entries.append(_entry(payload, name=str(path)))
+    passed = [{"check_id": name, "result": "pass"} for name in checks.REASSESSMENT_CHECKS]
+    return protocol, entries, passed
+
+
+def test_basic_admission_reassessment_discharges_only_verified_legacy_progress(tmp_path):
+    protocol, entries, passed = _admission_entries(tmp_path)
+    original = copy.deepcopy(entries)
+
+    report = checks.reassess_admission(entries, protocol=protocol, checks=passed)
+
+    assert all(not item["remaining_blockers"] for item in report["runs"].values())
+    assert all(len(item["discharged_blockers"]) == 3 for item in report["runs"].values())
+    assert entries == original
+
+
+@pytest.mark.parametrize("problem", ["audit", "grid", "epoch", "protocol", "unknown", "ts"])
+def test_param_admission_reassessment_preserves_unsatisfied_or_unknown_blockers(tmp_path, problem):
+    protocol, entries, passed = _admission_entries(tmp_path)
+    if problem == "audit":
+        passed[0]["result"] = "fail"
+    elif problem == "grid":
+        entries.pop()
+    elif problem == "epoch":
+        entries[0]["payload"]["candidate_runs"][0]["epoch_checkpoints"].pop()
+    elif problem == "protocol":
+        protocol["seeds"] = [0, 1]
+    elif problem == "ts":
+        entries[0]["payload"].update(
+            profile_id="self_pu_full_meta", run_view="ts-compatible", calibration_applied=True
+        )
+    else:
+        entries[0]["payload"]["formal_blockers"].append("new_unknown_gate")
+
+    report = checks.reassess_admission(entries, protocol=protocol, checks=passed)
+
+    first = report["runs"][str(entries[0]["path"])]
+    assert first["remaining_blockers"]
+    if problem == "unknown":
+        assert first["remaining_blockers"] == ["new_unknown_gate"]
+    if problem == "ts":
+        assert "full_meta_ts_adapter_not_admitted" in first["requirements_not_met"]
+
+
+def test_determ_admission_reassessment_is_stable_and_records_source_bytes(tmp_path):
+    protocol, entries, passed = _admission_entries(tmp_path)
+
+    first = checks.reassess_admission(entries, protocol=protocol, checks=passed)
+
+    assert checks.reassess_admission(entries, protocol=protocol, checks=passed) == first
+    assert all(len(item["manifest_sha256"]) == 64 for item in first["runs"].values())
