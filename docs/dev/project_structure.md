@@ -514,6 +514,7 @@ tests/
       test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径
       test_survey_audit_checks.py       # A01/A06/A07/A09 仅凭 manifest 可判的检查项
       test_survey_partition_admission.py # 子批次完整网格与环境证据重审
+      test_survey_sar_admission.py       # nnPU/Dist-PU 冻结轨迹与 SAR 批次准入回归
       test_survey_audit_plan.py         # A04: 计划身份(解析后的 run 集合比对)
       test_survey_audit_inventory.py    # A10 清单模式: 逐文件判定已回收/保留/孤儿
       test_survey_audit_completion.py   # A05: 运行日志完成行与交付 manifest 一一对应, 退出码恒为 unverified

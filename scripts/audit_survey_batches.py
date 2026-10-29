@@ -524,6 +524,9 @@ _ARROW_LINE = re.compile(r"->\s+(\S+/manifest\.json)\s*$")
 _COMPLETION_LINE = re.compile(
     r"^completed (\d+) of (\d+) run\(s\)(?: in [^;]+)?; (\d+) still pending"
 )
+_ASSIGNED_COMPLETION_LINE = re.compile(
+    r"^TRAINING_COMPLETE (\d+)/(\d+); formal admission requires audit$"
+)
 
 
 def _relative_key(path: Path, root: str) -> str:
@@ -556,11 +559,16 @@ def _compare_log(log_path: str, delivered: list[dict[str, Any]], root: str) -> l
             logged[match] += 1
 
     findings: list[str] = []
-    completion = [m for m in map(_COMPLETION_LINE.match, lines) if m]
+    completion = []
+    for line in lines:
+        if match := _COMPLETION_LINE.match(line):
+            completion.append(tuple(int(value) for value in match.groups()))
+        elif match := _ASSIGNED_COMPLETION_LINE.fullmatch(line):
+            completion.append((*map(int, match.groups()), 0))
     if not completion:
         findings.append("the log has no completion line")
     else:
-        done, total, pending = (int(value) for value in completion[-1].groups())
+        done, total, pending = completion[-1]
         if done != total:
             findings.append(f"the completion line reports {done} of {total} run(s)")
         if pending:
@@ -1431,6 +1439,8 @@ def check_isolation_tests(repo_root: Path) -> dict[str, Any]:
 def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -> list[str]:
     """Require every frozen epoch and component, including warmup checkpoints."""
     profile_id = payload.get("profile_id")
+    if profile_id in {"nnpu", "dist_pu"}:
+        return _neural_checkpoint_reassessment_problems(payload, protocol)
     if profile_id not in {"lagam", "pulns", "self_pu_full_meta"}:
         return ["profile_outside_reassessment_scope"]
     profile = protocol["method_profiles"][profile_id]
@@ -1474,6 +1484,54 @@ def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -
             not {"OA", "PA+clean-support"} <= set(ref.get("validation_metrics", {})) for ref in refs
         ):
             return ["checkpoint_validation_incomplete"]
+    return []
+
+
+def _neural_checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -> list[str]:
+    """Verify the frozen native-2d nnPU/Dist-PU trajectory and selection evidence."""
+    if payload.get("training_path") != "native_2d":
+        return ["profile_outside_reassessment_scope"]
+    profile_id = payload["profile_id"]
+    profile = protocol["method_profiles"][profile_id]
+    budget = protocol["budgets"][profile["budget"]]
+    params = payload.get("estimator_parameters", {})
+    if any(params.get(key) != value for key, value in profile["params"].items()):
+        return ["estimator_parameters_not_frozen"]
+    if profile_id == "dist_pu" and params.get("training_recipe", "clean_room") != "clean_room":
+        return ["estimator_parameters_not_frozen"]
+    if any(payload.get("budget", {}).get(key) != value for key, value in budget.items()):
+        return ["frozen_budget_mismatch"]
+    candidates = payload.get("candidate_runs", [])
+    pool = protocol["candidate_pool"]
+    if len(candidates) != budget["outer_candidates"] or len(candidates) != len(pool):
+        return ["candidate_pool_incomplete"]
+    if payload.get("selection_checkpoint_scope") != "independent_per_epoch":
+        return ["checkpoint_scope_not_independent"]
+    count = budget["epochs"]
+    expected = {(epoch + 1, epoch, "model") for epoch in range(count)}
+    required_metrics = {"OA"} if mechanism_of(payload) != "scar" else {"PA", "OA"}
+    for candidate, frozen_params in zip(candidates, pool, strict=True):
+        if candidate.get("status") != "succeeded":
+            return ["candidate_not_succeeded"]
+        if candidate.get("params") != frozen_params:
+            return ["candidate_params_not_frozen"]
+        refs = candidate.get("epoch_checkpoints", [])
+        observed = {
+            (ref.get("epoch_position"), ref.get("epoch_label"), ref.get("component"))
+            for ref in refs
+        }
+        if len(refs) != count or observed != expected:
+            return ["checkpoint_trajectory_incomplete"]
+        if any(not required_metrics <= set(ref.get("validation_metrics", {})) for ref in refs):
+            return ["checkpoint_validation_incomplete"]
+        if profile_id == "dist_pu":
+            provenance = candidate.get("training_provenance", {})
+            if (
+                provenance.get("implementation_path") != "clean_room_single_stage_full_batch"
+                or provenance.get("epochs_completed") != count
+                or provenance.get("optimizer_steps") != count
+            ):
+                return ["training_budget_provenance_incomplete"]
     return []
 
 

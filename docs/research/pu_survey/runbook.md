@@ -56,6 +56,19 @@ uv run python scripts/run_survey_pilot.py \
 已有字段自动认定环境一致。该重裁定目前适用于已有 clean-support 重审范围；原始单 run
 正式聚合入口不消费派生裁定，应使用审计和汇总报告，不能直接宣称原 manifest 已被改写。
 
+完整的 nnPU / Dist-PU `native_2d` 批次也可通过审计生成派生准入裁定：核对冻结参数与预算、
+完整逐 epoch 候选及对应选模验证记录，Dist-PU 还核对冻结 clean-room fullbatch 路径的实际
+epoch 和更新步数。SAR 只要求 OA 验证，SCAR 同时要求 PA / OA；其他路径不因此自动解锁。
+只有完整网格及所需审计均通过，才解除已登记的历史全局进度声明；未知或真实 blocker 保留。
+审计配置须接入 `plan`、`run_log`，已有退出码通过 `exit_code_file` 接入；未保存的原进程
+退出码保持 unverified，不补造。分开保存的机制日志可按实际顺序拼接成注明来源的派生日志，
+保留原始内容；审计同时识别标准驱动完成行与 `TRAINING_COMPLETE X/Y; formal admission requires audit`，
+并逐条核对日志路径、重复项和实际产物数量，不能凭完成标记单独授予资格。
+
+逐行 `formal` 资格与整份报告的 `overall` 分别解读。任何 `not_run` 检查仍使整体报告为
+`partial`；例如未配置归档摘要时 A11 保持 `not_run`，不能将其描述为通过，也不自动否决
+已经通过所需准入检查的完整结果行。
+
 ## 4. 正式批次
 
 同一条命令去掉 `--dry-run`。分片用 `--datasets` / `--methods` / `--training-paths`，三者取交集；命名了一个矩阵里没有的东西、或交集为空，会被拒绝而不是"缩小成空"。
