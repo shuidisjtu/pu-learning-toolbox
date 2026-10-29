@@ -59,6 +59,8 @@
   在注册表里标 `excluded` 并带理由；
 - PAN 独立图像候选入口已补 OS 四角色、逐 epoch PA/OA、C/D 成本及 C-only 回放；
   CPU 工程测试不改变 draft 配方或 v3 blocked 单元，详见 [PAN 方法卡](../method_cards/PAN.md)。
+- VPU 独立图像候选入口已补原生 TS、逐 epoch 训练边缘池归一化、PA/OA 与实际更新成本；
+  D21/D22、OS 消融能力及正式配方阻断不变，详见 [VPU 方法卡](../method_cards/VPU.md)。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 

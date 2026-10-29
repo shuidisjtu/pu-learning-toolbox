@@ -14,7 +14,8 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.mark.parametrize(
-    "method,snapshots,steps", [("pulda", 120, 360), ("gradpu", 200, 400), ("pan", 100, 1000)]
+    "method,snapshots,steps",
+    [("pulda", 120, 360), ("gradpu", 200, 400), ("pan", 100, 1000), ("vpu", 100, 600)],
 )
 def test_basic_determ_default_budget_counts_and_missing_measurement_fail_closed(
     tmp_path, monkeypatch, method, snapshots, steps
@@ -150,7 +151,7 @@ def test_basic_cli_errors_and_json_output(tmp_path, capsys):
     assert "error:" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("method,epochs", [("gradpu", 200), ("pan", 100)])
+@pytest.mark.parametrize("method,epochs", [("gradpu", 200), ("pan", 100), ("vpu", 100)])
 def test_determ_cli_remains_importable_when_torch_is_forbidden(tmp_path, method, epochs):
     code = """
 import importlib.abc, runpy, sys

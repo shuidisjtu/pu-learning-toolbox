@@ -405,6 +405,7 @@ tests/
       test_prepare_support_repair.py    # 重跑规划命令、历史根/新输出隔离与只读拒收门禁
       test_candidate_image_adni.py      # ADNI 替代槽位灰度图、双选模回放与非临床来源边界
       test_pan_image_cli.py             # PAN 四角色 OS 图像命令、双选模回放与非正式预算拒收
+      test_vpu_image_cli.py             # VPU 四角色 TS 命令、归一化回放、显式参数与角色隔离
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -605,6 +606,7 @@ tests/
       test_support_campaign_evidence.py # 全 epoch 门禁及批次代码/依赖/线程证据核对
       test_support_campaign_worker.py   # 补跑单 fit 命令、独立证据根与变更/覆盖拒收
       test_pan_image_candidate.py       # PAN 双编码器隔离、逐 epoch C/D 成本与 recorder 数值不变
+      test_vpu_image_candidate.py       # VPU 训练边缘池、逐 epoch 归一化、重建 Adam 与实际成本
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

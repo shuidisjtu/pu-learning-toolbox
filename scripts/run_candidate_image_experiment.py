@@ -24,7 +24,12 @@ from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA, SCARGenerat
 from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
 
 ROOT = Path(__file__).resolve().parents[1]
-METHODS = {"pulda": "risk/pulda.py", "gradpu": "deep/grad_pu.py", "pan": "deep/pan.py"}
+METHODS = {
+    "pulda": "risk/pulda.py",
+    "gradpu": "deep/grad_pu.py",
+    "pan": "deep/pan.py",
+    "vpu": "risk/vpu.py",
+}
 DATASETS = ("cifar10", "mnist", "fashion_mnist", "adni")
 ADNI_RECEIPT = "docs/research/pu_survey/data/adni_substitute_receipt_20261012.json"
 
@@ -88,6 +93,19 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes):
     )
     if method == "pan":
         budget_keys = ("max_epochs", "batch_size", "learning_rate", "adversarial_weight")
+    if method == "vpu":
+        budget_keys = (
+            "hidden_dim",
+            "depth",
+            "max_epochs",
+            "batch_size",
+            "learning_rate",
+            "regularization_weight",
+            "mixup_alpha",
+            "optimizer_schedule",
+            "iterations_per_epoch",
+            "data_device_policy",
+        )
     if not all(key in parameters for key in (*budget_keys, "device")):
         raise ValueError(f"explicit budget/device required: {budget_keys}")
     if parameters["device"] not in ("cpu", "cuda"):
@@ -172,6 +190,8 @@ def build_plan(
         references += (ADNI_RECEIPT,)
     if method == "pan":
         references += ("docs/research/pu_survey/data/pan_source_review_20261018.json",)
+    if method == "vpu":
+        references += ("docs/research/pu_survey/data/vpu_schedule_source_20261015.json",)
     resolved = {
         key: value
         for key, value in model.get_params(deep=False).items()
@@ -359,7 +379,7 @@ def execute(plan, output):
             )
         },
     }
-    if plan["method"] == "pan":
+    if plan["method"] in {"pan", "vpu"}:
         summary["source_default_snapshot_projection"]["origin"] = (
             "toolbox_constructor_not_author_or_frozen_recipe"
         )

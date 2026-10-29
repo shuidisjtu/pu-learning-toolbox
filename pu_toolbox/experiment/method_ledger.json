@@ -1197,7 +1197,7 @@
         "upstream_commit": "603bcc1e628795f57a5ac87e5b0b977273b7cf91",
         "source_status": "official_related (公式与关键训练逻辑对照作者锁定提交；网络与实验协议为工具箱适配)"
       },
-      "implementation_status": "NATIVE, backend TORCH; 先验无关的变分风险 + 对数 MixUp 正则；二维特征或注入 encoder 的四维图像，CPU 与显式 CUDA；新图像路径仅 CPU 工程验证",
+      "implementation_status": "NATIVE, backend TORCH; 先验无关的变分风险 + 对数 MixUp 正则；二维特征或注入 encoder 的四维图像；独立四角色图像候选 CLI 核对原生 TS、逐 epoch 归一化及实际优化器成本，CPU 工程验证不等于正式准入",
       "native_sampling_assumption": "ts（边缘项要求总体边缘分布：论文式 (6) 的 f 即训练总体边缘；作者 x_loader 覆盖正例与未标记且 P 池是 X 池的子集，故边缘池 = D_U ∪ D_P。四层证据与逐行核对见 admission/vpu_sampling_audit.md，裁决 D21；both 可辩但需改 registry，本切片不做。VPU.md:40, registry:vpu）",
       "run_view": "ts-compatible",
       "calibration_applied": true,
