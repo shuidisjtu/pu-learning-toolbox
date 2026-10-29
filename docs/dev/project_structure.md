@@ -601,6 +601,7 @@ tests/
       test_survey_full_meta_view.py     # full-meta 默认 OS、CLI/续跑一致与消融/显式 TS 兼容
       test_support_campaign.py          # 纠正批次命名空间、预检与失败封锁/放行
       test_support_campaign_evidence.py # 全 epoch 门禁及批次代码/依赖/线程证据核对
+      test_support_campaign_worker.py   # 补跑单 fit 命令、独立证据根与变更/覆盖拒收
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
