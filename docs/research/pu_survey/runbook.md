@@ -62,6 +62,13 @@ uv run python scripts/run_survey_pilot.py \
 
 版本化 support 批次依协议记录所有已完成 epoch，包括 LaGAM / Self-PU 的 warmup；分别独立评估 PA+clean-support 与 OA，Self-PU 同时记录两条 teacher 流。旧探索入口的显式 meta-only 候选池保持原义。D53 之前已过滤 warmup 的批次不可补造缺失快照或回写证据，须以修复后的代码在新结果目录重跑。
 
+旧产物可先用 `scripts/prepare_survey_support_repair.py --help` 规划：显式列出不重叠的
+`--results-root`，指定干净的修复版 `--target-source`、`--support-root`、数据集目录映射
+`--split-map`（也可传含 `source_data` 的本机队列证据文件），并给出两个独立的新目录
+`--out-dir` / `--new-results`。命令只写轨迹清单和 CPU dry-run 命令，不启动训练；
+PULNS episode 完整不等于整批正式通过，重复来源也不会自动择新覆盖。实际重跑仍由原 pilot
+在执行时生成 D52 包，之后按 D54 做完整审计。
+
 协议 §2.4 已批准的独立 support 不构成自动降级理由：来源、角色隔离、规模与标签预算核验通过后，`PA+clean-support` 是正式实验数据的独立报告部分，与纯 PU PA 同表另列，禁止混入纯 PU 优势比较。准备器/adapter 的 `formal_admission=False` 表示该组件不自行授予整批准入，不能覆盖已批准的协议政策；最终资格由完整批次审计判定。旧 manifest 保持只读，过时资格声明应在新复审报告中记录解除依据，未知或真实 blocker 保留。
 
 产物：

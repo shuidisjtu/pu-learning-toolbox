@@ -204,6 +204,7 @@ pu_toolbox/
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
     support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
+    support_repair.py                     # 只读 D53 轨迹缺口与新目录重跑规划，不授予正式资格
     genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
     queue_scheduling.py                   # 单次 fit 拆分、运行中归属保护与低负载 GPU 有界并发策略
     candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
@@ -400,6 +401,7 @@ tests/
       test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
       test_survey_image_support_execution.py # 运行入口把 support 部分按图像路径装配(原生 CNN 缩放、adapter 特征、表格原样)
       test_support_protocol_context.py  # support CLI 的版本、c token 与收据来源偏离判定
+      test_prepare_support_repair.py    # 重跑规划命令、历史根/新输出隔离与只读拒收门禁
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -576,6 +578,7 @@ tests/
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
       test_support_versioned_epochs.py  # 版本化 support 全 epoch 候选、warmup 回放与严格覆盖检查
+      test_support_repair.py            # 全 epoch/双 teacher 缺口、重复源冲突与完整轨迹不等于准入
       test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
       test_genpu_recipe.py              # GEN-PU 配方早拒绝、六网络真实成本与默认训练逐位对照
       test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝
@@ -918,6 +921,7 @@ scripts/
   aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
   audit_survey_batches.py                 # P2.2 批次审计入口: 按白名单根逐批出审计, 判不了的记 not_run 而非 pass, 只写 --out-dir
+  prepare_survey_support_repair.py        # 只读 support 轨迹审计、新目录重跑命令与 CPU dry-run 清单
   summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
   export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json（不重算任何数）
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
