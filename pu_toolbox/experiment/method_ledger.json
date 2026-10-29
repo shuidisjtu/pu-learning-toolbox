@@ -739,7 +739,7 @@
         "upstream_commit": "7b3dcad95bd7caa0a9477af37a05764fbe6e27bc",
         "source_status": "official_related (method card audited commit 7b3dcad95bd7caa0a9477af37a05764fbe6e27bc)"
       },
-      "implementation_status": "NATIVE, backend TORCH; LDA + two-way margin warm-up and pseudo-label MixUp, dense MLP or trainable injected CNN adapter",
+      "implementation_status": "NATIVE, backend TORCH; LDA + two-way margin warm-up and pseudo-label MixUp, dense MLP or trainable injected CNN adapter; standalone candidate image CLI includes the grayscale ADNI-substitute slot (engineering only)",
       "native_sampling_assumption": "ts（P 为可靠正类、U 为总体边缘分布；PULDA.md:10-15）",
       "run_view": "ts-compatible",
       "calibration_applied": true,
@@ -829,7 +829,7 @@
         "upstream_url": null,
         "source_status": "not_found (2026-10-19 rechecked the official AAAI article page, which lists only the PDF, and searched the paper title/author names with GitHub terms without confirming an author repository; see docs/research/pu_survey/data/gradpu_source_review_20261005.json. This does not prove no public, private, or unindexed implementation exists.)"
       },
-      "implementation_status": "NATIVE, backend TORCH; paper Eq. 5-7 clean-room MLP or injected no-BatchNorm CNN, raw-image second-order gradient penalty",
+      "implementation_status": "NATIVE, backend TORCH; paper Eq. 5-7 clean-room MLP or injected no-BatchNorm CNN, raw-image second-order gradient penalty; standalone candidate image CLI includes the grayscale ADNI-substitute slot (engineering only)",
       "source_protocol_review_ref": "docs/research/pu_survey/data/gradpu_source_review_20261005.json",
       "native_sampling_assumption": "ts（P 与总体边缘 U 分别贡献风险和插值梯度惩罚；GradPU.md:10-17）",
       "run_view": "ts-compatible",

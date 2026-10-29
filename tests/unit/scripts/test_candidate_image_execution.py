@@ -110,7 +110,7 @@ def test_determ_fixed_plan_and_groups_do_not_depend_on_replanning(tmp_path):
         {"c_token": "0.50"},
         {"prior": True},
         {"prior_source": ""},
-        {"dataset": "adni"},
+        {"dataset": "unknown_dataset"},
         {"parameters": {"device": "cpu"}},
     ],
 )

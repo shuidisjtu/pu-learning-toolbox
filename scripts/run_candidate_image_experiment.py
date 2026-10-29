@@ -25,7 +25,26 @@ from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
 
 ROOT = Path(__file__).resolve().parents[1]
 METHODS = {"pulda": "risk/pulda.py", "gradpu": "deep/grad_pu.py"}
-DATASETS = ("cifar10", "mnist", "fashion_mnist")
+DATASETS = ("cifar10", "mnist", "fashion_mnist", "adni")
+ADNI_RECEIPT = "docs/research/pu_survey/data/adni_substitute_receipt_20261012.json"
+
+
+def data_scope(dataset):
+    """Describe the slot honestly, without authenticating arbitrary caller files."""
+    scope = dict(dataset_slot=dataset, raw_source_verified=False)
+    if dataset == "adni":
+        scope.update(
+            dataset_identity="Alzheimer MRI substitute for ADNI slot; not clinical ADNI",
+            clinical_adni=False,
+            subject_level_isolation_verified=False,
+            license_status="unknown; do not infer permission to redistribute",
+            project_source_receipt=ADNI_RECEIPT,
+            verification_scope=(
+                "project substitution policy only; caller NPZ files are not authenticated "
+                "by this receipt"
+            ),
+        )
+    return scope
 
 
 def _load(directory, dataset):
@@ -144,6 +163,8 @@ def build_plan(
         "pu_toolbox/experiment/method_ledger.json",
         "uv.lock",
     )
+    if dataset == "adni":
+        references += (ADNI_RECEIPT,)
     resolved = {
         key: value
         for key, value in model.get_params(deep=False).items()
@@ -153,6 +174,7 @@ def build_plan(
         "schema_version": "candidate-image-experiment-plan-v1",
         "method": method,
         "dataset": dataset,
+        "data_scope": data_scope(dataset),
         "input_directory": str(directory),
         "input_files_sha256": before,
         "population_prior": float(prior),
@@ -247,6 +269,7 @@ def execute(plan, output):
             "reclaim_unselected_checkpoints": True,
             "split_ref": {
                 "dataset": plan["dataset"],
+                "data_scope": plan["data_scope"],
                 "input_files_sha256": plan["input_files_sha256"],
             },
         },
@@ -282,6 +305,8 @@ def execute(plan, output):
     summary = {
         "schema_version": "candidate-image-experiment-result-v1",
         "method": plan["method"],
+        "dataset": plan["dataset"],
+        "data_scope": plan["data_scope"],
         "comparison_group": plan["comparison_group"],
         "formal_admission": False,
         "formal_budget_approved": False,

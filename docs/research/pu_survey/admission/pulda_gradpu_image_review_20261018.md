@@ -10,6 +10,12 @@
 
 ## 本轮实现
 
+2026-10-29 补齐状态：独立候选 CLI 同时支持 `adni` 替代槽位的单通道输入，
+PULDA 仍为共享 ResNet-18，GradPU 仍为私有 CNN13-no-BN；损失/校准/默认预算未变。
+按 D1 记录非临床 ADNI、来源未认证、未知许可及 subject 隔离未核实，
+来源收据摘要进入计划指纹。两方法 CPU 合成灰度短测验证 2 个完整已付 epoch、
+PA/OA 选模、回收及回放；未做真实数据全预算或新增正式准入，不解除已有方法学待定项。
+
 `pu_toolbox.experiment.candidate_image.build_candidate_image_classifier` 是独立、
 显式 opt-in 的技术构造入口，返回 `(estimator, image_setup)`。不注册正式配方，
 不修改冻结协议、对照矩阵、方法台账、历史 feature cache 或正式准入位。
