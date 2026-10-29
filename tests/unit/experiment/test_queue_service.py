@@ -133,6 +133,35 @@ def test_edge_invalid_ownership_never_stops_original_controller(service, tmp_pat
     assert not list(tmp_path.glob("pre_parallel_handoff_*.json"))
 
 
+@pytest.mark.parametrize("mode", ["takeover", "recover", "wrong_queue"])
+def test_param_parallel_controller_upgrade_requires_exact_queue_and_explicit_takeover(
+    service, tmp_path, monkeypatch, mode
+):
+    legacy, signals = takeover_fixture(service, tmp_path, monkeypatch)
+    state = service.read(tmp_path / "queue_status.json")
+    state["scheduler"]["hosting"] = "independent_tmux"
+    service.save(tmp_path / "queue_status.json", state)
+    monkeypatch.setattr(
+        service,
+        "command_line",
+        lambda pid: [
+            "python",
+            "/fixed/scripts/run_survey_parallel_queue.py",
+            "--queue",
+            str(tmp_path if mode != "wrong_queue" else tmp_path / "wrong"),
+            "--legacy-worker",
+            str(legacy),
+        ],
+    )
+    if mode == "takeover":
+        assert service.takeover(tmp_path, legacy) == []
+        assert signals == [(123, service.signal.SIGTERM)]
+    else:
+        with pytest.raises(ValueError, match="identity is not verified"):
+            service.takeover(tmp_path, legacy, allow_orphans=mode == "recover")
+        assert not signals
+
+
 def test_param_unverified_controller_never_receives_a_signal(service, tmp_path, monkeypatch):
     (tmp_path / "queue_status.json").write_text(
         json.dumps(dict(scheduler=dict(supervisor_pid=123)))

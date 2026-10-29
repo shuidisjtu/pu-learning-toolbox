@@ -50,7 +50,7 @@ EPOCHS = {
     "pulns": 20,
     "genpu": 100,
 }
-VIEWS = ("running", "pending", "completed", "failed")
+VIEWS = ("running", "pending", "completed", "failed", "held")
 
 
 def read_states():
@@ -128,6 +128,10 @@ def progress(job):
     facts = dict(
         done=f"{len(finished)}/{job.get('expected_runs', 15)}", seed="-", c="-", epoch="-", age="-"
     )
+    if job.get("expected_runs") == 1 and job.get("expected_keys"):
+        facts["seed"], facts["c"] = map(
+            str, job["expected_keys"][0][5:6] + job["expected_keys"][0][4:5]
+        )
     if job["status"] != "running":
         return facts
     remaining = [k for k in job.get("expected_keys", []) if (k[5], k[4]) not in finished]
@@ -199,6 +203,7 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
             f"{counts['completed']} DONE | {counts['failed']} FAIL | "
             + str(sum(j["status"] == "blocked" for j in current["jobs"]))
             + " BLOCK"
+            + f" | {counts['held']} HOLD"
         )
         lines.append(
             f"Heartbeat {delay}s ago"
@@ -225,7 +230,7 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
     lines.extend(
         [
             f"VIEW {view.upper()} | page {page + 1}/{pages} | "
-            "1:run 2:wait 3:done 4:fail | n/p:page",
+            "1:run 2:wait 3:done 4:fail 5:held | n/p:page",
             "",
         ]
     )
@@ -247,6 +252,7 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
         columns = [(key, size) for key, size in columns if key != "PHASE"]
     if width >= 85:
         columns[3:3] = [("PATH", 4)]
+        columns[1:1] = [("SRC", 2)]
     if width >= 95:
         columns.extend([("U%", 3), ("GiB", 5)])
     if width >= 110:
@@ -262,6 +268,11 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
         rows.append(
             {
                 "DEV": dev if view == "running" else "-",
+                "SRC": "R!"
+                if job.get("campaign_canary")
+                else "R"
+                if job.get("campaign_id")
+                else "B",
                 "DATA": NAMES.get(job.get("dataset", "cifar10"), job.get("dataset", "?")),
                 "METHOD": METHODS.get(job["method"], job["method"]),
                 "PATH": PATHS.get(job["path"], job["path"]),
@@ -301,7 +312,7 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
             )
         )
     lines.append("* = shared GPU; U%/GiB are whole-device, not this task alone.")
-    lines.append("DONE=fits; S=seed; PHASE=checkpoint/inference; GAN/prePN != waiting.")
+    lines.append("SRC B=baseline R=repair R!=canary; HOLD waits for a passed full-budget canary.")
     own_counts = {}
     for job in jobs:
         if job["status"] == "running" and job.get("gpu"):

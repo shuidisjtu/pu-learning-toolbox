@@ -27,6 +27,13 @@ from pu_toolbox.experiment.queue_scheduling import (
     split_pending_jobs,
     validate_fit_ownership,
 )
+from pu_toolbox.experiment.support_campaign import (
+    load_support_campaign,
+    mount_campaign,
+    release_canary_followups,
+    repair_manifest_findings,
+    write_campaign_tables,
+)
 
 
 def now():
@@ -130,6 +137,18 @@ def successful_artifacts(job):
             ):
                 return False
             found.add(key)
+            if job.get("campaign_id"):
+                scripts = str(Path(__file__).resolve().parent)
+                if scripts not in sys.path:
+                    sys.path.insert(0, scripts)
+                from audit_survey_batches import _checkpoint_reassessment_problems
+
+                findings = repair_manifest_findings(
+                    job, m, checkpoint_check=_checkpoint_reassessment_problems
+                )
+                job["quality_findings"] = findings
+                if findings:
+                    return False
         except (OSError, ValueError, KeyError, TypeError):
             return False
     return found == expected
@@ -239,7 +258,16 @@ def takeover(queue, legacy_path, *, allow_orphans=False):
     identity = process_identity(old_pid)
     argv = command_line(old_pid)
     if identity is not None and identity["state"] != "Z":
-        if "--run" not in argv or str(legacy_path) not in argv:
+        legacy_verified = "--run" in argv and str(legacy_path) in argv
+        parallel_verified = (
+            any(Path(arg).name == "run_survey_parallel_queue.py" for arg in argv)
+            and "--queue" in argv
+            and "--legacy-worker" in argv
+            and Path(argv[argv.index("--queue") + 1]).resolve() == queue
+            and Path(argv[argv.index("--legacy-worker") + 1]).resolve() == legacy_path
+            and state["scheduler"].get("hosting") == "independent_tmux"
+        )
+        if allow_orphans or not (legacy_verified or parallel_verified):
             raise ValueError("refuse takeover: legacy controller identity is not verified")
         validate_fit_ownership(state["jobs"])
         # Only this exact PID receives a signal. The children were created
@@ -295,8 +323,13 @@ def spawn(job, gpu, queue, legacy_path):
         OPENBLAS_NUM_THREADS="2",
     )
     with log.open("x") as stream:
+        worker_path = (
+            Path(__file__).with_name("run_survey_queue_fit.py")
+            if job.get("campaign_id")
+            else legacy_path
+        )
         process = subprocess.Popen(
-            [sys.executable, "-u", str(legacy_path), "--worker", str(request)],
+            [sys.executable, "-u", str(worker_path), "--worker", str(request)],
             cwd=job["source"],
             env=env,
             stdin=subprocess.DEVNULL,
@@ -337,32 +370,51 @@ def poll_job(job, process=None):
     return successful_artifacts(job) and terminal_marker(job), None, "terminal_marker_and_artifacts"
 
 
-def run(queue, legacy_path, *, recover=False):
+def run(
+    queue,
+    legacy_path,
+    *,
+    recover=False,
+    repair_plan=None,
+    session_name="pu-survey-parallel-20261028",
+):
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     log = (queue / "parallel_supervisor.log").open("a", buffering=1)
     os.dup2(log.fileno(), 1)
     os.dup2(log.fileno(), 2)
     print(now(), "parallel service preflight", os.getpid(), flush=True)
-    handoff_lock = (queue / "parallel_controller.lock").open("a")
-    fcntl.flock(handoff_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    upgrade_lock = (queue / "controller_upgrade.lock").open("a")
+    fcntl.flock(upgrade_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     legacy = load_legacy(legacy_path)
     if legacy.OUTPUT.resolve() != queue:
         raise ValueError("legacy worker output does not match queue root")
     for source in {j["source"] for j in read(queue / "queue_status.json")["jobs"]}:
         if subprocess.check_output(["git", "status", "--porcelain"], cwd=source).strip():
             raise ValueError("training checkout is dirty; refusing queue takeover")
+    campaign = load_support_campaign(repair_plan) if repair_plan is not None else None
+    if campaign:
+        mount_campaign(read(queue / "queue_status.json")["jobs"], *campaign)
     # Policy code may evolve independently; training code and all frozen files
     # remain pinned to the original checkout recorded in every worker request.
     jobs = takeover(queue, legacy_path, allow_orphans=recover)
+    handoff_lock = (queue / "parallel_controller.lock").open("a")
+    fcntl.flock(handoff_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     lock = (queue / "supervisor.lock").open("a")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     helpers = legacy.helper()
+    if campaign:
+        metadata, additions = campaign
+        jobs = mount_campaign(jobs, metadata, additions)
+        campaign_root = Path(metadata["root"])
+        campaign_root.mkdir(parents=True)
+        save(campaign_root / "campaign.json", metadata)
     service_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parents[1], text=True
     ).strip()
     processes = {}
     idle_counts, low_counts = {}, {}
     last_tables = 0
+    upgrade_released = False
     print(
         now(), "adopted workers", [j["pid"] for j in jobs if j["status"] == "running"], flush=True
     )
@@ -380,8 +432,11 @@ def run(queue, legacy_path, *, recover=False):
                 exit_code=code,
                 exit_verification=verification,
             )
+            if job.get("campaign_id"):
+                job["gate_passed"] = success
             processes.pop(job["pid"], None)
             print(now(), "finished", job["label"], job["status"], verification, flush=True)
+        release_canary_followups(jobs)
         active = [j for j in jobs if j["status"] == "running"]
         query_error = None
         try:
@@ -426,22 +481,34 @@ def run(queue, legacy_path, *, recover=False):
             "supervisor_pid": os.getpid(),
             "service_code_commit": service_commit,
             "hosting": "independent_tmux",
-            "tmux_session": "pu-survey-parallel-20261028",
+            "tmux_session": session_name,
             "check_interval_seconds": 5,
             "granularity": "single_fit_except_adopted_batches",
             "max_jobs_per_gpu": 2,
             "concurrency_policy": "three_low_load_samples_own_processes_only",
             "last_query_error": query_error,
             "frozen_lock_environment_verified": False,
+            "correction_campaigns": sorted(
+                {j["campaign_id"] for j in jobs if j.get("campaign_id")}
+            ),
         }
         save(
             queue / "queue_status.json", {"updated_at": now(), "jobs": jobs, "scheduler": scheduler}
         )
+        if not upgrade_released:
+            upgrade_lock.close()
+            upgrade_released = True
         if time.monotonic() - last_tables > 120:
-            helpers.tables(queue, jobs)
+            helpers.tables(queue, [j for j in jobs if not j.get("campaign_id")])
+            for root in {j["campaign_root"] for j in jobs if j.get("campaign_id")}:
+                write_campaign_tables(
+                    Path(root), [j for j in jobs if j.get("campaign_root") == root]
+                )
             last_tables = time.monotonic()
         time.sleep(5)
-    helpers.tables(queue, jobs)
+    helpers.tables(queue, [j for j in jobs if not j.get("campaign_id")])
+    for root in {j["campaign_root"] for j in jobs if j.get("campaign_id")}:
+        write_campaign_tables(Path(root), [j for j in jobs if j.get("campaign_root") == root])
     print(now(), "released jobs terminal; blocked fits remain explicitly blocked", flush=True)
 
 
@@ -449,13 +516,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--queue", type=Path, required=True)
     parser.add_argument("--legacy-worker", type=Path, required=True)
+    parser.add_argument("--session-name", default="pu-survey-parallel-20261028")
+    parser.add_argument(
+        "--add-support-repair",
+        type=Path,
+        help="mount a verified D53 plan with per-unit full-budget canary gates",
+    )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--takeover", action="store_true")
     mode.add_argument(
         "--recover", action="store_true", help="adopt orphans only if old controller exited"
     )
     args = parser.parse_args()
-    run(args.queue.resolve(), args.legacy_worker.resolve(), recover=args.recover)
+    run(
+        args.queue.resolve(),
+        args.legacy_worker.resolve(),
+        recover=args.recover,
+        repair_plan=args.add_support_repair,
+        session_name=args.session_name,
+    )
 
 
 if __name__ == "__main__":

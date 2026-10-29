@@ -99,3 +99,18 @@ def test_basic_own_concurrency_and_foreign_sharing_are_distinct(monitor, tmp_pat
 def test_edge_malformed_manifest_does_not_break_live_view(monitor, tmp_path):
     (tmp_path / "manifest.json").write_text("{")
     assert monitor.progress(job(tmp_path))["done"] == "0/2"
+
+
+def test_basic_correction_canary_and_held_jobs_are_explicit(monitor, tmp_path):
+    item = job(
+        tmp_path,
+        campaign_id="d53_test",
+        campaign_canary=True,
+        status="held",
+        expected_runs=1,
+        expected_keys=[["cifar10", "genpu", "native_cnn", "scar", "0.1", 0]],
+    )
+    state = dict(updated_at="2020-01-01T00:00:00+00:00", jobs=[item])
+    output = monitor.render(view="held", width=180, height=40, states=[state], devices={})
+    assert "1 HOLD" in output and "R!" in output
+    assert "HOLD waits" in output and "SRC" in output

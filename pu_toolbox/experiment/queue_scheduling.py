@@ -25,9 +25,10 @@ def validate_fit_ownership(jobs):
             raise ValueError("expected fit count does not match identities")
         for raw in keys:
             key = tuple(raw)
-            if len(key) != 6 or key in owners:
+            scoped = (job["campaign_id"], *key) if job.get("campaign_id") else key
+            if len(key) != 6 or scoped in owners:
                 raise ValueError("duplicate or malformed fit identity")
-            owners[key] = job["label"]
+            owners[scoped] = job["label"]
     return owners
 
 
@@ -103,6 +104,9 @@ def dispatch_priority(job):
     """Spread independent image long tails before many tiny adapter fits."""
     long_tail = job["path"] == "native_cnn" and job["method"] in ("genpu", "nnpu")
     return (
+        0 if job.get("campaign_id") else 1,
+        0 if job.get("campaign_canary") else 1,
+        {"spambase": 0, "connect_4": 1}.get(job["dataset"], 2) if job.get("campaign_id") else 0,
         0 if long_tail else 1,
         job.get("priority", 99),
         job["dataset"],

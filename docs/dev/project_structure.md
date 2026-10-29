@@ -212,6 +212,7 @@ pu_toolbox/
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
     survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
     survey_profile_map.py                 # 版本化 profile → 比较条目映射：继承/显式偏差/not_in_matrix 与协议+矩阵双绑定
+    support_campaign.py                   # D53 独立纠正批次、完整预算 canary 与逐 fit 质量门禁
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -597,6 +598,8 @@ tests/
       test_survey_comparison_v6.py      # v6 增 71 个 P4.2b 单元（no_direct_anchor/非运行标记）且只升三条 profile
       test_survey_canonical_version.py  # 各协议与自身 canonical 比较，保留真实子集/改参偏差
       test_survey_full_meta_view.py     # full-meta 默认 OS、CLI/续跑一致与消融/显式 TS 兼容
+      test_support_campaign.py          # 纠正批次命名空间、预检与失败封锁/放行
+      test_support_campaign_evidence.py # 全 epoch 门禁及批次代码/依赖/线程证据核对
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -942,6 +945,7 @@ scripts/
   monitor_survey_queue.py                 # 只读终端监控、活动阶段/共享卡/单次 fit 与分页
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
+  run_survey_queue_fit.py                 # 固定源码单 fit 补跑，批次证据写入独立输出根
 ```
 
 ## 7. CI/CD（`.github/`）

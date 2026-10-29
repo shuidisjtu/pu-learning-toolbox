@@ -81,6 +81,11 @@ draft 令牌当锁定预算。
   5 秒轮询，低负载自有卡经连续采样后最多两个进程，不向含外部进程的卡追加任务。
   训练仍使用原固定源码/配方；监控 `PHASE` 区分 GEN-PU 的 `GAN/prePN` 与 PN 快照，
   不把无快照当作等待。脚本：`run_survey_parallel_queue.py` / `monitor_survey_queue.py`。
+- D53 纠正批次使用独立源码/结果根，LaGAM 与 full-meta 的 8 单元共 120 fit；每单元先做
+  1 个完整预算 canary，其余 14 个暂挂。复用审计器核对全 epoch/双 teacher、选模、角色隔离及
+  D52 代码/依赖/硬件/线程证据，通过才放行；每 fit 再验，失败封锁同单元未启动任务。
+  `--add-support-repair` 挂载只读计划；监控 `SRC=R!` 标识 canary、`5` 查看暂挂。
+  新旧汇总分开，工程门禁通过不等于正式准入；原训练进程与旧结果不覆盖。
 
 - 按 method、dataset、training-path（含 backbone）或 labeling mechanism 分组跑，
   `run_survey_pilot.py --methods/--datasets/--training-paths` 原生支持，v3 单元用
@@ -213,7 +218,8 @@ TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读�
    （spambase、imdb、cifar10）、PUET/RP 各 2 行（spambase、imdb）、LaGAM/PULNS 各 1 行（cifar10）；
    含 GradPU 首次真实运行。**PN-CNN 5 seed**（HENG958）。
 2. **support 方法**（shuidisjtu）：数据集、runnable 行、图像路径装配与批次驱动接入均已完成（D46、D49、D50），
-   mnist 与 fashion_mnist 的三条路径也各有单 seed 接线证据。剩余是执行：把这 12 个单元的正式 5 seed 批次排进跑批。
+   mnist 与 fashion_mnist 的三条路径也各有单 seed 接线证据。180 fit 已有观测；D53 其中 120 fit
+   接入独立纠正批次与 canary/逐 fit 门禁，PULNS 60 fit 不重复跑；完成后仍需 D54 完整批次审计。
 3. **汇总工具**（shuidisjtu）：xlsx 导出器与诊断卡工具已入库（D48），等 5 seed 批次出数后用
    `scripts/export_survey_results.py` 一条命令生成交付物 A；诊断卡算不了的五项信号见 D48。
 4. **正式 5 seed × c 网格跑批 → 汇总 → 写结论**（合流）：只运行满足协议/预算/配方/映射前置的单元；
