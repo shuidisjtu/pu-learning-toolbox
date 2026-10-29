@@ -1,8 +1,8 @@
 # ruff: noqa: N803
-"""Audited PULDA/GradPU image trajectories for an unbound four-role runner.
+"""Audited candidate image trajectories for an unbound four-role runner.
 
 Reuse the existing image construction/input contract and weights-only writer.
-This bridge does not admit either method into a versioned Survey protocol.
+This bridge does not admit methods into a versioned Survey protocol.
 """
 
 from __future__ import annotations
@@ -32,8 +32,9 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         if not isinstance(image_setup, dict) or image_setup.get("method") not in (
             "pulda",
             "gradpu",
+            "pan",
         ):
-            raise ValueError("a PULDA or GradPU image construction record is required")
+            raise ValueError("a PULDA, GradPU or PAN image construction record is required")
         self.image_setup = copy.deepcopy(image_setup)
         self._setup_digest = strict_canonical_hash(self.image_setup)
         self.checkpoint_bytes_per_component = checkpoint_bytes_per_component
@@ -41,8 +42,9 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
     def _validate(self, model, features, labels, view):
         if strict_canonical_hash(self.image_setup) != self._setup_digest:
             raise ValueError("candidate image setup changed after binding")
-        if view != "ts":
-            raise ValueError("candidate image runner requires explicit ts view")
+        expected_view = "os" if self.image_setup["method"] == "pan" else "ts"
+        if view != expected_view:
+            raise ValueError(f"candidate image runner requires explicit {expected_view} view")
         bound = _validate_candidate_image_fit(model, self.image_setup, features, labels)
         if model.device not in ("cpu", "cuda"):
             raise ValueError("candidate image runner requires explicit cpu or cuda")
@@ -52,13 +54,23 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             if not torch.cuda.is_available():
                 raise ValueError("requested CUDA unavailable; no CPU fallback")
         if self.image_setup["image_preprocessing"]["augmentation"]["train"]["name"] != "none":
-            raise ValueError("this runner binds the approved shared augmentation=none path")
+            raise ValueError("this exploratory runner binds augmentation=none only")
         if self.image_setup["method"] == "pulda":
             model._validate_parameters()
         else:
             for key in ("hidden_dim", "max_epochs", "batch_size"):
                 if type(getattr(model, key)) is not int or getattr(model, key) < 1:
                     raise ValueError(f"{key} must be a positive integer")
+        if self.image_setup["method"] == "pan":
+            for key in ("learning_rate", "adversarial_weight"):
+                value = getattr(model, key)
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, int | float)
+                    or not np.isfinite(value)
+                    or value <= 0
+                ):
+                    raise ValueError(f"{key} must be finite and positive")
         return bound
 
     def validate_experiment(self, model, bundle, config, protocols):
@@ -80,7 +92,15 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         budgets = []
         for parameters in candidates:
             if not isinstance(parameters, dict) or set(parameters).intersection(
-                {"encoder", "model", "train_transform", "random_state", "class_prior", "device"}
+                {
+                    "encoder",
+                    "model",
+                    "discriminator",
+                    "train_transform",
+                    "random_state",
+                    "class_prior",
+                    "device",
+                }
             ):
                 raise ValueError("candidates cannot override image/prior/seed/device bindings")
             candidate = clone(model).set_params(**parameters)
@@ -103,6 +123,19 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
 
     def checkpoint_epoch_bound(self):
         return self._epoch_bound
+
+    def _checkpoint_context(self, fitted, epoch):
+        if self.image_setup["method"] != "pan":
+            return super()._checkpoint_context(fitted, epoch)
+        expected = 2 * math.ceil(fitted.n_unlabeled_ / fitted.batch_size) * (epoch + 1)
+        if fitted.optimizer_steps_ != expected:
+            raise ValueError("PAN C/D update cost differs at completed epoch")
+        return dict(
+            stage="adversarial",
+            stage_epoch=epoch + 1,
+            round_index=None,
+            optimizer_steps=fitted.optimizer_steps_,
+        )
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         """Forward train PU data only; preserve native losses and paid stage costs."""
@@ -138,6 +171,13 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                 "max_candidate_epoch_bound": getattr(self, "_epoch_bound", len(sizes)),
                 "formal_admission": False,
             }
+            if method == "pan":
+                estimator.training_provenance_.update(
+                    selection_prior_not_forwarded_to_PAN=True,
+                    eligible_stages=["adversarial"],
+                    checkpoint_scope="classifier_C_inference_only; no_D_optimizer_resume",
+                    updates_per_minibatch={"discriminator": 1, "classifier": 1},
+                )
         except BaseException:
             # A rejected resource/receipt is not a successfully accepted model.
             estimator._is_fitted = False
@@ -154,6 +194,9 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         if method == "pulda":
             steps = math.ceil(u / estimator.unlabeled_batch_size)
             phases = ["warmup"] * estimator.warmup_epochs + ["pu_mixup"] * estimator.pu_epochs
+        elif method == "pan":
+            steps = 2 * math.ceil(u / estimator.batch_size)
+            phases = ["adversarial"] * estimator.max_epochs
         else:
             steps = max(math.ceil(p / estimator.batch_size), math.ceil(u / estimator.batch_size))
             phases = ["pu"] * estimator.max_epochs

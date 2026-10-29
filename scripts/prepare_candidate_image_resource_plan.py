@@ -1,4 +1,4 @@
-"""Read-only PULDA/GradPU checkpoint-space planning, without torch or training.
+"""Read-only candidate checkpoint-space planning, without torch or training.
 
 An optional caller-selected checkpoint supplies a file-size observation only;
 its architecture, format and experiment provenance are NOT validated or loaded.
@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 METHODS = {
     "pulda": ("pu_toolbox/estimators/risk/pulda.py", "PULDAClassifier", "resnet18"),
     "gradpu": ("pu_toolbox/estimators/deep/grad_pu.py", "GradPUClassifier", "cnn13_no_bn"),
+    "pan": ("pu_toolbox/estimators/deep/pan.py", "PANClassifier", "resnet18"),
 }
 
 
@@ -78,7 +79,7 @@ def build_plan(
     after selection is not credited against the training-time estimate.
     """
     if method not in METHODS:
-        raise ValueError("method must be pulda or gradpu")
+        raise ValueError("method must be pulda, gradpu or pan")
     for name, value in (
         ("n_positive", n_positive),
         ("n_unlabeled", n_unlabeled),
@@ -104,6 +105,12 @@ def build_plan(
         snapshots = sum(phases.values())
         updates = snapshots * (
             (n_unlabeled + defaults["unlabeled_batch_size"] - 1) // defaults["unlabeled_batch_size"]
+        )
+    elif method == "pan":
+        phases = {"max_epochs": defaults["max_epochs"]}
+        snapshots = defaults["max_epochs"]
+        updates = (
+            2 * snapshots * ((n_unlabeled + defaults["batch_size"] - 1) // defaults["batch_size"])
         )
     else:
         phases = {"max_epochs": defaults["max_epochs"]}
@@ -144,12 +151,12 @@ def build_plan(
         "pu_toolbox/experiment/candidate_image.py",
         "pu_toolbox/experiment/checkpoints.py",
     )
-    return {
+    result = {
         "schema_version": "candidate-image-resource-plan-1",
         "status": "planning_only_not_full_resource_profile",
         "method": method,
         "backbone": backbone,
-        "comparison_group": "end-to-end CNN" if method == "pulda" else "method-private/no-BN CNN",
+        "comparison_group": "method-private/no-BN CNN" if method == "gradpu" else "end-to-end CNN",
         "defaults": phases,
         "default_snapshot_count": snapshots,
         "default_optimizer_updates_per_fit": updates,
@@ -183,6 +190,16 @@ def build_plan(
         "approved_representation_ref": None,
         "ready_for_formal_run": False,
     }
+    if method == "pan":
+        result.update(
+            training_view="os",
+            calibration_applied=False,
+            training_network_instances=2,
+            inference_snapshot_components=["classifier_C"],
+            checkpoint_contains_discriminator=False,
+            default_budget_origin="toolbox_constructor_not_author_or_frozen_recipe",
+        )
+    return result
 
 
 def main(argv=None):

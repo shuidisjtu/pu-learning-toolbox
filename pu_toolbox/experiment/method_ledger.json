@@ -211,7 +211,7 @@
         "README.md": "f5a36b3ac93539438f55aa01375723ee15da07ec9b8b4556e2bad2a2e46b7f63"
       }},
       "source_behavior_review_ref": "docs/research/pu_survey/data/pan_source_review_20261018.json",
-      "implementation_status": "NATIVE; experimental MLP or injected end-to-end CNN with independent C/D encoders; not formal survey admission or paper numeric reproduction",
+      "implementation_status": "NATIVE; experimental MLP or injected end-to-end CNN with independent C/D encoders; standalone four-role image CLI records native OS, both optimizer costs and C-only inference checkpoints; not formal survey admission or paper numeric reproduction",
       "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）",
       "run_view": "os-compatible", "calibration_applied": false,
       "calibration_hooked": false,

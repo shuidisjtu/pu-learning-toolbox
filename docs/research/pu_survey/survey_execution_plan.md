@@ -57,6 +57,8 @@
 - 已冻结（显式 budget 令牌）：PULNS、LaGAM、Self-PU full-meta（spambase 行）；
 - 仍是 draft：CVIR、GradPU、KLDCE、P3MIX、PAN、PUET、RP、VPU 只有 `draft_*` 令牌，未冻结，
   在注册表里标 `excluded` 并带理由；
+- PAN 独立图像候选入口已补 OS 四角色、逐 epoch PA/OA、C/D 成本及 C-only 回放；
+  CPU 工程测试不改变 draft 配方或 v3 blocked 单元，详见 [PAN 方法卡](../method_cards/PAN.md)。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 
