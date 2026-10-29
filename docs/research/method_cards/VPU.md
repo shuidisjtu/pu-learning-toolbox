@@ -53,3 +53,24 @@ L_{reg}=\mathbb E[(\log\tilde\Phi-\log\Phi_\theta(\tilde x))^2],
 - **与上游的适配差异（2026-10-15 补充）**：显式 `optimizer_schedule="source_reset_halving"` 已支持作者零基 epoch19/39…训练前减半并重建 Adam 的时序，`iterations_per_epoch=30` 可显式固定更新数；默认仍为 `constant` / 数据量推导，不静默改变已有运行。学习率默认 `3e-4` vs 作者 `3e-5`、epochs100 vs50、batch128 vs500，以及小型 MLP/有放回配对采样等差异仍保留；采用两个开关也**不是作者训练脚本或论文数值复现**。见[源调度复核](../pu_survey/admission/vpu_schedule_review_20261015.md)。
 - 2026-10-15 新增 **P3.2 工程接线**：encoder deepcopy 后联合训练（对 encoder 全部参数执行 `requires_grad_(True)`，会覆盖模板中已有的冻结设置；BatchNorm 按训练模式更新运行统计），训练/验证池留 CPU、设备端逐批传输；归一化、验证、推理及权重恢复有分批契约。新路径不扁平化图像；验证使用全局 float64 归约，仍仅为 D22 source diagnostic。旧二维无 encoder 的 auto 路径保留 resident 与旧数值运算。见[交付](../pu_survey/delivery/vpu_encoder_stream_20261015.md)。
 - 当前仍为 **P3.1 技术预集成**：采样假设已审计并裁决为原生 `ts`（2026-09-28，见审计记录），训练视图与方法台账已接入，但**正式共享 backbone 规格、作者图像增强/网络、公开数值对照、多 seed GPU/资源记录及双人复核均未完成**，且不进入冻结执行矩阵。不能列入正式 pilot 或 P3.1 验收完成项。
+
+## 独立四角色图像入口（2026-10-29）
+
+`scripts/run_candidate_image_experiment.py --method vpu` 接入 CIFAR-10、MNIST、
+Fashion-MNIST 与 ADNI 替代槽位；默认只输出计划，`--execute --out-dir <新目录>` 才执行。
+`--parameters` JSON 显式给出 `device`、`hidden_dim`、`depth`、`max_epochs`、`batch_size`、
+`learning_rate`、`regularization_weight`、`mixup_alpha`、`optimizer_schedule`、
+`iterations_per_epoch`（可显式 null）及 `data_device_policy="cpu_stream"`。
+
+- 复用随机小图 ResNet-18 模板、train-only 通道统计及原 VPU MLP/log-Phi 头，增强固定 none。
+  这是打通已有 encoder 接口的工程适配，不是锁定作者网络；`vpu.py` 目标/采样/调度本体未改。
+- 本入口只取原生 TS：训练边缘池为 P∪U，独立模型保留原 `fit(os_or_ts="os")` 消融能力。
+  选择用的总体先验不传入 VPU，PU 验证集也不传入 fit；D22 source diagnostic 不替代 PA/OA。
+- 每个已完成 epoch 核对真实更新数、记录并保存该轮训练边缘池的 max-log-Phi 归一化。
+  checkpoint 恢复的是 `log(Phi_norm/0.5)`，不是独立校准概率或可恢复 Adam 的训练断点。
+  自动步数为 `max(ceil((n_P+n_U)/B), ceil(n_P/B))`；显式轮内步数按实际值核对，
+  另记录每轮全训练边缘池归一化扫描的额外前向，不把它隐去或计成优化更新。
+- CPU 合成彩色/灰度短测核对四角色隔离、逐轮状态、PA/OA、回收/回放；与原拟合逐 bit 对照，
+  覆盖第 19 轮前重建 Adam 的可选时序。来源仍锁定上述 commit，未执行作者程序。
+
+正式配方、预算/共享表示、资源实测及原有审批阻断保留，不解锁 v3 的 VPU 行或修改历史结果。

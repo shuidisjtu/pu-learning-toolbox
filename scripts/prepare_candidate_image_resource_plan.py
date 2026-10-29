@@ -19,6 +19,7 @@ METHODS = {
     "pulda": ("pu_toolbox/estimators/risk/pulda.py", "PULDAClassifier", "resnet18"),
     "gradpu": ("pu_toolbox/estimators/deep/grad_pu.py", "GradPUClassifier", "cnn13_no_bn"),
     "pan": ("pu_toolbox/estimators/deep/pan.py", "PANClassifier", "resnet18"),
+    "vpu": ("pu_toolbox/estimators/risk/vpu.py", "VPUClassifier", "resnet18"),
 }
 
 
@@ -79,7 +80,7 @@ def build_plan(
     after selection is not credited against the training-time estimate.
     """
     if method not in METHODS:
-        raise ValueError("method must be pulda, gradpu or pan")
+        raise ValueError("method must be pulda, gradpu, pan or vpu")
     for name, value in (
         ("n_positive", n_positive),
         ("n_unlabeled", n_unlabeled),
@@ -106,6 +107,14 @@ def build_plan(
         updates = snapshots * (
             (n_unlabeled + defaults["unlabeled_batch_size"] - 1) // defaults["unlabeled_batch_size"]
         )
+    elif method == "vpu":
+        phases = {"max_epochs": defaults["max_epochs"]}
+        snapshots = defaults["max_epochs"]
+        steps = defaults["iterations_per_epoch"] or max(
+            (n_positive + n_unlabeled + defaults["batch_size"] - 1) // defaults["batch_size"],
+            (n_positive + defaults["batch_size"] - 1) // defaults["batch_size"],
+        )
+        updates = snapshots * steps
     elif method == "pan":
         phases = {"max_epochs": defaults["max_epochs"]}
         snapshots = defaults["max_epochs"]
@@ -197,6 +206,18 @@ def build_plan(
             training_network_instances=2,
             inference_snapshot_components=["classifier_C"],
             checkpoint_contains_discriminator=False,
+            default_budget_origin="toolbox_constructor_not_author_or_frozen_recipe",
+        )
+    if method == "vpu":
+        result.update(
+            training_view="ts",
+            calibration_applied=True,
+            training_marginal_rows=n_positive + n_unlabeled,
+            normalization_forward_batches_per_epoch=(
+                n_positive + n_unlabeled + defaults["batch_size"] - 1
+            )
+            // defaults["batch_size"],
+            normalization_cost_is_additional_to_optimizer_updates=True,
             default_budget_origin="toolbox_constructor_not_author_or_frozen_recipe",
         )
     return result

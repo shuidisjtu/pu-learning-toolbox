@@ -1,4 +1,4 @@
-"""Opt-in PULDA/GradPU/PAN image assembly, not a frozen recipe or admission.
+"""Opt-in candidate image assembly, not a frozen recipe or admission.
 
 The returned manifest describes construction-time facts. Callers must persist it
 with the actual run parameters, selection policy and measured resource record.
@@ -35,12 +35,13 @@ def build_candidate_image_classifier(
     PULDA uses the shared train-fitted ResNet-18 and optional train augmentation.
     PAN also uses that encoder template, cloned independently by its C/D fit;
     it retains native OS and requires augmentation=none in this candidate path.
+    VPU uses a separate copy with its native MLP/log-Phi head and TS marginal.
     GradPU uses a private CNN13 without BN; shared augmentation is deliberately
     refused until a method-specific policy is decided. Each construction resets
     the CPU torch seed in a fork, independent of previous methods' RNG use.
     """
-    if not isinstance(method, str) or method not in {"pulda", "gradpu", "pan"}:
-        raise ValueError("method must be 'pulda', 'gradpu' or 'pan'")
+    if not isinstance(method, str) or method not in {"pulda", "gradpu", "pan", "vpu"}:
+        raise ValueError("method must be 'pulda', 'gradpu', 'pan' or 'vpu'")
     if isinstance(seed, bool) or not isinstance(seed, Integral) or not 0 <= seed < 2**32:
         raise ValueError("seed must be an integer in [0, 2**32)")
     if method == "pulda" and class_prior is None:
@@ -54,10 +55,12 @@ def build_candidate_image_classifier(
         ):
             raise ValueError("population class_prior must be a finite real number in (0, 1)")
         class_prior = float(class_prior)
-    if method in {"gradpu", "pan"} and class_prior is not None:
+    if method in {"gradpu", "pan", "vpu"} and class_prior is not None:
         raise ValueError(f"{method} does not use a class_prior")
     if method == "pan" and preprocessing.train_augmentation != "none":
         raise ValueError("PAN candidate image setup requires train_augmentation='none'")
+    if method == "vpu" and preprocessing.train_augmentation != "none":
+        raise ValueError("VPU candidate image setup requires train_augmentation='none'")
     if method == "gradpu" and preprocessing.train_augmentation != "none":
         raise ValueError("GradPU private image setup requires train_augmentation='none'")
     if method == "gradpu" and min(preprocessing.input_size) < 8:
@@ -67,7 +70,7 @@ def build_candidate_image_classifier(
 
     with torch.random.fork_rng(devices=[]):
         torch.random.default_generator.manual_seed(int(seed))
-        if method in {"pulda", "pan"}:
+        if method in {"pulda", "pan", "vpu"}:
             from pu_toolbox.estimators.risk.pulda import PULDAClassifier
 
             encoder = build_survey_image_encoder(preprocessing)
@@ -80,10 +83,19 @@ def build_candidate_image_classifier(
                     random_state=int(seed),
                     device=device,
                 )
-            else:
+            elif method == "pan":
                 from pu_toolbox.estimators.deep.pan import PANClassifier
 
                 estimator = PANClassifier(encoder=encoder, random_state=int(seed), device=device)
+            else:
+                from pu_toolbox.estimators.risk.vpu import VPUClassifier
+
+                estimator = VPUClassifier(
+                    encoder=encoder,
+                    random_state=int(seed),
+                    device=device,
+                    data_device_policy="cpu_stream",
+                )
         else:
             from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
             from pu_toolbox.estimators.deep.vision import build_wconpu_backbone
@@ -158,6 +170,19 @@ def build_candidate_image_classifier(
             selection_components=["classifier_C"],
             adversarial_state_policy="independent_C_D; inactive_eval_no_grad",
         )
+    if method == "vpu":
+        record.update(
+            input_order=[
+                "raw_image_mixup",
+                "encoder_normalization",
+                "train_marginal_max_log_phi_normalization",
+            ],
+            training_view="ts",
+            marginal_pool="train_P_union_U",
+            selection_components=["normalized_phi_model"],
+            normalization_scope="completed_epoch_training_marginal_only",
+            validation_diagnostic_selection_eligible=False,
+        )
     return estimator, record
 
 
@@ -169,13 +194,19 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
     from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
     from pu_toolbox.estimators.deep.pan import PANClassifier
     from pu_toolbox.estimators.risk.pulda import PULDAClassifier
+    from pu_toolbox.estimators.risk.vpu import VPUClassifier
     from pu_toolbox.utils.serialization import array_hash
 
     if not isinstance(image_setup, dict):
         raise ValueError("image_setup must be a construction record")
     setup = copy.deepcopy(image_setup)
     method = setup.get("method")
-    classes = {"pulda": PULDAClassifier, "gradpu": GradPUClassifier, "pan": PANClassifier}
+    classes = {
+        "pulda": PULDAClassifier,
+        "gradpu": GradPUClassifier,
+        "pan": PANClassifier,
+        "vpu": VPUClassifier,
+    }
     expected_group = "method-private/no-BN CNN" if method == "gradpu" else "end-to-end CNN"
     if (
         not isinstance(method, str)
@@ -222,6 +253,14 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         or setup.get("adversarial_state_policy") != "independent_C_D; inactive_eval_no_grad"
     ):
         raise ValueError("PAN requires the bound native OS independent C/D image setup")
+    if method == "vpu" and (
+        setup.get("training_view") != "ts"
+        or setup.get("marginal_pool") != "train_P_union_U"
+        or setup.get("selection_components") != ["normalized_phi_model"]
+        or setup.get("normalization_scope") != "completed_epoch_training_marginal_only"
+        or setup.get("validation_diagnostic_selection_eligible") is not False
+    ):
+        raise ValueError("VPU requires native TS and train-marginal-only normalization")
 
     features, labels = validate_pu_X_y(
         train_images,
@@ -255,6 +294,30 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
     return setup, features, labels, input_hash, label_hash, parameters
 
 
+def _vpu_normalization_facts(estimator):
+    """Inspect completed epoch state without repeating its normalization scan."""
+    import torch
+
+    normalizer = estimator.model_[-1]
+    maximum = float(estimator.max_log_phi_)
+    expected_bias = -maximum - math.log(0.5)
+    if (
+        not math.isfinite(expected_bias)
+        or not torch.equal(normalizer.weight.detach().cpu(), torch.ones((1, 1)))
+        or normalizer.weight.requires_grad
+        or normalizer.bias.requires_grad
+        or not math.isclose(
+            float(normalizer.bias.detach().cpu()), expected_bias, rel_tol=1e-6, abs_tol=1e-7
+        )
+    ):
+        raise ValueError("VPU inference normalization does not match its training marginal")
+    return dict(
+        max_log_phi=maximum,
+        normalization_bias=float(normalizer.bias.detach().cpu()),
+        normalization_embedded_in_model_state=True,
+    )
+
+
 def _candidate_image_training_receipt(estimator, bound_inputs, started):
     """Verify inputs after training and retain the original receipt semantics."""
     from pu_toolbox.utils.serialization import array_hash, file_hash
@@ -267,6 +330,7 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
         "pulda": "estimators/risk/pulda.py",
         "gradpu": "estimators/deep/grad_pu.py",
         "pan": "estimators/deep/pan.py",
+        "vpu": "estimators/risk/vpu.py",
     }[method]
     receipt = {
         "schema_version": "candidate-image-training-receipt-1",
@@ -317,6 +381,26 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
             discriminator_encoder_trainable=True,
             classifier_only_inference=True,
             target_identity="paper_Eq7_not_related_source_max_margin",
+        )
+    if method == "vpu":
+        if (
+            estimator.training_view_ != "ts"
+            or not estimator.calibration_applied_
+            or estimator.n_loss_unlabeled_ != len(features)
+            or estimator.training_data_device_ != "cpu"
+        ):
+            raise ValueError("VPU candidate fit must stream the complete train P-union-U marginal")
+        receipt.update(_vpu_normalization_facts(estimator))
+        receipt.update(
+            training_marginal_rows=estimator.n_loss_unlabeled_,
+            decision_score_semantics="log_Phi_normalized_over_0.5_not_calibrated_probability",
+            normalization_forward_batches_per_epoch=math.ceil(
+                estimator.n_loss_unlabeled_ / estimator.batch_size
+            ),
+            normalization_training_rows_per_epoch=estimator.n_loss_unlabeled_,
+            optimizer_resets=estimator.optimizer_resets_,
+            optimizer_schedule=estimator.optimizer_schedule,
+            iterations_per_epoch=estimator.iterations_per_epoch,
         )
     json.dumps(receipt, allow_nan=False)
     return receipt

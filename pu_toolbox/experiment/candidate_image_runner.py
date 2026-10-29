@@ -16,7 +16,11 @@ import numpy as np
 from sklearn.base import clone
 
 from ..utils.serialization import strict_canonical_hash
-from .candidate_image import _candidate_image_training_receipt, _validate_candidate_image_fit
+from .candidate_image import (
+    _candidate_image_training_receipt,
+    _validate_candidate_image_fit,
+    _vpu_normalization_facts,
+)
 from .checkpoints import EpochCheckpointTrainer
 
 
@@ -33,8 +37,9 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             "pulda",
             "gradpu",
             "pan",
+            "vpu",
         ):
-            raise ValueError("a PULDA, GradPU or PAN image construction record is required")
+            raise ValueError("a PULDA, GradPU, PAN or VPU image construction record is required")
         self.image_setup = copy.deepcopy(image_setup)
         self._setup_digest = strict_canonical_hash(self.image_setup)
         self.checkpoint_bytes_per_component = checkpoint_bytes_per_component
@@ -55,7 +60,7 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                 raise ValueError("requested CUDA unavailable; no CPU fallback")
         if self.image_setup["image_preprocessing"]["augmentation"]["train"]["name"] != "none":
             raise ValueError("this exploratory runner binds augmentation=none only")
-        if self.image_setup["method"] == "pulda":
+        if self.image_setup["method"] in {"pulda", "vpu"}:
             model._validate_parameters()
         else:
             for key in ("hidden_dim", "max_epochs", "batch_size"):
@@ -71,6 +76,8 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     or value <= 0
                 ):
                     raise ValueError(f"{key} must be finite and positive")
+        if self.image_setup["method"] == "vpu" and model.data_device_policy != "cpu_stream":
+            raise ValueError("VPU candidate image runner requires explicit cpu_stream policy")
         return bound
 
     def validate_experiment(self, model, bundle, config, protocols):
@@ -125,6 +132,24 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         return self._epoch_bound
 
     def _checkpoint_context(self, fitted, epoch):
+        if self.image_setup["method"] == "vpu":
+            if fitted.n_loss_unlabeled_ != fitted.n_positive_ + fitted.n_unlabeled_:
+                raise ValueError("VPU completed epoch did not use the complete TS train marginal")
+            steps = fitted.iterations_per_epoch or max(
+                math.ceil(fitted.n_loss_unlabeled_ / fitted.batch_size),
+                math.ceil(fitted.n_positive_ / fitted.batch_size),
+            )
+            if fitted.optimizer_steps_ != steps * (epoch + 1):
+                raise ValueError("VPU update cost differs at completed epoch")
+            self._vpu_epoch_records.append(
+                dict(epoch=int(epoch), **_vpu_normalization_facts(fitted))
+            )
+            return dict(
+                stage="variational",
+                stage_epoch=epoch + 1,
+                round_index=None,
+                optimizer_steps=fitted.optimizer_steps_,
+            )
         if self.image_setup["method"] != "pan":
             return super()._checkpoint_context(fitted, epoch)
         expected = 2 * math.ceil(fitted.n_unlabeled_ / fitted.batch_size) * (epoch + 1)
@@ -147,6 +172,8 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         previous = getattr(estimator, "training_provenance_", {})
         if isinstance(previous, dict) and previous.get("candidate_image_runner_schema"):
             del estimator.training_provenance_
+        if method == "vpu":
+            self._vpu_epoch_records = []
         try:
             trajectory = super().fit(
                 estimator,
@@ -178,6 +205,17 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     checkpoint_scope="classifier_C_inference_only; no_D_optimizer_resume",
                     updates_per_minibatch={"discriminator": 1, "classifier": 1},
                 )
+            if method == "vpu":
+                estimator.training_provenance_.update(
+                    selection_prior_not_forwarded_to_VPU=True,
+                    eligible_stages=["variational"],
+                    checkpoint_scope="normalized_phi_inference_only; no_optimizer_resume",
+                    source_validation_risk_used_for_selection=False,
+                    source_validation_diagnostic_forwarded=False,
+                    learning_rate_history=list(estimator.history_["learning_rate"]),
+                    optimizer_generation_history=list(estimator.history_["optimizer_generation"]),
+                    normalization_history=list(self._vpu_epoch_records),
+                )
         except BaseException:
             # A rejected resource/receipt is not a successfully accepted model.
             estimator._is_fitted = False
@@ -197,6 +235,11 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         elif method == "pan":
             steps = 2 * math.ceil(u / estimator.batch_size)
             phases = ["adversarial"] * estimator.max_epochs
+        elif method == "vpu":
+            steps = estimator.iterations_per_epoch or max(
+                math.ceil(len(labels) / estimator.batch_size), math.ceil(p / estimator.batch_size)
+            )
+            phases = ["variational"] * estimator.max_epochs
         else:
             steps = max(math.ceil(p / estimator.batch_size), math.ceil(u / estimator.batch_size))
             phases = ["pu"] * estimator.max_epochs
