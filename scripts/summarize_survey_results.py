@@ -711,6 +711,14 @@ def build_summary(
     report["refusals"] = refusals
     report["checks"] = checks
     report["overall"] = audit.overall_status(checks)
+    report["admission_status"] = (
+        "formal"
+        if report["overall"] == "pass"
+        and audit_report.get("admission_status") == "formal"
+        and report["rows"]
+        and all(row["status"] == "formal" for row in report["rows"])
+        else "partial"
+    )
     return report
 
 
@@ -838,6 +846,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
             f"- 行数：{report['coverage']['rows']}；"
             f"run 成本条目：{report['coverage']['run_costs']}",
             f"- 结论：**{report['overall']}**",
+            f"- 正式准入：**{report.get('admission_status', 'partial')}**",
         ]
     )
     readiness = batch_readiness(report.get("checks", []))

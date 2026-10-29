@@ -69,6 +69,13 @@ epoch 和更新步数。SAR 只要求 OA 验证，SCAR 同时要求 PA / OA；�
 `partial`；例如未配置归档摘要时 A11 保持 `not_run`，不能将其描述为通过，也不自动否决
 已经通过所需准入检查的完整结果行。
 
+用户明确决定跳过 A11 时，可在对应 batch 配置中记录
+`"archive_digest_waiver": {"authorized_by": "user", "reason": "用户明确跳过 A11"}`，
+且不同时配置 `archive_digests`。此时 A11 为 `not_applicable`，说明与报告中保留豁免来源和
+原因，不记为摘要验证通过；其他批次仍分别检查。所有其余门禁及完整正式结果行通过后，
+报告的 `admission_status` 为 `formal`，Markdown 与工作簿显式展示；技术审计的
+`overall` 仍使用既有 `pass / partial / fail` 词汇，二者不混用。
+
 ## 4. 正式批次
 
 同一条命令去掉 `--dry-run`。分片用 `--datasets` / `--methods` / `--training-paths`，三者取交集；命名了一个矩阵里没有的东西、或交集为空，会被拒绝而不是"缩小成空"。

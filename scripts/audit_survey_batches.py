@@ -150,6 +150,22 @@ class ConfigError(ValueError):
     """A batch-root config that cannot be used as given."""
 
 
+def _archive_digest_waiver(batch: dict[str, Any]) -> dict[str, str] | None:
+    """An explicit user decision exempts only this batch's archive check."""
+    if "archive_digest_waiver" not in batch:
+        return None
+    waiver = batch["archive_digest_waiver"]
+    if (
+        not isinstance(waiver, dict)
+        or waiver.get("authorized_by") != "user"
+        or not isinstance(waiver.get("reason"), str)
+        or not waiver["reason"].strip()
+        or batch.get("archive_digests")
+    ):
+        raise ConfigError("A11 waiver needs user authorization, a reason, and no archive_digests")
+    return {"authorized_by": "user", "reason": waiver["reason"].strip()}
+
+
 def load_config(path: str | Path) -> dict[str, Any]:
     """Read and validate the batch-root whitelist."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -171,6 +187,7 @@ def load_config(path: str | Path) -> dict[str, Any]:
             raise ConfigError(f"batch {batch.get('name')!r} needs an expected count")
         if batch.get("role", "formal") not in {"formal", "technical_probe"}:
             raise ConfigError(f"batch {batch.get('name')!r} has an unknown role")
+        _archive_digest_waiver(batch)
         for key in _PATH_KEYS:
             if key not in batch:
                 continue
@@ -739,10 +756,19 @@ def check_archives(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict
     """
     del loaded  # the evidence is per batch and does not depend on the manifests
     verified: dict[str, dict[str, int]] = {}
+    waived: dict[str, dict[str, str]] = {}
     unverified: list[str] = []
     findings: list[str] = []
     for batch in config["batches"]:
         name = batch["name"]
+        try:
+            waiver = _archive_digest_waiver(batch)
+        except ConfigError as exc:
+            findings.append(f"{name}: {exc}")
+            continue
+        if waiver is not None:
+            waived[name] = waiver
+            continue
         if not batch.get("archive_digests"):
             unverified.append(name)
             continue
@@ -760,6 +786,9 @@ def check_archives(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict
         message = f"no archive digest file configured for {unverified}" + (
             f"; verified {sorted(verified)}" if verified else ""
         )
+    elif waived and not verified:
+        result, severity = "not_applicable", "info"
+        message = "archive digest verification skipped by explicit user decision"
     else:
         result, severity = "pass", "info"
         message = (
@@ -767,13 +796,21 @@ def check_archives(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict
             f"batch(es); {total - recomputed_total} archive(s) not recomputed on this host; "
             "recovery is not tested"
         )
+    if waived:
+        message += "; user waivers: " + "; ".join(
+            f"{name}: {item['reason']}" for name, item in sorted(waived.items())
+        )
     return make_check(
         check_id="A11",
         result=result,
         severity=severity,
         scope="batch",
         message=message,
-        observed={"verified_batches": verified, "unverified_batches": sorted(unverified)},
+        observed={
+            "verified_batches": verified,
+            "unverified_batches": sorted(unverified),
+            "waived_batches": waived,
+        },
         evidence=findings[:40],
     )
 
@@ -2056,6 +2093,9 @@ def build_audit(
 
     report["checks"] = checks
     report["overall"] = overall_status(checks)
+    report["admission_status"] = (
+        "formal" if formal_ready and report["overall"] == "pass" else "partial"
+    )
     return report
 
 
@@ -2072,6 +2112,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
         [
             f"- 制品：{report['coverage'].get('total', 0)} 份 manifest",
             f"- 结论：**{report['overall']}**",
+            f"- 正式准入：**{report.get('admission_status', 'partial')}**",
             "",
             "| check | 结果 | 作用域 | reasons | 说明 |",
             "|---|---|---|---|---|",
