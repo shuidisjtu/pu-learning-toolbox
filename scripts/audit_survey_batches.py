@@ -150,6 +150,22 @@ class ConfigError(ValueError):
     """A batch-root config that cannot be used as given."""
 
 
+def _archive_digest_waiver(batch: dict[str, Any]) -> dict[str, str] | None:
+    """An explicit user decision exempts only this batch's archive check."""
+    if "archive_digest_waiver" not in batch:
+        return None
+    waiver = batch["archive_digest_waiver"]
+    if (
+        not isinstance(waiver, dict)
+        or waiver.get("authorized_by") != "user"
+        or not isinstance(waiver.get("reason"), str)
+        or not waiver["reason"].strip()
+        or batch.get("archive_digests")
+    ):
+        raise ConfigError("A11 waiver needs user authorization, a reason, and no archive_digests")
+    return {"authorized_by": "user", "reason": waiver["reason"].strip()}
+
+
 def load_config(path: str | Path) -> dict[str, Any]:
     """Read and validate the batch-root whitelist."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -171,6 +187,7 @@ def load_config(path: str | Path) -> dict[str, Any]:
             raise ConfigError(f"batch {batch.get('name')!r} needs an expected count")
         if batch.get("role", "formal") not in {"formal", "technical_probe"}:
             raise ConfigError(f"batch {batch.get('name')!r} has an unknown role")
+        _archive_digest_waiver(batch)
         for key in _PATH_KEYS:
             if key not in batch:
                 continue
@@ -524,6 +541,9 @@ _ARROW_LINE = re.compile(r"->\s+(\S+/manifest\.json)\s*$")
 _COMPLETION_LINE = re.compile(
     r"^completed (\d+) of (\d+) run\(s\)(?: in [^;]+)?; (\d+) still pending"
 )
+_ASSIGNED_COMPLETION_LINE = re.compile(
+    r"^TRAINING_COMPLETE (\d+)/(\d+); formal admission requires audit$"
+)
 
 
 def _relative_key(path: Path, root: str) -> str:
@@ -556,11 +576,16 @@ def _compare_log(log_path: str, delivered: list[dict[str, Any]], root: str) -> l
             logged[match] += 1
 
     findings: list[str] = []
-    completion = [m for m in map(_COMPLETION_LINE.match, lines) if m]
+    completion = []
+    for line in lines:
+        if match := _COMPLETION_LINE.match(line):
+            completion.append(tuple(int(value) for value in match.groups()))
+        elif match := _ASSIGNED_COMPLETION_LINE.fullmatch(line):
+            completion.append((*map(int, match.groups()), 0))
     if not completion:
         findings.append("the log has no completion line")
     else:
-        done, total, pending = (int(value) for value in completion[-1].groups())
+        done, total, pending = completion[-1]
         if done != total:
             findings.append(f"the completion line reports {done} of {total} run(s)")
         if pending:
@@ -731,10 +756,19 @@ def check_archives(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict
     """
     del loaded  # the evidence is per batch and does not depend on the manifests
     verified: dict[str, dict[str, int]] = {}
+    waived: dict[str, dict[str, str]] = {}
     unverified: list[str] = []
     findings: list[str] = []
     for batch in config["batches"]:
         name = batch["name"]
+        try:
+            waiver = _archive_digest_waiver(batch)
+        except ConfigError as exc:
+            findings.append(f"{name}: {exc}")
+            continue
+        if waiver is not None:
+            waived[name] = waiver
+            continue
         if not batch.get("archive_digests"):
             unverified.append(name)
             continue
@@ -752,6 +786,9 @@ def check_archives(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict
         message = f"no archive digest file configured for {unverified}" + (
             f"; verified {sorted(verified)}" if verified else ""
         )
+    elif waived and not verified:
+        result, severity = "not_applicable", "info"
+        message = "archive digest verification skipped by explicit user decision"
     else:
         result, severity = "pass", "info"
         message = (
@@ -759,13 +796,21 @@ def check_archives(config: dict[str, Any], loaded: list[dict[str, Any]]) -> dict
             f"batch(es); {total - recomputed_total} archive(s) not recomputed on this host; "
             "recovery is not tested"
         )
+    if waived:
+        message += "; user waivers: " + "; ".join(
+            f"{name}: {item['reason']}" for name, item in sorted(waived.items())
+        )
     return make_check(
         check_id="A11",
         result=result,
         severity=severity,
         scope="batch",
         message=message,
-        observed={"verified_batches": verified, "unverified_batches": sorted(unverified)},
+        observed={
+            "verified_batches": verified,
+            "unverified_batches": sorted(unverified),
+            "waived_batches": waived,
+        },
         evidence=findings[:40],
     )
 
@@ -1431,6 +1476,8 @@ def check_isolation_tests(repo_root: Path) -> dict[str, Any]:
 def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -> list[str]:
     """Require every frozen epoch and component, including warmup checkpoints."""
     profile_id = payload.get("profile_id")
+    if profile_id in {"nnpu", "dist_pu"}:
+        return _neural_checkpoint_reassessment_problems(payload, protocol)
     if profile_id not in {"lagam", "pulns", "self_pu_full_meta"}:
         return ["profile_outside_reassessment_scope"]
     profile = protocol["method_profiles"][profile_id]
@@ -1474,6 +1521,54 @@ def _checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -
             not {"OA", "PA+clean-support"} <= set(ref.get("validation_metrics", {})) for ref in refs
         ):
             return ["checkpoint_validation_incomplete"]
+    return []
+
+
+def _neural_checkpoint_reassessment_problems(payload: dict[str, Any], protocol: dict) -> list[str]:
+    """Verify the frozen native-2d nnPU/Dist-PU trajectory and selection evidence."""
+    if payload.get("training_path") != "native_2d":
+        return ["profile_outside_reassessment_scope"]
+    profile_id = payload["profile_id"]
+    profile = protocol["method_profiles"][profile_id]
+    budget = protocol["budgets"][profile["budget"]]
+    params = payload.get("estimator_parameters", {})
+    if any(params.get(key) != value for key, value in profile["params"].items()):
+        return ["estimator_parameters_not_frozen"]
+    if profile_id == "dist_pu" and params.get("training_recipe", "clean_room") != "clean_room":
+        return ["estimator_parameters_not_frozen"]
+    if any(payload.get("budget", {}).get(key) != value for key, value in budget.items()):
+        return ["frozen_budget_mismatch"]
+    candidates = payload.get("candidate_runs", [])
+    pool = protocol["candidate_pool"]
+    if len(candidates) != budget["outer_candidates"] or len(candidates) != len(pool):
+        return ["candidate_pool_incomplete"]
+    if payload.get("selection_checkpoint_scope") != "independent_per_epoch":
+        return ["checkpoint_scope_not_independent"]
+    count = budget["epochs"]
+    expected = {(epoch + 1, epoch, "model") for epoch in range(count)}
+    required_metrics = {"OA"} if mechanism_of(payload) != "scar" else {"PA", "OA"}
+    for candidate, frozen_params in zip(candidates, pool, strict=True):
+        if candidate.get("status") != "succeeded":
+            return ["candidate_not_succeeded"]
+        if candidate.get("params") != frozen_params:
+            return ["candidate_params_not_frozen"]
+        refs = candidate.get("epoch_checkpoints", [])
+        observed = {
+            (ref.get("epoch_position"), ref.get("epoch_label"), ref.get("component"))
+            for ref in refs
+        }
+        if len(refs) != count or observed != expected:
+            return ["checkpoint_trajectory_incomplete"]
+        if any(not required_metrics <= set(ref.get("validation_metrics", {})) for ref in refs):
+            return ["checkpoint_validation_incomplete"]
+        if profile_id == "dist_pu":
+            provenance = candidate.get("training_provenance", {})
+            if (
+                provenance.get("implementation_path") != "clean_room_single_stage_full_batch"
+                or provenance.get("epochs_completed") != count
+                or provenance.get("optimizer_steps") != count
+            ):
+                return ["training_budget_provenance_incomplete"]
     return []
 
 
@@ -1998,6 +2093,9 @@ def build_audit(
 
     report["checks"] = checks
     report["overall"] = overall_status(checks)
+    report["admission_status"] = (
+        "formal" if formal_ready and report["overall"] == "pass" else "partial"
+    )
     return report
 
 
@@ -2014,6 +2112,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
         [
             f"- 制品：{report['coverage'].get('total', 0)} 份 manifest",
             f"- 结论：**{report['overall']}**",
+            f"- 正式准入：**{report.get('admission_status', 'partial')}**",
             "",
             "| check | 结果 | 作用域 | reasons | 说明 |",
             "|---|---|---|---|---|",

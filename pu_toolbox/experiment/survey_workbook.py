@@ -282,9 +282,15 @@ def build_workbook(report: Mapping[str, Any]):
         ("协议 sha256", report.get("protocol_sha256")),
         ("报告生成时间", report.get("generated_at")),
         ("报告总体判定", report.get("overall")),
+        ("正式准入", report.get("admission_status")),
         ("报告行数", len(report.get("rows", []))),
     ]
     facts.extend((f"状态={status}", count) for status, count in sorted(counts.items()))
+    facts.extend(
+        ("A11检查说明", check["message"])
+        for check in report.get("checks", [])
+        if check["check_id"] == "A11" and check.get("observed", {}).get("waived_batches")
+    )
     for item in facts:
         readme.append(list(item))
     readme.append([])

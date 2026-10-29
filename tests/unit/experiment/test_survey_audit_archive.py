@@ -173,3 +173,31 @@ def test_determ_a11_the_same_inputs_give_the_same_check(tmp_path):
     config = _config(tmp_path, digests)
 
     assert checks.check_archives(config, _entries()) == checks.check_archives(config, _entries())
+
+
+@pytest.mark.parametrize("other_batch", [False, True])
+def test_basic_a11_explicit_user_waiver_skips_only_the_named_batch(tmp_path, other_batch):
+    config = _config(tmp_path, None)
+    waiver = {"authorized_by": "user", "reason": "Skip A11 for this accepted batch."}
+    config["batches"][0]["archive_digest_waiver"] = waiver
+    if other_batch:
+        config["batches"].append({"name": "B2", "root": str(tmp_path / "B2")})
+    check = checks.check_archives(config, _entries())
+    assert check["result"] == ("not_run" if other_batch else "not_applicable")
+    assert check["observed"]["waived_batches"] == {"B1": waiver}
+    assert check["observed"]["verified_batches"] == {}
+    assert "user" in check["message"]
+
+
+@pytest.mark.parametrize("defect", ["no_reason", "no_authority", "conflicting_digest"])
+def test_edge_a11_invalid_waiver_cannot_hide_an_archive_check(tmp_path, defect):
+    config = _config(tmp_path, None)
+    waiver = {"authorized_by": "user", "reason": "Skip A11."}
+    if defect == "no_reason":
+        waiver["reason"] = " "
+    elif defect == "no_authority":
+        waiver["authorized_by"] = "automatic"
+    else:
+        config["batches"][0]["archive_digests"] = str(tmp_path / "bad.sha256")
+    config["batches"][0]["archive_digest_waiver"] = waiver
+    assert checks.check_archives(config, _entries())["result"] == "fail"
