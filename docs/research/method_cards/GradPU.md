@@ -109,3 +109,11 @@ source-faithful。学习率调度、batch 语义、网络/epoch、TS/SAR 声明�
 见 [#121](https://github.com/shuidisjtu/pu-learning-toolbox/issues/121)。
 有条件接受工程证据，但固定学习率与论文调度差异、阶段/预算/资源/公开数值
 仍未解决；不构成正式 Survey 准入。
+
+2026-10-29：独立 `run_candidate_image_experiment.py` 已补 `adni` 替代数据槽位，
+与 CIFAR/MNIST/Fashion-MNIST 共用 train-only 归一化和私有 no-BN CNN 路径。
+依据为 D1 的替代数据决定，不是原论文新增 ADNI 实验；不改损失、TS 校准或冻结预算。
+计划、manifest 的 split_ref 与结果摘要显式记录「不是临床 ADNI」、未知许可及
+未核实 subject 隔离；仓库来源收据不能替任意输入 NPZ 证明真实来源。
+CPU 合成灰度短测核对全部已付 epoch、PA/OA 选模及序列化回放，
+不代表真实数据全预算、多 seed GPU 或论文数值复现。

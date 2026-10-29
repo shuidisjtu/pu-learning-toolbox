@@ -399,6 +399,7 @@ tests/
       test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
       test_survey_image_support_execution.py # 运行入口把 support 部分按图像路径装配(原生 CNN 缩放、adapter 特征、表格原样)
       test_support_protocol_context.py  # support CLI 的版本、c token 与收据来源偏离判定
+      test_candidate_image_adni.py      # ADNI 替代槽位灰度图、双选模回放与非临床来源边界
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
