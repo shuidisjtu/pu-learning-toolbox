@@ -25,7 +25,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from .survey_comparison import resolve_comparison_unit
+from .survey_comparison import comparison_context
+from .survey_profile_identity import has_profile_identities, valid_manifest_profile_identity
 from .survey_summary import (
     REASONS,
     SELECTION_PROTOCOLS,
@@ -149,11 +150,19 @@ def matrix_conflicts(payload: Mapping[str, Any], *, comparison: Mapping[str, Any
     for protocol in protocols:
         try:
             selector = matrix_selector(payload, selection_protocol=protocol)
+            if protocol == "PA+clean-support":
+                # Coverage uses the registered PA slot; reporting keeps the
+                # extra-supervised result key and its separate ranking rules.
+                selector["selection_protocol"] = "pa"
+            profile_id = None
+            if has_profile_identities(payload):
+                if not valid_manifest_profile_identity(payload):
+                    raise ValueError("manifest profile identity is inconsistent")
+                profile_id = payload["profile_id"]
+            comparison_context(selector, comparison=comparison, profile_id=profile_id)
         except (KeyError, SummaryError):
             # Already a structural finding; naming it twice would suggest two gaps.
             continue
-        try:
-            resolve_comparison_unit(selector, comparison=comparison)
         except ValueError:
             # Both directions of a broken axis claim land here: an oracle standing
             # where the matrix has a c grid, and a c-grid run standing where the

@@ -18,6 +18,8 @@ import pytest
 from _survey_summary_helpers import SCRIPTS_DIR, config_for, manifest
 from _survey_summary_helpers import entry as _entry
 
+from pu_toolbox.experiment import batch_evidence
+
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 checks = importlib.import_module("audit_survey_batches")
@@ -142,3 +144,76 @@ def test_determ_the_three_checks_give_the_same_answer_twice(tmp_path):
         )
 
     assert run() == run()
+
+
+def _packet_batch(tmp_path):
+    root = tmp_path / "results"
+    payload = manifest(method="lagam")
+    packet = batch_evidence.build_evidence(
+        unit={
+            "dataset": "spambase",
+            "method": "lagam",
+            "training_path": "native_2d",
+            "mechanism": "scar",
+        },
+        seeds=(0,),
+        c_tokens=("0.1",),
+        protocol_version=payload["protocol_version"],
+        protocol_sha256=payload["protocol_sha256"],
+        code={"code_commit": "a" * 40, "code_commit_dirty": False, "code_commit_state": "recorded"},
+        lock={"path": "uv.lock", "sha256": "b" * 64, "state": "recorded"},
+        environment={"python_version": "3.10.8"},
+    )
+    path = batch_evidence.write(root / batch_evidence.DIRECTORY, packet)
+    payload["batch"] = batch_evidence.manifest_block(packet, path)
+    return config_for({"support": (root, 1)}), [_entry(payload, batch="support")], path
+
+
+def test_basic_a14_accepts_verified_d52_packets_for_new_batch_names(tmp_path):
+    config, entries, _ = _packet_batch(tmp_path)
+
+    check = checks.check_snapshots(config, tmp_path, entries=entries)
+
+    assert check["result"] == "pass"
+    assert check["observed"]["packet_batches"] == ["support"]
+
+
+@pytest.mark.parametrize("damage", ["missing", "changed", "unit", "seed", "c", "protocol"])
+def test_param_a14_refuses_new_batches_with_missing_or_changed_packets(tmp_path, damage):
+    config, entries, path = _packet_batch(tmp_path)
+    if damage == "missing":
+        path.unlink()
+    elif damage == "changed":
+        path.write_text("{}", encoding="utf-8")
+    else:
+        packet = batch_evidence.load(path)
+        if damage == "unit":
+            packet["unit"]["dataset"] = "connect_4"
+        elif damage == "seed":
+            packet["seeds"] = [1]
+        elif damage == "c":
+            packet["c_tokens"] = ["0.3"]
+        else:
+            packet["protocol_sha256"] = "f" * 64
+        packet["batch_id"] = batch_evidence.batch_identity(packet)
+        replacement = batch_evidence.write(path.parent, packet)
+        entries[0]["payload"]["batch"] = batch_evidence.manifest_block(packet, replacement)
+
+    check = checks.check_snapshots(config, tmp_path, entries=entries)
+
+    assert check["result"] == "fail"
+    assert any("support:" in item for item in check["evidence"])
+
+
+def test_edge_a14_requires_every_new_batch_manifest_to_cite_its_evidence(tmp_path):
+    config, entries, _ = _packet_batch(tmp_path)
+    entries.append(_entry(manifest(seed=1), batch="support"))
+
+    assert checks.check_snapshots(config, tmp_path, entries=entries)["result"] == "fail"
+
+
+def test_determ_a14_packet_validation_does_not_depend_on_prior_calls(tmp_path):
+    config, entries, _ = _packet_batch(tmp_path)
+
+    first = checks.check_snapshots(config, tmp_path, entries=entries)
+    assert checks.check_snapshots(config, tmp_path, entries=entries) == first

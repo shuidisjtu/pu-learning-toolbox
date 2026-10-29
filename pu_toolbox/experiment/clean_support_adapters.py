@@ -85,7 +85,7 @@ class _SelfPUTSCleanSupportTrainer(SelfPUCleanSupportTrainer):
 
     def validate_experiment(self, model, bundle, config, protocols):
         self._prepared = False
-        if config.get("recipe_registry") is not None:
+        if config.get("recipe_registry") is not None or config.get("survey_protocol"):
             raise ValueError("Self-PU TS clean-support is not a versioned Survey recipe")
         super().validate_experiment(model, bundle, config, protocols)
         self._audit.update(

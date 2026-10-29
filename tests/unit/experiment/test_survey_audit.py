@@ -17,8 +17,12 @@ The check schema, its scopes and the gate roll-up have their own file,
 
 import pytest
 
-from pu_toolbox.experiment.survey_audit import preflight_status
-from pu_toolbox.experiment.survey_comparison import load_comparison_protocol
+from pu_toolbox.experiment.survey_audit import matrix_conflicts, preflight_status
+from pu_toolbox.experiment.survey_comparison import (
+    comparison_for_version,
+    load_comparison_protocol,
+)
+from pu_toolbox.experiment.survey_summary import matrix_selector
 
 pytestmark = pytest.mark.unit
 
@@ -161,3 +165,50 @@ def test_determ_the_matrix_check_is_opt_in_and_leaves_the_structure_verdict_alon
     # silently credited with the check having run.
     assert preflight_status(entry, comparison=load_comparison_protocol()) == absent_fields
     assert absent_fields[1] == ["missing_manifest_field"]
+
+
+def _support_manifest(method):
+    payload = _complete_manifest()
+    payload["protocol_version"] = "survey-v3.0"
+    payload["execution_unit"]["method"] = method
+    payload.update(
+        profile_identity_schema_version="survey-profile-identity-1",
+        profile_id=method,
+        algorithm_id="self_pu" if method == "self_pu_full_meta" else method,
+    )
+    payload["test_results"] = {"PA+clean-support": {"accuracy": 0.8}, "OA": {"accuracy": 0.8}}
+    payload["extra_supervision"] = {"extra_supervision": True}
+    return payload
+
+
+@pytest.mark.parametrize("method", ["lagam", "pulns", "self_pu_full_meta"])
+def test_param_support_results_resolve_the_registered_comparison_identity(method):
+    payload = _support_manifest(method)
+
+    assert matrix_conflicts(payload, comparison=comparison_for_version("survey-v3.0")) == []
+    assert (
+        matrix_selector(payload, selection_protocol="PA+clean-support")["selection_protocol"]
+        == "pa+clean-support"
+    )
+    assert payload["execution_unit"]["method"] == method
+
+
+def test_edge_support_lookup_does_not_accept_an_unregistered_c_value():
+    payload = _support_manifest("self_pu_full_meta")
+    payload["generation"]["train"]["c_requested"] = 0.2
+
+    assert matrix_conflicts(payload, comparison=comparison_for_version("survey-v3.0")) == [
+        "mechanism_mismatch"
+    ]
+
+
+def test_determ_support_lookup_preserves_the_extra_supervised_result_identity():
+    payload = _support_manifest("self_pu_full_meta")
+    identity = matrix_selector(payload, selection_protocol="PA+clean-support")
+    comparison = comparison_for_version("survey-v3.0")
+
+    assert matrix_conflicts(payload, comparison=comparison) == matrix_conflicts(
+        payload, comparison=comparison
+    )
+    assert matrix_selector(payload, selection_protocol="PA+clean-support") == identity
+    assert identity["method"] == "self_pu_full_meta"

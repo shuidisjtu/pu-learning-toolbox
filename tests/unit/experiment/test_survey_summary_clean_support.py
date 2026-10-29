@@ -1,5 +1,5 @@
 # ruff: noqa: F811
-"""Extra-supervised selection stays separate from pure PA and formal ranking."""
+"""Approved support may be formal while remaining separate from pure PU ranking."""
 
 import copy
 import json
@@ -44,6 +44,61 @@ def _rows(script, payloads):
     return script.build_rows(
         rows, expected_seeds=[0, 1], gate_reasons={}, unrecorded_by_run={}
     ), runs
+
+
+def _approved_support(seed=0):
+    from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, digest, load_protocol
+
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    payload = _support(seed)
+    payload["protocol_version"] = protocol["protocol_version"]
+    payload["protocol_sha256"] = digest(protocol)
+    payload["execution_unit"] = next(
+        row
+        for row in protocol["execution_units"]
+        if row["method"] == "lagam"
+        and row["dataset"] == "spambase"
+        and row["training_path"] == "native_2d"
+    )
+    payload["extra_supervision"].update(
+        support_source_verified=True,
+        all_role_isolation_verified=True,
+        support_removed_from_train=True,
+    )
+    return payload
+
+
+def test_basic_approved_support_can_be_formal_without_pure_pu_ranking(summary_cli):
+    rows, _ = _rows(summary_cli, [_approved_support(0), _approved_support(1)])
+    assert {row["status"] for row in rows} == {"formal"}
+    assert all(not row["pure_pu_comparison_eligible"] for row in rows)
+    assert all("extra_clean_support" not in row["reasons"] for row in rows)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("support_source_verified", False),
+        ("all_role_isolation_verified", False),
+        ("support_removed_from_train", False),
+        ("support_samples", 101),
+        ("support_positive_labels", None),
+        ("support_negative_labels", -1),
+    ],
+)
+def test_edge_unverified_support_does_not_inherit_policy_approval(summary_cli, field, value):
+    payloads = [_approved_support(seed) for seed in (0, 1)]
+    payloads[1]["extra_supervision"][field] = value
+    rows, _ = _rows(summary_cli, payloads)
+    assert all(row["status"] == "partial" for row in rows)
+
+
+def test_edge_approved_support_keeps_unrelated_formal_blockers(summary_cli):
+    payloads = [_approved_support(seed) for seed in (0, 1)]
+    payloads[1]["formal_blockers"] = ["protocol_deviation"]
+    rows, _ = _rows(summary_cli, payloads)
+    assert all(row["status"] == "partial" for row in rows)
+    assert all("protocol_deviation" in row["reasons"] for row in rows)
 
 
 def test_basic_support_protocol_is_not_dropped_or_renamed_and_cost_is_once(summary_cli):

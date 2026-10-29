@@ -399,6 +399,7 @@ tests/
       test_candidate_image_execution.py # 图像 CLI 计划绑定、PA/OA 回放与非正式边界
       test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
       test_survey_image_support_execution.py # 运行入口把 support 部分按图像路径装配(原生 CNN 缩放、adapter 特征、表格原样)
+      test_support_protocol_context.py  # support CLI 的版本、c token 与收据来源偏离判定
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -517,6 +518,7 @@ tests/
       test_survey_summary_states.py     # 报告的两套闭集词表: 行身份(c_token/oracle)与状态(status/优先级/理由)
       test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径
       test_survey_audit_checks.py       # A01/A06/A07/A09 仅凭 manifest 可判的检查项
+      test_survey_partition_admission.py # 子批次完整网格与环境证据重审
       test_survey_audit_plan.py         # A04: 计划身份(解析后的 run 集合比对)
       test_survey_audit_inventory.py    # A10 清单模式: 逐文件判定已回收/保留/孤儿
       test_survey_audit_completion.py   # A05: 运行日志完成行与交付 manifest 一一对应, 退出码恒为 unverified
@@ -573,6 +575,7 @@ tests/
       _support_checkpoint_helpers.py    # support 双轨选择的合成 CPU 角色/方法 fixture
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
+      test_support_versioned_epochs.py  # 版本化 support 全 epoch 候选、warmup 回放与严格覆盖检查
       test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
       test_genpu_recipe.py              # GEN-PU 配方早拒绝、六网络真实成本与默认训练逐位对照
       test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝

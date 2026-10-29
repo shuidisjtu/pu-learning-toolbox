@@ -36,6 +36,7 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
   用 `--support-root` 规划执行（D50），三个 profile 只跑 SCAR（SAR 的 4 个格子已从计划和比较矩阵撤回），
   并且三个方法各自一个 `comparability_group`、结果表逐方法并列（D51）。
 - 入库的 xlsx 仍是 31 个 run、单 seed 的**工程核对表**，不是交付物 A。
+- 2026-10-28 AutoDL 的全 epoch 重跑已完成 spambase 45 run；LaGAM/PULNS 的 12 行汇总正式资格通过。Self-PU full-meta 误沿算法默认走 TS 探索适配，6 行保留 partial；用户确认按现有版本化 OS 适配路径在新目录重跑，不回写 TS 结果。D53 与后续视图核验记录见执行计划。
 - 本机前批已完成 205 个 run（含三个图像数据集的 PN-CNN、PULDA SCAR，以及部分 adapter / support 网格）；
   其余 3115 个 run 已分成 271 个后台批次续跑，原产物不覆盖。结果与表格只落本机
   `results/survey-tasks-20261027/`，不入库；这是当前环境的观测批次，尚不等于正式准入。
@@ -61,7 +62,7 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 | 文档 / 数据 | 定位 |
 |---|---|
 | [`pu_survey_protocol.md`](pu_survey_protocol.md) | 协议：数据集、四角色输入、OS / TS 视图、PA / OA 选模、PN oracle 与主榜门禁 |
-| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D52）** |
+| [`survey_execution_plan.md`](survey_execution_plan.md) | 能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D53）** |
 | `pu_toolbox/experiment/survey_protocol_v3.json` | 机器可读执行协议（`survey-v3.0`，原地演进，见 D42） |
 | `pu_toolbox/experiment/method_ledger.json` | 方法台账：身份、来源、视图、校准、适配、待复核状态 |
 | `pu_toolbox/experiment/survey_comparison_v6.json` | 比较矩阵（v3 运行自动使用）；`survey_comparison_profile_map_v3.json` 给出 profile → 条目映射 |

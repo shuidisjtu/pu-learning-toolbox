@@ -1008,7 +1008,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     "mechanism": args.labeling_mechanism,
                     "seeds": seed_values,
                     "c_tokens": [value.token for value in c_values],
-                    "split_ref_overridden": args.split_ref is not None,
+                    "split_ref_overridden": args.split_ref is not None
+                    and not (
+                        needs_support
+                        and Path(split_ref_arg).resolve()
+                        == (support_path / "support_manifest.json").resolve()
+                        and split_ref == support_manifest
+                    ),
                     "constructor_overrides": params,
                     "runtime_parameters": {
                         name: runtime_params[name] for name in profile.get("runtime_parameters", {})
@@ -1040,7 +1046,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 # The runner re-reads the protocol and re-applies the same gate; it can
                 # only relax it when the caller declares that support was supplied.
                 config["clean_support_provided"] = True
-            else:
+            if not args.oracle:
                 config["c_requested_token"] = c_value.token
             if args.batch_evidence is None and not warned_about_evidence:
                 # Said once, right before the first run trains: a versioned
