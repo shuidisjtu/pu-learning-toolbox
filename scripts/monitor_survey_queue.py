@@ -7,6 +7,7 @@ import math
 import re
 import select
 import shutil
+import statistics
 import subprocess
 import sys
 import time
@@ -180,7 +181,66 @@ def table(columns, rows):
     ]
 
 
-def render(view="running", page=0, width=None, height=None, states=None, devices=None):
+def duration(seconds):
+    """Compact wall time, distinct from checkpoint freshness."""
+    minutes = max(0, int(seconds // 60))
+    return f"{minutes // 60}h{minutes % 60:02d}m"
+
+
+def timing_detail(job, jobs, now=None):
+    """Estimate only single-fit wall time from compatible completed single fits."""
+    if job["status"] != "running" or not job.get("started_at"):
+        return ""
+    now = now or datetime.now(timezone.utc)
+    try:
+        elapsed = (now - datetime.fromisoformat(job["started_at"])).total_seconds()
+    except (ValueError, TypeError):
+        return "elapsed=unknown | ETA unavailable"
+    if job.get("expected_runs") != 1:
+        return f"batch elapsed={duration(elapsed)} | multi-fit ETA unavailable"
+    # Do not pool different datasets, protocols, training sources or correction campaigns.
+    identity = (
+        "dataset",
+        "method",
+        "path",
+        "mechanism",
+        "source",
+        "protocol_sha256",
+        "campaign_id",
+    )
+    samples = []
+    for previous in jobs:
+        if previous["status"] != "completed" or previous.get("expected_runs") != 1:
+            continue
+        if any(previous.get(key) != job.get(key) for key in identity):
+            continue
+        if previous.get("expected_recipe") != job.get("expected_recipe"):
+            continue
+        try:
+            seconds = (
+                datetime.fromisoformat(previous["ended_at"])
+                - datetime.fromisoformat(previous["started_at"])
+            ).total_seconds()
+            if seconds > 0:
+                samples.append(seconds)
+        except (KeyError, TypeError, ValueError):
+            continue
+    prefix = f"elapsed={duration(elapsed)}"
+    if len(samples) < 3:
+        return prefix + " | ETA unavailable (<3 comparable fits)"
+    median = statistics.median(samples)
+    if elapsed >= median:
+        return prefix + f" | ETA uncertain; past median {duration(median)} (n={len(samples)})"
+    return (
+        prefix
+        + f" | ETA~{duration(median - elapsed)} remaining"
+        + f" (fit median={duration(median)}, n={len(samples)})"
+    )
+
+
+def render(
+    view="running", page=0, width=None, height=None, states=None, devices=None, details=True
+):
     terminal = shutil.get_terminal_size((120, 31))
     width = max(30, (width or terminal.columns) - 1)
     height = max(12, (height or terminal.lines) - 1)
@@ -224,14 +284,15 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
         selected.sort(key=lambda j: (j.get("gpu", {}).get("index", 99), j["method"]))
     elif view == "completed":
         selected.sort(key=lambda j: j.get("ended_at", ""), reverse=True)
-    capacity = max(1, height - 12)
+    expanded = details and view == "running"
+    capacity = max(1, (height - 14) // (2 if expanded else 1))
     pages = max(1, math.ceil(len(selected) / capacity))
     page = max(0, page) % pages
     selected = selected[page * capacity : (page + 1) * capacity]
     lines.extend(
         [
             f"VIEW {view.upper()} | page {page + 1}/{pages} | "
-            "1:run 2:wait 3:done 4:fail 5:held | n/p:page",
+            "1:run 2:wait 3:done 4:fail 5:held | n/p:page d:detail",
             "",
         ]
     )
@@ -290,7 +351,19 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
                 "PID": job.get("pid", "-") if view == "running" else "-",
             }
         )
-    lines.extend(table(columns, rows))
+    rendered_rows = table(columns, rows)
+    lines.extend(rendered_rows[:2])
+    for job, row, info_row in zip(selected, rows, rendered_rows[2:], strict=True):
+        lines.append(info_row)
+        if expanded:
+            timing = timing_detail(job, jobs)
+            if row["PHASE"] == "GAN/prePN":
+                stage = "GAN epoch unreported (no PN snapshot)"
+            elif row["PHASE"].startswith("PN"):
+                stage = f"PN snapshot {row['PHASE'][2:]}; age={row['AGE']}"
+            else:
+                stage = f"snapshot age={row['AGE']}"
+            lines.append(f"  {stage} | {timing}")
     if not rows:
         lines.append("(none)")
     lines.append("")
@@ -314,6 +387,11 @@ def render(view="running", page=0, width=None, height=None, states=None, devices
         )
     lines.append("* = shared GPU; U%/GiB are whole-device, not this task alone.")
     lines.append("SRC B=baseline R=repair R!=canary; HOLD waits for a passed full-budget canary.")
+    if expanded:
+        lines.append(
+            "ETA~ is wall-time estimate, NOT measured epoch%; "
+            "GAN epochs are not exported by live workers."
+        )
     own_counts = {}
     for job in jobs:
         if job["status"] == "running" and job.get("gpu"):
@@ -334,9 +412,11 @@ def main():
     parser.add_argument("--page", type=int, default=1)
     parser.add_argument("--width", type=int)
     parser.add_argument("--height", type=int)
+    parser.add_argument("--compact", action="store_true", help="Hide per-task timing details")
     args = parser.parse_args()
     view = args.view
     page = max(0, args.page - 1)
+    details = not args.compact
     terminal_state = None
     if not args.once and sys.stdin.isatty():
         import termios
@@ -348,7 +428,7 @@ def main():
         while True:
             print(
                 ("" if args.once else "\033[H\033[2J")
-                + render(view, page, args.width, args.height),
+                + render(view, page, args.width, args.height, details=details),
                 flush=True,
             )
             if args.once:
@@ -365,6 +445,8 @@ def main():
             if key in VIEW_KEYS:
                 view = VIEW_KEYS[key]
                 page = 0
+            elif key == "d":
+                details = not details
             elif key == "n":
                 page += 1
             elif key == "p":

@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -115,3 +116,47 @@ def test_basic_correction_canary_and_held_jobs_are_explicit(monitor, tmp_path):
     output = monitor.render(view="held", width=180, height=40, states=[state], devices={})
     assert "1 HOLD" in output and "R!" in output
     assert "HOLD waits" in output and "SRC" in output
+
+
+def test_basic_timing_uses_completed_single_fit_wall_time(monitor, tmp_path):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    previous = [
+        dict(item, status="completed", ended_at="2026-10-29T13:00:00+00:00") for _ in range(3)
+    ]
+    text = monitor.timing_detail(
+        item, previous, now=datetime(2026, 10, 29, 11, tzinfo=timezone.utc)
+    )
+    assert "elapsed=1h00m" in text and "ETA~2h00m remaining" in text and "n=3" in text
+
+
+@pytest.mark.parametrize(
+    "change", [{"source": "other"}, {"expected_runs": 15}, {"expected_recipe": {"different": True}}]
+)
+def test_param_timing_does_not_pool_incompatible_fits(monitor, tmp_path, change):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    previous = [
+        dict(item, status="completed", ended_at="2026-10-29T13:00:00+00:00", **change)
+        for _ in range(3)
+    ]
+    assert "ETA unavailable" in monitor.timing_detail(item, previous)
+
+
+def test_edge_elapsed_past_median_does_not_claim_zero_remaining(monitor, tmp_path):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    previous = [
+        dict(item, status="completed", ended_at="2026-10-29T13:00:00+00:00") for _ in range(3)
+    ]
+    text = monitor.timing_detail(
+        item, previous, now=datetime(2026, 10, 29, 14, tzinfo=timezone.utc)
+    )
+    assert "ETA uncertain" in text and "ETA~0h00m" not in text
+
+
+def test_basic_expanded_progress_is_explicit_and_toggleable(monitor, tmp_path):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    state = dict(updated_at="2026-10-29T10:00:00+00:00", jobs=[item])
+    expanded = monitor.render(width=160, height=40, states=[state], devices={})
+    compact = monitor.render(width=160, height=40, states=[state], devices={}, details=False)
+    assert "GAN epoch unreported" in expanded and "elapsed=" in expanded
+    assert "NOT measured epoch%" in expanded and "d:detail" in expanded
+    assert "elapsed=" not in compact
