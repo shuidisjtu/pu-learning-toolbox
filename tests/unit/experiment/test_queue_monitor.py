@@ -102,6 +102,7 @@ def test_edge_malformed_manifest_does_not_break_live_view(monitor, tmp_path):
 
 
 def test_basic_correction_canary_and_held_jobs_are_explicit(monitor, tmp_path):
+    assert monitor.VIEW_KEYS["5"] == "held"
     item = job(
         tmp_path,
         campaign_id="d53_test",

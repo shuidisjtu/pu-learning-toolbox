@@ -51,6 +51,7 @@ EPOCHS = {
     "genpu": 100,
 }
 VIEWS = ("running", "pending", "completed", "failed", "held")
+VIEW_KEYS = {str(index + 1): view for index, view in enumerate(VIEWS)}
 
 
 def read_states():
@@ -361,8 +362,8 @@ def main():
             key = sys.stdin.read(1)
             if key == "q":
                 break
-            if key in "1234":
-                view = VIEWS[int(key) - 1]
+            if key in VIEW_KEYS:
+                view = VIEW_KEYS[key]
                 page = 0
             elif key == "n":
                 page += 1
