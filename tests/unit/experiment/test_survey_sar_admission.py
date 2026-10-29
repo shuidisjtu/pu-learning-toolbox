@@ -119,6 +119,19 @@ def test_edge_dist_pu_cannot_claim_frozen_budget_with_missing_optimizer_steps(tm
     assert not report["runs"][str(entries[0]["path"])]["eligible"]
 
 
+@pytest.mark.parametrize("method", ["nnpu", "dist_pu"])
+@pytest.mark.parametrize("include_pa", [False, True])
+def test_param_scar_reassessment_requires_both_validation_protocols(tmp_path, method, include_pa):
+    protocol, entries, _ = _sar_entries(tmp_path, method)
+    payload = entries[0]["payload"]
+    payload["generation"]["train"]["mechanism"] = "scar"
+    if include_pa:
+        for ref in payload["candidate_runs"][0]["epoch_checkpoints"]:
+            ref["validation_metrics"]["PA"] = {"pu_risk": 0.1}
+    problems = checks._checkpoint_reassessment_problems(payload, protocol)
+    assert (not problems) == include_pa
+
+
 @pytest.mark.parametrize(
     "marker,valid",
     [
