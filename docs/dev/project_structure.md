@@ -400,6 +400,7 @@ tests/
       test_survey_image_support_execution.py # 运行入口把 support 部分按图像路径装配(原生 CNN 缩放、adapter 特征、表格原样)
       test_support_protocol_context.py  # support CLI 的版本、c token 与收据来源偏离判定
       test_candidate_image_adni.py      # ADNI 替代槽位灰度图、双选模回放与非临床来源边界
+      test_pan_image_cli.py             # PAN 四角色 OS 图像命令、双选模回放与非正式预算拒收
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -590,6 +591,7 @@ tests/
       test_survey_comparison_v5.py      # v5 覆盖 v3 288 单元：D41 PA 无锚点、P4.2a 四方法锚点与锚点唯一归属
       test_survey_comparison_v6.py      # v6 增 71 个 P4.2b 单元（no_direct_anchor/非运行标记）且只升三条 profile
       test_survey_full_meta_view.py     # full-meta 默认 OS、CLI/续跑一致与消融/显式 TS 兼容
+      test_pan_image_candidate.py       # PAN 双编码器隔离、逐 epoch C/D 成本与 recorder 数值不变
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

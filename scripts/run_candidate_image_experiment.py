@@ -1,5 +1,5 @@
 # ruff: noqa: N806
-"""Plan or execute PULDA/GradPU image checkpoints, not a formal Survey row."""
+"""Plan or execute candidate image checkpoints, not a formal Survey row."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA, SCARGenerat
 from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
 
 ROOT = Path(__file__).resolve().parents[1]
-METHODS = {"pulda": "risk/pulda.py", "gradpu": "deep/grad_pu.py"}
+METHODS = {"pulda": "risk/pulda.py", "gradpu": "deep/grad_pu.py", "pan": "deep/pan.py"}
 DATASETS = ("cifar10", "mnist", "fashion_mnist", "adni")
 ADNI_RECEIPT = "docs/research/pu_survey/data/adni_substitute_receipt_20261012.json"
 
@@ -78,7 +78,7 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes):
         raise ValueError("explicit method and parameter object are required")
     parameters = json.loads(json.dumps(parameters, allow_nan=False))
     if set(parameters).intersection(
-        {"class_prior", "encoder", "train_transform", "model", "random_state"}
+        {"class_prior", "encoder", "train_transform", "model", "discriminator", "random_state"}
     ):
         raise ValueError("image/seed/prior bindings cannot be overridden")
     budget_keys = (
@@ -86,6 +86,8 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes):
         if method == "pulda"
         else ("max_epochs", "batch_size", "lr_schedule")
     )
+    if method == "pan":
+        budget_keys = ("max_epochs", "batch_size", "learning_rate", "adversarial_weight")
     if not all(key in parameters for key in (*budget_keys, "device")):
         raise ValueError(f"explicit budget/device required: {budget_keys}")
     if parameters["device"] not in ("cpu", "cuda"):
@@ -138,7 +140,10 @@ def build_plan(
     trainer.validate_experiment(
         model,
         bundle,
-        {"os_or_ts": "ts", "checkpoint_bytes_per_component": checkpoint_bytes},
+        {
+            "os_or_ts": "os" if method == "pan" else "ts",
+            "checkpoint_bytes_per_component": checkpoint_bytes,
+        },
         [ProtocolPA(), ProtocolOA()],
     )
     generation = {}
@@ -165,14 +170,17 @@ def build_plan(
     )
     if dataset == "adni":
         references += (ADNI_RECEIPT,)
+    if method == "pan":
+        references += ("docs/research/pu_survey/data/pan_source_review_20261018.json",)
     resolved = {
         key: value
         for key, value in model.get_params(deep=False).items()
-        if key not in {"encoder", "train_transform", "model"}
+        if key not in {"encoder", "train_transform", "model", "discriminator"}
     }
     plan = {
         "schema_version": "candidate-image-experiment-plan-v1",
         "method": method,
+        "training_view": "os" if method == "pan" else "ts",
         "dataset": dataset,
         "data_scope": data_scope(dataset),
         "input_directory": str(directory),
@@ -261,7 +269,7 @@ def execute(plan, output):
         manifest_path=str(output / "manifest.json"),
         config={
             "c": float(plan["c_token"]),
-            "os_or_ts": "ts",
+            "os_or_ts": plan["training_view"],
             "trainer": trainer,
             "candidates": [{}],
             "architecture": "cnn",
@@ -307,6 +315,7 @@ def execute(plan, output):
         "method": plan["method"],
         "dataset": plan["dataset"],
         "data_scope": plan["data_scope"],
+        "training_view": plan["training_view"],
         "comparison_group": plan["comparison_group"],
         "formal_admission": False,
         "formal_budget_approved": False,
@@ -350,6 +359,10 @@ def execute(plan, output):
             )
         },
     }
+    if plan["method"] == "pan":
+        summary["source_default_snapshot_projection"]["origin"] = (
+            "toolbox_constructor_not_author_or_frozen_recipe"
+        )
     _write(output / "summary.json", summary)
     if not summary["accepted_engineering_run"]:
         raise ValueError("image warnings/retries require review; evidence retained, not accepted")

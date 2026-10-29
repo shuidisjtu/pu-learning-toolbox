@@ -1,4 +1,4 @@
-"""Opt-in PULDA/GradPU image assembly, not a frozen Survey recipe or admission.
+"""Opt-in PULDA/GradPU/PAN image assembly, not a frozen recipe or admission.
 
 The returned manifest describes construction-time facts. Callers must persist it
 with the actual run parameters, selection policy and measured resource record.
@@ -33,12 +33,14 @@ def build_candidate_image_classifier(
     """Return a default-budget estimator and explicit, unapproved image metadata.
 
     PULDA uses the shared train-fitted ResNet-18 and optional train augmentation.
+    PAN also uses that encoder template, cloned independently by its C/D fit;
+    it retains native OS and requires augmentation=none in this candidate path.
     GradPU uses a private CNN13 without BN; shared augmentation is deliberately
     refused until a method-specific policy is decided. Each construction resets
     the CPU torch seed in a fork, independent of previous methods' RNG use.
     """
-    if not isinstance(method, str) or method not in {"pulda", "gradpu"}:
-        raise ValueError("method must be 'pulda' or 'gradpu'")
+    if not isinstance(method, str) or method not in {"pulda", "gradpu", "pan"}:
+        raise ValueError("method must be 'pulda', 'gradpu' or 'pan'")
     if isinstance(seed, bool) or not isinstance(seed, Integral) or not 0 <= seed < 2**32:
         raise ValueError("seed must be an integer in [0, 2**32)")
     if method == "pulda" and class_prior is None:
@@ -52,8 +54,10 @@ def build_candidate_image_classifier(
         ):
             raise ValueError("population class_prior must be a finite real number in (0, 1)")
         class_prior = float(class_prior)
-    if method == "gradpu" and class_prior is not None:
-        raise ValueError("GradPU does not use a class_prior")
+    if method in {"gradpu", "pan"} and class_prior is not None:
+        raise ValueError(f"{method} does not use a class_prior")
+    if method == "pan" and preprocessing.train_augmentation != "none":
+        raise ValueError("PAN candidate image setup requires train_augmentation='none'")
     if method == "gradpu" and preprocessing.train_augmentation != "none":
         raise ValueError("GradPU private image setup requires train_augmentation='none'")
     if method == "gradpu" and min(preprocessing.input_size) < 8:
@@ -63,18 +67,23 @@ def build_candidate_image_classifier(
 
     with torch.random.fork_rng(devices=[]):
         torch.random.default_generator.manual_seed(int(seed))
-        if method == "pulda":
+        if method in {"pulda", "pan"}:
             from pu_toolbox.estimators.risk.pulda import PULDAClassifier
 
             encoder = build_survey_image_encoder(preprocessing)
             augmentation = build_survey_image_augmentation(preprocessing, role="train")
-            estimator = PULDAClassifier(
-                class_prior=class_prior,
-                encoder=encoder,
-                train_transform=augmentation,
-                random_state=int(seed),
-                device=device,
-            )
+            if method == "pulda":
+                estimator = PULDAClassifier(
+                    class_prior=class_prior,
+                    encoder=encoder,
+                    train_transform=augmentation,
+                    random_state=int(seed),
+                    device=device,
+                )
+            else:
+                from pu_toolbox.estimators.deep.pan import PANClassifier
+
+                estimator = PANClassifier(encoder=encoder, random_state=int(seed), device=device)
         else:
             from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
             from pu_toolbox.estimators.deep.vision import build_wconpu_backbone
@@ -105,25 +114,25 @@ def build_candidate_image_classifier(
             },
         }
     preprocessing_digest = image.pop("configuration_sha256")
-    return estimator, {
+    record = {
         "schema_version": "candidate-image-setup-1",
         "method": method,
         "execution_mode": "technical_preintegration",
         "formal_admission": False,
         "approved_representation_ref": None,
         "training_path": "native_cnn",
-        "comparison_group": "end-to-end CNN" if method == "pulda" else "method-private/no-BN CNN",
+        "comparison_group": "method-private/no-BN CNN" if method == "gradpu" else "end-to-end CNN",
         "standard_resnet18_leaderboard_eligible": False,
         "source_reproduction": False,
         "adaptation": "benchmark-adapted",
-        "source_identity": "official_related" if method == "pulda" else "paper-only",
+        "source_identity": "paper-only" if method == "gradpu" else "official_related",
         "initialization_seed": int(seed),
         "encoder_initial_state_sha256": encoder_state_sha256(encoder),
         "encoder_trainable": True,
         "train_transform_description": repr(augmentation)
         if method == "pulda" and augmentation is not None
         else None,
-        "batch_norm_policy": "train" if method == "pulda" else "forbidden",
+        "batch_norm_policy": "forbidden" if method == "gradpu" else "train",
         "image_preprocessing": image,
         "preprocessing_configuration_sha256": preprocessing_digest,
         "input_order": ["train_only_augmentation", "input_mixup", "encoder_normalization"]
@@ -141,6 +150,15 @@ def build_candidate_image_classifier(
         "head_specification": "method-private; shared encoder does not imply shared MLP head",
         "resource_profile": {"status": "not_measured", "formal_budget_approved": False},
     }
+    if method == "pan":
+        record.update(
+            input_order=["encoder_normalization"],
+            training_view="os",
+            network_instances=2,
+            selection_components=["classifier_C"],
+            adversarial_state_policy="independent_C_D; inactive_eval_no_grad",
+        )
+    return estimator, record
 
 
 def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train):
@@ -149,6 +167,7 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
 
     from pu_toolbox.core.validation import validate_pu_X_y
     from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
+    from pu_toolbox.estimators.deep.pan import PANClassifier
     from pu_toolbox.estimators.risk.pulda import PULDAClassifier
     from pu_toolbox.utils.serialization import array_hash
 
@@ -156,8 +175,8 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         raise ValueError("image_setup must be a construction record")
     setup = copy.deepcopy(image_setup)
     method = setup.get("method")
-    classes = {"pulda": PULDAClassifier, "gradpu": GradPUClassifier}
-    expected_group = "end-to-end CNN" if method == "pulda" else "method-private/no-BN CNN"
+    classes = {"pulda": PULDAClassifier, "gradpu": GradPUClassifier, "pan": PANClassifier}
+    expected_group = "method-private/no-BN CNN" if method == "gradpu" else "end-to-end CNN"
     if (
         not isinstance(method, str)
         or method not in classes
@@ -194,6 +213,15 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         raise ValueError("PULDA population class_prior changed after image construction")
     if method == "gradpu" and estimator.model is not None:
         raise ValueError("custom score models require a separate image setup")
+    if method == "pan" and (
+        estimator.model is not None
+        or estimator.discriminator is not None
+        or setup.get("training_view") != "os"
+        or setup.get("network_instances") != 2
+        or setup.get("selection_components") != ["classifier_C"]
+        or setup.get("adversarial_state_policy") != "independent_C_D; inactive_eval_no_grad"
+    ):
+        raise ValueError("PAN requires the bound native OS independent C/D image setup")
 
     features, labels = validate_pu_X_y(
         train_images,
@@ -203,7 +231,7 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         estimator_name="candidate image fit",
     )
     image = setup["image_preprocessing"]
-    if image["backbone"]["name"] != ("resnet18" if method == "pulda" else "cnn13_no_bn"):
+    if image["backbone"]["name"] != ("cnn13_no_bn" if method == "gradpu" else "resnet18"):
         raise ValueError("image backbone name differs from the bound method path")
     expected_shape = (image["in_channels"], *image["input_size"])
     if (
@@ -220,7 +248,7 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
     parameters = {
         key: value.item() if isinstance(value, np.generic) else value
         for key, value in estimator.get_params(deep=False).items()
-        if key not in {"encoder", "train_transform", "model"}
+        if key not in {"encoder", "train_transform", "model", "discriminator"}
     }
     # Refuse unsupported/nonfinite parameter encodings before starting fit.
     json.dumps(parameters, allow_nan=False)
@@ -235,7 +263,11 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
     method = setup["method"]
     if array_hash(features) != input_hash or array_hash(labels) != label_hash:
         raise RuntimeError("training inputs changed during fit; no valid receipt produced")
-    source = "estimators/risk/pulda.py" if method == "pulda" else "estimators/deep/grad_pu.py"
+    source = {
+        "pulda": "estimators/risk/pulda.py",
+        "gradpu": "estimators/deep/grad_pu.py",
+        "pan": "estimators/deep/pan.py",
+    }[method]
     receipt = {
         "schema_version": "candidate-image-training-receipt-1",
         "image_setup": setup,
@@ -265,6 +297,27 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
         "formal_admission": False,
         "ready_for_formal_run": False,
     }
+    if method == "pan":
+        import torch
+
+        if estimator.training_view_ != "os" or estimator.calibration_applied_:
+            raise ValueError("PAN image run must retain native OS without TS calibration")
+        if encoder_state_sha256(estimator.encoder) != setup["encoder_initial_state_sha256"]:
+            raise ValueError("PAN fitted through or mutated the shared encoder template")
+        networks = [estimator.model_, estimator.discriminator_]
+        tensors = [list(n.parameters()) + list(n.buffers()) for n in networks]
+        if {t.data_ptr() for t in tensors[0]} & {t.data_ptr() for t in tensors[1]}:
+            raise ValueError("PAN C/D cannot share parameter or buffer storage")
+        if not all(p.requires_grad for p in estimator.discriminator_encoder_.parameters()):
+            raise ValueError("PAN discriminator encoder was not trainable")
+        if any(not torch.isfinite(t).all() for group in tensors for t in group):
+            raise ValueError("PAN C/D finished with non-finite state")
+        receipt.update(
+            independent_C_D_storage_verified=True,
+            discriminator_encoder_trainable=True,
+            classifier_only_inference=True,
+            target_identity="paper_Eq7_not_related_source_max_margin",
+        )
     json.dumps(receipt, allow_nan=False)
     return receipt
 

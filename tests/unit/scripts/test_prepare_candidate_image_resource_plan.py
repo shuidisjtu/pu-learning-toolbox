@@ -13,7 +13,9 @@ from scripts import prepare_candidate_image_resource_plan as planner
 pytestmark = pytest.mark.unit
 
 
-@pytest.mark.parametrize("method,snapshots,steps", [("pulda", 120, 360), ("gradpu", 200, 400)])
+@pytest.mark.parametrize(
+    "method,snapshots,steps", [("pulda", 120, 360), ("gradpu", 200, 400), ("pan", 100, 1000)]
+)
 def test_basic_determ_default_budget_counts_and_missing_measurement_fail_closed(
     tmp_path, monkeypatch, method, snapshots, steps
 ):
@@ -148,7 +150,8 @@ def test_basic_cli_errors_and_json_output(tmp_path, capsys):
     assert "error:" in capsys.readouterr().err
 
 
-def test_determ_cli_remains_importable_when_torch_is_forbidden(tmp_path):
+@pytest.mark.parametrize("method,epochs", [("gradpu", 200), ("pan", 100)])
+def test_determ_cli_remains_importable_when_torch_is_forbidden(tmp_path, method, epochs):
     code = """
 import importlib.abc, runpy, sys
 class DenyTorch(importlib.abc.MetaPathFinder):
@@ -156,12 +159,12 @@ class DenyTorch(importlib.abc.MetaPathFinder):
         if fullname.split('.')[0] in {'torch', 'torchvision'}:
             raise AssertionError('resource planning must not import torch')
 sys.meta_path.insert(0, DenyTorch())
-sys.argv = ['planner', '--method', 'gradpu', '--target-dir', sys.argv[1],
+sys.argv = ['planner', '--method', sys.argv[2], '--target-dir', sys.argv[1],
             '--n-positive', '2', '--n-unlabeled', '3']
 runpy.run_module('scripts.prepare_candidate_image_resource_plan', run_name='__main__')
 """
     result = subprocess.run(
-        [sys.executable, "-c", code, str(tmp_path)],
+        [sys.executable, "-c", code, str(tmp_path), method],
         cwd=planner.ROOT,
         capture_output=True,
         text=True,
@@ -169,5 +172,5 @@ runpy.run_module('scripts.prepare_candidate_image_resource_plan', run_name='__ma
         env={**os.environ, "PYTHONPATH": str(planner.ROOT)},
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["default_snapshot_count"] == 200
+    assert json.loads(result.stdout)["default_snapshot_count"] == epochs
     assert not list(tmp_path.iterdir())
