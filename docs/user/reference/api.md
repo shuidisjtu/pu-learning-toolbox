@@ -80,7 +80,8 @@ alpha_u = model.estimate_unlabeled_prior()
 ### P3Mix 分类器（实验级注册；原生 OS）
 
 `from pu_toolbox import P3MixClassifier`。`P3MixClassifier(*, variant="base",
-hidden_dim=128, max_epochs=100, batch_size=128, learning_rate=0.001, beta=1.0,
+hidden_dim=128, max_epochs=100, batch_size=128, batching_policy="role_balanced",
+learning_rate=0.001, beta=1.0,
 gamma=0.9, pool_size=100, mixup_alpha=1.0, early_learning_weight=1.0,
 teacher_decay=0.99, model=None, encoder=None, random_state=0, device=None)`。
 `variant` 可选 `base`、`e`、`c`，分别对应 P3Mix、P3Mix-E、P3Mix-C；E 与 C 是互斥变体。
@@ -92,6 +93,10 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 `early_learning_weight≥0`（E 变体须 `>0`），`learning_rate`、`beta`、`mixup_alpha>0`。
 `hidden_dim`、`max_epochs`、`batch_size`、`pool_size` 须为正整数，bool 不接受。
 完整来源、参数边界及文献结果见 [P3Mix 方法卡](../../research/method_cards/P3MIX.md)。
+
+`batching_policy="role_balanced"` 保持旧行为：`batch_size` 为每角色上限，较短角色循环。
+显式 `"merged_shuffle"` 按论文 Algorithm 1 合并打乱、总批大小为 `batch_size`，每轮主样本只用一次。
+单角色批次的缺失组损失贡献为零（论文未说明的工程约定）；该选项不代表正式配方批准。
 
 ### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
 

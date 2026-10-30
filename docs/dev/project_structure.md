@@ -336,6 +336,7 @@ tests/
       test_lagam_paper_behavior.py      # LaGAM 独立 BCE/对比参考式、零梯度与硬标签元步
       test_pulns_checkpoints.py         # PULNS episode 回调、默认兼容、失败失效和内部 best 恢复
       test_cvir_calibration.py          # CVIR 训练风险池校准、角色展开逐位对照与失败/回放边界
+      test_p3mix_batching.py            # 合并切批、单角色尾批与原默认兼容性
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)

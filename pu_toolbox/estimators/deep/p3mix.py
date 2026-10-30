@@ -218,7 +218,20 @@ def _p3mix_logits(model, X):
 
     # A custom network may start with an in-place operation. Keep raw x for
     # Eq. (4), teacher inputs and caller-owned scoring arrays unchanged.
-    logits = model(X.clone())
+    singleton_bn = [
+        layer
+        for layer in model.modules()
+        if len(X) == 1
+        and isinstance(layer, torch.nn.modules.batchnorm._BatchNorm)
+        and layer.training
+    ]
+    try:
+        for layer in singleton_bn:
+            layer.eval()
+        logits = model(X.clone())
+    finally:
+        for layer in singleton_bn:
+            layer.train()
     if logits.shape not in ((len(X),), (len(X), 1)):
         raise ValueError("P3Mix model must return one logit per row")
     logits = logits.reshape(-1)
@@ -266,6 +279,12 @@ class P3MixClassifier(BasePUClassifier):
     these as independent extensions, so ``e`` and ``c`` are not combined.
     This implementation uses the paper's OS P/U objective and never reads
     clean validation/test labels.
+
+    ``batching_policy="role_balanced"`` retains the legacy per-role batches
+    with the shorter role cycled. Explicit ``"merged_shuffle"`` shuffles the
+    full P+U pool once per epoch, with total batch size ``batch_size`` and no
+    row repetition. An absent role contributes zero loss, an engineering
+    convention because the paper does not define the empty-group mean.
     """
 
     family = AlgorithmFamily.DEEP_PU
@@ -291,6 +310,7 @@ class P3MixClassifier(BasePUClassifier):
         hidden_dim=128,
         max_epochs=100,
         batch_size=128,
+        batching_policy="role_balanced",
         learning_rate=1e-3,
         beta=1.0,
         gamma=0.9,
@@ -308,6 +328,7 @@ class P3MixClassifier(BasePUClassifier):
         self.hidden_dim = hidden_dim
         self.max_epochs = max_epochs
         self.batch_size = batch_size
+        self.batching_policy = batching_policy
         self.learning_rate = learning_rate
         self.beta = beta
         self.gamma = gamma
@@ -354,6 +375,11 @@ class P3MixClassifier(BasePUClassifier):
             raise TypeError("epoch_callback must be callable or None")
         if self.variant not in {"base", "e", "c"}:
             raise ValueError("variant must be 'base', 'e', or 'c'")
+        if not isinstance(self.batching_policy, str) or self.batching_policy not in {
+            "role_balanced",
+            "merged_shuffle",
+        }:
+            raise ValueError("batching_policy must be 'role_balanced' or 'merged_shuffle'")
         if class_prior is not None and (
             isinstance(class_prior, bool | np.bool_)
             or not isinstance(class_prior, Real)
@@ -499,24 +525,43 @@ class P3MixClassifier(BasePUClassifier):
             "data_device_policy": "cpu_stream",
             "source_pdf": "30_who_is_your_right_mixup_partne.pdf",
         }
+        self.training_provenance_["batching_policy"] = self.batching_policy
+        if self.batching_policy == "merged_shuffle":
+            self.training_provenance_.update(
+                batch_construction="merged_P_union_U_shuffled_once_per_epoch",
+                batch_construction_is_engineering_choice=False,
+                configured_batch_size_per_role=None,
+                configured_total_batch_size=self.batch_size,
+                maximum_rows_per_training_forward=self.batch_size,
+                missing_role_loss="zero_contribution_without_resampling",
+                missing_role_loss_is_engineering_choice=True,
+                singleton_batchnorm="running_statistics_with_training_mode_restored",
+            )
         self.checkpoint_stage_ = "train"
         self.checkpoint_stage_epoch_ = 0
         self.checkpoint_round_ = None
         self.model_.train()
         for epoch in range(1, self.max_epochs + 1):
-            p_batches = np.array_split(
-                rng.permutation(p_idx), range(self.batch_size, len(p_idx), self.batch_size)
-            )
-            u_batches = np.array_split(
-                rng.permutation(u_idx), range(self.batch_size, len(u_idx), self.batch_size)
-            )
+            if self.batching_policy == "merged_shuffle":
+                order = rng.permutation(len(labels))
+                batches = np.array_split(order, range(self.batch_size, len(order), self.batch_size))
+            else:
+                p_batches = np.array_split(
+                    rng.permutation(p_idx), range(self.batch_size, len(p_idx), self.batch_size)
+                )
+                u_batches = np.array_split(
+                    rng.permutation(u_idx), range(self.batch_size, len(u_idx), self.batch_size)
+                )
+                batches = (
+                    np.r_[p_batches[step % len(p_batches)], u_batches[step % len(u_batches)]]
+                    for step in range(max(len(p_batches), len(u_batches)))
+                )
             epoch_losses, mix_losses, elr_losses = [], [], []
             marginal_total = corrected_total = 0
             positive_rows_seen = unlabeled_rows_seen = 0
-            for step in range(max(len(p_batches), len(u_batches))):
-                p = p_batches[step % len(p_batches)]
-                u = u_batches[step % len(u_batches)]
-                row_idx = np.r_[p, u]
+            for row_idx in batches:
+                p_positions = np.flatnonzero(labels[row_idx] == 1)
+                u_positions = np.flatnonzero(labels[row_idx] == 0)
                 batch = data[row_idx].to(self.device_)
                 batch_labels = labels[row_idx].copy()
                 with torch.no_grad():
@@ -548,12 +593,18 @@ class P3MixClassifier(BasePUClassifier):
                 logits = _p3mix_logits(self.model_, mixed_x)
                 # The two means in Eq. (2) follow the original P/U roles even
                 # when P3Mix-C changes a U row's soft target to positive.
-                p_role = torch.arange(len(p), device=self.device_)
-                u_role = torch.arange(len(p), len(row_idx), device=self.device_)
+                p_role = torch.as_tensor(p_positions, device=self.device_)
+                u_role = torch.as_tensor(u_positions, device=self.device_)
                 losses = functional.binary_cross_entropy_with_logits(
                     logits, mixed_y.detach(), reduction="none"
                 )
-                mix_loss = losses[p_role].mean() + self.beta * losses[u_role].mean()
+                # Algorithm 1's merged shuffle can yield single-role batches.
+                # The paper does not define their empty mean. Contribute zero
+                # for the absent role, never repeat/drop rows to force balance.
+                zero = logits.sum() * 0
+                p_loss = losses[p_role].mean() if len(p_positions) else zero
+                u_loss = losses[u_role].mean() if len(u_positions) else zero
+                mix_loss = p_loss + self.beta * u_loss
                 early_loss = torch.zeros((), device=self.device_)
                 if self.variant == "e":
                     with torch.no_grad():
@@ -568,8 +619,8 @@ class P3MixClassifier(BasePUClassifier):
                 loss.backward()
                 self.optimizer_.step()
                 self.optimizer_steps_ += 1
-                positive_rows_seen += len(p)
-                unlabeled_rows_seen += len(u)
+                positive_rows_seen += len(p_positions)
+                unlabeled_rows_seen += len(u_positions)
                 epoch_losses.append(float(loss.detach().cpu()))
                 mix_losses.append(float(mix_loss.detach().cpu()))
                 elr_losses.append(float(early_loss.detach().cpu()))

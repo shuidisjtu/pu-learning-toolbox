@@ -40,8 +40,9 @@ def data(seed=53):
 
 
 @pytest.mark.parametrize("variant", ["base", "e", "c"])
+@pytest.mark.parametrize("batching_policy", ["role_balanced", "merged_shuffle"])
 def test_basic_determ_three_variants_train_independent_cv_encoders_and_roundtrip(
-    monkeypatch, variant
+    monkeypatch, variant, batching_policy
 ):
     templates, fits = [], []
 
@@ -70,6 +71,7 @@ def test_basic_determ_three_variants_train_independent_cv_encoders_and_roundtrip
             "max_epochs": 2,
             "batch_size": 4,
             "pool_size": 3,
+            "batching_policy": batching_policy,
         },
         architecture="cnn",
         cv=2,
@@ -106,8 +108,9 @@ def test_basic_determ_three_variants_train_independent_cv_encoders_and_roundtrip
 
 @pytest.mark.parametrize("variant", ["base", "e", "c"])
 @pytest.mark.parametrize("reclaim", [False, True])
+@pytest.mark.parametrize("batching_policy", ["role_balanced", "merged_shuffle"])
 def test_basic_four_role_runner_uses_observed_train_labels_and_replayable_snapshots(
-    monkeypatch, tmp_path, variant, reclaim
+    monkeypatch, tmp_path, variant, reclaim, batching_policy
 ):
     parts = []
     for role in range(4):
@@ -158,6 +161,7 @@ def test_basic_four_role_runner_uses_observed_train_labels_and_replayable_snapsh
             max_epochs=2,
             batch_size=4,
             pool_size=3,
+            batching_policy=batching_policy,
             device="cpu",
         ),
         *parts,
@@ -171,6 +175,12 @@ def test_basic_four_role_runner_uses_observed_train_labels_and_replayable_snapsh
     assert "recipe_registry_sha256" not in manifest
     run = manifest["candidate_runs"][0]
     assert run["training_provenance"]["variant"] == variant
+    assert run["training_provenance"]["batching_policy"] == batching_policy
+    if batching_policy == "merged_shuffle":
+        assert run["training_provenance"]["positive_rows_seen"] == 2 * int(observed[0].sum())
+        assert run["training_provenance"]["unlabeled_rows_seen"] == 2 * int(
+            (observed[0] == 0).sum()
+        )
     assert not run["training_provenance"]["formal_admission"]
     references = run["epoch_checkpoints"]
     assert len(references) == 2
