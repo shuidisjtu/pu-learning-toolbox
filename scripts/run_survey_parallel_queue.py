@@ -322,6 +322,7 @@ def spawn(job, gpu, queue, legacy_path):
         OMP_NUM_THREADS="2",
         MKL_NUM_THREADS="2",
         OPENBLAS_NUM_THREADS="2",
+        NUMPY_MADVISE_HUGEPAGE="0",
     )
     with log.open("x") as stream:
         worker_path = (
@@ -501,6 +502,7 @@ def run(
             "granularity": "single_fit_except_adopted_batches",
             "max_jobs_per_gpu": 2,
             "concurrency_policy": "bounded_prep_overlap_one_short_lane_foreign_process_veto",
+            "allocation_policy": {"NUMPY_MADVISE_HUGEPAGE": "0"},
             "last_query_error": query_error,
             "frozen_lock_environment_verified": False,
             "correction_campaigns": sorted(
