@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pu_toolbox.experiment.queue_scheduling import (
+    choose_pending,
     dispatch_priority,
     dispatch_slots,
     split_pending_jobs,
@@ -444,7 +445,7 @@ def run(
             own_pids = {j["pid"] for j in active}
             for index, d in snapshot.items():
                 idle_counts[index] = idle_counts.get(index, 0) + 1 if not d["pids"] else 0
-                low = bool(d["pids"]) and not d["pids"] - own_pids and d["util"] <= 35
+                low = not d["pids"] - own_pids and d["util"] <= 35
                 low_counts[index] = low_counts.get(index, 0) + 1 if low else 0
             slots = dispatch_slots(snapshot, active, idle_counts=idle_counts, low_counts=low_counts)
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
@@ -463,7 +464,21 @@ def run(
             )
             if not pending:
                 continue
-            job = pending[0]
+            job = choose_pending(pending, [j for j in jobs if j["status"] == "running"], mode)
+            if job is None:
+                continue
+            # Recheck immediately before launch, not only at the beginning
+            # of a potentially slow loop. A shared host still has a race.
+            if index is not None:
+                try:
+                    fresh = devices()
+                    current_active = [j for j in jobs if j["status"] == "running"]
+                    if (index, mode) not in dispatch_slots(
+                        fresh, current_active, idle_counts=idle_counts, low_counts=low_counts
+                    ):
+                        continue
+                except (OSError, ValueError, KeyError, subprocess.SubprocessError):
+                    continue
             gpu = None if index is None else {"index": index, "uuid": snapshot[index]["uuid"]}
             try:
                 process = spawn(job, gpu, queue, legacy_path)
@@ -485,7 +500,7 @@ def run(
             "check_interval_seconds": 5,
             "granularity": "single_fit_except_adopted_batches",
             "max_jobs_per_gpu": 2,
-            "concurrency_policy": "three_low_load_samples_own_processes_only",
+            "concurrency_policy": "bounded_prep_overlap_one_short_lane_foreign_process_veto",
             "last_query_error": query_error,
             "frozen_lock_environment_verified": False,
             "correction_campaigns": sorted(

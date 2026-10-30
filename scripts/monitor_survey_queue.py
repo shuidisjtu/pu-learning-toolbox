@@ -14,6 +14,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pu_toolbox.experiment.queue_scheduling import choose_pending, dispatch_priority
+
 BASE = Path("/data2/user/zihenglin/pu-learning-toolbox/results/survey-tasks-20261027")
 NAMES = {
     "fashion_mnist": "F-MNIST",
@@ -326,6 +328,12 @@ def render(
         index = job.get("gpu", {}).get("index")
         device = devices.get(index, {})
         shared = bool(device.get("pids", set()) - own_pids)
+        if (
+            device
+            and job["status"] == "running"
+            and job.get("pid") not in device.get("pids", set())
+        ):
+            info["epoch"] = "no-CUDA"
         dev = "CPU" if index is None else str(index) + ("*" if shared else "")
         rows.append(
             {
@@ -361,6 +369,8 @@ def render(
                 stage = "GAN epoch unreported (no PN snapshot)"
             elif row["PHASE"].startswith("PN"):
                 stage = f"PN snapshot {row['PHASE'][2:]}; age={row['AGE']}"
+            elif row["PHASE"] == "no-CUDA":
+                stage = "Process alive; no GPU context observed"
             else:
                 stage = f"snapshot age={row['AGE']}"
             lines.append(f"  {stage} | {timing}")
@@ -375,9 +385,13 @@ def render(
     elif gpu_error:
         lines.append("GPU query unavailable; queue still shown.")
     if view == "running":
-        pending = [j for j in jobs if j["status"] == "pending"]
+        pending = sorted([j for j in jobs if j["status"] == "pending"], key=dispatch_priority)
+        active = [j for j in jobs if j["status"] == "running"]
+        preferred = choose_pending(pending, active, "exclusive")
+        if preferred is not None:
+            pending = [preferred, *[j for j in pending if j is not preferred]]
         lines.append(
-            "NEXT: "
+            "NEXT (free-card candidates): "
             + "; ".join(
                 f"{NAMES.get(j['dataset'], j['dataset'])}/"
                 f"{METHODS.get(j['method'], j['method'])}/"

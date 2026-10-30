@@ -91,6 +91,24 @@ def dispatch_slots(devices, active_jobs, *, idle_counts, low_counts, low_limit=3
                 slots.append((index, "exclusive"))
         elif (
             counts[index] == 1
+            and not pids
+            and device["util"] <= low_limit
+            and low_counts.get(index, 0) >= 3
+            and device["free_mib"] >= 32768
+            and any(
+                j["gpu"]["index"] == index
+                and j.get("path") == "native_cnn"
+                and j.get("method") in ("nnpu", "genpu")
+                and j.get("dataset") in ("adni", "mnist", "fashion_mnist", "cifar10")
+                for j in active
+            )
+        ):
+            # One short adapter may overlap CPU preparation. Keep >=32 GiB
+            # free before launch for both workers' later CUDA allocations;
+            # this is a conservative admission heuristic, not a reservation.
+            slots.append((index, "prep_short_overlap"))
+        elif (
+            counts[index] == 1
             and pids
             and device["util"] <= low_limit
             and low_counts.get(index, 0) >= 3
@@ -98,6 +116,38 @@ def dispatch_slots(devices, active_jobs, *, idle_counts, low_counts, low_limit=3
         ):
             slots.append((index, "bounded_concurrency_trial"))
     return slots
+
+
+def short_candidate(job):
+    """Bounded local fast lane; excludes collaborator's proposed tabular shards."""
+    if job.get("campaign_id") or job.get("path") != "cnn_feature_adapter":
+        return False
+    dataset, method = job.get("dataset"), job.get("method")
+    return (
+        (
+            dataset == "adni"
+            and method in ("dist_pu", "robust_pu", "self_pu", "split_pu", "lbe", "holistic_pu")
+        )
+        or (dataset in ("cifar10", "mnist", "fashion_mnist") and method == "dist_pu")
+        or (dataset == "cifar10" and method == "self_pu")
+    )
+
+
+def choose_pending(pending, active, mode):
+    """At most one fast-lane worker; leave remaining cards to long/recovery jobs."""
+    ordered = sorted(pending, key=dispatch_priority)
+    if not ordered:
+        return None
+    shorts = [j for j in ordered if short_candidate(j)]
+    short_active = any(short_candidate(j) for j in active)
+    if mode == "prep_short_overlap":
+        return shorts[0] if shorts and not short_active else None
+    protected = [j for j in ordered if j.get("campaign_id") or j.get("retry_of")]
+    if protected:
+        return protected[0]
+    if mode == "exclusive" and len(active) >= 2 and shorts and not short_active:
+        return shorts[0]
+    return ordered[0]
 
 
 def dispatch_priority(job):
