@@ -57,6 +57,8 @@
 - 已冻结（显式 budget 令牌）：PULNS、LaGAM、Self-PU full-meta（spambase 行）；
 - 仍是 draft：CVIR、GradPU、KLDCE、P3MIX、PAN、PUET、RP、VPU 只有 `draft_*` 令牌，未冻结，
   在注册表里标 `excluded` 并带理由；
+- P3MIX 已补显式合并打乱批次、三变体的样本曝光/更新数与 CPU CNN 回归；
+  旧默认及 OS 校准口径不变，正式配方/资源与 blocked 状态仍待，见 [方法卡](../method_cards/P3MIX.md)。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 

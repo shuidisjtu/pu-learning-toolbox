@@ -30,6 +30,16 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 
 ## 当前状态与准入边界
 
+2026-10-31 补齐显式 `batching_policy="merged_shuffle"`：按 Algorithm 1 第 3 行合并 P∪U，
+每轮打乱并按总 `batch_size` 切批，尾批保留、不重复任何主样本；原默认 `role_balanced`
+保持按角色切批与循环补齐，`batch_size` 仍为每角色上限，避免改变旧调用。
+合并切批可能没有某一角色；论文没有定义空组均值，本实现令该组损失贡献为零，
+不丢弃或重采样该批。P3Mix-C 的损失角色仍按原始 P/U 标签区分，而非修正后的伪标签。
+这一空组约定是显式工程选择，不声称论文完整复现；两种路径均披露实际更新数、角色行次与复用量。
+单样本尾批的 BatchNorm 使用运行统计并恢复原训练模式，避免丢行/重复行；这也是工程约定，非论文事实。
+三变体的 singleton/尾批、CNN CV/refit、确定性与序列化均有 CPU 回归；OS/先验/校准口径不变，
+未修改冻结预算或比较矩阵，也不据此解除正式准入阻断。
+
 2026-10-20 再核 PDF 后补齐输入隔离：各次 student/teacher 前向使用私有当前 batch，encoder
 probe 使用独立行副本，避免自定义 in-place 网络污染式 (4) 输入或验证/测试评分数组。
 三变体均补充实际卷积的公开 `PUPipeline` 两折 CV+全量 refit、pickle、四角色 PA/OA
