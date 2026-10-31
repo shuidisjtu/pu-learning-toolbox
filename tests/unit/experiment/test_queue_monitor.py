@@ -52,7 +52,15 @@ def test_basic_determ_mixed_tail_policy_visible(monitor):
 
 
 def test_basic_cpu_only_backlog_is_not_reported_as_waiting_gpu_training(monitor, tmp_path):
-    pending = job(tmp_path, method="lbe", path="cnn_feature_adapter", status="pending", lane="gpu")
+    pending = job(
+        tmp_path,
+        method="lbe",
+        path="cnn_feature_adapter",
+        status="pending",
+        lane="gpu",
+        seeds=[0],
+        c_tokens=["0.1"],
+    )
     state = dict(updated_at=datetime.now(timezone.utc).isoformat(), jobs=[pending])
     rendered = monitor.render(states=[state], devices={}, width=150, height=30)
     assert "GPU-train=0 | CPU-fit adapters=1" in rendered
