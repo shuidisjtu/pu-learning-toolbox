@@ -44,6 +44,9 @@ def test_param_basic_determ_forest_records_real_trees_and_keeps_predictions(view
     np.testing.assert_array_equal(
         model.decision_function(features), direct.decision_function(features)
     )
+    assert model.trees_ == direct.trees_
+    np.testing.assert_array_equal(model.feature_importances_, direct.feature_importances_)
+    np.testing.assert_array_equal(model.n_leaves_, direct.n_leaves_)
     restored = pickle.loads(pickle.dumps(model))
     np.testing.assert_array_equal(
         restored.decision_function(features), direct.decision_function(features)
@@ -145,9 +148,9 @@ class ConstructorRNGBase(BaseEstimator):
 
 def test_basic_determ_pruning_does_not_add_constructor_clones_or_consume_extra_rng():
     features, labels = data()
+    state = np.random.get_state()
     model = RankPruningClassifier(base_estimator=ConstructorRNGBase(), min_retained=2)
     direct = clone(model)
-    state = np.random.get_state()
     try:
         np.random.seed(83)
         ConstructorRNGBase.constructions = 0
