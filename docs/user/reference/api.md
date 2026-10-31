@@ -101,6 +101,15 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 --target-dir /tmp --n-positive 128 --n-unlabeled 128 --variant e --batching-policy merged_shuffle`。
 规划不加载数据或模型、不初始化 CUDA；额外 teacher/池刷新前向与 optimizer 更新分列。
 
+独立图像执行：`python scripts/run_candidate_image_experiment.py --method p3mix`，
+输入为 `train/pu_val/clean_val/test.npz` 四份互不重叠的 NCHW 数据（各含 `X/y/indices`）。
+`--parameters` JSON 必须显式提供 `variant`、`hidden_dim`、`max_epochs`、`batch_size`、
+`batching_policy`、`learning_rate`、`beta`、`gamma`、`pool_size`、`mixup_alpha`、
+`early_learning_weight`、`teacher_decay`、`device`；其他必填参数见 `--help`。
+默认只生成计划；`--execute --out-dir <新目录>` 才训练。入口使用原生 OS、训练集统计的
+共享 ResNet-18（不是论文 backbone），独立 PA/OA 选择 student 快照并回收未选中权重；
+选择先验不进入训练，E 的 teacher 不参与选模，不构成正式 Survey 准入。
+
 ### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
 
 `from pu_toolbox import TEDnClassifier`，亦可从 `pu_toolbox.estimators.deep` 导入。

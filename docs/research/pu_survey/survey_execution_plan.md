@@ -67,6 +67,8 @@
   不修改核心算法、历史来源证据或正式预算，失败诊断留在 trainer，成功收据随 manifest。
 - P3MIX 三变体已接只读资源规划，分列切批重复行、optimizer 更新与 teacher/池刷新前向；
   构造默认预算与调用者 encoder 不是已冻结 recipe，也不构成完整 GPU/存储实测。
+- P3MIX 独立共享图像执行入口已补三变体/两切批、原生 OS、PA/OA、student 快照回收与回放；
+  CPU 工程验证不等于论文 backbone/数值复现或正式资源验收，原 blocked 状态不变。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 

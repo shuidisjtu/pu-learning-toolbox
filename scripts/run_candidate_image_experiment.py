@@ -29,6 +29,7 @@ METHODS = {
     "gradpu": "deep/grad_pu.py",
     "pan": "deep/pan.py",
     "vpu": "risk/vpu.py",
+    "p3mix": "deep/p3mix.py",
 }
 DATASETS = ("cifar10", "mnist", "fashion_mnist", "adni")
 ADNI_RECEIPT = "docs/research/pu_survey/data/adni_substitute_receipt_20261012.json"
@@ -106,6 +107,21 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes):
             "iterations_per_epoch",
             "data_device_policy",
         )
+    if method == "p3mix":
+        budget_keys = (
+            "variant",
+            "hidden_dim",
+            "max_epochs",
+            "batch_size",
+            "batching_policy",
+            "learning_rate",
+            "beta",
+            "gamma",
+            "pool_size",
+            "mixup_alpha",
+            "early_learning_weight",
+            "teacher_decay",
+        )
     if not all(key in parameters for key in (*budget_keys, "device")):
         raise ValueError(f"explicit budget/device required: {budget_keys}")
     if parameters["device"] not in ("cpu", "cuda"):
@@ -159,7 +175,7 @@ def build_plan(
         model,
         bundle,
         {
-            "os_or_ts": "os" if method == "pan" else "ts",
+            "os_or_ts": "os" if method in {"pan", "p3mix"} else "ts",
             "checkpoint_bytes_per_component": checkpoint_bytes,
         },
         [ProtocolPA(), ProtocolOA()],
@@ -200,7 +216,7 @@ def build_plan(
     plan = {
         "schema_version": "candidate-image-experiment-plan-v1",
         "method": method,
-        "training_view": "os" if method == "pan" else "ts",
+        "training_view": "os" if method in {"pan", "p3mix"} else "ts",
         "dataset": dataset,
         "data_scope": data_scope(dataset),
         "input_directory": str(directory),
@@ -379,7 +395,7 @@ def execute(plan, output):
             )
         },
     }
-    if plan["method"] in {"pan", "vpu"}:
+    if plan["method"] in {"pan", "vpu", "p3mix"}:
         summary["source_default_snapshot_projection"]["origin"] = (
             "toolbox_constructor_not_author_or_frozen_recipe"
         )

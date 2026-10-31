@@ -18,6 +18,7 @@ from sklearn.base import clone
 from ..utils.serialization import strict_canonical_hash
 from .candidate_image import (
     _candidate_image_training_receipt,
+    _p3mix_epoch_facts,
     _validate_candidate_image_fit,
     _vpu_normalization_facts,
 )
@@ -38,8 +39,9 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             "gradpu",
             "pan",
             "vpu",
+            "p3mix",
         ):
-            raise ValueError("a PULDA, GradPU, PAN or VPU image construction record is required")
+            raise ValueError("a supported candidate image construction record is required")
         self.image_setup = copy.deepcopy(image_setup)
         self._setup_digest = strict_canonical_hash(self.image_setup)
         self.checkpoint_bytes_per_component = checkpoint_bytes_per_component
@@ -47,7 +49,7 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
     def _validate(self, model, features, labels, view):
         if strict_canonical_hash(self.image_setup) != self._setup_digest:
             raise ValueError("candidate image setup changed after binding")
-        expected_view = "os" if self.image_setup["method"] == "pan" else "ts"
+        expected_view = "os" if self.image_setup["method"] in {"pan", "p3mix"} else "ts"
         if view != expected_view:
             raise ValueError(f"candidate image runner requires explicit {expected_view} view")
         bound = _validate_candidate_image_fit(model, self.image_setup, features, labels)
@@ -78,7 +80,41 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     raise ValueError(f"{key} must be finite and positive")
         if self.image_setup["method"] == "vpu" and model.data_device_policy != "cpu_stream":
             raise ValueError("VPU candidate image runner requires explicit cpu_stream policy")
+        if self.image_setup["method"] == "p3mix":
+            self._validate_p3mix_parameters(model)
         return bound
+
+    @staticmethod
+    def _validate_p3mix_parameters(model):
+        """Refuse ambiguous budgets before planning or creating any artifacts."""
+        if model.variant not in {"base", "e", "c"} or model.batching_policy not in {
+            "role_balanced",
+            "merged_shuffle",
+        }:
+            raise ValueError("P3Mix requires explicit supported variant/batching policy")
+        if type(model.pool_size) is not int or model.pool_size < 1:
+            raise ValueError("P3Mix pool_size must be a positive integer")
+        from ..estimators.deep.p3mix import _is_finite_real
+
+        for name in (
+            "learning_rate",
+            "beta",
+            "mixup_alpha",
+            "gamma",
+            "early_learning_weight",
+            "teacher_decay",
+        ):
+            value = getattr(model, name)
+            if not _is_finite_real(value):
+                raise ValueError(f"P3Mix {name} must be finite real")
+        if (
+            min(model.learning_rate, model.beta, model.mixup_alpha) <= 0
+            or not 0.5 <= model.gamma <= 1
+            or model.early_learning_weight < 0
+            or (model.variant == "e" and model.early_learning_weight <= 0)
+            or not 0 <= model.teacher_decay < 1
+        ):
+            raise ValueError("P3Mix parameter outside its native range")
 
     def validate_experiment(self, model, bundle, config, protocols):
         """Reject formal units and inconsistent candidates before any fitting."""
@@ -132,6 +168,9 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         return self._epoch_bound
 
     def _checkpoint_context(self, fitted, epoch):
+        if self.image_setup["method"] == "p3mix":
+            self._p3mix_epoch_records.append(_p3mix_epoch_facts(fitted, self._p3mix_labels, epoch))
+            return super()._checkpoint_context(fitted, epoch)
         if self.image_setup["method"] == "vpu":
             if fitted.n_loss_unlabeled_ != fitted.n_positive_ + fitted.n_unlabeled_:
                 raise ValueError("VPU completed epoch did not use the complete TS train marginal")
@@ -174,6 +213,9 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             del estimator.training_provenance_
         if method == "vpu":
             self._vpu_epoch_records = []
+        if method == "p3mix":
+            self._p3mix_labels = bound[2]
+            self._p3mix_epoch_records = []
         try:
             trajectory = super().fit(
                 estimator,
@@ -216,6 +258,14 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     optimizer_generation_history=list(estimator.history_["optimizer_generation"]),
                     normalization_history=list(self._vpu_epoch_records),
                 )
+            if method == "p3mix":
+                estimator.training_provenance_.update(
+                    selection_prior_not_forwarded_to_P3Mix=True,
+                    eligible_stages=["train"],
+                    checkpoint_scope="student_inference_only; no_teacher_optimizer_resume",
+                    teacher_selection_eligible=False,
+                    epoch_cost_history=copy.deepcopy(self._p3mix_epoch_records),
+                )
         except BaseException:
             # A rejected resource/receipt is not a successfully accepted model.
             estimator._is_fitted = False
@@ -240,6 +290,13 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                 math.ceil(len(labels) / estimator.batch_size), math.ceil(p / estimator.batch_size)
             )
             phases = ["variational"] * estimator.max_epochs
+        elif method == "p3mix":
+            steps = (
+                math.ceil(len(labels) / estimator.batch_size)
+                if estimator.batching_policy == "merged_shuffle"
+                else max(math.ceil(p / estimator.batch_size), math.ceil(u / estimator.batch_size))
+            )
+            phases = ["train"] * estimator.max_epochs
         else:
             steps = max(math.ceil(p / estimator.batch_size), math.ceil(u / estimator.batch_size))
             phases = ["pu"] * estimator.max_epochs

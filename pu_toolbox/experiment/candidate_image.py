@@ -36,12 +36,14 @@ def build_candidate_image_classifier(
     PAN also uses that encoder template, cloned independently by its C/D fit;
     it retains native OS and requires augmentation=none in this candidate path.
     VPU uses a separate copy with its native MLP/log-Phi head and TS marginal.
+    P3Mix uses a separate copy with its native OS mixup head; this ResNet-18
+    is an engineering alternative, not the paper's dataset-specific backbone.
     GradPU uses a private CNN13 without BN; shared augmentation is deliberately
     refused until a method-specific policy is decided. Each construction resets
     the CPU torch seed in a fork, independent of previous methods' RNG use.
     """
-    if not isinstance(method, str) or method not in {"pulda", "gradpu", "pan", "vpu"}:
-        raise ValueError("method must be 'pulda', 'gradpu', 'pan' or 'vpu'")
+    if not isinstance(method, str) or method not in {"pulda", "gradpu", "pan", "vpu", "p3mix"}:
+        raise ValueError("method must be 'pulda', 'gradpu', 'pan', 'vpu' or 'p3mix'")
     if isinstance(seed, bool) or not isinstance(seed, Integral) or not 0 <= seed < 2**32:
         raise ValueError("seed must be an integer in [0, 2**32)")
     if method == "pulda" and class_prior is None:
@@ -55,12 +57,14 @@ def build_candidate_image_classifier(
         ):
             raise ValueError("population class_prior must be a finite real number in (0, 1)")
         class_prior = float(class_prior)
-    if method in {"gradpu", "pan", "vpu"} and class_prior is not None:
+    if method in {"gradpu", "pan", "vpu", "p3mix"} and class_prior is not None:
         raise ValueError(f"{method} does not use a class_prior")
     if method == "pan" and preprocessing.train_augmentation != "none":
         raise ValueError("PAN candidate image setup requires train_augmentation='none'")
     if method == "vpu" and preprocessing.train_augmentation != "none":
         raise ValueError("VPU candidate image setup requires train_augmentation='none'")
+    if method == "p3mix" and preprocessing.train_augmentation != "none":
+        raise ValueError("P3Mix candidate image setup requires train_augmentation='none'")
     if method == "gradpu" and preprocessing.train_augmentation != "none":
         raise ValueError("GradPU private image setup requires train_augmentation='none'")
     if method == "gradpu" and min(preprocessing.input_size) < 8:
@@ -70,7 +74,7 @@ def build_candidate_image_classifier(
 
     with torch.random.fork_rng(devices=[]):
         torch.random.default_generator.manual_seed(int(seed))
-        if method in {"pulda", "pan", "vpu"}:
+        if method in {"pulda", "pan", "vpu", "p3mix"}:
             from pu_toolbox.estimators.risk.pulda import PULDAClassifier
 
             encoder = build_survey_image_encoder(preprocessing)
@@ -87,7 +91,7 @@ def build_candidate_image_classifier(
                 from pu_toolbox.estimators.deep.pan import PANClassifier
 
                 estimator = PANClassifier(encoder=encoder, random_state=int(seed), device=device)
-            else:
+            elif method == "vpu":
                 from pu_toolbox.estimators.risk.vpu import VPUClassifier
 
                 estimator = VPUClassifier(
@@ -96,6 +100,10 @@ def build_candidate_image_classifier(
                     device=device,
                     data_device_policy="cpu_stream",
                 )
+            else:
+                from pu_toolbox.estimators.deep.p3mix import P3MixClassifier
+
+                estimator = P3MixClassifier(encoder=encoder, random_state=int(seed), device=device)
         else:
             from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
             from pu_toolbox.estimators.deep.vision import build_wconpu_backbone
@@ -137,7 +145,7 @@ def build_candidate_image_classifier(
         "standard_resnet18_leaderboard_eligible": False,
         "source_reproduction": False,
         "adaptation": "benchmark-adapted",
-        "source_identity": "paper-only" if method == "gradpu" else "official_related",
+        "source_identity": "paper-only" if method in {"gradpu", "p3mix"} else "official_related",
         "initialization_seed": int(seed),
         "encoder_initial_state_sha256": encoder_state_sha256(encoder),
         "encoder_trainable": True,
@@ -183,6 +191,15 @@ def build_candidate_image_classifier(
             normalization_scope="completed_epoch_training_marginal_only",
             validation_diagnostic_selection_eligible=False,
         )
+    if method == "p3mix":
+        record.update(
+            input_order=["raw_image_heuristic_mixup", "encoder_normalization"],
+            training_view="os",
+            candidate_pool_scope="observed_labeled_train_positive_only",
+            selection_components=["student"],
+            teacher_selection_eligible=False,
+            backbone_scope="shared_resnet18_engineering_alternative_not_paper_backbone",
+        )
     return estimator, record
 
 
@@ -192,6 +209,7 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
 
     from pu_toolbox.core.validation import validate_pu_X_y
     from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
+    from pu_toolbox.estimators.deep.p3mix import P3MixClassifier
     from pu_toolbox.estimators.deep.pan import PANClassifier
     from pu_toolbox.estimators.risk.pulda import PULDAClassifier
     from pu_toolbox.estimators.risk.vpu import VPUClassifier
@@ -206,6 +224,7 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         "gradpu": GradPUClassifier,
         "pan": PANClassifier,
         "vpu": VPUClassifier,
+        "p3mix": P3MixClassifier,
     }
     expected_group = "method-private/no-BN CNN" if method == "gradpu" else "end-to-end CNN"
     if (
@@ -261,6 +280,16 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         or setup.get("validation_diagnostic_selection_eligible") is not False
     ):
         raise ValueError("VPU requires native TS and train-marginal-only normalization")
+    if method == "p3mix" and (
+        estimator.model is not None
+        or setup.get("training_view") != "os"
+        or setup.get("candidate_pool_scope") != "observed_labeled_train_positive_only"
+        or setup.get("selection_components") != ["student"]
+        or setup.get("teacher_selection_eligible") is not False
+        or setup.get("backbone_scope")
+        != "shared_resnet18_engineering_alternative_not_paper_backbone"
+    ):
+        raise ValueError("P3Mix requires native OS, train-P pool and student-only selection")
 
     features, labels = validate_pu_X_y(
         train_images,
@@ -318,6 +347,74 @@ def _vpu_normalization_facts(estimator):
     )
 
 
+def _p3mix_epoch_facts(estimator, labels, epoch):
+    """Verify completed OS epochs and identity-bound pool without new forwards."""
+    import numpy as np
+    import torch
+
+    p = np.flatnonzero(labels == 1)
+    u = np.flatnonzero(labels == 0)
+    batch = estimator.batch_size
+    merged = estimator.batching_policy == "merged_shuffle"
+    steps = (
+        math.ceil(len(labels) / batch)
+        if merged
+        else max(math.ceil(len(p) / batch), math.ceil(len(u) / batch))
+    )
+
+    def exposure(count):
+        batches = math.ceil(count / batch)
+        cycles, remainder = divmod(steps, batches)
+        return count if merged else cycles * count + min(count, remainder * batch)
+
+    expected = {
+        "epoch": epoch,
+        "optimizer_steps": epoch * steps,
+        "positive_rows_seen": exposure(len(p)),
+        "unlabeled_rows_seen": exposure(len(u)),
+        "positive_rows_reused": exposure(len(p)) - len(p),
+        "unlabeled_rows_reused": exposure(len(u)) - len(u),
+    }
+    algorithm = estimator.training_provenance_
+    pool = estimator.candidate_training_positions_
+    if (
+        estimator.epochs_completed_ != epoch
+        or estimator.optimizer_steps_ != epoch * steps
+        or estimator.positive_rows_seen_ != epoch * exposure(len(p))
+        or estimator.unlabeled_rows_seen_ != epoch * exposure(len(u))
+        or algorithm.get("run_view") != "os"
+        or algorithm.get("calibration_applied") is not False
+        or not np.array_equal(estimator.train_positive_indices_, p)
+        or not np.array_equal(estimator.train_unlabeled_indices_, u)
+        or len(estimator.epoch_provenance_) != epoch
+        or estimator.epoch_provenance_[-1] != expected
+        or len(pool) != min(estimator.pool_size, len(p))
+        or len(np.unique(pool)) != len(pool)
+        or not np.isin(pool, p).all()
+    ):
+        raise ValueError("P3Mix completed epoch/pool/role exposure cost mismatch")
+    teacher = estimator.teacher_
+    if (teacher is not None) != (estimator.variant == "e"):
+        raise ValueError("P3Mix teacher does not match its variant")
+    if teacher is not None:
+        student_tensors = list(estimator.model_.parameters()) + list(estimator.model_.buffers())
+        teacher_tensors = list(teacher.parameters()) + list(teacher.buffers())
+        if (
+            any(parameter.requires_grad for parameter in teacher.parameters())
+            or {t.data_ptr() for t in student_tensors} & {t.data_ptr() for t in teacher_tensors}
+            or any(not torch.isfinite(t).all() for t in teacher_tensors)
+        ):
+            raise ValueError("P3Mix teacher must be finite, frozen and storage-independent")
+    return {
+        **expected,
+        "student_training_forward_batches": 2 * steps,
+        "teacher_forward_batches": steps if teacher is not None else 0,
+        "positive_pool_refresh_forward_batches": math.ceil(len(p) / batch),
+        "forward_counts_scope": "derived_from_verified_updates_excludes_probes_and_selection",
+        "teacher_ema_updates_completed": epoch if teacher is not None else 0,
+    }
+
+
 def _candidate_image_training_receipt(estimator, bound_inputs, started):
     """Verify inputs after training and retain the original receipt semantics."""
     from pu_toolbox.utils.serialization import array_hash, file_hash
@@ -331,6 +428,7 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
         "gradpu": "estimators/deep/grad_pu.py",
         "pan": "estimators/deep/pan.py",
         "vpu": "estimators/risk/vpu.py",
+        "p3mix": "estimators/deep/p3mix.py",
     }[method]
     receipt = {
         "schema_version": "candidate-image-training-receipt-1",
@@ -342,10 +440,16 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
         "training_label_semantics": "caller_declared_observed_PU",
         "label_budget_externally_verified": False,
         "four_role_isolation_verified": False,
-        "training_view": estimator.training_view_,
-        "calibration_applied": bool(estimator.calibration_applied_),
+        "training_view": estimator.training_provenance_["run_view"]
+        if method == "p3mix"
+        else estimator.training_view_,
+        "calibration_applied": bool(estimator.training_provenance_["calibration_applied"])
+        if method == "p3mix"
+        else bool(estimator.calibration_applied_),
         "population_mixture_restoration_verified": False,
-        "completed_epochs": len(estimator.history_["epoch"]),
+        "completed_epochs": estimator.epochs_completed_
+        if method == "p3mix"
+        else len(estimator.history_["epoch"]),
         "optimizer_steps": estimator.optimizer_steps_,
         "actual_device": str(next(estimator.model_.parameters()).device),
         "encoder_trainable": all(p.requires_grad for p in estimator.encoder_.parameters()),
@@ -401,6 +505,15 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
             optimizer_resets=estimator.optimizer_resets_,
             optimizer_schedule=estimator.optimizer_schedule,
             iterations_per_epoch=estimator.iterations_per_epoch,
+        )
+    if method == "p3mix":
+        if encoder_state_sha256(estimator.encoder) != setup["encoder_initial_state_sha256"]:
+            raise ValueError("P3Mix mutated the shared encoder template")
+        receipt.update(_p3mix_epoch_facts(estimator, labels, estimator.epochs_completed_))
+        receipt.update(
+            student_only_inference=True,
+            data_device_policy=estimator.data_device_policy_,
+            backbone_is_paper_architecture=False,
         )
     json.dumps(receipt, allow_nan=False)
     return receipt

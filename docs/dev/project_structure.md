@@ -405,6 +405,7 @@ tests/
       test_pan_image_cli.py             # PAN 四角色 OS 图像命令、双选模回放与非正式预算拒收
       test_vpu_image_cli.py             # VPU 四角色 TS 命令、归一化回放、显式参数与角色隔离
       test_p3mix_resource_plan.py       # P3MIX 切批曝光、teacher 与额外前向预算
+      test_p3mix_image_execution.py     # P3Mix 图像显式预算、双协议回放与回收
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -598,6 +599,7 @@ tests/
       test_pan_image_candidate.py       # PAN 双编码器隔离、逐 epoch C/D 成本与 recorder 数值不变
       test_vpu_image_candidate.py       # VPU 训练边缘池、逐 epoch 归一化、重建 Adam 与实际成本
       test_classical_candidate_cost.py  # 逐树/交叉拟合真实成本及默认结果不变
+      test_p3mix_image_candidate.py     # P3Mix 原生 OS 图像快照、teacher 与角色成本
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

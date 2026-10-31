@@ -40,6 +40,14 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 资源规划脚本 `prepare_candidate_image_resource_plan.py --method p3mix` 已接 `--variant` 与
 `--batching-policy`，分别登记 optimizer 更新、P/U 复用、池刷新及 E 的 teacher forward；
 采用构造默认预算，backbone 仅记 caller-injected，不代表已有共享图像配方或完整资源实测。
+2026-10-31 后续已补独立共享 ResNet-18 图像构造与
+`scripts/run_candidate_image_experiment.py --method p3mix`：显式指定三变体、切批与全部训练预算，
+SCAR 四角色、PA/OA 独立选模、student-only weights 快照、选后回收及 pickle 回放。
+候选池限训练观测 P，逐轮校验更新/角色行次与独立冻结 teacher；选择先验不转发 fit。
+共享 ResNet-18 替代论文 LeNet-5/7-layer CNN，是统一候选图像接口的工程适配，augmentation=none；
+不改核心训练方程、默认切批或 OS 口径。CPU 逐值回归覆盖三变体、两切批与直接 fit/快照预测一致；
+teacher/池刷新前向数由已验证更新数推导，排除 probe/外部选择，不冒充完整 GPU 资源实测。
+原只读规划仍描述调用者 encoder，不认证外部 checkpoint；正式图像配方、预算与数值对照仍待。
 三变体的 singleton/尾批、CNN CV/refit、确定性与序列化均有 CPU 回归；OS/先验/校准口径不变，
 未修改冻结预算或比较矩阵，也不据此解除正式准入阻断。
 
