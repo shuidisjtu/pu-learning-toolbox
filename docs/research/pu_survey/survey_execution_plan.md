@@ -73,6 +73,8 @@
   CPU 工程验证不等于论文 backbone/数值复现或正式资源验收，原 blocked 状态不变。
 - CVIR 已补独立共享图像 CLI：显式 OS/TS、观测计数先验换算、两阶段成本、PA/OA 与快照回放；
   singleton BN 预算拟合前拒绝，核心算法/原生独立 TS 接口不变，正式预算与资源阻断保留。
+- KLDCE 已补只读稠密 Gram/QP payload 与 ACS/SMO（含 rollback）预算预检；
+  tiny QP 内存块已核对，但 dtype 声明与命名数组不等于完整 RSS 实测或运行批准。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 

@@ -408,6 +408,7 @@ tests/
       test_p3mix_image_execution.py     # P3Mix 图像显式预算、双协议回放与回收
       test_classical_candidate_execution.py # PUET/RP 显式计划、四角色回放与失败证据
       test_cvir_image_execution.py      # CVIR 图像先验、视图锁定与双协议回放
+      test_kldce_resource_plan.py       # KLDCE 稠密块实测、只读预检与 QP 预算
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -949,6 +950,7 @@ scripts/
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
   run_classical_candidate_experiment.py   PUET/RP 独立 CPU 四角色计划与执行
+  prepare_kldce_resource_plan.py          KLDCE 稠密数组 payload 与 ACS/SMO 上限筛查
 ```
 
 ## 7. CI/CD（`.github/`）

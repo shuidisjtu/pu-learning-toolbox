@@ -500,6 +500,12 @@ KLDCEClassifier(flip_probability, *, sigma="scale", reg_strength=1.0, centroid_r
 
 - 文档：[KLDCE 方法卡](../../research/method_cards/KLDCE.md)
 
+只读资源筛查：`python scripts/prepare_kldce_resource_plan.py --n-positive 1000
+--n-unlabeled 10000 --feature-count 512 --gram-itemsize 8`。
+可加 `--prediction-rows`、`--max-acs-iter`、`--max-inner-iter` 与 `--memory-cap-bytes`；
+超出已知 payload 的帽返回退出码 2；低于帽不表示 RAM 足够。此工具不加载数据/模型，
+声明的 Gram/协方差 dtype 未认证，稠密块统计排除临时矩阵等开销，不是正式资源验收。
+
 #### `LLSVMClassifier`（注册名 `llsvm`）
 
 标签相关线性 SVM（LLSVM，LPSVM 变体）。

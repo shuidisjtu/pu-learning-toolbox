@@ -2,6 +2,14 @@
 
 > 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
 
+2026-10-31 补齐只读 `scripts/prepare_kldce_resource_plan.py`：按 P/U/维度与声明的
+Gram itemsize 列出训练/预测 Gram、对偶 QP 各个稠密块及协方差 payload；QP 块用核心的
+float64，Gram/协方差 dtype 只是假设，尚未验证输入。构造默认或显式 ACS/SMO 上限
+另计（含 rollback，首轮无 rollback），不当神经 epoch 或 ETA。
+真实 tiny QP 的各块 shape/dtype/nbytes 已独立核对，不加载真实数据、不构造估计器或初始化 CUDA。
+资源数只覆盖命名数组，不含前轮 QP、RBF/solver/eigh 临时副本及输入/运行时；
+超过显式内存帽返回退出码 2，低于帽也绝不批准启动。未改核心实现、正式预算或资源准入。
+
 ## 1. 论文信息
 
 | 字段 | 内容 |

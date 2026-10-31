@@ -316,6 +316,7 @@
     },
     "kldce": {
       "class": "KLDCEClassifier",
+      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_kldce_resource_plan.py", "scope": "declared_dtype_dense_named_array_payload_not_peak_RSS", "counts_rollback_qp_budget": true, "below_cap_is_not_fit_approval": true, "data_loaded": false, "formal_resource_profile_complete": false, "formal_admission": false},
       "paper": {
         "title": "Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning (kernelized version, RBF)",
         "authors": "Chen Gong, Hong Shi, Tongliang Liu, Chuang Zhang, Jian Yang, Dacheng Tao",
