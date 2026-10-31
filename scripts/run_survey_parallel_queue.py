@@ -382,7 +382,12 @@ def run(
     repair_plan=None,
     session_name="pu-survey-parallel-20261028",
     gpu_indices=None,
+    packed_gpu_indices=(),
 ):
+    if packed_gpu_indices and (
+        gpu_indices is None or not set(packed_gpu_indices) <= set(gpu_indices)
+    ):
+        raise ValueError("packed GPU trial must be a subset of the explicit GPU allowlist")
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     log = (queue / "parallel_supervisor.log").open("a", buffering=1)
     os.dup2(log.fileno(), 1)
@@ -418,6 +423,7 @@ def run(
     ).strip()
     processes = {}
     idle_counts, low_counts = {}, {}
+    packed_counts = {}
     last_tables = 0
     upgrade_released = False
     print(
@@ -443,6 +449,12 @@ def run(
             print(now(), "finished", job["label"], job["status"], verification, flush=True)
         release_canary_followups(jobs)
         active = [j for j in jobs if j["status"] == "running"]
+        paused = {
+            j.get("gpu", {}).get("index")
+            for j in jobs
+            if j["status"] == "failed" and j.get("dispatch_mode") == "packed_compute_trial"
+        }
+        packed_allowed = set(packed_gpu_indices) - paused
         query_error = None
         try:
             snapshot = devices()
@@ -451,16 +463,21 @@ def run(
                 idle_counts[index] = idle_counts.get(index, 0) + 1 if not d["pids"] else 0
                 low = not d["pids"] - own_pids and d["util"] <= 35
                 low_counts[index] = low_counts.get(index, 0) + 1 if low else 0
+                packed_ok = bool(d["pids"]) and not d["pids"] - own_pids and d["util"] <= 95
+                packed_counts[index] = packed_counts.get(index, 0) + 1 if packed_ok else 0
             slots = dispatch_slots(
                 allowed_devices(snapshot, gpu_indices),
                 active,
                 idle_counts=idle_counts,
                 low_counts=low_counts,
+                packed_indices=packed_allowed,
+                packed_counts=packed_counts,
             )
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
             snapshot, slots, query_error = {}, [], str(exc)
             idle_counts.clear()
             low_counts.clear()
+            packed_counts.clear()
         cpu_count = sum(j["lane"] == "cpu" for j in active)
         for index, mode in [(None, "cpu")] * max(0, 2 - cpu_count) + slots:
             pending = sorted(
@@ -487,6 +504,8 @@ def run(
                         current_active,
                         idle_counts=idle_counts,
                         low_counts=low_counts,
+                        packed_indices=packed_allowed,
+                        packed_counts=packed_counts,
                     ):
                         continue
                 except (OSError, ValueError, KeyError, subprocess.SubprocessError):
@@ -501,6 +520,7 @@ def run(
             job["dispatch_mode"] = mode
             processes[process.pid] = process
             low_counts[index] = 0
+            packed_counts[index] = 0
             print(
                 now(), "started", job["label"], "gpu", index, mode, "pid", process.pid, flush=True
             )
@@ -511,10 +531,13 @@ def run(
             "tmux_session": session_name,
             "check_interval_seconds": 5,
             "granularity": "single_fit_except_adopted_batches",
-            "max_jobs_per_gpu": 2,
+            "max_jobs_per_gpu": 3 if packed_gpu_indices else 2,
+            "max_gpu_training_workers_per_packed_card": 2,
+            "packed_gpu_indices": list(packed_gpu_indices),
+            "packed_gpu_indices_paused": sorted(i for i in paused if i is not None),
             "gpu_indices": list(gpu_indices) if gpu_indices is not None else None,
             "gpu_card_limit": len(gpu_indices) if gpu_indices is not None else None,
-            "concurrency_policy": "bounded_prep_overlap_one_short_lane_foreign_process_veto",
+            "concurrency_policy": "bounded_overlap_optional_two_compute_trial_foreign_process_veto",
             "allocation_policy": {"NUMPY_MADVISE_HUGEPAGE": "0"},
             "last_query_error": query_error,
             "frozen_lock_environment_verified": False,
@@ -548,6 +571,12 @@ def main():
     parser.add_argument("--legacy-worker", type=Path, required=True)
     parser.add_argument("--session-name", default="pu-survey-parallel-20261028")
     parser.add_argument(
+        "--packed-gpu-indices",
+        type=parse_gpu_indices,
+        default=(),
+        help="opt-in subset for two GPU training workers and at most one CPU tail",
+    )
+    parser.add_argument(
         "--gpu-indices",
         type=parse_gpu_indices,
         help="physical GPU allowlist; busy allowed cards never spill to other GPUs",
@@ -570,6 +599,7 @@ def main():
         repair_plan=args.add_support_repair,
         session_name=args.session_name,
         gpu_indices=args.gpu_indices,
+        packed_gpu_indices=args.packed_gpu_indices,
     )
 
 

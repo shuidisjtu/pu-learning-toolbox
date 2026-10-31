@@ -87,8 +87,17 @@ def split_pending_jobs(jobs, output):
     return result, parents
 
 
-def dispatch_slots(devices, active_jobs, *, idle_counts, low_counts, low_limit=35):
-    """One fit per free card; at most one extra on a proven low-load own card.
+def dispatch_slots(
+    devices,
+    active_jobs,
+    *,
+    idle_counts,
+    low_counts,
+    low_limit=35,
+    packed_indices=(),
+    packed_counts=None,
+):
+    """Bounded dispatch; optional packed cards allow two known GPU trainers.
 
     A CUDA allocation is not a reservation. Never append to a card containing
     an unowned process, even if another user's memory allocation looks small.
@@ -98,6 +107,7 @@ def dispatch_slots(devices, active_jobs, *, idle_counts, low_counts, low_limit=3
     counts = Counter(j["gpu"]["index"] for j in active)
     own_pids = {j["pid"] for j in active}
     slots = []
+    packed_counts = packed_counts or {}
     for index, device in sorted(devices.items()):
         pids = set(device["pids"])
         if pids - own_pids:
@@ -107,6 +117,22 @@ def dispatch_slots(devices, active_jobs, *, idle_counts, low_counts, low_limit=3
             # exited; stale utilization is not evidence of an active owner.
             if idle_counts.get(index, 0) >= 2 and device["free_mib"] >= 12288:
                 slots.append((index, "exclusive"))
+        elif (
+            index in packed_indices
+            and 1 <= counts[index] < 3
+            and pids
+            and packed_counts.get(index, 0) >= 3
+            and device["util"] <= 95
+            and device["free_mib"] >= 32768
+            and len([j for j in active if j["gpu"]["index"] == index and not cpu_estimator_tail(j)])
+            == 1
+            and all(
+                small_native_compute(j) or cpu_estimator_tail(j)
+                for j in active
+                if j["gpu"]["index"] == index
+            )
+        ):
+            slots.append((index, "packed_compute_trial"))
         elif (
             counts[index] == 1
             and not pids
@@ -171,11 +197,23 @@ def cpu_estimator_tail(job):
     }
 
 
+def small_native_compute(job):
+    """Narrow measured recipe families; not a universal memory guarantee."""
+    return (
+        job.get("path") == "native_cnn"
+        and job.get("method") in {"nnpu", "genpu", "pulda"}
+        and job.get("dataset") in {"adni", "mnist", "fashion_mnist", "cifar10"}
+        and bool(job.get("expected_recipe"))
+    )
+
+
 def choose_pending(pending, active, mode):
     """At most one fast-lane worker; leave remaining cards to long/recovery jobs."""
     ordered = sorted(pending, key=dispatch_priority)
     if not ordered:
         return None
+    if mode == "packed_compute_trial":
+        return next((j for j in ordered if small_native_compute(j)), None)
     if mode == "cpu_tail_compute_overlap":
         compute = [j for j in ordered if not cpu_estimator_tail(j)]
         images = [j for j in compute if j.get("path") == "native_cnn"]

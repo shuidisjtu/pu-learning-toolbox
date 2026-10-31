@@ -281,6 +281,11 @@ def render(
                 if current.get("scheduler", {}).get("gpu_indices") is not None
                 else ""
             )
+            + (
+                f" | PACK={current['scheduler']['packed_gpu_indices']}"
+                if current.get("scheduler", {}).get("packed_gpu_indices")
+                else ""
+            )
         )
     except (OSError, ValueError, KeyError) as error:
         return "\n".join(line[:width] for line in [*lines, str(error)])
