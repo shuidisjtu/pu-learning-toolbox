@@ -607,6 +607,7 @@ tests/
       test_queue_cpu_overlap.py         # CPU 求解与真实 GPU 训练的安全穿插
       test_queue_packed_trial.py        # 双 GPU 训练试验的归属、显存与并发上限
       test_queue_dense_adapters.py      # 单卡四小模型并发及全局进程数限制
+      test_queue_coverage_audit.py      # 训练覆盖、修正批次去重与只读输出回归
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -953,6 +954,7 @@ scripts/
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
   run_survey_queue_fit.py                 # 固定源码单 fit 补跑，批次证据写入独立输出根
+  audit_survey_queue.py                   # 只读核对后台队列与协议训练格、完成制品
 ```
 
 ## 7. CI/CD（`.github/`）

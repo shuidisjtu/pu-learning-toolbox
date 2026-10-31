@@ -6,7 +6,7 @@
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
 > 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
-> 状态核对日期：**2026-10-28**（v3 协议 136 个单元，runnable 112 / blocked 24；本机前批完成 205 run，其余 3115 run 已排后台续跑；运行完成不等于正式准入）
+> 状态核对日期：**2026-11-01 02:08 +08:00**（v3 协议 136 个单元，runnable 112 / blocked 24；本机完成下界 2902/3320 fit，余 418 已运行或排队；另有 120 次修正补跑单列，运行完成不等于正式准入）
 
 ## 1. 实验能力与缺口
 
@@ -29,7 +29,7 @@
 | 协议内单跑（v3 112 个 runnable 单元） | **是** | | `--protocol survey_protocol_v3.json` 跑通并产出 manifest；现覆盖全部 8 个数据集。2026-10-26/27 在 AutoDL 主机对 mnist / fashion_mnist / adni / connect_4 / twenty_newsgroups 做了单 seed 接线验证，39 份 manifest 全部产出，汇总入口读通（不覆盖全部格，不是效果结论，见 D46）；support 单元另由批次驱动的 `--support-root` 规划执行（D50） |
 | 5 方法阶段预算（GEN-PU/PULDA/Robust/Split/Holistic） | **是（已冻结）** | 逐 seed 成本收据与 manifest 对账 | 阶段快照/成本收据与运行 manifest 对账 |
 | 图像三条路径 | **是（GradPU 除外）**：cifar10、mnist、fashion_mnist、adni 各有 13 个 runnable 行；GEN-PU/PULDA 原生 CNN 在 mnist、adni 上已真跑通（staged 预算拒绝注入 encoder 的缺陷已修，见 D46），Robust/Split/Holistic 等 `cnn_feature_adapter` 在 adni 上已跑通；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | GradPU 行翻 runnable 并出真实 CIFAR manifest |
-| clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**；本机 12 单元的 180 run 已完成观测跑批 | 2026-10-29 按 D53 核对：LaGAM/full-meta 共 120 run 缺 warmup，需新目录重跑；PULNS 60 run 的 episode 轨迹完整，仍须完整批次审计 | 正式 support 批次 manifest 与制品对账 |
+| clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**；本机 12 单元的 180 run 已完成观测跑批 | D53 的 120 次轨迹纠正已在新目录完成并通过队列制品核对；PULNS 60 run 不重复执行，仍须完整批次审计 | 正式 support 批次 manifest 与制品对账 |
 | PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA）；v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
 | 分组跑 + 汇总 | **是** | | `--methods/--datasets/--training-paths` 分批 + `--support-root` 驱五角色单元（D50）+ 汇总入口；support 三方法各自成组，混合组不再拖垮聚合（D51）；`aggregate_survey_runs.py` 现默认按 `survey-v3.0` 读（`--protocol` 可改，D47） |
 | 交付物 A 导出（工作簿 + 诊断卡） | **是（接线与版式；尚无 5 seed 数据）** | 5 seed 正式批次；诊断卡里的类先验语义、跨数据集趋势、外部锚点偏差、原生适用/假设违背分组、排名颠倒五项当前算不了（见 D48） | `uv run python scripts/export_survey_results.py --config <批次配置> --out-dir <目录>` 出 `survey_results.xlsx`（四组各一页 + diagnostic / coverage / readme）与 `diagnostic_cards.md/json`；缺 seed 的行只进 coverage；已用 2026-10-26/27 主机的 36 份单 seed manifest 验证（全部进 coverage、结论页为空，符合「单 seed 不进结论表」） |
@@ -40,10 +40,26 @@
 
 只列仍未关闭的缺口；已完成项并入 §1.1，不再留在这里。
 
+2026-11-01 后续顺序（历史能力说明不作为实时计数）：
+
+| 优先级 | 剩余任务 | 独立性 / 边界 |
+|---|---|---|
+| P0 | 跑完已绑定的剩余网格；按训练身份与完成制品持续对账 | 可独立；3320 格已全部覆盖，不重复入队；120 次修正单列 |
+| P1 | CVIR 阶段预算只读预检、KLDCE 真实 split 可行性盘点、候选入口资源验证 | 工程可独立；新入口不自动解除 24 个 blocked 单元 |
+| P1 | GradPU 首次完整真实运行，以及 GradPU/PAN/VPU 配方证据 | 先明确候选参数/预算并保存资源记录，不把 tiny smoke 当全量复现 |
+| P1 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU/GradPU 与 CIFAR support 行的版本化正式接入 | 代码可推进；预算、方法适用性和协议变化须显式处理，不改冻结文件翻牌 |
+| P2 | 120 次修正结果替代关系、PN-CNN 现有产物、五 seed 结果与环境锁验收 | 可独立核对；历史产物保留，不重复训练已有格 |
+| P2 | 四组结果工作簿、异常/文献对照、诊断卡尚缺的五类信号 | 可独立整理已有数据，完整结论依赖剩余实验；表格不入库 |
+| P3 | 专题分支经 PR 合流、发布复现命令与最终交付检查 | Git 推送可用；GitHub PR 认证不可用时只推分支，不直推 main |
+
+只读复查：`scripts/audit_survey_queue.py --queue <队列目录> --protocol <该批绑定的协议文件>
+--output <新报告路径>`。检查覆盖、重复归属、完成制品及修正批次；不重新证明数据/环境准入。
+输出已有则拒绝覆盖；漏排、幽灵格或完成制品错误退出码为 2。
+
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
-| support 正式 units（5 数据集） | 12 个 runnable 单元的本机 180 run 已有观测产物；其中 120 run 需 D53 轨迹纠正重跑，PULNS 60 run 不因同一问题重复执行 | `prepare_survey_support_repair.py` 只读列缺口及新目录命令；先 CPU dry-run，再排修复后批次与 D54 完整审计，不改旧 manifest | 合流 | 12 个单元的 5 seed 合规 manifest |
+| support 正式 units（5 数据集） | 12 个 runnable 单元的本机 180 run 已有观测产物；D53 的 120 次修正已完成且单列，不增加覆盖总数 | 验收修正替代关系、环境与 D54 完整批次，不改旧 manifest | 合流 | 12 个单元的 5 seed 合规 manifest |
 | LaGAM/PULNS 的 cifar10 support 行 | 仍是 24 个 blocked 单元的一部分（`pending_*_budget`），与 mnist/fashion_mnist 已翻 runnable 的情况不同 | 并入上面的 blocked 单元任务 | HENG958 | 单元 runnable 且产出 manifest |
 | GPU 机时实测（GradPU 首跑） | 无法排 GradPU 的 AutoDL 正式批次 | 其余机时已实测：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）、2026-10-26/27 主机上 oracle 原生 CNN 单 seed 计时（共用 22 核配额下，不代表独占机时）；仍缺 GradPU 首跑 | HENG958 | 实测表反推机时 |
 | PN-CNN 5 seed 验收 | cifar10 / mnist / fashion_mnist 原生 CNN 各 5 seed 已完成，本机有 manifest 与资源记录 | 验收现有产物，不重复启动已完成格；其他 oracle 行已排队 | HENG958 | 5 seed 合规 manifest + 峰值记录 |
