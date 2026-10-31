@@ -383,7 +383,17 @@ def run(
     session_name="pu-survey-parallel-20261028",
     gpu_indices=None,
     packed_gpu_indices=(),
+    dense_gpu_indices=(),
+    max_running_jobs=None,
 ):
+    if dense_gpu_indices and (
+        gpu_indices is None or not set(dense_gpu_indices) <= set(gpu_indices)
+    ):
+        raise ValueError("dense GPU trial must be a subset of the explicit GPU allowlist")
+    if set(dense_gpu_indices) & set(packed_gpu_indices):
+        raise ValueError("dense adapter and native packing cards must be disjoint")
+    if max_running_jobs is not None and (type(max_running_jobs) is not int or max_running_jobs < 1):
+        raise ValueError("max_running_jobs must be a positive integer")
     if packed_gpu_indices and (
         gpu_indices is None or not set(packed_gpu_indices) <= set(gpu_indices)
     ):
@@ -424,6 +434,7 @@ def run(
     processes = {}
     idle_counts, low_counts = {}, {}
     packed_counts = {}
+    dense_counts = {}
     last_tables = 0
     upgrade_released = False
     print(
@@ -455,6 +466,12 @@ def run(
             if j["status"] == "failed" and j.get("dispatch_mode") == "packed_compute_trial"
         }
         packed_allowed = set(packed_gpu_indices) - paused
+        dense_paused = {
+            j.get("gpu", {}).get("index")
+            for j in jobs
+            if j["status"] == "failed" and j.get("dispatch_mode") == "dense_adapter_trial"
+        }
+        dense_allowed = set(dense_gpu_indices) - dense_paused
         query_error = None
         try:
             snapshot = devices()
@@ -465,6 +482,8 @@ def run(
                 low_counts[index] = low_counts.get(index, 0) + 1 if low else 0
                 packed_ok = bool(d["pids"]) and not d["pids"] - own_pids and d["util"] <= 95
                 packed_counts[index] = packed_counts.get(index, 0) + 1 if packed_ok else 0
+                dense_ok = bool(d["pids"]) and not d["pids"] - own_pids
+                dense_counts[index] = dense_counts.get(index, 0) + 1 if dense_ok else 0
             slots = dispatch_slots(
                 allowed_devices(snapshot, gpu_indices),
                 active,
@@ -472,14 +491,23 @@ def run(
                 low_counts=low_counts,
                 packed_indices=packed_allowed,
                 packed_counts=packed_counts,
+                dense_indices=dense_allowed,
+                dense_counts=dense_counts,
+                max_running_jobs=max_running_jobs,
             )
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
             snapshot, slots, query_error = {}, [], str(exc)
             idle_counts.clear()
             low_counts.clear()
             packed_counts.clear()
+            dense_counts.clear()
         cpu_count = sum(j["lane"] == "cpu" for j in active)
         for index, mode in [(None, "cpu")] * max(0, 2 - cpu_count) + slots:
+            if (
+                max_running_jobs is not None
+                and sum(j["status"] == "running" for j in jobs) >= max_running_jobs
+            ):
+                break
             pending = sorted(
                 (
                     j
@@ -501,6 +529,8 @@ def run(
                 job = choose_pending(pending, active, "packed_compute_trial") or job
             if job is None:
                 continue
+            if mode in {"exclusive", "bounded_concurrency_trial"} and index in dense_allowed:
+                job = choose_pending(pending, active, "dense_adapter_trial") or job
             # Recheck immediately before launch, not only at the beginning
             # of a potentially slow loop. A shared host still has a race.
             if index is not None:
@@ -514,6 +544,9 @@ def run(
                         low_counts=low_counts,
                         packed_indices=packed_allowed,
                         packed_counts=packed_counts,
+                        dense_indices=dense_allowed,
+                        dense_counts=dense_counts,
+                        max_running_jobs=max_running_jobs,
                     ):
                         continue
                 except (OSError, ValueError, KeyError, subprocess.SubprocessError):
@@ -529,6 +562,7 @@ def run(
             processes[process.pid] = process
             low_counts[index] = 0
             packed_counts[index] = 0
+            dense_counts[index] = 0
             print(
                 now(), "started", job["label"], "gpu", index, mode, "pid", process.pid, flush=True
             )
@@ -539,7 +573,11 @@ def run(
             "tmux_session": session_name,
             "check_interval_seconds": 5,
             "granularity": "single_fit_except_adopted_batches",
-            "max_jobs_per_gpu": 3 if packed_gpu_indices else 2,
+            "max_jobs_per_gpu": 4 if dense_gpu_indices else 3 if packed_gpu_indices else 2,
+            "dense_gpu_indices": list(dense_gpu_indices),
+            "dense_gpu_indices_paused": sorted(i for i in dense_paused if i is not None),
+            "max_dense_workers_per_gpu": 4,
+            "max_running_jobs": max_running_jobs,
             "max_gpu_training_workers_per_packed_card": 2,
             "packed_gpu_indices": list(packed_gpu_indices),
             "packed_gpu_indices_paused": sorted(i for i in paused if i is not None),
@@ -579,6 +617,15 @@ def main():
     parser.add_argument("--legacy-worker", type=Path, required=True)
     parser.add_argument("--session-name", default="pu-survey-parallel-20261028")
     parser.add_argument(
+        "--dense-gpu-indices",
+        type=parse_gpu_indices,
+        default=(),
+        help="subset allowing up to four bound small adapter training jobs per card",
+    )
+    parser.add_argument(
+        "--max-running-jobs", type=int, help="global running-process cap including CPU tasks"
+    )
+    parser.add_argument(
         "--packed-gpu-indices",
         type=parse_gpu_indices,
         default=(),
@@ -608,6 +655,8 @@ def main():
         session_name=args.session_name,
         gpu_indices=args.gpu_indices,
         packed_gpu_indices=args.packed_gpu_indices,
+        dense_gpu_indices=args.dense_gpu_indices,
+        max_running_jobs=args.max_running_jobs,
     )
 
 

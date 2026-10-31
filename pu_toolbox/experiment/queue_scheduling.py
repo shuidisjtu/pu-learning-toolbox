@@ -96,6 +96,10 @@ def dispatch_slots(
     low_limit=35,
     packed_indices=(),
     packed_counts=None,
+    dense_indices=(),
+    dense_counts=None,
+    max_dense_workers=4,
+    max_running_jobs=None,
 ):
     """Bounded dispatch; optional packed cards allow two known GPU trainers.
 
@@ -104,10 +108,13 @@ def dispatch_slots(
     Startup allocations count before they appear in NVIDIA's process table.
     """
     active = [j for j in active_jobs if j.get("lane") == "gpu"]
+    if max_running_jobs is not None and len(active_jobs) >= max_running_jobs:
+        return []
     counts = Counter(j["gpu"]["index"] for j in active)
     own_pids = {j["pid"] for j in active}
     slots = []
     packed_counts = packed_counts or {}
+    dense_counts = dense_counts or {}
     for index, device in sorted(devices.items()):
         pids = set(device["pids"])
         if pids - own_pids:
@@ -117,6 +124,15 @@ def dispatch_slots(
             # exited; stale utilization is not evidence of an active owner.
             if idle_counts.get(index, 0) >= 2 and device["free_mib"] >= 12288:
                 slots.append((index, "exclusive"))
+        elif (
+            index in dense_indices
+            and 1 <= counts[index] < max_dense_workers
+            and pids
+            and dense_counts.get(index, 0) >= 3
+            and device["free_mib"] >= 32768
+            and all(dense_adapter_candidate(j) for j in active if j["gpu"]["index"] == index)
+        ):
+            slots.append((index, "dense_adapter_trial"))
         elif (
             index in packed_indices
             and 1 <= counts[index] < 3
@@ -207,11 +223,24 @@ def small_native_compute(job):
     )
 
 
+def dense_adapter_candidate(job):
+    """Only frozen small MLP heads on shared image features; never CPU solvers."""
+    return (
+        job.get("path") == "cnn_feature_adapter"
+        and job.get("method") in {"dist_pu", "self_pu", "robust_pu", "split_pu", "holistic_pu"}
+        and job.get("dataset") in {"adni", "mnist", "fashion_mnist", "cifar10"}
+        and bool(job.get("expected_recipe"))
+        and not job.get("campaign_id")
+    )
+
+
 def choose_pending(pending, active, mode):
     """At most one fast-lane worker; leave remaining cards to long/recovery jobs."""
     ordered = sorted(pending, key=dispatch_priority)
     if not ordered:
         return None
+    if mode == "dense_adapter_trial":
+        return next((j for j in ordered if dense_adapter_candidate(j)), None)
     if mode == "packed_compute_trial":
         return next((j for j in ordered if small_native_compute(j)), None)
     if mode == "cpu_tail_compute_overlap":

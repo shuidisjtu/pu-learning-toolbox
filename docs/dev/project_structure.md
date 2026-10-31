@@ -606,6 +606,7 @@ tests/
       test_queue_gpu_limit.py           # GPU 白名单限制与忙卡不外溢验证
       test_queue_cpu_overlap.py         # CPU 求解与真实 GPU 训练的安全穿插
       test_queue_packed_trial.py        # 双 GPU 训练试验的归属、显存与并发上限
+      test_queue_dense_adapters.py      # 单卡四小模型并发及全局进程数限制
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

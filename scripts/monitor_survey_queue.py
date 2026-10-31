@@ -286,6 +286,11 @@ def render(
                 if current.get("scheduler", {}).get("packed_gpu_indices")
                 else ""
             )
+            + (
+                f" | DENSE={current['scheduler']['dense_gpu_indices']}x4"
+                if current.get("scheduler", {}).get("dense_gpu_indices")
+                else ""
+            )
         )
     except (OSError, ValueError, KeyError) as error:
         return "\n".join(line[:width] for line in [*lines, str(error)])
