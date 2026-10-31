@@ -108,6 +108,13 @@ def test_edge_changed_prior_binding_does_not_create_output(tmp_path):
     changed["cvir_prior_binding"]["risk_pool_positive_prior"] = 0.9
     with pytest.raises(ValueError, match="plan changed"):
         script.execute(changed, tmp_path / "bad")
+    changed = copy.deepcopy(planned)
+    changed["training_view"] = "os"
+    changed["plan_sha256"] = script.strict_canonical_hash(
+        {key: value for key, value in changed.items() if key != "plan_sha256"}
+    )
+    with pytest.raises(ValueError, match="identity changed"):
+        script.execute(changed, tmp_path / "bad")
     assert not (tmp_path / "bad").exists()
 
 

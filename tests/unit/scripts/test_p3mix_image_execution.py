@@ -122,3 +122,14 @@ def test_edge_changed_variant_or_input_source_does_not_create_output(tmp_path, m
     with pytest.raises(ValueError, match="identity changed"):
         script.execute(planned, tmp_path / "bad")
     assert not (tmp_path / "bad").exists()
+
+
+def test_edge_resealed_plan_cannot_relabel_p3mix_as_ts(tmp_path):
+    changed = plan(product(tmp_path))
+    changed["training_view"] = "ts"
+    changed["plan_sha256"] = script.strict_canonical_hash(
+        {key: value for key, value in changed.items() if key != "plan_sha256"}
+    )
+    with pytest.raises(ValueError, match="identity changed"):
+        script.execute(changed, tmp_path / "bad")
+    assert not (tmp_path / "bad").exists()
