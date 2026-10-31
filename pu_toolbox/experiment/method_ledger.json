@@ -20,6 +20,7 @@
   "methods": {
     "p3mix": {
       "class": "P3MixClassifier",
+      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_candidate_image_resource_plan.py", "variants": ["base", "e", "c"], "batching_policies": ["role_balanced", "merged_shuffle"], "optimizer_and_extra_forward_counts_separated": true, "default_budget_is_not_frozen_recipe": true, "formal_resource_profile_complete": false},
       "paper": {
         "title": "Who Is Your Right Mixup Partner in Positive and Unlabeled Learning?",
         "authors": "Changchun Li, Ximing Li, Lei Feng, Jihong Ouyang",

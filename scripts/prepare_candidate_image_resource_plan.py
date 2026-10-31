@@ -20,6 +20,7 @@ METHODS = {
     "gradpu": ("pu_toolbox/estimators/deep/grad_pu.py", "GradPUClassifier", "cnn13_no_bn"),
     "pan": ("pu_toolbox/estimators/deep/pan.py", "PANClassifier", "resnet18"),
     "vpu": ("pu_toolbox/estimators/risk/vpu.py", "VPUClassifier", "resnet18"),
+    "p3mix": ("pu_toolbox/estimators/deep/p3mix.py", "P3MixClassifier", "caller_injected_encoder"),
 }
 
 
@@ -72,6 +73,8 @@ def build_plan(
     safety_margin_percent=20,
     sample_checkpoint=None,
     root=ROOT,
+    variant=None,
+    batching_policy=None,
 ):
     """Describe current default budgets and a conservative weights-only estimate.
 
@@ -80,7 +83,9 @@ def build_plan(
     after selection is not credited against the training-time estimate.
     """
     if method not in METHODS:
-        raise ValueError("method must be pulda, gradpu, pan or vpu")
+        raise ValueError("unsupported candidate method")
+    if method != "p3mix" and (variant is not None or batching_policy is not None):
+        raise ValueError("variant and batching_policy apply only to p3mix")
     for name, value in (
         ("n_positive", n_positive),
         ("n_unlabeled", n_unlabeled),
@@ -99,7 +104,25 @@ def build_plan(
 
     source, class_name, backbone = METHODS[method]
     defaults, properties = constructor_facts(root / source, class_name)
-    if method == "pulda":
+    if method == "p3mix":
+        variant = defaults["variant"] if variant is None else variant
+        batching_policy = (
+            defaults["batching_policy"] if batching_policy is None else batching_policy
+        )
+        if variant not in ("base", "e", "c"):
+            raise ValueError("P3Mix variant must be base, e or c")
+        if batching_policy not in ("role_balanced", "merged_shuffle"):
+            raise ValueError("P3Mix batching_policy must be role_balanced or merged_shuffle")
+        phases = {"max_epochs": defaults["max_epochs"]}
+        snapshots = defaults["max_epochs"]
+        batch = defaults["batch_size"]
+        steps = (
+            (n_positive + n_unlabeled + batch - 1) // batch
+            if batching_policy == "merged_shuffle"
+            else max((n_positive + batch - 1) // batch, (n_unlabeled + batch - 1) // batch)
+        )
+        updates = snapshots * steps
+    elif method == "pulda":
         if properties.get("checkpoint_epoch_count") != "warmup_epochs + pu_epochs":
             raise ValueError("PULDA checkpoint-count contract changed; update the planner")
         phases = {key: defaults[key] for key in ("warmup_epochs", "pu_epochs")}
@@ -220,6 +243,36 @@ def build_plan(
             normalization_cost_is_additional_to_optimizer_updates=True,
             default_budget_origin="toolbox_constructor_not_author_or_frozen_recipe",
         )
+    if method == "p3mix":
+
+        def exposure(rows):
+            full, remainder = divmod(rows, batch)
+            lengths = [batch] * full + ([remainder] if remainder else [])
+            cycles, prefix = divmod(steps, len(lengths))
+            return cycles * rows + sum(lengths[:prefix])
+
+        result.update(
+            variant=variant,
+            batching_policy=batching_policy,
+            training_view="os",
+            calibration_applied=False,
+            training_network_instances=2 if variant == "e" else 1,
+            optimizer_instances=1,
+            checkpoint_contains_teacher=False,
+            inference_snapshot_components=["student"],
+            optimizer_steps_per_epoch=steps,
+            rows_seen_per_epoch={
+                "P": n_positive if batching_policy == "merged_shuffle" else exposure(n_positive),
+                "U": n_unlabeled if batching_policy == "merged_shuffle" else exposure(n_unlabeled),
+            },
+            student_training_forward_batches_per_epoch=2 * steps,
+            teacher_forward_batches_per_epoch=steps if variant == "e" else 0,
+            positive_pool_refresh_forward_batches_per_epoch=(n_positive + batch - 1) // batch,
+            additional_forwards_are_not_optimizer_updates=True,
+            forward_counts_exclude_encoder_probe_and_external_selection=True,
+            augmentation_and_backbone_require_separate_approval=True,
+            default_budget_origin="toolbox_constructor_with_explicit_policy_not_frozen_recipe",
+        )
     return result
 
 
@@ -234,6 +287,8 @@ def main(argv=None):
     parser.add_argument("--concurrent-runs", type=int, default=1)
     parser.add_argument("--safety-margin-percent", type=int, default=20)
     parser.add_argument("--sample-checkpoint", type=Path)
+    parser.add_argument("--variant", choices=["base", "e", "c"])
+    parser.add_argument("--batching-policy", choices=["role_balanced", "merged_shuffle"])
     args = parser.parse_args(argv)
     try:
         plan = build_plan(**vars(args))

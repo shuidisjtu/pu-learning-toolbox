@@ -210,6 +210,7 @@ pu_toolbox/
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
     survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
     survey_profile_map.py                 # 版本化 profile → 比较条目映射：继承/显式偏差/not_in_matrix 与协议+矩阵双绑定
+    classical_candidate.py                # PUET 逐树与 RP 嵌套拟合的非 epoch 成本收据
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -403,6 +404,7 @@ tests/
       test_candidate_image_adni.py      # ADNI 替代槽位灰度图、双选模回放与非临床来源边界
       test_pan_image_cli.py             # PAN 四角色 OS 图像命令、双选模回放与非正式预算拒收
       test_vpu_image_cli.py             # VPU 四角色 TS 命令、归一化回放、显式参数与角色隔离
+      test_p3mix_resource_plan.py       # P3MIX 切批曝光、teacher 与额外前向预算
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -595,6 +597,7 @@ tests/
       test_survey_full_meta_view.py     # full-meta 默认 OS、CLI/续跑一致与消融/显式 TS 兼容
       test_pan_image_candidate.py       # PAN 双编码器隔离、逐 epoch C/D 成本与 recorder 数值不变
       test_vpu_image_candidate.py       # VPU 训练边缘池、逐 epoch 归一化、重建 Adam 与实际成本
+      test_classical_candidate_cost.py  # 逐树/交叉拟合真实成本及默认结果不变
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -627,6 +630,7 @@ tests/
     test_dist_pu_pipeline_cnn.py        # Dist-PU 显式 CNN/CV 副本隔离与冻结 feature-adapter 路径保留
     test_p3mix_pipeline_cnn.py          # 三变体真实卷积CV及四角色checkpoint选模回收
     test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
+    test_classical_candidate_runner.py  # PUET/RP 四角色 PA/OA 与无伪 epoch 成本导出
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）

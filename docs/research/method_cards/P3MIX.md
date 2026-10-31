@@ -37,6 +37,9 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 不丢弃或重采样该批。P3Mix-C 的损失角色仍按原始 P/U 标签区分，而非修正后的伪标签。
 这一空组约定是显式工程选择，不声称论文完整复现；两种路径均披露实际更新数、角色行次与复用量。
 单样本尾批的 BatchNorm 使用运行统计并恢复原训练模式，避免丢行/重复行；这也是工程约定，非论文事实。
+资源规划脚本 `prepare_candidate_image_resource_plan.py --method p3mix` 已接 `--variant` 与
+`--batching-policy`，分别登记 optimizer 更新、P/U 复用、池刷新及 E 的 teacher forward；
+采用构造默认预算，backbone 仅记 caller-injected，不代表已有共享图像配方或完整资源实测。
 三变体的 singleton/尾批、CNN CV/refit、确定性与序列化均有 CPU 回归；OS/先验/校准口径不变，
 未修改冻结预算或比较矩阵，也不据此解除正式准入阻断。
 

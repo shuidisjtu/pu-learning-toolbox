@@ -97,6 +97,9 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 `batching_policy="role_balanced"` 保持旧行为：`batch_size` 为每角色上限，较短角色循环。
 显式 `"merged_shuffle"` 按论文 Algorithm 1 合并打乱、总批大小为 `batch_size`，每轮主样本只用一次。
 单角色批次的缺失组损失贡献为零（论文未说明的工程约定）；该选项不代表正式配方批准。
+只读成本规划：`python scripts/prepare_candidate_image_resource_plan.py --method p3mix
+--target-dir /tmp --n-positive 128 --n-unlabeled 128 --variant e --batching-policy merged_shuffle`。
+规划不加载数据或模型、不初始化 CUDA；额外 teacher/池刷新前向与 optimizer 更新分列。
 
 ### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
 
