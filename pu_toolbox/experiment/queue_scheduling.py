@@ -301,7 +301,15 @@ def choose_pending(pending, active, mode):
     if mode == "cpu_tail_compute_overlap":
         compute = [j for j in ordered if not cpu_estimator_tail(j)]
         images = [j for j in compute if j.get("path") == "native_cnn"]
-        return (images or compute or [None])[0]
+        # Once GPU trainers are exhausted, a second bound CPU estimator may
+        # use the slot. dispatch_slots still caps this pair at two workers and
+        # leaves >=32 GiB before either could return to feature extraction.
+        tails = [
+            j
+            for j in ordered
+            if cpu_estimator_tail(j) and j.get("expected_recipe") and not j.get("campaign_id")
+        ]
+        return (images or compute or tails or [None])[0]
     shorts = [j for j in ordered if short_candidate(j)]
     short_active = any(short_candidate(j) for j in active)
     if mode == "prep_short_overlap":

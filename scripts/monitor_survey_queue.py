@@ -299,6 +299,13 @@ def render(
                 f" | global cap={scheduler.get('max_running_jobs')}"
                 f" | paused={scheduler.get('mixed_tail_gpu_indices_paused', [])}"
             )
+        pending = [j for j in current["jobs"] if j["status"] == "pending"]
+        cpu_tails = sum(cpu_estimator_tail(j) for j in pending)
+        gpu_trainers = sum(j.get("lane") == "gpu" and not cpu_estimator_tail(j) for j in pending)
+        lines.append(
+            f"Pending jobs: GPU-train={gpu_trainers} | CPU-fit adapters={cpu_tails}"
+            " (feature cache may skip GPU)"
+        )
     except (OSError, ValueError, KeyError) as error:
         return "\n".join(line[:width] for line in [*lines, str(error)])
     try:

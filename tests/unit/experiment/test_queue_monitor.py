@@ -51,6 +51,13 @@ def test_basic_determ_mixed_tail_policy_visible(monitor):
     assert "MIXED CPU-tail cards=[0, 5] | global cap=10 | paused=[]" in rendered
 
 
+def test_basic_cpu_only_backlog_is_not_reported_as_waiting_gpu_training(monitor, tmp_path):
+    pending = job(tmp_path, method="lbe", path="cnn_feature_adapter", status="pending", lane="gpu")
+    state = dict(updated_at=datetime.now(timezone.utc).isoformat(), jobs=[pending])
+    rendered = monitor.render(states=[state], devices={}, width=150, height=30)
+    assert "GPU-train=0 | CPU-fit adapters=1" in rendered
+
+
 def test_basic_determ_previous_selected_snapshot_is_not_current_progress(monitor, tmp_path):
     previous = tmp_path / "ts/c_0.1/seed_0"
     previous.mkdir(parents=True)

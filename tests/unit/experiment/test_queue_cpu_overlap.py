@@ -61,3 +61,27 @@ def test_basic_determ_free_slot_prefers_gpu_work_over_cpu_solver():
     gpu = job("pulda", "native_cnn", dataset="mnist")
     assert choose_pending([cpu, gpu], [], "exclusive") is gpu
     assert choose_pending([cpu], [], "exclusive") is cpu
+
+
+@pytest.mark.parametrize("method", ["lbe", "pusb_kernel", "upu"])
+def test_param_basic_determ_bound_cpu_fallback_when_gpu_work_exhausted(method):
+    candidate = job(method, expected_recipe={"bound": True}, pid=11)
+    active = [job()]
+    assert choose_pending([candidate], active, "cpu_tail_compute_overlap") is candidate
+    assert choose_pending([candidate], active, "cpu_tail_compute_overlap") is candidate
+    heavy = job("nnpu", "native_cnn")
+    assert choose_pending([candidate, heavy], active, "cpu_tail_compute_overlap") is heavy
+    assert (
+        choose_pending([dict(candidate, campaign_id="repair")], active, "cpu_tail_compute_overlap")
+        is None
+    )
+
+
+def test_edge_global_cap_still_applies_to_cpu_fallback():
+    assert not dispatch_slots(
+        {5: dict(pids=set(), util=0, free_mib=48000)},
+        [job()],
+        idle_counts={5: 4},
+        low_counts={5: 4},
+        max_running_jobs=1,
+    )
