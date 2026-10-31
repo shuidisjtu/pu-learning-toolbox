@@ -75,6 +75,8 @@
   singleton BN 预算拟合前拒绝，核心算法/原生独立 TS 接口不变，正式预算与资源阻断保留。
 - KLDCE 已补只读稠密 Gram/QP payload 与 ACS/SMO（含 rollback）预算预检；
   tiny QP 内存块已核对，但 dtype 声明与命名数组不等于完整 RSS 实测或运行批准。
+- KLDCE 独立 CPU 四角色执行已补 realized-SCAR 翻转率、显式先验策略、PA/OA 与失败收据；
+  新增 QP 等式/盒约束可行性及命名矩阵预检，部分高 h/π 组合原生无解，正式适用性/预算阻断保留。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 

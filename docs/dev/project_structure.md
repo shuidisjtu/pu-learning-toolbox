@@ -211,6 +211,7 @@ pu_toolbox/
     survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
     survey_profile_map.py                 # 版本化 profile → 比较条目映射：继承/显式偏差/not_in_matrix 与协议+矩阵双绑定
     classical_candidate.py                # PUET 逐树与 RP 嵌套拟合的非 epoch 成本收据
+    kernel_candidate.py                   KLDCE 先验策略、稠密内存/可行性预检与成本收据
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -409,6 +410,7 @@ tests/
       test_classical_candidate_execution.py # PUET/RP 显式计划、四角色回放与失败证据
       test_cvir_image_execution.py      # CVIR 图像先验、视图锁定与双协议回放
       test_kldce_resource_plan.py       # KLDCE 稠密块实测、只读预检与 QP 预算
+      test_kldce_candidate_execution.py # KLDCE 实际 SCAR 绑定、四角色回放与失败证据
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -606,6 +608,7 @@ tests/
       test_classical_candidate_receipts.py # 逐次成本收据、失败保留与持久化拒绝
       test_classical_selection_predictor.py # 非 epoch 选模阈值与验证集 affine 回放
       test_cvir_image_candidate.py      # CVIR 图像阶段成本、观测先验与异常拒绝
+      test_kldce_candidate.py           # KLDCE 适配逐值一致、Phase-I 可行性与资源拒绝
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

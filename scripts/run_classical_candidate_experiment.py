@@ -1,4 +1,4 @@
-"""Plan or execute CPU PUET/RP candidates without neural epochs or formal admission."""
+"""Plan or execute CPU PUET/RP/KLDCE candidates, never formal Survey admission."""
 
 from __future__ import annotations
 
@@ -16,18 +16,23 @@ import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.estimators.classic.rank_pruning import RankPruningClassifier
+from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
 from pu_toolbox.estimators.risk.puet import PUExtraTreesClassifier
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
 from pu_toolbox.experiment.classical_candidate import (
     ClassicalCandidateTrainer,
     ClassicalSelectionPredictor,
 )
+from pu_toolbox.experiment.kernel_candidate import (
+    KLDCECandidateTrainer,
+    validate_kldce_candidate_parameters,
+)
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA, SCARGenerator
 from pu_toolbox.utils.serialization import array_hash, file_hash, strict_canonical_hash
 
 ROOT = Path(__file__).resolve().parents[1]
-METHODS = {"puet": "risk/puet.py", "rp": "classic/rank_pruning.py"}
+METHODS = {"puet": "risk/puet.py", "rp": "classic/rank_pruning.py", "kldce": "risk/kldce.py"}
 PARAMETERS = {
     "puet": {
         "n_estimators",
@@ -38,6 +43,17 @@ PARAMETERS = {
         "bootstrap",
     },
     "rp": {"n_cv_folds", "frac_pos2neg", "min_retained"},
+    "kldce": {
+        "sigma",
+        "reg_strength",
+        "centroid_radius",
+        "mom_groups",
+        "covariance_ridge",
+        "max_acs_iter",
+        "max_inner_iter",
+        "inner_tol",
+        "tol",
+    },
 }
 
 
@@ -65,7 +81,7 @@ def _load(directory):
     return bundle
 
 
-def _objects(method, parameters, prior, seed, view):
+def _objects(method, parameters, prior, seed, view, *, flip_probability=None):
     if (
         method not in METHODS
         or not isinstance(parameters, dict)
@@ -75,8 +91,12 @@ def _objects(method, parameters, prior, seed, view):
             "explicit complete native parameter object required; unknown keys forbidden"
         )
     parameters = json.loads(json.dumps(parameters, allow_nan=False))
-    if view not in {"os", "ts"} or (method == "rp" and view != "os"):
-        raise ValueError("RP supports native OS only; PUET requires explicit os/ts")
+    if view not in {"os", "ts"} or (method in {"rp", "kldce"} and view != "os"):
+        raise ValueError("RP/KLDCE support native OS only; PUET requires explicit os/ts")
+    if method == "kldce":
+        model = KLDCEClassifier(flip_probability=flip_probability, random_state=seed, **parameters)
+        validate_kldce_candidate_parameters(model)
+        return model
     integers = (
         ("n_estimators", "min_samples_leaf", "max_candidates")
         if method == "puet"
@@ -104,7 +124,20 @@ def _objects(method, parameters, prior, seed, view):
     return RankPruningClassifier(random_state=seed, **parameters)
 
 
-def build_plan(directory, *, method, dataset, prior, prior_source, seed, view, parameters, c_token):
+def build_plan(
+    directory,
+    *,
+    method,
+    dataset,
+    prior,
+    prior_source,
+    seed,
+    view,
+    parameters,
+    c_token,
+    prior_policy=None,
+    kernel_payload_cap_bytes=None,
+):
     """Pin inputs/code/environment and count non-epoch work without fitting."""
     if not isinstance(dataset, str) or not dataset.strip():
         raise ValueError("explicit caller dataset identity required")
@@ -119,24 +152,54 @@ def build_plan(directory, *, method, dataset, prior, prior_source, seed, view, p
         raise ValueError("population prior must be finite and in (0,1)")
     if type(seed) is not int or not 0 <= seed < 2**32 or c_token not in ("0.1", "0.3", "0.5"):
         raise ValueError("explicit uint32 seed and canonical SCAR c token required")
-    model = _objects(method, parameters, prior, seed, view)
+    if method == "kldce":
+        kernel_trainer = KLDCECandidateTrainer(
+            prior_policy=prior_policy, kernel_payload_cap_bytes=kernel_payload_cap_bytes
+        )
+        if (
+            view != "os"
+            or not isinstance(parameters, dict)
+            or set(parameters) != PARAMETERS["kldce"]
+        ):
+            raise ValueError(
+                "KLDCE requires native OS and complete parameters; "
+                "flip_probability is runtime-bound"
+            )
+    else:
+        if prior_policy is not None or kernel_payload_cap_bytes is not None:
+            raise ValueError("prior_policy/kernel_payload_cap_bytes apply only to KLDCE")
+        model = _objects(method, parameters, prior, seed, view)
     directory = Path(directory).resolve()
     inputs = {role: file_hash(directory / f"{role}.npz") for role in ROLES}
     bundle = _load(directory)
     generation, observed = {}, {}
+    generation_meta = {}
+    kernel_screen = None
     for role in ("train", "pu_val"):
         part = getattr(bundle, role)
         labels, meta = SCARGenerator().generate(part.X, part.labels, float(c_token), seed)
         if set(np.unique(labels)) != {0, 1} or meta["n_labeled"] != meta["n_labeled_requested"]:
             raise ValueError("SCAR draw requires unclamped observed P and U in both roles")
         generation[role] = meta["label_view_sha256"]
+        generation_meta[role] = meta
         observed[role] = {
             "P": int(np.count_nonzero(labels == 1)),
             "U": int(np.count_nonzero(labels == 0)),
         }
+        if method == "kldce" and role == "train":
+            kernel_train_labels = labels
+    if method == "kldce":
+        # Protocol runtime binding: realized, not requested label frequency.
+        flip = 1 - generation_meta["train"]["c_realized"]
+        model = _objects(method, parameters, prior, seed, view, flip_probability=flip)
+        kernel_trainer.validate_generation(generation_meta["train"], generation_meta["pu_val"])
+        kernel_screen = kernel_trainer.preflight(
+            model, bundle.train.X, kernel_train_labels, class_prior=prior, os_or_ts=view
+        )
+        kernel_screen.update(kernel_trainer.prediction_screen(bundle))
     if method == "rp" and min(observed["train"].values()) < model.n_cv_folds:
         raise ValueError("each train PU role requires at least n_cv_folds rows")
-    work = model.n_estimators if method == "puet" else model.n_cv_folds + 1
+    work = model.n_estimators if method == "puet" else model.n_cv_folds + 1 if method == "rp" else 1
     references = (
         "scripts/run_classical_candidate_experiment.py",
         "pu_toolbox/experiment/classical_candidate.py",
@@ -149,6 +212,14 @@ def build_plan(directory, *, method, dataset, prior, prior_source, seed, view, p
         "pu_toolbox/experiment/method_ledger.json",
         "uv.lock",
     )
+    if method == "kldce":
+        references += (
+            "pu_toolbox/experiment/kernel_candidate.py",
+            "pu_toolbox/estimators/risk/kldce_smo.py",
+            "pu_toolbox/utils/basis.py",
+            "pu_toolbox/utils/centroid.py",
+            "pu_toolbox/estimators/risk/_class_prior.py",
+        )
     if inputs != {role: file_hash(directory / f"{role}.npz") for role in ROLES}:
         raise ValueError("inputs changed during planning")
     plan = dict(
@@ -171,13 +242,18 @@ def build_plan(directory, *, method, dataset, prior, prior_source, seed, view, p
         observed_role_sizes=observed,
         execution_device="cpu",
         neural_epoch_count=0,
-        budget_unit="tree_build" if method == "puet" else "cross_fits_and_final_refit",
+        budget_unit="tree_build"
+        if method == "puet"
+        else "cross_fits_and_final_refit"
+        if method == "rp"
+        else "complete_kernel_fit",
         work_units_per_attempt=work,
         two_attempt_work_upper_bound=2 * work,
         rp_base_estimator="LogisticRegression(max_iter=1000, random_state=seed); sklearn defaults"
         if method == "rp"
         else None,
-        training_class_prior_used=method == "puet",
+        training_class_prior_used=method == "puet"
+        or (method == "kldce" and prior_policy == "population_override"),
         formal_admission=False,
         formal_budget_approved=False,
         formal_resource_profile_complete=False,
@@ -188,6 +264,13 @@ def build_plan(directory, *, method, dataset, prior, prior_source, seed, view, p
         },
         source_files_sha256={name: file_hash(ROOT / name) for name in references},
     )
+    if method == "kldce":
+        plan.update(
+            kldce_prior_policy=prior_policy,
+            kernel_payload_cap_bytes=kernel_payload_cap_bytes,
+            kldce_preflight=kernel_screen,
+            flip_probability_binding=kernel_screen["generation_binding"],
+        )
     plan["plan_sha256"] = strict_canonical_hash(plan)
     return plan
 
@@ -214,6 +297,8 @@ def execute(plan, output):
         view=plan["training_view"],
         parameters=plan["parameters"],
         c_token=plan["c_token"],
+        prior_policy=plan.get("kldce_prior_policy"),
+        kernel_payload_cap_bytes=plan.get("kernel_payload_cap_bytes"),
     )
     if actual != plan:
         raise ValueError("input/code/recipe/environment identity changed after planning")
@@ -230,6 +315,9 @@ def execute(plan, output):
         plan["population_prior"],
         plan["seed"],
         plan["training_view"],
+        flip_probability=plan["flip_probability_binding"]["flip_probability"]
+        if plan["method"] == "kldce"
+        else None,
     )
     output.mkdir(parents=True, exist_ok=False)
     _write(output / "plan.json", plan)
@@ -247,7 +335,15 @@ def execute(plan, output):
             "frozen_lock_environment_verified": False,
         },
     )
-    trainer = ClassicalCandidateTrainer(receipt_dir=output / "attempts")
+    trainer = (
+        KLDCECandidateTrainer(
+            prior_policy=plan["kldce_prior_policy"],
+            kernel_payload_cap_bytes=plan["kernel_payload_cap_bytes"],
+            receipt_dir=output / "attempts",
+        )
+        if plan["method"] == "kldce"
+        else ClassicalCandidateTrainer(receipt_dir=output / "attempts")
+    )
     try:
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
@@ -362,6 +458,16 @@ def main(argv=None):
     parser.add_argument("--view", required=True, choices=("os", "ts"))
     parser.add_argument("--parameters", type=Path, required=True)
     parser.add_argument("--c", required=True, choices=("0.1", "0.3", "0.5"))
+    parser.add_argument(
+        "--prior-policy",
+        choices=("derived", "population_override"),
+        help="KLDCE only: explicit training prior semantics",
+    )
+    parser.add_argument(
+        "--kernel-payload-cap-bytes",
+        type=int,
+        help="KLDCE only: mandatory named payload exclusion cap, not peak RAM approval",
+    )
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--out-dir", type=Path)
     args = parser.parse_args(argv)
@@ -378,6 +484,8 @@ def main(argv=None):
             view=args.view,
             parameters=json.loads(args.parameters.read_text()),
             c_token=args.c,
+            prior_policy=args.prior_policy,
+            kernel_payload_cap_bytes=args.kernel_payload_cap_bytes,
         )
         print(
             json.dumps(

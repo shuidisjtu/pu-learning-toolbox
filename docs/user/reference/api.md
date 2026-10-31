@@ -500,6 +500,15 @@ KLDCEClassifier(flip_probability, *, sigma="scale", reg_strength=1.0, centroid_r
 
 - 文档：[KLDCE 方法卡](../../research/method_cards/KLDCE.md)
 
+独立 CPU 执行 `python scripts/run_classical_candidate_experiment.py --method kldce --help`。
+显式设置 `--prior-policy derived/population_override`、`--kernel-payload-cap-bytes`，其余四角色/先验来源参数同 PUET/RP。
+JSON 完整指定 `sigma/reg_strength/centroid_radius/mom_groups/covariance_ridge/max_acs_iter/max_inner_iter/inner_tol/tol`；
+不接受手写 `flip_probability`，它由训练 SCAR 的 `1-c_realized` 绑定。只支持 OS，不作 TS 替换。
+`KLDCECandidateTrainer(prior_policy=..., kernel_payload_cap_bytes=..., receipt_dir=None)` 可注入非正式 runner；
+单独直接 fit 时 h 来自 estimator 参数，未调用生成校验则不声称 SCAR 绑定已验证。
+QP 盒约束无可行解或命名矩阵 payload 超帽均提前拒绝；通过不代表峰值资源批准。
+ACS 历史不是 neural epoch，未观测的 rollback 总成本为 null，不用末次 QP 的迭代和冒充完整成本。
+
 只读资源筛查：`python scripts/prepare_kldce_resource_plan.py --n-positive 1000
 --n-unlabeled 10000 --feature-count 512 --gram-itemsize 8`。
 可加 `--prediction-rows`、`--max-acs-iter`、`--max-inner-iter` 与 `--memory-cap-bytes`；
