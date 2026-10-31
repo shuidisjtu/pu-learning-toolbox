@@ -42,7 +42,7 @@ def write(path, value, *, exclusive=False):
         temp.replace(path)
 
 
-def validate_split(directory):
+def validate_split(directory, *, seed=0):
     """Verify supplied counts/indices and population metadata; do not infer pi."""
     import numpy as np
 
@@ -53,8 +53,8 @@ def validate_split(directory):
     receipt_path = directory / "split_manifest.json"
     receipt_hash = sha(receipt_path)
     receipt = json.loads(receipt_path.read_text())
-    if receipt["dataset"] != "cifar10" or receipt["seed"] != 0:
-        raise ValueError("this readiness campaign requires CIFAR-10 split seed 0")
+    if receipt["dataset"] != "cifar10" or receipt["seed"] != seed:
+        raise ValueError(f"this readiness campaign requires CIFAR-10 split seed {seed}")
     if receipt["role_sizes"] != dict(train=45000, pu_val=2500, clean_val=2500, test=10000):
         raise ValueError("full 45000/2500/2500/10000 role sizes required; no subset fallback")
     if receipt["positive_classes"] != [0, 1, 8, 9]:

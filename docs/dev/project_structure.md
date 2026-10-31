@@ -414,6 +414,7 @@ tests/
       test_kldce_feasibility_plan.py    # KLDCE 只读适用域、原始 LP 对照与退出码
       test_cvir_resource_plan.py        # CVIR 只读风险池/阶段成本与原生 fit 对照
       test_candidate_readiness_campaign.py # 完整划分候选启动与 GPU/失败隔离回归
+      test_candidate_five_seed_grid.py  # 五 seed 网格与逐方法 canary 门禁回归
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -959,6 +960,7 @@ scripts/
   run_classical_candidate_experiment.py   PUET/RP 独立 CPU 四角色计划与执行
   prepare_kldce_resource_plan.py          KLDCE 稠密数组 payload 与 ACS/SMO 上限筛查
   run_candidate_readiness_campaign.py     # 完整图像候选预算准备与受限后台验证批次
+  run_candidate_five_seed_grid.py         # 已验收候选的五 seed SCAR 扩展与四卡后台调度
 ```
 
 ## 7. CI/CD（`.github/`）

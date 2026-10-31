@@ -80,6 +80,11 @@
   CVIR1+20（OS/TS 各一次），最多两张允许卡，失败/警告暂停后续任务。
   GradPU 私有无 BN 骨干、其余共享 ResNet-18；P3MIX 显式 merged_shuffle，VPU/CVIR
   cpu_stream；均属候选验证而非论文配方、冻结环境或正式五 seed 结果，不改变 blocked。
+- 五 seed 扩展入口 `run_candidate_five_seed_grid.py`：2026-11-01 用户授权沿用上述候选预算，
+  各方法/视图的 seed0/c=0.1 完成且无警告、回放及摘要校验通过后，自动扩展 seeds0–4、
+  SCAR c=0.1/0.3/0.5；6 个 canary 只引用，新增 84 fit（CVIR OS/TS 分开，共 90 fit）。
+  先用 6/7，原 canary 队列终结后才允许 0/5；不超过四卡、不占他人进程所在卡。
+  单个方法/视图失败暂停其后续格；五 seed 观测不等于冻结配方/环境/正式准入，不改历史协议。
 - KLDCE 已补只读稠密 Gram/QP payload 与 ACS/SMO（含 rollback）预算预检；
   tiny QP 内存块已核对，但 dtype 声明与命名数组不等于完整 RSS 实测或运行批准。
 - KLDCE 独立 CPU 四角色执行已补 realized-SCAR 翻转率、显式先验策略、PA/OA 与失败收据；
