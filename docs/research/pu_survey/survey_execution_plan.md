@@ -75,6 +75,11 @@
   单通道仅 1 值的 BN 预算拟合前拒绝，空间维度足够的单样本批次保留原训练行为；正式预算/资源阻断不变。
 - CVIR 已补不导入数值库的阶段资源预检：显式总体先验/视图/计数，区分更新与排序前向；
   CPU 原生 fit 成本已对照；只读计划不验证输入来源、BN 空间基数或完整 GPU 峰值。
+- GPU 启动准备入口 `run_candidate_readiness_campaign.py` 已补：完整 CIFAR-10 四角色收据、
+  文件/索引摘要、显式先验和构造预算；seed0/c=0.1 下 GradPU200、PAN/VPU/P3MIX100、
+  CVIR1+20（OS/TS 各一次），最多两张允许卡，失败/警告暂停后续任务。
+  GradPU 私有无 BN 骨干、其余共享 ResNet-18；P3MIX 显式 merged_shuffle，VPU/CVIR
+  cpu_stream；均属候选验证而非论文配方、冻结环境或正式五 seed 结果，不改变 blocked。
 - KLDCE 已补只读稠密 Gram/QP payload 与 ACS/SMO（含 rollback）预算预检；
   tiny QP 内存块已核对，但 dtype 声明与命名数组不等于完整 RSS 实测或运行批准。
 - KLDCE 独立 CPU 四角色执行已补 realized-SCAR 翻转率、显式先验策略、PA/OA 与失败收据；
