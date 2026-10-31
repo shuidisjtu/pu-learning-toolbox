@@ -10,17 +10,14 @@ from numbers import Real
 import numpy as np
 
 from ..core.validation import validate_pu_X_y
-from ..estimators.risk._class_prior import (
-    solve_prior_from_positive_fraction,
-    stable_centroid_denominator,
-)
-from ..estimators.risk.kldce import KLDCEClassifier
 from .classical_candidate import ClassicalCandidateTrainer
 from .tracking import RunTrajectory
 
 
 def validate_kldce_candidate_parameters(model):
     """Reject ambiguous scalar encodings before expensive dense allocations."""
+    from ..estimators.risk.kldce import KLDCEClassifier
+
     if type(model) is not KLDCEClassifier:
         raise TypeError("kernel candidate requires the exact KLDCEClassifier class")
     for key in ("mom_groups", "max_acs_iter", "max_inner_iter"):
@@ -125,6 +122,11 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
 
     def preflight(self, estimator, X, y, *, class_prior=None, os_or_ts=None):  # noqa: N803
         """Use observed PU counts only; no fit, kernel allocation or label inference."""
+        from ..estimators.risk._class_prior import (
+            solve_prior_from_positive_fraction,
+            stable_centroid_denominator,
+        )
+
         validate_kldce_candidate_parameters(estimator)
         if os_or_ts != "os":
             raise ValueError("KLDCE candidate requires explicit native OS; TS is not hooked")
