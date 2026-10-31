@@ -64,3 +64,50 @@ def test_basic_determ_only_measured_bound_native_family_selected():
     assert choose_pending([unknown, unbound, good], [], "packed_compute_trial") is good
     assert choose_pending([unknown, unbound], [], "packed_compute_trial") is None
     assert choose_pending([unknown, unbound, good], [], "packed_compute_trial") is good
+
+
+@pytest.mark.parametrize(
+    "pids,free,util,streak,enabled,cap,allowed",
+    [
+        ({10, 11}, 45000, 90, 3, True, 10, True),
+        ({10, 11, 99}, 45000, 90, 3, True, 10, False),
+        ({10, 11}, 32000, 90, 3, True, 10, False),
+        ({10, 11}, 45000, 96, 3, True, 10, False),
+        ({10, 11}, 45000, 90, 2, True, 10, False),
+        ({10, 11}, 45000, 90, 3, False, 10, False),
+        ({10, 11}, 45000, 90, 3, True, 2, False),
+        (set(), 45000, 0, 3, True, 10, False),
+    ],
+)
+def test_param_mixed_tail_safety_limits(pids, free, util, streak, enabled, cap, allowed):
+    active = [
+        dict(compute(pid), method="genpu", path="native_2d", dataset="twenty_newsgroups")
+        for pid in (10, 11)
+    ]
+    slots = dispatch_slots(
+        {6: dict(pids=pids, free_mib=free, util=util)},
+        active,
+        idle_counts={},
+        low_counts={},
+        mixed_tail_indices={6} if enabled else set(),
+        mixed_tail_counts={6: streak},
+        max_running_jobs=cap,
+    )
+    assert ((6, "mixed_cpu_tail_trial") in slots) is allowed
+
+
+def test_edge_mixed_tail_never_stacks_or_selects_another_trainer():
+    active = [
+        dict(compute(pid), method="genpu", path="native_2d", dataset="twenty_newsgroups")
+        for pid in (10, 11)
+    ]
+    tail = dict(compute(12), method="upu", path="cnn_feature_adapter")
+    args = dict(idle_counts={}, low_counts={}, mixed_tail_indices={6}, mixed_tail_counts={6: 3})
+    device = {6: dict(pids={10, 11}, free_mib=45000, util=90)}
+    assert dispatch_slots(device, active + [tail], **args) == []
+    assert dispatch_slots(device, [active[0], compute(11)], **args) == []
+    assert dispatch_slots(device, [active[0], dict(active[1], expected_recipe={})], **args) == []
+    assert choose_pending([*active, tail], active, "mixed_cpu_tail_trial") is tail
+    assert choose_pending(active, active, "mixed_cpu_tail_trial") is None
+    assert choose_pending([dict(tail, campaign_id="repair")], [], "mixed_cpu_tail_trial") is None
+    assert choose_pending([dict(tail, expected_recipe={})], [], "mixed_cpu_tail_trial") is None

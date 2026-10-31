@@ -100,6 +100,8 @@ def dispatch_slots(
     dense_counts=None,
     max_dense_workers=4,
     max_running_jobs=None,
+    mixed_tail_indices=(),
+    mixed_tail_counts=None,
 ):
     """Bounded dispatch; optional packed cards allow two known GPU trainers.
 
@@ -115,6 +117,7 @@ def dispatch_slots(
     slots = []
     packed_counts = packed_counts or {}
     dense_counts = dense_counts or {}
+    mixed_tail_counts = mixed_tail_counts or {}
     for index, device in sorted(devices.items()):
         pids = set(device["pids"])
         if pids - own_pids:
@@ -124,6 +127,18 @@ def dispatch_slots(
             # exited; stale utilization is not evidence of an active owner.
             if idle_counts.get(index, 0) >= 2 and device["free_mib"] >= 12288:
                 slots.append((index, "exclusive"))
+        elif (
+            index in mixed_tail_indices
+            and counts[index] == 2
+            and pids
+            and mixed_tail_counts.get(index, 0) >= 3
+            and device["util"] <= 95
+            and device["free_mib"] >= 32768
+            and all(small_tabular_compute(j) for j in active if j["gpu"]["index"] == index)
+        ):
+            # One feature-extraction/CPU-fit worker may overlap two measured
+            # small tabular trainers. Never add a third persistent GPU trainer.
+            slots.append((index, "mixed_cpu_tail_trial"))
         elif (
             index in dense_indices
             and 1 <= counts[index] < max_dense_workers
@@ -234,11 +249,33 @@ def dense_adapter_candidate(job):
     )
 
 
+def small_tabular_compute(job):
+    """Measured text GEN-PU family only; no inferred bound for other models."""
+    return (
+        job.get("path") == "native_2d"
+        and job.get("method") == "genpu"
+        and job.get("dataset") == "twenty_newsgroups"
+        and bool(job.get("expected_recipe"))
+        and not job.get("campaign_id")
+    )
+
+
 def choose_pending(pending, active, mode):
     """At most one fast-lane worker; leave remaining cards to long/recovery jobs."""
     ordered = sorted(pending, key=dispatch_priority)
     if not ordered:
         return None
+    if mode == "mixed_cpu_tail_trial":
+        return next(
+            (
+                j
+                for j in ordered
+                if cpu_estimator_tail(j)
+                and bool(j.get("expected_recipe"))
+                and not j.get("campaign_id")
+            ),
+            None,
+        )
     if mode == "dense_adapter_trial":
         return next((j for j in ordered if dense_adapter_candidate(j)), None)
     if mode == "packed_compute_trial":

@@ -292,6 +292,13 @@ def render(
                 else ""
             )
         )
+        if current.get("scheduler", {}).get("mixed_tail_gpu_indices"):
+            scheduler = current["scheduler"]
+            lines.append(
+                f"MIXED CPU-tail cards={scheduler['mixed_tail_gpu_indices']}"
+                f" | global cap={scheduler.get('max_running_jobs')}"
+                f" | paused={scheduler.get('mixed_tail_gpu_indices_paused', [])}"
+            )
     except (OSError, ValueError, KeyError) as error:
         return "\n".join(line[:width] for line in [*lines, str(error)])
     try:

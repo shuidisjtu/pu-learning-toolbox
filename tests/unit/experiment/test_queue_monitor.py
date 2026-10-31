@@ -41,6 +41,16 @@ def job(root, **changes):
     return result
 
 
+def test_basic_determ_mixed_tail_policy_visible(monitor):
+    state = dict(
+        updated_at=datetime.now(timezone.utc).isoformat(),
+        jobs=[],
+        scheduler=dict(mixed_tail_gpu_indices=[0, 5], max_running_jobs=10),
+    )
+    rendered = monitor.render(states=[state], devices={}, width=150, height=30)
+    assert "MIXED CPU-tail cards=[0, 5] | global cap=10 | paused=[]" in rendered
+
+
 def test_basic_determ_previous_selected_snapshot_is_not_current_progress(monitor, tmp_path):
     previous = tmp_path / "ts/c_0.1/seed_0"
     previous.mkdir(parents=True)

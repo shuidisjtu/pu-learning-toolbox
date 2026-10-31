@@ -38,6 +38,14 @@ def test_edge_missing_process_and_missing_terminal_log(service, tmp_path):
     assert not service.terminal_marker({"log": str(tmp_path / "absent")})
 
 
+@pytest.mark.parametrize("allowed", [None, (0, 5)])
+def test_param_mixed_tail_outside_allowlist_rejected_before_handoff(service, tmp_path, allowed):
+    with pytest.raises(ValueError, match="mixed tail trial"):
+        service.run(
+            tmp_path, tmp_path / "worker.py", gpu_indices=allowed, mixed_tail_gpu_indices=(7,)
+        )
+
+
 @pytest.mark.parametrize(
     "good_artifacts,marker,expected",
     [(True, True, True), (True, False, False), (False, True, False)],

@@ -385,7 +385,12 @@ def run(
     packed_gpu_indices=(),
     dense_gpu_indices=(),
     max_running_jobs=None,
+    mixed_tail_gpu_indices=(),
 ):
+    if mixed_tail_gpu_indices and (
+        gpu_indices is None or not set(mixed_tail_gpu_indices) <= set(gpu_indices)
+    ):
+        raise ValueError("mixed tail trial must be a subset of the explicit GPU allowlist")
     if dense_gpu_indices and (
         gpu_indices is None or not set(dense_gpu_indices) <= set(gpu_indices)
     ):
@@ -435,6 +440,7 @@ def run(
     idle_counts, low_counts = {}, {}
     packed_counts = {}
     dense_counts = {}
+    mixed_tail_counts = {}
     last_tables = 0
     upgrade_released = False
     print(
@@ -472,6 +478,12 @@ def run(
             if j["status"] == "failed" and j.get("dispatch_mode") == "dense_adapter_trial"
         }
         dense_allowed = set(dense_gpu_indices) - dense_paused
+        mixed_paused = {
+            j.get("gpu", {}).get("index")
+            for j in jobs
+            if j["status"] == "failed" and j.get("dispatch_mode") == "mixed_cpu_tail_trial"
+        }
+        mixed_allowed = set(mixed_tail_gpu_indices) - mixed_paused
         query_error = None
         try:
             snapshot = devices()
@@ -482,6 +494,7 @@ def run(
                 low_counts[index] = low_counts.get(index, 0) + 1 if low else 0
                 packed_ok = bool(d["pids"]) and not d["pids"] - own_pids and d["util"] <= 95
                 packed_counts[index] = packed_counts.get(index, 0) + 1 if packed_ok else 0
+                mixed_tail_counts[index] = mixed_tail_counts.get(index, 0) + 1 if packed_ok else 0
                 dense_ok = bool(d["pids"]) and not d["pids"] - own_pids
                 dense_counts[index] = dense_counts.get(index, 0) + 1 if dense_ok else 0
             slots = dispatch_slots(
@@ -494,6 +507,8 @@ def run(
                 dense_indices=dense_allowed,
                 dense_counts=dense_counts,
                 max_running_jobs=max_running_jobs,
+                mixed_tail_indices=mixed_allowed,
+                mixed_tail_counts=mixed_tail_counts,
             )
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
             snapshot, slots, query_error = {}, [], str(exc)
@@ -501,6 +516,7 @@ def run(
             low_counts.clear()
             packed_counts.clear()
             dense_counts.clear()
+            mixed_tail_counts.clear()
         cpu_count = sum(j["lane"] == "cpu" for j in active)
         for index, mode in [(None, "cpu")] * max(0, 2 - cpu_count) + slots:
             if (
@@ -547,6 +563,8 @@ def run(
                         dense_indices=dense_allowed,
                         dense_counts=dense_counts,
                         max_running_jobs=max_running_jobs,
+                        mixed_tail_indices=mixed_allowed,
+                        mixed_tail_counts=mixed_tail_counts,
                     ):
                         continue
                 except (OSError, ValueError, KeyError, subprocess.SubprocessError):
@@ -563,6 +581,7 @@ def run(
             low_counts[index] = 0
             packed_counts[index] = 0
             dense_counts[index] = 0
+            mixed_tail_counts[index] = 0
             print(
                 now(), "started", job["label"], "gpu", index, mode, "pid", process.pid, flush=True
             )
@@ -573,7 +592,11 @@ def run(
             "tmux_session": session_name,
             "check_interval_seconds": 5,
             "granularity": "single_fit_except_adopted_batches",
-            "max_jobs_per_gpu": 4 if dense_gpu_indices else 3 if packed_gpu_indices else 2,
+            "max_jobs_per_gpu": (
+                4 if dense_gpu_indices else 3 if packed_gpu_indices or mixed_tail_gpu_indices else 2
+            ),
+            "mixed_tail_gpu_indices": list(mixed_tail_gpu_indices),
+            "mixed_tail_gpu_indices_paused": sorted(i for i in mixed_paused if i is not None),
             "dense_gpu_indices": list(dense_gpu_indices),
             "dense_gpu_indices_paused": sorted(i for i in dense_paused if i is not None),
             "max_dense_workers_per_gpu": 4,
@@ -617,6 +640,12 @@ def main():
     parser.add_argument("--legacy-worker", type=Path, required=True)
     parser.add_argument("--session-name", default="pu-survey-parallel-20261028")
     parser.add_argument(
+        "--mixed-tail-gpu-indices",
+        type=parse_gpu_indices,
+        default=(),
+        help="opt-in cards for one CPU estimator tail alongside two measured text GEN-PU jobs",
+    )
+    parser.add_argument(
         "--dense-gpu-indices",
         type=parse_gpu_indices,
         default=(),
@@ -657,6 +686,7 @@ def main():
         packed_gpu_indices=args.packed_gpu_indices,
         dense_gpu_indices=args.dense_gpu_indices,
         max_running_jobs=args.max_running_jobs,
+        mixed_tail_gpu_indices=args.mixed_tail_gpu_indices,
     )
 
 
