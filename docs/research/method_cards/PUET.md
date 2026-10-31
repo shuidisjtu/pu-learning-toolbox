@@ -73,6 +73,12 @@ nonnegative/quadratic CIFAR accuracy79.74(0.37)，5次拟合；不是邻列 logi
 
 ## 2026-10-17 审核补项
 
+2026-10-31：`scripts/run_classical_candidate_experiment.py --method puet` 已补显式树预算、
+输入/源码/环境锁定计划、SCAR 四角色 PA/OA 和模型回放，保留 OS/TS 原义，运行在 CPU。
+`ClassicalCandidateTrainer(receipt_dir=...)` 可将每次尝试的实际逐树成本（包括失败部分）独立落盘，
+重试不覆盖旧记录；持久化失败不接受 fitted 模型。此入口不抽取/认证输入特征，不修改核心算法，
+也不构成正式预算或完整资源验收；没有假造 neural epoch 或论文数值复现。
+
 Issue #114 修复后，bootstrap 的 U 抽样数等于**实际 U 风险池大小**：OS 抽 n_U，
 TS 抽 n_U+n_P（含 P 角色副本）；逐树根质量保持 P=总体π、U=1，P 仍抽 n_P。
 已有36组 OS/TS×bootstrap×P/U数量×seed 回归现纳入机器来源证据包；这不是新增校准。

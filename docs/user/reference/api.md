@@ -432,8 +432,18 @@ min_samples_leaf 同时约束两个子节点；阈值取完整 min/max 区间；
 PUET/RP 可选用 `from pu_toolbox.experiment.classical_candidate import ClassicalCandidateTrainer`，
 在 `ExperimentRunner` 的 `config["trainer"]` 中注入实例，记录实际逐树或 OOF/refit 成本。
 `fit(estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None)` 返回无 epoch 的单模型轨迹；
-成功 `training_provenance_` 进入 candidate manifest，失败工作只在 trainer 的 `last_receipt` 中保留。
+成功 `training_provenance_` 进入 candidate manifest，失败工作在 trainer 的 `last_receipt` 中保留；
+构造时可选 `receipt_dir`，将每次成功/失败成本收据独立持久化，重试不覆盖旧记录。
 `val_pu` 不用于训练，PA/OA 仍由 runner 独立执行；支持确切的 PUET/RP 类，不支持子类或实例树构建覆盖。
+
+独立 CPU 入口 `python scripts/run_classical_candidate_experiment.py --help` 默认仅生成锁定计划，
+`--execute --out-dir <新目录>` 才拟合；输入四份互斥的二维 `X/y/indices` NPZ，结构与四角色契约一致。
+`--parameters` 必须完整指定 PUET 的 `n_estimators/max_depth/min_samples_leaf/max_features/max_candidates/bootstrap`，
+或 RP 的 `n_cv_folds/frac_pos2neg/min_retained`；种子、总体先验来源和 `--view` 单独指定。
+PUET 支持 OS/TS，RP 只支持 OS。入口不拟合/认证输入特征预处理，也不代表正式准入。
+导出的 `selected_PA/OA.pkl` 使用同模块 `ClassicalSelectionPredictor(estimator, selection)` 封装
+验证集 affine 与所选阈值；`decision_function` 保留原始分数，`predict` 重放所选规则。
+原始非 epoch runner 的 `selected_models` 不自动携带这条规则，不能用 native `predict` 代替表中预测。
 
 #### `LDCEClassifier`（注册名 `centroid_pu`，别名 `ldce`）
 

@@ -406,6 +406,7 @@ tests/
       test_vpu_image_cli.py             # VPU 四角色 TS 命令、归一化回放、显式参数与角色隔离
       test_p3mix_resource_plan.py       # P3MIX 切批曝光、teacher 与额外前向预算
       test_p3mix_image_execution.py     # P3Mix 图像显式预算、双协议回放与回收
+      test_classical_candidate_execution.py # PUET/RP 显式计划、四角色回放与失败证据
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -600,6 +601,8 @@ tests/
       test_vpu_image_candidate.py       # VPU 训练边缘池、逐 epoch 归一化、重建 Adam 与实际成本
       test_classical_candidate_cost.py  # 逐树/交叉拟合真实成本及默认结果不变
       test_p3mix_image_candidate.py     # P3Mix 原生 OS 图像快照、teacher 与角色成本
+      test_classical_candidate_receipts.py # 逐次成本收据、失败保留与持久化拒绝
+      test_classical_selection_predictor.py # 非 epoch 选模阈值与验证集 affine 回放
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -943,6 +946,7 @@ scripts/
   run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
+  run_classical_candidate_experiment.py   PUET/RP 独立 CPU 四角色计划与执行
 ```
 
 ## 7. CI/CD（`.github/`）

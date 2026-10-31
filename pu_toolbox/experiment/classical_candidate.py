@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import copy
 import inspect
+import json
+import tempfile
 import time
+from pathlib import Path
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -16,6 +19,56 @@ from sklearn.linear_model import LogisticRegression
 
 from .protocols import Trainer
 from .tracking import RunTrajectory
+
+
+class ClassicalSelectionPredictor:
+    """Inference-only model plus a non-epoch PA/OA VAL-side prediction rule.
+
+    The runner's non-checkpoint ``selected_models`` retain native thresholds.
+    This explicit export adapter preserves the selected rule without mutating
+    a shared PA/OA estimator, reading labels or re-normalizing on test data.
+    ``decision_function`` still returns raw source scores, as the runner does.
+    """
+
+    def __init__(self, estimator, selection):
+        if (
+            not isinstance(selection, dict)
+            or selection.get("epoch") is not None
+            or selection.get("checkpoint_index") is not None
+        ):
+            raise ValueError("classical selection must identify a non-epoch model")
+        self.selection = copy.deepcopy(selection)
+        self.estimator = estimator
+        threshold = selection.get("threshold")
+        metrics = selection.get("metrics", {})
+        if not isinstance(metrics, dict):
+            raise ValueError("selection metrics must be an object")
+        for value in (threshold, metrics.get("val_score_min"), metrics.get("val_score_scale")):
+            if value is not None and (
+                isinstance(value, bool)
+                or not isinstance(value, int | float)
+                or not np.isfinite(value)
+            ):
+                raise ValueError(
+                    "selection threshold and affine constants must be finite real values"
+                )
+        scale = metrics.get("val_score_scale")
+        if scale is not None and scale < 0:
+            raise ValueError("selection score scale must be nonnegative")
+
+    def decision_function(self, X):  # noqa: N803
+        return self.estimator.decision_function(X)
+
+    def predict(self, X):  # noqa: N803
+        threshold = self.selection.get("threshold")
+        if threshold is None:
+            return self.estimator.predict(X)
+        scores = self.decision_function(X)
+        metrics = self.selection.get("metrics", {})
+        minimum, scale = metrics.get("val_score_min"), metrics.get("val_score_scale")
+        if minimum is not None and scale:
+            scores = (scores - minimum) / scale
+        return (scores >= threshold).astype(int)
 
 
 class _Recorder:
@@ -76,10 +129,14 @@ class ClassicalCandidateTrainer(Trainer):
     arrays are intentionally unused here; the runner selects on them later.
     ``last_receipt`` includes failed work for diagnostics but only a successful
     receipt is attached to the fitted model and therefore to its manifest.
+    Optional ``receipt_dir`` persists each attempt in a new directory, including
+    failures before a runner retry. A persistence failure rejects the fit.
     """
 
-    def __init__(self):
+    def __init__(self, *, receipt_dir=None):
         self.last_receipt = None
+        self.receipt_dir = None if receipt_dir is None else Path(receipt_dir)
+        self.receipt_paths = []
 
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
         from ..estimators.classic.rank_pruning import RankPruningClassifier
@@ -153,8 +210,26 @@ class ClassicalCandidateTrainer(Trainer):
             receipt["elapsed_seconds"] = time.perf_counter() - started
             receipt["work_started"] = len(recorder.events)
             receipt["work_completed"] = sum(e["status"] == "completed" for e in recorder.events)
+            if self.receipt_dir is not None:
+                try:
+                    self._persist_receipt(receipt)
+                except BaseException:
+                    estimator._is_fitted = False
+                    raise
         estimator.training_provenance_ = copy.deepcopy(receipt)
         return RunTrajectory(epochs=[], model=estimator)
+
+    def _persist_receipt(self, receipt):
+        """Publish complete JSON in a fresh attempt directory, never overwrite evidence."""
+        self.receipt_dir.mkdir(parents=True, exist_ok=True)
+        directory = Path(tempfile.mkdtemp(prefix="attempt-", dir=self.receipt_dir))
+        pending = directory / "cost.pending"
+        with pending.open("x", encoding="utf-8") as stream:
+            json.dump(receipt, stream, ensure_ascii=False, indent=2, allow_nan=False)
+            stream.write("\n")
+        path = directory / "cost.json"
+        pending.rename(path)
+        self.receipt_paths.append(str(path.resolve()))
 
     @staticmethod
     def _fit_forest(estimator, X, y, recorder, kwargs):  # noqa: N803
