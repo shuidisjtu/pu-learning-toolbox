@@ -515,6 +515,9 @@ ACS 历史不是 neural epoch，未观测的 rollback 总成本为 null，不用
 可加 `--prediction-rows`、`--max-acs-iter`、`--max-inner-iter` 与 `--memory-cap-bytes`；
 超出已知 payload 的帽返回退出码 2；低于帽不表示 RAM 足够。此工具不加载数据/模型，
 声明的 Gram/协方差 dtype 未认证，稠密块统计排除临时矩阵等开销，不是正式资源验收。
+可选 `--prior-policy derived --flip-probability <h>`，或 `--prior-policy population_override
+--flip-probability <h> --population-prior <π>` 同时检查 QP 可行性；无解/分母近零退出码为 3。
+该 h 与先验仅为声明，不核验实际 SCAR 生成；可行不批准启动，核心求解器与冻结协议保持不变。
 
 #### `LLSVMClassifier`（注册名 `llsvm`）
 

@@ -316,7 +316,7 @@
     },
     "kldce": {
       "class": "KLDCEClassifier",
-      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_kldce_resource_plan.py", "scope": "declared_dtype_dense_named_array_payload_not_peak_RSS", "counts_rollback_qp_budget": true, "below_cap_is_not_fit_approval": true, "data_loaded": false, "formal_resource_profile_complete": false, "formal_admission": false},
+      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_kldce_resource_plan.py", "scope": "declared_dtype_dense_named_array_payload_not_peak_RSS", "counts_rollback_qp_budget": true, "optional_qp_equality_box_feasibility": true, "infeasible_exit_code": 3, "declared_prior_and_flip_not_generator_verified": true, "below_cap_is_not_fit_approval": true, "data_loaded": false, "formal_resource_profile_complete": false, "formal_admission": false},
       "candidate_cli": {"implementation_ref": "scripts/run_classical_candidate_experiment.py", "trainer_ref": "pu_toolbox/experiment/kernel_candidate.py", "execution_device": "cpu", "training_views": ["os"], "flip_probability_binding": "one_minus_train_SCAR_c_realized", "prior_policies": ["derived", "population_override"], "qp_equality_box_preflight": true, "durable_per_attempt_cost_receipts": true, "rollback_actual_work_observed": false, "formal_admission": false, "formal_resource_profile_complete": false},
       "paper": {
         "title": "Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning (kernelized version, RBF)",

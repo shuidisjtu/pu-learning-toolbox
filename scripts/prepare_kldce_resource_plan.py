@@ -6,6 +6,7 @@ import argparse
 import ast
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -35,6 +36,59 @@ def _defaults(root):
     }
 
 
+def _feasibility(n_positive, n_unlabeled, policy, flip, population_prior):
+    """Scalar counterpart of the core Phase-I LP; all inputs are caller declarations."""
+    if policy not in ("derived", "population_override"):
+        raise ValueError("explicit prior_policy required for the feasibility screen")
+    if (
+        isinstance(flip, bool)
+        or not isinstance(flip, int | float)
+        or not math.isfinite(flip)
+        or not 0 < flip < 1
+    ):
+        raise ValueError("flip_probability must be a finite real in (0,1)")
+    n = n_positive + n_unlabeled
+    if policy == "derived":
+        if population_prior is not None:
+            raise ValueError("derived policy cannot silently ignore population_prior")
+        prior = n_positive / (n * (1 - flip))
+        if not 0 < prior <= 1:
+            raise ValueError("derived training prior is outside (0,1]")
+    else:
+        if (
+            isinstance(population_prior, bool)
+            or not isinstance(population_prior, int | float)
+            or not math.isfinite(population_prior)
+            or not 0 < population_prior < 1
+        ):
+            raise ValueError("population_override requires population_prior in (0,1)")
+        prior = float(population_prior)
+    denominator = 1 - 2 * prior * flip
+    lower, upper = -n_unlabeled / n, n_positive / n + n_unlabeled / (2 * n)
+    rhs = None if abs(denominator) < 1e-12 else -n_unlabeled / (2 * n * denominator)
+    feasible = rhs is not None and lower - 1e-12 <= rhs <= upper + 1e-12
+    return {
+        "prior_policy": policy,
+        "effective_training_prior": prior,
+        "flip_probability": flip,
+        "centroid_denominator": denominator,
+        "rhs": rhs,
+        "reachable_min": lower,
+        "reachable_max": upper,
+        "absolute_tolerance": 1e-12,
+        "feasible": feasible,
+        "reason": "near_zero_centroid_denominator"
+        if rhs is None
+        else "equality_box_feasible"
+        if feasible
+        else "equality_outside_box",
+        "flip_probability_source_verified": False,
+        "population_prior_source_verified": False,
+        "SCAR_generator_binding_verified": False,
+        "feasible_is_not_full_fit_or_resource_approval": True,
+    }
+
+
 def build_plan(
     *,
     n_positive,
@@ -46,6 +100,9 @@ def build_plan(
     max_inner_iter=None,
     memory_cap_bytes=None,
     root=ROOT,
+    prior_policy=None,
+    flip_probability=None,
+    population_prior=None,
 ):
     """Account for named live QP arrays; omitted temporaries make this a lower bound.
 
@@ -66,6 +123,11 @@ def build_plan(
         raise ValueError("prediction_rows must be a nonnegative integer")
     if memory_cap_bytes is not None:
         _positive_integer(memory_cap_bytes, "memory_cap_bytes")
+    feasibility = None
+    if any(value is not None for value in (prior_policy, flip_probability, population_prior)):
+        feasibility = _feasibility(
+            n_positive, n_unlabeled, prior_policy, flip_probability, population_prior
+        )
     root = Path(root)
     defaults = _defaults(root)
     outer = defaults["max_acs_iter"] if max_acs_iter is None else max_acs_iter
@@ -89,6 +151,7 @@ def build_plan(
         SOURCE,
         "pu_toolbox/estimators/risk/kldce_smo.py",
         "pu_toolbox/utils/basis.py",
+        "pu_toolbox/estimators/risk/_class_prior.py",
     )
     plan = {
         "schema_version": "kldce-dense-resource-plan-1",
@@ -147,6 +210,8 @@ def build_plan(
             name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in references
         },
     }
+    if feasibility is not None:
+        plan["qp_feasibility_screen"] = feasibility
     plan["plan_sha256"] = hashlib.sha256(
         json.dumps(plan, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     ).hexdigest()
@@ -163,10 +228,17 @@ def main(argv=None):
     parser.add_argument("--max-acs-iter", type=int)
     parser.add_argument("--max-inner-iter", type=int)
     parser.add_argument("--memory-cap-bytes", type=int)
+    parser.add_argument("--prior-policy", choices=("derived", "population_override"))
+    parser.add_argument(
+        "--flip-probability", type=float, help="caller-declared h, not a verified SCAR binding"
+    )
+    parser.add_argument("--population-prior", type=float)
     args = parser.parse_args(argv)
     try:
         plan = build_plan(**vars(args))
         print(json.dumps(plan, ensure_ascii=False, indent=2, allow_nan=False))
+        if plan.get("qp_feasibility_screen", {}).get("feasible") is False:
+            return 3
         return 2 if plan["known_payload_exceeds_cap"] else 0
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -411,6 +411,7 @@ tests/
       test_cvir_image_execution.py      # CVIR 图像先验、视图锁定与双协议回放
       test_kldce_resource_plan.py       # KLDCE 稠密块实测、只读预检与 QP 预算
       test_kldce_candidate_execution.py # KLDCE 实际 SCAR 绑定、四角色回放与失败证据
+      test_kldce_feasibility_plan.py    # KLDCE 只读适用域、原始 LP 对照与退出码
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
