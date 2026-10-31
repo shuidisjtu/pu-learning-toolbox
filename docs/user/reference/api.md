@@ -110,6 +110,14 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 共享 ResNet-18（不是论文 backbone），独立 PA/OA 选择 student 快照并回收未选中权重；
 选择先验不进入训练，E 的 teacher 不参与选模，不构成正式 Survey 准入。
 
+同一图像 CLI 的 `--method cvir --view os/ts` 支持 CVIR 工程候选；显式 JSON 字段为
+`hidden_dim/warm_start_epochs/max_epochs/batch_size/learning_rate/data_device_policy/input_sampling/device`。
+必须用 `input_sampling="os"`、`data_device_policy="cpu_stream"`；总体先验按观测 P 数换算
+实际风险池先验，不能在参数文件预置 `unlabeled_positive_prior/prior_source`。
+两阶段均记录成本并可供 PA/OA 选择；训练 BN 将收到单行小批的预算提前拒绝，不自动修改数据或 BN。
+Python 可用 `CandidateImageCheckpointTrainer(..., population_prior_source="已声明来源")`；
+CVIR 图像不能通过无先验绑定的 `fit_candidate_image_classifier` 直接训练。正式配方/资源仍未批准。
+
 ### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
 
 `from pu_toolbox import TEDnClassifier`，亦可从 `pu_toolbox.estimators.deep` 导入。

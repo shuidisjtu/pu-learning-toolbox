@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import math
 import time
+from numbers import Real
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +19,8 @@ from sklearn.base import clone
 from ..utils.serialization import strict_canonical_hash
 from .candidate_image import (
     _candidate_image_training_receipt,
+    _cvir_epoch_facts,
+    _cvir_image_schedule,
     _p3mix_epoch_facts,
     _validate_candidate_image_fit,
     _vpu_normalization_facts,
@@ -30,7 +33,14 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
 
     records_epoch_checkpoints = True
 
-    def __init__(self, image_setup, *, checkpoint_bytes_per_component, checkpoint_dir=None):
+    def __init__(
+        self,
+        image_setup,
+        *,
+        checkpoint_bytes_per_component,
+        checkpoint_dir=None,
+        population_prior_source=None,
+    ):
         super().__init__(checkpoint_dir=checkpoint_dir)
         if type(checkpoint_bytes_per_component) is not int or checkpoint_bytes_per_component <= 0:
             raise ValueError("checkpoint_bytes_per_component must be a positive integer")
@@ -40,17 +50,25 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             "pan",
             "vpu",
             "p3mix",
+            "cvir",
         ):
             raise ValueError("a supported candidate image construction record is required")
         self.image_setup = copy.deepcopy(image_setup)
         self._setup_digest = strict_canonical_hash(self.image_setup)
         self.checkpoint_bytes_per_component = checkpoint_bytes_per_component
+        self.population_prior_source = population_prior_source
+        if image_setup["method"] == "cvir" and (
+            not isinstance(population_prior_source, str) or not population_prior_source.strip()
+        ):
+            raise ValueError("CVIR image runner requires population_prior_source")
 
     def _validate(self, model, features, labels, view):
         if strict_canonical_hash(self.image_setup) != self._setup_digest:
             raise ValueError("candidate image setup changed after binding")
         expected_view = "os" if self.image_setup["method"] in {"pan", "p3mix"} else "ts"
-        if view != expected_view:
+        if (self.image_setup["method"] == "cvir" and view not in {"os", "ts"}) or (
+            self.image_setup["method"] != "cvir" and view != expected_view
+        ):
             raise ValueError(f"candidate image runner requires explicit {expected_view} view")
         bound = _validate_candidate_image_fit(model, self.image_setup, features, labels)
         if model.device not in ("cpu", "cuda"):
@@ -82,6 +100,16 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             raise ValueError("VPU candidate image runner requires explicit cpu_stream policy")
         if self.image_setup["method"] == "p3mix":
             self._validate_p3mix_parameters(model)
+        if self.image_setup["method"] == "cvir":
+            if type(model.warm_start_epochs) is not int or model.warm_start_epochs < 0:
+                raise ValueError("CVIR warm_start_epochs must be a nonnegative integer")
+            if (
+                isinstance(model.learning_rate, bool)
+                or not isinstance(model.learning_rate, Real)
+                or not np.isfinite(model.learning_rate)
+                or model.learning_rate <= 0
+            ):
+                raise ValueError("CVIR learning_rate must be finite and positive")
         return bound
 
     @staticmethod
@@ -168,6 +196,15 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         return self._epoch_bound
 
     def _checkpoint_context(self, fitted, epoch):
+        if self.image_setup["method"] == "cvir":
+            facts = _cvir_epoch_facts(
+                fitted, self._cvir_labels, self._cvir_alpha, self._cvir_view, epoch
+            )
+            context = super()._checkpoint_context(fitted, epoch)
+            if context != facts["training_context"]:
+                raise ValueError("CVIR checkpoint context differs from its completed stage")
+            self._cvir_epoch_records.append(facts)
+            return context
         if self.image_setup["method"] == "p3mix":
             self._p3mix_epoch_records.append(_p3mix_epoch_facts(fitted, self._p3mix_labels, epoch))
             return super()._checkpoint_context(fitted, epoch)
@@ -216,14 +253,41 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         if method == "p3mix":
             self._p3mix_labels = bound[2]
             self._p3mix_epoch_records = []
-        try:
-            trajectory = super().fit(
-                estimator,
-                X,
-                y,
+        if method == "cvir":
+            from .cvir_adapter import cvir_risk_prior
+
+            self._cvir_labels, self._cvir_view = bound[2], os_or_ts
+            self._cvir_alpha = cvir_risk_prior(
+                class_prior,
+                n_samples=len(y),
+                n_labeled=int(np.count_nonzero(y == 1)),
                 os_or_ts=os_or_ts,
-                class_prior=class_prior if method == "pulda" else None,
             )
+            _cvir_image_schedule(self._cvir_labels, self._cvir_alpha, os_or_ts, estimator)
+            self._cvir_epoch_records = []
+        try:
+            if method == "cvir":
+                estimator.set_params(
+                    unlabeled_positive_prior=self._cvir_alpha,
+                    prior_source=self.population_prior_source,
+                )
+                # The receipt describes the estimator's actual fit entry,
+                # not the unbound constructor restored after this attempt.
+                bound[5].update(
+                    unlabeled_positive_prior=self._cvir_alpha,
+                    prior_source=self.population_prior_source,
+                )
+            try:
+                trajectory = super().fit(
+                    estimator,
+                    X,
+                    y,
+                    os_or_ts=os_or_ts,
+                    class_prior=class_prior if method == "pulda" else None,
+                )
+            finally:
+                if method == "cvir":
+                    estimator.set_params(unlabeled_positive_prior=None, prior_source=None)
             receipt = _candidate_image_training_receipt(estimator, bound, started)
             self._verify_trajectory(estimator, y, trajectory)
             sizes = [Path(checkpoint.path).stat().st_size for checkpoint in trajectory.checkpoints]
@@ -266,6 +330,20 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     teacher_selection_eligible=False,
                     epoch_cost_history=copy.deepcopy(self._p3mix_epoch_records),
                 )
+            if method == "cvir":
+                estimator.training_provenance_.update(
+                    population_prior_forwarded_to_fit=False,
+                    population_prior_binding={
+                        "population_prior": float(class_prior),
+                        "risk_pool_positive_prior": self._cvir_alpha,
+                        "prior_source": self.population_prior_source,
+                        "source_verified": False,
+                        "uses_hidden_training_labels": False,
+                    },
+                    eligible_stages=["warm_start", "cvir"],
+                    checkpoint_scope="classifier_inference_only; no_optimizer_resume",
+                    epoch_cost_history=copy.deepcopy(self._cvir_epoch_records),
+                )
         except BaseException:
             # A rejected resource/receipt is not a successfully accepted model.
             estimator._is_fitted = False
@@ -279,6 +357,16 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
         p = int(np.count_nonzero(labels == 1))
         u = len(labels) - p
         method = self.image_setup["method"]
+        if method == "cvir":
+            expected = [row["training_context"] for row in self._cvir_epoch_records]
+            if (
+                len(expected) != estimator.warm_start_epochs + estimator.max_epochs
+                or [c.training_context for c in trajectory.checkpoints] != expected
+                or estimator.optimizer_steps_ != expected[-1]["optimizer_steps"]
+                or estimator.unlabeled_positive_prior_ != self._cvir_alpha
+            ):
+                raise ValueError("CVIR image checkpoint/stage cost coverage mismatch")
+            return
         if method == "pulda":
             steps = math.ceil(u / estimator.unlabeled_batch_size)
             phases = ["warmup"] * estimator.warmup_epochs + ["pu_mixup"] * estimator.pu_epochs

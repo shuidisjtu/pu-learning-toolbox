@@ -407,6 +407,7 @@ tests/
       test_p3mix_resource_plan.py       # P3MIX 切批曝光、teacher 与额外前向预算
       test_p3mix_image_execution.py     # P3Mix 图像显式预算、双协议回放与回收
       test_classical_candidate_execution.py # PUET/RP 显式计划、四角色回放与失败证据
+      test_cvir_image_execution.py      # CVIR 图像先验、视图锁定与双协议回放
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -603,6 +604,7 @@ tests/
       test_p3mix_image_candidate.py     # P3Mix 原生 OS 图像快照、teacher 与角色成本
       test_classical_candidate_receipts.py # 逐次成本收据、失败保留与持久化拒绝
       test_classical_selection_predictor.py # 非 epoch 选模阈值与验证集 affine 回放
+      test_cvir_image_candidate.py      # CVIR 图像阶段成本、观测先验与异常拒绝
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

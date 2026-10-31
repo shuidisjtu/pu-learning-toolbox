@@ -49,6 +49,16 @@ warm-start 的风险池同步替换。不能在筛完负例之后追加 P，那�
 
 ## 适配边界与下一步
 
+2026-10-31 补齐 `scripts/run_candidate_image_experiment.py --method cvir --view os/ts`
+独立共享 ResNet-18 图像执行入口（仅 SCAR，不是论文 backbone/正式配方）。显式给训练预算、
+`input_sampling=os`、`data_device_policy=cpu_stream` 与总体先验来源；实际 P 计数决定 OS 的 α_U，
+校准 TS 用总体 π。不向 fit 转发 `class_prior`，临时 α/source 在成功或异常后恢复。
+逐阶段验证 warm-start/截断训练的更新数、风险池、保留负例身份及排序前向数；
+两阶段快照均进入独立 PA/OA 选模与回收，属明确工程选择，不批准正式阶段资格。
+共享 ResNet 的训练 BN 若会收到 singleton 小批，计划/拟合前明确拒绝该预算，不丢行、
+不重采样、也不静默切换 BN 模式。CPU 原始 fit/图像适配、OS/TS 与快照回放回归
+仅验证工程一致性；核心算法、历史来源摘要与正式准入阻断保持不变。
+
 2026-10-15 来源核查确认：发布代码实际使用 balanced CE、`n_U-int(α*n_U)` 保留数、zip 原始 loader 后 mask、P/U 合并 forward、默认 SGD；warm-start 只在 TEDn 分支启用。本实现继续采用论文加权目标与既有默认，不静默改写成发布代码；`official_exact` 只指源码可得性。逐项位置、文件摘要与判读见[来源/图像复核](../pu_survey/admission/cvir_source_cnn_review_20261015.md)。
 
 新工程路径 deepcopy encoder 联合训练；原始图像留 CPU，全局 U 排序、训练与预测均分批上设备。旧二维 auto 保留 resident 的全量排序/预测。CPU-stream 仍需主机完整输入和 O(n_U) 排序分数，不是磁盘流式；不同 forward 批形可能带来末位误差。`optimizer_steps_` 与 `epoch_provenance_` 记录两阶段全部成本；快照包含 encoder/头及阶段上下文，不支持优化器续训，也不批准任何阶段选模资格。

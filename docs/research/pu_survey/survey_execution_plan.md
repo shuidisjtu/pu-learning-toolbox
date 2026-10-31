@@ -71,6 +71,8 @@
   构造默认预算与调用者 encoder 不是已冻结 recipe，也不构成完整 GPU/存储实测。
 - P3MIX 独立共享图像执行入口已补三变体/两切批、原生 OS、PA/OA、student 快照回收与回放；
   CPU 工程验证不等于论文 backbone/数值复现或正式资源验收，原 blocked 状态不变。
+- CVIR 已补独立共享图像 CLI：显式 OS/TS、观测计数先验换算、两阶段成本、PA/OA 与快照回放；
+  singleton BN 预算拟合前拒绝，核心算法/原生独立 TS 接口不变，正式预算与资源阻断保留。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 

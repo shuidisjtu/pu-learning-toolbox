@@ -936,6 +936,7 @@
     },
     "cvir": {
       "class": "CVIRClassifier",
+      "candidate_image_execution": {"implementation_ref": "scripts/run_candidate_image_experiment.py", "trainer_ref": "pu_toolbox/experiment/candidate_image_runner.py", "training_views": ["os", "ts"], "source_sampling": "os", "population_prior_binding_ref": "pu_toolbox/experiment/cvir_adapter.py", "backbone": "shared_resnet18_engineering_alternative", "stages": ["warm_start", "cvir"], "singleton_training_policy": "reject_before_fit", "formal_admission": false, "formal_resource_profile_complete": false},
       "calibration_review_ref": "docs/research/pu_survey/delivery/cvir_calibration_20261022.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",

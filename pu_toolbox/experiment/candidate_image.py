@@ -42,8 +42,15 @@ def build_candidate_image_classifier(
     refused until a method-specific policy is decided. Each construction resets
     the CPU torch seed in a fork, independent of previous methods' RNG use.
     """
-    if not isinstance(method, str) or method not in {"pulda", "gradpu", "pan", "vpu", "p3mix"}:
-        raise ValueError("method must be 'pulda', 'gradpu', 'pan', 'vpu' or 'p3mix'")
+    if not isinstance(method, str) or method not in {
+        "pulda",
+        "gradpu",
+        "pan",
+        "vpu",
+        "p3mix",
+        "cvir",
+    }:
+        raise ValueError("unsupported candidate image method")
     if isinstance(seed, bool) or not isinstance(seed, Integral) or not 0 <= seed < 2**32:
         raise ValueError("seed must be an integer in [0, 2**32)")
     if method == "pulda" and class_prior is None:
@@ -57,7 +64,7 @@ def build_candidate_image_classifier(
         ):
             raise ValueError("population class_prior must be a finite real number in (0, 1)")
         class_prior = float(class_prior)
-    if method in {"gradpu", "pan", "vpu", "p3mix"} and class_prior is not None:
+    if method in {"gradpu", "pan", "vpu", "p3mix", "cvir"} and class_prior is not None:
         raise ValueError(f"{method} does not use a class_prior")
     if method == "pan" and preprocessing.train_augmentation != "none":
         raise ValueError("PAN candidate image setup requires train_augmentation='none'")
@@ -65,6 +72,8 @@ def build_candidate_image_classifier(
         raise ValueError("VPU candidate image setup requires train_augmentation='none'")
     if method == "p3mix" and preprocessing.train_augmentation != "none":
         raise ValueError("P3Mix candidate image setup requires train_augmentation='none'")
+    if method == "cvir" and preprocessing.train_augmentation != "none":
+        raise ValueError("CVIR candidate image setup requires train_augmentation='none'")
     if method == "gradpu" and preprocessing.train_augmentation != "none":
         raise ValueError("GradPU private image setup requires train_augmentation='none'")
     if method == "gradpu" and min(preprocessing.input_size) < 8:
@@ -74,7 +83,7 @@ def build_candidate_image_classifier(
 
     with torch.random.fork_rng(devices=[]):
         torch.random.default_generator.manual_seed(int(seed))
-        if method in {"pulda", "pan", "vpu", "p3mix"}:
+        if method in {"pulda", "pan", "vpu", "p3mix", "cvir"}:
             from pu_toolbox.estimators.risk.pulda import PULDAClassifier
 
             encoder = build_survey_image_encoder(preprocessing)
@@ -100,10 +109,20 @@ def build_candidate_image_classifier(
                     device=device,
                     data_device_policy="cpu_stream",
                 )
-            else:
+            elif method == "p3mix":
                 from pu_toolbox.estimators.deep.p3mix import P3MixClassifier
 
                 estimator = P3MixClassifier(encoder=encoder, random_state=int(seed), device=device)
+            else:
+                from pu_toolbox.estimators.risk.cvir import CVIRClassifier
+
+                estimator = CVIRClassifier(
+                    encoder=encoder,
+                    random_state=int(seed),
+                    device=device,
+                    data_device_policy="cpu_stream",
+                    input_sampling="os",
+                )
         else:
             from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
             from pu_toolbox.estimators.deep.vision import build_wconpu_backbone
@@ -200,6 +219,17 @@ def build_candidate_image_classifier(
             teacher_selection_eligible=False,
             backbone_scope="shared_resnet18_engineering_alternative_not_paper_backbone",
         )
+    if method == "cvir":
+        record.update(
+            input_order=["encoder_normalization"],
+            source_identity="paper_objective_official_related",
+            training_view="explicit_os_or_ts_calibration_of_OS_source",
+            input_sampling="os",
+            prior_contract={"source": "runtime_population_to_risk_pool_adapter", "value": None},
+            selection_components=["classifier"],
+            risk_pool_order="original_U_then_P_for_TS; original_U_for_OS",
+            singleton_training_policy="reject_before_fit_no_resampling_or_BN_mode_change",
+        )
     return estimator, record
 
 
@@ -211,6 +241,7 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
     from pu_toolbox.estimators.deep.grad_pu import GradPUClassifier
     from pu_toolbox.estimators.deep.p3mix import P3MixClassifier
     from pu_toolbox.estimators.deep.pan import PANClassifier
+    from pu_toolbox.estimators.risk.cvir import CVIRClassifier
     from pu_toolbox.estimators.risk.pulda import PULDAClassifier
     from pu_toolbox.estimators.risk.vpu import VPUClassifier
     from pu_toolbox.utils.serialization import array_hash
@@ -225,6 +256,7 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         "pan": PANClassifier,
         "vpu": VPUClassifier,
         "p3mix": P3MixClassifier,
+        "cvir": CVIRClassifier,
     }
     expected_group = "method-private/no-BN CNN" if method == "gradpu" else "end-to-end CNN"
     if (
@@ -290,6 +322,18 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         != "shared_resnet18_engineering_alternative_not_paper_backbone"
     ):
         raise ValueError("P3Mix requires native OS, train-P pool and student-only selection")
+    if method == "cvir" and (
+        estimator.input_sampling != "os"
+        or estimator.unlabeled_positive_prior is not None
+        or estimator.prior_source is not None
+        or estimator.data_device_policy != "cpu_stream"
+        or setup.get("input_sampling") != "os"
+        or setup.get("training_view") != "explicit_os_or_ts_calibration_of_OS_source"
+        or setup.get("singleton_training_policy")
+        != "reject_before_fit_no_resampling_or_BN_mode_change"
+        or setup.get("risk_pool_order") != "original_U_then_P_for_TS; original_U_for_OS"
+    ):
+        raise ValueError("CVIR requires OS source, runtime prior binding and CPU-streamed images")
 
     features, labels = validate_pu_X_y(
         train_images,
@@ -415,12 +459,97 @@ def _p3mix_epoch_facts(estimator, labels, epoch):
     }
 
 
+def _cvir_image_schedule(labels, alpha, view, model):
+    """Derive exact CVIR stage work; refuse singleton BN rather than change its loss."""
+    import numpy as np
+
+    positives, unlabeled = np.flatnonzero(labels == 1), np.flatnonzero(labels == 0)
+    if not len(positives) or not len(unlabeled):
+        raise ValueError("CVIR image training requires both observed P and original U")
+    risk = np.r_[unlabeled, positives] if view == "ts" else unlabeled
+    retained = max(1, math.floor((1 - alpha) * len(risk)))
+    warm_steps = max(
+        math.ceil(len(positives) / model.batch_size), math.ceil(len(risk) / model.batch_size)
+    )
+    main_steps = max(
+        math.ceil(len(positives) / model.batch_size), math.ceil(retained / model.batch_size)
+    )
+    batches = [(len(positives), main_steps), (retained, main_steps)]
+    if model.warm_start_epochs:
+        batches.extend([(len(positives), warm_steps), (len(risk), warm_steps)])
+    for count, steps in batches:
+        if any(
+            min(model.batch_size, count - (step * model.batch_size) % count) == 1
+            for step in range(steps)
+        ):
+            raise ValueError(
+                "CVIR shared ResNet BN would receive a singleton training batch; "
+                "choose an explicit compatible budget"
+            )
+    return positives, risk, retained, warm_steps, main_steps
+
+
+def _cvir_epoch_facts(estimator, labels, alpha, view, epoch):
+    """Audit paid stages and retained risk identities, not just the final stage."""
+    import numpy as np
+
+    positives, risk, retained, warm_steps, main_steps = _cvir_image_schedule(
+        labels, alpha, view, estimator
+    )
+    warm = epoch < estimator.warm_start_epochs
+    stage_epoch = epoch + 1 if warm else epoch - estimator.warm_start_epochs + 1
+    expected = dict(
+        stage="warm_start" if warm else "cvir",
+        stage_epoch=stage_epoch,
+        round_index=None if warm else stage_epoch,
+        optimizer_steps=(epoch + 1) * warm_steps
+        if warm
+        else estimator.warm_start_epochs * warm_steps + stage_epoch * main_steps,
+    )
+    algorithm = estimator.training_provenance_
+    if (
+        estimator.epoch_provenance_[-1] != expected
+        or estimator.optimizer_steps_ != expected["optimizer_steps"]
+        or len(estimator.epoch_provenance_) != epoch + 1
+        or algorithm["n_positive"] != len(positives)
+        or algorithm["n_unlabeled_candidates"] != len(risk)
+        or algorithm["calibration_applied"] is not (view == "ts")
+        or not math.isclose(estimator.unlabeled_positive_prior_, alpha, rel_tol=0, abs_tol=0)
+        or (
+            not warm
+            and (
+                len(estimator.selected_negative_indices_) != retained
+                or not np.isin(estimator.selected_negative_indices_, risk).all()
+                or len(np.unique(estimator.selected_negative_indices_)) != retained
+            )
+        )
+    ):
+        raise ValueError("CVIR image stage/risk prior/retained identity cost mismatch")
+    return dict(
+        training_context=expected,
+        risk_pool_rows=len(risk),
+        retained_negative_rows=None if warm else retained,
+        ranking_forward_batches=0 if warm else math.ceil(len(risk) / estimator.batch_size),
+        student_training_forward_batches=2 * (warm_steps if warm else main_steps),
+        forward_counts_scope="derived_from_verified_updates_excludes_probe_and_selection",
+    )
+
+
 def _candidate_image_training_receipt(estimator, bound_inputs, started):
     """Verify inputs after training and retain the original receipt semantics."""
     from pu_toolbox.utils.serialization import array_hash, file_hash
 
     setup, features, labels, input_hash, label_hash, parameters = bound_inputs
     method = setup["method"]
+    if method in {"p3mix", "cvir"}:
+        calibrated = bool(estimator.training_provenance_["calibration_applied"])
+        view = "ts" if calibrated else "os"
+        epochs = (
+            len(estimator.epoch_provenance_) if method == "cvir" else estimator.epochs_completed_
+        )
+    else:
+        calibrated, view = bool(estimator.calibration_applied_), estimator.training_view_
+        epochs = len(estimator.history_["epoch"])
     if array_hash(features) != input_hash or array_hash(labels) != label_hash:
         raise RuntimeError("training inputs changed during fit; no valid receipt produced")
     source = {
@@ -429,6 +558,7 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
         "pan": "estimators/deep/pan.py",
         "vpu": "estimators/risk/vpu.py",
         "p3mix": "estimators/deep/p3mix.py",
+        "cvir": "estimators/risk/cvir.py",
     }[method]
     receipt = {
         "schema_version": "candidate-image-training-receipt-1",
@@ -440,16 +570,10 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
         "training_label_semantics": "caller_declared_observed_PU",
         "label_budget_externally_verified": False,
         "four_role_isolation_verified": False,
-        "training_view": estimator.training_provenance_["run_view"]
-        if method == "p3mix"
-        else estimator.training_view_,
-        "calibration_applied": bool(estimator.training_provenance_["calibration_applied"])
-        if method == "p3mix"
-        else bool(estimator.calibration_applied_),
+        "training_view": view,
+        "calibration_applied": calibrated,
         "population_mixture_restoration_verified": False,
-        "completed_epochs": estimator.epochs_completed_
-        if method == "p3mix"
-        else len(estimator.history_["epoch"]),
+        "completed_epochs": epochs,
         "optimizer_steps": estimator.optimizer_steps_,
         "actual_device": str(next(estimator.model_.parameters()).device),
         "encoder_trainable": all(p.requires_grad for p in estimator.encoder_.parameters()),
@@ -515,6 +639,16 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
             data_device_policy=estimator.data_device_policy_,
             backbone_is_paper_architecture=False,
         )
+    if method == "cvir":
+        if encoder_state_sha256(estimator.encoder) != setup["encoder_initial_state_sha256"]:
+            raise ValueError("CVIR mutated the shared encoder template")
+        _cvir_epoch_facts(estimator, labels, estimator.unlabeled_positive_prior_, view, epochs - 1)
+        receipt.update(
+            risk_pool_positive_prior=estimator.unlabeled_positive_prior_,
+            data_device_policy=estimator.data_device_policy_,
+            training_data_device=estimator.training_data_device_,
+            epoch_provenance=copy.deepcopy(estimator.epoch_provenance_),
+        )
     json.dumps(receipt, allow_nan=False)
     return receipt
 
@@ -532,5 +666,9 @@ def fit_candidate_image_classifier(
     """
     started = time.perf_counter()
     bound = _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
+    if image_setup["method"] == "cvir":
+        raise ValueError(
+            "CVIR images require CandidateImageCheckpointTrainer with a population prior/source"
+        )
     estimator.fit(bound[1], bound[2], os_or_ts=os_or_ts, epoch_callback=epoch_callback)
     return estimator, _candidate_image_training_receipt(estimator, bound, started)
