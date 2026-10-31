@@ -481,7 +481,8 @@ def run(
         mixed_paused = {
             j.get("gpu", {}).get("index")
             for j in jobs
-            if j["status"] == "failed" and j.get("dispatch_mode") == "mixed_cpu_tail_trial"
+            if j["status"] == "failed"
+            and j.get("dispatch_mode") in {"mixed_cpu_tail_trial", "mixed_gpu_compute_trial"}
         }
         mixed_allowed = set(mixed_tail_gpu_indices) - mixed_paused
         query_error = None
@@ -643,7 +644,7 @@ def main():
         "--mixed-tail-gpu-indices",
         type=parse_gpu_indices,
         default=(),
-        help="opt-in cards for one CPU estimator tail alongside two measured text GEN-PU jobs",
+        help="opt-in cards for one CPU estimator tail alongside two measured text MLP jobs",
     )
     parser.add_argument(
         "--dense-gpu-indices",

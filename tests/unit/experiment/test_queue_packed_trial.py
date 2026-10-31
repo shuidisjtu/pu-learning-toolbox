@@ -111,3 +111,23 @@ def test_edge_mixed_tail_never_stacks_or_selects_another_trainer():
     assert choose_pending(active, active, "mixed_cpu_tail_trial") is None
     assert choose_pending([dict(tail, campaign_id="repair")], [], "mixed_cpu_tail_trial") is None
     assert choose_pending([dict(tail, expected_recipe={})], [], "mixed_cpu_tail_trial") is None
+
+
+@pytest.mark.parametrize(
+    "method", ["nnpu", "pulda", "holistic_pu", "robust_pu", "self_pu", "split_pu"]
+)
+def test_param_basic_mixed_tail_can_fill_second_measured_text_trainer(method):
+    first = dict(compute(), method="genpu", path="native_2d", dataset="twenty_newsgroups")
+    tail = dict(compute(11), method="pusb_kernel", path="cnn_feature_adapter")
+    next_job = dict(first, method=method, pid=12)
+    args = dict(idle_counts={}, low_counts={}, mixed_tail_indices={6}, mixed_tail_counts={6: 3})
+    device = {6: dict(pids={10}, free_mib=45000, util=40)}
+    assert dispatch_slots(device, [first, tail], **args) == [(6, "mixed_gpu_compute_trial")]
+    assert choose_pending([tail, next_job], [first, tail], "mixed_gpu_compute_trial") is next_job
+    assert dispatch_slots(device, [first, tail, next_job], **args) == []
+    assert (
+        choose_pending([tail, dict(next_job, expected_recipe={})], [], "mixed_gpu_compute_trial")
+        is None
+    )
+    device[6]["pids"].add(99)
+    assert dispatch_slots(device, [first, tail], **args) == []

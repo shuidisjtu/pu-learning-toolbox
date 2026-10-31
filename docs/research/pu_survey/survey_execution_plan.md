@@ -93,10 +93,12 @@ draft 令牌当锁定预算。
 
 **分批执行**
 
-- 调度可选 `--mixed-tail-gpu-indices`：在指定自有卡的两个已绑定 Twenty Newsgroups
-  GEN-PU 训练旁，最多追加一个特征提取/CPU 拟合任务（uPU/LBE/PUSB）；连续三次负载 ≤95%、
+- 调度可选 `--mixed-tail-gpu-indices`：指定自有卡允许最多两个已绑定 Twenty Newsgroups
+  轻量训练（GEN-PU/nnPU/PULDA/Holistic/Robust/Self/Split）与一个特征提取/CPU 拟合任务
+  （uPU/LBE/PUSB）混跑；CPU 尾部不阻挡第二个已测训练。连续三次负载 ≤95%、
   余量 ≥32 GiB 才启动，外部进程否决、全局并发上限与失败后暂停仍生效。
   只改变排程，不改 batch/epoch/配方；显存水位不等于吞吐量，混跑收益须运行观察。
+  白名单依据本机同路径已有 manifest 的资源收据，不推广到未测方法/数据集或更大模型。
 - 本机后台排程已补单次 fit 拆分：仅拆未启动组，运行中旧组保持原进程及完整身份归属；
   5 秒轮询，低负载自有卡经连续采样后最多两个进程，不向含外部进程的卡追加任务。
   训练仍使用原固定源码/配方；监控 `PHASE` 区分 GEN-PU 的 `GAN/prePN` 与 PN 快照，

@@ -140,6 +140,21 @@ def dispatch_slots(
             # small tabular trainers. Never add a third persistent GPU trainer.
             slots.append((index, "mixed_cpu_tail_trial"))
         elif (
+            index in mixed_tail_indices
+            and counts[index] == 2
+            and pids
+            and mixed_tail_counts.get(index, 0) >= 3
+            and device["util"] <= 95
+            and device["free_mib"] >= 32768
+            and sum(cpu_estimator_tail(j) for j in active if j["gpu"]["index"] == index) == 1
+            and all(
+                small_tabular_compute(j) or cpu_estimator_tail(j)
+                for j in active
+                if j["gpu"]["index"] == index
+            )
+        ):
+            slots.append((index, "mixed_gpu_compute_trial"))
+        elif (
             index in dense_indices
             and 1 <= counts[index] < max_dense_workers
             and pids
@@ -250,10 +265,11 @@ def dense_adapter_candidate(job):
 
 
 def small_tabular_compute(job):
-    """Measured text GEN-PU family only; no inferred bound for other models."""
+    """Measured 20NG frozen MLP families only; not a universal memory bound."""
     return (
         job.get("path") == "native_2d"
-        and job.get("method") == "genpu"
+        and job.get("method")
+        in {"genpu", "nnpu", "pulda", "holistic_pu", "robust_pu", "self_pu", "split_pu"}
         and job.get("dataset") == "twenty_newsgroups"
         and bool(job.get("expected_recipe"))
         and not job.get("campaign_id")
@@ -265,6 +281,8 @@ def choose_pending(pending, active, mode):
     ordered = sorted(pending, key=dispatch_priority)
     if not ordered:
         return None
+    if mode == "mixed_gpu_compute_trial":
+        return next((j for j in ordered if small_tabular_compute(j)), None)
     if mode == "mixed_cpu_tail_trial":
         return next(
             (
