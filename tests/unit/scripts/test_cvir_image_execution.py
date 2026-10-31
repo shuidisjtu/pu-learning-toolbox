@@ -14,13 +14,13 @@ import run_candidate_image_experiment as script  # noqa: E402
 pytestmark = pytest.mark.unit
 
 
-def product(tmp_path):
+def product(tmp_path, size=8):
     directory = tmp_path / "input"
     directory.mkdir()
     for i, role in enumerate(script.ROLES):
         np.savez(
             directory / f"{role}.npz",
-            X=np.random.RandomState(i).randint(0, 256, (12, 3, 8, 8)).astype(np.uint8),
+            X=np.random.RandomState(i).randint(0, 256, (12, 3, size, size)).astype(np.uint8),
             y=np.arange(12) % 2,
             indices=np.arange(12) + i * 20,
         )
@@ -121,3 +121,13 @@ def test_edge_changed_prior_binding_does_not_create_output(tmp_path):
 def test_param_non_cvir_method_cannot_override_native_bound_view(tmp_path):
     with pytest.raises(ValueError, match="training view differs"):
         plan(product(tmp_path), method="p3mix", view="ts")
+
+
+@pytest.mark.parametrize("view", ["os", "ts"])
+def test_basic_safe_singleton_spatial_bn_cli_replays_both_selections(tmp_path, view):
+    planned = plan(product(tmp_path, size=28), parameters=parameters(batch_size=4), view=view)
+    assert planned["image_setup"]["minimum_bn_values_per_single_image"] == 16
+    summary = script.execute(planned, tmp_path / "output")
+    assert summary["accepted_engineering_run"] and summary["selected_models_replayed"]
+    assert summary["warning_count"] == summary["retry_count"] == 0
+    assert set(summary["selection"]) == {"PA", "OA"}

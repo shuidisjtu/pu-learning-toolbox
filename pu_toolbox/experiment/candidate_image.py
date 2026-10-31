@@ -22,6 +22,31 @@ from .image import (
 )
 
 
+def _single_image_bn_cardinality(encoder, input_shape):
+    """Measure spatial BN cardinality on a private CPU/eval copy, no train data."""
+    import torch
+
+    probe = copy.deepcopy(encoder).cpu().eval()
+    cardinalities, hooks = [], []
+
+    def record(_module, inputs):
+        value = inputs[0]
+        cardinalities.append(int(value.numel() // value.shape[1]))
+
+    try:
+        for module in probe.modules():
+            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+                hooks.append(module.register_forward_pre_hook(record))
+        with torch.no_grad():
+            probe(torch.zeros((1, *input_shape), dtype=torch.float32))
+    finally:
+        for hook in hooks:
+            hook.remove()
+    if not cardinalities:
+        raise ValueError("CVIR shared ResNet construction requires BatchNorm shape evidence")
+    return min(cardinalities)
+
+
 def build_candidate_image_classifier(
     method: str,
     preprocessing: SurveyImagePreprocessing,
@@ -228,7 +253,11 @@ def build_candidate_image_classifier(
             prior_contract={"source": "runtime_population_to_risk_pool_adapter", "value": None},
             selection_components=["classifier"],
             risk_pool_order="original_U_then_P_for_TS; original_U_for_OS",
-            singleton_training_policy="reject_before_fit_no_resampling_or_BN_mode_change",
+            singleton_training_policy="reject_only_if_BN_values_per_channel_is_one",
+            minimum_bn_values_per_single_image=_single_image_bn_cardinality(
+                encoder, (preprocessing.in_channels, *preprocessing.input_size)
+            ),
+            bn_shape_probe_scope="private_CPU_eval_encoder_copy_with_zero_input_not_training_data",
         )
     return estimator, record
 
@@ -329,8 +358,9 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
         or estimator.data_device_policy != "cpu_stream"
         or setup.get("input_sampling") != "os"
         or setup.get("training_view") != "explicit_os_or_ts_calibration_of_OS_source"
-        or setup.get("singleton_training_policy")
-        != "reject_before_fit_no_resampling_or_BN_mode_change"
+        or setup.get("singleton_training_policy") != "reject_only_if_BN_values_per_channel_is_one"
+        or type(setup.get("minimum_bn_values_per_single_image")) is not int
+        or setup["minimum_bn_values_per_single_image"] < 1
         or setup.get("risk_pool_order") != "original_U_then_P_for_TS; original_U_for_OS"
     ):
         raise ValueError("CVIR requires OS source, runtime prior binding and CPU-streamed images")
@@ -459,8 +489,8 @@ def _p3mix_epoch_facts(estimator, labels, epoch):
     }
 
 
-def _cvir_image_schedule(labels, alpha, view, model):
-    """Derive exact CVIR stage work; refuse singleton BN rather than change its loss."""
+def _cvir_image_schedule(labels, alpha, view, model, *, minimum_bn_values_per_single_image=1):
+    """Refuse one-value/channel BN, not safe singleton images with spatial extent."""
     import numpy as np
 
     positives, unlabeled = np.flatnonzero(labels == 1), np.flatnonzero(labels == 0)
@@ -478,7 +508,7 @@ def _cvir_image_schedule(labels, alpha, view, model):
     if model.warm_start_epochs:
         batches.extend([(len(positives), warm_steps), (len(risk), warm_steps)])
     for count, steps in batches:
-        if any(
+        if minimum_bn_values_per_single_image == 1 and any(
             min(model.batch_size, count - (step * model.batch_size) % count) == 1
             for step in range(steps)
         ):
@@ -489,12 +519,18 @@ def _cvir_image_schedule(labels, alpha, view, model):
     return positives, risk, retained, warm_steps, main_steps
 
 
-def _cvir_epoch_facts(estimator, labels, alpha, view, epoch):
+def _cvir_epoch_facts(
+    estimator, labels, alpha, view, epoch, *, minimum_bn_values_per_single_image=1
+):
     """Audit paid stages and retained risk identities, not just the final stage."""
     import numpy as np
 
     positives, risk, retained, warm_steps, main_steps = _cvir_image_schedule(
-        labels, alpha, view, estimator
+        labels,
+        alpha,
+        view,
+        estimator,
+        minimum_bn_values_per_single_image=minimum_bn_values_per_single_image,
     )
     warm = epoch < estimator.warm_start_epochs
     stage_epoch = epoch + 1 if warm else epoch - estimator.warm_start_epochs + 1
@@ -642,7 +678,14 @@ def _candidate_image_training_receipt(estimator, bound_inputs, started):
     if method == "cvir":
         if encoder_state_sha256(estimator.encoder) != setup["encoder_initial_state_sha256"]:
             raise ValueError("CVIR mutated the shared encoder template")
-        _cvir_epoch_facts(estimator, labels, estimator.unlabeled_positive_prior_, view, epochs - 1)
+        _cvir_epoch_facts(
+            estimator,
+            labels,
+            estimator.unlabeled_positive_prior_,
+            view,
+            epochs - 1,
+            minimum_bn_values_per_single_image=setup["minimum_bn_values_per_single_image"],
+        )
         receipt.update(
             risk_pool_positive_prior=estimator.unlabeled_positive_prior_,
             data_device_policy=estimator.data_device_policy_,

@@ -198,7 +198,14 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
     def _checkpoint_context(self, fitted, epoch):
         if self.image_setup["method"] == "cvir":
             facts = _cvir_epoch_facts(
-                fitted, self._cvir_labels, self._cvir_alpha, self._cvir_view, epoch
+                fitted,
+                self._cvir_labels,
+                self._cvir_alpha,
+                self._cvir_view,
+                epoch,
+                minimum_bn_values_per_single_image=self.image_setup[
+                    "minimum_bn_values_per_single_image"
+                ],
             )
             context = super()._checkpoint_context(fitted, epoch)
             if context != facts["training_context"]:
@@ -263,7 +270,15 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                 n_labeled=int(np.count_nonzero(y == 1)),
                 os_or_ts=os_or_ts,
             )
-            _cvir_image_schedule(self._cvir_labels, self._cvir_alpha, os_or_ts, estimator)
+            _cvir_image_schedule(
+                self._cvir_labels,
+                self._cvir_alpha,
+                os_or_ts,
+                estimator,
+                minimum_bn_values_per_single_image=self.image_setup[
+                    "minimum_bn_values_per_single_image"
+                ],
+            )
             self._cvir_epoch_records = []
         try:
             if method == "cvir":

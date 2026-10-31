@@ -609,6 +609,7 @@ tests/
       test_classical_selection_predictor.py # 非 epoch 选模阈值与验证集 affine 回放
       test_cvir_image_candidate.py      # CVIR 图像阶段成本、观测先验与异常拒绝
       test_kldce_candidate.py           # KLDCE 适配逐值一致、Phase-I 可行性与资源拒绝
+      test_cvir_bn_cardinality.py       # CVIR 空间 BN 基数、单样本训练与 RNG 隔离
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

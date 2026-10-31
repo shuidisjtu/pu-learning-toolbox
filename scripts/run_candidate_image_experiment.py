@@ -235,7 +235,13 @@ def build_plan(
                 n_labeled=int(np.count_nonzero(observed == 1)),
                 os_or_ts=view,
             )
-            _cvir_image_schedule(observed, alpha, view, model)
+            _cvir_image_schedule(
+                observed,
+                alpha,
+                view,
+                model,
+                minimum_bn_values_per_single_image=setup["minimum_bn_values_per_single_image"],
+            )
             cvir_binding = dict(
                 population_prior=prior,
                 risk_pool_positive_prior=alpha,

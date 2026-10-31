@@ -114,7 +114,8 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 `hidden_dim/warm_start_epochs/max_epochs/batch_size/learning_rate/data_device_policy/input_sampling/device`。
 必须用 `input_sampling="os"`、`data_device_policy="cpu_stream"`；总体先验按观测 P 数换算
 实际风险池先验，不能在参数文件预置 `unlabeled_positive_prior/prior_source`。
-两阶段均记录成本并可供 PA/OA 选择；训练 BN 将收到单行小批的预算提前拒绝，不自动修改数据或 BN。
+两阶段均记录成本并可供 PA/OA 选择；仅当训练 BN 每通道总共只有一个值时提前拒绝。
+单图空间维度足够时允许单样本批次；形状探针使用私有 CPU/eval 副本，不修改训练数据、原 BN 或 RNG。
 Python 可用 `CandidateImageCheckpointTrainer(..., population_prior_source="已声明来源")`；
 CVIR 图像不能通过无先验绑定的 `fit_candidate_image_classifier` 直接训练。正式配方/资源仍未批准。
 
