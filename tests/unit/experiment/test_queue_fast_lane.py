@@ -50,9 +50,10 @@ def test_edge_preparation_never_launches_third_or_unknown_model():
         assert not dispatch_slots(devices, active, idle_counts={6: 9}, low_counts={6: 9})
 
 
-def test_basic_short_lane_runs_beside_two_long_jobs():
+def test_basic_determ_short_lane_runs_beside_two_long_jobs():
     heavy = item()
     short = item(path="cnn_feature_adapter", method="dist_pu")
+    assert choose_pending([heavy, short], [item(), item(pid=11)], "exclusive") is short
     assert choose_pending([heavy, short], [item(), item(pid=11)], "exclusive") is short
     assert choose_pending([heavy, short], [item()], "exclusive") is heavy
     assert choose_pending([heavy, short], [short, item()], "exclusive") is heavy
