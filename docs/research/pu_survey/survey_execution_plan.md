@@ -73,6 +73,8 @@
   CPU 工程验证不等于论文 backbone/数值复现或正式资源验收，原 blocked 状态不变。
 - CVIR 已补独立共享图像 CLI：显式 OS/TS、观测计数先验换算、两阶段成本、PA/OA 与快照回放；
   单通道仅 1 值的 BN 预算拟合前拒绝，空间维度足够的单样本批次保留原训练行为；正式预算/资源阻断不变。
+- CVIR 已补不导入数值库的阶段资源预检：显式总体先验/视图/计数，区分更新与排序前向；
+  CPU 原生 fit 成本已对照；只读计划不验证输入来源、BN 空间基数或完整 GPU 峰值。
 - KLDCE 已补只读稠密 Gram/QP payload 与 ACS/SMO（含 rollback）预算预检；
   tiny QP 内存块已核对，但 dtype 声明与命名数组不等于完整 RSS 实测或运行批准。
 - KLDCE 独立 CPU 四角色执行已补 realized-SCAR 翻转率、显式先验策略、PA/OA 与失败收据；

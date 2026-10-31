@@ -49,6 +49,14 @@ warm-start 的风险池同步替换。不能在筛完负例之后追加 P，那�
 
 ## 适配边界与下一步
 
+2026-11-01 补只读资源入口：`scripts/prepare_candidate_image_resource_plan.py --method cvir`
+须显式给 `--population-prior`、`--training-view os/ts` 与观测 P/U 计数。
+按当前构造默认预算列 warm-start/截断更新、排序前向、风险池与保留负例数；
+OS 使用计数换算 α_U，TS 使用总体 π，不可能的换算拒绝而非截断。
+该入口不导入数值库、不加载数据或 checkpoint；来源、计数和 BN 空间基数仍未核验，
+不能替代图像执行计划或峰值实测。CPU 原生 fit 的实际更新/快照数已与预估对照，
+不证明论文配方、正式准入或效果复现；不改变下述算法与来源差异。
+
 2026-10-31 补齐 `scripts/run_candidate_image_experiment.py --method cvir --view os/ts`
 独立共享 ResNet-18 图像执行入口（仅 SCAR，不是论文 backbone/正式配方）。显式给训练预算、
 `input_sampling=os`、`data_device_policy=cpu_stream` 与总体先验来源；实际 P 计数决定 OS 的 α_U，

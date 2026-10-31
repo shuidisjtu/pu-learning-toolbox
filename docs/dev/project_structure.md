@@ -412,6 +412,7 @@ tests/
       test_kldce_resource_plan.py       # KLDCE 稠密块实测、只读预检与 QP 预算
       test_kldce_candidate_execution.py # KLDCE 实际 SCAR 绑定、四角色回放与失败证据
       test_kldce_feasibility_plan.py    # KLDCE 只读适用域、原始 LP 对照与退出码
+      test_cvir_resource_plan.py        # CVIR 只读风险池/阶段成本与原生 fit 对照
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界

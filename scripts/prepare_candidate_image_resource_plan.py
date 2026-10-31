@@ -11,7 +11,9 @@ import argparse
 import ast
 import hashlib
 import json
+import math
 import shutil
+from numbers import Real
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +23,7 @@ METHODS = {
     "pan": ("pu_toolbox/estimators/deep/pan.py", "PANClassifier", "resnet18"),
     "vpu": ("pu_toolbox/estimators/risk/vpu.py", "VPUClassifier", "resnet18"),
     "p3mix": ("pu_toolbox/estimators/deep/p3mix.py", "P3MixClassifier", "caller_injected_encoder"),
+    "cvir": ("pu_toolbox/estimators/risk/cvir.py", "CVIRClassifier", "resnet18"),
 }
 
 
@@ -75,6 +78,8 @@ def build_plan(
     root=ROOT,
     variant=None,
     batching_policy=None,
+    population_prior=None,
+    training_view=None,
 ):
     """Describe current default budgets and a conservative weights-only estimate.
 
@@ -86,6 +91,8 @@ def build_plan(
         raise ValueError("unsupported candidate method")
     if method != "p3mix" and (variant is not None or batching_policy is not None):
         raise ValueError("variant and batching_policy apply only to p3mix")
+    if method != "cvir" and (population_prior is not None or training_view is not None):
+        raise ValueError("population_prior and training_view apply only to cvir")
     for name, value in (
         ("n_positive", n_positive),
         ("n_unlabeled", n_unlabeled),
@@ -104,7 +111,31 @@ def build_plan(
 
     source, class_name, backbone = METHODS[method]
     defaults, properties = constructor_facts(root / source, class_name)
-    if method == "p3mix":
+    if method == "cvir":
+        if (
+            isinstance(population_prior, bool)
+            or not isinstance(population_prior, Real)
+            or not math.isfinite(population_prior)
+            or not 0 < population_prior < 1
+            or training_view not in ("os", "ts")
+        ):
+            raise ValueError("CVIR requires explicit population_prior in (0, 1) and os/ts view")
+        if properties.get("checkpoint_epoch_count") != "warm_start_epochs + max_epochs":
+            raise ValueError("CVIR checkpoint-count contract changed; update the planner")
+        total = n_positive + n_unlabeled
+        prior = float(population_prior)
+        alpha = prior if training_view == "ts" else (prior * total - n_positive) / n_unlabeled
+        if not math.isfinite(alpha) or not 0 < alpha < 1:
+            raise ValueError("converted CVIR risk prior must be in (0, 1); refusing to clip")
+        risk_rows = total if training_view == "ts" else n_unlabeled
+        retained_rows = max(1, math.floor((1 - alpha) * risk_rows))
+        batch = defaults["batch_size"]
+        warm_steps = max((n_positive + batch - 1) // batch, (risk_rows + batch - 1) // batch)
+        main_steps = max((n_positive + batch - 1) // batch, (retained_rows + batch - 1) // batch)
+        phases = {key: defaults[key] for key in ("warm_start_epochs", "max_epochs")}
+        snapshots = sum(phases.values())
+        updates = phases["warm_start_epochs"] * warm_steps + phases["max_epochs"] * main_steps
+    elif method == "p3mix":
         variant = defaults["variant"] if variant is None else variant
         batching_policy = (
             defaults["batching_policy"] if batching_policy is None else batching_policy
@@ -183,6 +214,8 @@ def build_plan(
         "pu_toolbox/experiment/candidate_image.py",
         "pu_toolbox/experiment/checkpoints.py",
     )
+    if method == "cvir":
+        references += ("pu_toolbox/experiment/cvir_adapter.py",)
     result = {
         "schema_version": "candidate-image-resource-plan-1",
         "status": "planning_only_not_full_resource_profile",
@@ -222,6 +255,29 @@ def build_plan(
         "approved_representation_ref": None,
         "ready_for_formal_run": False,
     }
+    if method == "cvir":
+        result.update(
+            training_view=training_view,
+            calibration_applied=training_view == "ts",
+            population_prior=prior,
+            risk_pool_positive_prior=alpha,
+            prior_source_verified=False,
+            observed_label_counts_verified=False,
+            risk_pool_rows=risk_rows,
+            retained_negative_rows=retained_rows,
+            warm_start_optimizer_steps_per_epoch=warm_steps,
+            truncation_optimizer_steps_per_epoch=main_steps,
+            ranking_forward_batches_per_truncation_epoch=(risk_rows + batch - 1) // batch,
+            student_training_forward_batches_per_fit=2 * updates,
+            ranking_cost_is_additional_to_optimizer_updates=True,
+            forward_counts_exclude_encoder_probe_and_external_selection=True,
+            minimum_bn_values_per_single_image=None,
+            bn_cardinality_verified=False,
+            bn_validation_requires_execution_plan=True,
+            training_network_instances=1,
+            inference_snapshot_components=["encoder_and_classifier"],
+            default_budget_origin="toolbox_constructor_not_author_or_frozen_recipe",
+        )
     if method == "pan":
         result.update(
             training_view="os",
@@ -289,6 +345,8 @@ def main(argv=None):
     parser.add_argument("--sample-checkpoint", type=Path)
     parser.add_argument("--variant", choices=["base", "e", "c"])
     parser.add_argument("--batching-policy", choices=["role_balanced", "merged_shuffle"])
+    parser.add_argument("--population-prior", type=float)
+    parser.add_argument("--training-view", choices=["os", "ts"])
     args = parser.parse_args(argv)
     try:
         plan = build_plan(**vars(args))
