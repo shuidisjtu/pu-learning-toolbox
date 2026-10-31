@@ -235,6 +235,7 @@
     },
     "rp": {
       "class": "RankPruningClassifier",
+      "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "cross_fits_and_final_refit", "records_actual_inner_fits": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/RP.md"},
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "paper": {
         "title": "Learning with Confident Examples: Rank Pruning for Robust Classification with Noisy Labels",
@@ -771,6 +772,7 @@
     },
     "puet": {
       "class": "PUExtraTreesClassifier",
+      "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "tree_build", "records_actual_tree_builds_and_role_mass": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/PUET.md"},
       "source_behavior_review_ref": "docs/research/method_cards/PUET.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "paper": {

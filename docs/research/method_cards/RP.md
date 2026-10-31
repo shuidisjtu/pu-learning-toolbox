@@ -27,6 +27,14 @@ Northcutt, Wu, Chuang, UAI 2017：[原文](https://auai.org/uai2017/proceedings/
 
 ## 校准与实现差异
 
+2026-10-31：opt-in `ClassicalCandidateTrainer`（`pu_toolbox.experiment.classical_candidate`）
+通过 `ExperimentRunner(config={"trainer": ClassicalCandidateTrainer(), ...})` 接入，实际记录
+每个 OOF fit、heldout 预测行数、最终加权 refit 与总耗时；不只统计最后一次 fit。
+仅在适配期间装配记录代理，原始 base 参数和最终推断模型恢复为原类型；无额外克隆、无内部 TypeError 重试。
+失败部分工作保留在 trainer 的 `last_receipt`，成功收据进入 manifest；不伪造 epoch。
+默认 OOF/剪枝/预测与直接 fit 的逐值一致、失败计数和四角色 PA/OA 已有 CPU 回归。
+核心文件及历史来源摘要不变；原生 OS、无 TS 校准、正式预算与准入边界不变。
+
 原生 OS、无同形未标记风险项；显式 ts fail-loud，不给 P 添加 s=0 复制行。
 推导 π 只是训练观测/噪声模型诊断，不需要外部 π。若退化模型推导 π≥1，保留作者原估计、
 夹断 inverse noise π₀ 并在 `prior_diagnostic_` 显式报告；不能拿该值作合法类先验。

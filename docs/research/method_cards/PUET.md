@@ -41,6 +41,13 @@ W_N(S)=W_U(S)-W_P(S).
 
 ## 当前实现边界
 
+2026-10-31：新增 opt-in `ClassicalCandidateTrainer`（`pu_toolbox.experiment.classical_candidate`），
+通过 `ExperimentRunner(config={"trainer": ClassicalCandidateTrainer(), ...})` 使用。
+逐树记录实际完成数、根部 P/U 行数/质量、深度、叶数与耗时，成功记录进入 candidate manifest。
+失败的部分工作保留在 trainer 的 `last_receipt`，不伪造成功模型或神经 epoch。
+适配层不改核心树构建、随机数或历史来源摘要；OS/TS×bootstrap、默认结果逐值对照、
+四角色 PA/OA 与 pickle 已有 CPU 回归。它是成本证据入口，不解除预算/正式准入阻断。
+
 - 公开类 `PUExtraTreesClassifier`、注册名 `puet`（别名 `pu_extra_trees`）；仅稠密二维表格数据，CPU/NumPy 实现，无 GPU 路径。
 - 当前只实现作者默认的 **nnPU + quadratic** 分支；作者代码另有 uPU 与 logistic 分支，本组件未宣称覆盖。`source_status=official_related` 表示作者代码可追溯，但本实现是独立编写的受限子集。
 - 默认 `bootstrap=False` 与作者发布代码一致，树间随机性来自特征/阈值；`bootstrap=True` 可启用论文 §4 描述的 P/U 分组重采样。为保证真正的贪心风险最小化，仅接受正风险下降的划分；与论文实验的完整逐节点决策/数值结果尚未对齐。

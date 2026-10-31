@@ -63,6 +63,8 @@
   D21/D22、OS 消融能力及正式配方阻断不变，详见 [VPU 方法卡](../method_cards/VPU.md)。
 - P3MIX 已补显式合并打乱批次、三变体的样本曝光/更新数与 CPU CNN 回归；
   旧默认及 OS 校准口径不变，正式配方/资源与 blocked 状态仍待，见 [方法卡](../method_cards/P3MIX.md)。
+- PUET/RP 已补 opt-in 实际逐树 / OOF+refit 成本收据及四角色 CPU 回归；
+  不修改核心算法、历史来源证据或正式预算，失败诊断留在 trainer，成功收据随 manifest。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 
