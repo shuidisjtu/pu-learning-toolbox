@@ -491,7 +491,11 @@ def run(
             if not pending:
                 continue
             job = choose_pending(pending, [j for j in jobs if j["status"] == "running"], mode)
-            if mode == "exclusive" and index in packed_allowed:
+            if (
+                mode in {"exclusive", "bounded_concurrency_trial"}
+                and index in packed_allowed
+                and snapshot[index]["free_mib"] >= 32768
+            ):
                 # Start the trial card with a measured native model rather
                 # than endlessly cycling short adapters that cannot anchor it.
                 job = choose_pending(pending, active, "packed_compute_trial") or job
