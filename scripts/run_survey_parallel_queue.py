@@ -491,6 +491,10 @@ def run(
             if not pending:
                 continue
             job = choose_pending(pending, [j for j in jobs if j["status"] == "running"], mode)
+            if mode == "exclusive" and index in packed_allowed:
+                # Start the trial card with a measured native model rather
+                # than endlessly cycling short adapters that cannot anchor it.
+                job = choose_pending(pending, active, "packed_compute_trial") or job
             if job is None:
                 continue
             # Recheck immediately before launch, not only at the beginning
