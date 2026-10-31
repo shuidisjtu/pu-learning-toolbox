@@ -313,6 +313,13 @@ def execute(plan, output):
         {key: value for key, value in plan.items() if key != "plan_sha256"}
     ):
         raise ValueError("image plan changed after planning")
+    # A resealed JSON hash must not relabel a fixed method's native run view.
+    # Keep the existing locked-plan rejection contract before re-planning.
+    expected_view = "os" if plan["method"] in {"pan", "p3mix"} else "ts"
+    if plan["training_view"] not in ("os", "ts") or (
+        plan["method"] != "cvir" and plan["training_view"] != expected_view
+    ):
+        raise ValueError("image input/code/recipe identity changed after planning")
     actual = build_plan(
         plan["input_directory"],
         method=plan["method"],
