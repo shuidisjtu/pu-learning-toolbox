@@ -38,6 +38,19 @@
 
 ### 1.2 缺口任务
 
+2026-11-01 清单纠偏：3320 是 **runnable 网格**，不是项目总量；24 个已登记 blocked 单元
+沿现有网格条件展开为 740 fit，但另有 README §2 要求的 34 个尚未建单元的模板扩展
+（条件估算 1090 fit）。PUET/RP 的图像路径 8 格及 CIFAR Self-PU full-meta 1 格仍须明确
+路径/范围；三种 support profile 的 IMDB/20News/ADNI 共 9 格为协议明确排除，不补跑。
+现有 `audit_survey_queue.py` 同时输出以上清单，不生成任务、不改协议、不把候选五 seed 抵扣
+正式格。此前把 740 当成项目全部后续工作量的口径撤回。
+
+本轮优先顺序：① GradPU/PAN/VPU 的配方数值与依据、CVIR 版本化 prior/view 接线及
+其余 excluded 方法的预算/runner；② CIFAR LaGAM/PULNS 五角色 CNN 及全 epoch 选模；
+③ 同步模板数据集、SCAR 和允许的 SAR，运行入口/registry/comparison 同步后成组跑批；
+④ D54、PN-CNN 和资源记录验收、结果四组与诊断表。GEN-PU/Holistic 已冻结配方不重做。
+当前 CIFAR 候选 90 fit 仅含 SCAR，CVIR-OS 的 15 fit 为额外对照；不是上述工作完成声明。
+
 只列仍未关闭的缺口；已完成项并入 §1.1，不再留在这里。
 
 2026-11-01 后续顺序（历史能力说明不作为实时计数）：

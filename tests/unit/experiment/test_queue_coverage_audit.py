@@ -1,9 +1,12 @@
 """Queue inventory counts fits once and keeps correction campaigns separate."""
 
+import copy
 import importlib.util
 from pathlib import Path
 
 import pytest
+
+from pu_toolbox.experiment.survey_protocol import load_protocol
 
 pytestmark = pytest.mark.unit
 
@@ -94,3 +97,35 @@ def test_param_cli_status_and_report(inventory, tmp_path, monkeypatch, complete,
         == code
     )
     assert '"coverage_complete"' in output.read_text()
+
+
+def test_basic_backlog_includes_unbuilt_dataset_extensions(inventory):
+    path = Path(__file__).resolve().parents[3] / "pu_toolbox/experiment/survey_protocol_v3.json"
+    protocol = load_protocol(path)
+    before = copy.deepcopy(protocol)
+    report = inventory.protocol_backlog(protocol)
+    assert report == inventory.protocol_backlog(protocol)
+    assert protocol == before
+    assert report["runnable_fits"] == 3320
+    assert report["declared_blocked_units"] == 24
+    assert report["declared_blocked_conditional_fits"] == 740
+    assert report["missing_template_conditional_fits"] == 1090
+    assert report["absent_profile_dataset_counts"] == {
+        "missing_template_extension": 34,
+        "policy_excluded_support_dataset": 9,
+        "missing_path_or_scope_decision": 9,
+    }
+    assert report["profile_dataset_cells_present"] == 132
+    assert report["algorithm_dataset_cells_present"] == 128
+    assert report["runnable_algorithm_dataset_cells"] == 104
+
+
+def test_edge_exclusions_and_unresolved_paths_do_not_invent_jobs(inventory):
+    path = Path(__file__).resolve().parents[3] / "pu_toolbox/experiment/survey_protocol_v3.json"
+    report = inventory.protocol_backlog(load_protocol(path))
+    rows = {(r["dataset"], r["profile"]): r for r in report["absent_profile_dataset_cells"]}
+    assert rows["adni", "lagam"]["conditional_fits"] == 0
+    assert rows["cifar10", "self_pu_full_meta"]["conditional_fits"] is None
+    assert rows["cifar10", "rp"]["conditional_fits"] is None
+    assert rows["mnist", "kldce"]["conditional_fits"] == 15
+    assert rows["mnist", "gradpu"]["conditional_fits"] == 35

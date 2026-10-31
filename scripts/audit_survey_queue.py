@@ -15,7 +15,107 @@ from pathlib import Path
 
 from pu_toolbox.experiment.pilot_plan import manifest_identity, planned_runs
 from pu_toolbox.experiment.queue_scheduling import validate_fit_ownership
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol
+from pu_toolbox.experiment.survey_protocol import digest, load_protocol, profile_mechanisms
+
+
+def protocol_backlog(protocol):
+    """Inventory declared blockers AND absent template rows; never enable them.
+
+    The 2026-11-01 progress report counted only the declared blocked units,
+    omitting README section 2's later dataset expansion. These are conditional
+    workload estimates, not approved run identities or a launch plan. The
+    support exclusion policy comes from protocol section 2.4 / D50.
+    """
+    templates = {
+        "connect_4": "spambase",
+        "twenty_newsgroups": "imdb",
+        "mnist": "cifar10",
+        "fashion_mnist": "cifar10",
+        "adni": "cifar10",
+    }
+    datasets = sorted({"spambase", "imdb", "cifar10", *templates})
+    support_datasets = {"spambase", "connect_4", "mnist", "fashion_mnist", "cifar10"}
+    units = protocol["execution_units"]
+    profiles = protocol["method_profiles"]
+
+    def fit_count(method):
+        if method == "pn_oracle":
+            return len(protocol["seeds"])
+        allowed = profile_mechanisms(protocol, method)
+        return len(protocol["seeds"]) * sum(
+            len(tokens)
+            for mechanism, tokens in protocol["c_tokens"].items()
+            if allowed is None or mechanism in allowed
+        )
+
+    blocked = [
+        dict(
+            dataset=u["dataset"],
+            profile=u["method"],
+            training_path=u["training_path"],
+            conditional_fits=fit_count(u["method"]),
+            reason=u.get("non_runnable_reason"),
+        )
+        for u in units
+        if u.get("runnable") is not True
+    ]
+    absent = []
+    for method, profile in sorted(profiles.items()):
+        existing = [u for u in units if u["method"] == method]
+        support = profile.get("supervision") == "independent_clean_support"
+        for dataset in datasets:
+            if any(u["dataset"] == dataset for u in existing):
+                continue
+            source = templates.get(dataset)
+            template_units = [u for u in existing if u["dataset"] == source]
+            if support and dataset not in support_datasets:
+                kind, count = "policy_excluded_support_dataset", 0
+            elif template_units:
+                kind, count = "missing_template_extension", len(template_units) * fit_count(method)
+            else:
+                kind, count = "missing_path_or_scope_decision", None
+            absent.append(
+                dict(
+                    dataset=dataset,
+                    profile=method,
+                    classification=kind,
+                    template_dataset=source,
+                    template_paths=[u["training_path"] for u in template_units],
+                    conditional_fits=count,
+                )
+            )
+    profile_cells = {(u["dataset"], u["method"]) for u in units}
+    algorithm_cells = {
+        (u["dataset"], profiles[u["method"]].get("algorithm", u["method"])) for u in units
+    }
+    runnable_algorithm_cells = {
+        (u["dataset"], profiles[u["method"]].get("algorithm", u["method"]))
+        for u in units
+        if u.get("runnable") is True
+    }
+    counts = Counter(row["classification"] for row in absent)
+    return dict(
+        scope="full_protocol_backlog_not_runnable_queue_coverage",
+        conditional_estimates_only=True,
+        runnable_fits=len(planned_runs(protocol)),
+        declared_blocked_units=len(blocked),
+        declared_blocked_conditional_fits=sum(row["conditional_fits"] for row in blocked),
+        absent_profile_dataset_counts=dict(counts),
+        missing_template_conditional_fits=sum(
+            row["conditional_fits"]
+            for row in absent
+            if row["classification"] == "missing_template_extension"
+        ),
+        profile_dataset_cells_present=len(profile_cells),
+        algorithm_dataset_cells_present=len(algorithm_cells),
+        runnable_algorithm_dataset_cells=len(runnable_algorithm_cells),
+        blocked_units=blocked,
+        absent_profile_dataset_cells=absent,
+        completion_warning=(
+            "Queue coverage_complete covers runnable fits only; it is not project or "
+            "formal-admission completion. Candidate campaigns cannot be subtracted as formal fits."
+        ),
+    )
 
 
 def reconcile(expected, previous, jobs, verify_job):
@@ -91,6 +191,7 @@ def audit(queue, protocol_path):
         (r.key for r in planned_runs(protocol)), previous, state["jobs"], successful_artifacts
     )
     report.update(
+        protocol_backlog=protocol_backlog(protocol),
         snapshot_at=state["updated_at"],
         audited_at=datetime.now(timezone.utc).isoformat(),
         protocol_sha256=protocol_hash,
