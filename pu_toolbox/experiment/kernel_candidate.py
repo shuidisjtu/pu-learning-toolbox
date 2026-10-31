@@ -138,15 +138,18 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
         n, d = features.shape
         p = int(np.count_nonzero(labels == 1))
         u = n - p
+        # Match the core fit's explicit float(self.flip_probability), including
+        # weak scalar-promotion environments; do not let np.float32 round pi.
+        flip = float(estimator.flip_probability)
         if not p or not u or estimator.mom_groups > u:
             raise ValueError("positive P/U and mom_groups <= observed U are required")
         binding = getattr(self, "_generation_binding", None)
         if binding is not None and (
-            estimator.flip_probability != binding["flip_probability"] or p != binding["n_labeled"]
+            flip != binding["flip_probability"] or p != binding["n_labeled"]
         ):
             raise ValueError("KLDCE flip_probability or P count differs from bound SCAR c_realized")
         if self.prior_policy == "derived":
-            prior = solve_prior_from_positive_fraction(p, n, estimator.flip_probability)
+            prior = solve_prior_from_positive_fraction(p, n, flip)
         else:
             if (
                 isinstance(class_prior, bool | np.bool_)
@@ -156,7 +159,7 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
             ):
                 raise ValueError("population_override requires finite population prior in (0,1)")
             prior = float(class_prior)
-        denominator = stable_centroid_denominator(prior, estimator.flip_probability)
+        denominator = stable_centroid_denominator(prior, flip)
         # Same Aeq=[+1_P,-1_U,+1_gamma], alpha<=1/n, gamma<=1/(2n)
         # as the core's Phase-I LP, but this range check allocates no QP.
         rhs = -u / (2 * n * denominator)
@@ -187,7 +190,7 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
             },
             "qp_named_array_payload_bytes": payload,
             "covariance_payload_lower_bound_bytes": covariance_minimum,
-            "flip_probability": float(estimator.flip_probability),
+            "flip_probability": flip,
             "generation_binding": copy.deepcopy(binding),
             "kernel_payload_cap_bytes": self.kernel_payload_cap_bytes,
             "memory_scope": "named_QP_and_covariance_lower_bound; excludes_Gram_and_temporaries",

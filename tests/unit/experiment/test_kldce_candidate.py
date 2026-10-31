@@ -210,3 +210,33 @@ def test_edge_realized_frequency_binding_refuses_requested_rate_substitution(tmp
     )
     with pytest.raises(ValueError, match="differs from bound"):
         adapter.preflight(model(flip_probability=0.7), *data(), os_or_ts="os")
+
+
+@pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
+@pytest.mark.parametrize("promotion", [None, "weak"])
+def test_param_determ_numpy_flip_scalar_matches_native_prior_conversion(
+    tmp_path, scalar_type, promotion
+):
+    getter, setter = (
+        getattr(np, "_get_promotion_state", None),
+        getattr(np, "_set_promotion_state", None),
+    )
+    if promotion is not None and (getter is None or setter is None):
+        pytest.skip("installed NumPy has no promotion-compatibility test hook")
+    previous = getter() if getter is not None else None
+    try:
+        if promotion is not None:
+            setter(promotion)
+        features, labels = data()
+        candidate = model(flip_probability=scalar_type(0.2))
+        direct = clone(candidate).fit(features, labels)
+        adapter = trainer(tmp_path)
+        screen = adapter.preflight(candidate, features, labels, os_or_ts="os")
+        assert float(screen["effective_training_prior"]) == float(direct.class_prior_)
+        adapter.fit(candidate, features, labels, os_or_ts="os")
+        np.testing.assert_array_equal(
+            candidate.decision_function(features), direct.decision_function(features)
+        )
+    finally:
+        if previous is not None:
+            setter(previous)
