@@ -11,6 +11,24 @@ from collections import Counter
 from pathlib import Path
 
 
+def parse_gpu_indices(value):
+    """Explicit nonempty physical GPU allowlist, not a count or reservation."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("GPU indices must be a nonempty comma-separated list")
+    tokens = value.split(",")
+    if any(not t.strip().isdigit() for t in tokens):
+        raise ValueError("GPU indices must be nonnegative integers")
+    indices = tuple(sorted(int(t.strip()) for t in tokens))
+    if len(set(indices)) != len(indices):
+        raise ValueError("duplicate GPU index")
+    return indices
+
+
+def allowed_devices(snapshot, indices):
+    """Never substitute a disallowed GPU when an allowed one is busy/missing."""
+    return snapshot if indices is None else {i: d for i, d in snapshot.items() if i in indices}
+
+
 def validate_fit_ownership(jobs):
     """Reject duplicate identities/outputs before a controller starts work."""
     owners, roots, labels = {}, set(), set()

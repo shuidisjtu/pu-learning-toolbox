@@ -272,6 +272,11 @@ def render(
             f"Heartbeat {delay}s ago"
             + (" [STALE: inspect scheduler]" if delay > 60 else "")
             + f" | {historic} superseded failures hidden"
+            + (
+                f" | GPU allowlist={current['scheduler']['gpu_indices']}"
+                if current.get("scheduler", {}).get("gpu_indices") is not None
+                else ""
+            )
         )
     except (OSError, ValueError, KeyError) as error:
         return "\n".join(line[:width] for line in [*lines, str(error)])

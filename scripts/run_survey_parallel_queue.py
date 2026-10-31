@@ -22,9 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pu_toolbox.experiment.queue_scheduling import (
+    allowed_devices,
     choose_pending,
     dispatch_priority,
     dispatch_slots,
+    parse_gpu_indices,
     split_pending_jobs,
     validate_fit_ownership,
 )
@@ -379,6 +381,7 @@ def run(
     recover=False,
     repair_plan=None,
     session_name="pu-survey-parallel-20261028",
+    gpu_indices=None,
 ):
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     log = (queue / "parallel_supervisor.log").open("a", buffering=1)
@@ -448,7 +451,12 @@ def run(
                 idle_counts[index] = idle_counts.get(index, 0) + 1 if not d["pids"] else 0
                 low = not d["pids"] - own_pids and d["util"] <= 35
                 low_counts[index] = low_counts.get(index, 0) + 1 if low else 0
-            slots = dispatch_slots(snapshot, active, idle_counts=idle_counts, low_counts=low_counts)
+            slots = dispatch_slots(
+                allowed_devices(snapshot, gpu_indices),
+                active,
+                idle_counts=idle_counts,
+                low_counts=low_counts,
+            )
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
             snapshot, slots, query_error = {}, [], str(exc)
             idle_counts.clear()
@@ -475,7 +483,10 @@ def run(
                     fresh = devices()
                     current_active = [j for j in jobs if j["status"] == "running"]
                     if (index, mode) not in dispatch_slots(
-                        fresh, current_active, idle_counts=idle_counts, low_counts=low_counts
+                        allowed_devices(fresh, gpu_indices),
+                        current_active,
+                        idle_counts=idle_counts,
+                        low_counts=low_counts,
                     ):
                         continue
                 except (OSError, ValueError, KeyError, subprocess.SubprocessError):
@@ -501,6 +512,8 @@ def run(
             "check_interval_seconds": 5,
             "granularity": "single_fit_except_adopted_batches",
             "max_jobs_per_gpu": 2,
+            "gpu_indices": list(gpu_indices) if gpu_indices is not None else None,
+            "gpu_card_limit": len(gpu_indices) if gpu_indices is not None else None,
             "concurrency_policy": "bounded_prep_overlap_one_short_lane_foreign_process_veto",
             "allocation_policy": {"NUMPY_MADVISE_HUGEPAGE": "0"},
             "last_query_error": query_error,
@@ -535,6 +548,11 @@ def main():
     parser.add_argument("--legacy-worker", type=Path, required=True)
     parser.add_argument("--session-name", default="pu-survey-parallel-20261028")
     parser.add_argument(
+        "--gpu-indices",
+        type=parse_gpu_indices,
+        help="physical GPU allowlist; busy allowed cards never spill to other GPUs",
+    )
+    parser.add_argument(
         "--add-support-repair",
         type=Path,
         help="mount a verified D53 plan with per-unit full-budget canary gates",
@@ -551,6 +569,7 @@ def main():
         recover=args.recover,
         repair_plan=args.add_support_repair,
         session_name=args.session_name,
+        gpu_indices=args.gpu_indices,
     )
 
 
