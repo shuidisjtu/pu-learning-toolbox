@@ -56,6 +56,11 @@
 --output <新报告路径>`。检查覆盖、重复归属、完成制品及修正批次；不重新证明数据/环境准入。
 输出已有则拒绝覆盖；漏排、幽灵格或完成制品错误退出码为 2。
 
+组内表格交接入口 `export_survey_queue_handoff.py --queue <队列目录> --output <新目录>`：
+合并前批与续跑的已完成观测，D53 修正只在导出中替换同身份旧值，附替换清单与 SHA256；
+五 seed 不齐不算均值，PA/OA 行不重复计训练。工作簿、CSV、ZIP 均留在本机，不入库，
+不混入合作者上传表或新候选验证，不据此清除环境/正式准入阻断。
+
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |

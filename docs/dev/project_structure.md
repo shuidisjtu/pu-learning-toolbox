@@ -404,6 +404,7 @@ tests/
       test_support_protocol_context.py  # support CLI 的版本、c token 与收据来源偏离判定
       test_prepare_support_repair.py    # 重跑规划命令、历史根/新输出隔离与只读拒收门禁
       test_candidate_image_adni.py      # ADNI 替代槽位灰度图、双选模回放与非临床来源边界
+      test_queue_handoff_export.py      # 结果交接修正替代、seed 隔离与汇总回归
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -955,6 +956,7 @@ scripts/
   check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
   run_survey_queue_fit.py                 # 固定源码单 fit 补跑，批次证据写入独立输出根
   audit_survey_queue.py                   # 只读核对后台队列与协议训练格、完成制品
+  export_survey_queue_handoff.py          # 只读导出含修正替代记录的组内观测结果表
 ```
 
 ## 7. CI/CD（`.github/`）
