@@ -14,7 +14,11 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pu_toolbox.experiment.queue_scheduling import choose_pending, dispatch_priority
+from pu_toolbox.experiment.queue_scheduling import (
+    choose_pending,
+    cpu_estimator_tail,
+    dispatch_priority,
+)
 
 BASE = Path("/data2/user/zihenglin/pu-learning-toolbox/results/survey-tasks-20261027")
 NAMES = {
@@ -338,7 +342,7 @@ def render(
             and job["status"] == "running"
             and job.get("pid") not in device.get("pids", set())
         ):
-            info["epoch"] = "no-CUDA"
+            info["epoch"] = "CPU-solve" if cpu_estimator_tail(job) else "no-CUDA"
         dev = "CPU" if index is None else str(index) + ("*" if shared else "")
         rows.append(
             {
@@ -376,6 +380,8 @@ def render(
                 stage = f"PN snapshot {row['PHASE'][2:]}; age={row['AGE']}"
             elif row["PHASE"] == "no-CUDA":
                 stage = "Process alive; no GPU context observed"
+            elif row["PHASE"] == "CPU-solve":
+                stage = "CPU estimator; no CUDA context (GPU may overlap)"
             else:
                 stage = f"snapshot age={row['AGE']}"
             lines.append(f"  {stage} | {timing}")

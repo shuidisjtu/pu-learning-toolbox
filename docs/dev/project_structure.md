@@ -604,6 +604,7 @@ tests/
       test_support_campaign_worker.py   # 补跑单 fit 命令、独立证据根与变更/覆盖拒收
       test_queue_fast_lane.py           # 短任务通道及 CPU 准备阶段穿插规则
       test_queue_gpu_limit.py           # GPU 白名单限制与忙卡不外溢验证
+      test_queue_cpu_overlap.py         # CPU 求解与真实 GPU 训练的安全穿插
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组

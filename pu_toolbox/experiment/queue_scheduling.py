@@ -113,6 +113,17 @@ def dispatch_slots(devices, active_jobs, *, idle_counts, low_counts, low_limit=3
             and device["util"] <= low_limit
             and low_counts.get(index, 0) >= 3
             and device["free_mib"] >= 32768
+            and any(j["gpu"]["index"] == index and cpu_estimator_tail(j) for j in active)
+        ):
+            # CPU fitting can follow CUDA extraction. Leave room for a late
+            # return to CUDA; do not migrate or stop that worker.
+            slots.append((index, "cpu_tail_compute_overlap"))
+        elif (
+            counts[index] == 1
+            and not pids
+            and device["util"] <= low_limit
+            and low_counts.get(index, 0) >= 3
+            and device["free_mib"] >= 32768
             and any(
                 j["gpu"]["index"] == index
                 and j.get("path") == "native_cnn"
@@ -151,11 +162,24 @@ def short_candidate(job):
     )
 
 
+def cpu_estimator_tail(job):
+    """Only these feature-adapted estimators have CPU-only fitting."""
+    return job.get("path") == "cnn_feature_adapter" and job.get("method") in {
+        "lbe",
+        "pusb_kernel",
+        "upu",
+    }
+
+
 def choose_pending(pending, active, mode):
     """At most one fast-lane worker; leave remaining cards to long/recovery jobs."""
     ordered = sorted(pending, key=dispatch_priority)
     if not ordered:
         return None
+    if mode == "cpu_tail_compute_overlap":
+        compute = [j for j in ordered if not cpu_estimator_tail(j)]
+        images = [j for j in compute if j.get("path") == "native_cnn"]
+        return (images or compute or [None])[0]
     shorts = [j for j in ordered if short_candidate(j)]
     short_active = any(short_candidate(j) for j in active)
     if mode == "prep_short_overlap":
@@ -165,7 +189,8 @@ def choose_pending(pending, active, mode):
         return protected[0]
     if mode == "exclusive" and len(active) >= 2 and shorts and not short_active:
         return shorts[0]
-    return ordered[0]
+    compute = [j for j in ordered if not cpu_estimator_tail(j)]
+    return (compute or ordered)[0]
 
 
 def dispatch_priority(job):
