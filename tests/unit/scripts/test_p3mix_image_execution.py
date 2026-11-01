@@ -116,7 +116,9 @@ def test_edge_changed_variant_or_input_source_does_not_create_output(tmp_path, m
         script,
         "file_hash",
         lambda path: (
-            "changed" if str(path).endswith("estimators/deep/p3mix.py") else original(path)
+            "changed"
+            if Path(path).as_posix().endswith("estimators/deep/p3mix.py")
+            else original(path)
         ),
     )
     with pytest.raises(ValueError, match="identity changed"):

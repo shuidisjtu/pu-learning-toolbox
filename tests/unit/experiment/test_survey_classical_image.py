@@ -63,7 +63,7 @@ def test_determ_generated_registry_and_comparison_are_bound_without_new_signatur
     artifacts = build_artifacts()
     root = resolve_protocol_path("survey-v3.2").parent
     for name, value in artifacts.items():
-        assert json.loads((root / name).read_text()) == value
+        assert json.loads((root / name).read_text(encoding="utf-8")) == value
     p = artifacts["survey_protocol_v3_2.json"]
     assert not validate_registry(artifacts["survey_recipe_registry_v1_2.json"], p)
     mapping = load_profile_map(profile_map_path(p))
@@ -76,6 +76,17 @@ def test_determ_generated_registry_and_comparison_are_bound_without_new_signatur
         m["review_state"] == "pending_review" and not m["verified_by"] and not m["anchor_ids"]
         for m in additions
     )
+
+
+def test_edge_artifact_generation_is_independent_of_host_default_encoding(monkeypatch):
+    original = Path.read_text
+
+    def windows_default(path, encoding=None, errors=None):
+        return original(path, encoding=encoding or "cp1252", errors=errors)
+
+    expected = build_artifacts()
+    monkeypatch.setattr(Path, "read_text", windows_default)
+    assert build_artifacts() == expected
 
 
 @pytest.mark.parametrize("method", ["puet", "rp"])

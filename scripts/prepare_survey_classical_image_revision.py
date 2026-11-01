@@ -67,8 +67,10 @@ def build_protocol():
 
 def build_artifacts():
     protocol = build_protocol()
-    comparison = json.loads((ROOT / "survey_comparison_v7.json").read_text())
-    profile_map = json.loads((ROOT / "survey_comparison_profile_map_v4.json").read_text())
+    comparison = json.loads((ROOT / "survey_comparison_v7.json").read_text(encoding="utf-8"))
+    profile_map = json.loads(
+        (ROOT / "survey_comparison_profile_map_v4.json").read_text(encoding="utf-8")
+    )
     comparison["comparison_version"] = "survey-comparison-v8"
     binding = {
         "protocol_version": protocol["protocol_version"],
@@ -122,10 +124,10 @@ def main():
         path = args.output_dir / name
         text = json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
         if path.exists():
-            if path.read_text() != text:
+            if path.read_text(encoding="utf-8") != text:
                 raise ValueError(f"refusing to overwrite changed artifact: {path}")
         else:
-            path.write_text(text)
+            path.write_text(text, encoding="utf-8")
         print(path)
 
 

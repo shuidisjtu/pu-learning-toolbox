@@ -159,7 +159,8 @@ def classical_progress(job, jobs, elapsed):
 def render(outputs, *, now=None, devices=None, gpu_error=None, width=160):
     """Render one snapshot; missing/stale state is visible, never interpreted as idle."""
     now = time.time() if now is None else now
-    lines = [f"Survey live monitor | {datetime.fromtimestamp(now).astimezone():%F %T %Z}"]
+    local_time = datetime.fromtimestamp(now, tz=timezone.utc).astimezone()
+    lines = [f"Survey live monitor | {local_time:%Y-%m-%d %H:%M:%S %Z}"]
     states = []
     for root in outputs:
         try:

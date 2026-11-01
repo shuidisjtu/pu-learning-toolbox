@@ -116,7 +116,9 @@ def test_edge_changed_plan_source_or_environment_refused_before_output(tmp_path,
         patch.setattr(
             script,
             "file_hash",
-            lambda path: "changed" if str(path).endswith("risk/puet.py") else original(path),
+            lambda path: (
+                "changed" if Path(path).as_posix().endswith("risk/puet.py") else original(path)
+            ),
         )
         with pytest.raises(ValueError, match="identity changed"):
             script.execute(planned, tmp_path / "bad")

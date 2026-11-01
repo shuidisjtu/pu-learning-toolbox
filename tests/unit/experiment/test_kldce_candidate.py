@@ -78,9 +78,19 @@ def test_basic_determ_prior_choice_direct_fit_and_pickle_parity(tmp_path, policy
         candidate.decision_function(features), direct.decision_function(features)
     )
     restored = pickle.loads(pickle.dumps(candidate))
-    np.testing.assert_array_equal(
-        restored.decision_function(features), direct.decision_function(features)
+    # Pickle may change array alignment and hence SIMD reduction rounding (macOS
+    # Accelerate). Direct-fit parity above stays exact; serialization preserves
+    # stored arrays exactly and scores to input-dtype floating-point precision.
+    for name in ("_X_train", "centroid_opt_", "alpha_full_", "gamma_unlabeled_", "_y_tilde_"):
+        np.testing.assert_array_equal(getattr(restored, name), getattr(candidate, name))
+    epsilon = np.finfo(dtype).eps
+    np.testing.assert_allclose(
+        restored.decision_function(features),
+        direct.decision_function(features),
+        rtol=8 * epsilon,
+        atol=epsilon,
     )
+    np.testing.assert_array_equal(restored.predict(features), direct.predict(features))
     np.testing.assert_array_equal(features, original[0])
     np.testing.assert_array_equal(labels, original[1])
 

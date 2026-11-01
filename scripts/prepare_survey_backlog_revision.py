@@ -164,8 +164,10 @@ def build_protocol():
 
 
 def build_comparison(protocol):
-    comparison = json.loads((ROOT / "survey_comparison_v6.json").read_text())
-    profile_map = json.loads((ROOT / "survey_comparison_profile_map_v3.json").read_text())
+    comparison = json.loads((ROOT / "survey_comparison_v6.json").read_text(encoding="utf-8"))
+    profile_map = json.loads(
+        (ROOT / "survey_comparison_profile_map_v3.json").read_text(encoding="utf-8")
+    )
     comparison["comparison_version"] = "survey-comparison-v7"
     comparison["review_status"] = "pending_collaborator_review"
     comparison["bound_survey_protocol"] = {
@@ -244,9 +246,16 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=True)
     for name, payload in artifacts.items():
         path = args.output_dir / name
-        if path.exists() and not args.update and json.loads(path.read_text()) != payload:
+        if (
+            path.exists()
+            and not args.update
+            and json.loads(path.read_text(encoding="utf-8")) != payload
+        ):
             raise ValueError(f"refusing to overwrite differing artifact: {path}")
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n")
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+            encoding="utf-8",
+        )
         print(path)
 
 

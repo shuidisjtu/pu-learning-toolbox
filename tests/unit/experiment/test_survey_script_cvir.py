@@ -79,7 +79,7 @@ def test_basic_determ_cli_binds_prior_checkpoints_selection_and_reclaims(
         assert len(candidate["epoch_checkpoints"]) == 3
         remaining = [c for c in candidate["epoch_checkpoints"] if Path(c["path"]).exists()]
         assert 1 <= len(remaining) <= 2
-        ledger = json.loads((path.parent / "method_ledger_entry.json").read_text())
+        ledger = json.loads((path.parent / "method_ledger_entry.json").read_text(encoding="utf-8"))
         assert ledger["run_view"] == f"{resolved}-compatible"
         manifests.append(manifest)
     assert manifests[0]["test_results"] == manifests[1]["test_results"]
