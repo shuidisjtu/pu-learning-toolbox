@@ -1,5 +1,5 @@
 # ruff: noqa: N806
-"""Plan or execute PULDA/GradPU image checkpoints, not a formal Survey row."""
+"""Plan or execute candidate image checkpoints, not a formal Survey row."""
 
 from __future__ import annotations
 
@@ -15,7 +15,10 @@ import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart, validate_bundle
-from pu_toolbox.experiment.candidate_image import build_candidate_image_classifier
+from pu_toolbox.experiment.candidate_image import (
+    _cvir_image_schedule,
+    build_candidate_image_classifier,
+)
 from pu_toolbox.experiment.candidate_image_runner import CandidateImageCheckpointTrainer
 from pu_toolbox.experiment.image import fit_survey_image_preprocessing, transform_survey_images
 from pu_toolbox.experiment.resources import process_lifetime_peak_rss_bytes, runtime_environment
@@ -24,8 +27,34 @@ from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA, SCARGenerat
 from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
 
 ROOT = Path(__file__).resolve().parents[1]
-METHODS = {"pulda": "risk/pulda.py", "gradpu": "deep/grad_pu.py"}
-DATASETS = ("cifar10", "mnist", "fashion_mnist")
+METHODS = {
+    "pulda": "risk/pulda.py",
+    "gradpu": "deep/grad_pu.py",
+    "pan": "deep/pan.py",
+    "vpu": "risk/vpu.py",
+    "p3mix": "deep/p3mix.py",
+    "cvir": "risk/cvir.py",
+}
+DATASETS = ("cifar10", "mnist", "fashion_mnist", "adni")
+ADNI_RECEIPT = "docs/research/pu_survey/data/adni_substitute_receipt_20261012.json"
+
+
+def data_scope(dataset):
+    """Describe the slot honestly, without authenticating arbitrary caller files."""
+    scope = dict(dataset_slot=dataset, raw_source_verified=False)
+    if dataset == "adni":
+        scope.update(
+            dataset_identity="Alzheimer MRI substitute for ADNI slot; not clinical ADNI",
+            clinical_adni=False,
+            subject_level_isolation_verified=False,
+            license_status="unknown; do not infer permission to redistribute",
+            project_source_receipt=ADNI_RECEIPT,
+            verification_scope=(
+                "project substitution policy only; caller NPZ files are not authenticated "
+                "by this receipt"
+            ),
+        )
+    return scope
 
 
 def _load(directory, dataset):
@@ -54,12 +83,12 @@ def _load(directory, dataset):
     return DatasetBundle(*prepared), image
 
 
-def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes):
+def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes, prior_source=None):
     if method not in METHODS or not isinstance(parameters, dict):
         raise ValueError("explicit method and parameter object are required")
     parameters = json.loads(json.dumps(parameters, allow_nan=False))
     if set(parameters).intersection(
-        {"class_prior", "encoder", "train_transform", "model", "random_state"}
+        {"class_prior", "encoder", "train_transform", "model", "discriminator", "random_state"}
     ):
         raise ValueError("image/seed/prior bindings cannot be overridden")
     budget_keys = (
@@ -67,6 +96,48 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes):
         if method == "pulda"
         else ("max_epochs", "batch_size", "lr_schedule")
     )
+    if method == "pan":
+        budget_keys = ("max_epochs", "batch_size", "learning_rate", "adversarial_weight")
+    if method == "vpu":
+        budget_keys = (
+            "hidden_dim",
+            "depth",
+            "max_epochs",
+            "batch_size",
+            "learning_rate",
+            "regularization_weight",
+            "mixup_alpha",
+            "optimizer_schedule",
+            "iterations_per_epoch",
+            "data_device_policy",
+        )
+    if method == "p3mix":
+        budget_keys = (
+            "variant",
+            "hidden_dim",
+            "max_epochs",
+            "batch_size",
+            "batching_policy",
+            "learning_rate",
+            "beta",
+            "gamma",
+            "pool_size",
+            "mixup_alpha",
+            "early_learning_weight",
+            "teacher_decay",
+        )
+    if method == "cvir":
+        budget_keys = (
+            "hidden_dim",
+            "warm_start_epochs",
+            "max_epochs",
+            "batch_size",
+            "learning_rate",
+            "data_device_policy",
+            "input_sampling",
+        )
+        if {"unlabeled_positive_prior", "prior_source"}.intersection(parameters):
+            raise ValueError("CVIR risk prior must be bound from explicit population prior/source")
     if not all(key in parameters for key in (*budget_keys, "device")):
         raise ValueError(f"explicit budget/device required: {budget_keys}")
     if parameters["device"] not in ("cpu", "cuda"):
@@ -83,16 +154,30 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes):
         class_prior=prior if method == "pulda" else None,
         device=parameters["device"],
     )
-    default_epochs = model.checkpoint_epoch_count if method == "pulda" else model.max_epochs
+    default_epochs = (
+        model.checkpoint_epoch_count if method in {"pulda", "cvir"} else model.max_epochs
+    )
     model.set_params(**parameters)
     trainer = CandidateImageCheckpointTrainer(
-        setup, checkpoint_bytes_per_component=checkpoint_bytes
+        setup,
+        checkpoint_bytes_per_component=checkpoint_bytes,
+        population_prior_source=prior_source if method == "cvir" else None,
     )
     return model, setup, trainer, default_epochs
 
 
 def build_plan(
-    directory, *, method, dataset, prior, prior_source, seed, parameters, checkpoint_bytes, c_token
+    directory,
+    *,
+    method,
+    dataset,
+    prior,
+    prior_source,
+    seed,
+    parameters,
+    checkpoint_bytes,
+    c_token,
+    view=None,
 ):
     if dataset not in DATASETS or c_token not in ("0.1", "0.3", "0.5"):
         raise ValueError("unsupported dataset or SCAR c token")
@@ -105,6 +190,13 @@ def build_plan(
         raise ValueError("selection requires explicit finite population prior in (0,1)")
     if not isinstance(prior_source, str) or not prior_source.strip():
         raise ValueError("explicit population prior source required; do not infer from test")
+    expected_view = "os" if method in {"pan", "p3mix"} else "ts"
+    if method == "cvir":
+        if view not in {"os", "ts"}:
+            raise ValueError("CVIR requires explicit os/ts training view of OS source data")
+    elif view is not None and view != expected_view:
+        raise ValueError("training view differs from this method's candidate contract")
+    view = expected_view if view is None else view
     directory = Path(directory).resolve()
     before = {role: file_hash(directory / f"{role}.npz") for role in ROLES}
     bundle, image = _load(directory, dataset)
@@ -115,20 +207,48 @@ def build_plan(
         seed=seed,
         parameters=parameters,
         checkpoint_bytes=checkpoint_bytes,
+        prior_source=prior_source,
     )
     trainer.validate_experiment(
         model,
         bundle,
-        {"os_or_ts": "ts", "checkpoint_bytes_per_component": checkpoint_bytes},
+        {
+            "os_or_ts": view,
+            "checkpoint_bytes_per_component": checkpoint_bytes,
+        },
         [ProtocolPA(), ProtocolOA()],
     )
     generation = {}
+    cvir_binding = None
     for role in ("train", "pu_val"):
         part = getattr(bundle, role)
         observed, meta = SCARGenerator().generate(part.X, part.labels, float(c_token), seed)
         if set(np.unique(observed)) != {0, 1} or meta["n_labeled"] != meta["n_labeled_requested"]:
             raise ValueError("SCAR draw needs unclamped observed P and U in each role")
         generation[role] = meta["label_view_sha256"]
+        if method == "cvir" and role == "train":
+            from pu_toolbox.experiment.cvir_adapter import cvir_risk_prior
+
+            alpha = cvir_risk_prior(
+                prior,
+                n_samples=len(observed),
+                n_labeled=int(np.count_nonzero(observed == 1)),
+                os_or_ts=view,
+            )
+            _cvir_image_schedule(
+                observed,
+                alpha,
+                view,
+                model,
+                minimum_bn_values_per_single_image=setup["minimum_bn_values_per_single_image"],
+            )
+            cvir_binding = dict(
+                population_prior=prior,
+                risk_pool_positive_prior=alpha,
+                source=prior_source,
+                source_verified=False,
+                uses_hidden_training_labels=False,
+            )
     if {role: file_hash(directory / f"{role}.npz") for role in ROLES} != before:
         raise ValueError("image inputs changed during planning")
     references = (
@@ -144,15 +264,25 @@ def build_plan(
         "pu_toolbox/experiment/method_ledger.json",
         "uv.lock",
     )
+    if dataset == "adni":
+        references += (ADNI_RECEIPT,)
+    if method == "pan":
+        references += ("docs/research/pu_survey/data/pan_source_review_20261018.json",)
+    if method == "vpu":
+        references += ("docs/research/pu_survey/data/vpu_schedule_source_20261015.json",)
+    if method == "cvir":
+        references += ("pu_toolbox/experiment/cvir_adapter.py", "pu_toolbox/core/training_views.py")
     resolved = {
         key: value
         for key, value in model.get_params(deep=False).items()
-        if key not in {"encoder", "train_transform", "model"}
+        if key not in {"encoder", "train_transform", "model", "discriminator"}
     }
     plan = {
         "schema_version": "candidate-image-experiment-plan-v1",
         "method": method,
+        "training_view": view,
         "dataset": dataset,
+        "data_scope": data_scope(dataset),
         "input_directory": str(directory),
         "input_files_sha256": before,
         "population_prior": float(prior),
@@ -172,6 +302,8 @@ def build_plan(
         "formal_admission": False,
         "formal_budget_approved": False,
     }
+    if method == "cvir":
+        plan["cvir_prior_binding"] = cvir_binding
     plan["plan_sha256"] = strict_canonical_hash(plan)
     return plan
 
@@ -187,6 +319,13 @@ def execute(plan, output):
         {key: value for key, value in plan.items() if key != "plan_sha256"}
     ):
         raise ValueError("image plan changed after planning")
+    # A resealed JSON hash must not relabel a fixed method's native run view.
+    # Keep the existing locked-plan rejection contract before re-planning.
+    expected_view = "os" if plan["method"] in {"pan", "p3mix"} else "ts"
+    if plan["training_view"] not in ("os", "ts") or (
+        plan["method"] != "cvir" and plan["training_view"] != expected_view
+    ):
+        raise ValueError("image input/code/recipe identity changed after planning")
     actual = build_plan(
         plan["input_directory"],
         method=plan["method"],
@@ -197,6 +336,7 @@ def execute(plan, output):
         parameters=plan["parameters_requested"],
         checkpoint_bytes=plan["checkpoint_bytes_per_component"],
         c_token=plan["c_token"],
+        view=plan["training_view"],
     )
     if actual != plan:
         raise ValueError("image input/code/recipe identity changed after planning")
@@ -213,6 +353,7 @@ def execute(plan, output):
         seed=plan["seed"],
         parameters=plan["parameters_requested"],
         checkpoint_bytes=plan["checkpoint_bytes_per_component"],
+        prior_source=plan["prior_source"],
     )
     if setup != plan["image_setup"]:
         raise ValueError("image setup changed immediately before fitting")
@@ -239,7 +380,7 @@ def execute(plan, output):
         manifest_path=str(output / "manifest.json"),
         config={
             "c": float(plan["c_token"]),
-            "os_or_ts": "ts",
+            "os_or_ts": plan["training_view"],
             "trainer": trainer,
             "candidates": [{}],
             "architecture": "cnn",
@@ -247,6 +388,7 @@ def execute(plan, output):
             "reclaim_unselected_checkpoints": True,
             "split_ref": {
                 "dataset": plan["dataset"],
+                "data_scope": plan["data_scope"],
                 "input_files_sha256": plan["input_files_sha256"],
             },
         },
@@ -282,6 +424,9 @@ def execute(plan, output):
     summary = {
         "schema_version": "candidate-image-experiment-result-v1",
         "method": plan["method"],
+        "dataset": plan["dataset"],
+        "data_scope": plan["data_scope"],
+        "training_view": plan["training_view"],
         "comparison_group": plan["comparison_group"],
         "formal_admission": False,
         "formal_budget_approved": False,
@@ -325,6 +470,10 @@ def execute(plan, output):
             )
         },
     }
+    if plan["method"] in {"pan", "vpu", "p3mix", "cvir"}:
+        summary["source_default_snapshot_projection"]["origin"] = (
+            "toolbox_constructor_not_author_or_frozen_recipe"
+        )
     _write(output / "summary.json", summary)
     if not summary["accepted_engineering_run"]:
         raise ValueError("image warnings/retries require review; evidence retained, not accepted")
@@ -342,6 +491,11 @@ def main(argv=None):
     parser.add_argument("--parameters", type=Path, required=True)
     parser.add_argument("--checkpoint-bytes-per-component", type=int, required=True)
     parser.add_argument("--c", required=True, choices=("0.1", "0.3", "0.5"))
+    parser.add_argument(
+        "--view",
+        choices=("os", "ts"),
+        help="required for CVIR; other methods retain their bound view",
+    )
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--out-dir", type=Path)
     args = parser.parse_args(argv)
@@ -358,6 +512,7 @@ def main(argv=None):
             parameters=json.loads(args.parameters.read_text()),
             checkpoint_bytes=args.checkpoint_bytes_per_component,
             c_token=args.c,
+            view=args.view,
         )
         print(
             json.dumps(

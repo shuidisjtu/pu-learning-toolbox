@@ -19,7 +19,10 @@
   "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "tedn", "pulda", "puet", "gradpu", "lagam", "pan", "rp", "pulns", "genpu", "holistic_pu", "p3mix"],
   "methods": {
     "p3mix": {
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "P3MixClassifier",
+      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_candidate_image_resource_plan.py", "variants": ["base", "e", "c"], "batching_policies": ["role_balanced", "merged_shuffle"], "optimizer_and_extra_forward_counts_separated": true, "default_budget_is_not_frozen_recipe": true, "formal_resource_profile_complete": false},
+      "candidate_image_execution": {"implementation_ref": "scripts/run_candidate_image_experiment.py", "trainer_ref": "pu_toolbox/experiment/candidate_image_runner.py", "training_view": "os", "backbone": "shared_resnet18_engineering_alternative_not_paper_backbone", "selection_components": ["student"], "variants": ["base", "e", "c"], "batching_policies": ["role_balanced", "merged_shuffle"], "four_role_pa_oa_cpu_replay_verified": true, "formal_admission": false, "formal_resource_profile_complete": false},
       "paper": {
         "title": "Who Is Your Right Mixup Partner in Positive and Unlabeled Learning?",
         "authors": "Changchun Li, Ximing Li, Lei Feng, Jihong Ouyang",
@@ -33,7 +36,7 @@
       "source_behavior_review_ref": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "implementation_status": "NATIVE; experimental OS PU classifier with paper P3Mix, P3Mix-E and P3Mix-C variants; MLP or injected trainable CNN encoder; engineering defaults are not a paper recipe or formal admission",
+      "implementation_status": "NATIVE; experimental OS PU classifier with P3Mix/E/C variants; MLP or trainable CNN; legacy role-balanced default and explicit merged-shuffle batching with exact row exposure; not a paper recipe or formal admission",
       "native_sampling_assumption": "os（原文 §2/Algorithm 1 对单一训练集合 P∪U 分批；没有TS风险替换）",
       "run_view": "os-compatible",
       "calibration_applied": false,
@@ -54,7 +57,10 @@
         "epoch_bound": "max_epochs",
         "bound_is_upper_limit": true,
         "optimizer_steps_attribute": "optimizer_steps_",
-        "formal_budget_approved": false
+        "formal_budget_approved": false,
+        "batching_policy_parameter": "batching_policy",
+        "merged_shuffle_steps_per_epoch": "ceil((n_P+n_U)/batch_size); each original row once",
+        "legacy_role_balanced_steps_per_epoch": "max(ceil(n_P/batch_size),ceil(n_U/batch_size)); shorter role cycled"
       },
       "admitted": false,
       "owner_decisions": {},
@@ -69,10 +75,11 @@
         "prior_semantics": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8); no class-prior input",
         "adaptation_level": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8), Algorithm 1; docs/research/method_cards/P3MIX.md",
         "mixup_numerics_and_role_exposure": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md: 2026-10-20 common floating dtype and observed P/U row-use receipts; tests/unit/estimators/test_p3mix_math.py and tests/unit/estimators/test_p3mix.py",
-        "input_isolation_and_public_cnn_path": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md: 2026-10-20 private forward input clones; tests/unit/estimators/test_p3mix_input_isolation.py and tests/integration/test_p3mix_pipeline_cnn.py cover all three variants, CV, four-role PA/OA checkpoints and optional reclamation; synthetic CPU evidence only"
+        "input_isolation_and_public_cnn_path": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md: 2026-10-20 private forward input clones; tests/unit/estimators/test_p3mix_input_isolation.py and tests/integration/test_p3mix_pipeline_cnn.py cover all three variants, CV, four-role PA/OA checkpoints and optional reclamation; synthetic CPU evidence only",
+        "merged_shuffle_batching": "docs/research/method_cards/P3MIX.md: 2026-10-31 Algorithm 1 line 3 opt-in; tests/unit/estimators/test_p3mix_batching.py and tests/integration/test_p3mix_pipeline_cnn.py verify exact row exposure, singleton/empty-role conventions, all variants, PA/OA, clone and pickle; no GPU numerical reproduction"
       },
       "uncertainty": [
-        "Paper Table 1 specifies image backbones and Algorithm 1 line 3 shuffles merged P∪U. Toolbox default MLP and independent P/U batches with the shorter role cycled are engineering adaptations; per-epoch and cumulative role-exposure receipts disclose repeated rows. Learning rate, epochs, batch size, and numerical teacher EMA decay are not fully specified; a frozen recipe is required before comparison.",
+        "Paper Table 1 specifies image backbones and Algorithm 1 line 3 shuffles merged P∪U. Explicit merged_shuffle now implements that order without repeating/dropping rows; absent-role batch loss contributes zero, an engineering convention not defined by the paper. Default role_balanced retains independent P/U batches with the shorter role cycled. Receipts disclose actual row use. Learning rate, epochs, batch size, teacher EMA decay and frozen recipe still require specification; CPU tests do not establish numerical paper reproduction.",
         "Paper §2.1 updates the top-k candidate pool once per epoch; the initial pool is described as random. The implementation initializes it uniformly from observed training P, then refreshes it from training P only.",
         "P3Mix-E uses the printed log(1-<f, target>) regularizer with EMA teacher probabilities; implementation caps agreement at 1-1e-7 to avoid log(0). It updates EMA at epoch end as Algorithm 1 orders it. Algorithm 1 says initialize both student Θ and teacher eΘ randomly but does not state whether independently; implementation copies student into teacher as an explicit engineering choice. Paper does not specify EMA decay.",
         "The paper reports 5 runs and class accuracy anchors, but local benchmark data, exact split identities, and author code are not established by this integration. No result is added to the frozen comparison matrix.",
@@ -192,6 +199,7 @@
       ]
     },
     "pan": {
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "PANClassifier",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "paper": {
@@ -211,7 +219,7 @@
         "README.md": "f5a36b3ac93539438f55aa01375723ee15da07ec9b8b4556e2bad2a2e46b7f63"
       }},
       "source_behavior_review_ref": "docs/research/pu_survey/data/pan_source_review_20261018.json",
-      "implementation_status": "NATIVE; experimental MLP or injected end-to-end CNN with independent C/D encoders; not formal survey admission or paper numeric reproduction",
+      "implementation_status": "NATIVE; experimental MLP or injected end-to-end CNN with independent C/D encoders; standalone four-role image CLI records native OS, both optimizer costs and C-only inference checkpoints; not formal survey admission or paper numeric reproduction",
       "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）",
       "run_view": "os-compatible", "calibration_applied": false,
       "calibration_hooked": false,
@@ -230,7 +238,11 @@
       "uncertainty": ["显式 ts fail-loud：原生 OS 不套用 case-control U∪P 校准", "source_status=official_related 是 2026-10-18 复核结果；作者源码目标/采样与论文 Eq.7/single-training-set 不同，当前实现保留 paper-faithful 并登记差异", "未进入旧冻结协议；参数/训练预算、共享架构、公开数值和 GPU 资源验收仍待独立登记；epoch 权重只恢复 C 的推理，不支持对抗训练续跑"]
     },
     "rp": {
+      "image_project_binding": {"protocol": "survey-v3.2", "registry": "survey-recipes-v1.2", "training_path": "cnn_feature_adapter", "encoder": "resnet18_random_frozen", "datasets": ["cifar10", "mnist", "fashion_mnist", "adni"], "source_space_label_generation": true, "formal_admission": false, "paper_numerical_reproduction": false},
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "RankPruningClassifier",
+      "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "cross_fits_and_final_refit", "records_actual_inner_fits": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/RP.md"},
+      "candidate_cli": {"implementation_ref": "scripts/run_classical_candidate_experiment.py", "execution_device": "cpu", "training_views": ["os"], "four_role_pa_oa_replay": true, "durable_per_attempt_cost_receipts": true, "formal_admission": false},
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "paper": {
         "title": "Learning with Confident Examples: Rank Pruning for Robust Classification with Noisy Labels",
@@ -307,7 +319,10 @@
       "source_behavior_review_ref": "docs/research/pu_survey/admission/upu_source_behavior_review_20261019.md"
     },
     "kldce": {
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "KLDCEClassifier",
+      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_kldce_resource_plan.py", "scope": "declared_dtype_dense_named_array_payload_not_peak_RSS", "counts_rollback_qp_budget": true, "optional_qp_equality_box_feasibility": true, "infeasible_exit_code": 3, "declared_prior_and_flip_not_generator_verified": true, "below_cap_is_not_fit_approval": true, "data_loaded": false, "formal_resource_profile_complete": false, "formal_admission": false},
+      "candidate_cli": {"implementation_ref": "scripts/run_classical_candidate_experiment.py", "trainer_ref": "pu_toolbox/experiment/kernel_candidate.py", "execution_device": "cpu", "training_views": ["os"], "flip_probability_binding": "one_minus_train_SCAR_c_realized", "prior_policies": ["derived", "population_override"], "qp_equality_box_preflight": true, "durable_per_attempt_cost_receipts": true, "rollback_actual_work_observed": false, "formal_admission": false, "formal_resource_profile_complete": false},
       "paper": {
         "title": "Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning (kernelized version, RBF)",
         "authors": "Chen Gong, Hong Shi, Tongliang Liu, Chuang Zhang, Jian Yang, Dacheng Tao",
@@ -739,7 +754,7 @@
         "upstream_commit": "7b3dcad95bd7caa0a9477af37a05764fbe6e27bc",
         "source_status": "official_related (method card audited commit 7b3dcad95bd7caa0a9477af37a05764fbe6e27bc)"
       },
-      "implementation_status": "NATIVE, backend TORCH; LDA + two-way margin warm-up and pseudo-label MixUp, dense MLP or trainable injected CNN adapter",
+      "implementation_status": "NATIVE, backend TORCH; LDA + two-way margin warm-up and pseudo-label MixUp, dense MLP or trainable injected CNN adapter; standalone candidate image CLI includes the grayscale ADNI-substitute slot (engineering only)",
       "native_sampling_assumption": "ts（P 为可靠正类、U 为总体边缘分布；PULDA.md:10-15）",
       "run_view": "ts-compatible",
       "calibration_applied": true,
@@ -766,7 +781,11 @@
       ]
     },
     "puet": {
+      "image_project_binding": {"protocol": "survey-v3.2", "registry": "survey-recipes-v1.2", "training_path": "cnn_feature_adapter", "encoder": "resnet18_random_frozen", "datasets": ["cifar10", "mnist", "fashion_mnist", "adni"], "source_space_label_generation": true, "formal_admission": false, "paper_numerical_reproduction": false},
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "PUExtraTreesClassifier",
+      "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "tree_build", "records_actual_tree_builds_and_role_mass": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/PUET.md"},
+      "candidate_cli": {"implementation_ref": "scripts/run_classical_candidate_experiment.py", "execution_device": "cpu", "training_views": ["os", "ts"], "four_role_pa_oa_replay": true, "durable_per_attempt_cost_receipts": true, "formal_admission": false},
       "source_behavior_review_ref": "docs/research/method_cards/PUET.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
       "paper": {
@@ -816,6 +835,7 @@
       ]
     },
     "gradpu": {
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "GradPUClassifier",
       "source_behavior_review_ref": "docs/research/pu_survey/admission/gradpu_source_review_20261005.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
@@ -829,7 +849,7 @@
         "upstream_url": null,
         "source_status": "not_found (2026-10-19 rechecked the official AAAI article page, which lists only the PDF, and searched the paper title/author names with GitHub terms without confirming an author repository; see docs/research/pu_survey/data/gradpu_source_review_20261005.json. This does not prove no public, private, or unindexed implementation exists.)"
       },
-      "implementation_status": "NATIVE, backend TORCH; paper Eq. 5-7 clean-room MLP or injected no-BatchNorm CNN, raw-image second-order gradient penalty",
+      "implementation_status": "NATIVE, backend TORCH; paper Eq. 5-7 clean-room MLP or injected no-BatchNorm CNN, raw-image second-order gradient penalty; standalone candidate image CLI includes the grayscale ADNI-substitute slot (engineering only)",
       "source_protocol_review_ref": "docs/research/pu_survey/data/gradpu_source_review_20261005.json",
       "native_sampling_assumption": "ts（P 与总体边缘 U 分别贡献风险和插值梯度惩罚；GradPU.md:10-17）",
       "run_view": "ts-compatible",
@@ -925,7 +945,9 @@
       ]
     },
     "cvir": {
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "CVIRClassifier",
+      "candidate_image_execution": {"implementation_ref": "scripts/run_candidate_image_experiment.py", "trainer_ref": "pu_toolbox/experiment/candidate_image_runner.py", "training_views": ["os", "ts"], "source_sampling": "os", "population_prior_binding_ref": "pu_toolbox/experiment/cvir_adapter.py", "backbone": "shared_resnet18_engineering_alternative", "stages": ["warm_start", "cvir"], "singleton_training_policy": "reject_only_one_value_per_BN_channel; private_CPU_eval_shape_probe", "formal_admission": false, "formal_resource_profile_complete": false},
       "calibration_review_ref": "docs/research/pu_survey/delivery/cvir_calibration_20261022.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
       "inference_state_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",
@@ -952,6 +974,7 @@
         "population_pi_forwarded_to_fit": false,
         "os_to_ts_calibration": "explicit fit(os_or_ts=ts) restores train U union P before global ranking/retention; CVIRPopulationPriorTrainer binds population pi to the actual risk view; exploratory SCAR only",
         "population_prior_adapter": "CVIRPopulationPriorTrainer; constructor alpha/source must be unset; os alpha=(pi*n-n_L)/(n-n_L), ts alpha=pi; population class_prior never forwarded to estimator.fit",
+        "exploratory_cli": "scripts/run_survey_experiment.py --method cvir --cvir-population-prior-source SOURCE --class-prior PI --checkpoint-bytes-per-component BYTES; SCAR only, no --protocol; OS/TS use the existing population-prior adapter; existing nonempty run directories are not overwritten",
         "provenance": "candidate_runs[].training_provenance; source traceable but caller assertion not independently verified"
       },
       "prior_semantics": "unlabeled_positive_prior=所用风险池的正类比例；默认 OS/native-TS 仍显式给原始 U 的 α_U。CVIRPopulationPriorTrainer 按协议§3换算：OS为(pi*n-n_L)/(n-n_L)，TS校准为pi；requires_class_prior=False，estimator.fit仍拒绝总体class_prior；先验来源声明不等于分布/有限样本比例验证",
@@ -1181,6 +1204,7 @@
       ]
     },
     "vpu": {
+      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "VPUClassifier",
       "source_behavior_review_ref": "docs/research/pu_survey/admission/vpu_sampling_audit.md",
       "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
@@ -1196,7 +1220,7 @@
         "upstream_commit": "603bcc1e628795f57a5ac87e5b0b977273b7cf91",
         "source_status": "official_related (公式与关键训练逻辑对照作者锁定提交；网络与实验协议为工具箱适配)"
       },
-      "implementation_status": "NATIVE, backend TORCH; 先验无关的变分风险 + 对数 MixUp 正则；二维特征或注入 encoder 的四维图像，CPU 与显式 CUDA；新图像路径仅 CPU 工程验证",
+      "implementation_status": "NATIVE, backend TORCH; 先验无关的变分风险 + 对数 MixUp 正则；二维特征或注入 encoder 的四维图像；独立四角色图像候选 CLI 核对原生 TS、逐 epoch 归一化及实际优化器成本，CPU 工程验证不等于正式准入",
       "native_sampling_assumption": "ts（边缘项要求总体边缘分布：论文式 (6) 的 f 即训练总体边缘；作者 x_loader 覆盖正例与未标记且 P 池是 X 池的子集，故边缘池 = D_U ∪ D_P。四层证据与逐行核对见 admission/vpu_sampling_audit.md，裁决 D21；both 可辩但需改 registry，本切片不做。VPU.md:40, registry:vpu）",
       "run_view": "ts-compatible",
       "calibration_applied": true,

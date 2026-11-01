@@ -26,8 +26,22 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 
 ## 2. 当前进度（2026-10-28，按协议 JSON 与本机产物核对）
 
+**2026-11-01 增量**：用户确认此前 8 个 excluded 方法沿用当前暂定参数。
+新增 `survey-v3.1` / `survey-recipes-v1.1`，保留 v3.0 与旧结果身份；补齐原 24 个阻断单元、
+34 个模板继承单元和 CIFAR Self-PU full-meta（沿用已有 frozen-feature + clean-support 路径）。
+新矩阵 171 个 runnable 单元；这里只表示运行能力，不表示全量资源验收、文献复现或合作者签署。
+新增 59 个单元展开为 **1845 fit**（5 seed × 原 c/机制网格），由
+`scripts/run_survey_backlog_campaign.py` 按独立组 canary → 全网格调度，最多 4 张 GPU、1 个 CPU worker。
+已补 CVIR 双阶段/TS 先验、其他深度方法 SCAR/SAR 选模接线、KLDCE 实际 SCAR c 绑定与资源预检；
+KLDCE 仍仅 SCAR，支持集方法仍限批准的五数据集/SCAR。新增比较条目均 `pending_review`、无直接数值锚点。
+随后按用户要求补 PUET/RP 图像适配测试：独立 v3.2 / registry v1.2，增 8 个固定随机
+ResNet-18 特征单元、280 fit（24 个首轮完整配置测试后逐组放行），不当原生 CNN 或论文复现。
+合计 179 个可运行单元；运行中 v3.1 的 1845 fit 与新增 CPU 280 fit 保持独立身份。
+实现边界与验证见[配方决定](admission/p4_1b_registry_freeze_20261025.md)。下文 v3.0 数量保留作历史基线。
+
 - `survey_protocol_v3.json`：136 个执行单元，112 个 runnable，24 个 blocked，8 个数据集都已有单元。
-  22 方法 × 8 数据集 = 176 格，其中 132 格有单元、108 格 runnable。
+  22 算法 × 8 数据集 = 176 格，其中 128 格有单元、104 格 runnable；若把 Self-PU 的
+  no-meta / full-meta 分成两个 profile，则是 132 个 profile×数据集格、108 格 runnable。
 - 每个数据集都带齐其模板数据集的全部 runnable 行（见 D46）：mnist、fashion_mnist、adni 对 cifar10，
   connect_4 对 spambase，twenty_newsgroups 对 imdb；每个方法族已在 GPU 上真跑过 1 个 seed、接线核对通过。
   blocked 方法在这些数据集上还没有行，随其模板行一起翻 runnable。
@@ -51,6 +65,8 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 | 工作 | 负责 |
 |---|---|
 | 24 个 blocked 单元翻 runnable：KLDCE / CVIR / P3MIX / PAN / VPU / GradPU 各 3 行（spambase、imdb、cifar10）、PUET / RP 各 2 行（spambase、imdb）、LaGAM / PULNS 各 1 行（cifar10）；含 GradPU 首次真实运行 | HENG958 |
+| 模板解除阻断后补全其余数据集：另缺 34 个 profile×数据集模板扩展，按当前机制/seed/c 网格条件估算 1090 fit；不能遗漏 Connect-4、20News、MNIST、F-MNIST、ADNI | HENG958 |
+| 无模板路径须明确：PUET/RP 的 4 个图像数据集（8 格）、Self-PU full-meta 的 CIFAR（1 格）；不得擅自选 backbone 或悄悄当成已排除 | 合流 |
 | PN-CNN 5 seed：cifar10 / mnist / fashion_mnist 原生 CNN 已跑完，待批次验收；其余 oracle 行续跑中 | HENG958 |
 | 正式 5 seed × c 网格跑批 → 汇总 → 写结论（§5.6 第 6 条措辞与批次层写入 commit / `uv.lock` 哈希的代码已于 D52 落地） | 合流 |
 | 官方示例脚本归位或在 `api.md` 登记（命令序列已见 [runbook](runbook.md)） | shuidisjtu |

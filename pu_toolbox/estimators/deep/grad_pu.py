@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import copy
 import math
+from contextlib import nullcontext
 from numbers import Real
 from typing import Literal
 
@@ -98,6 +99,12 @@ class GradPUClassifier(BasePUClassifier):
     ``class_prior`` is accepted by ``fit`` for the toolbox API but is unused:
     the paper objective treats U as negative without a prior correction.
     Non-None ``sample_weight`` is rejected rather than silently ignored.
+
+    ``activation_memory='cpu_offload'`` stores autograd's saved tensors on
+    CPU and restores them on demand. It preserves full batches, float32,
+    forward/RNG order and the second-order penalty, trading transfers/host
+    RAM for device memory. This is opt-in; it does not change inference or
+    the default recipe, and does not guarantee that every batch fits.
     """
 
     family = AlgorithmFamily.DEEP_PU
@@ -135,6 +142,7 @@ class GradPUClassifier(BasePUClassifier):
         lr_final_ratio: float = 0.1,
         weight_decay: float = 5e-4,
         encoder=None,
+        activation_memory: Literal["device", "cpu_offload"] = "device",
         random_state: int | None = None,
         device: str | None = None,
     ) -> None:
@@ -150,6 +158,7 @@ class GradPUClassifier(BasePUClassifier):
         self.lr_final_ratio = lr_final_ratio
         self.weight_decay = weight_decay
         self.encoder = encoder
+        self.activation_memory = activation_memory
         self.random_state = random_state
         self.device = device
 
@@ -167,6 +176,11 @@ class GradPUClassifier(BasePUClassifier):
         """Fit with independent P/U minibatches and linear beta annealing."""
         import torch
 
+        if not isinstance(self.activation_memory, str) or self.activation_memory not in {
+            "device",
+            "cpu_offload",
+        }:
+            raise ValueError("activation_memory must be 'device' or 'cpu_offload'")
         if sample_weight is not None:
             raise NotImplementedError("GradPU does not implement sample_weight")
         self._is_fitted = False
@@ -310,6 +324,13 @@ class GradPUClassifier(BasePUClassifier):
             "identity": "paper-only/benchmark-adapted",
             "source_faithful": False,
             "source_reproduction": False,
+            "activation_memory": {
+                "policy": self.activation_memory,
+                "pin_memory": False,
+                "effective_batch_changed": False,
+                "precision_changed": False,
+                "forward_recomputation": False,
+            },
             "learning_rate": {
                 "policy": self.lr_schedule,
                 "initial": float(self.learning_rate),
@@ -392,31 +413,50 @@ class GradPUClassifier(BasePUClassifier):
                     torch.cat((u_batch, p_batch)) if view.calibration_applied else u_batch
                 )
                 beta = self.beta_max * (epoch * n_steps + step + 1) / (self.max_epochs * n_steps)
-                raw_p = _one_score_per_row(raw_model(p_batch), len(p_batch))
-                raw_u = _one_score_per_row(raw_model(risk_u_batch), len(risk_u_batch))
-                if self.alpha > 0:
-                    size = max(len(p_batch), len(risk_u_batch))
-                    p_repeat_index = torch.as_tensor(
-                        rng.choice(len(p_batch), size=size, replace=size > len(p_batch)),
-                        dtype=torch.long,
-                        device=device,
+                # Include autograd.grad(create_graph=True), not just forward:
+                # its derivative graph also retains large image activations.
+                # Never retry OOM with a smaller batch or a different precision.
+                memory_context = (
+                    torch.autograd.graph.save_on_cpu(pin_memory=False)
+                    if self.activation_memory == "cpu_offload"
+                    else nullcontext()
+                )
+                with memory_context:
+                    raw_p = _one_score_per_row(raw_model(p_batch), len(p_batch))
+                    raw_u = _one_score_per_row(raw_model(risk_u_batch), len(risk_u_batch))
+                    if self.alpha > 0:
+                        size = max(len(p_batch), len(risk_u_batch))
+                        p_repeat_index = torch.as_tensor(
+                            rng.choice(len(p_batch), size=size, replace=size > len(p_batch)),
+                            dtype=torch.long,
+                            device=device,
+                        )
+                        u_repeat_index = torch.as_tensor(
+                            rng.choice(
+                                len(risk_u_batch), size=size, replace=size > len(risk_u_batch)
+                            ),
+                            dtype=torch.long,
+                            device=device,
+                        )
+                        p_repeated = p_batch[p_repeat_index]
+                        u_repeated = risk_u_batch[u_repeat_index]
+                        mix_shape = (size,) + (1,) * (X.ndim - 1)
+                        mixing = torch.as_tensor(
+                            rng.uniform(size=mix_shape), dtype=torch.float32, device=device
+                        )
+                        mixed = (mixing * p_repeated + (1.0 - mixing) * u_repeated).detach()
+                        mixed.requires_grad_(True)
+                        raw_mixed = _one_score_per_row(raw_model(mixed), size)
+                    else:
+                        mixed = raw_mixed = None
+                    loss, parts = gradpu_objective(
+                        raw_p,
+                        raw_u,
+                        beta=beta,
+                        alpha=self.alpha,
+                        interpolated_inputs=mixed,
+                        raw_interpolated=raw_mixed,
                     )
-                    u_repeat_index = torch.as_tensor(
-                        rng.choice(len(risk_u_batch), size=size, replace=size > len(risk_u_batch)),
-                        dtype=torch.long,
-                        device=device,
-                    )
-                    p_repeated = p_batch[p_repeat_index]
-                    u_repeated = risk_u_batch[u_repeat_index]
-                    mix_shape = (size,) + (1,) * (X.ndim - 1)
-                    mixing = torch.as_tensor(
-                        rng.uniform(size=mix_shape), dtype=torch.float32, device=device
-                    )
-                    mixed = (mixing * p_repeated + (1.0 - mixing) * u_repeated).detach()
-                    mixed.requires_grad_(True)
-                    raw_mixed = _one_score_per_row(raw_model(mixed), size)
-                else:
-                    mixed = raw_mixed = None
                 for name, rows in (
                     ("positive", len(p_batch)),
                     ("native_unlabeled", len(u_batch)),
@@ -425,14 +465,6 @@ class GradPUClassifier(BasePUClassifier):
                     ("GP_interpolation", 0 if mixed is None else len(mixed)),
                 ):
                     batch_maxima[name] = max(batch_maxima[name], rows)
-                loss, parts = gradpu_objective(
-                    raw_p,
-                    raw_u,
-                    beta=beta,
-                    alpha=self.alpha,
-                    interpolated_inputs=mixed,
-                    raw_interpolated=raw_mixed,
-                )
                 if not torch.isfinite(loss):
                     raise FloatingPointError("GradPU objective became non-finite")
                 optimizer.zero_grad()

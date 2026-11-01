@@ -1,0 +1,187 @@
+"""Read-only monitor phases, single-fit identity and bounded terminal layout."""
+
+import importlib.util
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
+@pytest.fixture
+def monitor():
+    path = Path(__file__).resolve().parents[3] / "scripts/monitor_survey_queue.py"
+    spec = importlib.util.spec_from_file_location("survey_queue_monitor_test", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def job(root, **changes):
+    result = dict(
+        root=str(root),
+        label="test",
+        dataset="cifar10",
+        method="genpu",
+        path="native_cnn",
+        oracle=False,
+        mechanism="scar",
+        status="running",
+        expected_runs=2,
+        expected_keys=[
+            ["cifar10", "genpu", "native_cnn", "scar", "0.1", 0],
+            ["cifar10", "genpu", "native_cnn", "scar", "0.3", 0],
+        ],
+        gpu=dict(index=6),
+        pid=10,
+    )
+    result.update(changes)
+    return result
+
+
+def test_basic_determ_mixed_tail_policy_visible(monitor):
+    state = dict(
+        updated_at=datetime.now(timezone.utc).isoformat(),
+        jobs=[],
+        scheduler=dict(mixed_tail_gpu_indices=[0, 5], max_running_jobs=10),
+    )
+    rendered = monitor.render(states=[state], devices={}, width=150, height=30)
+    assert "MIXED CPU-tail cards=[0, 5] | global cap=10 | paused=[]" in rendered
+
+
+def test_basic_cpu_only_backlog_is_not_reported_as_waiting_gpu_training(monitor, tmp_path):
+    pending = job(
+        tmp_path,
+        method="lbe",
+        path="cnn_feature_adapter",
+        status="pending",
+        lane="gpu",
+        seeds=[0],
+        c_tokens=["0.1"],
+    )
+    state = dict(updated_at=datetime.now(timezone.utc).isoformat(), jobs=[pending])
+    rendered = monitor.render(states=[state], devices={}, width=150, height=30)
+    assert "GPU-train=0 | CPU-fit adapters=1" in rendered
+
+
+def test_basic_determ_previous_selected_snapshot_is_not_current_progress(monitor, tmp_path):
+    previous = tmp_path / "ts/c_0.1/seed_0"
+    previous.mkdir(parents=True)
+    (previous / "manifest.json").write_text(
+        json.dumps(dict(seed=0, c_requested_token="0.1", selection={"OA": {}}, failures=[]))
+    )
+    (previous / "epoch_0099_model.pt").write_text("retained")
+    result = monitor.progress(job(tmp_path))
+    assert result == monitor.progress(job(tmp_path))
+    assert result["epoch"] == "GAN/prePN" and result["done"] == "1/2"
+    assert (result["seed"], result["c"]) == ("0", "0.3")
+
+
+def test_basic_pn_phase_uses_active_snapshot(monitor, tmp_path):
+    active = tmp_path / "ts/c_0.1/seed_0/checkpoints"
+    active.mkdir(parents=True)
+    (active / "epoch_0003_model.pt").write_text("new")
+    result = monitor.progress(job(tmp_path))
+    assert result["epoch"] == "PN3/100" and result["c"] == "0.1"
+
+
+@pytest.mark.parametrize("method,phase", [("nnpu", "load/prep"), ("genpu", "GAN/prePN")])
+def test_param_single_fit_shows_seed_and_c_before_first_checkpoint(
+    monitor, tmp_path, method, phase
+):
+    item = job(
+        tmp_path,
+        method=method,
+        expected_runs=1,
+        expected_keys=[["cifar10", method, "native_cnn", "scar", "0.5", 4]],
+    )
+    facts = monitor.progress(item)
+    assert facts["seed"] == "4" and facts["c"] == "0.5" and facts["epoch"] == phase
+
+
+@pytest.mark.parametrize("view", ["running", "pending", "completed", "failed"])
+@pytest.mark.parametrize("width", [35, 60, 85, 100, 120, 180])
+@pytest.mark.parametrize("height", [14, 24, 40])
+def test_edge_layout_remains_bounded_across_views(monitor, tmp_path, view, width, height):
+    item = job(tmp_path)
+    state = dict(updated_at="2020-01-01T00:00:00+00:00", jobs=[item])
+    output = monitor.render(view=view, width=width, height=height, states=[state], devices={})
+    assert len(output.splitlines()) <= height
+    assert all(len(line) <= width for line in output.splitlines())
+    assert "STALE" in output or width < 60
+
+
+def test_basic_own_concurrency_and_foreign_sharing_are_distinct(monitor, tmp_path):
+    jobs = [job(tmp_path / str(pid), pid=pid) for pid in (10, 11)]
+    state = dict(updated_at="2020-01-01T00:00:00+00:00", jobs=jobs)
+    device = {6: dict(pids={10, 11, 99}, util=99, memory=16000)}
+    output = monitor.render(width=180, height=40, states=[state], devices=device)
+    assert "GPU6=2" in output and "6*" in output
+    assert "PHASE" in output and "GAN/prePN" in output
+
+
+def test_edge_malformed_manifest_does_not_break_live_view(monitor, tmp_path):
+    (tmp_path / "manifest.json").write_text("{")
+    assert monitor.progress(job(tmp_path))["done"] == "0/2"
+
+
+def test_basic_correction_canary_and_held_jobs_are_explicit(monitor, tmp_path):
+    assert monitor.VIEW_KEYS["5"] == "held"
+    item = job(
+        tmp_path,
+        campaign_id="d53_test",
+        campaign_canary=True,
+        status="held",
+        expected_runs=1,
+        expected_keys=[["cifar10", "genpu", "native_cnn", "scar", "0.1", 0]],
+    )
+    state = dict(updated_at="2020-01-01T00:00:00+00:00", jobs=[item])
+    output = monitor.render(view="held", width=180, height=40, states=[state], devices={})
+    assert "1 HOLD" in output and "R!" in output
+    assert "HOLD waits" in output and "SRC" in output
+
+
+def test_basic_timing_uses_completed_single_fit_wall_time(monitor, tmp_path):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    previous = [
+        dict(item, status="completed", ended_at="2026-10-29T13:00:00+00:00") for _ in range(3)
+    ]
+    text = monitor.timing_detail(
+        item, previous, now=datetime(2026, 10, 29, 11, tzinfo=timezone.utc)
+    )
+    assert "elapsed=1h00m" in text and "ETA~2h00m remaining" in text and "n=3" in text
+
+
+@pytest.mark.parametrize(
+    "change", [{"source": "other"}, {"expected_runs": 15}, {"expected_recipe": {"different": True}}]
+)
+def test_param_timing_does_not_pool_incompatible_fits(monitor, tmp_path, change):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    previous = [
+        dict(item, status="completed", ended_at="2026-10-29T13:00:00+00:00", **change)
+        for _ in range(3)
+    ]
+    assert "ETA unavailable" in monitor.timing_detail(item, previous)
+
+
+def test_edge_elapsed_past_median_does_not_claim_zero_remaining(monitor, tmp_path):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    previous = [
+        dict(item, status="completed", ended_at="2026-10-29T13:00:00+00:00") for _ in range(3)
+    ]
+    text = monitor.timing_detail(
+        item, previous, now=datetime(2026, 10, 29, 14, tzinfo=timezone.utc)
+    )
+    assert "ETA uncertain" in text and "ETA~0h00m" not in text
+
+
+def test_basic_expanded_progress_is_explicit_and_toggleable(monitor, tmp_path):
+    item = job(tmp_path, expected_runs=1, started_at="2026-10-29T10:00:00+00:00")
+    state = dict(updated_at="2026-10-29T10:00:00+00:00", jobs=[item])
+    expanded = monitor.render(width=160, height=40, states=[state], devices={})
+    compact = monitor.render(width=160, height=40, states=[state], devices={}, details=False)
+    assert "GAN epoch unreported" in expanded and "elapsed=" in expanded
+    assert "NOT measured epoch%" in expanded and "d:detail" in expanded
+    assert "elapsed=" not in compact

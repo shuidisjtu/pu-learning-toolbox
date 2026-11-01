@@ -41,6 +41,13 @@ W_N(S)=W_U(S)-W_P(S).
 
 ## 当前实现边界
 
+2026-10-31：新增 opt-in `ClassicalCandidateTrainer`（`pu_toolbox.experiment.classical_candidate`），
+通过 `ExperimentRunner(config={"trainer": ClassicalCandidateTrainer(), ...})` 使用。
+逐树记录实际完成数、根部 P/U 行数/质量、深度、叶数与耗时，成功记录进入 candidate manifest。
+失败的部分工作保留在 trainer 的 `last_receipt`，不伪造成功模型或神经 epoch。
+适配层不改核心树构建、随机数或历史来源摘要；OS/TS×bootstrap、默认结果逐值对照、
+四角色 PA/OA 与 pickle 已有 CPU 回归。它是成本证据入口，不解除预算/正式准入阻断。
+
 - 公开类 `PUExtraTreesClassifier`、注册名 `puet`（别名 `pu_extra_trees`）；仅稠密二维表格数据，CPU/NumPy 实现，无 GPU 路径。
 - 当前只实现作者默认的 **nnPU + quadratic** 分支；作者代码另有 uPU 与 logistic 分支，本组件未宣称覆盖。`source_status=official_related` 表示作者代码可追溯，但本实现是独立编写的受限子集。
 - 默认 `bootstrap=False` 与作者发布代码一致，树间随机性来自特征/阈值；`bootstrap=True` 可启用论文 §4 描述的 P/U 分组重采样。为保证真正的贪心风险最小化，仅接受正风险下降的划分；与论文实验的完整逐节点决策/数值结果尚未对齐。
@@ -48,6 +55,11 @@ W_N(S)=W_U(S)-W_P(S).
 - 已有节点风险 golden、训练/预测、随机性、Bootstrap、参数/边界、pickle 与 pipeline 接入测试。方法台账已登记；`fit(os_or_ts="ts")` 将正例行复制为边缘 U 风险角色，原行仍保留正例角色；U 节点质量分母改为 `n_P+n_U`，P 质量与先验不变。OS/TS 节点风险与分裂增益已有独立数值测试。正式 P3.2 仍需冻结矩阵之外的候选规格、公开结果对照和合作者审阅；本算法为 CPU 树方法，GPU smoke 不适用，任务分组调整仍需复核。
 
 ## 准入证据补全（2026-10-05）
+
+2026-11-01 图像测试：v3.2 在四个图像数据集使用现有固定随机 ResNet-18 的 512 维特征
+接本算法（100 棵树），非原生 CNN。与下述作者原图 3072 维有明确表示差异；为统一传统
+方法表示而选择，不按成绩调表示，不能据此称论文复现。SCAR/SAR 造标签仍在源空间，
+特征提取不使用标签，TS 节点风险规则不变；完整数据首轮通过才释放对应五 seed 队列。
 
 2026-10-07 [阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)另列
 CPU 单次森林 fit、100棵默认树与独立模型存储，不伪造神经 epoch/provenance 或 GPU 验收。
@@ -65,6 +77,12 @@ nonnegative/quadratic CIFAR accuracy79.74(0.37)，5次拟合；不是邻列 logi
 新增 tie/零增益/CPU 非 epoch 预算测试，不能把树数套用神经快照预算。
 
 ## 2026-10-17 审核补项
+
+2026-10-31：`scripts/run_classical_candidate_experiment.py --method puet` 已补显式树预算、
+输入/源码/环境锁定计划、SCAR 四角色 PA/OA 和模型回放，保留 OS/TS 原义，运行在 CPU。
+`ClassicalCandidateTrainer(receipt_dir=...)` 可将每次尝试的实际逐树成本（包括失败部分）独立落盘，
+重试不覆盖旧记录；持久化失败不接受 fitted 模型。此入口不抽取/认证输入特征，不修改核心算法，
+也不构成正式预算或完整资源验收；没有假造 neural epoch 或论文数值复现。
 
 Issue #114 修复后，bootstrap 的 U 抽样数等于**实际 U 风险池大小**：OS 抽 n_U，
 TS 抽 n_U+n_P（含 P 角色副本）；逐树根质量保持 P=总体π、U=1，P 仍抽 n_P。

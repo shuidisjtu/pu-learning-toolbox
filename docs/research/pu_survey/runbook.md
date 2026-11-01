@@ -5,7 +5,65 @@
 
 所有命令都在仓库根执行，Python 一律走 `uv run`。下文用 `<results>` 表示 `run_survey_pilot.py --results` 指的那个目录。
 
+## 2026-11-01 分支整合交接
+
+统一审核入口：`integrate/survey-backlog-20261101`，基于远程 main `1b06b48`，
+收拢至最终源码 `5e63e57` 后 squash；不再逐个合并此前的实验工程分支。
+本次盘点的36个远程主题分支中，30个已是该最终源码的祖先；其余6个经 patch/range-diff
+核对也已覆盖：CVIR image 的 `19b8dc1` 对应 `bcfc56c`，KLDCE 的
+`c7da047`/`9600f65` 对应 `0160456`；P3MIX 的 `3b7c8b7` 对应 `97ebcb4`；
+PAN 的 `85812cc` 对应 `9364bb1`，VPU 的 `a1578e1` 对应 `c055082`。
+后三对差异仅是重放时的文档上下文，核心代码/测试补丁相同；旧文档回退不重复合入。
+
+审核按四组看最终差异，不需要逐个旧 commit 阅读：
+
+| 内容 | 主要入口 | 边界 |
+|---|---|---|
+| 算法执行与成本 | candidate_image、classical_candidate、kernel_candidate、P3MIX、方法卡 | 工程适配不等于论文数值复现 |
+| 版本化缺口批次 | v3.1/v3.2 protocol、registry、comparison 与生成脚本 | 旧冻结版本不改；人工签署仍待，不补造准入 |
+| 调度与结果交接 | queue_scheduling、后台队列、audit/export 脚本 | 四卡范围、失败隔离、修正替代，不扩大实验分母 |
+| 监控与 GradPU 恢复 | monitor_survey_campaign、GradPU 暂存、独立恢复工具 | 不热改训练源码，不将短测记为200轮完成 |
+
+约8万行新增 JSON 为版本化矩阵/注册表快照，需用生成一致性及绑定门禁核验，不当作8万行手写算法。
+整合必须经 PR 与 required checks；无 API 登录时仅推整合分支，不直接 push main。
+旧分支在整合 PR 合并且确认无独立未合改动后再清理，运行中的固定源码工作树不删除。
+清理前保留实验源码 commit 的归档引用，不因 squash 后删除分支而丢失历史可复现性。
+本轮另修复控制器模块导入的 POSIX 依赖和 Python3.10 哈希兼容性：规划/监控可跨平台导入，
+真正后台调度仍要求 POSIX 文件锁，不支持时明确拒绝，绝不无锁启动。
+跨平台门禁另修复 UTF-8 制品读写、Windows 路径故障注入和时间格式。
+KLDCE 直接拟合一致性仍逐值精确；pickle 往返保留参数数组和分类完全一致，
+分数按输入 dtype 的浮点精度核验（macOS 实测差约 float32 2.2e-8、float64 4.9e-17）。
+这不改变算法或科学验收阈值，也不代表论文数值复现。
+
+监控中的 `ORIGINAL FAILED GPU7` 是原尝试；其下 `recovery=running GPU6` 才是恢复任务状态。
+恢复批单独显示，父批次失败计数保留；恢复状态过期会标 STALE，不能据此宣称仍在正常训练。
+GradPU–ADNI 完整 canary 验收前，其余14项仍挂起，不自动放行。
+
 ## 0. 先确认矩阵与注册表没变
+
+2026-11-01 缺口批次单独使用 `--protocol survey-v3.1` 与
+`pu_toolbox/experiment/survey_recipe_registry_v1_1.json`；旧命令继续指向 v3.0，不能回绑历史结果。
+`scripts/run_survey_backlog_campaign.py` 从旧队列读取数据路径，展开新增 1845 fit，逐组 canary 后释放
+五 seed 全网格；`--run` 在独立 tmux 中托管，`--monitor` 查看快照数量和任务状态。
+最多使用 0/5/6/7 四张卡，不终止他人进程；失败组保留日志并挂起，不自动重跑或降配。
+KLDCE 另用单个 CPU worker，256 GiB 是已知 QP 载荷筛查上限而非峰值保证；启动要求至少 650 GiB
+可用 RAM。关闭 VS Code 不影响 tmux；服务器重启或控制器异常退出仍需显式核对，不能宣称自动恢复。
+
+PUET/RP 图像补充批使用同一脚本的 `--revision survey-v3.2` 准备新目录，配套 registry v1.2；
+只展开相对 v3.1 新增的 280 fit。`--previous-queue` 仍传旧六号批次的队列清单读取 split 路径，
+`--support-root` 保留接口参数但这些单元不用支持集。准备与启动必须使用同一个干净、固定
+commit；不要在其工作树继续开发。新批 GPU allowlist 为空，只增加一个两线程 CPU worker，
+完整提取并按 dataset/seed 缓存特征；24 个首轮测试逐组放行。通过 `--output <新目录>
+--monitor` 查看，不修改原 v3.1 状态或回填历史结果。来源差异见
+[图像适配决定](admission/p4_1b_registry_freeze_20261025.md)。
+
+新队列详细监控：`scripts/monitor_survey_campaign.py --output <v3.1目录>
+--output <v3.2目录>`，默认每 5 秒刷新，可加 `--once` 单次检查。GPU 利用率/显存为
+整卡即时值，队列分配不表示独占；任务显示 elapsed、完整已保存 epoch 和最近 3–5 个
+间隔的训练 ETA（不含选模/测试）。多 teacher 按完整 epoch 计数，回收快照不倒退成训练进度。
+准备阶段、陈旧状态、缺实时计数的图像特征/树模型明确写无法估计；传统二维任务至少
+三条同批次/方法/数据集/机制/c 的完成记录才估计耗时。整队列不从局部任务外推完工时间。
+此脚本只读，监控可以从新工作树更新；只替换监控窗口，训练源码和控制器不重启。
 
 ```bash
 uv run python scripts/check_survey_recipe_registry.py --require-present --require-locked
@@ -81,6 +139,13 @@ epoch 和更新步数。SAR 只要求 OA 验证，SCAR 同时要求 PA / OA；�
 同一条命令去掉 `--dry-run`。分片用 `--datasets` / `--methods` / `--training-paths`，三者取交集；命名了一个矩阵里没有的东西、或交集为空，会被拒绝而不是"缩小成空"。
 
 版本化 support 批次依协议记录所有已完成 epoch，包括 LaGAM / Self-PU 的 warmup；分别独立评估 PA+clean-support 与 OA，Self-PU 同时记录两条 teacher 流。旧探索入口的显式 meta-only 候选池保持原义。D53 之前已过滤 warmup 的批次不可补造缺失快照或回写证据，须以修复后的代码在新结果目录重跑。
+
+旧产物可先用 `scripts/prepare_survey_support_repair.py --help` 规划：显式列出不重叠的
+`--results-root`，指定干净的修复版 `--target-source`、`--support-root`、数据集目录映射
+`--split-map`（也可传含 `source_data` 的本机队列证据文件），并给出两个独立的新目录
+`--out-dir` / `--new-results`。命令只写轨迹清单和 CPU dry-run 命令，不启动训练；
+PULNS episode 完整不等于整批正式通过，重复来源也不会自动择新覆盖。实际重跑仍由原 pilot
+在执行时生成 D52 包，之后按 D54 做完整审计。
 
 协议 §2.4 已批准的独立 support 不构成自动降级理由：来源、角色隔离、规模与标签预算核验通过后，`PA+clean-support` 是正式实验数据的独立报告部分，与纯 PU PA 同表另列，禁止混入纯 PU 优势比较。准备器/adapter 的 `formal_admission=False` 表示该组件不自行授予整批准入，不能覆盖已批准的协议政策；最终资格由完整批次审计判定。旧 manifest 保持只读，过时资格声明应在新复审报告中记录解除依据，未知或真实 blocker 保留。
 

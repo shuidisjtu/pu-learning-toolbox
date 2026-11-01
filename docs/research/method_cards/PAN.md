@@ -88,3 +88,21 @@ probe 与非活动网络使用 eval/no-grad，因此 C/D 的 BN 只由各自更�
 2026-10-18 [来源/推理状态补交](../pu_survey/admission/pan_source_inference_review_20261018.md)：
 九文件原始摘要、实际交替梯度和采样测试已补；仅修复预测后逐层恢复 train/eval 模式，
 不改 `fit`/论文目标或 OS/先验决定。机器包、台账与扩展草稿同步，仍待负责人复核。
+
+## 独立图像实验入口（2026-10-29）
+
+`scripts/run_candidate_image_experiment.py --method pan` 已接四角色 split，支持
+CIFAR-10、MNIST、Fashion-MNIST 和 ADNI 替代槽位。`--parameters` 的 JSON 必须显式给出
+`device`、`max_epochs`、`batch_size`、`learning_rate`、`adversarial_weight`；默认只输出计划，
+另加 `--execute --out-dir <新目录>` 才训练。`--class-prior` 仅用于 PA 选模，绝不传入 PAN 目标。
+
+- 来源仍为论文 Eq.(7)/Algorithm 1 与上述锁定九文件记录；不改 `pan.py`，也不导入或执行作者代码。
+- 本入口使用 train-only 统计、随机小图 ResNet-18 + 原 PAN 线性头；C/D 从同一模板独立复制，
+  BN 仅在活动网络更新，增强固定 none。目的是打通已有 encoder 接口，不是复现作者架构。
+- 保持原生 OS、`calibration_applied=false`，拒绝 TS；PA/OA 独立选全部已完成 epoch，预测只恢复 C。
+  每 epoch 成本为 `2 * ceil(n_U / batch_size)` 次 Adam 更新，D 和 C 各一次；
+  权重文件不含 D/优化器，不能用来恢复对抗训练，也不能据此忽略 D 的训练显存。
+- CPU 合成彩色/灰度短测核对所有已付 epoch、更新数、数据角色隔离、回收及选中模型回放；
+  与不带 recorder 的原 PAN 拟合逐 bit 对照。不是公开数值或完整 GPU 资源验收。
+
+正式配方、许可/负责人审批和 v3 的 blocked 状态不因该入口而解除。

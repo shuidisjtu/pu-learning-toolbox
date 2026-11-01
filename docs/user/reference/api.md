@@ -80,7 +80,8 @@ alpha_u = model.estimate_unlabeled_prior()
 ### P3Mix 分类器（实验级注册；原生 OS）
 
 `from pu_toolbox import P3MixClassifier`。`P3MixClassifier(*, variant="base",
-hidden_dim=128, max_epochs=100, batch_size=128, learning_rate=0.001, beta=1.0,
+hidden_dim=128, max_epochs=100, batch_size=128, batching_policy="role_balanced",
+learning_rate=0.001, beta=1.0,
 gamma=0.9, pool_size=100, mixup_alpha=1.0, early_learning_weight=1.0,
 teacher_decay=0.99, model=None, encoder=None, random_state=0, device=None)`。
 `variant` 可选 `base`、`e`、`c`，分别对应 P3Mix、P3Mix-E、P3Mix-C；E 与 C 是互斥变体。
@@ -92,6 +93,31 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 `early_learning_weight≥0`（E 变体须 `>0`），`learning_rate`、`beta`、`mixup_alpha>0`。
 `hidden_dim`、`max_epochs`、`batch_size`、`pool_size` 须为正整数，bool 不接受。
 完整来源、参数边界及文献结果见 [P3Mix 方法卡](../../research/method_cards/P3MIX.md)。
+
+`batching_policy="role_balanced"` 保持旧行为：`batch_size` 为每角色上限，较短角色循环。
+显式 `"merged_shuffle"` 按论文 Algorithm 1 合并打乱、总批大小为 `batch_size`，每轮主样本只用一次。
+单角色批次的缺失组损失贡献为零（论文未说明的工程约定）；该选项不代表正式配方批准。
+只读成本规划：`python scripts/prepare_candidate_image_resource_plan.py --method p3mix
+--target-dir /tmp --n-positive 128 --n-unlabeled 128 --variant e --batching-policy merged_shuffle`。
+规划不加载数据或模型、不初始化 CUDA；额外 teacher/池刷新前向与 optimizer 更新分列。
+
+独立图像执行：`python scripts/run_candidate_image_experiment.py --method p3mix`，
+输入为 `train/pu_val/clean_val/test.npz` 四份互不重叠的 NCHW 数据（各含 `X/y/indices`）。
+`--parameters` JSON 必须显式提供 `variant`、`hidden_dim`、`max_epochs`、`batch_size`、
+`batching_policy`、`learning_rate`、`beta`、`gamma`、`pool_size`、`mixup_alpha`、
+`early_learning_weight`、`teacher_decay`、`device`；其他必填参数见 `--help`。
+默认只生成计划；`--execute --out-dir <新目录>` 才训练。入口使用原生 OS、训练集统计的
+共享 ResNet-18（不是论文 backbone），独立 PA/OA 选择 student 快照并回收未选中权重；
+选择先验不进入训练，E 的 teacher 不参与选模，不构成正式 Survey 准入。
+
+同一图像 CLI 的 `--method cvir --view os/ts` 支持 CVIR 工程候选；显式 JSON 字段为
+`hidden_dim/warm_start_epochs/max_epochs/batch_size/learning_rate/data_device_policy/input_sampling/device`。
+必须用 `input_sampling="os"`、`data_device_policy="cpu_stream"`；总体先验按观测 P 数换算
+实际风险池先验，不能在参数文件预置 `unlabeled_positive_prior/prior_source`。
+两阶段均记录成本并可供 PA/OA 选择；仅当训练 BN 每通道总共只有一个值时提前拒绝。
+单图空间维度足够时允许单样本批次；形状探针使用私有 CPU/eval 副本，不修改训练数据、原 BN 或 RNG。
+Python 可用 `CandidateImageCheckpointTrainer(..., population_prior_source="已声明来源")`；
+CVIR 图像不能通过无先验绑定的 `fit_candidate_image_classifier` 直接训练。正式配方/资源仍未批准。
 
 ### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
 
@@ -412,6 +438,22 @@ min_samples_leaf 同时约束两个子节点；阈值取完整 min/max 区间；
 
 - 文档：[PUET 方法卡](../../research/method_cards/PUET.md)
 
+PUET/RP 可选用 `from pu_toolbox.experiment.classical_candidate import ClassicalCandidateTrainer`，
+在 `ExperimentRunner` 的 `config["trainer"]` 中注入实例，记录实际逐树或 OOF/refit 成本。
+`fit(estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None)` 返回无 epoch 的单模型轨迹；
+成功 `training_provenance_` 进入 candidate manifest，失败工作在 trainer 的 `last_receipt` 中保留；
+构造时可选 `receipt_dir`，将每次成功/失败成本收据独立持久化，重试不覆盖旧记录。
+`val_pu` 不用于训练，PA/OA 仍由 runner 独立执行；支持确切的 PUET/RP 类，不支持子类或实例树构建覆盖。
+
+独立 CPU 入口 `python scripts/run_classical_candidate_experiment.py --help` 默认仅生成锁定计划，
+`--execute --out-dir <新目录>` 才拟合；输入四份互斥的二维 `X/y/indices` NPZ，结构与四角色契约一致。
+`--parameters` 必须完整指定 PUET 的 `n_estimators/max_depth/min_samples_leaf/max_features/max_candidates/bootstrap`，
+或 RP 的 `n_cv_folds/frac_pos2neg/min_retained`；种子、总体先验来源和 `--view` 单独指定。
+PUET 支持 OS/TS，RP 只支持 OS。入口不拟合/认证输入特征预处理，也不代表正式准入。
+导出的 `selected_PA/OA.pkl` 使用同模块 `ClassicalSelectionPredictor(estimator, selection)` 封装
+验证集 affine 与所选阈值；`decision_function` 保留原始分数，`predict` 重放所选规则。
+原始非 epoch runner 的 `selected_models` 不自动携带这条规则，不能用 native `predict` 代替表中预测。
+
 #### `LDCEClassifier`（注册名 `centroid_pu`，别名 `ldce`）
 
 LDCE（Label Density Centroid Estimation）分类器。
@@ -458,6 +500,24 @@ KLDCEClassifier(flip_probability, *, sigma="scale", reg_strength=1.0, centroid_r
 | `tol` / `random_state` | `float` / `int \| None` | `1e-6` / `None` | 收敛容差与种子 |
 
 - 文档：[KLDCE 方法卡](../../research/method_cards/KLDCE.md)
+
+独立 CPU 执行 `python scripts/run_classical_candidate_experiment.py --method kldce --help`。
+显式设置 `--prior-policy derived/population_override`、`--kernel-payload-cap-bytes`，其余四角色/先验来源参数同 PUET/RP。
+JSON 完整指定 `sigma/reg_strength/centroid_radius/mom_groups/covariance_ridge/max_acs_iter/max_inner_iter/inner_tol/tol`；
+不接受手写 `flip_probability`，它由训练 SCAR 的 `1-c_realized` 绑定。只支持 OS，不作 TS 替换。
+`KLDCECandidateTrainer(prior_policy=..., kernel_payload_cap_bytes=..., receipt_dir=None)` 可注入非正式 runner；
+单独直接 fit 时 h 来自 estimator 参数，未调用生成校验则不声称 SCAR 绑定已验证。
+QP 盒约束无可行解或命名矩阵 payload 超帽均提前拒绝；通过不代表峰值资源批准。
+ACS 历史不是 neural epoch，未观测的 rollback 总成本为 null，不用末次 QP 的迭代和冒充完整成本。
+
+只读资源筛查：`python scripts/prepare_kldce_resource_plan.py --n-positive 1000
+--n-unlabeled 10000 --feature-count 512 --gram-itemsize 8`。
+可加 `--prediction-rows`、`--max-acs-iter`、`--max-inner-iter` 与 `--memory-cap-bytes`；
+超出已知 payload 的帽返回退出码 2；低于帽不表示 RAM 足够。此工具不加载数据/模型，
+声明的 Gram/协方差 dtype 未认证，稠密块统计排除临时矩阵等开销，不是正式资源验收。
+可选 `--prior-policy derived --flip-probability <h>`，或 `--prior-policy population_override
+--flip-probability <h> --population-prior <π>` 同时检查 QP 可行性；无解/分母近零退出码为 3。
+该 h 与先验仅为声明，不核验实际 SCAR 生成；可行不批准启动，核心求解器与冻结协议保持不变。
 
 #### `LLSVMClassifier`（注册名 `llsvm`）
 

@@ -30,6 +30,27 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 
 ## 当前状态与准入边界
 
+2026-10-31 补齐显式 `batching_policy="merged_shuffle"`：按 Algorithm 1 第 3 行合并 P∪U，
+每轮打乱并按总 `batch_size` 切批，尾批保留、不重复任何主样本；原默认 `role_balanced`
+保持按角色切批与循环补齐，`batch_size` 仍为每角色上限，避免改变旧调用。
+合并切批可能没有某一角色；论文没有定义空组均值，本实现令该组损失贡献为零，
+不丢弃或重采样该批。P3Mix-C 的损失角色仍按原始 P/U 标签区分，而非修正后的伪标签。
+这一空组约定是显式工程选择，不声称论文完整复现；两种路径均披露实际更新数、角色行次与复用量。
+单样本尾批的 BatchNorm 使用运行统计并恢复原训练模式，避免丢行/重复行；这也是工程约定，非论文事实。
+资源规划脚本 `prepare_candidate_image_resource_plan.py --method p3mix` 已接 `--variant` 与
+`--batching-policy`，分别登记 optimizer 更新、P/U 复用、池刷新及 E 的 teacher forward；
+采用构造默认预算，backbone 仅记 caller-injected，不代表已有共享图像配方或完整资源实测。
+2026-10-31 后续已补独立共享 ResNet-18 图像构造与
+`scripts/run_candidate_image_experiment.py --method p3mix`：显式指定三变体、切批与全部训练预算，
+SCAR 四角色、PA/OA 独立选模、student-only weights 快照、选后回收及 pickle 回放。
+候选池限训练观测 P，逐轮校验更新/角色行次与独立冻结 teacher；选择先验不转发 fit。
+共享 ResNet-18 替代论文 LeNet-5/7-layer CNN，是统一候选图像接口的工程适配，augmentation=none；
+不改核心训练方程、默认切批或 OS 口径。CPU 逐值回归覆盖三变体、两切批与直接 fit/快照预测一致；
+teacher/池刷新前向数由已验证更新数推导，排除 probe/外部选择，不冒充完整 GPU 资源实测。
+原只读规划仍描述调用者 encoder，不认证外部 checkpoint；正式图像配方、预算与数值对照仍待。
+三变体的 singleton/尾批、CNN CV/refit、确定性与序列化均有 CPU 回归；OS/先验/校准口径不变，
+未修改冻结预算或比较矩阵，也不据此解除正式准入阻断。
+
 2026-10-20 再核 PDF 后补齐输入隔离：各次 student/teacher 前向使用私有当前 batch，encoder
 probe 使用独立行副本，避免自定义 in-place 网络污染式 (4) 输入或验证/测试评分数组。
 三变体均补充实际卷积的公开 `PUPipeline` 两折 CV+全量 refit、pickle、四角色 PA/OA

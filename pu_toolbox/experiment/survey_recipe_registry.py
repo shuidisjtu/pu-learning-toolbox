@@ -124,12 +124,17 @@ def protocol_refs(protocol: Mapping[str, Any]) -> ProtocolRefs:
     from .survey_profile_identity import has_profile_identities
 
     if has_profile_identities(protocol):
+        stem = {
+            "survey-v3.0": "survey_protocol_v3",
+            "survey-v3.1": "survey_protocol_v3_1",
+            "survey-v3.2": "survey_protocol_v3_2",
+        }[protocol["protocol_version"]]
         return ProtocolRefs(
             schema_version=SCHEMA_VERSION_PROFILE_IDENTITY,
-            selection_spec_ref="survey_protocol_v3.selection_spec",
-            base_ref_prefix="survey_protocol_v3.method_profiles.",
-            budget_binding_prefix="survey_protocol_v3.budgets.",
-            protocol_file="pu_toolbox/experiment/survey_protocol_v3.json",
+            selection_spec_ref=f"{stem}.selection_spec",
+            base_ref_prefix=f"{stem}.method_profiles.",
+            budget_binding_prefix=f"{stem}.budgets.",
+            protocol_file=f"pu_toolbox/experiment/{stem}.json",
         )
     return ProtocolRefs(
         schema_version=SCHEMA_VERSION,
@@ -426,6 +431,13 @@ def build_locked_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
     document rather than being implied by an empty ``reviewers`` list.
     """
     registry = build_draft_registry(protocol, recipe_registry_version="survey-recipes-v1.0")
+    backlog = protocol["protocol_version"] in ("survey-v3.1", "survey-v3.2")
+    if backlog:
+        registry["recipe_registry_version"] = (
+            "survey-recipes-v1.2"
+            if protocol["protocol_version"] == "survey-v3.2"
+            else "survey-recipes-v1.1"
+        )
     registry["recipe_lifecycle"] = "locked"
     for profile in registry["profiles"].values():
         if profile["recipe_lifecycle"] == "excluded":
@@ -437,6 +449,12 @@ def build_locked_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
             "reviewers": [],
             "open_questions": [_LEGACY_UNBOUND_QUESTION],
             "decision": (
+                "owner confirmed current provisional parameters for this project round on "
+                "2026-11-01; differences retained; not numerical reproduction or formal "
+                "admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+            )
+            if backlog
+            else (
                 "locked 2026-10-25: runnable profiles bind the frozen protocol, "
                 "excluded profiles stay excluded (docs/research/pu_survey/admission/"
                 "p4_1b_registry_freeze_20261025.md)"

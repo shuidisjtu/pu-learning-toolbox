@@ -64,6 +64,26 @@ result = runner.fit(CVIRClassifier(device="cpu"), train, pu_val, clean_val, test
 容量数值须按实际网络给出，不把小合成 MLP 的字节数外推为 CNN 上界。
 此处不含正式数据、正式选模阶段裁决、frozen-lock GPU 或多 seed 效果结果。
 
+2026-10-28 已补同一适配器的显式 CLI 接线（仍是独立工程入口）：
+
+```bash
+uv run python scripts/run_survey_experiment.py path/to/four-role-split \
+  --method cvir --class-prior 0.4 \
+  --cvir-population-prior-source 'describe generation metadata and identity' \
+  --checkpoint-bytes-per-component "$MEASURED_CHECKPOINT_BYTES" \
+  --os-or-ts ts --c 0.1,0.3,0.5 --seeds 0 \
+  --device cpu --reclaim-unselected-checkpoints \
+  --out-dir path/to/new-cvir-runs
+```
+
+先设置 `MEASURED_CHECKPOINT_BYTES` 为实际网络逐组件快照的字节上界；不能照搬其他网络的值。
+省略视图时按台账选 TS，OS 对照须显式 `--os-or-ts os`；构造参数仍用 `--model-params`，
+其中未指定 `device` 时才采用 `--device`。所有候选先检查先验/视图/epoch 合同，
+已存在的非空 run 目录整批拒收，选后回收与数组 API 相同。
+CLI 不改论文目标、优化器或默认预算；沿用上文已披露的论文/作者代码差异，
+拒绝 SAR 与 `--protocol`，不改冻结单元、比较矩阵和正在运行的实验。
+验证限于合成 CPU 数据的 CLI/数组适配器合同与回归，不代表真实数据效果或正式准入。
+
 ## 验收与后续
 
 专项 **217 通过、1 项 CUDA 跳过**，另补台账/准入草稿/生命周期门禁契约 **65 通过**。
