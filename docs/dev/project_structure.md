@@ -305,6 +305,7 @@ tests/
       test_pulda_augmentation.py        # PULDA 两阶段逐批增强、MixUp 顺序、拒绝与模板隔离
       test_grad_pu_cnn.py               # GradPU 原图二阶梯度、无 BN 编码器与权重回放
       test_grad_pu_training_recipe.py   # GradPU 实际Adam调度、batch/更新数及运行声明
+      test_grad_pu_memory.py            # GradPU 暂存前后二阶梯度、RNG 与完整更新等价性
       test_pulda_gradpu_inference_modes.py # PULDA/GradPU逐模块推理模式恢复、异常路径与BN/RNG不变性
       test_split_pu_review_characterization.py # Split-PU #122 的JSD方向/分母与mini-batch总体混合反例
       test_robust_pu_cnn.py             # Robust-PU CNN 阶段、BN 隔离与 CPU 权重/快照回放
@@ -422,6 +423,7 @@ tests/
       test_prepare_support_repair.py    # 重跑规划命令、历史根/新输出隔离与只读拒收门禁
       test_queue_handoff_export.py      # 结果交接修正替代、seed 隔离与汇总回归
       test_survey_backlog_campaign.py   # 全网格分母、canary 隔离与制品验收
+      test_backlog_canary_recovery.py   # 独立恢复、不重写历史与自有进程共卡门禁
       test_monitor_survey_campaign.py   # GPU 遥测、真实快照进度与保守 ETA 的只读测试
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
@@ -638,6 +640,7 @@ tests/
       test_queue_dense_adapters.py      # 单卡四小模型并发及全局进程数限制
       test_queue_coverage_audit.py      # 训练覆盖、修正批次去重与只读输出回归
       test_survey_backlog.py            # v3.1 历史隔离、二维/CNN 与 SAR 真训练
+      test_gradpu_offload_execution.py  # 显式暂存策略、冻结配方与结果路径隔离
       test_survey_classical_image.py    # PUET/RP 图像表示、版本隔离与完整树/折预算
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
@@ -994,6 +997,7 @@ scripts/
   export_survey_queue_handoff.py          # 只读导出含修正替代记录的组内观测结果表
   prepare_survey_backlog_revision.py      # 确定性生成 v3.1 协议、配方与比较绑定
   run_survey_backlog_campaign.py          # 固定提交、四卡上限的全量缺口后台队列
+  recover_survey_backlog_canary.py        # 独立恢复失败 GradPU canary，保留原批次与预算
   prepare_survey_classical_image_revision.py # v3.2 仅新增传统方法图像单元与配方绑定
   monitor_survey_campaign.py              # 多批次只读看板、GPU 利用率与当前训练 ETA
 ```

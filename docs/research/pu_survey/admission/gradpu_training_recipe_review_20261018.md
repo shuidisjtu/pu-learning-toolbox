@@ -19,6 +19,9 @@
 - `recover_survey_backlog_canary.py` 创建独立单 canary 恢复记录；新源码 commit、
   原数据 hash、完整预算与权重验收均保留。只允许原四卡范围，未知进程/父状态过期/
   资源不足不启动；可显式与父批次自有 worker 共卡。不自动修改父队列或放行14项。
+- 状态：恢复 canary 已后台启动（GPU6、源码 `9bb0e2b`）；其余14项仍待完整验收。
+  实验层/脚本/契约回归 3242 passed、14 skipped、0 failed；另有小模型 CUDA
+  等价性测试通过。CPU/GPU 等价性与两步诊断不替代完整200轮结果。
 
 
 依据：[#121](https://github.com/shuidisjtu/pu-learning-toolbox/issues/121)，
