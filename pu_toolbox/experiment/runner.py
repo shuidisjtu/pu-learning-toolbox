@@ -150,6 +150,17 @@ def _recipe_context(
     # The protocol names only some constructor fields. Everything else must
     # remain a code default, except separately validated runtime inputs.
     runtime = {"class_prior", "random_state", "device", "model", "backbone", "encoder"}
+    # KLDCE's flip rate is derived from actual SCAR counts, not a constructor
+    # default. Only accept values already recomputed by runner_protocol_context;
+    # a caller-supplied config dictionary alone is never an exemption.
+    profile = protocol["method_profiles"][request["method"]]
+    validated_runtime = protocol_context.get("runtime_parameters", {})
+    if set(validated_runtime) != set(profile.get("runtime_parameters", {})):
+        raise ValueError("recipe runtime parameter binding is incomplete")
+    for name, expected in validated_runtime.items():
+        if digest(model.get_params(deep=False).get(name)) != digest(expected):
+            raise ValueError("estimator differs from validated recipe runtime parameter")
+    runtime.update(validated_runtime)
     signature = inspect.signature(type(model).__init__).parameters
     for name, value in model.get_params(deep=False).items():
         if name in declared or name in runtime:

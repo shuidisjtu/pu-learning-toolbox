@@ -6,6 +6,32 @@
 
 ## 冻结范围
 
+### 2026-11-01 后续配方决定（不回写 v3.0）
+
+用户明确确认：**沿用当前协议暂定参数，作为本轮项目配方；论文差异单独保留说明**。
+适用此前 excluded 的 KLDCE、P3MIX、PUET、GradPU、PAN、RP、CVIR、VPU。
+因此这些方法不再等待“是否采用当前参数”的确认；运行入口、跨数据集接线、资源预检和结果验收仍须逐项通过。
+新配方使用独立版本，不修改已冻结 v3.0、旧注册表或历史运行身份，不补造合作者签署。
+P3MIX 为协议的 base 变体；未列明的参数须展开当前实现默认值并明确记录，不根据已有成绩调参。
+此决定不等于论文数值复现、SAR 有效性证明或正式结果准入；原有比较矩阵复核要求继续保留。
+
+落地：`survey_protocol_v3_1.json`、`survey_recipe_registry_v1_1.json`、比较矩阵 v7 和映射 v4。
+新版本 23 个 profile 有锁定配方，171 个单元具备运行接线；新 59 个单元共 1845 fit，旧结果不补绑。
+
+| 处理 | 来源/原有行为 → 本轮选择与理由 | 验证范围 |
+|---|---|---|
+| P3MIX | 协议 base、源码默认 `role_balanced`；显式展开该默认值。此前 `merged_shuffle` 候选不混入 | CPU 二维/CNN 真训练、阶段与选模；非论文数值复现 |
+| GradPU | 依照已登记例外用私有 CNN13/no-BN；构造 encoder 时绑定实验 seed，避免依赖外部 RNG | 相同 seed 参数相同、不同 seed 不同、外部 RNG 不变；CPU CNN 真训练 |
+| PAN | 保留本项目 100 epoch、batch64、lr=1e-4、C/D 每步各更新一次，不宣称作者采样重放 | 完整 checkpoint 数与 C/D 更新计数；SCAR PA/OA、SAR OA |
+| VPU | 保留协议 100 epoch/batch128/lr=3e-4，不改成作者 50/500/3e-5；`cpu_stream` 仅改变驻留，禁用源验证诊断选模 | 全训练 TS 边际、归一化模型 checkpoint、SCAR/SAR 小规模真训练 |
+| CVIR | 总体 pi 绑定 TS 的完整训练风险池；warm-start 1 + CVIR 20 均可选。仍用论文加权目标，非作者 balanced-CE/SGD 配方；`cpu_stream` 不缩批 | 双阶段 21 个 checkpoint 的预算与实际计数；不向 estimator.fit 传错总体 pi |
+| PUET/RP | 100 棵树 / 3-fold + refit 沿用当前参数；不用伪 epoch | 实际树数/嵌套拟合收据，SCAR/SAR CPU 真训练 |
+| KLDCE | flip=1−实际 SCAR c，population pi 与选择规则不变；运行时绑定经过协议重算后才进入注册表校验 | CPU 真训练、计数绑定、QP/预测内存下界筛查；256 GiB 下界上限不等于峰值内存承诺 |
+
+CNN 与五角色支持路径相关回归 125 项（123 通过、2 个 KLDCE SAR 显式跳过）；
+另一组入口/注册表/历史 CVIR 回归 112 项（108 通过、4 跳过）。这些是工程回归，不是 1845 fit 已跑完。
+新增矩阵/配方均通过注册表与比较映射校验；8 个 PUET/RP 图像格仍没有批准的模板路径。
+
 范围由用户 2026-10-25 决定：**有 runnable 执行单元的 profile 锁 `locked`，其余标 `excluded`**。
 按此规则，23 个 profile 中 **15 个锁、8 个排除**，覆盖 v3 的全部 40 个 runnable 单元。
 

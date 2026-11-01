@@ -187,6 +187,11 @@ def checkpoint_epochs(budget):
     if FIELD in budget:
         validate_contract(budget[FIELD])
         return budget[FIELD]["checkpoint_epoch_count"]
+    if "checkpoint_epoch_count" in budget:
+        count = budget["checkpoint_epoch_count"]
+        if type(count) is not int or count < 1:
+            raise ValueError("checkpoint_epoch_count must be a positive integer")
+        return count
     return budget.get("epochs")
 
 

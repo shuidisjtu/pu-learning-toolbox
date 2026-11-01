@@ -458,14 +458,20 @@ def assemble_model(
             # encoder is a different architecture and would silently retag it.
             if preprocessing is None:
                 raise ValueError("GradPU native CNN requires the fitted image preprocessing")
+            import torch
+
             from ..estimators.deep.vision import build_wconpu_backbone
 
-            constructor["encoder"] = build_wconpu_backbone(
-                "cnn13_no_bn",
-                in_channels=preprocessing.in_channels,
-                normalization_mean=preprocessing.normalization_mean,
-                normalization_std=preprocessing.normalization_std,
-            )
+            # The private encoder is constructed before fit seeds its head.
+            # Bind it to the split seed too, without consuming caller RNG state.
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(seed)
+                constructor["encoder"] = build_wconpu_backbone(
+                    "cnn13_no_bn",
+                    in_channels=preprocessing.in_channels,
+                    normalization_mean=preprocessing.normalization_mean,
+                    normalization_std=preprocessing.normalization_std,
+                )
         else:
             constructor["encoder"] = encoder
     return cls(**constructor)

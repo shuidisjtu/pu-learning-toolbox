@@ -700,11 +700,15 @@ def _coverage_profile_map(protocol) -> dict | None:
     would blame the matrix for a missing lookup path.
     """
     from pu_toolbox.experiment.survey_profile_identity import has_profile_identities
-    from pu_toolbox.experiment.survey_profile_map import load_profile_map, profile_map_binds
+    from pu_toolbox.experiment.survey_profile_map import (
+        load_profile_map,
+        profile_map_binds,
+        profile_map_path,
+    )
 
     if not has_profile_identities(protocol):
         return None
-    profile_map = load_profile_map()
+    profile_map = load_profile_map(profile_map_path(protocol))
     if not profile_map_binds(profile_map, protocol):
         raise ValueError(
             "no versioned profile map binds this protocol matrix; the coverage "
@@ -1046,6 +1050,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 # The runner re-reads the protocol and re-applies the same gate; it can
                 # only relax it when the caller declares that support was supplied.
                 config["clean_support_provided"] = True
+            elif profile.get("execution_adapter") == "survey-backlog-1":
+                from pu_toolbox.experiment.survey_backlog import backlog_trainer
+
+                config["trainer"] = backlog_trainer(algorithm, protocol)
+            if profile.get("runtime_parameters"):
+                config["runtime_binding_inputs"] = runtime_binding_inputs
+                config["runtime_parameters"] = config["survey_protocol"]["runtime_parameters"]
             if not args.oracle:
                 config["c_requested_token"] = c_value.token
             if args.batch_evidence is None and not warned_about_evidence:
