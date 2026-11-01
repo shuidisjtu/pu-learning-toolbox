@@ -150,6 +150,32 @@ def _recipe_context(
     # The protocol names only some constructor fields. Everything else must
     # remain a code default, except separately validated runtime inputs.
     runtime = {"class_prior", "random_state", "device", "model", "backbone", "encoder"}
+    # Execution-only tensor placement is separately recorded and narrowly
+    # scoped; it must not become a general constructor-override exemption.
+    if "gradpu_activation_memory" in config:
+        from ..estimators.deep.grad_pu import GradPUClassifier
+
+        memory = config["gradpu_activation_memory"]
+        if (
+            type(model) is not GradPUClassifier
+            or request["method"] != "gradpu"
+            or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+            or memory not in ("device", "cpu_offload")
+            or model.activation_memory != memory
+        ):
+            raise ValueError("invalid recorded GradPU activation memory policy")
+        runtime.add("activation_memory")
+    # KLDCE's flip rate is derived from actual SCAR counts, not a constructor
+    # default. Only accept values already recomputed by runner_protocol_context;
+    # a caller-supplied config dictionary alone is never an exemption.
+    profile = protocol["method_profiles"][request["method"]]
+    validated_runtime = protocol_context.get("runtime_parameters", {})
+    if set(validated_runtime) != set(profile.get("runtime_parameters", {})):
+        raise ValueError("recipe runtime parameter binding is incomplete")
+    for name, expected in validated_runtime.items():
+        if digest(model.get_params(deep=False).get(name)) != digest(expected):
+            raise ValueError("estimator differs from validated recipe runtime parameter")
+    runtime.update(validated_runtime)
     signature = inspect.signature(type(model).__init__).parameters
     for name, value in model.get_params(deep=False).items():
         if name in declared or name in runtime:

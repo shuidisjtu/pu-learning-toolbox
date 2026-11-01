@@ -43,6 +43,8 @@ PROTOCOL_PATHS: dict[str, Path] = {
     "survey-v1.2": Path(__file__).with_name("survey_protocol_v1.json"),
     "survey-v2.0": PROTOCOL_PATH,
     "survey-v3.0": Path(__file__).with_name("survey_protocol_v3.json"),
+    "survey-v3.1": Path(__file__).with_name("survey_protocol_v3_1.json"),
+    "survey-v3.2": Path(__file__).with_name("survey_protocol_v3_2.json"),
 }
 PROTOCOL_ALIASES = tuple(PROTOCOL_PATHS)
 
@@ -53,6 +55,12 @@ def resolve_protocol_path(value: str | Path) -> Path:
     if name in PROTOCOL_PATHS:
         return PROTOCOL_PATHS[name]
     return Path(value).resolve()
+
+
+def _canonical_matrix_matches_version(protocol: dict) -> bool:
+    """Compare with this version's shipped matrix, never the legacy default."""
+    path = PROTOCOL_PATHS.get(protocol.get("protocol_version"))
+    return path is not None and digest(protocol) == digest(load_protocol(path))
 
 
 #: One end-to-end ResNet-18 checkpoint component, rounded up from the 44 MB
@@ -557,6 +565,14 @@ def _validate_budget(model, budget: dict, architecture: str = "mlp") -> None:
         validate_estimator(model, budget[FIELD], architecture=architecture)
         return
     params = model.get_params(deep=False)
+    if "checkpoint_epoch_count" in budget and (
+        getattr(model, "checkpoint_epoch_count", params.get("max_epochs"))
+        != budget["checkpoint_epoch_count"]
+    ):
+        raise ValueError("declared checkpoint epoch count differs from estimator stages")
+    for name, expected in budget.get("parameter_values", {}).items():
+        if name not in params or digest(params[name]) != digest(expected):
+            raise ValueError(f"declared method-specific budget differs: {name}")
     if "optimizer_steps_per_epoch" in budget and (
         type(model).__name__ != "SelfPUClassifier" or budget["optimizer_steps_per_epoch"] != 2
     ):
@@ -602,6 +618,12 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         protocol, request["dataset"], request["method"], request.get("training_path")
     )
     profile = protocol["method_profiles"][row["method"]]
+    if profile.get("execution_adapter") == "survey-backlog-1":
+        from .survey_backlog import backlog_trainer
+
+        expected_trainer = backlog_trainer(profile["algorithm"], protocol)
+        if type(config.get("trainer")) is not type(expected_trainer):
+            raise ValueError("backlog profile requires its bound execution adapter")
     require_four_role_profile(
         protocol, row["method"], clean_support=bool(config.get("clean_support_provided"))
     )
@@ -692,8 +714,7 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     deviations = []
     if c_off_grid:
         deviations.append("c")
-    canonical_path = PROTOCOL_PATHS.get(protocol["protocol_version"])
-    if canonical_path is None or digest(protocol) != digest(load_protocol(canonical_path)):
+    if not _canonical_matrix_matches_version(protocol):
         deviations.append("noncanonical_protocol_matrix")
     if candidates != protocol["candidate_pool"]:
         deviations.append("candidate_pool")
@@ -816,12 +837,13 @@ def _profile_registration_context(protocol: dict[str, Any], profile_id: str) -> 
         load_profile_map,
         profile_map_available,
         profile_map_binds,
+        profile_map_path,
         profile_registration_status,
     )
 
-    if not profile_map_available():
+    if not profile_map_available(profile_map_path(protocol)):
         return {"comparison_registration_status": "missing_versioned_profile_mapping"}
-    profile_map = load_profile_map()
+    profile_map = load_profile_map(profile_map_path(protocol))
     if not profile_map_binds(profile_map, protocol):
         return {"comparison_registration_status": "missing_versioned_profile_mapping"}
     return profile_registration_status(profile_id, protocol=protocol, profile_map=profile_map)

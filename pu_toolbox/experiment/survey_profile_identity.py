@@ -11,6 +11,7 @@ import re
 SCHEMA = "survey-profile-identity-1"
 FIELD = "profile_identity_schema_version"
 PROTOCOL_VERSION = "survey-v3.0"
+PROTOCOL_VERSIONS = (PROTOCOL_VERSION, "survey-v3.1", "survey-v3.2")
 MANIFEST_FIELDS = (FIELD, "profile_id", "algorithm_id")
 _NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
 
@@ -30,7 +31,7 @@ def validate_profile_identities(protocol):
             )
         return
     profiles = protocol["method_profiles"]
-    if protocol[FIELD] != SCHEMA or protocol.get("protocol_version") != PROTOCOL_VERSION:
+    if protocol[FIELD] != SCHEMA or protocol.get("protocol_version") not in PROTOCOL_VERSIONS:
         raise ValueError("profile identity schema requires explicit survey-v3.0")
     from ..core.base import BasePUClassifier
     from ..core.exceptions import RegistryError
@@ -175,7 +176,10 @@ def require_four_role_profile(protocol, profile_id, *, clean_support=False):
             "clean-support profile requires the versioned five-role adapter; "
             "four-role execution unavailable"
         )
-    if algorithm == "cvir":
+    if algorithm == "cvir" and not (
+        protocol.get("protocol_version") in ("survey-v3.1", "survey-v3.2")
+        and protocol["method_profiles"][profile_id].get("execution_adapter") == "survey-backlog-1"
+    ):
         raise ValueError(
             "CVIR requires a versioned per-view prior/pool adapter; generic execution unavailable"
         )
@@ -191,7 +195,7 @@ def valid_manifest_profile_identity(payload):
     """Check new artifact shape, not its algorithm mapping against a source matrix."""
     if not has_profile_identities(payload):
         return True
-    if payload[FIELD] != SCHEMA or payload.get("protocol_version") != PROTOCOL_VERSION:
+    if payload[FIELD] != SCHEMA or payload.get("protocol_version") not in PROTOCOL_VERSIONS:
         return False
     unit = payload.get("execution_unit")
     if not isinstance(unit, dict) or type(payload.get("seed")) is not int:

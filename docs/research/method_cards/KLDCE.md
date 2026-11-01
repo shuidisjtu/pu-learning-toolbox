@@ -2,6 +2,37 @@
 
 > 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
 
+2026-10-31 补齐只读 `scripts/prepare_kldce_resource_plan.py`：按 P/U/维度与声明的
+Gram itemsize 列出训练/预测 Gram、对偶 QP 各个稠密块及协方差 payload；QP 块用核心的
+float64，Gram/协方差 dtype 只是假设，尚未验证输入。构造默认或显式 ACS/SMO 上限
+另计（含 rollback，首轮无 rollback），不当神经 epoch 或 ETA。
+真实 tiny QP 的各块 shape/dtype/nbytes 已独立核对，不加载真实数据、不构造估计器或初始化 CUDA。
+资源数只覆盖命名数组，不含前轮 QP、RBF/solver/eigh 临时副本及输入/运行时；
+超过显式内存帽返回退出码 2，低于帽也绝不批准启动。未改核心实现、正式预算或资源准入。
+
+2026-11-01：独立 `run_classical_candidate_experiment.py --method kldce` 已接 SCAR 四角色、
+PA/OA 与选中预测规则回放、逐次成功/失败收据。训练参数须全部显式给出，`flip_probability`
+由训练生成器的 `1-c_realized` 绑定（复用 v3 已定义的机制口径，不是 `1-c_requested`）；
+固定数量取整后两者可能不同。`prior_policy=derived` 保留原生 `k/[n(1-h)]`；
+`population_override` 显式转发选择侧总体先验，二者不得混称。
+`KLDCECandidateTrainer` 在拟合前检查命名 QP/协方差及全矩阵预测的 payload 下界；
+这是拒绝屏障，不保证完整峰值内存。成功收据记真实 ACS 历史、原生收敛状态，
+历史只保留每轮最后一个 QP，故 rollback 总次数/总 SMO 成本保持未知，不伪造 neural epoch。
+失败不复用旧 ACS 历史，记录已开始/完成的整次 fit 与耗时；核心求解器文件未改，
+浮点 32/64、两种先验策略的原生 fit/预测/pickle 有逐值回归，不代表论文数值复现。
+预检的 h 与原 `fit` 一样先转 Python float；已用当前 NumPy 默认与弱标量提升模式
+核对 NumPy float32/64 参数，避免预检先验提前舍入（测试钩子状态在结束后恢复）。
+
+新增可行性预检直接对应当前核心 Phase-I LP：`C_eq=-n_U/[2n(1-2ph)]`，
+`Aeq·z` 在盒约束内可达区间为 `[-n_U/n, n_P/n+n_U/(2n)]`。
+等式右端超区间则不启动 fit；已用原始 LP 交叉核对正/负分母、内点与边界。
+例如 `p=0.5, h=0.7` 时右端低于可达下限，当前实现无解，不是加迭代次数能修复的预算问题。
+不调整 h/先验/约束来凑可行；部分低标记率格子的正式适用性仍待协议裁决，冻结单元不自动放行。
+只读资源工具也可加 `--prior-policy derived/population_override --flip-probability <h>`
+（override 另需 `--population-prior`）预判同一可行区间；无解/分母近零返回退出码 3，
+内存帽不足仍返回 2。该入口不加载模型或数据，h/先验只是调用者声明，不冒充真实 SCAR 绑定；
+可行也不代表全部参数、完整内存、论文数值或正式准入已验证。
+
 ## 1. 论文信息
 
 | 字段 | 内容 |

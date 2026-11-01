@@ -6,7 +6,7 @@
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
 > 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
-> 状态核对日期：**2026-10-28**（v3 协议 136 个单元，runnable 112 / blocked 24；本机前批完成 205 run，其余 3115 run 已排后台续跑；运行完成不等于正式准入）
+> 状态核对日期：**2026-11-01**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；新增 v3.1 项目配方与 1845 fit 缺口队列，旧版本/结果不回写；运行完成不等于正式准入）
 
 ## 1. 实验能力与缺口
 
@@ -29,7 +29,7 @@
 | 协议内单跑（v3 112 个 runnable 单元） | **是** | | `--protocol survey_protocol_v3.json` 跑通并产出 manifest；现覆盖全部 8 个数据集。2026-10-26/27 在 AutoDL 主机对 mnist / fashion_mnist / adni / connect_4 / twenty_newsgroups 做了单 seed 接线验证，39 份 manifest 全部产出，汇总入口读通（不覆盖全部格，不是效果结论，见 D46）；support 单元另由批次驱动的 `--support-root` 规划执行（D50） |
 | 5 方法阶段预算（GEN-PU/PULDA/Robust/Split/Holistic） | **是（已冻结）** | 逐 seed 成本收据与 manifest 对账 | 阶段快照/成本收据与运行 manifest 对账 |
 | 图像三条路径 | **是（GradPU 除外）**：cifar10、mnist、fashion_mnist、adni 各有 13 个 runnable 行；GEN-PU/PULDA 原生 CNN 在 mnist、adni 上已真跑通（staged 预算拒绝注入 encoder 的缺陷已修，见 D46），Robust/Split/Holistic 等 `cnn_feature_adapter` 在 adni 上已跑通；GradPU 私有 `cnn13_no_bn` 装配已通、行仍 blocked | GradPU 首次真实运行的 checkpoint 契约；全量预算 | GradPU 行翻 runnable 并出真实 CIFAR manifest |
-| clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**（spambase、connect_4 seed0 三方法；mnist 与 fashion_mnist 的三条路径也已单 seed 跑通，见 D49⑦、D50⑤） | 三个方法各自成组、只能逐方法并列（D51 改判 D47，聚合不再因混合组整次失败）；正式 5 seed support 批次未跑 | 正式 support 批次 manifest 与制品对账 |
+| clean-support 主链（PULNS/LaGAM/Self-PU full-meta） | **是**；本机 12 单元的 180 run 已完成观测跑批 | D53 的 120 次轨迹纠正已在新目录完成并通过队列制品核对；PULNS 60 run 不重复执行，仍须完整批次审计 | 正式 support 批次 manifest 与制品对账 |
 | PA/OA 选模（含 `PA+clean-support` 双轨） | **是** | | 准则本体已实现（2026-09-20，PR #65）；54 条 PA 映射的裁定已定并应用（D41：全部 `no_direct_anchor`——两篇基准都没有「本数据集 + proxy accuracy 选模」的数字；Chen 的选模是真标签验证集 macro-F1，对应 OA）；v5 中 54 条 PA 单元全为 `no_direct_anchor`，`blocked_pending_pa_criterion` 已无映射使用 |
 | 分组跑 + 汇总 | **是** | | `--methods/--datasets/--training-paths` 分批 + `--support-root` 驱五角色单元（D50）+ 汇总入口；support 三方法各自成组，混合组不再拖垮聚合（D51）；`aggregate_survey_runs.py` 现默认按 `survey-v3.0` 读（`--protocol` 可改，D47） |
 | 交付物 A 导出（工作簿 + 诊断卡） | **是（接线与版式；尚无 5 seed 数据）** | 5 seed 正式批次；诊断卡里的类先验语义、跨数据集趋势、外部锚点偏差、原生适用/假设违背分组、排名颠倒五项当前算不了（见 D48） | `uv run python scripts/export_survey_results.py --config <批次配置> --out-dir <目录>` 出 `survey_results.xlsx`（四组各一页 + diagnostic / coverage / readme）与 `diagnostic_cards.md/json`；缺 seed 的行只进 coverage；已用 2026-10-26/27 主机的 36 份单 seed manifest 验证（全部进 coverage、结论页为空，符合「单 seed 不进结论表」） |
@@ -38,12 +38,56 @@
 
 ### 1.2 缺口任务
 
+**2026-11-01 本轮状态**：用户已确认 8 个 excluded 方法沿用协议暂定参数，独立版本
+`survey-v3.1` 接通 24 个原阻断单元、34 个模板继承单元及 CIFAR Self-PU full-meta。
+注册表 v1.1、比较矩阵 v7 / 映射 v4 同步；新增比较映射保持 `pending_review`，不补签。
+新 59 个单元展开 **1845 fit**，SCAR/SAR 与五 seed 不删减；仍须全量逐组资源和制品验收。
+随后用户要求确定并测试 PUET/RP 图像路径：v3.2 独立增 8 个固定随机 ResNet-18
+特征适配单元、280 fit，按 24 个完整配置首轮测试逐组放行；不改正在跑的 v3.1 或原算法。
+当前两批合计 2125 次新增 fit 已具备队列展开定义；排队/完成数以各批 status 为准。
+新版运行与历史 v3.0、90 次 CIFAR 候选分开，不能自动抵扣或混合成绩。
+下列 740 + 1090 是本轮推进前的缺口分解，新增 full-meta CIFAR 的 15 fit 补足为 1845。
+
+2026-11-01 清单纠偏：3320 是 **runnable 网格**，不是项目总量；24 个已登记 blocked 单元
+沿现有网格条件展开为 740 fit，但另有 README §2 要求的 34 个尚未建单元的模板扩展
+（条件估算 1090 fit）。PUET/RP 的图像路径 8 格及 CIFAR Self-PU full-meta 1 格仍须明确
+路径/范围；三种 support profile 的 IMDB/20News/ADNI 共 9 格为协议明确排除，不补跑。
+现有 `audit_survey_queue.py` 同时输出以上清单，不生成任务、不改协议、不把候选五 seed 抵扣
+正式格。此前把 740 当成项目全部后续工作量的口径撤回。
+
+本轮优先顺序：① GradPU/PAN/VPU 的配方数值与依据、CVIR 版本化 prior/view 接线及
+其余 excluded 方法的预算/runner；② CIFAR LaGAM/PULNS 五角色 CNN 及全 epoch 选模；
+③ 同步模板数据集、SCAR 和允许的 SAR，运行入口/registry/comparison 同步后成组跑批；
+④ D54、PN-CNN 和资源记录验收、结果四组与诊断表。GEN-PU/Holistic 已冻结配方不重做。
+当前 CIFAR 候选 90 fit 仅含 SCAR，CVIR-OS 的 15 fit 为额外对照；不是上述工作完成声明。
+
 只列仍未关闭的缺口；已完成项并入 §1.1，不再留在这里。
+
+2026-11-01 后续顺序（历史能力说明不作为实时计数）：
+
+| 优先级 | 剩余任务 | 独立性 / 边界 |
+|---|---|---|
+| P0 | 跑完已绑定的剩余网格；按训练身份与完成制品持续对账 | 可独立；3320 格已全部覆盖，不重复入队；120 次修正单列 |
+| P1 | CVIR 阶段预算只读预检、KLDCE 真实 split 可行性盘点、候选入口资源验证 | 工程可独立；新入口不自动解除 24 个 blocked 单元 |
+| P1 | GradPU 首次完整真实运行，以及 GradPU/PAN/VPU 配方证据 | 先明确候选参数/预算并保存资源记录，不把 tiny smoke 当全量复现 |
+| P1 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU/GradPU 与 CIFAR support 行的版本化正式接入 | 代码可推进；预算、方法适用性和协议变化须显式处理，不改冻结文件翻牌 |
+| P2 | 120 次修正结果替代关系、PN-CNN 现有产物、五 seed 结果与环境锁验收 | 可独立核对；历史产物保留，不重复训练已有格 |
+| P2 | 四组结果工作簿、异常/文献对照、诊断卡尚缺的五类信号 | 可独立整理已有数据，完整结论依赖剩余实验；表格不入库 |
+| P3 | 专题分支经 PR 合流、发布复现命令与最终交付检查 | Git 推送可用；GitHub PR 认证不可用时只推分支，不直推 main |
+
+只读复查：`scripts/audit_survey_queue.py --queue <队列目录> --protocol <该批绑定的协议文件>
+--output <新报告路径>`。检查覆盖、重复归属、完成制品及修正批次；不重新证明数据/环境准入。
+输出已有则拒绝覆盖；漏排、幽灵格或完成制品错误退出码为 2。
+
+组内表格交接入口 `export_survey_queue_handoff.py --queue <队列目录> --output <新目录>`：
+合并前批与续跑的已完成观测，D53 修正只在导出中替换同身份旧值，附替换清单与 SHA256；
+五 seed 不齐不算均值，PA/OA 行不重复计训练。工作簿、CSV、ZIP 均留在本机，不入库，
+不混入合作者上传表或新候选验证，不据此清除环境/正式准入阻断。
 
 | 缺口 | 影响 | 任务 | 负责人 | 完成判据 |
 |---|---|---|---|---|
 | 24 个 blocked 单元 | CVIR/KLDCE/P3MIX/PAN/PUET/RP/VPU 全行、GradPU 全行、LaGAM/PULNS 的 cifar10 行不能跑 | 逐方法补预算与 runner，按各自 `non_runnable_reason` 一条条翻 runnable | HENG958 | 单元 runnable 且产出 manifest |
-| support 正式 units（5 数据集） | 12 个 runnable support 单元已齐；本机 mnist / fashion_mnist 的 LaGAM / PULNS 共 60 run 已完成，Spambase / Connect-4 三方法及两个图像集的 full-meta 已排队；完成后仍须核对环境与准入 | 执行剩余 120 run，再验收 12 单元；不把单 seed 接线当全量完成 | 合流 | 12 个单元的 5 seed 合规 manifest |
+| support 正式 units（5 数据集） | 12 个 runnable 单元的本机 180 run 已有观测产物；D53 的 120 次修正已完成且单列，不增加覆盖总数 | 验收修正替代关系、环境与 D54 完整批次，不改旧 manifest | 合流 | 12 个单元的 5 seed 合规 manifest |
 | LaGAM/PULNS 的 cifar10 support 行 | 仍是 24 个 blocked 单元的一部分（`pending_*_budget`），与 mnist/fashion_mnist 已翻 runnable 的情况不同 | 并入上面的 blocked 单元任务 | HENG958 | 单元 runnable 且产出 manifest |
 | GPU 机时实测（GradPU 首跑） | 无法排 GradPU 的 AutoDL 正式批次 | 其余机时已实测：GEN-PU 正式预算 100+100（2.666 h / 2.54 GiB）、三个 adapter 行真实 CIFAR 单 seed（0.8–17 min，见[工作簿](data/PU_Survey_results_20261025.xlsx)）、2026-10-26/27 主机上 oracle 原生 CNN 单 seed 计时（共用 22 核配额下，不代表独占机时）；仍缺 GradPU 首跑 | HENG958 | 实测表反推机时 |
 | PN-CNN 5 seed 验收 | cifar10 / mnist / fashion_mnist 原生 CNN 各 5 seed 已完成，本机有 manifest 与资源记录 | 验收现有产物，不重复启动已完成格；其他 oracle 行已排队 | HENG958 | 5 seed 合规 manifest + 峰值记录 |
@@ -57,6 +101,38 @@
 - 已冻结（显式 budget 令牌）：PULNS、LaGAM、Self-PU full-meta（spambase 行）；
 - 仍是 draft：CVIR、GradPU、KLDCE、P3MIX、PAN、PUET、RP、VPU 只有 `draft_*` 令牌，未冻结，
   在注册表里标 `excluded` 并带理由；
+- PAN 独立图像候选入口已补 OS 四角色、逐 epoch PA/OA、C/D 成本及 C-only 回放；
+  CPU 工程测试不改变 draft 配方或 v3 blocked 单元，详见 [PAN 方法卡](../method_cards/PAN.md)。
+- VPU 独立图像候选入口已补原生 TS、逐 epoch 训练边缘池归一化、PA/OA 与实际更新成本；
+  D21/D22、OS 消融能力及正式配方阻断不变，详见 [VPU 方法卡](../method_cards/VPU.md)。
+- P3MIX 已补显式合并打乱批次、三变体的样本曝光/更新数与 CPU CNN 回归；
+  旧默认及 OS 校准口径不变，正式配方/资源与 blocked 状态仍待，见 [方法卡](../method_cards/P3MIX.md)。
+- PUET/RP 已补 opt-in 实际逐树 / OOF+refit 成本收据及四角色 CPU 回归；
+  不修改核心算法、历史来源证据或正式预算；成功收据随 manifest，可选目录持久化每次失败/成功成本。
+- PUET/RP 已补独立 CPU CLI：显式非 epoch 预算、四角色输入/源码/环境锁定计划、PA/OA 与模型回放；
+  重试收据独立保留，OS/TS 边界不变，不代表正式单元已 runnable。
+- P3MIX 三变体已接只读资源规划，分列切批重复行、optimizer 更新与 teacher/池刷新前向；
+  构造默认预算与调用者 encoder 不是已冻结 recipe，也不构成完整 GPU/存储实测。
+- P3MIX 独立共享图像执行入口已补三变体/两切批、原生 OS、PA/OA、student 快照回收与回放；
+  CPU 工程验证不等于论文 backbone/数值复现或正式资源验收，原 blocked 状态不变。
+- CVIR 已补独立共享图像 CLI：显式 OS/TS、观测计数先验换算、两阶段成本、PA/OA 与快照回放；
+  单通道仅 1 值的 BN 预算拟合前拒绝，空间维度足够的单样本批次保留原训练行为；正式预算/资源阻断不变。
+- CVIR 已补不导入数值库的阶段资源预检：显式总体先验/视图/计数，区分更新与排序前向；
+  CPU 原生 fit 成本已对照；只读计划不验证输入来源、BN 空间基数或完整 GPU 峰值。
+- GPU 启动准备入口 `run_candidate_readiness_campaign.py` 已补：完整 CIFAR-10 四角色收据、
+  文件/索引摘要、显式先验和构造预算；seed0/c=0.1 下 GradPU200、PAN/VPU/P3MIX100、
+  CVIR1+20（OS/TS 各一次），最多两张允许卡，失败/警告暂停后续任务。
+  GradPU 私有无 BN 骨干、其余共享 ResNet-18；P3MIX 显式 merged_shuffle，VPU/CVIR
+  cpu_stream；均属候选验证而非论文配方、冻结环境或正式五 seed 结果，不改变 blocked。
+- 五 seed 扩展入口 `run_candidate_five_seed_grid.py`：2026-11-01 用户授权沿用上述候选预算，
+  各方法/视图的 seed0/c=0.1 完成且无警告、回放及摘要校验通过后，自动扩展 seeds0–4、
+  SCAR c=0.1/0.3/0.5；6 个 canary 只引用，新增 84 fit（CVIR OS/TS 分开，共 90 fit）。
+  先用 6/7，原 canary 队列终结后才允许 0/5；不超过四卡、不占他人进程所在卡。
+  单个方法/视图失败暂停其后续格；五 seed 观测不等于冻结配方/环境/正式准入，不改历史协议。
+- KLDCE 已补只读稠密 Gram/QP payload 与 ACS/SMO（含 rollback）预算预检；
+  tiny QP 内存块已核对，但 dtype 声明与命名数组不等于完整 RSS 实测或运行批准。
+- KLDCE 独立 CPU 四角色执行已补 realized-SCAR 翻转率、显式先验策略、PA/OA 与失败收据；
+  QP 可行性已接执行/只读预检（无解退出码 3）；部分高 h/π 组合原生无解，正式适用性/预算阻断保留。
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
 - 标签预算：|P|、clean support 大小（Spambase 100、其余 500）。
 
@@ -76,6 +152,26 @@ draft 令牌当锁定预算。
 - P3.3 因此只做“峰值估算 + 保留规则 + 一次 smoke”，不再作为“资源批准”门。
 
 **分批执行**
+
+- 调度可选 `--mixed-tail-gpu-indices`：指定自有卡允许最多两个已绑定 Twenty Newsgroups
+  轻量训练（GEN-PU/nnPU/PULDA/Holistic/Robust/Self/Split）与一个特征提取/CPU 拟合任务
+  （uPU/LBE/PUSB）混跑；CPU 尾部不阻挡第二个已测训练。连续三次负载 ≤95%、
+  余量 ≥32 GiB 才启动，外部进程否决、全局并发上限与失败后暂停仍生效。
+  只改变排程，不改 batch/epoch/配方；显存水位不等于吞吐量，混跑收益须运行观察。
+  白名单依据本机同路径已有 manifest 的资源收据，不推广到未测方法/数据集或更大模型。
+- 当剩余队列只有 uPU/LBE/PUSB 特征适配任务时，允许一个 CPU 拟合尾部旁再排一个
+  已绑定任务；最多两个、仍保留 ≥32 GiB 与外部进程否决，不因没有后续 GPU trainer 而空等。
+  特征缓存命中后这些求解器主要跑 CPU；监控单列剩余 GPU 训练与 CPU-fit adapter 数，
+  不能把 GPU 利用率 0 等同于实验停止，也不把 CPU 求解伪装成 GPU 训练。
+- 本机后台排程已补单次 fit 拆分：仅拆未启动组，运行中旧组保持原进程及完整身份归属；
+  5 秒轮询，低负载自有卡经连续采样后最多两个进程，不向含外部进程的卡追加任务。
+  训练仍使用原固定源码/配方；监控 `PHASE` 区分 GEN-PU 的 `GAN/prePN` 与 PN 快照，
+  不把无快照当作等待。脚本：`run_survey_parallel_queue.py` / `monitor_survey_queue.py`。
+- D53 纠正批次使用独立源码/结果根，LaGAM 与 full-meta 的 8 单元共 120 fit；每单元先做
+  1 个完整预算 canary，其余 14 个暂挂。复用审计器核对全 epoch/双 teacher、选模、角色隔离及
+  D52 代码/依赖/硬件/线程证据，通过才放行；每 fit 再验，失败封锁同单元未启动任务。
+  `--add-support-repair` 挂载只读计划；监控 `SRC=R!` 标识 canary、`5` 查看暂挂。
+  新旧汇总分开，工程门禁通过不等于正式准入；原训练进程与旧结果不覆盖。
 
 - 按 method、dataset、training-path（含 backbone）或 labeling mechanism 分组跑，
   `run_survey_pilot.py --methods/--datasets/--training-paths` 原生支持，v3 单元用
@@ -159,7 +255,7 @@ TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读�
 | Dist-PU | clean-room 全量目标与作者两阶段、scheduler、直方图目标不同 | 另有显式 `author_staged` 路径；默认 clean-room 不变 |
 | Split-PU | 论文 Eq. (6) 与源码 JSD 权重方向相反；TS 均衡 batch ≠ 总体 π | 已裁决（2026-10-24）：保持源码 0.7、batch 记 benchmark 近似、台账指针待版本化修正，见裁决记录 |
 | PAN | 论文 Eq. (7) 与源码目标、采样不一致 | 保留 paper-faithful；正式采样跟随论文 OS |
-| CVIR | 原始 U 的 α_U 与总体 π 不同；已补全局风险池校准与视图先验换算的独立工程入口 | v3 已声明 3 个单元但全 blocked；预算/runner 与真实数据/GPU 仍待，不把工程对照当论文数值复现 |
+| CVIR | 原始 U 的 α_U 与总体 π 不同；已补全局风险池校准、视图先验换算及显式 opt-in 的 SCAR 命令行入口 | v3 已声明 3 个单元但全 blocked；正式配方/版本化 runner 与真实数据/GPU 仍待，不把独立 CLI 工程对照当论文数值复现 |
 | Grad-PU | 论文要求移除 BN | `cnn13_no_bn` 单列 method-private，附 SHOULD 共享对照 |
 | PULNS / LaGAM | clean support 是额外监督；PA 不适用 | 只报 OA 或 `PA+clean-support`；主 CLI 已接通，正式批次待 P4.1-B |
 | GEN-PU / Holistic-PU | 作者归档未发现 LICENSE | `license=unknown`；不复制、执行或再分发 |
@@ -208,7 +304,8 @@ TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读�
    （spambase、imdb、cifar10）、PUET/RP 各 2 行（spambase、imdb）、LaGAM/PULNS 各 1 行（cifar10）；
    含 GradPU 首次真实运行。**PN-CNN 5 seed**（HENG958）。
 2. **support 方法**（shuidisjtu）：数据集、runnable 行、图像路径装配与批次驱动接入均已完成（D46、D49、D50），
-   mnist 与 fashion_mnist 的三条路径也各有单 seed 接线证据。剩余是执行：把这 12 个单元的正式 5 seed 批次排进跑批。
+   mnist 与 fashion_mnist 的三条路径也各有单 seed 接线证据。180 fit 已有观测；D53 其中 120 fit
+   接入独立纠正批次与 canary/逐 fit 门禁，PULNS 60 fit 不重复跑；完成后仍需 D54 完整批次审计。
 3. **汇总工具**（shuidisjtu）：xlsx 导出器与诊断卡工具已入库（D48），等 5 seed 批次出数后用
    `scripts/export_survey_results.py` 一条命令生成交付物 A；诊断卡算不了的五项信号见 D48。
 4. **正式 5 seed × c 网格跑批 → 汇总 → 写结论**（合流）：只运行满足协议/预算/配方/映射前置的单元；

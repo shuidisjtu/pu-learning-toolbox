@@ -257,6 +257,10 @@ class EpochCheckpointTrainer(Trainer):
         self.trains_on_real_labels = supervised
         self.checkpoint_dir = checkpoint_dir
 
+    def _checkpoint_context(self, fitted, epoch):
+        """Default to the estimator's explicit stage contract, preserving old writers."""
+        return _training_context(fitted)
+
     def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
         import torch
 
@@ -281,7 +285,8 @@ class EpochCheckpointTrainer(Trainer):
             if epochs and epoch <= epochs[-1].epoch:
                 raise ValueError("checkpoint epoch labels must be strictly increasing")
             history = getattr(fitted, "history_", {})
-            context = _training_context(fitted)
+            context = self._checkpoint_context(fitted, epoch)
+            _validate_training_context(context)
             if context is not None and checkpoints:
                 previous = checkpoints[-1].training_context
                 if previous is None or context["optimizer_steps"] < previous["optimizer_steps"]:

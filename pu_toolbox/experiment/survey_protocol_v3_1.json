@@ -1,0 +1,3457 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "survey-v3.1",
+  "review_status": "pending_collaborator_review",
+  "review_items": [
+    {
+      "item_id": "v2_p1_pa_oa_selection",
+      "title": "PA results use pu_val-selected configurations only; OA uses clean_val",
+      "sections": [
+        "1.2"
+      ],
+      "origin": "A1",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p2_calibration_definition",
+      "title": "Calibration operational definition, 'not applicable' category and common approximations",
+      "sections": [
+        "2.3"
+      ],
+      "origin": "A2",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p3_sampling_adjudication",
+      "title": "Sampling-assumption adjudication: paper first, reference code only when silent",
+      "sections": [
+        "2.3"
+      ],
+      "origin": "A2",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p4_clean_support_policy",
+      "title": "Training-time clean support: source, size, label budget, coverage and PA path",
+      "sections": [
+        "2.4"
+      ],
+      "origin": "A3",
+      "status": "accepted"
+    },
+    {
+      "item_id": "v2_p5_architecture_exception",
+      "title": "Architecture-exception criterion and the SHOULD shared-architecture comparison",
+      "sections": [
+        "2.5"
+      ],
+      "origin": "A4",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p6_canonical_prior",
+      "title": "Canonical prior pi and the per-view pi_U conversion",
+      "sections": [
+        "3"
+      ],
+      "origin": "A5",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p7_ledger_fields",
+      "title": "Ledger records the adjudication basis, prior semantics and calibration applicability",
+      "sections": [
+        "4"
+      ],
+      "origin": "A6",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p8_clean_support_presentation",
+      "title": "PA+clean-support is listed separately in the SCAR-PA table",
+      "sections": [
+        "5"
+      ],
+      "origin": "A7",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21"
+    },
+    {
+      "item_id": "v2_p9_pa_default",
+      "title": "Main table defaults to PA selection; OA configurations are recorded for reference",
+      "sections": [
+        "5"
+      ],
+      "origin": "Q2",
+      "status": "accepted",
+      "confirmed_on": "2026-10-21",
+      "note": "decision record only; no body text change"
+    },
+    {
+      "item_id": "v2_p10_self_pu_scope",
+      "title": "method_profiles.self_pu stays the no-meta ablation; the full variant needs new units",
+      "sections": [
+        "2.4"
+      ],
+      "origin": "decision",
+      "status": "accepted",
+      "note": "decision record only; no execution-unit change"
+    }
+  ],
+  "result_scope": "pilot / partial benchmark",
+  "selection_spec": {
+    "checkpoint_schema_version": "1.0",
+    "training": "one fixed-budget fit per candidate; snapshots before internal restoration",
+    "epoch_selection": "independent_offline_per_protocol",
+    "self_pu_components": "both EMA teachers at every epoch",
+    "pa_criterion": "pu_val_proxy_accuracy (Wang et al. 2026 Def. 1, OS branch); per-checkpoint val-side min-max threshold grid; population class prior required; collaborator acceptance pending; methods requiring training-time clean support report a separate PA+clean-support variant in the same SCAR-PA table, annotated and excluded from pure-PU PA advantage comparisons.",
+    "oa_criterion": "clean_val_accuracy; per-checkpoint val-side min-max threshold grid",
+    "tie_breaking": "earliest candidate, then earliest epoch/component, then earliest threshold",
+    "checkpoint_format": "weights_only; inference snapshots, not optimizer resume"
+  },
+  "selection_spec_kind": "descriptive_documentation",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "c_tokens": {
+    "scar": [
+      "0.1",
+      "0.3",
+      "0.5"
+    ],
+    "sar_lbe_a": [
+      "0.05",
+      "0.5"
+    ],
+    "sar_lbe_b": [
+      "0.05",
+      "0.5"
+    ]
+  },
+  "candidate_pool": [
+    {}
+  ],
+  "backbone_specs": {
+    "mlp128": {
+      "hidden_dims": [
+        128
+      ],
+      "activation": "relu",
+      "output_dim": 1,
+      "initialization": "seeded_random",
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "image": {
+      "name": "resnet18",
+      "weights": null,
+      "initialization": "seeded_random",
+      "in_channels": 3,
+      "input_size": [
+        32,
+        32
+      ],
+      "small_input_stem": true,
+      "normalization": "train_only_channel_statistics",
+      "train_augmentation": "none",
+      "adapter_encoder_fit": "none",
+      "adapter_shared_scope": "dataset/split/seed; independent of method/c/mechanism",
+      "adapter_cache_schema": "1.0",
+      "per_dataset": {
+        "cifar10": {
+          "in_channels": 3,
+          "input_size": [
+            32,
+            32
+          ],
+          "small_input_stem": true
+        },
+        "mnist": {
+          "in_channels": 1,
+          "input_size": [
+            28,
+            28
+          ],
+          "small_input_stem": true
+        },
+        "fashion_mnist": {
+          "in_channels": 1,
+          "input_size": [
+            28,
+            28
+          ],
+          "small_input_stem": true
+        },
+        "adni": {
+          "in_channels": 1,
+          "input_size": [
+            128,
+            128
+          ],
+          "small_input_stem": false
+        }
+      }
+    },
+    "genpu_native_mlp": {
+      "algorithm_id": "genpu",
+      "parameter_values": {
+        "hidden_dim": 256,
+        "latent_dim": 100
+      }
+    },
+    "pulda_native_mlp": {
+      "algorithm_id": "pulda",
+      "parameter_values": {
+        "hidden_dim": 64,
+        "depth": 2
+      }
+    },
+    "robust_pu_native_mlp": {
+      "algorithm_id": "robust_pu",
+      "parameter_values": {
+        "hidden_dim": 100
+      }
+    },
+    "split_pu_native_mlp": {
+      "algorithm_id": "split_pu",
+      "parameter_values": {
+        "hidden_dim": 100
+      }
+    },
+    "holistic_pu_native_mlp": {
+      "algorithm_id": "holistic_pu",
+      "parameter_values": {
+        "hidden_dim": 64
+      }
+    },
+    "genpu_native_cnn": {
+      "algorithm_id": "genpu",
+      "architecture": "resnet18_small_image"
+    },
+    "pulda_native_cnn": {
+      "algorithm_id": "pulda",
+      "architecture": "resnet18_small_image"
+    },
+    "mlp32": {
+      "hidden_dims": [
+        32
+      ],
+      "activation": "relu",
+      "output_dim": 1,
+      "initialization": "seeded_random",
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "robust_pu_adapter": {
+      "algorithm_id": "robust_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "split_pu_adapter": {
+      "algorithm_id": "split_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "holistic_pu_adapter": {
+      "algorithm_id": "holistic_pu",
+      "architecture": "resnet18_random_frozen"
+    },
+    "gradpu_native_cnn": {
+      "algorithm_id": "gradpu",
+      "architecture": "cnn13_no_bn"
+    }
+  },
+  "budgets": {
+    "closed_form": {
+      "unit": "one_closed_form_fit",
+      "outer_candidates": 1
+    },
+    "minibatch": {
+      "unit": "epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "two_student_sampled": {
+      "unit": "two_student_sampled_epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "optimizer_steps_per_epoch": 2,
+      "sampled_examples_per_step_max": 512,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "fullbatch": {
+      "unit": "full_train_gradient_steps",
+      "epochs": 200,
+      "batch_size": "full_train; estimator batch_size is unused",
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001
+    },
+    "alternating": {
+      "unit": "alternating_solver",
+      "max_acs_iter": 50,
+      "max_inner_iter": 2000,
+      "outer_candidates": 1
+    },
+    "kernel_cv": {
+      "unit": "kernel_cv_fit",
+      "outer_candidates": 1,
+      "internal_cv_folds": 5,
+      "internal_hyperparameter_pairs": 72,
+      "max_iter": 200,
+      "internal_search_counts_in_total_cost": true
+    },
+    "em": {
+      "unit": "em_fit",
+      "n_em_iter": 20,
+      "max_iter": 1000,
+      "outer_candidates": 1
+    },
+    "draft_p3mix": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "iterative_budget_pending_p4_1_b"
+    },
+    "draft_puet": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "forest_budget_pending_p4_1_b"
+    },
+    "draft_gradpu": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "minibatch_budget_pending_p4_1_b"
+    },
+    "draft_pan": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "adversarial_budget_pending_p4_1_b"
+    },
+    "draft_rp": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "crossfit_budget_pending_p4_1_b"
+    },
+    "draft_pulns": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "reinforcement_budget_pending_p4_1_b"
+    },
+    "draft_cvir": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "minibatch_budget_pending_p4_1_b"
+    },
+    "draft_lagam": {
+      "outer_candidates": 1,
+      "status": "pending_p4_1_b",
+      "unit": "meta_budget_pending_p4_1_b"
+    },
+    "draft_vpu": {
+      "outer_candidates": 1,
+      "unit": "minibatch_budget_pending_p4_1_b",
+      "status": "pending_p4_1_b"
+    },
+    "genpu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-1",
+        "algorithm_id": "genpu",
+        "parameter_values": {
+          "max_epochs": 100,
+          "classifier_epochs": 100,
+          "batch_size": 64,
+          "hidden_dim": 256,
+          "latent_dim": 100,
+          "learning_rate": 0.0003
+        },
+        "checkpoint_epoch_count": 100,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "synthetic_pn"
+        ]
+      }
+    },
+    "pulda": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-1",
+        "algorithm_id": "pulda",
+        "parameter_values": {
+          "warmup_epochs": 60,
+          "pu_epochs": 60,
+          "positive_batch_size": 16,
+          "unlabeled_batch_size": 128,
+          "hidden_dim": 64,
+          "depth": 2,
+          "warmup_learning_rate": 0.0001,
+          "learning_rate": 0.001,
+          "warmup_weight_decay": 0.0005,
+          "weight_decay": 0.0001
+        },
+        "checkpoint_epoch_count": 120,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "warmup",
+          "pu_mixup"
+        ]
+      }
+    },
+    "robust_pu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-2",
+        "algorithm_id": "robust_pu",
+        "parameter_values": {
+          "pretrain_epochs": 10,
+          "episodes": 20,
+          "inner_epochs": 1,
+          "batch_size": 64,
+          "hidden_dim": 100,
+          "pretrain_lr": 0.001,
+          "learning_rate": 0.0001
+        },
+        "checkpoint_epoch_count": 30,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "pretrain",
+          "self_paced"
+        ]
+      }
+    },
+    "split_pu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-2",
+        "algorithm_id": "split_pu",
+        "parameter_values": {
+          "teacher_epochs": 10,
+          "split_epochs": 10,
+          "student_epochs": 10,
+          "rounds": 2,
+          "batch_size": 64,
+          "hidden_dim": 100,
+          "learning_rate": 0.001,
+          "agreement_threshold": 0.92
+        },
+        "checkpoint_epoch_count": 40,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "teacher",
+          "splitter",
+          "student"
+        ]
+      }
+    },
+    "holistic_pu": {
+      "staged_budget": {
+        "schema_version": "survey-staged-budget-2",
+        "algorithm_id": "holistic_pu",
+        "parameter_values": {
+          "warmup_epochs": 30,
+          "max_epochs": 100,
+          "batch_size": 64,
+          "hidden_dim": 64,
+          "learning_rate": 0.001,
+          "warmup_selection": "fixed",
+          "pseudo_pn_initialization": "continue",
+          "lzo_alpha": 0.5,
+          "lzo_validation_size": null
+        },
+        "checkpoint_epoch_count": 130,
+        "checkpoint_bytes_per_component": 67108864,
+        "eligible_stages": [
+          "warmup",
+          "pseudo_pn"
+        ]
+      }
+    },
+    "lagam": {
+      "unit": "epochs",
+      "epochs": 20,
+      "batch_size": 64,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "pulns": {
+      "unit": "episodes",
+      "epochs": 20,
+      "batch_size": 128,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "clean_support_two_student": {
+      "unit": "two_student_sampled_epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "optimizer_steps_per_epoch": 2,
+      "sampled_examples_per_step_max": 512,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 8388608
+    },
+    "gradpu": {
+      "unit": "epochs",
+      "epochs": 200,
+      "batch_size": 256,
+      "outer_candidates": 1,
+      "optimizer": "adam",
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 67108864
+    },
+    "backlog_kldce": {
+      "unit": "alternating_solver",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "max_acs_iter": 50,
+        "max_inner_iter": 2000,
+        "sigma": "scale",
+        "reg_strength": 1.0,
+        "centroid_radius": 1.0,
+        "mom_groups": 10,
+        "covariance_ridge": 0.0,
+        "inner_tol": 1e-06,
+        "tol": 1e-06
+      },
+      "max_acs_iter": 50,
+      "max_inner_iter": 2000,
+      "kernel_payload_cap_bytes": 274877906944
+    },
+    "backlog_p3mix": {
+      "unit": "epochs",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "variant": "base",
+        "hidden_dim": 128,
+        "max_epochs": 100,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "beta": 1.0,
+        "gamma": 0.9,
+        "pool_size": 100,
+        "mixup_alpha": 1.0,
+        "early_learning_weight": 1.0,
+        "teacher_decay": 0.99,
+        "batching_policy": "role_balanced"
+      },
+      "epochs": 100,
+      "batch_size": 128,
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 67108864,
+      "checkpoint_epoch_count": 100
+    },
+    "backlog_puet": {
+      "unit": "trees",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "max_candidates": 1,
+        "bootstrap": false
+      }
+    },
+    "backlog_gradpu": {
+      "unit": "epochs",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "hidden_dim": 128,
+        "alpha": 0.1,
+        "beta_max": 1.0,
+        "batch_size": 256,
+        "max_epochs": 200,
+        "learning_rate": 0.001,
+        "lr_schedule": "constant",
+        "lr_final_ratio": 0.1,
+        "weight_decay": 0.0005
+      },
+      "epochs": 200,
+      "batch_size": 256,
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 67108864,
+      "checkpoint_epoch_count": 200
+    },
+    "backlog_pan": {
+      "unit": "epochs",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "hidden_dim": 128,
+        "max_epochs": 100,
+        "batch_size": 64,
+        "learning_rate": 0.0001,
+        "adversarial_weight": 1.0
+      },
+      "epochs": 100,
+      "batch_size": 64,
+      "learning_rate": 0.0001,
+      "checkpoint_bytes_per_component": 67108864,
+      "checkpoint_epoch_count": 100
+    },
+    "backlog_rp": {
+      "unit": "crossfit_and_refit",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "n_cv_folds": 3,
+        "frac_pos2neg": null,
+        "min_retained": 10
+      }
+    },
+    "backlog_cvir": {
+      "unit": "epochs",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "hidden_dim": 64,
+        "warm_start_epochs": 1,
+        "max_epochs": 20,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "data_device_policy": "cpu_stream",
+        "input_sampling": "os",
+        "prior_source": null
+      },
+      "epochs": 20,
+      "batch_size": 128,
+      "learning_rate": 0.001,
+      "checkpoint_bytes_per_component": 67108864,
+      "checkpoint_epoch_count": 21
+    },
+    "backlog_vpu": {
+      "unit": "epochs",
+      "outer_candidates": 1,
+      "parameter_values": {
+        "max_epochs": 100,
+        "optimizer_schedule": "constant",
+        "batch_size": 128,
+        "regularization_weight": 0.03,
+        "data_device_policy": "cpu_stream",
+        "learning_rate": 0.0003,
+        "depth": 2,
+        "mixup_alpha": 0.3,
+        "iterations_per_epoch": null,
+        "hidden_dim": 64
+      },
+      "epochs": 100,
+      "batch_size": 128,
+      "learning_rate": 0.0003,
+      "checkpoint_bytes_per_component": 67108864,
+      "checkpoint_epoch_count": 100
+    }
+  },
+  "method_profiles": {
+    "upu": {
+      "budget": "closed_form",
+      "params": {
+        "loss": "squared",
+        "basis": "linear",
+        "fit_intercept": false,
+        "max_iter": 1000
+      },
+      "model_family": "linear",
+      "group": "classical",
+      "algorithm": "upu"
+    },
+    "nnpu": {
+      "budget": "minibatch",
+      "params": {
+        "max_epochs": 200,
+        "batch_size": 256,
+        "patience": 201,
+        "optimizer": null
+      },
+      "model_family": "mlp128",
+      "group": "minibatch",
+      "algorithm": "nnpu"
+    },
+    "kldce": {
+      "budget": "backlog_kldce",
+      "params": {
+        "max_acs_iter": 50,
+        "max_inner_iter": 2000,
+        "sigma": "scale",
+        "reg_strength": 1.0,
+        "centroid_radius": 1.0,
+        "mom_groups": 10,
+        "covariance_ridge": 0.0,
+        "inner_tol": 1e-06,
+        "tol": 1e-06
+      },
+      "labeling_mechanisms": [
+        "scar"
+      ],
+      "runtime_parameters": {
+        "flip_probability": {
+          "source": "c_realized",
+          "transform": "one_minus",
+          "mechanism": "scar"
+        }
+      },
+      "model_family": "kernel",
+      "group": "classical",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "flip_probability is bound as 1 minus actual fixed-count SCAR c_realized, the estimator is rebuilt per c, and requested/realized c are recorded. KLDCE remains excluded from SAR."
+        ]
+      },
+      "algorithm": "kldce",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "dist_pu": {
+      "budget": "fullbatch",
+      "params": {
+        "hidden_dim": 128,
+        "epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001
+      },
+      "model_family": "mlp128",
+      "group": "fullbatch",
+      "algorithm": "dist_pu"
+    },
+    "pusb_kernel": {
+      "budget": "kernel_cv",
+      "params": {
+        "n_basis": 300,
+        "cv": 5,
+        "max_iter": 200,
+        "sigma_grid": [
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          2,
+          5,
+          10,
+          20
+        ],
+        "reg_grid": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1,
+          5
+        ]
+      },
+      "model_family": "kernel",
+      "group": "classical",
+      "algorithm": "pusb_kernel"
+    },
+    "lbe": {
+      "budget": "em",
+      "params": {
+        "max_iter": 1000,
+        "n_em_iter": 20
+      },
+      "model_family": "linear_em",
+      "group": "classical",
+      "algorithm": "lbe"
+    },
+    "self_pu": {
+      "budget": "two_student_sampled",
+      "params": {
+        "hidden_dim": 128,
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001,
+        "require_validation": false
+      },
+      "model_family": "mlp128",
+      "group": "two_student_sampled",
+      "algorithm": "self_pu"
+    },
+    "pn_oracle": {
+      "budget": "minibatch",
+      "params": {
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001
+      },
+      "model_family": "mlp128",
+      "group": "minibatch",
+      "algorithm": "pn_oracle"
+    },
+    "p3mix": {
+      "group": "minibatch",
+      "model_family": "mlp128",
+      "params": {
+        "variant": "base",
+        "hidden_dim": 128,
+        "max_epochs": 100,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "beta": 1.0,
+        "gamma": 0.9,
+        "pool_size": 100,
+        "mixup_alpha": 1.0,
+        "early_learning_weight": 1.0,
+        "teacher_decay": 0.99,
+        "batching_policy": "role_balanced"
+      },
+      "budget": "backlog_p3mix",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "The base variant is only a constructor default. The method card documents base, E and C as distinct variants and notes paper hyperparameter choices and source/EMA gaps; variant and candidate policy remain unresolved."
+        ]
+      },
+      "algorithm": "p3mix",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "puet": {
+      "group": "classical",
+      "model_family": "extra_trees",
+      "params": {
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "max_candidates": 1,
+        "bootstrap": false
+      },
+      "budget": "backlog_puet",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "100 trees is a constructor default, not a frozen tree budget; the existing budget review explicitly says tree count is not an epoch budget and requires a separate storage/resource profile."
+        ]
+      },
+      "algorithm": "puet",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "pulda": {
+      "group": "minibatch",
+      "model_family": "mlp64",
+      "params": {
+        "hidden_dim": 64,
+        "depth": 2,
+        "warmup_epochs": 60,
+        "pu_epochs": 60,
+        "positive_batch_size": 16,
+        "unlabeled_batch_size": 128,
+        "warmup_learning_rate": 0.0001,
+        "learning_rate": 0.001,
+        "warmup_weight_decay": 0.0005,
+        "weight_decay": 0.0001,
+        "temperature": 3.5,
+        "unlabeled_ema": 0.85,
+        "margin_ema": 0.5,
+        "margin": 0.6,
+        "mixup_weight": 4.2,
+        "mixup_alpha": 11.0
+      },
+      "budget": "pulda",
+      "configuration_status": "owner_confirmed_partial_on_2026-10-18",
+      "configuration_review": {
+        "status": "owner_confirmed_partial",
+        "findings": [
+          "The 60+60 epoch, P/U batch 16/128 settings match the owner's 2026-10-18 partial decision. The unit is still a draft pending protocol binding, image-runner wiring and remaining resource/selection gates."
+        ]
+      },
+      "algorithm": "pulda"
+    },
+    "gradpu": {
+      "group": "minibatch",
+      "model_family": "mlp128",
+      "params": {
+        "hidden_dim": 128,
+        "alpha": 0.1,
+        "beta_max": 1.0,
+        "batch_size": 256,
+        "max_epochs": 200,
+        "learning_rate": 0.001,
+        "lr_schedule": "constant",
+        "lr_final_ratio": 0.1,
+        "weight_decay": 0.0005
+      },
+      "budget": "backlog_gradpu",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "Use the method-private cnn13_no_bn image path; a frozen ResNet feature adapter would change the raw-image second-order gradient-penalty input and is not an equivalent image recipe."
+        ]
+      },
+      "algorithm": "gradpu",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "robust_pu": {
+      "group": "minibatch",
+      "model_family": "mlp100",
+      "params": {
+        "hidden_dim": 100,
+        "pretrain_epochs": 10,
+        "episodes": 20,
+        "inner_epochs": 1,
+        "batch_size": 64,
+        "pretrain_lr": 0.001,
+        "learning_rate": 0.0001,
+        "alpha_p": 0.1,
+        "alpha_n": 0.1,
+        "max_thresh_p": 2.0,
+        "max_thresh_n": 2.0,
+        "grow_steps": 10,
+        "spl_type": "welsch",
+        "temper_p": 1.0,
+        "temper_n": 1.0,
+        "phi": 0.0
+      },
+      "budget": "robust_pu",
+      "configuration_status": "provisional_constructor_defaults",
+      "configuration_review": {
+        "status": "provisional_or_unresolved",
+        "findings": [
+          "Pretrain/episode defaults are not an approved budget; eligible checkpoint stages and prior/validation policy remain open."
+        ]
+      },
+      "algorithm": "robust_pu"
+    },
+    "split_pu": {
+      "group": "minibatch",
+      "model_family": "mlp100",
+      "params": {
+        "hidden_dim": 100,
+        "teacher_epochs": 10,
+        "split_epochs": 10,
+        "student_epochs": 10,
+        "rounds": 2,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "agreement_threshold": 0.92,
+        "js_teacher_weight": 0.7,
+        "hard_weight": 0.3,
+        "feature_weight": 0.3,
+        "similarity_weight": 0.1,
+        "noise_std": 0.05
+      },
+      "budget": "split_pu",
+      "configuration_status": "provisional_constructor_defaults",
+      "configuration_review": {
+        "status": "resolved_by_adjudication",
+        "findings": [
+          "The source-default JSD weight 0.7 is confirmed by the 2026-10-24 #122 adjudication: keep the locked source direction and its normalization denominator, register the paper Eq. (6) direction as a difference, and register the TS balanced-batch union ratio as a benchmark approximation. The ledger pointer fix is deferred to a versioned ledger update."
+        ]
+      },
+      "algorithm": "split_pu"
+    },
+    "pan": {
+      "group": "minibatch",
+      "model_family": "mlp128",
+      "params": {
+        "hidden_dim": 128,
+        "max_epochs": 100,
+        "batch_size": 64,
+        "learning_rate": 0.0001,
+        "adversarial_weight": 1.0
+      },
+      "budget": "backlog_pan",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "Constructor defaults do not resolve the paper/source sampling decision already recorded for Survey or the P4.1-B candidate and budget recipe."
+        ]
+      },
+      "algorithm": "pan",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "rp": {
+      "group": "classical",
+      "model_family": "logistic",
+      "params": {
+        "n_cv_folds": 3,
+        "frac_pos2neg": null,
+        "min_retained": 10
+      },
+      "budget": "backlog_rp",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "Fold count and retention defaults are not an approved survey budget; OOF/refit cost remains to be frozen."
+        ]
+      },
+      "algorithm": "rp",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "pulns": {
+      "group": "minibatch",
+      "model_family": "mlp32",
+      "params": {
+        "hidden_dim": 32,
+        "pretrain_epochs": 10,
+        "episodes": 20,
+        "classifier_epochs": 1,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "selector_learning_rate": 0.001,
+        "discount": 0.9,
+        "terminal_weight": 1.0
+      },
+      "budget": "pulns",
+      "configuration_status": "provisional_constructor_defaults",
+      "configuration_review": {
+        "status": "provisional_or_unresolved",
+        "findings": [
+          "Requires clean support and the formal support path. No imdb unit is included because imdb is outside the approved support-dataset list."
+        ]
+      },
+      "algorithm": "pulns",
+      "supervision": "independent_clean_support",
+      "labeling_mechanisms": [
+        "scar"
+      ]
+    },
+    "genpu": {
+      "group": "minibatch",
+      "model_family": "mlp256",
+      "params": {
+        "hidden_dim": 256,
+        "latent_dim": 100,
+        "max_epochs": 100,
+        "classifier_epochs": 100,
+        "batch_size": 64,
+        "learning_rate": 0.0003,
+        "positive_weight": 1.0,
+        "negative_weight": 1.0,
+        "unlabeled_weight": 1.0,
+        "generator_output": "identity"
+      },
+      "budget": "genpu",
+      "configuration_status": "owner_confirmed_frozen_2026-10-24",
+      "configuration_review": {
+        "status": "resolved_by_adjudication",
+        "findings": [
+          "Recipe frozen on 2026-10-24 by owner decision (docs/research/pu_survey/admission/genpu_126_adjudication_20261024.md): the paper prior-weighted minimax/anti-GAN objective is kept, Du fake samples are weighted pi/(1-pi), and the final PN risk is prior-weighted softplus.",
+          "The frozen recipe fixes identity output, a two-layer-256/latent-100 dense generator, linear Dp/Dn heads, two-layer-256 Du/PN heads, four independently seeded ResNet-18 stems, and the G-step freeze of D parameters/BN/dropout with input gradients kept. The three lambda weights stay 1.0: prior weighting lives in the Du mixture and the PN risk, not in those knobs. Full-data resource measurement and numeric parity remain outside this decision.",
+          "2026-10-25 owner decision: hidden_dim 128 was the constructor default left in place at freeze time, not the frozen recipe. It is now bound to the receipt value, so profile params, the genpu staged budget, the genpu_native_mlp backbone spec and genpu_recipe.py all say 256, and the profile label reads mlp256 instead of mlp128. genpu_recipe.GenPURecipeTrainer rejects any other width, so 128 was a value that could never have run."
+        ]
+      },
+      "algorithm": "genpu"
+    },
+    "holistic_pu": {
+      "group": "minibatch",
+      "model_family": "mlp64",
+      "params": {
+        "hidden_dim": 64,
+        "warmup_epochs": 30,
+        "max_epochs": 100,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "trend_scale": 2.0,
+        "pseudo_pn_initialization": "continue",
+        "warmup_selection": "fixed",
+        "lzo_alpha": 0.5,
+        "lzo_validation_size": null
+      },
+      "budget": "holistic_pu",
+      "configuration_status": "provisional_constructor_defaults",
+      "configuration_review": {
+        "status": "provisional_or_unresolved",
+        "findings": [
+          "Stage selection, initialization and storage values are constructor defaults; the P3.2 recipe blockers remain open."
+        ]
+      },
+      "algorithm": "holistic_pu"
+    },
+    "cvir": {
+      "group": "minibatch",
+      "model_family": "mlp64",
+      "params": {
+        "hidden_dim": 64,
+        "warm_start_epochs": 1,
+        "max_epochs": 20,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "data_device_policy": "cpu_stream",
+        "input_sampling": "os",
+        "prior_source": null
+      },
+      "budget": "backlog_cvir",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "The constructor OS default does not clear the native-TS calibration gate. TS calibration or an explicit inapplicability decision is still required."
+        ]
+      },
+      "algorithm": "cvir",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "lagam": {
+      "group": "minibatch",
+      "model_family": "mlp128",
+      "params": {
+        "hidden_dim": 128,
+        "warmup_epochs": 2,
+        "max_epochs": 20,
+        "batch_size": 64,
+        "support_batch_size": 32,
+        "num_clusters": 5,
+        "learning_rate": 0.001,
+        "meta_lr": 0.001,
+        "mix_weight": 1.0,
+        "contrastive_weight": 1.0,
+        "temperature": 0.07,
+        "noise_std": 0.05,
+        "rho_start": 0.95,
+        "rho_end": 0.8,
+        "meta_update_bias": true
+      },
+      "budget": "lagam",
+      "configuration_status": "provisional_constructor_defaults",
+      "configuration_review": {
+        "status": "provisional_or_unresolved",
+        "findings": [
+          "Requires clean support and a dedicated runner path. No imdb unit is included because imdb is outside the approved support-dataset list."
+        ]
+      },
+      "algorithm": "lagam",
+      "supervision": "independent_clean_support",
+      "labeling_mechanisms": [
+        "scar"
+      ]
+    },
+    "vpu": {
+      "group": "minibatch",
+      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
+      "model_family": "mlp64",
+      "params": {
+        "max_epochs": 100,
+        "optimizer_schedule": "constant",
+        "batch_size": 128,
+        "regularization_weight": 0.03,
+        "data_device_policy": "cpu_stream",
+        "learning_rate": 0.0003,
+        "depth": 2,
+        "mixup_alpha": 0.3,
+        "iterations_per_epoch": null,
+        "hidden_dim": 64
+      },
+      "budget": "backlog_vpu",
+      "configuration_review": {
+        "status": "project_recipe_confirmed_source_differences_retained",
+        "findings": [
+          "The values match current constructor defaults, not the author recipe: the method card records 100 vs 50 epochs, batch 128 vs 500, and learning rate 3e-4 vs 3e-5. Its source validation diagnostic is not an allowed PA/OA selector under D22."
+        ]
+      },
+      "algorithm": "vpu",
+      "execution_adapter": "survey-backlog-1"
+    },
+    "self_pu_full_meta": {
+      "budget": "clean_support_two_student",
+      "params": {
+        "hidden_dim": 128,
+        "max_epochs": 200,
+        "batch_size": 256,
+        "learning_rate": 0.001,
+        "require_validation": true,
+        "distillation_scope": "paper_population"
+      },
+      "model_family": "mlp128",
+      "group": "two_student_sampled",
+      "algorithm": "self_pu",
+      "supervision": "independent_clean_support",
+      "labeling_mechanisms": [
+        "scar"
+      ]
+    }
+  },
+  "execution_units": [
+    {
+      "dataset": "spambase",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "spambase",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "imdb",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "kldce",
+      "training_path": "cnn_feature_adapter",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "cifar10",
+      "method": "dist_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pusb_kernel",
+      "training_path": "cnn_feature_adapter",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "lbe",
+      "training_path": "cnn_feature_adapter",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "self_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/native_cnn/native_cnn",
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/project_p3mix_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/project_p3mix_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_cnn",
+      "comparability_group": "cifar10/native_cnn/project_p3mix_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "cifar10",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_puet",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/project_puet_v3_1",
+      "model_family": "extra_trees",
+      "backbone": "none",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "puet",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_puet",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/project_puet_v3_1",
+      "model_family": "extra_trees",
+      "backbone": "none",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "puet",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "pulda",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/pulda",
+      "model_family": "pulda_native",
+      "backbone": "pulda_native_mlp",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "pulda"
+    },
+    {
+      "budget": "pulda",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/pulda",
+      "model_family": "pulda_native",
+      "backbone": "pulda_native_mlp",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "pulda"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/project_gradpu_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/project_gradpu_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_cnn",
+      "comparability_group": "cifar10/native_cnn/project_gradpu_v3_1",
+      "model_family": "gradpu_native_cnn",
+      "backbone": "gradpu_native_cnn",
+      "dataset": "cifar10",
+      "representation": "cnn13_no_bn_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "robust_pu",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_native_mlp",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "robust_pu"
+    },
+    {
+      "budget": "robust_pu",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_native_mlp",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "robust_pu"
+    },
+    {
+      "budget": "split_pu",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_native_mlp",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "split_pu"
+    },
+    {
+      "budget": "split_pu",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_native_mlp",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "split_pu"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/project_pan_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/project_pan_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_cnn",
+      "comparability_group": "cifar10/native_cnn/project_pan_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "cifar10",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_rp",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/project_rp_v3_1",
+      "model_family": "logistic",
+      "backbone": "none",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "rp",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_rp",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/project_rp_v3_1",
+      "model_family": "logistic",
+      "backbone": "none",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "rp",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "pulns",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/clean_support_pulns",
+      "model_family": "mlp32",
+      "backbone": "mlp32",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "pulns"
+    },
+    {
+      "budget": "pulns",
+      "training_path": "native_cnn",
+      "comparability_group": "cifar10/native_cnn/project_pulns_v3_1",
+      "model_family": "native_cnn_mlp32",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "cifar10",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "pulns",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "genpu",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/genpu",
+      "model_family": "genpu_native",
+      "backbone": "genpu_native_mlp",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "genpu"
+    },
+    {
+      "budget": "genpu",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/genpu",
+      "model_family": "genpu_native",
+      "backbone": "genpu_native_mlp",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "genpu"
+    },
+    {
+      "budget": "holistic_pu",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_native_mlp",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "holistic_pu"
+    },
+    {
+      "budget": "holistic_pu",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_native_mlp",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "holistic_pu"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/project_cvir_v3_1",
+      "model_family": "mlp64",
+      "backbone": "none",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_2d",
+      "comparability_group": "imdb/native_2d/project_cvir_v3_1",
+      "model_family": "mlp64",
+      "backbone": "none",
+      "dataset": "imdb",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_cnn",
+      "comparability_group": "cifar10/native_cnn/project_cvir_v3_1",
+      "model_family": "native_cnn_mlp64",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "cifar10",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "lagam",
+      "training_path": "native_2d",
+      "comparability_group": "spambase/native_2d/clean_support_lagam",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "dataset": "spambase",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "lagam"
+    },
+    {
+      "budget": "lagam",
+      "training_path": "native_cnn",
+      "comparability_group": "cifar10/native_cnn/project_lagam_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "cifar10",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "lagam",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "dataset": "spambase",
+      "comparability_group": "spambase/native_2d/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "mlp64",
+      "representation": "train_zscore",
+      "backbone": "none",
+      "training_path": "native_2d",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "dataset": "imdb",
+      "comparability_group": "imdb/native_2d/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "mlp64",
+      "representation": "sbert384",
+      "backbone": "none",
+      "training_path": "native_2d",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "dataset": "cifar10",
+      "comparability_group": "cifar10/native_cnn/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "native_cnn_mlp64",
+      "representation": "resnet18_random_initialization",
+      "backbone": "resnet18_end_to_end",
+      "training_path": "native_cnn",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "cifar10",
+      "method": "genpu",
+      "training_path": "native_cnn",
+      "budget": "genpu",
+      "model_family": "genpu_native_cnn",
+      "backbone": "genpu_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/native_cnn/genpu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "pulda",
+      "training_path": "native_cnn",
+      "budget": "pulda",
+      "model_family": "pulda_native_cnn",
+      "backbone": "pulda_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/native_cnn/pulda",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "spambase",
+      "method": "self_pu_full_meta",
+      "training_path": "native_2d",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "spambase/native_2d/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "robust_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/robust_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "split_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/split_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "cifar10",
+      "method": "holistic_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "cifar10/cnn_feature_adapter/holistic_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "upu",
+      "training_path": "native_2d",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "pusb_kernel",
+      "training_path": "native_2d",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "lbe",
+      "training_path": "native_2d",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "nnpu",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/native_cnn",
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/native_cnn",
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "nnpu",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/native_cnn/native_cnn",
+      "oracle_alignment": "cnn_oracle_phase2_not_available",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "upu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "closed_form",
+      "model_family": "linear",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "pn_oracle",
+      "training_path": "native_cnn",
+      "budget": "minibatch",
+      "model_family": "resnet18_linear",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/native_cnn/native_cnn",
+      "oracle_alignment": "shared_resnet18_end_to_end_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "pn_oracle",
+      "training_path": "cnn_feature_adapter",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "dist_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pusb_kernel",
+      "training_path": "cnn_feature_adapter",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "lbe",
+      "training_path": "cnn_feature_adapter",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "self_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "genpu",
+      "training_path": "native_cnn",
+      "budget": "genpu",
+      "model_family": "genpu_native_cnn",
+      "backbone": "genpu_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "mnist/native_cnn/genpu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pulda",
+      "training_path": "native_cnn",
+      "budget": "pulda",
+      "model_family": "pulda_native_cnn",
+      "backbone": "pulda_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "mnist/native_cnn/pulda",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "robust_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "mnist/cnn_feature_adapter/robust_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "split_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "mnist/cnn_feature_adapter/split_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "holistic_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "mnist/cnn_feature_adapter/holistic_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "dist_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pusb_kernel",
+      "training_path": "cnn_feature_adapter",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "lbe",
+      "training_path": "cnn_feature_adapter",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "self_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "genpu",
+      "training_path": "native_cnn",
+      "budget": "genpu",
+      "model_family": "genpu_native_cnn",
+      "backbone": "genpu_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "fashion_mnist/native_cnn/genpu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pulda",
+      "training_path": "native_cnn",
+      "budget": "pulda",
+      "model_family": "pulda_native_cnn",
+      "backbone": "pulda_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "fashion_mnist/native_cnn/pulda",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "robust_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/robust_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "split_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/split_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "holistic_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/holistic_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "dist_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "pusb_kernel",
+      "training_path": "cnn_feature_adapter",
+      "budget": "kernel_cv",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "lbe",
+      "training_path": "cnn_feature_adapter",
+      "budget": "em",
+      "model_family": "linear_em",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/classical",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "self_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "genpu",
+      "training_path": "native_cnn",
+      "budget": "genpu",
+      "model_family": "genpu_native_cnn",
+      "backbone": "genpu_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "adni/native_cnn/genpu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "pulda",
+      "training_path": "native_cnn",
+      "budget": "pulda",
+      "model_family": "pulda_native_cnn",
+      "backbone": "pulda_native_cnn",
+      "representation": "train_zscore",
+      "comparability_group": "adni/native_cnn/pulda",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "robust_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "adni/cnn_feature_adapter/robust_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "split_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "adni/cnn_feature_adapter/split_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "holistic_pu",
+      "training_path": "cnn_feature_adapter",
+      "budget": "holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_adapter",
+      "representation": "train_zscore",
+      "comparability_group": "adni/cnn_feature_adapter/holistic_pu",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "budget": "pulda",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/pulda",
+      "model_family": "pulda_native",
+      "backbone": "pulda_native_mlp",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "pulda"
+    },
+    {
+      "budget": "robust_pu",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_native_mlp",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "robust_pu"
+    },
+    {
+      "budget": "split_pu",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_native_mlp",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "split_pu"
+    },
+    {
+      "budget": "pulns",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/clean_support_pulns",
+      "model_family": "mlp32",
+      "backbone": "mlp32",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "pulns"
+    },
+    {
+      "budget": "genpu",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/genpu",
+      "model_family": "genpu_native",
+      "backbone": "genpu_native_mlp",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "genpu"
+    },
+    {
+      "budget": "holistic_pu",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_native_mlp",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "holistic_pu"
+    },
+    {
+      "budget": "lagam",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/clean_support_lagam",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "lagam"
+    },
+    {
+      "dataset": "connect_4",
+      "method": "self_pu_full_meta",
+      "training_path": "native_2d",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "dist_pu",
+      "training_path": "native_2d",
+      "budget": "fullbatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/fullbatch",
+      "oracle_alignment": "requires_separate_fullbatch_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "self_pu",
+      "training_path": "native_2d",
+      "budget": "two_student_sampled",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/two_student_sampled",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "pn_oracle",
+      "training_path": "native_2d",
+      "budget": "minibatch",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/minibatch",
+      "oracle_alignment": "shared_mlp128_and_minibatch_budget",
+      "runnable": true
+    },
+    {
+      "budget": "pulda",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/pulda",
+      "model_family": "pulda_native",
+      "backbone": "pulda_native_mlp",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "pulda"
+    },
+    {
+      "budget": "robust_pu",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/robust_pu",
+      "model_family": "robust_pu_native",
+      "backbone": "robust_pu_native_mlp",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "robust_pu"
+    },
+    {
+      "budget": "split_pu",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/split_pu",
+      "model_family": "split_pu_native",
+      "backbone": "split_pu_native_mlp",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "split_pu"
+    },
+    {
+      "budget": "genpu",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/genpu",
+      "model_family": "genpu_native",
+      "backbone": "genpu_native_mlp",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "genpu"
+    },
+    {
+      "budget": "holistic_pu",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/holistic_pu",
+      "model_family": "holistic_pu_native",
+      "backbone": "holistic_pu_native_mlp",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "method": "holistic_pu"
+    },
+    {
+      "dataset": "mnist",
+      "method": "lagam",
+      "training_path": "native_cnn",
+      "budget": "lagam",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/clean_support_lagam",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "lagam",
+      "training_path": "native_cnn",
+      "budget": "lagam",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/clean_support_lagam",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "pulns",
+      "training_path": "native_cnn",
+      "budget": "pulns",
+      "model_family": "native_cnn_mlp32",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/native_cnn/clean_support_pulns",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "pulns",
+      "training_path": "native_cnn",
+      "budget": "pulns",
+      "model_family": "native_cnn_mlp32",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/native_cnn/clean_support_pulns",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "mnist",
+      "method": "self_pu_full_meta",
+      "training_path": "cnn_feature_adapter",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "self_pu_full_meta",
+      "training_path": "cnn_feature_adapter",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "connect_4",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "train_zscore",
+      "comparability_group": "connect_4/native_2d/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/project_p3mix_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_puet",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/project_puet_v3_1",
+      "model_family": "extra_trees",
+      "backbone": "none",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "puet",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/project_gradpu_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/project_pan_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_rp",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/project_rp_v3_1",
+      "model_family": "logistic",
+      "backbone": "none",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "rp",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_2d",
+      "comparability_group": "connect_4/native_2d/project_cvir_v3_1",
+      "model_family": "mlp64",
+      "backbone": "none",
+      "dataset": "connect_4",
+      "representation": "train_zscore",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "dataset": "connect_4",
+      "comparability_group": "connect_4/native_2d/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "mlp64",
+      "representation": "train_zscore",
+      "backbone": "none",
+      "training_path": "native_2d",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "kldce",
+      "training_path": "native_2d",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "none",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/project_p3mix_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_puet",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/project_puet_v3_1",
+      "model_family": "extra_trees",
+      "backbone": "none",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "puet",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/project_gradpu_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/project_pan_v3_1",
+      "model_family": "mlp128",
+      "backbone": "none",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_rp",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/project_rp_v3_1",
+      "model_family": "logistic",
+      "backbone": "none",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "rp",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_2d",
+      "comparability_group": "twenty_newsgroups/native_2d/project_cvir_v3_1",
+      "model_family": "mlp64",
+      "backbone": "none",
+      "dataset": "twenty_newsgroups",
+      "representation": "sbert384",
+      "runnable": true,
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "dataset": "twenty_newsgroups",
+      "comparability_group": "twenty_newsgroups/native_2d/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "mlp64",
+      "representation": "sbert384",
+      "backbone": "none",
+      "training_path": "native_2d",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "mnist",
+      "method": "kldce",
+      "training_path": "cnn_feature_adapter",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "mnist/cnn_feature_adapter/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_cnn",
+      "comparability_group": "mnist/native_cnn/project_p3mix_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "mnist",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_cnn",
+      "comparability_group": "mnist/native_cnn/project_gradpu_v3_1",
+      "model_family": "gradpu_native_cnn",
+      "backbone": "gradpu_native_cnn",
+      "dataset": "mnist",
+      "representation": "cnn13_no_bn_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_cnn",
+      "comparability_group": "mnist/native_cnn/project_pan_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "mnist",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_cnn",
+      "comparability_group": "mnist/native_cnn/project_cvir_v3_1",
+      "model_family": "native_cnn_mlp64",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "mnist",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "dataset": "mnist",
+      "comparability_group": "mnist/native_cnn/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "native_cnn_mlp64",
+      "representation": "resnet18_random_initialization",
+      "backbone": "resnet18_end_to_end",
+      "training_path": "native_cnn",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "fashion_mnist",
+      "method": "kldce",
+      "training_path": "cnn_feature_adapter",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "fashion_mnist/cnn_feature_adapter/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_cnn",
+      "comparability_group": "fashion_mnist/native_cnn/project_p3mix_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "fashion_mnist",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_cnn",
+      "comparability_group": "fashion_mnist/native_cnn/project_gradpu_v3_1",
+      "model_family": "gradpu_native_cnn",
+      "backbone": "gradpu_native_cnn",
+      "dataset": "fashion_mnist",
+      "representation": "cnn13_no_bn_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_cnn",
+      "comparability_group": "fashion_mnist/native_cnn/project_pan_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "fashion_mnist",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_cnn",
+      "comparability_group": "fashion_mnist/native_cnn/project_cvir_v3_1",
+      "model_family": "native_cnn_mlp64",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "fashion_mnist",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "dataset": "fashion_mnist",
+      "comparability_group": "fashion_mnist/native_cnn/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "native_cnn_mlp64",
+      "representation": "resnet18_random_initialization",
+      "backbone": "resnet18_end_to_end",
+      "training_path": "native_cnn",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "adni",
+      "method": "kldce",
+      "training_path": "cnn_feature_adapter",
+      "budget": "backlog_kldce",
+      "model_family": "kernel",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/project_kldce_v3_1",
+      "oracle_alignment": "no_matched_neural_backbone_oracle",
+      "runnable": true,
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_p3mix",
+      "training_path": "native_cnn",
+      "comparability_group": "adni/native_cnn/project_p3mix_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "adni",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "p3mix",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_gradpu",
+      "training_path": "native_cnn",
+      "comparability_group": "adni/native_cnn/project_gradpu_v3_1",
+      "model_family": "gradpu_native_cnn",
+      "backbone": "gradpu_native_cnn",
+      "dataset": "adni",
+      "representation": "cnn13_no_bn_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "gradpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_pan",
+      "training_path": "native_cnn",
+      "comparability_group": "adni/native_cnn/project_pan_v3_1",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "adni",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "pan",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "budget": "backlog_cvir",
+      "training_path": "native_cnn",
+      "comparability_group": "adni/native_cnn/project_cvir_v3_1",
+      "model_family": "native_cnn_mlp64",
+      "backbone": "resnet18_end_to_end",
+      "dataset": "adni",
+      "representation": "resnet18_random_initialization",
+      "runnable": true,
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "method": "cvir",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "oracle_alignment": "native_cnn_oracle_and_method_private_alignment_pending",
+      "dataset": "adni",
+      "comparability_group": "adni/native_cnn/project_vpu_v3_1",
+      "runnable": true,
+      "budget": "backlog_vpu",
+      "model_family": "native_cnn_mlp64",
+      "representation": "resnet18_random_initialization",
+      "backbone": "resnet18_end_to_end",
+      "training_path": "native_cnn",
+      "method": "vpu",
+      "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "cifar10",
+      "method": "self_pu_full_meta",
+      "training_path": "cnn_feature_adapter",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "cifar10/cnn_feature_adapter/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    }
+  ],
+  "formal_blockers": [
+    "The owner approved project recipes, not numerical reproduction or collaborator comparison signatures.",
+    "Per-unit full-data resource, five-seed, selection and artifact audits remain required.",
+    "New comparison mappings have no direct anchors pending independent source review."
+  ],
+  "decisions": [
+    "Random frozen adapter is an engineering benchmark-adapted representation, not a trained or pretrained ResNet claim.",
+    "Native CNN and adapter rankings are strictly separate.",
+    "Full-batch Dist-PU is not budget-equivalent to mini-batch methods; unmatched oracle remains separate.",
+    "Classical methods have no MLP backbone; no neural oracle is claimed to be backbone-matched.",
+    "CIFAR-10 native-CNN PN oracle passed a real-GPU two-epoch smoke on 2026-10-22; runnable denotes implementation capability, not frozen protocol admission or completed five-seed results.",
+    "Completed-epoch weights are selected independently offline; inference checkpoints do not resume optimizer training.",
+    "PA selects on the generated pu_val view by proxy accuracy (Wang et al. 2026 Definition 1, OS branch) over the same per-checkpoint val-side min-max threshold grid OA uses; the population class prior pi is required per run (from the run's class_prior, else the split artifact's class_prior.population) and a run without it fails loudly. Formal SCAR PA acceptance remains pending the collaborator's signature.",
+    "KLDCE binds flip_probability = 1 - c for SCAR only and is rebuilt for each c; all SAR requests are rejected. Its execution rows still require approved protocol and dataset-specific budget/resource gates.",
+    "Self-PU uses two sampled optimizer steps per epoch, not a full traversal, and has no budget-matched mini-batch oracle; its comparability group is separate.",
+    "selection_spec is descriptive documentation; runner behavior is enforced by code and checkpoint tests, not by dynamically consuming this prose field.",
+    "Sampling-assumption adjudication follows the paper first; the reference code is used only when the paper is silent, and paper/code differences are registered.",
+    "Native-TS methods use TS-compatible calibration (D_U <- D_U union D_P) on OS data; this is not TS data resampling.",
+    "The canonical prior is population pi; pi_U = pi under the ts view and pi_U = (pi*n - n_L)/(n - n_L) under the SCAR os view.",
+    "Architecture exceptions are limited to architectures or recipes required by the method mechanism or the paper; author-code implementation choices are not exceptions.",
+    "The main table defaults to PA selection; OA configurations are recorded for reference (Q2).",
+    "Architecture-exception methods remain single-listed; a shared-architecture comparison run SHOULD be provided when feasible, and its absence is noted in the result table/method card (Q1).",
+    "PA+clean-support results are listed in the same SCAR-PA table with an explicit annotation and are excluded from pure-PU PA advantage comparisons (Q3).",
+    "Training-time clean support is required by PULNS, LaGAM, and the full Self-PU branch; the no-clean Self-PU path is an explicit ablation. Support is disjoint from the remaining train, pu_val, clean_val, and test; this round carves it from train and removes it, sized 100 for Spambase and 500 otherwise, and its positive and negative labels count toward the training-time label budget (approved 2026-10-21).",
+    "This round covers Spambase, Connect-4, MNIST, F-MNIST, and CIFAR-10 only; IMDB, 20News, and ADNI are excluded from PA+clean-support.",
+    "The formal PA+clean-support runner landed with the 2026-10-24 v3 freeze; support-dependent rows report PA+clean-support alongside OA, annotated and excluded from pure-PU PA advantage comparisons. Existing self_pu execution units retain the no-meta ablation profile.",
+    "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant uses the separate self_pu_full_meta profile and its own support unit.",
+    "Clean-support units on the two image datasets take the shared ResNet-18 end to end for LaGAM and PULNS; Self-PU full-meta takes the frozen feature adapter because its estimator has no native CNN (D5), matching its existing mnist/fashion_mnist rows. The support part is carried through the same image preprocessing, so it is no longer handed to the estimator as raw uint8 pixels or as 4-D images on a 2-D path.",
+    "2026-11-01: owner adopts current provisional project recipes, including P3MIX base/default role_balanced batching. Historical merged_shuffle candidate results remain separate. VPU/CVIR cpu_stream preserves full batches/epochs. SAR is an OA-only stress test, not a claim of new selection-bias correction."
+  ],
+  "draft_scope": {
+    "status": "owner_confirmed_project_recipes_pending_execution_audit",
+    "limitations": [
+      "PUET/RP image paths remain outside the declared template scope; do not invent a feature recipe.",
+      "KLDCE keeps SCAR only and rejects over-cap dense kernels rather than subsampling.",
+      "Support profiles remain limited to the approved five datasets and SCAR.",
+      "Earlier candidate results are not rebound to this version or counted as its completed runs."
+    ]
+  },
+  "configuration_audit": {
+    "status": "configuration_reviewed_open",
+    "review_date": "2026-10-21",
+    "scope": "static configuration audit only; no training or formal experiment was run",
+    "roster": {
+      "required_targets": [
+        "pan",
+        "genpu",
+        "pulns",
+        "rp",
+        "cvir",
+        "holistic_pu",
+        "p3mix",
+        "upu",
+        "nnpu",
+        "kldce",
+        "vpu",
+        "dist_pu",
+        "pulda",
+        "pusb_kernel",
+        "lbe",
+        "puet",
+        "gradpu",
+        "robust_pu",
+        "split_pu",
+        "lagam",
+        "self_pu",
+        "pn_oracle"
+      ],
+      "configured_targets": [
+        "cvir",
+        "dist_pu",
+        "genpu",
+        "gradpu",
+        "holistic_pu",
+        "kldce",
+        "lagam",
+        "lbe",
+        "nnpu",
+        "p3mix",
+        "pan",
+        "pn_oracle",
+        "puet",
+        "pulda",
+        "pulns",
+        "pusb_kernel",
+        "robust_pu",
+        "rp",
+        "self_pu",
+        "split_pu",
+        "upu",
+        "vpu"
+      ],
+      "missing_targets": [],
+      "extra_targets": [],
+      "mapping_notes": {
+        "pusb_kernel": "Maps the protocol PUSB target to the survey pilot implementation; method_ledger.json states the linear pusb estimator is an additional baseline and is not admitted to the pilot roster.",
+        "pn_oracle": "The one supervised oracle target; together with 21 PU methods gives 22 targets.",
+        "vpu": "Required by protocol section 4; its entry is a later addition beyond the 13 P3.1 methods."
+      }
+    },
+    "scope_limits": [
+      "Execution units inherit only the current v2 pilot dataset matrix: spambase, imdb, cifar10. This does not cover all eight available split datasets.",
+      "PULNS and LaGAM have no imdb clean-support unit because the protocol support policy covers spambase, connect_4, mnist, fashion_mnist and cifar10, not imdb.",
+      "All new execution units remain non-runnable. Clean-support artifacts are absent, and P3.2 runner wiring, P4.1-B budgets and method-specific gates remain open.",
+      "CIFAR-10 rows for trainable-encoder methods are expressed as native-CNN target paths; these are pending runner and checkpoint-storage profiles.",
+      "The current global candidate_pool contains one empty candidate. It is inherited pilot scaffolding, not an owner-approved search recipe for the added methods.",
+      "New methods have provisional method-isolated comparability groups; do not infer cross-method budget equivalence before P4.1-B."
+    ],
+    "method_findings": {
+      "p3mix": [
+        "The base variant is only a constructor default. The method card documents base, E and C as distinct variants and notes paper hyperparameter choices and source/EMA gaps; variant and candidate policy remain unresolved."
+      ],
+      "puet": [
+        "100 trees is a constructor default, not a frozen tree budget; the existing budget review explicitly says tree count is not an epoch budget and requires a separate storage/resource profile."
+      ],
+      "pulda": [
+        "The 60+60 epoch, P/U batch 16/128 settings match the owner's 2026-10-18 partial decision. The unit is still a draft pending protocol binding, image-runner wiring and remaining resource/selection gates."
+      ],
+      "gradpu": [
+        "Use the method-private cnn13_no_bn image path; a frozen ResNet feature adapter would change the raw-image second-order gradient-penalty input and is not an equivalent image recipe."
+      ],
+      "robust_pu": [
+        "Pretrain/episode defaults are not an approved budget; eligible checkpoint stages and prior/validation policy remain open."
+      ],
+      "split_pu": [
+        "The source-default JSD weight 0.7 is confirmed by the 2026-10-24 #122 adjudication: keep the locked source direction and its normalization denominator, register the paper Eq. (6) direction as a difference, and register the TS balanced-batch union ratio as a benchmark approximation. The ledger pointer fix is deferred to a versioned ledger update."
+      ],
+      "pan": [
+        "Constructor defaults do not resolve the paper/source sampling decision already recorded for Survey or the P4.1-B candidate and budget recipe."
+      ],
+      "rp": [
+        "Fold count and retention defaults are not an approved survey budget; OOF/refit cost remains to be frozen."
+      ],
+      "pulns": [
+        "Requires clean support and the formal support path. No imdb unit is included because imdb is outside the approved support-dataset list."
+      ],
+      "genpu": [
+        "Recipe frozen on 2026-10-24 (docs/research/pu_survey/admission/genpu_126_adjudication_20261024.md); full-data resources and numeric parity stay outside the freeze."
+      ],
+      "holistic_pu": [
+        "Stage selection, initialization and storage values are constructor defaults; the P3.2 recipe blockers remain open."
+      ],
+      "cvir": [
+        "The constructor OS default does not clear the native-TS calibration gate. TS calibration or an explicit inapplicability decision is still required."
+      ],
+      "lagam": [
+        "Requires clean support and a dedicated runner path. No imdb unit is included because imdb is outside the approved support-dataset list."
+      ],
+      "vpu": [
+        "The values match current constructor defaults, not the author recipe: the method card records 100 vs 50 epochs, batch 128 vs 500, and learning rate 3e-4 vs 3e-5. Its source validation diagnostic is not an allowed PA/OA selector under D22."
+      ],
+      "kldce": [
+        "SCAR runtime binding is defined as flip_probability = 1 - c and the model is constructed per c. SAR is disallowed. Execution rows remain non-runnable pending approved protocol and dataset-specific budget/resource gates."
+      ]
+    }
+  },
+  "profile_identity_schema_version": "survey-profile-identity-1",
+  "revision_basis": {
+    "protocol_version": "survey-v3.0",
+    "protocol_sha256": "212e3d0ce78f26cbb7f13fb375ea750525cee17b39a99a0285ff41f11b843f11",
+    "owner_decision_date": "2026-11-01",
+    "decision": "current provisional parameters adopted as project recipes; paper differences retained",
+    "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md"
+  }
+}

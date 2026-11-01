@@ -53,6 +53,8 @@ COMPARISON_PATHS: dict[str, Path] = {
     "survey-v1.2": Path(__file__).with_name("survey_comparison_v3.json"),
     "survey-v2.0": COMPARISON_PATH,
     "survey-v3.0": Path(__file__).with_name("survey_comparison_v6.json"),
+    "survey-v3.1": Path(__file__).with_name("survey_comparison_v7.json"),
+    "survey-v3.2": Path(__file__).with_name("survey_comparison_v8.json"),
 }
 
 #: The six eligibility classes, in canonical order.  A comparison file that
@@ -919,10 +921,11 @@ def run_comparison_units(
             STATUS_NOT_IN_MATRIX,
             load_profile_map,
             profile_map_binds,
+            profile_map_path,
             profile_registration_status,
         )
 
-        profile_map = load_profile_map()
+        profile_map = load_profile_map(profile_map_path(survey))
         if not profile_map_binds(profile_map, survey):
             # A narrowed or otherwise noncanonical matrix has no versioned
             # profile mapping; the manifest's registration status already says so.

@@ -603,6 +603,20 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--seeds", default="0", help="comma-separated seeds")
     parser.add_argument("--class-prior", type=float, default=None, help="population class prior π")
     parser.add_argument(
+        "--cvir-population-prior-source",
+        default=None,
+        help=(
+            "opt in to the exploratory CVIR population-prior adapter; describe the "
+            "source of --class-prior (SCAR only, without --protocol)"
+        ),
+    )
+    parser.add_argument(
+        "--checkpoint-bytes-per-component",
+        type=int,
+        default=None,
+        help="measured positive checkpoint byte upper bound for exploratory CVIR only",
+    )
+    parser.add_argument(
         "--candidates",
         default=None,
         help="JSON file with the candidate hyper-parameter pool (default: [{}])",
@@ -653,6 +667,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--device", default="cpu", help="execution device (default: cpu)")
+    parser.add_argument(
+        "--gradpu-activation-memory",
+        choices=("device", "cpu_offload"),
+        default="device",
+        help="GradPU backlog execution only: offload saved tensors without changing the recipe",
+    )
     parser.add_argument("--adapter-cache", default="data/cache/survey_adapter")
     parser.add_argument("--extraction-batch-size", type=int, default=64)
     parser.add_argument(
@@ -686,11 +706,15 @@ def _coverage_profile_map(protocol) -> dict | None:
     would blame the matrix for a missing lookup path.
     """
     from pu_toolbox.experiment.survey_profile_identity import has_profile_identities
-    from pu_toolbox.experiment.survey_profile_map import load_profile_map, profile_map_binds
+    from pu_toolbox.experiment.survey_profile_map import (
+        load_profile_map,
+        profile_map_binds,
+        profile_map_path,
+    )
 
     if not has_profile_identities(protocol):
         return None
-    profile_map = load_profile_map()
+    profile_map = load_profile_map(profile_map_path(protocol))
     if not profile_map_binds(profile_map, protocol):
         raise ValueError(
             "no versioned profile map binds this protocol matrix; the coverage "
@@ -752,6 +776,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
         if args.extraction_batch_size < 1:
             raise ValueError("extraction batch size must be positive")
         protocol = load_protocol(protocol_path)
+        if args.gradpu_activation_memory != "device" and (
+            method != "gradpu" or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+        ):
+            raise ValueError("GradPU activation offload requires the versioned GradPU backlog")
         shipped = load_protocol(resolve_protocol_path(protocol["protocol_version"]))
         if digest(protocol) == digest(shipped):
             # Prove the pre-registered pair covers every unit it must, here
@@ -862,6 +890,9 @@ def _versioned_main(args, c_values, seed_values) -> int:
         if args.out_dir
         else Path("results") / "survey" / args.dataset / method / row["training_path"]
     )
+    if args.gradpu_activation_memory != "device":
+        # Never overwrite or silently rebind the original device-memory result.
+        out_root = out_root / "execution_cpu_offload"
     if recipe_registry is not None:
         # Bound and legacy requests must never overwrite one another's results.
         prefix = "recipe_pool" if args.recipe_binding_schema_version is not None else "recipe"
@@ -958,6 +989,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     encoder=encoder,
                     preprocessing=preprocessing,
                 )
+                if args.gradpu_activation_memory != "device":
+                    model.set_params(activation_memory=args.gradpu_activation_memory)
             except (KeyError, TypeError, ValueError, ImportError) as exc:
                 print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
                 return 1
@@ -1012,6 +1045,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 "checkpoint_bytes_per_component": checkpoint_bytes_per_component,
                 "reclaim_unselected_checkpoints": args.reclaim_unselected_checkpoints,
             }
+            if args.gradpu_activation_memory != "device":
+                config["gradpu_activation_memory"] = args.gradpu_activation_memory
             if recipe_registry is not None:
                 config["recipe_registry"] = recipe_registry
                 config["expected_recipe_registry_sha256"] = canonical_digest(recipe_registry)
@@ -1032,6 +1067,13 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 # The runner re-reads the protocol and re-applies the same gate; it can
                 # only relax it when the caller declares that support was supplied.
                 config["clean_support_provided"] = True
+            elif profile.get("execution_adapter") == "survey-backlog-1":
+                from pu_toolbox.experiment.survey_backlog import backlog_trainer
+
+                config["trainer"] = backlog_trainer(algorithm, protocol)
+            if profile.get("runtime_parameters"):
+                config["runtime_binding_inputs"] = runtime_binding_inputs
+                config["runtime_parameters"] = config["survey_protocol"]["runtime_parameters"]
             if not args.oracle:
                 config["c_requested_token"] = c_value.token
             if args.batch_evidence is None and not warned_about_evidence:
@@ -1090,9 +1132,49 @@ def _versioned_main(args, c_values, seed_values) -> int:
     return 0
 
 
+def _validate_cvir_cli_request(args: argparse.Namespace) -> bool:
+    """Require explicit prior semantics; never turn a draft into a frozen recipe.
+
+    These request-only gates precede split loading and output creation. Model
+    and candidate contracts are then checked by the existing adapter itself.
+    """
+    opted_in = args.cvir_population_prior_source is not None
+    has_bound = args.checkpoint_bytes_per_component is not None
+    if not opted_in and not has_bound:
+        if args.method == "cvir" and args.protocol is None and not args.oracle:
+            raise ValueError(
+                "exploratory CVIR requires --cvir-population-prior-source and "
+                "--checkpoint-bytes-per-component; population pi is not alpha_U"
+            )
+        return False
+    if args.protocol is not None or args.oracle or args.method != "cvir":
+        raise ValueError("CVIR adapter flags require --method cvir without --protocol/--oracle")
+    if not opted_in or not args.cvir_population_prior_source.strip():
+        raise ValueError("CVIR requires a nonempty --cvir-population-prior-source")
+    if not has_bound or args.checkpoint_bytes_per_component <= 0:
+        raise ValueError("CVIR requires positive --checkpoint-bytes-per-component")
+    if args.labeling_mechanism != "scar":
+        raise ValueError("CVIR exploratory population adapter supports SCAR only")
+    if (
+        args.class_prior is None
+        or not math.isfinite(args.class_prior)
+        or not 0 < args.class_prior < 1
+    ):
+        raise ValueError("CVIR requires a finite population --class-prior in (0, 1)")
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.gradpu_activation_memory != "device" and args.protocol is None:
+        print("error: GradPU activation offload requires --protocol", file=sys.stderr)
+        return 1
     data_dir = Path(args.data_dir)
+    try:
+        cvir_population_adapter = _validate_cvir_cli_request(args)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     # A packet names the protocol matrix it was planned against, so it has no
     # meaning on the unbound smoke path: accepting one there would write a
@@ -1217,14 +1299,40 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {exc}", file=sys.stderr)
             return 1
         try:
-            model = get_algorithm(method)(**json.loads(args.model_params))
-        except (RegistryError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            model_params = json.loads(args.model_params)
+            if not isinstance(model_params, dict):
+                raise ValueError("--model-params must be a JSON object")
+            if cvir_population_adapter:
+                model_params.setdefault("device", args.device)
+            model = get_algorithm(method)(**model_params)
+        except (RegistryError, KeyError, TypeError, ValueError) as exc:
             print(f"error: cannot create method '{method}': {exc}", file=sys.stderr)
             return 1
         generator = _resolve_labeling_generator(args.labeling_mechanism)
         protocols = _resolve_labeling_protocols(args.labeling_mechanism)
         ledger_entry = ledger["methods"].get(method)
         config_extra = {}
+        if cvir_population_adapter:
+            from pu_toolbox.experiment.cvir_adapter import CVIRPopulationPriorTrainer
+
+            adapter = CVIRPopulationPriorTrainer(
+                population_prior_source=args.cvir_population_prior_source
+            )
+            config_extra = {
+                "trainer": adapter,
+                "checkpoint_bytes_per_component": args.checkpoint_bytes_per_component,
+                "reclaim_unselected_checkpoints": args.reclaim_unselected_checkpoints,
+            }
+            try:
+                adapter.validate_experiment(
+                    model,
+                    None,
+                    {"candidates": candidates, "os_or_ts": os_or_ts, **config_extra},
+                    protocols,
+                )
+            except (TypeError, ValueError) as exc:
+                print(f"error: invalid CVIR candidate contract: {exc}", file=sys.stderr)
+                return 1
 
     config: dict[str, Any] = {
         "candidates": candidates,
@@ -1243,6 +1351,24 @@ def main(argv: list[str] | None = None) -> int:
         config["broadcast_c_values"] = [item.value for item in c_values]
     else:
         run_specs = [(item, seed) for item in c_values for seed in seed_values]
+    if cvir_population_adapter:
+        # No partial batch should overwrite an earlier alpha/view receipt, or
+        # start before discovering that a later requested output already exists.
+        if not seed_values or len(seed_values) != len(set(seed_values)):
+            print("error: CVIR requires nonempty, distinct seeds", file=sys.stderr)
+            return 1
+        for c_value, seed in run_specs:
+            run_dir = _run_directory(
+                out_root,
+                mechanism=args.labeling_mechanism,
+                c_value=c_value,
+                seed=seed,
+                is_oracle=False,
+                run_view=os_or_ts,
+            )
+            if run_dir.exists() and (not run_dir.is_dir() or any(run_dir.iterdir())):
+                print(f"error: refusing to overwrite CVIR evidence: {run_dir}", file=sys.stderr)
+                return 1
     completed_runs = 0
     for c_value, seed in run_specs:
         c = None if c_value is None else c_value.value
@@ -1285,6 +1411,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[{method}] {c_label} seed={seed} -> {manifest_path}")
         for protocol, metrics_value in metrics.items():
             print(f"  {protocol}: {metrics_value}")
+
+    if cvir_population_adapter and completed_runs:
+        print("Exploratory CVIR evidence only; no frozen recipe or formal admission is implied.")
 
     if args.oracle and completed_runs:
         # Written only after every planned run succeeded: a calibration file

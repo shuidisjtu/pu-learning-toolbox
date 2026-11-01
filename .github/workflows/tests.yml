@@ -125,10 +125,16 @@ jobs:
         run: uv run --python "3.11" python scripts/check_baseline_configs.py
 
       - name: Production recipe registry (frozen lock)
-        run: uv run --python "3.11" python scripts/check_survey_recipe_registry.py --require-present --require-locked
+        run: |
+          uv run --python "3.11" python scripts/check_survey_recipe_registry.py --require-present --require-locked
+          uv run --python "3.11" python scripts/check_survey_recipe_registry.py --registry pu_toolbox/experiment/survey_recipe_registry_v1_1.json --require-present --require-locked
+          uv run --python "3.11" python scripts/check_survey_recipe_registry.py --registry pu_toolbox/experiment/survey_recipe_registry_v1_2.json --require-present --require-locked
 
       - name: Profile to comparison mapping (frozen binding)
-        run: uv run --python "3.11" python scripts/check_survey_profile_map.py --require-present
+        run: |
+          uv run --python "3.11" python scripts/check_survey_profile_map.py --require-present
+          uv run --python "3.11" python scripts/check_survey_profile_map.py --map pu_toolbox/experiment/survey_comparison_profile_map_v4.json --require-present
+          uv run --python "3.11" python scripts/check_survey_profile_map.py --map pu_toolbox/experiment/survey_comparison_profile_map_v5.json --require-present
 
       - name: Comment quality gate
         run: uv run --python "3.11" python scripts/check_comment_quality.py

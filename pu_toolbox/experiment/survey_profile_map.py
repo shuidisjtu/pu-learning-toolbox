@@ -66,6 +66,16 @@ from .survey_protocol import digest, load_protocol, resolve_protocol_path
 #: v5 respectively); loading them is still possible by path, never by default.
 MAP_PATH = Path(__file__).with_name("survey_comparison_profile_map_v3.json")
 
+
+def profile_map_path(protocol):
+    """Resolve new revisions without retargeting historical v3.0 maps."""
+    if protocol.get("protocol_version") == "survey-v3.2":
+        return Path(__file__).with_name("survey_comparison_profile_map_v5.json")
+    if protocol.get("protocol_version") == "survey-v3.1":
+        return Path(__file__).with_name("survey_comparison_profile_map_v4.json")
+    return MAP_PATH
+
+
 SCHEMA_VERSION = "survey-comparison-profile-map-1"
 
 #: Whether the matrix holds an entry the profile inherits.
@@ -248,7 +258,7 @@ def resolve_profile_mapping(
     from it.  Eligibility is copied from the comparison file untouched.
     """
     if profile_map is None:
-        profile_map = load_profile_map()
+        profile_map = load_profile_map(profile_map_path(protocol or {}))
     if protocol is None:
         protocol = bound_protocol(profile_map)
     if comparison is None:
@@ -316,7 +326,7 @@ def profile_registration_status(
     on is resolved from the result identity at aggregation time.
     """
     if profile_map is None:
-        profile_map = load_profile_map()
+        profile_map = load_profile_map(profile_map_path(protocol))
     _check_binding(
         profile_map["bound_survey_protocol"], protocol, "bound_survey_protocol", "protocol_version"
     )
