@@ -215,6 +215,7 @@ pu_toolbox/
     classical_candidate.py                # PUET 逐树与 RP 嵌套拟合的非 epoch 成本收据
     kernel_candidate.py                   KLDCE 先验策略、稠密内存/可行性预检与成本收据
     support_campaign.py                   # D53 独立纠正批次、完整预算 canary 与逐 fit 质量门禁
+    survey_backlog.py                     # v3.1 项目配方训练、先验/阶段/资源核验
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -420,6 +421,7 @@ tests/
       test_candidate_five_seed_grid.py  # 五 seed 网格与逐方法 canary 门禁回归
       test_prepare_support_repair.py    # 重跑规划命令、历史根/新输出隔离与只读拒收门禁
       test_queue_handoff_export.py      # 结果交接修正替代、seed 隔离与汇总回归
+      test_survey_backlog_campaign.py   # 全网格分母、canary 隔离与制品验收
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -634,6 +636,7 @@ tests/
       test_queue_packed_trial.py        # 双 GPU 训练试验的归属、显存与并发上限
       test_queue_dense_adapters.py      # 单卡四小模型并发及全局进程数限制
       test_queue_coverage_audit.py      # 训练覆盖、修正批次去重与只读输出回归
+      test_survey_backlog.py            # v3.1 历史隔离、二维/CNN 与 SAR 真训练
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -987,6 +990,8 @@ scripts/
   run_survey_queue_fit.py                 # 固定源码单 fit 补跑，批次证据写入独立输出根
   audit_survey_queue.py                   # 只读核对后台队列与协议训练格、完成制品
   export_survey_queue_handoff.py          # 只读导出含修正替代记录的组内观测结果表
+  prepare_survey_backlog_revision.py      # 确定性生成 v3.1 协议、配方与比较绑定
+  run_survey_backlog_campaign.py          # 固定提交、四卡上限的全量缺口后台队列
 ```
 
 ## 7. CI/CD（`.github/`）

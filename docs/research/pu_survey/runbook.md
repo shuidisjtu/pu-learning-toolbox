@@ -7,6 +7,14 @@
 
 ## 0. 先确认矩阵与注册表没变
 
+2026-11-01 缺口批次单独使用 `--protocol survey-v3.1` 与
+`pu_toolbox/experiment/survey_recipe_registry_v1_1.json`；旧命令继续指向 v3.0，不能回绑历史结果。
+`scripts/run_survey_backlog_campaign.py` 从旧队列读取数据路径，展开新增 1845 fit，逐组 canary 后释放
+五 seed 全网格；`--run` 在独立 tmux 中托管，`--monitor` 查看快照数量和任务状态。
+最多使用 0/5/6/7 四张卡，不终止他人进程；失败组保留日志并挂起，不自动重跑或降配。
+KLDCE 另用单个 CPU worker，256 GiB 是已知 QP 载荷筛查上限而非峰值保证；启动要求至少 650 GiB
+可用 RAM。关闭 VS Code 不影响 tmux；服务器重启或控制器异常退出仍需显式核对，不能宣称自动恢复。
+
 ```bash
 uv run python scripts/check_survey_recipe_registry.py --require-present --require-locked
 uv run python scripts/check_survey_profile_map.py --require-present

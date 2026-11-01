@@ -26,6 +26,17 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 
 ## 2. 当前进度（2026-10-28，按协议 JSON 与本机产物核对）
 
+**2026-11-01 增量**：用户确认此前 8 个 excluded 方法沿用当前暂定参数。
+新增 `survey-v3.1` / `survey-recipes-v1.1`，保留 v3.0 与旧结果身份；补齐原 24 个阻断单元、
+34 个模板继承单元和 CIFAR Self-PU full-meta（沿用已有 frozen-feature + clean-support 路径）。
+新矩阵 171 个 runnable 单元；这里只表示运行能力，不表示全量资源验收、文献复现或合作者签署。
+新增 59 个单元展开为 **1845 fit**（5 seed × 原 c/机制网格），由
+`scripts/run_survey_backlog_campaign.py` 按独立组 canary → 全网格调度，最多 4 张 GPU、1 个 CPU worker。
+已补 CVIR 双阶段/TS 先验、其他深度方法 SCAR/SAR 选模接线、KLDCE 实际 SCAR c 绑定与资源预检；
+KLDCE 仍仅 SCAR，支持集方法仍限批准的五数据集/SCAR。新增比较条目均 `pending_review`、无直接数值锚点。
+PUET/RP 的 8 个图像格仍需明确特征路径，不用当前配方确认冒充这一项范围决定。
+实现边界与验证见[配方决定](admission/p4_1b_registry_freeze_20261025.md)。下文 v3.0 数量保留作历史基线。
+
 - `survey_protocol_v3.json`：136 个执行单元，112 个 runnable，24 个 blocked，8 个数据集都已有单元。
   22 算法 × 8 数据集 = 176 格，其中 128 格有单元、104 格 runnable；若把 Self-PU 的
   no-meta / full-meta 分成两个 profile，则是 132 个 profile×数据集格、108 格 runnable。
