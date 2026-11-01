@@ -500,19 +500,26 @@ def run(output):
 
 
 def monitor(output):
+    campaign = read(output / "campaign.json")
+    revision = campaign.get("protocol_version", "survey-v3.1")
     while True:
-        state = read(output / "status.json")
+        try:
+            state = read(output / "status.json")
+        except FileNotFoundError:
+            print(f"{revision}: waiting for first controller status (input checks).", flush=True)
+            time.sleep(5)
+            continue
         jobs = state["jobs"]
         print("\033[2J\033[H", end="")
         print(
-            "Survey v3.1 backlog |",
+            f"{revision} queue |",
             state["updated_at"],
             "|",
             dict(Counter(j["status"] for j in jobs)),
         )
         print(
             f"{'GPU':<5} {'METHOD':<12} {'DATASET':<19} {'MECHANISM':<12} "
-            f"{'SEED/C':<9} {'SNAPSHOTS':<14} STATUS"
+            f"{'SEED/C':<9} {'SNAP/BUDGET':<14} STATUS"
         )
         for job in jobs:
             if job["status"] != "running":

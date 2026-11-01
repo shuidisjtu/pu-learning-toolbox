@@ -12,6 +12,30 @@ from scripts import run_survey_backlog_campaign as script
 pytestmark = pytest.mark.unit
 
 
+@pytest.mark.parametrize("status_exists", [False, True])
+def test_edge_monitor_waits_for_first_status_and_uses_campaign_version(
+    tmp_path, monkeypatch, capsys, status_exists
+):
+    (tmp_path / "campaign.json").write_text(json.dumps({"protocol_version": "survey-v3.2"}))
+    if status_exists:
+        (tmp_path / "status.json").write_text(
+            json.dumps(dict(jobs=[], updated_at="test timestamp", gpu_allowlist=[]))
+        )
+
+    def stop_after_first_frame(seconds):
+        assert seconds == 5
+        raise InterruptedError("test frame complete")
+
+    monkeypatch.setattr(script.time, "sleep", stop_after_first_frame)
+    with pytest.raises(InterruptedError, match="test frame"):
+        script.monitor(tmp_path)
+    output = capsys.readouterr().out
+    assert "survey-v3.2" in output
+    assert ("waiting for first controller status" in output) is not status_exists
+    if status_exists:
+        assert "GPU allowlist=[]" in output
+
+
 def jobs():
     old = load_protocol(resolve_protocol_path("survey-v3.0"))
     new = load_protocol(resolve_protocol_path("survey-v3.1"))
