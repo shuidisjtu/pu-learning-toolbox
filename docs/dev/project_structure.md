@@ -637,6 +637,7 @@ tests/
       test_queue_dense_adapters.py      # 单卡四小模型并发及全局进程数限制
       test_queue_coverage_audit.py      # 训练覆盖、修正批次去重与只读输出回归
       test_survey_backlog.py            # v3.1 历史隔离、二维/CNN 与 SAR 真训练
+      test_survey_classical_image.py    # PUET/RP 图像表示、版本隔离与完整树/折预算
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -992,6 +993,7 @@ scripts/
   export_survey_queue_handoff.py          # 只读导出含修正替代记录的组内观测结果表
   prepare_survey_backlog_revision.py      # 确定性生成 v3.1 协议、配方与比较绑定
   run_survey_backlog_campaign.py          # 固定提交、四卡上限的全量缺口后台队列
+  prepare_survey_classical_image_revision.py # v3.2 仅新增传统方法图像单元与配方绑定
 ```
 
 ## 7. CI/CD（`.github/`）

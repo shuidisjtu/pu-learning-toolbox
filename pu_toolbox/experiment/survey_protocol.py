@@ -44,6 +44,7 @@ PROTOCOL_PATHS: dict[str, Path] = {
     "survey-v2.0": PROTOCOL_PATH,
     "survey-v3.0": Path(__file__).with_name("survey_protocol_v3.json"),
     "survey-v3.1": Path(__file__).with_name("survey_protocol_v3_1.json"),
+    "survey-v3.2": Path(__file__).with_name("survey_protocol_v3_2.json"),
 }
 PROTOCOL_ALIASES = tuple(PROTOCOL_PATHS)
 

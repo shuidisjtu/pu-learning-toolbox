@@ -23,6 +23,10 @@ from scripts import run_candidate_readiness_campaign as service
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_GPUS = (0, 5, 6, 7)
+REVISIONS = {
+    "survey-v3.1": ("survey-v3.0", "survey_recipe_registry_v1_1.json"),
+    "survey-v3.2": ("survey-v3.1", "survey_recipe_registry_v1_2.json"),
+}
 
 
 def read(path):
@@ -126,16 +130,17 @@ def verify_inputs(evidence, *, full_hash=False):
             raise ValueError(f"input artifact hash changed: {path}")
 
 
-def prepare(output, previous_queue, support_root):
+def prepare(output, previous_queue, support_root, *, revision="survey-v3.1"):
     from pu_toolbox.experiment.survey_protocol import digest, load_protocol, resolve_protocol_path
     from pu_toolbox.experiment.survey_recipe_registry import canonical_digest, load_registry
 
     if output.exists():
         raise ValueError("output exists; never overwrite a campaign")
     commit = clean_commit()
-    previous = load_protocol(resolve_protocol_path("survey-v3.0"))
-    protocol = load_protocol(resolve_protocol_path("survey-v3.1"))
-    registry = load_registry(ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_1.json")
+    previous_revision, registry_file = REVISIONS[revision]
+    previous = load_protocol(resolve_protocol_path(previous_revision))
+    protocol = load_protocol(resolve_protocol_path(revision))
+    registry = load_registry(ROOT / "pu_toolbox/experiment" / registry_file)
     locations = {}
     for job in read(previous_queue)["jobs"]:
         if not job.get("support_data"):
@@ -159,13 +164,14 @@ def prepare(output, previous_queue, support_root):
         source=str(ROOT),
         commit=commit,
         dependency_lock_sha256=service.sha(ROOT / "uv.lock"),
+        protocol_version=revision,
         protocol_sha256=digest(protocol),
         registry_sha256=canonical_digest(registry),
         inputs=inputs,
         jobs=jobs,
         total_fits=len(jobs),
-        gpu_allowlist=list(ALLOWED_GPUS),
-        max_gpu_jobs=4,
+        gpu_allowlist=[] if revision == "survey-v3.2" else list(ALLOWED_GPUS),
+        max_gpu_jobs=0 if revision == "survey-v3.2" else 4,
         max_cpu_jobs=1,
         formal_admission=False,
         recipe_owner_confirmed=True,
@@ -192,8 +198,9 @@ def worker(output, label):
     target = output / "runs" / label
     if target.exists():
         raise ValueError("worker output already exists; no implicit rerun")
-    protocol = load_protocol(resolve_protocol_path("survey-v3.1"))
-    registry_path = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_1.json"
+    revision = campaign.get("protocol_version", "survey-v3.1")
+    protocol = load_protocol(resolve_protocol_path(revision))
+    registry_path = ROOT / "pu_toolbox/experiment" / REVISIONS[revision][1]
     registry = load_registry(registry_path)
     if (
         digest(protocol) != campaign["protocol_sha256"]
@@ -231,7 +238,7 @@ def worker(output, label):
         str(ROOT / "scripts/run_survey_experiment.py"),
         job["data_dir"],
         "--protocol",
-        "survey-v3.1",
+        revision,
         "--method",
         job["method"],
         "--dataset",
@@ -305,6 +312,8 @@ def accept(output, job, campaign):
     runs = manifest["candidate_runs"]
     if len(runs) != 1 or runs[0]["status"] != "succeeded" or runs[0]["attempts"] != 1:
         raise ValueError("candidate or retry gate failed")
+    if campaign.get("protocol_version") == "survey-v3.2":
+        validate_classical_image_receipt(manifest, job)
     checkpoints = runs[0].get("epoch_checkpoints", [])
     if (
         job["checkpoint_epochs"]
@@ -316,6 +325,37 @@ def accept(output, job, campaign):
         if checkpoint and service.sha(Path(checkpoint["path"])) != checkpoint["sha256"]:
             raise ValueError("selected checkpoint missing or changed")
     return dict(manifest=str(paths[0]), manifest_sha256=service.sha(paths[0]))
+
+
+def validate_classical_image_receipt(manifest, job):
+    """Accept the feature path only with frozen representation and real work counts."""
+    if job["method"] not in {"puet", "rp"} or job["path"] != "cnn_feature_adapter":
+        raise ValueError("v3.2 campaign is limited to PUET/RP image adapter additions")
+    representation = manifest["representation"]
+    adapter = representation["adapter"]
+    image = representation["image_preprocessing"]
+    if (
+        adapter.get("encoder_training") != "none; seeded_random_frozen"
+        or adapter.get("feature_dimension") != 512
+        or adapter["feature_sha256"] != representation["feature_sha256"]
+        or adapter["encoder_state_sha256"] != image["encoder_state_sha256"]
+        or image["initialization_seed"] != job["seed"]
+        or image["backbone"]["weights"] is not None
+    ):
+        raise ValueError("classical image representation receipt differs")
+    receipt = manifest["candidate_runs"][0]["training_provenance"]
+    if (
+        receipt["status"] != "completed"
+        or receipt["validation_used_for_training"]
+        or receipt["neural_epoch_count"] != 0
+        or receipt["work_started"] != receipt["work_completed"]
+    ):
+        raise ValueError("classical image training receipt is incomplete")
+    if job["method"] == "puet":
+        if receipt["trees_requested"] != 100 or receipt["trees_completed"] != 100:
+            raise ValueError("PUET image budget must complete all 100 trees")
+    elif receipt["cross_fits_completed"] != 3 or receipt["final_refits_completed"] != 1:
+        raise ValueError("RP image budget must complete three folds and final refit")
 
 
 def release(jobs):
@@ -342,6 +382,9 @@ def run(output):
     lock = (output / "controller.lock").open("a")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     campaign = read(output / "campaign.json")
+    allowed_gpus = tuple(campaign["gpu_allowlist"])
+    if any(gpu not in ALLOWED_GPUS for gpu in allowed_gpus):
+        raise ValueError("campaign cannot expand the shared four-GPU limit")
     if campaign["source"] != str(ROOT) or clean_commit() != campaign["commit"]:
         raise ValueError("campaign source changed")
     if service.sha(ROOT / "uv.lock") != campaign["dependency_lock_sha256"]:
@@ -370,11 +413,11 @@ def run(output):
         release(jobs)
         query_error = None
         try:
-            available = service.available_gpus(ALLOWED_GPUS)
+            available = service.available_gpus(allowed_gpus) if allowed_gpus else []
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             available, query_error = [], str(error)
         occupied = {j.get("gpu") for j in jobs if j["status"] == "running"}
-        for gpu in (*ALLOWED_GPUS, None):
+        for gpu in (*allowed_gpus, None):
             streak[gpu] = (
                 streak.get(gpu, 0) + 1
                 if gpu not in occupied and (gpu is None or gpu in available)
@@ -405,7 +448,7 @@ def run(output):
                 continue
             if gpu is not None:
                 try:
-                    if gpu not in service.available_gpus(ALLOWED_GPUS):
+                    if gpu not in service.available_gpus(allowed_gpus):
                         continue
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     query_error = str(error)
@@ -449,7 +492,7 @@ def run(output):
                 controller_pid=os.getpid(),
                 updated_at=now(),
                 query_error=query_error,
-                gpu_allowlist=list(ALLOWED_GPUS),
+                gpu_allowlist=list(allowed_gpus),
                 formal_admission=False,
             ),
         )
@@ -478,14 +521,23 @@ def monitor(output):
             expected = job["checkpoint_epochs"]
             if job["method"] == "self_pu_full_meta" and expected:
                 expected *= 2
+            progress = (
+                f"{snapshots}/{expected}"
+                if expected
+                else {"puet": "100 trees", "rp": "3 folds+refit"}.get(job["method"], "solver")
+            )
             print(
                 f"{str(job['gpu']):<5} {job['method']:<12} {job['dataset']:<19} "
                 f"{job['mechanism']:<12} {str(job['seed']) + '/' + job['c']:<9} "
-                f"{str(snapshots) + '/' + str(expected):<14} running PID={job['pid']}"
+                f"{progress:<14} running PID={job['pid']}"
             )
         if state.get("query_error"):
             print(state["query_error"])
-        print("Full recipe; max 4 GPUs; failed families held, not silently retried.", flush=True)
+        print(
+            f"Full recipe; GPU allowlist={state['gpu_allowlist']}; "
+            "classical column is budget, not live iteration count; failures held.",
+            flush=True,
+        )
         time.sleep(5)
 
 
@@ -494,6 +546,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--previous-queue", type=Path)
     parser.add_argument("--support-root", type=Path)
+    parser.add_argument("--revision", choices=tuple(REVISIONS), default="survey-v3.1")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--run", action="store_true")
     mode.add_argument("--worker")
@@ -512,9 +565,9 @@ def main():
         print(
             json.dumps(
                 {
-                    "total_fits": prepare(output, args.previous_queue, args.support_root)[
-                        "total_fits"
-                    ]
+                    "total_fits": prepare(
+                        output, args.previous_queue, args.support_root, revision=args.revision
+                    )["total_fits"]
                 }
             )
         )

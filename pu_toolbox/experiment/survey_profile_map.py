@@ -69,6 +69,8 @@ MAP_PATH = Path(__file__).with_name("survey_comparison_profile_map_v3.json")
 
 def profile_map_path(protocol):
     """Resolve new revisions without retargeting historical v3.0 maps."""
+    if protocol.get("protocol_version") == "survey-v3.2":
+        return Path(__file__).with_name("survey_comparison_profile_map_v5.json")
     if protocol.get("protocol_version") == "survey-v3.1":
         return Path(__file__).with_name("survey_comparison_profile_map_v4.json")
     return MAP_PATH

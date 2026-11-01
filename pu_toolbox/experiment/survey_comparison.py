@@ -54,6 +54,7 @@ COMPARISON_PATHS: dict[str, Path] = {
     "survey-v2.0": COMPARISON_PATH,
     "survey-v3.0": Path(__file__).with_name("survey_comparison_v6.json"),
     "survey-v3.1": Path(__file__).with_name("survey_comparison_v7.json"),
+    "survey-v3.2": Path(__file__).with_name("survey_comparison_v8.json"),
 }
 
 #: The six eligibility classes, in canonical order.  A comparison file that

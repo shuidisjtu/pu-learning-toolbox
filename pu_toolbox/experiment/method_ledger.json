@@ -238,6 +238,7 @@
       "uncertainty": ["显式 ts fail-loud：原生 OS 不套用 case-control U∪P 校准", "source_status=official_related 是 2026-10-18 复核结果；作者源码目标/采样与论文 Eq.7/single-training-set 不同，当前实现保留 paper-faithful 并登记差异", "未进入旧冻结协议；参数/训练预算、共享架构、公开数值和 GPU 资源验收仍待独立登记；epoch 权重只恢复 C 的推理，不支持对抗训练续跑"]
     },
     "rp": {
+      "image_project_binding": {"protocol": "survey-v3.2", "registry": "survey-recipes-v1.2", "training_path": "cnn_feature_adapter", "encoder": "resnet18_random_frozen", "datasets": ["cifar10", "mnist", "fashion_mnist", "adni"], "source_space_label_generation": true, "formal_admission": false, "paper_numerical_reproduction": false},
       "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "RankPruningClassifier",
       "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "cross_fits_and_final_refit", "records_actual_inner_fits": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/RP.md"},
@@ -780,6 +781,7 @@
       ]
     },
     "puet": {
+      "image_project_binding": {"protocol": "survey-v3.2", "registry": "survey-recipes-v1.2", "training_path": "cnn_feature_adapter", "encoder": "resnet18_random_frozen", "datasets": ["cifar10", "mnist", "fashion_mnist", "adni"], "source_space_label_generation": true, "formal_admission": false, "paper_numerical_reproduction": false},
       "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
       "class": "PUExtraTreesClassifier",
       "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "tree_build", "records_actual_tree_builds_and_role_mass": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/PUET.md"},

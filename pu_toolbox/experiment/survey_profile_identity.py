@@ -11,7 +11,7 @@ import re
 SCHEMA = "survey-profile-identity-1"
 FIELD = "profile_identity_schema_version"
 PROTOCOL_VERSION = "survey-v3.0"
-PROTOCOL_VERSIONS = (PROTOCOL_VERSION, "survey-v3.1")
+PROTOCOL_VERSIONS = (PROTOCOL_VERSION, "survey-v3.1", "survey-v3.2")
 MANIFEST_FIELDS = (FIELD, "profile_id", "algorithm_id")
 _NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
 
@@ -177,7 +177,7 @@ def require_four_role_profile(protocol, profile_id, *, clean_support=False):
             "four-role execution unavailable"
         )
     if algorithm == "cvir" and not (
-        protocol.get("protocol_version") == "survey-v3.1"
+        protocol.get("protocol_version") in ("survey-v3.1", "survey-v3.2")
         and protocol["method_profiles"][profile_id].get("execution_adapter") == "survey-backlog-1"
     ):
         raise ValueError(

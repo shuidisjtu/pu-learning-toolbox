@@ -15,6 +15,14 @@
 KLDCE 另用单个 CPU worker，256 GiB 是已知 QP 载荷筛查上限而非峰值保证；启动要求至少 650 GiB
 可用 RAM。关闭 VS Code 不影响 tmux；服务器重启或控制器异常退出仍需显式核对，不能宣称自动恢复。
 
+PUET/RP 图像补充批使用同一脚本的 `--revision survey-v3.2` 准备新目录，配套 registry v1.2；
+只展开相对 v3.1 新增的 280 fit。`--previous-queue` 仍传旧六号批次的队列清单读取 split 路径，
+`--support-root` 保留接口参数但这些单元不用支持集。准备与启动必须使用同一个干净、固定
+commit；不要在其工作树继续开发。新批 GPU allowlist 为空，只增加一个两线程 CPU worker，
+完整提取并按 dataset/seed 缓存特征；24 个首轮测试逐组放行。通过 `--output <新目录>
+--monitor` 查看，不修改原 v3.1 状态或回填历史结果。来源差异见
+[图像适配决定](admission/p4_1b_registry_freeze_20261025.md)。
+
 ```bash
 uv run python scripts/check_survey_recipe_registry.py --require-present --require-locked
 uv run python scripts/check_survey_profile_map.py --require-present

@@ -34,7 +34,9 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 `scripts/run_survey_backlog_campaign.py` 按独立组 canary → 全网格调度，最多 4 张 GPU、1 个 CPU worker。
 已补 CVIR 双阶段/TS 先验、其他深度方法 SCAR/SAR 选模接线、KLDCE 实际 SCAR c 绑定与资源预检；
 KLDCE 仍仅 SCAR，支持集方法仍限批准的五数据集/SCAR。新增比较条目均 `pending_review`、无直接数值锚点。
-PUET/RP 的 8 个图像格仍需明确特征路径，不用当前配方确认冒充这一项范围决定。
+随后按用户要求补 PUET/RP 图像适配测试：独立 v3.2 / registry v1.2，增 8 个固定随机
+ResNet-18 特征单元、280 fit（24 个首轮完整配置测试后逐组放行），不当原生 CNN 或论文复现。
+合计 179 个可运行单元；运行中 v3.1 的 1845 fit 与新增 CPU 280 fit 保持独立身份。
 实现边界与验证见[配方决定](admission/p4_1b_registry_freeze_20261025.md)。下文 v3.0 数量保留作历史基线。
 
 - `survey_protocol_v3.json`：136 个执行单元，112 个 runnable，24 个 blocked，8 个数据集都已有单元。

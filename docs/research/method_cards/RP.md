@@ -1,5 +1,10 @@
 # Method Card: Rank Pruning (RP)
 
+2026-11-01 图像测试：v3.2 使用固定随机 ResNet-18 的 512 维特征接现有 RP，沿用
+3-fold OOF + final refit；无图像 encoder 训练或新增标签。与其他传统方法共享表示的
+工程扩展，不称作者图像结果重放。SCAR/SAR 标签在原始图像空间生成，OS 语义不变；
+首轮完整配置通过后才放行对应余项。不得与原生 CNN 混排，五 seed 数值仍需验收。
+
 ## 来源
 
 Northcutt, Wu, Chuang, UAI 2017：[原文](https://auai.org/uai2017/proceedings/papers/35.pdf)，

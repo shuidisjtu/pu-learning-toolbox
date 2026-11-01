@@ -19,14 +19,15 @@ from .cvir_adapter import CVIRPopulationPriorTrainer
 from .kernel_candidate import KLDCECandidateTrainer
 
 ADAPTER = "survey-backlog-1"
+PROTOCOLS = ("survey-v3.1", "survey-v3.2")
 DEEP_METHODS = ("gradpu", "pan", "p3mix", "vpu", "cvir")
 VIEWS = dict(gradpu="ts", pan="os", p3mix="os", vpu="ts", cvir="ts")
 
 
 def backlog_trainer(method, protocol):
     """Choose only the adapter explicitly bound by the new protocol revision."""
-    if protocol.get("protocol_version") != "survey-v3.1":
-        raise ValueError("backlog adapters require survey-v3.1")
+    if protocol.get("protocol_version") not in PROTOCOLS:
+        raise ValueError("backlog adapters require survey-v3.1 or survey-v3.2")
     if method in DEEP_METHODS:
         return SurveyBacklogTrainer(method)
     if method in {"puet", "rp"}:
@@ -54,7 +55,7 @@ class SurveyKLDCETrainer(KLDCECandidateTrainer):
         request = config.get("survey_protocol") or {}
         protocol = load_protocol(request["path"])
         if (
-            protocol["protocol_version"] != "survey-v3.1"
+            protocol["protocol_version"] not in PROTOCOLS
             or request.get("method") != "kldce"
             or request.get("mechanism") != "scar"
             or config.get("os_or_ts") != "os"
@@ -90,7 +91,7 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
         )
         profile = protocol["method_profiles"][row["method"]]
         if (
-            protocol["protocol_version"] != "survey-v3.1"
+            protocol["protocol_version"] not in PROTOCOLS
             or profile.get("execution_adapter") != ADAPTER
             or profile.get("algorithm") != self.method
             or type(model) is not get_algorithm(self.method)
@@ -99,6 +100,7 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
         if config.get("os_or_ts") != VIEWS[self.method]:
             raise ValueError("backlog recipe training view mismatch")
         self.mechanism = request["mechanism"]
+        self.recipe_protocol = protocol["protocol_version"]
         if self.mechanism not in protocol["c_tokens"]:
             raise ValueError("unknown backlog labeling mechanism")
         expected = [ProtocolPA, ProtocolOA] if self.mechanism == "scar" else [ProtocolOA]
@@ -151,7 +153,9 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
         try:
             if self.method == "cvir":
                 adapter = CVIRPopulationPriorTrainer(
-                    population_prior_source="survey-v3.1 canonical population prior; TS risk pool",
+                    population_prior_source=(
+                        f"{self.recipe_protocol} canonical population prior; TS risk pool"
+                    ),
                     checkpoint_dir=self.checkpoint_dir,
                 )
                 trajectory = adapter.fit(
@@ -164,7 +168,7 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
             receipt = dict(getattr(estimator, "training_provenance_", {}))
             receipt.update(
                 execution_adapter=ADAPTER,
-                recipe_protocol="survey-v3.1",
+                recipe_protocol=self.recipe_protocol,
                 external_validation_forwarded_to_fit=False,
                 mechanism=self.mechanism,
                 sar_scope="stress_test_without_new_selection_bias_correction",
