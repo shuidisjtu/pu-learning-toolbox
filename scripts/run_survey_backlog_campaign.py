@@ -275,6 +275,11 @@ def worker(output, label):
                 str(Path(job["data_dir"]) / "support_manifest.json"),
             ]
         )
+    memory = campaign.get("gradpu_activation_memory", "device")
+    if memory != "device":
+        if memory != "cpu_offload" or job["method"] != "gradpu":
+            raise ValueError("invalid backlog activation memory policy")
+        argv.extend(["--gradpu-activation-memory", memory])
     print("BACKLOG_FIT", label, "FULL_RECIPE", campaign["protocol_sha256"], flush=True)
     os.execv(sys.executable, argv)
 
@@ -311,6 +316,14 @@ def accept(output, job, campaign):
     runs = manifest["candidate_runs"]
     if len(runs) != 1 or runs[0]["status"] != "succeeded" or runs[0]["attempts"] != 1:
         raise ValueError("candidate or retry gate failed")
+    if campaign.get("gradpu_activation_memory") == "cpu_offload":
+        memory = runs[0].get("training_provenance", {}).get("activation_memory", {})
+        if (
+            memory.get("policy") != "cpu_offload"
+            or memory.get("effective_batch_changed") is not False
+            or memory.get("precision_changed") is not False
+        ):
+            raise ValueError("missing verified GradPU offload execution receipt")
     if campaign.get("protocol_version") == "survey-v3.2":
         validate_classical_image_receipt(manifest, job)
     checkpoints = runs[0].get("epoch_checkpoints", [])

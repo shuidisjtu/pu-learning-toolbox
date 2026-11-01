@@ -667,6 +667,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--device", default="cpu", help="execution device (default: cpu)")
+    parser.add_argument(
+        "--gradpu-activation-memory",
+        choices=("device", "cpu_offload"),
+        default="device",
+        help="GradPU backlog execution only: offload saved tensors without changing the recipe",
+    )
     parser.add_argument("--adapter-cache", default="data/cache/survey_adapter")
     parser.add_argument("--extraction-batch-size", type=int, default=64)
     parser.add_argument(
@@ -770,6 +776,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
         if args.extraction_batch_size < 1:
             raise ValueError("extraction batch size must be positive")
         protocol = load_protocol(protocol_path)
+        if args.gradpu_activation_memory != "device" and (
+            method != "gradpu" or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+        ):
+            raise ValueError("GradPU activation offload requires the versioned GradPU backlog")
         shipped = load_protocol(resolve_protocol_path(protocol["protocol_version"]))
         if digest(protocol) == digest(shipped):
             # Prove the pre-registered pair covers every unit it must, here
@@ -880,6 +890,9 @@ def _versioned_main(args, c_values, seed_values) -> int:
         if args.out_dir
         else Path("results") / "survey" / args.dataset / method / row["training_path"]
     )
+    if args.gradpu_activation_memory != "device":
+        # Never overwrite or silently rebind the original device-memory result.
+        out_root = out_root / "execution_cpu_offload"
     if recipe_registry is not None:
         # Bound and legacy requests must never overwrite one another's results.
         prefix = "recipe_pool" if args.recipe_binding_schema_version is not None else "recipe"
@@ -976,6 +989,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     encoder=encoder,
                     preprocessing=preprocessing,
                 )
+                if args.gradpu_activation_memory != "device":
+                    model.set_params(activation_memory=args.gradpu_activation_memory)
             except (KeyError, TypeError, ValueError, ImportError) as exc:
                 print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
                 return 1
@@ -1030,6 +1045,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 "checkpoint_bytes_per_component": checkpoint_bytes_per_component,
                 "reclaim_unselected_checkpoints": args.reclaim_unselected_checkpoints,
             }
+            if args.gradpu_activation_memory != "device":
+                config["gradpu_activation_memory"] = args.gradpu_activation_memory
             if recipe_registry is not None:
                 config["recipe_registry"] = recipe_registry
                 config["expected_recipe_registry_sha256"] = canonical_digest(recipe_registry)
@@ -1149,6 +1166,9 @@ def _validate_cvir_cli_request(args: argparse.Namespace) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if args.gradpu_activation_memory != "device" and args.protocol is None:
+        print("error: GradPU activation offload requires --protocol", file=sys.stderr)
+        return 1
     data_dir = Path(args.data_dir)
     try:
         cvir_population_adapter = _validate_cvir_cli_request(args)

@@ -99,6 +99,13 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
             raise ValueError("backlog trainer requires its versioned algorithm/profile binding")
         if config.get("os_or_ts") != VIEWS[self.method]:
             raise ValueError("backlog recipe training view mismatch")
+        memory = config.get("gradpu_activation_memory", "device")
+        if memory not in ("device", "cpu_offload") or (
+            memory != "device" and self.method != "gradpu"
+        ):
+            raise ValueError("invalid GradPU activation memory execution policy")
+        if self.method == "gradpu" and model.activation_memory != memory:
+            raise ValueError("GradPU activation memory policy must be explicitly recorded")
         self.mechanism = request["mechanism"]
         self.recipe_protocol = protocol["protocol_version"]
         if self.mechanism not in protocol["c_tokens"]:

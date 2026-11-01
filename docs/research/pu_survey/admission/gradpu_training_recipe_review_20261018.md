@@ -1,5 +1,26 @@
 # GradPU #121：调度选项、真实 batch 成本与运行声明
 
+## 2026-11-01 ADNI 显存恢复（工程补充）
+
+- 原 `gradpu-adni-native_cnn-scar-s0-c0.1` 在 48GB 卡 OOM；原记录不改，
+  其余 14 个 SCAR fit 继续保持 family hold，待完整 canary 验收后再放行。
+- 新增显式 `activation_memory="cpu_offload"`，默认仍为 `device`。
+  原实现把 autograd 保存张量留在 GPU；新选项用 PyTorch `save_on_cpu`
+  暂存中间张量（包括 `create_graph=True` 的导数图），不减少有效 batch、
+  图像大小、轮数、精度或 GP，不改前向/RNG 顺序。代价是主机内存和传输耗时。
+  依据：[PyTorch 2.6 save_on_cpu](https://docs.pytorch.org/docs/2.6/autograd.html#torch.autograd.graph.save_on_cpu)。
+- Survey v3.1/v3.2 GradPU 通过 `--gradpu-activation-memory cpu_offload`
+  显式启用；单独输出 `execution_cpu_offload`，manifest 的实际 estimator 参数及
+  training provenance 保留策略。冻结协议、registry、历史失败及来源身份不重写。
+- 两步真实 ADNI 诊断使用原 split_0、SCAR c=0.1 标签 hash、128×128、CNN13、
+  每分支 batch256、max_epochs200 配置（仅诊断在第2次更新后停止）：
+  P/U/GP 行数 230/256/486，峰值 allocated 19.32GiB、reserved 21.97GiB、
+  host RSS 93.73GiB；两步共约204秒，与另一现有任务共享卡。不是200轮结果或复现证明。
+- `recover_survey_backlog_canary.py` 创建独立单 canary 恢复记录；新源码 commit、
+  原数据 hash、完整预算与权重验收均保留。只允许原四卡范围，未知进程/父状态过期/
+  资源不足不启动；可显式与父批次自有 worker 共卡。不自动修改父队列或放行14项。
+
+
 依据：[#121](https://github.com/shuidisjtu/pu-learning-toolbox/issues/121)，
 本轮读取为 OPEN、0评论、更新于2026-10-18 03:38:54Z。
 paper-only身份已由该issue明确接受，不代表配方、资源或正式准入接受。
