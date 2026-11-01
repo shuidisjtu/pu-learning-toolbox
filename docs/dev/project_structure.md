@@ -422,6 +422,7 @@ tests/
       test_prepare_support_repair.py    # 重跑规划命令、历史根/新输出隔离与只读拒收门禁
       test_queue_handoff_export.py      # 结果交接修正替代、seed 隔离与汇总回归
       test_survey_backlog_campaign.py   # 全网格分母、canary 隔离与制品验收
+      test_monitor_survey_campaign.py   # GPU 遥测、真实快照进度与保守 ETA 的只读测试
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -994,6 +995,7 @@ scripts/
   prepare_survey_backlog_revision.py      # 确定性生成 v3.1 协议、配方与比较绑定
   run_survey_backlog_campaign.py          # 固定提交、四卡上限的全量缺口后台队列
   prepare_survey_classical_image_revision.py # v3.2 仅新增传统方法图像单元与配方绑定
+  monitor_survey_campaign.py              # 多批次只读看板、GPU 利用率与当前训练 ETA
 ```
 
 ## 7. CI/CD（`.github/`）

@@ -15,7 +15,6 @@ import signal
 import subprocess
 import sys
 import time
-from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -500,52 +499,9 @@ def run(output):
 
 
 def monitor(output):
-    campaign = read(output / "campaign.json")
-    revision = campaign.get("protocol_version", "survey-v3.1")
-    while True:
-        try:
-            state = read(output / "status.json")
-        except FileNotFoundError:
-            print(f"{revision}: waiting for first controller status (input checks).", flush=True)
-            time.sleep(5)
-            continue
-        jobs = state["jobs"]
-        print("\033[2J\033[H", end="")
-        print(
-            f"{revision} queue |",
-            state["updated_at"],
-            "|",
-            dict(Counter(j["status"] for j in jobs)),
-        )
-        print(
-            f"{'GPU':<5} {'METHOD':<12} {'DATASET':<19} {'MECHANISM':<12} "
-            f"{'SEED/C':<9} {'SNAP/BUDGET':<14} STATUS"
-        )
-        for job in jobs:
-            if job["status"] != "running":
-                continue
-            snapshots = len(list((output / "runs" / job["label"]).rglob("epoch_*.pt")))
-            expected = job["checkpoint_epochs"]
-            if job["method"] == "self_pu_full_meta" and expected:
-                expected *= 2
-            progress = (
-                f"{snapshots}/{expected}"
-                if expected
-                else {"puet": "100 trees", "rp": "3 folds+refit"}.get(job["method"], "solver")
-            )
-            print(
-                f"{str(job['gpu']):<5} {job['method']:<12} {job['dataset']:<19} "
-                f"{job['mechanism']:<12} {str(job['seed']) + '/' + job['c']:<9} "
-                f"{progress:<14} running PID={job['pid']}"
-            )
-        if state.get("query_error"):
-            print(state["query_error"])
-        print(
-            f"Full recipe; GPU allowlist={state['gpu_allowlist']}; "
-            "classical column is budget, not live iteration count; failures held.",
-            flush=True,
-        )
-        time.sleep(5)
+    from scripts.monitor_survey_campaign import monitor as display
+
+    display([output])
 
 
 def main():

@@ -23,6 +23,14 @@ commit；不要在其工作树继续开发。新批 GPU allowlist 为空，只�
 --monitor` 查看，不修改原 v3.1 状态或回填历史结果。来源差异见
 [图像适配决定](admission/p4_1b_registry_freeze_20261025.md)。
 
+新队列详细监控：`scripts/monitor_survey_campaign.py --output <v3.1目录>
+--output <v3.2目录>`，默认每 5 秒刷新，可加 `--once` 单次检查。GPU 利用率/显存为
+整卡即时值，队列分配不表示独占；任务显示 elapsed、完整已保存 epoch 和最近 3–5 个
+间隔的训练 ETA（不含选模/测试）。多 teacher 按完整 epoch 计数，回收快照不倒退成训练进度。
+准备阶段、陈旧状态、缺实时计数的图像特征/树模型明确写无法估计；传统二维任务至少
+三条同批次/方法/数据集/机制/c 的完成记录才估计耗时。整队列不从局部任务外推完工时间。
+此脚本只读，监控可以从新工作树更新；只替换监控窗口，训练源码和控制器不重启。
+
 ```bash
 uv run python scripts/check_survey_recipe_registry.py --require-present --require-locked
 uv run python scripts/check_survey_profile_map.py --require-present
