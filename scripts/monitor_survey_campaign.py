@@ -240,6 +240,11 @@ def render(outputs, *, now=None, devices=None, gpu_error=None, width=160):
                 "  RECOVERY ATTEMPT: separate from original failure; "
                 "not an additional scientific fit or automatic family release."
             )
+        if campaign.get("reconciliation"):
+            lines.append(
+                "  REPLACEMENT GRID: same parent fit identities, not additional experiments; "
+                "blocked_preflight is inapplicable, not waiting for a GPU."
+            )
         for job in jobs:
             if job["status"] != "running":
                 continue

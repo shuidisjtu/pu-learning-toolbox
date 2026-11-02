@@ -80,3 +80,86 @@ def test_edge_existing_status_never_implicitly_restarts(tmp_path):
     (tmp_path / "status.json").write_text("{}")
     with pytest.raises(ValueError, match="reconciliation"):
         script.run(tmp_path)
+
+
+def completed_recovery(tmp_path, monkeypatch, status="completed"):
+    folder = parent(tmp_path, monkeypatch)
+    original = backlog.read(folder / "campaign.json")
+    job = original["jobs"][0]
+    job.update(
+        family="gradpu-adni-scar",
+        dataset="adni",
+        path="native_cnn",
+        mechanism="scar",
+        seed=0,
+        c="0.1",
+        lane="gpu",
+    )
+    original.update(protocol_sha256="protocol", registry_sha256="registry")
+    original["jobs"].extend([dict(job, label=f"sibling-{i}", seed=i, canary=False) for i in (1, 2)])
+    (folder / "campaign.json").write_text(json.dumps(original))
+    state = dict(
+        jobs=[
+            dict(j, status="failed" if j["canary"] else "held_family_failure")
+            for j in original["jobs"]
+        ]
+    )
+    (folder / "status.json").write_text(json.dumps(state))
+    recovery = tmp_path / "recovery"
+    fixed = script.prepare(recovery, folder, "gradpu-adni", 6)
+    (recovery / "status.json").write_text(
+        json.dumps(dict(jobs=[dict(fixed["jobs"][0], status=status)]))
+    )
+    monkeypatch.setattr(
+        backlog,
+        "accept",
+        lambda *args: dict(manifest="accepted.json", manifest_sha256="accepted-hash"),
+    )
+    return folder, recovery
+
+
+def test_basic_followup_keeps_offload_and_parent_history_after_full_acceptance(
+    tmp_path, monkeypatch
+):
+    folder, recovery = completed_recovery(tmp_path, monkeypatch)
+    before = {p.name: p.read_bytes() for p in folder.iterdir()}
+    fixed = script.prepare_followup(tmp_path / "followup", recovery)
+    assert fixed["gradpu_activation_memory"] == "cpu_offload"
+    assert fixed["gpu_allowlist"] == [6] and fixed["total_fits"] == 2
+    assert fixed["followup"]["additional_scientific_fits"] == 0
+    assert [j["status"] for j in fixed["jobs"]] == ["pending", "waiting_canary"]
+    backlog.verify_followup(fixed)
+    assert before == {p.name: p.read_bytes() for p in folder.iterdir()}
+    fixed["gradpu_activation_memory"] = "device"
+    with pytest.raises(ValueError, match="offload policy"):
+        backlog.verify_followup(fixed)
+
+
+@pytest.mark.parametrize("status", ["running", "failed", "pending"])
+def test_param_partial_or_failed_gradpu_never_releases_siblings(tmp_path, monkeypatch, status):
+    _, recovery = completed_recovery(tmp_path, monkeypatch, status)
+    with pytest.raises(ValueError, match="has not completed"):
+        script.prepare_followup(tmp_path / "followup", recovery)
+    assert not (tmp_path / "followup").exists()
+
+
+def test_edge_completed_status_without_accepted_artifacts_never_releases(tmp_path, monkeypatch):
+    _, recovery = completed_recovery(tmp_path, monkeypatch)
+
+    def invalid(*args):
+        raise ValueError("incomplete epoch budget")
+
+    monkeypatch.setattr(backlog, "accept", invalid)
+    with pytest.raises(ValueError, match="incomplete epoch"):
+        script.prepare_followup(tmp_path / "followup", recovery)
+    assert not (tmp_path / "followup").exists()
+
+
+def test_edge_followup_rechecks_parent_and_canary_after_preparation(tmp_path, monkeypatch):
+    folder, recovery = completed_recovery(tmp_path, monkeypatch)
+    fixed = script.prepare_followup(tmp_path / "followup", recovery)
+    state = backlog.read(folder / "status.json")
+    state["jobs"][1]["status"] = "running"
+    (folder / "status.json").write_text(json.dumps(state))
+    with pytest.raises(ValueError, match="not held"):
+        backlog.verify_followup(fixed)

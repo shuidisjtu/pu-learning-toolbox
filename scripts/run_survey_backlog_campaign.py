@@ -192,6 +192,10 @@ def worker(output, label):
     if clean_commit() != campaign["commit"] or campaign["source"] != str(ROOT):
         raise ValueError("worker source changed")
     job = next(j for j in campaign["jobs"] if j["label"] == label)
+    verify_reconciliation(campaign, job)
+    verify_followup(campaign)
+    if job["status"] == "blocked_preflight":
+        raise ValueError("mathematically/resource-blocked fit cannot be launched")
     evidence = campaign["inputs"][job["data_dir"]]
     verify_inputs(evidence)
     target = output / "runs" / label
@@ -389,11 +393,99 @@ def memory_available():
     return int(values["MemAvailable"].split()[0]) * 1024
 
 
+def verify_reconciliation(campaign, job=None):
+    """Replacement jobs retain parent identities and never duplicate live/completed fits."""
+    correction = campaign.get("reconciliation")
+    if correction is None:
+        return
+    parent = Path(correction["parent"])
+    if service.sha(parent / "campaign.json") != correction["parent_campaign_sha256"]:
+        raise ValueError("replacement parent campaign changed")
+    original = read(parent / "campaign.json")
+    statuses = {j["label"]: j for j in read(parent / "status.json")["jobs"]}
+    originals = {j["label"]: j for j in original["jobs"]}
+    if (
+        correction["additional_scientific_fits"] != 0
+        or campaign["protocol_sha256"] != original["protocol_sha256"]
+        or campaign["registry_sha256"] != original["registry_sha256"]
+        or sorted(correction["replaces_labels"]) != sorted(j["label"] for j in campaign["jobs"])
+    ):
+        raise ValueError("replacement scope or recipe differs")
+    for row in [job] if job is not None else campaign["jobs"]:
+        before = originals[row["label"]]
+        if row["method"] != "kldce" or statuses[row["label"]]["status"] not in {
+            "failed",
+            "held_family_failure",
+        }:
+            raise ValueError("replacement requires failed/held KLDCE parent work")
+        for field in ("dataset", "method", "path", "mechanism", "seed", "c", "data_dir", "lane"):
+            if row[field] != before[field]:
+                raise ValueError(f"replacement identity changed: {field}")
+
+
+def verify_followup(campaign):
+    """Revalidate the accepted GradPU canary and held parent rows before launch."""
+    followup = campaign.get("followup")
+    if followup is None:
+        return
+    recovery = Path(followup["recovery"])
+    parent = Path(followup["parent"])
+    if (
+        campaign.get("gradpu_activation_memory") != "cpu_offload"
+        or followup["additional_scientific_fits"] != 0
+        or service.sha(recovery / "campaign.json") != followup["recovery_campaign_sha256"]
+        or service.sha(parent / "campaign.json") != followup["parent_campaign_sha256"]
+    ):
+        raise ValueError("followup source or offload policy changed")
+    fixed, state = read(recovery / "campaign.json"), read(recovery / "status.json")
+    if len(state["jobs"]) != 1 or state["jobs"][0]["status"] != "completed":
+        raise ValueError("full recovery canary is not completed")
+    if accept(recovery, state["jobs"][0], fixed) != followup["accepted_canary"]:
+        raise ValueError("accepted recovery artifacts changed")
+    if (
+        campaign["protocol_sha256"] != fixed["protocol_sha256"]
+        or campaign["registry_sha256"] != fixed["registry_sha256"]
+        or campaign["gpu_allowlist"] != fixed["gpu_allowlist"]
+        or sorted(followup["replaces_labels"]) != sorted(j["label"] for j in campaign["jobs"])
+    ):
+        raise ValueError("followup recipe, GPU scope or replacement list changed")
+    originals = {j["label"]: j for j in read(parent / "campaign.json")["jobs"]}
+    statuses = {j["label"]: j["status"] for j in read(parent / "status.json")["jobs"]}
+    for row in campaign["jobs"]:
+        if row["method"] != "gradpu" or statuses[row["label"]] != "held_family_failure":
+            raise ValueError("followup parent job is not held GradPU work")
+        for field in (
+            "dataset",
+            "method",
+            "path",
+            "mechanism",
+            "seed",
+            "c",
+            "data_dir",
+            "lane",
+            "family",
+        ):
+            if row[field] != originals[row["label"]][field]:
+                raise ValueError(f"followup identity changed: {field}")
+
+
 def run(output):
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
     _controller_lock = lock_controller(output / "controller.lock")
     campaign = read(output / "campaign.json")
+    verify_reconciliation(campaign)
+    verify_followup(campaign)
+    if campaign.get("reconciliation"):
+        # A separate lock does not interrupt the live parent controller. It
+        # serializes all replacement campaigns derived from this parent.
+        _replacement_lock = lock_controller(
+            Path(campaign["reconciliation"]["parent"]) / "kldce-recovery.lock"
+        )
+    if campaign.get("followup"):
+        _followup_lock = lock_controller(
+            Path(campaign["followup"]["parent"]) / "gradpu-followup.lock"
+        )
     allowed_gpus = tuple(campaign["gpu_allowlist"])
     if any(gpu not in ALLOWED_GPUS for gpu in allowed_gpus):
         raise ValueError("campaign cannot expand the shared four-GPU limit")
@@ -447,6 +539,7 @@ def run(output):
                     j["dataset"] != "cifar10" if lane == "gpu" else False,
                     j["path"] != "native_cnn",
                     j["method"] != "rp",
+                    j.get("preflight", {}).get("named_payload_bytes", 0),
                     j["label"],
                 )
             )
@@ -455,7 +548,12 @@ def run(output):
             job = pending[0]
             # Dense kernel payload is not peak RSS. Leave ample headroom and
             # never run two kernel fits concurrently on this shared machine.
-            if memory_available() < (650 if job["method"] == "kldce" else 64) * 1024**3:
+            ram_gib = (
+                650
+                if job["method"] == "kldce"
+                else (192 if campaign.get("gradpu_activation_memory") == "cpu_offload" else 64)
+            )
+            if memory_available() < ram_gib * 1024**3:
                 query_error = f"waiting for RAM headroom: {job['label']}"
                 continue
             if gpu is not None:

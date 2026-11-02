@@ -426,6 +426,7 @@ tests/
       test_backlog_canary_recovery.py   # 独立恢复、不重写历史与自有进程共卡门禁
       test_survey_host_portability.py   # 跨平台规划导入、Python3.10哈希与主机锁拒绝/释放
       test_monitor_survey_campaign.py   # GPU 遥测、真实快照进度与保守 ETA 的只读测试
+      test_kldce_recovery.py            # 逐项可行性预检、按标记率恢复与替代任务身份保护
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -1002,6 +1003,7 @@ scripts/
   _survey_host.py                         # 延迟加载 POSIX 控制器锁，规划/监控跨平台可导入
   prepare_survey_classical_image_revision.py # v3.2 仅新增传统方法图像单元与配方绑定
   monitor_survey_campaign.py              # 多批次只读看板、GPU 利用率与当前训练 ETA
+  prepare_kldce_recovery.py               # 不改变配方的 KLDCE 失败批次预检与恢复计划
 ```
 
 ## 7. CI/CD（`.github/`）

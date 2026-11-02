@@ -41,6 +41,26 @@ GradPU–ADNI 完整 canary 验收前，其余14项仍挂起，不自动放行�
 
 ## 0. 先确认矩阵与注册表没变
 
+### 2026-11-02 失败项恢复
+
+- KLDCE：旧队列把 `c=0.1` 的不可行首测用于阻断整组，误伤其他 `c`。
+  `scripts/prepare_kldce_recovery.py` 对原120项逐项读取 train 标签、SCAR 实际标记率和
+  特征头，预检既有 QP 等式/盒约束与冻结内存上限；按 `c` 分组首测。
+  新批次保留 `blocked_preflight`，不删除失败、不增加科学实验分母；同一父批次的
+  恢复控制器互斥，启动前再核对父任务未运行/未完成。未改 h、先验、QP、预算或数据。
+- 原配方下8个数据集的120项中，90项等式不可行；其余30项是6个数据集的 `c=0.5`
+  五种子项。通过数学/内存下界预检不等于拟合成功或峰值内存批准，仍保留650 GiB
+  主机内存余量门槛及每组真实首测。不能删除约束、裁剪右端或改 h 来冒充原配方成功。
+- GradPU–ADNI：既有 `cpu_offload` 完整恢复继续执行，不热改源码、不重启丢弃进度。
+  `recover_survey_backlog_canary.py --completed-recovery <恢复目录> --output <新目录>`
+  仅在完整canary结果、200轮预算及选中权重验收后准备后续14项，沿用 CPU 暂存与原卡范围；
+  后续启动再次核验恢复制品与父队列挂起状态，主机余量至少192 GiB。运行中/失败/制品变更
+  均不放行。此入口不会自动把当前仍运行的canary记为完成。
+
+恢复批继续用固定源码在独立 tmux 中执行 `run_survey_backlog_campaign.py --output <新目录> --run`。
+科学口径待决事项：若要求把上述数学不可行项也训出数值，须另行批准版本化方法/协议变体；
+本次工程修复不代替这个决定。
+
 2026-11-01 缺口批次单独使用 `--protocol survey-v3.1` 与
 `pu_toolbox/experiment/survey_recipe_registry_v1_1.json`；旧命令继续指向 v3.0，不能回绑历史结果。
 `scripts/run_survey_backlog_campaign.py` 从旧队列读取数据路径，展开新增 1845 fit，逐组 canary 后释放
