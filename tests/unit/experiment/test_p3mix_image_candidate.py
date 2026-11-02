@@ -17,6 +17,23 @@ from pu_toolbox.experiment.image import fit_survey_image_preprocessing  # noqa: 
 pytestmark = pytest.mark.unit
 
 
+@pytest.fixture
+def exact_cpu_arithmetic():
+    """Isolate bitwise callback parity from threaded CPU kernel roundoff.
+
+    CI observed differences up to 1.6e-7 in two identical seeded fits.
+    Keep the exact assertions; use serial native kernels only for this test,
+    restoring backend/thread settings without changing production training.
+    """
+    threads = torch.get_num_threads()
+    torch.set_num_threads(1)
+    try:
+        with torch.backends.mkldnn.flags(enabled=False):
+            yield
+    finally:
+        torch.set_num_threads(threads)
+
+
 def setup(**parameters):
     raw = np.random.RandomState(17).randint(0, 256, (9, 1, 8, 8)).astype(np.uint8)
     pixels, preprocessing = fit_survey_image_preprocessing(
@@ -36,7 +53,7 @@ def trainer(record, directory, bound=64 * 2**20):
 @pytest.mark.parametrize("variant", ["base", "e", "c"])
 @pytest.mark.parametrize("policy", ["role_balanced", "merged_shuffle"])
 def test_basic_determ_native_fit_parity_student_snapshots_and_actual_cost(
-    tmp_path, variant, policy
+    tmp_path, variant, policy, exact_cpu_arithmetic
 ):
     model, record, pixels, labels = setup(variant=variant, batching_policy=policy)
     original_pixels, original_labels = pixels.copy(), labels.copy()

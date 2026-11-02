@@ -74,6 +74,65 @@ def gpu_processes(gpu):
     return int(free), {int(pid) for card, pid in apps if card.strip() == uuid.strip()}
 
 
+def prepare_followup(output, recovery):
+    """Release held siblings only after accepting the full offloaded recovery.
+
+    No partial-epoch success, original-attempt overwrite or device-memory retry.
+    This is an explicit preparation step, never triggered by a live canary.
+    """
+    if output.exists():
+        raise ValueError("followup output exists; never overwrite history")
+    fixed = backlog.read(recovery / "campaign.json")
+    state = backlog.read(recovery / "status.json")
+    if (
+        len(state["jobs"]) != 1
+        or state["jobs"][0]["status"] != "completed"
+        or fixed.get("gradpu_activation_memory") != "cpu_offload"
+    ):
+        raise ValueError("full offloaded canary has not completed; siblings remain held")
+    canary = state["jobs"][0]
+    accepted = backlog.accept(recovery, canary, fixed)
+    parent = Path(fixed["recovery"]["parent"])
+    if backlog.service.sha(parent / "campaign.json") != fixed["recovery"]["parent_campaign_sha256"]:
+        raise ValueError("parent campaign changed")
+    original = backlog.read(parent / "campaign.json")
+    statuses = {j["label"]: j["status"] for j in backlog.read(parent / "status.json")["jobs"]}
+    jobs = [
+        copy.deepcopy(j)
+        for j in original["jobs"]
+        if j["family"] == canary["family"] and j["label"] != canary["label"]
+    ]
+    if not jobs or any(statuses[j["label"]] != "held_family_failure" for j in jobs):
+        raise ValueError("followup requires exclusively held parent siblings")
+    for i, job in enumerate(jobs):
+        job.update(canary=i == 0, status="pending" if i == 0 else "waiting_canary")
+    inputs = {j["data_dir"]: original["inputs"][j["data_dir"]] for j in jobs}
+    for evidence in inputs.values():
+        backlog.verify_inputs(evidence, full_hash=True)
+    campaign = copy.deepcopy(fixed)
+    campaign.pop("recovery")
+    campaign.update(
+        source=str(backlog.ROOT),
+        commit=backlog.clean_commit(),
+        dependency_lock_sha256=backlog.service.sha(backlog.ROOT / "uv.lock"),
+        jobs=jobs,
+        inputs=inputs,
+        total_fits=len(jobs),
+        followup=dict(
+            recovery=str(recovery.resolve()),
+            recovery_campaign_sha256=backlog.service.sha(recovery / "campaign.json"),
+            accepted_canary=accepted,
+            parent=str(parent.resolve()),
+            parent_campaign_sha256=backlog.service.sha(parent / "campaign.json"),
+            replaces_labels=[j["label"] for j in jobs],
+            additional_scientific_fits=0,
+        ),
+    )
+    output.mkdir(parents=True, exist_ok=False)
+    backlog.service.write(output / "campaign.json", campaign, exclusive=True)
+    return campaign
+
+
 def admission(campaign, *, allow_parent_sharing):
     parent = Path(campaign["recovery"]["parent"])
     if (
@@ -198,8 +257,15 @@ def main():
     parser.add_argument("--gpu", type=int, choices=backlog.ALLOWED_GPUS)
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--allow-parent-sharing", action="store_true")
+    parser.add_argument(
+        "--completed-recovery", type=Path, help="prepare held siblings after full canary acceptance"
+    )
     args = parser.parse_args()
-    if args.run:
+    if args.completed_recovery:
+        if args.run or args.parent or args.label or args.gpu is not None:
+            parser.error("--completed-recovery is a separate preparation operation")
+        prepare_followup(args.output, args.completed_recovery)
+    elif args.run:
         run(args.output, allow_parent_sharing=args.allow_parent_sharing)
     else:
         if args.parent is None or args.label is None or args.gpu is None:

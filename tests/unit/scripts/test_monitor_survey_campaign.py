@@ -195,3 +195,24 @@ def test_basic_recovery_is_separate_from_original_failure_and_never_hides_it(
     state(other, [job(status="failed", gpu=0)])
     text = monitor.render([other, recovery], now=765)
     assert "ORIGINAL FAILED" not in text
+
+
+def test_edge_replacement_grid_does_not_describe_blocked_fits_as_gpu_waiting(tmp_path):
+    parent, replacement = tmp_path / "parent", tmp_path / "replacement"
+    state(parent, [job(status="failed", reason="infeasible", gpu=None)])
+    state(replacement, [job(status="blocked_preflight", reason="equality_outside_box", gpu=None)])
+    (replacement / "campaign.json").write_text(
+        json.dumps(
+            dict(
+                protocol_version="survey-v3.1",
+                reconciliation=dict(
+                    additional_scientific_fits=0, parent=str(parent), replaces_labels=["fit"]
+                ),
+            )
+        )
+    )
+    text = monitor.render([parent, replacement], now=765, width=220)
+    assert "blocked_preflight=1" in text
+    assert "REPLACEMENT GRID" in text and "not additional experiments" in text
+    assert "not waiting for a GPU" in text
+    assert "recovery=blocked_preflight" in text and "ORIGINAL FAILED" in text

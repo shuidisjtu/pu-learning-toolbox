@@ -188,6 +188,57 @@ uv run python scripts/run_survey_backlog_campaign.py --output <queue-v3.1> --mon
 该入口要求提交干净、在独立 tmux 中运行；GPU 白名单和失败隔离由队列配置决定。关闭
 编辑器不影响 tmux，但服务器重启或控制器异常退出后不能假设自动恢复。
 
+### 5.4 失败项恢复（2026-11-02）
+
+只对已经失败或挂起的批次使用；父批次、历史 manifest 和冻结输入保持只读。恢复批次是
+替换，不是新增科学实验，不增加分母。
+
+KLDCE 先逐项预检，再按 c 分组恢复：
+
+```bash
+uv run python scripts/prepare_kldce_recovery.py \
+  --parent <旧队列目录> \
+  --output <新恢复目录>
+uv run python scripts/run_survey_backlog_campaign.py --output <新恢复目录> --run
+```
+
+预检只读 train 标签和特征头，不构造模型；按实际 SCAR 计数判断既有 QP 等式/盒约束与
+冻结载荷上限。不可行项记 `blocked_preflight`，保留可见、不删除、不算等 GPU；可行项按
+`family + c` 各有一个 canary，`c=0.1` 失败不阻断 `c=0.5`。本轮 120 项中 90 项在冻结
+配方下数学不可行，30 项可行（6 个数据集 × `c=0.5` × 5 seed）。恢复批次 CPU-only，
+同一父批次的替换控制器串行启动。预检通过不等于拟合成功、收敛或峰值内存批准；不要删
+约束、改 h 或裁剪右端来“修复”。要改变不可行项的可行域，须另行批准版本化方法/协议变更。
+
+GradPU 先恢复失败的 canary：
+
+```bash
+uv run python scripts/recover_survey_backlog_canary.py \
+  --parent <父队列目录> --label <失败 canary> --gpu <卡> \
+  --output <恢复目录>
+uv run python scripts/recover_survey_backlog_canary.py --output <恢复目录> --run
+```
+
+完整 canary 验收通过后，再准备其余 14 项：
+
+```bash
+uv run python scripts/recover_survey_backlog_canary.py \
+  --completed-recovery <恢复目录> --output <后续目录>
+uv run python scripts/run_survey_backlog_campaign.py --output <后续目录> --run
+```
+
+要求完整 200 轮预算、选中权重和 manifest 验收通过；强制 `cpu_offload`，沿用原 GPU
+范围，主机余量至少 192 GiB；运行中、失败、制品变更或部分 epoch 都不放行。恢复不改
+父队列，也不自动释放 family。
+
+监控时把父批次和恢复批次一起传入：
+
+```bash
+uv run python scripts/monitor_survey_campaign.py \
+  --output <父队列目录> --output <恢复或后续目录>
+```
+
+原失败与替换尝试分开显示；`blocked_preflight` 表示数学/资源上不适用，不是等 GPU。
+
 ## 6. 审计、汇总与导出
 
 ### 6.1 队列批次（v3.1/v3.2）：先审计覆盖
