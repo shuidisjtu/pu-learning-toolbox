@@ -38,6 +38,8 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 | 正式 5 seed 结果工作簿、诊断卡五类信号、四组结论 | 合流 | 交付物 A |
 | 实验结束后清理 v3.0/v3.1 旧协议、矩阵与注册表，只保留最终正式版并验证复现命令 | shuidisjtu / 合流 | 最终版文档 + 从零复现通过 |
 
+GradPU/KLDCE 的失败项恢复见 [runbook](runbook.md) §5.4。KLDCE 低 c 的 90 项 `blocked_preflight` 是数学不可行，按方法适用性边界处理，最终在覆盖说明中交代；不作为剩余工作。
+
 ## 3. 文档地图
 
 ### 权威源
@@ -50,10 +52,10 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 
 - [`survey_execution_plan.md`](survey_execution_plan.md)：能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D55）**，也是当前进度与批次状态的唯一记录。
 - `pu_toolbox/experiment/method_ledger.json`：方法台账；身份、来源、视图、校准、适配与待复核状态。
-- [`runbook.md`](runbook.md)：从 `data/raw` 到工作簿的命令序列，含 split / support 制品 / 批次 / 证据包 / 汇总 / 复现，以及 v3.1/v3.2 队列与监控入口。
+- [`runbook.md`](runbook.md)：从 `data/raw` 到工作簿的命令序列，含 split / support 制品 / 批次 / 证据包 / §5.4 失败项恢复 / 汇总 / 复现，以及 v3.1/v3.2 队列与监控入口。
 - [`../method_cards/`](../method_cards/)：各方法的公式、复现状态与实现边界。
 - [`admission/p4_1b_registry_freeze_20261025.md`](admission/p4_1b_registry_freeze_20261025.md)：v3.1/v3.2 项目配方、版本化例外与验证边界。
-- 队列与交接：`scripts/run_survey_backlog_campaign.py`、`run_survey_parallel_queue.py`、`monitor_survey_campaign.py`、`audit_survey_queue.py`、`export_survey_queue_handoff.py`。
+- 队列与交接：`scripts/run_survey_backlog_campaign.py`、`run_survey_parallel_queue.py`、`monitor_survey_campaign.py`、`audit_survey_queue.py`、`export_survey_queue_handoff.py`、`prepare_kldce_recovery.py`、`recover_survey_backlog_canary.py`。
 
 v1 / v2 协议与 v1–v5 比较矩阵仅作历史绑定；v6–v8 是 v3.0–v3.2 的当前绑定，由协议版本自动解析。
 

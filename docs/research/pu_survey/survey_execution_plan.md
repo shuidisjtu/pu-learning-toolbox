@@ -6,7 +6,7 @@
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
 > 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
-> 状态核对日期：**2026-11-02**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；新增 v3.1 项目配方 1845 fit、v3.2 PUET/RP 图像 280 fit 缺口队列，旧版本/结果不回写；运行完成不等于正式准入）
+> 状态核对日期：**2026-11-02**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；v3.1 项目配方 1845 fit、v3.2 PUET/RP 图像 280 fit 缺口队列；PR #159/#160 已合并；KLDCE 120 项中 90 项 blocked_preflight、30 项可行；GradPU 恢复 canary 未完成；运行完成不等于正式准入）
 
 ## 1. 实验能力与缺口
 
@@ -31,6 +31,7 @@
 - **分组汇总与导出**：`export_survey_results.py` 可生成四组工作簿与诊断卡；缺 seed 的行只进 coverage。诊断卡五类信号（类先验语义、跨数据集趋势、外部锚点偏差、原生适用/违背分组、排名颠倒）仍无法计算（D48）。
 - **版本绑定与 CI 门禁**：协议按版本解析到 comparison v6/v7/v8、profile map v3/v4/v5、registry v1.0/v1.1/v1.2；覆盖率与注册表门禁在 CI 真跑。
 - **队列、审计与交接**：`run_survey_parallel_queue.py`、`monitor_survey_queue.py`、`audit_survey_queue.py`、`export_survey_queue_handoff.py` 可用；真实后台调度仍要求 POSIX 文件锁，不支持时拒绝启动。
+- **失败项恢复与覆盖**：`prepare_kldce_recovery.py` 逐项预检 KLDCE 的 QP 可行域并按 c 分组替换；`recover_survey_backlog_canary.py --completed-recovery` 只在 GradPU full canary 验收后放行 held siblings。`blocked_preflight` 保留可见、不删除、不增加分母；恢复不等于正式准入。
 - **22 方法主榜**：尚不可用。v3.1/v3.2 虽全部 runnable，但 formal admission 仍为 0；需清 formal blockers、完成 v3.1/v3.2 批次并验收 5 seed 数据后才能出主表。
 
 ### 1.2 缺口任务
@@ -45,6 +46,9 @@
 | v3.1/v3.2 复核与 formal blockers | 协议/矩阵仍 `pending_collaborator_review`，新比较映射无直接锚点；formal admission 0 | 复核新配方/映射与 formal blockers，逐项记录；不补签、不把 runnable 当准入 | review accepted、formal 0 |
 | 正式 5 seed 结果与结论 | 尚无完整四组工作簿、诊断卡与结论；诊断卡五类信号依赖未完成数据 | 用已验收 5 seed 数据生成交付物 A，按 §1.4.5 归因 | 交付物 A 通过 |
 
+KLDCE 低 c 的 90 项 `blocked_preflight` 是冻结配方下的方法适用性边界，不作为缺口任务；
+30 项 c=0.5 可行恢复并入上表“v3.1/v3.2 批次执行与对账”，最终在结果覆盖说明中交代。
+
 ### 1.3 预算与资源
 
 **预算（v3.0 与 v3.1/v3.2 的注册表口径）**
@@ -52,7 +56,7 @@
 - v3.0（`survey-recipes-v1.0`）：15 locked / 8 excluded。5 方法阶段预算（GEN-PU 100、PULDA 120、Robust-PU 30、Split-PU 40、Holistic-PU 130 份快照，逐组件 8–64 MiB）与 PULNS/LaGAM/Self-PU full-meta（spambase 行）的显式预算已冻结；8 个 excluded 方法只有 `draft_*`，不得当正式预算。
 - v3.1/v3.2（`survey-recipes-v1.1` / `v1.2`）：23 profile 全部 locked，沿用用户 2026-11-01 确认的项目配方；这是项目配方，不是论文数值复现、SAR 有效性证明或正式准入。
 - v3.1/v3.2 的候选入口（PAN/VPU/P3MIX/CVIR/PUET/RP/KLDCE）已接工程预算与成本收据；readiness/five-seed 入口按 seed0/c=0.1 canary 后扩展，90 fit 单列。五 seed 观测不等于冻结环境或正式准入。
-- KLDCE 的 256 GiB 是 QP payload 筛查上限，不是 RSS 峰值承诺；QP 无解或 payload 超帽在启动前拒绝。
+- KLDCE 的 256 GiB 是 QP payload 筛查上限，不是 RSS 峰值承诺；QP 无解或 payload 超帽在启动前拒绝。c=0.1/0.3 的 90 项阻断来自等式/盒约束为空（数学不可行），不是 payload 或训练失败。
 - 其余执行细节与逐项验证见 §1.5 与方法卡，不在预算段重复。
 
 - `seeds`：0–4；`c_tokens`：SCAR 0.1/0.3/0.5，SAR 0.05/0.5；
@@ -212,10 +216,11 @@ TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读�
 - v3.1/v3.2 已落地：171/179 runnable；registry v1.1/v1.2 各 23 locked；comparison v7/v8 与 map v4/v5 已绑。新增 59 个可运行格（24 个原 blocked 翻牌 + 35 个新单元），其中 v3.1 1845 fit、v3.2 280 fit；协议/矩阵仍 `pending_collaborator_review`，新映射 `pending_review`。
 - v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；support 15 个单元中，v3.0 的 12 个已有 180 run 观测，v3.1 新增 3 个 CIFAR 单元并入 1845 批；D53 的 120 次修正已完成，D54 审计未完成。
 - 队列/监控/审计/交接、candidate readiness 与 five-seed 入口均已实现；这些是工程执行能力，不代表冻结配方、论文复现或正式准入。formal admission 仍为 0。
+- 2026-11-02：PR #160（文档整合）与 PR #159（KLDCE/GradPU 失败项恢复）已合并。KLDCE 120 项中 90 项 `blocked_preflight`、30 项 c=0.5 可行；GradPU 仍只有 `cpu_offload`，full 200 轮恢复未完成，14 项 held；两者都不改变 formal admission=0。详见下方 2026-11-02 记录。
 
 **当前推进顺序**（2026-11-02，与 §1.2 的缺口一一对应；分工见 [README](README.md) §2）：
 
-1. **v3.1/v3.2 缺口批执行与对账**：原 24 个 blocked 单元已全部翻 runnable；剩余 GradPU 首次完整真实运行、PN-CNN 5 seed 验收，以及 1845 + 280 fit 的批次完成/失败/替换对账。
+1. **v3.1/v3.2 缺口批与失败项恢复**：原 24 个 blocked 单元已全部翻 runnable；剩余 1845 + 280 fit 的批次对账、KLDCE 30 项 c=0.5 恢复与审计、GradPU 完整 canary 验收、PN-CNN 5 seed 验收。
 2. **support 方法**：v3.0 的 12 个单元已有 180 fit 观测；v3.1 新增 3 个 CIFAR 单元并入 1845 批。
    D53 的 120 fit 已完成，等 D54 完整批次审计；PULNS 60 fit 不重复跑。
 3. **汇总工具**：xlsx 导出器与诊断卡工具已入库（D48），等 5 seed 批次出数后用
@@ -342,6 +347,14 @@ P4.2b 起为每个 support 单元排了 4 个 SAR 格子。按用户裁定，三
 公平门禁按 backbone / batch / epoch 拒收，而聚合器没有 per-group catch，一个混合组会让整次聚合失败
 （交付物 A 的 PA+clean-support 块因此没有数据通路）。用主机上真实的 mnist LaGAM/PULNS manifest 验证：
 共享组时拒收，改标成新组名后各自通过、聚合键不再相同；这是重标验证，新组名由正式批次产生。
+
+2026-11-02 失败项恢复与文档收口：PR #160 合并（README/执行计划/runbook 重构，分工只留 README §2）；
+PR #159 合并（KLDCE 逐项预检隔离、GradPU follow-up 守卫、monitor 关联、P3Mix 测试线程隔离）。
+KLDCE 120 个 fit 中 90 个在冻结配方下数学不可行（c=0.1/0.3 为主），30 个 c=0.5 可行；
+替换批次按 c 分组 canary、CPU-only、不改父批次；论文 h=0.2/0.3/0.4 对应 c=0.6/0.7/0.8，
+主网格低 c 属外推。GradPU 仍只有 `cpu_offload`；两步诊断 19.32/21.97 GiB GPU、
+93.73 GiB host RSS；full 200 轮恢复未完成，14 项 held；follow-up 需完整验收与
+192 GiB 主机余量。两者都不改变 formal admission=0。
 
 ## 2. 风险与留痕约定
 

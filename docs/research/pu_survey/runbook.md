@@ -1,7 +1,7 @@
 # 复现 PU Survey 实验流程
 
 > 前置条件：已按仓库说明安装环境（建议 `uv sync --python 3.11 --extra dev --extra torch`），
-> 原始数据已放在 `data/raw/`，并在仓库根执行下面的命令。
+> 原始数据已放在 `data/raw/`，并在仓库根目录下执行下面的命令。
 > 概念：实验口径见[协议](pu_survey_protocol.md)与[执行计划](survey_execution_plan.md)；本文只讲
 > 如何用现有脚本完成 split → support → 计划 → 跑批 → 审计 → 汇总 → 复现。
 
@@ -82,8 +82,7 @@ uv run python scripts/prepare_clean_support.py \
 - 规模：Spambase 100，Connect-4 / MNIST / F-MNIST / CIFAR-10 各 500；`support-seed` 与
   split seed 相同。
 - `--out-dir` 必须是**不存在的新目录**；不加 `--write` 只预览，不落盘。
-- 已有制品在 `data/clean-support-20261024-u5axe92t/`，可直接作为 `--support-root` 使用；
-  重建时用新根目录，并保留[机器清单](data/clean_support_materialization_20261024.json)核对。
+
 
 ## 4. 计划一次运行
 
@@ -205,7 +204,9 @@ uv run python scripts/run_survey_backlog_campaign.py --output <新恢复目录> 
 预检只读 train 标签和特征头，不构造模型；按实际 SCAR 计数判断既有 QP 等式/盒约束与
 冻结载荷上限。不可行项记 `blocked_preflight`，保留可见、不删除、不算等 GPU；可行项按
 `family + c` 各有一个 canary，`c=0.1` 失败不阻断 `c=0.5`。本轮 120 项中 90 项在冻结
-配方下数学不可行，30 项可行（6 个数据集 × `c=0.5` × 5 seed）。恢复批次 CPU-only，
+配方下数学不可行，30 项可行（6 个数据集 × `c=0.5` × 5 seed）。论文实验的 `h=0.2/0.3/0.4`
+对应 `c=0.6/0.7/0.8`；主网格 `c=0.1/0.3/0.5` 是外推，只有 `c=0.5` 在边界附近可行。
+恢复批次 CPU-only，
 同一父批次的替换控制器串行启动。预检通过不等于拟合成功、收敛或峰值内存批准；不要删
 约束、改 h 或裁剪右端来“修复”。要改变不可行项的可行域，须另行批准版本化方法/协议变更。
 
