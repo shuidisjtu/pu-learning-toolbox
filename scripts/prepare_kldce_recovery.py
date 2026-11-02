@@ -101,6 +101,9 @@ def prepare(output, parent):
         raise ValueError("output exists; never overwrite a recovery")
     old = backlog.read(parent / "campaign.json")
     state = backlog.read(parent / "status.json")
+    # The original v3.1 campaign predates the explicit version field, as in
+    # backlog.worker. Its protocol/registry digests still have to match exactly.
+    old.setdefault("protocol_version", "survey-v3.1")
     if old.get("protocol_version") not in backlog.REVISIONS:
         raise ValueError("unsupported parent protocol")
     protocol = load_protocol(resolve_protocol_path(old["protocol_version"]))

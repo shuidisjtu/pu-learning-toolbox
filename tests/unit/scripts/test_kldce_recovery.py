@@ -176,3 +176,19 @@ def test_edge_resource_cap_keeps_mathematically_feasible_fit_blocked(tmp_path, m
     assert result["feasibility"]["feasible"]
     assert result["blockers"] == ["named_QP_and_covariance_exceed_frozen_cap"]
     assert not result["model_or_kernel_constructed"]
+
+
+def test_edge_original_campaign_without_version_still_requires_matching_frozen_hashes(
+    tmp_path, monkeypatch
+):
+    root = parent(tmp_path, monkeypatch)
+    original = backlog.read(root / "campaign.json")
+    original.pop("protocol_version")
+    (root / "campaign.json").write_text(json.dumps(original))
+    fixed = script.prepare(tmp_path / "out", root)
+    assert fixed["protocol_version"] == "survey-v3.1"
+    backlog.verify_reconciliation(fixed)
+    original["protocol_sha256"] = "changed"
+    (root / "campaign.json").write_text(json.dumps(original))
+    with pytest.raises(ValueError, match="protocol/registry changed"):
+        script.prepare(tmp_path / "bad", root)
