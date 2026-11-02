@@ -508,11 +508,20 @@ class AdoptedWorker:
         return 0
 
 
+def hold_selectors(job):
+    """Exact selectors only: an optional mechanism must not pause other protocols."""
+    base = f"{job['method']}:{job['dataset']}"
+    return {base, f"{base}:{job['mechanism']}"} if job.get("mechanism") else {base}
+
+
 def resume_jobs(output, campaign, state, source, holds):
     """Reconcile runtime state only; never rewrite frozen campaign identities."""
     import copy
 
     original = {job["label"]: job for job in campaign["jobs"]}
+    valid_holds = {selector for job in original.values() for selector in hold_selectors(job)}
+    if not set(holds) <= valid_holds:
+        raise ValueError("unknown method:dataset[:mechanism] hold")
     jobs = copy.deepcopy(state["jobs"])
     if len(jobs) != len(original) or {j["label"] for j in jobs} != set(original):
         raise ValueError("runtime state does not cover the frozen campaign")
@@ -533,7 +542,7 @@ def resume_jobs(output, campaign, state, source, holds):
         ):
             if job.get(key) != original[job["label"]].get(key):
                 raise ValueError("runtime job identity changed")
-        held = f"{job['method']}:{job['dataset']}" in holds
+        held = bool(hold_selectors(job).intersection(holds))
         if held and job["status"] == "running":
             raise ValueError("stop held workers explicitly before resuming their controller")
         if held and job["status"] in {"pending", "waiting_canary", "held_family_failure"}:
@@ -592,9 +601,7 @@ def run(output, *, resume=False, holds=()):
         raise ValueError("holds require explicit resume")
     if resume:
         state = read(output / "status.json")
-        available_holds = {f"{j['method']}:{j['dataset']}" for j in campaign["jobs"]}
-        if not set(holds) <= available_holds:
-            raise ValueError("unknown method:dataset hold")
+        holds = tuple(sorted(set(state.get("user_holds", ())) | set(holds)))
         jobs, processes = resume_jobs(output, campaign, state, worker_source, holds)
         service.write(output / f"status.before-resume-{os.getpid()}.json", state, exclusive=True)
     else:
@@ -734,7 +741,7 @@ def main():
     parser.add_argument(
         "--resume", action="store_true", help="explicitly adopt existing runtime state"
     )
-    parser.add_argument("--hold", action="append", default=[], metavar="METHOD:DATASET")
+    parser.add_argument("--hold", action="append", default=[], metavar="METHOD:DATASET[:MECHANISM]")
     args = parser.parse_args()
     if (args.resume or args.hold) and not args.run:
         parser.error("resume/hold require --run")

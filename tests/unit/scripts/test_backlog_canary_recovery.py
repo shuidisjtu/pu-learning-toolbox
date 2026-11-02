@@ -48,6 +48,8 @@ def test_edge_resume_rejects_mutated_or_live_held_jobs(tmp_path, fault):
 
 
 def test_basic_adopt_tracks_start_time_without_claiming_exit_code(tmp_path, monkeypatch):
+    # Model Linux identity explicitly; this unit test also runs on Windows.
+    monkeypatch.setattr(os, "getuid", lambda: 1000, raising=False)
     job = dict(pid=123, label="fit")
     identity = (
         os.getuid(),
@@ -66,9 +68,50 @@ def test_basic_adopt_tracks_start_time_without_claiming_exit_code(tmp_path, monk
 
 
 def test_edge_adopt_rejects_foreign_command(tmp_path, monkeypatch):
+    monkeypatch.setattr(os, "getuid", lambda: 1000, raising=False)
     monkeypatch.setattr(backlog, "process_identity", lambda pid: (os.getuid(), "100", [b"other"]))
     with pytest.raises(ValueError, match="foreign"):
         backlog.AdoptedWorker(tmp_path, dict(pid=123, label="fit"), tmp_path)
+
+
+@pytest.mark.parametrize("status", ["pending", "waiting_canary", "held_family_failure"])
+def test_basic_determ_mechanism_hold_keeps_scar_and_completed_history(tmp_path, status):
+    import copy
+
+    jobs = [
+        dict(label="sar", method="cvir", dataset="mnist", mechanism="sar_lbe_a", status=status),
+        dict(label="scar", method="cvir", dataset="mnist", mechanism="scar", status="pending"),
+        dict(
+            label="done", method="cvir", dataset="mnist", mechanism="sar_lbe_a", status="completed"
+        ),
+        dict(label="other", method="vpu", dataset="mnist", mechanism="sar_lbe_a", status="pending"),
+        dict(label="data", method="cvir", dataset="adni", mechanism="sar_lbe_a", status="pending"),
+    ]
+    for job in jobs:
+        job.update(family=job["label"], canary=True)
+    campaign, state = dict(jobs=jobs), dict(jobs=copy.deepcopy(jobs))
+    before = copy.deepcopy((campaign, state))
+    result, processes = backlog.resume_jobs(
+        tmp_path, campaign, state, tmp_path, ["cvir:mnist:sar_lbe_a"]
+    )
+    backlog.release(result)
+    assert [j["status"] for j in result] == [
+        "paused_by_user",
+        "pending",
+        "completed",
+        "pending",
+        "pending",
+    ]
+    assert not processes and (campaign, state) == before
+    again, _ = backlog.resume_jobs(tmp_path, campaign, dict(jobs=result), tmp_path, [])
+    assert again[0]["status"] == "paused_by_user"
+
+
+@pytest.mark.parametrize("hold", ["cvir:mnist:sra", "cvir:*:scar", "cvir:adni:scar"])
+def test_edge_unknown_mechanism_hold_fails_closed(tmp_path, hold):
+    job = dict(label="fit", method="cvir", dataset="mnist", mechanism="scar", status="pending")
+    with pytest.raises(ValueError, match="unknown"):
+        backlog.resume_jobs(tmp_path, dict(jobs=[job]), dict(jobs=[job]), tmp_path, [hold])
 
 
 def parent(tmp_path, monkeypatch):
