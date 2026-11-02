@@ -555,7 +555,38 @@ def resume_jobs(output, campaign, state, source, holds):
     return jobs, processes
 
 
-def run(output, *, resume=False, holds=()):
+def dispatch_gpus(indices, shared_families=()):
+    """Opt-in sharing is admission only, not a reservation or performance guarantee."""
+    exclusive = set(service.available_gpus(indices)) if indices else set()
+    shared = set()
+    if shared_families and indices:
+        rows = subprocess.check_output(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,utilization.gpu,memory.free",
+                "--format=csv,noheader,nounits",
+            ],
+            text=True,
+        )
+        for row in rows.splitlines():
+            index, utilization, free = (int(value.strip()) for value in row.split(","))
+            if index in indices and 0 <= utilization <= 10 and free >= 40960:
+                shared.add(index)
+    return exclusive, shared - exclusive
+
+
+def sharing_families(campaign, state, requested):
+    """Require an explicit profiled family and a completed family canary."""
+    completed = {
+        j["family"] for j in state["jobs"] if j.get("canary") and j["status"] == "completed"
+    }
+    known = {j["family"] for j in campaign["jobs"] if j["lane"] == "gpu"}
+    if not set(requested) <= known & completed:
+        raise ValueError("GPU sharing requires a known GPU family with completed canary")
+    return tuple(sorted(set(requested)))
+
+
+def run(output, *, resume=False, holds=(), shared_families=()):
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
     _controller_lock = lock_controller(output / "controller.lock")
@@ -606,6 +637,7 @@ def run(output, *, resume=False, holds=()):
         service.write(output / f"status.before-resume-{os.getpid()}.json", state, exclusive=True)
     else:
         jobs, processes = campaign["jobs"], {}
+    shared_families = sharing_families(campaign, dict(jobs=jobs), shared_families)
     streak = {}
     while any(j["status"] in {"waiting_canary", "pending", "running"} for j in jobs):
         for job in jobs:
@@ -627,9 +659,10 @@ def run(output, *, resume=False, holds=()):
         release(jobs)
         query_error = None
         try:
-            available = service.available_gpus(allowed_gpus) if allowed_gpus else []
+            exclusive, shared = dispatch_gpus(allowed_gpus, shared_families)
+            available = exclusive | shared
         except (OSError, ValueError, subprocess.SubprocessError) as error:
-            available, query_error = [], str(error)
+            available, exclusive, shared, query_error = set(), set(), set(), str(error)
         occupied = {j.get("gpu") for j in jobs if j["status"] == "running"}
         for gpu in (*allowed_gpus, None):
             streak[gpu] = (
@@ -641,6 +674,8 @@ def run(output, *, resume=False, holds=()):
                 continue
             lane = "cpu" if gpu is None else "gpu"
             pending = [j for j in jobs if j["status"] == "pending" and j["lane"] == lane]
+            if gpu in shared:
+                pending = [j for j in pending if j["family"] in shared_families]
             pending.sort(
                 key=lambda j: (
                     j["method"] == "kldce",
@@ -668,7 +703,10 @@ def run(output, *, resume=False, holds=()):
                 continue
             if gpu is not None:
                 try:
-                    if gpu not in service.available_gpus(allowed_gpus):
+                    fresh_exclusive, fresh_shared = dispatch_gpus(allowed_gpus, shared_families)
+                    if gpu not in fresh_exclusive and not (
+                        gpu in fresh_shared and job["family"] in shared_families
+                    ):
                         continue
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     query_error = str(error)
@@ -702,7 +740,13 @@ def run(output, *, resume=False, holds=()):
                     start_new_session=True,
                 )
             processes[job["label"]] = process
-            job.update(status="running", pid=process.pid, gpu=gpu, started_at=now())
+            job.update(
+                status="running",
+                pid=process.pid,
+                gpu=gpu,
+                started_at=now(),
+                shared_gpu_admission=gpu is not None and gpu not in fresh_exclusive,
+            )
             streak[gpu] = 0
             print("START", job["label"], "GPU", gpu, flush=True)
         service.write(
@@ -717,6 +761,7 @@ def run(output, *, resume=False, holds=()):
                 controller_source=str(ROOT),
                 controller_commit=controller_commit,
                 user_holds=list(holds),
+                shared_gpu_families=list(shared_families),
             ),
         )
         time.sleep(10)
@@ -742,14 +787,26 @@ def main():
         "--resume", action="store_true", help="explicitly adopt existing runtime state"
     )
     parser.add_argument("--hold", action="append", default=[], metavar="METHOD:DATASET[:MECHANISM]")
+    parser.add_argument(
+        "--share-low-memory-family",
+        action="append",
+        default=[],
+        metavar="FAMILY",
+        help="operator-profiled family eligible for co-tenancy on low-load GPUs with 40 GiB free",
+    )
     args = parser.parse_args()
-    if (args.resume or args.hold) and not args.run:
-        parser.error("resume/hold require --run")
+    if (args.resume or args.hold or args.share_low_memory_family) and not args.run:
+        parser.error("resume/hold/sharing require --run")
     output = args.output.resolve()
     if args.worker:
         worker(output, args.worker)
     elif args.run:
-        run(output, resume=args.resume, holds=args.hold)
+        run(
+            output,
+            resume=args.resume,
+            holds=args.hold,
+            shared_families=args.share_low_memory_family,
+        )
     elif args.monitor:
         monitor(output)
     else:
