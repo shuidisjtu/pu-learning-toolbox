@@ -231,6 +231,13 @@ uv run python scripts/run_survey_backlog_campaign.py --output <后续目录> --r
 范围，主机余量至少 192 GiB；运行中、失败、制品变更或部分 epoch 都不放行。恢复不改
 父队列，也不自动释放 family。
 
+用户暂停/移交（2026-11-02）：GradPU–ADNI 本地恢复已停，部分 checkpoint 不计完成；
+其余机制的待跑项也应停派。先停止旧控制器（不要结束其他训练 worker），再用
+`run_survey_backlog_campaign.py --output <父队列目录> --run --resume --hold gradpu:adni`
+接管；会保留状态快照、核对进程身份并沿用原固定 worker 源码，暂停项标记
+`paused_by_user`。接管进程的原退出码不可取回，完成须经制品验收，不伪造退出码。
+该操作不解冻协议、不改历史结果，也不表示部分权重可以无损续训。
+
 监控时把父批次和恢复批次一起传入：
 
 ```bash

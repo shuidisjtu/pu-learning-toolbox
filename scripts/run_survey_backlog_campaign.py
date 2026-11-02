@@ -469,7 +469,84 @@ def verify_followup(campaign):
                 raise ValueError(f"followup identity changed: {field}")
 
 
-def run(output):
+def process_identity(pid):
+    """Linux process identity, including start ticks to reject reused PIDs."""
+    path = Path(f"/proc/{pid}")
+    try:
+        fields = (path / "stat").read_text().rsplit(")", 1)[1].split()
+        if fields[0] == "Z":
+            return None
+        return path.stat().st_uid, fields[19], (path / "cmdline").read_bytes().split(b"\0")
+    except FileNotFoundError:
+        return None
+
+
+class AdoptedWorker:
+    """Observe a pre-existing child without signalling or claiming its exit code."""
+
+    def __init__(self, output, job, source):
+        self.pid = job["pid"]
+        self.identity = process_identity(self.pid)
+        if self.identity is not None:
+            uid, _, argv = self.identity
+            target = str(output / "runs" / job["label"]).encode()
+            worker = str(source / "scripts/run_survey_experiment.py").encode()
+            launcher = str(source / "scripts/run_survey_backlog_campaign.py").encode()
+            matches = worker in argv and target in argv
+            matches |= (
+                launcher in argv and str(output).encode() in argv and job["label"].encode() in argv
+            )
+            if uid != os.getuid() or not matches:
+                raise ValueError("cannot adopt a foreign or reused worker PID")
+
+    def poll(self):
+        current = process_identity(self.pid)
+        # The worker launcher execs the training entrypoint with the same PID.
+        if self.identity is not None and current is not None and current[:2] == self.identity[:2]:
+            return None
+        # The controller must still validate all final artifacts with accept().
+        return 0
+
+
+def resume_jobs(output, campaign, state, source, holds):
+    """Reconcile runtime state only; never rewrite frozen campaign identities."""
+    import copy
+
+    original = {job["label"]: job for job in campaign["jobs"]}
+    jobs = copy.deepcopy(state["jobs"])
+    if len(jobs) != len(original) or {j["label"] for j in jobs} != set(original):
+        raise ValueError("runtime state does not cover the frozen campaign")
+    processes = {}
+    for job in jobs:
+        for key in (
+            "method",
+            "dataset",
+            "path",
+            "mechanism",
+            "seed",
+            "c",
+            "data_dir",
+            "family",
+            "lane",
+            "checkpoint_epochs",
+            "canary",
+        ):
+            if job.get(key) != original[job["label"]].get(key):
+                raise ValueError("runtime job identity changed")
+        held = f"{job['method']}:{job['dataset']}" in holds
+        if held and job["status"] == "running":
+            raise ValueError("stop held workers explicitly before resuming their controller")
+        if held and job["status"] in {"pending", "waiting_canary", "held_family_failure"}:
+            job.update(
+                status="paused_by_user",
+                reason="user requested transfer/pause; no automatic dispatch",
+            )
+        if job["status"] == "running":
+            processes[job["label"]] = AdoptedWorker(output, job, source)
+    return jobs, processes
+
+
+def run(output, *, resume=False, holds=()):
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
     _controller_lock = lock_controller(output / "controller.lock")
@@ -489,17 +566,40 @@ def run(output):
     allowed_gpus = tuple(campaign["gpu_allowlist"])
     if any(gpu not in ALLOWED_GPUS for gpu in allowed_gpus):
         raise ValueError("campaign cannot expand the shared four-GPU limit")
-    if campaign["source"] != str(ROOT) or clean_commit() != campaign["commit"]:
+    worker_source = Path(campaign["source"])
+    controller_commit = clean_commit()
+    if not resume and (worker_source != ROOT or controller_commit != campaign["commit"]):
         raise ValueError("campaign source changed")
-    if service.sha(ROOT / "uv.lock") != campaign["dependency_lock_sha256"]:
+    if resume:
+        if subprocess.check_output(["git", "status", "--porcelain"], cwd=worker_source).strip():
+            raise ValueError("pinned worker source is dirty")
+        if (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=worker_source, text=True
+            ).strip()
+            != campaign["commit"]
+        ):
+            raise ValueError("pinned worker commit changed")
+    if service.sha(worker_source / "uv.lock") != campaign["dependency_lock_sha256"]:
         raise ValueError("dependency lock changed")
     for evidence in campaign["inputs"].values():
         verify_inputs(evidence, full_hash=True)
-    if (output / "status.json").exists():
+    if (output / "status.json").exists() and not resume:
         raise ValueError(
             "existing status requires explicit reconciliation, not an automatic restart"
         )
-    jobs, processes, streak = campaign["jobs"], {}, {}
+    if holds and not resume:
+        raise ValueError("holds require explicit resume")
+    if resume:
+        state = read(output / "status.json")
+        available_holds = {f"{j['method']}:{j['dataset']}" for j in campaign["jobs"]}
+        if not set(holds) <= available_holds:
+            raise ValueError("unknown method:dataset hold")
+        jobs, processes = resume_jobs(output, campaign, state, worker_source, holds)
+        service.write(output / f"status.before-resume-{os.getpid()}.json", state, exclusive=True)
+    else:
+        jobs, processes = campaign["jobs"], {}
+    streak = {}
     while any(j["status"] in {"waiting_canary", "pending", "running"} for j in jobs):
         for job in jobs:
             if job["status"] != "running":
@@ -513,7 +613,10 @@ def run(output):
                 job.update(accept(output, job, campaign), status="completed")
             except (OSError, ValueError, KeyError) as error:
                 job.update(status="failed", reason=str(error))
-            job.update(exit_code=code, finished_at=now())
+            adopted = isinstance(processes[job["label"]], AdoptedWorker)
+            job.update(exit_code=None if adopted else code, finished_at=now())
+            if adopted:
+                job["completion_evidence"] = "artifact acceptance; original exit code unavailable"
         release(jobs)
         query_error = None
         try:
@@ -566,7 +669,7 @@ def run(output):
             env = dict(
                 os.environ,
                 CUDA_VISIBLE_DEVICES="" if gpu is None else str(gpu),
-                PYTHONPATH=str(ROOT),
+                PYTHONPATH=str(worker_source),
                 OMP_NUM_THREADS="2",
                 OPENBLAS_NUM_THREADS="2",
                 MKL_NUM_THREADS="2",
@@ -575,7 +678,7 @@ def run(output):
             argv = [
                 sys.executable,
                 "-u",
-                str(Path(__file__).resolve()),
+                str(worker_source / "scripts/run_survey_backlog_campaign.py"),
                 "--output",
                 str(output),
                 "--worker",
@@ -584,7 +687,7 @@ def run(output):
             with (output / f"{job['label']}.log").open("x") as log:
                 process = subprocess.Popen(
                     argv,
-                    cwd=ROOT,
+                    cwd=worker_source,
                     env=env,
                     stdin=subprocess.DEVNULL,
                     stdout=log,
@@ -604,6 +707,9 @@ def run(output):
                 query_error=query_error,
                 gpu_allowlist=list(allowed_gpus),
                 formal_admission=False,
+                controller_source=str(ROOT),
+                controller_commit=controller_commit,
+                user_holds=list(holds),
             ),
         )
         time.sleep(10)
@@ -625,12 +731,18 @@ def main():
     mode.add_argument("--run", action="store_true")
     mode.add_argument("--worker")
     mode.add_argument("--monitor", action="store_true")
+    parser.add_argument(
+        "--resume", action="store_true", help="explicitly adopt existing runtime state"
+    )
+    parser.add_argument("--hold", action="append", default=[], metavar="METHOD:DATASET")
     args = parser.parse_args()
+    if (args.resume or args.hold) and not args.run:
+        parser.error("resume/hold require --run")
     output = args.output.resolve()
     if args.worker:
         worker(output, args.worker)
     elif args.run:
-        run(output)
+        run(output, resume=args.resume, holds=args.hold)
     elif args.monitor:
         monitor(output)
     else:
