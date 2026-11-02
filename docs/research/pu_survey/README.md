@@ -28,14 +28,15 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 ## 2. 剩余工作
 
 只列仍未关闭的事项；完成数、排队数和批次状态以 [执行计划](survey_execution_plan.md) §1 为准。
+分工只在本表维护，执行计划的缺口表不再重复负责人。
 
 | 工作 | 负责 | 完成判据 |
 |---|---|---|
-| v3.1/v3.2 缺口批（1845 + 280 fit）按 canary → 全网格跑完并对账；D54 完整批次审计（15 个 support 单元、120 次修正替代关系） | 队友 / 合流 | 完整网格 + 批次审计通过 |
+| v3.1/v3.2 缺口批（1845 + 280 fit）按 canary → 全网格跑完并对账；D54 完整批次审计（15 个 support 单元、120 次修正替代关系） | HENG958 / 合流 | 完整网格 + 批次审计通过 |
 | GradPU 首次完整真实运行及资源记录；PN-CNN 5 seed 现有产物验收 | HENG958 | 合规 manifest + 峰值记录 |
-| v3.1/v3.2 合作者复核、formal blockers 清零（新增比较映射仍 `pending_review`） | 合作者 / 合流 | review accepted、formal 0 |
+| v3.1/v3.2 复核与 formal blockers 清零（新增比较映射仍 `pending_review`） | HENG958 / 合流 | review accepted、formal 0 |
 | 正式 5 seed 结果工作簿、诊断卡五类信号、四组结论 | 合流 | 交付物 A |
-| 实验结束后清理 v3.0/v3.1 旧协议、矩阵与注册表，只保留最终正式版并验证复现命令 | 用户 / 合流 | 最终版文档 + 从零复现通过 |
+| 实验结束后清理 v3.0/v3.1 旧协议、矩阵与注册表，只保留最终正式版并验证复现命令 | shuidisjtu / 合流 | 最终版文档 + 从零复现通过 |
 
 ## 3. 文档地图
 
@@ -45,7 +46,7 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 |---|---|---|---|---|---|
 | v3.0 基线 | `survey_protocol_v3.json` | `survey_comparison_v6.json` | `survey_comparison_profile_map_v3.json` | `survey_recipe_registry_v1.json`（15 locked / 8 excluded） | 历史基线；完成后清理 |
 | v3.1 缺口批 | `survey_protocol_v3_1.json` | `survey_comparison_v7.json` | `survey_comparison_profile_map_v4.json` | `survey_recipe_registry_v1_1.json`（23 locked） | 历史缺口批；完成后清理 |
-| v3.2 当前最终候选 | `survey_protocol_v3_2.json` | `survey_comparison_v8.json` | `survey_comparison_profile_map_v5.json` | `survey_recipe_registry_v1_2.json`（23 locked） | 保留为最终复现版本（待合作者复核） |
+| v3.2 当前最终候选 | `survey_protocol_v3_2.json` | `survey_comparison_v8.json` | `survey_comparison_profile_map_v5.json` | `survey_recipe_registry_v1_2.json`（23 locked） | 保留为最终复现版本（待 HENG958 复核） |
 
 - [`survey_execution_plan.md`](survey_execution_plan.md)：能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D55）**，也是当前进度与批次状态的唯一记录。
 - `pu_toolbox/experiment/method_ledger.json`：方法台账；身份、来源、视图、校准、适配与待复核状态。
