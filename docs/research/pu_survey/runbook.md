@@ -1,212 +1,226 @@
-# 从原始数据到汇总表：命令序列
+# 复现 PU Survey 实验流程
 
-> 一页纸：把 `data/raw` 变成交付物 A 的工作簿要跑哪几条命令、每一步留下什么凭证、复现一个已交付结果从哪开始读。
-> 实验口径以[协议](pu_survey_protocol.md)和[执行计划](survey_execution_plan.md)为准，本页只给命令和产物。
+> 前置条件：已按仓库说明安装环境（建议 `uv sync --python 3.11 --extra dev --extra torch`），
+> 原始数据已放在 `data/raw/`，并在仓库根执行下面的命令。
+> 概念：实验口径见[协议](pu_survey_protocol.md)与[执行计划](survey_execution_plan.md)；本文只讲
+> 如何用现有脚本完成 split → support → 计划 → 跑批 → 审计 → 汇总 → 复现。
 
-所有命令都在仓库根执行，Python 一律走 `uv run`。下文用 `<results>` 表示 `run_survey_pilot.py --results` 指的那个目录。
+## 1. 流程一览
 
-## 2026-11-01 分支整合交接
+| 阶段 | 做什么 | 主要命令 | 产物 |
+|---|---|---|---|
+| 数据 | 把原始数据整理到 `data/raw/<dataset>/` | 手工准备 | 原始文件 |
+| Split | 生成四路 train / pu_val / clean_val / test | `prepare_survey_splits.py` | `data/splits/<dataset>/split_<seed>/` |
+| Support | 生成 clean-support 五角色制品 | `prepare_clean_support.py` | `data/clean-support.../<dataset>/split_<seed>/` |
+| 计划 | 核对单元、先验、磁盘与批次 | `run_survey_pilot.py --dry-run` | 计划输出、可选的 `plan.json` |
+| 跑批 | 按批训练并写 manifest / 证据包 | `run_survey_pilot.py` 或单元脚本 | `<results>/<dataset>/.../manifest.json` |
+| 审计 | 检查覆盖、证据包与正式准入 | `audit_survey_batches.py` / `audit_survey_queue.py` | `audit.json / audit.md` |
+| 汇总 | 生成五 seed 统计与工作簿 | `summarize_survey_results.py` / `export_survey_results.py` | `summary.json` / `survey_results.xlsx` |
 
-统一审核入口：`integrate/survey-backlog-20261101`，基于远程 main `1b06b48`，
-收拢至最终源码 `5e63e57` 后 squash；不再逐个合并此前的实验工程分支。
-本次盘点的36个远程主题分支中，30个已是该最终源码的祖先；其余6个经 patch/range-diff
-核对也已覆盖：CVIR image 的 `19b8dc1` 对应 `bcfc56c`，KLDCE 的
-`c7da047`/`9600f65` 对应 `0160456`；P3MIX 的 `3b7c8b7` 对应 `97ebcb4`；
-PAN 的 `85812cc` 对应 `9364bb1`，VPU 的 `a1578e1` 对应 `c055082`。
-后三对差异仅是重放时的文档上下文，核心代码/测试补丁相同；旧文档回退不重复合入。
+## 2. 先确认版本与门禁
 
-审核按四组看最终差异，不需要逐个旧 commit 阅读：
+当前最终候选是 `survey-v3.2`；v3.0 与 v3.1 保留为历史绑定。复现已交付结果时，以该 run 的
+manifest 和批次证据包里的版本身份为准，不要一律换成最新版。
 
-| 内容 | 主要入口 | 边界 |
-|---|---|---|
-| 算法执行与成本 | candidate_image、classical_candidate、kernel_candidate、P3MIX、方法卡 | 工程适配不等于论文数值复现 |
-| 版本化缺口批次 | v3.1/v3.2 protocol、registry、comparison 与生成脚本 | 旧冻结版本不改；人工签署仍待，不补造准入 |
-| 调度与结果交接 | queue_scheduling、后台队列、audit/export 脚本 | 四卡范围、失败隔离、修正替代，不扩大实验分母 |
-| 监控与 GradPU 恢复 | monitor_survey_campaign、GradPU 暂存、独立恢复工具 | 不热改训练源码，不将短测记为200轮完成 |
+| 用途 | 协议 | 配方注册表 | 比较矩阵 / profile 映射 |
+|---|---|---|---|
+| 当前最终流程 | `survey-v3.2` | `survey_recipe_registry_v1_2.json` | v8 / v5 |
+| v3.1 缺口批 | `survey-v3.1` | `survey_recipe_registry_v1_1.json` | v7 / v4 |
+| v3.0 基线 | `survey-v3.0` | `survey_recipe_registry_v1.json` | v6 / v3 |
 
-约8万行新增 JSON 为版本化矩阵/注册表快照，需用生成一致性及绑定门禁核验，不当作8万行手写算法。
-整合必须经 PR 与 required checks；无 API 登录时仅推整合分支，不直接 push main。
-旧分支在整合 PR 合并且确认无独立未合改动后再清理，运行中的固定源码工作树不删除。
-清理前保留实验源码 commit 的归档引用，不因 squash 后删除分支而丢失历史可复现性。
-本轮另修复控制器模块导入的 POSIX 依赖和 Python3.10 哈希兼容性：规划/监控可跨平台导入，
-真正后台调度仍要求 POSIX 文件锁，不支持时明确拒绝，绝不无锁启动。
-跨平台门禁另修复 UTF-8 制品读写、Windows 路径故障注入和时间格式。
-KLDCE 直接拟合一致性仍逐值精确；pickle 往返保留参数数组和分类完全一致，
-分数按输入 dtype 的浮点精度核验（macOS 实测差约 float32 2.2e-8、float64 4.9e-17）。
-这不改变算法或科学验收阈值，也不代表论文数值复现。
-
-监控中的 `ORIGINAL FAILED GPU7` 是原尝试；其下 `recovery=running GPU6` 才是恢复任务状态。
-恢复批单独显示，父批次失败计数保留；恢复状态过期会标 STALE，不能据此宣称仍在正常训练。
-GradPU–ADNI 完整 canary 验收前，其余14项仍挂起，不自动放行。
-
-## 0. 先确认矩阵与注册表没变
-
-2026-11-01 缺口批次单独使用 `--protocol survey-v3.1` 与
-`pu_toolbox/experiment/survey_recipe_registry_v1_1.json`；旧命令继续指向 v3.0，不能回绑历史结果。
-`scripts/run_survey_backlog_campaign.py` 从旧队列读取数据路径，展开新增 1845 fit，逐组 canary 后释放
-五 seed 全网格；`--run` 在独立 tmux 中托管，`--monitor` 查看快照数量和任务状态。
-最多使用 0/5/6/7 四张卡，不终止他人进程；失败组保留日志并挂起，不自动重跑或降配。
-KLDCE 另用单个 CPU worker，256 GiB 是已知 QP 载荷筛查上限而非峰值保证；启动要求至少 650 GiB
-可用 RAM。关闭 VS Code 不影响 tmux；服务器重启或控制器异常退出仍需显式核对，不能宣称自动恢复。
-
-PUET/RP 图像补充批使用同一脚本的 `--revision survey-v3.2` 准备新目录，配套 registry v1.2；
-只展开相对 v3.1 新增的 280 fit。`--previous-queue` 仍传旧六号批次的队列清单读取 split 路径，
-`--support-root` 保留接口参数但这些单元不用支持集。准备与启动必须使用同一个干净、固定
-commit；不要在其工作树继续开发。新批 GPU allowlist 为空，只增加一个两线程 CPU worker，
-完整提取并按 dataset/seed 缓存特征；24 个首轮测试逐组放行。通过 `--output <新目录>
---monitor` 查看，不修改原 v3.1 状态或回填历史结果。来源差异见
-[图像适配决定](admission/p4_1b_registry_freeze_20261025.md)。
-
-新队列详细监控：`scripts/monitor_survey_campaign.py --output <v3.1目录>
---output <v3.2目录>`，默认每 5 秒刷新，可加 `--once` 单次检查。GPU 利用率/显存为
-整卡即时值，队列分配不表示独占；任务显示 elapsed、完整已保存 epoch 和最近 3–5 个
-间隔的训练 ETA（不含选模/测试）。多 teacher 按完整 epoch 计数，回收快照不倒退成训练进度。
-准备阶段、陈旧状态、缺实时计数的图像特征/树模型明确写无法估计；传统二维任务至少
-三条同批次/方法/数据集/机制/c 的完成记录才估计耗时。整队列不从局部任务外推完工时间。
-此脚本只读，监控可以从新工作树更新；只替换监控窗口，训练源码和控制器不重启。
+跑批前先确认矩阵和注册表能对上（以 v3.2 为例；v3.1 换成 v1.1 / v4）：
 
 ```bash
-uv run python scripts/check_survey_recipe_registry.py --require-present --require-locked
-uv run python scripts/check_survey_profile_map.py --require-present
+uv run python scripts/check_survey_recipe_registry.py \
+  --registry pu_toolbox/experiment/survey_recipe_registry_v1_2.json \
+  --require-present --require-locked
+
+uv run python scripts/check_survey_profile_map.py \
+  --map pu_toolbox/experiment/survey_comparison_profile_map_v5.json \
+  --require-present
 ```
 
-两条都是 CI 门禁，跑批前手动跑一次，是为了把"矩阵和配方注册表对不上"挡在第一批之前。
+两条都应通过；失败时先修矩阵/注册表，不要绕过门禁开跑。
 
-## 1. 四路 split（协议 §2.4 第 3 条）
+## 3. 准备数据
+
+### 3.1 四路 split
+
+`prepare_survey_splits.py` 从 `data/raw/` 读取原始数据，生成协议要求的四路划分：
 
 ```bash
-uv run python scripts/prepare_survey_splits.py --datasets spambase,cifar10,imdb --seeds 0,1,2,3,4
+uv run python scripts/prepare_survey_splits.py \
+  --datasets spambase,cifar10,imdb,adni,mnist,fashion_mnist,twenty_newsgroups,connect_4 \
+  --seeds 0,1,2,3,4
 ```
 
-产物 `data/splits/<dataset>/split_<seed>/`：`train.npz` / `pu_val.npz` / `clean_val.npz` / `test.npz` 加 `split_manifest.json`。
-manifest 里的 `indices_sha256` 是 run manifest 的 `split_ref` 指向的对象，`class_prior.population` 是驱动的先验来源——缺这条记录的 split 会让驱动在开跑前拒跑，而不是在第一百批才发现。
+默认输出到 `data/splits/`；每个 `split_<seed>/` 包含：
 
-## 2. 五角色 support 制品（只有 clean-support 三方法需要）
+```text
+train.npz  pu_val.npz  clean_val.npz  test.npz  split_manifest.json
+```
+
+四个 `.npz` 都保存真实标签与全局唯一 `indices`；PU 标签视图由实验层按协议现场生成，
+不写进 split。`split_manifest.json` 记录角色大小、索引摘要和 `class_prior.population`；
+后续驱动的类先验默认从这里读取。
+
+如果只需要某个数据集，把 `--datasets` 改成对应名字即可。未知数据集会直接报错，不会
+静默跳过。
+
+### 3.2 clean-support 制品
+
+只有 PULNS、LaGAM、Self-PU full-meta 需要 clean-support。每个 (dataset, seed) 生成一份
+五角色制品；以 Spambase seed 0 为例：
 
 ```bash
-uv run python scripts/prepare_clean_support.py --dataset spambase --raw-dir data/raw \
-  --seed 0 --support-size 100 --support-seed 0 --group-policy not_applicable \
-  --out-dir data/clean-support-20261024-u5axe92t/spambase/split_0 --write
+uv run python scripts/prepare_clean_support.py \
+  --dataset spambase --seed 0 --support-size 100 --support-seed 0 \
+  --group-policy not_applicable --raw-dir data/raw \
+  --out-dir data/clean-support/spambase/split_0 --write
 ```
 
-每个 (dataset, seed) 一条，`--out-dir` 必须是不存在的新目录，不加 `--write` 只预览。
-support 规模与 support seed 记在 `data/clean_support_materialization_20261024.json`：spambase 100，connect_4 / mnist / fashion_mnist / cifar10 各 500，support seed 等于 split seed。
+- 规模：Spambase 100，Connect-4 / MNIST / F-MNIST / CIFAR-10 各 500；`support-seed` 与
+  split seed 相同。
+- `--out-dir` 必须是**不存在的新目录**；不加 `--write` 只预览，不落盘。
+- 已有制品在 `data/clean-support-20261024-u5axe92t/`，可直接作为 `--support-root` 使用；
+  重建时用新根目录，并保留[机器清单](data/clean_support_materialization_20261024.json)核对。
 
-## 3. 计划与磁盘预算（不训练、不写证据包）
+## 4. 计划一次运行
+
+先用 `--dry-run` 看要跑多少 run、批次和 checkpoint 空间。下面的命令用当前最终版本，
+跑完整矩阵的 Spambase 切片：
 
 ```bash
 uv run python scripts/run_survey_pilot.py \
-  --datasets mnist --support-root /root/autodl-tmp/clean-support \
-  --splits data/splits --results <results> --device cuda \
-  --adapter-cache /root/autodl-tmp/cache --reclaim-unselected-checkpoints \
-  --class-prior mnist=0.4915333333333333 --dry-run
+  --protocol survey-v3.2 \
+  --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_2.json \
+  --splits data/splits \
+  --support-root data/clean-support-20261024-u5axe92t \
+  --results results/survey-v3.2 \
+  --datasets spambase --methods upu \
+  --device cuda --dry-run
 ```
 
-`--dry-run` 打印 planned / completed / pending、还要跑几个批、checkpoint 峰值，以及先验读到了什么；`--plan-json <file>` 把展开后的每个 run 写成文件，两台机器分片时用它核对两片不重叠。
-计划里有 support 单元却没给 `--support-root` 时，驱动在任何批开始前报错并点名；这时要么补上制品，要么用 `--methods` 把 support 方法排除出去。
+要做最小验证，保留上面的 `--datasets spambase --methods upu`；要跑全量，去掉这两个过滤
+参数。常用选项：
 
-### 子批次与续跑接收边界
+- `--datasets` / `--methods` / `--training-paths`：三轴取交集，只接受矩阵里真实存在的组合；
+  命名未知项或交集为空会报错。
+- `--plan-json <file>`：把展开后的每个 run 写成 JSON，便于两台机器核对分片不重叠。
+- `--class-prior`：一般不用传，驱动会从 split 的 `class_prior.population` 读取；只有 split
+  缺少先验或需要显式覆盖时才传，例如 `--class-prior spambase=0.394`。覆盖与 split 冲突时
+  还要 `--allow-prior-override`。
+- `--keep-going`：某批失败后继续后面的批；默认遇到失败就停。
+- `--reclaim-unselected-checkpoints`：选模和 test 评分结束后回收未选中的逐 epoch 权重。
 
-2026-10-28 用户确认完整 seed × c 网格可以由多次合规子批次组成；分批本身不是实质偏离。
-审计对历史 `seed_subset` / `c_grid` 仅在完整无重复网格、每份引用包可核验、代码与依赖、
-软硬件及线程环境一致且其他正式门禁均通过时，输出派生重裁定；原始 manifest 不修改。
-新批次包记录 CPU 型号和数量、GPU 驱动、软件版本及线程环境。缺字段的旧包不能仅凭相同的
-已有字段自动认定环境一致。该重裁定目前适用于已有 clean-support 重审范围；原始单 run
-正式聚合入口不消费派生裁定，应使用审计和汇总报告，不能直接宣称原 manifest 已被改写。
+计划里有 support 单元却没给 `--support-root` 时，驱动会在任何训练开始前拒绝并点名；
+此时补上制品根，或用 `--methods` 把 support 方法排除。
 
-完整的 nnPU / Dist-PU `native_2d` 批次也可通过审计生成派生准入裁定：核对冻结参数与预算、
-完整逐 epoch 候选及对应选模验证记录，Dist-PU 还核对冻结 clean-room fullbatch 路径的实际
-epoch 和更新步数。SAR 只要求 OA 验证，SCAR 同时要求 PA / OA；其他路径不因此自动解锁。
-只有完整网格及所需审计均通过，才解除已登记的历史全局进度声明；未知或真实 blocker 保留。
-审计配置须接入 `plan`、`run_log`，已有退出码通过 `exit_code_file` 接入；未保存的原进程
-退出码保持 unverified，不补造。分开保存的机制日志可按实际顺序拼接成注明来源的派生日志，
-保留原始内容；审计同时识别标准驱动完成行与 `TRAINING_COMPLETE X/Y; formal admission requires audit`，
-并逐条核对日志路径、重复项和实际产物数量，不能凭完成标记单独授予资格。
+## 5. 执行
 
-逐行 `formal` 资格与整份报告的 `overall` 分别解读。任何 `not_run` 检查仍使整体报告为
-`partial`；例如未配置归档摘要时 A11 保持 `not_run`，不能将其描述为通过，也不自动否决
-已经通过所需准入检查的完整结果行。
+### 5.1 批量执行（推荐）
 
-用户明确决定跳过 A11 时，可在对应 batch 配置中记录
-`"archive_digest_waiver": {"authorized_by": "user", "reason": "用户明确跳过 A11"}`，
-且不同时配置 `archive_digests`。此时 A11 为 `not_applicable`，说明与报告中保留豁免来源和
-原因，不记为摘要验证通过；其他批次仍分别检查。所有其余门禁及完整正式结果行通过后，
-报告的 `admission_status` 为 `formal`，Markdown 与工作簿显式展示；技术审计的
-`overall` 仍使用既有 `pass / partial / fail` 词汇，二者不混用。
+把上面的命令去掉 `--dry-run`：
 
-## 4. 正式批次
+```bash
+uv run python scripts/run_survey_pilot.py \
+  --protocol survey-v3.2 \
+  --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_2.json \
+  --splits data/splits \
+  --support-root data/clean-support-20261024-u5axe92t \
+  --results results/survey-v3.2 \
+  --device cuda
+```
 
-同一条命令去掉 `--dry-run`。分片用 `--datasets` / `--methods` / `--training-paths`，三者取交集；命名了一个矩阵里没有的东西、或交集为空，会被拒绝而不是"缩小成空"。
-
-版本化 support 批次依协议记录所有已完成 epoch，包括 LaGAM / Self-PU 的 warmup；分别独立评估 PA+clean-support 与 OA，Self-PU 同时记录两条 teacher 流。旧探索入口的显式 meta-only 候选池保持原义。D53 之前已过滤 warmup 的批次不可补造缺失快照或回写证据，须以修复后的代码在新结果目录重跑。
-
-旧产物可先用 `scripts/prepare_survey_support_repair.py --help` 规划：显式列出不重叠的
-`--results-root`，指定干净的修复版 `--target-source`、`--support-root`、数据集目录映射
-`--split-map`（也可传含 `source_data` 的本机队列证据文件），并给出两个独立的新目录
-`--out-dir` / `--new-results`。命令只写轨迹清单和 CPU dry-run 命令，不启动训练；
-PULNS episode 完整不等于整批正式通过，重复来源也不会自动择新覆盖。实际重跑仍由原 pilot
-在执行时生成 D52 包，之后按 D54 做完整审计。
-
-协议 §2.4 已批准的独立 support 不构成自动降级理由：来源、角色隔离、规模与标签预算核验通过后，`PA+clean-support` 是正式实验数据的独立报告部分，与纯 PU PA 同表另列，禁止混入纯 PU 优势比较。准备器/adapter 的 `formal_admission=False` 表示该组件不自行授予整批准入，不能覆盖已批准的协议政策；最终资格由完整批次审计判定。旧 manifest 保持只读，过时资格声明应在新复审报告中记录解除依据，未知或真实 blocker 保留。
-
-产物：
+驱动按批调用 `run_survey_experiment.py`，每个批写一个证据包，并让该批的每份 manifest
+引用它。结果树大致如下：
 
 ```text
 <results>/<dataset>/<method>/<training_path>/<view>/[<机制>/]c_<token>/seed_<n>/manifest.json
-<results>/<dataset>/<method>/<training_path>/<view>/[<机制>/]c_independent/seed_<n>/manifest.json   # PN oracle
 <results>/batch_evidence/<dataset>__<method>__<training_path>__<机制或 oracle>__<标识前 12 位>.json
 ```
 
-SAR 的 run 多一层 `<机制>/`（`sar_lbe_a` / `sar_lbe_b`），oracle 没有 c 轴、用 `c_independent`。
+SAR run 多一层机制目录；PN oracle 没有 c 轴，使用 `c_independent`。
 
-**每批一个证据包**（协议 §5 第 6 条，D44/D52）：一条 unit 脚本调用 = 一个批 = 一个包，包里有
+中途停止后重新执行同一条命令即可续跑：已完成的 run 会跳过，未完成的部分会按 seed
+拆成新的批并另写证据包，不覆盖旧包。
 
-- `code_commit` / `code_commit_dirty` / `code_commit_state`
-- `dependency_lock`：对象 `{"path": "uv.lock", "sha256": ..., "state": "recorded"}`，不是裸哈希
-- `protocol_version` / `protocol_sha256`、绑定了配方注册表时的 `recipe_registry`
-- `environment`：Python / torch / CUDA 与 GPU 型号，外加 `state`（探测失败时是 `unavailable` + 原因）
-- `unit` / `seeds` / `c_tokens` / `run_count`：这一批到底覆盖哪些 run
+### 5.2 单单元执行（调试或复现）
 
-这一批写出的每份 manifest 带一个 `batch` 块引用它：
-
-```json
-"batch": {
-  "schema_version": "batch-evidence-v1",
-  "batch_id": "<包内容除自身外的严格摘要>",
-  "evidence_file": "<包的文件名>",
-  "evidence_sha256": "<文件字节的 sha256>"
-}
-```
-
-三条性质值得记住：
-
-- **按内容寻址，一个包只描述一次尝试**：`batch_id` 是包内容（去掉它自己）的严格摘要，文件名以同一摘要的前 12 位结尾。所以「同一个批」重跑一次（同 unit、同一组 seeds/c、同 commit、同 lock、工作区脏状态相同、同机器）会命中同一个文件、内容逐字节相同、直接复用；而下面这些情况都会**另写一个包，不覆盖旧的**：换了 commit、工作区从脏变干净、`uv.lock` 变了、换了机器/GPU（`environment` 在摘要里）、绑定的配方注册表变了、以及**部分完成后的续跑**——续跑会把没跑完的单元按 seed 拆成更小的批，那是另一个批、另一个包。没有任何 pending 时根本不写包。
-  换句话说：`batch_id` 标识的是「这一次尝试」，不是「这个单元」；比较两组结果时看 unit / seeds / c，不要看 `batch_id`。
-- **不许"借用"身份**：unit 脚本在建任何目录、训练任何候选之前会重读这个包，核对 dataset / method / training_path / 机制 / seeds / c / 协议摘要，还核对包里的 `code_commit` 与 `dependency_lock.sha256` 是否就是**当前这个 checkout** 的。对不上就停。所以 manifest 里的 `batch_id` 是被验证过的，不是从命令行抄来的。
-- **包必须找得到**：manifest 只记包的文件名与字节摘要，包必须位于 `<results>/batch_evidence/`。`audit_survey_batches.py` 的 E01 检查会逐条核对「manifest 引用的包还在、字节没变」，对不上就报 finding；没有引用包的 manifest 只计数（D52 之前的历史 run 不回填）。
-
-## 5. 聚合门禁（先诊断，不出表）
+只跑一个单元、确认参数或复现某份 manifest 时，用单元脚本：
 
 ```bash
-uv run python scripts/aggregate_survey_runs.py <results> --diagnostic
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 \
+  --protocol survey-v3.2 \
+  --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_2.json \
+  --dataset spambase --method upu --training-path native_2d \
+  --labeling-mechanism scar --seeds 0 --c 0.1 \
+  --class-prior 0.3940447729 --device cpu \
+  --out-dir results/survey-debug
 ```
 
-按 `comparability_group` 分组比较公平字段。一个组里混进两个配方（例如 backbone 宽度或 batch 不同）会让**整次聚合**失败并点名该组，这就是每个 support 方法单独一组的原因（D51）。
+- `--class-prior` 取 `split_manifest.json` 里的 `class_prior.population`；上面的数值只对应
+  当前 Spambase split。
+- support 方法还要加 `--support-dir data/clean-support-.../<dataset>/split_<seed>`。
+- 单单元脚本遇到失败会立刻停止；正式批量应使用 `run_survey_pilot.py`。
+- 正式批次需要 `--batch-evidence`；手工调试不传时仍可跑，但 manifest 没有 `batch` 块，
+  不能当作正式批次证据。
 
-## 6. 汇总与导出
+### 5.3 从上一版队列增量补批（可选）
 
-先写批次白名单（schema `survey-batch-roots-1`）：
+当前 v3.1/v3.2 的缺口批还有一个队列入口：它从上一版队列读取数据路径，只展开新增单元，
+并带 canary / 失败隔离。**只有已经持有上一版队列文件时才适用**；从零复现请用上面的
+`run_survey_pilot.py`。
+
+```bash
+# 准备 v3.1 队列（v3.2 则把 revision 和 previous-queue 换成 v3.1）
+uv run python scripts/run_survey_backlog_campaign.py \
+  --output <queue-v3.1> \
+  --previous-queue <v3.0-queue.json> \
+  --support-root <support-root> \
+  --revision survey-v3.1
+
+# 启动 / 查看状态
+uv run python scripts/run_survey_backlog_campaign.py --output <queue-v3.1> --run
+uv run python scripts/run_survey_backlog_campaign.py --output <queue-v3.1> --monitor
+```
+
+该入口要求提交干净、在独立 tmux 中运行；GPU 白名单和失败隔离由队列配置决定。关闭
+编辑器不影响 tmux，但服务器重启或控制器异常退出后不能假设自动恢复。
+
+## 6. 审计、汇总与导出
+
+### 6.1 队列批次（v3.1/v3.2）：先审计覆盖
+
+如果你用 5.3 的队列入口跑 v3.1/v3.2，先用队列审计检查覆盖、重复归属和完成制品：
+
+```bash
+uv run python scripts/audit_survey_queue.py \
+  --queue <queue-dir> \
+  --protocol pu_toolbox/experiment/survey_protocol_v3_2.json \
+  --output <new-report.json>
+```
+
+退出码 0 表示覆盖完整且完成制品可读；输出已存在时会拒绝覆盖。需要把队列结果交给别人
+复核时，用：
+
+```bash
+uv run python scripts/export_survey_queue_handoff.py \
+  --queue <queue-dir> --output <new-handoff-dir>
+```
+
+### 6.2 结果树批次：审计、汇总与导出
+
+用 5.1 的 pilot 跑出的结果树时，批次审计使用一个白名单配置，列出每个结果根和应有的 manifest 数。以 v3.0 基线为例：
 
 ```json
 {
   "schema_version": "survey-batch-roots-1",
   "batches": [
-    {"name": "B1", "root": "<results>", "expected_manifests": 3320, "role": "formal"}
+    {"name": "v3.0", "root": "results/survey-v3.0", "expected_manifests": 3320, "role": "formal"}
   ]
 }
 ```
-
-`expected_manifests` 写这一批应有多少份 manifest，数量不符会被当成缺口报出来，不会静默通过。
 
 ```bash
 uv run python scripts/audit_survey_batches.py --config batches.json --out-dir <out>/audit
@@ -214,19 +228,45 @@ uv run python scripts/summarize_survey_results.py --config batches.json --out-di
 uv run python scripts/export_survey_results.py --config batches.json --out-dir <out>/delivery
 ```
 
-- `audit` 只读结果树，把每一条发现都列出来（不写回任何结果目录）。
-- `summary` 按 (comparability group, view, mechanism, method, 选模协议, c) 出均值 ± 标准差；缺 seed 只报告、不填补。
-- `export` 写出 `survey_results.xlsx` 与诊断卡；它不重算任何数字。
+- `audit` 只读结果树，不写回任何结果目录；先跑它，再看 `audit.md`。
+- `summary` 按 comparability group / view / mechanism / method / 选模协议 / c 输出均值±标准差；
+  缺 seed 只报告，不填补。
+- `export` 生成 `survey_results.xlsx` 与诊断卡；不重算数字。
 
-## 7. 复现一份已交付的结果
+v3.1/v3.2 的 `summary` / `export` 还要加 `--protocol survey-v3.2`（v3.1 用 `survey-v3.1`）；
+完整 D54 批次审计仍在执行计划 §1.2 待办。当前 `audit_survey_batches.py` 的
+正式重裁定仍以 v3.0 canonical 为准；不要用 v3.0 的审计结果给 v3.1/v3.2 授予 formal。
+这两版先以队列审计和导出的观测结果为准，正式准入仍看 formal blockers。
 
-1. 打开该 run 的 `manifest.json`，读 `batch.evidence_file` 与 `batch.evidence_sha256`；
-2. 在 `<results>/batch_evidence/` 找到同名文件，`sha256sum` 应等于 `evidence_sha256`（不等说明包被改过，run 引用的身份已不可信）；
-3. `git checkout <code_commit>`。**先看 `code_commit_dirty`**：为 `true` 说明当时的代码含未提交改动，checkout 那个 commit 复现不出同一份字节，这时只能按 `code_commit` 的 parent 重建工作区，或者承认这份结果不可逐字节复现；
-4. `uv sync`；`uv.lock` 的 sha256 应等于 `dependency_lock.sha256`（对象里的那个字段）；
-5. 核对 `split_ref.indices_sha256` 与手上的 `data/splits` 是否是同一份 split（五角色单元则对制品收据）；
-6. 重放这一批：照包的 `unit.seeds` 与 `unit.c_tokens` 直接调单元脚本，例如
-   `uv run python scripts/run_survey_experiment.py <data_dir> --protocol survey-v3.0 --dataset <ds> --method <m> --training-path <p> --labeling-mechanism <机制> --seeds 0,1,2,3,4 --c 0.1,0.3,0.5 --class-prior <π> --out-dir <新目录>`。
-   驱动 `run_survey_pilot.py` 没有按 seeds/c 过滤的开关，它的 `--plan-json` 只能核对计划，不能当重放入口。
+## 7. 复现一条已交付结果
 
-换一台主机或换一块 GPU，`environment`（在 `batch_id` 里）会不同，所以会写出**另一个包**——这是对的：那是另一次尝试，不是同一个批的副本。可比的是 unit / seeds / c 与 `protocol_sha256`，不是 `batch_id`。
+1. 打开该 run 的 `manifest.json`，找到 `batch.evidence_file` 与 `batch.evidence_sha256`。
+2. 在 `<results>/batch_evidence/` 找到同名包，核对它的字节摘要；不一致说明包被改过，
+   该 run 的批次身份已不可信。
+3. `git checkout <code_commit>`；先看 `code_commit_dirty`。为 `true` 时，原 run 含未提交
+   改动，仅 checkout 该 commit 复现不出同一份字节，只能重建当时工作区，或承认不可逐字节复现。
+4. `uv sync`；确认 `uv.lock` 的摘要与包里的 `dependency_lock.sha256` 一致。
+5. 核对 `split_ref.indices_sha256` 与手上的 split（support 单元还对制品收据）。
+6. 用单元脚本重放该批：按包里的 `unit.seeds` 与 `unit.c_tokens` 传参，并使用包里的
+   `protocol` 与 `recipe_registry`。换机器或换 GPU 会生成新的证据包，这是另一次尝试；
+   可比的是 unit / seeds / c / `protocol_sha256`，不是 `batch_id`。
+
+## 8. 常见问题
+
+| 现象 | 处理 |
+|---|---|
+| `support profile requires --support-root` | 补 `--support-root`；或只用 `--methods` 选非 support 方法 |
+| 缺少或矛盾的类先验 | 从 split 的 `class_prior.population` 传 `--class-prior`；冲突需 `--allow-prior-override` |
+| `recipe registry changed since preflight` | 使用 manifest / 证据包里记录的同一份 registry，不要换成最新版 |
+| `output exists` | 换新的输出目录；脚本不会覆盖已有结果 |
+| `no manifests under ...` | 检查 `--results` / 配置里的 `root` 是否指向正确的批次根 |
+| 队列控制器拒绝启动 | 真实后台调度要求 POSIX 文件锁；Windows 上只能做计划/监控，不能当正式控制器 |
+| 审计或汇总报告为 partial | 先看 `audit.md` 的具体检查项；不要靠重跑或删结果“修复” |
+
+## 9. 延伸阅读
+
+- [实验协议](pu_survey_protocol.md)：角色、PA/OA、SAR、PN oracle 与验收线。
+- [执行计划](survey_execution_plan.md)：能力、缺口、预算/资源与决策账本。
+- [实验 README](README.md)：交付物定义、当前版本与最终清理计划。
+- [方法卡](../method_cards/)：各方法的公式、来源差异与实现边界。
+- [用户文档](../../user/howto/)：工具箱通用流程；实验层的定制接口会在实验完成后单独整理。
