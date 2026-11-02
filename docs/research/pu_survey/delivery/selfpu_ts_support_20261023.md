@@ -46,7 +46,7 @@ TS 是项目已有质量守恒校准扩展，不描述成原论文/作者程序�
 只读复用 `data/clean-support-20261022-yg0avvvx/spambase/split_0`，未重建/改写输入。
 新建 OS/TS 两结果目录 `data/selfpu-support-paired-20261023-{os,ts}-v4`；
 此前同批初测目录保留，不覆盖历史结果。
-公开机器摘要：[selfpu_ts_support_validation_20261023.json](../data/selfpu_ts_support_validation_20261023.json)。
+公开机器摘要已按 D55 清理；本记录保留为旧 TS 路径的历史说明，不再提供机器收据。
 
 | 配对条件 | 两次实际值 |
 |---|---|
