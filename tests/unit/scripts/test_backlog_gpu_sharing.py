@@ -83,8 +83,9 @@ def test_basic_determ_opt_in_does_not_extend_to_other_families():
 
 
 @pytest.mark.parametrize("load_returns", [False, True])
+@pytest.mark.parametrize("gpu_slots", [1, 2])
 def test_basic_dispatch_shares_only_profiled_pending_jobs_once_per_card(
-    tmp_path, monkeypatch, load_returns
+    tmp_path, monkeypatch, load_returns, gpu_slots
 ):
     def job(label, family="f", status="pending", canary=False):
         return dict(
@@ -108,6 +109,8 @@ def test_basic_dispatch_shares_only_profiled_pending_jobs_once_per_card(
         job("other-canary", "g", "completed", True),
         job("other", "g"),
     ]
+    jobs += [dict(job("t-canary", "t", "completed", True), path="native_2d")]
+    jobs += [dict(job(f"table-{i}", "t"), path="native_2d") for i in range(4)]
     campaign = dict(
         jobs=jobs,
         gpu_allowlist=[6, 7],
@@ -132,6 +135,7 @@ def test_basic_dispatch_shares_only_profiled_pending_jobs_once_per_card(
         return set(), (set() if load_returns and len(queries) >= 3 else {6, 7})
 
     monkeypatch.setattr(script, "dispatch_gpus", gpu_query)
+    monkeypatch.setattr(script, "overlap_gpus", lambda indices: set() if load_returns else {6, 7})
     launches = []
 
     class Process:
@@ -147,16 +151,45 @@ def test_basic_dispatch_shares_only_profiled_pending_jobs_once_per_card(
 
     def sleep(seconds):
         sleeps.append(seconds)
-        if len(sleeps) == 3:
+        if len(sleeps) == 5:
             raise InterruptedError("three dispatch cycles")
 
     monkeypatch.setattr(script.time, "sleep", sleep)
     with pytest.raises(InterruptedError, match="three dispatch"):
-        script.run(tmp_path, shared_families=["f"])
-    assert len(launches) == (0 if load_returns else 2)
+        script.run(tmp_path, shared_families=["f", "t"], gpu_slots=gpu_slots)
+    assert len(launches) == (0 if load_returns else 2 * gpu_slots)
     assert next(j for j in jobs if j["label"] == "transferred")["status"] == "paused_by_user"
     assert next(j for j in jobs if j["label"] == "other")["status"] == "pending"
     if launches:
         assert {kw["env"]["CUDA_VISIBLE_DEVICES"] for _, kw in launches} == {"6", "7"}
         assert all(j["shared_gpu_admission"] for j in jobs if j["status"] == "running")
         assert all(kw["start_new_session"] for _, kw in launches)
+        for gpu in (6, 7):
+            active = [j for j in jobs if j.get("gpu") == gpu]
+            assert len(active) == gpu_slots
+            assert sum(j["path"] == "native_cnn" for j in active) == 1
+
+
+@pytest.mark.parametrize(
+    "paths,new,allowed",
+    [
+        ([], "native_2d", False),
+        (["native_cnn"], "native_cnn", False),
+        (["native_cnn"], "native_2d", True),
+        (["native_2d"], "native_cnn", True),
+        (["native_2d"], "native_2d", True),
+        (["native_2d", "native_cnn"], "native_2d", False),
+    ],
+)
+def test_param_overlap_enforces_two_slots_and_one_image(paths, new, allowed):
+    assert script.fits_overlap(dict(path=new), [dict(path=p) for p in paths]) is allowed
+
+
+def test_edge_overlap_requires_memory_and_explicit_configuration(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        script.subprocess, "check_output", lambda *a, **k: "1, 48000\n6, 32767\n7, 32768\n"
+    )
+    assert script.overlap_gpus([6, 7]) == {7}
+    for slots, families in [(0, ["f"]), (3, ["f"]), (2, [])]:
+        with pytest.raises(ValueError, match="GPU slots"):
+            script.run(tmp_path, gpu_slots=slots, shared_families=families)

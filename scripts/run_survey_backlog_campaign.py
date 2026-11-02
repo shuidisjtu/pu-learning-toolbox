@@ -586,7 +586,28 @@ def sharing_families(campaign, state, requested):
     return tuple(sorted(set(requested)))
 
 
-def run(output, *, resume=False, holds=(), shared_families=()):
+def overlap_gpus(indices):
+    """Memory admission for an extra fit beside this queue's own live worker."""
+    rows = subprocess.check_output(
+        ["nvidia-smi", "--query-gpu=index,memory.free", "--format=csv,noheader,nounits"],
+        text=True,
+    )
+    available = set()
+    for row in rows.splitlines():
+        index, free = (int(value.strip()) for value in row.split(","))
+        if index in indices and free >= 32768:
+            available.add(index)
+    return available
+
+
+def fits_overlap(job, active):
+    """At most two fits, with at least one native-2d fit; never two image fits."""
+    return len(active) == 1 and (job["path"] == "native_2d" or active[0]["path"] == "native_2d")
+
+
+def run(output, *, resume=False, holds=(), shared_families=(), gpu_slots=1):
+    if gpu_slots not in (1, 2) or (gpu_slots == 2 and not shared_families):
+        raise ValueError("GPU slots must be 1 or 2; overlap requires profiled families")
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
     _controller_lock = lock_controller(output / "controller.lock")
@@ -661,21 +682,25 @@ def run(output, *, resume=False, holds=(), shared_families=()):
         try:
             exclusive, shared = dispatch_gpus(allowed_gpus, shared_families)
             available = exclusive | shared
+            overlap = overlap_gpus(allowed_gpus) if gpu_slots == 2 else set()
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             available, exclusive, shared, query_error = set(), set(), set(), str(error)
-        occupied = {j.get("gpu") for j in jobs if j["status"] == "running"}
+            overlap = set()
         for gpu in (*allowed_gpus, None):
-            streak[gpu] = (
-                streak.get(gpu, 0) + 1
-                if gpu not in occupied and (gpu is None or gpu in available)
-                else 0
+            active = [j for j in jobs if j["status"] == "running" and j.get("gpu") == gpu]
+            overlapping = gpu is not None and len(active) == 1 and gpu_slots == 2
+            ready = (not active and (gpu is None or gpu in available)) or (
+                overlapping and gpu in overlap
             )
+            streak[gpu] = streak.get(gpu, 0) + 1 if ready else 0
             if streak[gpu] < 2:
                 continue
             lane = "cpu" if gpu is None else "gpu"
             pending = [j for j in jobs if j["status"] == "pending" and j["lane"] == lane]
-            if gpu in shared:
+            if gpu in shared or overlapping:
                 pending = [j for j in pending if j["family"] in shared_families]
+            if overlapping:
+                pending = [j for j in pending if fits_overlap(j, active)]
             pending.sort(
                 key=lambda j: (
                     j["method"] == "kldce",
@@ -704,7 +729,10 @@ def run(output, *, resume=False, holds=(), shared_families=()):
             if gpu is not None:
                 try:
                     fresh_exclusive, fresh_shared = dispatch_gpus(allowed_gpus, shared_families)
-                    if gpu not in fresh_exclusive and not (
+                    if overlapping:
+                        if gpu not in overlap_gpus(allowed_gpus):
+                            continue
+                    elif gpu not in fresh_exclusive and not (
                         gpu in fresh_shared and job["family"] in shared_families
                     ):
                         continue
@@ -746,6 +774,7 @@ def run(output, *, resume=False, holds=(), shared_families=()):
                 gpu=gpu,
                 started_at=now(),
                 shared_gpu_admission=gpu is not None and gpu not in fresh_exclusive,
+                gpu_overlap_admission=overlapping,
             )
             streak[gpu] = 0
             print("START", job["label"], "GPU", gpu, flush=True)
@@ -762,6 +791,7 @@ def run(output, *, resume=False, holds=(), shared_families=()):
                 controller_commit=controller_commit,
                 user_holds=list(holds),
                 shared_gpu_families=list(shared_families),
+                gpu_job_slots=gpu_slots,
             ),
         )
         time.sleep(10)
@@ -794,8 +824,11 @@ def main():
         metavar="FAMILY",
         help="operator-profiled family eligible for co-tenancy on low-load GPUs with 40 GiB free",
     )
+    parser.add_argument("--gpu-slots", type=int, choices=(1, 2), default=1)
     args = parser.parse_args()
-    if (args.resume or args.hold or args.share_low_memory_family) and not args.run:
+    if (
+        args.resume or args.hold or args.share_low_memory_family or args.gpu_slots != 1
+    ) and not args.run:
         parser.error("resume/hold/sharing require --run")
     output = args.output.resolve()
     if args.worker:
@@ -806,6 +839,7 @@ def main():
             resume=args.resume,
             holds=args.hold,
             shared_families=args.share_low_memory_family,
+            gpu_slots=args.gpu_slots,
         )
     elif args.monitor:
         monitor(output)
