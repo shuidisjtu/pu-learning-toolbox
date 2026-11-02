@@ -192,16 +192,22 @@ def render(outputs, *, now=None, devices=None, gpu_error=None, width=160):
     assignments = defaultdict(list)
     recoveries = defaultdict(list)
     for root, campaign, state, _ in states:
-        recovery = campaign.get("recovery")
+        recovery = campaign.get("recovery") or campaign.get("reconciliation")
         if not isinstance(recovery, dict):
             continue
-        parent, label = recovery.get("parent"), recovery.get("replaces_label")
-        if not isinstance(parent, str) or not isinstance(label, str):
+        parent = recovery.get("parent")
+        labels = recovery.get("replaces_labels", [recovery.get("replaces_label")])
+        if (
+            not isinstance(parent, str)
+            or not isinstance(labels, list)
+            or not all(isinstance(label, str) for label in labels)
+        ):
             continue
         update = timestamp(state.get("updated_at"))
         freshness = " STALE" if update is None or now - update > 60 else ""
         for job in state["jobs"]:
-            if job.get("label") == label:
+            label = job.get("label")
+            if label in labels:
                 device = "unassigned" if job.get("gpu") is None else f"GPU{job['gpu']}"
                 recoveries[(Path(parent).resolve(), label)].append(
                     f"recovery={job['status']}{freshness} {device} ({root.name})"
