@@ -165,6 +165,24 @@ def _recipe_context(
         ):
             raise ValueError("invalid recorded GradPU activation memory policy")
         runtime.add("activation_memory")
+    if any(name in config for name in ("gradpu_backward_mode", "gradpu_gp_chunk_size")):
+        from ..estimators.deep.grad_pu import GradPUClassifier
+
+        backward_mode = config.get("gradpu_backward_mode", "joint")
+        chunk_size = config.get("gradpu_gp_chunk_size")
+        if (
+            type(model) is not GradPUClassifier
+            or request["method"] != "gradpu"
+            or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+            or backward_mode not in ("joint", "split")
+            or (chunk_size is not None and (type(chunk_size) is not int or chunk_size < 1))
+            or (chunk_size is not None and backward_mode != "split")
+            or model.backward_mode != backward_mode
+            or model.gp_chunk_size != chunk_size
+        ):
+            raise ValueError("invalid recorded GradPU backward execution policy")
+        runtime.add("backward_mode")
+        runtime.add("gp_chunk_size")
     # KLDCE's flip rate is derived from actual SCAR counts, not a constructor
     # default. Only accept values already recomputed by runner_protocol_context;
     # a caller-supplied config dictionary alone is never an exemption.

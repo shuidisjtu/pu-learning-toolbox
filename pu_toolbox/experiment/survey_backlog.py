@@ -106,6 +106,21 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
             raise ValueError("invalid GradPU activation memory execution policy")
         if self.method == "gradpu" and model.activation_memory != memory:
             raise ValueError("GradPU activation memory policy must be explicitly recorded")
+        backward_mode = config.get("gradpu_backward_mode", "joint")
+        chunk_size = config.get("gradpu_gp_chunk_size")
+        if (
+            backward_mode not in ("joint", "split")
+            or (chunk_size is not None and (type(chunk_size) is not int or chunk_size < 1))
+            or (chunk_size is not None and backward_mode != "split")
+        ):
+            raise ValueError("invalid GradPU backward execution policy")
+        if self.method != "gradpu" and (backward_mode != "joint" or chunk_size is not None):
+            raise ValueError("GradPU backward execution policy requires gradpu")
+        if self.method == "gradpu" and (
+            getattr(model, "backward_mode", None) != backward_mode
+            or getattr(model, "gp_chunk_size", None) != chunk_size
+        ):
+            raise ValueError("GradPU backward execution policy must be explicitly recorded")
         self.mechanism = request["mechanism"]
         self.recipe_protocol = protocol["protocol_version"]
         if self.mechanism not in protocol["c_tokens"]:
