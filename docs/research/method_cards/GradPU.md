@@ -70,6 +70,33 @@ P/U 数据留 CPU、优化批次上卡；预测分批 eval 并恢复模式，完
 `test_grad_pu_cnn.py`；公共流水线、不同折 encoder 隔离有对应集成测试。
 正式资源/选模/来源审阅仍未完成，默认共享 BN 骨干不会被静默替换。
 
+### 显存执行策略（2026-11-03）
+
+`GradPUClassifier` 新增两个执行层参数：`backward_mode={"joint","split"}` 与
+`gp_chunk_size`（默认 `joint` / `None`）。`split` 先把 P/U 分支反传并释放其图，再反传
+GP 二阶分支，最后只做一次 optimizer step；`gp_chunk_size` 再把 GP 插值按行分块。
+两者只改变反传调度，不改损失、batch、精度、epoch 预算或 RNG 顺序；实际取值写入
+`training_provenance_.activation_memory`，CLI/campaign 作为执行策略登记。默认 `joint`
+时行为与旧实现一致。
+
+ADNI（seed0、c=0.1、batch 256、200 epoch）实测：
+
+| 配置 | 峰值 allocated / reserved | 用时 |
+|---|---:|---:|
+| joint（原始实现） | 48.379 / 60.309 GiB | 87.95 min |
+| split + chunk 162 | 21.477 / 29.881 GiB | 92.44 min |
+
+- 200 epoch 损失轨迹最大差：ADNI 6.9e-7、CIFAR-10 4.8e-7；test 指标完全相同；
+- 纯 split 在 20 epoch 对照中与 joint 耗时基本持平；GP 分块有额外开销：
+  ADNI +5.1%、CIFAR +11.8%；
+- 48GB 卡优先纯 split；需要 32GB 余量再启用分块。
+
+**图像编码器塌缩（2026-11-03 首次完整运行发现）**：ADNI/CIFAR 的 joint 与 split
+都输出常数 score 0.9842（std 5.96e-8），编码器权重有漂移但末层特征 std=0；
+2D MLP 正常。判断为 `cnn13_no_bn` 初始化/无 BN ReLU 堆叠导致的编码器塌缩，与
+split/chunk 无关；修复前 ADNI/CIFAR 的 GradPU 数值只能作执行诊断，不能作方法效果结论。
+正式 recovery 路径仍默认 `cpu_offload`，尚未接入 split/chunk。
+
 ## 验证状态与后续门禁
 
 2026-10-18 根据 #121 补[实际调度/batch/运行声明](../pu_survey/admission/gradpu_training_recipe_review_20261018.md)：
