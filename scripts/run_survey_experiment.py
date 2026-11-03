@@ -673,6 +673,24 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default="device",
         help="GradPU backlog execution only: offload saved tensors without changing the recipe",
     )
+    parser.add_argument(
+        "--gradpu-backward-mode",
+        choices=("joint", "split"),
+        default="joint",
+        help=(
+            "GradPU backlog execution only: backpropagate P/U and GP branches separately "
+            "without changing the recipe"
+        ),
+    )
+    parser.add_argument(
+        "--gradpu-gp-chunk-size",
+        type=int,
+        default=None,
+        help=(
+            "GradPU backlog execution only: chunk GP interpolation rows when "
+            "--gradpu-backward-mode split"
+        ),
+    )
     parser.add_argument("--adapter-cache", default="data/cache/survey_adapter")
     parser.add_argument("--extraction-batch-size", type=int, default=64)
     parser.add_argument(
@@ -780,6 +798,17 @@ def _versioned_main(args, c_values, seed_values) -> int:
             method != "gradpu" or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
         ):
             raise ValueError("GradPU activation offload requires the versioned GradPU backlog")
+        if (args.gradpu_backward_mode != "joint" or args.gradpu_gp_chunk_size is not None) and (
+            method != "gradpu" or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+        ):
+            raise ValueError(
+                "GradPU backward execution policy requires the versioned GradPU backlog"
+            )
+        if args.gradpu_gp_chunk_size is not None:
+            if args.gradpu_gp_chunk_size < 1:
+                raise ValueError("GradPU GP chunk size must be positive")
+            if args.gradpu_backward_mode != "split":
+                raise ValueError("GradPU GP chunk size requires --gradpu-backward-mode split")
         shipped = load_protocol(resolve_protocol_path(protocol["protocol_version"]))
         if digest(protocol) == digest(shipped):
             # Prove the pre-registered pair covers every unit it must, here
@@ -890,9 +919,17 @@ def _versioned_main(args, c_values, seed_values) -> int:
         if args.out_dir
         else Path("results") / "survey" / args.dataset / method / row["training_path"]
     )
+    execution_tags = []
     if args.gradpu_activation_memory != "device":
-        # Never overwrite or silently rebind the original device-memory result.
-        out_root = out_root / "execution_cpu_offload"
+        execution_tags.append("cpu_offload")
+    if args.gradpu_backward_mode != "joint":
+        tag = "split"
+        if args.gradpu_gp_chunk_size is not None:
+            tag += f"_chunk{args.gradpu_gp_chunk_size}"
+        execution_tags.append(tag)
+    if execution_tags:
+        # Never overwrite or silently rebind the original execution result.
+        out_root = out_root / f"execution_{'_'.join(execution_tags)}"
     if recipe_registry is not None:
         # Bound and legacy requests must never overwrite one another's results.
         prefix = "recipe_pool" if args.recipe_binding_schema_version is not None else "recipe"
@@ -991,6 +1028,11 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 )
                 if args.gradpu_activation_memory != "device":
                     model.set_params(activation_memory=args.gradpu_activation_memory)
+                if args.gradpu_backward_mode != "joint" or args.gradpu_gp_chunk_size is not None:
+                    model.set_params(
+                        backward_mode=args.gradpu_backward_mode,
+                        gp_chunk_size=args.gradpu_gp_chunk_size,
+                    )
             except (KeyError, TypeError, ValueError, ImportError) as exc:
                 print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
                 return 1
@@ -1047,6 +1089,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
             }
             if args.gradpu_activation_memory != "device":
                 config["gradpu_activation_memory"] = args.gradpu_activation_memory
+            if args.gradpu_backward_mode != "joint":
+                config["gradpu_backward_mode"] = args.gradpu_backward_mode
+            if args.gradpu_gp_chunk_size is not None:
+                config["gradpu_gp_chunk_size"] = args.gradpu_gp_chunk_size
             if recipe_registry is not None:
                 config["recipe_registry"] = recipe_registry
                 config["expected_recipe_registry_sha256"] = canonical_digest(recipe_registry)
@@ -1168,6 +1214,11 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     if args.gradpu_activation_memory != "device" and args.protocol is None:
         print("error: GradPU activation offload requires --protocol", file=sys.stderr)
+        return 1
+    if (
+        args.gradpu_backward_mode != "joint" or args.gradpu_gp_chunk_size is not None
+    ) and args.protocol is None:
+        print("error: GradPU backward execution policy requires --protocol", file=sys.stderr)
         return 1
     data_dir = Path(args.data_dir)
     try:

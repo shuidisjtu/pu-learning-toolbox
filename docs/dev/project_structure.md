@@ -306,6 +306,7 @@ tests/
       test_grad_pu_cnn.py               # GradPU 原图二阶梯度、无 BN 编码器与权重回放
       test_grad_pu_training_recipe.py   # GradPU 实际Adam调度、batch/更新数及运行声明
       test_grad_pu_memory.py            # GradPU 暂存前后二阶梯度、RNG 与完整更新等价性
+      test_grad_pu_split_backward.py    # GradPU 分量反传/GP 分块与 joint 的损失、参数和 RNG 等价性
       test_pulda_gradpu_inference_modes.py # PULDA/GradPU逐模块推理模式恢复、异常路径与BN/RNG不变性
       test_split_pu_review_characterization.py # Split-PU #122 的JSD方向/分母与mini-batch总体混合反例
       test_robust_pu_cnn.py             # Robust-PU CNN 阶段、BN 隔离与 CPU 权重/快照回放
@@ -643,6 +644,7 @@ tests/
       test_queue_coverage_audit.py      # 训练覆盖、修正批次去重与只读输出回归
       test_survey_backlog.py            # v3.1 历史隔离、二维/CNN 与 SAR 真训练
       test_gradpu_offload_execution.py  # 显式暂存策略、冻结配方与结果路径隔离
+      test_gradpu_split_execution.py    # GradPU split/chunk 的 CLI 记录、输出隔离与策略校验
       test_survey_classical_image.py    # PUET/RP 图像表示、版本隔离与完整树/折预算
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
