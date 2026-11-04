@@ -495,7 +495,149 @@ def verify_followup(campaign):
                 raise ValueError(f"followup identity changed: {field}")
 
 
-def run(output):
+def process_identity(pid):
+    """Linux process identity, including start ticks to reject reused PIDs."""
+    path = Path(f"/proc/{pid}")
+    try:
+        fields = (path / "stat").read_text().rsplit(")", 1)[1].split()
+        if fields[0] == "Z":
+            return None
+        return path.stat().st_uid, fields[19], (path / "cmdline").read_bytes().split(b"\0")
+    except FileNotFoundError:
+        return None
+
+
+class AdoptedWorker:
+    """Observe a pre-existing child without signalling or claiming its exit code."""
+
+    def __init__(self, output, job, source):
+        self.pid = job["pid"]
+        self.identity = process_identity(self.pid)
+        if self.identity is not None:
+            uid, _, argv = self.identity
+            target = str(output / "runs" / job["label"]).encode()
+            worker = str(source / "scripts/run_survey_experiment.py").encode()
+            launcher = str(source / "scripts/run_survey_backlog_campaign.py").encode()
+            matches = worker in argv and target in argv
+            matches |= (
+                launcher in argv and str(output).encode() in argv and job["label"].encode() in argv
+            )
+            if uid != os.getuid() or not matches:
+                raise ValueError("cannot adopt a foreign or reused worker PID")
+
+    def poll(self):
+        current = process_identity(self.pid)
+        # The worker launcher execs the training entrypoint with the same PID.
+        if self.identity is not None and current is not None and current[:2] == self.identity[:2]:
+            return None
+        # The controller must still validate all final artifacts with accept().
+        return 0
+
+
+def hold_selectors(job):
+    """Exact selectors only: an optional mechanism must not pause other protocols."""
+    base = f"{job['method']}:{job['dataset']}"
+    return {base, f"{base}:{job['mechanism']}"} if job.get("mechanism") else {base}
+
+
+def resume_jobs(output, campaign, state, source, holds):
+    """Reconcile runtime state only; never rewrite frozen campaign identities."""
+    import copy
+
+    original = {job["label"]: job for job in campaign["jobs"]}
+    valid_holds = {selector for job in original.values() for selector in hold_selectors(job)}
+    if not set(holds) <= valid_holds:
+        raise ValueError("unknown method:dataset[:mechanism] hold")
+    jobs = copy.deepcopy(state["jobs"])
+    if len(jobs) != len(original) or {j["label"] for j in jobs} != set(original):
+        raise ValueError("runtime state does not cover the frozen campaign")
+    processes = {}
+    for job in jobs:
+        for key in (
+            "method",
+            "dataset",
+            "path",
+            "mechanism",
+            "seed",
+            "c",
+            "data_dir",
+            "family",
+            "lane",
+            "checkpoint_epochs",
+            "canary",
+        ):
+            if job.get(key) != original[job["label"]].get(key):
+                raise ValueError("runtime job identity changed")
+        held = bool(hold_selectors(job).intersection(holds))
+        if held and job["status"] == "running":
+            raise ValueError("stop held workers explicitly before resuming their controller")
+        if held and job["status"] in {"pending", "waiting_canary", "held_family_failure"}:
+            job.update(
+                status="paused_by_user",
+                reason="user requested transfer/pause; no automatic dispatch",
+            )
+        if job["status"] == "running":
+            processes[job["label"]] = AdoptedWorker(output, job, source)
+    return jobs, processes
+
+
+def dispatch_gpus(indices, shared_families=()):
+    """Opt-in sharing is admission only, not a reservation or performance guarantee."""
+    exclusive = set(service.available_gpus(indices)) if indices else set()
+    shared = set()
+    if shared_families and indices:
+        rows = subprocess.check_output(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,utilization.gpu,memory.free",
+                "--format=csv,noheader,nounits",
+            ],
+            text=True,
+            timeout=5,
+        )
+        for row in rows.splitlines():
+            index, utilization, free = (int(value.strip()) for value in row.split(","))
+            if index in indices and 0 <= utilization <= 10 and free >= 40960:
+                shared.add(index)
+    return exclusive, shared - exclusive
+
+
+def sharing_families(campaign, state, requested):
+    """Require an explicit profiled family and a completed family canary."""
+    completed = {
+        j["family"] for j in state["jobs"] if j.get("canary") and j["status"] == "completed"
+    }
+    known = {j["family"] for j in campaign["jobs"] if j["lane"] == "gpu"}
+    if not set(requested) <= known & completed:
+        raise ValueError("GPU sharing requires a known GPU family with completed canary")
+    return tuple(sorted(set(requested)))
+
+
+def overlap_gpus(indices):
+    """Memory admission for an extra fit beside this queue's own live worker."""
+    rows = subprocess.check_output(
+        ["nvidia-smi", "--query-gpu=index,memory.free", "--format=csv,noheader,nounits"],
+        text=True,
+        timeout=5,
+    )
+    available = set()
+    for row in rows.splitlines():
+        index, free = (int(value.strip()) for value in row.split(","))
+        if index in indices and free >= 32768:
+            available.add(index)
+    return available
+
+
+def fits_overlap(job, active):
+    """At most two fits, with at least one native-2d fit; never two image fits."""
+    return len(active) == 1 and (job["path"] == "native_2d" or active[0]["path"] == "native_2d")
+
+
+def run(output, *, resume=False, holds=(), shared_families=(), gpu_slots=1, poll_seconds=2):
+    if type(poll_seconds) is not int or not 1 <= poll_seconds <= 60:
+        raise ValueError("poll seconds must be an integer between 1 and 60")
+    if gpu_slots not in (1, 2) or (gpu_slots == 2 and not shared_families):
+        raise ValueError("GPU slots must be 1 or 2; overlap requires profiled families")
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
     _controller_lock = lock_controller(output / "controller.lock")
@@ -515,48 +657,100 @@ def run(output):
     allowed_gpus = tuple(campaign["gpu_allowlist"])
     if any(gpu not in ALLOWED_GPUS for gpu in allowed_gpus):
         raise ValueError("campaign cannot expand the shared four-GPU limit")
-    if campaign["source"] != str(ROOT) or clean_commit() != campaign["commit"]:
+    worker_source = Path(campaign["source"])
+    controller_commit = clean_commit()
+    if not resume and (worker_source != ROOT or controller_commit != campaign["commit"]):
         raise ValueError("campaign source changed")
-    if service.sha(ROOT / "uv.lock") != campaign["dependency_lock_sha256"]:
+    if resume:
+        if subprocess.check_output(["git", "status", "--porcelain"], cwd=worker_source).strip():
+            raise ValueError("pinned worker source is dirty")
+        if (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=worker_source, text=True
+            ).strip()
+            != campaign["commit"]
+        ):
+            raise ValueError("pinned worker commit changed")
+    if service.sha(worker_source / "uv.lock") != campaign["dependency_lock_sha256"]:
         raise ValueError("dependency lock changed")
     for evidence in campaign["inputs"].values():
         verify_inputs(evidence, full_hash=True)
-    if (output / "status.json").exists():
+    if (output / "status.json").exists() and not resume:
         raise ValueError(
             "existing status requires explicit reconciliation, not an automatic restart"
         )
-    jobs, processes, streak = campaign["jobs"], {}, {}
+    if holds and not resume:
+        raise ValueError("holds require explicit resume")
+    if resume:
+        state = read(output / "status.json")
+        holds = tuple(sorted(set(state.get("user_holds", ())) | set(holds)))
+        jobs, processes = resume_jobs(output, campaign, state, worker_source, holds)
+        service.write(output / f"status.before-resume-{os.getpid()}.json", state, exclusive=True)
+    else:
+        jobs, processes = campaign["jobs"], {}
+    shared_families = sharing_families(campaign, dict(jobs=jobs), shared_families)
+    streak = {}
     while any(j["status"] in {"waiting_canary", "pending", "running"} for j in jobs):
+        finished_devices = set()
         for job in jobs:
             if job["status"] != "running":
                 continue
             code = processes[job["label"]].poll()
             if code is None:
                 continue
+            finished_devices.add(job.get("gpu"))
             try:
                 if code:
                     raise ValueError(f"worker exit {code}")
                 job.update(accept(output, job, campaign), status="completed")
             except (OSError, ValueError, KeyError) as error:
                 job.update(status="failed", reason=str(error))
-            job.update(exit_code=code, finished_at=now())
+            adopted = isinstance(processes[job["label"]], AdoptedWorker)
+            job.update(exit_code=None if adopted else code, finished_at=now())
+            if adopted:
+                job["completion_evidence"] = "artifact acceptance; original exit code unavailable"
         release(jobs)
         query_error = None
         try:
-            available = service.available_gpus(allowed_gpus) if allowed_gpus else []
+            exclusive, shared = dispatch_gpus(allowed_gpus, shared_families)
+            available = exclusive | shared
+            overlap = overlap_gpus(allowed_gpus) if gpu_slots == 2 else set()
         except (OSError, ValueError, subprocess.SubprocessError) as error:
-            available, query_error = [], str(error)
-        occupied = {j.get("gpu") for j in jobs if j["status"] == "running"}
+            available, exclusive, shared, query_error = set(), set(), set(), str(error)
+            overlap = set()
+        dispatch_status = {}
         for gpu in (*allowed_gpus, None):
-            streak[gpu] = (
-                streak.get(gpu, 0) + 1
-                if gpu not in occupied and (gpu is None or gpu in available)
-                else 0
+            device = "cpu" if gpu is None else str(gpu)
+            active = [j for j in jobs if j["status"] == "running" and j.get("gpu") == gpu]
+            overlapping = gpu is not None and len(active) == 1 and gpu_slots == 2
+            ready = (not active and (gpu is None or gpu in available)) or (
+                overlapping and gpu in overlap
             )
-            if streak[gpu] < 2:
+            streak[gpu] = streak.get(gpu, 0) + 1 if ready else 0
+            if not ready:
+                dispatch_status[device] = (
+                    "telemetry unavailable; dispatch blocked"
+                    if query_error
+                    else (
+                        "own worker active; slot/overlap headroom unavailable"
+                        if active
+                        else "not admitted: exclusive needs no compute process + 40 GiB free; "
+                        "shared needs profiled family + <=10% load + 40 GiB free"
+                    )
+                )
+                continue
+            # A worker we just reaped may be replaced in this cycle. The fresh
+            # process/memory query below is still mandatory: this is not a GPU
+            # reservation and never overrides another user's admission limits.
+            if streak[gpu] < 2 and gpu not in finished_devices:
+                dispatch_status[device] = "confirming availability (second sample required)"
                 continue
             lane = "cpu" if gpu is None else "gpu"
             pending = [j for j in jobs if j["status"] == "pending" and j["lane"] == lane]
+            if gpu in shared or overlapping:
+                pending = [j for j in pending if j["family"] in shared_families]
+            if overlapping:
+                pending = [j for j in pending if fits_overlap(j, active)]
             pending.sort(
                 key=lambda j: (
                     j["method"] == "kldce",
@@ -570,6 +764,7 @@ def run(output):
                 )
             )
             if not pending:
+                dispatch_status[device] = "no eligible pending job (holds/family/overlap filters)"
                 continue
             job = pending[0]
             # Dense kernel payload is not peak RSS. Leave ample headroom and
@@ -581,18 +776,28 @@ def run(output):
             )
             if memory_available() < ram_gib * 1024**3:
                 query_error = f"waiting for RAM headroom: {job['label']}"
+                dispatch_status[device] = f"waiting for host RAM >= {ram_gib} GiB"
                 continue
             if gpu is not None:
                 try:
-                    if gpu not in service.available_gpus(allowed_gpus):
+                    fresh_exclusive, fresh_shared = dispatch_gpus(allowed_gpus, shared_families)
+                    if overlapping:
+                        if gpu not in overlap_gpus(allowed_gpus):
+                            dispatch_status[device] = "overlap headroom changed before launch"
+                            continue
+                    elif gpu not in fresh_exclusive and not (
+                        gpu in fresh_shared and job["family"] in shared_families
+                    ):
+                        dispatch_status[device] = "GPU availability changed before launch"
                         continue
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     query_error = str(error)
+                    dispatch_status[device] = "fresh telemetry failed; dispatch blocked"
                     continue
             env = dict(
                 os.environ,
                 CUDA_VISIBLE_DEVICES="" if gpu is None else str(gpu),
-                PYTHONPATH=str(ROOT),
+                PYTHONPATH=str(worker_source),
                 OMP_NUM_THREADS="2",
                 OPENBLAS_NUM_THREADS="2",
                 MKL_NUM_THREADS="2",
@@ -601,7 +806,7 @@ def run(output):
             argv = [
                 sys.executable,
                 "-u",
-                str(Path(__file__).resolve()),
+                str(worker_source / "scripts/run_survey_backlog_campaign.py"),
                 "--output",
                 str(output),
                 "--worker",
@@ -610,7 +815,7 @@ def run(output):
             with (output / f"{job['label']}.log").open("x") as log:
                 process = subprocess.Popen(
                     argv,
-                    cwd=ROOT,
+                    cwd=worker_source,
                     env=env,
                     stdin=subprocess.DEVNULL,
                     stdout=log,
@@ -618,8 +823,16 @@ def run(output):
                     start_new_session=True,
                 )
             processes[job["label"]] = process
-            job.update(status="running", pid=process.pid, gpu=gpu, started_at=now())
+            job.update(
+                status="running",
+                pid=process.pid,
+                gpu=gpu,
+                started_at=now(),
+                shared_gpu_admission=gpu is not None and gpu not in fresh_exclusive,
+                gpu_overlap_admission=overlapping,
+            )
             streak[gpu] = 0
+            dispatch_status[device] = f"started {job['label']}"
             print("START", job["label"], "GPU", gpu, flush=True)
         service.write(
             output / "status.json",
@@ -630,9 +843,16 @@ def run(output):
                 query_error=query_error,
                 gpu_allowlist=list(allowed_gpus),
                 formal_admission=False,
+                controller_source=str(ROOT),
+                controller_commit=controller_commit,
+                user_holds=list(holds),
+                shared_gpu_families=list(shared_families),
+                gpu_job_slots=gpu_slots,
+                poll_seconds=poll_seconds,
+                dispatch_status=dispatch_status,
             ),
         )
-        time.sleep(10)
+        time.sleep(poll_seconds)
 
 
 def monitor(output):
@@ -651,12 +871,40 @@ def main():
     mode.add_argument("--run", action="store_true")
     mode.add_argument("--worker")
     mode.add_argument("--monitor", action="store_true")
+    parser.add_argument(
+        "--resume", action="store_true", help="explicitly adopt existing runtime state"
+    )
+    parser.add_argument("--hold", action="append", default=[], metavar="METHOD:DATASET[:MECHANISM]")
+    parser.add_argument(
+        "--share-low-memory-family",
+        action="append",
+        default=[],
+        metavar="FAMILY",
+        help="operator-profiled family eligible for co-tenancy on low-load GPUs with 40 GiB free",
+    )
+    parser.add_argument("--gpu-slots", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--poll-seconds", type=int, choices=range(1, 61), default=2)
     args = parser.parse_args()
+    if (
+        args.resume
+        or args.hold
+        or args.share_low_memory_family
+        or args.gpu_slots != 1
+        or args.poll_seconds != 2
+    ) and not args.run:
+        parser.error("resume/hold/sharing require --run")
     output = args.output.resolve()
     if args.worker:
         worker(output, args.worker)
     elif args.run:
-        run(output)
+        run(
+            output,
+            resume=args.resume,
+            holds=args.hold,
+            shared_families=args.share_low_memory_family,
+            gpu_slots=args.gpu_slots,
+            poll_seconds=args.poll_seconds,
+        )
     elif args.monitor:
         monitor(output)
     else:

@@ -273,6 +273,10 @@ def render(outputs, *, now=None, devices=None, gpu_error=None, width=160):
             lines.append(f"        {eta} | PID={job.get('pid', '?')}")
         if state.get("query_error"):
             lines.append(f"  Scheduler: {state['query_error']}")
+        if state.get("dispatch_status"):
+            lines.append(f"  Dispatch poll={state.get('poll_seconds', '?')}s (no GPU reservation)")
+            for device, reason in state["dispatch_status"].items():
+                lines.append(f"    {'CPU' if device == 'cpu' else 'GPU' + device}: {reason}")
         failures = [j for j in jobs if j["status"] == "failed"]
         for job in failures[-2:]:
             replacements = recoveries.get((root.resolve(), job["label"]), [])

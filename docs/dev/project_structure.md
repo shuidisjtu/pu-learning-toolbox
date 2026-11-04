@@ -425,6 +425,7 @@ tests/
       test_queue_handoff_export.py      # 结果交接修正替代、seed 隔离与汇总回归
       test_survey_backlog_campaign.py   # 全网格分母、canary 隔离与制品验收
       test_backlog_canary_recovery.py   # 独立恢复、不重写历史与自有进程共卡门禁
+      test_backlog_gpu_sharing.py       # 共卡准入、负载复查、每卡单任务与停派隔离
       test_survey_host_portability.py   # 跨平台规划导入、Python3.10哈希与主机锁拒绝/释放
       test_monitor_survey_campaign.py   # GPU 遥测、真实快照进度与保守 ETA 的只读测试
       test_kldce_recovery.py            # 逐项可行性预检、按标记率恢复与替代任务身份保护
