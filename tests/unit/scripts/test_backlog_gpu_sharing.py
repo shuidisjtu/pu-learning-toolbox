@@ -193,3 +193,87 @@ def test_edge_overlap_requires_memory_and_explicit_configuration(tmp_path, monke
     for slots, families in [(0, ["f"]), (3, ["f"]), (2, [])]:
         with pytest.raises(ValueError, match="GPU slots"):
             script.run(tmp_path, gpu_slots=slots, shared_families=families)
+
+
+@pytest.mark.parametrize("value", [0, 61, -1, 2.5, True])
+def test_edge_invalid_poll_interval_rejected_before_start(tmp_path, value):
+    with pytest.raises(ValueError, match="poll seconds"):
+        script.run(tmp_path, poll_seconds=value)
+
+
+@pytest.mark.parametrize("changed", [False, True])
+def test_basic_reaped_worker_replaced_same_cycle_with_fresh_admission(
+    tmp_path, monkeypatch, changed
+):
+    jobs = [
+        dict(
+            label=name,
+            family="f",
+            lane="gpu",
+            status="pending",
+            canary=False,
+            method="pan",
+            dataset="mnist",
+            path="native_cnn",
+            mechanism="scar",
+        )
+        for name in ("one", "two")
+    ]
+    campaign = dict(
+        jobs=jobs,
+        gpu_allowlist=[6],
+        source=str(script.ROOT),
+        commit="fixed",
+        dependency_lock_sha256="lock",
+        inputs={},
+    )
+    monkeypatch.setattr(script, "lock_controller", lambda path: None)
+    monkeypatch.setattr(script, "read", lambda path: campaign)
+    monkeypatch.setattr(script, "clean_commit", lambda: "fixed")
+    monkeypatch.setattr(script, "verify_reconciliation", lambda c: None)
+    monkeypatch.setattr(script, "verify_followup", lambda c: None)
+    monkeypatch.setattr(script, "memory_available", lambda: 1024**4)
+    monkeypatch.setattr(script, "accept", lambda *a: {})
+    monkeypatch.setattr(script.service, "sha", lambda p: "lock")
+    states = []
+    # Copy snapshots: jobs are mutated in place on subsequent cycles.
+    monkeypatch.setattr(
+        script.service, "write", lambda p, s: states.append(s["dispatch_status"].copy())
+    )
+    queries = []
+
+    def query(*args):
+        queries.append(1)
+        # Initial two samples, launch recheck, next cycle, replacement recheck.
+        return (set() if changed and len(queries) == 5 else {6}), set()
+
+    monkeypatch.setattr(script, "dispatch_gpus", query)
+    launches = []
+
+    class Process:
+        def __init__(self, *args, **kwargs):
+            launches.append(kwargs)
+            self.pid = len(launches)
+
+        def poll(self):
+            return 0
+
+    monkeypatch.setattr(script.subprocess, "Popen", Process)
+    sleeps = []
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        if len(sleeps) == 3:
+            raise InterruptedError("done")
+
+    monkeypatch.setattr(script.time, "sleep", sleep)
+    with pytest.raises(InterruptedError, match="done"):
+        script.run(tmp_path)
+    assert sleeps == [2, 2, 2]
+    assert jobs[0]["status"] == "completed"
+    assert len(queries) == 5
+    assert len(launches) == (1 if changed else 2)
+    assert states[0]["6"].startswith("confirming")
+    assert states[-1]["6"] == (
+        "GPU availability changed before launch" if changed else "started two"
+    )

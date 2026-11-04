@@ -165,7 +165,7 @@ def prepare(directory, output):
 def available_gpus(indices):
     command = ["nvidia-smi", "--query-gpu=index,uuid,memory.free", "--format=csv,noheader,nounits"]
     devices = {}
-    for line in subprocess.check_output(command, text=True).splitlines():
+    for line in subprocess.check_output(command, text=True, timeout=5).splitlines():
         index, uuid, free = (field.strip() for field in line.split(","))
         if int(index) in indices:
             devices[uuid] = (int(index), int(free))
@@ -173,6 +173,7 @@ def available_gpus(indices):
         subprocess.check_output(
             ["nvidia-smi", "--query-compute-apps=gpu_uuid", "--format=csv,noheader,nounits"],
             text=True,
+            timeout=5,
         ).splitlines()
     )
     return sorted(

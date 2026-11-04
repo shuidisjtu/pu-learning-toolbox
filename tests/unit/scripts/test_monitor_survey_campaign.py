@@ -66,6 +66,17 @@ def test_basic_determ_epoch_eta_uses_recent_completed_intervals(tmp_path):
     assert "last 5 intervals" in first[1]
 
 
+def test_basic_scheduler_wait_reasons_and_poll_are_visible(tmp_path):
+    state(tmp_path, [job(status="pending", gpu=None)])
+    path = tmp_path / "status.json"
+    payload = json.loads(path.read_text())
+    payload.update(poll_seconds=2, dispatch_status={"6": "waiting for host RAM >= 64 GiB"})
+    path.write_text(json.dumps(payload))
+    text = monitor.render([tmp_path], now=765, devices={}, width=200)
+    assert "Dispatch poll=2s (no GPU reservation)" in text
+    assert "GPU6: waiting for host RAM >= 64 GiB" in text
+
+
 def test_basic_two_teachers_are_one_epoch_and_partial_teacher_is_not_complete(tmp_path):
     snapshots(tmp_path, components=("teacher1", "teacher2"))
     j = job(method="self_pu_full_meta")
