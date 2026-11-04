@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import time
 from contextlib import suppress
@@ -128,6 +129,16 @@ def run(
         torch_version=torch.__version__,
         training_view="ts",
         test_set_read=False,
+        runtime_environment={
+            name: os.environ.get(name)
+            for name in (
+                "OMP_NUM_THREADS",
+                "OPENBLAS_NUM_THREADS",
+                "MKL_NUM_THREADS",
+                "NUMPY_MADVISE_HUGEPAGE",
+            )
+        },
+        torch_cpu_threads=torch.get_num_threads(),
         arms=[],
     )
     (output / "configuration.json").write_text(json.dumps(record, indent=2) + "\n")

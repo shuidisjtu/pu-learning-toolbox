@@ -10,7 +10,8 @@ sqrt(6)，从 PyTorch 默认初始化方差改为 ReLU fan-in 方差，不增加
 runner 不传该参数，旧默认、协议、注册表与训练配方不变。初始化修正本身不保证稳定：
 ADNI 短测提示原 lr=1e-3 仍可能使 tanh 饱和，lr=1e-4 仅为待验证候选。
 
-可用 `scripts/diagnose_gradpu_encoder.py --train-file <split>/train.npz --dataset cifar10
+安装项目依赖后，在仓库根可用 `python -m scripts.diagnose_gradpu_encoder
+--train-file <split>/train.npz --dataset cifar10
 --output <new-directory> --seed 0 --seed 1 --seed 2` 进行训练集诊断：默认每 seed
 128 个分层训练样本、batch=32，保留名义 200 epoch 的 beta 日程，只观察前 5 epoch。
 固定比较原初始化/原学习率、ReLU 增益/原学习率、ReLU 增益/lr=1e-4，记录特征方差、
