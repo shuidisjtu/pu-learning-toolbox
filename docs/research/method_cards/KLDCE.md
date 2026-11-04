@@ -23,6 +23,10 @@ HiGHS LP 对照、大规模 81,000 变量及现有公式/KKT/SMO/性质测试验
 对偶 QP 构造同时改为按 1024 行直接填入原四个稠密块，避免并存完整 `yy`、`Q_aa`、
 `Q_ag`、`Q_gg` 临时矩阵；完整 Q 的形状、float64、约束与目标不变，四块逐元素公式
 对照通过。该修改降低临时内存，不把稠密 QP 变成低秩/抽样算法，最终 Q 本身仍可能很大。
+真实 CIFAR 45000 行受限拟合（1 ACS / 2 SMO）已完整返回，包含 KKT bias 恢复；
+在同样 `NUMPY_MADVISE_HUGEPAGE=0`、BLAS 2 线程下，QP 分块前后进程峰值
+RSS 约 109.03 → 57.48 GiB。该环境设置与既有生产队列一致；探针仅验证阶段可运行和
+临时内存，不作为完整迭代收敛、正式预算或分类指标验收。
 
 2026-10-31 补齐只读 `scripts/prepare_kldce_resource_plan.py`：按 P/U/维度与声明的
 Gram itemsize 列出训练/预测 Gram、对偶 QP 各个稠密块及协方差 payload；QP 块用核心的
