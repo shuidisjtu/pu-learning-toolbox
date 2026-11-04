@@ -88,6 +88,7 @@ def build_wconpu_backbone(
     small_input_stem: bool = False,
     normalization_mean: Sequence[float] = (0.5, 0.5, 0.5),
     normalization_std: Sequence[float] = (0.5, 0.5, 0.5),
+    initialization: Literal["pytorch_default", "relu_gain"] = "pytorch_default",
 ):
     """Build an image feature encoder for the WConPU paper protocol.
 
@@ -97,9 +98,16 @@ def build_wconpu_backbone(
     ``cnn13_no_bn`` is an explicit engineering variant with no BatchNorm;
     the default ``cnn13`` topology/state is unchanged. Neither is claimed
     to replay GradPU's unpublished architecture details.
+    ``relu_gain`` explicitly rescales the no-BN variant's default convolution
+    weights by sqrt(6), giving ReLU fan-in variance without extra RNG draws.
+    It is a diagnostic recipe option, not a silent change to frozen defaults.
     """
     if name not in CNN_BACKBONES:
         raise ValueError(f"name must be one of {CNN_BACKBONES}")
+    if initialization not in ("pytorch_default", "relu_gain"):
+        raise ValueError("initialization must be pytorch_default or relu_gain")
+    if initialization != "pytorch_default" and name != "cnn13_no_bn":
+        raise ValueError("relu_gain initialization is only supported for cnn13_no_bn")
     if in_channels < 1 or base_channels < 1:
         raise ValueError("in_channels and base_channels must be positive")
     if len(normalization_mean) != in_channels:
@@ -132,7 +140,15 @@ def build_wconpu_backbone(
             if index in {2, 5, 8}:
                 layers.append(nn.MaxPool2d(2))
         layers.extend([nn.AdaptiveAvgPool2d(1), nn.Flatten(1)])
-        return nn.Sequential(*layers)
+        encoder = nn.Sequential(*layers)
+        if initialization == "relu_gain":
+            import torch
+
+            with torch.no_grad():
+                for layer in encoder.modules():
+                    if isinstance(layer, nn.Conv2d):
+                        layer.weight.mul_(6**0.5)
+        return encoder
 
     try:
         from torchvision import models

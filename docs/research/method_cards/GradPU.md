@@ -2,6 +2,21 @@
 
 > 参数签名以 [API 参考](../../user/reference/api.md) 为准。本卡记录论文目标、工程实现和复现边界；当前接入不表示 Survey P3.2 验收完成。
 
+2026-11-04 D56 候选修正：`build_wconpu_backbone` 对 `cnn13_no_bn` 新增显式
+`initialization="relu_gain"`（默认仍 `pytorch_default`）；将同 seed 的原 Conv 权重乘
+sqrt(6)，从 PyTorch 默认初始化方差改为 ReLU fan-in 方差，不增加 RNG 抽样，不增加 BN。
+原因是原 13 层 no-BN 堆叠的弱信号与 Adam 耦合 L2 项共同造成退化；这不是已核实的
+原论文初始化。候选工厂 `gradpu_initialization` 记录不同初始化身份/权重摘要，冻结
+runner 不传该参数，旧默认、协议、注册表与训练配方不变。初始化修正本身不保证稳定：
+ADNI 短测提示原 lr=1e-3 仍可能使 tanh 饱和，lr=1e-4 仅为待验证候选。
+
+可用 `scripts/diagnose_gradpu_encoder.py --train-file <split>/train.npz --dataset cifar10
+--output <new-directory> --seed 0 --seed 1 --seed 2` 进行训练集诊断：默认每 seed
+128 个分层训练样本、batch=32，保留名义 200 epoch 的 beta 日程，只观察前 5 epoch。
+固定比较原初始化/原学习率、ReLU 增益/原学习率、ReLU 增益/lr=1e-4，记录特征方差、
+score 方差与饱和比例；不读取 validation/test，不自动挑选赢家，不修改或恢复正式队列。
+诊断配置、行号、输入摘要、实际 backbone 与逐轮记录单独输出，明确非正式结果。
+
 ## 论文与适用范围
 
 | 字段 | 内容 |

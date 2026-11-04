@@ -54,6 +54,7 @@ def build_candidate_image_classifier(
     seed: int,
     class_prior: float | None = None,
     device: str = "cpu",
+    gradpu_initialization: str = "pytorch_default",
 ):
     """Return a default-budget estimator and explicit, unapproved image metadata.
 
@@ -78,6 +79,10 @@ def build_candidate_image_classifier(
         raise ValueError("unsupported candidate image method")
     if isinstance(seed, bool) or not isinstance(seed, Integral) or not 0 <= seed < 2**32:
         raise ValueError("seed must be an integer in [0, 2**32)")
+    if gradpu_initialization not in ("pytorch_default", "relu_gain"):
+        raise ValueError("gradpu_initialization must be pytorch_default or relu_gain")
+    if method != "gradpu" and gradpu_initialization != "pytorch_default":
+        raise ValueError("gradpu_initialization is only applicable to GradPU")
     if method == "pulda" and class_prior is None:
         raise ValueError("PULDA requires the population class_prior")
     if method == "pulda":
@@ -157,6 +162,7 @@ def build_candidate_image_classifier(
                 in_channels=preprocessing.in_channels,
                 normalization_mean=preprocessing.normalization_mean,
                 normalization_std=preprocessing.normalization_std,
+                initialization=gradpu_initialization,
             )
             estimator = GradPUClassifier(encoder=encoder, random_state=int(seed), device=device)
 
@@ -177,6 +183,8 @@ def build_candidate_image_classifier(
                 "bias": False,
             },
         }
+        if gradpu_initialization != "pytorch_default":
+            image["backbone"]["initialization"] = "relu_gain_from_pytorch_default"
     preprocessing_digest = image.pop("configuration_sha256")
     record = {
         "schema_version": "candidate-image-setup-1",
