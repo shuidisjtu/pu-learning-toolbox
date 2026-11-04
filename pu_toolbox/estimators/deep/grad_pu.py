@@ -248,6 +248,27 @@ class GradPUClassifier(BasePUClassifier):
         rng = np.random.RandomState(self.random_state)
         torch.manual_seed(int(rng.randint(0, 2**31)))
         device = resolve_device(self.device)
+        if self.gp_chunk_size is not None and self.alpha > 0:
+            # Chunking changes forward-call shapes/counts and hence stochastic
+            # draws. Check injected modules before even probing their outputs.
+            for component in (self.encoder, self.model):
+                if not isinstance(component, torch.nn.Module):
+                    continue
+                for layer in component.modules():
+                    stochastic = (
+                        (isinstance(layer, torch.nn.modules.dropout._DropoutNd) and layer.p > 0)
+                        or (isinstance(layer, torch.nn.RReLU) and layer.lower != layer.upper)
+                        or (
+                            isinstance(layer, torch.nn.RNNBase | torch.nn.MultiheadAttention)
+                            and layer.dropout > 0
+                        )
+                    )
+                    if stochastic:
+                        raise ValueError(
+                            "GradPU gp_chunk_size requires deterministic, sample-independent "
+                            f"modules; unsupported stochastic layer: {type(layer).__name__}. "
+                            "Use gp_chunk_size=None without changing the model."
+                        )
         self.encoder_ = None
         width = X.shape[1]
         if self.encoder is not None:
