@@ -2,6 +2,16 @@
 
 > 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
 
+2026-11-04 崩溃路径修复：原 `_rbf_kernel` 一次构造全尺寸 GEMM，在本机 NumPy
+OpenBLAS 0.3.23.dev / 2 线程环境曾出现 native 崩溃；本轮旧 CIFAR 调用在 90 秒
+上限内也未返回。改为每 2048 行调用同一 `build_rbf_basis`，保留所有样本、所有核中心、
+完整稠密结果与原 dtype，不改核公式、QP、ACS/SMO 预算或不可行域判定。
+三个真实缓存的完整核构造通过：CIFAR 45000×512、MNIST/Fashion-MNIST 各 54000×512，
+耗时约 46/226/40 秒，进程峰值 RSS 最大约 14.21 GiB。浮点乘法分块会改变舍入；
+抽样对照逐行原公式/float64 直接距离的核值最大绝对差约 9.78e-4，不宣称逐位一致。
+这只证明已定位的核构造路径可运行，不等于完整 QP/优化收敛或全部失败任务已恢复；
+其他估计器的共享 RBF 默认行为未修改，原结果不回填。
+
 2026-10-31 补齐只读 `scripts/prepare_kldce_resource_plan.py`：按 P/U/维度与声明的
 Gram itemsize 列出训练/预测 Gram、对偶 QP 各个稠密块及协方差 payload；QP 块用核心的
 float64，Gram/协方差 dtype 只是假设，尚未验证输入。构造默认或显式 ACS/SMO 上限

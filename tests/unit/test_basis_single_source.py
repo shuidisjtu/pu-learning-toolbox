@@ -71,3 +71,52 @@ def test_param_rbf_weights_matches_basis_matrix_column():
     w = 1.7
     expected = build_rbf_basis(X, np.zeros((1, 3)), w)[:, 0]
     np.testing.assert_allclose(rbf_weights(X, w), expected, atol=1e-12)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("rows,cols", [(0, 5), (3, 0), (3, 3), (7, 5), (8, 8)])
+def test_param_kldce_tiles_preserve_full_kernel_dtype_and_inputs(monkeypatch, dtype, rows, cols):
+    from pu_toolbox.estimators.risk import kldce
+    from pu_toolbox.utils import basis
+
+    rng = np.random.RandomState(91)
+    x = rng.normal(size=(rows, 8)).astype(dtype)[:, ::2]
+    z = rng.normal(size=(cols, 8)).astype(dtype)[:, ::2]
+    before_x, before_z = x.copy(), z.copy()
+    expected = build_rbf_basis(x, z, 1.7)
+    calls = []
+
+    def record(left, right, width):
+        calls.append(len(left))
+        assert right is z  # every tile retains every center
+        return build_rbf_basis(left, right, width)
+
+    monkeypatch.setattr(kldce, "_RBF_BLOCK_ROWS", 3)
+    monkeypatch.setattr(basis, "build_rbf_basis", record)
+    actual = kldce._rbf_kernel(x, z, 1.7)
+    assert max(calls) <= 3 and sum(calls) == rows
+    assert actual.shape == expected.shape and actual.dtype == expected.dtype
+    np.testing.assert_allclose(actual, expected, rtol=2e-6, atol=2e-7)
+    np.testing.assert_array_equal(x, before_x)
+    np.testing.assert_array_equal(z, before_z)
+    np.testing.assert_array_equal(actual, kldce._rbf_kernel(x, z, 1.7))
+
+
+@pytest.mark.unit
+def test_basic_kldce_tiling_preserves_small_fit_and_predictions(monkeypatch):
+    from pu_toolbox.estimators.risk import kldce
+
+    rng = np.random.RandomState(19)
+    x = np.vstack([rng.normal(1.5, 1.0, (15, 3)), rng.normal(-1.5, 1.0, (30, 3))])
+    y = np.r_[np.ones(11, int), np.zeros(34, int)]
+    options = dict(
+        flip_probability=0.3, sigma=2.0, max_acs_iter=3, max_inner_iter=100, random_state=19
+    )
+    direct = kldce.KLDCEClassifier(**options).fit(x, y)
+    monkeypatch.setattr(kldce, "_RBF_BLOCK_ROWS", 7)
+    tiled = kldce.KLDCEClassifier(**options).fit(x, y)
+    np.testing.assert_allclose(tiled.alpha_full_, direct.alpha_full_, rtol=1e-7, atol=1e-8)
+    np.testing.assert_allclose(
+        tiled.decision_function(x), direct.decision_function(x), rtol=1e-7, atol=1e-8
+    )

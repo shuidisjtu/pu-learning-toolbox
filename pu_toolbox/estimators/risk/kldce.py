@@ -58,6 +58,8 @@ from ._class_prior import (
 # Kernel
 # ═════════════════════════════════════════════════════════════════════
 
+_RBF_BLOCK_ROWS = 2048
+
 
 def _rbf_kernel(X: np.ndarray, Z: np.ndarray, sigma: float) -> np.ndarray:
     """RBF / Gaussian kernel (single-sourced in ``utils.basis``).
@@ -70,7 +72,20 @@ def _rbf_kernel(X: np.ndarray, Z: np.ndarray, sigma: float) -> np.ndarray:
     """
     from pu_toolbox.utils.basis import build_rbf_basis
 
-    return build_rbf_basis(X, Z, sigma)
+    # Keep the exact dense kernel, but avoid one huge multithreaded GEMM.
+    # A real 45000x512 float32 input crashed the local OpenBLAS build on
+    # X.dot(X.T); bounded row calls avoid that backend path and large scratch
+    # matrices. This is not a low-rank approximation or sample reduction.
+    if len(X) <= _RBF_BLOCK_ROWS:
+        return build_rbf_basis(X, Z, sigma)
+    first = build_rbf_basis(X[:_RBF_BLOCK_ROWS], Z, sigma)
+    result = np.empty((len(X), len(Z)), dtype=first.dtype)
+    result[:_RBF_BLOCK_ROWS] = first
+    del first
+    for start in range(_RBF_BLOCK_ROWS, len(X), _RBF_BLOCK_ROWS):
+        stop = min(start + _RBF_BLOCK_ROWS, len(X))
+        result[start:stop] = build_rbf_basis(X[start:stop], Z, sigma)
+    return result
 
 
 # ═════════════════════════════════════════════════════════════════════
