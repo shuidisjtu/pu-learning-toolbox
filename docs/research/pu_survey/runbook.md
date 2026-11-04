@@ -272,6 +272,44 @@ uv run python scripts/monitor_survey_campaign.py \
 
 原失败与替换尝试分开显示；`blocked_preflight` 表示数学/资源上不适用，不是等 GPU。
 
+### 5.5 GradPU 显存执行策略（2026-11-03）
+
+GradPU 的 `--gradpu-backward-mode split` 与 `--gradpu-gp-chunk-size N` 是执行策略，
+只在 v3.1/v3.2 的 GradPU backlog 单元上生效；默认 `joint`，不改变损失、batch、精度、
+epoch 与 RNG 顺序。
+
+单跑：
+
+```bash
+uv run python scripts/run_survey_experiment.py <data_dir> \
+  --protocol survey-v3.1 --method gradpu --dataset adni \
+  --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_1.json \
+  --gradpu-backward-mode split --gradpu-gp-chunk-size 162 ...
+```
+
+输出目录会自动加 `execution_split` / `execution_split_chunk162` 后缀；manifest 的
+`training_provenance.activation_memory` 记录 `backward_mode` 与 `gp_chunk_size`。
+
+队列 campaign JSON 可写：
+
+```json
+"gradpu_backward_mode": "split",
+"gradpu_gp_chunk_size": 162
+```
+
+worker 传参、accept 校验；非 GradPU 或 v3.0 会被拒。
+
+ADNI 200 epoch 实测：joint 48.38/60.31 GiB、87.95 min；split+chunk162
+21.48/29.88 GiB、92.44 min；损失轨迹最大差 6.9e-7，test 指标相同。CIFAR-10
+从 4.41 GiB 降到 2.09 GiB，轨迹差 4.8e-7，时间约 +11.8%。纯 split 与 joint 耗时
+基本持平；分块是显存换时间。
+
+注意：
+
+- 正式 recovery 仍强制 `cpu_offload`，尚未接入 split/chunk；要改恢复路径需单独复核。
+- 2026-11-03 首次完整 200 epoch 发现 `cnn13_no_bn` 图像编码器塌缩（joint/split 都输出
+  常数 0.9842，末层特征 std=0；2D MLP 正常），修复前图像数值不能作方法结论；执行策略
+  本身的等价性已在 joint/split 对照中验证。
 ## 6. 审计、汇总与导出
 
 ### 6.1 队列批次（v3.1/v3.2）：先审计覆盖

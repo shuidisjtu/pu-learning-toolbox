@@ -284,6 +284,20 @@ def worker(output, label):
         if memory != "cpu_offload" or job["method"] != "gradpu":
             raise ValueError("invalid backlog activation memory policy")
         argv.extend(["--gradpu-activation-memory", memory])
+    backward_mode = campaign.get("gradpu_backward_mode", "joint")
+    chunk_size = campaign.get("gradpu_gp_chunk_size")
+    if (
+        backward_mode not in ("joint", "split")
+        or (chunk_size is not None and (type(chunk_size) is not int or chunk_size < 1))
+        or (chunk_size is not None and backward_mode != "split")
+    ):
+        raise ValueError("invalid backlog backward execution policy")
+    if (backward_mode != "joint" or chunk_size is not None) and job["method"] != "gradpu":
+        raise ValueError("backlog backward execution policy requires gradpu")
+    if backward_mode != "joint":
+        argv.extend(["--gradpu-backward-mode", backward_mode])
+    if chunk_size is not None:
+        argv.extend(["--gradpu-gp-chunk-size", str(chunk_size)])
     print("BACKLOG_FIT", label, "FULL_RECIPE", campaign["protocol_sha256"], flush=True)
     os.execv(sys.executable, argv)
 
@@ -321,13 +335,25 @@ def accept(output, job, campaign):
     if len(runs) != 1 or runs[0]["status"] != "succeeded" or runs[0]["attempts"] != 1:
         raise ValueError("candidate or retry gate failed")
     if campaign.get("gradpu_activation_memory") == "cpu_offload":
-        memory = runs[0].get("training_provenance", {}).get("activation_memory", {})
+        facts = runs[0].get("training_provenance", {}).get("activation_memory", {})
         if (
-            memory.get("policy") != "cpu_offload"
-            or memory.get("effective_batch_changed") is not False
-            or memory.get("precision_changed") is not False
+            facts.get("policy") != "cpu_offload"
+            or facts.get("effective_batch_changed") is not False
+            or facts.get("precision_changed") is not False
         ):
             raise ValueError("missing verified GradPU offload execution receipt")
+    if (
+        campaign.get("gradpu_backward_mode", "joint") != "joint"
+        or campaign.get("gradpu_gp_chunk_size") is not None
+    ):
+        facts = runs[0].get("training_provenance", {}).get("activation_memory", {})
+        if (
+            facts.get("backward_mode") != campaign.get("gradpu_backward_mode", "joint")
+            or facts.get("gp_chunk_size") != campaign.get("gradpu_gp_chunk_size")
+            or facts.get("effective_batch_changed") is not False
+            or facts.get("precision_changed") is not False
+        ):
+            raise ValueError("missing verified GradPU backward execution receipt")
     if campaign.get("protocol_version") == "survey-v3.2":
         validate_classical_image_receipt(manifest, job)
     checkpoints = runs[0].get("epoch_checkpoints", [])

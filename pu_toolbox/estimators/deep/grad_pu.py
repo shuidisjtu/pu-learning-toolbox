@@ -143,6 +143,8 @@ class GradPUClassifier(BasePUClassifier):
         weight_decay: float = 5e-4,
         encoder=None,
         activation_memory: Literal["device", "cpu_offload"] = "device",
+        backward_mode: Literal["joint", "split"] = "joint",
+        gp_chunk_size: int | None = None,
         random_state: int | None = None,
         device: str | None = None,
     ) -> None:
@@ -159,6 +161,8 @@ class GradPUClassifier(BasePUClassifier):
         self.weight_decay = weight_decay
         self.encoder = encoder
         self.activation_memory = activation_memory
+        self.backward_mode = backward_mode
+        self.gp_chunk_size = gp_chunk_size
         self.random_state = random_state
         self.device = device
 
@@ -181,6 +185,17 @@ class GradPUClassifier(BasePUClassifier):
             "cpu_offload",
         }:
             raise ValueError("activation_memory must be 'device' or 'cpu_offload'")
+        if not isinstance(self.backward_mode, str) or self.backward_mode not in {
+            "joint",
+            "split",
+        }:
+            raise ValueError("backward_mode must be 'joint' or 'split'")
+        if self.gp_chunk_size is not None and (
+            type(self.gp_chunk_size) is not int or self.gp_chunk_size < 1
+        ):
+            raise ValueError("gp_chunk_size must be a positive integer or None")
+        if self.gp_chunk_size is not None and self.backward_mode != "split":
+            raise ValueError("gp_chunk_size requires backward_mode='split'")
         if sample_weight is not None:
             raise NotImplementedError("GradPU does not implement sample_weight")
         self._is_fitted = False
@@ -326,6 +341,8 @@ class GradPUClassifier(BasePUClassifier):
             "source_reproduction": False,
             "activation_memory": {
                 "policy": self.activation_memory,
+                "backward_mode": self.backward_mode,
+                "gp_chunk_size": self.gp_chunk_size,
                 "pin_memory": False,
                 "effective_batch_changed": False,
                 "precision_changed": False,
@@ -413,19 +430,37 @@ class GradPUClassifier(BasePUClassifier):
                     torch.cat((u_batch, p_batch)) if view.calibration_applied else u_batch
                 )
                 beta = self.beta_max * (epoch * n_steps + step + 1) / (self.max_epochs * n_steps)
+
                 # Include autograd.grad(create_graph=True), not just forward:
                 # its derivative graph also retains large image activations.
                 # Never retry OOM with a smaller batch or a different precision.
-                memory_context = (
-                    torch.autograd.graph.save_on_cpu(pin_memory=False)
-                    if self.activation_memory == "cpu_offload"
-                    else nullcontext()
-                )
-                with memory_context:
-                    raw_p = _one_score_per_row(raw_model(p_batch), len(p_batch))
-                    raw_u = _one_score_per_row(raw_model(risk_u_batch), len(risk_u_batch))
-                    if self.alpha > 0:
-                        size = max(len(p_batch), len(risk_u_batch))
+                def memory_scope():
+                    return (
+                        torch.autograd.graph.save_on_cpu(pin_memory=False)
+                        if self.activation_memory == "cpu_offload"
+                        else nullcontext()
+                    )
+
+                optimizer.zero_grad()
+                split_penalty = None
+                if self.backward_mode == "split" and self.alpha > 0:
+                    with memory_scope():
+                        raw_p = _one_score_per_row(raw_model(p_batch), len(p_batch))
+                        raw_u = _one_score_per_row(raw_model(risk_u_batch), len(risk_u_batch))
+                        positive_loss = (
+                            gradpu_positive_weight(raw_p, beta) * (1.0 - torch.tanh(raw_p))
+                        ).mean()
+                        unlabeled_loss = (1.0 + torch.tanh(raw_u)).mean()
+                        loss_pu = positive_loss + unlabeled_loss
+                        if not torch.isfinite(loss_pu):
+                            raise FloatingPointError("GradPU PU objective became non-finite")
+                        positive_value = positive_loss.detach()
+                        unlabeled_value = unlabeled_loss.detach()
+                        loss = loss_pu.detach()
+                        loss_pu.backward()
+                    del raw_p, raw_u, positive_loss, unlabeled_loss, loss_pu
+                    size = max(len(p_batch), len(risk_u_batch))
+                    with memory_scope():
                         p_repeat_index = torch.as_tensor(
                             rng.choice(len(p_batch), size=size, replace=size > len(p_batch)),
                             dtype=torch.long,
@@ -445,18 +480,74 @@ class GradPUClassifier(BasePUClassifier):
                             rng.uniform(size=mix_shape), dtype=torch.float32, device=device
                         )
                         mixed = (mixing * p_repeated + (1.0 - mixing) * u_repeated).detach()
-                        mixed.requires_grad_(True)
-                        raw_mixed = _one_score_per_row(raw_model(mixed), size)
-                    else:
-                        mixed = raw_mixed = None
-                    loss, parts = gradpu_objective(
-                        raw_p,
-                        raw_u,
-                        beta=beta,
-                        alpha=self.alpha,
-                        interpolated_inputs=mixed,
-                        raw_interpolated=raw_mixed,
-                    )
+                    chunk_size = self.gp_chunk_size or size
+                    penalty_total = torch.zeros((), dtype=torch.float32, device=device)
+                    for start in range(0, size, chunk_size):
+                        end = min(start + chunk_size, size)
+                        with memory_scope():
+                            chunk = mixed[start:end].detach().requires_grad_(True)
+                            raw_chunk = _one_score_per_row(raw_model(chunk), end - start)
+                            gradient = torch.autograd.grad(
+                                raw_chunk.sum(), chunk, create_graph=True
+                            )[0]
+                            penalty_chunk = gradient.flatten(start_dim=1).square().sum(dim=1).sum()
+                            loss_gp = self.alpha * penalty_chunk / size
+                            if not torch.isfinite(loss_gp):
+                                raise FloatingPointError(
+                                    "GradPU gradient penalty became non-finite"
+                                )
+                            loss = loss + loss_gp.detach()
+                            loss_gp.backward()
+                        penalty_total += penalty_chunk.detach()
+                        del chunk, raw_chunk, gradient, penalty_chunk, loss_gp
+                    split_penalty = penalty_total / size
+                    parts = {
+                        "positive_loss": positive_value,
+                        "unlabeled_loss": unlabeled_value,
+                        "gradient_penalty": split_penalty,
+                    }
+                else:
+                    with memory_scope():
+                        raw_p = _one_score_per_row(raw_model(p_batch), len(p_batch))
+                        raw_u = _one_score_per_row(raw_model(risk_u_batch), len(risk_u_batch))
+                        if self.alpha > 0:
+                            size = max(len(p_batch), len(risk_u_batch))
+                            p_repeat_index = torch.as_tensor(
+                                rng.choice(len(p_batch), size=size, replace=size > len(p_batch)),
+                                dtype=torch.long,
+                                device=device,
+                            )
+                            u_repeat_index = torch.as_tensor(
+                                rng.choice(
+                                    len(risk_u_batch),
+                                    size=size,
+                                    replace=size > len(risk_u_batch),
+                                ),
+                                dtype=torch.long,
+                                device=device,
+                            )
+                            p_repeated = p_batch[p_repeat_index]
+                            u_repeated = risk_u_batch[u_repeat_index]
+                            mix_shape = (size,) + (1,) * (X.ndim - 1)
+                            mixing = torch.as_tensor(
+                                rng.uniform(size=mix_shape), dtype=torch.float32, device=device
+                            )
+                            mixed = (mixing * p_repeated + (1.0 - mixing) * u_repeated).detach()
+                            mixed.requires_grad_(True)
+                            raw_mixed = _one_score_per_row(raw_model(mixed), size)
+                        else:
+                            mixed = raw_mixed = None
+                        loss, parts = gradpu_objective(
+                            raw_p,
+                            raw_u,
+                            beta=beta,
+                            alpha=self.alpha,
+                            interpolated_inputs=mixed,
+                            raw_interpolated=raw_mixed,
+                        )
+                    if not torch.isfinite(loss):
+                        raise FloatingPointError("GradPU objective became non-finite")
+                    loss.backward()
                 for name, rows in (
                     ("positive", len(p_batch)),
                     ("native_unlabeled", len(u_batch)),
@@ -465,10 +556,6 @@ class GradPUClassifier(BasePUClassifier):
                     ("GP_interpolation", 0 if mixed is None else len(mixed)),
                 ):
                     batch_maxima[name] = max(batch_maxima[name], rows)
-                if not torch.isfinite(loss):
-                    raise FloatingPointError("GradPU objective became non-finite")
-                optimizer.zero_grad()
-                loss.backward()
                 optimizer.step()
                 self.optimizer_steps_ += 1
                 for key in ("positive_loss", "unlabeled_loss", "gradient_penalty"):

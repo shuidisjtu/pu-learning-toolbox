@@ -27,6 +27,7 @@
 - **版本化执行协议**：v3.0 136 单元（112 runnable / 24 blocked）、v3.1 171/171、v3.2 179/179；`survey-v3.1` / `v3.2` 仍 `pending_collaborator_review`。runnable 只表示实现能力。
 - **单跑、分批与批次驱动**：v3 单元用 `run_survey_experiment.py --protocol ...` 逐单元执行；`run_survey_pilot.py` 支持 `--methods/--datasets/--training-paths`、`--support-root` 与后台分批；support 三方法各自成组（D50/D51）。
 - **图像与候选执行**：原生 CNN、`cnn_feature_adapter`、GradPU 私有 `cnn13_no_bn` 及 PAN/VPU/P3MIX/CVIR/PUET/RP/KLDCE 的独立候选入口可用；v3.2 的 179 个单元全部 runnable。候选 CLI/readiness/five-seed 只记录工程执行，不改变正式准入。
+- **GradPU 显存执行策略**：`backward_mode` / `gp_chunk_size` 已接入 estimator、runner、CLI 与 campaign（commit `1f0c1135`），默认 `joint`；ADNI 200 epoch 峰值由 48.38/60.31 GiB 降到 21.48/29.88 GiB，joint/split 轨迹最大差 6.9e-7；图像编码器塌缩另案（D56），formal admission 仍 0。
 - **PA/OA 选模与 clean-support 双轨**：PA 只在 `pu_val`、OA 只在 `clean_val`；`PA+clean-support` 与纯 PU PA 同表另列；54 条 PA 映射已按 D41 全部裁定为 `no_direct_anchor`。
 - **分组汇总与导出**：`export_survey_results.py` 可生成四组工作簿与诊断卡；缺 seed 的行只进 coverage。诊断卡五类信号（类先验语义、跨数据集趋势、外部锚点偏差、原生适用/违背分组、排名颠倒）仍无法计算（D48）。
 - **版本绑定与 CI 门禁**：协议按版本解析到 comparison v6/v7/v8、profile map v3/v4/v5、registry v1.0/v1.1/v1.2；覆盖率与注册表门禁在 CI 真跑。
@@ -211,14 +212,15 @@ TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读�
 
 ### 1.5 推进顺序与推进记录
 
-**当前实现状态（2026-11-02）**
+**当前实现状态（2026-11-03）**
 
 - v3.1/v3.2 已落地：171/179 runnable；registry v1.1/v1.2 各 23 locked；comparison v7/v8 与 map v4/v5 已绑。新增 59 个可运行格（24 个原 blocked 翻牌 + 35 个新单元），其中 v3.1 1845 fit、v3.2 280 fit；协议/矩阵仍 `pending_collaborator_review`，新映射 `pending_review`。
 - v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；support 15 个单元中，v3.0 的 12 个已有 180 run 观测，v3.1 新增 3 个 CIFAR 单元并入 1845 批；D53 的 120 次修正已完成，D54 审计未完成。
 - 队列/监控/审计/交接、candidate readiness 与 five-seed 入口均已实现；这些是工程执行能力，不代表冻结配方、论文复现或正式准入。formal admission 仍为 0。
 - 2026-11-02：PR #160（文档整合）与 PR #159（KLDCE/GradPU 失败项恢复）已合并。KLDCE 120 项中 90 项 `blocked_preflight`、30 项 c=0.5 可行；GradPU 仍只有 `cpu_offload`，full 200 轮恢复未完成，14 项 held；两者都不改变 formal admission=0。详见下方 2026-11-02 记录。
+- 2026-11-03：GradPU split/chunk 执行策略落地（分支 `feature/gradpu-split-backward`，代码 commit `1f0c1135`）；ADNI 与 CIFAR-10 的 200 epoch joint/split 对照完成（轨迹差 6.9e-7 / 4.8e-7，指标相同）；首次完整图像运行发现 `cnn13_no_bn` 编码器塌缩，joint 与 split 同样，另案见 D56；formal admission 仍 0。
 
-**当前推进顺序**（2026-11-02，与 §1.2 的缺口一一对应；分工见 [README](README.md) §2）：
+**当前推进顺序**（2026-11-03，与 §1.2 的缺口一一对应；分工见 [README](README.md) §2）：
 
 1. **v3.1/v3.2 缺口批与失败项恢复**：原 24 个 blocked 单元已全部翻 runnable；剩余 1845 + 280 fit 的批次对账、KLDCE 30 项 c=0.5 恢复与审计、GradPU 完整 canary 验收、PN-CNN 5 seed 验收。
 2. **support 方法**：v3.0 的 12 个单元已有 180 fit 观测；v3.1 新增 3 个 CIFAR 单元并入 1845 批。
@@ -356,6 +358,17 @@ KLDCE 120 个 fit 中 90 个在冻结配方下数学不可行（c=0.1/0.3 为主
 93.73 GiB host RSS；full 200 轮恢复未完成，14 项 held；follow-up 需完整验收与
 192 GiB 主机余量。两者都不改变 formal admission=0。
 
+2026-11-03 GradPU 显存执行策略与图像塌缩：分量反传（split backward）+ GP 分块
+（gp_chunk_size）以执行策略落地（D56），estimator/runner/CLI/campaign 均可选，默认
+joint；协议、注册表与损失公式不变。ADNI 200 epoch：joint 48.38/60.31 GiB、87.95 min；
+split+chunk162 21.48/29.88 GiB、92.44 min；CIFAR-10 4.41→2.09 GiB、39.23→43.84 min。
+200 epoch 轨迹最大差 ADNI 6.9e-7、CIFAR 4.8e-7，test 指标相同；纯 split 与 joint
+耗时基本持平，分块时间 +5.1%/+11.8%。同一轮首次完整 200 epoch 发现 cnn13_no_bn
+图像编码器塌缩：ADNI/CIFAR 的 joint 与 split 都输出常数 score 0.9842（std 5.96e-8），
+编码器权重有漂移但末层特征 std=0；2D MLP 正常（spambase test acc 0.857）——判为
+编码器初始化/无 BN ReLU 堆叠问题，与 split 无关，修复前图像数值不作方法结论。
+正式 recovery 仍默认 `cpu_offload`，未接入 split/chunk；formal admission 仍 0。
+
 ## 2. 风险与留痕约定
 
 ### 2.1 风险
@@ -374,7 +387,7 @@ KLDCE 120 个 fit 中 90 个在冻结配方下数学不可行（c=0.1/0.3 为主
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D55）
+## 附录 A. 决策账本（D1–D56）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -384,6 +397,7 @@ KLDCE 120 个 fit 中 90 个在冻结配方下数学不可行（c=0.1/0.3 为主
 | D53 | **support 全 epoch 候选与新批次审计修复** | 2026-10-28 RTX 4090 的 spambase 三方法 45 run 已备份；审计发现 LaGAM / Self-PU 只捕获 meta 阶段，与协议 §2.4「所有 epoch」不符。用户裁定修实现遵守现行协议：版本化 support 保存 warmup 在内的全部 epoch，Self-PU 双 teacher 分别参与 PA+clean-support / OA，训练预算与 coverage 严格度不变；显式探索 meta-only 入口保持原义。另修 v3 canonical 比较误用 v2、support c token 漏设及合法制品收据被标 override；审计查询复用 profile 继承并适配 PA+clean-support，但报告仍保留额外监督身份；新批次以验证过的 D52 包满足 A14，旧 B1–B4 文档检查保留。旧 manifest / 包不回写；修复后在新结果根重跑，再做分片。 | 2026-10-28 |
 | D54 | **合规子批次组成完整网格** | 用户 2026-10-28 确认相同环境和硬件下遵守协议的子批次可共同正式接收；不因续跑分片自动否决。审计须验证完整无重复网格、批次引用、同一代码/依赖/环境/硬件、参数预算、全 epoch 和其他准入条件，原始 manifest 不修改。新增包记录 CPU 与线程环境，旧包缺少关键字段不自动补证；当前重审仅覆盖既有 clean-support 重审范围。单 run 原始正式聚合仍不读取派生重裁定。 | 2026-10-28 |
 | D55 | **版本化例外与最终版本清理** | 用户 2026-11-02 确认：v3.0 冻结后，`survey-v3.1`/`v3.2` 以独立协议、比较矩阵与注册表落地，是 D42「原地扩充」的明确例外；不回退版本，也不改写 v3.0 的历史运行身份。实验完成后统一清理 v3.0/v3.1 旧协议、矩阵与注册表；旧版工程核对/重建前凭证已按维护要求清理。最终只保留正式版（当前候选 v3.2）供工具箱实验脚本从零复现。清理不得回填旧 manifest，也不得把未完成的 formal admission 自动放行。 | 2026-11-02 |
+| D56 | **GradPU split/chunk 仅作执行策略；图像编码器塌缩另案** | 2026-11-03 落地 GradPU 分量反传与 GP 分块：estimator/runner/CLI/campaign 可选，默认 joint；不改损失、batch、精度、epoch 与 RNG 顺序；ADNI 200 epoch 峰值 48.38/60.31→21.48/29.88 GiB，轨迹最大差 6.9e-7，CIFAR 4.41→2.09 GiB、差 4.8e-7；纯 split 耗时与 joint 基本持平，GP 分块 +5.1%（ADNI）/+11.8%（CIFAR）。同一轮首次完整 200 epoch 发现 cnn13_no_bn 编码器塌缩（joint/split 均输出常数 0.9842、末层特征 std=0，2D MLP 正常），判为编码器初始化/无 BN 堆叠问题，与 split 无关；修复前图像数值不作方法结论。正式 recovery 仍默认 cpu_offload，未接入 split/chunk；formal admission 不变。 | 2026-11-03 |
 | D1 | **ADNI 数据获取** | ADNI 官方数据仅在获批持有人提供授权材料后纳入，未取得不记作官方 ADNI 获取完成。**2026-10-12 修订**：经与学长、导师讨论，为避免流程过于耗时，`adni` 槽位改用 Kaggle 4 类 Alzheimer MRI 的 GitHub 转存（论文 2 的 Table B.1 称其 Alzheimer MRI，附录称 ADNI），固定在转存仓库 commit 与逐文件摘要；它不是 ADNI 数据，所有登记、报告与快照须写明「替代数据」；Kaggle 页面许可为 Unknown（2026-10-12 核对），同一受试者切片是否跨集未核实，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。 | 2026-09-08（修订 2026-10-12） |
 | D2 | 协议分工执行口径 | 研究团队准备四角色数据，工具箱 `fit` 消费已划分输入；工具箱不替代数据划分。 | 2026-09-08 |
 | D3 | 依赖锁与 CUDA 环境落地 | `uv.lock` 入库，PR 使用提交的锁，nightly 用 `--upgrade` 重新解析；正式 GPU 运行另核驱动与依赖身份，详见 [ADR-0012](../../adr/0012-dependency-release-policy.md)。 | 2026-10-05 |
