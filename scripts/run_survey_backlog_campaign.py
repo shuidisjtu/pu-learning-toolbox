@@ -633,7 +633,39 @@ def fits_overlap(job, active):
     return len(active) == 1 and (job["path"] == "native_2d" or active[0]["path"] == "native_2d")
 
 
-def run(output, *, resume=False, holds=(), shared_families=(), gpu_slots=1, poll_seconds=2):
+def runtime_gpu_pool(campaign, requested=None):
+    """Separate physical device eligibility from the frozen four-device cap."""
+    original = tuple(campaign["gpu_allowlist"])
+    if any(gpu not in ALLOWED_GPUS for gpu in original):
+        raise ValueError("campaign cannot expand the shared four-GPU limit")
+    limit = min(4, campaign.get("max_gpu_jobs", 4)) if original else 0
+    pool = original if requested is None else tuple(requested)
+    if (
+        (requested is not None and not original)
+        or (
+            pool
+            and (
+                limit < 1
+                or len(pool) != len(set(pool))
+                or any(type(gpu) is not int or gpu < 0 for gpu in pool)
+            )
+        )
+        or (requested is not None and not pool)
+    ):
+        raise ValueError("GPU pool requires distinct nonnegative indices and a GPU campaign")
+    return pool, limit
+
+
+def run(
+    output,
+    *,
+    resume=False,
+    holds=(),
+    shared_families=(),
+    gpu_slots=1,
+    poll_seconds=2,
+    gpu_pool=None,
+):
     if type(poll_seconds) is not int or not 1 <= poll_seconds <= 60:
         raise ValueError("poll seconds must be an integer between 1 and 60")
     if gpu_slots not in (1, 2) or (gpu_slots == 2 and not shared_families):
@@ -654,9 +686,7 @@ def run(output, *, resume=False, holds=(), shared_families=(), gpu_slots=1, poll
         _followup_lock = lock_controller(
             Path(campaign["followup"]["parent"]) / "gradpu-followup.lock"
         )
-    allowed_gpus = tuple(campaign["gpu_allowlist"])
-    if any(gpu not in ALLOWED_GPUS for gpu in allowed_gpus):
-        raise ValueError("campaign cannot expand the shared four-GPU limit")
+    allowed_gpus, max_active_gpus = runtime_gpu_pool(campaign, gpu_pool)
     worker_source = Path(campaign["source"])
     controller_commit = clean_commit()
     if not resume and (worker_source != ROOT or controller_commit != campaign["commit"]):
@@ -722,6 +752,15 @@ def run(output, *, resume=False, holds=(), shared_families=(), gpu_slots=1, poll
         for gpu in (*allowed_gpus, None):
             device = "cpu" if gpu is None else str(gpu)
             active = [j for j in jobs if j["status"] == "running" and j.get("gpu") == gpu]
+            occupied = {
+                j["gpu"] for j in jobs if j["status"] == "running" and j.get("gpu") is not None
+            }
+            if gpu is not None and gpu not in occupied and len(occupied) >= max_active_gpus:
+                streak[gpu] = 0
+                dispatch_status[device] = (
+                    f"active GPU cap reached ({max_active_gpus}); no reservation"
+                )
+                continue
             overlapping = gpu is not None and len(active) == 1 and gpu_slots == 2
             ready = (not active and (gpu is None or gpu in available)) or (
                 overlapping and gpu in overlap
@@ -842,6 +881,7 @@ def run(output, *, resume=False, holds=(), shared_families=(), gpu_slots=1, poll
                 updated_at=now(),
                 query_error=query_error,
                 gpu_allowlist=list(allowed_gpus),
+                max_active_gpus=max_active_gpus,
                 formal_admission=False,
                 controller_source=str(ROOT),
                 controller_commit=controller_commit,
@@ -884,6 +924,13 @@ def main():
     )
     parser.add_argument("--gpu-slots", type=int, choices=(1, 2), default=1)
     parser.add_argument("--poll-seconds", type=int, choices=range(1, 61), default=2)
+    parser.add_argument(
+        "--gpu-pool",
+        type=int,
+        nargs="+",
+        metavar="INDEX",
+        help="runtime device pool; at most four physical GPUs active, no reservation",
+    )
     args = parser.parse_args()
     if (
         args.resume
@@ -891,6 +938,7 @@ def main():
         or args.share_low_memory_family
         or args.gpu_slots != 1
         or args.poll_seconds != 2
+        or args.gpu_pool is not None
     ) and not args.run:
         parser.error("resume/hold/sharing require --run")
     output = args.output.resolve()
@@ -904,6 +952,7 @@ def main():
             shared_families=args.share_low_memory_family,
             gpu_slots=args.gpu_slots,
             poll_seconds=args.poll_seconds,
+            gpu_pool=args.gpu_pool,
         )
     elif args.monitor:
         monitor(output)
