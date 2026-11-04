@@ -59,6 +59,7 @@ from ._class_prior import (
 # ═════════════════════════════════════════════════════════════════════
 
 _RBF_BLOCK_ROWS = 2048
+_QP_BLOCK_ROWS = 1024
 
 
 def _rbf_kernel(X: np.ndarray, Z: np.ndarray, sigma: float) -> np.ndarray:
@@ -101,37 +102,60 @@ def _find_feasible_init(
 ) -> np.ndarray:
     """Find a feasible initial point z₀ for the dual QP.
 
-    Solves the Phase-I LP:
+    Solves the Phase-I feasibility problem:
 
         min 0  s.t.  Aeq @ z = beq,  lb ≤ z ≤ ub
 
-    via ``scipy.optimize.linprog`` (HiGHS method).
+    by filling box capacity in index order from the minimum of Aeq·z.
+    One equality permits an O(N) construction, avoiding solver bindings that
+    copy O(N)-length result arrays for each of N variables. The zero objective
+    makes every feasible point optimal; the chosen point need not equal the
+    previous HiGHS vertex, so finite-iteration trajectories may differ.
 
     Returns a feasible point or raises ``RuntimeError``.
     """
-    N = lb.shape[0]
-    result = scipy.optimize.linprog(
-        c=np.zeros(N),
-        A_eq=Aeq,
-        b_eq=np.array([beq]),
-        bounds=list(zip(lb, ub, strict=True)),
-        method="highs",
-        options={"disp": False},
-    )
-    if not result.success:
+    a, lower, upper = (np.asarray(value, dtype=float) for value in (Aeq, lb, ub))
+    if (
+        lower.ndim != 1
+        or upper.shape != lower.shape
+        or not len(lower)
+        or a.shape != (1, len(lower))
+        or not np.isfinite(beq)
+        or not all(np.isfinite(value).all() for value in (a, lower, upper))
+        or (lower > upper).any()
+    ):
+        raise ValueError("Phase-I needs one finite equality and ordered finite box bounds")
+    a = a[0]
+    start = np.where(a >= 0, lower, upper)
+    end = np.where(a >= 0, upper, lower)
+    with np.errstate(over="ignore", invalid="ignore"):
+        minimum, maximum = float(a @ start), float(a @ end)
+        capacities = np.abs(a) * (upper - lower)
+        cumulative = np.cumsum(capacities)
+    if not np.isfinite([minimum, maximum]).all() or not np.isfinite(cumulative).all():
+        raise ValueError("Phase-I box capacities must remain finite")
+    tolerance = 1e-10
+    if beq < minimum - tolerance or beq > maximum + tolerance:
         raise RuntimeError(
-            f"Phase-I feasible initialisation failed: {result.message}. "
-            "Aeq·z = beq may be infeasible for the given box constraints."
+            "Phase-I feasible initialisation failed: Aeq·z = beq is infeasible "
+            "for the given box constraints."
         )
-    z0 = result.x
+    remaining = float(np.clip(beq, minimum, maximum) - minimum)
+    pivot = int(np.searchsorted(cumulative, remaining, side="left"))
+    z0 = start.copy()
+    z0[:pivot] = end[:pivot]
+    if pivot < len(a) and capacities[pivot] > 0:
+        used = cumulative[pivot - 1] if pivot else 0.0
+        z0[pivot] += (remaining - used) / a[pivot]
+    # Clamp round-off at a box face, then enforce the original acceptance
+    # tolerance. Never silently accept an inaccurate analytical solution.
+    np.clip(z0, lower, upper, out=z0)
 
     eq_res = float(np.abs(Aeq @ z0 - beq).max())
-    if eq_res > 1e-10:
-        raise RuntimeError(
-            f"Phase-I LP returned point with equality residual {eq_res:.2e} > 1e-10."
-        )
+    if not np.isfinite(eq_res) or eq_res > 1e-10:
+        raise RuntimeError(f"Phase-I returned point with equality residual {eq_res:.2e} > 1e-10.")
     if (z0 < lb - 1e-12).any() or (z0 > ub + 1e-12).any():
-        raise RuntimeError("Phase-I LP returned point violating box constraints.")
+        raise RuntimeError("Phase-I returned point violating box constraints.")
 
     return z0
 
@@ -200,18 +224,19 @@ def _build_dual_qp(
     C_gamma = 1.0 / (2.0 * n)
 
     # ── Q = 1/(2λ) · [[Q_αα, Q_αγ], [Q_γα, Q_γγ]] ─────────────────
-    yy = np.outer(y_tilde, y_tilde)  # (n, n)
-
-    Q_alpha_alpha = yy * K  # (n, n)
-    Q_alpha_gamma = -(yy[:n, k:] * K[:n, k:])  # (n, n_U)
-    Q_gamma_gamma = yy[k:, k:] * K[k:, k:]  # (n_U, n_U)
-
     N_total = N
-    Q = np.zeros((N_total, N_total), dtype=float)
-    Q[:n, :n] = Q_alpha_alpha
-    Q[:n, n:] = Q_alpha_gamma
-    Q[n:, :n] = Q_alpha_gamma.T
-    Q[n:, n:] = Q_gamma_gamma
+    Q = np.empty((N_total, N_total), dtype=float)
+    # Write the same four dense blocks directly. Avoid simultaneously retaining
+    # yy, Q_aa, Q_ag and Q_gg (tens of GiB on image grids) beside the full Q.
+    for start in range(0, n, _QP_BLOCK_ROWS):
+        stop = min(start + _QP_BLOCK_ROWS, n)
+        block = y_tilde[start:stop, None] * y_tilde[None, :]
+        block = block.astype(np.result_type(block, K), copy=False)
+        block *= K[start:stop]
+        Q[start:stop, :n] = block
+        Q[start:stop, n:] = -block[:, k:]
+        Q[n:, start:stop] = Q[start:stop, n:].T
+    Q[n:, n:] = Q[k:n, k:n]
     Q *= 1.0 / (2.0 * lambda_)
 
     # ── Linear term d(μ) ───────────────────────────────────────────
