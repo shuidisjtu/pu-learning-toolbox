@@ -429,6 +429,7 @@ tests/
       test_survey_host_portability.py   # 跨平台规划导入、Python3.10哈希与主机锁拒绝/释放
       test_monitor_survey_campaign.py   # GPU 遥测、真实快照进度与保守 ETA 的只读测试
       test_kldce_recovery.py            # 逐项可行性预检、按标记率恢复与替代任务身份保护
+      test_backlog_gpu_pool.py          # 动态 GPU 候选池、四卡上限与停派回归测试
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界

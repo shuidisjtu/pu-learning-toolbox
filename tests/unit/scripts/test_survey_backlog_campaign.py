@@ -33,7 +33,7 @@ def test_edge_monitor_waits_for_first_status_and_uses_campaign_version(
     assert "survey-v3.2" in output
     assert ("waiting for first controller status" in output) is not status_exists
     if status_exists:
-        assert "GPU allowlist=[]" in output
+        assert "GPU pool=[]" in output
 
 
 def jobs():

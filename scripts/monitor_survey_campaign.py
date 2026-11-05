@@ -237,7 +237,8 @@ def render(outputs, *, now=None, devices=None, gpu_error=None, width=160):
             [
                 f"[{revision}] {root.name} | {summary}",
                 f"  status age={duration(age)}{stale}; "
-                f"GPU allowlist={state.get('gpu_allowlist', [])}",
+                f"GPU pool={state.get('gpu_allowlist', [])}; "
+                f"active GPU cap={state.get('max_active_gpus', 4)}",
             ]
         )
         recovery = campaign.get("recovery")
