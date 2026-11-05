@@ -23,16 +23,18 @@ HiGHS LP 对照、大规模 81,000 变量及现有公式/KKT/SMO/性质测试验
 对偶 QP 构造同时改为按 1024 行直接填入原四个稠密块，避免并存完整 `yy`、`Q_aa`、
 `Q_ag`、`Q_gg` 临时矩阵；完整 Q 的形状、float64、约束与目标不变，四块逐元素公式
 对照通过。该修改降低临时内存，不把稠密 QP 变成低秩/抽样算法，最终 Q 本身仍可能很大。
+资源计划与候选预检的命名 payload 下界随之下调为仅 `Q`（构造期分块临时矩阵不计入），
+旧五项临时块不再计入；该下界不是峰值内存或正式准入。
 真实 CIFAR 45000 行受限拟合（1 ACS / 2 SMO）已完整返回，包含 KKT bias 恢复；
 在同样 `NUMPY_MADVISE_HUGEPAGE=0`、BLAS 2 线程下，QP 分块前后进程峰值
 RSS 约 109.03 → 57.48 GiB。该环境设置与既有生产队列一致；探针仅验证阶段可运行和
 临时内存，不作为完整迭代收敛、正式预算或分类指标验收。
 
 2026-10-31 补齐只读 `scripts/prepare_kldce_resource_plan.py`：按 P/U/维度与声明的
-Gram itemsize 列出训练/预测 Gram、对偶 QP 各个稠密块及协方差 payload；QP 块用核心的
-float64，Gram/协方差 dtype 只是假设，尚未验证输入。构造默认或显式 ACS/SMO 上限
+Gram itemsize 列出训练/预测 Gram、对偶 QP 主矩阵 `Q`（构造期按行分块的临时矩阵不计入）
+及协方差 payload；QP 块用核心的 float64，Gram/协方差 dtype 只是假设，尚未验证输入。构造默认或显式 ACS/SMO 上限
 另计（含 rollback，首轮无 rollback），不当神经 epoch 或 ETA。
-真实 tiny QP 的各块 shape/dtype/nbytes 已独立核对，不加载真实数据、不构造估计器或初始化 CUDA。
+真实 tiny QP 主矩阵的 shape/dtype/nbytes 已独立核对，不加载真实数据、不构造估计器或初始化 CUDA。
 资源数只覆盖命名数组，不含前轮 QP、RBF/solver/eigh 临时副本及输入/运行时；
 超过显式内存帽返回退出码 2，低于帽也绝不批准启动。未改核心实现、正式预算或资源准入。
 

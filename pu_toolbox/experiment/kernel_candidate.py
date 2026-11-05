@@ -169,7 +169,7 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
                 f"KLDCE QP equality infeasible for its box constraints: rhs={rhs:.12g}, "
                 f"reachable=[{lower:.12g}, {upper:.12g}]; no fit started"
             )
-        payload = 8 * (2 * n * n + n * u + u * u + (n + u) ** 2)
+        payload = 8 * (n + u) ** 2
         covariance_minimum = d * d * features.dtype.itemsize
         if payload + covariance_minimum > self.kernel_payload_cap_bytes:
             raise ValueError(
