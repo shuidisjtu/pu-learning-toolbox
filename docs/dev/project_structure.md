@@ -11,10 +11,42 @@
 pu-learning-toolbox/
   pyproject.toml
   README.md
+  README.zh-CN.md
   CONTRIBUTING.md
   LICENSE
   .gitignore
+  uv.lock
 ```
+
+### 1.1 源码、实验资产与交付物分开存放
+
+| 类别 | 位置 | 管理方式 |
+|---|---|---|
+| 安装包源码 | `pu_toolbox/` | Git 管理；公共导入路径不因工作区整理而迁移 |
+| 自动化测试 / 示例 | `tests/`、`examples/` | Git 管理；不放真实数据和训练输出 |
+| 实验与维护入口 | `scripts/`、`benchmarks/` | Git 管理；脚本按本文 §6 导航，保留既有命令路径 |
+| 用户 / 开发 / 研究文档 | `docs/user/`、`docs/dev/`、`docs/research/` | Git 管理；研究文档和冻结证据不是临时缓存 |
+| 用户上传的原件 | `data/incoming/user-uploads/`（本地创建） | 按 `papers/`、`results/`、`datasets/`、`protocols/`、`tasks/`、`diagnostics/` 分类；保留原文件名与 SHA256 |
+| 接收中的外部交付 | `data/incoming/` | 下载完成、校验及对账前不混入已验收数据；`.part` 不是可删除旧文件的充分依据 |
+| 原始数据 / 标准切分 | `data/raw/`、`data/splits/` | 本地忽略；历史接收路径继续有效，不为统一命名改写 split manifest |
+| 运行与诊断证据 | `results/` | 本地忽略；保存 manifest、日志、选择产物和队列状态，保留历史协议身份 |
+| 对外发送的表格 / 文档 | `data/outgoing/` | 按交付日期建目录；交付快照不覆盖，不默认入 Git |
+| 旧构建包 / 开发草稿 | `data/archive/`（本地创建） | 分类归档；归档不是正式验收，也不自动授予删除权限 |
+| 一次性本地演示 | `data/local-demos/`（本地创建） | 与发布示例分开，用户文件不因不属于 PU 实验而删除 |
+| 临时计划 / 运行辅助文件 | `.tmp/`、`tmp/` | 本地忽略；可能包含后台控制器、交接清单或补跑依据，不能整目录清空 |
+| 可重建的开发缓存 | `.pytest_cache/`、`.ruff_cache/`、`__pycache__/` | 仅在核对无在用写入、无受版本控制或用户文件后清理 |
+
+以上本地目录不要求出现在干净 clone 中。服务器可生成 `LOCAL_WORKSPACE.html` 本地入口，
+列出分类后的上传文件、最新交付和整理收据；不提交机器绝对路径或私有下载地址。
+历史绝对路径可能嵌入脚本、manifest 和交付索引：迁移原件时校验前后 SHA256，并按需保留
+原位置的相对软链接；仅在本机 Git exclude 登记这些兼容入口，不用全局 `*.xlsx`、`*.json`
+规则掩盖本应跟踪的测试夹具或冻结证据。
+
+清理按证据而非文件日期判断：可再生成缓存可以删除；未交付且已被完整新版替代的渲染中间件
+需先验证来源一致、无独有结果，再删除并记录重建来源。已交付结果、用户上传、原始数据、
+切分、冻结协议/比较矩阵与 checkpoint 默认保留。checkpoint 只通过对应实验的回收机制处理，
+不得用目录批量删除替代其选择产物与恢复状态审计。虚拟环境、外部 Git worktree 和后台服务
+也不在例行清理范围内。执行前预览精确路径，执行后保存移动/删除清单、哈希和恢复边界。
 
 ## 2. Python 包（`pu_toolbox/`）
 
@@ -953,6 +985,22 @@ docs/
 ```
 
 ## 6. 脚本（`scripts/`）
+
+下表按用途导航，不移动脚本文件。已有后台队列和文档使用其固定路径；“日期较早”或
+“有另一个 runner”不足以证明某个入口已废弃。具体调用方式见
+[Survey runbook](../research/pu_survey/runbook.md)。
+
+| 用途 | 常用入口（均位于 `scripts/`） |
+|---|---|
+| 数据收集与切分 | `collect_survey_public_data.py`、`prepare_survey_splits.py`、`survey_splits_archive.py`、`prepare_clean_support.py` |
+| 单任务 / pilot | `run_survey_experiment.py`、`run_survey_pilot.py`、`run_clean_support_experiment.py`、`run_genpu_recipe.py` |
+| 后台队列 / 看板 | `run_survey_parallel_queue.py`、`run_survey_backlog_campaign.py`、`run_survey_queue_fit.py`、`monitor_survey_queue.py`、`monitor_survey_campaign.py` |
+| 候选路径 / 资源规划 | `prepare_candidate_image_resource_plan.py`、`prepare_kldce_resource_plan.py`、`run_candidate_image_experiment.py`、`run_classical_candidate_experiment.py`、`run_candidate_readiness_campaign.py`、`run_candidate_five_seed_grid.py` |
+| 审计 / 汇总 / 交付 | `audit_survey_batches.py`、`audit_survey_queue.py`、`aggregate_survey_runs.py`、`summarize_survey_results.py`、`export_survey_results.py`、`export_survey_queue_handoff.py`、`compare_survey_results.py` |
+| 问题诊断 / 补跑准备 | `run_lbe_comparison.py`、`run_lbe_diagnostics.py`、`diagnose_gradpu_encoder.py`、`prepare_survey_support_repair.py`、`prepare_kldce_recovery.py`、`recover_survey_backlog_canary.py` |
+| 版本化协议与配方准备 | `prepare_survey_recipe_registry.py`、`prepare_survey_backlog_revision.py`、`prepare_survey_classical_image_revision.py`；不是整理目录时随意重生成冻结文件的入口 |
+| 质量门禁 / 结构生成 | `check_*.py`、`generate_structure.py`、`generate_layer_deps.py` |
+| 工作流薄包装 / 内部辅助 | `pu_workflow/`、`_source_provenance.py`、`_survey_host.py`、`_lbe_diagnostic_reference.py`；下划线辅助模块不作为通用训练入口 |
 
 ```text
 scripts/
