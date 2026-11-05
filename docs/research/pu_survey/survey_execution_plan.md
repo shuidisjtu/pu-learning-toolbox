@@ -48,6 +48,10 @@
 拟合链路通过；GradPU 显式初始化候选及 train-only 诊断入口已补齐，CIFAR/ADNI
 各 3 个初始化 seed 的短测支持继续验证。两者均未完成新版本完整预算验收，不自动
 恢复隔离项或改变 formal admission；结果表与详细诊断制品留在本地交付，不入库。
+2026-11-05：增加 `python -m scripts.validate_gradpu_encoder` 全量诊断入口，固定
+200 epoch / batch 256，不抽样训练、不读取 test；clean_val 只作固定诊断，不选模。
+比较原初始化、ReLU 增益及增益+lr=1e-4；split/chunk 仅改变反传执行方式。持续常数
+输出按明确数值失败终止，不能计完成；短测通过不释放 GradPU 隔离批次。全预算验证待完成。
 
 | 缺口 | 影响 | 任务 | 完成判据 |
 |---|---|---|---|
