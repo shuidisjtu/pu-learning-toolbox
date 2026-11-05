@@ -4,6 +4,8 @@
 > 原始数据已放在 `data/raw/`，并在仓库根目录下执行下面的命令。
 > 概念：实验口径见[协议](pu_survey_protocol.md)与[执行计划](survey_execution_plan.md)；本文只讲
 > 如何用现有脚本完成 split → support → 计划 → 跑批 → 审计 → 汇总 → 复现。
+>
+> 本文件只写脚本用法；实验进度、交接与分工见[执行计划](survey_execution_plan.md) §1.5 与 [README](README.md) §2。
 
 ## 1. 流程一览
 
@@ -187,7 +189,7 @@ uv run python scripts/run_survey_backlog_campaign.py --output <queue-v3.1> --mon
 该入口要求提交干净、在独立 tmux 中运行；GPU 白名单和失败隔离由队列配置决定。关闭
 编辑器不影响 tmux，但服务器重启或控制器异常退出后不能假设自动恢复。
 
-### 5.4 失败项恢复（2026-11-02）
+### 5.4 失败项恢复
 
 只对已经失败或挂起的批次使用；父批次、历史 manifest 和冻结输入保持只读。恢复批次是
 替换，不是新增科学实验，不增加分母。
@@ -231,42 +233,37 @@ uv run python scripts/run_survey_backlog_campaign.py --output <后续目录> --r
 范围，主机余量至少 192 GiB；运行中、失败、制品变更或部分 epoch 都不放行。恢复不改
 父队列，也不自动释放 family。
 
-用户暂停/移交（2026-11-02）：GradPU–ADNI 本地恢复已停，部分 checkpoint 不计完成；
-其余机制的待跑项也应停派。先停止旧控制器（不要结束其他训练 worker），再用
-`run_survey_backlog_campaign.py --output <父队列目录> --run --resume --hold gradpu:adni`
-接管；会保留状态快照、核对进程身份并沿用原固定 worker 源码，暂停项标记
-`paused_by_user`。接管进程的原退出码不可取回，完成须经制品验收，不伪造退出码。
-该操作不解冻协议、不改历史结果，也不表示部分权重可以无损续训。
-交接部分机制时用精确的 `--hold cvir:<数据集>:sar_lbe_a` 和
-`--hold cvir:<数据集>:sar_lbe_b`（逐数据集重复传入）；不会暂停 SCAR 或改写已完成结果。
-接管会保留原停派选择器；省略 `--hold` 不会自动解除暂停。先核对交接清单与待跑项完全
-一致，确认新控制器已记录全部暂停项且无对应活跃 worker，再通知接收方开跑。
+暂停/移交用 `--hold` 限定范围，可重复传入，例如
 
-共卡仅在用户允许且已实测该 family 显存后显式启用，例如
-`--share-low-memory-family p3mix-cifar10-native_cnn-scar`；该 family 必须已有完成的 canary。
-只在原四卡范围内、空闲显存至少 40 GiB、采样利用率不高于 10% 时准入，连续两次检查
-且启动前复查；默认每卡最多一个本队列训练，不结束他人进程。其他 family 仍须独占空卡。
-这是准入阈值，不是显存隔离或预留；他人恢复负载后双方可能减速，亦不能保证不会 OOM。
-共卡耗时不能直接与独占卡耗时比较。默认关闭，控制器重启须重新明确传入该选项；
-不会修改 worker 源码、训练预算或冻结协议。既有交接停派仍保留。
-2026-11-03 已将共卡配置从单一 P3MIX 子批次扩展到 120 个已有完成 canary 的 family，
-覆盖当时全部 1,080 项待跑。筛选时校验已完成 manifest 的 SHA-256、CUDA 环境记录及
-同 family 所有已完成项的峰值，要求有效的已分配显存峰值不超过 4 GiB（实测最高约
-3.45 GiB）；该值不包含所有驱动/缓存开销，不是未来 seed 的显存上界。保持 40 GiB
-空闲准入余量，CVIR SAR 的 144 项及 GradPU–ADNI 继续停派。所有通过类别一次性传入
-共卡参数，子批次结束后从其他通过类别自动接续，不再只配置即将结束的单个 family。
-可显式加 `--gpu-slots 2` 开启每卡两个任务，但至少一个必须为 `native_2d`，不叠加两组
-图像训练；只在本队列已有任务且另有至少 32 GiB 空闲时追加已核验类别，启动前复查。
-原四卡上限与暂停项不变，最多八个 GPU 任务。该模式利用二维任务与图像任务的不同
-资源需求；显存占满并不保证吞吐更高，须比较实测任务/epoch 耗时，不能承诺两倍加速。
-2026-11-04：可给运行/接管命令加 `--gpu-pool 0 1 2 3 4 5 6 7`，从全部物理卡中
-选择满足上述准入条件的卡；默认仍使用冻结白名单。候选池不是占卡许可，本队列同时
-活跃的物理卡不超过四张（若 campaign 上限更小则遵守更小值），包括接管的既有任务。
-保持原训练源码、配置、停派与失败隔离不变，不改写 campaign；监控显示候选池及卡数
-上限。该选项须在重启时显式保留，不预留空卡、不干预他人进程。
-补充分工（2026-11-03）：VPU 的 ADNI、Fashion-MNIST 两数据集 SAR LBE-A/B 剩余
-36 项已本地停派交接；已有 4 项不重跑，SCAR 及其他数据集留本地。此前 CVIR 的
-144 项停派不变。详细任务、冻结数据摘要及启动助手单独交付，不将结果或大文件入库。
+```bash
+uv run python scripts/run_survey_backlog_campaign.py --output <父队列目录> --run --resume --hold gradpu:adni
+uv run python scripts/run_survey_backlog_campaign.py --output <父队列目录> --run --resume \
+  --hold cvir:<数据集>:sar_lbe_a --hold cvir:<数据集>:sar_lbe_b
+```
+
+接管会保留状态快照、核对进程身份并沿用原固定 worker 源码，命中项标记 `paused_by_user`；
+未命中的机制保持原状，SCAR 与已完成结果不改写。省略 `--hold` 不会解除既有暂停，
+控制器重启后须重新传入。接管进程的原退出码不可取回，完成须经制品验收；该操作不解冻
+协议、不改历史结果，也不表示部分权重可以无损续训。交接前先核对待跑清单与暂停项一致，
+确认新控制器已记录全部暂停项且无对应活跃 worker。
+
+共卡仅在用户允许且该 family 已实测显存后显式启用，例如
+`--share-low-memory-family p3mix-cifar10-native_cnn-scar`；该 family 必须已有完成的 canary，
+且同 family 已完成项的已分配显存峰值不超过 4 GiB（不含驱动/缓存开销，不是未来 seed
+的上界）。准入还要求原四卡范围内、空闲显存至少 40 GiB、采样利用率不高于 10%，连续两次
+检查且启动前复查；默认每卡最多一个本队列训练，不结束他人进程，其他 family 仍须独占
+空卡。这是准入阈值，不是显存隔离或预留；他人负载恢复后双方可能减速，也不保证不会 OOM；
+共卡耗时不能直接与独占卡耗时比较。默认关闭，控制器重启须重新明确传入；不改 worker
+源码、训练预算或冻结协议。
+
+`--gpu-slots 2` 开启每卡两个任务，但至少一个必须为 `native_2d`，不叠加两组图像训练；
+只在本队列已有任务且另有至少 32 GiB 空闲时追加已核验类别，启动前复查。原四卡上限
+不变，最多八个 GPU 任务；显存占满不保证吞吐更高，须比较实测任务/epoch 耗时。
+
+`--gpu-pool 0 1 2 3 4 5 6 7` 可从全部物理卡中选择满足上述准入条件的卡，默认仍用
+冻结白名单。候选池不是占卡许可：本队列同时活跃的物理卡不超过四张（campaign 上限
+更小时取更小值），包括接管的既有任务；不预留空卡、不干预他人进程，监控显示候选池
+及卡数上限。该选项须在重启时显式保留。
 
 监控时把父批次和恢复批次一起传入：
 
@@ -277,7 +274,7 @@ uv run python scripts/monitor_survey_campaign.py \
 
 原失败与替换尝试分开显示；`blocked_preflight` 表示数学/资源上不适用，不是等 GPU。
 
-### 5.5 GradPU 显存执行策略（2026-11-03）
+### 5.5 GradPU 显存执行策略
 
 GradPU 的 `--gradpu-backward-mode split` 与 `--gradpu-gp-chunk-size N` 是执行策略，
 只在 v3.1/v3.2 的 GradPU backlog 单元上生效；默认 `joint`，不改变损失、batch、精度、
@@ -304,17 +301,14 @@ uv run python scripts/run_survey_experiment.py <data_dir> \
 
 worker 传参、accept 校验；非 GradPU 或 v3.0 会被拒。
 
-ADNI 200 epoch 实测：joint 48.38/60.31 GiB、87.95 min；split+chunk162
-21.48/29.88 GiB、92.44 min；损失轨迹最大差 6.9e-7，test 指标相同。CIFAR-10
-从 4.41 GiB 降到 2.09 GiB，轨迹差 4.8e-7，时间约 +11.8%。纯 split 与 joint 耗时
-基本持平；分块是显存换时间。
+显存与耗时实测、joint–split 等价性见 [GradPU 方法卡](../method_cards/GradPU.md) 的
+“显存执行策略”一节；本节只保留脚本用法，不重复记录实验读数。
 
 注意：
 
 - 正式 recovery 仍强制 `cpu_offload`，尚未接入 split/chunk；要改恢复路径需单独复核。
-- 2026-11-03 首次完整 200 epoch 发现 `cnn13_no_bn` 图像编码器塌缩（joint/split 都输出
-  常数 0.9842，末层特征 std=0；2D MLP 正常），修复前图像数值不能作方法结论；执行策略
-  本身的等价性已在 joint/split 对照中验证。
+- 图像编码器的塌缩问题与修复边界见 GradPU 方法卡；修复前图像数值不能作方法结论。
+
 ## 6. 审计、汇总与导出
 
 ### 6.1 队列批次（v3.1/v3.2）：先审计覆盖
