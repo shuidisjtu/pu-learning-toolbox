@@ -379,6 +379,15 @@ split+chunk162 21.48/29.88 GiB、92.44 min；CIFAR-10 4.41→2.09 GiB、39.23→
 编码器初始化/无 BN ReLU 堆叠问题，与 split 无关，修复前图像数值不作方法结论。
 正式 recovery 仍默认 `cpu_offload`，未接入 split/chunk；formal admission 仍 0。
 
+2026-11-03/04 队列接管与共卡：`run_survey_backlog_campaign.py` 支持 `--hold` 精确暂停/移交
+（如 `gradpu:adni`、`cvir:<数据集>:sar_lbe_a|b`），接管保留状态快照并标记 `paused_by_user`；
+同卡共跑在已实测 family 上放开（须有完成 canary、已分配峰值 ≤4 GiB、空闲 ≥40 GiB、
+利用率 ≤10%），`--gpu-slots 2` 要求至少一条 `native_2d`；2026-11-04 增补 `--gpu-pool`
+候选池，仍受四卡上限约束。当日共卡配置覆盖 120 个有完成 canary 的 family（1,080 项待跑），
+CVIR SAR 144 项与 GradPU–ADNI 维持停派。另：VPU 的 ADNI/Fashion-MNIST SAR LBE-A/B
+剩余 36 项停派给我方执行（已有 4 项不重跑，SCAR 及其他数据集留本地）；交接细节见交接包，
+未完成项分工见 README §2。
+
 ## 2. 风险与留痕约定
 
 ### 2.1 风险
