@@ -345,6 +345,7 @@ tests/
       test_pulns_checkpoints.py         # PULNS episode 回调、默认兼容、失败失效和内部 best 恢复
       test_cvir_calibration.py          # CVIR 训练风险池校准、角色展开逐位对照与失败/回放边界
       test_p3mix_batching.py            # 合并切批、单角色尾批与原默认兼容性
+      test_kldce_feasible_start.py      # 单等式盒约束可行点、独立 LP 与大规模回归
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -430,6 +431,7 @@ tests/
       test_monitor_survey_campaign.py   # GPU 遥测、真实快照进度与保守 ETA 的只读测试
       test_kldce_recovery.py            # 逐项可行性预检、按标记率恢复与替代任务身份保护
       test_backlog_gpu_pool.py          # 动态 GPU 候选池、四卡上限与停派回归测试
+      test_diagnose_gradpu_encoder.py   # 训练集诊断隔离、固定预算和退化信号回归
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -1008,6 +1010,7 @@ scripts/
   prepare_survey_classical_image_revision.py # v3.2 仅新增传统方法图像单元与配方绑定
   monitor_survey_campaign.py              # 多批次只读看板、GPU 利用率与当前训练 ETA
   prepare_kldce_recovery.py               # 不改变配方的 KLDCE 失败批次预检与恢复计划
+  diagnose_gradpu_encoder.py              # GradPU 编码器初始化与饱和的非正式训练集诊断
 ```
 
 ## 7. CI/CD（`.github/`）

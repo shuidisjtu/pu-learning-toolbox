@@ -7,7 +7,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox.estimators.deep.vision import build_encoder
+from pu_toolbox.estimators.deep.vision import build_encoder, build_wconpu_backbone
 
 
 @pytest.mark.unit
@@ -65,3 +65,28 @@ class TestBuildEncoderDeterministic:
             xa = a(inputs)
             xb = b(inputs)
         np.testing.assert_allclose(xa.numpy(), xb.numpy(), rtol=1e-6, atol=1e-6)
+
+    def test_determ_relu_gain_preserves_seed_draws_and_exact_legacy_default(self):
+        options = dict(
+            in_channels=1, base_channels=2, normalization_mean=(0.0,), normalization_std=(1.0,)
+        )
+        torch.manual_seed(11)
+        legacy = build_wconpu_backbone("cnn13_no_bn", **options)
+        state_after_legacy = torch.random.get_rng_state()
+        torch.manual_seed(11)
+        candidate = build_wconpu_backbone("cnn13_no_bn", initialization="relu_gain", **options)
+        assert torch.equal(state_after_legacy, torch.random.get_rng_state())
+        for original, modified in zip(legacy.parameters(), candidate.parameters(), strict=True):
+            torch.testing.assert_close(modified, original * (6**0.5), rtol=0, atol=0)
+        torch.manual_seed(11)
+        explicit = build_wconpu_backbone("cnn13_no_bn", initialization="pytorch_default", **options)
+        for original, default in zip(legacy.parameters(), explicit.parameters(), strict=True):
+            torch.testing.assert_close(default, original, rtol=0, atol=0)
+
+    @pytest.mark.parametrize(
+        "name,init",
+        [("cnn13", "relu_gain"), ("resnet18", "relu_gain"), ("cnn13_no_bn", "automatic")],
+    )
+    def test_param_initialization_rejects_unrelated_backbones(self, name, init):
+        with pytest.raises(ValueError, match="initialization"):
+            build_wconpu_backbone(name, initialization=init)

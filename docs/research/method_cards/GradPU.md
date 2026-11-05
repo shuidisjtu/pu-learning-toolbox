@@ -2,6 +2,31 @@
 
 > 参数签名以 [API 参考](../../user/reference/api.md) 为准。本卡记录论文目标、工程实现和复现边界；当前接入不表示 Survey P3.2 验收完成。
 
+2026-11-04 D56 候选修正：`build_wconpu_backbone` 对 `cnn13_no_bn` 新增显式
+`initialization="relu_gain"`（默认仍 `pytorch_default`）；将同 seed 的原 Conv 权重乘
+sqrt(6)，从 PyTorch 默认初始化方差改为 ReLU fan-in 方差，不增加 RNG 抽样，不增加 BN。
+原因是原 13 层 no-BN 堆叠的弱信号与 Adam 耦合 L2 项共同造成退化；这不是已核实的
+原论文初始化。候选工厂 `gradpu_initialization` 记录不同初始化身份/权重摘要，冻结
+runner 不传该参数，旧默认、协议、注册表与训练配方不变。初始化修正本身不保证稳定：
+ADNI 短测提示原 lr=1e-3 仍可能使 tanh 饱和，lr=1e-4 仅为待验证候选。
+
+安装项目依赖后，在仓库根可用 `python -m scripts.diagnose_gradpu_encoder
+--train-file <split>/train.npz --dataset cifar10
+--output <new-directory> --seed 0 --seed 1 --seed 2` 进行训练集诊断：默认每 seed
+128 个分层训练样本、batch=32，保留名义 200 epoch 的 beta 日程，只观察前 5 epoch。
+固定比较原初始化/原学习率、ReLU 增益/原学习率、ReLU 增益/lr=1e-4，记录特征方差、
+score 方差与饱和比例；不读取 validation/test，不自动挑选赢家，不修改或恢复正式队列。
+诊断配置、行号、输入摘要、实际 backbone 与逐轮记录单独输出，明确非正式结果。
+本轮 CIFAR 真实训练集短测（split_0、初始化/子集 seeds 0/1/2，各 128 行）均复现
+原配置退化：第 5 epoch feature std 为约 1.25e-14–1.91e-14。ReLU 增益/原学习率
+的 score std 为 0.263–0.384，增益/lr=1e-4 为 0.466–0.865。这里只说明区分信号
+得以保留，不是 accuracy 提升、跨 split 的正式多 seed 结果或 200 epoch 稳定性证明。
+ADNI 替代数据槽位也完成同一 split_0 上 3 个初始化/子集 seed 的诊断（各 8 张训练图、
+原生 128×128、完整宽度 CNN13、batch=4、5 epoch）。原配置末轮 score std 为
+0–7.45e-9；仅改初始化有 seed 在中途完全饱和。增益/lr=1e-4 的末轮 score std 为
+0.0171–0.274，固定训练探针在这 5 轮内未完全饱和。小样本短测不能批准新正式配方；
+仍需完整预算、非退化 joint/split 轨迹和独立验证指标对照，54 项图像待跑保持隔离。
+
 2026-11-04 执行策略边界补齐：PR #162 的 split/chunk 默认模型为确定性的逐样本网络，
 但原校验只排除了 BatchNorm。注入 Dropout 的 CPU 两轮反例中，joint 与 chunk=3
 的参数最大差为 0.0038243，不能套用确定性模型的等价测试结论。因此启用 GP 分块且

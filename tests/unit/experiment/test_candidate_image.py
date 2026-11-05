@@ -89,6 +89,28 @@ def test_basic_gradpu_private_backbone_metadata_and_real_raw_image_fit():
     assert np.isfinite(estimator.decision_function(features)).all()
 
 
+def test_determ_gradpu_candidate_initialization_is_explicit_and_changes_identity():
+    _, spec = preprocessing()
+    legacy, old = build_candidate_image_classifier("gradpu", spec, seed=2)
+    candidate, new = build_candidate_image_classifier(
+        "gradpu", spec, seed=2, gradpu_initialization="relu_gain"
+    )
+    _, repeated = build_candidate_image_classifier(
+        "gradpu", spec, seed=2, gradpu_initialization="relu_gain"
+    )
+    assert new == repeated and not new["formal_admission"]
+    assert old["image_preprocessing"]["backbone"]["initialization"] == "random"
+    assert (
+        new["image_preprocessing"]["backbone"]["initialization"] == "relu_gain_from_pytorch_default"
+    )
+    assert new["encoder_initial_state_sha256"] != old["encoder_initial_state_sha256"]
+    assert legacy.learning_rate == candidate.learning_rate == 0.001
+    with pytest.raises(ValueError, match="only applicable"):
+        build_candidate_image_classifier("pan", spec, seed=2, gradpu_initialization="relu_gain")
+    with pytest.raises(ValueError, match="gradpu_initialization"):
+        build_candidate_image_classifier("gradpu", spec, seed=2, gradpu_initialization="auto")
+
+
 @pytest.mark.parametrize("seed", [True, -1, 2**32, 0.5, None])
 def test_param_invalid_initialization_seed_is_rejected(seed):
     _, spec = preprocessing()

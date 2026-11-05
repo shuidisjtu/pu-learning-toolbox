@@ -106,8 +106,9 @@ def build_plan(
 ):
     """Account for named live QP arrays; omitted temporaries make this a lower bound.
 
-    Gram dtype is caller-declared, not measured. The float64 QP blocks derive
-    from the core's float64 y_tilde and Q allocation. A below-cap payload is NOT
+    The core now fills the single float64 Q in 1024-row blocks, so Q is the only
+    named dense QP array at return; those block temporaries are excluded. Gram
+    dtype is caller-declared, not measured. A below-cap payload is NOT
     evidence that the fit is safe: previous QP matrices, solver/eigh copies,
     inputs, Python/BLAS state and kernel temporaries are deliberately excluded.
     """
@@ -137,10 +138,6 @@ def build_plan(
     n, u = n_positive + n_unlabeled, n_unlabeled
     dual = n + u
     blocks = {
-        "yy": {"shape": [n, n], "bytes": 8 * n * n},
-        "Q_alpha_alpha": {"shape": [n, n], "bytes": 8 * n * n},
-        "Q_alpha_gamma": {"shape": [n, u], "bytes": 8 * n * u},
-        "Q_gamma_gamma": {"shape": [u, u], "bytes": 8 * u * u},
         "Q": {"shape": [dual, dual], "bytes": 8 * dual * dual},
     }
     named_qp = sum(block["bytes"] for block in blocks.values())
@@ -193,6 +190,7 @@ def build_plan(
             "covariance_matrices_and_decomposition",
             "previous_iteration_Q_while_building_next_Q",
             "RBF_temporaries",
+            "QP_block_temporaries",
             "solver_and_eigh_copies",
             "extra_covariance_ridge_copy",
             "vectors_and_centroid_kernels",

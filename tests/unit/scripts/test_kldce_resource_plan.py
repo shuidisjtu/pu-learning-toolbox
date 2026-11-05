@@ -27,8 +27,8 @@ def test_basic_determ_read_only_default_budget_and_named_array_arithmetic(tmp_pa
     assert planned == plan(prediction_rows=7)
     assert planned["training_gram_shape"] == [10, 10]
     assert planned["qp_float64_named_blocks"]["Q"]["shape"] == [16, 16]
-    assert planned["qp_named_array_payload_bytes"] == 8 * (100 + 100 + 60 + 36 + 256)
-    assert planned["known_simultaneous_gram_and_qp_payload_bytes"] == 5216
+    assert planned["qp_named_array_payload_bytes"] == 8 * 256
+    assert planned["known_simultaneous_gram_and_qp_payload_bytes"] == 2848
     assert planned["prediction_gram_payload_bytes"] == 7 * 10 * 8
     assert planned["covariance_single_matrix_payload_bytes"] == 3 * 3 * 8
     assert planned["max_acs_iter"] == 50 and planned["max_inner_iter"] == 2000
