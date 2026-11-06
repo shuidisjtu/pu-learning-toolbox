@@ -657,6 +657,8 @@ tests/
     test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
     test_classical_candidate_runner.py  # PUET/RP 四角色 PA/OA 与无伪 epoch 成本导出
     test_diy_experiment_example.py      # DIY 示例的预测、预处理与测试标签隔离
+    test_custom_encoder_example.py      # CNN/冻结特征示例、初始化隔离与保存加载
+    test_sar_policy_example.py          # SAR 示例的 Bernoulli/定额政策、计数与来源
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -730,6 +732,8 @@ examples/
     14_diy_experiment.py      (四角色实验与三类策略扩展示例)
     15_pu_sampling.py         (同一目标总体的 OS/独立 TS 配对构造与先验计数)
     16_prior_targets.py       (known/estimated 先验在 OS/TS 报告与训练中的目标换算)
+    17_sar_policies.py        (同池 Bernoulli 与 LBE-A/B 定额策略及评分来源)
+    18_custom_encoders.py     (nnPU encoder 注入、冻结特征 uPU 与保存加载)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）
@@ -860,6 +864,7 @@ docs/
       distribution_shift.md               # 分布漂移审计与协变量加权适配
       model_tuning.md                     # 模型参数与 PU-aware 网格搜索
       custom_experiments.md               # 四角色实验 API 与策略扩展教程
+      custom_encoders.md                  # encoder 注入、共享骨干与冻结特征教程
       ui.md                               # 图形界面安装与使用
       using_skill.md                      # 启用与使用 pu-workflow Skill
       pu_sampling.md                      # 同池定额与独立 TS 构造、元数据及入口迁移

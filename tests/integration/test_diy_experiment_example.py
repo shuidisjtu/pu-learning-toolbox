@@ -34,6 +34,7 @@ def test_basic_param_selected_predictions_match_report_and_preserve_train_scalin
             np.testing.assert_allclose(predictor.named_steps["scale"].mean_, bundle.train.X.mean(0))
         for role in ("train", "pu_val"):
             assert result.manifest["generation"][role]["policy_id"] == "diy-scar-v1"
+    assert result.manifest["calibration_applied"] is True
 
 
 @pytest.mark.parametrize("custom", [False, True], ids=["built-in", "custom"])
@@ -52,3 +53,27 @@ def test_edge_determ_test_truth_changes_metrics_without_changing_selection(demo,
         assert second.test_metrics[name]["accuracy"] == pytest.approx(
             1 - first.test_metrics[name]["accuracy"]
         )
+
+
+def test_basic_fixed_candidates_have_independent_hand_computed_optima(demo):
+    records = demo["run_fixed_selection_case"]()
+    assert records["PA"]["run_index"] == 0
+    assert records["OA"]["run_index"] == 1
+    assert records["PA"]["metrics"]["val_proxy_accuracy"] == 1.5
+    assert records["OA"]["metrics"]["val_accuracy"] == 1.0
+    for record in records.values():
+        assert record["threshold"] == 0.5
+        assert record["checkpoint_index"] is None
+        assert record["epoch"] is None
+    assert records["PA"]["test_accuracy"] == 0.0
+    assert records["OA"]["test_accuracy"] == 1.0
+
+
+def test_determ_edge_fixed_selection_is_independent_of_test_truth(demo):
+    first = demo["run_fixed_selection_case"]()
+    second = demo["run_fixed_selection_case"](test_labels=np.array([0, 1]))
+    for name, record in first.items():
+        assert second[name]["test_accuracy"] == 1 - record["test_accuracy"]
+        assert {key: value for key, value in record.items() if key != "test_accuracy"} == {
+            key: value for key, value in second[name].items() if key != "test_accuracy"
+        }

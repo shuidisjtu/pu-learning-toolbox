@@ -24,6 +24,7 @@ howto（操作）/ reference（契约），按阅读路径组织：
    | 使用命令行接口 | [howto/cli.md](howto/cli.md) |
    | 调整模型与搜索超参数 | [howto/model_tuning.md](howto/model_tuning.md) |
    | 定制四角色实验与扩展策略 | [howto/custom_experiments.md](howto/custom_experiments.md) |
+   | 注入 encoder 与冻结特征 | [howto/custom_encoders.md](howto/custom_encoders.md) |
    | 使用图形界面 | [howto/ui.md](howto/ui.md) |
    | 生成诊断报告 | [howto/diagnostic_reports.md](howto/diagnostic_reports.md) |
    | 类先验与标记倾向敏感性分析 | [howto/sensitivity_analysis.md](howto/sensitivity_analysis.md) |
@@ -43,6 +44,8 @@ howto（操作）/ reference（契约），按阅读路径组织：
 [表征](concepts/representations.md)，再运行[四角色 DIY 示例](howto/custom_experiments.md)。
 采样操作见[OS/TS 教程](howto/pu_sampling.md)与[示例 15](../../examples/minimal/15_pu_sampling.py)。
 先验传递见[示例 16](../../examples/minimal/16_prior_targets.py)与[Pipeline 指南](howto/pipeline.md)。
-encoder 完整教程按[实施进度](../dev/process_checklist.md)继续推进。
+SAR 政策对照见[示例 17](../../examples/minimal/17_sar_policies.py)；
+encoder 注入与冻结特征见[完整教程](howto/custom_encoders.md)和
+[示例 18](../../examples/minimal/18_custom_encoders.py)。
 
 开发者与贡献者文档见 [docs/README.md](../README.md) 的开发者栏。

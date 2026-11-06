@@ -8,7 +8,8 @@
 研究设置的原理分别见[输入采样与风险池](../concepts/pu_sampling.md)、
 [标记政策](../concepts/scar_sar.md)、[先验目标](../concepts/class_prior_semantics.md)、
 [PA/OA](../concepts/pu_model_selection.md)与[表征路径](../concepts/representations.md)。
-本教程使用 OS 输入；历史 `os_or_ts="ts"` 是训练风险池适配，不会重建独立 TS 数据。
+本教程使用 OS 输入，uPU 显式配置 `os_or_ts="ts"`，以完整 OS 池估计边际风险项，
+消费总体先验。历史参数在这里描述训练风险池适配；输入来源按 OS 记录。
 
 ## 1. 先运行完整示例
 
@@ -75,7 +76,7 @@ for start, stop in ((0, 300), (300, 400), (400, 500), (500, 600)):
 runner = ExperimentRunner(
     seed=7,
     class_prior=0.5,
-    config={"c": 0.4, "trainer": FitTrainer()},
+    config={"c": 0.4, "trainer": FitTrainer(), "os_or_ts": "ts"},
 )
 result = runner.fit(
     UPUClassifier(class_prior=0.5, fit_intercept=False),
@@ -100,6 +101,7 @@ runner = ExperimentRunner(
     manifest_path="tmp/my-experiment.json",
     config={
         "c": 0.4,
+        "os_or_ts": "ts",
         "trainer": FitTrainer(),
         "candidates": [{"reg_lambda": value} for value in (0.001, 0.01, 0.1)],
         "split_ref": {"dataset": "my_dataset", "split_seed": 7},
@@ -123,6 +125,11 @@ runner = ExperimentRunner(
 | `config["split_ref"]` | 数据来源与划分说明；应记录实际数据版本和索引身份 |
 | `config["os_or_ts"]` | 请求估计器支持的训练风险视图；省略时沿用估计器默认行为 |
 | `config["architecture"]` | 显式声明 `"mlp"` 或 `"cnn"`，用于能力校验 |
+
+Runner 将总体 `class_prior` 交给 Trainer；内置 `FitTrainer` 按估计器签名转发。
+本例 uPU 的完整 OS 风险池消费总体值 0.5。改用默认原生 U 风险时，自定义 Trainer
+通过 `population_to_native_unlabeled(population_prior, mean(y_pu))` 换算本训练分区的先验，
+再传给 `fit`；[示例 18](../../../examples/minimal/18_custom_encoders.py)展示该换算。
 
 新模型需支持 sklearn 的克隆与参数接口，声明 `label_semantics="pu"` 和实际输入能力，
 并由 `decision_function(X)` 返回逐样本有限分数。完整数据、模型和轨迹契约见
@@ -227,6 +234,27 @@ class FixedThresholdPA(SelectionProtocol):
 自行定义阈值与分数变换时，把验证侧的 `val_score_min` 和 `val_score_scale` 保存在
 `artifact.metrics`，runner 在最终评测时复用它们。
 
+### 6.1 手算 PA/OA 的独立选择
+
+```powershell
+uv run python examples/minimal/14_diy_experiment.py --fixed-selection
+```
+
+这条路径复用内置选择协议，比较两个固定单点候选：A 使用第一列分数，B 使用第二列分数。
+PU 验证输入为 `[[1,0],[0,1]]`、PU 标签为 `[1,0]`；clean 验证输入为
+`[[0,1],[1,0]]`、真实标签为 `[1,0]`。阈值网格为 `[0,0.5,1]`，总体先验为 0.5。
+
+| 协议 | 所选候选 | 阈值 | 验证准则值 | 独立 test Accuracy |
+|---|---|---:|---:|---:|
+| PA | A（编号 0） | 0.5 | 1.5 | 0 |
+| OA | B（编号 1） | 0.5 | 1 | 1 |
+
+test 使用与 clean 验证相同的特征值与独立样本身份；评测标签在选择完成后读取。
+固定单点模型的 `epoch` 与 `checkpoint_index` 记录为 `None`。
+真实逐 epoch 模型通过 `EpochCheckpointTrainer` 保存轨迹，再由两个协议分别选择快照；
+快照引用契约见 [API 参考](../reference/api.md#实验层experiment)。
+PA 的分数含总体先验常数项，含义和公式见[选模概念](../concepts/pu_model_selection.md)。
+
 ## 7. 读取结果并继续预测
 
 ```python
@@ -245,7 +273,24 @@ print(result.manifest["selection"]["OA"]["candidate_index"])
 完整示例的 `predict_selected(result, name, X_new)` 封装了这一过程。
 这使后续预测与报告中的分类规则一致。
 
-## 8. 下一步
+## 8. 逐个替换研究组件
+
+从固定 split、seed 和已知总体先验开始，每次替换一个组件，按以下顺序检查结果：
+
+| 组件 | 最小替换方式 | 检查的输出 |
+|---|---|---|
+| 数据与采样 | 替换四份 `DatasetPart`；OS/独立 TS 构造见示例 15 | 来源索引、角色、总体与 U 先验 |
+| Generator | SCAR 换成 LBE-A/B，SAR 路径选 OA | 公式版本、请求/实际数量、标签哈希，见示例 17 |
+| 先验与模型 | 固定总体值或独立估计值；按 Trainer 风险目标传参 | 估计来源、训练实际消费，见示例 16、18 |
+| Trainer | 注入 `ScaledFitTrainer` 或自己的循环 | train 拟合统计、轨迹、成本与 checkpoint |
+| SelectionProtocol | 标准 PA 换成 `FixedThresholdPA` | 独立候选/快照/阈值及验证变换 |
+| 表征 | 注入 encoder 或先冻结抽特征 | 初始化、训练范围与表示身份，见[encoder 教程](custom_encoders.md) |
+
+完整示例的 `basic` 和 `custom` 保留同一总体、split、采样政策、训练风险池和候选预算，
+展示生成器、标准化训练器与选择策略的注入。manifest 保存 split_ref、生成记录、
+候选参数、风险视图、独立选择及 test 指标，可用于重建本次设置。
+
+## 9. 下一步
 
 - 使用自己的数据替换四份 `DatasetPart`，保留全局索引与 train-only 预处理。
 - 从候选参数字典开始调整，再按需要替换生成器、训练器或选择策略。

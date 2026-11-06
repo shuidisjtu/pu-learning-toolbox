@@ -367,3 +367,33 @@ uv run python examples/minimal/15_pu_sampling.py --seed 7
 共享实现专项 281 个用例全部通过；调用方专项 78 个用例全部通过，覆盖随机源、Runner、Survey SCAR/SAR
 脚本和 Pipeline 的训练消费。采样示例的计数、经验先验和来源身份与 S1/S2 记录一致。
 格式、测试质量、文档链接、生成目录、层依赖、注释质量及 `git diff --check` 通过。
+
+## 12. P4 组合示例与教程验证记录
+
+E1/E3 沿用示例 15/16。E2 由示例 17 在同一 OS 池对照 linear/nonlinear Bernoulli
+与 LBE-A/B 定额抽样；seed=7、160 个真正例、请求标记率 0.4 时，实际计数为
+63、61、64、64，并记录机制参数、评分来源与标签哈希。
+E4 在示例 14 的 `--fixed-selection` 路径中使用两个固定单点候选，
+PA 选择 A、阈值 0.5、准则值 1.5，OA 选择 B、阈值 0.5、验证 Accuracy 1；
+改变 test 标签后选择记录相同。
+
+E5 的示例 18 使用相同初始化模板运行 nnPU 端到端 CNN 和冻结特征 uPU。
+OS 总体先验 0.5、标记比例 0.25，对应实际训练先验 1/3。回归核对模板不变、
+拟合副本更新、四角色来源保留及 CPU 模型 pickle 预测一致。
+默认 tiny 路径实际训练两轮；共享 CNN13-no-BN/ResNet18 工厂均实际前向验证，
+完整骨干训练通过命令行选项运行。
+E6 的示例 14 保留完整三策略注入，uPU 显式使用完整 OS 风险池并消费总体先验。
+
+```powershell
+uv run pytest tests/integration/test_diy_experiment_example.py tests/integration/test_sar_policy_example.py tests/integration/test_custom_encoder_example.py tests/unit/experiment/test_checkpoint_selection.py -o addopts='--tb=short' -q --maxfail=5 --junitxml=tmp/pu-research-p4-examples.xml
+uv run python examples/minimal/14_diy_experiment.py
+uv run python examples/minimal/14_diy_experiment.py --fixed-selection
+uv run python examples/minimal/17_sar_policies.py
+uv run python examples/minimal/18_custom_encoders.py --output-dir tmp/pu-research-p4-encoder-output
+uv run python tmp/verify_pu_research_p4_docs.py
+```
+
+31 个用例全部通过。encoder 教程 5 段 Python 片段与 DIY 完整片段实际执行通过；
+输出目录中的模型、冻结 encoder/分类器组合及设置文件实际生成。
+格式、测试质量、文档链接、API 覆盖和生成目录检查通过。
+概念、用户入口和文档总导航已连接到新增教程与示例。

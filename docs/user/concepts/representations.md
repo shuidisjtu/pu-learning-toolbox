@@ -56,7 +56,8 @@ assert model_class.encoder_parameter == "encoder"
 assert model_class.trains_encoder
 ```
 
-精确签名见 [API 参考](../reference/api.md)，encoder 注入和保存加载的完整教程为后续工作包。
+精确签名见 [API 参考](../reference/api.md)，注入、共享骨干替换和保存加载见
+[encoder 教程](../howto/custom_encoders.md)与[示例 18](../../../examples/minimal/18_custom_encoders.py)。
 
 ## 4. 冻结特征与数据隔离
 
