@@ -1,5 +1,8 @@
 # 运行实验与生成报告
 
+本文介绍官方 Survey 示例脚本的操作流程。直接调用 `ExperimentRunner`、准备四路数据及
+扩展生成器、训练器和选模策略，见 [DIY 实验教程](../../user/howto/custom_experiments.md)。
+
 在仓库根目录执行命令，使用 Python 3.11：
 
 ```powershell
@@ -30,7 +33,7 @@ uv run python scripts/prepare_clean_support.py --dataset spambase --seed 0 --sup
 
 support 与其他四角色互斥。Spambase 使用 100 个，Connect-4/MNIST/F-MNIST/CIFAR-10 使用 500 个；输出目录须尚不存在。去掉 `--write` 可预览。
 
-## 执行与 DIY
+## 执行官方示例
 
 校验当前配方：
 
@@ -59,7 +62,7 @@ uv run python scripts/run_survey_pilot.py --protocol survey-v3.2 --recipe-regist
 
 批量运行共享代码/依赖凭证放在 `<results>/batch_evidence`，manifest 引用该文件；单单元入口直接记录身份。迁移结果时一并保存共享凭证和所选权重，结果读取不要求原机器的绝对路径存在。
 
-DIY 可直接使用 Python API，注入 generator/trainer/selection protocols；不传 `survey_protocol` 时无需内置 Survey 配置。签名和扩展例子见[实验层设计](../../dev/experiment_layer.md)及[API](../../user/reference/api.md)。
+Python 接口的四路数据构造、参数调整和策略扩展示例见 [DIY 实验教程](../../user/howto/custom_experiments.md)，精确签名见 [API 参考](../../user/reference/api.md#四角色运行与策略注入)。
 
 ## 汇总结果与导出
 

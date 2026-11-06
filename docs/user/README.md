@@ -18,6 +18,7 @@ howto（操作）/ reference（契约），按阅读路径组织：
    | PUPipeline 端到端训练评估 | [howto/pipeline.md](howto/pipeline.md) |
    | 使用命令行接口 | [howto/cli.md](howto/cli.md) |
    | 调整模型与搜索超参数 | [howto/model_tuning.md](howto/model_tuning.md) |
+   | 定制四角色实验与扩展策略 | [howto/custom_experiments.md](howto/custom_experiments.md) |
    | 使用图形界面 | [howto/ui.md](howto/ui.md) |
    | 生成诊断报告 | [howto/diagnostic_reports.md](howto/diagnostic_reports.md) |
    | 类先验与标记倾向敏感性分析 | [howto/sensitivity_analysis.md](howto/sensitivity_analysis.md) |

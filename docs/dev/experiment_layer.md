@@ -4,6 +4,8 @@
 > §2.4（四份数据角色与 PA/OA 双协议）；当前能力与实验状态见
 > [Survey README](../research/pu_survey/README.md)。
 
+使用接口和编写自定义策略，见面向使用者的 [DIY 实验教程](../user/howto/custom_experiments.md)。
+
 实验层是面向研究者/实验用户的公共 API 层，补齐 `PUPipeline` 缺失的「数据角色声明 + 显式模型选择协议」。
 本文档只记本层**独有的设计机制**（D1–D5 各决策如何实现、为何这样设计、如何扩展使用）。
 分层位置与数据流见 [architecture.md](architecture.md) §Experiment 与 §3.1；

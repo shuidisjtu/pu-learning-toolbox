@@ -17,6 +17,7 @@
 | 操作 | [user/howto/pipeline.md](user/howto/pipeline.md) | PUPipeline 端到端训练评估 |
 | 操作 | [user/howto/cli.md](user/howto/cli.md) | 命令行接口 |
 | 操作 | [user/howto/model_tuning.md](user/howto/model_tuning.md) | 模型参数与 PU-aware 网格搜索 |
+| 操作 | [user/howto/custom_experiments.md](user/howto/custom_experiments.md) | 四角色实验 API、参数调整与策略扩展示例 |
 | 操作 | [user/howto/ui.md](user/howto/ui.md) | 图形界面安装与使用 |
 | 操作 | [user/howto/data_profiling.md](user/howto/data_profiling.md) | 数据画像与假设提示 |
 | 操作 | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | 生成诊断报告 |

@@ -650,6 +650,7 @@ tests/
     test_p3mix_pipeline_cnn.py          # 三变体真实卷积CV及四角色checkpoint选模回收
     test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
     test_classical_candidate_runner.py  # PUET/RP 四角色 PA/OA 与无伪 epoch 成本导出
+    test_diy_experiment_example.py       # DIY 示例的预测、预处理与测试标签隔离
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -720,6 +721,7 @@ examples/
     11_distribution_shift.py (源/目标漂移审计与受保护的协变量加权适配)
     12_shift_decision_tools.py (配对决策、窗口监控、双域假设与主动复核)
     13_dynamic_joint_shift.py (论文式动态联合漂移 research 求解器)
+    14_diy_experiment.py      (四角色实验与三类策略扩展示例)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）
@@ -845,6 +847,7 @@ docs/
       self_pu.md                          # Self-PU 训练
       distribution_shift.md               # 分布漂移审计与协变量加权适配
       model_tuning.md                     # 模型参数与 PU-aware 网格搜索
+      custom_experiments.md               # 四角色实验 API 与策略扩展教程
       ui.md                               # 图形界面安装与使用
       using_skill.md                      # 启用与使用 pu-workflow Skill
     reference/

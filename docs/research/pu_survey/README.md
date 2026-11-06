@@ -1,6 +1,6 @@
 # PU Survey
 
-工具箱提供可复用的实验运行与结果报告能力。科学设置见[实验协议](pu_survey_protocol.md)，实际操作见[运行指南](runbook.md)，公共 API 见[实验层设计](../../dev/experiment_layer.md)。
+工具箱提供可复用的实验运行与结果报告能力。科学设置见[实验协议](pu_survey_protocol.md)，官方示例脚本的操作流程见[运行指南](runbook.md)，Python 接口的调用与扩展示例见 [DIY 实验教程](../../user/howto/custom_experiments.md)。
 
 ## 交付物与完成定义
 
@@ -13,10 +13,10 @@
 
 **B. 代码功能**
 
-- `ExperimentRunner.fit(model, train, pu_val, clean_val, test)`：四角色隔离、PA/OA 独立选模与独立测试。
-- 可注入数据生成器、训练器和选模策略；DIY 实验无需读取内置 Survey 配置。
+- `ExperimentRunner.fit(model, train, pu_val, clean_val, test)`：四角色隔离、PA/OA 独立选模与独立测试，见 [DIY 实验教程](../../user/howto/custom_experiments.md#2-准备四路数据)。
+- 可注入数据生成器、训练器和选模策略；DIY 实验无需读取内置 Survey 配置，见[策略扩展与完整 demo](../../user/howto/custom_experiments.md#1-先运行完整示例)。
 - 官方入口读取用户准备的四路数据，记录候选轨迹、选择记录、所选权重与指标。
-- 批量入口按数据集、方法与训练路径规划范围，续跑时核对视图、profile、配方与 split 身份；命令见[运行指南](runbook.md#执行与-diy)。
+- 批量入口按数据集、方法与训练路径规划范围，续跑时核对视图、profile、配方与 split 身份；命令见[运行指南](runbook.md#执行官方示例)。
 - PN oracle 与 PU 对照共享 split、表征和预算，仅使用 OA。
 - 保存 seed、实际配置、split/视图/先验语义、环境与代码/依赖身份，支持从数据到报告的完整命令链。
 

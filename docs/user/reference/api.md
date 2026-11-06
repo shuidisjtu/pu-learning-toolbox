@@ -1783,6 +1783,39 @@ JSON 严格编码（未定义值转 `null`）。
 
 ## 实验层（experiment）
 
+### 四角色运行与策略注入
+
+上手流程与生成器、训练器、选模策略的扩展示例见
+[DIY 实验教程](../howto/custom_experiments.md)，可运行源码为
+[14_diy_experiment.py](../../../examples/minimal/14_diy_experiment.py)。
+
+```python
+ExperimentRunner(
+    *, seed=0, generator=None, protocols=None, class_prior=None,
+    threshold_candidates=None, manifest_path=None, config=None,
+)
+runner.fit(model, train, pu_val, clean_val, test) -> RunResult
+```
+
+`train`、`pu_val`、`clean_val`、`test` 均为 `view="clean"` 的 `DatasetPart`，
+输入真实 0/1 标签与互不重叠的全局样本索引；test 设置 `for_selection=False`。
+默认生成器为 `SCARGenerator()`，默认选模策略为 `[ProtocolPA(), ProtocolOA()]`。
+`generator` 和 `protocols` 接受策略实例；训练器经 `config["trainer"]` 注入实例，
+默认 `DeepFitTrainer()`。候选参数经 `config["candidates"]` 提供，默认 `[{}]`。
+总体先验由 `class_prior` 或 `config["split_ref"]["class_prior"]["population"]` 提供给 PA。
+
+扩展策略接口从 `pu_toolbox.experiment.protocols` 导入 `Generator`、`Trainer`、
+`SelectionProtocol`；轨迹和选择记录从 `pu_toolbox.experiment.tracking` 导入
+`EpochRecord`、`RunTrajectory`、`SelectionArtifact`、`RunResult`。
+普通自定义 selector 接收生成后的 pu_val；继承 `ProtocolOA` 的 selector 接收 clean_val。
+返回的 `SelectionArtifact.protocol` 须与策略 `name` 一致。
+
+`RunResult` 提供 `selections`、`test_metrics`、`manifest`、`failures`、`resources` 与
+`selected_models`。经典模型后续预测须复用所选阈值及验证侧分数变换；
+示例的 `predict_selected` 展示了完整过程。
+
+### 方法专用训练适配器
+
 2026-10-17 独立探索适配器（不改变 frozen Survey/Pipeline/CLI）：
 `pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` 将 CVIR 的显式 α_U/来源
 与 PA 总体 π 分开，拒绝校准 TS/SAR；`CVIRClassifier.input_sampling="ts"` 只表示

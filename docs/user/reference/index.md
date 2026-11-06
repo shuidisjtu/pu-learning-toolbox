@@ -37,9 +37,11 @@
 - [`analyze_pu_sensitivity`](api.md#analyze_pu_sensitivity) — 先验/标记倾向敏感性
 - [`build_diagnostic_report`](api.md#build_diagnostic_report) — 结构化诊断报告
 
-## 实验层（survey 研究者）
+## 实验层（研究者与实验用户）
 
 → [api.md §实验层](api.md#实验层experiment)
+
+上手与扩展示例见 [DIY 实验教程](../howto/custom_experiments.md)。
 
 - `ExperimentRunner`、`DatasetBundle`/`DatasetPart`、SCAR/SAR 生成器、PA/OA 选模协议、
   训练器、`prepare_survey_dataset` 等 34+ 符号
