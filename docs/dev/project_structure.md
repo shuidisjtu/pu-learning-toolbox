@@ -216,6 +216,7 @@ pu_toolbox/
     kernel_candidate.py                   KLDCE 先验策略、稠密内存/可行性预检与成本收据
     support_campaign.py                   # D53 独立纠正批次、完整预算 canary 与逐 fit 质量门禁
     survey_backlog.py                     # v3.1 项目配方训练、先验/阶段/资源核验
+    survey_conclusions.py                 # 结论分析: 按 §1.4.5 信号给结论归因，区分文献事实/本实验观测/推断；无信号、无证据或无来源的结论一律拒绝（纯函数）
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -567,7 +568,7 @@ tests/
       test_survey_workbook.py           # 工作簿版式: 行落哪一页、clean support 另列、LBE-A/B 分块、缺 seed 进 coverage、未知机制报错而非丢弃
       test_survey_diagnostics.py        # 诊断卡信号: 各信号何时标记与不标记、缺 seed 行不入信号、算不了的信号列明、渲染不称与论文一致
       test_survey_report_entry_protocol.py # 审计/汇总入口的协议默认: 不传 --protocol 即按 survey-v3.0 读，显式指定仍生效，未知文件报错而非静默回落
-      test_export_survey_results_cli.py # 导出入口端到端: 配置/summary.json 到工作簿与诊断卡、坏输入报错且不写半截文件
+      test_export_survey_results_cli.py # 导出入口端到端: 配置/summary.json 到工作簿、诊断卡与结论分析、坏输入报错且不写半截文件
       test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
       test_p3_feature_adapter_smoke.py  # P3 预集成方法的共享冻结特征工程 smoke
       test_p3_pulda_puet_runner_smoke.py # PULDA/PUET 四角色、TS 与 PA/OA 技术 smoke
@@ -650,6 +651,7 @@ tests/
       test_gradpu_offload_execution.py  # 显式暂存策略、冻结配方与结果路径隔离
       test_gradpu_split_execution.py    # GradPU split/chunk 的 CLI 记录、输出隔离与策略校验
       test_survey_classical_image.py    # PUET/RP 图像表示、版本隔离与完整树/折预算
+      test_survey_conclusions.py        # 结论层: 信号归因、三类区分、文献事实须来源、推断须引用观测、无标记不出结论、同输入同输出
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -977,7 +979,7 @@ scripts/
   audit_survey_batches.py                 # P2.2 批次审计入口: 按白名单根逐批出审计, 判不了的记 not_run 而非 pass, 只写 --out-dir
   prepare_survey_support_repair.py        # 只读 support 轨迹审计、新目录重跑命令与 CPU dry-run 清单
   summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
-  export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json（不重算任何数）
+  export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json + 结论分析 md/json（不重算任何数）
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)

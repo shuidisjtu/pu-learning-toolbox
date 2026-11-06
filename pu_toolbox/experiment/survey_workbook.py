@@ -19,6 +19,8 @@ layout, and the layout carries four rules:
   protocol keeps as a diagnostic log), go to ``diagnostic``.
 * **A row that fits no group is an error, not an omission.**  An unknown
   mechanism or selection protocol raises rather than vanishing from a delivery.
+* **The conclusions sheet is layout only.**  The exporter hands in finished
+  rows; this module never builds a conclusion or invents a signal.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ GROUP_SHEETS: tuple[str, ...] = ("SCAR-PA", "SCAR-OA", "SAR-OA", "PN-oracle")
 DIAGNOSTIC_SHEET = "diagnostic"
 COVERAGE_SHEET = "coverage"
 README_SHEET = "readme"
+CONCLUSIONS_SHEET = "conclusions"
 
 #: Statuses whose numbers may stand on a result sheet.  ``partial`` keeps its
 #: numbers but not the right to be ranked; everything else is explained on
@@ -82,6 +85,15 @@ _COVERAGE_COLUMNS: tuple[str, ...] = (
     "应有 seed 数",
     "缺失 seed",
     "reasons",
+)
+
+_CONCLUSION_COLUMNS: tuple[str, ...] = (
+    "结论ID",
+    "类别",
+    "方法",
+    "依据信号",
+    "结论",
+    "证据 / 来源 / 待查",
 )
 
 _README_NOTES: tuple[str, ...] = (
@@ -259,8 +271,14 @@ def _write_table(ws, openpyxl, columns: Sequence[str], blocks: Sequence[tuple[st
         ws.column_dimensions[column[0].column_letter].width = min(max(longest + 2, 8), 48)
 
 
-def build_workbook(report: Mapping[str, Any]):
-    """Lay *report* out as the delivery workbook and return it (nothing is saved)."""
+def build_workbook(
+    report: Mapping[str, Any], *, conclusions: Sequence[Sequence[Any]] | None = None
+):
+    """Lay *report* out as the delivery workbook and return it (nothing is saved).
+
+    *conclusions* are pre-rendered rows (id, kind, method, signals, statement,
+    evidence) so this module stays layout-only and never builds a conclusion.
+    """
     openpyxl = _require_openpyxl()
     costs = _costs(report)
 
@@ -305,12 +323,21 @@ def build_workbook(report: Mapping[str, Any]):
         _write_table(ws, openpyxl, _RESULT_COLUMNS, _ordered(filed[sheet]))
     ws = workbook.create_sheet(COVERAGE_SHEET)
     _write_table(ws, openpyxl, _COVERAGE_COLUMNS, _ordered(filed[COVERAGE_SHEET]))
+    ws = workbook.create_sheet(CONCLUSIONS_SHEET)
+    _write_table(
+        ws, openpyxl, _CONCLUSION_COLUMNS, [("", [list(row) for row in conclusions or ()])]
+    )
     return workbook
 
 
-def write_workbook(report: Mapping[str, Any], path: str | Path) -> Path:
+def write_workbook(
+    report: Mapping[str, Any],
+    path: str | Path,
+    *,
+    conclusions: Sequence[Sequence[Any]] | None = None,
+) -> Path:
     """Build the workbook and save it to *path*."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    build_workbook(report).save(target)
+    build_workbook(report, conclusions=conclusions).save(target)
     return target

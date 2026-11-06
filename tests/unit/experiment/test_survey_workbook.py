@@ -271,6 +271,18 @@ def test_determ_the_same_report_builds_the_same_cells():
         assert _cells(first, sheet) == _cells(second, sheet)
 
 
+def test_basic_the_conclusions_sheet_carries_the_rows_it_is_given_and_keeps_its_header():
+    row = ["obs:upu:c_sensitivity", "本实验观测", "upu", "c 敏感性", "语句", "证据"]
+    other = ["inf:upu:c_sensitivity", "推断", "upu", "c 敏感性", "语句", "依据"]
+
+    filled = _cells(build_workbook(_report(_row()), conclusions=[row, other]), "conclusions")
+    empty = _cells(build_workbook(_report(_row())), "conclusions")
+
+    assert filled[-2:] == [row, other]
+    assert filled[0][0] == "结论ID"
+    assert len(empty) == 1 and empty[0][0] == "结论ID"
+
+
 def test_edge_an_empty_report_still_builds_every_sheet():
     workbook = build_workbook(_report())
 

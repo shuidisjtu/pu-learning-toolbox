@@ -2,12 +2,12 @@
 
 # ruff: noqa: F811, S101
 
-"""The export entry point end to end: a batch tree in, a workbook and cards out.
+"""The export entry point end to end: a batch tree in, the delivery files out.
 
-The layout and the signals are pinned by their own suites; what these add is the
-wiring -- that one command goes from a batch config to the three files, that a
-finished ``summary.json`` goes through the same path, and that a bad input is an
-error rather than an empty delivery.
+The layout, the signals and the conclusions are pinned by their own suites; what
+these add is the wiring -- that one command goes from a batch config to every
+delivery file, that a finished ``summary.json`` goes through the same path, and
+that a bad input is an error rather than an empty delivery.
 """
 
 import importlib
@@ -55,7 +55,7 @@ def _config(tmp_path):
     return write_config(tmp_path / "roots.json", config_for({"B1": (tree, len(_grid()))}))
 
 
-def test_basic_one_command_goes_from_a_batch_config_to_the_three_deliverables(
+def test_basic_one_command_goes_from_a_batch_config_to_every_delivery_file(
     export_cli, tmp_path, capsys
 ):
     out = tmp_path / "out"
@@ -70,6 +70,9 @@ def test_basic_one_command_goes_from_a_batch_config_to_the_three_deliverables(
     cards = json.loads((out / "diagnostic_cards.json").read_text(encoding="utf-8"))
     assert "nnpu" in cards
     assert (out / "summary.json").is_file()
+    conclusions = json.loads((out / "conclusions.json").read_text(encoding="utf-8"))
+    assert conclusions["conclusions"]
+    assert (out / "conclusions.md").is_file()
 
 
 def test_basic_the_workbook_it_writes_reads_back_with_the_four_group_sheets(export_cli, tmp_path):
@@ -107,6 +110,46 @@ def test_basic_a_finished_summary_json_exports_the_same_way(export_cli, summary_
     assert code == 0
     assert (out / "survey_results.xlsx").is_file()
     assert not (out / "summary.json").exists()
+
+
+def test_basic_registered_literature_facts_reach_the_conclusions_file(export_cli, tmp_path):
+    literature = tmp_path / "literature.json"
+    literature.write_text(
+        json.dumps(
+            {
+                "facts": [
+                    {
+                        "fact_id": "f1",
+                        "method": "nnpu",
+                        "statement": "论文报告该方法在 mnist 上较好。",
+                        "signals": ["c_sensitivity"],
+                        "source": "Wang et al. 2026, Table 3",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "out"
+
+    code = export_cli.main(
+        [
+            "--config",
+            str(_config(tmp_path)),
+            "--out-dir",
+            str(out),
+            "--protocol",
+            "survey-v2.0",
+            "--literature",
+            str(literature),
+        ]
+    )
+
+    assert code == 0
+    bundle = json.loads((out / "conclusions.json").read_text(encoding="utf-8"))
+    facts = [item for item in bundle["conclusions"] if item["kind"] == "文献事实"]
+    assert facts and facts[0]["source"].startswith("Wang et al.")
+    assert "文献事实" in (out / "conclusions.md").read_text(encoding="utf-8")
 
 
 def test_param_exactly_one_input_is_required(export_cli, tmp_path):
@@ -171,5 +214,6 @@ def test_determ_exporting_the_same_summary_twice_gives_identical_cards(
     summary = str(summary_dir / "summary.json")
     export_cli.main(["--summary", summary, "--out-dir", str(tmp_path / "a")])
     export_cli.main(["--summary", summary, "--out-dir", str(tmp_path / "b")])
-    for name in ("diagnostic_cards.json", "diagnostic_cards.md"):
+    names = ("diagnostic_cards.json", "diagnostic_cards.md", "conclusions.json", "conclusions.md")
+    for name in names:
         assert (tmp_path / "a" / name).read_bytes() == (tmp_path / "b" / name).read_bytes()
