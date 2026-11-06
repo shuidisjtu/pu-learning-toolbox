@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .bundle import split_indices_digest
 from .resources import (
     DEFAULT_CHECKPOINT_ATTEMPTS,
     checkpoint_disk_requirement,
@@ -480,7 +481,11 @@ def split_digests(
             payload.get("seed"),
             payload.get("indices_sha256"),
         )
-        if isinstance(dataset, str) and isinstance(seed, int) and isinstance(digest, str):
+        if not isinstance(dataset, str) or type(seed) is not int:
+            continue
+        if digest is None or any((path.parent / f"{role}.npz").exists() for role in ROLES):
+            digest = split_indices_digest(path.parent, declared=digest)
+        if isinstance(digest, str):
             found[(dataset, seed)] = digest
     return found
 
@@ -865,7 +870,7 @@ def batch_command(
     *,
     splits_root: str | Path,
     out_root: str | Path,
-    protocol: str = "survey-v2.0",
+    protocol: str = "survey-v3.2",
     class_prior: float | None = None,
     device: str | None = None,
     adapter_cache: str | None = None,

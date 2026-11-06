@@ -83,7 +83,7 @@ def test_param_inner_search_is_registered_as_identity_and_enforced_both_ways():
                 "pusb_kernel",
                 inner_search={
                     "inner_search_id": "pusb_kernel_sigma_reg_cv",
-                    "grid_ref": "survey_protocol_v2.method_profiles.lbe.params",
+                    "grid_ref": "survey_protocol_v3.method_profiles.lbe.params",
                 },
             )
         }
@@ -182,8 +182,14 @@ def test_edge_null_candidate_pool_and_exclusion_reason_move_together():
     )
     assert codes(validate_registry(stale, load_protocol())) == ["unexpected_exclusion_reason"]
     # And the legal combination -- excluded, no pool, with its reason -- is clean.
-    excluded = base_registry(profiles={"kldce": excluded_profile("kldce")})
-    assert validate_registry(excluded, load_protocol()) == []
+    protocol = load_protocol()
+    for row in protocol["execution_units"]:
+        if row["method"] == "kldce":
+            row.update(runnable=False, non_runnable_reason="caller excludes this method")
+    excluded = base_registry(
+        protocol=protocol, profiles={"kldce": excluded_profile("kldce", protocol=protocol)}
+    )
+    assert validate_registry(excluded, protocol) == []
     assert excluded["profiles"]["kldce"]["candidate_pool"] is None
 
 
@@ -192,7 +198,7 @@ def test_edge_scope_outside_the_execution_matrix_is_reported():
         profiles={
             "nnpu": profile(
                 "nnpu",
-                scope={"datasets": ["spambase", "mnist"], "training_paths": ["native_2d"]},
+                scope={"datasets": ["spambase", "unknown_data"], "training_paths": ["native_2d"]},
             )
         }
     )

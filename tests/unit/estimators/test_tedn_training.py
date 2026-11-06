@@ -4,10 +4,8 @@
 # ruff: noqa: N803, N806
 
 import copy
-import json
 import pickle
 from dataclasses import replace
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -241,27 +239,6 @@ def test_edge_warm_start_snapshot_has_no_fake_alpha(monkeypatch):
                 fitted.estimate_unlabeled_prior()
 
     small_model().fit(X, roles, epoch_callback=check)
-
-
-def test_basic_ledger_and_source_contract_preserve_admission_boundaries():
-    root = Path(__file__).resolve().parents[3]
-    ledger = json.loads(
-        (root / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
-    )
-    cvir = ledger["methods"]["cvir"]
-    extension = cvir["independent_extensions"]["tedn"]
-    review = json.loads((root / extension["review_ref"]).read_text(encoding="utf-8"))
-    implementation = review["implementation"]
-    assert extension["implementation"].endswith("tedn.py:TEDnClassifier")
-    assert implementation["status"] == "end_to_end_training_engineering_implemented"
-    for key in ("calibration_applied", "calibration_hooked", "formal_admission"):
-        assert extension[key] is implementation[key] is False
-    assert implementation["registered_in_cli_ui_or_os_pipeline"] is False
-    assert implementation["wired_to_existing_cvir"] is False
-    assert implementation["fixed_population_prior_accepted"] is False
-    assert review["owner_signatures"] == []
-    assert cvir["calibration_applied"] is False
-    assert cvir["calibration_hooked"] is True
 
 
 def test_basic_cnn_real_bbe_alternation_without_stub():

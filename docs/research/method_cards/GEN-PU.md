@@ -1,20 +1,20 @@
 # Method Card: GEN-PU
 
-2026-10-24 #126 四项配方**已冻结**（[裁决记录](../pu_survey/admission/genpu_126_adjudication_20261024.md)）：
+当前项目配方：
 论文先验加权 minimax/anti-GAN；`Du` 假样本按 `π/(1−π)` 混合、最终 PN 为同先验加权 softplus；
 identity 输出、两层 256/latent 100 稠密生成器、`Dp`/`Dn` 线性头、`Du`/PN 两层 256、四份独立
 seeded ResNet-18 stem；G 步冻结 D 参数与 BN/dropout 但保留输入梯度。三个 λ 取 1.0，
 先验加权在 `Du` 混合与 PN 风险里，不在这三个权重上。全量资源与数值 parity 不在冻结范围。
 
-2026-10-23 补[单候选工程 recipe 与真实 CIFAR GPU 验证](../pu_survey/delivery/genpu_recipe_20261023.md)：
+单候选执行适配器记录：
 固定目标/网络/阶段资格，显式预算，六网络成本对账，PA/OA 独立选模、选后回收与两模型回放。
-这不是正式 v3 准入、P4.1-B 预算冻结或论文数值复现；估计器默认行为未改。
+项目配方与论文数值复现分别表达；估计器默认行为独立于执行配置。
 
-2026-10-07 补[像素生成/CNN 来源复核](../pu_survey/genpu_source_cnn_review_20261007.md)：
+图像路径：
 双稠密 generator 显式输出 NCHW；三判别器和新建最终 PN 使用四份独立可训练 CNN。
 原论文 Table 1 及作者 demo 均是稠密网络，本接口是工程图像适配，不是作者 CNN 重放。
 
-2026-10-07 补[阶段技术留痕](../pu_survey/p3_stage_budget_review_20261007.md)：
+阶段记录：
 仅 synthetic_pn 分类器快照增加局部 epoch 与累计全部 GAN+PN optimizer 更新数，
 不把 GAN 阶段登记为空分类器候选，不改变 Du 校准范围或正式准入状态。
 
@@ -69,6 +69,4 @@ Dp/Dn 的真实池始终是 P；默认 OS 明确不是论文原生边缘池。�
 
 `tests/unit/estimators/test_gen_pu.py`：概率公式 golden、anti-GAN 梯度方向、极端 logit 稳定性、
 训练池角色、固定种子、两阶段 optimizer 数、clone/pickle 与先验 fail-loud。
-2026-10-23 已有本方法独立真实 CIFAR 预声明小子集的标准宽度 ResNet-18 GPU smoke，
-见上方交付及[机器收据](../pu_survey/data/genpu_recipe_validation_20261023.json)；
-不借用其它方法的历史 GPU 记录，不进入冻结 pilot，不据此声称全量/多 seed 效果验收。
+具体实验效果以实际运行产物及对应配置为准；组件测试不构成全量/多 seed 数值验收。

@@ -31,9 +31,9 @@ def test_basic_registry_bound_manifest_validates_clean():
     assert validate_manifest_binding(manifest, value) == []
 
 
-def test_basic_legacy_manifest_without_binding_fields_is_accepted():
-    legacy = {"protocol_version": "survey-v1.2", "candidate_runs": []}
-    assert validate_manifest_binding(legacy, base_registry()) == []
+def test_basic_unbound_diy_manifest_is_not_retroactively_bound():
+    manifest = {"execution_mode": "technical_smoke", "candidate_runs": []}
+    assert validate_manifest_binding(manifest, base_registry()) == []
 
 
 def test_basic_oracle_profile_binding_resolves():

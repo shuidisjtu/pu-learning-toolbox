@@ -1,6 +1,6 @@
 # pu_toolbox/experiment/survey_conclusions.py
 
-"""Conclusion analysis with execution-plan §1.4.5 signal attribution.
+"""Conclusion analysis with explicit diagnostic signal attribution.
 
 The delivery asks for conclusions that name the signals they rest on and keep
 three kinds apart.  This module builds that artifact from two inputs the exporter
@@ -10,15 +10,14 @@ nothing else:
 * **本实验观测** -- generated from a card's flagged observations; carries the
   numbers and the context each one came from.
 * **推断** -- generated beside an observation; cites the observation id and states
-  the direction the execution plan names for that signal.
+  the diagnostic follow-up direction for that signal.
 * **文献事实** -- never generated from run numbers.  It appears only when the
   caller supplies a registered fact with a source, so a paper claim cannot be
   manufactured by this module.
 
 Four rules keep the artifact honest:
 
-* A conclusion without a signal is refused, not written: the plan says a unit
-  that names no basis draws no conclusion.
+* A conclusion without a signal is refused: every conclusion names its basis.
 * An observation without evidence is refused; an inference that cites no
   observation is refused.
 * A literature fact without a source is refused, and it may carry no run
@@ -38,10 +37,10 @@ from typing import Any
 from .survey_diagnostics import DIRECTIONS, NOT_COMPUTED
 from .survey_diagnostics import SIGNALS as COMPUTED_SIGNALS
 
-#: The three kinds the execution plan requires to stay apart.
+#: The three distinct kinds of conclusion evidence.
 KINDS: tuple[str, ...] = ("文献事实", "本实验观测", "推断")
 
-#: Every §1.4.5 signal the conclusion layer can attribute, with its card label.
+#: Every diagnostic signal the conclusion layer can attribute, with its card label.
 #: The seven computed ones come from the diagnostics module; the five the cards
 #: cannot read keep their ids so a conclusion can never cite a made-up signal.
 SIGNALS: dict[str, str] = {
@@ -154,7 +153,7 @@ def _literature_fact(fact: Mapping[str, Any]) -> dict[str, Any]:
 def validate_conclusion(
     record: Mapping[str, Any], *, by_id: Mapping[str, Mapping[str, Any]] | None = None
 ) -> None:
-    """Refuse a conclusion the execution plan would not accept."""
+    """Refuse conclusions that lack a valid kind, signal or evidence."""
     kind = record.get("kind")
     if kind not in KINDS:
         raise ConclusionError(f"kind must be one of {KINDS}; got {kind!r}")

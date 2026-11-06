@@ -65,19 +65,19 @@ def _keys(snapshot: dict) -> set[tuple]:
 def test_basic_the_filter_narrows_the_plan_to_one_dataset(driver, tmp_path, capsys):
     printed = _dry_run(driver, tmp_path, capsys, "--datasets", "cifar10")
 
-    assert "planned: 215 run(s)" in printed
-    assert "pending:   215 (215 cifar10)" in printed
+    assert "planned: 220 run(s)" in printed
+    assert "pending:   220 (220 cifar10)" in printed
     # The disk figure is what a host is sized against, so it has to follow the
     # filter: sizing a shard against the whole matrix buys 300 GiB of nothing.
-    assert "318.4 GiB for the whole pilot" in printed
+    assert "362.3 GiB for the whole pilot" in printed
 
 
 def test_basic_without_the_flag_every_dataset_is_still_planned(driver, tmp_path, capsys):
     """The default stays the whole matrix: the flag narrows, it never widens."""
     printed = _dry_run(driver, tmp_path, capsys)
 
-    assert "planned: 645 run(s)" in printed
-    assert "324.5 GiB for the whole pilot" in printed
+    assert "planned: 650 run(s)" in printed
+    assert "368.5 GiB for the whole pilot" in printed
 
 
 def test_param_the_filter_order_does_not_change_the_plan(driver, tmp_path, capsys):
@@ -150,8 +150,8 @@ def test_basic_the_snapshot_records_the_runs_of_one_shard(driver, tmp_path):
     snapshot = _snapshot(driver, tmp_path, "cifar10")
 
     assert snapshot["datasets"] == ["cifar10"]
-    assert snapshot["totals"]["planned"] == 215
-    assert len(snapshot["runs"]) == 215
+    assert snapshot["totals"]["planned"] == 220
+    assert len(snapshot["runs"]) == 220
     assert {r["dataset"] for r in snapshot["runs"]} == {"cifar10"}
     assert all(
         {"method", "training_path", "mechanism", "c_token", "seed"} <= set(r)
@@ -167,7 +167,7 @@ def test_determ_the_two_shards_partition_the_matrix(driver, tmp_path):
 
     assert first & second == set()
     assert first | second == whole
-    assert len(whole) == 645
+    assert len(whole) == 650
 
 
 def test_edge_the_snapshot_requires_a_dry_run(driver, unit_calls, tmp_path, capsys):
@@ -232,8 +232,10 @@ def test_basic_the_summary_declares_its_scope_when_the_plan_is_a_subset(
     assert "completed 0 of 215 run(s) in spambase" in capsys.readouterr().out
 
 
-def test_basic_the_unfiltered_summary_is_unchanged(driver, unit_calls, tmp_path, capsys):
-    """Without the flag the count has always meant the matrix, and still does."""
+def test_basic_the_smoke_scope_summary_names_its_selected_grid(
+    driver, unit_calls, tmp_path, capsys
+):
+    """The fixture's explicit scope remains visible in the execution summary."""
     driver.main(
         [
             "--results",
@@ -245,11 +247,12 @@ def test_basic_the_unfiltered_summary_is_unchanged(driver, unit_calls, tmp_path,
     )
 
     out = capsys.readouterr().out
-    assert "completed 0 of 645 run(s); 645 still pending" in out
-    assert "run(s) in " not in out
+    assert "completed 0 of 650 run(s)" in out
+    assert "650 still pending" in out
+    assert "scope: datasets=cifar10,imdb,spambase; methods=" in out
 
 
-def test_basic_a_dataset_only_request_says_nothing_more_than_it_always_did(
+def test_basic_a_dataset_request_preserves_the_fixture_method_scope(
     driver, unit_calls, tmp_path, capsys
 ):
     """Narrowing by method and by path added a line, not a new spelling.
@@ -273,7 +276,7 @@ def test_basic_a_dataset_only_request_says_nothing_more_than_it_always_did(
 
     out = capsys.readouterr().out
     assert "completed 0 of 215 run(s) in spambase; 215 still pending" in out
-    assert "scope:" not in out
+    assert "scope: datasets=spambase; methods=" in out
 
 
 # --- a slice has to reach execution, and has to leave the protocol alone -----
@@ -319,7 +322,7 @@ def test_basic_the_scope_reaches_execution_without_rewriting_the_protocol(
         "cnn_feature_adapter"
     }
     for call in unit_calls:
-        assert call[call.index("--protocol") + 1] == "survey-v2.0"
+        assert call[call.index("--protocol") + 1] == "survey-v3.2"
 
 
 def test_param_a_name_that_covers_nothing_is_refused_before_any_batch(
@@ -335,7 +338,7 @@ def test_param_a_name_that_covers_nothing_is_refused_before_any_batch(
     worked -- ``pn_oracle`` beside the native CNN row and ``self_pu`` beside it
     both read as reasonable requests.
     """
-    for methods, paths in (("pn_oracle", "native_cnn"), ("nnpu,self_pu", "native_cnn")):
+    for methods, paths in (("self_pu", "native_cnn"), ("nnpu,self_pu", "native_cnn")):
         code = driver.main(
             [
                 "--results",
@@ -356,4 +359,5 @@ def test_param_a_name_that_covers_nothing_is_refused_before_any_batch(
         assert unit_calls == []
         err = capsys.readouterr().err
         assert err.startswith("error: ")
-    assert "available matching methods: ['nnpu']" in err
+    assert "available matching methods:" in err
+    assert "nnpu" in err

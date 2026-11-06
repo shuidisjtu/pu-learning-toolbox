@@ -11,15 +11,6 @@ import pytest
 from _survey_script_helpers import make_sar_splits, survey_script  # noqa: F401
 
 from pu_toolbox.experiment.survey_backlog import DEEP_METHODS, VIEWS, SurveyBacklogTrainer
-from pu_toolbox.experiment.survey_comparison import (
-    comparison_for_protocol,
-    validate_comparison_coverage,
-)
-from pu_toolbox.experiment.survey_profile_map import (
-    load_profile_map,
-    profile_map_path,
-    validate_profile_map,
-)
 from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path, resolve_unit
 from pu_toolbox.experiment.survey_recipe_registry import build_locked_registry, validate_registry
 
@@ -27,45 +18,28 @@ pytestmark = pytest.mark.unit
 
 
 def protocol():
-    return load_protocol(resolve_protocol_path("survey-v3.1"))
+    return load_protocol(resolve_protocol_path("survey-v3.2"))
 
 
-def test_basic_revision_covers_all_declared_and_inherited_cells_without_rebinding_history():
-    old = load_protocol(resolve_protocol_path("survey-v3.0"))
+def test_basic_current_configuration_covers_all_project_recipe_cells():
     new = protocol()
-    assert len(old["execution_units"]) == 136
-    assert sum(not r["runnable"] for r in old["execution_units"]) == 24
-    assert len(new["execution_units"]) == 171 and all(r["runnable"] for r in new["execution_units"])
-    assert new["seeds"] == old["seeds"] and new["c_tokens"] == old["c_tokens"]
+    assert len(new["execution_units"]) == 179 and all(r["runnable"] for r in new["execution_units"])
+    assert new["seeds"] == [0, 1, 2, 3, 4]
     for method in (*DEEP_METHODS, "kldce"):
         assert len({r["dataset"] for r in new["execution_units"] if r["method"] == method}) == 8
     for method in ("puet", "rp"):
-        assert {r["dataset"] for r in new["execution_units"] if r["method"] == method} == {
-            "spambase",
-            "connect_4",
-            "imdb",
-            "twenty_newsgroups",
-        }
+        assert len({r["dataset"] for r in new["execution_units"] if r["method"] == method}) == 8
     for method in ("lagam", "pulns", "self_pu_full_meta"):
         assert len({r["dataset"] for r in new["execution_units"] if r["method"] == method}) == 5
         assert new["method_profiles"][method]["labeling_mechanisms"] == ["scar"]
     assert new["method_profiles"]["kldce"]["labeling_mechanisms"] == ["scar"]
     assert new["formal_blockers"] and new["review_status"] == "pending_collaborator_review"
-    mapping = load_profile_map(profile_map_path(new))
-    comparison = comparison_for_protocol(new)
-    validate_profile_map(mapping, protocol=new, comparison=comparison)
-    assert validate_comparison_coverage(new, comparison, profile_map=mapping)["units"] == 1480
-    added = [m for m in comparison["mappings"] if m["mapping_id"].startswith("v3_1_")]
-    assert added and all(
-        m["review_state"] == "pending_review" and not m["verified_by"] and not m["anchor_ids"]
-        for m in added
-    )
     registry = build_locked_registry(new)
     assert all(p["recipe_lifecycle"] == "locked" for p in registry["profiles"].values())
     assert not validate_registry(registry, new)
     stored = json.loads(
-        resolve_protocol_path("survey-v3.1")
-        .with_name("survey_recipe_registry_v1_1.json")
+        resolve_protocol_path("survey-v3.2")
+        .with_name("survey_recipe_registry_v1_2.json")
         .read_text()
     )
     assert registry == stored
@@ -142,8 +116,8 @@ def test_basic_cli_bound_recipe_trains_full_small_trajectory_and_correct_selecti
     files = list(output.rglob("manifest.json"))
     assert len(files) == 1
     manifest = json.loads(files[0].read_text())
-    assert manifest["protocol_version"] == "survey-v3.1"
-    assert manifest["recipe_registry_version"] == "survey-recipes-v1.1"
+    assert manifest["protocol_version"] == "survey-v3.2"
+    assert manifest["recipe_registry_version"] == "survey-recipes-v1.2"
     assert not manifest["failures"] and not manifest["formal_eligible"]
     assert set(manifest["test_results"]) == ({"PA", "OA"} if mechanism == "scar" else {"OA"})
     candidate = manifest["candidate_runs"][0]
@@ -269,11 +243,13 @@ def test_basic_cvir_disk_planning_counts_warm_start():
     assert checkpoint_epochs(p["budgets"]["backlog_cvir"]) == 21
 
 
-def test_edge_backlog_does_not_unlock_historical_cvir():
+def test_edge_current_cvir_adapter_does_not_bypass_missing_binding():
     from pu_toolbox.experiment.survey_profile_identity import require_four_role_profile
 
+    unbound = protocol()
+    unbound["method_profiles"]["cvir"].pop("execution_adapter")
     with pytest.raises(ValueError, match="per-view"):
-        require_four_role_profile(load_protocol(resolve_protocol_path("survey-v3.0")), "cvir")
+        require_four_role_profile(unbound, "cvir")
     require_four_role_profile(protocol(), "cvir")
 
 
@@ -293,7 +269,7 @@ def test_param_recipe_override_rejected_before_loading_data(
             "--dataset",
             "spambase",
             "--protocol",
-            "survey-v3.1",
+            "survey-v3.2",
             "--model-params",
             json.dumps(parameters),
         ]

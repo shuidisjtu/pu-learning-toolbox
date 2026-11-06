@@ -3,11 +3,11 @@
 2026-10-22 P3.2 补齐：新增显式 `fit(os_or_ts="ts")` 的训练风险池校准，
 以及 `CVIRPopulationPriorTrainer` 的总体 π → 实际风险池先验换算。
 默认 OS/独立 native-TS 与旧 `CVIRKnownPriorTrainer` 不变；
-见[交付、差异理由与验证范围](../pu_survey/delivery/cvir_calibration_20261022.md)。
+见交付、差异理由与验证范围。
 这是独立工程入口，尚未接入正式 protocol v3 或 Survey 跑批。
 
 2026-10-20 工程补核：修复 resident/streamed 评分覆盖逐层模式及 in-place encoder
-改写输入的问题，提前拒绝非法学习率/回调与复数输入；见[输入/推理验收](../pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+改写输入的问题，提前拒绝非法学习率/回调与复数输入；见输入/推理验收。
 默认训练目标、原始 U 候选、α_U、TS 校准缺口与正式准入边界均不变。
 
 > 技术预集成，不是 BBE/TEDⁿ 的实现，也不是 Survey v1 正式跑批方法。
@@ -49,13 +49,6 @@ warm-start 的风险池同步替换。不能在筛完负例之后追加 P，那�
 
 ## 适配边界与下一步
 
-2026-11-01 补只读资源入口：`scripts/prepare_candidate_image_resource_plan.py --method cvir`
-须显式给 `--population-prior`、`--training-view os/ts` 与观测 P/U 计数。
-按当前构造默认预算列 warm-start/截断更新、排序前向、风险池与保留负例数；
-OS 使用计数换算 α_U，TS 使用总体 π，不可能的换算拒绝而非截断。
-该入口不导入数值库、不加载数据或 checkpoint；来源、计数和 BN 空间基数仍未核验，
-不能替代图像执行计划或峰值实测。CPU 原生 fit 的实际更新/快照数已与预估对照，
-不证明论文配方、正式准入或效果复现；不改变下述算法与来源差异。
 
 2026-10-31 补齐 `scripts/run_candidate_image_experiment.py --method cvir --view os/ts`
 独立共享 ResNet-18 图像执行入口（仅 SCAR，不是论文 backbone/正式配方）。显式给训练预算、
@@ -71,7 +64,7 @@ encoder 副本与零输入记录各 BN 的单图通道元素数，空间维度�
 CPU 原始 fit/图像适配、OS/TS 与快照回放回归
 仅验证工程一致性；核心算法、历史来源摘要与正式准入阻断保持不变。
 
-2026-10-15 来源核查确认：发布代码实际使用 balanced CE、`n_U-int(α*n_U)` 保留数、zip 原始 loader 后 mask、P/U 合并 forward、默认 SGD；warm-start 只在 TEDn 分支启用。本实现继续采用论文加权目标与既有默认，不静默改写成发布代码；`official_exact` 只指源码可得性。逐项位置、文件摘要与判读见[来源/图像复核](../pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+2026-10-15 来源核查确认：发布代码实际使用 balanced CE、`n_U-int(α*n_U)` 保留数、zip 原始 loader 后 mask、P/U 合并 forward、默认 SGD；warm-start 只在 TEDn 分支启用。本实现继续采用论文加权目标与既有默认，不静默改写成发布代码；`official_exact` 只指源码可得性。逐项位置、文件摘要与判读见来源/图像复核。
 
 新工程路径 deepcopy encoder 联合训练；原始图像留 CPU，全局 U 排序、训练与预测均分批上设备。旧二维 auto 保留 resident 的全量排序/预测。CPU-stream 仍需主机完整输入和 O(n_U) 排序分数，不是磁盘流式；不同 forward 批形可能带来末位误差。`optimizer_steps_` 与 `epoch_provenance_` 记录两阶段全部成本；快照包含 encoder/头及阶段上下文，不支持优化器续训，也不批准任何阶段选模资格。
 

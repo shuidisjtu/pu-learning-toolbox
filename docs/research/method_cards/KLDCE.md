@@ -30,13 +30,7 @@ HiGHS LP 对照、大规模 81,000 变量及现有公式/KKT/SMO/性质测试验
 RSS 约 109.03 → 57.48 GiB。该环境设置与既有生产队列一致；探针仅验证阶段可运行和
 临时内存，不作为完整迭代收敛、正式预算或分类指标验收。
 
-2026-10-31 补齐只读 `scripts/prepare_kldce_resource_plan.py`：按 P/U/维度与声明的
-Gram itemsize 列出训练/预测 Gram、对偶 QP 主矩阵 `Q`（构造期按行分块的临时矩阵不计入）
-及协方差 payload；QP 块用核心的 float64，Gram/协方差 dtype 只是假设，尚未验证输入。构造默认或显式 ACS/SMO 上限
-另计（含 rollback，首轮无 rollback），不当神经 epoch 或 ETA。
-真实 tiny QP 主矩阵的 shape/dtype/nbytes 已独立核对，不加载真实数据、不构造估计器或初始化 CUDA。
-资源数只覆盖命名数组，不含前轮 QP、RBF/solver/eigh 临时副本及输入/运行时；
-超过显式内存帽返回退出码 2，低于帽也绝不批准启动。未改核心实现、正式预算或资源准入。
+资源预检只计算已命名稠密数组的 payload 下界，不等于峰值内存或拟合批准。
 
 2026-11-01：独立 `run_classical_candidate_experiment.py --method kldce` 已接 SCAR 四角色、
 PA/OA 与选中预测规则回放、逐次成功/失败收据。训练参数须全部显式给出，`flip_probability`
@@ -56,10 +50,7 @@ PA/OA 与选中预测规则回放、逐次成功/失败收据。训练参数须�
 等式右端超区间则不启动 fit；已用原始 LP 交叉核对正/负分母、内点与边界。
 例如 `p=0.5, h=0.7` 时右端低于可达下限，当前实现无解，不是加迭代次数能修复的预算问题。
 不调整 h/先验/约束来凑可行；部分低标记率格子的正式适用性仍待协议裁决，冻结单元不自动放行。
-只读资源工具也可加 `--prior-policy derived/population_override --flip-probability <h>`
-（override 另需 `--population-prior`）预判同一可行区间；无解/分母近零返回退出码 3，
-内存帽不足仍返回 2。该入口不加载模型或数据，h/先验只是调用者声明，不冒充真实 SCAR 绑定；
-可行也不代表全部参数、完整内存、论文数值或正式准入已验证。
+h 与先验须和实际 SCAR 生成过程一致；可行性不证明完整内存、求解收敛或论文数值复现。
 
 ## 1. 论文信息
 
@@ -306,7 +297,7 @@ KLDCE 与 LDCE 共享同一论文实验协议与数据集（5 折、$`h\in\{0.2,
 | 字段 | 内容 |
 |---|---|
 | Source status | `not_found`：未找到可确认的 KLDCE 作者实现；论文正文 + 在线补充附录为唯一权威 |
-| 实现状态（2026-10-19 核查） | 原生广义 pair-SMO 已接入 `fit`，SLSQP oracle 保留作数值对照；内层对拼接的 `[α;γ]` 联合变量全局选 pair，**不是**附录 Algorithm 1 按 α/γ 两组分别选对的逐步复现；ACS 块更新顺序也与附录不同。实现和边界见[来源/行为审计](../pu_survey/admission/kldce_source_behavior_review_20261019.md)。质心回滚、`inner_tol=1e-6` 与 ACS 判据见 §6。 |
+| 实现状态（2026-10-19 核查） | 原生广义 pair-SMO 已接入 `fit`，SLSQP oracle 保留作数值对照；内层对拼接的 `[α;γ]` 联合变量全局选 pair，**不是**附录 Algorithm 1 按 α/γ 两组分别选对的逐步复现；ACS 块更新顺序也与附录不同。实现和边界见来源/行为审计。质心回滚、`inner_tol=1e-6` 与 ACS 判据见 §6。 |
 | Registry | `kldce` 独立注册（2026-08-05），详见 ADR-0014 #6 |
 | 复现风险 | 正文未规定 KKT 违反度定义、可行区间展开式、缓存策略、容差与停止判据（见 §5）；当前 generalized pair-SMO 使用附录解析更新思想，但在拼接 `[α;γ]` 上全局选对，非 Algorithm 1 分组式逐步复现；SLSQP oracle 对照的是固定质心联合 QP，不能证明逐步行为相等。质心单调回滚（§3.2/§6）也是论文未覆盖的实现决策；精确 Gram 矩阵 $`O(n^2)`$ 内存 |
 
@@ -331,4 +322,4 @@ KLDCE 与 LDCE 共享同一论文实验协议与数据集（5 折、$`h\in\{0.2,
 4. **Gao et al. (AAAI 2016), LICS** — LDCE 质心平滑的直接来源，给出了 MoM、椭球约束与交替优化的完整线性伪代码。[AAAI 论文](https://cdn.aaai.org/ojs/10293/10293-13-13821-1-2-20201228.pdf)
 5. **Shi et al. (IJCAI 2018)** — LDCE 前身版本，可核对线性推导；它不含 KLDCE，不能替代补充材料。[IJCAI 论文](https://www.ijcai.org/proceedings/2018/0373.pdf)
 
-来源区分（2026-10-19 更正）：作者页上的 `CEGE_PAMI20.rar` 是 CEGE 会议早期版本，历史上用于说明线性 LDCE 家族的来源差异（见 [`LDCE.md`](LDCE.md)），不是 KLDCE 的官方实现。作者维护的[出版物目录](https://gcatnjust.github.io/ChenGong/publications.html)对 TPAMI 2019 论文只列 paper、未列 code；核查细节见[来源与行为复核](../pu_survey/admission/kldce_source_behavior_review_20261019.md)。KLDCE registry/ledger 不再将该包登记为其 `upstream_url`；这只表示本次未找到可确认的 KLDCE 作者代码，不推断代码在其他位置不存在。
+来源区分（2026-10-19 更正）：作者页上的 `CEGE_PAMI20.rar` 是 CEGE 会议早期版本，历史上用于说明线性 LDCE 家族的来源差异（见 [`LDCE.md`](LDCE.md)），不是 KLDCE 的官方实现。作者维护的[出版物目录](https://gcatnjust.github.io/ChenGong/publications.html)对 TPAMI 2019 论文只列 paper、未列 code；核查细节见来源与行为复核。KLDCE registry/ledger 不再将该包登记为其 `upstream_url`；这只表示本次未找到可确认的 KLDCE 作者代码，不推断代码在其他位置不存在。

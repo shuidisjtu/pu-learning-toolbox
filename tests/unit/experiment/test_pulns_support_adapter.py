@@ -206,30 +206,6 @@ def test_basic_train_pool_reduction_and_prior_role_are_recorded():
     assert audit["support_pool_effect_consistent"] is True
 
 
-def test_basic_dataset_plan_covers_approved_mappings_and_keeps_admission_closed():
-    from pathlib import Path
-
-    from pu_toolbox.experiment.datasets import survey_dataset_catalog
-    from pu_toolbox.experiment.method_ledger import load_ledger
-
-    entry = load_ledger()["methods"]["pulns"]["extra_supervision_adapter"]
-    root = Path(__file__).resolve().parents[3]
-    plan = json.loads((root / entry["dataset_rules_ref"]).read_text())
-    rows = {row["dataset"]: row for row in plan["datasets"]}
-    assert rows.keys() == survey_dataset_catalog().keys()
-    for name, spec in survey_dataset_catalog().items():
-        assert rows[name]["survey_positive"] == list(spec.positive_classes)
-        assert rows[name]["survey_negative"] == list(spec.negative_classes)
-    assert {name for name, row in rows.items() if row["paper_covered"]} == {
-        "mnist",
-        "cifar10",
-        "spambase",
-    }
-    assert plan["official_source_search"]["status"] == "not_found"
-    assert not plan["formal_admission"]
-    assert not plan["common_project_rule"]["formal_support_artifacts_materialized"]
-
-
 def test_edge_incomplete_group_map_and_sar_generation_are_rejected():
     roles, support = inputs()
     with pytest.raises(ValueError, match="every role"):

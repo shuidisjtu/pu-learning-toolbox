@@ -32,7 +32,10 @@ def test_draft_does_not_mutate_or_promote_protocol():
     assert protocol == original
     assert registry["recipe_lifecycle"] == "draft"
     for method, profile in registry["profiles"].items():
-        assert profile["recipe_lifecycle"] == ("excluded" if method == "kldce" else "draft")
+        runnable = any(
+            row["runnable"] for row in protocol["execution_units"] if row["method"] == method
+        )
+        assert profile["recipe_lifecycle"] == ("draft" if runnable else "excluded")
         assert not profile["review"]["reviewers"]
         for candidate in profile["candidate_pool"] or []:
             assert candidate["resolved_snapshot"] is None
@@ -40,9 +43,13 @@ def test_draft_does_not_mutate_or_promote_protocol():
 
 
 def test_edge_excluded_method_has_reason_and_none_candidate_pool():
-    profile = build_draft_registry(load_protocol())["profiles"]["kldce"]
+    protocol = load_protocol()
+    for row in protocol["execution_units"]:
+        if row["method"] == "kldce":
+            row.update(runnable=False, non_runnable_reason="caller excludes this method")
+    profile = build_draft_registry(protocol)["profiles"]["kldce"]
     assert profile["candidate_pool"] is None
-    assert "flip_probability" in profile["exclusion_reason"]
+    assert "caller excludes this method" in profile["exclusion_reason"]
 
 
 def test_inner_search_is_separate_from_outer_candidate():
@@ -63,7 +70,7 @@ def test_oracle_is_separate_and_historical_manifests_remain_unbound():
     assert manifest == before
 
 
-@pytest.mark.parametrize("protocol_version", ["survey-v2.0", "survey-v3.0"])
+@pytest.mark.parametrize("protocol_version", ["survey-v3.2"])
 def test_determ_generated_draft_is_stable_and_its_evidence_files_exist(protocol_version):
     root = Path(__file__).resolve().parents[3]
     protocol = load_protocol(resolve_protocol_path(protocol_version))

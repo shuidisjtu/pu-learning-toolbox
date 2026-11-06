@@ -128,8 +128,8 @@ def test_basic_planned_runs_expand_only_the_runnable_units():
     assert {run.c_token for run in runs if run.is_oracle} == {None}
 
     shipped = planned_runs(load_protocol())
-    assert len(shipped) == 645
-    assert len([run for run in shipped if run.is_oracle]) == 15
+    assert len(shipped) == 5445
+    assert len([run for run in shipped if run.is_oracle]) == 60
 
 
 def test_determ_planning_the_same_matrix_twice_gives_the_same_order():
@@ -394,10 +394,23 @@ def test_basic_the_driver_reports_the_plan_without_running_anything(tmp_path, ca
     driver = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(driver)
 
-    # The 645-run figure is the v2 pilot's; the driver's own default is v3.
-    argv = ["--dry-run", "--results", str(tmp_path / "none"), "--protocol", "survey-v2.0"]
+    argv = [
+        "--dry-run",
+        "--results",
+        str(tmp_path / "none"),
+        "--protocol",
+        "survey-v3.2",
+        "--datasets",
+        "spambase",
+        "--methods",
+        "nnpu",
+        "--splits",
+        str(tmp_path / "splits"),
+        "--class-prior",
+        "spambase=0.39",
+    ]
     assert driver.main(argv) == 0
     printed = capsys.readouterr().out
-    assert "planned: 645 run(s)" in printed
-    assert "pending:   645" in printed
+    assert "planned: 35 run(s)" in printed
+    assert "pending:   35" in printed
     assert "peak per run" in printed

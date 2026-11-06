@@ -4,10 +4,8 @@
 
 """Which protocol the pilot driver plans against when it is not told.
 
-The driver defaulted to ``survey-v2.0``, the 645-run pilot's matrix, so a caller
-sizing or launching the formal batch got the historical plan unless they
-remembered ``--protocol``.  The protocol the project now runs under is
-``survey-v3.0``; these pin that the plan says so without being asked, that an
+The protocol the project runs under by default is ``survey-v3.2``. These pin
+that the plan says so without being asked, that an
 explicit choice still wins, and that a bad protocol is an error rather than a
 quiet fall-back to either.
 """
@@ -16,6 +14,8 @@ import json
 
 import pytest
 from _survey_pilot_helpers import raw_driver, splits_tree  # noqa: F401
+
+from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 
 pytestmark = pytest.mark.unit
 
@@ -47,14 +47,21 @@ def test_basic_the_plan_is_made_under_the_current_protocol_by_default(raw_driver
     code, plan = _plan(raw_driver, tmp_path)
 
     assert code == 0
-    assert plan["protocol_version"] == "survey-v3.0"
+    assert plan["protocol_version"] == "survey-v3.2"
 
 
 def test_param_an_explicit_protocol_is_honoured(raw_driver, tmp_path):
-    code, plan = _plan(raw_driver, tmp_path, "--protocol", "survey-v2.0")
+    protocol = load_protocol()
+    protocol["seeds"] = [4]
+    path = tmp_path / "one_seed.json"
+    path.write_text(json.dumps(protocol), encoding="utf-8")
+    code, plan = _plan(raw_driver, tmp_path, "--protocol", str(path))
 
     assert code == 0
-    assert plan["protocol_version"] == "survey-v2.0"
+    assert plan["protocol_version"] == "survey-v3.2"
+    assert plan["source_protocol_sha256"] == digest(protocol)
+    assert len(plan["runs"]) == 7
+    assert {run["seed"] for run in plan["runs"]} == {4}
 
 
 def test_edge_an_unknown_protocol_file_is_an_error_not_a_silent_default(
@@ -69,7 +76,7 @@ def test_edge_an_unknown_protocol_file_is_an_error_not_a_silent_default(
 
 def test_determ_the_default_plan_equals_the_one_that_names_v3(raw_driver, tmp_path):
     _, default = _plan(raw_driver, tmp_path / "d")
-    _, named = _plan(raw_driver, tmp_path / "n", "--protocol", "survey-v3.0")
+    _, named = _plan(raw_driver, tmp_path / "n", "--protocol", "survey-v3.2")
 
     assert default["source_protocol_sha256"] == named["source_protocol_sha256"]
     assert default["runs"] == named["runs"]

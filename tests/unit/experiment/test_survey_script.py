@@ -15,6 +15,7 @@ from _survey_script_helpers import (  # noqa: F401 - pytest fixture
     survey_script,
 )
 
+from pu_toolbox.experiment.bundle import split_indices_digest
 from pu_toolbox.experiment.manifest import load_manifest
 
 pytestmark = pytest.mark.unit
@@ -61,7 +62,7 @@ def test_basic_run_survey_script_end_to_end(survey_script, tmp_path):
         assert key in manifest
     assert set(manifest["test_results"]) == {"PA", "OA"}
     assert manifest["test_results"]["OA"]["auc_unavailable_reason"] is None
-    assert (run_manifest(out_dir, "c_0.3", "seed_0").parent / "method_ledger_entry.json").is_file()
+    assert manifest["code_identity"]["code_commit_state"] in {"recorded", "unavailable"}
 
 
 def test_param_survey_script_requires_population_prior(survey_script, tmp_path, capsys):
@@ -100,7 +101,8 @@ def test_basic_script_runs_pusb_without_class_prior(survey_script, tmp_path):
         ]
     )
     assert rc == 0
-    assert (run_manifest(out_dir, "c_0.3", "seed_0").parent / "method_ledger_entry.json").is_file()
+    manifest = json.loads(run_manifest(out_dir, "c_0.3", "seed_0").read_text(encoding="utf-8"))
+    assert manifest["dependency_lock"]["state"] == "recorded"
 
 
 def test_param_script_requires_class_prior_for_pusb_kernel(survey_script, tmp_path, capsys):
@@ -134,7 +136,7 @@ def test_param_script_requires_class_prior_for_pusb_kernel(survey_script, tmp_pa
 
 
 def test_basic_script_runs_pusb_kernel_with_class_prior(survey_script, tmp_path):
-    """The official-aligned kernel row runs with pi and keeps its own ledger entry."""
+    """The kernel row runs with pi and records the selection prior actually used."""
     data_dir = tmp_path / "splits"
     data_dir.mkdir()
     make_splits(data_dir)
@@ -158,13 +160,8 @@ def test_basic_script_runs_pusb_kernel_with_class_prior(survey_script, tmp_path)
         ]
     )
     assert rc == 0
-    entry = json.loads(
-        (run_manifest(out_dir, "c_1.0", "seed_0").parent / "method_ledger_entry.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert entry["class"] == "PUSBKernelClassifier"
-    assert "population" in entry["prior_semantics"]
+    manifest = json.loads(run_manifest(out_dir, "c_1.0", "seed_0").read_text(encoding="utf-8"))
+    assert manifest["selection"]["PA"]["class_prior"]["population"] == 0.3
 
 
 def test_param_script_rejects_methods_outside_survey_ledger(survey_script, tmp_path, capsys):
@@ -314,13 +311,14 @@ def test_basic_survey_script_records_the_split_reference(survey_script, tmp_path
     data_dir = tmp_path / "splits"
     data_dir.mkdir()
     make_splits(data_dir)
+    indices_sha256 = split_indices_digest(data_dir)
     (data_dir / "split_manifest.json").write_text(
         json.dumps(
             {
                 "dataset": "toy",
                 "seed": 0,
                 "role_sizes": {"train": 18, "pu_val": 4, "clean_val": 4, "test": 4},
-                "indices_sha256": "deadbeef",
+                "indices_sha256": indices_sha256,
             }
         ),
         encoding="utf-8",
@@ -347,7 +345,7 @@ def test_basic_survey_script_records_the_split_reference(survey_script, tmp_path
     assert rc == 0
 
     manifest = load_manifest(run_manifest(out_dir, "c_0.3", "seed_0"))
-    assert manifest["split_ref"]["indices_sha256"] == "deadbeef"
+    assert manifest["split_ref"]["indices_sha256"] == indices_sha256
     assert manifest["split_ref"]["role_sizes"]["train"] == 18
     assert manifest["split_ref"]["manifest_path"].endswith("split_manifest.json")
 
@@ -381,4 +379,7 @@ def test_param_oracle_script_explicit_split_ref_wins(survey_script, tmp_path):
     assert rc == 0
 
     manifest = load_manifest(run_manifest(out_dir, "c_independent", "seed_0"))
-    assert manifest["split_ref"] == {"note": "custom reference"}
+    assert manifest["split_ref"] == {
+        "note": "custom reference",
+        "indices_sha256": split_indices_digest(data_dir),
+    }

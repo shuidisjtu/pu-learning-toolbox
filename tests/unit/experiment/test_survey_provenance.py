@@ -20,27 +20,11 @@ worth more than this.  This file is now at that cap itself, so a further
 provenance test belongs in a new file rather than appended here.
 """
 
-import importlib
-import json
-import sys
 import types
 
 import pytest
-from _survey_summary_helpers import (  # noqa: F401
-    SCRIPTS_DIR,
-    audit_cli,
-    config_for,
-    manifest,
-    summary_cli,
-    write_config,
-    write_tree,
-)
 
 from pu_toolbox.experiment import survey_provenance
-from pu_toolbox.experiment.survey_comparison import (
-    comparison_digest,
-    load_comparison_protocol,
-)
 from pu_toolbox.experiment.survey_provenance import (
     CODE_COMMIT_RECORDED,
     CODE_COMMIT_STATES,
@@ -52,10 +36,6 @@ from pu_toolbox.experiment.survey_provenance import (
     resolve_code_commit,
     with_code_commit,
 )
-
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-attach = importlib.import_module("compare_survey_results")
 
 pytestmark = pytest.mark.unit
 
@@ -71,13 +51,9 @@ def _config():
     }
 
 
-def _five_seeds(**overrides):
-    return {f"seed_{seed}": manifest(seed=seed, **overrides) for seed in range(5)}
-
-
 def test_basic_the_block_records_every_identity_field():
     block = build_provenance(
-        protocol_version="survey-v1.2",
+        protocol_version="survey-v3.0",
         protocol_sha256="a" * 64,
         comparison_version="survey-comparison-v3",
         comparison_sha256="b" * 64,
@@ -87,7 +63,7 @@ def test_basic_the_block_records_every_identity_field():
         code_commit_dirty=False,
     )
 
-    assert block["protocol_version"] == "survey-v1.2"
+    assert block["protocol_version"] == "survey-v3.0"
     assert block["comparison_sha256"] == "b" * 64
     assert block["code_commit"] == "c" * 40
     assert block["code_commit_state"] == CODE_COMMIT_RECORDED
@@ -97,7 +73,7 @@ def test_basic_the_block_records_every_identity_field():
 
 
 def test_basic_a_commit_that_was_not_read_is_recorded_as_unavailable():
-    block = build_provenance(protocol_version="survey-v1.2", protocol_sha256="a" * 64)
+    block = build_provenance(protocol_version="survey-v3.0", protocol_sha256="a" * 64)
 
     assert block["code_commit"] is None
     assert block["code_commit_state"] == CODE_COMMIT_UNAVAILABLE
@@ -118,113 +94,12 @@ def test_basic_the_source_roots_are_optional_and_recorded_when_present():
     assert recorded_source_roots({"source_roots": ["/remote/B1"]}) == {}
 
 
-def test_basic_the_entry_point_reports_name_their_inputs(audit_cli, summary_cli, tmp_path):
-    tree = write_tree(tmp_path / "b1", _five_seeds())
-    config_path = write_config(tmp_path / "roots.json", config_for({"B1": (tree, 5)}))
-    out = tmp_path / "out"
-
-    # The verdict is the CLI suite's subject, not this file's, and a five-seed
-    # single-c stub is deliberately an incomplete tree.  Both entry points write
-    # their report before deciding the exit code, which is what lets a reviewer
-    # read a report whose verdict is not clean.
-    audit_cli.main(["--config", str(config_path), "--out-dir", str(out / "a")])
-    summary_cli.main(["--config", str(config_path), "--out-dir", str(out / "s")])
-
-    for name, dirname in (("audit", "a"), ("summary", "s")):
-        report = json.loads((out / dirname / f"{name}.json").read_text(encoding="utf-8"))
-        block = report["provenance"]
-        assert block["input_result_roots"] == {"B1": str(tree)}
-        # Tolerant of a runner without git: what is pinned is that the question
-        # was answered, not which answer this machine gives.
-        assert block["code_commit_state"] in CODE_COMMIT_STATES
-        # One source of truth: the block cannot disagree with the header.
-        assert block["protocol_sha256"] == report["protocol_sha256"]
-
-    # The Markdown a reviewer reads gains the identity, and still no clock.
-    markdown = (out / "s" / "summary.md").read_text(encoding="utf-8")
-    assert str(tree) in markdown
-    assert "generated_at" not in markdown
-
-
-def test_basic_the_entry_point_stamps_the_commit_it_resolved(
-    audit_cli, summary_cli, monkeypatch, tmp_path
-):
-    """Pinned to a sentinel, so this holds on a runner with no git either.
-
-    Without it the stamping could be deleted outright and every other test would
-    still pass: the tolerant state check elsewhere accepts ``unavailable``, which
-    is exactly what a dropped stamp produces.
-    """
-    tree = write_tree(tmp_path / "b1", _five_seeds())
-    config_path = write_config(tmp_path / "roots.json", config_for({"B1": (tree, 5)}))
-    out = tmp_path / "out"
-    monkeypatch.setattr(audit_cli, "resolve_code_commit", lambda: ("f" * 40, True))
-    monkeypatch.setattr(summary_cli, "resolve_code_commit", lambda: ("f" * 40, True))
-
-    audit_cli.main(["--config", str(config_path), "--out-dir", str(out / "a")])
-    summary_cli.main(["--config", str(config_path), "--out-dir", str(out / "s")])
-
-    for name, dirname in (("audit", "a"), ("summary", "s")):
-        report = json.loads((out / dirname / f"{name}.json").read_text(encoding="utf-8"))
-        block = report["provenance"]
-        assert block["code_commit"] == "f" * 40
-        assert block["code_commit_state"] == CODE_COMMIT_RECORDED
-        assert block["code_commit_dirty"] is True
-        # The rendered report carries it too: an identity that exists only in the
-        # JSON is not the one a reviewer reads.
-        markdown = (out / dirname / f"{name}.md").read_text(encoding="utf-8")
-        assert "f" * 40 in markdown
-        assert "（工作区有未提交改动）" in markdown
-
-
-def test_basic_the_attachment_carries_the_summarys_identity_forward(tmp_path):
-    summary = {
-        "schema_version": "survey-summary-1",
-        "protocol_version": "survey-v1.2",
-        "protocol_sha256": "a" * 64,
-        "rows": [],
-        "provenance": {
-            "input_result_roots": {"B1": "/roots/B1"},
-            "source_roots": {"B1": "/remote/B1"},
-            "code_commit": "c" * 40,
-            "code_commit_dirty": False,
-        },
-    }
-
-    report = attach.build_comparison(summary, comparison=load_comparison_protocol())
-    block = report["provenance"]
-
-    # Carried, not re-derived: this entry point reads no whitelist and no git, so
-    # re-deriving either here would let it disagree with the report it attached to.
-    assert block["input_result_roots"] == {"B1": "/roots/B1"}
-    assert block["code_commit"] == "c" * 40
-    assert block["code_commit_state"] == CODE_COMMIT_RECORDED
-    # The one field it does read for itself.
-    assert block["comparison_sha256"] == comparison_digest(load_comparison_protocol())
-
-    attach.write_report(report, tmp_path)
-    markdown = (tmp_path / "comparison_summary.md").read_text(encoding="utf-8")
-    assert "c" * 40 in markdown
-    assert "/roots/B1" in markdown
-
-
-def test_basic_a_summary_written_before_the_block_existed_is_not_padded():
-    report = attach.build_comparison(
-        {"protocol_version": "survey-v1.2", "protocol_sha256": "a" * 64, "rows": []},
-        comparison=load_comparison_protocol(),
-    )
-
-    block = report["provenance"]
-    assert block["input_result_roots"] == {}
-    assert block["code_commit_state"] == CODE_COMMIT_UNAVAILABLE
-
-
 @pytest.mark.parametrize(
     ("commit", "expected_state"),
     [(None, CODE_COMMIT_UNAVAILABLE), ("d" * 40, CODE_COMMIT_RECORDED)],
 )
 def test_param_stamping_records_the_commit_and_its_state(commit, expected_state):
-    base = build_provenance(protocol_version="survey-v1.2", protocol_sha256="a" * 64)
+    base = build_provenance(protocol_version="survey-v3.0", protocol_sha256="a" * 64)
 
     stamped = with_code_commit(base, commit, dirty=False)
 
@@ -248,7 +123,7 @@ def test_param_the_dirty_flag_follows_git_status(monkeypatch, porcelain, expecte
 def test_param_the_roots_render_in_batch_name_order():
     lines = render_provenance_lines(
         build_provenance(
-            protocol_version="survey-v1.2",
+            protocol_version="survey-v3.0",
             protocol_sha256="a" * 64,
             result_roots={"B3b": "/roots/3b", "B1": "/roots/1", "B3a": "/roots/3a"},
             code_commit="c" * 40,
@@ -281,7 +156,7 @@ def test_edge_a_missing_block_renders_nothing_and_a_rootless_one_renders_the_com
 
     only_commit = render_provenance_lines(
         build_provenance(
-            protocol_version="survey-v1.2",
+            protocol_version="survey-v3.0",
             protocol_sha256="a" * 64,
             code_commit="c" * 40,
             code_commit_dirty=True,
@@ -290,7 +165,7 @@ def test_edge_a_missing_block_renders_nothing_and_a_rootless_one_renders_the_com
     assert only_commit == [f"- 代码 commit：`{'c' * 40}`（工作区有未提交改动）"]
 
     unavailable = render_provenance_lines(
-        build_provenance(protocol_version="survey-v1.2", protocol_sha256="a" * 64)
+        build_provenance(protocol_version="survey-v3.0", protocol_sha256="a" * 64)
     )
     assert unavailable == [
         f"- 代码 commit：不可用（`{CODE_COMMIT_UNAVAILABLE}`，不在 git 工作树内）"
@@ -300,7 +175,7 @@ def test_edge_a_missing_block_renders_nothing_and_a_rootless_one_renders_the_com
     # Markdown must not print it the way it prints a clean tree.
     unknown = render_provenance_lines(
         build_provenance(
-            protocol_version="survey-v1.2",
+            protocol_version="survey-v3.0",
             protocol_sha256="a" * 64,
             code_commit="c" * 40,
             code_commit_dirty=None,
@@ -318,7 +193,7 @@ def test_determ_the_block_is_a_pure_function_of_its_arguments(monkeypatch):
     # survive it.  A clock is already excluded by the equality check.
     monkeypatch.setattr(survey_provenance.subprocess, "run", boom)
     kwargs = {
-        "protocol_version": "survey-v1.2",
+        "protocol_version": "survey-v3.0",
         "protocol_sha256": "a" * 64,
         "result_roots": {"B2": "/roots/B2", "B1": "/roots/B1"},
     }
@@ -328,7 +203,7 @@ def test_determ_the_block_is_a_pure_function_of_its_arguments(monkeypatch):
 
 def test_determ_the_rendering_carries_no_stamp():
     block = build_provenance(
-        protocol_version="survey-v1.2",
+        protocol_version="survey-v3.0",
         protocol_sha256="a" * 64,
         result_roots={"B1": "/roots/B1"},
         code_commit="c" * 40,

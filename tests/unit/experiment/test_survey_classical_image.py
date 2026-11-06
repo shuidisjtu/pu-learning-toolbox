@@ -1,92 +1,57 @@
-"""Version-isolated image additions, actual ResNet features and classical fits."""
+"""Current classical image configurations, frozen ResNet features and real fits."""
 
 # ruff: noqa: F811
 
-import copy
 import json
-from pathlib import Path
 
 import numpy as np
 import pytest
 from _survey_script_helpers import survey_script  # noqa: F401
 
-from pu_toolbox.experiment.survey_comparison import (
-    comparison_for_protocol,
-    validate_comparison_coverage,
-)
-from pu_toolbox.experiment.survey_profile_map import (
-    load_profile_map,
-    profile_map_path,
-    validate_profile_map,
-)
+from pu_toolbox.experiment.pilot_plan import PilotScope, planned_runs, select_execution_units
 from pu_toolbox.experiment.survey_protocol import load_protocol, resolve_protocol_path, resolve_unit
-from pu_toolbox.experiment.survey_recipe_registry import validate_registry
-from scripts.prepare_survey_classical_image_revision import build_artifacts
-from scripts.run_survey_backlog_campaign import expand_jobs, validate_classical_image_receipt
+from pu_toolbox.experiment.survey_recipe_registry import load_registry, validate_registry
 
 pytestmark = pytest.mark.unit
 
 
 @pytest.mark.parametrize("method", ["puet", "rp"])
-def test_param_native_cnn_and_historical_image_units_remain_rejected(method):
-    old = load_protocol(resolve_protocol_path("survey-v3.1"))
-    new = load_protocol(resolve_protocol_path("survey-v3.2"))
+def test_param_edge_classical_image_units_require_the_feature_adapter(method):
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
+    resolve_unit(protocol, "cifar10", method, "cnn_feature_adapter")
     with pytest.raises(ValueError):
-        resolve_unit(old, "cifar10", method, "cnn_feature_adapter")
-    with pytest.raises(ValueError):
-        resolve_unit(new, "cifar10", method, "native_cnn")
+        resolve_unit(protocol, "cifar10", method, "native_cnn")
 
 
-def test_basic_new_revision_preserves_all_old_units_and_adds_exactly_280_image_fits():
-    old = load_protocol(resolve_protocol_path("survey-v3.1"))
-    new = load_protocol(resolve_protocol_path("survey-v3.2"))
-    assert new["execution_units"][:171] == old["execution_units"]
-    assert len(new["execution_units"]) == 179
-    for name in ("backbone_specs", "budgets", "method_profiles", "seeds", "c_tokens"):
-        assert new[name] == old[name]
-    jobs = expand_jobs(
-        new,
-        old,
-        {d: f"/data/{d}" for d in ("cifar10", "mnist", "fashion_mnist", "adni")},
-        Path("/unused"),
+def test_basic_classical_image_scope_covers_all_dataset_seed_and_mechanism_cells():
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
+    datasets = ("cifar10", "mnist", "fashion_mnist", "adni")
+    narrowed = select_execution_units(
+        protocol,
+        PilotScope(
+            datasets=datasets, methods=("puet", "rp"), training_paths=("cnn_feature_adapter",)
+        ),
     )
-    assert len(jobs) == len({j["label"] for j in jobs}) == 280
-    assert len({j["family"] for j in jobs}) == 24
-    assert sum(j["canary"] for j in jobs) == 24
-    assert {j["method"] for j in jobs} == {"puet", "rp"}
-    assert all(j["lane"] == "cpu" and j["path"] == "cnn_feature_adapter" for j in jobs)
-    assert {j["seed"] for j in jobs} == set(range(5))
-    assert new["review_status"] == "pending_collaborator_review"
+    runs = planned_runs(narrowed)
+    assert len(runs) == len({run.key for run in runs}) == 280
+    assert {(run.dataset, run.method, run.mechanism) for run in runs} == {
+        (dataset, method, mechanism)
+        for dataset in datasets
+        for method in ("puet", "rp")
+        for mechanism in ("scar", "sar_lbe_a", "sar_lbe_b")
+    }
+    assert all(run.training_path == "cnn_feature_adapter" for run in runs)
+    assert {run.seed for run in runs} == set(range(5))
 
 
-def test_determ_generated_registry_and_comparison_are_bound_without_new_signatures():
-    artifacts = build_artifacts()
-    root = resolve_protocol_path("survey-v3.2").parent
-    for name, value in artifacts.items():
-        assert json.loads((root / name).read_text(encoding="utf-8")) == value
-    p = artifacts["survey_protocol_v3_2.json"]
-    assert not validate_registry(artifacts["survey_recipe_registry_v1_2.json"], p)
-    mapping = load_profile_map(profile_map_path(p))
-    comparison = comparison_for_protocol(p)
-    validate_profile_map(mapping, protocol=p, comparison=comparison)
-    assert validate_comparison_coverage(p, comparison, profile_map=mapping)["units"] == 1560
-    additions = [m for m in comparison["mappings"] if m["mapping_id"].startswith("v3_2_")]
-    assert len(additions) == 80
-    assert all(
-        m["review_state"] == "pending_review" and not m["verified_by"] and not m["anchor_ids"]
-        for m in additions
-    )
-
-
-def test_edge_artifact_generation_is_independent_of_host_default_encoding(monkeypatch):
-    original = Path.read_text
-
-    def windows_default(path, encoding=None, errors=None):
-        return original(path, encoding=encoding or "cp1252", errors=errors)
-
-    expected = build_artifacts()
-    monkeypatch.setattr(Path, "read_text", windows_default)
-    assert build_artifacts() == expected
+def test_determ_current_registry_preserves_classical_image_budgets_and_pending_review():
+    protocol_path = resolve_protocol_path("survey-v3.2")
+    p = load_protocol(protocol_path)
+    registry = load_registry(protocol_path.with_name("survey_recipe_registry_v1_2.json"))
+    assert not validate_registry(registry, p)
+    assert p["review_status"] == "pending_collaborator_review" and p["formal_blockers"]
+    for method in ("puet", "rp"):
+        assert registry["profiles"][method]["recipe_lifecycle"] == "locked"
 
 
 @pytest.mark.parametrize("method", ["puet", "rp"])
@@ -151,14 +116,22 @@ def test_basic_real_resnet_classical_cli_and_exact_budget(
     assert set(m["test_results"]) == ({"PA", "OA"} if mechanism == "scar" else {"OA"})
     assert not m["failures"] and not m["formal_eligible"]
     assert m["run_view"] == ("ts-compatible" if method == "puet" else "os-compatible")
-    job = dict(method=method, path="cnn_feature_adapter", seed=0)
-    validate_classical_image_receipt(m, job)
-    bad = copy.deepcopy(m)
-    receipt = bad["candidate_runs"][0]["training_provenance"]
-    receipt["trees_completed" if method == "puet" else "cross_fits_completed"] = 0
-    with pytest.raises(ValueError, match="budget"):
-        validate_classical_image_receipt(bad, job)
-    bad = copy.deepcopy(m)
-    bad["representation"]["adapter"]["encoder_training"] = "finetuned"
-    with pytest.raises(ValueError, match="representation"):
-        validate_classical_image_receipt(bad, job)
+    representation = m["representation"]
+    adapter = representation["adapter"]
+    image = representation["image_preprocessing"]
+    assert adapter["encoder_training"] == "none; seeded_random_frozen"
+    assert adapter["feature_dimension"] == 512
+    assert adapter["feature_sha256"] == representation["feature_sha256"]
+    assert adapter["encoder_state_sha256"] == image["encoder_state_sha256"]
+    assert image["initialization_seed"] == 0
+    assert image["backbone"]["weights"] is None
+    receipt = m["candidate_runs"][0]["training_provenance"]
+    assert receipt["status"] == "completed"
+    assert not receipt["validation_used_for_training"]
+    assert receipt["neural_epoch_count"] == 0
+    assert receipt["work_started"] == receipt["work_completed"]
+    if method == "puet":
+        assert receipt["trees_requested"] == receipt["trees_completed"] == 100
+    else:
+        assert receipt["cross_fits_completed"] == 3
+        assert receipt["final_refits_completed"] == 1

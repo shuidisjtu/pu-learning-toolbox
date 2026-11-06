@@ -100,7 +100,7 @@ def test_basic_bound_cli_records_memory_policy_and_keeps_full_budget(
 
 
 @pytest.mark.parametrize(
-    "extra", [[], ["--protocol", "survey-v3.1", "--method", "vpu", "--dataset", "adni"]]
+    "extra", [[], ["--protocol", "survey-v3.2", "--method", "vpu", "--dataset", "adni"]]
 )
 def test_param_edge_offload_wrong_scope_rejected_before_loading_data(
     tmp_path, survey_script, extra, capsys

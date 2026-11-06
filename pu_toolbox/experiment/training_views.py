@@ -28,7 +28,6 @@ import numpy as np
 
 from ..core.training_views import ROLES, RUN_VIEWS, RunView, ViewRole, build_training_view
 from ..utils.serialization import canonical_hash, json_scalars
-from .method_ledger import native_sampling_assumption
 from .protocols import accepts_training_view
 
 #: The method ledger's vocabulary.  It stays on this side of the boundary: the
@@ -237,6 +236,8 @@ def resolve_training_view(
     entry = ledger["methods"].get(method)
     if entry is None:
         raise ValueError(f"method {method!r} is not in the survey ledger")
+    from .method_ledger import native_sampling_assumption
+
     native = native_sampling_assumption(entry)
     # A fit parameter may exist solely to reject TS (e.g. PULNS); signature
     # presence alone must not advertise a risk substitution that does not exist.

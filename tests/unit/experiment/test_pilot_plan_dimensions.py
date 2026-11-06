@@ -28,7 +28,7 @@ def test_basic_every_dataset_with_a_native_2d_row_has_a_default_feature_dimensio
     )
     driver = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(driver)
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
 
     native = {
         row["dataset"]
@@ -47,7 +47,7 @@ def test_basic_every_image_row_is_sized_without_a_feature_dimension(dataset):
     GEN-PU/PULDA native CNNs and the three adapter profiles, which carry their own
     backbone names, were refused for a number the image path never reads.
     """
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
     protocol["execution_units"] = [
         row
         for row in protocol["execution_units"]

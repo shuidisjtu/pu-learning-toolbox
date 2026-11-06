@@ -3,7 +3,7 @@
 Luo et al., AAAI 2021：[原论文](https://ojs.aaai.org/index.php/AAAI/article/view/17064)，
 DOI 10.1609/aaai.v35i10.17064。实现依据为印刷页 8786–8788 的状态、奖励、折扣 REINFORCE、
 Algorithm 1。2026-10-05 未定位到可确认的作者代码，登记 `not_found`，不把 PULSNAR 等近似名称当来源。
-2026-10-07 [来源与原生 CNN 复核](../pu_survey/pulns_source_cnn_review_20261007.md) 仍未确认作者仓库，
+2026-10-07 来源与原生 CNN 复核 仍未确认作者仓库，
 已补独立编码器工程路径；不是代码重放或数值验收。
 
 ## 原文行为与当前实现
@@ -75,8 +75,7 @@ manifest 顶层 `extra_supervision` 与每候选 provenance 显著登记额外�
 实际 label budget、角色摘要、逐角色池效应和 `comparison_group=extra_clean_support`，
 禁止作为 PU-only PA 排名。
 
-八数据集映射/作者覆盖/支持集规则见
-[逐数据集适配表](../pu_survey/data/pulns_dataset_adaptation_20261017.json)。
+数据集映射、作者覆盖与支持集规则见[数据说明](../pu_survey/data/README.md)。
 MNIST/CIFAR 对应原论文映射，Spambase 保留本项目 spam-positive 定义且明确原文编码未独立证实；
 其他五集属项目扩展。没有把作者 γ 当 c、改旧 split 或默认套作者支持集大小。
 2026-10-17 再查正式论文/机构页面与源码关键词，仍未确认官方代码，继续按论文独立适配。
@@ -93,7 +92,7 @@ widget状态前拒绝需要独立support的调用，仍可通过直接estimator�
 全角色审计，记录每个完成 episode 的 classifier weights-only 快照，再分别以
 `PA+clean-support` 和 OA 选择候选、快照、阈值。只含 classifier，不保存 reward probe /
 selector / optimizer，不用于训练恢复；旧 terminal OA 保留。CLI、容量预检、选后回收及
-回放见[交付记录](../pu_survey/delivery/clean_support_checkpoints_20261022.md)。
+回放见[交付记录](../pu_survey/data/README.md)。
 台账保持无 TS 校准/纯 PU PA 不适用，额外监督 PA 不是正式准入或已批准的执行单元。
 新增 `tests/unit/estimators/test_pulns_cnn.py` 和 `tests/integration/test_pulns_cnn_support.py`
 核端到端更新、probe/模板/模式/BN隔离、资源形态、累计成本、seed/refit/pickle及内置backbone。

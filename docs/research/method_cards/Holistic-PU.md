@@ -1,13 +1,13 @@
 # Method Card: Holistic-PU
 
-2026-10-07 补[阶段技术留痕](../pu_survey/p3_stage_budget_review_20261007.md)：
+阶段记录：
 warmup/pseudo_pn 快照保留阶段内 epoch 和累计更新数；不改变 fixed warmup、
 OS/TS 适用性或预算，也不由技术快照记录决定正式阶段资格。
 
-同日补[原始停止/阶段来源核查及 CNN 工程路径](../pu_survey/holistic_source_cnn_review_20261007.md)：
+图像与可选变体：
 原生注入 CNN 已能两阶段端到端训练；后续已补
-[显式后段重新初始化](../pu_survey/holistic_stage_initialization_20261007.md) 和
-[LZO 正例损失工程变体](../pu_survey/holistic_lzo_selection_20261007.md)，不宣称完整论文/作者代码复现。
+显式后段重新初始化 和
+LZO 正例损失工程变体，不宣称完整论文/作者代码复现。
 
 Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_files/paper/2023/file/d5c0f9585592bad5251133813893a6c0-Paper-Conference.pdf)
 式 (1)、(4)/(5)、(8)、§2.4 的最终 CE。[作者仓库](https://github.com/wxr99/HolisticPU/tree/4d4ce7d6ba29722995d308293374c0f475d988d3)
@@ -16,7 +16,12 @@ Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_fil
 正式结果保留论文 pairwise/variance 路径、默认 fixed warmup 与 continue 初始化，
 `author_adjacent`/`author_sse`、`lzo_positive_loss`、`reinitialize` 仅作显式变体。
 作者仓库未发现 LICENSE，登记 `license=unknown`；不复制、执行或再分发。
-fixed/LZO/finetune、初始化 recipe、LZO 选模隔离与 trajectory/storage blocker 仍保留。
+fixed/LZO/finetune 与初始化变体需明确配置；选择隔离和存储语义不会因工程接口可用而消失。
+
+会议摘要页所附 Supplemental ZIP 内的 `attachment.pdf` 是带行号匿名投稿稿，不能当正式主文版本；
+其 SHA-256 为 `0e622fcad83edb94b169e48778a73205cb0ec71ad2dfe55a443f086cd4657fd6`。
+LZO 的来源为[原论文 v2](https://arxiv.org/pdf/2012.13309v2) Algorithm 1/2；
+辅助集大小、重抽方式、平局和随机流未被充分规定，本卡的正例损失选择规则属于工程配置。
 
 ## 组件路径与来源分歧
 

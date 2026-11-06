@@ -309,6 +309,6 @@ standalone 序列化保存两网络；runner 保存的是 classifier 推理快�
 不是将“有 os_or_ts 参数”当成已校准。`class_prior` 仅校验而不影响该源配方。
 潜变量局部最优/可辨识性和适配后的数值对齐均未由合成测试解决。
 
-实现/API/预算的[工程交付](../pu_survey/delivery/lbe_neural_integration_20261014.md)及
+实现/API/预算的工程交付及
 [机器记录](../pu_survey/data/lbe_neural_engineering_20261014.json)保留 HENG958 独立复核、
 正式协议/配方/资源批准、GPU/真实数据与原始制品前置；不提前进入主榜。

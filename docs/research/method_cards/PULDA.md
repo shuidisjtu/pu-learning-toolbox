@@ -65,10 +65,10 @@ paper/source 差异保留登记；按 2026-10-18 用户决定，尊重队友实�
 
 ## 原生 CNN 工程路径（2026-10-05）
 
-2026-10-18 修复[逐子模块推理模式恢复](../pu_survey/admission/pulda_gradpu_inference_modes_20261018.md)：
+2026-10-18 修复逐子模块推理模式恢复：
 预测及异常退出不再覆盖调用者单独设置的Dropout/BN模式；不改变训练BN策略或默认数值。
 
-2026-10-18 根据 #119 补[共享图像接线](../pu_survey/admission/pulda_gradpu_image_review_20261018.md)：
+2026-10-18 根据 #119 补共享图像接线：
 可选 `train_transform` 在两个阶段逐训练 batch 重新采样，先增强、再 MixUp、最后
 encoder 内归一化；推理和伪标签扫描不增强。新增独立技术构造入口使用同 seed
 ResNet-18，并验证训练 BN 与模板隔离；默认仍不启用增强。2026-10-21 #119 决定：
@@ -87,7 +87,7 @@ ResNet-18，并验证训练 BN 与模板隔离；默认仍不启用增强。2026
 
 ## 准入证据补全（2026-10-05）
 
-2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+2026-10-07 补[阶段/预算规格](../../dev/experiment_layer.md)：
 warmup/pu_mixup 快照保留阶段内位置与累计更新数；当前技术 selector 仍遍历两阶段。
 哪些阶段可获正式 PA/OA 资格仍 null，训练目标、校准范围和默认预算未改。
 

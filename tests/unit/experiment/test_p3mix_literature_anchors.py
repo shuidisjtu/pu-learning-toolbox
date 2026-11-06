@@ -1,4 +1,4 @@
-"""P3Mix source-anchor hashes and literature values stay distinct from pilot data."""
+"""P3Mix source-anchor hashes and literature values stay distinct from toolbox results."""
 
 import hashlib
 import json
@@ -14,16 +14,6 @@ EXPECTED_OPENREVIEW_ID = "NH29920YEmj"
 pytestmark = pytest.mark.unit
 
 
-def _sha256_lf(path: Path) -> str:
-    """Hash a text file by its LF-canonical bytes.
-
-    Recorded anchors are git-blob digests.  A Windows checkout with
-    ``core.autocrlf=true`` rewrites LF to CRLF, so hashing raw bytes would
-    fail only on Windows even though the tracked content is unchanged.
-    """
-    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
-
-
 def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_results():
     record = json.loads(ANCHORS_PATH.read_text(encoding="utf-8"))
     source_path = ROOT / record["source"]["file"]
@@ -37,33 +27,14 @@ def test_basic_p3mix_literature_anchors_bind_the_uploaded_pdf_without_approving_
         digest = hashlib.sha256(source_path.read_bytes()).hexdigest()
         assert record["source"]["sha256"] == digest
     assert record["scope"].startswith("Source-audit anchors only")
-    assert record["references"]["frozen_comparison_matrix_modified"] is False
-    project = record["project_protocol_comparison"]
-    protocol_path = ROOT / project["frozen_protocol"]["file"]
-    split_index_path = ROOT / project["indexed_split_evidence"]["index_file"]
-    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
-    split_index = json.loads(split_index_path.read_text(encoding="utf-8"))
-    assert _sha256_lf(protocol_path) == project["frozen_protocol"]["sha256"]
-    assert project["frozen_protocol"]["version"] == protocol["protocol_version"]
-    assert project["frozen_protocol"]["seeds"] == protocol["seeds"]
-    assert project["frozen_protocol"]["scar_c_tokens"] == protocol["c_tokens"]["scar"]
-    assert _sha256_lf(split_index_path) == project["indexed_split_evidence"]["index_sha256"]
-    indexed_cifar = split_index["datasets"]["cifar10"]
-    assert project["indexed_split_evidence"]["manifest_sha256_by_seed"] == {
-        str(int(key.removeprefix("split_"))): value["manifest_sha256"]
-        for key, value in indexed_cifar.items()
-        if key.startswith("split_")
+    assert record["comparison_limits"]["direct_numeric_comparison_eligible"] is False
+    assert "Matching evidence is required" in record["comparison_limits"]["reason"]
+    assert record["protocol"]["tasks"] == {
+        "CIFAR-10-1": {"positive_class_indices": [0, 1, 8, 9]},
+        "CIFAR-10-2": {"positive_class_indices": [2, 3, 4, 5, 6, 7]},
     }
-    assert project["expected_labeled_positive_count_by_c"] == {
-        c: int(
-            project["indexed_split_evidence"]["observed_per_split"]["train_true_positive_rows"]
-            * float(c)
-        )
-        for c in project["frozen_protocol"]["scar_c_tokens"]
-    }
-    assert project["assessment"]["direct_numeric_comparison_eligible"] is False
-    assert project["assessment"]["CIFAR-10-1_positive_mapping"].startswith("matches")
-    assert project["assessment"]["CIFAR-10-2_positive_mapping"].startswith("complementary")
+    assert record["protocol"]["labeled_positive_count"] == 1000
+    assert record["protocol"]["backbone"] == "7-layer CNN"
     assert record["protocol"]["validation_definition"] == {
         "count": 500,
         "sampling_frame": "not specified in the paper",

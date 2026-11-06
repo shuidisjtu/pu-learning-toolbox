@@ -1,11 +1,9 @@
-"""Method ledger access (protocol §4 programmatic truth source).
+"""Current method routing defaults and interpretation for Survey experiments.
 
-Design notes: the ledger stores ``native_sampling_assumption`` as an enum value
-followed by an optional note -- ``"ts（两样本：…）"`` -- so consumers that need
-the bare enum split the head off here instead of re-implementing the split.
-The ledger records method-level *defaults*; what a single run actually used is
-recorded in that run's manifest (``run_view`` / ``calibration_applied``).
-See docs/research/pu_survey/pu_survey_protocol.md §2.3.
+Capabilities and source metadata belong to the algorithm registry. The ledger
+contains sampling/prior semantics, calibration defaults and method variants,
+without historical review or evidence-file dependencies. Actual run choices
+belong to that run's manifest (``run_view`` / ``calibration_applied``).
 """
 
 from __future__ import annotations

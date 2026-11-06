@@ -451,14 +451,14 @@ L=L_{SP+Reweight}+L_{students}+L_{teachers}.
 旧默认仍为 U-only，不改变冻结 Pilot/既有消融。实训回归确认元更新实际发生、
 test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终点 OA，不是 PA 或完整论文复现；
 图像 backbone、优化与数据协议仍有差异。实际数据支持集与正式预算尚未批准。
-详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
+详见[算法收尾与调用示例](../../dev/experiment_layer.md)。
 
 2026-10-23：另有显式 `SelfPUTSCleanSupportCheckpointTrainer`，通过
 `run_clean_support_experiment.py --training-view ts --selection-scope meta_checkpoints`
 接既有 TS 负边缘校准、完整 clean-meta 与双 teacher 的 `PA+clean-support`/OA 离线选择。
 默认 OS/旧消融不变；真实 Spambase 同制品/同标记的短 OS/TS 命令均回放通过。
 这是工程接线，不是新数学目标、正式 profile/unit、预算批准或校准效果证明；
-阶段/风险质量边界与证据见[本批交付](../pu_survey/delivery/selfpu_ts_support_20261023.md)。
+阶段/风险质量边界与证据见本批交付。
 
 | 字段 | 内容 |
 |---|---|
@@ -473,9 +473,9 @@ test 改变不影响训练/选择、模型 pickle 回放一致。仅 SCAR OS/终
 用 `split='test'` 构造的数据集同时供 `train_with_meta` 和逐 epoch `validate` 使用；meta 外层目标是测试批输入上的负预测熵，
 测试真值不进入该熵梯度，但会进入逐 epoch 准确率比较与最佳 checkpoint 选择。此处是源码可见行为，不等同于论文定义或论文报告协议。
 工具箱 clean-support adapter 使用显式 support 并保持外部 OA/test 隔离，**不得为贴近该源码数据流而将 test 接入训练或选模**。
-逐行证据及范围见[锁定源码行为复核](../pu_survey/admission/selfpu_source_behavior_review_20261019.md)。
+逐行证据及范围见锁定源码行为复核。
 
-2026-10-20 [生命周期与评分补核](../pu_survey/admission/selfpu_lifecycle_20261020.md)：
+2026-10-20 生命周期与评分补核：
 未拟合/失败重训后的概率评分统一拒绝，绑定失败、回调异常和取消撤销公开 fitted 状态；
 选中 teacher 的评分及 PU validation risk helper 恢复逐子模块模式，空输入不访问 teacher。
 2026-10-21 补输入隔离：所有 student/teacher/base_model 前向与 meta 验证均使用私有 clone，
@@ -493,5 +493,5 @@ teacher 选择和冻结消融保持原行为，额外 support 与正式预算仍
 
 1. Chen et al., *Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training*, ICML 2020, PMLR 119:1510–1519。
 2. 官方论文页面：[PMLR](https://proceedings.mlr.press/v119/chen20b.html)。
-3. 官方代码：[VITA-Group/Self-PU](https://github.com/VITA-Group/Self-PU)；论文摘要中的 TAMU-VITA 路径为旧组织地址。来源 revision 与工程差异见[来源版本核对](../pu_survey/admission/selfpu_source_pin_review_20261019.md)。
+3. 官方代码：[VITA-Group/Self-PU](https://github.com/VITA-Group/Self-PU)；论文摘要中的 TAMU-VITA 路径为旧组织地址。来源 revision 与工程差异见来源版本核对。
 4. nnPU 风险实现与理论：[Kiryo et al., 2017](https://arxiv.org/abs/1703.00593)。

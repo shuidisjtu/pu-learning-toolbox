@@ -149,12 +149,12 @@ def test_basic_dry_run_reports_the_plan_without_starting_a_batch(
     assert code == 0
     assert unit_calls == []
     printed = capsys.readouterr().out
-    assert "planned: 645 run(s)" in printed
-    assert "pending:   645" in printed
+    assert "planned: 650 run(s)" in printed
+    assert "pending:   650" in printed
     # What a host is sized against, and what the figure leaves out.  The peak is
     # the native CNN's: the adapter rows save a trainable head, and pricing them
     # as the ResNet they read features from is what made this four times too big.
-    assert "324.5 GiB for the whole pilot" in printed
+    assert "368.5 GiB for the whole pilot" in printed
     assert "8.79 GiB (cifar10/nnpu/native_cnn)" in printed
     assert "17.58 GiB" in printed
     assert "adapter_trainable_head" in printed

@@ -1,23 +1,25 @@
-"""Versioned pilot bindings; generic DIY runs remain explicitly technical.
+"""Formal Survey bindings; generic DIY runs remain explicitly technical.
 
 Design notes: resolve the matrix again in the runner rather than trusting a
 caller-supplied manifest. Budgets describe actual estimator training units;
 unmatched backbones never acquire a shared oracle by annotation alone.
-See docs/research/pu_survey/survey_execution_plan.md, P2.0a.
+See docs/research/pu_survey/pu_survey_protocol.md for execution rules.
 """
 
 from __future__ import annotations
 
 import copy
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.utils.serialization import array_hash, json_scalars, strict_canonical_hash
+from pu_toolbox.utils.serialization import array_hash, strict_canonical_hash
 
+from .bundle import role_indices_digest
 from .datasets import survey_dataset_catalog
 from .feature_adapter import encoder_state_sha256
 from .survey_profile_identity import (
@@ -28,23 +30,10 @@ from .survey_profile_identity import (
     validate_profile_identities,
 )
 
-PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v2.json")
-#: The canonical matrix files.  A version bump adds a file and keeps the old one:
-#: dated P3 evidence and the archived comparison matrices pin the bytes they were
-#: prepared against, so re-reading the old version must stay possible.  Names
-#: resolve to the file carrying that version -- a command written against
-#: survey-v1.2 keeps re-running the v1.2 matrix rather than silently moving to
-#: the current one.  A caller that resolves a name and a caller that resolves a
-#: path have to agree about which matrix a version is, which is why this mapping
-#: has one home.
+PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v3_2.json")
+#: Historical results are read from their manifests, without retired run configs.
 PROTOCOL_PATHS: dict[str, Path] = {
-    "survey-v1": Path(__file__).with_name("survey_protocol_v1.json"),
-    "survey-v1.1": Path(__file__).with_name("survey_protocol_v1.json"),
-    "survey-v1.2": Path(__file__).with_name("survey_protocol_v1.json"),
-    "survey-v2.0": PROTOCOL_PATH,
-    "survey-v3.0": Path(__file__).with_name("survey_protocol_v3.json"),
-    "survey-v3.1": Path(__file__).with_name("survey_protocol_v3_1.json"),
-    "survey-v3.2": Path(__file__).with_name("survey_protocol_v3_2.json"),
+    "survey-v3.2": PROTOCOL_PATH,
 }
 PROTOCOL_ALIASES = tuple(PROTOCOL_PATHS)
 
@@ -54,6 +43,11 @@ def resolve_protocol_path(value: str | Path) -> Path:
     name = str(value)
     if name in PROTOCOL_PATHS:
         return PROTOCOL_PATHS[name]
+    if re.fullmatch(r"survey-v\d+(?:\.\d+)*", name):
+        raise ValueError(
+            f"unsupported survey protocol version {name!r}; "
+            f"supported versions: {', '.join(PROTOCOL_PATHS)}"
+        )
     return Path(value).resolve()
 
 
@@ -225,21 +219,6 @@ def profile_mechanisms(protocol: dict[str, Any], method: str) -> tuple[str, ...]
     return tuple(declared)
 
 
-def role_indices_digest(indices: dict[str, Any]) -> str:
-    """The digest a run manifest records for the four-role split it trained on.
-
-    One definition, because the resume check compares this figure with the one
-    read back from another artifact's receipt: two spellings of "the same split"
-    would make every run on that artifact look like it ran on data that is gone.
-    It covers the four roles only -- the support set is a fifth partition whose
-    membership the receipt records, and folding it in here would silently change
-    the figure every existing manifest already carries.
-    """
-    return digest(
-        {role: json_scalars(np.asarray(indices[role]), name=f"{role} indices") for role in ROLES}
-    )
-
-
 def unit_checkpoint_bytes(protocol: dict, row: dict, *, input_dim: int) -> int | None:
     """Bytes one per-epoch checkpoint component costs for this execution unit.
 
@@ -386,6 +365,11 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
             raise ValueError(f"survey protocol missing {key}")
     if not isinstance(payload["protocol_version"], str) or not payload["protocol_version"]:
         raise ValueError("survey protocol protocol_version must be a non-empty string")
+    if payload["protocol_version"] not in PROTOCOL_PATHS:
+        raise ValueError(
+            f"unsupported survey protocol version {payload['protocol_version']!r}; "
+            f"supported versions: {', '.join(PROTOCOL_PATHS)}"
+        )
     for key in ("budgets", "method_profiles", "backbone_specs", "c_tokens", "selection_spec"):
         if not isinstance(payload[key], dict) or not payload[key]:
             raise ValueError(f"survey protocol {key} must be a non-empty object")
@@ -815,38 +799,11 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
         else "shared_spec_engineering",
     }
     context.update(profile_manifest_identity(protocol, row["method"]))
-    if has_profile_identities(protocol):
-        context.update(_profile_registration_context(protocol, row["method"]))
     if "review_items" in protocol:
         context["protocol_pending_review_items"] = [
             item["item_id"] for item in protocol["review_items"] if item["status"] != "accepted"
         ]
     return context
-
-
-def _profile_registration_context(protocol: dict[str, Any], profile_id: str) -> dict[str, Any]:
-    """The profile's comparison registration, or the honest "no mapping" marker.
-
-    A missing map and a matrix the map was not frozen against (a narrowed draft,
-    or the canonical file after an unreviewed edit) both fall back to
-    ``missing_versioned_profile_mapping``: in neither case does a mapping describe
-    this matrix.  A map that *does* bind the matrix but omits this profile is a
-    defect and is raised, so "not mapped yet" cannot survive the file landing.
-    """
-    from .survey_profile_map import (
-        load_profile_map,
-        profile_map_available,
-        profile_map_binds,
-        profile_map_path,
-        profile_registration_status,
-    )
-
-    if not profile_map_available(profile_map_path(protocol)):
-        return {"comparison_registration_status": "missing_versioned_profile_mapping"}
-    profile_map = load_profile_map(profile_map_path(protocol))
-    if not profile_map_binds(profile_map, protocol):
-        return {"comparison_registration_status": "missing_versioned_profile_mapping"}
-    return profile_registration_status(profile_id, protocol=protocol, profile_map=profile_map)
 
 
 def budget_fairness_fields(budget: dict) -> dict[str, Any]:

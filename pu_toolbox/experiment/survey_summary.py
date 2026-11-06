@@ -1,10 +1,10 @@
-"""P2.2 numeric summary: turn pilot manifests into aggregate report rows.
+"""Numeric summary helpers for recorded manifests and aggregate report rows.
 
 Four things this module is careful about, each pinned by tests:
 
-* **``blocked`` is not a status.**  ``scripts/aggregate_survey_runs.py`` reports a
-  ``(seed, c)`` unit's ``state`` as ``comparable``/``blocked`` -- the gate's own
-  vocabulary.  The delivery status is a different, closed set
+* **``blocked`` is not a status.**  Recorded fairness findings may name a
+  ``(seed, c)`` unit's ``state`` as ``comparable``/``blocked``. The report status
+  uses a different, closed set
   (:data:`STATUSES`), and a gate-blocked unit becomes ``partial`` carrying the
   reason ``fairness_gate_blocked``.  Copying the gate's word into ``status``
   would put a value in the field that no report is allowed to consume.

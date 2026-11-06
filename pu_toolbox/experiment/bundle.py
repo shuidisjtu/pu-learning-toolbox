@@ -9,12 +9,14 @@ docs/dev/experiment_layer.md §2.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
 
 from pu_toolbox.core.training_views import ROLES
 from pu_toolbox.core.validation import validate_true_binary_labels
+from pu_toolbox.utils.serialization import json_scalars, strict_canonical_hash
 
 LabelView = Literal["pu", "clean"]
 
@@ -69,9 +71,45 @@ def validate_bundle(bundle: DatasetBundle) -> None:
     if bundle.test.for_selection:
         raise ValueError("test must have for_selection=False (may not be read by selection).")
 
-    seen: dict[int, str] = {}
-    for name in ROLES:
-        for idx in np.asarray(getattr(bundle, name).indices, dtype=object).tolist():
+    _validate_role_indices({role: getattr(bundle, role).indices for role in ROLES})
+
+
+def _validate_role_indices(indices: dict) -> None:
+    """Require one-dimensional, disjoint sample identifiers for every role."""
+    seen: dict[object, str] = {}
+    for name, values in indices.items():
+        array = np.asarray(values)
+        if array.ndim != 1:
+            raise ValueError(f"{name} indices must be one-dimensional")
+        for idx in array.tolist():
             if idx in seen:
                 raise ValueError(f"indices overlap between {name} and {seen[idx]}: {idx}.")
             seen[idx] = name
+
+
+def role_indices_digest(indices: dict) -> str:
+    """Name the four-role split using the manifest's established hash contract."""
+    return strict_canonical_hash(
+        {role: json_scalars(np.asarray(indices[role]), name=f"{role} indices") for role in ROLES}
+    )
+
+
+def split_indices_digest(data_dir: str | Path, declared=None, *, include_support=False) -> str:
+    """Hash actual sample identifiers, validating any supplied receipt claim."""
+    roles = (*ROLES, "support") if include_support else ROLES
+    indices = {}
+    for role in roles:
+        path = Path(data_dir) / f"{role}.npz"
+        if not path.is_file():
+            raise ValueError(f"missing split files for index identity: {path}")
+        with np.load(path, allow_pickle=False) as archive:
+            if "indices" not in archive.files:
+                raise ValueError(f"split array has no sample indices: {path}")
+            indices[role] = archive["indices"]
+    _validate_role_indices(indices)
+    actual = strict_canonical_hash(
+        {role: json_scalars(indices[role], name=f"{role} indices") for role in roles}
+    )
+    if declared is not None and declared != actual:
+        raise ValueError("split manifest indices_sha256 disagrees with the actual sample indices")
+    return role_indices_digest(indices)

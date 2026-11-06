@@ -225,7 +225,7 @@ eval probe 得 representation_dim 后组合为单一
 注入网络 deepcopy/解冻训练，完整输入/标签/伪标签留 CPU，两阶段、扫描和预测均有批次界限；
 单行尾批以 BN 运行统计处理，记录该工程差异。Pipeline/CV、UI 能力列表、方法台账及 API
 同步，旧 MLP pickle 缺失的可选参数按构造缺省迁移；冻结 Pilot 的 Dist-PU 图像行仍走原
-feature-adapter。详见[接入与验收记录](../research/pu_survey/admission/distpu_encoder_stream_20261020.md)。
+feature-adapter。详见[接入与验收记录](../research/method_cards/Dist-PU.md)。
 这只完成该路径的技术接入，不表示正式共享图像规格、预算、GPU/多 seed 资源或方法学复核。
 
 ### 阶段 3：逐个评估复杂深度算法

@@ -50,7 +50,7 @@ affine/编码器仍有梯度，模式随后恢复；不复制/丢弃行，不改
 
 ## 差异与门禁
 
-2026-10-18 根据 #122 补[方向/归一化与mini-batch反例](../pu_survey/admission/splitpu_122_characterization_20261018.md)：
+2026-10-18 根据 #122 补方向/归一化与mini-batch反例：
 当前teacher权重0.7跟随源码；仅将其改成0.3还会改变归一化分母，并非自动对齐论文式。
 TS逐batch风险角色U∪P已实现，但均衡P/U抽样不保证总体混合比例；合成插桩显示
 全量union阳性比例0.4而实际teacher风险池为0.673913。
@@ -68,7 +68,7 @@ TS 均衡 batch 的并集比例**登记为 benchmark 近似**，本轮不按 π 
 
 ## 准入证据补全（2026-10-05）
 
-2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+2026-10-07 补[阶段/预算规格](../../dev/experiment_layer.md)：
 teacher/splitter/student 快照保留局部 epoch、student round 与累计更新数，
 实际 splitter 早停后不假造快照；恢复/回收不丢阶段。正式阶段及轮次资格仍待批准。
 

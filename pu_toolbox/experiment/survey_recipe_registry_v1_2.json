@@ -4,7 +4,7 @@
   "recipe_lifecycle": "locked",
   "protocol_basis": {
     "protocol_version": "survey-v3.2",
-    "protocol_sha256": "12f8861930c1c3178a9d58722a2dab130e525b18e278f16497fbc9d1206a1e66"
+    "protocol_sha256": "06ff7734d5e7ca9f6e71e6e3b532d51cc1a2f5f97d6f48f0be4146c94f90966f"
   },
   "selection_spec_ref": "survey_protocol_v3_2.selection_spec",
   "profiles": {
@@ -76,7 +76,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "upu"
     },
@@ -152,7 +152,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "nnpu"
     },
@@ -243,7 +243,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "kldce"
     },
@@ -319,7 +319,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "dist_pu"
     },
@@ -418,7 +418,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "pusb_kernel"
     },
@@ -490,7 +490,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "lbe"
     },
@@ -569,7 +569,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "self_pu"
     },
@@ -645,7 +645,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "pn_oracle"
     },
@@ -744,7 +744,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "p3mix"
     },
@@ -826,7 +826,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "puet"
     },
@@ -930,7 +930,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "pulda"
     },
@@ -1023,7 +1023,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "gradpu"
     },
@@ -1124,7 +1124,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "robust_pu"
     },
@@ -1224,7 +1224,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "split_pu"
     },
@@ -1309,7 +1309,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "pan"
     },
@@ -1385,7 +1385,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "rp"
     },
@@ -1464,7 +1464,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "pulns"
     },
@@ -1557,7 +1557,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "genpu"
     },
@@ -1654,7 +1654,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "holistic_pu"
     },
@@ -1745,7 +1745,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "cvir"
     },
@@ -1830,7 +1830,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "lagam"
     },
@@ -1925,7 +1925,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "vpu"
     },
@@ -2003,7 +2003,7 @@
         "open_questions": [
           "Historical pilot manifests remain legacy_unbound; never backfill a binding."
         ],
-        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
+        "decision": "owner confirmed current provisional parameters for this project round on 2026-11-01; differences retained; not numerical reproduction or formal admission (docs/research/pu_survey/pu_survey_protocol.md)"
       },
       "algorithm": "self_pu"
     }
@@ -2019,7 +2019,7 @@
     },
     "pn_oracle_spec": {
       "type": "in_repo",
-      "file": "docs/research/pu_survey/admission/pn_oracle_integration.md"
+      "file": "docs/research/pu_survey/pu_survey_protocol.md"
     }
   },
   "validation": {

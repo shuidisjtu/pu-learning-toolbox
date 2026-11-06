@@ -1,17 +1,5 @@
 # ruff: noqa: N803, F811
-"""Formal eligibility of versioned pilot units after the D24 release.
-
-Three blockers used to be written into every versioned pilot manifest by
-production code (``survey_protocol.runner_protocol_context`` and the protocol
-JSON).  D24 releases them from *formal eligibility*; it does not mean the
-collaborator reviewed anything, and it must not be read as also releasing the
-Self-PU ablation scope record.
-
-This file is the counterweight the release otherwise lacks: the pre-existing
-``formal_eligible is False`` assertions all pass for some *other* reason
-(a seed subset, a non-canonical matrix, a c grid mismatch), so nothing pinned
-the canonical no-deviation path until now.
-"""
+"""Runtime eligibility preserves configured blockers and method identities."""
 
 import pytest
 from _survey_script_helpers import make_splits, survey_script  # noqa: F401
@@ -62,17 +50,17 @@ def _manifest(survey_script, tmp_path, method="upu", **config_overrides):
     return ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
 
 
-def test_basic_canonical_scar_unit_is_formally_eligible(survey_script, tmp_path):  # noqa: F811
-    """The released path itself: no deviation, no blockers, formal tier.
-
-    ``scar`` is the mechanism that expects both PA and OA, so this run carried
-    the PA criterion blocker before D24 even with a perfectly canonical request.
-    """
+def test_basic_canonical_scar_unit_retains_protocol_blockers(survey_script, tmp_path):  # noqa: F811
+    """A valid run cannot grant release to a protocol awaiting acceptance."""
     manifest = _manifest(survey_script, tmp_path)
     assert manifest["execution_mode"] == "versioned_pilot"
     assert manifest["protocol_deviation"] == []
-    assert manifest["formal_blockers"] == []
-    assert manifest["formal_eligible"] is True
+    assert manifest["formal_blockers"] == [
+        *load_protocol()["formal_blockers"],
+        "profile_identity_extension_engineering_only",
+        "collaborator_review",
+    ]
+    assert manifest["formal_eligible"] is False
 
 
 def test_basic_self_pu_row_keeps_its_ablation_variant_label(survey_script, tmp_path):  # noqa: F811
@@ -116,19 +104,22 @@ def test_param_every_real_deviation_still_blocks_the_release(
     assert manifest["formal_eligible"] is False
 
 
-def test_edge_single_canonical_manifest_passes_the_formal_gate(survey_script, tmp_path):  # noqa: F811
-    """The strict comparability gate, which raises on any ineligible manifest.
-
-    This is the boundary the aggregation layer actually consumes: before the
-    release it refused a lone canonical manifest outright.
-    """
-    validate_comparable_manifests([_manifest(survey_script, tmp_path)])
+def test_edge_pending_canonical_manifest_requires_diagnostic_mode(survey_script, tmp_path):  # noqa: F811
+    manifest = _manifest(survey_script, tmp_path)
+    with pytest.raises(ValueError, match="formal aggregation blocked"):
+        validate_comparable_manifests([manifest])
+    validate_comparable_manifests([manifest], require_formal=False)
 
 
-def test_determ_released_eligibility_is_reproducible(survey_script, tmp_path):  # noqa: F811
+def test_determ_pending_eligibility_is_reproducible(survey_script, tmp_path):  # noqa: F811
     """Two identical canonical runs report the same standing and digest."""
     first = _manifest(survey_script, tmp_path)
     second = _manifest(survey_script, tmp_path)
-    assert first["formal_blockers"] == second["formal_blockers"] == []
+    expected = [
+        *load_protocol()["formal_blockers"],
+        "profile_identity_extension_engineering_only",
+        "collaborator_review",
+    ]
+    assert first["formal_blockers"] == second["formal_blockers"] == expected
     assert first["protocol_sha256"] == second["protocol_sha256"]
-    assert first["formal_eligible"] is second["formal_eligible"] is True
+    assert first["formal_eligible"] is second["formal_eligible"] is False

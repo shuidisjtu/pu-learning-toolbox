@@ -75,3 +75,13 @@ def test_shipped_ledger_normalises_for_every_method():
     resolved = {name: native_sampling_assumption(entry) for name, entry in methods.items()}
     assert resolved, "shipped ledger declares no methods"
     assert set(resolved.values()) <= {"os", "ts", "both"}
+
+
+def test_basic_runtime_metadata_has_no_local_review_dependencies():
+    """Metadata copied into runs remains usable without the research archive."""
+    metadata = json.dumps(load_ledger(), ensure_ascii=False)
+    assert "docs/research/" not in metadata
+    assert "pending_method_owner_review" not in metadata
+    for entry in load_ledger()["methods"].values():
+        assert entry["prior_semantics"].strip()
+        assert entry["notes"]

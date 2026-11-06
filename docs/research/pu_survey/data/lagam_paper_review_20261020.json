@@ -4,7 +4,7 @@
   "review_status": "pending_method_owner_review",
   "owner_signatures": [],
   "scope": "Independent paper/code/implementation crosswalk, not a numeric reproduction or protocol amendment",
-  "review_ref": "docs/research/pu_survey/admission/lagam_paper_review_20261020.md",
+  "review_ref": "docs/research/method_cards/LaGAM.md",
   "previous_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json",
   "sources": {
     "paper": {

@@ -45,7 +45,7 @@ def context(monkeypatch, tmp_path, *, copied_receipt=False, prior=0.5, c="0.3"):
             [
                 str(product),
                 "--protocol",
-                "survey-v3.0",
+                "survey-v3.2",
                 "--dataset",
                 "spambase",
                 "--method",
@@ -95,36 +95,15 @@ def test_determ_support_context_keeps_the_same_protocol_digest(monkeypatch, tmp_
     assert json.dumps(one["protocol_deviation"]) == json.dumps(two["protocol_deviation"])
 
 
-@pytest.mark.parametrize("method", ["lagam", "pulns", "self_pu_full_meta"])
-@pytest.mark.parametrize("support", [False, True])
-def test_basic_runtime_comparison_keys_match_support_selections(method, support):
-    from pu_toolbox.experiment.survey_comparison import run_comparison_units
-    from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, load_protocol
-
-    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
-    unit = {"dataset": "spambase", "method": method, "training_path": "native_2d"}
-    entries = run_comparison_units(
-        {"execution_unit": unit},
-        {
-            "clean_support_provided": support,
-            "c_requested_token": "0.1",
-            "survey_protocol": {**unit, "mechanism": "scar"},
-        },
-        survey=protocol,
-        profile_id=method,
-    )
-    assert set(entries) == {"PA+clean-support" if support else "PA", "OA"}
-
-
 @pytest.mark.parametrize("method", ["lagam", "self_pu_full_meta"])
-def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_path, method):
+def test_basic_real_support_cli_keeps_independent_selection_protocols(tmp_path, method):
     product = tabular_product(tmp_path / "product")
     output = tmp_path / "runs"
-    script.main(
+    result = script.main(
         [
             str(product),
             "--protocol",
-            "survey-v3.0",
+            "survey-v3.2",
             "--dataset",
             "spambase",
             "--method",
@@ -147,15 +126,17 @@ def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_pat
             str(output),
         ]
     )
+    assert result == 0
     manifests = list(output.rglob("manifest.json"))
     assert len(manifests) == 1
     manifest = json.loads(manifests[0].read_text())
     assert set(manifest["test_results"]) == {"PA+clean-support", "OA"}
-    assert set(manifest["comparison"]) == set(manifest["test_results"])
+    assert set(manifest["selection"]) == set(manifest["test_results"])
+    assert all(name == artifact["protocol"] for name, artifact in manifest["selection"].items())
     assert manifest["run_view"] == "os-compatible"
     assert manifest["calibration_applied"] is False
     support = manifest["extra_supervision"]
-    assert support["protocol_policy_basis"] == "survey-v3.0"
+    assert support["protocol_policy_basis"] == "survey-v3.2"
     assert support["protocol_pending_review_items"] == []
     assert support["budget_approval"] == "approved_by_protocol_owner_20261021"
     assert manifest["selection_checkpoint_scope"] == "independent_per_epoch"
@@ -163,21 +144,3 @@ def test_basic_real_support_cli_completes_with_matching_comparison_units(tmp_pat
         manifest["protocol_deviation"]
     )
     assert all(run["status"] == "succeeded" for run in manifest["candidate_runs"])
-
-
-def test_edge_receipt_reassessment_rejects_changed_support_arrays(tmp_path):
-    import audit_survey_batches as audit
-
-    product = tabular_product(tmp_path / "products" / "spambase" / "split_0")
-    receipt = json.loads((product / "support_manifest.json").read_text())
-    plan = tmp_path / "plan.json"
-    plan.write_text(json.dumps({"support_root": str(tmp_path / "products")}))
-    config = {"batches": [{"name": "support", "plan": str(plan)}]}
-    entry = {
-        "path": "run.json",
-        "batch": "support",
-        "payload": {"execution_unit": {"dataset": "spambase"}, "seed": 0, "split_ref": receipt},
-    }
-    assert audit.verify_support_receipts(config, [entry]) == {"run.json": True}
-    (product / "support.npz").write_bytes(b"changed")
-    assert audit.verify_support_receipts(config, [entry]) == {"run.json": False}

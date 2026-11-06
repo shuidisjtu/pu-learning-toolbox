@@ -9,9 +9,8 @@ to catch.
 
 These tests pin the declaration-driven form, and the runner-level consequence
 that gives it its point.  A dropped component fails the candidate, the run
-ends with no trajectories, and the checkpoint blocker is therefore never
-discharged -- an incomplete run must not be able to unlock independent
-per-epoch PA/OA selection just by omitting data.
+ends with no trajectories or selections -- an incomplete run must not be
+able to claim independent per-epoch PA/OA selection by omitting data.
 """
 
 import json
@@ -252,7 +251,7 @@ def test_determ_coverage_verdict_ignores_checkpoint_order(tmp_path):
 # --- the runner-level consequence ------------------------------------------
 
 
-def test_edge_dropped_component_cannot_discharge_r9_blocker(tmp_path, survey_script):  # noqa: F811
+def test_edge_dropped_component_cannot_claim_verified_selection(tmp_path, survey_script):  # noqa: F811
     """A run that omitted a network must not unlock independent PA/OA selection."""
     model, parts, config = _self_pu_bound(survey_script, tmp_path)
     manifest_path = tmp_path / "manifest.json"
@@ -271,12 +270,14 @@ def test_edge_dropped_component_cannot_discharge_r9_blocker(tmp_path, survey_scr
     assert [run["status"] for run in manifest["candidate_runs"]] == ["excluded"] * len(
         manifest["candidate_runs"]
     )
-    assert "per_epoch_independent_PA_OA_checkpoint_selection" in manifest["formal_blockers"]
     assert manifest["selection_checkpoint_scope"] == "pending_actual_trajectory_verification"
+    assert manifest["selection"] == {}
+    assert manifest["test_results"] == {}
+    assert manifest["formal_eligible"] is False
 
 
-def test_basic_complete_versioned_run_does_discharge_the_blocker(tmp_path, survey_script):  # noqa: F811
-    """Control: the same unit, undamaged, does clear the checkpoint blocker.
+def test_basic_complete_versioned_run_verifies_independent_selection(tmp_path, survey_script):  # noqa: F811
+    """Control: the same unit, undamaged, verifies both selection protocols.
 
     Without this, the previous test would pass just as well if the guard
     rejected every versioned run.

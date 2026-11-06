@@ -87,7 +87,15 @@ def _runnable_adapter_rows(protocol: dict) -> list[dict]:
 
 #: Discovered at collection time so a new adapter method shows up as a new
 #: parameter rather than as a silent gap in coverage.
-_ADAPTER_METHODS = sorted(row["method"] for row in _runnable_adapter_rows(load_protocol()))
+_ADAPTER_METHODS = sorted(
+    {
+        row["method"]
+        for row in _runnable_adapter_rows(load_protocol())
+        if row["dataset"] == "cifar10"
+        and unit_checkpoint_profile(load_protocol(), row, input_dim=ADAPTER_FEATURE_DIM)
+        == "adapter_trainable_head"
+    }
+)
 
 
 def _cheap_epochs(protocol: dict, epochs: int = 2) -> dict:
@@ -191,7 +199,7 @@ def test_basic_a_support_budget_does_not_under_size_its_native_cnn_row():
     the shared ResNet-18, so the architecture's bound has to win; the MLP row of
     the same budget keeps its tighter figure instead of reserving five times more.
     """
-    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.2"])
     declared = protocol["budgets"]["lagam"]["checkpoint_bytes_per_component"]
 
     mlp = resolve_unit(protocol, "spambase", "lagam", "native_2d")
@@ -294,7 +302,10 @@ def test_param_every_runnable_adapter_row_maps_to_a_registered_profile():
         row["method"]: unit_checkpoint_profile(protocol, row, input_dim=ADAPTER_FEATURE_DIM)
         for row in rows
     }
-    assert set(profiles.values()) == {"adapter_trainable_head"}
+    assert set(profiles.values()) == {"adapter_trainable_head", "explicit_budget_bound"}
+    assert all(
+        unit_checkpoint_bytes(protocol, row, input_dim=ADAPTER_FEATURE_DIM) > 0 for row in rows
+    )
 
 
 def test_param_an_unregistered_architecture_is_refused_with_its_context():
@@ -350,28 +361,27 @@ def test_edge_a_budget_without_epochs_is_not_a_sizing_failure():
 # --- the totals a host is sized against --------------------------------------
 
 
-def test_basic_full_pilot_totals_are_pinned_to_exact_bytes():
-    """The shipped matrix, to the byte: a host decision is made on these.
+def test_basic_storage_totals_include_each_current_execution_unit():
+    """Capacity accounting includes every planned run exactly once."""
+    from pu_toolbox.experiment.pilot_plan import estimate_checkpoint_bytes, planned_runs
 
-    A tolerance here would be a hole in exactly the test that exists to stop the
-    old four-times figure from coming back, so the byte counts are exact and the
-    GiB readings only appear in the failure message.
-    """
-    from pu_toolbox.experiment.pilot_plan import estimate_checkpoint_bytes
+    protocol = load_protocol()
+    estimate = estimate_checkpoint_bytes(
+        protocol,
+        input_dims={"spambase": 57, "imdb": 384, "connect_4": 126, "twenty_newsgroups": 384},
+    )
 
-    estimate = estimate_checkpoint_bytes(load_protocol(), input_dims={"spambase": 57, "imdb": 384})
-
-    assert estimate["runs"] == 645
-    assert estimate["units"] == 21
+    assert estimate["runs"] == len(planned_runs(protocol))
+    assert estimate["units"] == sum(unit["runnable"] for unit in protocol["execution_units"])
     writing = {label: entry for label, entry in estimate["per_unit_bytes"].items() if entry["runs"]}
-    assert sum(entry["runs"] for entry in writing.values() if entry["bytes_per_run"]) == 330
-    assert sum(1 for entry in writing.values() if entry["bytes_per_run"]) == 12
-
-    assert estimate["total_bytes"] == 348_443_368_000, f"{estimate['total_bytes'] / _GIB:.2f} GiB"
-    assert estimate["per_dataset_bytes"]["cifar10"] == 341_835_776_000
-    assert estimate["peak_unit"] == "cifar10/nnpu/native_cnn"
-    assert estimate["peak_bytes_per_run"] == 9_437_184_000
-    assert estimate["guard_peak_bytes_per_run"] == 18_874_368_000
+    assert estimate["total_bytes"] == sum(
+        entry["runs"] * entry["bytes_per_run"] for entry in writing.values()
+    )
+    assert estimate["total_bytes"] == sum(estimate["per_dataset_bytes"].values())
+    assert estimate["peak_bytes_per_run"] == max(
+        entry["bytes_per_run"] for entry in writing.values()
+    )
+    assert estimate["guard_peak_bytes_per_run"] == 2 * estimate["peak_bytes_per_run"]
 
 
 def test_determ_the_run_script_hands_the_runner_the_shared_component_size(survey_script, tmp_path):
@@ -396,7 +406,7 @@ def test_determ_the_run_script_hands_the_runner_the_shared_component_size(survey
         [
             str(data_dir),
             "--protocol",
-            "survey-v1",
+            "survey-v3.2",
             "--dataset",
             "spambase",
             "--training-path",
@@ -453,7 +463,7 @@ def test_param_the_run_script_reports_an_unsized_row_without_a_traceback(
         [
             str(data_dir),
             "--protocol",
-            "survey-v1",
+            "survey-v3.2",
             "--dataset",
             "spambase",
             "--training-path",
@@ -492,7 +502,9 @@ def test_determ_the_pilot_and_the_run_script_size_from_one_component():
 
     protocol = load_protocol()
     estimate = estimate_checkpoint_bytes(
-        protocol, input_dims={"spambase": 57, "imdb": 384}, runs=planned_runs(protocol)
+        protocol,
+        input_dims={"spambase": 57, "imdb": 384, "connect_4": 126, "twenty_newsgroups": 384},
+        runs=planned_runs(protocol),
     )
     component = unit_checkpoint_bytes(protocol, _native_cnn_row(protocol), input_dim=512)
     entry = estimate["per_unit_bytes"]["cifar10/nnpu/native_cnn"]

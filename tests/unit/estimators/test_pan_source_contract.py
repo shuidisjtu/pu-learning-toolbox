@@ -3,11 +3,6 @@
 # Match the public feature naming convention.
 # ruff: noqa: N803, N806
 
-import ast
-import hashlib
-import json
-from pathlib import Path
-
 import numpy as np
 import pytest
 from scipy.special import expit
@@ -19,12 +14,8 @@ from pu_toolbox.estimators.deep.pan import (  # noqa: E402
     pan_classifier_loss,
     pan_discriminator_loss,
 )
-from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
-from pu_toolbox.experiment.survey_protocol import load_protocol  # noqa: E402
 
 pytestmark = pytest.mark.unit
-ROOT = Path(__file__).resolve().parents[3]
-REVIEW_REF = "docs/research/pu_survey/data/pan_source_review_20261018.json"
 
 
 @pytest.mark.parametrize("weight", [0.0001, 0.3, 1.0])
@@ -168,62 +159,3 @@ def test_edge_prediction_uses_classifier_not_adversary():
         for parameter in fitted.discriminator_.parameters():
             parameter.add_(100)
     np.testing.assert_array_equal(fitted.decision_function(X), expected)
-
-
-def test_basic_source_review_binds_current_code_tests_ledger_and_non_admission():
-    review = json.loads((ROOT / REVIEW_REF).read_text(encoding="utf-8"))
-    entry = load_ledger()["methods"]["pan"]
-    assert entry["source_behavior_review_ref"] == REVIEW_REF
-    assert review["method"] == "pan"
-    assert review["review_status"] == "pending_method_owner_review"
-    assert review["owner_signatures"] == []
-    assert review["formal_admission"] is False
-    assert "pan" not in load_protocol()["method_profiles"]
-    assert review["source"]["repository"] == entry["code_version"]["upstream_url"]
-    assert review["source"]["commit"] == entry["code_version"]["upstream_commit"]
-    assert review["source"]["commit"] == "5be703639e4c1eb2c63d869ba150d84ebf0c116e"
-    assert review["source"]["source_status"] == "official_related"
-    assert {row["path"] for row in review["source"]["files"]} == {
-        "main.py",
-        "helper/pu_learning_dataset.py",
-        "helper/cifar10_dataset.py",
-        "helper/mnist_dataset.py",
-        "README.md",
-        "cfg/cifar10/uPU",
-        "cfg/mnist/uPU",
-        "cfg/news/uPU",
-        "cfg/sddd/uPU",
-    }
-    assert review["source"]["executed_upstream_code"] is False
-    license_observation = review["source"]["license_observation"]
-    assert license_observation["status"] == "unknown"
-    assert license_observation["permission_inferred_from_public_repository"] is False
-    assert license_observation["upstream_code_or_weights_copied_executed_or_redistributed"] is False
-    scope = review["engineering_scope"]
-    assert scope["prediction_child_mode_restoration_fixed"] is True
-    for name in (
-        "fit_body_or_objective_changed",
-        "historical_probe_or_frozen_result_changed",
-        "new_real_data_or_GPU_run",
-        "numeric_reproduction_or_formal_recipe_approval",
-    ):
-        assert scope[name] is False
-    assert review["remaining_blockers"]
-    assert {row["path"]: row["sha256"] for row in review["source"]["files"]} == (
-        entry["code_version"]["source_files_sha256"]
-    )
-    source = ROOT / review["implementation_ref"]
-    assert (
-        hashlib.sha256(source.read_text(encoding="utf-8").encode()).hexdigest()
-        == (review["implementation_sha256"])
-    )
-    assert review["calibration"] == {
-        "run_view": entry["run_view"],
-        "calibration_applied": entry["calibration_applied"],
-        "population_prior_enters_target": False,
-        "source_equivalence_claim": False,
-    }
-    for ref in review["behavior_test_refs"]:
-        file, name = ref.split("::")
-        nodes = ast.parse((ROOT / file).read_text(encoding="utf-8")).body
-        assert any(isinstance(node, ast.FunctionDef) and node.name == name for node in nodes)

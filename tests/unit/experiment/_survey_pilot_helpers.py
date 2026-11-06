@@ -22,6 +22,8 @@ _SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
 #: The population priors the pilot datasets record.  A test that wants the
 #: *missing* prior path passes a splits tree that records none instead.
 ALL_PRIORS = ["--class-prior", "spambase=0.39,imdb=0.5,cifar10=0.1"]
+SMOKE_DATASETS = ("cifar10", "imdb", "spambase")
+SMOKE_METHODS = ("upu", "nnpu", "pusb_kernel", "dist_pu", "lbe", "self_pu", "pn_oracle")
 
 
 def _load_driver():
@@ -41,23 +43,39 @@ def raw_driver():
 
 @pytest.fixture
 def driver():
-    """The script with ``--protocol survey-v2.0`` filled in when the call names none.
+    """Exercise the current protocol within an explicit three-dataset smoke scope.
 
-    The driver's default moved to ``survey-v3.0``, but these suites are built around
-    the v2 pilot matrix -- its 645 runs and its three-dataset prior set -- so they
-    ask for it by name.  A test that names a protocol keeps it, and the default
-    itself is pinned through ``raw_driver`` in ``test_survey_pilot_driver_protocol``.
+    Requests keep their explicit filters and protocol. Synthetic protocol stubs
+    keep their own scope, while real protocols use the common methods whose
+    four-role split fixtures this suite provides. Default-version behavior is
+    tested separately through ``raw_driver``.
     """
     module = _load_driver()
     shipped_main = module.main
 
-    def _main_under_v2(argv=None):
+    def _main_in_smoke_scope(argv=None):
         args = list(argv or [])
         if "--protocol" not in args:
-            args += ["--protocol", "survey-v2.0"]
+            args += ["--protocol", "survey-v3.2"]
+        try:
+            protocol_path = module.resolve_protocol_path(args[args.index("--protocol") + 1])
+            protocol = module.load_protocol(protocol_path)
+        except (OSError, ValueError):
+            return shipped_main(args)
+        if "profile_identity_schema_version" in protocol:
+            units = protocol["execution_units"]
+            if "--datasets" not in args:
+                datasets = [
+                    name
+                    for name in SMOKE_DATASETS
+                    if any(unit["dataset"] == name for unit in units)
+                ]
+                args += ["--datasets", ",".join(datasets)]
+            if "--methods" not in args:
+                args += ["--methods", ",".join(SMOKE_METHODS)]
         return shipped_main(args)
 
-    module.main = _main_under_v2
+    module.main = _main_in_smoke_scope
     return module
 
 

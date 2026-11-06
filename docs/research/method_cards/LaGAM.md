@@ -15,11 +15,11 @@ LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在
 
 公开类 `LaGAMClassifier`，注册名 `lagam`（别名 `la_gam`），使用二维 MLP 或独立复制后联合训练的注入 CNN、Gaussian 双视图与 sklearn KMeans。支持 CPU/CUDA、随机种子、训练历史、epoch 回调与权重推理恢复；`decision_function` 为 raw logit。非空 `sample_weight` 会报错。作者 ResNet/projection 配方、Faiss GPU 聚类、图像增强、classifier cutoff/kNN augment、400 epoch 调度未重放，**不得声称数值复现**。
 
-2026-10-15 来源补记：发布源码的虚拟 classifier 更新筛选 ndim>1，因此不更新 bias。新增 `meta_update_bias=False` 仅对齐该参数范围，默认 True 保留旧行为。原硬观测元目标/稳定 BCE、EMA 端点时序、optimizer 等与作者仍不同；标量与两列扰动的等价只在同损失/目标/范围下成立。来源文件摘要与逐项边界见[来源/CNN 复核](../pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+2026-10-15 来源补记：发布源码的虚拟 classifier 更新筛选 ndim>1，因此不更新 bias。新增 `meta_update_bias=False` 仅对齐该参数范围，默认 True 保留旧行为。原硬观测元目标/稳定 BCE、EMA 端点时序、optimizer 等与作者仍不同；标量与两列扰动的等价只在同损失/目标/范围下成立。来源文件摘要与逐项边界见来源/CNN 复核。
 
 新图像路径强制 CPU 数据分批，训练/聚类/预测 batch_size、support_batch_size 各自限流；CPU 仍需全量嵌入。CNN 虚拟步冻结 eval 特征并恢复模式，避免 support 更新真实 BN/dropout；实际分类/对比端到端训练。旧二维 auto 保留 resident。`optimizer_steps_` / `virtual_steps_` / `clustering_passes_` 分列成本；max_epochs 已含 warmup，两阶段快照上下文不是选模批准，也不支持训练续跑。
 
-2026-10-20 已补[正文/补充材料交叉复核](../pu_survey/admission/lagam_paper_review_20261020.md)，
+2026-10-20 已补正文/补充材料交叉复核，
 不覆盖旧 HTTP403 历史。新登记三项待裁决差异：正文零梯度投影含等号而补充伪代码不含；
 补充 Table 15 的 β 默认 0 与发布代码直接加入对比损失无法直接对应；补充统一100簇而
 README 的 CIFAR-10 命令指定5簇。当前梯度零时 U 取0、`contrastive_weight=1`、
@@ -42,6 +42,6 @@ README 的 CIFAR-10 命令指定5簇。当前梯度零时 U 取0、`contrastive_
 选模/test。实训回归确认虚拟元更新发生，manifest 显著标注额外监督/预算，
 修改 test 不影响训练或选模。旧 `EpochCheckpointTrainer`/frozen Survey 不变；
 这不是正式候选池准入，未替代实际数据支持集、来源配方与标签预算审批。
-详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
+详见[算法收尾与调用示例](../../dev/experiment_layer.md)。
 
 单元测试覆盖平衡 BCE、独立二阶元梯度、组对比损失、支持集 fail-closed、CNN 模式/缓冲、分批/成本及推理回放。2026-09-28 A6000 单次 CUDA smoke 为旧二维路径，不覆盖新 CNN，也不替代 frozen-lock 或多 seed 资源验收。台账仍为 `run_view=os-compatible`、`calibration_applied=false`：无安全的同形 U 风险替换，校准也不能消除独立 support 监督。标准 PA 不适用；全文获取已补，仍需 support/选模互斥协议、来源许可、论文/代码差异与完整配方裁决、公开数值、候选矩阵及合作者审阅。

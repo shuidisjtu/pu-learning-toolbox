@@ -24,8 +24,8 @@ pu-learning-toolbox/
 |---|---|---|
 | 安装包源码 | `pu_toolbox/` | Git 管理；公共导入路径不因工作区整理而迁移 |
 | 自动化测试 / 示例 | `tests/`、`examples/` | Git 管理；不放真实数据和训练输出 |
-| 实验与维护入口 | `scripts/`、`benchmarks/` | Git 管理；脚本按本文 §6 导航，保留既有命令路径 |
-| 用户 / 开发 / 研究文档 | `docs/user/`、`docs/dev/`、`docs/research/` | Git 管理；研究文档和冻结证据不是临时缓存 |
+| 实验与维护入口 | `scripts/`、`benchmarks/` | Git 管理；保留公共运行和报告入口，退役实验过程专用脚本 |
+| 用户 / 开发 / 研究文档 | `docs/user/`、`docs/dev/`、`docs/research/` | Git 管理；保留方法、数据和使用说明，实验过程记录从 Git 历史查阅 |
 | 用户上传的原件 | `data/incoming/user-uploads/`（本地创建） | 按 `papers/`、`results/`、`datasets/`、`protocols/`、`tasks/`、`diagnostics/` 分类；保留原文件名与 SHA256 |
 | 接收中的外部交付 | `data/incoming/` | 下载完成、校验及对账前不混入已验收数据；`.part` 不是可删除旧文件的充分依据 |
 | 原始数据 / 标准切分 | `data/raw/`、`data/splits/` | 本地忽略；历史接收路径继续有效，不为统一命名改写 split manifest |
@@ -198,7 +198,7 @@ pu_toolbox/
     runtime.py                            (后台执行: submit_background/BackgroundRun 线程池、进度快照与协作取消)
     launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
     deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
-  experiment/                             # 实验层(P0): 四路数据协议 + PA/OA 选模 + 独立测试 + method_ledger.json 方法台账(见 docs/research/pu_survey/)
+  experiment/                             # 公共实验层：四角色、PA/OA、独立测试、只读结果汇总与报告
     cvir_adapter.py                       # 显式 alpha_U OS 与总体 pi/视图先验换算的独立 CVIR 接线
     pulns_adapter.py                      # 额外 clean support 的全角色/分组隔离、预算与终点 OA 门禁
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
@@ -216,39 +216,33 @@ pu_toolbox/
     strategies.py                         (内置策略: SCAR/SAR-LBE 生成、PA/OA 选模、Trainer 三实现、select_threshold)
     tracking.py                           (运行留痕数据类: EpochRecord/RunTrajectory/SelectionArtifact/RunResult)
     survey_execution.py                   (P2.0a 共享模型/图像装配、随机冻结 adapter 校验缓存与原空间 SAR 标记)
-    survey_protocol.py                    (survey_protocol_v2.json 消费、--protocol 版本名/路径统一解析、参数预算锁、正式资格与比较门禁、review_items 待复核登记)
+    survey_protocol.py                    (单一 v3.2 执行配置、参数预算锁与实际运行身份；历史结果无需加载此模块)
     checkpoints.py                        # 逐 epoch 权重快照、摘要校验与独立推理恢复
-    survey_comparison.py                  (P2.0c 对照预注册消费: 锚点/映射 fail-closed 校验、单位与不确定度契约、数值裁决)
     split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
-    pilot_plan.py                         # 全 pilot 计划: 协议枚举 645 次运行、按 manifest 判定已完成、checkpoint 磁盘估算、splits 读取可按数据集收窄
+    pilot_plan.py                         # 确定性实验网格、完成判定、checkpoint 空间估算与作用域筛选
     method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
-    survey_audit.py                       (P2.2 批次审计: 逐 manifest 判完整性/可复现/可交付, 畸形 manifest 记为 finding 而非异常, 检查携带 scope 与 members)
-    survey_summary.py                     (P2.2 数值汇总: manifest → 交付行(每行一均值+样本标准差), 状态闭集 STATUSES 与优先级裁决, 缺值按代价分四类读)
+    survey_summary.py                     (纯统计：seed 均值/样本标准差、分组、成本去重与缺失指标)
     survey_result_coverage.py             # 新矩阵覆盖准备：显式期望/排除格与规范化观测对账；不推断最终矩阵、不授予正式资格
     survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
     survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
     batch_evidence.py                     # §5.6 批次证据包: 内容寻址的 commit/uv.lock/协议/环境身份, 读回校验 run 与包同批, 装配 manifest 引用块
     survey_workbook.py                    # 交付工作簿版式: 汇总报告 → 协议 §5.1 四组各一页 + diagnostic/coverage/readme，不排名、缺 seed 行只进 coverage（纯函数，需 openpyxl）
     survey_diagnostics.py                 # 方法诊断卡: 汇总报告按执行计划 §1.4.5 信号逐方法出观测与异常标记，列出算不了的信号，标记只是提示（纯函数）
-    survey_artifacts.py                   # Survey 证据制品的集中式仓库相对路径映射与解析
-    survey_recipe_audit.py                # 版本化批次配方义务、身份重算与聚合前拒收
     survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
     support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
-    support_repair.py                     # 只读 D53 轨迹缺口与新目录重跑规划，不授予正式资格
     genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
-    queue_scheduling.py                   # 单次 fit 拆分、运行中归属保护与低负载 GPU 有界并发策略
     candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
     survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
     survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
     survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
-    survey_profile_map.py                 # 版本化 profile → 比较条目映射：继承/显式偏差/not_in_matrix 与协议+矩阵双绑定
     classical_candidate.py                # PUET 逐树与 RP 嵌套拟合的非 epoch 成本收据
     kernel_candidate.py                   KLDCE 先验策略、稠密内存/可行性预检与成本收据
-    support_campaign.py                   # D53 独立纠正批次、完整预算 canary 与逐 fit 质量门禁
-    survey_backlog.py                     # v3.1 项目配方训练、先验/阶段/资源核验
+    survey_backlog.py                     # 当前方法执行适配器、先验/阶段/实际资源核验
     survey_conclusions.py                 # 结论分析: 按 §1.4.5 信号给结论归因，区分文献事实/本实验观测/推断；无信号、无证据或无来源的结论一律拒绝（纯函数）
+    reporting.py                          (summary 文本/JSON/CSV、四组工作簿、诊断卡与结论写出)
+    results.py                            (v3 manifest 只读消费、身份与预算一致性、seed 聚合和来源披露)
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -267,9 +261,7 @@ tests/
     test_layer_boundaries.py            # 下层对 experiment 层的依赖边界 ratchet(静态 AST 扫描抓函数内导入 + 子进程导入图抓传递依赖)
     test_registry_dynamic_import.py     # registry 经 importlib 按名字动态加载 estimators/prior 的向上边(Core→Algorithms/Estimation): 静态 AST 扫描与子进程导入图都看不见的已裁决例外, 由注册表观测量钉住
     conftest.py                         # contract 测试共享 fixture(ledger_methods: 加载台账并注册内置方法)
-    test_ledger_source_reviews.py       # 来源/行为审计复核文档的台账登记与引用契约(15 条)
     test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
-    test_lagam_paper_review.py          # LaGAM 全文身份、来源分歧和未签署准入边界
   estimators/                           # 按方法的测试（MATH/PROPERTY/API）
     risk/
       test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
@@ -427,7 +419,6 @@ tests/
       test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
       test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
       test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
-      test_prepare_candidate_image_resource_plan.py # 图像资源只读预检、快照成本、缺证据拒绝与无 torch 边界
       test_recipe_production_gate.py    # 正式注册表条件 CI 与声明锁拒收/确定性
       _lbe_comparison_helpers.py        # 临时 LBE 对照的合成四路 fixture
       test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
@@ -445,27 +436,10 @@ tests/
       test_candidate_image_adni.py      # ADNI 替代槽位灰度图、双选模回放与非临床来源边界
       test_pan_image_cli.py             # PAN 四角色 OS 图像命令、双选模回放与非正式预算拒收
       test_vpu_image_cli.py             # VPU 四角色 TS 命令、归一化回放、显式参数与角色隔离
-      test_p3mix_resource_plan.py       # P3MIX 切批曝光、teacher 与额外前向预算
       test_p3mix_image_execution.py     # P3Mix 图像显式预算、双协议回放与回收
       test_classical_candidate_execution.py # PUET/RP 显式计划、四角色回放与失败证据
       test_cvir_image_execution.py      # CVIR 图像先验、视图锁定与双协议回放
-      test_kldce_resource_plan.py       # KLDCE 稠密块实测、只读预检与 QP 预算
       test_kldce_candidate_execution.py # KLDCE 实际 SCAR 绑定、四角色回放与失败证据
-      test_kldce_feasibility_plan.py    # KLDCE 只读适用域、原始 LP 对照与退出码
-      test_cvir_resource_plan.py        # CVIR 只读风险池/阶段成本与原生 fit 对照
-      test_candidate_readiness_campaign.py # 完整划分候选启动与 GPU/失败隔离回归
-      test_candidate_five_seed_grid.py  # 五 seed 网格与逐方法 canary 门禁回归
-      test_prepare_support_repair.py    # 重跑规划命令、历史根/新输出隔离与只读拒收门禁
-      test_queue_handoff_export.py      # 结果交接修正替代、seed 隔离与汇总回归
-      test_survey_backlog_campaign.py   # 全网格分母、canary 隔离与制品验收
-      test_backlog_canary_recovery.py   # 独立恢复、不重写历史与自有进程共卡门禁
-      test_backlog_gpu_sharing.py       # 共卡准入、负载复查、每卡单任务与停派隔离
-      test_survey_host_portability.py   # 跨平台规划导入、Python3.10哈希与主机锁拒绝/释放
-      test_monitor_survey_campaign.py   # GPU 遥测、真实快照进度与保守 ETA 的只读测试
-      test_kldce_recovery.py            # 逐项可行性预检、按标记率恢复与替代任务身份保护
-      test_backlog_gpu_pool.py          # 动态 GPU 候选池、四卡上限与停派回归测试
-      test_diagnose_gradpu_encoder.py   # 训练集诊断隔离、固定预算和退化信号回归
-      test_validate_gradpu_encoder.py   # 全量编码器验证、预算隔离与退化判定回归
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -498,7 +472,6 @@ tests/
       test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
       test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
     experiment/
-      test_dist_pu_source_review.py     # 锁定作者来源身份与 toolbox 训练流程差异/未准入边界
       test_cvir_known_prior_adapter.py  # CVIR alpha_U/总体 pi、候选角色、manifest 与路径拒收
       test_pulns_support_adapter.py     # PULNS 全角色隔离、额外标签预算与 OA-only 拒收
       test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
@@ -515,9 +488,6 @@ tests/
       test_prepare_survey_splits.py     # 1.4 切分产物流水线(tabular/image/text 三路径假数据)
       test_survey_script.py             # run_survey_experiment.py 端到端冒烟/先验强制/缺文件报错
       test_survey_script_cvir.py        # CVIR 显式 CLI 先验换算、视图、快照容量/回收与已有证据保护
-      test_queue_scheduling.py          # 单次调度身份守恒、运行中批次保护与 GPU 并发上限
-      test_queue_service.py             # 控制器交接、PID 复用/退出核验与孤儿接管，不向训练发信号
-      test_queue_monitor.py             # 活跃 fit 阶段、历史快照排除、共享标记与终端宽高
       _survey_script_helpers.py         # 脚本测试共享夹具: 动态加载与基础/SAR 两套四路 split
       test_survey_script_sar.py         # SAR 机制 CLI: OA-only/c token 门禁/审计字段/确定性
       test_strategies_labeling.py       # SCAR/SAR-LBE 生成(固定计数/posterior 正例池/seed 确定性)
@@ -531,24 +501,12 @@ tests/
       test_survey_protocol.py           # 执行矩阵、runner 参数锁、比较公平性与正式结果阻断
       test_survey_protocol_validation.py # 执行矩阵审核字段/KLDCE 可运行性/Self-PU 独立预算门禁
       test_survey_protocol_cnn.py       # 真实 ResNet CPU 一 epoch smoke 与 encoder provenance 门禁
-      test_survey_protocol_review.py    # v1 归档字节绑定、v2 review_items 接受/待复核登记
+      test_survey_protocol_review.py    # v3.x 策略条款状态、review_items 校验与摘要确定性
       test_survey_script_protocol.py    # 版本化脚本、split/seed 对应、oracle 去重与 CIFAR 缓存命中
       test_checkpoint_selection.py      # PA/OA 不同 epoch 选择、无泄漏与独立恢复反例
       test_epoch_checkpoints.py         # 回调、权重快照、CPU/CUDA 保存加载与深度方法覆盖
       test_checkpoint_coverage.py       # 覆盖不变量按声明而非已保存集合校验、丢 component 不解除 R9 阻断
       test_checkpoint_disk_preflight.py # 跑批前磁盘容量守卫: 纯函数算术/边界/按执行模式分级与体积估算
-      test_aggregate_survey_runs.py     # 聚合入口: comparability 分组、(seed,c) 细分、分榜门禁强制与诊断模式
-      test_aggregate_survey_budget_fairness.py # 预算族可比性: 跨族并列放行、描述性 batch_size、混入异族仍被拒
-      _aggregate_script_helpers.py      # 聚合测试共享构造器: 版本化 manifest 字典与目录树
-      test_aggregate_survey_cli.py      # 聚合入口命令行: 退出码与面向调用者的信息(阻断/诊断/空树/JSON)
-      test_survey_comparison.py         # 对照协议加载、审核门禁、协议绑定与矛盾记录 fail-closed
-      test_survey_comparison_verdict.py # 单位换算、pooled SE 双分支与阈值裁决
-      test_survey_comparison_coverage.py # 187 单元全集覆盖与漏项/重复/幽灵映射门禁
-      test_survey_comparison_classification.py # 已发布矩阵的资格分类: PA 阻断/不可运行/PN/双路径分榜
-      test_survey_comparison_report.py  # manifest comparison 上下文、聚合报告与三档调查结论
-      test_survey_comparison_run_wiring.py # 跑批侧接线: 一次 run 按选择协议解析映射、覆盖缺陷拒绝开跑
-      test_survey_comparison_resolution.py # 矩阵按协议版本解析: v3→v5 / v2→v4、绑定双向校验与运行侧记账
-      _survey_comparison_helpers.py     # 对照测试共享夹具: 来源/锚点/映射/结果构造与写盘拒收
       test_dataset_provenance.py        # 制品追溯: 目录内已复核事实、许可逐条按官方页原文、下载来源与摘要
       test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
       test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
@@ -568,39 +526,23 @@ tests/
       test_runner_view_manifest.py      # 训练视图留痕: 成功与失败路径都记 run_view/calibration_applied
       test_survey_script_view.py        # 训练视图: 台账默认与 CLI 覆盖、门禁、视图进产物路径
       test_training_view_routing.py     # trainer 侧视图参数: 按签名探测转发、未声明 fail-loud、os 不传参
-      test_aggregate_survey_run_view.py # 聚合按实际运行视图分区: 同方法 OS/TS 各成一榜、校准标志一致性、oracle 恒在 os
       test_pilot_resume_view.py         # 续跑按视图限定: 默认视图逐单元解析、OS/TS 不折叠、非法制品不阻断扫描
       test_checkpoint_storage_profiles.py # checkpoint 体积 profile: 按训练路径+backbone+model_family 分派、真实序列化上界、全 Pilot 精确字节
       test_survey_formal_eligibility.py # 正式资格放行(D24): canonical 单元无阻断、真实偏差仍阻断、消融变体标签保留
       test_checkpoint_reclaim.py        # D25 回收非选中权重：只留选中、reclaimed 语义、开关默认关闭
       _survey_summary_helpers.py        # 审计/汇总入口测试共用夹具: manifest 树、config、两入口 CLI 构造器
-      test_survey_audit.py              # 审计器不得把畸形 manifest 变成异常: 预检是输入纯函数且从不抛出
-      test_survey_audit_scope.py        # finding 能说"问题在哪"的边界: 组级拒绝整组点名、scope/members 校验
       test_survey_result_coverage.py    # 整行缺失/未完成/指标缺失/排除与资格问题分开；PN c-independent、机制/视图/预算/路径不混格
       test_survey_summary_boundaries.py # 报告行拒绝合并的边界: 视图/机制/训练路径/协议不同即不同行
-      test_survey_summary_cli.py        # 审计/汇总两入口端到端: 产出什么, 以及不得产出什么
       test_survey_summary_clean_support.py # 独立 support 双轨汇总、额外监督隔离、诊断入口与正式门禁
-      test_survey_summary_comparison.py # 接入预注册矩阵的适配器契约: 字段名取自矩阵、资格类别为其六类之一
       test_survey_summary_states.py     # 报告的两套闭集词表: 行身份(c_token/oracle)与状态(status/优先级/理由)
       test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径
-      test_survey_audit_checks.py       # A01/A06/A07/A09 仅凭 manifest 可判的检查项
-      test_survey_partition_admission.py # 子批次完整网格与环境证据重审
-      test_survey_sar_admission.py      # nnPU/Dist-PU 冻结轨迹与 SAR 批次准入回归
-      test_survey_audit_plan.py         # A04: 计划身份(解析后的 run 集合比对)
-      test_survey_audit_inventory.py    # A10 清单模式: 逐文件判定已回收/保留/孤儿
-      test_survey_audit_completion.py   # A05: 运行日志完成行与交付 manifest 一一对应, 退出码恒为 unverified
-      test_survey_audit_archive.py      # A11: sha256sum 摘要文件形式/批次命名/同目录重算
-      test_survey_audit_wiring.py       # 审计入口读配置里的可选输入(plan/run_log/archive_digests 路径解析、CLI 端到端)
-      test_survey_audit_reclaim.py      # A10/A13/A15: 回收对账(磁盘)、标签闭集、technical_probe 分离
       test_survey_summary_measures.py   # 缺值怎么读: 测量/峰值/次要指标/状态四类缺席各不相同, 状态分档须划分闭集
-      test_survey_comparison_attachment.py # 矩阵附着: 哪些行可数值裁决、哪些不得读作已裁决; 裁决与不可比分开计数
       _survey_recipe_registry_helpers.py # recipe registry 测试共用 fixture（从冻结协议派生，非手写副本）
       test_survey_recipe_registry.py    # recipe registry 的 schema/候选池/摘要规则
       test_survey_recipe_registry_manifest.py # manifest recipe 绑定校验（fail-closed + legacy 兼容）
       test_survey_recipe_registry_sources.py # recipe registry 来源证据引用规则
       test_survey_workbook.py           # 工作簿版式: 行落哪一页、clean support 另列、LBE-A/B 分块、缺 seed 进 coverage、未知机制报错而非丢弃
       test_survey_diagnostics.py        # 诊断卡信号: 各信号何时标记与不标记、缺 seed 行不入信号、算不了的信号列明、渲染不称与论文一致
-      test_survey_report_entry_protocol.py # 审计/汇总入口的协议默认: 不传 --protocol 即按 survey-v3.0 读，显式指定仍生效，未知文件报错而非静默回落
       test_export_survey_results_cli.py # 导出入口端到端: 配置/summary.json 到工作簿、诊断卡与结论分析、坏输入报错且不写半截文件
       test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
       test_p3_feature_adapter_smoke.py  # P3 预集成方法的共享冻结特征工程 smoke
@@ -613,8 +555,6 @@ tests/
       test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
       test_checkpoint_prediction_batching.py # 快照推理分批登记/恢复、旧引用回退与非法元数据拒绝
       test_checkpoint_training_context.py # 新方法阶段/轮次/更新计数、恢复与回收留痕
-      test_survey_audit_exit_code.py    # A05: 退出码文件(单个 0 才核对;非 0/空/非整数/读不了为 fail;缺文件记未核对)
-      test_survey_audit_docs.py         # A14/A16/A17: 快照与边界小节、self_pu 消融披露、隔离保护测试存在(只核证据在)
       test_prepare_survey_splits_adni.py # ADNI 替代数据:读取(类别序/垃圾文件/计数校验)、无官方测试集划分、多归档收据汇总
       test_survey_image_spec.py         # 图像规格按数据集取(v1 平铺规格原样可读;per_dataset 覆盖与校验)、运行入口按模态而非数据集名分支
       test_survey_image_support.py      # support 部分与四路角色走同一套 train 拟合预处理与同一个冻结 encoder
@@ -630,10 +570,7 @@ tests/
       test_survey_pilot_recipe_binding.py # pilot 配方预检、子进程摘要固定与计划记录
       test_survey_recipe_binding.py     # 配方生命周期、范围、候选与内部 CV 绑定契约
       test_survey_script_recipe_binding.py # 单次 CLI 绑定拒收、独立目录与旧制品保护
-      test_survey_recipe_consumers.py   # 批次外部配方义务与审计/汇总的防降级、分源契约
-      test_survey_recipe_gate.py        # 底层聚合器不能绕过配方身份或通过 diagnostic 放行
       test_survey_recipe_pool.py        # 池摘要、身份/索引闭集与参数搜索不越权契约
-      test_survey_recipe_pool_consumers.py # 池义务重算及 JSON/CSV 逐 seed 选择身份
       test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
       test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
       test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
@@ -643,7 +580,6 @@ tests/
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
       test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
       test_support_versioned_epochs.py  # 版本化 support 全 epoch 候选、warmup 回放与严格覆盖检查
-      test_support_repair.py            # 全 epoch/双 teacher 缺口、重复源冲突与完整轨迹不等于准入
       test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
       test_genpu_recipe.py              # GEN-PU 配方早拒绝、六网络真实成本与默认训练逐位对照
       test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝
@@ -657,9 +593,6 @@ tests/
       test_survey_episodic_budget.py    # 三方法真实 CLI/续跑、原生权重及停止/LZO 成本拒绝
       test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
       test_survey_recipe_registry_locked.py # P4.1-B 冻结：范围、快照可重算、手改与未锁定绑定被拒
-      test_survey_profile_map.py        # 映射全函数覆盖、继承偏差与三态状态，绑定漂移、kldce 反查与窄化矩阵降级
-      test_survey_comparison_v5.py      # v5 覆盖 v3 288 单元：D41 PA 无锚点、P4.2a 四方法锚点与锚点唯一归属
-      test_survey_comparison_v6.py      # v6 增 71 个 P4.2b 单元（no_direct_anchor/非运行标记）且只升三条 profile
       test_survey_canonical_version.py  # 各协议与自身 canonical 比较，保留真实子集/改参偏差
       test_survey_full_meta_view.py     # full-meta 默认 OS、CLI/续跑一致与消融/显式 TS 兼容
       test_pan_image_candidate.py       # PAN 双编码器隔离、逐 epoch C/D 成本与 recorder 数值不变
@@ -671,20 +604,19 @@ tests/
       test_cvir_image_candidate.py      # CVIR 图像阶段成本、观测先验与异常拒绝
       test_kldce_candidate.py           # KLDCE 适配逐值一致、Phase-I 可行性与资源拒绝
       test_cvir_bn_cardinality.py       # CVIR 空间 BN 基数、单样本训练与 RNG 隔离
-      test_support_campaign.py          # 纠正批次命名空间、预检与失败封锁/放行
-      test_support_campaign_evidence.py # 全 epoch 门禁及批次代码/依赖/线程证据核对
-      test_support_campaign_worker.py   # 补跑单 fit 命令、独立证据根与变更/覆盖拒收
-      test_queue_fast_lane.py           # 短任务通道及 CPU 准备阶段穿插规则
-      test_queue_gpu_limit.py           # GPU 白名单限制与忙卡不外溢验证
-      test_queue_cpu_overlap.py         # CPU 求解与真实 GPU 训练的安全穿插
-      test_queue_packed_trial.py        # 双 GPU 训练试验的归属、显存与并发上限
-      test_queue_dense_adapters.py      # 单卡四小模型并发及全局进程数限制
-      test_queue_coverage_audit.py      # 训练覆盖、修正批次去重与只读输出回归
       test_survey_backlog.py            # v3.1 历史隔离、二维/CNN 与 SAR 真训练
       test_gradpu_offload_execution.py  # 显式暂存策略、冻结配方与结果路径隔离
       test_gradpu_split_execution.py    # GradPU split/chunk 的 CLI 记录、输出隔离与策略校验
       test_survey_classical_image.py    # PUET/RP 图像表示、版本隔离与完整树/折预算
       test_survey_conclusions.py        # 结论层: 信号归因、三类区分、文献事实须来源、推断须引用观测、无标记不出结论、同输入同输出
+      test_experiment_dependencies.py   # DIY 与结果消费不导入 Survey 过程模块
+      test_result_recipe_identity.py    # 已记录配方、候选与选择身份一致性
+      test_result_validation.py         # 选择证据、实际预算、复现信息与单 seed 边界
+      test_results.py                   # 只读结果统计、风险/缺失/排除与报告整合
+      test_survey_export_dependencies.py # summary 独立导出与确定性隔离验证
+      test_result_oracle_identity.py    # PN 对照的逐 seed 划分、特征与预算可比证据回归
+      test_result_paths.py              # Windows 长路径发现、读取与来源身份归一回归
+      test_split_identity.py            # 从实际四路 indices 校验身份、隔离与批量续跑
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -1023,19 +955,14 @@ scripts/
   prepare_survey_splits.py                (P1.4 四路 split 产物准备：data/raw 生成 train/pu_val/clean_val/test.npz 与 manifest)
   run_survey_experiment.py                (官方示例脚本(协议 §2.4 第 9 条)：单方法四路 PU 实验、PA/OA 选模、独立 test 评测)
   run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets/--methods/--training-paths 三轴子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
-  aggregate_survey_runs.py                (聚合入口：comparability 分组、(seed,c) 细分、分榜门禁与 --diagnostic)
   survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
-  audit_survey_batches.py                 # P2.2 批次审计入口: 按白名单根逐批出审计, 判不了的记 not_run 而非 pass, 只写 --out-dir
-  prepare_survey_support_repair.py        # 只读 support 轨迹审计、新目录重跑命令与 CPU dry-run 清单
   summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
   export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json + 结论分析 md/json（不重算任何数）
-  compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
   generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
   prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)
   collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
-  prepare_candidate_image_resource_plan.py (PULDA/GradPU 默认快照数与空间预检，不训练、不加载制品或批准资源)
   run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
   run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断
   _lbe_diagnostic_reference.py            # 不注册的 SCAR 约束解析梯度诊断参考
@@ -1043,26 +970,8 @@ scripts/
   prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
   run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
   run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
-  run_survey_parallel_queue.py            # Linux 后台控制器安全接管、单次 fit 排程与有界同卡并发
-  monitor_survey_queue.py                 # 只读终端监控、活动阶段/共享卡/单次 fit 与分页
   run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
-  check_survey_profile_map.py             # profile 映射门禁：双绑定摘要、profile 全量覆盖、继承可达与偏差词表
   run_classical_candidate_experiment.py   PUET/RP 独立 CPU 四角色计划与执行
-  prepare_kldce_resource_plan.py          KLDCE 稠密数组 payload 与 ACS/SMO 上限筛查
-  run_candidate_readiness_campaign.py     # 完整图像候选预算准备与受限后台验证批次
-  run_candidate_five_seed_grid.py         # 已验收候选的五 seed SCAR 扩展与四卡后台调度
-  run_survey_queue_fit.py                 # 固定源码单 fit 补跑，批次证据写入独立输出根
-  audit_survey_queue.py                   # 只读核对后台队列与协议训练格、完成制品
-  export_survey_queue_handoff.py          # 只读导出含修正替代记录的组内观测结果表
-  prepare_survey_backlog_revision.py      # 确定性生成 v3.1 协议、配方与比较绑定
-  run_survey_backlog_campaign.py          # 固定提交、四卡上限的全量缺口后台队列
-  recover_survey_backlog_canary.py        # 独立恢复失败 GradPU canary，保留原批次与预算
-  _survey_host.py                         # 延迟加载 POSIX 控制器锁，规划/监控跨平台可导入
-  prepare_survey_classical_image_revision.py # v3.2 仅新增传统方法图像单元与配方绑定
-  monitor_survey_campaign.py              # 多批次只读看板、GPU 利用率与当前训练 ETA
-  prepare_kldce_recovery.py               # 不改变配方的 KLDCE 失败批次预检与恢复计划
-  diagnose_gradpu_encoder.py              # GradPU 编码器初始化与饱和的非正式训练集诊断
-  validate_gradpu_encoder.py              # GradPU 全量训练、独立验证诊断与失败隔离
 ```
 
 ## 7. CI/CD（`.github/`）

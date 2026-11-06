@@ -39,7 +39,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 #: Where the frozen registry will live (plan §4).  Named here once so the gate
 #: and the freeze-stage delivery cannot disagree about the path.
-DEFAULT_REGISTRY = PROJECT_ROOT / "pu_toolbox" / "experiment" / "survey_recipe_registry_v1.json"
+DEFAULT_REGISTRY = PROJECT_ROOT / "pu_toolbox" / "experiment" / "survey_recipe_registry_v1_2.json"
 
 
 def main(argv: list[str] | None = None) -> int:

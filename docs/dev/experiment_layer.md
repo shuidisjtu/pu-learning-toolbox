@@ -2,7 +2,7 @@
 
 > 对应需求：PU 调研实验协议 [pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)
 > §2.4（四份数据角色与 PA/OA 双协议）；执行状态见
-> [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) 任务分工表。
+> [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) 当前状态与能力验收索引。
 
 实验层是面向研究者/实验用户的公共 API 层，补齐 `PUPipeline` 缺失的「数据角色声明 + 显式模型选择协议」。
 本文档只记本层**独有的设计机制**（D1–D5 各决策如何实现、为何这样设计、如何扩展使用）。
@@ -127,17 +127,26 @@ schema `1.1`，额外记录 `training_context`（stage、1-based stage_epoch、�
 round_index、累计 optimizer_steps）。选中引用、恢复的 predictor 与回收后的记录均保留
 上下文；它不改变上面的全局 position 或 PA/OA 选择范围，不证明阶段已经批准。
 未声明阶段的历史 pilot 仍输出 `1.0`，旧记录不回填。详见
-[阶段/预算复核](../research/pu_survey/p3_stage_budget_review_20261007.md)。
+阶段/预算复核。
 
-## 2. 边界与已知局限
+## 2. 当前能力与边界
 
-- **正式资格**：PA 正式准则（proxy accuracy，R9）与逐 epoch checkpoint 独立恢复已实现；
-  但 P2.0b/P2.0c 验收、合作者签署、完整 Self-PU OA meta-reweighting、CNN/full-batch oracle
-  仍未完成，各单元保持 `formal_eligible=false`。阻断与验收见
-  [p2_0a_review](../research/pu_survey/delivery/p2_0a_review.md)、
-  [epoch_checkpoint_delivery](../research/pu_survey/architecture/epoch_checkpoint_delivery.md)。
-- **PN oracle**：MLP 路径已接入（Phase 1）；CNN oracle 的 clean-val checkpoint 选择与
-  backbone 对齐列为 Phase 2。见 [pn_oracle_integration](../research/pu_survey/admission/pn_oracle_integration.md)。
+`ExperimentRunner` 只编排实验契约，不读取内置 Survey 协议、比较矩阵或配方文件。
+内置配置的解析和运行身份由 Survey 示例入口负责；用户可直接注入模型、生成器、trainer 和 selector。
+
+逐 epoch trainer 将候选的一次固定预算训练记录为权重轨迹；PA/OA 在训练结束后分别使用
+`pu_val` / `clean_val` 选择候选、快照、teacher 和阈值，再分别恢复模型评测 test。
+经典方法保留实际单点模型，不虚构神经 epoch。自定义 trainer 负责自己的轨迹与 checkpoint 契约。
+`selected_models` 为各 selector 独立恢复的推理模型；weights-only checkpoint 不包含训练续跑所需
+的全部 optimizer/RNG/阶段状态。阶段成本须计已执行工作，不能因选中早期快照而减少已付成本。
+
+PN oracle 使用 `CleanLabelGenerator`、显式真标签 trainer 和 OA，支持 MLP 与注入 CNN；
+与对应 PU 行共享 split、表征和预算，按 dataset/path/seed 执行一次，不随 c 重复。
+独立 clean support 属于额外训练监督，不能复用选模或测试样本，也不能归入纯 PU PA 优势比较。
+
+结果读取和统计在 `pu_toolbox.experiment.results` 中处理可读性、分组、五 seed 统计和成本，
+选择记录与所选文件的完整性独立校验。报告生成不依赖历史批次名、队列、交接包或审批正文。
+工程接口可运行、统计完整、数值有效和研究审核完成分别表达；后者不能由软件测试代替。
 
 **与通用层的边界（2026-10-04 复核）**：实验层的跨层依赖为——**模块级只有 Core**（`core/`、`utils/`）；
 **函数内另有** Core（`registry/`）、Evaluation（`metrics/`，`runner.py:751`）、**Algorithms**
@@ -146,7 +155,7 @@ round_index、累计 optimizer_steps）。选中引用、恢复的 predictor 与
 数据画像、advisor 推荐、PU 感知 CV 与 `PUPipeline` 编排都**没有**被复制（与下文第 ③ 项不冲突：`_stratified_split` 切的是干净标签、且实验层对本仓库的 `pu_toolbox/model_selection` 零 import——`datasets.py:11` 用的是第三方 `sklearn.model_selection`，与本仓库同名包无关）。
 三处「看似重复」的实现及判定：① `survey_execution.py` 的 `PilotOracleMLP` 手写训练循环——
 **不算泄漏**（oracle 基线不是已注册算法，进 `estimators/` 会污染算法谱系）；② 报告组装
-（`survey_summary.py` / `survey_comparison.py` / `survey_provenance.py`）——**不算泄漏**
+（`survey_summary.py` / `results.py` / `survey_provenance.py`）——**不算泄漏**
 （survey 制品 schema 与用户报告不同物）；③ `datasets.py` 的 `_stratified_split` 与两处内联
 accuracy（`runner.py`、`strategies.py`）——**可收敛但未收敛**：收敛会改动已落盘制品
 （split / manifest），须独立批次 + 制品对拍。

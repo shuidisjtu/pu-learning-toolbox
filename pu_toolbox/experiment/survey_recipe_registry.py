@@ -5,12 +5,12 @@ answers "which recipe did *this* survey adopt, out of which candidate pool, at
 which version":
 
 ``builtin_methods.py``      estimator registration, capabilities, prior needs
-``method_ledger.json``      paper/official-code provenance, adaptation level
-``survey_protocol_v2.json`` budgets, execution matrix, frozen pilot values
+``method_ledger.json``      sampling/prior semantics and method variants
+``survey_protocol_v3_2.json`` budgets, execution matrix, frozen experiment values
 ``benchmarks/*/configs``    historical benchmark and tuning configs
 
 The registry is the missing *binding* layer (plan §1.2), and it holds identity,
-not values.  A profile points at ``survey_protocol_v2.method_profiles.<method>``
+not values.  A profile points at ``survey_protocol_v3_2.method_profiles.<method>``
 via ``base_ref``; parameter values stay in the protocol, where they already are
 single-sourced.  v1 therefore rejects every parameter-level override outright:
 a non-empty ``overrides`` is a protocol change, not a recipe choice
@@ -42,10 +42,10 @@ exists nowhere, the answer is not to invent the field here -- that is what the
 unresolved-questions record beside the draft is for.
 
 **A malformed registry is a finding, not a crash** -- the same rule
-``survey_audit`` states for manifests.  ``load_registry`` raises on a payload
+result states for manifests.  ``load_registry`` raises on a payload
 that is not a registry at all, while ``validate_registry`` reports every problem
 it can see instead of stopping at the first, because its caller's job is to
-*list* what is wrong.  Findings stay independent of ``survey_audit.make_check``
+*list* what is wrong.  Findings stay independent of report assembly
 so that a pure registry validator can be tested without the audit vocabulary;
 stage 2/3 maps these codes into audit findings.
 """
@@ -59,14 +59,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .survey_artifacts import survey_artifact_ref
 from .survey_protocol import digest
 
-SCHEMA_VERSION = "survey-recipe-registry-1.0"
-#: Schema for a protocol that carries explicit profile identities.  The legacy
-#: schema references ``method == algorithm``; v3 separates the profile ID from
-#: the algorithm, so the registry names a profile and records its algorithm.
-SCHEMA_VERSION_PROFILE_IDENTITY = "survey-recipe-registry-2.0"
+#: Formal recipes name both a profile and its registered algorithm.
+SCHEMA_VERSION = "survey-recipe-registry-2.0"
 
 #: Recipe review lifecycle.  Independent closed set -- see D-P4.1-3, which pairs
 #: each value with the existing status it is *not* allowed to be confused with.
@@ -94,13 +90,6 @@ RECIPE_FAMILIES: tuple[str, ...] = ("pu", "oracle")
 #: cost a plan revision.
 CANDIDATE_ROLES: tuple[str, ...] = ("current_protocol_binding",)
 
-#: The one selection-policy entry point.  The registry quotes this reference and
-#: copies no PA/OA, checkpoint or threshold literal of its own (D-P4.1-1).
-SELECTION_SPEC_REF = "survey_protocol_v2.selection_spec"
-
-BASE_REF_PREFIX = "survey_protocol_v2.method_profiles."
-BUDGET_BINDING_PREFIX = "survey_protocol_v2.budgets."
-
 
 @dataclass(frozen=True)
 class ProtocolRefs:
@@ -121,27 +110,26 @@ class ProtocolRefs:
 
 def protocol_refs(protocol: Mapping[str, Any]) -> ProtocolRefs:
     """The reference set for the protocol's own identity schema."""
-    from .survey_profile_identity import has_profile_identities
+    from .survey_profile_identity import SCHEMA, has_profile_identities
 
-    if has_profile_identities(protocol):
-        stem = {
-            "survey-v3.0": "survey_protocol_v3",
-            "survey-v3.1": "survey_protocol_v3_1",
-            "survey-v3.2": "survey_protocol_v3_2",
-        }[protocol["protocol_version"]]
-        return ProtocolRefs(
-            schema_version=SCHEMA_VERSION_PROFILE_IDENTITY,
-            selection_spec_ref=f"{stem}.selection_spec",
-            base_ref_prefix=f"{stem}.method_profiles.",
-            budget_binding_prefix=f"{stem}.budgets.",
-            protocol_file=f"pu_toolbox/experiment/{stem}.json",
-        )
+    stems = {
+        "survey-v3.2": "survey_protocol_v3_2",
+    }
+    version = protocol.get("protocol_version")
+    if version not in stems:
+        raise ValueError(f"unsupported survey protocol version {version!r}")
+    if (
+        not has_profile_identities(protocol)
+        or protocol["profile_identity_schema_version"] != SCHEMA
+    ):
+        raise ValueError("formal recipe registry requires explicit profile identities")
+    stem = stems[version]
     return ProtocolRefs(
         schema_version=SCHEMA_VERSION,
-        selection_spec_ref=SELECTION_SPEC_REF,
-        base_ref_prefix=BASE_REF_PREFIX,
-        budget_binding_prefix=BUDGET_BINDING_PREFIX,
-        protocol_file="pu_toolbox/experiment/survey_protocol_v2.json",
+        selection_spec_ref=f"{stem}.selection_spec",
+        base_ref_prefix=f"{stem}.method_profiles.",
+        budget_binding_prefix=f"{stem}.budgets.",
+        protocol_file=f"pu_toolbox/experiment/{stem}.json",
     )
 
 
@@ -186,6 +174,7 @@ REASON_CODES: tuple[str, ...] = (
     "unknown_recipe_lifecycle",
     "unknown_recipe_family",
     "unknown_method",
+    "algorithm_mismatch",
     "duplicate_profile_method",
     "duplicate_profile_id",
     "duplicate_candidate_id",
@@ -241,8 +230,7 @@ class Finding:
     """One defect, named by the closed code that produced it.
 
     ``path`` is dotted down to the offending field so a reader does not have to
-    pick a culprit out of a whole profile, the same reasoning that makes
-    ``survey_audit`` carry ``scope``.
+    pick a culprit out of a whole profile.
     """
 
     code: str
@@ -287,16 +275,11 @@ def build_draft_registry(
     historical manifests. Parameter values remain in the protocol. Only its
     existing empty-override candidates can be registered.
 
-    A protocol carrying explicit profile identities (``survey-v3.0``) is drafted
+    A protocol carrying explicit profile identities (``survey-v3.2``) is drafted
     at schema 2.0: the profile key is the profile ID and each row records the
     algorithm it maps to, because v3 no longer equates the two.
     """
-    from .survey_profile_identity import has_profile_identities, require_legacy_recipe_identity
-
     refs = protocol_refs(protocol)
-    identities = has_profile_identities(protocol)
-    if not identities:
-        require_legacy_recipe_identity(protocol)
     pool = protocol.get("candidate_pool")
     if (
         not isinstance(pool, Sequence)
@@ -359,8 +342,7 @@ def build_draft_registry(
                 ],
             },
         }
-        if identities:
-            profile["algorithm"] = algorithm
+        profile["algorithm"] = algorithm
         if not runnable:
             reasons = sorted(
                 {row.get("non_runnable_reason", "No runnable execution unit") for row in rows}
@@ -369,8 +351,7 @@ def build_draft_registry(
         profiles[method] = profile
     registry = {
         "schema_version": refs.schema_version,
-        "recipe_registry_version": recipe_registry_version
-        or ("survey-recipes-v0.2-draft" if identities else "survey-recipes-v0.1-draft"),
+        "recipe_registry_version": recipe_registry_version or "survey-recipes-v0.2-draft",
         "recipe_lifecycle": "draft",
         "protocol_basis": {
             "protocol_version": protocol["protocol_version"],
@@ -389,7 +370,7 @@ def build_draft_registry(
             },
             "pn_oracle_spec": {
                 "type": "in_repo",
-                "file": survey_artifact_ref("pn_oracle_integration"),
+                "file": "docs/research/pu_survey/pu_survey_protocol.md",
             },
         },
         "validation": {
@@ -397,7 +378,7 @@ def build_draft_registry(
             "source_evidence_required": True,
             "test_truth_forbidden": True,
             "parameter_overrides_forbidden_in_v1": True,
-            **({"profile_identity_binding": True} if identities else {}),
+            "profile_identity_binding": True,
         },
     }
     findings = validate_registry(registry, protocol)
@@ -430,14 +411,7 @@ def build_locked_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
     signatures, so the record of who approved the scope lives in the freeze
     document rather than being implied by an empty ``reviewers`` list.
     """
-    registry = build_draft_registry(protocol, recipe_registry_version="survey-recipes-v1.0")
-    backlog = protocol["protocol_version"] in ("survey-v3.1", "survey-v3.2")
-    if backlog:
-        registry["recipe_registry_version"] = (
-            "survey-recipes-v1.2"
-            if protocol["protocol_version"] == "survey-v3.2"
-            else "survey-recipes-v1.1"
-        )
+    registry = build_draft_registry(protocol, recipe_registry_version="survey-recipes-v1.2")
     registry["recipe_lifecycle"] = "locked"
     for profile in registry["profiles"].values():
         if profile["recipe_lifecycle"] == "excluded":
@@ -451,13 +425,7 @@ def build_locked_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
             "decision": (
                 "owner confirmed current provisional parameters for this project round on "
                 "2026-11-01; differences retained; not numerical reproduction or formal "
-                "admission (docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md)"
-            )
-            if backlog
-            else (
-                "locked 2026-10-25: runnable profiles bind the frozen protocol, "
-                "excluded profiles stay excluded (docs/research/pu_survey/admission/"
-                "p4_1b_registry_freeze_20261025.md)"
+                "admission (docs/research/pu_survey/pu_survey_protocol.md)"
             ),
         }
     findings = validate_registry(registry, protocol)
@@ -643,13 +611,7 @@ def resolve_candidate(
     It is *generated*, never hand-edited -- ``validate_registry`` recomputes it
     and compares, which is what makes a checked-in snapshot auditable.
     """
-    from .survey_profile_identity import has_profile_identities
-
     refs = protocol_refs(protocol)
-    if not has_profile_identities(protocol):
-        from .survey_profile_identity import require_legacy_recipe_identity
-
-        require_legacy_recipe_identity(protocol)
     method = profile["method"]
     unit = protocol["method_profiles"][method]
     budget_name = unit["budget"]
@@ -673,8 +635,7 @@ def resolve_candidate(
         "inner_search_id": inner_search.get("inner_search_id") if inner_search else None,
         "overrides": dict(candidate.get("overrides") or {}),
     }
-    if has_profile_identities(protocol):
-        snapshot["algorithm"] = unit.get("algorithm")
+    snapshot["algorithm"] = unit.get("algorithm")
     return snapshot
 
 
@@ -702,9 +663,7 @@ def validate_registry(registry: Mapping[str, Any], protocol: Mapping[str, Any]) 
     """Every schema and protocol-consistency defect visible in *registry*.
 
     *protocol* is a parameter rather than loaded here because the caller already
-    holds the frozen matrix, and re-validating it per call would be the same
-    mistake ``survey_audit.matrix_conflicts`` documents for the comparison
-    matrix.
+    holds the frozen matrix; re-validating it per call would duplicate work.
     """
     from .survey_profile_identity import has_profile_identities
 
@@ -713,26 +672,12 @@ def validate_registry(registry: Mapping[str, Any], protocol: Mapping[str, Any]) 
     findings: list[Finding] = []
 
     declared_schema = registry.get("schema_version")
-    if declared_schema not in {SCHEMA_VERSION, SCHEMA_VERSION_PROFILE_IDENTITY}:
+    if declared_schema != SCHEMA_VERSION:
         return [
             _finding(
                 "unsupported_schema_version",
                 "schema_version",
-                f"expected {SCHEMA_VERSION!r} or {SCHEMA_VERSION_PROFILE_IDENTITY!r}, "
-                f"got {declared_schema!r}",
-            )
-        ]
-    if declared_schema != refs.schema_version:
-        # A legacy-schema registry cannot name a v3 profile, and a 2.0 registry
-        # has nothing to point at in a legacy protocol.  Stop at the basis
-        # conflict rather than reporting every reference it invalidates.
-        return [
-            _finding(
-                "protocol_basis_mismatch",
-                "schema_version",
-                f"registry schema {declared_schema!r} cannot bind "
-                f"{protocol.get('protocol_version')!r} "
-                f"(needs {refs.schema_version!r})",
+                f"expected {SCHEMA_VERSION!r}, got {declared_schema!r}",
             )
         ]
     findings: list[Finding] = []
@@ -946,10 +891,9 @@ def _validate_budget_binding(
         for row in protocol.get("execution_units", [])
         if row.get("method") == profile.get("method")
     ]
-    if refs.schema_version == SCHEMA_VERSION_PROFILE_IDENTITY:
-        # A blocked row may declare a placeholder ``draft_*`` budget; only the
-        # runnable rows belong to the adopted recipe the profile freezes.
-        units = [row for row in units if row.get("runnable") is True]
+    # A blocked row may declare a placeholder ``draft_*`` budget; only the
+    # runnable rows belong to the adopted recipe the profile freezes.
+    units = [row for row in units if row.get("runnable") is True]
     drifted = sorted({str(row.get("budget")) for row in units if row.get("budget") != budget_name})
     if drifted:
         findings.append(
@@ -1047,9 +991,7 @@ def _validate_candidates(
 
     This is the entry point only; the pool's contract, its declared size and each
     candidate are checked by the helpers below.  They answer separate questions
-    and fail for separate reasons, and a finding a reader cannot attribute to one
-    of them is the kind of report ``survey_audit``'s ``scope`` field exists to
-    prevent.
+    and fail for separate reasons so findings remain attributable to one input.
     """
     pool = profile.get("candidate_pool")
     if pool is None:

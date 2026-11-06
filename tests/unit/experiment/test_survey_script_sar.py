@@ -58,7 +58,7 @@ def test_basic_sar_lbe_a_runs_oa_only(survey_script, tmp_path):
     assert set(manifest["selection"]) == {"OA"}
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["mechanism"] == "sar_lbe_a"
-    assert (run_dir / "method_ledger_entry.json").is_file()
+    assert manifest["code_identity"]["code_commit_state"] in {"recorded", "unavailable"}
 
 
 def test_basic_versioned_sar_binds_generator_oa_and_manifest(survey_script, tmp_path):
@@ -75,7 +75,7 @@ def test_basic_versioned_sar_binds_generator_oa_and_manifest(survey_script, tmp_
         [
             str(data_dir),
             "--protocol",
-            "survey-v1.1",
+            "survey-v3.2",
             "--dataset",
             "spambase",
             "--method",
@@ -96,7 +96,7 @@ def test_basic_versioned_sar_binds_generator_oa_and_manifest(survey_script, tmp_
 
     run_dir = run_directory(out_dir, "sar_lbe_b", "c_0.05", "seed_0")
     manifest = load_manifest(run_dir / "manifest.json")
-    assert manifest["protocol_version"] == "survey-v1.2"
+    assert manifest["protocol_version"] == "survey-v3.2"
     assert set(manifest["selection"]) == {"OA"}
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["generator"] == "SARLBEBGenerator"
@@ -395,8 +395,7 @@ def test_basic_sar_runs_non_lbe_classifier(survey_script, tmp_path):
     manifest = load_manifest(run_dir / "manifest.json")
     assert set(manifest["test_results"]) == {"OA"}
     assert manifest["generation"]["train"]["mechanism"] == "sar_lbe_a"
-    entry = json.loads((run_dir / "method_ledger_entry.json").read_text(encoding="utf-8"))
-    assert entry["class"] == "UPUClassifier"
+    assert manifest["run_view"] == "ts-compatible"
 
 
 def test_param_resolver_and_parser_guards(survey_script):

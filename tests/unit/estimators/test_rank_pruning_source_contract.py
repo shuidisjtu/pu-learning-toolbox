@@ -3,10 +3,6 @@
 # Match the public feature naming convention.
 # ruff: noqa: N803, N806
 
-import ast
-import hashlib
-import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -20,12 +16,8 @@ from pu_toolbox.estimators.classic.rank_pruning import (
     confident_positive_noise_rate,
     rank_pruning_pu_mask,
 )
-from pu_toolbox.experiment.method_ledger import load_ledger
-from pu_toolbox.experiment.survey_protocol import load_protocol
 
 pytestmark = pytest.mark.unit
-ROOT = Path(__file__).resolve().parents[3]
-REVIEW_REF = "docs/research/pu_survey/data/rp_source_review_20261018.json"
 
 
 def scalar_rate(labels, probabilities):
@@ -274,61 +266,3 @@ def test_determ_nonconstant_counts_remain_bitwise_equal_to_previous_mean_formula
     assert confident.sum() > 0
     old_rate = min(float(np.sum(confident & (s == 0)) / confident.sum()), 0.9999)
     assert confident_positive_noise_rate(s, probabilities) == old_rate
-
-
-def test_basic_source_review_binds_code_ledger_and_pu_only_non_admission():
-    review = json.loads((ROOT / REVIEW_REF).read_text(encoding="utf-8"))
-    entry = load_ledger()["methods"]["rp"]
-    assert entry["source_behavior_review_ref"] == REVIEW_REF
-    assert review["method"] == "rp" and review["formal_admission"] is False
-    assert (
-        review["owner_signatures"] == []
-        and review["review_status"] == "pending_method_owner_review"
-    )
-    assert "rp" not in load_protocol()["method_profiles"]
-    source = review["source"]
-    assert (
-        source["commit"]
-        == entry["code_version"]["upstream_commit"]
-        == "40ae17cc50fcfeec8d7a345a1c5426036d2bdb1a"
-    )
-    assert source["repository"] == entry["code_version"]["upstream_url"]
-    assert (
-        source["source_status"] == "official_related" and source["executed_upstream_code"] is False
-    )
-    assert {record["path"]: record["sha256"] for record in source["files"]} == entry[
-        "code_version"
-    ]["source_files_sha256"]
-    assert {record["path"] for record in source["files"]} == {
-        "rankpruning/rankpruning.py",
-        "LICENSE",
-        "README.md",
-        "setup.py",
-    }
-    implementation = ROOT / review["implementation_ref"]
-    assert (
-        hashlib.sha256(implementation.read_text(encoding="utf-8").encode()).hexdigest()
-        == review["implementation_sha256"]
-    )
-    assert review["calibration"] == {
-        "run_view": entry["run_view"],
-        "calibration_applied": entry["calibration_applied"],
-        "fixed_rho0": 0.0,
-        "external_population_prior_used": False,
-        "source_equivalence_claim": False,
-    }
-    assert review["engineering_scope"]["mathematical_algorithm_or_defaults_changed"] is False
-    assert review["engineering_scope"]["mean_roundoff_guard_added"] is True
-    assert review["engineering_scope"]["new_real_data_or_GPU_run"] is False
-    assert type(review["calibration"]["fixed_rho0"]) is float
-    assert source["license_observation"]["declared_license"] == "MIT"
-    assert source["license_observation"]["author_code_vendored_executed_or_redistributed"] is False
-    assert source["normalized_text_digest_policy"] == "utf8_text_universal_newlines_sha256"
-    assert set(source["normalized_text_sha256"]) == {row["path"] for row in source["files"]}
-    assert review["cost_contract"]["successful_fit_calls"] == "n_cv_folds+1"
-    assert review["cost_contract"]["known_rho1_skips_oof_fits"] is False
-    assert review["cost_contract"]["formal_budget_approved"] is False
-    for ref in review["behavior_test_refs"]:
-        file, name = ref.split("::")
-        nodes = ast.parse((ROOT / file).read_text(encoding="utf-8")).body
-        assert any(isinstance(n, ast.FunctionDef) and n.name == name for n in nodes)

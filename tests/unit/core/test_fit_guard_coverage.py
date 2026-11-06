@@ -7,7 +7,6 @@ grows a clean-label parameter.
 """
 
 import ast
-import json
 from pathlib import Path
 
 import pytest
@@ -15,7 +14,7 @@ import pytest
 pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[3]
-LEDGER = ROOT / "pu_toolbox/experiment/method_ledger.json"
+REGISTRY = ROOT / "pu_toolbox/registry/builtin_methods.py"
 ESTIMATORS = ROOT / "pu_toolbox/estimators"
 GUARD = "invalidate_failed_fit"
 CLEAN_ROLES = {"y_true", "test_data", "clean_val"}
@@ -40,10 +39,17 @@ MODULES = {
 
 
 def _class_name(method: str) -> str:
-    methods = json.loads(LEDGER.read_text(encoding="utf-8"))["methods"]
-    if method == "tedn":
-        return "TEDnClassifier"
-    return methods[method]["class"]
+    tree = ast.parse(REGISTRY.read_text(encoding="utf-8"))
+    declarations = [
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "_native_imports"
+    ]
+    assert len(declarations) == 1, "registry must declare one native import table"
+    classes = {name: class_name for name, _, class_name in ast.literal_eval(declarations[0])}
+    return classes[method]
 
 
 def _module_tree(method: str) -> ast.Module:

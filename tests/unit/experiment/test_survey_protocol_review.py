@@ -1,34 +1,21 @@
-"""Review-ledger and archive guarantees for the versioned protocol matrices.
-
-Kept separate from ``test_survey_protocol.py`` so the matrix contract tests stay
-within the suite's per-file budget; these three tests pin the v1 archive and the
-v2 review record rather than the execution matrix itself.
-"""
+"""Review-state validation never promotes an execution protocol implicitly."""
 
 import json
 
 import pytest
 
-from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATH, digest, load_protocol
+from pu_toolbox.experiment.survey_protocol import digest, load_protocol, resolve_protocol_path
 
 pytestmark = pytest.mark.unit
 
 
-def test_basic_v1_archive_stays_byte_pinned_for_dated_evidence():
-    """The archived v1.2 matrix must not move: dated P3 evidence binds its bytes."""
-    v1 = load_protocol(PROTOCOL_PATH.with_name("survey_protocol_v1.json"))
-    assert v1["protocol_version"] == "survey-v1.2"
-    assert digest(v1) == "287c2f45387f02714e5925b35dcb04f3f64e1e3faf8f740cab861fc5747dd84a"
-    assert "review_items" not in v1
-
-
-def test_basic_v2_review_ledger_records_accepted_and_pending_items():
-    protocol = load_protocol()
+@pytest.mark.parametrize("version", ["survey-v3.2"])
+def test_basic_supported_protocols_preserve_accepted_policy_items(version):
+    protocol = load_protocol(resolve_protocol_path(version))
     items = {item["item_id"]: item["status"] for item in protocol["review_items"]}
-    assert items["v2_p4_clean_support_policy"] == "pending_collaborator_review"
-    assert items["v2_p10_self_pu_scope"] == "pending_collaborator_review"
-    assert sum(status == "accepted" for status in items.values()) == 8
-    assert set(items.values()) == {"accepted", "pending_collaborator_review"}
+    assert items["v2_p4_clean_support_policy"] == "accepted"
+    assert items["v2_p10_self_pu_scope"] == "accepted"
+    assert protocol["formal_blockers"]
 
 
 def test_edge_duplicate_review_item_id_is_rejected(tmp_path):
@@ -54,6 +41,6 @@ def test_determ_review_ledger_digest_moves_with_a_status_change():
     protocol = load_protocol()
     before = digest(protocol)
     changed = json.loads(json.dumps(protocol))
-    changed["review_items"][3]["status"] = "accepted"
+    changed["review_items"][3]["status"] = "pending_collaborator_review"
     assert digest(changed) != before
     assert digest(json.loads(json.dumps(protocol))) == before

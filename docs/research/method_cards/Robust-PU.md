@@ -42,7 +42,7 @@ shuffle 重新编号。TS 风险池替换仍只在 nnPU 预训练，自步伪负
 
 ## 准入证据补全（2026-10-05）
 
-2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+2026-10-07 补[阶段/预算规格](../../dev/experiment_layer.md)：
 pretrain/self_paced 的 snapshot 引用区分 epoch/episode，保留累计更新数；
 inner_epochs 增成本不增快照，warmup-only TS 与默认预算不改；阶段资格仍未批准。
 
@@ -74,7 +74,7 @@ behavior tests、换行哈希）已按下节补交；正式准入仍未完成。
 
 ## 2026-10-18 来源与行为补交（不改训练）
 
-按 [P3.1 复核](../pu_survey/reviews/p3_1_acceptance_review_20261016.md) 补齐
+按 [P3.1 复核](../../dev/experiment_layer.md) 补齐
 `utils.py`、`models.py`、README 与原三文件的锁定摘要，新增
 [机器可读来源核查](../pu_survey/data/robustpu_source_review_20261018.json)。
 六文件同时留原始字节与 UTF-8 统一换行文本摘要；可选源码 checker 两者都验，
