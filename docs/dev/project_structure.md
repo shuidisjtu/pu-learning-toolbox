@@ -650,7 +650,7 @@ tests/
     test_p3mix_pipeline_cnn.py          # 三变体真实卷积CV及四角色checkpoint选模回收
     test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
     test_classical_candidate_runner.py  # PUET/RP 四角色 PA/OA 与无伪 epoch 成本导出
-    test_diy_experiment_example.py       # DIY 示例的预测、预处理与测试标签隔离
+    test_diy_experiment_example.py      # DIY 示例的预测、预处理与测试标签隔离
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
