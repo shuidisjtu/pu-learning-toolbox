@@ -6,7 +6,7 @@
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
 > 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
-> 状态核对日期：**2026-11-02**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；v3.1 项目配方 1845 fit、v3.2 PUET/RP 图像 280 fit 缺口队列；PR #159/#160 已合并；KLDCE 120 项中 90 项 blocked_preflight、30 项可行；GradPU 恢复 canary 未完成；运行完成不等于正式准入）
+> 状态核对日期：**2026-11-06**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；v3.1 项目配方 1845 fit、v3.2 PUET/RP 图像 280 fit 缺口队列；PR #159/#160/#164/#166 已合并；KLDCE 120 项中 90 项 blocked_preflight、30 项可行；GradPU 恢复 canary 未完成；结论分析层已入库（D57）、五类信号数据接入未做；扩展 SAR 144 组属交接执行，不进本文件的完成数；运行完成不等于正式准入）
 
 ## 1. 实验能力与缺口
 
@@ -18,7 +18,7 @@
 > **evidence**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；v3.1/v3.2 队列已定义，完成数按批次 status。
 > 运行完成不等于正式准入；formal admission 仍为 0）。
 > 判定标准：命令可执行并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。
-> 状态核对日期：2026-11-02。
+> 状态核对日期：2026-11-06。
 
 ### 1.1 能力矩阵
 
@@ -223,15 +223,17 @@ TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读�
 
 ### 1.5 推进顺序与推进记录
 
-**当前实现状态（2026-11-03）**
+**当前实现状态（2026-11-06）**
 
 - v3.1/v3.2 已落地：171/179 runnable；registry v1.1/v1.2 各 23 locked；comparison v7/v8 与 map v4/v5 已绑。新增 59 个可运行格（24 个原 blocked 翻牌 + 35 个新单元），其中 v3.1 1845 fit、v3.2 280 fit；协议/矩阵仍 `pending_collaborator_review`，新映射 `pending_review`。
 - v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；support 15 个单元中，v3.0 的 12 个已有 180 run 观测，v3.1 新增 3 个 CIFAR 单元并入 1845 批；D53 的 120 次修正已完成，D54 审计未完成。
 - 队列/监控/审计/交接、candidate readiness 与 five-seed 入口均已实现；这些是工程执行能力，不代表冻结配方、论文复现或正式准入。formal admission 仍为 0。
 - 2026-11-02：PR #160（文档整合）与 PR #159（KLDCE/GradPU 失败项恢复）已合并。KLDCE 120 项中 90 项 `blocked_preflight`、30 项 c=0.5 可行；GradPU 仍只有 `cpu_offload`，full 200 轮恢复未完成，14 项 held；两者都不改变 formal admission=0。详见下方 2026-11-02 记录。
 - 2026-11-03：GradPU split/chunk 执行策略落地（分支 `feature/gradpu-split-backward`，代码 commit `1f0c1135`）；ADNI 与 CIFAR-10 的 200 epoch joint/split 对照完成（轨迹差 6.9e-7 / 4.8e-7，指标相同）；首次完整图像运行发现 `cnn13_no_bn` 编码器塌缩，joint 与 split 同样，另案见 D56；formal admission 仍 0。
+- 2026-11-05：扩展 SAR 144 组（P3MIX 54 + VPU 36 + PAN 54，c=0.05/0.5，只报 OA）按交接执行完毕并交付云盘包，144/144、0 失败、0 重试。属交接执行，不计入本文件的完成数与缺口表；追溯以云盘包及其 `task_table.csv` 为准（两台 AutoDL 已关机，本地无副本）。
+- 2026-11-06：结论分析层落地（D57）：`pu_toolbox/experiment/survey_conclusions.py` 从汇总报告与诊断卡构建结论，每条必须声明 §1.4.5 信号并标为「文献事实 / 本实验观测 / 推断」，无信号、无证据或无来源一律拒绝；`export_survey_results.py` 增写 `conclusions.md/json` 与 `--literature`，工作簿增 `conclusions` 页。卡片读不到的五类信号在文档与 JSON 中逐条列原因；类先验字段、方法台账 SAR 适用性/架构例外、比较矩阵仍未接进结论层。
 
-**当前推进顺序**（2026-11-03，与 §1.2 的缺口一一对应；分工见 [README](README.md) §2）：
+**当前推进顺序**（2026-11-06，与 §1.2 的缺口一一对应；分工见 [README](README.md) §2）：
 
 1. **v3.1/v3.2 缺口批与失败项恢复**：原 24 个 blocked 单元已全部翻 runnable；剩余 1845 + 280 fit 的批次对账、KLDCE 30 项 c=0.5 恢复与审计、GradPU 完整 canary 验收、PN-CNN 5 seed 验收。
 2. **support 方法**：v3.0 的 12 个单元已有 180 fit 观测；v3.1 新增 3 个 CIFAR 单元并入 1845 批。
@@ -389,6 +391,13 @@ split+chunk162 21.48/29.88 GiB、92.44 min；CIFAR-10 4.41→2.09 GiB、39.23→
 CVIR SAR 144 项与 GradPU–ADNI 维持停派。另：VPU 的 ADNI/Fashion-MNIST SAR LBE-A/B
 剩余 36 项停派给我方执行（已有 4 项不重跑，SCAR 及其他数据集留本地）；交接细节见交接包，
 未完成项分工见 README §2。
+
+2026-11-06 结论分析层入库（D57）：`export_survey_results.py` 增写 `conclusions.md/json` 与工作簿
+`conclusions` 页，每条结论标注 §1.4.5 信号并区分「文献事实 / 本实验观测 / 推断」，无信号、
+无证据、推断无引用或文献事实无来源一律拒绝（`ConclusionError`）；`survey_diagnostics.py` 的
+`DIRECTIONS` 改为公开常量供复用。不改训练代码、协议 JSON、manifest 或注册表，历史 run 无需重跑；
+五类信号的数据接入（汇总报告类先验字段、比较矩阵进结论层、台账 SAR 适用性/架构例外）仍待。
+扩展 SAR 144 组为交接执行，交付与追溯以云盘包为准，不进本文件进度口径。
 
 ## 2. 风险与留痕约定
 
