@@ -29,18 +29,21 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 
 ## 2. 剩余工作
 
-只列仍未关闭的事项；完成数、排队数和批次状态以 [执行计划](survey_execution_plan.md) §1 为准。
-分工只在本表维护，执行计划的缺口表不再重复负责人。
+按推进顺序只列未关闭事项（2026-11-06）；数量及证据统一见 [执行计划](survey_execution_plan.md) §1。
+分工沿用下表；已有工作簿和完整预算运行不再列为“尚未实现/尚未首跑”。
 
 | 工作 | 负责 | 完成判据 |
 |---|---|---|
-| v3.1/v3.2 缺口批（1845 + 280 fit）按 canary → 全网格跑完并对账；D54 完整批次审计（15 个 support 单元、120 次修正替代关系） | HENG958 / 合流 | 完整网格 + 批次审计通过 |
-| GradPU 首次完整真实运行及资源记录；PN-CNN 5 seed 现有产物验收 | HENG958 | 合规 manifest + 峰值记录 |
-| v3.1/v3.2 复核与 formal blockers 清零（新增比较映射仍 `pending_review`） | HENG958 / 合流 | review accepted、formal 0 |
-| 正式 5 seed 结果工作簿、诊断卡五类信号、四组结论 | 合流 | 交付物 A |
-| 实验结束后清理 v3.0/v3.1 旧协议、矩阵与注册表，只保留最终正式版并验证复现命令 | shuidisjtu / 合流 | 最终版文档 + 从零复现通过 |
+| 接收合作者回传结果，核验身份/划分/版本、去重并更新覆盖差集 | HENG958 / 合流 | 交接清单逐项对账；下载完成不等于实验验收 |
+| GradPU 图像退化诊断、KLDCE 可行项恢复与已完成风险结果复核 | HENG958 / 合流 | 数值与完整预算 canary 验收后放行；保留失败/替代证据 |
+| D54 support 完整批次审计、修正替代关系与 PN-CNN 现有 5 seed 验收 | HENG958 / 合流 | 合规 manifest、批次与资源记录；只补缺失/无效项 |
+| v3.1/v3.2 复核与 formal blockers 清零 | HENG958 / 合流 | 所需 review accepted、formal blockers 数量为 0；新增映射未签署前仍 pending |
+| 在已有结果工作簿/说明上补有效增量、诊断信号、结论分析（D57）与四组结论、成本记录 | 合流 | 交付物 A/B 验收；结果表继续本地交付，不入库 |
+| 批次收口后完善分区续跑（issue #155），核查旧版本依赖并制定归档方案 | shuidisjtu / 合流 | 历史结果可解析、复现命令通过；不直接删仍被引用的协议 |
 
-GradPU/KLDCE 的失败项恢复见 [runbook](runbook.md) §5.4。KLDCE 低 c 的 90 项 `blocked_preflight` 是数学不可行，按方法适用性边界处理，最终在覆盖说明中交代；不作为剩余工作。
+GradPU/KLDCE 恢复命令见 [runbook](runbook.md) §5.4。
+KLDCE 低 c 的数学不可行项保留为适用性边界，不列为可派发补跑；
+v3.2 图像扩展已完成训练，当前待验收，不能再把整批计划数当作剩余量。
 
 ## 3. 文档地图
 
@@ -48,9 +51,9 @@ GradPU/KLDCE 的失败项恢复见 [runbook](runbook.md) §5.4。KLDCE 低 c 的
 
 | 绑定 | 协议 | 比较矩阵 | profile 映射 | 配方注册表 | 定位 |
 |---|---|---|---|---|---|
-| v3.0 基线 | `survey_protocol_v3.json` | `survey_comparison_v6.json` | `survey_comparison_profile_map_v3.json` | `survey_recipe_registry_v1.json`（15 locked / 8 excluded） | 历史基线；完成后清理 |
-| v3.1 缺口批 | `survey_protocol_v3_1.json` | `survey_comparison_v7.json` | `survey_comparison_profile_map_v4.json` | `survey_recipe_registry_v1_1.json`（23 locked） | 历史缺口批；完成后清理 |
-| v3.2 当前最终候选 | `survey_protocol_v3_2.json` | `survey_comparison_v8.json` | `survey_comparison_profile_map_v5.json` | `survey_recipe_registry_v1_2.json`（23 locked） | 保留为最终复现版本（待 HENG958 复核） |
+| v3.0 基线 | `survey_protocol_v3.json` | `survey_comparison_v6.json` | `survey_comparison_profile_map_v3.json` | `survey_recipe_registry_v1.json`（15 locked / 8 excluded） | 既有基线结果的有效绑定，保留解析依赖 |
+| v3.1 缺口批 | `survey_protocol_v3_1.json` | `survey_comparison_v7.json` | `survey_comparison_profile_map_v4.json` | `survey_recipe_registry_v1_1.json`（23 locked） | 当前交接/扩展批次的有效绑定，不因 v3.2 出现而失效 |
+| v3.2 当前最终候选 | `survey_protocol_v3_2.json` | `survey_comparison_v8.json` | `survey_comparison_profile_map_v5.json` | `survey_recipe_registry_v1_2.json`（23 locked） | PUET/RP 图像扩展的候选绑定（待 HENG958 复核） |
 
 - [`survey_execution_plan.md`](survey_execution_plan.md)：能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D57）**，也是当前进度与批次状态的唯一记录。
 - `pu_toolbox/experiment/method_ledger.json`：方法台账；身份、来源、视图、校准、适配与待复核状态。
@@ -89,7 +92,7 @@ v1 / v2 协议与 v1–v5 比较矩阵仅作历史绑定；v6–v8 是 v3.0–v3
 ## 4. 不做清单
 
 - 不再新增跨文件摘要绑定或门禁脚本；新增须能指出一次已发生的具体事故。
-- 不再为已冻结文件新开版本号（D42 默认）；2026-11-01 的 v3.1/v3.2 是 **D55 例外**。实验完成后统一清理旧协议/矩阵/注册表，只保留最终正式版供工具箱实验脚本复现。
+- 不再为已冻结文件新开版本号（D42 默认）；2026-11-01 的 v3.1/v3.2 是 **D55 例外**。旧绑定先核查 manifest、交接与解析依赖，再安排归档/兼容；不直接删除仍在使用的 v3.0/v3.1，也不把旧结果改标 v3.2。
 - 不补写历史交接和复核文档。
 - 不追求与论文数值一致（沿用 D39）；`no_direct_anchor` 单元只用内部信号表述。
 - 不做 π 估计器敏感性实验（协议 §3 第 3 条的「后续」项）。
